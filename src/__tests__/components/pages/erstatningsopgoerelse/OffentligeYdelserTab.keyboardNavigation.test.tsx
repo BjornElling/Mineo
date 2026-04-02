@@ -64,10 +64,10 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
                 { ...initialOffentligYdelseRow, id: 'row-2' },
               ]}
               onRowsChange={vi.fn()}
-              getMidlertidigtEetInsertSource={() => ({
+              midlertidigtEetInsertSource={{
                 eetValues: ERHVERVSEVNETAB_INITIAL_VALUES,
                 skadesdato: undefined,
-              })}
+              }}
             />
           </Container>
         </AppSettingsProvider>
@@ -141,10 +141,10 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
                 { ...initialOffentligYdelseRow, id: 'row-2' },
               ]}
               onRowsChange={handleRowsChange}
-              getMidlertidigtEetInsertSource={() => ({
+              midlertidigtEetInsertSource={{
                 eetValues: ERHVERVSEVNETAB_INITIAL_VALUES,
                 skadesdato: undefined,
-              })}
+              }}
             />
           </Container>
         </AppSettingsProvider>

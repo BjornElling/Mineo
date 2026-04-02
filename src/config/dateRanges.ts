@@ -425,7 +425,7 @@ export const dateRanges_offentligeYdelser: DateRanges_OffentligeYdelser = {
     max: 'DYNAMIC', // Den laveste værdi af: tilDato (hvis udfyldt) eller fallbackMax
     fallbackMax: SYGEDAGPENGE_RATE_MAX_DATE,
     placeholder: 'dd-mm-åååå',
-    notes: 'Fra tidligste sygedagpengesats til tilDato (eller seneste satsdato)',
+    notes: 'Fra tidligste sygedagpengesats til tilDato (eller seneste satsdato). Disse tabelgrænser gælder hele Offentlige ydelser-tabellen, fordi sygedagpenge-hjælperen kræver satsdækning i hele intervallet.',
   },
   tilDato: {
     type: 'dynamic-min',
@@ -433,7 +433,7 @@ export const dateRanges_offentligeYdelser: DateRanges_OffentligeYdelser = {
     fallbackMin: SYGEDAGPENGE_RATE_MIN_DATE,
     max: SYGEDAGPENGE_RATE_MAX_DATE,
     placeholder: 'dd-mm-åååå',
-    notes: 'Fra fraDato (eller tidligste sygedagpengesats) til seneste satsdato',
+    notes: 'Fra fraDato (eller tidligste sygedagpengesats) til seneste satsdato. Valget er bevidst fælles for hele tabellen og ikke kun sygedagpenge-hjælperen.',
   },
 };
 

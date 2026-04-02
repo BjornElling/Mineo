@@ -1,4 +1,4 @@
-import { SYGEDAGPENGE_RATE_MAX_DATE, SYGEDAGPENGE_RATE_MIN_DATE } from '../../../config/regulatoryRates';
+import { SYGEDAGPENGE_RATE_MAX_DATE, SYGEDAGPENGE_RATE_MIN_DATE, sygedagpengeRates } from '../../../config/regulatoryRates';
 import {
   buildSygedagpengeRowsForRange,
   splitSygedagpengeRateSegments,
@@ -23,7 +23,7 @@ describe('sygedagpengeInsertRows', () => {
     });
   });
 
-  it('opretter offentlige ydelsesrækker som udtryk med sygedagpenge og dobbelt eget ATP', () => {
+  it('opretter offentlige ydelsesrækker som udtryk med sygedagpenge og kun kommunalt ATP-bidrag', () => {
     const rows = buildSygedagpengeRowsForRange('2025-01-06', '2025-01-10');
 
     expect(rows).toHaveLength(1);
@@ -44,6 +44,12 @@ describe('sygedagpengeInsertRows', () => {
     });
   });
 
+  it('forudsætter at kommunalt ATP-bidrag i rate-tabellen er dobbelt af eget bidrag', () => {
+    for (const rate of sygedagpengeRates) {
+      expect(rate.kommunaltAtpPrDag).toBe(rate.egetAtpPrDag * 2);
+    }
+  });
+
   it('medregner SH-dage før 2. juli 2012 men ikke fra og med 2. juli 2012', () => {
     const rowsFoerCutoff = buildSygedagpengeRowsForRange('2012-05-28', '2012-05-28');
     const rowsEfterCutoff = buildSygedagpengeRowsForRange('2013-05-20', '2013-05-20');
@@ -59,5 +65,19 @@ describe('sygedagpengeInsertRows', () => {
   it('eksponerer dynamiske min/max-datoer fra første og sidste satsrække', () => {
     expect(SYGEDAGPENGE_RATE_MIN_DATE).toBe('2005-01-03');
     expect(SYGEDAGPENGE_RATE_MAX_DATE).toBe('2027-01-03');
+  });
+
+  it('returnerer ingen rækker når hele perioden ligger uden for satsperioden', () => {
+    expect(buildSygedagpengeRowsForRange('2030-01-01', '2030-01-31')).toEqual([]);
+  });
+
+  it('trimmer delvist overlap til den del af perioden hvor der findes satser', () => {
+    const segments = splitSygedagpengeRateSegments('2026-12-29', '2027-01-10');
+
+    expect(segments).toHaveLength(1);
+    expect(segments[0]).toMatchObject({
+      fraDato: '2026-12-29',
+      tilDato: '2027-01-03',
+    });
   });
 });

@@ -107,6 +107,11 @@ export const usePersistedForm = <K extends StorageKey>(
   });
 
   const [formVersion, bumpFormVersion] = React.useReducer((v: number) => v + 1, 0);
+  const valuesRef = React.useRef(values);
+
+  React.useEffect(() => {
+    valuesRef.current = values;
+  }, [values]);
 
   // Re-hydrate when an authoritative snapshot has been applied (e.g. file load).
   React.useEffect(() => {
@@ -116,26 +121,31 @@ export const usePersistedForm = <K extends StorageKey>(
       bumpFormVersion();
       clearFieldErrorsRef.current(pageKey);
       if (!persistedRaw) {
+        valuesRef.current = initialValuesRef.current;
         setValuesState(initialValuesRef.current);
       } else {
         const persisted = parsePersisted(persistedRaw);
-        setValuesState(persisted ? { ...initialValuesRef.current, ...persisted } : initialValuesRef.current);
+        const nextValues = persisted ? { ...initialValuesRef.current, ...persisted } : initialValuesRef.current;
+        valuesRef.current = nextValues;
+        setValuesState(nextValues);
       }
     } catch {
       bumpFormVersion();
       clearFieldErrorsRef.current(pageKey);
+      valuesRef.current = initialValuesRef.current;
       setValuesState(initialValuesRef.current);
     }
   }, [authoritativeSnapshotEpoch, pageKey, parsePersisted]);
 
   // Felt-commit via funktionel updater. Bumper ikke formVersion.
+  // Vigtigt: persistence må ikke køre inde i Reacts state-updater, da det kan opdatere
+  // FormPersistenceProvider under render og give "setState in render"-advarsler.
   const setValues = React.useCallback(
     (updater: (prev: PersistedSectionMap[K]) => PersistedSectionMap[K]) => {
-      setValuesState((prev) => {
-        const next = updater(prev);
-        persistDataRef.current(pageKey, next);
-        return next;
-      });
+      const next = updater(valuesRef.current);
+      valuesRef.current = next;
+      setValuesState(next);
+      persistDataRef.current(pageKey, next);
     },
     [pageKey]
   );
@@ -165,6 +175,7 @@ export const usePersistedForm = <K extends StorageKey>(
    * Vi sætter kun lokal state + bumper formVersion her.
    */
   const resetForm = React.useCallback(() => {
+    valuesRef.current = initialValuesRef.current;
     setValuesState(initialValuesRef.current);
     bumpFormVersion();
     clearPageDataRef.current(pageKey);

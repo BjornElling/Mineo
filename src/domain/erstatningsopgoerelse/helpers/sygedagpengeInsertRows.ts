@@ -28,6 +28,14 @@ const buildSegmentExpression = (arbejdsdage: number, satsPrDag: number): string 
   return `${arbejdsdage}*${satsPrDag}`;
 };
 
+const resolveKommunaltAtpBidragPrDag = (rate: DatedSygedagpengeRate): number => {
+  const expectedKommunaltBidragPrDag = rate.egetAtpPrDag * 2;
+  if (rate.kommunaltAtpPrDag !== expectedKommunaltBidragPrDag) {
+    throw new Error('CRITICAL: Sygedagpenge-rater forventer at kommunalt ATP-bidrag altid er dobbelt af eget ATP-bidrag.');
+  }
+  return expectedKommunaltBidragPrDag;
+};
+
 export const splitSygedagpengeRateSegments = (
   fraDato: ISODateString,
   tilDato: ISODateString
@@ -66,7 +74,7 @@ export const buildSygedagpengeRowsForRange = (
   const segments = splitSygedagpengeRateSegments(fraDato, tilDato);
 
   return segments.map((segment) => {
-    const doubledEmployeeAtp = segment.rate.egetAtpPrDag * 2;
+    const kommunaltAtpBidragPrDag = resolveKommunaltAtpBidragPrDag(segment.rate);
     const fraDatoDa = isoToDanish(segment.fraDato);
     const tilDatoDa = isoToDanish(segment.tilDato);
     if (!fraDatoDa || !tilDatoDa) {
@@ -78,7 +86,7 @@ export const buildSygedagpengeRowsForRange = (
       fraDato: fraDatoDa,
       tilDato: tilDatoDa,
       ydelse: toExpressionAmount(buildSegmentExpression(segment.arbejdsdage, segment.rate.sygedagpengePrDagMax)),
-      tillaeg: toExpressionAmount(buildSegmentExpression(segment.arbejdsdage, doubledEmployeeAtp)),
+      tillaeg: toExpressionAmount(buildSegmentExpression(segment.arbejdsdage, kommunaltAtpBidragPrDag)),
       ydelsestype: 'sygedagpenge',
     };
   });
@@ -100,4 +108,9 @@ export const buildSygedagpengeRowsForRange = (
  *   de periodiseres på sygedagpenge-dage og fratrækker derfor ikke daterede feriedage.
  * - Det er bevidst og bryder den almindelige TAF-/løn-norm, hvor arbejdsdage typisk reduceres
  *   med daterede feriedage.
+ *
+ * Vigtigt om ATP:
+ * - Tillægget indeholder kun det kommunale ATP-bidrag.
+ * - Det kommunale bidrag forventes i rate-tabellen altid at være præcis dobbelt af eget bidrag.
+ * - Invarianten håndhæves eksplicit, så en fremtidig rate-ændring ikke stiltiende ændrer beregningen.
  */

@@ -79,6 +79,28 @@ describe('buildMidlertidigtEetRowsFromEet', () => {
     );
   });
 
+  it('indsætter periodetotalbeløbet uændret og ikke som et afledt dagsbeløb', () => {
+    const eetValues = makeValues();
+    const rows = buildMidlertidigtEetRowsFromEet({
+      eetValues,
+      skadesdato: '2024-07-01',
+    });
+    const computation = computeEetLoebendeYdelser({
+      erhvervsevnetab: eetValues,
+      skadesdato: '2024-07-01',
+      skadelidteFodselsdato: eetValues.skadelidteFodselsdato,
+    }).computation;
+
+    expect(computation).not.toBeNull();
+    const expectedPerioder = computation!.afgoerelser
+      .filter((afgoerelse) => afgoerelse.afgoerelseType === 'Midlertidig' || afgoerelse.afgoerelseType === 'Delvist endelig')
+      .flatMap((afgoerelse) => afgoerelse.perioder);
+
+    expect(rows.map((row) => row.ydelse?.kind === 'number' ? row.ydelse.value : undefined)).toEqual(
+      expectedPerioder.map((periode) => periode.beregnetEet)
+    );
+  });
+
   it('returnerer tomt resultat når der ikke findes indsatbare perioder', () => {
     const values = makeValues();
     values.aslAfgoerelser = [

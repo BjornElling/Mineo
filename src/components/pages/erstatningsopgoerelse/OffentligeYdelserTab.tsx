@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { z } from 'zod';
 import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
 import ContentBox from '../../layout/ContentBox';
@@ -33,7 +33,7 @@ type OffentligeYdelserHelpersSessionState = z.infer<typeof offentligeYdelserHelp
 type Props = Readonly<{
   rows: OffentligeYdelserRow[];
   onRowsChange: (rows: OffentligeYdelserRow[]) => void;
-  getMidlertidigtEetInsertSource: () => Readonly<{
+  midlertidigtEetInsertSource: Readonly<{
     eetValues: ErhvervsevnetabComposedValues;
     skadesdato: ISODateString | undefined;
   }>;
@@ -42,7 +42,7 @@ type Props = Readonly<{
 /**
  * Offentlige ydelser-fanen - modtagne ydelser
  */
-const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, getMidlertidigtEetInsertSource }: Props) => {
+const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetInsertSource }: Props) => {
   const sygedagpengeFraInputRef = React.useRef<HTMLInputElement | null>(null);
   const shouldFocusSygedagpengeFraRef = React.useRef(false);
   const suppressSygedagpengeFieldCommitRef = React.useRef(false);
@@ -130,6 +130,8 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, getMidlertidigtEe
     setSygedagpengeTilDato(undefined);
     setSygedagpengeFraError(undefined);
     setSygedagpengeTilError(undefined);
+    // Tæt koblet til StyledDateField/TableDateField commit-timing: suppression skal overleve
+    // det blur/commit, som klik på "Indsæt" udløser i samme frame, men må ikke blive hængende længere.
     requestAnimationFrame(() => {
       suppressSygedagpengeFieldCommitRef.current = false;
     });
@@ -147,7 +149,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, getMidlertidigtEe
   }, [applyMidlertidigtEetRows, midlertidigtEetPendingRows]);
 
   const handleMidlertidigtEetInsert = React.useCallback(() => {
-    const { eetValues, skadesdato } = getMidlertidigtEetInsertSource();
+    const { eetValues, skadesdato } = midlertidigtEetInsertSource;
     const generatedRows = buildMidlertidigtEetRowsFromEet({
       eetValues,
       skadesdato,
@@ -166,7 +168,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, getMidlertidigtEe
 
     setMidlertidigtEetPendingRows([...generatedRows]);
     setMidlertidigtEetConfirmDialogOpen(true);
-  }, [applyMidlertidigtEetRows, getMidlertidigtEetInsertSource, rows]);
+  }, [applyMidlertidigtEetRows, midlertidigtEetInsertSource, rows]);
 
   const handleSygedagpengeFraError = React.useCallback((error: ReportableFieldError | undefined) => {
     if (suppressSygedagpengeFieldCommitRef.current) return;
@@ -252,38 +254,14 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, getMidlertidigtEe
         </Box>
       </ContentBox>
 
-      <Dialog
+      <ConfirmationDialog
         open={midlertidigtEetNoRowsDialogOpen}
-        onClose={() => setMidlertidigtEetNoRowsDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-        sx={{
-          '& .MuiDialog-paper': {
-            borderRadius: '10px',
-          },
-        }}
-      >
-        <DialogTitle>Ingen midlertidig EET</DialogTitle>
-        <DialogContent>
-          <Box sx={{ fontSize: '14px' }}>
-            Der er ingen perioder med midlertidigt erhvervsevnetab at indsætte
-          </Box>
-        </DialogContent>
-        <DialogActions sx={{ padding: 2 }}>
-          <Button
-            onClick={() => setMidlertidigtEetNoRowsDialogOpen(false)}
-            variant="contained"
-            sx={{
-              borderRadius: '10px',
-              '&:hover': {
-                filter: 'brightness(0.9)',
-              },
-            }}
-          >
-            OK
-          </Button>
-        </DialogActions>
-      </Dialog>
+        title="Ingen midlertidig EET"
+        message="Der er ingen perioder med midlertidigt erhvervsevnetab at indsætte"
+        confirmText="OK"
+        hideCancelButton
+        onConfirm={() => setMidlertidigtEetNoRowsDialogOpen(false)}
+      />
 
       <ConfirmationDialog
         open={midlertidigtEetConfirmDialogOpen}

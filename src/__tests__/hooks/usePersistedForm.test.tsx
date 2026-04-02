@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { render } from '@testing-library/react';
+import { act, render } from '@testing-library/react';
 import { z } from 'zod';
 import { usePersistedForm, type UsePersistedFormReturn } from '../../hooks/usePersistedForm';
 import { FormPersistenceContext, type FormPersistenceContextValue } from '../../contexts/FormPersistenceContext.shared';
@@ -76,5 +76,39 @@ describe('usePersistedForm', () => {
 
     expect(captured.setValues).toBe(firstSetValues);
     expect(captured.resetForm).toBe(firstResetForm);
+  });
+
+  it('bruger seneste committed værdi ved sekventielle setValues-kald og persisterer uden side-effect i updateren', () => {
+    const captured: {
+      setValues: UsePersistedFormReturn<typeof initialValues>['setValues'] | null;
+      values: typeof initialValues | null;
+    } = {
+      setValues: null,
+      values: null,
+    };
+
+    const persistData = vi.fn();
+
+    const Capture = () => {
+      const form = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
+      captured.setValues = form.setValues;
+      captured.values = form.values;
+      return null;
+    };
+
+    render(
+      <FormPersistenceContext.Provider value={makeContext({ persistData })}>
+        <Capture />
+      </FormPersistenceContext.Provider>
+    );
+
+    act(() => {
+      captured.setValues!((prev) => ({ ...prev, journalnr: 'A' }));
+      captured.setValues!((prev) => ({ ...prev, journalnr: `${prev.journalnr}B` }));
+    });
+
+    expect(captured.values).toEqual({ journalnr: 'AB' });
+    expect(persistData).toHaveBeenNthCalledWith(1, 'stamdata', { journalnr: 'A' });
+    expect(persistData).toHaveBeenNthCalledWith(2, 'stamdata', { journalnr: 'AB' });
   });
 });

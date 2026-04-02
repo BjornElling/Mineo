@@ -4,12 +4,13 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, Box } from '
 type ConfirmationDialogProps = {
   open: boolean;
   onConfirm: () => void;
-  onCancel: () => void;
+  onCancel?: () => void;
   title: string;
   message: string | React.ReactNode;
   confirmText?: string;
   cancelText?: string;
   confirmColor?: 'primary' | 'error';
+  hideCancelButton?: boolean;
   /**
    * Ekstra actions (fx "Send fejloplysninger").
    *
@@ -23,7 +24,7 @@ type ConfirmationDialogProps = {
  *
  * @param open - Om dialogen er synlig
  * @param onConfirm - Callback når brugeren bekræfter
- * @param onCancel - Callback når brugeren annullerer
+ * @param onCancel - Callback når brugeren annullerer. Valgfri når dialogen kun har OK-knap.
  * @param title - Dialogens titel
  * @param message - Bekræftelsesbesked
  * @param confirmText - Tekst på bekræft-knap (default: "Ja")
@@ -39,6 +40,7 @@ const ConfirmationDialog = React.memo(({
   confirmText = 'Ja',
   cancelText = 'Annuller',
   confirmColor = 'primary',
+  hideCancelButton = false,
   extraActions,
 }: ConfirmationDialogProps) => {
   return (
@@ -58,18 +60,20 @@ const ConfirmationDialog = React.memo(({
         <Box sx={{ fontSize: '14px' }}>{message}</Box>
       </DialogContent>
       <DialogActions sx={{ padding: 2, gap: 1 }}>
-        <Button
-          onClick={onCancel}
-          variant="outlined"
-          sx={{
-            borderRadius: '10px',
-            '&:hover': {
-              backgroundColor: 'rgba(0, 0, 0, 0.04)',
-            },
-          }}
-        >
-          {cancelText}
-        </Button>
+        {!hideCancelButton && (
+          <Button
+            onClick={onCancel}
+            variant="outlined"
+            sx={{
+              borderRadius: '10px',
+              '&:hover': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+              },
+            }}
+          >
+            {cancelText}
+          </Button>
+        )}
         {extraActions}
         <Button
           onClick={onConfirm}

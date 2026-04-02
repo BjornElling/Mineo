@@ -57,4 +57,6 @@ export const buildMidlertidigtEetRowsFromEet = ({
  *   løbende-ydelser-beregning som fanen "Løbende ydelser".
  * - Der laves ingen særskilt EO-beregning og ingen differencekravs-variant.
  * - Hver række i EET-tabellen "Beregnede ydelser" bliver til præcis én EO-række.
+ * - Midlertidigt EET i EET-fanen beregnes på kalenderdage; EO-importen skal derfor
+ *   bevare både periode og periodetotalbeløb uændret for at være korrekt.
  */

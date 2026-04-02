@@ -335,6 +335,24 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     });
   }, TEST_TIMEOUT_MS);
 
+  it('viser ikke ydelse pr. dag for midlertidigt EET-rækker', () => {
+    render(
+      <DerivedHarness
+        onPersist={vi.fn()}
+        initial={[
+          makeRow({
+            fraDato: '01-01-2024',
+            tilDato: '10-01-2024',
+            ydelsestype: 'midlertidigt_eet',
+            ydelse: asAmount(1000),
+          }),
+        ]}
+      />
+    );
+
+    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '' });
+  });
+
   it('recomputes ydelse/dag on blur when entering an already-canonical date (no normalization delta)', async () => {
     const user = userEvent.setup();
     const onPersist = vi.fn();

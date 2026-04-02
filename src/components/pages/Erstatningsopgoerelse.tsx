@@ -12,7 +12,11 @@ import {
   useSectionRevisionSelector,
 } from '../../hooks/useFormPersistenceSelectors';
 import {
+  erhvervsevnetabSchema,
+  faellesAarsloenSchema,
+  faellesPersondataSchema,
   erstatningsopgoerelseSchema,
+  stamdataSchema,
   type ErstatningsopgoerelseValues,
   type ErhvervsevnetabComposedValues,
 } from '../../schemas/formSchemas';
@@ -129,33 +133,35 @@ const Erstatningsopgoerelse = React.memo(() => {
   }, [buildDebugSnapshot]);
 
   const persistedStamdata = usePersistedSectionSelector('stamdata');
+  const persistedErhvervsevnetab = usePersistedSectionSelector('erhvervsevnetab');
+  const persistedFaellesAarsloen = usePersistedSectionSelector('faellesAarsloen');
+  const persistedFaellesPersondata = usePersistedSectionSelector('faellesPersondata');
   const stamdataValuesForBeregningTab = React.useMemo<StamdataValues>(() => {
     const nextPersistedStamdata = persistedStamdata;
     if (!nextPersistedStamdata) return STAMDATA_INITIAL_VALUES;
     return { ...STAMDATA_INITIAL_VALUES, ...nextPersistedStamdata };
   }, [persistedStamdata]);
-  const getMidlertidigtEetInsertSource = React.useCallback((): Readonly<{
+  const midlertidigtEetInsertSource = React.useMemo<Readonly<{
     eetValues: ErhvervsevnetabComposedValues;
     skadesdato: StamdataValues['skadesdato'];
-  }> => {
-    const persistedErhvervsevnetab = getPersistedSectionSnapshot('erhvervsevnetab');
-    const persistedFaellesAarsloen = getPersistedSectionSnapshot('faellesAarsloen');
-    const persistedFaellesPersondata = getPersistedSectionSnapshot('faellesPersondata');
-    const persistedStamdataForInsert = getPersistedSectionSnapshot('stamdata');
+  }>>(() => {
+    const parsedErhvervsevnetab = erhvervsevnetabSchema.safeParse(persistedErhvervsevnetab);
+    const parsedFaellesAarsloen = faellesAarsloenSchema.safeParse(persistedFaellesAarsloen);
+    const parsedFaellesPersondata = faellesPersondataSchema.safeParse(persistedFaellesPersondata);
+    const parsedStamdata = stamdataSchema.safeParse(persistedStamdata);
 
     return {
       eetValues: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        ...(persistedErhvervsevnetab ?? {}),
+        ...(parsedErhvervsevnetab.success ? parsedErhvervsevnetab.data : {}),
         ...FAELLES_AARSLOEN_INITIAL_VALUES,
-        ...(persistedFaellesAarsloen ?? {}),
+        ...(parsedFaellesAarsloen.success ? parsedFaellesAarsloen.data : {}),
         ...FAELLES_PERSONDATA_INITIAL_VALUES,
-        ...(persistedFaellesPersondata ?? {}),
+        ...(parsedFaellesPersondata.success ? parsedFaellesPersondata.data : {}),
       },
-      skadesdato: persistedStamdataForInsert?.skadesdato,
+      skadesdato: parsedStamdata.success ? parsedStamdata.data.skadesdato : undefined,
     };
-  }, []);
-
+  }, [persistedErhvervsevnetab, persistedFaellesAarsloen, persistedFaellesPersondata, persistedStamdata]);
   const [eoSnapshot, setEoSnapshot] = React.useState<EoSnapshot | null>(null);
   const stamdataRevision = useSectionRevisionSelector('stamdata');
   const eoRevision = useSectionRevisionSelector('erstatningsopgoerelse');
@@ -390,7 +396,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             <OffentligeYdelserTab
               rows={form.values.offentligeYdelserRows ?? []}
               onRowsChange={handleOffentligeYdelserRowsChange}
-              getMidlertidigtEetInsertSource={getMidlertidigtEetInsertSource}
+              midlertidigtEetInsertSource={midlertidigtEetInsertSource}
             />
           </Box>
         )}
