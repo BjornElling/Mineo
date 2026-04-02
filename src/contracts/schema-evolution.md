@@ -13,6 +13,48 @@ Load-mekanismen (`src/utils/fileLoad.ts`) kører `schema.safeParse(data)` på hv
 
 ---
 
+## Del 0: Første beslutning — er det et sagsfelt eller et UI-hjælpefelt?
+
+Ikke alle nye felter på skærmen er nye felter i sags-skemaet. Før implementering skal man klassificere feltet korrekt:
+
+### 0.1 Sagsfelt (skal i schema)
+
+Et felt er et **sagsfelt**, hvis det er en del af den autoritative brugerindtastning for sagen og derfor skal:
+- gemmes i `.eo`
+- indgå i `FormPersistenceContext`
+- kunne indlæses igen efter save/load
+- kunne bruges af beregninger, PDF eller andre persisted flows
+
+For disse felter gælder hele resten af denne kontrakt uændret.
+
+### 0.2 UI-hjælpefelt (må ikke i schema, men kan stadig kræve F5-bevarelse)
+
+Et felt er et **UI-hjælpefelt**, hvis det kun understøtter et lokalt flow i UI'et, f.eks.:
+- søge-/finderfelter
+- import-/indsættelsesfelter ved en hjælpeknap
+- overlay-/dialog-inputs der ikke i sig selv er en del af sagen
+
+Sådanne felter må **ikke** lægges i sags-skemaet alene for at overleve F5.
+
+Hvis brugeren skal kunne genindlæse siden (`F5`) uden at miste en indtastning i et UI-hjælpefelt, skal feltet i stedet persisteres som **UI-state i `sessionStorage`**:
+- via en nøgle i `UI_STORAGE_KEYS` i `src/config/storageManifest.ts`
+- med separat, eksplicit læs/skriv-logik
+- uden at værdien kommer med i `.eo`
+
+### 0.3 Forbudt mellemtilstand
+
+Det er en fejl at indføre et brugerindtastningsfelt som:
+- kun lokal `useState`, **når feltet efter brugerforventningen skal bevares ved F5**
+
+Det er også en fejl at lægge et rent UI-hjælpefelt i sags-skemaet, hvis værdien ikke er en del af den autoritative sag.
+
+Kort sagt:
+- `.eo`-/domænefelt -> schema + initial values + denne kontrakt
+- UI-hjælpefelt med F5-krav -> `UI_STORAGE_KEYS` + sessionStorage
+- rent flygtigt view-state uden F5-krav -> lokal state er acceptabel
+
+---
+
 ## Del 1: Load-kompatibilitet — hvad der kræves i skemaet
 
 ### Regel 1.1: Alle nye felter skal have `.optional()` eller `.default(…)`

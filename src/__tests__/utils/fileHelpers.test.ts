@@ -1,135 +1,113 @@
-import { sanitizeFilename, generateFilename } from '../../utils/fileHelpers';
+import { resolveDefaultDirectoryHandle } from '../../utils/fileHelpers';
+import type { AppSettings } from '../../settings/appSettingsSchema';
 
-// ─── sanitizeFilename ──────────────────────────────────────────────────────────
+const loadDefaultDirectoryHandleMock = vi.fn();
+const verifyDirectoryHandleMock = vi.fn();
 
-describe('sanitizeFilename', () => {
-  it('returnerer fallback for null', () => {
-    expect(sanitizeFilename(null)).toBe('Erstatningsopgørelse');
+vi.mock('../../utils/fileHandleStorage', () => ({
+  loadDefaultDirectoryHandle: (...args: unknown[]) => loadDefaultDirectoryHandleMock(...args),
+  verifyDirectoryHandle: (...args: unknown[]) => verifyDirectoryHandleMock(...args),
+}));
+
+vi.mock('../../utils/logger', () => ({
+  logError: vi.fn(),
+  logWarning: vi.fn(),
+}));
+
+const baseSettings: AppSettings = {
+  defaultStartsideErStamdata: false,
+  showContentBoxReportButton: false,
+  showEODebugMenu: false,
+  fontStyleColorDebug: false,
+  showStamdataTestTab: false,
+  erstatningsopgoerelseAfsluttesMed: 'Bekræftet godkendt',
+  defaultFuldLoenUnderFerie: true,
+  defaultLoenPaaHelligdage: 'Almindelig løn',
+  defaultOverenskomstLoenmodtager: 'ALLE',
+  defaultOverenskomstArbejdsgiver: 'ALLE',
+  defaultSvieSmerteDelvisSygemeldingSats: 'halv',
+  defaultIndsaetUdkastStempel: true,
+  defaultVisBilagsnumre: false,
+  allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
+  allowReguleringMedUdloebMedMaaneder: 6,
+  defaultDirectoryHandleId: 'dir-1',
+  brevhovedIndstillinger: {
+    erstatningsopgoerelse: true,
+    shDage: false,
+    renteberegning: true,
+    regulering: false,
+    varigeMen: true,
+    satser: false,
+    aarsloensberegning: true,
+    erhvervsevnetab: true,
+    forsoergertab: true,
+  },
+};
+
+describe('resolveDefaultDirectoryHandle', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('returnerer fallback for undefined', () => {
-    expect(sanitizeFilename(undefined)).toBe('Erstatningsopgørelse');
-  });
+  it('bevarer brugerens standardmappe når den kan bruges som læsbar startplacering', async () => {
+    const directoryHandle = {
+      name: 'Sager',
+      queryPermission: vi.fn(),
+    } as unknown as FileSystemDirectoryHandle;
 
-  it('returnerer fallback for tom streng', () => {
-    expect(sanitizeFilename('')).toBe('Erstatningsopgørelse');
-  });
+    loadDefaultDirectoryHandleMock.mockResolvedValue(directoryHandle);
+    verifyDirectoryHandleMock.mockResolvedValue(true);
 
-  it('returnerer custom fallback', () => {
-    expect(sanitizeFilename(null, 'MinFallback')).toBe('MinFallback');
-  });
+    const result = await resolveDefaultDirectoryHandle(baseSettings);
 
-  it('bevarer danske bogstaver', () => {
-    const result = sanitizeFilename('ÆØÅæøå');
-    expect(result).toBe('ÆØÅæøå');
-  });
-
-  it('fjerner ugyldige tegn', () => {
-    expect(sanitizeFilename('fil<>:"/\\|?*navn')).toBe('filnavn');
-  });
-
-  it('reducerer multiple mellemrum til ét', () => {
-    expect(sanitizeFilename('a  b   c')).toBe('a b c');
-  });
-
-  it('fjerner trailing punktummer', () => {
-    expect(sanitizeFilename('navn...')).toBe('navn');
-  });
-
-  it('fjerner leading og trailing whitespace', () => {
-    expect(sanitizeFilename('  navn  ')).toBe('navn');
-  });
-
-  it('bevarer bindestreger og underscores', () => {
-    expect(sanitizeFilename('min-fil_navn')).toBe('min-fil_navn');
-  });
-
-  it('tilføjer underscore til Windows-reserverede navne', () => {
-    expect(sanitizeFilename('con')).toBe('con_');
-    expect(sanitizeFilename('NUL')).toBe('NUL_');
-    expect(sanitizeFilename('COM1')).toBe('COM1_');
-    expect(sanitizeFilename('lpt9')).toBe('lpt9_');
-  });
-
-  it('afkorter til 150 tegn', () => {
-    const lang = 'a'.repeat(200);
-    const result = sanitizeFilename(lang);
-    expect(result.length).toBeLessThanOrEqual(150);
-  });
-
-  it('returnerer fallback når alle tegn er ugyldige', () => {
-    expect(sanitizeFilename('<>:"/\\|?*')).toBe('Erstatningsopgørelse');
-  });
-
-  it('bevarer punktummer i midten', () => {
-    expect(sanitizeFilename('fil.navn')).toBe('fil.navn');
-  });
-});
-
-// ─── generateFilename ──────────────────────────────────────────────────────────
-
-describe('generateFilename', () => {
-  it('returnerer kun prefix ved null-input (ingen ekstra felter)', () => {
-    // parts starter altid med EO_FILENAME_PREFIX, så null → kun 'MINEO'
-    expect(generateFilename(null)).toBe('MINEO');
-  });
-
-  it('returnerer kun prefix ved undefined-input', () => {
-    expect(generateFilename(undefined)).toBe('MINEO');
-  });
-
-  it('returnerer kun prefix ved tomt stamdata', () => {
-    expect(generateFilename({})).toBe('MINEO');
-  });
-
-  it('returnerer kun prefix når kun journalnr er udfyldt (journalnr-branch er ikke nået via normal sti)', () => {
-    // journalnr-fallback-logikken er placeret i en branch der kræver parts.length===0,
-    // men parts starter med EO_FILENAME_PREFIX, så den branch er utilgængelig.
-    const result = generateFilename({ stamdata: { journalnr: 'J-42' } });
-    expect(result).toBe('MINEO');
-  });
-
-  it('inkluderer skadelidte i filnavn', () => {
-    const result = generateFilename({ stamdata: { skadelidte: 'Anders Jensen' } });
-    expect(result).toContain('Anders Jensen');
-    expect(result.startsWith('MINEO')).toBe(true);
-  });
-
-  it('inkluderer skadestype i filnavn', () => {
-    const result = generateFilename({
-      stamdata: { skadelidte: 'Anders Jensen', skadestype: 'Arbejdsulykke' },
+    expect(verifyDirectoryHandleMock).toHaveBeenCalledWith(directoryHandle, {
+      mode: 'read',
+      allowRequestPermission: true,
     });
-    expect(result).toContain('Arbejdsulykke');
-  });
-
-  it('filtrerer placeholder-skadestype "Vælg skadestype" fra', () => {
-    const result = generateFilename({
-      stamdata: { skadelidte: 'Person', skadestype: 'Vælg skadestype' },
+    expect(result).toEqual({
+      handle: directoryHandle,
+      wellKnown: 'desktop',
+      displayName: 'Sager',
+      isFallback: false,
     });
-    expect(result).not.toContain('Vælg skadestype');
   });
 
-  it('inkluderer dato i dansk format', () => {
-    const result = generateFilename({
-      stamdata: { skadelidte: 'Person', skadesdato: '2024-06-15' },
+  it('falder tilbage til skrivebord når standardmappen ikke kan bruges som læsbar startplacering', async () => {
+    const directoryHandle = {
+      name: 'Sager',
+      queryPermission: vi.fn(),
+    } as unknown as FileSystemDirectoryHandle;
+
+    loadDefaultDirectoryHandleMock.mockResolvedValue(directoryHandle);
+    verifyDirectoryHandleMock.mockResolvedValue(false);
+
+    const result = await resolveDefaultDirectoryHandle(baseSettings);
+
+    expect(result).toEqual({
+      handle: null,
+      wellKnown: 'desktop',
+      displayName: 'Skrivebord',
+      isFallback: true,
     });
-    expect(result).toContain('15-06-2024');
   });
 
-  it('bygger fuld filnavns-streng med alle felter', () => {
-    const result = generateFilename({
-      stamdata: {
-        skadelidte: 'Lars Nielsen',
-        skadestype: 'Erhvervssygdom',
-        skadesdato: '2023-03-01',
-      },
+  it('forsøger at anmode om permission før fallback til skrivebord', async () => {
+    const directoryHandle = {
+      name: 'Arkiv',
+      queryPermission: vi.fn(),
+      requestPermission: vi.fn(),
+    } as unknown as FileSystemDirectoryHandle;
+
+    loadDefaultDirectoryHandleMock.mockResolvedValue(directoryHandle);
+    verifyDirectoryHandleMock.mockResolvedValue(true);
+
+    const result = await resolveDefaultDirectoryHandle(baseSettings);
+
+    expect(verifyDirectoryHandleMock).toHaveBeenCalledWith(directoryHandle, {
+      mode: 'read',
+      allowRequestPermission: true,
     });
-    expect(result).toBe('MINEO - Lars Nielsen - Erhvervssygdom - 01-03-2023');
-  });
-
-  it('starter altid med MINEO', () => {
-    expect(generateFilename({ stamdata: { journalnr: 'X' } }).startsWith('MINEO')).toBe(true);
-    expect(generateFilename({ stamdata: { skadelidte: 'Y' } }).startsWith('MINEO')).toBe(true);
-    expect(generateFilename(null).startsWith('MINEO')).toBe(true);
+    expect(result.isFallback).toBe(false);
+    expect(result.displayName).toBe('Arkiv');
   });
 });

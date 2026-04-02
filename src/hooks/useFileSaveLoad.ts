@@ -1,7 +1,7 @@
 import React from 'react';
 import type { MutableRefObject } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
-import { saveToFile } from '../utils/fileSave';
+import { SaveValidationError, saveToFile } from '../utils/fileSave';
 import { loadFromFile, loadFromFileHandle } from '../utils/fileLoad';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from '../utils/fileHandleStorage';
 import { resolveDefaultDirectoryHandle } from '../utils/fileHelpers';
@@ -68,6 +68,20 @@ type UseFileSaveLoadResult = {
 };
 
 const LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE = 'Kan ikke indlæse fil: afslut eller ret det aktive felt først.';
+
+const resolveSaveError = (error: unknown): OverlayData => {
+  if (error instanceof SaveValidationError) {
+    return {
+      message: error.message,
+      type: 'warning',
+    };
+  }
+
+  return {
+    message: (error as Error)?.message || 'Kunne ikke gemme fil',
+    type: 'error',
+  };
+};
 
 const parseFilenameBasisFromStamdata = (stamdata: unknown): { skadelidte?: string; skadestype?: string; skadesdato?: string } | null => {
   if (!isRecord(stamdata)) return null;
@@ -231,12 +245,12 @@ export const useFileSaveLoad = ({
       }
     } catch (error) {
       restoreFocusIfPossible(focusTargetBeforeSave);
-      console.error('Gem fejlede:', error);
+      const overlay = resolveSaveError(error);
+      if (!(error instanceof SaveValidationError)) {
+        console.error('Gem fejlede:', error);
+      }
       markUserFeedback();
-      showOverlay({
-        message: (error as Error)?.message || 'Kunne ikke gemme fil',
-        type: 'error',
-      });
+      showOverlay(overlay);
     }
   }, [combinedSectionRevisionRef, getPersistedData, hasBlockingInputErrors, markSaved, markUserFeedback, settings, showOverlay]);
 

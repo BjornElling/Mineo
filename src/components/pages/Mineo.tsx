@@ -39,7 +39,7 @@ const Mineo = React.memo(() => {
   return (
     <Box className="mineo-page">
       {/* Side-header */}
-      <Typography className="page-title">minEO.dk</Typography>
+      <Typography className="page-title">MinEO</Typography>
 
       {/* ------------------------------------------------------ */}
       {/* Beskrivelse */}
@@ -114,9 +114,7 @@ const Mineo = React.memo(() => {
         {/* Bevidst UX-beslutning: denne toggle er placeret på Mineo-siden — ikke på
             Indstillinger-siden. Mineo-siden er den første side nye brugere møder, og
             det giver kontekst til valget: brugeren ser programbeskrivelsen og kan
-            derfra beslutte, om Stamdata skal være standardstart. Placeringen i
-            Indstillinger er fravalgt, fordi indstillingen er tæt knyttet til
-            introduktionen til programmet snarere end til tekniske præferencer. */}
+            derfra beslutte, om Stamdata skal være standardstart. */}
         <Box className="row--label-right-hover">
           <Typography className="row--text">Gør stamdata-siden til startside fremover</Typography>
           <Box className="row--label-right-hover__content">

@@ -565,16 +565,33 @@ export const deleteDefaultDirectoryHandle = async (): Promise<boolean> => {
  * @param {FileSystemDirectoryHandle} handle - Directory handle der skal valideres
  * @returns {Promise<boolean>} True hvis handle er gyldigt og mappen eksisterer
  */
-export const verifyDirectoryHandle = async (handle: FileSystemDirectoryHandle): Promise<boolean> => {
+export const verifyDirectoryHandle = async (
+  handle: FileSystemDirectoryHandle,
+  options: Readonly<{ mode?: 'read' | 'readwrite'; allowRequestPermission?: boolean }> = {}
+): Promise<boolean> => {
   try {
     if (!handle || !handle.queryPermission) {
       return false;
     }
 
-    // Tjek om vi har readwrite permission
-    // Kalder kun queryPermission — requestPermission må kun kaldes fra direkte brugergestus-handlers
+    const mode = options.mode ?? 'read';
+    const requestPermission = typeof handle.requestPermission === 'function'
+      ? handle.requestPermission.bind(handle)
+      : null;
+
+    // Tjek om vi har den nødvendige adgang for at bruge handle som picker-startmappe.
+    // Hvis kaldet sker fra en direkte brugergestus-handler, må vi bede browseren om tilladelse
+    // i stedet for at falde tilbage til skrivebordet ved permission='prompt'.
     try {
-      const permission = await handle.queryPermission({ mode: 'readwrite' });
+      let permission = await handle.queryPermission({ mode });
+
+      if (
+        permission !== 'granted' &&
+        options.allowRequestPermission === true &&
+        requestPermission
+      ) {
+        permission = await requestPermission({ mode });
+      }
 
       return permission === 'granted';
 

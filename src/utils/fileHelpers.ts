@@ -240,7 +240,7 @@ export interface ResolvedDirectory {
  *    - Slå op via IndexedDB
  *    - Hvis ikke fundet → fallback til desktop
  *    - Hvis fundet: check queryPermission
- *    - Hvis denied → forsøg requestPermission
+ *    - Hvis permission ikke er granted: forsøg requestPermission
  *    - Hvis stadig ikke granted → fallback til desktop
  * 2. Fallback: Returnér 'desktop' som well-known identifier
  *
@@ -276,7 +276,12 @@ export const resolveDefaultDirectoryHandle = async (
     }
 
     // Verificér at handle stadig er gyldigt og har permission
-    const isValid = await verifyDirectoryHandle(handle);
+    // Pickerens `startIn` kræver kun, at mappen fortsat kan bruges som læsbar startplacering.
+    // Selve gem-operationen anmoder senere om nødvendig filskrivetilladelse på den valgte fil.
+    const isValid = await verifyDirectoryHandle(handle, {
+      mode: 'read',
+      allowRequestPermission: true,
+    });
 
     if (!isValid) {
       // Handle er ugyldigt (mappe slettet, permission nægtet, etc.)

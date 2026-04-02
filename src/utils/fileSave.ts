@@ -32,6 +32,7 @@ import {
   verifyAfterSave,
 } from './fileSaveInternals';
 import { isRecord, asError } from './typeGuards';
+import { applyRegisteredTableSaveOrder } from './tableSaveOrderRegistry';
 
 export class SaveIntegrityError extends Error {
   readonly kind = 'integrity' as const;
@@ -164,7 +165,8 @@ export const saveToFile = async (
 ): Promise<SaveFileResult> => {
 
   try {
-    const allDataRaw = buildAllDataRawFromSnapshot(snapshot);
+    const orderedSnapshot = applyRegisteredTableSaveOrder(snapshot);
+    const allDataRaw = buildAllDataRawFromSnapshot(orderedSnapshot);
 
     // VIGTIGT: `.eo` fil må kun indeholde schema-valideret brugerinput.
     const parsedData = eoFileDataSchema.safeParse(allDataRaw);
@@ -177,24 +179,14 @@ export const saveToFile = async (
 
     // 2. Valider at vi har egentlige data at gemme
     if (!hasRealData(canonicalData)) {
-      const error = new SaveValidationError('Ingen data fundet at gemme');
-      logError('Validering fejlede', {
-        context: 'saveToFile.validation',
-        error,
-      });
-      throw error;
+      throw new SaveValidationError('Ingen data fundet at gemme');
     }
 
     // 3. Tæl antal felter med data til preflight-rapportering ved hent
     const fieldCount = countFilledFields(canonicalData);
 
     if (fieldCount === 0) {
-      const error = new SaveValidationError('Ingen udfyldte felter fundet');
-      logError('Feltoptælling fejlede', {
-        context: 'saveToFile.fieldCount',
-        error,
-      });
-      throw error;
+      throw new SaveValidationError('Ingen udfyldte felter fundet');
     }
 
     // 4. Opbyg fil-struktur med metadata
@@ -452,13 +444,17 @@ export const saveToFile = async (
 
     // Sikkerhed: Log kun fejltype, ikke følsomme data
     const safeErrorMessage = err.message.replace(/\b\d{6}-\d{4}\b/g, '[CPR]'); // Maskér CPR-numre
+    if (err instanceof SaveValidationError) {
+      throw err;
+    }
+
     logError('Gem-operation fejlede', {
       context: 'saveToFile',
       error: new Error(safeErrorMessage),
     });
 
     // Genkast med brugervenlig besked
-    if (err instanceof SaveIntegrityError || err instanceof SaveUnusableFileError || err instanceof SaveValidationError) {
+    if (err instanceof SaveIntegrityError || err instanceof SaveUnusableFileError) {
       throw err;
     }
 

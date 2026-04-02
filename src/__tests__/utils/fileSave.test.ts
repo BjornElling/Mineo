@@ -1,8 +1,9 @@
 import { eoFileDataSchema } from '../../schemas/eoFileSchema';
 import { decryptFromString } from '../../utils/encryption';
 import { readFromFileHandle } from '../../utils/fileSystemAccess';
-import { saveToFile } from '../../utils/fileSave';
+import { SaveValidationError, saveToFile } from '../../utils/fileSave';
 import { buildAllDataRawFromSnapshot, compareData, verifyAfterSave } from '../../utils/fileSaveInternals';
+import { logError } from '../../utils/logger';
 import {
   loadFileHandleFromIndexedDB,
   requestPersistentStorage,
@@ -52,6 +53,7 @@ const mockedRequestPersistentStorage = vi.mocked(requestPersistentStorage);
 const mockedLoadFileHandleFromIndexedDB = vi.mocked(loadFileHandleFromIndexedDB);
 const mockedSaveFileHandleToIndexedDB = vi.mocked(saveFileHandleToIndexedDB);
 const mockedVerifyFileHandleDetailed = vi.mocked(verifyFileHandleDetailed);
+const mockedLogError = vi.mocked(logError);
 
 describe('fileSave', () => {
   beforeEach(() => {
@@ -391,6 +393,24 @@ describe('fileSave', () => {
 
       expect(result.cancelled).toBe(true);
       expect(sessionStorage.getItem('mineo_ui_lastSavedFilenameBasis')).toBeNull();
+    });
+
+    it('logger ikke fejl når der ikke er data at gemme', async () => {
+      const emptySnapshot = {
+        stamdata: undefined,
+        satser: undefined,
+        aarsloen: undefined,
+        faellesAarsloen: undefined,
+        faellesPersondata: undefined,
+        renteberegning: undefined,
+        varigemen: undefined,
+        forsoergertab: undefined,
+        erstatningsopgoerelse: undefined,
+        erhvervsevnetab: undefined,
+      } as const;
+
+      await expect(saveToFile(emptySnapshot)).rejects.toBeInstanceOf(SaveValidationError);
+      expect(mockedLogError).not.toHaveBeenCalled();
     });
   });
 });

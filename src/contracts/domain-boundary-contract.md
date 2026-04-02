@@ -67,3 +67,16 @@ Dette dokument fastlægger bindende grænser mellem sider/domæner, så tværkob
 1. Nye hooks/pipelines må ikke hente persisted data fra andre fagsider end deres egen side + `stamdata`.
 2. Reviews skal afvise ændringer, hvor en side skjult afhænger af en anden sides committed state.
 3. Ved tvivl gælder fail-closed: afvis koblingen, dokumentér behovet, og afvent kontraktændring.
+
+## 6. Snæver EO-import af midlertidigt EET
+
+1. `Erstatningsopgørelse` må som en eksplicit undtagelse læse følgende persisted sektioner til import på fanen `Offentlige ydelser`:
+   - `erhvervsevnetab`
+   - `faellesAarsloen`
+   - `faellesPersondata`
+   - `stamdata`
+2. Undtagelsen gælder kun knappen, der indsætter `midlertidigt_eet`-rækker i EO-tabellen.
+3. Importen skal bruge samme beregningsvej som siden `Erhvervsevnetab` -> fanen `Løbende ydelser`, så EO indsætter de rækker brugeren ville få vist dér.
+4. Importen må ikke bruge differencekravs-varianten af løbende ydelser.
+5. Importen må kun medtage rækker, der udspringer af afgørelser med typen `Midlertidig` eller `Delvist endelig`; rækker fra `Endelig` må ikke indgå.
+6. Undtagelsen giver kun read-only adgang fra EO mod EET-relaterede sektioner; EO må ikke skrive tilbage til disse sektioner.

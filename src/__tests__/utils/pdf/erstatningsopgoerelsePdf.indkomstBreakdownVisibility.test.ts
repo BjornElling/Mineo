@@ -618,7 +618,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       'Feriepenge-sats',
       'AG-pension',
       expect.stringMatching(/^Antal (arbejds|kalender)dage$/),
-      'Feriepengekrav',
+      'Feriepenge',
     ]);
     expect(tableBody?.[1]).toHaveLength(6);
     const hasTotalRow = tableBody?.some((row) => row[0]?.content === 'I alt') ?? false;
@@ -706,14 +706,16 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
     const tafIndex = texts.findIndex((text) => text === 'Der beregnes sygeferiegodtgørelse i TAF-perioden');
-    const ophoerLabelIndex = texts.findIndex((text) => text === 'Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som bortfalder');
+    const ophoerLabelIndex = texts.findIndex((text) => text === 'Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte');
     const ophoerDatoIndex = texts.findIndex((text) => text === '30-04-2014');
+    const feriepengeHvisIkkeSkadeIndex = texts.findIndex((text) => text === 'Feriepenge, hvis skaden ikke var sket');
     const kravIndex = texts.findIndex((text) => text.startsWith('Kravet beregnes per '));
 
     expect(tafIndex).toBeGreaterThanOrEqual(0);
     expect(ophoerLabelIndex).toBe(tafIndex + 2);
     expect(ophoerDatoIndex).toBe(ophoerLabelIndex + 1);
-    expect(kravIndex).toBeGreaterThan(ophoerDatoIndex);
+    expect(feriepengeHvisIkkeSkadeIndex).toBe(ophoerDatoIndex + 1);
+    expect(kravIndex).toBe(feriepengeHvisIkkeSkadeIndex + 1);
   });
 
   it('viser ikke SFGG-referenceperiode på SH-dage-siden når aktuelt SFGG-grundlag ikke er referenceperiode, selv om dokumentet indeholder gammel referenceperiode', () => {
@@ -1122,7 +1124,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       );
     const sfggRows = sfggTableCall?.body?.map((row: Array<{ content: string }>) => row.map((cell) => cell.content)) ?? [];
 
-    expect(sfggRows).toContainEqual(['Fra-dato', 'Til-dato', 'Feriepenge-sats', 'AG-pension', 'Antal arbejdsdage', 'Feriepengekrav']);
+    expect(sfggRows).toContainEqual(['Fra-dato', 'Til-dato', 'Feriepenge-sats', 'AG-pension', 'Antal arbejdsdage', 'Feriepenge']);
     expect(sfggRows).toContainEqual(['01-01-2025', '03-01-2025', '191,40', '+ 10,15 %', '2', '421,65']);
     expect(sfggRows).not.toContainEqual(['02-01-2025', '03-01-2025', '191,40', '+ 10,15 %', '2', '421,65']);
   });

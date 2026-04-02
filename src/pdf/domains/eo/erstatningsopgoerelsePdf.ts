@@ -135,7 +135,7 @@ const parseSfggPdfExplanatoryLine = (
   if (!parsed) return null;
   if (parsed.kind === 'four_month_cap') {
     return {
-      left: `Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som ${parsed.verb}`,
+      left: 'Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte',
       right: parsed.date,
     };
   }
@@ -372,7 +372,7 @@ export const generateErstatningsopgoerelsePdf = (
     const baseAdjustmentText = divisorLabel === 'arbejdsdage'
       ? 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'
       : 'Der beregnes ikke sygeferiegodtgørelse under ferie og på eventuelle andre fraværsdage uden løn.';
-    writer.addSpacer(lineHeight);
+    writer.writeUnderlinedLabel('Feriepenge, hvis skaden ikke var sket', MARGINS.left);
     safeAddWrappedText(
       `Kravet beregnes per ${dayUnit} med ${rateLabel}${rateAdjustmentText}.`
     );
@@ -397,7 +397,7 @@ export const generateErstatningsopgoerelsePdf = (
         createPdfTableHeaderCell('Feriepenge-sats', 'center'),
         createPdfTableHeaderCell('AG-pension', 'center'),
         createPdfTableHeaderCell(antalDageHeader, 'center'),
-        createPdfTableHeaderCell('Feriepengekrav', 'center'),
+        createPdfTableHeaderCell('Feriepenge', 'center'),
       ],
     ];
 
