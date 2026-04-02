@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Tabs, Tab, Typography } from '@mui/material';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
+import { useMidlertidigtEetInsertSource } from '../../hooks/useMidlertidigtEetInsertSource';
 import {
   getFieldErrorRevisionSnapshot,
   getFieldErrorsBySourceSnapshot,
@@ -29,9 +30,6 @@ import EOberegningTab from './erstatningsopgoerelse/EOberegningTab';
 import EODebug from './erstatningsopgoerelse/EODebug';
 import EODebugTabel from './erstatningsopgoerelse/EODebugTabel';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
-import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
-import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../domain/faellesPersondata/faellesPersondataInitialValues';
 import type { StamdataValues } from '../../schemas/formSchemas';
 import { computeEoSnapshot, type EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 
@@ -133,35 +131,12 @@ const Erstatningsopgoerelse = React.memo(() => {
   }, [buildDebugSnapshot]);
 
   const persistedStamdata = usePersistedSectionSelector('stamdata');
-  const persistedErhvervsevnetab = usePersistedSectionSelector('erhvervsevnetab');
-  const persistedFaellesAarsloen = usePersistedSectionSelector('faellesAarsloen');
-  const persistedFaellesPersondata = usePersistedSectionSelector('faellesPersondata');
   const stamdataValuesForBeregningTab = React.useMemo<StamdataValues>(() => {
     const nextPersistedStamdata = persistedStamdata;
     if (!nextPersistedStamdata) return STAMDATA_INITIAL_VALUES;
     return { ...STAMDATA_INITIAL_VALUES, ...nextPersistedStamdata };
   }, [persistedStamdata]);
-  const midlertidigtEetInsertSource = React.useMemo<Readonly<{
-    eetValues: ErhvervsevnetabComposedValues;
-    skadesdato: StamdataValues['skadesdato'];
-  }>>(() => {
-    const parsedErhvervsevnetab = erhvervsevnetabSchema.safeParse(persistedErhvervsevnetab);
-    const parsedFaellesAarsloen = faellesAarsloenSchema.safeParse(persistedFaellesAarsloen);
-    const parsedFaellesPersondata = faellesPersondataSchema.safeParse(persistedFaellesPersondata);
-    const parsedStamdata = stamdataSchema.safeParse(persistedStamdata);
-
-    return {
-      eetValues: {
-        ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        ...(parsedErhvervsevnetab.success ? parsedErhvervsevnetab.data : {}),
-        ...FAELLES_AARSLOEN_INITIAL_VALUES,
-        ...(parsedFaellesAarsloen.success ? parsedFaellesAarsloen.data : {}),
-        ...FAELLES_PERSONDATA_INITIAL_VALUES,
-        ...(parsedFaellesPersondata.success ? parsedFaellesPersondata.data : {}),
-      },
-      skadesdato: parsedStamdata.success ? parsedStamdata.data.skadesdato : undefined,
-    };
-  }, [persistedErhvervsevnetab, persistedFaellesAarsloen, persistedFaellesPersondata, persistedStamdata]);
+  const midlertidigtEetInsertSource = useMidlertidigtEetInsertSource();
   const [eoSnapshot, setEoSnapshot] = React.useState<EoSnapshot | null>(null);
   const stamdataRevision = useSectionRevisionSelector('stamdata');
   const eoRevision = useSectionRevisionSelector('erstatningsopgoerelse');

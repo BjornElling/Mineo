@@ -36,7 +36,7 @@ const Renteberegning = React.memo(() => {
     defaultTab: TAB_KEYS.CALCULATION,
   });
 
-  const { values, setValues, formVersion } = usePersistedForm(
+  const { values, setValues, setFieldValue, formVersion } = usePersistedForm(
     renteberegningSchema,
     'renteberegning',
     initialValues
@@ -52,9 +52,9 @@ const Renteberegning = React.memo(() => {
 
   const handleBeregningsdatoCommit = React.useCallback<CommitHandler<ISODateString | undefined>>(
     (event) => {
-      setValues((prev) => ({ ...prev, beregningsdato: event.target.value }));
+      setFieldValue('beregningsdato', event.target.value);
     },
-    [setValues]
+    [setFieldValue]
   );
 
   const handleTabChange = React.useCallback(
@@ -68,9 +68,9 @@ const Renteberegning = React.memo(() => {
   const handleKommentarerChange = React.useCallback<CommitHandler<string>>(
     (event) => {
       const normalized = event.target.value.trim();
-      setValues((prev) => ({ ...prev, kommentarer: normalized === '' ? undefined : normalized }));
+      setFieldValue('kommentarer', normalized === '' ? undefined : normalized);
     },
-    [setValues]
+    [setFieldValue]
   );
 
   const handleDownloadRentePdf = React.useCallback(

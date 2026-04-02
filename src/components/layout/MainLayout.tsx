@@ -18,6 +18,11 @@ import {
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import { persistenceSchemas } from '../../config/persistenceRegistry';
 import { UI_STORAGE_KEYS, type StorageKey } from '../../config/storageManifest';
+import {
+  getFieldErrorsBySourceSnapshot,
+  useAuthoritativeSnapshotEpochSelector,
+  useCombinedSectionRevisionSelector,
+} from '../../hooks/useFormPersistenceSelectors';
 import { clearPendingPwaFileOpenRequest } from '../../utils/pwaLaunchQueue';
 import { useDevtoolsMonitoring } from '../../hooks/useDevtoolsMonitoring';
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
@@ -47,9 +52,9 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     lastNotice,
     lastNoticeEpoch,
     hasAnyData,
-    getSectionRevision,
-    authoritativeSnapshotEpoch,
   } = useFormPersistence();
+  const authoritativeSnapshotEpoch = useAuthoritativeSnapshotEpochSelector();
+  const combinedSectionRevision = useCombinedSectionRevisionSelector();
 
   // Prioritering: Track om nuværende overlay er user-feedback (højere prioritet end system errors)
   const isUserFeedbackRef = React.useRef<boolean>(false);
@@ -73,7 +78,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     combinedSectionRevisionRef,
     markSaved,
     allowExitWithoutWarning,
-  } = useUnsavedChangesGuard({ getSectionRevision, authoritativeSnapshotEpoch });
+  } = useUnsavedChangesGuard({ combinedSectionRevision, authoritativeSnapshotEpoch });
 
   const handlePageChange = React.useCallback(async (pageId: string) => {
     if (location.pathname === `/${pageId}`) {
@@ -115,7 +120,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
 
   const hasBlockingInputErrors = React.useCallback((): boolean => {
     for (const pageKey of Object.keys(persistenceSchemas) as StorageKey[]) {
-      const errorsBySource = getFieldErrorsBySource(pageKey);
+      const errorsBySource = getFieldErrorsBySourceSnapshot(pageKey);
       for (const fieldName of Object.keys(errorsBySource)) {
         const fieldSources = errorsBySource[fieldName as keyof typeof errorsBySource];
         if (!fieldSources) continue;
@@ -131,7 +136,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       }
     }
     return false;
-  }, [getFieldErrorsBySource]);
+  }, []);
 
   const {
     pendingLoadResult,

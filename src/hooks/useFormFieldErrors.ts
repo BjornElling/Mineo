@@ -9,6 +9,10 @@ import type {
   FormFieldError,
   ReportableFieldError,
 } from '../types/fieldErrors';
+import {
+  useFieldErrorsBySourceSelector,
+  useResolvedFieldErrorsSelector,
+} from './useFormPersistenceSelectors';
 
 type FieldName<K extends StorageKey> = Extract<keyof PersistedSectionMap[K], string>;
 type DynamicFieldName<K extends StorageKey> = FieldName<K> | string;
@@ -19,16 +23,14 @@ type DynamicFieldName<K extends StorageKey> = FieldName<K> | string;
  * Use when you want UI-parity: "what is wrong right now?"
  */
 export const useFormFieldErrors = <K extends StorageKey>(pageKey: K): Partial<Record<FieldName<K>, FormFieldError>> => {
-  const { getFieldErrors } = useFormPersistence();
-  return getFieldErrors(pageKey);
+  return useResolvedFieldErrorsSelector(pageKey);
 };
 
 /**
  * Selector-style hook for field errors by source, scoped to a single section.
  */
 export const useFieldErrorsBySourceForSection = <K extends StorageKey>(pageKey: K): FieldErrorsForSection<K> => {
-  const { getFieldErrorsBySource } = useFormPersistence();
-  return getFieldErrorsBySource(pageKey);
+  return useFieldErrorsBySourceSelector(pageKey);
 };
 
 export const selectBlockingFieldIdsBySuffix = (

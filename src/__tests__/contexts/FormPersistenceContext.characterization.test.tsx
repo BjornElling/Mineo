@@ -5,6 +5,7 @@ import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import type { StorageKey } from '../../config/storageManifest';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
+import { getAuthoritativeSnapshotEpochSnapshot } from '../../hooks/useFormPersistenceSelectors';
 
 const stampStamdata = (skadelidte: string) => ({
   journalnr: '',
@@ -95,14 +96,14 @@ describe('FormPersistenceContext characterization', () => {
     await waitFor(() => expect(getCtx()).not.toBeNull());
 
     const initialRevision = getCtx()!.getSectionRevision('stamdata');
-    const initialEpoch = getCtx()!.authoritativeSnapshotEpoch;
+    const initialEpoch = getAuthoritativeSnapshotEpochSnapshot();
 
     await act(async () => {
       getCtx()!.persistData('stamdata', stampStamdata('Rev 1'));
     });
 
     expect(getCtx()!.getSectionRevision('stamdata')).toBe(initialRevision + 1);
-    expect(getCtx()!.authoritativeSnapshotEpoch).toBe(initialEpoch);
+    expect(getAuthoritativeSnapshotEpochSnapshot()).toBe(initialEpoch);
   });
 
   it('increments field-error revision on set/clear field error', async () => {
@@ -126,7 +127,7 @@ describe('FormPersistenceContext characterization', () => {
     const { getCtx } = renderProvider();
     await waitFor(() => expect(getCtx()).not.toBeNull());
 
-    const beforeEpoch = getCtx()!.authoritativeSnapshotEpoch;
+    const beforeEpoch = getAuthoritativeSnapshotEpochSnapshot();
     const beforeStamdataRevision = getCtx()!.getSectionRevision('stamdata');
     const beforeSatserRevision = getCtx()!.getSectionRevision('satser');
 
@@ -138,7 +139,7 @@ describe('FormPersistenceContext characterization', () => {
       getCtx()!.replaceAllPersistedData(snapshot);
     });
 
-    expect(getCtx()!.authoritativeSnapshotEpoch).toBe(beforeEpoch + 1);
+    expect(getAuthoritativeSnapshotEpochSnapshot()).toBe(beforeEpoch + 1);
     expect(getCtx()!.getSectionRevision('stamdata')).toBe(beforeStamdataRevision + 1);
     expect(getCtx()!.getSectionRevision('satser')).toBe(beforeSatserRevision + 1);
     expect(getCtx()!.getPersistedData('stamdata')?.skadelidte).toBe('Efter indlæsning');
@@ -154,7 +155,7 @@ describe('FormPersistenceContext characterization', () => {
       getCtx()!.persistData('satser', { aargang: 2026 });
     });
 
-    const beforeEpoch = getCtx()!.authoritativeSnapshotEpoch;
+    const beforeEpoch = getAuthoritativeSnapshotEpochSnapshot();
     const beforeStamdataRevision = getCtx()!.getSectionRevision('stamdata');
     const beforeSatserRevision = getCtx()!.getSectionRevision('satser');
 
@@ -162,7 +163,7 @@ describe('FormPersistenceContext characterization', () => {
       getCtx()!.clearPageData('stamdata');
     });
 
-    expect(getCtx()!.authoritativeSnapshotEpoch).toBe(beforeEpoch);
+    expect(getAuthoritativeSnapshotEpochSnapshot()).toBe(beforeEpoch);
     expect(getCtx()!.getSectionRevision('stamdata')).toBe(beforeStamdataRevision + 1);
     expect(getCtx()!.getSectionRevision('satser')).toBe(beforeSatserRevision);
     expect(getCtx()!.getPersistedData('stamdata')).toBeNull();
@@ -178,7 +179,7 @@ describe('FormPersistenceContext characterization', () => {
       getCtx()!.persistData('satser', { aargang: 2026 });
     });
 
-    const beforeEpoch = getCtx()!.authoritativeSnapshotEpoch;
+    const beforeEpoch = getAuthoritativeSnapshotEpochSnapshot();
     const beforeStamdataRevision = getCtx()!.getSectionRevision('stamdata');
     const beforeSatserRevision = getCtx()!.getSectionRevision('satser');
 
@@ -186,7 +187,7 @@ describe('FormPersistenceContext characterization', () => {
       getCtx()!.clearAllData();
     });
 
-    expect(getCtx()!.authoritativeSnapshotEpoch).toBe(beforeEpoch + 1);
+    expect(getAuthoritativeSnapshotEpochSnapshot()).toBe(beforeEpoch + 1);
     expect(getCtx()!.getSectionRevision('stamdata')).toBe(beforeStamdataRevision + 1);
     expect(getCtx()!.getSectionRevision('satser')).toBe(beforeSatserRevision + 1);
     expect(getCtx()!.getPersistedData('stamdata')).toBeNull();

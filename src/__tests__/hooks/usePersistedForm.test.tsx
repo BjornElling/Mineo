@@ -1,41 +1,31 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { act, render } from '@testing-library/react';
-import { z } from 'zod';
 import { usePersistedForm, type UsePersistedFormReturn } from '../../hooks/usePersistedForm';
-import { FormPersistenceContext, type FormPersistenceContextValue } from '../../contexts/FormPersistenceContext.shared';
-
-const stamdataSchema = z.object({
-  journalnr: z.string(),
-});
+import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
+import { formPersistenceStore } from '../../stores/formPersistenceStore';
+import { clearResolvedFieldErrorsCache } from '../../hooks/useFormPersistenceSelectors';
+import { satserSchema, stamdataSchema } from '../../schemas/formSchemas';
+import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
 const initialValues = {
   journalnr: '',
 };
 
-const makeContext = (overrides: Partial<FormPersistenceContextValue> = {}): FormPersistenceContextValue => ({
-  getPersistedData: vi.fn(() => null),
-  persistData: vi.fn(),
-  clearPageData: vi.fn(),
-  clearAllData: vi.fn(),
-  hasAnyData: vi.fn(() => false),
-  getFieldErrors: vi.fn(() => ({})),
-  getFieldErrorsBySource: vi.fn(() => ({})) as FormPersistenceContextValue['getFieldErrorsBySource'],
-  getFieldError: vi.fn(() => undefined),
-  setFieldError: vi.fn(),
-  clearFieldErrors: vi.fn(),
-  clearAllFieldErrors: vi.fn(),
-  authoritativeSnapshotEpoch: 0,
-  getSectionRevision: vi.fn(() => 0),
-  getFieldErrorRevision: vi.fn(() => 0),
-  replaceAllPersistedData: vi.fn(),
-  lastNotice: null,
-  lastNoticeEpoch: 0,
-  ...overrides,
-});
-
 describe('usePersistedForm', () => {
-  it('bevarer setValues- og resetForm-referencer når persistence-context funktioner skifter identitet', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    clearResolvedFieldErrorsCache();
+    formPersistenceStore.getState().clearAll({
+      hydrated: true,
+      schemaFingerprint: PERSISTED_DATA_VERSION,
+      lastCommittedAt: Date.now(),
+    });
+    formPersistenceStore.getState().clearAllFieldErrors();
+    formPersistenceStore.getState().__setMetaUnsafe({ hydrated: false, lastCommittedAt: undefined });
+  });
+
+  it('bevarer setValues- og resetForm-referencer når committed values ændres i storen', () => {
     const captured: {
       setValues: UsePersistedFormReturn<typeof initialValues>['setValues'] | null;
       resetForm: UsePersistedFormReturn<typeof initialValues>['resetForm'] | null;
@@ -51,34 +41,32 @@ describe('usePersistedForm', () => {
       return null;
     };
 
-    const firstContext = makeContext();
     const { rerender } = render(
-      <FormPersistenceContext.Provider value={firstContext}>
+      <FormPersistenceProvider>
         <Capture />
-      </FormPersistenceContext.Provider>
+      </FormPersistenceProvider>
     );
 
     const firstSetValues = captured.setValues;
     const firstResetForm = captured.resetForm;
 
-    const secondContext = makeContext({
-      getPersistedData: vi.fn(() => null),
-      persistData: vi.fn(),
-      clearPageData: vi.fn(),
-      clearFieldErrors: vi.fn(),
+    act(() => {
+      formPersistenceStore.getState().commitSection('stamdata', { journalnr: 'Opdateret' }, {
+        schemaFingerprint: PERSISTED_DATA_VERSION,
+      });
     });
 
     rerender(
-      <FormPersistenceContext.Provider value={secondContext}>
+      <FormPersistenceProvider>
         <Capture />
-      </FormPersistenceContext.Provider>
+      </FormPersistenceProvider>
     );
 
     expect(captured.setValues).toBe(firstSetValues);
     expect(captured.resetForm).toBe(firstResetForm);
   });
 
-  it('bruger seneste committed værdi ved sekventielle setValues-kald og persisterer uden side-effect i updateren', () => {
+  it('bruger seneste committed værdi ved sekventielle setValues-kald', () => {
     const captured: {
       setValues: UsePersistedFormReturn<typeof initialValues>['setValues'] | null;
       values: typeof initialValues | null;
@@ -86,8 +74,6 @@ describe('usePersistedForm', () => {
       setValues: null,
       values: null,
     };
-
-    const persistData = vi.fn();
 
     const Capture = () => {
       const form = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
@@ -97,9 +83,9 @@ describe('usePersistedForm', () => {
     };
 
     render(
-      <FormPersistenceContext.Provider value={makeContext({ persistData })}>
+      <FormPersistenceProvider>
         <Capture />
-      </FormPersistenceContext.Provider>
+      </FormPersistenceProvider>
     );
 
     act(() => {
@@ -108,7 +94,101 @@ describe('usePersistedForm', () => {
     });
 
     expect(captured.values).toEqual({ journalnr: 'AB' });
-    expect(persistData).toHaveBeenNthCalledWith(1, 'stamdata', { journalnr: 'A' });
-    expect(persistData).toHaveBeenNthCalledWith(2, 'stamdata', { journalnr: 'AB' });
+    expect(formPersistenceStore.getState().sections.stamdata).toEqual({ journalnr: 'AB' });
+  });
+
+  it('bryder kun formVersion ved autoritativ replace og reset', () => {
+    const captured: {
+      replaceValues: UsePersistedFormReturn<typeof initialValues>['replaceValues'] | null;
+      resetForm: UsePersistedFormReturn<typeof initialValues>['resetForm'] | null;
+      setValues: UsePersistedFormReturn<typeof initialValues>['setValues'] | null;
+      formVersion: number | null;
+      values: typeof initialValues | null;
+    } = {
+      replaceValues: null,
+      resetForm: null,
+      setValues: null,
+      formVersion: null,
+      values: null,
+    };
+
+    const Capture = () => {
+      const form = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
+      captured.replaceValues = form.replaceValues;
+      captured.resetForm = form.resetForm;
+      captured.setValues = form.setValues;
+      captured.formVersion = form.formVersion;
+      captured.values = form.values;
+      return null;
+    };
+
+    render(
+      <FormPersistenceProvider>
+        <Capture />
+      </FormPersistenceProvider>
+    );
+
+    expect(captured.formVersion).toBe(0);
+    const baselineFormVersion = captured.formVersion;
+
+    act(() => {
+      captured.setValues!((prev) => ({ ...prev, journalnr: 'Normal commit' }));
+    });
+
+    expect(captured.formVersion).toBe(baselineFormVersion);
+    expect(captured.values).toEqual({ journalnr: 'Normal commit' });
+
+    act(() => {
+      captured.replaceValues!({ journalnr: 'Erstatning' });
+    });
+
+    expect(captured.formVersion).toBe((baselineFormVersion ?? 0) + 1);
+    expect(captured.values).toEqual({ journalnr: 'Erstatning' });
+
+    act(() => {
+      captured.resetForm!();
+    });
+
+    expect(captured.formVersion).toBe((baselineFormVersion ?? 0) + 2);
+    expect(captured.values).toEqual(initialValues);
+  });
+
+  it('bryder ikke formVersion ved første mount eller ved første observation af ny pageKey', () => {
+    const captured: {
+      formVersion: number | null;
+    } = {
+      formVersion: null,
+    };
+
+    const Capture = ({ pageKey }: { pageKey: 'stamdata' | 'satser' }) => {
+      if (pageKey === 'stamdata') {
+        const form = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
+        captured.formVersion = form.formVersion;
+        return null;
+      }
+      const form = usePersistedForm(
+        satserSchema,
+        'satser',
+        { aargang: 2026 }
+      );
+      captured.formVersion = form.formVersion;
+      return null;
+    };
+
+    const { rerender } = render(
+      <FormPersistenceProvider>
+        <Capture pageKey="stamdata" />
+      </FormPersistenceProvider>
+    );
+
+    expect(captured.formVersion).toBe(0);
+
+    rerender(
+      <FormPersistenceProvider>
+        <Capture pageKey="satser" />
+      </FormPersistenceProvider>
+    );
+
+    expect(captured.formVersion).toBe(0);
   });
 });

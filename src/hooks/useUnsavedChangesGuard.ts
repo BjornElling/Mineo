@@ -1,9 +1,6 @@
 import React from 'react';
-import { persistenceSchemas } from '../config/persistenceRegistry';
-import type { StorageKey } from '../config/storageManifest';
-
 type UseUnsavedChangesGuardArgs = {
-  getSectionRevision: (pageKey: StorageKey) => number;
+  combinedSectionRevision: number;
   authoritativeSnapshotEpoch: number;
 };
 
@@ -15,14 +12,9 @@ type UseUnsavedChangesGuardResult = {
 };
 
 export const useUnsavedChangesGuard = ({
-  getSectionRevision,
+  combinedSectionRevision,
   authoritativeSnapshotEpoch,
 }: UseUnsavedChangesGuardArgs): UseUnsavedChangesGuardResult => {
-  const combinedSectionRevision = React.useMemo(() => {
-    return (Object.keys(persistenceSchemas) as StorageKey[]).reduce((sum, pageKey) => {
-      return sum + getSectionRevision(pageKey);
-    }, 0);
-  }, [getSectionRevision]);
   const combinedSectionRevisionRef = React.useRef<number>(combinedSectionRevision);
   React.useEffect(() => {
     combinedSectionRevisionRef.current = combinedSectionRevision;
@@ -32,6 +24,8 @@ export const useUnsavedChangesGuard = ({
   const allowExitWithoutUnsavedWarningRef = React.useRef<boolean>(false);
 
   React.useEffect(() => {
+    // authoritativeSnapshotEpoch er det autoritative "alt er nu erstattet/hydreret"-signal.
+    // Vi bruger derfor den senest observerede samlede revision som ny baseline efter load/reset.
     setSavedRevisionBaseline(combinedSectionRevisionRef.current);
   }, [authoritativeSnapshotEpoch]);
 

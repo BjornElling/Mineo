@@ -6,15 +6,20 @@ import {
   useFieldErrorsBySourceForSection,
   useFormFieldErrorReporter,
 } from '../../hooks/useFormFieldErrors';
+import { clearResolvedFieldErrorsCache } from '../../hooks/useFormPersistenceSelectors';
 import { FormPersistenceContext, type FormPersistenceContextValue } from '../../contexts/FormPersistenceContext.shared';
+import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import type { StorageKey } from '../../config/storageManifest';
 import type { FormFieldError, ReportableFieldError } from '../../types/fieldErrors';
+import { formPersistenceStore } from '../../stores/formPersistenceStore';
+import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const makeCtx = (overrides: Partial<FormPersistenceContextValue> = {}): FormPersistenceContextValue => ({
   getPersistedData: vi.fn(() => null),
-  persistData: vi.fn(),
+  // Optimistisk standard: tests der vil dække afvist commit, skal override return-værdien eksplicit.
+  persistData: vi.fn(() => true),
   clearPageData: vi.fn(),
   clearAllData: vi.fn(),
   hasAnyData: vi.fn(() => false),
@@ -24,7 +29,6 @@ const makeCtx = (overrides: Partial<FormPersistenceContextValue> = {}): FormPers
   setFieldError: vi.fn(),
   clearFieldErrors: vi.fn(),
   clearAllFieldErrors: vi.fn(),
-  authoritativeSnapshotEpoch: 0,
   getSectionRevision: vi.fn(() => 0),
   getFieldErrorRevision: vi.fn(() => 0),
   replaceAllPersistedData: vi.fn(),
@@ -49,34 +53,54 @@ function renderWithCtx<T>(
 // ─── useFormFieldErrors ────────────────────────────────────────────────────────
 
 describe('useFormFieldErrors', () => {
-  it('kalder getFieldErrors med korrekt pageKey og returnerer resultatet', () => {
-    const errors: Partial<Record<string, FormFieldError>> = {
-      journalnr: { message: 'Mangler journalnummer', severity: 'error' },
-    };
-    const getFieldErrors = vi.fn(() => errors);
-    const ctx = makeCtx({ getFieldErrors });
+  beforeEach(() => {
+    sessionStorage.clear();
+    clearResolvedFieldErrorsCache();
+    formPersistenceStore.getState().clearAll({
+      hydrated: true,
+      schemaFingerprint: PERSISTED_DATA_VERSION,
+      lastCommittedAt: Date.now(),
+    });
+    formPersistenceStore.getState().clearAllFieldErrors();
+  });
 
-    const captured: { value: typeof errors } = { value: {} };
+  it('læser resolved errors via den reelle store-backed selector-sti', () => {
+    const captured: { value: Partial<Record<string, FormFieldError>> } = { value: {} };
     const Comp = () => {
       captured.value = useFormFieldErrors('stamdata' as StorageKey);
       return null;
     };
 
-    renderWithCtx(ctx, captured, Comp);
+    act(() => {
+      formPersistenceStore.getState().setFieldError('stamdata', 'journalnr', 'input', {
+        message: 'Mangler journalnummer',
+        severity: 'error',
+      });
+    });
 
-    expect(getFieldErrors).toHaveBeenCalledWith('stamdata');
-    expect(captured.value).toBe(errors);
+    render(
+      <FormPersistenceProvider>
+        <Comp />
+      </FormPersistenceProvider>
+    );
+
+    expect(captured.value).toEqual({
+      journalnr: { message: 'Mangler journalnummer', severity: 'error', source: 'input', blocksSave: true },
+    });
   });
 
   it('returnerer tomt objekt når ingen fejl eksisterer', () => {
-    const ctx = makeCtx({ getFieldErrors: vi.fn(() => ({})) });
     const captured: { value: Record<string, FormFieldError> } = { value: { placeholder: { message: 'x', severity: 'error' } } };
     const Comp = () => {
       captured.value = useFormFieldErrors('satser' as StorageKey);
       return null;
     };
 
-    renderWithCtx(ctx, captured, Comp);
+    render(
+      <FormPersistenceProvider>
+        <Comp />
+      </FormPersistenceProvider>
+    );
 
     expect(captured.value).toEqual({});
   });
@@ -85,22 +109,33 @@ describe('useFormFieldErrors', () => {
 // ─── useFieldErrorsBySourceForSection ─────────────────────────────────────────
 
 describe('useFieldErrorsBySourceForSection', () => {
-  it('kalder getFieldErrorsBySource med korrekt pageKey', () => {
-    const getFieldErrorsBySource = vi.fn(() => ({}) as ReturnType<FormPersistenceContextValue['getFieldErrorsBySource']>);
-    const ctx = makeCtx({ getFieldErrorsBySource });
-
+  it('læser field errors by source via den reelle store-backed selector-sti', () => {
+    const captured: {
+      value: ReturnType<typeof useFieldErrorsBySourceForSection> | null;
+    } = { value: null };
     const Comp = () => {
-      useFieldErrorsBySourceForSection('aarsloen' as StorageKey);
+      captured.value = useFieldErrorsBySourceForSection('aarsloen' as StorageKey);
       return null;
     };
 
+    act(() => {
+      formPersistenceStore.getState().setFieldError('aarsloen', 'tableData', 'input', {
+        message: 'Fejl i tabel',
+        severity: 'error',
+      });
+    });
+
     render(
-      <FormPersistenceContext.Provider value={ctx}>
+      <FormPersistenceProvider>
         <Comp />
-      </FormPersistenceContext.Provider>
+      </FormPersistenceProvider>
     );
 
-    expect(getFieldErrorsBySource).toHaveBeenCalledWith('aarsloen');
+    expect(captured.value).toEqual({
+      tableData: {
+        input: { message: 'Fejl i tabel', severity: 'error', source: 'input', blocksSave: true },
+      },
+    });
   });
 });
 

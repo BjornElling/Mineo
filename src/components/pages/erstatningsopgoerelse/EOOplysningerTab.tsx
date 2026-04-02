@@ -145,11 +145,11 @@ const formatLabelDayAfterIsoDate = (defaultLabel: string, tilDato: ISODateString
  */
 type ErstatningsopgoerelseFormApi = Pick<
   UsePersistedFormReturn<ErstatningsopgoerelseValues>,
-  'values' | 'setValues' | 'handleChange' | 'formVersion'
+  'values' | 'setValues' | 'setFieldValue' | 'formVersion'
 >;
 
 const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseFormApi }) => {
-  const { values, setValues, handleChange, formVersion } = form;
+  const { values, setValues, setFieldValue, formVersion } = form;
 
   const persistedStamdata = usePersistedSectionSelector('stamdata');
   const skadesdatoISO = persistedStamdata?.skadesdato;
@@ -233,6 +233,14 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         setValues((prev) => ({ ...prev, [fieldName]: event.target.value }));
       },
     [setValues]
+  );
+
+  const commitField = React.useCallback(
+    <K extends keyof ErstatningsopgoerelseValues>(fieldName: K) =>
+      (event: CommitEvent<ErstatningsopgoerelseValues[K]>) => {
+        setFieldValue(fieldName, event.target.value);
+      },
+    [setFieldValue]
   );
 
   const handleHelbredsfoholdChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
@@ -1531,7 +1539,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       onCommit={(event) => {
                         const next = event.target.value;
                         if (next === 'fuld' || next === 'halv') {
-                          handleChange('svieSmerteDelvisSygemeldingSats')(createCommitEvent(next));
+                          setFieldValue('svieSmerteDelvisSygemeldingSats', next);
                         }
                       }}
                       row={true}
@@ -1756,7 +1764,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                         <StyledTextField
                           width={300}
                           value={values.oevrigeFravaersdageBeskrivelse || ''}
-                          onCommit={handleChange('oevrigeFravaersdageBeskrivelse')}
+                          onCommit={commitField('oevrigeFravaersdageBeskrivelse')}
                           sx={{
                             '& .MuiInputBase-input': {
                               textAlign: 'right',
@@ -1809,8 +1817,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     }
                     onCommit={
                       values.beregnesUdFra === 'Angivet månedsløn'
-                        ? handleChange('angivetMaanedsloenBaseretPaa')
-                        : handleChange('angivetDagsloenBaseretPaa')
+                        ? commitField('angivetMaanedsloenBaseretPaa')
+                        : commitField('angivetDagsloenBaseretPaa')
                     }
                   />
                 </Box>
@@ -2480,7 +2488,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         <StyledTextField
           width={800}
           value={values.saerligeKommentarer || ''}
-          onCommit={handleChange('saerligeKommentarer')}
+          onCommit={commitField('saerligeKommentarer')}
           multiline
           rows={4}
           placeholder="Indtast eventuelle kommentarer her..."

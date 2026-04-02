@@ -17,6 +17,13 @@ import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
+import {
+  getFieldErrorRevisionSnapshot,
+  getFieldErrorsBySourceSnapshot,
+  getPersistedSectionSnapshot,
+  getResolvedFieldErrorsSnapshot,
+  getSectionRevisionSnapshot,
+} from '../hooks/useFormPersistenceSelectors';
 
 // Persisted sections are handled via an internal Zustand store; FormPersistenceContext is a facade and not the SoT for committed inputs.
 
@@ -157,48 +164,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     notice: initPlanRef.current?.notice ?? null,
   }));
 
-  const persistenceSnapshotRef = React.useRef<{
-    sections: PersistedCache;
-    sectionRevisions: ReturnType<typeof formPersistenceStore.getState>['sectionRevisions'];
-    fieldErrors: ReturnType<typeof formPersistenceStore.getState>['fieldErrors'];
-    fieldErrorRevisions: ReturnType<typeof formPersistenceStore.getState>['fieldErrorRevisions'];
-    authoritativeSnapshotEpoch: number;
-  } | null>(null);
-  const getPersistenceSnapshot = React.useCallback(() => {
-    const state = formPersistenceStore.getState();
-    const prev = persistenceSnapshotRef.current;
-    if (
-      prev &&
-      prev.sections === (state.sections as PersistedCache) &&
-      prev.sectionRevisions === state.sectionRevisions &&
-      prev.fieldErrors === state.fieldErrors &&
-      prev.fieldErrorRevisions === state.fieldErrorRevisions &&
-      prev.authoritativeSnapshotEpoch === state.authoritativeSnapshotEpoch
-    ) {
-      return prev;
-    }
-
-    const next = {
-      sections: state.sections as PersistedCache,
-      sectionRevisions: state.sectionRevisions,
-      fieldErrors: state.fieldErrors,
-      fieldErrorRevisions: state.fieldErrorRevisions,
-      authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
-    };
-    persistenceSnapshotRef.current = next;
-    return next;
-  }, []);
-  const persistenceSnapshot = React.useSyncExternalStore(
-    formPersistenceStore.subscribe,
-    getPersistenceSnapshot,
-    getPersistenceSnapshot
-  );
-  const sections = persistenceSnapshot.sections;
-  const sectionRevisions = persistenceSnapshot.sectionRevisions;
-  const fieldErrors = persistenceSnapshot.fieldErrors;
-  const fieldErrorRevisions = persistenceSnapshot.fieldErrorRevisions;
-  const authoritativeSnapshotEpoch = persistenceSnapshot.authoritativeSnapshotEpoch;
-
   React.useEffect(() => {
     const store = formPersistenceStore.getState();
     store.hydrate(
@@ -253,27 +218,20 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   /**
    * Læs schema-valideret persisted data (ingen side-effects).
    */
-  const syncSection = React.useCallback(<K extends StorageKey>(pageKey: K, next: PersistedSectionMap[K] | null) => {
-    formPersistenceStore.getState().commitSection(pageKey, next, {
-      schemaFingerprint: CURRENT_VERSION,
-    });
+  const getPersistedData = React.useCallback(<K extends StorageKey>(pageKey: K): PersistedSectionMap[K] | null => {
+    return getPersistedSectionSnapshot(pageKey);
   }, []);
 
-  const getPersistedData = React.useCallback(<K extends StorageKey>(pageKey: K): PersistedSectionMap[K] | null => {
-    const value = sections[pageKey];
-    return value;
-  }, [sections]);
-
   const hasAnyData = React.useCallback((): boolean => {
-    return countFilledFields(sections) > 0;
-  }, [sections]);
+    return countFilledFields(formPersistenceStore.getState().sections as PersistedCache) > 0;
+  }, []);
 
   /**
    * Gem data i sessionStorage med versionering
    *
    * Wrapper data i PersistedData struktur med version og timestamp.
    */
-  const persistData = React.useCallback(<K extends StorageKey>(pageKey: K, data: PersistedSectionMap[K]) => {
+  const persistData = React.useCallback(<K extends StorageKey>(pageKey: K, data: PersistedSectionMap[K]): boolean => {
     try {
       const storageKey = getStorageKey(pageKey);
 
@@ -282,7 +240,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       if (!Object.prototype.hasOwnProperty.call(persistenceSchemas, pageKey)) {
         console.error(`[Persistence] Missing schema for '${pageKey}'. Cannot persist data.`, { pageKey });
         emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern konfigurationsfejl.`, 'error');
-        return;
+        return false;
       }
 
       const schema = persistenceSchemas[pageKey];
@@ -298,7 +256,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
           `Kunne ikke gemme data for '${pageKey}' fordi data ikke matcher schema.\n${issues}`,
           'error'
         );
-        return;
+        return false;
       }
 
       const persistedSectionData = serializeFormValues(validated.data);
@@ -306,7 +264,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
       if (!postSerializeValidated.success) {
         emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern serialiseringsfejl.`, 'error');
-        return;
+        return false;
       }
 
       const persistedData: PersistedData = {
@@ -316,8 +274,11 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       };
 
       sessionStorage.setItem(storageKey, JSON.stringify(persistedData));
-      syncSection(pageKey, postSerializeValidated.data as PersistedSectionMap[K]);
+      formPersistenceStore.getState().commitSection(pageKey, postSerializeValidated.data as PersistedSectionMap[K], {
+        schemaFingerprint: CURRENT_VERSION,
+      });
       logPersistSaveDebug(storageKey, getFieldCount(data));
+      return true;
     } catch (error) {
       console.error(`[Persistence] Fejl ved gemning af data for '${pageKey}':`, {
         pageKey,
@@ -325,8 +286,9 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         error,
       });
       emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern fejl.`, 'error');
+      return false;
     }
-  }, [emitUserNotice, logPersistSaveDebug, syncSection]);
+  }, [emitUserNotice, logPersistSaveDebug]);
 
   const replaceAllPersistedData = React.useCallback((snapshot: Record<StorageKey, unknown | undefined>) => {
     const prevStoreState = formPersistenceStore.getState();
@@ -428,12 +390,14 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     try {
       const storageKey = getStorageKey(pageKey);
       sessionStorage.removeItem(storageKey);
-      syncSection(pageKey, null);
+      formPersistenceStore.getState().commitSection(pageKey, null, {
+        schemaFingerprint: CURRENT_VERSION,
+      });
       formPersistenceStore.getState().clearFieldErrorsForSection(pageKey);
     } catch (error) {
       console.error(`[Persistence] Fejl ved sletning af data for '${pageKey}':`, error);
     }
-  }, [syncSection]);
+  }, []);
 
   /**
    * Slet alle gemte MINEO data
@@ -454,33 +418,22 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   }, []);
 
   const getFieldErrorsBySource = React.useCallback(<K extends StorageKey,>(pageKey: K) => {
-    return fieldErrors[pageKey] as FieldErrorsForSection<K>;
-  }, [fieldErrors]);
+    return getFieldErrorsBySourceSnapshot(pageKey) as FieldErrorsForSection<K>;
+  }, []);
 
   const getFieldErrors = React.useCallback(<K extends StorageKey,>(pageKey: K) => {
-    const bySource = fieldErrors[pageKey] as FieldErrorsForSection<K>;
-    const resolved: Partial<Record<string, FormFieldError>> = {};
-
-    for (const fieldName of Object.keys(bySource)) {
-      const fieldErrorsBySource = bySource[fieldName];
-      if (!fieldErrorsBySource) continue;
-      const active = resolveActiveFieldError(fieldErrorsBySource);
-      if (!active) continue;
-      resolved[fieldName] = active;
-    }
-
-    return resolved;
-  }, [fieldErrors]);
+    return getResolvedFieldErrorsSnapshot(pageKey) as Partial<Record<string, FormFieldError>>;
+  }, []);
 
   const getFieldError = React.useCallback(<K extends StorageKey,>(
     pageKey: K,
     fieldName: string
   ): FormFieldError | undefined => {
-    const bySource = fieldErrors[pageKey] as FieldErrorsForSection<K>;
+    const bySource = getFieldErrorsBySourceSnapshot(pageKey) as FieldErrorsForSection<K>;
     const forField = bySource[fieldName];
     if (!forField) return undefined;
     return resolveActiveFieldError(forField);
-  }, [fieldErrors]);
+  }, []);
 
   const setFieldError = React.useCallback(<K extends StorageKey,>(
     pageKey: K,
@@ -500,12 +453,12 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   }, []);
 
   const getSectionRevision = React.useCallback((pageKey: StorageKey) => {
-    return sectionRevisions[pageKey] ?? 0;
-  }, [sectionRevisions]);
+    return getSectionRevisionSnapshot(pageKey);
+  }, []);
 
   const getFieldErrorRevision = React.useCallback((pageKey: StorageKey) => {
-    return fieldErrorRevisions[pageKey] ?? 0;
-  }, [fieldErrorRevisions]);
+    return getFieldErrorRevisionSnapshot(pageKey);
+  }, []);
 
   const value = React.useMemo(
     () => ({
@@ -520,7 +473,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       setFieldError,
       clearFieldErrors,
       clearAllFieldErrors,
-      authoritativeSnapshotEpoch,
       getSectionRevision,
       getFieldErrorRevision,
       replaceAllPersistedData,
@@ -539,7 +491,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       setFieldError,
       clearFieldErrors,
       clearAllFieldErrors,
-      authoritativeSnapshotEpoch,
       getSectionRevision,
       getFieldErrorRevision,
       replaceAllPersistedData,

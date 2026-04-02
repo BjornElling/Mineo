@@ -27,17 +27,17 @@ import { buildAldersreduktionFormelTekst } from '../../domain/erhvervsevnetab/ee
 import StandardLooseTable from '../tables/StandardLooseTable';
 
 const Forsoergertab = React.memo(() => {
-  const { values, handleChange } = usePersistedForm(
+  const { values, setFieldValue } = usePersistedForm(
     forsoergertabSchema,
     'forsoergertab',
     FORSOERGERTAB_INITIAL_VALUES
   );
-  const { values: faellesAarsloenValues, handleChange: handleFaellesAarsloenChange } = usePersistedForm(
+  const { values: faellesAarsloenValues, setFieldValue: setFaellesAarsloenFieldValue } = usePersistedForm(
     faellesAarsloenSchema,
     'faellesAarsloen',
     FAELLES_AARSLOEN_INITIAL_VALUES
   );
-  const { values: faellesPersondataValues, handleChange: handleFaellesPersondataChange } = usePersistedForm(
+  const { values: faellesPersondataValues, setFieldValue: setFaellesPersondataFieldValue } = usePersistedForm(
     faellesPersondataSchema,
     'faellesPersondata',
     FAELLES_PERSONDATA_INITIAL_VALUES
@@ -261,7 +261,7 @@ const Forsoergertab = React.memo(() => {
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
             <StyledDateField
               value={values.beregningsdato || undefined}
-              onCommit={handleChange('beregningsdato')}
+              onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
               minDate={beregningsdatoMin}
               maxDate={dateRanges_forsoergertab.beregningsdato.max}
               noValidRangeCause="Skadesdato i Stamdata og Virkningsdato"
@@ -285,7 +285,7 @@ const Forsoergertab = React.memo(() => {
             />
             <InsertTodayDateButton
               onCommit={(today) => {
-                handleChange('beregningsdato')(createCommitEvent(today));
+                setFieldValue('beregningsdato', today);
               }}
               focusRef={beregningsdatoInputRef}
             />
@@ -308,7 +308,7 @@ const Forsoergertab = React.memo(() => {
           <Box className="row--label-right-hover__content">
             <StyledDateField
               value={faellesPersondataValues.skadelidteFodselsdato || undefined}
-              onCommit={handleFaellesPersondataChange('skadelidteFodselsdato')}
+              onCommit={(event) => setFaellesPersondataFieldValue('skadelidteFodselsdato', event.target.value)}
               minDate={dateRanges_skadelidteFodselsdato.min}
               maxDate={dateRanges_skadelidteFodselsdato.max}
               error={hasSkadelidteFodselsdatoError}
@@ -326,7 +326,7 @@ const Forsoergertab = React.memo(() => {
                 value={values.koen}
                 onChange={(event) => {
                   const parsed = koenEnum.safeParse(event.target.value);
-                  handleChange('koen')(createCommitEvent(parsed.success ? parsed.data : undefined));
+                  setFieldValue('koen', parsed.success ? parsed.data : undefined);
                 }}
                 placeholder="Vælg køn"
                 width={130}
@@ -345,7 +345,7 @@ const Forsoergertab = React.memo(() => {
         <AarsloenAmountFieldRow
           label="Skadelidtes årsløn (efter ASL)"
           value={faellesAarsloenValues.aslAarsloen}
-          onCommit={handleFaellesAarsloenChange('aslAarsloen')}
+          onCommit={(event) => setFaellesAarsloenFieldValue('aslAarsloen', event.target.value)}
           errorMessage={
             faellesAarsloenFieldErrors.aslAarsloen?.message ??
             helperIssueMessage(['asl-aarsloen-zero'])
@@ -358,7 +358,7 @@ const Forsoergertab = React.memo(() => {
           <Box className="row--label-right-hover__content">
             <StyledDateField
               value={values.virkningsdato || undefined}
-              onCommit={handleChange('virkningsdato')}
+              onCommit={(event) => setFieldValue('virkningsdato', event.target.value)}
               minDate={skadesdatoMin}
               maxDate={virkningsdatoMax}
               noValidRangeCause="Skadesdato i Stamdata og Beregningsdato"
@@ -379,7 +379,7 @@ const Forsoergertab = React.memo(() => {
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
             <StyledIntegerField
               value={values.tilkendtForPeriodeAar}
-              onCommit={handleChange('tilkendtForPeriodeAar')}
+              onCommit={(event) => setFieldValue('tilkendtForPeriodeAar', event.target.value)}
               minValue={1}
               maxValue={10}
               allowNegative={false}
@@ -401,7 +401,7 @@ const Forsoergertab = React.memo(() => {
           <Box className="row--label-right-hover__content">
             <StyledDateField
               value={values.efterladteFodselsdato || undefined}
-              onCommit={handleChange('efterladteFodselsdato')}
+              onCommit={(event) => setFieldValue('efterladteFodselsdato', event.target.value)}
               minDate={dateRanges_forsoergertab.efterladteFodselsdato.min}
               maxDate={dateRanges_forsoergertab.efterladteFodselsdato.max}
               error={hasEfterladteFodselsdatoError}
@@ -420,7 +420,7 @@ const Forsoergertab = React.memo(() => {
         <AarsloenAmountFieldRow
           label="Skadelidtes årsløn (efter EAL)"
           value={faellesAarsloenValues.ealAarsloen}
-          onCommit={handleFaellesAarsloenChange('ealAarsloen')}
+          onCommit={(event) => setFaellesAarsloenFieldValue('ealAarsloen', event.target.value)}
           errorMessage={
             faellesAarsloenFieldErrors.ealAarsloen?.message ??
             helperIssueMessage(['eal-aarsloen-zero'])

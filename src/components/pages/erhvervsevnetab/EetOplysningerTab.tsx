@@ -20,14 +20,12 @@ import {
   validatePercentDivisibleBy5FromValue,
 } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import AarsloenAmountFieldRow from '../../inputs/AarsloenAmountFieldRow';
-import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import { type SetFieldValue, type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 
 export type EetOplysningerTabProps = {
   values: ErhvervsevnetabComposedValues;
   setValues: SetValuesUpdater<ErhvervsevnetabValues>;
-  handleChange: <K extends keyof ErhvervsevnetabValues>(
-    key: K
-  ) => CommitHandler<ErhvervsevnetabValues[K]>;
+  setFieldValue: SetFieldValue<ErhvervsevnetabValues>;
   handleSkadelidteFodselsdatoChange: CommitHandler<FaellesPersondataValues['skadelidteFodselsdato']>;
   handleAslAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['aslAarsloen']>;
   handleEalAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['ealAarsloen']>;
@@ -37,7 +35,7 @@ export type EetOplysningerTabProps = {
 const EetOplysningerTab = ({
   values,
   setValues,
-  handleChange,
+  setFieldValue,
   handleSkadelidteFodselsdatoChange,
   handleAslAarsloenChange,
   handleEalAarsloenChange,
@@ -126,7 +124,7 @@ const EetOplysningerTab = ({
                 value={values.koen}
                 onChange={(event) => {
                   const parsed = koenEnum.safeParse(event.target.value);
-                  handleChange('koen')(createCommitEvent(parsed.success ? parsed.data : undefined));
+                  setFieldValue('koen', parsed.success ? parsed.data : undefined);
                 }}
                 placeholder="Vælg køn"
                 width={130}
@@ -145,7 +143,7 @@ const EetOplysningerTab = ({
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
             <StyledDateField
               value={values.beregningsdato || undefined}
-              onCommit={handleChange('beregningsdato')}
+              onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
               minDate={skadesdatoMin}
               maxDate={dateRanges_erhvervsevnetab.beregningsdato.max}
               specialRangeErrors={{ maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' }}
@@ -208,7 +206,7 @@ const EetOplysningerTab = ({
               value={values.ealEetPct}
               onCommit={(event) => {
                 const nextValue = event.target.value === 0 ? undefined : event.target.value;
-                handleChange('ealEetPct')(createCommitEvent(nextValue));
+                setFieldValue('ealEetPct', nextValue);
               }}
               allowDecimals={false}
               minValue={0}

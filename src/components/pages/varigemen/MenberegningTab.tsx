@@ -16,13 +16,12 @@ import {
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString, parseISODate, toISODateString } from '../../../types/branded';
 import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
-import type { SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import type { SetFieldValue, SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import { useNavigate } from 'react-router-dom';
 import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/lovbestemteRates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
-import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import { downloadVarigeMenPdf } from '../../../pdf/infrastructure/pdfService';
 
@@ -39,17 +38,13 @@ type MenberegningStamdataView = Readonly<{
   skadestype: string | undefined;
 }>;
 
-const MenberegningTab = ({ values, setValues, handleChange, stamdata, faellesPersondataValues, handleFaellesPersondataChange }: {
+const MenberegningTab = ({ values, setValues, setFieldValue, stamdata, faellesPersondataValues, setFaellesPersondataFieldValue }: {
   values: VarigeMenValues;
   setValues: SetValuesUpdater<VarigeMenValues>;
-  handleChange: <K extends keyof VarigeMenValues>(
-    key: K
-  ) => CommitHandler<VarigeMenValues[K]>;
+  setFieldValue: SetFieldValue<VarigeMenValues>;
   stamdata: MenberegningStamdataView;
   faellesPersondataValues: FaellesPersondataValues;
-  handleFaellesPersondataChange: <K extends keyof FaellesPersondataValues>(
-    key: K
-  ) => CommitHandler<FaellesPersondataValues[K]>;
+  setFaellesPersondataFieldValue: SetFieldValue<FaellesPersondataValues>;
 }) => {
   const stamValues = stamdata;
 
@@ -220,9 +215,9 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Fødselsdato</Typography>
         <Box className="row--label-right-hover__content">
-          <StyledDateField
-            value={faellesPersondataValues.skadelidteFodselsdato || undefined}
-            onCommit={handleFaellesPersondataChange('skadelidteFodselsdato')}
+            <StyledDateField
+              value={faellesPersondataValues.skadelidteFodselsdato || undefined}
+              onCommit={(event) => setFaellesPersondataFieldValue('skadelidteFodselsdato', event.target.value)}
             minDate={dateRanges_erhvervsevnetab.skadelidteFodselsdato.min}
             maxDate={dateRanges_erhvervsevnetab.skadelidteFodselsdato.max}
             onFieldError={handleFodselsdatoError}
@@ -300,7 +295,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
                 typeof raw === 'number' && Number.isFinite(raw)
                   ? Math.trunc(raw)
                   : undefined;
-              handleChange('mengrad')(createCommitEvent(intValue));
+              setFieldValue('mengrad', intValue);
             }}
             allowDecimals={false}
             minValue={0}
@@ -318,7 +313,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
         <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
           <StyledDateField
             value={values.beregningsdato || undefined}
-            onCommit={handleChange('beregningsdato')}
+            onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
             minDate={VARIGE_MEN_BEREGNINGSDATO_MIN}
             maxDate={VARIGE_MEN_BEREGNINGSDATO_MAX}
             noValidRangeCause="Varige mén-satser"

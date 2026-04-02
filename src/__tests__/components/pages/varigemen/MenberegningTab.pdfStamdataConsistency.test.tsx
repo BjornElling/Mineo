@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import type { CommitHandler } from '../../../../types/fieldEvents';
 import type { FaellesPersondataValues, VarigeMenValues } from '../../../../schemas/formSchemas';
 
 const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mockStamValues, mockFaellesPersondataValues } = vi.hoisted(() => ({
@@ -32,9 +31,8 @@ vi.mock('../../../../contexts/useAppSettings', () => ({
 
 import MenberegningTab from '../../../../components/pages/varigemen/MenberegningTab';
 
-const handleChange: <K extends keyof VarigeMenValues>(key: K) => CommitHandler<VarigeMenValues[K]> = () => vi.fn();
-const handleFaellesPersondataChange:
-  <K extends keyof FaellesPersondataValues>(key: K) => CommitHandler<FaellesPersondataValues[K]> = () => vi.fn();
+const setFieldValue = vi.fn();
+const setFaellesPersondataFieldValue = vi.fn();
 
 describe('MenberegningTab', () => {
   beforeEach(() => {
@@ -57,13 +55,13 @@ describe('MenberegningTab', () => {
         <MenberegningTab
           values={{ mengrad: 10, beregningsdato: '2026-01-01' }}
           setValues={vi.fn()}
-          handleChange={handleChange}
+          setFieldValue={setFieldValue}
           stamdata={{
             skadesdato: mockStamValues.skadesdato,
             skadestype: mockStamValues.skadestype,
           }}
           faellesPersondataValues={mockFaellesPersondataValues}
-          handleFaellesPersondataChange={handleFaellesPersondataChange}
+          setFaellesPersondataFieldValue={setFaellesPersondataFieldValue}
         />
       </MemoryRouter>
     );

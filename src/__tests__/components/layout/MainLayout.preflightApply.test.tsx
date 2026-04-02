@@ -6,6 +6,7 @@ import { useLocation } from 'react-router-dom';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
+import { useAuthoritativeSnapshotEpochSelector } from '../../../hooks/useFormPersistenceSelectors';
 import type { LoadFileResult } from '../../../types/fileOperations';
 
 vi.mock('../../../utils/fileLoad', () => ({
@@ -45,13 +46,14 @@ describe('MainLayout (preflight apply)', () => {
 
     const Probe = () => {
       const value = useFormPersistence();
+      const authoritativeSnapshotEpoch = useAuthoritativeSnapshotEpochSelector();
       const location = useLocation();
       React.useEffect(() => {
         ctx = value;
       }, [value]);
       return (
         <>
-          <div data-testid="epoch">{String(value.authoritativeSnapshotEpoch)}</div>
+          <div data-testid="epoch">{String(authoritativeSnapshotEpoch)}</div>
           <div data-testid="pathname">{location.pathname}</div>
         </>
       );

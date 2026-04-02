@@ -48,17 +48,17 @@ const ErhvervsevnetabPage = React.memo(() => {
     defaultTab: TAB_KEYS.EET_OPLYSNINGER,
   });
 
-  const { values, setValues, handleChange } = usePersistedForm(
+  const { values, setValues, setFieldValue } = usePersistedForm(
     erhvervsevnetabSchema,
     'erhvervsevnetab',
     ERHVERVSEVNETAB_INITIAL_VALUES
   );
-  const { values: faellesPersondataValues, handleChange: handleFaellesPersondataChange } = usePersistedForm(
+  const { values: faellesPersondataValues, setFieldValue: setFaellesPersondataFieldValue } = usePersistedForm(
     faellesPersondataSchema,
     'faellesPersondata',
     FAELLES_PERSONDATA_INITIAL_VALUES
   );
-  const { values: faellesAarsloenValues, handleChange: handleFaellesAarsloenChange } = usePersistedForm(
+  const { values: faellesAarsloenValues, setFieldValue: setFaellesAarsloenFieldValue } = usePersistedForm(
     faellesAarsloenSchema,
     'faellesAarsloen',
     FAELLES_AARSLOEN_INITIAL_VALUES
@@ -158,10 +158,10 @@ const ErhvervsevnetabPage = React.memo(() => {
         <EetOplysningerTab
           values={composedValues}
           setValues={setValues}
-          handleChange={handleChange}
-          handleSkadelidteFodselsdatoChange={handleFaellesPersondataChange('skadelidteFodselsdato')}
-          handleAslAarsloenChange={handleFaellesAarsloenChange('aslAarsloen')}
-          handleEalAarsloenChange={handleFaellesAarsloenChange('ealAarsloen')}
+          setFieldValue={setFieldValue}
+          handleSkadelidteFodselsdatoChange={(event) => setFaellesPersondataFieldValue('skadelidteFodselsdato', event.target.value)}
+          handleAslAarsloenChange={(event) => setFaellesAarsloenFieldValue('aslAarsloen', event.target.value)}
+          handleEalAarsloenChange={(event) => setFaellesAarsloenFieldValue('ealAarsloen', event.target.value)}
           skadesdato={stamdata?.skadesdato}
         />
       )}
