@@ -11,6 +11,7 @@ import { coerceToISODateString } from '../../types/branded';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
 import { useTableSort } from './useTableSort';
+import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 
 export type OevrigeKravTableProps = Readonly<{
   rows: OevrigeKravDraftRow[];
@@ -21,13 +22,14 @@ export type OevrigeKravTableProps = Readonly<{
   maxDate?: ISODateString | string;
   specialRangeErrors?: DateRangeSpecialErrors;
   noValidRangeCause?: string;
+  saveOrderPath?: string;
 }>;
 
 const getRowId = (row: OevrigeKravDraftRow) => row.id;
 const isRowEmpty = (row: OevrigeKravDraftRow) => row.dato.trim() === '' && row.udgiftTil.trim() === '' && row.beloeb.trim() === '';
 
 const OevrigeKravTable = React.memo(
-  ({ rows, committedById, onFieldChange, onRowBlur, minDate, maxDate, specialRangeErrors, noValidRangeCause }: OevrigeKravTableProps) => {
+  ({ rows, committedById, onFieldChange, onRowBlur, minDate, maxDate, specialRangeErrors, noValidRangeCause, saveOrderPath }: OevrigeKravTableProps) => {
   const minIso = React.useMemo(() => coerceToISODateString(minDate), [minDate]);
   const maxIso = React.useMemo(() => coerceToISODateString(maxDate), [maxDate]);
 
@@ -43,6 +45,8 @@ const OevrigeKravTable = React.memo(
     isRowEmpty,
     columns: sortColumns,
   });
+  const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
+  useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
 
   return (
     <StandardLooseTable

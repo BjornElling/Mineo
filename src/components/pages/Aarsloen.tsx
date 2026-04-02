@@ -387,6 +387,7 @@ const Aarsloen = React.memo(() => {
           onTableDataChange={handleTableDataChange}
           onValidationChange={handleValidationChange}
           useSmallFont={true}
+          saveOrderPath="aarsloen.tableData"
         />
       </ContentBox>
 

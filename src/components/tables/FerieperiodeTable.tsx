@@ -9,6 +9,7 @@ import { subtractOneDay } from '../../types/branded';
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
 import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { useTableSort } from './useTableSort';
+import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 
 export type FerieperiodeTableProps = Readonly<{
   rows: FerieDraftRow[];
@@ -21,6 +22,7 @@ export type FerieperiodeTableProps = Readonly<{
   differencekravDato: ISODateString | undefined;
   erErhvervssygdom: boolean;
   verserendeKlageEet: boolean;
+  saveOrderPath?: string;
 }>;
 
 const getRowId = (row: FerieDraftRow) => row.id;
@@ -38,6 +40,7 @@ const FerieperiodeTable = React.memo(
     differencekravDato,
     erErhvervssygdom,
     verserendeKlageEet,
+    saveOrderPath,
   }: FerieperiodeTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'fra', getSortValue: (row: FerieDraftRow) => committedById.get(row.id)?.fra },
@@ -51,6 +54,8 @@ const FerieperiodeTable = React.memo(
       isRowEmpty,
       columns: sortColumns,
     });
+    const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
+    useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
 
     return (
       <StandardLooseTable

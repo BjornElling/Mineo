@@ -184,6 +184,7 @@ const EetOplysningerTab = ({
           beregningsdato={coerceToISODateString(values.beregningsdato)}
           skadelidteFodselsdato={coerceToISODateString(values.skadelidteFodselsdato)}
           onTableDataChange={handleAslAfgoerelserChange}
+          saveOrderPath="erhvervsevnetab.aslAfgoerelser"
         />
       </ContentBox>
 

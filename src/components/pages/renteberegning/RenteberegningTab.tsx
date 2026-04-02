@@ -100,6 +100,7 @@ const RenteberegningTab = React.memo(({
           beregningsdatoHasError={beregningsdatoHasError}
           referenceRates={referenceRates}
           surchargeRates={surchargeRates}
+          saveOrderPath="renteberegning.rentekravRows"
         />
       </ContentBox>
 

@@ -17,6 +17,7 @@ import {
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useTableSort } from './useTableSort';
+import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 
 export type EetAslAfgoerelserTableProps = Readonly<{
   tableData: AslAfgoerelseRow[];
@@ -25,6 +26,7 @@ export type EetAslAfgoerelserTableProps = Readonly<{
   beregningsdato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
   onTableDataChange?: (rows: AslAfgoerelseRow[]) => void;
+  saveOrderPath?: string;
 }>;
 
 const AFGOERELSES_TYPE_OPTIONS: readonly TableDropdownOption[] = [
@@ -52,7 +54,7 @@ const fingerprintTableData = (rows: readonly AslAfgoerelseRow[]): string => {
 };
 
 const EetAslAfgoerelserTable = React.memo(
-  ({ tableData, skadesdato, skadesdatoMin, beregningsdato: _beregningsdato, skadelidteFodselsdato, onTableDataChange }: EetAslAfgoerelserTableProps) => {
+  ({ tableData, skadesdato, skadesdatoMin, beregningsdato: _beregningsdato, skadelidteFodselsdato, onTableDataChange, saveOrderPath }: EetAslAfgoerelserTableProps) => {
     const tabelAfgoerelsesdatoMax = dateRanges_erhvervsevnetab.tabelAfgoerelsesdato.max;
     const tabelVirkningsdatoMax = dateRanges_erhvervsevnetab.tabelVirkningsdato.max;
     const tabelKapitaliseringsdatoMax = dateRanges_erhvervsevnetab.tabelKapitaliseringsdato.max;
@@ -167,6 +169,8 @@ const EetAslAfgoerelserTable = React.memo(
       isRowEmpty: isAslAfgoerelseRowEmpty,
       columns: sortColumns,
     });
+    const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
+    useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
 
     return (
       <StandardLooseTable

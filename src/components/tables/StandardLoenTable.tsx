@@ -37,6 +37,7 @@ import {
   evaluateRowCommit,
   type RowRemovalFocusPlan,
 } from './gridCore/tableRowFocus';
+import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 
 export type StandardLoenTableSatser = {
   ferie?: number;
@@ -54,6 +55,7 @@ export type StandardLoenTableProps = {
   onValidationChange?: (summary: StandardLoenTableValidationSummary) => void;
   externalCellErrorMessagesByCellKey?: Readonly<Record<string, string>>;
   useSmallFont?: boolean;
+  saveOrderPath?: string;
 };
 
 const MIN_VISIBLE_ROWS = 2;
@@ -88,7 +90,7 @@ type TableRowsState = {
 };
 
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
-  ({ loenperiode, satser, tableData, onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false }, ref) => {
+  ({ loenperiode, satser, tableData, onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false, saveOrderPath }, ref) => {
     const defaultTableData = React.useMemo<StandardLoenTableRow[]>(() => {
       return [
         { ...initialRow, id: generateRowId() },
@@ -389,6 +391,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       columns: sortColumns,
     });
     const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
+    useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
 
     React.useLayoutEffect(() => {
       visibleRowIdsRef.current = visibleRowIds;

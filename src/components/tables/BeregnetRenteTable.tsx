@@ -18,6 +18,7 @@ import { computeRentekravRow, type RentekravRowResult } from '../../domain/rente
 import { createEmptyRentekravCommittedRow } from '../../domain/renteberegning/rentekravTableModel';
 import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
 import { dateRanges_renteberegning } from '../../config/dateRanges';
+import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 
 export type RentePdfContext = NonNullable<RentekravRowResult['pdfContext']>;
 
@@ -50,6 +51,7 @@ export type BeregnetRenteTableProps = Readonly<{
   beregningsdatoHasError: boolean;
   referenceRates: ReadonlyArray<RateEntry>;
   surchargeRates: ReadonlyArray<RateEntry>;
+  saveOrderPath?: string;
 }>;
 
 type BeregnetRenteRowProps = Readonly<{
@@ -229,6 +231,7 @@ const BeregnetRenteTable = React.memo(
     beregningsdatoHasError,
     referenceRates,
     surchargeRates,
+    saveOrderPath,
   }: BeregnetRenteTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'belob', getSortValue: (row: RentekravDraftRow) => amountValueToNumber(committedById.get(row.id)?.belob) },
@@ -241,6 +244,8 @@ const BeregnetRenteTable = React.memo(
       isRowEmpty,
       columns: sortColumns,
     });
+    const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
+    useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
 
     return (
       <StandardLooseTable

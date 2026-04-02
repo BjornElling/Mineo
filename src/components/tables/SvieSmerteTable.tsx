@@ -11,6 +11,7 @@ import type { ISODateString } from '../../types/branded';
 import { isoToDanish, subtractOneDay } from '../../types/branded';
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
 import type { SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
+import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 
 type SvieSmerteDerived = Readonly<{
   hasRangeError: boolean;
@@ -28,6 +29,7 @@ export type SvieSmerteTableProps = Readonly<{
   verserendeKlageMen: boolean;
   onFieldChange: (rowId: string, field: 'fra' | 'til' | 'tilstand') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
+  saveOrderPath?: string;
 }>;
 
 const SVIE_TILSTAND_OPTIONS: readonly TableDropdownOption[] = [
@@ -44,7 +46,7 @@ const getRowId = (row: SvieSmerteDraftRow) => row.id;
 const isRowEmpty = (row: SvieSmerteDraftRow) => row.fra.trim() === '' && row.til.trim() === '';
 
 const SvieSmerteTable = React.memo(
-  ({ rows, committedById, derivedById, overlappingIds, skadesdatoISO, menAfgoerelseDato, erErhvervssygdom, verserendeKlageMen, onFieldChange, onRowBlur }: SvieSmerteTableProps) => {
+  ({ rows, committedById, derivedById, overlappingIds, skadesdatoISO, menAfgoerelseDato, erErhvervssygdom, verserendeKlageMen, onFieldChange, onRowBlur, saveOrderPath }: SvieSmerteTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'fra', getSortValue: (row: SvieSmerteDraftRow) => committedById.get(row.id)?.fra },
       { colId: 'til', getSortValue: (row: SvieSmerteDraftRow) => committedById.get(row.id)?.til },
@@ -58,6 +60,8 @@ const SvieSmerteTable = React.memo(
       isRowEmpty,
       columns: sortColumns,
     });
+    const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
+    useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
 
     return (
       <StandardLooseTable

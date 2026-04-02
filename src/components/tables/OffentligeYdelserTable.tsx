@@ -32,6 +32,7 @@ import {
   type RowRemovalFocusPlan,
 } from './gridCore/tableRowFocus';
 import { OFFENTLIGE_YDELSER_TABLE_HEADERS } from '../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
+import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 
 export type OffentligeYdelserDerivedCellValues = Readonly<{
   periodiseringLabel: string;
@@ -44,6 +45,7 @@ export type OffentligeYdelserTableProps = {
   derivedByRowId?: ReadonlyMap<string, OffentligeYdelserDerivedCellValues>;
   onTableDataChange?: (data: OffentligeYdelserRow[]) => void;
   onValidationChange?: (summary: OffentligeYdelserTableValidationSummary) => void;
+  saveOrderPath?: string;
 };
 
 const MIN_VISIBLE_ROWS = 2;
@@ -80,7 +82,7 @@ const fingerprintTableData = (rows: readonly OffentligeYdelserRow[]): string => 
 };
 
 const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTableHandle, OffentligeYdelserTableProps>(
-  ({ tableData, derivedByRowId, onTableDataChange, onValidationChange }, ref) => {
+  ({ tableData, derivedByRowId, onTableDataChange, onValidationChange, saveOrderPath }, ref) => {
     const defaultTableData = React.useMemo<OffentligeYdelserRow[]>(
       () => [
         { ...initialOffentligYdelseRow, id: generateOffentligYdelseRowId() },
@@ -256,6 +258,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       columns: sortColumns,
     });
     const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
+    useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
 
     React.useLayoutEffect(() => {
       visibleRowIdsRef.current = visibleRowIds;

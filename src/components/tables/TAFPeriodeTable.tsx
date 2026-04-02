@@ -12,6 +12,7 @@ import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers
 import type { TafDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { calculateFerieHverdageMinusSHDage } from '../../domain/erstatningsopgoerelse/engines/ferieCalculations';
 import { buildTafCutoffErrorMessage } from '../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 
 export type TAFPeriodeTableProps = Readonly<{
   rows: TafDraftRow[];
@@ -29,6 +30,7 @@ export type TAFPeriodeTableProps = Readonly<{
   differencekravDato: ISODateString | undefined;
   erErhvervssygdom: boolean;
   verserendeKlageEet: boolean;
+  saveOrderPath?: string;
 }>;
 
 const getRowId = (row: TafDraftRow) => row.id;
@@ -50,6 +52,7 @@ const TAFPeriodeTable = React.memo(
     differencekravDato,
     erErhvervssygdom,
     verserendeKlageEet,
+    saveOrderPath,
   }: TAFPeriodeTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'fra', getSortValue: (row: TafDraftRow) => committedById.get(row.id)?.fra },
@@ -64,6 +67,7 @@ const TAFPeriodeTable = React.memo(
       isRowEmpty,
       columns: sortColumns,
     });
+    useRegisterTableSaveOrder(saveOrderPath, React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]));
 
     return (
       <StandardLooseTable

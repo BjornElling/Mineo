@@ -1506,6 +1506,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   verserendeKlageMen={verserendeKlageMen}
                   onFieldChange={svie.onFieldChange}
                   onRowBlur={(rowId) => svie.onFieldBlur(rowId)}
+                  saveOrderPath="erstatningsopgoerelse.svieSmertePerioder"
                 />
 
                 <Box className="row--label-right-hover">
@@ -1605,6 +1606,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               differencekravDato={values.differencekravDato}
               erErhvervssygdom={erErhvervssygdom}
               verserendeKlageEet={verserendeKlageEet}
+              saveOrderPath="erstatningsopgoerelse.tafPerioder"
             />
 
             <Typography className="row--subheading">Evt. ferie i perioden:</Typography>
@@ -1619,6 +1621,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               differencekravDato={values.differencekravDato}
               erErhvervssygdom={erErhvervssygdom}
               verserendeKlageEet={verserendeKlageEet}
+              saveOrderPath="erstatningsopgoerelse.ferieperioder"
             />
 
             <Typography className="row--subheading">Øvrigt</Typography>
@@ -1704,6 +1707,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   onRowBlur={(rowId) => fravaer.onFieldBlur(rowId)}
                   beregningsperiodeFra={values.periodeTilBeregningFra}
                   beregningsperiodeTil={values.periodeTilBeregningTil}
+                  saveOrderPath="erstatningsopgoerelse.fravaerPerioder"
                 />
 
                 <Box className="row--label-right-hover">
@@ -2465,6 +2469,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
             minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
           }}
           noValidRangeCause={skadesdatoISO ? 'Skadesdato, dags dato' : 'dags dato'}
+          saveOrderPath="erstatningsopgoerelse.oevrigeKravPerioder"
         />
       </ContentBox>
 

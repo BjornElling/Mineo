@@ -7,6 +7,7 @@ import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/ta
 import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { useTableSort } from './useTableSort';
+import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 
 export type BeregningsperiodeFerieTableProps = Readonly<{
   rows: FerieDraftRow[];
@@ -16,6 +17,7 @@ export type BeregningsperiodeFerieTableProps = Readonly<{
   onRowBlur: (rowId: string) => void;
   beregningsperiodeFra: ISODateString | undefined;
   beregningsperiodeTil: ISODateString | undefined;
+  saveOrderPath?: string;
 }>;
 
 const OUTSIDE_BEREGNINGSPERIODE_ERROR_MESSAGE = 'Ferie i beregningsperioden skal også ligge inden for beregningsperioden.';
@@ -32,6 +34,7 @@ const BeregningsperiodeFerieTable = React.memo(
     onRowBlur,
     beregningsperiodeFra,
     beregningsperiodeTil,
+    saveOrderPath,
   }: BeregningsperiodeFerieTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'fra', getSortValue: (row: FerieDraftRow) => committedById.get(row.id)?.fra },
@@ -45,6 +48,8 @@ const BeregningsperiodeFerieTable = React.memo(
       isRowEmpty,
       columns: sortColumns,
     });
+    const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
+    useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
 
     const hasValidBeregningsperiodeBounds =
       beregningsperiodeFra !== undefined &&
