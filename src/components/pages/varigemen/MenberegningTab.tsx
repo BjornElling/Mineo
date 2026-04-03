@@ -9,9 +9,7 @@ import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledPercentField from '../../inputs/StyledPercentField';
 import ContentBox from '../../layout/ContentBox';
-import { dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
 import {
-  type FaellesPersondataValues,
   type VarigeMenValues,
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString, parseISODate, toISODateString } from '../../../types/branded';
@@ -24,6 +22,7 @@ import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import { downloadVarigeMenPdf } from '../../../pdf/infrastructure/pdfService';
+import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 
 const VARIGE_MEN_BEREGNINGSDATO_MIN = toISODateString(
   `${varigeMenPrGradYearBounds.minYear}-01-01`
@@ -34,22 +33,22 @@ const VARIGE_MEN_BEREGNINGSDATO_MAX = toISODateString(
 );
 
 type MenberegningStamdataView = Readonly<{
+  skadelidteFodselsdato: string | undefined;
   skadesdato: string | undefined;
   skadestype: string | undefined;
 }>;
 
-const MenberegningTab = ({ values, setValues, setFieldValue, stamdata, faellesPersondataValues, setFaellesPersondataFieldValue }: {
+const MenberegningTab = ({ values, setValues, setFieldValue, stamdata }: {
   values: VarigeMenValues;
   setValues: SetValuesUpdater<VarigeMenValues>;
   setFieldValue: SetFieldValue<VarigeMenValues>;
   stamdata: MenberegningStamdataView;
-  faellesPersondataValues: FaellesPersondataValues;
-  setFaellesPersondataFieldValue: SetFieldValue<FaellesPersondataValues>;
 }) => {
   const stamValues = stamdata;
 
   const { settings } = useAppSettings();
   const navigate = useNavigate();
+  const stamdataFieldErrors = useFormFieldErrors('stamdata');
 
   // State til rystebevægelse animation
   const [downloadShake, setDownloadShake] = React.useState(false);
@@ -58,19 +57,16 @@ const MenberegningTab = ({ values, setValues, setFieldValue, stamdata, faellesPe
 
 // --- Feltvalidering ---
 const [mengradError, setMengradError] = React.useState<string | undefined>(undefined);
-const [fodselsdatoError, setFodselsdatoError] = React.useState<string | undefined>(undefined);
 const [beregningsdatoError, setBeregningsdatoError] = React.useState<string | undefined>(undefined);
 const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
 const handleMengradError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
   setMengradError(getReportableFieldErrorMessage(errorMsg));
 }, []);
-const handleFodselsdatoError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
-  setFodselsdatoError(getReportableFieldErrorMessage(errorMsg));
-}, []);
 const handleBeregningsdatoError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
   setBeregningsdatoError(getReportableFieldErrorMessage(errorMsg));
 }, []);
+const fodselsdatoError = stamdataFieldErrors.skadelidteFodselsdato?.message;
 
 // Tjek om der er fejl - kun baseret på felt-errors fra onBlur
 const beregningsFejl = React.useMemo(() => {
@@ -83,18 +79,18 @@ const beregningsFejl = React.useMemo(() => {
 
 // Tjek om indtastninger mangler (altid, uafhængigt af onBlur)
 const manglendeFelter = React.useMemo(() => {
-  if (!faellesPersondataValues.skadelidteFodselsdato || !stamValues.skadesdato || !values.beregningsdato || values.mengrad === undefined) {
+  if (!stamValues.skadelidteFodselsdato || !stamValues.skadesdato || !values.beregningsdato || values.mengrad === undefined) {
     return 'Indtastning mangler';
   }
   if (values.mengrad === 0) {
     return 'Méngrad mangler';
   }
   return null;
-}, [faellesPersondataValues.skadelidteFodselsdato, stamValues.skadesdato, values.beregningsdato, values.mengrad]);
+}, [stamValues.skadelidteFodselsdato, stamValues.skadesdato, values.beregningsdato, values.mengrad]);
 
 // Beregn alder på skadestidspunkt (bruges flere steder)
 const alderVedSkade = React.useMemo(() => {
-  const fodselsdatoISO = coerceToISODateString(faellesPersondataValues.skadelidteFodselsdato);
+  const fodselsdatoISO = coerceToISODateString(stamValues.skadelidteFodselsdato);
   const skadesdatoISO = coerceToISODateString(stamValues.skadesdato);
 
   if (!fodselsdatoISO || !skadesdatoISO) return undefined;
@@ -115,7 +111,7 @@ const alderVedSkade = React.useMemo(() => {
   }
 
   return alder;
-}, [faellesPersondataValues.skadelidteFodselsdato, stamValues.skadesdato]);
+}, [stamValues.skadelidteFodselsdato, stamValues.skadesdato]);
 
 const beregningsResultat = React.useMemo(() => {
   // Hvis der er onBlur-fejl eller manglende felter, vis ikke resultat
@@ -128,12 +124,12 @@ const beregningsResultat = React.useMemo(() => {
     values,
     skadesdatoISO,
     varigeMenPrGrad,
-    coerceToISODateString(faellesPersondataValues.skadelidteFodselsdato)
+    coerceToISODateString(stamValues.skadelidteFodselsdato)
   );
   if (!resultat) return undefined;
 
   return resultat;
-}, [values, stamValues.skadesdato, faellesPersondataValues.skadelidteFodselsdato, beregningsFejl, manglendeFelter]);
+}, [values, stamValues.skadelidteFodselsdato, stamValues.skadesdato, beregningsFejl, manglendeFelter]);
 
 // Beregn aldersreduktionsbeløb (kun én gang)
 const aldersreduktionsBeloeb = React.useMemo(() => {
@@ -151,13 +147,8 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
 
       // Find første fejlcelle og markér den
       // Prioritering: Fødselsdato -> Skadesdato -> Méngrad -> Beregningsdato
-      if (!faellesPersondataValues.skadelidteFodselsdato || fodselsdatoError) {
-        // Markér fødselsdato-feltet (trigger focus vil markere det rødt)
-        const fodselsdatoInput = document.querySelector('input[value*="' + (faellesPersondataValues.skadelidteFodselsdato || '') + '"]') as HTMLInputElement;
-        if (fodselsdatoInput) {
-          fodselsdatoInput.focus();
-          fodselsdatoInput.blur();
-        }
+      if (!stamValues.skadelidteFodselsdato || fodselsdatoError) {
+        navigate('/stamdata');
       } else if (!stamValues.skadesdato) {
         // Skadesdato kan ikke markeres direkte, men brugeren vil se fejlen
       } else if (values.mengrad === undefined || values.mengrad === 0 || mengradError) {
@@ -180,7 +171,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
     }
 
     const result = await downloadVarigeMenPdf({
-      fodselsdato: coerceToISODateString(faellesPersondataValues.skadelidteFodselsdato),
+      fodselsdato: coerceToISODateString(stamValues.skadelidteFodselsdato),
       skadesdato: coerceToISODateString(stamValues.skadesdato),
       mengrad: values.mengrad,
       beregningsdato: coerceToISODateString(values.beregningsdato),
@@ -192,7 +183,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       setDownloadShake(true);
       setTimeout(() => setDownloadShake(false), 500);
     }
-  }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues, faellesPersondataValues.skadelidteFodselsdato, fodselsdatoError, mengradError, beregningsdatoError, settings]);
+  }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues, fodselsdatoError, mengradError, beregningsdatoError, settings, navigate]);
 
   const skadesdatoLabel = React.useMemo(() => {
     if (stamValues.skadestype === 'Erhvervssygdom') return 'Anmeldelsesdato';
@@ -214,14 +205,26 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
 
       <Box className="row--label-right-hover">
         <Typography className="row--text">Fødselsdato</Typography>
-        <Box className="row--label-right-hover__content">
-            <StyledDateField
-              value={faellesPersondataValues.skadelidteFodselsdato || undefined}
-              onCommit={(event) => setFaellesPersondataFieldValue('skadelidteFodselsdato', event.target.value)}
-            minDate={dateRanges_erhvervsevnetab.skadelidteFodselsdato.min}
-            maxDate={dateRanges_erhvervsevnetab.skadelidteFodselsdato.max}
-            onFieldError={handleFodselsdatoError}
-          />
+        <Box className="row--label-right-hover__content" sx={{ justifyContent: 'flex-end' }}>
+          <Typography
+            component="button"
+            type="button"
+            className={stamValues.skadelidteFodselsdato ? 'row--text icon-text-link' : 'row--text icon-text-link'}
+            onClick={() => navigate('/stamdata')}
+            sx={{
+              cursor: 'pointer',
+              border: 0,
+              background: 'transparent',
+              p: 0,
+              m: 0,
+              font: 'inherit',
+              color: stamValues.skadelidteFodselsdato && !fodselsdatoError ? 'inherit' : 'text.secondary',
+            }}
+          >
+            {stamValues.skadelidteFodselsdato
+              ? formatIsoDateLong(coerceToISODateString(stamValues.skadelidteFodselsdato) ?? undefined)
+              : 'Mangler (angiv i Stamdata)'}
+          </Typography>
         </Box>
       </Box>
 
@@ -262,11 +265,11 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
           className="row--label-right-hover__content"
           style={{ justifyContent: 'flex-end' }}
         >
-          {fodselsdatoError || !faellesPersondataValues.skadelidteFodselsdato || !stamValues.skadesdato ? (
+          {fodselsdatoError || !stamValues.skadelidteFodselsdato || !stamValues.skadesdato ? (
             <Tooltip
               title={
                 fodselsdatoError ||
-                (!faellesPersondataValues.skadelidteFodselsdato || !stamValues.skadesdato ? 'Indtastning mangler' : '')
+                (!stamValues.skadelidteFodselsdato || !stamValues.skadesdato ? 'Indtastning mangler' : '')
               }
               arrow
             >
@@ -388,6 +391,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
                 {formatAsAmount(beregningsResultat.beregnetGodtgoerelse, 0)} kr.
               </Typography>
               <Box
+                data-testid="varigemen-download"
                 onClick={handlePdfDownload}
                 tabIndex={-1}
                 sx={{

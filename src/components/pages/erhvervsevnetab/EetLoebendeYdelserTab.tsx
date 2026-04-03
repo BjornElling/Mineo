@@ -67,7 +67,6 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Prop
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
-  const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
   const { settings } = useAppSettings();
   const showExtendedSpecification = values.eetDifferencekravBilagSelection.visUdvidetSpecifikation;
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
@@ -87,14 +86,14 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Prop
       toFieldIssue('field-beregningsdato', eetFieldErrors.beregningsdato?.message),
       toFieldIssue('field-aarsloen-asl', faellesAarsloenFieldErrors.aslAarsloen?.message),
       toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
-      toFieldIssue('field-skadelidte-fodselsdato', faellesPersondataFieldErrors.skadelidteFodselsdato?.message),
+      toFieldIssue('field-skadelidte-fodselsdato', stamdataFieldErrors.skadelidteFodselsdato?.message),
       toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
     ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
   }, [
     eetFieldErrors.aslAfgoerelser?.message,
     eetFieldErrors.beregningsdato?.message,
-    faellesPersondataFieldErrors.skadelidteFodselsdato?.message,
     faellesAarsloenFieldErrors.aslAarsloen?.message,
+    stamdataFieldErrors.skadelidteFodselsdato?.message,
     stamdataFieldErrors.skadesdato?.message,
   ]);
 

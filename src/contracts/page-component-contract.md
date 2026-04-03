@@ -255,8 +255,12 @@ Tabs må enten:
 - mountes betinget, eller
 - holdes mounted efter første besøg
 
-Valget skal styres af brugerdata-sikkerhed, draft-bevarelse, performance og fejlvisning.
-Hvis en tab indeholder draft-state eller runtime-fejl, som ikke må gå tabt ved tab-skift, skal den ikke umountes ukritisk.
+Normativ beslutningsregel:
+
+- Tabs der indeholder draft-capable inputs eller runtime-fejl som skal bevares, skal holdes mounted efter første besøg.
+- Tabs der kun viser beregnede resultater eller andre rene visninger, må mountes betinget.
+
+Valget skal ikke være ad hoc per side.
 
 ---
 

@@ -181,10 +181,12 @@ devtools-/bug-report-flow. `EOberegningTab` må højst vise en neutral inline-r�
 
 ### 8.1 PDF-download-fejl og download-gating
 
-**Download-gating:** Download-knappen er aktiv hvis og kun hvis `errors`-listen fra
-`collectAllDebugRows` er tom (ingen fejl i felter fra EO-oplysninger eller stamdata).
-Snapshot-baserede invariants (`authoritativeBlockingInvariants`, `eoPdfBlockingInvariants`)
-bidrager til `systemIssueRows` men blokerer knappen via den samlede fejl-og-advarsler-visning.
+**Download-gating:** Den autoritative definition findes i `src/contracts/pdf-contract.md` §2.
+
+EO-specifik præcisering:
+- I EO er det typisk `collectAllDebugRows`, der eksponerer de blokerende feltfejl til brugerfladen.
+- `EOBeregningTab` er den centrale visning, hvor disse blokeringer aggregeres og vises.
+- EO-specifikke snapshot-invariants og outputblokeringer må gerne give yderligere forklaring i UI, men de må ikke redefinere de tværgående gate-kriterier.
 
 **PDF-download-fejl:** Kan PDF’en alligevel ikke genereres (runtime-undtagelse i
 jsPDF-laget), er det en systemteknisk fejl — ikke en brugerrettelig valideringsfejl.

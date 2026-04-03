@@ -15,7 +15,6 @@ export type FormPersistenceSections = {
   satser: PersistedSectionMap['satser'] | null;
   aarsloen: PersistedSectionMap['aarsloen'] | null;
   faellesAarsloen: PersistedSectionMap['faellesAarsloen'] | null;
-  faellesPersondata: PersistedSectionMap['faellesPersondata'] | null;
   renteberegning: PersistedSectionMap['renteberegning'] | null;
   varigemen: PersistedSectionMap['varigemen'] | null;
   forsoergertab: PersistedSectionMap['forsoergertab'] | null;

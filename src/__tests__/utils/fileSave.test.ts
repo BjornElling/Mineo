@@ -68,7 +68,6 @@ describe('fileSave', () => {
         satser: undefined,
         aarsloen: undefined,
         faellesAarsloen: undefined,
-        faellesPersondata: undefined,
         renteberegning: undefined,
         varigemen: undefined,
         forsoergertab: undefined,
@@ -86,7 +85,6 @@ describe('fileSave', () => {
           satser: undefined,
           aarsloen: undefined,
           faellesAarsloen: undefined,
-          faellesPersondata: undefined,
           renteberegning: undefined,
           varigemen: undefined,
           forsoergertab: undefined,
@@ -101,7 +99,6 @@ describe('fileSave', () => {
           satser: undefined,
           aarsloen: undefined,
           faellesAarsloen: undefined,
-          faellesPersondata: undefined,
           renteberegning: undefined,
           varigemen: undefined,
           forsoergertab: undefined,
@@ -118,7 +115,6 @@ describe('fileSave', () => {
           satser: undefined,
           aarsloen: undefined,
           faellesAarsloen: undefined,
-          faellesPersondata: undefined,
           renteberegning: undefined,
           varigemen: undefined,
           forsoergertab: undefined,
@@ -243,12 +239,12 @@ describe('fileSave', () => {
 
     it('bevarer faellesAarsloen, forsoergertab og erhvervsevnetab i round-trip verifikation', async () => {
       const expectedData = eoFileDataSchema.parse({
+        stamdata: {
+          skadelidteFodselsdato: '1990-01-01',
+        },
         faellesAarsloen: {
           aslAarsloen: { kind: 'number', value: 450000 },
           ealAarsloen: { kind: 'number', value: 500000 },
-        },
-        faellesPersondata: {
-          skadelidteFodselsdato: '1990-01-01',
         },
         forsoergertab: {
           efterladteFodselsdato: '1988-03-04',
@@ -299,7 +295,6 @@ describe('fileSave', () => {
       satser: undefined,
       aarsloen: undefined,
       faellesAarsloen: undefined,
-      faellesPersondata: undefined,
       renteberegning: undefined,
       varigemen: undefined,
       forsoergertab: undefined,
@@ -401,7 +396,6 @@ describe('fileSave', () => {
         satser: undefined,
         aarsloen: undefined,
         faellesAarsloen: undefined,
-        faellesPersondata: undefined,
         renteberegning: undefined,
         varigemen: undefined,
         forsoergertab: undefined,

@@ -1,19 +1,19 @@
 import React from 'react';
 import { Box, MenuItem, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import StyledDateField from '../inputs/StyledDateField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledIntegerField from '../inputs/StyledIntegerField';
 import InsertTodayDateButton from '../inputs/InsertTodayDateButton';
 import { createCommitEvent } from '../../types/fieldEvents';
 import ContentBox from '../layout/ContentBox';
-import { dateRanges_forsoergertab, dateRanges_skadelidteFodselsdato } from '../../config/dateRanges';
+import { dateRanges_forsoergertab } from '../../config/dateRanges';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import { useAslAarsloenRuleReporter } from '../../hooks/useAslAarsloenRuleReporter';
-import { faellesAarsloenSchema, faellesPersondataSchema, forsoergertabSchema, koenEnum } from '../../schemas/formSchemas';
+import { faellesAarsloenSchema, forsoergertabSchema, koenEnum } from '../../schemas/formSchemas';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
-import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../domain/faellesPersondata/faellesPersondataInitialValues';
 import { FORSOERGERTAB_INITIAL_VALUES } from '../../domain/forsoergertab/forsoergertabInitialValues';
 import { computeForsoergertabCalculation } from '../../domain/forsoergertab/forsoergertabCalculation';
 import { PRE_2015_CUTOFF } from '../../domain/forsoergertab/forsoergertabConstants';
@@ -27,6 +27,7 @@ import { buildAldersreduktionFormelTekst } from '../../domain/erhvervsevnetab/ee
 import StandardLooseTable from '../tables/StandardLooseTable';
 
 const Forsoergertab = React.memo(() => {
+  const navigate = useNavigate();
   const { values, setFieldValue } = usePersistedForm(
     forsoergertabSchema,
     'forsoergertab',
@@ -37,23 +38,14 @@ const Forsoergertab = React.memo(() => {
     'faellesAarsloen',
     FAELLES_AARSLOEN_INITIAL_VALUES
   );
-  const { values: faellesPersondataValues, setFieldValue: setFaellesPersondataFieldValue } = usePersistedForm(
-    faellesPersondataSchema,
-    'faellesPersondata',
-    FAELLES_PERSONDATA_INITIAL_VALUES
-  );
   const stamdata = usePersistedSectionSelector('stamdata');
   const { settings } = useAppSettings();
 
   const forsoergertabFieldErrors = useFormFieldErrors('forsoergertab');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
-  const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
+  const stamdataFieldErrors = useFormFieldErrors('stamdata');
 
   const reportBeregningsdatoError = useFormFieldErrorReporter('forsoergertab', 'beregningsdato', {
-    severity: 'error',
-    source: 'input',
-  });
-  const reportSkadelidteFodselsdatoError = useFormFieldErrorReporter('faellesPersondata', 'skadelidteFodselsdato', {
     severity: 'error',
     source: 'input',
   });
@@ -65,7 +57,6 @@ const Forsoergertab = React.memo(() => {
     severity: 'error',
     source: 'input',
   });
-  const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const reportTilkendtForPeriodeError = useFormFieldErrorReporter('forsoergertab', 'tilkendtForPeriodeAar', {
     severity: 'error',
     source: 'input',
@@ -106,7 +97,7 @@ const Forsoergertab = React.memo(() => {
     () =>
       computeForsoergertabCalculation({
         skadesdato: coerceToISODateString(stamdata?.skadesdato),
-        skadelidteFodselsdato: coerceToISODateString(faellesPersondataValues.skadelidteFodselsdato),
+        skadelidteFodselsdato: coerceToISODateString(stamdata?.skadelidteFodselsdato),
         efterladteFodselsdato: coerceToISODateString(values.efterladteFodselsdato),
         beregningsdato: coerceToISODateString(values.beregningsdato),
         virkningsdato: coerceToISODateString(values.virkningsdato),
@@ -118,7 +109,7 @@ const Forsoergertab = React.memo(() => {
     [
       faellesAarsloenValues.aslAarsloen,
       faellesAarsloenValues.ealAarsloen,
-      faellesPersondataValues.skadelidteFodselsdato,
+      stamdata?.skadelidteFodselsdato,
       stamdata?.skadesdato,
       values,
     ]
@@ -132,7 +123,7 @@ const Forsoergertab = React.memo(() => {
     [calculationResult.issues]
   );
 
-  const hasSkadelidteFodselsdatoError = Boolean(faellesPersondataFieldErrors.skadelidteFodselsdato?.message);
+  const hasSkadelidteFodselsdatoError = Boolean(stamdataFieldErrors.skadelidteFodselsdato?.message);
   const hasEfterladteFodselsdatoError = Boolean(
     forsoergertabFieldErrors.efterladteFodselsdato?.message ||
       helperIssueMessage(['forsoergertab-alder-unresolved', 'forsoergertab-alder-missing'])
@@ -192,7 +183,7 @@ const Forsoergertab = React.memo(() => {
     !hasEalAarsloenError &&
     ealComputation !== null;
   const canShowAsl =
-    Boolean(faellesPersondataValues.skadelidteFodselsdato) &&
+    Boolean(stamdata?.skadelidteFodselsdato) &&
     Boolean(values.efterladteFodselsdato) &&
     Boolean(values.beregningsdato) &&
     !hasEfterladteFodselsdatoError &&
@@ -214,7 +205,7 @@ const Forsoergertab = React.memo(() => {
       pdfParams: {
         grundlaeggende: {
           beregningsdato: coerceToISODateString(values.beregningsdato),
-          skadelidteFodselsdato: coerceToISODateString(faellesPersondataValues.skadelidteFodselsdato),
+          skadelidteFodselsdato: coerceToISODateString(stamdata?.skadelidteFodselsdato),
           efterladteFodselsdato: coerceToISODateString(values.efterladteFodselsdato),
           koen: values.koen,
           visKoenValg,
@@ -234,7 +225,7 @@ const Forsoergertab = React.memo(() => {
     });
   }, [
     values,
-    faellesPersondataValues,
+    stamdata?.skadelidteFodselsdato,
     faellesAarsloenValues,
     visKoenValg,
     canShowResult,
@@ -305,16 +296,20 @@ const Forsoergertab = React.memo(() => {
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Skadelidtes fødselsdato</Typography>
-          <Box className="row--label-right-hover__content">
-            <StyledDateField
-              value={faellesPersondataValues.skadelidteFodselsdato || undefined}
-              onCommit={(event) => setFaellesPersondataFieldValue('skadelidteFodselsdato', event.target.value)}
-              minDate={dateRanges_skadelidteFodselsdato.min}
-              maxDate={dateRanges_skadelidteFodselsdato.max}
-              error={hasSkadelidteFodselsdatoError}
-              helperText={faellesPersondataFieldErrors.skadelidteFodselsdato?.message ?? ''}
-              onFieldError={reportSkadelidteFodselsdatoError}
-            />
+          <Box className="row--label-right-hover__content" sx={{ justifyContent: 'flex-end' }}>
+            {stamdata?.skadelidteFodselsdato && !hasSkadelidteFodselsdatoError ? (
+              <Typography className="row--text">{stamdata?.skadelidteFodselsdato ? isoToDanish(stamdata.skadelidteFodselsdato) : ''}</Typography>
+            ) : (
+              <Typography
+                component="button"
+                type="button"
+                className="row--text icon-text-link"
+                onClick={() => navigate('/stamdata')}
+                sx={{ cursor: 'pointer', border: 0, background: 'transparent', p: 0, m: 0, font: 'inherit' }}
+              >
+                {stamdataFieldErrors.skadelidteFodselsdato?.message ?? 'Mangler (angiv i Stamdata)'}
+              </Typography>
+            )}
           </Box>
         </Box>
 

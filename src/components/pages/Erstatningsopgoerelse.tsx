@@ -15,7 +15,6 @@ import {
 import {
   erhvervsevnetabSchema,
   faellesAarsloenSchema,
-  faellesPersondataSchema,
   erstatningsopgoerelseSchema,
   stamdataSchema,
   type ErstatningsopgoerelseValues,

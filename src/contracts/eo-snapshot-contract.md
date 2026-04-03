@@ -301,40 +301,10 @@ Der er ingen semantisk forskel på "0" og "tomt" for dette felt.
 
 ---
 
-## 8. `BugReportButton` i EO-kontekst
+## 8. Fejlrapportering og PDF-output
 
-`BugReportButton` er en fejlrapporteringskomponent til systemtekniske runtime-fejl.
-Den hører ikke hjemme i normale beregningstabs eller resultatvisninger som del af sideflowet.
-
-**Tilladte placeringer i EO-scope:**
-- `ErrorFallback` (ErrorBoundary-flow ved uventede komponent-crashes)
-- `DevtoolsIssueNotice` (devtools-monitor-flow)
-
-**Forbudte placeringer:**
-- Inline i `EOberegningTab`s normale fejl-og-advarsler-sektion som del af sideflowet
-- I `EODebug` eller `EODebugTabel`
-- I download-fejl-dialog eller enhver anden dialog
-- Som del af nogen visning der vises som fast element ved normale brugerscenarier
-
-Præcisering:
-- `EOberegningTab` må vise systemfejl-rækker for snapshot-invarianterne
-  `debug:control_mismatch` og `taf_per_year:afrunding_over_100`, fordi de er interne
-  beregningsinkonsistenser.
-- Disse rækker må ikke indeholde `BugReportButton`.
-- De skal samtidig logges via `console.error`/system issue-flowet, så det eksisterende
-  `DevtoolsIssueNotice`-flow åbner og giver brugeren mulighed for at sende fejloplysninger.
-
-**`fail_closed`-snapshot:** `schema_guard`-fejl (schema/parsing) og `invariant_guard`
-(afledt intern datainkonsistens efter vellykket parsing) vises som en neutral
-fejlbesked i `EOberegningTab` uden `BugReportButton`. `runtime_exception`
-logges via `console.error`/system issue-flowet og vises kun som neutral inline-række
-uden rapportknap.
-
-**PDF-download-gating og download-fejl:** Download-knappen er aktiv hvis og kun hvis
-`errors`-listen er tom (ingen feltfejl fra EO-oplysninger eller stamdata). Kan PDF'en
-alligevel ikke genereres (runtime-undtagelse i jsPDF), logges fejlen via `console.error`
-til devtools-monitor-flowet — ingen dialog, ingen `BugReportButton` vises til brugeren.
-Brugeren orienteres udelukkende via feltfejl i EOBeregningTab om hvad der skal rettes.
+1. `BugReportButton` i EO-scope styres normativt af `src/contracts/error-debug-contract.md`.
+2. PDF-download-gating, toggle-guards og semantisk fravalg styres normativt af `src/contracts/pdf-contract.md`.
 
 ---
 
@@ -349,73 +319,26 @@ Brugeren orienteres udelukkende via feltfejl i EOBeregningTab om hvad der skal r
 
 ---
 
-## 10. Betingede felter i PDF-renderere (toggle-guard-krav)
+## 10. TAF tvær-output konsistens (EO vs. TAF fordelt på år)
 
-### Baggrund
+Dette afsnit er normativt for visning af tabt arbejdsfortjeneste i flere outputs.
 
-Committed form-state indeholder altid alle felters værdier — også felter der aktuelt er
-skjult i UI'et af en toggle, et valg eller en anden betingelse. Et felt der er skjult kan
-indeholde en stale værdi fra en tidligere aktiveret tilstand.
+1. Autoritativ total:
+- Den autoritative TAF-total er EO-modellens `tabtArbejdsfortjenesteOre`.
+- Afledte visninger (herunder "TAF fordelt på år") må ikke beregne en alternativ total.
 
-PDF-renderere læser direkte fra `eoValues` uden forudgående rensning. Det betyder at en
-renderer, der ikke aktivt tjekker den betingelse der styrer feltets synlighed i UI'et, kan
-komme til at udskrive stale data i en PDF, selv om feltet ikke er aktivt for den konkrete sag.
+2. Invariant:
+- Summen af årsbeløb plus eventuel afrundingslinje skal være identisk med den autoritative total.
 
-### Regel
+3. Acceptabel afrundingsafvigelse:
+- Den samlede forskel mellem årssum og autoritativ total må højst være 1 kr. (100 øre).
+- Overskrides 1 kr., skal systemet være fail-closed: årsfordelingen må ikke vises som gyldig beregning.
 
-Når et felt i UI'et vises betinget af et toggle-switch, et valg eller andet brugerinput,
-**skal** PDF-rendereren der udskriver feltets værdi have en tilsvarende guard, der afspejler
-samme betingelse.
+4. Clamp-scenarie:
+- Hvis EO-netto clamped til 0, fordi fradrag overstiger lønudvikling, må der ikke vises en misvisende årsfordeling med stor "Afrunding".
+- Systemet skal i dette tilfælde fail-close årsfordelingen.
 
-Tommelfingerregel: find den variabel i UI-komponenten der styrer feltets synlighed
-(fx `const showFelt = af.harToggle && af.harBetingelse`). PDF-rendereren skal kontrollere
-identisk logik med `if`-guard inden den udskriver feltets værdi.
-
-### Mønstre
-
-To eksisterende mønstre er acceptable:
-
-**Mønster A — sektionsniveau:** Engine returnerer nul-output når toggle er slukket.
-PDF-renderer tjekker `model.beregnes`-flaget inden sektionen tegnes.
-Eksempel: `beregnesSvieSmerteGodtgoerelse` i `eoPresentationSectionBuilders.ts`.
-
-**Mønster B — feltniveau:** Inline `if`-guard direkte i renderer-funktionen.
-Foretrukket mønster for enkeltfelter og felter med overlappende afhængigheder.
-Eksempel: `if (overenskomstId && ansaettelsesforhold.harOverenskomst)` i `loenindkomstSection.ts`.
-
-Undgå at indføre et tredje mønster (fx pre-computation masking, normalisering eller
-datastruktur-mutationer i PDF-entry-punktet) — det skaber inkonsistens og gør
-ansvarsfordelingen uklar.
-
-### Tjekliste ved tilføjelse af nye felter
-
-Når du tilføjer et nyt felt eller gør et eksisterende felt betinget:
-
-1. Find eller opret den betingelse der styrer synlighed i UI-komponenten.
-2. Find den PDF-renderer-funktion der udskriver feltets værdi.
-3. Tilsæt en `if`-guard (Mønster B) eller opdater engine-output + `beregnes`-flag (Mønster A).
-4. Tilsvarende: hvis et toggle fjernes og et felt altid vises, fjern da den tilhørende guard.
-
-Manglende guard er en **Kritisk** fejl i review — den kan udskrive stale data i tillid-kritiske
-PDF-dokumenter.
-
-## 11. Semantisk fravalg skal undertrykke PDF-indhold og afledte visninger
-
-Visse EO-valg har en stærkere betydning end rene visningsvalg i PDF-UI'et: når brugeren
-semantisk har fravalgt en beregning, må senere outputvalg ikke genindføre indholdet.
-
-### 11.1 Sygeferiegodtgørelse
-
-Hvis sygeferiegodtgørelse for den konkrete sag er sat til `Ingen` for alle relevante
-ansættelsesforhold, er sygeferiegodtgørelse semantisk fravalgt.
-
-I dette tilfælde gælder følgende ufravigelige regler:
-- EO-PDF må ikke vise sygeferiegodtgørelse nogen steder.
-- EO-PDF må ikke medtage sygeferiegodtgørelse i mellemregninger, indtægtslinjer, bilag eller andre beregninger.
-- Bilags-checkboxen for sygeferiegodtgørelse i EOBeregningTab er kun et visningsønske og må ikke overstyre det semantiske fravalg.
-- TAF fordelt på år må ikke vise eller beregne fradragslinjer for sygeferiegodtgørelse.
-
-### 11.1a TAF-beregningsperiode og SFGG-referenceperiode er adskilte domæner
+## 11. TAF-beregningsperiode og SFGG-referenceperiode er adskilte domæner
 
 `periodeTilBeregningFra` / `periodeTilBeregningTil` tilhører TAF-beregningsgrundlaget.
 SFGG-referenceperioden tilhører udelukkende den konkrete SFGG-række
@@ -444,8 +367,6 @@ Aktuel undtagelse:
 - SFGG-rækkens persisted felter er eksplicit omlagt til `sfgg`-præfiks, herunder `sfggBeregningskilde`. Ældre `.eo`-filer med de tidligere SFGG-feltnavne er derfor ikke bagudkompatible på dette punkt.
 - Denne bagudinkompatibilitet er fail-closed, ikke fail-fast: ved load af gamle SFGG-feltnavne parses rækken fortsat, men manglende `sfggBeregningskilde` behandles efterfølgende som `Ingen`. Det giver semantisk fravalg af SFGG i stedet for parse-fejl eller gætteri.
 
-### 11.2 Samme princip for andre semantisk fravalgte delberegninger
+## 12. EO-feltklassificering og bounds-model
 
-Samme regel gælder for andre delberegninger med tilsvarende semantisk fravalg. Hvis en
-delberegning er autoritativt fravalgt i snapshot-/engine-laget, må hverken EO-PDF eller
-TAF fordelt på år-PDF vise indhold, fradrag, bilag eller mellemregninger for den.
+EO-specifik feltklassificering, fejlgivende bounds og stille clamping er normativt defineret i §2.

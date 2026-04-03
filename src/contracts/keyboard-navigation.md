@@ -31,9 +31,9 @@ Alle tastatur-navigation skal:
 **Undtagelser:**
 - Popup-widgets der er åbne (aria-expanded="true") – Container intercepter IKKE Tab, så widget selv kan håndtere det
 
-**Teknisk:**
-- Container kalder `preventDefault()` for at forhindre browser-default navigation
-- Bruger `element.focus({ preventScroll: true })` for at undgå scroll-hop
+Konsekvens:
+- Browserens standard-tabflow må gerne undertrykkes, hvis det er nødvendigt for at opnå den normerede navigation.
+- Intern fokuseringsmekanisme er et implementeringsvalg, så længe den ikke giver utilsigtet selection eller scroll-hop.
 
 ---
 
@@ -57,9 +57,8 @@ Alle tastatur-navigation skal:
    - Enter vælger den radiobutton der aktuelt har fokus
    - Container intercepter Enter-navigation for radiofelter, så fokus ikke flyttes videre
 
-**Teknisk:**
-- Samme implementering som Tab (bruger `focusOnly()`)
-- Tjekker `activeWidgetHasPopup` før intercept
+Konsekvens:
+- Enter-navigation må gerne dele intern mekanik med Tab-navigation, men kontrakten kræver kun den observerbare adfærd.
 
 ---
 
@@ -109,19 +108,11 @@ Alle tastatur-navigation skal:
 
 ## Popup-widget detection
 
-Container detekterer popup-widgets via ARIA semantik:
+Normativt krav:
 
-```typescript
-role="combobox"           // Dropdown-trigger
-aria-haspopup="listbox"   // Har popup-menu
-aria-expanded="true"      // Menu er åben
-aria-controls="id"        // Peger på popup-element
-```
-
-Når et popup-widget er **åbent** (aria-expanded="true"):
-- Container intercepter IKKE Tab
-- Container intercepter IKKE Enter
-- Widget får fuld kontrol over sin interne navigation
+- Popup-widgets skal kunne overtage deres egen keyboard-navigation, når deres popup er åben.
+- Container må i denne tilstand ikke overtage `Tab`, `Enter` eller piletaster, hvis det ville bryde widgetens egen interaktion.
+- Det er tilladt at bruge ARIA-semantik eller en anden tilsvarende, auditérbar mekanisme til at detektere dette.
 
 ---
 
@@ -163,52 +154,16 @@ Krav:
 
 ---
 
-## Implementation detaljer (Container.tsx)
+## Implementeringsfrihed
 
-### focusOnly()
+Kontrakten fastlægger den observerbare adfærd, ikke den præcise interne mekanisme.
 
-Eneste fokus-funktion i Container.
+Det betyder:
 
-```typescript
-const focusOnly = (element: FocusableElement) => {
-  try {
-    element.focus({ preventScroll: true });
-  } catch {
-    element.focus();
-  }
-};
-```
-
-**Garantier:**
-- Kun fokus, **ingen selection**
-- Undgår scroll-hop når muligt
-- Når målfelt er uden for viewport, scrolles containeren så feltet søges centreret vertikalt
-- Ingen deferred logik (requestAnimationFrame, setTimeout)
-- Ingen event listeners
-- Ingen session tracking
-
-### Fokusbare elementer
-
-Container finder fokusbare elementer via selector:
-
-```
-input:not([disabled]):not([tabindex='-1']):not([type="hidden"]):not([type="button"])
-select:not([disabled]):not([tabindex='-1'])
-textarea:not([disabled]):not([tabindex='-1'])
-button[data-mineo-focusable-button="true"]:not([tabindex='-1'])
-[role="combobox"][tabindex]:not([tabindex='-1']):not([aria-disabled='true'])
-```
-
-Ekskluderer:
-- almindelige `button`-tags uden eksplicit opt-in
-- Skjulte elementer (display: none, visibility: hidden)
-- Disabled felter
-- tabindex="-1" (bevidst ekskluderet fra navigation)
-
-Opt-in-undtagelse:
-- Knapper kan indgå i Container-styret tab-flow, hvis de eksplicit markeres med `data-mineo-focusable-button="true"`.
-- Dette bruges til sideintegrerede handlingsknapper, som brugeren skal kunne nå i den normale feltsekvens.
-- Hvis en sådan knap skal være inaktiv men stadig fokusérbar, må den ikke bruge nativ `disabled`; brug i stedet `aria-disabled="true"` og inert click-handler.
+- Der må gerne refaktoreres i `Container.tsx`, så længe adfærden ovenfor bevares.
+- CSS-selectors, fokus-hjælpefunktioner og konkrete `focus(...)`-kald er implementeringsdetaljer.
+- Hvilke elementer der indgår i tab-sekvensen, skal fortsat være eksplicit og auditérbart defineret, men ikke nødvendigvis via den samme selector-strategi som i dag.
+- Sideintegrerede handlingsknapper må kun indgå i den normale feltsekvens ved eksplicit opt-in.
 
 ---
 
@@ -227,13 +182,6 @@ Container keyboard-navigation testes på to niveauer:
 - Enter på dropdown intercepteres IKKE
 - Enter på radiobutton vælger fokuseret option
 - Cirkulær navigation fungerer
-
-**Assert:**
-```typescript
-expect(document.activeElement).toBe(nextElement);
-const input = nextElement as HTMLInputElement;
-expect(input.selectionStart).toBe(input.selectionEnd); // Ingen selection
-```
 
 ### 2. Manuel test-tjekliste
 

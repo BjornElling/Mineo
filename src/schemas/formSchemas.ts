@@ -51,7 +51,6 @@ export {
 } from './formSchemas/sections/renteberegningSchemas';
 export { varigeMenSchema, type VarigeMenValues } from './formSchemas/sections/varigeMenSchemas';
 export { faellesAarsloenSchema, type FaellesAarsloenValues } from './formSchemas/sections/faellesAarsloenSchemas';
-export { faellesPersondataSchema, type FaellesPersondataValues } from './formSchemas/sections/faellesPersondataSchemas';
 export {
   svieSmertePeriodeRowSchema,
   type SvieSmertePeriodeRow,

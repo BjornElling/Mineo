@@ -27,6 +27,9 @@ Konsekvens:
 - **Normal åbning af app/PWA**: startsiden bestemmes af den device-lokale toggle på Mineo-siden.
 - **Alle hent-forløb**: når en `.eo`-fil er indlæst og anvendt, skal brugerens visning gå til `Stamdata`,
   uanset hvilken startside-toggle der ellers er valgt.
+- **Schema-evolution i nested settings**:
+  Nye top-level settings håndteres af den eksisterende merge-logik i `parseStoredSettings()`.
+  Nye felter i nested objekter kræver eksplicit merge-logik i `src/settings/appSettingsParse.ts`.
 
 ## Teknisk implementering
 - Programindstillinger persisteres i **`localStorage`** under en dedikeret nøgle: `mineo_app_settings_v1`

@@ -53,7 +53,8 @@ Aggregation og tværgående beregninger skal være fail-closed:
 
 ## 5. Lagdeling
 
-- `src/domain/calculations/` bruges til section-lokale, rene afledninger.
+- Section-lokale, rene afledninger placeres i det relevante domæne under `src/domain/<domaene>/`.
+- Beregningsmotorer placeres kanonisk under `src/domain/<domaene>/engines/`, når de er selvstændige engines.
 - Tværgående/økonomiske beregninger implementeres som dedikerede engines i domænelag, ikke i selectors/UI.
 - Selectors må kun vælge/forme allerede beregnede outputs til visning.
 

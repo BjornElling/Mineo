@@ -1,6 +1,12 @@
 import React from 'react';
 import type { ZodIssue } from 'zod';
-import { type StorageKey, getStorageKey, getAllMineoKeys, getDomainStorageKeys } from '../config/storageManifest';
+import {
+  type StorageKey,
+  getStorageKey,
+  getAllMineoKeys,
+  getDomainStorageKeys,
+  LEGACY_DOMAIN_STORAGE_KEYS,
+} from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import type { PersistedData } from '../types/persistence';
 import { FormPersistenceContext } from './FormPersistenceContext.shared';
@@ -60,6 +66,27 @@ function isPersistedData(value: unknown): value is PersistedData {
     'data' in obj
   );
 }
+
+const migrateLegacyFaellesPersondataIntoStamdata = (
+  currentStamdata: PersistedSectionMap['stamdata'] | null,
+  legacyRaw: unknown
+): PersistedSectionMap['stamdata'] | null => {
+  const legacySchema = persistenceSchemas.stamdata.pick({ skadelidteFodselsdato: true });
+  const parsedLegacy = legacySchema.safeParse(nullToUndefinedDeep(legacyRaw));
+  if (!parsedLegacy.success || !parsedLegacy.data.skadelidteFodselsdato) {
+    return currentStamdata;
+  }
+
+  const baseStamdata = currentStamdata ?? persistenceSchemas.stamdata.parse({});
+  if (baseStamdata.skadelidteFodselsdato) {
+    return currentStamdata;
+  }
+
+  return {
+    ...baseStamdata,
+    skadelidteFodselsdato: parsedLegacy.data.skadelidteFodselsdato,
+  };
+};
 
 const formatZodIssues = (issues: ZodIssue[], max: number): string => {
   return issues
@@ -153,6 +180,21 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       }
 
       validateAndAssign(pageKey, parsed.data);
+    }
+
+    const legacyFaellesPersondataKey = LEGACY_DOMAIN_STORAGE_KEYS.faellesPersondata;
+    const legacyFaellesPersondataRaw = sessionStorage.getItem(legacyFaellesPersondataKey);
+    if (legacyFaellesPersondataRaw) {
+      keysToRemove.push(legacyFaellesPersondataKey);
+
+      try {
+        const parsedLegacy = JSON.parse(legacyFaellesPersondataRaw);
+        if (isPersistedData(parsedLegacy) && parsedLegacy.version === CURRENT_VERSION) {
+          nextCache.stamdata = migrateLegacyFaellesPersondataIntoStamdata(nextCache.stamdata, parsedLegacy.data);
+        }
+      } catch {
+        // Legacy sektionen ryddes uanset. Korrupt legacy-data må ikke blokere opstart.
+      }
     }
 
     initPlanRef.current = { keysToRemove, shouldGlobalClear, notice };

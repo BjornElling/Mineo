@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, CircularProgress, MenuItem, Typography } from '@mui/material';
 
-import { dateRanges_stamdata } from '../../config/dateRanges';
+import { dateRanges_skadelidteFodselsdato, dateRanges_stamdata } from '../../config/dateRanges';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
@@ -31,6 +31,7 @@ const Stamdata = React.memo(() => {
   const { values, setValues, setFieldValue } = usePersistedForm(stamdataSchema, 'stamdata', STAMDATA_INITIAL_VALUES);
 
   const reportSkadesdatoError = useFormFieldErrorReporter('stamdata', 'skadesdato', { severity: 'error', source: 'input' });
+  const reportSkadelidteFodselsdatoError = useFormFieldErrorReporter('stamdata', 'skadelidteFodselsdato', { severity: 'error', source: 'input' });
 
   const handleInitialsChange = (field: 'advokat' | 'sagsbehandler') => (event: StyledTextFieldValueCommitEvent) => {
     const rawValue = String(event.target.value || '');
@@ -153,6 +154,21 @@ const Stamdata = React.memo(() => {
               </Typography>
               <Box className="row--label-offset__content">
                 <StyledTextField value={values.skadelidte ?? ''} onCommit={commitField('skadelidte')} width={350} />
+              </Box>
+            </Box>
+
+            <Box className="row--label-offset">
+              <Typography className="row--text" minWidth="250px">
+                Fødselsdato
+              </Typography>
+              <Box className="row--label-offset__content">
+                <StyledDateField
+                  value={values.skadelidteFodselsdato}
+                  onCommit={commitField('skadelidteFodselsdato')}
+                  onFieldError={reportSkadelidteFodselsdatoError}
+                  minDate={dateRanges_skadelidteFodselsdato.min}
+                  maxDate={dateRanges_skadelidteFodselsdato.max}
+                />
               </Box>
             </Box>
 

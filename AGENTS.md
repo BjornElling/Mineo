@@ -105,6 +105,22 @@ Contracts must be reviewed before implementing any feature within their scope.
 If code and contract diverge, treat it as an architectural error and resolve explicitly.
 Contracts override informal existing implementations when they conflict.
 
+### Contract hierarchy
+
+When contracts appear to overlap, use this priority order:
+
+1. The most specific domain contract wins over a more general contract for the same subject area.
+2. Cross-cutting general contracts that typically constrain other contracts:
+   - `domain-boundary-contract.md`
+   - `form-contract.md`
+   - `persistence-contract.md`
+   - `keyboard-navigation.md`
+   - `error-debug-contract.md`
+   - `pdf-contract.md`
+3. `page-component-contract.md` is subordinate to the relevant cross-cutting contracts above.
+4. Domain contracts such as `eo-snapshot-contract.md` are subordinate to the relevant general contracts except where they define domain-specific rules the general contracts intentionally defer.
+5. `docs/architecture/*.md` are informative unless a contract explicitly elevates a rule from them.
+
 ## Desktop-only gate + styling exception
 - App must be blocked on mobile/tablet.
 - Top-level capability gate must be in `src/main.tsx`.

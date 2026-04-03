@@ -43,12 +43,12 @@ describe('eoFileDataSchema', () => {
 
   it('accepterer de nye sektioner med fuldt udfyldte, schema-gyldige værdier', () => {
     const result = eoFileDataSchema.safeParse({
+      stamdata: {
+        skadelidteFodselsdato: '1990-01-01',
+      },
       faellesAarsloen: {
         aslAarsloen: { kind: 'number', value: 450000 },
         ealAarsloen: { kind: 'expression', expression: '500000', value: 500000 },
-      },
-      faellesPersondata: {
-        skadelidteFodselsdato: '1990-01-01',
       },
       forsoergertab: {
         efterladteFodselsdato: '1988-03-04',

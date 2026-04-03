@@ -13,7 +13,7 @@ Forsørgertab beregnes som:
 Nettokrav = max(0, ealKrav - aslLobendeYdelserTotal - aslKapitalbelob)
 ```
 
-Begge led beregnes udelukkende på baggrund af data i `forsoergertab`, `faellesAarsloen`, `faellesPersondata` og `stamdata`.
+Begge led beregnes udelukkende på baggrund af data i `forsoergertab`, `faellesAarsloen` og `stamdata`.
 Persisted data fra `erhvervsevnetab` bruges ikke.
 
 ## 2. Input
@@ -35,17 +35,12 @@ Persisted data fra `erhvervsevnetab` bruges ikke.
 | `aslAarsloen` | `AmountValue` | Årsløn til ASL-beregningen |
 | `ealAarsloen` | `AmountValue` | Årsløn til EAL-beregningen, med `aslAarsloen` som fallback |
 
-### `faellesPersondata`
-
-| Felt | Type | Betydning |
-|---|---|---|
-| `skadelidteFodselsdato` | `ISODateString` | Skadelidtes fødselsdato. Bruges kun til EAL-aldersreduktion |
-
 ### `stamdata`
 
 | Felt | Type | Betydning |
 |---|---|---|
 | `skadesdato` | `ISODateString` | Skadesdato |
+| `skadelidteFodselsdato` | `ISODateString` | Skadelidtes fødselsdato. Bruges kun til EAL-aldersreduktion |
 
 ## 3. Overordnede valideringsregler
 
@@ -77,7 +72,7 @@ EAL-kravet beregnes ved at genbruge EET efter EAL-logikken med disse faste regle
 - EET-procenten er fast `30`
 - `beregningsdato` kommer fra `forsoergertab.beregningsdato`
 - `skadesdato` kommer fra `stamdata.skadesdato`
-- skadelidtes fødselsdato kommer fra det fælles felt `skadelidteFodselsdato`
+- skadelidtes fødselsdato kommer fra `stamdata.skadelidteFodselsdato`
 - `ealAarsloen` prioriteres
 - `aslAarsloen` bruges som fallback, hvis `ealAarsloen` ikke findes
 
@@ -393,7 +388,6 @@ Alle fire outputtal vises som hele kronebeløb:
 
 Øverste contentbox viser inputfelter:
 
-- Skadelidtes fødselsdato
 - Efterladte ægtefælle/samlevers fødselsdato
 - Beregningsdato
 - Startdato for ASL-ydelse
@@ -402,6 +396,8 @@ Alle fire outputtal vises som hele kronebeløb:
 - Skadelidtes årsløn (efter ASL)
 - Skadelidtes årsløn (efter EAL)
 - Download specifikation
+
+Hvis `skadelidteFodselsdato` mangler eller er ugyldig, skal siden vise blokkerende fejlmeddelelse og henvise brugeren til `Stamdata`, hvor feltet vedligeholdes.
 
 Derudover vises:
 

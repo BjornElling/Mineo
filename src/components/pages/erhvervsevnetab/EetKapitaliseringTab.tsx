@@ -37,7 +37,6 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger }: Props) => {
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
-  const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
   const { settings } = useAppSettings();
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
 
@@ -55,13 +54,13 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger }: Props) => {
       return [
         toFieldIssue('field-aarsloen-asl', faellesAarsloenFieldErrors.aslAarsloen?.message),
         toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
-        toFieldIssue('field-skadelidte-fodselsdato', faellesPersondataFieldErrors.skadelidteFodselsdato?.message),
+        toFieldIssue('field-skadelidte-fodselsdato', stamdataFieldErrors.skadelidteFodselsdato?.message),
         toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
       ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
     }, [
       eetFieldErrors.aslAfgoerelser?.message,
-      faellesPersondataFieldErrors.skadelidteFodselsdato?.message,
       faellesAarsloenFieldErrors.aslAarsloen?.message,
+      stamdataFieldErrors.skadelidteFodselsdato?.message,
       stamdataFieldErrors.skadesdato?.message,
     ]);
 

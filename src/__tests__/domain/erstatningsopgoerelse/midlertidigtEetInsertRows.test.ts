@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
-import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../../domain/faellesPersondata/faellesPersondataInitialValues';
 import { buildMidlertidigtEetRowsFromEet } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { computeEetLoebendeYdelser } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { isoToDanish } from '../../../types/branded';
@@ -10,7 +9,6 @@ import { isoToDanish } from '../../../types/branded';
 const makeValues = (): ErhvervsevnetabComposedValues => ({
   ...ERHVERVSEVNETAB_INITIAL_VALUES,
   ...FAELLES_AARSLOEN_INITIAL_VALUES,
-  ...FAELLES_PERSONDATA_INITIAL_VALUES,
   beregningsdato: '2026-03-19',
   skadelidteFodselsdato: '1980-01-01',
   aslAarsloen: { kind: 'number', value: 600000 },

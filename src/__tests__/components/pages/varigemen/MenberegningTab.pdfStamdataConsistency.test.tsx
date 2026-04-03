@@ -1,16 +1,13 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import type { FaellesPersondataValues, VarigeMenValues } from '../../../../schemas/formSchemas';
 
-const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mockStamValues, mockFaellesPersondataValues } = vi.hoisted(() => ({
+const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mockStamValues } = vi.hoisted(() => ({
   mockDownloadVarigeMenPdf: vi.fn(),
   mockBeregnVarigeMenGodtgoerelseWithRates: vi.fn(),
   mockStamValues: {
     skadestype: 'Arbejdsulykke',
     skadesdato: '2025-01-01',
-  },
-  mockFaellesPersondataValues: {
     skadelidteFodselsdato: '1980-01-01',
   },
 }));
@@ -32,7 +29,6 @@ vi.mock('../../../../contexts/useAppSettings', () => ({
 import MenberegningTab from '../../../../components/pages/varigemen/MenberegningTab';
 
 const setFieldValue = vi.fn();
-const setFaellesPersondataFieldValue = vi.fn();
 
 describe('MenberegningTab', () => {
   beforeEach(() => {
@@ -57,21 +53,21 @@ describe('MenberegningTab', () => {
           setValues={vi.fn()}
           setFieldValue={setFieldValue}
           stamdata={{
+            skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
             skadesdato: mockStamValues.skadesdato,
             skadestype: mockStamValues.skadestype,
           }}
-          faellesPersondataValues={mockFaellesPersondataValues}
-          setFaellesPersondataFieldValue={setFaellesPersondataFieldValue}
         />
       </MemoryRouter>
     );
 
-    await user.click(screen.getByTestId('DownloadIcon'));
+    await user.click(screen.getByTestId('varigemen-download'));
 
     expect(mockDownloadVarigeMenPdf).toHaveBeenCalledTimes(1);
     expect(mockDownloadVarigeMenPdf).toHaveBeenCalledWith(
       expect.objectContaining({
         persistedStamdata: {
+          skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
           skadesdato: mockStamValues.skadesdato,
           skadestype: mockStamValues.skadestype,
         },

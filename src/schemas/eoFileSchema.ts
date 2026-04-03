@@ -21,7 +21,6 @@ const eoFileDataInnerSchema = z.object({
   satser: persistenceSchemas.satser.optional(),
   aarsloen: persistenceSchemas.aarsloen.optional(),
   faellesAarsloen: persistenceSchemas.faellesAarsloen.optional(),
-  faellesPersondata: persistenceSchemas.faellesPersondata.optional(),
   renteberegning: persistenceSchemas.renteberegning.optional(),
   varigemen: persistenceSchemas.varigemen.optional(),
   forsoergertab: persistenceSchemas.forsoergertab.optional(),

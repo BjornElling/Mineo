@@ -167,7 +167,7 @@ eller library-opgraderinger må ikke bryde disse semantikker.
   - Gyldigt datoformat committes altid og formateres til canonical form (dd-mm-åååå/ISO)
   - Udenfor interval giver fejlvisning (tooltip + rød ramme), men commit sker
   - Ugyldigt format committes ikke
-- Undtagelse: visse EO-feltspecifikke bounds giver fejlvisning direkte i feltet fra commit-tidspunktet — se §13.
+- Undtagelse: visse domænespecifikke bounds kan give fejlvisning direkte i feltet fra commit-tidspunktet, når dette er normativt defineret i den relevante domænekontrakt.
 
 ### 4.4 Gem-gating følger commitbarhed, ikke al rød fejl-UI
 
@@ -269,6 +269,11 @@ Drafts resynkroniseres **ikke** ved almindelig commit-flow (onBlur).
 - `resyncToken` er obligatorisk i `useRowDrafts`.
 - Vi bruger et form-wide `formVersion` som `resyncToken`, hvilket betyder at et `formVersion`-skift resync’er **alle** row-drafts (og kan dermed kassere ucommitted row-inputs ved reset/load/migration).
 
+Normativ retning:
+- Autoritative replace-flows skal være den eneste årsag til global draft-resync.
+- Section-granulær resync er den foretrukne fremtidige retning, når det kan indføres uden at svække determinismen.
+- Form-wide resync er accepteret som nuværende implementation, men må ikke udvides til almindelige commit-flows.
+
 Debug-regel:
 Hvis en række “nulstilles”, skal man altid kunne pege på en `resyncToken`-ændring.
 
@@ -292,20 +297,20 @@ To hooks implementerer draft/committed-separationen. De løser det samme grundpr
 
 ### 7.1 Valideringslag
 
-Validering opdeles i tre eksplicitte lag:
+Validering opdeles i to eksplicitte lag:
 
-**Lag 1 – Input-lokal**
+**Lag 1 – Felt-lokal validering ved commit**
 - Format
 - Range
-- Kører på onBlur
+- Feltets egne syntaks- og commit-regler
+- Kører på onBlur/onCommit
 
-**Lag 2 – Kritiske felter**
-- Felter der påvirker beregning
-- Kører på onBlur
-
-**Lag 3 – Fuld form**
+**Lag 2 – Fuld form / cross-field**
+- Tværfelt-regler
+- Beregningsforudsætninger
+- Tab- eller beregningsspecifikke blokeringer
 - Kører kun ved:
-  - tab-skift til "Beregning"
+  - tab-skift til beregningsvisning
   - klik på "Beregn"
 
 ### 7.2 Forbudte patterns
@@ -388,98 +393,10 @@ Dette afsnit er normativt for alle beløbsfelter, der kan indeholde tal eller ud
 
 5. Precision-binding (nuværende model):
 - `AmountValue` schema-normalisering er aktuelt bundet til precision 2.
-- Felter med anden precision må derfor ikke persisteres som `AmountValue` uden eksplicit arkitekturændring.
+- Felter med anden precision kræver en eksplicit kontraktændring, der udvider typen og normaliseringen til variabel precision.
 
 ---
 
-## 12. TAF tvær-output konsistens (EO vs. TAF fordelt på år)
+## 12. Domænespecifikke undtagelser
 
-Dette afsnit er normativt for visning af tabt arbejdsfortjeneste i flere outputs.
-
-1. Autoritativ total:
-- Den autoritative TAF-total er EO-modellens `tabtArbejdsfortjenesteOre`.
-- Afledte visninger (herunder "TAF fordelt på år") må ikke beregne en alternativ total.
-
-2. Invariant:
-- Summen af årsbeløb plus eventuel afrundingslinje skal være identisk med den autoritative total.
-
-3. Acceptabel afrundingsafvigelse:
-- Den samlede forskel mellem årssum og autoritativ total må højst være 1 kr. (100 øre).
-- Overskrides 1 kr., skal systemet være fail-closed: årsfordelingen må ikke vises som gyldig beregning.
-
-4. Clamp-scenarie:
-- Hvis EO-netto clamped til 0, fordi fradrag overstiger lønudvikling, må der ikke vises en misvisende årsfordeling med stor "Afrunding".
-- Systemet skal i dette tilfælde fail-close årsfordelingen.
-
----
-
-## 13. EO feltklassificering og todelt bounds-model
-
-Dette afsnit er normativt for alle EO-felter og supplerer §7 (Validering).
-Se `src/contracts/eo-snapshot-contract.md` §2 for den bindende specifikation af clamping.
-
-### 13.1 Tre kategorier af EO-felter
-
-**Valgfrie felter:**
-- Tomt felt er gyldigt og semantisk neutralt.
-- Giver ingen fejl — hverken i felt eller i EOBeregningTab.
-- Eksempel: `tidligereModtagetTaf` (tomt = 0 kr., ikke en fejl), `differencekravDato`.
-
-**Påkrævede felter:**
-- Tomt felt giver fejl **kun** på EOBeregningTab-niveau (ikke som feltfejl).
-- Blokerer download.
-- Eksempel: Fra- eller til-dato på en ikke-tom TAF- eller svie/smerte-række.
-
-**Særlige felter med immediate feltfejl:**
-- Bounds-violation giver fejl direkte i inputfeltet fra commit-tidspunktet (tooltip + rød ramme).
-- Fejlen vises også på EOBeregningTab og blokerer download.
-- Eksempel: TAF til-dato `>= differencekravDato`, svie/smerte til-dato `>= ménafgørelsesdato`.
-- Se §13.2 for den udtømmende liste.
-
-### 13.2 Todelt bounds-model for TAF- og svie/smerte-perioder
-
-**Fejlgivende bounds** (feltfejl + EOBeregningTab + blokerer download):
-
-TAF fra-dato: `< 2005-01-01`, `< skadesdato` (ikke-erhvervssygdom), `< anmeldedato − 5 år`
-(erhvervssygdom), `> til-dato i samme række`.
-
-TAF til-dato: `< fra-dato i samme række`, `>= differencekravDato`,
-`>= beregnet EET-virkningsdato` (når EET-afgørelse ikke er påklaget).
-
-Svie/smerte fra-dato: `< 2005-01-01`, `< skadesdato` (ikke-erhvervssygdom),
-`< anmeldedato − 5 år` (erhvervssygdom), `> til-dato i samme række`.
-
-Svie/smerte til-dato: `< fra-dato i samme række`,
-`>= afgørelsesdato for varige mén` (når ménafgørelse ikke er påklaget).
-
-Overlap mellem rækker: fejl i felt + EOBeregningTab.
-
-**Stille clamping** (ingen fejlindikation — udtømmende):
-
-Kun mod EO-periodens grænser (`vedroererPeriodeFra`/`vedroererPeriodeTil`):
-- TAF eller svie/smerte fra-dato `< vedroererPeriodeFra` → clampes stille
-- TAF eller svie/smerte til-dato `> vedroererPeriodeTil` → clampes stille
-
-Der er ingen andre bounds der clampes stille. Dette er en udtømmende undtagelse.
-
-### 13.3 Clamping-tidspunkt og commit-semantik
-
-Clamping sker pre-snapshot i `computeEoSnapshot`. Det ændrer ikke committed form-state.
-Engines arbejder altid på clampede værdier.
-Gyldigt datoformat committes altid — clamping er et post-commit snapshot-anliggende, ikke
-et commit-tidspunkt-anliggende.
-
----
-
-## 14. `tidligereModtagetTaf`-isometri
-
-Dette afsnit er normativt for feltet `tidligereModtagetTaf` (og analogt for tilsvarende
-"tidligere modtaget"-felter med same semantik).
-
-1. Tom committed værdi (`undefined`) repræsenterer semantisk `0 kr`.
-2. I snapshot/totals og alle projektioner (Beregning-tab, EODebug, PDF) normaliseres dette
-   til numerisk `0` (MoneyOre). `null` eller `undefined` må ikke propagere som resultat
-   af at feltet er tomt.
-3. Der er ingen semantisk forskel på "0 kr" og "tomt" for dette felt — begge tolkes som
-   `0 kr` fradrag.
-4. Feltet er **valgfrit** (jf. §13.1) — tomt felt giver ingen fejl.
+EO-specifikke feltklassificeringer, bounds-regler, TAF-konsistens og `tidligereModtagetTaf`-isometri er normativt defineret i `src/contracts/eo-snapshot-contract.md`.

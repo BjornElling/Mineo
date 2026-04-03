@@ -2,7 +2,7 @@
 
 **Dato:** 2026-04-02  
 **Scope:** `usePersistedForm`, `FormPersistenceContext`, `formPersistenceStore`, selector-hooks, samt typiske persisted callsites på page-/tab-niveau  
-**Status:** Arbejdsdokument og implementeringsgrundlag. Dokumentet er ikke en normativ kontrakt, men beskriver den arkitektur der bør implementeres.
+**Status:** Igangværende analyse- og målarkitekturdokument. De tværgående normative regler er løftet til `src/contracts/persistence-contract.md`, men ikke alle refaktorstadier i dette dokument er nødvendigvis gennemført i kode.
 
 ---
 
@@ -808,4 +808,3 @@ Det fastlægger et klart, teknisk forsvarligt billede af:
 - hvad problemet er
 - hvordan den rigtige arkitektur ser ud
 - hvordan den kan implementeres uden at sænke sikkerheden undervejs
-

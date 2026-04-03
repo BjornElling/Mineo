@@ -1,11 +1,18 @@
 # Skema-evolution og load-kompatibilitet — Mineo
 
 **Status:** Normativ kontrakt
-**Formål:** At fastlægge ufravigelige regler og komplet tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
+**Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
 
 ## Grundregel
+
+Dette dokument har to niveauer:
+
+1. Generelle load-/schema-regler, som gælder alle persisted sektioner.
+2. En konkret EO-tjekliste, fordi EO aktuelt er det bedst specificerede domæne.
+
+Tværgående save/load-regler er normativt samlet i `src/contracts/persistence-contract.md`.
 
 Mineo prioriterer at indlæse mest muligt af eksisterende filer. Et nyt felt i skemaet må **aldrig** forårsage at `erstatningsopgoerelse`-sektionen (eller andre sektioner) droppes ved indlæsning af ældre filer.
 
@@ -105,85 +112,80 @@ Alle sub-skemaer bruger `.strict()`. Det betyder:
 
 ---
 
-## Del 2: Komplet tjekliste — alle steder der skal opdateres
+## Del 2: Komplet tjekliste — generel skabelon og domænestier
 
-### 2.1 Skema (PÅKRÆVET)
-**Fil:** `src/schemas/formSchemas/sections/erstatningsopgoerelseSchemas.ts`
+### 2.1 Generel tjeklisteskabelon
 
-- Tilføj feltet i det relevante sub-skema (`erstatningsopgoerelseBaseSchema`, `bilagsnumreSchema` o.l.), eller opret et nyt sub-skema og merge det ind.
-- Feltet må kun defineres i ét sub-skema (duplikering er en merge-fejl).
-- Tjek at `.default(…)` eller `.optional()` er til stede (jf. Regel 1.1).
-- `ErstatningsopgoerelseValues` udledes automatisk via `z.infer<>` — ingen manuel type-opdatering.
+Når et nyt persisted felt tilføjes, skal man altid gennemgå følgende typer steder:
 
-**Fejlsymptom hvis glemt:** TypeScript-kompileringsfejl i al kode der bruger `ErstatningsopgoerelseValues`.
+1. **Skema (PÅKRÆVET)**
+   - relevant fil under `src/schemas/formSchemas/sections/`
+   - feltet må kun defineres ét sted
+   - `.default(...)` eller `.optional()` skal være korrekt valgt jf. Del 1
 
-### 2.2 Initial values (PÅKRÆVET)
-**Fil:** `src/domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues.ts`
+2. **Initial values (PÅKRÆVET)**
+   - relevant fil under `src/domain/<domaene>/...InitialValues.ts`
+   - alle felter der forventes ved ny sag/oprettelse, skal være repræsenteret
+   - parse-baserede initial values skal opdateres eksplicit
 
-Funktionen `createNewEOInitialValuesFromSettings()` kalder `erstatningsopgoerelseSchema.parse({…})` med alle felter eksplicit angivet. Det nye felt **skal** med i dette kald.
+3. **UI/page/tab (PÅKRÆVET hvis feltet vises eller kan redigeres)**
+   - relevant page-komponent og eventuelle tabs/underkomponenter
+   - feltet skal bindes med korrekt commit-semantik
+   - tabeller/række-generatorer skal opdateres hvis feltet lever i en række
 
-- Hvis feltet er uafhængigt af indstillinger: angiv den passende startværdi direkte.
-- Hvis feltet skal arve fra AppSettings: følg mønsteret fra `indsaetUdkastStempel`:
-  ```ts
-  visBilagsnumre: safeSettings.defaultVisBilagsnumre ? 'Ja' : 'Nej',
-  ```
-- Hvis feltet er en tabel med tom startliste: brug en `ensure*Rows(undefined)`-funktion eller `[]`.
+4. **Validator / krydsregler (BETINGET)**
+   - relevant validator eller domæne-regelmodul
+   - især påkrævet ved tværfelt-afhængigheder, intervalregler eller PDF-gating
 
-**Fejlsymptom hvis glemt:** App crasher med Zod-fejl ved oprettelse af ny sag.
+5. **Beregningslag (BETINGET)**
+   - relevante domain engines / snapshots / output-projektioner
+   - påkrævet hvis feltet påvirker beregning, debug eller afledte resultater
 
-### 2.3 AppSettings (BETINGET — kun hvis feltet skal have en brugerindstilling som default)
-**Fil:** `src/settings/appSettingsSchema.ts`
+6. **PDF-lag (BETINGET)**
+   - relevante PDF-projektioner/renderere
+   - påkrævet hvis feltet skal vises i PDF eller gate PDF-output
 
-Tilføj feltet i `appSettingsSchema` og `DEFAULT_APP_SETTINGS`. Husk:
-- `appSettingsParse.ts` håndterer tolerance over for manglende nøgler ved schema-evolution (merger med defaults) — ingen ændring nødvendig der.
-- AppSettings bruges **kun** ved oprettelse af ny sag, aldrig ved load af eksisterende.
-- Kobl den nye indstilling i `Indstillinger.tsx` med `StyledToggleSwitch` eller tilsvarende.
+7. **AppSettings (BETINGET)**
+   - kun hvis feltet skal have brugerindstillingsstyret default
+   - se `src/contracts/app-settings.md`
 
-**Fejlsymptom hvis glemt:** Feltet starter altid med hardkodet default, uanset hvad brugeren har valgt i Indstillinger.
+8. **Tests (STÆRKT ANBEFALET)**
+   - initial values
+   - load af ældre filer uden feltet
+   - validator/beregning/PDF når feltet påvirker disse lag
 
-### 2.4 UI (PÅKRÆVET for felter der skal vises)
-**Fil:** `src/components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx` (eller anden fane)
+### 2.2 Domænespecifikke stier
 
-- `JaNej`-toggle: brug `handleToggleChange('feltNavn')` og `getChecked(values.feltNavn)`.
-- Fritekstfelt: brug `handleStringBlur('feltNavn')` og `value={values.feltNavn || ''}`.
-- Dato: brug `handleIsoDateBlur('feltNavn')`.
-- Tallfelter: brug `handleChange('feltNavn')` (amount/integer/percent).
+Brug denne tabel til at instantiere skabelonen ovenfor med de rigtige filer:
 
-TypeScript's conditional mapped types (`ToggleFieldName`, `StringLikeKeys`, `AmountLikeKeys`) sikrer at kun felter med korrekt type kan bruges med de tilhørende handlers — fejl her er kompileringstids-fejl, ikke runtime-fejl.
+| Domæne/sektion | Skema | Initial values | Primær page | Typiske tabs/underkomponenter |
+|---|---|---|---|---|
+| `erstatningsopgoerelse` | `src/schemas/formSchemas/sections/erstatningsopgoerelseSchemas.ts` | `src/domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues.ts` | `src/components/pages/Erstatningsopgoerelse.tsx` | `src/components/pages/erstatningsopgoerelse/` |
+| `erhvervsevnetab` | `src/schemas/formSchemas/sections/erhvervsevnetabSchemas.ts` | `src/domain/erhvervsevnetab/erhvervsevnetabInitialValues.ts` | `src/components/pages/Erhvervsevnetab.tsx` | `src/components/pages/erhvervsevnetab/` |
+| `forsoergertab` | `src/schemas/formSchemas/sections/forsoergertabSchemas.ts` | `src/domain/forsoergertab/forsoergertabInitialValues.ts` | `src/components/pages/Forsoergertab.tsx` | page-filen er primær UI-entry |
+| `varigemen` | `src/schemas/formSchemas/sections/varigeMenSchemas.ts` | `src/domain/varigemen/varigeMenInitialValues.ts` | `src/components/pages/VarigeMen.tsx` | `src/components/pages/varigemen/` |
+| `stamdata` | `src/schemas/formSchemas/sections/stamdataSchemas.ts` | `src/domain/stamdata/stamdataInitialValues.ts` | `src/components/pages/Stamdata.tsx` | page-filen er primær UI-entry |
+| `aarsloen` | `src/schemas/formSchemas/sections/aarsloenSchemas.ts` | `src/domain/aarsloen/aarsloenInitialValues.ts` | `src/components/pages/Aarsloen.tsx` | `src/components/pages/aarsloen/` hvis relevant |
+| `faellesAarsloen` | `src/schemas/formSchemas/sections/faellesAarsloenSchemas.ts` | `src/domain/aslEalAarsloen/faellesAarsloenInitialValues.ts` | `src/components/pages/Erhvervsevnetab.tsx` / `src/components/pages/Forsoergertab.tsx` | respektive page-filer |
+| `satser` | `src/schemas/formSchemas/sections/satserSchemas.ts` | `src/domain/satser/satserInitialValues.ts` | `src/components/pages/Satser.tsx` | page-filen er primær UI-entry |
 
-### 2.5 Validator (BETINGET — kun hvis feltet har krydsvalidering)
-**Fil:** `src/validators/erstatningsopgoerelseValidator.ts`
+Hvis et domæne ikke står i tabellen, er det et signal om at kontrakten skal udvides samtidig med schema-arbejdet.
 
-Skal opdateres hvis det nye felt har:
-- Interval-regler (fra <= til)
-- Gensidig udelukkelse med andre felter
-- Afhængighed af andre felters tilstand (f.eks. "påkrævet når X er sat til Ja")
+### 2.3 EO som referenceimplementation
 
-Validatoren kaldes ved tab-skift til Beregning-fanen og blokerer download ved fejl.
+EO er fortsat den mest detaljeret beskrevne referenceimplementering. Ved EO-feltarbejde skal man derudover typisk kontrollere:
 
-**Fejlsymptom hvis glemt:** Ugyldige kombinationer af feltværdier opdages ikke og kan give forkert PDF-output.
+- `src/validators/erstatningsopgoerelseValidator.ts`
+- `src/domain/erstatningsopgoerelse/eoSnapshot.ts`
+- `src/domain/erstatningsopgoerelse/eoCanonicalOutput.ts`
+- relevante engines under `src/domain/erstatningsopgoerelse/`
+- relevante tabs under `src/components/pages/erstatningsopgoerelse/`
 
-### 2.6 Beregningsmotorer (BETINGET — kun hvis feltet indgår i beregninger)
-Relevante filer afhænger af feltets domæne:
-- `src/domain/erstatningsopgoerelse/eoSnapshot.ts` — koordinerer beregning
-- `src/domain/erstatningsopgoerelse/eoCanonicalOutput.ts` — output-struktur
-- Specifikke engines: `svieSmerteEngine.ts`, `tafBeregningsEngine.ts`, `periodiseringsMotor.ts` o.l.
+Typiske fejlsymptomer hvis EO-opdateringer glemmes:
 
-**Fejlsymptom hvis glemt:** Feltet indlæses og gemmes korrekt, men ignoreres fuldstændigt i beregning og PDF.
-
-### 2.7 PDF-renderer (BETINGET — kun hvis feltet skal vises i PDF)
-Se `docs/architecture/pdf-architecture.md` og `src/contracts/app-settings.md` for PDF-arkitekturen.
-
-PDF-laget læser fra `EoSnapshot`/`ErstatningsopgoerelseValues`, aldrig direkte fra AppSettings.
-
-### 2.8 Tests (ANBEFALET)
-Tilføj mindst:
-- Et test der verificerer at `createErstatningsopgoerelseInitialValues()` giver korrekt default for det nye felt.
-- Et test der verificerer at en gammel fil (uden feltet) kan loades uden fejl — feltet skal få sin skema-default.
-
-Mønster fra eksisterende tests:
-- `src/__tests__/domain/erstatningsopgoerelse/erstatningsopgoerelseInitialValues.test.ts`
-- `src/__tests__/settings/appSettingsSchema.test.ts`
+- TypeScript-fejl i `ErstatningsopgoerelseValues`
+- Zod-fejl ved oprettelse af ny sag
+- feltet gemmes/indlæses, men påvirker ikke beregning eller PDF
 
 ---
 
@@ -213,9 +215,9 @@ I `erstatningsopgoerelseInitialValues.ts` bruges `.parse()` (ikke `.safeParse()`
 
 Nye felter inde i tabel-rækker (f.eks. en ny kolonne i `svieSmertePeriodeRowSchema`) kræver opdatering af den tilhørende row-generator (`ensureSvieRows`, `ensureTafRows` o.l.) og formentlig `useRowDrafts`-opsætningen i den tilhørende tabelkomponent. Disse er ikke dækket af skema-defaulten alene.
 
-### 3.5 AppSettings: tolerant parsing giver ikke defaults ved schema-evolution automatisk
+### 3.5 AppSettings
 
-`appSettingsParse.ts` merger eksisterende settings med defaults ved load — men dette sker kun ét niveau dybt for `brevhovedIndstillinger`. Nye top-niveau AppSettings-felter håndteres korrekt af spread-merge. Nye felter i nested objekter (udover `brevhovedIndstillinger`) kræver eksplicit merge-logik i `parseStoredSettings()`.
+Se `src/contracts/app-settings.md` for den normative regel om nested merge-logik i `parseStoredSettings()`.
 
 ---
 

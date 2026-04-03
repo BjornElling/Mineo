@@ -9,7 +9,6 @@ import EetAslAfgoerelserTable from '../../tables/EetAslAfgoerelserTable';
 import { dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
 import {
   koenEnum,
-  type FaellesPersondataValues,
   type ErhvervsevnetabComposedValues,
   type ErhvervsevnetabValues,
 } from '../../../schemas/formSchemas';
@@ -26,7 +25,6 @@ export type EetOplysningerTabProps = {
   values: ErhvervsevnetabComposedValues;
   setValues: SetValuesUpdater<ErhvervsevnetabValues>;
   setFieldValue: SetFieldValue<ErhvervsevnetabValues>;
-  handleSkadelidteFodselsdatoChange: CommitHandler<FaellesPersondataValues['skadelidteFodselsdato']>;
   handleAslAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['aslAarsloen']>;
   handleEalAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['ealAarsloen']>;
   skadesdato: string | undefined;
@@ -36,17 +34,11 @@ const EetOplysningerTab = ({
   values,
   setValues,
   setFieldValue,
-  handleSkadelidteFodselsdatoChange,
   handleAslAarsloenChange,
   handleEalAarsloenChange,
   skadesdato,
 }: EetOplysningerTabProps) => {
-  const faellesPersondataFieldErrors = useFormFieldErrors('faellesPersondata');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
-  const reportSkadelidteFodselsdatoInputError = useFormFieldErrorReporter('faellesPersondata', 'skadelidteFodselsdato', {
-    severity: 'error',
-    source: 'input',
-  });
   const reportAslAarsloenInputError = useFormFieldErrorReporter('faellesAarsloen', 'aslAarsloen', {
     severity: 'error',
     source: 'input',
@@ -100,21 +92,6 @@ const EetOplysningerTab = ({
     <>
       <ContentBox className="content-box" data-section-id="eet-oplysninger-grundlaeggende">
         <Typography className="section-header">Grundlæggende oplysninger</Typography>
-
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Fødselsdato</Typography>
-          <Box className="row--label-right-hover__content">
-            <StyledDateField
-              value={values.skadelidteFodselsdato || undefined}
-              onCommit={handleSkadelidteFodselsdatoChange}
-              minDate={dateRanges_erhvervsevnetab.skadelidteFodselsdato.min}
-              maxDate={dateRanges_erhvervsevnetab.skadelidteFodselsdato.max}
-              error={Boolean(faellesPersondataFieldErrors.skadelidteFodselsdato?.message)}
-              helperText={faellesPersondataFieldErrors.skadelidteFodselsdato?.message ?? ''}
-              onFieldError={reportSkadelidteFodselsdatoInputError}
-            />
-          </Box>
-        </Box>
 
         {(visKoenValg || Boolean(koenError)) && (
           <Box className="row--label-right-hover">

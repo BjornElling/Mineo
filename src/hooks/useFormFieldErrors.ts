@@ -79,6 +79,8 @@ type ReporterOptions = {
  * - Clearing (`undefined` / empty string) only clears the caller's `source` (never other sources).
  * - Component unmount/navigation does not clear errors. Only an explicit clear from the producer
  *   or an authoritative form reset/load may remove them.
+ * - This hook intentionally has no unmount cleanup. Tab/page navigation must not silently hide
+ *   blocking committed field errors that other tabs still depend on.
  *
  * Preferred usage:
  * - Bind this reporter at the call-site that owns the error (typically an input adapter).

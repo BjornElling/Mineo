@@ -2,14 +2,12 @@ import React from 'react';
 import {
   erhvervsevnetabSchema,
   faellesAarsloenSchema,
-  faellesPersondataSchema,
   stamdataSchema,
   type ErhvervsevnetabComposedValues,
   type StamdataValues,
 } from '../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../domain/aslEalAarsloen/faellesAarsloenInitialValues';
-import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../domain/faellesPersondata/faellesPersondataInitialValues';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
 
 type MidlertidigtEetInsertSource = Readonly<{
@@ -24,7 +22,6 @@ let cachedSnapshot:
       stamdata: ReturnType<typeof formPersistenceStore.getState>['sections']['stamdata'];
       erhvervsevnetab: ReturnType<typeof formPersistenceStore.getState>['sections']['erhvervsevnetab'];
       faellesAarsloen: ReturnType<typeof formPersistenceStore.getState>['sections']['faellesAarsloen'];
-      faellesPersondata: ReturnType<typeof formPersistenceStore.getState>['sections']['faellesPersondata'];
       value: MidlertidigtEetInsertSource;
     }
   | null = null;
@@ -34,21 +31,18 @@ const getMidlertidigtEetInsertSourceSnapshot = (): MidlertidigtEetInsertSource =
   const stamdata = sections.stamdata;
   const erhvervsevnetab = sections.erhvervsevnetab;
   const faellesAarsloen = sections.faellesAarsloen;
-  const faellesPersondata = sections.faellesPersondata;
 
   if (
     cachedSnapshot &&
     cachedSnapshot.stamdata === stamdata &&
     cachedSnapshot.erhvervsevnetab === erhvervsevnetab &&
-    cachedSnapshot.faellesAarsloen === faellesAarsloen &&
-    cachedSnapshot.faellesPersondata === faellesPersondata
+    cachedSnapshot.faellesAarsloen === faellesAarsloen
   ) {
     return cachedSnapshot.value;
   }
 
   const parsedErhvervsevnetab = erhvervsevnetabSchema.safeParse(erhvervsevnetab);
   const parsedFaellesAarsloen = faellesAarsloenSchema.safeParse(faellesAarsloen);
-  const parsedFaellesPersondata = faellesPersondataSchema.safeParse(faellesPersondata);
   const parsedStamdata = stamdataSchema.safeParse(stamdata);
 
   const value: MidlertidigtEetInsertSource = {
@@ -60,8 +54,7 @@ const getMidlertidigtEetInsertSourceSnapshot = (): MidlertidigtEetInsertSource =
       ...(parsedErhvervsevnetab.success ? parsedErhvervsevnetab.data : {}),
       ...FAELLES_AARSLOEN_INITIAL_VALUES,
       ...(parsedFaellesAarsloen.success ? parsedFaellesAarsloen.data : {}),
-      ...FAELLES_PERSONDATA_INITIAL_VALUES,
-      ...(parsedFaellesPersondata.success ? parsedFaellesPersondata.data : {}),
+      skadelidteFodselsdato: parsedStamdata.success ? parsedStamdata.data.skadelidteFodselsdato : undefined,
     },
     skadesdato: parsedStamdata.success ? parsedStamdata.data.skadesdato : undefined,
   };
@@ -70,7 +63,6 @@ const getMidlertidigtEetInsertSourceSnapshot = (): MidlertidigtEetInsertSource =
     stamdata,
     erhvervsevnetab,
     faellesAarsloen,
-    faellesPersondata,
     value,
   };
 

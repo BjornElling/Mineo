@@ -3,10 +3,9 @@ import { Box, Tabs, Tab, Typography } from '@mui/material';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
-import { faellesPersondataSchema, varigeMenSchema } from '../../schemas/formSchemas';
+import { varigeMenSchema } from '../../schemas/formSchemas';
 import MenberegningTab from './varigemen/MenberegningTab';
 import SatserTab from './varigemen/SatserTab';
-import { FAELLES_PERSONDATA_INITIAL_VALUES } from '../../domain/faellesPersondata/faellesPersondataInitialValues';
 import { VARIGE_MEN_INITIAL_VALUES } from '../../domain/varigemen/varigeMenInitialValues';
 
 const TAB_KEYS = {
@@ -25,17 +24,13 @@ const VarigeMen = React.memo(() => {
 
   const { values, setValues, setFieldValue } = usePersistedForm(varigeMenSchema, 'varigemen', VARIGE_MEN_INITIAL_VALUES);
   const stamdata = usePersistedSectionSelector('stamdata');
-  const { values: faellesPersondataValues, setFieldValue: setFaellesPersondataFieldValue } = usePersistedForm(
-    faellesPersondataSchema,
-    'faellesPersondata',
-    FAELLES_PERSONDATA_INITIAL_VALUES
-  );
   const menberegningStamdata = React.useMemo(
     () => ({
+      skadelidteFodselsdato: stamdata?.skadelidteFodselsdato,
       skadesdato: stamdata?.skadesdato,
       skadestype: stamdata?.skadestype,
     }),
-    [stamdata?.skadesdato, stamdata?.skadestype]
+    [stamdata?.skadelidteFodselsdato, stamdata?.skadesdato, stamdata?.skadestype]
   );
 
   const handleTabChange = React.useCallback(
@@ -105,8 +100,6 @@ const VarigeMen = React.memo(() => {
           setValues={setValues}
           setFieldValue={setFieldValue}
           stamdata={menberegningStamdata}
-          faellesPersondataValues={faellesPersondataValues}
-          setFaellesPersondataFieldValue={setFaellesPersondataFieldValue}
         />
       )}
     </Box>

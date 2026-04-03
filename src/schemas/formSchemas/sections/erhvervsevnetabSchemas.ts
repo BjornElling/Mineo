@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { optionalIsoDateString, percentageDecimal, tableDateCellString } from '../baseSchemas';
 import { afgoerelseTypeEnum, koenEnum } from '../enumSchemas';
 import type { FaellesAarsloenValues } from './faellesAarsloenSchemas';
-import type { FaellesPersondataValues } from './faellesPersondataSchemas';
+import type { StamdataValues } from './stamdataSchemas';
 
 // ─── ASL afgørelser tabel ─────────────────────────────────────────────────────
 
@@ -44,4 +44,4 @@ export const erhvervsevnetabSchema = z.object({
 }).strict();
 
 export type ErhvervsevnetabValues = z.infer<typeof erhvervsevnetabSchema>;
-export type ErhvervsevnetabComposedValues = ErhvervsevnetabValues & FaellesAarsloenValues & FaellesPersondataValues;
+export type ErhvervsevnetabComposedValues = ErhvervsevnetabValues & FaellesAarsloenValues & Pick<StamdataValues, 'skadelidteFodselsdato'>;

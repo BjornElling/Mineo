@@ -5,6 +5,7 @@ export const STAMDATA_INITIAL_VALUES = {
   advokat: '',
   sagsbehandler: '',
   skadelidte: '',
+  skadelidteFodselsdato: undefined,
   skadestype: undefined,
   skadesdato: undefined,
 } as const satisfies PersistedSectionMap['stamdata'];

@@ -62,11 +62,11 @@ const STAMDATA_IDS = new Set([
   'skadesdato-missing',
   'field-skadesdato',
   'alder-unresolved',
+  'skadelidte-fodselsdato-missing',
+  'field-skadelidte-fodselsdato',
 ]);
 
 const GRUNDLAEGGENDE_IDS = new Set([
-  'skadelidte-fodselsdato-missing',
-  'field-skadelidte-fodselsdato',
   'beregningsdato-missing',
   'beregningsdato-invalid',
   'field-beregningsdato',

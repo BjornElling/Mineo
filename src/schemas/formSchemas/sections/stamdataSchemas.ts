@@ -7,6 +7,7 @@ export const stamdataSchema = z.object({
   advokat: optionalString,
   sagsbehandler: optionalString,
   skadelidte: optionalString,
+  skadelidteFodselsdato: optionalIsoDateString,
   skadestype: z.preprocess(normalizeEmptyToUndefined, skadestypeEnum.optional()),
   skadesdato: optionalIsoDateString,
 }).strict();

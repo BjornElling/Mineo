@@ -3,7 +3,6 @@ import {
   erstatningsopgoerelseSchema,
   renteberegningSchema,
   varigeMenSchema,
-  faellesPersondataSchema,
   forsoergertabSchema,
   erhvervsevnetabSchema,
   stamdataSchema,
@@ -156,7 +155,7 @@ describe('stamdataSchema', () => {
     const result = stamdataSchema.safeParse({
       skadelidteFodselsdato: '1990-01-01',
     });
-    expect(result.success).toBe(false);
+    expect(result.success).toBe(true);
   });
 });
 
@@ -193,22 +192,6 @@ describe('erhvervsevnetabSchema', () => {
         visUdvidetSpecifikation: false,
         visUdvidetSpecifikationLoebendeYdelserBilag: false,
       },
-    });
-    expect(result.success).toBe(false);
-  });
-});
-
-describe('faellesPersondataSchema', () => {
-  it('accepterer skadelidtes fødselsdato som eget fælles felt', () => {
-    const result = faellesPersondataSchema.safeParse({
-      skadelidteFodselsdato: '1990-01-01',
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it('afviser ukendt felt fodselsdato', () => {
-    const result = faellesPersondataSchema.safeParse({
-      fodselsdato: '1990-01-01',
     });
     expect(result.success).toBe(false);
   });
