@@ -109,18 +109,14 @@ Det er tilladt at bryde bagudkompatibilitet for intern runtime-struktur, men `.e
 
 ---
 
-## 9. Kendte begrænsninger og refaktoreringsretning
+## 9. Runtime-arkitekturgrænser
 
-Følgende arkitekturforhold er identificeret i `docs/architecture/persistence-architecture-review.md` og skal betragtes som kendte begrænsninger, indtil de er fjernet i kode:
+Følgende regler er bindende for persistence-laget under aktiv runtime:
 
-1. `usePersistedForm` har historisk blandet committed læsning, commit-logik og convenience-API.
-2. Provider-/context-laget har historisk haft mere ansvar end et rent infrastrukturlag.
-3. Tværsektion-readmodels er ikke alle standardiseret som dedikerede read-model hooks/moduler endnu.
-
-Normativ retning:
-
-- `formPersistenceStore` er den eneste committed runtime-sandhed.
-- `sessionStorage` er durable persistence, ikke et parallelt aktivt state-lag.
-- Persistence-hooks må ikke udvikle sig tilbage til at holde en separat committed kopi af sektioner.
-
-Denne kontrakt beskriver målarkitekturen. Arbejdsdokumentet i `docs/architecture/persistence-architecture-review.md` beskriver analyse, risici og refaktorstadier.
+1. `formPersistenceStore` er den eneste committed runtime-sandhed for persisted sagsinput.
+2. `sessionStorage` er durable browser-persistens og må ikke fungere som et parallelt aktivt state-lag.
+3. Persistence-hooks må ikke holde en separat lokal committed kopi af en persisted sektion.
+4. Reaktive læsninger af persisted sektioner, revisions eller feltfejl skal gå via store-selectors/read-model hooks, ikke via providerens render-cyklus.
+5. `FormPersistenceContext` er et infrastrukturlag for imperative persistence-operationer, hydration, notices og autoritative replaces; det må ikke udvikle sig til generel state-broker for almindelige sektionslæsninger.
+6. Persistence-API'er må ikke eksponere `onChange`-lignende convenience-API'er, der inviterer til commit af committed state fra draft-semantik.
+7. Tværsektion-readmodels skal være eksplicitte og read-only. Når et tværsektion-flow bliver et etableret mønster, skal sammensætningen ligge i et dedikeret hook/modul frem for som ad hoc hydrering spredt i page-komponenter.

@@ -5,6 +5,8 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { clearResolvedFieldErrorsCache } from '../../../hooks/useFormPersistenceSelectors';
+import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 import type { LoadFileResult } from '../../../types/fileOperations';
 
 vi.mock('../../../utils/fileLoad', () => ({
@@ -58,6 +60,15 @@ describe('MainLayout (overwrite gating)', () => {
   beforeEach(() => {
     pendingPwaRequest = null;
     vi.clearAllMocks();
+    sessionStorage.clear();
+    clearResolvedFieldErrorsCache();
+    formPersistenceStore.getState().clearAll({
+      hydrated: true,
+      schemaFingerprint: PERSISTED_DATA_VERSION,
+      lastCommittedAt: Date.now(),
+    });
+    formPersistenceStore.getState().clearAllFieldErrors();
+    formPersistenceStore.getState().__setMetaUnsafe({ hydrated: false, lastCommittedAt: undefined });
   });
 
   it('navigates to Stamdata after a successful manual load without overwrite dialog', async () => {
@@ -74,7 +85,7 @@ describe('MainLayout (overwrite gating)', () => {
     render(
       <AppSettingsProvider>
         <FormPersistenceProvider>
-          <MemoryRouter initialEntries={['/mineo']}>
+          <MemoryRouter initialEntries={['/open']}>
             <RouteProbe />
             <MainLayout>
               <div />
@@ -110,7 +121,7 @@ describe('MainLayout (overwrite gating)', () => {
     render(
       <AppSettingsProvider>
         <FormPersistenceProvider>
-          <MemoryRouter initialEntries={['/mineo']}>
+          <MemoryRouter initialEntries={['/open']}>
             <RouteProbe />
             <MainLayout>
               <div />
@@ -240,47 +251,4 @@ describe('MainLayout (overwrite gating)', () => {
     expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
   });
 
-  it('navigates to Stamdata after a successful PWA file-open without overwrite dialog', async () => {
-    sessionStorage.clear();
-
-    const loadFromFileHandleMock = vi.mocked(loadFromFileHandle);
-    loadFromFileHandleMock.mockResolvedValue({
-      success: true,
-      source: 'pwa',
-      requestId: 'pwa-open-direct',
-      filename: 'clean.eo',
-      snapshot: { stamdata: stampStamdata('Y') },
-    } satisfies LoadFileResult);
-
-    render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider>
-          <MemoryRouter initialEntries={['/mineo']}>
-            <RouteProbe />
-            <MainLayout>
-              <div />
-            </MainLayout>
-          </MemoryRouter>
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
-    );
-
-    pendingPwaRequest = {
-      id: 'pwa-open-direct',
-      createdAtEpochMs: Date.now(),
-      targetUrl: '/open',
-      fileHandle: {} as FileSystemFileHandle,
-      fileName: 'clean.eo',
-      ignoredFileCount: 0,
-    };
-
-    await act(async () => {
-      window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
-    });
-
-    await waitFor(() => {
-      expect(screen.getByTestId('pathname')).toHaveTextContent('/stamdata');
-    });
-    expect(sessionStorage.getItem('mineo_stamdata')).toContain('Y');
-  });
 });

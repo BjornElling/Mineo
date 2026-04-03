@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';

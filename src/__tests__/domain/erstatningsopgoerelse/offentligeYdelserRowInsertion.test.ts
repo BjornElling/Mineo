@@ -1,4 +1,3 @@
-import { describe, expect, it } from 'vitest';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { insertOffentligeYdelserRowsBeforeTrailingEmpty } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserRowInsertion';
 

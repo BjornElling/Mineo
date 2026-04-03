@@ -227,6 +227,11 @@ const moveFocusOutsideTable = (
   if (!target) return false;
 
   focusTableElement(target);
+  requestAnimationFrame(() => {
+    const active = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (active && !table.contains(active)) return;
+    focusTableElement(target);
+  });
   return true;
 };
 

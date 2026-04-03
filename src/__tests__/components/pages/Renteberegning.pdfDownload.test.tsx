@@ -26,7 +26,10 @@ vi.mock('../../../hooks/usePersistedForm', async () => {
         kommentarer: undefined as string | undefined,
         rentekravRows: [],
       });
-      return { values, setValues, formVersion: 0 };
+      const setFieldValue = <K extends keyof typeof values>(fieldName: K, value: (typeof values)[K]) => {
+        setValues((prev) => ({ ...prev, [fieldName]: value }));
+      };
+      return { values, setValues, setFieldValue, formVersion: 0 };
     },
   };
 });
