@@ -41,6 +41,7 @@ import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerels
 import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
 import { isoToDanish } from '../types/branded';
+import { DATE_ORDER_ERROR_MESSAGE } from '../utils/dateOrderValidation';
 
 export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
 
@@ -86,7 +87,7 @@ function validateStandaloneRules(values: ErstatningsopgoerelseValues): Validatio
   ) {
     errors.push({
       path: 'vedroererPeriodeFra',
-      message: 'Fra-dato må ikke være efter til-dato',
+      message: DATE_ORDER_ERROR_MESSAGE,
       severity: 'error',
     });
   }
@@ -280,7 +281,7 @@ function validateSvieSmerteRowCompleteness(
   // Format er garanteret af Zod-schema (validateParsed modtager kun schema-validerede værdier).
   if (hasFra && hasTil && isISODateString(row.fra) && isISODateString(row.til)) {
     if (row.fra > row.til) {
-      errors.push({ path: `${prefix}.fra`, message: 'Fra-dato må ikke være efter til-dato', severity: 'error' });
+      errors.push({ path: `${prefix}.fra`, message: DATE_ORDER_ERROR_MESSAGE, severity: 'error' });
     } else {
       // Fejlgivende bound: til-dato >= menAfgoerelseDato når afgørelse er truffet og ikke påklaget.
       // Gælder uanset skadestype (jf. eo-snapshot-contract.md §2.2 og form-contract.md §13.2).
@@ -426,7 +427,7 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
     ) {
       errors.push({
         path: `${errorPathPrefix}.sfggReferenceperiodeFra`,
-        message: 'Referenceperiode fra-dato må ikke være efter til-dato',
+        message: DATE_ORDER_ERROR_MESSAGE,
         severity: 'error',
       });
     }
@@ -587,7 +588,7 @@ function validateFerieperiodeRowCompleteness(
   // isISODateString-guards er type narrowing — format er garanteret af Zod-schema.
   if (hasFra && hasTil && isISODateString(row.fra) && isISODateString(row.til)) {
     if (row.fra > row.til) {
-      errors.push({ path: `${prefix}.fra`, message: 'Fra-dato må ikke være efter til-dato', severity: 'error' });
+      errors.push({ path: `${prefix}.fra`, message: DATE_ORDER_ERROR_MESSAGE, severity: 'error' });
     }
   }
 
@@ -645,7 +646,7 @@ function validateBeregnesUdFra(values: ErstatningsopgoerelseValues): ValidationE
     ) {
       errors.push({
         path: 'periodeTilBeregningFra',
-        message: 'Beregningsperiode fra-dato må ikke være efter til-dato',
+        message: DATE_ORDER_ERROR_MESSAGE,
         severity: 'error',
       });
     }

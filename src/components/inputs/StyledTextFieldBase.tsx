@@ -77,6 +77,11 @@ export type StyledTextFieldBaseProps = {
   sx?: SxProps<Theme>;
 };
 
+const debugTextFieldBase = (event: string, details: Record<string, unknown>): void => {
+  if (!import.meta.env.DEV) return;
+  console.debug('[StyledTextFieldBase]', event, details);
+};
+
 const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBaseProps>(
   (
     {
@@ -209,6 +214,70 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     const resolvedCursor: React.CSSProperties['cursor'] | undefined =
       disabled ? undefined : htmlInputAttributes?.readOnly ? 'pointer' : 'text';
 
+    const renderCountRef = React.useRef(0);
+    const renderWindowStartRef = React.useRef<number>(0);
+    const excessiveRenderLoggedRef = React.useRef(false);
+    const lastDraftRef = React.useRef(draft);
+    if (import.meta.env.DEV) {
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const windowStart = renderWindowStartRef.current;
+      if (windowStart === 0 || now - windowStart > 1000) {
+        renderWindowStartRef.current = now;
+        renderCountRef.current = 0;
+        excessiveRenderLoggedRef.current = false;
+      }
+
+      renderCountRef.current += 1;
+      if (lastDraftRef.current !== draft) {
+        console.debug('[StyledTextFieldBase] draft changed on render', {
+          id: resolvedId,
+          renderCount: renderCountRef.current,
+          prev: lastDraftRef.current,
+          next: draft,
+        });
+        lastDraftRef.current = draft;
+      }
+      if (!excessiveRenderLoggedRef.current && renderCountRef.current > 20) {
+        excessiveRenderLoggedRef.current = true;
+        console.debug('[StyledTextFieldBase] excessive renders detected', {
+          id: resolvedId,
+          renderCount: renderCountRef.current,
+          draft,
+          error,
+          disabled,
+        });
+      }
+    }
+
+    React.useEffect(() => {
+      debugTextFieldBase('mount', {
+        id: resolvedId,
+        name: resolvedName,
+        label: typeof label === 'string' ? label : undefined,
+      });
+      return () => {
+        debugTextFieldBase('unmount', {
+          id: resolvedId,
+          name: resolvedName,
+        });
+      };
+    }, [label, resolvedId, resolvedName]);
+
+    React.useEffect(() => {
+      debugTextFieldBase('render-state', {
+        id: resolvedId,
+        name: resolvedName,
+        label: typeof label === 'string' ? label : undefined,
+        draft,
+        error,
+        showError,
+        helperText,
+        disabled: Boolean(disabled),
+        readOnly: htmlInputAttributes?.readOnly === true,
+        hasEndAdornment: endAdornment !== undefined,
+      });
+    }, [resolvedId, resolvedName, label, draft, error, showError, helperText, disabled, htmlInputAttributes?.readOnly, endAdornment]);
+
     return (
       <Tooltip
         title={showError ? helperText : ''}
@@ -273,6 +342,22 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
                 '&.Mui-focused fieldset': {
                   borderColor: '#1976d2',
                   borderWidth: '1px',
+                },
+                '&.Mui-disabled': {
+                  backgroundColor: 'rgba(0, 0, 0, 0.035)',
+                },
+                '&.Mui-disabled:not(.Mui-error) fieldset': {
+                  borderColor: 'rgba(0, 0, 0, 0.28)',
+                  borderStyle: 'dashed',
+                },
+                '&.Mui-disabled:not(.Mui-error):hover fieldset': {
+                  borderColor: 'rgba(0, 0, 0, 0.28)',
+                },
+                '&.Mui-disabled .MuiInputBase-input': {
+                  WebkitTextFillColor: 'rgba(0, 0, 0, 0.72)',
+                },
+                '&.Mui-disabled .MuiInputAdornment-root': {
+                  color: 'rgba(0, 0, 0, 0.72)',
                 },
                 '&.Mui-error fieldset': {
                   borderColor: '#d32f2f',

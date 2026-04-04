@@ -181,7 +181,7 @@ describe('TAF validering', () => {
         { id: '1', fra: iso('2024-01-20'), til: iso('2024-01-01') },
       ],
     });
-    expect(hasError(values, 'Fra-dato må ikke være efter til-dato')).toBe(true);
+    expect(hasError(values, 'Til-dato skal være efter fra-dato')).toBe(true);
   });
 });
 
@@ -369,7 +369,7 @@ describe('standalone regler (vedroererPeriode)', () => {
       vedroererPeriodeFra: iso('2024-02-01'),
       vedroererPeriodeTil: iso('2024-01-01'),
     });
-    expect(hasError(values, 'Fra-dato må ikke være efter til-dato')).toBe(true);
+    expect(hasError(values, 'Til-dato skal være efter fra-dato')).toBe(true);
   });
 
   it('ingen fejl når fra == til', () => {
@@ -379,7 +379,7 @@ describe('standalone regler (vedroererPeriode)', () => {
     });
     const result = erstatningsopgoerelseValidator.validate(values);
     const hasFraTilError = result.errors.some(
-      (e) => e.path === 'vedroererPeriodeFra' && e.message.includes('Fra-dato må ikke være efter til-dato'),
+      (e) => e.path === 'vedroererPeriodeFra' && e.message.includes('Til-dato skal være efter fra-dato'),
     );
     expect(hasFraTilError).toBe(false);
   });
@@ -398,7 +398,7 @@ describe('svie/smerte — ekstra valideringscases', () => {
       ],
     });
     // Fra > til i perioden burde give fejl — men kun hvis beregning er aktiv
-    expect(hasError(values, 'Fra-dato må ikke være efter til-dato')).toBe(false);
+    expect(hasError(values, 'Til-dato skal være efter fra-dato')).toBe(false);
   });
 
   it('springer validering over når tidligereSsMax = Ja', () => {
@@ -437,7 +437,7 @@ describe('svie/smerte — ekstra valideringscases', () => {
         { id: '1', fra: iso('2024-01-10'), til: iso('2024-01-01'), tilstand: 'sygemeldt' },
       ],
     });
-    expect(hasError(values, 'Fra-dato må ikke være efter til-dato')).toBe(true);
+    expect(hasError(values, 'Til-dato skal være efter fra-dato')).toBe(true);
   });
 });
 
@@ -544,7 +544,7 @@ describe('validateBeregnesUdFra', () => {
       periodeTilBeregningFra: iso('2024-06-01'),
       periodeTilBeregningTil: iso('2024-01-01'),
     });
-    expect(hasError(values, 'Beregningsperiode fra-dato må ikke være efter til-dato')).toBe(true);
+    expect(hasError(values, 'Til-dato skal være efter fra-dato')).toBe(true);
   });
 
   it('ingen fejl ved beregningsperiode fra == til', () => {
@@ -553,7 +553,7 @@ describe('validateBeregnesUdFra', () => {
       periodeTilBeregningFra: iso('2024-01-01'),
       periodeTilBeregningTil: iso('2024-01-01'),
     });
-    expect(hasError(values, 'Beregningsperiode fra-dato må ikke være efter til-dato')).toBe(false);
+    expect(hasError(values, 'Til-dato skal være efter fra-dato')).toBe(false);
   });
 });
 

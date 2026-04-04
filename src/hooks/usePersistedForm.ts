@@ -5,7 +5,6 @@ import type { StorageKey } from '../config/storageManifest';
 import type { PersistedSectionMap } from '../config/persistenceRegistry';
 import {
   getPersistedSectionSnapshot,
-  getSectionRevisionSnapshot,
   useAuthoritativeSnapshotEpochSelector,
   usePersistenceHydratedSelector,
   usePersistedSectionSelector,

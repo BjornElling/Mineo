@@ -33,7 +33,7 @@ import useTafRows from '../../tables/useTafRows';
 import useFerieRows from '../../tables/useFerieRows';
 import useFravaerRows from '../../tables/useFravaerRows';
 import useOevrigeKravRows from '../../tables/useOevrigeKravRows';
-import { createCommitEvent, type CommitEvent, type CommitHandler } from '../../../types/fieldEvents';
+import type { CommitEvent, CommitHandler } from '../../../types/fieldEvents';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
 import {
@@ -1114,7 +1114,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   minBoundKind: skadesdatoMinRule.minBoundKind,
                   minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                 }}
-                noValidRangeCause={skadesdatoISO ? 'Skadesdato, Vedrører perioden: til og med' : 'Vedrører perioden: til og med'}
               />
               <Typography className="row--text">til og med</Typography>
               <StyledDateField
@@ -1124,7 +1123,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 minDate={values.vedroererPeriodeFra || dateRanges_erstatningsopgoerelse.periodeTil.fallbackMin}
                 maxDate={dateRanges_erstatningsopgoerelse.periodeTil.max}
                 specialRangeErrors={{ fraTilRole: 'til' }}
-                noValidRangeCause="Vedrører perioden: fra og med"
               />
             </Box>
           </Box>
@@ -1145,7 +1143,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   minBoundKind: opgoerelseLavetDenMinRule.minBoundKind,
                   minBoundReferenceISO: opgoerelseLavetDenMinRule.minBoundReferenceISO,
                 }}
-                noValidRangeCause={skadesdatoISO ? 'Skadesdato, dags dato' : 'dags dato'}
               />
               <InsertTodayDateButton
                 onCommit={(today) => {
@@ -1273,7 +1270,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 minBoundKind: skadesdatoMinRule.minBoundKind,
                 minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
               }}
-              noValidRangeCause="Skadesdato"
             />
           </Box>
         </Box>
@@ -1313,7 +1309,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     minBoundKind: skadesdatoMinRule.minBoundKind,
                     minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                   }}
-                  noValidRangeCause="Skadesdato"
                 />
               </Box>
             </Box>
@@ -1360,7 +1355,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     minBoundKind: skadesdatoMinRule.minBoundKind,
                     minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                   }}
-                  noValidRangeCause="Skadesdato"
                 />
               </Box>
             </Box>
@@ -1378,7 +1372,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     minBoundKind: skadesdatoMinRule.minBoundKind,
                     minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                   }}
-                  noValidRangeCause="Skadesdato"
                 />
               </Box>
             </Box>
@@ -1414,7 +1407,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     minBoundKind: skadesdatoMinRule.minBoundKind,
                     minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                   }}
-                  noValidRangeCause="Skadesdato"
                 />
               </Box>
             </Box>
@@ -1432,7 +1424,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     minBoundKind: skadesdatoMinRule.minBoundKind,
                     minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
                   }}
-                  noValidRangeCause="Skadesdato"
                 />
               </Box>
             </Box>
@@ -1468,7 +1459,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 minBoundKind: skadesdatoMinRule.minBoundKind,
                 minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
               }}
-              noValidRangeCause="Skadesdato"
             />
           </Box>
         </Box>
@@ -1514,6 +1504,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   verserendeKlageMen={verserendeKlageMen}
                   onFieldChange={svie.onFieldChange}
                   onRowBlur={(rowId) => svie.onFieldBlur(rowId)}
+                  onRowsReorder={svie.reorderRows}
                   saveOrderPath="erstatningsopgoerelse.svieSmertePerioder"
                 />
 
@@ -1605,6 +1596,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               overlappingIds={taf.overlappingIds}
               onFieldChange={taf.onFieldChange}
               onRowBlur={(rowId) => taf.onFieldBlur(rowId)}
+              onRowsReorder={taf.reorderRows}
               derivedById={tafDerived.derivedById}
               derivedColumnHeader={tafDerived.kolonneOverskrift}
               overlapWithBeregningsperiodeByRowId={beregningsperiodeTafOverlap.overlapMessageByRowId}
@@ -1624,6 +1616,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               feriedageById={ferieFeriedageById}
               onFieldChange={ferie.onFieldChange}
               onRowBlur={(rowId) => ferie.onFieldBlur(rowId)}
+              onRowsReorder={ferie.reorderRows}
               skadesdatoISO={skadesdatoISO}
               endeligEETBeregnetDato={endeligEETBeregnetDato}
               differencekravDato={values.differencekravDato}
@@ -1713,6 +1706,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   feriedageById={fravaerFeriedageById}
                   onFieldChange={fravaer.onFieldChange}
                   onRowBlur={(rowId) => fravaer.onFieldBlur(rowId)}
+                  onRowsReorder={fravaer.reorderRows}
                   beregningsperiodeFra={values.periodeTilBeregningFra}
                   beregningsperiodeTil={values.periodeTilBeregningTil}
                   saveOrderPath="erstatningsopgoerelse.fravaerPerioder"
@@ -2470,13 +2464,13 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           committedById={oevrigeKrav.committedById}
           onFieldChange={oevrigeKrav.onFieldChange}
           onRowBlur={(rowId) => oevrigeKrav.onFieldBlur(rowId)}
+          onRowsReorder={oevrigeKrav.reorderRows}
           minDate={oevrigeKravMinDate}
           maxDate={dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato.max}
           specialRangeErrors={{
             minBoundKind: skadesdatoMinRule.minBoundKind,
             minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
           }}
-          noValidRangeCause={skadesdatoISO ? 'Skadesdato, dags dato' : 'dags dato'}
           saveOrderPath="erstatningsopgoerelse.oevrigeKravPerioder"
         />
       </ContentBox>

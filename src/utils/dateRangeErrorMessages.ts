@@ -2,6 +2,7 @@ import { isoToDanish } from '../types/branded';
 import type { ISODateString } from '../types/branded';
 import { TODAY } from '../config/dateRanges';
 import { validateISODateRange } from './isoDateHelpers';
+import { DATE_ORDER_ERROR_MESSAGE } from './dateOrderValidation';
 
 export type DateRangeSpecialErrors = {
   /**
@@ -79,10 +80,10 @@ export const resolveDateRangeErrorMessage = (args: {
   }
 
   if (special?.fraTilRole === 'fra' && maxDate && iso > maxDate) {
-    return 'Fra-dato er større end til-dato';
+    return DATE_ORDER_ERROR_MESSAGE;
   }
   if (special?.fraTilRole === 'til' && minDate && iso < minDate) {
-    return 'Til-dato er mindre end fra-dato';
+    return DATE_ORDER_ERROR_MESSAGE;
   }
 
   return validateISODateRange(iso, minDate, maxDate).errorMessage;

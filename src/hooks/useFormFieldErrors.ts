@@ -14,6 +14,11 @@ import {
   useResolvedFieldErrorsSelector,
 } from './useFormPersistenceSelectors';
 
+const debugFieldErrorReporter = (event: string, details: Record<string, unknown>): void => {
+  if (!import.meta.env.DEV) return;
+  console.debug('[useFormFieldErrors]', event, details);
+};
+
 type FieldName<K extends StorageKey> = Extract<keyof PersistedSectionMap[K], string>;
 type DynamicFieldName<K extends StorageKey> = FieldName<K> | string;
 
@@ -95,9 +100,34 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
 
   const severity = options?.severity ?? 'error';
   const source = options?.source ?? 'input';
+  const lastReportedRef = React.useRef<string | null>(null);
 
   const reportError = React.useCallback(
     (error: ReportableFieldError | undefined) => {
+      const nextKey =
+        error === undefined || (typeof error === 'string' && error.trim() === '') || (typeof error !== 'string' && error.message.trim() === '')
+          ? '__clear__'
+          : typeof error === 'string'
+            ? `__msg__:${severity}:${source}:true:${error}`
+            : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}`;
+      if (lastReportedRef.current === nextKey) {
+        debugFieldErrorReporter('report-skip-duplicate', {
+          pageKey,
+          fieldName,
+          source,
+          nextKey,
+        });
+        return;
+      }
+      debugFieldErrorReporter('report', {
+        pageKey,
+        fieldName,
+        source,
+        nextKey,
+        error,
+      });
+      lastReportedRef.current = nextKey;
+
       // Lifecycle contract:
       // - The producer (typically an input component) owns the error for this field and MUST clear it
       //   by calling the reporter with `undefined` once the field becomes valid again.
@@ -132,8 +162,36 @@ export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
 
   const severity = options?.severity ?? 'error';
   const source = options?.source ?? 'input';
+  const lastReportedByFieldRef = React.useRef<Record<string, string>>({});
 
   return React.useCallback((fieldName: DynamicFieldName<K>, error: ReportableFieldError | undefined) => {
+    const nextKey =
+      error === undefined
+      || (typeof error === 'string' && error.trim() === '')
+      || (typeof error !== 'string' && error.message.trim() === '')
+        ? '__clear__'
+        : typeof error === 'string'
+          ? `__msg__:${severity}:${source}:true:${error}`
+          : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}`;
+
+    if (lastReportedByFieldRef.current[fieldName] === nextKey) {
+      debugFieldErrorReporter('report-dynamic-skip-duplicate', {
+        pageKey,
+        fieldName,
+        source,
+        nextKey,
+      });
+      return;
+    }
+    debugFieldErrorReporter('report-dynamic', {
+      pageKey,
+      fieldName,
+      source,
+      nextKey,
+      error,
+    });
+    lastReportedByFieldRef.current[fieldName] = nextKey;
+
     if (
       error === undefined
       || (typeof error === 'string' && error.trim() === '')

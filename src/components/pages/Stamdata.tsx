@@ -44,7 +44,7 @@ const Stamdata = React.memo(() => {
       (event: { target: { value: (typeof values)[K] } }) => {
         setFieldValue(fieldName, event.target.value);
       },
-    [setFieldValue, values]
+    [setFieldValue]
   );
 
   const datoLabel = React.useMemo(

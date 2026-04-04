@@ -36,6 +36,7 @@ export interface RenteberegningTabProps {
   rentekravRows: RentekravDraftRow[];
   onRentekravChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRentekravBlur: (rowId: string) => void;
+  onRentekravReorder: (orderedIds: readonly string[]) => void;
   onDownloadSpecifikation: (pdfContext: RentePdfContext) => Promise<void>;
   committedRentekravById: ReadonlyMap<string, RentekravRow>;
   onError: (message: string, context: string, error?: unknown) => void;
@@ -51,6 +52,7 @@ const RenteberegningTab = React.memo(({
   rentekravRows,
   onRentekravChange,
   onRentekravBlur,
+  onRentekravReorder,
   onDownloadSpecifikation,
   committedRentekravById,
   onError,
@@ -93,6 +95,7 @@ const RenteberegningTab = React.memo(({
           rows={rentekravRows}
           onFieldChange={onRentekravChange}
           onRowBlur={onRentekravBlur}
+          onRowsReorder={onRentekravReorder}
           beregningsdato={beregningsdato}
           onDownloadSpecifikation={onDownloadSpecifikation}
           committedById={committedRentekravById}

@@ -8,6 +8,13 @@ import { trimWhitespaceEdges } from '../../utils/draftNormalization';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 
+const debugStyledTextField = (event: string, details: Record<string, unknown>): void => {
+  if (!import.meta.env.DEV) return;
+  console.debug('[StyledTextField]', event, details);
+};
+
+const formatStyledTextValue = (value: string): string => value;
+
 export type StyledTextFieldValueCommitEvent = CommitEvent<string>;
 export type StyledTextFieldDraftChangeEvent = DraftChangeEvent;
 
@@ -149,7 +156,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       commit,
     } = useDraftField<string>({
       value,
-      format: (v) => v,
+      format: formatStyledTextValue,
       parse: parseString,
       onCommit: (nextValue) => {
         onCommit?.(createCommitEvent(nextValue));
@@ -265,6 +272,40 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       [inputActivation, multiline, onCommit, onKeyDown, onKeyDownBase, parseString, setDraftBase, textAreaActivation]
     );
 
+    React.useEffect(() => {
+      debugStyledTextField('render-state', {
+        id,
+        name,
+        label: typeof label === 'string' ? label : undefined,
+        multiline,
+        value,
+        draft,
+        touched,
+        localError: visibleLocalError?.message ?? '',
+        externalHasError,
+        externalHelperText,
+        resolvedHasError,
+        resolvedErrorMessage,
+        inputEditorOpen: multiline ? undefined : inputActivation.isEditorOpen,
+        textAreaEditorOpen: multiline ? textAreaActivation.isEditorOpen : undefined,
+      });
+    }, [
+      id,
+      name,
+      label,
+      multiline,
+      value,
+      draft,
+      touched,
+      visibleLocalError?.message,
+      externalHasError,
+      externalHelperText,
+      resolvedHasError,
+      resolvedErrorMessage,
+      inputActivation.isEditorOpen,
+      textAreaActivation.isEditorOpen,
+    ]);
+
     if (multiline) {
       return (
         <StyledTextAreaBase
@@ -280,7 +321,23 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
           onBlur={(e) => {
             onBlurBase(e);
             const unchanged = draft === value;
+            debugStyledTextField('blur', {
+              id,
+              name,
+              label: typeof label === 'string' ? label : undefined,
+              unchanged,
+              skipNextBlurCommit: skipNextBlurCommitRef.current,
+              draft,
+              value,
+            });
             if (!skipNextBlurCommitRef.current && !unchanged) {
+              debugStyledTextField('commit-from-blur', {
+                id,
+                name,
+                label: typeof label === 'string' ? label : undefined,
+                draft,
+                value,
+              });
               commit();
             }
             if (textAreaActivation.isEditorOpen) textAreaActivation.closeEditor();
@@ -325,7 +382,23 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
         onBlur={(e) => {
           onBlurBase(e);
           const unchanged = draft === value;
+          debugStyledTextField('blur', {
+            id,
+            name,
+            label: typeof label === 'string' ? label : undefined,
+            unchanged,
+            skipNextBlurCommit: skipNextBlurCommitRef.current,
+            draft,
+            value,
+          });
           if (!skipNextBlurCommitRef.current && !unchanged) {
+            debugStyledTextField('commit-from-blur', {
+              id,
+              name,
+              label: typeof label === 'string' ? label : undefined,
+              draft,
+              value,
+            });
             commit();
           }
           if (inputActivation.isEditorOpen) inputActivation.closeEditor();

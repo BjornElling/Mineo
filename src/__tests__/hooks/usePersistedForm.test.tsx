@@ -161,17 +161,13 @@ describe('usePersistedForm', () => {
     };
 
     const Capture = ({ pageKey }: { pageKey: 'stamdata' | 'satser' }) => {
-      if (pageKey === 'stamdata') {
-        const form = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
-        captured.formVersion = form.formVersion;
-        return null;
-      }
-      const form = usePersistedForm(
+      const stamdataForm = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
+      const satserForm = usePersistedForm(
         satserSchema,
         'satser',
         { aargang: 2026 }
       );
-      captured.formVersion = form.formVersion;
+      captured.formVersion = pageKey === 'stamdata' ? stamdataForm.formVersion : satserForm.formVersion;
       return null;
     };
 

@@ -309,6 +309,16 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         return false;
       }
 
+      const currentSnapshot = getPersistedSectionSnapshot(pageKey);
+      if (currentSnapshot !== null) {
+        const currentSerialized = serializeFormValues(currentSnapshot);
+        const nextSerializedFingerprint = JSON.stringify(persistedSectionData);
+        const currentSerializedFingerprint = JSON.stringify(currentSerialized);
+        if (currentSerializedFingerprint === nextSerializedFingerprint) {
+          return true;
+        }
+      }
+
       const persistedData: PersistedData = {
         version: CURRENT_VERSION,
         timestamp: Date.now(),

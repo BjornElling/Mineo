@@ -16,6 +16,11 @@ import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { ReportableFieldError } from '../../types/fieldErrors';
 
+const debugStyledDateField = (event: string, details: Record<string, unknown>): void => {
+  if (!import.meta.env.DEV) return;
+  console.debug('[StyledDateField]', event, details);
+};
+
 export type StyledDateFieldValueChangeEvent = CommitEvent<ISODateString | undefined>;
 export type StyledDateFieldDraftChangeEvent = DraftChangeEvent;
 
@@ -29,13 +34,6 @@ export type StyledDateFieldProps = {
   minDate?: ISODateString;
   maxDate?: ISODateString;
   specialRangeErrors?: DateRangeSpecialErrors;
-  /**
-   * Optional human-readable explanation of which other inputs determine the min/max bounds.
-   *
-   * Used when there are no valid dates because `minDate > maxDate`.
-   * This must reference concrete user-visible inputs (e.g. "Skadesdato", "Vedrører periode til", etc.).
-   */
-  noValidRangeCause?: string;
 
   placeholder?: string;
   disabled?: boolean;
@@ -57,10 +55,6 @@ export type StyledDateFieldProps = {
 const formatISODateAsDanish = (value: ISODateString | undefined): string => {
   if (!value) return '';
   return isoToDanish(value) ?? '';
-};
-
-const formatISODateForTooltip = (value: ISODateString): string => {
-  return isoToDanish(value) ?? value;
 };
 
 type SplitDateParts = { day: string; month: string; year: string } | null;
@@ -94,7 +88,6 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       minDate,
       maxDate,
       specialRangeErrors,
-      noValidRangeCause,
       placeholder = 'dd-mm-åååå',
       disabled,
       onFocus,
@@ -119,28 +112,42 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     const normalizedMinDate = minDate;
     const normalizedMaxDate = maxDate;
 
-    const configErrorMessage = React.useMemo(() => {
-      if (normalizedMinDate && normalizedMaxDate && normalizedMinDate > normalizedMaxDate) {
-        const minText = formatISODateForTooltip(normalizedMinDate);
-        const maxText = formatISODateForTooltip(normalizedMaxDate);
-        const causeSuffix =
-          typeof noValidRangeCause === 'string' && noValidRangeCause.trim() !== ''
-            ? ` Værdien afgrænses af: ${noValidRangeCause.trim()}`
-            : ' Kontrollér de felter der bestemmer datointervallet.';
-        return `Ingen gyldige datoer: min-dato (${minText}) er efter max-dato (${maxText}).${causeSuffix}`;
+    const effectiveMinDate = normalizedMinDate;
+    const effectiveMaxDate = normalizedMaxDate;
+    const specialFraTilRole = specialRangeErrors?.fraTilRole;
+    const specialMinBoundKind = specialRangeErrors?.minBoundKind;
+    const specialMinBoundReferenceISO = specialRangeErrors?.minBoundReferenceISO;
+    const specialMaxBoundKind = specialRangeErrors?.maxBoundKind;
+    const specialMaxBoundFieldLabel = specialRangeErrors?.maxBoundFieldLabel;
+    const specialMaxBoundReferenceISO = specialRangeErrors?.maxBoundReferenceISO;
+    const resolvedSpecialRangeErrors = React.useMemo<DateRangeSpecialErrors | undefined>(() => {
+      if (
+        specialFraTilRole === undefined &&
+        specialMinBoundKind === undefined &&
+        specialMinBoundReferenceISO === undefined &&
+        specialMaxBoundKind === undefined &&
+        specialMaxBoundFieldLabel === undefined &&
+        specialMaxBoundReferenceISO === undefined
+      ) {
+        return undefined;
       }
-      return '';
-    }, [noValidRangeCause, normalizedMaxDate, normalizedMinDate]);
 
-    const hasConfigError = configErrorMessage.trim() !== '';
-
-    if (import.meta.env.DEV && hasConfigError) {
-      // Never crash the page for a prop-level min/max inconsistency; surface via tooltip only.
-      // (No console warnings: this is a user-facing validation state, not a technical error.)
-    }
-
-    const effectiveMinDate = hasConfigError ? undefined : normalizedMinDate;
-    const effectiveMaxDate = hasConfigError ? undefined : normalizedMaxDate;
+      return {
+        fraTilRole: specialFraTilRole,
+        minBoundKind: specialMinBoundKind,
+        minBoundReferenceISO: specialMinBoundReferenceISO,
+        maxBoundKind: specialMaxBoundKind,
+        maxBoundFieldLabel: specialMaxBoundFieldLabel,
+        maxBoundReferenceISO: specialMaxBoundReferenceISO,
+      };
+    }, [
+      specialFraTilRole,
+      specialMinBoundKind,
+      specialMinBoundReferenceISO,
+      specialMaxBoundKind,
+      specialMaxBoundFieldLabel,
+      specialMaxBoundReferenceISO,
+    ]);
 
     const validateRange = React.useCallback(
       (isoDate: ISODateString) => validateISODateRange(isoDate, effectiveMinDate, effectiveMaxDate),
@@ -288,11 +295,24 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     // Range validation is a separate concern from parsing:
     // - Parsing determines whether we can commit an ISO date.
     // - Range validation reports an error message but never blocks commit.
+    const rangeEffectDepsRef = React.useRef<{ effectiveMaxDate: typeof effectiveMaxDate; effectiveMinDate: typeof effectiveMinDate; specialRangeErrors: typeof specialRangeErrors; validateRange: typeof validateRange; value: typeof value } | null>(null);
     React.useEffect(() => {
-      if (configErrorMessage.trim() !== '') {
-        setRangeErrorMessage('');
-        return;
+      if (import.meta.env.DEV) {
+        const prev = rangeEffectDepsRef.current;
+        if (prev !== null) {
+          const changed: string[] = [];
+          if (prev.effectiveMaxDate !== effectiveMaxDate) changed.push(`effectiveMaxDate (${prev.effectiveMaxDate} → ${effectiveMaxDate})`);
+          if (prev.effectiveMinDate !== effectiveMinDate) changed.push(`effectiveMinDate (${prev.effectiveMinDate} → ${effectiveMinDate})`);
+          if (prev.specialRangeErrors !== specialRangeErrors) changed.push('specialRangeErrors (reference changed)');
+          if (prev.validateRange !== validateRange) changed.push('validateRange (fn reference changed)');
+          if (prev.value !== value) changed.push(`value (${prev.value} → ${value})`);
+          if (changed.length > 0) {
+            console.debug('[StyledDateField] range-effect triggered. Changed deps:', changed.join(', '));
+          }
+        }
+        rangeEffectDepsRef.current = { effectiveMaxDate, effectiveMinDate, specialRangeErrors, validateRange, value };
       }
+
       if (value === undefined) {
         setRangeErrorMessage('');
         return;
@@ -302,9 +322,9 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       setRangeErrorMessage(
         result.isValid
           ? ''
-          : resolveDateRangeErrorMessage({ iso: value, minDate: effectiveMinDate, maxDate: effectiveMaxDate, special: specialRangeErrors })
+          : resolveDateRangeErrorMessage({ iso: value, minDate: effectiveMinDate, maxDate: effectiveMaxDate, special: resolvedSpecialRangeErrors })
       );
-    }, [configErrorMessage, effectiveMaxDate, effectiveMinDate, specialRangeErrors, validateRange, value]);
+    }, [effectiveMaxDate, effectiveMinDate, resolvedSpecialRangeErrors, validateRange, value]);
 
     const visibleLocalError = touched ? error : undefined;
     const shouldShowRangeError =
@@ -315,37 +335,88 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
 
 
     const resolvedHasError =
-      configErrorMessage.trim() !== '' ||
       externalHasError ||
       Boolean(visibleLocalError?.message) ||
       visibleRangeErrorMessage.trim() !== '';
 
     const resolvedErrorMessage = !resolvedHasError
       ? ''
-      : configErrorMessage.trim() !== ''
-        ? configErrorMessage
-        : externalHasError
-          ? externalHelperText
-          : visibleLocalError?.message ?? visibleRangeErrorMessage;
+      : externalHasError
+        ? externalHelperText
+        : visibleLocalError?.message ?? visibleRangeErrorMessage;
+
+    React.useEffect(() => {
+      debugStyledDateField('render-state', {
+        value,
+        draft,
+        touched,
+        localError: visibleLocalError?.message ?? '',
+        rangeErrorMessage,
+        visibleRangeErrorMessage,
+        externalHasError,
+        externalHelperText,
+        resolvedHasError,
+        resolvedErrorMessage,
+        minDate: effectiveMinDate,
+        maxDate: effectiveMaxDate,
+        editorOpen: activation.isEditorOpen,
+      });
+    }, [
+      value,
+      draft,
+      touched,
+      visibleLocalError?.message,
+      rangeErrorMessage,
+      visibleRangeErrorMessage,
+      externalHasError,
+      externalHelperText,
+      resolvedHasError,
+      resolvedErrorMessage,
+      effectiveMinDate,
+      effectiveMaxDate,
+      activation.isEditorOpen,
+    ]);
 
     // Notify parent of error state
+    const onFieldErrorDepsRef = React.useRef<{ visibleLocalErrorMsg: string | undefined; visibleRangeErrorMessage: string; onFieldError: typeof onFieldError } | null>(null);
     React.useEffect(() => {
-      if (typeof onFieldError === 'function') {
-        if (configErrorMessage.trim() !== '') {
-          onFieldError({ message: configErrorMessage, blocksSave: false });
-          return;
+      if (import.meta.env.DEV) {
+        const prev = onFieldErrorDepsRef.current;
+        if (prev !== null) {
+          const changed: string[] = [];
+          if (prev.visibleLocalErrorMsg !== visibleLocalError?.message) changed.push(`visibleLocalError.message (${prev.visibleLocalErrorMsg} → ${visibleLocalError?.message})`);
+          if (prev.visibleRangeErrorMessage !== visibleRangeErrorMessage) changed.push(`visibleRangeErrorMessage (${prev.visibleRangeErrorMessage} → ${visibleRangeErrorMessage})`);
+          if (prev.onFieldError !== onFieldError) changed.push('onFieldError (fn reference changed — POSSIBLE LOOP SOURCE)');
+          if (changed.length > 0) {
+            console.debug('[StyledDateField] onFieldError-effect triggered. Changed deps:', changed.join(', '));
+          }
         }
+        onFieldErrorDepsRef.current = { visibleLocalErrorMsg: visibleLocalError?.message, visibleRangeErrorMessage, onFieldError };
+      }
+
+      if (typeof onFieldError === 'function') {
         if (visibleLocalError?.message) {
+          debugStyledDateField('report-field-error', {
+            type: 'local',
+            message: visibleLocalError.message,
+            blocksSave: true,
+          });
           onFieldError({ message: visibleLocalError.message, blocksSave: true });
           return;
         }
         if (visibleRangeErrorMessage) {
+          debugStyledDateField('report-field-error', {
+            type: 'range',
+            message: visibleRangeErrorMessage,
+            blocksSave: false,
+          });
           onFieldError({ message: visibleRangeErrorMessage, blocksSave: false });
           return;
         }
+        debugStyledDateField('report-field-error', { type: 'clear' });
         onFieldError(undefined);
       }
-    }, [configErrorMessage, visibleLocalError?.message, visibleRangeErrorMessage, onFieldError]);
+    }, [visibleLocalError?.message, visibleRangeErrorMessage, onFieldError]);
 
     const handleFocus = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
@@ -435,7 +506,17 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         onBlur={(e) => {
           onBlurBase(e);
           const unchanged = draft === formatISODateAsDanish(value);
+          debugStyledDateField('blur', {
+            unchanged,
+            skipNextBlurCommit: skipNextBlurCommitRef.current,
+            draft,
+            value,
+          });
           if (!skipNextBlurCommitRef.current && !unchanged) {
+            debugStyledDateField('commit-from-blur', {
+              draft,
+              value,
+            });
             commit();
           }
           if (activation.isEditorOpen) activation.closeEditor();

@@ -10,6 +10,11 @@ import {
   normalizeFieldError,
 } from '../types/fieldErrors';
 
+const debugFormPersistenceStore = (event: string, details: Record<string, unknown>): void => {
+  if (!import.meta.env.DEV) return;
+  console.debug('[formPersistenceStore]', event, details);
+};
+
 export type FormPersistenceSections = {
   stamdata: PersistedSectionMap['stamdata'] | null;
   satser: PersistedSectionMap['satser'] | null;
@@ -351,6 +356,15 @@ const createFormPersistenceStore = () =>
               blocksSave: error.blocksSave,
             });
         const update = applyFieldErrorUpdate(prevForField, source, normalized);
+        debugFormPersistenceStore('setFieldError', {
+          section: key,
+          fieldName,
+          source,
+          rawError: error,
+          normalized,
+          updateKind: update.kind,
+          prevForField,
+        });
         if (update.kind === 'noop') return state;
         if (update.kind === 'deleteField') {
           delete nextForPage[fieldName];
@@ -364,10 +378,23 @@ const createFormPersistenceStore = () =>
       });
     },
     clearFieldErrorsForSection: (key) => {
-      set((state) => ({
-        fieldErrors: { ...state.fieldErrors, [key]: {} } as FieldErrorCache,
-        fieldErrorRevisions: incrementFieldErrorRevision(state.fieldErrorRevisions, key),
-      }));
+      set((state) => {
+        const current = state.fieldErrors[key];
+        if (Object.keys(current).length === 0) {
+          debugFormPersistenceStore('clearFieldErrorsForSection-noop', {
+            section: key,
+          });
+          return state;
+        }
+        debugFormPersistenceStore('clearFieldErrorsForSection', {
+          section: key,
+          fieldCount: Object.keys(current).length,
+        });
+        return {
+          fieldErrors: { ...state.fieldErrors, [key]: {} } as FieldErrorCache,
+          fieldErrorRevisions: incrementFieldErrorRevision(state.fieldErrorRevisions, key),
+        };
+      });
     },
     clearAllFieldErrors: () => {
       set((state) => ({

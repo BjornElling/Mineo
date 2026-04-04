@@ -5,7 +5,6 @@ import StyledDateField from '../inputs/StyledDateField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StyledIntegerField from '../inputs/StyledIntegerField';
 import InsertTodayDateButton from '../inputs/InsertTodayDateButton';
-import { createCommitEvent } from '../../types/fieldEvents';
 import ContentBox from '../layout/ContentBox';
 import { dateRanges_forsoergertab } from '../../config/dateRanges';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
@@ -225,7 +224,6 @@ const Forsoergertab = React.memo(() => {
     });
   }, [
     values,
-    stamdata?.skadelidteFodselsdato,
     faellesAarsloenValues,
     visKoenValg,
     canShowResult,
@@ -255,7 +253,6 @@ const Forsoergertab = React.memo(() => {
               onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
               minDate={beregningsdatoMin}
               maxDate={dateRanges_forsoergertab.beregningsdato.max}
-              noValidRangeCause="Skadesdato i Stamdata og Virkningsdato"
               specialRangeErrors={{ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Beregningsdato' }}
               error={hasBeregningsdatoError}
               helperText={
@@ -356,7 +353,6 @@ const Forsoergertab = React.memo(() => {
               onCommit={(event) => setFieldValue('virkningsdato', event.target.value)}
               minDate={skadesdatoMin}
               maxDate={virkningsdatoMax}
-              noValidRangeCause="Skadesdato i Stamdata og Beregningsdato"
               specialRangeErrors={{ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Virkningsdato' }}
               error={hasVirkningsdatoError}
               helperText={

@@ -184,6 +184,14 @@ const TableDropdown = React.memo(
       return selectedOption && !isDividerOption(selectedOption) ? selectedOption.label : '';
     }, [isDividerOption, options, value]);
 
+    const handleWrapperRef = React.useCallback(
+      (el: HTMLSpanElement | null) => {
+        wrapperRef.current = el;
+        assignRef(inputRef, el);
+      },
+      [inputRef]
+    );
+
     const findValueByExactLabel = React.useCallback(
       (label: string): string | null => {
         if (allowEmpty && placeholder === label) return '';
@@ -247,10 +255,7 @@ const TableDropdown = React.memo(
             if (nextValue === null) return;
             onChange?.({ target: { value: nextValue } });
           }}
-          ref={(el) => {
-            wrapperRef.current = el;
-            assignRef(inputRef, el);
-          }}
+          ref={handleWrapperRef}
         >
           <Select
             value={value ?? ''}
@@ -384,4 +389,3 @@ const TableDropdown = React.memo(
 TableDropdown.displayName = 'TableDropdown';
 
 export default TableDropdown;
-

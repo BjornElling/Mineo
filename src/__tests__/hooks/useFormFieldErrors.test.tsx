@@ -37,19 +37,6 @@ const makeCtx = (overrides: Partial<FormPersistenceContextValue> = {}): FormPers
   ...overrides,
 });
 
-function renderWithCtx<T>(
-  ctx: FormPersistenceContextValue,
-  capture: { value: T },
-  Comp: React.FC
-) {
-  render(
-    <FormPersistenceContext.Provider value={ctx}>
-      <Comp />
-    </FormPersistenceContext.Provider>
-  );
-  return capture;
-}
-
 // ─── useFormFieldErrors ────────────────────────────────────────────────────────
 
 describe('useFormFieldErrors', () => {

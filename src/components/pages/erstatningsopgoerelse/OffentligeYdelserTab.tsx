@@ -222,7 +222,6 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetIn
               minDate={dateRanges_offentligeYdelser.fraDato.min}
               maxDate={sygedagpengeTilDato ?? dateRanges_offentligeYdelser.fraDato.fallbackMax}
               specialRangeErrors={{ fraTilRole: 'fra' }}
-              noValidRangeCause="Til-dato for sygedagpenge"
             />
             <Typography className="row--text">-</Typography>
             <StyledDateField
@@ -236,7 +235,6 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetIn
               minDate={sygedagpengeFraDato ?? dateRanges_offentligeYdelser.tilDato.fallbackMin}
               maxDate={dateRanges_offentligeYdelser.tilDato.max}
               specialRangeErrors={{ fraTilRole: 'til' }}
-              noValidRangeCause="Fra-dato for sygedagpenge"
             />
             <InlineActionButton onClick={handleSygedagpengeInsert} disabled={!canInsertSygedagpenge}>
               Indsæt

@@ -14,7 +14,7 @@ import {
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString } from '../../../types/branded';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
-import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
+import type { CommitHandler } from '../../../types/fieldEvents';
 import {
   validatePercentDivisibleBy5FromValue,
 } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
@@ -124,7 +124,6 @@ const EetOplysningerTab = ({
               minDate={skadesdatoMin}
               maxDate={dateRanges_erhvervsevnetab.beregningsdato.max}
               specialRangeErrors={{ maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' }}
-              noValidRangeCause="Skadesdato i Stamdata"
               inputRef={beregningsdatoInputRef}
             />
             <InsertTodayDateButton

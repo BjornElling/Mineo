@@ -294,10 +294,14 @@ const TableDateInput = React.memo(
     const configErrorMessage = boundsStatus.kind === 'no-valid-range' ? boundsStatus.message : '';
     const effectiveMinDate = configErrorMessage === '' ? minDate : undefined;
     const effectiveMaxDate = configErrorMessage === '' ? maxDate : undefined;
+    const lastReportedErrorInfoRef = React.useRef<string | null>(null);
 
     React.useEffect(() => {
       if (!latest.current.onErrorChange) return;
       const kind: TableInputErrorInfo['kind'] = configErrorMessage !== '' ? 'config' : hasError ? 'input' : 'none';
+      const nextErrorInfoKey = `${kind}:${kind !== 'none' ? '1' : '0'}`;
+      if (lastReportedErrorInfoRef.current === nextErrorInfoKey) return;
+      lastReportedErrorInfoRef.current = nextErrorInfoKey;
       latest.current.onErrorChange({ hasError: kind !== 'none', kind });
     }, [configErrorMessage, hasError, onErrorChange]);
 

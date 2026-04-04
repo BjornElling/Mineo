@@ -143,7 +143,24 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       }
   >({ active: false });
 
+  const debugDepsRef = React.useRef<{ error: typeof error; format: typeof format; isFocused: boolean; touched: boolean; value: TModel } | null>(null);
   React.useEffect(() => {
+    if (import.meta.env.DEV) {
+      const prev = debugDepsRef.current;
+      if (prev !== null) {
+        const changed: string[] = [];
+        if (prev.error !== error) changed.push(`error (${JSON.stringify(prev.error)} → ${JSON.stringify(error)})`);
+        if (prev.format !== format) changed.push('format (fn reference changed)');
+        if (prev.isFocused !== isFocused) changed.push(`isFocused (${prev.isFocused} → ${isFocused})`);
+        if (prev.touched !== touched) changed.push(`touched (${prev.touched} → ${touched})`);
+        if (prev.value !== value) changed.push(`value (${JSON.stringify(prev.value)} → ${JSON.stringify(value)})`);
+        if (changed.length > 0) {
+          console.debug('[useDraftField] resync-effect triggered. Changed deps:', changed.join(', '));
+        }
+      }
+      debugDepsRef.current = { error, format, isFocused, touched, value };
+    }
+
     const formatted = format(value);
     const el = inputElementRef?.current ?? null;
     const active = typeof document !== 'undefined' ? document.activeElement : null;
@@ -176,6 +193,9 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
           return prev;
         }
 
+        if (import.meta.env.DEV && prev !== formatted) {
+          console.debug('[useDraftField] resync-effect: updating draft (pending→resolved)', { prev, formatted });
+        }
         return prev === formatted ? prev : formatted;
       }
 
@@ -184,6 +204,9 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       // This prevents "silent rollback" to the last committed value on blur.
       if (touched && error !== undefined) return prev;
 
+      if (import.meta.env.DEV && prev !== formatted) {
+        console.debug('[useDraftField] resync-effect: updating draft', { prev, formatted, isFocused, hasPhysicalFocus, touched, error });
+      }
       return prev === formatted ? prev : formatted;
     });
   }, [error, format, inputElementRef, isFocused, touched, value]);

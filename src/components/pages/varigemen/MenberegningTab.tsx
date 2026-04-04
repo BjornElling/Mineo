@@ -319,7 +319,6 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
             onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
             minDate={VARIGE_MEN_BEREGNINGSDATO_MIN}
             maxDate={VARIGE_MEN_BEREGNINGSDATO_MAX}
-            noValidRangeCause="Varige mén-satser"
             onFieldError={handleBeregningsdatoError}
             inputRef={beregningsdatoInputRef}
           />
