@@ -1,5 +1,4 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { DEFAULT_ANCIENNITET_FIELDS } from './erstatningsopgoerelseInitialValues';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 type SfggAnsaettelsesforholdRow = ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
@@ -7,33 +6,8 @@ type SfggAnsaettelsesforholdRow = ErstatningsopgoerelseValues['sfggAnsaettelsesf
 export const applyAnsaettelsesforholdToggleCleanup = (
   prev: Ansaettelsesforhold,
   field: 'harOverenskomst' | 'ansatPaaSkadestidspunktet' | 'ansaettelsesforholdOphoert' | 'harAnciennitetstillaegEfterSkadesdatoen',
-  nextValue: boolean,
-  defaultOverenskomstFilter: Ansaettelsesforhold['overenskomstFilter']
-): Ansaettelsesforhold => {
-  const next: Ansaettelsesforhold = { ...prev, [field]: nextValue };
-
-  if (field === 'harOverenskomst' && !nextValue) {
-    next.overenskomstId = undefined;
-    next.overenskomstFilter = defaultOverenskomstFilter;
-  }
-
-  if (field === 'ansatPaaSkadestidspunktet' && !nextValue) {
-    next.ansaettelsesforholdOphoert = false;
-    next.sidsteArbejdsdag = undefined;
-  }
-
-  if (field === 'ansaettelsesforholdOphoert' && !nextValue) {
-    next.sidsteArbejdsdag = undefined;
-  }
-
-  if (field === 'harAnciennitetstillaegEfterSkadesdatoen' && !nextValue) {
-    next.anciennitetstillaegDato = DEFAULT_ANCIENNITET_FIELDS.anciennitetstillaegDato;
-    next.anciennitetstillaegSatsAngivesPer = DEFAULT_ANCIENNITET_FIELDS.anciennitetstillaegSatsAngivesPer;
-    next.anciennitetstillaegSats = DEFAULT_ANCIENNITET_FIELDS.anciennitetstillaegSats;
-  }
-
-  return next;
-};
+  nextValue: boolean
+): Ansaettelsesforhold => ({ ...prev, [field]: nextValue });
 
 export const sanitizeSfggRowForBeregningskilde = (
   current: SfggAnsaettelsesforholdRow,

@@ -60,7 +60,7 @@ export const buildIndkomstSkadestidspunkt = (
     }
 
     if (periodeTilBeregning) {
-      const incomeForBeregningsperiode = buildIncomeForRanges(values, [periodeTilBeregning]);
+      const incomeForBeregningsperiode = buildIncomeForRanges(values, [periodeTilBeregning], undefined, skadesdato ?? undefined);
       const sums = { ferieberet: 0, fpFvShSo: 0, pension: 0, atp: 0, samlet: 0 };
 
       for (const entry of incomeForBeregningsperiode.employers) {

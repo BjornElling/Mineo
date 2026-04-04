@@ -28,3 +28,14 @@ export const resolveValgtReguleringDisplay = (
   }
   return 'Ingen';
 };
+
+export const resolveValgtReguleringDisplayForPdf = (
+  ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
+): string => {
+  if (ansaettelsesforhold.loenudviklingBeregningsgrundlag !== 'Manuelt angivet') {
+    return resolveValgtReguleringDisplay(ansaettelsesforhold);
+  }
+
+  const manuelNavn = ansaettelsesforhold.loenudviklingManuelNavn?.trim() ?? '';
+  return manuelNavn !== '' ? manuelNavn : 'Manuelt angivet';
+};

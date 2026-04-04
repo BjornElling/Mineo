@@ -17,7 +17,7 @@ import StyledRadioButton from '../../inputs/StyledRadioButton';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import StyledIntegerField from '../../inputs/StyledIntegerField';
 import type { CommitEvent, CommitHandler } from '../../../types/fieldEvents';
-import { getReportableFieldErrorMessage } from '../../../types/fieldErrors';
+import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import StandardLoenTable, { type StandardLoenTableSatser } from '../../tables/StandardLoenTable';
 import LoenudviklingManuelTable from '../../tables/LoenudviklingManuelTable';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
@@ -45,8 +45,6 @@ import { generateAnsaettelsesforholdId, generateLoenudviklingRowId, initialLoenu
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import type { StandardLoenTableValidationSummary } from '../../../types/table';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
-import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
-import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
 import {
   getAlleLoenmodtagerOrg,
   getAlleArbejdsgiverOrg,
@@ -80,6 +78,12 @@ import {
   sanitizeSfggRowForBeregningskilde,
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import {
+  applyAutoSatsFields,
+  buildLoenindkomstRateSegments,
+  hasLockedOverenskomstSatser,
+  resolveLoenindkomstReguleringsdato,
+} from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
+import {
   hasSfggSelectedOverenskomst,
   resolveSfggSource,
   resolveSfggReferenceperiodeDayCount,
@@ -96,6 +100,9 @@ import {
 import { useDynamicFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { updateValidationFlagById } from '../../../utils/validationFlagMap';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import { parseAarsloenRowInterval } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { dateToISO } from '../../../types/branded';
+import { calculateStandardLoenRowDerived } from '../../../domain/aarsloen/standardLoenRowCalculations';
 
 type AnsaettelsesforholdList = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
 
@@ -115,9 +122,6 @@ type Props = {
 
 type Ansaettelsesforhold =
   ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
-type SfggAnsaettelsesforholdRow =
-  ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
-
 const MAX_ANSAETTELSESFORHOLD = 10;
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
@@ -391,47 +395,6 @@ const LoenindkomstTab = React.memo(({
 
 
   /**
-   * Valider Store Bededagstillæg
-   *
-   * @param loenPaaHelligdage Værdi fra dropdown "Løn på helligdage"
-   * @param inputValue Den indtastede værdi (i procent, fx 0.45 for 0,45%)
-   * @returns Fejlmeddelelse hvis ugyldig, undefined hvis OK
-   */
-  const validateStoreBededag = React.useCallback(
-    (
-      loenPaaHelligdage: string,
-      inputValue: number | undefined,
-      reguleringsDato: ISODateString | undefined
-    ): string | undefined => {
-      if (!reguleringsDato) return undefined;
-
-      // Tjek om dato er fra 1. januar 2024 og frem
-      const isFrom2024 = reguleringsDato >= STORE_BEDEDAG_START;
-
-      // Bestem forventet værdi baseret på logik
-      let expectedPct: number;
-      if (loenPaaHelligdage === 'Almindelig løn' && isFrom2024) {
-        expectedPct = STORE_BEDEDAG_PCT;
-      } else {
-        expectedPct = 0;
-      }
-
-      // Tom celle (undefined) behandles som 0
-      const actualValue = inputValue ?? 0;
-
-      // Sammenlign med tolerance på 0.01% (håndter afrundingsfejl)
-      const diff = Math.abs(actualValue - expectedPct);
-      if (diff > 0.01) {
-        const prefix = isFrom2024 ? 'Fra' : 'Før';
-        return `${prefix} 01-01-2024 udgjorde Store Bededagstillæg ${formatAsAmount(expectedPct, 2)} %`;
-      }
-
-      return undefined;
-    },
-    []
-  );
-
-  /**
    * Valider Feriegodtgørelse/-tillæg (min. 12 %)
    */
   const validateFeriePct = React.useCallback(
@@ -455,9 +418,7 @@ const LoenindkomstTab = React.memo(({
   );
 
   const getReguleringsDatoForAnsaettelsesforhold = React.useCallback(
-    (af: Ansaettelsesforhold): ISODateString | undefined => {
-      return af.saerligFraDatoRegulering || stamdataValues?.skadesdato;
-    },
+    (af: Ansaettelsesforhold): ISODateString | undefined => resolveLoenindkomstReguleringsdato(af, stamdataValues?.skadesdato),
     [stamdataValues?.skadesdato]
   );
   const validateSats = React.useCallback(
@@ -592,10 +553,6 @@ const LoenindkomstTab = React.memo(({
       );
       if (shError) errors.shSoPct = shError;
 
-      // Valider Store Bededagstillæg
-      const storeBededagError = validateStoreBededag(af.loenPaaHelligdage, af.storeBededagPct, reguleringsDato);
-      if (storeBededagError) errors.storeBededagPct = storeBededagError;
-
       // Valider Arbejdsgivers pensionsbidrag
       const pensionError = validateSats(
         af.overenskomstId,
@@ -608,7 +565,7 @@ const LoenindkomstTab = React.memo(({
 
       return errors;
     },
-    [getReguleringsDatoForAnsaettelsesforhold, validateFeriePct, validateSats, validateStoreBededag, beregnesUdFra]
+    [getReguleringsDatoForAnsaettelsesforhold, validateFeriePct, validateSats, beregnesUdFra]
   );
 
   // Valider alle Ansættelsesforhold ved ændringer i datagrundlaget
@@ -624,6 +581,25 @@ const LoenindkomstTab = React.memo(({
 
     setSatsErrors(allErrors);
   }, [loenindkomstAnsaettelsesforhold, validateAllSatserForAnsaettelsesforhold]);
+
+  React.useEffect(() => {
+    let changed = false;
+    const next = loenindkomstAnsaettelsesforhold.map((af) => {
+      const updated = applyAutoSatsFields(af, stamdataValues?.skadesdato);
+      if (
+        updated.storeBededagPct !== af.storeBededagPct ||
+        updated.fritvalgPct !== af.fritvalgPct ||
+        updated.shSoPct !== af.shSoPct ||
+        updated.pensionPct !== af.pensionPct
+      ) {
+        changed = true;
+        return syncManualBaseRowSatser(updated);
+      }
+      return af;
+    });
+    if (!changed) return;
+    onAnsaettelsesforholdChange(() => next);
+  }, [onAnsaettelsesforholdChange, stamdataValues?.skadesdato, loenindkomstAnsaettelsesforhold]);
 
   React.useEffect(() => {
     const currentIds = new Set(loenindkomstAnsaettelsesforhold.map((af) => af.id));
@@ -783,6 +759,14 @@ const LoenindkomstTab = React.memo(({
   const triggerLoentrinFinderButtonError = React.useCallback(() => {
     setLoentrinFinderButtonShake(true);
     setTimeout(() => setLoentrinFinderButtonShake(false), 500);
+  }, []);
+
+  const handleLoentrinFinderAmountFieldError = React.useCallback((errorMsg: string | undefined) => {
+    setLoentrinFinderAmountFieldError(getReportableFieldErrorMessage(errorMsg));
+  }, []);
+
+  const handleLoentrinFinderDateFieldError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
+    setLoentrinFinderDateFieldError(getReportableFieldErrorMessage(errorMsg));
   }, []);
 
   const validateLoentrinFinderInput = React.useCallback((): {
@@ -1109,26 +1093,33 @@ const LoenindkomstTab = React.memo(({
       >
     ): CommitHandler<boolean> =>
       (event: CommitEvent<boolean>) => {
-        const defaultOverenskomstFilter = resolveDefaultOverenskomstFilter(settings);
         updateAnsaettelsesforhold(id, (prev) =>
-          applyAnsaettelsesforholdToggleCleanup(prev, field, event.target.value, defaultOverenskomstFilter)
+          syncManualBaseRowSatser(
+            applyAutoSatsFields(
+              applyAnsaettelsesforholdToggleCleanup(prev, field, event.target.value),
+              stamdataValues?.skadesdato
+            )
+          )
         );
       },
-    [settings, updateAnsaettelsesforhold]
+    [settings, stamdataValues?.skadesdato, updateAnsaettelsesforhold]
   );
 
   const handleOverenskomstChange = React.useCallback(
     (id: string) =>
       (e: StyledDropdownChangeEvent<string | undefined>) => {
         const nextOverenskomstId = normalizeOptionalFreeText(e.target.value);
-        updateAnsaettelsesforhold(id, (prev) => ({
-          ...prev,
-          overenskomstId: nextOverenskomstId,
-          offentligLoenType:
-            nextOverenskomstId && isOffentligOverenskomstId(nextOverenskomstId)
-              ? (prev.offentligLoenType ?? 'Månedsløn')
-              : prev.offentligLoenType,
-        }));
+        updateAnsaettelsesforhold(id, (prev) => {
+          const updated = applyAutoSatsFields({
+            ...prev,
+            overenskomstId: nextOverenskomstId,
+            offentligLoenType:
+              nextOverenskomstId && isOffentligOverenskomstId(nextOverenskomstId)
+                ? (prev.offentligLoenType ?? 'Månedsløn')
+                : prev.offentligLoenType,
+          }, stamdataValues?.skadesdato);
+          return syncManualBaseRowSatser(updated);
+        });
 
         // Revalider alle satser når overenskomst ændres
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
@@ -1140,7 +1131,7 @@ const LoenindkomstTab = React.memo(({
           setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
         }
       },
-    [setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
+    [setSatsErrorsForAnsaettelsesforhold, stamdataValues?.skadesdato, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
   );
 
   const handleOffentligLoenTypeChange = React.useCallback(
@@ -1201,7 +1192,10 @@ const LoenindkomstTab = React.memo(({
     (id: string) =>
       (event: CommitEvent<Ansaettelsesforhold['saerligFraDatoRegulering']>) => {
         const nextSaerligFraDatoRegulering = event.target.value;
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, saerligFraDatoRegulering: nextSaerligFraDatoRegulering }));
+        updateAnsaettelsesforhold(id, (prev) => syncManualBaseRowSatser(applyAutoSatsFields({
+          ...prev,
+          saerligFraDatoRegulering: nextSaerligFraDatoRegulering,
+        }, stamdataValues?.skadesdato)));
 
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
         if (!ansaettelsesforhold) return;
@@ -1209,7 +1203,7 @@ const LoenindkomstTab = React.memo(({
         const updatedAf = { ...ansaettelsesforhold, saerligFraDatoRegulering: nextSaerligFraDatoRegulering };
         setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
       },
-    [setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
+    [setSatsErrorsForAnsaettelsesforhold, stamdataValues?.skadesdato, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
   );
 
   const handleAnciennitetstillaegDatoCommit = React.useCallback(
@@ -1283,20 +1277,14 @@ const LoenindkomstTab = React.memo(({
 
         const reguleringsDato = getReguleringsDatoForAnsaettelsesforhold(ansaettelsesforhold);
 
-        // Brug specifik validering for Store Bededag
-        let errorMsg: string | undefined;
-        if (field === 'storeBededagPct') {
-          errorMsg = validateStoreBededag(ansaettelsesforhold.loenPaaHelligdage, event.target.value, reguleringsDato);
-        } else {
-          const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
-          errorMsg = validateSats(
-            ansaettelsesforhold.overenskomstId,
-            field,
-            event.target.value,
-            reguleringsDato,
-            applyAlmindeligLoenPaaShDageRegel
-          );
-        }
+        const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
+        const errorMsg = validateSats(
+          ansaettelsesforhold.overenskomstId,
+          field,
+          event.target.value,
+          reguleringsDato,
+          applyAlmindeligLoenPaaShDageRegel
+        );
 
         // Opdater fejl-state
         setSatsErrors((prev) => {
@@ -1313,7 +1301,7 @@ const LoenindkomstTab = React.memo(({
           }
         });
       },
-    [getReguleringsDatoForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold, validateSats, validateStoreBededag]
+    [getReguleringsDatoForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold, validateSats]
   );
 
   const handleLoenperiodeChange = React.useCallback(
@@ -1358,7 +1346,10 @@ const LoenindkomstTab = React.memo(({
       (event: StyledDropdownChangeEvent<string>) => {
         const parsed = loenPaaHelligdageSchema.safeParse(event.target.value);
         if (!parsed.success) return;
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenPaaHelligdage: parsed.data }));
+        updateAnsaettelsesforhold(id, (prev) => syncManualBaseRowSatser(applyAutoSatsFields({
+          ...prev,
+          loenPaaHelligdage: parsed.data,
+        }, stamdataValues?.skadesdato)));
 
         // Revalider alle satser når "Løn på helligdage" ændres.
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
@@ -1367,7 +1358,7 @@ const LoenindkomstTab = React.memo(({
         const updatedAf = { ...ansaettelsesforhold, loenPaaHelligdage: parsed.data };
         setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
       },
-    [setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
+    [setSatsErrorsForAnsaettelsesforhold, stamdataValues?.skadesdato, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
   );
 
   const handleTableDataChange = React.useCallback(
@@ -1634,6 +1625,40 @@ const LoenindkomstTab = React.memo(({
     return map;
   }, [loenindkomstAnsaettelsesforhold]);
 
+  const derivedCalculatorByAfId = React.useMemo(() => {
+    const map = new Map<string, (row: Ansaettelsesforhold['indtaegtsoplysningerTableData'][number]) => ReturnType<typeof calculateStandardLoenRowDerived>>();
+    for (const af of loenindkomstAnsaettelsesforhold) {
+      map.set(af.id, (row) => {
+        const interval = parseAarsloenRowInterval(row, af.loenperiode);
+        const fra = interval ? dateToISO(interval.start) : undefined;
+        const til = interval ? dateToISO(interval.end) : undefined;
+        const rateSegments = fra && til
+          ? buildLoenindkomstRateSegments({
+            ansaettelsesforhold: af,
+            skadesdato: stamdataValues?.skadesdato,
+            fra,
+            til,
+          })
+          : undefined;
+        return calculateStandardLoenRowDerived(
+          row,
+          {
+            feriePct: af.feriePct,
+            fritvalgPct: af.fritvalgPct,
+            shSoPct: af.shSoPct,
+            storeBededagPct: af.storeBededagPct,
+            pensionPct: af.pensionPct,
+          },
+          {
+            loenperiode: af.loenperiode,
+            rateSegments,
+          }
+        );
+      });
+    }
+    return map;
+  }, [loenindkomstAnsaettelsesforhold, stamdataValues?.skadesdato]);
+
   // Callback-maps afhænger kun af id-listen, ikke af tabeldata.
   // Ids ændrer sig kun ved tilføj/slet af ansaettelsesforhold — ikke ved normale dataredits.
   // Dette sikrer at onTableDataChange/onValidationChange er stabile props til React.memo'd StandardLoenTable.
@@ -1722,6 +1747,7 @@ const LoenindkomstTab = React.memo(({
             : 'Satser på skadestidspunktet'
           : 'Satser';
         const loenudviklingBasis = af.loenudviklingBeregningsgrundlag;
+        const overenskomstSatserLocked = hasLockedOverenskomstSatser(af);
         const erOffentligOverenskomst = Boolean(
           af.overenskomstId && isOffentligOverenskomstId(af.overenskomstId)
         );
@@ -1757,7 +1783,7 @@ const LoenindkomstTab = React.memo(({
         const headerText = af.navnPaaArbejdssted
           ? `${baseHeaderText} (${af.navnPaaArbejdssted})`
           : baseHeaderText;
-        const showSygeferiegodtgoerelseSection = getCheckedJaNej(eoValues.beregnesTabtArbejdsfortjeneste);
+        const showSygeferiegodtgoerelseSection = getCheckedJaNej(eoValues.beregnesTabtArbejdsfortjeneste) && af.ansatPaaSkadestidspunktet;
         const sfggRow = eoValues.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === af.id);
         const sfggPolicy = af.overenskomstId
           ? getOverenskomstSfggPolicy(af.overenskomstId)
@@ -2056,6 +2082,7 @@ const LoenindkomstTab = React.memo(({
                     onCommit={handleValidatedSatsCommit(af.id, 'fritvalgPct')}
                     placeholder="0 %"
                     useDefaultPercentRange
+                    disabled={overenskomstSatserLocked}
                     error={Boolean(satsErrors[af.id]?.fritvalgPct)}
                     helperText={satsErrors[af.id]?.fritvalgPct}
                     sx={{ width: '100px' }}
@@ -2070,6 +2097,7 @@ const LoenindkomstTab = React.memo(({
                     onCommit={handleValidatedSatsCommit(af.id, 'shSoPct')}
                     placeholder="0 %"
                     useDefaultPercentRange
+                    disabled={overenskomstSatserLocked}
                     error={Boolean(satsErrors[af.id]?.shSoPct)}
                     helperText={satsErrors[af.id]?.shSoPct}
                     sx={{ width: '100px' }}
@@ -2093,9 +2121,10 @@ const LoenindkomstTab = React.memo(({
                   </Typography>
                   <StyledPercentField
                     value={af.storeBededagPct}
-                    onCommit={handleValidatedSatsCommit(af.id, 'storeBededagPct')}
+                    onCommit={undefined}
                     placeholder="0 %"
                     useDefaultPercentRange
+                    disabled
                     error={Boolean(satsErrors[af.id]?.storeBededagPct)}
                     helperText={satsErrors[af.id]?.storeBededagPct}
                     sx={{ width: '100px' }}
@@ -2110,6 +2139,7 @@ const LoenindkomstTab = React.memo(({
                     onCommit={handleValidatedSatsCommit(af.id, 'pensionPct')}
                     placeholder="0 %"
                     useDefaultPercentRange
+                    disabled={overenskomstSatserLocked}
                     error={Boolean(satsErrors[af.id]?.pensionPct)}
                     helperText={satsErrors[af.id]?.pensionPct}
                     sx={{ width: '100px' }}
@@ -2145,6 +2175,7 @@ const LoenindkomstTab = React.memo(({
               externalCellErrorMessagesByCellKey={aarsloenExternalCellErrorMessagesByAfId[af.id] ?? EMPTY_CELL_ERROR_MESSAGES}
               useSmallFont={true}
               saveOrderPath={`erstatningsopgoerelse.ansaettelsesforhold.${index}.indtaegtsoplysningerTableData`}
+              calculateDerivedRow={derivedCalculatorByAfId.get(af.id)}
             />
 
             {beregnesUdFra === 'Beregningsperiode' ? (
@@ -2489,9 +2520,8 @@ const LoenindkomstTab = React.memo(({
 
                 {showSharedSfggBefore2015 ? (
                   <Box className="row--label-right-hover">
-                    <Typography className="row--text">Bemærk</Typography>
-                    <Box className="row--label-right-hover__content">
-                      <Typography className="row--text" sx={{ textAlign: 'right', maxWidth: '520px' }}>
+                    <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
+                      <Typography className="row--text">
                         Bemærk, at da skaden er før 01-01-2015, er det afgørende for beregningen af sygeferiegodtgørelse, at samtlige TAF-perioder er indtastet ovenfor.
                       </Typography>
                     </Box>
@@ -2921,7 +2951,7 @@ const LoenindkomstTab = React.memo(({
                       setLoentrinFinderBeloeb(event.target.value);
                       setLoentrinFinderErrors((prev) => ({ ...prev, beloeb: undefined }));
                     }}
-                    onFieldError={(errorMsg) => setLoentrinFinderAmountFieldError(getReportableFieldErrorMessage(errorMsg))}
+                    onFieldError={handleLoentrinFinderAmountFieldError}
                     error={Boolean(loentrinFinderErrors.beloeb)}
                     helperText={loentrinFinderErrors.beloeb ?? ''}
                   />
@@ -2938,7 +2968,7 @@ const LoenindkomstTab = React.memo(({
                       setLoentrinFinderDato(event.target.value);
                       setLoentrinFinderErrors((prev) => ({ ...prev, dato: undefined }));
                     }}
-                    onFieldError={(errorMsg) => setLoentrinFinderDateFieldError(getReportableFieldErrorMessage(errorMsg))}
+                    onFieldError={handleLoentrinFinderDateFieldError}
                     error={Boolean(loentrinFinderErrors.dato)}
                     helperText={loentrinFinderErrors.dato ?? ''}
                   />

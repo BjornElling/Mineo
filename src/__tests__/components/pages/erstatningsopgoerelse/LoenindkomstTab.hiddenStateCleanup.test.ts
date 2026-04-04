@@ -5,30 +5,22 @@ import {
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 describe('LoenindkomstTab hidden state cleanup', () => {
-  it('rydder overenskomstafhængige felter når harOverenskomst slås fra', () => {
+  it('bevarer overenskomstId og overenskomstFilter når harOverenskomst slås fra', () => {
     const initial = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       harOverenskomst: true,
       overenskomstId: 'industriens-overenskomst',
-      overenskomstFilter: {
-        loenmodtager: '3F',
-        arbejdsgiver: 'DI',
-      },
+      overenskomstFilter: { loenmodtager: '3F', arbejdsgiver: 'DI' },
     };
 
-    const result = applyAnsaettelsesforholdToggleCleanup(
-      initial,
-      'harOverenskomst',
-      false,
-      { loenmodtager: undefined, arbejdsgiver: undefined }
-    );
+    const result = applyAnsaettelsesforholdToggleCleanup(initial, 'harOverenskomst', false);
 
     expect(result.harOverenskomst).toBe(false);
-    expect(result.overenskomstId).toBeUndefined();
-    expect(result.overenskomstFilter).toEqual({ loenmodtager: undefined, arbejdsgiver: undefined });
+    expect(result.overenskomstId).toBe('industriens-overenskomst');
+    expect(result.overenskomstFilter).toEqual({ loenmodtager: '3F', arbejdsgiver: 'DI' });
   });
 
-  it('rydder ophørsfelter når ansatPåSkadestidspunktet slås fra', () => {
+  it('bevarer ophørsfelter når ansatPaaSkadestidspunktet slås fra', () => {
     const initial = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       ansatPaaSkadestidspunktet: true,
@@ -36,56 +28,41 @@ describe('LoenindkomstTab hidden state cleanup', () => {
       sidsteArbejdsdag: '2024-02-15',
     };
 
-    const result = applyAnsaettelsesforholdToggleCleanup(
-      initial,
-      'ansatPaaSkadestidspunktet',
-      false,
-      initial.overenskomstFilter
-    );
+    const result = applyAnsaettelsesforholdToggleCleanup(initial, 'ansatPaaSkadestidspunktet', false);
 
     expect(result.ansatPaaSkadestidspunktet).toBe(false);
-    expect(result.ansaettelsesforholdOphoert).toBe(false);
-    expect(result.sidsteArbejdsdag).toBeUndefined();
+    expect(result.ansaettelsesforholdOphoert).toBe(true);
+    expect(result.sidsteArbejdsdag).toBe('2024-02-15');
   });
 
-  it('rydder sidsteArbejdsdag når ansaettelsesforholdOphoert slås fra', () => {
+  it('bevarer sidsteArbejdsdag når ansaettelsesforholdOphoert slås fra', () => {
     const initial = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       ansaettelsesforholdOphoert: true,
       sidsteArbejdsdag: '2024-02-15',
     };
 
-    const result = applyAnsaettelsesforholdToggleCleanup(
-      initial,
-      'ansaettelsesforholdOphoert',
-      false,
-      initial.overenskomstFilter
-    );
+    const result = applyAnsaettelsesforholdToggleCleanup(initial, 'ansaettelsesforholdOphoert', false);
 
     expect(result.ansaettelsesforholdOphoert).toBe(false);
-    expect(result.sidsteArbejdsdag).toBeUndefined();
+    expect(result.sidsteArbejdsdag).toBe('2024-02-15');
   });
 
-  it('rydder anciennitetstillægfelter når tillæg slås fra', () => {
+  it('bevarer anciennitetstillægfelter når tillæg slås fra', () => {
     const initial = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       harAnciennitetstillaegEfterSkadesdatoen: true,
       anciennitetstillaegDato: '2024-02-15',
       anciennitetstillaegSatsAngivesPer: 'Time' as const,
-      anciennitetstillaegSats: 150,
+      anciennitetstillaegSats: { kind: 'number' as const, value: 150 },
     };
 
-    const result = applyAnsaettelsesforholdToggleCleanup(
-      initial,
-      'harAnciennitetstillaegEfterSkadesdatoen',
-      false,
-      initial.overenskomstFilter
-    );
+    const result = applyAnsaettelsesforholdToggleCleanup(initial, 'harAnciennitetstillaegEfterSkadesdatoen', false);
 
     expect(result.harAnciennitetstillaegEfterSkadesdatoen).toBe(false);
-    expect(result.anciennitetstillaegDato).toBeUndefined();
-    expect(result.anciennitetstillaegSatsAngivesPer).toBe('Måned');
-    expect(result.anciennitetstillaegSats).toBeUndefined();
+    expect(result.anciennitetstillaegDato).toBe('2024-02-15');
+    expect(result.anciennitetstillaegSatsAngivesPer).toBe('Time');
+    expect(result.anciennitetstillaegSats).toEqual({ kind: 'number', value: 150 });
   });
 
   it('rydder skjulte SFGG-felter når beregningskilde skifter til manuelt angivet', () => {

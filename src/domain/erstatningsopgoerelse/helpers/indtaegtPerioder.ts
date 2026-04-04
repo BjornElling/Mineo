@@ -23,6 +23,7 @@ import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../aar
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { parseAarsloenRowInterval } from './aarsloenRowInterval';
 import { buildShDageSetFromIsoRange } from '../engines/tafDaySets';
+import { buildLoenindkomstRateSegments } from './loenindkomstSatser';
 import {
   buildLoenArbejdsdageSet,
   periodiserBeloebForArbejdsdage,
@@ -235,7 +236,8 @@ export const buildIncomeCalculationContext = (
 export const buildIncomeForRanges = (
   values: ErstatningsopgoerelseValues,
   rawRanges: readonly IsoRange[],
-  context?: IncomeCalculationContext | null
+  context?: IncomeCalculationContext | null,
+  skadesdato?: ISODateString
 ): IncomePeriodResult => {
   const ranges = mergeIsoDateRanges(rawRanges, { mergeAdjacent: true });
   if (ranges.length === 0) return { employers: [], benefits: [] };
@@ -296,7 +298,23 @@ export const buildIncomeForRanges = (
       if (eligibility !== 'valid') continue;
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
       if (!interval) continue; // defensiv: eligibility 'valid' kræver interval
-      const derived = calculateStandardLoenRowDerived(row, satser);
+      const fra = dateToISO(interval.start);
+      const til = dateToISO(interval.end);
+      const derived = calculateStandardLoenRowDerived(
+        row,
+        satser,
+        {
+          loenperiode: af.loenperiode,
+          rateSegments: fra && til
+            ? buildLoenindkomstRateSegments({
+              ansaettelsesforhold: af,
+              skadesdato,
+              fra,
+              til,
+            })
+            : undefined,
+        }
+      );
       const atp = parseAmount(row.col5);
       // NOTE: Fail-closed by design.
       // Ikke-finite afledte beløb må aldrig indgå tavst i summer.

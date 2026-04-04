@@ -908,7 +908,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   const totalPerEmployment: SygeferiegodtgoerelseAnsaettelsesforholdResult[] = [];
   const totalPerYear = new Map<number, MoneyOre>();
 
-  for (const employment of values.loenindkomstAnsaettelsesforhold ?? []) {
+  for (const employment of (values.loenindkomstAnsaettelsesforhold ?? []).filter((entry) => entry.ansatPaaSkadestidspunktet)) {
     const sfggRow = getSfggRowForEmployment(values, employment.id);
     const sfggSource = resolveSfggSource(sfggRow, employment);
     if (sfggSource.kind === 'ingen') continue;

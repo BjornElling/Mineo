@@ -1317,7 +1317,7 @@ export const buildLoenudviklingModel = (
       ...values,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
     }, stamdataValues, tafBeregningsenhed, { tafRanges }));
-    const income = buildIncomeForRanges(values, [beregningsperiodeRange]);
+    const income = buildIncomeForRanges(values, [beregningsperiodeRange], undefined, stamdataValues.skadesdato);
     if (income.employers.length === 0) {
       const alleIngen = strategiDataByIndex.every((strategiData) => strategiData.strategi === 'ingen');
       if (alleIngen) {

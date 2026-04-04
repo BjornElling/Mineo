@@ -1,6 +1,10 @@
 import type { StandardLoenTableRow, Loenperiode } from '../../schemas/formSchemas';
+import type { ISODateString } from '../../types/branded';
 import { parseAmount, parsePercentToDecimal } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
+import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/aarsloenRowInterval';
+import { dateToISO, parseISODate } from '../../types/branded';
+import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 
 export type StandardLoenSatserInput = {
   feriePct?: string | number;
@@ -9,6 +13,12 @@ export type StandardLoenSatserInput = {
   storeBededagPct?: string | number;
   pensionPct?: string | number;
 };
+
+export type StandardLoenRateSegment = Readonly<{
+  fra: ISODateString;
+  til: ISODateString;
+  satser: StandardLoenSatserInput;
+}>;
 
 export type StandardLoenRowDerived = {
   ferieberet: number;
@@ -28,7 +38,15 @@ export const isStandardLoenTableCellEffectivelyEmpty = (value: unknown): boolean
   return value.trim() === '';
 };
 
-export const calculateStandardLoenRowDerived = (row: StandardLoenTableRow, satser: StandardLoenSatserInput): StandardLoenRowDerived => {
+const computeDerivedFromAmounts = (
+  amounts: Readonly<{
+    loen: number;
+    loen2: number;
+    ikkePensionsgivende: number;
+    atp: number;
+  }>,
+  satser: StandardLoenSatserInput
+): StandardLoenRowDerived => {
   const ferie = parsePercentToDecimal(satser.feriePct);
   const fritvalg = parsePercentToDecimal(satser.fritvalgPct);
   const shSo = parsePercentToDecimal(satser.shSoPct);
@@ -36,21 +54,98 @@ export const calculateStandardLoenRowDerived = (row: StandardLoenTableRow, satse
   const pensionPct = parsePercentToDecimal(satser.pensionPct);
 
   const totalPct = ferie + fritvalg + shSo + storeBededag;
-
-  const loen = parseAmount(row.col2);
-  const loen2 = parseAmount(row.col3);
-  const ikkePensionsgivende = parseAmount(row.col4);
-  const atp = parseAmount(row.col5);
-
-  const ferieberet = loen + loen2 + ikkePensionsgivende;
+  const ferieberet = amounts.loen + amounts.loen2 + amounts.ikkePensionsgivende;
   const fpFvShSo = totalPct > 0 ? ferieberet * totalPct : 0;
 
   // De to lønfelter er semantisk ens og medtages derfor identisk i beregningsgrundlaget.
-  const pensionBase = (loen + loen2) * (1 + totalPct);
+  const pensionBase = (amounts.loen + amounts.loen2) * (1 + totalPct);
   const pension = pensionPct > 0 ? pensionBase * pensionPct : 0;
 
   // ATP er et tillæg, som lægges til til sidst (ingen afledte ydelser beregnes af ATP).
-  const samlet = ferieberet + fpFvShSo + pension + atp;
+  const samlet = ferieberet + fpFvShSo + pension + amounts.atp;
+
+  return { ferieberet, fpFvShSo, pension, samlet };
+};
+
+const resolveRowAmounts = (row: StandardLoenTableRow) => ({
+  loen: parseAmount(row.col2),
+  loen2: parseAmount(row.col3),
+  ikkePensionsgivende: parseAmount(row.col4),
+  atp: parseAmount(row.col5),
+});
+
+const getSegmentOverlapDays = (
+  segment: StandardLoenRateSegment,
+  rowFra: ISODateString,
+  rowTil: ISODateString
+): number => {
+  const overlapFra = segment.fra > rowFra ? segment.fra : rowFra;
+  const overlapTil = segment.til < rowTil ? segment.til : rowTil;
+  if (overlapFra > overlapTil) return 0;
+  const overlapFraDate = parseISODate(overlapFra);
+  const overlapTilDate = parseISODate(overlapTil);
+  if (!overlapFraDate || !overlapTilDate) return 0;
+  return countInclusiveUtcDays(overlapFraDate, overlapTilDate) ?? 0;
+};
+
+export const calculateStandardLoenRowDerived = (
+  row: StandardLoenTableRow,
+  satser: StandardLoenSatserInput,
+  options?: Readonly<{
+    loenperiode?: Loenperiode;
+    rateSegments?: readonly StandardLoenRateSegment[];
+  }>
+): StandardLoenRowDerived => {
+  const amounts = resolveRowAmounts(row);
+  const rateSegments = options?.rateSegments ?? [];
+  if (!options?.loenperiode || rateSegments.length === 0) {
+    return computeDerivedFromAmounts(amounts, satser);
+  }
+
+  const interval = parseAarsloenRowInterval(row, options.loenperiode);
+  const rowFra = interval ? dateToISO(interval.start) : undefined;
+  const rowTil = interval ? dateToISO(interval.end) : undefined;
+  if (!rowFra || !rowTil) {
+    return computeDerivedFromAmounts(amounts, satser);
+  }
+
+  const rowFraDate = parseISODate(rowFra);
+  const rowTilDate = parseISODate(rowTil);
+  const totalDays = rowFraDate && rowTilDate ? (countInclusiveUtcDays(rowFraDate, rowTilDate) ?? 0) : 0;
+  if (totalDays <= 0) {
+    return computeDerivedFromAmounts(amounts, satser);
+  }
+
+  const resolvedSegments = rateSegments
+    .map((segment) => ({
+      segment,
+      overlapDays: getSegmentOverlapDays(segment, rowFra, rowTil),
+    }))
+    .filter((entry) => entry.overlapDays > 0);
+
+  if (resolvedSegments.length === 0) {
+    return computeDerivedFromAmounts(amounts, satser);
+  }
+
+  let ferieberet = 0;
+  let fpFvShSo = 0;
+  let pension = 0;
+  let samlet = 0;
+
+  for (const entry of resolvedSegments) {
+    const share = entry.overlapDays / totalDays;
+    const segmentAmounts = {
+      loen: amounts.loen * share,
+      loen2: amounts.loen2 * share,
+      ikkePensionsgivende: amounts.ikkePensionsgivende * share,
+      atp: amounts.atp * share,
+    };
+    const derived = computeDerivedFromAmounts(segmentAmounts, entry.segment.satser);
+    ferieberet += derived.ferieberet;
+    fpFvShSo += derived.fpFvShSo;
+    pension += derived.pension;
+    samlet += derived.samlet;
+  }
 
   return { ferieberet, fpFvShSo, pension, samlet };
 };

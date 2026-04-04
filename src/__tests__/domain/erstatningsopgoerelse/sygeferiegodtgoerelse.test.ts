@@ -1738,4 +1738,47 @@ describe('findSfggSixMonthWarningEmploymentIds', () => {
 
     expect(warningIds).toEqual(['af-1']);
   });
+
+  it('producerer 0 SFGG for ansættelsesforhold med ansatPaaSkadestidspunktet: false', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      ansatPaaSkadestidspunktet: false,
+      feriePct: 12.5,
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: asAmount(10000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+    });
+
+    expect(result.totalOre).toBe(0);
+    expect(result.perAnsaettelsesforhold).toHaveLength(0);
+  });
 });
