@@ -9,6 +9,7 @@ export interface SelectedElements {
   opgoerelse: boolean;
   loenindkomst: boolean;
   offentligeYdelser: boolean;
+  midlertidigEet: boolean;
   shDage: boolean;
   regulering: boolean;
   okSatser: boolean;

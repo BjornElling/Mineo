@@ -38,6 +38,7 @@ import type { BilagSelection } from '../domains/differencekrav/differencekravPdf
 import type { EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
 import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
+import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import { logWarning } from '../../utils/logger';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { getSatserForYear } from '../../data/lovbestemteRates';
@@ -240,6 +241,7 @@ export const downloadErstatningsopgoerelsePdf = async (params: Readonly<{
   selectedElements: SelectedElements;
   settings: AppSettings;
   snapshot: EoSnapshot;
+  midlertidigtEetRows?: readonly OffentligeYdelserRow[];
 }>): Promise<PdfDownloadResult> => {
   const { selectedElements, settings, snapshot } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
@@ -255,6 +257,7 @@ export const downloadErstatningsopgoerelsePdf = async (params: Readonly<{
       erstatningsopgoerelseAfsluttesMed: params.eoValues.erstatningsopgoerelseAfsluttesMed,
       visUdkastStempel: params.eoValues.indsaetUdkastStempel === 'Ja',
       document: eoPdfDocument.document,
+      midlertidigtEetRows: params.midlertidigtEetRows,
     });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {

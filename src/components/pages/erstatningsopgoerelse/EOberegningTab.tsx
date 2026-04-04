@@ -27,6 +27,9 @@ import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsop
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import { buildMidlertidigtEetRowsFromEet } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
+import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
+import type { ISODateString } from '../../../types/branded';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -38,6 +41,10 @@ interface EOberegningTabProps {
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
+  midlertidigtEetInsertSource?: Readonly<{
+    eetValues: ErhvervsevnetabComposedValues;
+    skadesdato: ISODateString | undefined;
+  }>;
 }
 
 type SystemIssueRow = Readonly<{
@@ -221,7 +228,7 @@ const getCustomDebugRowMessage = (
 };
 
 const EOberegningTab = React.memo<EOberegningTabProps>((
-  { activeTab, setActiveTab, isActive, eoSnapshot = null, stamdataValues, eoValues, setEOValues }
+  { activeTab, setActiveTab, isActive, eoSnapshot = null, stamdataValues, eoValues, setEOValues, midlertidigtEetInsertSource }
 ) => {
   // ============================================================================
   // DATA FRA COMMITTED STATE + PERSISTENCE FACADE
@@ -522,6 +529,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       opgoerelse: true as const,
       loenindkomst: true,
       offentligeYdelser: true,
+      midlertidigEet: true,
       shDage: false,
       regulering: true,
       okSatser: true,
@@ -629,6 +637,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return;
     }
     if (!eoSnapshot) return;
+    const midlertidigtEetRows = midlertidigtEetInsertSource
+      ? buildMidlertidigtEetRowsFromEet(midlertidigtEetInsertSource)
+      : [];
 
     const result = await downloadErstatningsopgoerelsePdf({
       stamdataValues,
@@ -636,13 +647,14 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       selectedElements,
       settings,
       snapshot: eoSnapshot,
+      midlertidigtEetRows,
     });
     if (!result.success) {
       // Runtime-fejl under PDF-generering er en systemteknisk fejl — logges til devtools-monitor.
       // Ingen dialog eller BugReportButton vises til brugeren (jf. error-debug-contract.md §8.1).
       console.error('[EOberegningTab] EO PDF download fejlede:', result.error);
     }
-  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings]);
+  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, midlertidigtEetInsertSource, selectedElements, settings]);
 
   const handleDownloadTafFordeltPdf = React.useCallback(async () => {
     if (!canDownloadSnapshotTafPdf) {
@@ -986,6 +998,17 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                   />
                 )}
                 label="Offentlige ydelser"
+              />
+              <FormControlLabel
+                control={(
+                  <Checkbox
+                    checked={selectedElements.midlertidigEet}
+                    onChange={(event) => {
+                      updateSelectedElement('midlertidigEet', event.target.checked);
+                    }}
+                  />
+                )}
+                label="Midlertidig EET"
               />
             </Box>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>

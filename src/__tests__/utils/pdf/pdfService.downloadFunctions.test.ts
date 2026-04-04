@@ -412,6 +412,31 @@ describe('downloadErstatningsopgoerelsePdf', () => {
       expect.objectContaining({ document: projectedDocument })
     );
   });
+
+  it('videresender midlertidigt EET-rækker til generatoren', async () => {
+    const midlertidigtEetRows = [{
+      id: 'oy-1',
+      fraDato: '01-01-2024',
+      tilDato: '31-01-2024',
+      ydelsestype: 'midlertidigt_eet',
+    }];
+
+    await downloadErstatningsopgoerelsePdf({
+      stamdataValues: stamdata,
+      eoValues,
+      selectedElements: {} as never,
+      settings,
+      snapshot: eoSnapshot,
+      midlertidigtEetRows,
+    });
+
+    expect(mockGenerateErstatningsopgoerelsePdf).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ midlertidigtEetRows })
+    );
+  });
 });
 
 // ─── downloadTafFordeltPaaAarPdf ──────────────────────────────────────────────

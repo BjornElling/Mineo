@@ -14,6 +14,7 @@ const LABEL_WIDTH = '320px';
 type EmploymentDebugSection = Readonly<{
   id: string;
   title: string;
+  ansatPaaSkadestidspunktet?: boolean;
   loenRows: readonly DebugRowModel[];
   regulationRows: readonly DebugRowModel[];
   regulationSection?: RegulationDebugSection;
@@ -301,7 +302,17 @@ const EODebugEmploymentSections = React.memo<{
                   </>
                 ) : null}
 
-                {sfggRows.length > 0 || sfggTables.length > 0 ? (
+                {section.ansatPaaSkadestidspunktet === false ? (
+                  <>
+                    <UnderlinedHoverRow text="Sygeferiegodtgørelse" />
+                    <Box className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+                      <Typography className="row--text">Ansat på skadestidspunktet</Typography>
+                      <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
+                        <Typography className="row--text">Nej</Typography>
+                      </Box>
+                    </Box>
+                  </>
+                ) : sfggRows.length > 0 || sfggTables.length > 0 ? (
                   <>
                     <UnderlinedHoverRow text="Sygeferiegodtgørelse" />
                     {sfggPrimaryRows.map(renderSfggRow)}

@@ -24,6 +24,7 @@ describe('buildEODebugTaftRows field error priority', () => {
       {},
       {
         skadesdatoISO: iso('2023-06-01'),
+        skadelidteFodselsdato: undefined,
         erErhvervssygdom: false,
         endeligEETBeregnetDato: iso('2025-07-01'),
         midlertidigEETBeregnetDato: undefined,

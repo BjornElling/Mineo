@@ -17,6 +17,7 @@ export type EODebugDisplayTable = Readonly<{
 export type EODebugEmploymentSectionViewModel = Readonly<{
   id: string;
   title: string;
+  ansatPaaSkadestidspunktet: boolean;
   loenRows: readonly DebugRowModel[];
   regulationRows: readonly DebugRowModel[];
   regulationSection?: RegulationDebugSection;
@@ -232,12 +233,18 @@ export const buildEODebugPageViewModel = (
     : [];
   const sfggSectionsByEmploymentId = new Map(sfggSections.map((section) => [section.id, section] as const));
 
+  const ansatPaaSkadestidspunktetById = new Map(
+    (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? []).map((af) => [af.id, af.ansatPaaSkadestidspunktet] as const)
+  );
+
   const employmentSections: EODebugEmploymentSectionViewModel[] = viserTabtArbejdsfortjeneste
     ? loenindkomstSections.map((section) => {
         const sfggSection = sfggSectionsByEmploymentId.get(section.id);
+        const ansatPaaSkadestidspunktet = ansatPaaSkadestidspunktetById.get(section.id) ?? true;
         return {
           id: section.id,
           title: section.title,
+          ansatPaaSkadestidspunktet,
           loenRows: section.loenRows,
           regulationRows: section.regulationRows,
           regulationSection: regulationSectionsByEmploymentId.get(section.id),

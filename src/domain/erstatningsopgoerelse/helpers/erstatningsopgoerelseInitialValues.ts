@@ -182,6 +182,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
     opgoerelse: true,
     loenindkomst: true,
     offentligeYdelser: true,
+    midlertidigEet: true,
     shDage: false,
     regulering: true,
     okSatser: true,

@@ -192,6 +192,7 @@ const eoBilagSelectionSchema = z.object({
   opgoerelse: z.literal(true),
   loenindkomst: z.boolean(),
   offentligeYdelser: z.boolean(),
+  midlertidigEet: z.boolean().default(true),
   shDage: z.boolean(),
   regulering: z.boolean(),
   okSatser: z.boolean(),
@@ -228,7 +229,7 @@ const erstatningsopgoerelseBaseSchema = z.object({
   offentligeYdelserRows: z.array(offentligeYdelserRowSchema),
   loenudviklingPaaGrundlagAf: optionalString,
   saerligeKommentarer: optionalString,
-  eoBilagSelection: eoBilagSelectionSchema.default({ opgoerelse: true, loenindkomst: true, offentligeYdelser: true, shDage: false, regulering: true, okSatser: true, sygeferiegodtgoerelse: false }),
+  eoBilagSelection: eoBilagSelectionSchema.default({ opgoerelse: true, loenindkomst: true, offentligeYdelser: true, midlertidigEet: true, shDage: false, regulering: true, okSatser: true, sygeferiegodtgoerelse: false }),
   eoBilagLoenindkomstOgOffentligeYdelserIndgaar: eoBilagLoenindkomstOgOffentligeYdelserIndgaarSchema.default('Perioden'),
 }).strict();
 

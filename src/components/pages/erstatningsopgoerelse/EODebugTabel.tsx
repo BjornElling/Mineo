@@ -117,6 +117,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) =>
         basis: [] as StandardDisplayTableRow[],
         beregningsperiode: [] as StandardDisplayTableRow[],
         taf: [] as StandardDisplayTableRow[],
+        sfgg: [] as StandardDisplayTableRow[],
       };
     }
 
@@ -124,6 +125,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) =>
       basis: toTableRows(snapshot.sammentaellingTables.basis),
       beregningsperiode: toTableRows(snapshot.sammentaellingTables.beregningsperiode),
       taf: toTableRows(snapshot.sammentaellingTables.taf),
+      sfgg: toTableRows(snapshot.sammentaellingTables.sfgg ?? []),
     };
   }, [snapshot]);
 
@@ -332,6 +334,17 @@ const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) =>
             { header: 'Kontrol', align: 'center', width: 120 },
           ]}
           rows={sammentaellingTables.taf}
+        />
+
+        <StandardDisplayTable
+          useSmallFont
+          columns={[
+            { header: 'Sygeferiegodtgørelse', align: 'left', width: 520 },
+            { header: 'Beregnet', align: 'center', width: 160 },
+            { header: 'Tabel', align: 'center', width: 160 },
+            { header: 'Kontrol', align: 'center', width: 120 },
+          ]}
+          rows={sammentaellingTables.sfgg}
         />
       </ContentBox>
 

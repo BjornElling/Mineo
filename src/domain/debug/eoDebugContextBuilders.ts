@@ -21,6 +21,7 @@ export type SvieSmerteContext = {
  */
 export type TaftContext = {
   skadesdatoISO: ISODateString | undefined;
+  skadelidteFodselsdato: ISODateString | undefined;
   erErhvervssygdom: boolean;
   endeligEETBeregnetDato: ISODateString | undefined;
   midlertidigEETBeregnetDato: ISODateString | undefined;
@@ -70,6 +71,7 @@ export const buildTaftContext = (
 
   return {
     skadesdatoISO: stamdataValues.skadesdato,
+    skadelidteFodselsdato: stamdataValues.skadelidteFodselsdato,
     erErhvervssygdom,
     endeligEETBeregnetDato,
     midlertidigEETBeregnetDato,

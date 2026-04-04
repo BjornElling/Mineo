@@ -20,6 +20,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
 
     const context = {
       skadesdatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
       differencekravDato: undefined,
@@ -52,6 +53,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
 
     const context = {
       skadesdatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
       differencekravDato: undefined,
@@ -80,6 +82,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
 
     const context = {
       skadesdatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
       differencekravDato: undefined,
@@ -107,6 +110,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
 
     const context = {
       skadesdatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
       differencekravDato: undefined,
@@ -133,6 +137,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
 
     const context = {
       skadesdatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
       differencekravDato: undefined,
@@ -163,6 +168,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
 
     const context = {
       skadesdatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
       differencekravDato: undefined,
@@ -189,6 +195,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
 
     const context = {
       skadesdatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
       differencekravDato: undefined,
@@ -215,6 +222,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
 
     const context = {
       skadesdatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
       differencekravDato: undefined,
@@ -240,6 +248,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
 
     const context = {
       skadesdatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
       differencekravDato: undefined,
@@ -256,5 +265,32 @@ describe('buildEODebugTaftRows overlap parity', () => {
       displayValue: 'Ingen',
       status: 'ok',
     });
+  });
+
+  it('viser advarsel når TAF-periode løber efter folkepensionsalder', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      opgørelseLavetDen: iso('2024-01-01'),
+      tafPerioder: [
+        { id: 'a', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
+      ],
+      ferieperioder: [],
+    };
+
+    const context = {
+      skadesdatoISO: iso('2023-01-01'),
+      skadelidteFodselsdato: iso('1950-01-01'),
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
+    const rows = buildEODebugTaftRows(values, errors, context);
+    const warningRow = rows.find((row) => row.id === 'taf.folkepensionsalder.a');
+
+    expect(warningRow?.status).toBe('warning');
+    expect(warningRow?.displayValue).toContain('folkepensionsalder');
   });
 });

@@ -2,6 +2,8 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { IsoRange } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
+import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { buildEODebugModel } from './eoDebugModel';
 import type { DebugDay } from './eoDebugTypes';
 import {
@@ -63,6 +65,8 @@ export const buildEODebugSnapshot = (args: {
   tafRanges?: readonly IsoRange[];
   /** Autoritativt svie/smerte-engine-output fra EO-snapshot-pipelinen. */
   svieSmerteEngine?: SvieSmerteEngineOutput;
+  canonicalOutput?: EoCanonicalOutput;
+  sfggResult?: SygeferiegodtgoerelseResult;
 }): EODebugSnapshot => {
   const { revision, stamdataValues, eoValues, stamdataErrors, eoErrors, tafRanges } = args;
   const svieSmerteContext = buildSvieSmerteContext(stamdataValues, eoValues);
@@ -79,6 +83,8 @@ export const buildEODebugSnapshot = (args: {
     svieSmerteContext,
     taftContext,
     tafRanges,
+    canonicalOutput: args.canonicalOutput,
+    sfggResult: args.sfggResult,
     svieSmerteEngine: args.svieSmerteEngine,
   });
   const sammentaellingTables = buildSammentaellingDisplayTables(sammentaelling);

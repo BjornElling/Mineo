@@ -116,6 +116,8 @@ const buildDebugSnapshotForComputed = (args: Readonly<{
   eoErrors: FieldErrorsForSection<'erstatningsopgoerelse'>;
   tafRanges?: readonly IsoRange[];
   svieSmerteEngine?: SvieSmerteEngineOutput;
+  canonicalOutput?: EoCanonicalOutput;
+  sfggResult?: TafNettoBeregningResult['sygeferiegodtgoerelse'];
 }>): EODebugSnapshot => {
   return buildEODebugSnapshot({
     revision: args.revision,
@@ -125,6 +127,8 @@ const buildDebugSnapshotForComputed = (args: Readonly<{
     eoErrors: args.eoErrors,
     tafRanges: args.tafRanges,
     svieSmerteEngine: args.svieSmerteEngine,
+    canonicalOutput: args.canonicalOutput,
+    sfggResult: args.sfggResult,
   });
 };
 
@@ -273,18 +277,6 @@ export const computeEoSnapshot = (args: Readonly<{
         skadestype: parsedStamdata.data.skadestype,
       },
     });
-    // debugSnapshot bygges efter tafRanges og svieSmerte er beregnet, så:
-    // - debug-tabellen afspejler præcis de clampede perioder der indgik i beregningen
-    // - sammentællingen bruger det autoritative svie/smerte-resultat direkte
-    debugSnapshot = buildDebugSnapshotForComputed({
-      revision: args.revision,
-      stamdata: parsedStamdata.data,
-      eoValues: parsedEo.data,
-      stamdataErrors,
-      eoErrors,
-      tafRanges,
-      svieSmerteEngine: svieSmerte,
-    });
     const tafNetto = computeTafNettoBeregning(parsedEo.data, parsedStamdata.data, {
       tafRanges,
     });
@@ -312,6 +304,17 @@ export const computeEoSnapshot = (args: Readonly<{
       tafNetto,
       oevrigeKrav,
       totals,
+    });
+    debugSnapshot = buildDebugSnapshotForComputed({
+      revision: args.revision,
+      stamdata: parsedStamdata.data,
+      eoValues: parsedEo.data,
+      stamdataErrors,
+      eoErrors,
+      tafRanges,
+      svieSmerteEngine: svieSmerte,
+      canonicalOutput,
+      sfggResult: tafNetto.sygeferiegodtgoerelse,
     });
     const invariants: EoInvariant[] = [...validationInvariants];
 

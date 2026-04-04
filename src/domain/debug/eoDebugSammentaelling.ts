@@ -13,6 +13,8 @@ import { clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../
 import { buildFerieDageSet, buildSHDageSet } from './eoDebugRegulationCore';
 import { computeTafArbejdsdageAggregation } from '../erstatningsopgoerelse/engines/tafBeregningsEngine';
 import type { SvieSmerteEngineOutput } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
+import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 
 export type SvieSmerteContext = Readonly<{
   skadesdatoISO: ISODateString | undefined;
@@ -57,6 +59,7 @@ export type SammentaellingModel = Readonly<{
   taf: SammentaellingControl;
   svieSmerteSygedage: SammentaellingControl;
   svieSmerteDelvise: SammentaellingControl;
+  sfgg: SammentaellingControl;
   beregningsperiodeIndtaegter: readonly SammentaellingDisplayRow[];
   tafIndtaegter: readonly SammentaellingDisplayRow[];
 }>;
@@ -126,6 +129,7 @@ export type SammentaellingDisplayTables = Readonly<{
   basis: readonly SammentaellingDisplayRow[];
   beregningsperiode: readonly SammentaellingDisplayRow[];
   taf: readonly SammentaellingDisplayRow[];
+  sfgg: readonly SammentaellingDisplayRow[];
 }>;
 
 export const buildSammentaellingDisplayTables = (model: SammentaellingModel): SammentaellingDisplayTables => {
@@ -190,13 +194,20 @@ export const buildSammentaellingDisplayTables = (model: SammentaellingModel): Sa
     basis: basisRows,
     beregningsperiode: model.beregningsperiodeIndtaegter,
     taf: model.tafIndtaegter,
+    sfgg: [
+      {
+        key: 'sfgg',
+        label: 'Sygeferiegodtgørelse',
+        control: model.sfgg,
+      },
+    ],
   };
 };
 
 export const flattenSammentaellingDisplayTables = (
   tables: SammentaellingDisplayTables
 ): readonly SammentaellingDisplayRow[] => {
-  return [...tables.basis, ...tables.beregningsperiode, ...tables.taf];
+  return [...tables.basis, ...tables.beregningsperiode, ...tables.taf, ...tables.sfgg];
 };
 
 export const collectSammentaellingControlMismatchMessages = (
@@ -389,6 +400,8 @@ export const buildEODebugSammentaellingModel = (args: {
   svieSmerteContext: SvieSmerteContext;
   taftContext: TaftContext;
   tafRanges?: readonly IsoRange[];
+  canonicalOutput?: EoCanonicalOutput;
+  sfggResult?: SygeferiegodtgoerelseResult;
   /** Autoritativt svie/smerte-engine-output fra EO-snapshot. Når tilstede bruges dette
    *  direkte i stedet for et nyt kald — sikrer at sammentællingen bruger præcis
    *  det samme resultat som beregningen. */
@@ -593,6 +606,10 @@ export const buildEODebugSammentaellingModel = (args: {
   const tafTabelDisplay = withTabelFradragDisplay(tafArbejdsdageFromTable, tafTabelFradrag);
   const beregningsTabelValueForControl = applyTabelFradrag(beregningsArbejdsdage, beregningsTabelFradrag);
   const tafTabelValueForControl = applyTabelFradrag(tafArbejdsdageFromTable, tafTabelFradrag);
+  const sfggBeregnetOre = args.canonicalOutput?.taf.sygeferiegodtgoerelseOre ?? null;
+  const sfggTabelOre = args.sfggResult
+    ? args.sfggResult.perAnsaettelsesforhold.reduce((sum, entry) => sum + entry.totalOre, 0)
+    : null;
 
   const beregningsperiodeRange = isBeregningsperiode ? buildBeregningsperiodeRange(values) : undefined;
   const beregningsperiodeRanges = beregningsperiodeRange ? [beregningsperiodeRange] : [];
@@ -684,6 +701,14 @@ export const buildEODebugSammentaellingModel = (args: {
       tabelDisplay: svieSmerteDelviseDisplays.tabel,
       beregnetValue: svieSmerteResolvedCounts?.delviseSygedage ?? null,
       tabelValue: svieSmerteTabelCounts?.delviseSygedage ?? null,
+      loseFeriedage: 0,
+      oevrigeFravaersdage: 0,
+    },
+    sfgg: {
+      beregnetDisplay: formatOptionalAmount(sfggBeregnetOre === null ? null : sfggBeregnetOre / 100),
+      tabelDisplay: formatOptionalAmount(sfggTabelOre === null ? null : sfggTabelOre / 100),
+      beregnetValue: sfggBeregnetOre === null ? null : sfggBeregnetOre / 100,
+      tabelValue: sfggTabelOre === null ? null : sfggTabelOre / 100,
       loseFeriedage: 0,
       oevrigeFravaersdage: 0,
     },

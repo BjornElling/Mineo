@@ -114,4 +114,26 @@ describe('buildEODebugIndkomstRows display', () => {
     expect(offentligRow?.displayValue).toBe('Timeløn, løntrin 26, gruppe 2');
     expect(offentligRow?.status).toBe('ok');
   });
+
+  it('viser advarsel når lønperiode løber efter sidste arbejdsdag', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenperiode = 'dag';
+    af.ansaettelsesforholdOphoert = true;
+    af.sidsteArbejdsdag = '2024-03-15';
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'row-1',
+        col0_dag: '01-03-2024',
+        col1_dag: '31-03-2024',
+        col2: amount(1000),
+      },
+    ];
+
+    const rows = buildEODebugIndkomstRows(values, undefined, {});
+    const warningRow = rows.find((row) => row.id === `loenindkomst.${af.id}.loenEfterOphoer`);
+
+    expect(warningRow?.status).toBe('warning');
+    expect(warningRow?.displayValue).toContain('15-03-2024');
+  });
 });

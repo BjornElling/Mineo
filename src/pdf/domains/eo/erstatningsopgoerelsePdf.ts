@@ -10,7 +10,7 @@ import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES } from '../../infrastructure/
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from '../../shared/pdfHelpers';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
-import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../schemas/formSchemas';
+import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow, StamdataValues } from '../../../schemas/formSchemas';
 import { type MoneyOre, type Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
 import { TODAY } from '../../../config/dateRanges';
@@ -39,7 +39,9 @@ import {
   resolveStatistikModelIdFromLabel,
   resolveTafDateBounds,
 } from '../../../domain/erstatningsopgoerelse/engines/reguleringsBeregning';
-import { resolveValgtReguleringDisplay } from '../../../domain/erstatningsopgoerelse/helpers/loenudviklingDisplay';
+import {
+  resolveValgtReguleringDisplayForPdf,
+} from '../../../domain/erstatningsopgoerelse/helpers/loenudviklingDisplay';
 import {
   formatCountWithUnit,
   formatCurrencyFromOre,
@@ -53,7 +55,7 @@ import {
 } from '../../shared/pdfFormatUtils';
 import type { SelectedElements } from './types';
 import { renderLoenindkomstSection } from './sections/loenindkomstSection';
-import { renderOffentligeYdelserSection } from './sections/offentligeYdelserSection';
+import { renderOffentligeYdelserRowsPage, renderOffentligeYdelserSection } from './sections/offentligeYdelserSection';
 import { renderShDageSection } from './sections/shDageSection';
 import { renderReguleringSection } from './sections/reguleringSection';
 import { renderOpgorelseSection } from './sections/opgoerelseSection';
@@ -178,6 +180,7 @@ interface ErstatningsopgoerelsePdfOptions extends PdfCommonOptions {
   erstatningsopgoerelseAfsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje';
   visUdkastStempel?: boolean;
   document?: EoModel;
+  midlertidigtEetRows?: readonly OffentligeYdelserRow[];
 }
 
 /**
@@ -542,6 +545,7 @@ export const generateErstatningsopgoerelsePdf = (
     eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar === 'Perioden';
   const skalViseIndkomstOgYdelserBilag =
     !skalFiltrereBilagTilKunPerioden || model.tabtArbejdsfortjeneste.harTafPerioder;
+  const midlertidigtEetRows = options.midlertidigtEetRows ?? [];
 
   if (selectedElements.loenindkomst && skalViseIndkomstOgYdelserBilag) {
     renderLoenindkomstSection({
@@ -578,6 +582,17 @@ export const generateErstatningsopgoerelsePdf = (
     });
   }
 
+  if (selectedElements.midlertidigEet && midlertidigtEetRows.length > 0) {
+    startBilagPage('Midlertidig EET');
+    writer.addSpacer(lineHeight);
+    renderOffentligeYdelserRowsPage({
+      rows: midlertidigtEetRows,
+      lineHeight,
+      renderSubheader: writer.writeSubheader,
+      writer,
+    });
+  }
+
   if (selectedElements.regulering && skalViseIndkomstOgYdelserBilag && shouldIncludeReguleringBilag(eoValues)) {
     renderReguleringSection({
       eoValues: eoValues,
@@ -588,7 +603,7 @@ export const generateErstatningsopgoerelsePdf = (
       renderSubheader: writer.writeSubheader,
       safeAddWrappedText: writer.writeWrappedText,
       writeLabelValueLine,
-      resolveValgtReguleringDisplay,
+      resolveValgtReguleringDisplay: resolveValgtReguleringDisplayForPdf,
       resolveReguleringsdato,
       parseOptionalIsoDate,
       resolveLoenSkadesdatoText,

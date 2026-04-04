@@ -13,12 +13,8 @@ import {
   useSectionRevisionSelector,
 } from '../../hooks/useFormPersistenceSelectors';
 import {
-  erhvervsevnetabSchema,
-  faellesAarsloenSchema,
   erstatningsopgoerelseSchema,
-  stamdataSchema,
   type ErstatningsopgoerelseValues,
-  type ErhvervsevnetabComposedValues,
 } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { useAppSettings } from '../../contexts/useAppSettings';
@@ -388,6 +384,7 @@ const Erstatningsopgoerelse = React.memo(() => {
               stamdataValues={stamdataValuesForBeregningTab}
               eoValues={form.values}
               setEOValues={setFormValues}
+              midlertidigtEetInsertSource={midlertidigtEetInsertSource}
             />
           </Box>
         )}

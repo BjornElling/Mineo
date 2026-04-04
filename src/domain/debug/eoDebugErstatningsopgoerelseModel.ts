@@ -11,6 +11,7 @@ import { formatAsAmount, formatCurrency, formatPercent } from '../../utils/forma
 import { addDays, addMonths, parseDanishDate } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildNoValidDateRangeMessage, collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
+import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
 import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
@@ -52,6 +53,8 @@ import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCano
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import { resolveBilagWarning } from '../erstatningsopgoerelse/helpers/bilagWarnings';
 import { ensureMoneyOre } from '../erstatningsopgoerelse/shared/eoMoney';
+import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/aarsloenRowInterval';
+import { resolveKapitaliseringTabelvalgForControlDate } from '../erhvervsevnetab/eetKapitaliseringOpslag';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -110,6 +113,7 @@ export type DebugRowId =
   | 'taf.beregnesSom'
   | 'taf.ophoerSkyldes'
   | `taf.periode.${string}`
+  | `taf.folkepensionsalder.${string}`
   | `taf.ferie.${string}`
   | 'taf.tidligereModtagetTaf'
   | `loenindkomst.${string}.arbejdsstedNavn`
@@ -118,6 +122,7 @@ export type DebugRowId =
   | `loenindkomst.${string}.regulering.valgt`
   | `loenindkomst.${string}.regulering.navn`
   | `loenindkomst.${string}.regulering.alleVaerdier`
+  | `loenindkomst.${string}.loenEfterOphoer`
   | `offentligeYdelser.${string}`
   | `sfgg.beregningskilde.${string}`
   | `sfgg.overenskomst.${string}`
@@ -161,6 +166,18 @@ const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number 
   const shifted = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   shifted.setUTCMonth(shifted.getUTCMonth() + 1);
   return shifted.getUTCFullYear();
+};
+
+const resolveFolkepensionsdato = (
+  skadesdato: ISODateString | undefined,
+  fodselsdato: ISODateString | undefined,
+  controlDate: ISODateString | undefined
+): ISODateString | undefined => {
+  const tabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadesdato, fodselsdato, controlDate);
+  if (!tabelvalg || !fodselsdato) return undefined;
+  const birthDate = parseISODate(fodselsdato);
+  if (!birthDate) return undefined;
+  return dateToISO(addMonths(birthDate, tabelvalg.folkepensionsalderMaaneder));
 };
 
 export const buildEODebugErstatningsopgoerelseRows = (
@@ -695,6 +712,7 @@ export const buildEODebugSvieSmerteRows = (
       })();
 
       const fraRangeErrorMessage = (() => {
+        if (!fraISO) return undefined;
         if (bounds.fra.min > bounds.fra.max) {
           return buildNoValidDateRangeMessage({
             minDate: bounds.fra.min,
@@ -702,12 +720,12 @@ export const buildEODebugSvieSmerteRows = (
             noValidRangeCause: fraNoValidRangeCause,
           });
         }
-        if (!fraISO) return undefined;
         const result = validateISODateRange(fraISO, bounds.fra.min, bounds.fra.max);
         return result.isValid ? undefined : result.errorMessage;
       })();
 
       const tilRangeErrorMessage = (() => {
+        if (!tilISO) return undefined;
         if (bounds.til.min > bounds.til.max) {
           return buildNoValidDateRangeMessage({
             minDate: bounds.til.min,
@@ -715,7 +733,6 @@ export const buildEODebugSvieSmerteRows = (
             noValidRangeCause: tilNoValidRangeCause,
           });
         }
-        if (!tilISO) return undefined;
         const result = validateISODateRange(tilISO, bounds.til.min, bounds.til.max);
         return result.isValid ? undefined : result.errorMessage;
       })();
@@ -743,7 +760,7 @@ export const buildEODebugSvieSmerteRows = (
       // Hvis der er fejl i felterne, vis fejlmeddelelsen
       if (harFejl) {
         const fraFoerTilError = fraISO && tilISO && fraISO > tilISO
-          ? 'Der er indtastet en til-dato, som ligger før fra-datoen'
+          ? DATE_ORDER_ERROR_MESSAGE
           : undefined;
         const allMessages = computedRangeMessages.map((m) => m.trim()).filter((m) => m !== '');
 
@@ -1348,6 +1365,7 @@ export const buildEODebugTaftRows = (
   errors: ErstatningsopgoerelseFieldErrorsBySource,
   context: Readonly<{
     skadesdatoISO: ISODateString | undefined;
+    skadelidteFodselsdato: ISODateString | undefined;
     erErhvervssygdom: boolean;
     endeligEETBeregnetDato: ISODateString | undefined;
     midlertidigEETBeregnetDato: ISODateString | undefined;
@@ -1375,6 +1393,11 @@ export const buildEODebugTaftRows = (
   const tafBounds = resolveTafConstraintBounds(values);
   const clampedTafById = new Map<string, { fra: ISODateString; til: ISODateString }>();
   const tafIkkeRejstLabel = 'Ikke rejst TAF-krav for hele perioden';
+  const folkepensionsdato = resolveFolkepensionsdato(
+    context.skadesdatoISO,
+    context.skadelidteFodselsdato,
+    values.opgørelseLavetDen
+  );
 
   const lastTafKravDato = (() => {
     let latest: ISODateString | undefined = undefined;
@@ -1466,6 +1489,7 @@ export const buildEODebugTaftRows = (
     maxDate: ISODateString;
     noValidRangeCause?: string | undefined;
   }): string | undefined => {
+    if (!args.iso) return undefined;
     if (args.minDate > args.maxDate) {
       return buildNoValidDateRangeMessage({
         minDate: args.minDate,
@@ -1473,7 +1497,6 @@ export const buildEODebugTaftRows = (
         noValidRangeCause: args.noValidRangeCause,
       });
     }
-    if (!args.iso) return undefined;
     const result = validateISODateRange(args.iso, args.minDate, args.maxDate);
     return result.isValid ? undefined : result.errorMessage;
   };
@@ -1601,7 +1624,7 @@ export const buildEODebugTaftRows = (
 
     if (hasOverlap || preferredFieldErrorMessages.length > 0 || computedRangeMessages.length > 0) {
       const fraFoerTilError = fraISO > tilISO
-        ? 'Der er indtastet en til-dato, som ligger før fra-datoen'
+        ? DATE_ORDER_ERROR_MESSAGE
         : undefined;
       const rangeOrCutoffErrorMessage =
         preferredFieldErrorMessages.length > 0
@@ -1661,6 +1684,16 @@ export const buildEODebugTaftRows = (
       displayValue,
       status,
     });
+
+    if (folkepensionsdato && displayTil >= folkepensionsdato) {
+      rows.push({
+        id: `taf.folkepensionsalder.${periode.id}`,
+        label: 'Advarsel',
+        displayValue: `Advarsel (TAF-perioden løber til efter skadelidtes folkepensionsalder (${isoToDanish(folkepensionsdato)}). Kontrollér om dette er korrekt.)`,
+        status: 'warning',
+        summaryDisplay: 'messageOnly',
+      });
+    }
 
   });
 
@@ -2511,6 +2544,24 @@ export const buildEODebugIndkomstRows = (
 
   const sections = buildIndkomstSectionStatuses(values, skadesdato);
   sections.forEach((section) => {
+    const employment = (values.loenindkomstAnsaettelsesforhold ?? []).find((item) => item.id === section.id);
+    const sidsteArbejdsdag =
+      employment?.ansaettelsesforholdOphoert === true
+        ? employment.sidsteArbejdsdag
+        : undefined;
+    const loenperiode = employment?.loenperiode;
+    const harLoenEfterOphoer =
+      Boolean(sidsteArbejdsdag)
+      && Boolean(loenperiode)
+      && (employment?.indtaegtsoplysningerTableData ?? []).some((row) => {
+        if (!sidsteArbejdsdag || !loenperiode) return false;
+        const interval = parseAarsloenRowInterval(row, loenperiode);
+        if (!interval) return false;
+        const intervalEndIso = dateToISO(interval.end);
+        if (!intervalEndIso) return false;
+        return intervalEndIso > sidsteArbejdsdag;
+      });
+
     rows.push({
       id: `loenindkomst.${section.id}.arbejdsstedNavn`,
       label: 'Navn på arbejdssted',
@@ -2532,6 +2583,16 @@ export const buildEODebugIndkomstRows = (
       status: section.tableStatus,
       summaryDisplay: 'messageOnly',
     });
+
+    if (harLoenEfterOphoer && sidsteArbejdsdag) {
+      rows.push({
+        id: `loenindkomst.${section.id}.loenEfterOphoer`,
+        label: 'Advarsel',
+        displayValue: `Advarsel (Der er angivet løn efter sidste arbejdsdag (${isoToDanish(sidsteArbejdsdag)}). Kontrollér om dette er korrekt.)`,
+        status: 'warning',
+        summaryDisplay: 'messageOnly',
+      });
+    }
   });
 
   const loenudviklingsKilde = resolveLoenudviklingKilde(values);
