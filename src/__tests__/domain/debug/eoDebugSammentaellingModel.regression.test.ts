@@ -1,6 +1,9 @@
 
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/engines/svieSmerteEngine';
 import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
@@ -439,5 +442,78 @@ describe('buildEODebugSammentaellingModel regression', () => {
     expect(sammentaelling.svieSmerteSygedage.beregnetValue).toBeNull();
     expect(sammentaelling.svieSmerteDelvise.beregnetDisplay).toBe('-');
     expect(sammentaelling.svieSmerteDelvise.beregnetValue).toBeNull();
+  });
+
+  it('afstemmer TAF-loen med debug-tabellen når en dagrække krydser overenskomstregulering med almindelig løn på helligdage', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: '2024-02-26',
+      vedroererPeriodeTil: '2024-03-05',
+      beregnesUdFra: 'Angivet månedsløn' as const,
+      beregnesTabtArbejdsfortjeneste: 'Ja' as const,
+      tafPerioder: [
+        {
+          id: 'taf-1',
+          fra: '2024-02-26',
+          til: '2024-03-05',
+          loseFeriedage: 0,
+        },
+      ],
+      ferieperioder: [],
+      fravaerPerioder: [],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          navnPaaArbejdssted: 'Hårup Ungdomsklub',
+          harOverenskomst: true,
+          overenskomstId: 'glasoverenskomsten',
+          loenperiode: 'dag' as const,
+          loenPaaHelligdage: 'Almindelig løn' as const,
+          feriePct: 16.95,
+          fritvalgPct: 0,
+          shSoPct: 6.9,
+          storeBededagPct: 0,
+          pensionPct: 8.15,
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'loen-1',
+              col0_maaned: '',
+              col1_maaned: '',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '26-02-2024',
+              col1_dag: '05-03-2024',
+              col2: { kind: 'number', value: 1000 },
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    };
+
+    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const tafRanges = buildTafRanges(values, { skadesdatoISO: STAMDATA_INITIAL_VALUES.skadesdato });
+    const model = buildEODebugModel(values, { tafRanges });
+    const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
+    const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
+
+    const sammentaelling = buildEODebugSammentaellingModel({
+      values,
+      errors,
+      model,
+      svieSmerteContext,
+      taftContext,
+      tafRanges,
+    });
+
+    expect(sammentaelling.tafIndtaegter).toHaveLength(1);
+    expect(sammentaelling.tafIndtaegter[0]?.control.beregnetValue).not.toBeNull();
+    expect(sammentaelling.tafIndtaegter[0]?.control.tabelValue).not.toBeNull();
+    expect(sammentaelling.tafIndtaegter[0]?.control.tabelValue).toBeCloseTo(
+      sammentaelling.tafIndtaegter[0]?.control.beregnetValue ?? 0,
+      2
+    );
   });
 });

@@ -27,6 +27,17 @@ export type StandardLoenRowDerived = {
   samlet: number;
 };
 
+export type StandardLoenProjectedAmounts = Readonly<{
+  grundloen: number;
+  tillaeg: number;
+  ikkePensionsgivende: number;
+  atp: number;
+  ferieberet: number;
+  fpFvShSo: number;
+  pension: number;
+  samlet: number;
+}>;
+
 export const roundStandardLoenAmountToTwoDecimals = (value: number): number => {
   if (!Number.isFinite(value)) return 0;
   return roundByMethod(value, 2, 'halfAwayFromZero');
@@ -86,6 +97,95 @@ const getSegmentOverlapDays = (
   const overlapTilDate = parseISODate(overlapTil);
   if (!overlapFraDate || !overlapTilDate) return 0;
   return countInclusiveUtcDays(overlapFraDate, overlapTilDate) ?? 0;
+};
+
+const buildZeroProjectedAmounts = (): StandardLoenProjectedAmounts => ({
+  grundloen: 0,
+  tillaeg: 0,
+  ikkePensionsgivende: 0,
+  atp: 0,
+  ferieberet: 0,
+  fpFvShSo: 0,
+  pension: 0,
+  samlet: 0,
+});
+
+const resolveSatserForDate = (
+  iso: ISODateString,
+  fallbackSatser: StandardLoenSatserInput,
+  rateSegments: readonly StandardLoenRateSegment[]
+): StandardLoenSatserInput => {
+  if (rateSegments.length === 0) return fallbackSatser;
+  const matchingSegment = rateSegments.find((segment) => iso >= segment.fra && iso <= segment.til);
+  return matchingSegment?.satser ?? fallbackSatser;
+};
+
+export const calculateStandardLoenProjectedAmounts = (
+  row: StandardLoenTableRow,
+  satser: StandardLoenSatserInput,
+  options: Readonly<{
+    loenperiode: Loenperiode;
+    allocationDates: readonly ISODateString[];
+    selectedDates?: readonly ISODateString[];
+    rateSegments?: readonly StandardLoenRateSegment[];
+  }>
+): StandardLoenProjectedAmounts => {
+  const interval = parseAarsloenRowInterval(row, options.loenperiode);
+  if (!interval) return buildZeroProjectedAmounts();
+
+  const amounts = resolveRowAmounts(row);
+  const allocationDates = Array.from(new Set(options.allocationDates)).filter((iso) => {
+    const date = parseISODate(iso);
+    return date ? date >= interval.start && date <= interval.end : false;
+  });
+  if (allocationDates.length === 0) return buildZeroProjectedAmounts();
+
+  const selectedDateSet = new Set(options.selectedDates ?? allocationDates);
+  const selectedDates = allocationDates.filter((iso) => selectedDateSet.has(iso));
+  if (selectedDates.length === 0) return buildZeroProjectedAmounts();
+
+  const rateSegments = options.rateSegments ?? [];
+  const dailyAmounts = {
+    loen: amounts.loen / allocationDates.length,
+    loen2: amounts.loen2 / allocationDates.length,
+    ikkePensionsgivende: amounts.ikkePensionsgivende / allocationDates.length,
+    atp: amounts.atp / allocationDates.length,
+  };
+
+  let grundloen = 0;
+  let tillaeg = 0;
+  let ikkePensionsgivende = 0;
+  let atp = 0;
+  let ferieberet = 0;
+  let fpFvShSo = 0;
+  let pension = 0;
+  let samlet = 0;
+
+  for (const iso of selectedDates) {
+    const derived = computeDerivedFromAmounts(
+      dailyAmounts,
+      resolveSatserForDate(iso, satser, rateSegments)
+    );
+    grundloen += dailyAmounts.loen;
+    tillaeg += dailyAmounts.loen2;
+    ikkePensionsgivende += dailyAmounts.ikkePensionsgivende;
+    atp += dailyAmounts.atp;
+    ferieberet += derived.ferieberet;
+    fpFvShSo += derived.fpFvShSo;
+    pension += derived.pension;
+    samlet += derived.samlet;
+  }
+
+  return {
+    grundloen,
+    tillaeg,
+    ikkePensionsgivende,
+    atp,
+    ferieberet,
+    fpFvShSo,
+    pension,
+    samlet,
+  };
 };
 
 export const calculateStandardLoenRowDerived = (

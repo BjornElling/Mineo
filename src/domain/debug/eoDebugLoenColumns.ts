@@ -3,8 +3,7 @@ import type { StandardLoenTableRow, Loenperiode } from '../../schemas/formSchema
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
-import { parseAmount } from '../../utils/numberParsing';
-import { calculateStandardLoenRowDerived, isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
+import { calculateStandardLoenProjectedAmounts, isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
 import {
   resolveOverenskomstRef,
   getEffektiveSatserForPeriode,
@@ -17,6 +16,7 @@ import type { DebugTabelColumnId, DebugTabelIntegrityIssue } from './eoDebugMode
 import { debugTabelColumnId, WAGE_COLUMNS } from './eoDebugLoenTypes';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { buildLoenindkomstRateSegments } from '../erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { type DateInterval, iterateDatesInclusive, validateIsoRange } from '../../utils/isoDateHelpers';
 import { sumFloat64Array, isWithinIntegrityTolerance } from './eoDebugMathUtils';
 
@@ -31,6 +31,31 @@ export type DebugTabelColumnData = Readonly<{
   values: readonly string[];
   rawValues?: readonly number[];
 }>;
+
+type WageSatsInput = Readonly<{
+  feriePct: number | undefined;
+  fritvalgPct: number | undefined;
+  shSoPct: number | undefined;
+  storeBededagPct: number | undefined;
+  pensionPct: number | undefined;
+}>;
+
+const buildAllocationDates = (
+  interval: DateInterval,
+  isoIndex: ReadonlyMap<ISODateString, number>,
+  isPeriodiseringsdag: (index: number) => boolean
+): readonly ISODateString[] => {
+  const allocationDates: ISODateString[] = [];
+  iterateDatesInclusive(interval.start, interval.end, (date) => {
+    const iso = dateToISO(date);
+    if (!iso) return;
+    const idx = isoIndex.get(iso);
+    if (idx === undefined) return;
+    if (!isPeriodiseringsdag(idx)) return;
+    allocationDates.push(iso);
+  });
+  return allocationDates;
+};
 
 export const buildTafDayStatusValues = (args: Readonly<{
   dates: readonly ISODateString[];
@@ -101,42 +126,59 @@ export const buildTafDayStatusValues = (args: Readonly<{
 };
 
 const getWageAmountsForRow = (
+  af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
   row: StandardLoenTableRow,
-  satser: Readonly<{
-    feriePct: number | undefined;
-    fritvalgPct: number | undefined;
-    shSoPct: number | undefined;
-    storeBededagPct: number | undefined;
-    pensionPct: number | undefined;
-  }>
+  satser: WageSatsInput,
+  loenperiode: Loenperiode,
+  allocationDates: readonly ISODateString[],
+  selectedDates?: readonly ISODateString[]
 ): Readonly<Record<(typeof WAGE_COLUMNS)[number]['key'], number>> => {
-  const derived = calculateStandardLoenRowDerived(row, satser);
+  const interval = parseAarsloenRowInterval(row, loenperiode);
+  const fra = interval ? dateToISO(interval.start) : undefined;
+  const til = interval ? dateToISO(interval.end) : undefined;
+  const projected = calculateStandardLoenProjectedAmounts(row, satser, {
+    loenperiode,
+    allocationDates,
+    selectedDates,
+    rateSegments: fra && til
+      ? buildLoenindkomstRateSegments({
+        ansaettelsesforhold: af,
+        skadesdato: undefined,
+        fra,
+        til,
+      })
+      : undefined,
+  });
 
   return {
-    grundloen: parseAmount(row.col2),
-    tillaeg: parseAmount(row.col3),
-    ikkePensionsgivende: parseAmount(row.col4),
-    atp: parseAmount(row.col5),
-    ferieberettiget: derived.ferieberet,
-    fpFvShSoStb: derived.fpFvShSo,
-    pension: derived.pension,
-    samlet: derived.samlet,
+    grundloen: projected.grundloen,
+    tillaeg: projected.tillaeg,
+    ikkePensionsgivende: projected.ikkePensionsgivende,
+    atp: projected.atp,
+    ferieberettiget: projected.ferieberet,
+    fpFvShSoStb: projected.fpFvShSo,
+    pension: projected.pension,
+    samlet: projected.samlet,
   };
 };
 
 const shouldIncludeWageColumn = (
+  af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number],
   rows: readonly StandardLoenTableRow[],
   loenperiode: Loenperiode,
-  satser: Parameters<typeof getWageAmountsForRow>[1],
+  satser: WageSatsInput,
   key: (typeof WAGE_COLUMNS)[number]['key'],
-  errorRowIds: ReadonlySet<string>
+  errorRowIds: ReadonlySet<string>,
+  isoIndex: ReadonlyMap<ISODateString, number>,
+  isPeriodiseringsdag: (index: number) => boolean
 ): boolean => {
   for (const row of rows) {
     if (errorRowIds.has(row.id)) continue;
     if (isStandardLoenRowEffectivelyEmpty(row)) continue;
     const interval = parseAarsloenRowInterval(row, loenperiode);
     if (!interval) continue;
-    const amounts = getWageAmountsForRow(row, satser);
+    const allocationDates = buildAllocationDates(interval, isoIndex, isPeriodiseringsdag);
+    const amounts = getWageAmountsForRow(af, row, satser, loenperiode, allocationDates);
     if (amounts[key] !== 0) return true;
   }
   return false;
@@ -317,7 +359,16 @@ export const buildLoenindkomstColumns = (args: {
     };
 
     const includeKeys = WAGE_COLUMNS.filter((col) =>
-      shouldIncludeWageColumn(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, satser, col.key, errorRowIds)
+      shouldIncludeWageColumn(
+        af,
+        af.indtaegtsoplysningerTableData ?? [],
+        af.loenperiode,
+        satser,
+        col.key,
+        errorRowIds,
+        isoIndex,
+        isPeriodiseringsdag
+      )
     );
 
     // NOTE: Float64Array is intentional for deterministic summation.
@@ -343,7 +394,7 @@ export const buildLoenindkomstColumns = (args: {
       if (isStandardLoenRowEffectivelyEmpty(row)) continue;
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
       if (!interval) {
-        const amounts = getWageAmountsForRow(row, satser);
+        const amounts = getWageAmountsForRow(af, row, satser, af.loenperiode, []);
         const hasAny = includeKeys.some((k) => amounts[k.key] !== 0);
         if (hasAny) {
           issues.push({
@@ -359,18 +410,21 @@ export const buildLoenindkomstColumns = (args: {
       const endISO = dateToISO(interval.end);
       if (!startISO || !endISO) continue;
 
-      const amounts = getWageAmountsForRow(row, satser);
+      const allocationDates = buildAllocationDates(interval, isoIndex, isPeriodiseringsdag);
+      if (allocationDates.length <= 0) {
+        issues.push({
+          severity: 'warning',
+          area: 'lønindkomst',
+          message: `Lønindkomst${suffix}: Ingen periodiseringsdage i en lønperiode – beløb kan ikke fordeles og vil mangle i debug tabellen.`,
+        });
+        continue;
+      }
+
+      const amounts = getWageAmountsForRow(af, row, satser, af.loenperiode, allocationDates);
       const hasAny = includeKeys.some((k) => amounts[k.key] !== 0);
       if (!hasAny) continue;
 
-      let periodiseringsdage = 0;
-      iterateDatesInclusive(interval.start, interval.end, (d) => {
-        const iso = dateToISO(d);
-        if (!iso) return;
-        const idx = isoIndex.get(iso);
-        if (idx === undefined) return;
-        if (isPeriodiseringsdag(idx)) periodiseringsdage += 1;
-      });
+      const periodiseringsdage = allocationDates.length;
       if (periodiseringsdage <= 0) {
         issues.push({
           severity: 'warning',
@@ -385,19 +439,16 @@ export const buildLoenindkomstColumns = (args: {
       }
       parsedRows.push({ interval, amounts, periodiseringsdage });
 
-      iterateDatesInclusive(interval.start, interval.end, (d) => {
-        const iso = dateToISO(d);
-        if (!iso) return;
+      for (const iso of allocationDates) {
         const idx = isoIndex.get(iso);
-        if (idx === undefined) return;
-        if (!isPeriodiseringsdag(idx)) return;
-
+        if (idx === undefined) continue;
+        const projectedForDay = getWageAmountsForRow(af, row, satser, af.loenperiode, allocationDates, [iso]);
         for (const col of includeKeys) {
           const array = arraysByKey.get(col.key);
           if (!array) continue;
-          array[idx] += amounts[col.key] / periodiseringsdage;
+          array[idx] += projectedForDay[col.key];
         }
-      });
+      }
     }
 
     for (let i = 0; i < parsedRows.length; i += 1) {

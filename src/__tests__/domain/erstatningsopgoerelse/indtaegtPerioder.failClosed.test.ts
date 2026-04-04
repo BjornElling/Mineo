@@ -10,6 +10,41 @@ const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
 
 describe('buildIncomeForRanges fail-closed', () => {
+  it('beregner kun de valgte dage med dagsaktuelle satser ved satsændring midt i rækken', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.harOverenskomst = true;
+    af.overenskomstId = 'glasoverenskomsten';
+    af.loenperiode = 'dag';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 16.95;
+    af.fritvalgPct = 0;
+    af.shSoPct = 6.9;
+    af.storeBededagPct = 0;
+    af.pensionPct = 8.15;
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'loen-med-regulering',
+        col0_maaned: '',
+        col1_maaned: '',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '26-02-2024',
+        col1_dag: '05-03-2024',
+        col2: asAmount(900),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      },
+    ];
+
+    const income = buildIncomeForRanges(values, [{ fra: iso('2024-03-01'), til: iso('2024-03-05') }]);
+    expect(income.employers).toHaveLength(1);
+    expect(income.employers[0]?.amount).toBeCloseTo(727.54075, 8);
+  });
+
   it('kaster ikke fejl for rækker med data i inaktiv lønperiodekolonne', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
@@ -121,7 +156,7 @@ describe('buildIncomeForRanges fail-closed', () => {
     const income = buildIncomeForRanges(values, ranges);
 
     expect(income.employers).toHaveLength(1);
-    expect(income.employers[0]?.amount).toBe(100);
+    expect(income.employers[0]?.amount).toBeCloseTo(100, 8);
 
     expect(income.benefits).toHaveLength(1);
     expect(income.benefits[0]?.amount).toBe(200);

@@ -1,5 +1,6 @@
 import {
   calculateStandardLoenRowDerived,
+  calculateStandardLoenProjectedAmounts,
   roundStandardLoenAmountToTwoDecimals,
   isStandardLoenTableCellEffectivelyEmpty,
   isStandardLoenRowEffectivelyEmpty,
@@ -81,6 +82,62 @@ describe('calculateStandardLoenRowDerived', () => {
     const fordeltMellemBegge = calculateStandardLoenRowDerived(createRow({ col2: 30000, col3: 2000, col4: 1000, col5: 300 }), satser);
 
     expect(fordeltMellemBegge).toEqual(samletICol2);
+  });
+});
+
+describe('calculateStandardLoenProjectedAmounts', () => {
+  it('summerer valgte dage med de satser der gælder på de enkelte dage', () => {
+    const row = createRow({
+      col0_dag: '26-02-2024',
+      col1_dag: '05-03-2024',
+      col2: 900,
+    });
+    const satser: StandardLoenSatserInput = {
+      feriePct: 16.95,
+      fritvalgPct: 0,
+      shSoPct: 6.9,
+      storeBededagPct: 0,
+      pensionPct: 8.15,
+    };
+
+    const result = calculateStandardLoenProjectedAmounts(row, satser, {
+      loenperiode: 'dag',
+      allocationDates: [
+        '2024-02-26',
+        '2024-02-27',
+        '2024-02-28',
+        '2024-02-29',
+        '2024-03-01',
+        '2024-03-02',
+        '2024-03-03',
+        '2024-03-04',
+        '2024-03-05',
+      ],
+      selectedDates: [
+        '2024-03-01',
+        '2024-03-02',
+        '2024-03-03',
+        '2024-03-04',
+        '2024-03-05',
+      ],
+      rateSegments: [
+        {
+          fra: '2024-02-26',
+          til: '2024-02-29',
+          satser: { ...satser, shSoPct: 7.0 },
+        },
+        {
+          fra: '2024-03-01',
+          til: '2024-03-05',
+          satser: { ...satser, shSoPct: 8.8 },
+        },
+      ],
+    });
+
+    expect(result.grundloen).toBeCloseTo(500, 8);
+    expect(result.fpFvShSo).toBeCloseTo(128.75, 8);
+    expect(result.pension).toBeCloseTo(51.243125, 8);
+    expect(result.samlet).toBeCloseTo(679.993125, 8);
   });
 });
 

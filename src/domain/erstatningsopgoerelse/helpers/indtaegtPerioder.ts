@@ -6,7 +6,7 @@ import type {
 } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { dateToISO, isISODateString } from '../../../types/branded';
-import { calculateStandardLoenRowDerived } from '../../aarsloen/standardLoenRowCalculations';
+import { calculateStandardLoenProjectedAmounts } from '../../aarsloen/standardLoenRowCalculations';
 import { parseAmount } from '../../../utils/numberParsing';
 import { createDate, parseDanishDate } from '../../../utils/dateUtils';
 import { ydelsestyper } from '../../../data/ydelsestyper';
@@ -26,11 +26,10 @@ import { buildShDageSetFromIsoRange } from '../engines/tafDaySets';
 import { buildLoenindkomstRateSegments } from './loenindkomstSatser';
 import {
   buildLoenArbejdsdageSet,
-  periodiserBeloebForArbejdsdage,
-  periodiserBeloebForMaaneder,
   periodiserBeloebForOffentligYdelse,
   SYGEDAGPENGE_SH_CUTOFF,
 } from '../engines/periodiseringsMotor';
+import { iterateDatesInclusive } from '../../../utils/isoDateHelpers';
 
 export type { IsoRange } from '../../../utils/isoDateHelpers';
 export { parseAarsloenRowInterval } from './aarsloenRowInterval';
@@ -201,6 +200,9 @@ const areRangesWithinBounds = (
   boundsTil: ISODateString
 ): boolean => ranges.every((range) => range.fra >= boundsFra && range.til <= boundsTil);
 
+const isDateInRanges = (iso: ISODateString, ranges: readonly IsoRange[]): boolean =>
+  ranges.some((range) => iso >= range.fra && iso <= range.til);
+
 export const buildIncomeCalculationContext = (
   values: ErstatningsopgoerelseValues,
   rawRanges: readonly IsoRange[]
@@ -270,6 +272,20 @@ export const buildIncomeForRanges = (
     );
   const employers: IncomeEmployerAmount[] = [];
 
+  const buildAllocationDates = (interval: DateInterval): readonly ISODateString[] => {
+    const allocationDates: ISODateString[] = [];
+    iterateDatesInclusive(interval.start, interval.end, (date) => {
+      const iso = dateToISO(date);
+      if (!iso) return;
+      if (beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && !arbejdsdageSet.has(iso)) return;
+      allocationDates.push(iso);
+    });
+    return allocationDates;
+  };
+
+  const buildSelectedDates = (allocationDates: readonly ISODateString[]): readonly ISODateString[] =>
+    allocationDates.filter((iso) => isDateInRanges(iso, ranges));
+
   for (let index = 0; index < ansaettelser.length; index += 1) {
     const af = ansaettelser[index];
     const errorRowIds = loenErrorRowIdsByEmploymentId.get(af.id) ?? new Set<string>();
@@ -300,47 +316,30 @@ export const buildIncomeForRanges = (
       if (!interval) continue; // defensiv: eligibility 'valid' kræver interval
       const fra = dateToISO(interval.start);
       const til = dateToISO(interval.end);
-      const derived = calculateStandardLoenRowDerived(
-        row,
-        satser,
-        {
-          loenperiode: af.loenperiode,
-          rateSegments: fra && til
-            ? buildLoenindkomstRateSegments({
-              ansaettelsesforhold: af,
-              skadesdato,
-              fra,
-              til,
-            })
-            : undefined,
-        }
-      );
-      const atp = parseAmount(row.col5);
-      // NOTE: Fail-closed by design.
-      // Ikke-finite afledte beløb må aldrig indgå tavst i summer.
-      if (!Number.isFinite(derived.samlet) || derived.samlet <= 0) continue;
+      const allocationDates = buildAllocationDates(interval);
+      if (allocationDates.length === 0) continue;
+      const selectedDates = buildSelectedDates(allocationDates);
+      if (selectedDates.length === 0) continue;
 
-      const periodiser = (amount: number): number => {
-        if (beregningsenhed === TAF_BEREGNES_SOM.MAANEDER) {
-          return periodiserBeloebForMaaneder({
-            totalBeloeb: amount,
-            interval,
-            ranges,
-          });
-        }
-        return periodiserBeloebForArbejdsdage({
-          totalBeloeb: amount,
-          interval,
-          ranges,
-          arbejdsdageSet,
-        });
-      };
+      const projected = calculateStandardLoenProjectedAmounts(row, satser, {
+        loenperiode: af.loenperiode,
+        allocationDates,
+        selectedDates,
+        rateSegments: fra && til
+          ? buildLoenindkomstRateSegments({
+            ansaettelsesforhold: af,
+            skadesdato,
+            fra,
+            til,
+          })
+          : undefined,
+      });
 
-      const ferieberetContrib = periodiser(derived.ferieberet);
-      const fpFvShSoStbContrib = periodiser(derived.fpFvShSo);
-      const pensionContrib = periodiser(derived.pension);
-      const atpContrib = periodiser(atp);
-      const samletContrib = periodiser(derived.samlet);
+      const ferieberetContrib = projected.ferieberet;
+      const fpFvShSoStbContrib = projected.fpFvShSo;
+      const pensionContrib = projected.pension;
+      const atpContrib = projected.atp;
+      const samletContrib = projected.samlet;
       if (
         !Number.isFinite(ferieberetContrib) ||
         !Number.isFinite(fpFvShSoStbContrib) ||
