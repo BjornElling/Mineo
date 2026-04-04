@@ -52,6 +52,7 @@ export type BeregnetRenteTableProps = Readonly<{
   referenceRates: ReadonlyArray<RateEntry>;
   surchargeRates: ReadonlyArray<RateEntry>;
   saveOrderPath?: string;
+  onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 
 type BeregnetRenteRowProps = Readonly<{
@@ -232,6 +233,7 @@ const BeregnetRenteTable = React.memo(
     referenceRates,
     surchargeRates,
     saveOrderPath,
+    onRowsReorder,
   }: BeregnetRenteTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'belob', getSortValue: (row: RentekravDraftRow) => amountValueToNumber(committedById.get(row.id)?.belob) },
@@ -243,6 +245,7 @@ const BeregnetRenteTable = React.memo(
       getRowId,
       isRowEmpty,
       columns: sortColumns,
+      onSortedRowsChange: (nextRows) => onRowsReorder?.(nextRows.map((row) => row.id)),
     });
     const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
     useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);

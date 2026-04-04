@@ -215,7 +215,8 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
                   margin: '0 12px 0 0',
                   minWidth: '24px',
                   color: activePage === item.id ? 'var(--color-primary)' : 'var(--color-text-secondary)'
-                }
+                },
+                whiteSpace: item.id === 'varigemen' ? 'nowrap' : undefined,
               }}
             >
               {isExpanded && item.label}

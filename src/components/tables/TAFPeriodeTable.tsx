@@ -31,6 +31,7 @@ export type TAFPeriodeTableProps = Readonly<{
   erErhvervssygdom: boolean;
   verserendeKlageEet: boolean;
   saveOrderPath?: string;
+  onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 
 const getRowId = (row: TafDraftRow) => row.id;
@@ -53,6 +54,7 @@ const TAFPeriodeTable = React.memo(
     erErhvervssygdom,
     verserendeKlageEet,
     saveOrderPath,
+    onRowsReorder,
   }: TAFPeriodeTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'fra', getSortValue: (row: TafDraftRow) => committedById.get(row.id)?.fra },
@@ -66,6 +68,7 @@ const TAFPeriodeTable = React.memo(
       getRowId,
       isRowEmpty,
       columns: sortColumns,
+      onSortedRowsChange: (nextRows) => onRowsReorder?.(nextRows.map((row) => row.id)),
     });
     useRegisterTableSaveOrder(saveOrderPath, React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]));
 

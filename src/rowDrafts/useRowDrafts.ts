@@ -53,6 +53,7 @@ export type UseRowDraftsResult<TDraft extends WithId, TField extends keyof TDraf
 
   addRow: () => void;
   removeRow: (rowId: RowId) => void;
+  reorderRows: (orderedIds: readonly RowId[]) => void;
   resetDraftFromCommitted: () => void;
 
   rowErrors: RowErrors<RowId, TField>;
@@ -63,6 +64,31 @@ const getEnsuredCommitted = <TCommitted extends WithId>(
   config: Pick<UseRowDraftsConfig<WithId, TCommitted, never>, 'ensureRows' | 'initFromCommitted'>
 ): TCommitted[] => {
   return config.initFromCommitted?.(rows) ?? config.ensureRows(rows);
+};
+
+const reorderRowsByIds = <TRow extends WithId>(
+  rows: readonly TRow[],
+  orderedIds: readonly RowId[]
+): TRow[] => {
+  if (rows.length <= 1 || orderedIds.length <= 1) return [...rows];
+
+  const rowById = new Map(rows.map((row) => [row.id, row] as const));
+  const seen = new Set<RowId>();
+  const reordered: TRow[] = [];
+
+  for (const id of orderedIds) {
+    const row = rowById.get(id);
+    if (!row || seen.has(id)) continue;
+    reordered.push(row);
+    seen.add(id);
+  }
+
+  for (const row of rows) {
+    if (seen.has(row.id)) continue;
+    reordered.push(row);
+  }
+
+  return reordered;
 };
 
 export const useRowDrafts = <
@@ -196,6 +222,15 @@ export const useRowDrafts = <
     []
   );
 
+  const reorderRows = React.useCallback((orderedIds: readonly RowId[]) => {
+    configRef.current.setCommitted((prevRows) => {
+      const cfg = configRef.current;
+      const base = getEnsuredCommitted(prevRows, cfg);
+      return cfg.ensureRows(reorderRowsByIds(base, orderedIds));
+    });
+    bumpInternalResyncToken();
+  }, []);
+
   return {
     draftRows,
     setDraftRows,
@@ -205,6 +240,7 @@ export const useRowDrafts = <
     commitAll,
     addRow,
     removeRow,
+    reorderRows,
     resetDraftFromCommitted,
     rowErrors,
   };

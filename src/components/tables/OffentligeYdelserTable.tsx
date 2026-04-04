@@ -31,7 +31,7 @@ import {
   evaluateRowCommit,
   type RowRemovalFocusPlan,
 } from './gridCore/tableRowFocus';
-import { OFFENTLIGE_YDELSER_TABLE_HEADERS } from '../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
+import { getOffentligeYdelserTableHeaderNodes } from '../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 
 export type OffentligeYdelserDerivedCellValues = Readonly<{
@@ -83,6 +83,7 @@ const fingerprintTableData = (rows: readonly OffentligeYdelserRow[]): string => 
 
 const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTableHandle, OffentligeYdelserTableProps>(
   ({ tableData, derivedByRowId, onTableDataChange, onValidationChange, saveOrderPath }, ref) => {
+    const headers = React.useMemo(() => getOffentligeYdelserTableHeaderNodes(), []);
     const defaultTableData = React.useMemo<OffentligeYdelserRow[]>(
       () => [
         { ...initialOffentligYdelseRow, id: generateOffentligYdelseRowId() },
@@ -251,11 +252,22 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       { colId: 'ydelsePerDagDisplay', getSortValue: (row: OffentligeYdelserRow) => derivedByRowId?.get(row.id)?.ydelsePerDagDisplay ?? '' },
     ], [derivedByRowId, isYdelsestypeKey]);
 
+    const reorderRows = React.useCallback((nextRows: OffentligeYdelserRow[]) => {
+      const nextFingerprint = fingerprintTableData(nextRows);
+      if (nextFingerprint !== lastPersistedFingerprintRef.current) {
+        pendingPersistRef.current = nextRows;
+      }
+      committedRowsRef.current = nextRows;
+      syncCommittedRowIds(nextRows);
+      setInternalTableData(nextRows);
+    }, [syncCommittedRowIds]);
+
     const { sortedRows: visibleRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
       rows: internalTableData,
       getRowId: (row) => row.id,
       isRowEmpty,
       columns: sortColumns,
+      onSortedRowsChange: reorderRows,
     });
     const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
     useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
@@ -361,14 +373,14 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
 
           <thead>
             <tr>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('fraDato')} sortRole={getSortRole('fraDato')} sortDirection={getSortDirection('fraDato')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[0]}</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('tilDato')} sortRole={getSortRole('tilDato')} sortDirection={getSortDirection('tilDato')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[1]}</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelse')} sortRole={getSortRole('ydelse')} sortDirection={getSortDirection('ydelse')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[2]}</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('tillaeg')} sortRole={getSortRole('tillaeg')} sortDirection={getSortDirection('tillaeg')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[3]}</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelsestype')} sortRole={getSortRole('ydelsestype')} sortDirection={getSortDirection('ydelsestype')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[4]}</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('periodiseringLabel')} sortRole={getSortRole('periodiseringLabel')} sortDirection={getSortDirection('periodiseringLabel')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[5]}</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('antalDageDisplay')} sortRole={getSortRole('antalDageDisplay')} sortDirection={getSortDirection('antalDageDisplay')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[6]}</StandardGridHeaderCell>
-              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelsePerDagDisplay')} sortRole={getSortRole('ydelsePerDagDisplay')} sortDirection={getSortDirection('ydelsePerDagDisplay')}>{OFFENTLIGE_YDELSER_TABLE_HEADERS[7]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('fraDato')} sortRole={getSortRole('fraDato')} sortDirection={getSortDirection('fraDato')}>{headers[0]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('tilDato')} sortRole={getSortRole('tilDato')} sortDirection={getSortDirection('tilDato')}>{headers[1]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelse')} sortRole={getSortRole('ydelse')} sortDirection={getSortDirection('ydelse')}>{headers[2]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('tillaeg')} sortRole={getSortRole('tillaeg')} sortDirection={getSortDirection('tillaeg')}>{headers[3]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelsestype')} sortRole={getSortRole('ydelsestype')} sortDirection={getSortDirection('ydelsestype')}>{headers[4]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('periodiseringLabel')} sortRole={getSortRole('periodiseringLabel')} sortDirection={getSortDirection('periodiseringLabel')}>{headers[5]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('antalDageDisplay')} sortRole={getSortRole('antalDageDisplay')} sortDirection={getSortDirection('antalDageDisplay')}>{headers[6]}</StandardGridHeaderCell>
+              <StandardGridHeaderCell onClick={() => handleHeaderClick('ydelsePerDagDisplay')} sortRole={getSortRole('ydelsePerDagDisplay')} sortDirection={getSortDirection('ydelsePerDagDisplay')}>{headers[7]}</StandardGridHeaderCell>
             </tr>
           </thead>
 

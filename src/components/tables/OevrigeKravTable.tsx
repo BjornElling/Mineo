@@ -23,13 +23,14 @@ export type OevrigeKravTableProps = Readonly<{
   specialRangeErrors?: DateRangeSpecialErrors;
   noValidRangeCause?: string;
   saveOrderPath?: string;
+  onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 
 const getRowId = (row: OevrigeKravDraftRow) => row.id;
 const isRowEmpty = (row: OevrigeKravDraftRow) => row.dato.trim() === '' && row.udgiftTil.trim() === '' && row.beloeb.trim() === '';
 
 const OevrigeKravTable = React.memo(
-  ({ rows, committedById, onFieldChange, onRowBlur, minDate, maxDate, specialRangeErrors, noValidRangeCause, saveOrderPath }: OevrigeKravTableProps) => {
+  ({ rows, committedById, onFieldChange, onRowBlur, minDate, maxDate, specialRangeErrors, noValidRangeCause, saveOrderPath, onRowsReorder }: OevrigeKravTableProps) => {
   const minIso = React.useMemo(() => coerceToISODateString(minDate), [minDate]);
   const maxIso = React.useMemo(() => coerceToISODateString(maxDate), [maxDate]);
 
@@ -44,6 +45,7 @@ const OevrigeKravTable = React.memo(
     getRowId,
     isRowEmpty,
     columns: sortColumns,
+    onSortedRowsChange: (nextRows) => onRowsReorder?.(nextRows.map((row) => row.id)),
   });
   const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
   useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);

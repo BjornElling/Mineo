@@ -78,6 +78,30 @@ const DataRow = ({ label, value, rightAlign = true }: DataRowProps) => {
   );
 };
 
+interface MultiLineDataRowProps {
+  rows: ReadonlyArray<Readonly<{ label: string; value: string | null | undefined }>>;
+}
+
+const MultiLineDataRow = ({ rows }: MultiLineDataRowProps) => {
+  const visibleRows = rows.filter((row) => row.value);
+  if (visibleRows.length === 0) return null;
+
+  return (
+    <Box className="row--label-right-hover">
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {visibleRows.map((row) => (
+          <Typography key={row.label} className="row--text">{row.label}:</Typography>
+        ))}
+      </Box>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, ml: '16px', textAlign: 'right' }}>
+        {visibleRows.map((row) => (
+          <Typography key={row.label} className="row--text">{row.value}</Typography>
+        ))}
+      </Box>
+    </Box>
+  );
+};
+
 /**
  * Satser-komponent til visning af lovbestemte satser
  *
@@ -263,20 +287,22 @@ const Satser = React.memo(() => {
       <ContentBox className="content-box">
         <Typography className="section-header">Diverse</Typography>
 
-        <DataRow
-          label="Beløbsgrænse for fri proces (enlig/samlevende)"
-          value={
-            satser
-              ? formatKronerPair(
-                  satser.diverse.friProcesEnlig,
-                  satser.diverse.friProcesSamlevende
-                )
-              : ''
-          }
-        />
-        <DataRow
-          label="+ Tillæg per barn under 18 år"
-          value={satser ? formatKroner(satser.diverse.friProcesBarn) : ''}
+        <MultiLineDataRow
+          rows={[
+            {
+              label: 'Beløbsgrænse for fri proces (enlig/samlevende)',
+              value: satser
+                ? formatKronerPair(
+                    satser.diverse.friProcesEnlig,
+                    satser.diverse.friProcesSamlevende
+                  )
+                : '',
+            },
+            {
+              label: '+ Tillæg per barn under 18 år',
+              value: satser ? formatKroner(satser.diverse.friProcesBarn) : '',
+            },
+          ]}
         />
         <DataRow
           label="Reguleringssats"

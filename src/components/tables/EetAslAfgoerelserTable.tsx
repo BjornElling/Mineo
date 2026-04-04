@@ -168,6 +168,14 @@ const EetAslAfgoerelserTable = React.memo(
       getRowId: (row) => row.id,
       isRowEmpty: isAslAfgoerelseRowEmpty,
       columns: sortColumns,
+      onSortedRowsChange: (nextRows) => {
+        const toSave = nextRows.filter((row) => !isAslAfgoerelseRowEmpty(row));
+        const nextFingerprint = fingerprintTableData(toSave);
+        if (nextFingerprint !== lastPersistedFingerprintRef.current) {
+          queuePersist(toSave, nextFingerprint);
+        }
+        setInternalTableData(nextRows);
+      },
     });
     const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
     useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);

@@ -1,5 +1,7 @@
+import * as React from 'react';
 import type { Loenperiode } from '../../schemas/formSchemas';
 import type { StandardLoenTableColumnKey } from '../../types/table';
+import InfoTooltipIcon from '../../components/common/InfoTooltipIcon';
 
 // Normativt: col2 og col3 er to visuelt adskilte lønfelter med identisk domænebetydning.
 // De må kun adskilles i præsentationen; beregningsmæssigt summeres de blot.
@@ -62,4 +64,18 @@ export const getStandardLoenTableHeaders = (loenperiode: Loenperiode): readonly 
     STANDARD_LOEN_PENSION_LABEL,
     STANDARD_LOEN_SAMLET_LABEL,
   ];
+};
+
+const LOEN_2_TOOLTIP_TEXT = 'Opdelingen af løn er rent visuel - værdierne lægges sammen i beregningen';
+
+export const getStandardLoenTableHeaderNodes = (loenperiode: Loenperiode): readonly React.ReactNode[] => {
+  return getStandardLoenTableHeaders(loenperiode).map((header) => {
+    if (header !== STANDARD_LOEN_COL3_LABEL) return header;
+    return React.createElement(
+      'span',
+      undefined,
+      header,
+      React.createElement(InfoTooltipIcon, { title: LOEN_2_TOOLTIP_TEXT })
+    );
+  });
 };

@@ -43,8 +43,14 @@ export const useTableSort = <TRow>({
   getRowId: (row: TRow) => string;
   isRowEmpty: (row: TRow) => boolean;
   columns: readonly TableSortColumn<TRow>[];
+  onSortedRowsChange?: (sortedRows: TRow[]) => void;
 }>): UseTableSortResult<TRow> => {
   const [sortState, setSortState] = React.useState<GridSortState>({});
+
+  const getSortValueByColId = React.useCallback(
+    (colId: string) => columns.find((col) => col.colId === colId)?.getSortValue,
+    [columns]
+  );
 
   const sortedRows = React.useMemo(
     () =>
@@ -53,9 +59,9 @@ export const useTableSort = <TRow>({
         getRowId,
         isRowEmpty,
         sortState,
-        getSortValueByColId: (colId) => columns.find((col) => col.colId === colId)?.getSortValue,
+        getSortValueByColId,
       }),
-    [rows, getRowId, isRowEmpty, sortState, columns]
+    [rows, getRowId, isRowEmpty, sortState, getSortValueByColId]
   );
 
   const getSortRole = React.useCallback(
@@ -73,7 +79,9 @@ export const useTableSort = <TRow>({
   );
 
   const handleHeaderClick = React.useCallback(
-    (colId: string) => setSortState((prev) => toggleGridSort(prev, colId)),
+    (colId: string) => {
+      setSortState((prev) => toggleGridSort(prev, colId));
+    },
     []
   );
 

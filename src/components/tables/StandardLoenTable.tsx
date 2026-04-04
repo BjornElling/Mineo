@@ -24,9 +24,10 @@ import {
   calculateStandardLoenRowDerived,
   isStandardLoenRowEffectivelyEmpty,
   roundStandardLoenAmountToTwoDecimals,
+  type StandardLoenRowDerived,
 } from '../../domain/aarsloen/standardLoenRowCalculations';
 import { getStandardLoenTableValidation, isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../domain/aarsloen/standardLoenTableValidation';
-import { getStandardLoenTableHeaders } from '../../domain/aarsloen/standardLoenTableColumns';
+import { getStandardLoenTableHeaderNodes } from '../../domain/aarsloen/standardLoenTableColumns';
 
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
@@ -56,6 +57,7 @@ export type StandardLoenTableProps = {
   externalCellErrorMessagesByCellKey?: Readonly<Record<string, string>>;
   useSmallFont?: boolean;
   saveOrderPath?: string;
+  calculateDerivedRow?: (row: StandardLoenTableRow) => StandardLoenRowDerived;
 };
 
 const MIN_VISIBLE_ROWS = 2;
@@ -78,6 +80,10 @@ const fingerprintTableData = (rows: readonly StandardLoenTableRow[]): string => 
   return JSON.stringify(rows.map((row) => TABLE_FINGERPRINT_KEYS.map((key) => row[key] ?? null)));
 };
 
+const fingerprintValidationSummary = (summary: StandardLoenTableValidationSummary): string => {
+  return JSON.stringify(summary);
+};
+
 const isRowEmpty = (row: StandardLoenTableRow): boolean => isStandardLoenRowEffectivelyEmpty(row);
 
 const resolveColIdxFromKey = (colKey: StandardLoenTableColumnKey): number => {
@@ -90,7 +96,7 @@ type TableRowsState = {
 };
 
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
-  ({ loenperiode, satser, tableData, onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false, saveOrderPath }, ref) => {
+  ({ loenperiode, satser, tableData, onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false, saveOrderPath, calculateDerivedRow }, ref) => {
     const defaultTableData = React.useMemo<StandardLoenTableRow[]>(() => {
       return [
         { ...initialRow, id: generateRowId() },
@@ -161,6 +167,15 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     const queuePersist = React.useCallback((dataToPersist: StandardLoenTableRow[]) => {
       pendingPersistRef.current = dataToPersist;
     }, []);
+
+    const reorderRows = React.useCallback((nextRows: StandardLoenTableRow[]) => {
+      const managed = manageRows(nextRows);
+      const managedFingerprint = fingerprintTableData(managed);
+      const committedFingerprint = fingerprintTableData(rowsState.committed);
+      if (managedFingerprint === committedFingerprint) return;
+      queuePersist(managed);
+      setRowsState({ draft: managed, committed: managed });
+    }, [manageRows, queuePersist, rowsState.committed]);
 
     React.useEffect(() => {
       if (!pendingPersistRef.current) return;
@@ -294,7 +309,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     const calculateRow = React.useCallback(
       (row: StandardLoenTableRow): { col6: number; col7: number; col8: number; col9: number } => {
-        const derived = calculateStandardLoenRowDerived(row, getSatserInput());
+        const derived = calculateDerivedRow ? calculateDerivedRow(row) : calculateStandardLoenRowDerived(row, getSatserInput());
         return {
           col6: derived.ferieberet,
           col7: derived.fpFvShSo,
@@ -302,7 +317,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           col9: roundStandardLoenAmountToTwoDecimals(derived.samlet),
         };
       },
-      [getSatserInput]
+      [calculateDerivedRow, getSatserInput]
     );
 
     // cellErrorsByCellKeyRef is intentionally NOT in the deps array — it is a mutable ref and is
@@ -320,15 +335,27 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       });
     }, [committedTableData, externalCellErrorMessagesByCellKey, loenperiode]);
 
+    const lastValidationSummaryRef = React.useRef<string | null>(null);
+
     const notifyValidationChange = React.useCallback(() => {
       if (!onValidationChange) return;
-      onValidationChange(getValidationResult().summary);
+      const summary = getValidationResult().summary;
+      const summaryFingerprint = fingerprintValidationSummary(summary);
+      if (lastValidationSummaryRef.current === summaryFingerprint) return;
+      lastValidationSummaryRef.current = summaryFingerprint;
+      onValidationChange(summary);
     }, [getValidationResult, onValidationChange]);
 
     const handleErrorChange = React.useCallback((rowId: string, colKey: StandardLoenTableColumnKey, info: TableInputErrorInfo) => {
       const key = `${rowId}:${colKey}`;
-      if (info.hasError) cellErrorsByCellKeyRef.current[key] = true;
-      else delete cellErrorsByCellKeyRef.current[key];
+      const hadError = Boolean(cellErrorsByCellKeyRef.current[key]);
+      if (info.hasError) {
+        if (hadError) return;
+        cellErrorsByCellKeyRef.current[key] = true;
+      } else {
+        if (!hadError) return;
+        delete cellErrorsByCellKeyRef.current[key];
+      }
       notifyValidationChange();
     }, [notifyValidationChange]);
 
@@ -389,6 +416,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       getRowId: (row) => row.id,
       isRowEmpty,
       columns: sortColumns,
+      onSortedRowsChange: reorderRows,
     });
     const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
     useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
@@ -496,9 +524,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       [getValidationResult, isVisibleColKey]
     );
 
-    const headers = React.useMemo(() => {
-      return getStandardLoenTableHeaders(loenperiode);
-    }, [loenperiode]);
+    const headers = React.useMemo(() => getStandardLoenTableHeaderNodes(loenperiode), [loenperiode]);
 
     return (
       <StandardGridTable

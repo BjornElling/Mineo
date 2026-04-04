@@ -496,6 +496,13 @@ const LoenudviklingManuelTable = React.memo(
       getRowId: (row) => row.id,
       isRowEmpty: isRowEmptyForSort,
       columns: sortColumns,
+      onSortedRowsChange: (nextRows) => {
+        const nextFingerprint = fingerprintTableData(nextRows);
+        if (nextFingerprint !== lastPersistedFingerprintRef.current) {
+          pendingPersistRef.current = nextRows;
+        }
+        setInternalTableData(nextRows);
+      },
     });
     const visibleRowIds = React.useMemo(() => visibleRows.map((row) => row.id), [visibleRows]);
 

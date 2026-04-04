@@ -18,6 +18,7 @@ export type BeregningsperiodeFerieTableProps = Readonly<{
   beregningsperiodeFra: ISODateString | undefined;
   beregningsperiodeTil: ISODateString | undefined;
   saveOrderPath?: string;
+  onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 
 const OUTSIDE_BEREGNINGSPERIODE_ERROR_MESSAGE = 'Ferie i beregningsperioden skal også ligge inden for beregningsperioden.';
@@ -35,6 +36,7 @@ const BeregningsperiodeFerieTable = React.memo(
     beregningsperiodeFra,
     beregningsperiodeTil,
     saveOrderPath,
+    onRowsReorder,
   }: BeregningsperiodeFerieTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'fra', getSortValue: (row: FerieDraftRow) => committedById.get(row.id)?.fra },
@@ -47,6 +49,7 @@ const BeregningsperiodeFerieTable = React.memo(
       getRowId,
       isRowEmpty,
       columns: sortColumns,
+      onSortedRowsChange: (nextRows) => onRowsReorder?.(nextRows.map((row) => row.id)),
     });
     const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
     useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);

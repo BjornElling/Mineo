@@ -30,6 +30,7 @@ export type SvieSmerteTableProps = Readonly<{
   onFieldChange: (rowId: string, field: 'fra' | 'til' | 'tilstand') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
   saveOrderPath?: string;
+  onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 
 const SVIE_TILSTAND_OPTIONS: readonly TableDropdownOption[] = [
@@ -46,7 +47,7 @@ const getRowId = (row: SvieSmerteDraftRow) => row.id;
 const isRowEmpty = (row: SvieSmerteDraftRow) => row.fra.trim() === '' && row.til.trim() === '';
 
 const SvieSmerteTable = React.memo(
-  ({ rows, committedById, derivedById, overlappingIds, skadesdatoISO, menAfgoerelseDato, erErhvervssygdom, verserendeKlageMen, onFieldChange, onRowBlur, saveOrderPath }: SvieSmerteTableProps) => {
+  ({ rows, committedById, derivedById, overlappingIds, skadesdatoISO, menAfgoerelseDato, erErhvervssygdom, verserendeKlageMen, onFieldChange, onRowBlur, saveOrderPath, onRowsReorder }: SvieSmerteTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'fra', getSortValue: (row: SvieSmerteDraftRow) => committedById.get(row.id)?.fra },
       { colId: 'til', getSortValue: (row: SvieSmerteDraftRow) => committedById.get(row.id)?.til },
@@ -59,6 +60,7 @@ const SvieSmerteTable = React.memo(
       getRowId,
       isRowEmpty,
       columns: sortColumns,
+      onSortedRowsChange: (nextRows) => onRowsReorder?.(nextRows.map((row) => row.id)),
     });
     const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
     useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);

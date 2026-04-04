@@ -23,6 +23,7 @@ export type FerieperiodeTableProps = Readonly<{
   erErhvervssygdom: boolean;
   verserendeKlageEet: boolean;
   saveOrderPath?: string;
+  onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 
 const getRowId = (row: FerieDraftRow) => row.id;
@@ -41,6 +42,7 @@ const FerieperiodeTable = React.memo(
     erErhvervssygdom,
     verserendeKlageEet,
     saveOrderPath,
+    onRowsReorder,
   }: FerieperiodeTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'fra', getSortValue: (row: FerieDraftRow) => committedById.get(row.id)?.fra },
@@ -53,6 +55,7 @@ const FerieperiodeTable = React.memo(
       getRowId,
       isRowEmpty,
       columns: sortColumns,
+      onSortedRowsChange: (nextRows) => onRowsReorder?.(nextRows.map((row) => row.id)),
     });
     const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
     useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
