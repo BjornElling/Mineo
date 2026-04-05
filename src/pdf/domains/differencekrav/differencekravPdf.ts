@@ -231,7 +231,7 @@ const renderDifferencekravPage = (
   // Løbende ASL-ydelser
   writer.writeSubheader('Løbende ASL-ydelser', PDF_BASE_LINE_HEIGHT_MM);
 
-  if (computation.skadesdato < '2011-06-16') {
+  if (computation.skadedato < '2011-06-16') {
     writer.writeWrappedText('Skaden er indtrådt før 16. juni 2011.');
     writer.writeWrappedText(
       'Der foretages derfor fradrag i differencekravet med midlertidige EET-ydelser.'

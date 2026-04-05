@@ -47,7 +47,7 @@ describe('EET PDF empty states', () => {
     generateLoebendeYdelserPdf({
       computation: {
         beregningsdato: '2026-03-17',
-        skadesdato: '2020-01-01',
+        skadedato: '2020-01-01',
         maxAarsloenISkadesaar: 500000,
         benyttetAarsloen: 500000,
         grundloen: 400000,
@@ -133,7 +133,7 @@ describe('EET PDF empty states', () => {
     generateDifferencekravPdf({
       computation: {
         beregningsdato: '2026-03-17',
-        skadesdato: '2020-01-01',
+        skadedato: '2020-01-01',
         dagFoerBeregningsdato: '2026-03-16',
         ealKrav: 100000,
         ealEetPct: 15,
@@ -146,7 +146,7 @@ describe('EET PDF empty states', () => {
         kapitaliseringerAfgoerelser: [],
         loebendeComputation: {
           beregningsdato: '2026-03-16',
-          skadesdato: '2020-01-01',
+          skadedato: '2020-01-01',
           maxAarsloenISkadesaar: 500000,
           benyttetAarsloen: 500000,
           grundloen: 400000,
@@ -182,7 +182,7 @@ describe('EET PDF empty states', () => {
     generateDifferencekravPdf({
       computation: {
         beregningsdato: '2026-03-17',
-        skadesdato: '2020-01-01',
+        skadedato: '2020-01-01',
         dagFoerBeregningsdato: '2026-03-16',
         ealKrav: 100000,
         ealEetPct: 15,
@@ -213,7 +213,7 @@ describe('EET PDF empty states', () => {
         kapitaliseringerAfgoerelser: [],
         loebendeComputation: {
           beregningsdato: '2026-03-16',
-          skadesdato: '2020-01-01',
+          skadedato: '2020-01-01',
           maxAarsloenISkadesaar: 500000,
           benyttetAarsloen: 500000,
           grundloen: 400000,
@@ -257,7 +257,7 @@ describe('EET PDF empty states', () => {
     generateDifferencekravPdf({
       computation: {
         beregningsdato: '2026-01-15',
-        skadesdato: '2022-09-17',
+        skadedato: '2022-09-17',
         dagFoerBeregningsdato: '2026-01-14',
         ealKrav: 100000,
         ealEetPct: 15,
@@ -270,7 +270,7 @@ describe('EET PDF empty states', () => {
         kapitaliseringerAfgoerelser: [],
         loebendeComputation: {
           beregningsdato: '2026-01-14',
-          skadesdato: '2022-09-17',
+          skadedato: '2022-09-17',
           maxAarsloenISkadesaar: 500000,
           benyttetAarsloen: 339000,
           grundloen: 300000,

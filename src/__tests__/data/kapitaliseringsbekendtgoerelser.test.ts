@@ -8,13 +8,13 @@ import { dateToISO, parseISODate } from '../../types/branded';
 import { addDays } from '../../utils/dateUtils';
 
 const resolveIdForDatoer = (
-  skadesdato: string,
+  skadedato: string,
   kapitaliseringsdato: string
 ): string | undefined => {
   const skadesinterval = kapitaliseringsbekendtgoerelser
-    .filter((interval) => interval.skadesdatoFra <= skadesdato)
+    .filter((interval) => interval.skadedatoFra <= skadedato)
     .reduce((latest, current) =>
-      current.skadesdatoFra > latest.skadesdatoFra ? current : latest
+      current.skadedatoFra > latest.skadedatoFra ? current : latest
     );
 
   const kandidat = skadesinterval.kapitaliseringer
@@ -160,7 +160,7 @@ describe('kapitaliseringsbekendtgørelser', () => {
           if (entry.kapitaliseringsdatoFra < lokal.gyldigFra || entry.kapitaliseringsdatoFra > lokal.gyldigTil) {
             return [
               {
-                skadesdatoFra: interval.skadesdatoFra,
+                skadedatoFra: interval.skadedatoFra,
                 id: entry.id,
                 kapitaliseringsdatoFra: entry.kapitaliseringsdatoFra,
                 fil: lokal.filnavn,

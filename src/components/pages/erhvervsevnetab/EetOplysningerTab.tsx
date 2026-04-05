@@ -27,7 +27,7 @@ export type EetOplysningerTabProps = {
   setFieldValue: SetFieldValue<ErhvervsevnetabValues>;
   handleAslAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['aslAarsloen']>;
   handleEalAarsloenChange: CommitHandler<ErhvervsevnetabComposedValues['ealAarsloen']>;
-  skadesdato: string | undefined;
+  skadedato: string | undefined;
 };
 
 const EetOplysningerTab = ({
@@ -36,7 +36,7 @@ const EetOplysningerTab = ({
   setFieldValue,
   handleAslAarsloenChange,
   handleEalAarsloenChange,
-  skadesdato,
+  skadedato,
 }: EetOplysningerTabProps) => {
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
   const reportAslAarsloenInputError = useFormFieldErrorReporter('faellesAarsloen', 'aslAarsloen', {
@@ -50,15 +50,26 @@ const EetOplysningerTab = ({
 
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
-  const skadesdatoMin = React.useMemo(() => {
-    const iso = coerceToISODateString(skadesdato);
+  const skadedatoMin = React.useMemo(() => {
+    const iso = coerceToISODateString(skadedato);
     return iso ?? dateRanges_erhvervsevnetab.beregningsdato.fallbackMin;
-  }, [skadesdato]);
+  }, [skadedato]);
   const visKoenValg = React.useMemo(() => {
-    const iso = coerceToISODateString(skadesdato);
+    const iso = coerceToISODateString(skadedato);
     if (!iso) return false;
     return iso < '2015-03-01';
-  }, [skadesdato]);
+  }, [skadedato]);
+  const hasKapDatoFoer2015 = React.useMemo(() => {
+    return values.aslAfgoerelser.some((row) => {
+      const kapDato = coerceToISODateString(row.kapDato);
+      return kapDato !== undefined && kapDato < '2015-03-01';
+    });
+  }, [values.aslAfgoerelser]);
+  const hasBeregningsdatoFoer2015 = React.useMemo(() => {
+    const beregningsdato = coerceToISODateString(values.beregningsdato);
+    return beregningsdato !== undefined && beregningsdato < '2015-03-01';
+  }, [values.beregningsdato]);
+  const visKoenFelt = visKoenValg || hasKapDatoFoer2015 || hasBeregningsdatoFoer2015;
 
   const ealEetPctError = React.useMemo(
     () => validatePercentDivisibleBy5FromValue(values.ealEetPct, 'EET %'),
@@ -67,19 +78,14 @@ const EetOplysningerTab = ({
 
   const koenError = React.useMemo(() => {
     if (values.koen) return undefined;
-    const hasKapDatoFoer2015 = values.aslAfgoerelser.some((row) => {
-      const kapDato = coerceToISODateString(row.kapDato);
-      return kapDato !== undefined && kapDato < '2015-03-01';
-    });
     if (hasKapDatoFoer2015) {
       return 'Ved kapitalisering før 1. marts 2015 skal køn angives.';
     }
-    const beregningsdato = coerceToISODateString(values.beregningsdato);
-    if (beregningsdato !== undefined && beregningsdato < '2015-03-01') {
+    if (hasBeregningsdatoFoer2015) {
       return 'Ved beregning før 1. marts 2015 skal køn angives.';
     }
     return undefined;
-  }, [values.aslAfgoerelser, values.beregningsdato, values.koen]);
+  }, [hasBeregningsdatoFoer2015, hasKapDatoFoer2015, values.koen]);
 
   const handleAslAfgoerelserChange = React.useCallback(
     (rows: ErhvervsevnetabValues['aslAfgoerelser']) => {
@@ -93,7 +99,7 @@ const EetOplysningerTab = ({
       <ContentBox className="content-box" data-section-id="eet-oplysninger-grundlaeggende">
         <Typography className="section-header">Grundlæggende oplysninger</Typography>
 
-        {(visKoenValg || Boolean(koenError)) && (
+        {visKoenFelt && (
           <Box className="row--label-right-hover">
             <Typography className="row--text">Køn</Typography>
             <Box className="row--label-right-hover__content">
@@ -121,7 +127,7 @@ const EetOplysningerTab = ({
             <StyledDateField
               value={values.beregningsdato || undefined}
               onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
-              minDate={skadesdatoMin}
+              minDate={skadedatoMin}
               maxDate={dateRanges_erhvervsevnetab.beregningsdato.max}
               specialRangeErrors={{ maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' }}
               inputRef={beregningsdatoInputRef}
@@ -153,8 +159,8 @@ const EetOplysningerTab = ({
 
         <EetAslAfgoerelserTable
           tableData={values.aslAfgoerelser}
-          skadesdato={coerceToISODateString(skadesdato)}
-          skadesdatoMin={skadesdatoMin}
+          skadedato={coerceToISODateString(skadedato)}
+          skadedatoMin={skadedatoMin}
           beregningsdato={coerceToISODateString(values.beregningsdato)}
           skadelidteFodselsdato={coerceToISODateString(values.skadelidteFodselsdato)}
           onTableDataChange={handleAslAfgoerelserChange}

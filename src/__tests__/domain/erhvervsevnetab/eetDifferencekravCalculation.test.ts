@@ -3,9 +3,9 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/
 import { computeEetDifferencekravCalculation } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
 
 // Fælles stamdata for alle ≤ 2 år-tests i denne fil:
-//   skadesdato 2019-04-01, fødselsdato 1955-07-01
+//   skadedato 2019-04-01, fødselsdato 1955-07-01
 //   FP = 67 år → folkepensionsdato = 2022-07-01
-//   Bekendtgørelse BEK 9921/2019 → særfaktor = 1.245 (67 år, skadesdato 2019)
+//   Bekendtgørelse BEK 9921/2019 → særfaktor = 1.245 (67 år, skadedato 2019)
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -28,7 +28,7 @@ describe('computeEetDifferencekravCalculation', () => {
             tidlKapDato: undefined,
           }],
         },
-        skadesdato: '2019-04-01',
+        skadedato: '2019-04-01',
         skadelidteFodselsdato: '1980-01-01',
       });
 
@@ -59,7 +59,7 @@ describe('computeEetDifferencekravCalculation', () => {
             tidlKapDato: undefined,
           }],
         },
-        skadesdato: '2019-04-01',
+        skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
       });
 
@@ -97,7 +97,7 @@ describe('computeEetDifferencekravCalculation', () => {
             tidlKapDato: undefined,
           }],
         },
-        skadesdato: '2019-04-01',
+        skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
       });
 
@@ -135,7 +135,7 @@ describe('computeEetDifferencekravCalculation', () => {
             tidlKapDato: undefined,
           }],
         },
-        skadesdato: '2019-04-01',
+        skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
       });
 
@@ -167,7 +167,7 @@ describe('computeEetDifferencekravCalculation', () => {
             tidlKapDato: undefined,
           }],
         },
-        skadesdato: '2019-04-01',
+        skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
       });
 
@@ -203,7 +203,7 @@ describe('computeEetDifferencekravCalculation', () => {
             tidlKapDato: undefined,
           }],
         },
-        skadesdato: '2019-04-01',
+        skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
       });
 
@@ -241,7 +241,7 @@ describe('computeEetDifferencekravCalculation', () => {
             tidlKapDato: undefined,
           }],
         },
-        skadesdato: '2019-04-01',
+        skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
       });
 
@@ -266,7 +266,7 @@ describe('computeEetDifferencekravCalculation', () => {
             tidlKapDato: undefined,
           }],
         },
-        skadesdato: '2019-04-01',
+        skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
       });
 
@@ -308,7 +308,7 @@ describe('computeEetDifferencekravCalculation', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
     });
 
@@ -337,7 +337,7 @@ describe('computeEetDifferencekravCalculation', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
     });
 
@@ -377,7 +377,7 @@ describe('computeEetDifferencekravCalculation', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
     });
 
@@ -404,7 +404,7 @@ describe('computeEetDifferencekravCalculation', () => {
           tidlKapDato: undefined,
         }],
       },
-      skadesdato: '2022-09-17',
+      skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
     });
 
@@ -432,7 +432,7 @@ describe('computeEetDifferencekravCalculation', () => {
           tidlKapDato: undefined,
         }],
       },
-      skadesdato: '2022-09-17',
+      skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
     });
 
@@ -462,7 +462,7 @@ describe('computeEetDifferencekravCalculation', () => {
           tidlKapDato: undefined,
         }],
       },
-      skadesdato: '2022-09-17',
+      skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
     });
 
@@ -488,7 +488,7 @@ describe('computeEetDifferencekravCalculation', () => {
           tidlKapDato: undefined,
         }],
       },
-      skadesdato: '2022-09-17',
+      skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
     });
 
@@ -514,7 +514,7 @@ describe('computeEetDifferencekravCalculation', () => {
           tidlKapDato: undefined,
         }],
       },
-      skadesdato: '2011-01-01',
+      skadedato: '2011-01-01',
       skadelidteFodselsdato: '1961-11-01',
     });
 
@@ -541,7 +541,7 @@ describe('computeEetDifferencekravCalculation', () => {
           tidlKapDato: undefined,
         }],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 

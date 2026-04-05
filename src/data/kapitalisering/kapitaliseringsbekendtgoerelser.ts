@@ -5,12 +5,12 @@ import { maxIso, minIso, toISODateString } from '../../types/branded';
 // Manuelt vedligeholdt — opdateres årligt når nye bekendtgørelser/vejledninger udstedes.
 //
 // Struktur:
-//   - skadesdatoFra: første skadesdato (inklusiv) dette interval gælder for
+//   - skadedatoFra: første skadedato (inklusiv) dette interval gælder for
 //   - kapitaliseringer: liste af kapitaliseringsdato-intervaller med tilhørende bekendtgørelse
 //     - kapitaliseringsdatoFra: første kapitaliseringsdato (inklusiv) dette interval gælder for
 //     - id: bekendtgørelsens nummer/årstal — bruges til opslag i kapitaliseringstabeller
 //
-// Opslagslogik: find seneste skadesdatoFra ≤ skadesdato, og inden for det interval
+// Opslagslogik: find seneste skadedatoFra ≤ skadedato, og inden for det interval
 // seneste kapitaliseringsdatoFra ≤ kapitaliseringsdato.
 //
 // Udløbsregel: en post gælder til dagen før næste kapitaliseringsdatoFra i samme
@@ -22,12 +22,12 @@ import { maxIso, minIso, toISODateString } from '../../types/branded';
 // Tomme celler i den originale oversigt (kombinationer der ikke kan forekomme) er udeladt.
 //
 // Note: Intervallet 01-04-1978 indeholder ældre bekendtgørelser fra før 2005.
-// Disse kan aldrig forekomme i praksis (stamdata låser mindste skadesdato til 01-01-2005),
+// Disse kan aldrig forekomme i praksis (stamdata låser mindste skadedato til 01-01-2005),
 // men bevares af dokumentationsmæssige årsager.
 //
 // Sådan tilføjes et nyt år:
 //   1. Tilføj en ny { kapitaliseringsdatoFra, id } linje nederst i HVERT relevant interval.
-//   2. Hvis en ny skadesdato-grænse indføres ved lov, tilføj et nyt objekt i hovedarrayet.
+//   2. Hvis en ny skadedato-grænse indføres ved lov, tilføj et nyt objekt i hovedarrayet.
 //
 // Fail-fast validering:
 // - RAW_* konverteres ved modul-load med toISODateString.
@@ -38,8 +38,8 @@ export interface KapitaliseringsInterval {
   id: string
 }
 
-export interface KapitaliseringsSkadesdatoInterval {
-  skadesdatoFra: ISODateString
+export interface KapitaliseringsSkadedatoInterval {
+  skadedatoFra: ISODateString
   kapitaliseringer: KapitaliseringsInterval[]
 }
 
@@ -48,15 +48,15 @@ type RawKapitaliseringsInterval = Readonly<{
   id: string;
 }>;
 
-type RawKapitaliseringsSkadesdatoInterval = Readonly<{
-  skadesdatoFra: string;
+type RawKapitaliseringsSkadedatoInterval = Readonly<{
+  skadedatoFra: string;
   kapitaliseringer: readonly RawKapitaliseringsInterval[];
 }>;
 
-const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadesdatoInterval[] = [
+const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadedatoInterval[] = [
 
   {
-    skadesdatoFra: '1978-04-01',
+    skadedatoFra: '1978-04-01',
     kapitaliseringer: [
       { kapitaliseringsdatoFra: '2004-01-01', id: '1068/2003' },
       { kapitaliseringsdatoFra: '2007-07-01', id: '1068/2003' },
@@ -88,7 +88,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadesdato
   },
 
   {
-    skadesdatoFra: '2007-07-01',
+    skadedatoFra: '2007-07-01',
     kapitaliseringer: [
       { kapitaliseringsdatoFra: '2007-07-01', id: '678/2007'  },
       { kapitaliseringsdatoFra: '2008-01-01', id: '1263/2007' },
@@ -119,7 +119,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadesdato
   },
 
   {
-    skadesdatoFra: '2011-01-01',
+    skadedatoFra: '2011-01-01',
     kapitaliseringer: [
       { kapitaliseringsdatoFra: '2011-01-01', id: '1220/2010' },
       { kapitaliseringsdatoFra: '2012-01-01', id: '1358/2011' },
@@ -145,7 +145,7 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadesdato
   },
 
   {
-    skadesdatoFra: '2021-01-01',
+    skadedatoFra: '2021-01-01',
     kapitaliseringer: [
       { kapitaliseringsdatoFra: '2021-01-01', id: '9741/2020' },
       { kapitaliseringsdatoFra: '2022-01-01', id: '9864/2021' },
@@ -159,9 +159,9 @@ const RAW_KAPITALISERINGSBEKENDTGOERELSER: readonly RawKapitaliseringsSkadesdato
 
 ];
 
-export const kapitaliseringsbekendtgoerelser: KapitaliseringsSkadesdatoInterval[] =
+export const kapitaliseringsbekendtgoerelser: KapitaliseringsSkadedatoInterval[] =
   RAW_KAPITALISERINGSBEKENDTGOERELSER.map((row) => ({
-    skadesdatoFra: toISODateString(row.skadesdatoFra),
+    skadedatoFra: toISODateString(row.skadedatoFra),
     kapitaliseringer: row.kapitaliseringer.map((kap) => ({
       kapitaliseringsdatoFra: toISODateString(kap.kapitaliseringsdatoFra),
       id: kap.id,
@@ -169,11 +169,11 @@ export const kapitaliseringsbekendtgoerelser: KapitaliseringsSkadesdatoInterval[
   }));
 
 const resolveLatestKapitaliseringsdatoFraPerSkadesinterval = (
-  interval: KapitaliseringsSkadesdatoInterval
+  interval: KapitaliseringsSkadedatoInterval
 ): ISODateString => {
   if (interval.kapitaliseringer.length === 0) {
     throw new Error(
-      `CRITICAL: Kapitaliseringsinterval for skadesdato ${interval.skadesdatoFra} mangler kapitaliseringsdatoer`
+      `CRITICAL: Kapitaliseringsinterval for skadedato ${interval.skadedatoFra} mangler kapitaliseringsdatoer`
     );
   }
 
@@ -184,7 +184,7 @@ const resolveLatestKapitaliseringsdatoFraPerSkadesinterval = (
 };
 
 // EET max-grænse fra bekendtgørelsesoversigten:
-// Find den laveste "seneste kapitaliseringsdatoFra" på tværs af alle skadesdato-intervaller.
+// Find den laveste "seneste kapitaliseringsdatoFra" på tværs af alle skadedato-intervaller.
 // Når en seneste post endnu ikke er afløst af en ny post, gælder den foreløbigt kun
 // til årets udgang, så resultatet er 31-12 i det år.
 export const eetKapitaliseringsDatoMaxFraBekendtgoerelser: ISODateString = (() => {

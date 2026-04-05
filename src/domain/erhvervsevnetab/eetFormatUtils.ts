@@ -59,8 +59,8 @@ const NAV_EET_EAL: EetTabNavigation = {
 };
 
 const STAMDATA_IDS = new Set([
-  'skadesdato-missing',
-  'field-skadesdato',
+  'skadedato-missing',
+  'field-skadedato',
   'alder-unresolved',
   'skadelidte-fodselsdato-missing',
   'field-skadelidte-fodselsdato',

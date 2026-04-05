@@ -39,13 +39,13 @@ const EetEfterEalTab = ({ values, onGoToEetOplysninger }: Props) => {
     () =>
       computeEetEalCalculation({
         erhvervsevnetab: values,
-        skadesdato: stamdata?.skadesdato,
+        skadedato: stamdata?.skadedato,
         skadelidteFodselsdato: values.skadelidteFodselsdato,
         reguleringssats,
         erhvervsevnetabEalMax,
         aarsloenAslMax,
       }),
-    [stamdata?.skadesdato, values]
+    [stamdata?.skadedato, values]
   );
 
   const fieldIssues = React.useMemo(() => {
@@ -54,14 +54,14 @@ const EetEfterEalTab = ({ values, onGoToEetOplysninger }: Props) => {
       toFieldIssue('field-eal-eet-pct', eetFieldErrors.ealEetPct?.message),
       toFieldIssue('field-aarsloen-eal', faellesAarsloenFieldErrors.ealAarsloen?.message),
       toFieldIssue('field-skadelidte-fodselsdato', stamdataFieldErrors.skadelidteFodselsdato?.message),
-      toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
+      toFieldIssue('field-skadedato', stamdataFieldErrors.skadedato?.message),
     ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
   }, [
     eetFieldErrors.beregningsdato?.message,
     eetFieldErrors.ealEetPct?.message,
     faellesAarsloenFieldErrors.ealAarsloen?.message,
     stamdataFieldErrors.skadelidteFodselsdato?.message,
-    stamdataFieldErrors.skadesdato?.message,
+    stamdataFieldErrors.skadedato?.message,
   ]);
 
   const issues = React.useMemo(

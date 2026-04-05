@@ -29,7 +29,7 @@ export const gyldigTil = toISODateString('2016-12-31');
 // Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadesdatoFra     foedselsdatoFra     foedselsdatoTil     ophoersalderAarLabel     tabel
+  // skadedatoFra     foedselsdatoFra     foedselsdatoTil     ophoersalderAarLabel     tabel
   ['2011-01-01',     '1963-01-01',     null,     '68',     'A'],
   ['2011-01-01',     '1955-07-01',     '1962-12-31',     '67',     'B'],
   ['2011-01-01',     '1955-01-01',     '1955-06-30',     '66.5',     'C'],
@@ -38,8 +38,8 @@ const ERHVERVSEVNETAB_TABELVALG_DATA = [
 ] as const;
 
 export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadesdatoFra, foedselsdatoFra, foedselsdatoTil, ophoersalderAarLabel, tabel]) => ({
-    skadesdatoFra: toISODateString(skadesdatoFra),
+  ([skadedatoFra, foedselsdatoFra, foedselsdatoTil, ophoersalderAarLabel, tabel]) => ({
+    skadedatoFra: toISODateString(skadedatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
     foedselsdatoTil: foedselsdatoTil ? toISODateString(foedselsdatoTil) : null,
     folkepensionsalderAar: null,

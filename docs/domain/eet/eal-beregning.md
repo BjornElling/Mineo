@@ -76,10 +76,10 @@ eet_maks = erhvervsevnetabMax[beregningsår]
 
 #### Trin 3 — Aldersreduktion
 
-Alderen opgøres i **hele opnåede år** på skadesdatoen (måneder og dage ignoreres):
+Alderen opgøres i **hele opnåede år** på skadedatoen (måneder og dage ignoreres):
 
 ```
-alder = floor((skadesdato − fødselsdato) i hele år)
+alder = floor((skadedato − fødselsdato) i hele år)
 ```
 
 Aldersreduktionsprocenten:
@@ -128,7 +128,7 @@ De to må **aldrig** dele beregningssti eller helper.
 
 ### Verificeret eksempel
 
-**Stamdata:** Skadesdato 01-01-2023 (skadesår 2023), beregningsdato 01-10-2026 (beregningsår 2026), fødselsdato 08-01-1972, årsløn 700.000 kr., EET-% 70 %.
+**Stamdata:** Skadedato 01-01-2023 (skadesår 2023), beregningsdato 01-10-2026 (beregningsår 2026), fødselsdato 08-01-1972, årsløn 700.000 kr., EET-% 70 %.
 
 ```
 Reguleringsår: 2024, 2025, 2026
@@ -142,13 +142,13 @@ eet_beregnet = round0(789.000 × 10 × 0,70) = 5.523.000 kr.
 alder ved skade = floor((2023-01-01 − 1972-01-08)) = 50 hele år
 reduktion_pct = (50−29) + 0 = 21 %  → men ifølge verificeret eksempel i differencekrav: alder = 51, reduktion = 22 %
   (afhænger af præcis skadsdato; 08-01-1972 → 01-01-2023 = 50 år, 360 dage → 50 hele år,
-   men ved skadesdato 01-10-2026 som beregningsdato: kontroldatoen er skadesdato)
+   men ved skadedato 01-10-2026 som beregningsdato: kontroldatoen er skadedato)
 
 aldersreduktion_beløb = round0(5.523.000 × 0,22) = 1.215.060 kr.
 eal_krav = 5.523.000 − 1.215.060 = 4.307.940 kr.
 ```
 
-*(Differencekravets verificerede eksempel bruger alder 51 og reduktion 22 % — det præcise resultat afhænger af de konkrete skadesdato/fødselsdato-input og de gældende satser for de pågældende år.)*
+*(Differencekravets verificerede eksempel bruger alder 51 og reduktion 22 % — det præcise resultat afhænger af de konkrete skadedato/fødselsdato-input og de gældende satser for de pågældende år.)*
 
 ---
 
@@ -164,7 +164,7 @@ eal_krav = 5.523.000 − 1.215.060 = 4.307.940 kr.
 computeEetEalCalculation(input: Input): EetEalCalculationResult
 ```
 
-`Input` indeholder `erhvervsevnetab`, `skadesdato`, `fodselsdato`, samt tre rate-tabeller: `reguleringssats`, `erhvervsevnetabMax`, `aarsloenMax` — alle af typen `YearlyRate` fra `lovbestemteRates.ts`. Fane 4 injicerer disse direkte fra `lovbestemteRates`; fane 5 gør det samme.
+`Input` indeholder `erhvervsevnetab`, `skadedato`, `fodselsdato`, samt tre rate-tabeller: `reguleringssats`, `erhvervsevnetabMax`, `aarsloenMax` — alle af typen `YearlyRate` fra `lovbestemteRates.ts`. Fane 4 injicerer disse direkte fra `lovbestemteRates`; fane 5 gør det samme.
 
 ### Nøgletyper
 
@@ -172,7 +172,7 @@ computeEetEalCalculation(input: Input): EetEalCalculationResult
 EetEalCalculationResult = { issues, computation: EetEalComputation | null }
 
 EetEalComputation = {
-  beregningsdato, skadesdato, fodselsdato,
+  beregningsdato, skadedato, fodselsdato,
   skadesaar, beregningsaar,
   aarsloen, aarsloenSource: 'eal' | 'asl',
   reguleringsaar: readonly number[],
@@ -199,7 +199,7 @@ EetEalResolvedEetPct = {
 | `resolveEetPctFromAslRows(rows)` | ASL-fallback-logik: seneste afgørelsesdato → seneste virkningsdato → Endelig > Delvist endelig |
 | `resolveAarsloen(values)` | EAL-årsløn → ASL-årsløn fallback. Returnerer `{ value, source }` |
 | `computeEalReguleringsfaktorFromYearlyChain(skadesaar, beregningsaar, sats)` | Kæde-opregning. Returnerer `{ reguleringsaar, manglendeAar, faktor }` |
-| `calculateAgeInWholeYears(fodselsdato, skadesdato)` | Hele opnåede år (dage ignoreres efter månedsjustering) |
+| `calculateAgeInWholeYears(fodselsdato, skadedato)` | Hele opnåede år (dage ignoreres efter månedsjustering) |
 | `calculateAldersreduktionPct(alder)` | Reduktionsformel med cap ved alder 69 |
 
 ### Afrunding
@@ -223,7 +223,7 @@ const round500 = (value: number): number =>
 
 Se [fejlkatalog.md](./fejlkatalog.md) for komplet katalog. Fane 4 producerer:
 
-**Blokerende fejl:** `aarsloen-missing`, `aarsloen-zero`, `eal-aarsloen-zero`, `eet-pct-missing`, `eal-eet-pct-invalid`, `asl-selected-eet-pct-invalid`, `asl-identiske-afgoerelser`, `fodselsdato-missing`, `beregningsdato-missing`, `skadesdato-missing`, `reguleringssats-missing`, `eet-max-missing`, `alder-unresolved`.
+**Blokerende fejl:** `aarsloen-missing`, `aarsloen-zero`, `eal-aarsloen-zero`, `eet-pct-missing`, `eal-eet-pct-invalid`, `asl-selected-eet-pct-invalid`, `asl-identiske-afgoerelser`, `fodselsdato-missing`, `beregningsdato-missing`, `skadedato-missing`, `reguleringssats-missing`, `eet-max-missing`, `alder-unresolved`.
 
 **Advarsler:** `warn-eal-eet-under-15`, `warn-asl-eet-under-15`, `warn-eal-aarsloen-empty-for-2024-07-01`, `warn-eal-aarsloen-is-max`, `warn-asl-aarsloen-is-max`.
 

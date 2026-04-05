@@ -44,10 +44,10 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger }: Props) => {
     () =>
       computeEetKapitaliseringCalculation({
         erhvervsevnetab: values,
-        skadesdato: stamdata?.skadesdato,
+        skadedato: stamdata?.skadedato,
         skadelidteFodselsdato: values.skadelidteFodselsdato,
       }),
-    [stamdata?.skadesdato, values]
+    [stamdata?.skadedato, values]
   );
 
   const fieldIssues = React.useMemo(() => {
@@ -55,13 +55,13 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger }: Props) => {
         toFieldIssue('field-aarsloen-asl', faellesAarsloenFieldErrors.aslAarsloen?.message),
         toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
         toFieldIssue('field-skadelidte-fodselsdato', stamdataFieldErrors.skadelidteFodselsdato?.message),
-        toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
+        toFieldIssue('field-skadedato', stamdataFieldErrors.skadedato?.message),
       ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
     }, [
       eetFieldErrors.aslAfgoerelser?.message,
       faellesAarsloenFieldErrors.aslAarsloen?.message,
       stamdataFieldErrors.skadelidteFodselsdato?.message,
-      stamdataFieldErrors.skadesdato?.message,
+      stamdataFieldErrors.skadedato?.message,
     ]);
 
   const issues = React.useMemo(

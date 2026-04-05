@@ -46,7 +46,7 @@ export type AldersKoensopdeltFaktorRaekke = Readonly<{
 }>;
 
 export type ErhvervsevnetabTabelvalg = Readonly<{
-  skadesdatoFra: ISODateString;
+  skadedatoFra: ISODateString;
   foedselsdatoFra: ISODateString;
   foedselsdatoTil: ISODateString | null;
   folkepensionsalderAar: number | null;
@@ -55,12 +55,12 @@ export type ErhvervsevnetabTabelvalg = Readonly<{
 }>;
 
 export type ForsoergertabTabelvalg = Readonly<{
-  skadesdatoFra: ISODateString;
+  skadedatoFra: ISODateString;
   tabel: string;
 }>;
 
 type InputErhvervsevnetabTabelvalg = Readonly<{
-  skadesdatoFra: ISODateString;
+  skadedatoFra: ISODateString;
   foedselsdatoFra: ISODateString;
   tabel: string;
   foedselsdatoTil?: ISODateString | null;
@@ -69,7 +69,7 @@ type InputErhvervsevnetabTabelvalg = Readonly<{
 }>;
 
 export type SaerfaktorPerSkadesinterval = Readonly<{
-  skadesdatoFra: ISODateString;
+  skadedatoFra: ISODateString;
   faktor: number;
 }>;
 
@@ -108,7 +108,7 @@ const normalizeErhvervsevnetabTabelvalg = (
   entries: readonly InputErhvervsevnetabTabelvalg[]
 ): readonly ErhvervsevnetabTabelvalg[] =>
   entries.map((entry) => ({
-    skadesdatoFra: entry.skadesdatoFra,
+    skadedatoFra: entry.skadedatoFra,
     foedselsdatoFra: entry.foedselsdatoFra,
     foedselsdatoTil: entry.foedselsdatoTil ?? null,
     folkepensionsalderAar: entry.folkepensionsalderAar ?? null,

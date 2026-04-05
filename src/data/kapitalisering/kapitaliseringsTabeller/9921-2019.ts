@@ -33,14 +33,14 @@ export const gyldigTil = toISODateString('2020-12-30');
 // eller særfaktor ved ≤2 år til folkepension. Disse felter udfyldes derfor ikke.
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadesdatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
+  // skadedatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
   ['2011-01-01',     '1963-01-01',     68,     'A'],
   ['2011-01-01',     '1955-07-01',     67,     'B'],
 ] as const;
 
 export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadesdatoFra, foedselsdatoFra, folkepensionsalderAar, tabel]) => ({
-    skadesdatoFra: toISODateString(skadesdatoFra),
+  ([skadedatoFra, foedselsdatoFra, folkepensionsalderAar, tabel]) => ({
+    skadedatoFra: toISODateString(skadedatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
     folkepensionsalderAar,
     tabel,

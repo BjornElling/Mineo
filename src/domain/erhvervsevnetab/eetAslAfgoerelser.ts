@@ -135,7 +135,7 @@ export const validateDuplicateAfgoerelse = (
 export const validateKapPctByAfgoerelsestype = (
   row: AslAfgoerelseRow,
   allRows: readonly AslAfgoerelseRow[] = [row],
-  skadesdato: ISODateString | undefined = undefined,
+  skadedato: ISODateString | undefined = undefined,
   fodselsdato: ISODateString | undefined = undefined
 ): string | undefined => {
   const afgoerelsestype = row.afgoerelseType;
@@ -156,9 +156,9 @@ export const validateKapPctByAfgoerelsestype = (
   const controlDateIso = coerceToISODateString(row.tidlKapDato) ?? coerceToISODateString(row.afgoerelsesDato);
   const isWithinTwoYearsRuleActive =
     afgoerelsestype === 'Endelig' &&
-    skadesdato !== undefined &&
+    skadedato !== undefined &&
     fodselsdato !== undefined &&
-    isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDateIso);
+    isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, controlDateIso);
 
   if (afgoerelsestype === 'Endelig') {
     if (isWithinTwoYearsRuleActive) {
@@ -213,7 +213,7 @@ export const validateKapPctByAfgoerelsestype = (
 
 export const validateKapDatoByAfgoerelsestype = (
   row: AslAfgoerelseRow,
-  skadesdato: ISODateString | undefined = undefined,
+  skadedato: ISODateString | undefined = undefined,
   fodselsdato: ISODateString | undefined = undefined
 ): string | undefined => {
   const afgoerelsestype = row.afgoerelseType;
@@ -246,9 +246,9 @@ export const validateKapDatoByAfgoerelsestype = (
   const isWithinTwoYearsRuleActive =
     afgoerelsestype === 'Endelig' &&
     kapDatoIso !== undefined &&
-    skadesdato !== undefined &&
+    skadedato !== undefined &&
     fodselsdato !== undefined &&
-    isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDateIso);
+    isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, controlDateIso);
 
   if (isWithinTwoYearsRuleActive && kapDatoIso !== afgoerelsesdatoIso) {
     return 'Ved ≤ 2 år til folkepension sker kapitalisering fra afgørelsesdagen.';
@@ -272,21 +272,21 @@ export type EetAslAfgoerelseValidationIssue = Readonly<{
   message: string;
 }>;
 
-const validateDateNotBeforeSkadesdato = (
+const validateDateNotBeforeSkadedato = (
   dateRaw: string | undefined,
   fieldLabel: string,
-  skadesdato: ISODateString | undefined
+  skadedato: ISODateString | undefined
 ): string | undefined => {
-  if (!skadesdato) return undefined;
+  if (!skadedato) return undefined;
   const dateIso = coerceToISODateString(dateRaw);
   if (dateIso === undefined) return undefined;
-  if (dateIso < skadesdato) return `Der er indtastet en ${fieldLabel} før skadesdatoen.`;
+  if (dateIso < skadedato) return `Der er indtastet en ${fieldLabel} før skadedatoen.`;
   return undefined;
 };
 
 export const collectEetAslAfgoerelseValidationIssues = (
   rows: readonly AslAfgoerelseRow[],
-  skadesdato: ISODateString | undefined,
+  skadedato: ISODateString | undefined,
   fodselsdato: ISODateString | undefined
 ): EetAslAfgoerelseValidationIssue[] => {
   const issues: EetAslAfgoerelseValidationIssue[] = [];
@@ -298,14 +298,14 @@ export const collectEetAslAfgoerelseValidationIssues = (
       issues.push({ rowId: row.id, field: 'virkningsDato', message: duplicateError });
     }
 
-    const afgoerelsesDatoBeforeSkadesdatoError = validateDateNotBeforeSkadesdato(row.afgoerelsesDato, 'afgørelsesdato', skadesdato);
-    if (afgoerelsesDatoBeforeSkadesdatoError) {
-      issues.push({ rowId: row.id, field: 'afgoerelsesDato', message: afgoerelsesDatoBeforeSkadesdatoError });
+    const afgoerelsesDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.afgoerelsesDato, 'afgørelsesdato', skadedato);
+    if (afgoerelsesDatoBeforeSkadedatoError) {
+      issues.push({ rowId: row.id, field: 'afgoerelsesDato', message: afgoerelsesDatoBeforeSkadedatoError });
     }
 
-    const virkningsDatoBeforeSkadesdatoError = validateDateNotBeforeSkadesdato(row.virkningsDato, 'virkningsdato', skadesdato);
+    const virkningsDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.virkningsDato, 'virkningsdato', skadedato);
     const virkningsDatoAfterTidlKapDatoError = validateVirkningsDatoByTidlKapDato(row);
-    const virkningsDatoError = virkningsDatoBeforeSkadesdatoError ?? virkningsDatoAfterTidlKapDatoError;
+    const virkningsDatoError = virkningsDatoBeforeSkadedatoError ?? virkningsDatoAfterTidlKapDatoError;
     if (virkningsDatoError) {
       issues.push({ rowId: row.id, field: 'virkningsDato', message: virkningsDatoError });
     }
@@ -318,10 +318,10 @@ export const collectEetAslAfgoerelseValidationIssues = (
       issues.push({ rowId: row.id, field: 'eetPct', message: eetPctError });
     }
 
-    const kapDatoBeforeSkadesdatoError = validateDateNotBeforeSkadesdato(row.kapDato, 'kapitaliseringsdato', skadesdato);
+    const kapDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.kapDato, 'kapitaliseringsdato', skadedato);
     const kapDatoError =
-      kapDatoBeforeSkadesdatoError ??
-      validateKapDatoByAfgoerelsestype(row, skadesdato, fodselsdato) ??
+      kapDatoBeforeSkadedatoError ??
+      validateKapDatoByAfgoerelsestype(row, skadedato, fodselsdato) ??
       validateKapDatoByTidlKapDato(row);
     if (kapDatoError) {
       issues.push({ rowId: row.id, field: 'kapDato', message: kapDatoError });
@@ -330,13 +330,13 @@ export const collectEetAslAfgoerelseValidationIssues = (
     const kapPctError =
       validatePercentNotZeroFromDraft(row.kapPct, 'Kapitaliseringsprocent') ??
       validatePercentDivisibleBy5FromDraft(row.kapPct, 'Kapitaliseringsprocent') ??
-      validateKapPctByAfgoerelsestype(row, rows, skadesdato, fodselsdato);
+      validateKapPctByAfgoerelsestype(row, rows, skadedato, fodselsdato);
     if (kapPctError) {
       issues.push({ rowId: row.id, field: 'kapPct', message: kapPctError });
     }
 
-    const tidlKapDatoBeforeSkadesdatoError = validateDateNotBeforeSkadesdato(row.tidlKapDato, 'genoptagelsesdato', skadesdato);
-    const tidlKapDatoError = tidlKapDatoBeforeSkadesdatoError ?? validateTidlKapDatoByAfgoerelsestype(row);
+    const tidlKapDatoBeforeSkadedatoError = validateDateNotBeforeSkadedato(row.tidlKapDato, 'genoptagelsesdato', skadedato);
+    const tidlKapDatoError = tidlKapDatoBeforeSkadedatoError ?? validateTidlKapDatoByAfgoerelsestype(row);
     if (tidlKapDatoError) {
       issues.push({ rowId: row.id, field: 'tidlKapDato', message: tidlKapDatoError });
     }

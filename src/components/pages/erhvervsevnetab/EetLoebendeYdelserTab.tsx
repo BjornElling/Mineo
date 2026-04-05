@@ -19,7 +19,7 @@ import {
 import {
   computeEetLoebendeYdelser,
   formatPct,
-  formatSkadesdatoCompact,
+  formatSkadedatoCompact,
   shouldShowLoebende2024ConversionBlock,
   toAfgoerelseTypeLabel,
   toOphoerAarsagLabel,
@@ -75,10 +75,10 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Prop
     () =>
       computeEetLoebendeYdelser({
         erhvervsevnetab: values,
-        skadesdato: stamdata?.skadesdato,
+        skadedato: stamdata?.skadedato,
         skadelidteFodselsdato: values.skadelidteFodselsdato,
       }),
-    [stamdata?.skadesdato, values]
+    [stamdata?.skadedato, values]
   );
 
   const fieldIssues = React.useMemo(() => {
@@ -87,14 +87,14 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Prop
       toFieldIssue('field-aarsloen-asl', faellesAarsloenFieldErrors.aslAarsloen?.message),
       toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
       toFieldIssue('field-skadelidte-fodselsdato', stamdataFieldErrors.skadelidteFodselsdato?.message),
-      toFieldIssue('field-skadesdato', stamdataFieldErrors.skadesdato?.message),
+      toFieldIssue('field-skadedato', stamdataFieldErrors.skadedato?.message),
     ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
   }, [
     eetFieldErrors.aslAfgoerelser?.message,
     eetFieldErrors.beregningsdato?.message,
     faellesAarsloenFieldErrors.aslAarsloen?.message,
     stamdataFieldErrors.skadelidteFodselsdato?.message,
-    stamdataFieldErrors.skadesdato?.message,
+    stamdataFieldErrors.skadedato?.message,
   ]);
 
   const issues = React.useMemo(
@@ -318,7 +318,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Prop
                 <TextHoverRow text="Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau." />
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadesdatoCompact(computation.skadesdato)}) = ${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`}
+                    {`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">{formatKr(computation.grundloen)}</Typography>
@@ -330,7 +330,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger }: Prop
                 <TextHoverRow text="Skaden er sket fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau." />
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`Årsløn × (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadesdatoCompact(computation.skadesdato)}) = ${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`}
+                    {`Årsløn × (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">{formatKr(computation.grundloen)}</Typography>

@@ -44,9 +44,9 @@ Fradrag 1 beregnes med samme grundmodel som fane 2, men altid kun til og med dag
 
 Differencekravet ser kun på afgørelser, der både er truffet og har virkning senest på beregningsdatoen.
 
-Fradragsreglen per afgørelse afhænger fortsat af skadesdatoen:
+Fradragsreglen per afgørelse afhænger fortsat af skadedatoen:
 
-| Skadesdato | Afgørelsestype | Fradrages? |
+| Skadedato | Afgørelsestype | Fradrages? |
 |---|---|---|
 | Før 16-06-2011 | Midlertidig | Ja |
 | Før 16-06-2011 | Delvist endelig | Ja |
@@ -133,7 +133,7 @@ I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedregle
 |---|---|
 | `computeProformaKapitalisering(args, issues)` | Proformaberegning på beregningsdatoen |
 | `resolveLoebendeEetPct(afgoerelser, kapitaliseringer)` | Bestemmer tilbageværende løbende EET-procent |
-| `skalFradragForetages(afgoerelseType, skadesdato)` | Afgør om en afgørelse skal fratrækkes |
+| `skalFradragForetages(afgoerelseType, skadedato)` | Afgør om en afgørelse skal fratrækkes |
 
 ### Implementeringsstatus
 

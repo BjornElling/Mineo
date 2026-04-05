@@ -12,7 +12,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAarsloen: asAmount(632000),
         aslAfgoerelser: [],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1965-01-01',
     });
 
@@ -45,7 +45,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1965-01-01',
     });
 
@@ -78,7 +78,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1965-01-01',
     });
 
@@ -104,7 +104,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1965-01-01',
     });
 
@@ -135,7 +135,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1965-01-01',
     });
 
@@ -166,7 +166,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1965-01-01',
     });
 
@@ -198,7 +198,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1965-01-01',
     });
 
@@ -225,7 +225,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1965-01-01',
     });
 
@@ -256,7 +256,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2011-01-01',
+      skadedato: '2011-01-01',
       skadelidteFodselsdato: '1961-11-01',
     });
 
@@ -286,7 +286,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1965-01-01',
     });
 
@@ -318,7 +318,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1978-05-15',
     });
 
@@ -352,7 +352,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1959-01-01',
     });
 
@@ -380,7 +380,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1959-01-01',
     });
 
@@ -408,7 +408,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1965-01-01',
     });
 
@@ -435,7 +435,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2007-07-01',
+      skadedato: '2007-07-01',
       skadelidteFodselsdato: '1960-01-01',
     });
 
@@ -466,7 +466,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2007-07-01',
+      skadedato: '2007-07-01',
       skadelidteFodselsdato: '1960-01-01',
     });
 
@@ -495,7 +495,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2005-01-01',
+      skadedato: '2005-01-01',
       skadelidteFodselsdato: '1944-01-01',
     });
 
@@ -545,7 +545,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadesdato: '2025-01-01',
+      skadedato: '2025-01-01',
       skadelidteFodselsdato: '1965-01-01',
     });
 

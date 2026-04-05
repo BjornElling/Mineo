@@ -20,7 +20,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 ### Principper
 
 - Alle fejl har et navigationslink til det felt brugeren skal rette. Undtagelse: fejl der udelukkende skyldes manglende systemdata (satser mv.) brugeren ikke kan rette.
-- `alder-unresolved` undertrykkes hvis `fodselsdato-missing` eller `skadesdato-missing` allerede er aktiv — den afledte fejl er redundant.
+- `alder-unresolved` undertrykkes hvis `fodselsdato-missing` eller `skadedato-missing` allerede er aktiv — den afledte fejl er redundant.
 - `warn-eal-aarsloen-empty-for-2024-07-01` undertrykkes ikke af `aarsloen-missing` — de to kan vises samtidigt.
 - `eet-pct-missing` undertrykkes på F5 hvis `asl-afgoerelser-empty` er aktiv.
 - På F5 filtreres `no-endelig-afgoerelser` og `warn-ingen-kap-input` altid fra.
@@ -31,13 +31,13 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 
 ### Stamdata
 
-#### `skadesdato-missing` — "Skadesdato er ikke udfyldt."
+#### `skadedato-missing` — "Skadedato er ikke udfyldt."
 | Felt | Værdi |
 |---|---|
 | Type | Fejl |
 | Vises på | F2, F3, F4, F5 |
 | Navigationslink | Stamdata → Skadelidte |
-| Betingelse | `skadesdato` fra stamdata er ikke udfyldt |
+| Betingelse | `skadedato` fra stamdata er ikke udfyldt |
 
 #### `fodselsdato-missing` — "Fødselsdato er ikke udfyldt."
 | Felt | Værdi |
@@ -53,7 +53,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Type | Fejl |
 | Vises på | F4, F5 |
 | Navigationslink | Stamdata → Skadelidte |
-| Betingelse | Afledt fejl: fødselsdato og skadesdato begge udfyldt men alder kan alligevel ikke beregnes (datoparse-fejl). Undertrykkes hvis `fodselsdato-missing` eller `skadesdato-missing` er aktiv. F2 og F3 bruger ikke alder og emitterer ikke denne fejl. |
+| Betingelse | Afledt fejl: fødselsdato og skadedato begge udfyldt men alder kan alligevel ikke beregnes (datoparse-fejl). Undertrykkes hvis `fodselsdato-missing` eller `skadedato-missing` er aktiv. F2 og F3 bruger ikke alder og emitterer ikke denne fejl. |
 
 ---
 
@@ -249,7 +249,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Type | Fejl |
 | Vises på | F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Ingen bekendtgørelse dækker kombinationen skadesdato × kontroldato (afgørelsesdato eller tidligere kap.dato) |
+| Betingelse | Ingen bekendtgørelse dækker kombinationen skadedato × kontroldato (afgørelsesdato eller tidligere kap.dato) |
 
 #### `kapitaliseringsbekendtgoerelse-missing-effective-date` — "Kapitaliseringsbekendtgørelse mangler for {dato}." (effektiv dato)
 | Felt | Værdi |
@@ -265,7 +265,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Type | Fejl |
 | Vises på | F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Bekendtgørelsen eksisterer, men ingen tabel matcher skadesdato × fødselsdato, eller tabellen har ingen faktorer |
+| Betingelse | Bekendtgørelsen eksisterer, men ingen tabel matcher skadedato × fødselsdato, eller tabellen har ingen faktorer |
 
 #### `kapitaliseringsalder-under-minimum` — "Ingen kapitaliseringsfaktor indtastet for alder ({alder}) — tabellen starter ved {min} år."
 | Felt | Værdi |
@@ -328,7 +328,7 @@ Produceres kun af proformaberegningen i `computeEetDifferencekravCalculation`. U
 | Issue-ID | Meddelelse | Navigationslink |
 |---|---|---|
 | `proforma-kapitaliseringsbekendtgoerelse-missing` | "Der findes ingen gyldig kapitaliseringsbekendtgørelse for beregningsdatoen {dato}." / "Kapitaliseringsdata mangler for {id}." | EET oplysninger → Grundlæggende oplysninger |
-| `proforma-kapitaliseringstabel-missing` | "Ingen kapitaliseringstabel matcher skadesdato og fødselsdato på beregningsdatoen." / "Ingen kapitaliseringsfaktorer for tabel {tabel}." | EET oplysninger → Grundlæggende oplysninger |
+| `proforma-kapitaliseringstabel-missing` | "Ingen kapitaliseringstabel matcher skadedato og fødselsdato på beregningsdatoen." / "Ingen kapitaliseringsfaktorer for tabel {tabel}." | EET oplysninger → Grundlæggende oplysninger |
 | `proforma-kapitaliseringsalder-under-minimum` | "Ingen kapitaliseringsfaktor for alder ({alder}) — tabellen starter ved {min} år." | EET oplysninger → Grundlæggende oplysninger |
 | `proforma-kapitaliseringsfaktor-unresolved` | Varierer | EET oplysninger → Grundlæggende oplysninger |
 | `proforma-reguleringssats-missing` | "Reguleringssats mangler for år 2024." | EET oplysninger → Grundlæggende oplysninger |
@@ -342,7 +342,7 @@ Produceres af `useFormFieldErrors` og vises foruden inline ved feltet på fane 1
 | Issue-ID | Felt | Vises på | Navigationslink |
 |---|---|---|---|
 | `field-fodselsdato` | Fødselsdato | F2, F3, F4, F5 | Stamdata → Skadelidte |
-| `field-skadesdato` | Skadesdato | F2, F3, F4, F5 | Stamdata → Skadelidte |
+| `field-skadedato` | Skadedato | F2, F3, F4, F5 | Stamdata → Skadelidte |
 | `field-beregningsdato` | Beregningsdato | F2, F4, F5 | EET oplysninger → Grundlæggende oplysninger |
 | `field-aarsloen-asl` | ASL årsløn | F2, F3, F5 | EET oplysninger → Arbejdsskadesikringsloven |
 | `field-asl-afgoerelser` | Afgørelsestabel | F2, F3, F5 | EET oplysninger → Arbejdsskadesikringsloven |
@@ -376,7 +376,7 @@ Produceres af `useFormFieldErrors` og vises foruden inline ved feltet på fane 1
 | Type | Advarsel |
 | Vises på | F2, F3, F5 |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | `skadesdato ≥ 2024-07-01` og mindst én afgørelse har EET % > 15 der ikke er deleligt med 10. Advarsel (ikke fejl) — 'hvad nu hvis'-beregninger kan have behov for det. |
+| Betingelse | `skadedato ≥ 2024-07-01` og mindst én afgørelse har EET % > 15 der ikke er deleligt med 10. Advarsel (ikke fejl) — 'hvad nu hvis'-beregninger kan have behov for det. |
 
 #### `warn-non-endelig-after-endelig` — "Der er angivet en midlertidig eller delvist endelig afgørelse efter en endelig afgørelse."
 | Felt | Værdi |
@@ -432,7 +432,7 @@ Produceres af `useFormFieldErrors` og vises foruden inline ved feltet på fane 1
 | Type | Advarsel |
 | Vises på | F4, F5 |
 | Navigationslink | EET oplysninger → Erstatningsansvarsloven |
-| Betingelse | `skadesdato ≥ 2024-07-01` og `ealAarsloen` ikke udfyldt. Undertrykkes ikke af `aarsloen-missing`. |
+| Betingelse | `skadedato ≥ 2024-07-01` og `ealAarsloen` ikke udfyldt. Undertrykkes ikke af `aarsloen-missing`. |
 
 #### `warn-eal-aarsloen-is-max` — "Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL."
 | Felt | Værdi |

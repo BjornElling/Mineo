@@ -30,14 +30,14 @@ type DerivedFoerMinimumFp = Readonly<{
 }>;
 
 export const resolveKapitaliseringsbekendtgoerelseId = (
-  skadesdato: ISODateString,
+  skadedato: ISODateString,
   dato: ISODateString
 ): string | null => {
   const skadesinterval = kapitaliseringsbekendtgoerelser
-    .filter((interval) => interval.skadesdatoFra <= skadesdato)
+    .filter((interval) => interval.skadedatoFra <= skadedato)
     .reduce<typeof kapitaliseringsbekendtgoerelser[number] | null>((latest, current) => {
       if (!latest) return current;
-      return current.skadesdatoFra > latest.skadesdatoFra ? current : latest;
+      return current.skadedatoFra > latest.skadedatoFra ? current : latest;
     }, null);
 
   if (!skadesinterval) return null;
@@ -93,22 +93,22 @@ const deriveFoerMinimumFoedselsdatoFp = (
 
 const resolveModernFoerMinimumFoedselsdatoTabelvalg = (
   tabeldata: KapitaliseringsTabelData,
-  skadesdato: ISODateString,
+  skadedato: ISODateString,
   fodselsdato: ISODateString
 ): ResolvedKapitaliseringTabelvalg | null => {
   const relevanteEntries = tabeldata.erhvervsevnetabTabelvalg.filter(
     (entry) =>
-      entry.skadesdatoFra <= skadesdato &&
+      entry.skadedatoFra <= skadedato &&
       entry.foedselsdatoTil === null &&
       entry.folkepensionsalderAar !== null
   );
   if (relevanteEntries.length === 0) return null;
 
-  const relevantSkadesdatoFra = relevanteEntries.reduce<ISODateString>(
-    (latest, current) => (current.skadesdatoFra > latest ? current.skadesdatoFra : latest),
-    relevanteEntries[0]!.skadesdatoFra
+  const relevantskadedatoFra = relevanteEntries.reduce<ISODateString>(
+    (latest, current) => (current.skadedatoFra > latest ? current.skadedatoFra : latest),
+    relevanteEntries[0]!.skadedatoFra
   );
-  const entriesForSkadesinterval = relevanteEntries.filter((entry) => entry.skadesdatoFra === relevantSkadesdatoFra);
+  const entriesForSkadesinterval = relevanteEntries.filter((entry) => entry.skadedatoFra === relevantskadedatoFra);
   if (entriesForSkadesinterval.length === 0) return null;
 
   const earliestEntry = entriesForSkadesinterval.reduce<ErhvervsevnetabTabelvalg>(
@@ -156,26 +156,26 @@ export const calculateAgeYearsMonths = (
 
 const resolveErhvervsevnetabTabelvalg = (
   tabeldata: KapitaliseringsTabelData,
-  skadesdato: ISODateString,
+  skadedato: ISODateString,
   fodselsdato: ISODateString
 ): ResolvedKapitaliseringTabelvalg | null => {
   const kandidat = tabeldata.erhvervsevnetabTabelvalg
     .filter((entry) => {
-      if (entry.skadesdatoFra > skadesdato) return false;
+      if (entry.skadedatoFra > skadedato) return false;
       if (entry.foedselsdatoFra > fodselsdato) return false;
       if (entry.foedselsdatoTil && fodselsdato > entry.foedselsdatoTil) return false;
       return true;
     })
     .reduce<ErhvervsevnetabTabelvalg | null>((latest, current) => {
       if (!latest) return current;
-      if (current.skadesdatoFra !== latest.skadesdatoFra) {
-        return current.skadesdatoFra > latest.skadesdatoFra ? current : latest;
+      if (current.skadedatoFra !== latest.skadedatoFra) {
+        return current.skadedatoFra > latest.skadedatoFra ? current : latest;
       }
       return current.foedselsdatoFra > latest.foedselsdatoFra ? current : latest;
     }, null);
 
   if (!kandidat) {
-    return resolveModernFoerMinimumFoedselsdatoTabelvalg(tabeldata, skadesdato, fodselsdato);
+    return resolveModernFoerMinimumFoedselsdatoTabelvalg(tabeldata, skadedato, fodselsdato);
   }
 
   const fpLabel =
@@ -196,26 +196,26 @@ const resolveErhvervsevnetabTabelvalg = (
 
 export const resolveKapitaliseringTabelvalg = (
   tabeldata: KapitaliseringsTabelData,
-  skadesdato: ISODateString,
+  skadedato: ISODateString,
   fodselsdato: ISODateString
 ): ResolvedKapitaliseringTabelvalg | null => {
-  return resolveErhvervsevnetabTabelvalg(tabeldata, skadesdato, fodselsdato);
+  return resolveErhvervsevnetabTabelvalg(tabeldata, skadedato, fodselsdato);
 };
 
 export const resolveKapitaliseringTabelvalgForControlDate = (
-  skadesdato: ISODateString | undefined,
+  skadedato: ISODateString | undefined,
   fodselsdato: ISODateString | undefined,
   controlDate: ISODateString | undefined
 ): ResolvedKapitaliseringTabelvalg | null => {
-  if (!skadesdato || !fodselsdato || !controlDate) return null;
+  if (!skadedato || !fodselsdato || !controlDate) return null;
 
-  const controlBekId = resolveKapitaliseringsbekendtgoerelseId(skadesdato, controlDate);
+  const controlBekId = resolveKapitaliseringsbekendtgoerelseId(skadedato, controlDate);
   if (!controlBekId) return null;
 
   const controlData = getKapitaliseringsTabelData(controlBekId);
   if (!controlData) return null;
 
-  return resolveKapitaliseringTabelvalg(controlData, skadesdato, fodselsdato);
+  return resolveKapitaliseringTabelvalg(controlData, skadedato, fodselsdato);
 };
 
 export type ResolveFactorTableResult = Readonly<{
@@ -226,13 +226,13 @@ export type ResolveFactorTableResult = Readonly<{
 
 export const resolveSaerfaktor = (
   tabeldata: KapitaliseringsTabelData,
-  skadesdato: ISODateString
+  skadedato: ISODateString
 ): number | null => {
   const kandidat = tabeldata.saerfaktorUnderToAarTilFpPerSkadesinterval
-    .filter((entry) => entry.skadesdatoFra <= skadesdato)
+    .filter((entry) => entry.skadedatoFra <= skadedato)
     .reduce<typeof tabeldata.saerfaktorUnderToAarTilFpPerSkadesinterval[number] | null>((latest, current) => {
       if (!latest) return current;
-      return current.skadesdatoFra > latest.skadesdatoFra ? current : latest;
+      return current.skadedatoFra > latest.skadedatoFra ? current : latest;
     }, null);
   return kandidat?.faktor ?? null;
 };
@@ -313,11 +313,11 @@ export const resolveFactorTable = (
 };
 
 export const isUnderOrEqualTwoYearsToFpByBekendtgoerelse = (
-  skadesdato: ISODateString | undefined,
+  skadedato: ISODateString | undefined,
   fodselsdato: ISODateString | undefined,
   controlDate: ISODateString | undefined
 ): boolean => {
-  const controlTabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadesdato, fodselsdato, controlDate);
+  const controlTabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadedato, fodselsdato, controlDate);
   if (!controlTabelvalg) return false;
   if (!fodselsdato || !controlDate) return false;
 

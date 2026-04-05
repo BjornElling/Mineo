@@ -29,7 +29,7 @@ import type {
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import {
   formatPct,
-  formatSkadesdatoCompact,
+  formatSkadedatoCompact,
   shouldShowLoebende2024ConversionBlock,
   toAfgoerelseTypeLabel,
   toOphoerAarsagLabel,
@@ -218,7 +218,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
   writer.writeSubheader('Grundløn', PDF_BASE_LINE_HEIGHT_MM);
   if (computation.grundloenNiveau === '2003') {
     writer.writeWrappedText('Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau.');
-    writer.writeWrappedTextContinued(`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadesdatoCompact(computation.skadesdato)}) =`);
+    writer.writeWrappedTextContinued(`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
     writer.writeLeftRightText(
       `${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`,
       formatKr(computation.grundloen),
@@ -226,7 +226,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
     );
   } else {
     writer.writeWrappedText('Skaden er sket fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau.');
-    writer.writeWrappedTextContinued(`Årsløn × (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadesdatoCompact(computation.skadesdato)}) =`);
+    writer.writeWrappedTextContinued(`Årsløn × (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
     writer.writeLeftRightText(
       `${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`,
       formatKr(computation.grundloen),

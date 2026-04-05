@@ -29,11 +29,11 @@ Særreglen ved ≤ 2 år til folkepensionsalderen gælder kun for `Endelig`:
 Kapitaliseringsberegningen bruger to typer statiske data:
 
 **Bekendtgørelsesoversigten** (`src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts`):
-En matrix der for en given kombination af skadesdato og kapitaliseringsdato slår op, hvilken bekendtgørelse eller vejledning der gælder.
+En matrix der for en given kombination af skadedato og kapitaliseringsdato slår op, hvilken bekendtgørelse eller vejledning der gælder.
 
 **Kapitaliseringstabellerne** (`src/data/kapitalisering/kapitaliseringsTabeller/`):
 Én TypeScript-fil per bekendtgørelse. Hver fil indeholder:
-- tabelvalgsdata: skadesdato og fødselsdato → tabelbogstav og folkepensionsalder
+- tabelvalgsdata: skadedato og fødselsdato → tabelbogstav og folkepensionsalder
 - alderstabeller: alder → faktor
 - særfaktor for skadelidte inden for eller præcis 2 år til folkepension
 
@@ -68,7 +68,7 @@ Ved genoptagelse foretages bekendtgørelsesvalg, tabelvalg og faktorberegning so
 
 #### Trin 2 — Valg af tabel og folkepensionsalder
 
-Inden for den fundne bekendtgørelse opslås tabel og folkepensionsalder på baggrund af skadesdato og fødselsdato.
+Inden for den fundne bekendtgørelse opslås tabel og folkepensionsalder på baggrund af skadedato og fødselsdato.
 
 For bekendtgørelser før 2015-03-01 er tabellerne kønsopdelte. Her skal køn være angivet.
 

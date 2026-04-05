@@ -23,7 +23,7 @@ export type EetEalResolvedEetPct = Readonly<{
 
 export type EetEalComputation = Readonly<{
   beregningsdato: ISODateString;
-  skadesdato: ISODateString;
+  skadedato: ISODateString;
   fodselsdato: ISODateString;
   skadesaar: number;
   beregningsaar: number;
@@ -54,7 +54,7 @@ export type EetEalCalculationResult = Readonly<{
 
 type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
-  skadesdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
   reguleringssats: YearlyRate;
   erhvervsevnetabEalMax: YearlyRate;
@@ -75,9 +75,9 @@ const toWarning = (id: string, message: string): EetIssue => ({
   message,
 });
 
-const calculateAgeInWholeYears = (fodselsdato: ISODateString, skadesdato: ISODateString): number | null => {
+const calculateAgeInWholeYears = (fodselsdato: ISODateString, skadedato: ISODateString): number | null => {
   const birthDate = parseISODate(fodselsdato);
-  const injuryDate = parseISODate(skadesdato);
+  const injuryDate = parseISODate(skadedato);
   if (!birthDate || !injuryDate) return null;
 
   let age = injuryDate.getUTCFullYear() - birthDate.getUTCFullYear();
@@ -229,7 +229,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const values = input.erhvervsevnetab;
 
   const beregningsdato = coerceToISODateString(values.beregningsdato);
-  const skadesdato = input.skadesdato;
+  const skadedato = input.skadedato;
   const fodselsdato = input.skadelidteFodselsdato;
 
   const aarsloen = resolveAarsloen(values);
@@ -261,16 +261,16 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   if (!beregningsdato) {
     issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt.'));
   }
-  if (!skadesdato) {
-    issues.push(toIssue('skadesdato-missing', 'Skadesdato er ikke udfyldt.'));
+  if (!skadedato) {
+    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt.'));
   }
 
   const hasBlockingIssues = issues.some((issue) => issue.severity === 'error');
-  if (hasBlockingIssues || !aarsloen.value || !aarsloen.source || !eetPctResolution.resolved || !beregningsdato || !skadesdato || !fodselsdato) {
+  if (hasBlockingIssues || !aarsloen.value || !aarsloen.source || !eetPctResolution.resolved || !beregningsdato || !skadedato || !fodselsdato) {
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  const skadesaar = Number.parseInt(skadesdato.slice(0, 4), 10);
+  const skadesaar = Number.parseInt(skadedato.slice(0, 4), 10);
   const beregningsaar = Number.parseInt(beregningsdato.slice(0, 4), 10);
   const ealRegulering = computeEalReguleringsfaktorFromYearlyChain(skadesaar, beregningsaar, input.reguleringssats);
   const reguleringsaar = ealRegulering.reguleringsaar;
@@ -289,7 +289,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     issues.push(toIssue('eet-max-missing', `Maksimum for erhvervsevnetab mangler for år ${beregningsaar}`));
   }
 
-  const alderVedSkade = calculateAgeInWholeYears(fodselsdato, skadesdato);
+  const alderVedSkade = calculateAgeInWholeYears(fodselsdato, skadedato);
   if (alderVedSkade === null) {
     issues.push(toIssue('alder-unresolved', 'Alder på skadestidspunkt kan ikke beregnes.'));
   }
@@ -312,7 +312,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const maxAarsloenForSkadesaar = input.aarsloenAslMax[skadesaar];
   const maxAarsloenWarningMessage =
     'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL.';
-  const isSkadeFraJuli2024EllerSenere = skadesdato >= '2024-07-01';
+  const isSkadeFraJuli2024EllerSenere = skadedato >= '2024-07-01';
 
   if (
     isSkadeFraJuli2024EllerSenere &&
@@ -367,7 +367,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const computation: EetEalComputation = {
     beregningsdato,
-    skadesdato,
+    skadedato,
     fodselsdato,
     skadesaar,
     beregningsaar,

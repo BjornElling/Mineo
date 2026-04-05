@@ -30,8 +30,8 @@ describe('EetAslAfgoerelserTable', () => {
     render(
       <EetAslAfgoerelserTable
         tableData={[createEmptyAslAfgoerelseRow()]}
-        skadesdato={toISODateString('2020-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
         onTableDataChange={onTableDataChange}
@@ -70,8 +70,8 @@ describe('EetAslAfgoerelserTable', () => {
             tidlKapDato: '01-01-2024',
           }),
         ]}
-        skadesdato={toISODateString('2020-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
@@ -90,8 +90,8 @@ describe('EetAslAfgoerelserTable', () => {
     render(
       <EetAslAfgoerelserTable
         tableData={[createEmptyAslAfgoerelseRow()]}
-        skadesdato={toISODateString('2020-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
         onTableDataChange={onTableDataChange}
@@ -130,8 +130,8 @@ describe('EetAslAfgoerelserTable', () => {
             kapDato: '10-01-2024',
           }),
         ]}
-        skadesdato={toISODateString('2020-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
@@ -165,8 +165,8 @@ describe('EetAslAfgoerelserTable', () => {
             afgoerelsesDato: '10-01-2024',
           }),
         ]}
-        skadesdato={toISODateString('2020-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
@@ -204,8 +204,8 @@ describe('EetAslAfgoerelserTable', () => {
             afgoerelseType: 'Endelig',
           }),
         ]}
-        skadesdato={toISODateString('2020-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
@@ -227,8 +227,8 @@ describe('EetAslAfgoerelserTable', () => {
             afgoerelsesDato: '30-06-2027',
           }),
         ]}
-        skadesdato={toISODateString('2020-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
@@ -237,7 +237,7 @@ describe('EetAslAfgoerelserTable', () => {
     expect(screen.queryByText(/Ingen gyldige datoer/)).not.toBeInTheDocument();
   });
 
-  it('viser ikke no-valid-range fejl for tidl. kap.dato når skadesdato er efter afgørelsesdato', () => {
+  it('viser ikke no-valid-range fejl for tidl. kap.dato når skadedato er efter afgørelsesdato', () => {
     render(
       <EetAslAfgoerelserTable
         tableData={[
@@ -247,8 +247,8 @@ describe('EetAslAfgoerelserTable', () => {
             kapDato: '30-06-2023',
           }),
         ]}
-        skadesdato={toISODateString('2024-08-01')}
-        skadesdatoMin={toISODateString('2024-08-01')}
+        skadedato={toISODateString('2024-08-01')}
+        skadedatoMin={toISODateString('2024-08-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
@@ -267,8 +267,8 @@ describe('EetAslAfgoerelserTable', () => {
             tidlKapDato: '01-01-2024',
           }),
         ]}
-        skadesdato={toISODateString('2020-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
@@ -288,8 +288,8 @@ describe('EetAslAfgoerelserTable', () => {
             tidlKapDato: '01-01-2024',
           }),
         ]}
-        skadesdato={toISODateString('2020-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
@@ -319,8 +319,8 @@ describe('EetAslAfgoerelserTable', () => {
             kapPct: '40',
           }),
         ]}
-        skadesdato={toISODateString('2025-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2025-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1959-01-01')}
       />
@@ -345,8 +345,8 @@ describe('EetAslAfgoerelserTable', () => {
     const { rerender } = render(
       <EetAslAfgoerelserTable
         tableData={initialRows}
-        skadesdato={toISODateString('2025-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2025-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
@@ -358,8 +358,8 @@ describe('EetAslAfgoerelserTable', () => {
     rerender(
       <EetAslAfgoerelserTable
         tableData={initialRows}
-        skadesdato={toISODateString('2025-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2025-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1959-01-01')}
       />
@@ -371,8 +371,8 @@ describe('EetAslAfgoerelserTable', () => {
     rerender(
       <EetAslAfgoerelserTable
         tableData={initialRows}
-        skadesdato={toISODateString('2025-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2025-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2025-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
       />
@@ -399,8 +399,8 @@ describe('EetAslAfgoerelserTable', () => {
             afgoerelseType: 'Endelig',
           }),
         ]}
-        skadesdato={toISODateString('2020-01-01')}
-        skadesdatoMin={toISODateString('2020-01-01')}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
         beregningsdato={toISODateString('2026-12-31')}
         skadelidteFodselsdato={toISODateString('1990-01-01')}
       />

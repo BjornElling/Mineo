@@ -41,7 +41,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -89,7 +89,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -116,7 +116,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -143,7 +143,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2024-07-01',
+      skadedato: '2024-07-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -176,7 +176,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2022-09-17',
+      skadedato: '2022-09-17',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -204,7 +204,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -253,7 +253,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -306,7 +306,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -332,7 +332,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2024-07-01',
+      skadedato: '2024-07-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -359,7 +359,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -400,7 +400,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2024-07-01',
+      skadedato: '2024-07-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -435,7 +435,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2009-01-01',
+      skadedato: '2009-01-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -470,7 +470,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -501,7 +501,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2022-09-17',
+      skadedato: '2022-09-17',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -517,7 +517,7 @@ describe('computeEetLoebendeYdelser', () => {
   });
 
   it('stopper løbende ydelse ved folkepensionsdato når endelig afgørelse er mere end 2 år før FP', () => {
-    // Skadesdato 2019-04-01, fødselsdato 1955-07-01.
+    // Skadedato 2019-04-01, fødselsdato 1955-07-01.
     // Bekendtgørelsen giver FP = 67 år → folkepensionsdato = 2022-07-01.
     // Afgørelsesdato 2019-06-01: 37 måneder til FP — klart > 2 år.
     // folkepensionsDagFoer = 2022-06-30.
@@ -541,7 +541,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
     });
 
@@ -584,7 +584,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -614,7 +614,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
     });
 
@@ -647,7 +647,7 @@ describe('computeEetLoebendeYdelser', () => {
           tidlKapDato: undefined,
         }],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
     });
 
@@ -695,7 +695,7 @@ describe('warn-asl-aarsloen-is-max', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 
@@ -724,7 +724,7 @@ describe('warn-asl-aarsloen-is-max', () => {
           },
         ],
       },
-      skadesdato: '2019-04-01',
+      skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
     });
 

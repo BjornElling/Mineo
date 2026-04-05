@@ -86,9 +86,9 @@ export type EetDifferencekravProformaKapitalisering = Readonly<{
 
 export type EetDifferencekravComputation = Readonly<{
   beregningsdato: ISODateString;
-  skadesdato: ISODateString;
+  skadedato: ISODateString;
   dagFoerBeregningsdato: ISODateString;
-  // true = skadesdato < 2011-06-16: fradrag for midlertidige/delvist endelige ydelser foretages
+  // true = skadedato < 2011-06-16: fradrag for midlertidige/delvist endelige ydelser foretages
   fradragGaelderForFoer2011: boolean;
   ealKrav: number;
   ealEetPct: number;
@@ -114,7 +114,7 @@ export type EetDifferencekravCalculationResult = Readonly<{
 
 type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
-  skadesdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
 }>;
 
@@ -238,7 +238,7 @@ const computeProformaKapitalisering = (
   args: Readonly<{
     loebendeEetPct: number;
     beregningsdato: ISODateString;
-    skadesdato: ISODateString;
+    skadedato: ISODateString;
     fodselsdato: ISODateString;
     grundloen: number;
     erstatningsniveau: number;
@@ -248,14 +248,14 @@ const computeProformaKapitalisering = (
   }>,
   issues: EetIssue[]
 ): EetDifferencekravProformaKapitalisering | null => {
-  const { loebendeEetPct, beregningsdato, skadesdato, fodselsdato } = args;
+  const { loebendeEetPct, beregningsdato, skadedato, fodselsdato } = args;
 
   if (!args.koen && beregningsdato < '2015-03-01') {
     issues.push(toIssue('missing-koen', 'Ved beregning før 1. marts 2015 skal køn angives.'));
     return null;
   }
 
-  const controlBekId = resolveKapitaliseringsbekendtgoerelseId(skadesdato, beregningsdato);
+  const controlBekId = resolveKapitaliseringsbekendtgoerelseId(skadedato, beregningsdato);
   if (!controlBekId) {
     issues.push(toIssue(
       'proforma-kapitaliseringsbekendtgoerelse-missing',
@@ -273,11 +273,11 @@ const computeProformaKapitalisering = (
     return null;
   }
 
-  const tabelvalg = resolveKapitaliseringTabelvalg(tabeldata, skadesdato, fodselsdato);
+  const tabelvalg = resolveKapitaliseringTabelvalg(tabeldata, skadedato, fodselsdato);
   if (!tabelvalg) {
     issues.push(toIssue(
       'proforma-kapitaliseringstabel-missing',
-      'Ingen kapitaliseringstabel matcher skadesdato og fødselsdato på beregningsdatoen.'
+      'Ingen kapitaliseringstabel matcher skadedato og fødselsdato på beregningsdatoen.'
     ));
     return null;
   }
@@ -288,12 +288,12 @@ const computeProformaKapitalisering = (
     return null;
   }
 
-  const saerfaktor = resolveSaerfaktor(tabeldata, skadesdato);
+  const saerfaktor = resolveSaerfaktor(tabeldata, skadedato);
   const useDirectSaerfaktor = tabelvalg.folkepensionsalderMaaneder - age.totalMonths <= 24;
   let kapitaliseringsfaktor: number | null = null;
   let kapitaliseretPgaUnderToAarTilFp = false;
   let koenOpdelt = false;
-  const faktorMaanedsAfhaengig = skadesdato >= SKAERING_2007_07_01;
+  const faktorMaanedsAfhaengig = skadedato >= SKAERING_2007_07_01;
 
   if (useDirectSaerfaktor) {
     if (saerfaktor === null) {
@@ -453,9 +453,9 @@ const resolveLoebendeEetPct = (
 
 const skalFradragForetages = (
   afgoerelseType: 'Midlertidig' | 'Delvist endelig' | 'Endelig',
-  skadesdato: ISODateString
+  skadedato: ISODateString
 ): boolean => {
-  if (skadesdato < SKAERING_2011_06_16) return true;
+  if (skadedato < SKAERING_2011_06_16) return true;
   return afgoerelseType === 'Endelig';
 };
 
@@ -463,7 +463,7 @@ const skalFradragForetages = (
 
 export const computeEetDifferencekravCalculation = (input: Input): EetDifferencekravCalculationResult => {
   const beregningsdato = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
-  const skadesdato = input.skadesdato;
+  const skadedato = input.skadedato;
   const fodselsdato = input.skadelidteFodselsdato;
   const hasAnyPctInput = hasAnyEetPctInput(input.erhvervsevnetab);
   const aslRowsAnalysis = analyzeAslRowsAtBeregningsdato(input.erhvervsevnetab.aslAfgoerelser, beregningsdato);
@@ -476,7 +476,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   // ─── Kør eal-beregning (fane 4) ───────────────────────────────────────────
   const ealResult = computeEetEalCalculation({
     erhvervsevnetab: filteredErhvervsevnetab,
-    skadesdato,
+    skadedato,
     skadelidteFodselsdato: fodselsdato,
     reguleringssats,
     erhvervsevnetabEalMax,
@@ -486,7 +486,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   // ─── Kør kapitaliserings-beregning (fane 3) ───────────────────────────────
   const kapResult = computeEetKapitaliseringCalculation({
     erhvervsevnetab: filteredErhvervsevnetab,
-    skadesdato,
+    skadedato,
     skadelidteFodselsdato: fodselsdato,
   });
 
@@ -502,7 +502,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
         dagFoerBeregningsdato = dayBefore;
         loebendeResult = computeEetLoebendeYdelser({
           erhvervsevnetab: { ...filteredErhvervsevnetab, beregningsdato: dayBefore },
-          skadesdato,
+          skadedato,
           skadelidteFodselsdato: fodselsdato,
         });
       }
@@ -536,11 +536,11 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   let proformaKapitalisering: EetDifferencekravProformaKapitalisering | null = null;
   let loebendeEetPct = 0;
 
-  if (ealResult.computation && beregningsdato && skadesdato && fodselsdato && dagFoerBeregningsdato) {
+  if (ealResult.computation && beregningsdato && skadedato && fodselsdato && dagFoerBeregningsdato) {
     const loebendeComputation = loebendeResult?.computation ?? null;
 
-    const before2024Skade = skadesdato < SKAERING_2024_07_01;
-    const from2011 = skadesdato >= SKAERING_2011_01_01;
+    const before2024Skade = skadedato < SKAERING_2024_07_01;
+    const from2011 = skadedato >= SKAERING_2011_01_01;
     const erstatningsniveau = from2011 ? 0.83 : 0.8;
     const amFaktor = from2011 ? 0.92 : 1;
     // Grundlønnen genbruges fra fane 2's computation frem for at rekonstruere den lokalt.
@@ -565,7 +565,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
         {
           loebendeEetPct,
           beregningsdato,
-          skadesdato,
+          skadedato,
           fodselsdato,
           grundloen,
           erstatningsniveau,
@@ -623,7 +623,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
 
   const hasBlockingErrors = blockingErrors.length > 0;
 
-  if (hasBlockingErrors || !ealResult.computation || !beregningsdato || !skadesdato || !fodselsdato || !dagFoerBeregningsdato) {
+  if (hasBlockingErrors || !ealResult.computation || !beregningsdato || !skadedato || !fodselsdato || !dagFoerBeregningsdato) {
     return { issues: finalIssues, computation: null, hasBlockingErrors };
   }
 
@@ -647,7 +647,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       const afgoerelse = sortedByVirkningsdato[i]!;
       const fradragesTil = afgoerelse.ophoerDato;
 
-      const foretages = skalFradragForetages(afgoerelse.afgoerelseType, skadesdato);
+      const foretages = skalFradragForetages(afgoerelse.afgoerelseType, skadedato);
       const beloeb = foretages ? afgoerelse.iAltBeregnetEet : 0;
       fradragLoebendeYdelser += beloeb;
       loebendeAfgoerelser.push({
@@ -723,9 +723,9 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     hasBlockingErrors: false,
     computation: {
       beregningsdato,
-      skadesdato,
+      skadedato,
       dagFoerBeregningsdato,
-      fradragGaelderForFoer2011: skadesdato < SKAERING_2011_06_16,
+      fradragGaelderForFoer2011: skadedato < SKAERING_2011_06_16,
       ealKrav,
       ealEetPct,
       fradragLoebendeYdelser,

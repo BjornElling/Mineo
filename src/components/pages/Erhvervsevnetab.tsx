@@ -61,7 +61,7 @@ const ErhvervsevnetabPage = React.memo(() => {
     severity: 'error',
     source: 'rule',
   });
-  useAslAarsloenRuleReporter(faellesAarsloenValues.aslAarsloen, stamdata?.skadesdato);
+  useAslAarsloenRuleReporter(faellesAarsloenValues.aslAarsloen, stamdata?.skadedato);
 
   const composedValues = React.useMemo<ErhvervsevnetabComposedValues>(
     () => ({ ...values, ...faellesAarsloenValues, skadelidteFodselsdato: stamdata?.skadelidteFodselsdato }),
@@ -71,10 +71,10 @@ const ErhvervsevnetabPage = React.memo(() => {
   const aslAfgoerelserValidationIssues = React.useMemo(() => {
     return collectEetAslAfgoerelseValidationIssues(
       values.aslAfgoerelser,
-      stamdata?.skadesdato,
+      stamdata?.skadedato,
       stamdata?.skadelidteFodselsdato
     );
-  }, [stamdata?.skadelidteFodselsdato, stamdata?.skadesdato, values.aslAfgoerelser]);
+  }, [stamdata?.skadelidteFodselsdato, stamdata?.skadedato, values.aslAfgoerelser]);
 
   // Kun den første fejl rapporteres til error-bus — feltniveau-fejl på individuelle rækker
   // vises inline i tabellen og aggregeres ikke i EetIssuesBox. Dette er en bevidst
@@ -154,7 +154,7 @@ const ErhvervsevnetabPage = React.memo(() => {
           setFieldValue={setFieldValue}
           handleAslAarsloenChange={(event) => setFaellesAarsloenFieldValue('aslAarsloen', event.target.value)}
           handleEalAarsloenChange={(event) => setFaellesAarsloenFieldValue('ealAarsloen', event.target.value)}
-          skadesdato={stamdata?.skadesdato}
+          skadedato={stamdata?.skadedato}
         />
       )}
       {activeTab === TAB_KEYS.LOEBENDE_YDELSER && (

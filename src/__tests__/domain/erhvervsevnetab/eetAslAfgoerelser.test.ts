@@ -562,7 +562,7 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     expect(withFpIssue.some((issue) => issue.rowId === 'r1' && issue.field === 'kapDato')).toBe(false);
   });
 
-  it('giver ikke særskilt 2-årsregel-fejl i felterne, når skadesdato mangler', () => {
+  it('giver ikke særskilt 2-årsregel-fejl i felterne, når skadedato mangler', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({
         id: 'r1',

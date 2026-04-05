@@ -70,7 +70,7 @@ export type EetKapitaliseringCalculationResult = Readonly<{
 
 type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
-  skadesdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
 }>;
 
@@ -179,7 +179,7 @@ export const resolveKapitaliseringAarsydelseBreakdown = (
 const collectResolvedRows = (
   rows: readonly AslAfgoerelseRow[],
   issues: EetIssue[],
-  skadesdato: ISODateString | undefined,
+  skadedato: ISODateString | undefined,
   fodselsdato: ISODateString | undefined
 ): ResolvedKapitaliseringsRow[] => {
   const result: ResolvedKapitaliseringsRow[] = [];
@@ -228,9 +228,9 @@ const collectResolvedRows = (
     const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
     const isEndeligUnderOrEqualTwoYears =
       row.afgoerelseType === 'Endelig' &&
-      skadesdato !== undefined &&
+      skadedato !== undefined &&
       fodselsdato !== undefined &&
-      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDate);
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, controlDate);
     if (!isEndeligUnderOrEqualTwoYears && (kapPct === undefined || kapPct <= 0)) continue;
 
     result.push({
@@ -273,10 +273,10 @@ const collectResolvedRows = (
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
     const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
     const isForcedUnderTwoYears =
-      skadesdato !== undefined &&
+      skadedato !== undefined &&
       fodselsdato !== undefined &&
       controlDate !== undefined &&
-      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDate);
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, controlDate);
     if (isForcedUnderTwoYears) return false;
     return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
   });
@@ -286,10 +286,10 @@ const collectResolvedRows = (
     const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
     return (
       row.afgoerelseType === 'Endelig' &&
-      skadesdato !== undefined &&
+      skadedato !== undefined &&
       fodselsdato !== undefined &&
       controlDate !== undefined &&
-      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDate)
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, controlDate)
     );
   });
 
@@ -333,7 +333,7 @@ export const computeEetKapitaliseringCalculation = (
 ): EetKapitaliseringCalculationResult => {
   const issues: EetIssue[] = [];
   const values = input.erhvervsevnetab;
-  const skadesdato = input.skadesdato;
+  const skadedato = input.skadedato;
   const fodselsdato = input.skadelidteFodselsdato;
   const aarsloen = amountValueToNumber(values.aslAarsloen);
 
@@ -345,17 +345,17 @@ export const computeEetKapitaliseringCalculation = (
   if (!fodselsdato) {
     issues.push(toIssue('skadelidte-fodselsdato-missing', 'Fødselsdato er ikke udfyldt.'));
   }
-  if (!skadesdato) {
-    issues.push(toIssue('skadesdato-missing', 'Skadesdato er ikke udfyldt.'));
+  if (!skadedato) {
+    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt.'));
   }
 
-  const resolvedRows = collectResolvedRows(values.aslAfgoerelser, issues, skadesdato, fodselsdato);
+  const resolvedRows = collectResolvedRows(values.aslAfgoerelser, issues, skadedato, fodselsdato);
 
-  if (issues.some((issue) => issue.severity === 'error') || !Number.isFinite(aarsloen) || !skadesdato || !fodselsdato) {
+  if (issues.some((issue) => issue.severity === 'error') || !Number.isFinite(aarsloen) || !skadedato || !fodselsdato) {
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  const skadesaar = Number.parseInt(skadesdato.slice(0, 4), 10);
+  const skadesaar = Number.parseInt(skadedato.slice(0, 4), 10);
   const maxAarsloenISkadesaar = aarsloenAslMax[skadesaar];
   if (!Number.isFinite(maxAarsloenISkadesaar)) {
     issues.push(toIssue('aarsloen-max-missing', `Maksimum årsløn mangler for år ${skadesaar}.`));
@@ -365,8 +365,8 @@ export const computeEetKapitaliseringCalculation = (
   const aslAarsloen = aarsloen as number;
   const aslAarsloenAfrundet1000 = roundNearest1000(aslAarsloen);
   const benyttetAarsloen = Math.min(aslAarsloenAfrundet1000, maxAarsloenISkadesaar);
-  const before2024Skade = skadesdato < SKAERING_2024_07_01;
-  const from2011 = skadesdato >= SKAERING_2011_01_01;
+  const before2024Skade = skadedato < SKAERING_2024_07_01;
+  const from2011 = skadedato >= SKAERING_2011_01_01;
   const grundloen = before2024Skade
     ? round0(benyttetAarsloen * (ASL_MAX_AARSLOEN_2003 / maxAarsloenISkadesaar))
     : round0(benyttetAarsloen * (ASL_MAX_AARSLOEN_2024 / maxAarsloenISkadesaar));
@@ -385,7 +385,7 @@ export const computeEetKapitaliseringCalculation = (
     const controlDate = row.tidlKapDato ?? row.afgoerelsesdato;
     const isEndeligUnderOrEqualTwoYears =
       row.afgoerelseType === 'Endelig' &&
-      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, controlDate);
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, controlDate);
     const effectiveKapPct = isEndeligUnderOrEqualTwoYears
       ? Math.max(0, row.eetPct - kumulativKapPct)
       : row.kapPct;
@@ -396,7 +396,7 @@ export const computeEetKapitaliseringCalculation = (
       continue;
     }
 
-    const controlBekId = resolveKapitaliseringsbekendtgoerelseId(skadesdato, controlDate);
+    const controlBekId = resolveKapitaliseringsbekendtgoerelseId(skadedato, controlDate);
     if (!controlBekId) {
       issues.push(
         toIssue(
@@ -418,12 +418,12 @@ export const computeEetKapitaliseringCalculation = (
       continue;
     }
 
-    const controlTabelvalg = resolveKapitaliseringTabelvalg(controlData, skadesdato, fodselsdato);
+    const controlTabelvalg = resolveKapitaliseringTabelvalg(controlData, skadedato, fodselsdato);
     if (!controlTabelvalg) {
       issues.push(
         toIssue(
           'kapitaliseringstabel-missing',
-          `Ingen kapitaliseringstabel i ${controlBekId} matcher skadesdato og fødselsdato på kontroltidspunktet.`
+          `Ingen kapitaliseringstabel i ${controlBekId} matcher skadedato og fødselsdato på kontroltidspunktet.`
         )
       );
       continue;
@@ -435,7 +435,7 @@ export const computeEetKapitaliseringCalculation = (
       continue;
     }
 
-    const controlSaerfaktor = resolveSaerfaktor(controlData, skadesdato);
+    const controlSaerfaktor = resolveSaerfaktor(controlData, skadedato);
     const useDirectSaerfaktor = controlTabelvalg.folkepensionsalderMaaneder - controlAge.totalMonths <= 24;
 
     let resolvedKapId = controlBekId;
@@ -446,7 +446,7 @@ export const computeEetKapitaliseringCalculation = (
     let kapitaliseringsfaktor: number | null = null;
     let kapitaliseretPgaUnderToAarTilFp = false;
     let koenOpdelt = false;
-    const faktorMaanedsAfhaengig = skadesdato >= SKAERING_2007_07_01;
+    const faktorMaanedsAfhaengig = skadedato >= SKAERING_2007_07_01;
 
     if (useDirectSaerfaktor) {
       if (resolvedSaerfaktor === null) {
@@ -461,7 +461,7 @@ export const computeEetKapitaliseringCalculation = (
       kapitaliseringsfaktor = round3(resolvedSaerfaktor);
       kapitaliseretPgaUnderToAarTilFp = true;
     } else {
-      const effectiveBekId = resolveKapitaliseringsbekendtgoerelseId(skadesdato, effectiveKapDato);
+      const effectiveBekId = resolveKapitaliseringsbekendtgoerelseId(skadedato, effectiveKapDato);
       if (!effectiveBekId) {
         issues.push(
           toIssue(
@@ -483,18 +483,18 @@ export const computeEetKapitaliseringCalculation = (
         continue;
       }
       resolvedTabelData = effectiveData;
-      const effectiveTabelvalg = resolveKapitaliseringTabelvalg(effectiveData, skadesdato, fodselsdato);
+      const effectiveTabelvalg = resolveKapitaliseringTabelvalg(effectiveData, skadedato, fodselsdato);
       if (!effectiveTabelvalg) {
         issues.push(
           toIssue(
             'kapitaliseringstabel-missing',
-            `Ingen kapitaliseringstabel i ${effectiveBekId} matcher skadesdato og fødselsdato på kapitaliseringstidspunktet.`
+            `Ingen kapitaliseringstabel i ${effectiveBekId} matcher skadedato og fødselsdato på kapitaliseringstidspunktet.`
           )
         );
         continue;
       }
       resolvedTabelvalg = effectiveTabelvalg;
-      resolvedSaerfaktor = resolveSaerfaktor(effectiveData, skadesdato);
+      resolvedSaerfaktor = resolveSaerfaktor(effectiveData, skadedato);
       const effectiveAge = calculateAgeYearsMonths(fodselsdato, effectiveKapDato);
       if (!effectiveAge) {
         issues.push(toIssue('kapitaliseringsfaktor-unresolved', 'Alder kan ikke beregnes på kapitaliseringstidspunktet.'));

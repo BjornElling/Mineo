@@ -45,7 +45,7 @@ Dette matcher implementeringsretningen i:
 - Sortering/ordning er en fast regel og skal altid være den samme:
   - tabeller i kildens tabelnavn-rækkefølge
   - aldersrækker stigende på `alder`
-  - tabelvalg sorteret med nyeste `skadesdatoFra` først, derefter nyeste `foedselsdatoFra` først
+  - tabelvalg sorteret med nyeste `skadedatoFra` først, derefter nyeste `foedselsdatoFra` først
 - Udtræk kun tabeller for `erhvervsevnetab` og `forsørgertabserstatning`.
 - Tabeller for `varige mén` og `behandlingsudgifter` må ikke medtages.
 - Hvis tabeltype ikke kan afgøres entydigt fra kilden, stoppes udtrækket og brugeren skal spørges.
@@ -61,7 +61,7 @@ Dette matcher implementeringsretningen i:
   - `9870/2020` dækker kun `2020-12-31`.
 - For VEJ `9921/2019` og `9870/2020` udfyldes ikke ekstra EET-tabelvalg for ældre ordninger, forsørgertab-tabelvalg eller særfaktor ved `<2 år`, når disse ikke fremgår eksplicit af kilden.
 - For VEJ `9820/2023` og `9376/2024` kan filernes `gyldig`-intervaller overlappe i anden halvdel af 2024; deterministisk prioritering skal styres i `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts` med skæringsdato `2024-07-01`.
-- For VEJ `9741/2020`, `9864/2021`, `10141/2022` og `9820/2023` er tabelvalg bevidst begrænset til skadesdatoer fra `2011-01-01`, når kilden kun angiver tabeller `A-H`.
+- For VEJ `9741/2020`, `9864/2021`, `10141/2022` og `9820/2023` er tabelvalg bevidst begrænset til skadedatoer fra `2011-01-01`, når kilden kun angiver tabeller `A-H`.
 - `forsoergertabAfloesningsTabeller = {}` betyder, at kilden ikke indeholder afløsningstabeller for den bekendtgørelse/vejledning.
 - Hvis kilden kun angiver kønsopdelte afløsningstabeller, skal de bevares i `forsoergertabAfloesningsTabellerKoensopdelt` (ingen sammenfletning til kønsneutral tabel).
 - De fil-lokale interface-definitioner (`AldersFaktorRaekke`, `ForsoergertabMatrixRaekke`, `AldersKoensopdeltFaktorRaekke`) er en bevidst selvstændighedsstrategi for hver tabelfil, ikke en datamæssig forskel.
@@ -84,7 +84,7 @@ Dette matcher implementeringsretningen i:
 - Forsørgertabstabeller (`faktorerPraHeleAar`) kan have varierende antal kolonner pr. alder-række. Bevar præcis antal værdier fra kilden; aldrig pad/trunkér.
 
 3. Identificer tabelvalg-oplysninger:
-- `skadesdatoFra`.
+- `skadedatoFra`.
 - `foedselsdatoFra`.
 - `folkepensionsalderAar` eller `ophoersalderAarLabel` direkte fra kilden.
 - Hvilken tabel (`A`, `B`, ...).
@@ -117,7 +117,7 @@ Typisk struktur i denne type fil:
 
 - Semikolon-separeret (`;`).
 - Metadata øverst (fx `VEJ nr 10056 af 30/10/2025`).
-- En blok med `Skadesdato fra;Fødselsdato fra;Tabel`.
+- En blok med `Skadedato fra;Fødselsdato fra;Tabel`.
 - En særlinje med `Kapitaliseringsfaktor ved <2 år til FP`.
 - En bred matrix med flere tabeller side om side (`Tabel A`, `Tabel B`, ...), hvor hver tabel har kolonnerne `Alder;Faktor`.
 
@@ -126,7 +126,7 @@ Normalisering fra denne CSV-type:
 - `VEJ` normaliseres til `kapitaliseringsType = 'vejl'`.
 - Tal med komma i faktorfelt (fx `1,246`) konverteres til punktum (`1.246`).
 - Tomme matrixceller ignoreres (de er layout, ikke data).
-- `tabelvalg` udtrækkes fra den første blok (`Skadesdato fra;Fødselsdato fra;Tabel`).
+- `tabelvalg` udtrækkes fra den første blok (`Skadedato fra;Fødselsdato fra;Tabel`).
 
 Vigtigt om folkepensionsalder:
 
@@ -172,14 +172,14 @@ export const gyldigFra = toISODateString('2025-01-01');
 export const gyldigTil = toISODateString('2025-12-31');
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadesdatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
+  // skadedatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
   ['2021-01-01',     '1967-01-01',     69,     'A'],
   ['2011-01-01',     '1967-01-01',     69,     'F'],
 ] as const;
 
 export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadesdatoFra, foedselsdatoFra, folkepensionsalderAar, tabel]) => ({
-    skadesdatoFra: toISODateString(skadesdatoFra),
+  ([skadedatoFra, foedselsdatoFra, folkepensionsalderAar, tabel]) => ({
+    skadedatoFra: toISODateString(skadedatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
     folkepensionsalderAar,
     tabel,
@@ -187,29 +187,29 @@ export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
 );
 
 const FORSOERGERTAB_TABELVALG_DATA = [
-  // skadesdatoFra     tabel
+  // skadedatoFra     tabel
   ['2021-01-01',     'E'],
   ['2011-01-01',     'J'],
 ] as const;
 
 export const forsoergertabTabelvalg = FORSOERGERTAB_TABELVALG_DATA.map(
-  ([skadesdatoFra, tabel]) => ({
-    skadesdatoFra: toISODateString(skadesdatoFra),
+  ([skadedatoFra, tabel]) => ({
+    skadedatoFra: toISODateString(skadedatoFra),
     tabel,
   })
 );
 
 const SAERFAKTOR_UNDER_TO_AAR_DATA = [
-  // skadesdatoFra     faktor
+  // skadedatoFra     faktor
   ['2021-01-01',     1.245],
   ['2011-01-01',     1.245],
 ] as const;
 
 export const saerfaktorUnderToAarTilFpPerSkadesinterval: ReadonlyArray<{
-  skadesdatoFra: ISODateString;
+  skadedatoFra: ISODateString;
   faktor: number;
-}> = SAERFAKTOR_UNDER_TO_AAR_DATA.map(([skadesdatoFra, faktor]) => ({
-  skadesdatoFra: toISODateString(skadesdatoFra),
+}> = SAERFAKTOR_UNDER_TO_AAR_DATA.map(([skadedatoFra, faktor]) => ({
+  skadedatoFra: toISODateString(skadedatoFra),
   faktor,
 }));
 
@@ -290,7 +290,7 @@ Eksempel:
 
 ```ts
 const FORSOERGERTAB_TABELVALG_DATA = [
-  // skadesdatoFra     tabel
+  // skadedatoFra     tabel
   ['2021-01-01',     'E'],
   ['2011-01-01',     'J'],
 ] as const;

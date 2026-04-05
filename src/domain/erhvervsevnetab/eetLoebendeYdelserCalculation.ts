@@ -65,7 +65,7 @@ export type EetLoebendeAarsydelseReguleringStep = Readonly<{
 
 export type EetLoebendeComputation = Readonly<{
   beregningsdato: ISODateString;
-  skadesdato: ISODateString;
+  skadedato: ISODateString;
   fodselsdato: ISODateString;
   skadesaar: number;
   aslAarsloenAfrundet1000: number;
@@ -87,7 +87,7 @@ export type EetLoebendeCalculationResult = Readonly<{
 
 type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
-  skadesdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
 }>;
 
@@ -166,7 +166,7 @@ const collectResolvedAfgoerelser = (
 };
 
 const collectWarnings = (
-  skadesdato: ISODateString,
+  skadedato: ISODateString,
   beregningsdato: ISODateString,
   afgoerelser: readonly ResolvedAfgoerelse[],
   issues: EetIssue[]
@@ -175,7 +175,7 @@ const collectWarnings = (
     issues.push(toWarning('warn-asl-eet-under-15', 'Der er indtastet en afgørelse med < 15 % erhvervsevnetab.'));
   }
 
-  const firstInvalidPctAfter2024 = skadesdato >= SKAERING_2024_07_01
+  const firstInvalidPctAfter2024 = skadedato >= SKAERING_2024_07_01
     ? afgoerelser.find((row) => row.eetPct > 15 && row.eetPct % 10 !== 0)
     : undefined;
   if (firstInvalidPctAfter2024) {
@@ -327,11 +327,11 @@ const buildRestSectionPeriods = (
  * Returnerer undefined hvis tabelvalget ikke kan slås op.
  */
 const resolveFolkepensionsDagFoer = (
-  skadesdato: ISODateString,
+  skadedato: ISODateString,
   fodselsdato: ISODateString,
   controlDate: ISODateString
 ): ISODateString | undefined => {
-  const tabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadesdato, fodselsdato, controlDate);
+  const tabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadedato, fodselsdato, controlDate);
   if (!tabelvalg) return undefined;
   const parsedBirth = parseISODate(fodselsdato);
   if (!parsedBirth) return undefined;
@@ -364,7 +364,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   const issues: EetIssue[] = [];
 
   const beregningsdato = coerceToISODateString(input.erhvervsevnetab.beregningsdato);
-  const skadesdato = input.skadesdato;
+  const skadedato = input.skadedato;
   const fodselsdato = input.skadelidteFodselsdato;
 
   const aslAarsloenRaw = amountValueToNumber(input.erhvervsevnetab.aslAarsloen);
@@ -380,8 +380,8 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   if (!beregningsdato) {
     issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt.'));
   }
-  if (!skadesdato) {
-    issues.push(toIssue('skadesdato-missing', 'Skadesdato er ikke udfyldt.'));
+  if (!skadedato) {
+    issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt.'));
   }
 
   collectBlockingInputIssues(input.erhvervsevnetab.aslAfgoerelser, issues);
@@ -396,13 +396,13 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     issues.some((issue) => issue.severity === 'error') ||
     !Number.isFinite(aslAarsloenRaw) ||
     !beregningsdato ||
-    !skadesdato ||
+    !skadedato ||
     !fodselsdato
   ) {
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  const skadesaar = toYear(skadesdato);
+  const skadesaar = toYear(skadedato);
   const maxAarsloenISkadesaar = aarsloenAslMax[skadesaar];
   if (!Number.isFinite(maxAarsloenISkadesaar)) {
     issues.push(toIssue('aarsloen-max-missing', `Maksimum årsløn mangler for år ${skadesaar}`));
@@ -413,15 +413,15 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   const aslAarsloenAfrundet1000 = roundNearest1000(aslAarsloen);
   const benyttetAarsloen = Math.min(aslAarsloenAfrundet1000, maxAarsloenISkadesaar);
 
-  collectWarnings(skadesdato, beregningsdato, resolvedAfgoerelser, issues);
+  collectWarnings(skadedato, beregningsdato, resolvedAfgoerelser, issues);
 
   const ealAarsloenInput = amountValueToNumber(input.erhvervsevnetab.ealAarsloen);
   if ((ealAarsloenInput === undefined || !Number.isFinite(ealAarsloenInput)) && aslAarsloen === maxAarsloenISkadesaar) {
     issues.push(toWarning('warn-asl-aarsloen-is-max', 'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL.'));
   }
 
-  const before2024Skade = skadesdato < SKAERING_2024_07_01;
-  const from2011 = skadesdato >= SKAERING_2011_01_01;
+  const before2024Skade = skadedato < SKAERING_2024_07_01;
+  const from2011 = skadedato >= SKAERING_2011_01_01;
   const reguleringFoer2024 = reguleringsprocentErhvervsevnetabFoer2024[2024];
   if (before2024Skade && !Number.isFinite(reguleringFoer2024)) {
     issues.push(toIssue('reguleringssats-missing-2024', 'Reguleringssats mangler for år 2024'));
@@ -446,7 +446,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     const priorKapPct = kumulativKapPct;
     const isEndeligUnderOrEqualTwoYears =
       current.afgoerelseType === 'Endelig' &&
-      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadesdato, fodselsdato, current.afgoerelsesdato);
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, current.afgoerelsesdato);
 
     const eetPctFoerAktuelKapRaw = current.eetPct - priorKapPct;
     const eetPctFoerAktuelKap = eetPctFoerAktuelKapRaw > 0 ? eetPctFoerAktuelKapRaw : 0;
@@ -463,7 +463,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     const hasRestSection = hasKapitalisering && restEetPct > 0;
 
     const dayBeforeNextVirkning = next ? isoDayBefore(next.virkningsdato) : undefined;
-    const folkepensionsDagFoer = resolveFolkepensionsDagFoer(skadesdato, fodselsdato, current.afgoerelsesdato);
+    const folkepensionsDagFoer = resolveFolkepensionsDagFoer(skadedato, fodselsdato, current.afgoerelsesdato);
     const dayBeforeKapitalisering = effectiveKapDato ? isoDayBefore(effectiveKapDato) : undefined;
 
     const finalCandidates: Array<Readonly<{ date: ISODateString; cause: EetLoebendeAfgoerelseComputation['ophoerAarsag'] }>> = [
@@ -585,7 +585,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
 
   const computation: EetLoebendeComputation = {
     beregningsdato,
-    skadesdato,
+    skadedato,
     fodselsdato,
     skadesaar,
     aslAarsloenAfrundet1000,
@@ -668,7 +668,7 @@ export const toOphoerAarsagLabel = (
   }
 };
 
-export const formatSkadesdatoCompact = (iso: ISODateString): string => {
+export const formatSkadedatoCompact = (iso: ISODateString): string => {
   const [year, month, day] = iso.split('-');
   const d = Number.parseInt(day, 10);
   const m = Number.parseInt(month, 10);

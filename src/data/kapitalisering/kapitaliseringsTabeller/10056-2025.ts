@@ -24,7 +24,7 @@ export const gyldigTil = toISODateString('2026-12-31');
 // Tabeller for behandlingsudgifter (Å) og varigt mén (AA) er bevidst udeladt.
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadesdatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
+  // skadedatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
   ['2021-01-01',     '1971-01-01',     70,     'A'],
   ['2021-01-01',     '1967-01-01',     69,     'B'],
   ['2021-01-01',     '1963-01-01',     68,     'C'],
@@ -44,8 +44,8 @@ const ERHVERVSEVNETAB_TABELVALG_DATA = [
 ] as const;
 
 export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadesdatoFra, foedselsdatoFra, folkepensionsalderAar, tabel]) => ({
-    skadesdatoFra: toISODateString(skadesdatoFra),
+  ([skadedatoFra, foedselsdatoFra, folkepensionsalderAar, tabel]) => ({
+    skadedatoFra: toISODateString(skadedatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
     folkepensionsalderAar,
     tabel,
@@ -53,7 +53,7 @@ export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
 );
 
 const FORSOERGERTAB_TABELVALG_DATA = [
-  // skadesdatoFra     tabel
+  // skadedatoFra     tabel
   ['2021-01-01',     'E'],
   ['2011-01-01',     'J'],
   ['2007-07-01',     'O'],
@@ -62,8 +62,8 @@ const FORSOERGERTAB_TABELVALG_DATA = [
 ] as const;
 
 export const forsoergertabTabelvalg = FORSOERGERTAB_TABELVALG_DATA.map(
-  ([skadesdatoFra, tabel]) => ({
-    skadesdatoFra: toISODateString(skadesdatoFra),
+  ([skadedatoFra, tabel]) => ({
+    skadedatoFra: toISODateString(skadedatoFra),
     tabel,
   })
 );
@@ -71,17 +71,17 @@ export const forsoergertabTabelvalg = FORSOERGERTAB_TABELVALG_DATA.map(
 // Vejledningen angiver særfaktor eksplicit for disse intervaller.
 // Der er ikke indsat antagelser for intervaller uden eksplicit angivet særfaktor.
 const SAERFAKTOR_UNDER_TO_AAR_DATA = [
-  // skadesdatoFra     faktor
+  // skadedatoFra     faktor
   ['2021-01-01',     1.246],
   ['2011-01-01',     1.246],
   ['2007-07-01',     1.168],
 ] as const;
 
 export const saerfaktorUnderToAarTilFpPerSkadesinterval: ReadonlyArray<{
-  skadesdatoFra: ISODateString;
+  skadedatoFra: ISODateString;
   faktor: number;
-}> = SAERFAKTOR_UNDER_TO_AAR_DATA.map(([skadesdatoFra, faktor]) => ({
-  skadesdatoFra: toISODateString(skadesdatoFra),
+}> = SAERFAKTOR_UNDER_TO_AAR_DATA.map(([skadedatoFra, faktor]) => ({
+  skadedatoFra: toISODateString(skadedatoFra),
   faktor,
 }));
 

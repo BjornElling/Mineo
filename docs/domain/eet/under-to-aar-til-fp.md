@@ -23,7 +23,7 @@ Grænsen er inklusiv:
 - Datoen præcis 24 måneder før folkepensionsdatoen er inden for særreglen.
 - Dagen før denne dato er uden for særreglen.
 
-Folkepensionsalderen opslås i kapitaliseringsbekendtgørelsen gældende på kontroltidspunktet (skadesdato × kontroltidspunkt → bekendtgørelse → tabelvalg → folkepensionsalder i måneder).
+Folkepensionsalderen opslås i kapitaliseringsbekendtgørelsen gældende på kontroltidspunktet (skadedato × kontroltidspunkt → bekendtgørelse → tabelvalg → folkepensionsalder i måneder).
 
 ---
 
