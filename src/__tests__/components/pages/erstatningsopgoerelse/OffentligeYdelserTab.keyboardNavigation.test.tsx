@@ -34,8 +34,10 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
   };
 
   const waitForAnimationFrame = async () => {
-    await new Promise<void>((resolve) => {
-      requestAnimationFrame(() => resolve());
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => resolve());
+      });
     });
   };
 

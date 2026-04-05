@@ -5,11 +5,12 @@ import StyledTextAreaBase from './StyledTextAreaBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { trimWhitespaceEdges } from '../../utils/draftNormalization';
+import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 
 const debugStyledTextField = (event: string, details: Record<string, unknown>): void => {
-  if (!import.meta.env.DEV) return;
+  if (!isInteractiveDevLoggingEnabled) return;
   console.debug('[StyledTextField]', event, details);
 };
 

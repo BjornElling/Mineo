@@ -15,9 +15,10 @@ import { normalizeDatePaste } from '../../utils/inputPasteNormalization';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { ReportableFieldError } from '../../types/fieldErrors';
+import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
 
 const debugStyledDateField = (event: string, details: Record<string, unknown>): void => {
-  if (!import.meta.env.DEV) return;
+  if (!isInteractiveDevLoggingEnabled) return;
   console.debug('[StyledDateField]', event, details);
 };
 
@@ -297,20 +298,20 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     // - Range validation reports an error message but never blocks commit.
     const rangeEffectDepsRef = React.useRef<{ effectiveMaxDate: typeof effectiveMaxDate; effectiveMinDate: typeof effectiveMinDate; specialRangeErrors: typeof specialRangeErrors; validateRange: typeof validateRange; value: typeof value } | null>(null);
     React.useEffect(() => {
-      if (import.meta.env.DEV) {
+      if (isInteractiveDevLoggingEnabled) {
         const prev = rangeEffectDepsRef.current;
         if (prev !== null) {
           const changed: string[] = [];
           if (prev.effectiveMaxDate !== effectiveMaxDate) changed.push(`effectiveMaxDate (${prev.effectiveMaxDate} → ${effectiveMaxDate})`);
           if (prev.effectiveMinDate !== effectiveMinDate) changed.push(`effectiveMinDate (${prev.effectiveMinDate} → ${effectiveMinDate})`);
-          if (prev.specialRangeErrors !== specialRangeErrors) changed.push('specialRangeErrors (reference changed)');
+          if (prev.specialRangeErrors !== resolvedSpecialRangeErrors) changed.push('specialRangeErrors (reference changed)');
           if (prev.validateRange !== validateRange) changed.push('validateRange (fn reference changed)');
           if (prev.value !== value) changed.push(`value (${prev.value} → ${value})`);
           if (changed.length > 0) {
             console.debug('[StyledDateField] range-effect triggered. Changed deps:', changed.join(', '));
           }
         }
-        rangeEffectDepsRef.current = { effectiveMaxDate, effectiveMinDate, specialRangeErrors, validateRange, value };
+        rangeEffectDepsRef.current = { effectiveMaxDate, effectiveMinDate, specialRangeErrors: resolvedSpecialRangeErrors, validateRange, value };
       }
 
       if (value === undefined) {
@@ -380,7 +381,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     // Notify parent of error state
     const onFieldErrorDepsRef = React.useRef<{ visibleLocalErrorMsg: string | undefined; visibleRangeErrorMessage: string; onFieldError: typeof onFieldError } | null>(null);
     React.useEffect(() => {
-      if (import.meta.env.DEV) {
+      if (isInteractiveDevLoggingEnabled) {
         const prev = onFieldErrorDepsRef.current;
         if (prev !== null) {
           const changed: string[] = [];

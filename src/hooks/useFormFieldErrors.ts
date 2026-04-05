@@ -13,9 +13,10 @@ import {
   useFieldErrorsBySourceSelector,
   useResolvedFieldErrorsSelector,
 } from './useFormPersistenceSelectors';
+import { isInteractiveDevLoggingEnabled } from '../utils/debugRuntime';
 
 const debugFieldErrorReporter = (event: string, details: Record<string, unknown>): void => {
-  if (!import.meta.env.DEV) return;
+  if (!isInteractiveDevLoggingEnabled) return;
   console.debug('[useFormFieldErrors]', event, details);
 };
 

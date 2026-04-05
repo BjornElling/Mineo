@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { isInteractiveDevLoggingEnabled } from '../utils/debugRuntime';
 
 const defaultNormalizeDraftOnCommit = (draft: string): string => {
   return draft;
@@ -145,7 +146,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
 
   const debugDepsRef = React.useRef<{ error: typeof error; format: typeof format; isFocused: boolean; touched: boolean; value: TModel } | null>(null);
   React.useEffect(() => {
-    if (import.meta.env.DEV) {
+    if (isInteractiveDevLoggingEnabled) {
       const prev = debugDepsRef.current;
       if (prev !== null) {
         const changed: string[] = [];
@@ -193,7 +194,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
           return prev;
         }
 
-        if (import.meta.env.DEV && prev !== formatted) {
+        if (isInteractiveDevLoggingEnabled && prev !== formatted) {
           console.debug('[useDraftField] resync-effect: updating draft (pending→resolved)', { prev, formatted });
         }
         return prev === formatted ? prev : formatted;
@@ -204,7 +205,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       // This prevents "silent rollback" to the last committed value on blur.
       if (touched && error !== undefined) return prev;
 
-      if (import.meta.env.DEV && prev !== formatted) {
+      if (isInteractiveDevLoggingEnabled && prev !== formatted) {
         console.debug('[useDraftField] resync-effect: updating draft', { prev, formatted, isFocused, hasPhysicalFocus, touched, error });
       }
       return prev === formatted ? prev : formatted;
@@ -277,7 +278,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     // Contract guard:
     // In commit mode, non-committable values should be surfaced deterministically.
     // If a field returns `partial/empty` without a message on commit, it will appear as a "silent failure".
-    if (import.meta.env.DEV && result.message === undefined) {
+    if (isInteractiveDevLoggingEnabled && result.message === undefined) {
       throw new Error(
         `useDraftField.parse(commit) returned kind='${result.kind}' without message (commit source: ${source})`
       );

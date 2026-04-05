@@ -3,6 +3,7 @@ import { TextField, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 import { copyWholeValueFromReadOnlyField } from '../../utils/clipboardUtils';
+import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
 
 type AllowedInputAttributes = Pick<
   React.InputHTMLAttributes<HTMLInputElement>,
@@ -78,7 +79,7 @@ export type StyledTextFieldBaseProps = {
 };
 
 const debugTextFieldBase = (event: string, details: Record<string, unknown>): void => {
-  if (!import.meta.env.DEV) return;
+  if (!isInteractiveDevLoggingEnabled) return;
   console.debug('[StyledTextFieldBase]', event, details);
 };
 
@@ -215,19 +216,21 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       disabled ? undefined : htmlInputAttributes?.readOnly ? 'pointer' : 'text';
 
     const renderCountRef = React.useRef(0);
-    const renderWindowStartRef = React.useRef<number>(0);
     const excessiveRenderLoggedRef = React.useRef(false);
     const lastDraftRef = React.useRef(draft);
-    if (import.meta.env.DEV) {
-      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-      const windowStart = renderWindowStartRef.current;
-      if (windowStart === 0 || now - windowStart > 1000) {
-        renderWindowStartRef.current = now;
-        renderCountRef.current = 0;
-        excessiveRenderLoggedRef.current = false;
-      }
+    const renderResetTimeoutRef = React.useRef<number | null>(null);
+    React.useEffect(() => {
+      if (!isInteractiveDevLoggingEnabled) return;
 
       renderCountRef.current += 1;
+      if (renderResetTimeoutRef.current !== null) {
+        window.clearTimeout(renderResetTimeoutRef.current);
+      }
+      renderResetTimeoutRef.current = window.setTimeout(() => {
+        renderCountRef.current = 0;
+        excessiveRenderLoggedRef.current = false;
+        renderResetTimeoutRef.current = null;
+      }, 1000);
       if (lastDraftRef.current !== draft) {
         console.debug('[StyledTextFieldBase] draft changed on render', {
           id: resolvedId,
@@ -247,7 +250,13 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
           disabled,
         });
       }
-    }
+      return () => {
+        if (renderResetTimeoutRef.current !== null) {
+          window.clearTimeout(renderResetTimeoutRef.current);
+          renderResetTimeoutRef.current = null;
+        }
+      };
+    }, [disabled, draft, error, resolvedId]);
 
     React.useEffect(() => {
       debugTextFieldBase('mount', {

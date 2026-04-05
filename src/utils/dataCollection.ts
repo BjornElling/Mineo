@@ -1,6 +1,7 @@
 import { UI_STORAGE_KEYS } from '../config/storageManifest';
+import { isInteractiveDevLoggingEnabled } from './debugRuntime';
 
-const debugEnabled = import.meta.env.DEV;
+const debugEnabled = isInteractiveDevLoggingEnabled;
 const debugLog = (...args: unknown[]): void => {
   if (debugEnabled) console.debug(...args);
 };

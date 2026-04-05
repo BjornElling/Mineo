@@ -1,6 +1,7 @@
 import { buildEODebugSygeferiegodtgoerelseRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 import * as loenudviklingBeregningModule from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import * as systemIssueReporterModule from '../../../utils/systemIssueReporter';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -1449,6 +1450,9 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       .mockImplementation(() => {
         throw new Error('Loenudvikling kan ikke beregnes: mangler beregningsgrundlag');
       });
+    const reportSystemIssueSpy = vi
+      .spyOn(systemIssueReporterModule, 'reportSystemIssue')
+      .mockImplementation(() => {});
 
     try {
       expect(() =>
@@ -1475,6 +1479,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         ])
       );
     } finally {
+      reportSystemIssueSpy.mockRestore();
       buildLoenudviklingModelSpy.mockRestore();
     }
   });
@@ -1658,5 +1663,4 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     expect(yearRow?.displayValue).toContain(' | 2025 |');
   });
 });
-
 
