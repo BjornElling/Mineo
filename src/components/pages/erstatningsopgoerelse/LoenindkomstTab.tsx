@@ -494,7 +494,7 @@ const LoenindkomstTab = React.memo(({
 
       return undefined;
     },
-    [stamdataValues?.skadedato]
+    []
   );
 
   /**
@@ -1070,7 +1070,7 @@ const LoenindkomstTab = React.memo(({
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
         });
       },
-    [getAnvendtReguleringsdatoForAnsaettelsesforhold, settings, updateAnsaettelsesforhold]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, updateAnsaettelsesforhold]
   );
 
   const handleOverenskomstChange = React.useCallback(

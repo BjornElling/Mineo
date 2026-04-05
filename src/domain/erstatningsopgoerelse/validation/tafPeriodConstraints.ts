@@ -66,8 +66,6 @@ export const buildTafCutoffErrorMessage = (args: Readonly<{
   const { value, differencekravDato, endeligEETDato, midlertidigEETDato } = args;
   if (!value) return undefined;
 
-  // Find den afgørende (mindste) cutoff-dato blandt dem der faktisk overskrides.
-  // Kun kilden/kilderne der svarer til denne dato vises — ikke alle der overskrides.
   const candidates: Array<{ dato: ISODateString; message: string }> = [];
 
   if (differencekravDato && value >= differencekravDato) {
@@ -86,10 +84,10 @@ export const buildTafCutoffErrorMessage = (args: Readonly<{
   }
 
   if (candidates.length === 0) return undefined;
-
-  const minDato = candidates.reduce((min, c) => c.dato < min ? c.dato : min, candidates[0].dato);
-  const parts = candidates.filter((c) => c.dato === minDato).map((c) => c.message);
-  return parts.join('; ');
+  return candidates
+    .sort((left, right) => left.dato.localeCompare(right.dato))
+    .map((candidate) => candidate.message)
+    .join('; ');
 };
 
 /**

@@ -286,7 +286,7 @@ const offentligeOverenskomstSatser: ReadonlyArray<OffentligOverenskomstSatser> =
     id: toOverenskomstId('laerer-overenskomsten'),
     satser: satserFromTable(
       {
-        shSoSats: 0,
+        shSoSats: null,
         sfgg: null,
         sfggFaglKbh: null,
         sfggFaglProv: null,

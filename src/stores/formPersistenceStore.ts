@@ -1,6 +1,7 @@
 import { createStore } from 'zustand/vanilla';
 import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
+import { isInteractiveDevLoggingEnabled } from '../utils/debugRuntime';
 import {
   type FieldErrorBySource,
   type FieldErrorSeverity,
@@ -11,7 +12,7 @@ import {
 } from '../types/fieldErrors';
 
 const debugFormPersistenceStore = (event: string, details: Record<string, unknown>): void => {
-  if (!import.meta.env.DEV) return;
+  if (!isInteractiveDevLoggingEnabled) return;
   console.debug('[formPersistenceStore]', event, details);
 };
 
@@ -384,7 +385,10 @@ const createFormPersistenceStore = () =>
           debugFormPersistenceStore('clearFieldErrorsForSection-noop', {
             section: key,
           });
-          return state;
+          return {
+            fieldErrors: state.fieldErrors,
+            fieldErrorRevisions: incrementFieldErrorRevision(state.fieldErrorRevisions, key),
+          };
         }
         debugFormPersistenceStore('clearFieldErrorsForSection', {
           section: key,
