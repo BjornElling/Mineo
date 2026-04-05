@@ -30,7 +30,7 @@ const createEmployment = (
   pensionPct: patch.pensionPct,
   loenperiode: patch.loenperiode ?? 'maaned',
   fuldLoenUnderFerie: patch.fuldLoenUnderFerie ?? 'Nej',
-  harAnciennitetstillaegEfterSkadesdatoen: patch.harAnciennitetstillaegEfterSkadesdatoen ?? false,
+  harAnciennitetstillaegEfterSkadedatoen: patch.harAnciennitetstillaegEfterSkadedatoen ?? false,
   anciennitetstillaegDato: patch.anciennitetstillaegDato,
   anciennitetstillaegSatsAngivesPer: patch.anciennitetstillaegSatsAngivesPer ?? 'Måned',
   anciennitetstillaegSats: patch.anciennitetstillaegSats,

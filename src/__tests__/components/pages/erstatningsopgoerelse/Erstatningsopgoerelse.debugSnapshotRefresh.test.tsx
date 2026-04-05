@@ -89,7 +89,7 @@ describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
         sagsbehandler: '',
         skadelidte: 'Før tab-entry',
         skadestype: '',
-        skadesdato: '',
+        skadedato: '',
       });
     });
     expect(computeEoSnapshotMock).toHaveBeenCalledTimes(0);
@@ -106,7 +106,7 @@ describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
         sagsbehandler: '',
         skadelidte: 'Mens Beregning er aktiv',
         skadestype: '',
-        skadesdato: '',
+        skadedato: '',
       });
     });
     await waitFor(() => {
@@ -123,7 +123,7 @@ describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
         sagsbehandler: '',
         skadelidte: 'Mens Debug tabel er aktiv',
         skadestype: '',
-        skadesdato: '',
+        skadedato: '',
       });
     });
     await waitFor(() => {

@@ -27,7 +27,7 @@ describe('eoPdfReguleringEngine', () => {
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2020-01-01'),
+      anvendtReguleringsdato: iso('2020-01-01'),
       tafFra: iso('2020-04-01'),
       tafTil: iso('2026-02-26'),
       tafBeregningsenhed: 'Måneder',
@@ -68,7 +68,7 @@ describe('eoPdfReguleringEngine', () => {
         },
       ],
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2020-01-01'),
+      anvendtReguleringsdato: iso('2020-01-01'),
       tafBeregningsenhed: 'Måneder',
     });
 
@@ -91,7 +91,7 @@ describe('eoPdfReguleringEngine', () => {
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2023-05-24'),
+      anvendtReguleringsdato: iso('2023-05-24'),
       tafFra: iso('2023-06-01'),
       tafTil: iso('2025-12-31'),
       tafBeregningsenhed: 'Måneder',
@@ -112,7 +112,7 @@ describe('eoPdfReguleringEngine', () => {
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2023-05-24'),
+      anvendtReguleringsdato: iso('2023-05-24'),
       tafFra: iso('2023-06-01'),
       tafTil: iso('2024-04-30'),
       tafBeregningsenhed: 'Måneder',
@@ -132,7 +132,7 @@ describe('eoPdfReguleringEngine', () => {
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2023-05-24'),
+      anvendtReguleringsdato: iso('2023-05-24'),
       tafFra: iso('2023-06-01'),
       tafTil: iso('2024-04-30'),
       tafBeregningsenhed: 'Måneder',
@@ -153,7 +153,7 @@ describe('eoPdfReguleringEngine', () => {
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2023-05-24'),
+      anvendtReguleringsdato: iso('2023-05-24'),
       tafFra: iso('2023-06-01'),
       tafTil: iso('2024-04-30'),
       tafBeregningsenhed: 'Måneder',
@@ -189,7 +189,7 @@ describe('eoPdfReguleringEngine', () => {
     const table = buildReguleringsvaerdierTableData({
       eoValues: values,
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2023-05-24'),
+      anvendtReguleringsdato: iso('2023-05-24'),
       tafFra: iso('2023-06-01'),
       tafTil: iso('2024-04-30'),
       tafBeregningsenhed: 'Måneder',
@@ -221,7 +221,7 @@ describe('eoPdfReguleringEngine', () => {
     const table = buildReguleringsvaerdierTableData({
       eoValues: values,
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2023-05-24'),
+      anvendtReguleringsdato: iso('2023-05-24'),
       tafFra: iso('2023-06-01'),
       tafTil: iso('2024-04-30'),
       tafBeregningsenhed: 'Måneder',
@@ -253,7 +253,7 @@ describe('eoPdfReguleringEngine', () => {
     const table = buildReguleringsvaerdierTableData({
       eoValues: values,
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2010-01-01'),
+      anvendtReguleringsdato: iso('2010-01-01'),
       tafFra: iso('2010-01-04'),
       tafTil: iso('2010-01-05'),
       tafBeregningsenhed: 'Arbejdsdage',
@@ -293,7 +293,7 @@ describe('eoPdfReguleringEngine', () => {
         },
       ],
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2023-05-24'),
+      anvendtReguleringsdato: iso('2023-05-24'),
       tafBeregningsenhed: 'Måneder',
     });
 
@@ -318,7 +318,7 @@ describe('eoPdfReguleringEngine', () => {
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2024-01-26'),
+      anvendtReguleringsdato: iso('2024-01-26'),
       tafFra: iso('2024-01-26'),
       tafTil: iso('2024-10-20'),
       tafBeregningsenhed: 'Arbejdsdage',
@@ -363,7 +363,7 @@ describe('eoPdfReguleringEngine', () => {
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2023-05-24'),
+      anvendtReguleringsdato: iso('2023-05-24'),
       tafFra: iso('2023-06-01'),
       tafTil: iso('2026-02-04'),
       tafBeregningsenhed: 'Måneder',
@@ -401,7 +401,7 @@ describe('eoPdfReguleringEngine', () => {
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2024-01-26'),
+      anvendtReguleringsdato: iso('2024-01-26'),
       tafFra: iso('2024-02-01'),
       tafTil: iso('2025-02-01'),
       tafBeregningsenhed: 'Arbejdsdage',
@@ -437,7 +437,7 @@ describe('eoPdfReguleringEngine', () => {
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2024-02-15'),
+      anvendtReguleringsdato: iso('2024-02-15'),
       tafFra: iso('2024-02-01'),
       tafTil: iso('2024-03-31'),
       tafBeregningsenhed: 'Arbejdsdage',
@@ -518,7 +518,7 @@ describe('eoPdfReguleringEngine', () => {
         },
       ],
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2023-05-24'),
+      anvendtReguleringsdato: iso('2023-05-24'),
       tafBeregningsenhed: 'Måneder',
     });
 
@@ -582,7 +582,7 @@ describe('eoPdfReguleringEngine', () => {
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2020-01-01'),
+      anvendtReguleringsdato: iso('2020-01-01'),
       tafFra: iso('2020-01-01'),
       tafTil: iso('2022-09-30'),
       tafBeregningsenhed: 'Måneder',
@@ -680,7 +680,7 @@ describe('eoPdfReguleringEngine', () => {
         { kind: 'maaneder', fra: iso('2023-01-01'), til: iso('2023-03-31'), maaneder: 3, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
       ],
       ansaettelsesforhold: af,
-      reguleringsdato: iso('2020-01-01'),
+      anvendtReguleringsdato: iso('2020-01-01'),
       tafBeregningsenhed: 'Måneder',
     });
 

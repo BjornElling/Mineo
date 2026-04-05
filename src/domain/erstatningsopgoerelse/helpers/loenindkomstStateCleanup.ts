@@ -5,7 +5,7 @@ type SfggAnsaettelsesforholdRow = ErstatningsopgoerelseValues['sfggAnsaettelsesf
 
 export const applyAnsaettelsesforholdToggleCleanup = (
   prev: Ansaettelsesforhold,
-  field: 'harOverenskomst' | 'ansatPaaSkadestidspunktet' | 'ansaettelsesforholdOphoert' | 'harAnciennitetstillaegEfterSkadesdatoen',
+  field: 'harOverenskomst' | 'ansatPaaSkadestidspunktet' | 'ansaettelsesforholdOphoert' | 'harAnciennitetstillaegEfterSkadedatoen',
   nextValue: boolean
 ): Ansaettelsesforhold => ({ ...prev, [field]: nextValue });
 

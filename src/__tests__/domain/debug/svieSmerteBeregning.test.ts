@@ -37,7 +37,7 @@ const buildCanonicalReadyValues = (values: ErstatningsopgoerelseValues): Erstatn
 };
 
 const buildCanonicalForValues = (values: ErstatningsopgoerelseValues) => {
-  const stamdata = { ...STAMDATA_INITIAL_VALUES, skadestype: 'Arbejdsulykke' as const, skadesdato: iso('2023-01-01') };
+  const stamdata = { ...STAMDATA_INITIAL_VALUES, skadestype: 'Arbejdsulykke' as const, skadedato: iso('2023-01-01') };
   return computeEoSnapshot({
     revision: 'test',
     stamdataValues: stamdata,
@@ -50,7 +50,7 @@ const buildCanonicalForValues = (values: ErstatningsopgoerelseValues) => {
  */
 const getBeregnetBeloeb = (values: ErstatningsopgoerelseValues): string => {
   const context = {
-    skadesdatoISO: iso('2023-01-01'),
+    skadedatoISO: iso('2023-01-01'),
     erErhvervssygdom: false,
     menAfgoerelseDatoForTabel: undefined,
     verserendeKlageMen: false,
@@ -86,7 +86,7 @@ const getBeregnetBeloeb = (values: ErstatningsopgoerelseValues): string => {
  */
 const getAntalDage = (values: ErstatningsopgoerelseValues): string => {
   const context = {
-    skadesdatoISO: iso('2023-01-01'),
+    skadedatoISO: iso('2023-01-01'),
     erErhvervssygdom: false,
     menAfgoerelseDatoForTabel: undefined,
     verserendeKlageMen: false,
@@ -115,7 +115,7 @@ const getSvieSmerteOphoerRow = (values: ErstatningsopgoerelseValues) => {
     vedroererPeriodeTil: values.vedroererPeriodeTil ?? maxDate,
   };
   const context = {
-    skadesdatoISO: iso('2023-01-01'),
+    skadedatoISO: iso('2023-01-01'),
     erErhvervssygdom: false,
     menAfgoerelseDatoForTabel: completeValues.varigeMenAfgorelse === 'Ja' ? completeValues.menAfgoerelseDato : undefined,
     verserendeKlageMen: completeValues.verserendeKlageMen === 'Ja',
@@ -127,7 +127,7 @@ const getSvieSmerteOphoerRow = (values: ErstatningsopgoerelseValues) => {
 
 const getSvieSmerteSatserAarRow = (values: ErstatningsopgoerelseValues) => {
   const context = {
-    skadesdatoISO: iso('2023-01-01'),
+    skadedatoISO: iso('2023-01-01'),
     erErhvervssygdom: false,
     menAfgoerelseDatoForTabel: undefined,
     verserendeKlageMen: false,
@@ -395,7 +395,7 @@ describe('Svie/smerte beregning', () => {
         ],
       });
       const context = {
-        skadesdatoISO: iso('2023-01-01'),
+        skadedatoISO: iso('2023-01-01'),
         erErhvervssygdom: false,
         menAfgoerelseDatoForTabel: undefined,
         verserendeKlageMen: false,

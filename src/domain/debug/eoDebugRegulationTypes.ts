@@ -26,7 +26,7 @@ export type AnsaettelsesforholdIndeks = Readonly<{
   kildeVaerdi: string;
   overenskomstId?: string;
   referenceIso: ISODateString;
-  referenceLabel: 'Skadedato' | 'Manuelt angivet';
+  referenceLabel?: 'Skadedato' | 'Anmeldelsesdato' | 'Beregningsperiode slutdato'; // 'Skadedato' uden s, 'Anmeldelsesdato' med s
   referenceValue: number;
   entries: readonly IndeksEntry[];
 }>;

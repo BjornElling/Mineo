@@ -141,7 +141,7 @@ describe('buildTafPerYearResult', () => {
       vedroererPeriodeTil: iso('2024-12-31'),
       beregnesTabtArbejdsfortjeneste: 'Nej',
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
 
     expect(snapshotData.engines.tafPerYear).toBeNull();
@@ -164,7 +164,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -197,7 +197,7 @@ describe('buildTafPerYearResult', () => {
       ...baseValues,
       forligAnsvarsgradProcent: 50,
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const baseSnapshotData = buildSnapshotData(stamdata, baseValues, { dagsDatoISO });
     const forligSnapshotData = buildSnapshotData(stamdata, withForlig, { dagsDatoISO });
@@ -242,7 +242,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -294,7 +294,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
     expect(result).not.toBeNull();
@@ -339,7 +339,7 @@ describe('buildTafPerYearResult', () => {
         sfggAlleredeBetaltBeloeb: undefined,
       }],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -385,7 +385,7 @@ describe('buildTafPerYearResult', () => {
         sfggAlleredeBetaltBeloeb: asAmountValue(1000),
       }],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -426,7 +426,7 @@ describe('buildTafPerYearResult', () => {
         sfggAlleredeBetaltBeloeb: undefined,
       }],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -468,7 +468,7 @@ describe('buildTafPerYearResult', () => {
         sfggAlleredeBetaltBeloeb: undefined,
       }],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -511,7 +511,7 @@ describe('buildTafPerYearResult', () => {
         sfggAlleredeBetaltBeloeb: undefined,
       }],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -553,7 +553,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -590,7 +590,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2023-06-22') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2023-06-22') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
     expect(result).not.toBeNull();
@@ -620,7 +620,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -653,7 +653,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -689,7 +689,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -719,7 +719,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2020-06-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2020-06-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -748,7 +748,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2023-10-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2023-10-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -779,7 +779,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -808,7 +808,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2020-03-15') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2020-03-15') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -853,7 +853,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -936,7 +936,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -971,7 +971,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -1010,7 +1010,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -1040,7 +1040,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2023-06-22') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2023-06-22') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -1178,7 +1178,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const snapshotData1 = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result1 = snapshotData1.engines.tafPerYear;
@@ -1257,7 +1257,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 
@@ -1294,7 +1294,7 @@ describe('buildTafPerYearResult', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
     const result = snapshotData.engines.tafPerYear;
 

@@ -35,7 +35,7 @@ type Props = Readonly<{
   onRowsChange: (rows: OffentligeYdelserRow[]) => void;
   midlertidigtEetInsertSource: Readonly<{
     eetValues: ErhvervsevnetabComposedValues;
-    skadesdato: ISODateString | undefined;
+    skadedato: ISODateString | undefined;
   }>;
 }>;
 
@@ -149,10 +149,10 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetIn
   }, [applyMidlertidigtEetRows, midlertidigtEetPendingRows]);
 
   const handleMidlertidigtEetInsert = React.useCallback(() => {
-    const { eetValues, skadesdato } = midlertidigtEetInsertSource;
+    const { eetValues, skadedato } = midlertidigtEetInsertSource;
     const generatedRows = buildMidlertidigtEetRowsFromEet({
       eetValues,
-      skadesdato,
+      skadedato,
     });
 
     if (generatedRows.length === 0) {

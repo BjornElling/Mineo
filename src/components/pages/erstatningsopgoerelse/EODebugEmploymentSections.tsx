@@ -95,12 +95,13 @@ const dedupeMergedRegulationRows = (
 };
 
 const TAF_REGULATION_VALUE_LABELS = [
-  'Reguleringsværdi på reguleringsdato for TAF',
+  'Reguleringsværdi på anvendt reguleringsdato for TAF',
   'Reguleringsværdi på start-dato for TAF',
   'Reguleringsværdi på slut-dato for TAF',
 ] as const;
 
-const isReguleringsdatoLabel = (label: string): boolean => label.startsWith('Reguleringsdato (');
+const isReguleringsdatoLabel = (label: string): boolean =>
+  label === 'Anvendt reguleringsdato' || label.startsWith('Anvendt reguleringsdato (');
 
 const isSuppressedRegulationSectionLabel = (label: string): boolean =>
   label === 'Basisværdi (indeks 100)' || label === 'Seneste indeks';
@@ -166,7 +167,7 @@ const buildEmploymentRegulationDisplayRows = (
     prioritised.push({
       kind: 'combined-taf-values',
       id: `${orderedTafParts[0]?.id ?? 'taf-reguleringsvaerdier'}-combined`,
-      label: 'Reguleringsværdi på: Reguleringsdato / start-dato for TAF / slut-dato for TAF',
+      label: 'Reguleringsværdi på: Anvendt reguleringsdato / start-dato for TAF / slut-dato for TAF',
       parts: orderedTafParts,
     });
   }

@@ -3,7 +3,7 @@ import {
   hasAnyPctSourceOrInput,
   parseOptionalIsoDate,
   parseDanishToIso,
-  resolveReguleringsdato,
+  resolveAnvendtReguleringsdato,
   resolveStatistikModelId,
   detectDecimalPlaces,
   hasPctSourceOrInput,
@@ -90,66 +90,72 @@ describe('getDayAfterIso', () => {
 });
 
 // =============================================================================
-// resolveReguleringsdato
+// resolveAnvendtReguleringsdato
 // =============================================================================
 
-describe('resolveReguleringsdato', () => {
+describe('resolveAnvendtReguleringsdato', () => {
   it('returnerer saerligFraDatoRegulering ved Beregningsperiode', () => {
-    const result = resolveReguleringsdato({
+    const result = resolveAnvendtReguleringsdato({
       beregnesUdFra: 'Beregningsperiode',
       angivetLoenMetodeOpreguleresFraDato: iso('2024-06-01'),
       saerligFraDatoRegulering: iso('2024-03-01'),
-      skadesdato: iso('2024-01-01'),
+      beregningsperiodeTil: iso('2024-12-31'),
+      skadedato: iso('2024-01-01'),
     });
     expect(result).toBe('2024-03-01');
   });
 
-  it('falder tilbage til skadesdato ved Beregningsperiode uden saerligFraDato', () => {
-    const result = resolveReguleringsdato({
+  it('falder tilbage til beregningsperiodens slutdato ved Beregningsperiode uden saerligFraDato', () => {
+    const result = resolveAnvendtReguleringsdato({
       beregnesUdFra: 'Beregningsperiode',
       angivetLoenMetodeOpreguleresFraDato: iso('2024-06-01'),
       saerligFraDatoRegulering: undefined,
-      skadesdato: iso('2024-01-01'),
+      beregningsperiodeTil: iso('2024-12-31'),
+      skadedato: iso('2024-01-01'),
     });
-    expect(result).toBe('2024-01-01');
+    expect(result).toBe('2024-12-31');
   });
 
   it('returnerer angivetLoenMetodeOpreguleresFraDato ved andre metoder', () => {
-    const result = resolveReguleringsdato({
+    const result = resolveAnvendtReguleringsdato({
       beregnesUdFra: 'Angivet månedsløn',
       angivetLoenMetodeOpreguleresFraDato: iso('2024-06-01'),
       saerligFraDatoRegulering: iso('2024-03-01'),
-      skadesdato: iso('2024-01-01'),
+      beregningsperiodeTil: iso('2024-12-31'),
+      skadedato: iso('2024-01-01'),
     });
     expect(result).toBe('2024-06-01');
   });
 
-  it('falder tilbage til skadesdato ved andre metoder uden angivetLoenDato', () => {
-    const result = resolveReguleringsdato({
+  it('falder tilbage til skadedato ved andre metoder uden angivetLoenDato', () => {
+    const result = resolveAnvendtReguleringsdato({
       beregnesUdFra: 'Angivet månedsløn',
       angivetLoenMetodeOpreguleresFraDato: undefined,
       saerligFraDatoRegulering: iso('2024-03-01'),
-      skadesdato: iso('2024-01-01'),
+      beregningsperiodeTil: iso('2024-12-31'),
+      skadedato: iso('2024-01-01'),
     });
     expect(result).toBe('2024-01-01');
   });
 
   it('returnerer undefined når intet er givet', () => {
-    const result = resolveReguleringsdato({
+    const result = resolveAnvendtReguleringsdato({
       beregnesUdFra: undefined,
       angivetLoenMetodeOpreguleresFraDato: undefined,
       saerligFraDatoRegulering: undefined,
-      skadesdato: undefined,
+      beregningsperiodeTil: undefined,
+      skadedato: undefined,
     });
     expect(result).toBeUndefined();
   });
 
   it('ignorerer ugyldige datoer', () => {
-    const result = resolveReguleringsdato({
+    const result = resolveAnvendtReguleringsdato({
       beregnesUdFra: 'Angivet månedsløn',
       angivetLoenMetodeOpreguleresFraDato: undefined,
       saerligFraDatoRegulering: undefined,
-      skadesdato: iso('2024-01-01'),
+      beregningsperiodeTil: undefined,
+      skadedato: iso('2024-01-01'),
     });
     expect(result).toBe('2024-01-01');
   });

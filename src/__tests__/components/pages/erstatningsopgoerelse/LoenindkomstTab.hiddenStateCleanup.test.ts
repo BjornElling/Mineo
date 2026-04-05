@@ -51,15 +51,15 @@ describe('LoenindkomstTab hidden state cleanup', () => {
   it('bevarer anciennitetstillægfelter når tillæg slås fra', () => {
     const initial = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
-      harAnciennitetstillaegEfterSkadesdatoen: true,
+      harAnciennitetstillaegEfterSkadedatoen: true,
       anciennitetstillaegDato: '2024-02-15',
       anciennitetstillaegSatsAngivesPer: 'Time' as const,
       anciennitetstillaegSats: { kind: 'number' as const, value: 150 },
     };
 
-    const result = applyAnsaettelsesforholdToggleCleanup(initial, 'harAnciennitetstillaegEfterSkadesdatoen', false);
+    const result = applyAnsaettelsesforholdToggleCleanup(initial, 'harAnciennitetstillaegEfterSkadedatoen', false);
 
-    expect(result.harAnciennitetstillaegEfterSkadesdatoen).toBe(false);
+    expect(result.harAnciennitetstillaegEfterSkadedatoen).toBe(false);
     expect(result.anciennitetstillaegDato).toBe('2024-02-15');
     expect(result.anciennitetstillaegSatsAngivesPer).toBe('Time');
     expect(result.anciennitetstillaegSats).toEqual({ kind: 'number', value: 150 });

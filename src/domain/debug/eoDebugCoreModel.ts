@@ -36,9 +36,9 @@ const extractDateSources = (
 ): { start: ISODateString; end: ISODateString } | undefined => {
   const dates: ISODateString[] = [];
 
-  // Skadesdato (allerede ISO-format)
-  const skadesdato = tryParseIso(input.stamdataValues.skadesdato);
-  if (skadesdato) dates.push(skadesdato);
+  // Skadedato (allerede ISO-format)
+  const skadedato = tryParseIso(input.stamdataValues.skadedato);
+  if (skadedato) dates.push(skadedato);
 
   // Erstatningsopgørelse periode (allerede ISO-format)
   const eoFra = tryParseIso(input.erstatningsopgoerelseValues.vedroererPeriodeFra);
@@ -68,7 +68,7 @@ const extractDateSources = (
     midlertidigEETVirkningsdato: tryParseIso(eo.midlertidigEETVirkningsdato),
     midlertidigEETAfgoerelseDato: tryParseIso(eo.midlertidigEETAfgoerelseDato),
     verserendeKlageEet: eo.verserendeKlageEet,
-    skadesdatoISO: tryParseIso(input.stamdataValues.skadesdato),
+    skadedatoISO: tryParseIso(input.stamdataValues.skadedato),
   };
   const tafBounds = resolveTafConstraintBounds(tafConstraintSource);
   for (const periode of tafPerioder) {
@@ -238,7 +238,7 @@ export function buildDebugCoreModel(input: DebugModelInput): readonly DebugDay[]
     midlertidigEETVirkningsdato: tryParseIso(eo2.midlertidigEETVirkningsdato),
     midlertidigEETAfgoerelseDato: tryParseIso(eo2.midlertidigEETAfgoerelseDato),
     verserendeKlageEet: eo2.verserendeKlageEet,
-    skadesdatoISO: tryParseIso(input.stamdataValues.skadesdato),
+    skadedatoISO: tryParseIso(input.stamdataValues.skadedato),
   };
   const tafBounds = resolveTafConstraintBounds(tafConstraintSource2);
   const tafMap = buildTafPeriodeMap(tafPerioder, tafBounds);

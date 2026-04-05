@@ -5,12 +5,12 @@ import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages
 const iso = (value: string) => toISODateString(value);
 
 describe('resolveDateRangeErrorMessage', () => {
-  it('prioritizes skadesdato message over fra/til message when minBoundKind=skadesdato', () => {
+  it('prioritizes skadedato message over fra/til message when minBoundKind=skadedato', () => {
     const message = resolveDateRangeErrorMessage({
       iso: iso('2023-05-02'),
       minDate: iso('2023-08-01'),
       maxDate: iso('2030-12-31'),
-      special: { fraTilRole: 'til', minBoundKind: 'skadesdato' },
+      special: { fraTilRole: 'til', minBoundKind: 'skadedato' },
     });
     expect(message).toContain('skadesdagen');
   });

@@ -51,7 +51,7 @@ Brugeren angiver referenceperioden manuelt med:
 
 Normative regler:
 - systemet må ikke kontrollere, om perioden er præcis 4 uger
-- referenceperioden må gerne ligge efter skadesdatoen
+- referenceperioden må gerne ligge efter skadedatoen
 - referenceperioden må ikke gå ind i eller overlappe den første TAF-periode
 - forklaringstekst må ikke låse forståelsen til "inden skaden", men skal afspejle, at perioden er referenceperiode før sygefraværet
 
@@ -229,7 +229,7 @@ SFGG-perioden følger som udgangspunkt TAF-perioden, men kan afkortes af:
 
 #### 6.1. Skader før 1. januar 2015
 
-Hvis skadesdatoen er før `1. januar 2015`:
+Hvis skadedatoen er før `1. januar 2015`:
 - beregnes SFGG fra første sygedag
 - er retten tidsbegrænset til højst 4 måneder
 
@@ -250,7 +250,7 @@ Ved arbejdsdagsmodellen gælder desuden:
 
 #### 6.2. Skader fra og med 1. januar 2015
 
-Hvis skadesdatoen er fra og med `1. januar 2015`:
+Hvis skadedatoen er fra og med `1. januar 2015`:
 - beregnes SFGG først fra anden sygedag
 - er retten tidsubegrænset
 
@@ -535,7 +535,7 @@ Der er implementeret beregning for:
 
 Ved overenskomstregulering skal den øverste reguleringstabel altid indeholde en række på reguleringsdatoen:
 - hvis brugeren har indtastet en manuel reguleringsdato, anvendes den
-- ellers anvendes skadesdatoen
+- ellers anvendes skadedatoen
 
 Rækken skal vise de satser, der gælder på denne dato, og den skal indgå som en helt almindelig række på sin naturlige plads i kronologien.
 

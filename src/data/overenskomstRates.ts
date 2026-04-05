@@ -7,7 +7,8 @@
  * Struktur:
  * - Hver overenskomst har metadata (navn, parter) og historiske satser
  * - Satser er organiseret kronologisk med præcis ikrafttrædelsesdato
- * - Tillæg kan være null (findes ikke i overenskomsten) eller 0 (findes men er 0 kr)
+ * - Tillæg kan være null (brugeren angiver selv satsen) eller et tal, herunder 0
+ *   (autoritiv overenskomstsats som låser feltet)
  */
 
 import { toDanishDateString, type DanishDateString } from '../types/branded';
@@ -278,11 +279,14 @@ const offentligeOverenskomster: ReadonlyArray<OffentligOverenskomstMeta> = [
 ];
 
 const offentligeOverenskomstSatser: ReadonlyArray<OffentligOverenskomstSatser> = [
+  // KL og RLTN har ikke særskilte tillægssatser i denne tabel.
+  // For de to overenskomster betyder manglende entry, at felterne er brugerredigerbare.
+  // Læreroverenskomsten er undtagelsen, fordi den har autoritative fritvalg-/pensionssatser.
   {
     id: toOverenskomstId('laerer-overenskomsten'),
     satser: satserFromTable(
       {
-        shSoSats: null,
+        shSoSats: 0,
         sfgg: null,
         sfggFaglKbh: null,
         sfggFaglProv: null,
@@ -319,7 +323,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null },
+      { fritvalg: 0, sfgg: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
         ['01-03-2027',            153.40,             0.167,            0.1115,            223.75,            208.35,            200.20,            201.50 ],
@@ -378,7 +382,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null },
+      { fritvalg: 0, sfgg: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
         ['01-03-2027',            153.15,             0.167,            0.1115,            223.75,            208.35,            200.20,            201.50 ],
@@ -513,7 +517,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       },
     },
     satser: satserFromTable(
-      { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: 0, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
         ['01-03-2027',            162.95,            0.0675,            0.1100,            164.70 ],
@@ -556,7 +560,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       },
     },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null },
+      { fritvalg: 0, sfgg: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
         ['01-03-2027',            153.15,             0.167,            0.1115,            223.75,            208.35,            200.20,            201.50 ],
@@ -613,7 +617,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       },
     },
     satser: satserFromTable(
-      { fritvalg: null, shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: 0, shSoSats: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ AG-pens.
         ['01-03-2027',            168.92,            0.1115 ],
@@ -656,7 +660,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     },
     shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
     satser: satserFromTable(
-      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { shSoSats: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ Fritvalg            │ AG-pens.
         ['01-03-2027',            146.90,            0.1750,            0.1100 ],
@@ -685,7 +689,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.049 },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
         ['01-03-2027',            146.90,             0.169,            0.1115 ],
@@ -729,7 +733,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     },
     shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
     satser: satserFromTable(
-      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { shSoSats: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          l Grundl>n         l Fritvalg         l AG-pens.
         ['01-03-2027',            146.90,            0.1500,            0.1100 ],
@@ -772,7 +776,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       },
     },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null, shSoSats: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: 0, sfgg: null, shSoSats: 0, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ AG-pens.
         ['01-03-2027',            176.72,            0.1100 ],
@@ -815,7 +819,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     },
     shDageAlmindeligLoenRegel: { fritvalgDelta: -0.04 },
     satser: satserFromTable(
-      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { shSoSats: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ Fritvalg            │ AG-pens.
         ['01-03-2027',            146.90,            0.1750,            0.1100 ],
@@ -844,7 +848,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     },
     shDageAlmindeligLoenRegel: { fritvalgDelta: -0.045 },
     satser: satserFromTable(
-      { shSoSats: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { shSoSats: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ Fritvalg            │ AG-pens.
         ['01-03-2027',            146.90,            0.1900,            0.1150 ],
@@ -872,7 +876,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       },
     },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null, shSoSats: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: 0, sfgg: null, shSoSats: 0, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ AG-pens.
         ['01-03-2027',            201.97,            0.1166 ],
@@ -914,7 +918,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       },
     },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
         ['01-03-2027',            149.64,             0.110,            0.1100 ],
@@ -943,7 +947,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     },
     shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null },
+      { fritvalg: 0, sfgg: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
         ['01-03-2027',            153.15,             0.167,            0.1115,            223.75,            208.35,            200.20,            201.50 ],
@@ -1002,7 +1006,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     },
     shDageAlmindeligLoenRegel: { shSoOverride: 0 },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
         ['01-03-2024',            136.15,            0.0350,            0.1200 ],
@@ -1041,7 +1045,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       },
     },
     satser: satserFromTable(
-      { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
         ['15-03-2027',            172.00,             0.052,            0.1115 ],
@@ -1083,7 +1087,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       },
     },
     satser: satserFromTable(
-      { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: 0, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
         ['01-03-2027',            164.15,            0.0675,            0.1100,            164.70 ],
@@ -1126,7 +1130,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
       },
     },
     satser: satserFromTable(
-      { fritvalg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { fritvalg: 0, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
         // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG
         ['01-03-2027',            164.15,            0.0675,            0.1100,            164.70 ],
@@ -1451,14 +1455,15 @@ const applyShDageAlmindeligLoenRegel = (
 ): OverenskomstPeriodeSats => {
   let shSoSats = sats.shSoSats;
   if (regel.shSoOverride !== undefined) {
-    shSoSats = regel.shSoOverride;
+    // null er en bevidst "ingen autoritativ sats"-override og bevarer feltets null-semantik.
+    shSoSats = regel.shSoOverride === null ? null : Math.max(0, regel.shSoOverride);
   } else if (regel.shSoDelta !== undefined && shSoSats !== null) {
-    shSoSats = shSoSats + regel.shSoDelta;
+    shSoSats = Math.max(0, shSoSats + regel.shSoDelta);
   }
 
   let fritvalg = sats.fritvalg;
   if (regel.fritvalgDelta !== undefined && fritvalg !== null) {
-    fritvalg = fritvalg + regel.fritvalgDelta;
+    fritvalg = Math.max(0, fritvalg + regel.fritvalgDelta);
   }
 
   if (shSoSats === sats.shSoSats && fritvalg === sats.fritvalg) {

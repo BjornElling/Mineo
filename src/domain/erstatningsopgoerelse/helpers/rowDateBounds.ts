@@ -7,7 +7,7 @@ export type RowDateBounds = Readonly<{
 }>;
 
 export const computeRowDateBounds = (args: {
-  skadesdatoMinDate?: ISODateString | undefined;
+  skadedatoMinDate?: ISODateString | undefined;
   rowFra: ISODateString | undefined;
   rowTil: ISODateString | undefined;
   fallbackMin: ISODateString;
@@ -18,9 +18,9 @@ export const computeRowDateBounds = (args: {
   /** Om tilExtraMaxDate-regel skal bruges (false hvis verserende klagesag) */
   useTilExtraMaxDate?: boolean;
 }): RowDateBounds => {
-  // Fra-dato: >= skadesdato (eller fallback), <= til-dato i samme række (eller fallback)
-  // Bemærk: Skadesdato-regel gælder ikke for erhvervssygdomme
-  const absoluteMin = args.skadesdatoMinDate ?? args.fallbackMin;
+  // Fra-dato: >= skadedato (eller fallback), <= til-dato i samme række (eller fallback)
+  // Bemærk: Skadedato-regel gælder ikke for erhvervssygdomme
+  const absoluteMin = args.skadedatoMinDate ?? args.fallbackMin;
   const fraMax = args.rowTil || args.fallbackMax;
 
   // Til-dato: >= fra-dato i samme række (eller absoluteMin), <= dags dato og evt. ekstra afgrænsning

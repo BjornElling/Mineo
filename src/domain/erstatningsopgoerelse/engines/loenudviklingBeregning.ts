@@ -46,7 +46,7 @@ import {
   parseDanishToIso,
   resolvePctPointFromSatsOrInput,
   resolveOffentligLoenEkstraGrundloen,
-  resolveReguleringsdato as resolveReguleringsdatoShared,
+  resolveAnvendtReguleringsdato as resolveAnvendtReguleringsdatoShared,
   resolveStatistikModelId,
 } from '../helpers/eoSharedUtils';
 import { round2 as roundToTwoDecimals } from '../../../utils/roundingShortcuts';
@@ -133,7 +133,7 @@ type KonsolideretLoenudvikling =
     shSoPct: number;
     pensionPct: number;
     tafBeregningsenhed: TafBeregningsenhed;
-    harAnciennitetstillaegEfterSkadesdatoen: boolean;
+    harAnciennitetstillaegEfterSkadedatoen: boolean;
     anciennitetstillaegDato: ISODateString | undefined;
     anciennitetstillaegSatsAngivesPer: 'Time' | 'Måned';
     anciennitetstillaegSatsValue: number | undefined;
@@ -206,7 +206,7 @@ const normalizeManualRows = (rows: readonly LoenudviklingManualRow[]): string =>
 };
 
 type UniformPrimitive = string | number | boolean | null;
-type ReguleringsdatoInput = Readonly<{ saerligFraDatoRegulering?: string }>;
+type AnvendtReguleringsdatoInput = Readonly<{ saerligFraDatoRegulering?: string }>;
 
 const resolveOffentligLoenSelection = (
   af: LoenudviklingAf,
@@ -392,7 +392,7 @@ const resolveReguleringsStrategi = (
   } else if (strategi === 'overenskomst') {
     assertUniform(active, (af) => af.overenskomstId ?? '', 'overenskomst');
     assertUniform(active, (af) => af.loenPaaHelligdage ?? '', 'loen paa helligdage');
-    assertUniform(active, (af) => af.harAnciennitetstillaegEfterSkadesdatoen ?? false, 'anciennitetstillæg');
+    assertUniform(active, (af) => af.harAnciennitetstillaegEfterSkadedatoen ?? false, 'anciennitetstillæg');
     assertUniform(
       active,
       (af) => (isISODateString(af.anciennitetstillaegDato) ? af.anciennitetstillaegDato : ''),
@@ -445,11 +445,11 @@ const resolveReguleringsStrategi = (
     assertUniform(active, (af) => af.loenudviklingKRLSatstabel ?? '', 'KRL satstabel');
   }
 
-  const skadesdato = isISODateString(stamdataValues.skadesdato) ? stamdataValues.skadesdato : undefined;
-  const reguleringsdato = resolveReguleringsdato(
+  const skadedato = isISODateString(stamdataValues.skadedato) ? stamdataValues.skadedato : undefined;
+  const anvendtReguleringsdato = resolveAnvendtReguleringsdato(
     values,
     { saerligFraDatoRegulering: active[0].saerligFraDatoRegulering },
-    skadesdato
+    skadedato
   );
   const tafRanges = options.tafRanges;
   const label =
@@ -468,7 +468,7 @@ const resolveReguleringsStrategi = (
       konsolideret: {
         strategi,
         label,
-        reguleringsdato,
+        reguleringsdato: anvendtReguleringsdato,
         statistikModel: active[0].loenudviklingStatistikModel ?? '',
         tafRanges,
       },
@@ -507,7 +507,7 @@ const resolveReguleringsStrategi = (
       konsolideret: {
         strategi,
         label,
-        reguleringsdato,
+        reguleringsdato: anvendtReguleringsdato,
         overenskomstId: active[0].overenskomstId,
         loenPaaHelligdage,
         feriePct,
@@ -515,7 +515,7 @@ const resolveReguleringsStrategi = (
         shSoPct,
         pensionPct,
         tafBeregningsenhed,
-        harAnciennitetstillaegEfterSkadesdatoen: active[0].harAnciennitetstillaegEfterSkadesdatoen,
+        harAnciennitetstillaegEfterSkadedatoen: active[0].harAnciennitetstillaegEfterSkadedatoen,
         anciennitetstillaegDato: isISODateString(active[0].anciennitetstillaegDato) ? active[0].anciennitetstillaegDato : undefined,
         anciennitetstillaegSatsAngivesPer: active[0].anciennitetstillaegSatsAngivesPer ?? 'Måned',
         anciennitetstillaegSatsValue: active[0].anciennitetstillaegSats?.value,
@@ -542,7 +542,7 @@ const resolveReguleringsStrategi = (
       konsolideret: {
         strategi,
         label,
-        reguleringsdato,
+        reguleringsdato: anvendtReguleringsdato,
         loenPaaHelligdage: active[0].loenPaaHelligdage ?? '',
         feriePct,
         manualRows: active[0].loenudviklingManuelTableData ?? [],
@@ -562,7 +562,7 @@ const resolveReguleringsStrategi = (
       konsolideret: {
         strategi,
         label,
-        reguleringsdato,
+        reguleringsdato: anvendtReguleringsdato,
         krlSatstabelId: krlId as KRLSatstabelId,
         tafRanges,
       },
@@ -781,7 +781,7 @@ const buildLoenudviklingFromOverenskomst = (
   );
 
   const anciennitetForIndex = (() => {
-    if (!konsolideret.harAnciennitetstillaegEfterSkadesdatoen) return null;
+    if (!konsolideret.harAnciennitetstillaegEfterSkadedatoen) return null;
     const anciennitetDato = konsolideret.anciennitetstillaegDato;
     const satsValue = konsolideret.anciennitetstillaegSatsValue;
     if (!anciennitetDato || typeof satsValue !== 'number' || !Number.isFinite(satsValue) || satsValue <= 0) {
@@ -1317,7 +1317,7 @@ export const buildLoenudviklingModel = (
       ...values,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
     }, stamdataValues, tafBeregningsenhed, { tafRanges }));
-    const income = buildIncomeForRanges(values, [beregningsperiodeRange], undefined, stamdataValues.skadesdato);
+    const income = buildIncomeForRanges(values, [beregningsperiodeRange], undefined, stamdataValues.skadedato);
     if (income.employers.length === 0) {
       const alleIngen = strategiDataByIndex.every((strategiData) => strategiData.strategi === 'ingen');
       if (alleIngen) {
@@ -1463,15 +1463,16 @@ const buildAslReguleringsSegments = (ranges: readonly IsoRange[]): ReadonlyArray
   return segments;
 };
 
-const resolveReguleringsdato = (
+const resolveAnvendtReguleringsdato = (
   eoValues: ErstatningsopgoerelseValues,
-  af: ReguleringsdatoInput | undefined,
-  skadesdato: ISODateString | undefined
-): ISODateString | undefined => resolveReguleringsdatoShared({
+  af: AnvendtReguleringsdatoInput | undefined,
+  skadedato: ISODateString | undefined
+): ISODateString | undefined => resolveAnvendtReguleringsdatoShared({
   beregnesUdFra: eoValues.beregnesUdFra,
   angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
   saerligFraDatoRegulering: isISODateString(af?.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
-  skadesdato,
+  beregningsperiodeTil: eoValues.periodeTilBeregningTil,
+  skadedato,
 });
 
 const resolveMaanedsloenBase = (

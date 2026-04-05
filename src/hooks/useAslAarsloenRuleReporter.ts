@@ -10,7 +10,7 @@ import type { ISODateString } from '../types/branded';
 
 export const useAslAarsloenRuleReporter = (
   aslAarsloen: FaellesAarsloenValues['aslAarsloen'],
-  skadesdato: ISODateString | undefined
+  skadedato: ISODateString | undefined
 ): string | undefined => {
   const reportAslAarsloenRuleError = useFormFieldErrorReporter('faellesAarsloen', 'aslAarsloen', {
     severity: 'error',
@@ -21,8 +21,8 @@ export const useAslAarsloenRuleReporter = (
     const aarsloen = amountValueToNumber(aslAarsloen);
     const divisibleBy1000Error = validateAslAarsloenDivisibleBy1000(aarsloen);
     if (divisibleBy1000Error) return divisibleBy1000Error;
-    return validateAslAarsloenBySkadesaarMax(aarsloen, skadesdato);
-  }, [aslAarsloen, skadesdato]);
+    return validateAslAarsloenBySkadesaarMax(aarsloen, skadedato);
+  }, [aslAarsloen, skadedato]);
 
   React.useEffect(() => {
     reportAslAarsloenRuleError(aslAarsloenRuleError);

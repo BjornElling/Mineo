@@ -110,12 +110,12 @@ const resolveYdelsestype = (raw: string): Readonly<{ key: string; label: string;
 
 export const buildTafRanges = (
   values: ErstatningsopgoerelseValues,
-  options?: Readonly<{ skadesdatoISO?: ISODateString }>
+  options?: Readonly<{ skadedatoISO?: ISODateString }>
 ): IsoRange[] => {
   // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3):
   // 1. Clamp mod fejlgivende øvre grænser (differencekrav, endelig EET, og ved skader
   //    opstået før 2011-06-16 tillige midlertidig EET) — validator rapporterer violation
-  const constraintSource = { ...values, skadesdatoISO: options?.skadesdatoISO };
+  const constraintSource = { ...values, skadedatoISO: options?.skadedatoISO };
   const fejlgivendeBounds = resolveTafFejlgivendeBounds(constraintSource);
   const afterFejlgivende = buildClampedTafRanges(values.tafPerioder ?? [], fejlgivendeBounds);
   // 2. Merge overlappende og tilstødende ranges
@@ -239,7 +239,7 @@ export const buildIncomeForRanges = (
   values: ErstatningsopgoerelseValues,
   rawRanges: readonly IsoRange[],
   context?: IncomeCalculationContext | null,
-  skadesdato?: ISODateString
+  skadedato?: ISODateString
 ): IncomePeriodResult => {
   const ranges = mergeIsoDateRanges(rawRanges, { mergeAdjacent: true });
   if (ranges.length === 0) return { employers: [], benefits: [] };
@@ -328,7 +328,7 @@ export const buildIncomeForRanges = (
         rateSegments: fra && til
           ? buildLoenindkomstRateSegments({
             ansaettelsesforhold: af,
-            skadesdato,
+            skadedato,
             fra,
             til,
           })

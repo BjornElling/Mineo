@@ -26,7 +26,7 @@ const createEmployment = (
   pensionPct: patch.pensionPct ?? 0,
   loenperiode: patch.loenperiode ?? 'maaned',
   fuldLoenUnderFerie: patch.fuldLoenUnderFerie ?? 'Ja',
-  harAnciennitetstillaegEfterSkadesdatoen: patch.harAnciennitetstillaegEfterSkadesdatoen ?? false,
+  harAnciennitetstillaegEfterSkadedatoen: patch.harAnciennitetstillaegEfterSkadedatoen ?? false,
   anciennitetstillaegDato: patch.anciennitetstillaegDato,
   anciennitetstillaegSatsAngivesPer: patch.anciennitetstillaegSatsAngivesPer ?? 'Måned',
   anciennitetstillaegSats: patch.anciennitetstillaegSats,
@@ -86,7 +86,7 @@ describe('computeTafNettoBeregning', () => {
 
     const result = computeTafNettoBeregning(
       values,
-      { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       { tafRanges: [{ fra: iso('2024-02-26'), til: iso('2024-03-05') }] }
     );
 
@@ -96,14 +96,14 @@ describe('computeTafNettoBeregning', () => {
       expect.objectContaining({
         fra: iso('2024-02-26'),
         til: iso('2024-02-29'),
-        reguleringsindeks: 100,
+        reguleringsindeks: 100.36,
       })
     );
     expect(result.sygeferiegodtgoerelse.perAnsaettelsesforhold[0]?.segments[1]).toEqual(
       expect.objectContaining({
         fra: iso('2024-03-01'),
         til: iso('2024-03-05'),
-        reguleringsindeks: 105.08,
+        reguleringsindeks: 105.46,
       })
     );
   });
@@ -152,7 +152,7 @@ describe('computeTafNettoBeregning', () => {
 
     const result = computeTafNettoBeregning(
       values,
-      { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       { tafRanges: [{ fra: iso('2024-02-26'), til: iso('2024-03-05') }] }
     );
 

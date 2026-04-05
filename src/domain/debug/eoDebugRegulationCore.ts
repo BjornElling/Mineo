@@ -36,7 +36,7 @@ import {
   resolveStatistikModelId,
   resolveOffentligLoenEkstraGrundloen,
   resolvePctDecimalFromSatsOrInput,
-  resolveReguleringsdato,
+  resolveAnvendtReguleringsdato,
 } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
@@ -536,8 +536,8 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
   const tafBeregningsenhed = computeTafBeregningsenhed(input.eoValues);
   if (!eoRange) return { tafBeregningsenhed, ansaettelser: [] };
 
-  const skadesdatoIso = parseOptionalIso(input.stamdataValues.skadesdato);
-  if (!skadesdatoIso) return { tafBeregningsenhed, ansaettelser: [] };
+  const skadedatoIso = parseOptionalIso(input.stamdataValues.skadedato);
+  if (!skadedatoIso) return { tafBeregningsenhed, ansaettelser: [] };
   const angivetLoenOpreguleresFraDato = getAngivetLoenOpreguleresFraDato(input.eoValues);
 
   const ansaettelser: AnsaettelsesforholdIndeks[] = [];
@@ -548,20 +548,28 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     const grundlag = af.loenudviklingBeregningsgrundlag;
     if (!grundlag || grundlag === 'Ingen') continue;
     const saerligFraDatoRegulering = parseOptionalIso(af.saerligFraDatoRegulering);
-    const referenceIso = resolveReguleringsdato({
+    const referenceIso = resolveAnvendtReguleringsdato({
       beregnesUdFra: input.eoValues.beregnesUdFra,
       angivetLoenMetodeOpreguleresFraDato: angivetLoenOpreguleresFraDato,
       saerligFraDatoRegulering,
-      skadesdato: skadesdatoIso,
+      beregningsperiodeTil: input.eoValues.periodeTilBeregningTil,
+      skadedato: skadedatoIso,
     });
     if (!referenceIso) continue;
     // Ved Beregningsperiode kan hvert ansættelsesforhold have egen særlig fra-dato.
     // Ved Angivet månedsløn/dagsløn er resolveLoenudviklingKilde ét syntetisk EO-element,
     // så den fælles angivetLoenOpreguleresFraDato gælder for hele løkken.
     const referenceLabel =
-      input.eoValues.beregnesUdFra === 'Beregningsperiode'
-        ? (saerligFraDatoRegulering ? 'Manuelt angivet' : 'Skadedato')
-        : (angivetLoenOpreguleresFraDato ? 'Manuelt angivet' : 'Skadedato');
+      referenceIso === skadedatoIso
+        ? (input.stamdataValues.skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato') // 'Skadedato' uden s, jf. kanonisk betegnelse
+        : (
+            input.eoValues.beregnesUdFra === 'Beregningsperiode'
+            && !saerligFraDatoRegulering
+            && input.eoValues.periodeTilBeregningTil
+            && referenceIso === input.eoValues.periodeTilBeregningTil
+          )
+          ? 'Beregningsperiode slutdato'
+          : undefined;
     const kildeLabel =
       grundlag === 'Overenskomst'
         ? 'Overenskomst'

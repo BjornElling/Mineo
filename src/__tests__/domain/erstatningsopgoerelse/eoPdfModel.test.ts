@@ -218,7 +218,7 @@ describe('eoPdfModel', () => {
       vedroererPeriodeFra: iso('2024-01-01'),
       vedroererPeriodeTil: iso('2024-12-31'),
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -257,7 +257,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-10') });
 
@@ -288,7 +288,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2021-06-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2021-06-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-10') });
     expect(model.tabtArbejdsfortjeneste.tafIndtaegter?.total.status).toBe('ok');
@@ -313,7 +313,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2021-06-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2021-06-01') });
     const withoutPaidModel = buildPdfModel(stamdata, baseValues, { dagsDatoISO: iso('2026-02-10') });
 
     const paidValues = makeValues({
@@ -348,7 +348,7 @@ describe('eoPdfModel', () => {
       ],
       tidligereModtagetTaf: asAmountValue(999999999),
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2021-06-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2021-06-01') });
 
     const model = buildPdfModel(stamdata, baseValues, { dagsDatoISO: iso('2026-02-10') });
     expect(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre).toBe(0);
@@ -367,7 +367,7 @@ describe('eoPdfModel', () => {
       svieSmerteTidligereTotal: asAmountValue(0),
       svieSmerteAktuelPeriode: asAmountValue(0),
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -383,7 +383,7 @@ describe('eoPdfModel', () => {
       tidligereSsMax: 'Nej',
       svieSmertePerioder: [],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -405,7 +405,7 @@ describe('eoPdfModel', () => {
         { id: 'ss-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), tilstand: 'sygemeldt' },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -421,7 +421,7 @@ describe('eoPdfModel', () => {
         { id: '2', dato: iso('2024-03-01'), udgiftTil: 'Test 2', beloeb: asAmountValue(10) },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -449,7 +449,7 @@ describe('eoPdfModel', () => {
       ...baseValues,
       forligAnsvarsgradProcent: 50,
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2021-06-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2021-06-01') });
 
     const baseModel = buildPdfModel(stamdata, baseValues, { dagsDatoISO: iso('2026-02-10') });
     const forligModel = buildPdfModel(stamdata, withForlig, { dagsDatoISO: iso('2026-02-10') });
@@ -484,7 +484,7 @@ describe('eoPdfModel', () => {
       ...baseValues,
       forligAnsvarsgradBroek: '1,25/3,5',
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2021-06-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2021-06-01') });
 
     const baseModel = buildPdfModel(stamdata, baseValues, { dagsDatoISO: iso('2026-02-10') });
     const forligModel = buildPdfModel(stamdata, withForlig, { dagsDatoISO: iso('2026-02-10') });
@@ -507,7 +507,7 @@ describe('eoPdfModel', () => {
       ...baseValues,
       forligAnsvarsgradBroek: '2/3',
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, withForlig, { dagsDatoISO: iso('2026-02-04') });
 
@@ -524,7 +524,7 @@ describe('eoPdfModel', () => {
         { id: '1', dato: iso('2024-02-01'), udgiftTil: 'Test', beloeb: undefined },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     // Validatoren fanger manglende beløb før builder-laget
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
@@ -537,7 +537,7 @@ describe('eoPdfModel', () => {
         { id: '1', dato: undefined, udgiftTil: 'Test', beloeb: asAmountValue(100) },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     // Validatoren fanger manglende dato før builder-laget
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
@@ -550,7 +550,7 @@ describe('eoPdfModel', () => {
         { id: '1', dato: iso('2024-02-01'), udgiftTil: 'Test', beloeb: asAmountValue(-1) },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     // Validatoren fanger negativt beløb før builder-laget
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
@@ -563,7 +563,7 @@ describe('eoPdfModel', () => {
         { id: '1', dato: iso('2024-02-01'), udgiftTil: 'Test', beloeb: asAmountValue(1.005) },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     expect(model.oevrigeKrav.totalOre).toBe(101);
@@ -579,7 +579,7 @@ describe('eoPdfModel', () => {
       svieSmerteSatserAar: 2026,
       svieSmerteDelvisSygemeldingSats: 'fuld',
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: iso('2026-02-04') });
     expect(snapshot.data).toBeNull();
@@ -592,7 +592,7 @@ describe('eoPdfModel', () => {
         { id: '1', fra: iso('2024-01-01'), til: undefined, loseFeriedage: undefined },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     // Validatoren fanger ufuldstændig TAF-periode (manglende til-dato) før builder-laget
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
@@ -612,7 +612,7 @@ describe('eoPdfModel', () => {
       svieSmerteSatserAar: 2026,
       svieSmerteDelvisSygemeldingSats: 'fuld',
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: iso('2026-02-04') });
     expect(snapshot.data).toBeNull();
@@ -644,7 +644,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const entries = model.tabtArbejdsfortjeneste.tafIndtaegter?.entries ?? [];
@@ -702,7 +702,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const entries = model.tabtArbejdsfortjeneste.tafIndtaegter?.entries ?? [];
@@ -738,7 +738,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
@@ -775,7 +775,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     // Validatoren fanger manglende lønudviklingsstrategi med dansk besked
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
@@ -809,7 +809,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     // Validatoren fanger manglende manuel reguleringstabel med dansk besked
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
@@ -845,7 +845,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
@@ -879,7 +879,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
@@ -930,7 +930,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') }))
       .toThrow('Feriegodtgørelse/-tillæg skal udfyldes');
@@ -961,7 +961,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
@@ -1000,7 +1000,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
 
@@ -1039,14 +1039,14 @@ describe('eoPdfModel', () => {
           feriePct: 17.68,
           loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
           fuldLoenUnderFerie: 'Ja',
-          harAnciennitetstillaegEfterSkadesdatoen: true,
+          harAnciennitetstillaegEfterSkadedatoen: true,
           anciennitetstillaegDato: iso('2024-01-15'),
           anciennitetstillaegSatsAngivesPer: 'Måned',
           anciennitetstillaegSats: asAmountValue(1000),
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-19') });
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
 
@@ -1076,7 +1076,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2011-12-31') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2011-12-31') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-19') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
@@ -1085,7 +1085,7 @@ describe('eoPdfModel', () => {
   });
 
   it('bruger samme lønudviklingsresultat for angivet månedsløn uanset persisted anciennitet sats-per (resolver-immunitet)', () => {
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const baseEoLoenudvikling = {
       ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
       loenudviklingBeregningsgrundlag: 'Overenskomst' as const,
@@ -1095,7 +1095,7 @@ describe('eoPdfModel', () => {
       offentligLoenGruppe: 2,
       feriePct: 17.68,
       loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
-      harAnciennitetstillaegEfterSkadesdatoen: true,
+      harAnciennitetstillaegEfterSkadedatoen: true,
       anciennitetstillaegDato: iso('2024-03-01'),
       anciennitetstillaegSats: asAmountValue(1200),
     };
@@ -1183,7 +1183,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
 
@@ -1227,7 +1227,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -1268,7 +1268,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -1309,7 +1309,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -1348,7 +1348,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-12-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-12-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -1387,7 +1387,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-12-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-12-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -1459,7 +1459,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
@@ -1537,7 +1537,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
@@ -1612,7 +1612,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
@@ -1632,7 +1632,7 @@ describe('eoPdfModel', () => {
       vedroererPeriodeTil: iso('2024-01-31'),
       tafArbejdsstatus: 'Efterløn',
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1656,7 +1656,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1680,7 +1680,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1692,7 +1692,7 @@ describe('eoPdfModel', () => {
       vedroererPeriodeTil: iso('2024-01-31'),
       tafArbejdsstatus: 'Fleksjob',
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1706,7 +1706,7 @@ describe('eoPdfModel', () => {
       vedroererPeriodeTil: iso('2024-01-31'),
       tafArbejdsstatus: 'Førtidspension',
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1722,7 +1722,7 @@ describe('eoPdfModel', () => {
       midlertidigtEetAfgorelse: 'Ja',
       midlertidigEETVirkningsdato: iso('2024-05-01'),
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1730,7 +1730,7 @@ describe('eoPdfModel', () => {
     expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('midlertidig erhvervsevnetabsafgørelse'))).toBe(true);
   });
 
-  it('midlertidig EET tidligst, skadesdato < 2011-06-16 → begge EET-linjer vises, men midlertidig får PRE-2011-ophørstekst', () => {
+  it('midlertidig EET tidligst, skadedato < 2011-06-16 → begge EET-linjer vises, men midlertidig får PRE-2011-ophørstekst', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
@@ -1749,7 +1749,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2009-03-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2009-03-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1758,7 +1758,7 @@ describe('eoPdfModel', () => {
     expect(model.tabtArbejdsfortjeneste.eetLinjer.some((line) => line.includes('endelig erhvervsevnetabsafgørelse'))).toBe(true);
   });
 
-  it('endelig EET tidligst, skadesdato < 2011-06-16 → begge EET-linjer vises, men endelig får ophørstekst', () => {
+  it('endelig EET tidligst, skadedato < 2011-06-16 → begge EET-linjer vises, men endelig får ophørstekst', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
@@ -1777,7 +1777,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2009-03-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2009-03-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1804,7 +1804,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1830,7 +1830,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1858,7 +1858,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1874,7 +1874,7 @@ describe('eoPdfModel', () => {
       differencekravDato: iso('2024-05-01'),
       tafPerioder: [],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
 
@@ -1924,7 +1924,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
@@ -1978,7 +1978,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
@@ -2031,7 +2031,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
@@ -2092,7 +2092,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
@@ -2135,7 +2135,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
@@ -2192,7 +2192,7 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [baseAf],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2000-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2000-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -2243,7 +2243,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2024-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -2266,7 +2266,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2000-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2000-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -2289,7 +2289,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2000-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2000-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -2314,7 +2314,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2009-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2009-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -2342,7 +2342,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2010-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2010-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -2370,7 +2370,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2023-05-24') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2023-05-24') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -2394,7 +2394,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2020-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2020-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -2457,7 +2457,7 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2023-05-24') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2023-05-24') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
@@ -2487,7 +2487,7 @@ describe('eoPdfModel', () => {
           },
         ],
       });
-      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2005-01-01') });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2005-01-01') });
       expectSilencedConsoleErrorThrow(
         () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
         'Loenudvikling kan ikke beregnes: ugyldigt indeks for segment'
@@ -2515,7 +2515,7 @@ describe('eoPdfModel', () => {
           },
         ],
       });
-      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2005-01-01') });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2005-01-01') });
       expectSilencedConsoleErrorThrow(
         () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
         'Loenudvikling kan ikke beregnes: ugyldigt ASL indeks'
@@ -2547,7 +2547,7 @@ describe('eoPdfModel', () => {
           },
         ],
       });
-      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2001-01-01') });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2001-01-01') });
       expectSilencedConsoleErrorThrow(
         () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
         'Loenudvikling kan ikke beregnes: ugyldigt KRL indeks for segment'
@@ -2585,7 +2585,7 @@ describe('eoPdfModel', () => {
           },
         ],
       });
-      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2011-03-01') });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2011-03-01') });
       expectSilencedConsoleErrorThrow(
         () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
         'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen'
@@ -2622,7 +2622,7 @@ describe('eoPdfModel', () => {
           },
         ],
       });
-      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadesdato: iso('2012-01-01') });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2012-01-01') });
       expectSilencedConsoleErrorThrow(
         () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
         'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen'

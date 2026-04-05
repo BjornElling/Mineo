@@ -33,7 +33,7 @@ const createEmployment = (
   pensionPct: patch.pensionPct ?? 0,
   loenperiode: patch.loenperiode ?? 'maaned',
   fuldLoenUnderFerie: patch.fuldLoenUnderFerie ?? 'Ja',
-  harAnciennitetstillaegEfterSkadesdatoen: patch.harAnciennitetstillaegEfterSkadesdatoen ?? false,
+  harAnciennitetstillaegEfterSkadedatoen: patch.harAnciennitetstillaegEfterSkadedatoen ?? false,
   anciennitetstillaegDato: patch.anciennitetstillaegDato,
   anciennitetstillaegSatsAngivesPer: patch.anciennitetstillaegSatsAngivesPer ?? 'Måned',
   anciennitetstillaegSats: patch.anciennitetstillaegSats,
@@ -161,7 +161,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
     });
 
@@ -221,7 +221,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
@@ -250,7 +250,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
@@ -294,7 +294,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
     });
 
@@ -326,7 +326,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
@@ -361,7 +361,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-16') }],
     });
 
@@ -399,7 +399,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2023-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') },
       tafRanges: [{ fra: iso('2023-05-31'), til: iso('2023-06-02') }],
     });
 
@@ -444,7 +444,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-09') }],
     });
 
@@ -480,7 +480,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-26'), til: iso('2024-03-05') }],
     });
 
@@ -529,7 +529,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const ferieloven = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
@@ -540,7 +540,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const overenskomst = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
@@ -608,7 +608,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const decemberOnly = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
@@ -620,7 +620,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const novemberDecember = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 
@@ -648,7 +648,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2025-01-06') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2025-01-06') },
       tafRanges: [{ fra: iso('2025-01-06'), til: iso('2025-01-10') }],
     });
 
@@ -721,7 +721,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2025-01-06') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2025-01-06') },
       tafRanges: [{ fra: iso('2025-01-06'), til: iso('2025-01-10') }],
     });
 
@@ -755,7 +755,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-29') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-29') },
       tafRanges: [
         { fra: iso('2024-01-29'), til: iso('2024-01-31') },
         { fra: iso('2024-02-05'), til: iso('2024-02-06') },
@@ -801,7 +801,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-06') }],
     });
 
@@ -875,7 +875,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2025-01-05') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2025-01-05') },
       tafRanges: [{ fra: iso('2025-01-05'), til: iso('2025-01-10') }],
     });
 
@@ -919,7 +919,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2025-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2025-01-01') },
       tafRanges: [{ fra: iso('2025-01-01'), til: iso('2025-01-31') }],
     });
 
@@ -950,7 +950,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-06') }],
     });
 
@@ -978,7 +978,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2014-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2014-01-01') },
       tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
     });
 
@@ -1051,7 +1051,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2014-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2014-01-01') },
       tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-06-30') }],
     });
 
@@ -1132,7 +1132,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2014-07-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2014-07-01') },
       tafRanges: [{ fra: iso('2014-07-01'), til: iso('2014-12-31') }],
     });
 
@@ -1167,7 +1167,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2014-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2014-01-01') },
       tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
     });
 
@@ -1197,7 +1197,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2014-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2014-01-01') },
       tafRanges: [{ fra: iso('2014-01-01'), til: iso('2014-12-31') }],
     });
 
@@ -1230,7 +1230,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-03-15') }],
     });
 
@@ -1279,7 +1279,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
     });
 
@@ -1339,7 +1339,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     changedBeregningsperiodeValues.periodeTilBeregningTil = iso('2019-06-30');
 
     const tafRanges = [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }] as const;
-    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') };
+    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') };
 
     const baseResult = computeSygeferiegodtgoerelse({
       values: baseValues,
@@ -1375,7 +1375,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-04') }],
     });
 
@@ -1424,7 +1424,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-04') }],
     });
 
@@ -1471,7 +1471,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const ferielovResult = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: weekendTafRange,
     });
 
@@ -1490,7 +1490,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const manuelResult = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: weekendTafRange,
     });
 
@@ -1538,7 +1538,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-26'), til: iso('2024-03-05') }],
       loenudviklingPerAnsaettelse: new Map([
         ['af-1', {
@@ -1609,7 +1609,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-12-30'), til: iso('2025-01-03') }],
     });
 
@@ -1668,7 +1668,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
       loenudviklingPerAnsaettelse: new Map([
         ['af-1', {
@@ -1728,7 +1728,7 @@ describe('findSfggSixMonthWarningEmploymentIds', () => {
       sfggAlleredeBetaltBeloeb: undefined,
     }];
 
-    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') };
+    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') };
     const tafRanges = [{ fra: iso('2024-08-01'), til: iso('2024-08-31') }];
     const sfggResult = computeSygeferiegodtgoerelse({ values, stamdata, tafRanges, loenudviklingPerAnsaettelse: new Map() });
     const warningIds = findSfggSixMonthWarningEmploymentIds({
@@ -1774,7 +1774,7 @@ describe('findSfggSixMonthWarningEmploymentIds', () => {
 
     const result = computeSygeferiegodtgoerelse({
       values,
-      stamdata: { ...STAMDATA_INITIAL_VALUES, skadesdato: iso('2024-01-01') },
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
       tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
     });
 

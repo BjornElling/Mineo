@@ -28,7 +28,7 @@ const createDefaultAngivetLoenLoenudvikling = (settings: AppSettings): Persisted
 });
 
 export const DEFAULT_ANCIENNITET_FIELDS = {
-  harAnciennitetstillaegEfterSkadesdatoen: false as const,
+  harAnciennitetstillaegEfterSkadedatoen: false as const,
   anciennitetstillaegDato: undefined,
   anciennitetstillaegSatsAngivesPer: 'Måned' as const,
   anciennitetstillaegSats: undefined,

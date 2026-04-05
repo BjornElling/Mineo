@@ -1,7 +1,7 @@
 export {
-  resolveLoenSkadesdatoText,
+  resolveAnvendtReguleringsdato,
+  resolveLoenSkadedatoText,
   resolveLoenudviklingSegmentBounds,
-  resolveReguleringsdato,
   resolveStatistikModelIdFromLabel,
   resolveTafDateBounds,
 } from './reguleringsPresentation';

@@ -20,7 +20,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -61,7 +61,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -103,7 +103,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -145,7 +145,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -170,7 +170,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '',
@@ -197,7 +197,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -226,7 +226,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -255,7 +255,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -286,7 +286,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -324,7 +324,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -358,7 +358,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -399,7 +399,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -436,7 +436,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso(''),
+          skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',
@@ -479,7 +479,7 @@ describe('eoDebugIntegrity', () => {
           sagsbehandler: '',
           skadelidte: '',
           skadestype: '',
-          skadesdato: iso('2024-01-01'),
+          skadedato: iso('2024-01-01'),
         },
         erstatningsopgoerelseValues: {
           vedroererPeriodeFra: '2024-01-01',

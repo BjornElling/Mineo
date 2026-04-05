@@ -12,9 +12,12 @@ const InfoTooltipIcon = React.memo(({ title }: InfoTooltipIconProps) => {
       <InfoOutlinedIcon
         onClick={(event) => event.stopPropagation()}
         sx={{
-          fontSize: '0.95em',
+          fontSize: '0.8em',
           ml: 0.5,
-          verticalAlign: 'super',
+          verticalAlign: 'baseline',
+          position: 'relative',
+          top: '-0.35em',
+          lineHeight: 1,
           color: 'text.secondary',
           cursor: 'default',
         }}

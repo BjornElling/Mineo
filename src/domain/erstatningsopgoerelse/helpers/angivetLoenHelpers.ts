@@ -78,7 +78,7 @@ export const resolveLoenudviklingKilde = (
     ansatPaaSkadestidspunktet: true,
     ansaettelsesforholdOphoert: false,
     sidsteArbejdsdag: undefined,
-    harAnciennitetstillaegEfterSkadesdatoen: eo.harAnciennitetstillaegEfterSkadesdatoen,
+    harAnciennitetstillaegEfterSkadedatoen: eo.harAnciennitetstillaegEfterSkadedatoen,
     anciennitetstillaegDato: eo.anciennitetstillaegDato,
     anciennitetstillaegSatsAngivesPer: anciennitetSatsAngivesPer,
     anciennitetstillaegSats: eo.anciennitetstillaegSats,

@@ -4,7 +4,7 @@ import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import TableIntegerInput from '../inputs/table/TableIntegerInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { useTableSort } from './useTableSort';
-import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
+import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { subtractOneDay } from '../../types/branded';
@@ -23,9 +23,9 @@ export type TAFPeriodeTableProps = Readonly<{
   derivedById: Record<string, number | null>;
   derivedColumnHeader: string;
   overlapWithBeregningsperiodeByRowId: Readonly<Record<string, string>>;
-  skadesdatoISO: ISODateString | undefined;
+  skadedatoISO: ISODateString | undefined;
   endeligEETBeregnetDato: ISODateString | undefined;
-  /** Midlertidig EET-dato som TAF-afgrænsning — kun sat ved skadesdato < 2011-06-16. */
+  /** Midlertidig EET-dato som TAF-afgrænsning — kun sat ved skadedato < 2011-06-16. */
   midlertidigEETBeregnetDato: ISODateString | undefined;
   differencekravDato: ISODateString | undefined;
   erErhvervssygdom: boolean;
@@ -47,7 +47,7 @@ const TAFPeriodeTable = React.memo(
     derivedById,
     derivedColumnHeader,
     overlapWithBeregningsperiodeByRowId,
-    skadesdatoISO,
+    skadedatoISO,
     endeligEETBeregnetDato,
     midlertidigEETBeregnetDato,
     differencekravDato,
@@ -110,7 +110,7 @@ const TAFPeriodeTable = React.memo(
             // Beregn den laveste af ekstra max-datoer for til-dato:
             // - differencekravDato-1 (altid anvendt)
             // - endeligEETBeregnetDato-1 (hvis ikke verserende klage)
-            // - midlertidigEETBeregnetDato-1 (hvis ikke verserende klage; kun sat ved skadesdato < 2011-06-16)
+            // - midlertidigEETBeregnetDato-1 (hvis ikke verserende klage; kun sat ved skadedato < 2011-06-16)
             const endeligEETMinus1 = endeligEETBeregnetDato ? subtractOneDay(endeligEETBeregnetDato) : undefined;
             const midlertidigEETMinus1 = midlertidigEETBeregnetDato ? subtractOneDay(midlertidigEETBeregnetDato) : undefined;
             const differencekravMinus1 = differencekravDato ? subtractOneDay(differencekravDato) : undefined;
@@ -129,21 +129,21 @@ const TAFPeriodeTable = React.memo(
               }
             }
 
-            // Midlertidig EET anvendes kun hvis ikke verserende klage (dato er allerede undefined ved skadesdato >= 2011-06-16)
+            // Midlertidig EET anvendes kun hvis ikke verserende klage (dato er allerede undefined ved skadedato >= 2011-06-16)
             if (!verserendeKlageEet && midlertidigEETMinus1) {
               if (!combinedExtraMaxDate || midlertidigEETMinus1 < combinedExtraMaxDate) {
                 combinedExtraMaxDate = midlertidigEETMinus1;
               }
             }
 
-            const skadesdatoMinRule = computeSkadesdatoMinRule({
-              skadesdatoISO,
+            const skadedatoMinRule = computeSkadedatoMinRule({
+              skadedatoISO,
               erErhvervssygdom,
               fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
             });
 
             const bounds = computeRowDateBounds({
-              skadesdatoMinDate: skadesdatoMinRule.minDate,
+              skadedatoMinDate: skadedatoMinRule.minDate,
               rowFra: fraISO,
               rowTil: tilISO,
               fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
@@ -160,14 +160,14 @@ const TAFPeriodeTable = React.memo(
             // Generer konkrete årsager til afgrænsning
             const fraNoValidRangeCause = (() => {
               const parts: string[] = [];
-              if (skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+              if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
               if (tilISO) parts.push('til-dato i samme række');
               return parts.length > 0 ? parts.join(', ') : undefined;
             })();
 
             const tilNoValidRangeCause = (() => {
               const parts: string[] = [];
-              if (!fraISO && skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+              if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
               if (fraISO) parts.push('fra-dato i samme række');
               parts.push('dags dato');
               if (differencekravDato) parts.push('differencekrav-dato');
@@ -219,8 +219,8 @@ const TAFPeriodeTable = React.memo(
                     maxDate={fraMaxDate}
                     specialRangeErrors={{
                       fraTilRole: 'fra',
-                      minBoundKind: skadesdatoMinRule.minBoundKind,
-                      minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                      minBoundKind: skadedatoMinRule.minBoundKind,
+                      minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                     }}
                     noValidRangeCause={fraNoValidRangeCause}
                     externalErrorMessage={fraErrorMessage}
@@ -239,8 +239,8 @@ const TAFPeriodeTable = React.memo(
                     specialRangeErrors={{
                       fraTilRole: 'til',
                       minBoundKind:
-                        skadesdatoMinRule.minBoundKind && tilMinDate === absoluteMinDate ? skadesdatoMinRule.minBoundKind : undefined,
-                      minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                        skadedatoMinRule.minBoundKind && tilMinDate === absoluteMinDate ? skadedatoMinRule.minBoundKind : undefined,
+                      minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                     }}
                     noValidRangeCause={tilNoValidRangeCause}
                     externalErrorMessage={tilErrorMessage}

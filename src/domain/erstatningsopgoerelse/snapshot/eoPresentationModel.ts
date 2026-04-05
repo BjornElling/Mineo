@@ -63,9 +63,9 @@ export const buildEoPdfPresentation = (
 
   const navn = (stamdataValues.skadelidte ?? '').trim();
   const skadestype = (stamdataValues.skadestype ?? '').trim();
-  const skadesdato = formatDateLong(stamdataValues.skadesdato);
-  const skadestypeLinje = skadestype && skadesdato
-    ? `${skadestype} ${skadestype === 'Erhvervssygdom' ? 'anmeldt ' : ''}den ${skadesdato}`
+  const skadedato = formatDateLong(stamdataValues.skadedato);
+  const skadestypeLinje = skadestype && skadedato
+    ? `${skadestype} ${skadestype === 'Erhvervssygdom' ? 'anmeldt ' : ''}den ${skadedato}`
     : null;
 
   return {

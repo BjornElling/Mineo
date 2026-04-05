@@ -577,6 +577,17 @@ describe('getEffektiveSatserForDato', () => {
     }
   });
 
+  it('shDageRegel true → giver forventet historisk bygge-/anlæg SH/SO-sats uden at gå negativ', () => {
+    const med = getEffektiveSatserForDato({
+      overenskomstId: 'bygge-anlaeg' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2011'),
+      applyAlmindeligLoenPaaShDageRegel: true,
+    });
+
+    expect(med?.shSoSats).toBeCloseTo(0.01, 10);
+    expect((med?.shSoSats ?? 0) >= 0).toBe(true);
+  });
+
   it('shDageRegel true → reducerer fritvalg med 4 procentpoint for industri-og-vvs-overenskomsten', () => {
     const uden = getEffektiveSatserForDato({
       overenskomstId: 'industri-og-vvs-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
@@ -685,6 +696,25 @@ describe('getEffektiveSatserForDato', () => {
     expect(result?.grundloen).toBe(142.51);
     expect(result?.shSoSats).toBe(0.09);
     expect(result?.agPension).toBe(0.11);
+  });
+
+  it('shDageRegel true → returnerer aldrig negative SH/SO- eller fritvalgssatser', () => {
+    for (const overenskomst of overenskomster) {
+      for (const sats of overenskomst.satser) {
+        const med = getEffektiveSatserForDato({
+          overenskomstId: overenskomst.meta.id as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+          dato: sats.fraDato,
+          applyAlmindeligLoenPaaShDageRegel: true,
+        });
+        if (!med) continue;
+        if (med.shSoSats !== null) {
+          expect(med.shSoSats).toBeGreaterThanOrEqual(0);
+        }
+        if (med.fritvalg !== null) {
+          expect(med.fritvalg).toBeGreaterThanOrEqual(0);
+        }
+      }
+    }
   });
 });
 
@@ -814,9 +844,9 @@ describe('getOffentligTillaegsSatserForDato', () => {
   });
 
   it('KL overenskomst → returnerer satser for gyldig dato', () => {
-    // kl-overenskomst er en offentlig overenskomst med tillaegssatser
+    // KL bruger ikke offentligeOverenskomstSatser-tabellen, så undefined betyder
+    // bevidst "felterne er brugerredigerbare", ikke at opslaget er fejlbehæftet.
     const result = getOffentligTillaegsSatserForDato('kl-overenskomst', d('01-01-2024'));
-    // Kan returnere undefined hvis der ikke er satser for 2024 — bare tjek typen
     if (result !== undefined) {
       expect(typeof result.fritvalg === 'number' || result.fritvalg === null).toBe(true);
     }

@@ -243,6 +243,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           const updated = updateCellValueInTable(prev.draft, rowId, colKey, value);
           const managed = manageRows(updated);
 
+          // Intentional Mineo contract: table edits stay in draft while typing.
+          // Derived values and downstream calculations must update only from committed rows on blur.
           // KRITISK: Sammenlign mod prev.committed (ikke prev.draft)
           // handleFieldBlur er en commit-handler - baseline skal ALTID være committed
           const managedFingerprint = fingerprintTableData(managed);

@@ -51,13 +51,9 @@ import {
   getOverenskomsterByOrg,
   getOverenskomstMetaById,
   getOverenskomstSfggPolicy,
-  getEffektiveSatserForDato,
   getOffentligOverenskomstTypeById,
-  getOffentligTillaegsSatserForDato,
   getReguleringsDatoIntervalForOverenskomst,
   isOffentligOverenskomstId,
-  resolveOverenskomstRef,
-  type OverenskomstId,
 } from '../../../data/overenskomstRates';
 import { toLoentrin } from '../../../data/offentligLoenTypes';
 import { getOffentligLoenTabelForDato } from '../../../data/offentligLoenLookup';
@@ -80,9 +76,11 @@ import {
 import {
   applyAutoSatsFields,
   buildLoenindkomstRateSegments,
-  hasLockedOverenskomstSatser,
-  resolveLoenindkomstReguleringsdato,
+  isOverenskomstSatsFieldLocked,
+  resolveOverenskomstSatsBindings,
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
+import { getAngivetLoenOpreguleresFraDato } from '../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { resolveAnvendtReguleringsdato } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
   hasSfggSelectedOverenskomst,
   resolveSfggSource,
@@ -118,6 +116,7 @@ type Props = {
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
   onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList) => void;
+  onNavigateToTabtArbejdsfortjeneste: () => void;
 };
 
 type Ansaettelsesforhold =
@@ -146,7 +145,7 @@ const updateSfggAnsaettelsesforholdRow = (
     sfggBeregningskilde: undefined,
     sfggReferenceperiodeFra: undefined,
     sfggReferenceperiodeTil: undefined,
-    sfggReferenceperiodeFravaersdageUdenLoen: 0,
+    sfggReferenceperiodeFravaersdageUdenLoen: undefined,
     sfggManuelDagssats: undefined,
     sfggManuelBeloebIHenholdTil: undefined,
     sfggManuelFoerstEfterSygeloen: 'Nej' as const,
@@ -163,6 +162,42 @@ const updateSfggAnsaettelsesforholdRow = (
 const formatReguleringsDatoInterval = (interval?: { fraDato: string; tilDato: string }): string => {
   if (!interval) return '';
   return `${interval.fraDato} - ${interval.tilDato}`;
+};
+
+const formatIsoDateShortLabel = (value: ISODateString | undefined): string | undefined => {
+  if (!value) return undefined;
+  const parsed = parseISODate(value);
+  if (!parsed) return undefined;
+  return formatDanishDate(parsed);
+};
+
+const resolveSatserHeading = (params: Readonly<{
+  anvendtReguleringsdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
+  skadestype: string | undefined;
+  beregningsperiodeTil: ISODateString | undefined;
+}>): string => {
+  const { anvendtReguleringsdato, skadedato, skadestype, beregningsperiodeTil } = params;
+  if (!anvendtReguleringsdato) return 'Satser';
+
+  const shortDate = formatIsoDateShortLabel(anvendtReguleringsdato);
+  const longDate = formatIsoDateLong(anvendtReguleringsdato);
+
+  if (skadedato && anvendtReguleringsdato === skadedato && shortDate) {
+    return skadestype === 'Erhvervssygdom'
+      ? `Satser på anmeldelsesdatoen (${shortDate})`
+      : `Satser på skadedatoen (${shortDate})`;
+  }
+
+  if (beregningsperiodeTil && anvendtReguleringsdato === beregningsperiodeTil && shortDate) {
+    return `Satser ved beregningsperiodens udløb (${shortDate})`;
+  }
+
+  if (longDate) {
+    return `Satser den ${longDate}`;
+  }
+
+  return 'Satser';
 };
 
 const getOffentligLoenEkstraGrundloenSuffix = (
@@ -261,7 +296,7 @@ type SatsErrorState = {
   pensionPct?: string;
 };
 
-type OverenskomstSatsField = Exclude<keyof SatsErrorState, 'feriePct'>;
+type OverenskomstSatsField = 'fritvalgPct' | 'shSoPct' | 'pensionPct';
 
 type ReguleringsDatoInterval = Readonly<{ fraDato: string; tilDato: string }>;
 
@@ -312,6 +347,7 @@ const LoenindkomstTab = React.memo(({
   eoValues,
   setEOValues,
   onAnsaettelsesforholdChange,
+  onNavigateToTabtArbejdsfortjeneste,
 }: Props) => {
   const reportDynamicFieldError = useDynamicFormFieldErrorReporter('erstatningsopgoerelse', { source: 'input' });
   const stamdataValues = usePersistedSectionSelector('stamdata');
@@ -417,96 +453,40 @@ const LoenindkomstTab = React.memo(({
     []
   );
 
-  const getReguleringsDatoForAnsaettelsesforhold = React.useCallback(
-    (af: Ansaettelsesforhold): ISODateString | undefined => resolveLoenindkomstReguleringsdato(af, stamdataValues?.skadesdato),
-    [stamdataValues?.skadesdato]
+  const getAnvendtReguleringsdatoForAnsaettelsesforhold = React.useCallback(
+    (af: Pick<Ansaettelsesforhold, 'saerligFraDatoRegulering'>): ISODateString | undefined =>
+      resolveAnvendtReguleringsdato({
+        beregnesUdFra,
+        angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
+        saerligFraDatoRegulering: af.saerligFraDatoRegulering,
+        beregningsperiodeTil: periodeTilBeregningTil,
+        skadedato: stamdataValues?.skadedato,
+      }),
+    [beregnesUdFra, eoValues, periodeTilBeregningTil, stamdataValues?.skadedato]
   );
   const validateSats = React.useCallback(
     (
-      overenskomstId: string | undefined,
+      af: Pick<Ansaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'>,
       fieldName: OverenskomstSatsField,
       inputValue: number | undefined,
-      reguleringsDato: ISODateString | undefined,
-      applyAlmindeligLoenPaaShDageRegel: boolean
+      anvendtReguleringsdato: ISODateString | undefined
     ): string | undefined => {
-      // Kun valider hvis der er valgt en overenskomst
+      const overenskomstId = af.overenskomstId?.trim();
       if (!overenskomstId) return undefined;
+      if (!anvendtReguleringsdato) return undefined;
+      const expectedBinding = resolveOverenskomstSatsBindings(af, anvendtReguleringsdato)[fieldName];
+      if (!expectedBinding.locked || expectedBinding.value === undefined) return undefined;
 
-      // Tjek om der er en dato at validere mod
-      if (!reguleringsDato) return undefined;
-
-      // Konverter ISO til dansk format
-      const dateObj = parseISODate(reguleringsDato);
-      if (!dateObj) return undefined;
-
-      const danishDate = formatDanishDate(dateObj);
-
-      // Map felt til overenskomst-felt og sammenlign
-      // null i overenskomst behandles som 0
-      let expectedValue: number;
-      if (isOffentligOverenskomstId(overenskomstId)) {
-        const tillaegSatser = getOffentligTillaegsSatserForDato(
-          overenskomstId,
-          danishDate,
-          applyAlmindeligLoenPaaShDageRegel
-        );
-        if (!tillaegSatser) return undefined;
-        switch (fieldName) {
-          case 'fritvalgPct':
-            expectedValue = tillaegSatser.fritvalg ?? 0;
-            break;
-          case 'shSoPct':
-            expectedValue = tillaegSatser.shSoSats ?? 0;
-            break;
-          case 'storeBededagPct':
-            return undefined;
-          case 'pensionPct':
-            expectedValue = tillaegSatser.agPension ?? 0;
-            break;
-        }
-      } else {
-        const ref = resolveOverenskomstRef(overenskomstId);
-        if (!ref) return undefined;
-        const satser = getEffektiveSatserForDato({
-          overenskomstId: ref.baseId as OverenskomstId,
-          dato: danishDate,
-          applyAlmindeligLoenPaaShDageRegel,
-        });
-        if (!satser) return undefined;
-
-        switch (fieldName) {
-          case 'fritvalgPct':
-            expectedValue = satser.fritvalg ?? 0;
-            break;
-          case 'shSoPct':
-            // SH/SO-sats
-            expectedValue = satser.shSoSats ?? 0;
-            break;
-          case 'storeBededagPct':
-            // Store Bededag valideres separat - returnér her hvis logikken ikke matcher
-            return undefined;
-          case 'pensionPct':
-            expectedValue = satser.agPension ?? 0;
-            break;
-        }
-      }
-
-      // Hent overenskomst navn til fejlmeddelelse
       const overenskomstMeta = getOverenskomstMetaById(overenskomstId);
       const overenskomstNavn = overenskomstMeta?.navn || 'Overenskomsten';
 
-      const dateObj2 = parseISODate(reguleringsDato);
+      const dateObj2 = parseISODate(anvendtReguleringsdato);
       if (!dateObj2) return undefined;
 
       const danishDateShort = formatDanishDate(dateObj2);
 
-      // Konverter til procent (0.1015 → 10.15)
-      const expectedPct = expectedValue * 100;
-
-      // Tom celle (undefined) behandles som 0
+      const expectedPct = expectedBinding.value;
       const actualValue = inputValue ?? 0;
-
-      // Sammenlign med tolerance på 0.01% (håndter afrundingsfejl)
       const diff = Math.abs(actualValue - expectedPct);
       if (diff > 0.01) {
         return `${overenskomstNavn}s sats per ${danishDateShort} udgør ${formatAsAmount(expectedPct, 2)} %`;
@@ -514,7 +494,7 @@ const LoenindkomstTab = React.memo(({
 
       return undefined;
     },
-    []
+    [stamdataValues?.skadedato]
   );
 
   /**
@@ -523,7 +503,7 @@ const LoenindkomstTab = React.memo(({
   const validateAllSatserForAnsaettelsesforhold = React.useCallback(
     (af: Ansaettelsesforhold) => {
       const errors: SatsErrorState = {};
-      const reguleringsDato = getReguleringsDatoForAnsaettelsesforhold(af);
+      const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
       const kræverFeriePct = beregnesUdFra === 'Beregningsperiode'
         && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []);
 
@@ -532,40 +512,35 @@ const LoenindkomstTab = React.memo(({
       if (ferieError) errors.feriePct = ferieError;
 
       // Valider Fritvalg
-      const applyAlmindeligLoenPaaShDageRegel = af.loenPaaHelligdage === 'Almindelig løn';
-
       const fritvalgError = validateSats(
-        af.overenskomstId,
+        af,
         'fritvalgPct',
         af.fritvalgPct,
-        reguleringsDato,
-        applyAlmindeligLoenPaaShDageRegel
+        anvendtReguleringsdato
       );
       if (fritvalgError) errors.fritvalgPct = fritvalgError;
 
       // Valider SH/SO-sats
       const shError = validateSats(
-        af.overenskomstId,
+        af,
         'shSoPct',
         af.shSoPct,
-        reguleringsDato,
-        applyAlmindeligLoenPaaShDageRegel
+        anvendtReguleringsdato
       );
       if (shError) errors.shSoPct = shError;
 
       // Valider Arbejdsgivers pensionsbidrag
       const pensionError = validateSats(
-        af.overenskomstId,
+        af,
         'pensionPct',
         af.pensionPct,
-        reguleringsDato,
-        applyAlmindeligLoenPaaShDageRegel
+        anvendtReguleringsdato
       );
       if (pensionError) errors.pensionPct = pensionError;
 
       return errors;
     },
-    [getReguleringsDatoForAnsaettelsesforhold, validateFeriePct, validateSats, beregnesUdFra]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, validateFeriePct, validateSats, beregnesUdFra]
   );
 
   // Valider alle Ansættelsesforhold ved ændringer i datagrundlaget
@@ -583,9 +558,12 @@ const LoenindkomstTab = React.memo(({
   }, [loenindkomstAnsaettelsesforhold, validateAllSatserForAnsaettelsesforhold]);
 
   React.useEffect(() => {
+    // Cross-tab sikkerhedsnet: når skadedato ændres i Stamdata, skal allerede committede
+    // auto-satser resynkroniseres. Event-handlere dækker lokale EO-edits; denne effekt
+    // dækker kun eksterne committed ændringer.
     let changed = false;
     const next = loenindkomstAnsaettelsesforhold.map((af) => {
-      const updated = applyAutoSatsFields(af, stamdataValues?.skadesdato);
+      const updated = applyAutoSatsFields(af, getAnvendtReguleringsdatoForAnsaettelsesforhold(af));
       if (
         updated.storeBededagPct !== af.storeBededagPct ||
         updated.fritvalgPct !== af.fritvalgPct ||
@@ -599,7 +577,7 @@ const LoenindkomstTab = React.memo(({
     });
     if (!changed) return;
     onAnsaettelsesforholdChange(() => next);
-  }, [onAnsaettelsesforholdChange, stamdataValues?.skadesdato, loenindkomstAnsaettelsesforhold]);
+  }, [getAnvendtReguleringsdatoForAnsaettelsesforhold, onAnsaettelsesforholdChange, loenindkomstAnsaettelsesforhold]);
 
   React.useEffect(() => {
     const currentIds = new Set(loenindkomstAnsaettelsesforhold.map((af) => af.id));
@@ -655,25 +633,19 @@ const LoenindkomstTab = React.memo(({
     };
   }, [eoValues]);
 
-  const getSaerligFraDatoReguleringLabel = React.useCallback((iso: ISODateString | undefined): string | undefined => {
-    if (!iso) return undefined;
-    const formatted = formatIsoDateLong(iso);
-    return formatted === '' ? undefined : formatted;
-  }, []);
-
   const getLoenudviklingBaseDate = React.useCallback(
     (af: Ansaettelsesforhold) => {
-      const iso = af.saerligFraDatoRegulering || stamdataValues?.skadesdato;
+      const iso = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
       if (!iso) {
-        return { display: '', errorMessage: 'Skadesdato er ikke udfyldt' };
+        return { display: '', errorMessage: 'Skadedato er ikke udfyldt' };
       }
       const parsed = parseISODate(iso);
       if (!parsed) {
-        return { display: '', errorMessage: 'Skadesdato er ikke udfyldt' };
+        return { display: '', errorMessage: 'Skadedato er ikke udfyldt' };
       }
       return { display: formatDanishDate(parsed), errorMessage: undefined };
     },
-    [stamdataValues?.skadesdato]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold]
   );
 
   const isOffentligLoenSelectionReady = React.useCallback((af: Ansaettelsesforhold): boolean => {
@@ -1089,20 +1061,16 @@ const LoenindkomstTab = React.memo(({
       id: string,
       field: keyof Pick<
         Ansaettelsesforhold,
-        'harOverenskomst' | 'ansatPaaSkadestidspunktet' | 'ansaettelsesforholdOphoert' | 'harAnciennitetstillaegEfterSkadesdatoen'
+        'harOverenskomst' | 'ansatPaaSkadestidspunktet' | 'ansaettelsesforholdOphoert' | 'harAnciennitetstillaegEfterSkadedatoen'
       >
     ): CommitHandler<boolean> =>
       (event: CommitEvent<boolean>) => {
-        updateAnsaettelsesforhold(id, (prev) =>
-          syncManualBaseRowSatser(
-            applyAutoSatsFields(
-              applyAnsaettelsesforholdToggleCleanup(prev, field, event.target.value),
-              stamdataValues?.skadesdato
-            )
-          )
-        );
+        updateAnsaettelsesforhold(id, (prev) => {
+          const next = applyAnsaettelsesforholdToggleCleanup(prev, field, event.target.value);
+          return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
+        });
       },
-    [settings, stamdataValues?.skadesdato, updateAnsaettelsesforhold]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, settings, updateAnsaettelsesforhold]
   );
 
   const handleOverenskomstChange = React.useCallback(
@@ -1110,15 +1078,15 @@ const LoenindkomstTab = React.memo(({
       (e: StyledDropdownChangeEvent<string | undefined>) => {
         const nextOverenskomstId = normalizeOptionalFreeText(e.target.value);
         updateAnsaettelsesforhold(id, (prev) => {
-          const updated = applyAutoSatsFields({
+          const next = {
             ...prev,
             overenskomstId: nextOverenskomstId,
             offentligLoenType:
               nextOverenskomstId && isOffentligOverenskomstId(nextOverenskomstId)
                 ? (prev.offentligLoenType ?? 'Månedsløn')
                 : prev.offentligLoenType,
-          }, stamdataValues?.skadesdato);
-          return syncManualBaseRowSatser(updated);
+          };
+          return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
         });
 
         // Revalider alle satser når overenskomst ændres
@@ -1131,7 +1099,7 @@ const LoenindkomstTab = React.memo(({
           setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
         }
       },
-    [setSatsErrorsForAnsaettelsesforhold, stamdataValues?.skadesdato, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
   );
 
   const handleOffentligLoenTypeChange = React.useCallback(
@@ -1192,10 +1160,10 @@ const LoenindkomstTab = React.memo(({
     (id: string) =>
       (event: CommitEvent<Ansaettelsesforhold['saerligFraDatoRegulering']>) => {
         const nextSaerligFraDatoRegulering = event.target.value;
-        updateAnsaettelsesforhold(id, (prev) => syncManualBaseRowSatser(applyAutoSatsFields({
-          ...prev,
-          saerligFraDatoRegulering: nextSaerligFraDatoRegulering,
-        }, stamdataValues?.skadesdato)));
+        updateAnsaettelsesforhold(id, (prev) => {
+          const next = { ...prev, saerligFraDatoRegulering: nextSaerligFraDatoRegulering };
+          return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
+        });
 
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
         if (!ansaettelsesforhold) return;
@@ -1203,7 +1171,7 @@ const LoenindkomstTab = React.memo(({
         const updatedAf = { ...ansaettelsesforhold, saerligFraDatoRegulering: nextSaerligFraDatoRegulering };
         setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
       },
-    [setSatsErrorsForAnsaettelsesforhold, stamdataValues?.skadesdato, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
   );
 
   const handleAnciennitetstillaegDatoCommit = React.useCallback(
@@ -1275,15 +1243,12 @@ const LoenindkomstTab = React.memo(({
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find(af => af.id === id);
         if (!ansaettelsesforhold) return;
 
-        const reguleringsDato = getReguleringsDatoForAnsaettelsesforhold(ansaettelsesforhold);
-
-        const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
+        const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(ansaettelsesforhold);
         const errorMsg = validateSats(
-          ansaettelsesforhold.overenskomstId,
+          ansaettelsesforhold,
           field,
           event.target.value,
-          reguleringsDato,
-          applyAlmindeligLoenPaaShDageRegel
+          anvendtReguleringsdato
         );
 
         // Opdater fejl-state
@@ -1301,7 +1266,7 @@ const LoenindkomstTab = React.memo(({
           }
         });
       },
-    [getReguleringsDatoForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold, validateSats]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold, validateSats]
   );
 
   const handleLoenperiodeChange = React.useCallback(
@@ -1346,10 +1311,10 @@ const LoenindkomstTab = React.memo(({
       (event: StyledDropdownChangeEvent<string>) => {
         const parsed = loenPaaHelligdageSchema.safeParse(event.target.value);
         if (!parsed.success) return;
-        updateAnsaettelsesforhold(id, (prev) => syncManualBaseRowSatser(applyAutoSatsFields({
-          ...prev,
-          loenPaaHelligdage: parsed.data,
-        }, stamdataValues?.skadesdato)));
+        updateAnsaettelsesforhold(id, (prev) => {
+          const next = { ...prev, loenPaaHelligdage: parsed.data };
+          return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
+        });
 
         // Revalider alle satser når "Løn på helligdage" ændres.
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
@@ -1358,7 +1323,7 @@ const LoenindkomstTab = React.memo(({
         const updatedAf = { ...ansaettelsesforhold, loenPaaHelligdage: parsed.data };
         setSatsErrorsForAnsaettelsesforhold(id, updatedAf);
       },
-    [setSatsErrorsForAnsaettelsesforhold, stamdataValues?.skadesdato, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, setSatsErrorsForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
   );
 
   const handleTableDataChange = React.useCallback(
@@ -1635,7 +1600,7 @@ const LoenindkomstTab = React.memo(({
         const rateSegments = fra && til
           ? buildLoenindkomstRateSegments({
             ansaettelsesforhold: af,
-            skadesdato: stamdataValues?.skadesdato,
+            skadedato: stamdataValues?.skadedato,
             fra,
             til,
           })
@@ -1657,7 +1622,7 @@ const LoenindkomstTab = React.memo(({
       });
     }
     return map;
-  }, [loenindkomstAnsaettelsesforhold, stamdataValues?.skadesdato]);
+  }, [loenindkomstAnsaettelsesforhold, stamdataValues?.skadedato]);
 
   // Callback-maps afhænger kun af id-listen, ikke af tabeldata.
   // Ids ændrer sig kun ved tilføj/slet af ansaettelsesforhold — ikke ved normale dataredits.
@@ -1740,14 +1705,17 @@ const LoenindkomstTab = React.memo(({
         const showSidsteArbejdsdag = showMedlemOpsagt && af.ansaettelsesforholdOphoert;
         const isLastAnsaettelsesforhold = index === totalAnsaettelsesforhold - 1;
         const displayNumber = index + 1;
-        const saerligFraDatoReguleringLabel = getSaerligFraDatoReguleringLabel(af.saerligFraDatoRegulering);
-        const satserHeading = af.ansatPaaSkadestidspunktet
-          ? saerligFraDatoReguleringLabel
-            ? `Satser per ${saerligFraDatoReguleringLabel}`
-            : 'Satser på skadestidspunktet'
-          : 'Satser';
+        const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
+        const satserHeading = resolveSatserHeading({
+          anvendtReguleringsdato,
+          skadedato: stamdataValues?.skadedato,
+          skadestype: stamdataValues?.skadestype,
+          beregningsperiodeTil: beregnesUdFra === 'Beregningsperiode' ? periodeTilBeregningTil : undefined,
+        });
         const loenudviklingBasis = af.loenudviklingBeregningsgrundlag;
-        const overenskomstSatserLocked = hasLockedOverenskomstSatser(af);
+        const fritvalgLocked = isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, 'fritvalgPct');
+        const shSoLocked = isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, 'shSoPct');
+        const pensionLocked = isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, 'pensionPct');
         const erOffentligOverenskomst = Boolean(
           af.overenskomstId && isOffentligOverenskomstId(af.overenskomstId)
         );
@@ -1828,7 +1796,7 @@ const LoenindkomstTab = React.memo(({
           DAY_COUNT_MAX
         );
         const showSharedSfggBefore2015 = Boolean(
-          stamdataValues?.skadesdato && stamdataValues.skadesdato < '2015-01-01'
+          stamdataValues?.skadedato && stamdataValues.skadedato < '2015-01-01'
         );
 
         return (
@@ -2040,15 +2008,17 @@ const LoenindkomstTab = React.memo(({
               </Box>
             </Box>
 
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Evt. særlig fra-dato for regulering</Typography>
-              <Box className="row--label-right-hover__content">
-                <StyledDateField
-                  value={af.saerligFraDatoRegulering}
-                  onCommit={handleSaerligFraDatoReguleringCommit(af.id)}
-                />
+            {beregnesUdFra === 'Beregningsperiode' && (
+              <Box className="row--label-right-hover">
+                <Typography className="row--text">Evt. særlig fra-dato for regulering</Typography>
+                <Box className="row--label-right-hover__content">
+                  <StyledDateField
+                    value={af.saerligFraDatoRegulering}
+                    onCommit={handleSaerligFraDatoReguleringCommit(af.id)}
+                  />
+                </Box>
               </Box>
-            </Box>
+            )}
 
             <Typography className="row--subheading">{satserHeading}</Typography>
 
@@ -2082,7 +2052,7 @@ const LoenindkomstTab = React.memo(({
                     onCommit={handleValidatedSatsCommit(af.id, 'fritvalgPct')}
                     placeholder="0 %"
                     useDefaultPercentRange
-                    disabled={overenskomstSatserLocked}
+                    disabled={fritvalgLocked}
                     error={Boolean(satsErrors[af.id]?.fritvalgPct)}
                     helperText={satsErrors[af.id]?.fritvalgPct}
                     sx={{ width: '100px' }}
@@ -2097,7 +2067,7 @@ const LoenindkomstTab = React.memo(({
                     onCommit={handleValidatedSatsCommit(af.id, 'shSoPct')}
                     placeholder="0 %"
                     useDefaultPercentRange
-                    disabled={overenskomstSatserLocked}
+                    disabled={shSoLocked}
                     error={Boolean(satsErrors[af.id]?.shSoPct)}
                     helperText={satsErrors[af.id]?.shSoPct}
                     sx={{ width: '100px' }}
@@ -2139,7 +2109,7 @@ const LoenindkomstTab = React.memo(({
                     onCommit={handleValidatedSatsCommit(af.id, 'pensionPct')}
                     placeholder="0 %"
                     useDefaultPercentRange
-                    disabled={overenskomstSatserLocked}
+                    disabled={pensionLocked}
                     error={Boolean(satsErrors[af.id]?.pensionPct)}
                     helperText={satsErrors[af.id]?.pensionPct}
                     sx={{ width: '100px' }}
@@ -2336,12 +2306,19 @@ const LoenindkomstTab = React.memo(({
             {loenudviklingBasis === 'Manuelt angivet' ? (
               <Box sx={{ mt: 1 }}>
                 {(() => {
+                  const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
                   const baseDateTooltipText =
-                    af.saerligFraDatoRegulering === undefined &&
-                    stamdataValues?.skadesdato !== undefined &&
-                    loenudviklingBaseDate.display !== ''
-                      ? (stamdataValues.skadestype === 'Erhvervssygdom' ? 'Anmeldedato' : 'Skadesdato')
-                      : undefined;
+                    loenudviklingBaseDate.display === '' || !anvendtReguleringsdato
+                      ? undefined
+                      : anvendtReguleringsdato === stamdataValues?.skadedato
+                        ? (stamdataValues?.skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato')
+                        : (
+                            beregnesUdFra === 'Beregningsperiode'
+                            && anvendtReguleringsdato === periodeTilBeregningTil
+                            && af.saerligFraDatoRegulering === undefined
+                          )
+                          ? 'Beregningsperiode slutdato'
+                          : undefined;
                   return (
                     <>
                       <Box className="row--label-right-hover">
@@ -2457,26 +2434,26 @@ const LoenindkomstTab = React.memo(({
                 <Typography className="row--subheading">Anciennitetstillæg</Typography>
 
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadesdatoen</Typography>
+                  <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadedatoen</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledToggleSwitch
-                      checked={af.harAnciennitetstillaegEfterSkadesdatoen}
-                      onCommit={handleToggleChange(af.id, 'harAnciennitetstillaegEfterSkadesdatoen')}
+                      checked={af.harAnciennitetstillaegEfterSkadedatoen}
+                      onCommit={handleToggleChange(af.id, 'harAnciennitetstillaegEfterSkadedatoen')}
                     />
                   </Box>
                 </Box>
 
-                {af.harAnciennitetstillaegEfterSkadesdatoen ? (
+                {af.harAnciennitetstillaegEfterSkadedatoen ? (
                   <>
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledDateField
                           value={af.anciennitetstillaegDato}
-                          minDate={stamdataValues?.skadesdato}
+                          minDate={stamdataValues?.skadedato}
                           specialRangeErrors={{
-                            minBoundKind: stamdataValues?.skadesdato ? 'skadesdato' : undefined,
-                            minBoundReferenceISO: stamdataValues?.skadesdato,
+                            minBoundKind: stamdataValues?.skadedato ? 'skadedato' : undefined,
+                            minBoundReferenceISO: stamdataValues?.skadedato,
                           }}
                           onCommit={handleAnciennitetstillaegDatoCommit(af.id)}
                         />
@@ -2521,9 +2498,29 @@ const LoenindkomstTab = React.memo(({
                 {showSharedSfggBefore2015 ? (
                   <Box className="row--label-right-hover">
                     <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
-                      <Typography className="row--text">
-                        Bemærk, at da skaden er før 01-01-2015, er det afgørende for beregningen af sygeferiegodtgørelse, at samtlige TAF-perioder er indtastet ovenfor.
-                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap' }}>
+                        <Typography className="row--text">
+                          Bemærk, at da skaden er før 01-01-2015, er det afgørende, at samtlige TAF-perioder siden skaden er indtastet på
+                        </Typography>
+                        <Typography className="row--text">&nbsp;</Typography>
+                        <Typography
+                          className="row--text icon-text-link"
+                          component="button"
+                          type="button"
+                          onClick={onNavigateToTabtArbejdsfortjeneste}
+                          sx={{
+                            cursor: 'pointer',
+                            border: 0,
+                            background: 'transparent',
+                            p: 0,
+                            m: 0,
+                            font: 'inherit',
+                          }}
+                        >
+                          fanen med EO Oplysninger
+                        </Typography>
+                        <Typography className="row--text">.</Typography>
+                      </Box>
                     </Box>
                   </Box>
                 ) : null}
@@ -2696,11 +2693,12 @@ const LoenindkomstTab = React.memo(({
                           width={100}
                           minValue={0}
                           maxValue={sfggReferenceperiodeFravaersdageMax ?? DAY_COUNT_MAX}
-                          value={sfggRow?.sfggReferenceperiodeFravaersdageUdenLoen ?? 0}
+                          value={sfggRow?.sfggReferenceperiodeFravaersdageUdenLoen}
+                          placeholder="0"
                           onCommit={(event) => {
                             updateSfggAnsaettelsesforhold(af.id, (current) => ({
                               ...current,
-                              sfggReferenceperiodeFravaersdageUdenLoen: event.target.value ?? 0,
+                              sfggReferenceperiodeFravaersdageUdenLoen: event.target.value,
                             }));
                           }}
                         />

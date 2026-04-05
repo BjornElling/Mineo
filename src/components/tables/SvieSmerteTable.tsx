@@ -4,7 +4,7 @@ import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { useTableSort } from './useTableSort';
-import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
+import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
 import type { SvieSmertePeriodeRow, Tilstand } from '../../schemas/formSchemas';
 import { tilstandEnum } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
@@ -23,7 +23,7 @@ export type SvieSmerteTableProps = Readonly<{
   committedById: ReadonlyMap<string, SvieSmertePeriodeRow>;
   derivedById: Record<string, SvieSmerteDerived>;
   overlappingIds: ReadonlySet<string>;
-  skadesdatoISO: ISODateString | undefined;
+  skadedatoISO: ISODateString | undefined;
   menAfgoerelseDato: ISODateString | undefined;
   erErhvervssygdom: boolean;
   verserendeKlageMen: boolean;
@@ -47,7 +47,7 @@ const getRowId = (row: SvieSmerteDraftRow) => row.id;
 const isRowEmpty = (row: SvieSmerteDraftRow) => row.fra.trim() === '' && row.til.trim() === '';
 
 const SvieSmerteTable = React.memo(
-  ({ rows, committedById, derivedById, overlappingIds, skadesdatoISO, menAfgoerelseDato, erErhvervssygdom, verserendeKlageMen, onFieldChange, onRowBlur, saveOrderPath, onRowsReorder }: SvieSmerteTableProps) => {
+  ({ rows, committedById, derivedById, overlappingIds, skadedatoISO, menAfgoerelseDato, erErhvervssygdom, verserendeKlageMen, onFieldChange, onRowBlur, saveOrderPath, onRowsReorder }: SvieSmerteTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'fra', getSortValue: (row: SvieSmerteDraftRow) => committedById.get(row.id)?.fra },
       { colId: 'til', getSortValue: (row: SvieSmerteDraftRow) => committedById.get(row.id)?.til },
@@ -104,14 +104,14 @@ const SvieSmerteTable = React.memo(
             const fraAfterVarigeMen = shouldApplyMenCutoff && fraISO !== undefined && fraISO >= menAfgoerelseDato;
             const tilAfterVarigeMen = shouldApplyMenCutoff && tilISO !== undefined && tilISO >= menAfgoerelseDato;
 
-            const skadesdatoMinRule = computeSkadesdatoMinRule({
-              skadesdatoISO,
+            const skadedatoMinRule = computeSkadedatoMinRule({
+              skadedatoISO,
               erErhvervssygdom,
               fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
             });
 
             const bounds = computeRowDateBounds({
-              skadesdatoMinDate: skadesdatoMinRule.minDate,
+              skadedatoMinDate: skadedatoMinRule.minDate,
               rowFra: fraISO,
               rowTil: tilISO,
               fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
@@ -135,14 +135,14 @@ const SvieSmerteTable = React.memo(
             // Generer konkrete årsager til afgrænsning
             const fraNoValidRangeCause = (() => {
               const parts: string[] = [];
-              if (skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+              if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
               if (tilISO) parts.push('til-dato i samme række');
               return parts.length > 0 ? parts.join(', ') : undefined;
             })();
 
             const tilNoValidRangeCause = (() => {
               const parts: string[] = [];
-              if (!fraISO && skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+              if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
               if (fraISO) parts.push('fra-dato i samme række');
               parts.push('dags dato');
               if (!verserendeKlageMen && menAfgoerelseDato) parts.push('dato for ménafgørelse');
@@ -182,8 +182,8 @@ const SvieSmerteTable = React.memo(
                     maxDate={fraMaxDate}
                     specialRangeErrors={{
                       fraTilRole: 'fra',
-                      minBoundKind: skadesdatoMinRule.minBoundKind,
-                      minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                      minBoundKind: skadedatoMinRule.minBoundKind,
+                      minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                     }}
                     noValidRangeCause={fraNoValidRangeCause}
                     externalErrorMessage={fraErrorMessage}
@@ -202,8 +202,8 @@ const SvieSmerteTable = React.memo(
                     specialRangeErrors={{
                       fraTilRole: 'til',
                       minBoundKind:
-                        skadesdatoMinRule.minBoundKind && tilMinDate === absoluteMinDate ? skadesdatoMinRule.minBoundKind : undefined,
-                      minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                        skadedatoMinRule.minBoundKind && tilMinDate === absoluteMinDate ? skadedatoMinRule.minBoundKind : undefined,
+                      minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                     }}
                     noValidRangeCause={tilNoValidRangeCause}
                     externalErrorMessage={tilErrorMessage}

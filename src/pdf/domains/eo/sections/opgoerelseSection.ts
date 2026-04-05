@@ -1,7 +1,8 @@
 import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES, type PdfFontFamily, type PdfFontStyle } from '../../../infrastructure/pdfConfig';
 import { ensureNonBreakingKr } from '../../../shared/pdfTextUtils';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
-import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { resolveAnvendtReguleringsdato } from '../../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
 import {
   getDayAfterIso,
 } from '../../../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
@@ -62,10 +63,10 @@ type OpgorelseSectionContext = Readonly<{
   formatMaanederTrimmed: (value: number) => string;
   isSingularCount: (value: number) => boolean;
   parseOptionalIsoDate: (value: string | undefined) => ISODateString | undefined;
-  resolveLoenSkadesdatoText: (params: {
+  resolveLoenSkadedatoText: (params: {
     subject: 'lønnen';
-    skadesdato: ISODateString | undefined;
-    saerligFraDatoRegulering: ISODateString | undefined;
+    anvendtReguleringsdato: ISODateString | undefined;
+    skadedato: ISODateString | undefined;
   }) => string;
   formatDateShort: (dateIso: ISODateString | undefined) => string;
   formatDateLong: (isoDate: ISODateString | undefined) => string;
@@ -162,7 +163,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     formatMaanederTrimmed,
     isSingularCount,
     parseOptionalIsoDate,
-    resolveLoenSkadesdatoText,
+    resolveLoenSkadedatoText,
     formatDateShort,
     formatDateLong,
     formatPercentDelta,
@@ -600,36 +601,26 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     writeBilagReferenceLinje(bilag.beregningsgrundlagTaf);
 
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
-    const saerligFraDatoLoenudvikling = (() => {
+    // Brug den aktive lønudviklings-ansættelse til at resolve kanonisk reguleringsdato.
+    // `resolveAnvendtReguleringsdato` er den kanoniske sandhed — ingen lokal fallback-logik.
+    const aktivLoenudviklingAf = (() => {
       const ansaettelser = resolveLoenudviklingKilde(eoValues);
-      const active = ansaettelser.filter(
+      return ansaettelser.find(
         (af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen'
-      );
-      if (active.length === 0) return undefined;
-      return parseOptionalIsoDate(active[0].saerligFraDatoRegulering);
+      ) ?? ansaettelser[0];
     })();
-    const skadesdatoIso = parseOptionalIsoDate(stamdataValues.skadesdato);
-    const loenSkadesdatoText = resolveLoenSkadesdatoText({
+    const skadedatoIso = parseOptionalIsoDate(stamdataValues.skadedato);
+    const anvendtReguleringsdatoForOpgoerelse = aktivLoenudviklingAf
+      ? resolveAnvendtReguleringsdato(stamdataValues, eoValues, aktivLoenudviklingAf)
+      : undefined;
+    const loenSkadedatoText = resolveLoenSkadedatoText({
       subject: 'lønnen',
-      skadesdato: skadesdatoIso,
-      saerligFraDatoRegulering: saerligFraDatoLoenudvikling,
+      anvendtReguleringsdato: anvendtReguleringsdatoForOpgoerelse,
+      skadedato: skadedatoIso,
     });
-    const angivetLoenOpreguleresFraDato = getAngivetLoenOpreguleresFraDato(eoValues);
-    const angivetLoenDatoBeskrivelse = (() => {
-      if (
-        (eoValues.beregnesUdFra !== 'Angivet månedsløn' && eoValues.beregnesUdFra !== 'Angivet dagsløn') ||
-        !angivetLoenOpreguleresFraDato
-      ) {
-        return null;
-      }
-      const datoDisplay = formatDateLong(angivetLoenOpreguleresFraDato);
-      if (!datoDisplay) return null;
-      return `lønnen opgjort den ${datoDisplay}`;
-    })();
-    const loenReferenceBeskrivelse = angivetLoenDatoBeskrivelse ?? loenSkadesdatoText;
     const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = loenudvikling?.loenudviklingLabel === 'Ingen'
-      ? `Opgøres på baggrund af ${loenReferenceBeskrivelse}.`
-      : `Beregnes som ${loenReferenceBeskrivelse} tillagt efterfølgende lønstigninger.`;
+      ? `Opgøres på baggrund af ${loenSkadedatoText}.`
+      : `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger.`;
     renderSubheaderWithWrappedText(
       'Indkomst, hvis skaden ikke var indtrådt',
       indkomstHvisSkadeIkkeIndtraadtBeskrivelse

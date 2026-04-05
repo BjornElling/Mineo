@@ -25,14 +25,14 @@ describe('resolveLoenudviklingKilde', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Angivet månedsløn';
     values.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
-    values.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadesdatoen = true;
+    values.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadedatoen = true;
     values.eoAngivetLoenLoenudvikling.anciennitetstillaegDato = toISODateString('2024-01-15');
 
     const result = resolveLoenudviklingKilde(values);
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(EO_ANGIVET_LOEN_ID);
     expect(result[0].loenPaaHelligdage).toBe(LOEN_PAA_HELLIGDAGE.ALMINDELIG);
-    expect(result[0].harAnciennitetstillaegEfterSkadesdatoen).toBe(true);
+    expect(result[0].harAnciennitetstillaegEfterSkadedatoen).toBe(true);
     expect(result[0].anciennitetstillaegDato).toBe(toISODateString('2024-01-15'));
     expect(result[0].anciennitetstillaegSatsAngivesPer).toBe('Måned');
   });
@@ -95,7 +95,7 @@ describe('resolveLoenudviklingKilde', () => {
     const beregningsperiodeValues = createErstatningsopgoerelseInitialValues();
     beregningsperiodeValues.beregnesUdFra = 'Beregningsperiode';
     beregningsperiodeValues.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
-    beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].harAnciennitetstillaegEfterSkadesdatoen = true;
+    beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].harAnciennitetstillaegEfterSkadedatoen = true;
     beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].anciennitetstillaegDato = anciennitetDato;
     beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].anciennitetstillaegSatsAngivesPer = 'Måned';
     beregningsperiodeValues.loenindkomstAnsaettelsesforhold[0].anciennitetstillaegSats = anciennitetSats;
@@ -103,15 +103,15 @@ describe('resolveLoenudviklingKilde', () => {
     const angivetValues = createErstatningsopgoerelseInitialValues();
     angivetValues.beregnesUdFra = 'Angivet månedsløn';
     angivetValues.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
-    angivetValues.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadesdatoen = true;
+    angivetValues.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadedatoen = true;
     angivetValues.eoAngivetLoenLoenudvikling.anciennitetstillaegDato = anciennitetDato;
     angivetValues.eoAngivetLoenLoenudvikling.anciennitetstillaegSats = anciennitetSats;
 
     const beregningsperiodeSource = resolveLoenudviklingKilde(beregningsperiodeValues)[0];
     const angivetSource = resolveLoenudviklingKilde(angivetValues)[0];
 
-    expect(angivetSource.harAnciennitetstillaegEfterSkadesdatoen)
-      .toBe(beregningsperiodeSource.harAnciennitetstillaegEfterSkadesdatoen);
+    expect(angivetSource.harAnciennitetstillaegEfterSkadedatoen)
+      .toBe(beregningsperiodeSource.harAnciennitetstillaegEfterSkadedatoen);
     expect(angivetSource.anciennitetstillaegDato).toBe(beregningsperiodeSource.anciennitetstillaegDato);
     expect(angivetSource.anciennitetstillaegSats).toEqual(beregningsperiodeSource.anciennitetstillaegSats);
     expect(angivetSource.anciennitetstillaegSatsAngivesPer).toBe('Måned');

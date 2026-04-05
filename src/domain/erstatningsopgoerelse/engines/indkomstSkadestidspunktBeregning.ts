@@ -25,7 +25,7 @@ export const buildIndkomstSkadestidspunkt = (
 ): IndkomstSkadestidspunktModel | null => {
   const beregnesUdFra = values.beregnesUdFra;
   const loenBaseretPaa = getAngivetLoenBaseretPaa(values)?.trim() ?? '';
-  const skadesdato = isISODateString(stamdataValues.skadesdato) ? stamdataValues.skadesdato : null;
+  const skadedato = isISODateString(stamdataValues.skadedato) ? stamdataValues.skadedato : null;
 
   const periodeTilBeregningFra = values.periodeTilBeregningFra;
   const periodeTilBeregningTil = values.periodeTilBeregningTil;
@@ -60,7 +60,7 @@ export const buildIndkomstSkadestidspunkt = (
     }
 
     if (periodeTilBeregning) {
-      const incomeForBeregningsperiode = buildIncomeForRanges(values, [periodeTilBeregning], undefined, skadesdato ?? undefined);
+      const incomeForBeregningsperiode = buildIncomeForRanges(values, [periodeTilBeregning], undefined, skadedato ?? undefined);
       const sums = { ferieberet: 0, fpFvShSo: 0, pension: 0, atp: 0, samlet: 0 };
 
       for (const entry of incomeForBeregningsperiode.employers) {
@@ -265,7 +265,7 @@ export const buildIndkomstSkadestidspunkt = (
     beregningsenhed: tafBeregningsenhed,
     beregnesUdFra,
     loenBaseretPaa: loenBaseretPaa !== '' ? loenBaseretPaa : null,
-    skadesdato,
+    skadedato,
     periodeTilBeregning,
     ansaettelserNavne,
     arbejdssteder,

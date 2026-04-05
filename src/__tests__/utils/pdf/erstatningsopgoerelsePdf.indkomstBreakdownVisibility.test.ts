@@ -155,7 +155,7 @@ const buildBaseInput = () => {
   const stamdata = {
     ...structuredClone(STAMDATA_INITIAL_VALUES),
     skadestype: 'Arbejdsulykke' as const,
-    skadesdato: iso('2024-01-01'),
+    skadedato: iso('2024-01-01'),
   };
 
   const eo = createErstatningsopgoerelseInitialValues();
@@ -328,7 +328,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser ikke ansættelsesforhold-subtotal når et ansættelsesforhold kun har én lønudviklingslinje', () => {
     const { stamdata, eo } = buildBaseInput();
-    stamdata.skadesdato = iso('2023-07-01');
+    stamdata.skadedato = iso('2023-07-01');
     eo.vedroererPeriodeFra = iso('2023-07-01');
     eo.vedroererPeriodeTil = iso('2025-12-21');
     eo.periodeTilBeregningFra = iso('2023-07-01');
@@ -418,7 +418,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser sygeferiegodtgørelse som særskilt indtægt og fradrag i beregnet TAF-krav', () => {
     const { stamdata, eo } = buildBaseInput();
-    stamdata.skadesdato = iso('2025-01-06');
+    stamdata.skadedato = iso('2025-01-06');
     eo.vedroererPeriodeFra = iso('2025-01-06');
     eo.vedroererPeriodeTil = iso('2025-01-10');
     eo.tafPerioder = [{ id: 'taf-1', fra: iso('2025-01-06'), til: iso('2025-01-10'), loseFeriedage: undefined }];
@@ -670,7 +670,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('placerer SFGG-ophørslinjen direkte under linjen om TAF-perioden i pdf', () => {
     const { stamdata, eo } = buildBaseInput();
-    stamdata.skadesdato = iso('2014-01-01');
+    stamdata.skadedato = iso('2014-01-01');
     eo.beregnesUdFra = 'Angivet dagsløn';
     eo.dagsloenenUdgoer = asAmountValue(1500);
     eo.eoAngivetLoenLoenudvikling.loenPaaHelligdage = 'Almindelig løn';

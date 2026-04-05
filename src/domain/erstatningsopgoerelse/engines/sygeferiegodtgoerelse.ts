@@ -869,10 +869,10 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   const { values, stamdata, tafRanges } = args;
   const opgoerelsesdato = values.opgørelseLavetDen ?? TODAY;
   if (tafRanges.length === 0) return EMPTY_RESULT;
-  const skadesdato = stamdata.skadesdato;
+  const skadedato = stamdata.skadedato;
   const tafDateSetIncludingFirstExcluded = buildDateSetFromRanges(tafRanges);
   const firstExcludedDate =
-    skadesdato !== undefined && skadesdato >= '2015-01-01' && erDetteFoersteErstatningsopgoerelse(values.eoNummer)
+    skadedato !== undefined && skadedato >= '2015-01-01' && erDetteFoersteErstatningsopgoerelse(values.eoNummer)
       ? sortIsoDates(tafDateSetIncludingFirstExcluded)[0] ?? null
       : null;
   const tafDateSet = new Set<ISODateString>(tafDateSetIncludingFirstExcluded);
@@ -894,7 +894,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     }
   }
   const capComputation =
-    skadesdato !== undefined && skadesdato < '2015-01-01'
+    skadedato !== undefined && skadedato < '2015-01-01'
       ? buildCapComputation(
         tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
           ? sortIsoDates(tafDateSetIncludingFirstExcluded)

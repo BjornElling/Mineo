@@ -72,7 +72,7 @@ export interface UsePersistedFormReturn<T> {
  *   'stamdata',
  *   {
  *     journalnr: '',
- *     skadesdato: undefined,
+ *     skadedato: undefined,
  *   }
  * );
  * ```

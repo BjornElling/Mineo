@@ -175,7 +175,7 @@ describe('eoCanonicalOutput parity matrix', () => {
     const stamdata = {
       ...STAMDATA_INITIAL_VALUES,
       skadestype: 'Arbejdsulykke' as const,
-      skadesdato: iso('2024-01-01'),
+      skadedato: iso('2024-01-01'),
     };
 
     // dagsDatoISO er kun PDF-metadata; canonical output er dato-uafhængig.

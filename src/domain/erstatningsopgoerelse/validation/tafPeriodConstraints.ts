@@ -17,8 +17,8 @@ export type TafConstraintSource = Readonly<{
   midlertidigEETVirkningsdato?: ISODateString | undefined;
   midlertidigEETAfgoerelseDato?: ISODateString | undefined;
   verserendeKlageEet?: 'Ja' | 'Nej' | undefined;
-  /** Skadesdato fra stamdata — bruges til at afgøre om midlertidig EET afgrænser TAF. */
-  skadesdatoISO?: ISODateString | undefined;
+  /** Skadedato fra stamdata — bruges til at afgøre om midlertidig EET afgrænser TAF. */
+  skadedatoISO?: ISODateString | undefined;
 }>;
 
 export type TafConstraintBounds = Readonly<{
@@ -45,7 +45,7 @@ const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | und
  *
  * Betingelser:
  * - `midlertidigtEetAfgorelse = 'Ja'`
- * - Skadesdato er angivet og ligger **før** TAF_MIDLERTIDIG_EET_SKAERINGSDATO (2011-06-16)
+ * - Skadedato er angivet og ligger **før** TAF_MIDLERTIDIG_EET_SKAERINGSDATO (2011-06-16)
  *
  * Checker IKKE `verserendeKlageEet` — det er kalderens ansvar at udelade resultatet ved aktiv klage.
  *
@@ -53,7 +53,7 @@ const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | und
  */
 export const resolveMidlertidigEetDatoHvisAktiv = (values: TafConstraintSource): ISODateString | undefined => {
   if (values.midlertidigtEetAfgorelse !== 'Ja') return undefined;
-  if (!values.skadesdatoISO || values.skadesdatoISO >= TAF_MIDLERTIDIG_EET_SKAERINGSDATO) return undefined;
+  if (!values.skadedatoISO || values.skadedatoISO >= TAF_MIDLERTIDIG_EET_SKAERINGSDATO) return undefined;
   return values.midlertidigEETVirkningsdato ?? values.midlertidigEETAfgoerelseDato;
 };
 
@@ -66,29 +66,35 @@ export const buildTafCutoffErrorMessage = (args: Readonly<{
   const { value, differencekravDato, endeligEETDato, midlertidigEETDato } = args;
   if (!value) return undefined;
 
-  const parts: string[] = [];
+  // Find den afgørende (mindste) cutoff-dato blandt dem der faktisk overskrides.
+  // Kun kilden/kilderne der svarer til denne dato vises — ikke alle der overskrides.
+  const candidates: Array<{ dato: ISODateString; message: string }> = [];
 
   if (differencekravDato && value >= differencekravDato) {
     const dateText = isoToDanish(differencekravDato) ?? differencekravDato;
-    parts.push(`Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort (${dateText})`);
+    candidates.push({ dato: differencekravDato, message: `Der er angivet tabt arbejdsfortjeneste, efter differencekrav er opgjort (${dateText})` });
   }
 
   if (endeligEETDato && value >= endeligEETDato) {
     const dateText = isoToDanish(endeligEETDato) ?? endeligEETDato;
-    parts.push(`Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (${dateText})`);
+    candidates.push({ dato: endeligEETDato, message: `Der er angivet tabt arbejdsfortjeneste efter afgørelse om endeligt erhvervsevnetab (${dateText})` });
   }
 
   if (midlertidigEETDato && value >= midlertidigEETDato) {
     const dateText = isoToDanish(midlertidigEETDato) ?? midlertidigEETDato;
-    parts.push(`Der er angivet tabt arbejdsfortjeneste efter afgørelse om midlertidigt erhvervsevnetab (${dateText})`);
+    candidates.push({ dato: midlertidigEETDato, message: `Der er angivet tabt arbejdsfortjeneste efter afgørelse om midlertidigt erhvervsevnetab (${dateText})` });
   }
 
-  return parts.length > 0 ? parts.join('; ') : undefined;
+  if (candidates.length === 0) return undefined;
+
+  const minDato = candidates.reduce((min, c) => c.dato < min ? c.dato : min, candidates[0].dato);
+  const parts = candidates.filter((c) => c.dato === minDato).map((c) => c.message);
+  return parts.join('; ');
 };
 
 /**
  * Fejlgivende øvre grænse for TAF-perioder: strengeste af differencekravDato−1,
- * endelig EET-virkningsdato−1 og (ved skadesdato < 2011-06-16) midlertidig EET-virkningsdato−1
+ * endelig EET-virkningsdato−1 og (ved skadedato < 2011-06-16) midlertidig EET-virkningsdato−1
  * (jf. eo-snapshot-contract.md §2.2).
  *
  * Korrekt adfærd: til-dato >= disse grænser er fejlgivende bounds — feltfejl (rød kant +

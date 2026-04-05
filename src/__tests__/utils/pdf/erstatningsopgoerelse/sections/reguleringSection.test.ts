@@ -47,11 +47,11 @@ const makeContext = (
       safeAddWrappedText,
       writeLabelValueLine,
       resolveValgtReguleringDisplay: vi.fn(() => 'Ingen'),
-      resolveReguleringsdato: vi.fn(() => undefined),
+      resolveAnvendtReguleringsdato: vi.fn(() => undefined),
       parseOptionalIsoDate: vi.fn((v: string | undefined) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? iso(v) : undefined)),
-      resolveLoenSkadesdatoText: vi.fn(
-        ({ skadesdato }: { subject: 'lønnen'; skadesdato: unknown; saerligFraDatoRegulering: unknown }) =>
-          skadesdato ? `lønnen på skadestidspunktet (${String(skadesdato)})` : 'lønnen'
+      resolveLoenSkadedatoText: vi.fn(
+        ({ skadedato }: { subject: 'lønnen'; anvendtReguleringsdato: unknown; skadedato: unknown }) =>
+          skadedato ? `lønnen på skadestidspunktet (${String(skadedato)})` : 'lønnen'
       ),
       resolveTafDateBounds: vi.fn(() => null),
       buildReguleringsvaerdierTableData: vi.fn(() => null),
@@ -178,8 +178,8 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
   });
 });
 
-describe('renderReguleringSection – loenSkadesdatoText input', () => {
-  it('videresender rå saerligFraDatoRegulering til resolveLoenSkadesdatoText', () => {
+describe('renderReguleringSection – loenSkadedatoText input', () => {
+  it('videresender anvendtReguleringsdato fra resolveAnvendtReguleringsdato til resolveLoenSkadedatoText', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.loenindkomstAnsaettelsesforhold = [
@@ -192,12 +192,12 @@ describe('renderReguleringSection – loenSkadesdatoText input', () => {
       },
     ];
     const { ctx } = makeContext(eoValues);
-    ctx.resolveReguleringsdato = vi.fn(() => iso('2024-01-01'));
+    ctx.resolveAnvendtReguleringsdato = vi.fn(() => iso('2024-01-01'));
 
     renderReguleringSection(ctx);
 
-    expect(ctx.resolveLoenSkadesdatoText).toHaveBeenCalledWith(expect.objectContaining({
-      saerligFraDatoRegulering: undefined,
+    expect(ctx.resolveLoenSkadedatoText).toHaveBeenCalledWith(expect.objectContaining({
+      anvendtReguleringsdato: iso('2024-01-01'),
     }));
   });
 });

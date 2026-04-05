@@ -44,7 +44,7 @@ describe('eoDebug canonical parity', () => {
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
       skadestype: 'Arbejdsulykke' as const,
-      skadesdato: iso('2024-01-01'),
+      skadedato: iso('2024-01-01'),
     };
     const canonical = computeEoSnapshot({ revision: 'test', stamdataValues, eoValues }).data!.canonicalOutput;
 
@@ -87,7 +87,7 @@ describe('eoDebug canonical parity', () => {
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
       skadestype: 'Arbejdsulykke' as const,
-      skadesdato: iso('2024-01-01'),
+      skadedato: iso('2024-01-01'),
     };
     const canonical = computeEoSnapshot({ revision: 'test', stamdataValues, eoValues }).data!.canonicalOutput;
 
@@ -124,7 +124,7 @@ describe('eoDebug canonical parity', () => {
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
       skadestype: 'Arbejdsulykke' as const,
-      skadesdato: iso('2019-04-01'),
+      skadedato: iso('2019-04-01'),
     };
 
     const rows = buildEODebugSvieSmerteRows(

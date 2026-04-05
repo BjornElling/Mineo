@@ -206,7 +206,7 @@ describe('eoSnapshotToDebugView', () => {
       sammentaellingRows: [],
       stamdataValues: {
         journalnr: 'J-2',
-        skadesdato: '2024-01-01',
+        skadedato: '2024-01-01',
         skadestype: 'Arbejdsulykke',
       },
       eoValues: {
@@ -235,7 +235,7 @@ describe('eoSnapshotToDebugView', () => {
         input: {
           stamdata: {
             journalnr: 'J-2',
-            skadesdato: '2024-01-01',
+            skadedato: '2024-01-01',
             skadestype: 'Arbejdsulykke',
           },
           erstatningsopgoerelse: {

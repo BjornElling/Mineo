@@ -6,16 +6,16 @@ import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
 type BuildMidlertidigtEetRowsArgs = Readonly<{
   eetValues: ErhvervsevnetabComposedValues;
-  skadesdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
 }>;
 
 export const buildMidlertidigtEetRowsFromEet = ({
   eetValues,
-  skadesdato,
+  skadedato,
 }: BuildMidlertidigtEetRowsArgs): readonly OffentligeYdelserRow[] => {
   const result = computeEetLoebendeYdelser({
     erhvervsevnetab: eetValues,
-    skadesdato,
+    skadedato,
     skadelidteFodselsdato: eetValues.skadelidteFodselsdato,
   });
 

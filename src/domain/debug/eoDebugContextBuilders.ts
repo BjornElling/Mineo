@@ -10,7 +10,7 @@ type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
  * Context for Svie/Smerte beregninger
  */
 export type SvieSmerteContext = {
-  skadesdatoISO: ISODateString | undefined;
+  skadedatoISO: ISODateString | undefined;
   erErhvervssygdom: boolean;
   menAfgoerelseDatoForTabel: ISODateString | undefined;
   verserendeKlageMen: boolean;
@@ -20,7 +20,7 @@ export type SvieSmerteContext = {
  * Context for TAF beregninger
  */
 export type TaftContext = {
-  skadesdatoISO: ISODateString | undefined;
+  skadedatoISO: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
   erErhvervssygdom: boolean;
   endeligEETBeregnetDato: ISODateString | undefined;
@@ -44,7 +44,7 @@ export const buildSvieSmerteContext = (
   const verserendeKlageMen = erstatningsopgoerelseValues.verserendeKlageMen === 'Ja';
 
   return {
-    skadesdatoISO: stamdataValues.skadesdato,
+    skadedatoISO: stamdataValues.skadedato,
     erErhvervssygdom,
     menAfgoerelseDatoForTabel,
     verserendeKlageMen,
@@ -65,12 +65,12 @@ export const buildTaftContext = (
       : undefined;
   const midlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({
     ...erstatningsopgoerelseValues,
-    skadesdatoISO: stamdataValues.skadesdato,
+    skadedatoISO: stamdataValues.skadedato,
   });
   const verserendeKlageEet = erstatningsopgoerelseValues.verserendeKlageEet === 'Ja';
 
   return {
-    skadesdatoISO: stamdataValues.skadesdato,
+    skadedatoISO: stamdataValues.skadedato,
     skadelidteFodselsdato: stamdataValues.skadelidteFodselsdato,
     erErhvervssygdom,
     endeligEETBeregnetDato,

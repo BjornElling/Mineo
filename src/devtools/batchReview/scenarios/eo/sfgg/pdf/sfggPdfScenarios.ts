@@ -46,7 +46,7 @@ const makeAnsaettelsesforhold = (
   ansatPaaSkadestidspunktet: true,
   ansaettelsesforholdOphoert: false,
   sidsteArbejdsdag: undefined,
-  harAnciennitetstillaegEfterSkadesdatoen: false,
+  harAnciennitetstillaegEfterSkadedatoen: false,
   anciennitetstillaegDato: undefined,
   anciennitetstillaegSatsAngivesPer: 'Måned',
   anciennitetstillaegSats: undefined,
@@ -165,7 +165,7 @@ const SCENARIO_01 = buildScenario(
         sagsbehandler: 'Test Testersen',
         skadelidte: 'Søren Hansen',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2023-03-01'),
+        skadedato: iso('2023-03-01'),
       },
       eoValues: eo,
     };
@@ -213,7 +213,7 @@ const SCENARIO_02 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Marianne Pedersen',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2023-04-01'),
+        skadedato: iso('2023-04-01'),
       },
       eoValues: eo,
     };
@@ -262,7 +262,7 @@ const SCENARIO_03 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Karl Mortensen',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2022-05-15'),
+        skadedato: iso('2022-05-15'),
       },
       eoValues: eo,
     };
@@ -309,7 +309,7 @@ const SCENARIO_04 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Hanne Christensen',
         skadestype: 'Erhvervssygdom',
-        skadesdato: iso('2023-07-01'),
+        skadedato: iso('2023-07-01'),
       },
       eoValues: eo,
     };
@@ -370,7 +370,7 @@ const SCENARIO_05 = buildScenario(
         sagsbehandler: 'Lotte Andersen',
         skadelidte: 'Bjarne Sørensen',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2024-02-01'),
+        skadedato: iso('2024-02-01'),
       },
       eoValues: eo,
     };
@@ -418,7 +418,7 @@ const SCENARIO_06 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Poul Eriksen',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2023-06-10'),
+        skadedato: iso('2023-06-10'),
       },
       eoValues: eo,
     };
@@ -467,7 +467,7 @@ const SCENARIO_07 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Rita Lund',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2023-06-01'),
+        skadedato: iso('2023-06-01'),
       },
       eoValues: eo,
     };
@@ -516,7 +516,7 @@ const SCENARIO_08 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Torben Nielsen',
         skadestype: 'Erhvervssygdom',
-        skadesdato: iso('2023-09-01'),
+        skadedato: iso('2023-09-01'),
       },
       eoValues: eo,
     };
@@ -564,7 +564,7 @@ const SCENARIO_09 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Grete Madsen',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2022-04-01'),
+        skadedato: iso('2022-04-01'),
       },
       eoValues: eo,
     };
@@ -613,7 +613,7 @@ const SCENARIO_10 = buildScenario(
         sagsbehandler: 'Mette Holm',
         skadelidte: 'Jakob Frederiksen',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2023-01-01'),
+        skadedato: iso('2023-01-01'),
       },
       eoValues: eo,
     };
@@ -623,7 +623,7 @@ const SCENARIO_10 = buildScenario(
 const SCENARIO_11 = buildScenario(
   'sfgg-pdf-11',
   'Ferieloven SFGG — Erhvervssygdom',
-  'Ferielov SFGG for en erhvervssygdomssag. Anmeldelsesdato og skadesdato.',
+  'Ferielov SFGG for en erhvervssygdomssag. Anmeldelsesdato og skadedato.',
   ['sfgg', 'ferielov', 'erhvervssygdom', 'alle'],
   [
     { label: 'Kilde', value: 'Ferieloven' },
@@ -661,7 +661,7 @@ const SCENARIO_11 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Svend Olsen',
         skadestype: 'Erhvervssygdom',
-        skadesdato: iso('2024-03-01'),
+        skadedato: iso('2024-03-01'),
       },
       eoValues: eo,
     };
@@ -736,7 +736,7 @@ const SCENARIO_12 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Annette Vestergaard',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2023-05-01'),
+        skadedato: iso('2023-05-01'),
       },
       eoValues: eo,
     };

@@ -37,7 +37,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
     };
 
     const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
-    const tafRanges = buildTafRanges(values, { skadesdatoISO: STAMDATA_INITIAL_VALUES.skadesdato });
+    const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
     const model = buildEODebugModel(values, { tafRanges });
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
     const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
@@ -89,7 +89,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
     };
 
     const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
-    const tafRanges = buildTafRanges(values, { skadesdatoISO: STAMDATA_INITIAL_VALUES.skadesdato });
+    const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
     const model = buildEODebugModel(values, { tafRanges });
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
     const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
@@ -131,7 +131,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
     };
 
     const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
-    const tafRanges = buildTafRanges(values, { skadesdatoISO: STAMDATA_INITIAL_VALUES.skadesdato });
+    const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
     const model = buildEODebugModel(values, { tafRanges });
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
     const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
@@ -332,7 +332,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
     const svieSmerteEngine = computeSvieSmerteEngine({
       erstatningsopgoerelse: values,
       stamdata: {
-        skadesdato: STAMDATA_INITIAL_VALUES.skadesdato,
+        skadedato: STAMDATA_INITIAL_VALUES.skadedato,
         skadestype: STAMDATA_INITIAL_VALUES.skadestype,
       },
     });
@@ -394,7 +394,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
       svieSmerteEngine: computeSvieSmerteEngine({
         erstatningsopgoerelse: values,
         stamdata: {
-          skadesdato: STAMDATA_INITIAL_VALUES.skadesdato,
+          skadedato: STAMDATA_INITIAL_VALUES.skadedato,
           skadestype: STAMDATA_INITIAL_VALUES.skadestype,
         },
       }),
@@ -494,7 +494,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
     };
 
     const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
-    const tafRanges = buildTafRanges(values, { skadesdatoISO: STAMDATA_INITIAL_VALUES.skadesdato });
+    const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
     const model = buildEODebugModel(values, { tafRanges });
     const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
     const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);

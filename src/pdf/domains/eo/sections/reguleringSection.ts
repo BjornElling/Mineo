@@ -48,22 +48,22 @@ type ReguleringSectionContext = Readonly<{
   safeAddWrappedText: (text: string) => void;
   writeLabelValueLine: (label: string, value: string) => void;
   resolveValgtReguleringDisplay: (ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]) => string;
-  resolveReguleringsdato: (
+  resolveAnvendtReguleringsdato: (
     stamdataValues: StamdataValues,
     eoValues: ErstatningsopgoerelseValues,
     ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]
   ) => ISODateString | undefined;
   parseOptionalIsoDate: (value: string | undefined) => ISODateString | undefined;
-  resolveLoenSkadesdatoText: (params: Readonly<{
+  resolveLoenSkadedatoText: (params: Readonly<{
     subject: 'lønnen';
-    skadesdato: ISODateString | undefined;
-    saerligFraDatoRegulering: ISODateString | undefined;
+    anvendtReguleringsdato: ISODateString | undefined;
+    skadedato: ISODateString | undefined;
   }>) => string;
   resolveTafDateBounds: (eoValues: ErstatningsopgoerelseValues) => Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null;
   buildReguleringsvaerdierTableData: (params: Readonly<{
     eoValues?: ErstatningsopgoerelseValues;
     ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
-    reguleringsdato: ISODateString | undefined;
+    anvendtReguleringsdato: ISODateString | undefined;
     tafFra: ISODateString;
     tafTil: ISODateString;
     tafBeregningsenhed: ReturnType<typeof computeTafBeregningsenhed>;
@@ -71,7 +71,7 @@ type ReguleringSectionContext = Readonly<{
   buildReguleringIndexRows: (params: Readonly<{
     segments: readonly LoenudviklingSegment[];
     ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
-    reguleringsdato: ISODateString | undefined;
+    anvendtReguleringsdato: ISODateString | undefined;
   }>) => readonly ReguleringIndexRow[];
   resolveStatistikModelIdFromLabel: (label: string | undefined) => string | undefined;
   writer: PdfWriter;
@@ -216,9 +216,9 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     safeAddWrappedText,
     writeLabelValueLine,
     resolveValgtReguleringDisplay,
-    resolveReguleringsdato,
+    resolveAnvendtReguleringsdato,
     parseOptionalIsoDate,
-    resolveLoenSkadesdatoText,
+    resolveLoenSkadedatoText,
     resolveTafDateBounds,
     buildReguleringsvaerdierTableData,
     buildReguleringIndexRows,
@@ -237,7 +237,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   ): string | null => {
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag !== 'Overenskomst') return null;
     if (!ansaettelsesforhold.harOverenskomst) return null;
-    if (!ansaettelsesforhold.harAnciennitetstillaegEfterSkadesdatoen) return null;
+    if (!ansaettelsesforhold.harAnciennitetstillaegEfterSkadedatoen) return null;
     if (!ansaettelsesforhold.overenskomstId) return null;
 
     const satsValue = ansaettelsesforhold.anciennitetstillaegSats?.value;
@@ -347,24 +347,24 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Overenskomst'
         ? resolveOverenskomstNameOnlyDisplay(ansaettelsesforhold.overenskomstId)
         : valgtRegulering;
-    const reguleringsdato = resolveReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
-    const skadesdatoIso = parseOptionalIsoDate(stamdataValues.skadesdato);
-    const loenSkadesdatoText = resolveLoenSkadesdatoText({
+    const anvendtReguleringsdato = resolveAnvendtReguleringsdato(stamdataValues, eoValues, ansaettelsesforhold);
+    const skadedatoIso = parseOptionalIsoDate(stamdataValues.skadedato);
+    const loenSkadedatoText = resolveLoenSkadedatoText({
       subject: 'lønnen',
-      skadesdato: skadesdatoIso,
-      saerligFraDatoRegulering: parseOptionalIsoDate(ansaettelsesforhold.saerligFraDatoRegulering),
+      anvendtReguleringsdato,
+      skadedato: skadedatoIso,
     });
 
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {
       writeLabelValueLine('Regulering', valgtReguleringForSection);
-      writeLabelValueLine('Opgøres på baggrund af', toSentenceCase(loenSkadesdatoText));
+      writeLabelValueLine('Opgøres på baggrund af', toSentenceCase(loenSkadedatoText));
       writer.addSpacer(lineHeight);
       continue;
     }
 
     writeLabelValueLine(
       'Beregnes som',
-      `${loenSkadesdatoText.charAt(0).toUpperCase()}${loenSkadesdatoText.slice(1)} tillagt efterfølgende lønstigninger`
+      `${loenSkadedatoText.charAt(0).toUpperCase()}${loenSkadedatoText.slice(1)} tillagt efterfølgende lønstigninger`
     );
     writeLabelValueLine('Regulering', valgtReguleringForSection);
     const anciennitetValueDisplay = resolveAnciennitetValueDisplay(ansaettelsesforhold);
@@ -407,7 +407,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         ? buildReguleringsvaerdierTableData({
             eoValues,
             ansaettelsesforhold,
-            reguleringsdato,
+            anvendtReguleringsdato,
             tafFra: coverageBounds.foerste,
             tafTil: coverageBounds.sidste,
             tafBeregningsenhed: tafBeregnesSom,
@@ -421,7 +421,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     const reguleringTableRows = buildReguleringIndexRows({
       segments: perAnsaettelseSegments,
       ansaettelsesforhold,
-      reguleringsdato,
+      anvendtReguleringsdato,
     });
     renderReguleringIndeksTable(reguleringTableRows);
 
@@ -455,7 +455,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         safeAddWrappedText('Det Standardberegnede Lønindeks fra Danmarks Statistik (SBLON2) anvendes som et retvisende reguleringsgrundlag for lønudvikling i samfundet. Regulering foretages med afsæt i værdierne for K1 (1. kvartal 2016 = indeksværdi 100).');
       } else if (isAslStatistikModel(statistikLabel)) {
         writer.addSpacer(lineHeight);
-        safeAddWrappedText('ASL-årslønsmaksimum fremgår ikke eksplicit som reguleringsgrundlag i EAL § 15, men anvendes til fremskrivning på erstatnings- og arbejdsskadeområdet, og beror på den statslige tilpasningsprocent, der udgør den beregnede, statistiske lønudvikling i samfundet, som i almindelighed anvendes til fremskrivning af offentlige ydelser.');
+        safeAddWrappedText('ASL-årslønsmaksimum fremgår ikke eksplicit som reguleringsgrundlag i EAL § 15, men anvendes i almindelighed til fremskrivning på erstatnings- og arbejdsskadeområdet, og beror på den statslige tilpasningsprocent, der udgør den beregnede, statistiske lønudvikling i samfundet, som anvendes til fremskrivning af en flerhed af offentlige ydelser.');
       }
     }
   }

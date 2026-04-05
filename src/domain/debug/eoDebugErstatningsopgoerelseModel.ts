@@ -3,7 +3,7 @@ import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isISODateString, isoToDanish, parseISODate, subtractOneDay } from '../../types/branded';
 import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
-import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
+import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import { computeRowDateBounds } from '../erstatningsopgoerelse/helpers/rowDateBounds';
 import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
@@ -34,6 +34,7 @@ import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statisti
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import {
@@ -169,11 +170,11 @@ const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number 
 };
 
 const resolveFolkepensionsdato = (
-  skadesdato: ISODateString | undefined,
+  skadedato: ISODateString | undefined,
   fodselsdato: ISODateString | undefined,
   controlDate: ISODateString | undefined
 ): ISODateString | undefined => {
-  const tabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadesdato, fodselsdato, controlDate);
+  const tabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadedato, fodselsdato, controlDate);
   if (!tabelvalg || !fodselsdato) return undefined;
   const birthDate = parseISODate(fodselsdato);
   if (!birthDate) return undefined;
@@ -611,7 +612,7 @@ export const buildEODebugSvieSmerteRows = (
   values: ErstatningsopgoerelseValues,
   errors: ErstatningsopgoerelseFieldErrorsBySource,
   context: Readonly<{
-    skadesdatoISO: ISODateString | undefined;
+    skadedatoISO: ISODateString | undefined;
     erErhvervssygdom: boolean;
     menAfgoerelseDatoForTabel: ISODateString | undefined;
     verserendeKlageMen: boolean;
@@ -619,13 +620,14 @@ export const buildEODebugSvieSmerteRows = (
   canonicalOutput?: EoCanonicalOutput
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
+  const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
   const svieSmerteIkkeRejstLabel = 'Ikke rejst svie/smerte-krav for hele perioden';
 
   // Tjek om periode-tabellen er synlig (kun synlig hvis tidligereSsMax er 'Nej')
   const periodeErSynlig = values.tidligereSsMax === 'Nej';
 
-  const skadesdatoMinRule = computeSkadesdatoMinRule({
-    skadesdatoISO: context.skadesdatoISO,
+  const skadedatoMinRule = computeSkadedatoMinRule({
+    skadedatoISO: context.skadedatoISO,
     erErhvervssygdom: context.erErhvervssygdom,
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
   });
@@ -685,7 +687,7 @@ export const buildEODebugSvieSmerteRows = (
       })();
 
       const bounds = computeRowDateBounds({
-        skadesdatoMinDate: skadesdatoMinRule.minDate,
+        skadedatoMinDate: skadedatoMinRule.minDate,
         rowFra: fraISO,
         rowTil: tilISO,
         fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
@@ -697,14 +699,14 @@ export const buildEODebugSvieSmerteRows = (
 
       const fraNoValidRangeCause = (() => {
         const parts: string[] = [];
-        if (skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+        if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
         if (tilISO) parts.push('til-dato i samme række');
         return parts.length > 0 ? parts.join(', ') : undefined;
       })();
 
       const tilNoValidRangeCause = (() => {
         const parts: string[] = [];
-        if (!fraISO && skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+        if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
         if (fraISO) parts.push('fra-dato i samme række');
         parts.push('dags dato');
         if (!context.verserendeKlageMen && context.menAfgoerelseDatoForTabel) parts.push('dato for ménafgørelse');
@@ -967,13 +969,15 @@ export const buildEODebugSvieSmerteRows = (
     ],
   });
 
-  // 4) Svie/smerte krav i tidligere erstatningsopgørelser (ok hvis tomt)
-  const tidligereTotalValue = formatCurrency(amountValueToNumber(values.svieSmerteTidligereTotal));
-  rows.push({
-    id: 'sviesmerte.tidligereTotal',
-    label: 'Svie/smerte krav i tidligere erstatningsopgørelser',
-    ...resolveDebugDisplay({ value: tidligereTotalValue, errors: errors.svieSmerteTidligereTotal, emptyState: 'ok' }),
-  });
+  // 4) Svie/smerte krav i tidligere erstatningsopgørelser (ok hvis tomt) — kun ved ikke-første opgørelse
+  if (!erFoersteOpgoerelse) {
+    const tidligereTotalValue = formatCurrency(amountValueToNumber(values.svieSmerteTidligereTotal));
+    rows.push({
+      id: 'sviesmerte.tidligereTotal',
+      label: 'Svie/smerte krav i tidligere erstatningsopgørelser',
+      ...resolveDebugDisplay({ value: tidligereTotalValue, errors: errors.svieSmerteTidligereTotal, emptyState: 'ok' }),
+    });
+  }
 
   // 5) Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode (ok hvis tomt)
   const aktuelPeriodeValue = formatCurrency(amountValueToNumber(values.svieSmerteAktuelPeriode));
@@ -1364,7 +1368,7 @@ export const buildEODebugTaftRows = (
   values: ErstatningsopgoerelseValues,
   errors: ErstatningsopgoerelseFieldErrorsBySource,
   context: Readonly<{
-    skadesdatoISO: ISODateString | undefined;
+    skadedatoISO: ISODateString | undefined;
     skadelidteFodselsdato: ISODateString | undefined;
     erErhvervssygdom: boolean;
     endeligEETBeregnetDato: ISODateString | undefined;
@@ -1394,7 +1398,7 @@ export const buildEODebugTaftRows = (
   const clampedTafById = new Map<string, { fra: ISODateString; til: ISODateString }>();
   const tafIkkeRejstLabel = 'Ikke rejst TAF-krav for hele perioden';
   const folkepensionsdato = resolveFolkepensionsdato(
-    context.skadesdatoISO,
+    context.skadedatoISO,
     context.skadelidteFodselsdato,
     values.opgørelseLavetDen
   );
@@ -1477,8 +1481,8 @@ export const buildEODebugTaftRows = (
     }
   }
 
-  const skadesdatoMinRule = computeSkadesdatoMinRule({
-    skadesdatoISO: context.skadesdatoISO,
+  const skadedatoMinRule = computeSkadedatoMinRule({
+    skadedatoISO: context.skadedatoISO,
     erErhvervssygdom: context.erErhvervssygdom,
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
   });
@@ -1560,7 +1564,7 @@ export const buildEODebugTaftRows = (
       displayFraDanish && displayTilDanish ? `${periodeLabel} (${displayFraDanish} - ${displayTilDanish})` : periodeLabel;
 
     const bounds = computeRowDateBounds({
-      skadesdatoMinDate: skadesdatoMinRule.minDate,
+      skadedatoMinDate: skadedatoMinRule.minDate,
       rowFra: fraISO,
       rowTil: tilISO,
       fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
@@ -1572,14 +1576,14 @@ export const buildEODebugTaftRows = (
 
     const fraNoValidRangeCause = (() => {
       const parts: string[] = [];
-      if (skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+      if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
       if (tilISO) parts.push('til-dato i samme række');
       return parts.length > 0 ? parts.join(', ') : undefined;
     })();
 
     const tilNoValidRangeCause = (() => {
       const parts: string[] = [];
-      if (!fraISO && skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+      if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
       if (fraISO) parts.push('fra-dato i samme række');
       parts.push('dags dato');
       if (context.differencekravDato) parts.push('differencekrav-dato');
@@ -1755,7 +1759,7 @@ export const buildEODebugTaftRows = (
       }
 
       const bounds = computeRowDateBounds({
-        skadesdatoMinDate: skadesdatoMinRule.minDate,
+        skadedatoMinDate: skadedatoMinRule.minDate,
         rowFra: fraISO,
         rowTil: tilISO,
         fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
@@ -1767,14 +1771,14 @@ export const buildEODebugTaftRows = (
 
       const fraNoValidRangeCause = (() => {
         const parts: string[] = [];
-        if (skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+        if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
         if (tilISO) parts.push('til-dato i samme række');
         return parts.length > 0 ? parts.join(', ') : undefined;
       })();
 
       const tilNoValidRangeCause = (() => {
         const parts: string[] = [];
-        if (!fraISO && skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+        if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
         if (fraISO) parts.push('fra-dato i samme række');
         parts.push('dags dato');
         if (context.differencekravDato) parts.push('differencekrav-dato');
@@ -2405,10 +2409,16 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const loenLabel = beregnesUdFra === 'Angivet månedsløn' ? 'månedsløn' : 'dagsløn';
     const opreguleresLabel = `Det angivne beløb afspejler ${loenLabel}en den`;
 
-    const opreguleresFraISO = getAngivetLoenOpreguleresFraDato(values) || stamdataValues.skadesdato;
+    const opreguleresFraISO = resolveAnvendtReguleringsdato({
+      beregnesUdFra: values.beregnesUdFra,
+      angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+      saerligFraDatoRegulering: undefined,
+      beregningsperiodeTil: values.periodeTilBeregningTil,
+      skadedato: stamdataValues.skadedato,
+    });
     const opreguleresFraDisplay = opreguleresFraISO ? isoToDanish(opreguleresFraISO) : undefined;
 
-    const hasMissingRequired = !getAngivetLoenOpreguleresFraDato(values) && !stamdataValues.skadesdato;
+    const hasMissingRequired = !opreguleresFraISO;
 
     rows.push({
       id: 'taf.beregningsgrundlag.angivetLoenOpreguleresFraDato',
@@ -2533,7 +2543,7 @@ const resolveTafBoundaryDatesInSkadetPeriode = (
 
 export const buildEODebugIndkomstRows = (
   values: ErstatningsopgoerelseValues,
-  skadesdato: ISODateString | undefined,
+  skadedato: ISODateString | undefined,
   manualReguleringInputErrors: Readonly<Record<string, true>> = {},
   appSettings: AppSettings = DEFAULT_APP_SETTINGS
 ): DebugRowModel[] => {
@@ -2542,7 +2552,7 @@ export const buildEODebugIndkomstRows = (
   const overenskomstUdloebMaanederGraense = appSettings.allowReguleringMedUdloebMedMaaneder;
   const tafBoundaryDates = resolveTafBoundaryDatesInSkadetPeriode(values);
 
-  const sections = buildIndkomstSectionStatuses(values, skadesdato);
+  const sections = buildIndkomstSectionStatuses(values, skadedato);
   sections.forEach((section) => {
     const employment = (values.loenindkomstAnsaettelsesforhold ?? []).find((item) => item.id === section.id);
     const sidsteArbejdsdag =
@@ -2783,9 +2793,13 @@ export const buildEODebugIndkomstRows = (
       return;
     }
 
-    const reguleringsdato = values.beregnesUdFra !== 'Beregningsperiode'
-      ? (getAngivetLoenOpreguleresFraDato(values) ?? skadesdato)
-      : (isISODateString(ansaettelsesforhold.saerligFraDatoRegulering) ? ansaettelsesforhold.saerligFraDatoRegulering : skadesdato);
+    const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
+      beregnesUdFra: values.beregnesUdFra,
+      angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+      saerligFraDatoRegulering: isISODateString(ansaettelsesforhold.saerligFraDatoRegulering) ? ansaettelsesforhold.saerligFraDatoRegulering : undefined,
+      beregningsperiodeTil: values.periodeTilBeregningTil,
+      skadedato,
+    });
 
     const reguleringsRange = (() => {
       if (loenudviklingBasis === 'Overenskomst') {
@@ -2815,20 +2829,20 @@ export const buildEODebugIndkomstRows = (
         };
       }
       if (loenudviklingBasis === 'Manuelt angivet') {
-        return getRangeForManualReguleringDebug(reguleringsdato, ansaettelsesforhold.loenudviklingManuelTableData ?? []);
+        return getRangeForManualReguleringDebug(anvendtReguleringsdato, ansaettelsesforhold.loenudviklingManuelTableData ?? []);
       }
       return {} as ReguleringsRange;
     })();
 
     const reguleringsvaerdiRowStatus = (() => {
-      if (!reguleringsdato) return { displayValue: '-', status: 'error' as DebugStatus };
+      if (!anvendtReguleringsdato) return { displayValue: '-', status: 'error' as DebugStatus };
       if (!reguleringsRange.min) {
         return {
           displayValue: 'Nej',
           status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
         };
       }
-      if (reguleringsdato < reguleringsRange.min) {
+      if (anvendtReguleringsdato < reguleringsRange.min) {
         return {
           displayValue: `Nej (først fra ${isoToDanish(reguleringsRange.min) ?? reguleringsRange.min})`,
           status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
@@ -2869,7 +2883,7 @@ export const buildEODebugIndkomstRows = (
 
     rows.push({
       id: `${loenudviklingRowPrefix}.reguleringsvaerdi`,
-      label: 'Reguleringsværdi på reguleringsdato for TAF',
+      label: 'Reguleringsværdi på anvendt reguleringsdato for TAF',
       displayValue: reguleringsvaerdiRowStatus.displayValue,
       status: reguleringsvaerdiRowStatus.status,
       message: buildReguleringsMangelMessage(

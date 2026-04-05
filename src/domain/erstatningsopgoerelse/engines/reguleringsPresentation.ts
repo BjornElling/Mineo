@@ -1,9 +1,9 @@
 export {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,
-  resolveLoenSkadesdatoText,
+  resolveAnvendtReguleringsdato,
+  resolveLoenSkadedatoText,
   resolveLoenudviklingSegmentBounds,
-  resolveReguleringsdato,
   resolveStatistikModelIdFromLabel,
   resolveTafDateBounds,
 } from '../pdf/eoPdfRegulering';

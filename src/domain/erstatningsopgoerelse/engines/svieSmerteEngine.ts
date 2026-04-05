@@ -15,6 +15,7 @@ import { isoDateToDate } from '../../dates/isoDate';
 import { perioderCoverDate } from '../helpers/eoSharedUtils';
 import { isSvieSmerteRowEmpty } from '../helpers/rowEmpty';
 import { parseForligsgrad } from './forligsgrad';
+import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
 import type { MoneyOre } from '../shared/eoTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 
@@ -48,7 +49,7 @@ export type SvieSmerteEngineOutput = Readonly<{
 
 export type SvieSmerteEngineInputSnapshot = Readonly<{
   erstatningsopgoerelse: DeepReadonly<ErstatningsopgoerelseValues>;
-  stamdata?: DeepReadonly<Pick<StamdataValues, 'skadesdato' | 'skadestype'>> | null;
+  stamdata?: DeepReadonly<Pick<StamdataValues, 'skadedato' | 'skadestype'>> | null;
 }>;
 
 /**
@@ -114,7 +115,8 @@ const filterValidSvieSmertePerioder = (
  */
 const buildZeroOutput = (values: DeepReadonly<ErstatningsopgoerelseValues>): SvieSmerteEngineOutput => {
   const parsedForlig = parseForligsgrad(values);
-  const tidligereKroner = amountValueToNumber(values.svieSmerteTidligereTotal);
+  const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
+  const tidligereKroner = erFoersteOpgoerelse ? undefined : amountValueToNumber(values.svieSmerteTidligereTotal);
   const aktuelKroner = amountValueToNumber(values.svieSmerteAktuelPeriode);
   return {
     constrainedPeriods: [],
@@ -271,7 +273,8 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     satserMaxOre = toOre(roundKroner(maxKroner));
   }
 
-  const tidligereKroner = amountValueToNumber(values.svieSmerteTidligereTotal);
+  const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
+  const tidligereKroner = erFoersteOpgoerelse ? undefined : amountValueToNumber(values.svieSmerteTidligereTotal);
   const aktuelKroner = amountValueToNumber(values.svieSmerteAktuelPeriode);
   const tidligereOre = tidligereKroner !== undefined ? toOre(tidligereKroner) : null;
   const aktuelOre = aktuelKroner !== undefined ? toOre(aktuelKroner) : null;

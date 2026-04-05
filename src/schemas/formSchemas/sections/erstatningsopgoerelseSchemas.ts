@@ -82,7 +82,7 @@ export const sygeferiegodtgoerelseAnsaettelsesforholdRowSchema = z.object({
   sfggBeregningskilde: z.preprocess(normalizeEmptyToUndefined, sygeferiegodtgoerelseBeregningskildeEnum.optional()),
   sfggReferenceperiodeFra: optionalIsoDateString,
   sfggReferenceperiodeTil: optionalIsoDateString,
-  sfggReferenceperiodeFravaersdageUdenLoen: dayCount.default(0),
+  sfggReferenceperiodeFravaersdageUdenLoen: dayCount,
   sfggManuelDagssats: nonNegativeAmountValue,
   sfggManuelBeloebIHenholdTil: optionalString,
   sfggManuelFoerstEfterSygeloen: jaNejEnum.default('Nej'),
@@ -297,7 +297,7 @@ const loenindkomstAnsaettelsesforholdBaseSchema = z.object({
 }).strict();
 
 const loenindkomstAnciennitetSchema = z.object({
-  harAnciennitetstillaegEfterSkadesdatoen: z.boolean(),
+  harAnciennitetstillaegEfterSkadedatoen: z.boolean(),
   anciennitetstillaegDato: optionalIsoDateString,
   anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum,
   anciennitetstillaegSats: nonNegativeAmountValue,
@@ -317,7 +317,7 @@ const loenindkomstSchema = z.object({
 
 export const eoAngivetLoenLoenudviklingSchema = z.object({
   overenskomstId: optionalString,
-  harAnciennitetstillaegEfterSkadesdatoen: z.boolean().default(false),
+  harAnciennitetstillaegEfterSkadedatoen: z.boolean().default(false),
   anciennitetstillaegDato: optionalIsoDateString,
   anciennitetstillaegSatsAngivesPer: anciennitetSatsPerEnum.default('Måned'),
   anciennitetstillaegSats: nonNegativeAmountValue,
@@ -328,7 +328,7 @@ export type EOAngivetLoenLoenudvikling = z.infer<typeof eoAngivetLoenLoenudvikli
 
 const defaultEoAngivetLoenLoenudvikling: EOAngivetLoenLoenudvikling = {
   overenskomstId: undefined,
-  harAnciennitetstillaegEfterSkadesdatoen: false,
+  harAnciennitetstillaegEfterSkadedatoen: false,
   anciennitetstillaegDato: undefined,
   anciennitetstillaegSatsAngivesPer: 'Måned',
   anciennitetstillaegSats: undefined,

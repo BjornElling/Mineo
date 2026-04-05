@@ -1,7 +1,5 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { parseISODate } from '../../types/branded';
-import { formatDanishDate } from '../../utils/dateUtils';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import {
@@ -15,13 +13,6 @@ import {
   parseOffentligeYdelserCellKey,
 } from '../erstatningsopgoerelse/validation/offentligeYdelserTableValidation';
 import { ydelsestyper } from '../../data/ydelsestyper';
-import {
-  getEffektiveSatserForDato,
-  resolveOverenskomstRef,
-  type OverenskomstId,
-  isOffentligOverenskomstId,
-  getOffentligTillaegsSatserForDato,
-} from '../../data/overenskomstRates';
 import type { DebugStatus } from './eoDebugTypes';
 import { buildStandardLoenCellErrors, buildOffentligeYdelserCellErrors } from '../erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { StandardLoenTableColumnKey, OffentligeYdelserTableColumnKey } from '../../types/table';
@@ -31,6 +22,9 @@ import { buildStandardLoenZeroArbejdsdageIssues } from '../erstatningsopgoerelse
 import { DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
 import { resolveStandardLoenColumnLabel } from '../aarsloen/standardLoenTableColumns';
 import { resolveOffentligeYdelserColumnLabel } from '../erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
+import { resolveOverenskomstSatsBindings } from '../erstatningsopgoerelse/helpers/loenindkomstSatser';
+import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 
@@ -53,20 +47,13 @@ export type OffentligeYdelserDebugRow = Readonly<{
   summaryDisplay?: 'messageOnly';
 }>;
 
-const getReguleringsDatoForAnsaettelsesforhold = (
-  af: Ansaettelsesforhold,
-  skadesdato: ISODateString | undefined
-): ISODateString | undefined => {
-  return af.saerligFraDatoRegulering || skadesdato;
-};
-
 const hasStoreBededagSatserAfvigelse = (
   loenPaaHelligdage: string,
   inputValue: number | undefined,
-  reguleringsDato: ISODateString | undefined
+  anvendtReguleringsdato: ISODateString | undefined
 ): boolean => {
-  if (!reguleringsDato) return false;
-  const isFrom2024 = reguleringsDato >= STORE_BEDEDAG_START;
+  if (!anvendtReguleringsdato) return false;
+  const isFrom2024 = anvendtReguleringsdato >= STORE_BEDEDAG_START;
 
   let expectedPct: number;
   if (loenPaaHelligdage === 'Almindelig løn' && isFrom2024) {
@@ -89,80 +76,38 @@ const hasFeriePctAfvigelse = (
 };
 
 const hasOverenskomstSatsAfvigelse = (
-  overenskomstId: string | undefined,
+  af: Pick<Ansaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'>,
   fieldName: 'fritvalgPct' | 'shSoPct' | 'pensionPct',
   inputValue: number | undefined,
-  reguleringsDato: ISODateString | undefined,
-  applyAlmindeligLoenPaaShDageRegel: boolean
+  anvendtReguleringsdato: ISODateString | undefined
 ): boolean => {
+  const overenskomstId = af.overenskomstId?.trim();
   if (!overenskomstId) return false;
-  if (!reguleringsDato) return false;
+  const expectedBinding = resolveOverenskomstSatsBindings(af, anvendtReguleringsdato)[fieldName];
+  if (!expectedBinding.locked || expectedBinding.value === undefined) return false;
 
-  const dateObj = parseISODate(reguleringsDato);
-  if (!dateObj) return false;
-
-  const danishDate = formatDanishDate(dateObj);
-  let expectedValue: number | undefined;
-
-  if (isOffentligOverenskomstId(overenskomstId)) {
-    const tillaegSatser = getOffentligTillaegsSatserForDato(
-      overenskomstId,
-      danishDate,
-      applyAlmindeligLoenPaaShDageRegel
-    );
-    if (!tillaegSatser) return false;
-    if (fieldName === 'fritvalgPct') {
-      expectedValue = tillaegSatser.fritvalg ?? 0;
-    } else if (fieldName === 'shSoPct') {
-      expectedValue = tillaegSatser.shSoSats ?? 0;
-    } else {
-      expectedValue = tillaegSatser.agPension ?? 0;
-    }
-  } else {
-    const ref = resolveOverenskomstRef(overenskomstId);
-    if (!ref) return false;
-
-    const satser = getEffektiveSatserForDato({
-      overenskomstId: ref.baseId as OverenskomstId,
-      dato: danishDate,
-      applyAlmindeligLoenPaaShDageRegel,
-    });
-    if (!satser) return false;
-
-    if (fieldName === 'fritvalgPct') {
-      expectedValue = satser.fritvalg ?? 0;
-    } else if (fieldName === 'shSoPct') {
-      expectedValue = satser.shSoSats ?? 0;
-    } else {
-      expectedValue = satser.agPension ?? 0;
-    }
-  }
-
-  const expectedPct = (expectedValue ?? 0) * 100;
+  const expectedPct = expectedBinding.value;
   const actualValue = inputValue ?? 0;
   return Math.abs(actualValue - expectedPct) > 0.01;
 };
 
 const resolveSatserErrorField = (
   af: Ansaettelsesforhold,
-  skadesdato: ISODateString | undefined
+  anvendtReguleringsdato: ISODateString | undefined
 ): string | null => {
-  const reguleringsDato = getReguleringsDatoForAnsaettelsesforhold(af, skadesdato);
-  const applyAlmindeligLoenPaaShDageRegel = af.loenPaaHelligdage === 'Almindelig løn';
-
   if (hasFeriePctAfvigelse(af.fuldLoenUnderFerie, af.feriePct)) {
     return 'Feriegodtgørelse/-tillæg';
   }
-  if (hasOverenskomstSatsAfvigelse(af.overenskomstId, 'fritvalgPct', af.fritvalgPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
+  if (hasOverenskomstSatsAfvigelse(af, 'fritvalgPct', af.fritvalgPct, anvendtReguleringsdato)) {
     return 'Fritvalg';
   }
-  if (hasOverenskomstSatsAfvigelse(af.overenskomstId, 'shSoPct', af.shSoPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
+  if (hasOverenskomstSatsAfvigelse(af, 'shSoPct', af.shSoPct, anvendtReguleringsdato)) {
     return 'SH/SO-sats';
   }
-  if (hasStoreBededagSatserAfvigelse(af.loenPaaHelligdage, af.storeBededagPct, reguleringsDato)) {
+  if (hasStoreBededagSatserAfvigelse(af.loenPaaHelligdage, af.storeBededagPct, anvendtReguleringsdato)) {
     return 'Store Bededagstillæg';
   }
-  if (hasOverenskomstSatsAfvigelse(af.overenskomstId, 'pensionPct', af.pensionPct, reguleringsDato, applyAlmindeligLoenPaaShDageRegel)) {
+  if (hasOverenskomstSatsAfvigelse(af, 'pensionPct', af.pensionPct, anvendtReguleringsdato)) {
     return 'Arbejdsgivers pensionsbidrag';
   }
   return null;
@@ -247,7 +192,7 @@ export const isLoenindkomstAnsaettelsesforholdEffectivelyEmpty = (
     af.ansatPaaSkadestidspunktet !== true ||
     af.ansaettelsesforholdOphoert !== false ||
     af.sidsteArbejdsdag !== undefined ||
-    af.harAnciennitetstillaegEfterSkadesdatoen !== false ||
+    af.harAnciennitetstillaegEfterSkadedatoen !== false ||
     af.anciennitetstillaegDato !== undefined ||
     af.anciennitetstillaegSats !== undefined ||
     af.anciennitetstillaegSatsAngivesPer !== 'Måned' ||
@@ -293,16 +238,24 @@ const collectOffentligeYdelserCellErrorsByRow = (
 
 export const buildIndkomstSectionStatuses = (
   values: ErstatningsopgoerelseValues,
-  skadesdato: ISODateString | undefined
+  skadedato: ISODateString | undefined
 ): ReadonlyArray<IndkomstSectionStatus> => {
   const ansaettelsesforhold = values.loenindkomstAnsaettelsesforhold ?? [];
+  const angivetLoenMetodeOpreguleresFraDato = getAngivetLoenOpreguleresFraDato(values);
 
   return ansaettelsesforhold.map((af, index) => {
     const baseHeaderText = index === 0 ? 'Ansættelsesforhold' : `Ansættelsesforhold ${index + 1}`;
     const arbejdsstedNavn = af.navnPaaArbejdssted?.trim() ?? '';
     const headerText = arbejdsstedNavn !== '' ? `${baseHeaderText} (${arbejdsstedNavn})` : baseHeaderText;
 
-    const satserErrorField = resolveSatserErrorField(af, skadesdato);
+    const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
+      beregnesUdFra: values.beregnesUdFra,
+      angivetLoenMetodeOpreguleresFraDato,
+      saerligFraDatoRegulering: af.saerligFraDatoRegulering,
+      beregningsperiodeTil: values.periodeTilBeregningTil,
+      skadedato,
+    });
+    const satserErrorField = resolveSatserErrorField(af, anvendtReguleringsdato);
     const satserStatus: DebugStatus = satserErrorField ? 'error' : 'ok';
     const satserMessage = satserErrorField ? `Forkert værdi indtastet i ${satserErrorField}` : 'Ok';
 

@@ -34,8 +34,8 @@ import {
   buildReguleringsvaerdierTableData,
 } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
 import {
-  resolveLoenSkadesdatoText,
-  resolveReguleringsdato,
+  resolveLoenSkadedatoText,
+  resolveAnvendtReguleringsdato,
   resolveStatistikModelIdFromLabel,
   resolveTafDateBounds,
 } from '../../../domain/erstatningsopgoerelse/engines/reguleringsBeregning';
@@ -496,7 +496,7 @@ export const generateErstatningsopgoerelsePdf = (
     writer.writeWrappedText(model.skadelidteNavn);
   }
 
-  // Tilføj skadestype og skadesdato (normal skrift)
+  // Tilføj skadestype og skadedato (normal skrift)
   writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   if (model.skadestypeLinje) {
     writer.writeWrappedText(model.skadestypeLinje);
@@ -534,7 +534,7 @@ export const generateErstatningsopgoerelsePdf = (
     formatMaanederTrimmed,
     isSingularCount,
     parseOptionalIsoDate,
-    resolveLoenSkadesdatoText,
+    resolveLoenSkadedatoText,
     formatDateShort,
     formatDateLong,
     formatPercentDelta,
@@ -604,9 +604,9 @@ export const generateErstatningsopgoerelsePdf = (
       safeAddWrappedText: writer.writeWrappedText,
       writeLabelValueLine,
       resolveValgtReguleringDisplay: resolveValgtReguleringDisplayForPdf,
-      resolveReguleringsdato,
+      resolveAnvendtReguleringsdato,
       parseOptionalIsoDate,
-      resolveLoenSkadesdatoText,
+      resolveLoenSkadedatoText,
       resolveTafDateBounds,
       buildReguleringsvaerdierTableData,
       buildReguleringIndexRows: (params) => buildReguleringIndexRows({

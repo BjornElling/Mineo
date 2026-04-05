@@ -9,7 +9,7 @@ const TIL_FALLBACK_MAX = iso('2024-12-31');
 
 describe('computeRowDateBounds', () => {
   describe('fra-bounds', () => {
-    it('ingen skadesdatoMinDate → absoluteMin = fallbackMin', () => {
+    it('ingen skadedatoMinDate → absoluteMin = fallbackMin', () => {
       const bounds = computeRowDateBounds({
         rowFra: undefined,
         rowTil: undefined,
@@ -20,17 +20,17 @@ describe('computeRowDateBounds', () => {
       expect(bounds.fra.min).toBe(FALLBACK_MIN);
     });
 
-    it('skadesdatoMinDate sat → absoluteMin = skadesdatoMinDate', () => {
-      const skadesdato = iso('2022-06-15');
+    it('skadedatoMinDate sat → absoluteMin = skadedatoMinDate', () => {
+      const skadedato = iso('2022-06-15');
       const bounds = computeRowDateBounds({
-        skadesdatoMinDate: skadesdato,
+        skadedatoMinDate: skadedato,
         rowFra: undefined,
         rowTil: undefined,
         fallbackMin: FALLBACK_MIN,
         fallbackMax: FALLBACK_MAX,
         tilFallbackMax: TIL_FALLBACK_MAX,
       });
-      expect(bounds.fra.min).toBe(skadesdato);
+      expect(bounds.fra.min).toBe(skadedato);
     });
 
     it('rowTil sat → fraMax = rowTil', () => {
@@ -148,13 +148,13 @@ describe('computeRowDateBounds', () => {
 
   describe('kombineret scenarie', () => {
     it('fuld konfiguration giver konsistente bounds', () => {
-      const skadesdato = iso('2022-01-15');
+      const skadedato = iso('2022-01-15');
       const rowFra = iso('2022-06-01');
       const rowTil = iso('2022-12-31');
       const extraMax = iso('2023-06-30');
 
       const bounds = computeRowDateBounds({
-        skadesdatoMinDate: skadesdato,
+        skadedatoMinDate: skadedato,
         rowFra,
         rowTil,
         fallbackMin: FALLBACK_MIN,
@@ -163,9 +163,9 @@ describe('computeRowDateBounds', () => {
         tilExtraMaxDate: extraMax,
       });
 
-      expect(bounds.fra.min).toBe(skadesdato);
+      expect(bounds.fra.min).toBe(skadedato);
       expect(bounds.fra.max).toBe(rowTil);
-      expect(bounds.til.min).toBe(rowFra); // rowFra (2022-06-01) > skadesdato (2022-01-15)
+      expect(bounds.til.min).toBe(rowFra); // rowFra (2022-06-01) > skadedato (2022-01-15)
       expect(bounds.til.max).toBe(extraMax); // extraMax (2023-06-30) < tilFallbackMax (2024-12-31)
     });
   });

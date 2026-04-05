@@ -66,7 +66,7 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
               onRowsChange={vi.fn()}
               midlertidigtEetInsertSource={{
                 eetValues: ERHVERVSEVNETAB_INITIAL_VALUES,
-                skadesdato: undefined,
+                skadedato: undefined,
               }}
             />
           </Container>
@@ -143,7 +143,7 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
               onRowsChange={handleRowsChange}
               midlertidigtEetInsertSource={{
                 eetValues: ERHVERVSEVNETAB_INITIAL_VALUES,
-                skadesdato: undefined,
+                skadedato: undefined,
               }}
             />
           </Container>

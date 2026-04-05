@@ -11,7 +11,7 @@ import { TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregnings
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import { resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
-import { resolveReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
+import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
@@ -267,8 +267,8 @@ export function buildRegulationDebugSections(
         value: af.kildeVaerdi,
       },
       {
-        id: `${sectionId}:skadesdato`,
-        label: `Reguleringsdato (${af.referenceLabel})`,
+        id: `${sectionId}:skadedato`,
+        label: af.referenceLabel ? `Anvendt reguleringsdato (${af.referenceLabel})` : 'Anvendt reguleringsdato',
         value: { rawValue: af.referenceIso, displayValue: formatIsoValue(af.referenceIso) },
       },
     ];
@@ -283,12 +283,13 @@ export function buildRegulationDebugSections(
           tafRanges,
         });
     const coverageBounds = resolveLoenudviklingSegmentBounds(segmentsForDebug);
-    const reguleringsdato = ansaettelsesforhold
-      ? resolveReguleringsdato({
+    const anvendtReguleringsdato = ansaettelsesforhold
+      ? resolveAnvendtReguleringsdato({
           beregnesUdFra: eoValues.beregnesUdFra,
           angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
           saerligFraDatoRegulering: ansaettelsesforhold.saerligFraDatoRegulering,
-          skadesdato: stamdataValues.skadesdato,
+          beregningsperiodeTil: eoValues.periodeTilBeregningTil,
+          skadedato: stamdataValues.skadedato,
         })
       : undefined;
     const reguleringsvaerdierTableData =
@@ -296,7 +297,7 @@ export function buildRegulationDebugSections(
         ? buildReguleringsvaerdierTableData({
             eoValues,
             ansaettelsesforhold,
-            reguleringsdato,
+            anvendtReguleringsdato,
             tafFra: coverageBounds.foerste,
             tafTil: coverageBounds.sidste,
             tafBeregningsenhed: computeTafBeregningsenhed(eoValues),
@@ -333,7 +334,7 @@ export function buildRegulationDebugSections(
       const indeksRows = buildReguleringIndexRows({
         segments: segmentsForDebug,
         ansaettelsesforhold,
-        reguleringsdato,
+        anvendtReguleringsdato,
         tafBeregningsenhed: computeTafBeregningsenhed(eoValues),
       });
       if (indeksRows.length > 0) {

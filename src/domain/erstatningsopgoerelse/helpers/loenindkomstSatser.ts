@@ -19,28 +19,47 @@ import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import type { StandardLoenRateSegment, StandardLoenSatserInput } from '../../aarsloen/standardLoenRowCalculations';
 import { dateToISO } from '../../../types/branded';
 import { addDays } from '../../../utils/dateUtils';
+import { round2 } from '../../../utils/roundingShortcuts';
 
-type OverenskomstSatserResult = Readonly<{
-  fritvalgPct?: number;
-  shSoPct?: number;
-  pensionPct?: number;
+export type OverenskomstSatsField = 'fritvalgPct' | 'shSoPct' | 'pensionPct';
+
+export type OverenskomstSatsBinding = Readonly<{
+  locked: boolean;
+  value: number | undefined;
 }>;
+
+type OverenskomstSatsBindings = Readonly<Record<OverenskomstSatsField, OverenskomstSatsBinding>>;
 
 type AutoSatsFields = Pick<
   LoenindkomstAnsaettelsesforhold,
   'fritvalgPct' | 'shSoPct' | 'storeBededagPct' | 'pensionPct'
 >;
 
-const toPctPoint = (value: number | null | undefined): number | undefined => (
-  typeof value === 'number' ? value * 100 : undefined
-);
+const UNLOCKED_OVERENSKOMST_SATS_BINDINGS: OverenskomstSatsBindings = {
+  fritvalgPct: { locked: false, value: undefined },
+  shSoPct: { locked: false, value: undefined },
+  pensionPct: { locked: false, value: undefined },
+};
+
+const resolveBindingFromDecimal = (value: number | null | undefined): OverenskomstSatsBinding => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return {
+      locked: true,
+      value: round2(value * 100),
+    };
+  }
+  return {
+    locked: false,
+    value: undefined,
+  };
+};
 
 const resolveStoreBededagPct = (
   af: Pick<LoenindkomstAnsaettelsesforhold, 'loenPaaHelligdage'>,
-  reguleringsDato: ISODateString | undefined
+  anvendtReguleringsdato: ISODateString | undefined
 ): number => {
-  if (!reguleringsDato) return 0;
-  return af.loenPaaHelligdage === 'Almindelig løn' && reguleringsDato >= STORE_BEDEDAG_START
+  if (!anvendtReguleringsdato) return 0;
+  return af.loenPaaHelligdage === 'Almindelig løn' && anvendtReguleringsdato >= STORE_BEDEDAG_START
     ? STORE_BEDEDAG_PCT
     : 0;
 };
@@ -50,7 +69,7 @@ const resolveManualPercentValue = (
   fallback: number | undefined
 ): number | undefined => {
   if (typeof rowValue === 'string' && rowValue.trim() !== '') {
-    return parsePercentToDecimal(rowValue) * 100;
+    return round2(parsePercentToDecimal(rowValue) * 100);
   }
   return fallback;
 };
@@ -94,26 +113,20 @@ const resolvePeriodSatser = (
   });
 };
 
-export const resolveLoenindkomstReguleringsdato = (
-  af: Pick<LoenindkomstAnsaettelsesforhold, 'saerligFraDatoRegulering'>,
-  skadesdato: ISODateString | undefined
-): ISODateString | undefined => af.saerligFraDatoRegulering || skadesdato;
-
 export const resolveAutoStoreBededagPct = (
-  af: Pick<LoenindkomstAnsaettelsesforhold, 'loenPaaHelligdage' | 'saerligFraDatoRegulering'>,
-  skadesdato: ISODateString | undefined
-): number => resolveStoreBededagPct(af, resolveLoenindkomstReguleringsdato(af, skadesdato));
+  af: Pick<LoenindkomstAnsaettelsesforhold, 'loenPaaHelligdage'>,
+  anvendtReguleringsdato: ISODateString | undefined
+): number => resolveStoreBededagPct(af, anvendtReguleringsdato);
 
-export const resolveOverenskomstAutoSatser = (
-  af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'saerligFraDatoRegulering' | 'loenPaaHelligdage'>,
-  skadesdato: ISODateString | undefined
-): OverenskomstSatserResult => {
-  if (!af.harOverenskomst) return {};
+const resolveOverenskomstSatsBindingsForAnvendtReguleringsdato = (
+  af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'>,
+  anvendtReguleringsdato: ISODateString | undefined
+): OverenskomstSatsBindings => {
+  if (!af.harOverenskomst) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
   const overenskomstId = af.overenskomstId?.trim();
-  const reguleringsDato = resolveLoenindkomstReguleringsdato(af, skadesdato);
-  if (!overenskomstId || !reguleringsDato) return {};
-  const dato = isoToDanish(reguleringsDato);
-  if (!dato) return {};
+  if (!overenskomstId || !anvendtReguleringsdato) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
+  const dato = isoToDanish(anvendtReguleringsdato);
+  if (!dato) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
 
   const applyShRegel = af.loenPaaHelligdage === 'Almindelig løn';
   const satser = isOffentligOverenskomstId(overenskomstId)
@@ -128,49 +141,57 @@ export const resolveOverenskomstAutoSatser = (
       });
     })();
 
-  if (!satser) return {};
+  if (!satser) return UNLOCKED_OVERENSKOMST_SATS_BINDINGS;
   return {
-    fritvalgPct: toPctPoint(satser.fritvalg),
-    shSoPct: toPctPoint(satser.shSoSats),
-    pensionPct: toPctPoint(satser.agPension),
+    fritvalgPct: resolveBindingFromDecimal(satser.fritvalg),
+    shSoPct: resolveBindingFromDecimal(satser.shSoSats),
+    pensionPct: resolveBindingFromDecimal(satser.agPension),
   };
 };
 
-export const hasLockedOverenskomstSatser = (
-  af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId'>
-): boolean => af.harOverenskomst && Boolean(af.overenskomstId?.trim());
+export const resolveOverenskomstSatsBindings = (
+  af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'>,
+  anvendtReguleringsdato: ISODateString | undefined
+): OverenskomstSatsBindings =>
+  resolveOverenskomstSatsBindingsForAnvendtReguleringsdato(af, anvendtReguleringsdato);
 
-export const resolveAutoSatsFields = (
+export const isOverenskomstSatsFieldLocked = (
+  af: Pick<LoenindkomstAnsaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'>,
+  anvendtReguleringsdato: ISODateString | undefined,
+  field: OverenskomstSatsField
+): boolean => resolveOverenskomstSatsBindings(af, anvendtReguleringsdato)[field].locked;
+
+const resolveAutoSatsFields = (
   af: Pick<
     LoenindkomstAnsaettelsesforhold,
-    'harOverenskomst' | 'overenskomstId' | 'saerligFraDatoRegulering' | 'loenPaaHelligdage'
+    'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'
     | 'fritvalgPct' | 'shSoPct' | 'storeBededagPct' | 'pensionPct'
   >,
-  skadesdato: ISODateString | undefined
+  anvendtReguleringsdato: ISODateString | undefined
 ): AutoSatsFields => {
-  const autoStoreBededag = resolveAutoStoreBededagPct(af, skadesdato);
-  const autoSatser = resolveOverenskomstAutoSatser(af, skadesdato);
+  const autoStoreBededag = resolveAutoStoreBededagPct(af, anvendtReguleringsdato);
+  const autoSatser = resolveOverenskomstSatsBindings(af, anvendtReguleringsdato);
 
   return {
-    fritvalgPct: autoSatser.fritvalgPct ?? af.fritvalgPct,
-    shSoPct: autoSatser.shSoPct ?? af.shSoPct,
+    fritvalgPct: autoSatser.fritvalgPct.locked ? autoSatser.fritvalgPct.value : af.fritvalgPct,
+    shSoPct: autoSatser.shSoPct.locked ? autoSatser.shSoPct.value : af.shSoPct,
     storeBededagPct: autoStoreBededag,
-    pensionPct: autoSatser.pensionPct ?? af.pensionPct,
+    pensionPct: autoSatser.pensionPct.locked ? autoSatser.pensionPct.value : af.pensionPct,
   };
 };
 
 export const applyAutoSatsFields = <
   T extends Pick<
     LoenindkomstAnsaettelsesforhold,
-    'harOverenskomst' | 'overenskomstId' | 'saerligFraDatoRegulering' | 'loenPaaHelligdage'
+    'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'
     | 'fritvalgPct' | 'shSoPct' | 'storeBededagPct' | 'pensionPct'
   >,
 >(
   af: T,
-  skadesdato: ISODateString | undefined
+  anvendtReguleringsdato: ISODateString | undefined
 ): T => ({
   ...af,
-  ...resolveAutoSatsFields(af, skadesdato),
+  ...resolveAutoSatsFields(af, anvendtReguleringsdato),
 });
 
 export const buildLoenindkomstRateSegments = (args: Readonly<{
@@ -186,13 +207,12 @@ export const buildLoenindkomstRateSegments = (args: Readonly<{
     | 'harOverenskomst'
     | 'overenskomstId'
     | 'loenPaaHelligdage'
-    | 'saerligFraDatoRegulering'
   >;
-  skadesdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
   fra: ISODateString;
   til: ISODateString;
 }>): readonly StandardLoenRateSegment[] => {
-  const { ansaettelsesforhold: af, skadesdato: _skadesdato, fra, til } = args;
+  const { ansaettelsesforhold: af, skadedato: _skadedato, fra, til } = args;
   const baseSatser: StandardLoenSatserInput = {
     feriePct: af.feriePct,
     fritvalgPct: af.fritvalgPct,
@@ -240,20 +260,16 @@ export const buildLoenindkomstRateSegments = (args: Readonly<{
     .filter((start) => start >= fra && start <= til);
 
   return buildSegmentsFromPeriodStarts(fra, til, starts).map((segment) => {
-    const dato = isoToDanish(segment.startDato);
-    if (!dato) {
-      return { fra: segment.fra, til: segment.til, satser: baseSatser };
-    }
-    const auto = resolveOverenskomstAutoSatser(af, segment.startDato);
+    const auto = resolveOverenskomstSatsBindingsForAnvendtReguleringsdato(af, segment.startDato);
     return {
       fra: segment.fra,
       til: segment.til,
       satser: {
         feriePct: af.feriePct,
-        fritvalgPct: auto.fritvalgPct ?? af.fritvalgPct,
-        shSoPct: auto.shSoPct ?? af.shSoPct,
+        fritvalgPct: auto.fritvalgPct.locked ? auto.fritvalgPct.value : af.fritvalgPct,
+        shSoPct: auto.shSoPct.locked ? auto.shSoPct.value : af.shSoPct,
         storeBededagPct: resolveStoreBededagPct(af, segment.startDato),
-        pensionPct: auto.pensionPct ?? af.pensionPct,
+        pensionPct: auto.pensionPct.locked ? auto.pensionPct.value : af.pensionPct,
       },
     };
   });

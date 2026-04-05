@@ -17,14 +17,14 @@ import type { SygeferiegodtgoerelseResult } from '../erstatningsopgoerelse/engin
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 
 export type SvieSmerteContext = Readonly<{
-  skadesdatoISO: ISODateString | undefined;
+  skadedatoISO: ISODateString | undefined;
   erErhvervssygdom: boolean;
   menAfgoerelseDatoForTabel: ISODateString | undefined;
   verserendeKlageMen: boolean;
 }>;
 
 export type TaftContext = Readonly<{
-  skadesdatoISO: ISODateString | undefined;
+  skadedatoISO: ISODateString | undefined;
   erErhvervssygdom: boolean;
   endeligEETBeregnetDato: ISODateString | undefined;
   differencekravDato: ISODateString | undefined;
@@ -76,7 +76,7 @@ export const buildSvieSmerteContext = (
   const verserendeKlageMen = eoValues.verserendeKlageMen === 'Ja';
 
   return {
-    skadesdatoISO: stamdataValues.skadesdato,
+    skadedatoISO: stamdataValues.skadedato,
     erErhvervssygdom,
     menAfgoerelseDatoForTabel,
     verserendeKlageMen,
@@ -95,7 +95,7 @@ export const buildTaftContext = (
   const verserendeKlageEet = eoValues.verserendeKlageEet === 'Ja';
 
   return {
-    skadesdatoISO: stamdataValues.skadesdato,
+    skadedatoISO: stamdataValues.skadedato,
     erErhvervssygdom,
     endeligEETBeregnetDato,
     differencekravDato: eoValues.differencekravDato,

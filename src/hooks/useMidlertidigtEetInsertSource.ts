@@ -12,7 +12,7 @@ import { formPersistenceStore } from '../stores/formPersistenceStore';
 
 type MidlertidigtEetInsertSource = Readonly<{
   eetValues: ErhvervsevnetabComposedValues;
-  skadesdato: StamdataValues['skadesdato'];
+  skadedato: StamdataValues['skadedato'];
 }>;
 
 const subscribeToFormPersistenceStore = formPersistenceStore.subscribe;
@@ -56,7 +56,7 @@ const getMidlertidigtEetInsertSourceSnapshot = (): MidlertidigtEetInsertSource =
       ...(parsedFaellesAarsloen.success ? parsedFaellesAarsloen.data : {}),
       skadelidteFodselsdato: parsedStamdata.success ? parsedStamdata.data.skadelidteFodselsdato : undefined,
     },
-    skadesdato: parsedStamdata.success ? parsedStamdata.data.skadesdato : undefined,
+    skadedato: parsedStamdata.success ? parsedStamdata.data.skadedato : undefined,
   };
 
   cachedSnapshot = {

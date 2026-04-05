@@ -87,7 +87,7 @@ describe('EODebug', () => {
         ],
       },
       rowsBySection: new Map([
-        ['stamdata', [{ id: 'stamdata.skadesdato', label: 'Skadesdato', displayValue: '01-01-2024', status: 'ok' }]],
+        ['stamdata', [{ id: 'stamdata.skadedato', label: 'Skadedato', displayValue: '01-01-2024', status: 'ok' }]],
         ['aes', [{ id: 'aes.varigeMen', label: 'Varigt mén', displayValue: 'Nej', status: 'ok', group: 'aes.varigeMen' }]],
       ]),
       regulationSections: [
@@ -102,7 +102,7 @@ describe('EODebug', () => {
     renderComponent({ revision: 'rev-1' } as never);
 
     expect(screen.getByText('Stamdata')).toBeInTheDocument();
-    expect(screen.getByText('Skadesdato')).toBeInTheDocument();
+    expect(screen.getByText('Skadedato')).toBeInTheDocument();
     expect(screen.queryByText('Lønoversigter')).not.toBeInTheDocument();
     expect(screen.getByText('Ansættelsesforhold 1')).toBeInTheDocument();
     expect(screen.queryByText('Sammentælling')).not.toBeInTheDocument();
@@ -159,7 +159,7 @@ describe('EODebug', () => {
           },
           {
             id: 'loenindkomst.af1.regulering.taf.reguleringsdato',
-            label: 'Reguleringsværdi på reguleringsdato for TAF',
+            label: 'Reguleringsværdi på anvendt reguleringsdato for TAF',
             displayValue: 'Ja',
             status: 'ok',
           },
@@ -195,7 +195,7 @@ describe('EODebug', () => {
           header: 'Regulering (Tandlægerne Toft og Vedsted)',
           rows: [
             { id: 'regulation.af1:kilde', label: 'Navn på reguleringsform', value: 'overenskomst Tandlægeforening/HK' },
-            { id: 'regulation.af1:skadesdato', label: 'Reguleringsdato (Skadedato)', value: '24-05-2023' },
+            { id: 'regulation.af1:skadedato', label: 'Anvendt reguleringsdato (Beregningsperiode slutdato)', value: '24-05-2023' },
             { id: 'regulation.af1:basisvaerdi', label: 'Basisværdi (indeks 100)', value: '33.476,39' },
             { id: 'regulation.af1:seneste_indeks', label: 'Seneste indeks', value: '110,32' },
           ],
@@ -236,10 +236,10 @@ describe('EODebug', () => {
     expect(screen.queryByText('Seneste indeks')).not.toBeInTheDocument();
     expect(screen.queryByText('Pakke')).not.toBeInTheDocument();
     expect(screen.queryByText('Indeks')).toBeInTheDocument();
-    expect(screen.queryByText('Reguleringsværdi på reguleringsdato for TAF')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reguleringsværdi på anvendt reguleringsdato for TAF')).not.toBeInTheDocument();
     expect(screen.queryByText('Reguleringsværdi på start-dato for TAF')).not.toBeInTheDocument();
     expect(screen.queryByText('Reguleringsværdi på slut-dato for TAF')).not.toBeInTheDocument();
-    expect(screen.getByText('Reguleringsværdi på: Reguleringsdato / start-dato for TAF / slut-dato for TAF')).toBeInTheDocument();
+    expect(screen.getByText('Reguleringsværdi på: Anvendt reguleringsdato / start-dato for TAF / slut-dato for TAF')).toBeInTheDocument();
     expect(screen.getAllByText('Fra-dato').length).toBeGreaterThan(0);
     expect(screen.getByText('Til-dato')).toBeInTheDocument();
     expect(screen.getByText('Indeksberegning')).toBeInTheDocument();
@@ -248,14 +248,14 @@ describe('EODebug', () => {
     expect(screen.getAllByText('Regulering').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
     expect(screen.getAllByText('Beregnet regulering').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
     const regulationSubheading = screen.getAllByText('Regulering')[0];
-    const datoRow = screen.getByText('Reguleringsdato (Skadedato)');
+    const datoRow = screen.getByText('Anvendt reguleringsdato (Beregningsperiode slutdato)');
     const valgtReguleringRow = screen.getByText('Valgt regulering');
     expect(
       regulationSubheading.compareDocumentPosition(datoRow) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     const navnRow = screen.getAllByText('Navn på reguleringsform')[0];
     const alleVaerdierRow = screen.getByText('Alle reguleringsværdier udfyldt');
-    const combinedTafRow = screen.getByText('Reguleringsværdi på: Reguleringsdato / start-dato for TAF / slut-dato for TAF');
+    const combinedTafRow = screen.getByText('Reguleringsværdi på: Anvendt reguleringsdato / start-dato for TAF / slut-dato for TAF');
     expect(datoRow.compareDocumentPosition(valgtReguleringRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(valgtReguleringRow.compareDocumentPosition(navnRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(navnRow.compareDocumentPosition(alleVaerdierRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -324,7 +324,7 @@ describe('EODebug', () => {
             ansatPaaSkadestidspunktet: true,
             ansaettelsesforholdOphoert: false,
             sidsteArbejdsdag: undefined,
-            harAnciennitetstillaegEfterSkadesdatoen: false,
+            harAnciennitetstillaegEfterSkadedatoen: false,
             anciennitetstillaegDato: undefined,
             anciennitetstillaegSatsAngivesPer: 'Måned',
             anciennitetstillaegSats: undefined,
@@ -897,7 +897,7 @@ describe('EODebug', () => {
           id: 'regulation.af1',
           header: 'Regulering (Test)',
           rows: [
-            { id: 'regulation.af1:skadesdato', label: 'Reguleringsdato (Skadedato)', value: '26-01-2024' },
+            { id: 'regulation.af1:skadedato', label: 'Anvendt reguleringsdato (Beregningsperiode slutdato)', value: '26-01-2024' },
             { id: 'regulation.af1:overenskomst', label: 'Overenskomst', value: 'KL-overenskomsten (Forhandlingsfællesskabet / KL)' },
           ],
         },
@@ -906,7 +906,7 @@ describe('EODebug', () => {
 
     const { container } = renderComponent({ revision: 'rev-1' } as never);
 
-    expect(screen.getByText('Reguleringsdato (Skadedato)')).toBeInTheDocument();
+    expect(screen.getByText('Anvendt reguleringsdato (Beregningsperiode slutdato)')).toBeInTheDocument();
     expect(screen.getByText('Overenskomst')).toBeInTheDocument();
     expect(screen.getByText('Valgt regulering')).toBeInTheDocument();
     expect(container.querySelectorAll('[data-testid="CheckIcon"]').length).toBeGreaterThan(0);

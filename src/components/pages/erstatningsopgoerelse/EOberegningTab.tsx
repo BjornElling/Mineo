@@ -43,7 +43,7 @@ interface EOberegningTabProps {
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
   midlertidigtEetInsertSource?: Readonly<{
     eetValues: ErhvervsevnetabComposedValues;
-    skadesdato: ISODateString | undefined;
+    skadedato: ISODateString | undefined;
   }>;
 }
 
@@ -616,8 +616,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   const tafSummaryLabel = harTafPerioder && tafPerioderLines.length > 1 ? 'TAF-perioder' : 'TAF-periode';
 
   const erErhvervssygdom = stamdataValues?.skadestype === 'Erhvervssygdom';
-  const skadesdatoLabel = erErhvervssygdom ? 'Anmeldelsesdato' : 'Skadesdato';
-  const skadesdatoDisplay = formatIsoDateLong(stamdataValues?.skadesdato) || '-';
+  const skadedatoLabel = erErhvervssygdom ? 'Anmeldelsesdato' : 'Skadedato';
+  const skadedatoDisplay = formatIsoDateLong(stamdataValues?.skadedato) || '-';
 
   const erRevideret = eoValues.revideretOpgoerelse === 'Ja';
   const revideretPrefix = erRevideret ? 'Revideret ' : '';
@@ -839,9 +839,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         </Box>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">{skadesdatoLabel}</Typography>
+          <Typography className="row--text">{skadedatoLabel}</Typography>
           <Box className="row--label-right-hover__content">
-            <Typography className="row--text">{skadesdatoDisplay}</Typography>
+            <Typography className="row--text">{skadedatoDisplay}</Typography>
           </Box>
         </Box>
 

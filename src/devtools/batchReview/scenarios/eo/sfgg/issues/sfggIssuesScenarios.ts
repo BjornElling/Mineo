@@ -73,7 +73,7 @@ const ISSUE_SCENARIO_01 = buildScenario(
         ansatPaaSkadestidspunktet: true,
         ansaettelsesforholdOphoert: false,
         sidsteArbejdsdag: undefined,
-        harAnciennitetstillaegEfterSkadesdatoen: false,
+        harAnciennitetstillaegEfterSkadedatoen: false,
         anciennitetstillaegDato: undefined,
         anciennitetstillaegSatsAngivesPer: 'Måned',
         anciennitetstillaegSats: undefined,
@@ -134,7 +134,7 @@ const ISSUE_SCENARIO_01 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Test Person',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2023-03-01'),
+        skadedato: iso('2023-03-01'),
       },
       eoValues: eo,
     };
@@ -171,7 +171,7 @@ const ISSUE_SCENARIO_02 = buildScenario(
         ansatPaaSkadestidspunktet: true,
         ansaettelsesforholdOphoert: false,
         sidsteArbejdsdag: undefined,
-        harAnciennitetstillaegEfterSkadesdatoen: false,
+        harAnciennitetstillaegEfterSkadedatoen: false,
         anciennitetstillaegDato: undefined,
         anciennitetstillaegSatsAngivesPer: 'Måned',
         anciennitetstillaegSats: undefined,
@@ -218,7 +218,7 @@ const ISSUE_SCENARIO_02 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Test Person 2',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2023-04-01'),
+        skadedato: iso('2023-04-01'),
       },
       eoValues: eo,
     };
@@ -256,7 +256,7 @@ const ISSUE_SCENARIO_03 = buildScenario(
         ansatPaaSkadestidspunktet: true,
         ansaettelsesforholdOphoert: false,
         sidsteArbejdsdag: undefined,
-        harAnciennitetstillaegEfterSkadesdatoen: false,
+        harAnciennitetstillaegEfterSkadedatoen: false,
         anciennitetstillaegDato: undefined,
         anciennitetstillaegSatsAngivesPer: 'Måned',
         anciennitetstillaegSats: undefined,
@@ -302,7 +302,7 @@ const ISSUE_SCENARIO_03 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Test Person 3',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2023-05-01'),
+        skadedato: iso('2023-05-01'),
       },
       eoValues: eo,
     };
@@ -346,7 +346,7 @@ const ISSUE_SCENARIO_04 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Test Person 4',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2023-06-01'),
+        skadedato: iso('2023-06-01'),
       },
       eoValues: eo,
     };
@@ -384,7 +384,7 @@ const ISSUE_SCENARIO_05 = buildScenario(
         ansatPaaSkadestidspunktet: true,
         ansaettelsesforholdOphoert: false,
         sidsteArbejdsdag: undefined,
-        harAnciennitetstillaegEfterSkadesdatoen: false,
+        harAnciennitetstillaegEfterSkadedatoen: false,
         anciennitetstillaegDato: undefined,
         anciennitetstillaegSatsAngivesPer: 'Måned',
         anciennitetstillaegSats: undefined,
@@ -445,7 +445,7 @@ const ISSUE_SCENARIO_05 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Test Person 5',
         skadestype: 'Arbejdsulykke',
-        skadesdato: iso('2023-05-01'),
+        skadedato: iso('2023-05-01'),
       },
       eoValues: eo,
     };
@@ -453,15 +453,15 @@ const ISSUE_SCENARIO_05 = buildScenario(
 );
 
 /**
- * Scenarie: Sagen har ingen skadesdato — kan forårsage advarsler i debug.
+ * Scenarie: Sagen har ingen skadedato — kan forårsage advarsler i debug.
  */
 const ISSUE_SCENARIO_06 = buildScenario(
   'sfgg-issues-06',
-  'SFGG — ingen skadesdato i stamdata',
-  'Stamdata mangler skadesdato. Kan udløse advarsler i SFGG-debug-rows om manglende skadesdato.',
+  'SFGG — ingen skadedato i stamdata',
+  'Stamdata mangler skadedato. Kan udløse advarsler i SFGG-debug-rows om manglende skadedato.',
   ['sfgg', 'stamdata', 'mangler', 'alle'],
   [
-    { label: 'Skadesdato', value: '(mangler)' },
+    { label: 'Skadedato', value: '(mangler)' },
     { label: 'SFGG kilde', value: 'Ferieloven' },
   ],
   () => {
@@ -481,7 +481,7 @@ const ISSUE_SCENARIO_06 = buildScenario(
         ansatPaaSkadestidspunktet: true,
         ansaettelsesforholdOphoert: false,
         sidsteArbejdsdag: undefined,
-        harAnciennitetstillaegEfterSkadesdatoen: false,
+        harAnciennitetstillaegEfterSkadedatoen: false,
         anciennitetstillaegDato: undefined,
         anciennitetstillaegSatsAngivesPer: 'Måned',
         anciennitetstillaegSats: undefined,
@@ -527,8 +527,8 @@ const ISSUE_SCENARIO_06 = buildScenario(
         sagsbehandler: undefined,
         skadelidte: 'Test Person 6',
         skadestype: 'Arbejdsulykke',
-        // Ingen skadesdato
-        skadesdato: undefined,
+        // Ingen skadedato
+        skadedato: undefined,
       },
       eoValues: eo,
     };

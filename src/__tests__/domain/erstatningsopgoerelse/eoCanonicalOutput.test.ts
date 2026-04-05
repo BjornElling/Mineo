@@ -50,7 +50,7 @@ describe('eoCanonicalOutput', () => {
     const stamdata = {
       ...STAMDATA_INITIAL_VALUES,
       skadestype: 'Arbejdsulykke' as const,
-      skadesdato: iso('2024-01-01'),
+      skadedato: iso('2024-01-01'),
     };
 
     // dagsDatoISO er kun PDF-metadata; canonical output er dato-uafhængig.
@@ -113,7 +113,7 @@ describe('eoCanonicalOutput', () => {
     const stamdata = {
       ...STAMDATA_INITIAL_VALUES,
       skadestype: 'Arbejdsulykke' as const,
-      skadesdato: iso('2024-01-01'),
+      skadedato: iso('2024-01-01'),
     };
 
     // dagsDatoISO er kun PDF-metadata; canonical output er dato-uafhængig.
@@ -136,7 +136,7 @@ describe('eoCanonicalOutput', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     const invalidStamdata = {
       ...STAMDATA_INITIAL_VALUES,
-      skadesdato: '31-12-2024',
+      skadedato: '31-12-2024',
     } as unknown as typeof STAMDATA_INITIAL_VALUES;
 
     const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: invalidStamdata, eoValues });
@@ -164,7 +164,7 @@ describe('eoCanonicalOutput', () => {
     const stamdata = {
       ...STAMDATA_INITIAL_VALUES,
       skadestype: 'Arbejdsulykke' as const,
-      skadesdato: iso('2024-01-01'),
+      skadedato: iso('2024-01-01'),
     };
 
     const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues });

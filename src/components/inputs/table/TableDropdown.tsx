@@ -230,13 +230,18 @@ const TableDropdown = React.memo(
       };
     }, [allowEmpty, grid, onChange, readOnly]);
 
+    const gridCellKey = gridCell ? `${gridCell.rowId}:${gridCell.colIndex}` : null;
     React.useEffect(() => {
       if (!gridCell) return;
       grid.registerEditor(gridCell, editorHandle);
       return () => {
         grid.unregisterEditor(gridCell);
       };
-    }, [editorHandle, grid, gridCell]);
+    // gridCellKey er en stabil streng-repræsentation af gridCell-koordinaterne.
+    // gridCell er intentionelt udeladt fra dep-arrayet for at undgå re-registrering
+    // ved inline object literals i caller (ny reference, samme værdier).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editorHandle, grid, gridCellKey]);
 
     return (
       <Tooltip title={showError ? externalErrorText : ''} arrow placement="top">

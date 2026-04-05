@@ -15,7 +15,7 @@ const ControlMismatchReportV1Schema = z.object({
   ),
   sammentaelling: z.unknown(),
   context: z.object({
-    skadesdato: z.string().optional(),
+    skadedato: z.string().optional(),
     skadestype: z.string().optional(),
     beregningsperiodeFra: z.string().optional(),
     beregningsperiodeTil: z.string().optional(),
@@ -43,7 +43,7 @@ export const buildControlMismatchReport = (
     })),
     sammentaelling: snapshot.sammentaelling,
     context: {
-      skadesdato: snapshot.stamdataValues.skadesdato,
+      skadedato: snapshot.stamdataValues.skadedato,
       skadestype: snapshot.stamdataValues.skadestype,
       beregningsperiodeFra: snapshot.eoValues.periodeTilBeregningFra,
       beregningsperiodeTil: snapshot.eoValues.periodeTilBeregningTil,

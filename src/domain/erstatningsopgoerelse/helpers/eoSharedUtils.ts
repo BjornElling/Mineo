@@ -129,16 +129,17 @@ export const formatAnciennitetConversion = (
   return { displayText: `${inputText} kr./time`, convertedValue };
 };
 
-export const resolveReguleringsdato = (params: {
+export const resolveAnvendtReguleringsdato = (params: {
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'] | undefined;
   angivetLoenMetodeOpreguleresFraDato: ISODateString | undefined;
   saerligFraDatoRegulering: ISODateString | undefined;
-  skadesdato: ISODateString | undefined;
+  beregningsperiodeTil: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
 }): ISODateString | undefined => {
   if (params.beregnesUdFra === 'Beregningsperiode') {
-    return params.saerligFraDatoRegulering ?? params.skadesdato;
+    return params.saerligFraDatoRegulering ?? params.beregningsperiodeTil;
   }
-  return params.angivetLoenMetodeOpreguleresFraDato ?? params.skadesdato;
+  return params.angivetLoenMetodeOpreguleresFraDato ?? params.skadedato;
 };
 
 export const resolveStatistikModelId = (label: string | undefined): StatistiskLoenudviklingId | undefined => {

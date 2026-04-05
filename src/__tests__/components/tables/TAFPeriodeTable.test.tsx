@@ -29,7 +29,7 @@ describe('TAFPeriodeTable', () => {
         derivedById={{}}
         derivedColumnHeader="Antal måneder"
         overlapWithBeregningsperiodeByRowId={{}}
-        skadesdatoISO={undefined}
+        skadedatoISO={undefined}
         endeligEETBeregnetDato={undefined}
         differencekravDato={undefined}
         erErhvervssygdom={false}
@@ -77,7 +77,7 @@ describe('TAFPeriodeTable', () => {
           row1:
             'Der er overlap mellem beregningsperioden (01-05-2023 - 31-05-2023) og en TAF-periode (15-05-2023 - 20-05-2023)',
         }}
-        skadesdatoISO={undefined}
+        skadedatoISO={undefined}
         endeligEETBeregnetDato={undefined}
         differencekravDato={undefined}
         erErhvervssygdom={false}
@@ -124,7 +124,7 @@ describe('TAFPeriodeTable', () => {
         derivedById={{}}
         derivedColumnHeader="Antal arbejdsdage"
         overlapWithBeregningsperiodeByRowId={{}}
-        skadesdatoISO={undefined}
+        skadedatoISO={undefined}
         endeligEETBeregnetDato={toISODateString('2023-05-10')}
         differencekravDato={toISODateString('2023-05-09')}
         erErhvervssygdom={false}

@@ -12,9 +12,9 @@ export type DateRangeSpecialErrors = {
   /**
    * Identifies the semantic origin of the min-bound for domain-specific error messages.
    */
-  minBoundKind?: 'skadesdato' | 'anmeldedatoMinus5Aar' | 'kapDatoFoerAfgoerelsesdato';
+  minBoundKind?: 'skadedato' | 'anmeldedatoMinus5Aar' | 'kapDatoFoerAfgoerelsesdato';
   /**
-   * The user-visible reference date that produced the bound (typically Skadesdato/Anmeldedato).
+   * The user-visible reference date that produced the bound (typically Skadedato/Anmeldedato).
    * This is used for special messages that must mention the concrete reference date.
    */
   minBoundReferenceISO?: ISODateString;
@@ -43,12 +43,12 @@ export const resolveDateRangeErrorMessage = (args: {
   const { iso, minDate, maxDate, special } = args;
 
   // Bound-kind messages must take precedence over paired Fra/Til messages to avoid misleading output.
-  // Example: when the effective min is "Skadesdato", the correct message is about Skadesdato, not "Til < Fra".
+  // Example: when the effective min is "Skadedato", the correct message is about Skadedato, not "Til < Fra".
   if (maxDate && maxDate === TODAY && iso > maxDate) {
     return `Datoen er efter dags dato (${formatISOForTooltip(maxDate)})`;
   }
 
-  if (special?.minBoundKind === 'skadesdato' && minDate && iso < minDate) {
+  if (special?.minBoundKind === 'skadedato' && minDate && iso < minDate) {
     const reference = special.minBoundReferenceISO ?? minDate;
     return `Datoen kan ikke være før skadesdagen (${formatISOForTooltip(reference)})`;
   }

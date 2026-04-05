@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import LoenindkomstTab from '../../../../components/pages/erstatningsopgoerelse/LoenindkomstTab';
 import {
@@ -7,14 +7,17 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
+const mockStamdata = {
+  skadedato: '2024-01-01',
+  skadestype: 'Arbejdsulykke',
+};
+
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useDynamicFormFieldErrorReporter: () => vi.fn(),
 }));
 
 vi.mock('../../../../hooks/useFormPersistenceSelectors', () => ({
-  usePersistedSectionSelector: () => ({
-    skadesdato: '2024-01-01',
-  }),
+  usePersistedSectionSelector: () => mockStamdata,
   getPersistedSectionSnapshot: vi.fn(),
 }));
 
@@ -30,7 +33,141 @@ vi.mock('../../../../contexts/useAppSettings', () => ({
 }));
 
 describe('LoenindkomstTab sygeferiegodtgørelse', () => {
+  const renderLoenindkomstTab = (
+    eoValues = createErstatningsopgoerelseInitialValues(),
+    overrides?: Readonly<{ onAnsaettelsesforholdChange?: ReturnType<typeof vi.fn> }>
+  ) => render(
+    <MemoryRouter>
+      <LoenindkomstTab
+        loenindkomstAnsaettelsesforhold={eoValues.loenindkomstAnsaettelsesforhold}
+        beregnesUdFra={eoValues.beregnesUdFra}
+        periodeTilBeregningFra={eoValues.periodeTilBeregningFra}
+        periodeTilBeregningTil={eoValues.periodeTilBeregningTil}
+        ferieperioder={eoValues.ferieperioder}
+        fravaerPerioder={eoValues.fravaerPerioder}
+        eoValues={eoValues}
+        setEOValues={vi.fn()}
+        onAnsaettelsesforholdChange={overrides?.onAnsaettelsesforholdChange ?? vi.fn()}
+      />
+    </MemoryRouter>
+  );
+
+  it('viser satser på skadedatoen når anvendt reguleringsdato er skadedato ved arbejdsulykke', () => {
+    mockStamdata.skadedato = '2024-01-01';
+    mockStamdata.skadestype = 'Arbejdsulykke';
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Angivet månedsløn';
+    eoValues.loenindkomstAnsaettelsesforhold = [{
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      ansatPaaSkadestidspunktet: true,
+      saerligFraDatoRegulering: undefined,
+    }];
+
+    renderLoenindkomstTab(eoValues);
+
+    expect(screen.getByText('Satser på skadedatoen (01-01-2024)')).toBeInTheDocument();
+  });
+
+  it('viser satser på anmeldelsesdatoen når anvendt reguleringsdato er skadedato ved erhvervssygdom', () => {
+    mockStamdata.skadedato = '2024-01-01';
+    mockStamdata.skadestype = 'Erhvervssygdom';
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Angivet månedsløn';
+    eoValues.loenindkomstAnsaettelsesforhold = [{
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      ansatPaaSkadestidspunktet: true,
+      saerligFraDatoRegulering: undefined,
+    }];
+
+    renderLoenindkomstTab(eoValues);
+
+    expect(screen.getByText('Satser på anmeldelsesdatoen (01-01-2024)')).toBeInTheDocument();
+  });
+
+  it('viser Satser ved beregningsperiodens udløb når anvendt reguleringsdato er periodeTilBeregningTil', () => {
+    mockStamdata.skadedato = '2024-01-01';
+    mockStamdata.skadestype = 'Arbejdsulykke';
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningTil = '2024-12-31';
+    eoValues.loenindkomstAnsaettelsesforhold = [{
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      ansatPaaSkadestidspunktet: true,
+      saerligFraDatoRegulering: undefined,
+    }];
+
+    renderLoenindkomstTab(eoValues);
+
+    expect(screen.getByText('Satser ved beregningsperiodens udløb (31-12-2024)')).toBeInTheDocument();
+  });
+
+  it('autofastsætter overenskomstsatser ud fra beregningsperiodens slutdato og ikke skadedatoen', async () => {
+    mockStamdata.skadedato = '2023-02-01';
+    mockStamdata.skadestype = 'Arbejdsulykke';
+    const onAnsaettelsesforholdChange = vi.fn();
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningTil = '2024-01-01';
+    eoValues.loenindkomstAnsaettelsesforhold = [{
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      harOverenskomst: true,
+      overenskomstId: 'bygge-anlaeg',
+      ansatPaaSkadestidspunktet: true,
+      saerligFraDatoRegulering: undefined,
+      fritvalgPct: undefined,
+      shSoPct: undefined,
+      storeBededagPct: undefined,
+      pensionPct: undefined,
+    }];
+
+    renderLoenindkomstTab(eoValues, { onAnsaettelsesforholdChange });
+
+    await waitFor(() => expect(onAnsaettelsesforholdChange).toHaveBeenCalled());
+
+    const updater = onAnsaettelsesforholdChange.mock.calls[0]?.[0] as ((current: typeof eoValues.loenindkomstAnsaettelsesforhold) => typeof eoValues.loenindkomstAnsaettelsesforhold);
+    const next = updater(eoValues.loenindkomstAnsaettelsesforhold);
+
+    expect(next[0]?.pensionPct).toBeCloseTo(10.15, 10);
+    expect(next[0]?.storeBededagPct).toBeCloseTo(0.45, 10);
+  });
+
+  it('viser anvendt reguleringsdato som basisdato i manuel lønudvikling ved beregningsperiode', () => {
+    mockStamdata.skadedato = '2023-02-01';
+    mockStamdata.skadestype = 'Arbejdsulykke';
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningTil = '2024-01-01';
+    eoValues.loenindkomstAnsaettelsesforhold = [{
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      ansatPaaSkadestidspunktet: true,
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      saerligFraDatoRegulering: undefined,
+    }];
+
+    renderLoenindkomstTab(eoValues);
+
+    expect(screen.getByDisplayValue('01-01-2024')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('01-02-2023')).not.toBeInTheDocument();
+  });
+
+  it('viser satser den med lang dato når anvendt reguleringsdato er en anden dato', () => {
+    mockStamdata.skadedato = '2024-01-01';
+    mockStamdata.skadestype = 'Arbejdsulykke';
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.loenindkomstAnsaettelsesforhold = [{
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      ansatPaaSkadestidspunktet: true,
+      saerligFraDatoRegulering: '2024-03-15',
+    }];
+
+    renderLoenindkomstTab(eoValues);
+
+    expect(screen.getByText('Satser den 15. marts 2024')).toBeInTheDocument();
+  });
+
   it('viser "Ingen overenskomst valgt" og skjuler efterfølgende SFGG-linjer når overenskomst ikke er valgt ovenfor', () => {
+    mockStamdata.skadedato = '2024-01-01';
+    mockStamdata.skadestype = 'Arbejdsulykke';
     const eoValues = createErstatningsopgoerelseInitialValues();
     const ansaettelsesforhold = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -54,21 +191,7 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
       },
     ];
 
-    render(
-      <MemoryRouter>
-        <LoenindkomstTab
-          loenindkomstAnsaettelsesforhold={eoValues.loenindkomstAnsaettelsesforhold}
-          beregnesUdFra={eoValues.beregnesUdFra}
-          periodeTilBeregningFra={eoValues.periodeTilBeregningFra}
-          periodeTilBeregningTil={eoValues.periodeTilBeregningTil}
-          ferieperioder={eoValues.ferieperioder}
-          fravaerPerioder={eoValues.fravaerPerioder}
-          eoValues={eoValues}
-          setEOValues={vi.fn()}
-          onAnsaettelsesforholdChange={vi.fn()}
-        />
-      </MemoryRouter>
-    );
+    renderLoenindkomstTab(eoValues);
 
     expect(screen.getByText('Sygeferiegodtgørelse beregnes ud fra')).toBeInTheDocument();
     expect(screen.getByText('Overenskomst (angivet ovenfor)')).toBeInTheDocument();

@@ -50,11 +50,11 @@ describe('buildMidlertidigtEetRowsFromEet', () => {
     const eetValues = makeValues();
     const rows = buildMidlertidigtEetRowsFromEet({
       eetValues,
-      skadesdato: '2024-07-01',
+      skadedato: '2024-07-01',
     });
     const computation = computeEetLoebendeYdelser({
       erhvervsevnetab: eetValues,
-      skadesdato: '2024-07-01',
+      skadedato: '2024-07-01',
       skadelidteFodselsdato: eetValues.skadelidteFodselsdato,
     }).computation;
 
@@ -80,11 +80,11 @@ describe('buildMidlertidigtEetRowsFromEet', () => {
     const eetValues = makeValues();
     const rows = buildMidlertidigtEetRowsFromEet({
       eetValues,
-      skadesdato: '2024-07-01',
+      skadedato: '2024-07-01',
     });
     const computation = computeEetLoebendeYdelser({
       erhvervsevnetab: eetValues,
-      skadesdato: '2024-07-01',
+      skadedato: '2024-07-01',
       skadelidteFodselsdato: eetValues.skadelidteFodselsdato,
     }).computation;
 
@@ -115,7 +115,7 @@ describe('buildMidlertidigtEetRowsFromEet', () => {
 
     const rows = buildMidlertidigtEetRowsFromEet({
       eetValues: values,
-      skadesdato: '2024-07-01',
+      skadedato: '2024-07-01',
     });
 
     expect(rows).toEqual([]);

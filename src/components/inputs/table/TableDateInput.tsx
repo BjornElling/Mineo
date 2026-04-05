@@ -602,12 +602,17 @@ const TableDateInput = React.memo(
       };
     }, [commitAndEmitBlur, gridApi, setLocalErrorState]);
 
+    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
     React.useEffect(() => {
       gridApi.registerEditor(gridCell, editorHandle);
       return () => {
         gridApi.unregisterEditor(gridCell);
       };
-    }, [editorHandle, gridApi, gridCell]);
+    // gridCellKey er en stabil streng-repræsentation af gridCell-koordinaterne.
+    // gridCell er intentionelt udeladt fra dep-arrayet for at undgå re-registrering
+    // ved inline object literals i caller (ny reference, samme værdier).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [editorHandle, gridApi, gridCellKey]);
 
     const tooltipText = hasExternalError ? externalErrorText : (configErrorMessage !== '' ? configErrorMessage : errorMessage);
 

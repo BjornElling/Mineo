@@ -153,7 +153,7 @@ export const buildTabtArbejdsfortjenesteModel = (
   options: Readonly<{
     tafNetto: TafNettoBeregningResult;
     tafRanges: readonly { fra: ISODateString; til: ISODateString }[];
-    skadesdatoISO?: ISODateString;
+    skadedatoISO?: ISODateString;
   }>
 ): TabtArbejdsfortjenesteModel => {
   const beregnes = values.beregnesTabtArbejdsfortjeneste === 'Ja';
@@ -196,12 +196,12 @@ export const buildTabtArbejdsfortjenesteModel = (
 
   const eetLinjer: string[] = [];
 
-  // Afgør om midlertidig EET er aktiv som TAF-afgrænsning (skadesdato < 2011-06-16).
+  // Afgør om midlertidig EET er aktiv som TAF-afgrænsning (skadedato < 2011-06-16).
   const midlertidigEetErTafRelevant =
     values.verserendeKlageEet !== 'Ja' &&
     values.midlertidigtEetAfgorelse === 'Ja' &&
-    !!options.skadesdatoISO &&
-    options.skadesdatoISO < TAF_MIDLERTIDIG_EET_SKAERINGSDATO;
+    !!options.skadedatoISO &&
+    options.skadedatoISO < TAF_MIDLERTIDIG_EET_SKAERINGSDATO;
 
   const harTafDagenFoer = (dato: ISODateString | undefined): boolean => {
     if (!dato) return false;
@@ -260,7 +260,7 @@ export const buildTabtArbejdsfortjenesteModel = (
   // Vælg hvilken afgrænsningskilde der bestemmer ophørsmeddelelsen.
   // EET-afgørelser vises altid informativt, men kun den valgte kilde får den
   // supplerende ophørstekst og kan undertrykke differencekravslinjen.
-  // Hvis midlertidig EET er aktiv (skadesdato < 2011-06-16), indgår den på linje med de øvrige.
+  // Hvis midlertidig EET er aktiv (skadedato < 2011-06-16), indgår den på linje med de øvrige.
   type AfgraensningsKilde = 'endeligtEet' | 'midlertidigEet' | 'differencekrav';
 
   const findTidligsteDato = (

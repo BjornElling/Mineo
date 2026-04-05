@@ -498,7 +498,7 @@ describe('downloadVarigeMenPdf', () => {
   it('returnerer success=true og kalder generator', async () => {
     const result = await downloadVarigeMenPdf({
       fodselsdato: undefined,
-      skadesdato: undefined,
+      skadedato: undefined,
       mengrad: undefined,
       beregningsdato: undefined,
       beregningsResultat: {} as never,
@@ -513,7 +513,7 @@ describe('downloadVarigeMenPdf', () => {
     mockGenerateVarigeMenPdf.mockImplementationOnce(() => { throw new Error('VM fejl'); });
     const result = await downloadVarigeMenPdf({
       fodselsdato: undefined,
-      skadesdato: undefined,
+      skadedato: undefined,
       mengrad: undefined,
       beregningsdato: undefined,
       beregningsResultat: {} as never,

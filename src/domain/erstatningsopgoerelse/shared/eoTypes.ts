@@ -157,7 +157,7 @@ export type IndkomstSkadestidspunktModel = Readonly<{
   beregningsenhed: TafBeregningsenhed;
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
   loenBaseretPaa: string | null;
-  skadesdato: ISODateString | null;
+  skadedato: ISODateString | null;
   periodeTilBeregning: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
   ansaettelserNavne: readonly string[];
   arbejdssteder: readonly {

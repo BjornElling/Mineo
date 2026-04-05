@@ -2,7 +2,7 @@ import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
-import { computeSkadesdatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
+import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { subtractOneDay } from '../../types/branded';
@@ -17,7 +17,7 @@ export type FerieperiodeTableProps = Readonly<{
   feriedageById: Record<string, number | null>;
   onFieldChange: (rowId: string, field: 'fra' | 'til') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
-  skadesdatoISO: ISODateString | undefined;
+  skadedatoISO: ISODateString | undefined;
   endeligEETBeregnetDato: ISODateString | undefined;
   differencekravDato: ISODateString | undefined;
   erErhvervssygdom: boolean;
@@ -36,7 +36,7 @@ const FerieperiodeTable = React.memo(
     feriedageById,
     onFieldChange,
     onRowBlur,
-    skadesdatoISO,
+    skadedatoISO,
     endeligEETBeregnetDato,
     differencekravDato,
     erErhvervssygdom,
@@ -100,14 +100,14 @@ const FerieperiodeTable = React.memo(
               }
             }
 
-            const skadesdatoMinRule = computeSkadesdatoMinRule({
-              skadesdatoISO,
+            const skadedatoMinRule = computeSkadedatoMinRule({
+              skadedatoISO,
               erErhvervssygdom,
               fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
             });
 
             const bounds = computeRowDateBounds({
-              skadesdatoMinDate: skadesdatoMinRule.minDate,
+              skadedatoMinDate: skadedatoMinRule.minDate,
               rowFra: fraISO,
               rowTil: tilISO,
               fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
@@ -124,14 +124,14 @@ const FerieperiodeTable = React.memo(
 
             const fraNoValidRangeCause = (() => {
               const parts: string[] = [];
-              if (skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+              if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
               if (tilISO) parts.push('til-dato i samme række');
               return parts.length > 0 ? parts.join(', ') : undefined;
             })();
 
             const tilNoValidRangeCause = (() => {
               const parts: string[] = [];
-              if (!fraISO && skadesdatoMinRule.minBoundKind) parts.push('skadesdato');
+              if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
               if (fraISO) parts.push('fra-dato i samme række');
               parts.push('dags dato');
               if (differencekravDato) parts.push('differencekrav-dato');
@@ -153,8 +153,8 @@ const FerieperiodeTable = React.memo(
                     maxDate={fraMaxDate}
                     specialRangeErrors={{
                       fraTilRole: 'fra',
-                      minBoundKind: skadesdatoMinRule.minBoundKind,
-                      minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                      minBoundKind: skadedatoMinRule.minBoundKind,
+                      minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                     }}
                     noValidRangeCause={fraNoValidRangeCause}
                   />
@@ -172,8 +172,8 @@ const FerieperiodeTable = React.memo(
                     specialRangeErrors={{
                       fraTilRole: 'til',
                       minBoundKind:
-                        skadesdatoMinRule.minBoundKind && tilMinDate === absoluteMinDate ? skadesdatoMinRule.minBoundKind : undefined,
-                      minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                        skadedatoMinRule.minBoundKind && tilMinDate === absoluteMinDate ? skadedatoMinRule.minBoundKind : undefined,
+                      minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                     }}
                     noValidRangeCause={tilNoValidRangeCause}
                   />

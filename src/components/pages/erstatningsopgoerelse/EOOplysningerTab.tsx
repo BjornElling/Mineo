@@ -22,6 +22,7 @@ import StyledFractionField from '../../inputs/StyledFractionField';
 import StyledYearField from '../../inputs/StyledYearField';
 import StyledRadioButton from '../../inputs/StyledRadioButton';
 import ContentBox from '../../layout/ContentBox';
+import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import SvieSmerteTable from '../../tables/SvieSmerteTable';
 import TAFPeriodeTable from '../../tables/TAFPeriodeTable';
 import FerieperiodeTable from '../../tables/FerieperiodeTable';
@@ -39,7 +40,7 @@ import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
 import {
   CURRENT_YEAR,
   MIN_SVIESMERTE_YEAR,
-  computeSkadesdatoMinRule,
+  computeSkadedatoMinRule,
   dateRanges_erstatningsopgoerelse
 } from '../../../config/dateRanges';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
@@ -111,6 +112,8 @@ type LoentrinFinderResult = Readonly<{
 }>;
 const LOENGRUPPER = [0, 1, 2, 3, 4] as const;
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
+const PERIODE_INFO_TOOLTIP =
+  'Indsæt alle perioder. Tidligere indtastede perioder skal ikke slettes ved senere opgørelse.';
 
 const parseLoentrinSortValue = (loentrin: number | '55+'): number => (loentrin === '55+' ? 56 : loentrin);
 const hasExactDisplayedAmountMatch = (inputAmount: number, resultAmount: number): boolean => {
@@ -152,19 +155,19 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const { values, setValues, setFieldValue, formVersion } = form;
 
   const persistedStamdata = usePersistedSectionSelector('stamdata');
-  const skadesdatoISO = persistedStamdata?.skadesdato;
+  const skadedatoISO = persistedStamdata?.skadedato;
   const skadestypeFromStamdata = persistedStamdata?.skadestype ?? '';
   const { settings } = useAppSettings();
   const reportDynamicFieldError = useDynamicFormFieldErrorReporter('erstatningsopgoerelse', { source: 'input' });
 
   // Beregn minDate for øvrige krav-tabel
   const oevrigeKravMinDate = React.useMemo(() => {
-    return computeSkadesdatoMinRule({
-      skadesdatoISO,
+    return computeSkadedatoMinRule({
+      skadedatoISO,
       erErhvervssygdom: skadestypeFromStamdata === 'Erhvervssygdom',
       fallbackMin: dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato.fallbackMin,
     }).minDate;
-  }, [skadesdatoISO, skadestypeFromStamdata]);
+  }, [skadedatoISO, skadestypeFromStamdata]);
 
   type ToggleFieldName = {
     [K in keyof ErstatningsopgoerelseValues]-?: ErstatningsopgoerelseValues[K] extends JaNej ? K : never
@@ -664,7 +667,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const handleEoAnciennitetstillaegToggleCommit = React.useCallback((event: CommitEvent<boolean>) => {
     updateEoLoenudvikling((prev) => ({
       ...prev,
-      harAnciennitetstillaegEfterSkadesdatoen: event.target.value,
+      harAnciennitetstillaegEfterSkadedatoen: event.target.value,
     }));
   }, [updateEoLoenudvikling]);
 
@@ -934,7 +937,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
   const angivetLoenOpreguleringLabel = React.useMemo(() => {
     const loenLabel = values.beregnesUdFra === 'Angivet månedsløn' ? 'månedsløn' : 'dagsløn';
-    return `Det angivne beløb afspejler ${loenLabel}en per dato (hvis forskellige fra skadesdato)`;
+    return `Det angivne beløb afspejler ${loenLabel}en per dato (hvis forskellige fra skadedato)`;
   }, [values.beregnesUdFra]);
 
   const loenudviklingBasis = eoLoenudvikling.loenudviklingBeregningsgrundlag;
@@ -957,11 +960,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         : undefined;
 
   const loenudviklingBaseDateDisplay = React.useMemo(() => {
-    const baseIso = aktivAngivetLoenOpreguleresFraDato || skadesdatoISO;
+    const baseIso = aktivAngivetLoenOpreguleresFraDato || skadedatoISO;
     const parsed = baseIso ? parseISODate(baseIso) : null;
     if (!parsed) return '';
     return formatDanishDate(parsed);
-  }, [aktivAngivetLoenOpreguleresFraDato, skadesdatoISO]);
+  }, [aktivAngivetLoenOpreguleresFraDato, skadedatoISO]);
 
   const shouldShowReguleringsDatoInterval = React.useMemo(() => {
     return loenudviklingBasis === 'Overenskomst'
@@ -1030,32 +1033,32 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     return values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato;
   }, [values.endeligtEetAfgorelse, values.endeligEETVirkningsdato, values.endeligEETAfgoerelseDato]);
 
-  // Midlertidig EET-dato som TAF-afgrænsning — kun aktiv ved skadesdato < 2011-06-16.
+  // Midlertidig EET-dato som TAF-afgrænsning — kun aktiv ved skadedato < 2011-06-16.
   const midlertidigEETBeregnetDato = React.useMemo(
-    () => resolveMidlertidigEetDatoHvisAktiv({ ...values, skadesdatoISO }),
-    [values, skadesdatoISO]
+    () => resolveMidlertidigEetDatoHvisAktiv({ ...values, skadedatoISO }),
+    [values, skadedatoISO]
   );
 
   const erErhvervssygdom = skadestypeFromStamdata === 'Erhvervssygdom';
 
-  const skadesdatoMinRule = React.useMemo(
+  const skadedatoMinRule = React.useMemo(
     () =>
-      computeSkadesdatoMinRule({
-        skadesdatoISO,
+      computeSkadedatoMinRule({
+        skadedatoISO,
         erErhvervssygdom,
         fallbackMin: dateRanges_erstatningsopgoerelse.forligDato.fallbackMin,
       }),
-    [erErhvervssygdom, skadesdatoISO]
+    [erErhvervssygdom, skadedatoISO]
   );
 
   const opgoerelseLavetDenMinRule = React.useMemo(
     () =>
-      computeSkadesdatoMinRule({
-        skadesdatoISO,
+      computeSkadedatoMinRule({
+        skadedatoISO,
         erErhvervssygdom,
         fallbackMin: dateRanges_erstatningsopgoerelse.opgoerelse.fallbackMin,
       }),
-    [erErhvervssygdom, skadesdatoISO]
+    [erErhvervssygdom, skadedatoISO]
   );
 
   // Tjek om der er verserende klagesager
@@ -1107,12 +1110,12 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 value={values.vedroererPeriodeFra}
                 onCommit={handleIsoDateBlur('vedroererPeriodeFra')}
                 onFieldError={reportVedroererPeriodeFraInputError}
-                minDate={skadesdatoMinRule.minDate}
+                minDate={skadedatoMinRule.minDate}
                 maxDate={values.vedroererPeriodeTil || dateRanges_erstatningsopgoerelse.periodeFra.fallbackMax}
                 specialRangeErrors={{
                   fraTilRole: 'fra',
-                  minBoundKind: skadesdatoMinRule.minBoundKind,
-                  minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                  minBoundKind: skadedatoMinRule.minBoundKind,
+                  minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                 }}
               />
               <Typography className="row--text">til og med</Typography>
@@ -1264,11 +1267,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               value={values.forligDato}
               onCommit={handleIsoDateBlur('forligDato')}
               onFieldError={reportForligDatoInputErrorSafe}
-              minDate={skadesdatoMinRule.minDate}
+              minDate={skadedatoMinRule.minDate}
               maxDate={dateRanges_erstatningsopgoerelse.forligDato.max}
               specialRangeErrors={{
-                minBoundKind: skadesdatoMinRule.minBoundKind,
-                minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                minBoundKind: skadedatoMinRule.minBoundKind,
+                minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
               }}
             />
           </Box>
@@ -1303,11 +1306,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   value={values.menAfgoerelseDato}
                   onCommit={handleIsoDateBlur('menAfgoerelseDato')}
                   onFieldError={reportMenAfgoerelseDatoInputError}
-                  minDate={skadesdatoMinRule.minDate}
+                  minDate={skadedatoMinRule.minDate}
                   maxDate={dateRanges_erstatningsopgoerelse.menAfgoerelseDato.max}
                   specialRangeErrors={{
-                    minBoundKind: skadesdatoMinRule.minBoundKind,
-                    minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                    minBoundKind: skadedatoMinRule.minBoundKind,
+                    minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                   }}
                 />
               </Box>
@@ -1349,11 +1352,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   value={values.midlertidigEETAfgoerelseDato}
                   onCommit={handleIsoDateBlur('midlertidigEETAfgoerelseDato')}
                   onFieldError={reportMidlertidigEETAfgoerelseDatoInputError}
-                  minDate={skadesdatoMinRule.minDate}
+                  minDate={skadedatoMinRule.minDate}
                   maxDate={dateRanges_erstatningsopgoerelse.midlertidigEETAfgoerelseDato.max}
                   specialRangeErrors={{
-                    minBoundKind: skadesdatoMinRule.minBoundKind,
-                    minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                    minBoundKind: skadedatoMinRule.minBoundKind,
+                    minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                   }}
                 />
               </Box>
@@ -1366,11 +1369,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   value={values.midlertidigEETVirkningsdato}
                   onCommit={handleIsoDateBlur('midlertidigEETVirkningsdato')}
                   onFieldError={reportMidlertidigEETVirkningsdatoInputError}
-                  minDate={skadesdatoMinRule.minDate}
+                  minDate={skadedatoMinRule.minDate}
                   maxDate={dateRanges_erstatningsopgoerelse.midlertidigEETVirkningsdato.max}
                   specialRangeErrors={{
-                    minBoundKind: skadesdatoMinRule.minBoundKind,
-                    minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                    minBoundKind: skadedatoMinRule.minBoundKind,
+                    minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                   }}
                 />
               </Box>
@@ -1401,11 +1404,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   value={values.endeligEETAfgoerelseDato}
                   onCommit={handleIsoDateBlur('endeligEETAfgoerelseDato')}
                   onFieldError={reportEndeligEETAfgoerelseDatoInputError}
-                  minDate={skadesdatoMinRule.minDate}
+                  minDate={skadedatoMinRule.minDate}
                   maxDate={dateRanges_erstatningsopgoerelse.endeligEETAfgoerelseDato.max}
                   specialRangeErrors={{
-                    minBoundKind: skadesdatoMinRule.minBoundKind,
-                    minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                    minBoundKind: skadedatoMinRule.minBoundKind,
+                    minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                   }}
                 />
               </Box>
@@ -1418,11 +1421,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   value={values.endeligEETVirkningsdato}
                   onCommit={handleIsoDateBlur('endeligEETVirkningsdato')}
                   onFieldError={reportEndeligEETVirkningsdatoInputError}
-                  minDate={skadesdatoMinRule.minDate}
+                  minDate={skadedatoMinRule.minDate}
                   maxDate={dateRanges_erstatningsopgoerelse.endeligEETVirkningsdato.max}
                   specialRangeErrors={{
-                    minBoundKind: skadesdatoMinRule.minBoundKind,
-                    minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                    minBoundKind: skadedatoMinRule.minBoundKind,
+                    minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
                   }}
                 />
               </Box>
@@ -1453,11 +1456,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               value={values.differencekravDato}
               onCommit={handleIsoDateBlur('differencekravDato')}
               onFieldError={reportDifferencekravDatoInputError}
-              minDate={skadesdatoMinRule.minDate}
+              minDate={skadedatoMinRule.minDate}
               maxDate={dateRanges_erstatningsopgoerelse.differencekravDato.max}
               specialRangeErrors={{
-                minBoundKind: skadesdatoMinRule.minBoundKind,
-                minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+                minBoundKind: skadedatoMinRule.minBoundKind,
+                minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
               }}
             />
           </Box>
@@ -1492,13 +1495,16 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
             {!getChecked(values.tidligereSsMax) && (
               <>
-                <Typography className="row--subheading">Periode:</Typography>
+                <Typography className="row--subheading">
+                  Periode:
+                  <InfoTooltipIcon title={PERIODE_INFO_TOOLTIP} />
+                </Typography>
                 <SvieSmerteTable
                   rows={svie.draftRows}
                   committedById={svie.committedById}
                   derivedById={svie.derivedById}
                   overlappingIds={svie.overlappingIds}
-                  skadesdatoISO={skadesdatoISO}
+                  skadedatoISO={skadedatoISO}
                   menAfgoerelseDato={menAfgoerelseDatoForTabel}
                   erErhvervssygdom={erErhvervssygdom}
                   verserendeKlageMen={verserendeKlageMen}
@@ -1544,17 +1550,19 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
                 <Typography className="row--subheading">Tidligere svie/smerte godtgørelse</Typography>
 
-                <Box className="row--label-right-hover">
-                  <Typography className="row--text">Svie/smerte krav i tidligere erstatningsopgørelser:</Typography>
-                  <Box className="row--label-right-hover__content">
-                    <StyledAmountField
-                      width={150}
-                      value={values.svieSmerteTidligereTotal}
-                      onCommit={handleAmountBlur('svieSmerteTidligereTotal')}
-                      onFieldError={reportSvieSmerteTidligereTotalInputError}
-                    />
+                {!erFoersteOpgoerelse && (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">Svie/smerte krav i tidligere erstatningsopgørelser:</Typography>
+                    <Box className="row--label-right-hover__content">
+                      <StyledAmountField
+                        width={150}
+                        value={values.svieSmerteTidligereTotal}
+                        onCommit={handleAmountBlur('svieSmerteTidligereTotal')}
+                        onFieldError={reportSvieSmerteTidligereTotalInputError}
+                      />
+                    </Box>
                   </Box>
-                </Box>
+                )}
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode:</Typography>
@@ -1589,7 +1597,10 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
         {getChecked(values.beregnesTabtArbejdsfortjeneste) && (
           <>
-            <Typography className="row--subheading">Periode:</Typography>
+            <Typography className="row--subheading">
+              Periode:
+              <InfoTooltipIcon title={PERIODE_INFO_TOOLTIP} />
+            </Typography>
             <TAFPeriodeTable
               rows={taf.draftRows}
               committedById={taf.committedById}
@@ -1600,7 +1611,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               derivedById={tafDerived.derivedById}
               derivedColumnHeader={tafDerived.kolonneOverskrift}
               overlapWithBeregningsperiodeByRowId={beregningsperiodeTafOverlap.overlapMessageByRowId}
-              skadesdatoISO={skadesdatoISO}
+              skadedatoISO={skadedatoISO}
               endeligEETBeregnetDato={endeligEETBeregnetDato}
               midlertidigEETBeregnetDato={midlertidigEETBeregnetDato}
               differencekravDato={values.differencekravDato}
@@ -1617,7 +1628,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               onFieldChange={ferie.onFieldChange}
               onRowBlur={(rowId) => ferie.onFieldBlur(rowId)}
               onRowsReorder={ferie.reorderRows}
-              skadesdatoISO={skadesdatoISO}
+              skadedatoISO={skadedatoISO}
               endeligEETBeregnetDato={endeligEETBeregnetDato}
               differencekravDato={values.differencekravDato}
               erErhvervssygdom={erErhvervssygdom}
@@ -2119,7 +2130,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       onTableDataChange={handleLoenudviklingManuelTableChange}
                       onInputErrorChange={handleLoenudviklingManuelInputErrorChange}
                       baseDateDisplay={loenudviklingBaseDateDisplay}
-                      baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? 'Skadesdato er ikke udfyldt' : undefined}
+                      baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? 'Skadedato er ikke udfyldt' : undefined}
                       useSmallFont={true}
                     />
                   </Box>
@@ -2220,26 +2231,26 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 <Typography className="row--subheading">Anciennitetstillæg</Typography>
 
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadesdatoen</Typography>
+                  <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadedatoen</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledToggleSwitch
-                      checked={eoLoenudvikling.harAnciennitetstillaegEfterSkadesdatoen}
+                      checked={eoLoenudvikling.harAnciennitetstillaegEfterSkadedatoen}
                       onCommit={handleEoAnciennitetstillaegToggleCommit}
                     />
                   </Box>
                 </Box>
 
-                {eoLoenudvikling.harAnciennitetstillaegEfterSkadesdatoen ? (
+                {eoLoenudvikling.harAnciennitetstillaegEfterSkadedatoen ? (
                   <>
                     <Box className="row--label-right-hover">
                       <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledDateField
                           value={eoLoenudvikling.anciennitetstillaegDato}
-                          minDate={skadesdatoISO}
+                          minDate={skadedatoISO}
                           specialRangeErrors={{
-                            minBoundKind: skadesdatoISO ? 'skadesdato' : undefined,
-                            minBoundReferenceISO: skadesdatoISO,
+                            minBoundKind: skadedatoISO ? 'skadedato' : undefined,
+                            minBoundReferenceISO: skadedatoISO,
                           }}
                           onCommit={handleEoAnciennitetstillaegDatoCommit}
                         />
@@ -2468,8 +2479,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           minDate={oevrigeKravMinDate}
           maxDate={dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato.max}
           specialRangeErrors={{
-            minBoundKind: skadesdatoMinRule.minBoundKind,
-            minBoundReferenceISO: skadesdatoMinRule.minBoundReferenceISO,
+            minBoundKind: skadedatoMinRule.minBoundKind,
+            minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
           }}
           saveOrderPath="erstatningsopgoerelse.oevrigeKravPerioder"
         />

@@ -143,7 +143,7 @@ const getWageAmountsForRow = (
     rateSegments: fra && til
       ? buildLoenindkomstRateSegments({
         ansaettelsesforhold: af,
-        skadesdato: undefined,
+        skadedato: undefined,
         fra,
         til,
       })

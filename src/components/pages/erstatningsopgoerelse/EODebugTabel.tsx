@@ -357,7 +357,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) =>
             </Typography>
             <Box component="ul" sx={{ m: 0, pl: 2 }}>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
-                <strong>Stamdata:</strong> Skadesdato
+                <strong>Stamdata:</strong> Skadedato
               </Typography>
               <Typography component="li" variant="body2" sx={{ mb: 0.5 }}>
                 <strong>Erstatningsopgørelse:</strong> Periode (fra/til)

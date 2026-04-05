@@ -81,7 +81,7 @@ export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget =>
   if (rowId === 'stamdata.skadestype') {
     return { kind: 'stamdata-page', pageName: 'Stamdata', sectionTitle: 'Skadelidte' };
   }
-  if (rowId === 'stamdata.skadesdato') {
+  if (rowId === 'stamdata.skadedato') {
     return { kind: 'stamdata-page', pageName: 'Stamdata', sectionTitle: 'Skadelidte' };
   }
 

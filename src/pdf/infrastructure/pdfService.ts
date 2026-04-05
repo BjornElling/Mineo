@@ -42,6 +42,7 @@ import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import { logWarning } from '../../utils/logger';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { getSatserForYear } from '../../data/lovbestemteRates';
+import { resolveStamdataDatoLabel } from '../../domain/policies/stamdataCalculations';
 
 type ReguleringInterval = Readonly<{
   fraDato: string;
@@ -301,7 +302,7 @@ export const downloadTafFordeltPaaAarPdf = async (params: Readonly<{
 
 export const downloadVarigeMenPdf = async (params: Readonly<{
   fodselsdato: ISODateString | undefined;
-  skadesdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
   mengrad: number | undefined;
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
@@ -310,7 +311,7 @@ export const downloadVarigeMenPdf = async (params: Readonly<{
 }>): Promise<PdfDownloadResult> => {
   const {
     fodselsdato,
-    skadesdato,
+    skadedato,
     mengrad,
     beregningsdato,
     beregningsResultat,
@@ -323,10 +324,11 @@ export const downloadVarigeMenPdf = async (params: Readonly<{
     const { generateVarigeMenPdf } = await loadVarigeMenPdfModule();
     generateVarigeMenPdf({
       fodselsdato,
-      skadesdato,
+      skadedato,
       mengrad,
       beregningsdato,
       beregningsResultat,
+      skadedatoLabel: resolveStamdataDatoLabel(common.stamdata),
       visBrevhoved: common.visBrevhoved,
       stamdata: common.stamdata,
     });

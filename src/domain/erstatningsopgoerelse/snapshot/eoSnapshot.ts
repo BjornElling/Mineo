@@ -233,13 +233,13 @@ export const computeEoSnapshot = (args: Readonly<{
     const svieSmerteForDebug = computeSvieSmerteEngine({
       erstatningsopgoerelse: parsedEo.data,
       stamdata: {
-        skadesdato: parsedStamdata.data.skadesdato,
+        skadedato: parsedStamdata.data.skadedato,
         skadestype: parsedStamdata.data.skadestype,
       },
     });
     const tafRangesForDebug = hasValidationErrorForPathPrefix(validationResult, 'tafPerioder')
       ? undefined
-      : buildTafRanges(parsedEo.data, { skadesdatoISO: parsedStamdata.data.skadesdato });
+      : buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato });
     const debugSnapshotForValidationError = buildDebugSnapshotForComputed({
       revision: args.revision,
       stamdata: parsedStamdata.data,
@@ -267,13 +267,13 @@ export const computeEoSnapshot = (args: Readonly<{
   let debugSnapshot: EODebugSnapshot | null = null;
 
   try {
-    const tafRanges = buildTafRanges(parsedEo.data, { skadesdatoISO: parsedStamdata.data.skadesdato });
+    const tafRanges = buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato });
     const forlig = parseForligsgrad(parsedEo.data);
     const forligFactor = forlig?.factor ?? null;
     const svieSmerte = computeSvieSmerteEngine({
       erstatningsopgoerelse: parsedEo.data,
       stamdata: {
-        skadesdato: parsedStamdata.data.skadesdato,
+        skadedato: parsedStamdata.data.skadedato,
         skadestype: parsedStamdata.data.skadestype,
       },
     });
@@ -348,7 +348,7 @@ export const computeEoSnapshot = (args: Readonly<{
       tabtArbejdsfortjeneste: buildTabtArbejdsfortjenesteModel(parsedEo.data, {
         tafNetto,
         tafRanges: canonicalOutput.periodiseringer.tafPerioder,
-        skadesdatoISO: parsedStamdata.data.skadesdato,
+        skadedatoISO: parsedStamdata.data.skadedato,
       }),
       oevrigeKrav,
       forlig: forligForPdf,

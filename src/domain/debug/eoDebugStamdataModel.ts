@@ -14,7 +14,7 @@ export type DebugRowId =
   | 'stamdata.advokatSagsbehandler'
   | 'stamdata.skadelidte'
   | 'stamdata.skadestype'
-  | 'stamdata.skadesdato';
+  | 'stamdata.skadedato';
 
 type StamdataValues = PersistedSectionMap['stamdata'];
 type StamdataFieldName = Extract<keyof StamdataValues, string>;
@@ -47,10 +47,10 @@ export const buildEODebugStamdataRows = (values: StamdataValues, errors: Stamdat
     ? advokatErrors.concat(sagsbehandlerErrors).some((e) => e.severity === 'error') ? 'error' : 'warning'
     : isNonEmptyString(advokatSagsbehandler) ? 'ok' : 'ok';
 
-  const skadesdatoLabel = values.skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadesdato';
+  const skadedatoLabel = values.skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato';
 
-  // Konverter skadesdato til dansk format
-  const danishSkadesdato = isoToDanish(values.skadesdato);
+  // Konverter skadedato til dansk format
+  const danishSkadedato = isoToDanish(values.skadedato);
 
   return [
     {
@@ -76,9 +76,9 @@ export const buildEODebugStamdataRows = (values: StamdataValues, errors: Stamdat
       ...resolveDebugDisplay({ value: values.skadestype, errors: errors.skadestype, emptyState: 'error' }),
     },
     {
-      id: 'stamdata.skadesdato',
-      label: skadesdatoLabel,
-      ...resolveDebugDisplay({ value: danishSkadesdato, errors: errors.skadesdato, emptyState: 'error' }),
+      id: 'stamdata.skadedato',
+      label: skadedatoLabel,
+      ...resolveDebugDisplay({ value: danishSkadedato, errors: errors.skadedato, emptyState: 'error' }),
     },
   ];
 };

@@ -76,7 +76,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual([
@@ -121,7 +121,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       const rows = buildRows(values, {
         journalnr: undefined,
         skadestype: 'Arbejdsulykke',
-        skadesdato: '2014-12-31',
+        skadedato: '2014-12-31',
       });
 
       expect(buildLoenudviklingModelSpy).not.toHaveBeenCalled();
@@ -171,7 +171,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -234,7 +234,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -340,7 +340,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -378,7 +378,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -414,7 +414,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -465,7 +465,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -500,7 +500,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -560,7 +560,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -632,7 +632,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -685,7 +685,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -735,7 +735,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -788,7 +788,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2014-01-01',
+      skadedato: '2014-01-01',
     });
 
     expect(rows.find((row) => row.label === '4-månedersgrænse')).toBeUndefined();
@@ -824,7 +824,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2014-01-01',
+      skadedato: '2014-01-01',
     });
 
     expect(rows).not.toEqual(
@@ -886,7 +886,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -937,7 +937,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -1036,7 +1036,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       const rows = buildRows(values, {
         journalnr: undefined,
         skadestype: 'Arbejdsulykke',
-        skadesdato: '2024-01-01',
+        skadedato: '2024-01-01',
       });
 
       const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
@@ -1104,13 +1104,13 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
     expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Indeks | Feriepenge-sats | AG-pension | Antal kalenderdage | Feriepengekrav');
-    expect(tableRow?.displayValue).toContain('26-02-2024 | 29-02-2024 | 100,00 | 14,58 | + 10 % | 4 | 64,15');
-    expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,08 | 15,32 | + 10 % | 5 | 84,26');
+    expect(tableRow?.displayValue).toContain('26-02-2024 | 29-02-2024 | 100,36 | 14,63 | + 10 % | 4 | 64,37');
+    expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,46 | 15,38 | + 10 % | 5 | 84,59');
   });
 
   it('viser arbejdsdags-SFGG med kalenderdagsstart efter årsskifte i debug-tabellen når 1. januar ikke er arbejdsdag', () => {
@@ -1162,7 +1162,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
@@ -1218,7 +1218,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows.find((row) => row.id === `sfgg.referencesats.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toEqual(
@@ -1275,7 +1275,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -1323,7 +1323,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2010-01-01',
+      skadedato: '2010-01-01',
     });
 
     expect(rows).toEqual(
@@ -1379,7 +1379,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -1455,14 +1455,14 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         buildRows(values, {
           journalnr: undefined,
           skadestype: 'Arbejdsulykke',
-          skadesdato: '2024-01-01',
+          skadedato: '2024-01-01',
         })
       ).not.toThrow();
 
       const rows = buildRows(values, {
         journalnr: undefined,
         skadestype: 'Arbejdsulykke',
-        skadesdato: '2024-01-01',
+        skadedato: '2024-01-01',
       });
 
       expect(rows).toEqual(
@@ -1522,7 +1522,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -1578,7 +1578,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(
@@ -1640,7 +1640,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-01',
+      skadedato: '2024-01-01',
     });
 
     expect(rows).toEqual(

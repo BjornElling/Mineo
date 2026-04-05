@@ -82,7 +82,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
     run: (ctx) =>
       buildEODebugIndkomstRows(
         ctx.eoValues,
-        ctx.stamdataValues.skadesdato,
+        ctx.stamdataValues.skadedato,
         ctx.loenindkomstManuelReguleringInputErrors,
         ctx.appSettings
       ),

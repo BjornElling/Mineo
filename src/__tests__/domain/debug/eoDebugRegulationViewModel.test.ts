@@ -11,6 +11,7 @@ describe('buildRegulationDebugSections', () => {
   it('bygger også beregnet reguleringstabel for ASL-årslønsmaksimum', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningTil = iso('2023-05-24');
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
         ...eoValues.loenindkomstAnsaettelsesforhold[0],
@@ -26,7 +27,7 @@ describe('buildRegulationDebugSections', () => {
     ];
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
-      skadesdato: iso('2023-05-24'),
+      skadedato: iso('2023-05-24'),
     };
 
     const sections = buildRegulationDebugSections({
@@ -124,9 +125,55 @@ describe('buildRegulationDebugSections', () => {
     expect(sections[0]?.tables?.[1]?.rows.length).toBeGreaterThan(0);
   });
 
+  it('viser label uden parentes når referenceLabel ikke findes', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    const stamdataValues = {
+      ...STAMDATA_INITIAL_VALUES,
+      skadedato: iso('2024-01-01'),
+    };
+
+    const sections = buildRegulationDebugSections({
+      timeline: {
+        tafBeregningsenhed: 'Måneder',
+        ansaettelser: [
+          {
+            ansaettelsesforholdId: 'af-1',
+            navn: 'Test',
+            kildeLabel: 'Statistikmodel',
+            kildeVaerdi: 'ASL-årslønsmaksimum',
+            referenceIso: iso('2024-03-15'),
+            referenceLabel: undefined,
+            referenceValue: 100,
+            entries: [
+              {
+                effectiveFrom: iso('2024-03-15'),
+                grundloen: 100,
+                feriePct: 0.15,
+                shSoPct: 0,
+                fritvalgPct: 0.07,
+                storeBededagPct: 0,
+                pensionPct: 0.09,
+                packageValue: 100,
+                index: 100,
+                arbejdsdage: null,
+                maaneder: 1,
+              },
+            ],
+          },
+        ],
+      },
+      canonicalOutput: undefined,
+      eoValues,
+      stamdataValues,
+    });
+
+    expect(sections[0]?.rows[1]?.label).toBe('Anvendt reguleringsdato');
+  });
+
   it('falder tilbage til tidslinje/TAF-perioder når canonical per-ansættelse-segmenter mangler', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningTil = iso('2023-05-24');
     eoValues.tafPerioder = [
       {
         id: 'taf-1',
@@ -150,7 +197,7 @@ describe('buildRegulationDebugSections', () => {
     ];
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
-      skadesdato: iso('2023-05-24'),
+      skadedato: iso('2023-05-24'),
     };
 
     const sections = buildRegulationDebugSections({
@@ -211,7 +258,7 @@ describe('buildRegulationDebugSections', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
-      skadesdato: iso('2023-05-24'),
+      skadedato: iso('2023-05-24'),
     };
 
     const sections = buildRegulationDebugSections({
@@ -261,6 +308,7 @@ describe('buildRegulationDebugSections', () => {
   it('sammenklapper uændrede reguleringsværdier og indeksperioder i debug-tabellerne', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningTil = iso('2020-01-01');
     eoValues.tafPerioder = [
       {
         id: 'taf-1',
@@ -329,7 +377,7 @@ describe('buildRegulationDebugSections', () => {
     ];
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
-      skadesdato: iso('2020-01-01'),
+      skadedato: iso('2020-01-01'),
     };
 
     const sections = buildRegulationDebugSections({
@@ -532,6 +580,7 @@ describe('buildRegulationDebugSections', () => {
   it('afgrænser første debug-tabel til den konkrete ansættelses segmentdækning', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningTil = iso('2024-01-26');
     eoValues.vedroererPeriodeFra = iso('2024-01-26');
     eoValues.vedroererPeriodeTil = iso('2025-05-31');
     eoValues.loenindkomstAnsaettelsesforhold = [
@@ -571,7 +620,7 @@ describe('buildRegulationDebugSections', () => {
     ];
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
-      skadesdato: iso('2024-01-26'),
+      skadedato: iso('2024-01-26'),
     };
 
     const sections = buildRegulationDebugSections({
@@ -700,6 +749,7 @@ describe('buildRegulationDebugSections', () => {
   it('viser en særskilt række på manuel reguleringsdato i første debug-tabel selv når TAF starter senere', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.periodeTilBeregningTil = iso('2024-01-26');
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
         ...eoValues.loenindkomstAnsaettelsesforhold[0],
@@ -730,7 +780,7 @@ describe('buildRegulationDebugSections', () => {
     ];
     const stamdataValues = {
       ...STAMDATA_INITIAL_VALUES,
-      skadesdato: iso('2024-01-01'),
+      skadedato: iso('2024-01-01'),
     };
 
     const sections = buildRegulationDebugSections({

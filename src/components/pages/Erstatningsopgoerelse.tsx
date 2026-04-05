@@ -3,6 +3,7 @@ import { Box, Tabs, Tab, Typography } from '@mui/material';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { useMidlertidigtEetInsertSource } from '../../hooks/useMidlertidigtEetInsertSource';
+import { useScrollToSectionWithRetry } from '../../hooks/useScrollToSectionWithRetry';
 import {
   getFieldErrorRevisionSnapshot,
   getFieldErrorsBySourceSnapshot,
@@ -65,6 +66,7 @@ const Erstatningsopgoerelse = React.memo(() => {
     allowedTabs,
     defaultTab,
   });
+  const scrollToSectionWithRetry = useScrollToSectionWithRetry();
   const [visitedTabs, setVisitedTabs] = React.useState<Record<TabKey, boolean>>({
     [TAB_KEYS.EO_OPLYSNINGER]: true,
   } as Record<TabKey, boolean>);
@@ -177,6 +179,11 @@ const Erstatningsopgoerelse = React.memo(() => {
     },
     [isAllowedTab, setActiveTab]
   );
+
+  const handleNavigateToTabtArbejdsfortjeneste = React.useCallback(() => {
+    setActiveTab(TAB_KEYS.EO_OPLYSNINGER);
+    scrollToSectionWithRetry('taf');
+  }, [scrollToSectionWithRetry, setActiveTab]);
 
   React.useEffect(() => {
     // If the debug tab is turned off while currently active, fall back deterministically.
@@ -354,6 +361,7 @@ const Erstatningsopgoerelse = React.memo(() => {
               eoValues={form.values}
               setEOValues={setFormValues}
               onAnsaettelsesforholdChange={handleLoenindkomstAnsaettelsesforholdChange}
+              onNavigateToTabtArbejdsfortjeneste={handleNavigateToTabtArbejdsfortjeneste}
             />
           </Box>
         )}
