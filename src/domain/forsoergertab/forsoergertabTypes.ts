@@ -19,7 +19,7 @@ export type AslLobendeYdelseRaekke = Readonly<{
 }>;
 
 export type ForsoergertabAslComputation = Readonly<{
-  skadesdato: ISODateString;
+  skadedato: ISODateString;
   beregningsdato: ISODateString;
   virkningsdato: ISODateString;
   efterladteFodselsdato: ISODateString;

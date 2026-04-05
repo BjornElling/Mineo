@@ -5,7 +5,7 @@ describe('error-debug contract isolation', () => {
     const parsed = eoFileDataSchema.safeParse({
       fieldErrors: {
         stamdata: {
-          skadesdato: {
+          skadedato: {
             source: 'input',
             severity: 'error',
             message: 'Ugyldig dato',

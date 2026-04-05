@@ -23,7 +23,7 @@ import type { EetIssue } from '../erhvervsevnetab/eetTypes';
 import type { AslLobendeYdelseRaekke, ForsoergertabAslComputation, ForsoergertabAslResult } from './forsoergertabTypes';
 
 type Input = Readonly<{
-  skadesdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
   beregningsdato: ISODateString | undefined;
   virkningsdato: ISODateString | undefined;
   efterladteFodselsdato: ISODateString | undefined;
@@ -71,13 +71,13 @@ const toIssue = (id: string, message: string): EetIssue => ({
 
 const resolveForsoergertabTableFallback = (
   tabeldata: KapitaliseringsTabelData,
-  skadesdato: ISODateString,
+  skadedato: ISODateString,
   usesKoen: boolean,
   koen: Koen | undefined
 ): string | null => {
   const explicit = FORSOERGERTAB_TABLE_CHOICES_FALLBACK[tabeldata.kapitaliseringsId];
   if (explicit) {
-    const bucket = skadesdato >= SKADESDATO_2007 ? explicit.from2007 : explicit.before2007;
+    const bucket = skadedato >= SKADESDATO_2007 ? explicit.from2007 : explicit.before2007;
     if (!usesKoen) {
       return bucket.neutral ?? null;
     }
@@ -95,19 +95,19 @@ const resolveForsoergertabTableFallback = (
 
 const resolveForsoergertabTabel = (
   tabeldata: KapitaliseringsTabelData,
-  skadesdato: ISODateString,
+  skadedato: ISODateString,
   usesKoen: boolean,
   koen: Koen | undefined
 ): string | null => {
   const explicit = tabeldata.forsoergertabTabelvalg
-    .filter((entry) => entry.skadesdatoFra <= skadesdato)
+    .filter((entry) => entry.skadedatoFra <= skadedato)
     .reduce<typeof tabeldata.forsoergertabTabelvalg[number] | null>((latest, current) => {
       if (!latest) return current;
-      return current.skadesdatoFra > latest.skadesdatoFra ? current : latest;
+      return current.skadedatoFra > latest.skadedatoFra ? current : latest;
     }, null);
 
   if (explicit) return explicit.tabel;
-  return resolveForsoergertabTableFallback(tabeldata, skadesdato, usesKoen, koen);
+  return resolveForsoergertabTableFallback(tabeldata, skadedato, usesKoen, koen);
 };
 
 const resolveForsoergertabRows = (
@@ -233,7 +233,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     issues.push(toIssue('asl-aarsloen-zero', 'Årsløn efter ASL må ikke være 0 kr.'));
   }
 
-  if (!input.skadesdato) issues.push(toIssue('skadesdato-missing', 'Skadesdato er ikke udfyldt.'));
+  if (!input.skadedato) issues.push(toIssue('skadedato-missing', 'Skadedato er ikke udfyldt.'));
   if (!input.beregningsdato) issues.push(toIssue('beregningsdato-missing', 'Beregningsdato er ikke udfyldt.'));
   if (!input.virkningsdato) issues.push(toIssue('virkningsdato-missing', 'Virkningsdato er ikke udfyldt.'));
   if (!input.efterladteFodselsdato) {
@@ -259,7 +259,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
 
   if (
     issues.some((issue) => issue.severity === 'error') ||
-    !input.skadesdato ||
+    !input.skadedato ||
     !input.beregningsdato ||
     !input.virkningsdato ||
     !input.efterladteFodselsdato ||
@@ -269,7 +269,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  const skadesaar = Number(input.skadesdato.slice(0, 4));
+  const skadesaar = Number(input.skadedato.slice(0, 4));
   const beregningsaar = Number(input.beregningsdato.slice(0, 4));
   const aarsloenMaxSkadesaar = aarsloenAslMax[skadesaar];
   const aarsloenMaxBeregningsaar = aarsloenAslMax[beregningsaar];
@@ -307,7 +307,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
   const resterendeAar = roundByMethod(resterendeMaanederTotal / 12, 0, 'floor');
   const resterendeMaaneder = resterendeMaanederTotal % 12;
 
-  const kapitaliseringsbekendtgoerelseId = resolveKapitaliseringsbekendtgoerelseId(input.skadesdato, input.beregningsdato);
+  const kapitaliseringsbekendtgoerelseId = resolveKapitaliseringsbekendtgoerelseId(input.skadedato, input.beregningsdato);
   if (!kapitaliseringsbekendtgoerelseId) {
     issues.push(toIssue('kapitaliseringsbekendtgoerelse-missing', 'Der kan ikke findes relevant kapitaliseringsbekendtgørelse.'));
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
@@ -319,7 +319,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  const fpTabelvalg = resolveKapitaliseringTabelvalg(tabeldata, input.skadesdato, input.efterladteFodselsdato);
+  const fpTabelvalg = resolveKapitaliseringTabelvalg(tabeldata, input.skadedato, input.efterladteFodselsdato);
   if (!fpTabelvalg) {
     issues.push(toIssue('folkepensionsalder-unresolved', 'Folkepensionsalder kan ikke fastlægges fra kapitaliseringsbekendtgørelsen.'));
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
@@ -337,7 +337,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
   let kapitalfaktor: number | null = null;
 
   if (!harNaaetFolkepensionsalder && resterendeMaanederTotal > 0) {
-    kapitaliseringsTabel = resolveForsoergertabTabel(tabeldata, input.skadesdato, usesKoen, input.koen);
+    kapitaliseringsTabel = resolveForsoergertabTabel(tabeldata, input.skadedato, usesKoen, input.koen);
     if (!kapitaliseringsTabel) {
       issues.push(toIssue('forsoergertab-tabel-missing', 'Der kan ikke findes relevant forsørgertabstabel.'));
       return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
@@ -378,7 +378,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
   const aslLobendeYdelserTotal = lobendeYdelser.reduce((sum, r) => sum + r.ydelseIAlt, 0);
 
   const computation: ForsoergertabAslComputation = {
-    skadesdato: input.skadesdato,
+    skadedato: input.skadedato,
     beregningsdato: input.beregningsdato,
     virkningsdato: input.virkningsdato,
     efterladteFodselsdato: input.efterladteFodselsdato,

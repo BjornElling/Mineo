@@ -23,7 +23,7 @@ const stampStamdata = (skadelidte: string) => ({
   sagsbehandler: '',
   skadelidte,
   skadestype: '',
-  skadesdato: '',
+  skadedato: '',
 });
 
 describe('MainLayout (preflight apply)', () => {

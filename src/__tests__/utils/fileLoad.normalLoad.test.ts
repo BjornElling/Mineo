@@ -55,7 +55,7 @@ const makeValidContainer = async (overrides: Record<string, unknown> = {}): Prom
       sagsbehandler: '',
       skadelidte: 'Testperson',
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2024-01-15',
+      skadedato: '2024-01-15',
     },
     ...overrides,
   });
@@ -124,7 +124,7 @@ describe('fileLoad – normalLoadFlow', () => {
   it('kaster fejl for fil med nul udfyldte felter', async () => {
     // Container med kun tomme felter → fileFieldCount === 0
     const emptyContainer = await encryptLoadContainer({
-      stamdata: { journalnr: '', advokat: '', sagsbehandler: '', skadelidte: '', skadestype: undefined, skadesdato: undefined },
+      stamdata: { journalnr: '', advokat: '', sagsbehandler: '', skadelidte: '', skadestype: undefined, skadedato: undefined },
     });
     const file = new File([emptyContainer], 'tom.eo', { type: 'application/octet-stream' });
     selectFileMock.mockResolvedValueOnce(file);
@@ -148,7 +148,7 @@ describe('fileLoad – normalLoadFlow', () => {
           sagsbehandler: '',
           skadelidte: 'Test',
           skadestype: undefined,
-          skadesdato: undefined,
+          skadedato: undefined,
         },
         ukendtSektion: { noget: 'data' },
       },
@@ -172,7 +172,7 @@ describe('fileLoad – normalLoadFlow', () => {
         sagsbehandler: '',
         skadelidte: 'Test',
         skadestype: undefined,
-        skadesdato: undefined,
+        skadedato: undefined,
         uventetFelt: 'fjernes',
       },
     });
@@ -195,7 +195,7 @@ describe('fileLoad – normalLoadFlow', () => {
         sagsbehandler: '',
         skadelidte: 'Test',
         skadestype: undefined,
-        skadesdato: '2024-01-15',
+        skadedato: '2024-01-15',
       },
       faellesPersondata: {
         skadelidteFodselsdato: '1990-01-01',
@@ -221,7 +221,7 @@ describe('fileLoad – normalLoadFlow', () => {
         sagsbehandler: '',
         skadelidte: 'Test',
         skadestype: undefined,
-        skadesdato: undefined,
+        skadedato: undefined,
       },
       renteberegning: {
         rentekravRows: 'forkert-type',
@@ -275,7 +275,7 @@ describe('fileLoad – normalLoadFlow', () => {
           sagsbehandler: '',
           skadelidte: 'Test',
           skadestype: undefined,
-          skadesdato: undefined,
+          skadedato: undefined,
         },
       },
     });
@@ -296,7 +296,7 @@ describe('fileLoad – normalLoadFlow', () => {
           sagsbehandler: '',
           skadelidte: 'Test',
           skadestype: undefined,
-          skadesdato: undefined,
+          skadedato: undefined,
         },
       },
     });

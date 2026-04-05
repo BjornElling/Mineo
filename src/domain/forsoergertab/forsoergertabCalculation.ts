@@ -7,7 +7,7 @@ import { computeForsoergertabEalKrav } from './forsoergertabEalKrav';
 import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
 
 type Input = Readonly<{
-  skadesdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
   efterladteFodselsdato: ISODateString | undefined;
   beregningsdato: ISODateString | undefined;
@@ -21,13 +21,13 @@ type Input = Readonly<{
 export const computeForsoergertabCalculation = (input: Input): ForsoergertabCalculationResult => {
   const ealResult = computeForsoergertabEalKrav({
     beregningsdato: input.beregningsdato,
-    skadesdato: input.skadesdato,
+    skadedato: input.skadedato,
     skadelidteFodselsdato: input.skadelidteFodselsdato,
     aslAarsloen: input.aslAarsloen,
     ealAarsloen: input.ealAarsloen,
   });
   const aslResult = computeForsoergertabAslYdelser({
-    skadesdato: input.skadesdato,
+    skadedato: input.skadedato,
     beregningsdato: input.beregningsdato,
     virkningsdato: input.virkningsdato,
     efterladteFodselsdato: input.efterladteFodselsdato,

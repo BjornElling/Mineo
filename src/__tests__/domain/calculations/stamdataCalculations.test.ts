@@ -15,23 +15,23 @@ const stamdata = (patch: Partial<StamdataValues> = {}): StamdataValues => ({
   sagsbehandler: undefined,
   skadelidte: undefined,
   skadestype: undefined,
-  skadesdato: undefined,
+  skadedato: undefined,
   ...patch,
 } as StamdataValues);
 
 // ─── resolveStamdataDatoLabel ──────────────────────────────────────────────
 
 describe('resolveStamdataDatoLabel', () => {
-  it('null stamdata → Skadesdato (default)', () => {
-    expect(resolveStamdataDatoLabel(null)).toBe('Skadesdato');
+  it('null stamdata → Skadedato (default)', () => {
+    expect(resolveStamdataDatoLabel(null)).toBe('Skadedato');
   });
 
-  it('undefined skadestype → Skadesdato', () => {
-    expect(resolveStamdataDatoLabel(stamdata({ skadestype: undefined }))).toBe('Skadesdato');
+  it('undefined skadestype → Skadedato', () => {
+    expect(resolveStamdataDatoLabel(stamdata({ skadestype: undefined }))).toBe('Skadedato');
   });
 
-  it('Arbejdsulykke → Skadesdato', () => {
-    expect(resolveStamdataDatoLabel(stamdata({ skadestype: 'Arbejdsulykke' }))).toBe('Skadesdato');
+  it('Arbejdsulykke → Skadedato', () => {
+    expect(resolveStamdataDatoLabel(stamdata({ skadestype: 'Arbejdsulykke' }))).toBe('Skadedato');
   });
 
   it('Erhvervssygdom → Anmeldelsesdato', () => {
@@ -78,8 +78,8 @@ describe('hasStamdataAny', () => {
     expect(hasStamdataAny(stamdata({ skadestype: 'Arbejdsulykke' }))).toBe(true);
   });
 
-  it('skadesdato sat → true', () => {
-    expect(hasStamdataAny(stamdata({ skadesdato: iso('2024-01-01') }))).toBe(true);
+  it('skadedato sat → true', () => {
+    expect(hasStamdataAny(stamdata({ skadedato: iso('2024-01-01') }))).toBe(true);
   });
 
   it('kun whitespace journalnr + whitespace advokat → false', () => {

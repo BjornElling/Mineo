@@ -64,7 +64,7 @@ const stampStamdata = (skadelidte: string) => ({
   sagsbehandler: '',
   skadelidte,
   skadestype: '',
-  skadesdato: '',
+  skadedato: '',
 });
 
 const getBeforeUnloadHandler = (
@@ -350,7 +350,7 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
     act(() => {
       ctx!.persistData('stamdata', stampStamdata('Gem trods rangefejl'));
-      ctx!.setFieldError('stamdata', 'skadesdato', 'input', {
+      ctx!.setFieldError('stamdata', 'skadedato', 'input', {
         message: 'Datoen ligger uden for intervallet',
         severity: 'error',
         blocksSave: false,

@@ -83,12 +83,12 @@ const resolveSaveError = (error: unknown): OverlayData => {
   };
 };
 
-const parseFilenameBasisFromStamdata = (stamdata: unknown): { skadelidte?: string; skadestype?: string; skadesdato?: string } | null => {
+const parseFilenameBasisFromStamdata = (stamdata: unknown): { skadelidte?: string; skadestype?: string; skadedato?: string } | null => {
   if (!isRecord(stamdata)) return null;
   const skadelidte = typeof stamdata.skadelidte === 'string' ? stamdata.skadelidte : undefined;
   const skadestype = typeof stamdata.skadestype === 'string' ? stamdata.skadestype : undefined;
-  const skadesdato = typeof stamdata.skadesdato === 'string' ? stamdata.skadesdato : undefined;
-  return skadelidte || skadestype || skadesdato ? { skadelidte, skadestype, skadesdato } : null;
+  const skadedato = typeof stamdata.skadedato === 'string' ? stamdata.skadedato : undefined;
+  return skadelidte || skadestype || skadedato ? { skadelidte, skadestype, skadedato } : null;
 };
 
 const resolveLoadError = (error: unknown): { message: string; expected: boolean } => {

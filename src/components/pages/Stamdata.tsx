@@ -30,7 +30,7 @@ const Stamdata = React.memo(() => {
 
   const { values, setValues, setFieldValue } = usePersistedForm(stamdataSchema, 'stamdata', STAMDATA_INITIAL_VALUES);
 
-  const reportSkadesdatoError = useFormFieldErrorReporter('stamdata', 'skadesdato', { severity: 'error', source: 'input' });
+  const reportSkadedatoError = useFormFieldErrorReporter('stamdata', 'skadedato', { severity: 'error', source: 'input' });
   const reportSkadelidteFodselsdatoError = useFormFieldErrorReporter('stamdata', 'skadelidteFodselsdato', { severity: 'error', source: 'input' });
 
   const handleInitialsChange = (field: 'advokat' | 'sagsbehandler') => (event: StyledTextFieldValueCommitEvent) => {
@@ -53,8 +53,8 @@ const Stamdata = React.memo(() => {
   );
 
   const dateRange = React.useMemo(() => ({
-    min: dateRanges_stamdata.skadesdato.min,
-    max: dateRanges_stamdata.skadesdato.max,
+    min: dateRanges_stamdata.skadedato.min,
+    max: dateRanges_stamdata.skadedato.max,
   }), []);
 
   return (
@@ -193,9 +193,9 @@ const Stamdata = React.memo(() => {
               </Typography>
               <Box className="row--label-offset__content">
                 <StyledDateField
-                  value={values.skadesdato}
-                  onCommit={commitField('skadesdato')}
-                  onFieldError={reportSkadesdatoError}
+                  value={values.skadedato}
+                  onCommit={commitField('skadedato')}
+                  onFieldError={reportSkadedatoError}
                   minDate={dateRange.min}
                   maxDate={dateRange.max}
                 />

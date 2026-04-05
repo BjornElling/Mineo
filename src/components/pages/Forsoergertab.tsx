@@ -70,17 +70,17 @@ const Forsoergertab = React.memo(() => {
   });
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
-  useAslAarsloenRuleReporter(faellesAarsloenValues.aslAarsloen, stamdata?.skadesdato);
+  useAslAarsloenRuleReporter(faellesAarsloenValues.aslAarsloen, stamdata?.skadedato);
 
-  const skadesdatoMin = React.useMemo(() => {
-    const iso = coerceToISODateString(stamdata?.skadesdato);
+  const skadedatoMin = React.useMemo(() => {
+    const iso = coerceToISODateString(stamdata?.skadedato);
     return iso ?? dateRanges_forsoergertab.virkningsdato.fallbackMin;
-  }, [stamdata?.skadesdato]);
+  }, [stamdata?.skadedato]);
 
   const beregningsdatoMin = React.useMemo(() => {
     const virkningsdato = coerceToISODateString(values.virkningsdato);
-    return virkningsdato ? maxIso(skadesdatoMin, virkningsdato) : skadesdatoMin;
-  }, [skadesdatoMin, values.virkningsdato]);
+    return virkningsdato ? maxIso(skadedatoMin, virkningsdato) : skadedatoMin;
+  }, [skadedatoMin, values.virkningsdato]);
 
   const virkningsdatoMax = React.useMemo(() => {
     const beregningsdato = coerceToISODateString(values.beregningsdato);
@@ -95,7 +95,7 @@ const Forsoergertab = React.memo(() => {
   const calculationResult = React.useMemo(
     () =>
       computeForsoergertabCalculation({
-        skadesdato: coerceToISODateString(stamdata?.skadesdato),
+        skadedato: coerceToISODateString(stamdata?.skadedato),
         skadelidteFodselsdato: coerceToISODateString(stamdata?.skadelidteFodselsdato),
         efterladteFodselsdato: coerceToISODateString(values.efterladteFodselsdato),
         beregningsdato: coerceToISODateString(values.beregningsdato),
@@ -109,7 +109,7 @@ const Forsoergertab = React.memo(() => {
       faellesAarsloenValues.aslAarsloen,
       faellesAarsloenValues.ealAarsloen,
       stamdata?.skadelidteFodselsdato,
-      stamdata?.skadesdato,
+      stamdata?.skadedato,
       values,
     ]
   );
@@ -165,8 +165,8 @@ const Forsoergertab = React.memo(() => {
   const hasEalAarsloenError = Boolean(
     faellesAarsloenFieldErrors.ealAarsloen?.message || helperIssueMessage(['eal-aarsloen-zero'])
   );
-  const hasSkadesdatoError = Boolean(
-    stamdataFieldErrors.skadesdato?.message || helperIssueMessage(['skadesdato-missing', 'aarsloen-max-missing-skadesaar'])
+  const hasSkadedatoError = Boolean(
+    stamdataFieldErrors.skadedato?.message || helperIssueMessage(['skadedato-missing', 'aarsloen-max-missing-skadesaar'])
   );
 
   const result = calculationResult.result;
@@ -178,7 +178,7 @@ const Forsoergertab = React.memo(() => {
     Boolean(values.beregningsdato) &&
     !hasSkadelidteFodselsdatoError &&
     !hasBeregningsdatoErrorForEal &&
-    !hasSkadesdatoError &&
+    !hasSkadedatoError &&
     !hasEalAarsloenError &&
     ealComputation !== null;
   const canShowAsl =
@@ -187,7 +187,7 @@ const Forsoergertab = React.memo(() => {
     Boolean(values.beregningsdato) &&
     !hasEfterladteFodselsdatoError &&
     !hasBeregningsdatoError &&
-    !hasSkadesdatoError &&
+    !hasSkadedatoError &&
     Boolean(faellesAarsloenValues.aslAarsloen) &&
     Boolean(values.virkningsdato) &&
     values.tilkendtForPeriodeAar !== undefined &&
@@ -351,7 +351,7 @@ const Forsoergertab = React.memo(() => {
             <StyledDateField
               value={values.virkningsdato || undefined}
               onCommit={(event) => setFieldValue('virkningsdato', event.target.value)}
-              minDate={skadesdatoMin}
+              minDate={skadedatoMin}
               maxDate={virkningsdatoMax}
               specialRangeErrors={{ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Virkningsdato' }}
               error={hasVirkningsdatoError}

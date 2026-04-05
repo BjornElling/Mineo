@@ -39,7 +39,7 @@ Persisted data fra `erhvervsevnetab` bruges ikke.
 
 | Felt | Type | Betydning |
 |---|---|---|
-| `skadesdato` | `ISODateString` | Skadesdato |
+| `skadedato` | `ISODateString` | Skadedato |
 | `skadelidteFodselsdato` | `ISODateString` | Skadelidtes fødselsdato. Bruges kun til EAL-aldersreduktion |
 
 ## 3. Overordnede valideringsregler
@@ -49,7 +49,7 @@ Disse forhold er blokerende fejl og skal forhindre download af specifikation:
 - `beregningsdato` mangler
 - `virkningsdato` mangler
 - `tilkendtForPeriodeAar` mangler
-- `skadesdato` mangler
+- `skadedato` mangler
 - `efterladteFodselsdato` mangler
 - EAL-årsløn kan ikke fastlægges
 - ASL-årsløn kan ikke fastlægges
@@ -71,7 +71,7 @@ EAL-kravet beregnes ved at genbruge EET efter EAL-logikken med disse faste regle
 
 - EET-procenten er fast `30`
 - `beregningsdato` kommer fra `forsoergertab.beregningsdato`
-- `skadesdato` kommer fra `stamdata.skadesdato`
+- `skadedato` kommer fra `stamdata.skadedato`
 - skadelidtes fødselsdato kommer fra `stamdata.skadelidteFodselsdato`
 - `ealAarsloen` prioriteres
 - `aslAarsloen` bruges som fallback, hvis `ealAarsloen` ikke findes
@@ -252,7 +252,7 @@ nettokrav = max(0, ealKrav - aslLobendeYdelserTotal - aslKapitalbelob)
 Bekendtgørelse vælges med samme opslag som i EET:
 
 ```text
-resolveKapitaliseringsbekendtgoerelseId(skadesdato, beregningsdato)
+resolveKapitaliseringsbekendtgoerelseId(skadedato, beregningsdato)
 ```
 
 Bekendtgørelsen bruges også til at fastlægge folkepensionsalderen for den efterladte på beregningsdatoen.
@@ -261,7 +261,7 @@ Bekendtgørelsen bruges også til at fastlægge folkepensionsalderen for den eft
 
 Den relevante forsørgertabstabel vælges ud fra:
 
-- skadesdato
+- skadedato
 - beregningsdato
 - om bekendtgørelsen bruger kønsneutral eller kønsopdelt forsørgertabstabel
 - køn, når beregningsdato er før 2015-03-01

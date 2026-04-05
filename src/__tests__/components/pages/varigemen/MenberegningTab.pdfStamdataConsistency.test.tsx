@@ -7,7 +7,7 @@ const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mock
   mockBeregnVarigeMenGodtgoerelseWithRates: vi.fn(),
   mockStamValues: {
     skadestype: 'Arbejdsulykke',
-    skadesdato: '2025-01-01',
+    skadedato: '2025-01-01',
     skadelidteFodselsdato: '1980-01-01',
   },
 }));
@@ -54,7 +54,7 @@ describe('MenberegningTab', () => {
           setFieldValue={setFieldValue}
           stamdata={{
             skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
-            skadesdato: mockStamValues.skadesdato,
+            skadedato: mockStamValues.skadedato,
             skadestype: mockStamValues.skadestype,
           }}
         />
@@ -68,7 +68,7 @@ describe('MenberegningTab', () => {
       expect.objectContaining({
         persistedStamdata: {
           skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
-          skadesdato: mockStamValues.skadesdato,
+          skadedato: mockStamValues.skadedato,
           skadestype: mockStamValues.skadestype,
         },
       })

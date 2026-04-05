@@ -18,7 +18,7 @@ import { z } from 'zod';
  * Brevhoved-indstillinger for PDF-dokumenter
  *
  * Bestemmer hvilke PDF-typer der skal have brevhoved med skadelidtes navn,
- * skadestype, skadesdato og sagsnr.
+ * skadestype, skadedato og sagsnr.
  */
 export const brevhovedIndstillingerSchema = z.object({
   erstatningsopgoerelse: z.boolean(),

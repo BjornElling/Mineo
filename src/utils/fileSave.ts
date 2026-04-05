@@ -83,7 +83,7 @@ const loadStoredFilenameBasis = (): Record<string, unknown> | null => {
   }
 };
 
-const buildFilenameBasis = (stamdata: unknown): { skadelidte?: string; skadestype?: string; skadesdato?: string } => {
+const buildFilenameBasis = (stamdata: unknown): { skadelidte?: string; skadestype?: string; skadedato?: string } => {
   const stamdataRecord: Record<string, unknown> =
     isRecord(stamdata)
       ? stamdata
@@ -91,7 +91,7 @@ const buildFilenameBasis = (stamdata: unknown): { skadelidte?: string; skadestyp
   return {
     skadelidte: typeof stamdataRecord.skadelidte === 'string' ? stamdataRecord.skadelidte : undefined,
     skadestype: typeof stamdataRecord.skadestype === 'string' ? stamdataRecord.skadestype : undefined,
-    skadesdato: typeof stamdataRecord.skadesdato === 'string' ? stamdataRecord.skadesdato : undefined,
+    skadedato: typeof stamdataRecord.skadedato === 'string' ? stamdataRecord.skadedato : undefined,
   };
 };
 
@@ -109,7 +109,7 @@ const hasFilenameBasisChanged = (
   return (
     previousBasis.skadelidte !== nextBasis.skadelidte ||
     previousBasis.skadestype !== nextBasis.skadestype ||
-    previousBasis.skadesdato !== nextBasis.skadesdato
+    previousBasis.skadedato !== nextBasis.skadedato
   );
 };
 

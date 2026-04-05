@@ -148,7 +148,7 @@ Når et ansættelsesforhold er under overenskomst eller manuel regulering, skal 
 
 ### Udestående fund
 
-~~**Kritisk — `skadesdato: undefined` i `buildIncomeForRanges`:**~~ ✅ Rettet: `skadesdato` tilføjet som 4. parameter til `buildIncomeForRanges`. Kaldesteder med adgang til `skadesdato` (`loenudviklingBeregning.ts`, `indkomstSkadestidspunktBeregning.ts`) sender det nu med.
+~~**Kritisk — `skadedato: undefined` i `buildIncomeForRanges`:**~~ ✅ Rettet: `skadedato` tilføjet som 4. parameter til `buildIncomeForRanges`. Kaldesteder med adgang til `skadedato` (`loenudviklingBeregning.ts`, `indkomstSkadestidspunktBeregning.ts`) sender det nu med.
 
 **Høj — Afrundingssemantik ved segmentdeling:**
 Beløbene splittes proportionalt efter dagetal (`share = overlapDays / totalDays`), som producerer flydende decimaltal der summeres. Bekræft at afrundingsrækkefølgen er konsistent med den kanoniske beregnings pre-implementerings-adfærd for sager uden segmentering.
@@ -174,7 +174,7 @@ Brug `buildMidlertidigtEetRowsFromEet()` fra `src/domain/erstatningsopgoerelse/h
 
 ### Faldgruber
 - `eoBilagSelectionSchema` bruger `.strict()` — tilføj `midlertidigEet`-feltet med `.default(true)` for at håndtere eksisterende gem-filer uden feltet.
-- `buildMidlertidigtEetRowsFromEet` kræver `ErhvervsevnetabValues` og `skadesdato` — disse skal være tilgængelige i PDF-konteksten.
+- `buildMidlertidigtEetRowsFromEet` kræver `ErhvervsevnetabValues` og `skadedato` — disse skal være tilgængelige i PDF-konteksten.
 
 ### Status: Implementeret
 
@@ -218,18 +218,18 @@ I beregningen af sygeferiegodtgørelse må kun ansættelsesforhold med `ansatPaa
 Feltet `storeBededagPct` skal beregnes automatisk og ikke være redigerbart. Værdien er 0, medmindre reguleringsdatoen er fra 1. januar 2024 eller senere *og* `loenPaaHelligdage === 'Almindelig løn'`.
 
 ### Eksisterende logik (verificeret)
-- Reguleringsdatoen er `af.saerligFraDatoRegulering || stamdataValues?.skadesdato` — **ikke** overenskomstens reguleringsdatoer.
+- Reguleringsdatoen er `af.saerligFraDatoRegulering || stamdataValues?.skadedato` — **ikke** overenskomstens reguleringsdatoer.
 - `STORE_BEDEDAG_PCT = 0.45` i `src/config/regulatoryRates.ts` linje 13.
 - `STORE_BEDEDAG_START = iso('2024-01-01')` i `src/config/dateRanges.ts` linje 25.
 
 ### Relevante felter og filer
 - `LoenindkomstAnsaettelsesforhold.storeBededagPct` (percentageDecimal)
 - `LoenindkomstAnsaettelsesforhold.loenPaaHelligdage` — betingelse: `=== 'Almindelig løn'`
-- `LoenindkomstAnsaettelsesforhold.saerligFraDatoRegulering` — manuel dato; fallback: `stamdataValues?.skadesdato`
+- `LoenindkomstAnsaettelsesforhold.saerligFraDatoRegulering` — manuel dato; fallback: `stamdataValues?.skadedato`
 
 ### Faldgruber
 - `loenPaaHelligdage` er **ikke** en boolean — sammenlign med strengen `'Almindelig løn'`.
-- Reguleringsdatoen for Store Bededag er `saerligFraDatoRegulering || skadesdato` — **ikke** overenskomstens reguleringsdatoer.
+- Reguleringsdatoen for Store Bededag er `saerligFraDatoRegulering || skadedato` — **ikke** overenskomstens reguleringsdatoer.
 - Sørg for at det auto-beregnede felt skrives til formstate, så det korrekte tal indgår i beregninger.
 
 ### Status: Implementeret
@@ -290,8 +290,7 @@ De to `DataRow`-komponenter for fri proces-beløbsgrænser på satser-siden skal
 
 ### Udestående fund
 
-**Lav — Layout-alignment ved én synlig række:**
-`MultiLineDataRow` filtrerer på falsy `row.value`. Hvis én af de to rækker er tom og den anden ikke er, vises kun den udfyldte. Labels og værdier er i separate `Box`-elementer — kontrollér at alignment er korrekt i dette tilfælde.
+Ingen. Visuel gennemgang godkendt — alignment korrekt i alle tilfælde.
 
 ---
 
@@ -354,9 +353,9 @@ På beregning-fanen skal der vises en advarsel — ikke en fejl — hvis én ell
 Folkepensionsalderen bestemmes ud fra den kapitaliseringsbekendtgørelse, der ville have fundet anvendelse på EO-beregningsdatoen.
 
 ### Relevante filer og felter
-- `stamdataValues.skadelidteFodselsdato` og `stamdataValues.skadesdato`
+- `stamdataValues.skadelidteFodselsdato` og `stamdataValues.skadedato`
 - `eoValues.opgørelseLavetDen` — "Opgørelse lavet den" i `EOOplysningerTab.tsx` linje 1134. Dette er EO-beregningsdatoen der bestemmer hvilken kapitaliseringsbekendtgørelse der anvendes. Feltet er `optionalIsoDateString` — advarslen må kun aktiveres, hvis datoen er defineret.
-- `resolveKapitaliseringTabelvalgForControlDate(skadesdato, fodselsdato, controlDate)` i `src/domain/erhvervsevnetab/eetKapitaliseringOpslag.ts` linje ~205 — kanonisk funktion der returnerer `folkepensionsalderMaaneder`
+- `resolveKapitaliseringTabelvalgForControlDate(skadedato, fodselsdato, controlDate)` i `src/domain/erhvervsevnetab/eetKapitaliseringOpslag.ts` linje ~205 — kanonisk funktion der returnerer `folkepensionsalderMaaneder`
 - `clampTafRange()` og `resolveTafEoPeriodeBounds()` i `tafPeriodConstraints.ts` — stille clamping (ikke fejlgivende bounds)
 
 ### Faldgruber
@@ -445,16 +444,15 @@ Alle implementerede fund er rettet. Følgende fund er bekræftet lukket eller kr
 
 | Prioritet | Punkt | Status |
 |---|---|---|
-| — | **5** (Periodiseret fritvalg/SH/SO) | ✅ Rettet: `skadesdato` føres nu som 4. parameter til `buildIncomeForRanges` og bruges i `buildLoenindkomstRateSegments`. |
-| — | **8+9** (Store Bededag / Overenskomst auto-satser) | ✅ Rettet: `loenindkomstAnsaettelsesforhold` tilføjet til `useEffect`-deps. `validateStoreBededag` fjernet fra låst felt. |
-| — | **15** (SFGG sammentælling) | ✅ Rettet: Første overflødige `buildDebugSnapshotForComputed`-kald fjernet fra `eoSnapshot.ts`. |
-| — | **14** (Fjern config-fejlbesked) | ✅ Rettet: `noValidRangeCause`-prop fjernet fra `StyledDateFieldProps` og alle direkte kaldesteder renset. |
-| — | **3** (Sortering og gemning) | ✅ Rettet: `onSortedRowsChange` i `OffentligeYdelserTable` memoizeret som `reorderRows` via `useCallback`. |
-| — | **13** (TAF folkepensionsalder) | ✅ Bekræftet: `displayTil` er `ISODateString` fra `clamped.til` — sammenligningen er korrekt. |
-| — | **7** (SFGG filter) | ✅ Rettet: Test tilføjet i `sygeferiegodtgoerelse.test.ts` — `ansatPaaSkadestidspunktet: false` → 0 SFGG. |
-| — | **12** (Info-ikon tooltip) | ✅ Bekræftet: `StandardLoenTable` bruger `getStandardLoenTableHeaderNodes` internt; `Aarsloen.tsx` arver det korrekt. |
 | — | **1** (Løn efter ophørsdato) | ✅ Rettet: `sidsteArbejdsdagIso` (duplikat af `sidsteArbejdsdag`) fjernet. |
 | — | **2** (Fra/til-dato validering) | ✅ Rettet: 2 hardkodede fejlbeskeder i `eoDebugErstatningsopgoerelseModel.ts` erstattet med `DATE_ORDER_ERROR_MESSAGE`. `buildNoValidDateRangeMessage`-dækning bekræftet korrekt. |
-| — | **3** (Sortering — tabeldækning) | ✅ Bekræftet: Alle tabeller med `onRowsReorder`-prop kobler korrekt til `onSortedRowsChange`. |
+| — | **3** (Sortering) | ✅ Rettet: `onSortedRowsChange` i `OffentligeYdelserTable` memoizeret som `reorderRows` via `useCallback`. Bekræftet: Alle tabeller med `onRowsReorder`-prop kobler korrekt til `onSortedRowsChange`. |
+| — | **5** (Periodiseret fritvalg/SH/SO) | ✅ Rettet: `skadedato` føres nu som 4. parameter til `buildIncomeForRanges` og bruges i `buildLoenindkomstRateSegments`. |
+| — | **7** (SFGG filter) | ✅ Rettet: Test tilføjet i `sygeferiegodtgoerelse.test.ts` — `ansatPaaSkadestidspunktet: false` → 0 SFGG. |
+| — | **8+9** (Store Bededag / Overenskomst auto-satser) | ✅ Rettet: `loenindkomstAnsaettelsesforhold` tilføjet til `useEffect`-deps. `validateStoreBededag` fjernet fra låst felt. |
+| — | **10** (Fri proces samlet række) | ✅ Visuel gennemgang godkendt — alignment korrekt i alle tilfælde. |
+| — | **12** (Info-ikon tooltip) | ✅ Bekræftet: `StandardLoenTable` bruger `getStandardLoenTableHeaderNodes` internt; `Aarsloen.tsx` arver det korrekt. |
+| — | **13** (TAF folkepensionsalder) | ✅ Bekræftet: `displayTil` er `ISODateString` fra `clamped.til` — sammenligningen er korrekt. |
+| — | **14** (Fjern config-fejlbesked) | ✅ Rettet: `noValidRangeCause`-prop fjernet fra `StyledDateFieldProps` og alle direkte kaldesteder renset. |
+| — | **15** (SFGG sammentælling) | ✅ Rettet: Første overflødige `buildDebugSnapshotForComputed`-kald fjernet fra `eoSnapshot.ts`. |
 | Åben | **6** (Midlertidig EET PDF) | Kræver manuel visuel verifikation af paginering ved alle kombinationer af `skalVisePeriodeSubheadings`. |
-| Åben | **10** (Fri proces samlet række) | Kræver visuel verifikation af layout-alignment ved én synlig række i `MultiLineDataRow`. |

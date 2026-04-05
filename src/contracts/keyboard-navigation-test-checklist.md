@@ -26,7 +26,7 @@
 - [ ] Tab gennem alle felter i rækkefølge:
   - [ ] Nummer
   - [ ] Evt. ledsagetekst
-  - [ ] Dato felt (skadesdato eller lign.)
+  - [ ] Dato felt (skadedato eller lign.)
   - [ ] Dropdown (arbejdssituation)
   - [ ] **Verificer dropdown:** Ingen markering i dropdown-felt
 

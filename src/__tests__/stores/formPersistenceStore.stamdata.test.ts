@@ -23,7 +23,7 @@ describe('formPersistenceStore (stamdata selectors)', () => {
       sagsbehandler: 'CD',
       skadelidte: 'Navn',
       skadestype: 'Erhvervssygdom',
-      skadesdato: toISODateString('2024-01-01'),
+      skadedato: toISODateString('2024-01-01'),
     });
 
     // act
@@ -34,7 +34,7 @@ describe('formPersistenceStore (stamdata selectors)', () => {
     expect(hasStamdataAny(state.sections.stamdata)).toBe(true);
   });
 
-  it('defaults to Skadesdato when skadestype is unset', () => {
+  it('defaults to Skadedato when skadestype is unset', () => {
     // arrange
     store.getState().commitSection('stamdata', {
       skadestype: undefined,
@@ -44,7 +44,7 @@ describe('formPersistenceStore (stamdata selectors)', () => {
     const state = store.getState();
 
     // assert
-    expect(resolveStamdataDatoLabel(state.sections.stamdata)).toBe('Skadesdato');
+    expect(resolveStamdataDatoLabel(state.sections.stamdata)).toBe('Skadedato');
   });
 
   it('treats empty stamdata as no data', () => {
@@ -56,6 +56,6 @@ describe('formPersistenceStore (stamdata selectors)', () => {
 
     // assert
     expect(hasStamdataAny(state.sections.stamdata)).toBe(false);
-    expect(resolveStamdataDatoLabel(state.sections.stamdata)).toBe('Skadesdato');
+    expect(resolveStamdataDatoLabel(state.sections.stamdata)).toBe('Skadedato');
   });
 });

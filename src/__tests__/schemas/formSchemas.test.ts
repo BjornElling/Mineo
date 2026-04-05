@@ -81,7 +81,7 @@ describe('stamdataSchema', () => {
       sagsbehandler: undefined,
       skadelidte: undefined,
       skadestype: undefined,
-      skadesdato: undefined,
+      skadedato: undefined,
     });
     expect(result.success).toBe(true);
   });
@@ -93,7 +93,7 @@ describe('stamdataSchema', () => {
       sagsbehandler: undefined,
       skadelidte: undefined,
       skadestype: undefined,
-      skadesdato: undefined,
+      skadedato: undefined,
     });
     expect(result.success).toBe(true);
     if (result.success) {
@@ -109,7 +109,7 @@ describe('stamdataSchema', () => {
       sagsbehandler: undefined,
       skadelidte: undefined,
       skadestype: 'Arbejdsulykke',
-      skadesdato: '2023-06-15',
+      skadedato: '2023-06-15',
     });
     expect(result.success).toBe(true);
   });
@@ -121,7 +121,7 @@ describe('stamdataSchema', () => {
       sagsbehandler: undefined,
       skadelidte: undefined,
       skadestype: undefined,
-      skadesdato: '15-06-2023',
+      skadedato: '15-06-2023',
     });
     expect(result.success).toBe(false);
   });
@@ -133,7 +133,7 @@ describe('stamdataSchema', () => {
       sagsbehandler: undefined,
       skadelidte: undefined,
       skadestype: 'Andet',
-      skadesdato: undefined,
+      skadedato: undefined,
     });
     expect(result.success).toBe(false);
   });
@@ -145,7 +145,7 @@ describe('stamdataSchema', () => {
       sagsbehandler: undefined,
       skadelidte: undefined,
       skadestype: undefined,
-      skadesdato: undefined,
+      skadedato: undefined,
       ukendt: 'felt',
     });
     expect(result.success).toBe(false);

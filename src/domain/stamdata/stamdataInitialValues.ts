@@ -7,6 +7,6 @@ export const STAMDATA_INITIAL_VALUES = {
   skadelidte: '',
   skadelidteFodselsdato: undefined,
   skadestype: undefined,
-  skadesdato: undefined,
+  skadedato: undefined,
 } as const satisfies PersistedSectionMap['stamdata'];
 

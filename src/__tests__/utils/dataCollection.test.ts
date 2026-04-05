@@ -38,7 +38,7 @@ describe('dataCollection', () => {
           stamdata: {
             journalnr: '',
             advokat: undefined,
-            skadesdato: null,
+            skadedato: null,
           },
         })
       ).toBe(0);

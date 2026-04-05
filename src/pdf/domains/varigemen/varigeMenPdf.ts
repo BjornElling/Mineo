@@ -1,7 +1,7 @@
 /**
  * PDF Generator for Ménberegning
  *
- * Genererer PDF-dokumentation af ménberegning med fødselsdato, skadesdato, méngrad og resultat
+ * Genererer PDF-dokumentation af ménberegning med fødselsdato, skadedato, méngrad og resultat
  */
 
 import {
@@ -44,13 +44,14 @@ const writeRows = (
 const addStamdataSection = (
   writer: PdfWriter,
   fodselsdato: ISODateString | undefined,
-  skadesdato: ISODateString | undefined,
-  alderVedSkade: number
+  skadedato: ISODateString | undefined,
+  alderVedSkade: number,
+  skadedatoLabel: 'Skadedato' | 'Anmeldelsesdato'
 ): void => {
   writer.writeSubheader('Stamdata', PDF_BASE_LINE_HEIGHT_MM);
   writeRows(writer, [
     { label: 'Fødselsdato', value: formatDateReadable(fodselsdato) },
-    { label: 'Skadesdato', value: formatDateReadable(skadesdato) },
+    { label: skadedatoLabel, value: formatDateReadable(skadedato) },
     { label: 'Alder på skadestidspunkt', value: `${alderVedSkade} år` },
   ]);
   writer.addSpacer(SECTION_SPACER);
@@ -104,19 +105,22 @@ const addResultatSection = (
  */
 type GenerateVarigeMenPdfParams = PdfCommonOptions & Readonly<{
   fodselsdato: ISODateString | undefined;
-  skadesdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
   mengrad: number | undefined;
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
+  /** Kanonisk: 'Skadedato' (uden s) eller 'Anmeldelsesdato' (med s) */
+  skadedatoLabel: 'Skadedato' | 'Anmeldelsesdato';
 }>;
 
 export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void => {
   const {
     fodselsdato,
-    skadesdato,
+    skadedato,
     mengrad,
     beregningsdato,
     beregningsResultat,
+    skadedatoLabel,
     stamdata,
     visBrevhoved = false,
   } = params;
@@ -147,7 +151,7 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
   writer.writeTitle('Ménberegning');
 
   // Tilføj stamdata-sektion
-  addStamdataSection(writer, fodselsdato, skadesdato, beregningsResultat.alderVedSkade);
+  addStamdataSection(writer, fodselsdato, skadedato, beregningsResultat.alderVedSkade, skadedatoLabel);
 
   // Tilføj beregningsgrundlag-sektion
   addBeregningsgrundlagSection(writer, mengrad, beregningsdato);

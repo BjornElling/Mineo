@@ -69,7 +69,7 @@ type FilenameSource = Readonly<{
   stamdata?: Readonly<{
     skadelidte?: string;
     skadestype?: string;
-    skadesdato?: string;
+    skadedato?: string;
     journalnr?: string;
   }>;
 }>;
@@ -80,7 +80,7 @@ export const generateFilename = (data: FilenameSource | null | undefined): strin
 
     const skadelidte = (stamdata.skadelidte || '').trim();
     const skadestype = (stamdata.skadestype || '').trim();
-    const skadesdato = (stamdata.skadesdato || '').trim();
+    const skadedato = (stamdata.skadedato || '').trim();
     const journalnr = (stamdata.journalnr || '').trim();
 
     // Filtrer placeholder-værdier fra
@@ -92,9 +92,9 @@ export const generateFilename = (data: FilenameSource | null | undefined): strin
     const parts: string[] = [EO_FILENAME_PREFIX];
     if (skadelidte) parts.push(sanitizeFilename(skadelidte));
     if (validSkadestype) parts.push(sanitizeFilename(validSkadestype));
-    if (skadesdato) {
-      const formattedSkadesdato = coerceToDanishDateString(skadesdato);
-      parts.push(sanitizeFilename(formattedSkadesdato ?? skadesdato));
+    if (skadedato) {
+      const formattedSkadedato = coerceToDanishDateString(skadedato);
+      parts.push(sanitizeFilename(formattedSkadedato ?? skadedato));
     }
 
     if (parts.length === 0) {

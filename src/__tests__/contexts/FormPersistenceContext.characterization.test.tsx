@@ -13,7 +13,7 @@ const stampStamdata = (skadelidte: string) => ({
   sagsbehandler: '',
   skadelidte,
   skadestype: '',
-  skadesdato: '',
+  skadedato: '',
 });
 
 const emptySnapshot = (): Record<StorageKey, unknown | undefined> => ({

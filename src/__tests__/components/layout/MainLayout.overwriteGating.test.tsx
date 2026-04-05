@@ -44,7 +44,7 @@ const stampStamdata = (skadelidte: string) => ({
   sagsbehandler: '',
   skadelidte,
   skadestype: '',
-  skadesdato: '',
+  skadedato: '',
 });
 
 const stampSatser = (aargang: number) => ({

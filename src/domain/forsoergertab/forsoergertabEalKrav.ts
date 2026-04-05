@@ -12,7 +12,7 @@ import type { ForsoergertabEalKravResult } from './forsoergertabTypes';
 
 type Input = Readonly<{
   beregningsdato: ISODateString | undefined;
-  skadesdato: ISODateString | undefined;
+  skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
   aslAarsloen: AmountValue | undefined;
   ealAarsloen: AmountValue | undefined;
@@ -41,7 +41,7 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
       aslAarsloen: input.aslAarsloen,
       ealAarsloen: input.ealAarsloen,
     },
-    skadesdato: input.skadesdato,
+    skadedato: input.skadedato,
     skadelidteFodselsdato: input.skadelidteFodselsdato,
     reguleringssats,
     erhvervsevnetabEalMax,

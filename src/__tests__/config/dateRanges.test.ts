@@ -6,7 +6,7 @@ import {
   dateRanges_stamdata,
   dateRanges_erstatningsopgoerelse,
   dateRanges_offentligeYdelser,
-  computeSkadesdatoMinRule,
+  computeSkadedatoMinRule,
 } from '../../config/dateRanges';
 import { toISODateString } from '../../types/branded';
 
@@ -45,20 +45,20 @@ describe('dateRanges – globale konstanter', () => {
 // ─── dateRanges_stamdata ──────────────────────────────────────────────────────
 
 describe('dateRanges_stamdata', () => {
-  it('skadesdato er static type', () => {
-    expect(dateRanges_stamdata.skadesdato.type).toBe('static');
+  it('skadedato er static type', () => {
+    expect(dateRanges_stamdata.skadedato.type).toBe('static');
   });
 
-  it('skadesdato min er 2005-01-01', () => {
-    expect(dateRanges_stamdata.skadesdato.min).toBe('2005-01-01');
+  it('skadedato min er 2005-01-01', () => {
+    expect(dateRanges_stamdata.skadedato.min).toBe('2005-01-01');
   });
 
-  it('skadesdato max er TODAY', () => {
-    expect(dateRanges_stamdata.skadesdato.max).toBe(TODAY);
+  it('skadedato max er TODAY', () => {
+    expect(dateRanges_stamdata.skadedato.max).toBe(TODAY);
   });
 
-  it('skadesdato har placeholder', () => {
-    expect(dateRanges_stamdata.skadesdato.placeholder).toBeTruthy();
+  it('skadedato har placeholder', () => {
+    expect(dateRanges_stamdata.skadedato.placeholder).toBeTruthy();
   });
 });
 
@@ -138,14 +138,14 @@ describe('dateRanges_offentligeYdelser', () => {
   });
 });
 
-// ─── computeSkadesdatoMinRule ─────────────────────────────────────────────────
+// ─── computeSkadedatoMinRule ─────────────────────────────────────────────────
 
-describe('computeSkadesdatoMinRule', () => {
+describe('computeSkadedatoMinRule', () => {
   const fallbackMin = iso('2005-01-01');
 
-  it('ingen skadesdato → returnerer fallbackMin', () => {
-    const rule = computeSkadesdatoMinRule({
-      skadesdatoISO: undefined,
+  it('ingen skadedato → returnerer fallbackMin', () => {
+    const rule = computeSkadedatoMinRule({
+      skadedatoISO: undefined,
       erErhvervssygdom: false,
       fallbackMin,
     });
@@ -153,23 +153,23 @@ describe('computeSkadesdatoMinRule', () => {
     expect(rule.minBoundKind).toBeUndefined();
   });
 
-  it('arbejdsulykke med skadesdato → minDate er skadesdato', () => {
-    const skadesdato = iso('2020-06-15');
-    const rule = computeSkadesdatoMinRule({
-      skadesdatoISO: skadesdato,
+  it('arbejdsulykke med skadedato → minDate er skadedato', () => {
+    const skadedato = iso('2020-06-15');
+    const rule = computeSkadedatoMinRule({
+      skadedatoISO: skadedato,
       erErhvervssygdom: false,
       fallbackMin,
     });
     expect(rule.minDate).toBe('2020-06-15');
-    expect(rule.minBoundKind).toBe('skadesdato');
+    expect(rule.minBoundKind).toBe('skadedato');
     expect(rule.minBoundReferenceISO).toBe('2020-06-15');
   });
 
-  it('arbejdsulykke med skadesdato før fallback → bruger fallback', () => {
-    // Skadesdato er 2004 men fallback er 2005-01-01
-    const skadesdato = iso('2004-06-01');
-    const rule = computeSkadesdatoMinRule({
-      skadesdatoISO: skadesdato,
+  it('arbejdsulykke med skadedato før fallback → bruger fallback', () => {
+    // Skadedato er 2004 men fallback er 2005-01-01
+    const skadedato = iso('2004-06-01');
+    const rule = computeSkadedatoMinRule({
+      skadedatoISO: skadedato,
       erErhvervssygdom: false,
       fallbackMin,
     });
@@ -178,9 +178,9 @@ describe('computeSkadesdatoMinRule', () => {
   });
 
   it('erhvervssygdom → minBoundKind er anmeldedatoMinus5Aar', () => {
-    const skadesdato = iso('2020-06-15');
-    const rule = computeSkadesdatoMinRule({
-      skadesdatoISO: skadesdato,
+    const skadedato = iso('2020-06-15');
+    const rule = computeSkadedatoMinRule({
+      skadedatoISO: skadedato,
       erErhvervssygdom: true,
       fallbackMin,
     });
@@ -189,9 +189,9 @@ describe('computeSkadesdatoMinRule', () => {
   });
 
   it('erhvervssygdom 2020 → minDate er 2015-06-15 (5 år tilbage)', () => {
-    const skadesdato = iso('2020-06-15');
-    const rule = computeSkadesdatoMinRule({
-      skadesdatoISO: skadesdato,
+    const skadedato = iso('2020-06-15');
+    const rule = computeSkadedatoMinRule({
+      skadedatoISO: skadedato,
       erErhvervssygdom: true,
       fallbackMin,
     });
@@ -199,9 +199,9 @@ describe('computeSkadesdatoMinRule', () => {
   });
 
   it('erhvervssygdom 2008 → minDate er 2005-01-01 (5 år minus = 2003, begrænset af 2005)', () => {
-    const skadesdato = iso('2008-03-01');
-    const rule = computeSkadesdatoMinRule({
-      skadesdatoISO: skadesdato,
+    const skadedato = iso('2008-03-01');
+    const rule = computeSkadedatoMinRule({
+      skadedatoISO: skadedato,
       erErhvervssygdom: true,
       fallbackMin,
     });
@@ -210,9 +210,9 @@ describe('computeSkadesdatoMinRule', () => {
   });
 
   it('erhvervssygdom med 29. feb → håndterer skudår korrekt', () => {
-    const skadesdato = iso('2024-02-29'); // Skudår
-    const rule = computeSkadesdatoMinRule({
-      skadesdatoISO: skadesdato,
+    const skadedato = iso('2024-02-29'); // Skudår
+    const rule = computeSkadedatoMinRule({
+      skadedatoISO: skadedato,
       erErhvervssygdom: true,
       fallbackMin,
     });

@@ -27,10 +27,10 @@ const VarigeMen = React.memo(() => {
   const menberegningStamdata = React.useMemo(
     () => ({
       skadelidteFodselsdato: stamdata?.skadelidteFodselsdato,
-      skadesdato: stamdata?.skadesdato,
+      skadedato: stamdata?.skadedato,
       skadestype: stamdata?.skadestype,
     }),
-    [stamdata?.skadelidteFodselsdato, stamdata?.skadesdato, stamdata?.skadestype]
+    [stamdata?.skadelidteFodselsdato, stamdata?.skadedato, stamdata?.skadestype]
   );
 
   const handleTabChange = React.useCallback(

@@ -93,7 +93,7 @@ const MultiLineDataRow = ({ rows }: MultiLineDataRowProps) => {
           <Typography key={row.label} className="row--text">{row.label}:</Typography>
         ))}
       </Box>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, ml: '16px', textAlign: 'right' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, flex: 1, alignItems: 'flex-end', textAlign: 'right' }}>
         {visibleRows.map((row) => (
           <Typography key={row.label} className="row--text">{row.value}</Typography>
         ))}

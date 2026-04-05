@@ -149,37 +149,37 @@ const subtractYearsISO = (isoDate: ISODateString, years: number): ISODateString 
   return toISODateString(result);
 };
 
-export type SkadesdatoMinBoundKind = 'skadesdato' | 'anmeldedatoMinus5Aar';
+export type SkadedatoMinBoundKind = 'skadedato' | 'anmeldedatoMinus5Aar';
 
-export type SkadesdatoMinRule = Readonly<{
+export type SkadedatoMinRule = Readonly<{
   minDate: ISODateString;
-  minBoundKind?: SkadesdatoMinBoundKind;
+  minBoundKind?: SkadedatoMinBoundKind;
   minBoundReferenceISO?: ISODateString;
 }>;
 
-export const computeSkadesdatoMinRule = (args: Readonly<{
-  skadesdatoISO: ISODateString | undefined;
+export const computeSkadedatoMinRule = (args: Readonly<{
+  skadedatoISO: ISODateString | undefined;
   erErhvervssygdom: boolean;
   fallbackMin: ISODateString;
-}>): SkadesdatoMinRule => {
-  if (!args.skadesdatoISO) {
+}>): SkadedatoMinRule => {
+  if (!args.skadedatoISO) {
     return { minDate: args.fallbackMin };
   }
 
   if (!args.erErhvervssygdom) {
     return {
-      minDate: maxIso(args.skadesdatoISO, args.fallbackMin),
-      minBoundKind: 'skadesdato',
-      minBoundReferenceISO: args.skadesdatoISO,
+      minDate: maxIso(args.skadedatoISO, args.fallbackMin),
+      minBoundKind: 'skadedato',
+      minBoundReferenceISO: args.skadedatoISO,
     };
   }
 
-  const minus5Years = subtractYearsISO(args.skadesdatoISO, 5);
+  const minus5Years = subtractYearsISO(args.skadedatoISO, 5);
   const bounded = maxIso(maxIso(minus5Years, DATE_2005_01_01), args.fallbackMin);
   return {
     minDate: bounded,
     minBoundKind: 'anmeldedatoMinus5Aar',
-    minBoundReferenceISO: args.skadesdatoISO,
+    minBoundReferenceISO: args.skadedatoISO,
   };
 };
 
@@ -191,13 +191,13 @@ export const computeSkadesdatoMinRule = (args: Readonly<{
  * Dato-intervaller for Stamdata-siden
  */
 export interface DateRanges_Stamdata {
-  readonly skadesdato: StaticDateRange;
+  readonly skadedato: StaticDateRange;
 }
 
 export const dateRanges_stamdata: DateRanges_Stamdata = {
-  // Skadesdato / Anmeldelsesdato
-  // (Label er dynamisk: "Skadesdato" hvis type er 'Arbejdsulykke', "Anmeldelsesdato" hvis 'Erhvervssygdom')
-  skadesdato: {
+  // Skadedato / Anmeldelsesdato
+  // (Label er dynamisk: "Skadedato" hvis type er 'Arbejdsulykke', "Anmeldelsesdato" hvis 'Erhvervssygdom')
+  skadedato: {
     type: 'static',
     min: DATE_2005_01_01,
     max: TODAY,
@@ -257,124 +257,124 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
   // Opgørelse lavet den
   opgoerelse: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Den højeste værdi af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: TODAY,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod dynamisk min-værdi (skadesdato) OG fast max-værdi (i dag)'
+    notes: 'Valideres mod dynamisk min-værdi (skadedato) OG fast max-værdi (i dag)'
   },
 
   // Evt. dato for forlig
   forligDato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Den højeste værdi af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: TODAY,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadesdato fra Stamdata) OG fast max-værdi (i dag)'
+    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (i dag)'
   },
 
   // Dato for første ménafgørelse
   menAfgoerelseDato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Den højeste værdi af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: TODAY,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadesdato fra Stamdata) OG fast max-værdi (i dag)'
+    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (i dag)'
   },
 
   // Dato for første midlertidige erhvervsevnetabsafgørelse
   midlertidigEETAfgoerelseDato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Den højeste værdi af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: TODAY,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadesdato fra Stamdata) OG fast max-værdi (i dag)'
+    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (i dag)'
   },
 
   // Virkningsdato for midlertidig EET (hvis forskellig fra afgørelsesdatoen)
   midlertidigEETVirkningsdato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Den højeste værdi af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: DATE_PLUS_1_YEAR_END,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadesdato fra Stamdata) OG fast max-værdi (31-12 ét år frem)'
+    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (31-12 ét år frem)'
   },
 
   // Dato for endelig erhvervsevnetabsafgørelse
   endeligEETAfgoerelseDato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Den højeste værdi af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: TODAY,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadesdato fra Stamdata) OG fast max-værdi (i dag)'
+    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (i dag)'
   },
 
   // Virkningsdato for endelig EET (hvis forskellig fra afgørelsesdatoen)
   endeligEETVirkningsdato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Den højeste værdi af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: DATE_PLUS_1_YEAR_END,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadesdato fra Stamdata) OG fast max-værdi (31-12 ét år frem)'
+    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (31-12 ét år frem)'
   },
 
   // Evt. differencekrav opgjort per
   differencekravDato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Den højeste værdi af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: TODAY,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadesdato fra Stamdata) OG fast max-værdi (i dag)'
+    notes: 'Valideres mod både dynamisk min-værdi (indtastet skadedato fra Stamdata) OG fast max-værdi (i dag)'
   },
 
   // Tabel: Svie og smerte - kolonne "Fra o.m."
   tabelSvieSmerteFra: {
     type: 'dynamic-both',
-    min: 'DYNAMIC', // Den højeste værdi af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: 'DYNAMIC', // Den laveste værdi af: tilhørende til-dato (hvis udfyldt) eller TODAY
     fallbackMax: TODAY,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (skadesdato) OG dynamisk max-værdi (til-dato eller i dag)'
+    notes: 'Valideres mod både dynamisk min-værdi (skadedato) OG dynamisk max-værdi (til-dato eller i dag)'
   },
 
   // Tabel: Svie og smerte - kolonne "Til o.m."
   tabelSvieSmerteTil: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Den højeste værdi af: tilhørende fra-dato (hvis udfyldt) eller skadesdato eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: tilhørende fra-dato (hvis udfyldt) eller skadedato eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: TODAY,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (fra-dato eller skadesdato) OG fast max-værdi (i dag)'
+    notes: 'Valideres mod både dynamisk min-værdi (fra-dato eller skadedato) OG fast max-værdi (i dag)'
   },
 
   // Tabel: TAF - kolonne "Fra"
   tabelTAFFra: {
     type: 'dynamic-both',
-    min: 'DYNAMIC', // Den højeste værdi af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: 'DYNAMIC', // Den laveste værdi af: tilhørende til-dato i samme række (hvis udfyldt), vedroererPeriodeTil (hvis udfyldt) eller fallbackMax
     fallbackMax: DATE_PLUS_1_YEAR_END,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (skadesdato) OG dynamisk max-værdi (til-dato i samme række eller vedroererPeriodeTil)'
+    notes: 'Valideres mod både dynamisk min-værdi (skadedato) OG dynamisk max-værdi (til-dato i samme række eller vedroererPeriodeTil)'
   },
 
   // Tabel: TAF - kolonne "Til og med"
   tabelTAFTil: {
     type: 'dynamic-both',
-    min: 'DYNAMIC', // Den højeste værdi af: tilhørende fra-dato i samme række (hvis udfyldt), skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: tilhørende fra-dato i samme række (hvis udfyldt), skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: 'DYNAMIC', // Den laveste værdi af: vedroererPeriodeTil (hvis udfyldt) eller fallbackMax
     fallbackMax: DATE_PLUS_1_YEAR_END,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (fra-dato i samme række eller skadesdato) OG dynamisk max-værdi (vedroererPeriodeTil)'
+    notes: 'Valideres mod både dynamisk min-værdi (fra-dato i samme række eller skadedato) OG dynamisk max-værdi (vedroererPeriodeTil)'
   },
 
   // Tabel: Ferie - kolonne "Optjeningsår fra"
@@ -398,11 +398,11 @@ export const dateRanges_erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse 
   // Tabel: Øvrige krav - kolonne "Dato"
   tabelOevrigeKravDato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Den højeste værdi af: skadesdato (hvis skadestype ikke er erhvervssygdom og skadesdato udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Den højeste værdi af: skadedato (hvis skadestype ikke er erhvervssygdom og skadedato udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: TODAY,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod både dynamisk min-værdi (skadesdato hvis ikke erhvervssygdom) OG fast max-værdi (i dag)'
+    notes: 'Valideres mod både dynamisk min-værdi (skadedato hvis ikke erhvervssygdom) OG fast max-værdi (i dag)'
   },
 };
 
@@ -450,11 +450,11 @@ export interface DateRanges_VarigeMen {
 export const dateRanges_varigemen: DateRanges_VarigeMen = {
   beregningsdato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Højeste af: skadesdato fra Stamdata eller fallbackMin
+    min: 'DYNAMIC', // Højeste af: skadedato fra Stamdata eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: DATE_VARIGEMEN_MAX,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og dynamisk max-værdi (31-12 i seneste år med mén-per-grad-sats)',
+    notes: 'Valideres mod dynamisk min-værdi (skadedato) og dynamisk max-værdi (31-12 i seneste år med mén-per-grad-sats)',
   },
 };
 
@@ -482,7 +482,7 @@ export const dateRanges_forsoergertab: DateRanges_Forsoergertab = {
     fallbackMin: DATE_2005_01_01,
     max: DATE_FORSOERGERTAB_MAX,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod dynamisk min-værdi (højeste af skadesdato og virkningsdato) og fast max-værdi (31-12 i seneste år med komplet forsørgertab-datadækning).',
+    notes: 'Valideres mod dynamisk min-værdi (højeste af skadedato og virkningsdato) og fast max-værdi (31-12 i seneste år med komplet forsørgertab-datadækning).',
   },
   virkningsdato: {
     type: 'dynamic-min',
@@ -490,7 +490,7 @@ export const dateRanges_forsoergertab: DateRanges_Forsoergertab = {
     fallbackMin: DATE_2005_01_01,
     max: DATE_FORSOERGERTAB_MAX,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og dynamisk max-værdi (laveste af forsørgertab-max og beregningsdato).',
+    notes: 'Valideres mod dynamisk min-værdi (skadedato) og dynamisk max-værdi (laveste af forsørgertab-max og beregningsdato).',
   },
 };
 
@@ -581,38 +581,38 @@ export const dateRanges_erhvervsevnetab: DateRanges_Erhvervsevnetab = {
   // Beregningsdato (fane 1 stamdata-boks)
   beregningsdato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Højeste af: skadesdato fra Stamdata eller fallbackMin
+    min: 'DYNAMIC', // Højeste af: skadedato fra Stamdata eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: DATE_EET_MAX,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og fast max-værdi (31-12 i seneste år med komplet EET-datadækning)',
+    notes: 'Valideres mod dynamisk min-værdi (skadedato) og fast max-værdi (31-12 i seneste år med komplet EET-datadækning)',
   },
   // ASL afgørelser tabel – kolonne 1: Afgørelsesdato
   tabelAfgoerelsesdato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Højeste af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Højeste af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: DATE_EET_MAX,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og fast max-værdi (DATE_EET_MAX). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
+    notes: 'Valideres mod dynamisk min-værdi (skadedato) og fast max-værdi (DATE_EET_MAX). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
   },
   // ASL afgørelser tabel – kolonne 2: Virkningsdato
   tabelVirkningsdato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Højeste af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Højeste af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: DATE_EET_MAX,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og fast max-værdi (DATE_EET_MAX). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
+    notes: 'Valideres mod dynamisk min-værdi (skadedato) og fast max-værdi (DATE_EET_MAX). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
   },
   // ASL afgørelser tabel – kolonne 4: Kapitaliseringsdato
   tabelKapitaliseringsdato: {
     type: 'dynamic-min',
-    min: 'DYNAMIC', // Højeste af: skadesdato (hvis udfyldt) eller fallbackMin
+    min: 'DYNAMIC', // Højeste af: skadedato (hvis udfyldt) eller fallbackMin
     fallbackMin: DATE_2005_01_01,
     max: DATE_EET_MAX,
     placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod dynamisk min-værdi (skadesdato) og fast max-værdi (31-12 i seneste år med komplet EET-datadækning). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
+    notes: 'Valideres mod dynamisk min-værdi (skadedato) og fast max-værdi (31-12 i seneste år med komplet EET-datadækning). Beregningsdato kan sænke max yderligere i tabelkomponenten.',
   },
   // ASL afgørelser tabel – kolonne 7: Evt. tidl. kap.dato
   tabelTidlKapitaliseringsdato: {
@@ -622,7 +622,7 @@ export const dateRanges_erhvervsevnetab: DateRanges_Erhvervsevnetab = {
     max: 'DYNAMIC',
     fallbackMax: DATE_EET_MAX,
     placeholder: 'dd-mm-åååå',
-    notes: 'Min styres dynamisk af skadesdato. Max styres dynamisk af dagen før afgørelsesdato i den konkrete tabelrække.',
+    notes: 'Min styres dynamisk af skadedato. Max styres dynamisk af dagen før afgørelsesdato i den konkrete tabelrække.',
   },
 };
 

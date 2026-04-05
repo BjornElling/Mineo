@@ -16,7 +16,7 @@ describe('STAMDATA_INITIAL_VALUES', () => {
 
   it('valgfrie dato/type-felter er undefined', () => {
     expect(STAMDATA_INITIAL_VALUES.skadestype).toBeUndefined();
-    expect(STAMDATA_INITIAL_VALUES.skadesdato).toBeUndefined();
+    expect(STAMDATA_INITIAL_VALUES.skadedato).toBeUndefined();
   });
 
   it('indeholder præcis de forventede nøgler', () => {
@@ -26,6 +26,6 @@ describe('STAMDATA_INITIAL_VALUES', () => {
     expect(keys).toContain('sagsbehandler');
     expect(keys).toContain('skadelidte');
     expect(keys).toContain('skadestype');
-    expect(keys).toContain('skadesdato');
+    expect(keys).toContain('skadedato');
   });
 });

@@ -52,7 +52,7 @@ describe('FormPersistenceContext – normalFlow', () => {
         sagsbehandler: '',
         skadelidte: 'InitTest',
         skadestype: 'Arbejdsulykke',
-        skadesdato: '2024-01-01',
+        skadedato: '2024-01-01',
       }))
     );
 
@@ -75,7 +75,7 @@ describe('FormPersistenceContext – normalFlow', () => {
         sagsbehandler: '',
         skadelidte: 'PersistTest',
         skadestype: 'Arbejdsulykke',
-        skadesdato: '2024-06-15',
+        skadedato: '2024-06-15',
       });
     });
 
@@ -94,7 +94,7 @@ describe('FormPersistenceContext – normalFlow', () => {
         sagsbehandler: '',
         skadelidte: 'StorageTest',
         skadestype: undefined,
-        skadesdato: undefined,
+        skadedato: undefined,
       });
     });
 
@@ -149,7 +149,7 @@ describe('FormPersistenceContext – normalFlow', () => {
         sagsbehandler: '',
         skadelidte: 'HasData',
         skadestype: undefined,
-        skadesdato: undefined,
+        skadedato: undefined,
       });
     });
 

@@ -11,6 +11,7 @@ import StyledPercentField from '../../inputs/StyledPercentField';
 import ContentBox from '../../layout/ContentBox';
 import {
   type VarigeMenValues,
+  type StamdataValues,
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString, parseISODate, toISODateString } from '../../../types/branded';
 import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
@@ -23,6 +24,7 @@ import { formatAsAmount } from '../../../utils/formatUtils';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import { downloadVarigeMenPdf } from '../../../pdf/infrastructure/pdfService';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
+import { resolveStamdataDatoLabel } from '../../../domain/policies/stamdataCalculations';
 
 const VARIGE_MEN_BEREGNINGSDATO_MIN = toISODateString(
   `${varigeMenPrGradYearBounds.minYear}-01-01`
@@ -32,11 +34,7 @@ const VARIGE_MEN_BEREGNINGSDATO_MAX = toISODateString(
   `${varigeMenPrGradYearBounds.maxYear}-12-31`
 );
 
-type MenberegningStamdataView = Readonly<{
-  skadelidteFodselsdato: string | undefined;
-  skadesdato: string | undefined;
-  skadestype: string | undefined;
-}>;
+type MenberegningStamdataView = Pick<StamdataValues, 'skadelidteFodselsdato' | 'skadedato' | 'skadestype'>;
 
 const MenberegningTab = ({ values, setValues, setFieldValue, stamdata }: {
   values: VarigeMenValues;
@@ -79,57 +77,57 @@ const beregningsFejl = React.useMemo(() => {
 
 // Tjek om indtastninger mangler (altid, uafhængigt af onBlur)
 const manglendeFelter = React.useMemo(() => {
-  if (!stamValues.skadelidteFodselsdato || !stamValues.skadesdato || !values.beregningsdato || values.mengrad === undefined) {
+  if (!stamValues.skadelidteFodselsdato || !stamValues.skadedato || !values.beregningsdato || values.mengrad === undefined) {
     return 'Indtastning mangler';
   }
   if (values.mengrad === 0) {
     return 'Méngrad mangler';
   }
   return null;
-}, [stamValues.skadelidteFodselsdato, stamValues.skadesdato, values.beregningsdato, values.mengrad]);
+}, [stamValues.skadelidteFodselsdato, stamValues.skadedato, values.beregningsdato, values.mengrad]);
 
 // Beregn alder på skadestidspunkt (bruges flere steder)
 const alderVedSkade = React.useMemo(() => {
   const fodselsdatoISO = coerceToISODateString(stamValues.skadelidteFodselsdato);
-  const skadesdatoISO = coerceToISODateString(stamValues.skadesdato);
+  const skadedatoISO = coerceToISODateString(stamValues.skadedato);
 
-  if (!fodselsdatoISO || !skadesdatoISO) return undefined;
+  if (!fodselsdatoISO || !skadedatoISO) return undefined;
 
   const fodselsdato = parseISODate(fodselsdatoISO);
-  const skadesdato = parseISODate(skadesdatoISO);
+  const skadedato = parseISODate(skadedatoISO);
 
-  if (!fodselsdato || !skadesdato) return undefined;
+  if (!fodselsdato || !skadedato) return undefined;
 
-  let alder = skadesdato.getUTCFullYear() - fodselsdato.getUTCFullYear();
+  let alder = skadedato.getUTCFullYear() - fodselsdato.getUTCFullYear();
 
   if (
-    skadesdato.getUTCMonth() < fodselsdato.getUTCMonth() ||
-    (skadesdato.getUTCMonth() === fodselsdato.getUTCMonth() &&
-      skadesdato.getUTCDate() < fodselsdato.getUTCDate())
+    skadedato.getUTCMonth() < fodselsdato.getUTCMonth() ||
+    (skadedato.getUTCMonth() === fodselsdato.getUTCMonth() &&
+      skadedato.getUTCDate() < fodselsdato.getUTCDate())
   ) {
     alder--;
   }
 
   return alder;
-}, [stamValues.skadelidteFodselsdato, stamValues.skadesdato]);
+}, [stamValues.skadelidteFodselsdato, stamValues.skadedato]);
 
 const beregningsResultat = React.useMemo(() => {
   // Hvis der er onBlur-fejl eller manglende felter, vis ikke resultat
   if (beregningsFejl || manglendeFelter) return undefined;
 
-  const skadesdatoISO = coerceToISODateString(stamValues.skadesdato);
-  if (!skadesdatoISO) return undefined;
+  const skadedatoISO = coerceToISODateString(stamValues.skadedato);
+  if (!skadedatoISO) return undefined;
 
   const resultat = beregnVarigeMenGodtgoerelseWithRates(
     values,
-    skadesdatoISO,
+    skadedatoISO,
     varigeMenPrGrad,
     coerceToISODateString(stamValues.skadelidteFodselsdato)
   );
   if (!resultat) return undefined;
 
   return resultat;
-}, [values, stamValues.skadelidteFodselsdato, stamValues.skadesdato, beregningsFejl, manglendeFelter]);
+}, [values, stamValues.skadelidteFodselsdato, stamValues.skadedato, beregningsFejl, manglendeFelter]);
 
 // Beregn aldersreduktionsbeløb (kun én gang)
 const aldersreduktionsBeloeb = React.useMemo(() => {
@@ -146,11 +144,11 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       setTimeout(() => setDownloadShake(false), 500);
 
       // Find første fejlcelle og markér den
-      // Prioritering: Fødselsdato -> Skadesdato -> Méngrad -> Beregningsdato
+      // Prioritering: Fødselsdato -> Skadedato -> Méngrad -> Beregningsdato
       if (!stamValues.skadelidteFodselsdato || fodselsdatoError) {
         navigate('/stamdata');
-      } else if (!stamValues.skadesdato) {
-        // Skadesdato kan ikke markeres direkte, men brugeren vil se fejlen
+      } else if (!stamValues.skadedato) {
+        // Skadedato kan ikke markeres direkte, men brugeren vil se fejlen
       } else if (values.mengrad === undefined || values.mengrad === 0 || mengradError) {
         // Markér méngrad-feltet
         const mengradInput = document.querySelector('input[type="text"][value*="%"]') as HTMLInputElement;
@@ -172,7 +170,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
 
     const result = await downloadVarigeMenPdf({
       fodselsdato: coerceToISODateString(stamValues.skadelidteFodselsdato),
-      skadesdato: coerceToISODateString(stamValues.skadesdato),
+      skadedato: coerceToISODateString(stamValues.skadedato),
       mengrad: values.mengrad,
       beregningsdato: coerceToISODateString(values.beregningsdato),
       beregningsResultat: beregningsResultat,
@@ -185,13 +183,12 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
     }
   }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues, fodselsdatoError, mengradError, beregningsdatoError, settings, navigate]);
 
-  const skadesdatoLabel = React.useMemo(() => {
-    if (stamValues.skadestype === 'Erhvervssygdom') return 'Anmeldelsesdato';
-    if (stamValues.skadestype === 'Arbejdsulykke') return 'Skadesdato';
-    return 'Skadesdato';
-  }, [stamValues.skadestype]);
+  const skadedatoLabel = React.useMemo(
+    () => resolveStamdataDatoLabel(stamValues),
+    [stamValues]
+  );
 
-  const formatSkadesdato = (iso: string | undefined): string => {
+  const formatSkadedato = (iso: string | undefined): string => {
     if (!iso) return 'Mangler (angiv i Stamdata)';
     const formatted = formatIsoDateLong(coerceToISODateString(iso) ?? undefined);
     return formatted || 'Mangler (angiv i Stamdata)';
@@ -229,17 +226,17 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       </Box>
 
       <Box className="row--label-right">
-        <Typography className="row--text">{skadesdatoLabel}</Typography>
+        <Typography className="row--text">{skadedatoLabel}</Typography>
         <Box
           className="row--label-right-hover__content"
           style={{ justifyContent: 'flex-end' }}
         >
           <Typography
             className="row--text"
-            color={stamValues.skadesdato ? 'text.primary' : 'text.disabled'}
+            color={stamValues.skadedato ? 'text.primary' : 'text.disabled'}
           >
-            {stamValues.skadesdato ? (
-              formatSkadesdato(stamValues.skadesdato)
+            {stamValues.skadedato ? (
+              formatSkadedato(stamValues.skadedato)
             ) : (
               <>
                 Mangler (angiv i&nbsp; {' '}
@@ -265,11 +262,11 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
           className="row--label-right-hover__content"
           style={{ justifyContent: 'flex-end' }}
         >
-          {fodselsdatoError || !stamValues.skadelidteFodselsdato || !stamValues.skadesdato ? (
+          {fodselsdatoError || !stamValues.skadelidteFodselsdato || !stamValues.skadedato ? (
             <Tooltip
               title={
                 fodselsdatoError ||
-                (!stamValues.skadelidteFodselsdato || !stamValues.skadesdato ? 'Indtastning mangler' : '')
+                (!stamValues.skadelidteFodselsdato || !stamValues.skadedato ? 'Indtastning mangler' : '')
               }
               arrow
             >

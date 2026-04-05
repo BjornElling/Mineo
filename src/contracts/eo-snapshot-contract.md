@@ -78,7 +78,7 @@ Adfærden er identisk for alle fejlgivende bounds uanset årsag (differencekrav,
 
 **TAF fra-dato:**
 - `< 2005-01-01`
-- `< skadesdato` (ikke-erhvervssygdom)
+- `< skadedato` (ikke-erhvervssygdom)
 - `< anmeldedato − 5 år` (erhvervssygdom)
 - `> til-dato i samme række`
 
@@ -86,11 +86,11 @@ Adfærden er identisk for alle fejlgivende bounds uanset årsag (differencekrav,
 - `< fra-dato i samme række`
 - `>= differencekravDato`
 - `>= beregnet endelig EET-virkningsdato` (når EET-afgørelse ikke er påklaget)
-- `>= beregnet midlertidig EET-virkningsdato` (når EET-afgørelse ikke er påklaget **og** skadesdato < 2011-06-16)
+- `>= beregnet midlertidig EET-virkningsdato` (når EET-afgørelse ikke er påklaget **og** skadedato < 2011-06-16)
 
 **Svie/smerte fra-dato:**
 - `< 2005-01-01`
-- `< skadesdato` (ikke-erhvervssygdom)
+- `< skadedato` (ikke-erhvervssygdom)
 - `< anmeldedato − 5 år` (erhvervssygdom)
 - `> til-dato i samme række`
 
@@ -116,7 +116,7 @@ niveau som tilsvarende rækkefejl for TAF- og svie/smerte-perioder.
 2. **Semantisk validering (fejlgivende bounds):** Efter commit undersøges de committede
    datoer mod fejlgivende bounds (§2.2). Violation giver feltfejl (rød kant + tooltip) og
    blokerer download via EOBeregningTab. Disse checks inkluderer: fra-dato mod 2005-grænse,
-   skadesdato/anmeldedato-grænse, fra > til, til < fra, til >= differencekravDato,
+   skadedato/anmeldedato-grænse, fra > til, til < fra, til >= differencekravDato,
    til >= EET-virkningsdato (ikke påklaget), overlap mellem rækker.
 
    Validering sker på de committede rækker som sådanne — ikke først efter en
@@ -125,7 +125,7 @@ niveau som tilsvarende rækkefejl for TAF- og svie/smerte-perioder.
    beregningsinterval.
 
 3. **Clamping mod fejlgivende øvre grænser:** Til-dato clampes mod strengeste af:
-   `differencekravDato − 1`, `endelig EET-virkningsdato − 1`, og (ved skadesdato < 2011-06-16)
+   `differencekravDato − 1`, `endelig EET-virkningsdato − 1`, og (ved skadedato < 2011-06-16)
    `midlertidig EET-virkningsdato − 1`. Alle tre EET-grænser ophæves hvis `verserendeKlageEet = 'Ja'`.
    Validator rapporterer violation som feltfejl der blokerer download. Rækkefølge: FØR
    EO-periode-clamping, så feltfejlen ikke skjules af at EO-perioden forinden har afkortet perioden.
@@ -159,7 +159,7 @@ Tilsvarende proces gælder for svie/smerte-perioder:
 2. **Semantisk validering (fejlgivende bounds):** Efter commit undersøges de committede
    datoer mod fejlgivende bounds (§2.2). Violation giver feltfejl (rød kant + tooltip) og
    blokerer download via EOBeregningTab. Disse checks inkluderer: fra-dato mod 2005-grænse,
-   skadesdato/anmeldedato-grænse, fra > til, til < fra, til >= ménafgørelsesdato
+   skadedato/anmeldedato-grænse, fra > til, til < fra, til >= ménafgørelsesdato
    (ikke påklaget), overlap mellem rækker.
 
 3. **Clamping mod fejlgivende øvre grænse:** Til-dato clampes mod
