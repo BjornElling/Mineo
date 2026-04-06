@@ -335,7 +335,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     });
   }, TEST_TIMEOUT_MS);
 
-  it('viser ikke ydelse pr. dag for midlertidigt EET-rækker', () => {
+  it('viser ydelse pr. dag for midlertidigt EET-rækker (totalbeløb divideret med antal dage)', () => {
     render(
       <DerivedHarness
         onPersist={vi.fn()}
@@ -350,7 +350,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       />
     );
 
-    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '' });
+    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '100,00' });
   });
 
   it('recomputes ydelse/dag on blur when entering an already-canonical date (no normalization delta)', async () => {

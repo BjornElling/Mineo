@@ -92,6 +92,10 @@ export const buildEoComputedTotals = (args: Readonly<{
   oevrige: OevrigeKravModel;
   forligFactor: number | null;
 }>): EoComputedTotals => {
+  // Rækkefølge: clamp(tafNetto) → forlig-skalering → fradrag tidligereModtagetTaf → clamp.
+  // `tabtArbejdsfortjenesteEfterForligOre` clampes ikke til nul efter skalering — det er tilstrækkeligt
+  // at det ydre `clampMoneyOreToZero` håndterer det, da subtraktionen aldrig kan gøre resultatet positivt
+  // hvis skaleringen allerede har produceret nul.
   const tabtArbejdsfortjenesteFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(args.tafNetto.tabtArbejdsfortjenesteOre));
   const tidligereModtagetTafOre = args.tafNetto.tidligereModtagetTaf.status === 'ok'
     ? ensureMoneyOre(args.tafNetto.tidligereModtagetTaf.value)

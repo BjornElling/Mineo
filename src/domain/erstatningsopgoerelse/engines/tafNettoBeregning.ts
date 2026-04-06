@@ -86,6 +86,11 @@ export type TafNettoBeregningResult = Readonly<{
   tafIndtaegter: TafIndtaegterModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
   sygeferiegodtgoerelse: SygeferiegodtgoerelseResult;
+  /**
+   * TAF før fradrag af `tidligereModtagetTaf`.
+   * Fradraget foretages downstream i `buildEoComputedTotals` og `buildTafPerYearBuildOutcome`.
+   * Forbrugere der anvender dette felt direkte skal selv håndtere fradraget.
+   */
   tabtArbejdsfortjenesteOre: MoneyOre;
 }>;
 

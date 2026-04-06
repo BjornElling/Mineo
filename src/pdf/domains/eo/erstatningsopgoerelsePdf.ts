@@ -148,13 +148,13 @@ const buildSfggDisplayedCalculatedPeriodText = (
     : entry.sfggVisningsperiode;
 
   return ranges
-  .map((range) => {
-    const fraText = formatDateShort(range.fra);
-    const tilText = formatDateShort(range.til);
-    return fraText && tilText ? `${fraText} - ${tilText}` : '';
-  })
-  .filter((value) => value !== '')
-  .join(', ');
+    .map((range) => {
+      const fraText = formatDateShort(range.fra);
+      const tilText = formatDateShort(range.til);
+      return fraText && tilText ? `${fraText} - ${tilText}` : '';
+    })
+    .filter((value) => value !== '')
+    .join(', ');
 };
 
 const parseSfggPdfExplanatoryLine = (
