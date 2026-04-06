@@ -6,14 +6,17 @@ import { PDF_CONTENT_WIDTH_MM } from '../../../infrastructure/pdfConfig';
 import { ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
+import type { ISODateString } from '../../../../types/branded';
 import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { renderEoStylePdfTable } from '../../../shared/pdfTableRenderer';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
+import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 
 type OffentligeYdelserSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
+  skjulMidlertidigtEet?: boolean;
   lineHeight: number;
   startBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
@@ -36,6 +39,7 @@ type OffentligeYdelserSectionContext = Readonly<{
 type RenderOffentligeYdelserRowsPageContext = Readonly<{
   rows: readonly OffentligeYdelserRow[];
   lineHeight: number;
+  visYdelsestypeSubheader?: boolean;
   renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   writer: Readonly<{
     addSpacer: (height: number) => void;
@@ -49,6 +53,7 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
   const {
     rows,
     lineHeight,
+    visYdelsestypeSubheader = true,
     renderSubheader,
     writer,
   } = ctx;
@@ -106,7 +111,7 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
 
   for (const [index, label] of groupOrder.entries()) {
     if (index > 0) writer.addSpacer(lineHeight);
-    renderSubheader(label, lineHeight, { addTopSpacing: index > 0 });
+    if (visYdelsestypeSubheader) renderSubheader(label, lineHeight, { addTopSpacing: index > 0 });
     const tableRows = buildTableRows(grouped.get(label) ?? []);
     const finalY = renderEoStylePdfTable({
       doc,
@@ -121,6 +126,7 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
 export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionContext): void => {
   const {
     eoValues,
+    skjulMidlertidigtEet = false,
     lineHeight,
     startBilagPage,
     renderSubheader,
@@ -133,10 +139,14 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
 
   const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(eoValues.offentligeYdelserRows ?? []);
 
+  const kandidatRaekker = skjulMidlertidigtEet
+    ? (eoValues.offentligeYdelserRows ?? []).filter((row) => row.ydelsestype?.trim() !== 'midlertidigt_eet')
+    : (eoValues.offentligeYdelserRows ?? []);
+
   const rangeGroups = buildPeriodRangeGroups(eoValues, bilagIndkomstYdelserMode, bilagIndkomstYdelserRanges);
   const groupedRows = rangeGroups.map((group) => ({
     group,
-    rows: (eoValues.offentligeYdelserRows ?? []).filter((row) => {
+    rows: kandidatRaekker.filter((row) => {
       return shouldIncludeOffentligYdelseRowInBilag({
         row,
         mode: normalizedBilagMode,
@@ -165,6 +175,44 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     renderOffentligeYdelserRowsPage({
       rows: entry.rows,
       lineHeight,
+      renderSubheader,
+      writer,
+    });
+  }
+};
+
+type MidlertidigtEetSectionContext = Readonly<{
+  groups: readonly MidlertidigtEetAfgoerelseGroup[];
+  lineHeight: number;
+  startBilagPage: (titleText: string) => void;
+  renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  formatAfgoerelsesdato: (date: ISODateString) => string | undefined;
+  writer: Readonly<{
+    addSpacer: (height: number) => void;
+    setY: (y: number) => void;
+    getY: () => number;
+    getDoc: () => unknown;
+  }>;
+}>;
+
+export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext): void => {
+  const { groups, lineHeight, startBilagPage, renderSubheader, formatAfgoerelsesdato, writer } = ctx;
+
+  for (const [index, group] of groups.entries()) {
+    if (index === 0) {
+      startBilagPage('Midlertidig EET');
+      writer.addSpacer(lineHeight);
+    } else {
+      writer.addSpacer(lineHeight);
+    }
+
+    const datoText = formatAfgoerelsesdato(group.afgoerelsesdato) ?? group.afgoerelsesdato;
+    renderSubheader(`Afgørelse ${datoText}`, lineHeight, { addTopSpacing: index > 0 });
+
+    renderOffentligeYdelserRowsPage({
+      rows: group.rows,
+      lineHeight,
+      visYdelsestypeSubheader: false,
       renderSubheader,
       writer,
     });

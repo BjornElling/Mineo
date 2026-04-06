@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   coerceToIntegerOrUndefined,
   dayCount,
+  isoDateString,
   loseFeriedageCount,
   nonNegativeAmountValue,
   optionalIsoDateString,
@@ -227,6 +228,10 @@ const erstatningsopgoerelseBaseSchema = z.object({
   forligDato: optionalIsoDateString,
   oevrigeKravPerioder: z.array(oevrigeKravRowSchema),
   offentligeYdelserRows: z.array(offentligeYdelserRowSchema),
+  midlertidigtEetAfgoerelseGrupper: z.array(z.object({
+    afgoerelsesdato: isoDateString,
+    rowIds: z.array(z.string()),
+  }).strict()).default([]),
   loenudviklingPaaGrundlagAf: optionalString,
   saerligeKommentarer: optionalString,
   eoBilagSelection: eoBilagSelectionSchema.default({ opgoerelse: true, loenindkomst: true, offentligeYdelser: true, midlertidigEet: true, shDage: false, regulering: true, okSatser: true, sygeferiegodtgoerelse: false }),

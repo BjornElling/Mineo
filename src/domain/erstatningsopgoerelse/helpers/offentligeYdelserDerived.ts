@@ -29,9 +29,5 @@ export const deriveOffentligeYdelserRow = (row: OffentligeYdelserRow): Offentlig
 
   // De to ydelsesfelter er semantisk ens og indgår derfor kun som en samlet ydelse.
   const samletYdelse = (ydelseValue ?? 0) + (ydelse2Value ?? 0);
-  if (ydelsestypeKey === 'midlertidigt_eet') {
-    // Midlertidigt EET indsættes som periodetotalbeløb fra EET-beregningen; en afledt dagsats ville være misvisende.
-    return { periodiseringLabel, antalDage, ydelsePerDag: null };
-  }
   return { periodiseringLabel, antalDage, ydelsePerDag: samletYdelse / antalDage };
 };

@@ -27,8 +27,6 @@ import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsop
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
-import { buildMidlertidigtEetRowsFromEet } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
-import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
@@ -41,10 +39,6 @@ interface EOberegningTabProps {
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
-  midlertidigtEetInsertSource?: Readonly<{
-    eetValues: ErhvervsevnetabComposedValues;
-    skadedato: ISODateString | undefined;
-  }>;
 }
 
 type SystemIssueRow = Readonly<{
@@ -153,8 +147,7 @@ const buildInvariantDiagnostics = (
 
 const FEJL_ADVARSLER_ROW_SX = {
   display: 'grid',
-  gridTemplateColumns: 'minmax(0, 58ch) max-content',
-  justifyContent: 'space-between',
+  gridTemplateColumns: '1fr max-content',
   alignItems: 'flex-start',
   gap: 1,
   '& > :first-of-type': {
@@ -228,7 +221,7 @@ const getCustomDebugRowMessage = (
 };
 
 const EOberegningTab = React.memo<EOberegningTabProps>((
-  { activeTab, setActiveTab, isActive, eoSnapshot = null, stamdataValues, eoValues, setEOValues, midlertidigtEetInsertSource }
+  { activeTab, setActiveTab, isActive, eoSnapshot = null, stamdataValues, eoValues, setEOValues }
 ) => {
   // ============================================================================
   // DATA FRA COMMITTED STATE + PERSISTENCE FACADE
@@ -637,9 +630,14 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return;
     }
     if (!eoSnapshot) return;
-    const midlertidigtEetRows = midlertidigtEetInsertSource
-      ? buildMidlertidigtEetRowsFromEet(midlertidigtEetInsertSource)
-      : [];
+    const rowById = new Map((eoValues.offentligeYdelserRows ?? []).map((r) => [r.id, r]));
+    const midlertidigtEetGroups = (eoValues.midlertidigtEetAfgoerelseGrupper ?? []).flatMap((gruppe) => {
+      const rows = gruppe.rowIds.flatMap((id) => {
+        const row = rowById.get(id);
+        return row ? [row] : [];
+      });
+      return rows.length > 0 ? [{ afgoerelsesdato: gruppe.afgoerelsesdato, rows }] : [];
+    });
 
     const result = await downloadErstatningsopgoerelsePdf({
       stamdataValues,
@@ -647,14 +645,14 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       selectedElements,
       settings,
       snapshot: eoSnapshot,
-      midlertidigtEetRows,
+      midlertidigtEetGroups,
     });
     if (!result.success) {
       // Runtime-fejl under PDF-generering er en systemteknisk fejl — logges til devtools-monitor.
       // Ingen dialog eller BugReportButton vises til brugeren (jf. error-debug-contract.md §8.1).
       console.error('[EOberegningTab] EO PDF download fejlede:', result.error);
     }
-  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, midlertidigtEetInsertSource, selectedElements, settings]);
+  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings]);
 
   const handleDownloadTafFordeltPdf = React.useCallback(async () => {
     if (!canDownloadSnapshotTafPdf) {

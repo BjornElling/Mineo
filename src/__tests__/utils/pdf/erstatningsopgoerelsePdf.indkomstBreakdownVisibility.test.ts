@@ -301,6 +301,30 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('Der er allerede betalt tabt arbejdsfortjeneste for perioden med');
   });
 
+  it('viser TAF-formlen med tidligere betalt beløb uden for forligsparantesen', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.forligAnsvarsgradBroek = '1/3';
+    eo.tidligereModtagetTaf = asAmountValue(25000);
+
+    const model = buildProjectedDocument(stamdata, eo);
+    renderPdf(stamdata, eo);
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const beregnetKravHeaderIndex = texts.indexOf('Beregnet krav på tabt arbejdsfortjeneste');
+    const beregnetKravLinje = beregnetKravHeaderIndex === -1 ? null : texts[beregnetKravHeaderIndex + 1];
+    const loenTotalOre =
+      model.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal.status === 'ok'
+        ? model.tabtArbejdsfortjeneste.loenudvikling.loenudviklingTotal.value
+        : 0;
+    const tafTotalOre =
+      model.tabtArbejdsfortjeneste.tafIndtaegter?.total.status === 'ok'
+        ? model.tabtArbejdsfortjeneste.tafIndtaegter.total.value
+        : 0;
+
+    expect(beregnetKravLinje).toBe(
+      `1/3 x (${formatCurrencyFromOre(loenTotalOre)} - ${formatCurrencyFromOre(tafTotalOre)}\u00A0kr.) - 25.000,00\u00A0kr. =`
+    );
+  });
+
   it('skjuler sektionen "Tidligere betalt erstatning" når tidligere modtaget TAF ikke er indtastet', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.tidligereModtagetTaf = undefined;
@@ -556,7 +580,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).toContain('Sygeferiegodtgørelse beregnes i henhold til');
-    expect(texts).toContain('kollegas lønoplysninger.');
+    expect(texts).toContain('Kollegas lønoplysninger');
     expect(texts).not.toContain('Beregnes ud fra: Manuelt angivet');
   });
 
@@ -594,9 +618,9 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('Opgøres på baggrund af den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet. Perioden udgør i ferieloven 4 uger.');
     expect(texts).toContain('Referenceperiode');
     expect(texts).toContain('01-01-2024 - 31-01-2024');
-    expect(texts).toContain('Den ferieberettigede løn i referenceperioden udgør');
+    expect(texts).toContain('Lønnen i referenceperioden udgør');
     expect(texts).toContain('Beregningsgrundlag');
-    expect(texts).toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
+    expect(texts).toContain('Der beregnes sygeferiegodtgørelse i perioden');
     expect(texts).toContain('01-01-2024 - 31-01-2024');
     expect(texts.some((text) =>
       text.startsWith('Kravet beregnes per ')
@@ -618,13 +642,13 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       'Feriepenge-sats',
       'AG-pension',
       expect.stringMatching(/^Antal (arbejds|kalender)dage$/),
-      'Feriepenge',
+      'Samlet',
     ]);
     expect(tableBody?.[1]).toHaveLength(6);
     const hasTotalRow = tableBody?.some((row) => row[0]?.content === 'I alt') ?? false;
     expect(hasTotalRow).toBe(false);
     expect(texts).toContain('Beregnet krav');
-    expect(texts).toContain('Feriepenge, hvis skaden ikke var sket');
+    expect(texts).toContain('Feriepenge, hvis skaden ikke var sket (+ AG-pension)');
     expect(texts.some((text) => text.startsWith('Feriepenge modtaget i perioden'))).toBe(true);
     expect(texts).toContain('Allerede betalt sygeferiegodtgørelse i perioden');
     expect(texts).toContain('Beregnet sygeferiegodtgørelse');
@@ -668,7 +692,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('30 kalenderdage');
   });
 
-  it('placerer SFGG-ophørslinjen direkte under linjen om TAF-perioden i pdf', () => {
+  it('placerer SFGG-ophørslinjen direkte under introen i pdf', () => {
     const { stamdata, eo } = buildBaseInput();
     stamdata.skadedato = iso('2014-01-01');
     eo.beregnesUdFra = 'Angivet dagsløn';
@@ -705,17 +729,82 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     });
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
-    const tafIndex = texts.findIndex((text) => text === 'Der beregnes sygeferiegodtgørelse i TAF-perioden');
+    const introIndex = texts.findIndex((text) => text === 'Sygeferiegodtgørelse beregnes på baggrund af en manuelt angivet sats.');
     const ophoerLabelIndex = texts.findIndex((text) => text === 'Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte');
     const ophoerDatoIndex = texts.findIndex((text) => text === '30-04-2014');
-    const feriepengeHvisIkkeSkadeIndex = texts.findIndex((text) => text === 'Feriepenge, hvis skaden ikke var sket');
+    const periodeLabelIndex = texts.findIndex((text) => text === 'Der beregnes sygeferiegodtgørelse i perioden');
+    const feriepengeHvisIkkeSkadeIndex = texts.findIndex((text) => text === 'Feriepenge, hvis skaden ikke var sket (+ AG-pension)');
     const kravIndex = texts.findIndex((text) => text.startsWith('Kravet beregnes per '));
 
-    expect(tafIndex).toBeGreaterThanOrEqual(0);
-    expect(ophoerLabelIndex).toBe(tafIndex + 2);
+    const referencesatsenUdgoerIndex = texts.findIndex((text) => text === 'Referencesatsen udgør');
+
+    expect(introIndex).toBeGreaterThanOrEqual(0);
+    // Referencesatsen udgør vises umiddelbart efter intro (to entries: label + værdi)
+    expect(referencesatsenUdgoerIndex).toBe(introIndex + 1);
+    // Ophørslinjen kommer efter referencesats-blokken (label + værdi = 2 entries)
+    expect(ophoerLabelIndex).toBeGreaterThan(referencesatsenUdgoerIndex + 1);
     expect(ophoerDatoIndex).toBe(ophoerLabelIndex + 1);
-    expect(feriepengeHvisIkkeSkadeIndex).toBe(ophoerDatoIndex + 1);
+    expect(periodeLabelIndex).toBeGreaterThan(ophoerDatoIndex);
+    expect(feriepengeHvisIkkeSkadeIndex).toBeGreaterThan(periodeLabelIndex);
     expect(kravIndex).toBe(feriepengeHvisIkkeSkadeIndex + 1);
+  });
+
+  it('viser faktisk SFGG-periode uden TAF-label når beregningen afkortes ved ansættelsesophør', () => {
+    const { stamdata, eo } = buildBaseInput();
+    stamdata.skadedato = iso('2012-05-01');
+    eo.eoNummer = '2';
+    eo.vedroererPeriodeFra = iso('2012-05-01');
+    eo.vedroererPeriodeTil = iso('2012-10-31');
+    eo.periodeTilBeregningFra = iso('2012-05-01');
+    eo.periodeTilBeregningTil = iso('2012-05-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2012-05-01'), til: iso('2012-10-31'), loseFeriedage: undefined }];
+    eo.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-1',
+        navnPaaArbejdssted: 'Viggos Værksted',
+        ansaettelsesforholdOphoert: true,
+        sidsteArbejdsdag: iso('2012-07-15'),
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'row-1',
+            col0_maaned: '5',
+            col1_maaned: '2012',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmountValue(10000),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+    ];
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmountValue(100),
+      sfggManuelBeloebIHenholdTil: 'Bygge-/anlægsoverenskomsten',
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const periodeLabelIndex = texts.findIndex((text) => text === 'Der beregnes sygeferiegodtgørelse i perioden');
+    expect(periodeLabelIndex).toBeGreaterThanOrEqual(0);
+    expect(texts[periodeLabelIndex + 1]).toBe('01-05-2012 - 15-07-2012');
+    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
   });
 
   it('viser ikke SFGG-referenceperiode på SH-dage-siden når aktuelt SFGG-grundlag ikke er referenceperiode, selv om dokumentet indeholder gammel referenceperiode', () => {
@@ -831,7 +920,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).toContain('Sygeferiegodtgørelse beregnes i henhold til');
-    expect(texts).toContain('KL-overenskomsten, der følger ferielovens regler.');
+    expect(texts).toContain('KL-overenskomsten, der følger ferielovens regler');
     expect(texts).toContain('Opgøres på baggrund af den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet. Perioden udgør i overenskomsten 4 uger.');
     expect(texts).toContain('Kravet beregnes per kalenderdag med referencesatsen tillagt senere overenskomstmæssige stigninger.');
   });
@@ -1124,7 +1213,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       );
     const sfggRows = sfggTableCall?.body?.map((row: Array<{ content: string }>) => row.map((cell) => cell.content)) ?? [];
 
-    expect(sfggRows).toContainEqual(['Fra-dato', 'Til-dato', 'Feriepenge-sats', 'AG-pension', 'Antal arbejdsdage', 'Feriepenge']);
+    expect(sfggRows).toContainEqual(['Fra-dato', 'Til-dato', 'Feriepenge-sats', 'AG-pension', 'Antal arbejdsdage', 'Samlet']);
     expect(sfggRows).toContainEqual(['01-01-2025', '03-01-2025', '191,40', '+ 10,15 %', '2', '421,65']);
     expect(sfggRows).not.toContainEqual(['02-01-2025', '03-01-2025', '191,40', '+ 10,15 %', '2', '421,65']);
   });
@@ -1195,6 +1284,71 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const sfggRows = sfggTableCall?.body?.map((row: Array<{ content: string }>) => row.map((cell) => cell.content)) ?? [];
 
     expect(sfggRows).toContainEqual(['03-02-2024', '06-02-2024', '184,45', '+ 10,15 %', '2', '406,34']);
+  });
+
+  it('viser "Beregnet krav" med forklaring når hele SFGG-perioden bortfalder på grund af sygeløn', () => {
+    autoTableMock.mockClear();
+    const { stamdata, eo } = buildBaseInput();
+    stamdata.skadedato = iso('2025-01-01');
+    eo.eoNummer = '2';
+    eo.vedroererPeriodeFra = iso('2025-01-01');
+    eo.vedroererPeriodeTil = iso('2025-01-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2025-01-01'), til: iso('2025-01-31'), loseFeriedage: undefined }];
+    eo.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-1',
+        navnPaaArbejdssted: 'AAB',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'row-1',
+            col0_maaned: '1',
+            col1_maaned: '2025',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmountValue(10000),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+    ];
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmountValue(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Ja',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    expect(texts).toContain('Beregningsgrundlag');
+    expect(texts.some((text) =>
+      text === 'Der beregnes sygeferiegodtgørelse i perioden'
+      || text === 'Der beregnes sygeferiegodtgørelse i TAF-perioden'
+    )).toBe(true);
+    expect(texts).toContain('Beregnet krav');
+    expect(texts).toContain('Der er betalt sygeløn i hele perioden og derfor ikke krav på sygeferiegodtgørelse.');
+
+    const sfggTableCall = autoTableMock.mock.calls
+      .map((call) => call[1])
+      .find((options: { body?: Array<Array<{ content: string }>> }) =>
+        options.body?.[0]?.some((cell) => cell.content === 'Fra-dato')
+      );
+    expect(sfggTableCall).toBeUndefined();
   });
 
   it('splitter arbejdsdags-SFGG-tabellen ved daterede feriedage i pdf', () => {

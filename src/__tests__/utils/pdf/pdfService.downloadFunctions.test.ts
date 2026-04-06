@@ -413,12 +413,15 @@ describe('downloadErstatningsopgoerelsePdf', () => {
     );
   });
 
-  it('videresender midlertidigt EET-rækker til generatoren', async () => {
-    const midlertidigtEetRows = [{
-      id: 'oy-1',
-      fraDato: '01-01-2024',
-      tilDato: '31-01-2024',
-      ydelsestype: 'midlertidigt_eet',
+  it('videresender midlertidigt EET-grupper til generatoren', async () => {
+    const midlertidigtEetGroups = [{
+      afgoerelsesdato: '2024-01-01' as never,
+      rows: [{
+        id: 'oy-1',
+        fraDato: '01-01-2024',
+        tilDato: '31-01-2024',
+        ydelsestype: 'midlertidigt_eet',
+      }],
     }];
 
     await downloadErstatningsopgoerelsePdf({
@@ -427,14 +430,14 @@ describe('downloadErstatningsopgoerelsePdf', () => {
       selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
-      midlertidigtEetRows,
+      midlertidigtEetGroups,
     });
 
     expect(mockGenerateErstatningsopgoerelsePdf).toHaveBeenCalledWith(
       expect.anything(),
       expect.anything(),
       expect.anything(),
-      expect.objectContaining({ midlertidigtEetRows })
+      expect.objectContaining({ midlertidigtEetGroups })
     );
   });
 });

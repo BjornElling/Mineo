@@ -143,7 +143,7 @@ describe('deriveOffentligeYdelserRow', () => {
     expect(result.ydelsePerDag).toBe(50);
   });
 
-  it('viser ikke ydelse pr. dag for midlertidigt EET, fordi importbeløbet er et periodetotalbeløb', () => {
+  it('beregner ydelse pr. dag for midlertidigt EET ved at dividere periodetotalbeløbet med kalenderdage', () => {
     const row: OffentligeYdelserRow = {
       ...baseRow,
       fraDato: '01-01-2024',
@@ -154,6 +154,6 @@ describe('deriveOffentligeYdelserRow', () => {
 
     const result = deriveOffentligeYdelserRow(row);
     expect(result.antalDage).toBe(10);
-    expect(result.ydelsePerDag).toBeNull();
+    expect(result.ydelsePerDag).toBe(100);
   });
 });

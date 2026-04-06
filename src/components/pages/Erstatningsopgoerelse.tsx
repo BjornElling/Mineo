@@ -162,6 +162,16 @@ const Erstatningsopgoerelse = React.memo(() => {
     [setFormValues]
   );
 
+  const handleMidlertidigtEetGroupsChange = React.useCallback(
+    (groups: readonly Readonly<{ afgoerelsesdato: string; rowIds: readonly string[] }>[]) => {
+      setFormValues((prev) => ({
+        ...prev,
+        midlertidigtEetAfgoerelseGrupper: groups.map((g) => ({ afgoerelsesdato: g.afgoerelsesdato, rowIds: [...g.rowIds] })) as ErstatningsopgoerelseValues['midlertidigtEetAfgoerelseGrupper'],
+      }));
+    },
+    [setFormValues]
+  );
+
   const handleLoenindkomstAnsaettelsesforholdChange = React.useCallback(
     (updater: (prev: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => {
       setFormValues((prev) => ({
@@ -374,6 +384,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             <OffentligeYdelserTab
               rows={form.values.offentligeYdelserRows ?? []}
               onRowsChange={handleOffentligeYdelserRowsChange}
+              onMidlertidigtEetGroupsChange={handleMidlertidigtEetGroupsChange}
               midlertidigtEetInsertSource={midlertidigtEetInsertSource}
             />
           </Box>
@@ -392,7 +403,6 @@ const Erstatningsopgoerelse = React.memo(() => {
               stamdataValues={stamdataValuesForBeregningTab}
               eoValues={form.values}
               setEOValues={setFormValues}
-              midlertidigtEetInsertSource={midlertidigtEetInsertSource}
             />
           </Box>
         )}

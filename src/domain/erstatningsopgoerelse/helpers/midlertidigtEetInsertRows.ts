@@ -9,10 +9,22 @@ type BuildMidlertidigtEetRowsArgs = Readonly<{
   skadedato: ISODateString | undefined;
 }>;
 
+export type MidlertidigtEetAfgoerelseGroup = Readonly<{
+  afgoerelsesdato: ISODateString;
+  rows: readonly OffentligeYdelserRow[];
+}>;
+
 export const buildMidlertidigtEetRowsFromEet = ({
   eetValues,
   skadedato,
 }: BuildMidlertidigtEetRowsArgs): readonly OffentligeYdelserRow[] => {
+  return buildMidlertidigtEetAfgoerelseGroups({ eetValues, skadedato }).flatMap((g) => g.rows);
+};
+
+export const buildMidlertidigtEetAfgoerelseGroups = ({
+  eetValues,
+  skadedato,
+}: BuildMidlertidigtEetRowsArgs): readonly MidlertidigtEetAfgoerelseGroup[] => {
   const result = computeEetLoebendeYdelser({
     erhvervsevnetab: eetValues,
     skadedato,
@@ -22,11 +34,12 @@ export const buildMidlertidigtEetRowsFromEet = ({
   const computation = result.computation;
   if (!computation) return [];
 
-  const rows: OffentligeYdelserRow[] = [];
+  const groups: MidlertidigtEetAfgoerelseGroup[] = [];
 
   for (const afgoerelse of computation.afgoerelser) {
     if (afgoerelse.afgoerelseType !== 'Midlertidig' && afgoerelse.afgoerelseType !== 'Delvist endelig') continue;
 
+    const rows: OffentligeYdelserRow[] = [];
     for (const periode of afgoerelse.perioder) {
       const fraDato = isoToDanish(periode.fra);
       const tilDato = isoToDanish(periode.til);
@@ -46,9 +59,13 @@ export const buildMidlertidigtEetRowsFromEet = ({
         ydelsestype: 'midlertidigt_eet',
       });
     }
+
+    if (rows.length > 0) {
+      groups.push({ afgoerelsesdato: afgoerelse.afgoerelsesdato, rows });
+    }
   }
 
-  return rows;
+  return groups;
 };
 
 /**

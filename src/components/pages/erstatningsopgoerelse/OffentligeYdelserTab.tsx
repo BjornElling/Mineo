@@ -9,7 +9,7 @@ import { formatCurrency } from '../../../utils/formatUtils';
 import StyledDateField from '../../inputs/StyledDateField';
 import InlineActionButton from '../../inputs/InlineActionButton';
 import { buildSygedagpengeRowsForRange } from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
-import { buildMidlertidigtEetRowsFromEet } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
+import { buildMidlertidigtEetAfgoerelseGroups } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { insertOffentligeYdelserRowsBeforeTrailingEmpty } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserRowInsertion';
 import { dateRanges_offentligeYdelser } from '../../../config/dateRanges';
 import { isISODateString, type ISODateString } from '../../../types/branded';
@@ -30,9 +30,15 @@ const offentligeYdelserHelpersSessionSchema = z.object({
 
 type OffentligeYdelserHelpersSessionState = z.infer<typeof offentligeYdelserHelpersSessionSchema>;
 
+type MidlertidigtEetAfgoerelseGruppe = Readonly<{
+  afgoerelsesdato: string;
+  rowIds: readonly string[];
+}>;
+
 type Props = Readonly<{
   rows: OffentligeYdelserRow[];
   onRowsChange: (rows: OffentligeYdelserRow[]) => void;
+  onMidlertidigtEetGroupsChange: (groups: readonly MidlertidigtEetAfgoerelseGruppe[]) => void;
   midlertidigtEetInsertSource: Readonly<{
     eetValues: ErhvervsevnetabComposedValues;
     skadedato: ISODateString | undefined;
@@ -42,7 +48,7 @@ type Props = Readonly<{
 /**
  * Offentlige ydelser-fanen - modtagne ydelser
  */
-const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetInsertSource }: Props) => {
+const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, onMidlertidigtEetGroupsChange, midlertidigtEetInsertSource }: Props) => {
   const sygedagpengeFraInputRef = React.useRef<HTMLInputElement | null>(null);
   const shouldFocusSygedagpengeFraRef = React.useRef(false);
   const suppressSygedagpengeFieldCommitRef = React.useRef(false);
@@ -50,7 +56,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetIn
   const [sygedagpengeTilDato, setSygedagpengeTilDato] = React.useState<ISODateString | undefined>(undefined);
   const [sygedagpengeFraError, setSygedagpengeFraError] = React.useState<string | undefined>(undefined);
   const [sygedagpengeTilError, setSygedagpengeTilError] = React.useState<string | undefined>(undefined);
-  const [midlertidigtEetPendingRows, setMidlertidigtEetPendingRows] = React.useState<OffentligeYdelserRow[]>([]);
+  const [midlertidigtEetPendingGroups, setMidlertidigtEetPendingGroups] = React.useState<{ groups: MidlertidigtEetAfgoerelseGruppe[]; rows: OffentligeYdelserRow[] }>({ groups: [], rows: [] });
   const [midlertidigtEetNoRowsDialogOpen, setMidlertidigtEetNoRowsDialogOpen] = React.useState(false);
   const [midlertidigtEetConfirmDialogOpen, setMidlertidigtEetConfirmDialogOpen] = React.useState(false);
 
@@ -137,23 +143,26 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetIn
     });
   }, [onRowsChange, rows, sygedagpengeFraDato, sygedagpengeTilDato]);
 
-  const applyMidlertidigtEetRows = React.useCallback((generatedRows: readonly OffentligeYdelserRow[]) => {
+  const applyMidlertidigtEetGroups = React.useCallback((groups: readonly MidlertidigtEetAfgoerelseGruppe[], generatedRows: readonly OffentligeYdelserRow[]) => {
     const rowsUdenMidlertidigtEet = rows.filter((row) => row.ydelsestype?.trim() !== 'midlertidigt_eet');
     onRowsChange(insertOffentligeYdelserRowsBeforeTrailingEmpty(rowsUdenMidlertidigtEet, generatedRows));
-  }, [onRowsChange, rows]);
+    onMidlertidigtEetGroupsChange(groups);
+  }, [onRowsChange, onMidlertidigtEetGroupsChange, rows]);
 
   const handleMidlertidigtEetInsertConfirm = React.useCallback(() => {
-    applyMidlertidigtEetRows(midlertidigtEetPendingRows);
-    setMidlertidigtEetPendingRows([]);
+    applyMidlertidigtEetGroups(midlertidigtEetPendingGroups.groups, midlertidigtEetPendingGroups.rows);
+    setMidlertidigtEetPendingGroups({ groups: [], rows: [] });
     setMidlertidigtEetConfirmDialogOpen(false);
-  }, [applyMidlertidigtEetRows, midlertidigtEetPendingRows]);
+  }, [applyMidlertidigtEetGroups, midlertidigtEetPendingGroups]);
 
   const handleMidlertidigtEetInsert = React.useCallback(() => {
     const { eetValues, skadedato } = midlertidigtEetInsertSource;
-    const generatedRows = buildMidlertidigtEetRowsFromEet({
-      eetValues,
-      skadedato,
-    });
+    const afgoerelseGroups = buildMidlertidigtEetAfgoerelseGroups({ eetValues, skadedato });
+    const generatedRows = afgoerelseGroups.flatMap((g) => g.rows);
+    const storedGroups = afgoerelseGroups.map((g) => ({
+      afgoerelsesdato: g.afgoerelsesdato,
+      rowIds: g.rows.map((r) => r.id),
+    }));
 
     if (generatedRows.length === 0) {
       setMidlertidigtEetNoRowsDialogOpen(true);
@@ -162,13 +171,13 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetIn
 
     const hasExistingMidlertidigtEetRows = rows.some((row) => row.ydelsestype?.trim() === 'midlertidigt_eet');
     if (!hasExistingMidlertidigtEetRows) {
-      applyMidlertidigtEetRows(generatedRows);
+      applyMidlertidigtEetGroups(storedGroups, generatedRows);
       return;
     }
 
-    setMidlertidigtEetPendingRows([...generatedRows]);
+    setMidlertidigtEetPendingGroups({ groups: storedGroups, rows: generatedRows });
     setMidlertidigtEetConfirmDialogOpen(true);
-  }, [applyMidlertidigtEetRows, midlertidigtEetInsertSource, rows]);
+  }, [applyMidlertidigtEetGroups, midlertidigtEetInsertSource, rows]);
 
   const handleSygedagpengeFraError = React.useCallback((error: ReportableFieldError | undefined) => {
     if (suppressSygedagpengeFieldCommitRef.current) return;
@@ -277,7 +286,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetIn
         onConfirm={handleMidlertidigtEetInsertConfirm}
         onCancel={() => {
           setMidlertidigtEetConfirmDialogOpen(false);
-          setMidlertidigtEetPendingRows([]);
+          setMidlertidigtEetPendingGroups({ groups: [], rows: [] });
         }}
       />
     </>
