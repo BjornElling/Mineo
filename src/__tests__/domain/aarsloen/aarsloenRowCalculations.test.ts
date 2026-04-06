@@ -26,7 +26,7 @@ const createRow = (overrides: Partial<StandardLoenTableRow> = {}): StandardLoenT
 });
 
 describe('calculateStandardLoenRowDerived', () => {
-  it('beregner ferieberettiget løn, fp/fv/sh/so, pension og samlet korrekt', () => {
+  it('beregner loenPlusLoen2, fp/fv/sh/so, pension og samlet korrekt', () => {
     const row = createRow({
       col2: 30000,
       col3: 2000,
@@ -41,8 +41,15 @@ describe('calculateStandardLoenRowDerived', () => {
       pensionPct: '10,0',
     };
 
+    // totalPct = 0.1595
+    // loenPlusLoen2 = 32000
+    // loenPlusLoen2PlusIkkePensLoen = 33000
+    // fpFvShSo = 33000 * 0.1595 = 5263.5
+    // pension = 32000 * 1.1595 * 0.10 = 3710.4
+    // samlet = 33000 + 5263.5 + 3710.4 + 300 = 42273.9
     const result = calculateStandardLoenRowDerived(row, satser);
-    expect(result.ferieberet).toBe(33000);
+    expect(result.loenPlusLoen2).toBe(32000);
+    expect(result.loenPlusLoen2PlusIkkePensLoen).toBe(33000);
     expect(result.fpFvShSo).toBeCloseTo(5263.5, 6);
     expect(result.pension).toBeCloseTo(3710.4, 6);
     expect(result.samlet).toBeCloseTo(42273.9, 6);
@@ -63,6 +70,10 @@ describe('calculateStandardLoenRowDerived', () => {
       pensionPct: '10',
     };
 
+    // loenPlusLoen2 = 15000, totalPct = 0
+    // fpFvShSo = 0
+    // pension = 15000 * 1 * 0.10 = 1500
+    // samlet = 15000 + 0 + 1500 + 1000 = 17500
     const result = calculateStandardLoenRowDerived(row, satser);
     expect(result.fpFvShSo).toBe(0);
     expect(result.pension).toBe(1500);
@@ -82,6 +93,32 @@ describe('calculateStandardLoenRowDerived', () => {
     const fordeltMellemBegge = calculateStandardLoenRowDerived(createRow({ col2: 30000, col3: 2000, col4: 1000, col5: 300 }), satser);
 
     expect(fordeltMellemBegge).toEqual(samletICol2);
+  });
+
+  it('ikke-pensionsgivende løn indgår i fpFvShSo-grundlaget men ikke i pensionsgrundlaget', () => {
+    const row = createRow({
+      col2: 149736,
+      col3: 0,
+      col4: 0,
+      col5: 136,
+    });
+    const satser: StandardLoenSatserInput = {
+      feriePct: '12,5',
+      fritvalgPct: '0',
+      shSoPct: '6,9',
+      storeBededagPct: '0',
+      pensionPct: '8,15',
+    };
+
+    // totalPct = 0.194
+    // loenPlusLoen2 = 149736, loenPlusLoen2PlusIkkePensLoen = 149736
+    // fpFvShSo = 149736 * 0.194 = 29048.784
+    // pension = 149736 * 1.194 * 0.0815 = 14570.959896... (med col4=0 er de to grundlag identiske)
+    const result = calculateStandardLoenRowDerived(row, satser);
+
+    expect(result.fpFvShSo).toBeCloseTo(29048.784, 6);
+    expect(result.pension).toBeCloseTo(14570.959896, 6);
+    expect(result.samlet).toBeCloseTo(193491.743896, 6);
   });
 });
 

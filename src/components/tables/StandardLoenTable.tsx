@@ -310,13 +310,12 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     }, [satser?.bededag, satser?.ferie, satser?.fritvalg, satser?.pension, satser?.shSo]);
 
     const calculateRow = React.useCallback(
-      (row: StandardLoenTableRow): { col6: number; col7: number; col8: number; col9: number } => {
+      (row: StandardLoenTableRow): { col6: number; col7: number; col8: number } => {
         const derived = calculateDerivedRow ? calculateDerivedRow(row) : calculateStandardLoenRowDerived(row, getSatserInput());
         return {
-          col6: derived.ferieberet,
-          col7: derived.fpFvShSo,
-          col8: derived.pension,
-          col9: roundStandardLoenAmountToTwoDecimals(derived.samlet),
+          col6: derived.fpFvShSo,
+          col7: derived.pension,
+          col8: roundStandardLoenAmountToTwoDecimals(derived.samlet),
         };
       },
       [calculateDerivedRow, getSatserInput]
@@ -410,7 +409,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       { colId: 'col-6', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col6 },
       { colId: 'col-7', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col7 },
       { colId: 'col-8', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col8 },
-      { colId: 'col-9', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col9 },
     ], [calculateRow, loenperiode, parseSortableInteger, parseSortableWeekKey, resolveCommittedRow]);
 
     const { sortedRows: visibleRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
@@ -545,16 +543,15 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
         }
       >
         <colgroup>
-          <col style={{ width: '113px' }} />
-          <col style={{ width: '113px' }} />
-          <col style={{ width: '113px' }} />
-          <col style={{ width: '113px' }} />
-          <col style={{ width: '113px' }} />
-          <col style={{ width: '113px' }} />
-          <col style={{ width: '113px' }} />
-          <col style={{ width: '113px' }} />
-          <col style={{ width: '113px' }} />
-          <col style={{ width: '113px' }} />
+          <col style={{ width: '125px' }} />
+          <col style={{ width: '125px' }} />
+          <col style={{ width: '125px' }} />
+          <col style={{ width: '125px' }} />
+          <col style={{ width: '125px' }} />
+          <col style={{ width: '125px' }} />
+          <col style={{ width: '125px' }} />
+          <col style={{ width: '125px' }} />
+          <col style={{ width: '130px' }} />
         </colgroup>
 
         <thead>
@@ -727,17 +724,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   }}
                 >
                   {formatAsAmount(calculated.col8)}
-                </td>
-
-                <td
-                  style={{
-                    ...getStandardGridCellStyle({ align: 'right' }),
-                    padding: '4px',
-                    userSelect: 'none',
-                    color: calculated.col9 === 0 ? 'rgba(0, 0, 0, 0.4)' : 'inherit',
-                  }}
-                >
-                  {formatAsAmount(calculated.col9)}
                 </td>
               </tr>
             );

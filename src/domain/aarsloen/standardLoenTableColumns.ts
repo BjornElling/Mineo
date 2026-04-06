@@ -8,8 +8,7 @@ import InfoTooltipIcon from '../../components/common/InfoTooltipIcon';
 export const STANDARD_LOEN_COL2_LABEL = 'Løn';
 export const STANDARD_LOEN_COL3_LABEL = 'Løn (2)';
 export const STANDARD_LOEN_COL4_LABEL = 'Ikke-pensions-\ngivende løn';
-export const STANDARD_LOEN_COL5_LABEL = 'ATP og anden\nikke FB-løn';
-export const STANDARD_LOEN_FERIEBERET_LABEL = 'Ferieberet.\nløn';
+export const STANDARD_LOEN_COL5_LABEL = 'ATP og anden\nikke pens. løn';
 export const STANDARD_LOEN_FPFVSHSO_LABEL = 'FP/FV/SH/\nSO/St.B.';
 export const STANDARD_LOEN_PENSION_LABEL = 'Arb.g.\nPension';
 export const STANDARD_LOEN_SAMLET_LABEL = 'Samlet løn';
@@ -59,7 +58,6 @@ export const getStandardLoenTableHeaders = (loenperiode: Loenperiode): readonly 
     STANDARD_LOEN_COL3_LABEL,
     STANDARD_LOEN_COL4_LABEL,
     STANDARD_LOEN_COL5_LABEL,
-    STANDARD_LOEN_FERIEBERET_LABEL,
     STANDARD_LOEN_FPFVSHSO_LABEL,
     STANDARD_LOEN_PENSION_LABEL,
     STANDARD_LOEN_SAMLET_LABEL,

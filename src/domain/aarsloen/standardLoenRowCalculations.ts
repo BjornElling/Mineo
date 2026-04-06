@@ -21,7 +21,8 @@ export type StandardLoenRateSegment = Readonly<{
 }>;
 
 export type StandardLoenRowDerived = {
-  ferieberet: number;
+  loenPlusLoen2: number;
+  loenPlusLoen2PlusIkkePensLoen: number;
   fpFvShSo: number;
   pension: number;
   samlet: number;
@@ -32,7 +33,8 @@ export type StandardLoenProjectedAmounts = Readonly<{
   tillaeg: number;
   ikkePensionsgivende: number;
   atp: number;
-  ferieberet: number;
+  loenPlusLoen2: number;
+  loenPlusLoen2PlusIkkePensLoen: number;
   fpFvShSo: number;
   pension: number;
   samlet: number;
@@ -49,7 +51,7 @@ export const isStandardLoenTableCellEffectivelyEmpty = (value: unknown): boolean
   return value.trim() === '';
 };
 
-const computeDerivedFromAmounts = (
+export const calculateStandardLoenDerivedFromAmounts = (
   amounts: Readonly<{
     loen: number;
     loen2: number;
@@ -65,17 +67,19 @@ const computeDerivedFromAmounts = (
   const pensionPct = parsePercentToDecimal(satser.pensionPct);
 
   const totalPct = ferie + fritvalg + shSo + storeBededag;
-  const ferieberet = amounts.loen + amounts.loen2 + amounts.ikkePensionsgivende;
-  const fpFvShSo = totalPct > 0 ? ferieberet * totalPct : 0;
+  const loenPlusLoen2 = amounts.loen + amounts.loen2;
+  const loenPlusLoen2PlusIkkePensLoen = loenPlusLoen2 + amounts.ikkePensionsgivende;
 
-  // De to lønfelter er semantisk ens og medtages derfor identisk i beregningsgrundlaget.
-  const pensionBase = (amounts.loen + amounts.loen2) * (1 + totalPct);
-  const pension = pensionPct > 0 ? pensionBase * pensionPct : 0;
+  // FP/FV/SH/SO/St.B. beregnes af Løn + Løn(2) + ikke-pensionsgivende løn.
+  const fpFvShSo = totalPct > 0 ? loenPlusLoen2PlusIkkePensLoen * totalPct : 0;
+
+  // Pensionsgrundlaget er Løn + Løn(2), opregnet med de samlede tillægsprocenter.
+  const pension = pensionPct > 0 ? loenPlusLoen2 * (1 + totalPct) * pensionPct : 0;
 
   // ATP er et tillæg, som lægges til til sidst (ingen afledte ydelser beregnes af ATP).
-  const samlet = ferieberet + fpFvShSo + pension + amounts.atp;
+  const samlet = loenPlusLoen2PlusIkkePensLoen + fpFvShSo + pension + amounts.atp;
 
-  return { ferieberet, fpFvShSo, pension, samlet };
+  return { loenPlusLoen2, loenPlusLoen2PlusIkkePensLoen, fpFvShSo, pension, samlet };
 };
 
 const resolveRowAmounts = (row: StandardLoenTableRow) => ({
@@ -104,7 +108,8 @@ const buildZeroProjectedAmounts = (): StandardLoenProjectedAmounts => ({
   tillaeg: 0,
   ikkePensionsgivende: 0,
   atp: 0,
-  ferieberet: 0,
+  loenPlusLoen2: 0,
+  loenPlusLoen2PlusIkkePensLoen: 0,
   fpFvShSo: 0,
   pension: 0,
   samlet: 0,
@@ -156,13 +161,14 @@ export const calculateStandardLoenProjectedAmounts = (
   let tillaeg = 0;
   let ikkePensionsgivende = 0;
   let atp = 0;
-  let ferieberet = 0;
+  let loenPlusLoen2 = 0;
+  let loenPlusLoen2PlusIkkePensLoen = 0;
   let fpFvShSo = 0;
   let pension = 0;
   let samlet = 0;
 
   for (const iso of selectedDates) {
-    const derived = computeDerivedFromAmounts(
+    const derived = calculateStandardLoenDerivedFromAmounts(
       dailyAmounts,
       resolveSatserForDate(iso, satser, rateSegments)
     );
@@ -170,7 +176,8 @@ export const calculateStandardLoenProjectedAmounts = (
     tillaeg += dailyAmounts.loen2;
     ikkePensionsgivende += dailyAmounts.ikkePensionsgivende;
     atp += dailyAmounts.atp;
-    ferieberet += derived.ferieberet;
+    loenPlusLoen2 += derived.loenPlusLoen2;
+    loenPlusLoen2PlusIkkePensLoen += derived.loenPlusLoen2PlusIkkePensLoen;
     fpFvShSo += derived.fpFvShSo;
     pension += derived.pension;
     samlet += derived.samlet;
@@ -181,7 +188,8 @@ export const calculateStandardLoenProjectedAmounts = (
     tillaeg,
     ikkePensionsgivende,
     atp,
-    ferieberet,
+    loenPlusLoen2,
+    loenPlusLoen2PlusIkkePensLoen,
     fpFvShSo,
     pension,
     samlet,
@@ -199,21 +207,21 @@ export const calculateStandardLoenRowDerived = (
   const amounts = resolveRowAmounts(row);
   const rateSegments = options?.rateSegments ?? [];
   if (!options?.loenperiode || rateSegments.length === 0) {
-    return computeDerivedFromAmounts(amounts, satser);
+    return calculateStandardLoenDerivedFromAmounts(amounts, satser);
   }
 
   const interval = parseAarsloenRowInterval(row, options.loenperiode);
   const rowFra = interval ? dateToISO(interval.start) : undefined;
   const rowTil = interval ? dateToISO(interval.end) : undefined;
   if (!rowFra || !rowTil) {
-    return computeDerivedFromAmounts(amounts, satser);
+    return calculateStandardLoenDerivedFromAmounts(amounts, satser);
   }
 
   const rowFraDate = parseISODate(rowFra);
   const rowTilDate = parseISODate(rowTil);
   const totalDays = rowFraDate && rowTilDate ? (countInclusiveUtcDays(rowFraDate, rowTilDate) ?? 0) : 0;
   if (totalDays <= 0) {
-    return computeDerivedFromAmounts(amounts, satser);
+    return calculateStandardLoenDerivedFromAmounts(amounts, satser);
   }
 
   const resolvedSegments = rateSegments
@@ -224,10 +232,11 @@ export const calculateStandardLoenRowDerived = (
     .filter((entry) => entry.overlapDays > 0);
 
   if (resolvedSegments.length === 0) {
-    return computeDerivedFromAmounts(amounts, satser);
+    return calculateStandardLoenDerivedFromAmounts(amounts, satser);
   }
 
-  let ferieberet = 0;
+  let loenPlusLoen2 = 0;
+  let loenPlusLoen2PlusIkkePensLoen = 0;
   let fpFvShSo = 0;
   let pension = 0;
   let samlet = 0;
@@ -240,14 +249,15 @@ export const calculateStandardLoenRowDerived = (
       ikkePensionsgivende: amounts.ikkePensionsgivende * share,
       atp: amounts.atp * share,
     };
-    const derived = computeDerivedFromAmounts(segmentAmounts, entry.segment.satser);
-    ferieberet += derived.ferieberet;
+    const derived = calculateStandardLoenDerivedFromAmounts(segmentAmounts, entry.segment.satser);
+    loenPlusLoen2 += derived.loenPlusLoen2;
+    loenPlusLoen2PlusIkkePensLoen += derived.loenPlusLoen2PlusIkkePensLoen;
     fpFvShSo += derived.fpFvShSo;
     pension += derived.pension;
     samlet += derived.samlet;
   }
 
-  return { ferieberet, fpFvShSo, pension, samlet };
+  return { loenPlusLoen2, loenPlusLoen2PlusIkkePensLoen, fpFvShSo, pension, samlet };
 };
 
 const EDITABLE_KEYS: Array<keyof StandardLoenTableRow> = [

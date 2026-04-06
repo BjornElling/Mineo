@@ -4,7 +4,7 @@ import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import StandardLoenTable from '../../../components/tables/StandardLoenTable';
 
-type Derived = { col6: string; col7: string; col8: string; col9: string };
+type Derived = { fpFvShSo: string; pension: string; samlet: string };
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -19,17 +19,16 @@ const computeDerived = (amounts: { col2: number; col3: number; col4: number; col
   const totalPct = 0.155;
   const pensionPct = 0.1;
 
-  const ferieberet = amounts.col2 + amounts.col3 + amounts.col4;
-  const fpFvShSo = ferieberet * totalPct;
-  const pensionBase = (amounts.col2 + amounts.col3) * (1 + totalPct);
-  const pension = pensionBase * pensionPct;
-  const samlet = ferieberet + fpFvShSo + pension + amounts.col5;
+  const loenPlusLoen2 = amounts.col2 + amounts.col3;
+  const loenPlusLoen2PlusIkkePensLoen = loenPlusLoen2 + amounts.col4;
+  const fpFvShSo = loenPlusLoen2PlusIkkePensLoen * totalPct;
+  const pension = loenPlusLoen2 * (1 + totalPct) * pensionPct;
+  const samlet = loenPlusLoen2PlusIkkePensLoen + fpFvShSo + pension + amounts.col5;
 
   return {
-    col6: formatNumber(ferieberet),
-    col7: formatNumber(fpFvShSo),
-    col8: formatNumber(pension),
-    col9: formatNumber(samlet),
+    fpFvShSo: formatNumber(fpFvShSo),
+    pension: formatNumber(pension),
+    samlet: formatNumber(samlet),
   };
 };
 
@@ -41,11 +40,12 @@ const getFirstDataRowCells = (): HTMLElement[] => {
 
 const getDerivedTexts = (): Derived => {
   const cells = getFirstDataRowCells();
+  // 2 periodekolonner + 4 inputkolonner + 3 derived = 9 kolonner
+  // Derived: fpFvShSo=cells[6], pension=cells[7], samlet=cells[8]
   return {
-    col6: (cells[6]?.textContent ?? '').trim(),
-    col7: (cells[7]?.textContent ?? '').trim(),
-    col8: (cells[8]?.textContent ?? '').trim(),
-    col9: (cells[9]?.textContent ?? '').trim(),
+    fpFvShSo: (cells[6]?.textContent ?? '').trim(),
+    pension: (cells[7]?.textContent ?? '').trim(),
+    samlet: (cells[8]?.textContent ?? '').trim(),
   };
 };
 
