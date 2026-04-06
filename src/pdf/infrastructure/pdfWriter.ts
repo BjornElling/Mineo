@@ -430,12 +430,16 @@ export const createPdfWriter = (params: Readonly<{
   // Tracker kun eksplicit addSpacer/advanceY-spacing — ikke trailing line-spacing.
   // Bruges af writeSubheader til at undgå dobbelt spacing fra addSpacer-kald.
   let explicitSpacingSinceLastContent = 0;
+  const minimumHeaderFollowupHeight = lineHeight + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM;
+  const minimumUnderlinedLabelBlockHeight = PDF_UNDERLINED_LABEL_TOP_SPACING_MM + lineHeight + PDF_LINE_BOTTOM_SPACING_MM;
+  const minimumHeaderChainFollowupHeight = Math.max(minimumHeaderFollowupHeight, minimumUnderlinedLabelBlockHeight) + lineHeight;
 
   const writeSectionHeader = (text: string, nextLineHeight: number) => {
     const topSpacing = lineHeight * 2;
     const bottomSpacing = lineHeight;
     const headerTextHeight = cursor.measureWrappedTextHeight(text);
-    cursor.ensureSpace(topSpacing + headerTextHeight + bottomSpacing + nextLineHeight);
+    const followupHeight = Math.max(nextLineHeight, minimumHeaderChainFollowupHeight);
+    cursor.ensureSpace(topSpacing + headerTextHeight + bottomSpacing + followupHeight);
     cursor.advanceY(topSpacing);
     cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
     cursor.setFontSize(FONT_SIZES.header);
@@ -479,7 +483,8 @@ export const createPdfWriter = (params: Readonly<{
           ? 0
           : Math.max(0, lineHeight - explicitSpacingSinceLastContent);
     const headerHeight = cursor.measureWrappedTextHeight(text) + topSpacing;
-    cursor.ensureSpace(headerHeight + nextLineHeight);
+    const followupHeight = Math.max(nextLineHeight, minimumHeaderChainFollowupHeight);
+    cursor.ensureSpace(headerHeight + followupHeight);
     cursor.advanceY(topSpacing);
     cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
     cursor.setFontSize(FONT_SIZES.normal);
@@ -555,7 +560,7 @@ export const createPdfWriter = (params: Readonly<{
     const existingTopSpacing = Math.min(targetTopSpacing, manualSpacingSinceLastContent);
     let topSpacing = targetTopSpacing - existingTopSpacing;
     const beforeEnsureY = cursor.getY();
-    cursor.ensureSpace(topSpacing + lineHeight + lineHeight);
+    cursor.ensureSpace(topSpacing + lineHeight + PDF_LINE_BOTTOM_SPACING_MM + minimumHeaderChainFollowupHeight);
     if (cursor.getY() < beforeEnsureY) {
       // Ny side betyder at tidligere spacing er bortfaldet; start med standard top spacing.
       topSpacing = lineHeight;

@@ -40,7 +40,8 @@ export type IncomeEmployerAmount = Readonly<{
   name: string;
   amount: number;
   breakdown: Readonly<{
-    ferieberet: number;
+    loenPlusLoen2: number;
+    loenPlusLoen2PlusIkkePensLoen: number;
     fpFvShSo: number;
     pension: number;
     atp: number;
@@ -308,7 +309,7 @@ export const buildIncomeForRanges = (
       storeBededagPct: af.storeBededagPct,
       pensionPct: af.pensionPct,
     };
-    const breakdown = { ferieberet: 0, fpFvShSo: 0, pension: 0, atp: 0, samlet: 0 };
+    const breakdown = { loenPlusLoen2: 0, loenPlusLoen2PlusIkkePensLoen: 0, fpFvShSo: 0, pension: 0, atp: 0, samlet: 0 };
     for (const row of af.indtaegtsoplysningerTableData ?? []) {
       const eligibility = classifyLoenRow(row);
       if (eligibility !== 'valid') continue;
@@ -335,13 +336,15 @@ export const buildIncomeForRanges = (
           : undefined,
       });
 
-      const ferieberetContrib = projected.ferieberet;
+      const loenPlusLoen2Contrib = projected.loenPlusLoen2;
+      const loenPlusLoen2PlusIkkePensLoenContrib = projected.loenPlusLoen2PlusIkkePensLoen;
       const fpFvShSoStbContrib = projected.fpFvShSo;
       const pensionContrib = projected.pension;
       const atpContrib = projected.atp;
       const samletContrib = projected.samlet;
       if (
-        !Number.isFinite(ferieberetContrib) ||
+        !Number.isFinite(loenPlusLoen2Contrib) ||
+        !Number.isFinite(loenPlusLoen2PlusIkkePensLoenContrib) ||
         !Number.isFinite(fpFvShSoStbContrib) ||
         !Number.isFinite(pensionContrib) ||
         !Number.isFinite(atpContrib) ||
@@ -350,7 +353,8 @@ export const buildIncomeForRanges = (
       ) {
         continue;
       }
-      breakdown.ferieberet += ferieberetContrib;
+      breakdown.loenPlusLoen2 += loenPlusLoen2Contrib;
+      breakdown.loenPlusLoen2PlusIkkePensLoen += loenPlusLoen2PlusIkkePensLoenContrib;
       breakdown.fpFvShSo += fpFvShSoStbContrib;
       breakdown.pension += pensionContrib;
       breakdown.atp += atpContrib;

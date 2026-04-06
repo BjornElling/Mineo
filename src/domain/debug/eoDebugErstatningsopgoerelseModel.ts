@@ -23,7 +23,7 @@ import { calculateFerieHverdageMinusSHDage } from '../erstatningsopgoerelse/engi
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/engines/beregningsperiodeTafOverlap';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
 import { mergeDateRanges } from '../erstatningsopgoerelse/engines/periodMerging';
-import { buildTafCutoffErrorMessage, clampTafRange, getValidTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { buildTafCutoffErrorMessage, clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import {
   getOverenskomstMetaById,
   getOverenskomstSfggPolicy,
@@ -45,8 +45,12 @@ import {
 } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import type { EoModel } from '../erstatningsopgoerelse/snapshot/eoPresentationModel';
 import {
+  SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL,
+  SFGG_FERIEPENGE_MODTAGET_LABEL,
+  SFGG_TABLE_TOTAL_LABEL,
   buildSfggReferenceperiodeCountLabel as buildSfggReferenceperiodeCountLabelPresentation,
   parseSfggExplanatoryLine,
+  resolveSfggFoerstEfterSygeloen,
 } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
@@ -151,7 +155,9 @@ export type DebugRowId =
   | 'bilagsnumre.beregningsgrundlagTaf'
   | 'bilagsnumre.loenISygeperioden'
   | 'bilagsnumre.offentligeYdelser'
-  | 'bilagsnumre.oevrigeErstatningskrav';
+  | 'bilagsnumre.oevrigeErstatningskrav'
+  | 'midlertidigtEetKonsistens.ydelerUdenAfgorelse'
+  | 'midlertidigtEetKonsistens.afgorelseUdenYdelser';
 
 type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
 type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
@@ -2924,7 +2930,8 @@ export const buildEODebugIndkomstRows = (
 };
 
 export const buildEODebugOffentligeYdelserRows = (
-  values: ErstatningsopgoerelseValues
+  values: ErstatningsopgoerelseValues,
+  skadedatoISO?: ISODateString
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
   const debugRows = buildOffentligeYdelserDebugRows(values.offentligeYdelserRows ?? []);
@@ -2938,6 +2945,27 @@ export const buildEODebugOffentligeYdelserRows = (
       summaryDisplay: row.summaryDisplay ?? 'default',
     });
   });
+
+  const harMidlertidigtEetYdelser = (values.offentligeYdelserRows ?? []).some((row) => {
+    if (row.ydelsestype?.trim() !== 'midlertidigt_eet') return false;
+    const ydelseBeloeb = amountValueToNumber(row.ydelse) ?? 0;
+    const tillaegBeloeb = amountValueToNumber(row.tillaeg) ?? 0;
+    return ydelseBeloeb + tillaegBeloeb > 0;
+  });
+
+  // Advarsel 1: midlertidige EET-ydelser indtastet, men afgørelse er ikke sat til 'Ja'
+  if (harMidlertidigtEetYdelser && values.midlertidigtEetAfgorelse !== 'Ja') {
+    rows.push({
+      id: 'midlertidigtEetKonsistens.ydelerUdenAfgorelse',
+      label: 'Advarsel',
+      displayValue: 'Advarsel (Der er indtastet midlertidige EET-ydelser, men ikke angivet en afgørelse)',
+      status: 'warning',
+      summaryDisplay: 'messageOnly',
+    });
+  }
+
+  // Advarsel 2: afgørelse sat til 'Ja' og TAF-slutdato er efter EET-virkningsdato, men ingen ydelser
+  rows.push(...buildEODebugMidlertidigtEetKonsistensRows(values, skadedatoISO));
 
   return rows;
 };
@@ -3042,9 +3070,12 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
     }
     const sfggDayBasis = resolveSfggDayBasis(sfggSource, tafBeregnesSom);
 
-    const foerstEfterSygeloen =
-      (sfggSource.kind === 'manuel' && row?.sfggManuelFoerstEfterSygeloen === 'Ja')
-      || (sfggSource.kind !== 'manuel' && overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true);
+    const foerstEfterSygeloen = resolveSfggFoerstEfterSygeloen({
+      sfggSourceKind: sfggSource.kind,
+      manualFoerstEfterSygeloen: row?.sfggManuelFoerstEfterSygeloen === 'Ja',
+      overenskomstBortfalderUnderArbejdsgiverbetaltSygeloen:
+        overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true,
+    });
 
     rows.push({
       id: `sfgg.foerstEfterSygeloen.${employment.id}`,
@@ -3143,7 +3174,7 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
         ? `${result.sfggReferencesatsFormula.divisorDage.toLocaleString('da-DK')} ${result.sfggReferencesatsFormula.divisorLabel}`
         : 'arbejdsdage';
       const referenceSatsLabel = result.sfggReferencesatsFormula
-        ? `Referencesats (${formatCurrency(result.sfggReferencesatsFormula.ferieberettigetLoenKroner)} x ${formatPercent(result.sfggReferencesatsFormula.feriePctDecimal * 100)} / ${divisorText}) =`
+        ? `Referencesats (${formatCurrency(result.sfggReferencesatsFormula.loenPlusLoen2PlusIkkePensLoenKroner)} x ${formatPercent(result.sfggReferencesatsFormula.feriePctDecimal * 100)} / ${divisorText}) =`
         : 'Referencesats';
       const referenceSatsUnit = sfggDayBasis === 'kalenderdage' ? 'kr./dag' : 'kr./arbejdsdag';
       rows.push({
@@ -3170,8 +3201,8 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       const hasReguleringsindeks = result.segments.some((segment) => segment.reguleringsindeks !== null);
       const lines = [
         hasReguleringsindeks
-          ? `Fra-dato | Til-dato | Indeks | Feriepenge-sats | AG-pension | ${antalDageHeader} | Feriepengekrav`
-          : `Fra-dato | Til-dato | Feriepenge-sats | AG-pension | ${antalDageHeader} | Feriepengekrav`,
+          ? `Fra-dato | Til-dato | Indeks | Feriepenge-sats | AG-pension | ${antalDageHeader} | ${SFGG_TABLE_TOTAL_LABEL}`
+          : `Fra-dato | Til-dato | Feriepenge-sats | AG-pension | ${antalDageHeader} | ${SFGG_TABLE_TOTAL_LABEL}`,
         ...result.segments.map((segment) =>
           hasReguleringsindeks
             ? `${isoToDanish(segment.fra) ?? segment.fra} | ${isoToDanish(segment.til) ?? segment.til} | ${segment.reguleringsindeks === null ? '-' : formatAsAmount(segment.reguleringsindeks, 2)} | ${formatCurrency(segment.satsOre / 100)} | + ${formatPercent(segment.agPensionPct)} | ${String(segment.antalDage)} | ${formatCurrency(segment.feriepengekravOre / 100)}`
@@ -3199,15 +3230,11 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       const alleredeBetaltOre = result.alleredeBetaltOre;
       // result.totalOre er summen af beregnetSfggoereOre pr. segment (netto efter feriepenge og allerede betalt).
       const beregnetSygeferiegodtgoerelseOre = result.totalOre;
-      const ferieberettigetIndkomstIKroner = result.feriepengeModtagetFormula?.ferieberettigetLoenKroner ?? 0;
-      const feriepengeModtagetLabel =
-        ferieberettigetIndkomstIKroner > 0 && result.feriepengeModtagetFormula?.feriePctDecimal !== undefined
-          ? `Feriepenge modtaget i perioden (${formatCurrency(ferieberettigetIndkomstIKroner)} x ${formatPercent(result.feriepengeModtagetFormula.feriePctDecimal * 100)}) =`
-          : 'Feriepenge modtaget i perioden';
+      const feriepengeModtagetLabel = SFGG_FERIEPENGE_MODTAGET_LABEL;
 
       rows.push({
         id: `sfgg.eftertabel.feriepengeHvisIkkeSkade.${employment.id}`,
-        label: 'Feriepenge, hvis skaden ikke var sket',
+        label: SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL,
         displayValue: formatCurrency(feriepengeHvisIkkeSkadeOre / 100),
         status: 'ok',
       });
@@ -3400,7 +3427,7 @@ export const buildEODebugSaerligeKommentarerRows = (
   return [
     {
       id: 'saerligekommentarer',
-      label: harKommentarer ? '' : 'Ingen',
+      label: harKommentarer ? 'Kommentar:' : 'Ingen',
       displayValue: harKommentarer ? kommentarer.trim() : '-',
       status: 'ok',
     },
@@ -3462,4 +3489,53 @@ export const buildEODebugBilagsnumreRows = (
       status: 'ok' as DebugStatus,
     };
   });
+};
+
+export const buildEODebugMidlertidigtEetKonsistensRows = (
+  values: ErstatningsopgoerelseValues,
+  skadedatoISO: ISODateString | undefined
+): DebugRowModel[] => {
+  // Kun relevant hvis afgørelse er 'Ja' og virkningsdato kan bestemmes
+  if (values.midlertidigtEetAfgorelse !== 'Ja') return [];
+
+  const midlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({
+    ...values,
+    skadedatoISO,
+  });
+  if (!midlertidigEETBeregnetDato) return [];
+
+  // Find TAF-slutdato (sidste dag i det sidst registrerede TAF-krav)
+  const tafBounds = resolveTafConstraintBounds(values);
+  let lastTafKravDato: ISODateString | undefined = undefined;
+  for (const periode of values.tafPerioder ?? []) {
+    const valid = getValidTafRange(periode);
+    if (!valid) continue;
+    const clamped = clampTafRange(valid, tafBounds);
+    if (!clamped) continue;
+    if (!lastTafKravDato || clamped.til > lastTafKravDato) lastTafKravDato = clamped.til;
+  }
+
+  if (!lastTafKravDato) return [];
+
+  // TAF-slutdato er efter EET-virkningsdato → der burde være midlertidige EET-ydelser
+  if (lastTafKravDato < midlertidigEETBeregnetDato) return [];
+
+  const harMidlertidigtEetYdelser = (values.offentligeYdelserRows ?? []).some((row) => {
+    if (row.ydelsestype?.trim() !== 'midlertidigt_eet') return false;
+    const ydelseBeloeb = amountValueToNumber(row.ydelse) ?? 0;
+    const tillaegBeloeb = amountValueToNumber(row.tillaeg) ?? 0;
+    return ydelseBeloeb + tillaegBeloeb > 0;
+  });
+
+  if (harMidlertidigtEetYdelser) return [];
+
+  return [
+    {
+      id: 'midlertidigtEetKonsistens.afgorelseUdenYdelser',
+      label: 'Advarsel',
+      displayValue: 'Advarsel (Der er angivet en midlertidig EET-afgørelse men ikke indtastet ydelser)',
+      status: 'warning',
+      summaryDisplay: 'messageOnly',
+    },
+  ];
 };

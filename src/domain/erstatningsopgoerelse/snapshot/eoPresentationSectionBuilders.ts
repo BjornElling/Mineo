@@ -257,49 +257,38 @@ export const buildTabtArbejdsfortjenesteModel = (
     midlertidigEetErTafRelevant && harTafDagenFoer(midlertidigEetReferenceDato);
   const differencekravBringTilOphoer = harTafDagenFoer(differencekravReferenceDato);
 
-  // Vælg hvilken afgrænsningskilde der bestemmer ophørsmeddelelsen.
-  // EET-afgørelser vises altid informativt, men kun den valgte kilde får den
-  // supplerende ophørstekst og kan undertrykke differencekravslinjen.
-  // Hvis midlertidig EET er aktiv (skadedato < 2011-06-16), indgår den på linje med de øvrige.
   type AfgraensningsKilde = 'endeligtEet' | 'midlertidigEet' | 'differencekrav';
-
-  const findTidligsteDato = (
-    kilde: AfgraensningsKilde
-  ): ISODateString | undefined => {
-    if (kilde === 'endeligtEet') return endeligtEetReferenceDato;
-    if (kilde === 'midlertidigEet') return midlertidigEetReferenceDato;
-    return differencekravReferenceDato;
+  const OPHOERSGRUND_PRIORITY: Record<AfgraensningsKilde, number> = {
+    differencekrav: 0,
+    endeligtEet: 1,
+    midlertidigEet: 2,
   };
 
-  const kandidater: AfgraensningsKilde[] = [];
-  if (endeligtEetLinje && endeligtEetReferenceDato) kandidater.push('endeligtEet');
-  if (midlertidigEetErTafRelevant && midlertidigEetLinje && midlertidigEetReferenceDato) kandidater.push('midlertidigEet');
-  if (differencekravLinjeBase && differencekravReferenceDato) kandidater.push('differencekrav');
+  type OphoersgrundKandidat = Readonly<{
+    kilde: AfgraensningsKilde;
+    referenceDato: ISODateString;
+  }>;
 
-  // Sortér: kilder der bringer til ophør før dem der ikke gør; dernæst kronologisk på referencedato.
-  const bringerTilOphoer = (k: AfgraensningsKilde): boolean => {
-    if (k === 'endeligtEet') return endeligtEetBringTilOphoer;
-    if (k === 'midlertidigEet') return midlertidigEetBringTilOphoer;
-    return differencekravBringTilOphoer;
-  };
+  const ophoersgrundKandidater: OphoersgrundKandidat[] = [];
+  if (differencekravBringTilOphoer && differencekravReferenceDato) {
+    ophoersgrundKandidater.push({ kilde: 'differencekrav', referenceDato: differencekravReferenceDato });
+  }
+  if (endeligtEetBringTilOphoer && endeligtEetReferenceDato) {
+    ophoersgrundKandidater.push({ kilde: 'endeligtEet', referenceDato: endeligtEetReferenceDato });
+  }
+  if (midlertidigEetBringTilOphoer && midlertidigEetReferenceDato) {
+    ophoersgrundKandidater.push({ kilde: 'midlertidigEet', referenceDato: midlertidigEetReferenceDato });
+  }
 
-  kandidater.sort((a, b) => {
-    const aOphoer = bringerTilOphoer(a);
-    const bOphoer = bringerTilOphoer(b);
-    if (aOphoer && !bOphoer) return -1;
-    if (!aOphoer && bOphoer) return 1;
-    const aDato = findTidligsteDato(a);
-    const bDato = findTidligsteDato(b);
-    if (!aDato && !bDato) return 0;
-    if (!aDato) return 1;
-    if (!bDato) return -1;
-    // ISODateString er "YYYY-MM-DD" — leksikografisk = kronologisk.
-    return aDato < bDato ? -1 : aDato > bDato ? 1 : 0;
+  ophoersgrundKandidater.sort((a, b) => {
+    if (a.referenceDato < b.referenceDato) return -1;
+    if (a.referenceDato > b.referenceDato) return 1;
+    return OPHOERSGRUND_PRIORITY[a.kilde] - OPHOERSGRUND_PRIORITY[b.kilde];
   });
 
-  const valgtKilde: AfgraensningsKilde | undefined = kandidater[0];
+  const valgtOphoersgrund = ophoersgrundKandidater[0]?.kilde;
 
-  let differencekravLinje: string | null = differencekravLinjeBase;
+  let differencekravLinje: string | null = null;
 
   const appendEetLinje = (
     kilde: Extract<AfgraensningsKilde, 'endeligtEet' | 'midlertidigEet'>,
@@ -307,32 +296,35 @@ export const buildTabtArbejdsfortjenesteModel = (
   ): void => {
     if (!linje) return;
     eetLinjer.push(linje);
-    if (kilde === 'endeligtEet' && valgtKilde === 'endeligtEet' && endeligtEetBringTilOphoer) {
+    if (kilde === 'endeligtEet' && valgtOphoersgrund === 'endeligtEet' && endeligtEetBringTilOphoer) {
       eetLinjer.push('Afgørelsen bringer retten til tabt arbejdsfortjeneste til ophør.');
     }
-    if (kilde === 'midlertidigEet' && valgtKilde === 'midlertidigEet' && midlertidigEetBringTilOphoer) {
+    if (kilde === 'midlertidigEet' && valgtOphoersgrund === 'midlertidigEet' && midlertidigEetBringTilOphoer) {
       eetLinjer.push('Da skaden er sket før 16. juni 2011, bringer afgørelsen retten til tabt arbejdsfortjeneste til ophør.');
     }
   };
 
-  appendEetLinje('midlertidigEet', midlertidigEetLinje);
-  appendEetLinje('endeligtEet', endeligtEetLinje);
+  if (valgtOphoersgrund === 'differencekrav' && differencekravLinjeBase) {
+    differencekravLinje = `${differencekravLinjeBase} Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.`;
+  } else if (valgtOphoersgrund === 'endeligtEet') {
+    appendEetLinje('endeligtEet', endeligtEetLinje);
+  } else if (valgtOphoersgrund === 'midlertidigEet') {
+    appendEetLinje('midlertidigEet', midlertidigEetLinje);
+  }
 
-  if (valgtKilde === 'endeligtEet' || valgtKilde === 'midlertidigEet') {
-    differencekravLinje = null;
-  } else if (valgtKilde === 'differencekrav') {
-    if (differencekravBringTilOphoer && differencekravLinje) {
-      differencekravLinje = `${differencekravLinje} Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.`;
-    }
-  } else if (!endeligtEetLinje && !midlertidigEetLinje && values.opgørelseLavetDen) {
+  const harMidlertidigEetAfgorelse = midlertidigEetLinje !== null;
+  const harEndeligtEetAfgorelse = endeligtEetLinje !== null;
+  const skalViseInformativEetLinje =
+    (harMidlertidigEetAfgorelse || harEndeligtEetAfgorelse)
+    && valgtOphoersgrund !== 'endeligtEet'
+    && valgtOphoersgrund !== 'midlertidigEet';
+
+  if (skalViseInformativEetLinje) {
+    eetLinjer.push(endeligtEetLinje ?? midlertidigEetLinje ?? '');
+  } else if (!harEndeligtEetAfgorelse && !harMidlertidigEetAfgorelse && values.opgørelseLavetDen) {
     const dato = formatDateLong(values.opgørelseLavetDen);
     const tekst = `Der er den ${dato} ikke truffet afgørelse om erhvervsevnetab med 15 % eller derover.`;
     eetLinjer.push(values.verserendeKlageEet === 'Ja' ? `${tekst} Afgørelsen er påklaget.` : tekst);
-    if (differencekravBringTilOphoer && differencekravLinje) {
-      differencekravLinje = `${differencekravLinje} Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.`;
-    }
-  } else if (differencekravBringTilOphoer && differencekravLinje) {
-    differencekravLinje = `${differencekravLinje} Differencekravet bringer retten til tabt arbejdsfortjeneste til ophør.`;
   }
 
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);

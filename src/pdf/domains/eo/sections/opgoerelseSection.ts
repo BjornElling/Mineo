@@ -401,14 +401,13 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           safeAddWrappedText(line);
         }
 
+        if (model.tabtArbejdsfortjeneste.differencekravLinje) {
+          safeAddWrappedText(model.tabtArbejdsfortjeneste.differencekravLinje);
+        }
         for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
           safeAddWrappedText(line);
         }
         writeBilagReferenceLinje(bilag.eetAfgoerelser);
-
-        if (model.tabtArbejdsfortjeneste.differencekravLinje) {
-          safeAddWrappedText(model.tabtArbejdsfortjeneste.differencekravLinje);
-        }
       },
     });
 
@@ -466,8 +465,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         for (const arbejdssted of indkomst.arbejdssteder) {
           const componentRows: ReadonlyArray<Readonly<{ label: string; amountOre: number }>> = [
             {
-              label: 'Ferieberettiget indkomst i beregningsperioden',
-              amountOre: arbejdssted.breakdown.ferieberetOre,
+              label: 'Løn i beregningsperioden',
+              amountOre: arbejdssted.breakdown.loenPlusLoen2PlusIkkePensLoenOre,
             },
             {
               label: arbejdssted.fpLabel,
@@ -747,15 +746,21 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       if (samledeIndtaegterIErstatningsperiodenOre !== 0) {
         ledFoerLigmed.push(formatCurrencyFromOre(samledeIndtaegterIErstatningsperiodenOre));
       }
-      if (tidligereModtagetTaf.status === 'ok' && tidligereModtagetTaf.value !== 0) {
-        ledFoerLigmed.push(formatCurrencyFromOre(tidligereModtagetTaf.value));
-      }
       const expressionText = `${ledFoerLigmed
         .map((led, index) => (index === ledFoerLigmed.length - 1 ? `${led}${NBSP}kr.` : led))
         .join(' - ')}`;
-      const leftText = model.forlig.erIndgaaet
-        ? `${model.forlig.label} x (${expressionText}) =`
-        : `${expressionText} =`;
+      const leftText = (() => {
+        if (model.forlig.erIndgaaet) {
+          if (tidligereModtagetTaf.status === 'ok' && tidligereModtagetTaf.value !== 0) {
+            return `${model.forlig.label} x (${expressionText}) - ${formatMoneyOreWithKr(tidligereModtagetTaf.value)} =`;
+          }
+          return `${model.forlig.label} x (${expressionText}) =`;
+        }
+        if (tidligereModtagetTaf.status === 'ok' && tidligereModtagetTaf.value !== 0) {
+          return `${expressionText} - ${formatMoneyOreWithKr(tidligereModtagetTaf.value)} =`;
+        }
+        return `${expressionText} =`;
+      })();
       const rightText = formatMoneyOreWithKr(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
       safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'bold' });
     } else if (model.tabtArbejdsfortjeneste.harTafPerioder) {
@@ -843,7 +848,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     renderSectionHeader('Særlige bemærkninger', lineHeight);
     safeAddWrappedText(saerligeKommentarer);
   }
-  renderSectionHeader('Bekræftelse', lineHeight);
+  renderSectionHeader('Godkendelse', lineHeight);
   if (afsluttesMed === 'Bekræftet godkendt') {
     safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevante oplysninger, som skadelidte er bekendt med.');
   } else {

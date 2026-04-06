@@ -409,17 +409,18 @@ export const buildTafPerYearBuildOutcome = (
         amountOre: sygeferiegodtgoerelseByYear.get(year) ?? (0 as MoneyOre),
       });
     }
+    const yearIncomeOre = segments.reduce((sum, s) => sum + s.amountOre, 0) as MoneyOre;
+    const yearPreForligDeductionsOre = deductions.reduce((sum, d) => sum + d.amountOre, 0) as MoneyOre;
     const yearTidligereModtagetTafOre = tidligereModtagetTafByYear.get(year) ?? (0 as MoneyOre);
     if (yearTidligereModtagetTafOre > 0) {
       deductions.push({ label: 'Allerede betalt TAF', amountOre: yearTidligereModtagetTafOre });
     }
-
-    const yearIncomeOre = segments.reduce((sum, s) => sum + s.amountOre, 0) as MoneyOre;
     const yearDeductionsOre = deductions.reduce((sum, d) => sum + d.amountOre, 0) as MoneyOre;
-    const yearTafFoerForligOre = (yearIncomeOre - yearDeductionsOre) as MoneyOre;
-    const yearTafOre = forligFactor !== null
+    const yearTafFoerForligOre = (yearIncomeOre - yearPreForligDeductionsOre) as MoneyOre;
+    const yearTafEfterForligOre = forligFactor !== null
       ? scaleMoneyOre(yearTafFoerForligOre, forligFactor)
       : yearTafFoerForligOre;
+    const yearTafOre = (yearTafEfterForligOre - yearTidligereModtagetTafOre) as MoneyOre;
 
     years.push({
       year,

@@ -220,6 +220,18 @@ describe('pdfWriter headers', () => {
     expect(writer.getY()).toBeGreaterThan(before);
   });
 
+  it('holder sektionsoverskrift sammen med efterfølgende underoverskrift ved sideskift', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
+    const writer = createStandardPdfWriter();
+
+    const nearBottomY = 260;
+    writer.setY(nearBottomY);
+    writer.writeSectionHeader('Tabt arbejdsfortjeneste', PDF_BASE_LINE_HEIGHT_MM);
+
+    expect(writer.getY()).toBeLessThan(nearBottomY);
+  });
+
   it('writeSubheader øger Y-positionen', async () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
     const writer = createStandardPdfWriter();
@@ -230,6 +242,7 @@ describe('pdfWriter headers', () => {
 
   it('tilføjer ikke ekstra topafstand når writeSubheader følger direkte efter writeSectionHeader', async () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
     const writer = createStandardPdfWriter();
 
     writer.setY(100);
@@ -240,7 +253,33 @@ describe('pdfWriter headers', () => {
 
     // Underoverskriften skal kun bruge sin egen teksthøjde + bundafstand,
     // ikke yderligere topafstand oven på section headerens bundafstand.
-    expect(writer.getY() - afterSectionHeader).toBe(8);
+    expect(writer.getY() - afterSectionHeader).toBe(
+      PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM
+    );
+  });
+
+  it('holder sektionsoverskrift sammen med underoverskrift, når underoverskriften selv skal holdes sammen med næste tekstlinje', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
+    const writer = createStandardPdfWriter();
+
+    const nearBottomY = 255;
+    writer.setY(nearBottomY);
+    writer.writeSectionHeader('Sektion', PDF_BASE_LINE_HEIGHT_MM);
+
+    expect(writer.getY()).toBeLessThan(nearBottomY);
+  });
+
+  it('holder underoverskrift sammen med næste underoverskrift, når den næste også skal holdes sammen med første tekstlinje', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
+    const writer = createStandardPdfWriter();
+
+    const nearBottomY = 260;
+    writer.setY(nearBottomY);
+    writer.writeSubheader('Første underoverskrift', PDF_BASE_LINE_HEIGHT_MM);
+
+    expect(writer.getY()).toBeLessThan(nearBottomY);
   });
 });
 
@@ -259,18 +298,22 @@ describe('pdfWriter writeUnderlinedLabel', () => {
 
   it('kollapser eksisterende manuel linjeafstand så der samlet kun er én linje over label', async () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_UNDERLINED_LABEL_TOP_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
     const writer = createStandardPdfWriter();
     writer.setY(100);
 
     writer.addSpacer(5);
     writer.writeUnderlinedLabel('Offentlige ydelser', 10);
 
-    // 100 -> +5 spacer +5 label-linje +1 bundafstand (ingen ekstra top-spacing i label)
-    expect(writer.getY()).toBe(111);
+    // 100 -> normaliseret til standard topafstand + label-linje + bundafstand.
+    expect(writer.getY()).toBe(
+      100 + PDF_UNDERLINED_LABEL_TOP_SPACING_MM + PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM
+    );
   });
 
   it('kollapser flere manuelle spacere så der samlet kun er én linje over label', async () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_UNDERLINED_LABEL_TOP_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
     const writer = createStandardPdfWriter();
     writer.setY(100);
 
@@ -278,8 +321,9 @@ describe('pdfWriter writeUnderlinedLabel', () => {
     writer.addSpacer(5);
     writer.writeUnderlinedLabel('Offentlige ydelser', 10);
 
-    // 100 -> normaliseret til 5 mm afstand over label + 5 mm label-linje +1 bundafstand
-    expect(writer.getY()).toBe(111);
+    expect(writer.getY()).toBe(
+      100 + PDF_UNDERLINED_LABEL_TOP_SPACING_MM + PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM
+    );
   });
 
   it('holder underlinjet label sammen med næste linje ved sideskift', async () => {
@@ -292,6 +336,17 @@ describe('pdfWriter writeUnderlinedLabel', () => {
     writer.writeUnderlinedLabel('Offentlige ydelser', 10);
 
     // Skal være flyttet til ny side i stedet for at splitte.
+    expect(writer.getY()).toBeLessThan(nearBottomY);
+  });
+
+  it('holder underlinjet label sammen med næste underoverskrift, når den næste også skal holdes sammen med første tekstlinje', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createStandardPdfWriter();
+
+    const nearBottomY = 270;
+    writer.setY(nearBottomY);
+    writer.writeUnderlinedLabel('Underlinjet label', 10);
+
     expect(writer.getY()).toBeLessThan(nearBottomY);
   });
 });

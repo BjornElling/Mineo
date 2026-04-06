@@ -92,7 +92,8 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
     section: 'offentlige-ydelser',
     run: (ctx) =>
       buildEODebugOffentligeYdelserRows(
-        ctx.eoValues
+        ctx.eoValues,
+        ctx.stamdataValues.skadedato
       ),
   },
 

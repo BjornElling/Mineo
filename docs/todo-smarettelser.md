@@ -176,14 +176,15 @@ Brug `buildMidlertidigtEetRowsFromEet()` fra `src/domain/erstatningsopgoerelse/h
 - `eoBilagSelectionSchema` bruger `.strict()` — tilføj `midlertidigEet`-feltet med `.default(true)` for at håndtere eksisterende gem-filer uden feltet.
 - `buildMidlertidigtEetRowsFromEet` kræver `ErhvervsevnetabValues` og `skadedato` — disse skal være tilgængelige i PDF-konteksten.
 
-### Status: Implementeret
+### Status: Godkendt og afsluttet
 
 Checkboxen er tilføjet. Skemaet er opdateret med `midlertidigEet: z.boolean().default(true)`. Initial values og fallback-objektet er opdateret. `renderOffentligeYdelserRowsPage` er udtrukket som genanvendelig funktion. `midlertidigtEetInsertSource`-prop er ført fra `Erstatningsopgoerelse.tsx` til `EOberegningTab`.
 
-### Udestående fund
-
-**Lav — `offentligeYdelserSection.ts` refaktorering: subtil adfærdsændring i paginering:**
-Før refaktoreringen kaldtes `startBilagPage` og `writer.addSpacer` ubetinget før løkken. Efter refaktoreringen flyttes de ind i løkken og betinges af `index === 0`. Gennemgå at alle kombinationer af `skalVisePeriodeSubheadings` og gruppestørrelser stadig producerer korrekt paginering.
+Efterfølgende tilføjelser:
+- Midlertidig EET vises ikke længere på siden med Offentlige ydelser, når den har sin egen side.
+- Når `eoBilagLoenindkomstOgOffentligeYdelserIndgaar === 'Perioden'` filtreres EET-rækker ligesom offentlige ydelser: kun rækker der overlapper TAF-perioden vises; siden udgår helt, hvis ingen rækker overlapper.
+- PDF-siden inddeles i undergrupper per afgørelse med subheader "Afgørelse [dato]" (altid, uanset antal afgørelser).
+- Afgørelsesdatoer og gruppestruktur gemmes i `midlertidigtEetAfgoerelseGrupper` i `ErstatningsopgoerelseValues` på insert-tidspunktet, så PDF-generering aldrig genberegner fra live EET-data. Trykker brugeren indsæt igen, overskrives alle tidligere gemt gruppedata.
 
 ---
 
@@ -455,4 +456,4 @@ Alle implementerede fund er rettet. Følgende fund er bekræftet lukket eller kr
 | — | **13** (TAF folkepensionsalder) | ✅ Bekræftet: `displayTil` er `ISODateString` fra `clamped.til` — sammenligningen er korrekt. |
 | — | **14** (Fjern config-fejlbesked) | ✅ Rettet: `noValidRangeCause`-prop fjernet fra `StyledDateFieldProps` og alle direkte kaldesteder renset. |
 | — | **15** (SFGG sammentælling) | ✅ Rettet: Første overflødige `buildDebugSnapshotForComputed`-kald fjernet fra `eoSnapshot.ts`. |
-| Åben | **6** (Midlertidig EET PDF) | Kræver manuel visuel verifikation af paginering ved alle kombinationer af `skalVisePeriodeSubheadings`. |
+| — | **6** (Midlertidig EET PDF) | ✅ Godkendt og afsluttet: filtrering, adskillelse fra offentlige ydelser, afgørelses-subheaders og snapshot-lagring af gruppedata implementeret. |

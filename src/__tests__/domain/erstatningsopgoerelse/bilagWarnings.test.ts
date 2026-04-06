@@ -90,7 +90,7 @@ describe('resolveBilagWarning', () => {
     it('ingen advarsel når TAF beregnes og lønoplysninger er til stede', () => {
       const base = structuredClone(createErstatningsopgoerelseInitialValues());
       base.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
-      // Indsæt en lønrække med udfyldt col2 (ferieberettiget grundløn)
+      // Indsæt en lønrække med udfyldt col2 (Løn)
       base.loenindkomstAnsaettelsesforhold[0].indtaegtsoplysningerTableData = [
         {
           id: 'row_1',

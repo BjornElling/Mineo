@@ -64,7 +64,7 @@ export const PDF_SECTION_HEADING_GAP = 3;
 export const SECTION_SPACER = 10; // mm
 
 // Standard linjeafstand for brødtekst i alle PDF'er
-export const PDF_BASE_LINE_HEIGHT_MM = 5; // mm
+export const PDF_BASE_LINE_HEIGHT_MM = 4; // mm
 
 // Afstand efter hver fritekst-linje (writeWrappedText, writeLeftRightText, writeUnderlinedLabel)
 export const PDF_LINE_BOTTOM_SPACING_MM = 2; // mm

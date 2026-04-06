@@ -93,9 +93,15 @@ export const buildEoComputedTotals = (args: Readonly<{
   forligFactor: number | null;
 }>): EoComputedTotals => {
   const tabtArbejdsfortjenesteFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(args.tafNetto.tabtArbejdsfortjenesteOre));
-  const tabtArbejdsfortjenesteOre = args.forligFactor !== null
-    ? clampMoneyOreToZero(scaleMoneyOre(tabtArbejdsfortjenesteFoerForligOre, args.forligFactor))
+  const tidligereModtagetTafOre = args.tafNetto.tidligereModtagetTaf.status === 'ok'
+    ? ensureMoneyOre(args.tafNetto.tidligereModtagetTaf.value)
+    : ensureMoneyOre(0);
+  const tabtArbejdsfortjenesteEfterForligOre = args.forligFactor !== null
+    ? scaleMoneyOre(tabtArbejdsfortjenesteFoerForligOre, args.forligFactor)
     : tabtArbejdsfortjenesteFoerForligOre;
+  const tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
+    ensureMoneyOre(tabtArbejdsfortjenesteEfterForligOre - tidligereModtagetTafOre)
+  );
 
   const oevrigeKravFoerForligOre = clampMoneyOreToZero(ensureMoneyOre(args.oevrige.totalFoerForligOre));
   const oevrigeKravOre = args.forligFactor !== null
@@ -106,9 +112,6 @@ export const buildEoComputedTotals = (args: Readonly<{
   const samletTotalOre = clampMoneyOreToZero(
     ensureMoneyOre(svieSmerteOre + tabtArbejdsfortjenesteOre + oevrigeKravOre)
   );
-  const tidligereModtagetTafOre = args.tafNetto.tidligereModtagetTaf.status === 'ok'
-    ? ensureMoneyOre(args.tafNetto.tidligereModtagetTaf.value)
-    : ensureMoneyOre(0);
 
   return {
     svieSmerteOre,

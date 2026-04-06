@@ -948,7 +948,7 @@ describe('EODebug', () => {
             id: 'sfgg.tabel.af1',
             label: 'SFGG-beregning',
             displayValue: [
-              'Fra-dato | Til-dato | Sats | Antal arbejdsdage | Feriepengekrav',
+              'Fra-dato | Til-dato | Sats | Antal arbejdsdage | Samlet',
               '01-01-2024 | 31-01-2024 | 100,00 | 22 | 2.200,00',
               'I alt |  |  |  | 2.200,00',
             ].join('\n'),
@@ -956,13 +956,13 @@ describe('EODebug', () => {
           },
           {
             id: 'sfgg.eftertabel.feriepengeHvisIkkeSkade.af1',
-            label: 'Feriepenge, hvis skaden ikke var sket',
+            label: 'Feriepenge, hvis skaden ikke var sket (+ AG-pension)',
             displayValue: '4.576,50',
             status: 'ok',
           },
           {
             id: 'sfgg.eftertabel.feriepengeModtaget.af1',
-            label: 'Feriepenge modtaget i perioden (16.450,95 x 16,95 %) =',
+            label: 'Feriepenge modtaget i perioden (+ AG-pension) =',
             displayValue: '-2.788,44',
             status: 'ok',
           },
@@ -994,8 +994,8 @@ describe('EODebug', () => {
 
     const { container } = renderComponent({ revision: 'rev-1' } as never);
 
-    const firstLabel = screen.getByText('Feriepenge, hvis skaden ikke var sket');
-    const secondLabel = screen.getByText('Feriepenge modtaget i perioden (16.450,95 x 16,95 %) =');
+    const firstLabel = screen.getByText('Feriepenge, hvis skaden ikke var sket (+ AG-pension)');
+    const secondLabel = screen.getByText('Feriepenge modtaget i perioden (+ AG-pension) =');
     const thirdLabel = screen.getByText('Allerede betalt sygeferiegodtgørelse i perioden');
     const fourthLabel = screen.getByText('Beregnet sygeferiegodtgørelse');
     const firstRow = firstLabel.closest('.row--label-right-hover');

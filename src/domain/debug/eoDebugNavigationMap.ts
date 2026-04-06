@@ -248,6 +248,29 @@ export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget =>
   }
 
   // ============================================================================
+  // MIDLERTIDIGT EET KONSISTENS-ADVARSLER
+  // ============================================================================
+
+  if (rowId === 'midlertidigtEetKonsistens.ydelerUdenAfgorelse') {
+    return {
+      kind: 'erstatningsopgoerelse-tab',
+      tabId: 'eo_oplysninger',
+      sectionId: 'aes',
+      tabName: 'EO oplysninger',
+      sectionTitle: 'AES-afgørelser',
+    };
+  }
+
+  if (rowId === 'midlertidigtEetKonsistens.afgorelseUdenYdelser') {
+    return {
+      kind: 'erstatningsopgoerelse-tab',
+      tabId: 'offentlige_ydelser',
+      tabName: 'Offentlige ydelser',
+      sectionTitle: 'Offentlige ydelser',
+    };
+  }
+
+  // ============================================================================
   // UKENDT ID - THROW I DEV, FALLBACK I PRODUCTION
   // ============================================================================
 

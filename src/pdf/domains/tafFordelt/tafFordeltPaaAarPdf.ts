@@ -10,7 +10,7 @@
 
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import { ensureNonBreakingKr } from '../../shared/pdfTextUtils';
-import { PDF_FONT_FAMILY, PDF_FONT_STYLES } from '../../infrastructure/pdfConfig';
+import { PDF_BASE_LINE_HEIGHT_MM, PDF_FONT_FAMILY, PDF_FONT_STYLES } from '../../infrastructure/pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from '../../shared/pdfHelpers';
 import { roundByMethod } from '../../../utils/rounding';
 import { logWarning } from '../../../utils/logger';
@@ -42,7 +42,7 @@ export const generateTafFordeltPaaAarPdf = (
   options: TafFordeltPaaAarPdfOptions
 ): void => {
   const { visBrevhoved = false, visUdkastStempel = false } = options;
-  const lineHeight = 5;
+  const lineHeight = PDF_BASE_LINE_HEIGHT_MM;
   const { model, presentation } = options.document;
 
   const titel = 'Tabt arbejdsfortjeneste fordelt på år';
@@ -119,11 +119,11 @@ export const generateTafFordeltPaaAarPdf = (
       for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
         writer.writeWrappedText(line);
       }
-      for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
-        writer.writeWrappedText(line);
-      }
       if (model.tabtArbejdsfortjeneste.differencekravLinje) {
         writer.writeWrappedText(model.tabtArbejdsfortjeneste.differencekravLinje);
+      }
+      for (const line of model.tabtArbejdsfortjeneste.eetLinjer) {
+        writer.writeWrappedText(line);
       }
     },
   });

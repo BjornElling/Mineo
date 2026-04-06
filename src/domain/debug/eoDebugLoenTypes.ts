@@ -83,7 +83,7 @@ export type DebugTabelWageColumnKey =
   | 'tillaeg'
   | 'ikkePensionsgivende'
   | 'atp'
-  | 'ferieberettiget'
+  | 'loenPlusLoen2PlusIkkePensLoen'
   | 'fpFvShSoStb'
   | 'pension'
   | 'samlet';
@@ -100,8 +100,8 @@ export const WAGE_COLUMNS: ReadonlyArray<Readonly<{ key: DebugTabelWageColumnKey
   { key: 'grundloen', header: 'Løn' },
   { key: 'tillaeg', header: 'Løn (2)' },
   { key: 'ikkePensionsgivende', header: 'Ikke-pens.\ngivende løn' },
-  { key: 'atp', header: 'ATP og anden ikke-FB løn' },
-  { key: 'ferieberettiget', header: 'Ferieberet.\nløn' },
+  { key: 'atp', header: 'ATP og anden ikke pens. løn' },
+  { key: 'loenPlusLoen2PlusIkkePensLoen', header: 'Løn+Løn2+\nikke pens. løn' },
   { key: 'fpFvShSoStb', header: 'FP/FV/SH/\nSO/St.B.' },
   { key: 'pension', header: 'Pension' },
   { key: 'samlet', header: 'Samlet løn' },

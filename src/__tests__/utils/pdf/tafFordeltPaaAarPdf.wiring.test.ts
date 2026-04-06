@@ -194,7 +194,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     });
     const instance = MockJsPDF.instances.at(-1);
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
-    expect(renderedText).toContain('-50,00 kr.');
+    expect(renderedText).toContain('- 50,00 kr.');
   });
 
   it('renderer "Allerede betalt TAF" som fradragslinje', async () => {

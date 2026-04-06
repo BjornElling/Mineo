@@ -93,9 +93,15 @@ export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
   forlig: ForligModel;
   tafRanges: readonly IsoRange[];
 }>): EoModel => {
-  const tabtArbejdsfortjenesteOre = args.forlig.erIndgaaet
-    ? clampMoneyOreToZero(scaleMoneyOre(args.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre, args.forlig.factor))
+  const tidligereModtagetTafOre = args.tabtArbejdsfortjeneste.tidligereModtagetTaf.status === 'ok'
+    ? args.tabtArbejdsfortjeneste.tidligereModtagetTaf.value
+    : ensureMoneyOre(0);
+  const tabtArbejdsfortjenesteEfterForligOre = args.forlig.erIndgaaet
+    ? scaleMoneyOre(args.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre, args.forlig.factor)
     : args.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre;
+  const tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
+    ensureMoneyOre(tabtArbejdsfortjenesteEfterForligOre - tidligereModtagetTafOre)
+  );
   const tabtArbejdsfortjeneste = {
     ...args.tabtArbejdsfortjeneste,
     tabtArbejdsfortjenesteOre,

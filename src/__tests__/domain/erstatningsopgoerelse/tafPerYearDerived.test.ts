@@ -225,6 +225,42 @@ describe('buildTafPerYearResult', () => {
     expect(forligResult.samletTafKravOre).toBe(Math.round(baseResult.samletTafKravOre * 0.5));
   });
 
+  it('fratrækker "Allerede betalt TAF" efter forligsgraden i årsresultatet', () => {
+    const baseValues = makeValues({
+      beregnesUdFra: 'Angivet dagsløn',
+      dagsloenenUdgoer: asAmountValue(1000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-02'), til: iso('2024-01-03'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+    });
+    const withForligAndPaid = makeValues({
+      ...baseValues,
+      forligAnsvarsgradProcent: 50,
+      tidligereModtagetTaf: asAmountValue(5),
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
+
+    const baseSnapshotData = buildSnapshotData(stamdata, baseValues, { dagsDatoISO });
+    const forligPaidSnapshotData = buildSnapshotData(stamdata, withForligAndPaid, { dagsDatoISO });
+    const baseResult = baseSnapshotData.engines.tafPerYear;
+    const forligPaidResult = forligPaidSnapshotData.engines.tafPerYear;
+    expect(baseResult).not.toBeNull();
+    expect(forligPaidResult).not.toBeNull();
+    if (!baseResult || !forligPaidResult) return;
+
+    expect(forligPaidResult.years).toHaveLength(1);
+    expect(forligPaidResult.years[0].yearTafFoerForligOre).toBe(baseResult.years[0].yearTafOre);
+    expect(forligPaidResult.years[0].deductions.find((d) => d.label === 'Allerede betalt TAF')?.amountOre).toBe(500);
+    expect(forligPaidResult.years[0].yearTafOre).toBe(Math.round(baseResult.years[0].yearTafOre * 0.5) - 500);
+  });
+
   it('segment der krydser kalenderår → splittes korrekt', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet dagsløn',

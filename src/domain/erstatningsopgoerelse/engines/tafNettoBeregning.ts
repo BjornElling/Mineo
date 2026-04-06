@@ -156,10 +156,8 @@ export const computeTafNettoBeregning = (
         tabtArbejdsfortjenesteOre,
       };
     }
-    // Invariant: tidligere modtaget TAF er valgfrit input. Manglende værdi betyder 0 kr. fradrag.
-    const tidligereModtagetTafOre = tidligereModtagetTaf.status === 'ok' ? tidligereModtagetTaf.value : ensureMoneyOre(0);
     tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
-      ensureMoneyOre(loenTotal.value - indtaegterTotal.value - tidligereModtagetTafOre - sygeferiegodtgoerelse.totalOre)
+      ensureMoneyOre(loenTotal.value - indtaegterTotal.value - sygeferiegodtgoerelse.totalOre)
     );
   }
 
