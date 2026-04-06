@@ -194,7 +194,7 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
     const firstCall = autoTableMock.mock.calls[0]?.[1];
     const firstColumnStyle = (firstCall?.columnStyles as Record<number, { cellWidth: number }>)[0];
 
-    expect(firstColumnStyle.cellWidth).toBeCloseTo(170 / 7, 6);
+    expect(firstColumnStyle.cellWidth).toBeCloseTo(170 / 6, 6);
     expect(firstColumnStyle.cellWidth).toBeGreaterThan(22);
   });
 });

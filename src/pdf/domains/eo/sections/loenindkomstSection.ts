@@ -106,10 +106,9 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       allHeaders[0],
       allHeaders[1],
       ...visibleInputColumns.map((column) => allHeaders[column.index]),
+      allHeaders[5],
       allHeaders[6],
       allHeaders[7],
-      allHeaders[8],
-      allHeaders[9],
     ];
     const satser = {
       feriePct: ansaettelsesforhold.feriePct,
@@ -133,7 +132,6 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         col0,
         col1,
         ...visibleInputColumns.map((column) => formatAmountCell(row[column.key])),
-        formatAsAmount(derived.ferieberet, 2),
         formatAsAmount(derived.fpFvShSo, 2),
         formatAsAmount(derived.pension, 2),
         formatAsAmount(derived.samlet, 2),

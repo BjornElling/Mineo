@@ -3,20 +3,28 @@ import type { ISODateString } from '../../../types/branded';
 import { dateToISO, isISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatAsAmount, formatAsAmountTrimmed, formatPercent, isSingularCount } from '../../../utils/formatUtils';
+import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import { roundByMethod } from '../../../utils/rounding';
+import { calculateStandardLoenDerivedFromAmounts } from '../../aarsloen/standardLoenRowCalculations';
 import { buildIncomeForRanges } from '../helpers/indtaegtPerioder';
+import { buildLoenindkomstRateSegments, resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../engines/tafCalculations';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { getAngivetLoenBaseretPaa } from '../helpers/angivetLoenHelpers';
 import { isoDateToDate } from '../../dates/isoDate';
 import type { Calculable, IndkomstSkadestidspunktModel, MoneyOre } from '../shared/eoTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
-import { formatPercentFixed2 } from '../helpers/eoSharedUtils';
+import { formatPercentFixed2, parseDanishToIso, resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
 import { formatIsoDateShort as formatDateShort } from '../../../utils/dateFormatting';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
+const parsePctPoint = (value: string | number | undefined): number | undefined => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') return parsePercentToDecimal(value) * 100;
+  return undefined;
+};
 
 export const buildIndkomstSkadestidspunkt = (
   values: ErstatningsopgoerelseValues,
@@ -60,48 +68,111 @@ export const buildIndkomstSkadestidspunkt = (
     }
 
     if (periodeTilBeregning) {
-      const incomeForBeregningsperiode = buildIncomeForRanges(values, [periodeTilBeregning], undefined, skadedato ?? undefined);
-      const sums = { ferieberet: 0, fpFvShSo: 0, pension: 0, atp: 0, samlet: 0 };
+      // Beregningsperiode-indkomsten opgøres med de satser der gælder på reguleringsdato (af.pensionPct m.fl.),
+      // ikke med historisk segmentering — derfor sendes skadedato ikke med her.
+      const incomeForBeregningsperiode = buildIncomeForRanges(values, [periodeTilBeregning], undefined, undefined);
+      const sums = { loenPlusLoen2: 0, loenPlusLoen2PlusIkkePensLoen: 0, fpFvShSo: 0, pension: 0, atp: 0, samlet: 0 };
 
       for (const entry of incomeForBeregningsperiode.employers) {
         const af = ansaettelser[entry.index];
         if (!af) continue;
-        const satser = {
-          feriePct: af.feriePct,
-          fritvalgPct: af.fritvalgPct,
-          shSoPct: af.shSoPct,
-          storeBededagPct: af.storeBededagPct,
-          pensionPct: af.pensionPct,
-        };
+        const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
+          beregnesUdFra: values.beregnesUdFra,
+          angivetLoenMetodeOpreguleresFraDato: undefined,
+          saerligFraDatoRegulering: isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
+          beregningsperiodeTil: values.periodeTilBeregningTil,
+          skadedato: skadedato ?? undefined,
+        });
+        const satser = (() => {
+          const baseSatser = {
+            feriePct: af.feriePct,
+            fritvalgPct: af.fritvalgPct,
+            shSoPct: af.shSoPct,
+            storeBededagPct: af.storeBededagPct,
+            pensionPct: af.pensionPct,
+          };
+          if (!anvendtReguleringsdato) return baseSatser;
+          if (af.loenudviklingBeregningsgrundlag === 'Manuelt angivet') {
+            const manualRows = af.loenudviklingManuelTableData ?? [];
+            const datedRow = manualRows
+              .slice(1)
+              .filter((row) => {
+                const rowIso = parseDanishToIso(row.dato);
+                return Boolean(rowIso && rowIso <= anvendtReguleringsdato);
+              })
+              .sort((left, right) => {
+                const leftIso = parseDanishToIso(left.dato) ?? '';
+                const rightIso = parseDanishToIso(right.dato) ?? '';
+                return leftIso.localeCompare(rightIso);
+              })
+              .at(-1);
+            return {
+              feriePct: parsePctPoint(datedRow?.feriepenge) ?? af.feriePct,
+              fritvalgPct: parsePctPoint(datedRow?.fritvalg) ?? af.fritvalgPct,
+              shSoPct: parsePctPoint(datedRow?.shSoSats) ?? af.shSoPct,
+              storeBededagPct: resolveAutoStoreBededagPct(af, anvendtReguleringsdato),
+              pensionPct: parsePctPoint(datedRow?.agPension) ?? af.pensionPct,
+            };
+          }
+          const satssegment = buildLoenindkomstRateSegments({
+            ansaettelsesforhold: af,
+            skadedato: skadedato ?? undefined,
+            fra: anvendtReguleringsdato,
+            til: anvendtReguleringsdato,
+          })[0];
+          return satssegment?.satser ?? baseSatser;
+        })();
+        const recalculatedBreakdown = calculateStandardLoenDerivedFromAmounts(
+          {
+            loen: entry.breakdown.loenPlusLoen2,
+            loen2: 0,
+            ikkePensionsgivende: entry.breakdown.loenPlusLoen2PlusIkkePensLoen - entry.breakdown.loenPlusLoen2,
+            atp: entry.breakdown.atp,
+          },
+          {
+            feriePct: satser.feriePct,
+            fritvalgPct: satser.fritvalgPct,
+            shSoPct: satser.shSoPct,
+            storeBededagPct: satser.storeBededagPct,
+            pensionPct: satser.pensionPct,
+          }
+        );
+        const feriePct = parsePctPoint(satser.feriePct);
+        const fritvalgPct = parsePctPoint(satser.fritvalgPct);
+        const shSoPct = parsePctPoint(satser.shSoPct);
+        const storeBededagPct = parsePctPoint(satser.storeBededagPct);
+        const pensionPct = parsePctPoint(satser.pensionPct);
         const pctParts: string[] = [];
-        if (satser.feriePct && satser.feriePct !== 0) pctParts.push(`Feriepenge (${formatPercent(satser.feriePct)})`);
-        if (satser.fritvalgPct && satser.fritvalgPct !== 0) pctParts.push(`Fritvalg (${formatPercent(satser.fritvalgPct)})`);
-        if (satser.shSoPct && satser.shSoPct !== 0) pctParts.push(`S/H (${formatPercent(satser.shSoPct)})`);
-        if (satser.storeBededagPct && satser.storeBededagPct !== 0) {
-          pctParts.push(`Store Bededag (${formatPercentFixed2(satser.storeBededagPct)})`);
+        if (feriePct && feriePct !== 0) pctParts.push(`Feriepenge (${formatPercent(feriePct)})`);
+        if (fritvalgPct && fritvalgPct !== 0) pctParts.push(`Fritvalg (${formatPercent(fritvalgPct)})`);
+        if (shSoPct && shSoPct !== 0) pctParts.push(`S/H (${formatPercent(shSoPct)})`);
+        if (storeBededagPct && storeBededagPct !== 0) {
+          pctParts.push(`Store Bededag (${formatPercentFixed2(storeBededagPct)})`);
         }
         const fpLabel = pctParts.length > 0 ? pctParts.join(' + ') : 'Feriepenge m.v.';
-        const pensionLabel = satser.pensionPct && satser.pensionPct !== 0
-          ? `Arbejdsgivers pensionsbidrag (${formatPercent(satser.pensionPct)} af løn + tillæg)`
+        const pensionLabel = pensionPct && pensionPct !== 0
+          ? `Arbejdsgivers pensionsbidrag (${formatPercent(pensionPct)} af løn + tillæg)`
           : 'Arbejdsgivers pensionsbidrag';
         const navn = entry.name !== '' ? entry.name : ((af.navnPaaArbejdssted ?? '').trim() || 'Arbejdssted');
 
-        sums.ferieberet += entry.breakdown.ferieberet;
-        sums.fpFvShSo += entry.breakdown.fpFvShSo;
-        sums.pension += entry.breakdown.pension;
+        sums.loenPlusLoen2 += entry.breakdown.loenPlusLoen2;
+        sums.loenPlusLoen2PlusIkkePensLoen += entry.breakdown.loenPlusLoen2PlusIkkePensLoen;
+        sums.fpFvShSo += recalculatedBreakdown.fpFvShSo;
+        sums.pension += recalculatedBreakdown.pension;
         sums.atp += entry.breakdown.atp;
-        sums.samlet += entry.breakdown.samlet;
+        sums.samlet += recalculatedBreakdown.samlet;
 
         arbejdssteder.push({
           navn,
           fpLabel,
           pensionLabel,
           breakdown: {
-            ferieberetOre: toOre(roundKroner(entry.breakdown.ferieberet)),
-            fpFvShSoOre: toOre(roundKroner(entry.breakdown.fpFvShSo)),
-            pensionOre: toOre(roundKroner(entry.breakdown.pension)),
+            loenPlusLoen2Ore: toOre(roundKroner(entry.breakdown.loenPlusLoen2)),
+            loenPlusLoen2PlusIkkePensLoenOre: toOre(roundKroner(entry.breakdown.loenPlusLoen2PlusIkkePensLoen)),
+            fpFvShSoOre: toOre(roundKroner(recalculatedBreakdown.fpFvShSo)),
+            pensionOre: toOre(roundKroner(recalculatedBreakdown.pension)),
             atpOre: toOre(roundKroner(entry.breakdown.atp)),
-            samletOre: clampMoneyOreToZero(toOre(roundKroner(entry.breakdown.samlet))),
+            samletOre: clampMoneyOreToZero(toOre(roundKroner(recalculatedBreakdown.samlet))),
           },
         });
       }
@@ -114,7 +185,8 @@ export const buildIndkomstSkadestidspunkt = (
 
       if (arbejdssteder.length > 0) {
         totalBreakdown = {
-          ferieberetOre: toOre(roundKroner(sums.ferieberet)),
+          loenPlusLoen2Ore: toOre(roundKroner(sums.loenPlusLoen2)),
+          loenPlusLoen2PlusIkkePensLoenOre: toOre(roundKroner(sums.loenPlusLoen2PlusIkkePensLoen)),
           fpFvShSoOre: toOre(roundKroner(sums.fpFvShSo)),
           pensionOre: toOre(roundKroner(sums.pension)),
           atpOre: toOre(roundKroner(sums.atp)),

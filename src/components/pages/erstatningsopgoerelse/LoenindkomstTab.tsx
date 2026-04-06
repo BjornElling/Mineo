@@ -2687,7 +2687,7 @@ const LoenindkomstTab = React.memo(({
                     </Box>
 
                     <Box className="row--label-right-hover">
-                      <Typography className="row--text">Evt. ferie- og fraværsdage i perioden uden løn</Typography>
+                      <Typography className="row--text">Evt. ferie- og fraværsdage i referenceperioden uden løn</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledIntegerField
                           width={100}
