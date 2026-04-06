@@ -272,13 +272,13 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         }),
         expect.objectContaining({
           id: `sfgg.eftertabel.feriepengeHvisIkkeSkade.${values.loenindkomstAnsaettelsesforhold[0].id}`,
-          label: 'Feriepenge, hvis skaden ikke var sket',
+          label: 'Feriepenge, hvis skaden ikke var sket (+ AG-pension)',
           displayValue: '65,79',
           status: 'ok',
         }),
         expect.objectContaining({
           id: `sfgg.eftertabel.feriepengeModtaget.${values.loenindkomstAnsaettelsesforhold[0].id}`,
-          label: 'Feriepenge modtaget i perioden',
+          label: 'Feriepenge modtaget i perioden (+ AG-pension) =',
           displayValue: '0,00',
           status: 'ok',
         }),
@@ -656,6 +656,69 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
   });
 
+  it('viser Nej for sygelønsreglen i debug når SFGG beregnes efter ferieloven selv om lønudviklingen følger overenskomst', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      harOverenskomst: true,
+      overenskomstId: 'bygge-anlaeg',
+      feriePct: 12.5,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-dec-2023',
+        col0_maaned: '12',
+        col1_maaned: '2023',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: { kind: 'number', value: 10000 },
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggBeregningskilde: 'Ferieloven',
+        sfggReferenceperiodeFra: '2023-12-01',
+        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggManuelDagssats: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggAlleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-29',
+        til: '2024-02-06',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadedato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.foerstEfterSygeloen.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Først sygeferiegodtgørelse efter ophør af sygeløn',
+          displayValue: 'Nej',
+          status: 'ok',
+        }),
+      ])
+    );
+  });
+
   it('viser Ansættelsesforholdet ophørt som Nej i debug når ansættelsen ikke er ophørt', () => {
     const values = createValues();
     values.eoNummer = '2';
@@ -952,7 +1015,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       ])
     );
     const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
-    expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Feriepenge-sats | AG-pension | Antal arbejdsdage | Feriepengekrav');
+    expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Feriepenge-sats | AG-pension | Antal arbejdsdage | Samlet');
     expect(tableRow?.displayValue).toContain('29-01-2024 | 04-02-2024 | 100,00 | + 0 % | 5 | 500,00');
   });
 
@@ -1048,7 +1111,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
           status: 'ok',
         })
       );
-      expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Indeks | Feriepenge-sats | AG-pension | Antal arbejdsdage | Feriepengekrav');
+      expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Indeks | Feriepenge-sats | AG-pension | Antal arbejdsdage | Samlet');
       expect(tableRow?.displayValue).toContain('26-02-2024 | 29-02-2024 | 100,00 | 65,79 |');
       expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,03 | 69,10 |');
       expect(tableRow?.displayValue).toContain('I alt |  |  |  |  | ');
@@ -1109,7 +1172,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     });
 
     const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
-    expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Indeks | Feriepenge-sats | AG-pension | Antal kalenderdage | Feriepengekrav');
+    expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Indeks | Feriepenge-sats | AG-pension | Antal kalenderdage | Samlet');
     expect(tableRow?.displayValue).toContain('26-02-2024 | 29-02-2024 | 100,36 | 14,63 | + 10 % | 4 | 64,37');
     expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,46 | 15,38 | + 10 % | 5 | 84,59');
   });
@@ -1167,7 +1230,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     });
 
     const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
-    expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Feriepenge-sats | AG-pension | Antal arbejdsdage | Feriepengekrav');
+    expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Feriepenge-sats | AG-pension | Antal arbejdsdage | Samlet');
     expect(tableRow?.displayValue).toContain('01-01-2025 | 03-01-2025 |');
     expect(tableRow?.displayValue).not.toContain('02-01-2025 | 03-01-2025 |');
   });
@@ -1534,7 +1597,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       expect.arrayContaining([
         expect.objectContaining({
           id: `sfgg.eftertabel.feriepengeModtaget.${values.loenindkomstAnsaettelsesforhold[0].id}`,
-          label: expect.stringContaining('Feriepenge modtaget i perioden ('),
+          label: 'Feriepenge modtaget i perioden (+ AG-pension) =',
         }),
       ])
     );
@@ -1663,4 +1726,3 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     expect(yearRow?.displayValue).toContain(' | 2025 |');
   });
 });
-

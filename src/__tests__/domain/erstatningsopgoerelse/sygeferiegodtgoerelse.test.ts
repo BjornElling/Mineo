@@ -55,7 +55,7 @@ const createEmployment = (
 describe('computeSygeferiegodtgoerelse', () => {
   it('formaterer arbejdsdage-label med kun ikke-nul fradrag', () => {
     expect(buildSfggReferenceperiodeCountLabel({
-      ferieberettigetLoenKroner: 0,
+      loenPlusLoen2PlusIkkePensLoenKroner: 0,
       feriePctDecimal: 0,
       feriepengeKroner: 0,
       divisorDage: 16,
@@ -68,7 +68,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     })).toBe('Antal arbejdsdage (21 hverdage - 2 SH-dage - 3 ferie- og fraværsdage) =');
 
     expect(buildSfggReferenceperiodeCountLabel({
-      ferieberettigetLoenKroner: 0,
+      loenPlusLoen2PlusIkkePensLoenKroner: 0,
       feriePctDecimal: 0,
       feriepengeKroner: 0,
       divisorDage: 18,
@@ -83,7 +83,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
   it('formaterer kalenderdage-label uden SH-dage', () => {
     expect(buildSfggReferenceperiodeCountLabel({
-      ferieberettigetLoenKroner: 0,
+      loenPlusLoen2PlusIkkePensLoenKroner: 0,
       feriePctDecimal: 0,
       feriepengeKroner: 0,
       divisorDage: 30,
@@ -98,7 +98,7 @@ describe('computeSygeferiegodtgoerelse', () => {
 
   it('formaterer kalenderdage-label med feriedage og uden SH-dage', () => {
     expect(buildSfggReferenceperiodeCountLabel({
-      ferieberettigetLoenKroner: 0,
+      loenPlusLoen2PlusIkkePensLoenKroner: 0,
       feriePctDecimal: 0,
       feriepengeKroner: 0,
       divisorDage: 28,
@@ -123,7 +123,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     });
   });
 
-  it('beregner referencesatsen ud fra ferieberettiget løn og kun FP-satsen', () => {
+  it('beregner referencesatsen ud fra løn (Løn+Løn2+IkkePensLoen) og kun FP-satsen', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -171,7 +171,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     }
     expect(result.perAnsaettelsesforhold[0].sfggReferencesats.value).toBe(5682);
     expect(result.perAnsaettelsesforhold[0].sfggReferencesatsFormula).toEqual({
-      ferieberettigetLoenKroner: 10000,
+      loenPlusLoen2PlusIkkePensLoenKroner: 10000,
       feriePctDecimal: 0.125,
       feriepengeKroner: 1250,
       divisorDage: 22,
@@ -184,7 +184,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     });
   });
 
-  it('fratrækker kun feriepenge af sygeløn efter FP-satsen i SFGG-perioden', () => {
+  it('fratrækker feriepenge af sygeløn i SFGG-perioden uden øvrige løntillæg', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';
     values.loenindkomstAnsaettelsesforhold = [createEmployment({
@@ -229,6 +229,95 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(result.perAnsaettelsesforhold[0]?.segments[0]?.feriepengekravOre).toBe(10000);
     expect(result.perAnsaettelsesforhold[0]?.segments[0]?.feriepengeAfSygeloenOre).toBe(5682);
     expect(result.perAnsaettelsesforhold[0]?.segments[0]?.beregnetSfggoereOre).toBe(4318);
+  });
+
+  it('medregner pension af feriepenge modtaget i perioden med den sats der gælder på hver enkelt dag', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      harOverenskomst: true,
+      overenskomstId: 'faellesoverenskomsten-dio-ii',
+      feriePct: 12.5,
+      loenperiode: 'dag',
+      indtaegtsoplysningerTableData: [
+        {
+          id: 'loen-1',
+          col0_maaned: '',
+          col1_maaned: '',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '31-05-2023',
+          col1_dag: '31-05-2023',
+          col2: asAmount(100),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+        {
+          id: 'loen-2',
+          col0_maaned: '',
+          col1_maaned: '',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '01-06-2023',
+          col1_dag: '01-06-2023',
+          col2: asAmount(100),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+        {
+          id: 'loen-3',
+          col0_maaned: '',
+          col1_maaned: '',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '02-06-2023',
+          col1_dag: '02-06-2023',
+          col2: asAmount(100),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+      ],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') },
+      tafRanges: [{ fra: iso('2023-05-31'), til: iso('2023-06-02') }],
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(2);
+    expect(result.perAnsaettelsesforhold[0]?.segments[0]).toEqual(
+      expect.objectContaining({
+        fra: iso('2023-05-31'),
+        til: iso('2023-05-31'),
+        agPensionPct: 8,
+        feriepengeAfSygeloenOre: 1350,
+      })
+    );
+    expect(result.perAnsaettelsesforhold[0]?.segments[1]).toEqual(
+      expect.objectContaining({
+        fra: iso('2023-06-01'),
+        til: iso('2023-06-02'),
+        agPensionPct: 10,
+        feriepengeAfSygeloenOre: 2750,
+      })
+    );
+    expect(result.perAnsaettelsesforhold[0]?.feriepengeModtagetFormula).toEqual({ totalOre: 4100 });
   });
 
   it('ignorerer stale referenceperiodefelter når SFGG beregnes manuelt', () => {
@@ -1286,7 +1375,7 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(result.perAnsaettelsesforhold[0]?.sfggReferencesats.status).toBe('ok');
     expect(result.perAnsaettelsesforhold[0]?.sfggReferencesats.value).toBe(4464);
     expect(result.perAnsaettelsesforhold[0]?.sfggReferencesatsFormula).toEqual({
-      ferieberettigetLoenKroner: 10000,
+      loenPlusLoen2PlusIkkePensLoenKroner: 10000,
       feriePctDecimal: 0.125,
       feriepengeKroner: 1250,
       divisorDage: 28,
@@ -1297,6 +1386,52 @@ describe('computeSygeferiegodtgoerelse', () => {
       feriedage: 2,
       oevrigeFravaersdage: 1,
     });
+  });
+
+  it('frakobler ferielovsbaseret SFGG fra overenskomstens sygelønsregel', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      harOverenskomst: true,
+      overenskomstId: 'bygge-anlaeg',
+      feriePct: 12.5,
+      loenudviklingBeregningsgrundlag: 'Overenskomst',
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: asAmount(10000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2023-12-01'),
+      sfggReferenceperiodeTil: iso('2023-12-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-02-06') }],
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.segments.length).toBeGreaterThan(0);
+    expect(result.perAnsaettelsesforhold[0]?.sfggAfterEmployerSickPayText).toBeNull();
   });
 
   it('er upåvirket af EO-beregningsperioden når SFGG beregnes ud fra egen referenceperiode', () => {

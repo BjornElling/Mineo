@@ -58,7 +58,7 @@ Normative regler:
 Referencesatsen beregnes som:
 
 ```text
-referencesats = (ferieberettiget løn i referenceperioden x FP-sats) / relevante dage i referenceperioden
+referencesats = (loenPlusLoen2PlusIkkePensLoen i referenceperioden x FP-sats) / relevante dage i referenceperioden
 ```
 
 Kun den almindelige feriepengeprocent (`FP-sats`) indgår i referencesatsen.
@@ -92,7 +92,7 @@ Feriedage skal komme fra de daterede ferieperioder, som allerede bruges centralt
 
 Ferieperioder behandles som fælles for alle ansættelsesforhold i SFGG-beregningen.
 
-Feltet `Evt. ferie- og fraværsdage i perioden uden løn` følger derfor disse maksimumregler:
+Feltet `Evt. ferie- og fraværsdage i referenceperioden uden løn` følger derfor disse maksimumregler:
 - ved arbejdsdagsmodellen: maksimalt de resterende arbejdsdage efter fradrag af SH-dage og daterede feriedage
 - ved månedsmodellen: maksimalt periodens samlede kalenderdage efter fradrag af daterede feriedage
 
@@ -193,7 +193,7 @@ I øvrige tilfælde er referencesatsen konstant gennem hele beregningsforløbet.
 Selve SFGG-kravet beregnes i følgende trin:
 
 ```text
-referencesats = (ferieberettiget løn i referenceperioden x FP-sats) / antal relevante dage i referenceperioden
+referencesats = (loenPlusLoen2PlusIkkePensLoen i referenceperioden x FP-sats) / antal relevante dage i referenceperioden
 ```
 
 Dernæst:
@@ -205,18 +205,29 @@ Dernæst:
 = beregnet SFGG-krav
 ```
 
-Feriepenge af sygeløn i SFGG-perioden skal beregnes automatisk som:
+Feriepenge modtaget i perioden skal beregnes automatisk som feriepenge af sygeløn med tillæg af arbejdsgivers pension på feriepengebeløbet.
+
+Beregningen skal ske pr. dag i SFGG-perioden:
 
 ```text
-ferieberettiget løn x FP-sats
+dagens fradrag = (dagens loenPlusLoen2PlusIkkePensLoen x FP-sats) tillagt dagens AG-pension
+```
+
+Den samlede fradragslinje er summen af disse daglige beløb:
+
+```text
+feriepenge modtaget i perioden (+ AG-pension) = sum(dagens fradrag)
 ```
 
 Kun den almindelige feriepengeprocent indgår i dette fradrag.
 Fritvalg, SH/SO og Store Bededag indgår ikke.
 
+Pension må kun beregnes af feriepengebeløbet i fradragslinjen, ikke af den underliggende løn endnu en gang.
+Hvis pensionssatsen ændrer sig i SFGG-perioden, skal hver dag beregnes med den pensionssats, der gælder netop den dag.
+
 `Allerede betalt SFGG i perioden` er ét samlet manuelt indtastet beløb pr. ansættelsesforhold i den konkrete EO-periode.
 
-Efter disse fradrag lægges arbejdsgivers pensionsbidrag til.
+I bruttokravet lægges arbejdsgivers pensionsbidrag til.
 Pensionsprocenten følger ansættelsesforholdets almindelige pensionssats.
 
 SFGG-perioden følger som udgangspunkt TAF-perioden, men kan afkortes af:
@@ -362,7 +373,7 @@ Hvis overenskomsten bruger direkte referencesatser uden differentiering:
 Hvis brugeren vælger `Ferieloven`, skal der vises:
 - forklarende tekst om referenceperiode på 4 uger før sygefraværet
 - linjen `Referenceperiode` med `Fra` og `Til`
-- linjen `Evt. ferie- og fraværsdage i perioden uden løn` med integerfelt
+- linjen `Evt. ferie- og fraværsdage i referenceperioden uden løn` med integerfelt
 
 For integerfeltet gælder:
 - minimum = `0`
@@ -397,17 +408,17 @@ Tabellen skal have kolonnerne:
 - `Til-dato`
 - `Sats`
 - `Antal arbejdsdage` eller `Antal kalenderdage`
-- `Feriepengekrav`
+- `Samlet`
 
 Der skal være en `I alt`-række, når tabellen indeholder mere end én datalinje.
 
-`Feriepengekrav` er altid bruttokravet:
+`Samlet` er kravet inklusive arbejdsgivers pensionsbidrag før fradrag:
 
 ```text
-sats x antal dage
+(sats x antal dage) tillagt AG-pension
 ```
 
-Fradrag og pension hører til nettoopgørelsen efter tabellen og må ikke indbygges i tabellens `Feriepengekrav`.
+De efterfølgende fradrag hører til nettoopgørelsen efter tabellen og må ikke indbygges i tabellens `Samlet`.
 
 Ved skader før `1. januar 2015` skal der altid vises en særskilt tabel for 4-månedersgrænsen.
 

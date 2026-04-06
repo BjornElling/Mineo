@@ -91,8 +91,26 @@ export const buildSfggAfterEmployerSickPayText = (
   return 'I medfør af overenskomsten beregnes ikke sygeferiegodtgørelse på dage, hvor der betales sygeløn.';
 };
 
+export const resolveSfggFoerstEfterSygeloen = (args: Readonly<{
+  sfggSourceKind: SfggSourceKind;
+  manualFoerstEfterSygeloen: boolean;
+  overenskomstBortfalderUnderArbejdsgiverbetaltSygeloen: boolean;
+}>): boolean => (
+  (args.sfggSourceKind === 'manuel' && args.manualFoerstEfterSygeloen)
+  || (
+    (args.sfggSourceKind === 'overenskomst_direkte' || args.sfggSourceKind === 'overenskomst_ferielov')
+    && args.overenskomstBortfalderUnderArbejdsgiverbetaltSygeloen
+  )
+);
+
 export const SFGG_FIRST_TAF_DAY_EXCLUDED_TEXT =
   'Da skaden er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.';
+
+export const SFGG_TABLE_TOTAL_LABEL = 'Samlet';
+
+export const SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL = 'Feriepenge, hvis skaden ikke var sket (+ AG-pension)';
+
+export const SFGG_FERIEPENGE_MODTAGET_LABEL = 'Feriepenge modtaget i perioden (+ AG-pension) =';
 
 export const buildSfggNoEligibleDaysReason = (
   dayBasis: 'kalenderdage' | 'arbejdsdage'

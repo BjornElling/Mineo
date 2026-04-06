@@ -70,6 +70,7 @@ export type SygeferiegodtgoerelseModel = Readonly<{
     feriepengekravTotalOre: MoneyOre;
     totalOre: MoneyOre;
     alleredeBetaltOre: MoneyOre;
+    sfggVisningsperiode: readonly IsoRange[];
     sfggReferenceperiode: Readonly<{ fra: ISODateString; til: ISODateString }> | null;
     sfggReferencesats: SfggReferencesatsCalculable;
     sfggReferencesatsFormula: SfggReferencesatsFormula | null;
@@ -90,7 +91,7 @@ export type SygeferiegodtgoerelseModel = Readonly<{
       antalDage: number;
       feriepengekravOre: MoneyOre;
       beregnetSfggoereOre: MoneyOre;
-      ferieberettigetLoenKroner: number;
+      loenPlusLoen2PlusIkkePensLoenKroner: number;
       feriepengeAfSygeloenOre: MoneyOre;
       alleredeBetaltOre: MoneyOre;
     }>[];
@@ -165,7 +166,8 @@ export type IndkomstSkadestidspunktModel = Readonly<{
     fpLabel: string;
     pensionLabel: string;
     breakdown: Readonly<{
-      ferieberetOre: MoneyOre;
+      loenPlusLoen2Ore: MoneyOre;
+      loenPlusLoen2PlusIkkePensLoenOre: MoneyOre;
       fpFvShSoOre: MoneyOre;
       pensionOre: MoneyOre;
       atpOre: MoneyOre;
@@ -179,7 +181,8 @@ export type IndkomstSkadestidspunktModel = Readonly<{
   offentligeYdelserTotalOre: MoneyOre;
   samletBeregningsgrundlagOre: MoneyOre | null;
   totalBreakdown: Readonly<{
-    ferieberetOre: MoneyOre;
+    loenPlusLoen2Ore: MoneyOre;
+    loenPlusLoen2PlusIkkePensLoenOre: MoneyOre;
     fpFvShSoOre: MoneyOre;
     pensionOre: MoneyOre;
     atpOre: MoneyOre;
