@@ -28,6 +28,7 @@ import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { ISODateString } from '../../../types/branded';
+import { buildMidlertidigtEetAfgoerelseGroups, type MidlertidigtEetInsertSource } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -39,6 +40,7 @@ interface EOberegningTabProps {
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
+  midlertidigtEetInsertSource: MidlertidigtEetInsertSource;
 }
 
 type SystemIssueRow = Readonly<{
@@ -221,7 +223,7 @@ const getCustomDebugRowMessage = (
 };
 
 const EOberegningTab = React.memo<EOberegningTabProps>((
-  { activeTab, setActiveTab, isActive, eoSnapshot = null, stamdataValues, eoValues, setEOValues }
+  { activeTab, setActiveTab, isActive, eoSnapshot = null, stamdataValues, eoValues, setEOValues, midlertidigtEetInsertSource }
 ) => {
   // ============================================================================
   // DATA FRA COMMITTED STATE + PERSISTENCE FACADE
@@ -630,14 +632,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return;
     }
     if (!eoSnapshot) return;
-    const rowById = new Map((eoValues.offentligeYdelserRows ?? []).map((r) => [r.id, r]));
-    const midlertidigtEetGroups = (eoValues.midlertidigtEetAfgoerelseGrupper ?? []).flatMap((gruppe) => {
-      const rows = gruppe.rowIds.flatMap((id) => {
-        const row = rowById.get(id);
-        return row ? [row] : [];
-      });
-      return rows.length > 0 ? [{ afgoerelsesdato: gruppe.afgoerelsesdato, rows }] : [];
-    });
+    const midlertidigtEetGroups = buildMidlertidigtEetAfgoerelseGroups(midlertidigtEetInsertSource);
 
     const result = await downloadErstatningsopgoerelsePdf({
       stamdataValues,
@@ -652,7 +647,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       // Ingen dialog eller BugReportButton vises til brugeren (jf. error-debug-contract.md §8.1).
       console.error('[EOberegningTab] EO PDF download fejlede:', result.error);
     }
-  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings]);
+  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetInsertSource]);
 
   const handleDownloadTafFordeltPdf = React.useCallback(async () => {
     if (!canDownloadSnapshotTafPdf) {

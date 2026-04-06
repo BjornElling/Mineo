@@ -403,6 +403,7 @@ const Erstatningsopgoerelse = React.memo(() => {
               stamdataValues={stamdataValuesForBeregningTab}
               eoValues={form.values}
               setEOValues={setFormValues}
+              midlertidigtEetInsertSource={midlertidigtEetInsertSource}
             />
           </Box>
         )}

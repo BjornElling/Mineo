@@ -615,7 +615,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
 
     expect(texts).toContain('Referencesats');
-    expect(texts).toContain('Opgøres på baggrund af den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet. Perioden udgør i ferieloven 4 uger.');
+    expect(texts).toContain('Opgøres som den gennemsnitlige feriepengebetaling i 4 uger før sygeforløbet.');
     expect(texts).toContain('Referenceperiode');
     expect(texts).toContain('01-01-2024 - 31-01-2024');
     expect(texts).toContain('Lønnen i referenceperioden udgør');
@@ -921,7 +921,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     expect(texts).toContain('Sygeferiegodtgørelse beregnes i henhold til');
     expect(texts).toContain('KL-overenskomsten, der følger ferielovens regler');
-    expect(texts).toContain('Opgøres på baggrund af den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet. Perioden udgør i overenskomsten 4 uger.');
+    expect(texts).toContain('Opgøres som den gennemsnitlige feriepengebetaling i 4 uger før sygeforløbet.');
     expect(texts).toContain('Kravet beregnes per kalenderdag med referencesatsen tillagt senere overenskomstmæssige stigninger.');
   });
 

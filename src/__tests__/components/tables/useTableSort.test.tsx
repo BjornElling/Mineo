@@ -7,7 +7,7 @@ type TestRow = Readonly<{
 }>;
 
 describe('useTableSort', () => {
-  it('sorterer kun visningen og skriver ikke tilbage via onSortedRowsChange', () => {
+  it('kalder onSortedRowsChange med den sorterede rækkefølge når brugeren klikker på en header', () => {
     const rows: readonly TestRow[] = [
       { id: 'a', value: 2 },
       { id: 'b', value: 1 },
@@ -35,6 +35,32 @@ describe('useTableSort', () => {
     });
 
     expect(result.current.sortedRows.map((row) => row.id)).toEqual(['b', 'a']);
+    expect(onSortedRowsChange).toHaveBeenCalledWith([
+      { id: 'b', value: 1 },
+      { id: 'a', value: 2 },
+    ]);
+  });
+
+  it('kalder ikke onSortedRowsChange ved initial render (ingen bruger-sort)', () => {
+    const rows: readonly TestRow[] = [
+      { id: 'a', value: 2 },
+      { id: 'b', value: 1 },
+    ];
+    const onSortedRowsChange = vi.fn();
+    const columns: readonly TableSortColumn<TestRow>[] = [
+      { colId: 'value', getSortValue: (row) => row.value },
+    ];
+
+    renderHook(() =>
+      useTableSort({
+        rows,
+        getRowId: (row) => row.id,
+        isRowEmpty: () => false,
+        columns,
+        onSortedRowsChange,
+      })
+    );
+
     expect(onSortedRowsChange).not.toHaveBeenCalled();
   });
 });

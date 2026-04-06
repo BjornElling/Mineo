@@ -11,6 +11,7 @@ import { resolveOverenskomstNameOnlyDisplay } from '../../../../data/overenskoms
 import type { SelectedElements } from '../types';
 import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { renderEoStylePdfTable } from '../../../shared/pdfTableRenderer';
+import { getStandardLoenHeaderIndex, STANDARD_LOEN_FPFVSHSO_LABEL, STANDARD_LOEN_PENSION_LABEL, STANDARD_LOEN_SAMLET_LABEL } from '../../../../domain/aarsloen/standardLoenTableColumns';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 type LoenSectionContext = Readonly<{
@@ -92,7 +93,8 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     });
     if (rows.length === 0) return;
 
-    const allHeaders = getLoenindkomstTableHeaders(ansaettelsesforhold.loenperiode);
+    const loenperiode = ansaettelsesforhold.loenperiode;
+    const allHeaders = getLoenindkomstTableHeaders(loenperiode);
     const inputColumnDefs = [
       { index: 2, key: 'col2' as const },
       { index: 3, key: 'col3' as const },
@@ -106,9 +108,9 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       allHeaders[0],
       allHeaders[1],
       ...visibleInputColumns.map((column) => allHeaders[column.index]),
-      allHeaders[5],
-      allHeaders[6],
-      allHeaders[7],
+      allHeaders[getStandardLoenHeaderIndex(loenperiode, STANDARD_LOEN_FPFVSHSO_LABEL)],
+      allHeaders[getStandardLoenHeaderIndex(loenperiode, STANDARD_LOEN_PENSION_LABEL)],
+      allHeaders[getStandardLoenHeaderIndex(loenperiode, STANDARD_LOEN_SAMLET_LABEL)],
     ];
     const satser = {
       feriePct: ansaettelsesforhold.feriePct,
@@ -221,9 +223,6 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
           writeLabelValueLine('Arbejdsgivers pensionsbidrag:', formatPctFromInput(ansaettelsesforhold.pensionPct));
         }
       }
-      writer.addSpacer(lineHeight);
-      const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
-      renderLoenindkomstTable(ansaettelsesforhold, errorRowIds, combinedRanges);
       if (ansaettelsesforhold.ansatPaaSkadestidspunktet && ansaettelsesforhold.ansaettelsesforholdOphoert) {
         const sidsteArbejdsdag = formatDateLong(ansaettelsesforhold.sidsteArbejdsdag);
         const opsigelsesLinje = sidsteArbejdsdag
@@ -232,5 +231,8 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         writer.addSpacer(lineHeight);
         safeAddWrappedText(opsigelsesLinje);
       }
+      writer.addSpacer(lineHeight);
+      const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
+      renderLoenindkomstTable(ansaettelsesforhold, errorRowIds, combinedRanges);
   }
 };

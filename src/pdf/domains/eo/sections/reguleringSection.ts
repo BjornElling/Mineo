@@ -416,7 +416,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     renderReguleringsvaerdierTable(reguleringsvaerdierTableData);
 
     writer.addSpacer(lineHeight);
-    safeAddWrappedText('Beregnet regulering');
+    safeAddWrappedText('Beregnet regulering:');
 
     const reguleringTableRows = buildReguleringIndexRows({
       segments: perAnsaettelseSegments,

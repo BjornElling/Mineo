@@ -1,5 +1,6 @@
-import { formatCurrency, formatAsAmount } from '../../utils/formatUtils';
+import { formatCurrency, formatAsAmount, formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { roundByMethod } from '../../utils/rounding';
+import { round4 } from '../../utils/roundingShortcuts';
 
 const NBSP = '\u00A0';
 
@@ -86,6 +87,27 @@ export const formatAmountForPdf = (value: number | null | undefined, precision: 
   const s = formatAsAmount(value, precision);
   return addNbspAfterMinus(s);
 };
+
+/**
+ * Formaterer måneder med præcis 4 decimaler (ingen trimming af trailing zeros).
+ * Trailing zeros bevares for visuel rækkekonsistens i tabeller, fx i EET-periodetabellen,
+ * hvor "1,0000" og "2,5000" skal flugte i samme kolonne.
+ * Brug formatMaanederTrimmed i stedet, hvis trailing zeros er uønskede.
+ */
+export const formatMaaneder4 = (value: number): string => formatAsAmount(round4(value), 4);
+
+/**
+ * Formaterer et reguleringsprocent-tal med fortegn: "+ X,YZ %" eller "- X,YZ %".
+ * Trailing zeros trimmes (fx "22,81 %" frem for "22,8100 %").
+ */
+export const formatReguleringPct = (value: number): string => {
+  const inner = formatAsAmountTrimmed(round4(Math.abs(value)), 4);
+  return `${value >= 0 ? '+' : '-'} ${inner} %`;
+};
+
+/** Formaterer et kr.-beløb med valgfrit antal decimaler (0 som standard). */
+export const formatKr = (value: number, decimals = 0): string =>
+  `${formatAsAmount(value, decimals)} kr.`;
 
 export { isSingularCount } from '../../utils/formatUtils';
 export { formatCountWithUnit } from '../../utils/formatUtils';

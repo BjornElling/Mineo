@@ -37,7 +37,7 @@ import {
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { TODAY } from '../../../config/dateRanges';
 import { formatAsAmount } from '../../../utils/formatUtils';
-import { resolvePdfFileName } from '../../shared/pdfFormatUtils';
+import { resolvePdfFileName, formatMaaneder4, formatReguleringPct } from '../../shared/pdfFormatUtils';
 import { round4 } from '../../../utils/roundingShortcuts';
 import {
   ASL_MAX_AARSLOEN_2003,
@@ -45,12 +45,6 @@ import {
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../../data/lovbestemteRates';
 import { formatJaNejEet as formatJaNej, formatKrEet as formatKr } from '../eet/eetPdfUtils';
-
-const formatRegulering = (value: number): string =>
-  `${value >= 0 ? '+' : '-'} ${formatPct(Math.abs(value))}`;
-
-const formatMaaneder = (value: number): string =>
-  formatAsAmount(round4(value), 4);
 
 const formatEetLabel = (eetPct: number, priorKapPct: number): string =>
   priorKapPct > 0
@@ -165,9 +159,9 @@ export const addLoebendeAfgoerelseSection = (
         (row): RowInput => [
           createPdfTableCell(formatIsoDateShort(row.fra), { halign: 'center' }),
           createPdfTableCell(formatIsoDateShort(row.til), { halign: 'center' }),
-          cellRight(formatMaaneder(row.maanederPraecis)),
+          cellRight(formatMaaneder4(row.maanederPraecis)),
           cellRight(formatKr(row.grundydelseAfrundet, 2)),
-          cellRight(formatRegulering(row.reguleringPct)),
+          cellRight(formatReguleringPct(row.reguleringPct)),
           cellRight(formatKr(row.maanedligYdelse)),
           cellRight(formatKr(row.beregnetEet)),
         ]

@@ -38,6 +38,7 @@ export const useTableSort = <TRow>({
   getRowId,
   isRowEmpty,
   columns,
+  onSortedRowsChange,
 }: Readonly<{
   rows: readonly TRow[];
   getRowId: (row: TRow) => string;
@@ -63,6 +64,33 @@ export const useTableSort = <TRow>({
       }),
     [rows, getRowId, isRowEmpty, sortState, getSortValueByColId]
   );
+
+  const onSortedRowsChangeRef = React.useRef(onSortedRowsChange);
+  React.useLayoutEffect(() => {
+    onSortedRowsChangeRef.current = onSortedRowsChange;
+  });
+
+  const sortedRowsRef = React.useRef(sortedRows);
+  sortedRowsRef.current = sortedRows;
+
+  const isMountedRef = React.useRef(false);
+
+  // Udløser onSortedRowsChange kun når brugeren ændrer sort-state (ikke ved initial mount,
+  // og ikke når rows-prop'en ændrer sig — det ville give uendelig løkke).
+  //
+  // Implementeret som useEffect frem for et direkte kald i handleHeaderClick, fordi
+  // sortedRows er memoized og ikke opdateres synkront i samme render-cyklus som sortState.
+  // useEffect garanterer at sortedRowsRef.current er opdateret (synkront i render) inden
+  // callbacken udløses. onSortedRowsChangeRef sikrer at vi altid kalder den seneste version
+  // af callbacken uden at skulle have den i effect-dependency-arrayet.
+  React.useEffect(() => {
+    if (!isMountedRef.current) {
+      isMountedRef.current = true;
+      return;
+    }
+    onSortedRowsChangeRef.current?.(sortedRowsRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortState]);
 
   const getSortRole = React.useCallback(
     (colId: string): GridSortRole => getGridSortRole(sortState, colId),

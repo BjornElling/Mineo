@@ -1,17 +1,30 @@
 import type { ErhvervsevnetabComposedValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
-import { computeEetLoebendeYdelser } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
+import { computeEetLoebendeYdelser, type EetLoebendePeriodeRow } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
-type BuildMidlertidigtEetRowsArgs = Readonly<{
+/** Input til buildMidlertidigtEetAfgoerelseGroups og buildMidlertidigtEetRowsFromEet. */
+export type MidlertidigtEetInsertSource = Readonly<{
   eetValues: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
 }>;
 
+type BuildMidlertidigtEetRowsArgs = MidlertidigtEetInsertSource;
+
+/**
+ * Én afgørelses data til hhv. UI-tabelindsætning og PDF-rendering.
+ *
+ * - `rows`: Bruges til indsætning i offentlige ydelser-tabellen (UI).
+ *   Indeholder én OffentligeYdelserRow pr. periode med `ydelsestype: 'midlertidigt_eet'`.
+ * - `perioder`: Bruges til PDF-rendering i midlertidigt EET-sektionen.
+ *   Indeholder beregningsdetaljer (grundydelse, regulering, måneder osv.) pr. periode.
+ * Begge er deriveret fra den samme afgørelses perioder og er altid i sync.
+ */
 export type MidlertidigtEetAfgoerelseGroup = Readonly<{
   afgoerelsesdato: ISODateString;
   rows: readonly OffentligeYdelserRow[];
+  perioder: readonly EetLoebendePeriodeRow[];
 }>;
 
 export const buildMidlertidigtEetRowsFromEet = ({
@@ -61,7 +74,11 @@ export const buildMidlertidigtEetAfgoerelseGroups = ({
     }
 
     if (rows.length > 0) {
-      groups.push({ afgoerelsesdato: afgoerelse.afgoerelsesdato, rows });
+      groups.push({
+        afgoerelsesdato: afgoerelse.afgoerelsesdato,
+        rows,
+        perioder: afgoerelse.perioder,
+      });
     }
   }
 

@@ -7,6 +7,7 @@ import {
   hasCompletePeriodForLoenperiode,
   hasAtLeastOneValidRow,
   type StandardLoenSatserInput,
+  type StandardLoenRateSegment,
 } from '../../../domain/aarsloen/standardLoenRowCalculations';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 
@@ -119,6 +120,64 @@ describe('calculateStandardLoenRowDerived', () => {
     expect(result.fpFvShSo).toBeCloseTo(29048.784, 6);
     expect(result.pension).toBeCloseTo(14570.959896, 6);
     expect(result.samlet).toBeCloseTo(193491.743896, 6);
+  });
+});
+
+describe('calculateStandardLoenRowDerived med rateSegments', () => {
+  // Januar 2024 har 31 dage. Overenskomsten skifter sats pr. 16. januar:
+  // segment A: 1–15 jan (15 dage), shSoPct = 2,0 %
+  // segment B: 16–31 jan (16 dage), shSoPct = 6,9 %
+  // share A = 15/31, share B = 16/31
+  const satser: StandardLoenSatserInput = {
+    feriePct: '0',
+    fritvalgPct: '0',
+    shSoPct: '0',
+    storeBededagPct: '0',
+    pensionPct: '0',
+  };
+  const rateSegments: StandardLoenRateSegment[] = [
+    { fra: '2024-01-01', til: '2024-01-15', satser: { ...satser, shSoPct: '2,0' } },
+    { fra: '2024-01-16', til: '2024-01-31', satser: { ...satser, shSoPct: '6,9' } },
+  ];
+  const row = createRow({
+    col0_maaned: '1',
+    col1_maaned: '2024',
+    col2: 31000,
+  });
+
+  it('fordeler beregningen proportionalt på segmenter ved sats-skift midt i måneden', () => {
+    const result = calculateStandardLoenRowDerived(row, satser, {
+      loenperiode: 'maaned',
+      rateSegments,
+    });
+
+    // loenPlusLoen2 = 31000 (uberørt af sats-skift)
+    expect(result.loenPlusLoen2).toBe(31000);
+
+    // fpFvShSo = (31000 * 15/31 * 0.02) + (31000 * 16/31 * 0.069)
+    //          = (15000 * 0.02) + (16000 * 0.069)
+    //          = 300 + 1104 = 1404
+    const expectedFpFvShSo = (31000 * (15 / 31)) * 0.02 + (31000 * (16 / 31)) * 0.069;
+    expect(result.fpFvShSo).toBeCloseTo(expectedFpFvShSo, 6);
+  });
+
+  it('falder tilbage til basessatser hvis rateSegments er tomt', () => {
+    const baseSatser: StandardLoenSatserInput = { ...satser, shSoPct: '5,0' };
+    const result = calculateStandardLoenRowDerived(row, baseSatser, {
+      loenperiode: 'maaned',
+      rateSegments: [],
+    });
+    // Ingen segmenter → brug baseSatser direkte
+    expect(result.fpFvShSo).toBeCloseTo(31000 * 0.05, 6);
+  });
+
+  it('falder tilbage til basessatser uden loenperiode, selv med rateSegments', () => {
+    const baseSatser: StandardLoenSatserInput = { ...satser, shSoPct: '5,0' };
+    const result = calculateStandardLoenRowDerived(row, baseSatser, {
+      rateSegments,
+    });
+    // Ingen loenperiode → kan ikke parse interval → brug baseSatser
+    expect(result.fpFvShSo).toBeCloseTo(31000 * 0.05, 6);
   });
 });
 

@@ -9,6 +9,8 @@ import { createErstatningsopgoerelseInitialValues } from '../../../../domain/ers
 import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 
 const { downloadErstatningsopgoerelsePdfMock, downloadTafFordeltPaaAarPdfMock } = vi.hoisted(() => {
   return {
@@ -38,6 +40,11 @@ vi.mock('../../../../pdf/infrastructure/pdfService', () => ({
   downloadErstatningsopgoerelsePdf: downloadErstatningsopgoerelsePdfMock,
   downloadTafFordeltPaaAarPdf: downloadTafFordeltPaaAarPdfMock,
 }));
+
+const DEFAULT_MIDLERTIDIGT_EET_INSERT_SOURCE = {
+  eetValues: { ...ERHVERVSEVNETAB_INITIAL_VALUES, ...FAELLES_AARSLOEN_INITIAL_VALUES },
+  skadedato: STAMDATA_INITIAL_VALUES.skadedato,
+} as const;
 
 describe('EOberegningTab PDF-afslutning', () => {
   let eoValuesFromForm: ReturnType<typeof createErstatningsopgoerelseInitialValues>;
@@ -76,6 +83,7 @@ describe('EOberegningTab PDF-afslutning', () => {
               stamdataValues={structuredClone(STAMDATA_INITIAL_VALUES)}
               eoValues={eoValuesFromForm}
               setEOValues={vi.fn()}
+              midlertidigtEetInsertSource={DEFAULT_MIDLERTIDIGT_EET_INSERT_SOURCE}
             />
           </FormPersistenceProvider>
         </AppSettingsProvider>
@@ -103,6 +111,7 @@ describe('EOberegningTab PDF-afslutning', () => {
               stamdataValues={structuredClone(STAMDATA_INITIAL_VALUES)}
               eoValues={eoValuesFromForm}
               setEOValues={vi.fn()}
+              midlertidigtEetInsertSource={DEFAULT_MIDLERTIDIGT_EET_INSERT_SOURCE}
             />
           </FormPersistenceProvider>
         </AppSettingsProvider>
@@ -148,6 +157,7 @@ describe('EOberegningTab PDF-afslutning', () => {
               stamdataValues={structuredClone(STAMDATA_INITIAL_VALUES)}
               eoValues={eoValuesFromForm}
               setEOValues={vi.fn()}
+              midlertidigtEetInsertSource={DEFAULT_MIDLERTIDIGT_EET_INSERT_SOURCE}
             />
           </FormPersistenceProvider>
         </AppSettingsProvider>

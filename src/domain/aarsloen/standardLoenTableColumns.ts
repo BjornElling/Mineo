@@ -8,7 +8,7 @@ import InfoTooltipIcon from '../../components/common/InfoTooltipIcon';
 export const STANDARD_LOEN_COL2_LABEL = 'Løn';
 export const STANDARD_LOEN_COL3_LABEL = 'Løn (2)';
 export const STANDARD_LOEN_COL4_LABEL = 'Ikke-pensions-\ngivende løn';
-export const STANDARD_LOEN_COL5_LABEL = 'ATP og anden\nikke pens. løn';
+export const STANDARD_LOEN_COL5_LABEL = 'ATP og anden\nløn u. tillæg';
 export const STANDARD_LOEN_FPFVSHSO_LABEL = 'FP/FV/SH/\nSO/St.B.';
 export const STANDARD_LOEN_PENSION_LABEL = 'Arb.g.\nPension';
 export const STANDARD_LOEN_SAMLET_LABEL = 'Samlet løn';
@@ -62,6 +62,22 @@ export const getStandardLoenTableHeaders = (loenperiode: Loenperiode): readonly 
     STANDARD_LOEN_PENSION_LABEL,
     STANDARD_LOEN_SAMLET_LABEL,
   ];
+};
+
+/**
+ * Returnerer indekset for en given label i arrayet fra getStandardLoenTableHeaders.
+ * Fejler hårdt (invariant) hvis labelen ikke findes — det indikerer et array-strukturbrud.
+ *
+ * Bruges i stedet for hardkodede integer-konstanter, der tavst ville give forkerte
+ * kolonne-lookup ved fremtidige array-ændringer.
+ */
+export const getStandardLoenHeaderIndex = (loenperiode: Loenperiode, label: string): number => {
+  const headers = getStandardLoenTableHeaders(loenperiode);
+  const index = headers.indexOf(label);
+  if (index === -1) {
+    throw new Error(`CRITICAL: Kolonneoverskrift "${label}" ikke fundet i standardLoenTableHeaders.`);
+  }
+  return index;
 };
 
 const LOEN_2_TOOLTIP_TEXT = 'Opdelingen af løn er rent visuel - værdierne lægges sammen i beregningen';

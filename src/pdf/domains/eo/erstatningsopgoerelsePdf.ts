@@ -177,7 +177,7 @@ const parseSfggPdfExplanatoryLine = (
 const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[] => {
   return getStandardLoenTableHeaders(loenperiode).map((header) => {
     if (header === 'Ikke-pensions-\ngivende løn') return 'Ikke-pens. giv. løn';
-    if (header === 'ATP og anden\nikke FB-løn') return 'ATP mv.\nu. FP';
+    if (header === 'ATP og anden\nløn u. tillæg') return 'ATP og løn\nu. till./pens.';
     if (header === 'Arb.g.\nPension') return 'Arb.g. Pension';
     return header;
   });
@@ -344,19 +344,20 @@ export const generateErstatningsopgoerelsePdf = (
     }
 
     safeAddWrappedText(
-      `Opgøres på baggrund af den gennemsnitlige feriepengebetaling i en referenceperiode før sygeforløbet. Perioden udgør i ${entry.sfggReferenceperiodeAuthorityText} ${entry.sfggReferenceperiodeLabel}.`
+      `Opgøres som den gennemsnitlige feriepengebetaling i ${entry.sfggReferenceperiodeLabel} før sygeforløbet.`
     );
+    writer.addSpacer(lineHeight);
     writeLabelValueLine(
       'Referenceperiode',
       `${formatDateShort(entry.sfggReferenceperiode.fra)} - ${formatDateShort(entry.sfggReferenceperiode.til)}`
     );
     writeLabelValueLine(
-      'Lønnen i referenceperioden udgør',
-      `${formatAsAmount(sfggReferencesatsFormula.loenPlusLoen2PlusIkkePensLoenKroner, 2)} kr.`
-    );
-    writeLabelValueLine(
       buildSfggReferenceperiodeCountLabel(sfggReferencesatsFormula),
       `${formatAsAmount(sfggReferencesatsFormula.divisorDage, 0)} ${sfggReferencesatsFormula.divisorLabel}`
+    );
+    writeLabelValueLine(
+      'Lønnen i referenceperioden udgør',
+      `${formatAsAmount(sfggReferencesatsFormula.loenPlusLoen2PlusIkkePensLoenKroner, 2)} kr.`
     );
     safeAddLeftRightText(
       `Referencesats (${formatAsAmount(sfggReferencesatsFormula.loenPlusLoen2PlusIkkePensLoenKroner, 2)} x ${formatPercentUtil(sfggReferencesatsFormula.feriePctDecimal * 100)} / ${formatAsAmount(sfggReferencesatsFormula.divisorDage, 0)} ${sfggReferencesatsFormula.divisorLabel}) =`,
@@ -563,22 +564,7 @@ export const generateErstatningsopgoerelsePdf = (
     eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar === 'Perioden';
   const skalViseIndkomstOgYdelserBilag =
     !skalFiltrereBilagTilKunPerioden || model.tabtArbejdsfortjeneste.harTafPerioder;
-  const midlertidigtEetGroupsRaw = options.midlertidigtEetGroups ?? [];
-  const midlertidigtEetGroups = skalFiltrereBilagTilKunPerioden
-    ? midlertidigtEetGroupsRaw
-        .map((group) => ({
-          ...group,
-          rows: group.rows.filter((row) =>
-            shouldIncludeOffentligYdelseRowInBilag({
-              row,
-              mode: bilagIndkomstYdelserMode,
-              ranges: bilagIndkomstYdelserRanges,
-              errorRowIds: new Set(),
-            })
-          ),
-        }))
-        .filter((group) => group.rows.length > 0)
-    : midlertidigtEetGroupsRaw;
+  const midlertidigtEetGroups = options.midlertidigtEetGroups ?? [];
 
   if (selectedElements.loenindkomst && skalViseIndkomstOgYdelserBilag) {
     renderLoenindkomstSection({
@@ -605,7 +591,6 @@ export const generateErstatningsopgoerelsePdf = (
   if (selectedElements.offentligeYdelser && skalViseIndkomstOgYdelserBilag) {
     renderOffentligeYdelserSection({
       eoValues: eoValues,
-      skjulMidlertidigtEet: selectedElements.midlertidigEet && midlertidigtEetGroups.length > 0,
       lineHeight,
       startBilagPage,
       renderSubheader: writer.writeSubheader,
@@ -623,6 +608,8 @@ export const generateErstatningsopgoerelsePdf = (
       startBilagPage,
       renderSubheader: writer.writeSubheader,
       formatAfgoerelsesdato: formatDateLong,
+      bilagIndkomstYdelserMode,
+      bilagIndkomstYdelserRanges,
       writer,
     });
   }

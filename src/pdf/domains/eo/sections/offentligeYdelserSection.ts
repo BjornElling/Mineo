@@ -8,15 +8,16 @@ import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatning
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
-import { renderEoStylePdfTable } from '../../../shared/pdfTableRenderer';
+import { cellRight, createPdfTableCell, renderEoStylePdfTable } from '../../../shared/pdfTableRenderer';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
+import { formatIsoDateShort } from '../../../../utils/dateFormatting';
+import { formatMaaneder4, formatReguleringPct, formatKr } from '../../../shared/pdfFormatUtils';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 
 type OffentligeYdelserSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
-  skjulMidlertidigtEet?: boolean;
   lineHeight: number;
   startBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
@@ -126,7 +127,6 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
 export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionContext): void => {
   const {
     eoValues,
-    skjulMidlertidigtEet = false,
     lineHeight,
     startBilagPage,
     renderSubheader,
@@ -139,9 +139,11 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
 
   const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(eoValues.offentligeYdelserRows ?? []);
 
-  const kandidatRaekker = skjulMidlertidigtEet
-    ? (eoValues.offentligeYdelserRows ?? []).filter((row) => row.ydelsestype?.trim() !== 'midlertidigt_eet')
-    : (eoValues.offentligeYdelserRows ?? []);
+  // Bemærk: midlertidigt_eet-rækker filtreres IKKE fra her — det er tilsigtet.
+  // Offentlige ydelser viser de faktiske beløb som brugeren har importeret (rå EET-beløb pr. periode),
+  // mens renderMidlertidigtEetSection viser beregningsprincipperne (grundydelse, regulering, mdr., osv.).
+  // De to sektioner er komplementære og tjener forskelligt formål i bilagets dokumentation.
+  const kandidatRaekker = eoValues.offentligeYdelserRows ?? [];
 
   const rangeGroups = buildPeriodRangeGroups(eoValues, bilagIndkomstYdelserMode, bilagIndkomstYdelserRanges);
   const groupedRows = rangeGroups.map((group) => ({
@@ -187,6 +189,8 @@ type MidlertidigtEetSectionContext = Readonly<{
   startBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   formatAfgoerelsesdato: (date: ISODateString) => string | undefined;
+  bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
+  bilagIndkomstYdelserRanges: readonly IsoRange[];
   writer: Readonly<{
     addSpacer: (height: number) => void;
     setY: (y: number) => void;
@@ -196,25 +200,59 @@ type MidlertidigtEetSectionContext = Readonly<{
 }>;
 
 export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext): void => {
-  const { groups, lineHeight, startBilagPage, renderSubheader, formatAfgoerelsesdato, writer } = ctx;
+  const { groups, lineHeight, startBilagPage, renderSubheader, formatAfgoerelsesdato, bilagIndkomstYdelserMode, bilagIndkomstYdelserRanges, writer } = ctx;
+  const normalizedBilagMode = normalizeBilagIndkomstYdelserMode(bilagIndkomstYdelserMode);
 
-  for (const [index, group] of groups.entries()) {
-    if (index === 0) {
+  const ydelserHeader: RowInput = [
+    createPdfTableCell('Fra o.m.', { halign: 'center', bold: true }),
+    createPdfTableCell('Til o.m.', { halign: 'center', bold: true }),
+    createPdfTableCell('Mdr.', { halign: 'right', bold: true }),
+    createPdfTableCell('Grundydelse', { halign: 'right', bold: true }),
+    createPdfTableCell('Regulering', { halign: 'right', bold: true }),
+    createPdfTableCell('Ydelse/md.', { halign: 'right', bold: true }),
+    createPdfTableCell('Beregnet EET', { halign: 'right', bold: true }),
+  ];
+
+  const periodeMatcherRanges = (fra: ISODateString, til: ISODateString): boolean => {
+    if (normalizedBilagMode === 'Alle') return true;
+    if (bilagIndkomstYdelserRanges.length === 0) return false;
+    return bilagIndkomstYdelserRanges.some((range) => range.fra <= til && fra <= range.til);
+  };
+
+  let bilagIndex = 0;
+  for (const group of groups) {
+    const perioder = group.perioder.filter((periode) => periodeMatcherRanges(periode.fra, periode.til));
+    if (perioder.length === 0) continue;
+
+    if (bilagIndex === 0) {
       startBilagPage('Midlertidig EET');
       writer.addSpacer(lineHeight);
     } else {
       writer.addSpacer(lineHeight);
     }
+    bilagIndex++;
 
     const datoText = formatAfgoerelsesdato(group.afgoerelsesdato) ?? group.afgoerelsesdato;
-    renderSubheader(`Afgørelse ${datoText}`, lineHeight, { addTopSpacing: index > 0 });
+    renderSubheader(`Afgørelse ${datoText}`, lineHeight, { addTopSpacing: bilagIndex > 1 });
 
-    renderOffentligeYdelserRowsPage({
-      rows: group.rows,
-      lineHeight,
-      visYdelsestypeSubheader: false,
-      renderSubheader,
-      writer,
-    });
+    const body: RowInput[] = [
+      ydelserHeader,
+      ...perioder.map(
+        (row): RowInput => [
+          createPdfTableCell(formatIsoDateShort(row.fra), { halign: 'center' }),
+          createPdfTableCell(formatIsoDateShort(row.til), { halign: 'center' }),
+          cellRight(formatMaaneder4(row.maanederPraecis)),
+          cellRight(formatKr(row.grundydelseAfrundet, 2)),
+          cellRight(formatReguleringPct(row.reguleringPct)),
+          cellRight(formatKr(row.maanedligYdelse)),
+          cellRight(formatKr(row.beregnetEet)),
+        ]
+      ),
+    ];
+
+    const doc = writer.getDoc() as jsPDF;
+    const startY = writer.getY();
+    const finalY = renderEoStylePdfTable({ doc, startY, body, hasHeaderRow: true });
+    writer.setY(finalY + lineHeight);
   }
 };

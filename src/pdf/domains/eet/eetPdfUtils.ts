@@ -4,10 +4,11 @@
  * Bruges af differencekravPdf, loebendeYdelserPdf, kapitaliseringPdf og EetEfterEalPdf.
  */
 
-import { formatAsAmount, formatAsAmountTrimmed } from '../../../utils/formatUtils';
+import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
+import { formatKr } from '../../shared/pdfFormatUtils';
 
-export const formatKrEet = (value: number, decimals = 0): string =>
-  `${formatAsAmount(value, decimals)} kr.`;
+/** Alias for pdfFormatUtils.formatKr — behold for bagudkompatibilitet med EET-PDF-importsteder. */
+export const formatKrEet = formatKr;
 
 export const formatJaNejEet = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
