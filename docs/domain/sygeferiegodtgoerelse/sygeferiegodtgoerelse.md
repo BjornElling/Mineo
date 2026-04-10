@@ -306,17 +306,10 @@ Den situation må højst give en advarsel om muligt stiltiende ophør.
 
 ### 7. Særlig 4-månederslogik før 2015
 
-Når skaden er før `1. januar 2015`, skal der være en toggle med teksten:
+Når skaden er før `1. januar 2015`, bruges de indtastede TAF-perioder som grundlag for 4-månederstællingen.
 
-`Er alle sygeperioder efter skaden indtastet som TAF-periode ovenfor?`
-
-Default skal være `true`.
-
-Hvis togglen er `false`, skal der vises en loose grid med samtlige sygeperioder siden skaden.
-
-Beregningslogikken er:
-- hvis togglen er `true`, bruges de indtastede TAF-perioder
-- hvis togglen er `false`, bruges de særskilt indtastede sygeperioder
+Der er ingen særskilt grid til supplerende sygeperioder.
+I stedet vises en advarselstekst til brugeren om, at samtlige TAF-perioder siden skaden skal være indtastet, for at 4-månedersgrænsen beregnes korrekt.
 
 Der skal tælles unikke datoer.
 Overlappende perioder må aldrig medføre dobbeltoptælling.
@@ -334,14 +327,16 @@ Resultatet skal være én konkret dato:
 
 Denne dato er sidste dag med ret til SFGG.
 
-Hvis togglen står på `true`, og der ikke er indtastet nogen TAF-perioder, accepteres tomt resultat.
+Hvis der ikke er indtastet nogen TAF-perioder, accepteres tomt resultat.
 Det er ikke fejl eller advarsel, at TAF-perioderne ikke nødvendigvis dækker et sammenhængende sygdomsforløb.
 
 ### 8. UI-flow
 
 #### 8.1. Første valg
 
-Brugeren skal indledningsvist kun mødes af dropdownen:
+SFGG-sektionen vises pr. ansættelsesforhold som en del af lønindkomst-fanen, betinget af at ansættelsesforholdet er markeret som ansat på skadestidspunktet, og at TAF beregnes.
+
+Det første og indledende valg er dropdownen:
 
 `Sygeferiegodtgørelse beregnes ud fra`
 
@@ -433,15 +428,15 @@ Hvis både sygelønsperioder og senere ansættelsesophør er relevante, skal beg
 - først forklaring om ret først efter ophør af sygeløn
 - derefter forklaring om ansættelsesophør
 
-Teksten ved ansættelsesophør skal være:
+Teksten ved ansættelsesophør skal oplyse ophørsdatoen og årsagen.
+Verbet afhænger af, om ophørsdatoen er passeret på opgørelsestidspunktet:
+- er datoen passeret, bruges `bortfaldt`
+- er datoen fremtidig, bruges `bortfalder`
 
-`Retten til sygeferiegodtgørelse bortfaldt den dd-mm-åååå som følge af ansættelsesforholdets ophør.`
+Eksempel på opbygning: `Retten til sygeferiegodtgørelse [bortfaldt|bortfalder] den dd-mm-åååå som følge af ansættelsesforholdets ophør.`
 
-Ved skader før `1. januar 2015` skal forklaringsteksten over tabellen være:
-
-`Da skaden er sket/anmeldt, afhængigt af om det er en arbejdsulykke eller erhvervssygdom, før 1. januar 2015, er retten til sygeferiegodtgørelse tidsbegrænset til 4 måneder.`
-
-Ordvalget `sket` eller `anmeldt` skal styres deterministisk af skadestype.
+Ved skader før `1. januar 2015` skal PDF'en oplyse, at retten er tidsbegrænset til 4 måneder, og angive den konkrete ophørsdato.
+Ordvalget i denne forklaringstekst er bevidst ikke fastlåst til én kanonisk sætning.
 
 #### 9.3. Advarsel om muligt stiltiende ophør
 
@@ -457,15 +452,16 @@ Ved valg af `Ingen` skal EODebug stadig vise én linje med den valgte værdi og 
 
 ## Del 2: Implementeringsstatus
 
-Dette afsnit beskriver status på den faktiske implementation pr. `28. marts 2026`.
+Dette afsnit beskriver status på den faktiske implementation pr. `10. april 2026`.
 
 Status er gennemgået mod den aktuelle kode i især:
 - `src/schemas/formSchemas/sections/erstatningsopgoerelseSchemas.ts`
 - `src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx`
 - `src/validators/erstatningsopgoerelseValidator.ts`
-- `src/domain/erstatningsopgoerelse/sygeferiegodtgoerelse.ts`
-- `src/domain/debug/eoDebugErstatningsopgoerelseModel.ts`
-- `src/utils/pdf/erstatningsopgoerelsePdf.ts`
+- `src/domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse.ts`
+- `src/domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts.ts`
+- `src/domain/erstatningsopgoerelse/snapshot/eoPresentationSectionBuilders.ts`
+- `src/domain/erstatningsopgoerelse/pdf/eoPdfRegulering.ts`
 - relevante tests under `src/__tests__`
 
 ### Overordnet status
@@ -485,9 +481,8 @@ Løsningen betragtes nu som færdig på modulniveau. Eventuelt efterfølgende ar
 
 #### 1. Datamodel og persistence
 
-Den nye persisted model omfatter:
-- `sfggAlleSygeperioderErTafPerioder`
-- `sfggSygeperioderFoer2015`
+Den persistede model omfatter:
+- `sfggSygeperioderFoer2015` (reserveret felt, bruges ikke i beregning eller UI)
 - `sfggAnsaettelsesforhold`
 
 Pr. ansættelsesforhold persisted blandt andet:
@@ -502,15 +497,14 @@ Pr. ansættelsesforhold persisted blandt andet:
 
 #### 2. UI
 
-Der er implementeret særskilt SFGG-contentbox i `EOOplysningerTab` med:
+Der er implementeret særskilt SFGG-sektion pr. ansættelsesforhold i `LoenindkomstTab` med:
 - beregningskilde
 - referenceperiodefelter
 - integerfelt for ferie-/fraværsdage uden løn
 - manuel sats og begrundelsestekst
 - toggle for først efter sygeløn
 - felt for allerede betalt SFGG
-- præ-2015-toggle
-- særskilt tabel for supplerende sygeperioder før 2015
+- advarselstekst til brugeren ved skader før 2015 om at alle TAF-perioder skal være indtastet
 
 #### 3. Validering
 
@@ -523,7 +517,6 @@ Der er implementeret særskilt validering for:
 - krav om satsvalg ved differentierede satser
 - ingen arbejdsdage i referenceperioden
 - maksimum for ferie-/fraværsdage uden løn
-- præ-2015-supplerende sygeperioder
 
 #### 4. Beregningsmotor
 
@@ -606,14 +599,14 @@ Tidligere dokumentation:
 
 Denne dokumentation er nu opdateret til at afspejle den aktuelle beregningslogik.
 
-#### 2. PDF-ordlyd matcher ikke fuldt de normative tekster
+#### 2. PDF-forklaringstekster er funktionelle men ikke fastlåst til kanonisk ordlyd
 
-Der genereres funktionelle forklaringslinjer for:
-- 4-månedersophør
-- ansættelsesophør
+Der genereres forklaringslinjer for:
+- 4-månedersophør (med konkret ophørsdato)
+- ansættelsesophør (med konkret ophørsdato, og med verbum afpasset til om datoen er passeret)
 - bortfald under arbejdsgiverbetalt sygeløn
 
-Men ordlyden matcher ikke fuldt de præcist fastlagte normative tekster i Del 1.
+Den normative del af dokumentet beskriver ikke længere en fastlåst ordlyd for disse tekster; formuleringerne er bevidst holdt fleksible.
 
 #### 3. SFGG-tabellens `I alt`-række vises ikke altid
 
