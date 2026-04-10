@@ -68,12 +68,10 @@ export const useTableSort = <TRow>({
   const onSortedRowsChangeRef = React.useRef(onSortedRowsChange);
   React.useLayoutEffect(() => {
     onSortedRowsChangeRef.current = onSortedRowsChange;
-  });
-
-  const sortedRowsRef = React.useRef(sortedRows);
-  sortedRowsRef.current = sortedRows;
+  }, [onSortedRowsChange]);
 
   const isMountedRef = React.useRef(false);
+  const previousSortStateRef = React.useRef(sortState);
 
   // Udløser onSortedRowsChange kun når brugeren ændrer sort-state (ikke ved initial mount,
   // og ikke når rows-prop'en ændrer sig — det ville give uendelig løkke).
@@ -86,11 +84,16 @@ export const useTableSort = <TRow>({
   React.useEffect(() => {
     if (!isMountedRef.current) {
       isMountedRef.current = true;
+      previousSortStateRef.current = sortState;
       return;
     }
-    onSortedRowsChangeRef.current?.(sortedRowsRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sortState]);
+    const hasSortStateChanged = previousSortStateRef.current !== sortState;
+    previousSortStateRef.current = sortState;
+    if (!hasSortStateChanged) {
+      return;
+    }
+    onSortedRowsChangeRef.current?.(sortedRows);
+  }, [sortState, sortedRows]);
 
   const getSortRole = React.useCallback(
     (colId: string): GridSortRole => getGridSortRole(sortState, colId),

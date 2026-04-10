@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
-import type { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import type { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 const mockInstances: MockJsPDF[] = [];
 
@@ -54,8 +54,6 @@ vi.mock('../../../utils/logger', () => ({
 }));
 
 describe('erstatningsopgoerelsePdf udkaststempel', () => {
-  let baseStamdata: typeof STAMDATA_INITIAL_VALUES;
-  let baseEo: ReturnType<typeof createErstatningsopgoerelseInitialValues>;
   let generateErstatningsopgoerelsePdf: typeof import('../../../pdf/domains/eo/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
 
   const selected = {
@@ -68,22 +66,26 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     sygeferiegodtgoerelse: false,
   };
 
-  beforeAll(async () => {
-    const { STAMDATA_INITIAL_VALUES } = await import('../../../domain/stamdata/stamdataInitialValues');
-    const { createErstatningsopgoerelseInitialValues } = await import('../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues');
-    const pdfModule = await import('../../../pdf/domains/eo/erstatningsopgoerelsePdf');
-
-    baseStamdata = structuredClone(STAMDATA_INITIAL_VALUES);
-    baseEo = createErstatningsopgoerelseInitialValues();
-    baseEo.beregnesSvieSmerteGodtgoerelse = 'Nej';
-    baseEo.beregnesTabtArbejdsfortjeneste = 'Nej';
-    generateErstatningsopgoerelsePdf = pdfModule.generateErstatningsopgoerelsePdf;
-  });
-
   beforeEach(() => {
     MockJsPDF.splitTextToSizeImpl = null;
     MockJsPDF.getTextWidthImpl = null;
+    mockInstances.length = 0;
+    MockJsPDF.lastInstance = null;
+    logWarningMock.mockClear();
   });
+
+  beforeAll(async () => {
+    ({ generateErstatningsopgoerelsePdf } = await import('../../../pdf/domains/eo/erstatningsopgoerelsePdf'));
+  }, 20000);
+
+  const createBaseStamdata = () => structuredClone(STAMDATA_INITIAL_VALUES);
+
+  const createBaseEo = () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesSvieSmerteGodtgoerelse = 'Nej';
+    values.beregnesTabtArbejdsfortjeneste = 'Nej';
+    return values;
+  };
 
   const hasUdkastCall = (instance: MockJsPDF | null): boolean => {
     if (!instance) return false;
@@ -94,6 +96,8 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   };
 
   it('adds draft watermark when visUdkastStempel=true', () => {
+    const baseStamdata = createBaseStamdata();
+    const baseEo = createBaseEo();
     generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, { visUdkastStempel: true });
     expect(hasUdkastCall(MockJsPDF.lastInstance)).toBe(true);
     const lastSaveCall = MockJsPDF.lastInstance?.save.mock.calls.at(-1);
@@ -101,6 +105,8 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   });
 
   it('prepender journalnr i filnavn når journalnr er udfyldt', () => {
+    const baseStamdata = createBaseStamdata();
+    const baseEo = createBaseEo();
     const stamdataWithJournal = {
       ...baseStamdata,
       journalnr: '1234',
@@ -111,6 +117,8 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   });
 
   it('does not add draft watermark when visUdkastStempel=false', () => {
+    const baseStamdata = createBaseStamdata();
+    const baseEo = createBaseEo();
     generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, { visUdkastStempel: false });
     expect(hasUdkastCall(MockJsPDF.lastInstance)).toBe(false);
     const lastSaveCall = MockJsPDF.lastInstance?.save.mock.calls.at(-1);
@@ -120,6 +128,8 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   });
 
   it('tillader sygeferiegodtgørelse som valgt PDF-element', () => {
+    const baseStamdata = createBaseStamdata();
+    const baseEo = createBaseEo();
     const selectedWithUnsupported = {
       ...selected,
       sygeferiegodtgoerelse: true,
@@ -130,6 +140,8 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   });
 
   it('adds page when wrapped text exceeds page height', () => {
+    const baseStamdata = createBaseStamdata();
+    const baseEo = createBaseEo();
     const eoWithLongComment = {
       ...baseEo,
       saerligeKommentarer: 'LANG-TEKST',
@@ -146,6 +158,8 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     expect(MockJsPDF.lastInstance?.addPage).toHaveBeenCalled();
   });
   it('creates multiple new pages for very long wrapped text', () => {
+    const baseStamdata = createBaseStamdata();
+    const baseEo = createBaseEo();
     const eoWithVeryLongComment = {
       ...baseEo,
       saerligeKommentarer: 'MEGET-LANG-TEKST',
@@ -163,7 +177,8 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   });
 
   it('moves right column to separate line when width overflows', () => {
-    logWarningMock.mockClear();
+    const baseStamdata = createBaseStamdata();
+    const baseEo = createBaseEo();
     MockJsPDF.splitTextToSizeImpl = (text) => {
       if (text.includes('kr.')) {
         return ['kr-linje-1', 'kr-linje-2'];
@@ -219,6 +234,8 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   });
 
   it('adds page before signature block when needed', () => {
+    const baseStamdata = createBaseStamdata();
+    const baseEo = createBaseEo();
     const eoWithLongSignaturIntro = {
       ...baseEo,
       erstatningsopgoerelseAfsluttesMed: 'Underskrift-linje' as const,

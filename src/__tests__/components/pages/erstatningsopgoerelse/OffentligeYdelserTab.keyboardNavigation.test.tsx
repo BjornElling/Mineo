@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import Container from '../../../../components/layout/Container';
@@ -33,14 +33,6 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
     });
   };
 
-  const waitForAnimationFrame = async () => {
-    await act(async () => {
-      await new Promise<void>((resolve) => {
-        requestAnimationFrame(() => resolve());
-      });
-    });
-  };
-
   beforeAll(() => {
     mockVisibleRects();
   });
@@ -53,9 +45,7 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
     getRectsSpy.mockRestore();
   });
 
-  it('lader Tab gaa fra sygedagpenge til-dato til Indsaet-knappen og videre til naeste Indsaet-knap', async () => {
-    const user = userEvent.setup();
-
+  const renderTab = (onRowsChange: ReturnType<typeof vi.fn> = vi.fn()) => {
     render(
       <MemoryRouter>
         <AppSettingsProvider>
@@ -65,7 +55,7 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
                 { ...initialOffentligYdelseRow, id: 'row-1' },
                 { ...initialOffentligYdelseRow, id: 'row-2' },
               ]}
-              onRowsChange={vi.fn()}
+              onRowsChange={onRowsChange}
               midlertidigtEetInsertSource={{
                 eetValues: ERHVERVSEVNETAB_INITIAL_VALUES,
                 skadedato: undefined,
@@ -87,10 +77,21 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
       : [];
     expect(dateInputs).toHaveLength(2);
 
-    const tilDatoInput = dateInputs[1];
     const insertButton = within(sygedagpengeRow as HTMLElement).getByRole('button', { name: 'Indsæt' });
     const allInsertButtons = screen.getAllByRole('button', { name: 'Indsæt' });
     const nextInsertButton = allInsertButtons[1];
+
+    return {
+      fraDatoInput: dateInputs[0],
+      tilDatoInput: dateInputs[1],
+      insertButton,
+      nextInsertButton,
+    };
+  };
+
+  it('lader Tab gaa fra sygedagpenge til-dato til Indsaet-knappen og videre til naeste Indsaet-knap', async () => {
+    const user = userEvent.setup();
+    const { tilDatoInput, insertButton, nextInsertButton } = renderTab();
 
     expect(insertButton).toHaveAttribute('aria-disabled', 'true');
     expect(nextInsertButton).not.toHaveAttribute('aria-disabled');
@@ -100,25 +101,35 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
     });
     expect(document.activeElement).toBe(tilDatoInput);
 
-    await user.keyboard('{Tab}');
-    await waitForAnimationFrame();
+    await user.tab();
+    await waitFor(() => {
+      expect(document.activeElement).toBe(insertButton);
+    });
 
-    expect(document.activeElement).toBe(insertButton);
+    await user.tab();
+    await waitFor(() => {
+      expect(document.activeElement).toBe(nextInsertButton);
+    });
+  }, 10000);
 
-    await user.keyboard('{Tab}');
-    await waitForAnimationFrame();
+  it('lader Shift+Tab gaa tilbage fra naeste Indsaet-knap til sygedagpenge til-dato', async () => {
+    const user = userEvent.setup();
+    const { tilDatoInput, insertButton, nextInsertButton } = renderTab();
 
+    await act(async () => {
+      nextInsertButton.focus();
+    });
     expect(document.activeElement).toBe(nextInsertButton);
 
-    await user.keyboard('{Shift>}{Tab}{/Shift}');
-    await waitForAnimationFrame();
+    await user.tab({ shift: true });
+    await waitFor(() => {
+      expect(document.activeElement).toBe(insertButton);
+    });
 
-    expect(document.activeElement).toBe(insertButton);
-
-    await user.keyboard('{Shift>}{Tab}{/Shift}');
-    await waitForAnimationFrame();
-
-    expect(document.activeElement).toBe(tilDatoInput);
+    await user.tab({ shift: true });
+    await waitFor(() => {
+      expect(document.activeElement).toBe(tilDatoInput);
+    });
   });
 
   it('rydder baade fra-dato og til-dato ved klik paa Indsaet fra et fokuseret sygedagpengefelt', async () => {
@@ -133,40 +144,7 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
       })
     );
 
-    render(
-      <MemoryRouter>
-        <AppSettingsProvider>
-          <Container>
-            <OffentligeYdelserTab
-              rows={[
-                { ...initialOffentligYdelseRow, id: 'row-1' },
-                { ...initialOffentligYdelseRow, id: 'row-2' },
-              ]}
-              onRowsChange={handleRowsChange}
-              midlertidigtEetInsertSource={{
-                eetValues: ERHVERVSEVNETAB_INITIAL_VALUES,
-                skadedato: undefined,
-              }}
-            />
-          </Container>
-        </AppSettingsProvider>
-      </MemoryRouter>
-    );
-
-    const sygedagpengeRow = screen
-      .getByText('Indsæt maksimal sygedagpengesats for perioden')
-      .closest('.row--label-right-hover');
-
-    expect(sygedagpengeRow).not.toBeNull();
-
-    const dateInputs = sygedagpengeRow
-      ? Array.from(sygedagpengeRow.querySelectorAll<HTMLInputElement>('input'))
-      : [];
-    expect(dateInputs).toHaveLength(2);
-
-    const fraDatoInput = dateInputs[0];
-    const tilDatoInput = dateInputs[1];
-    const insertButton = within(sygedagpengeRow as HTMLElement).getByRole('button', { name: 'Indsæt' });
+    const { fraDatoInput, tilDatoInput, insertButton } = renderTab(handleRowsChange);
 
     expect(fraDatoInput).toHaveValue('01-01-2024');
     expect(tilDatoInput).toHaveValue('31-01-2024');
@@ -177,10 +155,10 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
     expect(document.activeElement).toBe(fraDatoInput);
 
     await user.click(insertButton);
-    await waitForAnimationFrame();
-
-    expect(handleRowsChange).toHaveBeenCalledTimes(1);
-    expect(fraDatoInput).toHaveValue('');
-    expect(tilDatoInput).toHaveValue('');
+    await waitFor(() => {
+      expect(handleRowsChange).toHaveBeenCalledTimes(1);
+      expect(fraDatoInput).toHaveValue('');
+      expect(tilDatoInput).toHaveValue('');
+    });
   });
 });

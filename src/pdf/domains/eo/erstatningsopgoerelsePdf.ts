@@ -10,7 +10,7 @@ import { MARGINS, PDF_BASE_LINE_HEIGHT_MM, PDF_FONT_FAMILY, PDF_FONT_STYLES } fr
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from '../../shared/pdfHelpers';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
-import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, OffentligeYdelserRow, StamdataValues } from '../../../schemas/formSchemas';
+import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { type MoneyOre, type Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';

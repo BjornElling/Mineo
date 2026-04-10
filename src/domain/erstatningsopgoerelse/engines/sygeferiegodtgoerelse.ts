@@ -699,13 +699,7 @@ const buildYearAllocationsForGroupedSegment = (args: Readonly<{
   );
 
   const weightedYears = entries.map(([year, dates]) => {
-    const ranges = buildRangesFromSortedDates(dates);
     const grossOre = buildSfggGrossOre(satsOre, agPensionPct, dates.length);
-    const loenPlusLoen2PlusIkkePensLoenKroner = sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
-      employment,
-      ranges,
-      values.ferieperioder ?? []
-    );
     const feriepengeOre = buildSfggFeriepengeMedPensionOreForDates(
       employment,
       dates,

@@ -45,5 +45,8 @@ Thumbs.db
 .desloppify/
 scorecard.png
 
+# Vitest output
+vitest-output.txt
+
 # Kontinuerligt fejloprettet nul-fil
 nul

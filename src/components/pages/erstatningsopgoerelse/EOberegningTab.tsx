@@ -27,7 +27,6 @@ import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsop
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
-import type { ISODateString } from '../../../types/branded';
 import { buildMidlertidigtEetAfgoerelseGroups, type MidlertidigtEetInsertSource } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';

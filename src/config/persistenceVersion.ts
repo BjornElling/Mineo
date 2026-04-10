@@ -5,4 +5,4 @@
  * - Skal holdes i sync på tværs af FormPersistenceContext og file save/load.
  */
 
-export const PERSISTED_DATA_VERSION = '1.0.4';
+export const PERSISTED_DATA_VERSION = '1.0.5';
