@@ -146,7 +146,7 @@ export const resolveAnvendtReguleringsdato = (
   beregnesUdFra: eoValues.beregnesUdFra,
   angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
   saerligFraDatoRegulering: ansaettelsesforhold.saerligFraDatoRegulering,
-  beregningsperiodeTil: eoValues.periodeTilBeregningTil,
+  beregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
   skadedato: stamdataValues.skadedato,
 });
 

@@ -166,7 +166,7 @@ const Erstatningsopgoerelse = React.memo(() => {
     (groups: readonly Readonly<{ afgoerelsesdato: string; rowIds: readonly string[] }>[]) => {
       setFormValues((prev) => ({
         ...prev,
-        midlertidigtEetAfgoerelseGrupper: groups.map((g) => ({ afgoerelsesdato: g.afgoerelsesdato, rowIds: [...g.rowIds] })) as ErstatningsopgoerelseValues['midlertidigtEetAfgoerelseGrupper'],
+        midlertidigtEETAfgoerelseGrupper: groups.map((g) => ({ afgoerelsesdato: g.afgoerelsesdato, rowIds: [...g.rowIds] })) as ErstatningsopgoerelseValues['midlertidigtEETAfgoerelseGrupper'],
       }));
     },
     [setFormValues]
@@ -364,8 +364,8 @@ const Erstatningsopgoerelse = React.memo(() => {
             <LoenindkomstTab
               loenindkomstAnsaettelsesforhold={form.values.loenindkomstAnsaettelsesforhold}
               beregnesUdFra={form.values.beregnesUdFra}
-              periodeTilBeregningFra={form.values.periodeTilBeregningFra}
-              periodeTilBeregningTil={form.values.periodeTilBeregningTil}
+              tafBeregningsperiodeFra={form.values.tafBeregningsperiodeFra}
+              tafBeregningsperiodeTil={form.values.tafBeregningsperiodeTil}
               ferieperioder={form.values.ferieperioder}
               fravaerPerioder={form.values.fravaerPerioder}
               eoValues={form.values}

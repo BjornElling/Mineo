@@ -45,8 +45,8 @@ export const buildControlMismatchReport = (
     context: {
       skadedato: snapshot.stamdataValues.skadedato,
       skadestype: snapshot.stamdataValues.skadestype,
-      beregningsperiodeFra: snapshot.eoValues.periodeTilBeregningFra,
-      beregningsperiodeTil: snapshot.eoValues.periodeTilBeregningTil,
+      beregningsperiodeFra: snapshot.eoValues.tafBeregningsperiodeFra,
+      beregningsperiodeTil: snapshot.eoValues.tafBeregningsperiodeTil,
       vedroererPeriodeFra: snapshot.eoValues.vedroererPeriodeFra,
       vedroererPeriodeTil: snapshot.eoValues.vedroererPeriodeTil,
     },

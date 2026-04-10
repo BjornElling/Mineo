@@ -205,7 +205,7 @@ const isRowRelevantForEoValues = (
     // Lønindkomst-sektionen er kun relevant når TAF beregnes.
     if (row.id.startsWith('loenindkomst.')) return false;
   }
-  if (values.midlertidigtEetAfgorelse === 'Nej') {
+  if (values.midlertidigtEETAfgorelse === 'Nej') {
     // NOTE:
     // EET-relaterede debug-rows filtreres, når der ikke foreligger
     // midlertidig/endelig erhvervsevnetabsafgørelse.
@@ -219,7 +219,7 @@ const isRowRelevantForEoValues = (
       return false;
     }
   }
-  if (values.endeligtEetAfgorelse === 'Nej') {
+  if (values.endeligtEETAfgorelse === 'Nej') {
     if (
       row.id === 'aes.endeligEETAfgoerelseDato' ||
       row.id === 'aes.endeligEETVirkningsdato' ||

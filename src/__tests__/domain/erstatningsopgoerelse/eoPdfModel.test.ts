@@ -43,9 +43,9 @@ const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): Erstatningsopg
   }
   // Sæt minimums-gyldige defaults så computeEoSnapshot passerer validering i tests der ikke tester TAF-specifik logik.
   // De tilsvarende tests der tester specifikke valideringsfejl overstyrer disse defaults.
-  if (base.beregnesUdFra === 'Beregningsperiode' && !base.periodeTilBeregningFra) {
-    base.periodeTilBeregningFra = iso('2024-01-01');
-    base.periodeTilBeregningTil = iso('2024-12-31');
+  if (base.beregnesUdFra === 'Beregningsperiode' && !base.tafBeregningsperiodeFra) {
+    base.tafBeregningsperiodeFra = iso('2024-01-01');
+    base.tafBeregningsperiodeTil = iso('2024-12-31');
   }
   const merged = { ...base, ...patch };
   merged.loenindkomstAnsaettelsesforhold = (merged.loenindkomstAnsaettelsesforhold ?? []).map((af, index) => ({
@@ -926,8 +926,8 @@ describe('eoPdfModel', () => {
   it('afviser feriepct ved beregningsperiode når der er indtastede lønoplysninger', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum.Beregningsperiode,
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: iso('2023-12-31'),
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-12-31'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
       ],
@@ -1436,8 +1436,8 @@ describe('eoPdfModel', () => {
   it('beregner loenudvikling pr. ansaettelsesforhold ved inkonsistente reguleringer i beregningsperiode', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum.Beregningsperiode,
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: iso('2023-12-31'),
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-12-31'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
       ],
@@ -1512,8 +1512,8 @@ describe('eoPdfModel', () => {
   it('beregner loenudvikling pr. ansaettelsesforhold ved blandede strategier (overenskomst + statistik)', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum.Beregningsperiode,
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: iso('2023-12-31'),
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-12-31'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
       ],
@@ -1589,8 +1589,8 @@ describe('eoPdfModel', () => {
   it('beregner stadig pr. ansaettelsesforhold selv når alle ansaettelser bruger samme strategi', () => {
     const eoValues = makeValues({
       beregnesUdFra: beregningsmetodeEnum.enum.Beregningsperiode,
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: iso('2023-12-31'),
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-12-31'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
       ],
@@ -1754,9 +1754,9 @@ describe('eoPdfModel', () => {
 
   it('viser kun endelig EET-linje informativt når begge afgørelser er angivet uden ophørsgrund', () => {
     const eoValues = makeValues({
-      endeligtEetAfgorelse: 'Ja',
+      endeligtEETAfgorelse: 'Ja',
       endeligEETVirkningsdato: iso('2024-06-01'),
-      midlertidigtEetAfgorelse: 'Ja',
+      midlertidigtEETAfgorelse: 'Ja',
       midlertidigEETVirkningsdato: iso('2024-05-01'),
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
@@ -1771,9 +1771,9 @@ describe('eoPdfModel', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
-      midlertidigtEetAfgorelse: 'Ja',
+      midlertidigtEETAfgorelse: 'Ja',
       midlertidigEETVirkningsdato: iso('2010-06-01'),
-      endeligtEetAfgorelse: 'Ja',
+      endeligtEETAfgorelse: 'Ja',
       endeligEETVirkningsdato: iso('2011-01-01'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2009-01-01'), til: iso('2010-12-31'), loseFeriedage: undefined },
@@ -1801,9 +1801,9 @@ describe('eoPdfModel', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
-      midlertidigtEetAfgorelse: 'Ja',
+      midlertidigtEETAfgorelse: 'Ja',
       midlertidigEETVirkningsdato: iso('2011-01-01'),
-      endeligtEetAfgorelse: 'Ja',
+      endeligtEETAfgorelse: 'Ja',
       endeligEETVirkningsdato: iso('2010-06-01'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2009-01-01'), til: iso('2010-12-31'), loseFeriedage: undefined },
@@ -1829,9 +1829,9 @@ describe('eoPdfModel', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
-      midlertidigtEetAfgorelse: 'Ja',
+      midlertidigtEETAfgorelse: 'Ja',
       midlertidigEETAfgoerelseDato: iso('2010-05-01'),
-      endeligtEetAfgorelse: 'Ja',
+      endeligtEETAfgorelse: 'Ja',
       endeligEETAfgoerelseDato: iso('2010-06-01'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2009-01-01'), til: iso('2010-12-31'), loseFeriedage: undefined },
@@ -1856,9 +1856,9 @@ describe('eoPdfModel', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
-      midlertidigtEetAfgorelse: 'Ja',
+      midlertidigtEETAfgorelse: 'Ja',
       midlertidigEETVirkningsdato: iso('2024-06-01'),
-      endeligtEetAfgorelse: 'Nej',
+      endeligtEETAfgorelse: 'Nej',
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
       ],
@@ -1910,7 +1910,7 @@ describe('eoPdfModel', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
-      endeligtEetAfgorelse: 'Ja',
+      endeligtEETAfgorelse: 'Ja',
       endeligEETVirkningsdato: iso('2024-08-01'),
       differencekravDato: iso('2024-06-15'),
       tafPerioder: [
@@ -1937,7 +1937,7 @@ describe('eoPdfModel', () => {
 
   it('viser endelig EET informativt og skjuler differencekrav når ingen af dem bringer TAF til ophør', () => {
     const eoValues = makeValues({
-      endeligtEetAfgorelse: 'Ja',
+      endeligtEETAfgorelse: 'Ja',
       endeligEETVirkningsdato: iso('2024-06-01'),
       differencekravDato: iso('2024-05-01'),
       tafPerioder: [],
@@ -1954,7 +1954,7 @@ describe('eoPdfModel', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
-      endeligtEetAfgorelse: 'Ja',
+      endeligtEETAfgorelse: 'Ja',
       endeligEETVirkningsdato: iso('2024-07-01'),
       differencekravDato: iso('2024-07-01'),
       tafPerioder: [
@@ -1981,8 +1981,8 @@ describe('eoPdfModel', () => {
   it('viser måneder-mellemregning uden fraværsled ved 0 øvrige fraværsdage', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2021-03-01'),
-      periodeTilBeregningTil: iso('2022-02-28'),
+      tafBeregningsperiodeFra: iso('2021-03-01'),
+      tafBeregningsperiodeTil: iso('2022-02-28'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
       ],
@@ -2032,8 +2032,8 @@ describe('eoPdfModel', () => {
   it('bruger ental i måneder-mellemregning ved 1 fraværsdag', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2021-03-01'),
-      periodeTilBeregningTil: iso('2022-02-28'),
+      tafBeregningsperiodeFra: iso('2021-03-01'),
+      tafBeregningsperiodeTil: iso('2022-02-28'),
       oevrigtFravaerUdenLoen: 'Ja',
       oevrigeFravaersdage: 1,
       oevrigeFravaersdageBeskrivelse: 'orlov',
@@ -2085,8 +2085,8 @@ describe('eoPdfModel', () => {
   it('ignorerer stale fraværsbeskrivelse når øvrigt fravær uden løn er Nej', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2021-03-01'),
-      periodeTilBeregningTil: iso('2022-02-28'),
+      tafBeregningsperiodeFra: iso('2021-03-01'),
+      tafBeregningsperiodeTil: iso('2022-02-28'),
       oevrigtFravaerUdenLoen: 'Nej',
       oevrigeFravaersdage: 1,
       oevrigeFravaersdageBeskrivelse: 'orlov',
@@ -2144,8 +2144,8 @@ describe('eoPdfModel', () => {
 
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: periodeFra,
-      periodeTilBeregningTil: periodeTil,
+      tafBeregningsperiodeFra: periodeFra,
+      tafBeregningsperiodeTil: periodeTil,
       uspecificeredeFerieFridage: loseFeriedage,
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-02-01'), til: iso('2024-02-10'), loseFeriedage: undefined },
@@ -2208,8 +2208,8 @@ describe('eoPdfModel', () => {
   it('medregner offentlige ydelser i beregningsgrundlaget for beregningsperiode', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-01-31'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-01-31'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-02-01'), til: iso('2024-02-28'), loseFeriedage: undefined },
       ],
@@ -2247,8 +2247,8 @@ describe('eoPdfModel', () => {
   it('beregner tillæg og pension med satsen på anvendt reguleringsdato ved beregningsperiode', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-02-29'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-02-29'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-03-01'), til: iso('2024-03-31'), loseFeriedage: undefined },
       ],
@@ -2364,8 +2364,8 @@ describe('eoPdfModel', () => {
   it('anvender statistik-fallback (variant B) for manglende basisdækning ved Beregningsperiode', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: iso('2023-12-31'),
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-12-31'),
       tafPerioder: [
         { id: 'taf-1', fra: iso('2004-01-01'), til: iso('2006-12-31'), loseFeriedage: undefined },
       ],

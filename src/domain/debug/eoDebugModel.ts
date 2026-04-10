@@ -448,8 +448,8 @@ export const buildEODebugModel = (
 ): EODebugModel => {
   const erstatningsFra = values.vedroererPeriodeFra;
   const erstatningsTil = values.vedroererPeriodeTil;
-  const beregningsFra = values.periodeTilBeregningFra;
-  const beregningsTil = values.periodeTilBeregningTil;
+  const beregningsFra = values.tafBeregningsperiodeFra;
+  const beregningsTil = values.tafBeregningsperiodeTil;
   const isBeregningsperiode = values.beregnesUdFra === 'Beregningsperiode';
   const menStopDato =
     values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej' ? values.menAfgoerelseDato : undefined;
@@ -674,7 +674,7 @@ export const buildEODebugModel = (
     erstatningsTil,
     differencekravDato: values.differencekravDato,
     endeligEetDato:
-      values.endeligtEetAfgorelse === 'Ja' && values.verserendeKlageEet === 'Nej'
+      values.endeligtEETAfgorelse === 'Ja' && values.verserendeKlageEet === 'Nej'
         ? values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato
         : undefined,
     tafDates,

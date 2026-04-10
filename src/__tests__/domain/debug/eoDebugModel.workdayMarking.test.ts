@@ -5,8 +5,8 @@ const createBaseValues = () => ({
   ...createErstatningsopgoerelseInitialValues(),
   vedroererPeriodeFra: '2024-01-01',
   vedroererPeriodeTil: '2024-01-03',
-  periodeTilBeregningFra: '2024-01-01',
-  periodeTilBeregningTil: '2024-01-03',
+  tafBeregningsperiodeFra: '2024-01-01',
+  tafBeregningsperiodeTil: '2024-01-03',
   ferieperioder: [{ id: 'ferie-1', fra: '2024-01-02', til: '2024-01-02' }],
 });
 
@@ -15,8 +15,8 @@ describe('eoDebugModel arbejdsdag-markering', () => {
     const values = {
       ...createBaseValues(),
       beregnesUdFra: 'Angivet månedsløn' as const,
-      periodeTilBeregningFra: '2021-05-01',
-      periodeTilBeregningTil: '2022-02-28',
+      tafBeregningsperiodeFra: '2021-05-01',
+      tafBeregningsperiodeTil: '2022-02-28',
     };
 
     const model = buildEODebugModel(values);

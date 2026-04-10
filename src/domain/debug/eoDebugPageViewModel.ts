@@ -181,8 +181,8 @@ export const buildEODebugPageViewModel = (
   const viserSvieSmerte = erstatningsopgoerelseValues.beregnesSvieSmerteGodtgoerelse !== 'Nej';
   const viserTabtArbejdsfortjeneste = erstatningsopgoerelseValues.beregnesTabtArbejdsfortjeneste !== 'Nej';
   const skjulerUdvidedeSvieSmerteRows = erstatningsopgoerelseValues.tidligereSsMax === 'Ja';
-  const viserMidlertidigtEet = erstatningsopgoerelseValues.midlertidigtEetAfgorelse === 'Ja';
-  const viserEndeligtEet = erstatningsopgoerelseValues.endeligtEetAfgorelse === 'Ja';
+  const viserMidlertidigtEet = erstatningsopgoerelseValues.midlertidigtEETAfgorelse === 'Ja';
+  const viserEndeligtEet = erstatningsopgoerelseValues.endeligtEETAfgorelse === 'Ja';
 
   const svieSmerteRows = viserSvieSmerte
     ? (rowsBySection.get('sviesmerte') ?? []).filter((row) =>
@@ -191,10 +191,10 @@ export const buildEODebugPageViewModel = (
     : [];
 
   const aesRows = (rowsBySection.get('aes') ?? []).filter((row) => {
-    if (!viserMidlertidigtEet && row.group === 'aes.midlertidigtEet' && row.id !== 'aes.midlertidigtEetAfgorelse') {
+    if (!viserMidlertidigtEet && row.group === 'aes.midlertidigtEet' && row.id !== 'aes.midlertidigtEETAfgorelse') {
       return false;
     }
-    if (!viserEndeligtEet && row.group === 'aes.endeligtEet' && row.id !== 'aes.endeligtEetAfgorelse') {
+    if (!viserEndeligtEet && row.group === 'aes.endeligtEet' && row.id !== 'aes.endeligtEETAfgorelse') {
       return false;
     }
     return true;

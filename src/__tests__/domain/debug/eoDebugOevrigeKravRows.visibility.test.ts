@@ -37,7 +37,7 @@ describe('buildEODebugOevrigeKravRows visibility', () => {
         tillaeg: undefined,
       },
     ];
-    values.midlertidigtEetAfgorelse = 'Ja';
+    values.midlertidigtEETAfgorelse = 'Ja';
     values.midlertidigEETVirkningsdato = iso('2024-02-01');
     values.verserendeKlageEet = 'Ja';
 
@@ -53,7 +53,7 @@ describe('buildEODebugOevrigeKravRows visibility', () => {
   it('viser EET-klagelinjen alene uden ydelsesforbehold', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.verserendeKlageEet = 'Ja';
-    values.endeligtEetAfgorelse = 'Ja';
+    values.endeligtEETAfgorelse = 'Ja';
     values.endeligEETAfgoerelseDato = iso('2024-03-01');
 
     const rows = buildEODebugOevrigeKravRows(values, {});

@@ -134,10 +134,10 @@ export const buildTafRanges = (
 export const buildBeregningsperiodeRange = (
   values: ErstatningsopgoerelseValues
 ): IsoRange | undefined => {
-  if (!isISODateString(values.periodeTilBeregningFra) || !isISODateString(values.periodeTilBeregningTil)) {
+  if (!isISODateString(values.tafBeregningsperiodeFra) || !isISODateString(values.tafBeregningsperiodeTil)) {
     return undefined;
   }
-  return validateIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
+  return validateIsoRange(values.tafBeregningsperiodeFra, values.tafBeregningsperiodeTil);
 };
 
 const resolveIncomeBounds = (
@@ -183,10 +183,10 @@ const resolveIncomeBounds = (
     return acc ? (acc > iso ? acc : iso) : iso;
   }, undefined);
 
-  const boundsFraCandidates = [rangeBoundFra, intervalBoundFra, offentligIntervalBoundFra, values.periodeTilBeregningFra].filter(
+  const boundsFraCandidates = [rangeBoundFra, intervalBoundFra, offentligIntervalBoundFra, values.tafBeregningsperiodeFra].filter(
     (value): value is ISODateString => isISODateString(value)
   );
-  const boundsTilCandidates = [rangeBoundTil, intervalBoundTil, offentligIntervalBoundTil, values.periodeTilBeregningTil].filter(
+  const boundsTilCandidates = [rangeBoundTil, intervalBoundTil, offentligIntervalBoundTil, values.tafBeregningsperiodeTil].filter(
     (value): value is ISODateString => isISODateString(value)
   );
   const boundsFra = boundsFraCandidates.reduce<ISODateString | undefined>((acc, iso) => (acc ? (acc < iso ? acc : iso) : iso), undefined);

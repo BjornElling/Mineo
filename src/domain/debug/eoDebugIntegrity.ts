@@ -154,7 +154,7 @@ const checkTafDaysMismatch = (
     vedroererPeriodeFra: tryParseIso(eo.vedroererPeriodeFra),
     vedroererPeriodeTil: tryParseIso(eo.vedroererPeriodeTil),
     differencekravDato: tryParseIso(eo.differencekravDato),
-    endeligtEetAfgorelse: eo.endeligtEetAfgorelse,
+    endeligtEETAfgorelse: eo.endeligtEETAfgorelse,
     endeligEETVirkningsdato: tryParseIso(eo.endeligEETVirkningsdato),
     endeligEETAfgoerelseDato: tryParseIso(eo.endeligEETAfgoerelseDato),
     verserendeKlageEet: eo.verserendeKlageEet,

@@ -25,10 +25,10 @@ export const resolveOevrigeKravEetKlageReguleringsLinje = (
   if (eoValues.verserendeKlageEet !== 'Ja') return null;
 
   const harMidlertidigEetOplysning =
-    eoValues.midlertidigtEetAfgorelse === 'Ja' &&
+    eoValues.midlertidigtEETAfgorelse === 'Ja' &&
     (eoValues.midlertidigEETVirkningsdato !== undefined || eoValues.midlertidigEETAfgoerelseDato !== undefined);
   const harEndeligEetOplysning =
-    eoValues.endeligtEetAfgorelse === 'Ja' &&
+    eoValues.endeligtEETAfgorelse === 'Ja' &&
     (eoValues.endeligEETVirkningsdato !== undefined || eoValues.endeligEETAfgoerelseDato !== undefined);
 
   if (!harMidlertidigEetOplysning && !harEndeligEetOplysning) return null;

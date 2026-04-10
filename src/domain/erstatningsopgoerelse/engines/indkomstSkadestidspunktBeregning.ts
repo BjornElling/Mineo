@@ -35,11 +35,11 @@ export const buildIndkomstSkadestidspunkt = (
   const loenBaseretPaa = getAngivetLoenBaseretPaa(values)?.trim() ?? '';
   const skadedato = isISODateString(stamdataValues.skadedato) ? stamdataValues.skadedato : null;
 
-  const periodeTilBeregningFra = values.periodeTilBeregningFra;
-  const periodeTilBeregningTil = values.periodeTilBeregningTil;
+  const tafBeregningsperiodeFra = values.tafBeregningsperiodeFra;
+  const tafBeregningsperiodeTil = values.tafBeregningsperiodeTil;
   const periodeTilBeregning =
-    periodeTilBeregningFra && periodeTilBeregningTil
-      ? { fra: periodeTilBeregningFra, til: periodeTilBeregningTil }
+    tafBeregningsperiodeFra && tafBeregningsperiodeTil
+      ? { fra: tafBeregningsperiodeFra, til: tafBeregningsperiodeTil }
       : null;
 
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
@@ -80,7 +80,7 @@ export const buildIndkomstSkadestidspunkt = (
           beregnesUdFra: values.beregnesUdFra,
           angivetLoenMetodeOpreguleresFraDato: undefined,
           saerligFraDatoRegulering: isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
-          beregningsperiodeTil: values.periodeTilBeregningTil,
+          beregningsperiodeTil: values.tafBeregningsperiodeTil,
           skadedato: skadedato ?? undefined,
         });
         const satser = (() => {

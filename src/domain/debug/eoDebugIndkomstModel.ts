@@ -252,7 +252,7 @@ export const buildIndkomstSectionStatuses = (
       beregnesUdFra: values.beregnesUdFra,
       angivetLoenMetodeOpreguleresFraDato,
       saerligFraDatoRegulering: af.saerligFraDatoRegulering,
-      beregningsperiodeTil: values.periodeTilBeregningTil,
+      beregningsperiodeTil: values.tafBeregningsperiodeTil,
       skadedato,
     });
     const satserErrorField = resolveSatserErrorField(af, anvendtReguleringsdato);

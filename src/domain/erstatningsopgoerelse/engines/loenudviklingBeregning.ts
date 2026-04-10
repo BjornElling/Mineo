@@ -1471,7 +1471,7 @@ const resolveAnvendtReguleringsdato = (
   beregnesUdFra: eoValues.beregnesUdFra,
   angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
   saerligFraDatoRegulering: isISODateString(af?.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
-  beregningsperiodeTil: eoValues.periodeTilBeregningTil,
+  beregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
   skadedato,
 });
 

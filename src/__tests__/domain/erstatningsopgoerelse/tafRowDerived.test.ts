@@ -219,8 +219,8 @@ describe('buildBeregningsperiodeTafOverlap', () => {
   it('returnerer overlap-struktur for gyldig beregningsperiode og taf-periode', () => {
     const result = buildBeregningsperiodeTafOverlap({
       values: makeValues({
-        periodeTilBeregningFra: iso('2024-01-01'),
-        periodeTilBeregningTil: iso('2024-06-30'),
+        tafBeregningsperiodeFra: iso('2024-01-01'),
+        tafBeregningsperiodeTil: iso('2024-06-30'),
       }),
       tafPerioder: [makeTafRow('r1', '2024-03-01', '2024-04-30')],
     });
@@ -232,8 +232,8 @@ describe('buildBeregningsperiodeTafOverlap', () => {
   it('returnerer korrekt struktur med tom tafPerioder', () => {
     const result = buildBeregningsperiodeTafOverlap({
       values: makeValues({
-        periodeTilBeregningFra: iso('2024-01-01'),
-        periodeTilBeregningTil: iso('2024-12-31'),
+        tafBeregningsperiodeFra: iso('2024-01-01'),
+        tafBeregningsperiodeTil: iso('2024-12-31'),
       }),
       tafPerioder: [],
     });
@@ -243,8 +243,8 @@ describe('buildBeregningsperiodeTafOverlap', () => {
   it('håndterer rækker med manglende datoer', () => {
     const result = buildBeregningsperiodeTafOverlap({
       values: makeValues({
-        periodeTilBeregningFra: iso('2024-01-01'),
-        periodeTilBeregningTil: iso('2024-12-31'),
+        tafBeregningsperiodeFra: iso('2024-01-01'),
+        tafBeregningsperiodeTil: iso('2024-12-31'),
       }),
       tafPerioder: [
         makeTafRow('r1', undefined, '2024-06-30'),

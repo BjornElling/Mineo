@@ -76,8 +76,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     eoValues.eoNummer = '2';
     eoValues.vedroererPeriodeFra = undefined;
     eoValues.vedroererPeriodeTil = undefined;
-    eoValues.periodeTilBeregningFra = undefined;
-    eoValues.periodeTilBeregningTil = undefined;
+    eoValues.tafBeregningsperiodeFra = undefined;
+    eoValues.tafBeregningsperiodeTil = undefined;
 
     const ranges = buildBilagIndkomstYdelserRanges(eoValues, 'Perioden');
     expect(ranges).toHaveLength(0);
@@ -349,8 +349,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   it('skjuler regulering-bilag ved Beregningsperiode når alle arbejdsgivere med indkomst er sat til Ingen', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningFra = iso('2025-01-01');
-    eoValues.periodeTilBeregningTil = iso('2025-01-31');
+    eoValues.tafBeregningsperiodeFra = iso('2025-01-01');
+    eoValues.tafBeregningsperiodeTil = iso('2025-01-31');
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
         id: 'af-1',
@@ -377,8 +377,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   it('medtager regulering-bilag ved Beregningsperiode når en arbejdsgiver med indkomst ikke er Ingen', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningFra = iso('2025-01-01');
-    eoValues.periodeTilBeregningTil = iso('2025-01-31');
+    eoValues.tafBeregningsperiodeFra = iso('2025-01-01');
+    eoValues.tafBeregningsperiodeTil = iso('2025-01-31');
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
         id: 'af-1',
@@ -400,8 +400,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   it('medtager regulering-bilag ved Beregningsperiode når ingen kilder har indkomst i perioden', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningFra = iso('2025-01-01');
-    eoValues.periodeTilBeregningTil = iso('2025-01-31');
+    eoValues.tafBeregningsperiodeFra = iso('2025-01-01');
+    eoValues.tafBeregningsperiodeTil = iso('2025-01-31');
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
         id: 'af-1',
@@ -416,8 +416,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   it('medtager regulering-bilag ved Beregningsperiode når der ikke er ansættelsesforhold', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningFra = iso('2025-01-01');
-    eoValues.periodeTilBeregningTil = iso('2025-01-31');
+    eoValues.tafBeregningsperiodeFra = iso('2025-01-01');
+    eoValues.tafBeregningsperiodeTil = iso('2025-01-31');
     eoValues.loenindkomstAnsaettelsesforhold = [];
 
     expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
@@ -462,8 +462,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
   it('ignorerer EO-oplysninger lønudvikling når beregningsgrundlag er Beregningsperiode', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningFra = iso('2025-01-01');
-    eoValues.periodeTilBeregningTil = iso('2025-01-31');
+    eoValues.tafBeregningsperiodeFra = iso('2025-01-01');
+    eoValues.tafBeregningsperiodeTil = iso('2025-01-31');
     eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Ingen';
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({

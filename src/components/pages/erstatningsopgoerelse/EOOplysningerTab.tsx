@@ -737,8 +737,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     | 'endeligEETVirkningsdato'
     | 'differencekravDato'
     | 'sidsteDagAnsaettelsesforhold'
-    | 'periodeTilBeregningFra'
-    | 'periodeTilBeregningTil'
+    | 'tafBeregningsperiodeFra'
+    | 'tafBeregningsperiodeTil'
     | 'angivetMaanedsloenOpreguleresFraDato'
     | 'angivetDagsloenOpreguleresFraDato';
 
@@ -1026,12 +1026,12 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
   // Beregn endelig EET startdato - kun hvis synlig
   const endeligEETBeregnetDato = React.useMemo(() => {
-    const endeligEetErSynlig = values.endeligtEetAfgorelse === 'Ja';
+    const endeligEetErSynlig = values.endeligtEETAfgorelse === 'Ja';
     if (!endeligEetErSynlig) return undefined;
 
     // Hvis virkningsdato er udfyldt, brug den, ellers brug afgørelsesdato
     return values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato;
-  }, [values.endeligtEetAfgorelse, values.endeligEETVirkningsdato, values.endeligEETAfgoerelseDato]);
+  }, [values.endeligtEETAfgorelse, values.endeligEETVirkningsdato, values.endeligEETAfgoerelseDato]);
 
   // Midlertidig EET-dato som TAF-afgrænsning — kun aktiv ved skadedato < 2011-06-16.
   const midlertidigEETBeregnetDato = React.useMemo(
@@ -1337,13 +1337,13 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Truffet afgørelse om midlertidigt erhvervsevnetab på 15 % eller derover</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
-              checked={getChecked(values.midlertidigtEetAfgorelse)}
-              onCommit={handleToggleChange('midlertidigtEetAfgorelse')}
+              checked={getChecked(values.midlertidigtEETAfgorelse)}
+              onCommit={handleToggleChange('midlertidigtEETAfgorelse')}
             />
           </Box>
         </Box>
 
-        {getChecked(values.midlertidigtEetAfgorelse) && (
+        {getChecked(values.midlertidigtEETAfgorelse) && (
           <>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Dato for første midlertidige erhvervsevnetabsafgørelse</Typography>
@@ -1389,13 +1389,13 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Truffet afgørelse om endeligt erhvervsevnetab på 15 % eller derover</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
-              checked={getChecked(values.endeligtEetAfgorelse)}
-              onCommit={handleToggleChange('endeligtEetAfgorelse')}
+              checked={getChecked(values.endeligtEETAfgorelse)}
+              onCommit={handleToggleChange('endeligtEETAfgorelse')}
             />
           </Box>
         </Box>
 
-        {getChecked(values.endeligtEetAfgorelse) && (
+        {getChecked(values.endeligtEETAfgorelse) && (
           <>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Dato for endelig erhvervsevnetabsafgørelse</Typography>
@@ -1437,7 +1437,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           Øvrigt
         </Typography>
 
-        {(getChecked(values.midlertidigtEetAfgorelse) || getChecked(values.endeligtEetAfgorelse)) && (
+        {(getChecked(values.midlertidigtEETAfgorelse) || getChecked(values.endeligtEETAfgorelse)) && (
           <Box className="row--label-right-hover">
             <Typography className="row--text">Verserende klagesag over EET-afgørelse?</Typography>
             <Box className="row--label-right-hover__content">
@@ -1694,15 +1694,15 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <Box className="row--label-right-hover__content">
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                       <StyledDateField
-                        value={values.periodeTilBeregningFra}
-                        onCommit={handleIsoDateBlur('periodeTilBeregningFra')}
+                        value={values.tafBeregningsperiodeFra}
+                        onCommit={handleIsoDateBlur('tafBeregningsperiodeFra')}
                         error={beregningsperiodeTafOverlap.firstOverlapMessage !== undefined}
                         helperText={beregningsperiodeTafOverlap.firstOverlapMessage ?? ''}
                       />
                       <Typography sx={{ minWidth: 'auto' }}>til:</Typography>
                       <StyledDateField
-                        value={values.periodeTilBeregningTil}
-                        onCommit={handleIsoDateBlur('periodeTilBeregningTil')}
+                        value={values.tafBeregningsperiodeTil}
+                        onCommit={handleIsoDateBlur('tafBeregningsperiodeTil')}
                         error={beregningsperiodeTafOverlap.firstOverlapMessage !== undefined}
                         helperText={beregningsperiodeTafOverlap.firstOverlapMessage ?? ''}
                       />
@@ -1718,8 +1718,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   onFieldChange={fravaer.onFieldChange}
                   onRowBlur={(rowId) => fravaer.onFieldBlur(rowId)}
                   onRowsReorder={fravaer.reorderRows}
-                  beregningsperiodeFra={values.periodeTilBeregningFra}
-                  beregningsperiodeTil={values.periodeTilBeregningTil}
+                  beregningsperiodeFra={values.tafBeregningsperiodeFra}
+                  beregningsperiodeTil={values.tafBeregningsperiodeTil}
                   saveOrderPath="erstatningsopgoerelse.fravaerPerioder"
                 />
 

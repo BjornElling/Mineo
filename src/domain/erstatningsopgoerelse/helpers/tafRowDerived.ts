@@ -54,8 +54,8 @@ export const buildBeregningsperiodeTafOverlap = (args: {
 }) => {
   return computeTafOverlapWithBeregningsperiode({
     beregningsperiode: {
-      fra: args.values.periodeTilBeregningFra,
-      til: args.values.periodeTilBeregningTil,
+      fra: args.values.tafBeregningsperiodeFra,
+      til: args.values.tafBeregningsperiodeTil,
     },
     tafPerioder: args.tafPerioder.map((row) => ({ id: row.id, fra: row.fra, til: row.til })),
   });

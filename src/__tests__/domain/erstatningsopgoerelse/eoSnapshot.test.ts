@@ -107,8 +107,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.periodeTilBeregningFra = '2023-01-01';
-    eoValues.periodeTilBeregningTil = '2023-12-31';
+    eoValues.tafBeregningsperiodeFra = '2023-01-01';
+    eoValues.tafBeregningsperiodeTil = '2023-12-31';
     eoValues.tafPerioder = [
       { id: 'r1', fra: '2024-01-01', til: '2024-06-30', loseFeriedage: 0 },
       { id: 'r2', fra: '2024-06-15', til: '2024-12-31', loseFeriedage: 0 },
@@ -134,8 +134,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.periodeTilBeregningFra = '2023-01-01';
-    eoValues.periodeTilBeregningTil = '2023-12-31';
+    eoValues.tafBeregningsperiodeFra = '2023-01-01';
+    eoValues.tafBeregningsperiodeTil = '2023-12-31';
     eoValues.differencekravDato = '2024-07-01';
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
@@ -167,8 +167,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-06-30';
-    eoValues.periodeTilBeregningFra = '2023-01-01';
-    eoValues.periodeTilBeregningTil = '2023-12-31';
+    eoValues.tafBeregningsperiodeFra = '2023-01-01';
+    eoValues.tafBeregningsperiodeTil = '2023-12-31';
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
         loenudviklingBeregningsgrundlag: 'Ingen',
@@ -314,8 +314,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.periodeTilBeregningFra = '2024-01-01';
-    eoValues.periodeTilBeregningTil = '2024-01-31';
+    eoValues.tafBeregningsperiodeFra = '2024-01-01';
+    eoValues.tafBeregningsperiodeTil = '2024-01-31';
     eoValues.tafPerioder = [
       { id: 'r1', fra: '2024-01-01', til: '2024-01-05', loseFeriedage: 10 },
     ];
@@ -336,8 +336,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.periodeTilBeregningFra = '2024-01-01';
-    eoValues.periodeTilBeregningTil = '2024-01-05';
+    eoValues.tafBeregningsperiodeFra = '2024-01-01';
+    eoValues.tafBeregningsperiodeTil = '2024-01-05';
     eoValues.uspecificeredeFerieFridage = 10;
 
     const snapshot = computeEoSnapshot({
@@ -356,8 +356,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.periodeTilBeregningFra = '2023-01-01';
-    eoValues.periodeTilBeregningTil = '2023-12-31';
+    eoValues.tafBeregningsperiodeFra = '2023-01-01';
+    eoValues.tafBeregningsperiodeTil = '2023-12-31';
     eoValues.tafPerioder = [
       { id: 'taf-1', fra: '2024-01-01', til: '2024-01-31', loseFeriedage: 0 },
     ];
@@ -463,8 +463,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.periodeTilBeregningFra = '2023-01-01';
-    eoValues.periodeTilBeregningTil = '2023-12-31';
+    eoValues.tafBeregningsperiodeFra = '2023-01-01';
+    eoValues.tafBeregningsperiodeTil = '2023-12-31';
     eoValues.tafPerioder = [
       { id: 'r1', fra: '2024-01-01', til: '2024-06-30', loseFeriedage: 0 },
       { id: 'r2', fra: '2024-06-15', til: '2024-12-31', loseFeriedage: 0 },
@@ -490,8 +490,8 @@ describe('computeEoSnapshot', () => {
     eoValues.vedroererPeriodeTil = '2025-12-21';
     eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningFra = '2023-01-01';
-    eoValues.periodeTilBeregningTil = '2023-12-31';
+    eoValues.tafBeregningsperiodeFra = '2023-01-01';
+    eoValues.tafBeregningsperiodeTil = '2023-12-31';
     eoValues.tafPerioder = [
       { id: 'taf-1', fra: '2024-01-01', til: '2024-03-31', loseFeriedage: 0 },
     ];
@@ -580,8 +580,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.periodeTilBeregningFra = '2023-01-01';
-    eoValues.periodeTilBeregningTil = '2023-12-31';
+    eoValues.tafBeregningsperiodeFra = '2023-01-01';
+    eoValues.tafBeregningsperiodeTil = '2023-12-31';
     eoValues.tafPerioder = [
       { id: 'taf-1', fra: '2024-01-01', til: '2024-06-30', loseFeriedage: 0 },
     ];

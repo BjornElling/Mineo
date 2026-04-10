@@ -162,8 +162,8 @@ const buildBaseInput = () => {
   eo.beregnesUdFra = 'Beregningsperiode';
   eo.vedroererPeriodeFra = iso('2024-01-01');
   eo.vedroererPeriodeTil = iso('2024-01-31');
-  eo.periodeTilBeregningFra = iso('2024-01-01');
-  eo.periodeTilBeregningTil = iso('2024-01-31');
+  eo.tafBeregningsperiodeFra = iso('2024-01-01');
+  eo.tafBeregningsperiodeTil = iso('2024-01-31');
   eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined }];
 
   eo.loenindkomstAnsaettelsesforhold = [
@@ -355,8 +355,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     stamdata.skadedato = iso('2023-07-01');
     eo.vedroererPeriodeFra = iso('2023-07-01');
     eo.vedroererPeriodeTil = iso('2025-12-21');
-    eo.periodeTilBeregningFra = iso('2023-07-01');
-    eo.periodeTilBeregningTil = iso('2023-07-31');
+    eo.tafBeregningsperiodeFra = iso('2023-07-01');
+    eo.tafBeregningsperiodeTil = iso('2023-07-31');
     eo.tafPerioder = [{ id: 'taf-1', fra: iso('2023-07-01'), til: iso('2025-12-21'), loseFeriedage: undefined }];
     eo.loenindkomstAnsaettelsesforhold = [
       createEmployment({
@@ -702,8 +702,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.opgørelseLavetDen = iso('2014-02-01');
     eo.vedroererPeriodeFra = iso('2014-01-01');
     eo.vedroererPeriodeTil = iso('2014-12-31');
-    eo.periodeTilBeregningFra = iso('2014-01-01');
-    eo.periodeTilBeregningTil = iso('2014-01-31');
+    eo.tafBeregningsperiodeFra = iso('2014-01-01');
+    eo.tafBeregningsperiodeTil = iso('2014-01-31');
     eo.tafPerioder = [{
       id: 'taf-1',
       fra: iso('2014-01-01'),
@@ -755,8 +755,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.eoNummer = '2';
     eo.vedroererPeriodeFra = iso('2012-05-01');
     eo.vedroererPeriodeTil = iso('2012-10-31');
-    eo.periodeTilBeregningFra = iso('2012-05-01');
-    eo.periodeTilBeregningTil = iso('2012-05-31');
+    eo.tafBeregningsperiodeFra = iso('2012-05-01');
+    eo.tafBeregningsperiodeTil = iso('2012-05-31');
     eo.tafPerioder = [{ id: 'taf-1', fra: iso('2012-05-01'), til: iso('2012-10-31'), loseFeriedage: undefined }];
     eo.loenindkomstAnsaettelsesforhold = [
       createEmployment({
@@ -981,7 +981,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const document = buildProjectedDocument(stamdata, eo);
     const renderValues = structuredClone(eo);
     renderValues.vedroererPeriodeTil = iso('2025-02-01');
-    renderValues.periodeTilBeregningTil = iso('2025-02-01');
+    renderValues.tafBeregningsperiodeTil = iso('2025-02-01');
     renderValues.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-26'), til: iso('2025-02-01'), loseFeriedage: undefined }];
     renderValues.loenindkomstAnsaettelsesforhold[0] = createEmployment({
       id: 'af-1',
@@ -1159,8 +1159,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.beregnesUdFra = 'Beregningsperiode';
     eo.vedroererPeriodeFra = iso('2024-12-30');
     eo.vedroererPeriodeTil = iso('2025-01-03');
-    eo.periodeTilBeregningFra = iso('2024-12-01');
-    eo.periodeTilBeregningTil = iso('2024-12-31');
+    eo.tafBeregningsperiodeFra = iso('2024-12-01');
+    eo.tafBeregningsperiodeTil = iso('2024-12-31');
     eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-12-30'), til: iso('2025-01-03'), loseFeriedage: undefined }];
     eo.loenindkomstAnsaettelsesforhold = [
       createEmployment({
@@ -1225,8 +1225,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.beregnesUdFra = 'Beregningsperiode';
     eo.vedroererPeriodeFra = iso('2024-01-29');
     eo.vedroererPeriodeTil = iso('2024-02-06');
-    eo.periodeTilBeregningFra = iso('2024-01-01');
-    eo.periodeTilBeregningTil = iso('2024-01-31');
+    eo.tafBeregningsperiodeFra = iso('2024-01-01');
+    eo.tafBeregningsperiodeTil = iso('2024-01-31');
     eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-29'), til: iso('2024-02-06'), loseFeriedage: undefined }];
     eo.ferieperioder = [{ id: 'ferie-1', fra: iso('2024-02-01'), til: iso('2024-02-02') }];
     eo.loenindkomstAnsaettelsesforhold = [
@@ -1358,8 +1358,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.beregnesUdFra = 'Beregningsperiode';
     eo.vedroererPeriodeFra = iso('2024-01-29');
     eo.vedroererPeriodeTil = iso('2024-02-06');
-    eo.periodeTilBeregningFra = iso('2024-01-01');
-    eo.periodeTilBeregningTil = iso('2024-01-31');
+    eo.tafBeregningsperiodeFra = iso('2024-01-01');
+    eo.tafBeregningsperiodeTil = iso('2024-01-31');
     eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-29'), til: iso('2024-02-06'), loseFeriedage: undefined }];
     eo.ferieperioder = [{ id: 'ferie-1', fra: iso('2024-02-01'), til: iso('2024-02-02') }];
     eo.sfggAnsaettelsesforhold = [{
@@ -1505,7 +1505,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
         tillaeg: undefined,
       },
     ];
-    eo.midlertidigtEetAfgorelse = 'Ja';
+    eo.midlertidigtEETAfgorelse = 'Ja';
     eo.midlertidigEETVirkningsdato = iso('2024-02-01');
     eo.verserendeKlageEet = 'Ja';
     eo.oevrigeKravPerioder = [
@@ -1525,7 +1525,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser klage-reguleringslinje i "Øvrige krav" også uden ydelsesforbehold', () => {
     const { stamdata, eo } = buildBaseInput();
-    eo.endeligtEetAfgorelse = 'Ja';
+    eo.endeligtEETAfgorelse = 'Ja';
     eo.endeligEETVirkningsdato = iso('2024-03-01');
     eo.verserendeKlageEet = 'Ja';
 
@@ -1548,7 +1548,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
         tillaeg: undefined,
       },
     ];
-    eo.endeligtEetAfgorelse = 'Ja';
+    eo.endeligtEETAfgorelse = 'Ja';
     eo.endeligEETVirkningsdato = iso('2024-03-01');
     eo.verserendeKlageEet = 'Ja';
     eo.oevrigeKravPerioder = [

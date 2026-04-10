@@ -32,8 +32,8 @@ const buildRows = (
     .find((value): value is string => value !== undefined);
   snapshotValues.vedroererPeriodeFra ??= tafFra ?? '2024-01-01';
   snapshotValues.vedroererPeriodeTil ??= tafTil ?? '2024-01-31';
-  snapshotValues.periodeTilBeregningFra ??= '2024-01-01';
-  snapshotValues.periodeTilBeregningTil ??= '2024-01-31';
+  snapshotValues.tafBeregningsperiodeFra ??= '2024-01-01';
+  snapshotValues.tafBeregningsperiodeTil ??= '2024-01-31';
   if (snapshotValues.beregnesUdFra === 'Angivet dagsløn' && snapshotValues.dagsloenenUdgoer === undefined) {
     snapshotValues.dagsloenenUdgoer = { kind: 'number', value: 100 };
   }
@@ -93,8 +93,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
 
   it('viser bemærkning og fejl på sfggSatsvalg ved differentieret direkte SFGG-sats', () => {
     const values = createValues();
-    values.periodeTilBeregningFra = '2014-06-01';
-    values.periodeTilBeregningTil = '2014-06-30';
+    values.tafBeregningsperiodeFra = '2014-06-01';
+    values.tafBeregningsperiodeTil = '2014-06-30';
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       harOverenskomst: true,
@@ -588,8 +588,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Beregningsperiode';
-    values.periodeTilBeregningFra = '2024-01-01';
-    values.periodeTilBeregningTil = '2024-01-31';
+    values.tafBeregningsperiodeFra = '2024-01-01';
+    values.tafBeregningsperiodeTil = '2024-01-31';
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       harOverenskomst: true,
@@ -1124,8 +1124,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Beregningsperiode';
-    values.periodeTilBeregningFra = '2023-12-01';
-    values.periodeTilBeregningTil = '2023-12-31';
+    values.tafBeregningsperiodeFra = '2023-12-01';
+    values.tafBeregningsperiodeTil = '2023-12-31';
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       harOverenskomst: true,
@@ -1181,8 +1181,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Beregningsperiode';
-    values.periodeTilBeregningFra = '2024-12-01';
-    values.periodeTilBeregningTil = '2024-12-31';
+    values.tafBeregningsperiodeFra = '2024-12-01';
+    values.tafBeregningsperiodeTil = '2024-12-31';
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       harOverenskomst: true,

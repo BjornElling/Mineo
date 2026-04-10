@@ -132,10 +132,10 @@ const aesAfgoerelserSchema = z.object({
   varigeMenAfgorelse: jaNejEnum,
   menAfgoerelseDato: optionalIsoDateString,
   verserendeKlageMen: jaNejEnum,
-  midlertidigtEetAfgorelse: jaNejEnum,
+  midlertidigtEETAfgorelse: jaNejEnum,
   midlertidigEETAfgoerelseDato: optionalIsoDateString,
   midlertidigEETVirkningsdato: optionalIsoDateString,
-  endeligtEetAfgorelse: jaNejEnum,
+  endeligtEETAfgorelse: jaNejEnum,
   endeligEETAfgoerelseDato: optionalIsoDateString,
   endeligEETVirkningsdato: optionalIsoDateString,
   verserendeKlageEet: jaNejEnum,
@@ -166,8 +166,8 @@ const tafSchema = z.object({
 const indtaegtFoerSkadenSchema = z.object({
   komprimerBeregningEfterFoersteOpgoerelse: jaNejEnum.default('Ja'),
   beregnesUdFra: beregningsmetodeEnum,
-  periodeTilBeregningFra: optionalIsoDateString,
-  periodeTilBeregningTil: optionalIsoDateString,
+  tafBeregningsperiodeFra: optionalIsoDateString,
+  tafBeregningsperiodeTil: optionalIsoDateString,
   fravaerPerioder: z.array(ferieperiodeRowSchema),
   uspecificeredeFerieFridage: dayCount,
   oevrigtFravaerUdenLoen: jaNejEnum,
@@ -228,7 +228,7 @@ const erstatningsopgoerelseBaseSchema = z.object({
   forligDato: optionalIsoDateString,
   oevrigeKravPerioder: z.array(oevrigeKravRowSchema),
   offentligeYdelserRows: z.array(offentligeYdelserRowSchema),
-  midlertidigtEetAfgoerelseGrupper: z.array(z.object({
+  midlertidigtEETAfgoerelseGrupper: z.array(z.object({
     afgoerelsesdato: isoDateString,
     rowIds: z.array(z.string()),
   }).strict()).default([]),

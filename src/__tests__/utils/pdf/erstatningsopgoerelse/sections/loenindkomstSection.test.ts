@@ -37,8 +37,8 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
   const eoValues = createErstatningsopgoerelseInitialValues();
   eoValues.beregnesUdFra = 'Beregningsperiode';
   eoValues.eoNummer = '1';
-  eoValues.periodeTilBeregningFra = iso('2024-01-01');
-  eoValues.periodeTilBeregningTil = iso('2024-01-31');
+  eoValues.tafBeregningsperiodeFra = iso('2024-01-01');
+  eoValues.tafBeregningsperiodeTil = iso('2024-01-31');
   eoValues.tafPerioder = [
     {
       id: 'taf-1',

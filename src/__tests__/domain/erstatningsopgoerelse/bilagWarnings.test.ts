@@ -35,18 +35,18 @@ describe('resolveBilagWarning', () => {
   });
 
   describe('bilagsnumreEetAfgoerelser', () => {
-    it('ingen advarsel når midlertidigtEetAfgorelse er Ja', () => {
-      const values = makeValues({ midlertidigtEetAfgorelse: 'Ja' });
+    it('ingen advarsel når midlertidigtEETAfgorelse er Ja', () => {
+      const values = makeValues({ midlertidigtEETAfgorelse: 'Ja' });
       expect(resolveBilagWarning(values, 'bilagsnumreEetAfgoerelser', '2')).toBeNull();
     });
 
-    it('ingen advarsel når endeligtEetAfgorelse er Ja', () => {
-      const values = makeValues({ endeligtEetAfgorelse: 'Ja' });
+    it('ingen advarsel når endeligtEETAfgorelse er Ja', () => {
+      const values = makeValues({ endeligtEETAfgorelse: 'Ja' });
       expect(resolveBilagWarning(values, 'bilagsnumreEetAfgoerelser', '2')).toBeNull();
     });
 
     it('advarsel når hverken midlertidigt eller endeligt EET er Ja', () => {
-      const values = makeValues({ midlertidigtEetAfgorelse: 'Nej', endeligtEetAfgorelse: 'Nej' });
+      const values = makeValues({ midlertidigtEETAfgorelse: 'Nej', endeligtEETAfgorelse: 'Nej' });
       expect(resolveBilagWarning(values, 'bilagsnumreEetAfgoerelser', '2')).not.toBeNull();
     });
   });

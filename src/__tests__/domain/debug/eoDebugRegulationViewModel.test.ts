@@ -11,7 +11,7 @@ describe('buildRegulationDebugSections', () => {
   it('bygger også beregnet reguleringstabel for ASL-årslønsmaksimum', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningTil = iso('2023-05-24');
+    eoValues.tafBeregningsperiodeTil = iso('2023-05-24');
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
         ...eoValues.loenindkomstAnsaettelsesforhold[0],
@@ -173,7 +173,7 @@ describe('buildRegulationDebugSections', () => {
   it('falder tilbage til tidslinje/TAF-perioder når canonical per-ansættelse-segmenter mangler', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningTil = iso('2023-05-24');
+    eoValues.tafBeregningsperiodeTil = iso('2023-05-24');
     eoValues.tafPerioder = [
       {
         id: 'taf-1',
@@ -308,7 +308,7 @@ describe('buildRegulationDebugSections', () => {
   it('sammenklapper uændrede reguleringsværdier og indeksperioder i debug-tabellerne', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningTil = iso('2020-01-01');
+    eoValues.tafBeregningsperiodeTil = iso('2020-01-01');
     eoValues.tafPerioder = [
       {
         id: 'taf-1',
@@ -580,7 +580,7 @@ describe('buildRegulationDebugSections', () => {
   it('afgrænser første debug-tabel til den konkrete ansættelses segmentdækning', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningTil = iso('2024-01-26');
+    eoValues.tafBeregningsperiodeTil = iso('2024-01-26');
     eoValues.vedroererPeriodeFra = iso('2024-01-26');
     eoValues.vedroererPeriodeTil = iso('2025-05-31');
     eoValues.loenindkomstAnsaettelsesforhold = [
@@ -749,7 +749,7 @@ describe('buildRegulationDebugSections', () => {
   it('viser en særskilt række på manuel reguleringsdato i første debug-tabel selv når TAF starter senere', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningTil = iso('2024-01-26');
+    eoValues.tafBeregningsperiodeTil = iso('2024-01-26');
     eoValues.loenindkomstAnsaettelsesforhold = [
       {
         ...eoValues.loenindkomstAnsaettelsesforhold[0],

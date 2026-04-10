@@ -33,7 +33,7 @@ const makeInput = (): {
     ...createErstatningsopgoerelseInitialValues(),
     vedroererPeriodeFra: '2024-01-01',
     vedroererPeriodeTil: '2024-12-31',
-    periodeTilBeregningTil: '2024-01-01',
+    tafBeregningsperiodeTil: '2024-01-01',
     svieSmerteSatserAar: 2024,
     svieSmerteDelvisSygemeldingSats: 'halv',
     loenindkomstAnsaettelsesforhold: [
@@ -97,7 +97,7 @@ describe('buildRegulationTimeline - Index model', () => {
     input.eoValues.vedroererPeriodeTil = '2024-06-01';
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.SH_UDBETALING;
     input.stamdataValues.skadedato = iso('2023-12-01');
-    input.eoValues.periodeTilBeregningTil = iso('2023-12-01');
+    input.eoValues.tafBeregningsperiodeTil = iso('2023-12-01');
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
@@ -112,7 +112,7 @@ describe('buildRegulationTimeline - Index model', () => {
     input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = 'industriens-overenskomst';
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.SH_UDBETALING;
     input.stamdataValues.skadedato = iso('2023-12-01');
-    input.eoValues.periodeTilBeregningTil = iso('2023-12-01');
+    input.eoValues.tafBeregningsperiodeTil = iso('2023-12-01');
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
@@ -186,7 +186,7 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     input.eoValues.vedroererPeriodeFra = '2024-01-01';
     input.eoValues.vedroererPeriodeTil = '2024-12-31';
     input.stamdataValues.skadedato = iso('2023-11-01');
-    input.eoValues.periodeTilBeregningTil = iso('2023-11-01');
+    input.eoValues.tafBeregningsperiodeTil = iso('2023-11-01');
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
@@ -368,7 +368,7 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     input.eoValues.vedroererPeriodeFra = '2023-06-01';
     input.eoValues.vedroererPeriodeTil = '2026-02-04';
     input.stamdataValues.skadedato = iso('2023-05-24');
-    input.eoValues.periodeTilBeregningTil = iso('2023-05-24');
+    input.eoValues.tafBeregningsperiodeTil = iso('2023-05-24');
     input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'Manuelt angivet';
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingManuelNavn = 'overenskomst Tandlægeforening/HK';
@@ -420,7 +420,7 @@ describe('buildRegulationTimeline — periode-overgange', () => {
     input.eoValues.vedroererPeriodeFra = '2022-01-01';
     input.eoValues.vedroererPeriodeTil = '2024-12-31';
     input.stamdataValues.skadedato = iso('2022-01-01');
-    input.eoValues.periodeTilBeregningTil = iso('2022-01-01');
+    input.eoValues.tafBeregningsperiodeTil = iso('2022-01-01');
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
@@ -432,7 +432,7 @@ describe('buildRegulationTimeline — periode-overgange', () => {
     input.eoValues.vedroererPeriodeFra = '2022-01-01';
     input.eoValues.vedroererPeriodeTil = '2024-12-31';
     input.stamdataValues.skadedato = iso('2022-01-01');
-    input.eoValues.periodeTilBeregningTil = iso('2022-01-01');
+    input.eoValues.tafBeregningsperiodeTil = iso('2022-01-01');
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
@@ -449,7 +449,7 @@ describe('buildRegulationTimeline — periode-overgange', () => {
     input.eoValues.vedroererPeriodeFra = '2022-01-01';
     input.eoValues.vedroererPeriodeTil = '2024-12-31';
     input.stamdataValues.skadedato = iso('2022-01-01');
-    input.eoValues.periodeTilBeregningTil = iso('2022-01-01');
+    input.eoValues.tafBeregningsperiodeTil = iso('2022-01-01');
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
@@ -470,7 +470,7 @@ describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: '2024-01-01',
       vedroererPeriodeTil: '2024-12-31',
-      periodeTilBeregningTil: '2024-01-01',
+      tafBeregningsperiodeTil: '2024-01-01',
       svieSmerteSatserAar: 2024,
       svieSmerteDelvisSygemeldingSats: 'halv',
       loenindkomstAnsaettelsesforhold: [
@@ -552,7 +552,7 @@ describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
     input.eoValues.vedroererPeriodeFra = '2024-01-01';
     input.eoValues.vedroererPeriodeTil = '2024-12-31';
     input.stamdataValues.skadedato = iso('2023-11-01');
-    input.eoValues.periodeTilBeregningTil = iso('2023-11-01');
+    input.eoValues.tafBeregningsperiodeTil = iso('2023-11-01');
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
@@ -566,7 +566,7 @@ describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
     input.eoValues.vedroererPeriodeFra = '2023-06-01';
     input.eoValues.vedroererPeriodeTil = '2025-12-31';
     input.stamdataValues.skadedato = iso('2023-05-24');
-    input.eoValues.periodeTilBeregningTil = iso('2023-05-24');
+    input.eoValues.tafBeregningsperiodeTil = iso('2023-05-24');
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];

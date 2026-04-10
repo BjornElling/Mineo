@@ -61,8 +61,8 @@ describe('eetDomainIsolation', () => {
   it('bevarer aktive EO-EET felter i EOOplysningerTab', () => {
     const source = fs.readFileSync(EO_OPLYSNINGER_TAB_PATH, 'utf8');
 
-    expect(source).toContain("handleToggleChange('midlertidigtEetAfgorelse')");
-    expect(source).toContain("handleToggleChange('endeligtEetAfgorelse')");
+    expect(source).toContain("handleToggleChange('midlertidigtEETAfgorelse')");
+    expect(source).toContain("handleToggleChange('endeligtEETAfgorelse')");
     expect(source).toContain('value={values.midlertidigEETAfgoerelseDato}');
     expect(source).toContain('value={values.endeligEETAfgoerelseDato}');
     expect(source).toContain('checked={getChecked(values.verserendeKlageEet)}');
@@ -78,10 +78,10 @@ describe('eetDomainIsolation', () => {
     const pdfBuildersSource = fs.readFileSync(EO_PDF_BUILDERS_PATH, 'utf8');
     const pdfSource = `${pdfModelSource}\n${pdfBuildersSource}`;
 
-    expect(debugSource).toContain('erstatningsopgoerelseValues.midlertidigtEetAfgorelse');
-    expect(debugSource).toContain('erstatningsopgoerelseValues.endeligtEetAfgorelse');
-    expect(pdfSource).toContain('values.midlertidigtEetAfgorelse');
-    expect(pdfSource).toContain('values.endeligtEetAfgorelse');
+    expect(debugSource).toContain('erstatningsopgoerelseValues.midlertidigtEETAfgorelse');
+    expect(debugSource).toContain('erstatningsopgoerelseValues.endeligtEETAfgorelse');
+    expect(pdfSource).toContain('values.midlertidigtEETAfgorelse');
+    expect(pdfSource).toContain('values.endeligtEETAfgorelse');
   });
 
   it('forbyder at Erhvervsevnetab-siden læser EO/EET-data fra erstatningsopgoerelse-persistence', () => {

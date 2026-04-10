@@ -292,7 +292,7 @@ export const buildLoenindkomstColumns = (args: {
   const globalPeriodiseringErKalenderdage = computeTafBeregningsenhed(values) === TAF_BEREGNES_SOM.MAANEDER;
 
   const endeligEetDato =
-    values.endeligtEetAfgorelse === 'Ja' && values.verserendeKlageEet === 'Nej'
+    values.endeligtEETAfgorelse === 'Ja' && values.verserendeKlageEet === 'Nej'
       ? values.endeligEETVirkningsdato || values.endeligEETAfgoerelseDato
       : undefined;
   const differencekravDato = values.differencekravDato;

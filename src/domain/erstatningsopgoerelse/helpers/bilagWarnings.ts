@@ -18,7 +18,7 @@ export function resolveBilagWarning(values: ErstatningsopgoerelseValues, fieldNa
         ? 'Der er angivet bilagsnummer for ménafgørelse, men angivet at der ikke er truffet afgørelse'
         : null;
     case 'bilagsnumreEetAfgoerelser':
-      return values.midlertidigtEetAfgorelse !== 'Ja' && values.endeligtEetAfgorelse !== 'Ja'
+      return values.midlertidigtEETAfgorelse !== 'Ja' && values.endeligtEETAfgorelse !== 'Ja'
         ? 'Der er angivet bilagsnummer for EET-afgørelser, men angivet at der ikke er truffet afgørelse'
         : null;
     case 'bilagsnumreSvieSmerteDokumentation':

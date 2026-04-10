@@ -1438,8 +1438,8 @@ describe('computeSygeferiegodtgoerelse', () => {
     const baseValues = createErstatningsopgoerelseInitialValues();
     baseValues.eoNummer = '2';
     baseValues.beregnesUdFra = 'Beregningsperiode';
-    baseValues.periodeTilBeregningFra = iso('2023-01-01');
-    baseValues.periodeTilBeregningTil = iso('2023-12-31');
+    baseValues.tafBeregningsperiodeFra = iso('2023-01-01');
+    baseValues.tafBeregningsperiodeTil = iso('2023-12-31');
     baseValues.loenindkomstAnsaettelsesforhold = [createEmployment({
       feriePct: 12.5,
       indtaegtsoplysningerTableData: [{
@@ -1470,8 +1470,8 @@ describe('computeSygeferiegodtgoerelse', () => {
     }];
 
     const changedBeregningsperiodeValues = structuredClone(baseValues);
-    changedBeregningsperiodeValues.periodeTilBeregningFra = iso('2019-01-01');
-    changedBeregningsperiodeValues.periodeTilBeregningTil = iso('2019-06-30');
+    changedBeregningsperiodeValues.tafBeregningsperiodeFra = iso('2019-01-01');
+    changedBeregningsperiodeValues.tafBeregningsperiodeTil = iso('2019-06-30');
 
     const tafRanges = [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }] as const;
     const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') };

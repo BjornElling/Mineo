@@ -198,7 +198,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...createErstatningsopgoerelseInitialValues(), midlertidigtEetAfgorelse: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), midlertidigtEETAfgorelse: 'Nej' as const };
     const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
@@ -230,7 +230,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...createErstatningsopgoerelseInitialValues(), endeligtEetAfgorelse: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), endeligtEETAfgorelse: 'Nej' as const };
     const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,

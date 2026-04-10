@@ -41,8 +41,8 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
       <LoenindkomstTab
         loenindkomstAnsaettelsesforhold={eoValues.loenindkomstAnsaettelsesforhold}
         beregnesUdFra={eoValues.beregnesUdFra}
-        periodeTilBeregningFra={eoValues.periodeTilBeregningFra}
-        periodeTilBeregningTil={eoValues.periodeTilBeregningTil}
+        tafBeregningsperiodeFra={eoValues.tafBeregningsperiodeFra}
+        tafBeregningsperiodeTil={eoValues.tafBeregningsperiodeTil}
         ferieperioder={eoValues.ferieperioder}
         fravaerPerioder={eoValues.fravaerPerioder}
         eoValues={eoValues}
@@ -84,12 +84,12 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
     expect(screen.getByText('Satser på anmeldelsesdatoen (01-01-2024)')).toBeInTheDocument();
   });
 
-  it('viser Satser ved beregningsperiodens udløb når anvendt reguleringsdato er periodeTilBeregningTil', () => {
+  it('viser Satser ved beregningsperiodens udløb når anvendt reguleringsdato er tafBeregningsperiodeTil', () => {
     mockStamdata.skadedato = '2024-01-01';
     mockStamdata.skadestype = 'Arbejdsulykke';
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningTil = '2024-12-31';
+    eoValues.tafBeregningsperiodeTil = '2024-12-31';
     eoValues.loenindkomstAnsaettelsesforhold = [{
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       ansatPaaSkadestidspunktet: true,
@@ -107,7 +107,7 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
     const onAnsaettelsesforholdChange = vi.fn();
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningTil = '2024-01-01';
+    eoValues.tafBeregningsperiodeTil = '2024-01-01';
     eoValues.loenindkomstAnsaettelsesforhold = [{
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       harOverenskomst: true,
@@ -136,7 +136,7 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
     mockStamdata.skadestype = 'Arbejdsulykke';
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningTil = '2024-01-01';
+    eoValues.tafBeregningsperiodeTil = '2024-01-01';
     eoValues.loenindkomstAnsaettelsesforhold = [{
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       ansatPaaSkadestidspunktet: true,

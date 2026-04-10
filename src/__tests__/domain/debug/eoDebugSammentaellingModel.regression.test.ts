@@ -22,8 +22,8 @@ describe('buildEODebugSammentaellingModel regression', () => {
       vedroererPeriodeFra: '2025-08-01',
       vedroererPeriodeTil: '2026-01-31',
       beregnesUdFra: 'Beregningsperiode' as const,
-      periodeTilBeregningFra: '2025-08-01',
-      periodeTilBeregningTil: '2026-01-31',
+      tafBeregningsperiodeFra: '2025-08-01',
+      tafBeregningsperiodeTil: '2026-01-31',
       tafPerioder: [
         {
           id: 'taf-1',
@@ -116,7 +116,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
       vedroererPeriodeTil: '2024-01-10',
       beregnesUdFra: 'Angivet månedsløn' as const,
       beregnesTabtArbejdsfortjeneste: 'Ja' as const,
-      endeligtEetAfgorelse: 'Ja' as const,
+      endeligtEETAfgorelse: 'Ja' as const,
       verserendeKlageEet: 'Nej' as const,
       endeligEETVirkningsdato: '2024-01-06',
       tafPerioder: [
@@ -156,8 +156,8 @@ describe('buildEODebugSammentaellingModel regression', () => {
       vedroererPeriodeFra: '2025-08-01',
       vedroererPeriodeTil: '2026-01-31',
       beregnesUdFra: 'Angivet månedsløn' as const,
-      periodeTilBeregningFra: '2025-08-01',
-      periodeTilBeregningTil: '2026-01-31',
+      tafBeregningsperiodeFra: '2025-08-01',
+      tafBeregningsperiodeTil: '2026-01-31',
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',

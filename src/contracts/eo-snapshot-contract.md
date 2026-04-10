@@ -340,7 +340,7 @@ Dette afsnit er normativt for visning af tabt arbejdsfortjeneste i flere outputs
 
 ## 11. TAF-beregningsperiode og SFGG-referenceperiode er adskilte domæner
 
-`periodeTilBeregningFra` / `periodeTilBeregningTil` tilhører TAF-beregningsgrundlaget.
+`tafBeregningsperiodeFra` / `tafBeregningsperiodeTil` tilhører TAF-beregningsgrundlaget.
 SFGG-referenceperioden tilhører udelukkende den konkrete SFGG-række
 (`sfggAnsaettelsesforhold[].sfggReferenceperiodeFra/Til`).
 
@@ -362,10 +362,10 @@ Interne navngivningsregler:
 - Tvetydige interne symboler for SFGG-referenceperiode eller SFGG-afledte satser skal navngives med `sfgg`-præfiks, fx `sfggReferenceperiode`, `sfggReferencesats` og `sfggSource`.
 - Persisted schemafelter er kun undtaget fra denne regel, når stabile load/save-kontrakter kræver eksisterende feltnavne.
 
-Aktuel undtagelse:
-- TAF's persisted felter `periodeTilBeregningFra/Til` og root-feltet `beregnesUdFra` er fortsat uændrede af hensyn til den eksisterende EO-kontrakt.
-- SFGG-rækkens persisted felter er eksplicit omlagt til `sfgg`-præfiks, herunder `sfggBeregningskilde`. Ældre `.eo`-filer med de tidligere SFGG-feltnavne er derfor ikke bagudkompatible på dette punkt.
-- Denne bagudinkompatibilitet er fail-closed, ikke fail-fast: ved load af gamle SFGG-feltnavne parses rækken fortsat, men manglende `sfggBeregningskilde` behandles efterfølgende som `Ingen`. Det giver semantisk fravalg af SFGG i stedet for parse-fejl eller gætteri.
+Bagudinkompatibilitet:
+- TAF's persisted felter hedder nu `tafBeregningsperiodeFra`/`tafBeregningsperiodeTil` (tidligere `periodeTilBeregningFra`/`periodeTilBeregningTil`). Ældre `.eo`-filer med de tidligere feltnavne er ikke bagudkompatible på dette punkt.
+- SFGG-rækkens persisted felter er eksplicit omlagt til `sfgg`-præfiks, herunder `sfggBeregningskilde`. Ældre `.eo`-filer med de tidligere SFGG-feltnavne er ikke bagudkompatible på dette punkt.
+- Begge bagudinkompatibiliteter er fail-closed: manglende felter behandles som `undefined`/`Ingen` frem for parse-fejl.
 
 ## 12. EO-feltklassificering og bounds-model
 

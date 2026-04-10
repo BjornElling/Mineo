@@ -10,10 +10,10 @@ export type TafConstraintSource = Readonly<{
   vedroererPeriodeFra?: ISODateString | undefined;
   vedroererPeriodeTil?: ISODateString | undefined;
   differencekravDato?: ISODateString | undefined;
-  endeligtEetAfgorelse?: 'Ja' | 'Nej' | undefined;
+  endeligtEETAfgorelse?: 'Ja' | 'Nej' | undefined;
   endeligEETVirkningsdato?: ISODateString | undefined;
   endeligEETAfgoerelseDato?: ISODateString | undefined;
-  midlertidigtEetAfgorelse?: 'Ja' | 'Nej' | undefined;
+  midlertidigtEETAfgorelse?: 'Ja' | 'Nej' | undefined;
   midlertidigEETVirkningsdato?: ISODateString | undefined;
   midlertidigEETAfgoerelseDato?: ISODateString | undefined;
   verserendeKlageEet?: 'Ja' | 'Nej' | undefined;
@@ -36,7 +36,7 @@ const minDefined = (...values: Array<ISODateString | undefined>): ISODateString 
 };
 
 const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | undefined => {
-  if (values.endeligtEetAfgorelse !== 'Ja') return undefined;
+  if (values.endeligtEETAfgorelse !== 'Ja') return undefined;
   return values.endeligEETVirkningsdato ?? values.endeligEETAfgoerelseDato;
 };
 
@@ -44,7 +44,7 @@ const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | und
  * Returnerer den beregnede virkningsdato for midlertidig EET, hvis den er aktiv som TAF-afgrænsning.
  *
  * Betingelser:
- * - `midlertidigtEetAfgorelse = 'Ja'`
+ * - `midlertidigtEETAfgorelse = 'Ja'`
  * - Skadedato er angivet og ligger **før** TAF_MIDLERTIDIG_EET_SKAERINGSDATO (2011-06-16)
  *
  * Checker IKKE `verserendeKlageEet` — det er kalderens ansvar at udelade resultatet ved aktiv klage.
@@ -52,7 +52,7 @@ const resolveEndeligEetDato = (values: TafConstraintSource): ISODateString | und
  * Hvis blot én betingelse mangler, returneres undefined (ingen afgrænsning).
  */
 export const resolveMidlertidigEetDatoHvisAktiv = (values: TafConstraintSource): ISODateString | undefined => {
-  if (values.midlertidigtEetAfgorelse !== 'Ja') return undefined;
+  if (values.midlertidigtEETAfgorelse !== 'Ja') return undefined;
   if (!values.skadedatoISO || values.skadedatoISO >= TAF_MIDLERTIDIG_EET_SKAERINGSDATO) return undefined;
   return values.midlertidigEETVirkningsdato ?? values.midlertidigEETAfgoerelseDato;
 };

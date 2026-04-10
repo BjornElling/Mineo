@@ -80,11 +80,11 @@ export type DebugRowId =
   | 'forlig.dato'
   | 'aes.varigeMenAfgorelse'
   | 'aes.menAfgoerelseDato'
-  | 'aes.midlertidigtEetAfgorelse'
+  | 'aes.midlertidigtEETAfgorelse'
   | 'aes.midlertidigEETAfgoerelseDato'
   | 'aes.midlertidigEETVirkningsdato'
   | 'aes.beregnetMidlertidigEETStartdato'
-  | 'aes.endeligtEetAfgorelse'
+  | 'aes.endeligtEETAfgorelse'
   | 'aes.endeligEETAfgoerelseDato'
   | 'aes.endeligEETVirkningsdato'
   | 'aes.beregnetEndeligEETStartdato'
@@ -371,8 +371,8 @@ export const buildEODebugAesRows = (
 ): DebugRowModel[] => {
   // Tjek hvilke felter der er synlige baseret på toggle-værdier
   const varigeMenErSynlig = values.varigeMenAfgorelse === 'Ja';
-  const midlertidigEetErSynlig = values.midlertidigtEetAfgorelse === 'Ja';
-  const endeligEetErSynlig = values.endeligtEetAfgorelse === 'Ja';
+  const midlertidigEetErSynlig = values.midlertidigtEETAfgorelse === 'Ja';
+  const endeligEetErSynlig = values.endeligtEETAfgorelse === 'Ja';
 
   // Konverter datoer til dansk format - men kun hvis feltet er synligt
   const danishMenAfgoerelseDato = varigeMenErSynlig ? isoToDanish(values.menAfgoerelseDato) : undefined;
@@ -530,11 +530,11 @@ export const buildEODebugAesRows = (
       group: 'aes.varigeMen',
     },
     {
-      id: 'aes.midlertidigtEetAfgorelse',
+      id: 'aes.midlertidigtEETAfgorelse',
       label: 'Midlertidigt EET-afgørelse 15+ %',
       ...resolveDebugDisplay({
-        value: values.midlertidigtEetAfgorelse,
-        errors: errors.midlertidigtEetAfgorelse,
+        value: values.midlertidigtEETAfgorelse,
+        errors: errors.midlertidigtEETAfgorelse,
         emptyState: 'error',
       }),
       group: 'aes.midlertidigtEet',
@@ -563,15 +563,15 @@ export const buildEODebugAesRows = (
       status: beregnetMidlertidigEETStartdato.status,
       group: 'aes.midlertidigtEet',
       dependsOn: [
-        { kind: 'id', id: 'aes.midlertidigtEetAfgorelse' },
+        { kind: 'id', id: 'aes.midlertidigtEETAfgorelse' },
         { kind: 'id', id: 'aes.midlertidigEETAfgoerelseDato' },
         { kind: 'id', id: 'aes.midlertidigEETVirkningsdato' },
       ],
     },
     {
-      id: 'aes.endeligtEetAfgorelse',
+      id: 'aes.endeligtEETAfgorelse',
       label: 'Endelig EET-afgørelse 15+ %',
-      ...resolveDebugDisplay({ value: values.endeligtEetAfgorelse, errors: errors.endeligtEetAfgorelse, emptyState: 'error' }),
+      ...resolveDebugDisplay({ value: values.endeligtEETAfgorelse, errors: errors.endeligtEETAfgorelse, emptyState: 'error' }),
       group: 'aes.endeligtEet',
     },
     {
@@ -594,7 +594,7 @@ export const buildEODebugAesRows = (
       status: beregnetEndeligEETStartdato.status,
       group: 'aes.endeligtEet',
       dependsOn: [
-        { kind: 'id', id: 'aes.endeligtEetAfgorelse' },
+        { kind: 'id', id: 'aes.endeligtEETAfgorelse' },
         { kind: 'id', id: 'aes.endeligEETAfgoerelseDato' },
         { kind: 'id', id: 'aes.endeligEETVirkningsdato' },
       ],
@@ -1891,11 +1891,11 @@ export const buildEODebugTafBeregningsgrundlagRows = (
 
   const beregnesUdFra = values.beregnesUdFra;
   const isBeregningsperiode = beregnesUdFra === 'Beregningsperiode';
-  const periodeFra = values.periodeTilBeregningFra;
-  const periodeTil = values.periodeTilBeregningTil;
+  const periodeFra = values.tafBeregningsperiodeFra;
+  const periodeTil = values.tafBeregningsperiodeTil;
 
-  const periodeFraErrors = collectPresentFieldErrors(errors.periodeTilBeregningFra);
-  const periodeTilErrors = collectPresentFieldErrors(errors.periodeTilBeregningTil);
+  const periodeFraErrors = collectPresentFieldErrors(errors.tafBeregningsperiodeFra);
+  const periodeTilErrors = collectPresentFieldErrors(errors.tafBeregningsperiodeTil);
   const hasPeriodeErrors = periodeFraErrors.length > 0 || periodeTilErrors.length > 0;
   const hasPeriodeErrorSeverity = periodeFraErrors.concat(periodeTilErrors).some((e) => e.severity === 'error');
 
@@ -2419,7 +2419,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       beregnesUdFra: values.beregnesUdFra,
       angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
       saerligFraDatoRegulering: undefined,
-      beregningsperiodeTil: values.periodeTilBeregningTil,
+      beregningsperiodeTil: values.tafBeregningsperiodeTil,
       skadedato: stamdataValues.skadedato,
     });
     const opreguleresFraDisplay = opreguleresFraISO ? isoToDanish(opreguleresFraISO) : undefined;
@@ -2803,7 +2803,7 @@ export const buildEODebugIndkomstRows = (
       beregnesUdFra: values.beregnesUdFra,
       angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
       saerligFraDatoRegulering: isISODateString(ansaettelsesforhold.saerligFraDatoRegulering) ? ansaettelsesforhold.saerligFraDatoRegulering : undefined,
-      beregningsperiodeTil: values.periodeTilBeregningTil,
+      beregningsperiodeTil: values.tafBeregningsperiodeTil,
       skadedato,
     });
 
@@ -2954,7 +2954,7 @@ export const buildEODebugOffentligeYdelserRows = (
   });
 
   // Advarsel 1: midlertidige EET-ydelser indtastet, men afgørelse er ikke sat til 'Ja'
-  if (harMidlertidigtEetYdelser && values.midlertidigtEetAfgorelse !== 'Ja') {
+  if (harMidlertidigtEetYdelser && values.midlertidigtEETAfgorelse !== 'Ja') {
     rows.push({
       id: 'midlertidigtEetKonsistens.ydelerUdenAfgorelse',
       label: 'Advarsel',
@@ -3496,7 +3496,7 @@ export const buildEODebugMidlertidigtEetKonsistensRows = (
   skadedatoISO: ISODateString | undefined
 ): DebugRowModel[] => {
   // Kun relevant hvis afgørelse er 'Ja' og virkningsdato kan bestemmes
-  if (values.midlertidigtEetAfgorelse !== 'Ja') return [];
+  if (values.midlertidigtEETAfgorelse !== 'Ja') return [];
 
   const midlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({
     ...values,

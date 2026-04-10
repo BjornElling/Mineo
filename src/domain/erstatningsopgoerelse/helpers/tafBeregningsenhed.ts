@@ -102,8 +102,8 @@ const employmentHasOverlappendeIndtastetLoen = (
 export type TafBeregningsenhedInput = Readonly<{
   // Input is designed for engine usage and may be DeepReadonly.
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
-  periodeTilBeregningFra?: ErstatningsopgoerelseValues['periodeTilBeregningFra'];
-  periodeTilBeregningTil?: ErstatningsopgoerelseValues['periodeTilBeregningTil'];
+  tafBeregningsperiodeFra?: ErstatningsopgoerelseValues['tafBeregningsperiodeFra'];
+  tafBeregningsperiodeTil?: ErstatningsopgoerelseValues['tafBeregningsperiodeTil'];
   loenindkomstAnsaettelsesforhold: ReadonlyArray<DeepReadonly<ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]>>;
 }>;
 
@@ -112,8 +112,8 @@ export const computeTafBeregningsenhed = (values: TafBeregningsenhedInput): TafB
   if (values.beregnesUdFra === 'Angivet månedsløn') return TAF_BEREGNES_SOM.MAANEDER;
   if (values.beregnesUdFra === 'Angivet dagsløn') return TAF_BEREGNES_SOM.ARBEJDSDAGE;
   if (values.beregnesUdFra === 'Beregningsperiode') {
-    const fraDate = parseISODate(values.periodeTilBeregningFra);
-    const tilDate = parseISODate(values.periodeTilBeregningTil);
+    const fraDate = parseISODate(values.tafBeregningsperiodeFra);
+    const tilDate = parseISODate(values.tafBeregningsperiodeTil);
     if (fraDate && tilDate && fraDate <= tilDate) {
       const beregningsperiode: DateInterval = { start: fraDate, end: tilDate };
       const loenindkomstOverstyrerTilArbejdsdage = (values.loenindkomstAnsaettelsesforhold ?? []).some((af) => {

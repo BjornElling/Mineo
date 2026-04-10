@@ -91,8 +91,8 @@ describe('eoSnapshotToDebugView', () => {
       sammentaellingRows: [],
       stamdataValues: { journalnr: 'J-1' },
       eoValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       fieldErrors: {
         stamdata: {},
@@ -210,8 +210,8 @@ describe('eoSnapshotToDebugView', () => {
         skadestype: 'Arbejdsulykke',
       },
       eoValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       fieldErrors: {
         stamdata: {},
@@ -239,8 +239,8 @@ describe('eoSnapshotToDebugView', () => {
             skadestype: 'Arbejdsulykke',
           },
           erstatningsopgoerelse: {
-            midlertidigtEetAfgorelse: 'Nej',
-            endeligtEetAfgorelse: 'Nej',
+            midlertidigtEETAfgorelse: 'Nej',
+            endeligtEETAfgorelse: 'Nej',
           },
         },
       } as never,

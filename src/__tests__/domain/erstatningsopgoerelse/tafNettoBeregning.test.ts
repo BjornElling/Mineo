@@ -50,8 +50,8 @@ describe('computeTafNettoBeregning', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Beregningsperiode';
-    values.periodeTilBeregningFra = iso('2023-12-01');
-    values.periodeTilBeregningTil = iso('2023-12-31');
+    values.tafBeregningsperiodeFra = iso('2023-12-01');
+    values.tafBeregningsperiodeTil = iso('2023-12-31');
     values.loenindkomstAnsaettelsesforhold = [createEmployment({
       harOverenskomst: true,
       overenskomstId: 'industriens-overenskomst',

@@ -132,8 +132,8 @@ describe('renderShDageSection – beregningsperiode for første opgørelse', () 
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.eoNummer = '1';
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningFra = iso('2024-01-01');
-    eoValues.periodeTilBeregningTil = iso('2024-01-31');
+    eoValues.tafBeregningsperiodeFra = iso('2024-01-01');
+    eoValues.tafBeregningsperiodeTil = iso('2024-01-31');
     eoValues.tafPerioder = [];
     const { renderSubheader, ctx } = makeContext(eoValues);
     const ctxWithBeregningsperiode = {
@@ -150,8 +150,8 @@ describe('renderShDageSection – beregningsperiode for første opgørelse', () 
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.eoNummer = '2';
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.periodeTilBeregningFra = iso('2024-01-01');
-    eoValues.periodeTilBeregningTil = iso('2024-01-31');
+    eoValues.tafBeregningsperiodeFra = iso('2024-01-01');
+    eoValues.tafBeregningsperiodeTil = iso('2024-01-31');
     eoValues.tafPerioder = [];
     const { renderSubheader, ctx } = makeContext(eoValues);
 

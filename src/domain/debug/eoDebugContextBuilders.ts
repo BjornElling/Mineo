@@ -60,7 +60,7 @@ export const buildTaftContext = (
 ): TaftContext => {
   const erErhvervssygdom = stamdataValues.skadestype === 'Erhvervssygdom';
   const endeligEETBeregnetDato =
-    erstatningsopgoerelseValues.endeligtEetAfgorelse === 'Ja'
+    erstatningsopgoerelseValues.endeligtEETAfgorelse === 'Ja'
       ? erstatningsopgoerelseValues.endeligEETVirkningsdato || erstatningsopgoerelseValues.endeligEETAfgoerelseDato
       : undefined;
   const midlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({

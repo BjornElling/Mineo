@@ -79,8 +79,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
           { ...createEmployment('af1'), navnPaaArbejdssted: 'Tandlægerne Toft og Vedsted', loenudviklingBeregningsgrundlag: 'Overenskomst' },
           { ...createEmployment('af2'), navnPaaArbejdssted: 'Hennings Autoophug', loenudviklingBeregningsgrundlag: 'Overenskomst' },
@@ -118,8 +118,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
           { ...createEmployment('af1'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
           { ...createEmployment('af2'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
@@ -272,8 +272,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
           { ...createEmployment('af1'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
         ],
@@ -313,8 +313,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
           {
             id: 'af1',
@@ -386,8 +386,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
           { ...createEmployment('af1'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
         ],
@@ -424,8 +424,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       rowsBySection: new Map(),
       regulationSections: [
@@ -452,13 +452,13 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       rowsBySection: new Map([
         ['aes', [
           {
-            id: 'aes.endeligtEetAfgorelse',
+            id: 'aes.endeligtEETAfgorelse',
             label: 'Endelig EET-afgørelse 15+ %',
             displayValue: 'Nej',
             status: 'ok',
@@ -492,13 +492,13 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       rowsBySection: new Map([
         ['aes', [
           {
-            id: 'aes.midlertidigtEetAfgorelse',
+            id: 'aes.midlertidigtEETAfgorelse',
             label: 'Midlertidigt EET-afgørelse 15+ %',
             displayValue: 'Nej',
             status: 'ok',
@@ -532,8 +532,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       rowsBySection: new Map([
         ['aes', [
@@ -572,8 +572,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       rowsBySection: new Map([
         ['offentlige-ydelser', [
@@ -611,8 +611,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       rowsBySection: new Map([
         ['saerlige-kommentarer', [
@@ -642,8 +642,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       rowsBySection: new Map([
         ['taf', [
@@ -675,8 +675,8 @@ describe('EODebug', () => {
       erstatningsopgoerelseValues: {
         beregnesSvieSmerteGodtgoerelse: 'Nej',
         beregnesTabtArbejdsfortjeneste: 'Ja',
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       rowsBySection: new Map([
         ['sviesmerte', [
@@ -710,8 +710,8 @@ describe('EODebug', () => {
         beregnesSvieSmerteGodtgoerelse: 'Ja',
         tidligereSsMax: 'Ja',
         beregnesTabtArbejdsfortjeneste: 'Ja',
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       rowsBySection: new Map([
         ['sviesmerte', [
@@ -760,8 +760,8 @@ describe('EODebug', () => {
       erstatningsopgoerelseValues: {
         beregnesSvieSmerteGodtgoerelse: 'Ja',
         beregnesTabtArbejdsfortjeneste: 'Nej',
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
           { ...createEmployment('af1'), navnPaaArbejdssted: 'Tandlægerne Toft og Vedsted', loenudviklingBeregningsgrundlag: 'Overenskomst' },
         ],
@@ -837,8 +837,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
       },
       rowsBySection: new Map([
         ['taf', [
@@ -870,8 +870,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
           { ...createEmployment('af1'), loenudviklingBeregningsgrundlag: 'Overenskomst' },
         ],
@@ -922,8 +922,8 @@ describe('EODebug', () => {
       stamdataValues: {},
       erstatningsopgoerelseValues: {
         beregnesTabtArbejdsfortjeneste: 'Ja',
-        midlertidigtEetAfgorelse: 'Nej',
-        endeligtEetAfgorelse: 'Nej',
+        midlertidigtEETAfgorelse: 'Nej',
+        endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
           { ...createEmployment('af1'), navnPaaArbejdssted: 'Arbejdssted 1' },
         ],

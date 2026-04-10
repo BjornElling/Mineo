@@ -109,8 +109,8 @@ const EMPTY_CELL_ERROR_MESSAGES: Readonly<Record<string, string>> = {};
 type Props = {
   loenindkomstAnsaettelsesforhold: AnsaettelsesforholdList;
   beregnesUdFra: ErstatningsopgoerelseValues['beregnesUdFra'];
-  periodeTilBeregningFra: ErstatningsopgoerelseValues['periodeTilBeregningFra'];
-  periodeTilBeregningTil: ErstatningsopgoerelseValues['periodeTilBeregningTil'];
+  tafBeregningsperiodeFra: ErstatningsopgoerelseValues['tafBeregningsperiodeFra'];
+  tafBeregningsperiodeTil: ErstatningsopgoerelseValues['tafBeregningsperiodeTil'];
   ferieperioder: ErstatningsopgoerelseValues['ferieperioder'];
   fravaerPerioder: ErstatningsopgoerelseValues['fravaerPerioder'];
   eoValues: ErstatningsopgoerelseValues;
@@ -340,8 +340,8 @@ const hasExactDisplayedAmountMatch = (inputAmount: number, resultAmount: number)
 const LoenindkomstTab = React.memo(({
   loenindkomstAnsaettelsesforhold,
   beregnesUdFra,
-  periodeTilBeregningFra,
-  periodeTilBeregningTil,
+  tafBeregningsperiodeFra,
+  tafBeregningsperiodeTil,
   ferieperioder,
   fravaerPerioder,
   eoValues,
@@ -400,8 +400,8 @@ const LoenindkomstTab = React.memo(({
   }, [loenindkomstAnsaettelsesforhold]);
   const aarsloenZeroArbejdsdageValidationInput = React.useMemo<AarsloenZeroArbejdsdageValidationInput>(() => ({
     beregnesUdFra: beregnesUdFra,
-    periodeTilBeregningFra: periodeTilBeregningFra,
-    periodeTilBeregningTil: periodeTilBeregningTil,
+    tafBeregningsperiodeFra: tafBeregningsperiodeFra,
+    tafBeregningsperiodeTil: tafBeregningsperiodeTil,
     loenindkomstAnsaettelsesforhold: loenindkomstAnsaettelsesforhold,
     ferieperioder: ferieperioder,
     fravaerPerioder: fravaerPerioder,
@@ -410,8 +410,8 @@ const LoenindkomstTab = React.memo(({
     ferieperioder,
     fravaerPerioder,
     loenindkomstAnsaettelsesforhold,
-    periodeTilBeregningFra,
-    periodeTilBeregningTil,
+    tafBeregningsperiodeFra,
+    tafBeregningsperiodeTil,
   ]);
   const aarsloenExternalCellErrorMessagesByAfId = React.useMemo<Record<string, Readonly<Record<string, string>>>>(() => {
     const result: Record<string, Readonly<Record<string, string>>> = {};
@@ -459,10 +459,10 @@ const LoenindkomstTab = React.memo(({
         beregnesUdFra,
         angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(eoValues),
         saerligFraDatoRegulering: af.saerligFraDatoRegulering,
-        beregningsperiodeTil: periodeTilBeregningTil,
+        beregningsperiodeTil: tafBeregningsperiodeTil,
         skadedato: stamdataValues?.skadedato,
       }),
-    [beregnesUdFra, eoValues, periodeTilBeregningTil, stamdataValues?.skadedato]
+    [beregnesUdFra, eoValues, tafBeregningsperiodeTil, stamdataValues?.skadedato]
   );
   const validateSats = React.useCallback(
     (
@@ -1710,7 +1710,7 @@ const LoenindkomstTab = React.memo(({
           anvendtReguleringsdato,
           skadedato: stamdataValues?.skadedato,
           skadestype: stamdataValues?.skadestype,
-          beregningsperiodeTil: beregnesUdFra === 'Beregningsperiode' ? periodeTilBeregningTil : undefined,
+          beregningsperiodeTil: beregnesUdFra === 'Beregningsperiode' ? tafBeregningsperiodeTil : undefined,
         });
         const loenudviklingBasis = af.loenudviklingBeregningsgrundlag;
         const fritvalgLocked = isOverenskomstSatsFieldLocked(af, anvendtReguleringsdato, 'fritvalgPct');
@@ -2314,7 +2314,7 @@ const LoenindkomstTab = React.memo(({
                         ? (stamdataValues?.skadestype === 'Erhvervssygdom' ? 'Anmeldelsesdato' : 'Skadedato')
                         : (
                             beregnesUdFra === 'Beregningsperiode'
-                            && anvendtReguleringsdato === periodeTilBeregningTil
+                            && anvendtReguleringsdato === tafBeregningsperiodeTil
                             && af.saerligFraDatoRegulering === undefined
                           )
                           ? 'Beregningsperiode slutdato'

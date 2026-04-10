@@ -89,7 +89,7 @@ export const buildTaftContext = (
 ): TaftContext => {
   const erErhvervssygdom = stamdataValues.skadestype === 'Erhvervssygdom';
   const endeligEETBeregnetDato =
-    eoValues.endeligtEetAfgorelse === 'Ja'
+    eoValues.endeligtEETAfgorelse === 'Ja'
       ? eoValues.endeligEETVirkningsdato || eoValues.endeligEETAfgoerelseDato
       : undefined;
   const verserendeKlageEet = eoValues.verserendeKlageEet === 'Ja';
@@ -414,7 +414,7 @@ export const buildEODebugSammentaellingModel = (args: {
   const isTafEnabled = values.beregnesTabtArbejdsfortjeneste === 'Ja';
   const isSvieSmerteEnabled = values.beregnesSvieSmerteGodtgoerelse === 'Ja';
 
-  const beregningsRange = toIsoRange(values.periodeTilBeregningFra, values.periodeTilBeregningTil);
+  const beregningsRange = toIsoRange(values.tafBeregningsperiodeFra, values.tafBeregningsperiodeTil);
   const erstatningsRange = toIsoRange(values.vedroererPeriodeFra, values.vedroererPeriodeTil);
 
   const beregningsFerieDates = buildFerieDatesInRange(values, beregningsRange, {
@@ -524,8 +524,8 @@ export const buildEODebugSammentaellingModel = (args: {
   const beregningsperiodeArbejdsdage = (() => {
     if (values.beregnesUdFra !== 'Beregningsperiode') return null;
 
-    const periodeFra = values.periodeTilBeregningFra;
-    const periodeTil = values.periodeTilBeregningTil;
+    const periodeFra = values.tafBeregningsperiodeFra;
+    const periodeTil = values.tafBeregningsperiodeTil;
     if (!periodeFra || !periodeTil) return null;
     if (periodeFra > periodeTil) return null;
 

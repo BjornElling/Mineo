@@ -151,8 +151,8 @@ describe('eoCanonicalOutput', () => {
       svieSmertePerioder: [],
       vedroererPeriodeFra: iso('2024-01-01'),
       vedroererPeriodeTil: iso('2024-12-31'),
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-12-31'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),

@@ -21,8 +21,8 @@ const AARSLOEN_AMOUNT_COLUMN_KEYS = ['col2', 'col3', 'col4', 'col5'] as const sa
 export type AarsloenZeroArbejdsdageValidationInput = Pick<
   ErstatningsopgoerelseValues,
   | 'beregnesUdFra'
-  | 'periodeTilBeregningFra'
-  | 'periodeTilBeregningTil'
+  | 'tafBeregningsperiodeFra'
+  | 'tafBeregningsperiodeTil'
   | 'loenindkomstAnsaettelsesforhold'
   | 'ferieperioder'
   | 'fravaerPerioder'

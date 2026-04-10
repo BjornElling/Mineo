@@ -537,11 +537,11 @@ export function validateTafLoseFeriedage(values: ErstatningsopgoerelseValues): V
 export function validateBeregningsperiodeLoseFeriedage(values: ErstatningsopgoerelseValues): ValidationError[] {
   if (values.beregnesUdFra !== 'Beregningsperiode') return [];
   if (typeof values.uspecificeredeFerieFridage !== 'number') return [];
-  if (!values.periodeTilBeregningFra || !values.periodeTilBeregningTil) return [];
+  if (!values.tafBeregningsperiodeFra || !values.tafBeregningsperiodeTil) return [];
 
   const breakdown = calculateTafArbejdsdageBreakdown(
-    values.periodeTilBeregningFra,
-    values.periodeTilBeregningTil,
+    values.tafBeregningsperiodeFra,
+    values.tafBeregningsperiodeTil,
     values.fravaerPerioder ?? [],
     values.uspecificeredeFerieFridage,
     {
@@ -625,27 +625,27 @@ function validateBeregnesUdFra(values: ErstatningsopgoerelseValues): ValidationE
   }
 
   if (beregnesUdFra === 'Beregningsperiode') {
-    if (!values.periodeTilBeregningFra) {
+    if (!values.tafBeregningsperiodeFra) {
       errors.push({
-        path: 'periodeTilBeregningFra',
+        path: 'tafBeregningsperiodeFra',
         message: 'Beregningsperiode fra-dato mangler',
         severity: 'error',
       });
     }
-    if (!values.periodeTilBeregningTil) {
+    if (!values.tafBeregningsperiodeTil) {
       errors.push({
-        path: 'periodeTilBeregningTil',
+        path: 'tafBeregningsperiodeTil',
         message: 'Beregningsperiode til-dato mangler',
         severity: 'error',
       });
     }
     if (
-      values.periodeTilBeregningFra &&
-      values.periodeTilBeregningTil &&
-      values.periodeTilBeregningFra > values.periodeTilBeregningTil
+      values.tafBeregningsperiodeFra &&
+      values.tafBeregningsperiodeTil &&
+      values.tafBeregningsperiodeFra > values.tafBeregningsperiodeTil
     ) {
       errors.push({
-        path: 'periodeTilBeregningFra',
+        path: 'tafBeregningsperiodeFra',
         message: DATE_ORDER_ERROR_MESSAGE,
         severity: 'error',
       });

@@ -549,8 +549,8 @@ describe('EOberegningTab kontroltjek', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.periodeTilBeregningFra = '2023-01-01';
-    eoValues.periodeTilBeregningTil = '2023-12-31';
+    eoValues.tafBeregningsperiodeFra = '2023-01-01';
+    eoValues.tafBeregningsperiodeTil = '2023-12-31';
     eoValues.differencekravDato = '2024-07-01';
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({

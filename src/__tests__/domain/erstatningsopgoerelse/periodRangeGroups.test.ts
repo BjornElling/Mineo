@@ -79,8 +79,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
       const eoValues = makeEoValues({
         eoNummer: undefined,
         beregnesUdFra: 'Beregningsperiode',
-        periodeTilBeregningFra: iso('2023-01-01'),
-        periodeTilBeregningTil: iso('2023-12-31'),
+        tafBeregningsperiodeFra: iso('2023-01-01'),
+        tafBeregningsperiodeTil: iso('2023-12-31'),
         tafPerioder: [],
       });
 
@@ -98,8 +98,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
       const eoValues = makeEoValues({
         eoNummer: undefined,
         beregnesUdFra: 'TAF',
-        periodeTilBeregningFra: undefined,
-        periodeTilBeregningTil: undefined,
+        tafBeregningsperiodeFra: undefined,
+        tafBeregningsperiodeTil: undefined,
         vedroererPeriodeFra: iso('2022-01-01'),
         vedroererPeriodeTil: iso('2024-12-31'),
         tafPerioder: [
@@ -119,8 +119,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
       const eoValues = makeEoValues({
         eoNummer: undefined,
         beregnesUdFra: 'Beregningsperiode',
-        periodeTilBeregningFra: iso('2023-01-01'),
-        periodeTilBeregningTil: iso('2023-12-31'),
+        tafBeregningsperiodeFra: iso('2023-01-01'),
+        tafBeregningsperiodeTil: iso('2023-12-31'),
         vedroererPeriodeFra: iso('2022-01-01'),
         vedroererPeriodeTil: iso('2024-12-31'),
         tafPerioder: [
@@ -140,8 +140,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
       const eoValues = makeEoValues({
         eoNummer: undefined,
         beregnesUdFra: 'Beregningsperiode',
-        periodeTilBeregningFra: undefined,
-        periodeTilBeregningTil: undefined,
+        tafBeregningsperiodeFra: undefined,
+        tafBeregningsperiodeTil: undefined,
         tafPerioder: [],
       });
 
@@ -156,8 +156,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
       const eoValues = makeEoValues({
         eoNummer: '2',
         beregnesUdFra: 'Beregningsperiode',
-        periodeTilBeregningFra: iso('2023-01-01'),
-        periodeTilBeregningTil: iso('2023-12-31'),
+        tafBeregningsperiodeFra: iso('2023-01-01'),
+        tafBeregningsperiodeTil: iso('2023-12-31'),
         tafPerioder: [],
       });
 
@@ -190,8 +190,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
       const eoValues = makeEoValues({
         eoNummer: '1',
         beregnesUdFra: 'Beregningsperiode',
-        periodeTilBeregningFra: iso('2023-01-01'),
-        periodeTilBeregningTil: iso('2023-12-31'),
+        tafBeregningsperiodeFra: iso('2023-01-01'),
+        tafBeregningsperiodeTil: iso('2023-12-31'),
         tafPerioder: [],
       });
 
@@ -207,8 +207,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
       const eoValues = makeEoValues({
         eoNummer: undefined,
         beregnesUdFra: 'TAF',
-        periodeTilBeregningFra: iso('2023-01-01'),
-        periodeTilBeregningTil: iso('2023-12-31'),
+        tafBeregningsperiodeFra: iso('2023-01-01'),
+        tafBeregningsperiodeTil: iso('2023-12-31'),
         tafPerioder: [],
       });
 
@@ -224,8 +224,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
       const eoValues = makeEoValues({
         eoNummer: undefined,
         beregnesUdFra: 'Beregningsperiode',
-        periodeTilBeregningFra: iso('2023-01-01'),
-        periodeTilBeregningTil: iso('2023-06-30'),
+        tafBeregningsperiodeFra: iso('2023-01-01'),
+        tafBeregningsperiodeTil: iso('2023-06-30'),
         tafPerioder: [],
       });
 
@@ -245,8 +245,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
       const eoValues = makeEoValues({
         eoNummer: '1',
         beregnesUdFra: 'Beregningsperiode',
-        periodeTilBeregningFra: iso('2023-01-01'),
-        periodeTilBeregningTil: iso('2023-12-31'),
+        tafBeregningsperiodeFra: iso('2023-01-01'),
+        tafBeregningsperiodeTil: iso('2023-12-31'),
         vedroererPeriodeFra: iso('2022-01-01'),
         vedroererPeriodeTil: iso('2024-12-31'),
         tafPerioder: [
@@ -266,8 +266,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
       const eoValues = makeEoValues({
         eoNummer: undefined,
         beregnesUdFra: 'Beregningsperiode',
-        periodeTilBeregningFra: iso('2023-01-01'),
-        periodeTilBeregningTil: iso('2023-12-31'),
+        tafBeregningsperiodeFra: iso('2023-01-01'),
+        tafBeregningsperiodeTil: iso('2023-12-31'),
         tafPerioder: [],
       });
 

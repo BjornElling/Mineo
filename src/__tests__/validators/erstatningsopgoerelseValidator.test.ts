@@ -307,8 +307,8 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
   it('kræver feriegodtgørelse ved beregningsperiode når der er indtastede lønoplysninger', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-12-31'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -341,8 +341,8 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
   it('kræver ikke feriegodtgørelse ved beregningsperiode uden indtastede lønoplysninger', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-12-31'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -455,8 +455,8 @@ describe('TAF — clampede feriedage', () => {
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: iso('2023-12-31'),
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-12-31'),
     });
 
     const result = erstatningsopgoerelseValidator.validate(values);
@@ -481,8 +481,8 @@ describe('TAF — clampede feriedage', () => {
           loenudviklingBeregningsgrundlag: 'Ingen',
         },
       ],
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: iso('2023-12-31'),
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-12-31'),
     });
 
     const result = erstatningsopgoerelseValidator.validate(values);
@@ -532,8 +532,8 @@ describe('validateBeregnesUdFra', () => {
   it('fanger manglende til-dato i beregningsperiode', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: undefined,
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: undefined,
     });
     expect(hasError(values, 'Beregningsperiode til-dato mangler')).toBe(true);
   });
@@ -541,8 +541,8 @@ describe('validateBeregnesUdFra', () => {
   it('fanger beregningsperiode fra > til', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-06-01'),
-      periodeTilBeregningTil: iso('2024-01-01'),
+      tafBeregningsperiodeFra: iso('2024-06-01'),
+      tafBeregningsperiodeTil: iso('2024-01-01'),
     });
     expect(hasError(values, 'Til-dato skal være efter fra-dato')).toBe(true);
   });
@@ -550,8 +550,8 @@ describe('validateBeregnesUdFra', () => {
   it('ingen fejl ved beregningsperiode fra == til', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-01-01'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-01-01'),
     });
     expect(hasError(values, 'Til-dato skal være efter fra-dato')).toBe(false);
   });
@@ -570,8 +570,8 @@ describe('validateLoenudviklingKonsistens', () => {
   it('ingen fejl med ét ansættelsesforhold (enkelt-AF kræver ingen konsistens)', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-12-31'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'bygge-anlaeg', loenPaaHelligdage: 'Almindelig løn' }),
       ],
@@ -582,8 +582,8 @@ describe('validateLoenudviklingKonsistens', () => {
   it('tillader forskelligt beregningsgrundlag på tværs af AF', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-12-31'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'bygge-anlaeg', loenPaaHelligdage: 'Almindelig løn' }),
         makeAF({ loenudviklingBeregningsgrundlag: 'Statistik', loenudviklingStatistikModel: 'DA/LO', loenPaaHelligdage: 'Almindelig løn' }),
@@ -595,8 +595,8 @@ describe('validateLoenudviklingKonsistens', () => {
   it('tillader uens overenskomst på tværs af AF', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-12-31'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'bygge-anlaeg', loenPaaHelligdage: 'Almindelig løn' }),
         makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'handel', loenPaaHelligdage: 'Almindelig løn' }),
@@ -608,8 +608,8 @@ describe('validateLoenudviklingKonsistens', () => {
   it('tillader uens statistikmodel på tværs af AF', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-12-31'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         makeAF({ loenudviklingBeregningsgrundlag: 'Statistik', loenudviklingStatistikModel: 'DA/LO' }),
         makeAF({ loenudviklingBeregningsgrundlag: 'Statistik', loenudviklingStatistikModel: 'KL-gruppen' }),
@@ -621,8 +621,8 @@ describe('validateLoenudviklingKonsistens', () => {
   it('ingen fejl når alle AF har samme beregningsgrundlag og overenskomst', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-12-31'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'bygge-anlaeg', loenPaaHelligdage: 'Almindelig løn' }),
         makeAF({ loenudviklingBeregningsgrundlag: 'Overenskomst', overenskomstId: 'bygge-anlaeg', loenPaaHelligdage: 'Almindelig løn' }),

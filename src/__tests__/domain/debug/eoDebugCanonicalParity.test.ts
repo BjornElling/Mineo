@@ -31,8 +31,8 @@ describe('eoDebug canonical parity', () => {
       svieSmerteDelvisSygemeldingSats: 'fuld' as const,
       svieSmerteTidligereTotal: amount(0),
       svieSmerteAktuelPeriode: amount(0),
-      periodeTilBeregningFra: iso('2024-01-01'),
-      periodeTilBeregningTil: iso('2024-12-31'),
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),

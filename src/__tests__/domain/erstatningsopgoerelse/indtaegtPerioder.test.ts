@@ -28,34 +28,34 @@ const makeEo = (overrides: Partial<ErstatningsopgoerelseValues> = {}): Erstatnin
 // ─── buildBeregningsperiodeRange ──────────────────────────────────────────────
 
 describe('buildBeregningsperiodeRange', () => {
-  it('returnerer undefined når periodeTilBeregningFra mangler', () => {
+  it('returnerer undefined når tafBeregningsperiodeFra mangler', () => {
     const eo = makeEo({
-      periodeTilBeregningFra: undefined,
-      periodeTilBeregningTil: iso('2023-12-31'),
+      tafBeregningsperiodeFra: undefined,
+      tafBeregningsperiodeTil: iso('2023-12-31'),
     });
     expect(buildBeregningsperiodeRange(eo)).toBeUndefined();
   });
 
-  it('returnerer undefined når periodeTilBeregningTil mangler', () => {
+  it('returnerer undefined når tafBeregningsperiodeTil mangler', () => {
     const eo = makeEo({
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: undefined,
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: undefined,
     });
     expect(buildBeregningsperiodeRange(eo)).toBeUndefined();
   });
 
   it('returnerer undefined når begge er undefined', () => {
     const eo = makeEo({
-      periodeTilBeregningFra: undefined,
-      periodeTilBeregningTil: undefined,
+      tafBeregningsperiodeFra: undefined,
+      tafBeregningsperiodeTil: undefined,
     });
     expect(buildBeregningsperiodeRange(eo)).toBeUndefined();
   });
 
   it('returnerer korrekt IsoRange når begge er sat og fra < til', () => {
     const eo = makeEo({
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: iso('2023-12-31'),
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-12-31'),
     });
     const range = buildBeregningsperiodeRange(eo);
     expect(range).toBeDefined();
@@ -65,16 +65,16 @@ describe('buildBeregningsperiodeRange', () => {
 
   it('returnerer undefined når fra > til (ugyldig range)', () => {
     const eo = makeEo({
-      periodeTilBeregningFra: iso('2023-12-31'),
-      periodeTilBeregningTil: iso('2023-01-01'),
+      tafBeregningsperiodeFra: iso('2023-12-31'),
+      tafBeregningsperiodeTil: iso('2023-01-01'),
     });
     expect(buildBeregningsperiodeRange(eo)).toBeUndefined();
   });
 
   it('returnerer range når fra = til (enkelt dag)', () => {
     const eo = makeEo({
-      periodeTilBeregningFra: iso('2023-06-15'),
-      periodeTilBeregningTil: iso('2023-06-15'),
+      tafBeregningsperiodeFra: iso('2023-06-15'),
+      tafBeregningsperiodeTil: iso('2023-06-15'),
     });
     const range = buildBeregningsperiodeRange(eo);
     expect(range).toBeDefined();
@@ -153,8 +153,8 @@ describe('buildIncomeCalculationContext', () => {
   it('returnerer null når ingen data-bounds kan beregnes', () => {
     // Ingen lønrækker, ingen offentlige ydelser, ingen beregningsperiode
     const eo = makeEo({
-      periodeTilBeregningFra: undefined,
-      periodeTilBeregningTil: undefined,
+      tafBeregningsperiodeFra: undefined,
+      tafBeregningsperiodeTil: undefined,
       loenindkomstAnsaettelsesforhold: [],
       offentligeYdelserRows: [],
     });
@@ -174,8 +174,8 @@ describe('buildIncomeCalculationContext', () => {
 
   it('returnerer context med korrekte bounds baseret på ranges', () => {
     const eo = makeEo({
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: iso('2023-12-31'),
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-12-31'),
       loenindkomstAnsaettelsesforhold: [],
       offentligeYdelserRows: [],
     });
@@ -191,8 +191,8 @@ describe('buildIncomeCalculationContext', () => {
 
   it('context indeholder arbejdsdageSet som Set<ISODateString>', () => {
     const eo = makeEo({
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: iso('2023-01-31'),
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-01-31'),
       loenindkomstAnsaettelsesforhold: [],
       offentligeYdelserRows: [],
     });
@@ -212,8 +212,8 @@ describe('buildIncomeCalculationContext', () => {
     const eo = makeEo({
       loenindkomstAnsaettelsesforhold: [],
       offentligeYdelserRows: [],
-      periodeTilBeregningFra: iso('2023-01-01'),
-      periodeTilBeregningTil: iso('2023-06-30'),
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-06-30'),
     });
 
     const context = buildIncomeCalculationContext(eo, [
@@ -242,8 +242,8 @@ describe('buildIncomeCalculationContext', () => {
           ydelsestype: 'sygedagpenge',
         },
       ],
-      periodeTilBeregningFra: undefined,
-      periodeTilBeregningTil: undefined,
+      tafBeregningsperiodeFra: undefined,
+      tafBeregningsperiodeTil: undefined,
     });
 
     const context = buildIncomeCalculationContext(eo, [

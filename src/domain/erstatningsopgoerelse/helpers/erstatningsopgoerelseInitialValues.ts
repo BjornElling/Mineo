@@ -104,12 +104,12 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   verserendeKlageMen: 'Nej',
 
   // AES-afgørelser - Midlertidigt EET
-  midlertidigtEetAfgorelse: 'Nej',
+  midlertidigtEETAfgorelse: 'Nej',
   midlertidigEETAfgoerelseDato: undefined,
   midlertidigEETVirkningsdato: undefined,
 
   // AES-afgørelser - Endeligt EET
-  endeligtEetAfgorelse: 'Nej',
+  endeligtEETAfgorelse: 'Nej',
   endeligEETAfgoerelseDato: undefined,
   endeligEETVirkningsdato: undefined,
   verserendeKlageEet: 'Nej',
@@ -145,8 +145,8 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   // Indtægt før skaden
   komprimerBeregningEfterFoersteOpgoerelse: 'Ja',
   beregnesUdFra: 'Beregningsperiode',
-  periodeTilBeregningFra: undefined,
-  periodeTilBeregningTil: undefined,
+  tafBeregningsperiodeFra: undefined,
+  tafBeregningsperiodeTil: undefined,
   fravaerPerioder: ensureFravaerRows(undefined),
   uspecificeredeFerieFridage: undefined,
   oevrigtFravaerUdenLoen: 'Nej',

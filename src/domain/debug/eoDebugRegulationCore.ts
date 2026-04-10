@@ -552,7 +552,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
       beregnesUdFra: input.eoValues.beregnesUdFra,
       angivetLoenMetodeOpreguleresFraDato: angivetLoenOpreguleresFraDato,
       saerligFraDatoRegulering,
-      beregningsperiodeTil: input.eoValues.periodeTilBeregningTil,
+      beregningsperiodeTil: input.eoValues.tafBeregningsperiodeTil,
       skadedato: skadedatoIso,
     });
     if (!referenceIso) continue;
@@ -565,8 +565,8 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         : (
             input.eoValues.beregnesUdFra === 'Beregningsperiode'
             && !saerligFraDatoRegulering
-            && input.eoValues.periodeTilBeregningTil
-            && referenceIso === input.eoValues.periodeTilBeregningTil
+            && input.eoValues.tafBeregningsperiodeTil
+            && referenceIso === input.eoValues.tafBeregningsperiodeTil
           )
           ? 'Beregningsperiode slutdato'
           : undefined;

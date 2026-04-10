@@ -61,8 +61,8 @@ describe('buildEODebugModel — kilde-bounds (sources)', () => {
       beregnesUdFra: 'Angivet månedsløn' as const,
       vedroererPeriodeFra: '2024-01-01' as never,
       vedroererPeriodeTil: '2024-01-31' as never,
-      periodeTilBeregningFra: '2023-01-01' as never,
-      periodeTilBeregningTil: '2023-12-31' as never,
+      tafBeregningsperiodeFra: '2023-01-01' as never,
+      tafBeregningsperiodeTil: '2023-12-31' as never,
     });
     const src = model.sources.find((s) => s.label === 'Beregningsperiode');
     expect(src?.fra).toBeUndefined();
@@ -75,8 +75,8 @@ describe('buildEODebugModel — kilde-bounds (sources)', () => {
       beregnesUdFra: 'Beregningsperiode' as const,
       vedroererPeriodeFra: '2024-01-01' as never,
       vedroererPeriodeTil: '2024-12-31' as never,
-      periodeTilBeregningFra: '2023-06-01' as never,
-      periodeTilBeregningTil: '2024-05-31' as never,
+      tafBeregningsperiodeFra: '2023-06-01' as never,
+      tafBeregningsperiodeTil: '2024-05-31' as never,
     });
     const src = model.sources.find((s) => s.label === 'Beregningsperiode');
     expect(src?.fra).toBe('2023-06-01');
@@ -91,8 +91,8 @@ describe('buildEODebugModel — kilde-bounds (sources)', () => {
       beregnesUdFra: 'Beregningsperiode' as const,
       vedroererPeriodeFra: '2024-03-01' as never,
       vedroererPeriodeTil: '2024-06-30' as never,
-      periodeTilBeregningFra: '2023-01-01' as never,
-      periodeTilBeregningTil: '2023-12-31' as never,
+      tafBeregningsperiodeFra: '2023-01-01' as never,
+      tafBeregningsperiodeTil: '2023-12-31' as never,
     });
     expect(model.combinedMinFra).toBe('2023-01-01');
   });
@@ -103,8 +103,8 @@ describe('buildEODebugModel — kilde-bounds (sources)', () => {
       beregnesUdFra: 'Beregningsperiode' as const,
       vedroererPeriodeFra: '2023-01-01' as never,
       vedroererPeriodeTil: '2023-06-30' as never,
-      periodeTilBeregningFra: '2022-01-01' as never,
-      periodeTilBeregningTil: '2023-09-30' as never,
+      tafBeregningsperiodeFra: '2022-01-01' as never,
+      tafBeregningsperiodeTil: '2023-09-30' as never,
     });
     expect(model.combinedMaxTil).toBe('2023-09-30');
   });

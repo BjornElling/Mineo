@@ -46,10 +46,10 @@ describe('erstatningsopgoerelseSchema', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.varigeMenAfgorelse = 'Ja';
     values.menAfgoerelseDato = undefined;
-    values.midlertidigtEetAfgorelse = 'Ja';
+    values.midlertidigtEETAfgorelse = 'Ja';
     values.midlertidigEETAfgoerelseDato = undefined;
     values.midlertidigEETVirkningsdato = undefined;
-    values.endeligtEetAfgorelse = 'Ja';
+    values.endeligtEETAfgorelse = 'Ja';
     values.endeligEETAfgoerelseDato = undefined;
     values.endeligEETVirkningsdato = undefined;
 

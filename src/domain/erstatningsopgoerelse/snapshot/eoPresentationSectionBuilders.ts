@@ -199,7 +199,7 @@ export const buildTabtArbejdsfortjenesteModel = (
   // Afgør om midlertidig EET er aktiv som TAF-afgrænsning (skadedato < 2011-06-16).
   const midlertidigEetErTafRelevant =
     values.verserendeKlageEet !== 'Ja' &&
-    values.midlertidigtEetAfgorelse === 'Ja' &&
+    values.midlertidigtEETAfgorelse === 'Ja' &&
     !!options.skadedatoISO &&
     options.skadedatoISO < TAF_MIDLERTIDIG_EET_SKAERINGSDATO;
 
@@ -212,7 +212,7 @@ export const buildTabtArbejdsfortjenesteModel = (
   // Byg de potentielle afgrænsningskilder med beregnede referencedatoer og linjetekster.
   let endeligtEetLinje: string | null = null;
   let endeligtEetReferenceDato: ISODateString | undefined;
-  if (values.endeligtEetAfgorelse === 'Ja') {
+  if (values.endeligtEETAfgorelse === 'Ja') {
     if (values.endeligEETVirkningsdato) {
       const dato = formatDateLong(values.endeligEETVirkningsdato);
       const tekst = `Der er truffet endelig erhvervsevnetabsafgørelse med virkning fra ${dato}.`;
@@ -228,7 +228,7 @@ export const buildTabtArbejdsfortjenesteModel = (
 
   let midlertidigEetLinje: string | null = null;
   let midlertidigEetReferenceDato: ISODateString | undefined;
-  if (values.midlertidigtEetAfgorelse === 'Ja') {
+  if (values.midlertidigtEETAfgorelse === 'Ja') {
     if (values.midlertidigEETVirkningsdato) {
       const dato = formatDateLong(values.midlertidigEETVirkningsdato);
       const tekst = `Der er truffet midlertidig erhvervsevnetabsafgørelse med virkning fra ${dato}.`;
