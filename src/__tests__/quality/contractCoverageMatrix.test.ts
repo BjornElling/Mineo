@@ -18,7 +18,15 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/domain-boundary-contract.md',
     requiredTestPaths: [
+      'src/__tests__/quality/domainBoundaryIsolation.test.ts',
       'src/__tests__/quality/eetDomainIsolation.test.ts',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/persistence-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/quality/persistenceAccessIsolation.test.ts',
+      'src/__tests__/utils/persistenceLoadApply.test.ts',
     ],
   },
   {

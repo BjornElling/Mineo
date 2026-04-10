@@ -3,9 +3,8 @@ import type { MutableRefObject } from 'react';
 import type { NavigateFunction } from 'react-router-dom';
 import { SaveValidationError, saveToFile } from '../utils/fileSave';
 import { loadFromFile, loadFromFileHandle } from '../utils/fileLoad';
-import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from '../utils/fileHandleStorage';
+import { deleteFileHandleFromIndexedDB } from '../utils/fileHandleStorage';
 import { resolveDefaultDirectoryHandle } from '../utils/fileHelpers';
-import { isRecord } from '../utils/typeGuards';
 import {
   commitPendingInputBeforeSave,
   prepareForCriticalDataReplacement,
@@ -14,10 +13,11 @@ import {
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import { UI_STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 import type { LoadFileResult, SaveFileResult } from '../types/fileOperations';
-import { clearPendingPwaFileOpenRequest, markPendingPwaFileOpenRequestHandled, type PwaFileOpenRequest } from '../utils/pwaLaunchQueue';
+import { type PwaFileOpenRequest } from '../utils/pwaLaunchQueue';
 import { getUserMessage, isCalculationError } from '../utils/errorMessages';
 import { EncryptionError } from '../utils/encryption';
 import type { AppSettings } from '../settings/appSettingsSchema';
+import { executePersistenceLoadApply } from '../utils/persistenceLoadApply';
 
 export type OverlayData = {
   message: string;
@@ -83,14 +83,6 @@ const resolveSaveError = (error: unknown): OverlayData => {
   };
 };
 
-const parseFilenameBasisFromStamdata = (stamdata: unknown): { skadelidte?: string; skadestype?: string; skadedato?: string } | null => {
-  if (!isRecord(stamdata)) return null;
-  const skadelidte = typeof stamdata.skadelidte === 'string' ? stamdata.skadelidte : undefined;
-  const skadestype = typeof stamdata.skadestype === 'string' ? stamdata.skadestype : undefined;
-  const skadedato = typeof stamdata.skadedato === 'string' ? stamdata.skadedato : undefined;
-  return skadelidte || skadestype || skadedato ? { skadelidte, skadestype, skadedato } : null;
-};
-
 const resolveLoadError = (error: unknown): { message: string; expected: boolean } => {
   if (error instanceof Error && isCalculationError(error) && error.code === 'FILE_LOAD_FAILED') {
     const expected = error.cause instanceof EncryptionError;
@@ -145,41 +137,10 @@ export const useFileSaveLoad = ({
   const [pendingOverwriteApply, setPendingOverwriteApply] = React.useState<PendingOverwriteApply | null>(null);
 
   const applyLoadedSnapshot = React.useCallback(async (result: LoadFileResult) => {
-    if (!result.snapshot) {
-      throw new Error('Kunne ikke anvende indlæst data: mangler snapshot');
-    }
-
-    const fullSnapshot = Object.keys(persistenceSchemas).reduce((acc, key) => {
-      acc[key as StorageKey] = result.snapshot?.[key as StorageKey];
-      return acc;
-    }, {} as Record<StorageKey, unknown | undefined>);
-
-    try {
-      replaceAllPersistedData(fullSnapshot);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Ukendt fejl';
-      throw new Error(`Indlæsning mislykkedes. Ingen data blev anvendt.\n\n${message}`);
-    }
-
-    if (result.filename) {
-      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, result.filename);
-    }
-    const basis = parseFilenameBasisFromStamdata(result.snapshot.stamdata);
-    if (basis) {
-      sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, JSON.stringify(basis));
-    } else {
-      sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
-    }
-    if (result.fileHandle) {
-      await saveFileHandleToIndexedDB(result.fileHandle);
-    } else {
-      await deleteFileHandleFromIndexedDB();
-    }
-    if (result.requestId) {
-      await markPendingPwaFileOpenRequestHandled(result.requestId);
-    } else {
-      await clearPendingPwaFileOpenRequest();
-    }
+    await executePersistenceLoadApply({
+      result,
+      replaceAllPersistedData,
+    });
   }, [replaceAllPersistedData]);
 
   const requestApplyLoadedSnapshot = React.useCallback(async (

@@ -31,8 +31,13 @@ import {
   buildAllDataRawFromSnapshot,
   verifyAfterSave,
 } from './fileSaveInternals';
-import { isRecord, asError } from './typeGuards';
+import { asError } from './typeGuards';
 import { applyRegisteredTableSaveOrder } from './tableSaveOrderRegistry';
+import {
+  buildFilenameBasisFromStamdata,
+  loadStoredFilenameBasis,
+  persistSavedFilenameMetadata,
+} from './filePersistenceMetadata';
 
 export class SaveIntegrityError extends Error {
   readonly kind = 'integrity' as const;
@@ -58,58 +63,16 @@ export class SaveValidationError extends Error {
   }
 }
 
-
-/**
- * Sammenligner to datasæt felt-for-felt og finder forskelle.
- *
- * @param {Object} expected - Forventet data (fra sessionStorage)
- * @param {Object} actual - Faktisk data (fra gemt fil)
- * @param {string} path - Nuværende sti (til fejlmeldinger)
- * @param {number} depth - Rekursions-dybde (sikkerhed)
- * @returns {Array<string>} Liste af forskelle
- */
-
-const loadStoredFilenameBasis = (): Record<string, unknown> | null => {
-  const stored = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
-  if (!stored) return null;
-  try {
-    const parsed: unknown = JSON.parse(stored);
-    return isRecord(parsed) ? parsed : null;
-  } catch {
-    // Bevidst robustness-valg:
-    // Korrupt UI-metadata må aldrig kunne blokere gem af autoritativt brugerinput.
-    sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
-    return null;
-  }
-};
-
-const buildFilenameBasis = (stamdata: unknown): { skadelidte?: string; skadestype?: string; skadedato?: string } => {
-  const stamdataRecord: Record<string, unknown> =
-    isRecord(stamdata)
-      ? stamdata
-      : {};
-  return {
-    skadelidte: typeof stamdataRecord.skadelidte === 'string' ? stamdataRecord.skadelidte : undefined,
-    skadestype: typeof stamdataRecord.skadestype === 'string' ? stamdataRecord.skadestype : undefined,
-    skadedato: typeof stamdataRecord.skadedato === 'string' ? stamdataRecord.skadedato : undefined,
-  };
-};
-
-const saveFilenameMetadata = (filename: string, stamdata: unknown): void => {
-  sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilename, filename);
-  sessionStorage.setItem(UI_STORAGE_KEYS.lastSavedFilenameBasis, JSON.stringify(buildFilenameBasis(stamdata)));
-};
-
 const hasFilenameBasisChanged = (
   previousBasis: unknown,
   nextStamdata: unknown
 ): boolean => {
-  if (!isRecord(previousBasis)) return false;
-  const nextBasis = buildFilenameBasis(nextStamdata);
+  if (!previousBasis || typeof previousBasis !== 'object') return false;
+  const nextBasis = buildFilenameBasisFromStamdata(nextStamdata);
   return (
-    previousBasis.skadelidte !== nextBasis.skadelidte ||
-    previousBasis.skadestype !== nextBasis.skadestype ||
-    previousBasis.skadedato !== nextBasis.skadedato
+    (previousBasis as Record<string, unknown>).skadelidte !== nextBasis.skadelidte ||
+    (previousBasis as Record<string, unknown>).skadestype !== nextBasis.skadestype ||
+    (previousBasis as Record<string, unknown>).skadedato !== nextBasis.skadedato
   );
 };
 
@@ -348,7 +311,7 @@ export const saveToFile = async (
       }
 
       // Gem filnavn og stamdata til sessionStorage (til validering ved næste gem)
-      saveFilenameMetadata(filename, fileData.data.stamdata);
+      persistSavedFilenameMetadata(filename, fileData.data.stamdata);
 
     } else {
       // Fallback til klassisk download (Firefox, osv.)
@@ -413,7 +376,7 @@ export const saveToFile = async (
         // Vi fortsætter - filen er teknisk OK, bare med advarsler
       }
 
-      saveFilenameMetadata(filename, fileData.data.stamdata);
+      persistSavedFilenameMetadata(filename, fileData.data.stamdata);
     }
 
     // Returner success-info (inkl. verifikation hvis der var advarsler)

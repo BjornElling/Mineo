@@ -79,6 +79,19 @@ Gennemfør dette punkt som en konsolidering af eksisterende flow, ikke som en ny
 
 **Over-engineering-vurdering:** Ikke over-engineering som konsolidering. Det *ville* være over-engineering at omskrive hele persistence-laget fra bunden, fordi store dele af adfærden allerede er korrekt og testet.
 
+**Status: Gennemført – 2026-04-10**
+
+Implementeret som en ren intern arkitekturændring uden brugerobserverbar adfærdsændring og uden ændringer i beregningslogik.
+
+Konkrete ændringer:
+- `src/utils/persistenceLoadApply.ts` — nyt kanonisk entrypoint `executePersistenceLoadApply` bygger det fulde autoritative snapshot, kalder `replaceAllPersistedData` atomisk og håndterer metadata/PWA-sideeffekter på ét sted. Den interne snapshot-builder er ikke eksporteret. Fejl i `replaceAllPersistedData` og fejl i efterfølgende sideeffekter er adskilt i to separate fejlkontekster med eksplicitte beskeder.
+- `src/hooks/useFileSaveLoad.ts` — `applyLoadedSnapshot` delegerer nu fuldt til `executePersistenceLoadApply`; hook-laget er orchestration/UI-lag uden domæneregler om apply.
+- `src/utils/filePersistenceMetadata.ts` — `saveFilenameMetadata`/`syncLoadedFilenameMetadata` er omdøbt til `persistSavedFilenameMetadata`/`persistLoadedFilenameMetadata` med kommentarer der dokumenterer den bevidste asymmetri mellem save- og load-flow. `fileSave.ts` bruger det fælles helperpunkt.
+- `src/__tests__/utils/persistenceLoadApply.test.ts` — fire målrettede regressionstests: fuldt replace-snapshot (registry-drevet assertion, ikke hardkodede nøgler), metadata/PWA-sideeffekter, fail-closed ved manglende snapshot, og eksplicit fejlkontekst ved sideeffektfejl efter apply.
+- Forældet JSDoc-kommentarblok i `fileSave.ts` fjernet.
+
+Åbne delopgaver fra dette punkt: ingen. Save-flowet (`executePersistenceSave` / fjernelse af `fileSaveInternals.ts`) er ikke gennemført — vurderes som lavere prioritet og behandles separat.
+
 ---
 
 ## 2. Unified Calculation Kernel – snapshot-first for alle domæner
@@ -186,6 +199,20 @@ Det rigtige næste skridt er derfor ikke at opfinde en ny mekanisme, men at udvi
 
 **Over-engineering-vurdering:** En "deklarativ capability matrix med genererede selectors/commands" (review A) er over-engineering for denne kodebase. Det er et framework-mønster egnet til systemer med mange teams og domæner. Her er et simpelt build-test tilstrækkeligt. Gå ikke længere end det.
 
+**Status: Gennemført – 2026-04-10**
+
+Implementeret som en intern arkitektur-/quality-guard uden brugerobserverbar adfærdsændring og uden ændringer i beregningslogik.
+
+Konkrete ændringer:
+- `src/__tests__/quality/domainBoundaryIsolation.test.ts` — generel domænegrænse-test for page-laget. Sektionsnøgler og regex drives af `persistenceSchemas` (ikke hardkodede), med et eksplicit strukturelt testcase der verificerer at `PAGE_BOUNDARY_RULES` dækker alle kendte `StorageKey`s. Forbyder direkte `formPersistenceStore`-imports i pages, verificerer at hver page/subtree kun bruger kontraktligt autoriserede persisted sektioner, og holder EO's særlige read-only EET-import snæver og auditérbar. Manglende stier giver meningsfulde fejlbeskeder via `assertPathExists`.
+- `src/__tests__/quality/persistenceAccessIsolation.test.ts` — håndhæver de kanoniske persistence-adgangsniveauer inkl. direkte `formPersistenceStore`-import (lukker åben flanke fra tidligere review).
+- `src/__tests__/quality/testUtils.ts` — fælles infrastruktur for quality-tests: `collectSourceFiles`, `assertPathExists`, `toRepoRelativePath`. Erstatter tidligere duplikeret implementering på tværs af testfiler.
+- `src/__tests__/quality/eetDomainIsolation.test.ts` — eksisterende, domænespecifik EO/EET-vagt bevaret som særskilt regressionstest.
+- `src/__tests__/quality/contractCoverageMatrix.test.ts` — `domain-boundary-contract.md` og `persistence-contract.md` er koblet eksplicit til de tilsvarende quality-tests.
+
+Åbne delopgaver fra dette punkt:
+- Quality-laget håndhæver page-lagets persisted adgangsmønstre og direkte store-imports, men ikke bredere importgrænser mellem `src/domain/*`-moduler indbyrdes. Eventuel udvidelse bør ske som små deklarative tests, ikke som ny framework-infrastruktur.
+
 ---
 
 ## 5. Rydning af beregningsduplikering og konvergens mod kanoniske helpers
@@ -283,6 +310,20 @@ Det gør dette punkt til en verifikationsopgave, ikke et sandsynligt stort refak
 Begræns arbejdet til at finde faktiske parallelle committed kopier. Hvis auditten ikke finder sådanne, lukkes punktet som “verificeret OK” uden kodeændringer.
 
 **Over-engineering-vurdering:** Ikke over-engineering. Det er direkte håndhævelse af en eksisterende kontrakt.
+
+**Status: Delvist gennemført – 2026-04-10**
+
+Implementeret som en intern arkitektur-/quality-guard uden brugerobserverbar adfærdsændring og uden ændringer i beregningslogik.
+
+Konkrete ændringer:
+- `src/__tests__/quality/persistenceAccessIsolation.test.ts` — ny quality-test der håndhæver de kanoniske persistence-adgangsniveauer:
+  - `useFormPersistence` er begrænset til `MainLayout` samt de to kanoniske imperative hooks `usePersistedForm` og `useFormFieldErrors`.
+  - Direkte import af `FormPersistenceContext` er begrænset til top-level/provider-infrastruktur (`App.tsx` + `src/contexts/*`).
+- `src/__tests__/quality/contractCoverageMatrix.test.ts` — `persistence-contract.md` er nu eksplicit koblet til denne nye adgangstest samt den eksisterende load/apply-test for persistence.
+
+Statusmæssig betydning:
+- Punktet er ikke fuldt “verificeret OK” endnu; der er nu et konkret regressionsværn mod, at almindelige pages/hooks begynder at bruge context/store som parallel adgangsvej uden om selector- og form-hookene.
+- En bredere audit af faktiske parallelle committed kopier kan stadig gennemføres senere, men det nuværende værn lukker den vigtigste regressionsvej med lav ændringsrisiko.
 
 ---
 
