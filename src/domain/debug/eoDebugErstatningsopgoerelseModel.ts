@@ -2642,6 +2642,7 @@ export const buildEODebugIndkomstRows = (
       label: 'Valgt regulering',
       displayValue: status === 'ok' ? 'Ja' : formatStatusMessage(status, message),
       status,
+      message: status === 'ok' ? undefined : message,
     });
     const harGyldigValgtRegulering = status === 'ok';
     if (!harGyldigValgtRegulering) {

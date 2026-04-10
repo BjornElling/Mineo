@@ -325,7 +325,7 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'AG pens. bidrag']);
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag']);
   });
 
   it('indsætter Store Bededag som separat række 01-01-2024 i manuel reguleringsværdier-tabel', () => {
@@ -372,6 +372,98 @@ describe('eoPdfReguleringEngine', () => {
     expect(table).not.toBeNull();
     expect(table?.columns).toContain('Store Bededag');
     expect(table?.rows.some((row) => row[0] === '01-01-2024' && row[5] === '0,45 %')).toBe(true);
+  });
+
+  it('viser Store Bededag i manuelle reguleringsværdier når TAF starter efter 01-01-2024 men reguleringsdatoen ligger før', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 16.95;
+    af.loenudviklingManuelTableData = [
+      {
+        dato: '',
+        grundloen: asAmountValue(177.56),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '14,37',
+      },
+      {
+        dato: '01-04-2024',
+        grundloen: asAmountValue(184.66),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '14,37',
+      },
+    ] as any;
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2023-12-31'),
+      tafFra: iso('2024-01-26'),
+      tafTil: iso('2024-10-20'),
+      tafBeregningsenhed: 'Arbejdsdage',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.columns).toContain('Store Bededag');
+    expect(table?.rows.find((row) => row[0] === '26-01-2024')).toEqual([
+      '26-01-2024',
+      '177,56',
+      '16,95 %',
+      '-',
+      '-',
+      '0,45 %',
+      '14,37 %',
+    ]);
+  });
+
+  it('beregner manuel indeksrække med Store Bededag når TAF starter efter 01-01-2024 men reguleringsdatoen ligger før', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 16.95;
+    af.loenudviklingManuelTableData = [
+      {
+        dato: '',
+        grundloen: asAmountValue(177.56),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '14,37',
+      },
+      {
+        dato: '01-04-2024',
+        grundloen: asAmountValue(184.66),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '14,37',
+      },
+    ] as any;
+
+    const rows = buildReguleringIndexRows({
+      segments: [
+        {
+          kind: 'arbejdsdage',
+          fra: iso('2024-01-26'),
+          til: iso('2024-03-31'),
+          arbejdsdage: 10,
+          dagsloenOre: 0,
+          deltaPct: 0,
+          amountOre: 0,
+        },
+      ],
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2023-12-31'),
+      tafBeregningsenhed: 'Arbejdsdage',
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.indeks).toBe('100,38');
   });
 
   it('bevarer en særskilt række på manuel reguleringsdato i kronologien selv når værdierne er uændrede', () => {
@@ -450,6 +542,7 @@ describe('eoPdfReguleringEngine', () => {
       '16,95 %',
       '20,00 %',
       '-',
+      '0,45 %',
       '20,00 %',
     ]);
   });

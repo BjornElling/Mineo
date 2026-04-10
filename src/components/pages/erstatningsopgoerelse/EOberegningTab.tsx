@@ -206,12 +206,20 @@ const getCustomDebugRowMessage = (
     return 'Der mangler at blive angivet lønregulering, evt. \'Ingen\'';
   }
 
+  if (row.label === 'Valgt regulering' && message === 'Overenskomst er ikke valgt') {
+    return 'Regulering er sat til \'Overenskomst\', men ingen overenskomst er valgt';
+  }
+
   if (row.label === 'Periode til beregning af før-løn' && message === 'Ikke alle felter udfyldt') {
     return 'Der mangler indtastninger i perioden til beregning af før-løn.';
   }
 
   if (row.id === 'forlig.dato' && message === 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk') {
     return 'Der er indtastet forligsdato, men ikke forligsprocent eller -brøk';
+  }
+
+  if (row.id.startsWith('sfgg.beregningskilde.') && message === 'Intet valgt') {
+    return 'Beregningsgrundlag for sygeferiegodtgørelse er ikke valgt';
   }
 
   if (row.id.startsWith('sfgg.overenskomst.') && message === 'Ingen overenskomst valgt') {
@@ -527,7 +535,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       shDage: false,
       regulering: true,
       okSatser: true,
-      sygeferiegodtgoerelse: false,
+      sygeferiegodtgoerelse: true,
     }
   ), [eoValues.eoBilagSelection]);
   const loenindkomstOgOffentligeYdelserIndgaar =

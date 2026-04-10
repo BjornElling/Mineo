@@ -1391,7 +1391,7 @@ describe('eoPdfModel', () => {
 
     const changedSegment = segments.find((segment) => segment.fra === '2025-01-01');
     expect(changedSegment).toBeDefined();
-    expect(changedSegment?.deltaPct).toBeCloseTo(5.63, 2);
+    expect(changedSegment?.deltaPct).toBeCloseTo(5.62, 2);
   });
 
   it('falder tilbage til ansættelsens ferieprocent når manuel række har tom feriepenge', () => {
@@ -2624,6 +2624,61 @@ describe('eoPdfModel', () => {
     const storeSegment = segments.find((segment) => segment.fra === '2024-01-01');
     expect(storeSegment).toBeDefined();
     expect(storeSegment?.til).toBe('2024-02-29');
+  });
+
+  it('anvender Store Bededag i manuel regulering når hele TAF-perioden ligger efter 01-01-2024 men reguleringsdatoen ligger før', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmountValue(30000),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-26'), til: iso('2024-10-20'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+          loenudviklingManuelNavn: 'Manuelt angivet',
+          saerligFraDatoRegulering: iso('2023-12-31'),
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          feriePct: 16.95,
+          loenudviklingManuelTableData: [
+            {
+              id: 'm1',
+              dato: '',
+              grundloen: asAmountValue(177.56),
+              feriepenge: '',
+              shSoSats: '',
+              fritvalg: '',
+              agPension: '14,37',
+            },
+            {
+              id: 'm2',
+              dato: '01-04-2024',
+              grundloen: asAmountValue(184.66),
+              feriepenge: '',
+              shSoSats: '',
+              fritvalg: '',
+              agPension: '14,37',
+            },
+            {
+              id: 'm3',
+              dato: '01-10-2024',
+              grundloen: asAmountValue(187.06),
+              feriepenge: '',
+              shSoSats: '',
+              fritvalg: '',
+              agPension: '14,37',
+            },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2023-01-01') });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
+
+    expect(segments[0]?.fra).toBe('2024-01-26');
+    expect(segments[0]?.deltaPct).toBeCloseTo(0.38, 2);
   });
 
   it('fejler fail-closed ved datakorruption i statistikindeks', () => {
