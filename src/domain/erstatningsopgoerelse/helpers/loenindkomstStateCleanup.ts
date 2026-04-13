@@ -2,12 +2,26 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 type Ansaettelsesforhold = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
 type SfggAnsaettelsesforholdRow = ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number];
+type LoenudviklingBeregningsgrundlag = Ansaettelsesforhold['loenudviklingBeregningsgrundlag'];
 
 export const applyAnsaettelsesforholdToggleCleanup = (
   prev: Ansaettelsesforhold,
   field: 'harOverenskomst' | 'ansatPaaSkadestidspunktet' | 'ansaettelsesforholdOphoert' | 'harAnciennitetstillaegEfterSkadedatoen',
   nextValue: boolean
 ): Ansaettelsesforhold => ({ ...prev, [field]: nextValue });
+
+export const applyLoenudviklingBeregningsgrundlagChange = (
+  current: Ansaettelsesforhold,
+  nextBeregningsgrundlag: LoenudviklingBeregningsgrundlag
+): Ansaettelsesforhold => ({
+  // Skjulte lønudvikling-felter (statistikModel, KRL-satstabel, manuelNavn, manuelTableData)
+  // er fortsat committed brugerinput og skal bevares i runtime-state, sessionStorage og
+  // .eo-save/load. Beregningsmotoren og validatoren gater eksplicit på
+  // loenudviklingBeregningsgrundlag — stale værdier fra ikke-aktive grundlag ignoreres der,
+  // ikke her.
+  ...current,
+  loenudviklingBeregningsgrundlag: nextBeregningsgrundlag,
+});
 
 export const applySfggBeregningskildeChange = (
   current: SfggAnsaettelsesforholdRow,

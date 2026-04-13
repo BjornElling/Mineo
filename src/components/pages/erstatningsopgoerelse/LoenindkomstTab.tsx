@@ -71,6 +71,7 @@ import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerel
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   applyAnsaettelsesforholdToggleCleanup,
+  applyLoenudviklingBeregningsgrundlagChange,
   applySfggBeregningskildeChange,
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import {
@@ -1353,21 +1354,14 @@ const LoenindkomstTab = React.memo(({
             delete next[id];
             return next;
           });
-          // Når grundlag cleares, nulstil også alle tilknyttede felter
-          updateAnsaettelsesforhold(id, (prev) => ({
-            ...prev,
-            loenudviklingBeregningsgrundlag: undefined,
-            loenudviklingStatistikModel: undefined,
-            loenudviklingKRLSatstabel: undefined,
-            loenudviklingManuelNavn: '',
-            loenudviklingManuelTableData: [],
-          }));
+          updateAnsaettelsesforhold(id, (prev) =>
+            applyLoenudviklingBeregningsgrundlagChange(prev, undefined)
+          );
           return;
         }
         const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(raw);
         if (!parsed.success) return;
 
-        // Nulstil fejl-state for manuelt angivet hvis nødvendigt
         if (parsed.data !== 'Manuelt angivet') {
           setManuelReguleringHasErrorsByAfId((prev) => {
             const next = { ...prev };
@@ -1376,26 +1370,9 @@ const LoenindkomstTab = React.memo(({
           });
         }
 
-        // Centraliseret state-oprydning: nulstil alle felter der ikke er relevante for det nye grundlag
-        updateAnsaettelsesforhold(id, (prev) => {
-          const updates: Partial<Ansaettelsesforhold> = {
-            loenudviklingBeregningsgrundlag: parsed.data,
-          };
-
-          // Nulstil felter der kun hører til andre grundlag
-          if (parsed.data !== 'Statistik') {
-            updates.loenudviklingStatistikModel = undefined;
-          }
-          if (parsed.data !== 'KRL satstabel') {
-            updates.loenudviklingKRLSatstabel = undefined;
-          }
-          if (parsed.data !== 'Manuelt angivet') {
-            updates.loenudviklingManuelNavn = '';
-            updates.loenudviklingManuelTableData = [];
-          }
-
-          return { ...prev, ...updates };
-        });
+        updateAnsaettelsesforhold(id, (prev) =>
+          applyLoenudviklingBeregningsgrundlagChange(prev, parsed.data)
+        );
       },
     [updateAnsaettelsesforhold]
   );

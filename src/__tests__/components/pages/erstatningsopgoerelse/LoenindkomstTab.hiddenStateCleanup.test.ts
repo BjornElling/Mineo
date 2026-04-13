@@ -1,5 +1,6 @@
 import {
   applyAnsaettelsesforholdToggleCleanup,
+  applyLoenudviklingBeregningsgrundlagChange,
   applySfggBeregningskildeChange,
 } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -63,6 +64,25 @@ describe('LoenindkomstTab hidden state cleanup', () => {
     expect(result.anciennitetstillaegDato).toBe('2024-02-15');
     expect(result.anciennitetstillaegSatsAngivesPer).toBe('Time');
     expect(result.anciennitetstillaegSats).toEqual({ kind: 'number', value: 150 });
+  });
+
+  it('bevarer skjulte lønudvikling-felter når beregningsgrundlag skifter', () => {
+    const initial = {
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      loenudviklingBeregningsgrundlag: 'Statistik' as const,
+      loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+      loenudviklingKRLSatstabel: 'KRL-2024' as never,
+      loenudviklingManuelNavn: 'DA-tillægstrin',
+      loenudviklingManuelTableData: [{ id: 'row-1', dato: '2024-01-01', grundloen: { kind: 'number' as const, value: 50000 }, feriepenge: '', shSoSats: '', fritvalg: '', agPension: '' }],
+    };
+
+    const result = applyLoenudviklingBeregningsgrundlagChange(initial, 'Manuelt angivet');
+
+    expect(result.loenudviklingBeregningsgrundlag).toBe('Manuelt angivet');
+    expect(result.loenudviklingStatistikModel).toBe('ILON12 (Danmarks Statistik)');
+    expect(result.loenudviklingKRLSatstabel).toBe('KRL-2024');
+    expect(result.loenudviklingManuelNavn).toBe('DA-tillægstrin');
+    expect(result.loenudviklingManuelTableData).toHaveLength(1);
   });
 
   it('bevarer skjulte SFGG-felter når beregningskilde skifter til manuelt angivet', () => {
