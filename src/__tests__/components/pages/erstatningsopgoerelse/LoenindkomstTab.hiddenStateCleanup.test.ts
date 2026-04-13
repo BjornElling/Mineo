@@ -1,6 +1,6 @@
 import {
   applyAnsaettelsesforholdToggleCleanup,
-  sanitizeSfggRowForBeregningskilde,
+  applySfggBeregningskildeChange,
 } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
@@ -65,8 +65,8 @@ describe('LoenindkomstTab hidden state cleanup', () => {
     expect(result.anciennitetstillaegSats).toEqual({ kind: 'number', value: 150 });
   });
 
-  it('rydder skjulte SFGG-felter når beregningskilde skifter til manuelt angivet', () => {
-    const result = sanitizeSfggRowForBeregningskilde(
+  it('bevarer skjulte SFGG-felter når beregningskilde skifter til manuelt angivet', () => {
+    const result = applySfggBeregningskildeChange(
       {
         ansaettelsesforholdId: 'af-1',
         sfggBeregningskilde: 'Overenskomst',
@@ -74,26 +74,22 @@ describe('LoenindkomstTab hidden state cleanup', () => {
         sfggReferenceperiodeTil: '2024-01-31',
         sfggReferenceperiodeFravaersdageUdenLoen: 2,
         sfggManuelDagssats: { kind: 'number', value: 100 },
-        sfggManuelBeloebIHenholdTil: 'Arbejdsdage',
+        sfggManuelBeloebIHenholdTil: 'Overenskomstens tabel 3.2', // fritekstfelt — ingen enum
         sfggManuelFoerstEfterSygeloen: 'Ja',
         sfggSatsvalg: 'Faglaert-Koebenhavn',
         sfggAlleredeBetaltBeloeb: { kind: 'number', value: 200 },
       },
-      'Manuelt angivet',
-      {
-        showReferenceperiodeFields: false,
-        showManualFields: true,
-        showSatsvalgField: false,
-      }
+      'Manuelt angivet'
     );
 
     expect(result.sfggBeregningskilde).toBe('Manuelt angivet');
-    expect(result.sfggReferenceperiodeFra).toBeUndefined();
-    expect(result.sfggReferenceperiodeTil).toBeUndefined();
-    expect(result.sfggReferenceperiodeFravaersdageUdenLoen).toBe(0);
+    expect(result.sfggReferenceperiodeFra).toBe('2024-01-01');
+    expect(result.sfggReferenceperiodeTil).toBe('2024-01-31');
+    expect(result.sfggReferenceperiodeFravaersdageUdenLoen).toBe(2);
     expect(result.sfggManuelDagssats).toEqual({ kind: 'number', value: 100 });
+    expect(result.sfggManuelBeloebIHenholdTil).toBe('Overenskomstens tabel 3.2');
     expect(result.sfggManuelFoerstEfterSygeloen).toBe('Ja');
-    expect(result.sfggSatsvalg).toBeUndefined();
+    expect(result.sfggSatsvalg).toBe('Faglaert-Koebenhavn');
     expect(result.sfggAlleredeBetaltBeloeb).toEqual({ kind: 'number', value: 200 });
   });
 });

@@ -53,6 +53,9 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 - Parsing må **kun** ske ved commit
 - Committed state må **aldrig** indeholde invalide værdier
 - Draft state må **aldrig** anvendes direkte i beregninger
+- Synlighed/rendering må **ikke** i sig selv rydde allerede committet brugerinput i persisted sagsfelter
+- Hvis et persisted sagsfelt eller en persisted række skjules, skal den committede værdi fortsat kunne overleve `F5`, `.eo`-save og `.eo`-load
+- Skjulte committed værdier må kun neutraliseres ved, at validering og beregning eksplicit gater på de aktive domæneregler; de må ikke neutraliseres ved skjult state-clearing
 
 ---
 

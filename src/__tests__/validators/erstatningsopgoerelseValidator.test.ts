@@ -237,6 +237,60 @@ describe('SFGG validering', () => {
 
     expect(hasError(values, 'Referenceperioden skal ligge før første TAF-periode')).toBe(true);
   });
+
+  it('ignorerer skjulte referenceperiodefelter og satsvalg når SFGG beregnes manuelt', () => {
+    // Felterne sfggReferenceperiodeFra/Til, sfggReferenceperiodeFravaersdageUdenLoen og
+    // sfggSatsvalg er udfyldt med stale værdier fra et tidligere beregningskilde-valg.
+    // Validatoren skal gate på beregningskilden og ignorere disse skjulte felter.
+    const values = makeValues({
+      loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-05-31') },
+      ],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: asAmount(500),
+        sfggManuelBeloebIHenholdTil: 'Overenskomstens tabel 3.2',
+        sfggManuelFoerstEfterSygeloen: 'Ja',
+        sfggReferenceperiodeFra: iso('2024-05-01'),
+        sfggReferenceperiodeTil: iso('2024-05-15'),
+        sfggReferenceperiodeFravaersdageUdenLoen: 99,
+        sfggSatsvalg: 'Faglaert-Koebenhavn',
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    const result = erstatningsopgoerelseValidator.validate(values);
+
+    expect(
+      result.errors.some((error) =>
+        error.path.startsWith('sfggAnsaettelsesforhold[0].sfggReferenceperiode')
+        || error.path === 'sfggAnsaettelsesforhold[0].sfggSatsvalg'
+      )
+    ).toBe(false);
+    expect(result.isValid).toBe(true);
+  });
+
+  it('kræver sfggManuelDagssats når beregningskilde er manuelt angivet', () => {
+    const values = makeValues({
+      loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
+      sfggAnsaettelsesforhold: [{
+        ansaettelsesforholdId: 'af-1',
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: undefined,
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: undefined,
+      }],
+    });
+
+    expect(hasError(values, 'Dagssats for sygeferiegodtgørelse mangler')).toBe(true);
+  });
 });
 
 // =============================================================================

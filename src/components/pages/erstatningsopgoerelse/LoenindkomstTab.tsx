@@ -71,7 +71,7 @@ import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerel
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   applyAnsaettelsesforholdToggleCleanup,
-  sanitizeSfggRowForBeregningskilde,
+  applySfggBeregningskildeChange,
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import {
   applyAutoSatsFields,
@@ -2539,39 +2539,10 @@ const LoenindkomstTab = React.memo(({
                           nextValue === 'Overenskomst' || nextValue === 'Manuelt angivet' || nextValue === 'Ferieloven' || nextValue === 'Ingen'
                             ? nextValue
                             : undefined;
-                        const nextSourceKind =
-                          nextBeregningskilde === 'Ingen' || nextBeregningskilde === undefined
-                            ? 'ingen'
-                            : nextBeregningskilde === 'Manuelt angivet'
-                              ? 'manuel'
-                              : nextBeregningskilde === 'Ferieloven'
-                                ? 'ferielov'
-                                : !af.harOverenskomst || !af.overenskomstId || getOffentligOverenskomstTypeById(af.overenskomstId)
-                                  ? 'overenskomst_ferielov'
-                                  : sfggPolicy?.model === 'direkte_sats'
-                                    ? 'overenskomst_direkte'
-                                    : 'overenskomst_ferielov';
-                        const showReferenceperiodeFields =
-                          nextBeregningskilde === 'Ferieloven'
-                          || (
-                            nextBeregningskilde === 'Overenskomst'
-                            && nextSourceKind === 'overenskomst_ferielov'
-                          );
-                        const showManualFields = nextBeregningskilde === 'Manuelt angivet';
-                        const showSatsvalgField =
-                          nextBeregningskilde === 'Overenskomst'
-                          && nextSourceKind === 'overenskomst_direkte'
-                          && sfggPolicy?.direkteSatsErDifferentieret === true;
-
-                        updateSfggAnsaettelsesforhold(af.id, (current) => sanitizeSfggRowForBeregningskilde(
-                          current,
-                          nextBeregningskilde,
-                          {
-                            showReferenceperiodeFields,
-                            showManualFields,
-                            showSatsvalgField,
-                          }
-                        ));
+                        updateSfggAnsaettelsesforhold(
+                          af.id,
+                          (current) => applySfggBeregningskildeChange(current, nextBeregningskilde)
+                        );
                       }}
                     >
                       <MenuItem value="Overenskomst">Overenskomst</MenuItem>

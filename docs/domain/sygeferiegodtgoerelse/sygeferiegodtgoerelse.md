@@ -452,7 +452,7 @@ Ved valg af `Ingen` skal EODebug stadig vise én linje med den valgte værdi og 
 
 ## Del 2: Implementeringsstatus
 
-Dette afsnit beskriver status på den faktiske implementation pr. `10. april 2026`.
+Dette afsnit beskriver status på den faktiske implementation pr. `13. april 2026`.
 
 Status er gennemgået mod den aktuelle kode i især:
 - `src/schemas/formSchemas/sections/erstatningsopgoerelseSchemas.ts`
@@ -494,6 +494,8 @@ Pr. ansættelsesforhold persisted blandt andet:
 - toggle for først SFGG efter ophør af sygeløn
 - satsvalg
 - allerede betalt SFGG
+
+Skjulte SFGG-felter bevares i committed state, `sessionStorage` og `.eo`-save/load, også når brugeren skifter beregningskilde, så felterne ikke længere vises. Beregning og validering skal i stedet ignorere sådanne værdier, når de ikke er aktive for den aktuelle beregningskilde.
 
 #### 2. UI
 

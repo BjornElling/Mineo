@@ -32,6 +32,7 @@ App-settings er ikke omfattet; se `app-settings.md`.
 1. Save skal inkludere alt brugerindtastet, schema-valideret sagsinput.
 2. Save må ikke inkludere device-lokale defaults eller afledte værdier kun for at gøre filen "komplet".
 3. Save-gating følger commitbarhed, ikke al rød fejl-UI.
+4. Felter eller rækker, der er schema-valideret brugerinput men aktuelt skjult i UI, skal stadig gemmes i `.eo`, medmindre brugeren eksplicit sletter dem.
 
 ---
 
@@ -106,6 +107,7 @@ Det er tilladt at bryde bagudkompatibilitet for intern runtime-struktur, men `.e
 2. Data i `sessionStorage` må forsvinde ved tab-/vindueslukning eller browseroprydning; `.eo` er den eneste brugerrettede, eksplicitte langtidsbevaring.
 3. Hydrering fra `sessionStorage` må kun ske som autoritativ initialization/replacement, ikke som skjult løbende overskrivning af aktiv committed state.
 4. Fejl ved skrivning til `sessionStorage` skal behandles fail-closed og må ikke skjules som om persist lykkedes.
+5. Skjult persisted sagsinput skal forblive i `sessionStorage`, indtil brugeren eksplicit ændrer eller sletter det; ren visningslogik må ikke strippe det.
 
 ---
 
@@ -120,3 +122,4 @@ Følgende regler er bindende for persistence-laget under aktiv runtime:
 5. `FormPersistenceContext` er et infrastrukturlag for imperative persistence-operationer, hydration, notices og autoritative replaces; det må ikke udvikle sig til generel state-broker for almindelige sektionslæsninger.
 6. Persistence-API'er må ikke eksponere `onChange`-lignende convenience-API'er, der inviterer til commit af committed state fra draft-semantik.
 7. Tværsektion-readmodels skal være eksplicitte og read-only. Når et tværsektion-flow bliver et etableret mønster, skal sammensætningen ligge i et dedikeret hook/modul frem for som ad hoc hydrering spredt i page-komponenter.
+8. UI-synlighed er ikke i sig selv en persistence-grænse: når et persisted sagsfelt eller en persisted række skjules, skal committed værdier fortsat bevares, mens validering og beregning eksplicit skal ignorere dem, når de ikke længere er domænemæssigt aktive.
