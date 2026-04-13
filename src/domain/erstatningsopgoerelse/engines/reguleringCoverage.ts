@@ -6,8 +6,14 @@ export const resolveOverenskomstEffectiveStartIso = (
   overenskomstId: string | undefined,
   reguleringTableStartIso: ISODateString
 ): ISODateString => {
-  const interval = overenskomstId ? getReguleringsDatoIntervalForOverenskomst(overenskomstId) : undefined;
-  const minCoverageIso = interval ? parseDanishToIso(interval.fraDato) : undefined;
+  const minCoverageIso = resolveOverenskomstCoverageStartIso(overenskomstId);
   if (minCoverageIso && minCoverageIso > reguleringTableStartIso) return minCoverageIso;
   return reguleringTableStartIso;
+};
+
+export const resolveOverenskomstCoverageStartIso = (
+  overenskomstId: string | undefined
+): ISODateString | undefined => {
+  const interval = overenskomstId ? getReguleringsDatoIntervalForOverenskomst(overenskomstId) : undefined;
+  return interval ? parseDanishToIso(interval.fraDato) : undefined;
 };

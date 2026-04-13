@@ -19,7 +19,7 @@ const cloneInitialValues = () => ({
 });
 
 describe('eoPdfReguleringEngine', () => {
-  it('starter reguleringsværdier-tabellen ved første tilgængelige overenskomstdato ved manglende tidlig dækning', () => {
+  it('viser reference-række før første tilgængelige overenskomstdato ved manglende tidlig dækning', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
@@ -35,9 +35,10 @@ describe('eoPdfReguleringEngine', () => {
 
     expect(table).not.toBeNull();
     expect(table?.rows.length).toBeGreaterThan(0);
+    expect(table?.rows[0]).toEqual(['01-01-2020', '-', '-', '-']);
     // 01-03-2024 er første satsdato i laasesmedeoverenskomsten i testdata.
     // Hvis datagrundlaget ændres historisk, skal denne forventning opdateres.
-    expect(table?.rows[0]?.[0]).toBe('01-03-2024');
+    expect(table?.rows[1]?.[0]).toBe('01-03-2024');
   });
 
   it('bygger reguleringsindeks-rækker selv når segmenter starter før første overenskomstdækning', () => {
@@ -98,8 +99,8 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toEqual(['Fra-dato', 'Månedsløn', 'Feriepenge', 'AG pens. bidrag']);
-    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
+    expect(table?.columns).toEqual(['Fra-dato', 'Månedsløn', 'Feriepenge', 'Store Bededag', 'AG pens. bidrag']);
+    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
   it('bevarer en særskilt række på reguleringsdatoen i privat reguleringsværdier-tabel selv når næste sats er uændret', () => {
@@ -253,9 +254,9 @@ describe('eoPdfReguleringEngine', () => {
     const table = buildReguleringsvaerdierTableData({
       eoValues: values,
       ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2010-01-01'),
-      tafFra: iso('2010-01-04'),
-      tafTil: iso('2010-01-05'),
+      anvendtReguleringsdato: iso('2024-01-01'),
+      tafFra: iso('2024-01-04'),
+      tafTil: iso('2024-01-05'),
       tafBeregningsenhed: 'Arbejdsdage',
     });
 
@@ -307,8 +308,9 @@ describe('eoPdfReguleringEngine', () => {
     af.feriePct = 16.95;
     af.loenudviklingManuelTableData = [
       {
+        id: 'm1',
         dato: '26-01-2024',
-        grundloen: '177,56',
+        grundloen: asAmountValue(177.56),
         feriepenge: '',
         shSoSats: '',
         fritvalg: '',
@@ -336,30 +338,33 @@ describe('eoPdfReguleringEngine', () => {
     af.feriePct = 15;
     af.loenudviklingManuelTableData = [
       {
+        id: 'm1',
         dato: '',
-        grundloen: '25.174,00',
+        grundloen: asAmountValue(25174),
         feriepenge: '15,00',
         shSoSats: '',
         fritvalg: '7,00',
         agPension: '9,00',
       },
       {
+        id: 'm2',
         dato: '01-03-2024',
-        grundloen: '25.174,00',
+        grundloen: asAmountValue(25174),
         feriepenge: '15,00',
         shSoSats: '',
         fritvalg: '9,00',
         agPension: '11,00',
       },
       {
+        id: 'm3',
         dato: '01-04-2024',
-        grundloen: '25.895,00',
+        grundloen: asAmountValue(25895),
         feriepenge: '15,00',
         shSoSats: '',
         fritvalg: '9,00',
         agPension: '11,00',
       },
-    ] as any;
+    ];
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
@@ -382,6 +387,7 @@ describe('eoPdfReguleringEngine', () => {
     af.feriePct = 16.95;
     af.loenudviklingManuelTableData = [
       {
+        id: 'm1',
         dato: '',
         grundloen: asAmountValue(177.56),
         feriepenge: '',
@@ -390,6 +396,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '14,37',
       },
       {
+        id: 'm2',
         dato: '01-04-2024',
         grundloen: asAmountValue(184.66),
         feriepenge: '',
@@ -397,7 +404,7 @@ describe('eoPdfReguleringEngine', () => {
         fritvalg: '',
         agPension: '14,37',
       },
-    ] as any;
+    ];
 
     const table = buildReguleringsvaerdierTableData({
       ansaettelsesforhold: af,
@@ -409,13 +416,13 @@ describe('eoPdfReguleringEngine', () => {
 
     expect(table).not.toBeNull();
     expect(table?.columns).toContain('Store Bededag');
-    expect(table?.rows.find((row) => row[0] === '26-01-2024')).toEqual([
-      '26-01-2024',
+    expect(table?.rows.find((row) => row[0] === '31-12-2023')).toEqual([
+      '31-12-2023',
       '177,56',
       '16,95 %',
       '-',
       '-',
-      '0,45 %',
+      '0 %',
       '14,37 %',
     ]);
   });
@@ -428,6 +435,7 @@ describe('eoPdfReguleringEngine', () => {
     af.feriePct = 16.95;
     af.loenudviklingManuelTableData = [
       {
+        id: 'm1',
         dato: '',
         grundloen: asAmountValue(177.56),
         feriepenge: '',
@@ -436,6 +444,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '14,37',
       },
       {
+        id: 'm2',
         dato: '01-04-2024',
         grundloen: asAmountValue(184.66),
         feriepenge: '',
@@ -443,7 +452,7 @@ describe('eoPdfReguleringEngine', () => {
         fritvalg: '',
         agPension: '14,37',
       },
-    ] as any;
+    ];
 
     const rows = buildReguleringIndexRows({
       segments: [
@@ -474,6 +483,7 @@ describe('eoPdfReguleringEngine', () => {
     af.saerligFraDatoRegulering = iso('2024-01-26');
     af.loenudviklingManuelTableData = [
       {
+        id: 'm1',
         dato: '',
         grundloen: asAmountValue(138.15),
         feriepenge: '',
@@ -482,6 +492,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '10,15',
       },
       {
+        id: 'm2',
         dato: '01-03-2024',
         grundloen: asAmountValue(142.65),
         feriepenge: '',
@@ -503,6 +514,99 @@ describe('eoPdfReguleringEngine', () => {
     expect(table?.rows.map((row) => row[0])).toEqual(['26-01-2024', '01-03-2024']);
   });
 
+  it('viser senest gældende manuel ændringsrække på reference-dato før tafFra', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.feriePct = 16.95;
+    af.loenudviklingManuelTableData = [
+      {
+        id: 'm1',
+        dato: '',
+        grundloen: asAmountValue(100),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '10,00',
+      },
+      {
+        id: 'm2',
+        dato: '01-06-2023',
+        grundloen: asAmountValue(125),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '12,00',
+      },
+      {
+        id: 'm3',
+        dato: '01-02-2024',
+        grundloen: asAmountValue(150),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '15,00',
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2023-12-31'),
+      tafFra: iso('2024-01-26'),
+      tafTil: iso('2024-03-31'),
+      tafBeregningsenhed: 'Arbejdsdage',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows.find((row) => row[0] === '31-12-2023')).toEqual([
+      '31-12-2023',
+      '125,00',
+      '16,95 %',
+      '-',
+      '-',
+      '0 %',
+      '12,00 %',
+    ]);
+  });
+
+  it('merger manuel reference-række væk når dens værdier er identiske med næste eksplicitte ændringsrække', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.feriePct = 16.95;
+    af.loenudviklingManuelTableData = [
+      {
+        id: 'm1',
+        dato: '',
+        grundloen: asAmountValue(100),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        id: 'm2',
+        dato: '10-01-2024',
+        grundloen: asAmountValue(110),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2024-01-26'),
+      tafFra: iso('2024-01-02'),
+      tafTil: iso('2024-03-31'),
+      tafBeregningsenhed: 'Arbejdsdage',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows.map((row) => row[0])).toEqual(['10-01-2024']);
+  });
+
   it('overskriver ikke en eksplicit manuel række på reguleringsdatoen med første manuelle række', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
@@ -510,6 +614,7 @@ describe('eoPdfReguleringEngine', () => {
     af.feriePct = 16.95;
     af.loenudviklingManuelTableData = [
       {
+        id: 'm1',
         dato: '',
         grundloen: asAmountValue(100),
         feriepenge: '',
@@ -518,6 +623,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '10,00',
       },
       {
+        id: 'm2',
         dato: '15-02-2024',
         grundloen: asAmountValue(200),
         feriepenge: '',
@@ -555,30 +661,33 @@ describe('eoPdfReguleringEngine', () => {
     af.feriePct = 15;
     af.loenudviklingManuelTableData = [
       {
+        id: 'm1',
         dato: '',
-        grundloen: '25.174,00',
+        grundloen: asAmountValue(25174),
         feriepenge: '15,00',
         shSoSats: '',
         fritvalg: '7,00',
         agPension: '9,00',
       },
       {
+        id: 'm2',
         dato: '01-03-2024',
-        grundloen: '25.174,00',
+        grundloen: asAmountValue(25174),
         feriepenge: '15,00',
         shSoSats: '',
         fritvalg: '9,00',
         agPension: '11,00',
       },
       {
+        id: 'm3',
         dato: '01-04-2024',
-        grundloen: '25.895,00',
+        grundloen: asAmountValue(25895),
         feriepenge: '15,00',
         shSoSats: '',
         fritvalg: '9,00',
         agPension: '11,00',
       },
-    ] as any;
+    ];
 
     const rows = buildReguleringIndexRows({
       segments: [
@@ -616,6 +725,55 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(rows.some((row) => row.fraDato === '01-01-2024')).toBe(true);
+  });
+
+  it('bruger den senest gældende manuelle række som indeksbasis og periodebasis efter en tidligere manuel ændringsdato', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.loenudviklingManuelTableData = [
+      {
+        id: 'm1',
+        dato: '',
+        grundloen: asAmountValue(100),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        id: 'm2',
+        dato: '01-04-2024',
+        grundloen: asAmountValue(110),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+      {
+        id: 'm3',
+        dato: '01-06-2024',
+        grundloen: asAmountValue(120),
+        feriepenge: '',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '',
+      },
+    ];
+
+    const rows = buildReguleringIndexRows({
+      segments: [
+        { kind: 'maaneder', fra: iso('2024-05-01'), til: iso('2024-05-31'), maaneder: 1, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
+        { kind: 'maaneder', fra: iso('2024-06-01'), til: iso('2024-06-30'), maaneder: 1, maanedsloenOre: 0, deltaPct: 0, amountOre: 0 },
+      ],
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2024-05-01'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(rows).toHaveLength(2);
+    expect(rows[0]?.indeks).toBe('100,00');
+    expect(rows[1]?.indeks).toBe('109,09');
   });
 
   it('sammenklapper uændrede manuelle reguleringsværdier til én periode i første tabel', () => {
@@ -784,5 +942,43 @@ describe('eoPdfReguleringEngine', () => {
       ['01-10-2021', '30-09-2022'],
       ['01-10-2022', '31-03-2023'],
     ]);
+  });
+
+  it('viser statistik-reference før første kendte periode og derefter første reelle række', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Statistik';
+    af.loenudviklingStatistikModel = 'ILON12 (Danmarks Statistik)';
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2000-01-01'),
+      tafFra: iso('2000-01-01'),
+      tafTil: iso('2006-12-31'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows[0]).toEqual(['-', '01-01-2000', '-']);
+    expect(table?.rows[1]?.[0]).toBe('2005K1');
+  });
+
+  it('viser KRL-reference før første kendte periode og derefter første reelle række', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    af.loenudviklingKRLSatstabel = 'KTO (kommuner)';
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2000-01-01'),
+      tafFra: iso('2000-01-01'),
+      tafTil: iso('2002-12-31'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows[0]).toEqual(['01-01-2000', '-']);
+    expect(table?.rows[1]?.[0]).toBe('01-04-2001');
   });
 });

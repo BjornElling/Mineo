@@ -539,17 +539,14 @@ Der er implementeret beregning for:
 
 #### 4a. Reguleringstabeller i EODebug og EO-PDF
 
-Ved overenskomstregulering skal den øverste reguleringstabel altid indeholde en række på reguleringsdatoen:
-- hvis brugeren har indtastet en manuel reguleringsdato, anvendes den
-- ellers anvendes skadedatoen
+Den øverste reguleringstabel følger nu samme grundstruktur som den generelle reguleringstabel i EO:
+- tabellen viser de reelle reguleringsdatoer for de viste værdier
+- tabellen viser alle reguleringsperioder, som der faktisk ligger TAF-datoer i
+- hvis satserne på reguleringsdatoen ikke allerede er repræsenteret i tabellen, indsættes reguleringsdatoen som reference-række på sin kronologisk korrekte plads
 
-Rækken skal vise de satser, der gælder på denne dato, og den skal indgå som en helt almindelig række på sin naturlige plads i kronologien.
+Hvis reguleringsdatoen ligger før første kendte reguleringsoplysning, vises reguleringsdatoen fortsat som reference-række, og første reelle reguleringsrække vises først fra den dato, hvor reguleringsoplysningerne faktisk foreligger.
 
-Denne særregel må ikke udvide tabellen til alle mellemliggende reguleringsdatoer mellem reguleringsdatoen og TAF-perioden. Tabellen skal fortsat kun vise:
-- reguleringsdatoer, der ligger i TAF-perioden
-- samt én ekstra række på reguleringsdatoen, hvis den ligger uden for TAF-perioden
-
-Der må ikke indsættes en dublet, hvis tabellen allerede har en række på den pågældende dato. Den særskilte række på reguleringsdatoen må desuden ikke bortfalde ved sammenklapning af efterfølgende eller foregående rækker med identiske værdier.
+Reference-rækken på reguleringsdatoen behandles som en almindelig række i den endelige visning og må derfor bortfalde ved sammenklapning, hvis dens viste værdier er identiske med en nabørække.
 
 #### 5. Overenskomstdata
 

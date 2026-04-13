@@ -1,6 +1,6 @@
 import type { DanishDateString, ISODateString } from '../../../types/branded';
 import { isoToDanish, parseISODate, subtractOneDay } from '../../../types/branded';
-import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, LoenudviklingManuelRow, StamdataValues } from '../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from './eoPdfModelTypes';
 import { getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
@@ -60,7 +60,7 @@ import {
   type FormulaVisibility,
   wrapIndexFormulaAfterSlashWhenLong,
 } from '../engines/reguleringFormulaUtils';
-import { resolveOverenskomstEffectiveStartIso } from '../engines/reguleringCoverage';
+import { resolveOverenskomstCoverageStartIso, resolveOverenskomstEffectiveStartIso } from '../engines/reguleringCoverage';
 
 export type ReguleringIndexRow = Readonly<{
   fraDato: string;
@@ -238,12 +238,71 @@ const resolveReguleringsvaerdierLoenHeader = (
 const REGULERINGSVAERDIER_FRA_DATO_HEADER = 'Fra-dato';
 const REGULERINGSVAERDIER_PENSION_HEADER = 'AG pens. bidrag';
 
+const buildPlaceholderValueRow = (
+  label: string,
+  columns: readonly string[]
+): string[] => [label, ...columns.slice(1).map(() => '-')];
+
+const sortIsoDates = (dates: Iterable<ISODateString>): ISODateString[] =>
+  Array.from(new Set(dates)).sort((a, b) => (a < b ? -1 : 1));
+
+const resolveRelevantRealDatesForTafScope = (
+  allDates: readonly ISODateString[],
+  tafFra: ISODateString,
+  tafTil: ISODateString
+): readonly ISODateString[] => {
+  if (allDates.length === 0) return [];
+  let firstRelevant = allDates.filter((iso) => iso <= tafFra).at(-1);
+  if (!firstRelevant) {
+    firstRelevant = allDates.find((iso) => iso >= tafFra && iso <= tafTil);
+  }
+  if (!firstRelevant) return [];
+  return allDates.filter((iso) => iso === firstRelevant || (iso >= tafFra && iso <= tafTil));
+};
+
+type ManualRowStart = Readonly<{
+  startIso: ISODateString;
+  row: LoenudviklingManuelRow;
+}>;
+
+type ManualRowsContext = Readonly<{
+  baseRow: LoenudviklingManuelRow;
+  datedRowStarts: readonly ManualRowStart[];
+}>;
+
+const resolveManualRowsContext = (
+  rows: readonly LoenudviklingManuelRow[]
+): ManualRowsContext | null => {
+  const baseRow = rows[0];
+  if (!baseRow) return null;
+  const datedRowStarts = rows
+    .slice(1)
+    .map((row) => {
+      const startIso = parseDanishToISO(row.dato);
+      return startIso ? { startIso, row } : null;
+    })
+    .filter((entry): entry is ManualRowStart => Boolean(entry))
+    .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
+  return { baseRow, datedRowStarts };
+};
+
+const findLatestManualRowForIso = (
+  context: ManualRowsContext | null,
+  iso: ISODateString
+): LoenudviklingManuelRow | undefined => {
+  if (!context) return undefined;
+  let latest = context.baseRow;
+  for (const entry of context.datedRowStarts) {
+    if (entry.startIso > iso) break;
+    latest = entry.row;
+  }
+  return latest;
+};
+
 const mergeConsecutiveValueRows = (
-  rows: readonly string[][],
-  options?: Readonly<{ preserveFirstColumnValues?: readonly string[] }>
+  rows: readonly string[][]
 ): readonly string[][] => {
   if (rows.length <= 1) return rows;
-  const preservedValues = new Set(options?.preserveFirstColumnValues ?? []);
   const merged: string[][] = [];
   for (const row of rows) {
     const last = merged[merged.length - 1];
@@ -252,17 +311,7 @@ const mergeConsecutiveValueRows = (
       last.length === row.length &&
       last.slice(1).every((cell, index) => cell === row[index + 1])
     );
-    const currentFirstColumn = row[0] ?? '';
-    const lastFirstColumn = last?.[0] ?? '';
-    const shouldPreserveCurrent = preservedValues.has(currentFirstColumn);
-    const shouldPreserveLast = preservedValues.has(lastFirstColumn);
-    // preserveFirstColumnValues matcher første kolonnens formatterede strengværdi.
-    // Det bruges typisk til at forhindre, at en "mærkedato"-række (fx reguleringsdatoen)
-    // bliver absorberet af en ellers identisk nabørække med en anden første kolonne-værdi.
-    // Hvis både last og current er preserved og ellers identiske, sammenklappes de fortsat
-    // bevidst til én række; funktionen modellerer visuel de-duplikering, ikke audit-log af
-    // flere særskilte markeringsrækker med samme første kolonne-værdi.
-    if (!hasSameValues || (shouldPreserveCurrent && !shouldPreserveLast)) {
+    if (!hasSameValues) {
       merged.push(row);
     }
   }
@@ -299,14 +348,13 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
   tafBeregningsenhed: TafBeregningsenhed;
 }>): ReguleringValuesTableData | null => {
   const { eoValues, ansaettelsesforhold, anvendtReguleringsdato, tafFra, tafTil, tafBeregningsenhed } = params;
-  const reguleringTableStartIso = tafFra;
-  const preservedDateLabels = anvendtReguleringsdato ? [formatDateShort(anvendtReguleringsdato)].filter((value) => value !== '') : [];
   const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
 
   if (grundlag === 'Overenskomst') {
     const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
     if (!overenskomstId) return null;
-    const overenskomstTableStartIso = resolveOverenskomstEffectiveStartIso(overenskomstId, reguleringTableStartIso);
+    const overenskomstCoverageStartIso = resolveOverenskomstCoverageStartIso(overenskomstId);
+    if (!overenskomstCoverageStartIso) return null;
     const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
     if (offentligType) {
       const loenType = resolveOffentligLoenTypeFromLabel(ansaettelsesforhold.offentligLoenType);
@@ -322,14 +370,11 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         return null;
       }
 
-      const fraDato = isoToDanish(overenskomstTableStartIso);
+      const fraDato = isoToDanish(overenskomstCoverageStartIso);
       const tilDato = isoToDanish(tafTil);
       if (!fraDato || !tilDato) return null;
       assertOffentligReguleringsDatoGyldig(fraDato);
       const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
-
-      const baseResult = getOffentligLoenForDato(offentligType, fraDato, loentrin, gruppeValue);
-      if (!baseResult) return null;
 
       const satser = getOffentligLoenForPeriode(offentligType, fraDato, tilDato, loentrin, gruppeValue);
       const tillaegsSatser = getOffentligTillaegsSatserForPeriode(
@@ -345,6 +390,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       const hasAgPension =
         hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.agPension, ansaettelsesforhold.pensionPct);
       const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
+      const showStoreBededagColumn = applyAlmindeligLoenPaaShDageRegel && tafTil >= STORE_BEDEDAG_START;
       const loenHeader = resolveReguleringsvaerdierLoenHeader(tafBeregningsenhed);
       const columns = [
         REGULERINGSVAERDIER_FRA_DATO_HEADER,
@@ -352,6 +398,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         ...(showFeriePctColumn ? ['Feriepenge'] : []),
         ...(hasShSo ? ['SH/SO'] : []),
         ...(hasFritvalg ? ['Fritvalg'] : []),
+        ...(showStoreBededagColumn ? ['Store Bededag'] : []),
         ...(hasAgPension ? [REGULERINGSVAERDIER_PENSION_HEADER] : []),
       ];
 
@@ -416,61 +463,57 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
           ...(showFeriePctColumn ? [formatPctFromInput(ansaettelsesforhold.feriePct)] : []),
           ...(hasShSo ? [formatPctFromInput(resolvePctPointFromSatsOrInput(tillaegSats?.shSoSats, ansaettelsesforhold.shSoPct))] : []),
           ...(hasFritvalg ? [formatPctFromInput(resolvePctPointFromSatsOrInput(tillaegSats?.fritvalg, ansaettelsesforhold.fritvalgPct))] : []),
+          ...(showStoreBededagColumn ? [formatPctFromInput(resolveAutoStoreBededagPct(ansaettelsesforhold, labelIso))] : []),
           ...(hasAgPension ? [formatPctFromInput(resolvePctPointFromSatsOrInput(tillaegSats?.agPension, ansaettelsesforhold.pensionPct))] : []),
         ]);
       };
-
-      addRow(overenskomstTableStartIso, baseResult.maanedsLoen, baseResult.timeLoen);
-
-      const rowDates = new Set<ISODateString>();
+      const allRealDates = new Set<ISODateString>();
       for (const entry of satser) {
         const iso = parseDanishToISO(entry.effectiveDate);
         if (!iso) continue;
-        if (iso > overenskomstTableStartIso && iso <= tafTil) rowDates.add(iso);
+        if (iso >= overenskomstCoverageStartIso && iso <= tafTil) allRealDates.add(iso);
       }
       for (const entry of tillaegsSatser) {
         const iso = parseDanishToISO(entry.fraDato);
         if (!iso) continue;
-        if (iso > overenskomstTableStartIso && iso <= tafTil) rowDates.add(iso);
+        if (iso >= overenskomstCoverageStartIso && iso <= tafTil) allRealDates.add(iso);
       }
       if (
         applyAlmindeligLoenPaaShDageRegel &&
-        overenskomstTableStartIso < STORE_BEDEDAG_START &&
+        overenskomstCoverageStartIso < STORE_BEDEDAG_START &&
         tafTil >= STORE_BEDEDAG_START
       ) {
-        rowDates.add(STORE_BEDEDAG_START);
+        allRealDates.add(STORE_BEDEDAG_START);
       }
-      if (harAnciennitetstillaeg && anciennitetDatoIso && anciennitetDatoIso > overenskomstTableStartIso && anciennitetDatoIso <= tafTil) {
-        rowDates.add(anciennitetDatoIso);
+      if (harAnciennitetstillaeg && anciennitetDatoIso && anciennitetDatoIso >= overenskomstCoverageStartIso && anciennitetDatoIso <= tafTil) {
+        allRealDates.add(anciennitetDatoIso);
       }
-      if (anvendtReguleringsdato && anvendtReguleringsdato >= overenskomstTableStartIso && anvendtReguleringsdato <= tafTil) {
-        rowDates.add(anvendtReguleringsdato);
-      }
-
-      const sortedDates = Array.from(rowDates).sort((a, b) => (a < b ? -1 : 1));
-      if (anvendtReguleringsdato && anvendtReguleringsdato < overenskomstTableStartIso) {
-        const reguleringsdatoDanish = isoToDanish(anvendtReguleringsdato);
-        if (reguleringsdatoDanish) {
-          const loenVedReguleringsdato = getOffentligLoenForDato(offentligType, reguleringsdatoDanish, loentrin, gruppeValue);
-          if (loenVedReguleringsdato) {
-            addRow(anvendtReguleringsdato, loenVedReguleringsdato.maanedsLoen, loenVedReguleringsdato.timeLoen);
-          }
-        }
-      }
-      for (const iso of sortedDates) {
+      const relevantRealDates = resolveRelevantRealDatesForTafScope(
+        sortIsoDates(allRealDates),
+        tafFra,
+        tafTil
+      );
+      if (relevantRealDates.length === 0) return null;
+      const finalDates = sortIsoDates(
+        anvendtReguleringsdato ? [...relevantRealDates, anvendtReguleringsdato] : relevantRealDates
+      );
+      for (const iso of finalDates) {
         const danish = isoToDanish(iso);
         if (!danish) continue;
         const loen = getOffentligLoenForDato(offentligType, danish, loentrin, gruppeValue);
-        if (!loen) continue;
-        addRow(iso, loen.maanedsLoen, loen.timeLoen);
+        if (loen) {
+          addRow(iso, loen.maanedsLoen, loen.timeLoen);
+        } else if (anvendtReguleringsdato === iso) {
+          rows.push(buildPlaceholderValueRow(formatDateShort(iso), columns));
+        }
       }
 
-      return { columns, rows: mergeConsecutiveValueRows(rows, { preserveFirstColumnValues: preservedDateLabels }) };
+      return { columns, rows: mergeConsecutiveValueRows(rows) };
     }
 
     const ref = resolveOverenskomstRef(overenskomstId);
     if (!ref) return null;
-    const fraDato = isoToDanish(overenskomstTableStartIso);
+    const fraDato = isoToDanish(overenskomstCoverageStartIso);
     const tilDato = isoToDanish(tafTil);
     if (!fraDato || !tilDato) return null;
 
@@ -548,21 +591,18 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       ...(hasSfggUfaglKbh ? ['SFGG\nufagl. Kbh'] : []),
       ...(hasSfggUfaglProv ? ['SFGG\nufagl. prov'] : []),
     ] as const;
-    const rowDates = new Set<ISODateString>([overenskomstTableStartIso]);
+    const allRealDates = new Set<ISODateString>();
     for (const sats of satser) {
       const iso = parseDanishToISO(sats.fraDato);
       if (!iso) continue;
-      if (iso > overenskomstTableStartIso && iso <= tafTil) rowDates.add(iso);
+      if (iso >= overenskomstCoverageStartIso && iso <= tafTil) allRealDates.add(iso);
     }
     if (
       ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn' &&
-      overenskomstTableStartIso < STORE_BEDEDAG_START &&
+      overenskomstCoverageStartIso < STORE_BEDEDAG_START &&
       tafTil >= STORE_BEDEDAG_START
     ) {
-      rowDates.add(STORE_BEDEDAG_START);
-    }
-    if (anvendtReguleringsdato && anvendtReguleringsdato >= overenskomstTableStartIso && anvendtReguleringsdato <= tafTil) {
-      rowDates.add(anvendtReguleringsdato);
+      allRealDates.add(STORE_BEDEDAG_START);
     }
 
     const buildPrivateOverenskomstRow = (
@@ -589,42 +629,46 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       if (hasSfggUfaglProv) row.push(formatOverenskomstAmount(sats.sfggUfaglProv));
       return row;
     };
-    const rows = Array.from(rowDates)
-      .sort((a, b) => (a < b ? -1 : 1))
+    const relevantRealDates = resolveRelevantRealDatesForTafScope(
+      sortIsoDates(allRealDates),
+      tafFra,
+      tafTil
+    );
+    if (relevantRealDates.length === 0) return null;
+    const finalDates = sortIsoDates(
+      anvendtReguleringsdato ? [...relevantRealDates, anvendtReguleringsdato] : relevantRealDates
+    );
+    const rows = finalDates
       .flatMap((iso) => {
         const danish = isoToDanish(iso);
         if (!danish) return [];
         const row = buildPrivateOverenskomstRow(iso, danish, danish);
-        return row ? [row] : [];
+        if (row) return [row];
+        if (anvendtReguleringsdato === iso) return [buildPlaceholderValueRow(formatDateShort(iso), columns)];
+        return [];
       });
-    if (anvendtReguleringsdato && anvendtReguleringsdato < overenskomstTableStartIso) {
-      const reguleringsdatoDanish = isoToDanish(anvendtReguleringsdato);
-      const extraRow = reguleringsdatoDanish
-        ? buildPrivateOverenskomstRow(anvendtReguleringsdato, reguleringsdatoDanish, formatDateShort(anvendtReguleringsdato))
-        : null;
-      if (extraRow) {
-        rows.unshift(extraRow);
-      }
-    }
-    return { columns, rows: mergeConsecutiveValueRows(rows, { preserveFirstColumnValues: preservedDateLabels }) };
+    return { columns, rows: mergeConsecutiveValueRows(rows) };
   }
 
   if (grundlag === 'Manuelt angivet') {
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
     const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
     const hasStoreBededagPct = resolveAutoStoreBededagPct(ansaettelsesforhold, tafTil) > 0;
-    const needsStoreBededagBoundaryRow = hasStoreBededagPct && reguleringTableStartIso < STORE_BEDEDAG_START;
+    const needsStoreBededagBoundaryRow = hasStoreBededagPct && tafFra < STORE_BEDEDAG_START && tafTil >= STORE_BEDEDAG_START;
     const manualRows = ansaettelsesforhold.loenudviklingManuelTableData ?? [];
+    const manualRowsContext = resolveManualRowsContext(manualRows);
     const normalizedRowsByIso = new Map<ISODateString, NonNullable<typeof manualRows>[number]>();
-    manualRows.forEach((row, index) => {
-      const iso = index === 0 ? reguleringTableStartIso : parseDanishToISO(row.dato);
-      if (!iso || iso < reguleringTableStartIso || iso > tafTil) return;
-      normalizedRowsByIso.set(iso, row);
-    });
-    // Reguleringsdatoen får kun en syntetisk "første række"-visning når brugeren ikke
-    // allerede har angivet en eksplicit manuel række på den dato.
-    if (anvendtReguleringsdato && anvendtReguleringsdato !== reguleringTableStartIso && manualRows[0] && !normalizedRowsByIso.has(anvendtReguleringsdato)) {
-      normalizedRowsByIso.set(anvendtReguleringsdato, manualRows[0]);
+    // Reference-/baseline-datoen indsættes altid med den senest gældende manuelle sats på den dato.
+    // Den må godt ligge uden for [tafFra, tafTil] — det er netop reference-rækken.
+    // Eksplicitte manuelle ændringsrækker i scope indsættes bagefter og overskrives ved datokollision.
+    const baselineReferenceIso = anvendtReguleringsdato ?? tafFra;
+    const baselineReferenceRow = findLatestManualRowForIso(manualRowsContext, baselineReferenceIso);
+    if (baselineReferenceRow) {
+      normalizedRowsByIso.set(baselineReferenceIso, baselineReferenceRow);
+    }
+    for (const entry of manualRowsContext?.datedRowStarts ?? []) {
+      if (entry.startIso < tafFra || entry.startIso > tafTil) continue;
+      normalizedRowsByIso.set(entry.startIso, entry.row);
     }
     const normalizedRows = Array.from(normalizedRowsByIso.entries())
       .map(([iso, row]) => ({ iso, row }))
@@ -664,7 +708,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         ...(hasStoreBededagPct ? ['Store Bededag'] : []),
         REGULERINGSVAERDIER_PENSION_HEADER,
       ],
-      rows: mergeConsecutiveValueRows(rows, { preserveFirstColumnValues: preservedDateLabels }),
+      rows: mergeConsecutiveValueRows(rows),
     };
   }
 
@@ -674,21 +718,22 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
 
     if (isAslStatistikModel(modelLabel)) {
       const regDate = parseIsoDateToUtcDate(anvendtReguleringsdato);
-      const tafFraDate = parseIsoDateToUtcDate(reguleringTableStartIso);
+      const tafFraDate = parseIsoDateToUtcDate(tafFra);
       const tafTilDate = parseIsoDateToUtcDate(tafTil);
       if (!regDate || !tafFraDate || !tafTilDate) return null;
-      const regYear = regDate.getUTCFullYear();
       const startYear = tafFraDate.getUTCFullYear();
       const endYear = tafTilDate.getUTCFullYear();
-      const rows: string[][] = [];
-      const regValue = aarsloenAslMax[regYear as keyof typeof aarsloenAslMax];
-      if (typeof regValue === 'number') rows.push([String(regYear), formatCurrency(regValue)]);
+      const years = new Set<number>([regDate.getUTCFullYear()]);
       for (let year = startYear; year <= endYear; year += 1) {
-        if (year === regYear) continue;
-        const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
-        if (typeof value !== 'number') continue;
-        rows.push([String(year), formatCurrency(value)]);
+        years.add(year);
       }
+      const rows: string[][] = Array.from(years)
+        .sort((a, b) => a - b)
+        .flatMap((year) => {
+        const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
+          return typeof value === 'number' ? [[String(year), formatCurrency(value)]] : [];
+        });
+      if (rows.length === 0) return null;
       return { columns: ['År', 'Maksimum årsløn'], rows };
     }
 
@@ -716,19 +761,24 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const formatIndex = (value: number) =>
       formatAsAmount(value, decimals);
 
-    let basePeriod = periodStarts[0];
-    for (const period of periodStarts) {
-      if (period.startIso > reguleringTableStartIso) break;
-      basePeriod = period;
-    }
-
-    const rows: string[][] = [[basePeriod.kvartal, formatDateShort(reguleringTableStartIso), formatIndex(basePeriod.indeksvaerdi)]];
-    for (const period of periodStarts) {
-      if (period.startIso <= reguleringTableStartIso) continue;
-      if (period.startIso > tafTil) continue;
-      rows.push([period.kvartal, formatDateShort(period.startIso), formatIndex(period.indeksvaerdi)]);
-    }
-    return { columns: ['Kvartal', 'Startdato', 'Indeksværdi'], rows };
+    const relevantRealDates = resolveRelevantRealDatesForTafScope(
+      periodStarts.map((period) => period.startIso),
+      tafFra,
+      tafTil
+    );
+    if (relevantRealDates.length === 0) return null;
+    const finalDates = sortIsoDates(
+      anvendtReguleringsdato ? [...relevantRealDates, anvendtReguleringsdato] : relevantRealDates
+    );
+    const rows: string[][] = finalDates.flatMap((iso) => {
+      const period = periodStarts.filter((entry) => entry.startIso <= iso).at(-1);
+      if (!period && anvendtReguleringsdato === iso) {
+        return [['-', formatDateShort(iso), '-']];
+      }
+      if (!period) return [];
+      return [[period.kvartal, formatDateShort(iso), formatIndex(period.indeksvaerdi)]];
+    });
+    return { columns: ['Kvartal', 'Startdato', 'Indeksværdi'], rows: mergeConsecutiveValueRows(rows) };
   }
 
   if (grundlag === 'KRL satstabel') {
@@ -750,20 +800,24 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       .sort((a, b) => (a.startIso < b.startIso ? -1 : 1));
     if (periodStarts.length === 0) return null;
 
-    // Find basisperiode
-    let basePeriod = periodStarts[0];
-    for (const period of periodStarts) {
-      if (period.startIso > reguleringTableStartIso) break;
-      basePeriod = period;
-    }
-
-    const rows: string[][] = [[basePeriod.fraDato, formatKrlPct(basePeriod.reguleringsPct)]];
-    for (const period of periodStarts) {
-      if (period.startIso <= reguleringTableStartIso) continue;
-      if (period.startIso > tafTil) continue;
-      rows.push([period.fraDato, formatKrlPct(period.reguleringsPct)]);
-    }
-    return { columns: ['Fra-dato', 'Reguleringsprocent'], rows };
+    const relevantRealDates = resolveRelevantRealDatesForTafScope(
+      periodStarts.map((period) => period.startIso),
+      tafFra,
+      tafTil
+    );
+    if (relevantRealDates.length === 0) return null;
+    const finalDates = sortIsoDates(
+      anvendtReguleringsdato ? [...relevantRealDates, anvendtReguleringsdato] : relevantRealDates
+    );
+    const rows: string[][] = finalDates.flatMap((iso) => {
+      const period = periodStarts.filter((entry) => entry.startIso <= iso).at(-1);
+      if (!period && anvendtReguleringsdato === iso) {
+        return [[formatDateShort(iso), '-']];
+      }
+      if (!period) return [];
+      return [[formatDateShort(iso), formatKrlPct(period.reguleringsPct)]];
+    });
+    return { columns: ['Fra-dato', 'Reguleringsprocent'], rows: mergeConsecutiveValueRows(rows) };
   }
 
   return null;
@@ -787,6 +841,9 @@ export const buildReguleringIndexRows = (params: Readonly<{
   const isStatistik = loenudviklingBasis === 'Statistik';
   const isKRL = loenudviklingBasis === 'KRL satstabel';
   const isSimpleIndex = isStatistik || isKRL;
+  const manualRowsContext = loenudviklingBasis === 'Manuelt angivet'
+    ? resolveManualRowsContext(ansaettelsesforhold.loenudviklingManuelTableData ?? [])
+    : null;
   const isAslModel = isStatistik && isAslStatistikModel(statistikModelLabel);
   const statDecimalPlaces = (() => {
     if (isKRL) return 4;
@@ -1126,7 +1183,8 @@ export const buildReguleringIndexRows = (params: Readonly<{
   const baseIndex = (() => {
     if (!anvendtReguleringsdato) return null;
     if (loenudviklingBasis === 'Manuelt angivet') {
-      const baseRow = (ansaettelsesforhold.loenudviklingManuelTableData ?? [])[0];
+      const baseRow = findLatestManualRowForIso(manualRowsContext, anvendtReguleringsdato);
+      if (!baseRow) return null;
       return {
         components: {
           baseValue: parseAmount(baseRow?.grundloen),
@@ -1245,8 +1303,9 @@ export const buildReguleringIndexRows = (params: Readonly<{
     if (!loenudviklingBasis || loenudviklingBasis === 'Ingen') return [];
     const feriePct = typeof ansaettelsesforhold.feriePct === 'number' ? ansaettelsesforhold.feriePct : 0;
     if (loenudviklingBasis === 'Manuelt angivet') {
-      const rows = ansaettelsesforhold.loenudviklingManuelTableData ?? [];
-      const baseRow = rows[0];
+      const baseRow = findLatestManualRowForIso(manualRowsContext, tafStartIso);
+      if (!baseRow) return [];
+      const datedRowStarts = manualRowsContext?.datedRowStarts ?? [];
       const baseComponents: FormulaComponents = {
         baseValue: parseAmount(baseRow?.grundloen),
         feriePct: resolveFeriePctForFormula(baseRow?.feriepenge, feriePct),
@@ -1257,11 +1316,9 @@ export const buildReguleringIndexRows = (params: Readonly<{
       };
       const periodStarts = [
         { startIso: tafStartIso, components: baseComponents },
-        ...rows.slice(1).map((row) => {
-          const startIso = parseDanishToISO(row.dato);
-          if (!startIso) return null;
-          if (startIso < tafStartIso) return null;
-          if (tafEndIso && startIso > tafEndIso) return null;
+        ...datedRowStarts
+          .filter(({ startIso }) => startIso >= tafStartIso && startIso <= tafEndIso)
+          .map(({ startIso, row }) => {
           const components: FormulaComponents = {
             baseValue: parseAmount(row.grundloen),
             feriePct: resolveFeriePctForFormula(row.feriepenge, feriePct),
