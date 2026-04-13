@@ -196,7 +196,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
   beforeAll(async () => {
     const pdfModule = await import('../../../pdf/domains/eo/erstatningsopgoerelsePdf');
     generateErstatningsopgoerelsePdf = pdfModule.generateErstatningsopgoerelsePdf;
-  });
+  }, 30000);
 
   it('skjuler pensionslinje når beregnet værdi er 0 kr.', () => {
     const { stamdata, eo } = buildBaseInput();

@@ -217,6 +217,7 @@ describe('SFGG validering', () => {
 
   it('fanger referenceperiode der ikke ligger før første TAF-periode', () => {
     const values = makeValues({
+      beregnesTabtArbejdsfortjeneste: 'Nej',
       loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-05-31') },
@@ -243,6 +244,7 @@ describe('SFGG validering', () => {
     // sfggSatsvalg er udfyldt med stale værdier fra et tidligere beregningskilde-valg.
     // Validatoren skal gate på beregningskilden og ignorere disse skjulte felter.
     const values = makeValues({
+      beregnesTabtArbejdsfortjeneste: 'Nej',
       loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-05-31') },

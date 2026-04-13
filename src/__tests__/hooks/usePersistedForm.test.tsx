@@ -5,7 +5,7 @@ import { usePersistedForm, type UsePersistedFormReturn } from '../../hooks/usePe
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { clearResolvedFieldErrorsCache } from '../../hooks/useFormPersistenceSelectors';
-import { satserSchema, stamdataSchema } from '../../schemas/formSchemas';
+import { stamdataSchema } from '../../schemas/formSchemas';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
 const initialValues = {
