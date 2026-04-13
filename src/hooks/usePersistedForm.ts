@@ -112,21 +112,20 @@ export const usePersistedForm = <K extends StorageKey>(
   const [formVersion, bumpFormVersion] = React.useReducer((v: number) => v + 1, 0);
   const lastHandledAuthoritativeEpochRef = React.useRef<{ pageKey: K; epoch: number } | null>(null);
 
-  // Kun efterfølgende authoritative replaces for samme sektion må bump'e formVersion og rydde feltfejl.
-  // Første observerede hydrerede snapshot for en given pageKey er inert: hooken læser allerede aktuelle
-  // committed values direkte fra storen. Først senere epoch-skift for samme key er reelle replace-signaler.
+  // Bump formVersion ved alle authoritative snapshot-events, inkl. første hydration.
+  // useRowDrafts (og lignende draft-state hooks) initialiserer synkront fra en endnu
+  // ikke-hydreret store — de kan ikke se de persisterede rækker før resync-signalet ankommer.
   React.useEffect(() => {
     if (!persistenceHydrated) {
       return;
     }
 
     const previous = lastHandledAuthoritativeEpochRef.current;
-    const isFirstObservationForKey = previous === null || previous.pageKey !== pageKey;
-    const hasAuthoritativeEpochChanged = !isFirstObservationForKey && previous.epoch !== authoritativeSnapshotEpoch;
+    const isNewObservationForKey = previous === null || previous.pageKey !== pageKey || previous.epoch !== authoritativeSnapshotEpoch;
 
     lastHandledAuthoritativeEpochRef.current = { pageKey, epoch: authoritativeSnapshotEpoch };
 
-    if (!hasAuthoritativeEpochChanged) {
+    if (!isNewObservationForKey) {
       return;
     }
 
