@@ -105,21 +105,105 @@ describe('FormPersistenceContext – normalFlow', () => {
     expect(parsed.data.skadelidte).toBe('StorageTest');
   });
 
-  it('rydder alle sektioner ved version-mismatch i sessionStorage', async () => {
+  it('bevarer kompatible sektioner ved version-mismatch i sessionStorage', async () => {
     // Gem stamdata med forkert version
     sessionStorage.setItem(
       'mineo_stamdata',
-      JSON.stringify({ version: 'old-version-0.1', timestamp: Date.now(), data: { skadelidte: 'Old' } })
+      JSON.stringify({
+        version: 'old-version-0.1',
+        timestamp: Date.now(),
+        data: {
+          journalnr: 'J-old',
+          advokat: '',
+          sagsbehandler: '',
+          skadelidte: 'Old',
+          skadestype: 'Arbejdsulykke',
+          skadedato: '2024-01-01',
+        },
+      })
     );
 
     const { getCtx } = renderProvider();
     await waitFor(() => expect(getCtx()).not.toBeNull());
 
-    // Ved version mismatch ryddes alt — stamdata skal returnere null
-    expect(getCtx()!.getPersistedData('stamdata')).toBeNull();
-    // sessionStorage-nøglen er fjernet
+    expect(getCtx()!.getPersistedData('stamdata')?.skadelidte).toBe('Old');
+    expect(getCtx()!.lastNotice?.type).toBe('warning');
+    expect(getCtx()!.lastNotice?.message).toContain('1 sektion fra en aeldre version blev bevaret');
+  });
+
+  it('rydder kun inkompatible sektioner ved version-mismatch og bevarer de kompatible', async () => {
+    sessionStorage.setItem(
+      'mineo_stamdata',
+      JSON.stringify({
+        version: 'old-version-0.1',
+        timestamp: Date.now(),
+        data: {
+          journalnr: 'J-old',
+          advokat: '',
+          sagsbehandler: '',
+          skadelidte: 'Bevares',
+          skadestype: 'Arbejdsulykke',
+          skadedato: '2024-01-01',
+        },
+      })
+    );
+    sessionStorage.setItem(
+      'mineo_renteberegning',
+      JSON.stringify({
+        version: 'old-version-0.1',
+        timestamp: Date.now(),
+        data: {
+          rentekravRows: 'forkert-type',
+        },
+      })
+    );
+
+    const { getCtx } = renderProvider();
+    await waitFor(() => expect(getCtx()).not.toBeNull());
+
+    expect(getCtx()!.getPersistedData('stamdata')?.skadelidte).toBe('Bevares');
+    expect(getCtx()!.getPersistedData('renteberegning')).toBeNull();
+    expect(getCtx()!.lastNotice?.type).toBe('error');
+    expect(getCtx()!.lastNotice?.message).toContain('1 sektion fra en aeldre version blev bevaret');
+    expect(getCtx()!.lastNotice?.message).toContain('1 sektion kunne ikke overfoeres sikkert og blev ryddet');
     await waitFor(() => {
-      expect(sessionStorage.getItem('mineo_stamdata')).toBeNull();
+      expect(sessionStorage.getItem('mineo_renteberegning')).toBeNull();
+    });
+    expect(sessionStorage.getItem('mineo_stamdata')).not.toBeNull();
+  });
+
+  it('migrerer legacy faellesPersondata ind i stamdata ved startup uden global wipe', async () => {
+    sessionStorage.setItem(
+      'mineo_stamdata',
+      JSON.stringify(
+        persistedWrapper({
+          journalnr: 'J-99',
+          advokat: '',
+          sagsbehandler: '',
+          skadelidte: 'InitTest',
+          skadestype: 'Arbejdsulykke',
+          skadedato: '2024-01-01',
+        })
+      )
+    );
+    sessionStorage.setItem(
+      'mineo_faellesPersondata',
+      JSON.stringify({
+        version: '0.9.0',
+        timestamp: Date.now(),
+        data: {
+          skadelidteFodselsdato: '1990-01-01',
+        },
+      })
+    );
+
+    const { getCtx } = renderProvider();
+    await waitFor(() => expect(getCtx()).not.toBeNull());
+
+    expect(getCtx()!.getPersistedData('stamdata')?.skadelidteFodselsdato).toBe('1990-01-01');
+    expect(getCtx()!.lastNotice?.message).toContain('Legacy-feltet foedselsdato blev flyttet til Stamdata');
+    await waitFor(() => {
+      expect(sessionStorage.getItem('mineo_faellesPersondata')).toBeNull();
     });
   });
 

@@ -1,0 +1,143 @@
+import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
+import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import { computeEetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
+import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../../schemas/formSchemas';
+
+const createValues = (): ErhvervsevnetabComposedValues => ({
+  ...ERHVERVSEVNETAB_INITIAL_VALUES,
+  ...FAELLES_AARSLOEN_INITIAL_VALUES,
+  beregningsdato: '2026-03-19',
+  skadelidteFodselsdato: '1980-01-01',
+  koen: 'Kvinde',
+  aslAarsloen: { kind: 'number', value: 600000 },
+  ealAarsloen: { kind: 'number', value: 600000 },
+  ealEetPct: 25,
+  aslAfgoerelser: [
+    {
+      id: 'row-1',
+      afgoerelsesDato: '01-02-2026',
+      virkningsDato: '01-02-2026',
+      eetPct: '25',
+      kapDato: '01-03-2026',
+      kapPct: '10',
+      afgoerelseType: 'Endelig',
+      tidlKapDato: '',
+    },
+  ],
+});
+
+const createStamdata = (): StamdataValues => ({
+  journalnr: '',
+  advokat: '',
+  sagsbehandler: '',
+  skadelidte: 'Test',
+  skadestype: 'Arbejdsulykke',
+  skadedato: '2024-07-01',
+  skadelidteFodselsdato: '1980-01-01',
+});
+
+describe('computeEetSnapshot', () => {
+  it('samler alle tab-beregninger i ét autoritativt snapshot', () => {
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: createStamdata(),
+      fieldErrors: {
+        stamdata: {},
+        erhvervsevnetab: {},
+        faellesAarsloen: {},
+      },
+    });
+
+    expect(snapshot.loebendeYdelser.computation).not.toBeNull();
+    expect(snapshot.kapitalisering.computation).not.toBeNull();
+    expect(snapshot.efterEal.computation).not.toBeNull();
+    expect(snapshot.differencekrav.computation).not.toBeNull();
+    expect(snapshot.loebendeYdelser.hasBlockingErrors).toBe(false);
+    expect(snapshot.kapitalisering.hasBlockingErrors).toBe(false);
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(false);
+    expect(snapshot.differencekrav.hasBlockingErrors).toBe(false);
+  });
+
+  it('propagerer feltfejl ind i alle relevante tab-projektioner', () => {
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: createStamdata(),
+      fieldErrors: {
+        stamdata: {},
+        erhvervsevnetab: {
+          beregningsdato: { message: 'Beregningsdato mangler i UI' },
+        },
+        faellesAarsloen: {},
+      },
+    });
+
+    expect(snapshot.loebendeYdelser.hasBlockingErrors).toBe(true);
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
+    expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+    expect(snapshot.loebendeYdelser.issues.some((issue) => issue.id === 'field-beregningsdato')).toBe(true);
+    expect(snapshot.efterEal.issues.some((issue) => issue.id === 'field-beregningsdato')).toBe(true);
+    expect(snapshot.differencekrav.issues.some((issue) => issue.id === 'field-beregningsdato')).toBe(true);
+  });
+
+  it('hasBlockingErrors er true men computation er ikke null — tab-laget er ansvarlig for begge guards', () => {
+    // Beregnermotorerne kører altid med de committed values — en feltfejl i UI blokerer ikke
+    // motorernes udregning, den sætter kun hasBlockingErrors via issues.some(). Computation
+    // returneres selv ved hasBlockingErrors: true. Tab-laget renderer med !hasBlockingErrors && computation.
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: createStamdata(),
+      fieldErrors: {
+        stamdata: {},
+        erhvervsevnetab: {
+          beregningsdato: { message: 'Beregningsdato mangler' },
+        },
+        faellesAarsloen: {},
+      },
+    });
+
+    expect(snapshot.loebendeYdelser.hasBlockingErrors).toBe(true);
+    // computation er ikke null: motoren kørte med de committed values, som er gyldige
+    expect(snapshot.loebendeYdelser.computation).not.toBeNull();
+    // Tab-laget beskytter visning med !hasBlockingErrors && computation — begge guards er nødvendige
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(true);
+    expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+  });
+
+  it('kapitalisering påvirkes ikke af beregningsdato-feltfejl — feltet er ikke i kapitaliseringens projektion', () => {
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: createStamdata(),
+      fieldErrors: {
+        stamdata: {},
+        erhvervsevnetab: {
+          beregningsdato: { message: 'Beregningsdato mangler' },
+        },
+        faellesAarsloen: {},
+      },
+    });
+
+    // beregningsdato er ikke i buildKapitaliseringProjection's field-mapping
+    expect(snapshot.kapitalisering.issues.some((issue) => issue.id === 'field-beregningsdato')).toBe(false);
+    // Kapitalisering blokeres derfor ikke af beregningsdato-feltfejl alene
+    expect(snapshot.kapitalisering.hasBlockingErrors).toBe(false);
+    expect(snapshot.kapitalisering.computation).not.toBeNull();
+  });
+
+  it('differencekrav hasBlockingErrors fanger blocking fra beregnermotoren via calculationResult.hasBlockingErrors', () => {
+    // Scenarie: stamdata mangler → skadedato er undefined → differencekrav-beregneren
+    // sætter hasBlockingErrors: true og computation: null. Snapshot-projektionen skal
+    // afspejle dette korrekt via calculationResult.hasBlockingErrors-leddet.
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: null, // ingen stamdata → skadedato er undefined
+      fieldErrors: {
+        stamdata: {},
+        erhvervsevnetab: {},
+        faellesAarsloen: {},
+      },
+    });
+
+    expect(snapshot.differencekrav.computation).toBeNull();
+    expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+  });
+});

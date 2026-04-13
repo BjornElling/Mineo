@@ -1,16 +1,12 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
-import { usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
-import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
+import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../../schemas/formSchemas';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { coerceToISODateString } from '../../../types/branded';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
-import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import {
-  computeEetKapitaliseringCalculation,
   formatKapitaliseringsPct,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import {
@@ -24,56 +20,23 @@ import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
-import { formatFaktor, formatJaNej, formatKr, navigationSortKey, toFieldIssue } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { formatFaktor, formatJaNej, formatKr } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;
   onGoToEetOplysninger: () => void;
+  stamdata: StamdataValues | null;
+  snapshot: EetSnapshot['kapitalisering'];
 }>;
 
 
-const EetKapitaliseringTab = ({ values, onGoToEetOplysninger }: Props) => {
-  const stamdata = usePersistedSectionSelector('stamdata');
-  const stamdataFieldErrors = useFormFieldErrors('stamdata');
-  const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
-  const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
+const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
   const { settings } = useAppSettings();
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
-
-  const calculationResult = React.useMemo(
-    () =>
-      computeEetKapitaliseringCalculation({
-        erhvervsevnetab: values,
-        skadedato: stamdata?.skadedato,
-        skadelidteFodselsdato: values.skadelidteFodselsdato,
-      }),
-    [stamdata?.skadedato, values]
-  );
-
-  const fieldIssues = React.useMemo(() => {
-      return [
-        toFieldIssue('field-aarsloen-asl', faellesAarsloenFieldErrors.aslAarsloen?.message),
-        toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
-        toFieldIssue('field-skadelidte-fodselsdato', stamdataFieldErrors.skadelidteFodselsdato?.message),
-        toFieldIssue('field-skadedato', stamdataFieldErrors.skadedato?.message),
-      ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
-    }, [
-      eetFieldErrors.aslAfgoerelser?.message,
-      faellesAarsloenFieldErrors.aslAarsloen?.message,
-      stamdataFieldErrors.skadelidteFodselsdato?.message,
-      stamdataFieldErrors.skadedato?.message,
-    ]);
-
-  const issues = React.useMemo(
-    () =>
-      dedupeIssuesBySeverityAndMessage([...calculationResult.issues, ...fieldIssues]).sort(
-        (a, b) => navigationSortKey(a.id) - navigationSortKey(b.id)
-      ),
-    [calculationResult.issues, fieldIssues]
-  );
-
-  const hasBlockingErrors = issues.some((issue) => issue.severity === 'error');
-  const computation = calculationResult.computation;
+  const issues = snapshot.issues;
+  const hasBlockingErrors = snapshot.hasBlockingErrors;
+  const computation = snapshot.computation;
   const afgoerelser = computation?.afgoerelser ?? [];
 
   const handlePdfDownload = React.useCallback(async () => {

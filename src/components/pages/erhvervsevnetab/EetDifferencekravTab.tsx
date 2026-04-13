@@ -4,15 +4,11 @@ import ContentBox from '../../layout/ContentBox';
 import StyledCheckbox from '../../inputs/StyledCheckbox';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../../types/fieldEvents';
-import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues } from '../../../schemas/formSchemas';
-import { usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
-import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
+import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues, StamdataValues } from '../../../schemas/formSchemas';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
-import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
 import {
-  computeEetDifferencekravCalculation,
   type EetDifferencekravProformaKapitalisering,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
 import { formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
@@ -28,13 +24,16 @@ import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
-import { formatFaktor, formatJaNej, formatKr, navigationSortKey, toFieldIssue } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { formatFaktor, formatJaNej, formatKr } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;
   setValues: SetValuesUpdater<ErhvervsevnetabValues>;
   onGoToEetOplysninger: () => void;
+  stamdata: StamdataValues | null;
+  snapshot: EetSnapshot['differencekrav'];
 }>;
 
 type ProformaBoxProps = Readonly<{
@@ -204,50 +203,12 @@ const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
 );
 
 
-const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger }: Props) => {
-  const stamdata = usePersistedSectionSelector('stamdata');
-  const stamdataFieldErrors = useFormFieldErrors('stamdata');
-  const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
-  const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
+const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
   const { settings } = useAppSettings();
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
-
-  const calculationResult = React.useMemo(
-    () =>
-      computeEetDifferencekravCalculation({
-        erhvervsevnetab: values,
-        skadedato: stamdata?.skadedato,
-        skadelidteFodselsdato: values.skadelidteFodselsdato,
-      }),
-    [stamdata?.skadedato, values]
-  );
-
-  const fieldIssues = React.useMemo(() => {
-    return [
-      toFieldIssue('field-beregningsdato', eetFieldErrors.beregningsdato?.message),
-      toFieldIssue('field-aarsloen-asl', faellesAarsloenFieldErrors.aslAarsloen?.message),
-      toFieldIssue('field-asl-afgoerelser', eetFieldErrors.aslAfgoerelser?.message),
-      toFieldIssue('field-skadelidte-fodselsdato', stamdataFieldErrors.skadelidteFodselsdato?.message),
-      toFieldIssue('field-skadedato', stamdataFieldErrors.skadedato?.message),
-    ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
-  }, [
-    eetFieldErrors.aslAfgoerelser?.message,
-    eetFieldErrors.beregningsdato?.message,
-    faellesAarsloenFieldErrors.aslAarsloen?.message,
-    stamdataFieldErrors.skadelidteFodselsdato?.message,
-    stamdataFieldErrors.skadedato?.message,
-  ]);
-
-  const issues = React.useMemo(
-    () =>
-      dedupeIssuesBySeverityAndMessage([...calculationResult.issues, ...fieldIssues])
-        .sort((a, b) => navigationSortKey(a.id) - navigationSortKey(b.id)),
-    [calculationResult.issues, fieldIssues]
-  );
-
-  const hasBlockingErrors = issues.some((issue) => issue.severity === 'error');
-
-  const computation = calculationResult.computation;
+  const issues = snapshot.issues;
+  const hasBlockingErrors = snapshot.hasBlockingErrors;
+  const computation = snapshot.computation;
   const bilagSelection = values.eetDifferencekravBilagSelection;
 
   const updateBilag = React.useCallback(
