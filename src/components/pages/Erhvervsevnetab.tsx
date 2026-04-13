@@ -3,7 +3,7 @@ import { Box, Tabs, Tab, Typography } from '@mui/material';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
-import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
+import { useFormFieldErrorReporter, useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import {
   erhvervsevnetabSchema,
   faellesAarsloenSchema,
@@ -14,6 +14,7 @@ import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/fae
 import {
   collectEetAslAfgoerelseValidationIssues,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import { computeEetSnapshot } from '../../domain/erhvervsevnetab/eetSnapshot';
 import EetOplysningerTab from './erhvervsevnetab/EetOplysningerTab';
 import EetEfterEalTab from './erhvervsevnetab/EetEfterEalTab';
 import EetLoebendeYdelserTab from './erhvervsevnetab/EetLoebendeYdelserTab';
@@ -62,10 +63,27 @@ const ErhvervsevnetabPage = React.memo(() => {
     source: 'rule',
   });
   useAslAarsloenRuleReporter(faellesAarsloenValues.aslAarsloen, stamdata?.skadedato);
+  const stamdataFieldErrors = useFormFieldErrors('stamdata');
+  const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
+  const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
 
   const composedValues = React.useMemo<ErhvervsevnetabComposedValues>(
     () => ({ ...values, ...faellesAarsloenValues, skadelidteFodselsdato: stamdata?.skadelidteFodselsdato }),
     [faellesAarsloenValues, stamdata?.skadelidteFodselsdato, values]
+  );
+
+  const eetSnapshot = React.useMemo(
+    () =>
+      computeEetSnapshot({
+        values: composedValues,
+        stamdata,
+        fieldErrors: {
+          stamdata: stamdataFieldErrors,
+          erhvervsevnetab: eetFieldErrors,
+          faellesAarsloen: faellesAarsloenFieldErrors,
+        },
+      }),
+    [composedValues, eetFieldErrors, faellesAarsloenFieldErrors, stamdata, stamdataFieldErrors]
   );
 
   const aslAfgoerelserValidationIssues = React.useMemo(() => {
@@ -162,18 +180,23 @@ const ErhvervsevnetabPage = React.memo(() => {
           values={composedValues}
           setValues={setValues}
           onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
+          stamdata={stamdata}
+          snapshot={eetSnapshot.loebendeYdelser}
         />
       )}
       {activeTab === TAB_KEYS.KAPITALISERING && (
         <EetKapitaliseringTab
           values={composedValues}
           onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
+          stamdata={stamdata}
+          snapshot={eetSnapshot.kapitalisering}
         />
       )}
       {activeTab === TAB_KEYS.EET_EAL && (
         <EetEfterEalTab
-          values={composedValues}
           onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
+          stamdata={stamdata}
+          snapshot={eetSnapshot.efterEal}
         />
       )}
       {activeTab === TAB_KEYS.DIFFERENCEKRAV && (
@@ -181,6 +204,8 @@ const ErhvervsevnetabPage = React.memo(() => {
           values={composedValues}
           setValues={setValues}
           onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
+          stamdata={stamdata}
+          snapshot={eetSnapshot.differencekrav}
         />
       )}
     </Box>

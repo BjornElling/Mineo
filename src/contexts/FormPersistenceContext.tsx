@@ -3,9 +3,7 @@ import type { ZodIssue } from 'zod';
 import {
   type StorageKey,
   getStorageKey,
-  getAllMineoKeys,
   getDomainStorageKeys,
-  LEGACY_DOMAIN_STORAGE_KEYS,
 } from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import type { PersistedData } from '../types/persistence';
@@ -23,6 +21,7 @@ import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
+import { buildSessionStorageHydrationPlan } from '../utils/persistenceSessionHydration';
 import {
   getFieldErrorRevisionSnapshot,
   getFieldErrorsBySourceSnapshot,
@@ -48,45 +47,6 @@ import {
  * Nuværende data format version
  */
 const CURRENT_VERSION = PERSISTED_DATA_VERSION;
-
-/**
- * Type guard for PersistedData wrapper-struktur
- *
- * Validerer at stored data har korrekt format (version, timestamp, data).
- * Beskytter mod korrupt storage data.
- */
-function isPersistedData(value: unknown): value is PersistedData {
-  if (!value || typeof value !== 'object') return false;
-
-  const obj = value as Record<string, unknown>;
-
-  return (
-    typeof obj.version === 'string' &&
-    typeof obj.timestamp === 'number' &&
-    'data' in obj
-  );
-}
-
-const migrateLegacyFaellesPersondataIntoStamdata = (
-  currentStamdata: PersistedSectionMap['stamdata'] | null,
-  legacyRaw: unknown
-): PersistedSectionMap['stamdata'] | null => {
-  const legacySchema = persistenceSchemas.stamdata.pick({ skadelidteFodselsdato: true });
-  const parsedLegacy = legacySchema.safeParse(nullToUndefinedDeep(legacyRaw));
-  if (!parsedLegacy.success || !parsedLegacy.data.skadelidteFodselsdato) {
-    return currentStamdata;
-  }
-
-  const baseStamdata = currentStamdata ?? persistenceSchemas.stamdata.parse({});
-  if (baseStamdata.skadelidteFodselsdato) {
-    return currentStamdata;
-  }
-
-  return {
-    ...baseStamdata,
-    skadelidteFodselsdato: parsedLegacy.data.skadelidteFodselsdato,
-  };
-};
 
 const formatZodIssues = (issues: ZodIssue[], max: number): string => {
   return issues
@@ -125,109 +85,43 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     }, {} as PersistedCache);
   }, []);
 
-  const initPlanRef = React.useRef<{
+  const [initOnce] = React.useState<{
+    initialSections: PersistedCache;
     keysToRemove: string[];
-    shouldGlobalClear: boolean;
     notice: { message: string; type: 'warning' | 'error' } | null;
-  } | null>(null);
-  const initialSectionsRef = React.useRef<PersistedCache | null>(null);
-  if (initialSectionsRef.current === null) {
+  }>(() => {
+    const plan = buildSessionStorageHydrationPlan();
     const nextCache = createEmptyCache();
-    const keysToRemove: string[] = [];
-    let shouldGlobalClear = false;
-    let notice: { message: string; type: 'warning' | 'error' } | null = null;
-
-    const validateAndAssign = <K extends StorageKey>(pageKey: K, rawData: unknown): void => {
-      const schema = persistenceSchemas[pageKey];
-      const normalized = nullToUndefinedDeep(rawData);
-      const validated = schema.safeParse(normalized);
-      if (!validated.success) {
-        keysToRemove.push(getStorageKey(pageKey));
-        notice ??= { message: `Gemte data for '${pageKey}' matcher ikke denne versions schema og er ryddet.`, type: 'error' };
-        return;
-      }
-      assignCacheValue(nextCache, pageKey, validated.data);
+    for (const pageKey of Object.keys(plan.sections) as StorageKey[]) {
+      assignCacheValue(nextCache, pageKey, plan.sections[pageKey]);
+    }
+    return {
+      initialSections: nextCache,
+      keysToRemove: plan.keysToRemove,
+      notice: plan.notice,
     };
+  });
 
-    for (const pageKey of Object.keys(persistenceSchemas) as StorageKey[]) {
-      const storageKey = getStorageKey(pageKey);
-      const stored = sessionStorage.getItem(storageKey);
-      if (!stored) continue;
-
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(stored);
-      } catch {
-        keysToRemove.push(storageKey);
-        notice ??= { message: `Gemte data for '${pageKey}' var korrupte og er ryddet.`, type: 'error' };
-        continue;
-      }
-
-      if (!isPersistedData(parsed)) {
-        keysToRemove.push(storageKey);
-        notice ??= { message: `Gemte data for '${pageKey}' var korrupte og er ryddet.`, type: 'error' };
-        continue;
-      }
-
-      if (parsed.version !== CURRENT_VERSION) {
-        // Design choice (trust-critical): hard-fail ved mismatch og ryd ALT persisted data.
-        shouldGlobalClear = true;
-        notice ??= {
-          message: `Gemte data er fra en anden version (${parsed.version} ≠ ${CURRENT_VERSION}) og er ryddet.`,
-          type: 'error',
-        };
-        break;
-      }
-
-      validateAndAssign(pageKey, parsed.data);
-    }
-
-    const legacyFaellesPersondataKey = LEGACY_DOMAIN_STORAGE_KEYS.faellesPersondata;
-    const legacyFaellesPersondataRaw = sessionStorage.getItem(legacyFaellesPersondataKey);
-    if (legacyFaellesPersondataRaw) {
-      keysToRemove.push(legacyFaellesPersondataKey);
-
-      try {
-        const parsedLegacy = JSON.parse(legacyFaellesPersondataRaw);
-        if (isPersistedData(parsedLegacy) && parsedLegacy.version === CURRENT_VERSION) {
-          nextCache.stamdata = migrateLegacyFaellesPersondataIntoStamdata(nextCache.stamdata, parsedLegacy.data);
-        }
-      } catch {
-        // Legacy sektionen ryddes uanset. Korrupt legacy-data må ikke blokere opstart.
-      }
-    }
-
-    initPlanRef.current = { keysToRemove, shouldGlobalClear, notice };
-    initialSectionsRef.current = shouldGlobalClear ? createEmptyCache() : nextCache;
-  }
+  const initialSectionsRef = React.useRef<PersistedCache>(initOnce.initialSections);
 
   const [noticeState, setNoticeState] = React.useState<{ epoch: number; notice: { message: string; type: 'warning' | 'error' } | null }>(() => ({
     epoch: 0,
-    notice: initPlanRef.current?.notice ?? null,
+    notice: initOnce.notice,
   }));
 
   React.useEffect(() => {
     const store = formPersistenceStore.getState();
     store.hydrate(
-      initialSectionsRef.current ?? createEmptyCache(),
+      initialSectionsRef.current,
       { hydrated: true, schemaFingerprint: CURRENT_VERSION }
     );
-  }, [createEmptyCache]);
+  }, []);
 
   React.useEffect(() => {
-    const plan = initPlanRef.current;
-    if (!plan) return;
-
-    if (plan.shouldGlobalClear) {
-      const keys = getAllMineoKeys();
-      keys.forEach((key) => sessionStorage.removeItem(key));
-      return;
-    }
-
-    for (const key of plan.keysToRemove) {
+    for (const key of initOnce.keysToRemove) {
       sessionStorage.removeItem(key);
     }
-  }, []);
+  }, [initOnce.keysToRemove]);
 
   React.useEffect(() => {
     setDevtoolsProviderState('FormPersistenceProvider', true);

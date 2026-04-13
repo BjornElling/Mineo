@@ -1,79 +1,35 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
-import { usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
-import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
+import type { StamdataValues } from '../../../schemas/formSchemas';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
-import { dedupeIssuesBySeverityAndMessage } from '../../../utils/issueUtils';
-import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/lovbestemteRates';
 import {
   buildAldersreduktionFormelTekst,
-  computeEetEalCalculation,
   formatPercentTrimmedFromRounded4,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { downloadEfterEalPdf } from '../../../pdf/infrastructure/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
-import { formatKr, navigationSortKey, toFieldIssue } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { formatKr } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 
 type Props = Readonly<{
-  values: ErhvervsevnetabComposedValues;
   onGoToEetOplysninger: () => void;
+  stamdata: StamdataValues | null;
+  snapshot: EetSnapshot['efterEal'];
 }>;
 
 const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
 
 
-const EetEfterEalTab = ({ values, onGoToEetOplysninger }: Props) => {
-  const stamdata = usePersistedSectionSelector('stamdata');
-  const stamdataFieldErrors = useFormFieldErrors('stamdata');
-  const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
-  const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
+const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => {
   const { settings } = useAppSettings();
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
-
-  const calculationResult = React.useMemo(
-    () =>
-      computeEetEalCalculation({
-        erhvervsevnetab: values,
-        skadedato: stamdata?.skadedato,
-        skadelidteFodselsdato: values.skadelidteFodselsdato,
-        reguleringssats,
-        erhvervsevnetabEalMax,
-        aarsloenAslMax,
-      }),
-    [stamdata?.skadedato, values]
-  );
-
-  const fieldIssues = React.useMemo(() => {
-    return [
-      toFieldIssue('field-beregningsdato', eetFieldErrors.beregningsdato?.message),
-      toFieldIssue('field-eal-eet-pct', eetFieldErrors.ealEetPct?.message),
-      toFieldIssue('field-aarsloen-eal', faellesAarsloenFieldErrors.ealAarsloen?.message),
-      toFieldIssue('field-skadelidte-fodselsdato', stamdataFieldErrors.skadelidteFodselsdato?.message),
-      toFieldIssue('field-skadedato', stamdataFieldErrors.skadedato?.message),
-    ].filter((issue): issue is NonNullable<typeof issue> => issue !== null);
-  }, [
-    eetFieldErrors.beregningsdato?.message,
-    eetFieldErrors.ealEetPct?.message,
-    faellesAarsloenFieldErrors.ealAarsloen?.message,
-    stamdataFieldErrors.skadelidteFodselsdato?.message,
-    stamdataFieldErrors.skadedato?.message,
-  ]);
-
-  const issues = React.useMemo(
-    () =>
-      dedupeIssuesBySeverityAndMessage([...calculationResult.issues, ...fieldIssues]).sort(
-        (a, b) => navigationSortKey(a.id) - navigationSortKey(b.id)
-      ),
-    [calculationResult.issues, fieldIssues]
-  );
-
-  const hasBlockingErrors = issues.some((issue) => issue.severity === 'error');
-  const computation = calculationResult.computation;
+  const issues = snapshot.issues;
+  const hasBlockingErrors = snapshot.hasBlockingErrors;
+  const computation = snapshot.computation;
 
   const handlePdfDownload = React.useCallback(async () => {
     if (!computation) {

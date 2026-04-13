@@ -44,7 +44,6 @@ import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../da
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../../data/offentligLoenTypes';
 import { getKRLSatstabel, isKRLSatstabelId } from '../../../data/krlRates';
 import { getStatistiskLoenudvikling } from '../../../data/statistiskeRates';
-import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
 import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
 import { resolveSfggSource } from '../engines/sygeferiegodtgoerelse';
 import { resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
