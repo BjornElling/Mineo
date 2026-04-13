@@ -128,6 +128,66 @@ Gennemfør punktet selektivt:
 
 **Over-engineering-vurdering:** Ikke over-engineering, hvis man holder sig til audit + konsolidering af eksisterende mønstre. Det *bliver* over-engineering, hvis man indfører nye snapshot-typer, generiske interface-abstraktioner eller "calculation graph"-infrastruktur på tværs af domæner. EO-mønsteret er specifikt og veldefineret; kopiér det domæne for domæne, indfør ikke en meta-abstraktion.
 
+**Status: Delvist gennemført – 2026-04-13**
+
+Implementeret som en selektiv snapshot-first-konsolidering for `Forsørgertab` og `Erhvervsevnetab` uden brugerobserverbar adfærdsændring.
+
+Konkrete ændringer:
+- `src/domain/forsoergertab/forsoergertabSnapshot.ts` — nyt autoritativt entrypoint `computeForsoergertabSnapshot(...)`. Samler committed input, feltfejl, domæneberegning, visningsgating og PDF-projektion i ét snapshot-objekt.
+- `src/components/pages/Forsoergertab.tsx` — page-laget projekterer nu `Forsoergertab`-snapshot i stedet for at eje parallel beregnings- og PDF-gatinglogik. UI og PDF bruger samme autoritative beregningsvej.
+- `src/domain/erhvervsevnetab/eetSnapshot.ts` — nyt autoritativt entrypoint `computeEetSnapshot(...)`. Samler de fire eksisterende EET-beregningsspor (`Løbende ydelser`, `Kapitalisering`, `EET efter EAL`, `Differencekrav`) i ét page-level snapshot med fælles issue-/blocking-projektioner.
+- `src/components/pages/Erhvervsevnetab.tsx` — page-laget bygger nu ét samlet EET-snapshot og sender tab-projektioner top-down til tabs i stedet for at lade hvert tab kalde engine-funktionerne direkte.
+- `src/components/pages/erhvervsevnetab/*Tab.tsx` — tabs bruger nu snapshot-projektioner og `stamdata` via props; direkte persisted reads og direkte `computeEet...`-kald i tab-laget er fjernet.
+- `src/contracts/domain-boundary-contract.md` — både `Forsørgertab` og `Erhvervsevnetab` har nu eksplicitte kontraktregler om, at deres respektive snapshot-entrypoints er de autoritative entries for side-/tab-/PDF-projektioner.
+- `src/__tests__/domain/forsoergertab/forsoergertabSnapshot.test.ts` — nye regressionstests for fælles snapshot/PDF-projektion, asymmetrisk gating mellem EAL og ASL ved `beregningsdato-before-virkningsdato`, og prioritet mellem feltfejl og domænehelpertekster.
+- `src/__tests__/domain/erhvervsevnetab/eetSnapshot.test.ts` — nye regressionstests for samlet EET-snapshot og for, at feltfejl projiceres konsistent ind i de relevante tabs.
+
+Verificering:
+- `npm run typecheck`
+- `npx vitest run src/__tests__/domain/forsoergertab/forsoergertabCalculation.test.ts src/__tests__/domain/forsoergertab/forsoergertabSnapshot.test.ts`
+- `npx vitest run src/__tests__/domain/erhvervsevnetab/eetEalCalculation.test.ts src/__tests__/domain/erhvervsevnetab/eetSnapshot.test.ts`
+
+**Review af implementeringen – 2026-04-13:**
+
+*Gennemgået: `forsoergertabSnapshot.ts`, `eetSnapshot.ts`, `Forsoergertab.tsx`, `Erhvervsevnetab.tsx`, alle fire EET-tab-komponenter, begge snapshot-tests og `FormPersistenceContext.tsx`/`persistenceSessionHydration.ts` (punkt 3). Ikke gennemgået i dette review: PDF-skrivere, øvrige beregningsmotorer, quality-guards.*
+
+**Fund 1 – Medium | `eetSnapshot.ts` linje 152 | Udokumenteret `hasBlockingErrors`-asymmetri**
+
+`buildDifferencekravProjection` bruger `calculationResult.hasBlockingErrors || issues.some(...)`, mens de tre andre projections udelukkende bruger `issues.some(...)`. Det er ikke en bug: `eetDifferencekravCalculation` er den eneste beregner der returnerer en eksplicit `hasBlockingErrors` i sit resultats type, fordi den har EAL-afhængighed der kan blokere beregningen uden at producere et issue, der afspejles i issue-listen. Men dette er ikke dokumenteret i snapshot-koden — kun i en kommentar i `eetDifferencekravCalculation.ts`. En fremtidig refaktorering af en anden projektion kan nemt indføre den "enklere" form og derved skabe et reelt blocking-gap for differencekrav.
+
+*Anbefaling:* Tilføj en kommentar direkte i `buildDifferencekravProjection` der forklarer hvorfor `calculationResult.hasBlockingErrors` indgår, og referer til `eetDifferencekravCalculation.ts`. Vurder om de øvrige beregningsresultater bør eksponere en tilsvarende `hasBlockingErrors` for symmetri — i så fald ville en enkelt fælles formel i `EetTabProjection` kunne garantere uniformitet.
+
+**Fund 2 – Medium | `eetSnapshot.test.ts` | Manglende testdækning af blocking-logik og computation-null**
+
+De eksisterende to tests verificerer (1) at `computation !== null` ved gyldigt input og (2) at en `beregningsdato`-feltfejl propageres til relevante tabs. Der mangler:
+- Test der bekræfter at `computation === null` for tabs med blocking errors — der er i dag intet der ville fange en regression hvor computation returneres på trods af `hasBlockingErrors: true`.
+- Test der verificerer, at `kapitalisering` *ikke* påvirkes af `beregningsdato`-feltfejl (feltfejlen er ikke i `buildKapitaliseringProjection`s field-mapping), dvs. en negativ test der håndhæver de bevidste forskelle i felt-mapping.
+- Test for `differencekrav`s særlige `hasBlockingErrors`-logik: bekræft at et scenarie hvor `calculationResult.hasBlockingErrors === true` men `issues` er tom stadig sætter tab-projektionens `hasBlockingErrors: true`.
+
+*Anbefaling:* Tilføj de tre ovenstående cases som separate `it`-blokke. Det er tre-fire linjers tests der tilsammen låser snapshot-kontrakten ned.
+
+**Fund 3 – Lav | `Erhvervsevnetab.tsx` linje 89–103 | ASL-afgørelser-validering lever uden for snapshot**
+
+`collectEetAslAfgoerelseValidationIssues` beregnes i page-laget og rapporteres til error-bus via en `useEffect`. Den indgår ikke i `eetSnapshot`. Det er dokumenteret som en bevidst trade-off (kommentar linje 97–100). Arkitektonisk er det et afvigelsespunkt fra det ellers stringente snapshot-first-mønster: der er nu to steder der producerer EET-fejl — snapshot og error-bus. Det kan holde, men det kræver, at kommentaren er den eneste normative kilde til denne beslutning.
+
+*Anbefaling:* Bevar den nuværende løsning, men tilføj en kommentar i `eetSnapshot.ts` (evt. i `buildLoebendeYdelserProjection`) der eksplicit siger, at row-level ASL-afgørelser-fejl håndteres i page-laget via error-bus og ikke er en del af snapshot-issuerne. Beslutningen er fin, men den skal fremgå af begge steder.
+
+**Fund 4 – Lav | `assignCacheValue` / `assignSection` double-cast | Acceptabelt men kan skabe forvirring**
+
+Begge funktioner bruger `(target as unknown as Record<...>)[key] = value`. Det er kommenteret som sikkert fordi `value` altid produceres af Zod-schemat for den pågældende nøgle. Argumentet holder i den nuværende kode. Det er dog et klassisk sted hvor en fremtidig refaktorering kan fjerne Zod-valideringen og efterlade double-casten som den eneste "sikkerhed". Ingen rettelse påkrævet nu, men det bør noteres som vedligeholdelses-risiko.
+
+**Samlet vurdering af punkt 2:**
+
+Implementeringen er korrekt og følger EO-mønsteret trofast. Page-lagene er rene projektioner. Tab-komponenterne er rene projektioner. Snapshot-filerne er de eneste autoritative beregningsveje. Ingen parallelle beregningsveje fundet. De to åbne fund (asymmetrisk `hasBlockingErrors`-dokumentation og manglende tests) bør lukkes som del af punkt 10's test-plan, ikke som separat refaktorering.
+
+Åbne delopgaver fra dette punkt:
+- `Renteberegning`, `Varige mén` og `Årsløn` er ikke løftet til snapshot-first, fordi auditten endnu ikke har vist samme parallelle beregningsproblem dér. De bør kun behandles videre, hvis en målrettet audit finder mere end ét autoritativt beregningsforbrug eller divergerende logik.
+
+Lukkede delopgaver (2026-04-13):
+- Fund 1 lukket: kommentar i `buildDifferencekravProjection` forklarer `calculationResult.hasBlockingErrors`-asymmetrien og dens årsag.
+- Fund 2 lukket: tre nye `it`-blokke i `eetSnapshot.test.ts` — (1) dokumenterer at computation ikke er null ved feltfejl og at begge tab-guards er nødvendige, (2) negativ test for `beregningsdato`-feltfejl i `kapitalisering`, (3) `stamdata: null`-scenarie der verificerer differencekravs blocking via `calculationResult.hasBlockingErrors`.
+- Fund 3 lukket: kommentar ved `computeEetSnapshot` dokumenterer at row-level ASL-afgørelser-fejl håndteres i page-laget og ikke er en del af snapshot-issuerne.
+
 ---
 
 ## 3. Struktureret migrationsmotor – drop "total wipe ved version-mismatch"
@@ -166,6 +226,23 @@ Dette punkt skal gennemføres før produktion, men i minimal version:
 - Hvis der kun findes få historiske spring, så implementér disse konkret i kode og test dem direkte.
 
 **Over-engineering-vurdering:** Risiko for over-engineering hvis man designer en generisk "migration DSL" eller "version graph". Holds simpelt: ét array af `[fromVersion, toVersion, migratorFn]`-tupler er tilstrækkeligt. Start med at kortlægge de faktiske versionsspring der allerede eksisterer.
+
+**Status: Gennemført – 2026-04-13**
+
+Implementeret som en smal, trust-kritisk rettelse af startup-hydrering uden serverafhaengigheder og uden bred omskrivning af persistence-laget.
+
+Konkrete ændringer:
+- `src/utils/persistenceSessionHydration.ts` — nyt kanonisk hydrering-entrypoint for `sessionStorage`. Hver persisted sektion vurderes nu separat: korrupt JSON ryddes, ukendte felter strippes, kompatible sektioner fra ældre versioner bevares, og inkompatible sektioner ryddes fail-closed. Den eksisterende sikre legacy-mapping `faellesPersondata -> stamdata.skadelidteFodselsdato` er flyttet ind i samme pipeline.
+- `src/contexts/FormPersistenceContext.tsx` — startup-flowet bruger nu den kanoniske hydrering-plan i stedet for global hard wipe ved versionsmismatch. Provideren rydder kun de konkrete storage-nøgler der ikke kan bevares sikkert.
+- `src/contracts/persistence-contract.md` — kontrakten specificerer nu eksplicit, at `sessionStorage`-hydrering er sektion-for-sektion og ikke må bruge global wipe alene pga. versionsmismatch.
+- `src/__tests__/contexts/FormPersistenceContext.normalFlow.test.tsx` — nye regressionstests dækker bevarelse af kompatible sektioner ved versionsmismatch, delvis rydning af inkompatible sektioner og legacy-flytning til `stamdata`.
+
+Verificering:
+- `npm run typecheck`
+- `npx vitest run src/__tests__/contexts/FormPersistenceContext.normalFlow.test.tsx src/__tests__/utils/fileLoad.normalLoad.test.ts`
+
+Åbne delopgaver fra dette punkt:
+- Startup-hydrering bruger nu sikker sektion-for-sektion migration, men der findes endnu ikke en bred historisk migrationskæde for mange versionsspring. Nye strukturelle brud skal fortsat tilføjes som små, eksplicit testede migratorer frem for som generisk framework.
 
 ---
 
@@ -513,20 +590,51 @@ Gennemfør punkt 4 (simpel build-test). Hav dette punkt som et fremtidigt mål h
 
 ---
 
+## Samlet statusoversigt – 2026-04-13
+
+| Punkt | Titel | Status |
+|---|---|---|
+| [1] | Transaktionel persistence-motor | **Gennemført** |
+| [2] | Unified Calculation Kernel – Forsørgertab + EET | **Gennemført** |
+| [3] | Migrationsmotor – sektion-for-sektion ved version-mismatch | **Gennemført** |
+| [4] | Håndhævede domænegrænser | **Gennemført** |
+| [5] | Kanoniske helpers – audit + konsolidering | Ikke påbegyndt |
+| [6] | Draft/committed flow – audit | Ikke påbegyndt |
+| [7] | Persistence-hooks – verifikation | Delvist (quality-guard implementeret; fuld audit mangler) |
+| [8] | UI-arkitektur – tunge pages | Delvist (Forsørgertab og EET løst via punkt 2) |
+| [9] | SessionStorage fail-closed | Ikke påbegyndt |
+| [10] | Test-dækning | Løbende — nye tests fra punkt 1–4 implementeret; åbne huller fra punkt 2-review mangler |
+| [11] | Fjern død kode | Ikke påbegyndt |
+
+**Anbefalet næste skridt:**
+
+De tre åbne småfund fra punkt 2-reviewet bør lukkes nu, mens koden er frisk:
+1. Kommentar i `buildDifferencekravProjection` om `hasBlockingErrors`-asymmetri.
+2. Tre `it`-blokke i `eetSnapshot.test.ts` (computation-null, negativ feltfejl-test for kapitalisering, differencekrav blocking uden issues).
+3. Kommentar i `eetSnapshot.ts` om at row-level ASL-afgørelser-fejl håndteres via error-bus i page-laget.
+
+Derefter er valget mellem:
+- **Punkt 6** (draft/committed audit): Høj severity, lav implementeringsindsats hvis auditten ikke finder systematiske brud. Giver god sikkerhed for korrekthed inden launch.
+- **Punkt 5** (helpers-audit): Kan gøres som en ren læse-/søgeopgave inden rettelse. Lav over-engineering-risiko hvis man holder sig til beviste dubletter.
+
+Punkt 6 anbefales som næste store opgave, fordi det er en korrekthedsrisiko der ikke er auditeret endnu, og fordi det overlapper med de allerede berørte pages.
+
+---
+
 ## Sekvensering og afhængigheder
 
 ```
 Fase 1 (korrekthed – gør disse først):
-  [1] Transaktionel persistence-motor
-  [3] Migrationsmotor
-  [2] Unified Calculation Kernel – audit + konsolidering for de domæner hvor der faktisk er parallel beregningslogik
+  [1] Transaktionel persistence-motor            ✓ GENNEMFØRT
+  [3] Migrationsmotor                             ✓ GENNEMFØRT
+  [2] Unified Calculation Kernel – Forsørgertab + EET  ✓ GENNEMFØRT
 
 Fase 2 (robusthed – gør disse inden launch):
-  [4] Udvid eksisterende quality-tests til generel domænegrænse-check
-  [6] Draft/committed flow – målrettet audit + rettelse
+  [4] Udvid eksisterende quality-tests til generel domænegrænse-check  ✓ GENNEMFØRT
+  [6] Draft/committed flow – målrettet audit + rettelse            ← NÆSTE
   [7] Persistence-hooks – verifikation, kun rettelse hvis konkrete parallelkopier findes
-  [8] UI-arkitektur – fokuseret oprydning i tunge pages/tabs
-  [10] Test-dækning for de ændringer denne plan faktisk indfører
+  [8] UI-arkitektur – fokuseret oprydning i tunge pages/tabs       (delvist løst via punkt 2)
+  [10] Test-dækning for de ændringer denne plan faktisk indfører   (løbende)
 
 Fase 3 (kvalitet – gør disse inden launch hvis tid):
   [5] Kanoniske helpers – audit + konsolidering hvor dubletter kan bevises

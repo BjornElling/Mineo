@@ -104,12 +104,16 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 2. Siden må være fuldt tilgængelig i navigation, routing, persistence, save/load og PDF-generering på linje med de øvrige fagsider.
 3. Siden må læse `stamdata` og `faellesAarsloen`.
 4. Siden må ikke læse andre fagsiders domæne-sektioner.
+5. `computeEetSnapshot(...)` er den autoritative beregnings-entry for tab- og PDF-projektioner i Erhvervsevnetab-domænet.
+6. Tab-komponenter og PDF-flow må ikke lave parallelle EET-beregninger uden om snapshot-projektionen.
 
 ### 6.2 Forsørgertab
 
 1. `Forsørgertab` er et selvstændigt beregningsdomæne med egen persisted state.
 2. Siden må læse `stamdata` og `faellesAarsloen`.
 3. Siden må ikke læse andre fagsiders domæne-sektioner.
+4. `computeForsoergertabSnapshot(...)` er den autoritative beregnings-entry for side- og PDF-projektioner i Forsørgertab-domænet.
+5. UI-komponenter og PDF-flow må ikke lave parallelle Forsørgertab-beregninger uden om snapshot-projektionen.
 
 ### 6.3 Varige mén
 

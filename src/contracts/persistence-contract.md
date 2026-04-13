@@ -96,6 +96,12 @@ Når persisted struktur ændres, skal migrering ske efter følgende prioritet:
 1. Bevar brugerdata hvis den gamle betydning sikkert kan mappes til ny struktur.
 2. Strip ukendte eller fjernede felter, når sikker mapping ikke findes.
 3. Rapportér tab eller strip via preflight i stedet for at gætte.
+4. `sessionStorage`-hydrering må ikke bruge global hard wipe alene pga. versionsmismatch:
+   - hver persisted sektion vurderes separat
+   - kompatible sektioner bevares
+   - ukendte/fjernede felter strippes
+   - inkompatible eller korrupte sektioner ryddes fail-closed
+5. Kendte, sikre legacy-mappinger (fx feltflytninger mellem sektioner) må udføres før validering, når mappingen er entydig og testet.
 
 Det er tilladt at bryde bagudkompatibilitet for intern runtime-struktur, men `.eo`-load skal stadig bevare mest muligt sikkert brugerinput.
 
