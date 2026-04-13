@@ -14,8 +14,6 @@ import { useAslAarsloenRuleReporter } from '../../hooks/useAslAarsloenRuleReport
 import { faellesAarsloenSchema, forsoergertabSchema, koenEnum } from '../../schemas/formSchemas';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { FORSOERGERTAB_INITIAL_VALUES } from '../../domain/forsoergertab/forsoergertabInitialValues';
-import { computeForsoergertabCalculation } from '../../domain/forsoergertab/forsoergertabCalculation';
-import { PRE_2015_CUTOFF } from '../../domain/forsoergertab/forsoergertabConstants';
 import { coerceToISODateString, isoToDanish, maxIso, minIso } from '../../types/branded';
 import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../utils/formatUtils';
 import PdfDownloadButton from '../inputs/PdfDownloadButton';
@@ -24,6 +22,7 @@ import { useAppSettings } from '../../contexts/useAppSettings';
 import { downloadForsoergertabPdf } from '../../pdf/infrastructure/pdfService';
 import { buildAldersreduktionFormelTekst } from '../../domain/erhvervsevnetab/eetAldersreduktionFormel';
 import StandardLooseTable from '../tables/StandardLooseTable';
+import { computeForsoergertabSnapshot } from '../../domain/forsoergertab/forsoergertabSnapshot';
 
 const Forsoergertab = React.memo(() => {
   const navigate = useNavigate();
@@ -88,155 +87,34 @@ const Forsoergertab = React.memo(() => {
     return beregningsdato ? minIso(eetMax, beregningsdato) : eetMax;
   }, [values.beregningsdato]);
 
-  const visKoenValg = React.useMemo(() => {
-    const beregningsdato = coerceToISODateString(values.beregningsdato);
-    return beregningsdato !== undefined && beregningsdato < PRE_2015_CUTOFF;
-  }, [values.beregningsdato]);
-  const calculationResult = React.useMemo(
+  const snapshot = React.useMemo(
     () =>
-      computeForsoergertabCalculation({
-        skadedato: coerceToISODateString(stamdata?.skadedato),
-        skadelidteFodselsdato: coerceToISODateString(stamdata?.skadelidteFodselsdato),
-        efterladteFodselsdato: coerceToISODateString(values.efterladteFodselsdato),
-        beregningsdato: coerceToISODateString(values.beregningsdato),
-        virkningsdato: coerceToISODateString(values.virkningsdato),
-        koen: values.koen,
-        tilkendtForPeriodeAar: values.tilkendtForPeriodeAar,
-        aslAarsloen: faellesAarsloenValues.aslAarsloen,
-        ealAarsloen: faellesAarsloenValues.ealAarsloen,
+      computeForsoergertabSnapshot({
+        values,
+        faellesAarsloen: faellesAarsloenValues,
+        stamdata,
+        fieldErrors: {
+          forsoergertab: forsoergertabFieldErrors,
+          faellesAarsloen: faellesAarsloenFieldErrors,
+          stamdata: stamdataFieldErrors,
+        },
       }),
-    [
-      faellesAarsloenValues.aslAarsloen,
-      faellesAarsloenValues.ealAarsloen,
-      stamdata?.skadelidteFodselsdato,
-      stamdata?.skadedato,
-      values,
-    ]
+    [faellesAarsloenFieldErrors, faellesAarsloenValues, forsoergertabFieldErrors, stamdata, stamdataFieldErrors, values]
   );
 
-  const helperIssueMessage = React.useCallback(
-    (ids: readonly string[]): string | undefined => {
-      const message = calculationResult.issues.find((issue) => ids.includes(issue.id))?.message;
-      return message && message.trim() !== '' ? message : undefined;
-    },
-    [calculationResult.issues]
-  );
-
-  const hasSkadelidteFodselsdatoError = Boolean(stamdataFieldErrors.skadelidteFodselsdato?.message);
-  const hasEfterladteFodselsdatoError = Boolean(
-    forsoergertabFieldErrors.efterladteFodselsdato?.message ||
-      helperIssueMessage(['forsoergertab-alder-unresolved', 'forsoergertab-alder-missing'])
-  );
-  const hasBeregningsdatoError = Boolean(
-    forsoergertabFieldErrors.beregningsdato?.message ||
-      helperIssueMessage([
-        'aarsloen-max-missing-beregningsaar',
-        'beregningsdato-before-virkningsdato',
-        'kapitaliseringsbekendtgoerelse-missing',
-        'folkepensionsalder-unresolved',
-        'forsoergertab-tabel-missing',
-        'forsoergertab-tabel-rows-missing',
-        'forsoergertab-faktor-unresolved',
-      ])
-  );
-  // EAL bruger ikke virkningsdato, så beregningsdato-before-virkningsdato er ikke relevant for EAL-visningen
-  const hasBeregningsdatoErrorForEal = Boolean(
-    forsoergertabFieldErrors.beregningsdato?.message ||
-      helperIssueMessage([
-        'aarsloen-max-missing-beregningsaar',
-        'kapitaliseringsbekendtgoerelse-missing',
-        'folkepensionsalder-unresolved',
-        'forsoergertab-tabel-missing',
-        'forsoergertab-tabel-rows-missing',
-        'forsoergertab-faktor-unresolved',
-      ])
-  );
-  const hasVirkningsdatoError = Boolean(
-    forsoergertabFieldErrors.virkningsdato?.message ||
-      helperIssueMessage(['beregningsdato-before-virkningsdato'])
-  );
-  const hasKoenError = Boolean(forsoergertabFieldErrors.koen?.message || helperIssueMessage(['missing-koen']));
-  const hasTilkendtForPeriodeError = Boolean(
-    forsoergertabFieldErrors.tilkendtForPeriodeAar?.message || helperIssueMessage(['tilkendt-for-periode-invalid'])
-  );
-  const hasAslAarsloenError = Boolean(
-    faellesAarsloenFieldErrors.aslAarsloen?.message || helperIssueMessage(['asl-aarsloen-zero'])
-  );
-  const hasEalAarsloenError = Boolean(
-    faellesAarsloenFieldErrors.ealAarsloen?.message || helperIssueMessage(['eal-aarsloen-zero'])
-  );
-  const hasSkadedatoError = Boolean(
-    stamdataFieldErrors.skadedato?.message || helperIssueMessage(['skadedato-missing', 'aarsloen-max-missing-skadesaar'])
-  );
-
-  const result = calculationResult.result;
-  const ealComputation = calculationResult.ealComputation;
-  const aslComputation = calculationResult.aslComputation;
-  const foersoergertabEalMinSats = calculationResult.foersoergertabEalMinSats;
-  const foersoergertabForhoejtetTilMin = calculationResult.foersoergertabForhoejtetTilMin;
-  const canShowEal =
-    Boolean(values.beregningsdato) &&
-    !hasSkadelidteFodselsdatoError &&
-    !hasBeregningsdatoErrorForEal &&
-    !hasSkadedatoError &&
-    !hasEalAarsloenError &&
-    ealComputation !== null;
-  const canShowAsl =
-    Boolean(stamdata?.skadelidteFodselsdato) &&
-    Boolean(values.efterladteFodselsdato) &&
-    Boolean(values.beregningsdato) &&
-    !hasEfterladteFodselsdatoError &&
-    !hasBeregningsdatoError &&
-    !hasSkadedatoError &&
-    Boolean(faellesAarsloenValues.aslAarsloen) &&
-    Boolean(values.virkningsdato) &&
-    values.tilkendtForPeriodeAar !== undefined &&
-    !hasAslAarsloenError &&
-    !hasVirkningsdatoError &&
-    !hasTilkendtForPeriodeError &&
-    !hasKoenError &&
-    aslComputation !== null;
-  const canShowResult = canShowEal && canShowAsl && result !== null;
-  const canDownloadPdf = canShowEal || canShowAsl;
+  const result = snapshot.calculation.result;
+  const ealComputation = snapshot.calculation.ealComputation;
+  const aslComputation = snapshot.calculation.aslComputation;
+  const foersoergertabEalMinSats = snapshot.calculation.foersoergertabEalMinSats;
+  const foersoergertabForhoejtetTilMin = snapshot.calculation.foersoergertabForhoejtetTilMin;
 
   const handlePdfDownload = React.useCallback(async () => {
     await downloadForsoergertabPdf({
-      pdfParams: {
-        grundlaeggende: {
-          beregningsdato: coerceToISODateString(values.beregningsdato),
-          skadelidteFodselsdato: coerceToISODateString(stamdata?.skadelidteFodselsdato),
-          efterladteFodselsdato: coerceToISODateString(values.efterladteFodselsdato),
-          koen: values.koen,
-          visKoenValg,
-          aslAarsloen: faellesAarsloenValues.aslAarsloen?.value,
-          ealAarsloen: faellesAarsloenValues.ealAarsloen?.value,
-          virkningsdato: coerceToISODateString(values.virkningsdato),
-          tilkendtForPeriodeAar: values.tilkendtForPeriodeAar,
-        },
-        result: canShowResult ? result : null,
-        ealComputation: canShowEal ? ealComputation : null,
-        aslComputation: canShowAsl ? aslComputation : null,
-        foersoergertabEalMinSats,
-        foersoergertabForhoejtetTilMin,
-      },
+      pdfParams: snapshot.pdfProjection,
       settings,
       persistedStamdata: stamdata,
     });
-  }, [
-    values,
-    faellesAarsloenValues,
-    visKoenValg,
-    canShowResult,
-    canShowEal,
-    canShowAsl,
-    result,
-    ealComputation,
-    aslComputation,
-    foersoergertabEalMinSats,
-    foersoergertabForhoejtetTilMin,
-    settings,
-    stamdata,
-  ]);
+  }, [settings, snapshot.pdfProjection, stamdata]);
 
   return (
     <Box>
@@ -254,20 +132,8 @@ const Forsoergertab = React.memo(() => {
               minDate={beregningsdatoMin}
               maxDate={dateRanges_forsoergertab.beregningsdato.max}
               specialRangeErrors={{ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Beregningsdato' }}
-              error={hasBeregningsdatoError}
-              helperText={
-                forsoergertabFieldErrors.beregningsdato?.message ??
-                helperIssueMessage([
-                  'beregningsdato-before-virkningsdato',
-                  'kapitaliseringsbekendtgoerelse-missing',
-                  'folkepensionsalder-unresolved',
-                  'forsoergertab-tabel-missing',
-                  'forsoergertab-tabel-rows-missing',
-                  'forsoergertab-faktor-unresolved',
-                  'aarsloen-max-missing-beregningsaar',
-                ]) ??
-                ''
-              }
+              error={snapshot.fieldUi.beregningsdato.hasError}
+              helperText={snapshot.fieldUi.beregningsdato.helperText}
               onFieldError={reportBeregningsdatoError}
               inputRef={beregningsdatoInputRef}
             />
@@ -283,7 +149,7 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Download specifikation</Typography>
           <Box className="row--label-right-hover__content">
-            <PdfDownloadButton onClick={handlePdfDownload} disabled={!canDownloadPdf} />
+            <PdfDownloadButton onClick={handlePdfDownload} disabled={!snapshot.canDownloadPdf} />
           </Box>
         </Box>
       </ContentBox>
@@ -294,7 +160,7 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Skadelidtes fødselsdato</Typography>
           <Box className="row--label-right-hover__content" sx={{ justifyContent: 'flex-end' }}>
-            {stamdata?.skadelidteFodselsdato && !hasSkadelidteFodselsdatoError ? (
+            {stamdata?.skadelidteFodselsdato && !snapshot.fieldUi.skadelidteFodselsdato.hasError ? (
               <Typography className="row--text">{stamdata?.skadelidteFodselsdato ? isoToDanish(stamdata.skadelidteFodselsdato) : ''}</Typography>
             ) : (
               <Typography
@@ -310,7 +176,7 @@ const Forsoergertab = React.memo(() => {
           </Box>
         </Box>
 
-        {(visKoenValg || Boolean(forsoergertabFieldErrors.koen?.message) || Boolean(helperIssueMessage(['missing-koen']))) && (
+        {(snapshot.visKoenValg || snapshot.fieldUi.koen.hasError) && (
           <Box className="row--label-right-hover">
             <Typography className="row--text">Køn</Typography>
             <Box className="row--label-right-hover__content">
@@ -322,8 +188,8 @@ const Forsoergertab = React.memo(() => {
                 }}
                 placeholder="Vælg køn"
                 width={130}
-                error={Boolean(forsoergertabFieldErrors.koen?.message || helperIssueMessage(['missing-koen']))}
-                helperText={forsoergertabFieldErrors.koen?.message ?? helperIssueMessage(['missing-koen']) ?? ''}
+                error={snapshot.fieldUi.koen.hasError}
+                helperText={snapshot.fieldUi.koen.helperText}
               >
                 <MenuItem value="Mand">Mand</MenuItem>
                 <MenuItem value="Kvinde">Kvinde</MenuItem>
@@ -339,8 +205,7 @@ const Forsoergertab = React.memo(() => {
           value={faellesAarsloenValues.aslAarsloen}
           onCommit={(event) => setFaellesAarsloenFieldValue('aslAarsloen', event.target.value)}
           errorMessage={
-            faellesAarsloenFieldErrors.aslAarsloen?.message ??
-            helperIssueMessage(['asl-aarsloen-zero'])
+            snapshot.fieldUi.aslAarsloen.helperText
           }
           onFieldError={reportAslAarsloenError}
         />
@@ -354,12 +219,8 @@ const Forsoergertab = React.memo(() => {
               minDate={skadedatoMin}
               maxDate={virkningsdatoMax}
               specialRangeErrors={{ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Virkningsdato' }}
-              error={hasVirkningsdatoError}
-              helperText={
-                forsoergertabFieldErrors.virkningsdato?.message ??
-                helperIssueMessage(['beregningsdato-before-virkningsdato']) ??
-                ''
-              }
+              error={snapshot.fieldUi.virkningsdato.hasError}
+              helperText={snapshot.fieldUi.virkningsdato.helperText}
               onFieldError={reportVirkningsdatoError}
             />
           </Box>
@@ -375,12 +236,8 @@ const Forsoergertab = React.memo(() => {
               maxValue={10}
               allowNegative={false}
               width={80}
-              error={hasTilkendtForPeriodeError}
-              helperText={
-                forsoergertabFieldErrors.tilkendtForPeriodeAar?.message ??
-                helperIssueMessage(['tilkendt-for-periode-invalid']) ??
-                ''
-              }
+              error={snapshot.fieldUi.tilkendtForPeriodeAar.hasError}
+              helperText={snapshot.fieldUi.tilkendtForPeriodeAar.helperText}
               onFieldError={reportTilkendtForPeriodeError}
             />
             <Typography className="row--text">år</Typography>
@@ -395,12 +252,8 @@ const Forsoergertab = React.memo(() => {
               onCommit={(event) => setFieldValue('efterladteFodselsdato', event.target.value)}
               minDate={dateRanges_forsoergertab.efterladteFodselsdato.min}
               maxDate={dateRanges_forsoergertab.efterladteFodselsdato.max}
-              error={hasEfterladteFodselsdatoError}
-              helperText={
-                forsoergertabFieldErrors.efterladteFodselsdato?.message ??
-                helperIssueMessage(['forsoergertab-alder-unresolved', 'forsoergertab-alder-missing']) ??
-                ''
-              }
+              error={snapshot.fieldUi.efterladteFodselsdato.hasError}
+              helperText={snapshot.fieldUi.efterladteFodselsdato.helperText}
               onFieldError={reportEfterladteFodselsdatoError}
             />
           </Box>
@@ -413,14 +266,13 @@ const Forsoergertab = React.memo(() => {
           value={faellesAarsloenValues.ealAarsloen}
           onCommit={(event) => setFaellesAarsloenFieldValue('ealAarsloen', event.target.value)}
           errorMessage={
-            faellesAarsloenFieldErrors.ealAarsloen?.message ??
-            helperIssueMessage(['eal-aarsloen-zero'])
+            snapshot.fieldUi.ealAarsloen.helperText
           }
           onFieldError={reportEalAarsloenError}
         />
       </ContentBox>
 
-      {canShowResult && result && (
+      {snapshot.canShowResult && result && (
         <ContentBox className="content-box">
           <Typography className="section-header">Beregnet forsørgertab</Typography>
 
@@ -454,7 +306,7 @@ const Forsoergertab = React.memo(() => {
         </ContentBox>
       )}
 
-      {canShowEal && ealComputation && (
+      {snapshot.canShowEal && ealComputation && (
         <ContentBox className="content-box" data-section-id="forsoergertab-eal">
           <Typography className="section-header">EAL-krav</Typography>
 
@@ -574,7 +426,7 @@ const Forsoergertab = React.memo(() => {
         </ContentBox>
       )}
 
-      {canShowAsl && aslComputation && (
+      {snapshot.canShowAsl && aslComputation && (
         <ContentBox className="content-box" data-section-id="forsoergertab-asl">
           <Typography className="section-header">ASL-ydelser</Typography>
 
