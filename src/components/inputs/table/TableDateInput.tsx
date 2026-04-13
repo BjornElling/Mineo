@@ -656,7 +656,7 @@ const TableDateInput = React.memo(
               border: '1px solid',
               borderColor: showError ? '#d32f2f' : inputBorderColor,
               borderRadius: inputBorderRadius,
-              backgroundColor: 'transparent',
+              backgroundColor: isLooseTable && !locked ? '#ffffff' : 'transparent',
               ...(cellFocused ? { outline: 'none' } : {}),
               '&:focus-within': {
                 borderColor: '#1976d2',
