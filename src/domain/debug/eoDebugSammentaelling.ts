@@ -197,7 +197,7 @@ export const buildSammentaellingDisplayTables = (model: SammentaellingModel): Sa
     sfgg: [
       {
         key: 'sfgg',
-        label: 'Sygeferiegodtgørelse',
+        label: 'Sygeferiegodtgørelse (kr.)',
         control: model.sfgg,
       },
     ],

@@ -88,6 +88,7 @@ describe('buildSammentaellingDisplayTables', () => {
     },
     svieSmerteSygedage: baseControl,
     svieSmerteDelvise: baseControl,
+    sfgg: baseControl,
     beregningsperiodeIndtaegter: [],
     tafIndtaegter: [],
     ...overrides,
@@ -135,5 +136,10 @@ describe('buildSammentaellingDisplayTables', () => {
     expect(tables.basis[1]?.label).toBe(
       'Arbejdsdage i TAF-periode (- 22 feriedage og 3 SH-dage) (- 5 løse feriedage)'
     );
+  });
+
+  it('mærker SFGG-rækken eksplicit med kr.-enhed', () => {
+    const tables = buildSammentaellingDisplayTables(makeModel());
+    expect(tables.sfgg[0]?.label).toBe('Sygeferiegodtgørelse (kr.)');
   });
 });

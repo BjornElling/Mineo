@@ -157,8 +157,66 @@ describe('calculateStandardLoenRowDerived med rateSegments', () => {
     // fpFvShSo = (31000 * 15/31 * 0.02) + (31000 * 16/31 * 0.069)
     //          = (15000 * 0.02) + (16000 * 0.069)
     //          = 300 + 1104 = 1404
-    const expectedFpFvShSo = (31000 * (15 / 31)) * 0.02 + (31000 * (16 / 31)) * 0.069;
-    expect(result.fpFvShSo).toBeCloseTo(expectedFpFvShSo, 6);
+    // Råsummen er et præcist heltal her, så afrundingen ændrer intet —
+    // men vi asserter med toBe for at håndhæve at output altid er afrundet til 2 decimaler.
+    const expectedFpFvShSo = roundStandardLoenAmountToTwoDecimals(
+      (31000 * (15 / 31)) * 0.02 + (31000 * (16 / 31)) * 0.069
+    );
+    expect(result.fpFvShSo).toBe(expectedFpFvShSo);
+  });
+
+  it('afrunder segmenteret pension og samlet til kanoniske 2 decimaler efter summering', () => {
+    const roundedSatser: StandardLoenSatserInput = {
+      feriePct: '12,5',
+      fritvalgPct: '1,0',
+      shSoPct: '0',
+      storeBededagPct: '0',
+      pensionPct: '10,0',
+    };
+    const roundedSegments: StandardLoenRateSegment[] = [
+      { fra: '2024-01-01', til: '2024-01-15', satser: { ...roundedSatser, shSoPct: '2,0' } },
+      { fra: '2024-01-16', til: '2024-01-31', satser: { ...roundedSatser, shSoPct: '6,9' } },
+    ];
+    const roundedRow = createRow({
+      col0_maaned: '1',
+      col1_maaned: '2024',
+      col2: 10001,
+      col4: 99,
+      col5: 33,
+    });
+
+    const result = calculateStandardLoenRowDerived(roundedRow, roundedSatser, {
+      loenperiode: 'maaned',
+      rateSegments: roundedSegments,
+    });
+
+    const segment1Share = 15 / 31;
+    const segment2Share = 16 / 31;
+    const segment1TotalPct = 0.125 + 0.01 + 0.02;
+    const segment2TotalPct = 0.125 + 0.01 + 0.069;
+    const expectedLoenPlusLoen2 = roundStandardLoenAmountToTwoDecimals((10001 * segment1Share) + (10001 * segment2Share));
+    const expectedLoenPlusLoen2PlusIkkePensLoen = roundStandardLoenAmountToTwoDecimals(
+      ((10001 + 99) * segment1Share) + ((10001 + 99) * segment2Share)
+    );
+    const expectedFpFvShSo = roundStandardLoenAmountToTwoDecimals(
+      ((10001 + 99) * segment1Share * segment1TotalPct) + ((10001 + 99) * segment2Share * segment2TotalPct)
+    );
+    const expectedPension = roundStandardLoenAmountToTwoDecimals(
+      ((10001 * segment1Share) * (1 + segment1TotalPct) * 0.10)
+      + ((10001 * segment2Share) * (1 + segment2TotalPct) * 0.10)
+    );
+    const expectedSamlet = roundStandardLoenAmountToTwoDecimals(
+      (((10001 + 99) * segment1Share) + ((10001 + 99) * segment2Share))
+      + (((10001 + 99) * segment1Share * segment1TotalPct) + ((10001 + 99) * segment2Share * segment2TotalPct))
+      + (((10001 * segment1Share) * (1 + segment1TotalPct) * 0.10) + ((10001 * segment2Share) * (1 + segment2TotalPct) * 0.10))
+      + 33
+    );
+
+    expect(result.loenPlusLoen2).toBe(expectedLoenPlusLoen2);
+    expect(result.loenPlusLoen2PlusIkkePensLoen).toBe(expectedLoenPlusLoen2PlusIkkePensLoen);
+    expect(result.fpFvShSo).toBe(expectedFpFvShSo);
+    expect(result.pension).toBe(expectedPension);
+    expect(result.samlet).toBe(expectedSamlet);
   });
 
   it('falder tilbage til basessatser hvis rateSegments er tomt', () => {

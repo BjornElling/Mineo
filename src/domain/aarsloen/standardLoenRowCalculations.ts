@@ -45,6 +45,16 @@ export const roundStandardLoenAmountToTwoDecimals = (value: number): number => {
   return roundByMethod(value, 2, 'halfAwayFromZero');
 };
 
+const roundStandardLoenDerivedToTwoDecimals = (
+  derived: StandardLoenRowDerived
+): StandardLoenRowDerived => ({
+  loenPlusLoen2: roundStandardLoenAmountToTwoDecimals(derived.loenPlusLoen2),
+  loenPlusLoen2PlusIkkePensLoen: roundStandardLoenAmountToTwoDecimals(derived.loenPlusLoen2PlusIkkePensLoen),
+  fpFvShSo: roundStandardLoenAmountToTwoDecimals(derived.fpFvShSo),
+  pension: roundStandardLoenAmountToTwoDecimals(derived.pension),
+  samlet: roundStandardLoenAmountToTwoDecimals(derived.samlet),
+});
+
 export const isStandardLoenTableCellEffectivelyEmpty = (value: unknown): boolean => {
   if (value === undefined || value === null) return true;
   if (typeof value !== 'string') return false;
@@ -257,7 +267,16 @@ export const calculateStandardLoenRowDerived = (
     samlet += derived.samlet;
   }
 
-  return { loenPlusLoen2, loenPlusLoen2PlusIkkePensLoen, fpFvShSo, pension, samlet };
+  // Segmentflowet introducerer brøkandele af ellers hele beløb. Vi afrunder først
+  // efter den samlede segment-summering, så én lønrække fortsat ender i den
+  // kanoniske 2-decimal beløbssemantik uden præafrunding af delsegmenter.
+  return roundStandardLoenDerivedToTwoDecimals({
+    loenPlusLoen2,
+    loenPlusLoen2PlusIkkePensLoen,
+    fpFvShSo,
+    pension,
+    samlet,
+  });
 };
 
 const EDITABLE_KEYS: Array<keyof StandardLoenTableRow> = [

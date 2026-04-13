@@ -339,7 +339,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) =>
         <StandardDisplayTable
           useSmallFont
           columns={[
-            { header: 'Sygeferiegodtgørelse', align: 'left', width: 520 },
+            { header: 'Enhed', align: 'left', width: 520 },
             { header: 'Beregnet', align: 'center', width: 160 },
             { header: 'Tabel', align: 'center', width: 160 },
             { header: 'Kontrol', align: 'center', width: 120 },
