@@ -10,6 +10,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
     contractPath: 'src/contracts/form-contract.md',
     requiredTestPaths: [
+      'src/__tests__/quality/formContractIsolation.test.ts',
       'src/__tests__/hooks/useDraftField.test.tsx',
       'src/__tests__/components/inputs/tableCommitContract.test.tsx',
       'src/__tests__/rowDrafts/useRowDrafts.test.tsx',
@@ -26,7 +27,9 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/persistence-contract.md',
     requiredTestPaths: [
       'src/__tests__/quality/persistenceAccessIsolation.test.ts',
+      'src/__tests__/quality/sessionStorageBoundaryIsolation.test.ts',
       'src/__tests__/utils/persistenceLoadApply.test.ts',
+      'src/__tests__/utils/safeSessionStorage.test.ts',
     ],
   },
   {

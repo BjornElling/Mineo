@@ -648,6 +648,11 @@ export const handleTableBlurCapture = (e: React.FocusEvent<HTMLTableElement>) =>
         if (cell && isSameCell(core.getEditingCell(), cell)) {
           // Invariant: queueMicrotask ensures input onBlur runs first (while isEditing is still true).
           // Do NOT make this synchronous/flushSync; it would break commit-on-blur and can overwrite drafts.
+          // Decision note: this microtask is an infrastructure exception to the normal form rule.
+          // Reason: table blur-capture must defer editor shutdown until the cell input's own blur-commit
+          // has completed, otherwise valid committed input can be lost.
+          // Risk: widening this pattern outside grid infrastructure would reintroduce hidden commit timing.
+          // Re-evaluate when: grid-core can express "blur finished" synchronously without microtask ordering.
           queueMicrotask(() => {
             if (isSameCell(core.getEditingCell(), cell)) {
               core.setEditingCell(null);

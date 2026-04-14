@@ -50,6 +50,11 @@ export const isOpenTextEditorElement = (element: Element | null): element is HTM
 };
 
 const waitForCommitFlush = async (): Promise<void> => {
+  // Decision note: this Promise tick is an infrastructure exception to the normal form rule.
+  // Reason: global save/load/replace actions must wait for already-triggered blur commits before we inspect
+  // active editors or proceed with critical persistence actions.
+  // Risk: using the same pattern inside ordinary field/page commit flows would hide timing dependencies.
+  // Re-evaluate when: commit flush can be expressed as an explicit synchronous lifecycle signal.
   await Promise.resolve();
   // Wait two frames to allow blur-driven commit state and post-render effects to settle.
   await waitForAnimationFrame();

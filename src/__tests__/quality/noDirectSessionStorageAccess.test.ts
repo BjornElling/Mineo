@@ -1,36 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { isValidStorageKey } from '../../config/storageManifest';
+import { collectSourceFiles } from './testUtils';
 
 const SRC_ROOT = path.resolve(process.cwd(), 'src');
 const SET_ITEM_LITERAL_PATTERN = /(?:window\.)?sessionStorage\.setItem\s*\(\s*(['"`])([^'"`]+)\1\s*,/g;
 
-const collectSourceFiles = (root: string): string[] => {
-  const files: string[] = [];
-  const stack = [root];
-
-  while (stack.length > 0) {
-    const current = stack.pop();
-    if (!current) continue;
-    const entries = fs.readdirSync(current, { withFileTypes: true });
-
-    for (const entry of entries) {
-      const fullPath = path.join(current, entry.name);
-      if (entry.isDirectory()) {
-        if (entry.name === '__tests__' || entry.name === 'test') continue;
-        stack.push(fullPath);
-        continue;
-      }
-      if (entry.isFile() && (fullPath.endsWith('.ts') || fullPath.endsWith('.tsx'))) {
-        files.push(fullPath);
-      }
-    }
-  }
-
-  return files;
-};
-
 describe('noDirectSessionStorageAccess', () => {
+  // Structural complement to sessionStorageBoundaryIsolation:
+  // sessionStorageBoundaryIsolation limits *where* any direct sessionStorage access may exist.
+  // This test applies to *all* source files and allows only manifest-registered literal keys
+  // in any sessionStorage.setItem call, regardless of which file it appears in.
   it('allows only manifest-registered literal keys in sessionStorage.setItem calls', () => {
     const invalidLiteralSetItemCalls: string[] = [];
 

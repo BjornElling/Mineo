@@ -22,7 +22,9 @@ export const collectSourceFiles = (
   root: string,
   options?: CollectSourceFilesOptions
 ): string[] => {
-  assertPathExists(root, 'Forventet test-root');
+  if (!fs.existsSync(root)) {
+    throw new Error(`Forventet test-root findes ikke: ${toRepoRelativePath(root)}`);
+  }
 
   const ignoredDirectories = new Set(options?.ignoredDirectories ?? DEFAULT_IGNORED_DIRECTORIES);
   const stats = fs.statSync(root);
