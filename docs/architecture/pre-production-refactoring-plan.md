@@ -359,6 +359,44 @@ Der findes dog stadig mange `useEffect(...)` og enkelte specialflows i tabeller/
 
 **Over-engineering-vurdering:** En "formel state machine med lukkede transitions-API'er" (review B) er over-engineering. `useDraftField` + `useRowDrafts` med `onBlur`-commit er allerede det rigtige pattern. Opgaven er at verificere og rette overtrædelser, ikke at bygge ny infrastruktur.
 
+**Status: Gennemført – 2026-04-14**
+
+Implementeret som et målrettet regressionsværn for punkt 6 uden brugerobserverbar adfærdsændring. Reviewfundene for denne leverance er rettet, og punktet vurderes som gennemført i den smalle form planen nu beskriver: konkrete kontraktbrud er lukket, eksisterende infrastruktureundtagelser er dokumenteret, og der er indført regressionsværn mod samme type fejl.
+
+Konkrete ændringer:
+- `src/__tests__/quality/formContractIsolation.test.ts` — ny quality-test der håndhæver tre dele af form-kontrakten i commit-følsom kode:
+  - persisted writes fra `useEffect(...)` er forbudt i commit-følsom kode, med eksplicit allowlist for dokumenterede undtagelser
+  - `queueMicrotask(...)` er forbudt uden for dokumenteret grid-infrastruktur
+  - Promise-ticks (`await Promise.resolve()` / `.then(...)`) er forbudt uden for dokumenteret commit-flush-infrastruktur
+  - reviewrettelse 2026-04-14: `useEffect`-scanningen er nu AST-baseret og dækker samme commit-følsomme root-sæt som de øvrige timing-checks, så `src/rowDrafts/*` og lignende ikke længere falder uden for guardet
+- `src/__tests__/quality/contractCoverageMatrix.test.ts` — `form-contract.md` er nu eksplicit koblet til denne nye quality-test ud over de eksisterende hook-/input-tests.
+- `src/hooks/useOmregningToggle.ts` + `src/components/pages/Aarsloen.tsx` — skjult auto-disable via `useEffect(...)` er fjernet. Persisted `omregningTilFuldtAar` er igen eneste source of truth, mens den effektive beregningsaktivering gates af committed tabel/periode-state uden at overskrive brugerens valg.
+- `src/__tests__/hooks/useOmregningToggle.test.tsx` — nye regressionstests dokumenterer:
+  - at ugyldig periode ikke auto-committer `false`
+  - at `checked` bevares som persisted brugerinput
+  - at hooken resynkroniserer korrekt ved authoritative ændringer via `requestedEnabled`-proppen
+- `src/__tests__/domain/erstatningsopgoerelse/loenindkomstSatser.test.ts` — nye regressionstests låser den dokumenterede Loenindkomst-undtagelse ned:
+  - ulåste satser på offentlige overenskomster bevares ved reguleringsdato-resync
+  - kun auto-låste satser opdateres ved cross-tab datoresync for overenskomststyrede felter
+  - reviewrettelse 2026-04-14: duplikeret `it(...)`-beskrivelse er omdøbt, så test-output entydigt afspejler de to forskellige scenarier
+- `src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx` — den eksisterende cross-tab auto-sats-resync i `useEffect(...)` er nu markeret med en eksplicit beslutningsnote:
+  - hvorfor undtagelsen findes
+  - hvilken risiko der skal undgås
+  - hvornår løsningen skal revurderes
+- `src/components/tables/gridCore/tableKeyboardNavigation.ts` — eksisterende `queueMicrotask(...)` i blur-capture er dokumenteret som snæver infrastruktureundtagelse med beslutningsnote.
+- `src/utils/commitFlush.ts` — eksisterende Promise-tick i global commit-flush er dokumenteret som snæver infrastruktureundtagelse med beslutningsnote.
+
+Verificering:
+- `npx vitest run src/__tests__/quality/formContractIsolation.test.ts src/__tests__/quality/contractCoverageMatrix.test.ts`
+- `npx vitest run src/__tests__/domain/erstatningsopgoerelse/loenindkomstSatser.test.ts`
+- `npm run typecheck`
+
+Statusmæssig betydning:
+- Punkt 6 regnes som gennemført for den afgrænsede opgave i denne plan: de identificerede kontraktbrud er rettet, og der er nu regressionsværn mod samme klasse af fejl.
+- Den vigtigste regressionsvej er nu dog lukket både fremadrettet og i eksisterende kode:
+  - nye implicitte effect-commits og nye timing-hacks kan ikke snige sig ind uden eksplicit dokumenteret undtagelse
+  - den konkrete arkitekturfejl i årsløn-toggleflowet er fjernet, så committed brugerinput ikke længere overskrives af derived state
+
 ---
 
 ## 7. Persistence-hooks: fjern parallelle lokale kopier af committed state
@@ -470,6 +508,33 @@ Det reelle hul er mere snævert:
 
 **Over-engineering-vurdering:** Ikke over-engineering som præcisering. Det ville være over-engineering at bygge et generelt storage-framework for al UI-state.
 
+**Status: Gennemført – 2026-04-14**
+
+Implementeret som en målrettet persistence-stramning uden brugerobserverbar adfærdsændring i sagsberegninger.
+
+Konkrete ændringer:
+- `src/utils/safeSessionStorage.ts` — nyt kanonisk helpermodul med eksplicit skelnen mellem strict/trust-kritiske operationer (`read/write/removeSessionStorageValue`) og best-effort UI-state operationer (`read/write/removeOptionalSessionStorageValue`).
+- UI-state callsites er flyttet væk fra direkte `sessionStorage`-adgang og over på helperen:
+  - `src/hooks/usePersistedActiveTab.ts`
+  - `src/components/layout/SideMenu.tsx`
+  - `src/components/layout/MainLayout.tsx`
+  - `src/hooks/useFileSaveLoad.ts`
+  - `src/hooks/useDevtoolsMonitoring.ts`
+  - `src/utils/filePersistenceMetadata.ts`
+  - `src/utils/fileSave.ts`
+  - `src/components/pages/erstatningsopgoerelse/OffentligeYdelserTab.tsx`
+  - `src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx`
+- Direkte `sessionStorage`-adgang er nu begrænset til persistence-infrastruktur, den kanoniske manifest-/enumerationskilde (`storageManifest`), nødvendige rydde-/hydreringshjælpere (`dataCollection`, `persistenceSessionHydration`) samt den nye canonical helper.
+- `src/__tests__/quality/sessionStorageBoundaryIsolation.test.ts` — ny quality-guard der håndhæver ovenstående grænse og forhindrer nye direkte `sessionStorage`-kald i almindelige pages/hooks/utils.
+- `src/__tests__/utils/safeSessionStorage.test.ts` — nye regressionstests for strict vs. best-effort semantik.
+- `src/__tests__/hooks/usePersistedActiveTab.test.tsx` — ny regressionstest der dokumenterer, at UI-state forbliver in-memory source of truth når `sessionStorage`-write fejler.
+- `src/__tests__/quality/contractCoverageMatrix.test.ts` — persistence-kontrakten er koblet til den nye boundary-test og helper-test.
+
+Statusmæssig betydning:
+- Trust-kritisk domænepersistens går fortsat gennem `FormPersistenceContext` med fail-closed-adfærd.
+- Ikke-kritisk UI-state har nu en ensartet best-effort adgangsvej og udgiver sig ikke for at være autoritativ sagspersistens.
+- Den vigtigste regressionsvej er lukket ved build-/testtid frem for kun ved manuel disciplin.
+
 ---
 
 ## 10. Test-dækning: kontrakt-tests for kritiske paths
@@ -513,6 +578,27 @@ Prioritér kun manglende regressionsværn for de ændringer denne plan faktisk m
 - round-trip tests for sektioner der i dag stadig kan droppes for hårdt ved load
 
 **Over-engineering-vurdering:** Niveau 1 er ikke over-engineering og bør gennemføres. Niveau 3 (property-tests) kan være over-engineering afhængig af kompleksiteten i beregningsmotorerne. Start med Niveau 1 og 2.
+
+**Status: Gennemført – 2026-04-14**
+
+De testændringer der er lavet i denne tråd er nu reviewet og rettet til, og punkt 10 regnes som gennemført for den del af testplanen der er udløst af de konkrete ændringer i denne tråd. Den overordnede teststrategi i dokumentet har stadig fremtidige ønskepunkter, men de relevante regressionsværn for dette arbejde er etableret.
+
+Konkrete testrettelser i denne tråd:
+- `src/__tests__/quality/formContractIsolation.test.ts` — ny quality-guard for form-kontrakten, så persisted writes fra `useEffect(...)`, ubegrundede `queueMicrotask(...)`-kald og Promise-ticks i commit-følsom kode bliver fanget som regressioner.
+  - reviewrettelse 2026-04-14: `useEffect`-guardet er gjort AST-baseret og udvidet til hele den commit-følsomme søgeflade
+- `src/__tests__/quality/contractCoverageMatrix.test.ts` — opdateret så `form-contract.md` eksplicit er koblet til den nye quality-guard.
+- `src/__tests__/hooks/useOmregningToggle.test.tsx` — nye regressionstests der låser årsløn-togglefixet ned:
+  - ugyldig periode må ikke auto-committe `false`
+  - persisted brugerinput skal forblive source of truth for `checked`
+  - authoritative ændringer via `requestedEnabled`-proppen skal fortsat resynkronisere korrekt
+- `src/__tests__/domain/erstatningsopgoerelse/loenindkomstSatser.test.ts` — nye regressionstests der dokumenterer og låser den eksisterende Loenindkomst-undtagelse ned:
+  - ulåste satser på offentlige overenskomster må ikke overskrives ved reguleringsdato-resync
+  - kun auto-låste satser må ændres ved cross-tab datoresync
+  - reviewrettelse 2026-04-14: testbeskrivelserne er gjort entydige for at undgå tvetydigt test-output
+
+Statusmæssig betydning:
+- Punkt 10 regnes som gennemført for de regressionsværn der var nødvendige for punkt 6-arbejdet.
+- Øvrige fremtidige testønsker i planen står fortsat som backlog og ikke som åbne fejl i denne leverance.
 
 ---
 
@@ -590,7 +676,7 @@ Gennemfør punkt 4 (simpel build-test). Hav dette punkt som et fremtidigt mål h
 
 ---
 
-## Samlet statusoversigt – 2026-04-13
+## Samlet statusoversigt – 2026-04-14
 
 | Punkt | Titel | Status |
 |---|---|---|
@@ -599,25 +685,20 @@ Gennemfør punkt 4 (simpel build-test). Hav dette punkt som et fremtidigt mål h
 | [3] | Migrationsmotor – sektion-for-sektion ved version-mismatch | **Gennemført** |
 | [4] | Håndhævede domænegrænser | **Gennemført** |
 | [5] | Kanoniske helpers – audit + konsolidering | Ikke påbegyndt |
-| [6] | Draft/committed flow – audit | Ikke påbegyndt |
+| [6] | Draft/committed flow – audit | **Gennemført** |
 | [7] | Persistence-hooks – verifikation | Delvist (quality-guard implementeret; fuld audit mangler) |
 | [8] | UI-arkitektur – tunge pages | Delvist (Forsørgertab og EET løst via punkt 2) |
-| [9] | SessionStorage fail-closed | Ikke påbegyndt |
-| [10] | Test-dækning | Løbende — nye tests fra punkt 1–4 implementeret; åbne huller fra punkt 2-review mangler |
+| [9] | SessionStorage fail-closed | **Gennemført** |
+| [10] | Test-dækning | **Gennemført** for regressionsværn knyttet til punkt 6 |
 | [11] | Fjern død kode | Ikke påbegyndt |
 
 **Anbefalet næste skridt:**
 
-De tre åbne småfund fra punkt 2-reviewet bør lukkes nu, mens koden er frisk:
-1. Kommentar i `buildDifferencekravProjection` om `hasBlockingErrors`-asymmetri.
-2. Tre `it`-blokke i `eetSnapshot.test.ts` (computation-null, negativ feltfejl-test for kapitalisering, differencekrav blocking uden issues).
-3. Kommentar i `eetSnapshot.ts` om at row-level ASL-afgørelser-fejl håndteres via error-bus i page-laget.
+Punkt 6, punkt 9 og punkt 10 er færdiggjort for denne leverance.
 
-Derefter er valget mellem:
-- **Punkt 6** (draft/committed audit): Høj severity, lav implementeringsindsats hvis auditten ikke finder systematiske brud. Giver god sikkerhed for korrekthed inden launch.
-- **Punkt 5** (helpers-audit): Kan gøres som en ren læse-/søgeopgave inden rettelse. Lav over-engineering-risiko hvis man holder sig til beviste dubletter.
-
-Punkt 6 anbefales som næste store opgave, fordi det er en korrekthedsrisiko der ikke er auditeret endnu, og fordi det overlapper med de allerede berørte pages.
+Det naturlige næste skridt er:
+- **Punkt 5**: Tag helper-auditten som næste konsolideringsopgave, nu hvor de smallere persistence-relaterede correctness-risici er lukket.
+- **Punkt 7**: Vurder om en egentlig audit af persistence-hooks stadig finder konkrete parallelle committed kopier, eller om quality-guarden er tilstrækkelig før launch.
 
 ---
 
@@ -631,14 +712,14 @@ Fase 1 (korrekthed – gør disse først):
 
 Fase 2 (robusthed – gør disse inden launch):
   [4] Udvid eksisterende quality-tests til generel domænegrænse-check  ✓ GENNEMFØRT
-  [6] Draft/committed flow – målrettet audit + rettelse            ← NÆSTE
+  [6] Draft/committed flow – målrettet audit + rettelse            ✓ GENNEMFØRT
   [7] Persistence-hooks – verifikation, kun rettelse hvis konkrete parallelkopier findes
   [8] UI-arkitektur – fokuseret oprydning i tunge pages/tabs       (delvist løst via punkt 2)
-  [10] Test-dækning for de ændringer denne plan faktisk indfører   (løbende)
+  [10] Test-dækning for de ændringer denne plan faktisk indfører   ✓ GENNEMFØRT for punkt 6-leverancen
 
 Fase 3 (kvalitet – gør disse inden launch hvis tid):
   [5] Kanoniske helpers – audit + konsolidering hvor dubletter kan bevises
-  [9] SessionStorage fail-closed for trust-kritiske writes + tydelig skelnen til UI-state
+  [9] SessionStorage fail-closed for trust-kritiske writes + tydelig skelnen til UI-state  ✓ GENNEMFØRT
   [11] Selektiv fjernelse af død kode i berørte områder
 
 Fase 4 (post-launch, evaluer behovet):
