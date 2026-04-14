@@ -102,6 +102,10 @@ import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import { parseAarsloenRowInterval } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { dateToISO } from '../../../types/branded';
 import { calculateStandardLoenRowDerived } from '../../../domain/aarsloen/standardLoenRowCalculations';
+import {
+  readOptionalSessionStorageValue,
+  writeOptionalSessionStorageValue,
+} from '../../../utils/safeSessionStorage';
 
 type AnsaettelsesforholdList = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
 
@@ -562,6 +566,12 @@ const LoenindkomstTab = React.memo(({
     // Cross-tab sikkerhedsnet: når skadedato ændres i Stamdata, skal allerede committede
     // auto-satser resynkroniseres. Event-handlere dækker lokale EO-edits; denne effekt
     // dækker kun eksterne committed ændringer.
+    // Decision note: dette er en bevidst kontrakt-undtagelse.
+    // Reason: auto-satsernes betydning er bundet til committet skadedato og må derfor resynkroniseres,
+    // også når ændringen kommer fra et andet domæne-tab end Loenindkomst selv.
+    // Risk: effekten må aldrig overskrive manuelt valgte satser eller andre brugerindtastede felter.
+    // Re-evaluate when: auto-satserne får eksplicit manual-override-model eller cross-tab sync flyttes
+    // til en autoritativ domæne-pipeline uden React-effect.
     let changed = false;
     const next = loenindkomstAnsaettelsesforhold.map((af) => {
       const updated = applyAutoSatsFields(af, getAnvendtReguleringsdatoForAnsaettelsesforhold(af));
@@ -683,7 +693,7 @@ const LoenindkomstTab = React.memo(({
 
   const readLoentrinFinderSessionState = React.useCallback((): LoentrinFinderSessionState => {
     try {
-      const raw = sessionStorage.getItem(UI_STORAGE_KEYS.loentrinFinderOverlay);
+      const raw = readOptionalSessionStorageValue(UI_STORAGE_KEYS.loentrinFinderOverlay);
       if (!raw) return {};
       const parsedJson: unknown = JSON.parse(raw);
       const parsed = loentrinFinderSessionStateSchema.safeParse(parsedJson);
@@ -694,11 +704,7 @@ const LoenindkomstTab = React.memo(({
   }, []);
 
   const writeLoentrinFinderSessionState = React.useCallback((nextState: LoentrinFinderSessionState): void => {
-    try {
-      sessionStorage.setItem(UI_STORAGE_KEYS.loentrinFinderOverlay, JSON.stringify(nextState));
-    } catch {
-      // Fail-safe: hvis sessionStorage ikke er tilgængelig, behold kun in-memory state.
-    }
+    writeOptionalSessionStorageValue(UI_STORAGE_KEYS.loentrinFinderOverlay, JSON.stringify(nextState));
   }, []);
 
   const openLoentrinFinder = React.useCallback((af: Ansaettelsesforhold) => {

@@ -16,6 +16,11 @@ import { isISODateString, type ISODateString } from '../../../types/branded';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
+import {
+  readOptionalSessionStorageValue,
+  removeOptionalSessionStorageValue,
+  writeOptionalSessionStorageValue,
+} from '../../../utils/safeSessionStorage';
 
 const offentligeYdelserHelpersSessionSchema = z.object({
   sygedagpengeFraDato: z.preprocess(
@@ -62,7 +67,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, onMidlertidigtEet
 
   const readHelpersSessionState = React.useCallback((): OffentligeYdelserHelpersSessionState => {
     try {
-      const raw = sessionStorage.getItem(UI_STORAGE_KEYS.eoOffentligeYdelserHelpers);
+      const raw = readOptionalSessionStorageValue(UI_STORAGE_KEYS.eoOffentligeYdelserHelpers);
       if (!raw) return {};
       const parsedJson: unknown = JSON.parse(raw);
       const parsed = offentligeYdelserHelpersSessionSchema.safeParse(parsedJson);
@@ -73,15 +78,11 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, onMidlertidigtEet
   }, []);
 
   const writeHelpersSessionState = React.useCallback((nextState: OffentligeYdelserHelpersSessionState): void => {
-    try {
-      if (!nextState.sygedagpengeFraDato && !nextState.sygedagpengeTilDato) {
-        sessionStorage.removeItem(UI_STORAGE_KEYS.eoOffentligeYdelserHelpers);
-        return;
-      }
-      sessionStorage.setItem(UI_STORAGE_KEYS.eoOffentligeYdelserHelpers, JSON.stringify(nextState));
-    } catch {
-      // Fail-safe: hvis sessionStorage ikke er tilgængelig, behold kun in-memory state.
+    if (!nextState.sygedagpengeFraDato && !nextState.sygedagpengeTilDato) {
+      removeOptionalSessionStorageValue(UI_STORAGE_KEYS.eoOffentligeYdelserHelpers);
+      return;
     }
+    writeOptionalSessionStorageValue(UI_STORAGE_KEYS.eoOffentligeYdelserHelpers, JSON.stringify(nextState));
   }, []);
 
   React.useEffect(() => {

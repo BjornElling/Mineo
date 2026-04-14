@@ -120,6 +120,24 @@ describe('usePersistedActiveTab', () => {
     expect(sessionStorage.getItem(key)).toBe('tab-b');
   });
 
+  it('keeps in-memory activeTab when sessionStorage write fails', async () => {
+    const storageProto = Object.getPrototypeOf(window.sessionStorage) as Storage;
+    const setItemSpy = vi.spyOn(storageProto, 'setItem').mockImplementation(() => {
+      throw new Error('blocked');
+    });
+
+    render(<Harness pageId="blocked-persist" />);
+
+    await act(async () => {
+      lastResult!.setActiveTab('tab-c');
+    });
+
+    expect(lastResult!.activeTab).toBe('tab-c');
+    expect(sessionStorage.getItem(createActiveTabStorageKey('blocked-persist'))).toBeNull();
+
+    setItemSpy.mockRestore();
+  });
+
   // ── isAllowedTab ───────────────────────────────────────────────────────────
 
   it('isAllowedTab returns true for each allowed tab', () => {

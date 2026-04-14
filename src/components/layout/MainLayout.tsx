@@ -24,6 +24,10 @@ import {
   useCombinedSectionRevisionSelector,
 } from '../../hooks/useFormPersistenceSelectors';
 import { clearPendingPwaFileOpenRequest } from '../../utils/pwaLaunchQueue';
+import {
+  readOptionalSessionStorageValue,
+  removeOptionalSessionStorageValue,
+} from '../../utils/safeSessionStorage';
 import { useDevtoolsMonitoring } from '../../hooks/useDevtoolsMonitoring';
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
@@ -184,7 +188,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
 
   // Tjek for pending overlay efter reload
   React.useEffect(() => {
-    const pendingOverlay = sessionStorage.getItem(UI_STORAGE_KEYS.pendingOverlay);
+    const pendingOverlay = readOptionalSessionStorageValue(UI_STORAGE_KEYS.pendingOverlay);
     if (pendingOverlay) {
       try {
         const overlayData = JSON.parse(pendingOverlay);
@@ -207,10 +211,10 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
           console.error('Ugyldig pending overlay struktur:', overlayData);
         }
 
-        sessionStorage.removeItem(UI_STORAGE_KEYS.pendingOverlay);
+        removeOptionalSessionStorageValue(UI_STORAGE_KEYS.pendingOverlay);
       } catch (error) {
         console.error('Kunne ikke parse pending overlay:', error);
-        sessionStorage.removeItem(UI_STORAGE_KEYS.pendingOverlay);
+        removeOptionalSessionStorageValue(UI_STORAGE_KEYS.pendingOverlay);
       }
     }
   }, []);

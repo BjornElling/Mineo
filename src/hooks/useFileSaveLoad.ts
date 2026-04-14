@@ -18,6 +18,10 @@ import { getUserMessage, isCalculationError } from '../utils/errorMessages';
 import { EncryptionError } from '../utils/encryption';
 import type { AppSettings } from '../settings/appSettingsSchema';
 import { executePersistenceLoadApply } from '../utils/persistenceLoadApply';
+import {
+  removeOptionalSessionStorageValue,
+  writeOptionalSessionStorageValue,
+} from '../utils/safeSessionStorage';
 
 export type OverlayData = {
   message: string;
@@ -370,10 +374,10 @@ export const useFileSaveLoad = ({
 
     try {
       clearAllData();
-      sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilename);
-      sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
+      removeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
+      removeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilenameBasis);
       await deleteFileHandleFromIndexedDB();
-      sessionStorage.setItem(UI_STORAGE_KEYS.pendingOverlay, JSON.stringify({
+      writeOptionalSessionStorageValue(UI_STORAGE_KEYS.pendingOverlay, JSON.stringify({
         message: 'Alt data slettet',
         type: 'info',
         isUserFeedback: true,

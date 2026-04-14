@@ -17,6 +17,10 @@ import {
   Info
 } from '@mui/icons-material';
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
+import {
+  readOptionalSessionStorageValue,
+  writeOptionalSessionStorageValue,
+} from '../../utils/safeSessionStorage';
 
 // Type definitions
 type NavigationItem = {
@@ -38,27 +42,11 @@ const COLLAPSED_WIDTH = 70;
 const MENU_STATE_STORAGE_KEY = UI_STORAGE_KEYS.sideMenuExpanded;
 
 const readStoredMenuState = (): string | null => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  try {
-    return window.sessionStorage.getItem(MENU_STATE_STORAGE_KEY);
-  } catch {
-    return null;
-  }
+  return readOptionalSessionStorageValue(MENU_STATE_STORAGE_KEY);
 };
 
 const persistMenuState = (isExpanded: boolean): void => {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.sessionStorage.setItem(MENU_STATE_STORAGE_KEY, isExpanded ? 'true' : 'false');
-  } catch {
-    // Ignorer hvis sessionStorage ikke er tilgængelig
-  }
+  writeOptionalSessionStorageValue(MENU_STATE_STORAGE_KEY, isExpanded ? 'true' : 'false');
 };
 
 // Hovednavigation (defineret udenfor komponenten for at undgå genskabelse)

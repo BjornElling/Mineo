@@ -1,22 +1,9 @@
 import React from 'react';
 import { createActiveTabStorageKey } from '../config/storageManifest';
-
-const readSessionStorage = (key: string): string | undefined => {
-  try {
-    const value = sessionStorage.getItem(key);
-    return value ?? undefined;
-  } catch {
-    return undefined;
-  }
-};
-
-const writeSessionStorage = (key: string, value: string): void => {
-  try {
-    sessionStorage.setItem(key, value);
-  } catch {
-    // Fail-safe: hvis sessionStorage fejler, falder vi tilbage til in-memory state.
-  }
-};
+import {
+  readOptionalSessionStorageValue,
+  writeOptionalSessionStorageValue,
+} from '../utils/safeSessionStorage';
 
 export type UsePersistedActiveTabOptions<T extends string> = {
   /**
@@ -47,7 +34,7 @@ export const usePersistedActiveTab = <T extends string>(
   );
 
   const [activeTab, setActiveTabState] = React.useState<T>(() => {
-    const persisted = readSessionStorage(uiKey);
+    const persisted = readOptionalSessionStorageValue(uiKey) ?? undefined;
     if (persisted && isAllowedTab(persisted)) {
       return persisted;
     }
@@ -57,7 +44,7 @@ export const usePersistedActiveTab = <T extends string>(
 
   React.useEffect(() => {
     // Persist altid seneste valg til UI-nøglen (session scoped).
-    writeSessionStorage(uiKey, activeTab);
+    writeOptionalSessionStorageValue(uiKey, activeTab);
   }, [uiKey, activeTab]);
 
   const setActiveTab = React.useCallback(
@@ -72,4 +59,3 @@ export const usePersistedActiveTab = <T extends string>(
 
   return { activeTab, setActiveTab, isAllowedTab };
 };
-

@@ -10,6 +10,10 @@ import {
 import type { BugReportExtraSection } from '../utils/bugReport';
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import { UI_STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
+import {
+  readOptionalSessionStorageValue,
+  writeOptionalSessionStorageValue,
+} from '../utils/safeSessionStorage';
 
 const parseSessionJson = (value: string | null): unknown => {
   if (!value) return null;
@@ -90,7 +94,7 @@ export const useDevtoolsMonitoring = ({
 
   React.useEffect(() => {
     dismissedDevtoolsIssueIdRef.current = parseNonNegativeInteger(
-      sessionStorage.getItem(UI_STORAGE_KEYS.devtoolsLastSeenIssueId),
+      readOptionalSessionStorageValue(UI_STORAGE_KEYS.devtoolsLastSeenIssueId),
     );
 
     const stop = startDevtoolsMonitor();
@@ -135,7 +139,7 @@ export const useDevtoolsMonitoring = ({
     const lastIssueId = devtoolsSnapshot?.lastIssue?.id ?? null;
     dismissedDevtoolsIssueIdRef.current = lastIssueId;
     if (lastIssueId !== null) {
-      sessionStorage.setItem(UI_STORAGE_KEYS.devtoolsLastSeenIssueId, String(lastIssueId));
+      writeOptionalSessionStorageValue(UI_STORAGE_KEYS.devtoolsLastSeenIssueId, String(lastIssueId));
     }
     suppressDevtoolsNoticeUntilRef.current = Date.now() + 1000;
     pendingDevtoolsSnapshotRef.current = null;
@@ -157,8 +161,8 @@ export const useDevtoolsMonitoring = ({
     }, {} as Record<StorageKey, unknown>);
 
     const uiMeta = {
-      lastSavedFilename: sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename),
-      lastSavedFilenameBasis: parseSessionJson(sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilenameBasis)),
+      lastSavedFilename: readOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename),
+      lastSavedFilenameBasis: parseSessionJson(readOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilenameBasis)),
       route: {
         pathname: location.pathname,
         search: location.search,

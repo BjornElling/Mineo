@@ -38,6 +38,10 @@ import {
   loadStoredFilenameBasis,
   persistSavedFilenameMetadata,
 } from './filePersistenceMetadata';
+import {
+  readOptionalSessionStorageValue,
+  removeOptionalSessionStorageValue,
+} from './safeSessionStorage';
 
 export class SaveIntegrityError extends Error {
   readonly kind = 'integrity' as const;
@@ -185,7 +189,7 @@ export const saveToFile = async (
       // Forsøg at hente tidligere gemt file handle fra IndexedDB
       const loadedHandle: unknown = await loadFileHandleFromIndexedDB();
       let fileHandle: FileSystemFileHandle | null = isFileSystemFileHandle(loadedHandle) ? loadedHandle : null;
-      const savedFilePath = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename);
+      const savedFilePath = readOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
       const savedFilenameBasis = loadStoredFilenameBasis();
       const currentStamdata = fileData.data.stamdata || {};
       const stamdataChanged = hasFilenameBasisChanged(savedFilenameBasis, currentStamdata);
@@ -318,7 +322,7 @@ export const saveToFile = async (
       logWarning('File System Access API ikke tilgængelig - bruger fallback download');
 
       // Generer filnavn baseret på stamdata eller brug gemt navn
-      const lastSavedPath = sessionStorage.getItem(UI_STORAGE_KEYS.lastSavedFilename);
+      const lastSavedPath = readOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
       const currentFilename = generateFilename(fileData.data);
       const savedStamdata = loadStoredFilenameBasis();
       const currentStamdata = fileData.data.stamdata || {};
@@ -429,6 +433,6 @@ export const saveToFile = async (
  * Nulstiller gemt filsti (bruges hvis bruger vil gemme som ny fil).
  */
 export const resetSavedFilePath = () => {
-  sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilename);
-  sessionStorage.removeItem(UI_STORAGE_KEYS.lastSavedFilenameBasis);
+  removeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
+  removeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilenameBasis);
 };
