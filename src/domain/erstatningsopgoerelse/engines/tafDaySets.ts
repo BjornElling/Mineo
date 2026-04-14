@@ -160,8 +160,13 @@ export const buildTafArbejdsdageSetFromRows = (
   ferieperioder: ReadonlyArray<FerieperiodeRow>,
   options: Readonly<{ authoritativeRanges?: readonly Readonly<{ fra: ISODateString; til: ISODateString }>[] }> = {}
 ): ReadonlySet<ISODateString> => {
-  const authoritativeRanges = options.authoritativeRanges ?? [];
-  const useAuthoritativeRanges = authoritativeRanges.length > 0;
+  // undefined = ikke leveret (brug rå TAF-rækker som basis).
+  // [] = leveret men tom (ingen TAF-dage i perioden — returner tomt sæt straks).
+  const authoritativeRanges = options.authoritativeRanges;
+  if (authoritativeRanges !== undefined && authoritativeRanges.length === 0) {
+    return new Set<ISODateString>();
+  }
+  const useAuthoritativeRanges = authoritativeRanges !== undefined && authoritativeRanges.length > 0;
   const arbejdsdage = new Set<ISODateString>();
 
   for (const row of rows) {
@@ -170,7 +175,7 @@ export const buildTafArbejdsdageSetFromRows = (
     const loseFeriedage = typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
     const set = buildTafArbejdsdageSetForRange(validRange.fra, validRange.til, ferieperioder, loseFeriedage);
     for (const dato of set) {
-      if (!useAuthoritativeRanges || isDateWithinRanges(dato, authoritativeRanges)) {
+      if (!useAuthoritativeRanges || isDateWithinRanges(dato, authoritativeRanges!)) {
         arbejdsdage.add(dato);
       }
     }

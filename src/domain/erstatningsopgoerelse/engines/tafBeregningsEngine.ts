@@ -95,11 +95,14 @@ export const buildMergedTafGroups = (
 
   if (validRows.length === 0) return invalidRows;
 
-  const authoritativeRanges = options.authoritativeRanges ?? [];
-  if (authoritativeRanges.length > 0) {
+  // undefined = ikke leveret (brug rå TAF-rækker som basis).
+  // [] = leveret men tom (ingen TAF-dage i perioden — returner straks kun invalidRows).
+  const authoritativeRanges = options.authoritativeRanges;
+  if (authoritativeRanges !== undefined) {
     // Når snapshot allerede har beregnet clampede TAF-ranges, er de autoritative.
     // Vi genbruger derfor disse ranges som beregningsgrundlag og henter kun rækkevis
     // loseFeriedage fra de overlappende inputrækker.
+    // Tom liste betyder: ingen TAF-dage i perioden — returner kun invalide rækker (nul-bidrag).
     const authoritativeGroups: MergedTafGroup[] = [];
     for (const range of authoritativeRanges) {
       const sourceRows = rawValidRows.filter((row) => rangesOverlap(row, range));
