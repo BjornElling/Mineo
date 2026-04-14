@@ -626,6 +626,17 @@ Gennemfør kun dette punkt selektivt:
 
 **Over-engineering-vurdering:** Medium. Lokal oprydning er god; en repo-bred kosmetisk oprydning lige før produktion er let at oversælge og giver lille risikoreduktion.
 
+**Status: Gennemført (selektivt) – 2026-04-14**
+
+Audit af de områder rørt af punkt 1–10 fandt én konkret duplikering: `isFileSystemFileHandle`-guard-funktionen var defineret identisk som lokal `const` i både `fileSave.ts` og `fileSaveInternals.ts`. Begge filer importerer allerede fra `fileSystemAccess.ts`, som er den kanoniske fil for File System Access API-primitiver.
+
+Konkrete ændringer:
+- `src/utils/fileSystemAccess.ts` — `isFileSystemFileHandle` tilføjet som eksporteret funktion med dokumentationskommentar
+- `src/utils/fileSave.ts` — lokal kopi fjernet; importerer nu fra `fileSystemAccess`
+- `src/utils/fileSaveInternals.ts` — lokal kopi fjernet; importerer nu fra `fileSystemAccess`
+
+Ingen yderligere død kode fundet i de berørte areas: alle exports i persistence-laget, hooks, helpers og session-storage er aktivt i brug. Ingen kommenterede kodeblokke fundet. Repository-bred oprydning er ikke gennemført — ikke proportional gevinst inden launch.
+
 ---
 
 ## 12. Forklarlighed fra beregningsmotoren – lokale forklaringsobjekter
@@ -690,7 +701,7 @@ Gennemfør punkt 4 (simpel build-test). Hav dette punkt som et fremtidigt mål h
 | [8] | UI-arkitektur – tunge pages | Delvist (Forsørgertab og EET løst via punkt 2) |
 | [9] | SessionStorage fail-closed | **Gennemført** |
 | [10] | Test-dækning | **Gennemført** for regressionsværn knyttet til punkt 6 |
-| [11] | Fjern død kode | Ikke påbegyndt |
+| [11] | Fjern død kode | **Gennemført (selektivt)** |
 
 **Anbefalet næste skridt:**
 

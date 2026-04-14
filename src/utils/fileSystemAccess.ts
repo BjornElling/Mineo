@@ -104,6 +104,16 @@ export const saveFileWithPicker = async (
 };
 
 /**
+ * Type guard: tjekker om en ukendt værdi er et FileSystemFileHandle.
+ * Bruges til at validere handles hentet fra IndexedDB eller picker-kald.
+ */
+export const isFileSystemFileHandle = (value: unknown): value is FileSystemFileHandle => {
+  if (!value || typeof value !== 'object') return false;
+  const obj = value as Record<string, unknown>;
+  return typeof obj.getFile === 'function';
+};
+
+/**
  * Skriver indhold til en fil via file handle
  */
 export const writeToFileHandle = async (fileHandle: FileSystemFileHandle, content: string): Promise<void> => {

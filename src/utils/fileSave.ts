@@ -8,6 +8,7 @@ import {
 } from './logger';
 import {
   isFileSystemAccessSupported,
+  isFileSystemFileHandle,
   saveFileWithPicker,
   writeToFileHandle,
 } from './fileSystemAccess';
@@ -80,11 +81,6 @@ const hasFilenameBasisChanged = (
   );
 };
 
-const isFileSystemFileHandle = (value: unknown): value is FileSystemFileHandle => {
-  if (!value || typeof value !== 'object') return false;
-  const obj = value as Record<string, unknown>;
-  return typeof obj.getFile === 'function';
-};
 
 const buildInvalidHandleUserWarning = (
   verification: Awaited<ReturnType<typeof verifyFileHandleDetailed>>

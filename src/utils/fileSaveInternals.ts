@@ -2,7 +2,7 @@ import { eoFileDataSchema } from '../schemas/eoFileSchema';
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import type { StorageKey } from '../config/storageManifest';
 import { decryptFromString } from './encryption';
-import { readFromFileHandle } from './fileSystemAccess';
+import { isFileSystemFileHandle, readFromFileHandle } from './fileSystemAccess';
 import { logError, logWarning } from './logger';
 import type {
   SaveSnapshot,
@@ -18,11 +18,6 @@ const getValueType = (value: unknown): string => {
   return typeof value;
 };
 
-const isFileSystemFileHandle = (value: unknown): value is FileSystemFileHandle => {
-  if (!value || typeof value !== 'object') return false;
-  const obj = value as Record<string, unknown>;
-  return typeof obj.getFile === 'function';
-};
 
 export const buildAllDataRawFromSnapshot = (snapshot: SaveSnapshot): Record<string, unknown> => {
   const allowedKeys = new Set(Object.keys(persistenceSchemas) as StorageKey[]);

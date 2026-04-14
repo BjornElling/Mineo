@@ -10,7 +10,12 @@ import {
   saveFileHandleToIndexedDB,
   verifyFileHandleDetailed,
 } from '../../utils/fileHandleStorage';
-import { saveFileWithPicker, writeToFileHandle, isFileSystemAccessSupported } from '../../utils/fileSystemAccess';
+import {
+  saveFileWithPicker,
+  writeToFileHandle,
+  isFileSystemAccessSupported,
+  isFileSystemFileHandle,
+} from '../../utils/fileSystemAccess';
 
 vi.mock('../../utils/logger', () => ({
   logError: vi.fn(),
@@ -25,6 +30,7 @@ vi.mock('../../utils/encryption', () => ({
 
 vi.mock('../../utils/fileSystemAccess', () => ({
   isFileSystemAccessSupported: vi.fn(),
+  isFileSystemFileHandle: vi.fn(),
   saveFileWithPicker: vi.fn(),
   writeToFileHandle: vi.fn(),
   readFromFileHandle: vi.fn(),
@@ -47,6 +53,7 @@ vi.mock('../../utils/fileHelpers', () => ({
 const mockedDecryptFromString = vi.mocked(decryptFromString);
 const mockedReadFromFileHandle = vi.mocked(readFromFileHandle);
 const mockedIsFileSystemAccessSupported = vi.mocked(isFileSystemAccessSupported);
+const mockedIsFileSystemFileHandle = vi.mocked(isFileSystemFileHandle);
 const mockedSaveFileWithPicker = vi.mocked(saveFileWithPicker);
 const mockedWriteToFileHandle = vi.mocked(writeToFileHandle);
 const mockedRequestPersistentStorage = vi.mocked(requestPersistentStorage);
@@ -59,6 +66,12 @@ describe('fileSave', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    mockedIsFileSystemFileHandle.mockImplementation(
+      (value): value is FileSystemFileHandle =>
+        Boolean(value) &&
+        typeof value === 'object' &&
+        typeof (value as FileSystemFileHandle).getFile === 'function'
+    );
   });
 
   describe('buildAllDataRawFromSnapshot', () => {
