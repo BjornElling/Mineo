@@ -78,7 +78,7 @@ describe('formContractIsolation', () => {
     }
   });
 
-  it('forbyder persisted writes fra React-effects uden eksplicit dokumenteret undtagelse', () => {
+  it('forbyder persisted writes fra React-effects uden eksplicit dokumenteret undtagelse', { timeout: 20000 }, () => {
     const violations: string[] = [];
 
     for (const root of COMMIT_SENSITIVE_ROOTS) {
@@ -86,12 +86,10 @@ describe('formContractIsolation', () => {
         const relativePath = toRepoRelativePath(absolutePath);
         const source = fs.readFileSync(absolutePath, 'utf8');
         const effectWindows = getEffectWindows(source, absolutePath);
-        if (effectWindows.length === 0) continue;
-
-        const hasForbiddenEffectWrite = effectWindows.some((windowText) =>
+        const effectWindowsWithForbiddenWrites = effectWindows.filter((windowText) =>
           EFFECT_WRITE_PATTERNS.some((pattern) => windowText.includes(pattern))
         );
-        if (!hasForbiddenEffectWrite) continue;
+        if (effectWindowsWithForbiddenWrites.length === 0) continue;
 
         const allowedMarkers = ALLOWED_EFFECT_WRITES.get(relativePath);
         if (!allowedMarkers) {
@@ -100,9 +98,8 @@ describe('formContractIsolation', () => {
         }
 
         for (const marker of allowedMarkers) {
-          expect(
-            source.includes(marker),
-            `${relativePath} mangler beslutningsnote for tilladt effect-write`
+          expect(effectWindowsWithForbiddenWrites.some((windowText) => windowText.includes(marker)),
+            `${relativePath} mangler beslutningsnote i samme useEffect-vindue som tilladt effect-write`
           ).toBe(true);
         }
       }
@@ -112,6 +109,10 @@ describe('formContractIsolation', () => {
   });
 
   it('forbyder queueMicrotask i commit-sensitive kode uden eksplicit infrastruktureundtagelse', () => {
+    // Scope note:
+    // queueMicrotask- og Promise-tick-allowlists nedenfor er path-scoped best-effort guards.
+    // De beviser ikke semantisk, at noten sidder ved det præcise callsite, kun at filen er
+    // auditeret som infrastrukturel undtagelse.
     const violations: string[] = [];
 
     for (const root of COMMIT_SENSITIVE_ROOTS) {

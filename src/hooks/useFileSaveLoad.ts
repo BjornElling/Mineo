@@ -17,6 +17,7 @@ import { type PwaFileOpenRequest } from '../utils/pwaLaunchQueue';
 import { getUserMessage, isCalculationError } from '../utils/errorMessages';
 import { EncryptionError } from '../utils/encryption';
 import type { AppSettings } from '../settings/appSettingsSchema';
+import type { ReplaceAllPersistedData } from '../contexts/FormPersistenceContext.shared';
 import { executePersistenceLoadApply } from '../utils/persistenceLoadApply';
 import {
   removeOptionalSessionStorageValue,
@@ -48,7 +49,7 @@ type UseFileSaveLoadArgs = {
   markSaved: (revision: number) => void;
   hasBlockingInputErrors: () => boolean;
   getPersistedData: <K extends StorageKey>(pageKey: K) => unknown;
-  replaceAllPersistedData: (snapshot: Record<StorageKey, unknown | undefined>) => void;
+  replaceAllPersistedData: ReplaceAllPersistedData;
   clearAllData: () => void;
   hasAnyData: () => boolean;
   allowExitWithoutWarning: () => void;

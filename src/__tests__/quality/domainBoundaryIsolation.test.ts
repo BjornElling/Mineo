@@ -109,6 +109,9 @@ const findSectionMatches = (source: string, pattern: RegExp): StorageKey[] => {
 };
 
 describe('domainBoundaryIsolation', () => {
+  // SPECIAL_EO_READ_SECTION_PATTERN er bevidst smal: den dækker kun `sections.x`-notation.
+  // Den fanger ikke destrukturering, bracket-notation eller aliasing, så EO-specialhooket
+  // skal fortsat reviews manuelt ved sådanne stilskift.
   it('PAGE_BOUNDARY_RULES dækker alle kendte StorageKeys', () => {
     const coveredSections = new Set(
       PAGE_BOUNDARY_RULES.flatMap((rule) => rule.allowedSections)

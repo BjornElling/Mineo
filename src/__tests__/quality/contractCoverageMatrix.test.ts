@@ -21,6 +21,15 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/quality/domainBoundaryIsolation.test.ts',
       'src/__tests__/quality/eetDomainIsolation.test.ts',
+      'src/__tests__/domain/forsoergertab/forsoergertabSnapshot.test.ts',
+      'src/__tests__/domain/erhvervsevnetab/eetSnapshot.test.ts',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/snapshot-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/domain/forsoergertab/forsoergertabSnapshot.test.ts',
+      'src/__tests__/domain/erhvervsevnetab/eetSnapshot.test.ts',
     ],
   },
   {
@@ -31,6 +40,13 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/quality/sessionStorageBoundaryIsolation.test.ts',
       'src/__tests__/utils/persistenceLoadApply.test.ts',
       'src/__tests__/utils/safeSessionStorage.test.ts',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/page-component-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/quality/domainBoundaryIsolation.test.ts',
+      'src/__tests__/quality/persistenceAccessIsolation.test.ts',
     ],
   },
   {
@@ -81,10 +97,10 @@ const assertFileExists = (relativePath: string): void => {
   expect(fs.existsSync(absolutePath), `Mangler fil: ${relativePath}`).toBe(true);
 };
 
-describe('contract coverage matrix', () => {
+describe('contract linkage matrix', () => {
   it('har mindst én koblet test-suite pr. normativ kontraktfil', () => {
-    // NOTE: This is a structural guard only (contract <-> test linkage).
-    // It does not prove semantic requirement-level coverage.
+    // NOTE: Dette er en ren linkage-guard (kontrakt <-> testsuite-eksistens).
+    // Den må ikke læses som et mål for semantisk dækningsgrad af kontraktkravene.
     for (const entry of COVERAGE_MATRIX) {
       assertFileExists(entry.contractPath);
       for (const testPath of entry.requiredTestPaths) {

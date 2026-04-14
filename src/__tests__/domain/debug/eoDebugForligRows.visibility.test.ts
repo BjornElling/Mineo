@@ -33,7 +33,7 @@ describe('buildEODebugForligRows visibility', () => {
     });
     expect(rows[1]).toMatchObject({
       label: 'Beregnet ansvarsgrad',
-      displayValue: '50%',
+      displayValue: '50 %',
       status: 'ok',
     });
     expect(rows[2]).toMatchObject({
@@ -55,7 +55,7 @@ describe('buildEODebugForligRows visibility', () => {
       'forlig.dato',
     ]);
     expect(rows[0]?.displayValue).toBe('1/3');
-    expect(rows[1]?.displayValue).toBe('33,33%');
+    expect(rows[1]?.displayValue).toBe('33,33 %');
     expect(rows[2]?.displayValue).toBe('-');
   });
 

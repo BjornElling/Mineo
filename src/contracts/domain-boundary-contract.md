@@ -168,3 +168,4 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 1. Nye hooks, viewmodels og pipelines må ikke hente persisted data fra andre fagsider end egen side plus de sags-globale sektioner, de er autoriseret til.
 2. Reviews skal afvise skjulte afhængigheder mellem fagsiders committed state.
 3. Ved tvivl gælder fail-closed: afvis koblingen, dokumentér behovet, og afvent kontraktændring.
+4. Når et domæne bruger snapshot-first, skal snapshot-entrypointet også følge `src/contracts/snapshot-contract.md`.

@@ -8,6 +8,7 @@ import { persistenceSchemas, type PersistedSectionMap } from '../config/persiste
 import type { PersistedData } from '../types/persistence';
 import { nullToUndefinedDeep } from './nullToUndefinedDeep';
 import { stripUnknownFieldsBySchema } from './persistenceLoadSanitization';
+import { readSessionStorageValue } from './safeSessionStorage';
 
 export type SessionHydrationNotice = { message: string; type: 'warning' | 'error' };
 export type PersistedSectionsSnapshot = { [K in StorageKey]: PersistedSectionMap[K] | null };
@@ -20,7 +21,7 @@ type SessionHydrationPlan = {
 
 type HydrationSummary = {
   corruptedSections: StorageKey[];
-  migratedSections: StorageKey[];
+  versionMismatchedSections: StorageKey[];
   incompatibleSections: StorageKey[];
   strippedUnknownFieldCount: number;
   migratedLegacyBirthdate: boolean;
@@ -57,8 +58,10 @@ const formatCount = (count: number, singular: string, plural: string): string =>
 const createHydrationNotice = (summary: HydrationSummary): SessionHydrationNotice | null => {
   const parts: string[] = [];
 
-  if (summary.migratedSections.length > 0) {
-    parts.push(`${formatCount(summary.migratedSections.length, 'sektion', 'sektioner')} fra en aeldre version blev bevaret`);
+  if (summary.versionMismatchedSections.length > 0) {
+    parts.push(
+      `${formatCount(summary.versionMismatchedSections.length, 'sektion', 'sektioner')} fra en aeldre version blev bevaret`
+    );
   }
 
   if (summary.strippedUnknownFieldCount > 0) {
@@ -121,7 +124,7 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
   const keysToRemove: string[] = [];
   const summary: HydrationSummary = {
     corruptedSections: [],
-    migratedSections: [],
+    versionMismatchedSections: [],
     incompatibleSections: [],
     strippedUnknownFieldCount: 0,
     migratedLegacyBirthdate: false,
@@ -129,7 +132,7 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
 
   for (const pageKey of Object.keys(persistenceSchemas) as StorageKey[]) {
     const storageKey = getStorageKey(pageKey);
-    const stored = sessionStorage.getItem(storageKey);
+    const stored = readSessionStorageValue(storageKey);
     if (!stored) continue;
 
     let parsed: unknown;
@@ -160,14 +163,17 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
 
     assignSection(sections, pageKey, validated.data);
 
+    // Future structurally incompatible versions must add an explicit migrator step here
+    // before validation. A version mismatch alone only means the section was preserved as-is
+    // after sanitization + current-schema validation; it does not imply that a migration ran.
     if (parsed.version !== CURRENT_VERSION) {
-      summary.migratedSections.push(pageKey);
+      summary.versionMismatchedSections.push(pageKey);
     }
     summary.strippedUnknownFieldCount += stripped.unknownPaths.length;
   }
 
   const legacyStorageKey = LEGACY_DOMAIN_STORAGE_KEYS.faellesPersondata;
-  const legacyRaw = sessionStorage.getItem(legacyStorageKey);
+  const legacyRaw = readSessionStorageValue(legacyStorageKey);
   if (legacyRaw) {
     keysToRemove.push(legacyStorageKey);
 

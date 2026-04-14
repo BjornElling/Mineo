@@ -1,11 +1,10 @@
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import { type StorageKey } from '../config/storageManifest';
+import type { ReplaceAllPersistedData } from '../contexts/FormPersistenceContext.shared';
 import type { LoadFileResult } from '../types/fileOperations';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from './fileHandleStorage';
 import { persistLoadedFilenameMetadata } from './filePersistenceMetadata';
 import { clearPendingPwaFileOpenRequest, markPendingPwaFileOpenRequestHandled } from './pwaLaunchQueue';
-
-export type ReplaceAllPersistedData = (snapshot: Record<StorageKey, unknown | undefined>) => void;
 
 const buildAuthoritativeLoadSnapshot = (
   partialSnapshot: Partial<Record<StorageKey, unknown>> | undefined

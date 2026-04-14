@@ -7,7 +7,10 @@ import {
 } from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import type { PersistedData } from '../types/persistence';
-import { FormPersistenceContext } from './FormPersistenceContext.shared';
+import {
+  FormPersistenceContext,
+  type ReplaceAllPersistedData,
+} from './FormPersistenceContext.shared';
 import {
   type FieldErrorsForSection,
   type FormFieldError,
@@ -22,6 +25,11 @@ import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
 import { buildSessionStorageHydrationPlan } from '../utils/persistenceSessionHydration';
+import {
+  readSessionStorageValue,
+  removeSessionStorageValue,
+  writeSessionStorageValue,
+} from '../utils/safeSessionStorage';
 import {
   getFieldErrorRevisionSnapshot,
   getFieldErrorsBySourceSnapshot,
@@ -119,7 +127,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
   React.useEffect(() => {
     for (const key of initOnce.keysToRemove) {
-      sessionStorage.removeItem(key);
+      removeSessionStorageValue(key);
     }
   }, [initOnce.keysToRemove]);
 
@@ -219,7 +227,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         data: persistedSectionData,
       };
 
-      sessionStorage.setItem(storageKey, JSON.stringify(persistedData));
+      writeSessionStorageValue(storageKey, JSON.stringify(persistedData));
       formPersistenceStore.getState().commitSection(pageKey, postSerializeValidated.data as PersistedSectionMap[K], {
         schemaFingerprint: CURRENT_VERSION,
       });
@@ -236,7 +244,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     }
   }, [emitUserNotice, logPersistSaveDebug]);
 
-  const replaceAllPersistedData = React.useCallback((snapshot: Record<StorageKey, unknown | undefined>) => {
+  const replaceAllPersistedData = React.useCallback<ReplaceAllPersistedData>((snapshot) => {
     const prevStoreState = formPersistenceStore.getState();
     const prevSections = prevStoreState.sections as PersistedCache;
     const prevSectionRevisions = prevStoreState.sectionRevisions;
@@ -255,7 +263,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     const keysToReplace = getDomainStorageKeys();
     const backup = new Map<string, string | null>();
     for (const key of keysToReplace) {
-      backup.set(key, sessionStorage.getItem(key));
+      backup.set(key, readSessionStorageValue(key));
     }
 
     const now = Date.now();
@@ -295,10 +303,10 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
     try {
       for (const key of keysToReplace) {
-        sessionStorage.removeItem(key);
+        removeSessionStorageValue(key);
       }
       for (const { storageKey, value } of toWrite) {
-        sessionStorage.setItem(storageKey, value);
+        writeSessionStorageValue(storageKey, value);
       }
       formPersistenceStore.getState().replaceSectionsAndClearFieldErrors(
         nextCache,
@@ -308,13 +316,13 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       // Defensive strategy: always execute full rollback/restore sequence,
       // even if failure happened before any in-memory mutation.
       for (const { storageKey } of toWrite) {
-        sessionStorage.removeItem(storageKey);
+        removeSessionStorageValue(storageKey);
       }
       for (const [key, value] of backup.entries()) {
         if (value === null || value === undefined) {
-          sessionStorage.removeItem(key);
+          removeSessionStorageValue(key);
         } else {
-          sessionStorage.setItem(key, value);
+          writeSessionStorageValue(key, value);
         }
       }
       formPersistenceStore.getState().rollbackSections(
@@ -335,7 +343,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   const clearPageData = React.useCallback((pageKey: StorageKey) => {
     try {
       const storageKey = getStorageKey(pageKey);
-      sessionStorage.removeItem(storageKey);
+      removeSessionStorageValue(storageKey);
       formPersistenceStore.getState().commitSection(pageKey, null, {
         schemaFingerprint: CURRENT_VERSION,
       });
@@ -355,7 +363,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       // Kun domæne-data keys — UI-state (filnavn, sidebar, overlay) bevares bevidst.
       const domainKeys = getDomainStorageKeys();
       domainKeys.forEach(key => {
-        sessionStorage.removeItem(key);
+        removeSessionStorageValue(key);
       });
       formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() });
     } catch (error) {

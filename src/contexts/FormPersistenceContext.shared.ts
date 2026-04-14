@@ -10,6 +10,8 @@ import type {
   FieldErrorSource,
 } from '../types/fieldErrors';
 
+export type ReplaceAllPersistedData = (snapshot: Record<StorageKey, unknown | undefined>) => void;
+
 export type FormPersistenceContextValue = {
   // Imperative snapshot-read af committed sektion.
   // Reaktive UI-callsites skal som udgangspunkt bruge selector-hooks i stedet.
@@ -39,7 +41,7 @@ export type FormPersistenceContextValue = {
   clearAllFieldErrors: () => void;
   getSectionRevision: (pageKey: StorageKey) => number;
   getFieldErrorRevision: (pageKey: StorageKey) => number;
-  replaceAllPersistedData: (snapshot: Record<StorageKey, unknown | undefined>) => void;
+  replaceAllPersistedData: ReplaceAllPersistedData;
   lastNotice: { message: string; type: 'warning' | 'error' } | null;
   lastNoticeEpoch: number;
 };

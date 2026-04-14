@@ -22,6 +22,8 @@ const ALLOWED_FORM_PERSISTENCE_CONTEXT_IMPORTS = new Set([
   'src/contexts/FormPersistenceContext.tsx',
   'src/contexts/FormPersistenceContext.shared.ts',
   'src/contexts/useFormPersistence.ts',
+  'src/hooks/useFileSaveLoad.ts',
+  'src/utils/persistenceLoadApply.ts',
 ]);
 const ALLOWED_FORM_PERSISTENCE_STORE_IMPORTS = new Set([
   'src/contexts/FormPersistenceContext.tsx',

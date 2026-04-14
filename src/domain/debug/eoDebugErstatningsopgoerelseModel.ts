@@ -15,7 +15,6 @@ import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
 import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
-import { roundByMethod } from '../../utils/rounding';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder, calculateTafAntalMaanederPraecis } from '../erstatningsopgoerelse/engines/tafCalculations';
