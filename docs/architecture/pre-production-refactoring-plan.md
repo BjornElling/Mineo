@@ -322,6 +322,31 @@ Behandl dette som målrettet audit, ikke som bred refaktor:
 
 **Over-engineering-vurdering:** Lav til medium. Selve auditten er nødvendig; brede sammensmeltninger uden dokumenteret semantisk ækvivalens er over-engineering og kan skabe skjulte beregningsregressioner.
 
+**Status: Reviewet – 2026-04-14**
+
+Samlet vurdering efter review:
+- rounding-, formatterings- og dato-lagene er allerede veldefinerede og velafgrænsede
+- den kanoniske pyramide (`roundByMethod` → shortcuts → `formatAsAmount`/`formatKr`) bruges konsekvent i det gennemgåede domænelag
+- ingen duplikeret rounding- eller formatteringslogik fundet i det almindelige domænelag uden for debug-laget
+
+Det betyder, at punkt 5 i substansen kan betragtes som verificeret OK. Reviewet fandt to lave debug-relaterede opfølgningsfund, som efterfølgende er lukket:
+
+**Fund 5.1 – Lav | `src/domain/debug/eoDebugErstatningsopgoerelseModel.ts` | Duplikeret lokal `formatDaNumber`-hjælper — Lukket**
+
+`formatDaNumber` var defineret to gange lokalt i samme fil, og `formatMaaneder` overlappede med kanoniske helpers. Alle tre lokale formattere er erstattet med modulniveau-konstanter `formatDebugCount`/`formatDebugMonths`/`formatPercentUpToTwoDecimals`, der wrapper de kanoniske helpers. `toLocaleString` er fjernet fra denne fil.
+
+**Fund 5.2 – Lav | `src/domain/debug/eoDebugSammentaelling.ts` | `toLocaleString` ikke erstattet — Lukket**
+
+Den lokale `formatCount`/`formatDaInt`-hjælper i `buildSammentaellingDisplayTables` brugte `toLocaleString('da-DK')`. Begge er erstattet med `formatAsAmountTrimmed(resolved, 0)`.
+
+Herudover er to hjælpere der var duplikeret på tværs af `EOOplysningerTab.tsx` og `reguleringFormulaUtils.ts`/`reguleringPdf.ts` konsolideret til `eoSharedUtils.ts` som kanonisk kilde:
+- `normalizeOptionalFreeText` og `hasExactDisplayedAmountMatch` er flyttet fra `EOOplysningerTab.tsx`
+- `formatOverenskomstPercent` og `formatOverenskomstAmount` er konsolideret fra `reguleringFormulaUtils.ts` og `reguleringPdf.ts`
+
+**Status: Gennemført – 2026-04-14**
+
+Åbne delopgaver fra dette punkt: ingen.
+
 ---
 
 ## 6. Draft → Committed → Persisted som teknisk håndhævet flow
@@ -440,6 +465,27 @@ Statusmæssig betydning:
 - Punktet er ikke fuldt “verificeret OK” endnu; der er nu et konkret regressionsværn mod, at almindelige pages/hooks begynder at bruge context/store som parallel adgangsvej uden om selector- og form-hookene.
 - En bredere audit af faktiske parallelle committed kopier kan stadig gennemføres senere, men det nuværende værn lukker den vigtigste regressionsvej med lav ændringsrisiko.
 
+**Reviewstatus – 2026-04-14**
+
+Samlet vurdering efter review:
+- `usePersistedForm` holder ingen lokal `useState`-kopi af committed state
+- `useFormPersistenceSelectors.ts` er et rent projections-/selector-lag uden intern state
+- punktet er reelt verificeret OK for de kanoniske hooks
+
+Reviewet fandt to opfølgningsfund i quality-laget, som efterfølgende er lukket:
+
+**Fund 7.1 – Medium | `src/__tests__/quality/persistenceAccessIsolation.test.ts` | `useMidlertidigtEetInsertSource` uden begrundelse — Lukket**
+
+Der er tilføjet en kommentar i allowlisten der forklarer, at hooken er et auditeret undtagelsestilfælde: den bygger ét cachevalideret tværsektions-snapshot for EO's midlertidigt EET insert-flow, og det er ikke en præcedens for ordinære hooks/pages.
+
+**Fund 7.2 – Lav | `src/__tests__/quality/persistenceAccessIsolation.test.ts` | Guardens scope ikke dokumenteret — Lukket**
+
+En scope-note er tilføjet direkte i `it`-blokken, der forklarer at denne guard kun håndhæver importgrænser, og at mønstret med lokal `useState`-kopi af persisted committed state dækkes separat af `persistenceCommittedMirrorIsolation.test.ts`. `contractCoverageMatrix.test.ts` er opdateret til at inkludere denne test under `persistence-contract.md`.
+
+**Status: Gennemført – 2026-04-14**
+
+Åbne delopgaver fra dette punkt: ingen.
+
 ---
 
 ## 8. UI-arkitektur: thin pages, thick domain adapters
@@ -474,6 +520,30 @@ Dette punkt bør ikke være en generel “tynd alle pages ud”-øvelse. Gennemf
 - `Varige mén` og `Renteberegning` bør kun ændres ved klare grunde.
 
 **Over-engineering-vurdering:** Lav risiko for over-engineering. Flyt kun logik der klart er fejlplaceret. Indfør ikke nye abstrakte lag ("domain adapters", "read model adapters") medmindre der er aktuel duplikering der motiverer det.
+
+**Reviewstatus – 2026-04-14**
+
+Samlet vurdering efter review:
+- punkt 8 er korrekt ikke blevet kørt som et selvstændigt bredt refaktortrin
+- `Forsoergertab.tsx` er nu i det store hele en ren projektion af `computeForsoergertabSnapshot(...)`
+- der er ikke længere beregningslogik i page-laget svarende til det oprindelige problem
+
+Reviewet af punkt 8 var dog ikke fuldt repo-bredt; `VarigeMen.tsx`, `Renteberegning.tsx` og `Erhvervsevnetab.tsx` blev ikke gennemgået i denne reviewrunde. Status bør derfor læses som: hovedproblemet er løst, men punktet er ikke afsluttet som total page-audit.
+
+Reviewet fandt to opfølgningsfund, som efterfølgende er lukket:
+
+**Fund 8.1 – Medium | `src/components/pages/Forsoergertab.tsx` | Dato-bounds-logik i page-laget — Lukket**
+
+`skadedatoMin`, `beregningsdatoMin` og `virkningsdatoMax` er flyttet fra page-laget ind i `computeForsoergertabSnapshot(...)` og eksponeres nu som `snapshot.inputBounds`. Page-laget bruger udelukkende snapshot-projektionen. `coerceToISODateString`, `maxIso` og `minIso`-importerne er fjernet fra page-filen. Test tilføjet i `forsoergertabSnapshot.test.ts`.
+
+**Fund 8.2 – Lav | `src/components/pages/Forsoergertab.tsx` | Hardkodet `0 kr.` i JSX — Lukket**
+
+Tre forekomster af hardkodet `0 kr.` er erstattet med `formatKr(0)`.
+
+**Status: Gennemført (for de identificerede fund) – 2026-04-14**
+
+Åbne delopgaver fra dette punkt:
+- `VarigeMen.tsx`, `Renteberegning.tsx` og `Erhvervsevnetab.tsx` er ikke gennemgået i denne reviewrunde; disse pages bør kun auditeres målrettet, ikke som led i en generel "tynd alle pages ud"-øvelse.
 
 ---
 
@@ -695,21 +765,23 @@ Gennemfør punkt 4 (simpel build-test). Hav dette punkt som et fremtidigt mål h
 | [2] | Unified Calculation Kernel – Forsørgertab + EET | **Gennemført** |
 | [3] | Migrationsmotor – sektion-for-sektion ved version-mismatch | **Gennemført** |
 | [4] | Håndhævede domænegrænser | **Gennemført** |
-| [5] | Kanoniske helpers – audit + konsolidering | Ikke påbegyndt |
+| [5] | Kanoniske helpers – audit + konsolidering | **Gennemført** |
 | [6] | Draft/committed flow – audit | **Gennemført** |
-| [7] | Persistence-hooks – verifikation | Delvist (quality-guard implementeret; fuld audit mangler) |
-| [8] | UI-arkitektur – tunge pages | Delvist (Forsørgertab og EET løst via punkt 2) |
+| [7] | Persistence-hooks – verifikation | **Gennemført** |
+| [8] | UI-arkitektur – tunge pages | **Gennemført (for identificerede fund; øvrige pages ikke auditeret)** |
 | [9] | SessionStorage fail-closed | **Gennemført** |
 | [10] | Test-dækning | **Gennemført** for regressionsværn knyttet til punkt 6 |
 | [11] | Fjern død kode | **Gennemført (selektivt)** |
 
 **Anbefalet næste skridt:**
 
-Punkt 6, punkt 9 og punkt 10 er færdiggjort for denne leverance.
+Alle reviewfund fra punkt 5, 7 og 8 er lukket – 2026-04-14:
+- debug-formatteringsduplikering i `eoDebugErstatningsopgoerelseModel.ts` og `eoDebugSammentaelling.ts` er erstattet med kanoniske helpers
+- `normalizeOptionalFreeText`, `hasExactDisplayedAmountMatch`, `formatOverenskomstPercent` og `formatOverenskomstAmount` er konsolideret til `eoSharedUtils.ts`
+- quality-guard kommentarer og scope-notes er præciseret; `persistenceCommittedMirrorIsolation.test.ts` er eksplicit koblet i coverage-matrixen
+- dato-bounds er løftet ind i `forsoergertabSnapshot` og hardkodet `0 kr.` er fjernet fra `Forsoergertab.tsx`
 
-Det naturlige næste skridt er:
-- **Punkt 5**: Tag helper-auditten som næste konsolideringsopgave, nu hvor de smallere persistence-relaterede correctness-risici er lukket.
-- **Punkt 7**: Vurder om en egentlig audit af persistence-hooks stadig finder konkrete parallelle committed kopier, eller om quality-guarden er tilstrækkelig før launch.
+Punkt 1–11 er alle i tilstand gennemført eller verificeret OK. Ingen åbne launch-blokerende fund.
 
 ---
 

@@ -102,4 +102,26 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.canShowEal).toBe(false);
     expect(snapshot.pdfProjection.ealComputation).toBeNull();
   });
+
+  it('projicerer dato-bounds til page-laget fra snapshot', () => {
+    const snapshot = computeForsoergertabSnapshot({
+      values: createValues({
+        beregningsdato: '2026-03-19',
+        virkningsdato: '2025-01-01',
+      }),
+      faellesAarsloen: createFaellesAarsloen(),
+      stamdata: createStamdata({
+        skadedato: '2020-05-01',
+      }),
+      fieldErrors: {
+        forsoergertab: {},
+        faellesAarsloen: {},
+        stamdata: {},
+      },
+    });
+
+    expect(snapshot.inputBounds.skadedatoMin).toBe('2020-05-01');
+    expect(snapshot.inputBounds.beregningsdatoMin).toBe('2025-01-01');
+    expect(snapshot.inputBounds.virkningsdatoMax).toBe('2026-03-19');
+  });
 });

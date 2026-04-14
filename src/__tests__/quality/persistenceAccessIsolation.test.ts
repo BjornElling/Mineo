@@ -26,6 +26,9 @@ const ALLOWED_FORM_PERSISTENCE_CONTEXT_IMPORTS = new Set([
 const ALLOWED_FORM_PERSISTENCE_STORE_IMPORTS = new Set([
   'src/contexts/FormPersistenceContext.tsx',
   'src/hooks/useFormPersistenceSelectors.ts',
+  // Domain-specific read model: subscribes directly to the store to build one cached,
+  // schema-validated tværsektion snapshot for EO's midlertidigt EET insert-flow.
+  // This is an audited exception, not a precedent for ordinary hooks/pages.
   'src/hooks/useMidlertidigtEetInsertSource.ts',
 ]);
 
@@ -67,6 +70,10 @@ describe('persistenceAccessIsolation', () => {
   });
 
   it('forbyder direkte formPersistenceStore-import uden for kanoniske adgangspunkter', () => {
+    // Scope note:
+    // This guard enforces import boundaries only. It does not by itself prove that code avoids
+    // local React-state mirrors of persisted committed state; that pattern is covered separately
+    // by persistenceCommittedMirrorIsolation.test.ts.
     const violations: string[] = [];
 
     for (const absolutePath of collectSourceFiles(SRC_ROOT)) {

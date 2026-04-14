@@ -4,8 +4,9 @@ import type {
   Koen,
   StamdataValues,
 } from '../../schemas/formSchemas';
+import { dateRanges_forsoergertab } from '../../config/dateRanges';
 import type { FormFieldError } from '../../types/fieldErrors';
-import { coerceToISODateString, type ISODateString } from '../../types/branded';
+import { coerceToISODateString, maxIso, minIso, type ISODateString } from '../../types/branded';
 import { computeForsoergertabCalculation } from './forsoergertabCalculation';
 import { PRE_2015_CUTOFF } from './forsoergertabConstants';
 
@@ -51,6 +52,11 @@ export type ForsoergertabPdfProjection = Readonly<{
 export type ForsoergertabSnapshot = Readonly<{
   calculation: ReturnType<typeof computeForsoergertabCalculation>;
   visKoenValg: boolean;
+  inputBounds: Readonly<{
+    skadedatoMin: ISODateString;
+    beregningsdatoMin: ISODateString;
+    virkningsdatoMax: ISODateString;
+  }>;
   fieldUi: Readonly<{
     beregningsdato: FieldUiState;
     beregningsdatoForEal: FieldUiState;
@@ -87,6 +93,16 @@ const resolveHelperText = (
 
 export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput): ForsoergertabSnapshot => {
   const { values, faellesAarsloen, stamdata, fieldErrors } = input;
+  const skadedatoMin = coerceToISODateString(stamdata?.skadedato) ?? dateRanges_forsoergertab.virkningsdato.fallbackMin;
+  const beregningsdatoMin = (() => {
+    const virkningsdato = coerceToISODateString(values.virkningsdato);
+    return virkningsdato ? maxIso(skadedatoMin, virkningsdato) : skadedatoMin;
+  })();
+  const virkningsdatoMax = (() => {
+    const beregningsdato = coerceToISODateString(values.beregningsdato);
+    const maxDato = dateRanges_forsoergertab.virkningsdato.max;
+    return beregningsdato ? minIso(maxDato, beregningsdato) : maxDato;
+  })();
 
   const calculation = computeForsoergertabCalculation({
     skadedato: coerceToISODateString(stamdata?.skadedato),
@@ -205,6 +221,11 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
   return {
     calculation,
     visKoenValg,
+    inputBounds: {
+      skadedatoMin,
+      beregningsdatoMin,
+      virkningsdatoMax,
+    },
     fieldUi,
     canShowEal,
     canShowAsl,

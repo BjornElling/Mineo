@@ -14,7 +14,7 @@ import { useAslAarsloenRuleReporter } from '../../hooks/useAslAarsloenRuleReport
 import { faellesAarsloenSchema, forsoergertabSchema, koenEnum } from '../../schemas/formSchemas';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { FORSOERGERTAB_INITIAL_VALUES } from '../../domain/forsoergertab/forsoergertabInitialValues';
-import { coerceToISODateString, isoToDanish, maxIso, minIso } from '../../types/branded';
+import { isoToDanish } from '../../types/branded';
 import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../utils/formatUtils';
 import PdfDownloadButton from '../inputs/PdfDownloadButton';
 import AarsloenAmountFieldRow from '../inputs/AarsloenAmountFieldRow';
@@ -71,22 +71,6 @@ const Forsoergertab = React.memo(() => {
 
   useAslAarsloenRuleReporter(faellesAarsloenValues.aslAarsloen, stamdata?.skadedato);
 
-  const skadedatoMin = React.useMemo(() => {
-    const iso = coerceToISODateString(stamdata?.skadedato);
-    return iso ?? dateRanges_forsoergertab.virkningsdato.fallbackMin;
-  }, [stamdata?.skadedato]);
-
-  const beregningsdatoMin = React.useMemo(() => {
-    const virkningsdato = coerceToISODateString(values.virkningsdato);
-    return virkningsdato ? maxIso(skadedatoMin, virkningsdato) : skadedatoMin;
-  }, [skadedatoMin, values.virkningsdato]);
-
-  const virkningsdatoMax = React.useMemo(() => {
-    const beregningsdato = coerceToISODateString(values.beregningsdato);
-    const eetMax = dateRanges_forsoergertab.virkningsdato.max;
-    return beregningsdato ? minIso(eetMax, beregningsdato) : eetMax;
-  }, [values.beregningsdato]);
-
   const snapshot = React.useMemo(
     () =>
       computeForsoergertabSnapshot({
@@ -129,7 +113,7 @@ const Forsoergertab = React.memo(() => {
             <StyledDateField
               value={values.beregningsdato || undefined}
               onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
-              minDate={beregningsdatoMin}
+              minDate={snapshot.inputBounds.beregningsdatoMin}
               maxDate={dateRanges_forsoergertab.beregningsdato.max}
               specialRangeErrors={{ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Beregningsdato' }}
               error={snapshot.fieldUi.beregningsdato.hasError}
@@ -216,8 +200,8 @@ const Forsoergertab = React.memo(() => {
             <StyledDateField
               value={values.virkningsdato || undefined}
               onCommit={(event) => setFieldValue('virkningsdato', event.target.value)}
-              minDate={skadedatoMin}
-              maxDate={virkningsdatoMax}
+              minDate={snapshot.inputBounds.skadedatoMin}
+              maxDate={snapshot.inputBounds.virkningsdatoMax}
               specialRangeErrors={{ maxBoundKind: 'dataCoverageMax', maxBoundFieldLabel: 'Virkningsdato' }}
               error={snapshot.fieldUi.virkningsdato.hasError}
               helperText={snapshot.fieldUi.virkningsdato.helperText}
@@ -506,7 +490,7 @@ const Forsoergertab = React.memo(() => {
               <Box className="row--label-right-hover">
                 <Typography className="row--text">Løbende ydelser i alt</Typography>
                 <Box className="row--label-right-hover__content">
-                  <Typography className="row--text text-bold">0 kr.</Typography>
+                  <Typography className="row--text text-bold">{formatKr(0)}</Typography>
                 </Box>
               </Box>
             </>
@@ -531,7 +515,7 @@ const Forsoergertab = React.memo(() => {
               <Box className="row--label-right-hover">
                 <Typography className="row--text">Kapitalbeløb</Typography>
                 <Box className="row--label-right-hover__content">
-                  <Typography className="row--text text-bold">0 kr.</Typography>
+                  <Typography className="row--text text-bold">{formatKr(0)}</Typography>
                 </Box>
               </Box>
             </>
@@ -574,7 +558,7 @@ const Forsoergertab = React.memo(() => {
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Værdien af løbende ydelser efter folkepensionsalderen udgør</Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text text-bold">0 kr.</Typography>
+                      <Typography className="row--text text-bold">{formatKr(0)}</Typography>
                     </Box>
                   </Box>
                 </>

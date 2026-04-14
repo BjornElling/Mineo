@@ -27,6 +27,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/persistence-contract.md',
     requiredTestPaths: [
       'src/__tests__/quality/persistenceAccessIsolation.test.ts',
+      'src/__tests__/quality/persistenceCommittedMirrorIsolation.test.ts',
       'src/__tests__/quality/sessionStorageBoundaryIsolation.test.ts',
       'src/__tests__/utils/persistenceLoadApply.test.ts',
       'src/__tests__/utils/safeSessionStorage.test.ts',
