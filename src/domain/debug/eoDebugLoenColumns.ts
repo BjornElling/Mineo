@@ -155,7 +155,6 @@ const getWageAmountsForRow = (
     tillaeg: projected.tillaeg,
     ikkePensionsgivende: projected.ikkePensionsgivende,
     atp: projected.atp,
-    loenPlusLoen2PlusIkkePensLoen: projected.loenPlusLoen2PlusIkkePensLoen,
     fpFvShSoStb: projected.fpFvShSo,
     pension: projected.pension,
     samlet: projected.samlet,
