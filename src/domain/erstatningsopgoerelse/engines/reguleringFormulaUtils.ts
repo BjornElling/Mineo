@@ -1,6 +1,11 @@
 import { formatCurrency, formatPercent } from '../../../utils/formatUtils';
-import { formatPercentFixed2 } from '../helpers/eoSharedUtils';
-import { roundByMethod } from '../../../utils/rounding';
+import {
+  formatPercentFixed2,
+} from '../helpers/eoSharedUtils';
+export {
+  formatOverenskomstAmount,
+  formatOverenskomstPercent,
+} from '../helpers/eoSharedUtils';
 
 export type FormulaComponents = Readonly<{
   /**
@@ -85,12 +90,6 @@ export const wrapIndexFormulaAfterSlashWhenLong = (value: string, maxInlineLengt
   return `${parts[0]} /\n${parts[1]}`;
 };
 
-export const formatOverenskomstPercent = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '-';
-  const pct = roundByMethod(value * 100, 2, 'halfAwayFromZero');
-  return formatPercentFixed2(pct);
-};
-
 export const computeFormulaValue = (components: FormulaComponents): number => {
   const baseValue = Number.isFinite(components.baseValue) ? components.baseValue : 0;
   const feriePct = Number.isFinite(components.feriePct) ? components.feriePct : 0;
@@ -100,11 +99,6 @@ export const computeFormulaValue = (components: FormulaComponents): number => {
   const storeBededagPct = Number.isFinite(components.storeBededagPct) ? components.storeBededagPct : 0;
   const tillaegPct = feriePct + fritvalgPct + shSoPct + storeBededagPct;
   return baseValue * (1 + tillaegPct / 100) * (1 + pensionPct / 100);
-};
-
-export const formatOverenskomstAmount = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '-';
-  return formatCurrency(value);
 };
 
 export const buildFormulaText = (components: FormulaComponents, visibility: FormulaVisibility): string => {

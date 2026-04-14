@@ -20,8 +20,9 @@ import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
-import { formatFaktor, formatJaNej, formatKr } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { formatFaktor, formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
+import { formatKr } from '../../../utils/formatUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;

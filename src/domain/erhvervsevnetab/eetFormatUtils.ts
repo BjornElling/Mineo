@@ -1,7 +1,5 @@
-import { formatAsAmountTrimmed, formatKr } from '../../utils/formatUtils';
+import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import type { EetIssue } from './eetTypes';
-
-export { formatKr };
 
 export type EetTabNavigation = Readonly<{
   pageName: string;

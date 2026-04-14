@@ -26,9 +26,10 @@ import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
-import { formatJaNej, formatKr } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
+import { formatKr } from '../../../utils/formatUtils';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;

@@ -12,8 +12,8 @@ import { downloadEfterEalPdf } from '../../../pdf/infrastructure/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
-import { formatKr } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
+import { formatKr } from '../../../utils/formatUtils';
 
 type Props = Readonly<{
   onGoToEetOplysninger: () => void;

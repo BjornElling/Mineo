@@ -66,6 +66,10 @@ import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsop
 import { EO_ANGIVET_LOEN_ID } from '../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
+import {
+  hasExactDisplayedAmountMatch,
+  normalizeOptionalFreeText,
+} from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
@@ -116,15 +120,6 @@ const PERIODE_INFO_TOOLTIP =
   'Indsæt alle perioder. Tidligere indtastede perioder skal ikke slettes ved senere opgørelse.';
 
 const parseLoentrinSortValue = (loentrin: number | '55+'): number => (loentrin === '55+' ? 56 : loentrin);
-const hasExactDisplayedAmountMatch = (inputAmount: number, resultAmount: number): boolean => {
-  return formatCurrency(inputAmount) === formatCurrency(resultAmount);
-};
-
-const normalizeOptionalFreeText = (value: string | undefined): string | undefined => {
-  const asString = typeof value === 'string' ? value : '';
-  const trimmed = asString.trim();
-  return trimmed === '' ? undefined : trimmed;
-};
 
 const hasNonEmptyDateValue = (value: ISODateString | string | undefined | null): boolean => {
   if (value === undefined || value === null) return false;

@@ -7,7 +7,7 @@ import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from
 import { computeRowDateBounds } from '../erstatningsopgoerelse/helpers/rowDateBounds';
 import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
-import { formatAsAmount, formatCurrency, formatPercent } from '../../utils/formatUtils';
+import { formatAsAmount, formatAsAmountTrimmed, formatCurrency, formatPercent } from '../../utils/formatUtils';
 import { addDays, addMonths, parseDanishDate } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildNoValidDateRangeMessage, collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
@@ -164,8 +164,9 @@ type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues,
 type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, FieldErrorBySource>>;
 type StamdataValues = PersistedSectionMap['stamdata'];
 
-const formatPercentUpToTwoDecimals = (value: number): string =>
-  `${value.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`;
+const formatDebugCount = (value: number): string => formatAsAmountTrimmed(value, 0);
+const formatDebugMonths = (value: number): string => formatAsAmountTrimmed(value, 4);
+const formatPercentUpToTwoDecimals = (value: number): string => formatPercent(value);
 
 const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number | undefined => {
   if (!isoDate) return undefined;
@@ -1516,12 +1517,6 @@ export const buildEODebugTaftRows = (
 
   const ferieperioder = values.ferieperioder ?? [];
 
-  const formatDaNumber = (n: number): string => n.toLocaleString('da-DK');
-  const formatMaaneder = (n: number): string => {
-    const rounded = roundByMethod(n, 4, 'halfAwayFromZero');
-    return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
-  };
-
   perioder.forEach((periode) => {
     const hasFra = isNonEmptyString(periode.fra);
     const hasTil = isNonEmptyString(periode.til);
@@ -1677,9 +1672,9 @@ export const buildEODebugTaftRows = (
       displayTil,
       0
     );
-    const maanederDisplay = antalMaaneder === null ? '-' : `${formatMaaneder(antalMaaneder)} måneder`;
+    const maanederDisplay = antalMaaneder === null ? '-' : `${formatDebugMonths(antalMaaneder)} måneder`;
     const arbejdsdageDisplay = breakdown
-      ? `${formatDaNumber(breakdown.arbejdsdage)} hverdage - ${formatDaNumber(breakdown.shDage)} SH-dage - ${formatDaNumber(breakdown.feriedage)} feriedage - ${formatDaNumber(breakdown.loseFeriedage)} løse feriedage = ${formatDaNumber(breakdown.tafDage)} arbejdsdage`
+      ? `${formatDebugCount(breakdown.arbejdsdage)} hverdage - ${formatDebugCount(breakdown.shDage)} SH-dage - ${formatDebugCount(breakdown.feriedage)} feriedage - ${formatDebugCount(breakdown.loseFeriedage)} løse feriedage = ${formatDebugCount(breakdown.tafDage)} arbejdsdage`
       : '-';
 
     const visMaaneder = tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER;
@@ -1866,7 +1861,6 @@ export const buildEODebugTafBeregningsgrundlagRows = (
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
 
-  const formatDaNumber = (n: number): string => n.toLocaleString('da-DK');
   const tafBeregnesSom = computeTafBeregningsenhed(values);
 
   rows.push({
@@ -2143,7 +2137,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       rows.push({
         id: `taf.beregningsgrundlag.ferie.${periode.id}`,
         label: periodeLabel,
-        displayValue: feriedage === null ? '-' : `${formatDaNumber(feriedage)} feriedage`,
+        displayValue: feriedage === null ? '-' : `${formatDebugCount(feriedage)} feriedage`,
         status: feriedage === null ? 'error' : 'ok',
       });
     });
@@ -2156,7 +2150,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       label: 'Uspecificerede ferie-/feriefridage',
       displayValue:
         typeof uspecificeredeFerie === 'number'
-          ? `${formatDaNumber(uspecificeredeFerie)} dage`
+          ? `${formatDebugCount(uspecificeredeFerie)} dage`
           : '-',
       status: 'ok',
     });
@@ -2179,7 +2173,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     if (oevrigeFravaersdage === 0) {
       return { displayValue: 'Advarsel (Antal fraværsdage er 0)', status: 'warning' as DebugStatus };
     }
-    return { displayValue: `${formatDaNumber(oevrigeFravaersdage)} dage`, status: 'ok' as DebugStatus };
+    return { displayValue: `${formatDebugCount(oevrigeFravaersdage)} dage`, status: 'ok' as DebugStatus };
   })();
 
   if (oevrigtFravaerAktivt) {
@@ -2247,9 +2241,9 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       { value: breakdown.oevrigeFravaersdage, label: 'øvrige fraværsdage' },
     ];
     const parts = components
-      .map((component) => `${formatDaNumber(component.value)} ${component.label}`);
+      .map((component) => `${formatDebugCount(component.value)} ${component.label}`);
     const label = `${parts.join(' - ')} =`;
-    const displayValue = `${formatDaNumber(samletArbejdsdage)} arbejdsdage`;
+    const displayValue = `${formatDebugCount(samletArbejdsdage)} arbejdsdage`;
 
     return { label, displayValue, status: 'ok' as DebugStatus };
   })();
@@ -2316,11 +2310,6 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const totalMaaneder = beregnMaanederForDage(periodeDage);
     const fravaerMaaneder = oevrigeFravaersdageValue * 0.048;
 
-    const formatMaaneder = (value: number): string => {
-      const rounded = roundByMethod(value, 4, 'halfAwayFromZero');
-      return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
-    };
-
     const fravaerBeskrivelse =
       values.oevrigtFravaerUdenLoen === 'Ja'
         ? values.oevrigeFravaersdageBeskrivelse?.trim()
@@ -2329,10 +2318,10 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       ? `fraværsdage pga. ${fravaerBeskrivelse}`
       : 'fraværsdage';
     const label = oevrigeFravaersdageValue === 0
-      ? `Beregningsperiode: ${formatMaaneder(totalMaaneder)} måneder (0 ${fravaerLabelTekst} uden løn) =`
-      : `Beregningsperiode: ${formatMaaneder(totalMaaneder)} - ${formatMaaneder(fravaerMaaneder)} måneder (${formatDaNumber(oevrigeFravaersdageValue)} ${fravaerLabelTekst} uden løn x 4,8 % måned) =`;
+      ? `Beregningsperiode: ${formatDebugMonths(totalMaaneder)} måneder (0 ${fravaerLabelTekst} uden løn) =`
+      : `Beregningsperiode: ${formatDebugMonths(totalMaaneder)} - ${formatDebugMonths(fravaerMaaneder)} måneder (${formatDebugCount(oevrigeFravaersdageValue)} ${fravaerLabelTekst} uden løn x 4,8 % måned) =`;
     const maanederEfterFradrag = Math.max(0, totalMaaneder - fravaerMaaneder);
-    const formatted = formatMaaneder(maanederEfterFradrag);
+    const formatted = formatDebugMonths(maanederEfterFradrag);
     const displayValue = `${formatted} måneder`;
 
     return { label, displayValue, status: 'ok' as DebugStatus };
@@ -3165,14 +3154,14 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       rows.push({
         id: `sfgg.referenceperiodeantal.${employment.id}`,
         label: arbejdsdageLabel,
-        displayValue: `${result.sfggReferencesatsFormula.divisorDage.toLocaleString('da-DK')} ${result.sfggReferencesatsFormula.divisorLabel}`,
+        displayValue: `${formatDebugCount(result.sfggReferencesatsFormula.divisorDage)} ${result.sfggReferencesatsFormula.divisorLabel}`,
         status: 'ok',
       });
     }
 
     if (result?.sfggReferencesats.status === 'ok') {
       const divisorText = result.sfggReferencesatsFormula
-        ? `${result.sfggReferencesatsFormula.divisorDage.toLocaleString('da-DK')} ${result.sfggReferencesatsFormula.divisorLabel}`
+        ? `${formatDebugCount(result.sfggReferencesatsFormula.divisorDage)} ${result.sfggReferencesatsFormula.divisorLabel}`
         : 'arbejdsdage';
       const referenceSatsLabel = result.sfggReferencesatsFormula
         ? `Referencesats (${formatCurrency(result.sfggReferencesatsFormula.loenPlusLoen2PlusIkkePensLoenKroner)} x ${formatPercent(result.sfggReferencesatsFormula.feriePctDecimal * 100)} / ${divisorText}) =`

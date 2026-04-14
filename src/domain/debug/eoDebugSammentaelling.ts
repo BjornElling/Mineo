@@ -2,7 +2,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { subtractOneDay } from '../../types/branded';
-import { formatCurrency } from '../../utils/formatUtils';
+import { formatAsAmountTrimmed, formatCurrency } from '../../utils/formatUtils';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
 import type { EODebugModel } from './eoDebugModel';
 import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/engines/tafCalculations';
@@ -135,7 +135,7 @@ export type SammentaellingDisplayTables = Readonly<{
 export const buildSammentaellingDisplayTables = (model: SammentaellingModel): SammentaellingDisplayTables => {
   const formatCount = (value: number | null | undefined): string => {
     const resolved = typeof value === 'number' && Number.isFinite(value) ? value : 0;
-    return resolved.toLocaleString('da-DK');
+    return formatAsAmountTrimmed(resolved, 0);
   };
   const ferieShPrefix = model.beregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'inkl.' : '-';
   const beregningsFerieDageTilLabel =
@@ -277,7 +277,7 @@ const buildFerieDatesInRange = (
   );
 };
 
-const formatDaInt = (value: number): string => value.toLocaleString('da-DK');
+const formatDaInt = (value: number): string => formatAsAmountTrimmed(value, 0);
 
 const formatOptionalInt = (value: number | null): string => (value === null || value === 0 ? '-' : formatDaInt(value));
 

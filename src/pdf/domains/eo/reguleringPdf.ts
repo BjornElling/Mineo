@@ -13,7 +13,7 @@ import {
 } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import { renderEoStylePdfTable } from '../../shared/pdfTableRenderer';
-import { formatAsAmount, formatCurrency, formatPercent } from '../../../utils/formatUtils';
+import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../../../utils/dateUtils';
 import { roundByMethod } from '../../../utils/rounding';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
@@ -23,6 +23,10 @@ import {
   isAslStatistikModel,
   resolveStatistikModelId,
 } from '../../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
+import {
+  formatOverenskomstAmount,
+  formatOverenskomstPercent,
+} from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
   getEffektiveSatserForPeriode,
   getOffentligTillaegsSatserForDato,
@@ -110,17 +114,6 @@ const resolveOffentligLoenEkstraGrundloenTekst = (params: Readonly<{
 const resolveStatistikModelIdFromLabel = (
   label: string
 ): StatistiskLoenudviklingId | undefined => resolveStatistikModelId(label);
-
-const formatOverenskomstPercent = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '-';
-  const pct = roundByMethod(value * 100, 2, 'halfAwayFromZero');
-  return formatPercent(pct);
-};
-
-const formatOverenskomstAmount = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '-';
-  return formatCurrency(value);
-};
 
 const formatIndexValue = (value: number): string => {
   return formatAsAmount(roundByMethod(value, 1, 'halfAwayFromZero'), 1);

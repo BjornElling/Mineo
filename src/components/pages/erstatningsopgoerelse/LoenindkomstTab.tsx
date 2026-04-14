@@ -81,7 +81,11 @@ import {
   resolveOverenskomstSatsBindings,
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { getAngivetLoenOpreguleresFraDato } from '../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
-import { resolveAnvendtReguleringsdato } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+import {
+  hasExactDisplayedAmountMatch,
+  normalizeOptionalFreeText,
+  resolveAnvendtReguleringsdato,
+} from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
   hasSfggSelectedOverenskomst,
   resolveSfggSource,
@@ -130,12 +134,6 @@ const MAX_ANSAETTELSESFORHOLD = 10;
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
 const getCheckedJaNej = (value: 'Ja' | 'Nej'): boolean => value === 'Ja';
-
-const normalizeOptionalFreeText = (value: string | undefined): string | undefined => {
-  const asString = typeof value === 'string' ? value : '';
-  const trimmed = asString.trim();
-  return trimmed === '' ? undefined : trimmed;
-};
 
 const updateSfggAnsaettelsesforholdRow = (
   prev: ErstatningsopgoerelseValues,
@@ -336,10 +334,6 @@ type LoentrinFinderSessionState = z.infer<typeof loentrinFinderSessionStateSchem
 
 const parseLoentrinSortValue = (loentrin: number | '55+'): number => {
   return loentrin === '55+' ? 56 : loentrin;
-};
-
-const hasExactDisplayedAmountMatch = (inputAmount: number, resultAmount: number): boolean => {
-  return formatCurrency(inputAmount) === formatCurrency(resultAmount);
 };
 
 const LoenindkomstTab = React.memo(({

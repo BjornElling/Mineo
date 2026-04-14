@@ -9,7 +9,7 @@ import { addDays } from '../../../utils/dateUtils';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { StatistiskLoenudviklingId } from '../../../data/statistiskeRates';
 import { round2 } from '../../../utils/roundingShortcuts';
-import { formatAsAmount } from '../../../utils/formatUtils';
+import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { TIMER_TIL_MAANED_FAKTOR } from '../../../config/regulatoryRates';
 
 export const parseOptionalIsoDate = (value: unknown): ISODateString | undefined => {
@@ -40,6 +40,26 @@ export const formatAmount2 = (value: number): string => formatAsAmount(value, 2)
 export const formatAmountWithoutTrailingDecimals = (value: number): string => {
   const formatted = formatAmount2(value);
   return formatted.endsWith(',00') ? formatted.slice(0, -3) : formatted;
+};
+
+export const normalizeOptionalFreeText = (value: string | undefined): string | undefined => {
+  const asString = typeof value === 'string' ? value : '';
+  const trimmed = asString.trim();
+  return trimmed === '' ? undefined : trimmed;
+};
+
+export const hasExactDisplayedAmountMatch = (inputAmount: number, resultAmount: number): boolean => {
+  return formatCurrency(inputAmount) === formatCurrency(resultAmount);
+};
+
+export const formatOverenskomstPercent = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '-';
+  return formatPercentFixed2(round2(value * 100));
+};
+
+export const formatOverenskomstAmount = (value: number | null | undefined): string => {
+  if (value === null || value === undefined) return '-';
+  return formatCurrency(value);
 };
 
 export const numOrZero = (value: number | null | undefined): number =>
