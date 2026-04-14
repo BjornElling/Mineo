@@ -9,9 +9,11 @@ import type {
 import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
 
 let lastHandleToggle: ((e: CommitEvent<boolean>) => void) | null = null;
+let lastChecked = false;
+let lastEffectiveEnabled = false;
 
 type Props = {
-  initialEnabled?: boolean;
+  requestedEnabled?: boolean;
   tabelHarFejl: boolean;
   hasValidPeriod: boolean;
   onEnabledChange: (enabled: boolean) => void;
@@ -20,7 +22,7 @@ type Props = {
 };
 
 const Harness = ({
-  initialEnabled = false,
+  requestedEnabled = false,
   tabelHarFejl,
   hasValidPeriod,
   onEnabledChange,
@@ -30,8 +32,8 @@ const Harness = ({
   const tabelRef = React.useRef(tableRefMock);
   const toggleRef = React.useRef(toggleRefMock);
 
-  const { handleToggle } = useOmregningToggle({
-    initialEnabled,
+  const { checked, effectiveEnabled, handleToggle } = useOmregningToggle({
+    requestedEnabled,
     tabelHarFejl,
     hasValidPeriod,
     tabelRef,
@@ -40,12 +42,16 @@ const Harness = ({
   });
 
   lastHandleToggle = handleToggle;
+  lastChecked = checked;
+  lastEffectiveEnabled = effectiveEnabled;
   return null;
 };
 
 describe('useOmregningToggle', () => {
   afterEach(() => {
     lastHandleToggle = null;
+    lastChecked = false;
+    lastEffectiveEnabled = false;
   });
 
   it('blocks enable and shows missing-entry error', async () => {
@@ -62,7 +68,8 @@ describe('useOmregningToggle', () => {
     };
 
     render(
-      <Harness
+        <Harness
+        requestedEnabled={false}
         tabelHarFejl
         hasValidPeriod
         onEnabledChange={onEnabledChange}
@@ -99,7 +106,8 @@ describe('useOmregningToggle', () => {
     };
 
     render(
-      <Harness
+        <Harness
+        requestedEnabled={false}
         tabelHarFejl
         hasValidPeriod
         onEnabledChange={onEnabledChange}
@@ -130,8 +138,8 @@ describe('useOmregningToggle', () => {
     const onEnabledChange = vi.fn();
 
     render(
-      <Harness
-        initialEnabled={false}
+        <Harness
+        requestedEnabled={false}
         tabelHarFejl={false}
         hasValidPeriod={true}
         onEnabledChange={onEnabledChange}
@@ -159,7 +167,8 @@ describe('useOmregningToggle', () => {
     const onEnabledChange = vi.fn();
 
     render(
-      <Harness
+        <Harness
+        requestedEnabled={false}
         tabelHarFejl={false}
         hasValidPeriod={true}
         onEnabledChange={onEnabledChange}
@@ -187,7 +196,8 @@ describe('useOmregningToggle', () => {
     const onEnabledChange = vi.fn();
 
     render(
-      <Harness
+        <Harness
+        requestedEnabled={false}
         tabelHarFejl={false}
         hasValidPeriod={false}
         onEnabledChange={onEnabledChange}
@@ -216,7 +226,8 @@ describe('useOmregningToggle', () => {
     const onEnabledChange = vi.fn();
 
     render(
-      <Harness
+        <Harness
+        requestedEnabled={false}
         tabelHarFejl={true}
         hasValidPeriod={true}
         onEnabledChange={onEnabledChange}
@@ -245,8 +256,8 @@ describe('useOmregningToggle', () => {
     const onEnabledChange = vi.fn();
 
     render(
-      <Harness
-        initialEnabled={true}
+        <Harness
+        requestedEnabled={true}
         tabelHarFejl={false}
         hasValidPeriod={true}
         onEnabledChange={onEnabledChange}
@@ -267,7 +278,7 @@ describe('useOmregningToggle', () => {
     expect(onEnabledChange).toHaveBeenCalledWith(false);
   });
 
-  it('auto-disables when period becomes invalid', async () => {
+  it('bevarer checked=true men gateer effectiveEnabled=false når period becomes invalid', async () => {
     const onEnabledChange = vi.fn();
 
     const tableRefMock: StandardLoenTableHandle = {
@@ -281,7 +292,7 @@ describe('useOmregningToggle', () => {
 
     const { rerender } = render(
       <Harness
-        initialEnabled={true}
+        requestedEnabled={true}
         tabelHarFejl={false}
         hasValidPeriod={true}
         onEnabledChange={onEnabledChange}
@@ -293,7 +304,7 @@ describe('useOmregningToggle', () => {
     await act(async () => {
       rerender(
         <Harness
-          initialEnabled={true}
+          requestedEnabled={true}
           tabelHarFejl={false}
           hasValidPeriod={false}
           onEnabledChange={onEnabledChange}
@@ -303,6 +314,93 @@ describe('useOmregningToggle', () => {
       );
     });
 
-    expect(onEnabledChange).toHaveBeenCalledWith(false);
+    expect(lastChecked).toBe(true);
+    expect(lastEffectiveEnabled).toBe(false);
+    expect(onEnabledChange).not.toHaveBeenCalled();
+  });
+
+  it('bevarer checked=true men gateer effectiveEnabled=false når tabelHarFejl bliver true', async () => {
+    const onEnabledChange = vi.fn();
+
+    const tableRefMock: StandardLoenTableHandle = {
+      getErrors: vi.fn(),
+      getValidationSummary: vi.fn(),
+      showMissingEntryError: vi.fn(),
+      flashError: vi.fn(),
+    };
+
+    const toggleRefMock: StyledToggleSwitchHandle = { shake: vi.fn() };
+
+    const { rerender } = render(
+      <Harness
+        requestedEnabled={true}
+        tabelHarFejl={false}
+        hasValidPeriod={true}
+        onEnabledChange={onEnabledChange}
+        tableRefMock={tableRefMock}
+        toggleRefMock={toggleRefMock}
+      />
+    );
+
+    await act(async () => {
+      rerender(
+        <Harness
+          requestedEnabled={true}
+          tabelHarFejl={true}
+          hasValidPeriod={true}
+          onEnabledChange={onEnabledChange}
+          tableRefMock={tableRefMock}
+          toggleRefMock={toggleRefMock}
+        />
+      );
+    });
+
+    expect(lastChecked).toBe(true);
+    expect(lastEffectiveEnabled).toBe(false);
+    expect(onEnabledChange).not.toHaveBeenCalled();
+  });
+
+  it('respekterer ekstern requestedEnabled-resync uden lokal stale state', async () => {
+    const onEnabledChange = vi.fn();
+
+    const tableRefMock: StandardLoenTableHandle = {
+      getErrors: vi.fn(),
+      getValidationSummary: vi.fn(),
+      showMissingEntryError: vi.fn(),
+      flashError: vi.fn(),
+    };
+
+    const toggleRefMock: StyledToggleSwitchHandle = { shake: vi.fn() };
+
+    const { rerender } = render(
+      <Harness
+        requestedEnabled={false}
+        tabelHarFejl={false}
+        hasValidPeriod={true}
+        onEnabledChange={onEnabledChange}
+        tableRefMock={tableRefMock}
+        toggleRefMock={toggleRefMock}
+      />
+    );
+
+    expect(lastChecked).toBe(false);
+    expect(lastEffectiveEnabled).toBe(false);
+
+    await act(async () => {
+      rerender(
+        <Harness
+          requestedEnabled={true}
+          tabelHarFejl={false}
+          hasValidPeriod={true}
+          onEnabledChange={onEnabledChange}
+          tableRefMock={tableRefMock}
+          toggleRefMock={toggleRefMock}
+        />
+      );
+    });
+
+    expect(lastChecked).toBe(true);
+    expect(lastEffectiveEnabled).toBe(true);
+    expect(onEnabledChange).not.toHaveBeenCalled();
   });
 });

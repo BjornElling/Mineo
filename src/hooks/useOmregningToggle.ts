@@ -2,39 +2,8 @@ import React from 'react';
 import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../types/handles';
 import type { CommitEvent, CommitHandler } from '../types/fieldEvents';
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-type ToggleState = {
-  enabled: boolean;
-};
-
-type ToggleAction =
-  | { type: 'ENABLE' }
-  | { type: 'DISABLE' };
-
-// ============================================================================
-// REDUCER
-// ============================================================================
-
-const toggleReducer = (state: ToggleState, action: ToggleAction): ToggleState => {
-  switch (action.type) {
-    case 'ENABLE':
-      return state.enabled ? state : { enabled: true };
-    case 'DISABLE':
-      return !state.enabled ? state : { enabled: false };
-    default:
-      return state;
-  }
-};
-
-// ============================================================================
-// HOOK
-// ============================================================================
-
 interface UseOmregningToggleProps {
-  initialEnabled: boolean;
+  requestedEnabled: boolean;
   tabelHarFejl: boolean;
   hasValidPeriod: boolean;
   tabelRef: React.RefObject<StandardLoenTableHandle | null>;
@@ -43,7 +12,8 @@ interface UseOmregningToggleProps {
 }
 
 interface UseOmregningToggleReturn {
-  enabled: boolean;
+  checked: boolean;
+  effectiveEnabled: boolean;
   handleToggle: CommitHandler<boolean>;
 }
 
@@ -51,25 +21,20 @@ interface UseOmregningToggleReturn {
  * Hook der håndterer omregning-toggle.
  *
  * Principper:
- * - Reducer er single source of truth
- * - initialEnabled bruges kun ved init
+ * - Persisted brugerinput er single source of truth
+ * - Effektiv beregnings-aktivering gates af committed tabel/periode-state
  * - Manuel enable blokeres tidligt ved ugyldige forhold (→ shake)
- * - Auto-disable-effects fungerer som sikkerhedsnet
+ * - Ingen auto-disable via useEffect, så committed brugerinput ikke overskrives implicit
  */
 export const useOmregningToggle = ({
-  initialEnabled,
+  requestedEnabled,
   tabelHarFejl,
   hasValidPeriod,
   tabelRef,
   toggleRef,
   onEnabledChange,
 }: UseOmregningToggleProps): UseOmregningToggleReturn => {
-  // 🔒 initialEnabled bruges KUN ved init
-  const [state, dispatch] = React.useReducer(
-    toggleReducer,
-    initialEnabled,
-    (initial) => ({ enabled: initial })
-  );
+  const effectiveEnabled = requestedEnabled && !tabelHarFejl && hasValidPeriod;
 
   /**
    * Håndter brugerens toggle-interaktion
@@ -106,8 +71,7 @@ export const useOmregningToggle = ({
         return;
       }
 
-      // Gyldig ændring → opdater reducer + persisted state
-      dispatch({ type: newValue ? 'ENABLE' : 'DISABLE' });
+      // Gyldig ændring → opdater persisted state
       onEnabledChange(newValue);
     },
     [
@@ -119,16 +83,9 @@ export const useOmregningToggle = ({
     ]
   );
 
-  // Automatisk deaktivering hvis tabellen har fejl ELLER perioden er ugyldig.
-  React.useEffect(() => {
-    if (state.enabled && (tabelHarFejl || !hasValidPeriod)) {
-      dispatch({ type: 'DISABLE' });
-      onEnabledChange(false);
-    }
-  }, [hasValidPeriod, onEnabledChange, state.enabled, tabelHarFejl]);
-
   return {
-    enabled: state.enabled,
+    checked: requestedEnabled,
+    effectiveEnabled,
     handleToggle,
   };
 };

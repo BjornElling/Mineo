@@ -75,9 +75,14 @@ const Aarsloen = React.memo(() => {
     [values.loenperiode, values.tableData]
   );
 
-  // Toggle state management (single source of truth)
-  const { enabled: omregningAktiveret, handleToggle: handleOmregningToggle } = useOmregningToggle({
-    initialEnabled: values.omregningTilFuldtAar,
+  // Toggle state management.
+  // omregningChecked    = persisted brugerinput (hvad toggle viser og hvad gemmes i fil).
+  // omregningAktiveret  = effektiv beregnings-aktivering — gates af tabelHarFejl og hasValidPeriod.
+  // De to kan divergere: toggle vises ON, men beregningen er deaktiveret, hvis tabellen mangler
+  // gyldige data. Det er intentionelt: brugeren beholder sit valg, og toggle lyver ikke —
+  // indholdssektionen under toggle'en skjules, og periode/omregnings-felter er disabled.
+  const { checked: omregningChecked, effectiveEnabled: omregningAktiveret, handleToggle: handleOmregningToggle } = useOmregningToggle({
+    requestedEnabled: values.omregningTilFuldtAar,
     tabelHarFejl,
     hasValidPeriod,
     tabelRef,
@@ -396,12 +401,14 @@ const Aarsloen = React.memo(() => {
         <Typography className="section-header">Beregningsprincipper</Typography>
 
         {/* Omregning til fuldt år */}
+        {/* checked = persisted input (ikke effectiveEnabled): toggle viser brugerens valg,
+            mens indholdssektionen nedenfor er skjult/disabled når tabellen mangler gyldige data. */}
         <Box className="row--label-right-hover">
           <Typography className="row--text">Omregning til fuldt år:</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
               ref={toggleRef}
-              checked={omregningAktiveret}
+              checked={omregningChecked}
               onCommit={handleOmregningToggle}
             />
           </Box>
