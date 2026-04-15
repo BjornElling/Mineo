@@ -7,15 +7,18 @@ Appen er udviklet i TypeScript og kører 100 % client-side. Alle data bevares lo
 ## Kom i gang
 
 Forudsætninger:
-- Node.js
+- Node.js 24 LTS (anbefalet via `.nvmrc`)
 - Git
 
 Installation:
 ```bash
 git clone https://github.com/BjornElling/mineo.git
 cd mineo
+nvm use
 npm install
 ```
+
+Projektet understøtter Node.js `>=24`. Lokal udvikling er pin'et til Node 24 LTS via `.nvmrc`, mens CI verificerer både Node 24 og Node 25 for at fange kompatibilitetsproblemer tidligt.
 
 Start udviklingsserver:
 ```bash
@@ -62,6 +65,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.04.440
+**Version**: 2026.04.441
 
 **Status**: Under udvikling
