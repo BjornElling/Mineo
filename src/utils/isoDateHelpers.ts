@@ -43,6 +43,12 @@ export function maxISO(
   return a > b ? a : b;
 }
 
+// Kanonisk helper til ISO-datoer i domænet:
+// Vi sorterer og deduplikerer bevidst, fordi de fleste kaldsteder samler datoer fra flere kilder
+// i Sets eller kombinerede lister, hvor dubletter ikke har selvstændig domænebetydning.
+export const sortIsoDates = (values: Iterable<ISODateString>): ISODateString[] =>
+  Array.from(new Set(values)).sort((a, b) => (a < b ? -1 : 1));
+
 /**
  * Itererer alle UTC-dage i intervallet [start, end] inklusivt.
  * Kontrakt: `start` og `end` er date-only UTC-dage, og `start <= end`.

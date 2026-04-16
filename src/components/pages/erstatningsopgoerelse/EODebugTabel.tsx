@@ -45,12 +45,31 @@ const parseEmploymentIndexFromColumnId = (columnId: string): number | null => {
 
 type EODebugTabelProps = {
   debugSnapshot?: EODebugSnapshot | null;
+  isActive?: boolean;
 };
 
-const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) => {
+const SNAPSHOT_INFO_DELAY_MS = 1_000;
+
+const EODebugTabel = React.memo(({ debugSnapshot = null, isActive = false }: EODebugTabelProps) => {
   const theme = useTheme();
   const snapshot = debugSnapshot;
   const model = snapshot?.model ?? null;
+  const [showPendingSnapshotInfo, setShowPendingSnapshotInfo] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isActive || snapshot) {
+      setShowPendingSnapshotInfo(false);
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setShowPendingSnapshotInfo(true);
+    }, SNAPSHOT_INFO_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [isActive, snapshot]);
 
   const formatIso = React.useCallback((iso: ISODateString | undefined): string => {
     if (!iso) return '-';
@@ -292,12 +311,12 @@ const EODebugTabel = React.memo(({ debugSnapshot = null }: EODebugTabelProps) =>
               </Box>
             </Box>
           </>
-        ) : (
+        ) : showPendingSnapshotInfo ? (
           <Alert severity="info" sx={{ borderRadius: '10px' }}>
             <AlertTitle sx={{ fontWeight: 500 }}>Debug-tabellen er ikke opdateret endnu</AlertTitle>
             Snapshottet bygges automatisk ved første visit til fanen.
           </Alert>
-        )}
+        ) : null}
       </ContentBox>
 
       <ContentBox className="content-box">

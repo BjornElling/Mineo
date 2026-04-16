@@ -21,7 +21,7 @@ import {
   resolveStatistikModelId,
 } from './sharedPdfUtils';
 import { round2 as roundToTwoDecimals } from '../../../utils/roundingShortcuts';
-import { maxISO, minISO } from '../../../utils/isoDateHelpers';
+import { maxISO, minISO, sortIsoDates } from '../../../utils/isoDateHelpers';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatAsAmount, formatCurrency, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
 import { formatIsoDateShort, formatIsoDateLong } from '../../../utils/dateFormatting';
@@ -45,7 +45,6 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '
 import { getKRLSatstabel, isKRLSatstabelId } from '../../../data/krlRates';
 import { getStatistiskLoenudvikling } from '../../../data/statistiskeRates';
 import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
-import { resolveSfggSource } from '../engines/sygeferiegodtgoerelse';
 import { resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import {
   buildFormulaText,
@@ -243,9 +242,6 @@ const buildPlaceholderValueRow = (
   columns: readonly string[]
 ): string[] => [label, ...columns.slice(1).map(() => '-')];
 
-const sortIsoDates = (dates: Iterable<ISODateString>): ISODateString[] =>
-  Array.from(new Set(dates)).sort((a, b) => (a < b ? -1 : 1));
-
 const resolveRelevantRealDatesForTafScope = (
   allDates: readonly ISODateString[],
   tafFra: ISODateString,
@@ -300,9 +296,13 @@ const findLatestManualRowForIso = (
 };
 
 const mergeConsecutiveValueRows = (
-  rows: readonly string[][]
+  rows: readonly string[][],
+  options?: Readonly<{
+    preserveFirstColumnValues?: ReadonlySet<string>;
+  }>
 ): readonly string[][] => {
   if (rows.length <= 1) return rows;
+  const preserveFirstColumnValues = options?.preserveFirstColumnValues;
   const merged: string[][] = [];
   for (const row of rows) {
     const last = merged[merged.length - 1];
@@ -311,11 +311,25 @@ const mergeConsecutiveValueRows = (
       last.length === row.length &&
       last.slice(1).every((cell, index) => cell === row[index + 1])
     );
-    if (!hasSameValues) {
+    // Hvis en eksplicit markeringsdato skal bevares, beskytter vi begge sider af grænsen.
+    // Det sikrer, at hverken den markerede række eller den direkte nabo absorberes væk
+    // i en identisk merge og dermed skjuler den brugerrelevante datolinje.
+    const shouldPreserveBoundary = Boolean(
+      preserveFirstColumnValues &&
+      (preserveFirstColumnValues.has(last?.[0] ?? '') || preserveFirstColumnValues.has(row[0] ?? ''))
+    );
+    if (!hasSameValues || shouldPreserveBoundary) {
       merged.push(row);
     }
   }
   return merged;
+};
+
+const buildPreservedDateLabels = (
+  anvendtReguleringsdato: ISODateString | undefined
+): ReadonlySet<string> | undefined => {
+  if (!anvendtReguleringsdato) return undefined;
+  return new Set([formatDateShort(anvendtReguleringsdato)]);
 };
 
 const mergeConsecutiveRowsWithSameCalculation = (rows: readonly IndexRowWithIso[]): readonly ReguleringIndexRow[] => {
@@ -340,14 +354,13 @@ const mergeConsecutiveRowsWithSameCalculation = (rows: readonly IndexRowWithIso[
 };
 
 export const buildReguleringsvaerdierTableData = (params: Readonly<{
-  eoValues?: ErstatningsopgoerelseValues;
   ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
   anvendtReguleringsdato: ISODateString | undefined;
   tafFra: ISODateString;
   tafTil: ISODateString;
   tafBeregningsenhed: TafBeregningsenhed;
 }>): ReguleringValuesTableData | null => {
-  const { eoValues, ansaettelsesforhold, anvendtReguleringsdato, tafFra, tafTil, tafBeregningsenhed } = params;
+  const { ansaettelsesforhold, anvendtReguleringsdato, tafFra, tafTil, tafBeregningsenhed } = params;
   const grundlag = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
 
   if (grundlag === 'Overenskomst') {
@@ -508,7 +521,12 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         }
       }
 
-      return { columns, rows: mergeConsecutiveValueRows(rows) };
+      return {
+        columns,
+        rows: mergeConsecutiveValueRows(rows, {
+          preserveFirstColumnValues: buildPreservedDateLabels(anvendtReguleringsdato),
+        }),
+      };
     }
 
     const ref = resolveOverenskomstRef(overenskomstId);
@@ -528,53 +546,6 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const hasShSo = allSatser.some((sats) => hasNonZeroOverenskomstPct(sats.shSoSats));
     const hasFritvalg = allSatser.some((sats) => hasNonZeroOverenskomstPct(sats.fritvalg));
     const hasAgPension = allSatser.some((sats) => hasNonZeroOverenskomstPct(sats.agPension));
-    const sfggRow = eoValues?.sfggAnsaettelsesforhold.find((row) => row.ansaettelsesforholdId === ansaettelsesforhold.id);
-    const sfggSource = eoValues ? resolveSfggSource(sfggRow, ansaettelsesforhold) : null;
-    const sfggPolicy = getOverenskomstSfggPolicy(overenskomstId);
-    const hasSfggData = allSatser.some((sats) => sats.sfgg !== null);
-    const hasSfggFaglKbhData = allSatser.some((sats) => sats.sfggFaglKbh !== null);
-    const hasSfggFaglProvData = allSatser.some((sats) => sats.sfggFaglProv !== null);
-    const hasSfggUfaglKbhData = allSatser.some((sats) => sats.sfggUfaglKbh !== null);
-    const hasSfggUfaglProvData = allSatser.some((sats) => sats.sfggUfaglProv !== null);
-    const hasSfgg = eoValues
-      ? Boolean(
-          sfggSource?.kind === 'overenskomst_direkte'
-          && !sfggPolicy?.direkteSatsErDifferentieret
-          && hasSfggData
-        )
-      : hasSfggData;
-    const hasSfggFaglKbh = eoValues
-      ? Boolean(
-          sfggSource?.kind === 'overenskomst_direkte'
-          && sfggPolicy?.direkteSatsErDifferentieret
-          && sfggRow?.sfggSatsvalg === 'Faglaert-Koebenhavn'
-          && hasSfggFaglKbhData
-        )
-      : hasSfggFaglKbhData;
-    const hasSfggFaglProv = eoValues
-      ? Boolean(
-          sfggSource?.kind === 'overenskomst_direkte'
-          && sfggPolicy?.direkteSatsErDifferentieret
-          && sfggRow?.sfggSatsvalg === 'Faglaert-Provinsen'
-          && hasSfggFaglProvData
-        )
-      : hasSfggFaglProvData;
-    const hasSfggUfaglKbh = eoValues
-      ? Boolean(
-          sfggSource?.kind === 'overenskomst_direkte'
-          && sfggPolicy?.direkteSatsErDifferentieret
-          && sfggRow?.sfggSatsvalg === 'Ufaglaert-Koebenhavn'
-          && hasSfggUfaglKbhData
-        )
-      : hasSfggUfaglKbhData;
-    const hasSfggUfaglProv = eoValues
-      ? Boolean(
-          sfggSource?.kind === 'overenskomst_direkte'
-          && sfggPolicy?.direkteSatsErDifferentieret
-          && sfggRow?.sfggSatsvalg === 'Ufaglaert-Provinsen'
-          && hasSfggUfaglProvData
-        )
-      : hasSfggUfaglProvData;
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
     const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
     const loenHeader = resolveReguleringsvaerdierLoenHeader(tafBeregningsenhed);
@@ -585,11 +556,6 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       ...(hasShSo ? ['SH/SO'] : []),
       ...(hasFritvalg ? ['Fritvalg'] : []),
       ...(hasAgPension ? [REGULERINGSVAERDIER_PENSION_HEADER] : []),
-      ...(hasSfgg ? ['SFGG'] : []),
-      ...(hasSfggFaglKbh ? ['SFGG\nfagl. Kbh'] : []),
-      ...(hasSfggFaglProv ? ['SFGG\nfagl. prov'] : []),
-      ...(hasSfggUfaglKbh ? ['SFGG\nufagl. Kbh'] : []),
-      ...(hasSfggUfaglProv ? ['SFGG\nufagl. prov'] : []),
     ] as const;
     const allRealDates = new Set<ISODateString>();
     for (const sats of satser) {
@@ -622,11 +588,6 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       if (hasShSo) row.push(formatOverenskomstPercent(sats.shSoSats));
       if (hasFritvalg) row.push(formatOverenskomstPercent(sats.fritvalg));
       if (hasAgPension) row.push(formatOverenskomstPercent(sats.agPension));
-      if (hasSfgg) row.push(formatOverenskomstAmount(sats.sfgg));
-      if (hasSfggFaglKbh) row.push(formatOverenskomstAmount(sats.sfggFaglKbh));
-      if (hasSfggFaglProv) row.push(formatOverenskomstAmount(sats.sfggFaglProv));
-      if (hasSfggUfaglKbh) row.push(formatOverenskomstAmount(sats.sfggUfaglKbh));
-      if (hasSfggUfaglProv) row.push(formatOverenskomstAmount(sats.sfggUfaglProv));
       return row;
     };
     const relevantRealDates = resolveRelevantRealDatesForTafScope(
@@ -647,7 +608,12 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         if (anvendtReguleringsdato === iso) return [buildPlaceholderValueRow(formatDateShort(iso), columns)];
         return [];
       });
-    return { columns, rows: mergeConsecutiveValueRows(rows) };
+    return {
+      columns,
+      rows: mergeConsecutiveValueRows(rows, {
+        preserveFirstColumnValues: buildPreservedDateLabels(anvendtReguleringsdato),
+      }),
+    };
   }
 
   if (grundlag === 'Manuelt angivet') {
@@ -708,7 +674,9 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         ...(hasStoreBededagPct ? ['Store Bededag'] : []),
         REGULERINGSVAERDIER_PENSION_HEADER,
       ],
-      rows: mergeConsecutiveValueRows(rows),
+      rows: mergeConsecutiveValueRows(rows, {
+        preserveFirstColumnValues: buildPreservedDateLabels(anvendtReguleringsdato),
+      }),
     };
   }
 
@@ -817,7 +785,12 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       if (!period) return [];
       return [[formatDateShort(iso), formatKrlPct(period.reguleringsPct)]];
     });
-    return { columns: ['Fra-dato', 'Reguleringsprocent'], rows: mergeConsecutiveValueRows(rows) };
+    return {
+      columns: ['Fra-dato', 'Reguleringsprocent'],
+      rows: mergeConsecutiveValueRows(rows, {
+        preserveFirstColumnValues: buildPreservedDateLabels(anvendtReguleringsdato),
+      }),
+    };
   }
 
   return null;

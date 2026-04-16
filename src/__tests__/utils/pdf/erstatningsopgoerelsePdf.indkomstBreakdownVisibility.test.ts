@@ -625,7 +625,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts.some((text) =>
       text.startsWith('Kravet beregnes per ')
       && text.includes('med referencesatsen')
-      && text.includes('tillagt')
+      && text.endsWith('med referencesatsen.')
     )).toBe(true);
     expect(texts.some((text) =>
       text === 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn. Da skaden er fra 1. januar 2015, er der desuden først krav på sygeferiegodtgørelse fra anden sygedag.'
@@ -685,7 +685,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
     const kalenderdagTekst = texts.find((text) => text.includes('Antal kalenderdage i perioden'));
 
-    expect(texts).toContain('Kravet beregnes per kalenderdag med referencesatsen tillagt senere lønudvikling.');
+    expect(texts).toContain('Kravet beregnes per kalenderdag med referencesatsen.');
     expect(texts.some((text) => text.startsWith('Der beregnes ikke sygeferiegodtgørelse under ferie og på eventuelle andre fraværsdage uden løn.'))).toBe(true);
     expect(kalenderdagTekst).toContain('31 kalenderdage - 1 fraværsdage u. løn');
     expect(kalenderdagTekst).not.toContain('SH-dage');
@@ -922,7 +922,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('Sygeferiegodtgørelse beregnes i henhold til');
     expect(texts).toContain('KL-overenskomsten, der følger ferielovens regler');
     expect(texts).toContain('Opgøres som den gennemsnitlige feriepengebetaling i 4 uger før sygeforløbet.');
-    expect(texts).toContain('Kravet beregnes per kalenderdag med referencesatsen tillagt senere overenskomstmæssige stigninger.');
+    expect(texts).toContain('Kravet beregnes per kalenderdag med referencesatsen.');
   });
 
   it('viser ikke fallback-sats for differentieret overenskomst når der ikke findes beregnede segmenter', () => {
@@ -975,7 +975,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).not.toContain('Referencesats: 207,90 kr.');
   });
 
-  it('viser valgt SFGG-kolonne i reguleringsbilaget for differentieret overenskomst', () => {
+  it('viser ikke SFGG-kolonner i reguleringsbilaget for differentieret overenskomst', () => {
     autoTableMock.mockClear();
     const { stamdata, eo } = buildBaseInput();
     const document = buildProjectedDocument(stamdata, eo);
@@ -1035,11 +1035,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     const firstTableCall = autoTableMock.mock.calls[0]?.[1];
     const headerRow = firstTableCall?.body?.[0];
-    const firstDataRow = firstTableCall?.body?.[1];
-
-    expect(headerRow?.map((cell: { content: string }) => cell.content)).toContain('SFGG\nufagl. Kbh');
-    expect(headerRow?.map((cell: { content: string }) => cell.content)).not.toContain('SFGG\nfagl. Kbh');
-    expect(firstDataRow?.map((cell: { content: string }) => cell.content)).toContain('184,45');
+    expect(headerRow?.map((cell: { content: string }) => cell.content).filter((content) => content.includes('SFGG'))).toEqual([]);
   });
 
   it('viser manuel sats i referencesats-blokken ved beregningsperiode', () => {

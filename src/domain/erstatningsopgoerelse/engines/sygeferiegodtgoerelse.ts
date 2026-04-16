@@ -7,6 +7,7 @@ import type {
 } from '../../../schemas/formSchemas';
 import { TODAY } from '../../../config/dateRanges';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
+import { sortIsoDates } from '../../../utils/isoDateHelpers';
 import { addDays, addMonths } from '../../../utils/dateUtils';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import { roundByMethod } from '../../../utils/rounding';
@@ -185,9 +186,6 @@ export const EMPTY_RESULT: SygeferiegodtgoerelseResult = {
   perYear: [],
   firstExcludedDate: null,
 };
-
-const sortIsoDates = (values: Iterable<ISODateString>): ISODateString[] =>
-  Array.from(values).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 
 export const resolveSfggReferenceperiodeDayCount = (
   values: ErstatningsopgoerelseValues,
@@ -615,6 +613,17 @@ const buildSfggFeriepengeMedPensionOreForDates = (
   )
 );
 
+const sumLoenPlusLoen2PlusIkkePensLoenForEligibleDatesKroner = (
+  employment: LoenindkomstAnsaettelsesforhold,
+  dates: readonly ISODateString[],
+  ferieperioder: ErstatningsopgoerelseValues['ferieperioder']
+): number =>
+  sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
+    employment,
+    dates.map((iso) => ({ fra: iso, til: iso })),
+    ferieperioder
+  );
+
 const buildIncomeExcludedDateSet = (employment: LoenindkomstAnsaettelsesforhold): Set<ISODateString> => {
   const result = new Set<ISODateString>();
   for (const row of employment.indtaegtsoplysningerTableData ?? []) {
@@ -812,18 +821,15 @@ const resolveAdjustedRate = (
   source: Readonly<{ kind: SfggSourceKind }>,
   loenudvikling: PerEmploymentLoenudvikling
 ): Readonly<{ satsOre: MoneyOre; reguleringsindeks: number | null }> => {
-  if (source.kind !== 'overenskomst_ferielov') {
+  if (source.kind !== 'ferielov' && source.kind !== 'overenskomst_ferielov') {
     return { satsOre: baseRateOre, reguleringsindeks: null };
   }
   const segment = resolveLoenudviklingSegment(iso, loenudvikling);
   if (!segment) {
     return { satsOre: baseRateOre, reguleringsindeks: null };
   }
-  // Bevidst undtagelse fra no-prerounding-princippet i form-contract.md:
-  // Referencesatsen er en dagssats, der udgør et selvstændigt beregningsresultat —
-  // ikke et delresultat i en længere beregningskæde. Afrunding pr. dag til øre-niveau
-  // er intentionel og afspejler, at den justerede dagssats er den kanoniske størrelse
-  // der ganges på antal dage. Ændres dette, opstår der akkumulerede afrundingsfejl.
+  // I referenceperiode-sporet skal SFGG følge samme procentuelle udvikling
+  // og samme reguleringsdatoer som lønnen.
   return {
     satsOre: toOre(roundKroner((baseRateOre / 100) * (1 + segment.deltaPct / 100))),
     reguleringsindeks: roundByMethod(100 + segment.deltaPct, 2, 'halfAwayFromZero'),
@@ -1108,9 +1114,9 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     const loenPlusLoen2PlusIkkePensLoenBySegment = new Map<string, number>();
     const feriepengeBySegment = new Map<string, MoneyOre>();
     groupedWithEligibleDays.forEach((group, index) => {
-      const loenPlusLoen2PlusIkkePensLoenKroner = sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
+      const loenPlusLoen2PlusIkkePensLoenKroner = sumLoenPlusLoen2PlusIkkePensLoenForEligibleDatesKroner(
         employment,
-        [{ fra: group.fra, til: group.til }],
+        group.dates,
         values.ferieperioder ?? []
       );
       loenPlusLoen2PlusIkkePensLoenBySegment.set(`${group.fra}:${index}`, loenPlusLoen2PlusIkkePensLoenKroner);

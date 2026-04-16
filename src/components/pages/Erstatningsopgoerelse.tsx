@@ -423,6 +423,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             sx={{ display: activeTab === TAB_KEYS.DEBUG_TABEL ? 'block' : 'none' }}
           >
             <EODebugTabel
+              isActive={activeTab === TAB_KEYS.DEBUG_TABEL}
               debugSnapshot={activeTab === TAB_KEYS.DEBUG_TABEL ? eoSnapshot?.debugSnapshot ?? null : null}
             />
           </Box>

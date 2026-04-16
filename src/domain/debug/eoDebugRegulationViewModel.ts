@@ -295,7 +295,6 @@ export function buildRegulationDebugSections(
     const reguleringsvaerdierTableData =
       ansaettelsesforhold && coverageBounds
         ? buildReguleringsvaerdierTableData({
-            eoValues,
             ansaettelsesforhold,
             anvendtReguleringsdato,
             tafFra: coverageBounds.foerste,

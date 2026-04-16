@@ -4,6 +4,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import {
   computeSygeferiegodtgoerelse,
   findSfggSixMonthWarningEmploymentIds,
+  sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner,
 } from '../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import {
   buildSfggReferenceperiodeCountLabel,
@@ -1827,6 +1828,62 @@ describe('computeSygeferiegodtgoerelse', () => {
       expect.objectContaining({
         reguleringsindeks: 105.03,
         satsOre: 5968,
+      })
+    );
+  });
+
+  it('bruger kun SFGG-berettigede dage i løngrundlaget for feriepengefradrag', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: asAmount(10000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+    values.ferieperioder = [{ id: 'ferie-1', fra: iso('2024-01-30'), til: iso('2024-01-30') }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-01-29'), til: iso('2024-01-30') }],
+    });
+
+    const expectedLoenGrundlag = sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
+      values.loenindkomstAnsaettelsesforhold[0]!,
+      [{ fra: iso('2024-01-29'), til: iso('2024-01-29') }],
+      values.ferieperioder
+    );
+
+    expect(result.perAnsaettelsesforhold[0]?.segments).toHaveLength(1);
+    expect(result.perAnsaettelsesforhold[0]?.segments[0]).toEqual(
+      expect.objectContaining({
+        fra: iso('2024-01-29'),
+        til: iso('2024-01-29'),
+        antalDage: 1,
+        loenPlusLoen2PlusIkkePensLoenKroner: expectedLoenGrundlag,
       })
     );
   });

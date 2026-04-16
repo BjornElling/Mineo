@@ -1,5 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { vi } from 'vitest';
 
 import EODebugTabel from '../../../../components/pages/erstatningsopgoerelse/EODebugTabel';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
@@ -98,11 +99,36 @@ const renderComponent = (props: React.ComponentProps<typeof EODebugTabel>) => {
 };
 
 describe('EODebugTabel', () => {
-  it('viser info når der ikke findes et aktuelt snapshot', () => {
-    renderComponent({});
+  it('viser ikke den afventende infoboks før timeouten er udløbet', () => {
+    vi.useFakeTimers();
+
+    renderComponent({ isActive: true });
+
+    expect(screen.getByText('Debug tabel')).toBeInTheDocument();
+    expect(screen.queryByText('Debug-tabellen er ikke opdateret endnu')).not.toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(999);
+    });
+
+    expect(screen.queryByText('Debug-tabellen er ikke opdateret endnu')).not.toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
+  it('viser info når der ikke findes et aktuelt snapshot efter timeouten', () => {
+    vi.useFakeTimers();
+
+    renderComponent({ isActive: true });
+
+    act(() => {
+      vi.advanceTimersByTime(1_000);
+    });
 
     expect(screen.getByText('Debug tabel')).toBeInTheDocument();
     expect(screen.getByText('Debug-tabellen er ikke opdateret endnu')).toBeInTheDocument();
+
+    vi.useRealTimers();
   });
 
   it('viser den normale tom-tabel advarsel når snapshot findes men ikke kan bygge rækker', () => {

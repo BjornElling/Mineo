@@ -144,7 +144,7 @@ describe('eoPdfReguleringEngine', () => {
     expect(table?.rows.every((row) => row.length === table.columns.length)).toBe(true);
   });
 
-  it('indsætter 01-01-2024 som separat række i privat reguleringsværdier-tabel fordi bygge-anlaeg har en overenskomstregulering på den dato', () => {
+  it('indsætter ikke 01-01-2024 som separat række i privat lønreguleringstabel når datoen kun vedrører SFGG', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
@@ -161,14 +161,15 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
+    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
   });
 
   it.each([
     'Ingen',
     'Manuelt angivet',
     'Ferieloven',
-  ] as const)('viser ingen SFGG-kolonner når SFGG-kilde er %s', (sfggBeregningskilde) => {
+    'Overenskomst',
+  ] as const)('viser ingen SFGG-kolonner i lønreguleringstabellen når SFGG-kilde er %s', (sfggBeregningskilde) => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
@@ -188,7 +189,6 @@ describe('eoPdfReguleringEngine', () => {
     ];
 
     const table = buildReguleringsvaerdierTableData({
-      eoValues: values,
       ansaettelsesforhold: af,
       anvendtReguleringsdato: iso('2023-05-24'),
       tafFra: iso('2023-06-01'),
@@ -198,70 +198,6 @@ describe('eoPdfReguleringEngine', () => {
 
     expect(table).not.toBeNull();
     expect(table?.columns.filter((column) => column.includes('SFGG'))).toEqual([]);
-  });
-
-  it('viser kun valgt differentieret SFGG-kolonne når SFGG beregnes efter overenskomst', () => {
-    const values = cloneInitialValues();
-    const af = values.loenindkomstAnsaettelsesforhold[0];
-    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
-    af.overenskomstId = 'bygge-anlaeg';
-    af.loenPaaHelligdage = 'Almindelig løn';
-    af.feriePct = 15;
-    values.sfggAnsaettelsesforhold = [
-      {
-        ansaettelsesforholdId: af.id,
-        sfggBeregningskilde: 'Overenskomst',
-        sfggReferenceperiodeFra: undefined,
-        sfggReferenceperiodeTil: undefined,
-        sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggSatsvalg: 'Ufaglaert-Koebenhavn',
-        sfggAlleredeBetaltBeloeb: '0,00',
-      },
-    ];
-
-    const table = buildReguleringsvaerdierTableData({
-      eoValues: values,
-      ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2023-05-24'),
-      tafFra: iso('2023-06-01'),
-      tafTil: iso('2024-04-30'),
-      tafBeregningsenhed: 'Måneder',
-    });
-
-    expect(table).not.toBeNull();
-    expect(table?.columns.filter((column) => column.includes('SFGG'))).toEqual(['SFGG\nufagl. Kbh']);
-  });
-
-  it('viser fortsat én samlet SFGG-kolonne ved ikke-differentieret overenskomst-SFGG', () => {
-    const values = cloneInitialValues();
-    const af = values.loenindkomstAnsaettelsesforhold[0];
-    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
-    af.overenskomstId = 'transportoverenskomsten-atl';
-    af.loenPaaHelligdage = 'Almindelig løn';
-    af.feriePct = 12.5;
-    values.sfggAnsaettelsesforhold = [
-      {
-        ansaettelsesforholdId: af.id,
-        sfggBeregningskilde: 'Overenskomst',
-        sfggReferenceperiodeFra: undefined,
-        sfggReferenceperiodeTil: undefined,
-        sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggSatsvalg: 'Faglaert-Koebenhavn',
-        sfggAlleredeBetaltBeloeb: '0,00',
-      },
-    ];
-
-    const table = buildReguleringsvaerdierTableData({
-      eoValues: values,
-      ansaettelsesforhold: af,
-      anvendtReguleringsdato: iso('2024-01-01'),
-      tafFra: iso('2024-01-04'),
-      tafTil: iso('2024-01-05'),
-      tafBeregningsenhed: 'Arbejdsdage',
-    });
-
-    expect(table).not.toBeNull();
-    expect(table?.columns.filter((column) => column.includes('SFGG'))).toEqual(['SFGG']);
   });
 
   it('splitter private indeksrækker ved 01-01-2024 selv når inputsegmentet krydser datoen', () => {
@@ -569,7 +505,7 @@ describe('eoPdfReguleringEngine', () => {
     ]);
   });
 
-  it('merger manuel reference-række væk når dens værdier er identiske med næste eksplicitte ændringsrække', () => {
+  it('bevarer manuel reference-række når brugeren har angivet en særskilt reguleringsdato med identiske værdier', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
@@ -604,7 +540,7 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows.map((row) => row[0])).toEqual(['10-01-2024']);
+    expect(table?.rows.map((row) => row[0])).toEqual(['10-01-2024', '26-01-2024']);
   });
 
   it('overskriver ikke en eksplicit manuel række på reguleringsdatoen med første manuelle række', () => {
@@ -980,5 +916,41 @@ describe('eoPdfReguleringEngine', () => {
     expect(table).not.toBeNull();
     expect(table?.rows[0]).toEqual(['01-01-2000', '-']);
     expect(table?.rows[1]?.[0]).toBe('01-04-2001');
+  });
+
+  it('bevarer en særskilt KRL-række på reguleringsdatoen selv når reguleringsprocenten er uændret', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    af.loenudviklingKRLSatstabel = 'KTO (kommuner)';
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2001-04-15'),
+      tafFra: iso('2001-05-15'),
+      tafTil: iso('2001-05-15'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows.map((row) => row[0])).toEqual(['01-04-2001', '15-04-2001']);
+  });
+
+  it('finder senest gældende sats ved single-day TAF uden eksakt satsdato', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    af.loenudviklingKRLSatstabel = 'KTO (kommuner)';
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: undefined,
+      tafFra: iso('2001-05-15'),
+      tafTil: iso('2001-05-15'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows).toEqual([['01-04-2001', '4,0662 %']]);
   });
 });

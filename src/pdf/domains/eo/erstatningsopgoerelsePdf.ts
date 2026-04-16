@@ -116,16 +116,6 @@ const resolveSfggReferenceSatsUnit = (divisorLabel: 'kalenderdage' | 'arbejdsdag
 const resolveSfggPeriodDayUnitSingular = (divisorLabel: 'kalenderdage' | 'arbejdsdage'): 'kalenderdag' | 'arbejdsdag' =>
   divisorLabel === 'kalenderdage' ? 'kalenderdag' : 'arbejdsdag';
 
-const buildSfggPeriodRateAdjustmentText = (sfggSourceKind: EoModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]['sfggSourceKind']): string => {
-  if (sfggSourceKind === 'ferielov') {
-    return ' tillagt senere lønudvikling';
-  }
-  if (sfggSourceKind === 'overenskomst_ferielov') {
-    return ' tillagt senere overenskomstmæssige stigninger';
-  }
-  return '';
-};
-
 const buildSfggDisplayedTafPeriodText = (tafPerioderLinjer: readonly string[], tafRanges: EoModel['tafRanges']): string => {
   if (tafPerioderLinjer.length > 0) {
     return tafPerioderLinjer.join(', ');
@@ -387,14 +377,13 @@ export const generateErstatningsopgoerelsePdf = (
 
     const divisorLabel = entry.sfggDayBasis;
     const dayUnit = resolveSfggPeriodDayUnitSingular(divisorLabel);
-    const rateAdjustmentText = buildSfggPeriodRateAdjustmentText(entry.sfggSourceKind);
     const rateLabel = entry.sfggSourceKind === 'overenskomst_direkte' ? 'overenskomstens referencesats' : 'referencesatsen';
     const baseAdjustmentText = divisorLabel === 'arbejdsdage'
       ? 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'
       : 'Der beregnes ikke sygeferiegodtgørelse under ferie og på eventuelle andre fraværsdage uden løn.';
     writer.writeUnderlinedLabel(SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, MARGINS.left);
     safeAddWrappedText(
-      `Kravet beregnes per ${dayUnit} med ${rateLabel}${rateAdjustmentText}.`
+      `Kravet beregnes per ${dayUnit} med ${rateLabel}.`
     );
 
     const firstDayAdjustmentText = entry.sfggFirstTafDayExcludedText
