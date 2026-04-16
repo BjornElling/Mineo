@@ -26,6 +26,56 @@ const createRow = (overrides: Partial<StandardLoenTableRow> = {}): StandardLoenT
   ...overrides,
 });
 
+describe('calculateStandardLoenRowDerived — Store Bededag', () => {
+  it('storeBededagPct indgår i fpFvShSo-grundlaget (beregnes af løn inkl. ikke-pens.giv.)', () => {
+    // Verificerer at 0,45 % tillæg tilskrives korrekt:
+    // loenPlusLoen2 = 30000, ikkePensionsgivende = 0, ferie = 12,5 %, bededag = 0,45 %
+    // totalPct = 0.1295
+    // fpFvShSo = 30000 × 0.1295 = 3885
+    // pension  = 30000 × (1 + 0.1295) × 0 = 0
+    const row = createRow({ col2: 30000, col3: 0, col4: 0, col5: 0 });
+    const satser: StandardLoenSatserInput = {
+      feriePct: '12,5',
+      fritvalgPct: '0',
+      shSoPct: '0',
+      storeBededagPct: '0,45',
+      pensionPct: '0',
+    };
+    const result = calculateStandardLoenRowDerived(row, satser);
+    expect(result.fpFvShSo).toBeCloseTo(3885, 6);
+  });
+
+  it('storeBededagPct indgår i pensionsgrundlaget (pension beregnes af løn × (1 + alle tillæg))', () => {
+    // pension = 30000 × (1 + (12,5 + 0,45)/100) × (10/100)
+    //         = 30000 × 1.1295 × 0.10 = 3388.5
+    const row = createRow({ col2: 30000, col3: 0, col4: 0, col5: 0 });
+    const satser: StandardLoenSatserInput = {
+      feriePct: '12,5',
+      fritvalgPct: '0',
+      shSoPct: '0',
+      storeBededagPct: '0,45',
+      pensionPct: '10',
+    };
+    const result = calculateStandardLoenRowDerived(row, satser);
+    expect(result.pension).toBeCloseTo(3388.5, 6);
+  });
+
+  it('storeBededagPct = 0 giver samme resultat som at udelade feltet', () => {
+    const row = createRow({ col2: 30000, col3: 2000, col4: 1000, col5: 300 });
+    const medNul: StandardLoenSatserInput = {
+      feriePct: '12,5', fritvalgPct: '1,0', shSoPct: '2,0', storeBededagPct: '0', pensionPct: '10,0',
+    };
+    const udenFelt: StandardLoenSatserInput = {
+      feriePct: '12,5', fritvalgPct: '1,0', shSoPct: '2,0', storeBededagPct: undefined, pensionPct: '10,0',
+    };
+    const medNulResult = calculateStandardLoenRowDerived(row, medNul);
+    const udenFeltResult = calculateStandardLoenRowDerived(row, udenFelt);
+    expect(medNulResult.fpFvShSo).toBeCloseTo(udenFeltResult.fpFvShSo, 10);
+    expect(medNulResult.pension).toBeCloseTo(udenFeltResult.pension, 10);
+    expect(medNulResult.samlet).toBeCloseTo(udenFeltResult.samlet, 10);
+  });
+});
+
 describe('calculateStandardLoenRowDerived', () => {
   it('beregner loenPlusLoen2, fp/fv/sh/so, pension og samlet korrekt', () => {
     const row = createRow({

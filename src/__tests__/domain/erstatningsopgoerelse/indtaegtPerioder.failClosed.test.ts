@@ -104,6 +104,7 @@ describe('buildIncomeForRanges fail-closed', () => {
     values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenperiode = 'dag';
+    af.loenPaaHelligdage = 'SH-udbetaling';
     af.indtaegtsoplysningerTableData = [
       {
         id: 'loen-ok',
@@ -168,6 +169,7 @@ describe('buildIncomeForRanges fail-closed', () => {
     values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenperiode = 'dag';
+    af.loenPaaHelligdage = 'SH-udbetaling';
     af.indtaegtsoplysningerTableData = [
       {
         id: 'loen-overlap',
@@ -191,6 +193,62 @@ describe('buildIncomeForRanges fail-closed', () => {
 
     // 310 over 31 dage => 10 pr dag, samlet overlap 20 dage (1-20) => 200
     expect(income.employers[0]?.amount).toBe(200);
+  });
+
+  it('medregner Store Bededag i arbejdsgiverbeløbet fra 01-01-2024 ved Almindelig løn', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenperiode = 'dag';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'loen-store-bededag',
+        col0_maaned: '',
+        col1_maaned: '',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '01-01-2024',
+        col1_dag: '01-01-2024',
+        col2: asAmount(100),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      },
+    ];
+
+    const income = buildIncomeForRanges(values, [{ fra: iso('2024-01-01'), til: iso('2024-01-01') }]);
+
+    expect(income.employers).toHaveLength(1);
+    expect(income.employers[0]?.amount).toBeCloseTo(100.45, 8);
+  });
+
+  it('medregner ikke Store Bededag i arbejdsgiverbeløbet ved SH-udbetaling', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createDefaultLoenindkomstAnsaettelsesforhold()];
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenperiode = 'dag';
+    af.loenPaaHelligdage = 'SH-udbetaling';
+    af.indtaegtsoplysningerTableData = [
+      {
+        id: 'loen-uden-store-bededag',
+        col0_maaned: '',
+        col1_maaned: '',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '01-01-2024',
+        col1_dag: '01-01-2024',
+        col2: asAmount(100),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      },
+    ];
+
+    const income = buildIncomeForRanges(values, [{ fra: iso('2024-01-01'), til: iso('2024-01-01') }]);
+
+    expect(income.employers).toHaveLength(1);
+    expect(income.employers[0]?.amount).toBeCloseTo(100, 8);
   });
 
   it('medregner ikke ikke-finite afledte lønbeløb', () => {

@@ -240,6 +240,24 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     expect(result.ansaettelser[0]?.entries.length).toBeGreaterThan(0);
   });
 
+  it('viser ikke særskilt Store Bededag-regulering i debug-timeline for KRL satstabel', () => {
+    const input = makeInput();
+    input.eoValues.beregnesUdFra = 'Angivet månedsløn';
+    input.eoValues.vedroererPeriodeFra = '2023-12-01';
+    input.eoValues.vedroererPeriodeTil = '2024-12-31';
+    input.eoValues.angivetMaanedsloenOpreguleresFraDato = iso('2023-12-31') as any;
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel = 'KTO (kommuner)';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+    input.stamdataValues.skadedato = iso('2023-05-24');
+
+    const result = buildRegulationTimeline(input);
+    const entries = result.ansaettelser[0]?.entries ?? [];
+
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries.every((entry) => entry.storeBededagPct === 0)).toBe(true);
+  });
+
   it('bygger regulering fra eoAngivetLoenLoenudvikling ved angivet månedsløn og statistikgrundlag', () => {
     const input = makeInput();
     input.eoValues.beregnesUdFra = 'Angivet månedsløn';
@@ -259,6 +277,24 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     expect(result.ansaettelser[0]?.kildeLabel).toBe('Statistikmodel');
     expect(result.ansaettelser[0]?.kildeVaerdi).toBe('ASL-årslønsmaksimum');
     expect(result.ansaettelser[0]?.entries.length).toBeGreaterThan(0);
+  });
+
+  it('viser ikke særskilt Store Bededag-regulering i debug-timeline for statistikgrundlag', () => {
+    const input = makeInput();
+    input.eoValues.beregnesUdFra = 'Angivet månedsløn';
+    input.eoValues.vedroererPeriodeFra = '2023-12-01';
+    input.eoValues.vedroererPeriodeTil = '2024-12-31';
+    input.eoValues.angivetMaanedsloenOpreguleresFraDato = iso('2023-12-31') as any;
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Statistik';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel = 'ILON12 (Danmarks Statistik)';
+    input.eoValues.eoAngivetLoenLoenudvikling.loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
+    input.stamdataValues.skadedato = iso('2023-05-24');
+
+    const result = buildRegulationTimeline(input);
+    const entries = result.ansaettelser[0]?.entries ?? [];
+
+    expect(entries.length).toBeGreaterThan(0);
+    expect(entries.every((entry) => entry.storeBededagPct === 0)).toBe(true);
   });
 
   it('falder tilbage til første tilgængelige ASL-år når referenceåret mangler i ASL-data', () => {

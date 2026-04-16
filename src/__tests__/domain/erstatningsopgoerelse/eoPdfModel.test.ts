@@ -745,7 +745,7 @@ describe('eoPdfModel', () => {
     const entries = model.tabtArbejdsfortjeneste.tafIndtaegter?.entries ?? [];
 
     expect(entries).toEqual([
-      { label: 'Ansættelse A', amountOre: 100000 },
+      { label: 'Ansættelse A', amountOre: 100450 },
       { label: 'Midlertidigt EET', amountOre: 2000 },
       { label: 'Sygedagpenge', amountOre: 1000 },
     ]);
@@ -2307,6 +2307,129 @@ describe('eoPdfModel', () => {
     expect(indkomst?.totalBreakdown?.pensionOre).toBe(225900);
     expect(indkomst?.samletBeregningsgrundlagOre).toBe(2484900);
   });
+
+  it.each([
+    ['Statistik', { loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)' }],
+    ['KRL satstabel', { loenudviklingKRLSatstabel: 'KTO (kommuner)' }],
+  ] as const)(
+    'medregner Store Bededag i beregningsgrundlaget efter 01-01-2024 ved %s uden særskilt reguleringslogik',
+    (grundlag, extraFields) => {
+      const eoValues = makeValues({
+        beregnesUdFra: 'Beregningsperiode',
+        tafBeregningsperiodeFra: iso('2024-01-01'),
+        tafBeregningsperiodeTil: iso('2024-02-29'),
+        tafPerioder: [
+          { id: 'taf-1', fra: iso('2024-03-01'), til: iso('2024-03-31'), loseFeriedage: undefined },
+        ],
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
+            harOverenskomst: false,
+            overenskomstId: undefined,
+            loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+            loenudviklingBeregningsgrundlag: grundlag,
+            feriePct: 0,
+            fritvalgPct: 0,
+            shSoPct: 0,
+            pensionPct: 0,
+            indtaegtsoplysningerTableData: [
+              {
+                id: 'jan',
+                col0_maaned: '1',
+                col1_maaned: '2024',
+                col0_uge: '',
+                col1_uge: '',
+                col0_dag: '',
+                col1_dag: '',
+                col2: asAmountValue(10000),
+                col3: undefined,
+                col4: undefined,
+                col5: undefined,
+              },
+              {
+                id: 'feb',
+                col0_maaned: '2',
+                col1_maaned: '2024',
+                col0_uge: '',
+                col1_uge: '',
+                col0_dag: '',
+                col1_dag: '',
+                col2: asAmountValue(10000),
+                col3: undefined,
+                col4: undefined,
+                col5: undefined,
+              },
+            ],
+            ...extraFields,
+          },
+        ],
+      });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2023-05-24') });
+
+      const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+      const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
+
+      expect(indkomst?.arbejdssteder[0]?.fpLabel).toContain('Store Bededag (0,45 %)');
+      expect(indkomst?.arbejdssteder[0]?.breakdown.loenPlusLoen2Ore).toBe(2000000);
+      expect(indkomst?.arbejdssteder[0]?.breakdown.fpFvShSoOre).toBe(9000);
+      expect(indkomst?.arbejdssteder[0]?.breakdown.samletOre).toBe(2009000);
+      expect(indkomst?.samletBeregningsgrundlagOre).toBe(2009000);
+    }
+  );
+
+  it.each([
+    ['Statistik', { loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)' }],
+    ['KRL satstabel', { loenudviklingKRLSatstabel: 'KTO (kommuner)' }],
+  ] as const)(
+    'medregner ikke Store Bededag i beregningsgrundlaget før 01-01-2024 ved %s',
+    (grundlag, extraFields) => {
+      const eoValues = makeValues({
+        beregnesUdFra: 'Beregningsperiode',
+        tafBeregningsperiodeFra: iso('2023-10-01'),
+        tafBeregningsperiodeTil: iso('2023-12-31'),
+        tafPerioder: [
+          { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined },
+        ],
+        loenindkomstAnsaettelsesforhold: [
+          {
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
+            harOverenskomst: false,
+            overenskomstId: undefined,
+            loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+            loenudviklingBeregningsgrundlag: grundlag,
+            feriePct: 0,
+            fritvalgPct: 0,
+            shSoPct: 0,
+            pensionPct: 0,
+            indtaegtsoplysningerTableData: [
+              {
+                id: 'dec',
+                col0_maaned: '12',
+                col1_maaned: '2023',
+                col0_uge: '',
+                col1_uge: '',
+                col0_dag: '',
+                col1_dag: '',
+                col2: asAmountValue(20000),
+                col3: undefined,
+                col4: undefined,
+                col5: undefined,
+              },
+            ],
+            ...extraFields,
+          },
+        ],
+      });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2023-05-24') });
+
+      const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-04') });
+      const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
+
+      expect(indkomst?.arbejdssteder[0]?.fpLabel).not.toContain('Store Bededag');
+      expect(indkomst?.arbejdssteder[0]?.breakdown.fpFvShSoOre).toBe(0);
+      expect(indkomst?.samletBeregningsgrundlagOre).toBe(2000000);
+    }
+  );
 
   it.each([
     ['Angivet månedsløn'],

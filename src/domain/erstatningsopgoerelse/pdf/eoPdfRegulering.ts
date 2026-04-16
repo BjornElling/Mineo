@@ -37,7 +37,6 @@ import {
   getOffentligTillaegsSatserForDato,
   getOffentligTillaegsSatserForPeriode,
   getOverenskomst,
-  getOverenskomstSfggPolicy,
   resolveOverenskomstRef,
 } from '../../../data/overenskomstRates';
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../data/offentligLoenLookup';

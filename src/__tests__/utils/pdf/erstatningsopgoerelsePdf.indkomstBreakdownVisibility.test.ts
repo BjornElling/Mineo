@@ -277,6 +277,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('skjuler "I alt:" når kun én del-linje vises', () => {
     const { stamdata, eo } = buildBaseInput();
+    eo.loenindkomstAnsaettelsesforhold[0].loenPaaHelligdage = 'SH-udbetaling';
     eo.loenindkomstAnsaettelsesforhold[0].feriePct = 0;
     eo.loenindkomstAnsaettelsesforhold[0].fritvalgPct = 0;
     eo.loenindkomstAnsaettelsesforhold[0].shSoPct = 0;
@@ -286,8 +287,14 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const arbejdsstedStartIndex = texts.indexOf('AAB');
+    const dagsindkomstIndex = texts.findIndex((text) => text.startsWith('Dagsindkomst:'));
+    const arbejdsstedBlock = arbejdsstedStartIndex === -1
+      ? []
+      : texts.slice(arbejdsstedStartIndex + 1, dagsindkomstIndex === -1 ? texts.length : dagsindkomstIndex);
 
-    expect(texts.filter((text) => text === 'I alt:')).toHaveLength(0);
+    expect(arbejdsstedBlock).toContain('Løn i beregningsperioden');
+    expect(arbejdsstedBlock).not.toContain('I alt:');
   });
 
   it('viser sektionen "Tidligere betalt erstatning" når tidligere modtaget TAF er indtastet', () => {

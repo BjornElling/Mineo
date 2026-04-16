@@ -57,6 +57,24 @@ describe('computeFormulaValue', () => {
     };
     expect(computeFormulaValue(components)).toBe(0);
   });
+
+  it('storeBededagPct indgår korrekt i tillaegPct og dermed i formelresultatet', () => {
+    // baseValue=1000, ferie=12 %, storeBededag=0,45 %, pension=10 %
+    // tillaegPct = 12,45 → faktor1 = 1,1245 → faktor2 = 1,10
+    // resultat = 1000 × 1,1245 × 1,10 = 1236,95
+    const components: FormulaComponents = {
+      baseValue: 1000, feriePct: 12, fritvalgPct: 0, shSoPct: 0, pensionPct: 10, storeBededagPct: 0.45,
+    };
+    expect(computeFormulaValue(components)).toBeCloseTo(1236.95, 4);
+  });
+
+  it('storeBededagPct = 0 er neutral i formelresultatet', () => {
+    const components: FormulaComponents = {
+      baseValue: 1000, feriePct: 12, fritvalgPct: 0, shSoPct: 0, pensionPct: 10, storeBededagPct: 0,
+    };
+    // 1000 × 1,12 × 1,10 = 1232
+    expect(computeFormulaValue(components)).toBeCloseTo(1232, 4);
+  });
 });
 
 // ─── parsePercentInput ────────────────────────────────────────────────────────
@@ -341,18 +359,50 @@ describe('buildFormulaText', () => {
       baseValue: 100, feriePct: 12, fritvalgPct: 0, shSoPct: 0, pensionPct: 10, storeBededagPct: 0,
     };
     const result = buildFormulaText(components, allVisible);
-    // Forventer to 'x' (et pr. faktor)
     const xCount = (result.match(/ x /g) ?? []).length;
     expect(xCount).toBe(2);
   });
 
-  it('showFritvalg=false → fritvalg udelades', () => {
+  it('showFritvalg=false → fritvalg udelades selvom fritvalgPct != 0', () => {
     const components: FormulaComponents = {
       baseValue: 100, feriePct: 0, fritvalgPct: 5, shSoPct: 0, pensionPct: 0, storeBededagPct: 0,
     };
     const noFritvalg: FormulaVisibility = { showFritvalg: false, showShSo: true, showPension: true, showStoreBededag: true };
     const result = buildFormulaText(components, noFritvalg);
-    // Fritvalg skjult og ingen andre tillæg → kun baseValue
     expect(result).toBe('100,00');
+  });
+
+  it('showStoreBededag=true og storeBededagPct != 0 → bededagsandel indgår i formelteksten', () => {
+    const components: FormulaComponents = {
+      baseValue: 1000, feriePct: 12, fritvalgPct: 0, shSoPct: 0, pensionPct: 0, storeBededagPct: 0.45,
+    };
+    const result = buildFormulaText(components, allVisible);
+    // Skal indeholde den formatterede bededagsprocent (0,45 %)
+    expect(result).toContain('0,45');
+    expect(result).toContain('%');
+  });
+
+  it('showStoreBededag=false → bededagsandel udelades selvom storeBededagPct != 0', () => {
+    const components: FormulaComponents = {
+      baseValue: 1000, feriePct: 0, fritvalgPct: 0, shSoPct: 0, pensionPct: 0, storeBededagPct: 0.45,
+    };
+    const noBededag: FormulaVisibility = { showFritvalg: true, showShSo: true, showPension: true, showStoreBededag: false };
+    const result = buildFormulaText(components, noBededag);
+    // Ingen andre tillæg + bededag skjult → kun baseValue
+    expect(result).toBe('1.000,00');
+    expect(result).not.toContain('0,45');
+  });
+
+  it('ferie + storeBededag + pension → ferie og bededag i første faktor, pension i anden', () => {
+    const components: FormulaComponents = {
+      baseValue: 1000, feriePct: 12, fritvalgPct: 0, shSoPct: 0, pensionPct: 10, storeBededagPct: 0.45,
+    };
+    const result = buildFormulaText(components, allVisible);
+    const xCount = (result.match(/ x /g) ?? []).length;
+    // Tillæg (ferie + bededag) udgør én faktor; pension udgør en anden
+    expect(xCount).toBe(2);
+    expect(result).toContain('12');
+    expect(result).toContain('0,45');
+    expect(result).toContain('10');
   });
 });

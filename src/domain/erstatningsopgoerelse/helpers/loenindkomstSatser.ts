@@ -213,11 +213,14 @@ export const buildLoenindkomstRateSegments = (args: Readonly<{
   til: ISODateString;
 }>): readonly StandardLoenRateSegment[] => {
   const { ansaettelsesforhold: af, skadedato: _skadedato, fra, til } = args;
+  // Decision note: basisstien må ikke være afhængig af at callsites altid har kørt
+  // applyAutoSatsFields først. Store Bededag er datoafhængig og udledes derfor
+  // fail-closed direkte her ud fra segmentets startdato.
   const baseSatser: StandardLoenSatserInput = {
     feriePct: af.feriePct,
     fritvalgPct: af.fritvalgPct,
     shSoPct: af.shSoPct,
-    storeBededagPct: af.storeBededagPct,
+    storeBededagPct: resolveStoreBededagPct(af, fra),
     pensionPct: af.pensionPct,
   };
 
