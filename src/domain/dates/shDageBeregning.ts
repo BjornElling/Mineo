@@ -92,9 +92,63 @@ export const beregnHelligdageMedNavn = (year: number): NavngivetHelligdag[] => {
 /**
  * Tjekker om en dato er en hverdag (mandag-fredag)
  */
-const erHverdag = (date: Date): boolean => {
+export const erHverdagUtc = (date: Date): boolean => {
   const dayOfWeek = date.getUTCDay();
   return dayOfWeek >= 1 && dayOfWeek <= 5; // Mandag=1 til Fredag=5
+};
+
+export const erSHDag = (date: Date): boolean => erHverdagUtc(date);
+
+export const buildSHDageSetForDatoSet = (
+  datoSet: ReadonlySet<ISODateString>
+): ReadonlySet<ISODateString> => {
+  const shDageSet = new Set<ISODateString>();
+  if (!datoSet || datoSet.size === 0) {
+    return shDageSet;
+  }
+
+  const datoer = Array.from(datoSet)
+    .map((dateStr) => parseISODate(dateStr))
+    .filter((d): d is Date => d !== undefined);
+
+  if (datoer.length === 0) {
+    return shDageSet;
+  }
+
+  const times = datoer.map((d) => d.getTime());
+  const minDato = new Date(Math.min(...times));
+  const maxDato = new Date(Math.max(...times));
+
+  for (let year = minDato.getUTCFullYear(); year <= maxDato.getUTCFullYear(); year += 1) {
+    for (const helligdag of beregnHelligdage(year)) {
+      const helligdagStr = formatToISO(helligdag);
+      if (datoSet.has(helligdagStr) && erSHDag(helligdag)) {
+        shDageSet.add(helligdagStr);
+      }
+    }
+  }
+
+  return shDageSet;
+};
+
+export const buildSHDageSetForIsoRange = (
+  fra: ISODateString,
+  til: ISODateString
+): ReadonlySet<ISODateString> => {
+  const fraDato = parseISODate(fra);
+  const tilDato = parseISODate(til);
+  if (!fraDato || !tilDato || fraDato > tilDato) {
+    return new Set<ISODateString>();
+  }
+
+  const datoSet = new Set<ISODateString>();
+  let current = new Date(fraDato);
+  while (current <= tilDato) {
+    datoSet.add(formatToISO(current));
+    current = addDays(current, 1);
+  }
+
+  return buildSHDageSetForDatoSet(datoSet);
 };
 
 /**
@@ -105,28 +159,9 @@ export const beregnSHDage = (fraDato: Date, tilDato: Date): number => {
   if (!fraDato || !tilDato || fraDato > tilDato) {
     return 0;
   }
-
-  // Find alle år i perioden
-  const aarSet = new Set<number>();
-  for (let year = fraDato.getUTCFullYear(); year <= tilDato.getUTCFullYear(); year++) {
-    aarSet.add(year);
-  }
-
-  // Saml alle helligdage for de relevante år
-  const alleHelligdage: Date[] = [];
-  aarSet.forEach(year => {
-    alleHelligdage.push(...beregnHelligdage(year));
-  });
-
-  // Tæl helligdage der falder inden for perioden og på hverdage
-  let antalSH = 0;
-  alleHelligdage.forEach(helligdag => {
-    if (helligdag >= fraDato && helligdag <= tilDato && erHverdag(helligdag)) {
-      antalSH++;
-    }
-  });
-
-  return antalSH;
+  const fra = formatToISO(fraDato);
+  const til = formatToISO(tilDato);
+  return buildSHDageSetForIsoRange(fra, til).size;
 };
 
 /**
@@ -134,46 +169,5 @@ export const beregnSHDage = (fraDato: Date, tilDato: Date): number => {
  * Bruges til at undgå at tælle samme helligdag flere gange ved overlappende perioder
  */
 export const beregnSHDageForDatoSet = (datoSet: ReadonlySet<ISODateString>): number => {
-  if (!datoSet || datoSet.size === 0) {
-    return 0;
-  }
-
-  // Konverter dato-strings til Date-objekter
-  const datoer = Array.from(datoSet)
-    .map((dateStr) => parseISODate(dateStr))
-    .filter((d): d is Date => d !== undefined);
-
-  if (datoer.length === 0) {
-    return 0;
-  }
-
-  // Find min og max dato
-  const times = datoer.map((d) => d.getTime());
-  const minDato = new Date(Math.min(...times));
-  const maxDato = new Date(Math.max(...times));
-
-  // Find alle år i perioden
-  const aarSet = new Set<number>();
-  for (let year = minDato.getUTCFullYear(); year <= maxDato.getUTCFullYear(); year++) {
-    aarSet.add(year);
-  }
-
-  // Saml alle helligdage for de relevante år
-  const alleHelligdage: Date[] = [];
-  aarSet.forEach(year => {
-    alleHelligdage.push(...beregnHelligdage(year));
-  });
-
-  // Tæl helligdage der er i vores dato-set og på hverdage
-  let antalSH = 0;
-  alleHelligdage.forEach(helligdag => {
-    // Konverter helligdag til ISO-format (undgå timezone-problemer)
-    const helligdagStr = formatToISO(helligdag);
-
-    if (datoSet.has(helligdagStr) && erHverdag(helligdag)) {
-      antalSH++;
-    }
-  });
-
-  return antalSH;
+  return buildSHDageSetForDatoSet(datoSet).size;
 };

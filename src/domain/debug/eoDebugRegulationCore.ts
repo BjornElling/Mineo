@@ -24,7 +24,7 @@ import { getStatistiskLoenudvikling } from '../../data/statistiskeRates';
 import { getKRLSatstabel, formatKRLSatstabelDisplay, isKRLSatstabelId } from '../../data/krlRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
-import { beregnHelligdage } from '../dates/shDageBeregning';
+import { buildSHDageSetForIsoRange } from '../dates/shDageBeregning';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';
 import { STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../config/regulatoryRates';
 import { isoDateToDate } from '../dates/isoDate';
@@ -430,25 +430,7 @@ const decrementDate = (iso: ISODateString): ISODateString => {
 };
 
 export const buildSHDageSet = (fra: ISODateString, til: ISODateString): Set<ISODateString> => {
-  const set = new Set<ISODateString>();
-  const fraDate = isoDateToDate(fra);
-  const tilDate = isoDateToDate(til);
-
-  for (let year = fraDate.getUTCFullYear(); year <= tilDate.getUTCFullYear(); year++) {
-    const helligdage = beregnHelligdage(year);
-    for (const helligdag of helligdage) {
-      const iso = dateToISO(helligdag);
-      if (!iso) continue;
-      if (iso < fra || iso > til) continue;
-
-      const dow = helligdag.getUTCDay();
-      if (dow >= 1 && dow <= 5) {
-        set.add(iso);
-      }
-    }
-  }
-
-  return set;
+  return new Set(buildSHDageSetForIsoRange(fra, til));
 };
 
 type FerieDageInput = Readonly<{

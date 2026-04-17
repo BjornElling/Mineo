@@ -3,7 +3,7 @@ import type { ISODateString } from '../../../types/branded';
 import { dateToISO } from '../../../types/branded';
 import { isoDateToDate } from '../../dates/isoDate';
 import { addDays } from '../../../utils/dateUtils';
-import { beregnHelligdage } from '../../dates/shDageBeregning';
+import { buildSHDageSetForDatoSet } from '../../dates/shDageBeregning';
 import { toNonNegativeInt } from '../../../utils/numberParsing';
 import { getValidTafRange } from '../validation/tafPeriodConstraints';
 
@@ -75,17 +75,10 @@ export const buildShDageSet = (
   tilDate: Date,
   datoSet: ReadonlySet<ISODateString>
 ): Set<ISODateString> => {
-  const shDageSet = new Set<ISODateString>();
-  for (let year = fraDate.getUTCFullYear(); year <= tilDate.getUTCFullYear(); year += 1) {
-    const helligdage = beregnHelligdage(year);
-    for (const helligdag of helligdage) {
-      const isoStr = toIsoOrThrow(helligdag, 'helligdag');
-      if (isWeekdayUtc(helligdag) && datoSet.has(isoStr)) {
-        shDageSet.add(isoStr);
-      }
-    }
+  if (fraDate > tilDate || datoSet.size === 0) {
+    return new Set<ISODateString>();
   }
-  return shDageSet;
+  return new Set(buildSHDageSetForDatoSet(datoSet));
 };
 
 export const buildShDageSetFromIsoRange = (fra: ISODateString, til: ISODateString): Set<ISODateString> => {

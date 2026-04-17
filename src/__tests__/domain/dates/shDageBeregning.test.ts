@@ -1,5 +1,12 @@
 import { toISODateString } from '../../../types/branded';
-import { beregnHelligdage, beregnHelligdageMedNavn, beregnSHDage, beregnSHDageForDatoSet } from '../../../domain/dates/shDageBeregning';
+import {
+  beregnHelligdage,
+  beregnHelligdageMedNavn,
+  beregnSHDage,
+  beregnSHDageForDatoSet,
+  buildSHDageSetForDatoSet,
+  buildSHDageSetForIsoRange,
+} from '../../../domain/dates/shDageBeregning';
 import { createDate } from '../../../utils/dateUtils';
 
 describe('shDageBeregning', () => {
@@ -162,5 +169,43 @@ describe('beregnSHDageForDatoSet', () => {
       toISODateString('2024-01-02'), // Normal tirsdag → tæller ikke
     ]);
     expect(beregnSHDageForDatoSet(datoSet)).toBe(1);
+  });
+});
+
+describe('buildSHDageSetForDatoSet', () => {
+  it('returnerer ISO-sættet for hverdagshelligdage i et dato-set', () => {
+    const datoSet = new Set([
+      toISODateString('2024-01-01'),
+      toISODateString('2024-01-02'),
+      toISODateString('2024-05-19'),
+    ]);
+
+    const result = buildSHDageSetForDatoSet(datoSet);
+
+    expect(result.has(toISODateString('2024-01-01'))).toBe(true);
+    expect(result.has(toISODateString('2024-01-02'))).toBe(false);
+    expect(result.has(toISODateString('2024-05-19'))).toBe(false);
+    expect(result.size).toBe(1);
+  });
+});
+
+describe('buildSHDageSetForIsoRange', () => {
+  it('returnerer samme SH-dage som range-beregningen for januar 2024', () => {
+    const result = buildSHDageSetForIsoRange(
+      toISODateString('2024-01-01'),
+      toISODateString('2024-01-31')
+    );
+
+    expect(result.has(toISODateString('2024-01-01'))).toBe(true);
+    expect(result.size).toBe(1);
+  });
+
+  it('returnerer tomt sæt ved ugyldig rækkefølge', () => {
+    const result = buildSHDageSetForIsoRange(
+      toISODateString('2024-12-31'),
+      toISODateString('2024-01-01')
+    );
+
+    expect(result.size).toBe(0);
   });
 });
