@@ -269,6 +269,10 @@ const Satser = React.memo(() => {
           value={satser ? formatKroner(satser.eal.erhvervsevnetabEalMax) : ''}
         />
         <DataRow
+          label="Mindstebeløb for forsørgertab"
+          value={satser ? formatKroner(satser.eal.foersoergertabEalMin) : ''}
+        />
+        <DataRow
           label="Vejledende udtalelse om erhvervsevnetab"
           value={satser ? formatKroner(satser.eal.vejledendeUdtalelseEet) : ''}
         />

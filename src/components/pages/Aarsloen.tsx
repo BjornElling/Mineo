@@ -18,7 +18,11 @@ import { formatCountWithUnit, formatCurrency } from '../../utils/formatUtils';
 import { STANDARD_HVERDAGE_PAA_AAR } from '../../utils/periodeBeregning';
 import { aarsloenSchema } from '../../schemas/formSchemas';
 import { isLoenperiodeValue, isLoenPaaHelligdageValue } from '../../utils/zodTypeGuards';
-import { harTabelData } from '../../domain/aarsloen/aarsloenValidationPolicies';
+import {
+  EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+  resolveAarsloenOmregningGate,
+} from '../../domain/aarsloen/aarsloenValidationPolicies';
+import { resolveAarsloenIndtastetEnhedSummary } from '../../domain/aarsloen/aarsloenPeriodDisplay';
 import {
   shouldShowAarsloenFerieFields,
   shouldShowAarsloenShDageFields,
@@ -62,7 +66,9 @@ const Aarsloen = React.memo(() => {
   } = values;
 
   // Refs til fejl-validering
-  const [tabelHarFejl, setTabelHarFejl] = React.useState(false);
+  const [tableValidationSummary, setTableValidationSummary] = React.useState<StandardLoenTableValidationSummary>(
+    EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY
+  );
   const tabelRef = React.useRef<StandardLoenTableHandle | null>(null);
   const toggleRef = React.useRef<StyledToggleSwitchHandle | null>(null);
 
@@ -70,21 +76,23 @@ const Aarsloen = React.memo(() => {
   // CUSTOM HOOKS - Separation of concerns
   // ============================================================================
 
-  const hasValidPeriod = React.useMemo(
-    () => harTabelData(values.tableData, values.loenperiode),
-    [values.loenperiode, values.tableData]
+  const omregningGate = React.useMemo(
+    () => resolveAarsloenOmregningGate({
+      requestedEnabled: values.omregningTilFuldtAar,
+      tableData: values.tableData,
+      loenperiode: values.loenperiode,
+      validationSummary: tableValidationSummary,
+    }),
+    [tableValidationSummary, values.loenperiode, values.omregningTilFuldtAar, values.tableData]
   );
 
   // Toggle state management.
-  // omregningChecked    = persisted brugerinput (hvad toggle viser og hvad gemmes i fil).
-  // omregningAktiveret  = effektiv beregnings-aktivering — gates af tabelHarFejl og hasValidPeriod.
-  // De to kan divergere: toggle vises ON, men beregningen er deaktiveret, hvis tabellen mangler
-  // gyldige data. Det er intentionelt: brugeren beholder sit valg, og toggle lyver ikke —
-  // indholdssektionen under toggle'en skjules, og periode/omregnings-felter er disabled.
+  // requestedEnabled    = persisted brugerønske.
+  // omregningGate       = centralt gate-resultat fra committed tabelstate.
+  // checked/effectiveEnabled bruger samme gate, så toggle-visning og skjult indhold
+  // altid reagerer på de samme committed forudsætninger.
   const { checked: omregningChecked, effectiveEnabled: omregningAktiveret, handleToggle: handleOmregningToggle } = useOmregningToggle({
-    requestedEnabled: values.omregningTilFuldtAar,
-    tabelHarFejl,
-    hasValidPeriod,
+    gate: omregningGate,
     tabelRef,
     toggleRef,
     onEnabledChange: (enabled) => {
@@ -113,6 +121,7 @@ const Aarsloen = React.memo(() => {
     handleAarsloenPdfDownload,
     handleSHDagePdfDownload,
     downloadShake,
+    downloadErrorMessage,
   } = useAarsloenPdfGates({
     values,
     omregningAktiveret,
@@ -125,6 +134,50 @@ const Aarsloen = React.memo(() => {
     persistedStamdata,
     settings,
   });
+
+  const renderPdfDownloadIcon = React.useCallback((params: Readonly<{
+    onClick: () => void | Promise<void>;
+    shake?: boolean;
+  }>) => {
+    const { onClick, shake = false } = params;
+    return (
+      <Box
+        onClick={() => {
+          void onClick();
+        }}
+        tabIndex={-1}
+        sx={{
+          width: '32px',
+          height: '32px',
+          borderRadius: '6px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          transition: 'background-color 0.2s',
+          animation: shake ? 'shake 0.5s' : 'none',
+          '&:hover': {
+            backgroundColor: '#e3f2fd',
+          },
+          '&:active': {
+            backgroundColor: '#bbdefb',
+          },
+          '@keyframes shake': {
+            '0%, 100%': { transform: 'translateX(0)' },
+            '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
+            '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
+          },
+        }}
+      >
+        <Download
+          sx={{
+            fontSize: '24px',
+            color: 'primary.main',
+          }}
+        />
+      </Box>
+    );
+  }, []);
 
   // ============================================================================
   // FIELD HANDLERS
@@ -200,11 +253,11 @@ const Aarsloen = React.memo(() => {
    * Callback fra StandardLoenTable når validerings-status ændres (type-safe)
    */
   const handleValidationChange = React.useCallback((summary: StandardLoenTableValidationSummary) => {
-    setTabelHarFejl(summary.hasErrors);
+    setTableValidationSummary(summary);
   }, []);
 
   // Derived boolean for conditional rendering
-  const canShowOmregning = omregningAktiveret && !!periodeData;
+  const canShowOmregning = omregningAktiveret && periodeData !== null;
   const shouldShowFerieFields = React.useMemo(
     () => shouldShowAarsloenFerieFields(values),
     [values]
@@ -217,41 +270,21 @@ const Aarsloen = React.memo(() => {
     () => shouldWarnAarsloenFeriePct(values),
     [values]
   );
+  const indtastetEnhedSummary = React.useMemo(
+    () => resolveAarsloenIndtastetEnhedSummary({
+      tableData,
+      periodeData,
+      beregningsData,
+      loenperiode,
+    }),
+    [beregningsData, loenperiode, periodeData, tableData]
+  );
 
   const aarsloenPdfDownloadButton = canDownloadPdf ? (
-    <Box
-      onClick={handleAarsloenPdfDownload}
-      tabIndex={-1}
-      sx={{
-        width: '32px',
-        height: '32px',
-        borderRadius: '6px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        cursor: 'pointer',
-        transition: 'background-color 0.2s',
-        animation: downloadShake ? 'shake 0.5s' : 'none',
-        '&:hover': {
-          backgroundColor: '#e3f2fd',
-        },
-        '&:active': {
-          backgroundColor: '#bbdefb',
-        },
-        '@keyframes shake': {
-          '0%, 100%': { transform: 'translateX(0)' },
-          '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },
-          '20%, 40%, 60%, 80%': { transform: 'translateX(5px)' },
-        },
-      }}
-    >
-      <Download
-        sx={{
-          fontSize: '24px',
-          color: 'primary.main',
-        }}
-      />
-    </Box>
+    renderPdfDownloadIcon({
+      onClick: handleAarsloenPdfDownload,
+      shake: downloadShake,
+    })
   ) : null;
 
   return (
@@ -417,16 +450,10 @@ const Aarsloen = React.memo(() => {
         {/* Vis periode-information kun hvis omregning er aktiveret OG der er data */}
         {/* Felter holdes permanent i DOM for at undgå MUI focus-warnings */}
         <Box sx={{ display: canShowOmregning ? 'block' : 'none' }}>
-          {/* Samlet periode */}
+          {/* Antal indtastede beregningsenheder */}
           <Box className="row--label-right">
-            <Typography className="row--text">Samlet periode:</Typography>
-            <Typography className="row--text">{periodeData?.periodeTekst ?? ''}</Typography>
-          </Box>
-
-          {/* Andel af samlet periode */}
-          <Box className="row--label-right">
-            <Typography className="row--text">Andel af samlet periode, indtastet under Indtægtsoplysninger:</Typography>
-            <Typography className="row--text">{periodeData ? `${periodeData.unikkeEnheder} / ${periodeData.totalEnheder} ${periodeData.enhedNavn}` : ''}</Typography>
+            <Typography className="row--text">{`${indtastetEnhedSummary.label}:`}</Typography>
+            <Typography className="row--text">{indtastetEnhedSummary.value}</Typography>
           </Box>
 
           {/* Fuld løn under ferie */}
@@ -497,33 +524,9 @@ const Aarsloen = React.memo(() => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">{shDageAntal ?? 0}</Typography>
                   {(shDageAntal ?? 0) > 0 && (
-                    <Box
-                      onClick={handleSHDagePdfDownload}
-                      tabIndex={-1}
-                      sx={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '6px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        transition: 'background-color 0.2s',
-                        '&:hover': {
-                          backgroundColor: '#e3f2fd',
-                        },
-                        '&:active': {
-                          backgroundColor: '#bbdefb',
-                        },
-                      }}
-                    >
-                      <Download
-                        sx={{
-                          fontSize: '24px',
-                          color: 'primary.main',
-                        }}
-                      />
-                    </Box>
+                    renderPdfDownloadIcon({
+                      onClick: handleSHDagePdfDownload,
+                    })
                   )}
                 </Box>
               </Box>
@@ -551,6 +554,15 @@ const Aarsloen = React.memo(() => {
               <Box />
             </Box>
           )}
+        </ContentBox>
+      )}
+
+      {downloadErrorMessage && (
+        <ContentBox className="content-box">
+          <Typography className="section-header">PDF-fejl</Typography>
+          <Typography className="row--text" sx={{ color: 'error.main' }}>
+            {downloadErrorMessage}
+          </Typography>
         </ContentBox>
       )}
 

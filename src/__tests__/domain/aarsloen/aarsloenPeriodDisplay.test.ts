@@ -1,0 +1,143 @@
+import type { DateInterval } from '../../../types/calculation';
+import type { PeriodeResult } from '../../../utils/periodeBeregning';
+import { resolveAarsloenIndtastetEnhedSummary } from '../../../domain/aarsloen/aarsloenPeriodDisplay';
+import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
+
+const buildPeriodeResult = (unikkeEnheder: number, perioder: DateInterval[] = []): PeriodeResult => ({
+  periodeTekst: 'test',
+  totalEnheder: unikkeEnheder,
+  unikkeEnheder,
+  enhedNavn: 'dage',
+  datoSet: new Set(),
+  perioder,
+});
+
+const buildRow = (overrides: Partial<StandardLoenTableRow> = {}): StandardLoenTableRow => ({
+  id: 'row-1',
+  col0_maaned: '',
+  col1_maaned: '',
+  col0_uge: '',
+  col1_uge: '',
+  col0_dag: '',
+  col1_dag: '',
+  col2: undefined,
+  col3: undefined,
+  col4: undefined,
+  col5: undefined,
+  ...overrides,
+});
+
+describe('resolveAarsloenIndtastetEnhedSummary', () => {
+  it('viser hverdage for metode A, selv når beregningsgrundlaget er arbejdsdage', () => {
+    const result = resolveAarsloenIndtastetEnhedSummary({
+      tableData: [],
+      periodeData: buildPeriodeResult(51),
+      beregningsData: {
+        metode: 'A',
+        erEtAar: false,
+        arbejdsdageIPeriode: 37,
+        hverdageIPeriode: 9,
+      },
+      loenperiode: 'dag',
+    });
+
+    expect(result).toEqual({
+      label: 'Antal hverdage i de indtastede perioder',
+      value: '9 hverdage',
+    });
+  });
+
+  it('viser hverdage for metode B', () => {
+    const result = resolveAarsloenIndtastetEnhedSummary({
+      tableData: [],
+      periodeData: buildPeriodeResult(51),
+      beregningsData: {
+        metode: 'B',
+        erEtAar: false,
+        arbejdsdageIPeriode: 42,
+      },
+      loenperiode: 'dag',
+    });
+
+    expect(result).toEqual({
+      label: 'Antal hverdage i de indtastede perioder',
+      value: '42 hverdage',
+    });
+  });
+
+  it('viser måneder for metode C med månedsløn', () => {
+    const result = resolveAarsloenIndtastetEnhedSummary({
+      tableData: [],
+      periodeData: buildPeriodeResult(3),
+      beregningsData: {
+        metode: 'C',
+        erEtAar: false,
+        antalMaaneder: 3,
+      },
+      loenperiode: 'maaned',
+    });
+
+    expect(result).toEqual({
+      label: 'Antal måneder i de indtastede perioder',
+      value: '3 måneder',
+    });
+  });
+
+  it('falder tilbage til kalenderdage når metode endnu ikke er afgjort', () => {
+    const result = resolveAarsloenIndtastetEnhedSummary({
+      tableData: [],
+      periodeData: buildPeriodeResult(51),
+      beregningsData: {
+        metode: 'ingen',
+        erEtAar: false,
+      },
+      loenperiode: 'dag',
+    });
+
+    expect(result).toEqual({
+      label: 'Antal kalenderdage i de indtastede perioder',
+      value: '51 kalenderdage',
+    });
+  });
+
+  it('viser entalslabel når der kun er én indtastet periode', () => {
+    const result = resolveAarsloenIndtastetEnhedSummary({
+      tableData: [buildRow({ col0_dag: '01-01-2024' })],
+      periodeData: buildPeriodeResult(1, [{ start: new Date('2024-01-01'), end: new Date('2024-01-31') }]),
+      beregningsData: {
+        metode: 'A',
+        erEtAar: false,
+        arbejdsdageIPeriode: 1,
+        hverdageIPeriode: 3,
+      },
+      loenperiode: 'dag',
+    });
+
+    expect(result).toEqual({
+      label: 'Antal hverdage i den indtastede periode',
+      value: '3 hverdage',
+    });
+  });
+
+  it('beholder flertalslabel når flere rækker er udfyldt selv om perioden samler til én periode', () => {
+    const result = resolveAarsloenIndtastetEnhedSummary({
+      tableData: [
+        buildRow({ id: 'row-1', col0_dag: '01-01-2024' }),
+        buildRow({ id: 'row-2', col0_dag: '02-01-2024' }),
+      ],
+      periodeData: buildPeriodeResult(19, [{ start: new Date('2024-01-01'), end: new Date('2024-01-31') }]),
+      beregningsData: {
+        metode: 'A',
+        erEtAar: false,
+        arbejdsdageIPeriode: 19,
+        hverdageIPeriode: 24,
+      },
+      loenperiode: 'dag',
+    });
+
+    expect(result).toEqual({
+      label: 'Antal hverdage i de indtastede perioder',
+      value: '24 hverdage',
+    });
+  });
+});

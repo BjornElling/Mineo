@@ -16,6 +16,20 @@ vi.mock('../../../utils/logger', () => ({
 // ─── Mocks til loadXxxPdfModule-funktionerne ──────────────────────────────────
 
 const {
+  mockReportSystemIssue,
+  mockLoadSatserPdfModule,
+  mockLoadRentePdfModule,
+  mockLoadReguleringPdfModule,
+  mockLoadKRLPdfModule,
+  mockLoadLoebendeYdelserPdfModule,
+  mockLoadKapitaliseringPdfModule,
+  mockLoadEfterEalPdfModule,
+  mockLoadDifferencekravPdfModule,
+  mockLoadErstatningsopgoerelsePdfModule,
+  mockLoadTafFordeltPaaAarPdfModule,
+  mockLoadVarigeMenPdfModule,
+  mockLoadAarsloenPdfModule,
+  mockLoadSHDagePdfModule,
   mockGenerateSatserPdf,
   mockGenerateRentePdf,
   mockGenerateReguleringPdf,
@@ -32,6 +46,20 @@ const {
   mockEoSnapshotToEoPdfDocument,
   mockEoSnapshotToTafPerYearPdfDocument,
 } = vi.hoisted(() => ({
+  mockReportSystemIssue: vi.fn(),
+  mockLoadSatserPdfModule: vi.fn(),
+  mockLoadRentePdfModule: vi.fn(),
+  mockLoadReguleringPdfModule: vi.fn(),
+  mockLoadKRLPdfModule: vi.fn(),
+  mockLoadLoebendeYdelserPdfModule: vi.fn(),
+  mockLoadKapitaliseringPdfModule: vi.fn(),
+  mockLoadEfterEalPdfModule: vi.fn(),
+  mockLoadDifferencekravPdfModule: vi.fn(),
+  mockLoadErstatningsopgoerelsePdfModule: vi.fn(),
+  mockLoadTafFordeltPaaAarPdfModule: vi.fn(),
+  mockLoadVarigeMenPdfModule: vi.fn(),
+  mockLoadAarsloenPdfModule: vi.fn(),
+  mockLoadSHDagePdfModule: vi.fn(),
   mockGenerateSatserPdf: vi.fn(),
   mockGenerateRentePdf: vi.fn(),
   mockGenerateReguleringPdf: vi.fn(),
@@ -49,24 +77,24 @@ const {
   mockEoSnapshotToTafPerYearPdfDocument: vi.fn(),
 }));
 
+vi.mock('../../../utils/systemIssueReporter', () => ({
+  reportSystemIssue: mockReportSystemIssue,
+}));
+
 vi.mock('../../../pdf/infrastructure/pdfLoader', () => ({
-  loadSatserPdfModule: vi.fn(async () => ({ generateSatserPdf: mockGenerateSatserPdf })),
-  loadRentePdfModule: vi.fn(async () => ({ generateRentePdf: mockGenerateRentePdf })),
-  loadReguleringPdfModule: vi.fn(async () => ({ generateReguleringPdf: mockGenerateReguleringPdf })),
-  loadKRLPdfModule: vi.fn(async () => ({ generateKRLPdf: mockGenerateKRLPdf })),
-  loadLoebendeYdelserPdfModule: vi.fn(async () => ({ generateLoebendeYdelserPdf: mockGenerateLoebendeYdelserPdf })),
-  loadKapitaliseringPdfModule: vi.fn(async () => ({ generateKapitaliseringPdf: mockGenerateKapitaliseringPdf })),
-  loadEfterEalPdfModule: vi.fn(async () => ({ generateEfterEalPdf: mockGenerateEfterEalPdf })),
-  loadDifferencekravPdfModule: vi.fn(async () => ({ generateDifferencekravPdf: mockGenerateDifferencekravPdf })),
-  loadErstatningsopgoerelsePdfModule: vi.fn(async () => ({
-    generateErstatningsopgoerelsePdf: mockGenerateErstatningsopgoerelsePdf,
-  })),
-  loadTafFordeltPaaAarPdfModule: vi.fn(async () => ({
-    generateTafFordeltPaaAarPdf: mockGenerateTafFordeltPaaAarPdf,
-  })),
-  loadVarigeMenPdfModule: vi.fn(async () => ({ generateVarigeMenPdf: mockGenerateVarigeMenPdf })),
-  loadAarsloenPdfModule: vi.fn(async () => ({ generateAarsloenPdf: mockGenerateAarsloenPdf })),
-  loadSHDagePdfModule: vi.fn(async () => ({ generateSHDagePdf: mockGenerateSHDagePdf })),
+  loadSatserPdfModule: mockLoadSatserPdfModule,
+  loadRentePdfModule: mockLoadRentePdfModule,
+  loadReguleringPdfModule: mockLoadReguleringPdfModule,
+  loadKRLPdfModule: mockLoadKRLPdfModule,
+  loadLoebendeYdelserPdfModule: mockLoadLoebendeYdelserPdfModule,
+  loadKapitaliseringPdfModule: mockLoadKapitaliseringPdfModule,
+  loadEfterEalPdfModule: mockLoadEfterEalPdfModule,
+  loadDifferencekravPdfModule: mockLoadDifferencekravPdfModule,
+  loadErstatningsopgoerelsePdfModule: mockLoadErstatningsopgoerelsePdfModule,
+  loadTafFordeltPaaAarPdfModule: mockLoadTafFordeltPaaAarPdfModule,
+  loadVarigeMenPdfModule: mockLoadVarigeMenPdfModule,
+  loadAarsloenPdfModule: mockLoadAarsloenPdfModule,
+  loadSHDagePdfModule: mockLoadSHDagePdfModule,
 }));
 
 vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument', () => ({
@@ -91,6 +119,7 @@ import {
   downloadVarigeMenPdf,
   downloadAarsloenPdf,
   downloadSHDagePdf,
+  resetPdfServiceDevServerStateForTests,
 } from '../../../pdf/infrastructure/pdfService';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
@@ -101,6 +130,21 @@ const eoValues = createErstatningsopgoerelseInitialValues();
 const eoSnapshot = { revision: 'rev-1' } as never;
 
 beforeEach(() => {
+  resetPdfServiceDevServerStateForTests();
+  mockReportSystemIssue.mockReset();
+  mockLoadSatserPdfModule.mockReset();
+  mockLoadRentePdfModule.mockReset();
+  mockLoadReguleringPdfModule.mockReset();
+  mockLoadKRLPdfModule.mockReset();
+  mockLoadLoebendeYdelserPdfModule.mockReset();
+  mockLoadKapitaliseringPdfModule.mockReset();
+  mockLoadEfterEalPdfModule.mockReset();
+  mockLoadDifferencekravPdfModule.mockReset();
+  mockLoadErstatningsopgoerelsePdfModule.mockReset();
+  mockLoadTafFordeltPaaAarPdfModule.mockReset();
+  mockLoadVarigeMenPdfModule.mockReset();
+  mockLoadAarsloenPdfModule.mockReset();
+  mockLoadSHDagePdfModule.mockReset();
   mockGenerateSatserPdf.mockReset();
   mockGenerateRentePdf.mockReset();
   mockGenerateReguleringPdf.mockReset();
@@ -116,6 +160,23 @@ beforeEach(() => {
   mockGenerateSHDagePdf.mockReset();
   mockEoSnapshotToEoPdfDocument.mockReset();
   mockEoSnapshotToTafPerYearPdfDocument.mockReset();
+  mockLoadSatserPdfModule.mockImplementation(async () => ({ generateSatserPdf: mockGenerateSatserPdf }));
+  mockLoadRentePdfModule.mockImplementation(async () => ({ generateRentePdf: mockGenerateRentePdf }));
+  mockLoadReguleringPdfModule.mockImplementation(async () => ({ generateReguleringPdf: mockGenerateReguleringPdf }));
+  mockLoadKRLPdfModule.mockImplementation(async () => ({ generateKRLPdf: mockGenerateKRLPdf }));
+  mockLoadLoebendeYdelserPdfModule.mockImplementation(async () => ({ generateLoebendeYdelserPdf: mockGenerateLoebendeYdelserPdf }));
+  mockLoadKapitaliseringPdfModule.mockImplementation(async () => ({ generateKapitaliseringPdf: mockGenerateKapitaliseringPdf }));
+  mockLoadEfterEalPdfModule.mockImplementation(async () => ({ generateEfterEalPdf: mockGenerateEfterEalPdf }));
+  mockLoadDifferencekravPdfModule.mockImplementation(async () => ({ generateDifferencekravPdf: mockGenerateDifferencekravPdf }));
+  mockLoadErstatningsopgoerelsePdfModule.mockImplementation(async () => ({
+    generateErstatningsopgoerelsePdf: mockGenerateErstatningsopgoerelsePdf,
+  }));
+  mockLoadTafFordeltPaaAarPdfModule.mockImplementation(async () => ({
+    generateTafFordeltPaaAarPdf: mockGenerateTafFordeltPaaAarPdf,
+  }));
+  mockLoadVarigeMenPdfModule.mockImplementation(async () => ({ generateVarigeMenPdf: mockGenerateVarigeMenPdf }));
+  mockLoadAarsloenPdfModule.mockImplementation(async () => ({ generateAarsloenPdf: mockGenerateAarsloenPdf }));
+  mockLoadSHDagePdfModule.mockImplementation(async () => ({ generateSHDagePdf: mockGenerateSHDagePdf }));
   mockEoSnapshotToEoPdfDocument.mockReturnValue({
     kind: 'ok',
     document: { titel: 'EO dokument' },
@@ -124,6 +185,11 @@ beforeEach(() => {
     kind: 'ok',
     document: { model: { titel: 'TAF dokument' }, presentation: null },
   });
+  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true })));
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 // ─── downloadSatserPdf ────────────────────────────────────────────────────────
@@ -548,6 +614,65 @@ describe('downloadAarsloenPdf', () => {
       persistedStamdata: null,
     });
     expect(result.success).toBe(false);
+  });
+
+  it('blokerer ikke første downloadforsøg alene fordi dev-server-ping fejler, når modulindlæsning lykkes', async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await downloadAarsloenPdf({
+      input: {} as never,
+      settings,
+      persistedStamdata: null,
+    });
+
+    expect(result).toEqual({ success: true });
+    expect(mockLoadAarsloenPdfModule).toHaveBeenCalledTimes(1);
+    expect(mockReportSystemIssue).not.toHaveBeenCalled();
+  });
+
+  it('rapporterer dev-server nede særskilt efter fejlet modulindlæsning og rechecker ved næste download', async () => {
+    const fetchMock = vi.fn(async () => {
+      throw new TypeError('Failed to fetch');
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    mockLoadAarsloenPdfModule.mockRejectedValueOnce(
+      new TypeError('Failed to fetch dynamically imported module')
+    );
+
+    const result = await downloadAarsloenPdf({
+      input: {} as never,
+      settings,
+      persistedStamdata: null,
+    });
+
+    expect(result).toEqual({
+      success: false,
+      error: 'Udviklingsserveren svarer ikke længere. Genstart `npm run dev` og prøv PDF-download igen.',
+    });
+    expect(mockReportSystemIssue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        code: 'pdf:dev_server_unavailable',
+        area: 'pdf',
+        context: 'pdfService.downloadAarsloenPdf',
+        diagnostics: expect.objectContaining({
+          check: 'post_failure',
+        }),
+      })
+    );
+    expect(mockLoadAarsloenPdfModule).toHaveBeenCalledTimes(1);
+
+    const secondResult = await downloadAarsloenPdf({
+      input: {} as never,
+      settings,
+      persistedStamdata: null,
+    });
+
+    expect(secondResult).toEqual(result);
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(mockReportSystemIssue).toHaveBeenCalledTimes(1);
   });
 });
 

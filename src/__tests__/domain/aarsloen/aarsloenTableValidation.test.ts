@@ -1,8 +1,12 @@
 /// <reference types="vitest/globals" />
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
-import { getStandardLoenTableValidation } from '../../../domain/aarsloen/standardLoenTableValidation';
-import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../../domain/aarsloen/standardLoenTableValidation';
+import {
+  buildStandardLoenPeriodOrderCellErrorMessages,
+  getStandardLoenTableValidation,
+  isStandardLoenTableValueEffectivelyEmptyForValidation,
+} from '../../../domain/aarsloen/standardLoenTableValidation';
+import { DATE_ORDER_ERROR_MESSAGE } from '../../../utils/dateOrderValidation';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -124,5 +128,68 @@ describe('getStandardLoenTableValidation', () => {
     expect(isStandardLoenTableValueEffectivelyEmptyForValidation(0)).toBe(false);
     expect(isStandardLoenTableValueEffectivelyEmptyForValidation({ kind: 'number', value: 0 })).toBe(false);
     expect(isStandardLoenTableValueEffectivelyEmptyForValidation({ kind: 'expression', expression: '0', value: 0 })).toBe(false);
+  });
+});
+
+describe('buildStandardLoenPeriodOrderCellErrorMessages', () => {
+  it('returnerer tom map for maaned-tabel (ingen fra/til-rækkefølge)', () => {
+    const rows = [
+      row('r1', { col0_maaned: '6', col1_maaned: '2024', col2: amount(100) }),
+      row('r2', { col0_maaned: '13', col1_maaned: '1800' }),
+    ];
+    expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'maaned')).toEqual({});
+  });
+
+  it('returnerer tom map når ingen rækker har rækkefølge-fejl (uge)', () => {
+    const rows = [
+      row('r1', { col0_uge: '10/2024', col1_uge: '12/2024' }),
+      row('r2', { col0_uge: '', col1_uge: '' }),
+    ];
+    expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'uge')).toEqual({});
+  });
+
+  it('returnerer tom map når ingen rækker har rækkefølge-fejl (dag)', () => {
+    const rows = [
+      row('r1', { col0_dag: '01-01-2024', col1_dag: '31-01-2024' }),
+    ];
+    expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'dag')).toEqual({});
+  });
+
+  it('sætter error-message på begge periode-celler ved uge-rækkefølgefejl', () => {
+    const rows = [row('r1', { col0_uge: '20/2024', col1_uge: '10/2024' })];
+    expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'uge')).toEqual({
+      'r1:col0_uge': DATE_ORDER_ERROR_MESSAGE,
+      'r1:col1_uge': DATE_ORDER_ERROR_MESSAGE,
+    });
+  });
+
+  it('sætter error-message på begge periode-celler ved dag-rækkefølgefejl', () => {
+    const rows = [row('r1', { col0_dag: '31-01-2024', col1_dag: '01-01-2024' })];
+    expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'dag')).toEqual({
+      'r1:col0_dag': DATE_ORDER_ERROR_MESSAGE,
+      'r1:col1_dag': DATE_ORDER_ERROR_MESSAGE,
+    });
+  });
+
+  it('rapporterer fejl pr. række uafhængigt ved blandet validitet', () => {
+    const rows = [
+      row('r1', { col0_dag: '31-01-2024', col1_dag: '01-01-2024' }),
+      row('r2', { col0_dag: '01-02-2024', col1_dag: '28-02-2024' }),
+      row('r3', { col0_dag: '15-03-2024', col1_dag: '10-03-2024' }),
+    ];
+    expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'dag')).toEqual({
+      'r1:col0_dag': DATE_ORDER_ERROR_MESSAGE,
+      'r1:col1_dag': DATE_ORDER_ERROR_MESSAGE,
+      'r3:col0_dag': DATE_ORDER_ERROR_MESSAGE,
+      'r3:col1_dag': DATE_ORDER_ERROR_MESSAGE,
+    });
+  });
+
+  it('ignorerer rækker med ufuldstændige perioder (kan ikke være i forkert rækkefølge)', () => {
+    const rows = [
+      row('r1', { col0_dag: '31-01-2024', col1_dag: '' }),
+      row('r2', { col0_dag: '', col1_dag: '01-01-2024' }),
+    ];
+    expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'dag')).toEqual({});
   });
 });

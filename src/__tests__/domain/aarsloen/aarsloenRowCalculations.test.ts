@@ -396,9 +396,8 @@ describe('isStandardLoenTableCellEffectivelyEmpty', () => {
     expect(isStandardLoenTableCellEffectivelyEmpty('1')).toBe(false);
   });
 
-  it('tal (0) → false (kun strenge er "empty")', () => {
-    // Implementeringen returnerer false for ikke-strenge (typeof value !== 'string')
-    expect(isStandardLoenTableCellEffectivelyEmpty(0)).toBe(false);
+  it('tal (0) → true', () => {
+    expect(isStandardLoenTableCellEffectivelyEmpty(0)).toBe(true);
   });
 
   it('tal (1000) → false', () => {
@@ -443,14 +442,26 @@ describe('isStandardLoenRowEffectivelyEmpty', () => {
     expect(isStandardLoenRowEffectivelyEmpty(row)).toBe(true);
   });
 
-  it('createRow() med col2=0 (number) → false (0 er tal, ikke string)', () => {
-    // col2: 0 → typeof number → isStandardLoenTableCellEffectivelyEmpty(0) = false
-    expect(isStandardLoenRowEffectivelyEmpty(createRow({ col2: 0 }))).toBe(false);
+  it('createRow() med col2=0 (number) → true', () => {
+    expect(isStandardLoenRowEffectivelyEmpty(createRow({ col2: 0 }))).toBe(true);
+  });
+
+  it('amount value med 0 behandles som tomt rækkeindhold', () => {
+    expect(isStandardLoenRowEffectivelyEmpty(createRow({ col2: { kind: 'number', value: 0 } }))).toBe(true);
   });
 
   it('row med col0_maaned = "1" og undefined numerics → ikke empty', () => {
     const row: StandardLoenTableRow = { id: 'r', col0_maaned: '1', col2: undefined, col3: undefined, col4: undefined, col5: undefined };
     expect(isStandardLoenRowEffectivelyEmpty(row)).toBe(false);
+  });
+
+  it('skjulte periodefelter holder ikke rækken i live for aktiv dag-visning', () => {
+    const row = createRow({ col0_maaned: '1', col1_maaned: '2024' });
+    expect(isStandardLoenRowEffectivelyEmpty(row, 'dag')).toBe(true);
+  });
+
+  it('row med positivt amount value er ikke tom', () => {
+    expect(isStandardLoenRowEffectivelyEmpty(createRow({ col2: { kind: 'number', value: 1 } }))).toBe(false);
   });
 });
 

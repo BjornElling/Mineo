@@ -240,6 +240,23 @@ describe('pdfWriter headers', () => {
     expect(writer.getY()).toBeGreaterThan(before);
   });
 
+  it('modregner eksisterende afstand når writeSubheader følger efter setY-fremryk med sektionafstand', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM, SECTION_SPACER } = await import('../../../pdf/infrastructure/pdfConfig');
+    const writer = createStandardPdfWriter();
+
+    writer.setY(100);
+    writer.writeWrappedText('Eksisterende indhold');
+    writer.setY(100 + SECTION_SPACER);
+    const afterSectionSpacing = writer.getY();
+
+    writer.writeSubheader('Underoverskrift', PDF_BASE_LINE_HEIGHT_MM);
+
+    expect(writer.getY() - afterSectionSpacing).toBe(
+      PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM
+    );
+  });
+
   it('tilføjer ikke ekstra topafstand når writeSubheader følger direkte efter writeSectionHeader', async () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
     const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');

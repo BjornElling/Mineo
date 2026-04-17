@@ -40,6 +40,7 @@ export interface RenteberegningTabProps {
   onDownloadSpecifikation: (pdfContext: RentePdfContext) => Promise<void>;
   committedRentekravById: ReadonlyMap<string, RentekravRow>;
   onError: (message: string, context: string, error?: unknown) => void;
+  pdfErrorMessage: string | null;
   referenceRates: ReadonlyArray<RateEntry>;
   surchargeRates: ReadonlyArray<RateEntry>;
 }
@@ -56,6 +57,7 @@ const RenteberegningTab = React.memo(({
   onDownloadSpecifikation,
   committedRentekravById,
   onError,
+  pdfErrorMessage,
   referenceRates,
   surchargeRates,
 }: RenteberegningTabProps) => {
@@ -91,6 +93,14 @@ const RenteberegningTab = React.memo(({
 
       <ContentBox className="content-box">
         <Typography className="section-header">Beregnet rente</Typography>
+        {pdfErrorMessage && (
+          <Box className="row--label-right-hover">
+            <Typography className="row--text" sx={{ color: 'error.main' }}>
+              {pdfErrorMessage}
+            </Typography>
+            <Box className="row--label-right-hover__content" />
+          </Box>
+        )}
         <BeregnetRenteTable
           rows={rentekravRows}
           onFieldChange={onRentekravChange}

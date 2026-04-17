@@ -41,6 +41,7 @@ const Renteberegning = React.memo(() => {
     'renteberegning',
     initialValues
   );
+  const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
 
   const handleError = React.useCallback((message: string, context: string, error?: unknown) => {
     if (process.env.NODE_ENV === 'development') {
@@ -78,6 +79,7 @@ const Renteberegning = React.memo(() => {
       const actualInterestDateDanish = isoToDanish(pdfContext.actualInterestDate);
       const beregningsdatoDanish = isoToDanish(pdfContext.beregningsdato);
       if (!actualInterestDateDanish || !beregningsdatoDanish) {
+        setPdfErrorMessage('Kunne ikke generere rente-PDF.');
         handleError('Ugyldige datoer for PDF-generering', 'Renteberegning.PDFGeneration');
         return;
       }
@@ -89,9 +91,7 @@ const Renteberegning = React.memo(() => {
         settings,
         persistedStamdata,
       });
-      if (!result.success) {
-        handleError(result.error, 'Renteberegning.PDFGeneration');
-      }
+      setPdfErrorMessage(result.success ? null : result.error);
     },
     [persistedStamdata, handleError, settings, values.kommentarer]
   );
@@ -164,6 +164,7 @@ const Renteberegning = React.memo(() => {
           onDownloadSpecifikation={handleDownloadRentePdf}
           committedRentekravById={rentekrav.committedById}
           onError={handleError}
+          pdfErrorMessage={pdfErrorMessage}
           referenceRates={referenceRates}
           surchargeRates={surchargeRates}
         />

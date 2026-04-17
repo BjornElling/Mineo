@@ -61,6 +61,26 @@ describe('periodeBeregning', () => {
     expect(result?.totalEnheder).toBe(2);
     expect(result?.unikkeEnheder).toBe(2);
   });
+
+  it('beregnDagPeriode tæller kun unikke kalenderdage ved overlappende perioder', () => {
+    const rows: StandardLoenTableRow[] = [
+      { id: 'row-1', col0_dag: '01-01-2024', col1_dag: '10-01-2024' },
+      { id: 'row-2', col0_dag: '05-01-2024', col1_dag: '15-01-2024' },
+    ];
+    const result = beregnDagPeriode(rows);
+    expect(result?.unikkeEnheder).toBe(15);
+    expect(result?.totalEnheder).toBe(15);
+  });
+
+  it('beregnUgePeriode tæller kun unikke uger ved overlappende perioder', () => {
+    const rows: StandardLoenTableRow[] = [
+      { id: 'row-1', col0_uge: '01/2024', col1_uge: '03/2024' },
+      { id: 'row-2', col0_uge: '03/2024', col1_uge: '05/2024' },
+    ];
+    const result = beregnUgePeriode(rows);
+    expect(result?.unikkeEnheder).toBe(5);
+    expect(result?.totalEnheder).toBe(5);
+  });
 });
 
 // ─── beregnAntalHverdage ──────────────────────────────────────────────────────

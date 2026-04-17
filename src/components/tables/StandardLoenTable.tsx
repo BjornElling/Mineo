@@ -26,7 +26,11 @@ import {
   roundStandardLoenAmountToTwoDecimals,
   type StandardLoenRowDerived,
 } from '../../domain/aarsloen/standardLoenRowCalculations';
-import { getStandardLoenTableValidation, isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../domain/aarsloen/standardLoenTableValidation';
+import {
+  buildStandardLoenPeriodOrderCellErrorMessages,
+  getStandardLoenTableValidation,
+  isStandardLoenTableValueEffectivelyEmptyForValidation,
+} from '../../domain/aarsloen/standardLoenTableValidation';
 import { getStandardLoenTableHeaderNodes } from '../../domain/aarsloen/standardLoenTableColumns';
 
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
@@ -84,8 +88,6 @@ const fingerprintValidationSummary = (summary: StandardLoenTableValidationSummar
   return JSON.stringify(summary);
 };
 
-const isRowEmpty = (row: StandardLoenTableRow): boolean => isStandardLoenRowEffectivelyEmpty(row);
-
 const resolveColIdxFromKey = (colKey: StandardLoenTableColumnKey): number => {
   return colKey.startsWith('col0_') ? 0 : colKey.startsWith('col1_') ? 1 : Number.parseInt(colKey.slice(3), 10);
 };
@@ -119,6 +121,11 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       [onTableDataChange]
     );
 
+    const isRowEmpty = React.useCallback(
+      (row: StandardLoenTableRow): boolean => isStandardLoenRowEffectivelyEmpty(row, loenperiode),
+      [loenperiode]
+    );
+
     const createEmptyRow = React.useCallback((): StandardLoenTableRow => {
       return { ...initialRow, id: generateRowId() };
     }, []);
@@ -127,7 +134,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       (rows: readonly StandardLoenTableRow[]): StandardLoenTableRow[] => {
         return normalizeGridRows({ rows, minRows: MIN_VISIBLE_ROWS, isRowEmpty, createEmptyRow });
       },
-      [createEmptyRow]
+      [createEmptyRow, isRowEmpty]
     );
 
     const [rowsState, setRowsState] = React.useState<TableRowsState>(() => {
@@ -155,8 +162,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       }
     }, [defaultTableData, manageRows, tableData]);
 
-    // Intentional: loenperiode change commits all draft edits and resets committed to the
-    // managed draft. Period-specific columns are cleared by manageRows (normalizeGridRows).
+    // Intentional: loenperiode change commits all draft edits and re-evaluates row emptiness
+    // against the newly active period columns, so stale hidden period values cannot keep rows alive.
     React.useEffect(() => {
       setRowsState((current) => {
         const managed = manageRows(current.draft);
@@ -275,7 +282,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           return { draft: managed, committed: managed };
         });
       },
-      [manageRows, queuePersist, updateCellValueInTable]
+      [isRowEmpty, manageRows, queuePersist, updateCellValueInTable]
     );
 
     const committedById = React.useMemo(() => new Map(committedTableData.map((row) => [row.id, row])), [committedTableData]);
@@ -321,10 +328,19 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       [calculateDerivedRow, getSatserInput]
     );
 
+    const periodOrderCellErrorMessagesByCellKey = React.useMemo(
+      () => buildStandardLoenPeriodOrderCellErrorMessages(committedTableData, loenperiode),
+      [committedTableData, loenperiode]
+    );
+
     // cellErrorsByCellKeyRef is intentionally NOT in the deps array — it is a mutable ref and is
     // always read at call time, so the result is always current regardless of when React calls this.
     const getValidationResult = React.useCallback(() => {
       const combinedCellErrorsByCellKey: Record<string, true> = { ...cellErrorsByCellKeyRef.current };
+      for (const [cellKey, message] of Object.entries(periodOrderCellErrorMessagesByCellKey)) {
+        if (message.trim() === '') continue;
+        combinedCellErrorsByCellKey[cellKey] = true;
+      }
       for (const [cellKey, message] of Object.entries(externalCellErrorMessagesByCellKey)) {
         if (message.trim() === '') continue;
         combinedCellErrorsByCellKey[cellKey] = true;
@@ -334,7 +350,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
         loenperiode,
         cellErrorsByCellKey: combinedCellErrorsByCellKey,
       });
-    }, [committedTableData, externalCellErrorMessagesByCellKey, loenperiode]);
+    }, [committedTableData, externalCellErrorMessagesByCellKey, loenperiode, periodOrderCellErrorMessagesByCellKey]);
 
     const lastValidationSummaryRef = React.useRef<string | null>(null);
 
@@ -454,6 +470,10 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     const getExternalErrorMessage = React.useCallback(
       (rowId: string, colKey: StandardLoenTableColumnKey): string | undefined => {
+        const periodOrderMessage = periodOrderCellErrorMessagesByCellKey[`${rowId}:${colKey}`];
+        if (periodOrderMessage && isVisibleColKey(colKey)) {
+          return periodOrderMessage;
+        }
         if (externalCellError && externalCellError.rowId === rowId && externalCellError.colKey === colKey && isVisibleColKey(colKey)) {
           return externalCellError.message;
         }
@@ -461,7 +481,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
         if (!propErrorMessage || !isVisibleColKey(colKey)) return undefined;
         return propErrorMessage;
       },
-      [externalCellError, externalCellErrorMessagesByCellKey, isVisibleColKey]
+      [externalCellError, externalCellErrorMessagesByCellKey, isVisibleColKey, periodOrderCellErrorMessagesByCellKey]
     );
 
     React.useEffect(() => {

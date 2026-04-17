@@ -347,6 +347,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   }, [authoritativeBlockingInvariants, eoPdfBlockingInvariants, tafPdfProjection]);
 
   const reportedSystemInvariantKeysRef = React.useRef<Set<string>>(new Set());
+  const [pdfDownloadErrorMessage, setPdfDownloadErrorMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     const revision = eoSnapshot?.revision ?? 'no-snapshot';
@@ -636,6 +637,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   const handleDownloadPdf = React.useCallback(async () => {
     if (!canDownloadSnapshotEoPdf) {
+      setPdfDownloadErrorMessage(null);
       return;
     }
     if (!eoSnapshot) return;
@@ -649,15 +651,12 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       snapshot: eoSnapshot,
       midlertidigtEetGroups,
     });
-    if (!result.success) {
-      // Runtime-fejl under PDF-generering er en systemteknisk fejl — logges til devtools-monitor.
-      // Ingen dialog eller BugReportButton vises til brugeren (jf. error-debug-contract.md §8.1).
-      console.error('[EOberegningTab] EO PDF download fejlede:', result.error);
-    }
+    setPdfDownloadErrorMessage(result.success ? null : result.error);
   }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetInsertSource]);
 
   const handleDownloadTafFordeltPdf = React.useCallback(async () => {
     if (!canDownloadSnapshotTafPdf) {
+      setPdfDownloadErrorMessage(null);
       return;
     }
     if (!eoSnapshot) return;
@@ -668,11 +667,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       settings,
       snapshot: eoSnapshot,
     });
-    if (!result.success) {
-      // Runtime-fejl under PDF-generering er en systemteknisk fejl — logges til devtools-monitor.
-      // Ingen dialog eller BugReportButton vises til brugeren (jf. error-debug-contract.md §8.1).
-      console.error('[EOberegningTab] TAF fordelt på år PDF download fejlede:', result.error);
-    }
+    setPdfDownloadErrorMessage(result.success ? null : result.error);
   }, [canDownloadSnapshotTafPdf, eoSnapshot, stamdataValues, eoValues, settings]);
 
   const getCustomSummaryText = React.useCallback((row: (typeof errors)[number]): string | null => {
@@ -820,9 +815,23 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   return (
     <Box>
-      {(systemIssueRows.length > 0 || errors.length > 0 || warnings.length > 0) && (
+      {(pdfDownloadErrorMessage || systemIssueRows.length > 0 || errors.length > 0 || warnings.length > 0) && (
         <ContentBox>
           <Typography className="section-header">Fejl og advarsler</Typography>
+          {pdfDownloadErrorMessage && (
+            <Box
+              className="row--label-right-hover"
+              sx={{
+                '--label-width': '400px',
+                ...FEJL_ADVARSLER_ROW_SX,
+              }}
+            >
+              <Typography className="row--text">{pdfDownloadErrorMessage}</Typography>
+              <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
+                <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
+              </Box>
+            </Box>
+          )}
           {renderSystemIssueRows(systemIssueRows)}
           {renderDebugRows(errors, 'error')}
           {renderDebugRows(warnings, 'warning')}

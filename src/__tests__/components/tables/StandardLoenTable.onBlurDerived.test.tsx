@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import StandardLoenTable from '../../../components/tables/StandardLoenTable';
+import { DATE_ORDER_ERROR_MESSAGE } from '../../../utils/dateOrderValidation';
 
 type Derived = { fpFvShSo: string; pension: string; samlet: string };
 
@@ -47,6 +48,22 @@ const getDerivedTexts = (): Derived => {
     pension: (cells[7]?.textContent ?? '').trim(),
     samlet: (cells[8]?.textContent ?? '').trim(),
   };
+};
+
+const getFirstPeriodInputs = (): [HTMLInputElement, HTMLInputElement] => {
+  const cells = getFirstDataRowCells();
+  return [
+    within(cells[0]).getByRole('textbox') as HTMLInputElement,
+    within(cells[1]).getByRole('textbox') as HTMLInputElement,
+  ];
+};
+
+const flushAnimationFrame = async (): Promise<void> => {
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
 };
 
 const makeRow = (overrides: Partial<StandardLoenTableRow>): StandardLoenTableRow => ({
@@ -169,6 +186,137 @@ describe('StandardLoenTable', () => {
       const focusedInput = within(cellsNow[2]).getByRole('textbox');
       expect(document.activeElement).toBe(focusedInput);
       expect(onTableDataChange).toHaveBeenCalledTimes(1);
+    });
+  }, TEST_TIMEOUT_MS);
+
+  it.each([
+    {
+      loenperiode: 'dag' as const,
+      row: makeRow({ col0_dag: '10-01-2024', col1_dag: '09-01-2024' }),
+    },
+    {
+      loenperiode: 'uge' as const,
+      row: makeRow({ col0_uge: '03/2024', col1_uge: '02/2024' }),
+    },
+  ])('viser central fra/til-fejl i standardgrid for $loenperiode', async ({ loenperiode, row }) => {
+    const onValidationChange = vi.fn();
+
+    render(
+      <StandardLoenTable
+        loenperiode={loenperiode}
+        satser={{ ferie: 12.5, fritvalg: 1, shSo: 2, bededag: 0, pension: 10 }}
+        tableData={[row]}
+        onValidationChange={onValidationChange}
+      />
+    );
+
+    const [fraInput, tilInput] = getFirstPeriodInputs();
+    const fraDescribedBy = fraInput.getAttribute('aria-describedby');
+    const tilDescribedBy = tilInput.getAttribute('aria-describedby');
+
+    expect(fraDescribedBy).toBeTruthy();
+    expect(tilDescribedBy).toBeTruthy();
+    expect(fraDescribedBy ? document.getElementById(fraDescribedBy) : null).toHaveTextContent(DATE_ORDER_ERROR_MESSAGE);
+    expect(tilDescribedBy ? document.getElementById(tilDescribedBy) : null).toHaveTextContent(DATE_ORDER_ERROR_MESSAGE);
+
+    await waitFor(() => {
+      expect(onValidationChange).toHaveBeenCalled();
+      expect(onValidationChange.mock.calls.at(-1)?.[0]).toMatchObject({
+        hasErrors: true,
+        firstErrorCell: { rowId: row.id },
+      });
+    });
+  }, TEST_TIMEOUT_MS);
+
+  it('removes a fully cleared middle row and normalizes back to trailing empty rows only', async () => {
+    const user = userEvent.setup();
+    const onTableDataChange = vi.fn();
+
+    render(
+      <StandardLoenTable
+        loenperiode="dag"
+        satser={{ ferie: 12.5, fritvalg: 1, shSo: 2, bededag: 0, pension: 10 }}
+        tableData={[
+          makeRow({
+            id: 'row-a',
+            col0_dag: '01-01-2025',
+            col1_dag: '31-01-2025',
+            col2: asAmount(11111),
+          }),
+          makeRow({
+            id: 'row-b',
+            col0_dag: '01-02-2025',
+            col1_dag: '28-02-2025',
+            col2: asAmount(22222),
+          }),
+          makeRow({
+            id: 'row-c',
+          }),
+        ]}
+        onTableDataChange={onTableDataChange}
+      />
+    );
+
+    const getMiddleRowTextbox = (cellIndex: number): HTMLInputElement => {
+      const rows = screen.getAllByRole('row');
+      const middleRow = rows[2];
+      const cells = within(middleRow).getAllByRole('cell');
+      return within(cells[cellIndex]).getByRole('textbox');
+    };
+
+    const clearCell = async (cellIndex: number) => {
+      const input = getMiddleRowTextbox(cellIndex);
+      await user.dblClick(input);
+      await user.clear(input);
+      await act(async () => {
+        fireEvent.blur(input);
+      });
+      await flushAnimationFrame();
+    };
+
+    await clearCell(0);
+    await clearCell(1);
+    await clearCell(2);
+
+    await waitFor(() => {
+      const bodyRows = screen.getAllByRole('row').slice(1);
+      expect(bodyRows).toHaveLength(2);
+      expect(onTableDataChange).toHaveBeenCalled();
+      const latestCall = onTableDataChange.mock.calls.at(-1)?.[0] as StandardLoenTableRow[] | undefined;
+      expect(latestCall).toHaveLength(2);
+      expect(latestCall?.some((row) => row.id === 'row-b')).toBe(false);
+    });
+  }, TEST_TIMEOUT_MS);
+
+  it('drops rows that are only kept alive by hidden period columns from another loenperiode', async () => {
+    render(
+      <StandardLoenTable
+        loenperiode="dag"
+        satser={{ ferie: 12.5, fritvalg: 1, shSo: 2, bededag: 0, pension: 10 }}
+        tableData={[
+          makeRow({
+            id: 'row-a',
+            col0_dag: '01-01-2025',
+            col1_dag: '31-01-2025',
+            col2: asAmount(11111),
+          }),
+          makeRow({
+            id: 'row-b',
+            col0_maaned: '2',
+            col1_maaned: '2025',
+          }),
+          makeRow({
+            id: 'row-c',
+          }),
+        ]}
+      />
+    );
+
+    await waitFor(() => {
+      const bodyRows = screen.getAllByRole('row').slice(1);
+      expect(bodyRows).toHaveLength(2);
+      expect(screen.queryByDisplayValue('2')).not.toBeInTheDocument();
+      expect(screen.queryByDisplayValue('2025')).not.toBeInTheDocument();
     });
   }, TEST_TIMEOUT_MS);
 });

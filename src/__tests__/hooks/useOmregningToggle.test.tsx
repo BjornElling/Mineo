@@ -3,6 +3,10 @@ import React from 'react';
 import { act, render } from '@testing-library/react';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
 import type { CommitEvent } from '../../types/fieldEvents';
+import {
+  EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+  type AarsloenOmregningGate,
+} from '../../domain/aarsloen/aarsloenValidationPolicies';
 import type {
   StandardLoenTableValidationSummary,
 } from '../../types/table';
@@ -13,18 +17,21 @@ let lastChecked = false;
 let lastEffectiveEnabled = false;
 
 type Props = {
-  requestedEnabled?: boolean;
-  tabelHarFejl: boolean;
-  hasValidPeriod: boolean;
+  gate?: AarsloenOmregningGate;
   onEnabledChange: (enabled: boolean) => void;
   tableRefMock: StandardLoenTableHandle;
   toggleRefMock: StyledToggleSwitchHandle;
 };
 
 const Harness = ({
-  requestedEnabled = false,
-  tabelHarFejl,
-  hasValidPeriod,
+  gate = {
+    checked: false,
+    effectiveEnabled: false,
+    canEnable: true,
+    hasValidPeriod: true,
+    hasBlockingTableIssue: false,
+    validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+  },
   onEnabledChange,
   tableRefMock,
   toggleRefMock,
@@ -32,14 +39,7 @@ const Harness = ({
   const tabelRef = React.useRef(tableRefMock);
   const toggleRef = React.useRef(toggleRefMock);
 
-  const { checked, effectiveEnabled, handleToggle } = useOmregningToggle({
-    requestedEnabled,
-    tabelHarFejl,
-    hasValidPeriod,
-    tabelRef,
-    toggleRef,
-    onEnabledChange,
-  });
+  const { checked, effectiveEnabled, handleToggle } = useOmregningToggle({ gate, tabelRef, toggleRef, onEnabledChange });
 
   lastHandleToggle = handleToggle;
   lastChecked = checked;
@@ -69,9 +69,14 @@ describe('useOmregningToggle', () => {
 
     render(
         <Harness
-        requestedEnabled={false}
-        tabelHarFejl
-        hasValidPeriod
+        gate={{
+          checked: false,
+          effectiveEnabled: false,
+          canEnable: false,
+          hasValidPeriod: true,
+          hasBlockingTableIssue: true,
+          validationSummary: summary,
+        }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
@@ -107,9 +112,14 @@ describe('useOmregningToggle', () => {
 
     render(
         <Harness
-        requestedEnabled={false}
-        tabelHarFejl
-        hasValidPeriod
+        gate={{
+          checked: false,
+          effectiveEnabled: false,
+          canEnable: false,
+          hasValidPeriod: true,
+          hasBlockingTableIssue: true,
+          validationSummary: summary,
+        }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
@@ -139,9 +149,14 @@ describe('useOmregningToggle', () => {
 
     render(
         <Harness
-        requestedEnabled={false}
-        tabelHarFejl={false}
-        hasValidPeriod={true}
+        gate={{
+          checked: false,
+          effectiveEnabled: false,
+          canEnable: true,
+          hasValidPeriod: true,
+          hasBlockingTableIssue: false,
+          validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+        }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
@@ -168,9 +183,14 @@ describe('useOmregningToggle', () => {
 
     render(
         <Harness
-        requestedEnabled={false}
-        tabelHarFejl={false}
-        hasValidPeriod={true}
+        gate={{
+          checked: false,
+          effectiveEnabled: false,
+          canEnable: true,
+          hasValidPeriod: true,
+          hasBlockingTableIssue: false,
+          validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+        }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
@@ -191,15 +211,20 @@ describe('useOmregningToggle', () => {
     expect(flashError).not.toHaveBeenCalled();
   });
 
-  it('blokerer enable og ryster når hasValidPeriod=false (ingen tabel-fejl)', async () => {
+  it('blokerer enable og ryster når perioden er utilstrækkelig uden feltfejl', async () => {
     const shake = vi.fn();
     const onEnabledChange = vi.fn();
 
     render(
         <Harness
-        requestedEnabled={false}
-        tabelHarFejl={false}
-        hasValidPeriod={false}
+        gate={{
+          checked: false,
+          effectiveEnabled: false,
+          canEnable: false,
+          hasValidPeriod: false,
+          hasBlockingTableIssue: true,
+          validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+        }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
@@ -227,9 +252,14 @@ describe('useOmregningToggle', () => {
 
     render(
         <Harness
-        requestedEnabled={false}
-        tabelHarFejl={true}
-        hasValidPeriod={true}
+        gate={{
+          checked: false,
+          effectiveEnabled: false,
+          canEnable: false,
+          hasValidPeriod: true,
+          hasBlockingTableIssue: true,
+          validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+        }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
@@ -257,9 +287,14 @@ describe('useOmregningToggle', () => {
 
     render(
         <Harness
-        requestedEnabled={true}
-        tabelHarFejl={false}
-        hasValidPeriod={true}
+        gate={{
+          checked: true,
+          effectiveEnabled: true,
+          canEnable: true,
+          hasValidPeriod: true,
+          hasBlockingTableIssue: false,
+          validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+        }}
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
@@ -278,7 +313,7 @@ describe('useOmregningToggle', () => {
     expect(onEnabledChange).toHaveBeenCalledWith(false);
   });
 
-  it('bevarer checked=true men gateer effectiveEnabled=false når period becomes invalid', async () => {
+  it('viser checked=false og effectiveEnabled=false når gate blokerer pga. utilstrækkelig periode', async () => {
     const onEnabledChange = vi.fn();
 
     const tableRefMock: StandardLoenTableHandle = {
@@ -292,9 +327,14 @@ describe('useOmregningToggle', () => {
 
     const { rerender } = render(
       <Harness
-        requestedEnabled={true}
-        tabelHarFejl={false}
-        hasValidPeriod={true}
+        gate={{
+          checked: true,
+          effectiveEnabled: true,
+          canEnable: true,
+          hasValidPeriod: true,
+          hasBlockingTableIssue: false,
+          validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+        }}
         onEnabledChange={onEnabledChange}
         tableRefMock={tableRefMock}
         toggleRefMock={toggleRefMock}
@@ -304,9 +344,14 @@ describe('useOmregningToggle', () => {
     await act(async () => {
       rerender(
         <Harness
-          requestedEnabled={true}
-          tabelHarFejl={false}
-          hasValidPeriod={false}
+          gate={{
+            checked: false,
+            effectiveEnabled: false,
+            canEnable: false,
+            hasValidPeriod: false,
+            hasBlockingTableIssue: true,
+            validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+          }}
           onEnabledChange={onEnabledChange}
           tableRefMock={tableRefMock}
           toggleRefMock={toggleRefMock}
@@ -314,12 +359,12 @@ describe('useOmregningToggle', () => {
       );
     });
 
-    expect(lastChecked).toBe(true);
+    expect(lastChecked).toBe(false);
     expect(lastEffectiveEnabled).toBe(false);
     expect(onEnabledChange).not.toHaveBeenCalled();
   });
 
-  it('bevarer checked=true men gateer effectiveEnabled=false når tabelHarFejl bliver true', async () => {
+  it('viser checked=false og effectiveEnabled=false når gate blokerer pga. tabel-fejl', async () => {
     const onEnabledChange = vi.fn();
 
     const tableRefMock: StandardLoenTableHandle = {
@@ -333,9 +378,14 @@ describe('useOmregningToggle', () => {
 
     const { rerender } = render(
       <Harness
-        requestedEnabled={true}
-        tabelHarFejl={false}
-        hasValidPeriod={true}
+        gate={{
+          checked: true,
+          effectiveEnabled: true,
+          canEnable: true,
+          hasValidPeriod: true,
+          hasBlockingTableIssue: false,
+          validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+        }}
         onEnabledChange={onEnabledChange}
         tableRefMock={tableRefMock}
         toggleRefMock={toggleRefMock}
@@ -345,9 +395,18 @@ describe('useOmregningToggle', () => {
     await act(async () => {
       rerender(
         <Harness
-          requestedEnabled={true}
-          tabelHarFejl={true}
-          hasValidPeriod={true}
+          gate={{
+            checked: false,
+            effectiveEnabled: false,
+            canEnable: false,
+            hasValidPeriod: true,
+            hasBlockingTableIssue: true,
+            validationSummary: {
+              rowIssues: [],
+              hasErrors: true,
+              hasWarnings: false,
+            },
+          }}
           onEnabledChange={onEnabledChange}
           tableRefMock={tableRefMock}
           toggleRefMock={toggleRefMock}
@@ -355,12 +414,12 @@ describe('useOmregningToggle', () => {
       );
     });
 
-    expect(lastChecked).toBe(true);
+    expect(lastChecked).toBe(false);
     expect(lastEffectiveEnabled).toBe(false);
     expect(onEnabledChange).not.toHaveBeenCalled();
   });
 
-  it('respekterer ekstern requestedEnabled-resync uden lokal stale state', async () => {
+  it('kan automatisk vende tilbage til checked=true når gate igen tillader omregning', async () => {
     const onEnabledChange = vi.fn();
 
     const tableRefMock: StandardLoenTableHandle = {
@@ -374,9 +433,18 @@ describe('useOmregningToggle', () => {
 
     const { rerender } = render(
       <Harness
-        requestedEnabled={false}
-        tabelHarFejl={false}
-        hasValidPeriod={true}
+        gate={{
+          checked: false,
+          effectiveEnabled: false,
+          canEnable: false,
+          hasValidPeriod: true,
+          hasBlockingTableIssue: true,
+          validationSummary: {
+            rowIssues: [],
+            hasErrors: true,
+            hasWarnings: false,
+          },
+        }}
         onEnabledChange={onEnabledChange}
         tableRefMock={tableRefMock}
         toggleRefMock={toggleRefMock}
@@ -389,9 +457,14 @@ describe('useOmregningToggle', () => {
     await act(async () => {
       rerender(
         <Harness
-          requestedEnabled={true}
-          tabelHarFejl={false}
-          hasValidPeriod={true}
+          gate={{
+            checked: true,
+            effectiveEnabled: true,
+            canEnable: true,
+            hasValidPeriod: true,
+            hasBlockingTableIssue: false,
+            validationSummary: EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
+          }}
           onEnabledChange={onEnabledChange}
           tableRefMock={tableRefMock}
           toggleRefMock={toggleRefMock}

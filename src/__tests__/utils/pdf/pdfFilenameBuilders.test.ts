@@ -85,11 +85,27 @@ describe('pdf filename builders', () => {
       });
       expect(filename).toBe('Regulering - Overenskomst - Test_ Label (01-01-2026 til 31-12-2026).pdf');
     });
+
+    it('prefixer med journalnr når journalnr er udfyldt', () => {
+      const fraDato = toDanishDateString('01-01-2026');
+      const tilDato = toDanishDateString('31-12-2026');
+      const filename = buildReguleringPdfFilename({
+        loenudviklingBasis: 'Overenskomst',
+        valgtLabel: 'Test',
+        interval: { fraDato, tilDato },
+        journalnr: '1234',
+      });
+      expect(filename).toBe('1234 - Regulering - Overenskomst - Test (01-01-2026 til 31-12-2026).pdf');
+    });
   });
 
   describe('buildKRLPdfFilename', () => {
     it('bygger KRL-filnavn via kanonisk helper', () => {
       expect(buildKRLPdfFilename()).toBe('KRL Satstabeller.pdf');
+    });
+
+    it('prefixer med journalnr når journalnr er udfyldt', () => {
+      expect(buildKRLPdfFilename('1234')).toBe('1234 - KRL Satstabeller.pdf');
     });
   });
 

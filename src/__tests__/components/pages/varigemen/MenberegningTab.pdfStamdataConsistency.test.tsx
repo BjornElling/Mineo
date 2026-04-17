@@ -6,6 +6,9 @@ const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mock
   mockDownloadVarigeMenPdf: vi.fn(),
   mockBeregnVarigeMenGodtgoerelseWithRates: vi.fn(),
   mockStamValues: {
+    journalnr: 'J-2026-001',
+    advokat: 'Test Advokat',
+    sagsbehandler: 'Test Sagsbehandler',
     skadestype: 'Arbejdsulykke',
     skadedato: '2025-01-01',
     skadelidteFodselsdato: '1980-01-01',
@@ -53,6 +56,9 @@ describe('MenberegningTab', () => {
           setValues={vi.fn()}
           setFieldValue={setFieldValue}
           stamdata={{
+            journalnr: mockStamValues.journalnr,
+            advokat: mockStamValues.advokat,
+            sagsbehandler: mockStamValues.sagsbehandler,
             skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
             skadedato: mockStamValues.skadedato,
             skadestype: mockStamValues.skadestype,
@@ -67,6 +73,9 @@ describe('MenberegningTab', () => {
     expect(mockDownloadVarigeMenPdf).toHaveBeenCalledWith(
       expect.objectContaining({
         persistedStamdata: {
+          journalnr: mockStamValues.journalnr,
+          advokat: mockStamValues.advokat,
+          sagsbehandler: mockStamValues.sagsbehandler,
           skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
           skadedato: mockStamValues.skadedato,
           skadestype: mockStamValues.skadestype,

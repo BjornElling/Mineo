@@ -155,6 +155,31 @@ describe('devtoolsMonitor', () => {
     errorSpy.mockRestore();
   });
 
+  it('fanger reportSystemIssue straks via system-eventet', async () => {
+    const monitor = await loadMonitor();
+    const reporter = await import('../../utils/systemIssueReporter');
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const stop = monitor.startDevtoolsMonitor();
+
+    reporter.reportSystemIssue({
+      code: 'pdf:dev_server_unavailable',
+      area: 'pdf',
+      context: 'pdfService.downloadRentePdf',
+      userMessage: 'Udviklingsserveren svarer ikke længere.',
+    });
+
+    const issue = monitor.getDevtoolsIssueSnapshot().issues[0];
+    expect(monitor.getDevtoolsIssueSnapshot().issues).toHaveLength(1);
+    expect(issue?.message).toBe('Systemfejl registreret: Udviklingsserveren svarer ikke længere.');
+    expect(issue?.systemIssue).toEqual(expect.objectContaining({
+      code: 'pdf:dev_server_unavailable',
+      area: 'pdf',
+    }));
+
+    stop();
+    errorSpy.mockRestore();
+  });
+
   it('kan nulstilles eksplicit mellem sessioner', async () => {
     const monitor = await loadMonitor();
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});

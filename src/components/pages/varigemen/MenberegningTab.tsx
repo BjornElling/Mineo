@@ -34,7 +34,10 @@ const VARIGE_MEN_BEREGNINGSDATO_MAX = toISODateString(
   `${varigeMenPrGradYearBounds.maxYear}-12-31`
 );
 
-type MenberegningStamdataView = Pick<StamdataValues, 'skadelidteFodselsdato' | 'skadedato' | 'skadestype'>;
+type MenberegningStamdataView = Pick<
+  StamdataValues,
+  'journalnr' | 'advokat' | 'sagsbehandler' | 'skadelidteFodselsdato' | 'skadedato' | 'skadestype'
+>;
 
 const MenberegningTab = ({ values, setValues, setFieldValue, stamdata }: {
   values: VarigeMenValues;
@@ -50,6 +53,7 @@ const MenberegningTab = ({ values, setValues, setFieldValue, stamdata }: {
 
   // State til rystebevægelse animation
   const [downloadShake, setDownloadShake] = React.useState(false);
+  const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
 
 
 
@@ -139,6 +143,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
   const handlePdfDownload = React.useCallback(async () => {
     // Tjek om der er fejl eller manglende felter
     if (beregningsFejl || manglendeFelter || !beregningsResultat) {
+      setPdfErrorMessage(null);
       // Trigger rystebevægelse
       setDownloadShake(true);
       setTimeout(() => setDownloadShake(false), 500);
@@ -177,10 +182,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       settings,
       persistedStamdata: stamValues,
     });
-    if (!result.success) {
-      setDownloadShake(true);
-      setTimeout(() => setDownloadShake(false), 500);
-    }
+    setPdfErrorMessage(result.success ? null : result.error);
   }, [beregningsFejl, manglendeFelter, beregningsResultat, values, stamValues, fodselsdatoError, mengradError, beregningsdatoError, settings, navigate]);
 
   const skadedatoLabel = React.useMemo(
@@ -333,6 +335,15 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
 
       <Typography className="row--subheading">Beregnet méngodtgørelse</Typography>
 
+      {pdfErrorMessage && (
+        <Box className="row--label-right">
+          <Typography className="row--text" sx={{ color: 'error.main' }}>
+            {pdfErrorMessage}
+          </Typography>
+          <Box />
+        </Box>
+      )}
+
       {/* Grundbeløb */}
       {beregningsResultat && (
         <Box className="row--label-right">
@@ -388,7 +399,9 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
               </Typography>
               <Box
                 data-testid="varigemen-download"
-                onClick={handlePdfDownload}
+                onClick={() => {
+                  void handlePdfDownload();
+                }}
                 tabIndex={-1}
                 sx={{
                   width: '32px',

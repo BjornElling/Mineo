@@ -26,11 +26,21 @@ const VarigeMen = React.memo(() => {
   const stamdata = usePersistedSectionSelector('stamdata');
   const menberegningStamdata = React.useMemo(
     () => ({
+      journalnr: stamdata?.journalnr,
+      advokat: stamdata?.advokat,
+      sagsbehandler: stamdata?.sagsbehandler,
       skadelidteFodselsdato: stamdata?.skadelidteFodselsdato,
       skadedato: stamdata?.skadedato,
       skadestype: stamdata?.skadestype,
     }),
-    [stamdata?.skadelidteFodselsdato, stamdata?.skadedato, stamdata?.skadestype]
+    [
+      stamdata?.journalnr,
+      stamdata?.advokat,
+      stamdata?.sagsbehandler,
+      stamdata?.skadelidteFodselsdato,
+      stamdata?.skadedato,
+      stamdata?.skadestype,
+    ]
   );
 
   const handleTabChange = React.useCallback(
@@ -109,4 +119,3 @@ const VarigeMen = React.memo(() => {
 VarigeMen.displayName = 'VarigeMen';
 
 export default VarigeMen;
-

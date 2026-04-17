@@ -1,4 +1,7 @@
-import { isSystemIssueLogData, type SystemIssueEnvelope } from './systemIssueReporter';
+import {
+  isSystemIssueLogData,
+  type SystemIssueEnvelope,
+} from './systemIssueReporter';
 
 export type DevtoolsIssueLevel = 'warn' | 'error';
 export type DevtoolsIssueSource = 'console' | 'window' | 'unhandledrejection';
@@ -372,8 +375,8 @@ const captureConsole = (level: DevtoolsIssueLevel, args: unknown[]): void => {
   const systemIssue = extractSystemIssueFromArgs(args);
   const formattedArgs = formatConsoleArgs(args);
   const message =
-    systemIssue && typeof args[0] === 'string'
-      ? args[0]
+    systemIssue
+      ? `Systemfejl registreret: ${systemIssue.userMessage}`
       : formattedArgs.join(' ');
 
   let stack: string | undefined;
