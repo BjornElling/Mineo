@@ -426,6 +426,7 @@ export const createPdfWriter = (params: Readonly<{
   const { lineHeight, visUdkastStempel, onLayoutFallback } = params;
   const cursor = createPdfCursor({ lineHeight, visUdkastStempel, onLayoutFallback });
   let previousBlockWasSectionHeader = false;
+  let hasRenderedContent = false;
   let manualSpacingSinceLastContent = 0;
   // Tracker kun eksplicit addSpacer/advanceY-spacing — ikke trailing line-spacing.
   // Bruges af writeSubheader til at undgå dobbelt spacing fra addSpacer-kald.
@@ -448,6 +449,7 @@ export const createPdfWriter = (params: Readonly<{
     cursor.setFontSize(FONT_SIZES.normal);
     cursor.advanceY(bottomSpacing);
     previousBlockWasSectionHeader = true;
+    hasRenderedContent = true;
     manualSpacingSinceLastContent = 0;
     explicitSpacingSinceLastContent = 0;
   };
@@ -461,6 +463,7 @@ export const createPdfWriter = (params: Readonly<{
     cursor.setFontSize(FONT_SIZES.normal);
     cursor.advanceY(PDF_TITLE_BOTTOM_SPACING_MM - lineHeight);
     previousBlockWasSectionHeader = true;
+    hasRenderedContent = true;
     manualSpacingSinceLastContent = 0;
     explicitSpacingSinceLastContent = 0;
   };
@@ -492,6 +495,7 @@ export const createPdfWriter = (params: Readonly<{
     cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     cursor.advanceY(PDF_SUBHEADER_BOTTOM_SPACING_MM);
     previousBlockWasSectionHeader = false;
+    hasRenderedContent = true;
     manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM;
     explicitSpacingSinceLastContent = 0;
   };
@@ -570,6 +574,7 @@ export const createPdfWriter = (params: Readonly<{
     }
     cursor.writeUnderlinedLabel(text, x);
     previousBlockWasSectionHeader = false;
+    hasRenderedContent = true;
     manualSpacingSinceLastContent = 0;
   };
 
@@ -583,8 +588,15 @@ export const createPdfWriter = (params: Readonly<{
     ensureSpace: cursor.ensureSpace,
     getY: cursor.getY,
     setY: (nextY) => {
+      const previousY = cursor.getY();
+      const delta = nextY - previousY;
       cursor.setY(nextY);
       previousBlockWasSectionHeader = false;
+      if (delta > 0 && hasRenderedContent) {
+        manualSpacingSinceLastContent += delta;
+        explicitSpacingSinceLastContent += delta;
+        return;
+      }
       manualSpacingSinceLastContent = 0;
       explicitSpacingSinceLastContent = 0;
     },
@@ -611,24 +623,28 @@ export const createPdfWriter = (params: Readonly<{
     writeWrappedText: (text) => {
       cursor.writeWrappedText(text);
       previousBlockWasSectionHeader = false;
+      hasRenderedContent = true;
       manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
       explicitSpacingSinceLastContent = 0;
     },
     writeWrappedTextContinued: (text, maxWidth, x) => {
       cursor.writeWrappedTextContinued(text, maxWidth, x);
       previousBlockWasSectionHeader = false;
+      hasRenderedContent = true;
       manualSpacingSinceLastContent = 0;
       explicitSpacingSinceLastContent = 0;
     },
     writeNormalThenBoldLine: (normalPart, boldPart) => {
       cursor.writeNormalThenBoldLine(normalPart, boldPart);
       previousBlockWasSectionHeader = false;
+      hasRenderedContent = true;
       manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
       explicitSpacingSinceLastContent = 0;
     },
     writeLeftRightText: (leftText, rightText, options) => {
       cursor.writeLeftRightText(leftText, rightText, MARGINS.left, MARGINS.right, options);
       previousBlockWasSectionHeader = false;
+      hasRenderedContent = true;
       manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
       explicitSpacingSinceLastContent = 0;
     },
@@ -648,6 +664,7 @@ export const createPdfWriter = (params: Readonly<{
     addPage: () => {
       cursor.addPage();
       previousBlockWasSectionHeader = false;
+      hasRenderedContent = false;
       manualSpacingSinceLastContent = 0;
       explicitSpacingSinceLastContent = 0;
     },

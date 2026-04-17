@@ -64,9 +64,19 @@ export const formatCurrencyFromOreTrimmed = (ore: number): string => {
 
 export const formatMoneyOreWithKrTrimmed = (ore: number): string => `${formatCurrencyFromOreTrimmed(ore)}${NBSP}kr.`;
 
-export const formatCurrencyPerUnit = (amount: number | null | undefined, unit: string): string => {
+/**
+ * Formaterer en enhedssats som `123 kr./enhed`.
+ *
+ * `decimals` bruges kun når PDF'en bevidst skal vise en anden præcision end den
+ * kanoniske 2-decimal-standard, fx hele kroner i satstabeller.
+ */
+export const formatCurrencyPerUnit = (
+  amount: number | null | undefined,
+  unit: string,
+  decimals: number = 2
+): string => {
   if (amount === null || amount === undefined || !Number.isFinite(amount)) return '';
-  return `${addNbspAfterMinus(formatCurrency(amount))}${NBSP}kr./${unit}`;
+  return `${addNbspAfterMinus(formatAsAmount(amount, decimals))}${NBSP}kr./${unit}`;
 };
 
 export const formatPercentDelta = (value: number): string => {

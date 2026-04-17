@@ -4,6 +4,9 @@
 
 Denne kontrakt fastlægger tværgående regler for PDF-output. Domænespecifikke snapshot-kontrakter må gerne specificere egne projektioner, men de må ikke afvige fra reglerne her.
 
+Visuel struktur, teksttyper, tabeller og spacing reguleres normativt af `pdf-layout-contract.md`.
+`pdf-contract.md` regulerer data-, gate- og guard-regler for PDF-output.
+
 ---
 
 ## 1. Grundregel

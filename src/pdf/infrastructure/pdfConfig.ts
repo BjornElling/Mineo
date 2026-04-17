@@ -55,6 +55,8 @@ export const TABLE_STYLES = {
 // Fælles detail-konstanter for ensartet PDF-udtryk
 export const PDF_MUTED_TEXT_COLOR: PdfColor = COLORS.muted;
 export const PDF_TABLE_NARROW_COLUMN_WIDTH = 25;
+export const PDF_TABLE_TOTAL_VALUE_LINE_WIDTH_MM = 22;
+export const PDF_TABLE_TOTAL_VALUE_LINE_WIDTH_PT = 0.2;
 export const PDF_FINAL_Y_FALLBACK_HEIGHT = 50;
 // Bruges af addSectionHeading() i pdfHelpers (autotable-generatorer).
 export const PDF_SECTION_HEADING_GAP = 3;

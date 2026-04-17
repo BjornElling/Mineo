@@ -2,6 +2,8 @@
 
 > **Formål:** Denne fil beskriver den fulde arkitektur bag Mineos PDF-generatorer. Den er primær referencekilde for alle, der skal implementere ny PDF-funktionalitet. Læs den inden du skriver en linje PDF-kode.
 
+> **Normativ afgrænsning:** Denne fil er arkitekturforklarende. De bindende regler for PDF ligger i `src/contracts/pdf-contract.md` og `src/contracts/pdf-layout-contract.md`.
+
 ---
 
 ## Indholdsfortegnelse
@@ -800,4 +802,30 @@ Dette mønster er **ikke påkrævet** for simple generatorer, men bør anvendes,
 
 ## 16. Udeståender
 
-*(ingen kendte udeståender — senest gennemgået 2026-03-21)*
+### Anbefalet audit-plan for layout-standardisering
+
+For at fjerne utilsigtede layoutforskelle mellem PDF-generatorerne bør følgende gennemgang gennemføres systematisk:
+
+1. Gennemgå alle generatorer for lokale mønstre med `writeSubheader(...)` kombineret med manuel spacing før eller efter.
+2. Gennemgå alle steder med `setY(resolvePdfSectionEndY(...))` og verificér, at næste tekstblok ikke kompenseres lokalt med ekstra spacing.
+3. Gennemgå alle steder med lokal `setFont(...)` + `text(...)` for tekst, der burde være canonical writer-tekst.
+4. Gennemgå alle headerløse 2-kolonne-layouts og verificér, at de ikke bruger tabelrendereren.
+5. Gennemgå alle understregede labels for lokal topafstand eller efterfølgende spacing, der dublerer writerens standard.
+6. Læg eller udvid writer-tests, når en layoutregel gøres central, så afvigelsen ikke kan genopstå.
+
+### Prioriteret audit-rækkefølge
+
+1. `src/pdf/domains/satser/satserPdf.ts`
+2. `src/pdf/domains/renteberegning/rentePdf.ts`
+3. `src/pdf/domains/aarsloen/aarsloenPdf.ts`
+4. `src/pdf/domains/aarsloen/shDagePdf.ts`
+5. `src/pdf/domains/varigemen/varigeMenPdf.ts`
+6. `src/pdf/domains/krl/krlPdf.ts`
+7. `src/pdf/domains/eo/reguleringPdf.ts`
+8. `src/pdf/domains/loebendeYdelser/loebendeYdelserPdf.ts`
+9. `src/pdf/domains/kapitalisering/kapitaliseringPdf.ts`
+10. `src/pdf/domains/differencekrav/differencekravPdf.ts`
+11. `src/pdf/domains/forsoergertab/forsoergertabPdf.ts`
+12. `src/pdf/domains/eo/sections/*`
+
+*(ingen øvrige kendte udeståender — senest gennemgået 2026-04-17)*
