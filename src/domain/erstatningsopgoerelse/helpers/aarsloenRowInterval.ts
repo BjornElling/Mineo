@@ -45,3 +45,29 @@ export const parseAarsloenRowInterval = (row: StandardLoenTableRow, loenperiode:
   if (fra > til) return null;
   return { start: toUtcDay(fra), end: toUtcDay(til) };
 };
+
+export const hasAarsloenPeriodOrderError = (row: StandardLoenTableRow, loenperiode: Loenperiode): boolean => {
+  if (loenperiode === 'uge') {
+    const fraUge = row.col0_uge?.trim() ?? '';
+    const tilUge = row.col1_uge?.trim() ?? '';
+    if (fraUge === '' || tilUge === '') return false;
+
+    const fra = parseWeekString(fraUge);
+    const til = parseWeekString(tilUge);
+    if (!fra || !til) return false;
+    return fra.start > til.end;
+  }
+
+  if (loenperiode === 'dag') {
+    const fraDato = row.col0_dag?.trim() ?? '';
+    const tilDato = row.col1_dag?.trim() ?? '';
+    if (fraDato === '' || tilDato === '') return false;
+
+    const fra = parseDanishDate(fraDato);
+    const til = parseDanishDate(tilDato);
+    if (!fra || !til) return false;
+    return fra > til;
+  }
+
+  return false;
+};

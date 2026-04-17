@@ -5,6 +5,7 @@ import { roundByMethod } from '../../utils/rounding';
 import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/aarsloenRowInterval';
 import { dateToISO, parseISODate } from '../../types/branded';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
+import { isAmountValueStrict } from '../../utils/tableValidationCommon';
 
 export type StandardLoenSatserInput = {
   feriePct?: string | number;
@@ -57,6 +58,12 @@ const roundStandardLoenDerivedToTwoDecimals = (
 
 export const isStandardLoenTableCellEffectivelyEmpty = (value: unknown): boolean => {
   if (value === undefined || value === null) return true;
+  if (isAmountValueStrict(value)) {
+    if (!Number.isFinite(value.value)) return true;
+    if (value.value === 0) return true;
+    return value.kind === 'expression' && value.expression.trim() === '';
+  }
+  if (typeof value === 'number') return !Number.isFinite(value) || value === 0;
   if (typeof value !== 'string') return false;
   return value.trim() === '';
 };
@@ -279,22 +286,30 @@ export const calculateStandardLoenRowDerived = (
   });
 };
 
-const EDITABLE_KEYS: Array<keyof StandardLoenTableRow> = [
-  'col0_maaned',
-  'col1_maaned',
-  'col0_uge',
-  'col1_uge',
-  'col0_dag',
-  'col1_dag',
+const PERIOD_KEYS_BY_LOENPERIODE: Readonly<Record<Loenperiode, readonly (keyof StandardLoenTableRow)[]>> = {
+  maaned: ['col0_maaned', 'col1_maaned'],
+  uge: ['col0_uge', 'col1_uge'],
+  dag: ['col0_dag', 'col1_dag'],
+};
+
+const AMOUNT_KEYS: readonly (keyof StandardLoenTableRow)[] = [
   'col2',
   'col3',
   'col4',
   'col5',
 ];
 
-export const isStandardLoenRowEffectivelyEmpty = (row: StandardLoenTableRow): boolean => {
-  for (const key of EDITABLE_KEYS) {
-    if (!isStandardLoenTableCellEffectivelyEmpty(row[key])) return false;
+export const isStandardLoenRowEffectivelyEmpty = (
+  row: StandardLoenTableRow,
+  loenperiode?: Loenperiode
+): boolean => {
+  const editableKeys = loenperiode
+    ? [...PERIOD_KEYS_BY_LOENPERIODE[loenperiode], ...AMOUNT_KEYS]
+    : [...PERIOD_KEYS_BY_LOENPERIODE.maaned, ...PERIOD_KEYS_BY_LOENPERIODE.uge, ...PERIOD_KEYS_BY_LOENPERIODE.dag, ...AMOUNT_KEYS];
+
+  for (const key of editableKeys) {
+    const value = row[key];
+    if (!isStandardLoenTableCellEffectivelyEmpty(value)) return false;
   }
   return true;
 };

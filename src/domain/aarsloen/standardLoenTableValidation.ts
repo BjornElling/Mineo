@@ -5,7 +5,9 @@ import type {
   StandardLoenTableValidationSummary,
   TableError,
 } from '../../types/table';
-import { isAmountValueStrict } from '../../utils/tableValidationCommon';
+import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
+import { hasAarsloenPeriodOrderError } from '../erstatningsopgoerelse/helpers/aarsloenRowInterval';
+import { isStandardLoenTableCellEffectivelyEmpty } from './standardLoenRowCalculations';
 
 export type StandardLoenTableCellErrorMap = Readonly<Record<string, true>>;
 
@@ -15,18 +17,7 @@ export type StandardLoenTableValidationResult = Readonly<{
 }>;
 
 export const isStandardLoenTableValueEffectivelyEmptyForValidation = (value: unknown): boolean => {
-  if (value === undefined || value === null) return true;
-  if (typeof value === 'string') {
-    return value.trim() === '';
-  }
-  if (typeof value === 'number') return !Number.isFinite(value);
-  if (isAmountValueStrict(value)) {
-    if (!Number.isFinite(value.value)) return true;
-    if (value.kind === 'number') return false;
-    if (value.expression.trim() === '') return true;
-    return false;
-  }
-  return false;
+  return isStandardLoenTableCellEffectivelyEmpty(value);
 };
 
 const PERIOD_KEYS: Record<Loenperiode, readonly [StandardLoenTableColumnKey, StandardLoenTableColumnKey]> = {
@@ -35,10 +26,30 @@ const PERIOD_KEYS: Record<Loenperiode, readonly [StandardLoenTableColumnKey, Sta
   dag: ['col0_dag', 'col1_dag'],
 };
 
+export const buildStandardLoenPeriodOrderCellErrorMessages = (
+  rows: readonly StandardLoenTableRow[],
+  loenperiode: Loenperiode
+): Readonly<Record<string, string>> => {
+  // Månedstabellen bruger måned + år som selvstændige felter og har derfor
+  // ingen "fra/til"-rækkefølge, som kan give denne fejltype.
+  if (loenperiode === 'maaned') return {};
+
+  const [periodStartKey, periodEndKey] = PERIOD_KEYS[loenperiode];
+  const messages: Record<string, string> = {};
+
+  for (const row of rows) {
+    if (!hasAarsloenPeriodOrderError(row, loenperiode)) continue;
+    messages[`${row.id}:${periodStartKey}`] = DATE_ORDER_ERROR_MESSAGE;
+    messages[`${row.id}:${periodEndKey}`] = DATE_ORDER_ERROR_MESSAGE;
+  }
+
+  return messages;
+};
+
 const OTHER_KEYS: readonly StandardLoenTableColumnKey[] = ['col2', 'col3', 'col4', 'col5'];
 
 const hasAnyAmountInput = (row: StandardLoenTableRow): boolean => {
-  return OTHER_KEYS.some((key) => row[key] !== undefined && row[key] !== null);
+  return OTHER_KEYS.some((key) => !isStandardLoenTableValueEffectivelyEmptyForValidation(row[key]));
 };
 
 const getColumnOrder = (loenperiode: Loenperiode): readonly StandardLoenTableColumnKey[] => {

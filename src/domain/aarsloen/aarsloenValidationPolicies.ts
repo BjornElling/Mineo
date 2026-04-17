@@ -9,6 +9,7 @@ import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import { formatPercent } from '../../utils/formatUtils';
 import { hasCompletePeriodForLoenperiode } from './standardLoenRowCalculations';
 import { getStandardLoenTableValidation } from './standardLoenTableValidation';
+import type { StandardLoenTableValidationSummary } from '../../types/table';
 
 /**
  * Tjekker om der er valideringsfejl i tabeldata
@@ -112,4 +113,39 @@ export const harTabelData = (
   }
 
   return tableData.some((row) => hasCompletePeriodForLoenperiode(row, loenperiode));
+};
+
+export type AarsloenOmregningGate = Readonly<{
+  checked: boolean;
+  effectiveEnabled: boolean;
+  canEnable: boolean;
+  hasValidPeriod: boolean;
+  hasBlockingTableIssue: boolean;
+  validationSummary: StandardLoenTableValidationSummary;
+}>;
+
+export const EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY: StandardLoenTableValidationSummary = {
+  rowIssues: [],
+  hasErrors: false,
+  hasWarnings: false,
+};
+
+export const resolveAarsloenOmregningGate = (args: Readonly<{
+  requestedEnabled: boolean;
+  tableData: StandardLoenTableRow[];
+  loenperiode: Loenperiode;
+  validationSummary: StandardLoenTableValidationSummary;
+}>): AarsloenOmregningGate => {
+  const hasValidPeriod = harTabelData(args.tableData, args.loenperiode);
+  const hasBlockingTableIssue = args.validationSummary.hasErrors || !hasValidPeriod;
+  const checked = args.requestedEnabled && !hasBlockingTableIssue;
+
+  return {
+    checked,
+    effectiveEnabled: checked,
+    canEnable: !hasBlockingTableIssue,
+    hasValidPeriod,
+    hasBlockingTableIssue,
+    validationSummary: args.validationSummary,
+  };
 };

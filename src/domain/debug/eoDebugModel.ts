@@ -276,7 +276,7 @@ const collectMinMaxLoenindkomst = (
 
     for (const row of rows) {
       if (errorRowIds.has(row.id)) continue;
-      if (isStandardLoenRowEffectivelyEmpty(row)) {
+      if (isStandardLoenRowEffectivelyEmpty(row, af.loenperiode)) {
         continue;
       }
       const interval = parseAarsloenRowInterval(row, af.loenperiode);

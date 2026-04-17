@@ -14,7 +14,7 @@ export const resolveAarsloenDefaultLoenperiode = (aarsloen: AarsloenValues | nul
 export const hasAarsloenEffectiveRows = (aarsloen: AarsloenValues | null): boolean => {
   if (!aarsloen) return false;
   if (!Array.isArray(aarsloen.tableData) || aarsloen.tableData.length === 0) return false;
-  return aarsloen.tableData.some((row) => !isStandardLoenRowEffectivelyEmpty(row));
+  return aarsloen.tableData.some((row) => !isStandardLoenRowEffectivelyEmpty(row, aarsloen.loenperiode));
 };
 
 export const shouldShowAarsloenFerieFields = (aarsloen: AarsloenValues | null): boolean => {

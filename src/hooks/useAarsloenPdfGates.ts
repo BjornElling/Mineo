@@ -48,6 +48,7 @@ type UseAarsloenPdfGatesReturn = {
   handleAarsloenPdfDownload: () => Promise<void>;
   handleSHDagePdfDownload: () => Promise<void>;
   downloadShake: boolean;
+  downloadErrorMessage: string | null;
 };
 
 // ============================================================================
@@ -88,6 +89,7 @@ export const useAarsloenPdfGates = ({
 
   // State til download-knap shake-animation
   const [downloadShake, setDownloadShake] = React.useState(false);
+  const [downloadErrorMessage, setDownloadErrorMessage] = React.useState<string | null>(null);
   const downloadShakeTimeoutRef = React.useRef<number | null>(null);
 
   React.useEffect(() => {
@@ -190,6 +192,7 @@ export const useAarsloenPdfGates = ({
   const handleAarsloenPdfDownload = React.useCallback(async () => {
     // FATAL GATE 1: Beregningsfejl
     if (harFatalBeregningsFejl) {
+      setDownloadErrorMessage(null);
       triggerDownloadShake();
       return;
     }
@@ -197,6 +200,7 @@ export const useAarsloenPdfGates = ({
     // FATAL GATE 2: Tabel-valideringsfejl (real-time check)
     const errors = tabelRef.current?.getErrors();
     if (errors && errors.length > 0) {
+      setDownloadErrorMessage(null);
       triggerDownloadShake();
 
       // Flash første fejl-celle
@@ -232,9 +236,7 @@ export const useAarsloenPdfGates = ({
       settings,
       persistedStamdata,
     });
-    if (!result.success) {
-      triggerDownloadShake();
-    }
+    setDownloadErrorMessage(result.success ? null : result.error);
   }, [
     feriePct,
     fritvalgPct,
@@ -276,10 +278,8 @@ export const useAarsloenPdfGates = ({
       settings,
       persistedStamdata,
     });
-    if (!result.success) {
-      triggerDownloadShake();
-    }
-  }, [periodeData, shDageAntal, settings, persistedStamdata, triggerDownloadShake]);
+    setDownloadErrorMessage(result.success ? null : result.error);
+  }, [periodeData, shDageAntal, settings, persistedStamdata]);
 
   return {
     canDownloadPdf,
@@ -287,5 +287,6 @@ export const useAarsloenPdfGates = ({
     handleAarsloenPdfDownload,
     handleSHDagePdfDownload,
     downloadShake,
+    downloadErrorMessage,
   };
 };

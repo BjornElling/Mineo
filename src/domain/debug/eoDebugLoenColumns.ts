@@ -173,7 +173,7 @@ const shouldIncludeWageColumn = (
 ): boolean => {
   for (const row of rows) {
     if (errorRowIds.has(row.id)) continue;
-    if (isStandardLoenRowEffectivelyEmpty(row)) continue;
+    if (isStandardLoenRowEffectivelyEmpty(row, loenperiode)) continue;
     const interval = parseAarsloenRowInterval(row, loenperiode);
     if (!interval) continue;
     const allocationDates = buildAllocationDates(interval, isoIndex, isPeriodiseringsdag);
@@ -390,7 +390,7 @@ export const buildLoenindkomstColumns = (args: {
     const rows = af.indtaegtsoplysningerTableData ?? [];
     for (const row of rows) {
       if (errorRowIds.has(row.id)) continue;
-      if (isStandardLoenRowEffectivelyEmpty(row)) continue;
+      if (isStandardLoenRowEffectivelyEmpty(row, af.loenperiode)) continue;
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
       if (!interval) {
         const amounts = getWageAmountsForRow(af, row, satser, af.loenperiode, []);

@@ -89,7 +89,7 @@ export const shouldIncludeLoenRowInBilag = (params: Readonly<{
   errorRowIds: ReadonlySet<string>;
 }>): boolean => {
   const { row, loenperiode, mode, ranges, errorRowIds } = params;
-  if (isStandardLoenRowEffectivelyEmpty(row)) return false;
+  if (isStandardLoenRowEffectivelyEmpty(row, loenperiode)) return false;
   // NOTE: Fail-closed by design.
   // PDF må kun vise rækker uden valideringsfejl.
   if (errorRowIds.has(row.id)) return false;
