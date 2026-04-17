@@ -7,7 +7,7 @@ import type {
 } from '../../types/table';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
 import { hasAarsloenPeriodOrderError } from '../erstatningsopgoerelse/helpers/aarsloenRowInterval';
-import { isStandardLoenTableCellEffectivelyEmpty } from './standardLoenRowCalculations';
+import { isAmountValueStrict } from '../../utils/tableValidationCommon';
 
 export type StandardLoenTableCellErrorMap = Readonly<Record<string, true>>;
 
@@ -16,8 +16,17 @@ export type StandardLoenTableValidationResult = Readonly<{
   errors: TableError[];
 }>;
 
+// Validation-scoped emptiness: en eksplicit 0 tæller som udfyldt input, så brugeren
+// ikke får advarsel om "manglende beløb", når 0 reelt er den indtastede værdi.
 export const isStandardLoenTableValueEffectivelyEmptyForValidation = (value: unknown): boolean => {
-  return isStandardLoenTableCellEffectivelyEmpty(value);
+  if (value === undefined || value === null) return true;
+  if (isAmountValueStrict(value)) {
+    if (!Number.isFinite(value.value)) return true;
+    return value.kind === 'expression' && value.expression.trim() === '';
+  }
+  if (typeof value === 'number') return !Number.isFinite(value);
+  if (typeof value !== 'string') return false;
+  return value.trim() === '';
 };
 
 const PERIOD_KEYS: Record<Loenperiode, readonly [StandardLoenTableColumnKey, StandardLoenTableColumnKey]> = {
