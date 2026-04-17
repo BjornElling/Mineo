@@ -19,9 +19,10 @@ import {
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
 import type { RowInput } from 'jspdf-autotable';
 import {
+  createPdfDistributedColumnStyles,
   createPdfTableCell,
   createPdfTableHeaderCell,
-  createPdfTableTransparentRow,
+  createPdfTableSummedTotalRow,
   renderEoStylePdfTable,
 } from '../../shared/pdfTableRenderer';
 import { createDate, formatDanishDate, getDaysInYear, parseDanishDate } from '../../../utils/dateUtils';
@@ -350,9 +351,6 @@ const addSpecificationTable = (
 ): void => {
   const doc = writer.getDoc();
   const startY = writer.getY();
-  // Beregn total rente
-  const totalInterest = periods.reduce((sum, p) => sum + p.interest, 0);
-
   // Forbered tabeldata
   const tableData: RowInput[] = [];
 
@@ -378,16 +376,20 @@ const addSpecificationTable = (
   const latestRateDate = findLatestReferenceRateDate();
   const isHypothetical = latestRateDate && endDate > latestRateDate;
 
-  // Tom række
-  tableData.push(createPdfTableTransparentRow(4));
-
-  // Total-række
-  tableData.push([
-    createPdfTableCell('Samlet rentebeløb', { halign: 'left', bold: true, transparent: true }),
-    createPdfTableCell('', { bold: true, transparent: true }),
-    createPdfTableCell('', { bold: true, transparent: true }),
-    createPdfTableCell(formatAmount(totalInterest) + ' kr.', { halign: 'right', bold: true, transparent: true }),
-  ]);
+  const totalRow = createPdfTableSummedTotalRow(
+    'Samlet rentebeløb',
+    periods.map((period) => period.interest),
+    {
+      columnCount: 4,
+      valueColumnIndex: 3,
+      formatValue: (total) => `${formatAmount(total)} kr.`,
+      valueHasKrSuffix: true,
+    }
+  );
+  const totalRowIndex = totalRow ? tableData.length : null;
+  if (totalRow) {
+    tableData.push(totalRow.row);
+  }
 
   let tableStartY = startY;
 
@@ -407,13 +409,16 @@ const addSpecificationTable = (
     doc,
     startY: tableStartY,
     body: tableData,
-    columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { cellWidth: PDF_TABLE_NARROW_COLUMN_WIDTH },
-      2: { cellWidth: PDF_TABLE_NARROW_COLUMN_WIDTH },
-      3: { cellWidth: 35 },
-    },
-    transparentRowIndices: [tableData.length - 2, tableData.length - 1],
+    columnStyles: createPdfDistributedColumnStyles(4, {
+      fixedColumns: {
+        1: PDF_TABLE_NARROW_COLUMN_WIDTH,
+        2: PDF_TABLE_NARROW_COLUMN_WIDTH,
+        3: 35,
+      },
+    }),
+    underlinedCellPositions: totalRowIndex === null || totalRow === null
+      ? []
+      : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
     didParseCell: (data) => {
       const isDataRow = data.row.index >= 1 && data.row.index <= periods.length;
       if (!isDataRow) return;

@@ -16,7 +16,12 @@ import { type MoneyOre, type Calculable } from '../../../domain/erstatningsopgoe
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
 import { TODAY } from '../../../config/dateRanges';
 import { getStandardLoenTableHeaders } from '../../../domain/aarsloen/standardLoenTableColumns';
-import { createPdfTableCell, createPdfTableHeaderCell, renderEoStylePdfTable } from '../../shared/pdfTableRenderer';
+import {
+  createPdfTableCell,
+  createPdfTableHeaderCell,
+  createPdfTableSummedTotalRow,
+  renderEoStylePdfTable,
+} from '../../shared/pdfTableRenderer';
 
 import { logWarning } from '../../../utils/logger';
 import {
@@ -429,24 +434,28 @@ export const generateErstatningsopgoerelsePdf = (
       );
     }
 
-    if (rows.length > 1) {
-      tableRows.push(
-        [
-          createPdfTableCell('I alt', { halign: 'left', bold: true, transparent: true }),
-          createPdfTableCell('', { bold: true, transparent: true }),
-          createPdfTableCell('', { bold: true, transparent: true }),
-          createPdfTableCell('', { bold: true, transparent: true }),
-          createPdfTableCell('', { bold: true, transparent: true }),
-          createPdfTableCell(formatMoneyOreWithKrTrimmed(entry.feriepengekravTotalOre), { halign: 'right', bold: true, transparent: true }),
-        ]
-      );
+    const totalRow = createPdfTableSummedTotalRow(
+      'I alt',
+      rows.map((row) => row.feriepengekravOre),
+      {
+        columnCount: 6,
+        valueColumnIndex: 5,
+        formatValue: (total) => formatMoneyOreWithKrTrimmed(total),
+        valueHasKrSuffix: false,
+      }
+    );
+    const totalRowIndex = totalRow ? tableRows.length : null;
+    if (totalRow) {
+      tableRows.push(totalRow.row);
     }
 
     const finalY = renderEoStylePdfTable({
       doc: writer.getDoc() as jsPDF,
       startY: writer.getY(),
       body: tableRows,
-      transparentRowIndices: rows.length > 1 ? [tableRows.length - 1] : [],
+      underlinedCellPositions: totalRowIndex === null || totalRow === null
+        ? []
+        : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
     });
     writer.setY(finalY + lineHeight);
 

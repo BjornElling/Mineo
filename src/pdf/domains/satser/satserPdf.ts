@@ -4,12 +4,12 @@
  * Genererer PDF-dokument med årlige satser for arbejdsskadeområdet
  */
 
-import { MARGINS, PDF_LINE_BOTTOM_SPACING_MM, SECTION_SPACER } from '../../infrastructure/pdfConfig';
-import { formatCurrency, formatPercent } from '../../../utils/formatUtils';
+import { PDF_LINE_BOTTOM_SPACING_MM, SECTION_SPACER } from '../../infrastructure/pdfConfig';
+import { formatPercent } from '../../../utils/formatUtils';
 import { PDF_BASE_LINE_HEIGHT_MM, type BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
 import { TODAY } from '../../../config/dateRanges';
-import { formatCurrencyPerUnit, resolvePdfFileName } from '../../shared/pdfFormatUtils';
+import { formatCurrencyPerUnit, formatKr, resolvePdfFileName } from '../../shared/pdfFormatUtils';
 import { getSatserForYear } from '../../../data/lovbestemteRates';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 
@@ -40,8 +40,7 @@ const writeRows = (
     writer.writeLeftRightText(label, firstLine, { rightFontStyle: 'normal' });
     for (const line of restLines) {
       writer.advanceY(-PDF_LINE_BOTTOM_SPACING_MM);
-      const lineStartX = writer.getPageWidth() - MARGINS.right - writer.getTextWidth(line);
-      writer.writeWrappedTextContinued(line, writer.getTextWidth(line), lineStartX);
+      writer.writeLeftRightText('', line, { rightFontStyle: 'normal', leftNoWrap: true });
     }
     if (restLines.length > 0) writer.addSpacer(PDF_LINE_BOTTOM_SPACING_MM);
   }
@@ -127,20 +126,28 @@ const addEalSection = (
   if (isPositiveFiniteNumber(eal.svieSmertePrDag)) {
     rows.push([
       'Godtgørelse for svie og smerte',
-      formatCurrencyPerUnit(eal.svieSmertePrDag, 'sygedag'),
+      formatCurrencyPerUnit(eal.svieSmertePrDag, 'sygedag', 0),
     ]);
   }
 
   // Maksimum for svie og smerte
   if (isPositiveFiniteNumber(eal.svieSmerteMax)) {
-    rows.push(['Maksimum for svie og smerte', formatCurrency(eal.svieSmerteMax)]);
+    rows.push(['Maksimum for svie og smerte', formatKr(eal.svieSmerteMax, 0)]);
   }
 
   // Maksimum for erhvervsevnetabserstatning
   if (isPositiveFiniteNumber(eal.erhvervsevnetabEalMax)) {
     rows.push([
       'Maksimum for erhvervsevnetabserstatning',
-      formatCurrency(eal.erhvervsevnetabEalMax),
+      formatKr(eal.erhvervsevnetabEalMax, 0),
+    ]);
+  }
+
+  // Mindstebeløb for forsørgertab
+  if (isPositiveFiniteNumber(eal.foersoergertabEalMin)) {
+    rows.push([
+      'Mindstebeløb for forsørgertab',
+      formatKr(eal.foersoergertabEalMin, 0),
     ]);
   }
 
@@ -148,7 +155,7 @@ const addEalSection = (
   if (isPositiveFiniteNumber(eal.vejledendeUdtalelseEet)) {
     rows.push([
       'Vejledende udtalelse om erhvervsevnetab',
-      formatCurrency(eal.vejledendeUdtalelseEet),
+      formatKr(eal.vejledendeUdtalelseEet, 0),
     ]);
   }
 
@@ -170,25 +177,25 @@ const addAslSection = (
   if (isPositiveFiniteNumber(asl.varigeMenPrGrad)) {
     rows.push([
       'Godtgørelse for varige mén',
-      formatCurrencyPerUnit(asl.varigeMenPrGrad, 'méngrad'),
+      formatCurrencyPerUnit(asl.varigeMenPrGrad, 'méngrad', 0),
     ]);
   }
 
   // Maksimum årsløn
   if (isPositiveFiniteNumber(asl.aarsloenAslMax)) {
-    rows.push(['Maksimum årsløn', formatCurrency(asl.aarsloenAslMax)]);
+    rows.push(['Maksimum årsløn', formatKr(asl.aarsloenAslMax, 0)]);
   }
 
   // Minimum årsløn
   if (isPositiveFiniteNumber(asl.aarsloenMin)) {
-    rows.push(['Minimum årsløn', formatCurrency(asl.aarsloenMin)]);
+    rows.push(['Minimum årsløn', formatKr(asl.aarsloenMin, 0)]);
   }
 
   // Minimum årsløn (skader før 1.7.2024)
   if (isPositiveFiniteNumber(asl.aarsloenMinFoer2024)) {
     rows.push([
       'Minimum årsløn (skader før 1.7.2024)',
-      formatCurrency(asl.aarsloenMinFoer2024),
+      formatKr(asl.aarsloenMinFoer2024, 0),
     ]);
   }
 
@@ -196,13 +203,13 @@ const addAslSection = (
   if (isPositiveFiniteNumber(asl.aarsloenMinFra2024)) {
     rows.push([
       'Minimum årsløn (skader fra 1.7.2024)',
-      formatCurrency(asl.aarsloenMinFra2024),
+      formatKr(asl.aarsloenMinFra2024, 0),
     ]);
   }
 
   // Overgangsbeløb
   if (isPositiveFiniteNumber(asl.overgangsbelob)) {
-    rows.push(['Overgangsbeløb', formatCurrency(asl.overgangsbelob)]);
+    rows.push(['Overgangsbeløb', formatKr(asl.overgangsbelob, 0)]);
   }
 
   // Reguleringsprocent for erhvervsevnetab
@@ -254,8 +261,8 @@ const addDiverseSection = (
     isPositiveFiniteNumber(barn)
   ) {
     const text =
-      `${formatCurrency(enlig)} (enlig) / ${formatCurrency(samlevende)} (samlevende)\n` +
-      `+ ${formatCurrency(barn)} per barn under 18 år`;
+      `${formatKr(enlig, 0)} (enlig) / ${formatKr(samlevende, 0)} (samlevende)\n` +
+      `+ ${formatKr(barn, 0)} per barn under 18 år`;
     rows.push(['Beløbsgrænse for fri proces', text]);
   }
 

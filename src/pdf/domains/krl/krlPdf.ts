@@ -33,7 +33,7 @@ const formatPct = (value: number | undefined): string => {
   return formatAsAmount(value, 4) + ' %';
 };
 
-export const buildKRLPdfFilename = (): string => resolvePdfFileName('KRL Satstabeller', false);
+export const buildKRLPdfFilename = (journalnr?: string): string => resolvePdfFileName('KRL Satstabeller', false, journalnr);
 
 /**
  * Bygger én samlet tabel med alle fire KRL satstabeller.
@@ -153,5 +153,5 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   writer.writeWrappedText('KRL\'s sats-tabeller kan genfindes på https://www.krl.dk/#/sats');
 
   writer.addFooter();
-  writer.save(buildKRLPdfFilename());
+  writer.save(buildKRLPdfFilename(stamdata?.journalnr));
 };

@@ -12,8 +12,8 @@ import { createJsPdfAdapter } from '../../infrastructure/jsPdfAdapter';
 import {
   cellCenter,
   cellRight,
-  createPdfTableCell,
-  createPdfFixedColumnStyles,
+  createPdfTableFormattedTotalRow,
+  createPdfDistributedColumnStyles,
   createPdfTableHeaderCell,
   renderEoStylePdfTable,
 } from '../../shared/pdfTableRenderer';
@@ -32,8 +32,10 @@ import {
   STANDARD_LOEN_COL2_LABEL,
   STANDARD_LOEN_COL3_LABEL,
 } from '../../../domain/aarsloen/standardLoenTableColumns';
+import { resolveAarsloenIndtastetEnhedSummary } from '../../../domain/aarsloen/aarsloenPeriodDisplay';
 
 const NBSP = '\u00A0';
+const AARSLOEN_PDF_ATP_HEADER = 'ATP mv.\nu. tillæg';
 
 const resolveTableStartYAfterSectionHeading = (headingY: number): number =>
   headingY - PDF_SECTION_HEADING_GAP;
@@ -216,11 +218,13 @@ const addIndtaegtsoplysningerTable = (
     createPdfTableHeaderCell(STANDARD_LOEN_COL2_LABEL, 'center'),
     createPdfTableHeaderCell(STANDARD_LOEN_COL3_LABEL, 'center'),
     createPdfTableHeaderCell('Ikke-pens. giv. løn', 'center'),
-    createPdfTableHeaderCell('ATP mv.\nu. pens.', 'center'),
+    createPdfTableHeaderCell(AARSLOEN_PDF_ATP_HEADER, 'center'),
     createPdfTableHeaderCell('FP/FV/SH/\nSO/St.B.', 'center'),
     createPdfTableHeaderCell('Arb.g.\nPension', 'center'),
     createPdfTableHeaderCell('Samlet løn', 'center'),
   );
+
+  const columnCount = headers.length;
 
   const tableRows: RowInput[] = [headers];
 
@@ -262,50 +266,31 @@ const addIndtaegtsoplysningerTable = (
     ]);
   }
 
-  const hasTotalRow = filteredData.length > 1;
-
-  if (hasTotalRow) {
-    tableRows.push([
-      createPdfTableCell('I alt', { halign: 'center', bold: true }),
-      cellCenter(''),
-      cellRight(''),
-      cellRight(''),
-      cellRight(''),
-      cellRight(''),
-      cellRight(''),
-      {
-        content: `${formatDanishAmount(beregnetAarsloen)}${NBSP}kr.`,
-        colSpan: 2,
-        styles: { halign: 'right', fontStyle: 'bold' },
-      },
-    ]);
+  const totalRow = filteredData.length > 1
+    ? createPdfTableFormattedTotalRow('I alt', `${formatDanishAmount(beregnetAarsloen)}${NBSP}kr.`, {
+      columnCount,
+      valueColumnIndex: 8,
+      labelAlign: 'center',
+      valueHasKrSuffix: false,
+    })
+    : null;
+  if (totalRow) {
+    tableRows.push(totalRow.row);
   }
+  const totalRowIndex = totalRow ? tableRows.length - 1 : null;
 
   const finalY = renderEoStylePdfTable({
     doc,
     startY: tableStartY,
     body: tableRows,
-    columnStyles: createPdfFixedColumnStyles(10, 17),
+    columnStyles: createPdfDistributedColumnStyles(columnCount),
+    underlinedCellPositions: totalRowIndex === null || totalRow === null
+      ? []
+      : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
     didParseCell: (data) => {
-      if (!hasTotalRow) return;
-      const lastRowIndex = tableRows.length - 1;
-      if (data.row.index === lastRowIndex) {
-        data.cell.styles.fillColor = false;
-        data.cell.styles.lineWidth = 0;
-      }
-    },
-    didDrawCell: (data) => {
-      if (!hasTotalRow) return;
-      const lastRowIndex = tableRows.length - 1;
-      if (data.row.index === lastRowIndex && data.column.index === 8) {
-        const cell = data.cell;
-        // Direkte jsPDF-kald er accepteret i autotable-callbacks — PdfDocumentAdapter
-        // dækker ikke tegneprimitiverne (setLineWidth, setDrawColor, line), og
-        // data.doc er autotable's egen eksponering af jsPDF-instansen.
-        doc.setLineWidth(0.15);
-        doc.setDrawColor(0, 0, 0);
-        doc.line(cell.x, cell.y, cell.x + cell.width, cell.y);
-      }
+      if (totalRowIndex === null || data.row.index !== totalRowIndex) return;
+      data.cell.styles.fillColor = false;
+      data.cell.styles.lineWidth = 0;
     },
   });
 
@@ -316,7 +301,10 @@ const addIndtaegtsoplysningerTable = (
  * Tilføj beregningsprincipper-sektion som almindelige tekstlinjer
  */
 type BeregningsprincipperParams = Readonly<{
+  tableData: readonly StandardLoenTableRow[];
   periodeData: PeriodeResult | null;
+  beregningsData: AarsloenBeregningResult;
+  loenperiode: Loenperiode;
   fuldLoenUnderFerie: boolean;
   retTilSjetteFerieuge: boolean;
   antalFeriedage: number | undefined;
@@ -328,26 +316,33 @@ const addBeregningsprinciperSection = (
   writer: PdfWriter,
   params: BeregningsprincipperParams,
 ): void => {
-  const { periodeData, fuldLoenUnderFerie, retTilSjetteFerieuge, antalFeriedage, loenPaaHelligdage, shDageAntal } = params;
+  const {
+    tableData,
+    periodeData,
+    beregningsData,
+    loenperiode,
+    fuldLoenUnderFerie,
+    retTilSjetteFerieuge,
+    antalFeriedage,
+    loenPaaHelligdage,
+    shDageAntal,
+  } = params;
 
   const rows: Array<{
     label: string;
     value: string;
   }> = [];
 
-  // Samlet periode
-  rows.push({
-    label: 'Samlet periode',
-    value: periodeData?.periodeTekst || '',
+  const indtastetEnhedSummary = resolveAarsloenIndtastetEnhedSummary({
+    tableData,
+    periodeData,
+    beregningsData,
+    loenperiode,
   });
 
-  // Andel af samlet periode
-  const andelTekst = periodeData
-    ? `${periodeData.unikkeEnheder} / ${periodeData.totalEnheder} ${periodeData.enhedNavn}`
-    : '';
   rows.push({
-    label: 'Andel af samlet periode',
-    value: andelTekst,
+    label: indtastetEnhedSummary.label,
+    value: indtastetEnhedSummary.value,
   });
 
   // Fuld løn under ferie
@@ -642,7 +637,10 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   if (omregningTilFuldtAar && periodeData) {
     // Tilføj beregningsprincipper-sektion
     addBeregningsprinciperSection(writer, {
+      tableData,
       periodeData,
+      beregningsData,
+      loenperiode,
       fuldLoenUnderFerie,
       retTilSjetteFerieuge,
       antalFeriedage,

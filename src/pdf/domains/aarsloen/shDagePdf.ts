@@ -18,9 +18,10 @@ import {
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
 import {
   TABLE_FONT_SIZE,
+  createPdfDistributedColumnStyles,
   createPdfTableCell,
   createPdfTableHeaderCell,
-  createPdfTableTransparentRow,
+  createPdfTableSummedTotalRow,
   renderEoStylePdfTable,
 } from '../../shared/pdfTableRenderer';
 import { parseISODate, type ISODateString } from '../../../types/branded';
@@ -38,6 +39,11 @@ type SHDagEntry = Readonly<{
   ugedag: (typeof WEEKDAY_NAMES_DA)[number];
   helligdagNavn: string;
   erHverdag: boolean;
+}>;
+type SHDageTableBuildResult = Readonly<{
+  body: RowInput[];
+  totalRowIndex: number | null;
+  totalValueColumnIndex: number;
 }>;
 
 const buildSHDagePeriodLabel = (perioder: ReadonlyArray<SHDagePeriod>): string => {
@@ -179,6 +185,48 @@ const formaterPeriodeOversigt = (perioder: ReadonlyArray<SHDagePeriod>): string 
   }
 };
 
+export const buildSHDageTableRows = (
+  helligdage: ReadonlyArray<SHDagEntry>
+): SHDageTableBuildResult => {
+  const tableData: RowInput[] = [[
+    createPdfTableHeaderCell('Ugedag', 'left'),
+    createPdfTableHeaderCell('Dato', 'left'),
+    createPdfTableHeaderCell('Helligdag', 'left'),
+    createPdfTableHeaderCell('SH-dag', 'center'),
+  ]];
+
+  for (const { dato, ugedag, helligdagNavn, erHverdag } of helligdage) {
+    tableData.push([
+      createPdfTableCell(ugedag, { halign: 'left' }),
+      createPdfTableCell(formatDanskDato(dato), { halign: 'left' }),
+      createPdfTableCell(helligdagNavn, { halign: 'left' }),
+      createPdfTableCell(erHverdag ? 'x' : '', { halign: 'center', valign: 'middle', fontSize: TABLE_FONT_SIZE }),
+    ]);
+  }
+
+  const totalRow = createPdfTableSummedTotalRow(
+    'SH-dage i alt',
+    helligdage.map((helligdag) => (helligdag.erHverdag ? 1 : 0)),
+    {
+      columnCount: 4,
+      valueColumnIndex: 3,
+      formatValue: (total) => String(total),
+      valueAlign: 'center',
+      preserveValueColumn: true,
+    }
+  );
+  const totalRowIndex = totalRow ? tableData.length : null;
+  if (totalRow) {
+    tableData.push(totalRow.row);
+  }
+
+  return {
+    body: tableData,
+    totalRowIndex,
+    totalValueColumnIndex: totalRow?.valueCellColumnIndex ?? 3,
+  };
+};
+
 /**
  * Generer og download PDF for SH-dage
  *
@@ -254,52 +302,20 @@ const addDescription = (writer: PdfWriter, perioder: ReadonlyArray<SHDagePeriod>
 const addSHDageTable = (writer: PdfWriter, helligdage: ReadonlyArray<SHDagEntry>): void => {
   const doc = writer.getDoc();
   const startY = writer.getY();
-  // Beregn total antal SH-dage
-  const antalSHDage = helligdage.filter(h => h.erHverdag).length;
-
-  // Forbered tabeldata
-  const tableData: RowInput[] = [];
-
-  // Header-række
-  tableData.push([
-    createPdfTableHeaderCell('Ugedag', 'left'),
-    createPdfTableHeaderCell('Dato', 'left'),
-    createPdfTableHeaderCell('Helligdag', 'left'),
-    createPdfTableHeaderCell('SH-dag', 'center'),
-  ]);
-
-  // Data-rækker
-  for (const { dato, ugedag, helligdagNavn, erHverdag } of helligdage) {
-    tableData.push([
-      createPdfTableCell(ugedag, { halign: 'left' }),
-      createPdfTableCell(formatDanskDato(dato), { halign: 'left' }),
-      createPdfTableCell(helligdagNavn, { halign: 'left' }),
-      createPdfTableCell(erHverdag ? 'x' : '', { halign: 'center', valign: 'middle', fontSize: TABLE_FONT_SIZE }),
-    ]);
-  }
-
-  // Tom række
-  tableData.push(createPdfTableTransparentRow(4));
-
-  // Total-række
-  tableData.push([
-    createPdfTableCell('SH-dage i alt', { halign: 'left', bold: true, transparent: true }),
-    createPdfTableCell('', { bold: true, transparent: true }),
-    createPdfTableCell('', { bold: true, transparent: true }),
-    createPdfTableCell(`${antalSHDage}`, { halign: 'center', bold: true, transparent: true }),
-  ]);
+  const { body: tableData, totalRowIndex, totalValueColumnIndex } = buildSHDageTableRows(helligdage);
 
   const finalY = renderEoStylePdfTable({
     doc,
     startY,
     body: tableData,
-    columnStyles: {
-      0: { cellWidth: 'auto' },
-      1: { cellWidth: 'auto' },
-      2: { cellWidth: 'auto' },
-      3: { cellWidth: PDF_TABLE_NARROW_COLUMN_WIDTH },
-    },
-    transparentRowIndices: [tableData.length - 2, tableData.length - 1],
+    columnStyles: createPdfDistributedColumnStyles(4, {
+      fixedColumns: {
+        3: PDF_TABLE_NARROW_COLUMN_WIDTH,
+      },
+    }),
+    underlinedCellPositions: totalRowIndex === null
+      ? []
+      : [{ rowIndex: totalRowIndex, columnIndex: totalValueColumnIndex }],
     didParseCell: (data: CellHookData) => {
       const helligdagIndex = data.row.index - 1;
       if (helligdagIndex >= 0 && helligdagIndex < helligdage.length) {
@@ -307,6 +323,12 @@ const addSHDageTable = (writer: PdfWriter, helligdage: ReadonlyArray<SHDagEntry>
         if (!helligdag.erHverdag) {
           data.cell.styles.textColor = PDF_MUTED_TEXT_COLOR;
         }
+        return;
+      }
+
+      if (totalRowIndex !== null && data.row.index === totalRowIndex) {
+        data.cell.styles.fillColor = false;
+        data.cell.styles.lineWidth = 0;
       }
     },
   });
@@ -321,8 +343,8 @@ const addExplanationText = (writer: PdfWriter): void => {
   writer.writeSubheader('Forklaring', (2 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER);
 
   const explanations = [
-    '• Søgnehelligdage er helligdage, der falder på hverdage (mandag-fredag).',
-    '• Helligdage, der falder i weekenden, fremgår af tabellen men medregnes ikke.',
+    'Søgnehelligdage er helligdage, der falder på hverdage (mandag-fredag).',
+    'Helligdage, der falder i weekenden, fremgår af tabellen men medregnes ikke.',
   ];
 
   for (const explanation of explanations) {

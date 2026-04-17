@@ -2,13 +2,12 @@ import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../../utils/expressionAmount';
 import { formatAsAmount } from '../../../../utils/formatUtils';
-import { PDF_CONTENT_WIDTH_MM } from '../../../infrastructure/pdfConfig';
 import { ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
-import { cellRight, createPdfTableCell, renderEoStylePdfTable } from '../../../shared/pdfTableRenderer';
+import { cellRight, createPdfDistributedColumnStyles, createPdfTableCell, renderEoStylePdfTable } from '../../../shared/pdfTableRenderer';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { formatIsoDateShort } from '../../../../utils/dateFormatting';
@@ -105,10 +104,7 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
   }
 
   const doc = writer.getDoc() as jsPDF;
-  const equalColumnWidth = PDF_CONTENT_WIDTH_MM / OFFENTLIGE_YDELSER_PDF_HEADERS.length;
-  const columnStyles = Object.fromEntries(
-    Array.from({ length: OFFENTLIGE_YDELSER_PDF_HEADERS.length }, (_, index) => [index, { cellWidth: equalColumnWidth }])
-  );
+  const columnStyles = createPdfDistributedColumnStyles(OFFENTLIGE_YDELSER_PDF_HEADERS.length);
 
   for (const [index, label] of groupOrder.entries()) {
     if (index > 0) writer.addSpacer(lineHeight);

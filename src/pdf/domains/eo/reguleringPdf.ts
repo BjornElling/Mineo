@@ -68,11 +68,12 @@ export const buildReguleringPdfFilename = (params: Readonly<{
   loenudviklingBasis: 'Overenskomst' | 'Statistik';
   valgtLabel: string;
   interval: Readonly<{ fraDato: DanishDateString; tilDato: DanishDateString }>;
+  journalnr?: string;
 }>): string => {
   const basisTekst = params.loenudviklingBasis === 'Statistik' ? 'Statistik' : 'Overenskomst';
   const labelPart = sanitizeFilenamePart(params.valgtLabel);
   const intervalPart = sanitizeFilenamePart(`${params.interval.fraDato} til ${params.interval.tilDato}`);
-  return resolvePdfFileName(`Regulering - ${basisTekst} - ${labelPart} (${intervalPart})`, false);
+  return resolvePdfFileName(`Regulering - ${basisTekst} - ${labelPart} (${intervalPart})`, false, params.journalnr);
 };
 
 const resolveOffentligLoenInfoLine = (params: Readonly<{
@@ -444,5 +445,5 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   }
 
   writer.addFooter();
-  writer.save(buildReguleringPdfFilename({ loenudviklingBasis, valgtLabel, interval }));
+  writer.save(buildReguleringPdfFilename({ loenudviklingBasis, valgtLabel, interval, journalnr: stamdata?.journalnr }));
 };

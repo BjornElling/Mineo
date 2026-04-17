@@ -15,10 +15,9 @@ import {
 import { MARGINS } from '../../infrastructure/pdfConfig';
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
 import {
-  cellLeft,
   cellRight,
-  cellRightBold,
   createPdfTableCell,
+  createPdfTableSummedTotalRow,
   renderEoStylePdfTable,
 } from '../../shared/pdfTableRenderer';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
@@ -166,16 +165,21 @@ export const addLoebendeAfgoerelseSection = (
           cellRight(formatKr(row.beregnetEet)),
         ]
       ),
-      [
-        cellLeft('I alt'),
-        cellLeft(''),
-        cellLeft(''),
-        cellLeft(''),
-        cellLeft(''),
-        cellLeft(''),
-        cellRightBold(formatKr(afgoerelse.iAltBeregnetEet)),
-      ],
     ];
+    const totalRow = createPdfTableSummedTotalRow(
+      'I alt',
+      afgoerelse.perioder.map((row) => row.beregnetEet),
+      {
+        columnCount: 7,
+        valueColumnIndex: 6,
+        formatValue: (total) => formatKr(total),
+        valueHasKrSuffix: true,
+      }
+    );
+    const totalRowIndex = totalRow ? ydelserBody.length : null;
+    if (totalRow) {
+      ydelserBody.push(totalRow.row);
+    }
 
     const doc = writer.getDoc();
     const startY = writer.getY();
@@ -184,6 +188,9 @@ export const addLoebendeAfgoerelseSection = (
       startY,
       body: ydelserBody,
       hasHeaderRow: true,
+      underlinedCellPositions: totalRowIndex === null || totalRow === null
+        ? []
+        : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
     });
     writer.setY(resolvePdfSectionEndY(finalY, startY));
   }

@@ -2,8 +2,10 @@ import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import { formatUtcDateLong, formatIsoDateLong as formatDateLong, WEEKDAY_NAMES_DA } from '../../../../utils/dateFormatting';
 import {
+  createPdfDistributedColumnStyles,
   createPdfTableCell,
   createPdfTableHeaderCell,
+  createPdfTableSummedTotalRow,
   renderEoStylePdfTable,
 } from '../../../shared/pdfTableRenderer';
 import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../../infrastructure/pdfConfig';
@@ -115,7 +117,6 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
   const formatRangesLong = (ranges: readonly IsoRange[]): string[] => ranges.map((range) => formatRangeLong(range.fra, range.til));
 
   const renderShDageTable = (rows: readonly SHDageTableRow[]) => {
-    const antalShDage = rows.filter((row) => row.erSHDag).length;
     const tableRows: RowInput[] = [
       [
         createPdfTableHeaderCell('Ugedag', 'left'),
@@ -134,25 +135,34 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
       ]);
     }
 
-    tableRows.push([
-      createPdfTableCell('SH-dage i alt', { halign: 'left', bold: true, transparent: true }),
-      createPdfTableCell('', { bold: true, transparent: true }),
-      createPdfTableCell('', { bold: true, transparent: true }),
-      createPdfTableCell(String(antalShDage), { halign: 'center', bold: true, transparent: true }),
-    ]);
+    const totalRow = createPdfTableSummedTotalRow(
+      'SH-dage i alt',
+      rows.map((row) => (row.erSHDag ? 1 : 0)),
+      {
+        columnCount: 4,
+        valueColumnIndex: 3,
+        formatValue: (total) => String(total),
+        valueAlign: 'center',
+      }
+    );
+    const totalRowIndex = totalRow ? tableRows.length : null;
+    if (totalRow) {
+      tableRows.push(totalRow.row);
+    }
 
     const doc = writer.getDoc();
     const finalY = renderEoStylePdfTable({
       doc,
       startY: writer.getY(),
       body: tableRows,
-      columnStyles: {
-        0: { cellWidth: 'auto' },
-        1: { cellWidth: 'auto' },
-        2: { cellWidth: 'auto' },
-        3: { cellWidth: PDF_TABLE_NARROW_COLUMN_WIDTH },
-      },
-      transparentRowIndices: [tableRows.length - 1],
+      columnStyles: createPdfDistributedColumnStyles(4, {
+        fixedColumns: {
+          3: PDF_TABLE_NARROW_COLUMN_WIDTH,
+        },
+      }),
+      underlinedCellPositions: totalRowIndex === null || totalRow === null
+        ? []
+        : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
     });
     writer.setY(finalY + lineHeight);
   };
