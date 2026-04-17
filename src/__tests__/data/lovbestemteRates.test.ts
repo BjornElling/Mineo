@@ -166,6 +166,12 @@ describe('getSatserForYear', () => {
   });
 
   describe('retsinformation-links', () => {
+    it('afleder vist reference-tekst fra samme datasæt som links', () => {
+      const satser = getSatserForYear(2024);
+
+      expect(satser.referencer.kapitaliseringSkadeFra2011).toBe('Vejl. 9820/2023 og Vejl. 9376/2024');
+    });
+
     it('returnerer links for 2026-referencer', () => {
       const satser = getSatserForYear(2026);
 
@@ -191,7 +197,15 @@ describe('getSatserForYear', () => {
 
       expect(satser.referencer.kapitaliseringSkadeFra2011Links).toEqual([
         { label: 'Vejl. 9820/2023', url: 'https://www.retsinformation.dk/eli/retsinfo/2023/9820' },
-        { label: '9376/2024', url: 'https://www.retsinformation.dk/eli/retsinfo/2024/9376' },
+        { label: 'Vejl. 9376/2024', url: 'https://www.retsinformation.dk/eli/retsinfo/2024/9376' },
+      ]);
+    });
+
+    it('returnerer korrekt 2025-url for arbejdsskadesikringsloven', () => {
+      const satser = getSatserForYear(2025);
+
+      expect(satser.referencer.aslReferenceLinks).toEqual([
+        { label: 'Vejl. 9915/2024', url: 'https://www.retsinformation.dk/eli/retsinfo/2024/9915' },
       ]);
     });
   });

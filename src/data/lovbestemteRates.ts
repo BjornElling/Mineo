@@ -1,15 +1,11 @@
 import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from './kapitalisering/kapitaliseringsbekendtgoerelser';
 import {
   type RetsinfoLink,
-  aslReferenceLinks,
-  ealReferenceLinks,
-  friProcesReferenceLinks,
-  kapitaliseringLinks,
-  kapitaliseringSkadeFoer2007Links,
-  kapitaliseringSkadeFoer2011Links,
-  kapitaliseringSkadeFra2007Links,
-  kapitaliseringSkadeFra2011Links,
-  reguleringssatsReferenceLinks,
+  type YearlyRetsinfoReferences,
+  bkg,
+  toYearlyReferenceText,
+  toYearlyRetsinfoLinks,
+  vejl,
 } from './retsinfoLinks';
 
 /**
@@ -527,177 +523,204 @@ export const reguleringssats: YearlyRate = {
 
 // ===== REFERENCER =====
 
+const ealReferenceData: YearlyRetsinfoReferences = {
+  2026: [bkg(1428, 2025)],
+  2025: [bkg(1347, 2024)],
+  2024: [bkg(1390, 2023)],
+  2023: [bkg(1488, 2022)],
+  2022: [bkg(2173, 2021)],
+  2021: [bkg(1839, 2020)],
+  2020: [bkg(1130, 2019)],
+  2019: [bkg(1379, 2018)],
+  2018: [bkg(1233, 2017)],
+  2017: [bkg(1416, 2016)],
+  2016: [bkg(1393, 2015)],
+  2015: [bkg(1185, 2014)],
+  2014: [bkg(1167, 2013)],
+  2013: [bkg(1059, 2012)],
+  2012: [bkg(1119, 2011)],
+  2011: [bkg(1298, 2010)],
+  2010: [bkg(1127, 2009)],
+  2009: [bkg(1110, 2008)],
+  2008: [bkg(1420, 2007)],
+  2007: [bkg(1090, 2006)],
+  2006: [bkg(1076, 2005)],
+  2005: [bkg(1158, 2004)],
+};
+
 // Erstatningsansvarsloven
-export const ealReference: YearlyReference = {
-  2026: 'Bkg. 1428/2025',
-  2025: 'Bkg. 1347/2024',
-  2024: 'Bkg. 1390/2023',
-  2023: 'Bkg. 1488/2022',
-  2022: 'Bkg. 2173/2021',
-  2021: 'Bkg. 1839/2020',
-  2020: 'Bkg. 1130/2019',
-  2019: 'Bkg. 1379/2018',
-  2018: 'Bkg. 1233/2017',
-  2017: 'Bkg. 1416/2016',
-  2016: 'Bkg. 1393/2015',
-  2015: 'Bkg. 1185/2014',
-  2014: 'Bkg. 1167/2013',
-  2013: 'Bkg. 1059/2012',
-  2012: 'Bkg. 1119/2011',
-  2011: 'Bkg. 1298/2010',
-  2010: 'Bkg. 1127/2009',
-  2009: 'Bkg. 1110/2008',
-  2008: 'Bkg. 1420/2007',
-  2007: 'Bkg. 1090/2006',
-  2006: 'Bkg. 1076/2005',
-  2005: 'Bkg. 1158/2004',
+export const ealReference: YearlyReference = toYearlyReferenceText(ealReferenceData);
+export const ealReferenceLinks = toYearlyRetsinfoLinks(ealReferenceData);
+
+const aslReferenceData: YearlyRetsinfoReferences = {
+  2026: [vejl(10058, 2025)],
+  2025: [vejl(9915, 2024)],
+  2024: [vejl(9822, 2023)],
+  2023: [vejl(10142, 2022)],
+  2022: [vejl(9866, 2021)],
+  2021: [vejl(9737, 2020)],
+  2020: [vejl(9922, 2019)],
+  2019: [bkg(1232, 2018)],
+  2018: [bkg(1157, 2017)],
+  2017: [bkg(1273, 2016)],
+  2016: [bkg(1220, 2015)],
+  2015: [bkg(1114, 2014)],
+  2014: [bkg(1151, 2013)],
+  2013: [bkg(991, 2012)],
+  2012: [bkg(1105, 2011)],
+  2011: [bkg(1215, 2010)],
+  2010: [bkg(1017, 2009)],
+  2009: [bkg(1050, 2008)],
+  2008: [bkg(1241, 2007)],
+  2007: [bkg(1047, 2006)],
+  2006: [bkg(989, 2005)],
+  2005: [bkg(1033, 2004)],
 };
 
 // Arbejdsskadesikringsloven
-export const aslReference: YearlyReference = {
-  2026: 'Vejl. 10058/2025',
-  2025: 'Vejl. 9915/2024',
-  2024: 'Vejl. 9822/2023',
-  2023: 'Vejl. 10142/2022',
-  2022: 'Vejl. 9866/2021',
-  2021: 'Vejl. 9737/2020',
-  2020: 'Vejl. 9922/2019',
-  2019: 'Bkg. 1232/2018',
-  2018: 'Bkg. 1157/2017',
-  2017: 'Bkg. 1273/2016',
-  2016: 'Bkg. 1220/2015',
-  2015: 'Bkg. 1114/2014',
-  2014: 'Bkg. 1151/2013',
-  2013: 'Bkg. 991/2012',
-  2012: 'Bkg. 1105/2011',
-  2011: 'Bkg. 1215/2010',
-  2010: 'Bkg. 1017/2009',
-  2009: 'Bkg. 1050/2008',
-  2008: 'Bkg. 1241/2007',
-  2007: 'Bkg. 1047/2006',
-  2006: 'Bkg. 989/2005',
-  2005: 'Bkg. 1033/2004',
+export const aslReference: YearlyReference = toYearlyReferenceText(aslReferenceData);
+export const aslReferenceLinks = toYearlyRetsinfoLinks(aslReferenceData);
+
+const kapitaliseringData: YearlyRetsinfoReferences = {
+  2026: [vejl(10056, 2025)],
+  2025: [vejl(10029, 2024)],
+  2006: [bkg(1068, 2003)],
+  2005: [bkg(1068, 2003)],
 };
 
 // Kapitalisering
 // OBS: Skal ikke udfyldes med årene 2007-2024.
 // Bekendtgørelse 1068/2003 blev brugt uændret i en lang periode; detaljerede
 // skadeafhængige varianter ligger i kapitaliseringSkade* tabellerne nedenfor.
-export const kapitalisering: YearlyReference = {
-  2026: 'Vejl. 10056/2025',
-  2025: 'Vejl. 10029/2024',
-//...
-  2006: 'Bkg. 1068/2003',
-  2005: 'Bkg. 1068/2003',
+export const kapitalisering: YearlyReference = toYearlyReferenceText(kapitaliseringData);
+export const kapitaliseringLinks = toYearlyRetsinfoLinks(kapitaliseringData);
+
+const kapitaliseringSkadeFra2011Data: YearlyRetsinfoReferences = {
+  2024: [vejl(9820, 2023), vejl(9376, 2024, 'Vejl. 9376/2024')],
+  2023: [vejl(10141, 2022)],
+  2022: [vejl(9864, 2021)],
+  2021: [vejl(9741, 2020)],
+  2020: [vejl(9921, 2019)],
+  2019: [bkg(1233, 2018)],
+  2018: [bkg(1156, 2017)],
+  2017: [bkg(1275, 2016)],
+  2016: [bkg(1664, 2015)],
+  2015: [bkg(1275, 2014), bkg(199, 2015, 'Bkg. 199/2015')],
+  2014: [bkg(1202, 2013)],
+  2013: [bkg(990, 2012)],
+  2012: [bkg(1358, 2011)],
+  2011: [bkg(1220, 2010)],
 };
 
 // Kapitalisering (skade fra 1.1.2011)
 // OBS: Skal kun udfyldes med årene 2011-2024!
-export const kapitaliseringSkadeFra2011: YearlyReference = {
-  2024: 'Vejl. 9820/2023 og 9376/2024',
-  2023: 'Vejl. 10141/2022',
-  2022: 'Vejl. 9864/2021',
-  2021: 'Vejl. 9741/2020',
-  2020: 'Vejl. 9921/2019',
-  2019: 'Bkg. 1233/2018',
-  2018: 'Bkg. 1156/2017',
-  2017: 'Bkg. 1275/2016',
-  2016: 'Bkg. 1664/2015',
-  2015: 'Bkg. 1275/2014 og 199/2015',
-  2014: 'Bkg. 1202/2013',
-  2013: 'Bkg. 990/2012',
-  2012: 'Bkg. 1358/2011',
-  2011: 'Bkg. 1220/2010',
+export const kapitaliseringSkadeFra2011: YearlyReference = toYearlyReferenceText(kapitaliseringSkadeFra2011Data);
+export const kapitaliseringSkadeFra2011Links = toYearlyRetsinfoLinks(kapitaliseringSkadeFra2011Data);
+
+const kapitaliseringSkadeFoer2011Data: YearlyRetsinfoReferences = {
+  // Vejledning 9871/2020 anvendes fortsat uændret for opslagene 2021-2024.
+  2024: [vejl(9871, 2020), vejl(9376, 2024, 'Vejl. 9376/2024')],
+  2023: [vejl(9871, 2020)],
+  2022: [vejl(9871, 2020)],
+  2021: [vejl(9871, 2020)],
+  2020: [bkg(1700, 2015)],
+  2019: [bkg(1700, 2015)],
+  2018: [bkg(1700, 2015)],
+  2017: [bkg(1700, 2015)],
+  2016: [bkg(1700, 2015)],
+  2015: [bkg(1403, 2011), bkg(198, 2015, 'Bkg. 198/2015')],
+  2014: [bkg(1403, 2011)],
+  2013: [bkg(1403, 2011)],
+  2012: [bkg(1403, 2011)],
+  2011: [bkg(1221, 2010)],
 };
 
 // Kapitalisering (skade før 1.1.2011)
 // OBS: Skal kun udfyldes med årene 2011-2024!
-export const kapitaliseringSkadeFoer2011: YearlyReference = {
-  2024: 'Vejl. 9871/2020 og 9376/2024',
-  2023: 'Vejl. 9871/2020',
-  2022: 'Vejl. 9871/2020',
-  2021: 'Vejl. 9871/2020',
-  2020: 'Bkg. 1700/2015',
-  2019: 'Bkg. 1700/2015',
-  2018: 'Bkg. 1700/2015',
-  2017: 'Bkg. 1700/2015',
-  2016: 'Bkg. 1700/2015',
-  2015: 'Bkg. 1403/2011 og 198/2015',
-  2014: 'Bkg. 1403/2011',
-  2013: 'Bkg. 1403/2011',
-  2012: 'Bkg. 1403/2011',
-  2011: 'Bkg. 1221/2010',
+export const kapitaliseringSkadeFoer2011: YearlyReference = toYearlyReferenceText(kapitaliseringSkadeFoer2011Data);
+export const kapitaliseringSkadeFoer2011Links = toYearlyRetsinfoLinks(kapitaliseringSkadeFoer2011Data);
+
+const kapitaliseringSkadeFra2007Data: YearlyRetsinfoReferences = {
+  2010: [bkg(1022, 2009)],
+  2009: [bkg(1047, 2008), bkg(440, 2009, 'Bkg. 440/2009')],
+  2008: [bkg(1263, 2007)],
+  2007: [bkg(678, 2007)],
 };
 
 // Kapitalisering (skade fra 1.7.2007)
 // OBS: Skal kun udfyldes med årene 2007-2010!
-export const kapitaliseringSkadeFra2007: YearlyReference = {
-  2010: 'Bkg. 1022/2009',
-  2009: 'Bkg. 1047/2008 og 440/2009',
-  2008: 'Bkg. 1263/2007',
-  2007: 'Bkg. 678/2007',
+export const kapitaliseringSkadeFra2007: YearlyReference = toYearlyReferenceText(kapitaliseringSkadeFra2007Data);
+export const kapitaliseringSkadeFra2007Links = toYearlyRetsinfoLinks(kapitaliseringSkadeFra2007Data);
+
+const kapitaliseringSkadeFoer2007Data: YearlyRetsinfoReferences = {
+  2010: [bkg(449, 2009)],
+  2009: [bkg(1068, 2003), bkg(449, 2009, 'Bkg. 449/2009')],
+  2008: [bkg(1068, 2003)],
+  2007: [bkg(1068, 2003)],
 };
 
 // Kapitalisering (skade før 1.7.2007)
 // OBS: Skal kun udfyldes med årene 2007-2010!
-export const kapitaliseringSkadeFoer2007: YearlyReference = {
-  2010: 'Bkg. 449/2009',
-  2009: 'Bkg. 1068/2003 og 449/2009',
-  2008: 'Bkg. 1068/2003',
-  2007: 'Bkg. 1068/2003',
+export const kapitaliseringSkadeFoer2007: YearlyReference = toYearlyReferenceText(kapitaliseringSkadeFoer2007Data);
+export const kapitaliseringSkadeFoer2007Links = toYearlyRetsinfoLinks(kapitaliseringSkadeFoer2007Data);
+
+const friProcesReferenceData: YearlyRetsinfoReferences = {
+  2026: [bkg(1360, 2025)],
+  2025: [bkg(1338, 2024)],
+  2024: [bkg(1521, 2023)],
+  2023: [bkg(1479, 2022)],
+  2022: [bkg(2124, 2021)],
+  2021: [bkg(1840, 2020)],
+  2020: [bkg(1504, 2019)],
+  2019: [bkg(1372, 2018)],
+  2018: [bkg(1462, 2017)],
+  2017: [bkg(1671, 2016)],
+  2016: [bkg(1435, 2015)],
+  2015: [bkg(1270, 2014)],
+  2014: [bkg(1245, 2013)],
+  2013: [bkg(1084, 2012)],
+  2012: [bkg(1153, 2011)],
+  2011: [bkg(1428, 2010)],
+  2010: [bkg(1236, 2009)],
+  2009: [bkg(1116, 2008)],
+  2008: [bkg(1468, 2007)],
+  2007: [bkg(1295, 2006)],
+  2006: [bkg(1097, 2005)],
+  2005: [bkg(1116, 2004)],
 };
 
 // Fri proces
-export const friProcesReference: YearlyReference = {
-  2026: 'Bkg. 1360/2025',
-  2025: 'Bkg. 1338/2024',
-  2024: 'Bkg. 1521/2023',
-  2023: 'Bkg. 1479/2022',
-  2022: 'Bkg. 2124/2021',
-  2021: 'Bkg. 1840/2020',
-  2020: 'Bkg. 1504/2019',
-  2019: 'Bkg. 1372/2018',
-  2018: 'Bkg. 1462/2017',
-  2017: 'Bkg. 1671/2016',
-  2016: 'Bkg. 1435/2015',
-  2015: 'Bkg. 1270/2014',
-  2014: 'Bkg. 1245/2013',
-  2013: 'Bkg. 1084/2012',
-  2012: 'Bkg. 1153/2011',
-  2011: 'Bkg. 1428/2010',
-  2010: 'Bkg. 1236/2009',
-  2009: 'Bkg. 1116/2008',
-  2008: 'Bkg. 1468/2007',
-  2007: 'Bkg. 1295/2006',
-  2006: 'Bkg. 1097/2005',
-  2005: 'Bkg. 1116/2004',
+export const friProcesReference: YearlyReference = toYearlyReferenceText(friProcesReferenceData);
+export const friProcesReferenceLinks = toYearlyRetsinfoLinks(friProcesReferenceData);
+
+const reguleringssatsReferenceData: YearlyRetsinfoReferences = {
+  2026: [bkg(1056, 2025)],
+  2025: [bkg(983, 2024)],
+  2024: [bkg(1101, 2023)],
+  2023: [bkg(1204, 2022)],
+  2022: [bkg(1713, 2021)],
+  2021: [bkg(1210, 2020)],
+  2020: [bkg(855, 2019)],
+  2019: [bkg(1058, 2018)],
+  2018: [bkg(1015, 2017)],
+  2017: [bkg(1135, 2016)],
+  2016: [bkg(988, 2015)],
+  2015: [bkg(942, 2014)],
+  2014: [bkg(1046, 2013)],
+  2013: [bkg(870, 2012)],
+  2012: [bkg(937, 2011)],
+  2011: [bkg(1013, 2010)],
+  2010: [bkg(809, 2009)],
+  2009: [bkg(851, 2008)],
+  2008: [bkg(1021, 2007)],
+  2007: [bkg(874, 2006)],
+  2006: [bkg(793, 2005)],
+  2005: [bkg(877, 2004)],
 };
 
 // Reguleringssatser
-export const reguleringssatsReference: YearlyReference = {
-  2026: 'Bkg. 1056/2025',
-  2025: 'Bkg. 983/2024',
-  2024: 'Bkg. 1101/2023',
-  2023: 'Bkg. 1204/2022',
-  2022: 'Bkg. 1713/2021',
-  2021: 'Bkg. 1210/2020',
-  2020: 'Bkg. 855/2019',
-  2019: 'Bkg. 1058/2018',
-  2018: 'Bkg. 1015/2017',
-  2017: 'Bkg. 1135/2016',
-  2016: 'Bkg. 988/2015',
-  2015: 'Bkg. 942/2014',
-  2014: 'Bkg. 1046/2013',
-  2013: 'Bkg. 870/2012',
-  2012: 'Bkg. 937/2011',
-  2011: 'Bkg. 1013/2010',
-  2010: 'Bkg. 809/2009',
-  2009: 'Bkg. 851/2008',
-  2008: 'Bkg. 1021/2007',
-  2007: 'Bkg. 874/2006',
-  2006: 'Bkg. 793/2005',
-  2005: 'Bkg. 877/2004',
-};
+export const reguleringssatsReference: YearlyReference = toYearlyReferenceText(reguleringssatsReferenceData);
+export const reguleringssatsReferenceLinks = toYearlyRetsinfoLinks(reguleringssatsReferenceData);
 
 export const satserCompleteYearBounds: YearBounds = getSatserCompleteYearBounds();
 
