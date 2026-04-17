@@ -15,7 +15,9 @@ import {
 } from '../../domain/policies';
 import { SATSER_INITIAL_VALUES } from '../../domain/satser/satserInitialValues';
 import ContentBox from '../layout/ContentBox';
+import InfoTooltipIcon from '../common/InfoTooltipIcon';
 import { formatAsAmount, formatPercent } from '../../utils/formatUtils';
+import type { RetsinfoLink } from '../../data/retsinfoLinks';
 
 /**
  * Formaterer beløb til dansk format
@@ -54,7 +56,7 @@ const formatProcent = (value: number | null | undefined): string => {
  */
 interface DataRowProps {
   label: string;
-  value: string | null | undefined;
+  value: React.ReactNode;
   rightAlign?: boolean;
 }
 
@@ -65,21 +67,25 @@ const DataRow = ({ label, value, rightAlign = true }: DataRowProps) => {
   return (
     <Box className="row--label-right-hover">
       <Typography className="row--text">{label}:</Typography>
-      <Typography
-        className="row--text"
+      <Box
+        className="row--label-right-hover__content"
         sx={{
+          justifyContent: rightAlign ? 'flex-end' : 'flex-start',
           textAlign: rightAlign ? 'right' : 'left',
-          marginLeft: '16px',
         }}
       >
-        {value}
-      </Typography>
+        {typeof value === 'string' ? (
+          <Typography className="row--text">{value}</Typography>
+        ) : (
+          value
+        )}
+      </Box>
     </Box>
   );
 };
 
 interface MultiLineDataRowProps {
-  rows: ReadonlyArray<Readonly<{ label: string; value: string | null | undefined }>>;
+  rows: ReadonlyArray<Readonly<{ key: string; label: React.ReactNode; value: string | null | undefined }>>;
 }
 
 const MultiLineDataRow = ({ rows }: MultiLineDataRowProps) => {
@@ -90,12 +96,12 @@ const MultiLineDataRow = ({ rows }: MultiLineDataRowProps) => {
     <Box className="row--label-right-hover">
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
         {visibleRows.map((row) => (
-          <Typography key={row.label} className="row--text">{row.label}:</Typography>
+          <Typography key={row.key} className="row--text">{row.label}</Typography>
         ))}
       </Box>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0, flex: 1, alignItems: 'flex-end', textAlign: 'right' }}>
         {visibleRows.map((row) => (
-          <Typography key={row.label} className="row--text">{row.value}</Typography>
+          <Typography key={row.key} className="row--text">{row.value}</Typography>
         ))}
       </Box>
     </Box>
@@ -159,6 +165,33 @@ const Satser = React.memo(() => {
       });
     }
   }, [satser, gyldigtAar, persistedStamdata, settings]);
+
+  const renderReferenceValue = React.useCallback((links: readonly RetsinfoLink[]) => {
+    if (links.length === 0) return '';
+
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', width: '100%' }}>
+        {links.map((link, index) => (
+          <React.Fragment key={`${link.label}-${link.url}`}>
+            {index > 0 ? (
+              <Typography component="span" className="row--text" sx={{ whiteSpace: 'pre' }}>
+                {' og '}
+              </Typography>
+            ) : null}
+            <Typography
+              component="a"
+              className="row--text icon-text-link"
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {link.label}
+            </Typography>
+          </React.Fragment>
+        ))}
+      </Box>
+    );
+  }, []);
 
   return (
     <Box>
@@ -290,7 +323,13 @@ const Satser = React.memo(() => {
         <MultiLineDataRow
           rows={[
             {
-              label: 'Beløbsgrænse for fri proces (enlig/samlevende)',
+              key: 'fri-proces',
+              label: (
+                <>
+                  Beløbsgrænse for fri proces (enlig/samlevende):
+                  <InfoTooltipIcon title={'Personlig indkomst\n+ positiv kapitalindkomst'} />
+                </>
+              ),
               value: satser
                 ? formatKronerPair(
                     satser.diverse.friProcesEnlig,
@@ -299,7 +338,8 @@ const Satser = React.memo(() => {
                 : '',
             },
             {
-              label: '+ Tillæg per barn under 18 år',
+              key: 'fri-proces-barn',
+              label: '+ Tillæg per barn under 18 år:',
               value: satser ? formatKroner(satser.diverse.friProcesBarn) : '',
             },
           ]}
@@ -316,39 +356,39 @@ const Satser = React.memo(() => {
 
         <DataRow
           label="Erstatningsansvarsloven"
-          value={satser ? satser.referencer.ealReference : ''}
+          value={satser ? renderReferenceValue(satser.referencer.ealReferenceLinks) : ''}
         />
         <DataRow
           label="Arbejdsskadesikringsloven"
-          value={satser ? satser.referencer.aslReference : ''}
+          value={satser ? renderReferenceValue(satser.referencer.aslReferenceLinks) : ''}
         />
         <DataRow
           label="Kapitalisering"
-          value={satser ? satser.referencer.kapitalisering : ''}
+          value={satser ? renderReferenceValue(satser.referencer.kapitaliseringLinks) : ''}
         />
         <DataRow
           label="Kapitalisering (skade fra 1.1.2011)"
-          value={satser ? satser.referencer.kapitaliseringSkadeFra2011 : ''}
+          value={satser ? renderReferenceValue(satser.referencer.kapitaliseringSkadeFra2011Links) : ''}
         />
         <DataRow
           label="Kapitalisering (skade før 1.1.2011)"
-          value={satser ? satser.referencer.kapitaliseringSkadeFoer2011 : ''}
+          value={satser ? renderReferenceValue(satser.referencer.kapitaliseringSkadeFoer2011Links) : ''}
         />
         <DataRow
           label="Kapitalisering (skade fra 1.7.2007)"
-          value={satser ? satser.referencer.kapitaliseringSkadeFra2007 : ''}
+          value={satser ? renderReferenceValue(satser.referencer.kapitaliseringSkadeFra2007Links) : ''}
         />
         <DataRow
           label="Kapitalisering (skade før 1.7.2007)"
-          value={satser ? satser.referencer.kapitaliseringSkadeFoer2007 : ''}
+          value={satser ? renderReferenceValue(satser.referencer.kapitaliseringSkadeFoer2007Links) : ''}
         />
         <DataRow
           label="Fri proces"
-          value={satser ? satser.referencer.friProcesReference : ''}
+          value={satser ? renderReferenceValue(satser.referencer.friProcesReferenceLinks) : ''}
         />
         <DataRow
           label="Reguleringssatser"
-          value={satser ? satser.referencer.reguleringssatsReference : ''}
+          value={satser ? renderReferenceValue(satser.referencer.reguleringssatsReferenceLinks) : ''}
         />
       </ContentBox>
     </Box>

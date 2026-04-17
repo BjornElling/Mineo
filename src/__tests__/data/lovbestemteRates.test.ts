@@ -165,6 +165,37 @@ describe('getSatserForYear', () => {
     });
   });
 
+  describe('retsinformation-links', () => {
+    it('returnerer links for 2026-referencer', () => {
+      const satser = getSatserForYear(2026);
+
+      expect(satser.referencer.ealReferenceLinks).toEqual([
+        { label: 'Bkg. 1428/2025', url: 'https://www.retsinformation.dk/eli/lta/2025/1428' },
+      ]);
+      expect(satser.referencer.aslReferenceLinks).toEqual([
+        { label: 'Vejl. 10058/2025', url: 'https://www.retsinformation.dk/eli/retsinfo/2025/10058' },
+      ]);
+      expect(satser.referencer.kapitaliseringLinks).toEqual([
+        { label: 'Vejl. 10056/2025', url: 'https://www.retsinformation.dk/eli/retsinfo/2025/10056' },
+      ]);
+      expect(satser.referencer.friProcesReferenceLinks).toEqual([
+        { label: 'Bkg. 1360/2025', url: 'https://www.retsinformation.dk/eli/lta/2025/1360' },
+      ]);
+      expect(satser.referencer.reguleringssatsReferenceLinks).toEqual([
+        { label: 'Bkg. 1056/2025', url: 'https://www.retsinformation.dk/eli/lta/2025/1056' },
+      ]);
+    });
+
+    it('returnerer flere links for kombinerede referencer', () => {
+      const satser = getSatserForYear(2024);
+
+      expect(satser.referencer.kapitaliseringSkadeFra2011Links).toEqual([
+        { label: 'Vejl. 9820/2023', url: 'https://www.retsinformation.dk/eli/retsinfo/2023/9820' },
+        { label: '9376/2024', url: 'https://www.retsinformation.dk/eli/retsinfo/2024/9376' },
+      ]);
+    });
+  });
+
   describe('manglende år → null (for tal) og tom streng (for tekst)', () => {
     it('asl.aarsloenMin er null for 2024 (bevidst udeladt)', () => {
       // aarsloenMin er bevidst ikke sat for 2024 — erstattet af aarsloenMinFoer2024/Fra2024

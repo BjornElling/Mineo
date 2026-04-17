@@ -1,4 +1,16 @@
 import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from './kapitalisering/kapitaliseringsbekendtgoerelser';
+import {
+  type RetsinfoLink,
+  aslReferenceLinks,
+  ealReferenceLinks,
+  friProcesReferenceLinks,
+  kapitaliseringLinks,
+  kapitaliseringSkadeFoer2007Links,
+  kapitaliseringSkadeFoer2011Links,
+  kapitaliseringSkadeFra2007Links,
+  kapitaliseringSkadeFra2011Links,
+  reguleringssatsReferenceLinks,
+} from './retsinfoLinks';
 
 /**
  * Satser på arbejdsskadeområdet 2005 og frem
@@ -544,14 +556,14 @@ export const ealReference: YearlyReference = {
 // Arbejdsskadesikringsloven
 export const aslReference: YearlyReference = {
   2026: 'Vejl. 10058/2025',
-  2025: 'Vejl. 9915/2023',
+  2025: 'Vejl. 9915/2024',
   2024: 'Vejl. 9822/2023',
   2023: 'Vejl. 10142/2022',
   2022: 'Vejl. 9866/2021',
   2021: 'Vejl. 9737/2020',
   2020: 'Vejl. 9922/2019',
   2019: 'Bkg. 1232/2018',
-  2018: 'Bkg. 1175/2017',
+  2018: 'Bkg. 1157/2017',
   2017: 'Bkg. 1273/2016',
   2016: 'Bkg. 1220/2015',
   2015: 'Bkg. 1114/2014',
@@ -803,6 +815,7 @@ export const satserAngivAarYearBounds: YearBounds = (() => {
 export const getSatserForYear = (year: number) => {
   const num = (dict: Record<number, number>): number | null => (dict[year] !== undefined ? dict[year] : null);
   const txt = (dict: Record<number, string>): string => dict[year] || '';
+  const links = (dict: Record<number, readonly RetsinfoLink[]>): readonly RetsinfoLink[] => dict[year] || [];
 
   return {
     eal: {
@@ -831,14 +844,23 @@ export const getSatserForYear = (year: number) => {
     },
     referencer: {
       ealReference: txt(ealReference),
+      ealReferenceLinks: links(ealReferenceLinks),
       aslReference: txt(aslReference),
+      aslReferenceLinks: links(aslReferenceLinks),
       kapitalisering: txt(kapitalisering),
+      kapitaliseringLinks: links(kapitaliseringLinks),
       kapitaliseringSkadeFra2011: txt(kapitaliseringSkadeFra2011),
+      kapitaliseringSkadeFra2011Links: links(kapitaliseringSkadeFra2011Links),
       kapitaliseringSkadeFoer2011: txt(kapitaliseringSkadeFoer2011),
+      kapitaliseringSkadeFoer2011Links: links(kapitaliseringSkadeFoer2011Links),
       kapitaliseringSkadeFra2007: txt(kapitaliseringSkadeFra2007),
+      kapitaliseringSkadeFra2007Links: links(kapitaliseringSkadeFra2007Links),
       kapitaliseringSkadeFoer2007: txt(kapitaliseringSkadeFoer2007),
+      kapitaliseringSkadeFoer2007Links: links(kapitaliseringSkadeFoer2007Links),
       friProcesReference: txt(friProcesReference),
+      friProcesReferenceLinks: links(friProcesReferenceLinks),
       reguleringssatsReference: txt(reguleringssatsReference),
+      reguleringssatsReferenceLinks: links(reguleringssatsReferenceLinks),
     },
   };
 };
