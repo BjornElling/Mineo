@@ -77,7 +77,7 @@ const addProformaKapitaliseringSection = (
     rowOpts
   );
 
-  writer.writeSubheader('Grundydelse og regulering', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Grundydelse og regulering', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText(
     'Proformakapitalisering',
@@ -133,7 +133,7 @@ const addProformaKapitaliseringSection = (
     rowOpts
   );
 
-  writer.writeSubheader('Kapitaliseringsbekendtgørelse og tabel', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kapitaliseringsbekendtgørelse og tabel', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText(
     'Kapitaliseringsbekendtgørelse',
@@ -166,7 +166,7 @@ const addProformaKapitaliseringSection = (
       rowOpts
     );
   } else {
-    writer.writeSubheader('Kapitaliseringsfaktor', PDF_BASE_LINE_HEIGHT_MM);
+    writer.writeBoldSubheader('Kapitaliseringsfaktor', PDF_BASE_LINE_HEIGHT_MM);
 
     writer.writeLeftRightText(
       'Faktor måneds-afhængig?',
@@ -185,7 +185,7 @@ const addProformaKapitaliseringSection = (
     );
   }
 
-  writer.writeSubheader('Kapitalbeløb', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kapitalbeløb', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText(
     `Beregnet proformakapitalisering (${formatKr(pk.aarsydelse, 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)})`,
@@ -217,7 +217,7 @@ const renderDifferencekravPage = (
   writer.writeSectionHeader('Specifikation', PDF_BASE_LINE_HEIGHT_MM);
 
   // EAL-krav
-  writer.writeSubheader('EAL-krav', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('EAL-krav', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeWrappedText(
     `Erhvervsevnetabet udgør ${formatKapPct(computation.ealEetPct)}.`
@@ -229,7 +229,7 @@ const renderDifferencekravPage = (
   );
 
   // Løbende ASL-ydelser
-  writer.writeSubheader('Løbende ASL-ydelser', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Løbende ASL-ydelser', PDF_BASE_LINE_HEIGHT_MM);
 
   if (computation.skadedato < '2011-06-16') {
     writer.writeWrappedText('Skaden er indtrådt før 16. juni 2011.');
@@ -254,7 +254,7 @@ const renderDifferencekravPage = (
       return `Endelig afgørelse (${formatKapPct(afgoerelse.eetPct)})`;
     })();
 
-    writer.writeUnderlinedLabel(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`, MARGINS.left);
+    writer.writeUnderlinedSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`);
     writer.writeWrappedText(typeLabel);
 
     if (foretages && afgoerelse.beloeb > 0) {
@@ -275,12 +275,12 @@ const renderDifferencekravPage = (
   }
 
   // Kapitaliserede ASL-beløb
-  writer.writeSubheader('Kapitaliserede ASL-beløb', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kapitaliserede ASL-beløb', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeWrappedText('Værdien af modtagne kapitalbeløb fratrækkes.');
 
   for (const afgoerelse of computation.kapitaliseringerAfgoerelser) {
-    writer.writeUnderlinedLabel(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`, MARGINS.left);
+    writer.writeUnderlinedSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`);
 
     if (
       afgoerelse.kapitalbelob !== null &&
@@ -307,7 +307,7 @@ const renderDifferencekravPage = (
   if (computation.proformaKapitalisering) {
     const pk = computation.proformaKapitalisering;
 
-    writer.writeSubheader('Resterende erhvervsevnetab', PDF_BASE_LINE_HEIGHT_MM);
+    writer.writeBoldSubheader('Resterende erhvervsevnetab', PDF_BASE_LINE_HEIGHT_MM);
 
     writer.writeWrappedText('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
     writer.writeLeftRightText(
@@ -318,7 +318,7 @@ const renderDifferencekravPage = (
   }
 
   // Differencekrav
-  writer.writeSubheader('Differencekrav', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Differencekrav', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText(
     'Beregnet differencekrav',

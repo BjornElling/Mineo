@@ -4,7 +4,7 @@ import { MARGINS } from '../../../infrastructure/pdfConfig';
 import {
   createPdfTableCell,
   createPdfTableHeaderCell,
-  renderEoStylePdfTable,
+  renderPdfTable,
 } from '../../../shared/pdfTableRenderer';
 import {
   getEffektiveSatserForDato,
@@ -285,7 +285,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     }
 
     const doc = writer.getDoc() as jsPDF;
-    const finalY = renderEoStylePdfTable({
+    const finalY = renderPdfTable({
       doc,
       startY: writer.getY(),
       body: tableRows,
@@ -309,7 +309,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     ];
 
     const doc = writer.getDoc() as jsPDF;
-    const finalY = renderEoStylePdfTable({
+    const finalY = renderPdfTable({
       doc,
       startY: writer.getY(),
       body: tableRows,
@@ -390,7 +390,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     const harSaerligeLoenforhold = Boolean(anciennitetValueDisplay || ekstraGrundloenDisplay);
     if (harSaerligeLoenforhold) {
-      writer.writeUnderlinedLabel('Særlige lønforhold', MARGINS.left);
+      writer.writeUnderlinedSubheader('Særlige lønforhold');
       if (ekstraGrundloenDisplay) {
         writeLabelValueLine('Forhøjet grundløn', ekstraGrundloenDisplay);
       }

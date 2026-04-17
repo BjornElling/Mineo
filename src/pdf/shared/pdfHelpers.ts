@@ -70,6 +70,10 @@ export const addSectionHeading = (doc: PdfDocumentAdapter, title: string, startY
   return startY + PDF_BASE_LINE_HEIGHT_MM + PDF_SECTION_HEADING_GAP;
 };
 
+export const resolvePdfTableStartYAfterSectionHeading = (headingY: number): number => {
+  return headingY - PDF_SECTION_HEADING_GAP;
+};
+
 export const ensurePdfPageSpace = (
   doc: PdfDocumentAdapter,
   startY: number,

@@ -68,13 +68,13 @@ export const SECTION_SPACER = 10; // mm
 // Standard linjeafstand for brødtekst i alle PDF'er
 export const PDF_BASE_LINE_HEIGHT_MM = 4; // mm
 
-// Afstand efter hver fritekst-linje (writeWrappedText, writeLeftRightText, writeUnderlinedLabel)
+// Afstand efter hver fritekst-linje (writeWrappedText, writeLeftRightText, writeUnderlinedSubheader)
 export const PDF_LINE_BOTTOM_SPACING_MM = 2; // mm
 
-// Afstand over understreget label (writeUnderlinedLabel)
+// Afstand over understreget underoverskrift (writeUnderlinedSubheader)
 export const PDF_UNDERLINED_LABEL_TOP_SPACING_MM = 4; // mm
 
-// Ekstra afstand under fed underoverskrift (writeSubheader)
+// Ekstra afstand under fed underoverskrift (writeBoldSubheader)
 export const PDF_SUBHEADER_BOTTOM_SPACING_MM = 1; // mm
 
 // Afstand under dokumenttitel (writeTitle)

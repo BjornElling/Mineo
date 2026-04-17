@@ -23,7 +23,7 @@ import {
   createPdfTableCell,
   createPdfTableHeaderCell,
   createPdfTableSummedTotalRow,
-  renderEoStylePdfTable,
+  renderPdfTable,
 } from '../../shared/pdfTableRenderer';
 import { createDate, formatDanishDate, getDaysInYear, parseDanishDate } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
@@ -310,7 +310,7 @@ const addDescription = (
   for (const line of lines) {
     writer.writeWrappedText(line);
   }
-  writer.addSpacer(PDF_BASE_LINE_HEIGHT_MM);
+  writer.addSectionSpacer();
 };
 
 /**
@@ -395,17 +395,14 @@ const addSpecificationTable = (
 
   // Advarsel om hypotetisk beregning (hvis relevant)
   if (isHypothetical) {
-    writer.setFontSize(10);
-    writer.setFont('helvetica', 'bold');
-    writer.writeWrappedText(
+    writer.writeBoldWrappedText(
       `Der er kun fastsat procesrente frem til ${formatDanishDate(latestRateDate)}. Beregning derefter er hypotetisk!`
     );
-    writer.setNormalTextStyle();
     writer.addSpacer(PDF_SECTION_HEADING_GAP);
     tableStartY = writer.getY();
   }
 
-  const finalY = renderEoStylePdfTable({
+  const finalY = renderPdfTable({
     doc,
     startY: tableStartY,
     body: tableData,
@@ -455,11 +452,10 @@ const addCalculationPrinciples = (
   const normalizedKommentarer = typeof kommentarer === 'string' ? kommentarer.trim() : '';
 
   if (normalizedKommentarer !== '') {
-    writer.writeSubheader('Kommentarer', (3 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER);
-    writer.writeWrappedText(normalizedKommentarer);
+    writer.writeBoldSubheaderWithWrappedText('Kommentarer', normalizedKommentarer);
   }
 
-  writer.writeSubheader('Beregningsprincipper', (3 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER);
+  writer.writeBoldSubheader('Beregningsprincipper');
   // Domænebeslutning: PDF viser de overordnede beregningsprincipper.
   // Periode- og satsdetaljer dokumenteres i specifikationstabellen.
   const principles = RENTE_CALCULATION_PRINCIPLES;
@@ -467,5 +463,4 @@ const addCalculationPrinciples = (
   for (const principle of principles) {
     writer.writeWrappedText(principle);
   }
-  writer.addSpacer(SECTION_SPACER);
 };

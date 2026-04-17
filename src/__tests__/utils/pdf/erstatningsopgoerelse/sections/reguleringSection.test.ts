@@ -62,7 +62,7 @@ const makeContext = (
         setY: vi.fn((nextY: number) => { y = nextY; }),
         getY: vi.fn(() => y),
         getDoc: vi.fn(() => doc),
-        writeUnderlinedLabel: vi.fn(),
+        writeUnderlinedSubheader: vi.fn(),
       },
     },
   };

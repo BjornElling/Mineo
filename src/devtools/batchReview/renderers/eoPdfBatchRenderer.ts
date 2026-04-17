@@ -71,7 +71,7 @@ const renderSfggPerAnsaettelse = (
 
   // Segment-tabel
   if (af.segments.length > 0) {
-    writer.writeSubheader('Perioder', 6, { addTopSpacing: true });
+    writer.writeBoldSubheader('Perioder', 6, { addTopSpacing: true });
     writer.writeAtomicTableChunks({
       rows: af.segments,
       renderHeader: () => {

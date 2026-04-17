@@ -4,11 +4,7 @@
  * Genererer PDF-dokumentation af ménberegning med fødselsdato, skadedato, méngrad og resultat
  */
 
-import {
-  PDF_BASE_LINE_HEIGHT_MM,
-  type BrevhovedData,
-} from '../../shared/pdfHelpers';
-import { SECTION_SPACER } from '../../infrastructure/pdfConfig';
+import type { BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
@@ -18,7 +14,6 @@ import { TODAY } from '../../../config/dateRanges';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { resolvePdfFileName } from '../../shared/pdfFormatUtils';
 
-const formatDateReadable = (isoDate: ISODateString | undefined): string => formatIsoDateLong(isoDate);
 export const buildVarigeMenPdfFilename = (journalnr?: string): string => resolvePdfFileName('Méngodtgørelse', false, journalnr);
 
 const writeRows = (
@@ -48,13 +43,13 @@ const addStamdataSection = (
   alderVedSkade: number,
   skadedatoLabel: 'Skadedato' | 'Anmeldelsesdato'
 ): void => {
-  writer.writeSubheader('Stamdata', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Stamdata');
   writeRows(writer, [
-    { label: 'Fødselsdato', value: formatDateReadable(fodselsdato) },
-    { label: skadedatoLabel, value: formatDateReadable(skadedato) },
+    { label: 'Fødselsdato', value: formatIsoDateLong(fodselsdato) },
+    { label: skadedatoLabel, value: formatIsoDateLong(skadedato) },
     { label: 'Alder på skadestidspunkt', value: `${alderVedSkade} år` },
   ]);
-  writer.addSpacer(SECTION_SPACER);
+  writer.addSectionSpacer();
 };
 
 /**
@@ -65,12 +60,12 @@ const addBeregningsgrundlagSection = (
   mengrad: number | undefined,
   beregningsdato: ISODateString | undefined
 ): void => {
-  writer.writeSubheader('Beregningsgrundlag', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Beregningsgrundlag');
   writeRows(writer, [
     { label: 'Méngrad', value: mengrad !== undefined ? `${mengrad} %` : '' },
-    { label: 'Beregningsdato', value: formatDateReadable(beregningsdato) },
+    { label: 'Beregningsdato', value: formatIsoDateLong(beregningsdato) },
   ]);
-  writer.addSpacer(SECTION_SPACER);
+  writer.addSectionSpacer();
 };
 
 /**
@@ -81,7 +76,7 @@ const addResultatSection = (
   mengrad: number | undefined,
   beregningsResultat: VarigeMenBeregningResult
 ): void => {
-  writer.writeSubheader('Beregnet méngodtgørelse', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Beregnet méngodtgørelse');
   const reduktionsBeloeb = beregningsResultat.grundbeloebUdenReduktion * beregningsResultat.aldersreduktionPct / 100;
   writeRows(writer, [
     {

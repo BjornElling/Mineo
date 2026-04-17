@@ -79,7 +79,7 @@ type OpgorelseSectionContext = Readonly<{
     getY: () => number;
     getTextWidth: (text: string) => number;
     setFont: (fontName: PdfFontFamily, fontStyle: PdfFontStyle) => void;
-    writeUnderlinedLabel: (text: string, x: number) => void;
+    writeUnderlinedSubheader: (text: string, x?: number) => void;
     writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
     writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
   }>;
@@ -486,7 +486,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             writer.ensureSpace(lineHeight * 2);
           }
 
-          writer.writeUnderlinedLabel(arbejdssted.navn, MARGINS.left);
+          writer.writeUnderlinedSubheader(arbejdssted.navn);
 
           for (const row of visibleComponentRows) {
             safeAddLeftRightText(
@@ -509,7 +509,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             writer.advanceY(lineHeight);
           }
           writer.ensureSpace(lineHeight * 2);
-          writer.writeUnderlinedLabel('Offentlige ydelser', MARGINS.left);
+          writer.writeUnderlinedSubheader('Offentlige ydelser');
           for (const ydelse of indkomst.offentligeYdelser) {
             safeAddLeftRightText(
               ydelse.label,
@@ -673,7 +673,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         for (const entry of loenudvikling.perAnsaettelse) {
           writer.addSpacer(lineHeight);
           writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-          writer.writeUnderlinedLabel(entry.ansaettelsesforholdNavn, MARGINS.left);
+          writer.writeUnderlinedSubheader(entry.ansaettelsesforholdNavn);
           renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, false);
         }
         if (loenudvikling.loenudviklingTotal.status === 'ok') {

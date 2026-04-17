@@ -7,7 +7,7 @@ import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatning
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
-import { cellRight, createPdfDistributedColumnStyles, createPdfTableCell, renderEoStylePdfTable } from '../../../shared/pdfTableRenderer';
+import { cellRight, createPdfDistributedColumnStyles, createPdfTableCell, renderPdfTable } from '../../../shared/pdfTableRenderer';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { formatIsoDateShort } from '../../../../utils/dateFormatting';
@@ -110,7 +110,7 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
     if (index > 0) writer.addSpacer(lineHeight);
     if (visYdelsestypeSubheader) renderSubheader(label, lineHeight, { addTopSpacing: index > 0 });
     const tableRows = buildTableRows(grouped.get(label) ?? []);
-    const finalY = renderEoStylePdfTable({
+    const finalY = renderPdfTable({
       doc,
       startY: writer.getY(),
       body: tableRows,
@@ -248,7 +248,7 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
 
     const doc = writer.getDoc() as jsPDF;
     const startY = writer.getY();
-    const finalY = renderEoStylePdfTable({ doc, startY, body, hasHeaderRow: true });
+    const finalY = renderPdfTable({ doc, startY, body, hasHeaderRow: true });
     writer.setY(finalY + lineHeight);
   }
 };

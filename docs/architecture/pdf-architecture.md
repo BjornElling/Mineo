@@ -211,7 +211,7 @@ interface PdfDocumentAdapter {
 
 Eneste implementation. `getPageWidth()` og `getPageHeight()` kaldes per-use (ikke cached), fordi `jsPDF.internal.pageSize` er mutable.
 
-**Regel:** Generatorer modtager altid `PdfDocumentAdapter`, aldrig `jsPDF` direkte — undtagen ved kald til `renderEoStylePdfTable()`, der forventer `jsPDF` (jspdf-autotable-limitation; se [afsnit 7](#7-tabelrenderer--pdftablerendererts)).
+**Regel:** Generatorer modtager altid `PdfDocumentAdapter`, aldrig `jsPDF` direkte — undtagen ved kald til `renderPdfTable()`, der forventer `jsPDF` (jspdf-autotable-limitation; se [afsnit 7](#7-tabelrenderer--pdftablerendererts)).
 
 ---
 
@@ -252,8 +252,9 @@ writer.writeBrevhoved(brevhovedData);
 
 // Indhold
 writer.writeTitle(text);             // 16 pt bold, øverst i indholdsbeskeden
-writer.writeSubheader(text, nextLineHeight);  // 10 pt bold, sikrer plads til efterfølgende indhold
-// INVARIANT: writeSubheader garanterer præcis 1× lineHeight (5 mm) over sig selv,
+writer.writeBoldSubheader(text, nextLineHeight);  // 10 pt bold, sikrer plads til efterfølgende indhold
+// nextLineHeight er valgfri; standarden er centralt defineret i writeren.
+// INVARIANT: writeBoldSubheader garanterer præcis 1× lineHeight (5 mm) over sig selv,
 // uanset hvad der gik forud. Allerede akkumuleret spacing fra addSpacer()/advanceY()
 // modregnes automatisk, så det samlede mellemrum aldrig overstiger 1× lineHeight.
 // Brug options.addTopSpacing = false for at undertrykke spacing eksplicit
@@ -263,6 +264,7 @@ writer.writeSectionHeader(text, nextLineHeight);  // 12 pt bold, markerer sektio
 
 // Layout-primitiver
 writer.addSpacer(mm);               // Tilføj vertikal spacing
+writer.addSectionSpacer();          // Standardafstand mellem writer-baserede sektioner
 writer.getY() / writer.setY(y);     // Læs/sæt cursor-position
 writer.getDoc();                    // Hent underliggende jsPDF-instans (kun til tabel-kald)
 
@@ -295,11 +297,12 @@ writer.getPageWidth();              // Samlet sidebredde i mm (inklusive margene
 writer.ensureSpace(height);         // Reservér plads; tilføjer ny side hvis nødvendigt
 
 // Yderligere metoder
-writer.writeSubheaderWithWrappedText(subheaderText, bodyText);
+writer.writeBoldSubheaderWithWrappedText(subheaderText, bodyText);
 // Atomisk: skriver subheader + brødtekst (sikrer at de ikke splittes over sider)
 
 writer.advanceY(delta);             // Flyt Y-cursor med delta mm (positiv = ned)
-writer.writeUnderlinedLabel(text, x);  // Tegner tekst med understregning
+writer.writeUnderlinedSubheader(text, x);  // Tegner understreget underoverskrift
+// x er valgfri; standarden er venstremargen fra writeren.
 writer.getPageWidth();              // Samlet sidebredde i mm (inklusive margener)
 ```
 
@@ -330,7 +333,7 @@ const tableStartY = headingY - PDF_SECTION_HEADING_GAP;
 // Tabeller starter typisk headingY - PDF_SECTION_HEADING_GAP (3mm)
 ```
 
-> Alternativt kan `writer.writeSubheader()` bruges, når man arbejder med writer-API'en og ikke behøver den eksakte Y-returværdi for efterfølgende tabelpositionering.
+> Alternativt kan `writer.writeBoldSubheader()` bruges, når man arbejder med writer-API'en og ikke behøver den eksakte Y-returværdi for efterfølgende tabelpositionering.
 
 ### `resolvePdfSectionEndY(finalY, startY, options?): number`
 
@@ -367,9 +370,9 @@ Eksporteret konstant (15 mm) for afstand under dokumenttitel. Bruges af generato
 
 ## 7. Tabelrenderer – `pdfTableRenderer.ts`
 
-Alle egentlige tabeller renders via **`renderEoStylePdfTable()`** — aldrig ved direkte kald til `jsPDF.autoTable()`.
+Alle egentlige tabeller renders via **`renderPdfTable()`** — aldrig ved direkte kald til `jsPDF.autoTable()`.
 
-**Vigtig afgrænsning:** `renderEoStylePdfTable()` må kun bruges til faktiske tabeller med kolonneoverskrifter og/eller reel tabelstruktur. Almindelige oplysningslinjer, key/value-par, regnestykker og specifikationer uden tabelheader skal renderes som tekst via writeren (`writeWrappedText()`, `writeLeftRightText()`, `writeLeftRightTextSingleLine()`).
+**Vigtig afgrænsning:** `renderPdfTable()` må kun bruges til faktiske tabeller med kolonneoverskrifter og/eller reel tabelstruktur. Almindelige oplysningslinjer, key/value-par, regnestykker og specifikationer uden tabelheader skal renderes som tekst via writeren (`writeWrappedText()`, `writeLeftRightText()`, `writeLeftRightTextSingleLine()`).
 
 ### Celle-builders
 
@@ -390,10 +393,10 @@ createPdfTableHeaderCell(content, halign)
 createPdfTableTransparentRow(columnCount)
 ```
 
-### `renderEoStylePdfTable(options)`
+### `renderPdfTable(options)`
 
 ```typescript
-renderEoStylePdfTable({
+renderPdfTable({
   doc,          // jsPDF-instans (hent via writer.getDoc())
   startY,       // Y-start i mm
   body,         // RowInput[] — alle rækker inkl. evt. header-række
@@ -580,7 +583,7 @@ import { MARGINS, SECTION_SPACER, PDF_SECTION_HEADING_GAP } from './pdfConfig';
 import { addSectionHeading, PDF_BASE_LINE_HEIGHT_MM, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
 import { createStandardPdfWriter } from './pdfWriter';
 import { createJsPdfAdapter } from './jsPdfAdapter';
-import { cellLeft, cellRight, createPdfTableHeaderCell, renderEoStylePdfTable } from './pdfTableRenderer';
+import { cellLeft, cellRight, createPdfTableHeaderCell, renderPdfTable } from './pdfTableRenderer';
 import { resolvePdfFileName } from './pdfFormatUtils';
 import type { PdfCommonOptions, PdfStamdata } from './pdfOptions';
 import { TODAY } from '../../config/dateRanges';
@@ -626,7 +629,7 @@ export const generateMinNyPdf = (options: MinNyPdfOptions): void => {
   const doc = writer.getDoc();
 
   // Almindelige oplysningslinjer skrives som tekst
-  writer.writeSubheader('Stamdata', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Stamdata');
   writer.writeLeftRightTextSingleLine('Beregningsdato', '17. marts 2026', { rightFontStyle: 'normal' });
   writer.writeLeftRightText('Årsløn', '500.000 kr.', { rightFontStyle: 'normal' });
   writer.addSpacer(SECTION_SPACER);
@@ -635,7 +638,7 @@ export const generateMinNyPdf = (options: MinNyPdfOptions): void => {
   const headingY = addSectionHeading(createJsPdfAdapter(doc), 'Sektion 1', writer.getY());
   const tableStartY = headingY - PDF_SECTION_HEADING_GAP;
 
-  const finalY = renderEoStylePdfTable({
+  const finalY = renderPdfTable({
     doc,
     startY: tableStartY,
     body: [
@@ -683,7 +686,7 @@ Alle generatorer **skal** bruge disse værdier. Det er den visuelle kontrakt, de
 | Kontekst           | Familie     | Stil   | Størrelse       |
 |--------------------|-------------|--------|-----------------|
 | Dokumenttitel      | helvetica   | bold   | 16 pt           |
-| Sektionsoverskrift | helvetica   | bold   | 12 pt (`writeSectionHeader`) eller 10 pt (`writeSubheader` / `addSectionHeading`) |
+| Sektionsoverskrift | helvetica   | bold   | 12 pt (`writeSectionHeader`) eller 10 pt (`writeBoldSubheader` / `addSectionHeading`) |
 | Brødtekst          | helvetica   | normal | 10 pt           |
 | Tabelindhold       | helvetica   | normal | 8 pt (`TABLE_FONT_SIZE`) |
 | Tabelheader        | helvetica   | bold   | 8 pt (`TABLE_FONT_SIZE`) |
@@ -776,7 +779,7 @@ Brug `formatAmount2()` fra `sharedPdfUtils.ts` eller `formatAmount()` fra `pdfHe
 
 ### Pseudo-tabeller er forbudt
 
-Headerløse 2-kolonne-layouts må ikke implementeres via `renderEoStylePdfTable()`. Hvis indholdet semantisk er almindelig tekst og ikke en tabel, skal det skrives via writeren. Eksempler:
+Headerløse 2-kolonne-layouts må ikke implementeres via `renderPdfTable()`. Hvis indholdet semantisk er almindelig tekst og ikke en tabel, skal det skrives via writeren. Eksempler:
 
 - Ménberegningens stamdata- og resultatlinjer
 - Årsløns-PDF'ens satser, beregningsprincipper og mellemregninger
@@ -806,7 +809,7 @@ Dette mønster er **ikke påkrævet** for simple generatorer, men bør anvendes,
 
 For at fjerne utilsigtede layoutforskelle mellem PDF-generatorerne bør følgende gennemgang gennemføres systematisk:
 
-1. Gennemgå alle generatorer for lokale mønstre med `writeSubheader(...)` kombineret med manuel spacing før eller efter.
+1. Gennemgå alle generatorer for lokale mønstre med `writeBoldSubheader(...)` kombineret med manuel spacing før eller efter.
 2. Gennemgå alle steder med `setY(resolvePdfSectionEndY(...))` og verificér, at næste tekstblok ikke kompenseres lokalt med ekstra spacing.
 3. Gennemgå alle steder med lokal `setFont(...)` + `text(...)` for tekst, der burde være canonical writer-tekst.
 4. Gennemgå alle headerløse 2-kolonne-layouts og verificér, at de ikke bruger tabelrendereren.

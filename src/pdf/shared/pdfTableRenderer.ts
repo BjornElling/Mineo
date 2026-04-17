@@ -331,7 +331,7 @@ export const createPdfDistributedColumnStyles = (
   ) as Record<number, PdfColumnStyle>;
 };
 
-export const renderEoStylePdfTable = (params: Readonly<{
+export const renderPdfTable = (params: Readonly<{
   doc: jsPDF;
   startY: number;
   body: RowInput[];

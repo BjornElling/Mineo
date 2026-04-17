@@ -7,11 +7,9 @@
 import {
   PDF_MUTED_TEXT_COLOR,
   PDF_TABLE_NARROW_COLUMN_WIDTH,
-  SECTION_SPACER,
 } from '../../infrastructure/pdfConfig';
-import { beregnHelligdageMedNavn } from '../../../domain/dates/shDageBeregning';
+import { findNamedHolidaysInDateRanges } from '../../../domain/dates/shDageOversigt';
 import {
-  PDF_BASE_LINE_HEIGHT_MM,
   resolvePdfSectionEndY,
   type BrevhovedData,
 } from '../../shared/pdfHelpers';
@@ -22,15 +20,15 @@ import {
   createPdfTableCell,
   createPdfTableHeaderCell,
   createPdfTableSummedTotalRow,
-  renderEoStylePdfTable,
+  renderPdfTable,
 } from '../../shared/pdfTableRenderer';
-import { parseISODate, type ISODateString } from '../../../types/branded';
-import { formatToISO, addDays, formatDanishDate } from '../../../utils/dateUtils';
+import { formatDanishDate } from '../../../utils/dateUtils';
 import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../../../utils/dateFormatting';
 import { TODAY } from '../../../config/dateRanges';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import type { CellHookData, RowInput } from 'jspdf-autotable';
 import { resolvePdfFileName } from '../../shared/pdfFormatUtils';
+import { mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/periodMerging';
 
 type SHDagePdfOptions = PdfCommonOptions;
 type SHDagePeriod = { start: Date; end: Date };
@@ -76,54 +74,12 @@ const formatDanskDato = (date: Date): string => formatUtcDateLong(date);
  * @returns {Array} Array af helligdags-objekter
  */
 const findSHDageIPerioder = (perioder: ReadonlyArray<SHDagePeriod>): SHDagEntry[] => {
-  const helligdageIPeriode: SHDagEntry[] = [];
-
-  // Saml alle datoer fra alle perioder
-  const alleDatoer = new Set<ISODateString>();
-  perioder.forEach(({ start, end }) => {
-    let currentDate = new Date(start);
-    while (currentDate <= end) {
-      const isoStr = formatToISO(currentDate);
-      alleDatoer.add(isoStr);
-      currentDate = addDays(currentDate, 1);
-    }
-  });
-
-  // Find alle år i perioderne
-  const aarSet = new Set<number>();
-  alleDatoer.forEach(dateStr => {
-    const date = parseISODate(dateStr);
-    if (date) {
-      aarSet.add(date.getUTCFullYear());
-    }
-  });
-
-  // Find helligdage for alle relevante år
-  aarSet.forEach((aar) => {
-    const helligdage = beregnHelligdageMedNavn(aar);
-
-    helligdage.forEach(({ date: helligdag, navn }) => {
-      const helligdagStr = formatToISO(helligdag);
-
-      // Tjek om helligdagen er i vores datoer
-      if (helligdagStr && alleDatoer.has(helligdagStr)) {
-        const ugedag = WEEKDAY_NAMES_DA[helligdag.getUTCDay()];
-        const erHverdag = helligdag.getUTCDay() >= 1 && helligdag.getUTCDay() <= 5;
-
-        helligdageIPeriode.push({
-          dato: helligdag,
-          ugedag,
-          helligdagNavn: navn,
-          erHverdag,
-        });
-      }
-    });
-  });
-
-  // Sorter efter dato
-  helligdageIPeriode.sort((a, b) => a.dato.getTime() - b.dato.getTime());
-
-  return helligdageIPeriode;
+  return findNamedHolidaysInDateRanges(perioder).map(({ date, navn, erHverdag }) => ({
+    dato: date,
+    ugedag: WEEKDAY_NAMES_DA[date.getUTCDay()],
+    helligdagNavn: navn,
+    erHverdag,
+  }));
 };
 
 /**
@@ -133,32 +89,13 @@ const findSHDageIPerioder = (perioder: ReadonlyArray<SHDagePeriod>): SHDagEntry[
  * @returns {Array} Sammensatte perioder
  */
 const sammenlaegPerioder = (perioder: ReadonlyArray<SHDagePeriod>): SHDagePeriod[] => {
-  if (!perioder || perioder.length === 0) {
-    return [];
-  }
-
-  // Sorter perioder
-  const sorterede = [...perioder].sort((a, b) => a.start.getTime() - b.start.getTime());
-
-  const sammensatte: SHDagePeriod[] = [{ start: sorterede[0].start, end: sorterede[0].end }];
-
-  for (let i = 1; i < sorterede.length; i++) {
-    const { start: fra, end: til } = sorterede[i];
-    const sidstePeriode = sammensatte[sammensatte.length - 1];
-
-    // Tjek om perioder overlapper eller er sammenhængende (med 1 dags margin)
-    const naesteDag = addDays(sidstePeriode.end, 1);
-
-    if (fra <= naesteDag) {
-      // Sammensæt perioder
-      sammensatte[sammensatte.length - 1].end = til > sidstePeriode.end ? til : sidstePeriode.end;
-    } else {
-      // Tilføj som ny periode
-      sammensatte.push({ start: fra, end: til });
-    }
-  }
-
-  return sammensatte;
+  return mergeDateRanges(
+    perioder.map((periode) => ({ fra: periode.start, til: periode.end })),
+    { mergeAdjacent: true }
+  ).map(({ fra, til }) => ({
+    start: fra,
+    end: til,
+  }));
 };
 
 /**
@@ -293,7 +230,7 @@ export const generateSHDagePdf = (
 const addDescription = (writer: PdfWriter, perioder: ReadonlyArray<SHDagePeriod>): void => {
   const periodeTekst = formaterPeriodeOversigt(perioder);
   writer.writeWrappedText(`Periode: ${periodeTekst}`);
-  writer.addSpacer(PDF_BASE_LINE_HEIGHT_MM);
+  writer.addSectionSpacer();
 };
 
 /**
@@ -304,7 +241,7 @@ const addSHDageTable = (writer: PdfWriter, helligdage: ReadonlyArray<SHDagEntry>
   const startY = writer.getY();
   const { body: tableData, totalRowIndex, totalValueColumnIndex } = buildSHDageTableRows(helligdage);
 
-  const finalY = renderEoStylePdfTable({
+  const finalY = renderPdfTable({
     doc,
     startY,
     body: tableData,
@@ -340,7 +277,7 @@ const addSHDageTable = (writer: PdfWriter, helligdage: ReadonlyArray<SHDagEntry>
  * Tilføj forklaringstekst
  */
 const addExplanationText = (writer: PdfWriter): void => {
-  writer.writeSubheader('Forklaring', (2 * PDF_BASE_LINE_HEIGHT_MM) + SECTION_SPACER);
+  writer.writeBoldSubheader('Forklaring');
 
   const explanations = [
     'Søgnehelligdage er helligdage, der falder på hverdage (mandag-fredag).',
@@ -350,5 +287,4 @@ const addExplanationText = (writer: PdfWriter): void => {
   for (const explanation of explanations) {
     writer.writeWrappedText(explanation);
   }
-  writer.addSpacer(SECTION_SPACER);
 };

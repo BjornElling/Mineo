@@ -17,7 +17,7 @@ import {
   createPdfFixedColumnStyles,
   createPdfTableCell,
   createPdfTableHeaderCell,
-  renderEoStylePdfTable,
+  renderPdfTable,
 } from '../../shared/pdfTableRenderer';
 import { TODAY } from '../../../config/dateRanges';
 import { krlSatstabeller } from '../../../data/krlRates';
@@ -135,7 +135,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   const colWidth = tableWidth / 5;
   const tableRows: RowInput[] = [headerRow, ...bodyRows];
 
-  const finalY = renderEoStylePdfTable({
+  const finalY = renderPdfTable({
     doc,
     startY: writer.getY(),
     body: tableRows,
@@ -149,7 +149,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   writer.setY(resolvePdfSectionEndY(finalY, writer.getY()));
 
   // Kildetekst under tabellen
-  writer.writeSubheader('Kilde', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kilde', PDF_BASE_LINE_HEIGHT_MM);
   writer.writeWrappedText('KRL\'s sats-tabeller kan genfindes på https://www.krl.dk/#/sats');
 
   writer.addFooter();

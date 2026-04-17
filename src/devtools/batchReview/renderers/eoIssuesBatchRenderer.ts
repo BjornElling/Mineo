@@ -47,7 +47,7 @@ export const renderEoIssuesBatchPage = (
   if (summary.errors.length > 0) {
     writer.writeSectionHeader(`Fejl (${summary.errors.length})`, 6);
     for (const row of summary.errors) {
-      writer.writeSubheader(`FEJL: ${row.label}`, 6, { addTopSpacing: true });
+      writer.writeBoldSubheader(`FEJL: ${row.label}`, 6, { addTopSpacing: true });
       const bodyText = row.message ?? row.displayValue;
       if (bodyText) {
         writer.writeWrappedText(bodyText);
@@ -60,7 +60,7 @@ export const renderEoIssuesBatchPage = (
   if (summary.warnings.length > 0) {
     writer.writeSectionHeader(`Advarsler (${summary.warnings.length})`, 6);
     for (const row of summary.warnings) {
-      writer.writeSubheader(`ADVARSEL: ${row.label}`, 6, { addTopSpacing: true });
+      writer.writeBoldSubheader(`ADVARSEL: ${row.label}`, 6, { addTopSpacing: true });
       const bodyText = row.message ?? row.displayValue;
       if (bodyText) {
         writer.writeWrappedText(bodyText);

@@ -73,7 +73,7 @@ export const addKapitaliseringAfgoerelseSection = (
     rowOpts
   );
 
-  writer.writeSubheader('Grundydelse og regulering', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Grundydelse og regulering', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText(
     'Kapitalisering',
@@ -129,7 +129,7 @@ export const addKapitaliseringAfgoerelseSection = (
     rowOpts
   );
 
-  writer.writeSubheader('Kapitaliseringsbekendtgørelse og tabel', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kapitaliseringsbekendtgørelse og tabel', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText(
     'Kapitaliseringsbekendtgørelse',
@@ -162,7 +162,7 @@ export const addKapitaliseringAfgoerelseSection = (
       rowOpts
     );
   } else {
-    writer.writeSubheader('Kapitaliseringsfaktor', PDF_BASE_LINE_HEIGHT_MM);
+    writer.writeBoldSubheader('Kapitaliseringsfaktor', PDF_BASE_LINE_HEIGHT_MM);
 
     writer.writeLeftRightText(
       'Faktor måneds-afhængig?',
@@ -181,7 +181,7 @@ export const addKapitaliseringAfgoerelseSection = (
     );
   }
 
-  writer.writeSubheader('Kapitalbeløb', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kapitalbeløb', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText(
     `Beregnet kapitalbeløb (${formatKr(afgoerelse.aarsydelse, 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)})`,

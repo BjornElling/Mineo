@@ -4,9 +4,8 @@
  * Genererer PDF-dokument med årlige satser for arbejdsskadeområdet
  */
 
-import { PDF_LINE_BOTTOM_SPACING_MM, SECTION_SPACER } from '../../infrastructure/pdfConfig';
+import type { BrevhovedData } from '../../shared/pdfHelpers';
 import { formatPercent } from '../../../utils/formatUtils';
-import { PDF_BASE_LINE_HEIGHT_MM, type BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
 import { TODAY } from '../../../config/dateRanges';
 import { formatCurrencyPerUnit, formatKr, resolvePdfFileName } from '../../shared/pdfFormatUtils';
@@ -35,14 +34,7 @@ const writeRows = (
 ): void => {
   for (const row of rows) {
     const [label = '', value = ''] = row;
-    const rightLines = value.split('\n');
-    const [firstLine = '', ...restLines] = rightLines;
-    writer.writeLeftRightText(label, firstLine, { rightFontStyle: 'normal' });
-    for (const line of restLines) {
-      writer.advanceY(-PDF_LINE_BOTTOM_SPACING_MM);
-      writer.writeLeftRightText('', line, { rightFontStyle: 'normal', leftNoWrap: true });
-    }
-    if (restLines.length > 0) writer.addSpacer(PDF_LINE_BOTTOM_SPACING_MM);
+    writer.writeLeftRightText(label, value, { rightFontStyle: 'normal' });
   }
 };
 
@@ -326,7 +318,7 @@ const addRowsSection = (
   rows: string[][],
   header: string,
 ): void => {
-  writer.writeSubheader(header, PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader(header);
   writeRows(writer, rows);
-  writer.addSpacer(SECTION_SPACER);
+  writer.addSectionSpacer();
 };

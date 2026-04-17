@@ -194,6 +194,28 @@ const createPdfCursor = (params: Readonly<{
       minRightColumnWidth?: number;
     }>
   ) => {
+    const explicitRightLines = rightText.split('\n');
+    if (explicitRightLines.length > 1) {
+      explicitRightLines.forEach((line, index) => {
+        if (index > 0) {
+          y -= PDF_LINE_BOTTOM_SPACING_MM;
+        }
+        writeLeftRightText(
+          index === 0 ? leftText : '',
+          line,
+          x,
+          rightPadding,
+          index === 0
+            ? options
+            : {
+                ...options,
+                leftNoWrap: true,
+              }
+        );
+      });
+      return;
+    }
+
     const pageWidth = adapter.getPageWidth();
     const rightFontStyle = options?.rightFontStyle ?? 'bold';
     const normalizedRightText = normalizeRightAlignedTextForPdf(rightText);
@@ -260,7 +282,7 @@ const createPdfCursor = (params: Readonly<{
     });
   };
 
-  const writeUnderlinedLabel = (text: string, x: number) => {
+  const writeUnderlinedSubheader = (text: string, x: number) => {
     const normalized = normalizeTextForPdf(text).replace(/\n/g, ' ');
     doc.text(normalized, x, y);
     const labelWidth = doc.getTextWidth(normalized);
@@ -319,7 +341,7 @@ const createPdfCursor = (params: Readonly<{
     writeWrappedTextContinued,
     writeNormalThenBoldLine,
     writeLeftRightText,
-    writeUnderlinedLabel,
+    writeUnderlinedSubheader,
     writeSignatureBlock,
     writeBrevhoved: (brevhovedData: BrevhovedData) => {
       y = addBrevhoved(adapter, brevhovedData);
@@ -361,8 +383,10 @@ export type PdfWriter = {
   getY: () => number;
   setY: (nextY: number) => void;
   addSpacer: (height: number) => void;
+  addSectionSpacer: () => void;
   advanceY: (delta: number) => void;
   writeWrappedText: (text: string) => void;
+  writeBoldWrappedText: (text: string) => void;
   writeWrappedTextContinued: (text: string, maxWidth?: number, x?: number) => void;
   writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
   /**
@@ -382,19 +406,19 @@ export type PdfWriter = {
   ) => void;
   writeSectionHeader: (text: string, nextLineHeight: number) => void;
   writeTitle: (text: string) => void;
-  writeSubheader: (
+  writeBoldSubheader: (
     text: string,
-    nextLineHeight: number,
+    nextLineHeight?: number,
     options?: Readonly<{ addTopSpacing?: boolean }>
   ) => void;
-  writeSubheaderIfContent: (params: Readonly<{
+  writeBoldSubheaderIfContent: (params: Readonly<{
     text: string;
-    nextLineHeight: number;
+    nextLineHeight?: number;
     hasContent: boolean;
     renderContent: () => void;
     options?: Readonly<{ addTopSpacing?: boolean }>;
   }>) => boolean;
-  writeSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
+  writeBoldSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
   writeAtomicTableChunks: <T>(params: Readonly<{
     rows: readonly T[];
     renderHeader: () => void;
@@ -402,7 +426,7 @@ export type PdfWriter = {
     estimateRowHeight: number;
     headerHeight: number;
   }>) => void;
-  writeUnderlinedLabel: (text: string, x: number) => void;
+  writeUnderlinedSubheader: (text: string, x?: number) => void;
   writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
   writeBrevhoved: (brevhovedData: BrevhovedData) => void;
   addUdkastWatermark: () => void;
@@ -429,7 +453,7 @@ export const createPdfWriter = (params: Readonly<{
   let hasRenderedContent = false;
   let manualSpacingSinceLastContent = 0;
   // Tracker kun eksplicit addSpacer/advanceY-spacing — ikke trailing line-spacing.
-  // Bruges af writeSubheader til at undgå dobbelt spacing fra addSpacer-kald.
+  // Bruges af writeBoldSubheader til at undgå dobbelt spacing fra addSpacer-kald.
   let explicitSpacingSinceLastContent = 0;
   const minimumHeaderFollowupHeight = lineHeight + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM;
   const minimumUnderlinedLabelBlockHeight = PDF_UNDERLINED_LABEL_TOP_SPACING_MM + lineHeight + PDF_LINE_BOTTOM_SPACING_MM;
@@ -468,9 +492,9 @@ export const createPdfWriter = (params: Readonly<{
     explicitSpacingSinceLastContent = 0;
   };
 
-  const writeSubheader = (
+  const writeBoldSubheader = (
     text: string,
-    nextLineHeight: number,
+    nextLineHeight = PDF_BASE_LINE_HEIGHT_MM,
     options?: Readonly<{ addTopSpacing?: boolean }>
   ) => {
     // Altid præcis 1× lineHeight over underoverskriften — uanset hvad der gik forud.
@@ -500,22 +524,22 @@ export const createPdfWriter = (params: Readonly<{
     explicitSpacingSinceLastContent = 0;
   };
 
-  const writeSubheaderIfContent = (params: Readonly<{
+  const writeBoldSubheaderIfContent = (params: Readonly<{
     text: string;
-    nextLineHeight: number;
+    nextLineHeight?: number;
     hasContent: boolean;
     renderContent: () => void;
     options?: Readonly<{ addTopSpacing?: boolean }>;
   }>): boolean => {
     if (!params.hasContent) return false;
-    writeSubheader(params.text, params.nextLineHeight, params.options);
+    writeBoldSubheader(params.text, params.nextLineHeight, params.options);
     params.renderContent();
     return true;
   };
 
-  const writeSubheaderWithWrappedText = (subheaderText: string, bodyText: string) => {
+  const writeBoldSubheaderWithWrappedText = (subheaderText: string, bodyText: string) => {
     const bodyHeight = cursor.measureWrappedTextHeight(bodyText);
-    writeSubheaderIfContent({
+    writeBoldSubheaderIfContent({
       text: subheaderText,
       nextLineHeight: bodyHeight,
       hasContent: bodyText.trim() !== '',
@@ -553,7 +577,7 @@ export const createPdfWriter = (params: Readonly<{
     manualSpacingSinceLastContent = 0;
   };
 
-  const writeUnderlinedLabel = (text: string, x: number) => {
+  const writeUnderlinedSubheader = (text: string, x = MARGINS.left) => {
     const targetTopSpacing = PDF_UNDERLINED_LABEL_TOP_SPACING_MM;
     const excessTopSpacing = Math.max(0, manualSpacingSinceLastContent - targetTopSpacing);
     if (excessTopSpacing > 0) {
@@ -572,7 +596,7 @@ export const createPdfWriter = (params: Readonly<{
     if (topSpacing > 0) {
       cursor.advanceY(topSpacing);
     }
-    cursor.writeUnderlinedLabel(text, x);
+    cursor.writeUnderlinedSubheader(text, x);
     previousBlockWasSectionHeader = false;
     hasRenderedContent = true;
     manualSpacingSinceLastContent = 0;
@@ -612,6 +636,17 @@ export const createPdfWriter = (params: Readonly<{
       manualSpacingSinceLastContent += advance;
       explicitSpacingSinceLastContent += advance;
     },
+    addSectionSpacer: () => {
+      const advance = Math.min(PDF_BASE_LINE_HEIGHT_MM, cursor.getRemainingSpace());
+      if (advance <= 0) {
+        previousBlockWasSectionHeader = false;
+        return;
+      }
+      cursor.advanceY(advance);
+      previousBlockWasSectionHeader = false;
+      manualSpacingSinceLastContent += advance;
+      explicitSpacingSinceLastContent += advance;
+    },
     advanceY: (delta) => {
       cursor.advanceY(delta);
       previousBlockWasSectionHeader = false;
@@ -622,6 +657,15 @@ export const createPdfWriter = (params: Readonly<{
     },
     writeWrappedText: (text) => {
       cursor.writeWrappedText(text);
+      previousBlockWasSectionHeader = false;
+      hasRenderedContent = true;
+      manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
+      explicitSpacingSinceLastContent = 0;
+    },
+    writeBoldWrappedText: (text) => {
+      cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
+      cursor.writeWrappedText(text);
+      cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
       previousBlockWasSectionHeader = false;
       hasRenderedContent = true;
       manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
@@ -650,11 +694,11 @@ export const createPdfWriter = (params: Readonly<{
     },
     writeSectionHeader,
     writeTitle,
-    writeSubheader,
-    writeSubheaderIfContent,
-    writeSubheaderWithWrappedText,
+    writeBoldSubheader,
+    writeBoldSubheaderIfContent,
+    writeBoldSubheaderWithWrappedText,
     writeAtomicTableChunks,
-    writeUnderlinedLabel,
+    writeUnderlinedSubheader,
     writeSignatureBlock: cursor.writeSignatureBlock,
     writeBrevhoved: cursor.writeBrevhoved,
     addUdkastWatermark: cursor.addUdkastWatermark,

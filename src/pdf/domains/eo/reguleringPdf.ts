@@ -12,7 +12,7 @@ import {
   type BrevhovedData,
 } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
-import { renderEoStylePdfTable } from '../../shared/pdfTableRenderer';
+import { renderPdfTable } from '../../shared/pdfTableRenderer';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../../../utils/dateUtils';
 import { roundByMethod } from '../../../utils/rounding';
@@ -165,7 +165,7 @@ const addReguleringTable = (
     ])
   );
 
-  const finalY = renderEoStylePdfTable({
+  const finalY = renderPdfTable({
     doc,
     startY,
     body: tableRows,
@@ -417,7 +417,7 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   });
 
   if (offentligLoenEkstraGrundloenTekst) {
-    writer.writeSubheader('Forhøjet grundløn', 2 * PDF_BASE_LINE_HEIGHT_MM);
+    writer.writeBoldSubheader('Forhøjet grundløn', 2 * PDF_BASE_LINE_HEIGHT_MM);
     writer.writeWrappedText('Skadelidtes grundløn er forhøjet sammenholdt med nedenstående løntrin.');
     writer.writeWrappedText(`Forhøjelsen udgør ${offentligLoenEkstraGrundloenTekst}.`);
   }

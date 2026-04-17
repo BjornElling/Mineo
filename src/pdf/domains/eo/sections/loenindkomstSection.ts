@@ -9,7 +9,7 @@ import type { ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstNameOnlyDisplay } from '../../../../data/overenskomstRates';
 import type { SelectedElements } from '../types';
 import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
-import { createPdfDistributedColumnStyles, renderEoStylePdfTable } from '../../../shared/pdfTableRenderer';
+import { createPdfDistributedColumnStyles, renderPdfTable } from '../../../shared/pdfTableRenderer';
 import { getStandardLoenHeaderIndex, STANDARD_LOEN_FPFVSHSO_LABEL, STANDARD_LOEN_PENSION_LABEL, STANDARD_LOEN_SAMLET_LABEL } from '../../../../domain/aarsloen/standardLoenTableColumns';
 
 type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
@@ -147,7 +147,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
 
     const doc = writer.getDoc() as jsPDF;
     const columnCount = headers.length;
-    const finalY = renderEoStylePdfTable({
+    const finalY = renderPdfTable({
       doc,
       startY: writer.getY(),
       body: tableRows,

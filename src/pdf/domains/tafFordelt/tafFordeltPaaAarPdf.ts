@@ -107,7 +107,7 @@ export const generateTafFordeltPaaAarPdf = (
 
   writer.writeSectionHeader('Tabt arbejdsfortjeneste', lineHeight);
 
-  writer.writeSubheaderIfContent({
+  writer.writeBoldSubheaderIfContent({
     text: 'Status',
     nextLineHeight: lineHeight,
     hasContent:
@@ -132,10 +132,10 @@ export const generateTafFordeltPaaAarPdf = (
   const tafPeriodeHeader = model.tabtArbejdsfortjeneste.tafPerioderLinjer.length > 1
     ? 'Erstatningsperioder, hvor der beregnes tabt arbejdsfortjeneste'
     : 'Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste';
-  writer.writeSubheader(tafPeriodeHeader, lineHeight);
+  writer.writeBoldSubheader(tafPeriodeHeader, lineHeight);
   if (!model.tabtArbejdsfortjeneste.harTafPerioder) {
     writer.writeWrappedText('Ingen');
-    writer.writeSubheader('TAF fordelt på kalenderår', lineHeight);
+    writer.writeBoldSubheader('TAF fordelt på kalenderår', lineHeight);
     writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     writer.writeWrappedText('Ingen');
     writer.addFooter();
@@ -147,7 +147,7 @@ export const generateTafFordeltPaaAarPdf = (
     }
   }
   if (model.forlig.erIndgaaet) {
-    writer.writeSubheader('Forlig', lineHeight);
+    writer.writeBoldSubheader('Forlig', lineHeight);
     const forligDatoTekst = model.forlig.dato ? `den ${formatDateLong(model.forlig.dato)}` : null;
     const forligTekst = forligDatoTekst
       ? `Der er ${forligDatoTekst} indgået forlig i sagen på betaling af ${model.forlig.label}.`
@@ -156,7 +156,7 @@ export const generateTafFordeltPaaAarPdf = (
   }
 
   if (!presentation) {
-    writer.writeSubheader('TAF fordelt på kalenderår', lineHeight);
+    writer.writeBoldSubheader('TAF fordelt på kalenderår', lineHeight);
     writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     writer.writeWrappedText('TAF fordelt på år kan ikke beregnes for den valgte opsætning.');
     writer.addFooter();
@@ -169,7 +169,7 @@ export const generateTafFordeltPaaAarPdf = (
   const rightMaxWidth = writer.getTextWidth('000.000.000,00');
 
   for (const yearEntry of presentation.years) {
-    writer.writeSubheader(`${yearEntry.year}`, lineHeight);
+    writer.writeBoldSubheader(`${yearEntry.year}`, lineHeight);
     writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
 
     // Segmenter (identisk format med EO-pdf)
@@ -218,7 +218,7 @@ export const generateTafFordeltPaaAarPdf = (
 
   // ─── Samlet ──────────────────────────────────────────────────────────
 
-  writer.writeSubheader('Samlet', lineHeight);
+  writer.writeBoldSubheader('Samlet', lineHeight);
   writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
 
   // Per-år linjer

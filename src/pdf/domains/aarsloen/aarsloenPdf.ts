@@ -6,7 +6,7 @@
 
 import type { CellDef, RowInput } from 'jspdf-autotable';
 import type jsPDF from 'jspdf';
-import { addSectionHeading, PDF_BASE_LINE_HEIGHT_MM, resolvePdfSectionEndY, type BrevhovedData } from '../../shared/pdfHelpers';
+import { addSectionHeading, resolvePdfSectionEndY, resolvePdfTableStartYAfterSectionHeading, type BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
 import { createJsPdfAdapter } from '../../infrastructure/jsPdfAdapter';
 import {
@@ -15,9 +15,8 @@ import {
   createPdfTableFormattedTotalRow,
   createPdfDistributedColumnStyles,
   createPdfTableHeaderCell,
-  renderEoStylePdfTable,
+  renderPdfTable,
 } from '../../shared/pdfTableRenderer';
-import { PDF_SECTION_HEADING_GAP, SECTION_SPACER } from '../../infrastructure/pdfConfig';
 import { calculateStandardLoenRowDerived, type StandardLoenSatserInput } from '../../../domain/aarsloen/standardLoenRowCalculations';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
@@ -36,9 +35,6 @@ import { resolveAarsloenIndtastetEnhedSummary } from '../../../domain/aarsloen/a
 
 const NBSP = '\u00A0';
 const AARSLOEN_PDF_ATP_HEADER = 'ATP mv.\nu. tillæg';
-
-const resolveTableStartYAfterSectionHeading = (headingY: number): number =>
-  headingY - PDF_SECTION_HEADING_GAP;
 
 const writeRows = (
   writer: PdfWriter,
@@ -149,7 +145,7 @@ const addSatserSection = (
     return;
   }
 
-  writer.writeSubheader('Satser', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Satser');
   writeRows(
     writer,
     udfyldteSatser.map((sats) => ({
@@ -157,7 +153,7 @@ const addSatserSection = (
       value: formatPdfPercent(satser[sats.key]),
     }))
   );
-  writer.addSpacer(SECTION_SPACER);
+  writer.addSectionSpacer();
 };
 
 /**
@@ -172,7 +168,7 @@ const addIndtaegtsoplysningerTable = (
   currentY: number
 ): number => {
   const headingY = addSectionHeading(createJsPdfAdapter(doc), 'Indtægtsoplysninger', currentY);
-  const tableStartY = resolveTableStartYAfterSectionHeading(headingY);
+  const tableStartY = resolvePdfTableStartYAfterSectionHeading(headingY);
 
   // Filtrer rækker - behold kun rækker hvor MINDST én input-celle er udfyldt
   const filteredData = tableData.filter(row => {
@@ -279,7 +275,7 @@ const addIndtaegtsoplysningerTable = (
   }
   const totalRowIndex = totalRow ? tableRows.length - 1 : null;
 
-  const finalY = renderEoStylePdfTable({
+  const finalY = renderPdfTable({
     doc,
     startY: tableStartY,
     body: tableRows,
@@ -383,9 +379,9 @@ const addBeregningsprinciperSection = (
     });
   }
 
-  writer.writeSubheader('Beregningsprincipper', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Beregningsprincipper');
   writeRows(writer, rows);
-  writer.addSpacer(SECTION_SPACER);
+  writer.addSectionSpacer();
 };
 
 /**
@@ -551,7 +547,7 @@ const addBeregningSection = (
     }
   }
 
-  writer.writeSubheader('Beregning', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Beregning');
   writeRows(writer, rows);
 };
 

@@ -18,7 +18,7 @@ import {
   cellRight,
   createPdfTableCell,
   createPdfTableSummedTotalRow,
-  renderEoStylePdfTable,
+  renderPdfTable,
 } from '../../shared/pdfTableRenderer';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
@@ -112,7 +112,7 @@ export const addLoebendeAfgoerelseSection = (
 
   writer.writeLeftRightText('Årsløn', formatKr(computation.benyttetAarsloen), rowOpts);
 
-  writer.writeSubheader('Periodeafgrænsning', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Periodeafgrænsning', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText('Afgørelsesdato', formatIsoDateShort(afgoerelse.afgoerelsesdato), rowOpts);
   writer.writeLeftRightText('Virkningsdato', formatIsoDateShort(afgoerelse.virkningsdato), rowOpts);
@@ -129,7 +129,7 @@ export const addLoebendeAfgoerelseSection = (
     computation.grundloenNiveau === '2003' && hasRowsBefore2024 && hasRowsFrom2024;
   const ingenLoebendeYdelse = afgoerelse.iAltBeregnetEet === 0;
 
-  writer.writeSubheader('Beregnede ydelser', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Beregnede ydelser', PDF_BASE_LINE_HEIGHT_MM);
 
   if (viserGrundydelseNiveauSkift) {
     writer.writeWrappedText(
@@ -183,7 +183,7 @@ export const addLoebendeAfgoerelseSection = (
 
     const doc = writer.getDoc();
     const startY = writer.getY();
-    const finalY = renderEoStylePdfTable({
+    const finalY = renderPdfTable({
       doc,
       startY,
       body: ydelserBody,
@@ -211,12 +211,12 @@ export const addLoebendeUdvidetSpecifikationPage = (
   const rowOpts = { rightFontStyle: 'normal' as const };
 
   // Årsløn
-  writer.writeSubheader('Årsløn', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Årsløn', PDF_BASE_LINE_HEIGHT_MM);
   const aslLabel = `ASL årsløn (afrundet til nærmeste 1000 og maks. ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)} kr.)`;
   writer.writeLeftRightText(aslLabel, formatKr(computation.benyttetAarsloen), rowOpts);
 
   // Grundløn
-  writer.writeSubheader('Grundløn', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Grundløn', PDF_BASE_LINE_HEIGHT_MM);
   if (computation.grundloenNiveau === '2003') {
     writer.writeWrappedText('Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau.');
     writer.writeWrappedTextContinued(`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
@@ -236,7 +236,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
   }
 
   // Ydelsesniveau
-  writer.writeSubheader('Ydelsesniveau', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Ydelsesniveau', PDF_BASE_LINE_HEIGHT_MM);
   if (computation.erstatningsniveauPct === 83) {
     writer.writeLeftRightText(
       'Da skaden er sket 1/1-2011 eller senere, udgør erstatningsniveauet',
@@ -304,7 +304,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
       ? restGrundydelse2024
       : afgoerelse.grundydelse2024Fuld;
 
-    writer.writeSubheader(
+    writer.writeBoldSubheader(
       `Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`,
       PDF_BASE_LINE_HEIGHT_MM
     );
@@ -316,7 +316,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
     );
 
     const grundydelseHeading = show2024Block ? 'Grundydelse før 1. januar 2024' : 'Grundydelse';
-    writer.writeUnderlinedLabel(grundydelseHeading, MARGINS.left);
+    writer.writeUnderlinedSubheader(grundydelseHeading);
     writer.writeWrappedTextContinued(grundydelseFormulaLine1);
     writer.writeLeftRightText(grundydelseFormulaLine2, formatKr(primaryGrundydelse, 2), rowOpts);
 
@@ -330,7 +330,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
     }
 
     if (show2024Block) {
-      writer.writeUnderlinedLabel('Grundydelse fra 1. januar 2024', MARGINS.left);
+      writer.writeUnderlinedSubheader('Grundydelse fra 1. januar 2024');
       writer.writeWrappedTextContinued(`Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatPct(reguleringFoer2024Pct)}):`);
       writer.writeLeftRightText(
         `${formatKr(grundydelse2003BaseFor2024, 2)} x ${reguleringFoer2024FaktorTekst} =`,

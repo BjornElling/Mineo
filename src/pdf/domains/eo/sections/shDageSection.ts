@@ -6,11 +6,11 @@ import {
   createPdfTableCell,
   createPdfTableHeaderCell,
   createPdfTableSummedTotalRow,
-  renderEoStylePdfTable,
+  renderPdfTable,
 } from '../../../shared/pdfTableRenderer';
 import { PDF_TABLE_NARROW_COLUMN_WIDTH } from '../../../infrastructure/pdfConfig';
-import { parseISODate, type ISODateString } from '../../../../types/branded';
-import { beregnHelligdageMedNavn } from '../../../../domain/dates/shDageBeregning';
+import type { ISODateString } from '../../../../types/branded';
+import { findNamedHolidaysInIsoRanges } from '../../../../domain/dates/shDageOversigt';
 import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 import { buildBeregningsperiodeRange } from '../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { IsoRange } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
@@ -43,57 +43,24 @@ type SHDageSectionContext = Readonly<{
 
 const formatDateFromDateObjectLong = (date: Date): string => formatUtcDateLong(date);
 
-const parseIsoDateToUtcDate = (iso: ISODateString | undefined): Date | null => {
-  if (!iso) return null;
-  return parseISODate(iso) ?? null;
-};
-
 const findHelligdageInRange = (fra: ISODateString | undefined, til: ISODateString | undefined): SHDageTableRow[] => {
-  const start = parseIsoDateToUtcDate(fra);
-  const end = parseIsoDateToUtcDate(til);
-  if (!start || !end || start > end) return [];
+  if (!fra || !til || fra > til) return [];
 
-  const startYear = start.getUTCFullYear();
-  const endYear = end.getUTCFullYear();
-  const rows: Array<SHDageTableRow & { sortTs: number }> = [];
-
-  for (let year = startYear; year <= endYear; year += 1) {
-    const helligdage = beregnHelligdageMedNavn(year);
-    for (const { date: helligdag, navn } of helligdage) {
-      if (helligdag < start || helligdag > end) continue;
-      const dayOfWeek = helligdag.getUTCDay();
-      const erSHDag = dayOfWeek >= 1 && dayOfWeek <= 5;
-      rows.push({
-        ugedag: WEEKDAY_NAMES_DA[dayOfWeek],
-        datoDisplay: formatDateFromDateObjectLong(helligdag),
-        helligdagNavn: navn,
-        erSHDag,
-        sortTs: helligdag.getTime(),
-      });
-    }
-  }
-
-  rows.sort((a, b) => a.sortTs - b.sortTs);
-  return rows.map(({ sortTs: _sortTs, ...row }) => row);
+  return findNamedHolidaysInIsoRanges([{ fra, til }]).map(({ date, navn, erHverdag }) => ({
+    ugedag: WEEKDAY_NAMES_DA[date.getUTCDay()],
+    datoDisplay: formatDateFromDateObjectLong(date),
+    helligdagNavn: navn,
+    erSHDag: erHverdag,
+  }));
 };
 
 const findHelligdageInRanges = (ranges: readonly IsoRange[]): SHDageTableRow[] => {
-  const mergedRanges = mergeIsoDateRanges(ranges, { mergeAdjacent: true });
-  if (mergedRanges.length === 0) return [];
-
-  const rows: SHDageTableRow[] = [];
-  const seen = new Set<string>();
-
-  for (const range of mergedRanges) {
-    for (const row of findHelligdageInRange(range.fra, range.til)) {
-      const key = `${row.datoDisplay}|${row.helligdagNavn}`;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      rows.push(row);
-    }
-  }
-
-  return rows;
+  return findNamedHolidaysInIsoRanges(ranges).map(({ date, navn, erHverdag }) => ({
+    ugedag: WEEKDAY_NAMES_DA[date.getUTCDay()],
+    datoDisplay: formatDateFromDateObjectLong(date),
+    helligdagNavn: navn,
+    erSHDag: erHverdag,
+  }));
 };
 
 export const renderShDageSection = (ctx: SHDageSectionContext): void => {
@@ -151,7 +118,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     }
 
     const doc = writer.getDoc();
-    const finalY = renderEoStylePdfTable({
+    const finalY = renderPdfTable({
       doc,
       startY: writer.getY(),
       body: tableRows,

@@ -54,7 +54,7 @@ export const renderEfterEalBody = (
 
   writer.writeSectionHeader('Specifikation', PDF_BASE_LINE_HEIGHT_MM);
 
-  writer.writeSubheader('Årsløn', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Årsløn', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText(
     'Årsløn på skadestidspunktet',
@@ -76,7 +76,7 @@ export const renderEfterEalBody = (
     );
   }
 
-  writer.writeSubheader('Erhvervsevnetab', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Erhvervsevnetab', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText(
     'Endeligt erhvervsevnetab',
@@ -111,7 +111,7 @@ export const renderEfterEalBody = (
     { rightFontStyle: 'bold' as const }
   );
 
-  writer.writeSubheader('Aldersreduktion', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Aldersreduktion', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText(
     'Fødselsdato',
@@ -141,7 +141,7 @@ export const renderEfterEalBody = (
     { rightFontStyle: 'bold' as const }
   );
 
-  writer.writeSubheader('Beregnet EAL-krav', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Beregnet EAL-krav', PDF_BASE_LINE_HEIGHT_MM);
 
   writer.writeLeftRightText(
     `${formatKr(computation.eetAnvendt)} - ${formatKr(computation.aldersreduktionBeloeb)} =`,
