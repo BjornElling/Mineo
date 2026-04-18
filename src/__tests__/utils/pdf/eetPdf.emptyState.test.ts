@@ -337,4 +337,86 @@ describe('EET PDF empty states', () => {
     expect(renderedText).not.toContain('Beregnet EET');
     expect(renderedText).not.toContain('I alt');
   });
+
+  it('generateLoebendeYdelserPdf bruger opdateret AM-bidrag-tekst i udvidet specifikation for post-2010-skader', async () => {
+    const { generateLoebendeYdelserPdf } = await import('../../../pdf/domains/loebendeYdelser/loebendeYdelserPdf');
+
+    generateLoebendeYdelserPdf({
+      computation: {
+        beregningsdato: '2026-03-17',
+        skadedato: '2020-01-01',
+        maxAarsloenISkadesaar: 500000,
+        benyttetAarsloen: 500000,
+        grundloen: 400000,
+        grundloenNiveau: '2024',
+        erstatningsniveauPct: 83,
+        afgoerelser: [],
+        issues: [],
+      } as never,
+      visUdvidetSpecifikation: true,
+    });
+
+    const instance = MockJsPDF.instances.at(-1);
+    const renderedText = (instance?.text.mock.calls ?? []).map((call) => String(call[0]));
+
+    expect(renderedText).toContain('Da skaden er sket 1/1-2011 eller senere, udgør erstatningsniveauet');
+    expect(renderedText).toContain(
+      'Der fratrækkes AM-bidrag (8 %) svarende til en yderligere regulering med'
+    );
+    expect(renderedText).not.toContain(
+      'Der trækkes AM-bidrag (8 %) fra årslønnen og sker dermed yderligere regulering til'
+    );
+  });
+
+  it('generateDifferencekravPdf bruger samme opdaterede AM-bidrag-tekst i udvidet specifikation-bilaget', async () => {
+    const { generateDifferencekravPdf } = await import('../../../pdf/domains/differencekrav/differencekravPdf');
+
+    generateDifferencekravPdf({
+      computation: {
+        beregningsdato: '2026-03-17',
+        skadedato: '2020-01-01',
+        dagFoerBeregningsdato: '2026-03-16',
+        ealKrav: 100000,
+        ealEetPct: 15,
+        fradragLoebendeYdelser: 0,
+        fradragKapitaliseretEet: 0,
+        proformaKapitalisering: null,
+        proformaBeloeb: 0,
+        differencekrav: 100000,
+        afgoerelser: [],
+        kapitaliseringerAfgoerelser: [],
+        loebendeComputation: {
+          beregningsdato: '2026-03-16',
+          skadedato: '2020-01-01',
+          maxAarsloenISkadesaar: 500000,
+          benyttetAarsloen: 500000,
+          grundloen: 400000,
+          grundloenNiveau: '2024',
+          erstatningsniveauPct: 83,
+          afgoerelser: [],
+          issues: [],
+        },
+        kapComputation: null,
+        ealComputation: null,
+      } as never,
+      bilagSelection: {
+        loebendeYdelser: true,
+        kapitalisering: false,
+        eetEfterEal: false,
+        proformaKapitalisering: false,
+        visUdvidetSpecifikationLoebendeYdelserBilag: true,
+      },
+    });
+
+    const instance = MockJsPDF.instances.at(-1);
+    const renderedText = (instance?.text.mock.calls ?? []).map((call) => String(call[0]));
+
+    expect(renderedText).toContain('Udvidet specifikation');
+    expect(renderedText).toContain(
+      'Der fratrækkes AM-bidrag (8 %) svarende til en yderligere regulering med'
+    );
+    expect(renderedText).not.toContain(
+      'Der trækkes AM-bidrag (8 %) fra årslønnen og sker dermed yderligere regulering til'
+    );
+  });
 });

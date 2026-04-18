@@ -241,7 +241,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
       rowOpts
     );
     writer.writeLeftRightText(
-      'Der trækkes AM-bidrag (8 %) fra årslønnen og sker dermed yderligere regulering til',
+      'Der fratrækkes AM-bidrag (8 %) svarende til en yderligere regulering med',
       '92 %',
       rowOpts
     );
