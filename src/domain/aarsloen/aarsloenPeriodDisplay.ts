@@ -63,7 +63,7 @@ export const resolveAarsloenIndtastetEnhedSummary = (params: Readonly<{
 
   if (beregningsData.metode === 'A') {
     return buildSummary({
-      count: beregningsData.hverdageIPeriode ?? beregningsData.arbejdsdageIPeriode ?? 0,
+      count: beregningsData.hverdageIPeriode,
       singular: 'hverdag',
       plural: 'hverdage',
       labelUnitPlural: 'hverdage',
@@ -73,7 +73,7 @@ export const resolveAarsloenIndtastetEnhedSummary = (params: Readonly<{
 
   if (beregningsData.metode === 'B') {
     return buildSummary({
-      count: beregningsData.arbejdsdageIPeriode ?? 0,
+      count: beregningsData.arbejdsdageIPeriode,
       singular: 'hverdag',
       plural: 'hverdage',
       labelUnitPlural: 'hverdage',
@@ -84,7 +84,7 @@ export const resolveAarsloenIndtastetEnhedSummary = (params: Readonly<{
   if (beregningsData.metode === 'C') {
     if (loenperiode === 'maaned') {
       return buildSummary({
-        count: beregningsData.antalMaaneder ?? 0,
+        count: beregningsData.antalEnheder,
         singular: 'måned',
         plural: 'måneder',
         labelUnitPlural: 'måneder',
@@ -94,7 +94,7 @@ export const resolveAarsloenIndtastetEnhedSummary = (params: Readonly<{
 
     if (loenperiode === 'uge') {
       return buildSummary({
-        count: beregningsData.antalMaaneder ?? 0,
+        count: beregningsData.antalEnheder,
         singular: 'uge',
         plural: 'uger',
         labelUnitPlural: 'uger',
@@ -102,7 +102,7 @@ export const resolveAarsloenIndtastetEnhedSummary = (params: Readonly<{
       }, isSinglePeriod);
     }
 
-    if (loenperiode === 'dag' && beregningsData.antalHeleKalendermaaneder != null) {
+    if (loenperiode === 'dag' && beregningsData.antalHeleKalendermaaneder !== null) {
       return buildSummary({
         count: beregningsData.antalHeleKalendermaaneder,
         singular: 'måned',
@@ -113,7 +113,7 @@ export const resolveAarsloenIndtastetEnhedSummary = (params: Readonly<{
     }
 
     return buildSummary({
-      count: beregningsData.arbejdsdageIPeriode ?? 0,
+      count: beregningsData.arbejdsdageIPeriode,
       singular: 'hverdag',
       plural: 'hverdage',
       labelUnitPlural: 'hverdage',
