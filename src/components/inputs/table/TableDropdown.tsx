@@ -360,9 +360,6 @@ const TableDropdown = React.memo(
                 helperText={externalErrorText}
                 sx={looseDropdownSx}
               >
-                <MenuItem value="">
-                  {placeholder}
-                </MenuItem>
                 {options.map((opt) => {
                   if (isDividerOption(opt)) {
                     return <StyledDropdown.Divider key={opt.id} />;
