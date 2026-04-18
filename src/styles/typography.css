@@ -9,13 +9,6 @@
 
 /* ==================== CSS Variabler ==================== */
 :root {
-  /* Farver – synkroniseret med MUI Theme (App.tsx) */
-  --color-primary: #1976d2;
-  --color-text-primary: rgba(0, 0, 0, 0.87);
-  --color-text-secondary: rgba(0, 0, 0, 0.6);
-  --color-active-bg: rgba(25, 118, 210, 0.08);
-  --color-active-bg-hover: rgba(25, 118, 210, 0.12);
-
   /* Font weights */
   --font-weight-regular: 400;
   --font-weight-medium: 500;
