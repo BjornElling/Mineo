@@ -10,7 +10,7 @@ import {
   TABLE_STYLES,
 } from '../infrastructure/pdfConfig';
 import { createJsPdfAdapter } from '../infrastructure/jsPdfAdapter';
-import { normalizeRightAlignedTextForPdf } from './pdfTextUtils';
+import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from './pdfTextUtils';
 
 export const TABLE_FONT_SIZE = 8;
 export const EO_TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
@@ -29,6 +29,15 @@ type PdfTableCellStyles = Partial<Styles>;
 type PdfTableCellPosition = Readonly<{ rowIndex: number; columnIndex: number }>;
 type PdfColumnStyle = Readonly<{ cellWidth: number | 'auto'; halign?: PdfCellAlign }>;
 type PdfDistributedColumnInput = number | Readonly<{ cellWidth: number; halign?: PdfCellAlign }>;
+type PdfDistributedColumnLayoutMeta = Readonly<{
+  tableWidth: number;
+  fixedColumnIndices: readonly number[];
+  distributedColumnIndices: readonly number[];
+}>;
+type PdfMeasuredDoc = jsPDF & Readonly<{
+  getFont?: () => Readonly<{ fontName: string; fontStyle: string }>;
+  getFontSize?: () => number;
+}>;
 export type PdfSummedTotalRow = Readonly<{
   row: RowInput;
   valueCellColumnIndex: number;
@@ -63,9 +72,330 @@ type PdfTotalRowOptions = Readonly<{
 const PDF_TOTAL_VALUE_CHAR_WIDTH_MM = 2.2;
 const PDF_TOTAL_VALUE_WIDTH_PADDING_MM = 6;
 const NBSP = '\u00A0';
+const PDF_COLUMN_LAYOUT_META = Symbol('pdfColumnLayoutMeta');
+const PDF_TEXT_MEASUREMENT_BUFFER_MM = 0.8;
+const PDF_WIDTH_EPSILON = 1e-4;
+
+// IMPORTANT:
+// Symbol-metadataen er bevidst knyttet direkte til det returnerede styles-objekt.
+// Hvis en call-site kopierer `columnStyles` via spread/Object.assign/JSON, tabes
+// metadataen og den adaptive omfordeling deaktiveres lydløst. Det er et fail-closed
+// valg: tabellen falder tilbage til den statiske fordelingsbredde frem for at gætte.
+type PdfColumnStylesWithMeta = Record<number, PdfColumnStyle> & Readonly<{
+  [PDF_COLUMN_LAYOUT_META]?: PdfDistributedColumnLayoutMeta;
+}>;
 
 const normalizePdfTableCellContent = (content: string, halign?: PdfCellAlign): string => {
   return halign === 'right' ? normalizeRightAlignedTextForPdf(content) : content;
+};
+
+const attachPdfColumnLayoutMeta = (
+  styles: Record<number, PdfColumnStyle>,
+  meta: PdfDistributedColumnLayoutMeta
+): Record<number, PdfColumnStyle> => {
+  Object.defineProperty(styles, PDF_COLUMN_LAYOUT_META, {
+    value: meta,
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+  return styles;
+};
+
+const resolvePdfColumnLayoutMeta = (
+  columnStyles?: PdfTableColumnStyles
+): PdfDistributedColumnLayoutMeta | null => {
+  const maybeWithMeta = columnStyles as PdfColumnStylesWithMeta | undefined;
+  return maybeWithMeta?.[PDF_COLUMN_LAYOUT_META] ?? null;
+};
+
+const resolvePdfColumnRedistributionTargetIndex = (
+  distributedColumnIndices: readonly number[],
+  nextStyles: Record<number, PdfColumnStyle>,
+  requiredWidths: ReadonlyMap<number, number>,
+  residualWidth: number
+): number | null => {
+  if (distributedColumnIndices.length === 0) return null;
+
+  if (residualWidth >= 0) {
+    return distributedColumnIndices.reduce<number | null>((selectedIndex, index) => {
+      const currentWidth = Number(nextStyles[index]?.cellWidth ?? -Infinity);
+      const requiredWidth = requiredWidths.get(index) ?? 0;
+      const slack = currentWidth - requiredWidth;
+
+      if (selectedIndex === null) {
+        return index;
+      }
+
+      const selectedWidth = Number(nextStyles[selectedIndex]?.cellWidth ?? -Infinity);
+      const selectedRequired = requiredWidths.get(selectedIndex) ?? 0;
+      const selectedSlack = selectedWidth - selectedRequired;
+      return slack > selectedSlack ? index : selectedIndex;
+    }, null);
+  }
+
+  return distributedColumnIndices.reduce<number | null>((selectedIndex, index) => {
+    const currentWidth = Number(nextStyles[index]?.cellWidth ?? 0);
+    const requiredWidth = requiredWidths.get(index) ?? 0;
+    const slack = currentWidth - requiredWidth;
+
+    if (slack + residualWidth < -PDF_WIDTH_EPSILON) {
+      return selectedIndex;
+    }
+
+    if (selectedIndex === null) {
+      return index;
+    }
+
+    const selectedWidth = Number(nextStyles[selectedIndex]?.cellWidth ?? 0);
+    const selectedRequired = requiredWidths.get(selectedIndex) ?? 0;
+    const selectedSlack = selectedWidth - selectedRequired;
+    return slack > selectedSlack ? index : selectedIndex;
+  }, null);
+};
+
+const resolveHorizontalCellPadding = (styles?: PdfTableCellStyles): number => {
+  const padding = styles?.cellPadding;
+  if (typeof padding === 'number' && Number.isFinite(padding)) {
+    return padding * 2;
+  }
+
+  if (Array.isArray(padding)) {
+    const right = typeof padding[1] === 'number' && Number.isFinite(padding[1]) ? padding[1] : 0;
+    const left = typeof padding[3] === 'number' && Number.isFinite(padding[3]) ? padding[3] : right;
+    return left + right;
+  }
+
+  if (padding && typeof padding === 'object') {
+    const left = typeof padding.left === 'number' && Number.isFinite(padding.left) ? padding.left : 0;
+    const right = typeof padding.right === 'number' && Number.isFinite(padding.right) ? padding.right : 0;
+    return left + right;
+  }
+
+  return EO_TABLE_CELL_PADDING * 2;
+};
+
+const isPdfTableCell = (value: unknown): value is PdfTableCell => {
+  return typeof value === 'object' && value !== null && 'content' in value;
+};
+
+const resolvePdfCellTextContent = (cell: unknown): string => {
+  if (isPdfTableCell(cell)) {
+    return typeof cell.content === 'string' ? cell.content : String(cell.content ?? '');
+  }
+
+  return typeof cell === 'string' ? cell : String(cell ?? '');
+};
+
+const resolvePdfCellColSpan = (cell: unknown): number => {
+  if (!isPdfTableCell(cell)) return 1;
+  return typeof cell.colSpan === 'number' && Number.isInteger(cell.colSpan) && cell.colSpan > 1 ? cell.colSpan : 1;
+};
+
+const resolvePdfCellStyles = (cell: unknown): PdfTableCellStyles | undefined => {
+  return isPdfTableCell(cell) ? cell.styles : undefined;
+};
+
+const canMeasurePdfText = (doc: jsPDF): doc is jsPDF & Readonly<{
+  getTextWidth: (text: string) => number;
+  setFont: (family: string, style: string) => void;
+  setFontSize: (size: number) => void;
+}> => {
+  const maybeDoc = doc as Partial<jsPDF> & Readonly<Record<string, unknown>>;
+  return (
+    typeof maybeDoc.getTextWidth === 'function' &&
+    typeof maybeDoc.setFont === 'function' &&
+    typeof maybeDoc.setFontSize === 'function'
+  );
+};
+
+const measurePdfTextWidthMm = (
+  doc: jsPDF,
+  text: string,
+  options?: Readonly<{
+    fontSize?: number;
+    fontStyle?: 'normal' | 'bold';
+    halign?: PdfCellAlign;
+  }>
+): number => {
+  if (!canMeasurePdfText(doc)) {
+    return 0;
+  }
+
+  const lines = (
+    options?.halign === 'right' ? normalizeRightAlignedTextForPdf(text) : normalizeTextForPdf(text)
+  ).split('\n');
+  const measuredDoc = doc as PdfMeasuredDoc;
+  const previousFont = measuredDoc.getFont?.();
+  const previousFontSize = measuredDoc.getFontSize?.();
+
+  doc.setFont(PDF_FONT_FAMILY, options?.fontStyle ?? 'normal');
+  doc.setFontSize(options?.fontSize ?? TABLE_FONT_SIZE);
+
+  const width = lines.reduce((maxWidth, line) => Math.max(maxWidth, doc.getTextWidth(line)), 0);
+
+  if (previousFont) {
+    doc.setFont(previousFont.fontName, previousFont.fontStyle);
+  }
+  if (typeof previousFontSize === 'number') {
+    doc.setFontSize(previousFontSize);
+  }
+
+  return width;
+};
+
+const resolveAdaptiveDistributedColumnStyles = (
+  doc: jsPDF,
+  body: RowInput[],
+  columnStyles: PdfTableColumnStyles | undefined,
+  hasHeaderRow: boolean
+): PdfTableColumnStyles | undefined => {
+  const layoutMeta = resolvePdfColumnLayoutMeta(columnStyles);
+  if (!layoutMeta || !columnStyles) {
+    return columnStyles;
+  }
+  if (!canMeasurePdfText(doc)) {
+    return columnStyles;
+  }
+
+  const currentWidths = new Map<number, number>();
+  for (const [rawIndex, style] of Object.entries(columnStyles)) {
+    const index = Number(rawIndex);
+    if (!Number.isInteger(index)) continue;
+    if (typeof style?.cellWidth !== 'number' || !Number.isFinite(style.cellWidth) || style.cellWidth <= 0) {
+      return columnStyles;
+    }
+    currentWidths.set(index, style.cellWidth);
+  }
+
+  if (currentWidths.size === 0 || layoutMeta.distributedColumnIndices.length === 0) {
+    return columnStyles;
+  }
+
+  const requiredWidths = new Map<number, number>();
+  for (const index of currentWidths.keys()) {
+    requiredWidths.set(index, 0);
+  }
+
+  for (const [rowIndex, row] of body.entries()) {
+    if (!Array.isArray(row)) continue;
+
+    let columnIndex = 0;
+    const isHeaderRow = hasHeaderRow && rowIndex === 0;
+
+    for (const cell of row) {
+      const colSpan = resolvePdfCellColSpan(cell);
+      // ColSpan-celler driver ikke minimumsbreddeestimatet.
+      // Det er en bevidst invariant: headers i de kendte standardtabeller er 1:1
+      // med kolonner, mens body-colSpan typisk bruges til totaler og må ikke tvinge
+      // ekstra bredde på tværs af flere kolonner.
+      if (colSpan === 1) {
+        const styles = resolvePdfCellStyles(cell);
+        const fontStyle = styles?.fontStyle === 'bold' || isHeaderRow ? 'bold' : 'normal';
+        const fontSize = typeof styles?.fontSize === 'number' ? styles.fontSize : TABLE_FONT_SIZE;
+        const halign = styles?.halign as PdfCellAlign | undefined;
+        const requiredWidth =
+          measurePdfTextWidthMm(doc, resolvePdfCellTextContent(cell), {
+            fontSize,
+            fontStyle,
+            halign,
+          }) +
+          resolveHorizontalCellPadding(styles) +
+          PDF_TEXT_MEASUREMENT_BUFFER_MM;
+
+        const previous = requiredWidths.get(columnIndex) ?? 0;
+        if (requiredWidth > previous) {
+          requiredWidths.set(columnIndex, requiredWidth);
+        }
+      }
+
+      columnIndex += colSpan;
+    }
+  }
+
+  const deficits = layoutMeta.distributedColumnIndices
+    .map((index) => {
+      const current = currentWidths.get(index) ?? 0;
+      const required = requiredWidths.get(index) ?? 0;
+      return { index, current, required, delta: required - current };
+    })
+    .filter((entry) => entry.delta > PDF_WIDTH_EPSILON);
+
+  if (deficits.length === 0) {
+    return columnStyles;
+  }
+
+  const donors = layoutMeta.distributedColumnIndices
+    .map((index) => {
+      const current = currentWidths.get(index) ?? 0;
+      const required = requiredWidths.get(index) ?? 0;
+      return { index, current, required, surplus: current - required };
+    })
+    .filter((entry) => entry.surplus > PDF_WIDTH_EPSILON);
+
+  const totalDeficit = deficits.reduce((sum, entry) => sum + entry.delta, 0);
+  const totalSurplus = donors.reduce((sum, entry) => sum + entry.surplus, 0);
+  if (totalDeficit > totalSurplus + PDF_WIDTH_EPSILON) {
+    return columnStyles;
+  }
+
+  const nextStyles: Record<number, PdfColumnStyle> = {};
+  for (const [rawIndex, style] of Object.entries(columnStyles)) {
+    const index = Number(rawIndex);
+    nextStyles[index] = {
+      cellWidth: currentWidths.get(index) ?? 0,
+      ...(style?.halign ? { halign: style.halign as PdfCellAlign } : {}),
+    };
+  }
+
+  for (const deficit of deficits) {
+    nextStyles[deficit.index] = {
+      ...nextStyles[deficit.index],
+      cellWidth: deficit.required,
+    };
+  }
+
+  for (const donor of donors) {
+    const share = totalSurplus <= PDF_WIDTH_EPSILON ? 0 : (donor.surplus / totalSurplus) * totalDeficit;
+    nextStyles[donor.index] = {
+      ...nextStyles[donor.index],
+      cellWidth: donor.current - share,
+    };
+  }
+
+  const resolvedTotalWidth = Object.values(nextStyles).reduce((sum, style) => {
+    return sum + (typeof style.cellWidth === 'number' ? style.cellWidth : 0);
+  }, 0);
+  const residualWidth = layoutMeta.tableWidth - resolvedTotalWidth;
+  if (Math.abs(residualWidth) > PDF_WIDTH_EPSILON) {
+    const targetIndex = resolvePdfColumnRedistributionTargetIndex(
+      layoutMeta.distributedColumnIndices,
+      nextStyles,
+      requiredWidths,
+      residualWidth
+    );
+    if (targetIndex === null) {
+      // `nextStyles` kasseres bevidst her og vi falder fail-closed tilbage til
+      // de originale, umodificerede styles.
+      return columnStyles;
+    }
+
+    const currentWidth = Number(nextStyles[targetIndex]?.cellWidth ?? 0);
+    const nextWidth = currentWidth + residualWidth;
+    const requiredWidth = requiredWidths.get(targetIndex) ?? 0;
+    if (nextWidth + PDF_WIDTH_EPSILON < requiredWidth) {
+      // `nextStyles` kasseres bevidst her og vi falder fail-closed tilbage til
+      // de originale, umodificerede styles.
+      return columnStyles;
+    }
+
+    nextStyles[targetIndex] = {
+      ...nextStyles[targetIndex],
+      cellWidth: nextWidth,
+    };
+  }
+
+  return attachPdfColumnLayoutMeta(nextStyles, layoutMeta);
 };
 
 export const createPdfTableCell = (
@@ -308,8 +638,7 @@ export const createPdfDistributedColumnStyles = (
 
   const autoWidth = remainingColumnCount > 0 ? remainingWidth / remainingColumnCount : 0;
   const fixedColumnMap = new Map(normalizedFixedColumns.map((column) => [column.index, column]));
-
-  return Object.fromEntries(
+  const styles = Object.fromEntries(
     Array.from({ length: columnCount }, (_, index) => {
       const fixedColumn = fixedColumnMap.get(index);
       if (fixedColumn) {
@@ -329,6 +658,13 @@ export const createPdfDistributedColumnStyles = (
       ];
     })
   ) as Record<number, PdfColumnStyle>;
+
+  return attachPdfColumnLayoutMeta(styles, {
+    tableWidth,
+    fixedColumnIndices: normalizedFixedColumns.map((column) => column.index),
+    distributedColumnIndices: Array.from({ length: columnCount }, (_, index) => index)
+      .filter((index) => !fixedColumnMap.has(index)),
+  });
 };
 
 export const renderPdfTable = (params: Readonly<{
@@ -370,6 +706,7 @@ export const renderPdfTable = (params: Readonly<{
   const rowsToKeepTogether = Math.min(body.length, 2);
   const requiredHeight = estimatedRowHeight * rowsToKeepTogether;
   const resolvedStartY = remainingHeight < requiredHeight ? MARGINS.top : startY;
+  const resolvedColumnStyles = resolveAdaptiveDistributedColumnStyles(doc, body, columnStyles, hasHeaderRow);
 
   if (resolvedStartY === MARGINS.top && remainingHeight < requiredHeight) {
     doc.addPage();
@@ -389,7 +726,7 @@ export const renderPdfTable = (params: Readonly<{
       cellPadding: EO_TABLE_CELL_PADDING,
       textColor: COLORS.text,
     },
-    columnStyles,
+    columnStyles: resolvedColumnStyles,
     didParseCell: (data: CellHookData) => {
       const resolvedHalign = data.cell.styles.halign;
       if (resolvedHalign === 'right' && Array.isArray(data.cell.text)) {

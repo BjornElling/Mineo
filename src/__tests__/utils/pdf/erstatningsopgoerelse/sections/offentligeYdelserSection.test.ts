@@ -163,8 +163,11 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
 
     expect(autoTableMock).toHaveBeenCalled();
     const firstCall = autoTableMock.mock.calls[0]?.[1];
-    const firstColumnStyle = (firstCall?.columnStyles as Record<number, { cellWidth: number }>)[0];
+    const columnStyles = firstCall?.columnStyles as Record<number, { cellWidth: number }>;
+    const firstColumnStyle = columnStyles[0];
+    const totalWidth = Object.values(columnStyles).reduce((sum, style) => sum + style.cellWidth, 0);
 
-    expect(firstColumnStyle.cellWidth).toBeCloseTo(170 / 5, 6);
+    expect(totalWidth).toBeCloseTo(170, 6);
+    expect(firstColumnStyle.cellWidth).toBeGreaterThan(0);
   });
 });

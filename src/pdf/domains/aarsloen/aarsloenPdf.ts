@@ -213,7 +213,7 @@ const addIndtaegtsoplysningerTable = (
   headers.push(
     createPdfTableHeaderCell(STANDARD_LOEN_COL2_LABEL, 'center'),
     createPdfTableHeaderCell(STANDARD_LOEN_COL3_LABEL, 'center'),
-    createPdfTableHeaderCell('Ikke-pens. giv. løn', 'center'),
+    createPdfTableHeaderCell('Ikke-pens.\ngiv. løn', 'center'),
     createPdfTableHeaderCell(AARSLOEN_PDF_ATP_HEADER, 'center'),
     createPdfTableHeaderCell('FP/FV/SH/\nSO/St.B.', 'center'),
     createPdfTableHeaderCell('Arb.g.\nPension', 'center'),
