@@ -98,12 +98,11 @@ const addProformaKapitaliseringSection = (
   );
 
   if (pk.grundydelse2024 !== null && pk.opreguleringTil2024PctRounded4 !== null) {
+    writer.writeWrappedTextContinued(
+      `Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatAsAmountTrimmed(pk.opreguleringTil2024PctRounded4, 4)} %) =`
+    );
     writer.writeLeftRightText(
-      buildKapitaliseringOpreguleringTil2024Expression(
-        formatKr(pk.grundydelse, 2),
-        formatAsAmountTrimmed(1 + pk.opreguleringTil2024PctRounded4 / 100, 4),
-        `${formatAsAmountTrimmed(pk.opreguleringTil2024PctRounded4, 4)} %`
-      ),
+      `${formatKr(pk.grundydelse, 2)} × ${formatAsAmountTrimmed(1 + pk.opreguleringTil2024PctRounded4 / 100, 4)} =`,
       formatKr(pk.grundydelse2024, 2),
       rowOpts
     );
@@ -258,7 +257,9 @@ const renderDifferencekravPage = (
         `- ${formatKr(afgoerelse.beloeb)}`,
         rowOpts
       );
-    } else if (!foretages) {
+    } else if (!foretages && afgoerelse.afgoerelseType === 'Midlertidig') {
+      // Post-2011 midlertidige afgørelser vises kun informativt med type-linjen.
+    } else if (!foretages && afgoerelse.afgoerelseType !== 'Midlertidig') {
       writer.writeWrappedText('Løbende ydelser derfor ikke relevante.');
     } else {
       writer.writeWrappedText('Ingen løbende ydelser.');

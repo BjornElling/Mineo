@@ -385,7 +385,7 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
                   </Box>
                 )}
 
-                {!foretages && (
+                {!foretages && afgoerelse.afgoerelseType !== 'Midlertidig' && (
                   <TextHoverRow text="Løbende ydelser derfor ikke relevante." />
                 )}
 
