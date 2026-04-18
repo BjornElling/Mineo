@@ -4,8 +4,8 @@
  * Funktioner til at beregne omregnet årsløn baseret på forskellige metoder
  */
 
-import { beregnAntalHverdage, beregnFeriedagePaaEtAar, erHeleKalendermaaneder, erNoejagtEtAar, STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR, STANDARD_UGER_PAA_AAR, type PeriodeResult } from '../../utils/periodeBeregning';
-import type { AarsloenMetode, AarsloenBeregningResult } from '../../types/calculation';
+import { beregnAntalHverdage, beregnFeriedagePaaEtAar, erHeleKalendermaaneder, erPraecisEtAar, STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR, STANDARD_UGER_PAA_AAR, type PeriodeResult } from '../../utils/periodeBeregning';
+import type { AarsloenBeregningResult } from '../../types/calculation';
 import type { LoenPaaHelligdage, Loenperiode } from '../../types/loen';
 
 /**
@@ -28,7 +28,7 @@ export interface AarsloenBeregningParams {
 export const beregnMetode = (
   fuldLoenUnderFerie: boolean,
   loenPaaHelligdage: LoenPaaHelligdage
-): AarsloenMetode => {
+): 'A' | 'B' | 'C' => {
   if (loenPaaHelligdage === 'Ingen' || loenPaaHelligdage === 'SH-udbetaling') {
     return 'A';
   } else if (!fuldLoenUnderFerie && loenPaaHelligdage === 'Almindelig løn') {
@@ -79,7 +79,7 @@ export const beregnOmregnetAarsloen = ({
   // beregnet årsløn er da identisk med summen fra tabellen. Ingen særskilt brugeradvarsel
   // vises, da brugeren selv har valgt at indtaste data for et fuldt år og forventes at
   // genkende dette. erEtAar eksponeres i resultatet, så forbrugere kan tilpasse visning.
-  const erEtAar = erNoejagtEtAar(loenperiode as string, unikkeEnheder, datoSet);
+  const erEtAar = erPraecisEtAar(loenperiode as string, unikkeEnheder, datoSet);
 
   // Beregn hverdage i indtastede perioder
   const hverdageIPeriode = beregnAntalHverdage(datoSet);

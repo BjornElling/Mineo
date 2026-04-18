@@ -4,7 +4,7 @@ import {
   beregnDagPeriode,
   beregnPeriodiseringsDage,
   beregnUgePeriode,
-  erNoejagtEtAar,
+  erPraecisEtAar,
   beregnAntalHverdage,
   beregnFeriedagePaaEtAar,
   beregnMaanedPeriode,
@@ -38,9 +38,9 @@ describe('periodeBeregning', () => {
     expect(result?.unikkeEnheder).toBe(269);
   });
 
-  it('erNoejagtEtAar accepts a full leap year in day periods', () => {
+  it('erPraecisEtAar accepts a full leap year in day periods', () => {
     const datoSet = buildIsoSet(createDate(2024, 0, 1), createDate(2024, 11, 31));
-    expect(erNoejagtEtAar('dag', datoSet.size, datoSet)).toBe(true);
+    expect(erPraecisEtAar('dag', datoSet.size, datoSet)).toBe(true);
   });
 
   it('beregnPeriodiseringsDage counts kalenderdage inclusively across DST', () => {
@@ -144,63 +144,63 @@ describe('beregnFeriedagePaaEtAar', () => {
   });
 });
 
-// ─── erNoejagtEtAar ───────────────────────────────────────────────────────────
+// ─── erPraecisEtAar ───────────────────────────────────────────────────────────
 
-describe('erNoejagtEtAar', () => {
+describe('erPraecisEtAar', () => {
   describe('maaned', () => {
     it('12 unikke måneder → true', () => {
-      expect(erNoejagtEtAar('maaned', 12)).toBe(true);
+      expect(erPraecisEtAar('maaned', 12)).toBe(true);
     });
 
     it('11 unikke måneder → false', () => {
-      expect(erNoejagtEtAar('maaned', 11)).toBe(false);
+      expect(erPraecisEtAar('maaned', 11)).toBe(false);
     });
 
     it('13 unikke måneder → false', () => {
-      expect(erNoejagtEtAar('maaned', 13)).toBe(false);
+      expect(erPraecisEtAar('maaned', 13)).toBe(false);
     });
   });
 
   describe('uge', () => {
     it('uge-lønperiode → altid false', () => {
-      expect(erNoejagtEtAar('uge', 52)).toBe(false);
-      expect(erNoejagtEtAar('uge', 53)).toBe(false);
+      expect(erPraecisEtAar('uge', 52)).toBe(false);
+      expect(erPraecisEtAar('uge', 53)).toBe(false);
     });
   });
 
   describe('ukendt lønperiode', () => {
     it('ukendt → false', () => {
-      expect(erNoejagtEtAar('timer', 365)).toBe(false);
+      expect(erPraecisEtAar('timer', 365)).toBe(false);
     });
   });
 
   describe('dag', () => {
     it('1. jan – 31. dec ikke-skudår (2023) → true', () => {
       const set = buildIsoSet(createDate(2023, 0, 1), createDate(2023, 11, 31));
-      expect(erNoejagtEtAar('dag', set.size, set)).toBe(true);
+      expect(erPraecisEtAar('dag', set.size, set)).toBe(true);
     });
 
     it('1. jan – 31. dec skudår (2024) → true', () => {
       const set = buildIsoSet(createDate(2024, 0, 1), createDate(2024, 11, 31));
-      expect(erNoejagtEtAar('dag', set.size, set)).toBe(true);
+      expect(erPraecisEtAar('dag', set.size, set)).toBe(true);
     });
 
     it('periode midt i år: 1. jul 2023 – 30. jun 2024 (365 dage) → false', () => {
       const set = buildIsoSet(createDate(2023, 6, 1), createDate(2024, 5, 30));
-      expect(erNoejagtEtAar('dag', set.size, set)).toBe(false);
+      expect(erPraecisEtAar('dag', set.size, set)).toBe(false);
     });
 
     it('11 måneder (1. jan – 30. nov 2023) → false', () => {
       const set = buildIsoSet(createDate(2023, 0, 1), createDate(2023, 10, 30));
-      expect(erNoejagtEtAar('dag', set.size, set)).toBe(false);
+      expect(erPraecisEtAar('dag', set.size, set)).toBe(false);
     });
 
     it('tomt datoSet → false', () => {
-      expect(erNoejagtEtAar('dag', 0, new Set())).toBe(false);
+      expect(erPraecisEtAar('dag', 0, new Set())).toBe(false);
     });
 
     it('intet datoSet → false', () => {
-      expect(erNoejagtEtAar('dag', 365)).toBe(false);
+      expect(erPraecisEtAar('dag', 365)).toBe(false);
     });
   });
 });

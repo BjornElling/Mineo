@@ -10,7 +10,7 @@ import { parseISODate, toISODateString, type ISODateString } from '../types/bran
 import { addDays, createDate, formatToISO, isLeapYear, parseDanishDate, parseWeekString } from './dateUtils';
 import { beregnSHDageForDatoSet } from '../domain/dates/shDageBeregning';
 import type { Periodisering } from '../data/ydelsestyper';
-import { countInclusiveUtcDays, diffUtcDaysAbs } from './utcDayMath';
+import { countInclusiveUtcDays } from './utcDayMath';
 import { MONTH_NAMES_DA_SHORT } from './dateFormatting';
 
 /**
@@ -120,7 +120,7 @@ export const beregnFeriedagePaaEtAar = (retTilSjetteFerieuge: boolean): number =
  * @param {Set<string>} datoSet - Set af datoer (kun for dagsløn)
  * @returns {boolean} True hvis nøjagtig 1 års data
  */
-export const erNoejagtEtAar = (loenperiode: string, unikkeEnheder: number, datoSet?: ReadonlySet<ISODateString>) => {
+export const erPraecisEtAar = (loenperiode: string, unikkeEnheder: number, datoSet?: ReadonlySet<ISODateString>) => {
   if (loenperiode === 'maaned') {
     return unikkeEnheder === 12;
   } else if (loenperiode === 'dag') {
