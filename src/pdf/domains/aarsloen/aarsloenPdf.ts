@@ -515,35 +515,49 @@ const addBeregningSection = (
       });
 
     } else if (loenperiode === 'dag') {
-      // Samme som metode B for dag-lønperiode
-      let linje1Label = `Hverdage i beregningsperioden (${beregningsData.hverdageIPeriode} hverdage`;
-      const feriedageFraInput = beregningsData.feriedageFraInput ?? 0;
-      if (!fuldLoenUnderFerie && feriedageFraInput > 0) {
-        linje1Label += ` - ${feriedageFraInput} feriedage`;
+      if (beregningsData.antalHeleKalendermaaneder != null) {
+        // Hele kalendermåneder — vis måneds-omregning som ved månedsløn
+        const n = beregningsData.antalHeleKalendermaaneder;
+        rows.push({
+          label: 'Antal måneder i indtastede perioder',
+          value: formatCountWithUnit(n, 'måned', 'måneder'),
+        });
+        rows.push({
+          label: `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${n} × 12)`,
+          value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
+          rightFontStyle: 'bold',
+        });
+      } else {
+        // Samme som metode B for dag-lønperiode
+        let linje1Label = `Hverdage i beregningsperioden (${beregningsData.hverdageIPeriode} hverdage`;
+        const feriedageFraInput = beregningsData.feriedageFraInput ?? 0;
+        if (!fuldLoenUnderFerie && feriedageFraInput > 0) {
+          linje1Label += ` - ${feriedageFraInput} feriedage`;
+        }
+        linje1Label += `)`;
+
+        rows.push({
+          label: linje1Label,
+          value: `${beregningsData.arbejdsdageIPeriode} hverdage`,
+        });
+
+        const linje2Label = fuldLoenUnderFerie
+          ? 'Hverdage på et år (261 hverdage)'
+          : `Hverdage på et år (261 hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'})`;
+
+        rows.push({
+          label: linje2Label,
+          value: `${beregningsData.hverdagePaaAar} hverdage`,
+        });
+
+        const linje3Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar})`;
+
+        rows.push({
+          label: linje3Label,
+          value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
+          rightFontStyle: 'bold',
+        });
       }
-      linje1Label += `)`;
-
-      rows.push({
-        label: linje1Label,
-        value: `${beregningsData.arbejdsdageIPeriode} hverdage`,
-      });
-
-      const linje2Label = fuldLoenUnderFerie
-        ? 'Hverdage på et år (261 hverdage)'
-        : `Hverdage på et år (261 hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'})`;
-
-      rows.push({
-        label: linje2Label,
-        value: `${beregningsData.hverdagePaaAar} hverdage`,
-      });
-
-      const linje3Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar})`;
-
-      rows.push({
-        label: linje3Label,
-        value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
-        rightFontStyle: 'bold',
-      });
     }
   }
 

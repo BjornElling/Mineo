@@ -683,29 +683,51 @@ const Aarsloen = React.memo(() => {
 
                 {loenperiode === LOENPERIODE.DAG && (
                   <>
-                    {/* Linje 2: Hverdage i indtastede perioder */}
-                    <Box className="row--label-right">
-                      <Typography className="row--text">{`Hverdage i beregningsperioden (${formatCountWithUnit(beregningsData.hverdageIPeriode ?? 0, 'hverdag', 'hverdage')}${!fuldLoenUnderFerie && (beregningsData.feriedageFraInput ?? 0) > 0 ? ` - ${formatCountWithUnit(beregningsData.feriedageFraInput ?? 0, 'feriedag', 'feriedage')}` : ''}):`}</Typography>
-                      <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdageIPeriode ?? 0, 'hverdag', 'hverdage')}</Typography>
-                    </Box>
+                    {beregningsData.antalHeleKalendermaaneder != null ? (
+                      <>
+                        {/* Hele kalendermåneder — vis måneds-omregning som ved månedsløn */}
+                        {/* Linje 2: Antal måneder */}
+                        <Box className="row--label-right">
+                          <Typography className="row--text">Antal måneder i indtastede perioder:</Typography>
+                          <Typography className="row--text">{formatCountWithUnit(beregningsData.antalHeleKalendermaaneder, 'måned', 'måneder')}</Typography>
+                        </Box>
 
-                    {/* Linje 3: Hverdage på et år */}
-                    <Box className="row--label-right">
-                      <Typography className="row--text">{fuldLoenUnderFerie
-                        ? `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage):`
-                        : `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'}):`
-                      }</Typography>
-                      <Typography className="row--text">{formatCountWithUnit(beregningsData.hverdagePaaAar ?? 0, 'hverdag', 'hverdage')}</Typography>
-                    </Box>
+                        {/* Linje 3: Beregnet årsløn */}
+                        <Box className="row--label-right">
+                          <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.antalHeleKalendermaaneder} × 12):`}</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography className="row--text text-bold">{formatCurrency(beregningsData.omregnetAarsloen)} kr.</Typography>
+                            {aarsloenPdfDownloadButton}
+                          </Box>
+                        </Box>
+                      </>
+                    ) : (
+                      <>
+                        {/* Linje 2: Hverdage i indtastede perioder */}
+                        <Box className="row--label-right">
+                          <Typography className="row--text">{`Hverdage i beregningsperioden (${formatCountWithUnit(beregningsData.hverdageIPeriode ?? 0, 'hverdag', 'hverdage')}${!fuldLoenUnderFerie && (beregningsData.feriedageFraInput ?? 0) > 0 ? ` - ${formatCountWithUnit(beregningsData.feriedageFraInput ?? 0, 'feriedag', 'feriedage')}` : ''}):`}</Typography>
+                          <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdageIPeriode ?? 0, 'hverdag', 'hverdage')}</Typography>
+                        </Box>
 
-                    {/* Linje 4: Beregnet årsløn */}
-                    <Box className="row--label-right">
-                      <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar}):`}</Typography>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography className="row--text text-bold">{formatCurrency(beregningsData.omregnetAarsloen)} kr.</Typography>
-                        {aarsloenPdfDownloadButton}
-                      </Box>
-                    </Box>
+                        {/* Linje 3: Hverdage på et år */}
+                        <Box className="row--label-right">
+                          <Typography className="row--text">{fuldLoenUnderFerie
+                            ? `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage):`
+                            : `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'}):`
+                          }</Typography>
+                          <Typography className="row--text">{formatCountWithUnit(beregningsData.hverdagePaaAar ?? 0, 'hverdag', 'hverdage')}</Typography>
+                        </Box>
+
+                        {/* Linje 4: Beregnet årsløn */}
+                        <Box className="row--label-right">
+                          <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar}):`}</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Typography className="row--text text-bold">{formatCurrency(beregningsData.omregnetAarsloen)} kr.</Typography>
+                            {aarsloenPdfDownloadButton}
+                          </Box>
+                        </Box>
+                      </>
+                    )}
                   </>
                 )}
               </>

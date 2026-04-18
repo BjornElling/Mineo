@@ -4,7 +4,7 @@
  * Funktioner til at beregne omregnet årsløn baseret på forskellige metoder
  */
 
-import { beregnAntalHverdage, beregnFeriedagePaaEtAar, erNoejagtEtAar, STANDARD_HVERDAGE_PAA_AAR, STANDARD_UGER_PAA_AAR, type PeriodeResult } from '../../utils/periodeBeregning';
+import { beregnAntalHverdage, beregnFeriedagePaaEtAar, erHeleKalendermaaneder, erNoejagtEtAar, STANDARD_HVERDAGE_PAA_AAR, STANDARD_UGER_PAA_AAR, type PeriodeResult } from '../../utils/periodeBeregning';
 import type { AarsloenMetode, AarsloenBeregningResult } from '../../types/calculation';
 import type { LoenPaaHelligdage, Loenperiode } from '../../types/loen';
 
@@ -169,6 +169,28 @@ export const beregnOmregnetAarsloen = ({
         omregnetAarsloen = (beregnetAarsloen / antalUger) * STANDARD_UGER_PAA_AAR;
       }
     } else if (loenperiode === 'dag') {
+      const heleKalendermaaneder = erHeleKalendermaaneder(periodeData.perioder);
+
+      if (heleKalendermaaneder !== null) {
+        // Alle perioder svarer til hele kalendermåneder — brug måneds-omregning som ved LOENPERIODE.MAANED
+        if (heleKalendermaaneder > 0) {
+          omregnetAarsloen = (beregnetAarsloen / heleKalendermaaneder) * 12;
+        }
+        return {
+          metode,
+          erEtAar,
+          hverdageIPeriode,
+          feriedageFraInput,
+          arbejdsdageIPeriode,
+          feriedagePaaAar,
+          arbejdsdagePaaAar,
+          hverdagePaaAar,
+          omregnetAarsloen,
+          antalMaaneder: unikkeEnheder,
+          antalHeleKalendermaaneder: heleKalendermaaneder,
+        };
+      }
+
       // Metode C for dagsløn genbruger bevidst samme hverdagsomregning som metode B.
       const hverdagsOmregning = beregnHverdagsOmregning({
         hverdageIPeriode,

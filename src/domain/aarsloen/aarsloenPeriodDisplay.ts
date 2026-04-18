@@ -102,6 +102,16 @@ export const resolveAarsloenIndtastetEnhedSummary = (params: Readonly<{
       }, isSinglePeriod);
     }
 
+    if (loenperiode === 'dag' && beregningsData.antalHeleKalendermaaneder != null) {
+      return buildSummary({
+        count: beregningsData.antalHeleKalendermaaneder,
+        singular: 'måned',
+        plural: 'måneder',
+        labelUnitPlural: 'måneder',
+        labelUnitSingular: 'måneden',
+      }, isSinglePeriod);
+    }
+
     return buildSummary({
       count: beregningsData.arbejdsdageIPeriode ?? 0,
       singular: 'hverdag',

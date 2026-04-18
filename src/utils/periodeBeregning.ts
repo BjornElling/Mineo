@@ -335,6 +335,40 @@ export const beregnUgePeriode = (tableData: StandardLoenTableRow[]): PeriodeResu
 };
 
 /**
+ * Tjekker om alle perioder i et dag-baseret datoset svarer til hele kalendermåneder,
+ * dvs. at alle fra-datoer er den 1. i måneden og alle til-datoer er den sidste dag.
+ * Returnerer antallet af hele kalendermåneder på tværs af perioderne, eller null
+ * hvis betingelsen ikke er opfyldt.
+ */
+export const erHeleKalendermaaneder = (perioder: ReadonlyArray<{ start: Date; end: Date }>): number | null => {
+  if (perioder.length === 0) return null;
+
+  const maaneder = new Set<string>();
+
+  for (const { start, end } of perioder) {
+    const startDag = start.getUTCDate();
+    const slutMaaned = end.getUTCMonth();
+    const slutAar = end.getUTCFullYear();
+    const sidsteDagIMaaned = createDate(slutAar, slutMaaned + 1, 0).getUTCDate();
+
+    if (startDag !== 1 || end.getUTCDate() !== sidsteDagIMaaned) {
+      return null;
+    }
+
+    // Tæl alle hele måneder i perioden
+    let år = start.getUTCFullYear();
+    let mnd = start.getUTCMonth();
+    while (år < slutAar || (år === slutAar && mnd <= slutMaaned)) {
+      maaneder.add(`${år}-${String(mnd).padStart(2, '0')}`);
+      mnd++;
+      if (mnd > 11) { mnd = 0; år++; }
+    }
+  }
+
+  return maaneder.size > 0 ? maaneder.size : null;
+};
+
+/**
  * Hjælpefunktion til at formatere dato til dansk format
  */
 const formatDanskDato = (date: Date): string => {

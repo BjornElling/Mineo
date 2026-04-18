@@ -11,6 +11,7 @@ export interface AarsloenBeregningResult {
   hverdagePaaAar?: number;
   omregnetAarsloen?: number;
   antalMaaneder?: number;
+  antalHeleKalendermaaneder?: number;
 }
 
 export interface DateInterval {
