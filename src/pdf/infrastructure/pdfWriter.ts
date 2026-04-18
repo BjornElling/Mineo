@@ -755,6 +755,7 @@ export const createPdfWriter = (params: Readonly<{
       fontSize: FONT_SIZES.title,
       trailingSpacing: PDF_TITLE_BOTTOM_SPACING_MM,
     });
+    cursor.applyNormalStyle();
     previousBlockWasSectionHeader = true;
     hasRenderedContent = true;
     explicitSpacingSinceLastContent = 0;
