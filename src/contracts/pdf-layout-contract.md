@@ -77,10 +77,13 @@ Hver teksttype har én primær, gyldig renderingsvej:
 | Mixed normal+fed på én linje | `writer.writeNormalThenBoldLine()` | Til formler og linjer med blandet vægt; ikke en selvstændig teksttype |
 | Venstre/højre-oplysningslinje | `writer.writeLeftRightText()` | Standard for key/value-, formel- og beløbslinjer |
 | Tabel | `renderPdfTable()` | Eneste gyldige API til egentlige tabeller |
+| Tabelstart efter `addSectionHeading(...)` | `resolvePdfTableStartYAfterSectionHeading()` | Kanonisk helper til `headingY - PDF_SECTION_HEADING_GAP` |
 
 Hvis underoverskrifter kræver conditional rendering eller atomisk sammenkædning med efterfølgende indhold, skal dette løses centralt i writer/helper-laget. Generatorer må ikke reimplementere disse regler lokalt.
 
 `writeBoldSubheader()` skal som udgangspunkt bruge writerens centralt definerede standard-followup-height. Generatorer må kun sende eksplicit `nextLineHeight`, når den første efterfølgende indholdsblok reelt kræver en anden atomisk højde end standarden.
+
+`writeSectionHeader()` skal som udgangspunkt bruge writerens centralt definerede standard-followup-height. Generatorer må kun sende eksplicit `nextLineHeight`, når den første efterfølgende indholdsblok reelt kræver en anden atomisk højde end standarden.
 
 `writeUnderlinedSubheader()` skal som udgangspunkt bruge writerens centralt definerede standard-X-position. Generatorer må kun sende eksplicit X-koordinat, hvis en konkret layoutafvigelse kræver det.
 

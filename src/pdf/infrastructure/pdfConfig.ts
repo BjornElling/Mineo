@@ -62,7 +62,7 @@ export const PDF_FINAL_Y_FALLBACK_HEIGHT = 50;
 export const PDF_SECTION_HEADING_GAP = 3;
 
 // Bruges af autotable-baserede generatorer (satserPdf, aarsloenPdf, shDagePdf m.fl.)
-// og af resolvePdfSectionEndY. Writer-baserede generatorer bruger writer.addSpacer().
+// og er standard-spacer i resolvePdfSectionEndY. Writer-baserede generatorer bruger writer.addSpacer().
 export const SECTION_SPACER = 10; // mm
 
 // Standard linjeafstand for brødtekst i alle PDF'er
@@ -70,9 +70,6 @@ export const PDF_BASE_LINE_HEIGHT_MM = 4; // mm
 
 // Afstand efter hver fritekst-linje (writeWrappedText, writeLeftRightText, writeUnderlinedSubheader)
 export const PDF_LINE_BOTTOM_SPACING_MM = 2; // mm
-
-// Afstand over understreget underoverskrift (writeUnderlinedSubheader)
-export const PDF_UNDERLINED_LABEL_TOP_SPACING_MM = 4; // mm
 
 // Ekstra afstand under fed underoverskrift (writeBoldSubheader)
 export const PDF_SUBHEADER_BOTTOM_SPACING_MM = 1; // mm

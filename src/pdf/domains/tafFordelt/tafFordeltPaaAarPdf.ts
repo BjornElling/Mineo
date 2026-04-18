@@ -10,7 +10,7 @@
 
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import { ensureNonBreakingKr } from '../../shared/pdfTextUtils';
-import { PDF_BASE_LINE_HEIGHT_MM, PDF_FONT_FAMILY, PDF_FONT_STYLES } from '../../infrastructure/pdfConfig';
+import { PDF_BASE_LINE_HEIGHT_MM } from '../../infrastructure/pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from '../../shared/pdfHelpers';
 import { roundByMethod } from '../../../utils/rounding';
 import { logWarning } from '../../../utils/logger';
@@ -91,13 +91,11 @@ export const generateTafFordeltPaaAarPdf = (
   }
 
   // Skadelidtes navn (fed)
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
   if (model.skadelidteNavn) {
-    writer.writeWrappedText(model.skadelidteNavn);
+    writer.writeBoldWrappedText(model.skadelidteNavn);
   }
 
   // Skadestype (normal)
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   if (model.skadestypeLinje) {
     writer.writeWrappedText(model.skadestypeLinje);
     writer.advanceY(lineHeight);
@@ -115,7 +113,6 @@ export const generateTafFordeltPaaAarPdf = (
       model.tabtArbejdsfortjeneste.eetLinjer.length > 0 ||
       model.tabtArbejdsfortjeneste.differencekravLinje !== null,
     renderContent: () => {
-      writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
       for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
         writer.writeWrappedText(line);
       }
@@ -136,7 +133,6 @@ export const generateTafFordeltPaaAarPdf = (
   if (!model.tabtArbejdsfortjeneste.harTafPerioder) {
     writer.writeWrappedText('Ingen');
     writer.writeBoldSubheader('TAF fordelt på kalenderår', lineHeight);
-    writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     writer.writeWrappedText('Ingen');
     writer.addFooter();
     writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
@@ -157,7 +153,6 @@ export const generateTafFordeltPaaAarPdf = (
 
   if (!presentation) {
     writer.writeBoldSubheader('TAF fordelt på kalenderår', lineHeight);
-    writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
     writer.writeWrappedText('TAF fordelt på år kan ikke beregnes for den valgte opsætning.');
     writer.addFooter();
     writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
@@ -170,7 +165,6 @@ export const generateTafFordeltPaaAarPdf = (
 
   for (const yearEntry of presentation.years) {
     writer.writeBoldSubheader(`${yearEntry.year}`, lineHeight);
-    writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
 
     // Segmenter (identisk format med EO-pdf)
     for (const segment of yearEntry.segments) {
@@ -219,7 +213,6 @@ export const generateTafFordeltPaaAarPdf = (
   // ─── Samlet ──────────────────────────────────────────────────────────
 
   writer.writeBoldSubheader('Samlet', lineHeight);
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
 
   // Per-år linjer
   for (const yearEntry of presentation.years) {

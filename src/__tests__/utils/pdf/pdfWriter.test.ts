@@ -358,22 +358,23 @@ describe('pdfWriter writeUnderlinedSubheader', () => {
 
   it('kollapser eksisterende manuel linjeafstand så der samlet kun er én linje over label', async () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_UNDERLINED_LABEL_TOP_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
     const writer = createStandardPdfWriter();
     writer.setY(100);
 
     writer.addSpacer(5);
     writer.writeUnderlinedSubheader('Offentlige ydelser');
 
-    // 100 -> normaliseret til standard topafstand + label-linje + bundafstand.
+    // Eksisterende eksplicit spacing modregnes mod canonical topafstand.
+    // Der tilføjes derfor kun selve underoverskrift-blokken efter den eksisterende spacer.
     expect(writer.getY()).toBe(
-      100 + PDF_UNDERLINED_LABEL_TOP_SPACING_MM + PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM
+      100 + 5 + PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM
     );
   });
 
   it('kollapser flere manuelle spacere så der samlet kun er én linje over label', async () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_UNDERLINED_LABEL_TOP_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
     const writer = createStandardPdfWriter();
     writer.setY(100);
 
@@ -382,7 +383,23 @@ describe('pdfWriter writeUnderlinedSubheader', () => {
     writer.writeUnderlinedSubheader('Offentlige ydelser');
 
     expect(writer.getY()).toBe(
-      100 + PDF_UNDERLINED_LABEL_TOP_SPACING_MM + PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM
+      100 + 10 + PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM
+    );
+  });
+
+  it('tilføjer ikke ekstra topafstand når writeUnderlinedSubheader følger direkte efter writeSectionHeader', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
+    const writer = createStandardPdfWriter();
+
+    writer.setY(100);
+    writer.writeSectionHeader('Sektion', 5);
+    const afterSectionHeader = writer.getY();
+
+    writer.writeUnderlinedSubheader('Underlinjet label');
+
+    expect(writer.getY() - afterSectionHeader).toBe(
+      PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM
     );
   });
 

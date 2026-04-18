@@ -50,7 +50,7 @@ const Mineo = React.memo(() => {
         <Typography className="row--text">
           MINEO er et specialiseret regneprogram til advokater,
           arbejdsskadekonsulenter og andre fagpersoner, hvis arbejde
-          indebærer beregning af erstatning i arbejdsskadesager.
+          indebærer at beregne erstatning i person- og arbejdsskadesager.
         </Typography>
 
         <Typography className="row--text">

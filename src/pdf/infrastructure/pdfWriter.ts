@@ -8,7 +8,7 @@
  */
 
 import jsPDF from 'jspdf';
-import { FONT_SIZES, MARGINS, PDF_BASE_LINE_HEIGHT_MM, PDF_FONT_FAMILY, PDF_FONT_STYLES, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM, PDF_TITLE_BOTTOM_SPACING_MM, PDF_UNDERLINED_LABEL_TOP_SPACING_MM, type PdfFontFamily, type PdfFontStyle } from './pdfConfig';
+import { FONT_SIZES, MARGINS, PDF_BASE_LINE_HEIGHT_MM, PDF_FONT_FAMILY, PDF_FONT_STYLES, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM, PDF_TITLE_BOTTOM_SPACING_MM } from './pdfConfig';
 import {
   addFooter,
   addBrevhoved,
@@ -97,11 +97,83 @@ const addUdkastWatermark = (doc: jsPDF): void => {
 // PDF CURSOR (intern – styrer Y-position, sideskift, tekst-rendering)
 // ============================================================================
 
+type PdfCursor = Readonly<{
+  setDisplayMode: (mode: string) => void;
+  setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => void;
+  setFontSize: (size: number) => void;
+  setFont: (fontName: string, fontStyle: string) => void;
+  applyNormalStyle: () => void;
+  getDoc: () => jsPDF;
+  getY: () => number;
+  setY: (nextY: number) => void;
+  ensureSpace: (height: number) => void;
+  advanceY: (delta: number) => void;
+  writeWrappedText: (text: string, maxWidth?: number, x?: number) => void;
+  writeStyledWrappedText: (
+    text: string,
+    options?: Readonly<{
+      maxWidth?: number;
+      x?: number;
+      fontStyle?: 'normal' | 'bold';
+      fontSize?: number;
+      trailingSpacing?: number;
+    }>
+  ) => void;
+  writeWrappedTextContinued: (
+    text: string,
+    maxWidth?: number,
+    x?: number,
+    options?: Readonly<{
+      fontStyle?: 'normal' | 'bold';
+      fontSize?: number;
+    }>
+  ) => void;
+  writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
+  writeLeftRightText: (
+    leftText: string,
+    rightText: string,
+    x: number,
+    rightPadding: number,
+    options?: Readonly<{
+      leftFontStyle?: 'normal' | 'bold';
+      rightFontStyle?: 'normal' | 'bold';
+      lineAboveRightWidth?: number;
+      lineAboveRightOffset?: number;
+      leftNoWrap?: boolean;
+      minRightColumnWidth?: number;
+      fontSize?: number;
+    }>
+  ) => void;
+  writeUnderlinedSubheader: (text: string, x: number) => void;
+  writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
+  writeBrevhoved: (brevhovedData: BrevhovedData) => void;
+  addUdkastWatermark: () => void;
+  splitWrappedLines: (text: string, maxWidth: number) => string[];
+  measureWrappedTextHeight: (
+    text: string,
+    options?: Readonly<{
+      maxWidth?: number;
+      fontStyle?: 'normal' | 'bold';
+      fontSize?: number;
+      trailingSpacing?: number;
+    }>
+  ) => number;
+  getTextWidth: (text: string) => number;
+  fitTextToWidth: (text: string, maxWidth: number) => string;
+  getFullWidth: () => number;
+  addPage: () => void;
+  getPageContentHeight: () => number;
+  getRemainingSpace: () => number;
+  renderAtomicBlock: (estimatedHeight: number, render: () => void) => void;
+  addFooter: () => void;
+  save: (filename: string) => void;
+}>;
+
 const createPdfCursor = (params: Readonly<{
   lineHeight: number;
   visUdkastStempel: boolean;
   onLayoutFallback: (message: string) => void;
-}>) => {
+}>): PdfCursor => {
   const { lineHeight, visUdkastStempel, onLayoutFallback } = params;
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -117,6 +189,7 @@ const createPdfCursor = (params: Readonly<{
   const pageContentHeight = contentBottom - MARGINS.top;
   let y = MARGINS.top;
   let activeFont: { fontName: string; fontStyle: string } = { fontName: PDF_FONT_FAMILY, fontStyle: PDF_FONT_STYLES.normal };
+  let activeFontSize = FONT_SIZES.normal;
 
   const addPage = () => {
     doc.addPage();
@@ -136,49 +209,120 @@ const createPdfCursor = (params: Readonly<{
     return doc.splitTextToSize(normalizeTextForPdf(text), maxWidth) as string[];
   };
 
+  const splitWrappedLinesWithStyle = (
+    text: string,
+    maxWidth: number,
+    options?: Readonly<{
+      fontStyle?: 'normal' | 'bold';
+      fontSize?: number;
+    }>
+  ): string[] => {
+    let lines: string[] = [];
+    withTextStyle({
+      fontStyle: options?.fontStyle ?? (activeFont.fontStyle as 'normal' | 'bold'),
+      fontSize: options?.fontSize ?? activeFontSize,
+      fn: () => {
+        lines = splitWrappedLines(text, maxWidth);
+      },
+    });
+    return lines;
+  };
+
   const setFont = (fontName: string, fontStyle: string) => {
     doc.setFont(fontName, fontStyle);
     activeFont = { fontName, fontStyle };
   };
 
-  const withFontStyle = (fontStyle: 'normal' | 'bold', fn: () => void) => {
-    const previous = activeFont;
-    setFont(previous.fontName, fontStyle);
+  const setFontSize = (size: number) => {
+    doc.setFontSize(size);
+    activeFontSize = size;
+  };
+
+  const resolveLineHeightForFontSize = (fontSize: number) => {
+    return lineHeight * (fontSize / FONT_SIZES.normal);
+  };
+
+  const withTextStyle = (params: Readonly<{
+    fontStyle: 'normal' | 'bold';
+    fontSize: number;
+    fn: () => void;
+  }>) => {
+    const previousFont = activeFont;
+    const previousFontSize = activeFontSize;
+    setFont(previousFont.fontName, params.fontStyle);
+    setFontSize(params.fontSize);
     try {
-      fn();
+      params.fn();
     } finally {
-      setFont(previous.fontName, previous.fontStyle);
+      setFont(previousFont.fontName, previousFont.fontStyle);
+      setFontSize(previousFontSize);
     }
   };
 
-  const measureTextWidthWithFont = (text: string, fontStyle: 'normal' | 'bold'): number => {
-    let measured = 0;
-    withFontStyle(fontStyle, () => {
-      measured = doc.getTextWidth(text);
+  const writeStyledWrappedText = (
+    text: string,
+    options?: Readonly<{
+      maxWidth?: number;
+      x?: number;
+      fontStyle?: 'normal' | 'bold';
+      fontSize?: number;
+      trailingSpacing?: number;
+    }>
+  ) => {
+    const maxWidth = options?.maxWidth ?? fullWidth;
+    const x = options?.x ?? MARGINS.left;
+    const fontStyle = options?.fontStyle ?? (activeFont.fontStyle as 'normal' | 'bold');
+    const fontSize = options?.fontSize ?? activeFontSize;
+    const trailingSpacing = options?.trailingSpacing ?? PDF_LINE_BOTTOM_SPACING_MM;
+    const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
+    const lines = splitWrappedLinesWithStyle(text, maxWidth, { fontStyle, fontSize });
+
+    withTextStyle({
+      fontStyle,
+      fontSize,
+      fn: () => {
+        lines.forEach((line, index) => {
+          const isLast = index === lines.length - 1;
+          const step = isLast ? resolvedLineHeight + trailingSpacing : resolvedLineHeight;
+          ensureSpace(step);
+          doc.text(line, x, y);
+          y += step;
+        });
+      },
     });
-    return measured;
   };
 
   const writeWrappedText = (text: string, maxWidth = fullWidth, x = MARGINS.left) => {
-    const lines = splitWrappedLines(text, maxWidth);
-    lines.forEach((line, index) => {
-      const isLast = index === lines.length - 1;
-      const step = isLast ? lineHeight + PDF_LINE_BOTTOM_SPACING_MM : lineHeight;
-      ensureSpace(step);
-      doc.text(line, x, y);
-      y += step;
-    });
+    writeStyledWrappedText(text, { maxWidth, x });
   };
 
   // Som writeWrappedText, men uden afsluttende spacing — bruges når næste kald
   // er en fortsættelse af samme logiske linje (fx writeLeftRightText i en formel).
-  const writeWrappedTextContinued = (text: string, maxWidth = fullWidth, x = MARGINS.left) => {
-    const lines = splitWrappedLines(text, maxWidth);
-    for (const line of lines) {
-      ensureSpace(lineHeight);
-      doc.text(line, x, y);
-      y += lineHeight;
-    }
+  const writeWrappedTextContinued = (
+    text: string,
+    maxWidth = fullWidth,
+    x = MARGINS.left,
+    options?: Readonly<{
+      fontStyle?: 'normal' | 'bold';
+      fontSize?: number;
+    }>
+  ) => {
+    const fontStyle = options?.fontStyle ?? (activeFont.fontStyle as 'normal' | 'bold');
+    const fontSize = options?.fontSize ?? activeFontSize;
+    const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
+    const lines = splitWrappedLinesWithStyle(text, maxWidth, { fontStyle, fontSize });
+
+    withTextStyle({
+      fontStyle,
+      fontSize,
+      fn: () => {
+        for (const line of lines) {
+          ensureSpace(resolvedLineHeight);
+          doc.text(line, x, y);
+          y += resolvedLineHeight;
+        }
+      },
+    });
   };
 
   const writeLeftRightText = (
@@ -187,11 +331,13 @@ const createPdfCursor = (params: Readonly<{
     x: number,
     rightPadding: number,
     options?: Readonly<{
+      leftFontStyle?: 'normal' | 'bold';
       rightFontStyle?: 'normal' | 'bold';
       lineAboveRightWidth?: number;
       lineAboveRightOffset?: number;
       leftNoWrap?: boolean;
       minRightColumnWidth?: number;
+      fontSize?: number;
     }>
   ) => {
     const explicitRightLines = rightText.split('\n');
@@ -217,34 +363,72 @@ const createPdfCursor = (params: Readonly<{
     }
 
     const pageWidth = adapter.getPageWidth();
+    const leftFontStyle = options?.leftFontStyle ?? 'normal';
     const rightFontStyle = options?.rightFontStyle ?? 'bold';
+    const fontSize = options?.fontSize ?? FONT_SIZES.normal;
     const normalizedRightText = normalizeRightAlignedTextForPdf(rightText);
     const maxRightDrawableWidth = Math.max(10, pageWidth - x - rightPadding - 5);
-    const actualRightWidth = measureTextWidthWithFont(normalizedRightText, rightFontStyle);
+    const actualRightWidth = (() => {
+      let measured = 0;
+      withTextStyle({
+        fontStyle: rightFontStyle,
+        fontSize,
+        fn: () => {
+          measured = doc.getTextWidth(normalizedRightText);
+        },
+      });
+      return measured;
+    })();
     const minRightWidth = options?.minRightColumnWidth ?? 0;
     const rightWidth = Math.max(actualRightWidth, minRightWidth);
-    const columnGap = Math.max(6, doc.getTextWidth('   '));
+    const columnGap = (() => {
+      let measuredGap = 0;
+      withTextStyle({
+        fontStyle: 'normal',
+        fontSize,
+        fn: () => {
+          measuredGap = doc.getTextWidth('   ');
+        },
+      });
+      return Math.max(6, measuredGap);
+    })();
     const hasRightOverflow = rightWidth > maxRightDrawableWidth;
     const leftMaxWidth = hasRightOverflow
       ? Math.max(30, pageWidth - x - rightPadding - 5)
       : Math.max(30, pageWidth - x - rightPadding - rightWidth - columnGap);
-    const leftLines = options?.leftNoWrap ? [normalizeTextForPdf(leftText)] : splitWrappedLines(leftText, leftMaxWidth);
+    const leftLines = options?.leftNoWrap
+      ? [normalizeTextForPdf(leftText)]
+      : splitWrappedLinesWithStyle(leftText, leftMaxWidth, { fontStyle: leftFontStyle, fontSize });
+    const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
 
     if (hasRightOverflow) {
       onLayoutFallback('højre kolonne er bredere end tilgængelig plads; flytter beløb til egen linje.');
-      for (const line of leftLines) {
-        ensureSpace(lineHeight);
-        doc.text(line, x, y);
-        y += lineHeight;
-      }
+      withTextStyle({
+        fontStyle: leftFontStyle,
+        fontSize,
+        fn: () => {
+          for (const line of leftLines) {
+            ensureSpace(resolvedLineHeight);
+            doc.text(line, x, y);
+            y += resolvedLineHeight;
+          }
+        },
+      });
 
-      const rightLines = splitWrappedLines(normalizedRightText, maxRightDrawableWidth);
+      const rightLines = splitWrappedLinesWithStyle(normalizedRightText, maxRightDrawableWidth, {
+        fontStyle: rightFontStyle,
+        fontSize,
+      });
       rightLines.forEach((line, index) => {
         const isLast = index === rightLines.length - 1;
-        const step = isLast ? lineHeight + PDF_LINE_BOTTOM_SPACING_MM : lineHeight;
+        const step = isLast ? resolvedLineHeight + PDF_LINE_BOTTOM_SPACING_MM : resolvedLineHeight;
         ensureSpace(step);
-        withFontStyle(rightFontStyle, () => {
-          doc.text(line, pageWidth - rightPadding, y, { align: 'right' });
+        withTextStyle({
+          fontStyle: rightFontStyle,
+          fontSize,
+          fn: () => {
+            doc.text(line, pageWidth - rightPadding, y, { align: 'right' });
+          },
         });
         y += step;
       });
@@ -255,19 +439,29 @@ const createPdfCursor = (params: Readonly<{
         const lineStart = lineEnd - lineWidth;
         const offset = options.lineAboveRightOffset ?? 2;
         doc.setLineWidth(0.2);
-        doc.line(lineStart, y - lineHeight - PDF_LINE_BOTTOM_SPACING_MM - offset, lineEnd, y - lineHeight - PDF_LINE_BOTTOM_SPACING_MM - offset);
+        doc.line(lineStart, y - resolvedLineHeight - PDF_LINE_BOTTOM_SPACING_MM - offset, lineEnd, y - resolvedLineHeight - PDF_LINE_BOTTOM_SPACING_MM - offset);
       }
       return;
     }
 
     leftLines.forEach((line, index) => {
       const isLastLine = index === leftLines.length - 1;
-      const step = isLastLine ? lineHeight + PDF_LINE_BOTTOM_SPACING_MM : lineHeight;
+      const step = isLastLine ? resolvedLineHeight + PDF_LINE_BOTTOM_SPACING_MM : resolvedLineHeight;
       ensureSpace(step);
-      doc.text(line, x, y);
+      withTextStyle({
+        fontStyle: leftFontStyle,
+        fontSize,
+        fn: () => {
+          doc.text(line, x, y);
+        },
+      });
       if (isLastLine) {
-        withFontStyle(rightFontStyle, () => {
-          doc.text(normalizedRightText, pageWidth - rightPadding, y, { align: 'right' });
+        withTextStyle({
+          fontStyle: rightFontStyle,
+          fontSize,
+          fn: () => {
+            doc.text(normalizedRightText, pageWidth - rightPadding, y, { align: 'right' });
+          },
         });
         if (options?.lineAboveRightWidth) {
           const lineWidth = options.lineAboveRightWidth;
@@ -284,50 +478,102 @@ const createPdfCursor = (params: Readonly<{
 
   const writeUnderlinedSubheader = (text: string, x: number) => {
     const normalized = normalizeTextForPdf(text).replace(/\n/g, ' ');
-    doc.text(normalized, x, y);
-    const labelWidth = doc.getTextWidth(normalized);
-    doc.setLineWidth(0.2);
-    doc.line(x, y + 1, x + labelWidth, y + 1);
-    y += lineHeight + PDF_LINE_BOTTOM_SPACING_MM;
+    const fontSize = FONT_SIZES.normal;
+    const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
+    withTextStyle({
+      fontStyle: 'normal',
+      fontSize,
+      fn: () => {
+        doc.text(normalized, x, y);
+        const labelWidth = doc.getTextWidth(normalized);
+        doc.setLineWidth(0.2);
+        doc.line(x, y + 1, x + labelWidth, y + 1);
+      },
+    });
+    y += resolvedLineHeight + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM;
   };
 
   const writeSignatureBlock = (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => {
-    ensureSpace(lineHeight);
-    doc.text(dateLine, dateX, y);
-    doc.text(sigLine, sigX, y);
-    y += lineHeight;
-    ensureSpace(lineHeight);
-    const dateCenterX = dateX + doc.getTextWidth(dateLine) / 2;
-    const sigCenterX = sigX + doc.getTextWidth(sigLine) / 2;
-    doc.text('Dato', dateCenterX, y, { align: 'center' });
-    doc.text(skadelidteNavn, sigCenterX, y, { align: 'center' });
-    y += lineHeight;
+    const fontSize = FONT_SIZES.normal;
+    const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
+    let dateCenterX = dateX;
+    let sigCenterX = sigX;
+    ensureSpace(resolvedLineHeight);
+    withTextStyle({
+      fontStyle: 'normal',
+      fontSize,
+      fn: () => {
+        doc.text(dateLine, dateX, y);
+        doc.text(sigLine, sigX, y);
+        dateCenterX = dateX + doc.getTextWidth(dateLine) / 2;
+        sigCenterX = sigX + doc.getTextWidth(sigLine) / 2;
+      },
+    });
+    y += resolvedLineHeight;
+    ensureSpace(resolvedLineHeight);
+    withTextStyle({
+      fontStyle: 'normal',
+      fontSize,
+      fn: () => {
+        doc.text('Dato', dateCenterX, y, { align: 'center' });
+        doc.text(skadelidteNavn, sigCenterX, y, { align: 'center' });
+      },
+    });
+    y += resolvedLineHeight;
   };
 
-  const measureWrappedTextHeight = (text: string) => {
-    const lines = splitWrappedLines(text, fullWidth);
-    return lineHeight * lines.length + PDF_LINE_BOTTOM_SPACING_MM;
+  const measureWrappedTextHeight = (
+    text: string,
+    options?: Readonly<{
+      maxWidth?: number;
+      fontStyle?: 'normal' | 'bold';
+      fontSize?: number;
+      trailingSpacing?: number;
+    }>
+  ) => {
+    const maxWidth = options?.maxWidth ?? fullWidth;
+    const fontStyle = options?.fontStyle ?? (activeFont.fontStyle as 'normal' | 'bold');
+    const fontSize = options?.fontSize ?? activeFontSize;
+    const trailingSpacing = options?.trailingSpacing ?? PDF_LINE_BOTTOM_SPACING_MM;
+    const lines = splitWrappedLinesWithStyle(text, maxWidth, { fontStyle, fontSize });
+    return resolveLineHeightForFontSize(fontSize) * lines.length + trailingSpacing;
   };
 
   // Skriver én linje med normal tekst efterfulgt af bold tekst på samme Y-position.
   // Beregner X til bold-delen ud fra bredden af normal-delen.
   // Afslutter med lineHeight + PDF_LINE_BOTTOM_SPACING_MM (som writeWrappedText).
   const writeNormalThenBoldLine = (normalPart: string, boldPart: string) => {
-    ensureSpace(lineHeight + PDF_LINE_BOTTOM_SPACING_MM);
-    const normalWidth = doc.getTextWidth(normalizeTextForPdf(normalPart));
-    doc.text(normalizeTextForPdf(normalPart), MARGINS.left, y);
-    withFontStyle('bold', () => {
-      doc.text(normalizeTextForPdf(boldPart), MARGINS.left + normalWidth, y);
+    const fontSize = FONT_SIZES.normal;
+    const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
+    ensureSpace(resolvedLineHeight + PDF_LINE_BOTTOM_SPACING_MM);
+    let normalWidth = 0;
+    withTextStyle({
+      fontStyle: 'normal',
+      fontSize,
+      fn: () => {
+        normalWidth = doc.getTextWidth(normalizeTextForPdf(normalPart));
+        doc.text(normalizeTextForPdf(normalPart), MARGINS.left, y);
+      },
     });
-    y += lineHeight + PDF_LINE_BOTTOM_SPACING_MM;
+    withTextStyle({
+      fontStyle: 'bold',
+      fontSize,
+      fn: () => {
+        doc.text(normalizeTextForPdf(boldPart), MARGINS.left + normalWidth, y);
+      },
+    });
+    y += resolvedLineHeight + PDF_LINE_BOTTOM_SPACING_MM;
   };
 
   return {
     setDisplayMode: (mode: string) => doc.setDisplayMode(mode),
     setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => doc.setProperties(props),
-    setFontSize: (size: number) => doc.setFontSize(size),
+    setFontSize,
     setFont,
-    applyNormalStyle: () => applyNormalTextStyle(adapter),
+    applyNormalStyle: () => {
+      setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+      setFontSize(FONT_SIZES.normal);
+    },
     getDoc: () => doc,
     getY: () => y,
     setY: (nextY: number) => {
@@ -338,6 +584,7 @@ const createPdfCursor = (params: Readonly<{
       y += delta;
     },
     writeWrappedText,
+    writeStyledWrappedText,
     writeWrappedTextContinued,
     writeNormalThenBoldLine,
     writeLeftRightText,
@@ -375,8 +622,6 @@ const createPdfCursor = (params: Readonly<{
 export type PdfWriter = {
   setDisplayMode: (mode: string) => void;
   setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => void;
-  setFontSize: (size: number) => void;
-  setFont: (fontName: PdfFontFamily, fontStyle: PdfFontStyle) => void;
   setNormalTextStyle: () => void;
   getDoc: () => jsPDF;
   ensureSpace: (height: number) => void;
@@ -397,6 +642,7 @@ export type PdfWriter = {
     leftText: string,
     rightText: string,
     options?: Readonly<{
+      leftFontStyle?: 'normal' | 'bold';
       rightFontStyle?: 'normal' | 'bold';
       lineAboveRightWidth?: number;
       lineAboveRightOffset?: number;
@@ -404,7 +650,7 @@ export type PdfWriter = {
       minRightColumnWidth?: number;
     }>
   ) => void;
-  writeSectionHeader: (text: string, nextLineHeight: number) => void;
+  writeSectionHeader: (text: string, nextLineHeight?: number) => void;
   writeTitle: (text: string) => void;
   writeBoldSubheader: (
     text: string,
@@ -450,45 +696,67 @@ export const createPdfWriter = (params: Readonly<{
   const { lineHeight, visUdkastStempel, onLayoutFallback } = params;
   const cursor = createPdfCursor({ lineHeight, visUdkastStempel, onLayoutFallback });
   let previousBlockWasSectionHeader = false;
+  // Bruges kun til spacing-logik: positiv manuel Y-flytning må ikke akkumulere før første content-blok på siden.
   let hasRenderedContent = false;
-  let manualSpacingSinceLastContent = 0;
   // Tracker kun eksplicit addSpacer/advanceY-spacing — ikke trailing line-spacing.
   // Bruges af writeBoldSubheader til at undgå dobbelt spacing fra addSpacer-kald.
   let explicitSpacingSinceLastContent = 0;
-  const minimumHeaderFollowupHeight = lineHeight + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM;
-  const minimumUnderlinedLabelBlockHeight = PDF_UNDERLINED_LABEL_TOP_SPACING_MM + lineHeight + PDF_LINE_BOTTOM_SPACING_MM;
-  const minimumHeaderChainFollowupHeight = Math.max(minimumHeaderFollowupHeight, minimumUnderlinedLabelBlockHeight) + lineHeight;
+  const canonicalSubheaderTopSpacing = lineHeight;
+  const canonicalSubheaderBottomSpacing = PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM;
+  const minimumHeaderFollowupHeight = lineHeight + canonicalSubheaderBottomSpacing;
+  const minimumHeaderChainFollowupHeight = minimumHeaderFollowupHeight + lineHeight;
 
-  const writeSectionHeader = (text: string, nextLineHeight: number) => {
+  const resolveSubheaderTopSpacing = (
+    options?: Readonly<{ addTopSpacing?: boolean }>
+  ): number => {
+    if (options?.addTopSpacing === false) {
+      return 0;
+    }
+
+    if (previousBlockWasSectionHeader && options?.addTopSpacing !== true) {
+      return 0;
+    }
+
+    return Math.max(0, canonicalSubheaderTopSpacing - explicitSpacingSinceLastContent);
+  };
+
+  const writeSectionHeader = (text: string, nextLineHeight = PDF_BASE_LINE_HEIGHT_MM) => {
     const topSpacing = lineHeight * 2;
+    // Sektionsoverskrifter skal have mere luft under sig end brødtekst, så næste blok
+    // læses som et tydeligt nyt hovedafsnit frem for en fortsættelse af samme tekstflow.
     const bottomSpacing = lineHeight;
-    const headerTextHeight = cursor.measureWrappedTextHeight(text);
+    const headerTextHeight = cursor.measureWrappedTextHeight(text, {
+      fontStyle: 'bold',
+      fontSize: FONT_SIZES.header,
+      trailingSpacing: bottomSpacing,
+    });
     const followupHeight = Math.max(nextLineHeight, minimumHeaderChainFollowupHeight);
-    cursor.ensureSpace(topSpacing + headerTextHeight + bottomSpacing + followupHeight);
+    cursor.ensureSpace(topSpacing + headerTextHeight + followupHeight);
     cursor.advanceY(topSpacing);
-    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-    cursor.setFontSize(FONT_SIZES.header);
-    cursor.writeWrappedText(text);
-    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-    cursor.setFontSize(FONT_SIZES.normal);
-    cursor.advanceY(bottomSpacing);
+    cursor.writeStyledWrappedText(text, {
+      fontStyle: 'bold',
+      fontSize: FONT_SIZES.header,
+      trailingSpacing: bottomSpacing,
+    });
     previousBlockWasSectionHeader = true;
     hasRenderedContent = true;
-    manualSpacingSinceLastContent = 0;
     explicitSpacingSinceLastContent = 0;
   };
 
   const writeTitle = (text: string) => {
-    cursor.ensureSpace(PDF_TITLE_BOTTOM_SPACING_MM);
-    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-    cursor.setFontSize(FONT_SIZES.title);
-    cursor.writeWrappedText(text);
-    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-    cursor.setFontSize(FONT_SIZES.normal);
-    cursor.advanceY(PDF_TITLE_BOTTOM_SPACING_MM - lineHeight);
+    const titleBlockHeight = cursor.measureWrappedTextHeight(text, {
+      fontStyle: 'bold',
+      fontSize: FONT_SIZES.title,
+      trailingSpacing: PDF_TITLE_BOTTOM_SPACING_MM,
+    });
+    cursor.ensureSpace(titleBlockHeight);
+    cursor.writeStyledWrappedText(text, {
+      fontStyle: 'bold',
+      fontSize: FONT_SIZES.title,
+      trailingSpacing: PDF_TITLE_BOTTOM_SPACING_MM,
+    });
     previousBlockWasSectionHeader = true;
     hasRenderedContent = true;
-    manualSpacingSinceLastContent = 0;
     explicitSpacingSinceLastContent = 0;
   };
 
@@ -497,30 +765,18 @@ export const createPdfWriter = (params: Readonly<{
     nextLineHeight = PDF_BASE_LINE_HEIGHT_MM,
     options?: Readonly<{ addTopSpacing?: boolean }>
   ) => {
-    // Altid præcis 1× lineHeight over underoverskriften — uanset hvad der gik forud.
-    // Allerede akkumuleret manuel spacing (via addSpacer/advanceY) modregnes, så
-    // det samlede mellemrum aldrig overstiger 1× lineHeight.
-    // addTopSpacing = false undertrykker spacing eksplicit (fx første underoverskrift
-    // direkte under en sektionsoverskrift).
-    const topSpacing = options?.addTopSpacing === false
-      ? 0
-      : options?.addTopSpacing === true
-        ? Math.max(0, lineHeight - explicitSpacingSinceLastContent)
-        : previousBlockWasSectionHeader
-          ? 0
-          : Math.max(0, lineHeight - explicitSpacingSinceLastContent);
+    const topSpacing = resolveSubheaderTopSpacing(options);
     const headerHeight = cursor.measureWrappedTextHeight(text) + topSpacing;
     const followupHeight = Math.max(nextLineHeight, minimumHeaderChainFollowupHeight);
     cursor.ensureSpace(headerHeight + followupHeight);
     cursor.advanceY(topSpacing);
-    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-    cursor.setFontSize(FONT_SIZES.normal);
-    cursor.writeWrappedText(text);
-    cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+    cursor.writeStyledWrappedText(text, {
+      fontStyle: 'bold',
+      fontSize: FONT_SIZES.normal,
+    });
     cursor.advanceY(PDF_SUBHEADER_BOTTOM_SPACING_MM);
     previousBlockWasSectionHeader = false;
     hasRenderedContent = true;
-    manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM;
     explicitSpacingSinceLastContent = 0;
   };
 
@@ -544,8 +800,10 @@ export const createPdfWriter = (params: Readonly<{
       nextLineHeight: bodyHeight,
       hasContent: bodyText.trim() !== '',
       renderContent: () => {
-        cursor.writeWrappedText(bodyText);
-        manualSpacingSinceLastContent = 0;
+        cursor.writeStyledWrappedText(bodyText, {
+          fontStyle: 'normal',
+          fontSize: FONT_SIZES.normal,
+        });
       },
     });
   };
@@ -574,24 +832,16 @@ export const createPdfWriter = (params: Readonly<{
     for (let i = 1; i < rows.length; i += 1) {
       renderRow(rows[i]);
     }
-    manualSpacingSinceLastContent = 0;
   };
 
   const writeUnderlinedSubheader = (text: string, x = MARGINS.left) => {
-    const targetTopSpacing = PDF_UNDERLINED_LABEL_TOP_SPACING_MM;
-    const excessTopSpacing = Math.max(0, manualSpacingSinceLastContent - targetTopSpacing);
-    if (excessTopSpacing > 0) {
-      cursor.advanceY(-excessTopSpacing);
-      manualSpacingSinceLastContent -= excessTopSpacing;
-    }
-
-    const existingTopSpacing = Math.min(targetTopSpacing, manualSpacingSinceLastContent);
-    let topSpacing = targetTopSpacing - existingTopSpacing;
+    let topSpacing = resolveSubheaderTopSpacing();
     const beforeEnsureY = cursor.getY();
-    cursor.ensureSpace(topSpacing + lineHeight + PDF_LINE_BOTTOM_SPACING_MM + minimumHeaderChainFollowupHeight);
+    cursor.ensureSpace(topSpacing + minimumHeaderFollowupHeight + minimumHeaderChainFollowupHeight);
     if (cursor.getY() < beforeEnsureY) {
-      // Ny side betyder at tidligere spacing er bortfaldet; start med standard top spacing.
-      topSpacing = lineHeight;
+      // Ny side betyder at tidligere eksplicit spacing er bortfaldet; genbrug canonical spacing,
+      // medmindre underoverskriften står direkte efter en section header på den nye side.
+      topSpacing = previousBlockWasSectionHeader ? 0 : canonicalSubheaderTopSpacing;
     }
     if (topSpacing > 0) {
       cursor.advanceY(topSpacing);
@@ -599,14 +849,12 @@ export const createPdfWriter = (params: Readonly<{
     cursor.writeUnderlinedSubheader(text, x);
     previousBlockWasSectionHeader = false;
     hasRenderedContent = true;
-    manualSpacingSinceLastContent = 0;
+    explicitSpacingSinceLastContent = 0;
   };
 
   return {
     setDisplayMode: cursor.setDisplayMode,
     setProperties: cursor.setProperties,
-    setFontSize: cursor.setFontSize,
-    setFont: cursor.setFont,
     setNormalTextStyle: () => cursor.applyNormalStyle(),
     getDoc: cursor.getDoc,
     ensureSpace: cursor.ensureSpace,
@@ -617,11 +865,9 @@ export const createPdfWriter = (params: Readonly<{
       cursor.setY(nextY);
       previousBlockWasSectionHeader = false;
       if (delta > 0 && hasRenderedContent) {
-        manualSpacingSinceLastContent += delta;
         explicitSpacingSinceLastContent += delta;
         return;
       }
-      manualSpacingSinceLastContent = 0;
       explicitSpacingSinceLastContent = 0;
     },
     addSpacer: (height: number) => {
@@ -633,7 +879,6 @@ export const createPdfWriter = (params: Readonly<{
       const advance = Math.min(height, remaining);
       cursor.advanceY(advance);
       previousBlockWasSectionHeader = false;
-      manualSpacingSinceLastContent += advance;
       explicitSpacingSinceLastContent += advance;
     },
     addSectionSpacer: () => {
@@ -644,52 +889,55 @@ export const createPdfWriter = (params: Readonly<{
       }
       cursor.advanceY(advance);
       previousBlockWasSectionHeader = false;
-      manualSpacingSinceLastContent += advance;
       explicitSpacingSinceLastContent += advance;
     },
     advanceY: (delta) => {
       cursor.advanceY(delta);
       previousBlockWasSectionHeader = false;
       if (delta > 0) {
-        manualSpacingSinceLastContent += delta;
         explicitSpacingSinceLastContent += delta;
       }
     },
     writeWrappedText: (text) => {
-      cursor.writeWrappedText(text);
+      cursor.writeStyledWrappedText(text, {
+        fontStyle: 'normal',
+        fontSize: FONT_SIZES.normal,
+      });
       previousBlockWasSectionHeader = false;
       hasRenderedContent = true;
-      manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
       explicitSpacingSinceLastContent = 0;
     },
     writeBoldWrappedText: (text) => {
-      cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-      cursor.writeWrappedText(text);
-      cursor.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+      cursor.writeStyledWrappedText(text, {
+        fontStyle: 'bold',
+        fontSize: FONT_SIZES.normal,
+      });
       previousBlockWasSectionHeader = false;
       hasRenderedContent = true;
-      manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
       explicitSpacingSinceLastContent = 0;
     },
     writeWrappedTextContinued: (text, maxWidth, x) => {
-      cursor.writeWrappedTextContinued(text, maxWidth, x);
+      cursor.writeWrappedTextContinued(text, maxWidth, x, {
+        fontStyle: 'normal',
+        fontSize: FONT_SIZES.normal,
+      });
       previousBlockWasSectionHeader = false;
       hasRenderedContent = true;
-      manualSpacingSinceLastContent = 0;
       explicitSpacingSinceLastContent = 0;
     },
     writeNormalThenBoldLine: (normalPart, boldPart) => {
       cursor.writeNormalThenBoldLine(normalPart, boldPart);
       previousBlockWasSectionHeader = false;
       hasRenderedContent = true;
-      manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
       explicitSpacingSinceLastContent = 0;
     },
     writeLeftRightText: (leftText, rightText, options) => {
-      cursor.writeLeftRightText(leftText, rightText, MARGINS.left, MARGINS.right, options);
+      cursor.writeLeftRightText(leftText, rightText, MARGINS.left, MARGINS.right, {
+        ...options,
+        fontSize: FONT_SIZES.normal,
+      });
       previousBlockWasSectionHeader = false;
       hasRenderedContent = true;
-      manualSpacingSinceLastContent = PDF_LINE_BOTTOM_SPACING_MM;
       explicitSpacingSinceLastContent = 0;
     },
     writeSectionHeader,
@@ -698,8 +946,12 @@ export const createPdfWriter = (params: Readonly<{
     writeBoldSubheaderIfContent,
     writeBoldSubheaderWithWrappedText,
     writeAtomicTableChunks,
-    writeUnderlinedSubheader,
-    writeSignatureBlock: cursor.writeSignatureBlock,
+    writeUnderlinedSubheader: (text, x) => {
+      writeUnderlinedSubheader(text, x);
+    },
+    writeSignatureBlock: (...args) => {
+      cursor.writeSignatureBlock(...args);
+    },
     writeBrevhoved: cursor.writeBrevhoved,
     addUdkastWatermark: cursor.addUdkastWatermark,
     getTextWidth: cursor.getTextWidth,
@@ -709,7 +961,6 @@ export const createPdfWriter = (params: Readonly<{
       cursor.addPage();
       previousBlockWasSectionHeader = false;
       hasRenderedContent = false;
-      manualSpacingSinceLastContent = 0;
       explicitSpacingSinceLastContent = 0;
     },
     addFooter: cursor.addFooter,

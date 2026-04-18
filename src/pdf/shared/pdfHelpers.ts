@@ -48,9 +48,9 @@ export const applyNormalTextStyle = (doc: PdfDocumentAdapter): void => {
   doc.setFontSize(FONT_SIZES.normal);
 };
 
-export const applyBoldTextStyle = (doc: PdfDocumentAdapter, fontSize: number): void => {
+export const applyBoldTextStyle = (doc: PdfDocumentAdapter): void => {
   doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-  doc.setFontSize(fontSize);
+  doc.setFontSize(FONT_SIZES.normal);
 };
 
 /**
@@ -64,7 +64,7 @@ export type BrevhovedData = Readonly<{
 }>;
 
 export const addSectionHeading = (doc: PdfDocumentAdapter, title: string, startY: number): number => {
-  applyBoldTextStyle(doc, FONT_SIZES.normal);
+  applyBoldTextStyle(doc);
   doc.text(title, MARGINS.left, startY);
   applyNormalTextStyle(doc);
   return startY + PDF_BASE_LINE_HEIGHT_MM + PDF_SECTION_HEADING_GAP;
@@ -245,8 +245,7 @@ export const addBrevhoved = (doc: PdfDocumentAdapter, data: BrevhovedData): numb
 
   doc.text(resolvedDatoText, rightX, currentY, { align: 'right' });
 
-  // Eksplicit font reset til normal brødtekststørrelse — undgå implicit afhængighed af applyNormalTextStyle
-  doc.setFontSize(FONT_SIZES.normal);
+  applyNormalTextStyle(doc);
 
   return MARGINS.top;
 };

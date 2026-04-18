@@ -1,4 +1,4 @@
-import { MARGINS, PDF_FONT_FAMILY, PDF_FONT_STYLES, type PdfFontFamily, type PdfFontStyle } from '../../../infrastructure/pdfConfig';
+import { MARGINS } from '../../../infrastructure/pdfConfig';
 import { ensureNonBreakingKr } from '../../../shared/pdfTextUtils';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
@@ -39,6 +39,7 @@ type OpgorelseSectionContext = Readonly<{
     rightText: string,
     rightMaxWidth: number,
     options?: Readonly<{
+      leftFontStyle?: 'normal' | 'bold';
       rightFontStyle?: 'normal' | 'bold';
       lineAboveRightWidth?: number;
       lineAboveRightOffset?: number;
@@ -78,7 +79,6 @@ type OpgorelseSectionContext = Readonly<{
     ensureSpace: (height: number) => void;
     getY: () => number;
     getTextWidth: (text: string) => number;
-    setFont: (fontName: PdfFontFamily, fontStyle: PdfFontStyle) => void;
     writeUnderlinedSubheader: (text: string, x?: number) => void;
     writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
     writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
@@ -233,7 +233,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       hasContent: model.svieSmerte.statusLinjer.length > 0,
       options: { addTopSpacing: false },
       renderContent: () => {
-        writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
         for (const line of model.svieSmerte.statusLinjer) {
           safeAddWrappedText(line);
         }
@@ -396,7 +395,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         model.tabtArbejdsfortjeneste.differencekravLinje !== null,
       options: { addTopSpacing: false },
       renderContent: () => {
-        writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
         for (const line of model.tabtArbejdsfortjeneste.statusLinjer) {
           safeAddWrappedText(line);
         }
@@ -672,7 +670,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       if (harPerAnsaettelse) {
         for (const entry of loenudvikling.perAnsaettelse) {
           writer.addSpacer(lineHeight);
-          writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
           writer.writeUnderlinedSubheader(entry.ansaettelsesforholdNavn);
           renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, false);
         }
@@ -840,9 +837,12 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   safeAddLeftRightText('Svie- og smertegodtgørelse', formatMoneyOreWithKr(model.samlet.svieSmerteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
   safeAddLeftRightText('Tabt arbejdsfortjeneste', formatMoneyOreWithKr(model.samlet.tabtArbejdsfortjenesteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
   safeAddLeftRightText('Øvrige krav', formatMoneyOreWithKr(model.samlet.oevrigeKravOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-  safeAddLeftRightText('Erstatningskrav i alt', formatMoneyOreWithKr(model.samlet.totalOre), summaryRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+  safeAddLeftRightText('Erstatningskrav i alt', formatMoneyOreWithKr(model.samlet.totalOre), summaryRightMaxWidth, {
+    leftFontStyle: 'bold',
+    rightFontStyle: 'bold',
+    lineAboveRightWidth: rightColumnWidth,
+    lineAboveRightOffset: 4,
+  });
   const saerligeKommentarer = model.saerligeKommentarer;
   if (saerligeKommentarer) {
     renderSectionHeader('Særlige bemærkninger', lineHeight);

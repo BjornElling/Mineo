@@ -6,7 +6,7 @@
 
 import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
-import { MARGINS, PDF_BASE_LINE_HEIGHT_MM, PDF_FONT_FAMILY, PDF_FONT_STYLES } from '../../infrastructure/pdfConfig';
+import { MARGINS, PDF_BASE_LINE_HEIGHT_MM } from '../../infrastructure/pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from '../../shared/pdfHelpers';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
@@ -280,6 +280,7 @@ export const generateErstatningsopgoerelsePdf = (
     rightText: string,
     rightMaxWidth: number,
     options?: Readonly<{
+      leftFontStyle?: 'normal' | 'bold';
       rightFontStyle?: 'normal' | 'bold';
       lineAboveRightWidth?: number;
       lineAboveRightOffset?: number;
@@ -508,13 +509,11 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   // Tilføj skadelidtes navn (fed skrift)
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
   if (model.skadelidteNavn) {
-    writer.writeWrappedText(model.skadelidteNavn);
+    writer.writeBoldWrappedText(model.skadelidteNavn);
   }
 
   // Tilføj skadestype og skadedato (normal skrift)
-  writer.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   if (model.skadestypeLinje) {
     writer.writeWrappedText(model.skadestypeLinje);
     writer.advanceY(lineHeight);
