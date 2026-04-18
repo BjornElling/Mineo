@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Table, TableCell, type TableProps } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { getMuiTableStyles, tableColors } from '../../config/tableTheme';
+import { getMuiTableStyles } from '../../config/tableTheme';
 import { GridCoreProvider } from './gridCore/gridCoreContext';
 import {
   handleTableBlurCapture,
@@ -46,7 +46,7 @@ const StandardLooseTable = React.memo(({
       // Lægges sidst så table-level `sx` ikke kan "overskrive den væk" ved at
       // definere `& thead th` (typisk kun for alignment).
       '& thead th': {
-        backgroundColor: tableColors.oddRowBackground,
+        backgroundColor: 'var(--color-table-row-odd)',
       },
       // Loose tables must not display grid lines between body rows/columns.
       // Keep the header/body separator (defined in `getMuiTableStyles` via `& thead th`).

@@ -8,10 +8,10 @@ type LoginPageProps = {
 const panelStyle: React.CSSProperties = {
   width: '100%',
   maxWidth: '420px',
-  backgroundColor: '#ffffff',
-  border: '1px solid #d7dce2',
+  backgroundColor: 'var(--color-background-white)',
+  border: '1px solid var(--color-surface-border)',
   borderRadius: '12px',
-  boxShadow: '0 8px 30px rgba(15, 23, 42, 0.08)',
+  boxShadow: '0 8px 30px var(--color-shadow)',
   padding: '24px',
 };
 
@@ -57,7 +57,7 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
         placeItems: 'center',
         padding: '24px',
         background:
-          'linear-gradient(180deg, #f5f7fa 0%, #edf2f7 45%, #e3ebf4 100%)',
+          'linear-gradient(180deg, var(--color-surface) 0%, var(--color-background-white) 45%, var(--color-surface-raised) 100%)',
       }}
     >
       <section style={panelStyle} aria-label="Login">
@@ -67,12 +67,12 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
             marginBottom: '8px',
             fontSize: '24px',
             lineHeight: 1.3,
-            color: '#0f172a',
+            color: 'var(--color-text-primary)',
           }}
         >
           Login
         </h1>
-        <p style={{ margin: 0, marginBottom: '18px', color: '#475569' }}>
+        <p style={{ margin: 0, marginBottom: '18px', color: 'var(--color-text-secondary)' }}>
           Indtast adgangskode for at åbne Mineo.
         </p>
         <form onSubmit={handleSubmit}>
@@ -81,7 +81,7 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
             style={{
               display: 'block',
               marginBottom: '6px',
-              color: '#1e293b',
+              color: 'var(--color-text-primary)',
               fontWeight: 600,
             }}
           >
@@ -97,13 +97,15 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
             aria-invalid={errorMessage ? 'true' : 'false'}
             style={{
               width: '100%',
-              border: errorMessage ? '1px solid #d32f2f' : '1px solid #94a3b8',
+              border: errorMessage ? '1px solid var(--color-input-border-error)' : '1px solid var(--color-input-border)',
               borderRadius: '8px',
               padding: '10px 12px',
               fontSize: '16px',
               outline: 'none',
               boxSizing: 'border-box',
               marginBottom: '12px',
+              backgroundColor: 'var(--color-input-bg)',
+              color: 'var(--color-text-primary)',
             }}
           />
           <button
@@ -115,8 +117,8 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
               borderRadius: '8px',
               padding: '11px 12px',
               fontSize: '16px',
-              color: '#ffffff',
-              backgroundColor: '#1d4ed8',
+              color: 'var(--color-surface)',
+              backgroundColor: 'var(--color-primary)',
               cursor: isSubmitting ? 'default' : 'pointer',
               opacity: isSubmitting ? 0.7 : 1,
             }}

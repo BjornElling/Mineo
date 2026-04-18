@@ -58,6 +58,7 @@ const makeContext = (
       buildReguleringIndexRows: vi.fn(() => []),
       resolveStatistikModelIdFromLabel: vi.fn(() => undefined),
       writer: {
+        addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => { y = nextY; }),
         getY: vi.fn(() => y),
@@ -126,11 +127,7 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
 
     renderReguleringSection(ctx);
 
-    expect(renderSubheader).toHaveBeenCalledWith(
-      'Kerteminde Kommune',
-      expect.anything(),
-      expect.anything()
-    );
+    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', undefined, { addTopSpacing: false });
   });
 
   it('bruger fallback-navn "Ansættelsesforhold 1" når navnPaaArbejdssted er tomt', () => {
@@ -148,11 +145,7 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
 
     renderReguleringSection(ctx);
 
-    expect(renderSubheader).toHaveBeenCalledWith(
-      'Ansættelsesforhold 1',
-      expect.anything(),
-      expect.anything()
-    );
+    expect(renderSubheader).toHaveBeenCalledWith('Ansættelsesforhold 1', undefined, { addTopSpacing: false });
   });
 
   it('skjuler kun underoverskrift for EO-angivet-løn id, ikke for navnet "EO-oplysninger" alene', () => {
@@ -170,11 +163,7 @@ describe('renderReguleringSection – ansættelsesforhold med ingen regulering',
 
     renderReguleringSection(ctx);
 
-    expect(renderSubheader).toHaveBeenCalledWith(
-      'EO-oplysninger',
-      expect.anything(),
-      expect.anything()
-    );
+    expect(renderSubheader).toHaveBeenCalledWith('EO-oplysninger', undefined, { addTopSpacing: false });
   });
 });
 

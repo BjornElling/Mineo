@@ -329,7 +329,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
               width: typeof width === 'number' ? `${width}px` : width,
               position: 'relative',
               '& .MuiOutlinedInput-root': {
-                backgroundColor: '#ffffff',
+                backgroundColor: 'var(--color-input-bg)',
                 borderRadius: '10px',
                 cursor: resolvedCursor,
                 '& input': {
@@ -342,46 +342,46 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
                   cursor: resolvedCursor,
                 },
                 '& fieldset': {
-                  borderColor: 'rgba(0, 0, 0, 0.12)',
+                  borderColor: 'var(--color-input-border)',
                   borderWidth: '1px',
                 },
                 '&:hover fieldset': {
-                  borderColor: 'rgba(0, 0, 0, 0.25)',
+                  borderColor: 'var(--color-input-border-hover)',
                 },
                 '&.Mui-focused fieldset': {
-                  borderColor: '#1976d2',
+                  borderColor: 'var(--color-input-border-focus)',
                   borderWidth: '1px',
                 },
                 '&.Mui-disabled': {
-                  backgroundColor: 'rgba(0, 0, 0, 0.035)',
+                  backgroundColor: 'var(--color-input-disabled-bg)',
                 },
                 '&.Mui-disabled:not(.Mui-error) fieldset': {
-                  borderColor: 'rgba(0, 0, 0, 0.28)',
+                  borderColor: 'var(--color-input-border)',
                   borderStyle: 'dashed',
                 },
                 '&.Mui-disabled:not(.Mui-error):hover fieldset': {
-                  borderColor: 'rgba(0, 0, 0, 0.28)',
+                  borderColor: 'var(--color-input-border)',
                 },
                 '&.Mui-disabled .MuiInputBase-input': {
-                  WebkitTextFillColor: 'rgba(0, 0, 0, 0.72)',
+                  WebkitTextFillColor: 'var(--color-input-disabled-text)',
                 },
                 '&.Mui-disabled .MuiInputAdornment-root': {
-                  color: 'rgba(0, 0, 0, 0.72)',
+                  color: 'var(--color-input-disabled-text)',
                 },
                 '&.Mui-error fieldset': {
-                  borderColor: '#d32f2f',
+                  borderColor: 'var(--color-input-border-error)',
                   borderWidth: '1px',
                 },
                 '&.Mui-error:hover fieldset': {
-                  borderColor: '#d32f2f',
+                  borderColor: 'var(--color-input-border-error)',
                 },
                 '&.Mui-error.Mui-focused fieldset': {
-                  borderColor: '#1976d2',
+                  borderColor: 'var(--color-input-border-focus)',
                   borderWidth: '1px',
                 },
               },
               '& .MuiInputBase-input::placeholder': {
-                color: 'rgba(0, 0, 0, 0.4)',
+                color: 'var(--color-input-placeholder)',
                 opacity: 1,
               },
               '& .MuiOutlinedInput-root.Mui-focused .MuiInputBase-input:not([readonly])::placeholder': {

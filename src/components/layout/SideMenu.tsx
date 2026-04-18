@@ -126,8 +126,8 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
       sx={{
         width: isExpanded ? EXPANDED_WIDTH : COLLAPSED_WIDTH,
         height: '100vh',
-        backgroundColor: '#f8f9fa',
-        borderRight: '1px solid #e9ecef',
+        backgroundColor: 'var(--color-surface)',
+        borderRight: '1px solid var(--color-surface-border)',
         display: 'flex',
         flexDirection: 'column',
         transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -151,16 +151,16 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
             width: '44px',
             height: '44px',
             borderRadius: '12px',
-            color: '#6c757d',
+            color: 'var(--color-icon-muted)',
             fontWeight: 400,
             fontSize: '0.95rem',
             '&:hover': {
-              backgroundColor: 'rgba(0, 0, 0, 0.04)'
+              backgroundColor: 'var(--color-hover)'
             },
             '& .MuiButton-startIcon': {
               margin: '0',
               minWidth: '24px',
-              color: '#6c757d'
+              color: 'var(--color-icon-muted)'
             },
             transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)'
           }}
@@ -169,7 +169,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         </Button>
       </Box>
 
-      <Divider sx={{ borderColor: '#e9ecef' }} />
+      <Divider sx={{ borderColor: 'var(--color-surface-border)' }} />
 
       {/* Hovednavigation */}
       <Box sx={{ py: 1, px: 1.5 }}>
@@ -190,10 +190,10 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
               startIcon={item.icon}
               tabIndex={-1}
               className={activePage === item.id ? 'menu-item active' : 'menu-item'}
-              sx={{
-                justifyContent: 'flex-start',
-                pl: 1.5,
-                pr: 2,
+            sx={{
+              justifyContent: 'flex-start',
+              pl: 1.5,
+              pr: 2,
                 py: 1.2,
                 mb: 0.5,
                 minWidth: 0,
@@ -202,7 +202,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
                 '& .MuiButton-startIcon': {
                   margin: '0 12px 0 0',
                   minWidth: '24px',
-                  color: activePage === item.id ? 'var(--color-primary)' : 'var(--color-text-secondary)'
+                  color: 'currentColor'
                 },
                 whiteSpace: item.id === 'varigemen' ? 'nowrap' : undefined,
               }}
@@ -213,7 +213,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         ))}
       </Box>
 
-      <Divider sx={{ borderColor: '#e9ecef', my: 1 }} />
+      <Divider sx={{ borderColor: 'var(--color-surface-border)', my: 1 }} />
 
       {/* Fil-operationer */}
       <Box sx={{ py: 1, px: 1.5 }}>
@@ -246,7 +246,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
                 '& .MuiButton-startIcon': {
                   margin: '0 12px 0 0',
                   minWidth: '24px',
-                  color: 'var(--color-text-secondary)'
+                  color: 'currentColor'
                 }
               }}
             >
@@ -256,7 +256,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         ))}
       </Box>
 
-      <Divider sx={{ borderColor: '#e9ecef', my: 1 }} />
+      <Divider sx={{ borderColor: 'var(--color-surface-border)', my: 1 }} />
 
       {/* Utilities */}
       <Box sx={{ py: 1, px: 1.5 }}>
@@ -289,7 +289,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
                 '& .MuiButton-startIcon': {
                   margin: '0 12px 0 0',
                   minWidth: '24px',
-                  color: activePage === item.id ? 'var(--color-primary)' : 'var(--color-text-secondary)'
+                  color: 'currentColor'
                 }
               }}
             >

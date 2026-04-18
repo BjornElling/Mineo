@@ -36,6 +36,10 @@ export const AppSettingsProvider = ({ children }: { children: React.ReactNode })
     document.documentElement.dataset.mineoFontStyleColors = settings.fontStyleColorDebug ? 'on' : 'off';
   }, [settings.fontStyleColorDebug]);
 
+  React.useEffect(() => {
+    document.documentElement.dataset.mineoTheme = settings.themeMode;
+  }, [settings.themeMode]);
+
   const value = React.useMemo<AppSettingsContextValue>(() => ({ settings, updateSettings }), [settings, updateSettings]);
 
   return <AppSettingsContext.Provider value={value}>{children}</AppSettingsContext.Provider>;

@@ -217,6 +217,26 @@ const Indstillinger = React.memo(() => {
         <Typography className="section-header">System</Typography>
 
         <Box className="row--label-right-hover">
+          <Typography className="row--text">Farvetema</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledRadioButton
+              value={settings.themeMode}
+              onCommit={(event) => {
+                const nextThemeMode = event.target.value;
+                if (nextThemeMode === 'light' || nextThemeMode === 'dark') {
+                  updateSettings({ themeMode: nextThemeMode });
+                }
+              }}
+              row={true}
+              options={[
+                { value: 'light', label: 'Lyst' },
+                { value: 'dark', label: 'Mørkt' },
+              ]}
+            />
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
           <Typography className="row--text">Placering til gemte filer</Typography>
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -237,7 +257,7 @@ const Indstillinger = React.memo(() => {
                   size="small"
                   sx={{
                     padding: 0.5,
-                    '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
+                    '&:hover': { backgroundColor: 'var(--color-hover)' },
                   }}
                 >
                   <FolderOpenIcon fontSize="small" />

@@ -100,6 +100,7 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
       bilagIndkomstYdelserMode: 'Perioden' as const,
       bilagIndkomstYdelserRanges: [],
       writer: {
+        addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => {
           y = nextY;
@@ -168,9 +169,9 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
 
     renderLoenindkomstSection(ctx);
 
-    expect(renderSubheader).not.toHaveBeenCalledWith('TAF-periode', expect.anything(), expect.anything());
-    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', expect.anything(), expect.anything());
-    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', expect.anything(), expect.anything());
+    expect(renderSubheader).not.toHaveBeenCalledWith('TAF-periode', undefined, { addTopSpacing: false });
+    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', undefined, { addTopSpacing: false });
+    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', undefined, { addTopSpacing: false });
   });
 
   it('viser heller ikke TAF-/Beregningsperiode-underoverskrifter når begge periodegrupper har rækker', () => {
@@ -178,9 +179,9 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
 
     renderLoenindkomstSection(ctx);
 
-    expect(renderSubheader).not.toHaveBeenCalledWith('TAF-periode', expect.anything(), expect.anything());
-    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', expect.anything(), expect.anything());
-    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', expect.anything(), expect.anything());
+    expect(renderSubheader).not.toHaveBeenCalledWith('TAF-periode', undefined, { addTopSpacing: false });
+    expect(renderSubheader).not.toHaveBeenCalledWith('Beregningsperiode', undefined, { addTopSpacing: false });
+    expect(renderSubheader).toHaveBeenCalledWith('Kerteminde Kommune', undefined, { addTopSpacing: false });
     expect(renderSubheader.mock.calls.filter(([text]) => text === 'Kerteminde Kommune')).toHaveLength(1);
   });
 

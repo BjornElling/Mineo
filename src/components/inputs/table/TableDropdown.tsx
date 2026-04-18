@@ -6,6 +6,7 @@ import { copyTextToClipboard, readClipboardText } from '../../../utils/clipboard
 import { useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
+import StyledDropdown, { type StyledDropdownChangeEvent } from '../StyledDropdown';
 
 /**
  * TableDropdown (table-cell select)
@@ -72,6 +73,23 @@ const TableDropdown = React.memo(
     ...rest
   }: TableDropdownProps) => {
     const wrapperRef = React.useRef<HTMLSpanElement | null>(null);
+    const [open, setOpen] = React.useState(false);
+    const suppressNextClickOpenRef = React.useRef(false);
+
+    const hasTextSelectionWithinWrapper = React.useCallback((): boolean => {
+      const host = wrapperRef.current;
+      if (!host) return false;
+
+      const selection = window.getSelection();
+      if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return false;
+
+      try {
+        const range = selection.getRangeAt(0);
+        return host.contains(range.commonAncestorContainer);
+      } catch {
+        return false;
+      }
+    }, []);
 
     const getTriggerAndListbox = React.useCallback((): { trigger: HTMLElement | null; listbox: HTMLElement | null } => {
       const host = wrapperRef.current;
@@ -104,8 +122,9 @@ const TableDropdown = React.memo(
     const grid = useGridCoreApi();
     const menuHighlightColor = 'rgba(25, 118, 210, 0.08)';
     const isLooseTable = grid.tableKind === 'loose';
+    const resolvedAppearance = appearance === 'grid' ? (isLooseTable ? 'loose' : 'grid') : appearance;
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
-    const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
+    const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
     const allowEmpty: boolean = (rest as Readonly<{ allowEmpty?: boolean }>).allowEmpty ?? true;
 
     if (import.meta.env.DEV && allowEmpty === false && (value === undefined || value.trim() === '')) {
@@ -122,6 +141,39 @@ const TableDropdown = React.memo(
         onChange?.({ target: { value: event.target.value } });
       },
       [onChange, readOnly]
+    );
+
+    const openMenu = React.useCallback(() => {
+      if (readOnly) return;
+      setOpen(true);
+    }, [readOnly]);
+
+    const closeMenu = React.useCallback(() => {
+      setOpen(false);
+    }, []);
+
+    const handleTriggerClick = React.useCallback(() => {
+      if (suppressNextClickOpenRef.current) {
+        suppressNextClickOpenRef.current = false;
+        return;
+      }
+      if (hasTextSelectionWithinWrapper()) return;
+      openMenu();
+    }, [hasTextSelectionWithinWrapper, openMenu]);
+
+    const handleTriggerMouseUp = React.useCallback(() => {
+      suppressNextClickOpenRef.current = hasTextSelectionWithinWrapper();
+    }, [hasTextSelectionWithinWrapper]);
+
+    const handleTriggerKeyDown = React.useCallback(
+      (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (readOnly) return;
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        e.stopPropagation();
+        openMenu();
+      },
+      [openMenu, readOnly]
     );
 
     const handleKeyDown = React.useCallback(
@@ -205,6 +257,30 @@ const TableDropdown = React.memo(
     const a11yErrorId = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const showError = externalErrorText !== '';
+    const looseDropdownSx: SxProps<Theme> = {
+      width: '100%',
+      fontSize: '13px',
+      fontFamily: '"Montserrat", sans-serif',
+      color: 'inherit',
+      fontFeatureSettings: '"tnum"',
+      '& .MuiInputBase-input': {
+        font: 'inherit',
+        fontSize: 'inherit',
+        lineHeight: 'inherit',
+        color: 'inherit',
+        userSelect: 'text',
+        WebkitUserSelect: 'text',
+      },
+      ...sx,
+    };
+
+    const handleLooseChange = React.useCallback(
+      (e: StyledDropdownChangeEvent<string | undefined>) => {
+        const nextValue = e.target.value;
+        onChange?.({ target: { value: nextValue === undefined ? '' : String(nextValue) } });
+      },
+      [onChange]
+    );
 
     const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
       return {
@@ -250,6 +326,7 @@ const TableDropdown = React.memo(
           style={{ display: 'block' }}
           onKeyDownCapture={handleKeyDown}
           onCopyCapture={(e) => {
+            if (hasTextSelectionWithinWrapper()) return;
             copyTextToClipboard(e, { value: selectedLabel });
           }}
           onPasteCapture={(e) => {
@@ -262,124 +339,163 @@ const TableDropdown = React.memo(
           }}
           ref={handleWrapperRef}
         >
-          <Select
-            value={value ?? ''}
-            onChange={handleChange}
-            onBlur={onBlur}
-            MenuProps={{
-              variant: 'selectedMenu',
-              // Keep focus off Menu paper/root; focus is set explicitly in `onEntered`.
-              autoFocus: false,
-              disableAutoFocusItem: false,
-              slotProps: {
-                transition: {
-                  onEntered: (enteredNode: unknown) => {
-                    const nodeElement = enteredNode instanceof Element ? enteredNode : null;
-                    ensureMenuKeyboardFocus(nodeElement);
-                    requestAnimationFrame(() => ensureMenuKeyboardFocus(nodeElement));
-                  },
-                },
-                paper: {
-                  sx: {
-                    '& .MuiMenuItem-root.Mui-focusVisible': {
-                      backgroundColor: menuHighlightColor,
-                    },
-                    '& .MuiMenuItem-root.Mui-selected': {
-                      backgroundColor: menuHighlightColor,
-                    },
-                    '& .MuiMenuItem-root.Mui-selected:hover': {
-                      backgroundColor: menuHighlightColor,
-                    },
-                    '& .MuiMenuItem-root:hover': {
-                      backgroundColor: menuHighlightColor,
-                    },
-                  },
-                },
-                list: {
-                  autoFocusItem: true,
-                },
-              },
-            }}
-            // Note: MUI Select key handling differs by variant/implementation.
-            // Capture handler on the wrapper is the single source of truth for clear-on-Delete.
-            displayEmpty={allowEmpty}
-            size="small"
-            variant={appearance === 'loose' ? 'outlined' : 'standard'}
-            inputProps={{
-              tabIndex: readOnly ? -1 : undefined,
-              'aria-describedby': showError ? a11yErrorId : undefined,
-            }}
-            sx={{
-              width: '100%',
-              fontSize: '13px',
-              fontFamily: '"Montserrat", sans-serif',
-              color: 'inherit',
-              fontFeatureSettings: '"tnum"',
-              ...(appearance === 'loose'
-                ? {
-                    backgroundColor: '#ffffff',
-                    borderRadius: inputBorderRadius,
-                    '& .MuiOutlinedInput-notchedOutline': {
-                      borderColor: showError ? '#d32f2f' : inputBorderColor,
-                      borderWidth: '1px',
-                    },
-                    '&:hover .MuiOutlinedInput-notchedOutline': {
-                      borderColor: showError ? '#d32f2f' : 'rgba(0, 0, 0, 0.25)',
-                    },
-                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                      borderColor: '#1976d2',
-                      borderWidth: '1px',
-                    },
-                    '& .MuiSelect-select:focus': {
-                      backgroundColor: 'transparent',
-                    },
-                  }
-                : {
-                    height: '100%',
-                    border: '1px solid',
-                    borderColor: showError ? '#d32f2f' : inputBorderColor,
-                    borderRadius: inputBorderRadius,
-                    '&:focus-within': {
-                      borderColor: '#1976d2',
-                    },
-                  }),
-              ...(appearance === 'grid'
-                ? {
-                    '& .MuiSelect-select': {
-                      paddingTop: '4px',
-                      paddingBottom: '4px',
-                      paddingLeft: '8px',
-                      paddingRight: '24px',
-                    },
-                  }
-                : {}),
-              '& .MuiInputBase-input': {
-                font: 'inherit',
-                fontSize: 'inherit',
-                lineHeight: 'inherit',
-                color: 'inherit',
-              },
-              '&:before': { display: 'none' },
-              '&:after': { display: 'none' },
-              ...sx,
-            }}
-          >
-            {allowEmpty ? (
-              <MenuItem value="">
-                <em style={{ color: 'rgba(0,0,0,0.4)' }}>{placeholder}</em>
-              </MenuItem>
-            ) : null}
-            {options.map((opt) => {
-              if (isDividerOption(opt)) {
-                return <Divider key={opt.id} component="li" role="separator" />;
-              }
-              return (
-                <MenuItem key={opt.value} value={opt.value}>
-                  {opt.label}
+          {resolvedAppearance === 'loose' ? (
+            allowEmpty ? (
+              <StyledDropdown
+                width="100%"
+                value={(value ?? '') === '' ? undefined : value}
+                allowEmpty
+                placeholder={placeholder}
+                onChange={handleLooseChange}
+                onBlur={onBlur}
+                error={showError}
+                helperText={externalErrorText}
+                sx={looseDropdownSx}
+              >
+                <MenuItem value="">
+                  {placeholder}
                 </MenuItem>
-              );
-            })}
-          </Select>
+                {options.map((opt) => {
+                  if (isDividerOption(opt)) {
+                    return <StyledDropdown.Divider key={opt.id} />;
+                  }
+                  return (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  );
+                })}
+              </StyledDropdown>
+            ) : (
+              <StyledDropdown
+                width="100%"
+                value={value ?? ''}
+                allowEmpty={false}
+                onChange={handleLooseChange}
+                onBlur={onBlur}
+                error={showError}
+                helperText={externalErrorText}
+                sx={looseDropdownSx}
+              >
+                {options.map((opt) => {
+                  if (isDividerOption(opt)) {
+                    return <StyledDropdown.Divider key={opt.id} />;
+                  }
+                  return (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </MenuItem>
+                  );
+                })}
+              </StyledDropdown>
+            )
+          ) : (
+            <Select
+              open={open}
+              value={value ?? ''}
+              onChange={handleChange}
+              onBlur={onBlur}
+              onClose={closeMenu}
+              MenuProps={{
+                variant: 'selectedMenu',
+                // Keep focus off Menu paper/root; focus is set explicitly in `onEntered`.
+                autoFocus: false,
+                disableAutoFocusItem: false,
+                slotProps: {
+                  transition: {
+                    onEntered: (enteredNode: unknown) => {
+                      const nodeElement = enteredNode instanceof Element ? enteredNode : null;
+                      ensureMenuKeyboardFocus(nodeElement);
+                      requestAnimationFrame(() => ensureMenuKeyboardFocus(nodeElement));
+                    },
+                  },
+                  paper: {
+                    sx: {
+                      '& .MuiMenuItem-root.Mui-focusVisible': {
+                        backgroundColor: menuHighlightColor,
+                      },
+                      '& .MuiMenuItem-root.Mui-selected': {
+                        backgroundColor: menuHighlightColor,
+                      },
+                      '& .MuiMenuItem-root.Mui-selected:hover': {
+                        backgroundColor: menuHighlightColor,
+                      },
+                      '& .MuiMenuItem-root:hover': {
+                        backgroundColor: menuHighlightColor,
+                      },
+                    },
+                  },
+                  list: {
+                    autoFocusItem: true,
+                  },
+                },
+              }}
+              // Keep MUI from hijacking `mousedown`; we open explicitly from click/key handlers
+              // so closed dropdown text can be selected with the mouse.
+              readOnly
+              // Note: MUI Select key handling differs by variant/implementation.
+              // Capture handler on the wrapper is the single source of truth for clear-on-Delete.
+              displayEmpty={allowEmpty}
+              SelectDisplayProps={{
+                onClick: handleTriggerClick,
+                onKeyDown: handleTriggerKeyDown,
+                onMouseUp: handleTriggerMouseUp,
+              }}
+              size="small"
+              variant="standard"
+              inputProps={{
+                tabIndex: readOnly ? -1 : undefined,
+                'aria-describedby': showError ? a11yErrorId : undefined,
+              }}
+              sx={{
+                width: '100%',
+                height: '100%',
+                fontSize: '13px',
+                fontFamily: '"Montserrat", sans-serif',
+                color: 'inherit',
+                fontFeatureSettings: '"tnum"',
+                border: '1px solid',
+                borderColor: showError ? 'var(--color-input-border-error)' : inputBorderColor,
+                borderRadius: inputBorderRadius,
+                '&:focus-within': {
+                  borderColor: 'var(--color-input-border-focus)',
+                },
+                '& .MuiSelect-select': {
+                  paddingTop: '4px',
+                  paddingBottom: '4px',
+                  paddingLeft: '8px',
+                  paddingRight: '24px',
+                  userSelect: 'text',
+                  WebkitUserSelect: 'text',
+                },
+                '& .MuiInputBase-input': {
+                  font: 'inherit',
+                  fontSize: 'inherit',
+                  lineHeight: 'inherit',
+                  color: 'inherit',
+                },
+                '&:before': { display: 'none' },
+                '&:after': { display: 'none' },
+                ...sx,
+              }}
+            >
+              {allowEmpty ? (
+                <MenuItem value="">
+                  <em style={{ color: 'var(--color-input-placeholder)' }}>{placeholder}</em>
+                </MenuItem>
+              ) : null}
+              {options.map((opt) => {
+                if (isDividerOption(opt)) {
+                  return <Divider key={opt.id} component="li" role="separator" />;
+                }
+                return (
+                  <MenuItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          )}
           {showError ? (
             <span id={a11yErrorId} style={visuallyHiddenStyle}>
               {externalErrorText}

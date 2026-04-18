@@ -217,7 +217,7 @@ const TableDateInput = React.memo(
     const isReadOnly = locked || !isEditing;
     const isLooseTable = gridApi.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
-    const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
+    const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
 
     const inputElRef = React.useRef<HTMLInputElement | null>(null);
 
@@ -654,12 +654,12 @@ const TableDateInput = React.memo(
               fontFeatureSettings: '"tnum"',
               padding: '4px 8px',
               border: '1px solid',
-              borderColor: showError ? '#d32f2f' : inputBorderColor,
+              borderColor: showError ? 'var(--color-input-border-error)' : inputBorderColor,
               borderRadius: inputBorderRadius,
-              backgroundColor: isLooseTable && !locked ? '#ffffff' : 'transparent',
+              backgroundColor: isLooseTable && !locked ? 'var(--color-input-bg)' : 'transparent',
               ...(cellFocused ? { outline: 'none' } : {}),
               '&:focus-within': {
-                borderColor: '#1976d2',
+                borderColor: 'var(--color-input-border-focus)',
               },
               '& .MuiInputBase-input': {
                 font: 'inherit',

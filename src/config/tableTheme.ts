@@ -7,19 +7,6 @@ import type { CSSProperties } from 'react';
  * Baseret på designet fra Rentesatser-tabellen.
  */
 
-/**
- * CSS farver til tabel-styling
- * Centraliserede værdier der kan genbruges på tværs af MUI og almindelige HTML tabeller
- */
-export const tableColors = {
-  border: '#e5e7eb',
-  headerBackground: '#f8fafc',
-  oddRowBackground: '#f9fafb',
-  evenRowBackground: '#ffffff',
-  sortPrimaryColor: '#1976d2',
-  sortSecondaryColor: 'rgba(0, 0, 0, 0.45)',
-};
-
 // Ensartet tabel-typografi (match inputfelterne)
 const tableFontFamily = "'Montserrat', sans-serif";
 const tableFontVariant = 'tabular-nums';
@@ -36,7 +23,7 @@ const tableFontVariant = 'tabular-nums';
  * <Table sx={getMuiTableStyles(true)}>...</Table>
  */
 export const getMuiTableStyles = (useSmallFont = false) => ({
-  border: `1px solid ${tableColors.border}`,
+  border: '1px solid var(--color-table-border)',
   borderRadius: '16px',
   overflow: 'clip',
   fontFamily: tableFontFamily,
@@ -51,15 +38,15 @@ export const getMuiTableStyles = (useSmallFont = false) => ({
     color: 'inherit',
   },
   '& thead th': {
-    backgroundColor: tableColors.headerBackground,
+    backgroundColor: 'var(--color-table-header-bg)',
     fontWeight: 500,
-    borderBottom: `1px solid ${tableColors.border} !important`,
+    borderBottom: '1px solid var(--color-table-border) !important',
   },
   '& tbody tr:nth-of-type(odd)': {
-    backgroundColor: tableColors.evenRowBackground, // CSS odd = første række (brug hvid)
+    backgroundColor: 'var(--color-table-row-even)', // CSS odd = første række (brug hvid)
   },
   '& tbody tr:nth-of-type(even)': {
-    backgroundColor: tableColors.oddRowBackground, // CSS even = anden række (brug grå)
+    backgroundColor: 'var(--color-table-row-odd)', // CSS even = anden række (brug grå)
   },
 });
 
@@ -75,7 +62,7 @@ export const getMuiTableStyles = (useSmallFont = false) => ({
  * <table style={getHtmlTableStyles(true)}>...</table>
  */
 export const getHtmlTableStyles = (useSmallFont = false): CSSProperties => ({
-  border: `1px solid ${tableColors.border}`,
+  border: '1px solid var(--color-table-border)',
   borderRadius: '16px',
   overflow: 'hidden',
   borderCollapse: 'collapse',
@@ -93,7 +80,7 @@ export const getHtmlTableStyles = (useSmallFont = false): CSSProperties => ({
  * <th style={htmlTableHeaderStyles}>Header</th>
  */
 export const htmlTableHeaderStyles: CSSProperties = {
-  backgroundColor: tableColors.headerBackground,
+  backgroundColor: 'var(--color-table-header-bg)',
   fontWeight: 500, // Matcher theme.typography.subsectionTitle.fontWeight
-  borderBottom: `1px solid ${tableColors.border}`,
+  borderBottom: '1px solid var(--color-table-border)',
 };

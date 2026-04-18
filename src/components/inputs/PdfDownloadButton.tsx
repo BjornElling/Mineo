@@ -19,8 +19,8 @@ const PdfDownloadButton = ({ onClick, shake = false, disabled = false }: Props) 
         borderRadius: '6px',
         transition: 'background-color 0.2s',
         animation: shake ? 'shake 0.5s' : 'none',
-        '&:hover': disabled ? {} : { backgroundColor: '#e3f2fd' },
-        '&:active': disabled ? {} : { backgroundColor: '#bbdefb' },
+        '&:hover': disabled ? {} : { backgroundColor: 'var(--color-icon-action-hover)' },
+        '&:active': disabled ? {} : { backgroundColor: 'var(--color-icon-action-active)' },
         '@keyframes shake': {
           '0%, 100%': { transform: 'translateX(0)' },
           '10%, 30%, 50%, 70%, 90%': { transform: 'translateX(-5px)' },

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Box } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import type { CSSProperties } from 'react';
-import { getHtmlTableStyles, tableColors } from '../../config/tableTheme';
+import { getHtmlTableStyles } from '../../config/tableTheme';
 import { GridCoreProvider } from './gridCore/gridCoreContext';
 import { handleTableBlurCapture, handleTableDoubleClickCapture, handleTableFocusCapture, handleTableKeyDownCapture, handleTablePointerDownCapture } from './gridCore/tableKeyboardNavigation';
 import type { GridSortDirection, GridSortRole } from './gridCore/gridModel';
@@ -52,7 +52,7 @@ export const StandardGridTable = React.memo(
             sx={{
               display: 'block',
               width: 'fit-content',
-              border: `1px solid ${tableColors.border}`,
+              border: '1px solid var(--color-table-border)',
               borderRadius: '16px',
               overflow: 'hidden',
               '& tbody tr:last-of-type td:first-of-type .MuiInputBase-root': {
@@ -104,7 +104,7 @@ export const StandardGridHeaderCell = React.memo(({ children, onClick, sortRole 
       style={{
         padding: '8px 4px',
         border: 'none',
-        borderBottom: `1px solid ${tableColors.border}`,
+        borderBottom: '1px solid var(--color-table-border)',
         fontWeight: 500,
         textAlign: 'center',
         cursor: onClick ? 'pointer' : 'default',
@@ -112,7 +112,7 @@ export const StandardGridHeaderCell = React.memo(({ children, onClick, sortRole 
         overflow: 'hidden',
         textOverflow: 'ellipsis',
         position: 'relative',
-        backgroundColor: tableColors.headerBackground,
+        backgroundColor: 'var(--color-table-header-bg)',
       }}
       onClick={onClick}
     >

@@ -24,7 +24,7 @@
 14. [Afhængigheder og rækkefølge](#14-afhængigheder-og-rækkefølge)
 15. [Test-plan](#15-test-plan)
 16. [Tilgængelighed og WCAG](#16-tilgængelighed-og-wcag)
-17. [Større arkitekturelle muligheder](#17-større-arkitekturelle-muligheder)
+17. [Arkitektoniske anbefalinger efter dark mode](#17-arkitektoniske-anbefalinger-efter-dark-mode)
 
 ---
 
@@ -37,6 +37,14 @@ Mineo har i dag en **tredelt farvestyring**, og det er kerneproblemet der gør d
 | **CSS-variabler** (`typography.css`/`layout.css`) | `var(--color-primary)` | Delvist brugt — godt udgangspunkt |
 | **MUI ThemeProvider** (`App.tsx`) | `palette.primary.main` | Statisk oprettet én gang — skal gøres dynamisk |
 | **Hardcodede hex-strenge i `sx`-props** | `backgroundColor: '#ffffff'` | Spredt i inputkomponenter, SideMenu, tabeller, Overlay — skal erstattes |
+
+### Vigtig afgrænsning: dark mode kræver ikke først en total CSS→MUI-migration
+
+Dark mode skal ikke gøres afhængig af, at `typography.css` og `layout.css` først migreres væk. I Mineo er CSS-laget ikke kun et tyndt stylinglag; klasserne bærer etablerede typografi- og layoutmønstre og bruges også som DOM-hooks flere steder.
+
+Eksempelvis bruger `ContentBox.tsx` klasserne `.content-box`, `.section-header` og `.page-title` til identifikation ved fejlrapportering, og tests forventer også eksisterende klassehooks. En fuld CSS→MUI-migration er derfor et separat, større oprydningsprojekt med høj regressionsrisiko.
+
+Dark mode bør implementeres først med målrettet centralisering af farver og dynamisk MUI-tema, mens de eksisterende CSS-klasser bevares.
 
 ### Det eksisterende mønster der skal genbruges
 
@@ -69,7 +77,7 @@ Settings er gemt under nøglen `'mineo_app_settings_v1'` (defineret i `appSettin
 
 ## 2. Arkitekturstrategi
 
-**Kombineret tilgang: CSS-variabel-overrides + dynamisk MUI-tema.**
+**Anbefalet strategi: CSS-variabel-overrides + dynamisk MUI-tema.**
 
 Det er ikke tilstrækkeligt at kun skifte CSS-variabler, fordi MUI-komponenters interne states — hover-ripple, Tooltip-baggrund, Paper-overflader, Divider-farver — styres af MUI's interne palette og ikke af vores CSS-variabler. Derfor skal begge lag skiftes synkront.
 
@@ -84,6 +92,19 @@ brugervalg (themeMode: 'light' | 'dark')
 ```
 
 MUI's `palette.mode: 'dark'` aktiverer automatisk MUI's interne dark mode for alle Paper-baserede surfaces (Popover, Menu, Dialog, Tooltip). Dette sparer betydelig mængde manuel styling.
+
+### Bevidst ikke en big-bang-migration
+
+Dark mode-projektet skal ikke samtidig forsøge at:
+- slette `typography.css` og `layout.css`
+- migrere alle `className`-baserede mønstre til `sx`
+- gøre MUI-temaet til eneste stylingkilde for hele appen
+
+Det ville blande to forskellige projekter sammen:
+1. mørkt tema
+2. total stylingkonsolidering
+
+Det rigtige mål her er et robust dark mode-design med minimal, auditérbar ændringsflade.
 
 ---
 
@@ -212,7 +233,7 @@ Tilføj til `DEFAULT_APP_SETTINGS`:
 themeMode: 'light',
 ```
 
-**`prefers-color-scheme` som default:** Overvej at bruge OS-præferencen som startværdi i stedet for altid `'light'`. Se [Sektion 17e](#17e-overvej-prefers-color-scheme-som-default) for fuld diskussion. Hvis det implementeres, skal det gøres i `loadInitialSettings()` i `appSettingsParse.ts` (i "no stored value"-stien) — ikke i `DEFAULT_APP_SETTINGS`, da konstanten ellers får en runtime-afhængighed af `window.matchMedia` ved modul-load.
+**`prefers-color-scheme` som default:** Dette bør implementeres. Se [Sektion 17c](#17c-overvej-prefers-color-scheme-som-default) for fuld diskussion. Hvis det implementeres, skal det gøres i `loadInitialSettings()` i `appSettingsParse.ts` (i "no stored value"-stien) — ikke i `DEFAULT_APP_SETTINGS`, da konstanten ellers får en runtime-afhængighed af `window.matchMedia` ved modul-load.
 
 ### `src/contexts/AppSettingsContext.tsx`
 
@@ -373,6 +394,8 @@ MUI's `palette.mode: 'dark'` og `background.paper: '#1e1e1e'` styrer automatisk 
 
 **Kritisk note:** Ændringen af `ThemeProvider`-placeringen er strukturel. Lav den isoleret, verificer at appen starter korrekt og at alle sider fungerer, inden de næste stadier påbegyndes.
 
+**Vigtig note om debug-farver:** `App.tsx` bruger i dag CSS-variablerne `--mineo-color-mui-typography-default` og `--mineo-color-input-text` i temaet. Det mønster kan bevares i første dark mode-implementering. Der er ingen gevinst i at redesigne hele debug-farvesystemet som del af dark mode, så længe dark mode-farverne skifter korrekt og debug-mekanismen fortsat virker.
+
 ---
 
 ## 8. Stadie 4 — Inputkomponenter
@@ -461,6 +484,8 @@ const colorVars = {
 };
 ```
 
+**Bemærk:** `Overlay.tsx` bruger `Typography variant="text"`. Det er en eksisterende variant-udvidelse i projektet. Dark mode-projektet skal ikke samtidig forsøge at ændre variant-systemet her; fokus er kun farverne.
+
 ---
 
 ## 10. Stadie 6 — Tabeller
@@ -483,6 +508,8 @@ Tilsvarende for `htmlTableHeaderStyles` og alternerende rækkebaggrunde.
 
 `sortPrimaryColor: '#1976d2'` → `'var(--color-primary)'`
 `sortSecondaryColor: 'rgba(0, 0, 0, 0.45)'` → `'var(--color-text-secondary)'`
+
+**Anbefaling:** I dark mode-projektet er det mere hensigtsmæssigt at holde `tableTheme.ts` på CSS-variabler end at refaktorere alle kaldesteder til at sende `theme` rundt. Tabellerne er et godt eksempel på et sted, hvor CSS-variabler er en lav-risiko bro mellem eksisterende styling og nyt tema.
 
 ---
 
@@ -533,7 +560,9 @@ Tilføj et inline script-tag i `<head>` *før* stylesheet-links — scriptet kø
 - **Beregningslogik, Zod-schemas, formattering** — ingen farver.
 - **`src/styles/index.css`** — kun reset og font-imports.
 - **`src/contracts/`** — ingen UI-afhængigheder.
-- **Tests** — dark mode berører ikke beregningsinvarianter. Ingen eksisterende tests bør brydes.
+- **Større stylingmigration væk fra CSS-klasser** — ikke del af dette projekt.
+
+**Bemærk om tests:** Dark mode ændrer ikke beregningsinvarianter, men eksisterende UI-tests kan stadig blive påvirket hvis stylingklasser eller markup ændres utilsigtet. Bevar derfor eksisterende klasse-hooks medmindre de bevidst flyttes i et separat projekt.
 
 ---
 
@@ -597,6 +626,14 @@ Lys mode skal se identisk ud med pre-implementation. Sammenlign side-by-side scr
 ### Eksisterende tests
 Kør `npx vitest run` efter hvert stadie. Ingen beregningstest bør brydes.
 
+### Dokumentationscheck mod faktisk kode
+
+Inden hvert stadie påbegyndes:
+- verificér at de nævnte filer og mønstre stadig findes i den aktuelle kodebase
+- verificér at ingen klasse eller CSS-variabel i planen samtidig bruges som DOM-hook eller i tests
+
+Dark mode-planen må følge koden, ikke omvendt.
+
 ---
 
 ## 16. Tilgængelighed og WCAG
@@ -628,175 +665,55 @@ De foreslåede dark-værdier i [Sektion 4](#4-farvepalet--light-og-dark) er udga
 
 ---
 
-## 17. Større arkitekturelle muligheder
+## 17. Arkitektoniske anbefalinger efter dark mode
 
-Dette afsnit beskriver fundamentale ændringer i styling-arkitekturen, som med fordel kunne implementeres i forbindelse med dark mode. De er ikke nødvendige for dark mode isoleret set — men dark mode er det tidspunkt i en kodebases liv, hvor det koster mindst at lave dem, fordi man alligevel rører ved alle farve-definitioner i hele appen. At vente til et andet tidspunkt betyder at man laver det samme arbejde to gange.
-
-Hvert punkt beskrives med: hvad problemet er i dag, hvad den fundamentale ændring er, og hvad gevinsten er.
+Dette afsnit beskriver forbedringer, der er relevante **efter** dark mode er implementeret stabilt. De er ikke forudsætninger.
 
 ---
 
-### 17a. Afskaf CSS-filer til styling — flyt alt til MUI theme og `sx`
+### 17a. Stop for ny styling i CSS-klasser
 
-> **Uddybende implementeringsplan:** [css-til-mui-migration.md](css-til-mui-migration.md)
+Efter dark mode-projektet bør ny UI-kode som udgangspunkt ikke introducere nye generelle stylingklasser i `typography.css` eller `layout.css`.
 
-**Nuværende situation:**
+Anbefalet praksis:
+- eksisterende klasser beholdes hvor de allerede er udbredt
+- nye komponent-specifikke justeringer skrives med `sx`
+- nye farver tilføjes som centrale tokens, ikke som lokale hex-strenge
 
-Mineo har tre parallelle styling-systemer der delvist overlapper:
-1. `typography.css` og `layout.css` med CSS-klasser (`.page-title`, `.content-box`, `.row--label-offset`, m.fl.)
-2. MUI `ThemeProvider` med komponent-overrides
-3. `sx`-props direkte på komponenter
-
-CSS-klasserne bruges via `className="section-header"` osv., og deres farver styres af CSS-variabler. Det er en hybird-løsning der fungerer, men har en fundamental svaghed: **MUI og CSS-klasser er to separate systemer der ikke kender til hinanden.** Konsekvensen er den nuværende tredelte farvestyring der gør dark mode kompliceret.
-
-**Den fundamentale ændring:**
-
-Konsolidér til to lag i stedet for tre: MUI ThemeProvider + `sx`-props. Fjern de to CSS-filer som styling-mekanisme. Flyt al typografi og layout til MUI `theme.components`-overrides og et sæt delte `sx`-konstanter.
-
-Konkret:
-- Typografi-klasser (`page-title`, `section-header`, `row--text` osv.) bliver til enten MUI Typography `variant`-definitoner i temaet, eller til eksporterede `sx`-objekter i en central fil (`src/styles/typographySx.ts`):
-  ```ts
-  export const pageTitleSx: SxProps<Theme> = {
-    fontSize: '34px', fontWeight: 500, color: 'text.primary', mb: 5
-  };
-  ```
-- Layout-klasser (`content-box`, `row--label-offset` osv.) bliver til enten MUI-komponent-overrides eller til eksporterede `sx`-konstanter.
-- `--color-*` CSS-variabler forsvinder; MUI-temaet er den eneste kilde til farver, og dark mode styres udelukkende via `palette.mode`.
-
-**Gevinsten:**
-
-- Ét farve-system, ikke tre. Dark mode skiftes ved at ændre `palette.mode` i temaet — ingen CSS-override-blok nødvendig.
-- TypeScript kender til alle design-beslutninger. `pageTitleSx` kan importeres og bruges med fuldt type-check. CSS-klasser er strenge der ikke kontrolleres af compileren.
-- MUI's `useTheme()` og `theme.palette.*` giver adgang til alle farver i komponent-logik uden at skulle læse CSS-variabler via `getComputedStyle`.
-- Eliminerer det principielle problem med `!important` og specificitetskonflikter mellem CSS-klasser og `sx`-props (fx `layout.css` linje 193).
-
-**Omkostning og risiko:**
-
-Dette er et stort refaktoreringsprojekt. Alle sider og de fleste komponenter bruger CSS-klassenavne. Det skal gøres inkrementelt: ny kode skrives med `sx`-konstanter, gammel kode migreres klasse for klasse. Migrationen er mekanisk men omfangsrig. Risikoen for visuell regression er høj og kræver tæt screenshot-test undervejs.
-
-**Anbefaling:** Implementér dark mode med CSS-variabler som beskrevet i denne guide (det er det rigtige valg på kort sigt), men start *samtidig* at skrive ny kode med `sx`-konstanter og hold op med at tilføje nye CSS-klasser. Migrer de eksisterende klasser opportunistisk.
+Dette giver gradvis konsolidering uden at udløse et stort migrationsprojekt.
 
 ---
 
-### 17b. Eliminer "flash of light mode" med server-side/inline theme-initialisering
+### 17b. Eliminer "flash of light mode" med inline theme-initialisering
 
 Dette er implementeret som **Stadie 8** i denne guide. Se [Stadie 8](#12-stadie-8--flash-eliminering-indexhtml) for detaljer og det konkrete inline-script.
 
 ---
 
-### 17c. Introducér `useThemeTokens()`-hook som eneste adgangsport til design-tokens
-
-**Nuværende situation:**
-
-Design-tokens er i dag spredt i tre kilder som forbrugende komponenter skal kende til:
-- CSS-variabler via strenge (`'var(--color-primary)'`)
-- MUI theme via `theme.palette.primary.main` (kræver `useTheme()`)
-- Hardcodede hex-strenge (det vi er ved at fjerne)
-
-Ingen af de to legitime tilgange er type-sikre i sig selv: `'var(--color-primary)'` er en streng med nul compile-time kontrol; `theme.palette` er typet men verbose at bruge.
-
-**Den fundamentale ændring:**
-
-Introducér en centralt defineret hook der eksponerer alle semantiske tokens som typede værdier:
-
-```ts
-// src/styles/useThemeTokens.ts
-export const useThemeTokens = () => {
-  const theme = useTheme();
-  return {
-    colorPrimary:        theme.palette.primary.main,
-    colorTextPrimary:    theme.palette.text.primary,
-    colorTextSecondary:  theme.palette.text.secondary,
-    colorSurface:        theme.palette.background.default,
-    colorPaper:          theme.palette.background.paper,
-    colorInputBg:        theme.palette.mode === 'dark' ? '#2a2a2a' : '#ffffff',
-    colorTableBorder:    theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : '#e5e7eb',
-    // ... alle tokens
-  } as const;
-};
-```
-
-Komponenter der har brug for farver i JS-kontekst (ikke CSS) importerer denne hook i stedet for at hardcode hex-strenge eller bruge `'var(--x)'`-strenge.
-
-**Gevinsten:**
-
-- TypeScript fejler ved rename af et token — ikke ved runtime.
-- Refactoring af et token kræver ændring ét sted, ikke `grep`-og-erstat på tværs af 50 filer.
-- Dark mode-logikken (`mode === 'dark' ? ... : ...`) er centraliseret, ikke spredt.
-- `tableTheme.ts` og lignende filer der i dag returnerer strenge kan i stedet modtage tokens som parameter, eller kalde hooken direkte.
-
-**Begrænsning:** En hook kan kun bruges i React-komponenters render-kontekst, ikke i rene hjælpefunktioner (som `getMuiTableStyles()`). For disse skal man enten acceptere CSS-variable-strenge eller refaktorere funktionerne til at modtage tokens som parameter.
-
-**Anbefaling:** Implementér hooken tidligt i mørk-mode-projektet og brug den i alle nye komponenter. Migrer eksisterende `'var(--x)'`-strenge til hooken opportunistisk.
-
----
-
-### 17d. Konsolidér `AppSettingsContext` og `ThemeProvider` i en `AppShellProvider`
-
-**Nuværende situation:**
-
-`App.tsx` er ansvarlig for at stable providers korrekt: `ThemeProvider` → `AppSettingsProvider` → `BrowserRouter` → `FormPersistenceProvider`. Med dark mode tilføjes en ny dependency: `ThemeProvider` skal ligge *under* `AppSettingsProvider`. Det løses med `ThemedApp`-mønsteret (Stadie 3), men resulterer i et noget klodset setup hvor `App` kun er en tynd wrapper.
-
-**Den fundamentale ændring:**
-
-Saml alle "shell"-providers — settings, tema, routing, persistence — i en enkelt `AppShellProvider`:
-
-```tsx
-// src/providers/AppShellProvider.tsx
-export const AppShellProvider = ({ children }: { children: React.ReactNode }) => {
-  const [settings, updateSettings] = useSettingsState(); // intern hook
-  const theme = React.useMemo(() => buildTheme(settings.themeMode), [settings.themeMode]);
-
-  // Sync side-effects
-  React.useEffect(() => {
-    document.documentElement.dataset.mineoTheme = settings.themeMode;
-  }, [settings.themeMode]);
-
-  React.useEffect(() => {
-    document.documentElement.dataset.mineoFontStyleColors = settings.fontStyleColorDebug ? 'on' : 'off';
-  }, [settings.fontStyleColorDebug]);
-
-  return (
-    <AppSettingsContext.Provider value={{ settings, updateSettings }}>
-      <ThemeProvider theme={theme}>
-        {children}
-      </ThemeProvider>
-    </AppSettingsContext.Provider>
-  );
-};
-```
-
-`App.tsx` reduceres til routing-konfiguration og `<AppShellProvider>` som outermost wrapper.
-
-**Gevinsten:**
-
-- Alle DOM-level side-effects (theme, debug-farver, eventuelle fremtidige `data-*` attributter) er samlet ét sted.
-- Provider-rækkefølgen er eksplicit og kan ikke cases som i dag, hvor `ThemeProvider` ved en fejl kan ligge udenfor `AppSettingsProvider`.
-- Lettere at tilføje nye cross-cutting præferencer (skriftstørrelse, kompakt layout m.m.) uden at røre `App.tsx`.
-
----
-
-### 17e. Overvej `prefers-color-scheme` som default
+### 17c. Overvej `prefers-color-scheme` som default
 
 **Nuværende situation:**
 
 Mineo starter altid i light mode. Brugere der har sat deres OS til dark mode skal manuelt skifte i Indstillinger.
 
-**Den fundamentale ændring:**
+**Den anbefalede ændring:**
 
 Brug `prefers-color-scheme` som fallback når ingen eksplicit præference er gemt. Implementér det i `loadInitialSettings()` i `appSettingsParse.ts` som en del af "no stored value"-stien — ikke i `DEFAULT_APP_SETTINGS`, da konstanten ellers får en runtime-afhængighed af `window.matchMedia` ved modul-load:
 
 ```ts
-// I loadInitialSettings(), i "no stored value"-stien:
 const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 return { ...DEFAULT_APP_SETTINGS, themeMode: systemPrefersDark ? 'dark' : 'light' };
 ```
 
-**Gevinsten:**
+**Gevinsten:** Brugere der allerede har valgt dark mode i deres OS, får den forventede standardoplevelse uden manuel opsætning.
 
-Brugere der allerede har valgt dark mode i deres OS behøver ikke at konfigurere det i Mineo. Det er den forventede adfærd i moderne apps.
+---
 
-**Risiko:** `loadInitialSettings()` kalder i dag `parseStoredSettings()` og returnerer defaults ved fejl. `window.matchMedia`-kaldet er sikker i browser-kontekst (Mineo kører ikke i SSR/Node), men skal kommenteres, da det er en ikke-åbenlys runtime-afhængighed i en tilsyneladende ren funktion.
+### 17d. Overvej `AppShellProvider`, men kun hvis det reelt forenkler
+
+`ThemedApp`-mønstret i Stadie 3 er sandsynligvis tilstrækkeligt. En yderligere `AppShellProvider` bør kun indføres hvis den konkrete kode efter implementeringen bliver tydeligt enklere og mere auditérbar.
+
+Dark mode-projektet skal ikke automatisk udløse en ekstra provider-abstraktion.
 
 ---
 
@@ -805,9 +722,8 @@ Brugere der allerede har valgt dark mode i deres OS behøver ikke at konfigurere
 | Anbefaling | Gevinst | Omkostning | Timing |
 |---|---|---|---|
 | **Stadie 8** — Flash-elimineringsscript | Høj (UX) | Meget lav (20 linjer) | Lav ved dark mode |
-| **17d** — `AppShellProvider` | Medium (arkitektur) | Lav (refaktorering af `App.tsx`) | Lav ved dark mode |
-| **17e** — `prefers-color-scheme` default | Medium (UX) | Meget lav (5 linjer) | Lav ved dark mode |
-| **17c** — `useThemeTokens()` hook | Medium (type-sikkerhed) | Lav (ny fil + gradvis migration) | Inkrementelt |
-| **17a** — Afskaf CSS-filer | Høj (langsigtet) | Meget høj (omfangsrig migration) | Opportunistisk |
+| **17c** — `prefers-color-scheme` default | Medium (UX) | Meget lav (5 linjer) | Lav ved dark mode |
+| **17d** — `AppShellProvider` | Lav til medium (arkitektur) | Lav | Kun hvis behovet opstår |
+| **17a** — Stop for ny generel CSS-styling | Medium (langsigtet oprydning) | Lav | Fra første nye UI-ændring efter dark mode |
 
-**Stadie 8**, **17d** og **17e** bør implementeres som en del af dark mode-projektet — de er billige, og det ville være spild at lade dem ligge. **17c** er et godt princip at følge fra dag ét af dark mode-implementeringen. **17a** er en langsigtet ambition der skal adresseres gradvist.
+**Stadie 8** og **17c** bør implementeres som del af dark mode-projektet. **17d** er valgfri. **17a** er en god kodepolitik efterfølgende. En total CSS→MUI-migration er ikke en del af denne anbefaling.

@@ -68,24 +68,24 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
   // Bestem farver baseret på type
   const colors = {
     success: {
-      bg: 'rgba(255, 255, 255, 0.95)',
-      border: '#10B981',
-      text: '#10B981',
+      bg: 'var(--color-overlay-bg)',
+      border: 'var(--color-status-success)',
+      text: 'var(--color-status-success)',
     },
     error: {
-      bg: 'rgba(255, 255, 255, 0.95)',
-      border: '#EF4444',
-      text: '#EF4444',
+      bg: 'var(--color-overlay-bg)',
+      border: 'var(--color-status-error)',
+      text: 'var(--color-status-error)',
     },
     warning: {
-      bg: 'rgba(255, 255, 255, 0.95)',
-      border: '#F59E0B',
-      text: '#F59E0B',
+      bg: 'var(--color-overlay-bg)',
+      border: 'var(--color-status-warning)',
+      text: 'var(--color-status-warning)',
     },
     info: {
-      bg: 'rgba(255, 255, 255, 0.95)',
-      border: '#3B82F6',
-      text: '#3B82F6',
+      bg: 'var(--color-overlay-bg)',
+      border: 'var(--color-status-info)',
+      text: 'var(--color-status-info)',
     },
   };
 

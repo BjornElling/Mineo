@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Box } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { getHtmlTableStyles, htmlTableHeaderStyles, tableColors } from '../../config/tableTheme';
+import { getHtmlTableStyles, htmlTableHeaderStyles } from '../../config/tableTheme';
 
 export type VirtualizedDisplayTableColumn = Readonly<{
   /**
@@ -228,7 +228,7 @@ const VirtualizedDisplayTable = React.memo(
       () => ({
         // `border-collapse: collapse` can prevent borders from painting reliably on sticky headers.
         // Paint the separator line as a background to guarantee it shows both in normal and sticky states.
-        backgroundImage: `linear-gradient(to bottom, transparent calc(100% - 2px), ${tableColors.border} 0)`,
+        backgroundImage: 'linear-gradient(to bottom, transparent calc(100% - 2px), var(--color-table-border) 0)',
       }),
       []
     );
@@ -267,7 +267,7 @@ const VirtualizedDisplayTable = React.memo(
                           .slice(0, rowIndex)
                           .reduce((sum, currentRow) => sum + (currentRow.stickyHeight ?? 36), 0),
                         zIndex: 4 + (resolvedHeaderRows.length - rowIndex),
-                        backgroundColor: tableColors.headerBackground,
+                        backgroundColor: 'var(--color-table-header-bg)',
                         backgroundImage: 'none',
                       }
                     : {}),
@@ -284,7 +284,7 @@ const VirtualizedDisplayTable = React.memo(
                     ? htmlTableHeaderStyles.borderBottom
                     : 'none',
                   ...(rowIndex === resolvedHeaderRows.length - 1 ? headerSeparatorBackground : {}),
-                  borderLeft: cell.borderLeft ? `2px solid ${tableColors.border}` : undefined,
+                  borderLeft: cell.borderLeft ? '2px solid var(--color-table-border)' : undefined,
                 }}
               >
                 {cell.content}
@@ -321,7 +321,7 @@ const VirtualizedDisplayTable = React.memo(
               {Array.from({ length: Math.max(0, endIndex - startIndex + 1) }, (_, offset) => {
                 const rowIndex = startIndex + offset;
                 const isEven = rowIndex % 2 === 1;
-                const backgroundColor = isEven ? tableColors.oddRowBackground : tableColors.evenRowBackground;
+                const backgroundColor = isEven ? 'var(--color-table-row-odd)' : 'var(--color-table-row-even)';
                 return (
                   <tr key={getRowKey(rowIndex)} style={{ height: rowHeight, backgroundColor }}>
                     {columns.map((col, colIdx) => (
@@ -332,7 +332,7 @@ const VirtualizedDisplayTable = React.memo(
                           ...cellBaseStyle,
                           width: col.width,
                           textAlign: col.align ?? 'center',
-                          borderLeft: col.borderLeft ? `2px solid ${tableColors.border}` : undefined,
+                          borderLeft: col.borderLeft ? '2px solid var(--color-table-border)' : undefined,
                         }}
                       >
                         {renderCell(rowIndex, colIdx)}
@@ -367,9 +367,9 @@ const VirtualizedDisplayTable = React.memo(
             height,
             overflowY: 'auto',
             overflowX: 'visible',
-            borderLeft: `1px solid ${tableColors.border}`,
-            borderRight: `1px solid ${tableColors.border}`,
-            borderBottom: `1px solid ${tableColors.border}`,
+            borderLeft: '1px solid var(--color-table-border)',
+            borderRight: '1px solid var(--color-table-border)',
+            borderBottom: '1px solid var(--color-table-border)',
             borderBottomLeftRadius: '16px',
             borderBottomRightRadius: '16px',
           }}
@@ -385,7 +385,7 @@ const VirtualizedDisplayTable = React.memo(
               {Array.from({ length: Math.max(0, endIndex - startIndex + 1) }, (_, offset) => {
                 const rowIndex = startIndex + offset;
                 const isEven = rowIndex % 2 === 1;
-                const backgroundColor = isEven ? tableColors.oddRowBackground : tableColors.evenRowBackground;
+                const backgroundColor = isEven ? 'var(--color-table-row-odd)' : 'var(--color-table-row-even)';
                 return (
                   <tr key={getRowKey(rowIndex)} style={{ height: rowHeight, backgroundColor }}>
                     {columns.map((col, colIdx) => (
@@ -396,7 +396,7 @@ const VirtualizedDisplayTable = React.memo(
                           ...cellBaseStyle,
                           width: col.width,
                           textAlign: col.align ?? 'center',
-                          borderLeft: col.borderLeft ? `2px solid ${tableColors.border}` : undefined,
+                          borderLeft: col.borderLeft ? '2px solid var(--color-table-border)' : undefined,
                         }}
                       >
                         {renderCell(rowIndex, colIdx)}

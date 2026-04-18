@@ -32,6 +32,7 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
       bilagIndkomstYdelserMode: 'Alle' as const,
       bilagIndkomstYdelserRanges: [] as const,
       writer: {
+        addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => { y = nextY; }),
         getY: vi.fn(() => y),
@@ -152,6 +153,7 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
       bilagIndkomstYdelserMode: 'Alle',
       bilagIndkomstYdelserRanges: [],
       writer: {
+        addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => {
           y = nextY;

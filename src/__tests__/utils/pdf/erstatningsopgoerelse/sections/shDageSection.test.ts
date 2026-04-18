@@ -47,6 +47,7 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
       renderSubheader,
       safeAddWrappedText,
       writer: {
+        addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => { y = nextY; }),
         getY: vi.fn(() => y),
@@ -143,7 +144,7 @@ describe('renderShDageSection – beregningsperiode for første opgørelse', () 
 
     renderShDageSection(ctxWithBeregningsperiode);
 
-    expect(renderSubheader).toHaveBeenCalledWith('Beregningsperiode', expect.anything(), expect.anything());
+    expect(renderSubheader).toHaveBeenCalledWith('Beregningsperiode', undefined, { addTopSpacing: false });
   });
 
   it('viser ikke Beregningsperiode-overskrift for anden opgørelse', () => {
@@ -175,7 +176,7 @@ describe('renderShDageSection – SFGG-referenceperiode', () => {
 
     renderShDageSection(ctxWithSfggRange);
 
-    expect(renderSubheader).toHaveBeenCalledWith('SFGG-referenceperiode', expect.anything(), expect.anything());
+    expect(renderSubheader).toHaveBeenCalledWith('SFGG-referenceperiode', undefined, { addTopSpacing: false });
     expect(safeAddWrappedText).toHaveBeenCalledWith('28. marts 2024 - 20. maj 2024');
     expect(autoTableMock).toHaveBeenCalled();
   });

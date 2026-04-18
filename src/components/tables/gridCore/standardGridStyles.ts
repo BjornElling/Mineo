@@ -1,9 +1,8 @@
 import type { CSSProperties } from 'react';
-import { tableColors } from '../../../config/tableTheme';
 
 export const getStandardGridBodyRowStyle = (rowIndex: number): CSSProperties => {
   return {
-    backgroundColor: rowIndex % 2 === 0 ? tableColors.evenRowBackground : tableColors.oddRowBackground,
+    backgroundColor: rowIndex % 2 === 0 ? 'var(--color-table-row-even)' : 'var(--color-table-row-odd)',
   };
 };
 

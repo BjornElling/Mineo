@@ -224,7 +224,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
               width: typeof width === 'number' ? `${width}px` : width,
               position: 'relative',
               '& .MuiOutlinedInput-root': {
-                backgroundColor: '#ffffff',
+                backgroundColor: 'var(--color-input-bg)',
                 borderRadius: '10px',
                 cursor: resolvedCursor,
                 '& textarea': {
@@ -237,25 +237,25 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
                   cursor: resolvedCursor,
                 },
                 '& fieldset': {
-                  borderColor: 'rgba(0, 0, 0, 0.12)',
+                  borderColor: 'var(--color-input-border)',
                   borderWidth: '1px',
                 },
                 '&:hover fieldset': {
-                  borderColor: 'rgba(0, 0, 0, 0.25)',
+                  borderColor: 'var(--color-input-border-hover)',
                 },
                 '&.Mui-focused fieldset': {
-                  borderColor: '#1976d2',
+                  borderColor: 'var(--color-input-border-focus)',
                   borderWidth: '1px',
                 },
                 '&.Mui-error fieldset': {
-                  borderColor: '#d32f2f',
+                  borderColor: 'var(--color-input-border-error)',
                   borderWidth: '1px',
                 },
                 '&.Mui-error:hover fieldset': {
-                  borderColor: '#d32f2f',
+                  borderColor: 'var(--color-input-border-error)',
                 },
                 '&.Mui-error.Mui-focused fieldset': {
-                  borderColor: '#1976d2',
+                  borderColor: 'var(--color-input-border-focus)',
                   borderWidth: '1px',
                 },
               },

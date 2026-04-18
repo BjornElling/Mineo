@@ -15,6 +15,7 @@ vi.mock('../../utils/logger', () => ({
 }));
 
 const baseSettings: AppSettings = {
+  themeMode: 'light',
   defaultStartsideErStamdata: false,
   showContentBoxReportButton: false,
   showEODebugMenu: false,

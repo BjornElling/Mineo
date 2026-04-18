@@ -558,7 +558,7 @@ const Container = React.memo(({ children }: ContainerProps) => {
         sx={{
           flex: 1,
           padding: 3,
-          backgroundColor: '#f8f9fa',
+          backgroundColor: 'var(--color-surface)',
           overflowY: 'auto',
           overflowX: 'auto',
           height: '100vh'

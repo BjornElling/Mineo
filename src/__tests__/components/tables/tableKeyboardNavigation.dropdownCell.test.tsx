@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Container from '../../../components/layout/Container';
 import StandardLooseTable from '../../../components/tables/StandardLooseTable';
@@ -128,8 +128,8 @@ describe('tableKeyboardNavigation dropdown-celle integration', () => {
           </tbody>
         </StandardLooseTable>
         <div className="row--label-right-hover">
-          <input data-testid="below-first" type="text" readOnly style={{ position: 'fixed' }} />
-          <input data-testid="below-last" type="text" readOnly style={{ position: 'fixed' }} />
+          <input data-testid="below-first" type="text" readOnly style={{ position: 'fixed', width: '100px', height: '20px' }} />
+          <input data-testid="below-last" type="text" readOnly style={{ position: 'fixed', width: '100px', height: '20px' }} />
         </div>
       </Container>
     );
@@ -147,9 +147,17 @@ describe('tableKeyboardNavigation dropdown-celle integration', () => {
       configurable: true,
       value: () => ({ x: 10, y: 340, width: 100, height: 20, top: 340, left: 10, right: 110, bottom: 360, toJSON: () => ({}) }) as DOMRect,
     });
+    Object.defineProperty(belowFirst, 'getClientRects', {
+      configurable: true,
+      value: () => [{ x: 10, y: 340, width: 100, height: 20, top: 340, left: 10, right: 110, bottom: 360, toJSON: () => ({}) }] as DOMRectList,
+    });
     Object.defineProperty(belowLast, 'getBoundingClientRect', {
       configurable: true,
       value: () => ({ x: 220, y: 340, width: 100, height: 20, top: 340, left: 220, right: 320, bottom: 360, toJSON: () => ({}) }) as DOMRect,
+    });
+    Object.defineProperty(belowLast, 'getClientRects', {
+      configurable: true,
+      value: () => [{ x: 220, y: 340, width: 100, height: 20, top: 340, left: 220, right: 320, bottom: 360, toJSON: () => ({}) }] as DOMRectList,
     });
     Object.defineProperty(belowRow, 'getBoundingClientRect', {
       configurable: true,
@@ -163,9 +171,11 @@ describe('tableKeyboardNavigation dropdown-celle integration', () => {
 
     await user.keyboard('{ArrowDown}');
 
-    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
-    expect(document.activeElement).toBe(belowFirst);
-    expect(document.activeElement).not.toBe(belowLast);
+    await waitFor(() => {
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      expect(document.activeElement).toBe(belowFirst);
+      expect(document.activeElement).not.toBe(belowLast);
+    });
   }, TEST_TIMEOUT_MS);
 
   it('ArrowRight navigerer ikke væk når TableDropdown er åben', async () => {

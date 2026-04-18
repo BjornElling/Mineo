@@ -59,6 +59,7 @@ export type AppSettingsSvieSmerteDelvisSygemeldingSatsOption =
 
 export const appSettingsSchema = z
   .object({
+    themeMode: z.enum(['light', 'dark']),
     defaultStartsideErStamdata: z.boolean(),
     showContentBoxReportButton: z.boolean(),
     showEODebugMenu: z.boolean(),
@@ -85,6 +86,7 @@ export const appSettingsSchema = z
 export type AppSettings = z.infer<typeof appSettingsSchema>;
 
 export const DEFAULT_APP_SETTINGS: AppSettings = {
+  themeMode: 'light',
   defaultStartsideErStamdata: false,
   showContentBoxReportButton: false,
   showEODebugMenu: false,

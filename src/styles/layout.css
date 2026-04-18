@@ -23,6 +23,70 @@
   --color-hover: rgba(0, 0, 0, 0.04);
   --color-shadow: rgba(0, 0, 0, 0.08);
   --color-border: rgba(0, 0, 0, 0.08);
+  --color-surface: #f8f9fa;
+  --color-surface-border: #e9ecef;
+  --color-icon-muted: #6c757d;
+  --color-icon-action-hover: rgba(25, 118, 210, 0.12);
+  --color-icon-action-active: rgba(25, 118, 210, 0.2);
+  --color-surface-raised: #eef2f6;
+  --color-surface-raised-hover: #e4eaf2;
+  --color-input-bg: #ffffff;
+  --color-input-border: rgba(0, 0, 0, 0.12);
+  --color-input-border-hover: rgba(0, 0, 0, 0.25);
+  --color-input-border-focus: #1976d2;
+  --color-input-border-error: #d32f2f;
+  --color-input-disabled-bg: rgba(0, 0, 0, 0.035);
+  --color-input-disabled-text: rgba(0, 0, 0, 0.72);
+  --color-input-placeholder: rgba(0, 0, 0, 0.4);
+  --color-table-border: #e5e7eb;
+  --color-table-header-bg: #f8fafc;
+  --color-table-row-odd: #f9fafb;
+  --color-table-row-even: #ffffff;
+  --color-overlay-bg: rgba(255, 255, 255, 0.95);
+  --color-grid-derived-text: var(--color-text-secondary);
+  --color-grid-expression-indicator: rgba(0, 0, 0, 0.45);
+  --color-status-success: #10b981;
+  --color-status-error: #ef4444;
+  --color-status-warning: #f59e0b;
+  --color-status-info: #3b82f6;
+}
+
+:root[data-mineo-theme='dark'] {
+  --color-primary: #90caf9;
+  --color-text-primary: rgba(255, 255, 255, 0.87);
+  --color-text-secondary: rgba(255, 255, 255, 0.6);
+  --color-active-bg: rgba(144, 202, 249, 0.12);
+  --color-active-bg-hover: rgba(144, 202, 249, 0.18);
+  --color-background-white: #1e1e1e;
+  --color-hover: rgba(255, 255, 255, 0.06);
+  --color-shadow: rgba(0, 0, 0, 0.4);
+  --color-border: rgba(255, 255, 255, 0.1);
+  --color-surface: #141414;
+  --color-surface-border: rgba(255, 255, 255, 0.1);
+  --color-surface-raised: #2e2e2e;
+  --color-surface-raised-hover: #383838;
+  --color-icon-muted: rgba(255, 255, 255, 0.5);
+  --color-icon-action-hover: rgba(255, 255, 255, 0.08);
+  --color-icon-action-active: rgba(255, 255, 255, 0.14);
+  --color-input-bg: #2a2a2a;
+  --color-input-border: rgba(255, 255, 255, 0.15);
+  --color-input-border-hover: rgba(255, 255, 255, 0.3);
+  --color-input-border-focus: #90caf9;
+  --color-input-border-error: #ef9a9a;
+  --color-input-disabled-bg: rgba(255, 255, 255, 0.05);
+  --color-input-disabled-text: rgba(255, 255, 255, 0.5);
+  --color-input-placeholder: rgba(255, 255, 255, 0.35);
+  --color-table-border: rgba(255, 255, 255, 0.1);
+  --color-table-header-bg: #252525;
+  --color-table-row-odd: #1e1e1e;
+  --color-table-row-even: #222222;
+  --color-overlay-bg: rgba(30, 30, 30, 0.97);
+  --color-grid-derived-text: var(--color-text-secondary);
+  --color-grid-expression-indicator: rgba(255, 255, 255, 0.45);
+  --color-status-success: #4caf7d;
+  --color-status-error: #e05252;
+  --color-status-warning: #c8922a;
+  --color-status-info: #5a9fd4;
 }
 
 /* ==================== Content Box Container ==================== */
@@ -170,6 +234,11 @@
   display: flex;
   align-items: center;
   gap: 12px;
+  color: var(--color-text-primary);
+}
+
+.icon-text-row .MuiSvgIcon-root {
+  color: inherit;
 }
 
 /* Nummereret liste-element med grid */

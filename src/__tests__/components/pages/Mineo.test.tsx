@@ -175,6 +175,7 @@ describe('Mineo - License Modal Integration', () => {
       const raw = readLocalStorage(LOCAL_STORAGE_KEY);
       expect(raw).toBeDefined();
       expect(JSON.parse(raw ?? '{}')).toMatchObject({
+        themeMode: DEFAULT_APP_SETTINGS.themeMode,
         defaultStartsideErStamdata: true,
         showContentBoxReportButton: DEFAULT_APP_SETTINGS.showContentBoxReportButton,
         showEODebugMenu: DEFAULT_APP_SETTINGS.showEODebugMenu,

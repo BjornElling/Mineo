@@ -498,7 +498,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
   const inputSxBase: SxProps<Theme> = {
     width: '100%',
     borderRadius: '10px',
-    backgroundColor: '#ffffff',
+    backgroundColor: 'var(--color-input-bg)',
     paddingRight: '36px',
     cursor: disabled || hasConfigError ? 'default' : 'pointer',
     '& input': {
@@ -511,29 +511,29 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       cursor: disabled || hasConfigError ? 'default' : 'pointer',
     },
     '& .MuiOutlinedInput-notchedOutline': {
-      borderColor: 'rgba(0,0,0,0.12)',
+      borderColor: 'var(--color-input-border)',
       borderWidth: '1px',
     },
     '&:hover .MuiOutlinedInput-notchedOutline': {
-      borderColor: 'rgba(0,0,0,0.25)',
+      borderColor: 'var(--color-input-border-hover)',
     },
     '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#1976d2',
+      borderColor: 'var(--color-input-border-focus)',
       borderWidth: '1px',
     },
     '&.Mui-error .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#d32f2f',
+      borderColor: 'var(--color-input-border-error)',
       borderWidth: '1px',
     },
     '&.Mui-error:hover .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#d32f2f',
+      borderColor: 'var(--color-input-border-error)',
     },
     '&.Mui-error.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#1976d2',
+      borderColor: 'var(--color-input-border-focus)',
       borderWidth: '1px',
     },
     '& input::placeholder': {
-      color: 'rgba(0,0,0,0.4)',
+      color: 'var(--color-input-placeholder)',
       opacity: 1,
     },
   };
@@ -580,7 +580,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
             top: '50%',
             transform: 'translateY(-50%)',
             pointerEvents: 'none',
-            color: 'rgba(0,0,0,0.6)',
+            color: 'var(--color-text-secondary)',
           },
           ...iconSx,
         ]
@@ -591,7 +591,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
             top: '50%',
             transform: 'translateY(-50%)',
             pointerEvents: 'none',
-            color: 'rgba(0,0,0,0.6)',
+            color: 'var(--color-text-secondary)',
           },
           iconSx,
         ]
@@ -601,7 +601,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         top: '50%',
         transform: 'translateY(-50%)',
         pointerEvents: 'none',
-        color: 'rgba(0,0,0,0.6)',
+        color: 'var(--color-text-secondary)',
       };
 
   const showError = error && helperText.trim() !== '';
@@ -775,7 +775,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
                   sx={{
                     mx: 2,
                     my: 0.5,
-                    borderTop: '1px solid rgba(0,0,0,0.14)',
+                    borderTop: '1px solid var(--color-surface-border)',
                     pointerEvents: 'none',
                   }}
                 />
@@ -791,11 +791,11 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
                       cursor: 'pointer',
                       backgroundColor:
                         highlightedIndex === index
-                          ? 'rgba(25, 118, 210, 0.08)'
+                          ? 'var(--color-active-bg)'
                           : isSelected
-                            ? 'rgba(25, 118, 210, 0.12)'
+                            ? 'var(--color-active-bg-hover)'
                             : 'transparent',
-                      '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.08)' },
+                      '&:hover': { backgroundColor: 'var(--color-active-bg)' },
                     },
                     ...optionSx,
                   ]
@@ -804,11 +804,11 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
                       cursor: 'pointer',
                       backgroundColor:
                         highlightedIndex === index
-                          ? 'rgba(25, 118, 210, 0.08)'
+                          ? 'var(--color-active-bg)'
                           : isSelected
-                            ? 'rgba(25, 118, 210, 0.12)'
+                            ? 'var(--color-active-bg-hover)'
                             : 'transparent',
-                      '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.08)' },
+                      '&:hover': { backgroundColor: 'var(--color-active-bg)' },
                     },
                     optionSx,
                   ]
@@ -816,11 +816,11 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
                   cursor: 'pointer',
                   backgroundColor:
                     highlightedIndex === index
-                      ? 'rgba(25, 118, 210, 0.08)'
+                      ? 'var(--color-active-bg)'
                       : isSelected
-                        ? 'rgba(25, 118, 210, 0.12)'
+                        ? 'var(--color-active-bg-hover)'
                         : 'transparent',
-                  '&:hover': { backgroundColor: 'rgba(25, 118, 210, 0.08)' },
+                  '&:hover': { backgroundColor: 'var(--color-active-bg)' },
                 };
 
             return (
@@ -837,7 +837,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
                 sx={optionSxMerged}
                 onMouseEnter={() => setHighlightedIndex(index)}
               >
-                {opt.kind === 'empty' ? <em style={{ color: 'rgba(0,0,0,0.4)' }}>{placeholder}</em> : opt.children}
+                {opt.kind === 'empty' ? <em style={{ color: 'var(--color-input-placeholder)' }}>{placeholder}</em> : opt.children}
               </MenuItem>
             );
           })}

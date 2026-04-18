@@ -14,6 +14,7 @@ describe('DEFAULT_APP_SETTINGS', () => {
   });
 
   it('har alle forventede felter', () => {
+    expect(DEFAULT_APP_SETTINGS.themeMode).toBe('light');
     expect(typeof DEFAULT_APP_SETTINGS.defaultStartsideErStamdata).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.showContentBoxReportButton).toBe('boolean');
     expect(typeof DEFAULT_APP_SETTINGS.showEODebugMenu).toBe('boolean');

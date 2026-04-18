@@ -36,10 +36,10 @@ const InsertTodayDateButton = React.memo(
             cursor: 'pointer',
             transition: 'background-color 0.15s ease',
             '&:hover': {
-              backgroundColor: '#e3f2fd',
+              backgroundColor: 'var(--color-icon-action-hover)',
             },
             '&:active': {
-              backgroundColor: '#bbdefb',
+              backgroundColor: 'var(--color-icon-action-active)',
             },
             ...sx,
           }}
@@ -59,4 +59,3 @@ const InsertTodayDateButton = React.memo(
 InsertTodayDateButton.displayName = 'InsertTodayDateButton';
 
 export default InsertTodayDateButton;
-

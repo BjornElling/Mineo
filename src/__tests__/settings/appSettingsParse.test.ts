@@ -127,6 +127,12 @@ describe('mergeAppSettings', () => {
 // ─── loadInitialSettings ─────────────────────────────────────────────────────
 
 describe('loadInitialSettings', () => {
+  const originalMatchMedia = window.matchMedia;
+
+  afterEach(() => {
+    window.matchMedia = originalMatchMedia;
+  });
+
   it('gyldigt JSON i localStorage → returnerer parsede settings', () => {
     // Skriv gyldige settings til localStorage (in-memory i testmiljø)
     writeLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify(DEFAULT_APP_SETTINGS));
@@ -152,7 +158,29 @@ describe('loadInitialSettings', () => {
     writeLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify(DEFAULT_APP_SETTINGS));
     const result = loadInitialSettings();
     expect(typeof result).toBe('object');
+    expect(result).toHaveProperty('themeMode');
     expect(result).toHaveProperty('defaultFuldLoenUnderFerie');
     expect(result).toHaveProperty('showContentBoxReportButton');
+  });
+
+  it('ingen persisted settings + prefers-color-scheme mørk → default er dark', () => {
+    writeLocalStorage(LOCAL_STORAGE_KEY, '');
+    window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+      matches: query === '(prefers-color-scheme: dark)',
+      media: query,
+      onchange: null,
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })) as typeof window.matchMedia;
+
+    const result = loadInitialSettings();
+
+    expect(result).toEqual({
+      ...DEFAULT_APP_SETTINGS,
+      themeMode: 'dark',
+    });
   });
 });

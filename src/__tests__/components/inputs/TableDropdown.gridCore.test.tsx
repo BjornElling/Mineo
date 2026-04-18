@@ -181,4 +181,120 @@ describe('TableDropdown GridCore integration', () => {
 
     expect(onChange).toHaveBeenCalledWith({ target: { value: 'b' } });
   });
+
+  it('åbner menuen ved almindeligt klik og Enter', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <GridCoreProvider
+        value={{
+          focusedCell: null,
+          editingCell: null,
+          openEditing: vi.fn(),
+          closeEditing: vi.fn(),
+          registerEditor: vi.fn(),
+          unregisterEditor: vi.fn(),
+          getEditor: vi.fn().mockReturnValue(null),
+          requestFocusPlan: vi.fn(),
+        }}
+      >
+        <TableDropdown
+          value="a"
+          options={[{ value: 'a', label: 'Alfa' }]}
+        />
+      </GridCoreProvider>
+    );
+
+    const trigger = screen.getByRole('combobox');
+    await user.click(trigger);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+
+    trigger.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+  });
+
+  it('åbner ikke menuen når der er aktiv tekstmarkering i dropdown-triggeren', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <GridCoreProvider
+        value={{
+          focusedCell: null,
+          editingCell: null,
+          openEditing: vi.fn(),
+          closeEditing: vi.fn(),
+          registerEditor: vi.fn(),
+          unregisterEditor: vi.fn(),
+          getEditor: vi.fn().mockReturnValue(null),
+          requestFocusPlan: vi.fn(),
+        }}
+      >
+        <TableDropdown
+          value="a"
+          options={[{ value: 'a', label: 'Alfa' }]}
+        />
+      </GridCoreProvider>
+    );
+
+    const selectionMock = {
+      rangeCount: 1,
+      isCollapsed: false,
+      getRangeAt: vi.fn(),
+    };
+    const selectionSpy = vi.spyOn(window, 'getSelection').mockReturnValue(selectionMock as unknown as Selection);
+
+    const trigger = screen.getByRole('combobox');
+    const textNode = trigger.firstChild ?? trigger;
+    selectionMock.getRangeAt.mockReturnValue({ commonAncestorContainer: textNode });
+
+    await user.click(trigger);
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+
+    selectionSpy.mockRestore();
+  });
+
+  it('åbner ikke menuen efter mouseup med aktiv tekstmarkering i dropdown-triggeren', async () => {
+    render(
+      <GridCoreProvider
+        value={{
+          focusedCell: null,
+          editingCell: null,
+          openEditing: vi.fn(),
+          closeEditing: vi.fn(),
+          registerEditor: vi.fn(),
+          unregisterEditor: vi.fn(),
+          getEditor: vi.fn().mockReturnValue(null),
+          requestFocusPlan: vi.fn(),
+        }}
+      >
+        <TableDropdown
+          value="a"
+          options={[{ value: 'a', label: 'Alfa' }]}
+        />
+      </GridCoreProvider>
+    );
+
+    const selectionMock = {
+      rangeCount: 1,
+      isCollapsed: false,
+      getRangeAt: vi.fn(),
+    };
+    const selectionSpy = vi.spyOn(window, 'getSelection').mockReturnValue(selectionMock as unknown as Selection);
+
+    const trigger = screen.getByRole('combobox');
+    const textNode = trigger.firstChild ?? trigger;
+    selectionMock.getRangeAt.mockReturnValue({ commonAncestorContainer: textNode });
+
+    fireEvent.mouseUp(trigger);
+    fireEvent.click(trigger);
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+
+    selectionSpy.mockRestore();
+  });
 });

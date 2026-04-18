@@ -15,9 +15,21 @@ const cloneDefaultAppSettings = (): AppSettings => ({
   brevhovedIndstillinger: { ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger },
 });
 
+const readSystemThemeMode = (): AppSettings['themeMode'] => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+    return DEFAULT_APP_SETTINGS.themeMode;
+  }
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+};
+
+const createDefaultAppSettings = (): AppSettings => ({
+  ...cloneDefaultAppSettings(),
+  themeMode: readSystemThemeMode(),
+});
+
 export const resolveAppSettings = (raw: unknown): AppSettings => {
   const parsed = appSettingsSchema.safeParse(raw);
-  return parsed.success ? parsed.data : cloneDefaultAppSettings();
+  return parsed.success ? parsed.data : createDefaultAppSettings();
 };
 
 /**
@@ -25,12 +37,12 @@ export const resolveAppSettings = (raw: unknown): AppSettings => {
  * Tolerant mod manglende keys - merger med defaults før validering.
  */
 export const parseStoredSettings = (raw: unknown): AppSettings => {
-  if (!isRecord(raw)) return cloneDefaultAppSettings();
+  if (!isRecord(raw)) return createDefaultAppSettings();
 
   // Tolerant mod manglende keys (fremtidig schema-evolution).
   // Vi håndhæver stadig korrekte typer via Zod.
   const merged: unknown = {
-    ...cloneDefaultAppSettings(),
+    ...createDefaultAppSettings(),
     ...raw,
     brevhovedIndstillinger: isRecord(raw.brevhovedIndstillinger)
       ? {
@@ -67,11 +79,11 @@ export const mergeAppSettings = (
  */
 export const loadInitialSettings = (): AppSettings => {
   const raw = readLocalStorage(LOCAL_STORAGE_KEY);
-  if (!raw) return cloneDefaultAppSettings();
+  if (!raw) return createDefaultAppSettings();
   try {
     const parsed: unknown = JSON.parse(raw);
     return parseStoredSettings(parsed);
   } catch {
-    return cloneDefaultAppSettings();
+    return createDefaultAppSettings();
   }
 };

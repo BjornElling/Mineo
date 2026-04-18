@@ -552,11 +552,15 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
 
     // Release edge arrows so Container can continue navigation outside the table.
     if (atTopEdge || atBottomEdge) {
+      const nativeEvent = e.nativeEvent as unknown as { mineoTableBoundaryExit?: boolean };
+      nativeEvent.mineoTableBoundaryExit = true;
       e.preventDefault();
-      e.stopPropagation();
       tabAnchorByTable.delete(table);
       if (activeFocusable) {
-        moveFocusOutsideTable(table, activeFocusable, key === 'ArrowUp' ? 'up' : 'down');
+        const movedOutsideTable = moveFocusOutsideTable(table, activeFocusable, key === 'ArrowUp' ? 'up' : 'down');
+        if (movedOutsideTable) {
+          e.stopPropagation();
+        }
       }
       return;
     }

@@ -1,7 +1,6 @@
 import * as React from 'react';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
-import { tableColors } from '../../config/tableTheme';
 import type { GridSortDirection, GridSortRole } from './gridCore/gridModel';
 
 /**
@@ -11,7 +10,7 @@ import type { GridSortDirection, GridSortRole } from './gridCore/gridModel';
 export const SortIcon = React.memo(
   ({ sortRole, sortDirection }: { sortRole: GridSortRole; sortDirection: GridSortDirection }) => {
     const Icon = sortDirection === 'desc' ? KeyboardArrowDownIcon : KeyboardArrowUpIcon;
-    const color = sortRole === 'primary' ? tableColors.sortPrimaryColor : tableColors.sortSecondaryColor;
+    const color = sortRole === 'primary' ? 'var(--color-primary)' : 'var(--color-text-secondary)';
     return (
       <Icon
         sx={{

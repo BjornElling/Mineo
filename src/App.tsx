@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ThemeProvider, createTheme } from '@mui/material';
+import { ThemeProvider } from '@mui/material';
 import { FormPersistenceProvider } from './contexts/FormPersistenceContext';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import MainLayout from './components/layout/MainLayout';
@@ -17,83 +17,10 @@ import Indstillinger from './components/pages/Indstillinger';
 import Mineo from './components/pages/Mineo';
 import OpenEo from './components/pages/OpenEo';
 import { useAppSettings } from './contexts/useAppSettings';
+import { buildTheme } from './config/appTheme';
 
 type PageComponent = React.ComponentType<Record<string, never>>;
 type AppRoute = { path: string; component: PageComponent };
-
-/**
- * MUI tema konfiguration
- *
- * VIGTIGT: Dette er den PRIMÆRE kilde til typografi og styling i MINEO.
- * CSS variabler i typography.css og layout.css er synkroniseret med disse værdier.
- * Alle MUI-komponent overrides skal defineres her - IKKE i CSS.
- */
-const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-    text: {
-      primary: 'rgba(0, 0, 0, 0.87)',
-      secondary: 'rgba(0, 0, 0, 0.6)',
-    },
-  },
-  typography: {
-    fontFamily: 'Montserrat, sans-serif',
-    fontSize: 14,
-    allVariants: {
-      // Debug: farvemarkering af MUI-standard tekst (styres via `fontStyleColorDebug` / CSS variable).
-      color: 'var(--mineo-color-mui-typography-default, rgba(0, 0, 0, 0.87))',
-    },
-  },
-  components: {
-    MuiTypography: {
-      defaultProps: {
-        color: 'text.primary',
-      },
-    },
-    MuiInputBase: {
-      styleOverrides: {
-        root: {
-          fontFamily: 'Montserrat, sans-serif',
-          fontSize: '14px',
-          fontWeight: 400,
-          color: 'var(--mineo-color-input-text, rgba(0, 0, 0, 0.87))',
-        },
-        input: {
-          fontFamily: 'Montserrat, sans-serif',
-          fontSize: '14px',
-          fontWeight: 400,
-          color: 'inherit',
-        },
-      },
-    },
-    MuiMenuItem: {
-      styleOverrides: {
-        root: {
-          fontFamily: 'Montserrat, sans-serif',
-          fontSize: '14px',
-          fontWeight: 400,
-        },
-      },
-    },
-    MuiButton: {
-      defaultProps: {
-        disableRipple: false,
-      },
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          color: 'inherit',
-          fontWeight: 'inherit',
-        },
-      },
-    },
-  },
-});
 
 /**
  * Route-konfiguration til MINEO applikationen
@@ -141,6 +68,43 @@ const RootRedirect = () => {
   return <Navigate to={settings.defaultStartsideErStamdata ? '/stamdata' : '/mineo'} replace />;
 };
 
+const ThemedApp = () => {
+  const { settings } = useAppSettings();
+  const theme = React.useMemo(() => buildTheme(settings.themeMode), [settings.themeMode]);
+
+  // Memoisér page wrappers for at undgå at genoprette dem ved hver render
+  const pageWrappers = React.useMemo(() => {
+    return routes.map(({ path, component }) => ({
+      path,
+      element: createPageWrapper(component),
+    }));
+  }, []);
+
+  return (
+    <ThemeProvider theme={theme}>
+      <BrowserRouter>
+        <FormPersistenceProvider>
+          <Routes>
+            <Route path="/" element={<RootRedirect />} />
+            {pageWrappers.map(({ path, element: PageWrapper }) => (
+              <Route key={path} path={path} element={<PageWrapper />} />
+            ))}
+            <Route
+              path="*"
+              element={
+                <div style={{ padding: '40px' }}>
+                  <h2>404 - Side ikke fundet</h2>
+                  <p>URL: {window.location.pathname}</p>
+                </div>
+              }
+            />
+          </Routes>
+        </FormPersistenceProvider>
+      </BrowserRouter>
+    </ThemeProvider>
+  );
+};
+
 /**
  * Hovedkomponent for MINEO applikationen
  */
@@ -161,38 +125,10 @@ function App() {
     };
   }, []);
 
-  // Memoisér page wrappers for at undgå at genoprette dem ved hver render
-  const pageWrappers = React.useMemo(() => {
-    return routes.map(({ path, component }) => ({
-      path,
-      element: createPageWrapper(component),
-    }));
-  }, []);
-
   return (
-    <ThemeProvider theme={theme}>
-      <AppSettingsProvider>
-        <BrowserRouter>
-          <FormPersistenceProvider>
-            <Routes>
-              <Route path="/" element={<RootRedirect />} />
-              {pageWrappers.map(({ path, element: PageWrapper }) => (
-                <Route key={path} path={path} element={<PageWrapper />} />
-              ))}
-              <Route
-                path="*"
-                element={
-                  <div style={{ padding: '40px' }}>
-                    <h2>404 - Side ikke fundet</h2>
-                    <p>URL: {window.location.pathname}</p>
-                  </div>
-                }
-              />
-            </Routes>
-          </FormPersistenceProvider>
-        </BrowserRouter>
-      </AppSettingsProvider>
-    </ThemeProvider>
+    <AppSettingsProvider>
+      <ThemedApp />
+    </AppSettingsProvider>
   );
 }
 
