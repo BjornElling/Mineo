@@ -8,7 +8,6 @@ import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import {
   resolvePdfSectionEndY,
-  PDF_BASE_LINE_HEIGHT_MM,
   type BrevhovedData,
 } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
@@ -417,12 +416,12 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   });
 
   if (offentligLoenEkstraGrundloenTekst) {
-    writer.writeBoldSubheader('Forhøjet grundløn', 2 * PDF_BASE_LINE_HEIGHT_MM);
+    writer.writeBoldSubheader('Forhøjet grundløn');
     writer.writeWrappedText('Skadelidtes grundløn er forhøjet sammenholdt med nedenstående løntrin.');
     writer.writeWrappedText(`Forhøjelsen udgør ${offentligLoenEkstraGrundloenTekst}.`);
   }
 
-  writer.addSpacer(PDF_BASE_LINE_HEIGHT_MM - 1);
+  writer.addSectionSpacer();
 
   let tableData: { columns: TableColumn[]; rows: string[][] } | null = null;
 

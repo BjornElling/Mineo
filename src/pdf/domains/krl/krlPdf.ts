@@ -8,7 +8,6 @@
 import type { RowInput } from 'jspdf-autotable';
 import { PDF_CONTENT_WIDTH_MM } from '../../infrastructure/pdfConfig';
 import {
-  PDF_BASE_LINE_HEIGHT_MM,
   resolvePdfSectionEndY,
   type BrevhovedData,
 } from '../../shared/pdfHelpers';
@@ -149,7 +148,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   writer.setY(resolvePdfSectionEndY(finalY, writer.getY()));
 
   // Kildetekst under tabellen
-  writer.writeBoldSubheader('Kilde', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kilde');
   writer.writeWrappedText('KRL\'s sats-tabeller kan genfindes på https://www.krl.dk/#/sats');
 
   writer.addFooter();

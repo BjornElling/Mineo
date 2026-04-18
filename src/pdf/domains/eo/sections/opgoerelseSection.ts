@@ -23,11 +23,11 @@ type OpgorelseSectionContext = Readonly<{
   afsluttesMed: 'Bekræftet godkendt' | 'Underskrift-linje';
   NBSP: string;
   rightColumnWidth: number;
-  renderSectionHeader: (text: string, nextLineHeight: number) => void;
-  renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSectionHeader: (text: string, nextLineHeight?: number) => void;
+  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   renderSubheaderIfContent: (params: Readonly<{
     text: string;
-    nextLineHeight: number;
+    nextLineHeight?: number;
     hasContent: boolean;
     renderContent: () => void;
     options?: Readonly<{ addTopSpacing?: boolean }>;
@@ -73,6 +73,7 @@ type OpgorelseSectionContext = Readonly<{
   formatDateLong: (isoDate: ISODateString | undefined) => string;
   formatPercentDelta: (value: number) => string;
   writer: Readonly<{
+    addSectionSpacer: () => void;
     addPage: () => void;
     addSpacer: (height: number) => void;
     advanceY: (height: number) => void;
@@ -211,7 +212,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   const rightMaxWidth = writer.getTextWidth('000.000.000,00');
 
   if (model.forlig.erIndgaaet) {
-    renderSectionHeader('Erstatningsniveau', lineHeight);
+    renderSectionHeader('Erstatningsniveau');
     const forligDatoTekst = model.forlig.dato ? `den ${formatDateLong(model.forlig.dato)}` : null;
     const tekst = forligDatoTekst
       ? `Der er ${forligDatoTekst} indgået forlig i sagen på betaling af ${model.forlig.label}.`
@@ -219,7 +220,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     safeAddWrappedText(tekst);
   }
 
-  renderSectionHeader('Svie- og smertegodtgørelse', lineHeight);
+  renderSectionHeader('Svie- og smertegodtgørelse');
   assertModelInvariant(
     model.svieSmerte.harPerioder === (model.svieSmerte.periodeLinjer.length > 0),
     'svieSmerte.harPerioder matcher ikke svieSmerte.periodeLinjer.'
@@ -229,7 +230,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   } else {
     renderSubheaderIfContent({
       text: 'Status',
-      nextLineHeight: lineHeight,
       hasContent: model.svieSmerte.statusLinjer.length > 0,
       options: { addTopSpacing: false },
       renderContent: () => {
@@ -240,7 +240,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       },
     });
 
-    renderSubheader(model.svieSmerte.periodeHeading, lineHeight);
+    renderSubheader(model.svieSmerte.periodeHeading);
     if (!model.svieSmerte.harPerioder) {
       safeAddWrappedText('Ingen');
     } else {
@@ -249,7 +249,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     }
     writeBilagReferenceLinje(bilag.svieSmerteDokumentation);
 
-    renderSubheader('Beregningsgrundlag', lineHeight);
+    renderSubheader('Beregningsgrundlag');
     const satserAar = model.svieSmerte.satserAar !== null ? String(model.svieSmerte.satserAar) : '-';
     safeAddWrappedText(`Beregningen af godtgørelse foretages ud fra satserne i år ${satserAar}.`);
 
@@ -328,7 +328,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         safeAddWrappedText(tekst);
       }
     }
-    renderSubheader('Beregnet krav på svie- og smertegodtgørelse', lineHeight);
+    renderSubheader('Beregnet krav på svie- og smertegodtgørelse');
     const sygedage = model.svieSmerte.sygedage;
     const delviseSygedage = model.svieSmerte.delviseSygedage;
     const perDagOre = model.svieSmerte.satserPerDag.status === 'ok' ? model.svieSmerte.satserPerDag.value : null;
@@ -378,7 +378,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     }
   }
 
-  renderSectionHeader('Tabt arbejdsfortjeneste', lineHeight);
+  renderSectionHeader('Tabt arbejdsfortjeneste');
   const tafPerioderLines = model.tabtArbejdsfortjeneste.tafPerioderLinjer;
   const hasTafPerioder = model.tabtArbejdsfortjeneste.harTafPerioder;
   assertModelInvariant(hasTafPerioder === (tafPerioderLines.length > 0), 'harTafPerioder matcher ikke tafPerioderLinjer.');
@@ -388,7 +388,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   } else {
     renderSubheaderIfContent({
       text: 'Status',
-      nextLineHeight: lineHeight,
       hasContent:
         model.tabtArbejdsfortjeneste.statusLinjer.length > 0 ||
         model.tabtArbejdsfortjeneste.eetLinjer.length > 0 ||
@@ -412,7 +411,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const tafPeriodeHeader = model.tabtArbejdsfortjeneste.tafPerioderLinjer.length > 1
       ? 'Erstatningsperioder, hvor der beregnes tabt arbejdsfortjeneste'
       : 'Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste';
-    renderSubheader(tafPeriodeHeader, lineHeight);
+    renderSubheader(tafPeriodeHeader);
 
     if (!hasTafPerioder) {
       safeAddWrappedText('Ingen');
@@ -421,7 +420,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       safeAddWrappedText(line);
     }
 
-    renderSubheader('Indkomst på skadestidspunktet', lineHeight);
+    renderSubheader('Indkomst på skadestidspunktet');
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
 
     if (model.tabtArbejdsfortjeneste.skalKomprimereIndkomstBeregning && indkomst) {
@@ -450,10 +449,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             rightMaxWidth,
             { rightFontStyle: 'normal' }
           );
-          writer.advanceY(lineHeight);
+          writer.addSectionSpacer();
         } else if (indkomst?.beregningsgrundlagMellemregningLabel) {
           safeAddWrappedText(indkomst.beregningsgrundlagMellemregningLabel);
-          writer.advanceY(lineHeight);
+          writer.addSectionSpacer();
         } else if (indkomst?.beregningsgrundlagMellemregningResultat) {
           safeAddWrappedText(indkomst.beregningsgrundlagMellemregningResultat);
         }
@@ -500,11 +499,11 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
               { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
             );
           }
-          writer.advanceY(lineHeight);
+          writer.addSectionSpacer();
         }
         if (indkomst.offentligeYdelser.length > 0) {
           if (indkomst.arbejdssteder.length === 0) {
-            writer.advanceY(lineHeight);
+            writer.addSectionSpacer();
           }
           writer.ensureSpace(lineHeight * 2);
           writer.writeUnderlinedSubheader('Offentlige ydelser');
@@ -524,7 +523,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
               { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
             );
           }
-          writer.advanceY(lineHeight);
+          writer.addSectionSpacer();
         }
 
         if (indkomst.samletBeregningsgrundlagOre !== null) {
@@ -624,7 +623,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     );
 
     if (loenudvikling) {
-      writer.addSpacer(lineHeight);
+      writer.addSectionSpacer();
       const renderLoenudviklingSegments = (
         segments: readonly LoenudviklingSegment[],
         total: Calculable<MoneyOre>,
@@ -669,12 +668,11 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       const harPerAnsaettelse = loenudvikling.perAnsaettelse.length > 1;
       if (harPerAnsaettelse) {
         for (const entry of loenudvikling.perAnsaettelse) {
-          writer.addSpacer(lineHeight);
           writer.writeUnderlinedSubheader(entry.ansaettelsesforholdNavn);
           renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, false);
         }
         if (loenudvikling.loenudviklingTotal.status === 'ok') {
-          writer.addSpacer(lineHeight);
+          writer.addSectionSpacer();
           safeAddLeftRightText(
             'I alt',
             formatMoneyOreWithKr(loenudvikling.loenudviklingTotal.value),
@@ -692,7 +690,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         tafIndtaegter.total.status === 'ok' || tafIndtaegter.total.status === 'not_calculable',
         'tafIndtaegter.total har en uventet status.'
       );
-      renderSubheader('Indtægter i erstatningsperioden', lineHeight);
+      renderSubheader('Indtægter i erstatningsperioden');
       for (const entry of tafIndtaegter.entries) {
         safeAddLeftRightText(entry.label, formatMoneyOreWithKr(entry.amountOre), rightMaxWidth, { rightFontStyle: 'normal' });
       }
@@ -723,7 +721,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const tafTotal = model.tabtArbejdsfortjeneste.tafIndtaegter?.total ?? null;
     const tidligereModtagetTaf = model.tabtArbejdsfortjeneste.tidligereModtagetTaf;
     if (tidligereModtagetTaf.status === 'ok') {
-      renderSubheader('Tidligere betalt erstatning', lineHeight);
+      renderSubheader('Tidligere betalt erstatning');
       safeAddLeftRightText(
         'Der er allerede betalt tabt arbejdsfortjeneste for perioden med',
         formatMoneyOreWithKr(tidligereModtagetTaf.value),
@@ -733,7 +731,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     }
 
     if (loenudviklingTotal && tafTotal && loenudviklingTotal.status === 'ok' && tafTotal.status === 'ok') {
-      renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
+      renderSubheader('Beregnet krav på tabt arbejdsfortjeneste');
 
       const ledFoerLigmed = [formatCurrencyFromOre(loenudviklingTotal.value)];
       const sygeferiegodtgoerelseOre = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre;
@@ -761,7 +759,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       const rightText = formatMoneyOreWithKr(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
       safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'bold' });
     } else if (model.tabtArbejdsfortjeneste.harTafPerioder) {
-      renderSubheader('Beregnet krav på tabt arbejdsfortjeneste', lineHeight);
+      renderSubheader('Beregnet krav på tabt arbejdsfortjeneste');
       safeAddLeftRightText('Beregnet krav på tabt arbejdsfortjeneste', '—', rightMaxWidth, { rightFontStyle: 'bold' });
     }
     }
@@ -779,13 +777,13 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       safeAddWrappedText(line);
       const erSidsteLinje = index === oevrigeKravIntroLinjer.length - 1;
       if (!erSidsteLinje || addTrailingSpacer) {
-        writer.addSpacer(lineHeight);
+        writer.addSectionSpacer();
       }
     });
   };
 
   if (kravEntries.length === 0) {
-    renderSectionHeader('Øvrige krav', lineHeight);
+    renderSectionHeader('Øvrige krav');
     if (oevrigeKravIntroLinjer.length > 0) {
       renderOevrigeKravIntro(false);
     } else {
@@ -797,7 +795,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       estimateRowHeight: lineHeight * 2,
       headerHeight: kravHeaderHeight,
       renderHeader: () => {
-        renderSectionHeader('Øvrige krav', lineHeight);
+        renderSectionHeader('Øvrige krav');
         if (oevrigeKravIntroLinjer.length > 0) {
           renderOevrigeKravIntro(true);
         }
@@ -811,18 +809,19 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     });
 
     if (kravEntries.length > 1) {
-      writer.addSpacer(lineHeight * 2);
+      writer.addSectionSpacer();
+      writer.addSectionSpacer();
       safeAddLeftRightText('I alt', formatMoneyOreWithKr(model.oevrigeKrav.totalFoerForligOre), kravRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
     }
 
     if (model.forlig.erIndgaaet) {
-      renderSubheader('Beregnet krav på øvrige krav', lineHeight);
+      renderSubheader('Beregnet krav på øvrige krav');
       const leftText = `${model.forlig.label} x (${formatCurrencyFromOre(model.oevrigeKrav.totalFoerForligOre)}${NBSP}kr.) =`;
       safeAddLeftRightText(leftText, formatMoneyOreWithKr(model.oevrigeKrav.totalOre), kravRightMaxWidth, { rightFontStyle: 'bold' });
     }
   }
   writeBilagReferenceLinje(bilag.oevrigeErstatningskrav);
-  renderSectionHeader('Samlet erstatningskrav', lineHeight);
+  renderSectionHeader('Samlet erstatningskrav');
 
   const periodeFraKort = model.periode?.fra ? formatDateShort(model.periode.fra) : '';
   const periodeTilKort = model.periode?.til ? formatDateShort(model.periode.til) : '';
@@ -831,7 +830,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       ? `Det samlede krav for perioden ${periodeFraKort} - ${periodeTilKort} udgør:`
       : 'Det samlede krav udgør:';
   safeAddWrappedText(periodeText);
-  writer.advanceY(lineHeight);
+  writer.addSectionSpacer();
 
   const summaryRightMaxWidth = rightMaxWidth;
   safeAddLeftRightText('Svie- og smertegodtgørelse', formatMoneyOreWithKr(model.samlet.svieSmerteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
@@ -845,15 +844,16 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   });
   const saerligeKommentarer = model.saerligeKommentarer;
   if (saerligeKommentarer) {
-    renderSectionHeader('Særlige bemærkninger', lineHeight);
+    renderSectionHeader('Særlige bemærkninger');
     safeAddWrappedText(saerligeKommentarer);
   }
-  renderSectionHeader('Godkendelse', lineHeight);
+  renderSectionHeader('Godkendelse');
   if (afsluttesMed === 'Bekræftet godkendt') {
     safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevante oplysninger, som skadelidte er bekendt med.');
   } else {
     safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som ved sin underskrift nedenfor bekræfter, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevante oplysninger, som skadelidte er bekendt med.');
-    writer.advanceY(lineHeight * 2);
+    writer.addSectionSpacer();
+    writer.addSectionSpacer();
     const skadelidteNavn = (stamdataValues.skadelidte ?? '').trim() || '*skadelidtes navn*';
     const dateX = MARGINS.left;
     const dateLine = '____ / ____ - ____________';

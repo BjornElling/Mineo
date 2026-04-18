@@ -1,5 +1,6 @@
 import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
+import { resolvePdfSectionEndY } from '../../../shared/pdfHelpers';
 import { formatAsAmount } from '../../../../utils/formatUtils';
 import { amountValueToDisplayString } from '../../../../utils/expressionAmount';
 import { calculateStandardLoenRowDerived } from '../../../../domain/aarsloen/standardLoenRowCalculations';
@@ -16,9 +17,8 @@ type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['
 type LoenSectionContext = Readonly<{
   selectedElements: SelectedElements;
   eoValues: ErstatningsopgoerelseValues;
-  lineHeight: number;
   startBilagPage: (titleText: string) => void;
-  renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
   writeLabelValueLine: (label: string, value: string) => void;
   formatDateLong: (isoDate: ISODateString | undefined) => string;
@@ -37,6 +37,7 @@ type LoenSectionContext = Readonly<{
   bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
   bilagIndkomstYdelserRanges: readonly IsoRange[];
   writer: Readonly<{
+    addSectionSpacer: () => void;
     addSpacer: (height: number) => void;
     setY: (y: number) => void;
     getY: () => number;
@@ -48,7 +49,6 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
   const {
     selectedElements,
     eoValues,
-    lineHeight,
     startBilagPage,
     renderSubheader,
     safeAddWrappedText,
@@ -147,13 +147,14 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
 
     const doc = writer.getDoc() as jsPDF;
     const columnCount = headers.length;
+    const startY = writer.getY();
     const finalY = renderPdfTable({
       doc,
-      startY: writer.getY(),
+      startY,
       body: tableRows,
       columnStyles: createPdfDistributedColumnStyles(columnCount),
     });
-    writer.setY(finalY + lineHeight);
+    writer.setY(resolvePdfSectionEndY(finalY, startY));
   };
 
   const rangeGroups = buildPeriodRangeGroups(eoValues, bilagIndkomstYdelserMode, bilagIndkomstYdelserRanges);
@@ -174,7 +175,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
   if (!hasRowsInAnyGroup) return;
 
   startBilagPage('Lønindkomst');
-  writer.addSpacer(lineHeight);
+  writer.addSectionSpacer();
   const combinedRanges = rangeGroups.flatMap((group) => group.ranges);
   const ansaettelserWithRows = (eoValues.loenindkomstAnsaettelsesforhold ?? []).filter((ansaettelsesforhold) => {
     const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
@@ -193,13 +194,11 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       const fallbackNavn = `Ansættelsesforhold ${index + 1}`;
       const arbejdsstedNavn = ansaettelsesforhold.navnPaaArbejdssted?.trim() || fallbackNavn;
       const shouldAddTopSpacing = index > 0;
-      if (shouldAddTopSpacing) writer.addSpacer(lineHeight);
-      renderSubheader(arbejdsstedNavn, lineHeight, { addTopSpacing: shouldAddTopSpacing });
-      writer.addSpacer(lineHeight);
+      renderSubheader(arbejdsstedNavn, undefined, { addTopSpacing: shouldAddTopSpacing });
       const overenskomstId = ansaettelsesforhold.overenskomstId?.trim();
       if (overenskomstId && ansaettelsesforhold.harOverenskomst) {
         writeLabelValueLine('Overenskomst', resolveOverenskomstNameOnlyDisplay(overenskomstId));
-        writer.addSpacer(lineHeight);
+        writer.addSectionSpacer();
       }
       if (selectedElements.okSatser) {
         if (!isZeroPct(ansaettelsesforhold.feriePct)) {
@@ -223,10 +222,9 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         const opsigelsesLinje = sidsteArbejdsdag
           ? `Skadelidte er opsagt fra stillingen med sidste arbejdsdag ${sidsteArbejdsdag}.`
           : 'Skadelidte er opsagt fra stillingen.';
-        writer.addSpacer(lineHeight);
+        writer.addSectionSpacer();
         safeAddWrappedText(opsigelsesLinje);
       }
-      writer.addSpacer(lineHeight);
       const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
       renderLoenindkomstTable(ansaettelsesforhold, errorRowIds, combinedRanges);
   }

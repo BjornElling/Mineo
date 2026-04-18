@@ -5,10 +5,7 @@
  * Hver afgørelse renderes på sin egen side.
  */
 
-import {
-  PDF_BASE_LINE_HEIGHT_MM,
-  type BrevhovedData,
-} from '../../shared/pdfHelpers';
+import { type BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
@@ -42,7 +39,7 @@ export const PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL =
 export const addKapitaliseringEmptyState = (
   writer: ReturnType<typeof createStandardPdfWriter>
 ): void => {
-  writer.writeSectionHeader('Specifikation', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeSectionHeader('Specifikation');
   writer.writeWrappedText('Der er ingen kapitaliserede afgørelser i sagen.');
 };
 
@@ -61,8 +58,7 @@ export const addKapitaliseringAfgoerelseSection = (
   }
 
   writer.writeSectionHeader(
-    `Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`,
-    PDF_BASE_LINE_HEIGHT_MM
+    `Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`
   );
 
   const rowOpts = { rightFontStyle: 'normal' as const };
@@ -73,7 +69,7 @@ export const addKapitaliseringAfgoerelseSection = (
     rowOpts
   );
 
-  writer.writeBoldSubheader('Grundydelse og regulering', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Grundydelse og regulering');
 
   writer.writeLeftRightText(
     'Kapitalisering',
@@ -129,7 +125,7 @@ export const addKapitaliseringAfgoerelseSection = (
     rowOpts
   );
 
-  writer.writeBoldSubheader('Kapitaliseringsbekendtgørelse og tabel', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kapitaliseringsbekendtgørelse og tabel');
 
   writer.writeLeftRightText(
     'Kapitaliseringsbekendtgørelse',
@@ -162,7 +158,7 @@ export const addKapitaliseringAfgoerelseSection = (
       rowOpts
     );
   } else {
-    writer.writeBoldSubheader('Kapitaliseringsfaktor', PDF_BASE_LINE_HEIGHT_MM);
+    writer.writeBoldSubheader('Kapitaliseringsfaktor');
 
     writer.writeLeftRightText(
       'Faktor måneds-afhængig?',
@@ -181,7 +177,7 @@ export const addKapitaliseringAfgoerelseSection = (
     );
   }
 
-  writer.writeBoldSubheader('Kapitalbeløb', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kapitalbeløb');
 
   writer.writeLeftRightText(
     `Beregnet kapitalbeløb (${formatKr(afgoerelse.aarsydelse, 2)} x ${formatFaktor(afgoerelse.kapitaliseringsfaktor)})`,

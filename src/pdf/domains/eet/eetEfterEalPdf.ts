@@ -5,10 +5,7 @@
  * Al indhold er på én side (ingen tabeller i UI'en).
  */
 
-import {
-  PDF_BASE_LINE_HEIGHT_MM,
-  type BrevhovedData,
-} from '../../shared/pdfHelpers';
+import { type BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
@@ -41,7 +38,7 @@ export const renderEfterEalBody = (
   const rowOpts = { rightFontStyle: 'normal' as const };
 
   if (includeBeregningsdatoHeader) {
-    writer.writeSectionHeader('Beregning', PDF_BASE_LINE_HEIGHT_MM);
+    writer.writeSectionHeader('Beregning');
 
     writer.writeLeftRightText(
       'Beregningsdato',
@@ -52,9 +49,9 @@ export const renderEfterEalBody = (
 
   // ── Specifikation ──────────────────────────────────────────────────────────
 
-  writer.writeSectionHeader('Specifikation', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeSectionHeader('Specifikation');
 
-  writer.writeBoldSubheader('Årsløn', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Årsløn');
 
   writer.writeLeftRightText(
     'Årsløn på skadestidspunktet',
@@ -76,7 +73,7 @@ export const renderEfterEalBody = (
     );
   }
 
-  writer.writeBoldSubheader('Erhvervsevnetab', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Erhvervsevnetab');
 
   writer.writeLeftRightText(
     'Endeligt erhvervsevnetab',
@@ -111,7 +108,7 @@ export const renderEfterEalBody = (
     { rightFontStyle: 'bold' as const }
   );
 
-  writer.writeBoldSubheader('Aldersreduktion', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Aldersreduktion');
 
   writer.writeLeftRightText(
     'Fødselsdato',
@@ -141,7 +138,7 @@ export const renderEfterEalBody = (
     { rightFontStyle: 'bold' as const }
   );
 
-  writer.writeBoldSubheader('Beregnet EAL-krav', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Beregnet EAL-krav');
 
   writer.writeLeftRightText(
     `${formatKr(computation.eetAnvendt)} - ${formatKr(computation.aldersreduktionBeloeb)} =`,

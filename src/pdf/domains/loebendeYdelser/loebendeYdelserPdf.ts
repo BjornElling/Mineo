@@ -8,7 +8,6 @@
 
 import type { RowInput } from 'jspdf-autotable';
 import {
-  PDF_BASE_LINE_HEIGHT_MM,
   resolvePdfSectionEndY,
   type BrevhovedData,
 } from '../../shared/pdfHelpers';
@@ -60,7 +59,7 @@ export const buildLoebendeYdelserPdfFilename = (journalnr?: string): string =>
 export const addLoebendeYdelserEmptyState = (
   writer: PdfWriter
 ): void => {
-  writer.writeSectionHeader('Specifikation', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeSectionHeader('Specifikation');
   writer.writeWrappedText('Der er ingen afgørelser i sagen.');
 };
 
@@ -85,8 +84,7 @@ export const addLoebendeAfgoerelseSection = (
   );
 
   writer.writeSectionHeader(
-    `Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`,
-    PDF_BASE_LINE_HEIGHT_MM
+    `Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`
   );
 
   const rowOpts = { rightFontStyle: 'normal' as const };
@@ -111,7 +109,7 @@ export const addLoebendeAfgoerelseSection = (
 
   writer.writeLeftRightText('Årsløn', formatKr(computation.benyttetAarsloen), rowOpts);
 
-  writer.writeBoldSubheader('Periodeafgrænsning', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Periodeafgrænsning');
 
   writer.writeLeftRightText('Afgørelsesdato', formatIsoDateShort(afgoerelse.afgoerelsesdato), rowOpts);
   writer.writeLeftRightText('Virkningsdato', formatIsoDateShort(afgoerelse.virkningsdato), rowOpts);
@@ -119,7 +117,7 @@ export const addLoebendeAfgoerelseSection = (
   writer.writeLeftRightText('Løbende ydelse ophører', formatIsoDateShort(afgoerelse.ophoerDato), rowOpts);
   writer.writeLeftRightText('Ophør skyldes', toOphoerAarsagLabel(afgoerelse.ophoerAarsag), rowOpts);
 
-  writer.addSpacer(PDF_BASE_LINE_HEIGHT_MM);
+  writer.addSectionSpacer();
 
   // Beregnede ydelser
   const hasRowsBefore2024 = afgoerelse.perioder.some((r) => r.satsAar <= 2023);
@@ -128,17 +126,17 @@ export const addLoebendeAfgoerelseSection = (
     computation.grundloenNiveau === '2003' && hasRowsBefore2024 && hasRowsFrom2024;
   const ingenLoebendeYdelse = afgoerelse.iAltBeregnetEet === 0;
 
-  writer.writeBoldSubheader('Beregnede ydelser', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Beregnede ydelser');
 
   if (viserGrundydelseNiveauSkift) {
     writer.writeWrappedText(
       'Frem til 1. januar 2024 beregnes grundydelsen i 2003-niveau og derefter i 2024-niveau.'
     );
-    writer.addSpacer(2);
+    writer.addSectionSpacer();
   }
   if (ingenLoebendeYdelse) {
     writer.writeWrappedText('Afgørelsen giver ingen løbende ydelse i den valgte periode.');
-    writer.addSpacer(2);
+    writer.addSectionSpacer();
   }
   if (!ingenLoebendeYdelse) {
     const ydelserHeader: RowInput = [
@@ -205,17 +203,17 @@ export const addLoebendeUdvidetSpecifikationPage = (
 ): void => {
   writer.addPage();
 
-  writer.writeSectionHeader('Udvidet specifikation', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeSectionHeader('Udvidet specifikation');
 
   const rowOpts = { rightFontStyle: 'normal' as const };
 
   // Årsløn
-  writer.writeBoldSubheader('Årsløn', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Årsløn');
   const aslLabel = `ASL årsløn (afrundet til nærmeste 1000 og maks. ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)} kr.)`;
   writer.writeLeftRightText(aslLabel, formatKr(computation.benyttetAarsloen), rowOpts);
 
   // Grundløn
-  writer.writeBoldSubheader('Grundløn', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Grundløn');
   if (computation.grundloenNiveau === '2003') {
     writer.writeWrappedText('Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau.');
     writer.writeWrappedTextContinued(`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) =`);
@@ -235,7 +233,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
   }
 
   // Ydelsesniveau
-  writer.writeBoldSubheader('Ydelsesniveau', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Ydelsesniveau');
   if (computation.erstatningsniveauPct === 83) {
     writer.writeLeftRightText(
       'Da skaden er sket 1/1-2011 eller senere, udgør erstatningsniveauet',
@@ -303,10 +301,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
       ? restGrundydelse2024
       : afgoerelse.grundydelse2024Fuld;
 
-    writer.writeBoldSubheader(
-      `Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`,
-      PDF_BASE_LINE_HEIGHT_MM
-    );
+    writer.writeBoldSubheader(`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`);
 
     writer.writeLeftRightText(
       formatEetLabel(afgoerelse.eetPct, afgoerelse.priorKapPct),

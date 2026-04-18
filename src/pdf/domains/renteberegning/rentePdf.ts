@@ -5,12 +5,9 @@
  */
 
 import {
-  PDF_SECTION_HEADING_GAP,
   PDF_TABLE_NARROW_COLUMN_WIDTH,
-  SECTION_SPACER,
 } from '../../infrastructure/pdfConfig';
 import {
-  PDF_BASE_LINE_HEIGHT_MM,
   resolvePdfSectionEndY,
   formatAmount,
   formatPercent,
@@ -398,7 +395,7 @@ const addSpecificationTable = (
     writer.writeBoldWrappedText(
       `Der er kun fastsat procesrente frem til ${formatDanishDate(latestRateDate)}. Beregning derefter er hypotetisk!`
     );
-    writer.addSpacer(PDF_SECTION_HEADING_GAP);
+    writer.addSectionSpacer();
     tableStartY = writer.getY();
   }
 
@@ -435,11 +432,7 @@ const addSpecificationTable = (
     },
   });
 
-  writer.setY(
-    resolvePdfSectionEndY(finalY, tableStartY, {
-      spacer: SECTION_SPACER - PDF_BASE_LINE_HEIGHT_MM,
-    })
-  );
+  writer.setY(resolvePdfSectionEndY(finalY, tableStartY));
 };
 
 /**

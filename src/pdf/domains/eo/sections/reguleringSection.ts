@@ -1,5 +1,6 @@
 import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
+import { resolvePdfSectionEndY } from '../../../shared/pdfHelpers';
 import {
   createPdfTableCell,
   createPdfTableHeaderCell,
@@ -37,13 +38,12 @@ import { amountValueToNumber } from '../../../../utils/expressionAmount';
 type ReguleringSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
-  lineHeight: number;
   modelLoenudviklingPerAnsaettelse: readonly Readonly<{
     ansaettelsesforholdId: string;
     beregnedeSegmenter: readonly LoenudviklingSegment[];
   }>[];
   startBilagPage: (titleText: string) => void;
-  renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
   writeLabelValueLine: (label: string, value: string) => void;
   resolveValgtReguleringDisplay: (ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]) => string;
@@ -207,7 +207,6 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   const {
     eoValues,
     stamdataValues,
-    lineHeight,
     modelLoenudviklingPerAnsaettelse,
     startBilagPage,
     renderSubheader,
@@ -284,12 +283,13 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     }
 
     const doc = writer.getDoc() as jsPDF;
+    const startY = writer.getY();
     const finalY = renderPdfTable({
       doc,
-      startY: writer.getY(),
+      startY,
       body: tableRows,
     });
-    writer.setY(finalY + lineHeight);
+    writer.setY(resolvePdfSectionEndY(finalY, startY));
   };
 
   const renderReguleringsvaerdierTable = (tableData: ReguleringValuesTableData | null) => {
@@ -308,12 +308,13 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     ];
 
     const doc = writer.getDoc() as jsPDF;
+    const startY = writer.getY();
     const finalY = renderPdfTable({
       doc,
-      startY: writer.getY(),
+      startY,
       body: tableRows,
     });
-    writer.setY(finalY + lineHeight);
+    writer.setY(resolvePdfSectionEndY(finalY, startY));
   };
 
   const ansaettelser = resolveLoenudviklingKilde(eoValues);
@@ -325,7 +326,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   }
 
   const tafBounds = resolveTafDateBounds(eoValues);
-  writer.addSpacer(lineHeight);
+  writer.addSectionSpacer();
 
   for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
     const perAnsaettelseSegments =
@@ -334,10 +335,8 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     const coverageBounds = resolveLoenudviklingSegmentBounds(perAnsaettelseSegments) ?? tafBounds;
     const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${index + 1}`;
     const visUnderoverskrift = ansaettelsesforhold.id !== EO_ANGIVET_LOEN_ID;
-    if (index > 0) writer.addSpacer(lineHeight);
     if (visUnderoverskrift) {
-      renderSubheader(underoverskrift, lineHeight, { addTopSpacing: index > 0 });
-      writer.addSpacer(lineHeight);
+      renderSubheader(underoverskrift, undefined, { addTopSpacing: index > 0 });
     }
 
     const valgtRegulering = resolveValgtReguleringDisplay(ansaettelsesforhold);
@@ -356,7 +355,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {
       writeLabelValueLine('Regulering', valgtReguleringForSection);
       writeLabelValueLine('Opgøres på baggrund af', toSentenceCase(loenSkadedatoText));
-      writer.addSpacer(lineHeight);
+      writer.addSectionSpacer();
       continue;
     }
 
@@ -397,7 +396,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         writeLabelValueLine('Anciennitetstillæg', anciennitetValueDisplay);
       }
     }
-    writer.addSpacer(lineHeight);
+    writer.addSectionSpacer();
     safeAddWrappedText('Reguleringsværdier:');
 
     const reguleringsvaerdierTableData =
@@ -412,7 +411,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         : null;
     renderReguleringsvaerdierTable(reguleringsvaerdierTableData);
 
-    writer.addSpacer(lineHeight);
+    writer.addSectionSpacer();
     safeAddWrappedText('Beregnet regulering:');
 
     const reguleringTableRows = buildReguleringIndexRows({
@@ -434,24 +433,24 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       const text = tillægsStigninger.length > 0
         ? `Regulering foretages på baggrund af den procentuelle udvikling i grundløn. Hertil kommer stigninger i ${joinWithCommaAndOg(tillægsStigninger)}.`
         : 'Regulering foretages på baggrund af den procentuelle udvikling i grundløn.';
-      writer.addSpacer(lineHeight);
+      writer.addSectionSpacer();
       safeAddWrappedText(text);
     }
 
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'KRL satstabel') {
-      writer.addSpacer(lineHeight);
+      writer.addSectionSpacer();
       safeAddWrappedText("KRL's sats-tabeller kan genfindes på https://www.krl.dk/#/sats");
     } else if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Statistik') {
       const statistikLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
       const statistikModelId = resolveStatistikModelIdFromLabel(statistikLabel);
       if (statistikModelId === 'ILON12') {
-        writer.addSpacer(lineHeight);
+        writer.addSectionSpacer();
         safeAddWrappedText('Det Implicitte Lønindeks fra Danmarks Statistik (ILON12) anvendes som et retvisende reguleringsgrundlag for lønudvikling i samfundet. Regulering foretages med afsæt i værdierne for K1 (1. kvartal 2005 = indeksværdi 100), uden sæsonkorrektion.');
       } else if (statistikModelId === 'SBLON2') {
-        writer.addSpacer(lineHeight);
+        writer.addSectionSpacer();
         safeAddWrappedText('Det Standardberegnede Lønindeks fra Danmarks Statistik (SBLON2) anvendes som et retvisende reguleringsgrundlag for lønudvikling i samfundet. Regulering foretages med afsæt i værdierne for K1 (1. kvartal 2016 = indeksværdi 100).');
       } else if (isAslStatistikModel(statistikLabel)) {
-        writer.addSpacer(lineHeight);
+        writer.addSectionSpacer();
         safeAddWrappedText('ASL-årslønsmaksimum fremgår ikke eksplicit som reguleringsgrundlag i EAL § 15, men anvendes i almindelighed til fremskrivning på erstatnings- og arbejdsskadeområdet, og beror på den statslige tilpasningsprocent, der udgør den beregnede, statistiske lønudvikling i samfundet, som anvendes til fremskrivning af en flerhed af offentlige ydelser.');
       }
     }

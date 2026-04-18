@@ -7,7 +7,7 @@
 import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import { PDF_BASE_LINE_HEIGHT_MM } from '../../infrastructure/pdfConfig';
-import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from '../../shared/pdfHelpers';
+import { resolvePdfSectionEndY, type BrevhovedData } from '../../shared/pdfHelpers';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../schemas/formSchemas';
@@ -267,10 +267,6 @@ export const generateErstatningsopgoerelsePdf = (
     creator: 'mineo.dk',
   });
 
-  const renderSubheader = (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => {
-    writer.writeBoldSubheader(text, nextLineHeight, options);
-  };
-
   const safeAddWrappedText = (text: string) => {
     writer.writeWrappedText(text);
   };
@@ -297,6 +293,7 @@ export const generateErstatningsopgoerelsePdf = (
   };
 
   const standardRightMaxWidth = writer.getTextWidth('000.000.000,00');
+  const renderSubheader = writer.writeBoldSubheader;
 
   const writeLabelValueLine = (label: string, value: string) => {
     safeAddLeftRightText(label, capitalizeFirstChar(value), standardRightMaxWidth, { rightFontStyle: 'normal' });
@@ -342,7 +339,7 @@ export const generateErstatningsopgoerelsePdf = (
     safeAddWrappedText(
       `Opgøres som den gennemsnitlige feriepengebetaling i ${entry.sfggReferenceperiodeLabel} før sygeforløbet.`
     );
-    writer.addSpacer(lineHeight);
+    writer.addSectionSpacer();
     writeLabelValueLine(
       'Referenceperiode',
       `${formatDateShort(entry.sfggReferenceperiode.fra)} - ${formatDateShort(entry.sfggReferenceperiode.til)}`
@@ -450,15 +447,16 @@ export const generateErstatningsopgoerelsePdf = (
       tableRows.push(totalRow.row);
     }
 
+    const startY = writer.getY();
     const finalY = renderPdfTable({
       doc: writer.getDoc() as jsPDF,
-      startY: writer.getY(),
+      startY,
       body: tableRows,
       underlinedCellPositions: totalRowIndex === null || totalRow === null
         ? []
         : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
     });
-    writer.setY(finalY + lineHeight);
+    writer.setY(resolvePdfSectionEndY(finalY, startY));
 
     const feriepengeHvisIkkeSkadeOre = entry.feriepengekravTotalOre;
     const feriepengeModtagetOre = entry.feriepengeModtagetFormula?.totalOre ?? 0;
@@ -499,13 +497,11 @@ export const generateErstatningsopgoerelsePdf = (
 
   // Tilføj titel
   writer.writeTitle(titel);
-  writer.advanceY(-(PDF_TITLE_BOTTOM_SPACING_MM - lineHeight));
 
   // Tilføj erstatningsperiode-datoer direkte under titel
-  writer.setNormalTextStyle();
   if (model.periodeDisplay) {
     writer.writeWrappedText(model.periodeDisplay);
-    writer.advanceY(lineHeight);
+    writer.addSectionSpacer();
   }
 
   // Tilføj skadelidtes navn (fed skrift)
@@ -516,7 +512,7 @@ export const generateErstatningsopgoerelsePdf = (
   // Tilføj skadestype og skadedato (normal skrift)
   if (model.skadestypeLinje) {
     writer.writeWrappedText(model.skadestypeLinje);
-    writer.advanceY(lineHeight);
+    writer.addSectionSpacer();
   }
 
   renderOpgorelseSection({
@@ -529,7 +525,7 @@ export const generateErstatningsopgoerelsePdf = (
     NBSP,
     rightColumnWidth: EO_RIGHT_COLUMN_WIDTH,
     renderSectionHeader: writer.writeSectionHeader,
-    renderSubheader: writer.writeBoldSubheader,
+    renderSubheader,
     renderSubheaderIfContent: writer.writeBoldSubheaderIfContent,
     renderSubheaderWithWrappedText: writer.writeBoldSubheaderWithWrappedText,
     safeAddWrappedText: writer.writeWrappedText,
@@ -567,9 +563,8 @@ export const generateErstatningsopgoerelsePdf = (
     renderLoenindkomstSection({
       selectedElements,
       eoValues: eoValues,
-      lineHeight,
       startBilagPage,
-      renderSubheader: writer.writeBoldSubheader,
+      renderSubheader,
       safeAddWrappedText: writer.writeWrappedText,
       writeLabelValueLine,
       formatDateLong,
@@ -588,9 +583,8 @@ export const generateErstatningsopgoerelsePdf = (
   if (selectedElements.offentligeYdelser && skalViseIndkomstOgYdelserBilag) {
     renderOffentligeYdelserSection({
       eoValues: eoValues,
-      lineHeight,
       startBilagPage,
-      renderSubheader: writer.writeBoldSubheader,
+      renderSubheader,
       shouldIncludeOffentligYdelseRowInBilag,
       bilagIndkomstYdelserMode,
       bilagIndkomstYdelserRanges,
@@ -601,9 +595,8 @@ export const generateErstatningsopgoerelsePdf = (
   if (selectedElements.midlertidigEet && midlertidigtEetGroups.length > 0) {
     renderMidlertidigtEetSection({
       groups: midlertidigtEetGroups,
-      lineHeight,
       startBilagPage,
-      renderSubheader: writer.writeBoldSubheader,
+      renderSubheader,
       formatAfgoerelsesdato: formatDateLong,
       bilagIndkomstYdelserMode,
       bilagIndkomstYdelserRanges,
@@ -615,10 +608,9 @@ export const generateErstatningsopgoerelsePdf = (
     renderReguleringSection({
       eoValues: eoValues,
       stamdataValues,
-      lineHeight,
       modelLoenudviklingPerAnsaettelse: model.tabtArbejdsfortjeneste.loenudvikling?.perAnsaettelse ?? [],
       startBilagPage,
-      renderSubheader: writer.writeBoldSubheader,
+      renderSubheader,
       safeAddWrappedText: writer.writeWrappedText,
       writeLabelValueLine,
       resolveValgtReguleringDisplay: resolveValgtReguleringDisplayForPdf,
@@ -653,9 +645,8 @@ export const generateErstatningsopgoerelsePdf = (
       tafRanges: model.tafRanges,
       sfggReferenceperiodeRanges,
       harSfggReferenceperiodeMedShFradrag,
-      lineHeight,
       startBilagPage,
-      renderSubheader: writer.writeBoldSubheader,
+      renderSubheader,
       safeAddWrappedText: writer.writeWrappedText,
       writer,
     });
@@ -664,7 +655,7 @@ export const generateErstatningsopgoerelsePdf = (
   if (selectedElements.sygeferiegodtgoerelse && model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.length > 0) {
     startBilagPage('Sygeferiegodtgørelse');
     model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.forEach((entry) => {
-      renderSubheader(entry.ansaettelsesforholdNavn, lineHeight);
+      renderSubheader(entry.ansaettelsesforholdNavn);
       if (entry.sfggIntroText) {
         const introPrefix = 'Sygeferiegodtgørelse beregnes i henhold til ';
         if (entry.sfggIntroText.startsWith(introPrefix)) {
@@ -700,7 +691,7 @@ export const generateErstatningsopgoerelsePdf = (
         safeAddWrappedText(`Referencesats: ${formatCurrencyFromOre(entry.sfggReferencesats.value)} kr.`);
       }
       renderSfggPeriodBlock(entry);
-      writer.advanceY(lineHeight);
+      writer.addSectionSpacer();
     });
   }
 

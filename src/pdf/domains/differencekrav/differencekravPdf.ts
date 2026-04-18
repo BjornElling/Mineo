@@ -14,10 +14,7 @@
  * for løbende ydelser = beregningsdato − 1 dag i differencekrav).
  */
 
-import {
-  PDF_BASE_LINE_HEIGHT_MM,
-  type BrevhovedData,
-} from '../../shared/pdfHelpers';
+import { type BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
@@ -66,8 +63,7 @@ const addProformaKapitaliseringSection = (
   const rowOpts = { rightFontStyle: 'normal' as const };
 
   writer.writeSectionHeader(
-    'Proformakapitalisering af rest-EET',
-    PDF_BASE_LINE_HEIGHT_MM
+    'Proformakapitalisering af rest-EET'
   );
 
   writer.writeLeftRightText(
@@ -76,7 +72,7 @@ const addProformaKapitaliseringSection = (
     rowOpts
   );
 
-  writer.writeBoldSubheader('Grundydelse og regulering', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Grundydelse og regulering');
 
   writer.writeLeftRightText(
     'Proformakapitalisering',
@@ -132,7 +128,7 @@ const addProformaKapitaliseringSection = (
     rowOpts
   );
 
-  writer.writeBoldSubheader('Kapitaliseringsbekendtgørelse og tabel', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kapitaliseringsbekendtgørelse og tabel');
 
   writer.writeLeftRightText(
     'Kapitaliseringsbekendtgørelse',
@@ -165,7 +161,7 @@ const addProformaKapitaliseringSection = (
       rowOpts
     );
   } else {
-    writer.writeBoldSubheader('Kapitaliseringsfaktor', PDF_BASE_LINE_HEIGHT_MM);
+    writer.writeBoldSubheader('Kapitaliseringsfaktor');
 
     writer.writeLeftRightText(
       'Faktor måneds-afhængig?',
@@ -184,7 +180,7 @@ const addProformaKapitaliseringSection = (
     );
   }
 
-  writer.writeBoldSubheader('Kapitalbeløb', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kapitalbeløb');
 
   writer.writeLeftRightText(
     `Beregnet proformakapitalisering (${formatKr(pk.aarsydelse, 2)} x ${formatFaktor(pk.kapitaliseringsfaktor)})`,
@@ -203,7 +199,7 @@ const renderDifferencekravPage = (
 ): void => {
   const rowOpts = { rightFontStyle: 'normal' as const };
 
-  writer.writeSectionHeader('Beregning', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeSectionHeader('Beregning');
 
   writer.writeLeftRightText(
     'Beregningsdato',
@@ -213,10 +209,10 @@ const renderDifferencekravPage = (
 
   // ── Specifikation ──────────────────────────────────────────────────────────
 
-  writer.writeSectionHeader('Specifikation', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeSectionHeader('Specifikation');
 
   // EAL-krav
-  writer.writeBoldSubheader('EAL-krav', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('EAL-krav');
 
   writer.writeWrappedText(
     `Erhvervsevnetabet udgør ${formatKapPct(computation.ealEetPct)}.`
@@ -228,7 +224,7 @@ const renderDifferencekravPage = (
   );
 
   // Løbende ASL-ydelser
-  writer.writeBoldSubheader('Løbende ASL-ydelser', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Løbende ASL-ydelser');
 
   if (computation.skadedato < '2011-06-16') {
     writer.writeWrappedText('Skaden er indtrådt før 16. juni 2011.');
@@ -274,7 +270,7 @@ const renderDifferencekravPage = (
   }
 
   // Kapitaliserede ASL-beløb
-  writer.writeBoldSubheader('Kapitaliserede ASL-beløb', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Kapitaliserede ASL-beløb');
 
   writer.writeWrappedText('Værdien af modtagne kapitalbeløb fratrækkes.');
 
@@ -306,7 +302,7 @@ const renderDifferencekravPage = (
   if (computation.proformaKapitalisering) {
     const pk = computation.proformaKapitalisering;
 
-    writer.writeBoldSubheader('Resterende erhvervsevnetab', PDF_BASE_LINE_HEIGHT_MM);
+    writer.writeBoldSubheader('Resterende erhvervsevnetab');
 
     writer.writeWrappedText('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
     writer.writeLeftRightText(
@@ -317,7 +313,7 @@ const renderDifferencekravPage = (
   }
 
   // Differencekrav
-  writer.writeBoldSubheader('Differencekrav', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Differencekrav');
 
   writer.writeLeftRightText(
     'Beregnet differencekrav',

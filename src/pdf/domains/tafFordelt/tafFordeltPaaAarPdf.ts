@@ -10,8 +10,7 @@
 
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import { ensureNonBreakingKr } from '../../shared/pdfTextUtils';
-import { PDF_BASE_LINE_HEIGHT_MM } from '../../infrastructure/pdfConfig';
-import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from '../../shared/pdfHelpers';
+import { type BrevhovedData } from '../../shared/pdfHelpers';
 import { roundByMethod } from '../../../utils/rounding';
 import { logWarning } from '../../../utils/logger';
 import { formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
@@ -42,7 +41,6 @@ export const generateTafFordeltPaaAarPdf = (
   options: TafFordeltPaaAarPdfOptions
 ): void => {
   const { visBrevhoved = false, visUdkastStempel = false } = options;
-  const lineHeight = PDF_BASE_LINE_HEIGHT_MM;
   const { model, presentation } = options.document;
 
   const titel = 'Tabt arbejdsfortjeneste fordelt på år';
@@ -81,13 +79,11 @@ export const generateTafFordeltPaaAarPdf = (
 
   // Titel
   writer.writeTitle(titel);
-  writer.advanceY(-(PDF_TITLE_BOTTOM_SPACING_MM - lineHeight));
 
   // Erstatningsperiode
-  writer.setNormalTextStyle();
   if (model.periodeDisplay) {
     writer.writeWrappedText(model.periodeDisplay);
-    writer.advanceY(lineHeight);
+    writer.addSectionSpacer();
   }
 
   // Skadelidtes navn (fed)
@@ -98,16 +94,15 @@ export const generateTafFordeltPaaAarPdf = (
   // Skadestype (normal)
   if (model.skadestypeLinje) {
     writer.writeWrappedText(model.skadestypeLinje);
-    writer.advanceY(lineHeight);
+    writer.addSectionSpacer();
   }
 
   // ─── Tabt arbejdsfortjeneste sektion ──────────────────────────────────
 
-  writer.writeSectionHeader('Tabt arbejdsfortjeneste', lineHeight);
+  writer.writeSectionHeader('Tabt arbejdsfortjeneste');
 
   writer.writeBoldSubheaderIfContent({
     text: 'Status',
-    nextLineHeight: lineHeight,
     hasContent:
       model.tabtArbejdsfortjeneste.statusLinjer.length > 0 ||
       model.tabtArbejdsfortjeneste.eetLinjer.length > 0 ||
@@ -129,10 +124,10 @@ export const generateTafFordeltPaaAarPdf = (
   const tafPeriodeHeader = model.tabtArbejdsfortjeneste.tafPerioderLinjer.length > 1
     ? 'Erstatningsperioder, hvor der beregnes tabt arbejdsfortjeneste'
     : 'Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste';
-  writer.writeBoldSubheader(tafPeriodeHeader, lineHeight);
+  writer.writeBoldSubheader(tafPeriodeHeader);
   if (!model.tabtArbejdsfortjeneste.harTafPerioder) {
     writer.writeWrappedText('Ingen');
-    writer.writeBoldSubheader('TAF fordelt på kalenderår', lineHeight);
+    writer.writeBoldSubheader('TAF fordelt på kalenderår');
     writer.writeWrappedText('Ingen');
     writer.addFooter();
     writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
@@ -143,7 +138,7 @@ export const generateTafFordeltPaaAarPdf = (
     }
   }
   if (model.forlig.erIndgaaet) {
-    writer.writeBoldSubheader('Forlig', lineHeight);
+    writer.writeBoldSubheader('Forlig');
     const forligDatoTekst = model.forlig.dato ? `den ${formatDateLong(model.forlig.dato)}` : null;
     const forligTekst = forligDatoTekst
       ? `Der er ${forligDatoTekst} indgået forlig i sagen på betaling af ${model.forlig.label}.`
@@ -152,7 +147,7 @@ export const generateTafFordeltPaaAarPdf = (
   }
 
   if (!presentation) {
-    writer.writeBoldSubheader('TAF fordelt på kalenderår', lineHeight);
+    writer.writeBoldSubheader('TAF fordelt på kalenderår');
     writer.writeWrappedText('TAF fordelt på år kan ikke beregnes for den valgte opsætning.');
     writer.addFooter();
     writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
@@ -164,7 +159,7 @@ export const generateTafFordeltPaaAarPdf = (
   const rightMaxWidth = writer.getTextWidth('000.000.000,00');
 
   for (const yearEntry of presentation.years) {
-    writer.writeBoldSubheader(`${yearEntry.year}`, lineHeight);
+    writer.writeBoldSubheader(`${yearEntry.year}`);
 
     // Segmenter (identisk format med EO-pdf)
     for (const segment of yearEntry.segments) {
@@ -212,7 +207,7 @@ export const generateTafFordeltPaaAarPdf = (
 
   // ─── Samlet ──────────────────────────────────────────────────────────
 
-  writer.writeBoldSubheader('Samlet', lineHeight);
+  writer.writeBoldSubheader('Samlet');
 
   // Per-år linjer
   for (const yearEntry of presentation.years) {

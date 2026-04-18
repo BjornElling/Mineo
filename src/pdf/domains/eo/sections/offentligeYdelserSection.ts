@@ -1,5 +1,6 @@
 import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
+import { resolvePdfSectionEndY } from '../../../shared/pdfHelpers';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../../utils/expressionAmount';
 import { formatAsAmount } from '../../../../utils/formatUtils';
 import { ydelsestyper } from '../../../../data/ydelsestyper';
@@ -17,9 +18,8 @@ type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['
 
 type OffentligeYdelserSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
-  lineHeight: number;
   startBilagPage: (titleText: string) => void;
-  renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   shouldIncludeOffentligYdelseRowInBilag: (params: Readonly<{
     row: OffentligeYdelserRow;
     mode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
@@ -29,6 +29,7 @@ type OffentligeYdelserSectionContext = Readonly<{
   bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
   bilagIndkomstYdelserRanges: readonly IsoRange[];
   writer: Readonly<{
+    addSectionSpacer: () => void;
     addSpacer: (height: number) => void;
     setY: (y: number) => void;
     getY: () => number;
@@ -38,10 +39,10 @@ type OffentligeYdelserSectionContext = Readonly<{
 
 type RenderOffentligeYdelserRowsPageContext = Readonly<{
   rows: readonly OffentligeYdelserRow[];
-  lineHeight: number;
   visYdelsestypeSubheader?: boolean;
-  renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   writer: Readonly<{
+    addSectionSpacer: () => void;
     addSpacer: (height: number) => void;
     setY: (y: number) => void;
     getY: () => number;
@@ -52,7 +53,6 @@ type RenderOffentligeYdelserRowsPageContext = Readonly<{
 export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRowsPageContext): void => {
   const {
     rows,
-    lineHeight,
     visYdelsestypeSubheader = true,
     renderSubheader,
     writer,
@@ -107,23 +107,22 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
   const columnStyles = createPdfDistributedColumnStyles(OFFENTLIGE_YDELSER_PDF_HEADERS.length);
 
   for (const [index, label] of groupOrder.entries()) {
-    if (index > 0) writer.addSpacer(lineHeight);
-    if (visYdelsestypeSubheader) renderSubheader(label, lineHeight, { addTopSpacing: index > 0 });
+    if (visYdelsestypeSubheader) renderSubheader(label, undefined, { addTopSpacing: index > 0 });
+    const startY = writer.getY();
     const tableRows = buildTableRows(grouped.get(label) ?? []);
     const finalY = renderPdfTable({
       doc,
-      startY: writer.getY(),
+      startY,
       body: tableRows,
       columnStyles,
     });
-    writer.setY(finalY + lineHeight);
+    writer.setY(resolvePdfSectionEndY(finalY, startY));
   }
 };
 
 export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionContext): void => {
   const {
     eoValues,
-    lineHeight,
     startBilagPage,
     renderSubheader,
     shouldIncludeOffentligYdelseRowInBilag,
@@ -161,18 +160,15 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     if (skalVisePeriodeSubheadings && entry.group.label) {
       if (index === 0) {
         startBilagPage('Offentlige ydelser');
-        writer.addSpacer(lineHeight);
+        writer.addSectionSpacer();
       }
-      if (index > 0) writer.addSpacer(lineHeight);
-      renderSubheader(entry.group.label, lineHeight, { addTopSpacing: index > 0 });
-      writer.addSpacer(lineHeight);
+      renderSubheader(entry.group.label, undefined, { addTopSpacing: index > 0 });
     } else if (index === 0) {
       startBilagPage('Offentlige ydelser');
-      writer.addSpacer(lineHeight);
+      writer.addSectionSpacer();
     }
     renderOffentligeYdelserRowsPage({
       rows: entry.rows,
-      lineHeight,
       renderSubheader,
       writer,
     });
@@ -181,13 +177,13 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
 
 type MidlertidigtEetSectionContext = Readonly<{
   groups: readonly MidlertidigtEetAfgoerelseGroup[];
-  lineHeight: number;
   startBilagPage: (titleText: string) => void;
-  renderSubheader: (text: string, nextLineHeight: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
+  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   formatAfgoerelsesdato: (date: ISODateString) => string | undefined;
   bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
   bilagIndkomstYdelserRanges: readonly IsoRange[];
   writer: Readonly<{
+    addSectionSpacer: () => void;
     addSpacer: (height: number) => void;
     setY: (y: number) => void;
     getY: () => number;
@@ -196,7 +192,7 @@ type MidlertidigtEetSectionContext = Readonly<{
 }>;
 
 export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext): void => {
-  const { groups, lineHeight, startBilagPage, renderSubheader, formatAfgoerelsesdato, bilagIndkomstYdelserMode, bilagIndkomstYdelserRanges, writer } = ctx;
+  const { groups, startBilagPage, renderSubheader, formatAfgoerelsesdato, bilagIndkomstYdelserMode, bilagIndkomstYdelserRanges, writer } = ctx;
   const normalizedBilagMode = normalizeBilagIndkomstYdelserMode(bilagIndkomstYdelserMode);
 
   const ydelserHeader: RowInput = [
@@ -222,14 +218,14 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
 
     if (bilagIndex === 0) {
       startBilagPage('Midlertidig EET');
-      writer.addSpacer(lineHeight);
+      writer.addSectionSpacer();
     } else {
-      writer.addSpacer(lineHeight);
+      writer.addSectionSpacer();
     }
     bilagIndex++;
 
     const datoText = formatAfgoerelsesdato(group.afgoerelsesdato) ?? group.afgoerelsesdato;
-    renderSubheader(`Afgørelse ${datoText}`, lineHeight, { addTopSpacing: bilagIndex > 1 });
+    renderSubheader(`Afgørelse ${datoText}`, undefined, { addTopSpacing: bilagIndex > 1 });
 
     const body: RowInput[] = [
       ydelserHeader,
@@ -249,6 +245,6 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
     const doc = writer.getDoc() as jsPDF;
     const startY = writer.getY();
     const finalY = renderPdfTable({ doc, startY, body, hasHeaderRow: true });
-    writer.setY(finalY + lineHeight);
+    writer.setY(resolvePdfSectionEndY(finalY, startY));
   }
 };

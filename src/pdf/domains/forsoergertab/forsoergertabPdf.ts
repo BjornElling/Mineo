@@ -7,12 +7,10 @@
  * - Side 3 (betinget): ASL-ydelser
  */
 
-import { PDF_BASE_LINE_HEIGHT_MM, addSectionHeading, resolvePdfSectionEndY, type BrevhovedData } from '../../shared/pdfHelpers';
-import { PDF_SECTION_HEADING_GAP, SECTION_SPACER } from '../../infrastructure/pdfConfig';
+import { resolvePdfSectionEndY, type BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
 import { resolvePdfFileName } from '../../shared/pdfFormatUtils';
 import { cellLeft, cellRight, createPdfTableHeaderCell, renderPdfTable } from '../../shared/pdfTableRenderer';
-import { createJsPdfAdapter } from '../../infrastructure/jsPdfAdapter';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { TODAY } from '../../../config/dateRanges';
 import { formatKr, formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit } from '../../../utils/formatUtils';
@@ -46,7 +44,7 @@ const addGrundlaeggendeSection = (
   visEal: boolean,
   visAsl: boolean
 ): void => {
-  writer.writeBoldSubheader('Grundlæggende oplysninger', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Grundlæggende oplysninger');
 
   if (data.beregningsdato) {
     writer.writeLeftRightText('Beregningsdato', isoToDanish(data.beregningsdato) ?? '', {
@@ -78,8 +76,8 @@ const addGrundlaeggendeSection = (
     (data.aslAarsloen !== undefined || data.virkningsdato !== undefined || data.tilkendtForPeriodeAar !== undefined);
 
   if (hasAslIndhold) {
-    writer.addSpacer(SECTION_SPACER);
-    writer.writeBoldSubheader('ASL-ydelse', PDF_BASE_LINE_HEIGHT_MM);
+    writer.addSectionSpacer();
+    writer.writeBoldSubheader('ASL-ydelse');
     if (data.aslAarsloen !== undefined) {
       writer.writeLeftRightText('Skadelidtes årsløn (efter ASL)', formatKr(data.aslAarsloen), {
         rightFontStyle: 'normal',
@@ -98,8 +96,8 @@ const addGrundlaeggendeSection = (
   }
 
   if (visEal && data.ealAarsloen !== undefined) {
-    writer.addSpacer(SECTION_SPACER);
-    writer.writeBoldSubheader('EAL-ydelse', PDF_BASE_LINE_HEIGHT_MM);
+    writer.addSectionSpacer();
+    writer.writeBoldSubheader('EAL-ydelse');
     writer.writeLeftRightText('Skadelidtes årsløn (efter EAL)', formatKr(data.ealAarsloen), {
       rightFontStyle: 'normal',
     });
@@ -107,8 +105,8 @@ const addGrundlaeggendeSection = (
 };
 
 const addBeregnedResultatSection = (writer: PdfWriter, result: ForsoergertabCalculation): void => {
-  writer.addSpacer(SECTION_SPACER);
-  writer.writeBoldSubheader('Beregnet forsørgertab', PDF_BASE_LINE_HEIGHT_MM);
+  writer.addSectionSpacer();
+  writer.writeBoldSubheader('Beregnet forsørgertab');
 
   writer.writeLeftRightText('EAL-krav', formatKr(result.ealKrav), { rightFontStyle: 'normal' });
   writer.writeLeftRightText('Løbende ydelser (efter ASL)', `- ${formatKr(result.aslLobendeYdelserTotal)}`, {
@@ -127,9 +125,9 @@ const addBeregnedResultatSection = (writer: PdfWriter, result: ForsoergertabCalc
 // ============================================================================
 
 const addEalSection = (writer: PdfWriter, eal: EetEalComputation, foersoergertabEalMinSats: number | null, foersoergertabForhoejtetTilMin: boolean): void => {
-  writer.writeSectionHeader('EAL-krav', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeSectionHeader('EAL-krav');
 
-  writer.writeBoldSubheader('Årsløn', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Årsløn');
   writer.writeLeftRightText('Skadelidtes årsløn på skadestidspunktet', formatKr(eal.aarsloen), {
     rightFontStyle: 'normal',
   });
@@ -147,7 +145,7 @@ const addEalSection = (writer: PdfWriter, eal: EetEalComputation, foersoergertab
     );
   }
 
-  writer.writeBoldSubheader('Erhvervsevnetab', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Erhvervsevnetab');
   writer.writeLeftRightText('Erstatningsprocent (jf. erstatningsansvarslovens § 13)', '30 %', {
     rightFontStyle: 'normal',
   });
@@ -176,7 +174,7 @@ const addEalSection = (writer: PdfWriter, eal: EetEalComputation, foersoergertab
     { rightFontStyle: 'normal' }
   );
 
-  writer.writeBoldSubheader('Aldersreduktion', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Aldersreduktion');
   writer.writeLeftRightText(
     'Skadelidtes alder på skadestidspunkt',
     formatCountWithUnit(eal.alderVedSkade, 'år', 'år'),
@@ -193,7 +191,7 @@ const addEalSection = (writer: PdfWriter, eal: EetEalComputation, foersoergertab
     { rightFontStyle: 'normal' }
   );
 
-  writer.writeBoldSubheader('Beregnet EAL-krav', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Beregnet EAL-krav');
   writer.writeLeftRightText(
     `${formatKr(eal.eetAnvendt)} - ${formatKr(eal.aldersreduktionBeloeb)} =`,
     formatKr(eal.ealKrav),
@@ -206,19 +204,18 @@ const addEalSection = (writer: PdfWriter, eal: EetEalComputation, foersoergertab
 // ============================================================================
 
 const addAslSection = (writer: PdfWriter, asl: ForsoergertabAslComputation): void => {
-  writer.writeSectionHeader('ASL-ydelser', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeSectionHeader('ASL-ydelser');
 
   writer.writeLeftRightText('Årsløn efter ASL', formatKr(asl.aslAarsloen), { rightFontStyle: 'normal' });
 
-  writer.writeBoldSubheader('Løbende ydelse', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Løbende ydelse');
   writer.writeWrappedText(
     'Ydelsen udgør 30 % af afdødes årsløn, jf. ASL § 30, opreguleret til udbetalingsåret.'
   );
 
   if (asl.lobendeYdelser.length > 0) {
     const doc = writer.getDoc();
-    const headingY = addSectionHeading(createJsPdfAdapter(doc), '', writer.getY());
-    const tableStartY = headingY - PDF_SECTION_HEADING_GAP;
+    const tableStartY = writer.getY();
 
     const body = [
       [
@@ -261,7 +258,7 @@ const addAslSection = (writer: PdfWriter, asl: ForsoergertabAslComputation): voi
     writer.writeLeftRightText('Løbende ydelser i alt', '0 kr.', { rightFontStyle: 'bold' });
   }
 
-  writer.writeBoldSubheader('Beregnet kapitalbeløb', PDF_BASE_LINE_HEIGHT_MM);
+  writer.writeBoldSubheader('Beregnet kapitalbeløb');
   writer.writeWrappedText('Der foretages proformakapitalisering af resterende løbende ydelser');
 
   if (asl.resterendeMaanederTotal === 0) {
