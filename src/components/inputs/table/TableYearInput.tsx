@@ -443,7 +443,6 @@ const TableYearInput = React.memo(
             autoComplete="off"
             value={displayValue}
             readOnly={isReadOnly}
-            disabled={locked}
             onChange={handleChange}
             onFocus={handleFocus}
             onBlur={handleBlur}
@@ -453,6 +452,7 @@ const TableYearInput = React.memo(
             placeholder={cellFocused && !isReadOnly ? '' : placeholder}
             inputProps={{
               readOnly: isReadOnly,
+              tabIndex: locked ? -1 : undefined,
               inputMode: 'numeric',
               'data-mineo-grid-locked': locked ? 'true' : undefined,
               'aria-describedby': showError ? a11yErrorId : undefined,

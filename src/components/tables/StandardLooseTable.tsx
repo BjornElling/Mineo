@@ -112,7 +112,6 @@ export const StandardLooseHeaderCell = React.memo(
             overflow: 'hidden',
             textOverflow: 'ellipsis',
             position: 'relative',
-            userSelect: onClick ? 'none' : undefined,
           },
           ...(sx === undefined ? [] : Array.isArray(sx) ? sx : [sx]),
         ]}

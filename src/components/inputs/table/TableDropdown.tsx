@@ -305,8 +305,8 @@ const TableDropdown = React.memo(
             displayEmpty={allowEmpty}
             size="small"
             variant={appearance === 'loose' ? 'outlined' : 'standard'}
-            disabled={readOnly}
             inputProps={{
+              tabIndex: readOnly ? -1 : undefined,
               'aria-describedby': showError ? a11yErrorId : undefined,
             }}
             sx={{

@@ -18,7 +18,6 @@ import {
   formatExpressionErrorMessage,
   parseAmountInput,
 } from '../../../utils/expressionAmount';
-import { stripAmountGroupingSeparators } from '../../../utils/draftNormalization';
 import { makeAmountFingerprintFromCanonical, type AmountFingerprint, type CommittedPayload } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 
@@ -52,13 +51,6 @@ export type TableAmountInputProps = Readonly<{
 const TABLE_AMOUNT_PRECISION = 2;
 const MAX_AMOUNT_RAW_LENGTH = 64;
 const MAX_AMOUNT_INTEGER_DIGITS = 20;
-
-const mapCaretFromGroupedAmount = (draft: string, caret: number): number => {
-  if (caret <= 0) return 0;
-  const before = draft.slice(0, caret);
-  const groupingCount = (before.match(/\./g) ?? []).length;
-  return Math.max(0, caret - groupingCount);
-};
 
 const commitAmountDraft = (
   draft: string,
@@ -141,8 +133,7 @@ const TableAmountInput = React.memo(
 
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
-    const pendingClickCaretRef = React.useRef<number | null>(null);
-    const skipCaretRestoreRef = React.useRef(false);
+    const skipClickSelectionRestoreRef = React.useRef(false);
     const latestCommittedPayloadRef = React.useRef<CommittedPayload<AmountValue | undefined, string, AmountFingerprint>>(toCommittedAmountPayload(value));
 
     const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, canBeNegative });
@@ -181,37 +172,48 @@ const TableAmountInput = React.memo(
       }
     }, [hasError, isEditing, value]);
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       if (!isEditing) {
         keyInitiatedEditRef.current = false;
-        pendingClickCaretRef.current = null;
         return;
       }
       // Click-initiated edit: initialize the draft from the current committed value.
       if (!keyInitiatedEditRef.current) {
         if (hasErrorRef.current) {
           originalValueOnEditStartRef.current = draftRef.current;
-          pendingClickCaretRef.current = null;
           return;
         }
         const committedValue = amountValueToDraftString(value, TABLE_AMOUNT_PRECISION);
-        const selectionStart = inputElRef.current?.selectionStart;
-        const shouldRestoreCaret = !skipCaretRestoreRef.current;
-        skipCaretRestoreRef.current = false;
-        if (value?.kind === 'expression') {
-          originalValueOnEditStartRef.current = committedValue;
-          setDraft(committedValue);
-          pendingClickCaretRef.current = null;
-          return;
-        }
-        if (shouldRestoreCaret && typeof selectionStart === 'number') {
-          pendingClickCaretRef.current = mapCaretFromGroupedAmount(committedValue, selectionStart);
-        }
+        // For numeric amount cells, closed display and opened edit currently use the same
+        // formatted string. The bug is therefore not string-shape conversion, but loss of the
+        // browser's pointer-placed selection during the click-triggered re-render into edit mode.
+        // We restore the same offsets explicitly. If the numeric display/edit formats diverge in
+        // the future, this logic must be revisited alongside new tests.
         originalValueOnEditStartRef.current = committedValue;
-        setDraft(stripAmountGroupingSeparators(committedValue));
+        setDraft(committedValue);
+        const shouldRestoreSelection = !skipClickSelectionRestoreRef.current;
+        skipClickSelectionRestoreRef.current = false;
+        if (value?.kind === 'expression' || !shouldRestoreSelection) return;
+        const selectionStart = inputElRef.current?.selectionStart;
+        const selectionEnd = inputElRef.current?.selectionEnd;
+        if (typeof selectionStart !== 'number' || typeof selectionEnd !== 'number') return;
+        const inputEl = inputElRef.current;
+        if (!inputEl) return;
+        try {
+          inputEl.setSelectionRange(
+            Math.min(selectionStart, inputEl.value.length),
+            Math.min(selectionEnd, inputEl.value.length)
+          );
+        } catch {
+          // no-op
+        }
         // Ingen emitValueChange her - vi må ikke opdatere parent under edit.
       }
     }, [isEditing, value]);
+
+    const handleDoubleClick = React.useCallback(() => {
+      skipClickSelectionRestoreRef.current = true;
+    }, []);
 
     const commitAndEmitBlur = React.useCallback(
       (rawDraft: string): boolean => {
@@ -265,28 +267,6 @@ const TableAmountInput = React.memo(
       setIsFocused(true);
       // Caret styling er nu declarativ via sx prop
     }, []);
-
-    const handleDoubleClick = React.useCallback(() => {
-      skipCaretRestoreRef.current = true;
-      pendingClickCaretRef.current = null;
-    }, []);
-
-    React.useEffect(() => {
-      if (!isEditing) return;
-      const pending = pendingClickCaretRef.current;
-      if (pending === null) return;
-      pendingClickCaretRef.current = null;
-      requestAnimationFrame(() => {
-        const el = inputElRef.current;
-        if (!el) return;
-        const clamped = Math.min(pending, el.value.length);
-        try {
-          el.setSelectionRange(clamped, clamped);
-        } catch {
-          // no-op
-        }
-      });
-    }, [isEditing, draft]);
 
     const handleBlur = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
@@ -468,7 +448,6 @@ const TableAmountInput = React.memo(
               autoComplete="off"
               value={displayValue}
               readOnly={isReadOnly}
-              disabled={locked}
               onChange={handleChange}
               onFocus={handleFocus}
               onBlur={handleBlur}
@@ -479,6 +458,7 @@ const TableAmountInput = React.memo(
               placeholder={cellFocused && !isReadOnly ? '' : placeholder}
               inputProps={{
                 readOnly: isReadOnly,
+                tabIndex: locked ? -1 : undefined,
                 inputMode: 'decimal',
                 'data-mineo-grid-locked': locked ? 'true' : undefined,
                 'aria-describedby': showError ? a11yErrorId : undefined,

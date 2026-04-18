@@ -717,7 +717,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   style={{
                     ...getStandardGridCellStyle({ align: 'right' }),
                     padding: '4px',
-                    userSelect: 'none',
                     color: calculated.col6 === 0 ? 'rgba(0, 0, 0, 0.4)' : 'inherit',
                   }}
                 >
@@ -728,7 +727,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   style={{
                     ...getStandardGridCellStyle({ align: 'right' }),
                     padding: '4px',
-                    userSelect: 'none',
                     color: calculated.col7 === 0 ? 'rgba(0, 0, 0, 0.4)' : 'inherit',
                   }}
                 >
@@ -739,7 +737,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   style={{
                     ...getStandardGridCellStyle({ align: 'right' }),
                     padding: '4px',
-                    userSelect: 'none',
                     color: calculated.col8 === 0 ? 'rgba(0, 0, 0, 0.4)' : 'inherit',
                   }}
                 >

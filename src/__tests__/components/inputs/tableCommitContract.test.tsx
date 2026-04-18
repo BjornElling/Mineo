@@ -12,6 +12,7 @@ import TablePercentInput from '../../../components/inputs/table/TablePercentInpu
 import TableTextInput from '../../../components/inputs/table/TableTextInput';
 import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
 import TableYearInput from '../../../components/inputs/table/TableYearInput';
+import TableDropdown from '../../../components/inputs/table/TableDropdown';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 
 const gridCell: GridCellCoord = { rowId: 'row-1', colIndex: 0 };
@@ -35,6 +36,11 @@ type NoopCase = Readonly<{
 }>;
 
 type AutoCompleteCase = Readonly<{
+  label: string;
+  renderInput: () => React.JSX.Element;
+}>;
+
+type LockedSelectableCase = Readonly<{
   label: string;
   renderInput: () => React.JSX.Element;
 }>;
@@ -198,6 +204,48 @@ const AUTOCOMPLETE_OFF_CASES: readonly AutoCompleteCase[] = [
       <TableYearInput
         gridCell={gridCell}
         value="2025"
+      />
+    ),
+  },
+];
+
+const LOCKED_SELECTABLE_CASES: readonly LockedSelectableCase[] = [
+  {
+    label: 'amount',
+    renderInput: () => <TableAmountInput gridCell={gridCell} value={{ kind: 'number', value: 12.34 }} locked />,
+  },
+  {
+    label: 'date',
+    renderInput: () => <TableDateInput gridCell={gridCell} value="01-01-2025" locked />,
+  },
+  {
+    label: 'integer',
+    renderInput: () => <TableIntegerInput gridCell={gridCell} value="42" locked />,
+  },
+  {
+    label: 'percent',
+    renderInput: () => <TablePercentInput gridCell={gridCell} value="12,50" locked />,
+  },
+  {
+    label: 'text',
+    renderInput: () => <TableTextInput gridCell={gridCell} value="abc" locked />,
+  },
+  {
+    label: 'week',
+    renderInput: () => <TableWeekInput gridCell={gridCell} value="01/2025" locked />,
+  },
+  {
+    label: 'year',
+    renderInput: () => <TableYearInput gridCell={gridCell} value="2025" locked />,
+  },
+  {
+    label: 'dropdown',
+    renderInput: () => (
+      <TableDropdown
+        gridCell={gridCell}
+        value="a"
+        readOnly
+        options={[{ value: 'a', label: 'Valg A' }]}
       />
     ),
   },
@@ -553,6 +601,23 @@ describe('table commit-kontrakt', () => {
     );
 
     expect(screen.getByRole('textbox')).toHaveAttribute('autocomplete', 'off');
+  });
+
+  it.each(LOCKED_SELECTABLE_CASES)('låst $label-felt kan stadig markeres og er ude af tab-sekvensen', ({ renderInput }) => {
+    render(
+      <GridCoreProvider value={createGridValue(null)}>
+        {renderInput()}
+      </GridCoreProvider>
+    );
+
+    // JSDOM can verify DOM attributes for non-disabled/readOnly/tab-sequence behavior,
+    // but cannot realistically verify pointer drag selection against CSS/layout.
+    const input = screen.queryByRole('textbox') ?? screen.getByRole('combobox');
+    expect(input).not.toHaveAttribute('aria-disabled', 'true');
+    expect(input).toHaveAttribute('tabindex', '-1');
+    if (input.getAttribute('role') === 'textbox') {
+      expect(input).toHaveAttribute('readonly');
+    }
   });
 
   it.each(NOOP_CASES)('no-op i $label emitter ikke onBlur-commit', async ({ renderInput }) => {

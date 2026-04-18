@@ -360,4 +360,42 @@ describe('TableAmountInput expression behavior', () => {
 
     expect(input).toHaveValue('12,3,4');
   }, TEST_TIMEOUT_MS);
+
+  it('genopretter click-caret når edit-start genrenderer samme beløbstekst', async () => {
+    const { input, setEditingCell } = setup({ kind: 'number', value: 12.34 });
+    const setSelectionRangeSpy = vi.spyOn(input, 'setSelectionRange');
+
+    setEditingCell(null);
+    act(() => {
+      input.focus();
+      input.setSelectionRange(2, 2);
+    });
+
+    act(() => {
+      setEditingCell(gridCell);
+    });
+
+    expect(input).toHaveValue('12,34');
+    expect(setSelectionRangeSpy).toHaveBeenLastCalledWith(2, 2);
+  }, TEST_TIMEOUT_MS);
+
+  it('genopretter click-caret også for grupperede beløb ved edit-start', async () => {
+    const { input, setEditingCell } = setup({ kind: 'number', value: 1234.56 });
+    const setSelectionRangeSpy = vi.spyOn(input, 'setSelectionRange');
+
+    setEditingCell(null);
+    act(() => {
+      input.focus();
+      input.setSelectionRange(2, 2);
+    });
+
+    act(() => {
+      setEditingCell(gridCell);
+    });
+
+    await waitFor(() => {
+      expect(input).toHaveValue('1.234,56');
+      expect(setSelectionRangeSpy).toHaveBeenLastCalledWith(2, 2);
+    });
+  }, TEST_TIMEOUT_MS);
 });

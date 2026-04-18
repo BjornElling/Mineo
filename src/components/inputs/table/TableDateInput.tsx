@@ -627,7 +627,6 @@ const TableDateInput = React.memo(
             autoComplete="off"
             value={displayValue}
             readOnly={isReadOnly}
-            disabled={locked}
             onChange={handleChange}
             onFocus={handleFocus}
             onBlur={handleBlur}
@@ -638,6 +637,7 @@ const TableDateInput = React.memo(
             inputProps={{
               id: a11yInputId,
               readOnly: isReadOnly,
+              tabIndex: locked ? -1 : undefined,
               inputMode: 'text',
               'data-mineo-grid-locked': locked ? 'true' : undefined,
               'aria-describedby': showError ? a11yErrorId : undefined,

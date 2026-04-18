@@ -253,7 +253,6 @@ const TableTextInput = React.memo(
             autoComplete="off"
             value={isEditing ? draft : (value ?? '')}
             readOnly={isReadOnly}
-            disabled={locked}
             onChange={handleChange}
             onFocus={handleFocus}
             onBlur={handleBlur}
@@ -262,6 +261,7 @@ const TableTextInput = React.memo(
             inputProps={{
               id: a11yInputId,
               readOnly: isReadOnly,
+              tabIndex: locked ? -1 : undefined,
               inputMode: 'text',
               'data-mineo-grid-locked': locked ? 'true' : undefined,
               'aria-describedby': showError ? a11yErrorId : undefined,
@@ -307,6 +307,5 @@ const TableTextInput = React.memo(
 TableTextInput.displayName = 'TableTextInput';
 
 export default TableTextInput;
-
 
 

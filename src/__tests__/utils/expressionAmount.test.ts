@@ -289,6 +289,15 @@ describe('amountValueToDraftString', () => {
     expect(amountValueToDraftString(av, 2)).toBe('1.000,50');
   });
 
+  it('number AmountValue matcher display-strengen for representative numeriske værdier', () => {
+    const values = [0, 0.01, 12.34, 999.99, 1000, 1234567.89, -42.5];
+
+    for (const value of values) {
+      const amountValue: AmountValue = { kind: 'number', value };
+      expect(amountValueToDraftString(amountValue, 2)).toBe(amountValueToDisplayString(amountValue, 2));
+    }
+  });
+
   it('expression AmountValue → returnerer expression-strengen (ikke formateret value)', () => {
     const av: AmountValue = { kind: 'expression', expression: '1000+0,5', value: 1000.5 };
     expect(amountValueToDraftString(av, 2)).toBe('1000+0,5');
