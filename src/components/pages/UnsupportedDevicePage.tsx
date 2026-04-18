@@ -16,12 +16,14 @@ const UnsupportedDevicePage = () => {
   useEffect(() => {
     const html = document.documentElement;
     const originalHtmlBg = html.style.backgroundColor;
+    const isDarkTheme = html.dataset.mineoTheme === 'dark';
+    const pageBackground = isDarkTheme ? '#141414' : '#f8f9fa';
 
-    html.style.backgroundColor = '#f8f9fa';
+    html.style.backgroundColor = pageBackground;
 
     const meta = document.createElement('meta');
     meta.name = 'theme-color';
-    meta.content = '#f8f9fa';
+    meta.content = pageBackground;
     document.head.appendChild(meta);
 
     return () => {
@@ -35,7 +37,7 @@ const UnsupportedDevicePage = () => {
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: 'var(--color-surface)',
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
         paddingBottom: 'env(safe-area-inset-bottom)',

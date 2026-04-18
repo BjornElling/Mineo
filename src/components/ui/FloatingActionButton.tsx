@@ -67,7 +67,7 @@ const FloatingActionButton = React.memo(({
         height: 56,
         boxShadow: disabled ? 'none' : 6,
         transition: 'all 0.2s ease',
-        backgroundColor: disabled ? 'rgba(0, 0, 0, 0.12)' : undefined,
+        backgroundColor: disabled ? 'action.disabledBackground' : undefined,
         '&:hover': disabled ? {} : {
           boxShadow: 12,
           transform: 'scale(1.05)',

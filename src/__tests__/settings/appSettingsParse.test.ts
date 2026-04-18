@@ -41,6 +41,15 @@ describe('parseStoredSettings', () => {
     expect(result).toEqual(DEFAULT_APP_SETTINGS);
   });
 
+  it('bevarer eksplicit dark themeMode ved parsing', () => {
+    const result = parseStoredSettings({
+      ...DEFAULT_APP_SETTINGS,
+      themeMode: 'dark',
+    });
+
+    expect(result.themeMode).toBe('dark');
+  });
+
   it('delvis settings (ukendt felt) → merger med defaults, alle kendte felter er defaults', () => {
     const partial = { advokat: 'Advokat Jensens Kontor' };
     const result = parseStoredSettings(partial);
@@ -182,5 +191,16 @@ describe('loadInitialSettings', () => {
       ...DEFAULT_APP_SETTINGS,
       themeMode: 'dark',
     });
+  });
+
+  it('persisted dark themeMode round-tripper gennem loadInitialSettings', () => {
+    writeLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify({
+      ...DEFAULT_APP_SETTINGS,
+      themeMode: 'dark',
+    }));
+
+    const result = loadInitialSettings();
+
+    expect(result.themeMode).toBe('dark');
   });
 });

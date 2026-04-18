@@ -146,6 +146,7 @@ const ContentBoxReportDialog = React.memo(({
     try {
       const { default: html2canvas } = await import('html2canvas');
       const canvas = await html2canvas(element, {
+        // Eksport bruger bevidst hvid baggrund for deling/print uafhængigt af aktivt theme.
         backgroundColor: '#ffffff',
         scale: 2,
         useCORS: true,
@@ -198,7 +199,7 @@ const ContentBoxReportDialog = React.memo(({
             <Typography variant="subtitle2" sx={{ marginBottom: 1 }}>
               Identifikation
             </Typography>
-            <Box sx={{ padding: 2, borderRadius: '10px', border: '1px solid rgba(0, 0, 0, 0.08)' }}>
+            <Box sx={{ padding: 2, borderRadius: '10px', border: '1px solid var(--color-border)' }}>
               <Typography variant="body2">Sti: {identity.routePath}</Typography>
               {identity.pageTitle && <Typography variant="body2">Side: {identity.pageTitle}</Typography>}
               {identity.sectionTitle && <Typography variant="body2">Sektion: {identity.sectionTitle}</Typography>}

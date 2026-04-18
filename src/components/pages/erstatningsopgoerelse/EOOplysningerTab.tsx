@@ -2282,7 +2282,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               left: 0,
               width: '100%',
               height: '100%',
-              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              backgroundColor: 'var(--color-shadow)',
               zIndex: (theme) => theme.zIndex.modal - 1,
               display: 'flex',
               justifyContent: 'center',
@@ -2304,7 +2304,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               maxHeight: '85vh',
               backgroundColor: 'var(--color-background-white)',
               borderRadius: '20px',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+              boxShadow: '0 8px 32px var(--color-shadow)',
+              border: '1px solid var(--color-border)',
               zIndex: (theme) => theme.zIndex.modal,
               display: 'flex',
               flexDirection: 'column',
@@ -2317,7 +2318,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '24px 32px',
-                borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
+                borderBottom: '1px solid var(--color-border)',
               }}
             >
               <Typography id={loentrinFinderHeadingId} variant="h5" sx={{ fontWeight: 500, color: 'text.primary' }}>
@@ -2330,7 +2331,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 sx={{
                   color: 'text.secondary',
                   '&:hover': {
-                    backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                    backgroundColor: 'var(--color-hover)',
                   },
                 }}
               >
@@ -2441,7 +2442,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                           alignItems: 'center',
                           padding: '8px 10px',
                           borderRadius: '8px',
-                          backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                          backgroundColor: 'var(--color-active-bg)',
                           mb: 0.75,
                         }}
                       >

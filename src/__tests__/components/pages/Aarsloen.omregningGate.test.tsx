@@ -257,4 +257,13 @@ describe('Aarsloen omregning gate UI', () => {
     expect(tableHandleSpies.showMissingEntryError).not.toHaveBeenCalled();
     expect(omregningSwitch).toHaveAttribute('aria-checked', 'false');
   });
+
+  it('renderer beregningsrækker som hover-rækker', async () => {
+    render(<Aarsloen />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Antal kalenderdage i den indtastede periode:').closest('.row--label-right-hover')).not.toBeNull();
+      expect(screen.getByText('Sammentælling af løn fra tabellen:').closest('.row--label-right-hover')).not.toBeNull();
+    });
+  });
 });

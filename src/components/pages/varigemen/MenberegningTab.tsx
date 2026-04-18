@@ -227,7 +227,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
         </Box>
       </Box>
 
-      <Box className="row--label-right">
+      <Box className="row--label-right-hover">
         <Typography className="row--text">{skadedatoLabel}</Typography>
         <Box
           className="row--label-right-hover__content"
@@ -258,7 +258,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
         </Box>
       </Box>
 
-      <Box className="row--label-right">
+      <Box className="row--label-right-hover">
         <Typography className="row--text">Alder på skadestidspunkt</Typography>
         <Box
           className="row--label-right-hover__content"
@@ -336,7 +336,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       <Typography className="row--subheading">Beregnet méngodtgørelse</Typography>
 
       {pdfErrorMessage && (
-        <Box className="row--label-right">
+        <Box className="row--label-right-hover">
           <Typography className="row--text" sx={{ color: 'error.main' }}>
             {pdfErrorMessage}
           </Typography>
@@ -346,7 +346,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
 
       {/* Grundbeløb */}
       {beregningsResultat && (
-        <Box className="row--label-right">
+        <Box className="row--label-right-hover">
           <Typography className="row--text">
             {`Grundbeløb: ${values.mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`}
           </Typography>
@@ -363,7 +363,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
 
       {/* Aldersreduktion */}
       {beregningsResultat && (
-        <Box className="row--label-right">
+        <Box className="row--label-right-hover">
           <Typography className="row--text">
             {`Aldersreduktion, ${alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`}
           </Typography>
@@ -378,7 +378,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
         </Box>
       )}
 
-      <Box className="row--label-right">
+      <Box className="row--label-right-hover">
         <Typography className="row--text">
           Beregnet méngodtgørelse
         </Typography>

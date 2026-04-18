@@ -91,9 +91,9 @@ const ComputationErrorAlert = ({
           sx={{
             marginTop: 2,
             padding: 2,
-            backgroundColor: 'rgba(0, 0, 0, 0.03)',
+            backgroundColor: 'var(--color-surface-raised)',
             borderRadius: '10px',
-            border: '1px solid rgba(0, 0, 0, 0.12)',
+            border: '1px solid var(--color-border)',
           }}
         >
           <Typography
@@ -123,4 +123,3 @@ const ComputationErrorAlert = ({
 };
 
 export default ComputationErrorAlert;
-

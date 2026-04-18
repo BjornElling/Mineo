@@ -83,4 +83,29 @@ describe('MenberegningTab', () => {
       })
     );
   });
+
+  it('renderer stamdata- og resultatrækker som hover-rækker', () => {
+    render(
+      <MemoryRouter>
+        <MenberegningTab
+          values={{ mengrad: 10, beregningsdato: '2026-01-01' }}
+          setValues={vi.fn()}
+          setFieldValue={setFieldValue}
+          stamdata={{
+            journalnr: mockStamValues.journalnr,
+            advokat: mockStamValues.advokat,
+            sagsbehandler: mockStamValues.sagsbehandler,
+            skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
+            skadedato: mockStamValues.skadedato,
+            skadestype: mockStamValues.skadestype,
+          }}
+        />
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Fødselsdato').closest('.row--label-right-hover')).not.toBeNull();
+    expect(screen.getByText('Alder på skadestidspunkt').closest('.row--label-right-hover')).not.toBeNull();
+    const resultRows = screen.getAllByText('Beregnet méngodtgørelse');
+    expect(resultRows[1]?.closest('.row--label-right-hover')).not.toBeNull();
+  });
 });

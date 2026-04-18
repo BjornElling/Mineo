@@ -443,7 +443,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
                 bottom: 2,
                 fontSize: 8,
                 fontWeight: 700,
-                color: 'rgba(0, 0, 0, 0.45)',
+                color: 'var(--color-input-placeholder)',
                 pointerEvents: 'none',
               }}
             >

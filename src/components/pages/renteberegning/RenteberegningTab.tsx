@@ -19,11 +19,12 @@ interface TechnicalAssumptionsListProps {
 }
 
 const TechnicalAssumptionsList = ({ items }: TechnicalAssumptionsListProps) => (
-  <Box component="ul" sx={{ margin: 0, paddingLeft: '20px', color: 'var(--color-text-primary)', lineHeight: 1.6 }}>
+  <Box>
     {items.map((item) => (
-      <Typography className="row--text" component="li" key={item} sx={{ marginBottom: '8px' }}>
-        {item}
-      </Typography>
+      <Box className="row--label-right-hover" key={item}>
+        <Typography className="row--text">{item}</Typography>
+        <Box className="row--label-right-hover__content" />
+      </Box>
     ))}
   </Box>
 );
@@ -68,9 +69,9 @@ const RenteberegningTab = React.memo(({
     <Box>
       <ContentBox className="content-box">
         <Typography className="section-header">Beregningsdato</Typography>
-        <Box className="row--label-offset">
+        <Box className="row--label-right-hover">
           <Typography className="row--text">Rente beregnes til og med</Typography>
-          <Box className="row--label-offset__content">
+          <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <StyledDateField
                 value={beregningsdato}

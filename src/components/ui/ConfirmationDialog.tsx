@@ -67,7 +67,7 @@ const ConfirmationDialog = React.memo(({
             sx={{
               borderRadius: '10px',
               '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                backgroundColor: 'var(--color-hover)',
               },
             }}
           >

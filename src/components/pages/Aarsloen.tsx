@@ -451,7 +451,7 @@ const Aarsloen = React.memo(() => {
         {/* Felter holdes permanent i DOM for at undgå MUI focus-warnings */}
         <Box sx={{ display: canShowOmregning ? 'block' : 'none' }}>
           {/* Antal indtastede beregningsenheder */}
-          <Box className="row--label-right">
+          <Box className="row--label-right-hover">
             <Typography className="row--text">{`${indtastetEnhedSummary.label}:`}</Typography>
             <Typography className="row--text">{indtastetEnhedSummary.value}</Typography>
           </Box>
@@ -541,7 +541,7 @@ const Aarsloen = React.memo(() => {
           <Typography className="section-header">Advarsler</Typography>
 
           {fejlmeddelelser.map((fejl, index) => (
-            <Box key={index} className="row--label-right">
+            <Box key={index} className="row--label-right-hover">
               <Typography className="row--text">{fejl}</Typography>
               <Box />
             </Box>
@@ -549,7 +549,7 @@ const Aarsloen = React.memo(() => {
 
           {/* Advarsel om feriegodtgørelsessats og 6. ferieuge */}
           {shouldWarnFeriePct && (
-            <Box className="row--label-right">
+            <Box className="row--label-right-hover">
               <Typography className="row--text">{`En feriegodtgørelsessats på ${feriePct} % skaber en klar formodning for, at der er ret til 6. ferieuge.`}</Typography>
               <Box />
             </Box>
@@ -571,7 +571,7 @@ const Aarsloen = React.memo(() => {
         <Typography className="section-header">Beregning</Typography>
 
         {/* LINJE 1: ALTID VIS - Sammentælling af løn fra tabellen */}
-        <Box className="row--label-right">
+        <Box className="row--label-right-hover">
           <Typography className="row--text">Sammentælling af løn fra tabellen:</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography className="row--text">{harFatalBeregningsFejl ? '—' : `${formatCurrency(beregnetAarsloen)} kr.`}</Typography>
@@ -586,13 +586,13 @@ const Aarsloen = React.memo(() => {
             {beregningsData.metode === 'A' && (
               <>
                 {/* Linje 2: Arbejdsdage i indtastede perioder */}
-                <Box className="row--label-right">
+                <Box className="row--label-right-hover">
                   <Typography className="row--text">{`Arbejdsdage i beregningsperioden (${formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage')}${!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0 ? ` - ${formatCountWithUnit(beregningsData.feriedageFraInput, 'feriedag', 'feriedage')}` : ''}${(shDageAntal ?? 0) > 0 ? ` - ${formatCountWithUnit(shDageAntal ?? 0, 'SH-dag', 'SH-dage')}` : ''}):`}</Typography>
                   <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdageIPeriode, 'arbejdsdag', 'arbejdsdage')}</Typography>
                 </Box>
 
                 {/* Linje 3: Arbejdsdage på et år */}
-                <Box className="row--label-right">
+                <Box className="row--label-right-hover">
                   <Typography className="row--text">{fuldLoenUnderFerie
                     ? `Arbejdsdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage - ${STANDARD_SH_DAGE_PAA_AAR} SH-dage):`
                     : `Arbejdsdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage - ${beregningsData.feriedagePaaAar} feriedage - ${STANDARD_SH_DAGE_PAA_AAR} SH-dage):`
@@ -601,7 +601,7 @@ const Aarsloen = React.memo(() => {
                 </Box>
 
                 {/* Linje 4: Beregnet årsløn */}
-                <Box className="row--label-right">
+                <Box className="row--label-right-hover">
                   <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.arbejdsdagePaaAar}):`}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography className="row--text text-bold">{formatCurrency(beregningsData.omregnetAarsloen)} kr.</Typography>
@@ -615,13 +615,13 @@ const Aarsloen = React.memo(() => {
             {beregningsData.metode === 'B' && (
               <>
                 {/* Linje 2: Hverdage i indtastede perioder */}
-                <Box className="row--label-right">
+                <Box className="row--label-right-hover">
                   <Typography className="row--text">{`Hverdage i beregningsperioden (${formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage')}${!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0 ? ` - ${formatCountWithUnit(beregningsData.feriedageFraInput, 'feriedag', 'feriedage')}` : ''}):`}</Typography>
                   <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdageIPeriode, 'hverdag', 'hverdage')}</Typography>
                 </Box>
 
                 {/* Linje 3: Hverdage på et år */}
-                <Box className="row--label-right">
+                <Box className="row--label-right-hover">
                   <Typography className="row--text">{fuldLoenUnderFerie
                     ? `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage):`
                     : `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'}):`
@@ -630,7 +630,7 @@ const Aarsloen = React.memo(() => {
                 </Box>
 
                 {/* Linje 4: Beregnet årsløn */}
-                <Box className="row--label-right">
+                <Box className="row--label-right-hover">
                   <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar}):`}</Typography>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Typography className="row--text text-bold">{formatCurrency(beregningsData.omregnetAarsloen)} kr.</Typography>
@@ -646,13 +646,13 @@ const Aarsloen = React.memo(() => {
                 {loenperiode === LOENPERIODE.MAANED && (
                   <>
                     {/* Linje 2: Antal måneder */}
-                    <Box className="row--label-right">
+                    <Box className="row--label-right-hover">
                       <Typography className="row--text">Antal måneder i indtastede perioder:</Typography>
                       <Typography className="row--text">{formatCountWithUnit(beregningsData.antalEnheder, 'måned', 'måneder')}</Typography>
                     </Box>
 
                     {/* Linje 3: Beregnet årsløn */}
-                    <Box className="row--label-right">
+                    <Box className="row--label-right-hover">
                       <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.antalEnheder} × 12):`}</Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography className="row--text text-bold">{formatCurrency(beregningsData.omregnetAarsloen)} kr.</Typography>
@@ -665,13 +665,13 @@ const Aarsloen = React.memo(() => {
                 {loenperiode === LOENPERIODE.UGE && (
                   <>
                     {/* Linje 2: Antal uger */}
-                    <Box className="row--label-right">
+                    <Box className="row--label-right-hover">
                       <Typography className="row--text">Antal uger i indtastede perioder:</Typography>
                       <Typography className="row--text">{formatCountWithUnit(beregningsData.antalEnheder, 'uge', 'uger')}</Typography>
                     </Box>
 
                     {/* Linje 3: Beregnet årsløn */}
-                    <Box className="row--label-right">
+                    <Box className="row--label-right-hover">
                       <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.antalEnheder} × 52,14):`}</Typography>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <Typography className="row--text text-bold">{formatCurrency(beregningsData.omregnetAarsloen)} kr.</Typography>
@@ -687,13 +687,13 @@ const Aarsloen = React.memo(() => {
                       <>
                         {/* Hele kalendermåneder — vis måneds-omregning som ved månedsløn */}
                         {/* Linje 2: Antal måneder */}
-                        <Box className="row--label-right">
+                        <Box className="row--label-right-hover">
                           <Typography className="row--text">Antal måneder i indtastede perioder:</Typography>
                           <Typography className="row--text">{formatCountWithUnit(beregningsData.antalHeleKalendermaaneder, 'måned', 'måneder')}</Typography>
                         </Box>
 
                         {/* Linje 3: Beregnet årsløn */}
-                        <Box className="row--label-right">
+                        <Box className="row--label-right-hover">
                           <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.antalHeleKalendermaaneder} × 12):`}</Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography className="row--text text-bold">{formatCurrency(beregningsData.omregnetAarsloen)} kr.</Typography>
@@ -704,13 +704,13 @@ const Aarsloen = React.memo(() => {
                     ) : (
                       <>
                         {/* Linje 2: Hverdage i indtastede perioder */}
-                        <Box className="row--label-right">
+                        <Box className="row--label-right-hover">
                           <Typography className="row--text">{`Hverdage i beregningsperioden (${formatCountWithUnit(beregningsData.hverdageIPeriode, 'hverdag', 'hverdage')}${!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0 ? ` - ${formatCountWithUnit(beregningsData.feriedageFraInput, 'feriedag', 'feriedage')}` : ''}):`}</Typography>
                           <Typography className="row--text">{formatCountWithUnit(beregningsData.arbejdsdageIPeriode, 'hverdag', 'hverdage')}</Typography>
                         </Box>
 
                         {/* Linje 3: Hverdage på et år */}
-                        <Box className="row--label-right">
+                        <Box className="row--label-right-hover">
                           <Typography className="row--text">{fuldLoenUnderFerie
                             ? `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage):`
                             : `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'}):`
@@ -719,7 +719,7 @@ const Aarsloen = React.memo(() => {
                         </Box>
 
                         {/* Linje 4: Beregnet årsløn */}
-                        <Box className="row--label-right">
+                        <Box className="row--label-right-hover">
                           <Typography className="row--text">{`Beregnet årsløn (${formatCurrency(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar}):`}</Typography>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography className="row--text text-bold">{formatCurrency(beregningsData.omregnetAarsloen)} kr.</Typography>

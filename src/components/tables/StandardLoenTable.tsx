@@ -556,7 +556,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
             {`
               @keyframes errorFlash {
                 0%, 100% { background-color: transparent; }
-                50% { background-color: rgba(211, 47, 47, 0.2); }
+                50% { background-color: color-mix(in srgb, var(--color-status-error) 20%, transparent); }
               }
             `}
           </style>
@@ -717,7 +717,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   style={{
                     ...getStandardGridCellStyle({ align: 'right' }),
                     padding: '4px',
-                    color: calculated.col6 === 0 ? 'rgba(0, 0, 0, 0.4)' : 'inherit',
+                    color: calculated.col6 === 0 ? 'var(--color-text-secondary)' : 'inherit',
                   }}
                 >
                   {formatAsAmount(calculated.col6)}
@@ -727,7 +727,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   style={{
                     ...getStandardGridCellStyle({ align: 'right' }),
                     padding: '4px',
-                    color: calculated.col7 === 0 ? 'rgba(0, 0, 0, 0.4)' : 'inherit',
+                    color: calculated.col7 === 0 ? 'var(--color-text-secondary)' : 'inherit',
                   }}
                 >
                   {formatAsAmount(calculated.col7)}
@@ -737,7 +737,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   style={{
                     ...getStandardGridCellStyle({ align: 'right' }),
                     padding: '4px',
-                    color: calculated.col8 === 0 ? 'rgba(0, 0, 0, 0.4)' : 'inherit',
+                    color: calculated.col8 === 0 ? 'var(--color-text-secondary)' : 'inherit',
                   }}
                 >
                   {formatAsAmount(calculated.col8)}
