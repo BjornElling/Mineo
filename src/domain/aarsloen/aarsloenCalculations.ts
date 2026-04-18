@@ -4,7 +4,7 @@
  * Funktioner til at beregne omregnet årsløn baseret på forskellige metoder
  */
 
-import { beregnAntalHverdage, beregnFeriedagePaaEtAar, erHeleKalendermaaneder, erNoejagtEtAar, STANDARD_HVERDAGE_PAA_AAR, STANDARD_UGER_PAA_AAR, type PeriodeResult } from '../../utils/periodeBeregning';
+import { beregnAntalHverdage, beregnFeriedagePaaEtAar, erHeleKalendermaaneder, erNoejagtEtAar, STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR, STANDARD_UGER_PAA_AAR, type PeriodeResult } from '../../utils/periodeBeregning';
 import type { AarsloenMetode, AarsloenBeregningResult } from '../../types/calculation';
 import type { LoenPaaHelligdage, Loenperiode } from '../../types/loen';
 
@@ -29,20 +29,12 @@ export const beregnMetode = (
   fuldLoenUnderFerie: boolean,
   loenPaaHelligdage: LoenPaaHelligdage
 ): AarsloenMetode => {
-  // Metode A: Arbejdsdage
   if (loenPaaHelligdage === 'Ingen' || loenPaaHelligdage === 'SH-udbetaling') {
     return 'A';
-  }
-  // Metode B: Hverdage
-  else if (!fuldLoenUnderFerie && loenPaaHelligdage === 'Almindelig løn') {
+  } else if (!fuldLoenUnderFerie && loenPaaHelligdage === 'Almindelig løn') {
     return 'B';
   }
-  // Metode C: Måneder
-  else if (fuldLoenUnderFerie && loenPaaHelligdage === 'Almindelig løn') {
-    return 'C';
-  }
-
-  return 'C'; // Default
+  return 'C';
 };
 
 const beregnHverdagsOmregning = (params: {
@@ -77,25 +69,25 @@ export const beregnOmregnetAarsloen = ({
   beregnetAarsloen
 }: AarsloenBeregningParams): AarsloenBeregningResult => {
   if (!periodeData) {
-    return {
-      metode: 'ingen',
-      erEtAar: false
-    };
+    return { metode: 'ingen', erEtAar: false };
   }
 
   const datoSet = periodeData.datoSet;
   const unikkeEnheder = periodeData.unikkeEnheder;
 
-  // datoSet er allerede en Set<string> fra periodeBeregning
-
-  // Tjek for 1 år data
+  // Tjek for 1 år data. Hvis erEtAar === true, springes mellemregningen over i UI og PDF —
+  // beregnet årsløn er da identisk med summen fra tabellen. Ingen særskilt brugeradvarsel
+  // vises, da brugeren selv har valgt at indtaste data for et fuldt år og forventes at
+  // genkende dette. erEtAar eksponeres i resultatet, så forbrugere kan tilpasse visning.
   const erEtAar = erNoejagtEtAar(loenperiode as string, unikkeEnheder, datoSet);
 
   // Beregn hverdage i indtastede perioder
   const hverdageIPeriode = beregnAntalHverdage(datoSet);
 
-  // Parse feriedage fra indtastning (default 0)
-  const feriedageFraInput = parseInt(String(antalFeriedage ?? 0), 10);
+  // Math.trunc for at sikre heltal — feltet er integer-valideret i UI, men defensivt her
+  const feriedageFraInput = Number.isFinite(antalFeriedage)
+    ? Math.trunc(antalFeriedage as number)
+    : 0;
 
   // Beregn feriedage på et år
   const feriedagePaaAar = beregnFeriedagePaaEtAar(retTilSjetteFerieuge);
@@ -103,7 +95,6 @@ export const beregnOmregnetAarsloen = ({
   // Beslut metode
   const metode = beregnMetode(fuldLoenUnderFerie, loenPaaHelligdage);
 
-  // Beregn resultater
   let arbejdsdageIPeriode = 0;
   let arbejdsdagePaaAar = 0;
   let hverdagePaaAar = 0;
@@ -111,33 +102,24 @@ export const beregnOmregnetAarsloen = ({
 
   if (metode === 'A') {
     // METODE A: Arbejdsdage
-    // Linje 2: hverdage - feriedage - SH-dage = arbejdsdage
-    // VIGTIGT: shDageAntal kan være null (beregningsfejl) - behandl som 0 i beregning
+    // VIGTIGT: shDageAntal kan være null (beregningsfejl) — behandl som 0
     const shDage = shDageAntal ?? 0;
 
-    // Hvis fuld løn under ferie, træk IKKE feriedage fra
-    if (fuldLoenUnderFerie) {
-      arbejdsdageIPeriode = hverdageIPeriode - shDage;
-    } else {
-      arbejdsdageIPeriode = hverdageIPeriode - feriedageFraInput - shDage;
-    }
+    arbejdsdageIPeriode = fuldLoenUnderFerie
+      ? hverdageIPeriode - shDage
+      : hverdageIPeriode - feriedageFraInput - shDage;
 
-    // Linje 3: 365/7×5 - feriedagePaaAar - 8 SH-dage = arbejdsdage
-    // Hvis fuld løn under ferie, træk IKKE feriedage fra
-    const hverdagePaaAarBase = STANDARD_HVERDAGE_PAA_AAR;
-    if (fuldLoenUnderFerie) {
-      arbejdsdagePaaAar = hverdagePaaAarBase - 8;
-    } else {
-      arbejdsdagePaaAar = hverdagePaaAarBase - feriedagePaaAar - 8;
-    }
+    // STANDARD_SH_DAGE_PAA_AAR bruges intentionelt som normtal frem for det faktisk
+    // beregnede SH-dage-antal for perioden — analogt til STANDARD_HVERDAGE_PAA_AAR.
+    arbejdsdagePaaAar = fuldLoenUnderFerie
+      ? STANDARD_HVERDAGE_PAA_AAR - STANDARD_SH_DAGE_PAA_AAR
+      : STANDARD_HVERDAGE_PAA_AAR - feriedagePaaAar - STANDARD_SH_DAGE_PAA_AAR;
 
-    // Linje 4: Omregnet årsløn
     if (arbejdsdageIPeriode > 0) {
       omregnetAarsloen = (beregnetAarsloen / arbejdsdageIPeriode) * arbejdsdagePaaAar;
     }
   } else if (metode === 'B') {
     // METODE B: Hverdage
-    // Linje 2: hverdage - feriedage = hverdage
     const hverdagsOmregning = beregnHverdagsOmregning({
       hverdageIPeriode,
       feriedageFraInput,
@@ -147,51 +129,38 @@ export const beregnOmregnetAarsloen = ({
     });
     hverdagePaaAar = hverdagsOmregning.hverdagePaaAar;
     omregnetAarsloen = hverdagsOmregning.omregnetAarsloen;
-
-    // Gem hverdageIPeriodeResultat til visning
-    arbejdsdageIPeriode = hverdagsOmregning.hverdageIPeriodeResultat; // Genbruger variabel
+    arbejdsdageIPeriode = hverdagsOmregning.hverdageIPeriodeResultat;
   } else if (metode === 'C') {
-    // METODE C: Måneder/Uger/Dage
     if (loenperiode === 'maaned') {
-      // Metode C for månedsløn: Brug måneder
-      const antalMaaneder = unikkeEnheder;
-
-      // Linje 3: Omregnet årsløn
-      if (antalMaaneder > 0) {
-        omregnetAarsloen = (beregnetAarsloen / antalMaaneder) * 12;
+      if (unikkeEnheder > 0) {
+        omregnetAarsloen = (beregnetAarsloen / unikkeEnheder) * 12;
       }
     } else if (loenperiode === 'uge') {
-      // Metode C for ugeløn: Brug uger
-      const antalUger = unikkeEnheder;
-
-      // Linje 3: Omregnet årsløn (52,14 uger per år)
-      if (antalUger > 0) {
-        omregnetAarsloen = (beregnetAarsloen / antalUger) * STANDARD_UGER_PAA_AAR;
+      if (unikkeEnheder > 0) {
+        omregnetAarsloen = (beregnetAarsloen / unikkeEnheder) * STANDARD_UGER_PAA_AAR;
       }
     } else if (loenperiode === 'dag') {
       const heleKalendermaaneder = erHeleKalendermaaneder(periodeData.perioder);
 
       if (heleKalendermaaneder !== null) {
-        // Alle perioder svarer til hele kalendermåneder — brug måneds-omregning som ved LOENPERIODE.MAANED
+        // Alle perioder svarer til hele kalendermåneder — måneds-omregning som ved LOENPERIODE.MAANED
         if (heleKalendermaaneder > 0) {
           omregnetAarsloen = (beregnetAarsloen / heleKalendermaaneder) * 12;
         }
         return {
-          metode,
-          erEtAar,
-          hverdageIPeriode,
-          feriedageFraInput,
-          arbejdsdageIPeriode,
-          feriedagePaaAar,
-          arbejdsdagePaaAar,
-          hverdagePaaAar,
-          omregnetAarsloen,
-          antalMaaneder: unikkeEnheder,
+          metode, erEtAar, hverdageIPeriode, feriedageFraInput,
+          arbejdsdageIPeriode, feriedagePaaAar, arbejdsdagePaaAar,
+          hverdagePaaAar, omregnetAarsloen,
+          antalEnheder: unikkeEnheder,
           antalHeleKalendermaaneder: heleKalendermaaneder,
         };
       }
 
-      // Metode C for dagsløn genbruger bevidst samme hverdagsomregning som metode B.
+      // Metode C dag-fallback: Når de indtastede perioder IKKE svarer til hele
+      // kalendermåneder, beregnes årsløn vha. hverdage — identisk med Metode B.
+      // Dette er et bevidst domænevalg: brugeren forventes at indtaste hele måneder
+      // som datoer, hvis måneds-omregning er ønsket. Gør de det ikke, er
+      // hverdagsomregning den korrekte tilgang for dag-lønnere.
       const hverdagsOmregning = beregnHverdagsOmregning({
         hverdageIPeriode,
         feriedageFraInput,
@@ -201,22 +170,15 @@ export const beregnOmregnetAarsloen = ({
       });
       hverdagePaaAar = hverdagsOmregning.hverdagePaaAar;
       omregnetAarsloen = hverdagsOmregning.omregnetAarsloen;
-
-      // Gem til visning
       arbejdsdageIPeriode = hverdagsOmregning.hverdageIPeriodeResultat;
     }
   }
 
   return {
-    metode,
-    erEtAar,
-    hverdageIPeriode,
-    feriedageFraInput,
-    arbejdsdageIPeriode,
-    feriedagePaaAar,
-    arbejdsdagePaaAar,
-    hverdagePaaAar,
-    omregnetAarsloen,
-    antalMaaneder: unikkeEnheder
+    metode, erEtAar, hverdageIPeriode, feriedageFraInput,
+    arbejdsdageIPeriode, feriedagePaaAar, arbejdsdagePaaAar,
+    hverdagePaaAar, omregnetAarsloen,
+    antalEnheder: unikkeEnheder,
+    antalHeleKalendermaaneder: null,
   };
 };

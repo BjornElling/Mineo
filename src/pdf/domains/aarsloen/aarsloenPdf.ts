@@ -24,6 +24,7 @@ import type { StandardLoenTableRow, LoenPaaHelligdage, Loenperiode } from '../..
 import type { PeriodeResult } from '../../../utils/periodeBeregning';
 import type { AarsloenBeregningResult } from '../../../types/calculation';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../utils/expressionAmount';
+import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import { TODAY } from '../../../config/dateRanges';
 import { formatAsAmount, formatCountWithUnit, formatPercent } from '../../../utils/formatUtils';
 import { resolvePdfFileName } from '../../shared/pdfFormatUtils';
@@ -32,6 +33,7 @@ import {
   STANDARD_LOEN_COL3_LABEL,
 } from '../../../domain/aarsloen/standardLoenTableColumns';
 import { resolveAarsloenIndtastetEnhedSummary } from '../../../domain/aarsloen/aarsloenPeriodDisplay';
+import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../../utils/periodeBeregning';
 
 const NBSP = '\u00A0';
 const AARSLOEN_PDF_ATP_HEADER = 'ATP mv.\nu. tillæg';
@@ -80,9 +82,6 @@ const formatDanishAmount = (amount: unknown): string => {
   return '';
 };
 
-/**
- * Tjekker om en værdi er tom eller nul
- */
 const isEmptyOrZero = (value: unknown): boolean => {
   if (value === null || value === undefined || value === '') return true;
 
@@ -91,33 +90,18 @@ const isEmptyOrZero = (value: unknown): boolean => {
     return numericValue === undefined || numericValue === 0;
   }
 
-  // Konverter til streng og fjern whitespace
   const str = String(value).trim();
   if (str === '' || str === '0' || str === '0,00' || str === '0.00' || str === '0 %' || str === '0,0 %' || str === '0,00 %') return true;
 
   return false;
 };
 
-/**
- * Formaterer procent-værdi til visning i PDF (med komma og procenttegn)
- */
-const formatPdfPercent = (pct: unknown): string => {
+// Bruger parsePercentToDecimal (kanonisk parsing af dansk/engelsk procentformat) × 100 → formatPercent.
+// Undgår den fejlbehæftede manuelle .→, fjern-tusindtalsseparator-logik.
+const formatPdfPercent = (pct: string | number | undefined): string => {
   if (pct === null || pct === undefined || pct === '') return '';
-
-  if (typeof pct === 'number') {
-    return formatPercent(pct);
-  }
-
-  if (typeof pct === 'string') {
-    const trimmed = pct.trim();
-    if (trimmed === '') return '';
-    const normalized = trimmed.endsWith('%') ? trimmed.slice(0, -1).trim() : trimmed;
-    const parsed = Number.parseFloat(normalized.replace(/\./g, '').replace(',', '.'));
-    if (Number.isFinite(parsed)) return formatPercent(parsed);
-    return trimmed.includes('%') ? trimmed : `${trimmed} %`;
-  }
-
-  return '';
+  const decimal = parsePercentToDecimal(pct);
+  return formatPercent(decimal * 100);
 };
 
 /**
@@ -418,9 +402,8 @@ const addBeregningSection = (
   if (beregningsData.metode === 'A') {
     // METODE A: Arbejdsdage
     let linje1Label = `Arbejdsdage i beregningsperioden (${beregningsData.hverdageIPeriode} hverdage`;
-    const feriedageFraInput = beregningsData.feriedageFraInput ?? 0;
-    if (!fuldLoenUnderFerie && feriedageFraInput > 0) {
-      linje1Label += ` - ${feriedageFraInput} feriedage`;
+    if (!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0) {
+      linje1Label += ` - ${beregningsData.feriedageFraInput} feriedage`;
     }
     const shDageAntalSafe = shDageAntal ?? 0;
     if (shDageAntalSafe > 0) {
@@ -434,18 +417,16 @@ const addBeregningSection = (
     });
 
     const linje2Label = fuldLoenUnderFerie
-      ? 'Arbejdsdage på et år (261 hverdage - 8 SH-dage)'
-      : `Arbejdsdage på et år (261 hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'} - 8 SH-dage)`;
+      ? `Arbejdsdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage - ${STANDARD_SH_DAGE_PAA_AAR} SH-dage)`
+      : `Arbejdsdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'} - ${STANDARD_SH_DAGE_PAA_AAR} SH-dage)`;
 
     rows.push({
       label: linje2Label,
       value: `${beregningsData.arbejdsdagePaaAar} arbejdsdage`,
     });
 
-    const linje3Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.arbejdsdagePaaAar})`;
-
     rows.push({
-      label: linje3Label,
+      label: `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.arbejdsdagePaaAar})`,
       value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
       rightFontStyle: 'bold',
     });
@@ -453,9 +434,8 @@ const addBeregningSection = (
   } else if (beregningsData.metode === 'B') {
     // METODE B: Hverdage
     let linje1Label = `Hverdage i beregningsperioden (${beregningsData.hverdageIPeriode} hverdage`;
-    const feriedageFraInput = beregningsData.feriedageFraInput ?? 0;
-    if (!fuldLoenUnderFerie && feriedageFraInput > 0) {
-      linje1Label += ` - ${feriedageFraInput} feriedage`;
+    if (!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0) {
+      linje1Label += ` - ${beregningsData.feriedageFraInput} feriedage`;
     }
     linje1Label += `)`;
 
@@ -464,19 +444,15 @@ const addBeregningSection = (
       value: `${beregningsData.arbejdsdageIPeriode} hverdage`,
     });
 
-    const linje2Label = fuldLoenUnderFerie
-      ? 'Hverdage på et år (261 hverdage)'
-      : `Hverdage på et år (261 hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'})`;
-
     rows.push({
-      label: linje2Label,
+      label: fuldLoenUnderFerie
+        ? `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage)`
+        : `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'})`,
       value: `${beregningsData.hverdagePaaAar} hverdage`,
     });
 
-    const linje3Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar})`;
-
     rows.push({
-      label: linje3Label,
+      label: `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar})`,
       value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
       rightFontStyle: 'bold',
     });
@@ -484,15 +460,14 @@ const addBeregningSection = (
   } else if (beregningsData.metode === 'C') {
     // METODE C: Måneder/Uger/Dage
     if (loenperiode === 'maaned') {
-      const antalMaaneder = beregningsData.antalMaaneder ?? 0;
       rows.push({
         label: 'Antal måneder i indtastede perioder',
-        value: formatCountWithUnit(antalMaaneder, 'måned', 'måneder'),
+        value: formatCountWithUnit(beregningsData.antalEnheder, 'måned', 'måneder'),
       });
 
-      const linje2Label = antalMaaneder === 1
+      const linje2Label = beregningsData.antalEnheder === 1
         ? `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} × 12)`
-        : `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.antalMaaneder} × 12)`;
+        : `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.antalEnheder} × 12)`;
 
       rows.push({
         label: linje2Label,
@@ -503,19 +478,17 @@ const addBeregningSection = (
     } else if (loenperiode === 'uge') {
       rows.push({
         label: 'Antal uger i indtastede perioder',
-        value: formatCountWithUnit(beregningsData.antalMaaneder ?? 0, 'uge', 'uger'),
+        value: formatCountWithUnit(beregningsData.antalEnheder, 'uge', 'uger'),
       });
 
-      const linje2Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.antalMaaneder} × 52,14)`;
-
       rows.push({
-        label: linje2Label,
+        label: `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.antalEnheder} × 52,14)`,
         value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
         rightFontStyle: 'bold',
       });
 
     } else if (loenperiode === 'dag') {
-      if (beregningsData.antalHeleKalendermaaneder != null) {
+      if (beregningsData.antalHeleKalendermaaneder !== null) {
         // Hele kalendermåneder — vis måneds-omregning som ved månedsløn
         const n = beregningsData.antalHeleKalendermaaneder;
         rows.push({
@@ -528,11 +501,10 @@ const addBeregningSection = (
           rightFontStyle: 'bold',
         });
       } else {
-        // Samme som metode B for dag-lønperiode
+        // Dag-fallback: hverdagsomregning identisk med metode B (bevidst domænevalg)
         let linje1Label = `Hverdage i beregningsperioden (${beregningsData.hverdageIPeriode} hverdage`;
-        const feriedageFraInput = beregningsData.feriedageFraInput ?? 0;
-        if (!fuldLoenUnderFerie && feriedageFraInput > 0) {
-          linje1Label += ` - ${feriedageFraInput} feriedage`;
+        if (!fuldLoenUnderFerie && beregningsData.feriedageFraInput > 0) {
+          linje1Label += ` - ${beregningsData.feriedageFraInput} feriedage`;
         }
         linje1Label += `)`;
 
@@ -541,19 +513,15 @@ const addBeregningSection = (
           value: `${beregningsData.arbejdsdageIPeriode} hverdage`,
         });
 
-        const linje2Label = fuldLoenUnderFerie
-          ? 'Hverdage på et år (261 hverdage)'
-          : `Hverdage på et år (261 hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'})`;
-
         rows.push({
-          label: linje2Label,
+          label: fuldLoenUnderFerie
+            ? `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage)`
+            : `Hverdage på et år (${STANDARD_HVERDAGE_PAA_AAR} hverdage - ${beregningsData.feriedagePaaAar} ${retTilSjetteFerieuge ? 'ferie- og feriefridage' : 'feriedage'})`,
           value: `${beregningsData.hverdagePaaAar} hverdage`,
         });
 
-        const linje3Label = `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar})`;
-
         rows.push({
-          label: linje3Label,
+          label: `Beregnet årsløn (${formatDanishAmount(beregnetAarsloen)} / ${beregningsData.arbejdsdageIPeriode} × ${beregningsData.hverdagePaaAar})`,
           value: `${formatDanishAmount(beregningsData.omregnetAarsloen)} kr.`,
           rightFontStyle: 'bold',
         });

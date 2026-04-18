@@ -28,6 +28,16 @@ export const STANDARD_HVERDAGE_PAA_AAR = 261;
 export const STANDARD_UGER_PAA_AAR = 52.14;
 
 /**
+ * Normtal for antal SH-dage (søgnehelligdage der falder på hverdage) på et kalenderår.
+ *
+ * Det præcise antal varierer fra år til år (påsken rykker, Kristi Himmelfartsdag
+ * er altid torsdag osv.), men 8 er det anerkendte normtal der benyttes ved
+ * omregning af lønperioder til årsløn — analogt til STANDARD_HVERDAGE_PAA_AAR.
+ * Intentionelt ikke udledt af den faktiske SH-dagsberegning for den konkrete periode.
+ */
+export const STANDARD_SH_DAGE_PAA_AAR = 8;
+
+/**
  * Periode-data returneret fra beregningsfunktioner
  */
 export interface PeriodeResult {
@@ -114,31 +124,35 @@ export const erNoejagtEtAar = (loenperiode: string, unikkeEnheder: number, datoS
   if (loenperiode === 'maaned') {
     return unikkeEnheder === 12;
   } else if (loenperiode === 'dag') {
-    // Tjek om der er 365 eller 366 dage (skudår)
-    if (unikkeEnheder !== 365 && unikkeEnheder !== 366) {
+    // Et kalenderår er præcis defineret som 1. januar – 31. december i samme år.
+    // Det er ikke tilstrækkeligt at tælle 365 unikke dage, da en periode midt i
+    // et år (fx 1. juli – 30. juni næste år) ville give samme antal dage.
+    if (!datoSet || datoSet.size === 0) {
       return false;
     }
 
-    // Tjek yderligere at det faktisk er et sammenhængende år
-    if (!datoSet) {
+    const sorted = Array.from(datoSet).sort();
+    const firstStr = sorted[0];
+    const lastStr = sorted[sorted.length - 1];
+    if (!firstStr || !lastStr) return false;
+
+    const firstDate = parseISODate(firstStr as ISODateString);
+    const lastDate = parseISODate(lastStr as ISODateString);
+    if (!firstDate || !lastDate) return false;
+
+    const startYear = firstDate.getUTCFullYear();
+    // Krav: starter 1. januar og slutter 31. december i samme år
+    if (
+      firstDate.getUTCMonth() !== 0 || firstDate.getUTCDate() !== 1 ||
+      lastDate.getUTCMonth() !== 11 || lastDate.getUTCDate() !== 31 ||
+      lastDate.getUTCFullYear() !== startYear
+    ) {
       return false;
     }
 
-    const dates = Array.from(datoSet)
-      .map((d) => parseISODate(d))
-      .filter((d): d is Date => d !== undefined)
-      .sort((a, b) => a.getTime() - b.getTime());
-
-    if (dates.length === 0) {
-      return false;
-    }
-    const firstDate = dates[0];
-    const lastDate = dates[dates.length - 1];
-
-    const diffDays = diffUtcDaysAbs(firstDate, lastDate);
-
-    // Skal være 364 dage mellem første og sidste (365 dage inklusiv)
-    return diffDays === 364 || diffDays === 365;
+    // Bekræft antal dage svarer til det pågældende år (365 eller 366 for skudår)
+    const expectedDays = isLeapYear(startYear) ? 366 : 365;
+    return datoSet.size === expectedDays;
   } else if (loenperiode === 'uge') {
     // Ugeløn skal ALTID omregnes (365/7 = 52,14 uger)
     return false;
@@ -147,9 +161,6 @@ export const erNoejagtEtAar = (loenperiode: string, unikkeEnheder: number, datoS
   return false;
 };
 
-/**
- * Beregner månedsperioder fra tabeldata
- */
 /**
  * Beregner maanedsperioder (inklusiv) ud fra tabeldata.
  * Bruger kalender-iteration for at bygge et datoSet (DST-safe uden ms-diff).
@@ -225,9 +236,6 @@ export const beregnMaanedPeriode = (tableData: StandardLoenTableRow[]): PeriodeR
   };
 };
 
-/**
- * Beregner ugeperioder fra tabeldata
- */
 /**
  * Beregner ugeperioder (inklusiv) ud fra tabeldata.
  * Bruger kalender-iteration for at bygge et datoSet (DST-safe uden ms-diff).
@@ -379,9 +387,6 @@ const formatDanskDato = (date: Date): string => {
 };
 
 /**
- * Beregner dagsperioder fra tabeldata
- */
-/**
  * Beregner dagsperioder (inklusiv) ud fra tabeldata.
  * Bruger countInclusiveUtcDays for samlet antal dage.
  */
@@ -446,19 +451,15 @@ export const beregnDagPeriode = (tableData: StandardLoenTableRow[]): PeriodeResu
 };
 
 /**
- * Beregner antal dage i en periode baseret på periodiseringstype
- *
+ * Beregner periodiseringsdage inklusiv start/slut.
  * Bruges til beregning af ydelse pr. dag for offentlige ydelser.
+ * Bygger et datoSet via kalender-iteration (DST-safe uden ms-diff).
  *
  * @param fraDato - Startdato (dansk format dd-mm-åååå)
  * @param tilDato - Slutdato (dansk format dd-mm-åååå)
  * @param periodisering - 'kalenderdage' | 'arbejdsdage'
  * @param ydelsestype - Ydelsestype (bruges til speciel regel for Sygedagpenge)
  * @returns Antal dage, eller null hvis datoer er ugyldige
- */
-/**
- * Beregner periodiseringsdage inklusiv start/slut.
- * Bygger et datoSet via kalender-iteration (DST-safe uden ms-diff).
  */
 export const beregnPeriodiseringsDage = (
   fraDato: string | undefined,
