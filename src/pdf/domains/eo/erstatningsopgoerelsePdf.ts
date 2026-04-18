@@ -6,7 +6,7 @@
 
 import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
-import { MARGINS, PDF_BASE_LINE_HEIGHT_MM } from '../../infrastructure/pdfConfig';
+import { PDF_BASE_LINE_HEIGHT_MM } from '../../infrastructure/pdfConfig';
 import { PDF_TITLE_BOTTOM_SPACING_MM, type BrevhovedData } from '../../shared/pdfHelpers';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';

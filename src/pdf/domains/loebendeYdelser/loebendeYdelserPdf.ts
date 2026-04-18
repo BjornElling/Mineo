@@ -12,7 +12,6 @@ import {
   resolvePdfSectionEndY,
   type BrevhovedData,
 } from '../../shared/pdfHelpers';
-import { MARGINS } from '../../infrastructure/pdfConfig';
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
 import {
   cellRight,

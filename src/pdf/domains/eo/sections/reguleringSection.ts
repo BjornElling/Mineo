@@ -1,6 +1,5 @@
 import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
-import { MARGINS } from '../../../infrastructure/pdfConfig';
 import {
   createPdfTableCell,
   createPdfTableHeaderCell,

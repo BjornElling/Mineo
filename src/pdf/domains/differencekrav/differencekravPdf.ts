@@ -18,7 +18,6 @@ import {
   PDF_BASE_LINE_HEIGHT_MM,
   type BrevhovedData,
 } from '../../shared/pdfHelpers';
-import { MARGINS } from '../../infrastructure/pdfConfig';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
