@@ -59,55 +59,51 @@ PDF-systemet er opdelt i fire lag, fra lavniveau til brugerniveau:
 ## 2. Filstruktur
 
 ```
-src/utils/pdf/
-├── pdfConfig.ts                  # Farver, margener, fontstørrelser, spacing-konstanter
-├── pdfDocumentAdapter.ts         # Interface: PdfDocumentAdapter
-├── jsPdfAdapter.ts               # Eneste sted jsPDF bruges direkte
-├── pdfWriter.ts                  # Cursor-baseret layout-abstraktion (PdfWriter og createPdfWriter/createStandardPdfWriter)
-├── pdfHelpers.ts                 # Brevhoved, footer, section headings, spacing-hjælpere
-├── pdfTableRenderer.ts           # Tabelrendering via jspdf-autotable
-├── pdfTextUtils.ts               # Tekstnormalisering, non-breaking spaces
-├── pdfFormatUtils.ts             # Filnavne, formatering, sanitering
-├── pdfOptions.ts                 # PdfCommonOptions og PdfStamdata (options-kontrakt)
-├── pdfBrevhoved.ts               # PdfType → visBrevhoved-mapping fra settings
-├── pdfLoader.ts                  # Lazy loader for alle generatorer
-├── pdfService.ts                 # Download-wrappers (buildCommonPdfContext, resolvePdfStamdata) — UI-lag kalder herfra
-├── eetPdfUtils.ts                # Fælles formateringshjælpere til EET-generatorerne (formatKrEet, formatJaNejEet, formatFaktorEet)
-│
-├── satserPdf.ts                  # Generator: Arbejdsskadesatser
-├── rentePdf.ts                   # Generator: Procesrente
-├── aarsloenPdf.ts                # Generator: Årslønsberegning
-├── shDagePdf.ts                  # Generator: SH-dage
-├── varigeMenPdf.ts               # Generator: Méngodtgørelse
-├── krlPdf.ts                     # Generator: KRL-satstabeller
-├── reguleringPdf.ts              # Generator: Reguleringsgrundlag
-├── loebendeYdelserPdf.ts         # Generator: EET løbende ydelser
-├── kapitaliseringPdf.ts          # Generator: EET kapitalisering
-├── EetEfterEalPdf.ts             # Generator: EET efter EAL
-├── differencekravPdf.ts          # Generator: EET differencekrav
-├── forsoergertabPdf.ts           # Generator: Forsørgertab
-├── erstatningsopgoerelsePdf.ts   # Generator: Erstatningsopgørelse (hoved-PDF)
-│   └── erstatningsopgoerelse/
-│       ├── types.ts              # SHDageTableRow og SelectedElements (domain-typer til sektionsrenderere)
-│       └── sections/             # Sektionsrenderere til erstatningsopgoerelsePdf
-│           ├── opgoerelseSection.ts
-│           ├── loenindkomstSection.ts
-│           ├── offentligeYdelserSection.ts
-│           ├── reguleringSection.ts
-│           └── shDageSection.ts
-└── tafFordeltPaaAarPdf.ts        # Generator: TAF fordelt på år
+src/pdf/
+├── index.ts
+├── infrastructure/
+│   ├── pdfConfig.ts              # Farver, margener, fontstørrelser, spacing-konstanter
+│   ├── pdfDocumentAdapter.ts     # Interface: PdfDocumentAdapter
+│   ├── jsPdfAdapter.ts           # Eneste sted jsPDF bruges direkte
+│   ├── pdfWriter.ts              # Cursor-baseret layout-abstraktion
+│   ├── pdfLoader.ts              # Lazy loader for alle generatorer
+│   └── pdfService.ts             # UI-lagets download-wrappers
+├── shared/
+│   ├── pdfHelpers.ts             # Brevhoved, footer, section headings, spacing-hjælpere
+│   ├── pdfTableRenderer.ts       # Tabelrendering via jspdf-autotable
+│   ├── pdfTextUtils.ts           # Tekstnormalisering og non-breaking spaces
+│   ├── pdfFormatUtils.ts         # Filnavne, formatering, sanitering
+│   ├── pdfOptions.ts             # PdfCommonOptions og PdfStamdata
+│   └── pdfBrevhoved.ts           # PdfType → visBrevhoved-mapping fra settings
+└── domains/
+    ├── satser/satserPdf.ts
+    ├── renteberegning/rentePdf.ts
+    ├── aarsloen/aarsloenPdf.ts
+    ├── aarsloen/shDagePdf.ts
+    ├── varigemen/varigeMenPdf.ts
+    ├── krl/krlPdf.ts
+    ├── eo/reguleringPdf.ts
+    ├── eo/erstatningsopgoerelsePdf.ts
+    ├── eo/sections/*.ts
+    ├── loebendeYdelser/loebendeYdelserPdf.ts
+    ├── kapitalisering/kapitaliseringPdf.ts
+    ├── eet/eetEfterEalPdf.ts
+    ├── differencekrav/differencekravPdf.ts
+    ├── forsoergertab/forsoergertabPdf.ts
+    └── tafFordelt/tafFordeltPaaAarPdf.ts
 
 src/domain/erstatningsopgoerelse/
-├── eoPdfModel.ts                 # Model-builder: buildEoPdfPresentation og buildErstatningsopgoerelsePdfModelFromComputed
-├── eoPdfModelTypes.ts            # Typer for PDF-modellen (PdfModel m.fl.)
-├── eoPdfMoneyUtils.ts            # MoneyOre/MoneyKroner branded types, afrunding
-├── eoSnapshotToEoPdfDocument.ts  # Entry point: snapshot → EoPdfDocumentProjection (brugt af renderer)
-├── eoSnapshotToTafPerYearPdfDocument.ts  # Entry point: snapshot → TafPerYearPdfDocumentProjection
-├── eoPdfBuilders.ts              # Sektionsspecifikke builder-funktioner
-├── eoPdfIndkomstSkadestidspunkt.ts  # Builder: indkomst på skadestidspunktet
-├── eoPdfLoenudvikling.ts         # Builder: lønudvikling
-├── eoPdfReguleringEngine.ts      # Builder: reguleringsmotor
-└── sharedPdfUtils.ts             # Fælles dato/format/validering til EO-systemet
+├── snapshot/                     # Snapshot- og projection-lag til EO/TAF-PDF'er
+│   ├── eoSnapshot.ts
+│   ├── eoSnapshotToEoPdfDocument.ts
+│   └── eoSnapshotToTafPerYearPdfDocument.ts
+├── pdf/                          # EO-PDF-model, money-typer og formattering
+│   ├── eoPdfModelTypes.ts
+│   ├── eoPdfMoneyUtils.ts
+│   ├── eoPdfLoenudvikling.ts
+│   ├── eoPdfRegulering.ts
+│   └── sharedPdfUtils.ts
+└── engines/ og helpers/          # Domæneberegning og shared regler
 ```
 
 ---
@@ -166,7 +162,11 @@ TABLE_STYLES.alternateRowBackgroundColor // COLORS.lightBackground
 ### Spacing-konstanter
 
 ```typescript
-SECTION_SPACER              // 10 mm — mellemrum mellem sektioner
+SECTION_SPACER              // 10 mm — tabel/autotable-afslutning via resolvePdfSectionEndY()
+PDF_BASE_LINE_HEIGHT_MM     // 4 mm  — standard linjehøjde og writer-baseret sektionsafstand
+PDF_LINE_BOTTOM_SPACING_MM  // 2 mm  — trailing spacing efter almindelig tekstlinje
+PDF_SUBHEADER_BOTTOM_SPACING_MM // 1 mm — ekstra bundafstand under fed underoverskrift
+PDF_TITLE_BOTTOM_SPACING_MM // 15 mm — afstand under dokumenttitel
 PDF_SECTION_HEADING_GAP     // 3 mm — justeringsafstand under sektionsoverskrift
 PDF_TABLE_NARROW_COLUMN_WIDTH // 25 mm — standardbredde for smalle kolonner
 PDF_FINAL_Y_FALLBACK_HEIGHT // 50 mm — fallback-Y hvis autotable ikke returnerer finalY
@@ -229,7 +229,7 @@ Writeren er den primære API for alle generatorer. Den håndterer:
 
 ```typescript
 const writer = createStandardPdfWriter();
-// Opretter writer med lineHeight=5mm, standard A4
+// Opretter writer med lineHeight=4mm, standard A4
 
 // Valgfrie parametre:
 const writer = createStandardPdfWriter({
@@ -251,27 +251,24 @@ writer.setDisplayMode('fullheight');  // Kald dette på alle generatorer
 writer.writeBrevhoved(brevhovedData);
 
 // Indhold
-writer.writeTitle(text);             // 16 pt bold, øverst i indholdsbeskeden
+writer.writeTitle(text);             // 16 pt bold, øverst i indholdsblokken
 writer.writeBoldSubheader(text, nextLineHeight);  // 10 pt bold, sikrer plads til efterfølgende indhold
-// nextLineHeight er valgfri; standarden er centralt defineret i writeren.
-// INVARIANT: writeBoldSubheader garanterer præcis 1× lineHeight (5 mm) over sig selv,
+// nextLineHeight er valgfri og skal normalt udelades.
+// INVARIANT: writeBoldSubheader garanterer præcis 1× lineHeight (4 mm) over sig selv,
 // uanset hvad der gik forud. Allerede akkumuleret spacing fra addSpacer()/advanceY()
 // modregnes automatisk, så det samlede mellemrum aldrig overstiger 1× lineHeight.
 // Brug options.addTopSpacing = false for at undertrykke spacing eksplicit
 // (fx første underoverskrift direkte under en sektionsoverskrift).
 writer.writeWrappedText(text);       // 10 pt normal, linjebrydes automatisk
 writer.writeSectionHeader(text, nextLineHeight);  // 12 pt bold, markerer sektionsskift
+// nextLineHeight er valgfri og skal normalt udelades.
 
 // Layout-primitiver
 writer.addSpacer(mm);               // Tilføj vertikal spacing
-writer.addSectionSpacer();          // Standardafstand mellem writer-baserede sektioner
+writer.addSectionSpacer();          // Standardafstand mellem writer-baserede sektioner (4 mm)
 writer.getY() / writer.setY(y);     // Læs/sæt cursor-position
 writer.getDoc();                    // Hent underliggende jsPDF-instans (kun til tabel-kald)
-
-// Skrifttype
-writer.setFont('helvetica', 'bold');
-writer.setFontSize(10);
-writer.setNormalTextStyle();        // Reset til 10pt normal
+writer.setNormalTextStyle();        // Reset til 10 pt normal
 
 // Footer og gem
 writer.addFooter();                 // Tilføj versionsnummer-footer på alle sider
@@ -283,8 +280,8 @@ writer.writeLeftRightText(leftText, rightText, options?);
 // der ikke hører til i en egentlig tabel.
 // options: { rightFontStyle, lineAboveRightWidth, lineAboveRightOffset, leftNoWrap, minRightColumnWidth }
 
-writer.writeLeftRightTextSingleLine(leftText, rightText, options?);
-// Som writeLeftRightText, men venstresiden brydes aldrig over flere linjer.
+writer.writeBoldWrappedText(text);
+// Kanonisk variant til hele brødtekstblokke i fed vægt.
 
 writer.writeAtomicTableChunks({ rows, renderHeader, renderRow, estimateRowHeight, headerHeight });
 // Holder header + første datarække atomisk (ingen sidebrydning midt i første chunk).
@@ -298,7 +295,10 @@ writer.ensureSpace(height);         // Reservér plads; tilføjer ny side hvis n
 
 // Yderligere metoder
 writer.writeBoldSubheaderWithWrappedText(subheaderText, bodyText);
-// Atomisk: skriver subheader + brødtekst (sikrer at de ikke splittes over sider)
+// Atomisk: skriver subheader + ét efterfølgende tekstafsnit samlet.
+
+writer.writeBoldSubheaderIfContent({ text, hasContent, renderContent, nextLineHeight?, options? });
+// Skriver kun underoverskriften hvis afsnittet reelt har indhold.
 
 writer.advanceY(delta);             // Flyt Y-cursor med delta mm (positiv = ned)
 writer.writeUnderlinedSubheader(text, x);  // Tegner understreget underoverskrift
@@ -329,8 +329,8 @@ Tegner en **fed sektionsoverskrift** (10 pt bold) og returnerer Y-position **eft
 
 ```typescript
 const headingY = addSectionHeading(createJsPdfAdapter(doc), 'Min sektion', currentY);
-const tableStartY = headingY - PDF_SECTION_HEADING_GAP;
-// Tabeller starter typisk headingY - PDF_SECTION_HEADING_GAP (3mm)
+const tableStartY = resolvePdfTableStartYAfterSectionHeading(headingY);
+// Brug altid helperen i stedet for lokal headingY - PDF_SECTION_HEADING_GAP.
 ```
 
 > Alternativt kan `writer.writeBoldSubheader()` bruges, når man arbejder med writer-API'en og ikke behøver den eksakte Y-returværdi for efterfølgende tabelpositionering.
@@ -345,6 +345,7 @@ return resolvePdfSectionEndY(finalY, startY);
 ```
 
 Brug dette **altid** efter en tabel for at få korrekt spacing til næste sektion.
+I rent writer-baserede sektioner bruges derimod `writer.addSectionSpacer()`.
 
 ### `ensurePdfPageSpace(adapter, y, neededMm): number`
 
@@ -356,7 +357,7 @@ Danske lokalformat-hjælpere i `pdfHelpers.ts`. Sørg for at bruge disse (og ikk
 
 ### `PDF_BASE_LINE_HEIGHT_MM`
 
-Eksporteret konstant (5 mm) for standardlinjehøjde. Bruges til spacing-beregninger.
+Eksporteret konstant (4 mm) for standardlinjehøjde. Bruges til spacing-beregninger og som writerens standard-sektionsafstand via `writer.addSectionSpacer()`.
 
 ### `PDF_TITLE_BOTTOM_SPACING_MM`
 
@@ -372,7 +373,7 @@ Eksporteret konstant (15 mm) for afstand under dokumenttitel. Bruges af generato
 
 Alle egentlige tabeller renders via **`renderPdfTable()`** — aldrig ved direkte kald til `jsPDF.autoTable()`.
 
-**Vigtig afgrænsning:** `renderPdfTable()` må kun bruges til faktiske tabeller med kolonneoverskrifter og/eller reel tabelstruktur. Almindelige oplysningslinjer, key/value-par, regnestykker og specifikationer uden tabelheader skal renderes som tekst via writeren (`writeWrappedText()`, `writeLeftRightText()`, `writeLeftRightTextSingleLine()`).
+**Vigtig afgrænsning:** `renderPdfTable()` må kun bruges til faktiske tabeller med kolonneoverskrifter og/eller reel tabelstruktur. Almindelige oplysningslinjer, key/value-par, regnestykker og specifikationer uden tabelheader skal renderes som tekst via writeren (`writeWrappedText()`, `writeBoldWrappedText()`, `writeLeftRightText()`).
 
 ### Celle-builders
 
@@ -489,7 +490,7 @@ export const buildMinPdfFilename = (journalnr?: string): string =>
 
 ## 9. Domænespecifikke hjælpere
 
-### `sharedPdfUtils.ts` (`src/domain/erstatningsopgoerelse/`)
+### `sharedPdfUtils.ts` (`src/domain/erstatningsopgoerelse/pdf/`)
 
 Deduplerede funktioner brugt af EO-systemets model-builders og sektionsrenderere. Relevante også uden for EO-kontekst:
 
@@ -579,8 +580,8 @@ Følgende mønster skal følges konsekvent. Afvigelser fra dette er arkitekturfe
 ```typescript
 // minNyPdf.ts
 
-import { MARGINS, SECTION_SPACER, PDF_SECTION_HEADING_GAP } from './pdfConfig';
-import { addSectionHeading, PDF_BASE_LINE_HEIGHT_MM, resolvePdfSectionEndY, type BrevhovedData } from './pdfHelpers';
+import { MARGINS } from './pdfConfig';
+import { addSectionHeading, resolvePdfSectionEndY, resolvePdfTableStartYAfterSectionHeading, type BrevhovedData } from './pdfHelpers';
 import { createStandardPdfWriter } from './pdfWriter';
 import { createJsPdfAdapter } from './jsPdfAdapter';
 import { cellLeft, cellRight, createPdfTableHeaderCell, renderPdfTable } from './pdfTableRenderer';
@@ -630,13 +631,13 @@ export const generateMinNyPdf = (options: MinNyPdfOptions): void => {
 
   // Almindelige oplysningslinjer skrives som tekst
   writer.writeBoldSubheader('Stamdata');
-  writer.writeLeftRightTextSingleLine('Beregningsdato', '17. marts 2026', { rightFontStyle: 'normal' });
+  writer.writeLeftRightText('Beregningsdato', '17. marts 2026', { rightFontStyle: 'normal' });
   writer.writeLeftRightText('Årsløn', '500.000 kr.', { rightFontStyle: 'normal' });
-  writer.addSpacer(SECTION_SPACER);
+  writer.addSectionSpacer();
 
   // Kun faktiske tabeller bruger tabelrendereren
   const headingY = addSectionHeading(createJsPdfAdapter(doc), 'Sektion 1', writer.getY());
-  const tableStartY = headingY - PDF_SECTION_HEADING_GAP;
+  const tableStartY = resolvePdfTableStartYAfterSectionHeading(headingY);
 
   const finalY = renderPdfTable({
     doc,
@@ -714,8 +715,9 @@ Alle generatorer **skal** bruge disse værdier. Det er den visuelle kontrakt, de
 | Top-margen (første side)            | 40 mm            | `MARGINS.top`                    |
 | Bund-margen                         | 20 mm            | `MARGINS.bottom`                 |
 | Indholdssbredde                     | 170 mm           | `PDF_CONTENT_WIDTH_MM`           |
-| Mellemrum mellem sektioner          | 10 mm            | `SECTION_SPACER`                 |
-| Standard linjehøjde                 | 5 mm             | `PDF_BASE_LINE_HEIGHT_MM`        |
+| Tabel/autotable-afslutning          | 10 mm            | `SECTION_SPACER`                 |
+| Standard linjehøjde                 | 4 mm             | `PDF_BASE_LINE_HEIGHT_MM`        |
+| Writer-baseret sektionsafstand      | 4 mm             | `writer.addSectionSpacer()`      |
 | Sektionsoverskrift → tabel-juster.  | 3 mm             | `PDF_SECTION_HEADING_GAP`        |
 | Smal kolonne (standardbredde)       | 25 mm            | `PDF_TABLE_NARROW_COLUMN_WIDTH`  |
 | Cellepadding (standard)             | 1,5 mm           | `TABLE_STYLES.cellPadding`       |
@@ -773,7 +775,7 @@ Brug `formatAmount2()` fra `sharedPdfUtils.ts` eller `formatAmount()` fra `pdfHe
 | Reguleringsgrundlag        | `reguleringPdf.ts`             | Overenskomst/statistikmodeller og offentlige satser | Nej             | Ja               |
 | EET løbende ydelser        | `loebendeYdelserPdf.ts`        | Erhvervsevnetab: løbende ydelser                 | Nej                 | Ja               |
 | EET kapitalisering         | `kapitaliseringPdf.ts`         | Erhvervsevnetab: kapitaliseret engangserstatning | Nej                 | Ja               |
-| EET efter EAL              | `EetEfterEalPdf.ts`            | Erhvervsevnetab beregnet efter EAL               | Nej                 | Ja               |
+| EET efter EAL              | `eetEfterEalPdf.ts`            | Erhvervsevnetab beregnet efter EAL               | Nej                 | Ja               |
 | EET differencekrav         | `differencekravPdf.ts`         | Erhvervsevnetab: differencekrav                  | Nej                 | Ja               |
 | Forsørgertab               | `forsoergertabPdf.ts`          | Forsørgertabserstatning                          | Nej                 | Ja               |
 
@@ -794,7 +796,7 @@ Headerløse 2-kolonne-layouts må ikke implementeres via `renderPdfTable()`. Hvi
 Den komplekse EO-PDF bruger et tre-lags design:
 
 1. **Snapshot-lag** (`eoSnapshot.ts`): Beregner `EoSnapshot` fra form-state.
-2. **Projection-lag** (`eoSnapshotToEoPdfDocument.ts`): Omsætter snapshot til `EoPdfDocumentProjection` — en `PdfModel` med alle beløb som `MoneyOre`. Dette er den faktiske entry point som rendereren kalder. Bygger på en række specialiserede builders: `eoPdfModel.ts` (overordnet builder-API), `eoPdfBuilders.ts`, `eoPdfIndkomstSkadestidspunkt.ts`, `eoPdfLoenudvikling.ts` og `eoPdfReguleringEngine.ts`. Afhænger ikke af jsPDF.
+2. **Projection-lag** (`eoSnapshotToEoPdfDocument.ts`): Omsætter snapshot til `EoPdfDocumentProjection` — en `PdfModel` med alle beløb som `MoneyOre`. Dette er den faktiske entry point som rendereren kalder. Bygger på snapshot-/presentationslaget (`eoPresentationModel.ts`, `eoPresentationSectionBuilders.ts`) og EO-PDF-hjælpere i `src/domain/erstatningsopgoerelse/pdf/`, bl.a. `eoPdfLoenudvikling.ts`, `eoPdfRegulering.ts` og `sharedPdfUtils.ts`. Afhænger ikke af jsPDF.
 3. **Renderer-lag** (`erstatningsopgoerelsePdf.ts` + `sections/`): Modtager `PdfModel`, renderer til PDF via writeren.
 
 TAF-fordelt-på-år bruger et tilsvarende mønster via `eoSnapshotToTafPerYearPdfDocument.ts`.
@@ -827,8 +829,15 @@ For at fjerne utilsigtede layoutforskelle mellem PDF-generatorerne bør følgend
 7. `src/pdf/domains/eo/reguleringPdf.ts`
 8. `src/pdf/domains/loebendeYdelser/loebendeYdelserPdf.ts`
 9. `src/pdf/domains/kapitalisering/kapitaliseringPdf.ts`
-10. `src/pdf/domains/differencekrav/differencekravPdf.ts`
-11. `src/pdf/domains/forsoergertab/forsoergertabPdf.ts`
-12. `src/pdf/domains/eo/sections/*`
+10. `src/pdf/domains/eet/eetEfterEalPdf.ts`
+11. `src/pdf/domains/differencekrav/differencekravPdf.ts`
+12. `src/pdf/domains/forsoergertab/forsoergertabPdf.ts`
+13. `src/pdf/domains/tafFordelt/tafFordeltPaaAarPdf.ts`
+14. `src/pdf/domains/eo/erstatningsopgoerelsePdf.ts`
+15. `src/pdf/domains/eo/sections/opgoerelseSection.ts`
+16. `src/pdf/domains/eo/sections/shDageSection.ts`
+17. `src/pdf/domains/eo/sections/loenindkomstSection.ts`
+18. `src/pdf/domains/eo/sections/offentligeYdelserSection.ts`
+19. `src/pdf/domains/eo/sections/reguleringSection.ts`
 
 *(ingen øvrige kendte udeståender — senest gennemgået 2026-04-17)*

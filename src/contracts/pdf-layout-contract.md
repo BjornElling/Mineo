@@ -40,13 +40,7 @@ Underoverskriftsfamilien har præcis to kanoniske typer:
 1. Fed underoverskrift
 2. Understreget underoverskrift
 
-De to typer er ligestillede i layoutmæssig forstand og skal opføre sig ens med hensyn til:
-
-1. afstand over underoverskriften
-2. afstand under underoverskriften
-3. sidebrydningsregler
-4. regler for undertrykkelse ved tomt afsnit
-5. central styring af spacing og layoutinvariants
+De to typer er ligestillede i layoutmæssig forstand. Deres fælles adfærdsregler er defineret i §4.
 
 De adskiller sig kun ved deres visuelle markering:
 
@@ -70,6 +64,7 @@ Hver teksttype har én primær, gyldig renderingsvej:
 | Dokumenttitel | `writer.writeTitle()` | Eneste gyldige titel-API |
 | Sektionsoverskrift | `writer.writeSectionHeader()` | Bruges ved egentlige sektionsskift |
 | Fed underoverskrift | `writer.writeBoldSubheader()` | Kanonisk basis-API; standard-followup er centralt defineret |
+| Fed underoverskrift + ét tekstafsnit | `writer.writeBoldSubheaderWithWrappedText()` | Foretrækkes når underoverskrift og ét efterfølgende tekstafsnit skal holdes atomisk samlet |
 | Understreget underoverskrift | `writer.writeUnderlinedSubheader()` | Kanonisk basis-API; standard-X er centralt defineret |
 | Brødtekst | `writer.writeWrappedText()` | Standard for almindelig fritekst |
 | Fed brødtekst | `writer.writeBoldWrappedText()` | Variant af brødtekst til hele tekstblokke med fed vægt |
@@ -81,9 +76,9 @@ Hver teksttype har én primær, gyldig renderingsvej:
 
 Hvis underoverskrifter kræver conditional rendering eller atomisk sammenkædning med efterfølgende indhold, skal dette løses centralt i writer/helper-laget. Generatorer må ikke reimplementere disse regler lokalt.
 
-`writeBoldSubheader()` skal som udgangspunkt bruge writerens centralt definerede standard-followup-height. Generatorer må kun sende eksplicit `nextLineHeight`, når den første efterfølgende indholdsblok reelt kræver en anden atomisk højde end standarden.
+`writeBoldSubheader()` skal som udgangspunkt kaldes uden `nextLineHeight`-argument. Generatorer må kun sende eksplicit `nextLineHeight`, når den første efterfølgende indholdsblok reelt kræver en anden atomisk højde end writerens standard-followup-height.
 
-`writeSectionHeader()` skal som udgangspunkt bruge writerens centralt definerede standard-followup-height. Generatorer må kun sende eksplicit `nextLineHeight`, når den første efterfølgende indholdsblok reelt kræver en anden atomisk højde end standarden.
+`writeSectionHeader()` skal som udgangspunkt kaldes uden `nextLineHeight`-argument. Generatorer må kun sende eksplicit `nextLineHeight`, når den første efterfølgende indholdsblok reelt kræver en anden atomisk højde end writerens standard-followup-height.
 
 `writeUnderlinedSubheader()` skal som udgangspunkt bruge writerens centralt definerede standard-X-position. Generatorer må kun sende eksplicit X-koordinat, hvis en konkret layoutafvigelse kræver det.
 
@@ -109,6 +104,12 @@ Teksttyperne har fast semantik:
 2. Underoverskriftsfamilien
    Bruges til underafsnit og markerede delafsnit under en sektion.
    Må ikke bruges som ren spacing-mekanisme.
+   De to typer er layoutmæssigt ligestillede og følger samme centrale invariants for:
+   - afstand over underoverskriften
+   - afstand under underoverskriften
+   - sidebrydningsregler
+   - undertrykkelse ved tomt afsnit
+   - central styring af spacing og layoutinvariants
    Begge underoverskriftstyper følger disse fælles regler:
    - de må kun renderes, hvis der følger mindst én meningsbærende indholdsblok
    - de skal holdes samlet med den første meningsbærende indholdsblok efter underoverskriften
@@ -179,7 +180,7 @@ Hvis indholdets semantik er uklar, skal generatoren vælge den eksisterende teks
 
 1. Mellemrum mellem sektioner styres af writerens header-metoder eller — hvor der er behov for eksplicit spacing — af `writer.addSpacer()` med en veldefineret konstant.
 2. Lokale sektioner må ikke vælge egne frie sektionsafstande uden eksplicit begrundelse.
-3. `SECTION_SPACER` (10 mm) er **udelukkende** beregnet til Y-overgang efter `renderPdfTable()` (via `resolvePdfSectionEndY()`) og til tilsvarende autotable-kontekster. Den må ikke bruges som sektionsseparator i rent writer-baserede dokumenter, fordi `writeBoldSubheader()`s topSpacing-logik er kalibreret til `PDF_BASE_LINE_HEIGHT_MM` (4 mm) — ikke til 10 mm. Brug af `SECTION_SPACER` foran `writeBoldSubheader()` i writer-baserede dokumenter producerer korrekt nul ekstra topSpacing, men selve 10 mm-afstanden er visuelt for stor og inkonsistent med EO-dokumenternes udtryk.
+3. `SECTION_SPACER` (10 mm) er udelukkende beregnet til Y-overgang efter `renderPdfTable()` via `resolvePdfSectionEndY()` og til tilsvarende autotable-kontekster. Brug `writer.addSectionSpacer()` i rent writer-baserede dokumenter.
 4. Den kanoniske sektionsseparator i rent writer-baserede dokumenter (uden autotable) er `writer.addSectionSpacer()`.
 5. `writer.addSectionSpacer()` er den navngivne writer-standard for den centrale writer-baserede sektionsafstand. Generatorer må ikke sende `PDF_BASE_LINE_HEIGHT_MM` direkte til `writer.addSpacer()` blot for at gentage denne standard.
 6. Et tilbagevendende anti-mønster i simple writer-baserede dokumenter er `writer.addSpacer(SECTION_SPACER)` umiddelbart efter grupper af `writeLeftRightText()`- eller `writeWrappedText()`-linjer. Det skal betragtes som en afvigelse og erstattes med writer-baseret standardafstand, medmindre der faktisk afsluttes en tabel- eller autotable-lignende blok.
@@ -212,7 +213,7 @@ Manuel spacing må ikke bruges til:
 3. at indføre ekstra afstand over `writeUnderlinedSubheader()`
 4. at kompensere for uklare eller inkonsistente lokale Y-forløb i stedet for at rette den centrale writer/helper-adfærd
 5. at bruge `SECTION_SPACER` (10 mm) som generel sektionsseparator i rent writer-baserede dokumenter — se §5.3
-6. at sende `PDF_BASE_LINE_HEIGHT_MM` direkte til `writer.addSpacer()` som erstatning for den navngivne standard `writer.addSectionSpacer()`
+6. at sende `PDF_BASE_LINE_HEIGHT_MM` direkte til `writer.addSpacer()` som erstatning for den navngivne standard `writer.addSectionSpacer()` — se §5.3 punkt 5
 
 Hvis en generator oplever behov for gentagne lokale spacing-korrektioner, er det et arkitekturproblem i writer/helper-laget og skal løses dér.
 
@@ -263,11 +264,11 @@ Ved audit af en PDF-generator skal mindst følgende kontrolleres:
 7. at lokale `setFont`/`setFontSize`-forløb ikke emulerer eksisterende teksttyper
 8. at line-height og sektionafstand alene kommer fra centrale konstanter — og at den rigtige konstant er valgt til konteksten (autotable vs. writer, jf. §5.3)
 9. at simple writer-baserede dokumenter ikke bruger `writer.addSpacer(SECTION_SPACER)` som tommelfingerregel efter blokke med `writeLeftRightText()` eller `writeWrappedText()`
-10. at simple writer-baserede dokumenter bruger `writer.addSectionSpacer()` i stedet for rå `writer.addSpacer(PDF_BASE_LINE_HEIGHT_MM)` når intentionen blot er standard-sektionsafstand
+10. at simple writer-baserede dokumenter bruger `writer.addSectionSpacer()` i stedet for rå `writer.addSpacer(PDF_BASE_LINE_HEIGHT_MM)` når intentionen blot er standard-sektionsafstand, jf. §5.3 punkt 5
 11. at multiline højrekolonner i `writeLeftRightText()` ikke implementeres via lokal `split('\n')`, tom venstre kolonne og manuel `advanceY(...)`-korrektion
 12. at generatorer ikke laver lokal `setFont(...)` / `setFontSize(...)` omkring enkelte brødtekstblokke som advarsler eller noter, når en central writer-variant kan bære behovet
 13. at `nextLineHeight` til `writeBoldSubheader()` afspejler den første reelle efterfølgende indholdsblok og ikke bruges som skjult spacing- eller keep-together-mekanisme
-14. at generatorer ikke sender `PDF_BASE_LINE_HEIGHT_MM` eller `MARGINS.left` videre til underoverskrifts-API’er blot for at gentage writerens egne standarder
+14. at generatorer normalt udelader `nextLineHeight` og standard-X til underoverskrifts-API’er og ikke sender `PDF_BASE_LINE_HEIGHT_MM` eller `MARGINS.left` videre blot for at gentage writerens egne standarder
 15. at generatorer ikke lokalt genimplementerer tabelstart efter `addSectionHeading(...)` via `headingY - PDF_SECTION_HEADING_GAP`, men bruger en central helper
 
 ---
@@ -285,9 +286,16 @@ For at fjerne eksisterende utilsigtede forskelle bør PDF-generatorerne gennemg�
 7. `reguleringPdf.ts`
 8. `loebendeYdelserPdf.ts`
 9. `kapitaliseringPdf.ts`
-10. `differencekravPdf.ts`
-11. `forsoergertabPdf.ts`
-12. EO-sektionerne under `src/pdf/domains/eo/sections/*`
+10. `eetEfterEalPdf.ts`
+11. `differencekravPdf.ts`
+12. `forsoergertabPdf.ts`
+13. `tafFordeltPaaAarPdf.ts`
+14. `erstatningsopgoerelsePdf.ts`
+15. `opgoerelseSection.ts`
+16. `shDageSection.ts`
+17. `loenindkomstSection.ts`
+18. `offentligeYdelserSection.ts`
+19. `reguleringSection.ts`
 
 Formålet med sekvensen er først at rydde de simple og mellemkomplekse generatorer og derefter de mere domænetunge dokumenter.
 
