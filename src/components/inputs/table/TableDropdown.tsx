@@ -7,6 +7,7 @@ import { useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../StyledDropdown';
+import { TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_X, TABLE_INPUT_PADDING_Y } from './tableInputStyles';
 
 /**
  * TableDropdown (table-cell select)
@@ -56,6 +57,8 @@ export type TableDropdownProps = (TableDropdownPropsAllowEmpty | TableDropdownPr
     inputRef?: React.Ref<HTMLElement>;
     sx?: SxProps<Theme>;
   }>;
+
+const TABLE_DROPDOWN_TEXT_PADDING_LEFT = '14px';
 
 const TableDropdown = React.memo(
   ({
@@ -120,7 +123,7 @@ const TableDropdown = React.memo(
     }, [getTriggerAndListbox]);
 
     const grid = useGridCoreApi();
-    const menuHighlightColor = 'rgba(25, 118, 210, 0.08)';
+    const menuHighlightColor = 'var(--color-active-bg)';
     const isLooseTable = grid.tableKind === 'loose';
     const resolvedAppearance = appearance === 'grid' ? (isLooseTable ? 'loose' : 'grid') : appearance;
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
@@ -259,6 +262,8 @@ const TableDropdown = React.memo(
     const showError = externalErrorText !== '';
     const looseDropdownSx: SxProps<Theme> = {
       width: '100%',
+      height: TABLE_INPUT_HEIGHT,
+      boxSizing: 'border-box',
       fontSize: '13px',
       fontFamily: '"Montserrat", sans-serif',
       color: 'inherit',
@@ -268,6 +273,9 @@ const TableDropdown = React.memo(
         fontSize: 'inherit',
         lineHeight: 'inherit',
         color: 'inherit',
+        paddingTop: TABLE_INPUT_PADDING_Y,
+        paddingBottom: TABLE_INPUT_PADDING_Y,
+        paddingLeft: TABLE_DROPDOWN_TEXT_PADDING_LEFT,
         userSelect: 'text',
         WebkitUserSelect: 'text',
       },
@@ -449,7 +457,8 @@ const TableDropdown = React.memo(
               }}
               sx={{
                 width: '100%',
-                height: '100%',
+                height: TABLE_INPUT_HEIGHT,
+                boxSizing: 'border-box',
                 fontSize: '13px',
                 fontFamily: '"Montserrat", sans-serif',
                 color: 'inherit',
@@ -457,13 +466,16 @@ const TableDropdown = React.memo(
                 border: '1px solid',
                 borderColor: showError ? 'var(--color-input-border-error)' : inputBorderColor,
                 borderRadius: inputBorderRadius,
+                paddingTop: TABLE_INPUT_PADDING_Y,
+                paddingBottom: TABLE_INPUT_PADDING_Y,
                 '&:focus-within': {
                   borderColor: 'var(--color-input-border-focus)',
                 },
                 '& .MuiSelect-select': {
-                  paddingTop: '4px',
-                  paddingBottom: '4px',
-                  paddingLeft: '8px',
+                  minHeight: 'unset',
+                  paddingTop: 0,
+                  paddingBottom: 0,
+                  paddingLeft: TABLE_DROPDOWN_TEXT_PADDING_LEFT,
                   paddingRight: '24px',
                   userSelect: 'text',
                   WebkitUserSelect: 'text',

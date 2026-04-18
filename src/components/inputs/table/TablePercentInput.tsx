@@ -23,6 +23,7 @@ import {
   type PercentFingerprint,
 } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
+import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
 
 export type TablePercentInputValue = string | number | undefined;
 
@@ -712,31 +713,19 @@ const TablePercentInput = React.memo(
                 'aria-describedby': showError ? a11yErrorId : undefined,
               }}
               sx={{
-                width: '100%',
-                height: '100%',
-                font: 'inherit',
-                fontSize: 'inherit',
-                fontFamily: 'inherit',
-                lineHeight: 'inherit',
-                color: 'inherit',
-                fontFeatureSettings: '"tnum"',
-                paddingLeft: '8px',
-                paddingRight: '8px',
-                borderRadius: inputBorderRadius,
-                border: '1px solid',
-                borderColor: showError ? 'var(--color-input-border-error)' : inputBorderColor,
-                backgroundColor: isLooseTable && !locked ? 'var(--color-input-bg)' : 'transparent',
-                '&:focus-within': {
-                  borderColor: 'var(--color-input-border-focus)',
-                },
+                ...getTableInputRootStyles({
+                  showError,
+                  isLooseTable,
+                  locked,
+                  borderRadius: inputBorderRadius,
+                  borderColor: inputBorderColor,
+                }),
                 '& .MuiInputBase-input': {
-                  font: 'inherit',
-                  fontSize: 'inherit',
-                  lineHeight: 'inherit',
-                  color: 'inherit',
-                  textAlign: 'right',
-                  cursor: isEditing ? 'text' : 'pointer',
-                  caretColor: isEditing ? 'auto' : 'transparent',
+                  ...getTableInputElementStyles({
+                    textAlign: 'right',
+                    cursor: isEditing ? 'text' : 'pointer',
+                    caretColor: isEditing ? 'auto' : 'transparent',
+                  }),
                 },
               }}
             />

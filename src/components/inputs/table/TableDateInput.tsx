@@ -16,6 +16,7 @@ import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { filterDateLikeKeyDown } from '../inputKeyFilters';
 import { makeDateFingerprintFromCanonical, type CommittedPayload, type DateFingerprint } from '../../../types/parserSpec';
+import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
 
 export type TableDateInputChangeEvent = { target: { value: string } };
 export type TableDateSanitizeCallback = (value: string) => string;
@@ -643,35 +644,20 @@ const TableDateInput = React.memo(
               'aria-describedby': showError ? a11yErrorId : undefined,
             }}
             sx={{
-              width: '100%',
-              height: '100%',
-              // TYPOGRAFI: Lad grid/table bestemme. Input skal arve.
-              font: 'inherit',
-              fontSize: 'inherit',
-              fontFamily: 'inherit',
-              lineHeight: 'inherit',
-              color: 'inherit',
-              fontFeatureSettings: '"tnum"',
-              padding: '4px 8px',
-              border: '1px solid',
-              borderColor: showError ? 'var(--color-input-border-error)' : inputBorderColor,
-              borderRadius: inputBorderRadius,
-              backgroundColor: isLooseTable && !locked ? 'var(--color-input-bg)' : 'transparent',
+              ...getTableInputRootStyles({
+                showError,
+                isLooseTable,
+                locked,
+                borderRadius: inputBorderRadius,
+                borderColor: inputBorderColor,
+              }),
               ...(cellFocused ? { outline: 'none' } : {}),
-              '&:focus-within': {
-                borderColor: 'var(--color-input-border-focus)',
-              },
               '& .MuiInputBase-input': {
-                font: 'inherit',
-                fontSize: 'inherit',
-                lineHeight: 'inherit',
-                color: 'inherit',
-                textAlign: 'center',
-                padding: 0,
-                // Pegefinger når ikke i edit-mode, I-beam når i edit-mode
-                cursor: isEditing ? 'text' : 'pointer',
-                // KRITISK: Caret skal afhænge af isEditing, IKKE isReadOnly
-                caretColor: isEditing ? 'auto' : 'transparent',
+                ...getTableInputElementStyles({
+                  textAlign: 'center',
+                  cursor: isEditing ? 'text' : 'pointer',
+                  caretColor: isEditing ? 'auto' : 'transparent',
+                }),
               },
               ...sx,
             }}

@@ -11,6 +11,7 @@ import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { trimWhitespaceEdges } from '../../../utils/draftNormalization';
 import { makeStringFingerprintFromCanonical, type CommittedPayload, type StringFingerprint } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
+import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
 
 export type TableTextInputChangeEvent = { target: { value: string } };
 
@@ -267,30 +268,19 @@ const TableTextInput = React.memo(
               'aria-describedby': showError ? a11yErrorId : undefined,
             }}
             sx={{
-              width: '100%',
-              height: '100%',
-              font: 'inherit',
-              fontSize: 'inherit',
-              fontFamily: 'inherit',
-              lineHeight: 'inherit',
-              color: 'inherit',
-              paddingLeft: '8px',
-              paddingRight: '8px',
-              borderRadius: inputBorderRadius,
-              border: '1px solid',
-              borderColor: showError ? 'var(--color-input-border-error)' : inputBorderColor,
-              backgroundColor: isLooseTable && !locked ? 'var(--color-input-bg)' : 'transparent',
-              '&:focus-within': {
-                borderColor: 'var(--color-input-border-focus)',
-              },
+              ...getTableInputRootStyles({
+                showError,
+                isLooseTable,
+                locked,
+                borderRadius: inputBorderRadius,
+                borderColor: inputBorderColor,
+              }),
               '& .MuiInputBase-input': {
-                font: 'inherit',
-                fontSize: 'inherit',
-                lineHeight: 'inherit',
-                color: 'inherit',
-                textAlign: 'left',
-                cursor: isEditing ? 'text' : 'pointer',
-                caretColor: isEditing ? 'auto' : 'transparent',
+                ...getTableInputElementStyles({
+                  textAlign: 'left',
+                  cursor: isEditing ? 'text' : 'pointer',
+                  caretColor: isEditing ? 'auto' : 'transparent',
+                }),
               },
             }}
           />
@@ -308,4 +298,3 @@ const TableTextInput = React.memo(
 TableTextInput.displayName = 'TableTextInput';
 
 export default TableTextInput;
-

@@ -14,6 +14,7 @@ import { makeIntegerFingerprintFromCanonical, type CommittedPayload, type Intege
 import { getIntegerRangeErrorMessage } from '../../../utils/integerRange';
 import { normalizeIntegerPaste } from '../../../utils/inputPasteNormalization';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
+import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
 
 export type TableIntegerInputChangeEvent = { target: { value: string } };
 
@@ -482,34 +483,19 @@ const TableIntegerInput = React.memo(
               'aria-describedby': showError ? a11yErrorId : undefined,
             }}
             sx={{
-              width: '100%',
-              height: '100%',
-              // TYPOGRAFI: Lad grid/table bestemme. Input skal arve.
-              font: 'inherit',
-              fontSize: 'inherit',
-              fontFamily: 'inherit',
-              lineHeight: 'inherit',
-              color: 'inherit',
-              fontFeatureSettings: '"tnum"',
-              paddingLeft: '8px',
-              paddingRight: '8px',
-              borderRadius: inputBorderRadius,
-              border: '1px solid',
-              borderColor: showError ? 'var(--color-input-border-error)' : inputBorderColor,
-              backgroundColor: isLooseTable && !locked ? 'var(--color-input-bg)' : 'transparent',
-              '&:focus-within': {
-                borderColor: 'var(--color-input-border-focus)',
-              },
+              ...getTableInputRootStyles({
+                showError,
+                isLooseTable,
+                locked,
+                borderRadius: inputBorderRadius,
+                borderColor: inputBorderColor,
+              }),
               '& .MuiInputBase-input': {
-                font: 'inherit',
-                fontSize: 'inherit',
-                lineHeight: 'inherit',
-                color: 'inherit',
-                textAlign: 'center',
-                // Pegefinger når ikke i edit-mode, I-beam når i edit-mode
-                cursor: isEditing ? 'text' : 'pointer',
-                // KRITISK: Caret skal afhænge af isEditing, IKKE isReadOnly
-                caretColor: isEditing ? 'auto' : 'transparent',
+                ...getTableInputElementStyles({
+                  textAlign: 'center',
+                  cursor: isEditing ? 'text' : 'pointer',
+                  caretColor: isEditing ? 'auto' : 'transparent',
+                }),
               },
               ...sx,
             }}
