@@ -58,7 +58,7 @@ const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
         justifyContent: 'center',
         minHeight: '400px',
         padding: 3,
-        backgroundColor: '#f8f9fa',
+        backgroundColor: 'var(--color-surface)',
       }}
     >
       <Alert
@@ -120,7 +120,7 @@ const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
             sx={{
               marginTop: 2,
               padding: 2,
-              backgroundColor: '#fff',
+              backgroundColor: 'var(--color-background-white)',
               borderRadius: '10px',
               border: '1px solid rgba(0, 0, 0, 0.12)',
               maxHeight: 320,

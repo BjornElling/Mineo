@@ -164,9 +164,9 @@ const ReadOnlyDateCell = React.memo(
               paddingRight: '8px',
               borderRadius: '4px',
               border: '1px solid',
-              borderColor: showError ? '#d32f2f' : 'transparent',
+              borderColor: showError ? 'var(--color-input-border-error)' : 'transparent',
               '&:focus-within': {
-                borderColor: '#1976d2',
+                borderColor: 'var(--color-input-border-focus)',
               },
               '& .MuiInputBase-input': {
                 font: 'inherit',
@@ -278,9 +278,9 @@ const ReadOnlyPercentCell = React.memo(
               paddingRight: '8px',
               borderRadius: '4px',
               border: '1px solid',
-              borderColor: showError ? '#d32f2f' : 'transparent',
+              borderColor: showError ? 'var(--color-input-border-error)' : 'transparent',
               '&:focus-within': {
-                borderColor: '#1976d2',
+                borderColor: 'var(--color-input-border-focus)',
               },
               '& .MuiInputBase-input': {
                 font: 'inherit',

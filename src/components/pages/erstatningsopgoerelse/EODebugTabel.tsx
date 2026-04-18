@@ -89,7 +89,7 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, isActive = false }: EOD
       cells: ['Laveste/højeste dato (beregnet)', formatIso(model.combinedMinFra), formatIso(model.combinedMaxTil)],
       rowSx: {
         '& .MuiTableCell-root': {
-          borderTop: '1px solid #e5e7eb !important',
+          borderTop: '1px solid var(--color-table-border) !important',
         },
       },
     });

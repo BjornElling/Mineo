@@ -110,7 +110,7 @@ const DevtoolsIssueNotice = ({
             sx={{
               marginTop: 2,
               padding: 2,
-              backgroundColor: '#fff',
+              backgroundColor: 'var(--color-background-white)',
               borderRadius: '10px',
               border: '1px solid rgba(0, 0, 0, 0.12)',
               maxHeight: 260,

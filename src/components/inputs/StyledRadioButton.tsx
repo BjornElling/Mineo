@@ -107,7 +107,7 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
             // No visible "frame" around radio groups in normal state.
             // Keep a transparent border to avoid layout shift when error border appears.
             border: '1px solid',
-            borderColor: showError ? '#d32f2f' : 'transparent',
+            borderColor: showError ? 'var(--color-input-border-error)' : 'transparent',
             padding: 0,
             minHeight: '40px',
             display: 'flex',

@@ -2821,7 +2821,7 @@ const LoenindkomstTab = React.memo(({
               width: '90%',
               maxWidth: '700px',
               maxHeight: '85vh',
-              backgroundColor: 'white',
+              backgroundColor: 'var(--color-background-white)',
               borderRadius: '20px',
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
               zIndex: (theme) => theme.zIndex.modal,

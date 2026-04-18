@@ -77,7 +77,7 @@ const LicenseModal = React.memo(({ open, onClose }: LicenseModalProps) => {
           width: '90%',
           maxWidth: '800px',
           maxHeight: '80vh',
-          backgroundColor: 'white',
+          backgroundColor: 'var(--color-background-white)',
           borderRadius: '20px',
           boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
           zIndex: theme.zIndex.modal + 1,
