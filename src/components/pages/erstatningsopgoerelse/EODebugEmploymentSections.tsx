@@ -43,11 +43,11 @@ type EmploymentRegulationDisplayRow =
 const getStatusIcon = (status: DebugStatus): React.ReactElement => {
   switch (status) {
     case 'error':
-      return <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />;
+      return <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />;
     case 'warning':
-      return <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />;
+      return <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />;
     case 'ok':
-      return <Check sx={{ color: 'green', fontSize: 20 }} />;
+      return <Check sx={{ color: 'var(--color-status-success)', fontSize: 20 }} />;
   }
 };
 

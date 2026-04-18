@@ -79,25 +79,16 @@ const VarigeMen = React.memo(() => {
             sx={{
               minHeight: 48,
               '& .MuiTab-root': {
-                textTransform: 'none',
-                fontWeight: 600,
                 minWidth: 140,
-                transition: 'color 0.2s, opacity 0.2s',
-                opacity: 0.7,
-                '&:hover': { opacity: 1 },
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                  opacity: 1,
-                },
               },
               '& .MuiTabs-indicator': {
-                backgroundColor: 'primary.main',
+                backgroundColor: 'var(--color-primary)',
                 height: '2px',
               },
             }}
           >
-            <Tab label="Ménberegning" value={TAB_KEYS.MENBEREGNING} sx={{ textTransform: 'none' }} />
-            <Tab label="Satser" value={TAB_KEYS.SATSER} sx={{ textTransform: 'none' }} />
+            <Tab className="tab-item" label="Ménberegning" value={TAB_KEYS.MENBEREGNING} />
+            <Tab className="tab-item" label="Satser" value={TAB_KEYS.SATSER} />
           </Tabs>
         </Box>
       </Box>

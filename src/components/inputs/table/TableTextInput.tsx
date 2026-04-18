@@ -56,7 +56,7 @@ const TableTextInput = React.memo(
     const isReadOnly = locked || !isEditing;
     const isLooseTable = gridApi.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
-    const inputBorderColor = isLooseTable ? 'rgba(0, 0, 0, 0.12)' : 'transparent';
+    const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
 
     const [draft, setDraft] = React.useState<string>(() => value ?? '');
     const [isFocused, setIsFocused] = React.useState(false);
@@ -278,9 +278,10 @@ const TableTextInput = React.memo(
               paddingRight: '8px',
               borderRadius: inputBorderRadius,
               border: '1px solid',
-              borderColor: showError ? '#d32f2f' : inputBorderColor,
+              borderColor: showError ? 'var(--color-input-border-error)' : inputBorderColor,
+              backgroundColor: isLooseTable && !locked ? 'var(--color-input-bg)' : 'transparent',
               '&:focus-within': {
-                borderColor: '#1976d2',
+                borderColor: 'var(--color-input-border-focus)',
               },
               '& .MuiInputBase-input': {
                 font: 'inherit',
@@ -307,5 +308,4 @@ const TableTextInput = React.memo(
 TableTextInput.displayName = 'TableTextInput';
 
 export default TableTextInput;
-
 

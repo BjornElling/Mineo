@@ -67,6 +67,7 @@ const Stamdata = React.memo(() => {
         {showTestTab && (
           <Box
             onClick={() => setActiveTab('test')}
+            className={activeTab === 'test' ? 'tab-item side-tab active' : 'tab-item side-tab'}
             sx={{
               position: 'absolute',
               left: '1200px',
@@ -81,20 +82,10 @@ const Stamdata = React.memo(() => {
               minWidth: 140,
               minHeight: 48,
               padding: '12px 16px',
-              textTransform: 'none',
-              fontWeight: 600,
               fontSize: '0.875rem',
               fontFamily: 'Montserrat, sans-serif',
               lineHeight: 1.25,
               letterSpacing: '0.02857em',
-              color: activeTab === 'test' ? 'primary.main' : 'rgba(0, 0, 0, 0.6)',
-              opacity: activeTab === 'test' ? 1 : 0.7,
-              transition: 'color 0.2s, opacity 0.2s',
-              backgroundColor: 'transparent',
-              borderBottom: activeTab === 'test' ? '2px solid #1976d2' : '2px solid transparent',
-              '&:hover': {
-                opacity: 1,
-              },
             }}
           >
             Test

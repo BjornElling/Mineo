@@ -124,27 +124,16 @@ const Renteberegning = React.memo(() => {
             sx={{
               minHeight: 48,
               '& .MuiTab-root': {
-                textTransform: 'none',
-                fontWeight: 600,
                 minWidth: 140,
-                transition: 'color 0.2s, opacity 0.2s',
-                opacity: 0.7,
-                '&:hover': {
-                  opacity: 1,
-                },
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                  opacity: 1,
-                },
               },
               '& .MuiTabs-indicator': {
-                backgroundColor: 'primary.main',
+                backgroundColor: 'var(--color-primary)',
                 height: '2px',
               },
             }}
           >
-            <Tab label="Beregning" value={TAB_KEYS.CALCULATION} />
-            <Tab label="Rentesatser" value={TAB_KEYS.RATES} />
+            <Tab className="tab-item" label="Beregning" value={TAB_KEYS.CALCULATION} />
+            <Tab className="tab-item" label="Rentesatser" value={TAB_KEYS.RATES} />
           </Tabs>
         </Box>
       </Box>

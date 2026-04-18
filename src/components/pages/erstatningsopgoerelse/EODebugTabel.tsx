@@ -114,9 +114,9 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, isActive = false }: EOD
     const renderControl = (control: SammentaellingControl): React.ReactElement => {
       const status = getSammentaellingControlStatus(control);
       if (status === 'ok') {
-        return <Check sx={{ color: 'green', fontSize: 20 }} />;
+        return <Check sx={{ color: 'var(--color-status-success)', fontSize: 20 }} />;
       }
-      return <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />;
+      return <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />;
     };
 
     const toTableRows = (displayRows: readonly SammentaellingDisplayRow[]): StandardDisplayTableRow[] => {
@@ -297,8 +297,8 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, isActive = false }: EOD
                     justifyContent: 'center',
                     cursor: canDownloadDebugTable ? 'pointer' : 'default',
                     transition: 'background-color 0.2s',
-                    '&:hover': canDownloadDebugTable ? { backgroundColor: '#e3f2fd' } : undefined,
-                    '&:active': canDownloadDebugTable ? { backgroundColor: '#bbdefb' } : undefined,
+                    '&:hover': canDownloadDebugTable ? { backgroundColor: 'var(--color-icon-action-hover)' } : undefined,
+                    '&:active': canDownloadDebugTable ? { backgroundColor: 'var(--color-icon-action-active)' } : undefined,
                   }}
                 >
                   <Download

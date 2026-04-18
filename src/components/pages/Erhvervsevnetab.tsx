@@ -138,28 +138,19 @@ const ErhvervsevnetabPage = React.memo(() => {
             sx={{
               minHeight: 48,
               '& .MuiTab-root': {
-                textTransform: 'none',
-                fontWeight: 600,
                 minWidth: 130,
-                transition: 'color 0.2s, opacity 0.2s',
-                opacity: 0.7,
-                '&:hover': { opacity: 1 },
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                  opacity: 1,
-                },
               },
               '& .MuiTabs-indicator': {
-                backgroundColor: 'primary.main',
+                backgroundColor: 'var(--color-primary)',
                 height: '2px',
               },
             }}
           >
-            <Tab label="EET oplysninger" value={TAB_KEYS.EET_OPLYSNINGER} />
-            <Tab label="Løbende ydelser" value={TAB_KEYS.LOEBENDE_YDELSER} />
-            <Tab label="Kapitalisering" value={TAB_KEYS.KAPITALISERING} />
-            <Tab label="EET efter EAL" value={TAB_KEYS.EET_EAL} />
-            <Tab label="Differencekrav" value={TAB_KEYS.DIFFERENCEKRAV} />
+            <Tab className="tab-item" label="EET oplysninger" value={TAB_KEYS.EET_OPLYSNINGER} />
+            <Tab className="tab-item" label="Løbende ydelser" value={TAB_KEYS.LOEBENDE_YDELSER} />
+            <Tab className="tab-item" label="Kapitalisering" value={TAB_KEYS.KAPITALISERING} />
+            <Tab className="tab-item" label="EET efter EAL" value={TAB_KEYS.EET_EAL} />
+            <Tab className="tab-item" label="Differencekrav" value={TAB_KEYS.DIFFERENCEKRAV} />
           </Tabs>
         </Box>
       </Box>

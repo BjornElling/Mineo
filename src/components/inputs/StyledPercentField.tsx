@@ -447,7 +447,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         onKeyDown?.(e);
     }, [activation, allowDecimals, allowNegative, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
 
-    const percentAdornmentColor = draft.trim() === '' ? 'rgba(0, 0, 0, 0.4)' : 'inherit';
+    const percentAdornmentColor = draft.trim() === '' ? 'var(--color-input-placeholder)' : 'inherit';
     const endAdornment = (
       <InputAdornment
         position="end"

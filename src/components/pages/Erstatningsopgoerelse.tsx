@@ -239,29 +239,18 @@ const Erstatningsopgoerelse = React.memo(() => {
             sx={{
               minHeight: 48,
               '& .MuiTab-root': {
-                textTransform: 'none',
-                fontWeight: 600,
                 minWidth: 140,
-                transition: 'color 0.2s, opacity 0.2s',
-                opacity: 0.7,
-                '&:hover': {
-                  opacity: 1,
-                },
-                '&.Mui-selected': {
-                  color: 'primary.main',
-                  opacity: 1,
-                },
               },
               '& .MuiTabs-indicator': {
-                backgroundColor: '#1976d2',
+                backgroundColor: 'var(--color-primary)',
                 height: '2px',
               },
             }}
           >
-            <Tab label="EO oplysninger" value={TAB_KEYS.EO_OPLYSNINGER} />
-            <Tab label="Lønindkomst" value={TAB_KEYS.LOENINDKOMST} />
-            <Tab label="Offentlige ydelser" value={TAB_KEYS.OFFENTLIGE_YDELSER} />
-            <Tab label="Beregning" value={TAB_KEYS.BEREGNING} />
+            <Tab className="tab-item" label="EO oplysninger" value={TAB_KEYS.EO_OPLYSNINGER} />
+            <Tab className="tab-item" label="Lønindkomst" value={TAB_KEYS.LOENINDKOMST} />
+            <Tab className="tab-item" label="Offentlige ydelser" value={TAB_KEYS.OFFENTLIGE_YDELSER} />
+            <Tab className="tab-item" label="Beregning" value={TAB_KEYS.BEREGNING} />
           </Tabs>
         </Box>
       </Box>
@@ -273,6 +262,7 @@ const Erstatningsopgoerelse = React.memo(() => {
           <>
             <Box
               onClick={() => setActiveTab(TAB_KEYS.DEBUG)}
+              className={activeTab === TAB_KEYS.DEBUG ? 'tab-item side-tab active' : 'tab-item side-tab'}
               sx={{
                 position: 'absolute',
                 left: '1200px',
@@ -287,26 +277,17 @@ const Erstatningsopgoerelse = React.memo(() => {
                 minWidth: 140,
                 minHeight: 48,
                 padding: '12px 16px',
-                textTransform: 'none',
-                fontWeight: 600,
                 fontSize: '0.875rem',
                 fontFamily: 'Montserrat, sans-serif',
                 lineHeight: 1.25,
                 letterSpacing: '0.02857em',
-                color: activeTab === TAB_KEYS.DEBUG ? 'primary.main' : 'rgba(0, 0, 0, 0.6)',
-                opacity: activeTab === TAB_KEYS.DEBUG ? 1 : 0.7,
-                transition: 'color 0.2s, opacity 0.2s',
-                backgroundColor: 'transparent',
-                borderBottom: activeTab === TAB_KEYS.DEBUG ? '2px solid #1976d2' : '2px solid transparent',
-                '&:hover': {
-                  opacity: 1,
-                },
               }}
             >
               EO debug
             </Box>
             <Box
               onClick={() => setActiveTab(TAB_KEYS.DEBUG_TABEL)}
+              className={activeTab === TAB_KEYS.DEBUG_TABEL ? 'tab-item side-tab active' : 'tab-item side-tab'}
               sx={{
                 position: 'absolute',
                 left: '1200px',
@@ -321,20 +302,10 @@ const Erstatningsopgoerelse = React.memo(() => {
                 minWidth: 140,
                 minHeight: 48,
                 padding: '12px 16px',
-                textTransform: 'none',
-                fontWeight: 600,
                 fontSize: '0.875rem',
                 fontFamily: 'Montserrat, sans-serif',
                 lineHeight: 1.25,
                 letterSpacing: '0.02857em',
-                color: activeTab === TAB_KEYS.DEBUG_TABEL ? 'primary.main' : 'rgba(0, 0, 0, 0.6)',
-                opacity: activeTab === TAB_KEYS.DEBUG_TABEL ? 1 : 0.7,
-                transition: 'color 0.2s, opacity 0.2s',
-                backgroundColor: 'transparent',
-                borderBottom: activeTab === TAB_KEYS.DEBUG_TABEL ? '2px solid #1976d2' : '2px solid transparent',
-                '&:hover': {
-                  opacity: 1,
-                },
               }}
             >
               Debug tabel

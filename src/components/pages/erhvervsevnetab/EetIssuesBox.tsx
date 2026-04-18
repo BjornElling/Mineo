@@ -77,9 +77,9 @@ const EetIssuesBox = ({ issues, onGoToEetOplysninger }: Props) => {
                 </>
               )}
               {issue.severity === 'error' ? (
-                <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
+                <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />
               ) : (
-                <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />
+                <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />
               )}
             </Box>
           </Box>

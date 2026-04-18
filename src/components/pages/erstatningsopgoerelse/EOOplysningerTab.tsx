@@ -2033,10 +2033,10 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                                 borderRadius: '6px',
                                 transition: 'background-color 0.2s',
                                 '&:hover': {
-                                  backgroundColor: '#e3f2fd',
+                                  backgroundColor: 'var(--color-icon-action-hover)',
                                 },
                                 '&:active': {
-                                  backgroundColor: '#bbdefb',
+                                  backgroundColor: 'var(--color-icon-action-active)',
                                 },
                               }}
                             >
@@ -2195,10 +2195,10 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                                     transition: 'background-color 0.2s',
                                     ...(canDownload && {
                                       '&:hover': {
-                                        backgroundColor: '#e3f2fd',
+                                        backgroundColor: 'var(--color-icon-action-hover)',
                                       },
                                       '&:active': {
-                                        backgroundColor: '#bbdefb',
+                                        backgroundColor: 'var(--color-icon-action-active)',
                                       },
                                     }),
                                   }}

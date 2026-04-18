@@ -233,10 +233,10 @@ const Satser = React.memo(() => {
                 cursor: 'pointer',
                 transition: 'background-color 0.2s',
                 '&:hover': {
-                  backgroundColor: '#e3f2fd',
+                  backgroundColor: 'var(--color-icon-action-hover)',
                 },
                 '&:active': {
-                  backgroundColor: '#bbdefb',
+                  backgroundColor: 'var(--color-icon-action-active)',
                 },
               }}
             >

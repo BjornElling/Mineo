@@ -157,10 +157,10 @@ const Aarsloen = React.memo(() => {
           transition: 'background-color 0.2s',
           animation: shake ? 'shake 0.5s' : 'none',
           '&:hover': {
-            backgroundColor: '#e3f2fd',
+            backgroundColor: 'var(--color-icon-action-hover)',
           },
           '&:active': {
-            backgroundColor: '#bbdefb',
+            backgroundColor: 'var(--color-icon-action-active)',
           },
           '@keyframes shake': {
             '0%, 100%': { transform: 'translateX(0)' },

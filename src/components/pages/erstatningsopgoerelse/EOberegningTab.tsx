@@ -692,8 +692,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     severity: 'error' | 'warning'
   ) => {
     const icon = severity === 'error'
-      ? <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
-      : <WarningAmber sx={{ color: 'orange', fontSize: 20 }} />;
+      ? <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />
+      : <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />;
 
     return rows.map((row) => (
       <Box
@@ -799,7 +799,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
           )}
           <ErrorOutline
             sx={{
-              color: 'red',
+              color: 'var(--color-status-error)',
               fontSize: 20,
               alignSelf: row.actionLabel ? 'center' : 'flex-start',
             }}
@@ -828,7 +828,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
             >
               <Typography className="row--text">{pdfDownloadErrorMessage}</Typography>
               <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
-                <ErrorOutline sx={{ color: 'red', fontSize: 20 }} />
+                <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />
               </Box>
             </Box>
           )}
@@ -908,10 +908,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                   cursor: 'pointer',
                   transition: 'background-color 0.2s',
                   '&:hover': {
-                    backgroundColor: '#e3f2fd',
+                    backgroundColor: 'var(--color-icon-action-hover)',
                   },
                   '&:active': {
-                    backgroundColor: '#bbdefb',
+                    backgroundColor: 'var(--color-icon-action-active)',
                   },
                 }}
               >
@@ -1094,10 +1094,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                   cursor: 'pointer',
                   transition: 'background-color 0.2s',
                   '&:hover': {
-                    backgroundColor: '#e3f2fd',
+                    backgroundColor: 'var(--color-icon-action-hover)',
                   },
                   '&:active': {
-                    backgroundColor: '#bbdefb',
+                    backgroundColor: 'var(--color-icon-action-active)',
                   },
                 }}
               >
