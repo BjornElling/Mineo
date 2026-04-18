@@ -1,4 +1,4 @@
-import type { DateInterval } from '../../../types/calculation';
+import type { DateInterval, AarsloenBeregningResultBeregnet } from '../../../types/calculation';
 import type { PeriodeResult } from '../../../utils/periodeBeregning';
 import { resolveAarsloenIndtastetEnhedSummary } from '../../../domain/aarsloen/aarsloenPeriodDisplay';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
@@ -27,17 +27,26 @@ const buildRow = (overrides: Partial<StandardLoenTableRow> = {}): StandardLoenTa
   ...overrides,
 });
 
+const baseBeregnet: AarsloenBeregningResultBeregnet = {
+  metode: 'A',
+  erEtAar: false,
+  hverdageIPeriode: 0,
+  feriedageFraInput: 0,
+  arbejdsdageIPeriode: 0,
+  feriedagePaaAar: 0,
+  arbejdsdagePaaAar: 0,
+  hverdagePaaAar: 0,
+  omregnetAarsloen: 0,
+  antalEnheder: 0,
+  antalHeleKalendermaaneder: null,
+};
+
 describe('resolveAarsloenIndtastetEnhedSummary', () => {
   it('viser hverdage for metode A, selv når beregningsgrundlaget er arbejdsdage', () => {
     const result = resolveAarsloenIndtastetEnhedSummary({
       tableData: [],
       periodeData: buildPeriodeResult(51),
-      beregningsData: {
-        metode: 'A',
-        erEtAar: false,
-        arbejdsdageIPeriode: 37,
-        hverdageIPeriode: 9,
-      },
+      beregningsData: { ...baseBeregnet, metode: 'A', arbejdsdageIPeriode: 37, hverdageIPeriode: 9 },
       loenperiode: 'dag',
     });
 
@@ -51,11 +60,7 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     const result = resolveAarsloenIndtastetEnhedSummary({
       tableData: [],
       periodeData: buildPeriodeResult(51),
-      beregningsData: {
-        metode: 'B',
-        erEtAar: false,
-        arbejdsdageIPeriode: 42,
-      },
+      beregningsData: { ...baseBeregnet, metode: 'B', arbejdsdageIPeriode: 42 },
       loenperiode: 'dag',
     });
 
@@ -69,11 +74,7 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     const result = resolveAarsloenIndtastetEnhedSummary({
       tableData: [],
       periodeData: buildPeriodeResult(3),
-      beregningsData: {
-        metode: 'C',
-        erEtAar: false,
-        antalMaaneder: 3,
-      },
+      beregningsData: { ...baseBeregnet, metode: 'C', antalEnheder: 3 },
       loenperiode: 'maaned',
     });
 
@@ -87,10 +88,7 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     const result = resolveAarsloenIndtastetEnhedSummary({
       tableData: [],
       periodeData: buildPeriodeResult(51),
-      beregningsData: {
-        metode: 'ingen',
-        erEtAar: false,
-      },
+      beregningsData: { metode: 'ingen', erEtAar: false },
       loenperiode: 'dag',
     });
 
@@ -104,12 +102,7 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
     const result = resolveAarsloenIndtastetEnhedSummary({
       tableData: [buildRow({ col0_dag: '01-01-2024' })],
       periodeData: buildPeriodeResult(1, [{ start: new Date('2024-01-01'), end: new Date('2024-01-31') }]),
-      beregningsData: {
-        metode: 'A',
-        erEtAar: false,
-        arbejdsdageIPeriode: 1,
-        hverdageIPeriode: 3,
-      },
+      beregningsData: { ...baseBeregnet, metode: 'A', arbejdsdageIPeriode: 1, hverdageIPeriode: 3 },
       loenperiode: 'dag',
     });
 
@@ -126,12 +119,7 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
         buildRow({ id: 'row-2', col0_dag: '02-01-2024' }),
       ],
       periodeData: buildPeriodeResult(19, [{ start: new Date('2024-01-01'), end: new Date('2024-01-31') }]),
-      beregningsData: {
-        metode: 'A',
-        erEtAar: false,
-        arbejdsdageIPeriode: 19,
-        hverdageIPeriode: 24,
-      },
+      beregningsData: { ...baseBeregnet, metode: 'A', arbejdsdageIPeriode: 19, hverdageIPeriode: 24 },
       loenperiode: 'dag',
     });
 

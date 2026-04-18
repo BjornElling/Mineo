@@ -173,6 +173,36 @@ describe('erNoejagtEtAar', () => {
       expect(erNoejagtEtAar('timer', 365)).toBe(false);
     });
   });
+
+  describe('dag', () => {
+    it('1. jan – 31. dec ikke-skudår (2023) → true', () => {
+      const set = buildIsoSet(createDate(2023, 0, 1), createDate(2023, 11, 31));
+      expect(erNoejagtEtAar('dag', set.size, set)).toBe(true);
+    });
+
+    it('1. jan – 31. dec skudår (2024) → true', () => {
+      const set = buildIsoSet(createDate(2024, 0, 1), createDate(2024, 11, 31));
+      expect(erNoejagtEtAar('dag', set.size, set)).toBe(true);
+    });
+
+    it('periode midt i år: 1. jul 2023 – 30. jun 2024 (365 dage) → false', () => {
+      const set = buildIsoSet(createDate(2023, 6, 1), createDate(2024, 5, 30));
+      expect(erNoejagtEtAar('dag', set.size, set)).toBe(false);
+    });
+
+    it('11 måneder (1. jan – 30. nov 2023) → false', () => {
+      const set = buildIsoSet(createDate(2023, 0, 1), createDate(2023, 10, 30));
+      expect(erNoejagtEtAar('dag', set.size, set)).toBe(false);
+    });
+
+    it('tomt datoSet → false', () => {
+      expect(erNoejagtEtAar('dag', 0, new Set())).toBe(false);
+    });
+
+    it('intet datoSet → false', () => {
+      expect(erNoejagtEtAar('dag', 365)).toBe(false);
+    });
+  });
 });
 
 // ─── beregnMaanedPeriode ──────────────────────────────────────────────────────

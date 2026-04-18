@@ -509,11 +509,11 @@ describe('beregnOmregnetAarsloen — edge cases', () => {
       loenPaaHelligdage: 'Ingen',
       beregnetAarsloen: 100000,
     });
-    // Resultatet er enten 0 (guard) eller NaN — begge er dokumenteret adfærd
+    // Math.trunc(NaN) er NaN, men Number.isFinite(NaN) er false → feriedageFraInput = 0
     expect(result.metode).toBe('A');
-    expect(result.feriedageFraInput).toBeNaN(); // parseInt('NaN') = NaN
-    // omregnetAarsloen er 0 (fordi NaN > 0 === false)
-    expect(result.omregnetAarsloen).toBe(0);
+    expect(result.feriedageFraInput).toBe(0);
+    // omregnetAarsloen er positiv (feriedage = 0, ingen fradrag)
+    expect(result.omregnetAarsloen).toBeGreaterThan(0);
   });
 
   it('negativ beregnetAarsloen → omregnetAarsloen er negativ (ingen clamping i denne funktion)', () => {
