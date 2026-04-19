@@ -35,7 +35,8 @@ describe('eoPdfReguleringEngine', () => {
 
     expect(table).not.toBeNull();
     expect(table?.rows.length).toBeGreaterThan(0);
-    expect(table?.rows[0]).toEqual(['01-01-2020', '-', '-', '-']);
+    expect(table?.rows[0].length).toBe(table?.columns.length);
+    expect(table?.rows[0]?.[0]).toBe('01-01-2020');
     // 01-03-2024 er første satsdato i laasesmedeoverenskomsten i testdata.
     // Hvis datagrundlaget ændres historisk, skal denne forventning opdateres.
     expect(table?.rows[1]?.[0]).toBe('01-03-2024');
@@ -144,7 +145,7 @@ describe('eoPdfReguleringEngine', () => {
     expect(table?.rows.every((row) => row.length === table.columns.length)).toBe(true);
   });
 
-  it('indsætter ikke 01-01-2024 som separat række i privat lønreguleringstabel når datoen kun vedrører SFGG', () => {
+  it('indsætter 01-01-2024 som separat Store Bededag-grænserække i privat lønreguleringstabel når TAF krydser datoen med Almindelig løn', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
@@ -161,7 +162,8 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(false);
+    expect(table?.columns).toContain('Store Bededag');
+    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
   it.each([

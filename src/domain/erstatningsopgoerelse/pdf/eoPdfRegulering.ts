@@ -547,6 +547,8 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const hasAgPension = allSatser.some((sats) => hasNonZeroOverenskomstPct(sats.agPension));
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
     const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
+    const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
+    const showStoreBededagColumn = applyAlmindeligLoenPaaShDageRegel && tafTil >= STORE_BEDEDAG_START;
     const loenHeader = resolveReguleringsvaerdierLoenHeader(tafBeregningsenhed);
     const columns = [
       REGULERINGSVAERDIER_FRA_DATO_HEADER,
@@ -554,6 +556,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       ...(hasGrundloen && showFeriePctColumn ? ['Feriepenge'] : []),
       ...(hasShSo ? ['SH/SO'] : []),
       ...(hasFritvalg ? ['Fritvalg'] : []),
+      ...(showStoreBededagColumn ? ['Store Bededag'] : []),
       ...(hasAgPension ? [REGULERINGSVAERDIER_PENSION_HEADER] : []),
     ] as const;
     const allRealDates = new Set<ISODateString>();
@@ -586,6 +589,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       if (hasGrundloen && showFeriePctColumn) row.push(mergeFeriepengeDisplay(feriePctDisplay, undefined));
       if (hasShSo) row.push(formatOverenskomstPercent(sats.shSoSats));
       if (hasFritvalg) row.push(formatOverenskomstPercent(sats.fritvalg));
+      if (showStoreBededagColumn) row.push(formatPctFromInput(resolveAutoStoreBededagPct(ansaettelsesforhold, iso)));
       if (hasAgPension) row.push(formatOverenskomstPercent(sats.agPension));
       return row;
     };
