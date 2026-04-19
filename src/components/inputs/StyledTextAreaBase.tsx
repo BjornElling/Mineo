@@ -174,7 +174,7 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
     const wrapperWidth = fullWidth ? '100%' : typeof width === 'number' ? `${width}px` : width;
 
     const resolvedCursor: React.CSSProperties['cursor'] | undefined =
-      disabled ? undefined : htmlTextAreaAttributes?.readOnly ? 'pointer' : 'text';
+      disabled ? 'default' : htmlTextAreaAttributes?.readOnly ? 'pointer' : 'text';
 
     return (
       <Tooltip
@@ -257,6 +257,9 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
                 '&.Mui-error.Mui-focused fieldset': {
                   borderColor: 'var(--color-input-border-focus)',
                   borderWidth: '1px',
+                },
+                '&.Mui-disabled .MuiInputBase-input': {
+                  cursor: 'default',
                 },
               },
               ...sx,

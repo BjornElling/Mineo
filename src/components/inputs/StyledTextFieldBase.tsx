@@ -215,7 +215,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     const wrapperWidth = fullWidth ? '100%' : typeof width === 'number' ? `${width}px` : width;
 
     const resolvedCursor: React.CSSProperties['cursor'] | undefined =
-      disabled ? undefined : htmlInputAttributes?.readOnly ? 'pointer' : 'text';
+      disabled ? 'default' : htmlInputAttributes?.readOnly ? 'pointer' : 'text';
     const useLockedDisabledAppearance = disabledAppearance === 'locked';
 
     const renderCountRef = React.useRef(0);
@@ -372,6 +372,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
                     : 'var(--color-input-border)',
                 },
                 '&.Mui-disabled .MuiInputBase-input': {
+                  cursor: 'default',
                   color: useLockedDisabledAppearance
                     ? 'var(--color-input-disabled-locked-text, var(--color-input-disabled-text))'
                     : 'var(--color-input-disabled-text)',
