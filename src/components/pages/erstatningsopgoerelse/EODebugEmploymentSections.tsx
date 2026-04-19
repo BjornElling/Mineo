@@ -321,10 +321,16 @@ const EODebugEmploymentSections = React.memo<{
                       <StandardDisplayTable
                         key={table.id}
                         useSmallFont
-                        columns={table.columns.map((header) => ({
-                          header,
-                          align: header === 'Fra-dato' || header === 'Til-dato' ? 'center' as const : 'right' as const,
-                        }))}
+                        columns={table.columns.map((header) => {
+                          const isDateColumn = header === 'Fra-dato' || header === 'Til-dato';
+                          const isIndentedColumn = header === 'Feriepenge-sats' || header === 'AG-pension' || header === 'Antal arbejdsdage' || header === 'Antal kalenderdage';
+                          return {
+                            header,
+                            align: isDateColumn ? 'center' as const : 'right' as const,
+                            headerSx: isIndentedColumn ? { textAlign: 'center' as const } : undefined,
+                            cellStyle: isIndentedColumn ? { paddingRight: '60px' } : undefined,
+                          };
+                        })}
                         rows={table.rows.map((row): StandardDisplayTableRow => ({
                           key: row.id,
                           cells: row.cells.map((cell, index) => {

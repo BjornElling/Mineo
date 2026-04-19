@@ -9,6 +9,7 @@ export type StandardDisplayTableColumn = Readonly<{
   width?: number | string;
   headerSx?: SxProps<Theme>;
   cellSx?: SxProps<Theme>;
+  cellStyle?: React.CSSProperties;
 }>;
 
 export type StandardDisplayTableRow = Readonly<{
@@ -119,7 +120,7 @@ const StandardDisplayTable = React.memo(
                 {row.cells.map((cell, idx) => {
                   const col = columns[idx];
                   return (
-                    <TableCell key={idx} align={col?.align ?? 'center'} sx={col?.cellSx}>
+                    <TableCell key={idx} align={col?.align ?? 'center'} sx={col?.cellSx} style={col?.cellStyle}>
                       {cell}
                     </TableCell>
                   );
