@@ -152,12 +152,16 @@ const getBrowserInfo = (): string => {
   return `${browserName} ${browserVersion} (${os})`;
 };
 
+const ISO_UTC_TIMESTAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+
 const stringifyReportData = (value: unknown): string => {
   const seen = new WeakSet<object>();
   const replacer = (_key: string, val: unknown) => {
     if (typeof val === 'bigint') return val.toString();
     if (typeof val === 'symbol') return '[Symbol]';
     if (typeof val === 'function') return '[Function]';
+    if (typeof val === 'string' && ISO_UTC_TIMESTAMP_RE.test(val))
+      return new Date(val).toLocaleString('da-DK');
     if (val instanceof Error) {
       return { name: val.name, message: val.message, stack: val.stack };
     }

@@ -18,6 +18,6 @@ export const getStandardGridCellStyle = ({ align = 'center' }: StandardGridCellS
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-    cursor: 'pointer',
+    cursor: 'default',
   };
 };

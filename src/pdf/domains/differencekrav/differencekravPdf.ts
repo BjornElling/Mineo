@@ -28,7 +28,6 @@ import {
   buildKapitaliseringAarsydelseExpression,
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
-  buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { TODAY } from '../../../config/dateRanges';

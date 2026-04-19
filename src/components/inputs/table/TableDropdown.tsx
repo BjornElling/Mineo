@@ -7,7 +7,7 @@ import { useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../StyledDropdown';
-import { TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_X, TABLE_INPUT_PADDING_Y } from './tableInputStyles';
+import { TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './tableInputStyles';
 
 /**
  * TableDropdown (table-cell select)
