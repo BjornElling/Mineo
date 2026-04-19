@@ -115,6 +115,13 @@ const alderVedSkade = React.useMemo(() => {
   return alder;
 }, [stamValues.skadelidteFodselsdato, stamValues.skadedato]);
 
+const beregningsaar = React.useMemo(() => {
+  const iso = coerceToISODateString(values.beregningsdato);
+  if (!iso) return undefined;
+  const d = parseISODate(iso);
+  return d?.getUTCFullYear();
+}, [values.beregningsdato]);
+
 const beregningsResultat = React.useMemo(() => {
   // Hvis der er onBlur-fejl eller manglende felter, vis ikke resultat
   if (beregningsFejl || manglendeFelter) return undefined;
@@ -330,6 +337,27 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
             }}
             focusRef={beregningsdatoInputRef}
           />
+        </Box>
+      </Box>
+
+      <Box className="row--label-right-hover">
+        <Typography className="row--text">
+          {beregningsaar !== undefined
+            ? `Sats per méngrad i år ${beregningsaar}`
+            : 'Sats per méngrad i beregningsåret'}
+        </Typography>
+        <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
+          {beregningsaar !== undefined && varigeMenPrGrad[beregningsaar] !== undefined ? (
+            <Typography className="row--text">
+              {formatAsAmount(varigeMenPrGrad[beregningsaar], 0)} kr.
+            </Typography>
+          ) : (
+            <Tooltip title={beregningsdatoError || 'Beregningsdato mangler'} arrow>
+              <Typography className="row--text" color="text.disabled">
+                Beregningsdato mangler
+              </Typography>
+            </Tooltip>
+          )}
         </Box>
       </Box>
 

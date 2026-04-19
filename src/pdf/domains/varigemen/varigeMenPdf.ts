@@ -7,12 +7,13 @@
 import type { BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
-import type { ISODateString } from '../../../types/branded';
+import { parseISODate, type ISODateString } from '../../../types/branded';
 import type { VarigeMenBeregningResult } from '../../../domain/varigemen/varigeMenCalculations';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { TODAY } from '../../../config/dateRanges';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { resolvePdfFileName } from '../../shared/pdfFormatUtils';
+import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 
 export const buildVarigeMenPdfFilename = (journalnr?: string): string => resolvePdfFileName('Méngodtgørelse', false, journalnr);
 
@@ -60,10 +61,19 @@ const addBeregningsgrundlagSection = (
   mengrad: number | undefined,
   beregningsdato: ISODateString | undefined
 ): void => {
+  const beregningsaar = beregningsdato ? parseISODate(beregningsdato)?.getUTCFullYear() : undefined;
+  const satsLabel = beregningsaar !== undefined
+    ? `Sats per méngrad i år ${beregningsaar}`
+    : 'Sats per méngrad i beregningsåret';
+  const satsValue = beregningsaar !== undefined && varigeMenPrGrad[beregningsaar] !== undefined
+    ? `${formatAsAmount(varigeMenPrGrad[beregningsaar], 0)} kr.`
+    : '';
+
   writer.writeBoldSubheader('Beregningsgrundlag');
   writeRows(writer, [
     { label: 'Méngrad', value: mengrad !== undefined ? `${mengrad} %` : '' },
     { label: 'Beregningsdato', value: formatIsoDateLong(beregningsdato) },
+    { label: satsLabel, value: satsValue },
   ]);
   writer.addSectionSpacer();
 };
