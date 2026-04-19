@@ -87,6 +87,8 @@ const Renteberegning = React.memo(() => {
         beloeb: pdfContext.beloeb,
         actualInterestDate: actualInterestDateDanish,
         beregningsdato: beregningsdatoDanish,
+        periods: pdfContext.periods,
+        latestReferenceRateDate: isoToDanish(pdfContext.latestReferenceRateDate ?? undefined) ?? null,
         kommentarer: values.kommentarer,
         settings,
         persistedStamdata,

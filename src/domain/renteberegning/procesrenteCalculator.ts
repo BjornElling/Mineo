@@ -15,6 +15,22 @@ import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 
 type DatedRate = Readonly<{ date: Date; ratePct: number }>;
 
+export type ProcessInterestPeriod = Readonly<{
+  startDate: Date;
+  endDate: Date;
+  amount: number;
+  referenceRatePct: number;
+  surchargeRatePct: number;
+  totalRatePct: number;
+  days: number;
+  interest: number;
+}>;
+
+export type ProcessInterestBreakdown = Readonly<{
+  totalInterest: number;
+  periods: ReadonlyArray<ProcessInterestPeriod>;
+}>;
+
 const normalizeRates = (rates: ReadonlyArray<RateEntry>): DatedRate[] => {
   return rates
     .map((entry) => ({
@@ -51,6 +67,20 @@ const findRatePctOnDate = (rates: ReadonlyArray<DatedRate>, targetDate: Date): n
  */
 const calculateSurchargeRate = (rates: ReadonlyArray<DatedRate>, interestStartDate: Date): number => {
   return findRatePctOnDate(rates, interestStartDate);
+};
+
+export const findLatestReferenceRatePeriodEnd = (
+  referenceRatesInput: ReadonlyArray<RateEntry>
+): Date | null => {
+  const referenceRatesSorted = normalizeRates(referenceRatesInput);
+  const latestRate = referenceRatesSorted[referenceRatesSorted.length - 1];
+  if (!latestRate) {
+    return null;
+  }
+
+  return latestRate.date.getUTCMonth() < 6
+    ? createDate(latestRate.date.getUTCFullYear(), 5, 30)
+    : createDate(latestRate.date.getUTCFullYear(), 11, 31);
 };
 
 /**
@@ -117,13 +147,29 @@ export const calculateProcessInterestWithRates = (
   referenceRatesInput: ReadonlyArray<RateEntry>,
   surchargeRatesInput: ReadonlyArray<RateEntry>
 ): number | null => {
+  const breakdown = calculateProcessInterestBreakdownWithRates(
+    amount,
+    interestStartDate,
+    calculationDate,
+    referenceRatesInput,
+    surchargeRatesInput
+  );
+
+  return breakdown?.totalInterest ?? null;
+};
+
+export const calculateProcessInterestBreakdownWithRates = (
+  amount: number,
+  interestStartDate: DanishDateString,
+  calculationDate: DanishDateString,
+  referenceRatesInput: ReadonlyArray<RateEntry>,
+  surchargeRatesInput: ReadonlyArray<RateEntry>
+): ProcessInterestBreakdown | null => {
   const referenceRatesSorted = normalizeRates(referenceRatesInput);
   const surchargeRatesSorted = normalizeRates(surchargeRatesInput);
-  // Konverter datoer
   const startDate = parseDanishDate(interestStartDate);
   const endDate = parseDanishDate(calculationDate);
 
-  // Valider datoer
   if (!startDate || !endDate) {
     return null;
   }
@@ -137,45 +183,47 @@ export const calculateProcessInterestWithRates = (
     return null;
   }
 
-  // Beregn tillægssats baseret på faktisk rentedato (gælder for hele perioden)
   const surchargeRate = calculateSurchargeRate(surchargeRatesSorted, startDate);
-
-  // Generer halvårlige perioder og beregn rente
   let totalInterest = 0.0;
+  const periods: ProcessInterestPeriod[] = [];
   let currentDate = new Date(startDate);
 
   while (currentDate <= endDate) {
-    // Find næste halvårsskift (30. juni eller 31. december)
     let periodEnd;
     if (currentDate.getUTCMonth() < 6) {
-      // Første halvår: til 30. juni
       periodEnd = createDate(currentDate.getUTCFullYear(), 5, 30);
     } else {
-      // Andet halvår: til 31. december
       periodEnd = createDate(currentDate.getUTCFullYear(), 11, 31);
     }
 
-    // Begræns til beregningens slutdato
     if (periodEnd > endDate) {
       periodEnd = new Date(endDate);
     }
 
     if (currentDate <= periodEnd) {
-      // Find referencesats ved periodens start
       const referenceRatePct = findRatePctOnDate(referenceRatesSorted, currentDate);
       const totalRatePct = referenceRatePct + surchargeRate;
-
-      // Beregn rente for denne halvårlige periode
+      const days = countInclusiveUtcDays(currentDate, periodEnd);
+      if (days === null) {
+        throw new Error('calculateProcessInterestBreakdownWithRates expected endDate >= startDate');
+      }
       const periodInterest = calculatePeriodInterest(amountNum, totalRatePct, currentDate, periodEnd);
       totalInterest += periodInterest;
+      periods.push({
+        startDate: new Date(currentDate),
+        endDate: new Date(periodEnd),
+        amount: amountNum,
+        referenceRatePct,
+        surchargeRatePct: surchargeRate,
+        totalRatePct,
+        days,
+        interest: periodInterest,
+      });
     }
 
-    // Flyt til næste halvårlige periode
     if (periodEnd.getUTCMonth() === 5) {
-      // Efter 30. juni -> start på 1. juli
       currentDate = createDate(periodEnd.getUTCFullYear(), 6, 1);
     } else {
-      // Efter 31. december -> start på 1. januar næste år
       currentDate = createDate(periodEnd.getUTCFullYear() + 1, 0, 1);
     }
 
@@ -184,5 +232,5 @@ export const calculateProcessInterestWithRates = (
     }
   }
 
-  return totalInterest;
+  return { totalInterest, periods };
 };

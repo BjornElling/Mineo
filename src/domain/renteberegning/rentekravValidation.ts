@@ -21,7 +21,6 @@ export type DateCalculationError =
   | 'INVALID_DATE_FORMAT'    // Ugyldig datoformat
   | 'INVALID_DATE_VALUE'     // Ugyldig dato-værdi (fx 31. februar)
   | 'INVALID_UNIT'           // Ukendt tids-enhed
-  | 'NEGATIVE_OFFSET'        // Negativ tillægstid
   | 'DATE_PARSE_ERROR';      // Generel parsing-fejl
 
 /**
@@ -29,6 +28,7 @@ export type DateCalculationError =
  */
 export type ValidationError =
   | 'MISSING_KRAVET_DATO'    // Manglende kravet-dato
+  | 'INVALID_KRAVET_DATO'    // Ugyldig kravet-dato
   | 'MISSING_RENTEDATO'      // Manglende rentedato
   | 'MISSING_BEREGNING_DATO' // Manglende beregningsdato
   | 'INVALID_AMOUNT'         // Ugyldigt beløb (≤ 0 eller ikke-finit)
@@ -59,7 +59,6 @@ export type InterestDateInput = {
  * Valideret input til renteberegning
  */
 export type ValidatedInterestInput = {
-  readonly kravetDato: DanishDateString;
   readonly beloeb: number;
   readonly rentedato: DanishDateString;
   readonly beregningsdato: DanishDateString;
@@ -123,6 +122,10 @@ export function calculateInterestDate(
 
     case 'maaneder': {
       resultDate = new Date(kravetDate);
+      // Normativt dokumenteret nuværende adfærd: månedstillæg følger JavaScripts
+      // UTC-month rollover semantik. 31-01 + 1 måned bliver derfor 02-03 i skudår,
+      // ikke klippet til sidste dag i februar. En egentlig "clip til månedsslut"
+      // kræver en eksplicit domæneafgørelse.
       resultDate.setUTCMonth(resultDate.getUTCMonth() + tillaegstid);
       break;
     }
@@ -170,6 +173,10 @@ export function validateInterestCalculation(
     return { success: false, error: 'MISSING_KRAVET_DATO' };
   }
 
+  if (!danishToISO(kravetDato)) {
+    return { success: false, error: 'INVALID_KRAVET_DATO' };
+  }
+
   // Validér beløb
   if (beloeb === undefined || beloeb <= 0 || !Number.isFinite(beloeb)) {
     return { success: false, error: 'INVALID_AMOUNT' };
@@ -201,11 +208,9 @@ export function validateInterestCalculation(
   return {
     success: true,
     value: {
-      kravetDato,
       beloeb,
       rentedato,
       beregningsdato,
     },
   };
 }
-

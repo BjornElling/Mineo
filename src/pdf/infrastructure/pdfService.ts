@@ -43,6 +43,7 @@ import { logWarning } from '../../utils/logger';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { getSatserForYear } from '../../data/lovbestemteRates';
 import { resolveStamdataDatoLabel } from '../../domain/policies/stamdataCalculations';
+import type { ProcessInterestPeriod } from '../../domain/renteberegning/procesrenteCalculator';
 
 type ReguleringInterval = Readonly<{
   fraDato: string;
@@ -349,18 +350,33 @@ export const downloadRentePdf = async (params: Readonly<{
   beloeb: number;
   actualInterestDate: string;
   beregningsdato: string;
+  periods: ReadonlyArray<ProcessInterestPeriod>;
+  latestReferenceRateDate: string | null;
   kommentarer?: string;
   settings: AppSettings;
   persistedStamdata: unknown;
 }>): Promise<PdfDownloadResult> => {
-  const { beloeb, actualInterestDate, beregningsdato, kommentarer, settings, persistedStamdata } = params;
+  const {
+    beloeb,
+    actualInterestDate,
+    beregningsdato,
+    periods,
+    latestReferenceRateDate,
+    kommentarer,
+    settings,
+    persistedStamdata,
+  } = params;
   const common = buildCommonPdfContext(settings, 'renteberegning', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadRentePdf');
   if (preflightFailure) return preflightFailure;
 
   try {
     const { generateRentePdf } = await loadRentePdfModule();
-    generateRentePdf(beloeb, actualInterestDate, beregningsdato, { ...common, kommentarer });
+    generateRentePdf(beloeb, actualInterestDate, beregningsdato, periods, {
+      ...common,
+      kommentarer,
+      latestReferenceRateDate,
+    });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
     return await createPdfDownloadFailure('Kunne ikke generere rente-PDF', 'pdfService.downloadRentePdf', error);

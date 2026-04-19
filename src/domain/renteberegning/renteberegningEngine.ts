@@ -2,8 +2,12 @@ import type { RateEntry } from '../../data/interestRates';
 import type { RentekravRow, RenteberegningValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import type { DeepReadonly } from '../../types/deepReadonly';
-import { danishToISO, isoToDanish } from '../../types/branded';
-import { calculateProcessInterestWithRates } from './procesrenteCalculator';
+import { danishToISO, isoToDanish, dateToISO } from '../../types/branded';
+import {
+  calculateProcessInterestBreakdownWithRates,
+  findLatestReferenceRatePeriodEnd,
+  type ProcessInterestPeriod,
+} from './procesrenteCalculator';
 import { calculateInterestDate, validateInterestCalculation, type InterestDateInput } from './rentekravValidation';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { roundByMethod } from '../../utils/rounding';
@@ -21,6 +25,7 @@ export type RentekravResult = Readonly<{
   id: string;
   actualInterestDate: ISODateString | null;
   calculatedInterest: number | null;
+  periods: ReadonlyArray<ProcessInterestPeriod> | null;
 }>;
 
 export type RenteberegningOutput = Readonly<{
@@ -30,6 +35,13 @@ export type RenteberegningOutput = Readonly<{
 const roundInterest = (value: number): number => {
   return roundByMethod(value, 2, 'halfAwayFromZero');
 };
+
+type RentekravComputation = Readonly<{
+  id: string;
+  actualInterestDate: ISODateString | null;
+  calculatedInterest: number | null;
+  periods: ReadonlyArray<ProcessInterestPeriod> | null;
+}>;
 
 const resolveActualInterestDateIso = (rowValues: RentekravRow): ISODateString | null => {
   const danishDate = isoToDanish(rowValues.renterFra);
@@ -52,17 +64,17 @@ const calculateRowInterest = (
   beregningsdato: ISODateString | undefined,
   refRates: ReadonlyArray<RateEntry>,
   surRates: ReadonlyArray<RateEntry>
-): RentekravResult => {
+): RentekravComputation => {
   const actualInterestDate = resolveActualInterestDateIso(rowValues);
   const renterFra = rowValues.renterFra;
   if (!actualInterestDate || !beregningsdato || !renterFra) {
-    return { id: rowValues.id, actualInterestDate, calculatedInterest: null };
+    return { id: rowValues.id, actualInterestDate, calculatedInterest: null, periods: null };
   }
 
   const danishRenterFra = isoToDanish(renterFra);
   const danishBeregningsdato = isoToDanish(beregningsdato);
   if (!danishRenterFra || !danishBeregningsdato) {
-    return { id: rowValues.id, actualInterestDate, calculatedInterest: null };
+    return { id: rowValues.id, actualInterestDate, calculatedInterest: null, periods: null };
   }
 
   const validationResult = validateInterestCalculation(
@@ -72,11 +84,11 @@ const calculateRowInterest = (
     danishBeregningsdato
   );
   if (!validationResult.success) {
-    return { id: rowValues.id, actualInterestDate, calculatedInterest: null };
+    return { id: rowValues.id, actualInterestDate, calculatedInterest: null, periods: null };
   }
 
   const validated = validationResult.value;
-  const calculatedInterest = calculateProcessInterestWithRates(
+  const breakdown = calculateProcessInterestBreakdownWithRates(
     validated.beloeb,
     validated.rentedato,
     validated.beregningsdato,
@@ -87,7 +99,8 @@ const calculateRowInterest = (
   return {
     id: rowValues.id,
     actualInterestDate,
-    calculatedInterest: calculatedInterest === null ? null : roundInterest(calculatedInterest),
+    calculatedInterest: breakdown === null ? null : roundInterest(breakdown.totalInterest),
+    periods: breakdown?.periods ?? null,
   };
 };
 
@@ -95,10 +108,15 @@ export const computeRenteberegning = (input: RenteberegningInputSnapshot): Rente
   const { renteberegning, referenceRates: refRates, surchargeRates: surRates } = input;
   const beregningsdato = renteberegning.beregningsdato;
 
-  // Row order does not affect calculations; output preserves input order for stable rendering.
-  const rows = renteberegning.rentekravRows.map((row) =>
-    calculateRowInterest(row, beregningsdato, refRates, surRates)
-  );
+  const rows = renteberegning.rentekravRows.map((row) => {
+    const result = calculateRowInterest(row, beregningsdato, refRates, surRates);
+    return {
+      id: result.id,
+      actualInterestDate: result.actualInterestDate,
+      calculatedInterest: result.calculatedInterest,
+      periods: result.periods,
+    };
+  });
 
   return { rows };
 };
@@ -108,11 +126,12 @@ export const computeRenteberegning = (input: RenteberegningInputSnapshot): Rente
 export type RentekravRowResult = Readonly<{
   actualInterestDate: ISODateString | null;
   calculatedInterest: number | null;
-  // Populated only when interest was successfully calculated; used for PDF generation.
   pdfContext: Readonly<{
     beloeb: number;
     actualInterestDate: ISODateString;
     beregningsdato: ISODateString;
+    periods: ReadonlyArray<ProcessInterestPeriod>;
+    latestReferenceRateDate: ISODateString | null;
   }> | null;
 }>;
 
@@ -124,7 +143,7 @@ export const computeRentekravRow = (
 ): RentekravRowResult => {
   const result = calculateRowInterest(committedRow, beregningsdato, refRates, surRates);
 
-  if (result.calculatedInterest === null || !result.actualInterestDate || !beregningsdato) {
+  if (result.calculatedInterest === null || !result.actualInterestDate || !beregningsdato || result.periods === null) {
     return { actualInterestDate: result.actualInterestDate, calculatedInterest: null, pdfContext: null };
   }
 
@@ -133,6 +152,11 @@ export const computeRentekravRow = (
     return { actualInterestDate: result.actualInterestDate, calculatedInterest: null, pdfContext: null };
   }
 
+  const latestReferenceRateDate = (() => {
+    const latest = findLatestReferenceRatePeriodEnd(refRates);
+    return latest ? (dateToISO(latest) ?? null) : null;
+  })();
+
   return {
     actualInterestDate: result.actualInterestDate,
     calculatedInterest: result.calculatedInterest,
@@ -140,6 +164,8 @@ export const computeRentekravRow = (
       beloeb,
       actualInterestDate: result.actualInterestDate,
       beregningsdato,
+      periods: result.periods,
+      latestReferenceRateDate,
     },
   };
 };

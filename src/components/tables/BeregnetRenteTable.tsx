@@ -16,6 +16,7 @@ import type { RentekravRow } from '../../schemas/formSchemas';
 import type { RentekravDraftRow } from '../../domain/renteberegning/tableDraftRows';
 import { computeRentekravRow, type RentekravRowResult } from '../../domain/renteberegning/renteberegningEngine';
 import { createEmptyRentekravCommittedRow } from '../../domain/renteberegning/rentekravTableModel';
+import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
 import { dateRanges_renteberegning } from '../../config/dateRanges';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
@@ -218,7 +219,6 @@ const BeregnetRenteRow = React.memo(
 BeregnetRenteRow.displayName = 'BeregnetRenteRow';
 
 const getRowId = (row: RentekravDraftRow) => row.id;
-const isRowEmpty = (row: RentekravDraftRow) => row.belob.trim() === '' && row.renterFra.trim() === '';
 
 const BeregnetRenteTable = React.memo(
   ({
@@ -243,7 +243,7 @@ const BeregnetRenteTable = React.memo(
     const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
       rows,
       getRowId,
-      isRowEmpty,
+      isRowEmpty: (row) => isRentekravRowEmpty(committedById.get(row.id) ?? createEmptyRentekravCommittedRow(row.id)),
       columns: sortColumns,
       onSortedRowsChange: (nextRows) => onRowsReorder?.(nextRows.map((row) => row.id)),
     });

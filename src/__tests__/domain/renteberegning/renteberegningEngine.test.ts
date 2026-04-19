@@ -1,9 +1,12 @@
 import type { RateEntry } from '../../../data/interestRates';
 import { toDanishDateString, toISODateString, isoToDanish } from '../../../types/branded';
-import { parseDanishDate } from '../../../utils/dateUtils';
+import { getDaysInYear, parseDanishDate } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 import { computeRenteberegning, computeRentekravRow } from '../../../domain/renteberegning/renteberegningEngine';
-import { calculateProcessInterestWithRates } from '../../../domain/renteberegning/procesrenteCalculator';
+import {
+  calculateProcessInterestBreakdownWithRates,
+  calculateProcessInterestWithRates,
+} from '../../../domain/renteberegning/procesrenteCalculator';
 import { roundByMethod } from '../../../utils/rounding';
 
 const buildRates = (referenceRatePct = 1, surchargeRatePct = 2): { referenceRates: RateEntry[]; surchargeRates: RateEntry[] } => ({
@@ -23,7 +26,7 @@ const buildExpectedInterest = (amount: number, start: string, end: string, rateP
   if (days === null) {
     throw new Error('Invalid date order');
   }
-  const daysInYear = startDate.getUTCFullYear() % 4 === 0 ? 366 : 365;
+  const daysInYear = getDaysInYear(startDate.getUTCFullYear());
   const interest = (amount * ratePct / 100 * days) / daysInYear;
   return roundByMethod(interest, 2, 'halfAwayFromZero');
 };
@@ -62,6 +65,18 @@ describe('renteberegningEngine', () => {
       id: 'row-1',
       actualInterestDate: startIso,
       calculatedInterest: expected,
+      periods: [
+        {
+          startDate: new Date('2024-01-01T00:00:00.000Z'),
+          endDate: new Date('2024-01-31T00:00:00.000Z'),
+          amount,
+          referenceRatePct: 1,
+          surchargeRatePct: 2,
+          totalRatePct: 3,
+          days: 31,
+          interest: 2.540983606557377,
+        },
+      ],
     });
   });
 
@@ -91,6 +106,7 @@ describe('renteberegningEngine', () => {
       id: 'row-1',
       actualInterestDate: expectedInterestDate,
       calculatedInterest: null,
+      periods: null,
     });
   });
 
@@ -258,6 +274,7 @@ describe('renteberegningEngine', () => {
       id: 'row-missing-fra',
       actualInterestDate: null,
       calculatedInterest: null,
+      periods: null,
     });
   });
 
@@ -323,10 +340,13 @@ describe('renteberegningEngine', () => {
 
       expect(result.actualInterestDate).toBe(toISODateString('2024-01-11'));
       expect(result.calculatedInterest).not.toBeNull();
+      expect(result.pdfContext?.periods).toHaveLength(1);
       expect(result.pdfContext).toEqual({
         beloeb: 1250,
         actualInterestDate: toISODateString('2024-01-11'),
         beregningsdato,
+        periods: result.pdfContext?.periods ?? [],
+        latestReferenceRateDate: toISODateString('2020-06-30'),
       });
     });
 
@@ -379,6 +399,42 @@ describe('renteberegningEngine', () => {
       expect(result.actualInterestDate).toBeNull();
       expect(result.calculatedInterest).toBeNull();
       expect(result.pdfContext).toBeNull();
+    });
+
+    it('pdfContext-perioder matcher motor-breakdown og summerer til beregnet rente', () => {
+      const referenceRates = [
+        { effectiveDate: toDanishDateString('01-01-2013'), ratePct: 2 },
+        { effectiveDate: toDanishDateString('01-07-2013'), ratePct: 3 },
+        { effectiveDate: toDanishDateString('01-01-2014'), ratePct: 4 },
+      ];
+      const surchargeRates = [
+        { effectiveDate: toDanishDateString('01-01-2010'), ratePct: 7 },
+        { effectiveDate: toDanishDateString('01-03-2013'), ratePct: 8 },
+      ];
+      const row = {
+        id: 'row-1',
+        belob: amountNumber(100000),
+        renterFra: toISODateString('2013-02-15'),
+        tillaegstid: 0,
+        enhed: 'dage' as const,
+      };
+      const beregningsdato = toISODateString('2014-01-31');
+
+      const result = computeRentekravRow(row, beregningsdato, referenceRates, surchargeRates);
+      expect(result.pdfContext).not.toBeNull();
+
+      const expectedBreakdown = calculateProcessInterestBreakdownWithRates(
+        100000,
+        '15-02-2013',
+        '31-01-2014',
+        referenceRates,
+        surchargeRates
+      );
+      expect(expectedBreakdown).not.toBeNull();
+      expect(result.pdfContext?.periods).toEqual(expectedBreakdown?.periods);
+
+      const summedPeriods = result.pdfContext?.periods.reduce((sum, period) => sum + period.interest, 0) ?? 0;
+      expect(result.calculatedInterest).toBe(roundByMethod(summedPeriods, 2, 'halfAwayFromZero'));
     });
   });
 

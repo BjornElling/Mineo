@@ -60,6 +60,12 @@ describe('calculateInterestDate', () => {
       expect(result.success).toBe(true);
       if (result.success) expect(result.value).toBe('01-02-2024');
     });
+
+    it('31-01-2024 + 1 måned følger dokumenteret UTC-month rollover = 02-03-2024', () => {
+      const result = calculateInterestDate({ kravetDato: d('31-01-2024'), tillaegstid: 1, enhed: 'maaneder' });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.value).toBe('02-03-2024');
+    });
   });
 
   describe('fejlscenarier', () => {
@@ -96,7 +102,6 @@ describe('validateInterestCalculation', () => {
       const result = validateInterestCalculation(validKravetDato, validBeloeb, validRentedato, validBeregningsdato);
       expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.value.kravetDato).toBe(validKravetDato);
         expect(result.value.beloeb).toBe(validBeloeb);
         expect(result.value.rentedato).toBe(validRentedato);
         expect(result.value.beregningsdato).toBe(validBeregningsdato);
@@ -120,6 +125,14 @@ describe('validateInterestCalculation', () => {
       const result = validateInterestCalculation(d(''), validBeloeb, validRentedato, validBeregningsdato);
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error).toBe('MISSING_KRAVET_DATO');
+    });
+  });
+
+  describe('INVALID_KRAVET_DATO', () => {
+    it('ugyldig kravetDato → INVALID_KRAVET_DATO', () => {
+      const result = validateInterestCalculation(d('31-02-2024'), validBeloeb, validRentedato, validBeregningsdato);
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toBe('INVALID_KRAVET_DATO');
     });
   });
 

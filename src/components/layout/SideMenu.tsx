@@ -169,7 +169,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         </Button>
       </Box>
 
-      <Divider sx={{ borderColor: 'var(--color-surface-border)' }} />
+      <Divider sx={{ borderColor: 'var(--color-surface-border)', mx: isExpanded ? 4 : 3 }} />
 
       {/* Hovednavigation */}
       <Box sx={{ py: 1, px: 1.5 }}>
@@ -213,7 +213,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         ))}
       </Box>
 
-      <Divider sx={{ borderColor: 'var(--color-surface-border)', my: 1 }} />
+      <Divider sx={{ borderColor: 'var(--color-surface-border)', my: 1, mx: isExpanded ? 4 : 3 }} />
 
       {/* Fil-operationer */}
       <Box sx={{ py: 1, px: 1.5 }}>
@@ -256,7 +256,7 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
         ))}
       </Box>
 
-      <Divider sx={{ borderColor: 'var(--color-surface-border)', my: 1 }} />
+      <Divider sx={{ borderColor: 'var(--color-surface-border)', my: 1, mx: isExpanded ? 4 : 3 }} />
 
       {/* Utilities */}
       <Box sx={{ py: 1, px: 1.5 }}>
