@@ -372,6 +372,9 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
                     : 'var(--color-input-border)',
                 },
                 '&.Mui-disabled .MuiInputBase-input': {
+                  color: useLockedDisabledAppearance
+                    ? 'var(--color-input-disabled-locked-text, var(--color-input-disabled-text))'
+                    : 'var(--color-input-disabled-text)',
                   WebkitTextFillColor: useLockedDisabledAppearance
                     ? 'var(--color-input-disabled-locked-text, var(--color-input-disabled-text))'
                     : 'var(--color-input-disabled-text)',
