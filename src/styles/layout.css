@@ -80,6 +80,9 @@
   --color-input-border-error: #8b2e2e;
   --color-input-disabled-bg: rgba(255, 255, 255, 0.05);
   --color-input-disabled-text: rgba(255, 255, 255, 0.5);
+  --color-input-disabled-locked-bg: #1e1e1e;
+  --color-input-disabled-locked-text: rgba(255, 255, 255, 0.16);
+  --color-input-disabled-border: rgba(255, 255, 255, 0.16);
   --color-input-placeholder: rgba(255, 255, 255, 0.35);
   --color-table-border: rgba(255, 255, 255, 0.1);
   --color-table-header-bg: #252525;

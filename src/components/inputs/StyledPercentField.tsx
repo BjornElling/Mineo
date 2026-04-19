@@ -20,6 +20,7 @@ export type StyledPercentFieldProps = {
   width?: number | string;
   placeholder?: string;
   disabled?: boolean;
+  disabledAppearance?: 'default' | 'locked';
 
   allowNegative?: boolean;
   allowDecimals?: boolean;
@@ -90,6 +91,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       width = 100,
       placeholder = '0',
       disabled,
+      disabledAppearance = 'default',
       allowNegative = false,
       allowDecimals = true,
       minValue,
@@ -515,6 +517,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         placeholder={stripTrailingPercent(placeholder)}
         width={width}
         disabled={disabled || hasConfigError}
+        disabledAppearance={disabledAppearance}
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
         endAdornment={endAdornment}

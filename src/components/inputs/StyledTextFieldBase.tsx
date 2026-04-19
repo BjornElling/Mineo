@@ -62,6 +62,7 @@ export type StyledTextFieldBaseProps = {
   error?: boolean;
   helperText?: string;
   disabled?: boolean;
+  disabledAppearance?: 'default' | 'locked';
 
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
@@ -106,6 +107,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       helperText = '',
       sx = {},
       disabled,
+      disabledAppearance = 'default',
       autoFocus,
       fullWidth,
       required,
@@ -214,6 +216,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
 
     const resolvedCursor: React.CSSProperties['cursor'] | undefined =
       disabled ? undefined : htmlInputAttributes?.readOnly ? 'pointer' : 'text';
+    const useLockedDisabledAppearance = disabledAppearance === 'locked';
 
     const renderCountRef = React.useRef(0);
     const excessiveRenderLoggedRef = React.useRef(false);
@@ -353,20 +356,33 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
                   borderWidth: '1px',
                 },
                 '&.Mui-disabled': {
-                  backgroundColor: 'var(--color-input-disabled-bg)',
+                  backgroundColor: useLockedDisabledAppearance
+                    ? 'var(--color-input-disabled-locked-bg, var(--color-input-disabled-bg))'
+                    : 'var(--color-input-disabled-bg)',
                 },
                 '&.Mui-disabled:not(.Mui-error) fieldset': {
-                  borderColor: 'var(--color-input-border)',
-                  borderStyle: 'dashed',
+                  borderColor: useLockedDisabledAppearance
+                    ? 'var(--color-input-disabled-border, var(--color-input-border))'
+                    : 'var(--color-input-border)',
+                  borderStyle: useLockedDisabledAppearance ? 'solid' : 'dashed',
                 },
                 '&.Mui-disabled:not(.Mui-error):hover fieldset': {
-                  borderColor: 'var(--color-input-border)',
+                  borderColor: useLockedDisabledAppearance
+                    ? 'var(--color-input-disabled-border, var(--color-input-border))'
+                    : 'var(--color-input-border)',
                 },
                 '&.Mui-disabled .MuiInputBase-input': {
-                  WebkitTextFillColor: 'var(--color-input-disabled-text)',
+                  color: useLockedDisabledAppearance
+                    ? 'var(--color-input-disabled-locked-text, var(--color-input-disabled-text))'
+                    : undefined,
+                  WebkitTextFillColor: useLockedDisabledAppearance
+                    ? 'var(--color-input-disabled-locked-text, var(--color-input-disabled-text))'
+                    : 'var(--color-input-disabled-text)',
                 },
                 '&.Mui-disabled .MuiInputAdornment-root': {
-                  color: 'var(--color-input-disabled-text)',
+                  color: useLockedDisabledAppearance
+                    ? 'var(--color-input-disabled-locked-text, var(--color-input-disabled-text))'
+                    : 'var(--color-input-disabled-text)',
                 },
                 '&.Mui-error fieldset': {
                   borderColor: 'var(--color-input-border-error)',
