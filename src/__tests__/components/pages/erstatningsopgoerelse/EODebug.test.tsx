@@ -978,15 +978,6 @@ describe('EODebug', () => {
             displayValue: '553,50',
             status: 'ok',
           },
-          {
-            id: 'sfgg.aarsfordeling.af1',
-            label: 'Sygeferiegodtgørelse fordelt på år (til TAF pr. år)',
-            displayValue: [
-              'Sygeferiegodtgørelse fordelt på år | År | Beløb',
-              ' | 2024 | 25.113,13',
-            ].join('\n'),
-            status: 'ok',
-          },
         ]],
       ]),
       regulationSections: [],
@@ -1006,11 +997,7 @@ describe('EODebug', () => {
     expect(screen.getAllByText('Sygeferiegodtgørelse').every((element) => element.classList.contains('row--subheading-underlined'))).toBe(true);
     expect(screen.getByText('Arbejdssted 1')).toBeInTheDocument();
     expect(screen.getByText('553,50')).toBeInTheDocument();
-    expect(screen.getByText('Sygeferiegodtgørelse fordelt på år')).toBeInTheDocument();
-    expect(screen.getByText('År')).toBeInTheDocument();
-    expect(screen.getByText('Beløb')).toBeInTheDocument();
-    expect(screen.getByText('2024')).toBeInTheDocument();
-    expect(screen.getByText('25.113,13')).toBeInTheDocument();
+    expect(screen.queryByText('Sygeferiegodtgørelse fordelt på år')).not.toBeInTheDocument();
     expect(firstRow).not.toBeNull();
     expect(secondRow).not.toBeNull();
     expect(thirdRow).not.toBeNull();

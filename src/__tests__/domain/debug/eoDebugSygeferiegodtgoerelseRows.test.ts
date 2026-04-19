@@ -1661,7 +1661,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     );
   });
 
-  it('viser sygeferiegodtgørelse fordelt på år pr. ansættelsesforhold til fejlsøgning af TAF pr. år', () => {
+  it('viser ikke længere sygeferiegodtgørelse fordelt på år i debug', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1711,18 +1711,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       skadedato: '2024-01-01',
     });
 
-    expect(rows).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: `sfgg.aarsfordeling.${values.loenindkomstAnsaettelsesforhold[0].id}`,
-          label: 'Sygeferiegodtgørelse fordelt på år (til TAF pr. år)',
-          displayValue: expect.stringContaining('Sygeferiegodtgørelse fordelt på år | År | Beløb'),
-          status: 'ok',
-        }),
-      ])
-    );
     const yearRow = rows.find((row) => row.id === `sfgg.aarsfordeling.${values.loenindkomstAnsaettelsesforhold[0].id}`);
-    expect(yearRow?.displayValue).toContain(' | 2024 |');
-    expect(yearRow?.displayValue).toContain(' | 2025 |');
+    expect(yearRow).toBeUndefined();
   });
 });

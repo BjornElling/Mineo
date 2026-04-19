@@ -626,9 +626,10 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('Referenceperiode');
     expect(texts).toContain('01-01-2024 - 31-01-2024');
     expect(texts).toContain('Lønnen i referenceperioden udgør');
-    expect(texts).toContain('Beregningsgrundlag');
-    expect(texts).toContain('Der beregnes sygeferiegodtgørelse i perioden');
     expect(texts).toContain('01-01-2024 - 31-01-2024');
+    expect(texts).not.toContain('Beregningsgrundlag');
+    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
+    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
     expect(texts.some((text) =>
       text.startsWith('Kravet beregnes per ')
       && text.includes('med referencesatsen')
@@ -739,7 +740,6 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const introIndex = texts.findIndex((text) => text === 'Sygeferiegodtgørelse beregnes på baggrund af en manuelt angivet sats.');
     const ophoerLabelIndex = texts.findIndex((text) => text === 'Skaden er før 01-01-2015 og retten er begrænset til 4 måneder, som ophørte');
     const ophoerDatoIndex = texts.findIndex((text) => text === '30-04-2014');
-    const periodeLabelIndex = texts.findIndex((text) => text === 'Der beregnes sygeferiegodtgørelse i perioden');
     const feriepengeHvisIkkeSkadeIndex = texts.findIndex((text) => text === 'Feriepenge, hvis skaden ikke var sket (+ AG-pension)');
     const kravIndex = texts.findIndex((text) => text.startsWith('Kravet beregnes per '));
 
@@ -751,12 +751,11 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     // Ophørslinjen kommer efter referencesats-blokken (label + værdi = 2 entries)
     expect(ophoerLabelIndex).toBeGreaterThan(referencesatsenUdgoerIndex + 1);
     expect(ophoerDatoIndex).toBe(ophoerLabelIndex + 1);
-    expect(periodeLabelIndex).toBeGreaterThan(ophoerDatoIndex);
-    expect(feriepengeHvisIkkeSkadeIndex).toBeGreaterThan(periodeLabelIndex);
+    expect(feriepengeHvisIkkeSkadeIndex).toBeGreaterThan(ophoerDatoIndex);
     expect(kravIndex).toBe(feriepengeHvisIkkeSkadeIndex + 1);
   });
 
-  it('viser faktisk SFGG-periode uden TAF-label når beregningen afkortes ved ansættelsesophør', () => {
+  it('viser ikke længere SFGG-periodelabel når beregningen afkortes ved ansættelsesophør', () => {
     const { stamdata, eo } = buildBaseInput();
     stamdata.skadedato = iso('2012-05-01');
     eo.eoNummer = '2';
@@ -808,9 +807,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     });
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
-    const periodeLabelIndex = texts.findIndex((text) => text === 'Der beregnes sygeferiegodtgørelse i perioden');
-    expect(periodeLabelIndex).toBeGreaterThanOrEqual(0);
-    expect(texts[periodeLabelIndex + 1]).toBe('01-05-2012 - 15-07-2012');
+    expect(texts).not.toContain('Beregningsgrundlag');
+    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
     expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
   });
 
@@ -1338,11 +1336,9 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     });
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
-    expect(texts).toContain('Beregningsgrundlag');
-    expect(texts.some((text) =>
-      text === 'Der beregnes sygeferiegodtgørelse i perioden'
-      || text === 'Der beregnes sygeferiegodtgørelse i TAF-perioden'
-    )).toBe(true);
+    expect(texts).not.toContain('Beregningsgrundlag');
+    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
+    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
     expect(texts).toContain('Beregnet krav');
     expect(texts).toContain('Der er betalt sygeløn i hele perioden og derfor ikke krav på sygeferiegodtgørelse.');
 

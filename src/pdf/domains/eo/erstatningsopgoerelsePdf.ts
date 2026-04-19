@@ -121,37 +121,6 @@ const resolveSfggReferenceSatsUnit = (divisorLabel: 'kalenderdage' | 'arbejdsdag
 const resolveSfggPeriodDayUnitSingular = (divisorLabel: 'kalenderdage' | 'arbejdsdage'): 'kalenderdag' | 'arbejdsdag' =>
   divisorLabel === 'kalenderdage' ? 'kalenderdag' : 'arbejdsdag';
 
-const buildSfggDisplayedTafPeriodText = (tafPerioderLinjer: readonly string[], tafRanges: EoModel['tafRanges']): string => {
-  if (tafPerioderLinjer.length > 0) {
-    return tafPerioderLinjer.join(', ');
-  }
-  return tafRanges
-    .map((range) => {
-      const fraText = formatDateShort(range.fra);
-      const tilText = formatDateShort(range.til);
-      return fraText && tilText ? `${fraText} - ${tilText}` : '';
-    })
-    .filter((value) => value !== '')
-    .join(', ');
-};
-
-const buildSfggDisplayedCalculatedPeriodText = (
-  entry: EoModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
-): string => {
-  const ranges = entry.segments.length > 0
-    ? entry.segments.map((segment) => ({ fra: segment.fra, til: segment.til }))
-    : entry.sfggVisningsperiode;
-
-  return ranges
-    .map((range) => {
-      const fraText = formatDateShort(range.fra);
-      const tilText = formatDateShort(range.til);
-      return fraText && tilText ? `${fraText} - ${tilText}` : '';
-    })
-    .filter((value) => value !== '')
-    .join(', ');
-};
-
 const parseSfggPdfExplanatoryLine = (
   line: string
 ): Readonly<{ left: string; right: string }> | null => {
@@ -246,10 +215,10 @@ export const generateErstatningsopgoerelsePdf = (
   const bilagIndkomstYdelserRanges = buildBilagIndkomstYdelserRanges(eoValues, bilagIndkomstYdelserMode);
   const titel = model.titel;
 
-  const warnLayoutFallback = (message: string) => {
+  const warnLayoutFallback = ({ message, label }: Readonly<{ message: string; label: string }>) => {
     logWarning('PDF-layout fallback aktiveret', {
       context: 'pdf.erstatningsopgoerelse.layout',
-      data: { message },
+      data: { message, label },
     });
   };
 
@@ -363,21 +332,6 @@ export const generateErstatningsopgoerelsePdf = (
   const renderSfggPeriodBlock = (
     entry: EoModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
   ) => {
-    const tafPeriodeText = buildSfggDisplayedTafPeriodText(
-      model.tabtArbejdsfortjeneste.tafPerioderLinjer,
-      model.tafRanges
-    );
-    const calculatedPeriodeText = buildSfggDisplayedCalculatedPeriodText(entry);
-    if (calculatedPeriodeText !== '') {
-      writer.writeUnderlinedSubheader('Beregningsgrundlag');
-      writeLabelValueLine(
-        calculatedPeriodeText === tafPeriodeText
-          ? 'Der beregnes sygeferiegodtgørelse i TAF-perioden'
-          : 'Der beregnes sygeferiegodtgørelse i perioden',
-        calculatedPeriodeText
-      );
-    }
-
     const divisorLabel = entry.sfggDayBasis;
     const dayUnit = resolveSfggPeriodDayUnitSingular(divisorLabel);
     const rateLabel = entry.sfggSourceKind === 'overenskomst_direkte' ? 'overenskomstens referencesats' : 'referencesatsen';
