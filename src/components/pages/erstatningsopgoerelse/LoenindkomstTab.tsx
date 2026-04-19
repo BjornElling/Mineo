@@ -2035,7 +2035,7 @@ const LoenindkomstTab = React.memo(({
                     disabledAppearance={fritvalgLocked ? 'locked' : 'default'}
                     error={Boolean(satsErrors[af.id]?.fritvalgPct)}
                     helperText={satsErrors[af.id]?.fritvalgPct}
-                    sx={fritvalgLocked ? LOCKED_SATS_FIELD_SX : { width: '100px' }}
+                    sx={LOCKED_SATS_FIELD_SX}
                   />
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -2051,7 +2051,7 @@ const LoenindkomstTab = React.memo(({
                     disabledAppearance={shSoLocked ? 'locked' : 'default'}
                     error={Boolean(satsErrors[af.id]?.shSoPct)}
                     helperText={satsErrors[af.id]?.shSoPct}
-                    sx={shSoLocked ? LOCKED_SATS_FIELD_SX : { width: '100px' }}
+                    sx={LOCKED_SATS_FIELD_SX}
                   />
                 </Box>
               </Box>
@@ -2095,7 +2095,7 @@ const LoenindkomstTab = React.memo(({
                     disabledAppearance={pensionLocked ? 'locked' : 'default'}
                     error={Boolean(satsErrors[af.id]?.pensionPct)}
                     helperText={satsErrors[af.id]?.pensionPct}
-                    sx={pensionLocked ? LOCKED_SATS_FIELD_SX : { width: '100px' }}
+                    sx={LOCKED_SATS_FIELD_SX}
                   />
                 </Box>
               </Box>

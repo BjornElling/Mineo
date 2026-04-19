@@ -160,8 +160,11 @@ const stringifyReportData = (value: unknown): string => {
     if (typeof val === 'bigint') return val.toString();
     if (typeof val === 'symbol') return '[Symbol]';
     if (typeof val === 'function') return '[Function]';
-    if (typeof val === 'string' && ISO_UTC_TIMESTAMP_RE.test(val))
-      return new Date(val).toLocaleString('da-DK');
+    if (typeof val === 'string' && ISO_UTC_TIMESTAMP_RE.test(val)) {
+      const d = new Date(val);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+    }
     if (val instanceof Error) {
       return { name: val.name, message: val.message, stack: val.stack };
     }

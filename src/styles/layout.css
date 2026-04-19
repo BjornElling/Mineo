@@ -42,6 +42,9 @@
   --color-input-border-error: #d32f2f;
   --color-input-disabled-bg: rgba(0, 0, 0, 0.035);
   --color-input-disabled-text: rgba(0, 0, 0, 0.72);
+  --color-input-disabled-locked-bg: rgba(0, 0, 0, 0.06);
+  --color-input-disabled-locked-text: rgba(0, 0, 0, 0.45);
+  --color-input-disabled-border: rgba(0, 0, 0, 0.18);
   --color-input-placeholder: rgba(0, 0, 0, 0.4);
   --color-table-border: #e5e7eb;
   --color-table-header-bg: #f8fafc;
