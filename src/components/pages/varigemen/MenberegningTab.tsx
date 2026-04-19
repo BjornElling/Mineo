@@ -14,7 +14,7 @@ import {
   type StamdataValues,
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString, parseISODate, toISODateString } from '../../../types/branded';
-import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
+import { beregnVarigeMenGodtgoerelseWithRates, resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
 import type { SetFieldValue, SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import { useNavigate } from 'react-router-dom';
 import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/lovbestemteRates';
@@ -115,11 +115,9 @@ const alderVedSkade = React.useMemo(() => {
   return alder;
 }, [stamValues.skadelidteFodselsdato, stamValues.skadedato]);
 
-const beregningsaar = React.useMemo(() => {
+const menSats = React.useMemo(() => {
   const iso = coerceToISODateString(values.beregningsdato);
-  if (!iso) return undefined;
-  const d = parseISODate(iso);
-  return d?.getUTCFullYear();
+  return resolveMenSatsForBeregningsdato(iso ?? undefined, varigeMenPrGrad);
 }, [values.beregningsdato]);
 
 const beregningsResultat = React.useMemo(() => {
@@ -342,14 +340,14 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
 
       <Box className="row--label-right-hover">
         <Typography className="row--text">
-          {beregningsaar !== undefined
-            ? `Sats per méngrad i år ${beregningsaar}`
+          {menSats !== undefined
+            ? `Sats per méngrad i år ${menSats.aar}`
             : 'Sats per méngrad i beregningsåret'}
         </Typography>
         <Box className="row--label-right-hover__content" style={{ justifyContent: 'flex-end' }}>
-          {beregningsaar !== undefined && varigeMenPrGrad[beregningsaar] !== undefined ? (
+          {menSats !== undefined ? (
             <Typography className="row--text">
-              {formatAsAmount(varigeMenPrGrad[beregningsaar], 0)} kr.
+              {formatAsAmount(menSats.sats, 0)} kr.
             </Typography>
           ) : (
             <Tooltip title={beregningsdatoError || 'Beregningsdato mangler'} arrow>

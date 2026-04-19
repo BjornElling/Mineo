@@ -35,8 +35,10 @@ describe('eoPdfReguleringEngine', () => {
 
     expect(table).not.toBeNull();
     expect(table?.rows.length).toBeGreaterThan(0);
-    expect(table?.rows[0].length).toBe(table?.columns.length);
-    expect(table?.rows[0]?.[0]).toBe('01-01-2020');
+    // Referencerækken: placeholder for datoen før første overenskomstdækning.
+    // Kolonnerne bestemmes af laasesmedeoverenskomstens satser (Timeløn, SH/SO, Fritvalg, AG pens. bidrag).
+    // Hvis overenskomstdata ændres, skal denne forventning opdateres.
+    expect(table?.rows[0]).toEqual(['01-01-2020', '-', '-', '-', '-']);
     // 01-03-2024 er første satsdato i laasesmedeoverenskomsten i testdata.
     // Hvis datagrundlaget ændres historisk, skal denne forventning opdateres.
     expect(table?.rows[1]?.[0]).toBe('01-03-2024');

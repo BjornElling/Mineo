@@ -21,6 +21,7 @@ vi.mock('../../../../pdf/infrastructure/pdfService', () => ({
 
 vi.mock('../../../../domain/varigemen/varigeMenCalculations', () => ({
   beregnVarigeMenGodtgoerelseWithRates: mockBeregnVarigeMenGodtgoerelseWithRates,
+  resolveMenSatsForBeregningsdato: () => undefined,
 }));
 
 vi.mock('../../../../contexts/useAppSettings', () => ({

@@ -9,6 +9,21 @@ const getRateForYear = (dict: YearlyRate, year: number): number | undefined => {
   return dict[year];
 };
 
+export type MenSatsForAar = Readonly<{ aar: number; sats: number }>;
+
+export function resolveMenSatsForBeregningsdato(
+  beregningsdato: ISODateString | undefined,
+  rates: YearlyRate
+): MenSatsForAar | undefined {
+  if (!beregningsdato) return undefined;
+  const d = parseISODate(beregningsdato);
+  if (!d) return undefined;
+  const aar = d.getUTCFullYear();
+  const sats = getRateForYear(rates, aar);
+  if (sats === undefined) return undefined;
+  return { aar, sats };
+}
+
 /**
  * Beregn aldersfradrag i procent efter lovens ordlyd
  *

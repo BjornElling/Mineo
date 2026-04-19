@@ -534,11 +534,12 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const tilDato = isoToDanish(tafTil);
     if (!fraDato || !tilDato) return null;
 
+    const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
     const satser = getEffektiveSatserForPeriode({
       overenskomstId: ref.baseId,
       fraDato,
       tilDato,
-      applyAlmindeligLoenPaaShDageRegel: ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn',
+      applyAlmindeligLoenPaaShDageRegel,
     });
     const allSatser = getOverenskomst(ref.baseId)?.satser ?? satser;
     const hasGrundloen = allSatser.some((sats) => sats.grundloen !== null);
@@ -547,7 +548,6 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const hasAgPension = allSatser.some((sats) => hasNonZeroOverenskomstPct(sats.agPension));
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
     const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
-    const applyAlmindeligLoenPaaShDageRegel = ansaettelsesforhold.loenPaaHelligdage === 'Almindelig løn';
     const showStoreBededagColumn = applyAlmindeligLoenPaaShDageRegel && tafTil >= STORE_BEDEDAG_START;
     const loenHeader = resolveReguleringsvaerdierLoenHeader(tafBeregningsenhed);
     const columns = [
