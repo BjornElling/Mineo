@@ -172,7 +172,7 @@ type PdfCursor = Readonly<{
 const createPdfCursor = (params: Readonly<{
   lineHeight: number;
   visUdkastStempel: boolean;
-  onLayoutFallback: (message: string) => void;
+  onLayoutFallback: (params: Readonly<{ message: string; label: string }>) => void;
 }>): PdfCursor => {
   const { lineHeight, visUdkastStempel, onLayoutFallback } = params;
   const doc = new jsPDF({
@@ -402,7 +402,7 @@ const createPdfCursor = (params: Readonly<{
     const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
 
     if (hasRightOverflow) {
-      onLayoutFallback('højre kolonne er bredere end tilgængelig plads; flytter beløb til egen linje.');
+      onLayoutFallback({ message: 'højre kolonne er bredere end tilgængelig plads; flytter beløb til egen linje.', label: leftText });
       withTextStyle({
         fontStyle: leftFontStyle,
         fontSize,
@@ -691,7 +691,7 @@ export type PdfWriter = {
 export const createPdfWriter = (params: Readonly<{
   lineHeight: number;
   visUdkastStempel: boolean;
-  onLayoutFallback: (message: string) => void;
+  onLayoutFallback: (params: Readonly<{ message: string; label: string }>) => void;
 }>): PdfWriter => {
   const { lineHeight, visUdkastStempel, onLayoutFallback } = params;
   const cursor = createPdfCursor({ lineHeight, visUdkastStempel, onLayoutFallback });
@@ -971,7 +971,7 @@ export const createPdfWriter = (params: Readonly<{
 
 export const createStandardPdfWriter = (params?: Readonly<{
   visUdkastStempel?: boolean;
-  onLayoutFallback?: (message: string) => void;
+  onLayoutFallback?: (params: Readonly<{ message: string; label: string }>) => void;
 }>): PdfWriter => {
   const visUdkastStempel = params?.visUdkastStempel ?? false;
   const onLayoutFallback = params?.onLayoutFallback ?? (() => {});

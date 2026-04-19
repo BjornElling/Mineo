@@ -47,10 +47,10 @@ export const generateTafFordeltPaaAarPdf = (
 
   const writer = createStandardPdfWriter({
     visUdkastStempel,
-    onLayoutFallback: (message: string) => {
+    onLayoutFallback: ({ message, label }) => {
       logWarning('PDF-layout fallback aktiveret', {
         context: 'pdf.tafFordeltPaaAar.layout',
-        data: { message },
+        data: { message, label },
       });
     },
   });

@@ -35,7 +35,7 @@ describe('pdfWriter layout fallback', () => {
 
     expect(onLayoutFallback).toHaveBeenCalledTimes(1);
     expect(onLayoutFallback).toHaveBeenCalledWith(
-      expect.stringContaining('højre kolonne er bredere end tilgængelig plads')
+      expect.objectContaining({ message: expect.stringContaining('højre kolonne er bredere end tilgængelig plads'), label: 'Venstre' })
     );
   });
 
