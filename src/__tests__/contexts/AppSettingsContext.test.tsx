@@ -28,10 +28,15 @@ const ThemeModeSequenceHarness = ({ themeModes }: { themeModes: ReadonlyArray<'l
 
 describe('AppSettingsProvider', () => {
   const originalMatchMedia = window.matchMedia;
+  let themeColorMeta: HTMLMetaElement;
 
   beforeEach(() => {
     writeLocalStorage(LOCAL_STORAGE_KEY, '');
     delete document.documentElement.dataset.mineoTheme;
+    themeColorMeta = document.createElement('meta');
+    themeColorMeta.name = 'theme-color';
+    themeColorMeta.content = '#ffffff';
+    document.head.appendChild(themeColorMeta);
     window.matchMedia = vi.fn().mockImplementation((query: string) => ({
       matches: false,
       media: query,
@@ -47,6 +52,7 @@ describe('AppSettingsProvider', () => {
   afterEach(() => {
     window.matchMedia = originalMatchMedia;
     delete document.documentElement.dataset.mineoTheme;
+    themeColorMeta.remove();
   });
 
   it('opdaterer data-mineo-theme på html når themeMode ændres', async () => {
@@ -59,6 +65,7 @@ describe('AppSettingsProvider', () => {
     await waitFor(() => {
       expect(document.documentElement.dataset.mineoTheme).toBe('dark');
     });
+    expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#2b2b2b');
   });
 
   it('bevarer light på html når themeMode sættes til light', async () => {
@@ -71,6 +78,7 @@ describe('AppSettingsProvider', () => {
     await act(async () => {});
 
     expect(document.documentElement.dataset.mineoTheme).toBe('light');
+    expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#e9ecef');
   });
 
   it('opdaterer html-attributten korrekt ved dark til light transition', async () => {
@@ -83,5 +91,6 @@ describe('AppSettingsProvider', () => {
     await waitFor(() => {
       expect(document.documentElement.dataset.mineoTheme).toBe('light');
     });
+    expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#e9ecef');
   });
 });

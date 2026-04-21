@@ -15,10 +15,15 @@ describe('index theme bootstrap script', () => {
   const originalLocalStorage = window.localStorage;
   const bootstrapScript = loadBootstrapScript();
   let storageMap: Map<string, string>;
+  let themeColorMeta: HTMLMetaElement;
 
   beforeEach(() => {
     storageMap = new Map<string, string>();
     delete document.documentElement.dataset.mineoTheme;
+    themeColorMeta = document.createElement('meta');
+    themeColorMeta.name = 'theme-color';
+    themeColorMeta.content = '#ffffff';
+    document.head.appendChild(themeColorMeta);
     Object.defineProperty(window, 'localStorage', {
       configurable: true,
       value: {
@@ -57,6 +62,7 @@ describe('index theme bootstrap script', () => {
       value: originalLocalStorage,
     });
     delete document.documentElement.dataset.mineoTheme;
+    themeColorMeta.remove();
   });
 
   it('sætter dark theme på html når localStorage indeholder themeMode dark', () => {
@@ -65,6 +71,7 @@ describe('index theme bootstrap script', () => {
     new Function(bootstrapScript)();
 
     expect(document.documentElement.dataset.mineoTheme).toBe('dark');
+    expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#2b2b2b');
   });
 
   it('sætter dark theme på html når system-theme er mørkt og ingen settings findes', () => {
@@ -82,6 +89,7 @@ describe('index theme bootstrap script', () => {
     new Function(bootstrapScript)();
 
     expect(document.documentElement.dataset.mineoTheme).toBe('dark');
+    expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#2b2b2b');
   });
 
   it('sætter ikke dark attributten når persisted settings er light', () => {
@@ -90,5 +98,6 @@ describe('index theme bootstrap script', () => {
     new Function(bootstrapScript)();
 
     expect(document.documentElement.dataset.mineoTheme).toBeUndefined();
+    expect(document.querySelector('meta[name="theme-color"]')?.getAttribute('content')).toBe('#e9ecef');
   });
 });

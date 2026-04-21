@@ -4,25 +4,39 @@
     <meta charset="UTF-8" />
     <script>
       (function () {
+        var LIGHT_THEME_COLOR = '#e9ecef';
+        var DARK_THEME_COLOR = '#2b2b2b';
+        var applyThemeChrome = function (themeMode) {
+          var resolvedThemeMode = themeMode === 'dark' ? 'dark' : 'light';
+          if (resolvedThemeMode === 'dark') {
+            document.documentElement.dataset.mineoTheme = 'dark';
+          }
+
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (!meta) {
+            meta = document.createElement('meta');
+            meta.name = 'theme-color';
+            document.head.appendChild(meta);
+          }
+          meta.content = resolvedThemeMode === 'dark' ? DARK_THEME_COLOR : LIGHT_THEME_COLOR;
+        };
+
         try {
           var raw = localStorage.getItem('mineo_app_settings_v1');
           if (!raw) {
-            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-              document.documentElement.dataset.mineoTheme = 'dark';
-            }
+            var systemThemeMode =
+              window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            applyThemeChrome(systemThemeMode);
             return;
           }
           var parsed = JSON.parse(raw);
-          if (parsed && parsed.themeMode === 'dark') {
-            document.documentElement.dataset.mineoTheme = 'dark';
-          }
+          applyThemeChrome(parsed && parsed.themeMode === 'dark' ? 'dark' : 'light');
         } catch (e) {}
       })();
     </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#e9ecef" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#2b2b2b" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#e9ecef" />
     <meta
       name="description"
       content="MINEO hjælpeprogram"
