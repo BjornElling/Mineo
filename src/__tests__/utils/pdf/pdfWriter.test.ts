@@ -104,7 +104,7 @@ describe('pdfWriter layout fallback', () => {
 
   it('håndterer eksplicitte linjeskift i højrekolonnen centralt uden lokal generator-logik', async () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
+    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
     const writer = createStandardPdfWriter();
     const doc = writer.getDoc();
 
@@ -117,10 +117,11 @@ describe('pdfWriter layout fallback', () => {
 
     expect(firstRightCall).toBeDefined();
     expect(secondRightCall).toBeDefined();
-    expect(secondRightCall?.[2]).toBeGreaterThan(firstRightCall?.[2] as number);
-    expect((secondRightCall?.[2] as number) - (firstRightCall?.[2] as number)).toBeLessThanOrEqual(PDF_BASE_LINE_HEIGHT_MM);
-    expect((secondRightCall?.[2] as number) - (firstRightCall?.[2] as number)).toBeGreaterThanOrEqual(
-      PDF_BASE_LINE_HEIGHT_MM - PDF_LINE_BOTTOM_SPACING_MM
+    // Eksplicit linjeskift i højrekolonnen skal resultere i præcis én linjehøjde mellem de
+    // to baselines (trailing-spacing trækkes fra før anden linje tegnes).
+    expect((secondRightCall?.[2] as number) - (firstRightCall?.[2] as number)).toBeCloseTo(
+      PDF_BASE_LINE_HEIGHT_MM,
+      6
     );
   });
 });
@@ -249,10 +250,26 @@ describe('pdfWriter getPageWidth', () => {
 describe('pdfWriter headers', () => {
   it('writeTitle øger Y-positionen', async () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_TITLE_BOTTOM_SPACING_MM, FONT_SIZES } = await import('../../../pdf/infrastructure/pdfConfig');
     const writer = createStandardPdfWriter();
     const before = writer.getY();
     writer.writeTitle('Min titel');
-    expect(writer.getY()).toBeGreaterThan(before);
+    expect(writer.getY() - before).toBeCloseTo(
+      PDF_BASE_LINE_HEIGHT_MM * (FONT_SIZES.title / FONT_SIZES.normal) + PDF_TITLE_BOTTOM_SPACING_MM,
+      6
+    );
+  });
+
+  it('writeTitle kan undertrykke standard-bundafstand for dokumenter med særskilt followup-layout', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, FONT_SIZES } = await import('../../../pdf/infrastructure/pdfConfig');
+    const writer = createStandardPdfWriter();
+
+    writer.setY(100);
+    writer.writeTitle('Min titel', { trailingSpacing: 0 });
+    const afterTitle = writer.getY();
+
+    expect(afterTitle - 100).toBeCloseTo(PDF_BASE_LINE_HEIGHT_MM * (FONT_SIZES.title / FONT_SIZES.normal), 6);
   });
 
   it('writeSectionHeader øger Y-positionen', async () => {
@@ -283,20 +300,30 @@ describe('pdfWriter headers', () => {
     expect(writer.getY()).toBeGreaterThan(before);
   });
 
-  it('modregner eksisterende afstand når writeBoldSubheader følger efter setY-fremryk med sektionafstand', async () => {
+  it('modregner eksisterende afstand når writeBoldSubheader følger efter setY-fremryk større end subheader-topafstand', async () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM, SECTION_SPACER } = await import('../../../pdf/infrastructure/pdfConfig');
+    const {
+      PDF_BASE_LINE_HEIGHT_MM,
+      PDF_LINE_BOTTOM_SPACING_MM,
+      PDF_SUBHEADER_BOTTOM_SPACING_MM,
+      PDF_SUBHEADER_TOP_SPACING_MM,
+    } = await import('../../../pdf/infrastructure/pdfConfig');
     const writer = createStandardPdfWriter();
 
+    // Opbyg et scenarie hvor den *nye* eksplicitte fremryk via setY (målt fra cursor efter
+    // sidste content-blok) klart overstiger subheader-topafstanden. Under den betingelse
+    // skal writeBoldSubheader ikke tilføje yderligere top-spacing.
     writer.setY(100);
     writer.writeWrappedText('Eksisterende indhold');
-    writer.setY(100 + SECTION_SPACER);
+    const afterContent = writer.getY();
+    writer.setY(afterContent + PDF_SUBHEADER_TOP_SPACING_MM + 1);
     const afterSectionSpacing = writer.getY();
 
     writer.writeBoldSubheader('Underoverskrift', PDF_BASE_LINE_HEIGHT_MM);
 
-    expect(writer.getY() - afterSectionSpacing).toBe(
-      PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM
+    expect(writer.getY() - afterSectionSpacing).toBeCloseTo(
+      PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM,
+      6
     );
   });
 

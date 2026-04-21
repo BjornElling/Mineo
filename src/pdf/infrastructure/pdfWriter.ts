@@ -8,7 +8,7 @@
  */
 
 import jsPDF from 'jspdf';
-import { FONT_SIZES, MARGINS, PDF_BASE_LINE_HEIGHT_MM, PDF_FONT_FAMILY, PDF_FONT_STYLES, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM, PDF_TITLE_BOTTOM_SPACING_MM } from './pdfConfig';
+import { FONT_SIZES, MARGINS, PDF_BASE_LINE_HEIGHT_MM, PDF_FONT_FAMILY, PDF_FONT_STYLES, PDF_LINE_BOTTOM_SPACING_MM, PDF_SECTION_HEADER_BOTTOM_SPACING_MM, PDF_SECTION_HEADER_TOP_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM, PDF_SUBHEADER_TOP_SPACING_MM, PDF_TITLE_BOTTOM_SPACING_MM } from './pdfConfig';
 import {
   addFooter,
   addBrevhoved,
@@ -651,7 +651,12 @@ export type PdfWriter = {
     }>
   ) => void;
   writeSectionHeader: (text: string, nextLineHeight?: number) => void;
-  writeTitle: (text: string) => void;
+  writeTitle: (
+    text: string,
+    options?: Readonly<{
+      trailingSpacing?: number;
+    }>
+  ) => void;
   writeBoldSubheader: (
     text: string,
     nextLineHeight?: number,
@@ -701,7 +706,7 @@ export const createPdfWriter = (params: Readonly<{
   // Tracker kun eksplicit addSpacer/advanceY-spacing — ikke trailing line-spacing.
   // Bruges af writeBoldSubheader til at undgå dobbelt spacing fra addSpacer-kald.
   let explicitSpacingSinceLastContent = 0;
-  const canonicalSubheaderTopSpacing = lineHeight;
+  const canonicalSubheaderTopSpacing = PDF_SUBHEADER_TOP_SPACING_MM;
   const canonicalSubheaderBottomSpacing = PDF_LINE_BOTTOM_SPACING_MM + PDF_SUBHEADER_BOTTOM_SPACING_MM;
   const minimumHeaderFollowupHeight = lineHeight + canonicalSubheaderBottomSpacing;
   const minimumHeaderChainFollowupHeight = minimumHeaderFollowupHeight + lineHeight;
@@ -721,10 +726,10 @@ export const createPdfWriter = (params: Readonly<{
   };
 
   const writeSectionHeader = (text: string, nextLineHeight = PDF_BASE_LINE_HEIGHT_MM) => {
-    const topSpacing = lineHeight * 2;
+    const topSpacing = PDF_SECTION_HEADER_TOP_SPACING_MM;
     // Sektionsoverskrifter skal have mere luft under sig end brødtekst, så næste blok
     // læses som et tydeligt nyt hovedafsnit frem for en fortsættelse af samme tekstflow.
-    const bottomSpacing = lineHeight;
+    const bottomSpacing = PDF_SECTION_HEADER_BOTTOM_SPACING_MM;
     const headerTextHeight = cursor.measureWrappedTextHeight(text, {
       fontStyle: 'bold',
       fontSize: FONT_SIZES.header,
@@ -743,17 +748,23 @@ export const createPdfWriter = (params: Readonly<{
     explicitSpacingSinceLastContent = 0;
   };
 
-  const writeTitle = (text: string) => {
+  const writeTitle = (
+    text: string,
+    options?: Readonly<{
+      trailingSpacing?: number;
+    }>
+  ) => {
+    const trailingSpacing = options?.trailingSpacing ?? PDF_TITLE_BOTTOM_SPACING_MM;
     const titleBlockHeight = cursor.measureWrappedTextHeight(text, {
       fontStyle: 'bold',
       fontSize: FONT_SIZES.title,
-      trailingSpacing: PDF_TITLE_BOTTOM_SPACING_MM,
+      trailingSpacing,
     });
     cursor.ensureSpace(titleBlockHeight);
     cursor.writeStyledWrappedText(text, {
       fontStyle: 'bold',
       fontSize: FONT_SIZES.title,
-      trailingSpacing: PDF_TITLE_BOTTOM_SPACING_MM,
+      trailingSpacing,
     });
     cursor.applyNormalStyle();
     previousBlockWasSectionHeader = true;

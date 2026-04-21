@@ -66,16 +66,25 @@ export const PDF_SECTION_HEADING_GAP = 3;
 export const SECTION_SPACER = 10; // mm
 
 // Standard linjeafstand for brødtekst i alle PDF'er
-export const PDF_BASE_LINE_HEIGHT_MM = 4; // mm
+export const PDF_BASE_LINE_HEIGHT_MM = 4.2; // mm
 
 // Afstand efter hver fritekst-linje (writeWrappedText, writeLeftRightText, writeUnderlinedSubheader)
-export const PDF_LINE_BOTTOM_SPACING_MM = 2; // mm
+export const PDF_LINE_BOTTOM_SPACING_MM = 1.3; // mm
 
 // Ekstra afstand under fed underoverskrift (writeBoldSubheader)
 export const PDF_SUBHEADER_BOTTOM_SPACING_MM = 1; // mm
 
+// Afstand over sektionsoverskrift (writeSectionHeader), fx "Svie- og smertegodtgørelse"
+export const PDF_SECTION_HEADER_TOP_SPACING_MM = 9; // mm
+
+// Afstand under sektionsoverskrift (writeSectionHeader), fx "Svie- og smertegodtgørelse"
+export const PDF_SECTION_HEADER_BOTTOM_SPACING_MM = 5; // mm
+
+// Afstand over fed underoverskrift (writeBoldSubheader), fx "Status" / "Beregnet krav på …"
+export const PDF_SUBHEADER_TOP_SPACING_MM = 5; // mm
+
 // Afstand under dokumenttitel (writeTitle)
-export const PDF_TITLE_BOTTOM_SPACING_MM = 15; // mm
+export const PDF_TITLE_BOTTOM_SPACING_MM = 12; // mm
 
 // Brevhoved layout-konstanter
 export const PDF_BREVHOVED_START_Y = 15; // mm fra øverste kant

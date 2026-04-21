@@ -4,6 +4,11 @@ import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitia
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { formatCurrencyFromOre } from '../../../pdf/shared/pdfFormatUtils';
+import { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM } from '../../../pdf/infrastructure/pdfConfig';
+
+// Minimum Y-afstand mellem to teksters baselines når der skal være mindst én tom linje imellem:
+// linje + trailing + linje. Bruges til at håndhæve læsbarheds-luft mellem forbeholdstekst og krav.
+const MIN_AFSTAND_MED_TOM_LINJE = 2 * PDF_BASE_LINE_HEIGHT_MM + PDF_LINE_BOTTOM_SPACING_MM;
 
 const MockJsPDF = vi.hoisted(() =>
   class MockJsPDF {
@@ -1489,7 +1494,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const kravY = findTextY(MockJsPDF.lastInstance, '15-01-2024: Transport');
     expect(forbeholdY).not.toBeNull();
     expect(kravY).not.toBeNull();
-    expect((kravY as number) - (forbeholdY as number)).toBeGreaterThanOrEqual(10);
+    expect((kravY as number) - (forbeholdY as number)).toBeGreaterThanOrEqual(MIN_AFSTAND_MED_TOM_LINJE);
   });
 
   it('viser klage-reguleringslinje i "Øvrige krav" ved midlertidig EET med verserende klage', () => {
@@ -1581,6 +1586,6 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const afstandForbeholdTilKlage = (klageY as number) - (forbeholdY as number);
     const afstandKlageTilKrav = (kravY as number) - (klageY as number);
     expect(afstandForbeholdTilKlage).toBe(afstandKlageTilKrav);
-    expect(afstandForbeholdTilKlage).toBeGreaterThanOrEqual(10);
+    expect(afstandForbeholdTilKlage).toBeGreaterThanOrEqual(MIN_AFSTAND_MED_TOM_LINJE);
   });
 });

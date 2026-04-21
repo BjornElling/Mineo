@@ -142,7 +142,6 @@ const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[
   return getStandardLoenTableHeaders(loenperiode).map((header) => {
     if (header === 'Ikke-pensions-\ngivende løn') return 'Ikke-pens. giv. løn';
     if (header === 'ATP og anden\nløn u. tillæg') return 'ATP og løn\nu. till./pens.';
-    if (header === 'Arb.g.\nPension') return 'Arb.g. Pension';
     return header;
   });
 };
@@ -450,7 +449,7 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   // Tilføj titel
-  writer.writeTitle(titel);
+  writer.writeTitle(titel, { trailingSpacing: 0 });
 
   // Tilføj erstatningsperiode-datoer direkte under titel
   if (model.periodeDisplay) {

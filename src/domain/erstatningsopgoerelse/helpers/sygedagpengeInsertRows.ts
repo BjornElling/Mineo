@@ -1,7 +1,16 @@
-import { sygedagpengeRates, type DatedSygedagpengeRate } from '../../../config/regulatoryRates';
+import {
+  resolveEgetAtpBidragPrKalenderuge,
+  resolveKommunaltAtpBidragPrKalenderuge,
+  sygedagpengeRates,
+  type DatedSygedagpengeRate,
+} from '../../../data/sygedagpengeRates';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import { roundByMethod } from '../../../utils/rounding';
 import { parseAmountInput } from '../../../utils/expressionAmount';
-import { beregnPeriodiseringsDage } from '../../../utils/periodeBeregning';
+import {
+  beregnPeriodiseringsDage,
+  beregnSygedagpengeArbejdsdagePrKalenderuge,
+} from '../../../utils/periodeBeregning';
 import { isoToDanish, maxIso, minIso, type ISODateString } from '../../../types/branded';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
@@ -28,12 +37,19 @@ const buildSegmentExpression = (arbejdsdage: number, satsPrDag: number): string 
   return `${arbejdsdage}*${satsPrDag}`;
 };
 
-const resolveKommunaltAtpBidragPrDag = (rate: DatedSygedagpengeRate): number => {
-  const expectedKommunaltBidragPrDag = rate.egetAtpPrDag * 2;
-  if (rate.kommunaltAtpPrDag !== expectedKommunaltBidragPrDag) {
-    throw new Error('CRITICAL: Sygedagpenge-rater forventer at kommunalt ATP-bidrag altid er dobbelt af eget ATP-bidrag.');
+const buildKommunaltAtpExpression = (segment: SygedagpengeSegment): string => {
+  const egetAtpPrKalenderuge = resolveEgetAtpBidragPrKalenderuge(segment.rate);
+  const kommunaltFaktor = resolveKommunaltAtpBidragPrKalenderuge(segment.rate) / egetAtpPrKalenderuge;
+  const ugeBidrag = beregnSygedagpengeArbejdsdagePrKalenderuge(segment.fraDato, segment.tilDato).map((uge) => {
+    const egetBidrag = roundByMethod((uge.arbejdsdage * egetAtpPrKalenderuge) / 5, 0, 'halfAwayFromZero');
+    return `${egetBidrag}*${kommunaltFaktor}`;
+  });
+
+  if (ugeBidrag.length === 0) {
+    throw new Error('CRITICAL: Sygedagpenge-segment med arbejdsdage gav intet ATP-bidrag pr. kalenderuge');
   }
-  return expectedKommunaltBidragPrDag;
+
+  return ugeBidrag.join('+');
 };
 
 export const splitSygedagpengeRateSegments = (
@@ -74,7 +90,7 @@ export const buildSygedagpengeRowsForRange = (
   const segments = splitSygedagpengeRateSegments(fraDato, tilDato);
 
   return segments.map((segment) => {
-    const kommunaltAtpBidragPrDag = resolveKommunaltAtpBidragPrDag(segment.rate);
+    const kommunaltAtpExpression = buildKommunaltAtpExpression(segment);
     const fraDatoDa = isoToDanish(segment.fraDato);
     const tilDatoDa = isoToDanish(segment.tilDato);
     if (!fraDatoDa || !tilDatoDa) {
@@ -86,7 +102,7 @@ export const buildSygedagpengeRowsForRange = (
       fraDato: fraDatoDa,
       tilDato: tilDatoDa,
       ydelse: toExpressionAmount(buildSegmentExpression(segment.arbejdsdage, segment.rate.sygedagpengePrDagMax)),
-      tillaeg: toExpressionAmount(buildSegmentExpression(segment.arbejdsdage, kommunaltAtpBidragPrDag)),
+      tillaeg: toExpressionAmount(kommunaltAtpExpression),
       ydelsestype: 'sygedagpenge',
     };
   });
@@ -101,7 +117,9 @@ export const buildSygedagpengeRowsForRange = (
  * Vigtigt om dagtælling:
  * - Fra og med 2. juli 2012 medregnes SH-dage ikke længere for sygedagpenge.
  * - Til og med 1. juli 2012 medregnes SH-dage fortsat.
- * - Den særregel håndhæves centralt af `beregnPeriodiseringsDage(..., 'sygedagpenge')`.
+ * - Særreglen håndhæves centralt af `beregnPeriodiseringsDage(..., 'sygedagpenge')`
+ *   og `beregnSygedagpengeArbejdsdagePrKalenderuge`, så ydelse og ATP-tillæg altid
+ *   anvender samme cutoff-regel på de samme datoer.
  *
  * Vigtigt om feriedage:
  * - Disse indsatte sygedagpenge-rækker følger samme regel som øvrige sygedagpenge-rækker i EO:
@@ -111,6 +129,10 @@ export const buildSygedagpengeRowsForRange = (
  *
  * Vigtigt om ATP:
  * - Tillægget indeholder kun det kommunale ATP-bidrag.
- * - Det kommunale bidrag forventes i rate-tabellen altid at være præcis dobbelt af eget bidrag.
- * - Invarianten håndhæves eksplicit, så en fremtidig rate-ændring ikke stiltiende ændrer beregningen.
+ * - Rate-tabellen indeholder ugentlige ATP-satser; ATP beregnes ikke pr. dag.
+ * - Beregningen grupperer derfor arbejdsdage pr. kalenderuge, afrunder først dagpengemodtagerens
+ *   andel af den ugentlige sats til hele kroner, og ganger derefter med forholdet mellem
+ *   kommunalt og eget bidrag for at få den kommunale andel i rækkens tillæg.
+ * - `resolveKommunaltAtpBidragPrKalenderuge` håndhæver invarianten om at kommunalt bidrag altid
+ *   er præcis dobbelt af eget bidrag i rate-tabellen.
  */

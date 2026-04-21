@@ -127,12 +127,12 @@ describe('dateRanges_erstatningsopgoerelse', () => {
 });
 
 describe('dateRanges_offentligeYdelser', () => {
-  it('afgrænser fra-dato til første sygedagpengesats', () => {
+  it('afgrænser fra-dato til seneste fælles startdato for sygedagpenge og ATP', () => {
     expect(dateRanges_offentligeYdelser.fraDato.min).toBe('2005-01-03');
     expect(dateRanges_offentligeYdelser.fraDato.fallbackMax).toBe('2027-01-03');
   });
 
-  it('afgrænser til-dato til sidste sygedagpengesats', () => {
+  it('afgrænser til-dato til tidligste fælles slutdato for sygedagpenge og ATP', () => {
     expect(dateRanges_offentligeYdelser.tilDato.fallbackMin).toBe('2005-01-03');
     expect(dateRanges_offentligeYdelser.tilDato.max).toBe('2027-01-03');
   });

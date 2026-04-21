@@ -9,6 +9,7 @@ import type { StandardLoenTableRow } from '../schemas/formSchemas';
 import { parseISODate, toISODateString, type ISODateString } from '../types/branded';
 import { addDays, createDate, formatToISO, isLeapYear, parseDanishDate, parseWeekString } from './dateUtils';
 import { beregnSHDageForDatoSet } from '../domain/dates/shDageBeregning';
+import { SYGEDAGPENGE_SH_CUTOFF } from '../domain/erstatningsopgoerelse/helpers/eoConstants';
 import type { Periodisering } from '../data/ydelsestyper';
 import { countInclusiveUtcDays } from './utcDayMath';
 import { MONTH_NAMES_DA_SHORT } from './dateFormatting';
@@ -487,29 +488,75 @@ export const beregnPeriodiseringsDage = (
       return datoSet.size;
     }
     case 'arbejdsdage': {
-      // Hverdage minus SH-dage
-      // SPECIEL REGEL: For Sygedagpenge før 2. juli 2012 fratrækkes IKKE SH-dage
+      // Hverdage minus SH-dage.
+      // SPECIEL REGEL: Sygedagpenge-perioder der slutter før SYGEDAGPENGE_SH_CUTOFF (2012-07-02)
+      // periodiseres uden SH-fradrag. Fra og med cutoff fratrækkes SH-dage som normalt.
       const hverdage = beregnAntalHverdage(datoSet);
 
-      // Tjek om det er Sygedagpenge før 2. juli 2012
       if (ydelsestype === 'sygedagpenge') {
-        // Parse til-dato til sammenligning
         const tilParsed = parseDanishDate(tilDato);
-        if (tilParsed) {
-          // 2. juli 2012 = 02-07-2012
-          const skaeringsdato = createDate(2012, 6, 2); // Måned er 0-indekseret
-          if (tilParsed < skaeringsdato) {
-            // Før 2. juli 2012 - beregn UDEN fradrag af SH-dage
-            return hverdage;
-          }
+        if (tilParsed && formatToISO(tilParsed) < SYGEDAGPENGE_SH_CUTOFF) {
+          return hverdage;
         }
       }
 
-      // Standard arbejdsdage-beregning: hverdage minus SH-dage
       const shDage = beregnSHDageForDatoSet(datoSet);
       return hverdage - shDage;
     }
     default:
       return null;
   }
+};
+
+/**
+ * Pr-uge arbejdsdage for en sygedagpenge-periode.
+ *
+ * Returnerer én indgang pr. kalenderuge (mandag-start) med de arbejdsdage der falder i
+ * ugen og *samtidig* i intervallet [fraDato, tilDato]. Arbejdsdage = hverdage minus SH-dage,
+ * med samme sygedagpenge-særregel som {@link beregnPeriodiseringsDage}:
+ * perioder der slutter før {@link SYGEDAGPENGE_SH_CUTOFF} fratrækker ikke SH-dage.
+ *
+ * Uger uden arbejdsdage i intervallet udelades.
+ *
+ * Bruges til ATP-beregning for sygedagpenge, hvor den ugentlige ATP-sats fordeles
+ * forholdsmæssigt efter antallet af arbejdsdage i kalenderugen.
+ */
+export interface KalenderugeArbejdsdage {
+  readonly ugeStart: ISODateString;
+  readonly arbejdsdage: number;
+}
+
+export const beregnSygedagpengeArbejdsdagePrKalenderuge = (
+  fraDato: ISODateString,
+  tilDato: ISODateString
+): readonly KalenderugeArbejdsdage[] => {
+  const fra = parseISODate(fraDato);
+  const til = parseISODate(tilDato);
+  if (!fra || !til || fra > til) return [];
+
+  const uger = new Map<ISODateString, Set<ISODateString>>();
+  let current = new Date(fra);
+  while (current <= til) {
+    const weekday = current.getUTCDay();
+    if (weekday >= 1 && weekday <= 5) {
+      const weekdayOffset = (weekday + 6) % 7;
+      const ugeStart = formatToISO(addDays(current, -weekdayOffset));
+      const datoer = uger.get(ugeStart) ?? new Set<ISODateString>();
+      datoer.add(formatToISO(current));
+      uger.set(ugeStart, datoer);
+    }
+    current = addDays(current, 1);
+  }
+
+  const fratraekSH = tilDato >= SYGEDAGPENGE_SH_CUTOFF;
+
+  const result: KalenderugeArbejdsdage[] = [];
+  for (const [ugeStart, datoer] of uger) {
+    const hverdage = datoer.size;
+    const arbejdsdage = fratraekSH ? hverdage - beregnSHDageForDatoSet(datoer) : hverdage;
+    if (arbejdsdage > 0) {
+      result.push({ ugeStart, arbejdsdage });
+    }
+  }
+  return result;
 };

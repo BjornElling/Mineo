@@ -1,6 +1,7 @@
 /// <reference types="vitest/globals" />
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { FONT_SIZES, PDF_BASE_LINE_HEIGHT_MM } from '../../../pdf/infrastructure/pdfConfig';
 
 const mockInstances: MockJsPDF[] = [];
 
@@ -125,6 +126,30 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     const fileName = String(lastSaveCall?.[0] ?? '');
     expect(fileName.endsWith('.pdf')).toBe(true);
     expect(fileName.includes(' (udkast).pdf')).toBe(false);
+  });
+
+  it('skriver erstatningsperiode direkte under hovedtitlen uden ekstra titelafstand', () => {
+    const baseStamdata = createBaseStamdata();
+    const baseEo = createBaseEo();
+    baseEo.eoNummer = '1';
+    baseEo.vedroererPeriodeFra = '2025-04-03';
+    baseEo.vedroererPeriodeTil = '2026-02-22';
+    baseStamdata.skadelidte = 'Kim Thinggaard Plehn Larsen';
+    baseStamdata.skadestype = 'Arbejdsulykke';
+    baseStamdata.skadedato = '2025-04-03';
+
+    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, { visUdkastStempel: false });
+
+    const textCalls = MockJsPDF.lastInstance?.text.mock.calls ?? [];
+    const titleCall = textCalls.find((call) => call[0] === 'Erstatningsopgørelse 1');
+    const periodCall = textCalls.find((call) => call[0] === '03-04-2025 - 22-02-2026');
+
+    expect(titleCall).toBeDefined();
+    expect(periodCall).toBeDefined();
+    expect((periodCall?.[2] as number) - (titleCall?.[2] as number)).toBeCloseTo(
+      PDF_BASE_LINE_HEIGHT_MM * (FONT_SIZES.title / FONT_SIZES.normal),
+      6
+    );
   });
 
   it('tillader sygeferiegodtgørelse som valgt PDF-element', () => {
