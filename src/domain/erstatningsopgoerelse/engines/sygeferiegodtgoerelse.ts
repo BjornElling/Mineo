@@ -495,6 +495,118 @@ export const sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner = (
   return sum;
 };
 
+type EmploymentSfggCalculator = Readonly<{
+  sumLoenInRangesKroner: (ranges: readonly IsoRange[]) => number;
+  sumLoenForDatesKroner: (dates: readonly ISODateString[]) => number;
+  buildFeriepengeOreForDates: (dates: readonly ISODateString[]) => MoneyOre;
+  buildFeriepengeOreByYear: (dates: readonly ISODateString[]) => ReadonlyMap<number, MoneyOre>;
+}>;
+
+const calculateSfggFeriepengeMedPensionOreFromLoenKroner = (
+  loenPlusLoen2PlusIkkePensLoenKroner: number,
+  employment: LoenindkomstAnsaettelsesforhold,
+  iso: ISODateString
+): MoneyOre => {
+  if (loenPlusLoen2PlusIkkePensLoenKroner <= 0) return ensureMoneyOre(0);
+  const feriepengeKroner = loenPlusLoen2PlusIkkePensLoenKroner * parsePercentToDecimal(employment.feriePct);
+  const pensionMultiplier = 1 + resolveSfggAgPensionPctDecimalForDate(employment, iso);
+  return ensureMoneyOre(toOre(roundKroner(feriepengeKroner * pensionMultiplier)));
+};
+
+const buildEmploymentSfggCalculator = (
+  employment: LoenindkomstAnsaettelsesforhold,
+  ferieperioder: ErstatningsopgoerelseValues['ferieperioder']
+): EmploymentSfggCalculator => {
+  const feriepengeOreByDate = new Map<ISODateString, MoneyOre>();
+  const precomputedRows: Array<Readonly<{
+    loenPlusLoen2PlusIkkePensLoen: number;
+    arbejdsdageSet: ReadonlySet<ISODateString>;
+    totalArbejdsdage: number;
+  }>> = [];
+  const satser = {
+    feriePct: employment.feriePct,
+    fritvalgPct: employment.fritvalgPct,
+    shSoPct: employment.shSoPct,
+    storeBededagPct: employment.storeBededagPct,
+    pensionPct: employment.pensionPct,
+  };
+
+  for (const row of employment.indtaegtsoplysningerTableData ?? []) {
+    const interval = parseAarsloenRowInterval(row, employment.loenperiode);
+    if (!interval) continue;
+    const derived = calculateStandardLoenRowDerived(row, satser);
+    if (!Number.isFinite(derived.loenPlusLoen2PlusIkkePensLoen) || derived.loenPlusLoen2PlusIkkePensLoen <= 0) continue;
+    const intervalFra = dateToISO(interval.start);
+    const intervalTil = dateToISO(interval.end);
+    if (!intervalFra || !intervalTil) continue;
+    const rowArbejdsdageSet = buildLoenArbejdsdageSet({ fra: intervalFra, til: intervalTil }, ferieperioder ?? []);
+    const totalArbejdsdage = rowArbejdsdageSet.size;
+    if (totalArbejdsdage <= 0) continue;
+    precomputedRows.push({
+      loenPlusLoen2PlusIkkePensLoen: derived.loenPlusLoen2PlusIkkePensLoen,
+      arbejdsdageSet: rowArbejdsdageSet,
+      totalArbejdsdage,
+    });
+  }
+
+  const sumSingleDate = (iso: ISODateString): number => {
+    let sum = 0;
+    for (const row of precomputedRows) {
+      if (!row.arbejdsdageSet.has(iso)) continue;
+      sum += row.loenPlusLoen2PlusIkkePensLoen * (1 / row.totalArbejdsdage);
+    }
+    return sum;
+  };
+
+  const sumDates = (dates: Iterable<ISODateString>): number => {
+    const includedDates = new Set<ISODateString>(dates);
+    if (includedDates.size === 0) return 0;
+    let sum = 0;
+    for (const row of precomputedRows) {
+      let overlapArbejdsdage = 0;
+      for (const iso of includedDates) {
+        if (row.arbejdsdageSet.has(iso)) {
+          overlapArbejdsdage += 1;
+        }
+      }
+      if (overlapArbejdsdage <= 0) continue;
+      sum += row.loenPlusLoen2PlusIkkePensLoen * (overlapArbejdsdage / row.totalArbejdsdage);
+    }
+    return sum;
+  };
+
+  const buildFeriepengeOreForDate = (iso: ISODateString): MoneyOre => {
+    const cached = feriepengeOreByDate.get(iso);
+    if (cached !== undefined) return cached;
+
+    const result = calculateSfggFeriepengeMedPensionOreFromLoenKroner(sumSingleDate(iso), employment, iso);
+    feriepengeOreByDate.set(iso, result);
+    return result;
+  };
+
+  return {
+    sumLoenInRangesKroner: (ranges) => {
+      if (ranges.length === 0) return 0;
+      return sumDates(buildDateSetFromRanges(ranges));
+    },
+    sumLoenForDatesKroner: (dates) => {
+      if (dates.length === 0) return 0;
+      return sumDates(dates);
+    },
+    buildFeriepengeOreForDates: (dates) => ensureMoneyOre(
+      dates.reduce((sum, iso) => sum + buildFeriepengeOreForDate(iso), 0)
+    ),
+    buildFeriepengeOreByYear: (dates) => {
+      const byYear = new Map<number, MoneyOre>();
+      for (const iso of dates) {
+        const year = Number.parseInt(iso.slice(0, 4), 10);
+        byYear.set(year, ensureMoneyOre((byYear.get(year) ?? 0) + buildFeriepengeOreForDate(iso)));
+      }
+      return byYear;
+    },
+  };
+};
+
 export const resolveSfggDirectSatsValue = (
   sfggSatsvalg: SygeferiegodtgoerelseAnsaettelsesforholdRow['sfggSatsvalg'],
   direkteSatsErDifferentieret: boolean,
@@ -588,41 +700,46 @@ const buildSfggGrossOre = (
 const buildSfggFeriepengeMedPensionOreForDate = (
   employment: LoenindkomstAnsaettelsesforhold,
   iso: ISODateString,
-  ferieperioder: ErstatningsopgoerelseValues['ferieperioder']
+  ferieperioder: ErstatningsopgoerelseValues['ferieperioder'],
+  calculator?: EmploymentSfggCalculator
 ): MoneyOre => {
-  const loenPlusLoen2PlusIkkePensLoenKroner = sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
-    employment,
-    [{ fra: iso, til: iso }],
-    ferieperioder
-  );
-  if (loenPlusLoen2PlusIkkePensLoenKroner <= 0) return ensureMoneyOre(0);
-
-  const feriepengeKroner = loenPlusLoen2PlusIkkePensLoenKroner * parsePercentToDecimal(employment.feriePct);
-  const pensionMultiplier = 1 + resolveSfggAgPensionPctDecimalForDate(employment, iso);
-  return ensureMoneyOre(toOre(roundKroner(feriepengeKroner * pensionMultiplier)));
+  const loenPlusLoen2PlusIkkePensLoenKroner = calculator
+    ? calculator.sumLoenForDatesKroner([iso])
+    : sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
+      employment,
+      [{ fra: iso, til: iso }],
+      ferieperioder
+    );
+  return calculateSfggFeriepengeMedPensionOreFromLoenKroner(loenPlusLoen2PlusIkkePensLoenKroner, employment, iso);
 };
 
 const buildSfggFeriepengeMedPensionOreForDates = (
   employment: LoenindkomstAnsaettelsesforhold,
   dates: readonly ISODateString[],
-  ferieperioder: ErstatningsopgoerelseValues['ferieperioder']
-): MoneyOre => ensureMoneyOre(
-  dates.reduce(
-    (sum, iso) => sum + buildSfggFeriepengeMedPensionOreForDate(employment, iso, ferieperioder),
-    0
-  )
-);
+  ferieperioder: ErstatningsopgoerelseValues['ferieperioder'],
+  calculator?: EmploymentSfggCalculator
+): MoneyOre => calculator
+  ? calculator.buildFeriepengeOreForDates(dates)
+  : ensureMoneyOre(
+    dates.reduce(
+      (sum, iso) => sum + buildSfggFeriepengeMedPensionOreForDate(employment, iso, ferieperioder),
+      0
+    )
+  );
 
 const sumLoenPlusLoen2PlusIkkePensLoenForEligibleDatesKroner = (
   employment: LoenindkomstAnsaettelsesforhold,
   dates: readonly ISODateString[],
-  ferieperioder: ErstatningsopgoerelseValues['ferieperioder']
+  ferieperioder: ErstatningsopgoerelseValues['ferieperioder'],
+  calculator?: EmploymentSfggCalculator
 ): number =>
-  sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
-    employment,
-    dates.map((iso) => ({ fra: iso, til: iso })),
-    ferieperioder
-  );
+  calculator
+    ? calculator.sumLoenForDatesKroner(dates)
+    : sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
+      employment,
+      dates.map((iso) => ({ fra: iso, til: iso })),
+      ferieperioder
+    );
 
 const buildIncomeExcludedDateSet = (employment: LoenindkomstAnsaettelsesforhold): Set<ISODateString> => {
   const result = new Set<ISODateString>();
@@ -688,14 +805,13 @@ const allocateOreByWeights = (
 
 const buildYearAllocationsForGroupedSegment = (args: Readonly<{
   yearDates: ReadonlyMap<number, readonly ISODateString[]>;
-  employment: LoenindkomstAnsaettelsesforhold;
-  values: ErstatningsopgoerelseValues;
   satsOre: MoneyOre;
   agPensionPct: number;
   alreadyPaidSegmentOre: MoneyOre;
   segmentTotalOre: MoneyOre;
+  feriepengeOreByYear: ReadonlyMap<number, MoneyOre>;
 }>): ReadonlyMap<number, MoneyOre> => {
-  const { yearDates, employment, values, satsOre, agPensionPct, alreadyPaidSegmentOre, segmentTotalOre } = args;
+  const { yearDates, satsOre, agPensionPct, alreadyPaidSegmentOre, segmentTotalOre, feriepengeOreByYear } = args;
   const entries = [...yearDates.entries()].sort((a, b) => a[0] - b[0]);
   if (entries.length === 0) return new Map<number, MoneyOre>();
 
@@ -709,11 +825,7 @@ const buildYearAllocationsForGroupedSegment = (args: Readonly<{
 
   const weightedYears = entries.map(([year, dates]) => {
     const grossOre = buildSfggGrossOre(satsOre, agPensionPct, dates.length);
-    const feriepengeOre = buildSfggFeriepengeMedPensionOreForDates(
-      employment,
-      dates,
-      values.ferieperioder ?? []
-    );
+    const feriepengeOre = feriepengeOreByYear.get(year) ?? ensureMoneyOre(0);
     const alreadyPaidYearOre = alreadyPaidByYear.get(String(year)) ?? ensureMoneyOre(0);
     const remainingOre = clampMoneyOreToZero(ensureMoneyOre(grossOre - feriepengeOre - alreadyPaidYearOre));
     const weight = remainingOre;
@@ -734,7 +846,8 @@ const resolveSfggBaseRate = (
   values: ErstatningsopgoerelseValues,
   employment: LoenindkomstAnsaettelsesforhold,
   sfggRow: SygeferiegodtgoerelseAnsaettelsesforholdRow | undefined,
-  sfggSource: Readonly<{ kind: SfggSourceKind }>
+  sfggSource: Readonly<{ kind: SfggSourceKind }>,
+  calculator?: EmploymentSfggCalculator
 ): Readonly<{
   sfggReferenceperiode: { fra: ISODateString; til: ISODateString } | null;
   sfggReferencesatsOre: SfggReferencesatsCalculable;
@@ -771,11 +884,13 @@ const resolveSfggBaseRate = (
     };
   }
   const arbejdsdage = sfggReferenceperiodeDayCount.divisorDage;
-  const loenPlusLoen2PlusIkkePensLoenKroner = sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
-    employment,
-    [{ fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil }],
-    values.ferieperioder ?? []
-  );
+  const loenPlusLoen2PlusIkkePensLoenKroner = calculator
+    ? calculator.sumLoenInRangesKroner([{ fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil }])
+    : sumLoenPlusLoen2PlusIkkePensLoenInRangesKroner(
+      employment,
+      [{ fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil }],
+      values.ferieperioder ?? []
+    );
   const feriePctDecimal = parsePercentToDecimal(employment.feriePct);
   const feriepengeKroner = loenPlusLoen2PlusIkkePensLoenKroner * feriePctDecimal;
   if (arbejdsdage <= 0) {
@@ -941,6 +1056,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
   const totalPerYear = new Map<number, MoneyOre>();
 
   for (const employment of (values.loenindkomstAnsaettelsesforhold ?? []).filter((entry) => entry.ansatPaaSkadestidspunktet)) {
+    const employmentCalculator = buildEmploymentSfggCalculator(employment, values.ferieperioder ?? []);
     const sfggRow = getSfggRowForEmployment(values, employment.id);
     const sfggSource = resolveSfggSource(sfggRow, employment);
     if (sfggSource.kind === 'ingen') continue;
@@ -1060,7 +1176,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       continue;
     }
 
-    const sfggBaseRate = resolveSfggBaseRate(values, employment, sfggRow, sfggSource);
+    const sfggBaseRate = resolveSfggBaseRate(values, employment, sfggRow, sfggSource, employmentCalculator);
     const eligibleDateSet = new Set<ISODateString>(eligibleDates);
     const grouped: Array<{
       fra: ISODateString;
@@ -1117,12 +1233,13 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       const loenPlusLoen2PlusIkkePensLoenKroner = sumLoenPlusLoen2PlusIkkePensLoenForEligibleDatesKroner(
         employment,
         group.dates,
-        values.ferieperioder ?? []
+        values.ferieperioder ?? [],
+        employmentCalculator
       );
       loenPlusLoen2PlusIkkePensLoenBySegment.set(`${group.fra}:${index}`, loenPlusLoen2PlusIkkePensLoenKroner);
       feriepengeBySegment.set(
         `${group.fra}:${index}`,
-        buildSfggFeriepengeMedPensionOreForDates(employment, group.dates, values.ferieperioder ?? [])
+        buildSfggFeriepengeMedPensionOreForDates(employment, group.dates, values.ferieperioder ?? [], employmentCalculator)
       );
     });
 
@@ -1150,14 +1267,14 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         dates.push(iso);
         yearDates.set(year, dates);
       });
+      const feriepengeOreByYear = employmentCalculator.buildFeriepengeOreByYear(group.dates);
       const yearAllocations = buildYearAllocationsForGroupedSegment({
         yearDates,
-        employment,
-        values,
         satsOre: group.satsOre,
         agPensionPct: group.agPensionPct,
         alreadyPaidSegmentOre,
         segmentTotalOre,
+        feriepengeOreByYear,
       });
       yearAllocations.forEach((amountOre, year) => {
         totalPerYear.set(year, ensureMoneyOre((totalPerYear.get(year) ?? 0) + amountOre));

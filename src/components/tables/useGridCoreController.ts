@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { flushSync } from 'react-dom';
 import { areSameGridCellOrBothNull, gridCellKey } from './gridCore/gridCoreUtils';
-import type { FocusPlan, GridCellCoord, GridCellEditorHandle, GridCoreController, GridOpenEditSource } from './gridCore/gridCoreTypes';
+import type { FocusPlan, GridCellCoord, GridCellEditorHandle, GridCoreController, GridCoreStateStore, GridOpenEditSource } from './gridCore/gridCoreTypes';
 import { attachGridCoreToTable, detachGridCoreFromTable } from './gridCore/gridCoreRegistry';
 import type { GridCoreContextValue, GridCoreTableKind } from './gridCore/gridCoreContext.shared';
 
@@ -20,24 +20,79 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
   const internalTableRef = React.useRef<HTMLTableElement | null>(null);
   const editorRegistryRef = React.useRef<Map<string, GridCellEditorHandle>>(new Map());
 
-  const [focusedCell, setFocusedCellState] = React.useState<GridCellCoord | null>(null);
-  const focusedCellRef = React.useRef<GridCellCoord | null>(focusedCell);
-  const [editingCell, setEditingCellState] = React.useState<GridCellCoord | null>(null);
-  const editingCellRef = React.useRef<GridCellCoord | null>(editingCell);
+  const focusedCellRef = React.useRef<GridCellCoord | null>(null);
+  const editingCellRef = React.useRef<GridCellCoord | null>(null);
   const pendingFocusPlanRef = React.useRef<FocusPlan | null>(null);
+  const listenersRef = React.useRef<Set<() => void>>(new Set());
+  const focusRafIdRef = React.useRef<number | null>(null);
+  const pendingStoreNotificationRef = React.useRef(false);
+  const [storeVersion, bumpStoreVersion] = React.useReducer((value: number) => value + 1, 0);
+
+  const scheduleCellFocus = React.useCallback((cell: GridCellCoord | null) => {
+    if (focusRafIdRef.current !== null) {
+      cancelAnimationFrame(focusRafIdRef.current);
+      focusRafIdRef.current = null;
+    }
+
+    if (cell === null) return;
+
+    focusRafIdRef.current = requestAnimationFrame(() => {
+      focusRafIdRef.current = null;
+      if (!areSameGridCellOrBothNull(focusedCellRef.current, cell)) return;
+      const handle = editorRegistryRef.current.get(gridCellKey(cell));
+      if (!handle || handle.getIsLocked()) return;
+      const element = handle.getElement();
+      if (element && element.isConnected) {
+        element.focus();
+      }
+    });
+  }, []);
+
+  const notifyStoreChange = React.useCallback((synchronously: boolean) => {
+    pendingStoreNotificationRef.current = true;
+    if (synchronously) {
+      flushSync(() => {
+        bumpStoreVersion();
+      });
+      return;
+    }
+    bumpStoreVersion();
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (!pendingStoreNotificationRef.current) return;
+    pendingStoreNotificationRef.current = false;
+    listenersRef.current.forEach((listener) => listener());
+  }, [storeVersion]);
+
+  const gridStateStore = React.useMemo<GridCoreStateStore>(() => {
+    return {
+      subscribe: (listener) => {
+        listenersRef.current.add(listener);
+        return () => {
+          listenersRef.current.delete(listener);
+        };
+      },
+      getFocusedCell: () => focusedCellRef.current,
+      getEditingCell: () => editingCellRef.current,
+    };
+  }, []);
 
   const controller = React.useMemo<GridCoreController>(() => {
     const getFocusedCell = () => focusedCellRef.current;
     const getEditingCell = () => editingCellRef.current;
 
     const setFocusedCell = (cell: GridCellCoord | null) => {
+      if (areSameGridCellOrBothNull(focusedCellRef.current, cell)) return;
       focusedCellRef.current = cell;
-      setFocusedCellState(cell);
+      notifyStoreChange(false);
+      scheduleCellFocus(cell);
     };
 
-    const setEditingCell = (cell: GridCellCoord | null) => {
+    const setEditingCell = (cell: GridCellCoord | null, options?: Readonly<{ synchronously?: boolean }>) => {
+      if (areSameGridCellOrBothNull(editingCellRef.current, cell)) return;
       editingCellRef.current = cell;
-      setEditingCellState(cell);
+      notifyStoreChange(options?.synchronously === true);
     };
 
     const getEditor = (cell: GridCellCoord) => {
@@ -53,8 +108,7 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
     };
 
     const closeEditing = () => {
-      editingCellRef.current = null;
-      setEditingCellState(null);
+      setEditingCell(null);
       executeFocusPlan();
     };
 
@@ -66,10 +120,13 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
         pendingFocusPlanRef.current = null;
       }
 
-      editingCellRef.current = cell;
-      flushSync(() => setEditingCellState(cell));
+      setEditingCell(cell, { synchronously: true });
       if (source === 'doubleClick') {
-        handle?.selectAll();
+        requestAnimationFrame(() => {
+          if (areSameGridCellOrBothNull(editingCellRef.current, cell)) {
+            handle?.selectAll();
+          }
+        });
       }
     };
 
@@ -122,12 +179,11 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
       clearFocusPlan,
       getPendingFocusPlan,
     };
-  }, []);
+  }, [notifyStoreChange, scheduleCellFocus]);
 
   const contextValue = React.useMemo<GridCoreContextValue>(() => {
     return {
-      focusedCell,
-      editingCell,
+      gridStateStore,
       tableKind,
       openEditing: controller.openEditing,
       closeEditing: controller.closeEditing,
@@ -136,7 +192,7 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
       getEditor: controller.getEditor,
       requestFocusPlan: controller.requestFocusPlan,
     };
-  }, [controller, editingCell, focusedCell, tableKind]);
+  }, [controller, gridStateStore, tableKind]);
 
   React.useEffect(() => {
     const table = internalTableRef.current;
@@ -148,27 +204,12 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
   }, [controller]);
 
   React.useEffect(() => {
-    if (focusedCell === null) return;
-    const targetCell = focusedCell;
-
-    const handle = controller.getEditor(targetCell);
-    if (!handle || handle.getIsLocked()) return;
-
-    const element = handle.getElement();
-    if (!element) return;
-
-    const rafId = requestAnimationFrame(() => {
-      if (!areSameGridCellOrBothNull(focusedCellRef.current, targetCell)) return;
-      const currentElement = handle.getElement();
-      if (currentElement && currentElement.isConnected) {
-        currentElement.focus();
-      }
-    });
-
     return () => {
-      cancelAnimationFrame(rafId);
+      if (focusRafIdRef.current !== null) {
+        cancelAnimationFrame(focusRafIdRef.current);
+      }
     };
-  }, [controller, focusedCell]);
+  }, []);
 
   return {
     internalTableRef,

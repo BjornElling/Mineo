@@ -98,12 +98,14 @@ const ContentBox = React.memo(({ className, sx, children, disableReport = false,
 
       {children}
 
-      <ContentBoxReportDialog
-        open={reportOpen}
-        onClose={() => setReportOpen(false)}
-        identity={identity}
-        contentBoxRef={contentBoxRef}
-      />
+      {settings.showContentBoxReportButton && !disableReport ? (
+        <ContentBoxReportDialog
+          open={reportOpen}
+          onClose={() => setReportOpen(false)}
+          identity={identity}
+          contentBoxRef={contentBoxRef}
+        />
+      ) : null}
     </Box>
   );
 });

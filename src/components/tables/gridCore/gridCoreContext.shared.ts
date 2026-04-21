@@ -1,5 +1,5 @@
 import * as React from 'react';
-import type { GridCellCoord, GridCorePublicAPI } from './gridCoreTypes';
+import type { GridCellCoord, GridCorePublicAPI, GridCoreStateStore } from './gridCoreTypes';
 
 export type GridCoreTableKind = 'grid' | 'loose';
 
@@ -14,7 +14,20 @@ export type GridCoreApiContextValue = Readonly<
   }
 >;
 
-export type GridCoreContextValue = Readonly<GridCoreStateContextValue & GridCoreApiContextValue>;
+export type GridCoreLegacyStateContextValue = Readonly<{
+  focusedCell: GridCellCoord | null;
+  editingCell: GridCellCoord | null;
+}>;
 
-export const GridCoreStateReactContext = React.createContext<GridCoreStateContextValue | null>(null);
+export type GridCoreContextValue = Readonly<
+  GridCoreApiContextValue &
+    (
+      | {
+          gridStateStore: GridCoreStateStore;
+        }
+      | GridCoreLegacyStateContextValue
+    )
+>;
+
 export const GridCoreApiReactContext = React.createContext<GridCoreApiContextValue | null>(null);
+export const GridCoreStoreReactContext = React.createContext<GridCoreStateStore | null>(null);

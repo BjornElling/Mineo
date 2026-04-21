@@ -38,6 +38,12 @@ export type GridCellEditorHandle = Readonly<{
   selectAll: () => void;
 }>;
 
+export type GridCoreStateStore = Readonly<{
+  subscribe: (listener: () => void) => () => void;
+  getFocusedCell: () => GridCellCoord | null;
+  getEditingCell: () => GridCellCoord | null;
+}>;
+
 /**
  * Public API exposed via GridCore Context
  *

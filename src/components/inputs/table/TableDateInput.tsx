@@ -10,8 +10,7 @@ import { normalizeDatePaste } from '../../../utils/inputPasteNormalization';
 import { coerceToDanishDateString, coerceToISODateString, type ISODateString } from '../../../types/branded';
 import { asTableCommittedString, normalizeTableDraftOnCommit, type TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { assignRef } from './assignRef';
-import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
-import { areSameGridCell } from '../../tables/gridCore/gridCoreUtils';
+import { useGridCellEditing, useGridCellFocus, useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { filterDateLikeKeyDown } from '../inputKeyFilters';
@@ -211,10 +210,9 @@ const TableDateInput = React.memo(
     inputRef,
     sx,
   }: TableDateInputProps) => {
-    const gridState = useGridCoreState();
     const gridApi = useGridCoreApi();
-    const cellFocused = areSameGridCell(gridState.focusedCell, gridCell);
-    const isEditing = areSameGridCell(gridState.editingCell, gridCell);
+    const cellFocused = useGridCellFocus(gridCell);
+    const isEditing = useGridCellEditing(gridCell);
     const isReadOnly = locked || !isEditing;
     const isLooseTable = gridApi.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';

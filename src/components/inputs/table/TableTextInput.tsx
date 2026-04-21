@@ -2,8 +2,7 @@ import * as React from 'react';
 import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
-import { useGridCoreApi, useGridCoreState } from '../../tables/useGridCore';
-import { areSameGridCell } from '../../tables/gridCore/gridCoreUtils';
+import { useGridCellEditing, useGridCellFocus, useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { assignRef } from './assignRef';
 import { copyWholeValueFromReadOnlyField } from '../../../utils/clipboardUtils';
@@ -50,10 +49,9 @@ const TableTextInput = React.memo(
     inputRef,
     sx,
   }: TableTextInputProps) => {
-    const gridState = useGridCoreState();
     const gridApi = useGridCoreApi();
-    const cellFocused = areSameGridCell(gridState.focusedCell, gridCell);
-    const isEditing = areSameGridCell(gridState.editingCell, gridCell);
+    const cellFocused = useGridCellFocus(gridCell);
+    const isEditing = useGridCellEditing(gridCell);
     const isReadOnly = locked || !isEditing;
     const isLooseTable = gridApi.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';

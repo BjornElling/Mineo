@@ -10,6 +10,11 @@ import { SortIcon } from './SortIcon';
 import { assignRef } from '../inputs/table/assignRef';
 import { useGridCoreController } from './useGridCoreController';
 
+const BASE_CONTAINER_SX: SxProps<Theme> = {
+  width: '100%',
+  overflowX: 'auto',
+};
+
 export type StandardGridTableProps = Readonly<{
   /**
    * Table type 2: egentlig tabel (HTML table + table-inputs).
@@ -43,9 +48,16 @@ export const StandardGridTable = React.memo(
     tableRef,
   }: StandardGridTableProps) => {
     const { internalTableRef, contextValue } = useGridCoreController({ tableKind: 'grid' });
+    const mergedContainerSx = React.useMemo<SxProps<Theme>>(
+      () => [
+        BASE_CONTAINER_SX,
+        ...(containerSx === undefined ? [] : Array.isArray(containerSx) ? containerSx : [containerSx]),
+      ],
+      [containerSx]
+    );
 
     return (
-      <Box sx={[{ width: '100%', overflowX: 'auto' }, ...(containerSx === undefined ? [] : Array.isArray(containerSx) ? containerSx : [containerSx])]}>
+      <Box sx={mergedContainerSx}>
         {beforeTable}
         <GridCoreProvider value={contextValue}>
           <Box
