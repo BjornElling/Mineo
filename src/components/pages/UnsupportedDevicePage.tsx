@@ -16,9 +16,10 @@ const UnsupportedDevicePage = () => {
   useEffect(() => {
     const html = document.documentElement;
     const originalHtmlBg = html.style.backgroundColor;
-    const isDarkTheme = html.dataset.mineoTheme === 'dark';
-    const pageBackground = isDarkTheme ? '#141414' : '#f8f9fa';
+    const originalTheme = html.dataset.mineoTheme;
+    const pageBackground = '#f8f9fa';
 
+    html.dataset.mineoTheme = 'light';
     html.style.backgroundColor = pageBackground;
 
     const meta = document.createElement('meta');
@@ -27,6 +28,7 @@ const UnsupportedDevicePage = () => {
     document.head.appendChild(meta);
 
     return () => {
+      html.dataset.mineoTheme = originalTheme ?? '';
       html.style.backgroundColor = originalHtmlBg;
       meta.remove();
     };
