@@ -6,7 +6,7 @@ import { formatAsAmount, formatAsAmountTrimmed, formatPercent, isSingularCount }
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import { roundByMethod } from '../../../utils/rounding';
 import { calculateStandardLoenDerivedFromAmounts } from '../../aarsloen/standardLoenRowCalculations';
-import { buildIncomeForRanges } from '../helpers/indtaegtPerioder';
+import { buildIncomeForRanges, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
 import { buildLoenindkomstRateSegments, resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../engines/tafCalculations';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
@@ -29,7 +29,10 @@ const parsePctPoint = (value: string | number | undefined): number | undefined =
 export const buildIndkomstSkadestidspunkt = (
   values: ErstatningsopgoerelseValues,
   stamdataValues: StamdataValues,
-  tafBeregningsenhed: TafBeregningsenhed
+  tafBeregningsenhed: TafBeregningsenhed,
+  options?: Readonly<{
+    incomeForBeregningsperiode?: IncomePeriodResult | null;
+  }>
 ): IndkomstSkadestidspunktModel | null => {
   const beregnesUdFra = values.beregnesUdFra;
   const loenBaseretPaa = getAngivetLoenBaseretPaa(values)?.trim() ?? '';
@@ -70,7 +73,9 @@ export const buildIndkomstSkadestidspunkt = (
     if (periodeTilBeregning) {
       // Beregningsperiode-indkomsten opgøres med de satser der gælder på reguleringsdato (af.pensionPct m.fl.),
       // ikke med historisk segmentering — derfor sendes skadedato ikke med her.
-      const incomeForBeregningsperiode = buildIncomeForRanges(values, [periodeTilBeregning], undefined, undefined);
+      const incomeForBeregningsperiode =
+        options?.incomeForBeregningsperiode
+        ?? buildIncomeForRanges(values, [periodeTilBeregning], undefined, undefined);
       const sums = { loenPlusLoen2: 0, loenPlusLoen2PlusIkkePensLoen: 0, fpFvShSo: 0, pension: 0, atp: 0, samlet: 0 };
 
       for (const entry of incomeForBeregningsperiode.employers) {

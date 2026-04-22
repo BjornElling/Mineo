@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { buildIncomeForRanges, type IsoRange } from '../helpers/indtaegtPerioder';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
 import { computeTafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { buildIndkomstSkadestidspunkt } from './indkomstSkadestidspunktBeregning';
 import { buildLoenudviklingModel } from './loenudviklingBeregning';
@@ -103,13 +103,23 @@ export const computeTafNettoBeregning = (
   const beregnes = values.beregnesTabtArbejdsfortjeneste === 'Ja';
   const harTafPerioder = beregnes && tafRanges.length > 0;
   const tafBeregningsenhed = computeTafBeregningsenhed(values);
+  const beregningsperiodeRange = values.beregnesUdFra === 'Beregningsperiode'
+    ? buildBeregningsperiodeRange(values)
+    : undefined;
+  const incomeForBeregningsperiode: IncomePeriodResult | null =
+    harTafPerioder && beregningsperiodeRange
+      ? buildIncomeForRanges(values, [beregningsperiodeRange], undefined, undefined)
+      : null;
 
   const indkomstSkadestidspunkt = harTafPerioder
-    ? buildIndkomstSkadestidspunkt(values, stamdataValues, tafBeregningsenhed)
+    ? buildIndkomstSkadestidspunkt(values, stamdataValues, tafBeregningsenhed, {
+      incomeForBeregningsperiode,
+    })
     : null;
   const loenudvikling = harTafPerioder
     ? buildLoenudviklingModel(values, stamdataValues, tafBeregningsenhed, indkomstSkadestidspunkt, {
       tafRanges,
+      incomeForBeregningsperiode,
     })
     : null;
   const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges) : null;

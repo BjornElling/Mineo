@@ -287,7 +287,7 @@ resolveTafConstraintBounds(values): TafConstraintBounds
 | Import | Kilde |
 |---|---|
 | `beregnHelligdage` | `src/utils/shDageBeregning.ts` |
-| `mergeIsoDateRanges` | `src/domain/erstatningsopgoerelse/periodMerging.ts` |
+| `mergeIsoDateRanges` | `src/domain/erstatningsopgoerelse/engines/periodMerging.ts` |
 | `buildIncomeForRanges`, `buildIncomeCalculationContext` | `src/domain/erstatningsopgoerelse/indtaegtPerioder.ts` |
 | `buildIndkomstSkadestidspunkt` | `src/domain/erstatningsopgoerelse/eoPdfIndkomstSkadestidspunkt.ts` |
 | `buildLoenudviklingModel` | `src/domain/erstatningsopgoerelse/eoPdfLoenudvikling.ts` |
@@ -308,6 +308,14 @@ resolveTafConstraintBounds(values): TafConstraintBounds
 | `src/__tests__/domain/erstatningsopgoerelse/tafPerYearDerived.test.ts` | TAF fordelt på kalenderår |
 | `src/__tests__/domain/erstatningsopgoerelse/tafArbejdsstatusConfig.test.ts` | Status-tekst per arbejdsstatus |
 | `src/__tests__/utils/pdf/tafFordeltPaaAarPdf.wiring.test.ts` | PDF-wiring for per-år-fordeling |
+
+### Kanonisk periodemerge i EO
+
+EO-domænet bruger den fælles merge-helper i `src/domain/erstatningsopgoerelse/engines/periodMerging.ts`.
+
+- `mergeIsoDateRanges(...)` bruges når perioderne allerede er på ISO-form.
+- `mergeDateRanges(...)` bruges når en engine arbejder på `Date`-intervaller internt.
+- Nye EO-flow må ikke indføre lokale merge-varianter for TAF-, svie/smerte-, ferie- eller SFGG-perioder uden eksplicit kontraktbegrundelse.
 
 ---
 

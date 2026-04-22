@@ -17,6 +17,7 @@ import { isSvieSmerteRowEmpty } from '../helpers/rowEmpty';
 import { parseForligsgrad } from './forligsgrad';
 import type { MoneyOre } from '../shared/eoTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
+import { mergeDateRanges } from './periodMerging';
 
 export type SvieSmerteConstrainedPeriod = Readonly<{
   fra: ISODateString;
@@ -50,34 +51,6 @@ export type SvieSmerteEngineInputSnapshot = Readonly<{
   erstatningsopgoerelse: DeepReadonly<ErstatningsopgoerelseValues>;
   stamdata?: DeepReadonly<Pick<StamdataValues, 'skadedato' | 'skadestype'>> | null;
 }>;
-
-/**
- * Merger overlappende og tilstødende (adjacent) perioder af samme sygemeldingstype.
- *
- * Adjacent-merge: to perioder med til === addDays(næste.fra, -1) slås sammen.
- * Type-betingelse: perioder splittes i sygemeldt vs. delvist-sygemeldt INDEN kald,
- * så merge kun sker inden for samme type (jf. eo-snapshot-contract.md §2.3).
- */
-const mergePeriods = (periods: { fra: Date; til: Date }[]): { fra: Date; til: Date }[] => {
-  if (periods.length === 0) return [];
-  const sorted = [...periods].sort((a, b) => a.fra.getTime() - b.fra.getTime());
-  const merged: { fra: Date; til: Date }[] = [];
-  let current = sorted[0];
-  for (let i = 1; i < sorted.length; i += 1) {
-    const next = sorted[i];
-    // Overlap: next.fra <= current.til
-    // Adjacent: next.fra === addDays(current.til, 1), dvs. next.fra.getTime() - current.til.getTime() === 86400000
-    const gap = next.fra.getTime() - current.til.getTime();
-    if (gap <= 86_400_000) {
-      current = { fra: current.fra, til: next.til > current.til ? next.til : current.til };
-    } else {
-      merged.push(current);
-      current = next;
-    }
-  }
-  merged.push(current);
-  return merged;
-};
 
 /**
  * Filtrerer svie/smerte-perioder til gyldige, komplete og ikke-overlappende rækker.
@@ -174,7 +147,9 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
 
   // Tre-trins clamping (jf. eo-snapshot-contract.md §2.3):
   // 1. Clamp mod fejlgivende øvre grænse (menAfgoerelseDato) — validator rapporterer violation
-  // 2. Merge overlappende og tilstødende ranges (på ISO-niveau via mergePeriods)
+  // 2. Merge overlappende og tilstødende ranges via den kanoniske EO-helper
+  //    i periodMerging.ts. Type-split mellem sygemeldt og delvist-sygemeldt
+  //    sker før kaldet, så merge fortsat kun sker inden for samme type.
   // 3. Stille clamping mod EO-perioden (ingen fejlindikation)
   //
   // Rationale for rækkefølge: fejlgivende clamping sker FØR EO-periode-clamping, så feltfejlen
@@ -196,7 +171,7 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
         afterFejlgivende.push({ fra: isoDateToDate(clamped.fra), til: isoDateToDate(clamped.til) });
       }
       // Trin 2: merge
-      const merged = mergePeriods(afterFejlgivende);
+      const merged = mergeDateRanges(afterFejlgivende, { mergeAdjacent: true });
       // Trin 3: stille clamping mod EO-perioden
       for (const p of merged) {
         const fra = dateToISO(p.fra);

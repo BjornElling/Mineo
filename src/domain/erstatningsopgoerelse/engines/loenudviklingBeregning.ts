@@ -5,7 +5,7 @@ import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import { roundByMethod } from '../../../utils/rounding';
-import { buildBeregningsperiodeRange, buildIncomeForRanges, type IsoRange } from '../helpers/indtaegtPerioder';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { isoDateToDate } from '../../dates/isoDate';
@@ -1216,7 +1216,10 @@ export const buildLoenudviklingModel = (
   stamdataValues: StamdataValues,
   tafBeregningsenhed: TafBeregningsenhed,
   indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null,
-  options: Readonly<{ tafRanges: readonly IsoRange[] }>
+  options: Readonly<{
+    tafRanges: readonly IsoRange[];
+    incomeForBeregningsperiode?: IncomePeriodResult | null;
+  }>
 ): LoenudviklingModel => {
   const tafRanges = options.tafRanges;
   const buildFromStrategiAndBase = (
@@ -1321,7 +1324,9 @@ export const buildLoenudviklingModel = (
       ...values,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
     }, stamdataValues, tafBeregningsenhed, { tafRanges }));
-    const income = buildIncomeForRanges(values, [beregningsperiodeRange], undefined, stamdataValues.skadedato);
+    const income =
+      options.incomeForBeregningsperiode
+      ?? buildIncomeForRanges(values, [beregningsperiodeRange], undefined, stamdataValues.skadedato);
     if (income.employers.length === 0) {
       const alleIngen = strategiDataByIndex.every((strategiData) => strategiData.strategi === 'ingen');
       if (alleIngen) {
