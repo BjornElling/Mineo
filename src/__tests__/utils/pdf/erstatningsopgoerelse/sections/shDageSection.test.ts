@@ -126,6 +126,28 @@ describe('renderShDageSection – TAF-periode med helligdage', () => {
     const body: unknown[][] = (call as { body: unknown[][] }).body;
     expect(body.length).toBeGreaterThan(1);
   });
+
+  it('placerer totalen under SH-dag-kolonnen', () => {
+    autoTableMock.mockClear();
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.tafPerioder = [
+      { id: 'taf-1', fra: iso('2024-12-24'), til: iso('2024-12-26'), loseFeriedage: undefined },
+    ];
+    const { ctx } = makeContext(eoValues);
+
+    renderShDageSection(ctx);
+
+    const call = autoTableMock.mock.calls[0]?.[1];
+    expect(call).toBeDefined();
+
+    const body = (call as { body: Array<Array<{ content?: string; colSpan?: number }>> }).body;
+    const totalRow = body[body.length - 1];
+    expect(totalRow).toHaveLength(4);
+    expect(totalRow[0]).toMatchObject({ content: 'SH-dage i alt' });
+    expect(totalRow[1]).toMatchObject({ content: '' });
+    expect(totalRow[2]).toMatchObject({ content: '' });
+    expect(totalRow[3]).toMatchObject({ content: '2', colSpan: 1 });
+  });
 });
 
 describe('renderShDageSection – beregningsperiode for første opgørelse', () => {

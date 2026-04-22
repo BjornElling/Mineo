@@ -82,7 +82,12 @@ export const mergeFeriepengeDisplay = (fromFeriePct: string | undefined, fromFer
   return `${left} / ${right}`;
 };
 
-export const wrapIndexFormulaAfterSlashWhenLong = (value: string, maxInlineLength = 90): string => {
+export const wrapIndexFormulaAfterSlashWhenLong = (
+  value: string,
+  maxInlineLength = 90,
+  shouldWrapAfterSlash = true
+): string => {
+  if (!shouldWrapAfterSlash) return value;
   if (value.includes('\n')) return value;
   if (value.length <= maxInlineLength) return value;
   const parts = value.split(' / ');

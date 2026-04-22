@@ -110,6 +110,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
         valueColumnIndex: 3,
         formatValue: (total) => String(total),
         valueAlign: 'center',
+        preserveValueColumn: true,
       }
     );
     const totalRowIndex = totalRow ? tableRows.length : null;

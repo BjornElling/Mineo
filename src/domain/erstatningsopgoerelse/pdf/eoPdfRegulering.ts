@@ -152,22 +152,26 @@ export const resolveAnvendtReguleringsdato = (
  * Producerer den kanoniske tekstbeskrivelse af løn-referencedatoen til brug i PDF.
  *
  * `anvendtReguleringsdato` er den kanoniske sandhed og beregnes via
- * `resolveAnvendtReguleringsdato`. Denne funktion skal aldrig modtage
- * `saerligFraDatoRegulering` eller `beregnesUdFra` direkte — al fallback-logik
- * for hvilken dato der er gældende er allerede indkapslet i `resolveAnvendtReguleringsdato`.
+ * `resolveAnvendtReguleringsdato`. Kaldestedet kan dog eksplicit markere, når
+ * datoen repræsenterer beregningsperiodens implicitte slutdato, fordi den
+ * sproglige formulering i EO skal være "opgjort frem til" og ikke "opgjort per".
  *
  * Teksten bliver "på skadedatoen" hvis `anvendtReguleringsdato` er lig `skadedato`
- * eller `undefined`; ellers "opgjort per [dato]".
+ * eller `undefined`; ellers "opgjort per [dato]" eller "opgjort frem til [dato]".
  */
 export const resolveLoenSkadedatoText = (params: {
   subject: 'lønnen';
   anvendtReguleringsdato: ISODateString | undefined;
   skadedato: ISODateString | undefined;
+  useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
 }): string => {
-  const { subject, anvendtReguleringsdato, skadedato } = params;
+  const { subject, anvendtReguleringsdato, skadedato, useUntilWordingForImplicitBeregningsperiodeDate = false } = params;
   if (anvendtReguleringsdato && anvendtReguleringsdato !== skadedato) {
     const formatted = formatDateLong(anvendtReguleringsdato);
     if (formatted) {
+      if (useUntilWordingForImplicitBeregningsperiodeDate) {
+        return `${subject} opgjort frem til ${formatted}`;
+      }
       return `${subject} opgjort per ${formatted}`;
     }
   }
@@ -225,13 +229,33 @@ const buildIndexFormulaDisplay = (
   const formula = isPlainValue
     ? `(${numeratorDisplay} / ${denominatorDisplay})`
     : `(${numeratorDisplay}) /\n(${denominatorDisplay})`;
-  return wrapIndexFormulaAfterSlashWhenLong(formula);
+  return wrapIndexFormulaAfterSlashWhenLong(formula, 90, !isPlainValue);
 };
 
 const resolveReguleringsvaerdierLoenHeader = (
-  tafBeregningsenhed: TafBeregningsenhed
-): 'Timeløn' | 'Månedsløn' =>
-  tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? 'Timeløn' : 'Månedsløn';
+  params: Readonly<{
+    tafBeregningsenhed: TafBeregningsenhed;
+    loenudviklingBeregningsgrundlag: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number]['loenudviklingBeregningsgrundlag'];
+    overenskomstId?: string | undefined;
+  }>
+): 'Timeløn' | 'Månedsløn' => {
+  const { tafBeregningsenhed, loenudviklingBeregningsgrundlag, overenskomstId } = params;
+
+  // Bevidst designafvigelse:
+  // I reguleringstabellens overskrift skal overenskomst-sporet følge selve overenskomstens
+  // `grundloenAngivetPer`, ikke de øvrige runtime-afledte visningsprincipper i EO.
+  // Det er tilsigtet, fordi tabellen her dokumenterer kildedata for regulering, ikke den
+  // beregnede præsentationsenhed fra andre flows. Hvis dette ændres, skal både EO-PDF og
+  // EODebug vurderes samlet, da de deler denne builder.
+  if (loenudviklingBeregningsgrundlag === 'Overenskomst' && overenskomstId) {
+    const tafBeregnesSom = tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER ? 'Måneder' : 'Arbejdsdage';
+    const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(overenskomstId, tafBeregnesSom);
+    if (grundloenAngivetPer === 'Time') return 'Timeløn';
+    if (grundloenAngivetPer === 'Måned') return 'Månedsløn';
+  }
+
+  return tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE ? 'Timeløn' : 'Månedsløn';
+};
 
 const REGULERINGSVAERDIER_FRA_DATO_HEADER = 'Fra-dato';
 const REGULERINGSVAERDIER_PENSION_HEADER = 'AG pens. bidrag';
@@ -403,7 +427,11 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.agPension, ansaettelsesforhold.pensionPct);
       const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
       const showStoreBededagColumn = applyAlmindeligLoenPaaShDageRegel && tafTil >= STORE_BEDEDAG_START;
-      const loenHeader = resolveReguleringsvaerdierLoenHeader(tafBeregningsenhed);
+      const loenHeader = resolveReguleringsvaerdierLoenHeader({
+        tafBeregningsenhed,
+        loenudviklingBeregningsgrundlag: grundlag,
+        overenskomstId,
+      });
       const columns = [
         REGULERINGSVAERDIER_FRA_DATO_HEADER,
         loenHeader,
@@ -549,7 +577,11 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
     const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
     const showStoreBededagColumn = applyAlmindeligLoenPaaShDageRegel && tafTil >= STORE_BEDEDAG_START;
-    const loenHeader = resolveReguleringsvaerdierLoenHeader(tafBeregningsenhed);
+    const loenHeader = resolveReguleringsvaerdierLoenHeader({
+      tafBeregningsenhed,
+      loenudviklingBeregningsgrundlag: grundlag,
+      overenskomstId,
+    });
     const columns = [
       REGULERINGSVAERDIER_FRA_DATO_HEADER,
       ...(hasGrundloen ? [loenHeader] : []),
@@ -608,7 +640,9 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         if (!danish) return [];
         const row = buildPrivateOverenskomstRow(iso, danish, danish);
         if (row) return [row];
-        if (anvendtReguleringsdato === iso) return [buildPlaceholderValueRow(formatDateShort(iso), columns)];
+        if (anvendtReguleringsdato === iso) {
+          return [buildPlaceholderValueRow(formatDateShort(iso), columns)];
+        }
         return [];
       });
     return {
@@ -670,7 +704,11 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     return {
       columns: [
         REGULERINGSVAERDIER_FRA_DATO_HEADER,
-        resolveReguleringsvaerdierLoenHeader(tafBeregningsenhed),
+        resolveReguleringsvaerdierLoenHeader({
+          tafBeregningsenhed,
+          loenudviklingBeregningsgrundlag: grundlag,
+          overenskomstId: undefined,
+        }),
         'Feriepenge',
         'SH/SO',
         'Fritvalg',
@@ -900,7 +938,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
     const fallbackRowWithIso = (segment: LoenudviklingSegment): IndexRowWithIso => {
       const indeksValue = 100 + segment.deltaPct;
       const indeksDisplay = formatIndexValue(indeksValue);
-      const indeksberegning = Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} /\n100,00`;
+      const indeksberegning = Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} / 100,00`;
       const loenudvikling = formatLoenudviklingFromIndex(indeksValue);
       return {
         fraIso: segment.fra,
@@ -1453,7 +1491,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
     return mergeConsecutiveRowsWithSameCalculation(segments.map((segment) => {
       const indeksValue = 100 + segment.deltaPct;
       const indeksDisplay = formatIndexValue(indeksValue);
-      const formulaText = Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} /\n100,00`;
+      const formulaText = Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} / 100,00`;
       return {
         fraIso: segment.fra,
         tilIso: segment.til,

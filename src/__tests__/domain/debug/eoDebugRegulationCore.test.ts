@@ -445,6 +445,55 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
 
     expect(entries.some((entry) => entry.effectiveFrom === '2024-01-01')).toBe(true);
   });
+
+  it('bevarer privat overenskomst som placeholder når reference-dato ligger før første reguleringsværdi', () => {
+    const input = makeInput();
+    input.eoValues.vedroererPeriodeFra = '2020-04-01';
+    input.eoValues.vedroererPeriodeTil = '2026-02-26';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = 'laasesmedeoverenskomsten';
+    input.stamdataValues.skadedato = iso('2020-01-01');
+    input.eoValues.tafBeregningsperiodeTil = iso('2020-01-01');
+
+    const result = buildRegulationTimeline(input);
+
+    expect(result.ansaettelser).toHaveLength(1);
+    expect(result.ansaettelser[0]?.referenceIso).toBe(iso('2020-01-01'));
+    expect(result.ansaettelser[0]?.entries).toEqual([]);
+  });
+
+  it('bevarer statistikmodel som placeholder når reference-dato ligger før første kendte statistikværdi', () => {
+    const input = makeInput();
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'Statistik';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingStatistikModel = 'ILON12 (Danmarks Statistik)';
+    input.eoValues.vedroererPeriodeFra = '2000-01-01';
+    input.eoValues.vedroererPeriodeTil = '2006-12-31';
+    input.stamdataValues.skadedato = iso('2000-01-01');
+    input.eoValues.tafBeregningsperiodeTil = iso('2000-01-01');
+
+    const result = buildRegulationTimeline(input);
+
+    expect(result.ansaettelser).toHaveLength(1);
+    expect(result.ansaettelser[0]?.referenceIso).toBe(iso('2000-01-01'));
+    expect(result.ansaettelser[0]?.entries).toEqual([]);
+  });
+
+  it('bevarer KRL satstabel som placeholder når reference-dato ligger før første kendte KRL-værdi', () => {
+    const input = makeInput();
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'KRL satstabel';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingKRLSatstabel = 'KTO (kommuner)';
+    input.eoValues.vedroererPeriodeFra = '2000-01-01';
+    input.eoValues.vedroererPeriodeTil = '2002-12-31';
+    input.stamdataValues.skadedato = iso('2000-01-01');
+    input.eoValues.tafBeregningsperiodeTil = iso('2000-01-01');
+
+    const result = buildRegulationTimeline(input);
+
+    expect(result.ansaettelser).toHaveLength(1);
+    expect(result.ansaettelser[0]?.referenceIso).toBe(iso('2000-01-01'));
+    expect(result.ansaettelser[0]?.entries).toEqual([]);
+  });
 });
 
 // ─── Periode-overgange ────────────────────────────────────────────────────────

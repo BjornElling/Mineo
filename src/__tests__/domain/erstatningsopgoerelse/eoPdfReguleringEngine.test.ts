@@ -1,4 +1,4 @@
-import { buildReguleringsvaerdierTableData, buildReguleringIndexRows } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
+import { buildReguleringsvaerdierTableData, buildReguleringIndexRows, resolveLoenSkadedatoText } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -19,6 +19,24 @@ const cloneInitialValues = () => ({
 });
 
 describe('eoPdfReguleringEngine', () => {
+  it('formaterer implicit beregningsperiode-slutdato som "opgjort frem til"', () => {
+    expect(resolveLoenSkadedatoText({
+      subject: 'lønnen',
+      anvendtReguleringsdato: iso('2017-05-02'),
+      skadedato: iso('2016-01-01'),
+      useUntilWordingForImplicitBeregningsperiodeDate: true,
+    })).toBe('lønnen opgjort frem til 2. maj 2017');
+  });
+
+  it('bevarer "opgjort per" ved eksplicit reguleringsdato', () => {
+    expect(resolveLoenSkadedatoText({
+      subject: 'lønnen',
+      anvendtReguleringsdato: iso('2017-05-02'),
+      skadedato: iso('2016-01-01'),
+      useUntilWordingForImplicitBeregningsperiodeDate: false,
+    })).toBe('lønnen opgjort per 2. maj 2017');
+  });
+
   it('viser reference-række før første tilgængelige overenskomstdato ved manglende tidlig dækning', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
@@ -79,6 +97,33 @@ describe('eoPdfReguleringEngine', () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(rows[0]?.fraDato).toBe('01-04-2020');
     expect(rows[0]?.indeks).toBe('100,00');
+  });
+
+  it('ombryder ikke simple fallback-indeksberegninger uden parenteser omkring divideretegnet', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'laasesmedeoverenskomsten';
+
+    const rows = buildReguleringIndexRows({
+      segments: [
+        {
+          kind: 'maaneder',
+          fra: iso('2024-01-01'),
+          til: iso('2024-02-29'),
+          maaneder: 2,
+          maanedsloenOre: 100000,
+          deltaPct: 0.36,
+          amountOre: 100000,
+        },
+      ],
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2020-01-01'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.indeksberegning).toBe('100,36 / 100,00');
   });
 
   it('indsætter Store Bededag som separat række 01-01-2024 i offentlig reguleringsværdier-tabel', () => {

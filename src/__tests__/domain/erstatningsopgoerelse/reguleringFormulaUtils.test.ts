@@ -259,6 +259,13 @@ describe('wrapIndexFormulaAfterSlashWhenLong', () => {
     const value = 'AB / CD';
     expect(wrapIndexFormulaAfterSlashWhenLong(value, 5)).toBe('AB /\nCD');
   });
+
+  it('ombryder ikke når slash-ombrud er deaktiveret af den semantiske kaldende logik', () => {
+    const left = 'A'.repeat(50);
+    const right = 'B'.repeat(50);
+    const value = `${left} / ${right}`;
+    expect(wrapIndexFormulaAfterSlashWhenLong(value, 90, false)).toBe(value);
+  });
 });
 
 // ─── formatOverenskomstPercent ────────────────────────────────────────────────

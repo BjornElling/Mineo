@@ -125,6 +125,111 @@ describe('buildRegulationDebugSections', () => {
     expect(sections[0]?.tables?.[1]?.rows.length).toBeGreaterThan(0);
   });
 
+  it('bygger reguleringstabeller fra canonical segmenter selv når timeline kun har placeholder uden entries', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.vedroererPeriodeFra = iso('2020-04-01');
+    eoValues.vedroererPeriodeTil = iso('2026-02-26');
+    eoValues.tafBeregningsperiodeTil = iso('2020-01-01');
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...eoValues.loenindkomstAnsaettelsesforhold[0],
+        id: 'af-placeholder',
+        navnPaaArbejdssted: 'Låsesmed',
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        overenskomstId: 'laasesmedeoverenskomsten',
+        loenPaaHelligdage: 'Almindelig løn',
+      },
+    ];
+    const stamdataValues = {
+      ...STAMDATA_INITIAL_VALUES,
+      skadedato: iso('2020-01-01'),
+    };
+
+    const sections = buildRegulationDebugSections({
+      timeline: {
+        tafBeregningsenhed: 'Måneder',
+        ansaettelser: [
+          {
+            ansaettelsesforholdId: 'af-placeholder',
+            navn: 'Låsesmed',
+            kildeLabel: 'Overenskomst',
+            kildeVaerdi: 'Låsesmedeoverenskomsten',
+            overenskomstId: 'laasesmedeoverenskomsten',
+            referenceIso: iso('2020-01-01'),
+            referenceLabel: 'Skadedato',
+            referenceValue: 0,
+            entries: [],
+          },
+        ],
+      },
+      canonicalOutput: {
+        totals: {
+          svieSmerteOre: 0,
+          tabtArbejdsfortjenesteFoerForligOre: 0,
+          tabtArbejdsfortjenesteOre: 0,
+          oevrigeKravFoerForligOre: 0,
+          oevrigeKravOre: 0,
+          samletTotalOre: 0,
+        },
+        svieSmerte: { maxApplied: false },
+        taf: {
+          harTafPerioder: true,
+          tafIndtaegterOre: 0,
+          tidligereModtagetTafOre: 0,
+        },
+        periodiseringer: {
+          tafPerioder: [
+            {
+              id: 'taf-1',
+              fra: iso('2020-04-01'),
+              til: iso('2026-02-26'),
+              loseFeriedage: undefined,
+            },
+          ],
+        },
+        regulering: {
+          loenudviklingTotalFoerForligOre: 0,
+          loenudviklingSegmenter: [],
+          perAnsaettelse: [
+            {
+              ansaettelsesforholdId: 'af-placeholder',
+              loenudviklingTotalFoerForligOre: 0,
+              loenudviklingSegmenter: [
+                {
+                  kind: 'maaneder',
+                  fra: iso('2024-03-01'),
+                  til: iso('2024-12-31'),
+                  maaneder: 10,
+                  maanedsloenOre: 100000,
+                  deltaPct: 0,
+                  amountOre: 100000,
+                },
+                {
+                  kind: 'maaneder',
+                  fra: iso('2025-01-01'),
+                  til: iso('2026-02-26'),
+                  maaneder: 14,
+                  maanedsloenOre: 110000,
+                  deltaPct: 10,
+                  amountOre: 110000,
+                },
+              ],
+            },
+          ],
+        },
+      },
+      eoValues,
+      stamdataValues,
+    });
+
+    expect(sections).toHaveLength(1);
+    expect(sections[0]?.tables).toHaveLength(2);
+    expect(sections[0]?.tables?.[0]?.rows.length).toBeGreaterThan(0);
+    expect(sections[0]?.tables?.[0]?.rows[0]?.cells).toEqual(['01-01-2020', '-', '-', '-', '-']);
+    expect(sections[0]?.tables?.[1]?.rows.length).toBeGreaterThan(0);
+  });
+
   it('viser label uden parentes når referenceLabel ikke findes', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     const stamdataValues = {

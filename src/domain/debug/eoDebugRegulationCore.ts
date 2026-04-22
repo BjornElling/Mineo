@@ -11,6 +11,7 @@ import type { RegulationIndexTimeline, IndeksEntry, AnsaettelsesforholdIndeks } 
 import {
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
+  getReguleringsDatoIntervalForOverenskomst,
   resolveOverenskomstRef,
   type OverenskomstPeriodeSats,
   getOffentligOverenskomstTypeById,
@@ -20,8 +21,8 @@ import {
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../data/offentligLoenTypes';
 import { aarsloenAslMax } from '../../data/lovbestemteRates';
-import { getStatistiskLoenudvikling } from '../../data/statistiskeRates';
-import { getKRLSatstabel, formatKRLSatstabelDisplay, isKRLSatstabelId } from '../../data/krlRates';
+import { getStatistiskLoenudvikling, getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
+import { getKRLSatstabel, formatKRLSatstabelDisplay, getReguleringsDatoIntervalForKRL, isKRLSatstabelId } from '../../data/krlRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { buildSHDageSetForIsoRange } from '../dates/shDageBeregning';
@@ -60,6 +61,18 @@ const parseOptionalIso = (value: unknown): ISODateString | undefined => {
 
 const toDanishOrUndefined = (iso: ISODateString): DanishDateString | undefined => {
   return isoToDanish(iso) ?? undefined;
+};
+
+const resolveIntervalStartIso = (
+  interval: Readonly<{ fraDato: DanishDateString }>
+): ISODateString | undefined => parseDanishToIso(interval.fraDato);
+
+const isReferenceBeforeIntervalStart = (
+  referenceIso: ISODateString,
+  interval: Readonly<{ fraDato: DanishDateString }> | undefined
+): boolean => {
+  const intervalStartIso = interval ? resolveIntervalStartIso(interval) : undefined;
+  return Boolean(intervalStartIso && referenceIso < intervalStartIso);
 };
 
 type OffentligLoenSelection = Readonly<{
@@ -523,6 +536,17 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
   const angivetLoenOpreguleresFraDato = getAngivetLoenOpreguleresFraDato(input.eoValues);
 
   const ansaettelser: AnsaettelsesforholdIndeks[] = [];
+  const pushPlaceholderAnsaettelse = (params: Readonly<{
+    af: Pick<AnsaettelsesforholdIndeks, 'ansaettelsesforholdId' | 'navn' | 'kildeLabel' | 'kildeVaerdi' | 'referenceIso' | 'referenceLabel'> & {
+      overenskomstId?: string;
+    };
+  }>) => {
+    ansaettelser.push({
+      ...params.af,
+      referenceValue: 0,
+      entries: [],
+    });
+  };
 
   for (const af of resolveLoenudviklingKilde(input.eoValues)) {
     const feriePct = parsePercentToDecimal(af.feriePct);
@@ -575,6 +599,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     if (grundlag === 'Overenskomst' && offentligSelection) {
       const overenskomstId = af.overenskomstId;
       if (!overenskomstId) continue;
+      const overenskomstInterval = getReguleringsDatoIntervalForOverenskomst(overenskomstId);
       const applyAlmindeligLoenPaaShDageRegel = loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
       const offentligLoenEkstraGrundloen = resolveOffentligLoenEkstraGrundloen(
         amountValueToNumber(af.offentligLoenEkstraGrundloen),
@@ -592,7 +617,22 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         offentligSelection.loentrin,
         offentligSelection.loengruppe
       );
-      if (!referenceResult) continue;
+      if (!referenceResult) {
+        if (isReferenceBeforeIntervalStart(referenceIso, overenskomstInterval)) {
+          pushPlaceholderAnsaettelse({
+            af: {
+              ansaettelsesforholdId: af.id,
+              navn: af.navnPaaArbejdssted,
+              kildeLabel,
+              kildeVaerdi,
+              overenskomstId: af.overenskomstId,
+              referenceIso,
+              referenceLabel,
+            },
+          });
+        }
+        continue;
+      }
       const referenceBase =
         offentligSelection.loenType === 'maanedsLoen'
           ? referenceResult.maanedsLoen
@@ -733,13 +773,31 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
     if (grundlag === 'Overenskomst') {
       const ref = af.overenskomstId ? resolveOverenskomstRef(af.overenskomstId) : null;
       if (!ref) continue;
+      const overenskomstInterval = af.overenskomstId
+        ? getReguleringsDatoIntervalForOverenskomst(af.overenskomstId)
+        : undefined;
 
       const referenceSats = getEffektiveSatserForDato({
         overenskomstId: ref.baseId,
         dato: referenceDanish,
         applyAlmindeligLoenPaaShDageRegel: loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG,
       });
-      if (!referenceSats || referenceSats.grundloen === null) continue;
+      if (!referenceSats || referenceSats.grundloen === null) {
+        if (isReferenceBeforeIntervalStart(referenceIso, overenskomstInterval)) {
+          pushPlaceholderAnsaettelse({
+            af: {
+              ansaettelsesforholdId: af.id,
+              navn: af.navnPaaArbejdssted,
+              kildeLabel,
+              kildeVaerdi,
+              overenskomstId: af.overenskomstId,
+              referenceIso,
+              referenceLabel,
+            },
+          });
+        }
+        continue;
+      }
 
       const referenceEntry = buildEntryForDate({
         iso: referenceIso,
@@ -832,7 +890,29 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           : grundlag === 'KRL satstabel'
             ? buildKrlEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
             : null;
-    if (!built || built.entries.length === 0) continue;
+    if (!built || built.entries.length === 0) {
+      const shouldKeepPlaceholder =
+        (grundlag === 'Statistik'
+          && isReferenceBeforeIntervalStart(referenceIso, getReguleringsDatoIntervalForStatistikModel(af.loenudviklingStatistikModel ?? '')))
+        || (grundlag === 'KRL satstabel'
+          && af.loenudviklingKRLSatstabel
+          && isKRLSatstabelId(af.loenudviklingKRLSatstabel)
+          && isReferenceBeforeIntervalStart(referenceIso, getReguleringsDatoIntervalForKRL(af.loenudviklingKRLSatstabel)));
+
+      if (shouldKeepPlaceholder) {
+        pushPlaceholderAnsaettelse({
+          af: {
+            ansaettelsesforholdId: af.id,
+            navn: af.navnPaaArbejdssted,
+            kildeLabel,
+            kildeVaerdi,
+            referenceIso,
+            referenceLabel,
+          },
+        });
+      }
+      continue;
+    }
 
     ansaettelser.push({
       ansaettelsesforholdId: af.id,

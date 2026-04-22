@@ -106,6 +106,9 @@ const isReguleringsdatoLabel = (label: string): boolean =>
 const isSuppressedRegulationSectionLabel = (label: string): boolean =>
   label === 'Basisværdi (indeks 100)' || label === 'Seneste indeks';
 
+const stripFirstAvailableDateFromRegulationDisplayValue = (displayValue: string): string =>
+  displayValue.replace(/\s*\(først fra .*?\)$/, '');
+
 const renderCombinedTafRegulationValueRow = (
   id: string,
   label: string,
@@ -117,7 +120,12 @@ const renderCombinedTafRegulationValueRow = (
       {parts.map((part, index) => (
         <React.Fragment key={part.id}>
           {index > 0 ? <Typography className="row--text">/</Typography> : null}
-          <Typography className="row--text" sx={getDisplayValueSx(part.displayValue)}>{part.displayValue}</Typography>
+          <Typography
+            className="row--text"
+            sx={getDisplayValueSx(stripFirstAvailableDateFromRegulationDisplayValue(part.displayValue))}
+          >
+            {stripFirstAvailableDateFromRegulationDisplayValue(part.displayValue)}
+          </Typography>
           {getStatusIcon(part.status)}
         </React.Fragment>
       ))}

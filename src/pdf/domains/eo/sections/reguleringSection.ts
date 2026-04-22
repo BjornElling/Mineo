@@ -57,6 +57,7 @@ type ReguleringSectionContext = Readonly<{
     subject: 'lønnen';
     anvendtReguleringsdato: ISODateString | undefined;
     skadedato: ISODateString | undefined;
+    useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
   }>) => string;
   resolveTafDateBounds: (eoValues: ErstatningsopgoerelseValues) => Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null;
   buildReguleringsvaerdierTableData: (params: Readonly<{
@@ -350,6 +351,13 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       subject: 'lønnen',
       anvendtReguleringsdato,
       skadedato: skadedatoIso,
+      useUntilWordingForImplicitBeregningsperiodeDate:
+        eoValues.beregnesUdFra === 'Beregningsperiode'
+        && !ansaettelsesforhold.saerligFraDatoRegulering
+        && Boolean(
+          eoValues.tafBeregningsperiodeTil
+          && anvendtReguleringsdato === eoValues.tafBeregningsperiodeTil
+        ),
     });
 
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {

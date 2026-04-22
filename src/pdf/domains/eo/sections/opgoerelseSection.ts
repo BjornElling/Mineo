@@ -68,6 +68,7 @@ type OpgorelseSectionContext = Readonly<{
     subject: 'lønnen';
     anvendtReguleringsdato: ISODateString | undefined;
     skadedato: ISODateString | undefined;
+    useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
   }) => string;
   formatDateShort: (dateIso: ISODateString | undefined) => string;
   formatDateLong: (isoDate: ISODateString | undefined) => string;
@@ -613,6 +614,14 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       subject: 'lønnen',
       anvendtReguleringsdato: anvendtReguleringsdatoForOpgoerelse,
       skadedato: skadedatoIso,
+      useUntilWordingForImplicitBeregningsperiodeDate:
+        eoValues.beregnesUdFra === 'Beregningsperiode'
+        && !aktivLoenudviklingAf?.saerligFraDatoRegulering
+        && Boolean(
+          aktivLoenudviklingAf
+          && eoValues.tafBeregningsperiodeTil
+          && anvendtReguleringsdatoForOpgoerelse === eoValues.tafBeregningsperiodeTil
+        ),
     });
     const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = loenudvikling?.loenudviklingLabel === 'Ingen'
       ? `Opgøres på baggrund af ${loenSkadedatoText}.`

@@ -260,6 +260,7 @@ describe('EODebug', () => {
     expect(valgtReguleringRow.compareDocumentPosition(navnRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(navnRow.compareDocumentPosition(alleVaerdierRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(alleVaerdierRow.compareDocumentPosition(combinedTafRow) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText(/\(først fra /)).not.toBeInTheDocument();
     expect(container.querySelectorAll('.content-box')).toHaveLength(2);
   });
 
