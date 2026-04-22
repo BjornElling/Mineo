@@ -1,7 +1,13 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import * as indtaegtPerioderModule from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
+import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
+import { computeSygeferiegodtgoerelse } from '../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import { computeTafNettoBeregning } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
+import { buildSfggLoenudviklingMap } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
+import { computeTafBeregningsenhed } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
 
@@ -165,5 +171,154 @@ describe('computeTafNettoBeregning', () => {
         reguleringsindeks: 105.34,
       })
     );
+  });
+
+  it('genbruger beregningsperiode-indkomsten mellem indkomstskadestidspunkt og loenudvikling', () => {
+    const buildIncomeForRangesSpy = vi.spyOn(indtaegtPerioderModule, 'buildIncomeForRanges');
+    try {
+      const values = createErstatningsopgoerelseInitialValues();
+      values.eoNummer = '2';
+      values.beregnesUdFra = 'Beregningsperiode';
+      values.tafBeregningsperiodeFra = iso('2024-01-01');
+      values.tafBeregningsperiodeTil = iso('2024-01-31');
+      values.loenindkomstAnsaettelsesforhold = [
+        createEmployment({
+          id: 'af-1',
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [{
+            id: 'loen-jan-2024',
+            col0_maaned: '1',
+            col1_maaned: '2024',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmount(30000),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          }],
+        }),
+        createEmployment({
+          id: 'af-2',
+          navnPaaArbejdssted: 'Arbejdssted 2',
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [{
+            id: 'loen-jan-2024-af-2',
+            col0_maaned: '1',
+            col1_maaned: '2024',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmount(15000),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          }],
+        }),
+      ];
+
+      computeTafNettoBeregning(
+        values,
+        { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-02-01') },
+        { tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-29') }] }
+      );
+
+      const beregningsperiodeCalls = buildIncomeForRangesSpy.mock.calls.filter(
+        ([callValues, ranges]) =>
+          callValues === values
+          && ranges.length === 1
+          && ranges[0]?.fra === iso('2024-01-01')
+          && ranges[0]?.til === iso('2024-01-31')
+      );
+      expect(beregningsperiodeCalls).toHaveLength(1);
+    } finally {
+      buildIncomeForRangesSpy.mockRestore();
+    }
+  });
+
+  it('bevarer samme resultat som en ukachet beregning ved flere ansættelsesforhold', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-02-01') };
+    const tafRanges = [{ fra: iso('2024-02-01'), til: iso('2024-02-29') }] as const;
+
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2024-01-01');
+    values.tafBeregningsperiodeTil = iso('2024-01-31');
+    values.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-1',
+        feriePct: 12.5,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [{
+          id: 'loen-jan-2024-af-1',
+          col0_maaned: '1',
+          col1_maaned: '2024',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmount(30000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        }],
+      }),
+      createEmployment({
+        id: 'af-2',
+        navnPaaArbejdssted: 'Arbejdssted 2',
+        feriePct: 12.5,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [{
+          id: 'loen-jan-2024-af-2',
+          col0_maaned: '1',
+          col1_maaned: '2024',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmount(15000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        }],
+      }),
+    ];
+    values.sfggAnsaettelsesforhold = values.loenindkomstAnsaettelsesforhold.map((employment) => ({
+      ansaettelsesforholdId: employment.id,
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }));
+
+    const result = computeTafNettoBeregning(values, stamdata, { tafRanges });
+
+    const tafBeregningsenhed = computeTafBeregningsenhed(values);
+    const expectedIndkomstSkadestidspunkt = buildIndkomstSkadestidspunkt(values, stamdata, tafBeregningsenhed);
+    const expectedLoenudvikling = buildLoenudviklingModel(
+      values,
+      stamdata,
+      tafBeregningsenhed,
+      expectedIndkomstSkadestidspunkt,
+      { tafRanges }
+    );
+    const expectedSygeferiegodtgoerelse = computeSygeferiegodtgoerelse({
+      values,
+      stamdata,
+      tafRanges,
+      loenudviklingPerAnsaettelse: buildSfggLoenudviklingMap(values, expectedLoenudvikling),
+    });
+
+    expect(result.indkomstSkadestidspunkt).toEqual(expectedIndkomstSkadestidspunkt);
+    expect(result.loenudvikling).toEqual(expectedLoenudvikling);
+    expect(result.sygeferiegodtgoerelse).toEqual(expectedSygeferiegodtgoerelse);
   });
 });

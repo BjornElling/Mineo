@@ -977,6 +977,40 @@ describe('computeSygeferiegodtgoerelse', () => {
     expect(result.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === 'af-2')?.pdfExplanatoryLines).toEqual([]);
   });
 
+  it('bevarer første TAF-dato i arbejdsdags-sporet når den første undtagne dag ikke er en arbejdsdag', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.loenindkomstAnsaettelsesforhold = [createEmployment()];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2025-06-09') },
+      tafRanges: [{ fra: iso('2025-06-09'), til: iso('2025-06-13') }],
+    });
+
+    expect(result.firstExcludedDate).toBe(iso('2025-06-09'));
+    expect(result.totalOre).toBe(40000);
+    expect(result.perAnsaettelsesforhold[0]?.sfggFirstTafDayExcludedText).toBeNull();
+    expect(result.perAnsaettelsesforhold[0]?.segments).toEqual([
+      expect.objectContaining({
+        fra: iso('2025-06-09'),
+        til: iso('2025-06-13'),
+        antalDage: 4,
+      }),
+    ]);
+  });
+
   it('holder arbejdsgiverbetalt sygeløn som struktureret forklaring uden fri tekst-duplikat', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.loenindkomstAnsaettelsesforhold = [createEmployment({

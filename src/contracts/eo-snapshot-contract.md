@@ -24,6 +24,12 @@ Alle visninger er projektioner af snapshot:
 - `eoSnapshotToEoPdfDocument`
 - `eoSnapshotToTafPerYearPdfDocument`
 
+For projektionsfelter, der fødes videre til debug/PDF uden ny domæneberegning, er feltsemantikken bindende.
+Dette gælder blandt andet `sygeferiegodtgoerelse.perAnsaettelsesforhold[].sfggVisningsperiode`, som normativt er
+de autoritative arbejdsforløbs-ranges efter fradrag af første undtagne TAF-dag (når den faktisk gælder for det
+konkrete ansættelsesforhold), 4-månedersgrænse, ansættelsesophør og eventuelt bortfald under
+arbejdsgiverbetalt sygeløn, men før feriesubtraktion til SFGG-segmentering.
+
 **Ufravigelige regler:**
 - Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller debug-lag.
 - Engines arbejder altid på de clampede værdier som snapshot-orchestreringen leverer.
@@ -137,7 +143,8 @@ niveau som tilsvarende rækkefejl for TAF- og svie/smerte-perioder.
    dermed pre-merge, ikke på baggrund af den samlede merged periode.
 
 5. **Merge:** Overlappende og tilstødende ranges slås sammen til sammenhængende perioder
-   (`mergeAdjacent: true`).
+   (`mergeAdjacent: true`) via den kanoniske EO-helper i
+   `src/domain/erstatningsopgoerelse/engines/periodMerging.ts`.
 
 6. **Stille clamping mod EO-perioden:** Fra-dato `< vedroererPeriodeFra` clampes til
    `vedroererPeriodeFra`. Til-dato `> vedroererPeriodeTil` clampes til `vedroererPeriodeTil`.
@@ -170,7 +177,8 @@ Tilsvarende proces gælder for svie/smerte-perioder:
    perioden.
 
 4. **Merge:** Overlappende og tilstødende ranges slås sammen til sammenhængende perioder
-   (`mergeAdjacent: true`).
+   (`mergeAdjacent: true`) via den kanoniske EO-helper i
+   `src/domain/erstatningsopgoerelse/engines/periodMerging.ts`.
 
 5. **Stille clamping mod EO-perioden:** Fra-dato `< vedroererPeriodeFra` clampes til
    `vedroererPeriodeFra`. Til-dato `> vedroererPeriodeTil` clampes til `vedroererPeriodeTil`.
@@ -182,6 +190,10 @@ Tilsvarende proces gælder for svie/smerte-perioder:
 Implementeringen bruger parallelle constraint-typer (`SvieSmerteConstraintBounds`,
 `resolveSvieSmerteFejlgivendeBounds`, `resolveSvieSmerteEoPeriodeBounds`) i
 `svieSmerteConstraints.ts`.
+
+Periodemerge i EO er centraliseret:
+- `mergeIsoDateRanges(...)` / `mergeDateRanges(...)` i `src/domain/erstatningsopgoerelse/engines/periodMerging.ts`
+- Lokale, ad hoc merge-implementeringer i TAF-, svie/smerte-, ferie- eller SFGG-flow er arkitektonisk fejl, medmindre en kontrakt udtrykkeligt kræver en afvigende merge-semantik.
 
 ### 2.4 Clampinggaranti
 

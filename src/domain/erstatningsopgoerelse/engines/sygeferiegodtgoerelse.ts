@@ -15,15 +15,20 @@ import { calculateStandardLoenRowDerived } from '../../aarsloen/standardLoenRowC
 import { parseAarsloenRowInterval } from '../helpers/indtaegtPerioder';
 import { buildLoenArbejdsdageSet, optaelArbejdsdage, optaelArbejdsdageBreakdown } from './periodiseringsMotor';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet } from './tafDaySets';
+import { mergeIsoDateRanges } from './periodMerging';
+import { rangesOverlap } from './beregningsperiodeTafOverlap';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 import { dateToISO, parseISODate, subtractOneDay, type ISODateString } from '../../../types/branded';
+import { isoDateToDate } from '../../dates/isoDate';
 import { isoToDanish, toDanishDateString } from '../../../types/branded';
 import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
 import type { LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
 import { resolvePctDecimalFromSatsOrInput } from '../helpers/eoSharedUtils';
 import {
   getEffektiveSatserForDato,
+  getEffektiveSatserForPeriode,
+  getOffentligTillaegsSatserForPeriode,
   getOffentligOverenskomstTypeById,
   getOverenskomstSfggPolicy,
   resolveOverenskomstRef,
@@ -301,6 +306,100 @@ const buildRangesFromSortedDates = (sortedDates: readonly ISODateString[]): IsoR
   }
 
   result.push({ fra: currentFra, til: previous });
+  return result;
+};
+
+const buildSingleDateRange = (iso: ISODateString): IsoRange => ({ fra: iso, til: iso });
+
+const clipRangesToInclusiveUpperBound = (
+  ranges: readonly IsoRange[],
+  maxInclusive: ISODateString | null
+): IsoRange[] => {
+  if (!maxInclusive) return [...ranges];
+  return ranges
+    .filter((range) => range.fra <= maxInclusive)
+    .map((range) => ({
+      fra: range.fra,
+      til: range.til <= maxInclusive ? range.til : maxInclusive,
+    }))
+    .filter((range) => range.fra <= range.til);
+};
+
+const subtractIsoDateRanges = (
+  baseRanges: readonly IsoRange[],
+  excludedRanges: readonly IsoRange[]
+): IsoRange[] => {
+  if (baseRanges.length === 0) return [];
+  if (excludedRanges.length === 0) return [...baseRanges];
+
+  const result: IsoRange[] = [];
+  const sortedExcluded = [...excludedRanges].sort((a, b) => {
+    if (a.fra === b.fra) return a.til.localeCompare(b.til);
+    return a.fra.localeCompare(b.fra);
+  });
+
+  for (const base of baseRanges) {
+    let cursor = base.fra;
+    let exhausted = false;
+
+    for (const excluded of sortedExcluded) {
+      if (excluded.til < cursor) continue;
+      if (excluded.fra > base.til) break;
+
+      if (excluded.fra > cursor) {
+        const til = subtractOneDay(excluded.fra);
+        if (til && cursor <= til) {
+          result.push({ fra: cursor, til });
+        }
+      }
+
+      const nextCursor = addDays(isoDateToDate(excluded.til), 1);
+      const nextCursorIso = dateToISO(nextCursor);
+      if (!nextCursorIso || nextCursorIso > base.til) {
+        exhausted = true;
+        break;
+      }
+      cursor = nextCursorIso;
+    }
+
+    if (!exhausted && cursor <= base.til) {
+      result.push({ fra: cursor, til: base.til });
+    }
+  }
+
+  return result;
+};
+
+const splitRangesAtBoundaryStarts = (
+  ranges: readonly IsoRange[],
+  boundaryStarts: readonly ISODateString[]
+): IsoRange[] => {
+  if (ranges.length === 0) return [];
+  if (boundaryStarts.length === 0) return [...ranges];
+
+  const uniqueStarts = Array.from(new Set(boundaryStarts)).sort();
+  const result: IsoRange[] = [];
+
+  for (const range of ranges) {
+    const starts = uniqueStarts.filter((start) => start > range.fra && start <= range.til);
+    if (starts.length === 0) {
+      result.push(range);
+      continue;
+    }
+
+    let currentFra = range.fra;
+    for (const start of starts) {
+      const til = subtractOneDay(start);
+      if (til && currentFra <= til) {
+        result.push({ fra: currentFra, til });
+      }
+      currentFra = start;
+    }
+    if (currentFra <= range.til) {
+      result.push({ fra: currentFra, til: range.til });
+    }
+  }
+
   return result;
 };
 
@@ -951,11 +1050,82 @@ const resolveAdjustedRate = (
   };
 };
 
-const areAdjacentIsoDates = (left: ISODateString, right: ISODateString): boolean => {
-  const leftDate = parseISODate(left);
-  if (!leftDate) return false;
-  return dateToISO(addDays(leftDate, 1)) === right;
+const resolveSfggOverenskomstBoundaryStarts = (
+  employment: LoenindkomstAnsaettelsesforhold,
+  fra: ISODateString,
+  til: ISODateString
+): readonly ISODateString[] => {
+  const overenskomstId = employment.overenskomstId?.trim();
+  if (!overenskomstId) return [];
+
+  const fraDa = isoToDanish(fra);
+  const tilDa = isoToDanish(til);
+  if (!fraDa || !tilDa) return [];
+
+  const applyShRegel = employment.loenPaaHelligdage === 'Almindelig løn';
+  const offentligType = getOffentligOverenskomstTypeById(overenskomstId);
+  const periodSatser = offentligType
+    ? getOffentligTillaegsSatserForPeriode(overenskomstId, fraDa, tilDa, applyShRegel)
+    : (() => {
+      const ref = resolveOverenskomstRef(overenskomstId);
+      if (!ref) return [];
+      return getEffektiveSatserForPeriode({
+        overenskomstId: ref.baseId,
+        fraDato: fraDa,
+        tilDato: tilDa,
+        applyAlmindeligLoenPaaShDageRegel: applyShRegel,
+      });
+    })();
+
+  return periodSatser
+    .map((sats) => sats.fraDato.split('-').reverse().join('-') as ISODateString)
+    .filter((start) => start >= fra && start <= til);
 };
+
+const resolveSfggSegmentBoundaryStarts = (args: Readonly<{
+  ranges: readonly IsoRange[];
+  employment: LoenindkomstAnsaettelsesforhold;
+  sfggSource: Readonly<{ kind: SfggSourceKind }>;
+  loenudvikling: PerEmploymentLoenudvikling;
+}>): readonly ISODateString[] => {
+  const starts = new Set<ISODateString>();
+
+  for (const range of args.ranges) {
+    resolveSfggOverenskomstBoundaryStarts(args.employment, range.fra, range.til)
+      .forEach((start) => starts.add(start));
+  }
+
+  if (args.sfggSource.kind === 'ferielov' || args.sfggSource.kind === 'overenskomst_ferielov') {
+    args.loenudvikling?.beregnedeSegmenter.forEach((segment) => {
+      starts.add(segment.fra);
+    });
+  }
+
+  return [...starts].sort();
+};
+
+const buildEligibleDatesForSfggRange = (args: Readonly<{
+  range: IsoRange;
+  sfggDayBasis: SfggDayBasis;
+  ferieperioder: ErstatningsopgoerelseValues['ferieperioder'];
+}>): readonly ISODateString[] => {
+  if (args.sfggDayBasis === 'kalenderdage') {
+    const start = parseISODate(args.range.fra);
+    const end = parseISODate(args.range.til);
+    if (!start || !end || start > end) return [];
+    return sortIsoDates(buildDatoSetInclusiveFromDates(start, end));
+  }
+
+  return sortIsoDates(buildLoenArbejdsdageSet(args.range, args.ferieperioder ?? []));
+};
+
+const getValidFerieRanges = (
+  ferieperioder: ErstatningsopgoerelseValues['ferieperioder']
+): IsoRange[] =>
+  (ferieperioder ?? [])
+    .filter((row): row is (typeof row & { fra: ISODateString; til: ISODateString }) => Boolean(row.fra && row.til))
+    .map((row) => ({ fra: row.fra, til: row.til }))
+    .filter((range) => range.fra <= range.til);
 
 const resolveSfggSegmentRateForDate = (args: Readonly<{
   iso: ISODateString;
@@ -1060,6 +1230,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     const sfggRow = getSfggRowForEmployment(values, employment.id);
     const sfggSource = resolveSfggSource(sfggRow, employment);
     if (sfggSource.kind === 'ingen') continue;
+
     const sfggDayBasis = resolveSfggDayBasis(sfggSource, tafBeregningsenhed);
     const pdfExplanatoryLines: string[] = [];
     const capReachedDate = capComputation.cutoffDate;
@@ -1067,7 +1238,6 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       employment.ansaettelsesforholdOphoert && employment.sidsteArbejdsdag
         ? employment.sidsteArbejdsdag
         : null;
-    const dateSet = new Set<ISODateString>(tafDateSet);
     const employmentHadFirstExcludedDate =
       firstExcludedDate !== null
       && (
@@ -1075,29 +1245,19 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
           ? tafDateSetIncludingFirstExcluded.has(firstExcludedDate)
           : tafArbejdsdageSetIncludingFirstExcluded.has(firstExcludedDate)
       );
-    if (capReachedDate) {
-      for (const iso of [...dateSet]) {
-        if (iso > capReachedDate) {
-          dateSet.delete(iso);
-        }
-      }
-    }
 
-    if (ansaettelsesophorDate) {
-      for (const iso of [...dateSet]) {
-        if (iso > ansaettelsesophorDate) {
-          dateSet.delete(iso);
-        }
-      }
+    let arbejdsforlobsRanges = [...tafRanges];
+    if (firstExcludedDate && employmentHadFirstExcludedDate) {
+      arbejdsforlobsRanges = subtractIsoDateRanges(arbejdsforlobsRanges, [buildSingleDateRange(firstExcludedDate)]);
     }
+    arbejdsforlobsRanges = clipRangesToInclusiveUpperBound(arbejdsforlobsRanges, capReachedDate);
+    arbejdsforlobsRanges = clipRangesToInclusiveUpperBound(arbejdsforlobsRanges, ansaettelsesophorDate);
 
     if (capReachedDate && (!ansaettelsesophorDate || capReachedDate <= ansaettelsesophorDate)) {
       pdfExplanatoryLines.push(`Retten til sygeferiegodtgørelse er tidsbegrænset til 4 måneder og ${resolveSfggOphoerVerb(capReachedDate, opgoerelsesdato)} den ${isoToDanish(capReachedDate) ?? capReachedDate}.`);
     } else if (ansaettelsesophorDate) {
       pdfExplanatoryLines.push(`Retten til sygeferiegodtgørelse ${resolveSfggOphoerVerb(ansaettelsesophorDate, opgoerelsesdato)} den ${isoToDanish(ansaettelsesophorDate) ?? ansaettelsesophorDate} som følge af ansættelsesforholdets ophør.`);
     }
-
-    const sfggVisningsperiode = buildRangesFromSortedDates(sortIsoDates(dateSet));
 
     const overenskomstPolicy = employment.overenskomstId ? getOverenskomstSfggPolicy(employment.overenskomstId) : undefined;
     const manualFoerstEfterSygeloen = sfggSource.kind === 'manuel' && sfggRow?.sfggManuelFoerstEfterSygeloen === 'Ja';
@@ -1110,14 +1270,18 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
 
     let afterEmployerSickPayExcludedAny = false;
     if (foerstEfterSygeloen) {
-      const excluded = buildIncomeExcludedDateSet(employment);
-      for (const iso of [...dateSet]) {
-        if (excluded.has(iso)) {
-          dateSet.delete(iso);
-          afterEmployerSickPayExcludedAny = true;
-        }
-      }
+      const excludedRanges = buildRangesFromSortedDates(sortIsoDates(buildIncomeExcludedDateSet(employment)));
+      afterEmployerSickPayExcludedAny = excludedRanges.some((excludedRange) =>
+        arbejdsforlobsRanges.some((arbejdsforlobsRange) => rangesOverlap(arbejdsforlobsRange, excludedRange))
+      );
+      const nextRanges = subtractIsoDateRanges(arbejdsforlobsRanges, excludedRanges);
+      arbejdsforlobsRanges = nextRanges;
     }
+
+    const sfggVisningsperiode = arbejdsforlobsRanges;
+    const ferieRanges = mergeIsoDateRanges(getValidFerieRanges(values.ferieperioder ?? []), { mergeAdjacent: true });
+    const segmentableRanges = subtractIsoDateRanges(arbejdsforlobsRanges, ferieRanges);
+    const eligibleRanges = segmentableRanges;
 
     const sfggIntroText = buildSfggIntroText(sfggRow, employment, sfggSource);
     const sfggReferenceperiodeAuthorityText = resolveSfggReferenceperiodeAuthorityText(sfggSource.kind);
@@ -1136,15 +1300,22 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     });
     const sfggAfterEmployerSickPayText = sfggAfterEmployerSickPayProjection.text;
 
-    const ferieBreakDateSet = buildFerieDageSet(
-      values.ferieperioder ?? [],
-      dateSet,
-      { includeWeekends: sfggDayBasis === 'kalenderdage' }
-    );
-    const eligibleDates = sfggDayBasis === 'kalenderdage'
-      ? sortIsoDates(dateSet).filter((iso) => !ferieBreakDateSet.has(iso))
-      : sortIsoDates(dateSet).filter((iso) => tafArbejdsdageSet.has(iso));
-    if (eligibleDates.length === 0) {
+    const hasEligibleDays = eligibleRanges.some((range) => {
+      if (sfggDayBasis === 'kalenderdage') {
+        const start = parseISODate(range.fra);
+        const end = parseISODate(range.til);
+        return Boolean(start && end && start <= end && (countInclusiveUtcDays(start, end) ?? 0) > 0);
+      }
+      return (optaelArbejdsdage({
+        fra: range.fra,
+        til: range.til,
+        ferieperioder: values.ferieperioder ?? [],
+        loseFeriedage: 0,
+        context: { kind: 'taf' },
+      }) ?? 0) > 0;
+    });
+
+    if (!hasEligibleDays) {
       totalPerEmployment.push({
         ansaettelsesforholdId: employment.id,
         ansaettelsesforholdNavn: getEmploymentName(employment),
@@ -1177,55 +1348,41 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     }
 
     const sfggBaseRate = resolveSfggBaseRate(values, employment, sfggRow, sfggSource, employmentCalculator);
-    const eligibleDateSet = new Set<ISODateString>(eligibleDates);
-    const grouped: Array<{
-      fra: ISODateString;
-      til: ISODateString;
-      reguleringsindeks: number | null;
-      satsOre: MoneyOre;
-      agPensionPct: number;
-      dates: ISODateString[];
-    }> = [];
-    const rightDates = sortIsoDates(dateSet);
-    for (const iso of rightDates) {
-      if (!eligibleDateSet.has(iso) && ferieBreakDateSet.has(iso)) {
-        continue;
-      }
+    const segmentationBaseRanges = segmentableRanges;
+    const groupedWithEligibleDays = splitRangesAtBoundaryStarts(
+      segmentationBaseRanges,
+      resolveSfggSegmentBoundaryStarts({
+        ranges: segmentationBaseRanges,
+        employment,
+        sfggSource,
+        loenudvikling: args.loenudviklingPerAnsaettelse?.get(employment.id),
+      })
+    ).flatMap((range) => {
       const rate = resolveSfggSegmentRateForDate({
-        iso,
+        iso: range.fra,
         employment,
         sfggRow,
         sfggSource,
         sfggBaseRate,
         loenudvikling: args.loenudviklingPerAnsaettelse?.get(employment.id),
       });
-      if (rate === null) continue;
-      const previous = grouped[grouped.length - 1];
-      const canExtendPrevious =
-        previous
-        && areAdjacentIsoDates(previous.til, iso)
-        && previous.satsOre === rate.satsOre
-        && previous.agPensionPct === rate.agPensionPct
-        && previous.reguleringsindeks === rate.reguleringsindeks;
+      if (rate === null) return [];
 
-      if (canExtendPrevious) {
-        previous.til = iso;
-        if (eligibleDateSet.has(iso)) {
-          previous.dates.push(iso);
-        }
-        continue;
-      }
+      const dates = buildEligibleDatesForSfggRange({
+        range,
+        sfggDayBasis,
+        ferieperioder: values.ferieperioder ?? [],
+      });
+      if (dates.length === 0) return [];
 
-      grouped.push({
-        fra: iso,
-        til: iso,
+      return [{
+        ...range,
         reguleringsindeks: rate.reguleringsindeks,
         satsOre: rate.satsOre,
         agPensionPct: rate.agPensionPct,
-        dates: eligibleDateSet.has(iso) ? [iso] : [],
-      });
-    }
-    const groupedWithEligibleDays = grouped.filter((group) => group.dates.length > 0);
+        dates,
+      }];
+    });
 
     const loenPlusLoen2PlusIkkePensLoenBySegment = new Map<string, number>();
     const feriepengeBySegment = new Map<string, MoneyOre>();
@@ -1257,8 +1414,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       const loenPlusLoen2PlusIkkePensLoenKroner = loenPlusLoen2PlusIkkePensLoenBySegment.get(key) ?? 0;
       const feriepengeOre = feriepengeBySegment.get(key) ?? ensureMoneyOre(0);
       const alreadyPaidSegmentOre = allocatedAlreadyPaid.get(key) ?? ensureMoneyOre(0);
-      const remainingOre = clampMoneyOreToZero(ensureMoneyOre(grossOre - feriepengeOre - alreadyPaidSegmentOre));
-      const segmentTotalOre = remainingOre;
+      const segmentTotalOre = clampMoneyOreToZero(ensureMoneyOre(grossOre - feriepengeOre - alreadyPaidSegmentOre));
 
       const yearDates = new Map<number, ISODateString[]>();
       group.dates.forEach((iso) => {
