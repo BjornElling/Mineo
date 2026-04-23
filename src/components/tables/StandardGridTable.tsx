@@ -70,6 +70,9 @@ export const StandardGridTable = React.memo(
               '& tbody tr:last-of-type td:first-of-type .MuiInputBase-root': {
                 borderBottomLeftRadius: '16px',
               },
+              '& tbody tr:last-of-type td:last-of-type .MuiInputBase-root': {
+                borderBottomRightRadius: '16px',
+              },
             }}
           >
             <table
