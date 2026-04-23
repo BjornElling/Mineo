@@ -35,6 +35,16 @@ import type {
 import { resolveLoenudviklingSegmentBounds } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsBeregning';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 
+const REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM = 8;
+const REGULERINGSVAERDIER_SH_SO_RIGHT_ALIGNED_INSET_MM = 6;
+const RIGHT_ALIGNED_REGULERINGS_HEADERS = new Set([
+  'feriepenge',
+  'sh/so',
+  'fritvalg',
+  'store bededag',
+  'ag pens. bidrag',
+]);
+
 type ReguleringSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
@@ -93,6 +103,15 @@ const isPopulatedReguleringsCell = (value: string | undefined): boolean => {
   if (typeof value !== 'string') return false;
   const normalized = value.trim();
   return normalized !== '' && normalized !== '-';
+};
+
+const normalizeReguleringColumnHeader = (value: string): string =>
+  value.toLocaleLowerCase('da-DK').replace(/\s+/g, ' ').trim();
+
+const resolveReguleringsvaerdierRightInset = (columnHeader: string): number => {
+  return normalizeReguleringColumnHeader(columnHeader) === 'sh/so'
+    ? REGULERINGSVAERDIER_SH_SO_RIGHT_ALIGNED_INSET_MM
+    : REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM;
 };
 
 const stripEmptyReguleringsColumns = (
@@ -300,6 +319,13 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     }
 
     const normalizedTableData = stripEmptyReguleringsColumns(tableData);
+    const rightAlignedColumnInsets = new Map(
+      normalizedTableData.columns.flatMap((column, index) =>
+        RIGHT_ALIGNED_REGULERINGS_HEADERS.has(normalizeReguleringColumnHeader(column))
+          ? [[index, resolveReguleringsvaerdierRightInset(column)]]
+          : []
+      )
+    );
 
     const tableRows: RowInput[] = [
       normalizedTableData.columns.map((column) => createPdfTableHeaderCell(column, 'center')),
@@ -314,6 +340,19 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
       doc,
       startY,
       body: tableRows,
+      didParseCell: (data) => {
+        const isDataRow = data.row.index >= 1;
+        const rightInset = rightAlignedColumnInsets.get(data.column.index);
+        if (!isDataRow || typeof rightInset !== 'number') return;
+
+        data.cell.styles.halign = 'right';
+        data.cell.styles.cellPadding = {
+          top: 1.5,
+          bottom: 1.5,
+          left: 1.5,
+          right: rightInset,
+        };
+      },
     });
     writer.setY(resolvePdfSectionEndY(finalY, startY));
   };

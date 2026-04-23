@@ -418,4 +418,75 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
       'AG pens. bidrag',
     ]);
   });
+
+  it('højre-aligner kun pct-kolonnernes indhold med indrykning', () => {
+    autoTableMock.mockClear();
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-alignment',
+        navnPaaArbejdssted: 'Teststed',
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      },
+    ];
+    const { ctx } = makeContext(eoValues);
+    ctx.resolveTafDateBounds = vi.fn(() => ({
+      foerste: iso('2023-07-01'),
+      sidste: iso('2025-12-21'),
+    }));
+    ctx.buildReguleringsvaerdierTableData = vi.fn(() => ({
+      columns: ['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag'],
+      rows: [
+        ['24-05-2023', '25.174,00', '12,50 %', '2,70 %', '0 %', '0 %', '8,15 %'],
+      ],
+    }));
+
+    renderReguleringSection(ctx);
+
+    const firstCall = autoTableMock.mock.calls[0]?.[1];
+    expect(firstCall?.didParseCell).toBeTypeOf('function');
+
+    const expectedInsets = new Map([
+      [2, 8],
+      [3, 6],
+      [4, 8],
+      [5, 8],
+      [6, 8],
+    ]);
+    for (const [columnIndex, expectedRightInset] of expectedInsets) {
+      const data = {
+        row: { index: 1 },
+        column: { index: columnIndex },
+        cell: { styles: { halign: 'center' } },
+      };
+      firstCall?.didParseCell?.(data as never);
+      expect(data.cell.styles.halign).toBe('right');
+      expect(data.cell.styles.cellPadding).toEqual({
+        top: 1.5,
+        bottom: 1.5,
+        left: 1.5,
+        right: expectedRightInset,
+      });
+    }
+
+    const nonPercentageData = {
+      row: { index: 1 },
+      column: { index: 1 },
+      cell: { styles: { halign: 'center' } },
+    };
+    firstCall?.didParseCell?.(nonPercentageData as never);
+    expect(nonPercentageData.cell.styles.halign).toBe('center');
+    expect(nonPercentageData.cell.styles.cellPadding).toBeUndefined();
+
+    const headerData = {
+      row: { index: 0 },
+      column: { index: 2 },
+      cell: { styles: { halign: 'center' } },
+    };
+    firstCall?.didParseCell?.(headerData as never);
+    expect(headerData.cell.styles.halign).toBe('center');
+    expect(headerData.cell.styles.cellPadding).toBeUndefined();
+  });
 });

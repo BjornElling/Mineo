@@ -2660,7 +2660,7 @@ describe('eoPdfModel', () => {
     expect(segments.some((segment) => segment.fra === '2024-01-01')).toBe(true);
   });
 
-  it('anvender Store Bededag-regulering fra 01-01-2024 som separat segment ved manglende tidlig overenskomstdækning', () => {
+  it('anvender Store Bededag-regulering fra 01-01-2024 som særskilt segment før første private overenskomstdækning', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
@@ -2689,9 +2689,52 @@ describe('eoPdfModel', () => {
     expect(beforeStore?.deltaPct).toBe(0);
     expect(segmentsBeforeStore.every((segment) => segment.deltaPct === 0)).toBe(true);
     expect(storeSegment).toBeDefined();
-    // 0,36% er den konkrete delta i dette fallback-scenario med laasesmede-satserne.
-    // Vi låser værdien eksplicit for at undgå skjulte regressions i beregningsgrundlaget.
     expect(storeSegment?.deltaPct).toBeCloseTo(0.36, 2);
+  });
+
+  it('indregner indtastede pct-satser som basis ved privat overenskomst uden sats på reguleringsdatoen', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-12-31'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-03-01'), til: iso('2024-04-30'), loseFeriedage: undefined },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'laasesmedeoverenskomsten',
+          feriePct: 12.5,
+          shSoPct: 2.7,
+          pensionPct: 8.15,
+          loenPaaHelligdage: loenPaaHelligdageSchema.enum['SH-udbetaling'],
+          saerligFraDatoRegulering: iso('2020-01-01'),
+          indtaegtsoplysningerTableData: [
+            {
+              id: 'row-1',
+              col0_maaned: '6',
+              col1_maaned: '2023',
+              col0_uge: '',
+              col1_uge: '',
+              col0_dag: '',
+              col1_dag: '',
+              col2: asAmountValue(30000),
+              col3: undefined,
+              col4: undefined,
+              col5: undefined,
+            },
+          ],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2016-01-01') });
+    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
+    const segment = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter[0];
+
+    expect(segment).toBeDefined();
+    expect(segment?.fra).toBe('2024-03-01');
+    expect(segment?.deltaPct).toBeCloseTo(13.01, 2);
   });
 
   it('anvender Store Bededag-regulering fra 01-01-2024 i manuel regulering selv når næste manuelle række er 01-03-2024', () => {

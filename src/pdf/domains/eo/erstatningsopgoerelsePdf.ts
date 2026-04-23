@@ -335,12 +335,17 @@ export const generateErstatningsopgoerelsePdf = (
     const divisorLabel = entry.sfggDayBasis;
     const dayUnit = resolveSfggPeriodDayUnitSingular(divisorLabel);
     const rateLabel = entry.sfggSourceKind === 'overenskomst_direkte' ? 'overenskomstens referencesats' : 'referencesatsen';
+    const hasRegulatedSfggRate = entry.segments.some((segment) =>
+      typeof segment.reguleringsindeks === 'number' && Math.abs(segment.reguleringsindeks - 100) > 0.000001
+    );
     const baseAdjustmentText = divisorLabel === 'arbejdsdage'
       ? 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'
       : 'Der beregnes ikke sygeferiegodtgørelse under ferie og på eventuelle andre fraværsdage uden løn.';
     writer.writeUnderlinedSubheader(SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL);
     safeAddWrappedText(
-      `Kravet beregnes per ${dayUnit} med ${rateLabel}.`
+      hasRegulatedSfggRate
+        ? `Kravet beregnes per ${dayUnit} med ${rateLabel} tillagt efterfølgende lønstigninger.`
+        : `Kravet beregnes per ${dayUnit} med ${rateLabel}.`
     );
 
     const firstDayAdjustmentText = entry.sfggFirstTafDayExcludedText

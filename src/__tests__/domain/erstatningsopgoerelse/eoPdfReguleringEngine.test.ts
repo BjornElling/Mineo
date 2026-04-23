@@ -56,10 +56,31 @@ describe('eoPdfReguleringEngine', () => {
     // Referencerækken: placeholder for datoen før første overenskomstdækning.
     // Kolonnerne bestemmes af laasesmedeoverenskomstens satser (Timeløn, SH/SO, Fritvalg, AG pens. bidrag).
     // Hvis overenskomstdata ændres, skal denne forventning opdateres.
-    expect(table?.rows[0]).toEqual(['01-01-2020', '-', '-', '-', '-']);
-    // 01-03-2024 er første satsdato i laasesmedeoverenskomsten i testdata.
-    // Hvis datagrundlaget ændres historisk, skal denne forventning opdateres.
-    expect(table?.rows[1]?.[0]).toBe('01-03-2024');
+    expect(table?.rows[0]).toEqual(['01-01-2020', '-', '-', '-', '0 %', '-']);
+    expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
+    // 01-03-2024 er fortsat første egentlige overenskomstsatsdato i testdata.
+    expect(table?.rows.some((row) => row[0] === '01-03-2024')).toBe(true);
+  });
+
+  it('viser indtastede satser på reference-række før første private overenskomstdækning', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'laasesmedeoverenskomsten';
+    af.feriePct = 12.5;
+    af.shSoPct = 2.7;
+    af.pensionPct = 8.15;
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2020-01-01'),
+      tafFra: iso('2020-04-01'),
+      tafTil: iso('2024-04-30'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows[0]).toEqual(['01-01-2020', '-', '12,5 %', '2,7 %', '-', '0 %', '8,15 %']);
   });
 
   it('bygger reguleringsindeks-rækker selv når segmenter starter før første overenskomstdækning', () => {
@@ -99,7 +120,39 @@ describe('eoPdfReguleringEngine', () => {
     expect(rows[0]?.indeks).toBe('100,00');
   });
 
-  it('ombryder ikke simple fallback-indeksberegninger uden parenteser omkring divideretegnet', () => {
+  it('indregner indtastede satser som basis når privat overenskomst mangler på reguleringsdatoen', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'laasesmedeoverenskomsten';
+    af.feriePct = 12.5;
+    af.shSoPct = 2.7;
+    af.pensionPct = 8.15;
+    af.loenPaaHelligdage = 'SH-udbetaling';
+
+    const rows = buildReguleringIndexRows({
+      segments: [
+        {
+          kind: 'maaneder',
+          fra: iso('2024-03-01'),
+          til: iso('2024-04-30'),
+          maaneder: 2,
+          maanedsloenOre: 100000,
+          deltaPct: 0,
+          amountOre: 100000,
+        },
+      ],
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2020-01-01'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.indeks).toBe('113,01');
+    expect(rows[0]?.loenudvikling).toBe('+ 13,01 %');
+  });
+
+  it('viser Store Bededag som særskilt fallback-beregning før første private overenskomstdækning', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
@@ -123,7 +176,8 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.indeksberegning).toBe('100,36 / 100,00');
+    expect(rows[0]?.indeks).not.toBe('100,00');
+    expect(rows[0]?.indeksberegning).toContain('0,45 %');
   });
 
   it('indsætter Store Bededag som separat række 01-01-2024 i offentlig reguleringsværdier-tabel', () => {
@@ -213,6 +267,29 @@ describe('eoPdfReguleringEngine', () => {
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
+  it('viser fallback-satser på 01-01-2024 i privat lønreguleringstabel før første overenskomstdækning', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'laasesmedeoverenskomsten';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 12.5;
+    af.shSoPct = 2.7;
+    af.pensionPct = 8.15;
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2017-05-02'),
+      tafFra: iso('2017-05-01'),
+      tafTil: iso('2024-04-30'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    const row = table?.rows.find((entry) => entry[0] === '01-01-2024');
+    expect(row).toBeDefined();
+    expect(row?.slice(1)).toEqual(['-', '12,5 %', '2,7 %', '-', '0,45 %', '8,15 %']);
+  });
+
   it.each([
     'Ingen',
     'Manuelt angivet',
@@ -284,6 +361,46 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(rows.some((row) => row.fraDato === '01-01-2024')).toBe(true);
+  });
+
+  it('bevarer 01-01-2024 som særskilt indeksrække ved privat overenskomst uden tidlig dækning', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'laasesmedeoverenskomsten';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 12.5;
+    af.shSoPct = 2.7;
+    af.pensionPct = 8.15;
+
+    const rows = buildReguleringIndexRows({
+      segments: [
+        {
+          kind: 'maaneder',
+          fra: iso('2017-05-01'),
+          til: iso('2024-02-29'),
+          maaneder: 82,
+          maanedsloenOre: 100000,
+          deltaPct: 0,
+          amountOre: 100000,
+        },
+        {
+          kind: 'maaneder',
+          fra: iso('2024-03-01'),
+          til: iso('2024-04-30'),
+          maaneder: 2,
+          maanedsloenOre: 100000,
+          deltaPct: 11.26,
+          amountOre: 100000,
+        },
+      ],
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2017-05-02'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(rows.some((row) => row.fraDato === '01-01-2024' && row.indeks !== '100,00')).toBe(true);
+    expect(rows.some((row) => row.fraDato === '01-03-2024' && row.indeks !== '100,00')).toBe(true);
   });
 
   it('bruger samme første tabelkolonner som eodebug for manuel arbejdsdagsbaseret regulering', () => {

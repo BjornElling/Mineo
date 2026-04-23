@@ -50,6 +50,12 @@ import {
   resolveStatistikModelId,
 } from '../helpers/eoSharedUtils';
 import { round2 as roundToTwoDecimals } from '../../../utils/roundingShortcuts';
+import {
+  buildPrivateOverenskomstFormulaComponents,
+  resolvePrivateOverenskomstBaseContext,
+} from './overenskomstReguleringShared';
+import { computeFormulaValue } from './reguleringFormulaUtils';
+import { resolveOverenskomstEffectiveStartIso } from './reguleringCoverage';
 
 // =============================================================================
 // INVARIANT-NOTE: Alle throw new Error() i denne fil er defensive invarianter.
@@ -762,6 +768,10 @@ const buildLoenudviklingFromOverenskomst = (
     throw new Error('Loenudvikling kan ikke beregnes: reguleringsdato mangler');
   }
   const reguleringsdatoIso = konsolideret.reguleringsdato;
+  const effectiveReguleringsdatoIso = resolveOverenskomstEffectiveStartIso(
+    konsolideret.overenskomstId,
+    reguleringsdatoIso
+  );
   const overenskomstRef = konsolideret.overenskomstId ? resolveOverenskomstRef(konsolideret.overenskomstId) : undefined;
   const reguleringsdatoDa = isoToDanish(reguleringsdatoIso);
   if (!overenskomstRef) {
@@ -979,47 +989,33 @@ const buildLoenudviklingFromOverenskomst = (
   const applyShRegel = konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG;
   const feriePct = konsolideret.feriePct;
 
-  const baseSatsAtReguleringsdato = getEffektiveSatserForDato({
+  const privateBaseContext = resolvePrivateOverenskomstBaseContext({
     overenskomstId: overenskomstRef.baseId,
-    dato: reguleringsdatoDa,
+    anvendtReguleringsdato: reguleringsdatoIso,
+    effectiveReguleringsdato: effectiveReguleringsdatoIso,
     applyAlmindeligLoenPaaShDageRegel: applyShRegel,
+    shSoPctInput: konsolideret.shSoPct,
+    fritvalgPctInput: konsolideret.fritvalgPct,
+    pensionPctInput: konsolideret.pensionPct,
   });
-  const resolvePrivateEffectiveBase = (): Readonly<{ startIso: ISODateString; sats: NonNullable<typeof baseSatsAtReguleringsdato> }> => {
-    if (baseSatsAtReguleringsdato) {
-      return { startIso: reguleringsdatoIso, sats: baseSatsAtReguleringsdato };
-    }
-    const interval = getReguleringsDatoIntervalForOverenskomst(konsolideret.overenskomstId);
-    if (!interval) {
-      throw new Error('Loenudvikling kan ikke beregnes: basissats mangler');
-    }
-    const firstStartIso = parseDanishToIso(interval.fraDato);
-    if (!firstStartIso) {
-      throw new Error('Loenudvikling kan ikke beregnes: basissats mangler');
-    }
-    const firstSats = getEffektiveSatserForDato({
-      overenskomstId: overenskomstRef.baseId,
-      dato: interval.fraDato,
-      applyAlmindeligLoenPaaShDageRegel: applyShRegel,
-    });
-    if (!firstSats) {
-      throw new Error('Loenudvikling kan ikke beregnes: basissats mangler');
-    }
-    return { startIso: firstStartIso, sats: firstSats };
-  };
-  const privateEffectiveBase = resolvePrivateEffectiveBase();
-  if (typeof privateEffectiveBase.sats.grundloen !== 'number') {
+  if (!privateBaseContext || typeof privateBaseContext.effectiveBase.sats.grundloen !== 'number') {
     throw new Error('Loenudvikling kan ikke beregnes: basissats mangler');
   }
-  ensurePositiveFiniteNumber(privateEffectiveBase.sats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
+  ensurePositiveFiniteNumber(privateBaseContext.effectiveBase.sats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig basisgrundloen');
 
-  const basePackage = computePackageValuePct({
-    grundloen: privateEffectiveBase.sats.grundloen,
-    feriePct,
-    shSoPct: typeof privateEffectiveBase.sats.shSoSats === 'number' ? privateEffectiveBase.sats.shSoSats * 100 : 0,
-    fritvalgPct: typeof privateEffectiveBase.sats.fritvalg === 'number' ? privateEffectiveBase.sats.fritvalg * 100 : 0,
-    pensionPct: typeof privateEffectiveBase.sats.agPension === 'number' ? privateEffectiveBase.sats.agPension * 100 : 0,
-    storeBededagPct: applyShRegel && reguleringsdatoIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
-  });
+  const basePackage = computeFormulaValue(
+    buildPrivateOverenskomstFormulaComponents({
+      sats: privateBaseContext.effectiveBase.sats,
+      context: privateBaseContext,
+      feriePct,
+      shSoPctInput: konsolideret.shSoPct,
+      fritvalgPctInput: konsolideret.fritvalgPct,
+      pensionPctInput: konsolideret.pensionPct,
+      pctBasisRole: 'reference',
+      dateIso: reguleringsdatoIso,
+      applyAlmindeligLoenPaaShDageRegel: applyShRegel,
+    })
+  );
   if (!Number.isFinite(basePackage) || basePackage <= 0) {
     throw new Error('Loenudvikling kan ikke beregnes: basispakke er ugyldig');
   }
@@ -1050,8 +1046,8 @@ const buildLoenudviklingFromOverenskomst = (
     if (applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
       starts.add(STORE_BEDEDAG_START);
     }
-    if (privateEffectiveBase.startIso > range.fra && privateEffectiveBase.startIso <= range.til) {
-      starts.add(privateEffectiveBase.startIso);
+    if (privateBaseContext.effectiveBase.startIso > range.fra && privateBaseContext.effectiveBase.startIso <= range.til) {
+      starts.add(privateBaseContext.effectiveBase.startIso);
     }
     if (anciennitetForIndex && anciennitetForIndex.activeFromIso > range.fra && anciennitetForIndex.activeFromIso <= range.til) {
       starts.add(anciennitetForIndex.activeFromIso);
@@ -1067,14 +1063,18 @@ const buildLoenudviklingFromOverenskomst = (
         dato: segmentDa,
         applyAlmindeligLoenPaaShDageRegel: applyShRegel,
       });
-      // Decision note: Samme proxy-regel som i offentlig sti.
-      // Re-evalueres hvis domænet kræver streng 0-delta for hele ude-dækningsintervallet.
-      const useFallbackBaseBeforeCoverage =
+      // Før første private overenskomstdækning må kun Store Bededag give regulering.
+      // Øvrige overenskomstbestemte satser må først slå igennem fra første faktiske satsdato.
+      const useStoreBededagOnlyBeforeCoverage =
         applyShRegel &&
         segment.fra >= STORE_BEDEDAG_START &&
-        segment.fra < privateEffectiveBase.startIso;
-      const effectiveSats = sats ?? (useFallbackBaseBeforeCoverage ? privateEffectiveBase.sats : undefined);
-      if (!effectiveSats || (segment.fra < privateEffectiveBase.startIso && !useFallbackBaseBeforeCoverage)) {
+        segment.fra < privateBaseContext.effectiveBase.startIso;
+      if (!sats && !useStoreBededagOnlyBeforeCoverage) {
+        segments.push(buildZeroDeltaSegment(segment));
+        continue;
+      }
+      const effectiveSats = sats ?? privateBaseContext.effectiveBase.sats;
+      if (segment.fra < privateBaseContext.effectiveBase.startIso && !useStoreBededagOnlyBeforeCoverage) {
         segments.push(buildZeroDeltaSegment(segment));
         continue;
       }
@@ -1082,19 +1082,21 @@ const buildLoenudviklingFromOverenskomst = (
         throw new Error('Loenudvikling kan ikke beregnes: mangler sats for segment');
       }
       ensurePositiveFiniteNumber(effectiveSats.grundloen, 'Loenudvikling kan ikke beregnes: ugyldig segmentgrundloen');
-      const packageValue = computePackageValuePct({
-        grundloen: (() => {
-          const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
-          return anciennitetAktiv && anciennitetForIndex
-            ? effectiveSats.grundloen + anciennitetForIndex.supplementValue
-            : effectiveSats.grundloen;
-        })(),
-        feriePct,
-        shSoPct: typeof effectiveSats.shSoSats === 'number' ? effectiveSats.shSoSats * 100 : 0,
-        fritvalgPct: typeof effectiveSats.fritvalg === 'number' ? effectiveSats.fritvalg * 100 : 0,
-        pensionPct: typeof effectiveSats.agPension === 'number' ? effectiveSats.agPension * 100 : 0,
-        storeBededagPct: applyShRegel && segment.fra >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0,
-      });
+      const anciennitetAktiv = Boolean(anciennitetForIndex && segment.fra >= anciennitetForIndex.activeFromIso);
+      const packageValue = computeFormulaValue(
+        buildPrivateOverenskomstFormulaComponents({
+          sats: effectiveSats,
+          context: privateBaseContext,
+          feriePct,
+          shSoPctInput: konsolideret.shSoPct,
+          fritvalgPctInput: konsolideret.fritvalgPct,
+          pensionPctInput: konsolideret.pensionPct,
+          pctBasisRole: useStoreBededagOnlyBeforeCoverage ? 'reference' : 'segment',
+          dateIso: segment.fra,
+          baseValueSupplement: anciennitetAktiv && anciennitetForIndex ? anciennitetForIndex.supplementValue : 0,
+          applyAlmindeligLoenPaaShDageRegel: applyShRegel,
+        })
+      );
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig pakkevaerdi for segment');
       }
