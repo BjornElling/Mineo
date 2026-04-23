@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { type SetValuesUpdater } from '../../../../../hooks/usePersistedForm';
 
@@ -15,7 +15,9 @@ vi.mock('../../../../hooks/useFormFieldErrors', () => ({
 }));
 
 describe('EOberegningTab svie/smerte sats-aar integration', () => {
-  it('viser sats-aar advarslen i fejl og advarsler', () => {
+  const ASYNC_TEST_TIMEOUT_MS = 15_000;
+
+  it('viser sats-aar advarslen i fejl og advarsler', async () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.opgørelseLavetDen = '2025-12-15';
     eoValues.svieSmerteSatserAar = 2025;
@@ -39,7 +41,9 @@ describe('EOberegningTab svie/smerte sats-aar integration', () => {
       </MemoryRouter>
     );
 
-    expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
-    expect(screen.getByText('Svie/smerte satsen for 2026 kan anvendes.')).toBeInTheDocument();
-  });
+    await waitFor(() => {
+      expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
+      expect(screen.getByText('Svie/smerte satsen for 2026 kan anvendes.')).toBeInTheDocument();
+    });
+  }, ASYNC_TEST_TIMEOUT_MS);
 });

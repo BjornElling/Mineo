@@ -2,13 +2,13 @@ import type { StandardLoenTableRow, OffentligeYdelserRow } from '../../../schema
 import { toISODateString } from '../../../types/branded';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
-  buildBilagIndkomstYdelserRanges,
+  buildEoBilagIndkomstYdelserRanges,
   hasAarsloenRowOverlapWithRanges,
   hasOffentligYdelseRowOverlapWithRanges,
-  shouldIncludeReguleringBilag,
-  shouldIncludeLoenRowInBilag,
-  shouldIncludeOffentligYdelseRowInBilag,
-} from '../../../domain/erstatningsopgoerelse/helpers/bilagRules';
+  shouldIncludeEoReguleringBilag,
+  shouldIncludeLoenRowInEoBilag,
+  shouldIncludeOffentligYdelseRowInEoBilag,
+} from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import { resolveValgtReguleringDisplay } from '../../../domain/erstatningsopgoerelse/helpers/loenudviklingDisplay';
 
 const iso = (value: string) => toISODateString(value);
@@ -79,7 +79,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     eoValues.tafBeregningsperiodeFra = undefined;
     eoValues.tafBeregningsperiodeTil = undefined;
 
-    const ranges = buildBilagIndkomstYdelserRanges(eoValues, 'Perioden');
+    const ranges = buildEoBilagIndkomstYdelserRanges(eoValues, 'Perioden');
     expect(ranges).toHaveLength(0);
 
     const offentligRow: OffentligeYdelserRow = {
@@ -114,7 +114,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       },
     ];
 
-    const ranges = buildBilagIndkomstYdelserRanges(eoValues, 'Perioden');
+    const ranges = buildEoBilagIndkomstYdelserRanges(eoValues, 'Perioden');
     expect(ranges).toHaveLength(1);
     expect(ranges[0]).toEqual({ fra: iso('2024-01-01'), til: iso('2024-02-29') });
 
@@ -146,7 +146,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       },
     ];
 
-    const ranges = buildBilagIndkomstYdelserRanges(eoValues, 'Perioden');
+    const ranges = buildEoBilagIndkomstYdelserRanges(eoValues, 'Perioden');
     expect(ranges.length).toBeGreaterThan(0);
 
     const offentligUgyldig: OffentligeYdelserRow = {
@@ -182,7 +182,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     });
 
     expect(
-      shouldIncludeLoenRowInBilag({
+      shouldIncludeLoenRowInEoBilag({
         row: rowIOverlap,
         loenperiode: 'dag',
         mode: 'Perioden',
@@ -191,7 +191,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       })
     ).toBe(true);
     expect(
-      shouldIncludeLoenRowInBilag({
+      shouldIncludeLoenRowInEoBilag({
         row: rowUdenforPeriode,
         loenperiode: 'dag',
         mode: 'Perioden',
@@ -212,7 +212,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     });
 
     expect(
-      shouldIncludeLoenRowInBilag({
+      shouldIncludeLoenRowInEoBilag({
         row: rowMedNulBeloeb,
         loenperiode: 'dag',
         mode: 'Perioden',
@@ -242,7 +242,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     };
 
     expect(
-      shouldIncludeOffentligYdelseRowInBilag({
+      shouldIncludeOffentligYdelseRowInEoBilag({
         row: ydelseIOverlap,
         mode: 'Perioden',
         ranges,
@@ -250,7 +250,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       })
     ).toBe(true);
     expect(
-      shouldIncludeOffentligYdelseRowInBilag({
+      shouldIncludeOffentligYdelseRowInEoBilag({
         row: ydelseUdenforPeriode,
         mode: 'Perioden',
         ranges,
@@ -272,7 +272,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     };
 
     expect(
-      shouldIncludeOffentligYdelseRowInBilag({
+      shouldIncludeOffentligYdelseRowInEoBilag({
         row: ydelseUdenBeloeb,
         mode: 'Perioden',
         ranges,
@@ -294,7 +294,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     };
 
     expect(
-      shouldIncludeOffentligYdelseRowInBilag({
+      shouldIncludeOffentligYdelseRowInEoBilag({
         row: ydelseMedNulBeloeb,
         mode: 'Perioden',
         ranges,
@@ -315,7 +315,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     });
 
     expect(
-      shouldIncludeLoenRowInBilag({
+      shouldIncludeLoenRowInEoBilag({
         row: rowFoerPeriode,
         loenperiode: 'dag',
         mode: 'Perioden',
@@ -337,7 +337,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     };
 
     expect(
-      shouldIncludeOffentligYdelseRowInBilag({
+      shouldIncludeOffentligYdelseRowInEoBilag({
         row: ydelseFoerPeriode,
         mode: 'Perioden',
         ranges,
@@ -371,7 +371,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       }),
     ];
 
-    expect(shouldIncludeReguleringBilag(eoValues)).toBe(false);
+    expect(shouldIncludeEoReguleringBilag(eoValues)).toBe(false);
   });
 
   it('medtager regulering-bilag ved Beregningsperiode når en arbejdsgiver med indkomst ikke er Ingen', () => {
@@ -394,7 +394,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       }),
     ];
 
-    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+    expect(shouldIncludeEoReguleringBilag(eoValues)).toBe(true);
   });
 
   it('medtager regulering-bilag ved Beregningsperiode når ingen kilder har indkomst i perioden', () => {
@@ -410,7 +410,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       }),
     ];
 
-    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+    expect(shouldIncludeEoReguleringBilag(eoValues)).toBe(true);
   });
 
   it('medtager regulering-bilag ved Beregningsperiode når der ikke er ansættelsesforhold', () => {
@@ -420,7 +420,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     eoValues.tafBeregningsperiodeTil = iso('2025-01-31');
     eoValues.loenindkomstAnsaettelsesforhold = [];
 
-    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+    expect(shouldIncludeEoReguleringBilag(eoValues)).toBe(true);
   });
 
   it('skjuler regulering-bilag ved angivet løn når EO-oplysninger har lønudvikling = Ingen', () => {
@@ -428,7 +428,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     eoValues.beregnesUdFra = 'Angivet månedsløn';
     eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Ingen';
 
-    expect(shouldIncludeReguleringBilag(eoValues)).toBe(false);
+    expect(shouldIncludeEoReguleringBilag(eoValues)).toBe(false);
   });
 
   it('medtager regulering-bilag ved angivet løn når EO-oplysninger har lønudvikling forskellig fra Ingen', () => {
@@ -436,7 +436,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     eoValues.beregnesUdFra = 'Angivet dagsløn';
     eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
 
-    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+    expect(shouldIncludeEoReguleringBilag(eoValues)).toBe(true);
   });
 
   it('ignorerer ansættelsesforholdenes lønudvikling når beregningsgrundlag ikke er Beregningsperiode', () => {
@@ -456,7 +456,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       ],
     }));
 
-    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+    expect(shouldIncludeEoReguleringBilag(eoValues)).toBe(true);
   });
 
   it('ignorerer EO-oplysninger lønudvikling når beregningsgrundlag er Beregningsperiode', () => {
@@ -480,7 +480,7 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
       }),
     ];
 
-    expect(shouldIncludeReguleringBilag(eoValues)).toBe(true);
+    expect(shouldIncludeEoReguleringBilag(eoValues)).toBe(true);
   });
 
   it('viser navn på reguleringsform ved manuelt angivet regulering i stedet for generisk label', () => {

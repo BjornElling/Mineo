@@ -42,7 +42,7 @@ type ReguleringSectionContext = Readonly<{
     ansaettelsesforholdId: string;
     beregnedeSegmenter: readonly LoenudviklingSegment[];
   }>[];
-  startBilagPage: (titleText: string) => void;
+  startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
   writeLabelValueLine: (label: string, value: string) => void;
@@ -209,7 +209,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     eoValues,
     stamdataValues,
     modelLoenudviklingPerAnsaettelse,
-    startBilagPage,
+    startEoBilagPage,
     renderSubheader,
     safeAddWrappedText,
     writeLabelValueLine,
@@ -319,7 +319,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   };
 
   const ansaettelser = resolveLoenudviklingKilde(eoValues);
-  startBilagPage('Regulering');
+  startEoBilagPage('Regulering');
 
   if (ansaettelser.length === 0) {
     safeAddWrappedText('Ingen ansættelsesforhold.');

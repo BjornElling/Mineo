@@ -24,7 +24,7 @@ const makeContext = (
   eoValues: ReturnType<typeof createErstatningsopgoerelseInitialValues>,
   stamdataValues = STAMDATA_INITIAL_VALUES
 ) => {
-  const startBilagPage = vi.fn();
+  const startEoBilagPage = vi.fn();
   const renderSubheader = vi.fn();
   const safeAddWrappedText = vi.fn();
   const writeLabelValueLine = vi.fn();
@@ -33,7 +33,7 @@ const makeContext = (
   const doc = createMockPdfDoc();
 
   return {
-    startBilagPage,
+    startEoBilagPage,
     renderSubheader,
     safeAddWrappedText,
     writeLabelValueLine,
@@ -42,7 +42,7 @@ const makeContext = (
       stamdataValues,
       lineHeight: 4,
       modelLoenudviklingPerAnsaettelse: [] as const,
-      startBilagPage,
+      startEoBilagPage,
       renderSubheader,
       safeAddWrappedText,
       writeLabelValueLine,
@@ -69,14 +69,14 @@ const makeContext = (
   };
 };
 
-describe('renderReguleringSection – startBilagPage', () => {
-  it('kalder startBilagPage med "Regulering"', () => {
+describe('renderReguleringSection – startEoBilagPage', () => {
+  it('kalder startEoBilagPage med "Regulering"', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    const { startBilagPage, ctx } = makeContext(eoValues);
+    const { startEoBilagPage, ctx } = makeContext(eoValues);
 
     renderReguleringSection(ctx);
 
-    expect(startBilagPage).toHaveBeenCalledWith('Regulering');
+    expect(startEoBilagPage).toHaveBeenCalledWith('Regulering');
   });
 });
 

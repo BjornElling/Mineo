@@ -3,21 +3,21 @@ import type { RowInput } from 'jspdf-autotable';
 import { resolvePdfSectionEndY } from '../../../shared/pdfHelpers';
 import { formatAsAmount } from '../../../../utils/formatUtils';
 import { amountValueToDisplayString } from '../../../../utils/expressionAmount';
-import { calculateStandardLoenRowDerived } from '../../../../domain/aarsloen/standardLoenRowCalculations';
 import { getStandardLoenErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { resolveOverenskomstNameOnlyDisplay } from '../../../../data/overenskomstRates';
 import type { SelectedElements } from '../types';
-import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
+import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { createPdfDistributedColumnStyles, renderPdfTable } from '../../../shared/pdfTableRenderer';
 import { getStandardLoenHeaderIndex, STANDARD_LOEN_FPFVSHSO_LABEL, STANDARD_LOEN_PENSION_LABEL, STANDARD_LOEN_SAMLET_LABEL } from '../../../../domain/aarsloen/standardLoenTableColumns';
+import { calculateLoenindkomstRowDerived } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstRowDerived';
 
-type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
+type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 type LoenSectionContext = Readonly<{
   selectedElements: SelectedElements;
   eoValues: ErstatningsopgoerelseValues;
-  startBilagPage: (titleText: string) => void;
+  startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
   writeLabelValueLine: (label: string, value: string) => void;
@@ -27,15 +27,15 @@ type LoenSectionContext = Readonly<{
   getLoenindkomstTableHeaders: (loenperiode: Loenperiode) => readonly string[];
   resolvePeriodColumns: (row: StandardLoenTableRow, loenperiode: Loenperiode) => readonly [string, string];
   hasNonZeroLoenAmount: (value: StandardLoenTableRow['col2']) => boolean;
-  shouldIncludeLoenRowInBilag: (params: Readonly<{
+  shouldIncludeLoenRowInEoBilag: (params: Readonly<{
     row: StandardLoenTableRow;
     loenperiode: Loenperiode;
-    mode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
+    mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
     ranges: readonly IsoRange[];
     errorRowIds: ReadonlySet<string>;
   }>) => boolean;
-  bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
-  bilagIndkomstYdelserRanges: readonly IsoRange[];
+  eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
+  eoBilagIndkomstYdelserRanges: readonly IsoRange[];
   writer: Readonly<{
     addSectionSpacer: () => void;
     addSpacer: (height: number) => void;
@@ -49,7 +49,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
   const {
     selectedElements,
     eoValues,
-    startBilagPage,
+    startEoBilagPage,
     renderSubheader,
     safeAddWrappedText,
     writeLabelValueLine,
@@ -59,14 +59,14 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     getLoenindkomstTableHeaders,
     resolvePeriodColumns,
     hasNonZeroLoenAmount,
-    shouldIncludeLoenRowInBilag,
-    bilagIndkomstYdelserMode,
-    bilagIndkomstYdelserRanges,
+    shouldIncludeLoenRowInEoBilag,
+    eoBilagIndkomstYdelserMode,
+    eoBilagIndkomstYdelserRanges,
     writer,
   } = ctx;
 
   if (!selectedElements.loenindkomst) return;
-  const normalizedBilagMode = normalizeBilagIndkomstYdelserMode(bilagIndkomstYdelserMode);
+  const normalizedEoBilagMode = normalizeEoBilagIndkomstYdelserMode(eoBilagIndkomstYdelserMode);
 
   const formatAmountCell = (value: StandardLoenTableRow['col2']): string => amountValueToDisplayString(value, 2);
   const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
@@ -82,10 +82,10 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     ranges: readonly IsoRange[]
   ) => {
     const rows = (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).filter((row) => {
-      return shouldIncludeLoenRowInBilag({
+      return shouldIncludeLoenRowInEoBilag({
         row,
         loenperiode: ansaettelsesforhold.loenperiode,
-        mode: normalizedBilagMode,
+        mode: normalizedEoBilagMode,
         ranges,
         errorRowIds,
       });
@@ -111,14 +111,6 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
       allHeaders[getStandardLoenHeaderIndex(loenperiode, STANDARD_LOEN_PENSION_LABEL)],
       allHeaders[getStandardLoenHeaderIndex(loenperiode, STANDARD_LOEN_SAMLET_LABEL)],
     ];
-    const satser = {
-      feriePct: ansaettelsesforhold.feriePct,
-      fritvalgPct: ansaettelsesforhold.fritvalgPct,
-      shSoPct: ansaettelsesforhold.shSoPct,
-      storeBededagPct: ansaettelsesforhold.storeBededagPct,
-      pensionPct: ansaettelsesforhold.pensionPct,
-    };
-
     const tableRows: RowInput[] = [
       headers.map((header) => ({
         content: header,
@@ -128,7 +120,18 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
 
     for (const row of rows) {
       const [col0, col1] = resolvePeriodColumns(row, ansaettelsesforhold.loenperiode);
-      const derived = calculateStandardLoenRowDerived(row, satser);
+      const derived = calculateLoenindkomstRowDerived({
+        row,
+        ansaettelsesforhold,
+        context: {
+          beregnesUdFra: eoValues.beregnesUdFra,
+          tafBeregningsperiodeFra: eoValues.tafBeregningsperiodeFra,
+          tafBeregningsperiodeTil: eoValues.tafBeregningsperiodeTil,
+          loenindkomstAnsaettelsesforhold: eoValues.loenindkomstAnsaettelsesforhold ?? [],
+          ferieperioder: eoValues.ferieperioder,
+          fravaerPerioder: eoValues.fravaerPerioder,
+        },
+      });
       const rowValues = [
         col0,
         col1,
@@ -157,15 +160,15 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
     writer.setY(resolvePdfSectionEndY(finalY, startY));
   };
 
-  const rangeGroups = buildPeriodRangeGroups(eoValues, bilagIndkomstYdelserMode, bilagIndkomstYdelserRanges);
+  const rangeGroups = buildPeriodRangeGroups(eoValues, eoBilagIndkomstYdelserMode, eoBilagIndkomstYdelserRanges);
   const hasRowsInAnyGroup = rangeGroups.some((group) =>
     (eoValues.loenindkomstAnsaettelsesforhold ?? []).some((ansaettelsesforhold) => {
       const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
       return (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).some((row) =>
-        shouldIncludeLoenRowInBilag({
+        shouldIncludeLoenRowInEoBilag({
           row,
           loenperiode: ansaettelsesforhold.loenperiode,
-          mode: normalizedBilagMode,
+          mode: normalizedEoBilagMode,
           ranges: group.ranges,
           errorRowIds,
         })
@@ -174,16 +177,16 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
   );
   if (!hasRowsInAnyGroup) return;
 
-  startBilagPage('Lønindkomst');
+  startEoBilagPage('Lønindkomst');
   writer.addSectionSpacer();
   const combinedRanges = rangeGroups.flatMap((group) => group.ranges);
   const ansaettelserWithRows = (eoValues.loenindkomstAnsaettelsesforhold ?? []).filter((ansaettelsesforhold) => {
     const errorRowIds = loenErrorRowIdsByEmploymentId.get(ansaettelsesforhold.id) ?? new Set<string>();
     return (ansaettelsesforhold.indtaegtsoplysningerTableData ?? []).some((row) =>
-      shouldIncludeLoenRowInBilag({
+      shouldIncludeLoenRowInEoBilag({
         row,
         loenperiode: ansaettelsesforhold.loenperiode,
-        mode: normalizedBilagMode,
+        mode: normalizedEoBilagMode,
         ranges: combinedRanges,
         errorRowIds,
       })

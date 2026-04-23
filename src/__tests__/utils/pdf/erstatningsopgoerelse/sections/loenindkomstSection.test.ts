@@ -74,16 +74,16 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
   let y = 0;
   const doc = createMockPdfDoc();
   const renderSubheader = vi.fn();
-  const startBilagPage = vi.fn();
+  const startEoBilagPage = vi.fn();
 
   return {
     renderSubheader,
-    startBilagPage,
+    startEoBilagPage,
     ctx: {
       selectedElements,
       eoValues,
       lineHeight: 4,
-      startBilagPage,
+      startEoBilagPage,
       renderSubheader,
       safeAddWrappedText: vi.fn(),
       writeLabelValueLine: vi.fn(),
@@ -94,11 +94,11 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
       getLoenindkomstTableHeaders: vi.fn(() => getStandardLoenTableHeaders('dag')),
       resolvePeriodColumns: vi.fn(() => ['01-10-2022', '31-10-2022'] as const),
       hasNonZeroLoenAmount: vi.fn((value) => Boolean(value && value.kind === 'number' && value.value !== 0)),
-      shouldIncludeLoenRowInBilag: vi.fn(({ ranges }) => {
+      shouldIncludeLoenRowInEoBilag: vi.fn(({ ranges }) => {
         return ranges.some((range) => includeRangeFromDates.has(range.fra));
       }),
-      bilagIndkomstYdelserMode: 'Perioden' as const,
-      bilagIndkomstYdelserRanges: [],
+      eoBilagIndkomstYdelserMode: 'Perioden' as const,
+      eoBilagIndkomstYdelserRanges: [],
       writer: {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
@@ -115,22 +115,22 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
 // ─── Gate: selectedElements.loenindkomst = false ──────────────────────────────
 
 describe('renderLoenindkomstSection – gate', () => {
-  it('returnerer tidligt uden at kalde startBilagPage når loenindkomst=false', () => {
-    const { ctx, startBilagPage } = makeContext(new Set(['2022-10-01']));
+  it('returnerer tidligt uden at kalde startEoBilagPage når loenindkomst=false', () => {
+    const { ctx, startEoBilagPage } = makeContext(new Set(['2022-10-01']));
     ctx.selectedElements = { ...selectedElements, loenindkomst: false };
 
     renderLoenindkomstSection(ctx);
 
-    expect(startBilagPage).not.toHaveBeenCalled();
+    expect(startEoBilagPage).not.toHaveBeenCalled();
   });
 
-  it('returnerer tidligt uden at kalde startBilagPage når ingen rækker opfylder filteret', () => {
-    // shouldIncludeLoenRowInBilag returnerer altid false (tom includeSet)
-    const { ctx, startBilagPage } = makeContext(new Set());
+  it('returnerer tidligt uden at kalde startEoBilagPage når ingen rækker opfylder filteret', () => {
+    // shouldIncludeLoenRowInEoBilag returnerer altid false (tom includeSet)
+    const { ctx, startEoBilagPage } = makeContext(new Set());
 
     renderLoenindkomstSection(ctx);
 
-    expect(startBilagPage).not.toHaveBeenCalled();
+    expect(startEoBilagPage).not.toHaveBeenCalled();
   });
 });
 
@@ -199,5 +199,89 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
 
     expect(totalWidth).toBeCloseTo(170, 6);
     expect(firstColumnStyle.cellWidth).toBeGreaterThan(22);
+  });
+
+  it('beregner FP/FV/SH/SO/St.B. i PDF-tabellen efter satsen i den enkelte lønrække', () => {
+    autoTableMock.mockClear();
+    const { ctx } = makeContext(new Set(['2022-10-01']));
+    ctx.eoValues.beregnesUdFra = 'Angivet månedsløn';
+    ctx.eoValues.loenindkomstAnsaettelsesforhold[0] = {
+      ...ctx.eoValues.loenindkomstAnsaettelsesforhold[0],
+      loenperiode: 'dag',
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      shSoPct: 0,
+      indtaegtsoplysningerTableData: [
+        {
+          id: 'row-1',
+          col0_maaned: '',
+          col1_maaned: '',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '01-01-2024',
+          col1_dag: '31-01-2024',
+          col2: { kind: 'number', value: 3100 },
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+      ],
+      loenudviklingManuelTableData: [
+        { id: 'base', dato: '', grundloen: { kind: 'number', value: 0 }, feriepenge: '', shSoSats: '0', fritvalg: '', agPension: '' },
+        { id: 'step', dato: '15-01-2024', grundloen: { kind: 'number', value: 0 }, feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
+      ],
+    };
+    ctx.getLoenindkomstTableHeaders = vi.fn(() => getStandardLoenTableHeaders('dag'));
+    ctx.resolvePeriodColumns = vi.fn(() => ['01-01-2024', '31-01-2024'] as const);
+
+    renderLoenindkomstSection(ctx);
+
+    expect(autoTableMock).toHaveBeenCalled();
+    const firstCall = autoTableMock.mock.calls[0]?.[1];
+    const body = firstCall?.body as Array<Array<{ content: string }>>;
+    expect(body[1]?.some((cell) => cell.content === '183,95')).toBe(true);
+    expect(body[1]?.some((cell) => cell.content === '3.283,95')).toBe(true);
+  });
+
+  it('respekterer arbejdsdagsfradrag i PDF-tabellen ved manuel satsfordeling', () => {
+    autoTableMock.mockClear();
+    const { ctx } = makeContext(new Set(['2022-10-01']));
+    ctx.eoValues.beregnesUdFra = 'Angivet dagsløn';
+    ctx.eoValues.ferieperioder = [{ id: 'ferie-1', fra: iso('2024-01-11'), til: iso('2024-01-11') }];
+    ctx.eoValues.fravaerPerioder = [{ id: 'fravaer-1', fra: iso('2024-01-12'), til: iso('2024-01-12') }];
+    ctx.eoValues.loenindkomstAnsaettelsesforhold[0] = {
+      ...ctx.eoValues.loenindkomstAnsaettelsesforhold[0],
+      loenperiode: 'dag',
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      shSoPct: 0,
+      indtaegtsoplysningerTableData: [
+        {
+          id: 'row-1',
+          col0_maaned: '',
+          col1_maaned: '',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '08-01-2024',
+          col1_dag: '12-01-2024',
+          col2: { kind: 'number', value: 1000 },
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+      ],
+      loenudviklingManuelTableData: [
+        { id: 'base', dato: '', grundloen: { kind: 'number', value: 0 }, feriepenge: '', shSoSats: '0', fritvalg: '', agPension: '' },
+        { id: 'step', dato: '10-01-2024', grundloen: { kind: 'number', value: 0 }, feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
+      ],
+    };
+    ctx.getLoenindkomstTableHeaders = vi.fn(() => getStandardLoenTableHeaders('dag'));
+    ctx.resolvePeriodColumns = vi.fn(() => ['08-01-2024', '12-01-2024'] as const);
+
+    renderLoenindkomstSection(ctx);
+
+    expect(autoTableMock).toHaveBeenCalled();
+    const firstCall = autoTableMock.mock.calls[0]?.[1];
+    const body = firstCall?.body as Array<Array<{ content: string }>>;
+    expect(body[1]?.some((cell) => cell.content === '37,83')).toBe(true);
+    expect(body[1]?.some((cell) => cell.content === '1.037,83')).toBe(true);
   });
 });

@@ -25,12 +25,13 @@ import {
 
 import { logWarning } from '../../../utils/logger';
 import {
-  buildBilagIndkomstYdelserRanges,
+  buildEoBilagIndkomstYdelserRanges,
   hasNonZeroLoenAmount,
-  shouldIncludeLoenRowInBilag,
-  shouldIncludeOffentligYdelseRowInBilag,
-  shouldIncludeReguleringBilag,
-} from '../../../domain/erstatningsopgoerelse/helpers/bilagRules';
+  shouldRenderEoIndkomstOgYdelserBilag,
+  shouldIncludeLoenRowInEoBilag,
+  shouldIncludeOffentligYdelseRowInEoBilag,
+  shouldIncludeEoReguleringBilag,
+} from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import {
   parseOptionalIsoDate,
 } from '../../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
@@ -157,7 +158,7 @@ const resolvePeriodColumns = (row: StandardLoenTableRow, loenperiode: Loenperiod
 };
 
 
-type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
+type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 const resolveUdkastStempelValue = (value: unknown): boolean => value === 'Ja';
 
 /**
@@ -209,9 +210,9 @@ export const generateErstatningsopgoerelsePdf = (
     }
     return projection.document;
   })();
-  const bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar =
+  const eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar =
     eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
-  const bilagIndkomstYdelserRanges = buildBilagIndkomstYdelserRanges(eoValues, bilagIndkomstYdelserMode);
+  const eoBilagIndkomstYdelserRanges = buildEoBilagIndkomstYdelserRanges(eoValues, eoBilagIndkomstYdelserMode);
   const titel = model.titel;
 
   const warnLayoutFallback = ({ message, label }: Readonly<{ message: string; label: string }>) => {
@@ -429,7 +430,7 @@ export const generateErstatningsopgoerelsePdf = (
     );
   };
 
-  const startBilagPage = (titleText: string) => {
+  const startEoBilagPage = (titleText: string) => {
     writer.addPage();
     writer.writeTitle(titleText);
   };
@@ -506,17 +507,15 @@ export const generateErstatningsopgoerelsePdf = (
     writer,
   });
 
-  const skalFiltrereBilagTilKunPerioden =
-    eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar === 'Perioden';
   const skalViseIndkomstOgYdelserBilag =
-    !skalFiltrereBilagTilKunPerioden || model.tabtArbejdsfortjeneste.harTafPerioder;
+    shouldRenderEoIndkomstOgYdelserBilag(eoValues, eoBilagIndkomstYdelserMode);
   const midlertidigtEetGroups = options.midlertidigtEetGroups ?? [];
 
   if (selectedElements.loenindkomst && skalViseIndkomstOgYdelserBilag) {
     renderLoenindkomstSection({
       selectedElements,
       eoValues: eoValues,
-      startBilagPage,
+      startEoBilagPage,
       renderSubheader,
       safeAddWrappedText: writer.writeWrappedText,
       writeLabelValueLine,
@@ -526,9 +525,9 @@ export const generateErstatningsopgoerelsePdf = (
       getLoenindkomstTableHeaders,
       resolvePeriodColumns,
       hasNonZeroLoenAmount,
-      shouldIncludeLoenRowInBilag,
-      bilagIndkomstYdelserMode,
-      bilagIndkomstYdelserRanges,
+      shouldIncludeLoenRowInEoBilag,
+      eoBilagIndkomstYdelserMode,
+      eoBilagIndkomstYdelserRanges,
       writer,
     });
   }
@@ -536,11 +535,11 @@ export const generateErstatningsopgoerelsePdf = (
   if (selectedElements.offentligeYdelser && skalViseIndkomstOgYdelserBilag) {
     renderOffentligeYdelserSection({
       eoValues: eoValues,
-      startBilagPage,
+      startEoBilagPage,
       renderSubheader,
-      shouldIncludeOffentligYdelseRowInBilag,
-      bilagIndkomstYdelserMode,
-      bilagIndkomstYdelserRanges,
+      shouldIncludeOffentligYdelseRowInEoBilag,
+      eoBilagIndkomstYdelserMode,
+      eoBilagIndkomstYdelserRanges,
       writer,
     });
   }
@@ -548,21 +547,21 @@ export const generateErstatningsopgoerelsePdf = (
   if (selectedElements.midlertidigEet && midlertidigtEetGroups.length > 0) {
     renderMidlertidigtEetSection({
       groups: midlertidigtEetGroups,
-      startBilagPage,
+      startEoBilagPage,
       renderSubheader,
       formatAfgoerelsesdato: formatDateLong,
-      bilagIndkomstYdelserMode,
-      bilagIndkomstYdelserRanges,
+      eoBilagIndkomstYdelserMode,
+      eoBilagIndkomstYdelserRanges,
       writer,
     });
   }
 
-  if (selectedElements.regulering && skalViseIndkomstOgYdelserBilag && shouldIncludeReguleringBilag(eoValues)) {
+  if (selectedElements.regulering && skalViseIndkomstOgYdelserBilag && shouldIncludeEoReguleringBilag(eoValues)) {
     renderReguleringSection({
       eoValues: eoValues,
       stamdataValues,
       modelLoenudviklingPerAnsaettelse: model.tabtArbejdsfortjeneste.loenudvikling?.perAnsaettelse ?? [],
-      startBilagPage,
+      startEoBilagPage,
       renderSubheader,
       safeAddWrappedText: writer.writeWrappedText,
       writeLabelValueLine,
@@ -598,7 +597,7 @@ export const generateErstatningsopgoerelsePdf = (
       tafRanges: model.tafRanges,
       sfggReferenceperiodeRanges,
       harSfggReferenceperiodeMedShFradrag,
-      startBilagPage,
+      startEoBilagPage,
       renderSubheader,
       safeAddWrappedText: writer.writeWrappedText,
       writer,
@@ -606,7 +605,7 @@ export const generateErstatningsopgoerelsePdf = (
   }
 
   if (selectedElements.sygeferiegodtgoerelse && model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.length > 0) {
-    startBilagPage('Sygeferiegodtgørelse');
+    startEoBilagPage('Sygeferiegodtgørelse');
     model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.forEach((entry) => {
       renderSubheader(entry.ansaettelsesforholdNavn);
       if (entry.sfggIntroText) {

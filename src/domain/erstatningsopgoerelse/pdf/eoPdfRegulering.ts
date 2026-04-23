@@ -279,6 +279,25 @@ const resolveRelevantRealDatesForTafScope = (
   return allDates.filter((iso) => iso === firstRelevant || (iso >= tafFra && iso <= tafTil));
 };
 
+const resolveRelevantManualDatesForTafScope = (
+  datedStarts: readonly ISODateString[],
+  tafFra: ISODateString,
+  tafTil: ISODateString,
+  anvendtReguleringsdato: ISODateString | undefined
+): readonly ISODateString[] => {
+  const relevantRealDates = resolveRelevantRealDatesForTafScope(datedStarts, tafFra, tafTil);
+  const hasExplicitStartForFirstCoveredTafPeriod = datedStarts.some((iso) => iso <= tafFra);
+  const syntheticBaselineIso =
+    !hasExplicitStartForFirstCoveredTafPeriod && !anvendtReguleringsdato
+      ? tafFra
+      : undefined;
+  return sortIsoDates([
+    ...relevantRealDates,
+    ...(anvendtReguleringsdato ? [anvendtReguleringsdato] : []),
+    ...(syntheticBaselineIso ? [syntheticBaselineIso] : []),
+  ]);
+};
+
 type ManualRowStart = Readonly<{
   startIso: ISODateString;
   row: LoenudviklingManuelRow;
@@ -660,18 +679,14 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const needsStoreBededagBoundaryRow = hasStoreBededagPct && tafFra < STORE_BEDEDAG_START && tafTil >= STORE_BEDEDAG_START;
     const manualRows = ansaettelsesforhold.loenudviklingManuelTableData ?? [];
     const manualRowsContext = resolveManualRowsContext(manualRows);
+    const datedStarts = sortIsoDates((manualRowsContext?.datedRowStarts ?? []).map((entry) => entry.startIso));
+    const scopeDates = resolveRelevantManualDatesForTafScope(datedStarts, tafFra, tafTil, anvendtReguleringsdato);
     const normalizedRowsByIso = new Map<ISODateString, NonNullable<typeof manualRows>[number]>();
-    // Reference-/baseline-datoen indsættes altid med den senest gældende manuelle sats på den dato.
-    // Den må godt ligge uden for [tafFra, tafTil] — det er netop reference-rækken.
-    // Eksplicitte manuelle ændringsrækker i scope indsættes bagefter og overskrives ved datokollision.
-    const baselineReferenceIso = anvendtReguleringsdato ?? tafFra;
-    const baselineReferenceRow = findLatestManualRowForIso(manualRowsContext, baselineReferenceIso);
-    if (baselineReferenceRow) {
-      normalizedRowsByIso.set(baselineReferenceIso, baselineReferenceRow);
-    }
-    for (const entry of manualRowsContext?.datedRowStarts ?? []) {
-      if (entry.startIso < tafFra || entry.startIso > tafTil) continue;
-      normalizedRowsByIso.set(entry.startIso, entry.row);
+    for (const iso of scopeDates) {
+      const row = findLatestManualRowForIso(manualRowsContext, iso);
+      if (row) {
+        normalizedRowsByIso.set(iso, row);
+      }
     }
     const normalizedRows = Array.from(normalizedRowsByIso.entries())
       .map(([iso, row]) => ({ iso, row }))

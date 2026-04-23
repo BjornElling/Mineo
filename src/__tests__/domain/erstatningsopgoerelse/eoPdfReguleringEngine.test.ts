@@ -554,6 +554,54 @@ describe('eoPdfReguleringEngine', () => {
     ]);
   });
 
+  it('medtager manuel sats-startdato lige før tafFra når perioden fortsat er gældende i taf-intervallet', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.loenPaaHelligdage = 'Almindelig løn';
+    af.feriePct = 15;
+    af.loenudviklingManuelTableData = [
+      {
+        id: 'm1',
+        dato: '',
+        grundloen: asAmountValue(28811.5),
+        feriepenge: '15,00',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '10,00',
+      },
+      {
+        id: 'm2',
+        dato: '01-03-2025',
+        grundloen: asAmountValue(29613.15),
+        feriepenge: '15,00',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '10,00',
+      },
+      {
+        id: 'm3',
+        dato: '01-05-2025',
+        grundloen: asAmountValue(29613.15),
+        feriepenge: '15,00',
+        shSoSats: '',
+        fritvalg: '',
+        agPension: '12,00',
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2025-02-28'),
+      tafFra: iso('2025-04-01'),
+      tafTil: iso('2026-02-28'),
+      tafBeregningsenhed: 'Måneder',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.rows.map((row) => row[0])).toEqual(['28-02-2025', '01-03-2025', '01-05-2025']);
+  });
+
   it('bevarer manuel reference-række når brugeren har angivet en særskilt reguleringsdato med identiske værdier', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];

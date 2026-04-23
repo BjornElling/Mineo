@@ -1,6 +1,6 @@
 export * as aarsloenRowInterval from './aarsloenRowInterval';
 export * as angivetLoenHelpers from './angivetLoenHelpers';
-export * as bilagRules from './bilagRules';
+export * as eoBilagRules from './eoBilagRules';
 export * as bilagWarnings from './bilagWarnings';
 export * as eoConstants from './eoConstants';
 export * as eoRowInitialValues from './eoRowInitialValues';

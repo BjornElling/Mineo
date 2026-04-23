@@ -28,6 +28,11 @@ import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import { buildMidlertidigtEetAfgoerelseGroups, type MidlertidigtEetInsertSource } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
+import {
+  EO_BILAG_DYNAMIC_SELECTION_KEYS,
+  getEoBilagAvailability,
+  type EoBilagDynamicSelectionKey,
+} from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -527,7 +532,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // CHECKBOX STATE FOR ERSTATNINGSOPGØRELSE-DOWNLOAD
   // ============================================================================
 
-  const selectedElements = React.useMemo(() => (
+  const baseSelectedElements = React.useMemo(() => (
     eoValues.eoBilagSelection ?? {
       opgoerelse: true as const,
       loenindkomst: true,
@@ -539,6 +544,26 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       sygeferiegodtgoerelse: true,
     }
   ), [eoValues.eoBilagSelection]);
+  const midlertidigtEetGroups = React.useMemo(
+    () => (midlertidigtEetInsertSource ? buildMidlertidigtEetAfgoerelseGroups(midlertidigtEetInsertSource) : []),
+    [midlertidigtEetInsertSource]
+  );
+  const bilagAvailability = React.useMemo(
+    () => getEoBilagAvailability({
+      eoValues,
+      hasMidlertidigEetAfgoerelser: midlertidigtEetGroups.length > 0,
+    }),
+    [eoValues, midlertidigtEetGroups]
+  );
+  const selectedElements = React.useMemo(() => {
+    const next = { ...baseSelectedElements };
+    for (const key of EO_BILAG_DYNAMIC_SELECTION_KEYS) {
+      if (!bilagAvailability[key].enabled) {
+        next[key] = false;
+      }
+    }
+    return next;
+  }, [baseSelectedElements, bilagAvailability]);
   const loenindkomstOgOffentligeYdelserIndgaar =
     eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
 
@@ -641,7 +666,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return;
     }
     if (!eoSnapshot) return;
-    const midlertidigtEetGroups = buildMidlertidigtEetAfgoerelseGroups(midlertidigtEetInsertSource);
 
     const result = await downloadErstatningsopgoerelsePdf({
       stamdataValues,
@@ -652,7 +676,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       midlertidigtEetGroups,
     });
     setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetInsertSource]);
+  }, [canDownloadSnapshotEoPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetGroups]);
 
   const handleDownloadTafFordeltPdf = React.useCallback(async () => {
     if (!canDownloadSnapshotTafPdf) {
@@ -809,6 +833,39 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     ));
   }, []);
 
+  const renderBilagCheckbox = React.useCallback((
+    key: EoBilagDynamicSelectionKey,
+    label: string
+  ) => {
+    const availability = bilagAvailability[key];
+    const checkbox = (
+      <FormControlLabel
+        className="mineo-disabled-hover-target"
+        control={(
+          <Checkbox
+            checked={selectedElements[key]}
+            disabled={!availability.enabled}
+            onChange={(event) => {
+              updateSelectedElement(key, event.target.checked);
+            }}
+          />
+        )}
+        label={label}
+        sx={{ mr: 0 }}
+      />
+    );
+
+    if (availability.enabled || !availability.disabledReason) {
+      return <React.Fragment key={key}>{checkbox}</React.Fragment>;
+    }
+
+    return (
+      <Tooltip key={key} title={availability.disabledReason} arrow placement="top">
+        <Box component="span" className="mineo-disabled-hover-target">{checkbox}</Box>
+      </Tooltip>
+    );
+  }, [bilagAvailability, selectedElements, updateSelectedElement]);
+
   // ============================================================================
   // RENDER
   // ============================================================================
@@ -962,7 +1019,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
             Vælg elementer, der skal indgå
           </Typography>
           <Box
-            className="row--label-right-hover__content"
+            className="row--label-right-hover__content disabled-hover-checkbox-group"
             sx={{
               display: 'flex',
               flexDirection: 'column',
@@ -975,85 +1032,24 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                 lineHeight: 'var(--line-height-base)',
                 color: 'var(--mineo-color-row-text)',
               },
-              '& .MuiFormControlLabel-label.Mui-disabled': {
-                color: 'text.primary',
-                opacity: 1,
-              },
             }}
           >
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <FormControlLabel
-                control={<Checkbox checked={selectedElements.opgoerelse} disabled />}
-                label="Opgørelse"
-              />
-              <FormControlLabel
-                control={(
-                  <Checkbox
-                    checked={selectedElements.loenindkomst}
-                    onChange={(event) => {
-                      updateSelectedElement('loenindkomst', event.target.checked);
-                    }}
-                  />
-                )}
-                label="Lønindkomst"
-              />
-              <FormControlLabel
-                control={(
-                  <Checkbox
-                    checked={selectedElements.offentligeYdelser}
-                    onChange={(event) => {
-                      updateSelectedElement('offentligeYdelser', event.target.checked);
-                    }}
-                  />
-                )}
-                label="Offentlige ydelser"
-              />
-              <FormControlLabel
-                control={(
-                  <Checkbox
-                    checked={selectedElements.midlertidigEet}
-                    onChange={(event) => {
-                      updateSelectedElement('midlertidigEet', event.target.checked);
-                    }}
-                  />
-                )}
-                label="Midlertidig EET"
-              />
+              <Box component="span" className="mineo-disabled-hover-target">
+                <FormControlLabel
+                  className="mineo-disabled-hover-target"
+                  control={<Checkbox checked={selectedElements.opgoerelse} disabled />}
+                  label="Opgørelse"
+                />
+              </Box>
+              {renderBilagCheckbox('loenindkomst', 'Lønindkomst')}
+              {renderBilagCheckbox('offentligeYdelser', 'Offentlige ydelser')}
+              {renderBilagCheckbox('midlertidigEet', 'Midlertidig EET')}
             </Box>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-              <FormControlLabel
-                control={(
-                  <Checkbox
-                    checked={selectedElements.regulering}
-                    onChange={(event) => {
-                      updateSelectedElement('regulering', event.target.checked);
-                    }}
-                  />
-                )}
-                label="Regulering"
-              />
-              <FormControlLabel
-                control={(
-                  <Checkbox
-                    checked={selectedElements.shDage}
-                    onChange={(event) => {
-                      updateSelectedElement('shDage', event.target.checked);
-                    }}
-                  />
-                )}
-                label="SH-dage"
-              />
-              <FormControlLabel
-                control={(
-                  <Checkbox
-                    checked={selectedElements.sygeferiegodtgoerelse}
-                    onChange={(event) => {
-                      updateSelectedElement('sygeferiegodtgoerelse', event.target.checked);
-                    }}
-                  />
-                )}
-                label="Sygeferiegodtgørelse"
-              />
+              {renderBilagCheckbox('regulering', 'Regulering')}
+              {renderBilagCheckbox('shDage', 'SH-dage')}
+              {renderBilagCheckbox('sygeferiegodtgoerelse', 'Sygeferiegodtgørelse')}
             </Box>
           </Box>
         </Box>

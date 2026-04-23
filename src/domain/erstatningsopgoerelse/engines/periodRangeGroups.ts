@@ -3,7 +3,7 @@ import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildBeregningsperiodeRange, buildTafRanges } from '../helpers/indtaegtPerioder';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
 
-type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
+type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 
 export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
 
@@ -12,21 +12,21 @@ export type PeriodRangeGroup = Readonly<{
   ranges: readonly IsoRange[];
 }>;
 
-export const BILAG_MODE_ALLE = 'Alle' as const;
-export const BILAG_MODE_PERIODEN = 'Perioden' as const;
+export const EO_BILAG_MODE_ALLE = 'Alle' as const;
+export const EO_BILAG_MODE_PERIODEN = 'Perioden' as const;
 
-export const normalizeBilagIndkomstYdelserMode = (
-  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar
-): typeof BILAG_MODE_ALLE | typeof BILAG_MODE_PERIODEN => {
-  return mode === BILAG_MODE_ALLE ? BILAG_MODE_ALLE : BILAG_MODE_PERIODEN;
+export const normalizeEoBilagIndkomstYdelserMode = (
+  mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar
+): typeof EO_BILAG_MODE_ALLE | typeof EO_BILAG_MODE_PERIODEN => {
+  return mode === EO_BILAG_MODE_ALLE ? EO_BILAG_MODE_ALLE : EO_BILAG_MODE_PERIODEN;
 };
 
 export const buildPeriodRangeGroups = (
   eoValues: ErstatningsopgoerelseValues,
-  mode: BilagLoenindkomstOgOffentligeYdelserIndgaar,
+  mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
   allRanges: readonly IsoRange[]
 ): readonly PeriodRangeGroup[] => {
-  if (mode === BILAG_MODE_ALLE) {
+  if (mode === EO_BILAG_MODE_ALLE) {
     return [{ label: null, ranges: allRanges }];
   }
 

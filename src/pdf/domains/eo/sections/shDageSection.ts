@@ -30,7 +30,7 @@ type SHDageSectionContext = Readonly<{
   tafRanges: readonly IsoRange[];
   sfggReferenceperiodeRanges?: readonly IsoRange[];
   harSfggReferenceperiodeMedShFradrag?: boolean;
-  startBilagPage: (titleText: string) => void;
+  startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
   writer: Readonly<{
@@ -70,7 +70,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     tafRanges,
     sfggReferenceperiodeRanges = [],
     harSfggReferenceperiodeMedShFradrag = false,
-    startBilagPage,
+    startEoBilagPage,
     renderSubheader,
     safeAddWrappedText,
     writer,
@@ -136,7 +136,7 @@ export const renderShDageSection = (ctx: SHDageSectionContext): void => {
     writer.setY(resolvePdfSectionEndY(finalY, startY));
   };
 
-  startBilagPage('SH-dage');
+  startEoBilagPage('SH-dage');
 
   safeAddWrappedText(
     eoValues.beregnesUdFra === 'Beregningsperiode'

@@ -31,19 +31,19 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
   const doc = createMockPdfDoc();
   const safeAddWrappedText = vi.fn();
   const renderSubheader = vi.fn();
-  const startBilagPage = vi.fn();
+  const startEoBilagPage = vi.fn();
 
   return {
     safeAddWrappedText,
     renderSubheader,
-    startBilagPage,
+    startEoBilagPage,
     ctx: {
       eoValues,
       tafRanges: tafRangesFromEoValues(eoValues),
       sfggReferenceperiodeRanges: [],
       harSfggReferenceperiodeMedShFradrag: false,
       lineHeight: 4,
-      startBilagPage,
+      startEoBilagPage,
       renderSubheader,
       safeAddWrappedText,
       writer: {
@@ -57,14 +57,14 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
   };
 };
 
-describe('renderShDageSection – startBilagPage', () => {
-  it('kalder startBilagPage med "SH-dage"', () => {
+describe('renderShDageSection – startEoBilagPage', () => {
+  it('kalder startEoBilagPage med "SH-dage"', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    const { startBilagPage, ctx } = makeContext(eoValues);
+    const { startEoBilagPage, ctx } = makeContext(eoValues);
 
     renderShDageSection(ctx);
 
-    expect(startBilagPage).toHaveBeenCalledWith('SH-dage');
+    expect(startEoBilagPage).toHaveBeenCalledWith('SH-dage');
   });
 });
 

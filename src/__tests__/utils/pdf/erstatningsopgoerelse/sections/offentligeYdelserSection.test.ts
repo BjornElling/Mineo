@@ -21,16 +21,16 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
   const eoValues = createErstatningsopgoerelseInitialValues();
   const doc = createMockPdfDoc();
   return {
-    startBilagPage: vi.fn(),
+    startEoBilagPage: vi.fn(),
     renderSubheader: vi.fn(),
     ctx: {
       eoValues,
       lineHeight: 4,
-      startBilagPage: vi.fn(),
+      startEoBilagPage: vi.fn(),
       renderSubheader: vi.fn(),
-      shouldIncludeOffentligYdelseRowInBilag: vi.fn(() => true),
-      bilagIndkomstYdelserMode: 'Alle' as const,
-      bilagIndkomstYdelserRanges: [] as const,
+      shouldIncludeOffentligYdelseRowInEoBilag: vi.fn(() => true),
+      eoBilagIndkomstYdelserMode: 'Alle' as const,
+      eoBilagIndkomstYdelserRanges: [] as const,
       writer: {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
@@ -46,47 +46,47 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
 // ─── Gate: ingen rækker ────────────────────────────────────────────────────────
 
 describe('renderOffentligeYdelserSection – gate (ingen rækker)', () => {
-  it('kalder ikke startBilagPage når shouldInclude altid returnerer false', () => {
+  it('kalder ikke startEoBilagPage når shouldInclude altid returnerer false', () => {
     const { ctx } = makeCtx({
-      shouldIncludeOffentligYdelseRowInBilag: vi.fn(() => false),
+      shouldIncludeOffentligYdelseRowInEoBilag: vi.fn(() => false),
     });
-    const startBilagPage = vi.fn();
-    ctx.startBilagPage = startBilagPage;
+    const startEoBilagPage = vi.fn();
+    ctx.startEoBilagPage = startEoBilagPage;
     ctx.eoValues.offentligeYdelserRows = [
       { id: 'r1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelsestype: 'sygedagpenge', ydelse: undefined, tillaeg: undefined },
     ];
 
     renderOffentligeYdelserSection(ctx);
 
-    expect(startBilagPage).not.toHaveBeenCalled();
+    expect(startEoBilagPage).not.toHaveBeenCalled();
   });
 
-  it('kalder ikke startBilagPage når offentligeYdelserRows er tom', () => {
+  it('kalder ikke startEoBilagPage når offentligeYdelserRows er tom', () => {
     const { ctx } = makeCtx();
-    const startBilagPage = vi.fn();
-    ctx.startBilagPage = startBilagPage;
+    const startEoBilagPage = vi.fn();
+    ctx.startEoBilagPage = startEoBilagPage;
     ctx.eoValues.offentligeYdelserRows = [];
 
     renderOffentligeYdelserSection(ctx);
 
-    expect(startBilagPage).not.toHaveBeenCalled();
+    expect(startEoBilagPage).not.toHaveBeenCalled();
   });
 });
 
-// ─── startBilagPage ────────────────────────────────────────────────────────────
+// ─── startEoBilagPage ──────────────────────────────────────────────────────────
 
-describe('renderOffentligeYdelserSection – startBilagPage', () => {
-  it('kalder startBilagPage med "Offentlige ydelser" når der er rækker', () => {
+describe('renderOffentligeYdelserSection – startEoBilagPage', () => {
+  it('kalder startEoBilagPage med "Offentlige ydelser" når der er rækker', () => {
     const { ctx } = makeCtx();
-    const startBilagPage = vi.fn();
-    ctx.startBilagPage = startBilagPage;
+    const startEoBilagPage = vi.fn();
+    ctx.startEoBilagPage = startEoBilagPage;
     ctx.eoValues.offentligeYdelserRows = [
       { id: 'r1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
     ];
 
     renderOffentligeYdelserSection(ctx);
 
-    expect(startBilagPage).toHaveBeenCalledWith('Offentlige ydelser');
+    expect(startEoBilagPage).toHaveBeenCalledWith('Offentlige ydelser');
   });
 });
 
@@ -147,11 +147,11 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
     renderOffentligeYdelserSection({
       eoValues,
       lineHeight: 4,
-      startBilagPage: vi.fn(),
+      startEoBilagPage: vi.fn(),
       renderSubheader: vi.fn(),
-      shouldIncludeOffentligYdelseRowInBilag: vi.fn(() => true),
-      bilagIndkomstYdelserMode: 'Alle',
-      bilagIndkomstYdelserRanges: [],
+      shouldIncludeOffentligYdelseRowInEoBilag: vi.fn(() => true),
+      eoBilagIndkomstYdelserMode: 'Alle',
+      eoBilagIndkomstYdelserRanges: [],
       writer: {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),

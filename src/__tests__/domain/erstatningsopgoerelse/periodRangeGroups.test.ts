@@ -1,9 +1,9 @@
 import type { ISODateString } from '../../../types/branded';
 import {
-  normalizeBilagIndkomstYdelserMode,
+  normalizeEoBilagIndkomstYdelserMode,
   buildPeriodRangeGroups,
-  BILAG_MODE_ALLE,
-  BILAG_MODE_PERIODEN,
+  EO_BILAG_MODE_ALLE,
+  EO_BILAG_MODE_PERIODEN,
   type IsoRange,
 } from '../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -23,15 +23,15 @@ const makeEoValues = (overrides: Partial<ErstatningsopgoerelseValues> = {}): Ers
   ...overrides,
 });
 
-// ─── normalizeBilagIndkomstYdelserMode ────────────────────────────────────────
+// ─── normalizeEoBilagIndkomstYdelserMode ──────────────────────────────────────
 
-describe('normalizeBilagIndkomstYdelserMode', () => {
-  it('"Alle" → BILAG_MODE_ALLE', () => {
-    expect(normalizeBilagIndkomstYdelserMode('Alle')).toBe(BILAG_MODE_ALLE);
+describe('normalizeEoBilagIndkomstYdelserMode', () => {
+  it('"Alle" → EO_BILAG_MODE_ALLE', () => {
+    expect(normalizeEoBilagIndkomstYdelserMode('Alle')).toBe(EO_BILAG_MODE_ALLE);
   });
 
-  it('"Perioden" → BILAG_MODE_PERIODEN', () => {
-    expect(normalizeBilagIndkomstYdelserMode('Perioden')).toBe(BILAG_MODE_PERIODEN);
+  it('"Perioden" → EO_BILAG_MODE_PERIODEN', () => {
+    expect(normalizeEoBilagIndkomstYdelserMode('Perioden')).toBe(EO_BILAG_MODE_PERIODEN);
   });
 });
 
@@ -45,7 +45,7 @@ describe('buildPeriodRangeGroups – Alle', () => {
 
   it('returnerer én gruppe med label=null og alle ranges uændret', () => {
     const eoValues = makeEoValues();
-    const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_ALLE, allRanges);
+    const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_ALLE, allRanges);
 
     expect(groups).toHaveLength(1);
     expect(groups[0]!.label).toBeNull();
@@ -54,7 +54,7 @@ describe('buildPeriodRangeGroups – Alle', () => {
 
   it('returnerer tom gruppe (label=null) med tomme allRanges', () => {
     const eoValues = makeEoValues();
-    const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_ALLE, []);
+    const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_ALLE, []);
 
     expect(groups).toHaveLength(1);
     expect(groups[0]!.label).toBeNull();
@@ -64,7 +64,7 @@ describe('buildPeriodRangeGroups – Alle', () => {
   it('allRanges passes igennem uforandret (reference-identitet)', () => {
     const eoValues = makeEoValues();
     const allRanges: readonly IsoRange[] = [range('2023-03-01', '2023-03-31')];
-    const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_ALLE, allRanges);
+    const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_ALLE, allRanges);
     expect(groups[0]!.ranges).toBe(allRanges);
   });
 });
@@ -84,7 +84,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         tafPerioder: [],
       });
 
-      const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, someRanges);
+      const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, someRanges);
 
       expect(groups).toHaveLength(1);
       const beregningsGruppe = groups.find((g) => g.label === 'Beregningsperiode');
@@ -107,7 +107,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         ],
       });
 
-      const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, someRanges);
+      const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, someRanges);
 
       expect(groups).toHaveLength(1);
       const tafGruppe = groups.find((g) => g.label === 'TAF-periode');
@@ -128,7 +128,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         ],
       });
 
-      const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, someRanges);
+      const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, someRanges);
 
       expect(groups).toHaveLength(2);
       const labels = groups.map((g) => g.label);
@@ -145,7 +145,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         tafPerioder: [],
       });
 
-      const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, someRanges);
+      const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, someRanges);
 
       expect(groups).toHaveLength(0);
     });
@@ -161,7 +161,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         tafPerioder: [],
       });
 
-      const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, someRanges);
+      const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, someRanges);
 
       const beregningsGruppe = groups.find((g) => g.label === 'Beregningsperiode');
       expect(beregningsGruppe).toBeUndefined();
@@ -178,7 +178,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         ],
       });
 
-      const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, someRanges);
+      const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, someRanges);
 
       const tafGruppe = groups.find((g) => g.label === 'TAF-periode');
       expect(tafGruppe).toBeDefined();
@@ -195,7 +195,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         tafPerioder: [],
       });
 
-      const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, someRanges);
+      const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, someRanges);
 
       const beregningsGruppe = groups.find((g) => g.label === 'Beregningsperiode');
       expect(beregningsGruppe).toBeDefined();
@@ -212,7 +212,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         tafPerioder: [],
       });
 
-      const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, someRanges);
+      const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, someRanges);
 
       const beregningsGruppe = groups.find((g) => g.label === 'Beregningsperiode');
       expect(beregningsGruppe).toBeUndefined();
@@ -229,8 +229,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         tafPerioder: [],
       });
 
-      const groups1 = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, []);
-      const groups2 = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, [
+      const groups1 = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, []);
+      const groups2 = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, [
         range('2020-01-01', '2020-12-31'),
         range('2021-01-01', '2021-12-31'),
       ]);
@@ -254,7 +254,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         ],
       });
 
-      const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, someRanges);
+      const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, someRanges);
 
       expect(groups[0]!.label).toBe('Beregningsperiode');
       expect(groups[1]!.label).toBe('TAF-periode');
@@ -271,7 +271,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         tafPerioder: [],
       });
 
-      const groups = buildPeriodRangeGroups(eoValues, BILAG_MODE_PERIODEN, someRanges);
+      const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, someRanges);
 
       for (const group of groups) {
         expect(typeof group.label === 'string' || group.label === null).toBe(true);
@@ -283,12 +283,12 @@ describe('buildPeriodRangeGroups – Perioden', () => {
 
 // ─── Konstanter ───────────────────────────────────────────────────────────────
 
-describe('BILAG_MODE-konstanter', () => {
-  it('BILAG_MODE_ALLE = "Alle"', () => {
-    expect(BILAG_MODE_ALLE).toBe('Alle');
+describe('EO_BILAG_MODE-konstanter', () => {
+  it('EO_BILAG_MODE_ALLE = "Alle"', () => {
+    expect(EO_BILAG_MODE_ALLE).toBe('Alle');
   });
 
-  it('BILAG_MODE_PERIODEN = "Perioden"', () => {
-    expect(BILAG_MODE_PERIODEN).toBe('Perioden');
+  it('EO_BILAG_MODE_PERIODEN = "Perioden"', () => {
+    expect(EO_BILAG_MODE_PERIODEN).toBe('Perioden');
   });
 });

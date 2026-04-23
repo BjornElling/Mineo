@@ -7,27 +7,27 @@ import { ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
-import { buildPeriodRangeGroups, normalizeBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
+import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { cellRight, createPdfDistributedColumnStyles, createPdfTableCell, renderPdfTable } from '../../../shared/pdfTableRenderer';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { formatIsoDateShort } from '../../../../utils/dateFormatting';
 import { formatMaaneder4, formatReguleringPct, formatKr } from '../../../shared/pdfFormatUtils';
 
-type BilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
+type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 
 type OffentligeYdelserSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;
-  startBilagPage: (titleText: string) => void;
+  startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
-  shouldIncludeOffentligYdelseRowInBilag: (params: Readonly<{
+  shouldIncludeOffentligYdelseRowInEoBilag: (params: Readonly<{
     row: OffentligeYdelserRow;
-    mode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
+    mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
     ranges: readonly IsoRange[];
     errorRowIds: ReadonlySet<string>;
   }>) => boolean;
-  bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
-  bilagIndkomstYdelserRanges: readonly IsoRange[];
+  eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
+  eoBilagIndkomstYdelserRanges: readonly IsoRange[];
   writer: Readonly<{
     addSectionSpacer: () => void;
     addSpacer: (height: number) => void;
@@ -123,14 +123,14 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
 export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionContext): void => {
   const {
     eoValues,
-    startBilagPage,
+    startEoBilagPage,
     renderSubheader,
-    shouldIncludeOffentligYdelseRowInBilag,
-    bilagIndkomstYdelserMode,
-    bilagIndkomstYdelserRanges,
+    shouldIncludeOffentligYdelseRowInEoBilag,
+    eoBilagIndkomstYdelserMode,
+    eoBilagIndkomstYdelserRanges,
     writer,
   } = ctx;
-  const normalizedBilagMode = normalizeBilagIndkomstYdelserMode(bilagIndkomstYdelserMode);
+  const normalizedEoBilagMode = normalizeEoBilagIndkomstYdelserMode(eoBilagIndkomstYdelserMode);
 
   const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(eoValues.offentligeYdelserRows ?? []);
 
@@ -140,13 +140,13 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
   // De to sektioner er komplementære og tjener forskelligt formål i bilagets dokumentation.
   const kandidatRaekker = eoValues.offentligeYdelserRows ?? [];
 
-  const rangeGroups = buildPeriodRangeGroups(eoValues, bilagIndkomstYdelserMode, bilagIndkomstYdelserRanges);
+  const rangeGroups = buildPeriodRangeGroups(eoValues, eoBilagIndkomstYdelserMode, eoBilagIndkomstYdelserRanges);
   const groupedRows = rangeGroups.map((group) => ({
     group,
     rows: kandidatRaekker.filter((row) => {
-      return shouldIncludeOffentligYdelseRowInBilag({
+      return shouldIncludeOffentligYdelseRowInEoBilag({
         row,
-        mode: normalizedBilagMode,
+        mode: normalizedEoBilagMode,
         ranges: group.ranges,
         errorRowIds: offentligeErrorRowIds,
       });
@@ -159,12 +159,12 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
   for (const [index, entry] of groupedRows.entries()) {
     if (skalVisePeriodeSubheadings && entry.group.label) {
       if (index === 0) {
-        startBilagPage('Offentlige ydelser');
+        startEoBilagPage('Offentlige ydelser');
         writer.addSectionSpacer();
       }
       renderSubheader(entry.group.label, undefined, { addTopSpacing: index > 0 });
     } else if (index === 0) {
-      startBilagPage('Offentlige ydelser');
+      startEoBilagPage('Offentlige ydelser');
       writer.addSectionSpacer();
     }
     renderOffentligeYdelserRowsPage({
@@ -177,11 +177,11 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
 
 type MidlertidigtEetSectionContext = Readonly<{
   groups: readonly MidlertidigtEetAfgoerelseGroup[];
-  startBilagPage: (titleText: string) => void;
+  startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   formatAfgoerelsesdato: (date: ISODateString) => string | undefined;
-  bilagIndkomstYdelserMode: BilagLoenindkomstOgOffentligeYdelserIndgaar;
-  bilagIndkomstYdelserRanges: readonly IsoRange[];
+  eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
+  eoBilagIndkomstYdelserRanges: readonly IsoRange[];
   writer: Readonly<{
     addSectionSpacer: () => void;
     addSpacer: (height: number) => void;
@@ -192,8 +192,8 @@ type MidlertidigtEetSectionContext = Readonly<{
 }>;
 
 export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext): void => {
-  const { groups, startBilagPage, renderSubheader, formatAfgoerelsesdato, bilagIndkomstYdelserMode, bilagIndkomstYdelserRanges, writer } = ctx;
-  const normalizedBilagMode = normalizeBilagIndkomstYdelserMode(bilagIndkomstYdelserMode);
+  const { groups, startEoBilagPage, renderSubheader, formatAfgoerelsesdato, eoBilagIndkomstYdelserMode, eoBilagIndkomstYdelserRanges, writer } = ctx;
+  const normalizedEoBilagMode = normalizeEoBilagIndkomstYdelserMode(eoBilagIndkomstYdelserMode);
 
   const ydelserHeader: RowInput = [
     createPdfTableCell('Fra o.m.', { halign: 'center', bold: true }),
@@ -206,9 +206,9 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
   ];
 
   const periodeMatcherRanges = (fra: ISODateString, til: ISODateString): boolean => {
-    if (normalizedBilagMode === 'Alle') return true;
-    if (bilagIndkomstYdelserRanges.length === 0) return false;
-    return bilagIndkomstYdelserRanges.some((range) => range.fra <= til && fra <= range.til);
+    if (normalizedEoBilagMode === 'Alle') return true;
+    if (eoBilagIndkomstYdelserRanges.length === 0) return false;
+    return eoBilagIndkomstYdelserRanges.some((range) => range.fra <= til && fra <= range.til);
   };
 
   let bilagIndex = 0;
@@ -217,7 +217,7 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
     if (perioder.length === 0) continue;
 
     if (bilagIndex === 0) {
-      startBilagPage('Midlertidig EET');
+      startEoBilagPage('Midlertidig EET');
       writer.addSectionSpacer();
     } else {
       writer.addSectionSpacer();

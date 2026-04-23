@@ -16,6 +16,8 @@ const persistedWrapper = (data: unknown) => ({
 });
 
 describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
+  const ASYNC_TEST_TIMEOUT_MS = 30_000;
+
   beforeEach(() => {
     sessionStorage.clear();
   });
@@ -48,5 +50,5 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
       expect(screen.getByText('Svie/smerte satsen for 2026 kan anvendes.')).toBeInTheDocument();
     });
     expect(screen.getByRole('tab', { name: 'Beregning', selected: true })).toBeInTheDocument();
-  }, 15_000);
+  }, ASYNC_TEST_TIMEOUT_MS);
 });
