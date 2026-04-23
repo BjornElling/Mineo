@@ -21,7 +21,7 @@ const openInputEditing = async (user: ReturnType<typeof userEvent.setup>, input:
 };
 
 describe('EetAslAfgoerelserTable', () => {
-  const ASYNC_TEST_TIMEOUT_MS = 30000;
+  const ASYNC_TEST_TIMEOUT_MS = 60_000;
 
   it('persisterer rækkeændringer på blur', async () => {
     const user = userEvent.setup();

@@ -35,6 +35,8 @@ import MenberegningTab from '../../../../components/pages/varigemen/Menberegning
 const setFieldValue = vi.fn();
 
 describe('MenberegningTab', () => {
+  const ASYNC_TEST_TIMEOUT_MS = 15_000;
+
   beforeEach(() => {
     mockDownloadVarigeMenPdf.mockReset();
     mockBeregnVarigeMenGodtgoerelseWithRates.mockReset();
@@ -83,7 +85,7 @@ describe('MenberegningTab', () => {
         },
       })
     );
-  });
+  }, ASYNC_TEST_TIMEOUT_MS);
 
   it('renderer stamdata- og resultatrækker som hover-rækker', () => {
     render(

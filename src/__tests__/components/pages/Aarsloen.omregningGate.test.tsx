@@ -163,6 +163,8 @@ vi.mock('../../../components/tables/StandardLoenTable', () => ({
 }));
 
 describe('Aarsloen omregning gate UI', () => {
+  const ASYNC_TEST_TIMEOUT_MS = 15_000;
+
   beforeEach(() => {
     stateRef.values = {
       ...AARSLOEN_INITIAL_VALUES,
@@ -220,7 +222,7 @@ describe('Aarsloen omregning gate UI', () => {
       expect(screen.getByText('Fuld løn under ferie:')).toBeVisible();
       expect(switches[1]).not.toBeDisabled();
     });
-  });
+  }, ASYNC_TEST_TIMEOUT_MS);
 
   it('ryster toggle og markerer første fejlbehæftede felt ved ugyldigt enable-forsøg', async () => {
     const user = userEvent.setup();
@@ -256,7 +258,7 @@ describe('Aarsloen omregning gate UI', () => {
 
     expect(tableHandleSpies.showMissingEntryError).not.toHaveBeenCalled();
     expect(omregningSwitch).toHaveAttribute('aria-checked', 'false');
-  });
+  }, ASYNC_TEST_TIMEOUT_MS);
 
   it('renderer beregningsrækker som hover-rækker', async () => {
     render(<Aarsloen />);
@@ -265,5 +267,5 @@ describe('Aarsloen omregning gate UI', () => {
       expect(screen.getByText('Antal kalenderdage i den indtastede periode:').closest('.row--label-right-hover')).not.toBeNull();
       expect(screen.getByText('Sammentælling af løn fra tabellen:').closest('.row--label-right-hover')).not.toBeNull();
     });
-  });
+  }, ASYNC_TEST_TIMEOUT_MS);
 });

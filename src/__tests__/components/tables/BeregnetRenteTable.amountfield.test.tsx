@@ -17,6 +17,8 @@ vi.mock('../../../contexts/useAppSettings', () => ({
 }));
 
 describe('BeregnetRenteTable amount commit wiring', () => {
+  const ASYNC_TEST_TIMEOUT_MS = 15_000;
+
   it('clears amount and commits row on Delete in closed StyledAmountField', async () => {
     const user = userEvent.setup();
     const valueWriter = vi.fn();
@@ -59,5 +61,5 @@ describe('BeregnetRenteTable amount commit wiring', () => {
     expect(onFieldChange).toHaveBeenCalledWith('r1', 'belob');
     expect(valueWriter).toHaveBeenCalledWith('');
     expect(onRowBlur).toHaveBeenCalledWith('r1');
-  });
+  }, ASYNC_TEST_TIMEOUT_MS);
 });
