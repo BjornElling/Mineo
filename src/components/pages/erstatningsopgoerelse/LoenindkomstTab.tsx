@@ -76,7 +76,6 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import {
   applyAutoSatsFields,
-  buildLoenindkomstRateSegments,
   isOverenskomstSatsFieldLocked,
   resolveOverenskomstSatsBindings,
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
@@ -103,9 +102,7 @@ import {
 import { useDynamicFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { updateValidationFlagById } from '../../../utils/validationFlagMap';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
-import { parseAarsloenRowInterval } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import { dateToISO } from '../../../types/branded';
-import { calculateStandardLoenRowDerived } from '../../../domain/aarsloen/standardLoenRowCalculations';
+import { calculateLoenindkomstRowDerived } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstRowDerived';
 import {
   readOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
@@ -1570,38 +1567,34 @@ const LoenindkomstTab = React.memo(({
   }, [loenindkomstAnsaettelsesforhold]);
 
   const derivedCalculatorByAfId = React.useMemo(() => {
-    const map = new Map<string, (row: Ansaettelsesforhold['indtaegtsoplysningerTableData'][number]) => ReturnType<typeof calculateStandardLoenRowDerived>>();
+    const map = new Map<string, (row: Ansaettelsesforhold['indtaegtsoplysningerTableData'][number]) => ReturnType<typeof calculateLoenindkomstRowDerived>>();
     for (const af of loenindkomstAnsaettelsesforhold) {
       map.set(af.id, (row) => {
-        const interval = parseAarsloenRowInterval(row, af.loenperiode);
-        const fra = interval ? dateToISO(interval.start) : undefined;
-        const til = interval ? dateToISO(interval.end) : undefined;
-        const rateSegments = fra && til
-          ? buildLoenindkomstRateSegments({
-            ansaettelsesforhold: af,
-            skadedato: stamdataValues?.skadedato,
-            fra,
-            til,
-          })
-          : undefined;
-        return calculateStandardLoenRowDerived(
+        return calculateLoenindkomstRowDerived({
           row,
-          {
-            feriePct: af.feriePct,
-            fritvalgPct: af.fritvalgPct,
-            shSoPct: af.shSoPct,
-            storeBededagPct: af.storeBededagPct,
-            pensionPct: af.pensionPct,
+          ansaettelsesforhold: af,
+          context: {
+            beregnesUdFra,
+            tafBeregningsperiodeFra,
+            tafBeregningsperiodeTil,
+            loenindkomstAnsaettelsesforhold,
+            ferieperioder,
+            fravaerPerioder,
           },
-          {
-            loenperiode: af.loenperiode,
-            rateSegments,
-          }
-        );
+          skadedato: stamdataValues?.skadedato,
+        });
       });
     }
     return map;
-  }, [loenindkomstAnsaettelsesforhold, stamdataValues?.skadedato]);
+  }, [
+    beregnesUdFra,
+    ferieperioder,
+    fravaerPerioder,
+    loenindkomstAnsaettelsesforhold,
+    stamdataValues?.skadedato,
+    tafBeregningsperiodeFra,
+    tafBeregningsperiodeTil,
+  ]);
 
   // Callback-maps afhænger kun af id-listen, ikke af tabeldata.
   // Ids ændrer sig kun ved tilføj/slet af ansaettelsesforhold — ikke ved normale dataredits.

@@ -1,7 +1,8 @@
 import { ydelsestyper } from '../../../data/ydelsestyper';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { beregnPeriodiseringsDage } from '../../../utils/periodeBeregning';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import { countOffentligYdelsePeriodiseringsdage } from '../engines/periodiseringsMotor';
+import { parseDanishToIso } from './eoSharedUtils';
 
 export type OffentligeYdelserDerivedRow = Readonly<{
   periodiseringLabel: string;
@@ -19,7 +20,12 @@ export const deriveOffentligeYdelserRow = (row: OffentligeYdelserRow): Offentlig
   const fraDato = row.fraDato?.trim() ? row.fraDato : undefined;
   const tilDato = row.tilDato?.trim() ? row.tilDato : undefined;
 
-  const antalDage = beregnPeriodiseringsDage(fraDato, tilDato, config.periodisering, ydelsestypeKey);
+  const antalDage = countOffentligYdelsePeriodiseringsdage({
+    fra: parseDanishToIso(fraDato),
+    til: parseDanishToIso(tilDato),
+    periodisering: config.periodisering,
+    ydelsestypeKey,
+  });
   if (!antalDage || antalDage <= 0) return { periodiseringLabel, antalDage: null, ydelsePerDag: null };
 
   const ydelseValue = amountValueToNumber(row.ydelse);

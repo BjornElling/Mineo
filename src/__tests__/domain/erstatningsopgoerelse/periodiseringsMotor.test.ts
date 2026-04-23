@@ -1,6 +1,8 @@
 import { toISODateString, type ISODateString } from '../../../types/branded';
 import {
   buildLoenArbejdsdageSet,
+  buildSygedagpengeArbejdsdagePrKalenderuge,
+  countOffentligYdelsePeriodiseringsdage,
   isOffentligYdelseDatoMedregnet,
   optaelArbejdsdage,
   optaelArbejdsdageBreakdown,
@@ -63,6 +65,68 @@ describe('periodiseringsMotor', () => {
       shDays: new Set<ISODateString>(),
     });
     expect(result).toBe(0);
+  });
+
+  it('countOffentligYdelsePeriodiseringsdage tæller kalenderdage inklusivt', () => {
+    const result = countOffentligYdelsePeriodiseringsdage({
+      fra: iso('2024-03-30'),
+      til: iso('2024-04-02'),
+      periodisering: 'kalenderdage',
+      ydelsestypeKey: 'dagpenge',
+    });
+    expect(result).toBe(4);
+  });
+
+  it('countOffentligYdelsePeriodiseringsdage anvender sygedagpenge-cutoff centralt', () => {
+    const foerCutoff = countOffentligYdelsePeriodiseringsdage({
+      fra: iso('2012-04-01'),
+      til: iso('2012-06-30'),
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'sygedagpenge',
+    });
+    const efterCutoff = countOffentligYdelsePeriodiseringsdage({
+      fra: iso('2013-05-13'),
+      til: iso('2013-05-31'),
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'sygedagpenge',
+    });
+    const efterCutoffSomAlmindelig = countOffentligYdelsePeriodiseringsdage({
+      fra: iso('2013-05-13'),
+      til: iso('2013-05-31'),
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'dagpenge',
+    });
+
+    expect(foerCutoff).toBeGreaterThan(0);
+    expect(efterCutoff).toBe(efterCutoffSomAlmindelig);
+  });
+
+  it('countOffentligYdelsePeriodiseringsdage vurderer hele intervallet ud fra periodens slutdato ved cutoff', () => {
+    const foerSyntetiskCutoff = countOffentligYdelsePeriodiseringsdage({
+      fra: iso('2023-12-29'),
+      til: iso('2024-01-03'),
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'sygedagpenge',
+      sygedagpengeShCutoff: iso('2024-01-04'),
+    });
+    const efterSyntetiskCutoff = countOffentligYdelsePeriodiseringsdage({
+      fra: iso('2023-12-29'),
+      til: iso('2024-01-03'),
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'sygedagpenge',
+      sygedagpengeShCutoff: iso('2024-01-02'),
+    });
+
+    expect(foerSyntetiskCutoff).toBe(4);
+    expect(efterSyntetiskCutoff).toBe(3);
+  });
+
+  it('buildSygedagpengeArbejdsdagePrKalenderuge deler arbejdsdage pr. kalenderuge via central motor', () => {
+    const result = buildSygedagpengeArbejdsdagePrKalenderuge(iso('2025-01-09'), iso('2025-01-14'));
+    expect(result).toEqual([
+      { ugeStart: iso('2025-01-06'), arbejdsdage: 2 },
+      { ugeStart: iso('2025-01-13'), arbejdsdage: 2 },
+    ]);
   });
 
   it('buildLoenArbejdsdageSet ekskluderer kun ferie- og SH-dage', () => {

@@ -8,11 +8,13 @@ import type { DateInterval } from '../types/calculation';
 import type { StandardLoenTableRow } from '../schemas/formSchemas';
 import { parseISODate, toISODateString, type ISODateString } from '../types/branded';
 import { addDays, createDate, formatToISO, isLeapYear, parseDanishDate, parseWeekString } from './dateUtils';
-import { beregnSHDageForDatoSet } from '../domain/dates/shDageBeregning';
-import { SYGEDAGPENGE_SH_CUTOFF } from '../domain/erstatningsopgoerelse/helpers/eoConstants';
 import type { Periodisering } from '../data/ydelsestyper';
 import { countInclusiveUtcDays } from './utcDayMath';
 import { MONTH_NAMES_DA_SHORT } from './dateFormatting';
+import {
+  buildSygedagpengeArbejdsdagePrKalenderuge as buildSygedagpengeArbejdsdagePrKalenderugeCentral,
+  countOffentligYdelsePeriodiseringsdage,
+} from '../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
 
 /**
  * Hyppigste gennemsnitlige antal hverdage på et kalenderår.
@@ -469,43 +471,18 @@ export const beregnPeriodiseringsDage = (
   ydelsestype?: string
 ): number | null => {
   if (!fraDato || !tilDato) return null;
+  if (periodisering !== 'kalenderdage' && periodisering !== 'arbejdsdage') return null;
 
   const fra = parseDanishDate(fraDato);
   const til = parseDanishDate(tilDato);
   if (!fra || !til || fra > til) return null;
 
-  // Byg et Set af alle datoer i perioden (ISO-format)
-  const datoSet = new Set<ISODateString>();
-  let current = new Date(fra);
-  while (current <= til) {
-    datoSet.add(formatToISO(current));
-    current = addDays(current, 1);
-  }
-
-  switch (periodisering) {
-    case 'kalenderdage': {
-      // Alle dage fra-til inklusiv
-      return datoSet.size;
-    }
-    case 'arbejdsdage': {
-      // Hverdage minus SH-dage.
-      // SPECIEL REGEL: Sygedagpenge-perioder der slutter før SYGEDAGPENGE_SH_CUTOFF (2012-07-02)
-      // periodiseres uden SH-fradrag. Fra og med cutoff fratrækkes SH-dage som normalt.
-      const hverdage = beregnAntalHverdage(datoSet);
-
-      if (ydelsestype === 'sygedagpenge') {
-        const tilParsed = parseDanishDate(tilDato);
-        if (tilParsed && formatToISO(tilParsed) < SYGEDAGPENGE_SH_CUTOFF) {
-          return hverdage;
-        }
-      }
-
-      const shDage = beregnSHDageForDatoSet(datoSet);
-      return hverdage - shDage;
-    }
-    default:
-      return null;
-  }
+  return countOffentligYdelsePeriodiseringsdage({
+    fra: formatToISO(fra),
+    til: formatToISO(til),
+    periodisering,
+    ydelsestypeKey: ydelsestype ?? '',
+  });
 };
 
 /**
@@ -530,33 +507,5 @@ export const beregnSygedagpengeArbejdsdagePrKalenderuge = (
   fraDato: ISODateString,
   tilDato: ISODateString
 ): readonly KalenderugeArbejdsdage[] => {
-  const fra = parseISODate(fraDato);
-  const til = parseISODate(tilDato);
-  if (!fra || !til || fra > til) return [];
-
-  const uger = new Map<ISODateString, Set<ISODateString>>();
-  let current = new Date(fra);
-  while (current <= til) {
-    const weekday = current.getUTCDay();
-    if (weekday >= 1 && weekday <= 5) {
-      const weekdayOffset = (weekday + 6) % 7;
-      const ugeStart = formatToISO(addDays(current, -weekdayOffset));
-      const datoer = uger.get(ugeStart) ?? new Set<ISODateString>();
-      datoer.add(formatToISO(current));
-      uger.set(ugeStart, datoer);
-    }
-    current = addDays(current, 1);
-  }
-
-  const fratraekSH = tilDato >= SYGEDAGPENGE_SH_CUTOFF;
-
-  const result: KalenderugeArbejdsdage[] = [];
-  for (const [ugeStart, datoer] of uger) {
-    const hverdage = datoer.size;
-    const arbejdsdage = fratraekSH ? hverdage - beregnSHDageForDatoSet(datoer) : hverdage;
-    if (arbejdsdage > 0) {
-      result.push({ ugeStart, arbejdsdage });
-    }
-  }
-  return result;
+  return buildSygedagpengeArbejdsdagePrKalenderugeCentral(fraDato, tilDato);
 };

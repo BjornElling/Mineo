@@ -8,9 +8,9 @@ import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { roundByMethod } from '../../../utils/rounding';
 import { parseAmountInput } from '../../../utils/expressionAmount';
 import {
-  beregnPeriodiseringsDage,
-  beregnSygedagpengeArbejdsdagePrKalenderuge,
-} from '../../../utils/periodeBeregning';
+  buildSygedagpengeArbejdsdagePrKalenderuge,
+  countOffentligYdelsePeriodiseringsdage,
+} from '../engines/periodiseringsMotor';
 import { isoToDanish, maxIso, minIso, type ISODateString } from '../../../types/branded';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
@@ -40,7 +40,7 @@ const buildSegmentExpression = (arbejdsdage: number, satsPrDag: number): string 
 const buildKommunaltAtpExpression = (segment: SygedagpengeSegment): string => {
   const egetAtpPrKalenderuge = resolveEgetAtpBidragPrKalenderuge(segment.rate);
   const kommunaltFaktor = resolveKommunaltAtpBidragPrKalenderuge(segment.rate) / egetAtpPrKalenderuge;
-  const ugeBidrag = beregnSygedagpengeArbejdsdagePrKalenderuge(segment.fraDato, segment.tilDato).map((uge) => {
+  const ugeBidrag = buildSygedagpengeArbejdsdagePrKalenderuge(segment.fraDato, segment.tilDato).map((uge) => {
     const egetBidrag = roundByMethod((uge.arbejdsdage * egetAtpPrKalenderuge) / 5, 0, 'halfAwayFromZero');
     return `${egetBidrag}*${kommunaltFaktor}`;
   });
@@ -69,7 +69,12 @@ export const splitSygedagpengeRateSegments = (
       throw new Error('CRITICAL: Kunne ikke konvertere sygedagpenge-segment til dansk datoformat');
     }
 
-    const arbejdsdage = beregnPeriodiseringsDage(segmentFraDa, segmentTilDa, 'arbejdsdage', 'sygedagpenge');
+    const arbejdsdage = countOffentligYdelsePeriodiseringsdage({
+      fra: segmentFra,
+      til: segmentTil,
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'sygedagpenge',
+    });
     if (!arbejdsdage || arbejdsdage <= 0) continue;
 
     segments.push({
@@ -117,8 +122,8 @@ export const buildSygedagpengeRowsForRange = (
  * Vigtigt om dagtælling:
  * - Fra og med 2. juli 2012 medregnes SH-dage ikke længere for sygedagpenge.
  * - Til og med 1. juli 2012 medregnes SH-dage fortsat.
- * - Særreglen håndhæves centralt af `beregnPeriodiseringsDage(..., 'sygedagpenge')`
- *   og `beregnSygedagpengeArbejdsdagePrKalenderuge`, så ydelse og ATP-tillæg altid
+ * - Særreglen håndhæves centralt af `countOffentligYdelsePeriodiseringsdage(...)`
+ *   og `buildSygedagpengeArbejdsdagePrKalenderuge`, så ydelse og ATP-tillæg altid
  *   anvender samme cutoff-regel på de samme datoer.
  *
  * Vigtigt om feriedage:

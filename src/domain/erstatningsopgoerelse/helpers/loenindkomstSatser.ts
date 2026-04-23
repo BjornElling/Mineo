@@ -17,9 +17,10 @@ import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
 import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import type { StandardLoenRateSegment, StandardLoenSatserInput } from '../../aarsloen/standardLoenRowCalculations';
-import { dateToISO } from '../../../types/branded';
+import { dateToISO, isISODateString } from '../../../types/branded';
 import { addDays } from '../../../utils/dateUtils';
 import { round2 } from '../../../utils/roundingShortcuts';
+import { parseDanishToIso } from './eoSharedUtils';
 
 export type OverenskomstSatsField = 'fritvalgPct' | 'shSoPct' | 'pensionPct';
 
@@ -72,6 +73,16 @@ const resolveManualPercentValue = (
     return round2(parsePercentToDecimal(rowValue) * 100);
   }
   return fallback;
+};
+
+const resolveLatestManualRowForDate = (
+  rows: readonly Readonly<{ row: LoenudviklingManuelRow; startDato: ISODateString }>[],
+  isoDate: ISODateString
+): LoenudviklingManuelRow | undefined => {
+  const matchingEntry = [...rows]
+    .reverse()
+    .find((entry) => entry.startDato <= isoDate);
+  return matchingEntry?.row;
 };
 
 const buildSegmentsFromPeriodStarts = (
@@ -227,12 +238,18 @@ export const buildLoenindkomstRateSegments = (args: Readonly<{
   if (af.loenudviklingBeregningsgrundlag === 'Manuelt angivet') {
     const rows = (af.loenudviklingManuelTableData ?? [])
       .filter((row): row is LoenudviklingManuelRow => typeof row.dato === 'string' && row.dato.trim() !== '')
-      .map((row) => ({ row, startDato: row.dato! as ISODateString }))
-      .filter((entry) => entry.startDato >= fra && entry.startDato <= til)
+      .map((row) => {
+        const dato = (row.dato ?? '').trim();
+        const startDato = isISODateString(dato) ? dato as ISODateString : parseDanishToIso(dato);
+        return startDato ? { row, startDato } : null;
+      })
+      .filter((entry): entry is Readonly<{ row: LoenudviklingManuelRow; startDato: ISODateString }> => entry !== null)
       .sort((left, right) => left.startDato.localeCompare(right.startDato));
-    const starts = rows.map((entry) => entry.startDato);
+    const starts = rows
+      .map((entry) => entry.startDato)
+      .filter((startDato) => startDato >= fra && startDato <= til);
     return buildSegmentsFromPeriodStarts(fra, til, starts).map((segment) => {
-      const row = rows.find((entry) => entry.startDato === segment.startDato)?.row;
+      const row = resolveLatestManualRowForDate(rows, segment.startDato);
       return {
         fra: segment.fra,
         til: segment.til,

@@ -7,6 +7,7 @@ import type { Periodisering } from '../../../data/ydelsestyper';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from '../helpers/tafBeregningsenhed';
 import { SYGEDAGPENGE_SH_CUTOFF } from '../helpers/eoConstants';
+import { beregnSHDageForDatoSet } from '../../dates/shDageBeregning';
 import { roundByMethod } from '../../../utils/rounding';
 import { type DateInterval, type IsoRange } from '../../../utils/isoDateHelpers';
 import { toNonNegativeInt } from '../../../utils/numberParsing';
@@ -44,6 +45,11 @@ import { assertNever } from '../../../utils/assertNever';
 export type { IsoRange, DateInterval } from '../../../utils/isoDateHelpers';
 
 export { SYGEDAGPENGE_SH_CUTOFF, TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../helpers/eoConstants';
+
+export type KalenderugeArbejdsdage = Readonly<{
+  ugeStart: ISODateString;
+  arbejdsdage: number;
+}>;
 
 const countOverlapCalendarDays = (interval: DateInterval, ranges: readonly IsoRange[]): number => {
   if (ranges.length === 0) return 0;
@@ -229,6 +235,81 @@ export const periodiserBeloebForOffentligYdelse = (args: {
   }
   if (overlapDage <= 0) return 0;
   return totalBeloeb * (overlapDage / periodiseringsDage);
+};
+
+export const countOffentligYdelsePeriodiseringsdage = (args: {
+  fra: ISODateString | undefined;
+  til: ISODateString | undefined;
+  periodisering: Periodisering;
+  ydelsestypeKey: string;
+  sygedagpengeShCutoff?: ISODateString;
+}): number | null => {
+  const { fra, til, periodisering, ydelsestypeKey, sygedagpengeShCutoff } = args;
+  if (!fra || !til) return null;
+  if (fra > til) return null;
+  const fraDate = parseISODate(fra);
+  const tilDate = parseISODate(til);
+  if (!fraDate || !tilDate) return null;
+
+  const datoSet = buildDatoSetInclusiveFromDates(fraDate, tilDate);
+  const shDays = buildShDageSet(fraDate, tilDate, datoSet);
+  let count = 0;
+  for (const iso of datoSet) {
+    const dateObj = parseISODate(iso);
+    if (!dateObj) continue;
+    if (!isOffentligYdelseDatoMedregnet({
+      iso,
+      dateObj,
+      shDays,
+      periodisering,
+      ydelsestypeKey,
+      rowTilISO: til,
+      sygedagpengeShCutoff,
+    })) {
+      continue;
+    }
+    count += 1;
+  }
+  return count;
+};
+
+export const buildSygedagpengeArbejdsdagePrKalenderuge = (
+  fraDato: ISODateString,
+  tilDato: ISODateString,
+  options?: Readonly<{ sygedagpengeShCutoff?: ISODateString }>
+): readonly KalenderugeArbejdsdage[] => {
+  const fra = parseISODate(fraDato);
+  const til = parseISODate(tilDato);
+  if (!fra || !til || fra > til) return [];
+
+  const uger = new Map<ISODateString, Set<ISODateString>>();
+  let current = new Date(fra);
+  while (current <= til) {
+    const weekday = current.getUTCDay();
+    if (weekday >= 1 && weekday <= 5) {
+      const weekdayOffset = (weekday + 6) % 7;
+      const ugeStart = dateToISO(addDays(current, -weekdayOffset));
+      const iso = dateToISO(current);
+      if (ugeStart && iso) {
+        const datoer = uger.get(ugeStart) ?? new Set<ISODateString>();
+        datoer.add(iso);
+        uger.set(ugeStart, datoer);
+      }
+    }
+    current = addDays(current, 1);
+  }
+
+  const fratraekSH = tilDato >= (options?.sygedagpengeShCutoff ?? SYGEDAGPENGE_SH_CUTOFF);
+
+  const result: KalenderugeArbejdsdage[] = [];
+  for (const [ugeStart, datoer] of uger) {
+    const hverdage = datoer.size;
+    const arbejdsdage = fratraekSH ? hverdage - beregnSHDageForDatoSet(datoer) : hverdage;
+    if (arbejdsdage > 0) {
+      result.push({ ugeStart, arbejdsdage });
+    }
+  }
+  return result;
 };
 
 export const optaelMaanederPraecis = (args: {

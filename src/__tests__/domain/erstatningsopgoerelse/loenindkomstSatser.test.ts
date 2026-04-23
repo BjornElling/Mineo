@@ -290,6 +290,34 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
     expect(segmentEfter2024?.satser.storeBededagPct).toBeCloseTo(0.45, 10);
   });
 
+  it('manuelt angivet: bruger senest gældende pensionssats selv når ændringen ligger før lønrækken', () => {
+    const segments = buildLoenindkomstRateSegments({
+      ansaettelsesforhold: {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        harOverenskomst: false,
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        loenPaaHelligdage: 'Almindelig løn' as const,
+        feriePct: 15,
+        pensionPct: 10,
+        loenudviklingManuelTableData: [
+          { dato: '2025-02-28', feriepenge: '15,00', shSoSats: '', fritvalg: '', agPension: '10,00' },
+          { dato: '2025-03-01', feriepenge: '15,00', shSoSats: '', fritvalg: '', agPension: '10,00' },
+          { dato: '2025-05-01', feriepenge: '15,00', shSoSats: '', fritvalg: '', agPension: '12,00' },
+          { dato: '2026-03-01', feriepenge: '15,00', shSoSats: '', fritvalg: '', agPension: '12,00' },
+        ],
+      },
+      skadedato: undefined,
+      fra: '2025-06-01',
+      til: '2025-06-30',
+    });
+
+    expect(segments).toHaveLength(1);
+    expect(segments[0]?.fra).toBe('2025-06-01');
+    expect(segments[0]?.til).toBe('2025-06-30');
+    expect(segments[0]?.satser.feriePct).toBe(15);
+    expect(segments[0]?.satser.pensionPct).toBe(12);
+  });
+
   it('overenskomst (bygge-anlaeg, SH-udbetaling): sætter aldrig bededagstillæg', () => {
     const segments = buildLoenindkomstRateSegments({
       ansaettelsesforhold: {
