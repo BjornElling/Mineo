@@ -10,7 +10,7 @@ import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import { filterDateLikeKeyDown } from './inputKeyFilters';
 import { readClipboardText } from '../../utils/clipboardUtils';
-import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
+import { normalizeDateDraftOnCommit, normalizeDateDraftSeparators } from '../../utils/dateDraftNormalization';
 import { normalizeDatePaste } from '../../utils/inputPasteNormalization';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
@@ -66,11 +66,7 @@ const MAX_CANONICAL_DANISH_DATE_LENGTH = 10; // dd-mm-åååå
 const MAX_DRAFT_LENGTH = MAX_CANONICAL_DANISH_DATE_LENGTH + 6;
 
 const splitDateParts = (draft: string): SplitDateParts => {
-  const normalized = draft
-    .trim()
-    .replace(/[ .:/]/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+/, '');
+  const normalized = normalizeDateDraftSeparators(draft);
 
   const [dayRaw = '', monthRaw = '', yearRaw = '', ...rest] = normalized.split('-');
   if (rest.length > 0) return null;
@@ -260,7 +256,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       value,
       format: formatISODateAsDanish,
       parse: parseDate,
-      normalizeDraftOnCommit: trimToAlphanumericEdges,
+      normalizeDraftOnCommit: normalizeDateDraftOnCommit,
       onCommit: (nextValue) => {
         onCommit?.(createCommitEvent(nextValue));
       },
@@ -435,7 +431,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
             e.stopPropagation();
             // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
             // Parse og commit direkte (synkront) som table-felter gør
-            const normalized = trimToAlphanumericEdges('');
+            const normalized = normalizeDateDraftOnCommit('');
             const result = parseDate(normalized, { mode: 'commit' });
             if (result.ok) {
               onCommit?.(createCommitEvent(result.value));

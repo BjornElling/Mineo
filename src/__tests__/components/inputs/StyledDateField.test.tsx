@@ -145,6 +145,52 @@ describe('StyledDateField', () => {
     expect(input).toHaveValue('17-12-1956');
   });
 
+  it('normalizes commas and other special characters to hyphens on commit', async () => {
+    const user = userEvent.setup();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
+      return <StyledDateField value={value} onCommit={(e) => setValue(e.target.value)} />;
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.type(input, '1,1@28');
+    await user.tab();
+
+    expect(input).toHaveValue('01-01-2028');
+  });
+
+  it('committer ikke ufuldstændig dato med trailing separator', async () => {
+    const user = userEvent.setup();
+    const handleCommit = vi.fn();
+
+    render(<StyledDateField value={undefined} onCommit={handleCommit} />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.type(input, '1-1-2-');
+    await user.tab();
+
+    expect(handleCommit).not.toHaveBeenCalled();
+    expect(input).toHaveValue('1-1-2-');
+    expect(screen.getByText('Ugyldig dato')).toBeInTheDocument();
+  });
+
+  it('rejects letters in date drafts', async () => {
+    const user = userEvent.setup();
+
+    render(<StyledDateField value={undefined} />);
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    await user.click(input);
+    await user.type(input, '1a1');
+
+    expect(input).toHaveValue('11');
+  });
+
   it('copies the full field value while focused and editor is closed', async () => {
     const user = userEvent.setup();
 

@@ -1,5 +1,6 @@
 import type * as React from 'react';
 import { readClipboardText } from '../../utils/clipboardUtils';
+import { isDateLikeDraftAllowed } from '../../utils/dateDraftNormalization';
 import { isFractionDraftAllowed } from '../../utils/fraction';
 
 type KeyDownEvent = React.KeyboardEvent<HTMLInputElement>;
@@ -226,10 +227,10 @@ export const filterPercentKeyDown = (
 };
 
 /**
- * Date/Week: digits and a small set of separators (to support flexible typing styles),
- * plus a segment-length guard to prevent 3-digit days/months and >4-digit years during typing.
+ * Date: digits and separator characters, with a segment-length guard to prevent
+ * 3-digit days/months and >4-digit years during typing.
  *
- * Allowed separators: `. , / \\ - space`
+ * Allowed separators: any non-alphanumeric character (spaces and special characters).
  * Segment rules (by digits between separators): `DD`-`MM`-`YYYY` (2-2-4), partial input allowed.
  *
  * This is a typing-time guard only; paste can still bypass.
@@ -237,15 +238,7 @@ export const filterPercentKeyDown = (
 export const filterDateLikeKeyDown = (e: KeyDownEvent): void => {
   if (!shouldValidateCharInsertion(e)) return;
   const next = getNextValueFromInsertion(e.currentTarget, e.key);
-  const allowedChars = /^[0-9.,/\\\- ]*$/;
-  if (!allowedChars.test(next)) {
-    block(e);
-    return;
-  }
-
-  // Segment-length guard: 0–2 digits, sep, 0–2 digits, optional sep, 0–4 digits.
-  const segmentGuard = /^\d{0,2}(?:[.,/\\\- ]\d{0,2}(?:[.,/\\\- ]\d{0,4})?)?$/;
-  if (!segmentGuard.test(next)) block(e);
+  if (!isDateLikeDraftAllowed(next, [2, 2, 4])) block(e);
 };
 
 /**

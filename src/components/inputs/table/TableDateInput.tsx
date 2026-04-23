@@ -3,12 +3,13 @@ import { InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { shouldClearField } from '../../../utils/inputValidation';
 import { interpretYear } from '../../../utils/dateInputValidation';
+import { normalizeDateDraftOnCommit, normalizeDateDraftSeparators } from '../../../utils/dateDraftNormalization';
 import { validateISODateRange } from '../../../utils/isoDateHelpers';
 import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../../../utils/dateRangeErrorMessages';
 import { copyWholeValueFromReadOnlyField, readClipboardText } from '../../../utils/clipboardUtils';
 import { normalizeDatePaste } from '../../../utils/inputPasteNormalization';
 import { coerceToDanishDateString, coerceToISODateString, type ISODateString } from '../../../types/branded';
-import { asTableCommittedString, normalizeTableDraftOnCommit, type TableInputErrorInfo } from '../../../utils/tableInputContracts';
+import { asTableCommittedString, type TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { assignRef } from './assignRef';
 import { useGridCellEditing, useGridCellFocus, useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
@@ -87,13 +88,15 @@ const parseDanishDateOnCommit = (
     monthRaw = trimmed.slice(2, 4);
     yearRaw = trimmed.slice(4);
   } else {
-    // Require exactly two separators between day/month/year (avoid permissive normalization of noisy input).
-    const match = trimmed.match(/^(\d{1,2})\s*[ .:/-]\s*(\d{1,2})\s*[ .:/-]\s*(\d{1,4})$/);
-    if (!match) return { ok: false, error: 'Ugyldig dato' };
+    const normalized = normalizeDateDraftSeparators(trimmed);
+    const [dayPart = '', monthPart = '', yearPart = '', ...rest] = normalized.split('-');
+    if (rest.length > 0 || dayPart === '' || monthPart === '' || yearPart === '') {
+      return { ok: false, error: 'Ugyldig dato' };
+    }
 
-    dayRaw = match[1];
-    monthRaw = match[2];
-    yearRaw = match[3];
+    dayRaw = dayPart;
+    monthRaw = monthPart;
+    yearRaw = yearPart;
   }
 
   if (/[^0-9]/.test(dayRaw) || /[^0-9]/.test(monthRaw) || /[^0-9]/.test(yearRaw)) {
@@ -387,7 +390,7 @@ const TableDateInput = React.memo(
 
     const sanitizeValue: TableDateSanitizeCallback = React.useCallback(
       (rawValue) => {
-        const raw = normalizeTableDraftOnCommit(String(rawValue ?? ''));
+        const raw = normalizeDateDraftOnCommit(String(rawValue ?? ''));
         const { twoDigitYearPolicy: policy } = latest.current;
         const committed = commitDateDraft(raw, { twoDigitYearPolicy: policy });
         return committed.committed;
@@ -402,7 +405,7 @@ const TableDateInput = React.memo(
     const commitAndEmitBlur = React.useCallback(
       (rawDraft: string): boolean => {
         setTouched(true);
-        const normalized = normalizeTableDraftOnCommit(rawDraft);
+        const normalized = normalizeDateDraftOnCommit(rawDraft);
         const { minDate: min, maxDate: max, specialRangeErrors: special, twoDigitYearPolicy: policy } = latest.current;
         const committed = commitDateDraft(normalized, { twoDigitYearPolicy: policy });
 

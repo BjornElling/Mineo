@@ -202,6 +202,94 @@ describe('TableDateInput', () => {
     expect(input).toHaveValue('17-12-1956');
   });
 
+  it('normalizes commas and other special characters to hyphens on commit', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-5b', colIndex: 0 };
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('');
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+      const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
+
+      return (
+        <GridCoreProvider value={gridValue}>
+          <TableDateInput
+            gridCell={gridCell}
+            value={value}
+            onBlur={(e) => {
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.type(input, '1,1@28');
+    await user.tab();
+
+    expect(input).toHaveValue('01-01-2028');
+  });
+
+  it('committer ikke ufuldstændig dato med trailing separator', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-5bb', colIndex: 0 };
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('');
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+      const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
+
+      return (
+        <GridCoreProvider value={gridValue}>
+          <TableDateInput
+            gridCell={gridCell}
+            value={value}
+            onBlur={(e) => {
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.type(input, '1-1-2-');
+    await user.tab();
+
+    expect(input).toHaveValue('1-1-2-');
+    const describedBy = input.getAttribute('aria-describedby');
+    expect(describedBy).toBeTruthy();
+    const errorEl = describedBy ? document.getElementById(describedBy) : null;
+    expect(errorEl).toHaveTextContent('Ugyldig dato');
+  });
+
+  it('rejects letters in date drafts', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-5c', colIndex: 0 };
+    const gridValue = createGridValue(gridCell, gridCell);
+
+    render(
+      <GridCoreProvider value={gridValue}>
+        <TableDateInput gridCell={gridCell} value="" />
+      </GridCoreProvider>
+    );
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    await user.click(input);
+    await user.type(input, '1a1');
+
+    expect(input).toHaveValue('11');
+  });
+
   it('copies the full field value while focused and not editing', async () => {
     const user = userEvent.setup();
     const gridCell = { rowId: 'row-6', colIndex: 0 };
