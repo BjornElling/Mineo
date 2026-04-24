@@ -199,12 +199,18 @@ const setupServiceWorkerUpdateChecks = (): void => {
 };
 
 const bootstrap = async (): Promise<void> => {
-  // PWA file handler (Launch Queue) skal initialiseres tidligt, ogs hvis vi ender p unsupported-device gate.
+  const unsupportedDevice = isUnsupportedDevice();
+  if (unsupportedDevice) {
+    suppressPwaInstallPrompt();
+  } else {
+    setupPwaInstallPromptCapture();
+  }
+
+  // PWA file handler (Launch Queue) skal initialiseres tidligt, også hvis vi ender på unsupported-device gate.
   setupPwaLaunchQueueConsumer();
   await hydratePendingPwaFileOpenRequest();
 
-  if (isUnsupportedDevice()) {
-    suppressPwaInstallPrompt();
+  if (unsupportedDevice) {
     const { default: UnsupportedDevicePage } = await import('./components/pages/UnsupportedDevicePage');
     root.render(
       <React.StrictMode>
@@ -213,8 +219,6 @@ const bootstrap = async (): Promise<void> => {
     );
     return;
   }
-
-  setupPwaInstallPromptCapture();
 
   await ensureLatestVersionBeforeRender();
   setupServiceWorkerUpdateChecks();
