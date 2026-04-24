@@ -141,6 +141,7 @@ export type TabtArbejdsfortjenesteModel = Readonly<{
   statusLinjer: readonly string[];
   eetLinjer: readonly string[];
   differencekravLinje: string | null;
+  ferieFravaerLinje: string | null;
   tafPerioderLinjer: readonly string[];
   harTafPerioder: boolean;
   tafBeregningsenhed: TafBeregningsenhed;

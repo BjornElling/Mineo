@@ -457,9 +457,9 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.debugSnapshot).toBeNull();
   });
 
-  it('validerings-fejl-sti: debugSnapshot bygges uden clampede tafRanges', () => {
-    // Når validering fejler (overlappende TAF) kører engines ikke, og tafRanges er ukendte.
-    // debugSnapshot skal stadig bygges (til debug-tab), men uden clamping.
+  it('validerings-fejl-sti: debugSnapshot bygges med clampede tafRanges for gyldige TAF-rækker', () => {
+    // Når validering fejler, kører autoritative totaler ikke. Debug må dog stadig vise
+    // clampede TAF-ranges for de rækker der kan parses sikkert.
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = '2024-01-01';
     eoValues.vedroererPeriodeTil = '2024-12-31';
@@ -480,7 +480,6 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.data).toBeNull();
     // debugSnapshot skal altid bygges i validerings-fejl-stien
     expect(snapshot.debugSnapshot).not.toBeNull();
-    // debugDays er bygget ud fra rå tafPerioder (uden clamping) — begge perioder eksisterer i model
     expect(snapshot.debugSnapshot!.model).toBeDefined();
   });
 

@@ -132,8 +132,11 @@ export type DebugRowId =
   | `sfgg.overenskomst.${string}`
   | `sfgg.overenskomstensReferenceperiode.${string}`
   | `sfgg.satsvalg.${string}`
+  | `sfgg.beregnesFra.${string}`
   | `sfgg.foerstEfterSygeloen.${string}`
+  | `sfgg.varighedsbegraenset.${string}`
   | `sfgg.ansaettelsesforholdOphoert.${string}`
+  | `sfgg.periode.${string}`
   | `sfgg.referenceperiode.${string}`
   | `sfgg.referenceperiodeantal.${string}`
   | `sfgg.referencesats.${string}`
@@ -166,6 +169,8 @@ type StamdataValues = PersistedSectionMap['stamdata'];
 const formatDebugCount = (value: number): string => formatAsAmountTrimmed(value, 0);
 const formatDebugMonths = (value: number): string => formatAsAmountTrimmed(value, 4);
 const formatPercentUpToTwoDecimals = (value: number): string => formatPercent(value);
+const formatDebugIsoRange = (range: Readonly<{ fra: ISODateString; til: ISODateString }>): string =>
+  `${isoToDanish(range.fra) ?? range.fra} - ${isoToDanish(range.til) ?? range.til}`;
 
 const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number | undefined => {
   if (!isoDate) return undefined;
@@ -1403,6 +1408,17 @@ export const buildEODebugTaftRows = (
   const tafBounds = resolveTafConstraintBounds(values);
   const clampedTafById = new Map<string, { fra: ISODateString; til: ISODateString }>();
   const tafIkkeRejstLabel = 'Ikke rejst TAF-krav for hele perioden';
+  const authoritativeTafRanges = canonicalOutput?.periodiseringer.tafPerioder;
+  const hasValidTafPerioder = perioder.some((periode) => Boolean(getValidTafRange(periode)));
+  if (authoritativeTafRanges && authoritativeTafRanges.length === 0 && hasValidTafPerioder) {
+    rows.push({
+      id: 'taf.perioder.clampedAway',
+      label: 'Advarsel',
+      displayValue: 'Advarsel (Der er indtastet TAF-perioder, men ingen af perioderne ligger inden for erstatningsperioden. TAF beregnes derfor til 0 kr.)',
+      status: 'warning',
+      summaryDisplay: 'messageOnly',
+    });
+  }
   const folkepensionsdato = resolveFolkepensionsdato(
     context.skadedatoISO,
     context.skadelidteFodselsdato,
@@ -3066,12 +3082,30 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
         overenskomstPolicy?.bortfalderUnderArbejdsgiverbetaltSygeloen === true,
     });
 
+    if (result) {
+      rows.push({
+        id: `sfgg.beregnesFra.${employment.id}`,
+        label: 'SFGG beregnes fra',
+        displayValue: result.sfggFirstTafDayExcludedText ? 'Anden sygedag' : 'Første sygedag',
+        status: 'ok',
+      });
+    }
+
     rows.push({
       id: `sfgg.foerstEfterSygeloen.${employment.id}`,
       label: 'Først sygeferiegodtgørelse efter ophør af sygeløn',
       displayValue: foerstEfterSygeloen ? 'Ja' : 'Nej',
       status: 'ok',
     });
+    if (result) {
+      const hasFourMonthCap = result.pdfExplanatoryLines.some((line) => parseSfggExplanatoryLine(line)?.kind === 'four_month_cap');
+      rows.push({
+        id: `sfgg.varighedsbegraenset.${employment.id}`,
+        label: 'Varighedsbegrænset',
+        displayValue: hasFourMonthCap ? '4 måneder' : 'Nej',
+        status: 'ok',
+      });
+    }
     rows.push({
       id: `sfgg.ansaettelsesforholdOphoert.${employment.id}`,
       label: 'Ansættelsesforholdet ophørt',
@@ -3082,7 +3116,22 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       status: 'ok',
     });
 
+    let sfggPeriodeRowPushed = false;
+    const pushSfggPeriodeRow = (): void => {
+      if (!result || sfggPeriodeRowPushed) return;
+      sfggPeriodeRowPushed = true;
+      rows.push({
+        id: `sfgg.periode.${employment.id}`,
+        label: result.sfggVisningsperiode.length === 1 ? 'Periode' : 'Perioder',
+        displayValue: result.sfggVisningsperiode.length > 0
+          ? result.sfggVisningsperiode.map(formatDebugIsoRange).join('\n')
+          : 'Ingen',
+        status: 'ok',
+      });
+    };
+
     if (sfggSource.kind === 'overenskomst_direkte') {
+      pushSfggPeriodeRow();
       rows.push({
         id: `sfgg.referencesats.${employment.id}`,
         label: 'Referencesats',
@@ -3156,6 +3205,10 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
         displayValue: `${formatDebugCount(result.sfggReferencesatsFormula.divisorDage)} ${result.sfggReferencesatsFormula.divisorLabel}`,
         status: 'ok',
       });
+    }
+
+    if (sfggSource.kind !== 'overenskomst_direkte') {
+      pushSfggPeriodeRow();
     }
 
     if (result?.sfggReferencesats.status === 'ok') {

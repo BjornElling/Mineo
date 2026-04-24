@@ -203,6 +203,84 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     generateErstatningsopgoerelsePdf = pdfModule.generateErstatningsopgoerelsePdf;
   }, 30000);
 
+  it('viser ferieoplysning under indkomst uden skade for daterede og løse feriedage i TAF-perioden', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.beregnesUdFra = 'Angivet dagsløn';
+    eo.dagsloenenUdgoer = asAmountValue(1500);
+    eo.eoAngivetLoenLoenudvikling.loenPaaHelligdage = 'Almindelig løn';
+    eo.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Ingen';
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: 2 }];
+    eo.ferieperioder = [
+      { id: 'ferie-1', fra: iso('2023-12-29'), til: iso('2024-01-03') },
+      { id: 'ferie-2', fra: iso('2024-01-04'), til: iso('2024-01-05') },
+    ];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    expect(texts).toContain(
+      'I perioden blev der afholdt ferie i perioden 01-01-2024 - 05-01-2024 samt 2 løse ferie-/feriefridage.'
+    );
+  });
+
+  it('tilpasser ferieoplysning under indkomst uden skade når der kun er løse feriedage i erstatningsperioden', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.beregnesUdFra = 'Angivet dagsløn';
+    eo.dagsloenenUdgoer = asAmountValue(1500);
+    eo.eoAngivetLoenLoenudvikling.loenPaaHelligdage = 'Almindelig løn';
+    eo.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Ingen';
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: 2 }];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    expect(texts).toContain('I perioden blev der afholdt 2 løse ferie-/feriefridage.');
+  });
+
+  it('tilpasser ferieoplysning under indkomst uden skade når der er flere ferieperioder uden løse feriedage', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.beregnesUdFra = 'Angivet dagsløn';
+    eo.dagsloenenUdgoer = asAmountValue(1500);
+    eo.eoAngivetLoenLoenudvikling.loenPaaHelligdage = 'Almindelig løn';
+    eo.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Ingen';
+    eo.ferieperioder = [
+      { id: 'ferie-1', fra: iso('2024-01-02'), til: iso('2024-01-03') },
+      { id: 'ferie-2', fra: iso('2024-01-08'), til: iso('2024-01-09') },
+    ];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    expect(texts).toContain(
+      'I perioden blev der afholdt ferie i perioderne 02-01-2024 - 03-01-2024 og 08-01-2024 - 09-01-2024.'
+    );
+  });
+
+  it('udelader ferieoplysning under indkomst uden skade når TAF beregnes som måneder', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.beregnesUdFra = 'Angivet månedsløn';
+    eo.maanedsloenenUdgoer = asAmountValue(30000);
+    eo.eoAngivetLoenLoenudvikling.loenPaaHelligdage = 'Almindelig løn';
+    eo.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Ingen';
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-31'), loseFeriedage: undefined }];
+    eo.ferieperioder = [{ id: 'ferie-1', fra: iso('2024-01-02'), til: iso('2024-01-03') }];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    expect(texts.some((text) => text.startsWith('I perioden blev der afholdt'))).toBe(false);
+  });
+
+  it('udelader ferieoplysning under indkomst uden skade når ferie ikke ligger i TAF- og erstatningsperioden', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.ferieperioder = [{ id: 'ferie-udenfor', fra: iso('2024-02-01'), til: iso('2024-02-02') }];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    expect(texts.some((text) => text.startsWith('I perioden blev der afholdt ferie'))).toBe(false);
+  });
+
   it('skjuler pensionslinje når beregnet værdi er 0 kr.', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.loenindkomstAnsaettelsesforhold[0].feriePct = 15;
@@ -635,6 +713,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).not.toContain('Beregningsgrundlag');
     expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
     expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
+    expect(texts).toContain('Periode med sygeferiegodtgørelse');
+    expect(texts).toContain('02-01-2024 - 31-01-2024');
     expect(texts.some((text) =>
       text.startsWith('Kravet beregnes per ')
       && text.includes('med referencesatsen')
@@ -666,6 +746,52 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('Allerede betalt sygeferiegodtgørelse i perioden');
     expect(texts).toContain('Beregnet sygeferiegodtgørelse');
     expect(texts.every((text) => text !== 'Referencesats: 40,32 kr.')).toBe(true);
+
+    const sfggPeriodeHeadingIndex = texts.findIndex((text) => text === 'Periode med sygeferiegodtgørelse');
+    const sfggPeriodeIndex = texts.findIndex((text) => text === '02-01-2024 - 31-01-2024');
+    const feriepengeHvisIkkeSkadeIndex = texts.findIndex((text) => text === 'Feriepenge, hvis skaden ikke var sket (+ AG-pension)');
+    expect(sfggPeriodeHeadingIndex).toBeGreaterThanOrEqual(0);
+    expect(sfggPeriodeIndex).toBe(sfggPeriodeHeadingIndex + 1);
+    expect(feriepengeHvisIkkeSkadeIndex).toBeGreaterThan(sfggPeriodeIndex);
+  });
+
+  it('viser flere SFGG-perioder som separate linjer', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.tafPerioder = [
+      { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-05'), loseFeriedage: undefined },
+      { id: 'taf-2', fra: iso('2024-01-10'), til: iso('2024-01-12'), loseFeriedage: undefined },
+    ];
+    eo.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmountValue(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      sygeferiegodtgoerelse: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const headingIndex = texts.findIndex((text) => text === 'Perioder med sygeferiegodtgørelse');
+    const firstPeriodIndex = texts.findIndex((text, index) =>
+      index > headingIndex && text === '01-01-2024 - 05-01-2024'
+    );
+    const secondPeriodIndex = texts.findIndex((text, index) =>
+      index > firstPeriodIndex && text === '10-01-2024 - 12-01-2024'
+    );
+
+    expect(headingIndex).toBeGreaterThanOrEqual(0);
+    expect(firstPeriodIndex).toBe(headingIndex + 1);
+    expect(secondPeriodIndex).toBe(firstPeriodIndex + 1);
+    expect(texts).not.toContain('01-01-2024 - 05-01-2024; 10-01-2024 - 12-01-2024');
   });
 
   it('viser ikke SH-dage i SFGG-referenceperiodeblokken når referenceperioden opgøres på kalenderdage', () => {
@@ -1344,8 +1470,17 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).not.toContain('Beregningsgrundlag');
     expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
     expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
+    expect(texts).toContain('Perioder med sygeferiegodtgørelse');
+    expect(texts).toContain('Ingen');
     expect(texts).toContain('Beregnet krav');
     expect(texts).toContain('Der er betalt sygeløn i hele perioden og derfor ikke krav på sygeferiegodtgørelse.');
+
+    const sfggPeriodeHeadingIndex = texts.findIndex((text) => text === 'Perioder med sygeferiegodtgørelse');
+    const ingenIndex = texts.findIndex((text, index) => index > sfggPeriodeHeadingIndex && text === 'Ingen');
+    const feriepengeHvisIkkeSkadeIndex = texts.findIndex((text) => text === 'Feriepenge, hvis skaden ikke var sket (+ AG-pension)');
+    expect(sfggPeriodeHeadingIndex).toBeGreaterThanOrEqual(0);
+    expect(ingenIndex).toBe(sfggPeriodeHeadingIndex + 1);
+    expect(feriepengeHvisIkkeSkadeIndex).toBeGreaterThan(ingenIndex);
 
     const sfggTableCall = autoTableMock.mock.calls
       .map((call) => call[1])

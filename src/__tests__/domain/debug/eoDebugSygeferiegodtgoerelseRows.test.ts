@@ -259,6 +259,24 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
           status: 'ok',
         }),
         expect.objectContaining({
+          id: `sfgg.beregnesFra.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'SFGG beregnes fra',
+          displayValue: 'Første sygedag',
+          status: 'ok',
+        }),
+        expect.objectContaining({
+          id: `sfgg.varighedsbegraenset.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Varighedsbegrænset',
+          displayValue: 'Nej',
+          status: 'ok',
+        }),
+        expect.objectContaining({
+          id: `sfgg.periode.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Periode',
+          displayValue: '15-01-2024 - 15-01-2024',
+          status: 'ok',
+        }),
+        expect.objectContaining({
           id: `sfgg.referenceperiodeantal.${values.loenindkomstAnsaettelsesforhold[0].id}`,
           label: 'Antal arbejdsdage (21 hverdage - 2 SH-dage) =',
           displayValue: '19 arbejdsdage',
@@ -296,6 +314,11 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         }),
       ])
     );
+
+    const periodeIndex = rows.findIndex((row) => row.id === `sfgg.periode.${values.loenindkomstAnsaettelsesforhold[0].id}`);
+    const referencesatsIndex = rows.findIndex((row) => row.id === `sfgg.referencesats.${values.loenindkomstAnsaettelsesforhold[0].id}`);
+    expect(periodeIndex).toBeGreaterThanOrEqual(0);
+    expect(referencesatsIndex).toBeGreaterThan(periodeIndex);
   });
 
   it('viser ikke SH-dage i debug-label når referenceperioden opgøres på kalenderdage', () => {
@@ -355,6 +378,121 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       ])
     );
     expect(rows.some((row) => row.id === `sfgg.referenceperiodeantal.${values.loenindkomstAnsaettelsesforhold[0].id}` && row.label.includes('SH-dage'))).toBe(false);
+  });
+
+  it('viser anden sygedag og flere clampede SFGG-perioder når første TAF-dag er undtaget', () => {
+    const values = createValues();
+    values.eoNummer = '1';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: { kind: 'number', value: 100 },
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-15',
+        til: '2024-01-16',
+        loseFeriedage: undefined,
+      },
+      {
+        id: 'taf-2',
+        fra: '2024-01-20',
+        til: '2024-01-21',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadedato: '2024-01-01',
+    });
+
+    expect(rows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: `sfgg.beregnesFra.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'SFGG beregnes fra',
+          displayValue: 'Anden sygedag',
+          status: 'ok',
+        }),
+        expect.objectContaining({
+          id: `sfgg.periode.${values.loenindkomstAnsaettelsesforhold[0].id}`,
+          label: 'Perioder',
+          displayValue: '16-01-2024 - 16-01-2024\n20-01-2024 - 21-01-2024',
+          status: 'ok',
+        }),
+      ])
+    );
+  });
+
+  it('viser Ingen for SFGG-perioden i debug når der ikke er nogen periode med sygeferiegodtgørelse', () => {
+    const values = createValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold[0] = {
+      ...values.loenindkomstAnsaettelsesforhold[0],
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: { kind: 'number', value: 10000 },
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    };
+    values.sfggAnsaettelsesforhold = [
+      {
+        ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggBeregningskilde: 'Manuelt angivet',
+        sfggManuelDagssats: { kind: 'number', value: 100 },
+        sfggManuelBeloebIHenholdTil: undefined,
+        sfggManuelFoerstEfterSygeloen: 'Ja',
+        sfggReferenceperiodeFra: undefined,
+        sfggReferenceperiodeTil: undefined,
+        sfggReferenceperiodeFravaersdageUdenLoen: 0,
+        sfggSatsvalg: undefined,
+        sfggAlleredeBetaltBeloeb: '0,00',
+      },
+    ];
+    values.tafPerioder = [
+      {
+        id: 'taf-1',
+        fra: '2024-01-15',
+        til: '2024-01-16',
+        loseFeriedage: undefined,
+      },
+    ];
+
+    const rows = buildRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadedato: '2024-01-01',
+    });
+
+    expect(rows.find((row) => row.id === `sfgg.periode.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toEqual(
+      expect.objectContaining({
+        label: 'Perioder',
+        displayValue: 'Ingen',
+        status: 'ok',
+      })
+    );
   });
 
   it('viser fejl på beregningskilden når overenskomst-ID ikke kan slås op', () => {
@@ -856,6 +994,13 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     });
 
     expect(rows.find((row) => row.label === '4-månedersgrænse')).toBeUndefined();
+    expect(rows.find((row) => row.id === `sfgg.varighedsbegraenset.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toEqual(
+      expect.objectContaining({
+        label: 'Varighedsbegrænset',
+        displayValue: '4 måneder',
+        status: 'ok',
+      })
+    );
   });
 
   it('viser ikke præ-2015-bemærkningen om at samtlige TAF-perioder skal være indtastet i debug', () => {

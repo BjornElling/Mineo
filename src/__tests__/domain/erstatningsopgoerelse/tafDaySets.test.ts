@@ -5,6 +5,9 @@ import {
   buildFerieDageSet,
   buildShDageSet,
   buildShDageSetFromIsoRange,
+  buildTafArbejdsdageSetForRange,
+  buildTafArbejdsdageSetFromRows,
+  buildTafFerieFravaerSummary,
   isWeekdayUtc,
   placeLoseFeriedage,
 } from '../../../domain/erstatningsopgoerelse/engines/tafDaySets';
@@ -436,5 +439,118 @@ describe('placeLoseFeriedage', () => {
     // toNonNegativeInt kræver Number.isFinite → Infinity giver 0
     const result = placeLoseFeriedage(iso('2024-01-01'), iso('2024-01-03'), Infinity, new Set());
     expect(result.size).toBe(0);
+  });
+});
+
+describe('buildTafArbejdsdageSetForRange', () => {
+  it('returnerer tomt sæt når fra > til', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const result = buildTafArbejdsdageSetForRange(
+      iso('2024-01-05'),
+      iso('2024-01-01'),
+      [],
+      1
+    );
+    expect(result.size).toBe(0);
+    warnSpy.mockRestore();
+  });
+});
+
+describe('buildTafArbejdsdageSetFromRows', () => {
+  it('placerer løse feriedage ud fra autoritativ clampet range', () => {
+    const result = buildTafArbejdsdageSetFromRows(
+      [{
+        id: 'taf-1',
+        fra: iso('2024-01-01'),
+        til: iso('2024-01-12'),
+        loseFeriedage: 2,
+      }],
+      [],
+      { authoritativeRanges: [{ fra: iso('2024-01-08'), til: iso('2024-01-12') }] }
+    );
+
+    expect(result.size).toBe(3);
+    expect(result.has(iso('2024-01-08'))).toBe(false);
+    expect(result.has(iso('2024-01-09'))).toBe(false);
+    expect(result.has(iso('2024-01-10'))).toBe(true);
+  });
+
+  it('medtager løse feriedage fra en kilde-række der er bredere end autoritativ range', () => {
+    const rows = [{
+      id: 'taf-1',
+      fra: iso('2024-02-01'),
+      til: iso('2024-02-09'),
+      loseFeriedage: 2,
+    }];
+    const authoritativeRanges = [{ fra: iso('2024-02-05'), til: iso('2024-02-09') }];
+
+    const result = buildTafArbejdsdageSetFromRows(rows, [], { authoritativeRanges });
+    const summary = buildTafFerieFravaerSummary(rows, [], authoritativeRanges);
+
+    expect(result.size).toBe(3);
+    expect(result.has(iso('2024-02-05'))).toBe(false);
+    expect(result.has(iso('2024-02-06'))).toBe(false);
+    expect(result.has(iso('2024-02-07'))).toBe(true);
+    expect(summary.loseFeriedage).toBe(2);
+    expect(summary.totalFeriedage).toBe(2);
+  });
+
+  it('placerer løse feriedage én gang på merged autoritativ range', () => {
+    const result = buildTafArbejdsdageSetFromRows(
+      [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-05'), loseFeriedage: 1 },
+        { id: 'taf-2', fra: iso('2024-01-06'), til: iso('2024-01-12'), loseFeriedage: 1 },
+      ],
+      [],
+      { authoritativeRanges: [{ fra: iso('2024-01-01'), til: iso('2024-01-12') }] }
+    );
+
+    expect(result.size).toBe(7);
+    expect(result.has(iso('2024-01-01'))).toBe(false);
+    expect(result.has(iso('2024-01-02'))).toBe(false);
+    expect(result.has(iso('2024-01-03'))).toBe(false);
+  });
+
+  it('placerer løse feriedage inden for hver separat autoritativ range', () => {
+    const rows = [
+      { id: 'taf-1', fra: iso('2024-02-05'), til: iso('2024-02-09'), loseFeriedage: 2 },
+      { id: 'taf-2', fra: iso('2024-02-19'), til: iso('2024-02-23'), loseFeriedage: 3 },
+    ];
+    const authoritativeRanges = [
+      { fra: iso('2024-02-05'), til: iso('2024-02-09') },
+      { fra: iso('2024-02-19'), til: iso('2024-02-23') },
+    ];
+
+    const result = buildTafArbejdsdageSetFromRows(rows, [], { authoritativeRanges });
+    const summary = buildTafFerieFravaerSummary(rows, [], authoritativeRanges);
+
+    expect(result.size).toBe(5);
+    expect(result.has(iso('2024-02-05'))).toBe(false);
+    expect(result.has(iso('2024-02-06'))).toBe(false);
+    expect(result.has(iso('2024-02-07'))).toBe(true);
+    expect(result.has(iso('2024-02-19'))).toBe(false);
+    expect(result.has(iso('2024-02-20'))).toBe(false);
+    expect(result.has(iso('2024-02-21'))).toBe(false);
+    expect(result.has(iso('2024-02-22'))).toBe(true);
+    expect(summary.loseFeriedage).toBe(5);
+    expect(summary.totalFeriedage).toBe(5);
+  });
+});
+
+describe('buildTafFerieFravaerSummary', () => {
+  it('opsummerer løse feriedage ud fra autoritative ranges', () => {
+    const summary = buildTafFerieFravaerSummary(
+      [{
+        id: 'taf-1',
+        fra: iso('2024-01-01'),
+        til: iso('2024-01-12'),
+        loseFeriedage: 2,
+      }],
+      [],
+      [{ fra: iso('2024-01-08'), til: iso('2024-01-12') }]
+    );
+
+    expect(summary.loseFeriedage).toBe(2);
+    expect(summary.totalFeriedage).toBe(2);
   });
 });

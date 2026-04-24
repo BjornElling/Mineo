@@ -13,10 +13,46 @@ import { getDayAfterIso, perioderCoverDate } from '../helpers/eoSharedUtils';
 import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import { parseOevrigeKravBeloeb } from '../helpers/oevrigeKravAmountParser';
 import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
+import { buildTafFerieFravaerSummary } from '../engines/tafDaySets';
+import { formatCountWithUnit } from '../../../utils/formatUtils';
+import { TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
+
+const joinDanishList = (items: readonly string[]): string => {
+  if (items.length <= 1) return items[0] ?? '';
+  if (items.length === 2) return `${items[0]} og ${items[1]}`;
+  return `${items.slice(0, -1).join(', ')} og ${items[items.length - 1]}`;
+};
+
+const buildTafFerieFravaerLinje = (
+  values: ErstatningsopgoerelseValues,
+  tafRanges: readonly { fra: ISODateString; til: ISODateString }[]
+): string | null => {
+  const summary = buildTafFerieFravaerSummary(values.tafPerioder ?? [], values.ferieperioder ?? [], tafRanges);
+  if (summary.totalFeriedage <= 0) return null;
+
+  const periodTexts = summary.ferieperioder.map((range) => `${formatDateShort(range.fra)} - ${formatDateShort(range.til)}`);
+  const periodPart = periodTexts.length === 0
+    ? null
+    : `ferie i ${periodTexts.length === 1 ? 'perioden' : 'perioderne'} ${joinDanishList(periodTexts)}`;
+  const loosePart = summary.loseFeriedage > 0
+    ? `${formatCountWithUnit(summary.loseFeriedage, 'løs ferie-/feriefridag', 'løse ferie-/feriefridage')}`
+    : null;
+
+  if (periodPart && loosePart) {
+    return `I perioden blev der afholdt ${periodPart} samt ${loosePart}.`;
+  }
+  if (periodPart) {
+    return `I perioden blev der afholdt ${periodPart}.`;
+  }
+  if (loosePart) {
+    return `I perioden blev der afholdt ${loosePart}.`;
+  }
+  return null;
+};
 
 export const buildSvieSmerteModel = (
   values: ErstatningsopgoerelseValues,
@@ -163,6 +199,7 @@ export const buildTabtArbejdsfortjenesteModel = (
       statusLinjer: [],
       eetLinjer: [],
       differencekravLinje: null,
+      ferieFravaerLinje: null,
       tafPerioderLinjer: [],
       harTafPerioder: false,
       tafBeregningsenhed: options.tafNetto.tafBeregningsenhed,
@@ -247,8 +284,11 @@ export const buildTabtArbejdsfortjenesteModel = (
     : null;
   const differencekravReferenceDato = values.differencekravDato;
 
-  const tafPerioderLinjer = buildTafPerioderLinjer(values, tafRanges);
   const tafMonetary = options.tafNetto;
+  const tafPerioderLinjer = buildTafPerioderLinjer(values, tafRanges);
+  const ferieFravaerLinje = tafMonetary.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
+    ? buildTafFerieFravaerLinje(values, tafRanges)
+    : null;
   const harTafPerioder = tafMonetary.harTafPerioder;
 
   const endeligtEetBringTilOphoer =
@@ -336,6 +376,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     statusLinjer,
     eetLinjer,
     differencekravLinje,
+    ferieFravaerLinje,
     tafPerioderLinjer,
     harTafPerioder,
     tafBeregningsenhed: tafMonetary.tafBeregningsenhed,

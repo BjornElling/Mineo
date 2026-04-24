@@ -1,4 +1,5 @@
 import { computeForsoergertabSnapshot } from '../../../domain/forsoergertab/forsoergertabSnapshot';
+import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import type {
   FaellesAarsloenValues,
   ForsoergertabValues,
@@ -55,7 +56,7 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.pdfProjection.aslComputation).toEqual(snapshot.calculation.aslComputation);
   });
 
-  it('bevarer EAL-visning men blokerer ASL ved beregningsdato før virkningsdato', () => {
+  it('bevarer EAL-visning men blokerer ASL og download ved beregningsdato før virkningsdato', () => {
     const snapshot = computeForsoergertabSnapshot({
       values: createValues({
         beregningsdato: '2020-01-01',
@@ -75,7 +76,7 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.canShowEal).toBe(true);
     expect(snapshot.canShowAsl).toBe(false);
     expect(snapshot.canShowResult).toBe(false);
-    expect(snapshot.canDownloadPdf).toBe(true);
+    expect(snapshot.canDownloadPdf).toBe(false);
     expect(snapshot.pdfProjection.ealComputation).not.toBeNull();
     expect(snapshot.pdfProjection.aslComputation).toBeNull();
     expect(snapshot.pdfProjection.result).toBeNull();
@@ -100,7 +101,85 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.fieldUi.ealAarsloen.hasError).toBe(true);
     expect(snapshot.fieldUi.ealAarsloen.helperText).toBe('Feltfejl fra UI');
     expect(snapshot.canShowEal).toBe(false);
+    expect(snapshot.canDownloadPdf).toBe(false);
     expect(snapshot.pdfProjection.ealComputation).toBeNull();
+  });
+
+  it('blokerer download når ASL-årsløn har feltfejl selv om EAL-delen kan beregnes', () => {
+    const snapshot = computeForsoergertabSnapshot({
+      values: createValues(),
+      faellesAarsloen: createFaellesAarsloen({
+        aslAarsloen: asAmount(aarsloenAslMax[2020] + 1000),
+        ealAarsloen: asAmount(450000),
+      }),
+      stamdata: createStamdata(),
+      fieldErrors: {
+        forsoergertab: {},
+        faellesAarsloen: {
+          aslAarsloen: {
+            message: 'Årsløn kan ikke overstige maks årslønnen i skadesåret (539.000 kr.)',
+          },
+        },
+        stamdata: {},
+      },
+    });
+
+    expect(snapshot.fieldUi.aslAarsloen.hasError).toBe(true);
+    expect(snapshot.canShowEal).toBe(true);
+    expect(snapshot.canShowAsl).toBe(false);
+    expect(snapshot.canDownloadPdf).toBe(false);
+  });
+
+  it('markerer EAL-årsløn som fejl men bevarer beregning og download når tom EAL genbruger ASL-maksimum', () => {
+    const snapshot = computeForsoergertabSnapshot({
+      values: createValues(),
+      faellesAarsloen: createFaellesAarsloen({
+        aslAarsloen: asAmount(aarsloenAslMax[2020]),
+        ealAarsloen: undefined,
+      }),
+      stamdata: createStamdata(),
+      fieldErrors: {
+        forsoergertab: {},
+        faellesAarsloen: {},
+        stamdata: {},
+      },
+    });
+
+    expect(snapshot.fieldUi.ealAarsloen.hasError).toBe(true);
+    expect(snapshot.fieldUi.ealAarsloen.helperText).toBe(
+      'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.'
+    );
+    expect(snapshot.canShowEal).toBe(true);
+    expect(snapshot.canShowResult).toBe(true);
+    expect(snapshot.canDownloadPdf).toBe(true);
+    expect(snapshot.pdfProjection.ealComputation).not.toBeNull();
+    expect(snapshot.pdfProjection.result).not.toBeNull();
+  });
+
+  it('markerer EAL-årsløn som fejl men bevarer beregning og download når EAL-årsløn er ASL-maksimum', () => {
+    const snapshot = computeForsoergertabSnapshot({
+      values: createValues(),
+      faellesAarsloen: createFaellesAarsloen({
+        aslAarsloen: asAmount(450000),
+        ealAarsloen: asAmount(aarsloenAslMax[2020]),
+      }),
+      stamdata: createStamdata(),
+      fieldErrors: {
+        forsoergertab: {},
+        faellesAarsloen: {},
+        stamdata: {},
+      },
+    });
+
+    expect(snapshot.fieldUi.ealAarsloen.hasError).toBe(true);
+    expect(snapshot.fieldUi.ealAarsloen.helperText).toBe(
+      'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.'
+    );
+    expect(snapshot.canShowEal).toBe(true);
+    expect(snapshot.canShowResult).toBe(true);
+    expect(snapshot.canDownloadPdf).toBe(true);
+    expect(snapshot.pdfProjection.ealComputation).not.toBeNull();
+    expect(snapshot.pdfProjection.result).not.toBeNull();
   });
 
   it('projicerer dato-bounds til page-laget fra snapshot', () => {

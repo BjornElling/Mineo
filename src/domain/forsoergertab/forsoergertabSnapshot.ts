@@ -30,6 +30,11 @@ type FieldUiState = Readonly<{
   helperText: string;
 }>;
 
+const EAL_AARSLOEN_ASL_MAX_ERROR_MESSAGE =
+  'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.';
+
+const EAL_AARSLOEN_ASL_MAX_ISSUE_IDS = ['warn-eal-aarsloen-is-max', 'warn-asl-aarsloen-is-max'] as const;
+
 export type ForsoergertabPdfProjection = Readonly<{
   grundlaeggende: Readonly<{
     beregningsdato: ISODateString | undefined;
@@ -84,6 +89,13 @@ const getIssueMessage = (
   return message && message.trim() !== '' ? message : undefined;
 };
 
+const hasIssue = (
+  issues: ReturnType<typeof computeForsoergertabCalculation>['issues'],
+  ids: readonly string[]
+): boolean => {
+  return issues.some((issue) => ids.includes(issue.id));
+};
+
 const resolveHelperText = (
   fieldError: FieldErrorMessage,
   helperIssue: string | undefined
@@ -121,6 +133,11 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     return beregningsdato !== undefined && beregningsdato < PRE_2015_CUTOFF;
   })();
 
+  const hasEalAarsloenAslMaxIssue = hasIssue(calculation.issues, EAL_AARSLOEN_ASL_MAX_ISSUE_IDS);
+  const ealAarsloenBlockingIssue = getIssueMessage(calculation.issues, ['eal-aarsloen-zero']);
+  const ealAarsloenHelperIssue =
+    ealAarsloenBlockingIssue ?? (hasEalAarsloenAslMaxIssue ? EAL_AARSLOEN_ASL_MAX_ERROR_MESSAGE : undefined);
+
   const helperIssues = {
     efterladteFodselsdato: getIssueMessage(calculation.issues, ['forsoergertab-alder-unresolved', 'forsoergertab-alder-missing']),
     beregningsdato: getIssueMessage(calculation.issues, [
@@ -144,7 +161,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     koen: getIssueMessage(calculation.issues, ['missing-koen']),
     tilkendtForPeriodeAar: getIssueMessage(calculation.issues, ['tilkendt-for-periode-invalid']),
     aslAarsloen: getIssueMessage(calculation.issues, ['asl-aarsloen-zero']),
-    ealAarsloen: getIssueMessage(calculation.issues, ['eal-aarsloen-zero']),
+    ealAarsloen: ealAarsloenHelperIssue,
     skadedato: getIssueMessage(calculation.issues, ['skadedato-missing', 'aarsloen-max-missing-skadesaar']),
   };
 
@@ -191,12 +208,22 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     },
   } as const;
 
+  const hasBlockingEalAarsloenError =
+    Boolean(fieldErrors.faellesAarsloen.ealAarsloen?.message) || Boolean(ealAarsloenBlockingIssue);
+
+  // Beslutningsnote: Max-årslønsfejlen på EAL-årslønnen er bevidst ikke download- eller
+  // beregningsblokerende. Feltet skal markeres rødt, fordi ASL-maksimum oftest betyder, at den
+  // faktiske EAL-årsløn mangler. Forsørgertab har dog den sjældne legitime situation, at den
+  // faktiske EAL-årsløn faktisk er præcis ASL-maksimum i skadesåret. Hvis denne UI-fejl blokerede
+  // PDF eller beregning, ville brugeren ikke kunne færdiggøre en korrekt forsørgertabsberegning i
+  // netop de sager. Derfor blokerer kun egentlige commit-/beregningsfejl her; denne konkrete
+  // max-årslønsmarkering er en auditabel opmærksomhedsfejl, ikke en stop-fejl.
   const canShowEal =
     Boolean(values.beregningsdato) &&
     !fieldUi.skadelidteFodselsdato.hasError &&
     !fieldUi.beregningsdatoForEal.hasError &&
     !fieldUi.skadedato.hasError &&
-    !fieldUi.ealAarsloen.hasError &&
+    !hasBlockingEalAarsloenError &&
     calculation.ealComputation !== null;
 
   const canShowAsl =
@@ -216,7 +243,18 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     calculation.aslComputation !== null;
 
   const canShowResult = canShowEal && canShowAsl && calculation.result !== null;
-  const canDownloadPdf = canShowEal || canShowAsl;
+  const hasDownloadBlockingFieldError =
+    fieldUi.beregningsdato.hasError ||
+    fieldUi.beregningsdatoForEal.hasError ||
+    fieldUi.efterladteFodselsdato.hasError ||
+    fieldUi.virkningsdato.hasError ||
+    fieldUi.koen.hasError ||
+    fieldUi.tilkendtForPeriodeAar.hasError ||
+    fieldUi.aslAarsloen.hasError ||
+    hasBlockingEalAarsloenError ||
+    fieldUi.skadedato.hasError ||
+    fieldUi.skadelidteFodselsdato.hasError;
+  const canDownloadPdf = (canShowEal || canShowAsl) && !hasDownloadBlockingFieldError;
 
   return {
     calculation,

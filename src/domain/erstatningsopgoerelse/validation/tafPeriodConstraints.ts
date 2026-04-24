@@ -1,10 +1,10 @@
 import type { TafPeriodeRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString, isoToDanish, subtractOneDay } from '../../../types/branded';
-import { minISO, maxISO } from '../../../utils/isoDateHelpers';
+import { minISO, maxISO, type IsoRange as CanonicalIsoRange } from '../../../utils/isoDateHelpers';
 import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../helpers/eoConstants';
 
-export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
+export type { IsoRange } from '../../../utils/isoDateHelpers';
 
 export type TafConstraintSource = Readonly<{
   vedroererPeriodeFra?: ISODateString | undefined;
@@ -57,6 +57,16 @@ export const resolveMidlertidigEetDatoHvisAktiv = (values: TafConstraintSource):
   return values.midlertidigEETVirkningsdato ?? values.midlertidigEETAfgoerelseDato;
 };
 
+const resolveEetMaxBounds = (values: TafConstraintSource): TafConstraintBounds => {
+  const endeligEetDato = resolveEndeligEetDato(values);
+  const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(endeligEetDato);
+
+  const midlertidigEetDato = resolveMidlertidigEetDatoHvisAktiv(values);
+  const midlertidigEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(midlertidigEetDato);
+
+  return { maxEnd: minDefined(endeligEetMax, midlertidigEetMax) };
+};
+
 export const buildTafCutoffErrorMessage = (args: Readonly<{
   value: ISODateString | undefined;
   differencekravDato?: ISODateString | undefined;
@@ -101,14 +111,9 @@ export const buildTafCutoffErrorMessage = (args: Readonly<{
  */
 export const resolveTafFejlgivendeBounds = (values: TafConstraintSource): TafConstraintBounds => {
   const differencekravMax = subtractOneDay(values.differencekravDato);
+  const eetBounds = resolveEetMaxBounds(values);
 
-  const endeligEetDato = resolveEndeligEetDato(values);
-  const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(endeligEetDato);
-
-  const midlertidigEetDato = resolveMidlertidigEetDatoHvisAktiv(values);
-  const midlertidigEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(midlertidigEetDato);
-
-  const maxEnd = minDefined(differencekravMax, endeligEetMax, midlertidigEetMax);
+  const maxEnd = minDefined(differencekravMax, eetBounds.maxEnd);
   return { maxEnd };
 };
 
@@ -133,14 +138,9 @@ export const resolveTafConstraintBounds = (values: TafConstraintSource): TafCons
   const erstatningsTil = values.vedroererPeriodeTil;
 
   const differencekravMax = subtractOneDay(values.differencekravDato);
+  const eetBounds = resolveEetMaxBounds(values);
 
-  const endeligEetDato = resolveEndeligEetDato(values);
-  const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(endeligEetDato);
-
-  const midlertidigEetDato = resolveMidlertidigEetDatoHvisAktiv(values);
-  const midlertidigEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(midlertidigEetDato);
-
-  const maxEnd = minDefined(erstatningsTil, differencekravMax, endeligEetMax, midlertidigEetMax);
+  const maxEnd = minDefined(erstatningsTil, differencekravMax, eetBounds.maxEnd);
   return { minStart, maxEnd };
 };
 
@@ -151,7 +151,7 @@ export const resolveTafConstraintBounds = (values: TafConstraintSource): TafCons
  * Kalderen er ansvarlig for at anvende korrekte bounds i korrekt rækkefølge
  * (jf. eo-snapshot-contract.md §2.3 og buildTafRanges i indtaegtPerioder.ts).
  */
-export const clampTafRange = (range: IsoRange, bounds: TafConstraintBounds): IsoRange | null => {
+export const clampTafRange = (range: CanonicalIsoRange, bounds: TafConstraintBounds): CanonicalIsoRange | null => {
   let fra = range.fra;
   let til = range.til;
 
@@ -168,20 +168,20 @@ export const clampTafRange = (range: IsoRange, bounds: TafConstraintBounds): Iso
   return { fra, til };
 };
 
-export const getValidTafRange = (row: Readonly<{ fra?: string | undefined; til?: string | undefined }>): IsoRange | null => {
+export const getValidTafRange = (row: Readonly<{ fra?: string | undefined; til?: string | undefined }>): CanonicalIsoRange | null => {
   if (!isISODateString(row.fra) || !isISODateString(row.til)) return null;
   if (row.fra > row.til) return null;
   return { fra: row.fra, til: row.til };
 };
 
-export const clampTafRow = (row: Readonly<{ fra?: string | undefined; til?: string | undefined }>, bounds: TafConstraintBounds): IsoRange | null => {
+export const clampTafRow = (row: Readonly<{ fra?: string | undefined; til?: string | undefined }>, bounds: TafConstraintBounds): CanonicalIsoRange | null => {
   const range = getValidTafRange(row);
   if (!range) return null;
   return clampTafRange(range, bounds);
 };
 
-export const buildClampedTafRanges = (rows: readonly TafPeriodeRow[], bounds: TafConstraintBounds): IsoRange[] => {
-  const ranges: IsoRange[] = [];
+export const buildClampedTafRanges = (rows: readonly TafPeriodeRow[], bounds: TafConstraintBounds): CanonicalIsoRange[] => {
+  const ranges: CanonicalIsoRange[] = [];
   for (const row of rows) {
     const clamped = clampTafRow(row, bounds);
     if (clamped) ranges.push(clamped);

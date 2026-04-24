@@ -189,6 +189,33 @@ describe('renderReguleringSection – loenSkadedatoText input', () => {
       anvendtReguleringsdato: iso('2024-01-01'),
     }));
   });
+
+  it('bruger frem-til-tekst for implicit beregningsperiode-slutdato selv om datoen ligger efter EO-perioden', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.beregnesUdFra = 'Beregningsperiode';
+    eoValues.vedroererPeriodeFra = iso('2024-01-01');
+    eoValues.vedroererPeriodeTil = iso('2024-01-31');
+    eoValues.tafBeregningsperiodeFra = iso('2024-01-01');
+    eoValues.tafBeregningsperiodeTil = iso('2024-12-31');
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-beregningsperiode-efter-eo',
+        navnPaaArbejdssted: 'Test',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        saerligFraDatoRegulering: undefined,
+      },
+    ];
+    const { ctx } = makeContext(eoValues);
+    ctx.resolveAnvendtReguleringsdato = vi.fn(() => iso('2024-12-31'));
+
+    renderReguleringSection(ctx);
+
+    expect(ctx.resolveLoenSkadedatoText).toHaveBeenCalledWith(expect.objectContaining({
+      anvendtReguleringsdato: iso('2024-12-31'),
+      useUntilWordingForImplicitBeregningsperiodeDate: true,
+    }));
+  });
 });
 
 describe('renderReguleringSection – KRL satstabel-note', () => {

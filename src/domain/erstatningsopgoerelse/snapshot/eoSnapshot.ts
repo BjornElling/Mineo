@@ -141,13 +141,6 @@ const isAngivetLoenHiddenStateInvalid = (
   );
 };
 
-const hasValidationErrorForPathPrefix = (
-  validationResult: ReturnType<typeof erstatningsopgoerelseValidator.validateParsed>,
-  prefix: string
-): boolean => {
-  return validationResult.errors.some((error) => error.path === prefix || error.path.startsWith(`${prefix}.`) || error.path.startsWith(`${prefix}[`));
-};
-
 export const computeEoSnapshot = (args: Readonly<{
   revision: string;
   stamdataValues: unknown;
@@ -229,7 +222,9 @@ export const computeEoSnapshot = (args: Readonly<{
     // Validerings-fejl-sti: autoritative totaler/PDF'er må ikke bygges.
     // Debug-snapshotten må dog stadig vise sektions-uafhængige engine-data, når de kan beregnes sikkert.
     // Vi beregner derfor svie/smerte-engine separat her, fordi den ikke afhænger af løn/TAF-validering.
-    // TAF-ranges bygges fortsat ikke i denne sti, så debug-tabellen viser stadig rå TAF-datoer uden clamping.
+    // TAF-ranges bygges fra de rækker der stadig kan parses, så debug kan vise den samme clamping
+    // for gyldige rækker selv om andre TAF-rækker blokerer den autoritative beregning. Hvis alle
+    // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed debug-basis.
     const svieSmerteForDebug = computeSvieSmerteEngine({
       erstatningsopgoerelse: parsedEo.data,
       stamdata: {
@@ -237,9 +232,7 @@ export const computeEoSnapshot = (args: Readonly<{
         skadestype: parsedStamdata.data.skadestype,
       },
     });
-    const tafRangesForDebug = hasValidationErrorForPathPrefix(validationResult, 'tafPerioder')
-      ? undefined
-      : buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato });
+    const tafRangesForDebug = buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato });
     const debugSnapshotForValidationError = buildDebugSnapshotForComputed({
       revision: args.revision,
       stamdata: parsedStamdata.data,

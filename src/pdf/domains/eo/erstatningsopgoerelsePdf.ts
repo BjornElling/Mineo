@@ -332,6 +332,9 @@ export const generateErstatningsopgoerelsePdf = (
   const renderSfggPeriodBlock = (
     entry: EoModel['tabtArbejdsfortjeneste']['sygeferiegodtgoerelse']['perAnsaettelsesforhold'][number]
   ) => {
+    const sfggVisningsperiodeLines = entry.sfggVisningsperiode.map((range) =>
+      `${formatDateShort(range.fra)} - ${formatDateShort(range.til)}`
+    );
     const divisorLabel = entry.sfggDayBasis;
     const dayUnit = resolveSfggPeriodDayUnitSingular(divisorLabel);
     const rateLabel = entry.sfggSourceKind === 'overenskomst_direkte' ? 'overenskomstens referencesats' : 'referencesatsen';
@@ -341,6 +344,17 @@ export const generateErstatningsopgoerelsePdf = (
     const baseAdjustmentText = divisorLabel === 'arbejdsdage'
       ? 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'
       : 'Der beregnes ikke sygeferiegodtgørelse under ferie og på eventuelle andre fraværsdage uden løn.';
+    writer.writeUnderlinedSubheader(
+      entry.sfggVisningsperiode.length === 1
+        ? 'Periode med sygeferiegodtgørelse'
+        : 'Perioder med sygeferiegodtgørelse'
+    );
+    if (sfggVisningsperiodeLines.length === 0) {
+      safeAddWrappedText('Ingen');
+    } else {
+      sfggVisningsperiodeLines.forEach((line) => safeAddWrappedText(line));
+    }
+
     writer.writeUnderlinedSubheader(SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL);
     safeAddWrappedText(
       hasRegulatedSfggRate

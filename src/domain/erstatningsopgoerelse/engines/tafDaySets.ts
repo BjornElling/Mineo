@@ -3,9 +3,18 @@ import type { ISODateString } from '../../../types/branded';
 import { dateToISO } from '../../../types/branded';
 import { isoDateToDate } from '../../dates/isoDate';
 import { addDays } from '../../../utils/dateUtils';
+import type { IsoRange } from '../../../utils/isoDateHelpers';
 import { buildSHDageSetForDatoSet } from '../../dates/shDageBeregning';
 import { toNonNegativeInt } from '../../../utils/numberParsing';
 import { getValidTafRange } from '../validation/tafPeriodConstraints';
+import { mergeIsoDateRanges } from './periodMerging';
+
+export type TafFerieFravaerSummary = Readonly<{
+  ferieperioder: readonly IsoRange[];
+  feriedage: number;
+  loseFeriedage: number;
+  totalFeriedage: number;
+}>;
 
 export const isWeekdayUtc = (date: Date): boolean => {
   const dayOfWeek = date.getUTCDay();
@@ -124,6 +133,12 @@ export const buildTafArbejdsdageSetForRange = (
 ): Set<ISODateString> => {
   const fraDate = isoDateToDate(fra);
   const tilDate = isoDateToDate(til);
+  if (fraDate > tilDate) {
+    if (import.meta.env.DEV) {
+      console.warn('TAF-arbejdsdage: ugyldigt dato-interval ignoreret.', { fra, til });
+    }
+    return new Set<ISODateString>();
+  }
   const datoSet = buildDatoSetInclusiveFromDates(fraDate, tilDate);
   const ferieDageSet = buildFerieDageSet(ferieperioder, datoSet);
   const shDageSet = buildShDageSet(fraDate, tilDate, datoSet);
@@ -143,15 +158,97 @@ export const buildTafArbejdsdageSetForRange = (
   return arbejdsdage;
 };
 
-const isDateWithinRanges = (
-  iso: ISODateString,
-  ranges: readonly Readonly<{ fra: ISODateString; til: ISODateString }>[]
-): boolean => ranges.some((range) => iso >= range.fra && iso <= range.til);
+const intersectIsoRange = (left: IsoRange, right: IsoRange): IsoRange | null => {
+  const fra = left.fra > right.fra ? left.fra : right.fra;
+  const til = left.til < right.til ? left.til : right.til;
+  return fra <= til ? { fra, til } : null;
+};
+
+const rangesOverlap = (left: IsoRange, right: IsoRange): boolean =>
+  left.fra <= right.til && left.til >= right.fra;
+
+const sumLoseFeriedageForSourceRows = (
+  rows: ReadonlyArray<TafPeriodeRow>,
+  range: IsoRange
+): number => {
+  let sum = 0;
+  for (const row of rows) {
+    const validRange = getValidTafRange(row);
+    if (!validRange || !rangesOverlap(validRange, range)) continue;
+    // Løse feriedage er additive pr. kilde-række: validerede TAF-kilde-rækker
+    // overlapper ikke, så flere rækker repræsenterer selvstændige ferieperioder.
+    // Dagene placeres først efter at autoritative TAF-ranges er merget/clampet,
+    // så samme merged range kun behandles én gang.
+    sum += typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
+  }
+  return sum;
+};
+
+const buildPlacedLoseFeriedageForRange = (
+  range: IsoRange,
+  ferieperioder: ReadonlyArray<FerieperiodeRow>,
+  loseFeriedage: number
+): Set<ISODateString> => {
+  if (loseFeriedage <= 0) return new Set<ISODateString>();
+  const datoSet = buildDatoSetInclusive(range.fra, range.til);
+  const ferieDageSet = buildFerieDageSet(ferieperioder, datoSet);
+  const shDageSet = buildShDageSet(isoDateToDate(range.fra), isoDateToDate(range.til), datoSet);
+  const blockedLoseFerie = new Set<ISODateString>([...ferieDageSet, ...shDageSet]);
+  return placeLoseFeriedage(range.fra, range.til, loseFeriedage, blockedLoseFerie);
+};
+
+export const buildTafFerieFravaerSummary = (
+  rows: ReadonlyArray<TafPeriodeRow>,
+  ferieperioder: ReadonlyArray<FerieperiodeRow>,
+  authoritativeRanges: readonly IsoRange[]
+): TafFerieFravaerSummary => {
+  if (authoritativeRanges.length === 0) {
+    return { ferieperioder: [], feriedage: 0, loseFeriedage: 0, totalFeriedage: 0 };
+  }
+
+  const ferieDates = new Set<ISODateString>();
+  const constrainedFerieperioder: IsoRange[] = [];
+
+  for (const ferieperiode of ferieperioder) {
+    if (!ferieperiode.fra || !ferieperiode.til || ferieperiode.fra > ferieperiode.til) continue;
+    const ferieRange = { fra: ferieperiode.fra, til: ferieperiode.til };
+    for (const tafRange of authoritativeRanges) {
+      const constrained = intersectIsoRange(ferieRange, tafRange);
+      if (!constrained) continue;
+      const datoSet = buildDatoSetInclusive(constrained.fra, constrained.til);
+      const datesInConstrainedRange = buildFerieDageSet([constrained], datoSet);
+      if (datesInConstrainedRange.size === 0) continue;
+      constrainedFerieperioder.push(constrained);
+      for (const dato of datesInConstrainedRange) {
+        ferieDates.add(dato);
+      }
+    }
+  }
+
+  const loseFerieDates = new Set<ISODateString>();
+  for (const range of authoritativeRanges) {
+    const loseFeriedage = sumLoseFeriedageForSourceRows(rows, range);
+    const placedLoseFeriedage = buildPlacedLoseFeriedageForRange(range, ferieperioder, loseFeriedage);
+    for (const dato of placedLoseFeriedage) {
+      loseFerieDates.add(dato);
+    }
+  }
+
+  const feriedage = ferieDates.size;
+  const loseFeriedage = loseFerieDates.size;
+
+  return {
+    ferieperioder: mergeIsoDateRanges(constrainedFerieperioder, { mergeAdjacent: true }),
+    feriedage,
+    loseFeriedage,
+    totalFeriedage: feriedage + loseFeriedage,
+  };
+};
 
 export const buildTafArbejdsdageSetFromRows = (
   rows: ReadonlyArray<TafPeriodeRow>,
   ferieperioder: ReadonlyArray<FerieperiodeRow>,
-  options: Readonly<{ authoritativeRanges?: readonly Readonly<{ fra: ISODateString; til: ISODateString }>[] }> = {}
+  options: Readonly<{ authoritativeRanges?: readonly IsoRange[] }> = {}
 ): ReadonlySet<ISODateString> => {
   // undefined = ikke leveret (brug rå TAF-rækker som basis).
   // [] = leveret men tom (ingen TAF-dage i perioden — returner tomt sæt straks).
@@ -162,15 +259,24 @@ export const buildTafArbejdsdageSetFromRows = (
   const useAuthoritativeRanges = authoritativeRanges !== undefined && authoritativeRanges.length > 0;
   const arbejdsdage = new Set<ISODateString>();
 
+  if (useAuthoritativeRanges) {
+    for (const range of authoritativeRanges) {
+      const loseFeriedage = sumLoseFeriedageForSourceRows(rows, range);
+      const set = buildTafArbejdsdageSetForRange(range.fra, range.til, ferieperioder, loseFeriedage);
+      for (const dato of set) {
+        arbejdsdage.add(dato);
+      }
+    }
+    return arbejdsdage;
+  }
+
   for (const row of rows) {
     const validRange = getValidTafRange(row);
     if (!validRange) continue;
     const loseFeriedage = typeof row.loseFeriedage === 'number' ? row.loseFeriedage : 0;
     const set = buildTafArbejdsdageSetForRange(validRange.fra, validRange.til, ferieperioder, loseFeriedage);
     for (const dato of set) {
-      if (!useAuthoritativeRanges || isDateWithinRanges(dato, authoritativeRanges!)) {
-        arbejdsdage.add(dato);
-      }
+      arbejdsdage.add(dato);
     }
   }
 

@@ -301,6 +301,28 @@ describe('buildEODebugModel — ferie-set', () => {
   });
 });
 
+describe('buildEODebugModel — TAF fallback', () => {
+  it('bruger skadedatoISO ved fallback-beregning af TAF-ranges', () => {
+    const model = buildEODebugModel({
+      ...base(),
+      vedroererPeriodeFra: '2024-01-01' as never,
+      vedroererPeriodeTil: '2024-01-31' as never,
+      midlertidigtEETAfgorelse: 'Ja' as const,
+      midlertidigEETVirkningsdato: '2024-01-10' as never,
+      verserendeKlageEet: 'Nej' as const,
+      tafPerioder: [
+        { id: 'taf-1', fra: '2024-01-01', til: '2024-01-31', loseFeriedage: 0 },
+      ] as never,
+    }, { skadedatoISO: '2010-06-15' as never });
+
+    const beforeCutoffIndex = model.tableData.dates.indexOf('2024-01-09' as never);
+    const cutoffIndex = model.tableData.dates.indexOf('2024-01-10' as never);
+
+    expect(model.tableData.tafDayStatusByIndex[beforeCutoffIndex]).toBe('Ja');
+    expect(model.tableData.tafDayStatusByIndex[cutoffIndex]).toBe('-');
+  });
+});
+
 // ─── SS-coverage ──────────────────────────────────────────────────────────────
 
 describe('buildEODebugModel — SS-dag (svie/smerte)', () => {

@@ -205,7 +205,7 @@ describe('eoPdfReguleringEngine', () => {
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
   });
 
-  it('bevarer en særskilt række på reguleringsdatoen i privat reguleringsværdier-tabel selv når næste sats er uændret', () => {
+  it('udelader anvendt reguleringsdato i privat reguleringsværdier-tabel når overenskomsten har sats på datoen', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
@@ -222,10 +222,11 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows[0]?.[0]).toBe('24-05-2023');
+    expect(table?.rows.some((row) => row[0] === '24-05-2023')).toBe(false);
+    expect(table?.rows[0]?.[0]).toBe('01-06-2023');
   });
 
-  it('bevarer kolonneantal i privat reguleringsværdier-tabel når reguleringsdato ligger før tafFra', () => {
+  it('bevarer kolonneantal i privat reguleringsværdier-tabel uden særskilt reguleringsdato når sats findes', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
@@ -242,7 +243,7 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.rows[0]?.[0]).toBe('24-05-2023');
+    expect(table?.rows.some((row) => row[0] === '24-05-2023')).toBe(false);
     expect(table?.rows.every((row) => row.length === table.columns.length)).toBe(true);
   });
 

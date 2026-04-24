@@ -73,6 +73,7 @@ export const buildEODebugSnapshot = (args: {
   const taftContext = buildTaftContext(stamdataValues, eoValues);
   const model = buildEODebugModel(eoValues, {
     tafRanges,
+    skadedatoISO: stamdataValues.skadedato,
     svieSmerteConstrainedPeriods: args.svieSmerteEngine?.constrainedPeriods,
   });
   const debugDays = buildDebugDaysFromModel(model);

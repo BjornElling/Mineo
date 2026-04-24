@@ -2,7 +2,10 @@ import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { getEoBilagAvailability } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
+import {
+  getEoBilagAvailability,
+  hasMidlertidigtEetYdelsestype,
+} from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues> = {}): ErstatningsopgoerelseValues => {
@@ -261,5 +264,27 @@ describe('getEoBilagAvailability', () => {
     });
 
     expect(result.sygeferiegodtgoerelse.enabled).toBe(true);
+  });
+});
+
+describe('hasMidlertidigtEetYdelsestype', () => {
+  it('returnerer true når en offentlig ydelse har ydelsestypen Midlertidigt EET uden krav til beløb eller periode', () => {
+    const values = makeValues({
+      offentligeYdelserRows: [
+        { id: 'row-1', fraDato: '', tilDato: '', ydelse: undefined, tillaeg: undefined, ydelsestype: 'midlertidigt_eet' },
+      ],
+    });
+
+    expect(hasMidlertidigtEetYdelsestype(values)).toBe(true);
+  });
+
+  it('returnerer false når ingen offentlig ydelse har ydelsestypen Midlertidigt EET', () => {
+    const values = makeValues({
+      offentligeYdelserRows: [
+        { id: 'row-1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'sygedagpenge' },
+      ],
+    });
+
+    expect(hasMidlertidigtEetYdelsestype(values)).toBe(false);
   });
 });

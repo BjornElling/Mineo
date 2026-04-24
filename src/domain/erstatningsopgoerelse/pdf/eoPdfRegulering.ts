@@ -571,8 +571,16 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         tafTil
       );
       if (relevantRealDates.length === 0) return null;
+      const anvendtReguleringsdatoDa = anvendtReguleringsdato ? isoToDanish(anvendtReguleringsdato) : undefined;
+      const includeAnvendtReguleringsdato = Boolean(
+        anvendtReguleringsdato &&
+        anvendtReguleringsdatoDa &&
+        !getOffentligLoenForDato(offentligType, anvendtReguleringsdatoDa, loentrin, gruppeValue)
+      );
       const finalDates = sortIsoDates(
-        anvendtReguleringsdato ? [...relevantRealDates, anvendtReguleringsdato] : relevantRealDates
+        includeAnvendtReguleringsdato && anvendtReguleringsdato
+          ? [...relevantRealDates, anvendtReguleringsdato]
+          : relevantRealDates
       );
       for (const iso of finalDates) {
         const danish = isoToDanish(iso);
@@ -588,7 +596,9 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       return {
         columns,
         rows: mergeConsecutiveValueRows(rows, {
-          preserveFirstColumnValues: buildPreservedDateLabels(anvendtReguleringsdato),
+          preserveFirstColumnValues: includeAnvendtReguleringsdato
+            ? buildPreservedDateLabels(anvendtReguleringsdato)
+            : undefined,
         }),
       };
     }
@@ -678,8 +688,20 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       tafTil
     );
     if (relevantRealDates.length === 0) return null;
+    const anvendtReguleringsdatoDa = anvendtReguleringsdato ? isoToDanish(anvendtReguleringsdato) : undefined;
+    const includeAnvendtReguleringsdato = Boolean(
+      anvendtReguleringsdato &&
+      anvendtReguleringsdatoDa &&
+      !getEffektiveSatserForDato({
+        overenskomstId: ref.baseId,
+        dato: anvendtReguleringsdatoDa,
+        applyAlmindeligLoenPaaShDageRegel,
+      })
+    );
     const finalDates = sortIsoDates(
-      anvendtReguleringsdato ? [...relevantRealDates, anvendtReguleringsdato] : relevantRealDates
+      includeAnvendtReguleringsdato && anvendtReguleringsdato
+        ? [...relevantRealDates, anvendtReguleringsdato]
+        : relevantRealDates
     );
     const rows = finalDates
       .flatMap((iso) => {
@@ -703,7 +725,9 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     return {
       columns,
       rows: mergeConsecutiveValueRows(rows, {
-        preserveFirstColumnValues: buildPreservedDateLabels(anvendtReguleringsdato),
+        preserveFirstColumnValues: includeAnvendtReguleringsdato
+          ? buildPreservedDateLabels(anvendtReguleringsdato)
+          : undefined,
       }),
     };
   }

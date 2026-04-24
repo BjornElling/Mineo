@@ -630,6 +630,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       'Indkomst, hvis skaden ikke var indtrådt',
       indkomstHvisSkadeIkkeIndtraadtBeskrivelse
     );
+    if (model.tabtArbejdsfortjeneste.ferieFravaerLinje) {
+      safeAddWrappedText(model.tabtArbejdsfortjeneste.ferieFravaerLinje);
+    }
 
     if (loenudvikling) {
       writer.addSectionSpacer();

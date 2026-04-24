@@ -37,7 +37,6 @@ import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from '../helpers/angivetLoenHelpers';
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
 import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
-import { isTafRowEmpty } from '../helpers/rowEmpty';
 import type { Calculable, IndkomstSkadestidspunktModel, LoenudviklingModel, LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import {
@@ -83,18 +82,6 @@ export const buildTafArbejdsdageSet = (
   values: ErstatningsopgoerelseValues,
   tafRanges: readonly IsoRange[]
 ): ReadonlySet<ISODateString> => {
-  for (const row of values.tafPerioder ?? []) {
-    if (isTafRowEmpty(row)) continue;
-    const fra = row.fra;
-    const til = row.til;
-    if (!fra || !til) {
-      throw new Error('TAF-periode mangler fra/til'); // invariant: dækket af validator
-    }
-    if (!isISODateString(fra) || !isISODateString(til) || fra > til) {
-      throw new Error('TAF-periode er ugyldig'); // invariant: dækket af validator
-    }
-  }
-
   return buildTafArbejdsdageSetFromRows(values.tafPerioder ?? [], values.ferieperioder ?? [], {
     authoritativeRanges: tafRanges,
   });
@@ -918,7 +905,13 @@ const buildLoenudviklingFromOverenskomst = (
       if (applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
         starts.add(STORE_BEDEDAG_START);
       }
-      if (offentligEffectiveBase.startIso > range.fra && offentligEffectiveBase.startIso <= range.til) {
+      // Reguleringsdatoen er allerede segmentets reference-start; gentagelse her
+      // kan skjule, at effectiveBase kun er en afledt sats for samme dato.
+      if (
+        offentligEffectiveBase.startIso !== reguleringsdatoIso &&
+        offentligEffectiveBase.startIso > range.fra &&
+        offentligEffectiveBase.startIso <= range.til
+      ) {
         starts.add(offentligEffectiveBase.startIso);
       }
       if (anciennitetForIndex && anciennitetForIndex.activeFromIso > range.fra && anciennitetForIndex.activeFromIso <= range.til) {
@@ -1046,7 +1039,13 @@ const buildLoenudviklingFromOverenskomst = (
     if (applyShRegel && range.fra < STORE_BEDEDAG_START && range.til >= STORE_BEDEDAG_START) {
       starts.add(STORE_BEDEDAG_START);
     }
-    if (privateBaseContext.effectiveBase.startIso > range.fra && privateBaseContext.effectiveBase.startIso <= range.til) {
+    // Reguleringsdatoen er allerede segmentets reference-start; gentagelse her
+    // kan skjule, at effectiveBase kun er en afledt sats for samme dato.
+    if (
+      privateBaseContext.effectiveBase.startIso !== reguleringsdatoIso &&
+      privateBaseContext.effectiveBase.startIso > range.fra &&
+      privateBaseContext.effectiveBase.startIso <= range.til
+    ) {
       starts.add(privateBaseContext.effectiveBase.startIso);
     }
     if (anciennitetForIndex && anciennitetForIndex.activeFromIso > range.fra && anciennitetForIndex.activeFromIso <= range.til) {
@@ -1291,9 +1290,10 @@ export const buildLoenudviklingModel = (
           throw new Error('Loenudvikling kan ikke beregnes: arbejdsdagegrundlag mangler');
         }
         const arbejdsdage = countTafArbejdsdageInRange(tafArbejdageSet, segment.fra, segment.til);
-        if (!Number.isFinite(arbejdsdage) || arbejdsdage <= 0) {
+        if (!Number.isFinite(arbejdsdage)) {
           throw new Error('Loenudvikling kan ikke beregnes: ugyldigt arbejdsdagesegment');
         }
+        if (arbejdsdage <= 0) continue;
         beregnedeSegmenter.push({
           kind: 'arbejdsdage',
           fra: segment.fra,

@@ -2,7 +2,7 @@ import type { ErstatningsopgoerelseValues, OffentligeYdelserRow, SvieSmertePerio
 import type { SvieSmerteConstrainedPeriod } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, isoToDanish, subtractOneDay } from '../../types/branded';
-import { buildClampedTafRanges, resolveTafConstraintBounds, type IsoRange } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import type { IsoRange } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { formatCurrency } from '../../utils/formatUtils';
 import { isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
 import { buildOffentligeYdelserColumns, parseOffentligDato } from './eoDebugOffentligeYdelserColumns';
@@ -11,7 +11,7 @@ import { debugTabelColumnId, type DebugTabelWageColumnKey } from './eoDebugLoenT
 import { isoDateToDate } from '../dates/isoDate';
 import { getStandardLoenErrorRowIdSet, getOffentligeYdelserErrorRowIdSet } from './eoDebugRowValidation';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
-import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { buildTafRanges, parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { SYGEDAGPENGE_SH_CUTOFF } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/tafDaySets';
 import { iterateDatesInclusive, maxISO, minISO, validateIsoRange } from '../../utils/isoDateHelpers';
@@ -441,6 +441,7 @@ export const buildEODebugModel = (
   values: ErstatningsopgoerelseValues,
   options: Readonly<{
     tafRanges?: readonly IsoRange[];
+    skadedatoISO?: ISODateString;
     /** Clampede svie/smerte-perioder fra engine. Når leveret afspejler debug-tabellen
      *  præcist de perioder der indgik i beregningen — ikke de rå committede datoer. */
     svieSmerteConstrainedPeriods?: readonly SvieSmerteConstrainedPeriod[];
@@ -526,13 +527,10 @@ export const buildEODebugModel = (
   const shDays = buildShDageSetFromIsoRange(tableFra, tableTil);
   const explicitFerie = buildExplicitFerieSet(values, shDays);
   // Brug clampede tafRanges hvis de er leveret (fra engines — altid præfereret).
-  // Fallback: kald resolveTafConstraintBounds + buildClampedTafRanges, som er den samme logik
-  // engines bruger. Fallback bruges i validerings-fejl-stien og ved standalone/test-brug.
-  // BEMÆRK: fallback bruger values direkte og matcher ikke nødvendigvis det exakt beregnede
-  // snapshot-output, da engines-stien kan have kontekst-specifikke bounds. Levér altid
-  // tafRanges fra snapshot-pipelinen for fuld parity.
+  // Fallback bruger den kanoniske buildTafRanges-sti til standalone/test-brug.
+  // Snapshot-pipelinen skal fortsat levere tafRanges for fuld parity med den konkrete beregning.
   const resolvedTafRanges: readonly IsoRange[] = options.tafRanges
-    ?? buildClampedTafRanges(values.tafPerioder ?? [], resolveTafConstraintBounds(values));
+    ?? buildTafRanges(values, { skadedatoISO: options.skadedatoISO });
   const tafDates = buildTafDatesFromRanges(resolvedTafRanges);
 
   const beregningsRange = validateIsoRange(beregningsFra, beregningsTil);

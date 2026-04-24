@@ -31,6 +31,7 @@ import { buildMidlertidigtEetAfgoerelseGroups, type MidlertidigtEetInsertSource 
 import {
   EO_BILAG_DYNAMIC_SELECTION_KEYS,
   getEoBilagAvailability,
+  hasMidlertidigtEetYdelsestype,
   type EoBilagDynamicSelectionKey,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 
@@ -52,6 +53,12 @@ type SystemIssueRow = Readonly<{
   message: string;
   actionLabel?: string;
   onAction?: () => void;
+}>;
+
+type BilagWarningRow = Readonly<{
+  id: string;
+  message: string;
+  onAction: () => void;
 }>;
 
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
@@ -566,6 +573,31 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   }, [baseSelectedElements, bilagAvailability]);
   const loenindkomstOgOffentligeYdelserIndgaar =
     eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
+  const bilagWarningRows = React.useMemo<readonly BilagWarningRow[]>(() => {
+    if (
+      !selectedElements.midlertidigEet ||
+      !bilagAvailability.midlertidigEet.enabled ||
+      hasMidlertidigtEetYdelsestype(eoValues)
+    ) {
+      return [];
+    }
+
+    return [
+      {
+        id: 'bilag.midlertidigEet.udenOffentligYdelse',
+        message: 'Bilaget Midlertidig EET er valgt, men der er ikke indtastet nogen offentlig ydelse med ydelsestypen Midlertidigt EET.',
+        onAction: () => handleNavigate(
+          {
+            kind: 'erstatningsopgoerelse-tab',
+            tabId: 'offentlige_ydelser',
+            tabName: 'Offentlige ydelser',
+            sectionTitle: 'Offentlige ydelser',
+          },
+          'bilag.midlertidigEet.udenOffentligYdelse'
+        ),
+      },
+    ];
+  }, [bilagAvailability.midlertidigEet.enabled, eoValues, handleNavigate, selectedElements.midlertidigEet]);
 
   const updateSelectedElement = React.useCallback(
     (
@@ -833,6 +865,43 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     ));
   }, []);
 
+  const renderBilagWarningRows = React.useCallback((rows: readonly BilagWarningRow[]) => {
+    return rows.map((row) => (
+      <Box
+        key={row.id}
+        className="row--label-right-hover"
+        sx={{
+          '--label-width': '400px',
+          ...FEJL_ADVARSLER_ROW_SX,
+        }}
+      >
+        <Typography className="row--text">{row.message}</Typography>
+        <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
+          <Typography className="row--text">
+            Offentlige ydelser {'->'}{' '}
+          </Typography>
+          <Typography
+            className="row--text icon-text-link"
+            component="button"
+            type="button"
+            onClick={row.onAction}
+            sx={{
+              cursor: 'pointer',
+              border: 0,
+              background: 'transparent',
+              p: 0,
+              m: 0,
+              font: 'inherit',
+            }}
+          >
+            Offentlige ydelser
+          </Typography>
+          <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />
+        </Box>
+      </Box>
+    ));
+  }, []);
+
   const renderBilagCheckbox = React.useCallback((
     key: EoBilagDynamicSelectionKey,
     label: string
@@ -872,7 +941,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   return (
     <Box>
-      {(pdfDownloadErrorMessage || systemIssueRows.length > 0 || errors.length > 0 || warnings.length > 0) && (
+      {(pdfDownloadErrorMessage || systemIssueRows.length > 0 || errors.length > 0 || warnings.length > 0 || bilagWarningRows.length > 0) && (
         <ContentBox>
           <Typography className="section-header">Fejl og advarsler</Typography>
           {pdfDownloadErrorMessage && (
@@ -892,6 +961,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
           {renderSystemIssueRows(systemIssueRows)}
           {renderDebugRows(errors, 'error')}
           {renderDebugRows(warnings, 'warning')}
+          {renderBilagWarningRows(bilagWarningRows)}
         </ContentBox>
       )}
       <ContentBox>

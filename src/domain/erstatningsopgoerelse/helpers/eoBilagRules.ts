@@ -138,6 +138,12 @@ const hasOffentligeYdelserEoBilagData = (
   }));
 };
 
+export const hasMidlertidigtEetYdelsestype = (
+  values: Pick<ErstatningsopgoerelseValues, 'offentligeYdelserRows'>
+): boolean => {
+  return (values.offentligeYdelserRows ?? []).some((row) => row.ydelsestype?.trim() === 'midlertidigt_eet');
+};
+
 const hasReguleringSelection = (values: ErstatningsopgoerelseValues): boolean => {
   if (values.beregnesUdFra === 'Beregningsperiode') {
     return (values.loenindkomstAnsaettelsesforhold ?? []).some((af) => {

@@ -13,6 +13,11 @@ import {
   buildBeregningsperiodeRange,
   buildIncomeCalculationContext,
 } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { mergeIsoDateRanges } from '../../../domain/erstatningsopgoerelse/engines/periodMerging';
+import {
+  buildClampedTafRanges,
+  resolveTafConstraintBounds,
+} from '../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -139,6 +144,25 @@ describe('buildTafRanges', () => {
     });
     const ranges = buildTafRanges(eo);
     expect(ranges).toHaveLength(2);
+  });
+
+  it('matcher kombinerede debug-bounds efter samme merge-semantik', () => {
+    const eo = makeEo({
+      vedroererPeriodeFra: iso('2024-01-01'),
+      vedroererPeriodeTil: iso('2024-01-31'),
+      differencekravDato: iso('2024-02-01'),
+      tafPerioder: [
+        { id: 'r1', fra: iso('2023-12-20'), til: iso('2024-01-15'), loseFeriedage: 0 },
+        { id: 'r2', fra: iso('2024-01-16'), til: iso('2024-02-15'), loseFeriedage: 0 },
+      ],
+    });
+
+    const debugEquivalentRanges = mergeIsoDateRanges(
+      buildClampedTafRanges(eo.tafPerioder ?? [], resolveTafConstraintBounds(eo)),
+      { mergeAdjacent: true }
+    );
+
+    expect(debugEquivalentRanges).toEqual(buildTafRanges(eo));
   });
 });
 

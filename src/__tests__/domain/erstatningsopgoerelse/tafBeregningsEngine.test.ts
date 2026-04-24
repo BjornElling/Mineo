@@ -270,7 +270,7 @@ describe('tafBeregningsEngine', () => {
     expect(aggregated).toBe(4);
   });
 
-  it('bruger autoritative clampede tafRanges i aggregation uden at flytte loseFeriedage vaek fra den oprindelige raekke', () => {
+  it('bruger autoritative clampede tafRanges som grundlag for løse feriedage i aggregation', () => {
     const values = {
       ...baseValues(),
       beregnesUdFra: 'Angivet dagsløn' as const,
@@ -290,7 +290,7 @@ describe('tafBeregningsEngine', () => {
       tafRanges: [{ fra: toISODateString('2024-02-05'), til: toISODateString('2024-02-12') }],
     });
 
-    expect(aggregated).toBe(4);
+    expect(aggregated).toBe(3);
   });
 
   it('returnerer null fra aggregation når alle TAF-rækker er ugyldige', () => {
@@ -319,10 +319,9 @@ describe('tafBeregningsEngine', () => {
     expect(output.rows).toEqual([]);
   });
 
-  it('bevarer loseFeriedage paa den oprindelige raekke ved overlap i stedet for at genplacere dem paa den merged periode', () => {
-    // Row 1: 2024-02-05 til 2024-02-09 -> 5 hverdage, 2 loseFeriedage => 3 arbejdsdage
-    // Row 2: 2024-02-08 til 2024-02-14 -> 5 hverdage, 3 loseFeriedage => arbejdsdage {13,14}
-    // Union paa merged perioden 2024-02-05 til 2024-02-14 => {07,08,09,13,14} = 5 arbejdsdage
+  it('placerer løse feriedage på den merged TAF-periode', () => {
+    // Merged periode 2024-02-05 til 2024-02-14 har 8 hverdage.
+    // De 5 løse feriedage fra kilderækkerne placeres én gang på den merged periode => 3 TAF-dage.
     const values = {
       ...baseValues(),
       beregnesUdFra: 'Angivet dagsløn' as const,
@@ -339,7 +338,7 @@ describe('tafBeregningsEngine', () => {
     });
 
     expect(output.rows).toHaveLength(1);
-    expect(output.rows[0]?.value).toBe(5);
+    expect(output.rows[0]?.value).toBe(3);
   });
 
   it('invalide rækker inkluderes i output med value=null og nulstillet loseFeriedage', () => {
