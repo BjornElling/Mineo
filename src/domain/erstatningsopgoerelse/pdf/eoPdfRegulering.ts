@@ -110,9 +110,10 @@ const parseIsoDateToUtcDate = (iso: ISODateString | undefined): Date | null => {
 };
 
 export const resolveTafDateBounds = (
-  eoValues: ErstatningsopgoerelseValues
+  eoValues: ErstatningsopgoerelseValues,
+  options?: Readonly<{ skadedatoISO?: ISODateString | undefined }>
 ): Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null => {
-  const tafBounds = resolveTafConstraintBounds(eoValues);
+  const tafBounds = resolveTafConstraintBounds(eoValues, { skadedatoISO: options?.skadedatoISO });
 
   let foerste: ISODateString | undefined;
   let sidste: ISODateString | undefined;

@@ -1122,17 +1122,20 @@ const buildLoenudviklingFromManual = (
   if (!baseRow) {
     throw new Error('Loenudvikling kan ikke beregnes: manuelle reguleringsraekker mangler');
   }
+  const baseComponents = {
+    grundloen: amountValueToNumber(baseRow.grundloen) ?? 0,
+    feriePct: resolveManualFeriePctPct(baseRow.feriepenge, konsolideret.feriePct),
+    shSoPct: parseManualPercentToPct(baseRow.shSoSats),
+    fritvalgPct: parseManualPercentToPct(baseRow.fritvalg),
+    pensionPct: parseManualPercentToPct(baseRow.agPension),
+  };
   const resolveStoreBededagPctForManualDate = (iso: ISODateString | undefined): number =>
     konsolideret.loenPaaHelligdage === LOEN_PAA_HELLIGDAGE.ALMINDELIG && iso && iso >= STORE_BEDEDAG_START
       ? STORE_BEDEDAG_PCT
       : 0;
 
   const basePackage = computePackageValuePct({
-    grundloen: amountValueToNumber(baseRow.grundloen) ?? 0,
-    feriePct: resolveManualFeriePctPct(baseRow.feriepenge, konsolideret.feriePct),
-    shSoPct: parseManualPercentToPct(baseRow.shSoSats),
-    fritvalgPct: parseManualPercentToPct(baseRow.fritvalg),
-    pensionPct: parseManualPercentToPct(baseRow.agPension),
+    ...baseComponents,
     storeBededagPct: resolveStoreBededagPctForManualDate(konsolideret.reguleringsdato),
   });
   if (!Number.isFinite(basePackage) || basePackage <= 0) {
@@ -1153,6 +1156,7 @@ const buildLoenudviklingFromManual = (
       };
       const packageValue = computePackageValuePct({
         ...components,
+        // Store Bededag korrigeres pr. faktisk TAF-segment i hasStoreBededagSegmenter-grenen nedenfor.
         storeBededagPct: 0,
       });
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
@@ -1182,21 +1186,12 @@ const buildLoenudviklingFromManual = (
     }
     for (const segment of buildSegmentsFromStartDates(range, starts)) {
       const segmentRow = findLatestByDateInSortedList(datedRows, segment.fra, 'manual:segment');
-      const packageValueBase = segmentRow ? segmentRow.packageValue : basePackage;
-      const packageValue = hasStoreBededagSegmenter && segment.fra >= STORE_BEDEDAG_START
+      const packageValue = hasStoreBededagSegmenter
         ? computePackageValuePct({
-            ...(segmentRow
-              ? segmentRow.components
-              : {
-                  grundloen: amountValueToNumber(baseRow.grundloen) ?? 0,
-                  feriePct: resolveManualFeriePctPct(baseRow.feriepenge, konsolideret.feriePct),
-                  shSoPct: parseManualPercentToPct(baseRow.shSoSats),
-                  fritvalgPct: parseManualPercentToPct(baseRow.fritvalg),
-                  pensionPct: parseManualPercentToPct(baseRow.agPension),
-                }),
+            ...(segmentRow ? segmentRow.components : baseComponents),
             storeBededagPct: resolveStoreBededagPctForManualDate(segment.fra),
           })
-        : packageValueBase;
+        : (segmentRow ? segmentRow.packageValue : basePackage);
       if (!Number.isFinite(packageValue) || packageValue <= 0) {
         throw new Error('Loenudvikling kan ikke beregnes: ugyldig manuel segmentvaerdi');
       }
@@ -1307,7 +1302,11 @@ export const buildLoenudviklingModel = (
     }
 
     if (beregnedeSegmenter.length === 0) {
-      throw new Error('Loenudvikling kan ikke beregnes: ingen beregnede segmenter');
+      return {
+        loenudviklingLabel,
+        loenudviklingTotal: asCalculable(ensureMoneyOre(0)),
+        beregnedeSegmenter,
+      };
     }
 
     const totalOre = clampMoneyOreToZero(

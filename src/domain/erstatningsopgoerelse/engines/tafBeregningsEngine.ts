@@ -13,6 +13,7 @@ export type TafEngineInputSnapshot = DeepReadonly<{
   erstatningsopgoerelse: ErstatningsopgoerelseValues;
   tafPerioder: ReadonlyArray<TafPeriodeRow>;
   ferieperioder: ReadonlyArray<FerieperiodeRow>;
+  skadedatoISO?: ISODateString;
 }>;
 
 export type TafEngineRowResult = Readonly<{
@@ -31,6 +32,7 @@ export type TafArbejdsdageAggregationInput = DeepReadonly<{
   ferieperioder: ReadonlyArray<FerieperiodeRow>;
   beregningsenhed: TafBeregningsenhed;
   tafRanges?: ReadonlyArray<Readonly<{ fra: ISODateString; til: ISODateString }>>;
+  skadedatoISO?: ISODateString;
 }>;
 
 const roundTafValue = (value: number): number => {
@@ -135,10 +137,10 @@ export const buildMergedTafGroups = (
 };
 
 export const computeTafEngine = (input: TafEngineInputSnapshot): TafEngineOutput => {
-  const { erstatningsopgoerelse, tafPerioder, ferieperioder } = input;
+  const { erstatningsopgoerelse, tafPerioder, ferieperioder, skadedatoISO } = input;
   const beregningsenhed = computeTafBeregningsenhed(erstatningsopgoerelse);
   const visAntalMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
-  const tafBounds = resolveTafConstraintBounds(erstatningsopgoerelse);
+  const tafBounds = resolveTafConstraintBounds(erstatningsopgoerelse, { skadedatoISO });
   const mergedGroups = buildMergedTafGroups(tafPerioder, tafBounds);
 
   // Aggregation beregnes på merged, kanoniske perioder for at undgå dobbeltoptælling ved overlap.
@@ -177,12 +179,12 @@ export const computeTafEngine = (input: TafEngineInputSnapshot): TafEngineOutput
  * - Returnerer `null`, når der ikke findes mindst én gyldig, clampet TAF-periode.
  */
 export const computeTafArbejdsdageAggregation = (input: TafArbejdsdageAggregationInput): number | null => {
-  const { erstatningsopgoerelse, tafPerioder, ferieperioder, beregningsenhed, tafRanges } = input;
+  const { erstatningsopgoerelse, tafPerioder, ferieperioder, beregningsenhed, tafRanges, skadedatoISO } = input;
   if (beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
     const arbejdsdageSet = buildTafArbejdsdageSetFromRows(tafPerioder, ferieperioder, { authoritativeRanges: tafRanges });
     return arbejdsdageSet.size === 0 ? null : arbejdsdageSet.size;
   }
-  const tafBounds = resolveTafConstraintBounds(erstatningsopgoerelse);
+  const tafBounds = resolveTafConstraintBounds(erstatningsopgoerelse, { skadedatoISO });
   const mergedGroups = buildMergedTafGroups(tafPerioder, tafBounds, { authoritativeRanges: tafRanges });
 
   let sum = 0;

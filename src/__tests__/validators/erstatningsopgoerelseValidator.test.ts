@@ -3,6 +3,7 @@ import { toISODateString } from '../../types/branded';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { erstatningsopgoerelseValidator } from '../../validators/erstatningsopgoerelseValidator';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
+import { calculateTafArbejdsdageBreakdown } from '../../domain/erstatningsopgoerelse/engines/tafCalculations';
 
 const iso = (value: string) => toISODateString(value);
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
@@ -546,6 +547,59 @@ describe('TAF — clampede feriedage', () => {
       result.errors.some((error) => error.path === 'tafPerioder[0].loseFeriedage')
     ).toBe(false);
   });
+
+  it('validerer løse feriedage mod midlertidig EET-clamp for skader før 16-06-2011', () => {
+    const unclampedBreakdown = calculateTafArbejdsdageBreakdown(
+      iso('2010-01-01'),
+      iso('2011-12-31'),
+      [],
+      9999,
+      { kind: 'taf' }
+    );
+    const clampedBreakdown = calculateTafArbejdsdageBreakdown(
+      iso('2010-01-01'),
+      iso('2011-06-30'),
+      [],
+      9999,
+      { kind: 'taf' }
+    );
+    expect(unclampedBreakdown).not.toBeNull();
+    expect(clampedBreakdown).not.toBeNull();
+    const loseFeriedageWithinRawRange = (clampedBreakdown?.loseFeriedage ?? 0) + 1;
+    expect(loseFeriedageWithinRawRange).toBeLessThanOrEqual(unclampedBreakdown?.loseFeriedage ?? 0);
+
+    const values = makeValues({
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2010-01-01'), til: iso('2011-12-31'), loseFeriedage: loseFeriedageWithinRawRange },
+      ],
+      midlertidigtEETAfgorelse: 'Ja',
+      midlertidigEETVirkningsdato: iso('2011-07-01'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'Ingen',
+        },
+      ],
+      tafBeregningsperiodeFra: iso('2009-01-01'),
+      tafBeregningsperiodeTil: iso('2009-12-31'),
+    });
+
+    const resultWithoutSkadedatoClamp = erstatningsopgoerelseValidator.validateParsed(values);
+    expect(
+      resultWithoutSkadedatoClamp.errors.some((error) => error.path === 'tafPerioder[0].loseFeriedage')
+    ).toBe(false);
+
+    const resultWithSkadedatoClamp = erstatningsopgoerelseValidator.validateParsed(values, {
+      skadedatoISO: iso('2010-01-01'),
+    });
+
+    expect(
+      resultWithSkadedatoClamp.errors.some((error) =>
+        error.path === 'tafPerioder[0].loseFeriedage' &&
+        error.message.startsWith('Løse feriedage overstiger mulige arbejdsdage i perioden')
+      )
+    ).toBe(true);
+  });
 });
 
 // =============================================================================
@@ -760,6 +814,49 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
       },
     });
     expect(hasError(values, 'Grundløn skal udfyldes')).toBe(true);
+  });
+
+  it('fanger nul i grundløn på manuel reguleringsrække', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+        loenudviklingManuelTableData: [
+          { id: 'row-1', dato: '2024-01-01', grundloen: asAmount(0), feriepenge: '', shSoSats: '', fritvalg: '', agPension: '' },
+        ],
+      },
+    });
+    expect(hasError(values, 'Grundløn skal være større end 0')).toBe(true);
+  });
+
+  it('fanger uens startdato for regulering på tværs af ansættelsesforhold', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso('2023-01-01'),
+      tafBeregningsperiodeTil: iso('2023-12-31'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          id: 'af-1',
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'bygge-anlaeg',
+          loenPaaHelligdage: 'Almindelig løn',
+          saerligFraDatoRegulering: iso('2024-01-01'),
+        },
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          id: 'af-2',
+          loenudviklingBeregningsgrundlag: 'Overenskomst',
+          overenskomstId: 'bygge-anlaeg',
+          loenPaaHelligdage: 'Almindelig løn',
+          saerligFraDatoRegulering: iso('2024-02-01'),
+        },
+      ],
+    });
+
+    expect(hasError(values, 'Startdato for regulering skal være ens')).toBe(true);
   });
 
   it('ingen fejl ved grundlag=Ingen (springes over)', () => {

@@ -422,7 +422,7 @@ export const buildEODebugSammentaellingModel = (args: {
   const beregningsShDageCount = beregningsShDates.size;
   const beregningsFeriedageCount = beregningsFerieDates.size + beregningsShDates.size;
 
-  const tafBounds = resolveTafConstraintBounds(values);
+  const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO: args.taftContext.skadedatoISO });
   const tafFerieDates = (() => {
     const collected = new Set<ISODateString>();
     for (const periode of values.tafPerioder ?? []) {
@@ -508,6 +508,7 @@ export const buildEODebugSammentaellingModel = (args: {
       ferieperioder: values.ferieperioder ?? [],
       beregningsenhed,
       tafRanges: args.tafRanges,
+      skadedatoISO: args.taftContext.skadedatoISO,
     })
     : null;
 

@@ -167,4 +167,73 @@ describe('buildLoenudviklingModel', () => {
 
     expectOnlyPositiveArbejdsdagssegmenter(values);
   });
+
+  it('beregner negativ manuel Store Bededag-regulering for TAF-segmenter før 2024', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2024-06-01');
+    values.tafPerioder = [{
+      id: 'taf-cross-store-bededag',
+      fra: iso('2023-01-01'),
+      til: iso('2024-09-30'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenPaaHelligdage: 'Almindelig løn',
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      loenudviklingManuelTableData: [
+        {
+          id: 'manual-base',
+          dato: '01-01-2023',
+          grundloen: asAmount(1000),
+          feriepenge: '0',
+          shSoSats: '0',
+          fritvalg: '0',
+          agPension: '0',
+        },
+      ],
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2023-01-01'), til: iso('2024-09-30') }] }
+    );
+
+    const segment2023 = model.beregnedeSegmenter.find((segment) => segment.fra === iso('2023-01-01'));
+    const segment2024 = model.beregnedeSegmenter.find((segment) => segment.fra === iso('2024-01-01'));
+
+    expect(segment2023?.deltaPct).toBeLessThan(0);
+    expect(segment2023?.deltaPct).toBe(-0.45);
+    expect(segment2024?.deltaPct).toBe(0);
+  });
+
+  it('returnerer 0 kr. når arbejdsdage-sporet ikke har TAF-arbejdsdage', () => {
+    const values = setupAngivetDagsloen();
+    values.tafPerioder = [{
+      id: 'taf-christmas',
+      fra: iso('2024-12-25'),
+      til: iso('2024-12-26'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Ingen',
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      TAF_BEREGNES_SOM.ARBEJDSDAGE,
+      null,
+      { tafRanges: [{ fra: iso('2024-12-25'), til: iso('2024-12-26') }] }
+    );
+
+    expect(model.loenudviklingTotal).toEqual({ status: 'ok', value: 0 });
+    expect(model.beregnedeSegmenter).toEqual([]);
+  });
 });

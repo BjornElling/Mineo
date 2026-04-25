@@ -23,6 +23,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
       skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
       differencekravDato: undefined,
       verserendeKlageEet: false,
     };
@@ -56,6 +57,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
       skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
       differencekravDato: undefined,
       verserendeKlageEet: false,
     };
@@ -85,6 +87,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
       skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
       differencekravDato: undefined,
       verserendeKlageEet: false,
     };
@@ -292,5 +295,67 @@ describe('buildEODebugTaftRows overlap parity', () => {
 
     expect(warningRow?.status).toBe('warning');
     expect(warningRow?.displayValue).toContain('folkepensionsalder');
+  });
+
+  it('viser midlertidig EET som ophørsårsag og clampet TAF-slutdato for pre-2011-sager', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      tafPerioder: [
+        { id: 'taf-pre-2011', fra: iso('2010-01-01'), til: iso('2011-12-31'), loseFeriedage: undefined },
+      ],
+      ferieperioder: [],
+      midlertidigtEETAfgorelse: 'Ja' as const,
+      midlertidigEETVirkningsdato: iso('2011-07-01'),
+    };
+
+    const context = {
+      skadedatoISO: iso('2010-01-01'),
+      skadelidteFodselsdato: undefined,
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: iso('2011-07-01'),
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
+    const rows = buildEODebugTaftRows(values, errors, context);
+
+    const ophoerRow = rows.find((row) => row.id === 'taf.ophoerSkyldes');
+    const periodeRow = rows.find((row) => row.id === 'taf.periode.taf-pre-2011');
+
+    expect(ophoerRow?.displayValue).toBe('Midlertidig EET-afgørelse (01-07-2011)');
+    expect(periodeRow?.label).toContain('01-01-2010 - 30-06-2011');
+  });
+
+  it('bruger ikke midlertidig EET som TAF-afgrænsning når skadedato er efter 15-06-2011', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      tafPerioder: [
+        { id: 'taf-post-2011', fra: iso('2012-01-01'), til: iso('2012-12-31'), loseFeriedage: undefined },
+      ],
+      ferieperioder: [],
+      midlertidigtEETAfgorelse: 'Ja' as const,
+      midlertidigEETVirkningsdato: iso('2012-07-01'),
+    };
+
+    const context = {
+      skadedatoISO: iso('2012-01-01'),
+      skadelidteFodselsdato: undefined,
+      erErhvervssygdom: false,
+      endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: iso('2012-07-01'),
+      differencekravDato: undefined,
+      verserendeKlageEet: false,
+    };
+
+    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
+    const rows = buildEODebugTaftRows(values, errors, context);
+
+    const ophoerRow = rows.find((row) => row.id === 'taf.ophoerSkyldes');
+    const periodeRow = rows.find((row) => row.id === 'taf.periode.taf-post-2011');
+
+    expect(ophoerRow?.displayValue).not.toContain('Midlertidig EET-afgørelse');
+    expect(periodeRow?.label).toContain('01-01-2012 - 31-12-2012');
   });
 });

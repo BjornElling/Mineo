@@ -1405,7 +1405,11 @@ export const buildEODebugTaftRows = (
     }];
   }
 
-  const tafBounds = resolveTafConstraintBounds(values);
+  const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO: context.skadedatoISO });
+  const aktivMidlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({
+    ...values,
+    skadedatoISO: context.skadedatoISO,
+  });
   const clampedTafById = new Map<string, { fra: ISODateString; til: ISODateString }>();
   const tafIkkeRejstLabel = 'Ikke rejst TAF-krav for hele perioden';
   const authoritativeTafRanges = canonicalOutput?.periodiseringer.tafPerioder;
@@ -1446,6 +1450,11 @@ export const buildEODebugTaftRows = (
       return 'Endelig EET-afgørelse';
     }
 
+    const midlertidigEetMinus1 = subtractOneDay(aktivMidlertidigEETBeregnetDato);
+    if (!context.verserendeKlageEet && midlertidigEetMinus1 && midlertidigEetMinus1 === lastTafKravDato) {
+      return 'Midlertidig EET-afgørelse';
+    }
+
     const differencekravMinus1 = subtractOneDay(context.differencekravDato);
     if (!context.verserendeKlageEet && differencekravMinus1 && differencekravMinus1 === lastTafKravDato) {
       return 'Differencekrav opgjort';
@@ -1464,6 +1473,11 @@ export const buildEODebugTaftRows = (
     const endeligEetMinus1 = subtractOneDay(context.endeligEETBeregnetDato);
     if (!context.verserendeKlageEet && endeligEetMinus1 && endeligEetMinus1 === lastTafKravDato) {
       return context.endeligEETBeregnetDato;
+    }
+
+    const midlertidigEetMinus1 = subtractOneDay(aktivMidlertidigEETBeregnetDato);
+    if (!context.verserendeKlageEet && midlertidigEetMinus1 && midlertidigEetMinus1 === lastTafKravDato) {
+      return aktivMidlertidigEETBeregnetDato;
     }
 
     const differencekravMinus1 = subtractOneDay(context.differencekravDato);
@@ -1491,6 +1505,7 @@ export const buildEODebugTaftRows = (
   });
 
   const endeligEETMinus1 = subtractOneDay(context.endeligEETBeregnetDato);
+  const midlertidigEETMinus1 = subtractOneDay(aktivMidlertidigEETBeregnetDato);
   const differencekravMinus1 = subtractOneDay(context.differencekravDato);
 
   let combinedExtraMaxDate: ISODateString | undefined = undefined;
@@ -1500,6 +1515,11 @@ export const buildEODebugTaftRows = (
   if (!context.verserendeKlageEet && endeligEETMinus1) {
     if (!combinedExtraMaxDate || endeligEETMinus1 < combinedExtraMaxDate) {
       combinedExtraMaxDate = endeligEETMinus1;
+    }
+  }
+  if (!context.verserendeKlageEet && midlertidigEETMinus1) {
+    if (!combinedExtraMaxDate || midlertidigEETMinus1 < combinedExtraMaxDate) {
+      combinedExtraMaxDate = midlertidigEETMinus1;
     }
   }
 
@@ -1604,6 +1624,7 @@ export const buildEODebugTaftRows = (
       parts.push('dags dato');
       if (context.differencekravDato) parts.push('differencekrav-dato');
       if (!context.verserendeKlageEet && context.endeligEETBeregnetDato) parts.push('beregnet dato for endeligt EET');
+      if (!context.verserendeKlageEet && aktivMidlertidigEETBeregnetDato) parts.push('beregnet dato for midlertidigt EET');
       return parts.join(', ');
     })();
 
@@ -3535,7 +3556,7 @@ export const buildEODebugMidlertidigtEetKonsistensRows = (
   if (!midlertidigEETBeregnetDato) return [];
 
   // Find TAF-slutdato (sidste dag i det sidst registrerede TAF-krav)
-  const tafBounds = resolveTafConstraintBounds(values);
+  const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO });
   let lastTafKravDato: ISODateString | undefined = undefined;
   for (const periode of values.tafPerioder ?? []) {
     const valid = getValidTafRange(periode);

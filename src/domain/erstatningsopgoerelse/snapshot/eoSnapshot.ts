@@ -216,7 +216,9 @@ export const computeEoSnapshot = (args: Readonly<{
     };
   }
 
-  const validationResult = erstatningsopgoerelseValidator.validateParsed(parsedEo.data);
+  const validationResult = erstatningsopgoerelseValidator.validateParsed(parsedEo.data, {
+    skadedatoISO: parsedStamdata.data.skadedato,
+  });
   const validationInvariants = buildValidationInvariants(validationResult.errors);
   if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
     // Validerings-fejl-sti: autoritative totaler/PDF'er må ikke bygges.

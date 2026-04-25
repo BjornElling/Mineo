@@ -1,4 +1,5 @@
 import type { ErstatningsopgoerelseValues, FerieperiodeRow, TafPeriodeRow } from '../../../schemas/formSchemas';
+import type { ISODateString } from '../../../types/branded';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from './tafBeregningsenhed';
 import { calculateTafAntalArbejdsdage, calculateTafAntalMaaneder } from '../engines/tafCalculations';
 import { computeTafOverlapWithBeregningsperiode } from '../engines/beregningsperiodeTafOverlap';
@@ -17,11 +18,12 @@ export const buildTafDerived = (args: {
   values: ErstatningsopgoerelseValues;
   tafPerioder: readonly TafPeriodeRow[];
   ferieperioder: readonly FerieperiodeRow[];
+  skadedatoISO?: ISODateString | undefined;
 }): TafDerivedResult => {
   const beregningsenhed = computeTafBeregningsenhed(args.values);
   const visAntalMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
   const kolonneOverskrift = visAntalMaaneder ? 'TAF-måneder' : 'TAF-arbejdsdage';
-  const tafBounds = resolveTafConstraintBounds(args.values);
+  const tafBounds = resolveTafConstraintBounds(args.values, { skadedatoISO: args.skadedatoISO });
 
   const derivedById: Record<string, number | null> = {};
   for (const row of args.tafPerioder) {

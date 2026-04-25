@@ -18,7 +18,7 @@
 import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow, TafPeriodeRow, OevrigeKravRow } from '../schemas/formSchemas';
 import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
-import { isISODateString } from '../types/branded';
+import { isISODateString, type ISODateString } from '../types/branded';
 import { svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
 import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
@@ -315,7 +315,10 @@ function validateSvieSmerteRowCompleteness(
  * - beregnesUdFra skal have matchende data udfyldt
  * - Lønudviklingsstrategi skal være valgt og konsistent
  */
-function validateTAF(values: ErstatningsopgoerelseValues): ValidationError[] {
+function validateTAF(
+  values: ErstatningsopgoerelseValues,
+  options?: ErstatningsopgoerelseValidationOptions
+): ValidationError[] {
   const errors: ValidationError[] = [];
   const beregnes = values.beregnesTabtArbejdsfortjeneste === 'Ja';
   if (!beregnes) return errors;
@@ -343,7 +346,7 @@ function validateTAF(values: ErstatningsopgoerelseValues): ValidationError[] {
     }
   }
 
-  errors.push(...validateTafLoseFeriedage(values));
+  errors.push(...validateTafLoseFeriedage(values, options));
   errors.push(...validateBeregningsperiodeLoseFeriedage(values));
 
   // Validér beregnesUdFra matchende felter
@@ -497,10 +500,17 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
   return errors;
 }
 
-export function validateTafLoseFeriedage(values: ErstatningsopgoerelseValues): ValidationError[] {
+type ErstatningsopgoerelseValidationOptions = Readonly<{
+  skadedatoISO?: ISODateString | undefined;
+}>;
+
+export function validateTafLoseFeriedage(
+  values: ErstatningsopgoerelseValues,
+  options?: ErstatningsopgoerelseValidationOptions
+): ValidationError[] {
   const errors: ValidationError[] = [];
   const ferieperioder = [...(values.ferieperioder ?? []), ...(values.fravaerPerioder ?? [])];
-  const tafBounds = resolveTafConstraintBounds(values);
+  const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO: options?.skadedatoISO });
 
   for (let i = 0; i < (values.tafPerioder ?? []).length; i += 1) {
     const row = values.tafPerioder[i];
@@ -683,6 +693,27 @@ function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseVa
     return errors;
   }
 
+  const aktiveLoenudviklingsRaekker = loenudviklingsKilde
+    .map((af, index) => ({ af, index }))
+    .filter((entry) => entry.af.loenudviklingBeregningsgrundlag && entry.af.loenudviklingBeregningsgrundlag !== 'Ingen');
+  const uniqueSaerligFraDatoRegulering = new Set(
+    aktiveLoenudviklingsRaekker.map((entry) =>
+      isISODateString(entry.af.saerligFraDatoRegulering) ? entry.af.saerligFraDatoRegulering : ''
+    )
+  );
+  if (uniqueSaerligFraDatoRegulering.size > 1) {
+    for (const entry of aktiveLoenudviklingsRaekker) {
+      const path = values.beregnesUdFra === 'Beregningsperiode'
+        ? `loenindkomstAnsaettelsesforhold[${entry.index}].saerligFraDatoRegulering`
+        : 'eoAngivetLoenLoenudvikling.saerligFraDatoRegulering';
+      errors.push({
+        path,
+        message: 'Startdato for regulering skal være ens på tværs af ansættelsesforhold',
+        severity: 'error',
+      });
+    }
+  }
+
   loenudviklingsKilde.forEach((af, index) => {
     const path = (field: string): string =>
       values.beregnesUdFra === 'Beregningsperiode'
@@ -766,6 +797,12 @@ function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseVa
           message: 'Grundløn skal udfyldes på alle manuelle reguleringsrækker',
           severity: 'error',
         });
+      } else if (aktiveRows.some((row) => (amountValueToNumber(row.grundloen) ?? 0) <= 0)) {
+        errors.push({
+          path: path('loenudviklingManuelTableData'),
+          message: 'Grundløn skal være større end 0 på alle manuelle reguleringsrækker',
+          severity: 'error',
+        });
       }
     }
   });
@@ -837,16 +874,16 @@ function validateOevrigeKravRowCompleteness(row: OevrigeKravRow, index: number):
  * Sektions-valideringer kører uafhængigt, så alle fejl rapporteres samlet.
  */
 type ErstatningsopgoerelseValidator = FormValidator<ErstatningsopgoerelseValues> & Readonly<{
-  validateParsed(values: ErstatningsopgoerelseValues): ValidationResult;
+  validateParsed(values: ErstatningsopgoerelseValues, options?: ErstatningsopgoerelseValidationOptions): ValidationResult;
 }>;
 
 export const erstatningsopgoerelseValidator: ErstatningsopgoerelseValidator = {
-  validateParsed(values: ErstatningsopgoerelseValues): ValidationResult {
+  validateParsed(values: ErstatningsopgoerelseValues, options?: ErstatningsopgoerelseValidationOptions): ValidationResult {
     const errors: ValidationError[] = [
       ...validateStandaloneRules(values),
       ...validateForligAnsvarsgrad(values),
       ...validateSvieSmerte(values),
-      ...validateTAF(values),
+      ...validateTAF(values, options),
       ...validateSygeferiegodtgoerelse(values),
       ...validateOevrigeKrav(values),
     ];

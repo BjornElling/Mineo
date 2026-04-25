@@ -133,12 +133,16 @@ export const resolveTafEoPeriodeBounds = (values: TafConstraintSource): TafConst
  * Til `buildTafRanges` bruges i stedet `resolveTafFejlgivendeBounds` + `resolveTafEoPeriodeBounds`
  * separat, da rækkefølgen af clampingen her er semantisk vigtig.
  */
-export const resolveTafConstraintBounds = (values: TafConstraintSource): TafConstraintBounds => {
-  const minStart = values.vedroererPeriodeFra;
-  const erstatningsTil = values.vedroererPeriodeTil;
+export const resolveTafConstraintBounds = (
+  values: TafConstraintSource,
+  options?: Readonly<{ skadedatoISO?: ISODateString | undefined }>
+): TafConstraintBounds => {
+  const source = options ? { ...values, skadedatoISO: options.skadedatoISO } : values;
+  const minStart = source.vedroererPeriodeFra;
+  const erstatningsTil = source.vedroererPeriodeTil;
 
-  const differencekravMax = subtractOneDay(values.differencekravDato);
-  const eetBounds = resolveEetMaxBounds(values);
+  const differencekravMax = subtractOneDay(source.differencekravDato);
+  const eetBounds = resolveEetMaxBounds(source);
 
   const maxEnd = minDefined(erstatningsTil, differencekravMax, eetBounds.maxEnd);
   return { minStart, maxEnd };

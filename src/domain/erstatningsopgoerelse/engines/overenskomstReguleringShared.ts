@@ -1,5 +1,5 @@
 import type { ISODateString } from '../../../types/branded';
-import { danishToISO, isoToDanish } from '../../../types/branded';
+import { isoToDanish } from '../../../types/branded';
 import {
   getEffektiveSatserForDato,
   getReguleringsDatoIntervalForOverenskomst,
@@ -9,7 +9,7 @@ import {
 import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
 import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
 import { differsFromZero } from '../../../utils/numberComparison';
-import { resolvePctPointFromSatsOrInput } from '../helpers/eoSharedUtils';
+import { parseDanishToIso, resolvePctPointFromSatsOrInput } from '../helpers/eoSharedUtils';
 import type { FormulaComponents } from './reguleringFormulaUtils';
 
 type PrivateOverenskomstBaseArgs = Readonly<{
@@ -64,7 +64,7 @@ export const resolvePrivateOverenskomstBaseContext = (
     }
     const interval = getReguleringsDatoIntervalForOverenskomst(args.overenskomstId);
     if (!interval) return null;
-    const firstStartIso = danishToISO(interval.fraDato);
+    const firstStartIso = parseDanishToIso(interval.fraDato);
     if (!firstStartIso) return null;
     const firstSats = getEffektiveSatserForDato({
       overenskomstId: args.overenskomstId,

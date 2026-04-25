@@ -71,7 +71,10 @@ type ReguleringSectionContext = Readonly<{
     skadedato: ISODateString | undefined;
     useUntilWordingForImplicitBeregningsperiodeDate?: boolean;
   }>) => string;
-  resolveTafDateBounds: (eoValues: ErstatningsopgoerelseValues) => Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null;
+  resolveTafDateBounds: (
+    eoValues: ErstatningsopgoerelseValues,
+    options?: Readonly<{ skadedatoISO?: ISODateString | undefined }>
+  ) => Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null;
   buildReguleringsvaerdierTableData: (params: Readonly<{
     ansaettelsesforhold: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
     anvendtReguleringsdato: ISODateString | undefined;
@@ -365,7 +368,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     return;
   }
 
-  const tafBounds = resolveTafDateBounds(eoValues);
+  const tafBounds = resolveTafDateBounds(eoValues, { skadedatoISO: stamdataValues.skadedato });
   writer.addSectionSpacer();
 
   for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {

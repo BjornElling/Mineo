@@ -897,8 +897,9 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       values,
       tafPerioder: taf.committedRowsEnsured,
       ferieperioder: ferie.committedRowsEnsured,
+      skadedatoISO,
     });
-  }, [ferie.committedRowsEnsured, taf.committedRowsEnsured, values]);
+  }, [ferie.committedRowsEnsured, skadedatoISO, taf.committedRowsEnsured, values]);
 
   const ferieFeriedageById = React.useMemo(() => {
     const derived: Record<string, number | null> = {};
