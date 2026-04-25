@@ -1,9 +1,9 @@
-# MinEO – Periodiseringskontrakt
+# Mineo – Periodiseringskontrakt
 
 **Status:** Gældende arkitektur (normativ)  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
 
-Dette dokument fastlægger den bindende model for periodisering, dagtælling og fradragsregler i MinEO.
+Dette dokument fastlægger den bindende model for periodisering, dagtælling og fradragsregler i Mineo.
 
 Kode, der periodiserer beløb eller tæller periodiseringsdage uden at følge denne kontrakt, betragtes som arkitektonisk fejl.
 

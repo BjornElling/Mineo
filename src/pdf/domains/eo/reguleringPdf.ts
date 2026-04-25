@@ -378,7 +378,7 @@ export const generateReguleringPdf = (params: ReguleringPdfParams): void => {
   writer.setProperties({
     title: 'Regulering',
     subject: 'Erstatningsberegning',
-    author: 'MinEO',
+    author: 'Mineo',
     creator: 'mineo.dk',
   });
 

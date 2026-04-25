@@ -1,6 +1,6 @@
-# PDF-arkitektur i MinEO
+# PDF-arkitektur i Mineo
 
-> **Formål:** Denne fil beskriver den fulde arkitektur bag MinEOs PDF-generatorer. Den er primær referencekilde for alle, der skal implementere ny PDF-funktionalitet. Læs den inden du skriver en linje PDF-kode.
+> **Formål:** Denne fil beskriver den fulde arkitektur bag Mineos PDF-generatorer. Den er primær referencekilde for alle, der skal implementere ny PDF-funktionalitet. Læs den inden du skriver en linje PDF-kode.
 
 > **Normativ afgrænsning:** Denne fil er arkitekturforklarende. De bindende regler for PDF ligger i `src/contracts/pdf-contract.md` og `src/contracts/pdf-layout-contract.md`.
 
@@ -190,7 +190,7 @@ jsPDF indeholder ustabile interne API'er (f.eks. `jsPDF.internal.pageSize`). Ada
 
 ### `PdfDocumentAdapter` (interface)
 
-Eksponerer kun hvad MinEO bruger:
+Eksponerer kun hvad Mineo bruger:
 
 ```typescript
 interface PdfDocumentAdapter {
@@ -608,7 +608,7 @@ export const generateMinNyPdf = (options: MinNyPdfOptions): void => {
   writer.setProperties({
     title: 'Min PDF-titel',
     subject: 'Erstatningsberegning',
-    author: 'MinEO',
+    author: 'Mineo',
     creator: 'mineo.dk',
   });
 

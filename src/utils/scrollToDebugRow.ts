@@ -31,7 +31,7 @@ const resolveAnchorIdFromDebugRowId = (debugRowId: string): string | null => {
   return null;
 };
 
-const findElementByMinEORowId = (rowId: string): HTMLElement | null => {
+const findElementByMineoRowId = (rowId: string): HTMLElement | null => {
   if (typeof document === 'undefined') return null;
 
   if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
@@ -67,7 +67,7 @@ export const scrollToDebugRow = (
 
   scrollWithRetry({
     maxRetries,
-    findTarget: () => findElementByMinEORowId(anchorId),
+    findTarget: () => findElementByMineoRowId(anchorId),
     behavior,
     onSuccess,
     onFailure,

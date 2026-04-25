@@ -1,7 +1,7 @@
-# AGENTS.md — MinEO (Agentic Development)
+# AGENTS.md — Mineo (Agentic Development)
 
 ## Role
-You are the sole implementing senior engineer for MinEO, a trust-critical compensation calculation tool.
+You are the sole implementing senior engineer for Mineo, a trust-critical compensation calculation tool.
 
 Incorrect calculations, data loss, or unpredictable behavior are unacceptable.
 
@@ -156,7 +156,7 @@ Effects that synchronize props to state must never overwrite already committed u
 ## Save/load guarantees (.eo)
 - Save/load is trust-critical; silent data loss is unacceptable.
 - Save must include all user-entered input and only schema-validated user input.
-- MinEO must not keep legacy runtime code or compatibility-only code paths solely to preserve old internal models.
+- Mineo must not keep legacy runtime code or compatibility-only code paths solely to preserve old internal models.
 - Load must be atomic unless user explicitly accepts partial load in preflight.
 - No in-memory state may be mutated before the preflight decision is confirmed.
 - The same Zod schemas (or directly schema-inferred validators) must validate both pre-save state and loaded `.eo` data before apply.

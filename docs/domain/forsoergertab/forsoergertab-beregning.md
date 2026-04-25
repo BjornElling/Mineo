@@ -5,7 +5,7 @@
 
 ## 1. Formål
 
-Dette dokument fastlægger den normative beregningslogik for forsørgertab i MinEO.
+Dette dokument fastlægger den normative beregningslogik for forsørgertab i Mineo.
 
 Forsørgertab beregnes som:
 

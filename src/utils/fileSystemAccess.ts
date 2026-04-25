@@ -31,7 +31,7 @@ export const openFileWithPicker = async (
       startIn,
       types: [
         {
-          description: 'MinEO Erstatningsopgørelse',
+          description: 'Mineo Erstatningsopgørelse',
           accept: {
             'application/x-eo': ['.eo'], // Custom MIME type kun for .eo
           },
@@ -78,7 +78,7 @@ export const saveFileWithPicker = async (
       startIn,
       types: [
         {
-          description: 'MinEO Erstatningsopgørelse',
+          description: 'Mineo Erstatningsopgørelse',
           accept: {
             'application/x-eo': ['.eo'], // Custom MIME type kun for .eo
           },

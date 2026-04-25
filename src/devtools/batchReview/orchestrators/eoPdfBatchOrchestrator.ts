@@ -26,7 +26,7 @@ export type EoPdfBatchOrchestratorCallbacks = {
   readonly onError: (error: string) => void;
 };
 
-const BATCH_FILENAME = 'MinEO-batch-review-eo-sfgg.pdf';
+const BATCH_FILENAME = 'Mineo-batch-review-eo-sfgg.pdf';
 
 type NoOutput = Record<string, never>;
 

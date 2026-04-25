@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 
 /**
- * Central tabel-styling for MinEO
+ * Central tabel-styling for Mineo
  *
  * Dette tema definerer det ensartede udseende for alle tabeller i applikationen.
  * Baseret på designet fra Rentesatser-tabellen.

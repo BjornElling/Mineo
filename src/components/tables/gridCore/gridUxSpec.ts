@@ -2,7 +2,7 @@
  * Grid UX Spec (normative)
  *
  * This file intentionally contains no runtime logic.
- * It is the frozen UX contract that all MinEO grid tables MUST follow.
+ * It is the frozen UX contract that all Mineo grid tables MUST follow.
  *
  * Scope (current): HTML-grid tables using `StandardGridTable` + `Table*Input` components,
  * including (at least):
@@ -13,7 +13,7 @@
 export const GRID_UX_SPEC = {
   navigation: {
     /**
-     * Global model: all MinEO grid tables share the same keyboard semantics.
+     * Global model: all Mineo grid tables share the same keyboard semantics.
      *
      * - Tab / Shift+Tab: horizontal traversal (row-major) within the table; wraps/cycles.
      * - Enter / Shift+Enter: vertical traversal within the table; wraps/cycles.
@@ -114,7 +114,7 @@ export const GRID_UX_SPEC = {
 
   rows: {
     /**
-     * Row lifecycle (universal for MinEO grid tables):
+     * Row lifecycle (universal for Mineo grid tables):
      * - At least 2 rows exist at all times.
      * - At least 1 trailing empty input row exists at all times.
      * - Empty middle rows may be deleted at every commit/blur (aggressive cleanup).

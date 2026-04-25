@@ -1,4 +1,4 @@
-# Skema-evolution og load-kompatibilitet — MinEO
+# Skema-evolution og load-kompatibilitet — Mineo
 
 **Status:** Normativ kontrakt
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
@@ -14,7 +14,7 @@ Dette dokument har to niveauer:
 
 Tværgående save/load-regler er normativt samlet i `src/contracts/persistence-contract.md`.
 
-MinEO prioriterer at indlæse mest muligt af eksisterende filer. Et nyt felt i skemaet må **aldrig** forårsage at `erstatningsopgoerelse`-sektionen (eller andre sektioner) droppes ved indlæsning af ældre filer.
+Mineo prioriterer at indlæse mest muligt af eksisterende filer. Et nyt felt i skemaet må **aldrig** forårsage at `erstatningsopgoerelse`-sektionen (eller andre sektioner) droppes ved indlæsning af ældre filer.
 
 Load-mekanismen (`src/utils/fileLoad.ts`) kører `schema.safeParse(data)` på hvert sektion. Hvis parse fejler, droppes **hele sektionen** — ikke bare det manglende felt. Det er en katastrofal fejl der mister alle brugerdata i sektionen.
 

@@ -60,7 +60,7 @@
      [33m[2m✓[22m[39m ArrowDown i nederste TableDropdown-række aabner ikke menuen, men forlader tabellen som andre felter [33m 1606[2mms[22m[39m
      [33m[2m✓[22m[39m ArrowRight navigerer ikke væk når TableDropdown er åben [33m 599[2mms[22m[39m
  [32m✓[39m src/__tests__/utils/pdf/erstatningsopgoerelsePdf.udkast.test.ts [2m([22m[2m8 tests[22m[2m)[22m[33m 9878[2mms[22m[39m
- [32m✓[39m src/__tests__/components/pages/MinEO.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 7841[2mms[22m[39m
+ [32m✓[39m src/__tests__/components/pages/Mineo.test.tsx [2m([22m[2m12 tests[22m[2m)[22m[33m 7841[2mms[22m[39m
      [33m[2m✓[22m[39m modal er lukket som standard (anti-regression) [33m 986[2mms[22m[39m
      [33m[2m✓[22m[39m klik på "MIT-licensen" åbner modal [33m 1455[2mms[22m[39m
      [33m[2m✓[22m[39m modal kan lukkes med Escape efter åbning [33m 936[2mms[22m[39m

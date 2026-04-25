@@ -2,7 +2,7 @@ import React from 'react';
 import {
   clearPendingPwaFileOpenRequest,
   getPendingPwaFileOpenRequest,
-  MinEO_PWA_FILE_OPEN_EVENT,
+  Mineo_PWA_FILE_OPEN_EVENT,
   type PwaFileOpenRequest,
 } from '../utils/pwaLaunchQueue';
 
@@ -62,9 +62,9 @@ export const usePwaLaunchQueue = ({
       processNextPwaFileOpenRequest();
     };
 
-    window.addEventListener(MinEO_PWA_FILE_OPEN_EVENT, handler);
+    window.addEventListener(Mineo_PWA_FILE_OPEN_EVENT, handler);
     return () => {
-      window.removeEventListener(MinEO_PWA_FILE_OPEN_EVENT, handler);
+      window.removeEventListener(Mineo_PWA_FILE_OPEN_EVENT, handler);
     };
   }, [markUserFeedback, pendingLoadResultOpen, pendingOverwriteApplyOpen, processNextPwaFileOpenRequest, showOverlay]);
 

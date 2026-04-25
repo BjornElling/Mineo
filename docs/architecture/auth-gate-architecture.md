@@ -5,7 +5,7 @@
 
 ## Formål
 
-Auth-gaten i MinEO er en **UX-barriere** mod utilsigtet adgang på en lokal enhed.
+Auth-gaten i Mineo er en **UX-barriere** mod utilsigtet adgang på en lokal enhed.
 
 Den er **ikke** en sikkerhedsgrænse.
 

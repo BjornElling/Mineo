@@ -103,7 +103,7 @@ export const addFooter = (doc: PdfDocumentAdapter): void => {
   const pageHeight = doc.getPageHeight();
   const pageWidth = doc.getPageWidth();
   const totalPages = doc.getNumberOfPages();
-  const footerText = `MinEO.dk // ${VERSION}`;
+  const footerText = `Mineo.dk // ${VERSION}`;
   const footerImage = getFooterImageData(footerText);
 
   for (let i = 1; i <= totalPages; i++) {

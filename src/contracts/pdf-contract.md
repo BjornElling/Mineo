@@ -1,4 +1,4 @@
-# MinEO – PDF-kontrakt
+# Mineo – PDF-kontrakt
 
 **Status:** Gældende arkitektur (normativ)
 

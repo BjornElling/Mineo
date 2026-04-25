@@ -212,7 +212,7 @@ export const generateKapitaliseringPdf = (
   writer.setProperties({
     title: 'Kapitalisering (EET)',
     subject: 'Erstatningsberegning',
-    author: 'MinEO',
+    author: 'Mineo',
     creator: 'mineo.dk',
   });
 

@@ -52,7 +52,7 @@ const normalizeDecryptedContainer = (decrypted: unknown): EoFileContainerLoad =>
     const suffix = issues.trim() !== '' ? `\n\nDetaljer (første 3):\n${issues}` : '';
     throw new Error(
       'Filen har ugyldig .eo-struktur og kan derfor ikke indlæses.\n' +
-      `Filen er sandsynligvis korrupt eller ikke opbygget som en gyldig MinEO-fil.${suffix}`
+      `Filen er sandsynligvis korrupt eller ikke opbygget som en gyldig Mineo-fil.${suffix}`
     );
   }
 

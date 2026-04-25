@@ -1,5 +1,5 @@
 /**
- * Centraliseret logger til MinEO
+ * Centraliseret logger til Mineo
  *
  * Features:
  * - Struktureret logging med timestamp, level, context, stack trace

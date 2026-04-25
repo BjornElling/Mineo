@@ -1,7 +1,7 @@
-# Programindstillinger (App Settings) — MinEO
+# Programindstillinger (App Settings) — Mineo
 
 ## Formål
-MinEO har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
+Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
 
 Disse indstillinger er typisk:
 - UI/debug-visning
@@ -24,7 +24,7 @@ Konsekvens:
 - **PDF-laget læser aldrig fra AppSettings**; PDF bygger udelukkende på EO-data (og eksplicitte options).
 - **KRL satstabeller har ingen separat brevhoved-toggle**:
   KRL skal altid arve `regulering`-indstillingen 1-til-1 for visning af brevhoved.
-- **Normal åbning af app/PWA**: startsiden bestemmes af den device-lokale toggle på MinEO-siden.
+- **Normal åbning af app/PWA**: startsiden bestemmes af den device-lokale toggle på Mineo-siden.
 - **Alle hent-forløb**: når en `.eo`-fil er indlæst og anvendt, skal brugerens visning gå til `Stamdata`,
   uanset hvilken startside-toggle der ellers er valgt.
 - **Schema-evolution i nested settings**:

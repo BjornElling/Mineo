@@ -59,7 +59,7 @@ export const generateSatserPdf = (
   writer.setProperties({
     title: `Arbejdsskadesatser ${year}`,
     subject: 'Erstatningsberegning',
-    author: 'MinEO',
+    author: 'Mineo',
     creator: 'mineo.dk',
   });
 

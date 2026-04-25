@@ -131,7 +131,7 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
    *
    * Antagelse om synkron state:
    * `!checked` baseres på closure-state, hvilket forudsætter at parent opdaterer
-   * `checked` synkront efter onCommit. I MinEOs arkitektur (controlled components
+   * `checked` synkront efter onCommit. I Mineos arkitektur (controlled components
    * med synkron state-lifting) er dette altid tilfældet.
    */
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent) => {

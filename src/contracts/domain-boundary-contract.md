@@ -1,4 +1,4 @@
-# MinEO – Domænegrænse-kontrakt
+# Mineo – Domænegrænse-kontrakt
 
 **Status:** Gældende arkitektur (normativ)
 
@@ -8,7 +8,7 @@ Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideeje
 
 ## 1. Sektionskategorier
 
-MinEO arbejder med to normative kategorier af persisted sektioner:
+Mineo arbejder med to normative kategorier af persisted sektioner:
 
 ### 1.1 Sags-globale sektioner
 

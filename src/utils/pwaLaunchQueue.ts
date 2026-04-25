@@ -5,7 +5,7 @@ import {
 } from './fileHandleStorage';
 import { logWarning } from './logger';
 
-export const MinEO_PWA_FILE_OPEN_EVENT = 'mineo:pwa-file-open';
+export const Mineo_PWA_FILE_OPEN_EVENT = 'mineo:pwa-file-open';
 
 export type PwaFileOpenRequest = {
   id: string;
@@ -60,7 +60,7 @@ const isStoredPwaFileOpenRequest = (value: unknown): value is PwaFileOpenRequest
 };
 
 const dispatchPendingRequestEvent = (request: PwaFileOpenRequest): void => {
-  window.dispatchEvent(new CustomEvent(MinEO_PWA_FILE_OPEN_EVENT, { detail: { requestId: request.id } }));
+  window.dispatchEvent(new CustomEvent(Mineo_PWA_FILE_OPEN_EVENT, { detail: { requestId: request.id } }));
 };
 
 export const hydratePendingPwaFileOpenRequest = async (): Promise<void> => {

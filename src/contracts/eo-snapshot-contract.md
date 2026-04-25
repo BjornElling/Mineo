@@ -1,4 +1,4 @@
-# MinEO – EO Snapshot-kontrakt
+# Mineo – EO Snapshot-kontrakt
 
 **Version:** 1.0
 **Status:** Gældende arkitektur (normativ)

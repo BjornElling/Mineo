@@ -2,9 +2,9 @@ Her er min reviderede og strammede version. Den er bevidst kortere, hårdere pri
 
 ---
 
-# AGENTS.md — Testpolitik for MinEO
+# AGENTS.md — Testpolitik for Mineo
 
-Dette dokument er den autoritative teststandard for MinEO.
+Dette dokument er den autoritative teststandard for Mineo.
 Alle tests under `src/__tests__/` skal følge disse regler.
 
 Ved konflikt gælder rodens `AGENTS.md`.
@@ -13,7 +13,7 @@ Ved konflikt gælder rodens `AGENTS.md`.
 
 # 1. Grundprincip
 
-MinEO er trust-kritisk.
+Mineo er trust-kritisk.
 En test må kun eksistere hvis den beskytter:
 
 1. **Numerisk korrekthed**
@@ -290,7 +290,7 @@ Vi tester ikke:
 
 # 10. Overordnet princip
 
-Tests i MinEO skal beskytte:
+Tests i Mineo skal beskytte:
 
 * Korrekte tal
 * Korrekte datoer

@@ -358,7 +358,7 @@ export const generateDifferencekravPdf = (
   writer.setProperties({
     title: 'Differencekrav (EET)',
     subject: 'Erstatningsberegning',
-    author: 'MinEO',
+    author: 'Mineo',
     creator: 'mineo.dk',
   });
 

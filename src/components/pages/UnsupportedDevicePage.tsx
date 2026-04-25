@@ -67,7 +67,7 @@ const UnsupportedDevicePage = () => {
             className="page-title"
             style={{ fontSize: '28px', marginBottom: '24px' }}
           >
-            MinEO
+            Mineo
           </h1>
 
           <div
@@ -88,7 +88,7 @@ const UnsupportedDevicePage = () => {
 
             <div className="body-text">
               <p style={{ marginTop: 0 }}>
-                MinEO er et komplekst program, der beregner erstatning
+                Mineo er et komplekst program, der beregner erstatning
                 i arbejdsskadesager.
               </p>
 

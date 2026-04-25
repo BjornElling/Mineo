@@ -94,7 +94,7 @@ export const generateRentePdf = (
   writer.setProperties({
     title: 'Procesrente',
     subject: 'Erstatningsberegning',
-    author: 'MinEO',
+    author: 'Mineo',
     creator: 'mineo.dk',
   });
 

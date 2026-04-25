@@ -1,11 +1,11 @@
-# MinEO Field Pattern (Internal Standard)
+# Mineo Field Pattern (Internal Standard)
 
-This document defines the **required internal pattern** for MinEO’s custom form fields (Styled*Fields and table inputs).
+This document defines the **required internal pattern** for Mineo’s custom form fields (Styled*Fields and table inputs).
 
 It is a supplement to the normative Form Contract:
 - `src/contracts/form-contract.md`
 
-MinEO is trust-critical. Any ambiguity in field semantics (draft vs commit vs blur) is treated as a correctness risk.
+Mineo is trust-critical. Any ambiguity in field semantics (draft vs commit vs blur) is treated as a correctness risk.
 
 ## Terms
 
@@ -81,7 +81,7 @@ Shared types live in:
 - `src/components/inputs/fieldEvents.ts`
 
 Event shape note:
-- MinEO field events are branded and are not DOM events; do not treat them as such.
+- Mineo field events are branded and are not DOM events; do not treat them as such.
 
 ## Parsing contract
 
@@ -162,7 +162,7 @@ These are allowed deviations, but they must remain explicit and consistent.
 
 If a component has an unavoidable default (or a non-obvious constraint), it must be exposed explicitly via props and/or documented in the component props.
 
-Examples in MinEO:
+Examples in Mineo:
 - Percent fields require explicit opt-in for the default range (`useDefaultPercentRange`).
 - Year/week parsing of 1-2 digit years must be policy-controlled (`twoDigitYearPolicy`).
 - Digit safety caps (e.g. integer `safetyMaxDigits`) must be explicit.
@@ -172,7 +172,7 @@ Examples in MinEO:
 UI base components (Layer A) intentionally use the simplest possible API:
 - `onDraftChange(draft: string)` (not event-shaped)
 
-Field adapters (Layer C) are responsible for wrapping draft changes into MinEO's event shape (`DraftChangeEvent`)
+Field adapters (Layer C) are responsible for wrapping draft changes into Mineo's event shape (`DraftChangeEvent`)
 for consistency at the Styled*Field boundary.
 
 UI base invariants (a11y + contract):

@@ -351,7 +351,7 @@ export const generateForsoergertabPdf = (params: GenerateForsoergertabPdfParams)
   writer.setProperties({
     title: 'Forsørgertab',
     subject: 'Erstatningsberegning',
-    author: 'MinEO',
+    author: 'Mineo',
     creator: 'mineo.dk',
   });
 

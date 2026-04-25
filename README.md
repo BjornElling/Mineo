@@ -1,6 +1,6 @@
-# MinEO Erstatningsberegner
+# Mineo Erstatningsberegner
 
-MinEO er en browserbaseret erstatningsberegner til arbejdsskadesager.
+Mineo er en browserbaseret erstatningsberegner til arbejdsskadesager.
 
 Appen er udviklet i TypeScript og kører 100 % client-side. Alle data bevares lokalt i browseren og kan eksporteres/importeres som filer af typen `.eo`.
 
@@ -65,6 +65,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.04.514
+**Version**: 2026.04.515
 
 **Status**: Under udvikling

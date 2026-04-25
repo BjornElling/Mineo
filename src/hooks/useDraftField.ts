@@ -43,7 +43,7 @@ export type UseDraftFieldConfig<TModel> = {
   /**
    * Optional ref to the actual input/textarea DOM element controlled by this hook.
    *
-   * MinEO invariant: draft MUST NOT be overwritten by parent-driven resync while the control
+   * Mineo invariant: draft MUST NOT be overwritten by parent-driven resync while the control
    * is physically focused in the DOM. React focus state can lag during rapid tab navigation.
    */
   inputElementRef?: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>;
@@ -102,7 +102,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   } = config;
 
   /**
-   * Internal state invariants (MinEO):
+   * Internal state invariants (Mineo):
    * - Consumers must use `setDraft` (not `setDraftState`) so blur-suppression + pending-resync bookkeeping stays correct.
    * - After Escape-cancel or Enter-commit, a blur may follow in the same interaction; suppression must be one-shot and
    *   applies to the immediately following blur-triggered commit attempt.
