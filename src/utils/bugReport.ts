@@ -12,6 +12,7 @@
 import { getRecentLogEntries } from './logStorage';
 import type { LogEntry } from './logStorage';
 import { getTodayLocalISO } from './dateUtils';
+import { formatIsoDateShort, formatUtcTimestampSeconds } from './dateFormatting';
 import { logError } from './logger';
 import { isSystemIssueLogData } from './systemIssueReporter';
 import { VERSION } from '../config/version';
@@ -161,9 +162,7 @@ const stringifyReportData = (value: unknown): string => {
     if (typeof val === 'symbol') return '[Symbol]';
     if (typeof val === 'function') return '[Function]';
     if (typeof val === 'string' && ISO_UTC_TIMESTAMP_RE.test(val)) {
-      const d = new Date(val);
-      const pad = (n: number) => String(n).padStart(2, '0');
-      return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+      return formatUtcTimestampSeconds(new Date(val));
     }
     if (val instanceof Error) {
       return { name: val.name, message: val.message, stack: val.stack };
@@ -190,7 +189,7 @@ const stringifyReportData = (value: unknown): string => {
  * @returns {string} Formateret tekst
  */
 const formatLogEntry = (entry: LogEntry): string => {
-  const timestamp = new Date(entry.timestamp).toLocaleString('da-DK');
+  const timestamp = formatUtcTimestampSeconds(new Date(entry.timestamp));
   const level = entry.level.toUpperCase();
   const context = entry.context || 'unknown';
 
@@ -241,7 +240,7 @@ export const generateBugReport = async (
   const commitHash = getCommitHash();
   const activeTestFlags = getActiveTestInjectionsAndFeatureFlags();
   const browserInfo = getBrowserInfo();
-  const dato = new Date().toLocaleString('da-DK');
+  const dato = formatUtcTimestampSeconds(new Date());
 
   // Hent seneste log entries fra IndexedDB
   const logEntries = await getRecentLogEntries(maxEntries);
@@ -362,7 +361,7 @@ const ensureEncodedBodyWithinLimit = (
 const buildMailtoPayload = (report: string, options?: { subjectPrefix?: string }) => {
   try {
     const version = report.match(/Version: (.+)/)?.[1] || 'ukendt';
-    const dato = new Date().toLocaleDateString('da-DK');
+    const dato = formatIsoDateShort(getTodayLocalISO());
 
     const subjectPrefix = options?.subjectPrefix ?? 'MINEO Fejlrapport';
     const subject = `${subjectPrefix} - v${version} - ${dato}`;
@@ -483,7 +482,7 @@ export const prepareContentBoxReport = async (options: {
   const commitHash = getCommitHash();
   const activeTestFlags = getActiveTestInjectionsAndFeatureFlags();
   const browserInfo = getBrowserInfo();
-  const dato = new Date().toLocaleString('da-DK');
+  const dato = formatUtcTimestampSeconds(new Date());
   const message = (options.message ?? '').trim();
 
   let report = '=== MINEO Rapport ===\n';

@@ -3,6 +3,7 @@ import { Alert, AlertTitle, Box, Button, Typography } from '@mui/material';
 import BugReportButton from './BugReportButton';
 import type { BugReportExtraSection } from '../../utils/bugReport';
 import type { DevtoolsIssueSnapshot } from '../../utils/devtoolsMonitor';
+import { formatUtcTimestampSeconds } from '../../utils/dateFormatting';
 
 interface DevtoolsIssueNoticeProps {
   snapshot: DevtoolsIssueSnapshot;
@@ -12,7 +13,7 @@ interface DevtoolsIssueNoticeProps {
 
 const formatTimestamp = (timestamp: string): string => {
   const date = new Date(timestamp);
-  return date.toLocaleString('da-DK');
+  return formatUtcTimestampSeconds(date);
 };
 
 const formatSystemIssueSummary = (snapshot: DevtoolsIssueSnapshot): string | null => {

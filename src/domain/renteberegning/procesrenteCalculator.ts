@@ -11,6 +11,7 @@
 import type { RateEntry } from '../../data/interestRates';
 import type { DanishDateString } from '../../types/branded';
 import { createDate, getDaysInYear, parseDanishDate } from '../../utils/dateUtils';
+import { formatUtcDateShort } from '../../utils/dateFormatting';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 
 type DatedRate = Readonly<{ date: Date; ratePct: number }>;
@@ -56,7 +57,7 @@ const findRatePctOnDate = (rates: ReadonlyArray<DatedRate>, targetDate: Date): n
   }
 
   if (applicableRate === null) {
-    throw new Error(`Ingen sats fundet for dato ${targetDate.toLocaleDateString('da-DK')}`);
+    throw new Error(`Ingen sats fundet for dato ${formatUtcDateShort(targetDate)}`);
   }
 
   return applicableRate;

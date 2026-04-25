@@ -1,7 +1,7 @@
 import type { VarigeMenValues } from '../../schemas/formSchemas';
 import type { YearlyRate } from '../../data/lovbestemteRates';
 import { coerceToDanishDateString, coerceToISODateString, parseISODate, type ISODateString } from '../../types/branded';
-import { parseDanishDate } from '../../utils/dateUtils';
+import { calculateUtcAgeInWholeYears, parseDanishDate } from '../../utils/dateUtils';
 import { roundByMethod } from '../../utils/rounding';
 
 const getRateForYear = (dict: YearlyRate, year: number): number | undefined => {
@@ -134,15 +134,8 @@ export function beregnVarigeMenGodtgoerelseWithRates(
   const skadestidspunkt = parseISODate(skadestidspunktISO);
   if (!fodselsdato || !skadestidspunkt) return null;
 
-  let alderVedSkade = skadestidspunkt.getUTCFullYear() - fodselsdato.getUTCFullYear();
-
-  if (
-    skadestidspunkt.getUTCMonth() < fodselsdato.getUTCMonth() ||
-    (skadestidspunkt.getUTCMonth() === fodselsdato.getUTCMonth() &&
-      skadestidspunkt.getUTCDate() < fodselsdato.getUTCDate())
-  ) {
-    alderVedSkade--;
-  }
+  const alderVedSkade = calculateUtcAgeInWholeYears(fodselsdato, skadestidspunkt);
+  if (alderVedSkade === undefined) return null;
 
   const fradragsPct = beregnAldersfradragPct(alderVedSkade);
 

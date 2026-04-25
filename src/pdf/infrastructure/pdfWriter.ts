@@ -17,6 +17,7 @@ import {
 } from '../shared/pdfHelpers';
 import { createJsPdfAdapter } from './jsPdfAdapter';
 import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from '../shared/pdfTextUtils';
+import { formatRoundedCanonical } from '../../utils/rounding';
 
 const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
   if (doc.getTextWidth(text) <= maxWidth) return text;
@@ -37,7 +38,7 @@ const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
 const udkastWatermarkCache = new Map<string, string | null>();
 
 const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): string | null => {
-  const cacheKey = `${pageWidth.toFixed(3)}x${pageHeight.toFixed(3)}`;
+  const cacheKey = `${formatRoundedCanonical(pageWidth, 3)}x${formatRoundedCanonical(pageHeight, 3)}`;
   const cached = udkastWatermarkCache.get(cacheKey);
   if (cached !== undefined) return cached;
 

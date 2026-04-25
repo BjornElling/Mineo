@@ -67,6 +67,14 @@ export const formatUtcDateLong = (date: Date | undefined): string => {
   return iso ? formatIsoDateLong(iso) : '';
 };
 
+export const formatUtcTimestampSeconds = (date: Date): string => {
+  const iso = formatToISO(date);
+  const hours = String(date.getUTCHours()).padStart(2, '0');
+  const minutes = String(date.getUTCMinutes()).padStart(2, '0');
+  const seconds = String(date.getUTCSeconds()).padStart(2, '0');
+  return `${iso} ${hours}:${minutes}:${seconds}`;
+};
+
 export const formatISOToDanish = (isoDate: string): string => {
   const danish = isoToDanish(isISODateString(isoDate) ? isoDate : undefined);
   return danish ?? '';

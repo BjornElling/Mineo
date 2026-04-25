@@ -1,4 +1,6 @@
 import type { LoenudviklingManuelRow } from '../../../schemas/formSchemas';
+import { isWithinTolerance } from '../../../utils/numberComparison';
+import { parsePercentPointString } from '../../../utils/numberParsing';
 import { formatPercentFixed2 } from '../helpers/eoSharedUtils';
 
 export type ManualBaseRowPercentField = 'feriepenge' | 'fritvalg' | 'shSoSats' | 'agPension';
@@ -13,24 +15,14 @@ type ExpectedSatser = Readonly<{
 }>;
 
 const parseCommittedPercent = (value: string | undefined): number | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  if (trimmed === '') return undefined;
-
-  const normalized = trimmed.replace(/\./g, '').replace(',', '.');
-  const parsed = Number.parseFloat(normalized);
-  if (!Number.isFinite(parsed)) return undefined;
-  return parsed;
-};
-
-const normalizeComparablePercent = (value: number | null | undefined): number => {
-  return typeof value === 'number' ? value : 0;
+  return parsePercentPointString(value);
 };
 
 const hasMismatch = (actual: number | undefined, expected: number | null | undefined): boolean => {
-  const normalizedActual = normalizeComparablePercent(actual);
-  const normalizedExpected = normalizeComparablePercent(expected);
-  return Math.abs(normalizedActual - normalizedExpected) > 0.01;
+  const actualValue = actual ?? 0;
+  const expectedValue = expected ?? 0;
+  // 0,01 procentpoint er en bevidst valideringstolerance for afrundede procentvisninger.
+  return !isWithinTolerance(actualValue, expectedValue, 0.01);
 };
 
 export const validateLoenudviklingManualBaseRowSatser = (
@@ -68,7 +60,7 @@ export const validateLoenudviklingManualBaseRowSatser = (
 
   for (const check of checks) {
     if (hasMismatch(check.actual, check.expected)) {
-      errors[check.field] = `Værdien er ovenfor angivet til ${formatPercentFixed2(normalizeComparablePercent(check.expected))}`;
+      errors[check.field] = `Værdien er ovenfor angivet til ${formatPercentFixed2(check.expected ?? 0)}`;
     }
   }
 

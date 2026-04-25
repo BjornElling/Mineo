@@ -17,6 +17,7 @@ import {
   formatExpressionErrorMessage,
   parseAmountInput,
 } from '../../../utils/expressionAmount';
+import { formatRoundedCanonical } from '../../../utils/rounding';
 import { makeAmountFingerprintFromCanonical, type AmountFingerprint, type CommittedPayload } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
@@ -80,9 +81,9 @@ const toDisplayString = (value: TableAmountInputValue): string => {
 const amountCanonicalFromModel = (value: TableAmountInputValue): string => {
   if (!value) return '';
   if (value.kind === 'expression') {
-    return `e:${value.expression.length}:${value.expression}|${value.value.toFixed(TABLE_AMOUNT_PRECISION)}`;
+    return `e:${value.expression.length}:${value.expression}|${formatRoundedCanonical(value.value, TABLE_AMOUNT_PRECISION)}`;
   }
-  return `n:${value.value.toFixed(TABLE_AMOUNT_PRECISION)}`;
+  return `n:${formatRoundedCanonical(value.value, TABLE_AMOUNT_PRECISION)}`;
 };
 
 const amountFingerprintFromCanonical = (canonical: string): AmountFingerprint => {

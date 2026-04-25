@@ -1,6 +1,7 @@
 import type { AslAfgoerelseRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
+import { parsePercentPointString } from '../../utils/numberParsing';
 import { createRowId } from '../../utils/rowId';
 import {
   validateAslAarsloenBySkadesaarMax,
@@ -34,10 +35,7 @@ export const isAslAfgoerelseRowEmpty = (row: AslAfgoerelseRow): boolean =>
   !row.tidlKapDato;
 
 export const parsePercentDraft = (raw: string | undefined): number | undefined => {
-  if (!raw || raw.trim() === '') return undefined;
-  const cleaned = raw.trim().replace(/\s*%$/, '').replace(',', '.');
-  const num = Number.parseFloat(cleaned);
-  return Number.isFinite(num) ? num : undefined;
+  return parsePercentPointString(raw);
 };
 
 export const hasTextValue = (raw: string | undefined): boolean =>

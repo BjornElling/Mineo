@@ -33,6 +33,21 @@ export const parsePercentToDecimal = (pct: string | number | undefined): number 
   return Number.isNaN(num) ? 0 : num / 100;
 };
 
+export const parseDanishNumberString = (value: string): number | undefined => {
+  const trimmed = value.trim();
+  if (trimmed === '') return undefined;
+  if (!/^-?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?$/.test(trimmed)) return undefined;
+  const normalized = trimmed.replace(/\./g, '').replace(',', '.');
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
+
+export const parsePercentPointString = (value: string | undefined): number | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const withoutPercent = value.replace('%', '').trim();
+  return parseDanishNumberString(withoutPercent);
+};
+
 /**
  * Parser numerisk beløbsværdi til tal.
  */

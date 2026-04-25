@@ -1,6 +1,7 @@
 import type { AmountValue } from '../schemas/amountExpressionSchema';
 import { parseAmountInput } from './expressionAmount';
 import { formatAsAmount } from './formatUtils';
+import { formatRoundedCanonical } from './rounding';
 import { danishToISO } from '../types/branded';
 import {
   EMPTY_AMOUNT_FINGERPRINT,
@@ -20,8 +21,8 @@ import {
 
 const amountCanonicalFromModel = (value: AmountValue | undefined, precision: number): string => {
   if (!value) return '';
-  if (value.kind === 'expression') return `e:${value.expression.length}:${value.expression}|${value.value.toFixed(precision)}`;
-  return `n:${value.value.toFixed(precision)}`;
+  if (value.kind === 'expression') return `e:${value.expression.length}:${value.expression}|${formatRoundedCanonical(value.value, precision)}`;
+  return `n:${formatRoundedCanonical(value.value, precision)}`;
 };
 
 export const createAmountParserSpec = (
@@ -134,7 +135,7 @@ export const createPercentParserSpec = (
       if (typeof options.minValue === 'number' && signed < options.minValue) return { kind: 'invalid', raw, errorCode: 'below-min' };
       if (typeof options.maxValue === 'number' && signed > options.maxValue) return { kind: 'invalid', raw, errorCode: 'above-max' };
 
-      const canonical = signed.toFixed(options.precision);
+      const canonical = formatRoundedCanonical(signed, options.precision);
       return {
         kind: 'ok',
         model: formatAsAmount(signed, options.precision),

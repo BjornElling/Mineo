@@ -15,6 +15,8 @@ import {
   type TableCommitResult,
   type TableInputErrorInfo,
 } from '../../../utils/tableInputContracts';
+import { parseDanishNumberString } from '../../../utils/numberParsing';
+import { formatRoundedCanonical } from '../../../utils/rounding';
 import { filterPercentKeyDown } from '../inputKeyFilters';
 import {
   makePercentFingerprintFromCanonical,
@@ -139,13 +141,10 @@ const parsePercentOnCommit = (
     if (/[^0-9]/.test(integerRaw)) return { ok: false, error: 'Ugyldig procent' };
   }
 
-  const integerDigits = integerRaw.replace(/\./g, '');
-  const numericValue = Number.parseFloat(
-    `${integerDigits}${decimalRaw ? `.${decimalRaw}` : ''}`
-  );
-  if (!Number.isFinite(numericValue)) return { ok: false, error: 'Ugyldig procent' };
+  const numericValue = parseDanishNumberString(`${isNegative ? '-' : ''}${integerRaw}${decimalRaw ? `,${decimalRaw}` : ''}`);
+  if (numericValue === undefined) return { ok: false, error: 'Ugyldig procent' };
 
-  const signed = isNegative ? -numericValue : numericValue;
+  const signed = numericValue;
   const precision = getPercentPrecision(allowDecimals);
 
   if (typeof minValue === 'number' && signed < minValue) {
@@ -245,7 +244,7 @@ const percentNumericCanonicalFromDisplay = (
     return '';
   }
   if ('empty' in parsed) return '';
-  return parsed.numeric.toFixed(getPercentPrecision(allowDecimals));
+  return formatRoundedCanonical(parsed.numeric, getPercentPrecision(allowDecimals));
 };
 
 const percentFingerprintFromCommittedDisplay = (

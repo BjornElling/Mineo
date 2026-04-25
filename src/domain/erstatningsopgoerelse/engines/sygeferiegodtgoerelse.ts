@@ -19,10 +19,11 @@ import { mergeIsoDateRanges } from './periodMerging';
 import { rangesOverlap } from './beregningsperiodeTafOverlap';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
-import { dateToISO, parseISODate, subtractOneDay, type ISODateString } from '../../../types/branded';
+import { danishToISO, dateToISO, parseISODate, subtractOneDay, type ISODateString } from '../../../types/branded';
 import { isoDateToDate } from '../../dates/isoDate';
 import { isoToDanish, toDanishDateString } from '../../../types/branded';
 import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
+import { formatDanishDate } from '../../../utils/dateFormatting';
 import type { LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
 import { resolvePctDecimalFromSatsOrInput } from '../helpers/eoSharedUtils';
 import {
@@ -419,9 +420,9 @@ const dateInMonthFraction = (iso: ISODateString, mode: TafBeregningsenhed): numb
   }
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth();
-  const monthStart = `${year}-${String(month + 1).padStart(2, '0')}-01` as ISODateString;
+  const monthStart = dateToISO(new Date(Date.UTC(year, month, 1)));
   const monthEnd = dateToISO(new Date(Date.UTC(year, month + 1, 0)));
-  if (!monthEnd) return 0;
+  if (!monthStart || !monthEnd) return 0;
   const arbejdsdageIMaaneden = optaelArbejdsdage({
     fra: monthStart,
     til: monthEnd,
@@ -744,9 +745,7 @@ const resolveOverenskomstDagssatsOre = (
   if (!date) return null;
   const satser = getEffektiveSatserForDato({
     overenskomstId: overenskomstRef.baseId,
-    dato: toDanishDateString(
-      `${String(date.getUTCDate()).padStart(2, '0')}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${date.getUTCFullYear()}`
-    ),
+    dato: toDanishDateString(formatDanishDate(date)),
     applyAlmindeligLoenPaaShDageRegel: employment.loenPaaHelligdage === 'Almindelig løn',
   });
   if (!satser) return null;
@@ -781,9 +780,7 @@ const resolveSfggAgPensionPctDecimalForDate = (
   }
   const satser = getEffektiveSatserForDato({
     overenskomstId: overenskomstRef.baseId,
-    dato: toDanishDateString(
-      `${String(date.getUTCDate()).padStart(2, '0')}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${date.getUTCFullYear()}`
-    ),
+    dato: toDanishDateString(formatDanishDate(date)),
     applyAlmindeligLoenPaaShDageRegel: employment.loenPaaHelligdage === 'Almindelig løn',
   });
   return resolvePctDecimalFromSatsOrInput(satser?.agPension, employment.pensionPct);
@@ -1078,7 +1075,8 @@ const resolveSfggOverenskomstBoundaryStarts = (
     })();
 
   return periodSatser
-    .map((sats) => sats.fraDato.split('-').reverse().join('-') as ISODateString)
+    .map((sats) => danishToISO(sats.fraDato))
+    .filter((start): start is ISODateString => start !== undefined)
     .filter((start) => start >= fra && start <= til);
 };
 

@@ -9,6 +9,7 @@ import { formatCurrency } from '../../../utils/formatUtils';
 import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
 import { downloadFile } from '../../../utils/fileHelpers';
+import { parseDanishNumberString } from '../../../utils/numberParsing';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import VirtualizedDisplayTable from '../../tables/VirtualizedDisplayTable';
@@ -18,17 +19,6 @@ import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
 const ROW_HEIGHT = 28;
 
 const isAmountColumnId = (id: string): boolean => id.startsWith('offentlig:') || id.includes(':wage:');
-
-const isDanishNumberString = (value: string): boolean => {
-  if (value.trim() === '') return false;
-  return /^-?\d{1,3}(\.\d{3})*(,\d+)?$/.test(value) || /^-?\d+(,\d+)?$/.test(value);
-};
-
-const parseDanishNumberString = (value: string): number => {
-  const clean = value.replace(/\./g, '').replace(',', '.');
-  const parsed = Number.parseFloat(clean);
-  return Number.isFinite(parsed) ? parsed : Number.NaN;
-};
 
 const resolveEmploymentHeaderTitle = (snapshot: EODebugSnapshot, employmentIndex: number): string => {
   const employment = snapshot.eoValues.loenindkomstAnsaettelsesforhold?.[employmentIndex];
@@ -240,9 +230,8 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, isActive = false }: EOD
     const scalar = toCsvScalar(value);
     const trimmed = scalar.trim();
     if (trimmed === '') return '';
-    if (!isDanishNumberString(trimmed)) return scalar;
     const parsed = parseDanishNumberString(trimmed);
-    if (!Number.isFinite(parsed)) return scalar;
+    if (parsed === undefined) return scalar;
     return formatCurrency(parsed);
   }, []);
 

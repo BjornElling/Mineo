@@ -11,6 +11,7 @@ import {
 } from '../infrastructure/pdfConfig';
 import { createJsPdfAdapter } from '../infrastructure/jsPdfAdapter';
 import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from './pdfTextUtils';
+import { DEFAULT_NUMERIC_TOLERANCE } from '../../utils/numberComparison';
 
 export const TABLE_FONT_SIZE = 8;
 export const EO_TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
@@ -622,7 +623,7 @@ export const createPdfDistributedColumnStyles = (
   const fixedWidthTotal = normalizedFixedColumns.reduce((sum, column) => sum + column.cellWidth, 0);
   const remainingColumnCount = columnCount - normalizedFixedColumns.length;
   const remainingWidth = tableWidth - fixedWidthTotal;
-  const epsilon = 1e-6;
+  const epsilon = DEFAULT_NUMERIC_TOLERANCE;
 
   if (remainingColumnCount === 0) {
     if (Math.abs(remainingWidth) > epsilon) {

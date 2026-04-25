@@ -91,3 +91,12 @@ export const roundByMethod = (value: number, decimals: number, method: RoundingM
       return assertNever(method);
   }
 };
+
+export const formatRoundedCanonical = (
+  value: number,
+  decimals: number,
+  method: RoundingMethod = 'halfAwayFromZero'
+): string => {
+  const safeDecimals = Number.isFinite(decimals) ? Math.max(0, Math.trunc(decimals)) : 0;
+  return roundByMethod(value, safeDecimals, method).toFixed(safeDecimals);
+};

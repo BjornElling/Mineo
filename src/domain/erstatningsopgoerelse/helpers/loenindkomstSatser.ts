@@ -3,7 +3,7 @@ import type {
   LoenudviklingManuelRow,
 } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import { isoToDanish, parseISODate, toDanishDateString } from '../../../types/branded';
+import { danishToISO, isoToDanish, parseISODate, toDanishDateString } from '../../../types/branded';
 import {
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
@@ -276,7 +276,8 @@ export const buildLoenindkomstRateSegments = (args: Readonly<{
 
   const periodSatser = resolvePeriodSatser(af, fraDa, tilDa);
   const starts = periodSatser
-      .map((sats) => sats.fraDato.split('-').reverse().join('-') as ISODateString)
+    .map((sats) => danishToISO(sats.fraDato))
+    .filter((start): start is ISODateString => start !== undefined)
     .filter((start) => start >= fra && start <= til);
 
   return buildSegmentsFromPeriodStarts(fra, til, starts).map((segment) => {

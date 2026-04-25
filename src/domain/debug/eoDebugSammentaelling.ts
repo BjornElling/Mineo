@@ -3,6 +3,7 @@ import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
 import { subtractOneDay } from '../../types/branded';
 import { formatAsAmountTrimmed, formatCurrency } from '../../utils/formatUtils';
+import { parseDanishNumberString as parseCanonicalDanishNumberString } from '../../utils/numberParsing';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
 import type { EODebugModel } from './eoDebugModel';
 import { calculateTafArbejdsdageBreakdown } from '../erstatningsopgoerelse/engines/tafCalculations';
@@ -284,18 +285,7 @@ const formatOptionalInt = (value: number | null): string => (value === null || v
 const formatOptionalAmount = (value: number | null): string =>
   value === null || value === 0 ? '-' : formatCurrency(value);
 
-const isDanishNumberString = (value: string): boolean => {
-  if (value.trim() === '') return false;
-  return /^-?\d{1,3}(\.\d{3})*(,\d+)?$/.test(value) || /^-?\d+(,\d+)?$/.test(value);
-};
-
-const parseDanishNumberString = (value: string): number | null => {
-  const trimmed = value.trim();
-  if (!isDanishNumberString(trimmed)) return null;
-  const clean = trimmed.replace(/\./g, '').replace(',', '.');
-  const parsed = Number.parseFloat(clean);
-  return Number.isFinite(parsed) ? parsed : null;
-};
+const parseDanishNumberString = (value: string): number | null => parseCanonicalDanishNumberString(value) ?? null;
 
 
 const buildRangeMask = (dates: readonly ISODateString[], ranges: readonly IsoRange[]): readonly boolean[] => {

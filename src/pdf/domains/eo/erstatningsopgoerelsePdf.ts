@@ -14,6 +14,7 @@ import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, St
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { type MoneyOre, type Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
+import { isEffectivelyZero, isWithinTolerance } from '../../../utils/numberComparison';
 import { TODAY } from '../../../config/dateRanges';
 import { getStandardLoenTableHeaders } from '../../../domain/aarsloen/standardLoenTableColumns';
 import {
@@ -104,7 +105,7 @@ const formatPctFromInput = (value: number | undefined): string => {
   return formatPercentUtil(value ?? 0);
 };
 
-const isZeroPct = (value: number | undefined): boolean => Math.abs(value ?? 0) < 0.000001;
+const isZeroPct = (value: number | undefined): boolean => isEffectivelyZero(value);
 const capitalizeFirstChar = (value: string): string => {
   if (value.length === 0) return value;
   return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
@@ -339,7 +340,7 @@ export const generateErstatningsopgoerelsePdf = (
     const dayUnit = resolveSfggPeriodDayUnitSingular(divisorLabel);
     const rateLabel = entry.sfggSourceKind === 'overenskomst_direkte' ? 'overenskomstens referencesats' : 'referencesatsen';
     const hasRegulatedSfggRate = entry.segments.some((segment) =>
-      typeof segment.reguleringsindeks === 'number' && Math.abs(segment.reguleringsindeks - 100) > 0.000001
+      typeof segment.reguleringsindeks === 'number' && !isWithinTolerance(segment.reguleringsindeks, 100)
     );
     const baseAdjustmentText = divisorLabel === 'arbejdsdage'
       ? 'Der beregnes ikke sygeferiegodtgørelse på SH-dage, under ferie og på andre fraværsdage uden løn.'

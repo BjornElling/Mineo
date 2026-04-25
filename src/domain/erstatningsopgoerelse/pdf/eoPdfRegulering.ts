@@ -26,6 +26,7 @@ import { amountValueToDisplayString, amountValueToNumber } from '../../../utils/
 import { formatAsAmount, formatCurrency, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
 import { formatIsoDateShort, formatIsoDateLong } from '../../../utils/dateFormatting';
 import { parseAmount } from '../../../utils/numberParsing';
+import { isEffectivelyZero, isWithinTolerance } from '../../../utils/numberComparison';
 import { roundByMethod } from '../../../utils/rounding';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import {
@@ -95,7 +96,7 @@ const formatPctFromInput = (value: number | undefined): string => {
   return formatPercentUtil(value ?? 0);
 };
 
-const isZeroPct = (value: number | undefined): boolean => Math.abs(value ?? 0) < 0.000001;
+const isZeroPct = (value: number | undefined): boolean => isEffectivelyZero(value);
 
 const hasDefinedPctInput = (value: number | undefined): value is number =>
   typeof value === 'number' && Number.isFinite(value);
@@ -190,7 +191,7 @@ const formatIndexValue = (value: number): string =>
 const formatLoenudviklingFromIndex = (indexValue: number): string => {
   if (!Number.isFinite(indexValue)) return '';
   const delta = roundByMethod(indexValue - 100, 2, 'halfAwayFromZero');
-  if (Math.abs(delta) < 0.000001) return '';
+  if (isEffectivelyZero(delta)) return '';
   const absDisplay = formatAsAmount(Math.abs(delta), 2);
   return delta > 0 ? `+ ${absDisplay} %` : `- ${absDisplay} %`;
 };
@@ -221,7 +222,7 @@ const buildIndexFormulaDisplay = (
   isStatistik: boolean
 ): string => {
   const isPlainValue = isStatistik || (!numeratorDisplay.includes(' x ') && !denominatorDisplay.includes(' x '));
-  const isSameNumericValue = Math.abs(numeratorValue - denominatorValue) < 1e-9;
+  const isSameNumericValue = isWithinTolerance(numeratorValue, denominatorValue);
   if (isSameNumericValue) {
     return numeratorDisplay;
   }
@@ -1026,7 +1027,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
     const fallbackRowWithIso = (segment: LoenudviklingSegment): IndexRowWithIso => {
       const indeksValue = 100 + segment.deltaPct;
       const indeksDisplay = formatIndexValue(indeksValue);
-      const indeksberegning = Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} / 100,00`;
+      const indeksberegning = isWithinTolerance(indeksValue, 100) ? '100,00' : `${indeksDisplay} / 100,00`;
       const loenudvikling = formatLoenudviklingFromIndex(indeksValue);
       return {
         fraIso: segment.fra,
@@ -1599,7 +1600,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
     return finalizeIndexRows(segments.map((segment) => {
       const indeksValue = 100 + segment.deltaPct;
       const indeksDisplay = formatIndexValue(indeksValue);
-      const formulaText = Math.abs(indeksValue - 100) < 0.000001 ? '100,00' : `${indeksDisplay} / 100,00`;
+      const formulaText = isWithinTolerance(indeksValue, 100) ? '100,00' : `${indeksDisplay} / 100,00`;
       return {
         fraIso: segment.fra,
         tilIso: segment.til,

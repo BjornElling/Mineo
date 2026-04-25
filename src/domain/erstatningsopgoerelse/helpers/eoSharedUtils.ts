@@ -8,6 +8,7 @@ import { isoDateToDate } from '../../dates/isoDate';
 import { addDays } from '../../../utils/dateUtils';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { StatistiskLoenudviklingId } from '../../../data/statistiskeRates';
+import { isWithinTolerance } from '../../../utils/numberComparison';
 import { round2 } from '../../../utils/roundingShortcuts';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { TIMER_TIL_MAANED_FAKTOR } from '../../../config/regulatoryRates';
@@ -187,7 +188,7 @@ export const detectDecimalPlaces = (values: readonly number[], maxPlaces = 4): n
         places = maxPlaces;
         break;
       }
-      if (Math.abs(scaled - Math.round(scaled)) < 1e-9) break;
+      if (isWithinTolerance(scaled, Math.round(scaled))) break;
     }
     if (places > max) max = places;
   }

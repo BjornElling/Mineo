@@ -5,12 +5,12 @@
  */
 
 import { roundByMethod } from './rounding';
-const SINGULAR_EPSILON = 0.0000001;
+import { isWithinTolerance } from './numberComparison';
 
-export const isSingularCount = (value: number): boolean => Math.abs(value - 1) < SINGULAR_EPSILON;
+export const isSingularCount = (value: number): boolean => isWithinTolerance(value, 1);
 
 export const formatCountWithUnit = (count: number, singular: string, plural: string): string =>
-  `${count.toLocaleString('da-DK')} ${isSingularCount(count) ? singular : plural}`;
+  `${formatAsAmountTrimmed(count, 2)} ${isSingularCount(count) ? singular : plural}`;
 
 /**
  * Formaterer tal til dansk valuta-format

@@ -6,6 +6,7 @@ import type {
   OffentligeYdelserRow,
 } from '../../../schemas/formSchemas';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
+import { formatToISO } from '../../../utils/dateFormatting';
 import { isStandardLoenRowEffectivelyEmpty } from '../../aarsloen/standardLoenRowCalculations';
 import { getOffentligeYdelserRowFilledState } from '../validation/offentligeYdelserTableValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from './indtaegtPerioder';
@@ -51,12 +52,8 @@ export const hasAarsloenRowOverlapWithRanges = (
 ): boolean => {
   const interval = parseAarsloenRowInterval(row, loenperiode);
   if (!interval) return shouldIncludeByEoBilagRanges(mode, ranges, null);
-  const fra = parseOptionalIsoDate(
-    `${interval.start.getUTCFullYear()}-${String(interval.start.getUTCMonth() + 1).padStart(2, '0')}-${String(interval.start.getUTCDate()).padStart(2, '0')}`
-  );
-  const til = parseOptionalIsoDate(
-    `${interval.end.getUTCFullYear()}-${String(interval.end.getUTCMonth() + 1).padStart(2, '0')}-${String(interval.end.getUTCDate()).padStart(2, '0')}`
-  );
+  const fra = parseOptionalIsoDate(formatToISO(interval.start));
+  const til = parseOptionalIsoDate(formatToISO(interval.end));
   if (!fra || !til || fra > til) return shouldIncludeByEoBilagRanges(mode, ranges, null);
   const rowRange: IsoRange = { fra, til };
   return shouldIncludeByEoBilagRanges(mode, ranges, rowRange);

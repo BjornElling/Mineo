@@ -1,5 +1,6 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
+import { isWithinTolerance } from '../../utils/numberComparison';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
 import {
@@ -63,7 +64,8 @@ const hasStoreBededagSatserAfvigelse = (
   }
 
   const actualValue = inputValue ?? 0;
-  return Math.abs(actualValue - expectedPct) > 0.01;
+  // 0,01 procentpoint matcher valideringstolerancen for afrundede procentsatser.
+  return !isWithinTolerance(actualValue, expectedPct, 0.01);
 };
 
 const hasFeriePctAfvigelse = (
@@ -88,7 +90,8 @@ const hasOverenskomstSatsAfvigelse = (
 
   const expectedPct = expectedBinding.value;
   const actualValue = inputValue ?? 0;
-  return Math.abs(actualValue - expectedPct) > 0.01;
+  // 0,01 procentpoint matcher valideringstolerancen for afrundede procentsatser.
+  return !isWithinTolerance(actualValue, expectedPct, 0.01);
 };
 
 const resolveSatserErrorField = (

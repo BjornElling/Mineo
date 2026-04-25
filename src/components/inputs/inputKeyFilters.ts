@@ -2,6 +2,7 @@ import type * as React from 'react';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { isDateLikeDraftAllowed } from '../../utils/dateDraftNormalization';
 import { isFractionDraftAllowed } from '../../utils/fraction';
+import { parseDanishNumberString } from '../../utils/numberParsing';
 
 type KeyDownEvent = React.KeyboardEvent<HTMLInputElement>;
 type PasteEvent = React.ClipboardEvent<HTMLInputElement>;
@@ -219,8 +220,8 @@ export const filterPercentKeyDown = (
     // Partial decimal input (fx "10,") må passere under typing; commit-validering håndterer endelig værdi.
     if (compact === '' || compact === '-' || compact.endsWith(',')) return;
 
-    const numeric = Number.parseFloat(compact.replace(',', '.'));
-    if (Number.isFinite(numeric) && numeric > options.maxValue) {
+    const numeric = parseDanishNumberString(compact);
+    if (numeric !== undefined && numeric > options.maxValue) {
       block(e);
     }
   }

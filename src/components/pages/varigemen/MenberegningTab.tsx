@@ -19,6 +19,7 @@ import type { SetFieldValue, SetValuesUpdater } from '../../../hooks/usePersiste
 import { useNavigate } from 'react-router-dom';
 import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/lovbestemteRates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
+import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
@@ -102,17 +103,7 @@ const alderVedSkade = React.useMemo(() => {
 
   if (!fodselsdato || !skadedato) return undefined;
 
-  let alder = skadedato.getUTCFullYear() - fodselsdato.getUTCFullYear();
-
-  if (
-    skadedato.getUTCMonth() < fodselsdato.getUTCMonth() ||
-    (skadedato.getUTCMonth() === fodselsdato.getUTCMonth() &&
-      skadedato.getUTCDate() < fodselsdato.getUTCDate())
-  ) {
-    alder--;
-  }
-
-  return alder;
+  return calculateUtcAgeInWholeYears(fodselsdato, skadedato);
 }, [stamValues.skadelidteFodselsdato, stamValues.skadedato]);
 
 const menSats = React.useMemo(() => {

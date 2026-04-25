@@ -82,6 +82,21 @@ export const addMonths = (date: Date, months: number): Date => {
   return result;
 };
 
+export const calculateUtcAgeInWholeYears = (birthDate: Date, referenceDate: Date): number | undefined => {
+  if (!(birthDate instanceof Date) || !(referenceDate instanceof Date)) return undefined;
+  if (Number.isNaN(birthDate.getTime()) || Number.isNaN(referenceDate.getTime())) return undefined;
+
+  let age = referenceDate.getUTCFullYear() - birthDate.getUTCFullYear();
+  if (
+    referenceDate.getUTCMonth() < birthDate.getUTCMonth() ||
+    (referenceDate.getUTCMonth() === birthDate.getUTCMonth() &&
+      referenceDate.getUTCDate() < birthDate.getUTCDate())
+  ) {
+    age -= 1;
+  }
+  return age;
+};
+
 /**
  * Returnerer sidste dato i en periode der starter på `startDate` og varer `months` måneder.
  * Eksempel: 01-01 + 6 måneder -> 30-06 (inklusive slutdato).

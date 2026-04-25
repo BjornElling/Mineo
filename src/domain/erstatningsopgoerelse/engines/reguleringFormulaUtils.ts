@@ -1,4 +1,6 @@
 import { formatCurrency, formatPercent } from '../../../utils/formatUtils';
+import { parsePercentPointString } from '../../../utils/numberParsing';
+import { isWithinTolerance } from '../../../utils/numberComparison';
 import {
   formatPercentFixed2,
 } from '../helpers/eoSharedUtils';
@@ -27,12 +29,7 @@ export type FormulaVisibility = Readonly<{
 }>;
 
 export const parsePercentInput = (raw: string | undefined): number => {
-  if (typeof raw !== 'string') return 0;
-  const trimmed = raw.replace('%', '').trim();
-  if (trimmed === '') return 0;
-  const cleaned = trimmed.replace(/\./g, '').replace(',', '.');
-  const num = Number.parseFloat(cleaned);
-  return Number.isFinite(num) ? num : 0;
+  return parsePercentPointString(raw) ?? 0;
 };
 
 export const resolveFeriePctForFormula = (rowFeriepengeRaw: string | undefined, fallbackFeriePct: number | undefined): number => {
@@ -44,10 +41,8 @@ export const resolveFeriePctForFormula = (rowFeriepengeRaw: string | undefined, 
 export const formatPercentCellFromRaw = (raw: string | undefined): string => {
   const trimmed = raw?.trim() ?? '';
   if (trimmed === '' || trimmed === '-') return '-';
-  const normalized = trimmed.replace('%', '').trim();
-  const cleaned = normalized.replace(/\./g, '').replace(',', '.');
-  const num = Number.parseFloat(cleaned);
-  if (!Number.isFinite(num)) return trimmed.includes('%') ? trimmed : `${trimmed} %`;
+  const num = parsePercentPointString(trimmed);
+  if (num === undefined) return trimmed.includes('%') ? trimmed : `${trimmed} %`;
   return formatPercentFixed2(num);
 };
 
@@ -57,25 +52,15 @@ export const mergeFeriepengeDisplay = (fromFeriePct: string | undefined, fromFer
     if (trimmed === '' || trimmed === '-') return null;
     return trimmed;
   };
-  const parseComparablePercent = (value: string | null): number | null => {
-    if (value === null) return null;
-    const compact = value.replace('%', '').replace(/\s+/g, '');
-    if (compact === '') return null;
-    if (!/^-?[\d.,]+$/.test(compact)) return null;
-    const normalized = compact.replace(/\./g, '').replace(',', '.');
-    const parsed = Number.parseFloat(normalized);
-    return Number.isFinite(parsed) ? parsed : null;
-  };
-
   const left = normalize(fromFeriePct);
   const right = normalize(fromFeriepenge);
 
   if (!left && !right) return '-';
   if (left && !right) return left;
   if (!left && right) return right;
-  const leftPercent = parseComparablePercent(left);
-  const rightPercent = parseComparablePercent(right);
-  if (leftPercent !== null && rightPercent !== null && Math.abs(leftPercent - rightPercent) <= 0.005) {
+  const leftPercent = left === null ? undefined : parsePercentPointString(left);
+  const rightPercent = right === null ? undefined : parsePercentPointString(right);
+  if (leftPercent !== undefined && rightPercent !== undefined && isWithinTolerance(leftPercent, rightPercent, 0.005)) {
     return formatPercentFixed2(leftPercent);
   }
   if (left === right) return left ?? '-';

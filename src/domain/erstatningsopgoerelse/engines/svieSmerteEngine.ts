@@ -11,6 +11,7 @@ import { svieSmerteMax, svieSmertePrDag } from '../../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { detectOverlappingPeriods } from './periodOverlapDetection';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
+import { clampToNonNegative } from '../../../utils/numberComparison';
 import { isoDateToDate } from '../../dates/isoDate';
 import { perioderCoverDate } from '../helpers/eoSharedUtils';
 import { isSvieSmerteRowEmpty } from '../helpers/rowEmpty';
@@ -266,9 +267,10 @@ export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): S
     const tidligereValue = tidligereKroner ?? 0;
     const allerede = aktuelKroner ?? 0;
     const restPlads = maxKroner - tidligereValue;
-    const beloebFoerFradrag = Math.min(rawKroner, Math.max(0, restPlads));
-    maxApplied = rawKroner > Math.max(0, restPlads);
-    const beloeb = Math.max(0, beloebFoerFradrag - allerede);
+    const restPladsEfterTidligere = clampToNonNegative(restPlads);
+    const beloebFoerFradrag = Math.min(rawKroner, restPladsEfterTidligere);
+    maxApplied = rawKroner > restPladsEfterTidligere;
+    const beloeb = clampToNonNegative(beloebFoerFradrag - allerede);
     totalOre = clampMoneyOreToZero(toOre(roundKroner(beloeb)));
   }
 

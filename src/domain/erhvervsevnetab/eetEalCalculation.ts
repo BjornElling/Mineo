@@ -3,6 +3,7 @@ import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, parseISODate } from '../../types/branded';
 import type { YearlyRate } from '../../data/lovbestemteRates';
+import { calculateUtcAgeInWholeYears } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { roundByMethod } from '../../utils/rounding';
@@ -79,15 +80,7 @@ const calculateAgeInWholeYears = (fodselsdato: ISODateString, skadedato: ISODate
   const birthDate = parseISODate(fodselsdato);
   const injuryDate = parseISODate(skadedato);
   if (!birthDate || !injuryDate) return null;
-
-  let age = injuryDate.getUTCFullYear() - birthDate.getUTCFullYear();
-  if (
-    injuryDate.getUTCMonth() < birthDate.getUTCMonth() ||
-    (injuryDate.getUTCMonth() === birthDate.getUTCMonth() && injuryDate.getUTCDate() < birthDate.getUTCDate())
-  ) {
-    age -= 1;
-  }
-  return age;
+  return calculateUtcAgeInWholeYears(birthDate, injuryDate) ?? null;
 };
 
 const calculateAldersreduktionPct = (ageAtInjury: number): number => {

@@ -34,6 +34,8 @@ import type {
 } from '../../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
 import { resolveLoenudviklingSegmentBounds } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsBeregning';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
+import { isGreaterThanWithTolerance } from '../../../../utils/numberComparison';
+import { parsePercentPointString } from '../../../../utils/numberParsing';
 
 const REGULERINGSVAERDIER_RIGHT_ALIGNED_INSET_MM = 8;
 const REGULERINGSVAERDIER_SH_SO_RIGHT_ALIGNED_INSET_MM = 6;
@@ -89,7 +91,7 @@ type ReguleringSectionContext = Readonly<{
 const percentDeltaIsIncrease = (from: number | null | undefined, to: number | null | undefined): boolean => {
   const a = typeof from === 'number' && Number.isFinite(from) ? from : 0;
   const b = typeof to === 'number' && Number.isFinite(to) ? to : 0;
-  return b > a + 1e-9;
+  return isGreaterThanWithTolerance(b, a);
 };
 
 const joinWithCommaAndOg = (parts: readonly string[]): string => {
@@ -160,9 +162,7 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
           return parts[parts.length - 1]?.trim() ?? trimmed;
         })()
       : trimmed;
-    const normalized = cleaned.replace('%', '').trim().replace(/\./g, '').replace(',', '.');
-    const parsed = Number.parseFloat(normalized);
-    return Number.isFinite(parsed) ? parsed : null;
+    return parsePercentPointString(cleaned) ?? null;
   };
   const resolveIncreaseFromTable = (columnNames: readonly string[]): boolean => {
     if (!reguleringsvaerdierTableData || reguleringsvaerdierTableData.rows.length < 2) return false;
@@ -213,7 +213,7 @@ const resolveOverenskomstTillægsStigninger = (params: Readonly<{
 
   const startBededag = applyAlmindeligLoenPaaShDageRegel && reguleringTableStartIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
   const slutBededag = applyAlmindeligLoenPaaShDageRegel && tafTilIso >= STORE_BEDEDAG_START ? STORE_BEDEDAG_PCT : 0;
-  const bededagStiger = slutBededag > startBededag + 1e-9;
+  const bededagStiger = isGreaterThanWithTolerance(slutBededag, startBededag);
 
   const labels: string[] = [];
   if (fritvalgStiger) labels.push('fritvalg');

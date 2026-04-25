@@ -42,7 +42,7 @@ export const resolvePdfFileName = (baseTitle: string, isDraft: boolean, journaln
 export const formatMaanederTrimmed = (value: number): string => {
   if (!Number.isFinite(value)) return '-';
   const rounded = roundByMethod(value, 4, 'halfAwayFromZero');
-  return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+  return formatAsAmountTrimmed(rounded, 4);
 };
 
 /** Indsætter NBSP efter minus i negative beløb, så PDF-renderere ikke bryder midt i et negativt tal. */
@@ -83,7 +83,7 @@ export const formatPercentDelta = (value: number): string => {
   if (!Number.isFinite(value)) return '-';
   const abs = Math.abs(value);
   const rounded = roundByMethod(abs, 2, 'halfAwayFromZero');
-  return rounded.toLocaleString('da-DK', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  return formatAsAmountTrimmed(rounded, 2);
 };
 
 /** Formaterer kroner-beløb til PDF med NBSP efter minus ved negative tal. */

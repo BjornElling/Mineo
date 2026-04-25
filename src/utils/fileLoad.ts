@@ -18,6 +18,7 @@ import type { LoadFileResult } from '../types/fileOperations';
 import { eoFileContainerLoadSchema, type EoFileContainerLoad } from '../schemas/eoFileSchema';
 import { CalculationError } from './errorMessages';
 import { stripUnknownFieldsBySchema, type UnknownPath } from './persistenceLoadSanitization';
+import { formatAsAmount } from './formatUtils';
 
 import { isRecord } from './typeGuards';
 
@@ -234,8 +235,8 @@ export const loadFromFile = async (
       }
 
       if (file.size > MAX_FILE_SIZE) {
-        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-        const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+        const sizeMB = formatAsAmount(file.size / (1024 * 1024), 1);
+        const maxSizeMB = formatAsAmount(MAX_FILE_SIZE / (1024 * 1024), 0);
         throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
       }
       fileContent = await readFromFileHandle(fileHandle);
@@ -254,8 +255,8 @@ export const loadFromFile = async (
       }
 
       if (file.size > MAX_FILE_SIZE) {
-        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-        const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+        const sizeMB = formatAsAmount(file.size / (1024 * 1024), 1);
+        const maxSizeMB = formatAsAmount(MAX_FILE_SIZE / (1024 * 1024), 0);
         throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
       }
       fileContent = await readFile(file);
@@ -306,8 +307,8 @@ export const loadFromFileHandle = async (
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
-      const maxSizeMB = (MAX_FILE_SIZE / (1024 * 1024)).toFixed(0);
+      const sizeMB = formatAsAmount(file.size / (1024 * 1024), 1);
+      const maxSizeMB = formatAsAmount(MAX_FILE_SIZE / (1024 * 1024), 0);
       throw new Error(`Filen er for stor (${sizeMB} MB). Maksimum: ${maxSizeMB} MB`);
     }
     const fileContent = await readFromFileHandle(fileHandle);
