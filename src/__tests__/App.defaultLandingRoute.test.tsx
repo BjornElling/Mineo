@@ -52,8 +52,8 @@ vi.mock('../components/pages/Indstillinger', () => ({
   default: () => <div>MOCK_INDSTILLINGER</div>,
 }));
 
-vi.mock('../components/pages/Mineo', () => ({
-  default: () => <div>MOCK_MINEO</div>,
+vi.mock('../components/pages/MinEO', () => ({
+  default: () => <div>MOCK_MinEO</div>,
 }));
 
 vi.mock('../components/pages/OpenEo', () => ({
@@ -66,11 +66,11 @@ describe('App default landing route', () => {
     writeLocalStorage(LOCAL_STORAGE_KEY, '');
   });
 
-  it('lander på Mineo når standard-startside-setting er false', async () => {
+  it('lander på MinEO når standard-startside-setting er false', async () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText('MOCK_MINEO')).toBeInTheDocument();
+      expect(screen.getByText('MOCK_MinEO')).toBeInTheDocument();
     });
     expect(window.location.pathname).toBe('/mineo');
   });

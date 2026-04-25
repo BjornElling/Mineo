@@ -301,7 +301,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       <ConfirmationDialog
         open={pendingOverwriteApply !== null}
         title="Overskriv eksisterende data?"
-        message="Der findes allerede indtastede oplysninger i Mineo. Hvis du fortsætter, bliver de erstattet af data fra filen."
+        message="Der findes allerede indtastede oplysninger i MinEO. Hvis du fortsætter, bliver de erstattet af data fra filen."
         cancelText="Stop og gør intet"
         confirmText="Overskriv"
         confirmColor="error"

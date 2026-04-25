@@ -91,10 +91,10 @@ const buildInvalidHandleUserWarning = (
     case 'not_found':
       return 'Den tidligere valgte fil blev ikke fundet og kunne derfor ikke overskrives automatisk. Vælg filplacering igen.';
     case 'permission_denied':
-      return 'Mineo har ikke længere adgang til den tidligere valgte fil og kunne derfor ikke overskrive den automatisk. Vælg filplacering igen.';
+      return 'MinEO har ikke længere adgang til den tidligere valgte fil og kunne derfor ikke overskrive den automatisk. Vælg filplacering igen.';
     case 'missing_permission_api':
     case 'permission_api_failed':
-      return 'Mineo kunne ikke bekræfte adgangen til den tidligere valgte fil og kunne derfor ikke overskrive den automatisk. Vælg filplacering igen.';
+      return 'MinEO kunne ikke bekræfte adgangen til den tidligere valgte fil og kunne derfor ikke overskrive den automatisk. Vælg filplacering igen.';
     case 'file_access_failed':
     case 'validation_failed':
       return 'Den tidligere valgte fil kunne ikke bruges til automatisk overskrivning. Vælg filplacering igen.';

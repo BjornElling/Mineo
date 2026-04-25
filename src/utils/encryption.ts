@@ -7,7 +7,7 @@ import { z } from 'zod';
 // - KEY_MATERIAL -> UTF-8 -> SHA-256 -> raw AES-256 key
 // - AES-GCM med 96-bit IV og 128-bit tag
 // - ivB64/ctB64 er standard base64 (ikke URL-safe)
-const KEY_MATERIAL = 'MINEO_OBFUSCATION_KEY_V1';
+const KEY_MATERIAL = 'MinEO_OBFUSCATION_KEY_V1';
 const AES_GCM_IV_BYTES = 12;
 
 export class EncryptionError extends Error {

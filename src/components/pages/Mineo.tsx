@@ -16,9 +16,9 @@ import GitHubIcon from '@mui/icons-material/GitHub';
 import BrowserUpdatedIcon from '@mui/icons-material/BrowserUpdated';
 
 /**
- * Mineo-komponent
+ * MinEO-komponent
  */
-const Mineo = React.memo(() => {
+const MinEO = React.memo(() => {
   const { settings, updateSettings } = useAppSettings();
   const [licenseOpen, setLicenseOpen] = React.useState(false);
 
@@ -48,7 +48,7 @@ const Mineo = React.memo(() => {
         <Typography className="section-header">Programmet</Typography>
 
         <Typography className="row--text">
-          MINEO er et specialiseret regneprogram til advokater,
+          MinEO er et specialiseret regneprogram til advokater,
           arbejdsskadekonsulenter og andre fagpersoner, hvis arbejde
           indebærer at beregne erstatning i person- og arbejdsskadesager.
         </Typography>
@@ -74,7 +74,7 @@ const Mineo = React.memo(() => {
         <Typography className="section-header">Teknisk</Typography>
 
         <Typography className="row--text">
-          For at kunne dobbeltklikke på lokale .eo-filer og åbne dem direkte i MINEO, skal du installere et
+          For at kunne dobbeltklikke på lokale .eo-filer og åbne dem direkte i MinEO, skal du installere et
           hjælpeprogram. Det kan hentes via linket nedenfor eller ved at klikke på installationsikonet yderst
           til højre i browserens adresselinje (Google Chrome {' '}
           <BrowserUpdatedIcon fontSize="small" sx={{ verticalAlign: 'text-bottom' }} />
@@ -111,8 +111,8 @@ const Mineo = React.memo(() => {
           Bemærk, at hjælpeprogrammet kun kan installeres, hvis du benytter Google Chrome eller Microsoft Edge.
         </Typography>
 
-        {/* Bevidst UX-beslutning: denne toggle er placeret på Mineo-siden — ikke på
-            Indstillinger-siden. Mineo-siden er den første side nye brugere møder, og
+        {/* Bevidst UX-beslutning: denne toggle er placeret på MinEO-siden — ikke på
+            Indstillinger-siden. MinEO-siden er den første side nye brugere møder, og
             det giver kontekst til valget: brugeren ser programbeskrivelsen og kan
             derfra beslutte, om Stamdata skal være standardstart. */}
         <Box className="row--label-right-hover">
@@ -134,7 +134,7 @@ const Mineo = React.memo(() => {
         <Typography className="section-header">Persondata</Typography>
 
         <Typography className="row--text">
-          MINEO er udviklet som en client-side applikation. Det indebærer, at al
+          MinEO er udviklet som en client-side applikation. Det indebærer, at al
           databehandling finder sted i browseren på brugerens egen computer.
         </Typography>
 
@@ -281,11 +281,11 @@ const Mineo = React.memo(() => {
             <Typography
               className="row--text icon-text-link"
               component="a"
-              href="https://github.com/BjornElling/Mineo"
+              href="https://github.com/BjornElling/MinEO"
               target="_blank"
               rel="noopener noreferrer"
             >
-              github.com/BjornElling/Mineo
+              github.com/BjornElling/MinEO
             </Typography>
           </Box>
 
@@ -296,6 +296,6 @@ const Mineo = React.memo(() => {
   );
 });
 
-Mineo.displayName = 'Mineo';
+MinEO.displayName = 'MinEO';
 
-export default Mineo;
+export default MinEO;

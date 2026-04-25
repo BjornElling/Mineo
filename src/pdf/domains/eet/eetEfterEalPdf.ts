@@ -156,7 +156,7 @@ export const generateEfterEalPdf = (params: GenerateEfterEalPdfParams): void => 
   writer.setProperties({
     title: 'EET efter EAL',
     subject: 'Erstatningsberegning',
-    author: 'Mineo',
+    author: 'MinEO',
     creator: 'mineo.dk',
   });
 

@@ -310,7 +310,7 @@ describe('StyledToggleSwitch', () => {
       await user.click(toggle);
 
       const event = commitSpy.mock.calls[0][0];
-      expect(event).toHaveProperty('__mineoEvent', 'MineoFieldEvent');
+      expect(event).toHaveProperty('__mineoEvent', 'MinEOFieldEvent');
       expect(event).toHaveProperty('kind', 'commit');
       expect(event).toHaveProperty('target');
       expect(event.target).toHaveProperty('value', true);

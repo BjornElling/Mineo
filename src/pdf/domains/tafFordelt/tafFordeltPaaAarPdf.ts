@@ -59,7 +59,7 @@ export const generateTafFordeltPaaAarPdf = (
   writer.setProperties({
     title: titel,
     subject: 'Erstatningsberegning',
-    author: 'Mineo',
+    author: 'MinEO',
     creator: 'mineo.dk',
   });
 

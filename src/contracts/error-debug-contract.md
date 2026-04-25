@@ -1,8 +1,8 @@
-# Mineo – Error- og Debug-kontrakt
+# MinEO – Error- og Debug-kontrakt
 
 **Status:** Gældende arkitektur (runtime-only)
 
-Dette dokument beskriver den **normative** model for felt-fejl (errors) og debug-visning i Mineo.
+Dette dokument beskriver den **normative** model for felt-fejl (errors) og debug-visning i MinEO.
 
 Formålet er at sikre:
 - deterministisk og auditérbar fejlhåndtering
@@ -134,7 +134,7 @@ Der findes to gyldige strategier for debug-visninger:
 - Brug by-source view: `useFormFieldErrorsBySource(pageKey)`
 - Viser input/schema/rule samtidig og gør prioritet synlig
 
-Mineo’s `EODebug` er på nuværende tidspunkt designet til strategi **B**.
+MinEO’s `EODebug` er på nuværende tidspunkt designet til strategi **B**.
 
 ---
 

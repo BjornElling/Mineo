@@ -14,7 +14,7 @@ import Aarsloen from './components/pages/Aarsloen';
 import VarigeMen from './components/pages/VarigeMen';
 import Forsoergertab from './components/pages/Forsoergertab';
 import Indstillinger from './components/pages/Indstillinger';
-import Mineo from './components/pages/Mineo';
+import MinEO from './components/pages/MinEO';
 import OpenEo from './components/pages/OpenEo';
 import { useAppSettings } from './contexts/useAppSettings';
 import { buildTheme } from './config/appTheme';
@@ -23,7 +23,7 @@ type PageComponent = React.ComponentType<Record<string, never>>;
 type AppRoute = { path: string; component: PageComponent };
 
 /**
- * Route-konfiguration til MINEO applikationen
+ * Route-konfiguration til MinEO applikationen
  *
  * Mapper stier til deres tilhørende page-komponenter
  */
@@ -38,7 +38,7 @@ const routes: AppRoute[] = [
   { path: '/forsoergertab', component: Forsoergertab },
   { path: '/aarsloen', component: Aarsloen },
   { path: '/indstillinger', component: Indstillinger },
-  { path: '/mineo', component: Mineo },
+  { path: '/mineo', component: MinEO },
 ];
 
 /**
@@ -63,7 +63,7 @@ const RootRedirect = () => {
   const { settings } = useAppSettings();
 
   // Bevidst UX-valg:
-  // - Normal åbning af app/PWA går via root-route og styres af Mineo-toggle'en.
+  // - Normal åbning af app/PWA går via root-route og styres af MinEO-toggle'en.
   // - Filindlæsning er et separat flow i MainLayout og ender altid på Stamdata.
   return <Navigate to={settings.defaultStartsideErStamdata ? '/stamdata' : '/mineo'} replace />;
 };
@@ -106,7 +106,7 @@ const ThemedApp = () => {
 };
 
 /**
- * Hovedkomponent for MINEO applikationen
+ * Hovedkomponent for MinEO applikationen
  */
 function App() {
   // Håndter browser back/forward cache (bfcache) for at undgå React hook fejl

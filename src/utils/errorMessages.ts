@@ -1,5 +1,5 @@
 /**
- * Fejlbeskeder til MINEO
+ * Fejlbeskeder til MinEO
  *
  * Mapper tekniske fejl-koder til brugervenlige danske beskeder.
  *
@@ -15,7 +15,7 @@
  */
 
 /**
- * Alle mulige fejl-koder i MINEO
+ * Alle mulige fejl-koder i MinEO
  *
  * TypeScript sikrer at kun gyldige koder kan bruges.
  */

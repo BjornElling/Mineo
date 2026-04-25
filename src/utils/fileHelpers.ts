@@ -6,7 +6,7 @@ import type { AppSettings } from '../settings/appSettingsSchema';
 // Konstanter for filhåndtering
 const MAX_FILENAME_LENGTH = 150;
 const FALLBACK_FILENAME = 'Erstatningsopgørelse';
-const EO_FILENAME_PREFIX = 'MINEO';
+const EO_FILENAME_PREFIX = 'MinEO';
 
 // Windows-reserverede filnavne
 const RESERVED_NAMES = new Set([
@@ -59,8 +59,8 @@ export const sanitizeFilename = (name: string | null | undefined, fallback = FAL
 
 /**
  * Genererer beskrivende filnavn baseret på stamdata.
- * Format: MINEO - [Skadelidte] - [Skadestype] - [Dato]
- * Fallback: MINEO - [Journalnr] - "Erstatningsopgørelse"
+ * Format: MinEO - [Skadelidte] - [Skadestype] - [Dato]
+ * Fallback: MinEO - [Journalnr] - "Erstatningsopgørelse"
  *
  * @param {Object} data - Sagsdata med stamdata
  * @returns {string} Genereret filnavn (uden extension)

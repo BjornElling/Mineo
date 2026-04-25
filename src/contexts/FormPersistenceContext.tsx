@@ -354,7 +354,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   }, []);
 
   /**
-   * Slet alle gemte MINEO data
+   * Slet alle gemte MinEO data
    *
    * Bruger manifest til kun at slette kendte keys.
    */

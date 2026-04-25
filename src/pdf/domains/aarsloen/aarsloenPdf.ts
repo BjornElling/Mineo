@@ -580,7 +580,7 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
   writer.setProperties({
     title: 'Årslønsberegning',
     subject: 'Erstatningsberegning',
-    author: 'Mineo',
+    author: 'MinEO',
     creator: 'mineo.dk',
   });
 

@@ -1,5 +1,5 @@
 /**
- * Bug Report utility til MINEO
+ * Bug Report utility til MinEO
  *
  * Funktioner:
  * - Genererer komplet fejlrapport med seneste 50 fejl fra IndexedDB
@@ -247,7 +247,7 @@ export const generateBugReport = async (
   const systemIssues = extractStructuredSystemIssues(logEntries);
 
   // Byg rapport
-  let report = '=== MINEO Fejlrapport ===\n';
+  let report = '=== MinEO Fejlrapport ===\n';
   report += `Version: ${version}\n`;
   report += `Commit/hash: ${commitHash}\n`;
   report += `Dato: ${dato}\n`;
@@ -363,7 +363,7 @@ const buildMailtoPayload = (report: string, options?: { subjectPrefix?: string }
     const version = report.match(/Version: (.+)/)?.[1] || 'ukendt';
     const dato = formatIsoDateShort(getTodayLocalISO());
 
-    const subjectPrefix = options?.subjectPrefix ?? 'MINEO Fejlrapport';
+    const subjectPrefix = options?.subjectPrefix ?? 'MinEO Fejlrapport';
     const subject = `${subjectPrefix} - v${version} - ${dato}`;
 
     const maxEncodedBodyLength = 1800;
@@ -466,7 +466,7 @@ export const prepareBugReport = async (options?: {
       bodyWasTrimmed: mailto.bodyWasTrimmed,
     },
     download: {
-      filename: `MINEO-fejlrapport-v${version}-${dato}.txt`,
+      filename: `MinEO-fejlrapport-v${version}-${dato}.txt`,
     },
   };
 };
@@ -485,7 +485,7 @@ export const prepareContentBoxReport = async (options: {
   const dato = formatUtcTimestampSeconds(new Date());
   const message = (options.message ?? '').trim();
 
-  let report = '=== MINEO Rapport ===\n';
+  let report = '=== MinEO Rapport ===\n';
   report += `Version: ${version}\n`;
   report += `Commit/hash: ${commitHash}\n`;
   report += `Dato: ${dato}\n`;
@@ -510,7 +510,7 @@ export const prepareContentBoxReport = async (options: {
   report += '=== Skærmprint ===\n';
   report += 'Skærmprint genereres lokalt via "Download skærmprint" i rapport-vinduet.\n';
 
-  const mailto = buildMailtoPayload(report, { subjectPrefix: 'MINEO Rapport' });
+  const mailto = buildMailtoPayload(report, { subjectPrefix: 'MinEO Rapport' });
 
   const datoIso = getTodayLocalISO();
   return {
@@ -523,7 +523,7 @@ export const prepareContentBoxReport = async (options: {
       bodyWasTrimmed: mailto.bodyWasTrimmed,
     },
     download: {
-      filename: `MINEO-rapport-v${version}-${datoIso}.txt`,
+      filename: `MinEO-rapport-v${version}-${datoIso}.txt`,
     },
   };
 };
@@ -552,7 +552,7 @@ export async function downloadBugReport(
   const report = isPreparedBugReport(arg) ? arg.report : arg?.report ?? (await generateBugReport(50));
   const filename =
     (isPreparedBugReport(arg) ? arg.download.filename : arg?.filename) ??
-    `MINEO-fejlrapport-v${getVersion()}-${getTodayLocalISO()}.txt`;
+    `MinEO-fejlrapport-v${getVersion()}-${getTodayLocalISO()}.txt`;
 
   // Opret blob og download
   const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });

@@ -73,7 +73,7 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
           Login
         </h1>
         <p style={{ margin: 0, marginBottom: '18px', color: 'var(--color-text-secondary)' }}>
-          Indtast adgangskode for at åbne Mineo.
+          Indtast adgangskode for at åbne MinEO.
         </p>
         <form onSubmit={handleSubmit}>
           <label

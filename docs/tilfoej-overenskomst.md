@@ -1,6 +1,6 @@
 # Tilføjelse af ny overenskomst i `overenskomstRates`
 
-Denne guide er den faste opskrift til at indlægge en ny overenskomst i Mineo.
+Denne guide er den faste opskrift til at indlægge en ny overenskomst i MinEO.
 Målet er korrekt data, ens struktur og forudsigelig gennemslagskraft i hele appen.
 
 ## 1. Inddata der skal være afklaret først

@@ -1,7 +1,7 @@
 /**
  * PDF Document Adapter
  *
- * Stabil infrastruktur-kontrakt for PDF-generering i Mineo.
+ * Stabil infrastruktur-kontrakt for PDF-generering i MinEO.
  * Ingen helper eller generator må importere jsPDF direkte —
  * de arbejder udelukkende mod dette interface.
  *
@@ -9,7 +9,7 @@
  * lever udelukkende i createJsPdfAdapter() i jsPdfAdapter.ts.
  *
  * VIGTIG DESIGNBESLUTNING:
- * Kontrakten er bevidst indsnævret til de features Mineo faktisk bruger.
+ * Kontrakten er bevidst indsnævret til de features MinEO faktisk bruger.
  * Vi spejler IKKE jsPDF's fulde API — det ville genindføre coupling.
  */
 

@@ -377,7 +377,7 @@ const Container = React.memo(({ children }: ContainerProps) => {
       if (activeWidgetIsExpanded) return;
 
       // Pilnavigation gælder kun i fokus-men-ikke-redigér mode.
-      // ReadOnly=false betyder typisk åben editor i Mineos 2-trins inputs.
+      // ReadOnly=false betyder typisk åben editor i MinEOs 2-trins inputs.
       const isTextEditingInput = (element: FocusableElement): element is HTMLInputElement | HTMLTextAreaElement => {
         if (element instanceof HTMLTextAreaElement) return true;
         if (!(element instanceof HTMLInputElement)) return false;

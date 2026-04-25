@@ -137,7 +137,7 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
   writer.setProperties({
     title: 'Ménberegning',
     subject: 'Erstatningsberegning',
-    author: 'Mineo',
+    author: 'MinEO',
     creator: 'mineo.dk',
   });
 

@@ -1,4 +1,4 @@
-/* layout.css - Layout-klasser for MINEO */
+/* layout.css - Layout-klasser for MinEO */
 
 /* ==================== CSS Variabler ==================== */
 :root {
@@ -312,7 +312,7 @@
   padding-left: 6px !important;
 }
 
-/* Neutraliser row--text's faste række-højde i "flow"-layouts (fx Mineo-siden) */
+/* Neutraliser row--text's faste række-højde i "flow"-layouts (fx MinEO-siden) */
 .flow--16 .row--text {
   min-height: unset !important;
   display: block !important;
@@ -320,4 +320,4 @@
 }
 
 /* NOTE:
-   MINEO understøtter ikke mobil/tablet. Responsiv styling skal ikke ligge globalt. */
+   MinEO understøtter ikke mobil/tablet. Responsiv styling skal ikke ligge globalt. */

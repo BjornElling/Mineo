@@ -1,7 +1,7 @@
 /**
  * IndexedDB wrapper til persistent log storage
  *
- * MINEO er en browser-app, så vi kan ikke skrive til fil-systemet.
+ * MinEO er en browser-app, så vi kan ikke skrive til fil-systemet.
  * Bruger IndexedDB til at gemme logs lokalt i browseren.
  *
  * Features:
@@ -10,7 +10,7 @@
  * - Kun errors/warnings gemmes (ikke debug/info)
  */
 
-const DB_NAME = 'MINEOLogs';
+const DB_NAME = 'MinEOLogs';
 const DB_VERSION = 1;
 const STORE_NAME = 'errorLogs';
 const MAX_ENTRIES = 1000;

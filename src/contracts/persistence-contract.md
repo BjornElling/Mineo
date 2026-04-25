@@ -1,4 +1,4 @@
-# Mineo – Persistence-kontrakt
+# MinEO – Persistence-kontrakt
 
 **Status:** Gældende arkitektur (normativ)
 

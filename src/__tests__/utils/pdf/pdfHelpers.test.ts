@@ -186,7 +186,7 @@ describe('addFooter', () => {
     expect(doc.setFont).toHaveBeenCalledWith('helvetica', 'normal');
     expect(doc.setTextColor).toHaveBeenCalledWith(200, 200, 200);
     expect(doc.text).toHaveBeenCalledWith(
-      expect.stringContaining('Mineo.dk'),
+      expect.stringContaining('MinEO.dk'),
       expect.any(Number),
       expect.any(Number),
       expect.objectContaining({ angle: 90 })

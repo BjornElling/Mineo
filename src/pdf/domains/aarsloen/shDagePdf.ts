@@ -182,7 +182,7 @@ export const generateSHDagePdf = (
   writer.setProperties({
     title: 'SH-dage',
     subject: 'Erstatningsberegning',
-    author: 'Mineo',
+    author: 'MinEO',
     creator: 'mineo.dk',
   });
 

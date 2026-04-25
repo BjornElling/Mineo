@@ -13,7 +13,7 @@ export const createDate = (year: number, monthIndex: number, day: number): Date 
  * Branded types til runtime-validerede værdier
  *
  * ═══════════════════════════════════════════════════════════════════════
- * VIGTIGT: Dette er den AUTORITATIVE kilde for alle dato-operationer i MINEO
+ * VIGTIGT: Dette er den AUTORITATIVE kilde for alle dato-operationer i MinEO
  * ═══════════════════════════════════════════════════════════════════════
  *
  * Regler:

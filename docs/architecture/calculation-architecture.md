@@ -1,7 +1,7 @@
 # Calculation Architecture (Normativ)
 
 **Status:** Gældende arkitektur
-**Scope:** Alle beregningsdomæner i Mineo
+**Scope:** Alle beregningsdomæner i MinEO
 
 Dette dokument er den kanoniske kontrakt for beregningsarkitektur.
 

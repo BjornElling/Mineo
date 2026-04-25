@@ -73,7 +73,7 @@ const ErrorFallback = ({ error, errorInfo, onReset }: ErrorFallbackProps) => {
         <AlertTitle sx={{ fontSize: '18px', fontWeight: 500 }}>Noget gik galt</AlertTitle>
 
         <Typography variant="body1" sx={{ marginBottom: 2 }}>
-          MINEO stødte på en uventet fejl. Prøv først at genstarte, og hvis det ikke hjælper,
+          MinEO stødte på en uventet fejl. Prøv først at genstarte, og hvis det ikke hjælper,
           genindlæs siden.
         </Typography>
 

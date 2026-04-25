@@ -369,7 +369,7 @@ export const generateLoebendeYdelserPdf = (
   writer.setProperties({
     title: 'Løbende ydelser (EET)',
     subject: 'Erstatningsberegning',
-    author: 'Mineo',
+    author: 'MinEO',
     creator: 'mineo.dk',
   });
 

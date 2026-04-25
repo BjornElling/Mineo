@@ -1,4 +1,4 @@
-/* typography.css – Tekstformatering for MINEO */
+/* typography.css – Tekstformatering for MinEO */
 /*
   ARKITEKTURPRINCIP:
   - className er single source of truth for typografi
@@ -134,7 +134,7 @@
   line-height: var(--line-height-base);
 }
 
-/* Mineo-siden: lidt større linjeafstand for bedre læsbarhed af længere tekst */
+/* MinEO-siden: lidt større linjeafstand for bedre læsbarhed af længere tekst */
 .mineo-page .MuiTypography-root.row--text {
   line-height: 1.6;
 }

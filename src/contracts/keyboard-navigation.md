@@ -1,14 +1,14 @@
 # Keyboard Navigation Kontrakt
 
 **Status:** Normativ
-**Gælder for:** Hele MINEO applikationen
+**Gælder for:** Hele MinEO applikationen
 **Implementeret i:** `src/components/layout/Container.tsx`
 
 ---
 
 ## Overordnet princip
 
-MINEO bruger **Container-styret keyboard navigation**, hvor `Container.tsx` ejer og håndhæver al fokus-traversering på en side.
+MinEO bruger **Container-styret keyboard navigation**, hvor `Container.tsx` ejer og håndhæver al fokus-traversering på en side.
 
 Alle tastatur-navigation skal:
 - Være **forudsigelig** og **konsistent**

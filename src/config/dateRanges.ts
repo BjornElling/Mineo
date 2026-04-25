@@ -1,5 +1,5 @@
 /**
- * Central konfiguration af dato-afgrænsninger for MINEO
+ * Central konfiguration af dato-afgrænsninger for MinEO
  *
  * ÅRLIG OPDATERING:
  * Opdater DATE_2005_01_01 hvis der tilføjes ældre arbejdsskadesatser — MIN_YEAR udledes automatisk
@@ -633,7 +633,7 @@ export const dateRanges_erhvervsevnetab: DateRanges_Erhvervsevnetab = {
 /**
  * Dato-intervaller organiseret efter sider
  *
- * VIGTIGT: Dette objekt dokumenterer ALLE datofelter i MINEO.
+ * VIGTIGT: Dette objekt dokumenterer ALLE datofelter i MinEO.
  * - Alle felter er type-safe med kendte keys
  * - 'DYNAMIC' ranges har altid påkrævet fallback
  * - Statiske ranges er validerede ISODateString

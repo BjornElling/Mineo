@@ -1,7 +1,7 @@
 /**
  * PDF Configuration og fælles styling
  *
- * Central konfiguration for alle PDF-dokumenter i MINEO
+ * Central konfiguration for alle PDF-dokumenter i MinEO
  */
 
 export type PdfColor = [number, number, number];

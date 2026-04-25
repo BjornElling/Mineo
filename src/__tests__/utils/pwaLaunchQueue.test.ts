@@ -1,5 +1,5 @@
 import {
-  MINEO_PWA_FILE_OPEN_EVENT,
+  MinEO_PWA_FILE_OPEN_EVENT,
   clearPendingPwaFileOpenRequest,
   getPendingPwaFileOpenRequest,
   hydratePendingPwaFileOpenRequest,
@@ -88,7 +88,7 @@ describe('pwaLaunchQueue', () => {
     });
 
     expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
-      type: MINEO_PWA_FILE_OPEN_EVENT,
+      type: MinEO_PWA_FILE_OPEN_EVENT,
     }));
     await Promise.resolve();
     expect(logWarningMock).toHaveBeenCalled();

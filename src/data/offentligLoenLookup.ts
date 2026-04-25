@@ -284,7 +284,7 @@ export const getReguleringsDatoer = (
  *
  * fraDato = ældste regulerings-startdato
  * tilDato = nyeste regulerings-startdato + 6 måneder − 1 dag
- * (offentlige reguleringer håndteres som halvårlige perioder i Mineo)
+ * (offentlige reguleringer håndteres som halvårlige perioder i MinEO)
  */
 export const getReguleringsDatoIntervalForOffentligLoen = (
   overenskomstType: OffentligOverenskomstType

@@ -1,6 +1,6 @@
 # Batch-review arkitektur
 
-> **Formål:** Dette dokument beskriver den ønskede arkitektur og implementeringsplan for `batch-review`, et internt udviklerværktøj der kan generere meget lange PDF-dokumenter til systematisk gennemgang af Mineos output på tværs af mange fiktive scenarier. Dokumentet er en arbejds- og beslutningsreference for implementeringen. Det er ikke en runtime-kontrakt.
+> **Formål:** Dette dokument beskriver den ønskede arkitektur og implementeringsplan for `batch-review`, et internt udviklerværktøj der kan generere meget lange PDF-dokumenter til systematisk gennemgang af MinEOs output på tværs af mange fiktive scenarier. Dokumentet er en arbejds- og beslutningsreference for implementeringen. Det er ikke en runtime-kontrakt.
 
 ---
 
@@ -27,7 +27,7 @@
 
 ## 1. Baggrund og intention
 
-Der er et behov for et internt udviklerværktøj, som kan bruges til systematisk kvalitetsgennemgang af Mineos brugerrettede output på tværs af meget mange scenarier uden manuel indtastning.
+Der er et behov for et internt udviklerværktøj, som kan bruges til systematisk kvalitetsgennemgang af MinEOs brugerrettede output på tværs af meget mange scenarier uden manuel indtastning.
 
 Behovet dækker to beslægtede, men teknisk forskellige anvendelser:
 
@@ -112,7 +112,7 @@ Det fravælges fordi:
 - det vil være for langsomt
 - det vil være for skrøbeligt
 - det vil koble værktøjet til DOM- og fokusadfærd i stedet for committed domænedata
-- det vil være et ringere match til Mineos arkitektur, hvor committed state og snapshot-lag er de autoritative lag
+- det vil være et ringere match til MinEOs arkitektur, hvor committed state og snapshot-lag er de autoritative lag
 
 ### 3.2 Ikke screenshots af UI-bokse
 
@@ -154,17 +154,17 @@ Værktøjet skal tilpasses eksisterende arkitektur og må ikke bygges som et uaf
 
 ### 4.1 PDF-sporet
 
-Mineo har allerede et tydeligt PDF-lag beskrevet i [pdf-architecture.md](./pdf-architecture.md).
+MinEO har allerede et tydeligt PDF-lag beskrevet i [pdf-architecture.md](./pdf-architecture.md).
 
 Særligt relevante eksisterende byggesten er:
 
-- [pdfWriter.ts](c:/Users/bjell/Mineo/src/utils/pdf/pdfWriter.ts)
-- [pdfService.ts](c:/Users/bjell/Mineo/src/utils/pdf/pdfService.ts)
-- [erstatningsopgoerelsePdf.ts](c:/Users/bjell/Mineo/src/utils/pdf/erstatningsopgoerelsePdf.ts)
-- [tafFordeltPaaAarPdf.ts](c:/Users/bjell/Mineo/src/utils/pdf/tafFordeltPaaAarPdf.ts)
-- [eoSnapshot.ts](c:/Users/bjell/Mineo/src/domain/erstatningsopgoerelse/eoSnapshot.ts)
-- [eoSnapshotToEoPdfDocument.ts](c:/Users/bjell/Mineo/src/domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument.ts)
-- [eoSnapshotToTafPerYearPdfDocument.ts](c:/Users/bjell/Mineo/src/domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument.ts)
+- [pdfWriter.ts](c:/Users/bjell/MinEO/src/utils/pdf/pdfWriter.ts)
+- [pdfService.ts](c:/Users/bjell/MinEO/src/utils/pdf/pdfService.ts)
+- [erstatningsopgoerelsePdf.ts](c:/Users/bjell/MinEO/src/utils/pdf/erstatningsopgoerelsePdf.ts)
+- [tafFordeltPaaAarPdf.ts](c:/Users/bjell/MinEO/src/utils/pdf/tafFordeltPaaAarPdf.ts)
+- [eoSnapshot.ts](c:/Users/bjell/MinEO/src/domain/erstatningsopgoerelse/eoSnapshot.ts)
+- [eoSnapshotToEoPdfDocument.ts](c:/Users/bjell/MinEO/src/domain/erstatningsopgoerelse/eoSnapshotToEoPdfDocument.ts)
+- [eoSnapshotToTafPerYearPdfDocument.ts](c:/Users/bjell/MinEO/src/domain/erstatningsopgoerelse/eoSnapshotToTafPerYearPdfDocument.ts)
 
 Den eksisterende arkitektur har allerede den rigtige grundidé:
 
@@ -177,18 +177,18 @@ Det nye værktøj skal lægge sig oven på denne struktur.
 
 ### 4.2 Debug- og fejllogik
 
-Mineo har også et tydeligt debug-/fejlspor beskrevet i:
+MinEO har også et tydeligt debug-/fejlspor beskrevet i:
 
-- [error-debug-contract.md](c:/Users/bjell/Mineo/src/contracts/error-debug-contract.md)
+- [error-debug-contract.md](c:/Users/bjell/MinEO/src/contracts/error-debug-contract.md)
 - [debug-builder-architecture.md](./debug-builder-architecture.md)
 
 Særligt relevante eksisterende byggesten er:
 
-- [eoDebugBuilderRegistry.ts](c:/Users/bjell/Mineo/src/domain/debug/eoDebugBuilderRegistry.ts)
-- [eoDebugRowAggregator.ts](c:/Users/bjell/Mineo/src/domain/debug/eoDebugRowAggregator.ts)
-- [eoSnapshotToDebugView.ts](c:/Users/bjell/Mineo/src/domain/erstatningsopgoerelse/eoSnapshotToDebugView.ts)
-- [EOberegningTab.tsx](c:/Users/bjell/Mineo/src/components/pages/erstatningsopgoerelse/EOberegningTab.tsx)
-- [EODebug.tsx](c:/Users/bjell/Mineo/src/components/pages/erstatningsopgoerelse/EODebug.tsx)
+- [eoDebugBuilderRegistry.ts](c:/Users/bjell/MinEO/src/domain/debug/eoDebugBuilderRegistry.ts)
+- [eoDebugRowAggregator.ts](c:/Users/bjell/MinEO/src/domain/debug/eoDebugRowAggregator.ts)
+- [eoSnapshotToDebugView.ts](c:/Users/bjell/MinEO/src/domain/erstatningsopgoerelse/eoSnapshotToDebugView.ts)
+- [EOberegningTab.tsx](c:/Users/bjell/MinEO/src/components/pages/erstatningsopgoerelse/EOberegningTab.tsx)
+- [EODebug.tsx](c:/Users/bjell/MinEO/src/components/pages/erstatningsopgoerelse/EODebug.tsx)
 
 Det betyder:
 
@@ -204,7 +204,7 @@ Den foreslåede placering på test-fanen under Stamdata er arkitektonisk rimelig
 
 - værktøjet er udviklerorienteret
 - det er ikke et selvstændigt fagdomæne
-- der findes allerede en skjult udviklerflade via [src/components/pages/Stamdata.tsx](c:/Users/bjell/Mineo/src/components/pages/Stamdata.tsx) og [src/components/pages/Test.tsx](c:/Users/bjell/Mineo/src/components/pages/Test.tsx)
+- der findes allerede en skjult udviklerflade via [src/components/pages/Stamdata.tsx](c:/Users/bjell/MinEO/src/components/pages/Stamdata.tsx) og [src/components/pages/Test.tsx](c:/Users/bjell/MinEO/src/components/pages/Test.tsx)
 
 Værktøjet bør dog stadig have sin egen strukturerede delsektion og ikke blandes sammen med de eksisterende små testknapper.
 
@@ -508,7 +508,7 @@ Dette spor skal ikke gengive "hele debug-siden". Det skal gengive den fejl-/adva
 For EO er den naturlige autoritative kilde til boksen "Fejl og advarsler":
 
 - `collectAllDebugRows(...)`
-- snapshot-baserede blokeringer/projections, som [EOberegningTab](c:/Users/bjell/Mineo/src/components/pages/erstatningsopgoerelse/EOberegningTab.tsx) allerede sammensætter
+- snapshot-baserede blokeringer/projections, som [EOberegningTab](c:/Users/bjell/MinEO/src/components/pages/erstatningsopgoerelse/EOberegningTab.tsx) allerede sammensætter
 
 Derfor bør batch-værktøjet for EO have en ren domain-funktion, som returnerer:
 
@@ -628,7 +628,7 @@ Den anbefalede placering er fortsat test-fanen under Stamdata.
 
 ### 11.2 Hvordan den bør struktureres
 
-Der bør oprettes en særskilt sektion i [src/components/pages/Test.tsx](c:/Users/bjell/Mineo/src/components/pages/Test.tsx), fx:
+Der bør oprettes en særskilt sektion i [src/components/pages/Test.tsx](c:/Users/bjell/MinEO/src/components/pages/Test.tsx), fx:
 
 - "Batch-review"
 
@@ -978,7 +978,7 @@ Denne beslutning bør fastholdes tidligt, fordi den påvirker både scenariemode
 Det rigtige design er `batch-review`, et fælles udviklerværktøj til systematisk scenariegennemgang, som:
 
 - ligger på test-fanen under Stamdata
-- genbruger Mineos eksisterende autoritative snapshot-, download- og fejlbokslogik
+- genbruger MinEOs eksisterende autoritative snapshot-, download- og fejlbokslogik
 - producerer meget lange, samlede PDF-dokumenter
 - viser scenarieparametre på hver side
 - undgår UI-automation

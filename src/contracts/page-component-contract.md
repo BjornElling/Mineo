@@ -1,4 +1,4 @@
-# Mineo – Side-komponent-kontrakt
+# MinEO – Side-komponent-kontrakt
 
 **Version:** 0.2
 **Status:** Gældende arkitektur (normativ)
@@ -13,7 +13,7 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 
 Denne kontrakt fastlægger:
 
-- hvad en side er i Mineo
+- hvad en side er i MinEO
 - hvilke typer sider programmet består af
 - hvilket ansvar der ligger på rute-, layout-, page- og tab-niveau
 - hvilke mønstre der er bindende på tværs af sider
@@ -25,7 +25,7 @@ Den må ikke reduceres til et snapshot af ét enkelt domænes aktuelle implement
 
 ## 1. Sidehierarki
 
-Mineo består arkitektonisk af fire niveauer:
+MinEO består arkitektonisk af fire niveauer:
 
 1. **App-/route-niveau**
    - Routing, globale providers, theme og top-level device gate.
@@ -44,7 +44,7 @@ En komponent er kun en "side", hvis den er routet fra `App.tsx` eller renderes s
 
 ## 2. Sidekategorier
 
-Ikke alle sider i Mineo er af samme type. Kontrakten skelner mellem disse kategorier:
+Ikke alle sider i MinEO er af samme type. Kontrakten skelner mellem disse kategorier:
 
 ### 2.1 Persisted fagsider
 
@@ -75,7 +75,7 @@ Sider der primært viser statisk eller let interaktiv information.
 
 Aktuelt eksempel:
 
-- `Mineo`
+- `MinEO`
 
 ### 2.4 Hjælpe-/systemruter
 

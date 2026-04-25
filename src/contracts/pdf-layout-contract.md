@@ -1,8 +1,8 @@
-# Mineo – PDF-layout-kontrakt
+# MinEO – PDF-layout-kontrakt
 
 **Status:** Gældende arkitektur (normativ)
 
-Denne kontrakt fastlægger den visuelle og strukturelle standard for Mineos PDF-output.
+Denne kontrakt fastlægger den visuelle og strukturelle standard for MinEOs PDF-output.
 
 `pdf-contract.md` fastlægger hvilke data og guards PDF-output må bygge på.
 Denne kontrakt fastlægger hvordan PDF-output skal komponeres, så dokumenterne fremstår ensartede og uden utilsigtede lokale layoutafvigelser.
@@ -26,7 +26,7 @@ Ved konflikt gælder:
 
 ## 2. Kanoniske teksttyper
 
-Følgende teksttyper er de eneste kanoniske bloktyper i Mineo-PDF'er:
+Følgende teksttyper er de eneste kanoniske bloktyper i MinEO-PDF'er:
 
 1. Dokumenttitel
 2. Sektionsoverskrift

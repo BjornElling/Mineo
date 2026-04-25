@@ -26,7 +26,7 @@ interface StyledRadioButtonProps {
   onChange?: (event: React.ChangeEvent<HTMLInputElement>, value: string) => void;
   /**
    * Selection is an immediate commit for radio buttons.
-   * This provides Mineo-style commit semantics in addition to the native MUI callback.
+   * This provides MinEO-style commit semantics in addition to the native MUI callback.
    */
   onCommit?: CommitHandler<string | undefined>;
   /**

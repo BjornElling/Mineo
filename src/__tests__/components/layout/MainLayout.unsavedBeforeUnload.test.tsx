@@ -16,7 +16,7 @@ vi.mock('../../../utils/fileLoad', () => ({
 let pendingPwaRequest: unknown = null;
 
 vi.mock('../../../utils/pwaLaunchQueue', () => ({
-  MINEO_PWA_FILE_OPEN_EVENT: 'mineo:pwa-file-open',
+  MinEO_PWA_FILE_OPEN_EVENT: 'mineo:pwa-file-open',
   clearPendingPwaFileOpenRequest: vi.fn(async () => {
     pendingPwaRequest = null;
   }),

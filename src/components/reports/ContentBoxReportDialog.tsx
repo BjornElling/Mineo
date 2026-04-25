@@ -48,7 +48,7 @@ const buildScreenshotFilename = (identity: ContentBoxIdentity): string => {
 
   const base = parts.length > 0 ? parts.join('_') : 'contentbox';
   const date = getTodayLocalISO();
-  return `MINEO-skærmprint-${base}-${date}.png`;
+  return `MinEO-skærmprint-${base}-${date}.png`;
 };
 
 const ContentBoxReportDialog = React.memo(({

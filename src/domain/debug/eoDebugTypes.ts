@@ -11,7 +11,7 @@ import type { ISODateString } from '../../types/branded';
  * - 'warning': Bør give anledning til overvejelse, men blokerer ikke beregning
  * - 'error': Åbenlyst forkert, blokerer beregning
  *
- * VIGTIGT: Denne type er canonical for hele MINEO.
+ * VIGTIGT: Denne type er canonical for hele MinEO.
  * Andre lag må IKKE definere egen status-type.
  *
  * @see eoDebugIntegrity.ts - Validering der producerer IntegrityIssue[]

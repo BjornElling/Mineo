@@ -1,4 +1,4 @@
-# Mineo – Snapshot-kontrakt
+# MinEO – Snapshot-kontrakt
 
 **Status:** Gældende arkitektur (normativ)
 

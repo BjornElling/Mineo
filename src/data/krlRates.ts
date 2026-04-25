@@ -191,7 +191,7 @@ export const getKRLSatstabel = (id: KRLSatstabelId): KRLSatstabel | undefined =>
  *
  * fraDato = ældste regulerings-startdato
  * tilDato = nyeste regulerings-startdato + 6 måneder − 1 dag
- *           (KRL-satser behandles som 6-måneders perioder i Mineo)
+ *           (KRL-satser behandles som 6-måneders perioder i MinEO)
  */
 export const getReguleringsDatoIntervalForKRL = (
   id: KRLSatstabelId

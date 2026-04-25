@@ -88,7 +88,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   writer.setProperties({
     title: 'KRL Satstabeller',
     subject: 'Erstatningsberegning',
-    author: 'Mineo',
+    author: 'MinEO',
     creator: 'mineo.dk',
   });
 

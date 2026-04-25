@@ -1,12 +1,12 @@
 /**
  * Storage Manifest
  *
- * Centraliseret definition af alle sessionStorage keys brugt i MINEO.
+ * Centraliseret definition af alle sessionStorage keys brugt i MinEO.
  * Dette sikrer type-safety og forhindrer typos ved gem/hent operationer.
  */
 
 /**
- * Alle gyldige storage keys i MINEO
+ * Alle gyldige storage keys i MinEO
  *
  * Hver side/modul har sin egen key til sessionStorage.
  * Mapping: pageKey → sessionStorage key
@@ -73,24 +73,24 @@ export const getStorageKey = (pageKey: StorageKey): string => {
 };
 
 /**
- * Tjek om en sessionStorage key er en gyldig MINEO key
+ * Tjek om en sessionStorage key er en gyldig MinEO key
  *
  * @param key - SessionStorage key at tjekke
- * @returns true hvis key er en kendt MINEO key
+ * @returns true hvis key er en kendt MinEO key
  */
 export const isValidStorageKey = (key: string): boolean => {
   return STORAGE_KEY_SET.has(key) || key.startsWith(UI_STORAGE_PREFIXES.activeTab);
 };
 
 /**
- * Hent alle MINEO keys fra sessionStorage
+ * Hent alle MinEO keys fra sessionStorage
  *
  * Returnerer kun keys der matcher vores manifest (domæne-data + UI-state).
  * Brug getDomainStorageKeys() hvis kun domæne-data skal ryddes.
  *
  * @returns Array af gyldige sessionStorage keys
  */
-export const getAllMineoKeys = (): string[] => {
+export const getAllMinEOKeys = (): string[] => {
   const keys: string[] = [];
   for (let i = 0; i < sessionStorage.length; i++) {
     const key = sessionStorage.key(i);

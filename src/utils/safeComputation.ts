@@ -1,5 +1,5 @@
 /**
- * Safe Computation wrapper til MINEO
+ * Safe Computation wrapper til MinEO
  *
  * Wrapper beregninger i try-catch og returnerer Result<T>.
  * Logger automatisk fejl til centraliseret logging system.

@@ -1,8 +1,8 @@
-# Mineo – Form Contract
+# MinEO – Form Contract
 
 **Version:** 0.1
 **Status:** Gældende arkitektur
-**Formål:** At fastlægge ufravigelige regler for form-arkitektur, state-håndtering og validering i Mineo.
+**Formål:** At fastlægge ufravigelige regler for form-arkitektur, state-håndtering og validering i MinEO.
 
 ---
 
@@ -82,7 +82,7 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
   - committe til committed state
 
 **Terminologi**
-- I Mineo er det mere præcist at tænke i et konceptuelt `onCommit` end i `onBlur`.
+- I MinEO er det mere præcist at tænke i et konceptuelt `onCommit` end i `onBlur`.
 - `onBlur` er standard-mekanismen, som udløser commit.
 - I tabeller kan commit også være bundet til eksplicit navigation (fx Enter/Tab) via tabel-kontrakterne, men semantikken er den samme: det er stadig commit.
 - onBlur skal være:
@@ -99,12 +99,12 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 
 ### 3.4 Input-fokus og redigeringsmodel (2-trins)
 
-Mineo anvender en bevidst 2-trins interaktionsmodel for tekst-/tal-inputs (både på sider og i tabeller).
+MinEO anvender en bevidst 2-trins interaktionsmodel for tekst-/tal-inputs (både på sider og i tabeller).
 Dette afviger fra standard MUI-/browser-adfærd og er **normativt**: fremtidige refactors, komponent-udskiftninger
 eller library-opgraderinger må ikke bryde disse semantikker.
 
 **Scope**
-- Gælder for Mineos “draft/commit”-inputs (de felter hvor parsing/validering er bundet til blur/commit).
+- Gælder for MinEOs “draft/commit”-inputs (de felter hvor parsing/validering er bundet til blur/commit).
 - Gælder ikke for popup-widgets/combobox/dropdowns (fx `StyledDropdown`, `TableDropdown`) hvor 1. klik typisk skal åbne en menu.
 
 **Definitioner**
@@ -174,7 +174,7 @@ eller library-opgraderinger må ikke bryde disse semantikker.
 
 ### 4.4 Gem-gating følger commitbarhed, ikke al rød fejl-UI
 
-Dette er et bevidst designvalg og er normativt for Mineo:
+Dette er et bevidst designvalg og er normativt for MinEO:
 
 - `.eo`-gem må gerne fortsætte, når et felt allerede har committet en gyldig canonical værdi, selv om
   feltet viser rød fejlmarkering pga. bounds/afgrænsning.
@@ -268,7 +268,7 @@ Dette sker ved:
 
 Drafts resynkroniseres **ikke** ved almindelig commit-flow (onBlur).
 
-**Implementationsnote (Mineo pt.):**
+**Implementationsnote (MinEO pt.):**
 - `resyncToken` er obligatorisk i `useRowDrafts`.
 - Vi bruger et form-wide `formVersion` som `resyncToken`, hvilket betyder at et `formVersion`-skift resync’er **alle** row-drafts (og kan dermed kassere ucommitted row-inputs ved reset/load/migration).
 
