@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { optionalIsoDateString, percentageDecimal, tableDateCellString } from '../baseSchemas';
-import { afgoerelseTypeEnum, koenEnum } from '../enumSchemas';
+import { afgoerelseTypeEnum, jaNejEnum, koenEnum } from '../enumSchemas';
 import type { FaellesAarsloenValues } from './faellesAarsloenSchemas';
 import type { StamdataValues } from './stamdataSchemas';
 
@@ -17,6 +17,7 @@ export const aslAfgoerelseRowSchema = z.object({
   kapPct: z.string().optional(),
   afgoerelseType: afgoerelseTypeEnum.optional(),
   tidlKapDato: tableDateCellString,
+  fsTilbageholdtEet: jaNejEnum.default('Nej'),
 }).strict();
 
 export type AslAfgoerelseRow = z.infer<typeof aslAfgoerelseRowSchema>;

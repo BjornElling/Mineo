@@ -76,6 +76,16 @@ Støttedomæner i beregningslag:
 - afrunding/præcision
 - output-modeller
 
+## 6.1 EET løbende overlap
+
+Løbende EET bruger `computeEetLoebendeYdelser(...)` som central beregningsmotor. UI, PDF og differencekrav må ikke genskabe overlaplogik lokalt.
+
+For en afgørelse B med forgænger A gælder overlapregler kun når `fsTilbageholdtEet(A) = 'Nej'` og `virkningsDato(B) < firstOfMonthAfter(afgørelsesdato(B))`. `firstOfMonthAfter` er altid den 1. i måneden efter afgørelsesdatoens måned, også når afgørelsesdatoen selv er den 1. Hvis A har `fsTilbageholdtEet = 'Ja'`, eller hvis virkningsdatoen er på eller efter skæringsdatoen, bruges direkte afløsningsregel på B's faktiske virkningsdato.
+
+Overlapbidrag beregnes pr. delperiode som forskellen mellem B's løbende rest-EET og A's løbende rest-EET. Kapitalisering er global og datoafhængig: alle kapitaliseringer med dato på eller før delperiodens start reducerer løbende rest-EET for alle afgørelser. Delperioder splittes derfor ved både kalenderårsskift og kapitaliseringsdatoer. Perioder der beregner til 0 kr., udelades fra de beregnede ydelsesrækker, fordi tabellerne viser faktiske kravlinjer og ikke en komplet teknisk periodisering.
+
+Afgørelser sorteres fortsat efter afgørelsesdato, derefter virkningsdato, derefter sortKey. Afgørelser med samme afgørelsesdato og forskellig virkningsdato håndteres af denne eksisterende sortering; der indføres ikke en særskilt sorteringsregel.
+
 ## 7. Teststrategi (krav)
 
 Engine-tests skal kunne køres uden UI/store/persistence.

@@ -105,6 +105,8 @@ type DropdownOptionChild<TValue extends StyledDropdownValue> = React.ReactElemen
 const StyledDropdownDivider = () => null;
 StyledDropdownDivider.displayName = 'StyledDropdownDivider';
 
+const DROPDOWN_RESERVED_ICON_WIDTH = '36px';
+
 const isDividerNode = (child: React.ReactElement): boolean => {
   if (child.type === StyledDropdownDivider) return true;
   const childType = child.type as { displayName?: string };
@@ -499,10 +501,11 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     width: '100%',
     borderRadius: '10px',
     backgroundColor: 'var(--color-input-bg)',
-    paddingRight: '36px',
+    paddingRight: DROPDOWN_RESERVED_ICON_WIDTH,
     cursor: disabled || hasConfigError ? 'default' : 'pointer',
     '& input': {
       cursor: disabled || hasConfigError ? 'default' : 'pointer',
+      paddingRight: 0,
     },
     '& .MuiInputAdornment-root': {
       cursor: disabled || hasConfigError ? 'default' : 'pointer',

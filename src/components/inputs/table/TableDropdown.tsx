@@ -59,6 +59,7 @@ export type TableDropdownProps = (TableDropdownPropsAllowEmpty | TableDropdownPr
   }>;
 
 const TABLE_DROPDOWN_TEXT_PADDING_LEFT = '14px';
+const TABLE_DROPDOWN_RESERVED_ICON_WIDTH = '24px';
 
 const TableDropdown = React.memo(
   ({
@@ -473,7 +474,8 @@ const TableDropdown = React.memo(
                   paddingTop: 0,
                   paddingBottom: 0,
                   paddingLeft: TABLE_DROPDOWN_TEXT_PADDING_LEFT,
-                  paddingRight: '24px',
+                  paddingRight: TABLE_DROPDOWN_RESERVED_ICON_WIDTH,
+                  boxSizing: 'border-box',
                   userSelect: 'text',
                   WebkitUserSelect: 'text',
                 },

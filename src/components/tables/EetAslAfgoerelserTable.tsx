@@ -6,7 +6,7 @@ import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDr
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { dateRanges_erhvervsevnetab } from '../../config/dateRanges';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
-import type { AslAfgoerelseRow, AfgoerelseType } from '../../schemas/formSchemas';
+import type { AslAfgoerelseRow, AfgoerelseType, JaNej } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, subtractOneDay } from '../../types/branded';
 import {
@@ -35,6 +35,11 @@ const AFGOERELSES_TYPE_OPTIONS: readonly TableDropdownOption[] = [
   { value: 'Endelig', label: 'Endelig' },
 ];
 
+const JA_NEJ_OPTIONS: readonly TableDropdownOption[] = [
+  { value: 'Ja', label: 'Ja' },
+  { value: 'Nej', label: 'Nej' },
+];
+
 const VIRKNINGSDATO_SPECIAL_RANGE_ERRORS: DateRangeSpecialErrors = { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Virkningsdato' };
 const KAPDATO_NO_AFGOERELSESDATO_SPECIAL_RANGE_ERRORS: DateRangeSpecialErrors = { maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Kapitaliseringsdato' };
 
@@ -47,6 +52,7 @@ const TABLE_FINGERPRINT_KEYS = [
   'kapPct',
   'afgoerelseType',
   'tidlKapDato',
+  'fsTilbageholdtEet',
 ] as const satisfies ReadonlyArray<keyof AslAfgoerelseRow>;
 
 const fingerprintTableData = (rows: readonly AslAfgoerelseRow[]): string => {
@@ -161,6 +167,7 @@ const EetAslAfgoerelserTable = React.memo(
       { colId: 'kapDato', getSortValue: (row: AslAfgoerelseRow) => row.kapDato },
       { colId: 'kapPct', getSortValue: (row: AslAfgoerelseRow) => row.kapPct !== undefined ? Number.parseFloat(row.kapPct) : undefined },
       { colId: 'tidlKapDato', getSortValue: (row: AslAfgoerelseRow) => row.tidlKapDato },
+      { colId: 'fsTilbageholdtEet', getSortValue: (row: AslAfgoerelseRow) => row.fsTilbageholdtEet },
     ], []);
 
     const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
@@ -195,13 +202,14 @@ const EetAslAfgoerelserTable = React.memo(
         }}
       >
         <colgroup>
-          <col style={{ width: '160px' }} />
-          <col style={{ width: '160px' }} />
-          <col style={{ width: '100px' }} />
-          <col style={{ width: '220px' }} />
-          <col style={{ width: '160px' }} />
-          <col style={{ width: '100px' }} />
-          <col style={{ width: '160px' }} />
+          <col style={{ width: '150px' }} />
+          <col style={{ width: '150px' }} />
+          <col style={{ width: '105px' }} />
+          <col style={{ width: '180px' }} />
+          <col style={{ width: '150px' }} />
+          <col style={{ width: '105px' }} />
+          <col style={{ width: '150px' }} />
+          <col style={{ width: '140px' }} />
         </colgroup>
         <TableHead>
           <TableRow>
@@ -212,9 +220,14 @@ const EetAslAfgoerelserTable = React.memo(
             <StandardLooseHeaderCell onClick={() => handleHeaderClick('kapDato')} sortRole={getSortRole('kapDato')} sortDirection={getSortDirection('kapDato')}>Kap.dato</StandardLooseHeaderCell>
             <StandardLooseHeaderCell onClick={() => handleHeaderClick('kapPct')} sortRole={getSortRole('kapPct')} sortDirection={getSortDirection('kapPct')}>Kap. %</StandardLooseHeaderCell>
             <StandardLooseHeaderCell onClick={() => handleHeaderClick('tidlKapDato')} sortRole={getSortRole('tidlKapDato')} sortDirection={getSortDirection('tidlKapDato')}>
-              Hvis genoptaget,
+              Hvis genopt. -
               <br />
               tidl. kap.dato
+            </StandardLooseHeaderCell>
+            <StandardLooseHeaderCell onClick={() => handleHeaderClick('fsTilbageholdtEet')} sortRole={getSortRole('fsTilbageholdtEet')} sortDirection={getSortDirection('fsTilbageholdtEet')}>
+              FS tilbage-
+              <br />
+              holdt EET
             </StandardLooseHeaderCell>
           </TableRow>
         </TableHead>
@@ -337,6 +350,17 @@ const EetAslAfgoerelserTable = React.memo(
                       />
                     );
                   })()}
+                </TableCell>
+                <TableCell>
+                  <TableDropdown
+                    gridCell={{ rowId: row.id, colIndex: 7 }}
+                    value={row.fsTilbageholdtEet ?? 'Nej'}
+                    allowEmpty={false}
+                    onChange={(e) =>
+                      commitRowUpdate(row.id, { fsTilbageholdtEet: e.target.value as JaNej })
+                    }
+                    options={JA_NEJ_OPTIONS}
+                  />
                 </TableCell>
               </TableRow>
             );

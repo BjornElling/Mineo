@@ -1,7 +1,7 @@
-import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
+import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues, JaNej } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
-import { coerceToISODateString, dateToISO, minIso, parseISODate } from '../../types/branded';
+import { coerceToISODateString, createDate, dateToISO, minIso, parseISODate } from '../../types/branded';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
@@ -35,6 +35,8 @@ export type EetLoebendeAfgoerelseComputation = Readonly<{
   afgoerelsesdato: ISODateString;
   virkningsdato: ISODateString;
   kapitaliseringsdato: ISODateString | null;
+  skaeringsDato: ISODateString | null;
+  harOverlap: boolean;
   afgoerelseType: 'Midlertidig' | 'Delvist endelig' | 'Endelig';
   eetPct: number;
   priorKapPct: number;
@@ -51,6 +53,7 @@ export type EetLoebendeAfgoerelseComputation = Readonly<{
   grundydelseRest: number | null;
   grundydelse2024Fuld: number;
   grundydelse2024Rest: number | null;
+  // Visningsrækker for faktiske krav. Perioder med 0 kr. udelades bevidst og perioder er derfor ikke en komplet periodisering.
   perioder: readonly EetLoebendePeriodeRow[];
   iAltBeregnetEet: number;
 }>;
@@ -99,7 +102,32 @@ type ResolvedAfgoerelse = Readonly<{
   eetPct: number;
   kapDato: ISODateString | undefined;
   kapPct: number;
+  fsTilbageholdtEet: JaNej;
   sortKey: string;
+}>;
+
+type ResolvedAfgoerelseWithKapitalisering = ResolvedAfgoerelse & Readonly<{
+  effectiveKapDato: ISODateString | undefined;
+  effectiveKapPct: number;
+}>;
+
+type KapitaliseringEvent = Readonly<{
+  rowId: string;
+  dato: ISODateString;
+  pct: number;
+}>;
+
+type PeriodSectionRow = Readonly<{
+  fra: ISODateString;
+  til: ISODateString;
+  satsAar: number;
+  eetPct: number;
+}>;
+
+type AfgoerelseTransition = Readonly<{
+  useOverlap: boolean;
+  cutoverDate: ISODateString;
+  skaeringsDato: ISODateString | null;
 }>;
 
 const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
@@ -130,6 +158,26 @@ const isoDayAfter = (iso: ISODateString): ISODateString | undefined => {
   return dateToISO(addDays(parsed, 1));
 };
 
+export const firstOfMonthAfter = (iso: ISODateString): ISODateString => {
+  const parsed = parseISODate(iso);
+  if (!parsed) {
+    throw new Error(`Invalid ISODateString invariant in firstOfMonthAfter: ${iso}`);
+  }
+  const monthIndex = parsed.getUTCMonth();
+  const nextMonthYear = monthIndex === 11 ? parsed.getUTCFullYear() + 1 : parsed.getUTCFullYear();
+  const nextMonthIndex = monthIndex === 11 ? 0 : monthIndex + 1;
+  const nextMonthFirst = dateToISO(createDate(nextMonthYear, nextMonthIndex, 1));
+  if (!nextMonthFirst) {
+    throw new Error(`Could not construct first day of next month for ISODateString: ${iso}`);
+  }
+  return nextMonthFirst;
+};
+
+export const hasOverlapPeriod = (
+  virkningsdato: ISODateString,
+  afgoerelsesdato: ISODateString
+): boolean => virkningsdato < firstOfMonthAfter(afgoerelsesdato);
+
 const sortResolvedAfgoerelser = (rows: readonly ResolvedAfgoerelse[]): ResolvedAfgoerelse[] => {
   return [...rows].sort((a, b) => {
     if (a.afgoerelsesdato !== b.afgoerelsesdato) return a.afgoerelsesdato < b.afgoerelsesdato ? -1 : 1;
@@ -158,6 +206,7 @@ const collectResolvedAfgoerelser = (
       eetPct,
       kapDato: coerceToISODateString(row.kapDato),
       kapPct: parsePct(row.kapPct) ?? 0,
+      fsTilbageholdtEet: row.fsTilbageholdtEet ?? 'Nej',
       sortKey: row.id,
     });
   }
@@ -302,24 +351,201 @@ const buildFullSectionPeriods = (
   return result;
 };
 
-const buildRestSectionPeriods = (
+const buildCalendarYearSectionPeriods = (
   args: Readonly<{
-    fra: ISODateString;
-    til: ISODateString;
+    startdato: ISODateString;
+    slutdato: ISODateString;
   }>
 ): Array<Readonly<{ fra: ISODateString; til: ISODateString; satsAar: number }>> => {
-  if (args.fra > args.til) return [];
+  // Bruges kun til overlapperioder, som allerede ligger før skæringsdatoen.
+  // Fuld-ydelsesperioder skal fortsat bruge buildFullSectionPeriods, fordi den håndterer tilbagevirkende kraft.
+  if (args.startdato > args.slutdato) return [];
   const result: Array<Readonly<{ fra: ISODateString; til: ISODateString; satsAar: number }>> = [];
-  let cursor = args.fra;
-  while (cursor <= args.til) {
+  let cursor = args.startdato;
+
+  while (cursor <= args.slutdato) {
     const year = toYear(cursor);
-    const rowEnd = minIso(args.til, endOfYearIso(year));
+    const rowEnd = minIso(args.slutdato, endOfYearIso(year));
     result.push({ fra: cursor, til: rowEnd, satsAar: year });
-    const next = isoDayAfter(rowEnd);
-    if (!next || next > args.til) break;
-    cursor = next;
+    const after = isoDayAfter(rowEnd);
+    if (!after || after > args.slutdato) break;
+    cursor = after;
   }
+
   return result;
+};
+
+const splitPeriodByBoundaries = (
+  period: Readonly<{ fra: ISODateString; til: ISODateString; satsAar: number }>,
+  boundaries: readonly ISODateString[]
+): Array<Readonly<{ fra: ISODateString; til: ISODateString; satsAar: number }>> => {
+  const result: Array<Readonly<{ fra: ISODateString; til: ISODateString; satsAar: number }>> = [];
+  let cursor = period.fra;
+  const sortedBoundaries = [...new Set(boundaries)]
+    .filter((boundary) => boundary > period.fra && boundary <= period.til)
+    .sort();
+
+  for (const boundary of sortedBoundaries) {
+    const dayBeforeBoundary = isoDayBefore(boundary);
+    if (dayBeforeBoundary && cursor <= dayBeforeBoundary) {
+      result.push({ fra: cursor, til: dayBeforeBoundary, satsAar: period.satsAar });
+    }
+    cursor = boundary;
+  }
+
+  if (cursor <= period.til) {
+    result.push({ fra: cursor, til: period.til, satsAar: period.satsAar });
+  }
+
+  return result;
+};
+
+const assertValidPeriodSectionRows = (rows: readonly PeriodSectionRow[]): PeriodSectionRow[] => {
+  const invalidRow = rows.find((row) => row.fra > row.til);
+  if (invalidRow) {
+    throw new Error(`Invalid EET period invariant: ${invalidRow.fra} is after ${invalidRow.til}`);
+  }
+  return [...rows];
+};
+
+const activeKapitaliseringPctAt = (
+  events: readonly KapitaliseringEvent[],
+  dato: ISODateString
+): number => events.reduce((sum, event) => (event.dato <= dato ? sum + event.pct : sum), 0);
+
+const activeKapitaliseringPctAtExcluding = (
+  events: readonly KapitaliseringEvent[],
+  dato: ISODateString,
+  rowId: string
+): number => events.reduce((sum, event) => (event.dato <= dato && event.rowId !== rowId ? sum + event.pct : sum), 0);
+
+const restEetPctAt = (
+  afgoerelse: Pick<ResolvedAfgoerelse, 'eetPct'>,
+  events: readonly KapitaliseringEvent[],
+  dato: ISODateString
+): number => Math.max(0, afgoerelse.eetPct - activeKapitaliseringPctAt(events, dato));
+
+const buildKapitaliseringEvents = (
+  rows: readonly ResolvedAfgoerelse[],
+  skadedato: ISODateString,
+  fodselsdato: ISODateString
+): { resolvedRows: ResolvedAfgoerelseWithKapitalisering[]; events: KapitaliseringEvent[] } => {
+  const resolvedRows: ResolvedAfgoerelseWithKapitalisering[] = [];
+  const events: KapitaliseringEvent[] = [];
+
+  for (const row of rows) {
+    const isEndeligUnderOrEqualTwoYears =
+      row.afgoerelseType === 'Endelig' &&
+      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, row.afgoerelsesdato);
+    const effectiveKapDato = isEndeligUnderOrEqualTwoYears ? row.afgoerelsesdato : row.kapDato;
+    const activeKapPctBeforeCurrent = effectiveKapDato
+      ? activeKapitaliseringPctAt(events, effectiveKapDato)
+      : 0;
+    const effectiveKapPct = isEndeligUnderOrEqualTwoYears
+      ? Math.max(0, row.eetPct - activeKapPctBeforeCurrent)
+      : row.kapPct;
+
+    const resolvedRow: ResolvedAfgoerelseWithKapitalisering = {
+      ...row,
+      effectiveKapDato,
+      effectiveKapPct,
+    };
+    resolvedRows.push(resolvedRow);
+
+    if (effectiveKapDato && effectiveKapPct > 0) {
+      events.push({ rowId: row.rowId, dato: effectiveKapDato, pct: effectiveKapPct });
+    }
+  }
+
+  return {
+    resolvedRows,
+    events: events.sort((a, b) => {
+      if (a.dato !== b.dato) return a.dato < b.dato ? -1 : 1;
+      return a.rowId < b.rowId ? -1 : 1;
+    }),
+  };
+};
+
+const resolveAfgoerelseTransition = (
+  previous: ResolvedAfgoerelseWithKapitalisering | undefined,
+  current: ResolvedAfgoerelseWithKapitalisering
+): AfgoerelseTransition => {
+  // FS tilbageholdt EET på forgængeren er en overgangsregel: næste afgørelse afløser på sin faktiske virkningsdato.
+  if (!previous || previous.fsTilbageholdtEet === 'Ja' || !hasOverlapPeriod(current.virkningsdato, current.afgoerelsesdato)) {
+    return {
+      useOverlap: false,
+      cutoverDate: current.virkningsdato,
+      skaeringsDato: null,
+    };
+  }
+
+  const skaeringsDato = firstOfMonthAfter(current.afgoerelsesdato);
+  return {
+    useOverlap: true,
+    cutoverDate: skaeringsDato,
+    skaeringsDato,
+  };
+};
+
+const buildComputedSectionRows = (
+  args: Readonly<{
+    current: ResolvedAfgoerelseWithKapitalisering;
+    previous: ResolvedAfgoerelseWithKapitalisering | undefined;
+    finalStop: ISODateString;
+    useOverlap: boolean;
+    events: readonly KapitaliseringEvent[];
+  }>
+): PeriodSectionRow[] => {
+  const { current, previous, finalStop, useOverlap, events } = args;
+  const rows: PeriodSectionRow[] = [];
+  const skaeringsDato = firstOfMonthAfter(current.afgoerelsesdato);
+  const overlapEnd = useOverlap ? isoDayBefore(skaeringsDato) : undefined;
+  const splitBoundaries = events.map((event) => event.dato);
+
+  if (useOverlap && previous && overlapEnd) {
+    const boundedOverlapEnd = minIso(overlapEnd, finalStop);
+    const overlapBasePeriods = buildCalendarYearSectionPeriods({
+      startdato: current.virkningsdato,
+      slutdato: boundedOverlapEnd,
+    });
+
+    for (const period of overlapBasePeriods) {
+      const splitRows = splitPeriodByBoundaries(period, [
+        ...splitBoundaries,
+        previous.virkningsdato,
+      ]);
+      for (const splitRow of splitRows) {
+        const currentRest = restEetPctAt(current, events, splitRow.fra);
+        const previousRest = previous.virkningsdato <= splitRow.fra
+          ? restEetPctAt(previous, events, splitRow.fra)
+          : 0;
+        rows.push({
+          ...splitRow,
+          eetPct: Math.max(0, currentRest - previousRest),
+        });
+      }
+    }
+  }
+
+  const fullStart = useOverlap ? skaeringsDato : current.virkningsdato;
+  if (fullStart <= finalStop) {
+    const fullBasePeriods = buildFullSectionPeriods({
+      virkningsdato: fullStart,
+      afgoerelsesdato: current.afgoerelsesdato,
+      slutdato: finalStop,
+    });
+    for (const period of fullBasePeriods) {
+      const splitRows = splitPeriodByBoundaries(period, splitBoundaries);
+      for (const splitRow of splitRows) {
+        rows.push({
+          ...splitRow,
+          eetPct: restEetPctAt(current, events, splitRow.fra),
+        });
+      }
+    }
+  }
+
+  return assertValidPeriodSectionRows(rows);
 };
 
 /**
@@ -437,39 +663,39 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   const erstatningsniveauPct = from2011 ? 83 : 80;
   const amBidragPct = from2011 ? 8 : 0;
 
+  const { resolvedRows: resolvedAfgoerelserWithKapitalisering, events: kapitaliseringEvents } =
+    buildKapitaliseringEvents(resolvedAfgoerelser, skadedato, fodselsdato);
+
   const computations: EetLoebendeAfgoerelseComputation[] = [];
-  let kumulativKapPct = 0;
 
-  for (let i = 0; i < resolvedAfgoerelser.length; i += 1) {
-    const current = resolvedAfgoerelser[i];
-    const next = resolvedAfgoerelser[i + 1];
-    const priorKapPct = kumulativKapPct;
-    const isEndeligUnderOrEqualTwoYears =
-      current.afgoerelseType === 'Endelig' &&
-      isUnderOrEqualTwoYearsToFpByBekendtgoerelse(skadedato, fodselsdato, current.afgoerelsesdato);
-
-    const eetPctFoerAktuelKapRaw = current.eetPct - priorKapPct;
-    const eetPctFoerAktuelKap = eetPctFoerAktuelKapRaw > 0 ? eetPctFoerAktuelKapRaw : 0;
-    const effectiveKapPct = isEndeligUnderOrEqualTwoYears
-      ? eetPctFoerAktuelKap
-      : current.kapPct;
-    const kapPctKumulativ = priorKapPct + effectiveKapPct;
-    const restEetPctRaw = eetPctFoerAktuelKap - effectiveKapPct;
-    const restEetPct = restEetPctRaw > 0 ? restEetPctRaw : 0;
-    const effectiveKapDato = isEndeligUnderOrEqualTwoYears
-      ? current.afgoerelsesdato
-      : current.kapDato;
-    const hasKapitalisering = !!effectiveKapDato && effectiveKapPct > 0;
+  for (let i = 0; i < resolvedAfgoerelserWithKapitalisering.length; i += 1) {
+    const current = resolvedAfgoerelserWithKapitalisering[i];
+    const previous = resolvedAfgoerelserWithKapitalisering[i - 1];
+    const next = resolvedAfgoerelserWithKapitalisering[i + 1];
+    const priorKapPct = activeKapitaliseringPctAtExcluding(kapitaliseringEvents, current.virkningsdato, current.rowId);
+    const currentTransition = resolveAfgoerelseTransition(previous, current);
+    const hasKapitalisering = !!current.effectiveKapDato && current.effectiveKapPct > 0;
+    const kapPctKumulativ = current.effectiveKapDato
+      ? activeKapitaliseringPctAt(kapitaliseringEvents, current.effectiveKapDato)
+      : priorKapPct;
+    const kapPctFoerAktuelKap = current.effectiveKapDato
+      ? activeKapitaliseringPctAtExcluding(kapitaliseringEvents, current.effectiveKapDato, current.rowId)
+      : priorKapPct;
+    const eetPctFoerAktuelKap = Math.max(0, current.eetPct - kapPctFoerAktuelKap);
+    const restEetPct = hasKapitalisering && current.effectiveKapDato
+      ? restEetPctAt(current, kapitaliseringEvents, current.effectiveKapDato)
+      : restEetPctAt(current, kapitaliseringEvents, current.virkningsdato);
     const hasRestSection = hasKapitalisering && restEetPct > 0;
 
-    const dayBeforeNextVirkning = next ? isoDayBefore(next.virkningsdato) : undefined;
+    const nextTransition = next ? resolveAfgoerelseTransition(current, next) : undefined;
+    const nextStopDate = nextTransition ? isoDayBefore(nextTransition.cutoverDate) : undefined;
     const folkepensionsDagFoer = resolveFolkepensionsDagFoer(skadedato, fodselsdato, current.afgoerelsesdato);
-    const dayBeforeKapitalisering = effectiveKapDato ? isoDayBefore(effectiveKapDato) : undefined;
+    const dayBeforeKapitalisering = current.effectiveKapDato ? isoDayBefore(current.effectiveKapDato) : undefined;
 
     const finalCandidates: Array<Readonly<{ date: ISODateString; cause: EetLoebendeAfgoerelseComputation['ophoerAarsag'] }>> = [
       { date: beregningsdato, cause: 'beregningsdato' },
     ];
-    if (dayBeforeNextVirkning) finalCandidates.push({ date: dayBeforeNextVirkning, cause: 'senere-afgoerelse' });
+    if (nextStopDate) finalCandidates.push({ date: nextStopDate, cause: 'senere-afgoerelse' });
     if (folkepensionsDagFoer) finalCandidates.push({ date: folkepensionsDagFoer, cause: 'folkepensionsdato' });
     if (!hasRestSection && dayBeforeKapitalisering) {
       finalCandidates.push({ date: dayBeforeKapitalisering, cause: 'kapitalisering' });
@@ -484,26 +710,12 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
         : earliest;
     });
 
-    const fullSectionEnd = hasKapitalisering && dayBeforeKapitalisering
-      ? minIso(finalStop.date, dayBeforeKapitalisering)
-      : finalStop.date;
-
-    const fullSectionPeriods = buildFullSectionPeriods({
-      virkningsdato: current.virkningsdato,
-      afgoerelsesdato: current.afgoerelsesdato,
-      slutdato: fullSectionEnd,
-    });
-
-    const restSectionPeriods = hasRestSection && effectiveKapDato && effectiveKapDato <= finalStop.date
-      ? buildRestSectionPeriods({ fra: effectiveKapDato, til: finalStop.date })
-      : [];
-
     const fullPctFactor = eetPctFoerAktuelKap / 100;
+    const restPctFactor = restEetPct / 100;
     const grundydelseFuld = round2(grundloen * fullPctFactor * erstatningsniveau * amFaktor);
-    const grundydelseRest =
-      hasRestSection && eetPctFoerAktuelKap > 0
-        ? round2(grundydelseFuld * (restEetPct / eetPctFoerAktuelKap))
-        : null;
+    const grundydelseRest = hasRestSection
+      ? round2(grundloen * restPctFactor * erstatningsniveau * amFaktor)
+      : null;
 
     const grundydelse2024Fuld = before2024Skade
       ? round2(grundydelseFuld * (1 + reguleringFoer2024 / 100))
@@ -513,19 +725,25 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
         ? round2(grundydelseRest * (1 + reguleringFoer2024 / 100))
         : grundydelseRest;
 
-    const allPeriods = [...fullSectionPeriods, ...restSectionPeriods];
+    const allPeriods = buildComputedSectionRows({
+      current,
+      previous,
+      finalStop: finalStop.date,
+      useOverlap: currentTransition.useOverlap,
+      events: kapitaliseringEvents,
+    });
     const computedRows: EetLoebendePeriodeRow[] = [];
 
     for (const sectionRow of allPeriods) {
       const rateInfo = resolveAslReguleringRateForSatsAar(sectionRow.satsAar, before2024Skade, issues);
       if (rateInfo === null) continue;
 
-      const usingRest = hasRestSection && effectiveKapDato !== undefined && sectionRow.fra >= effectiveKapDato;
-      const grundydelseBase = usingRest ? grundydelseRest : grundydelseFuld;
-      const grundydelse2024Base = usingRest ? grundydelse2024Rest : grundydelse2024Fuld;
+      const sectionGrundydelse = round2(grundloen * (sectionRow.eetPct / 100) * erstatningsniveau * amFaktor);
+      const sectionGrundydelse2024 = before2024Skade
+        ? round2(sectionGrundydelse * (1 + reguleringFoer2024 / 100))
+        : sectionGrundydelse;
       const effektivGrundydelseBase =
-        before2024Skade && sectionRow.satsAar >= 2024 ? grundydelse2024Base : grundydelseBase;
-      if (effektivGrundydelseBase === null) continue;
+        before2024Skade && sectionRow.satsAar >= 2024 ? sectionGrundydelse2024 : sectionGrundydelse;
 
       const grundydelseAfrundet = effektivGrundydelseBase;
       const aarsydelse = ceilNearest12(effektivGrundydelseBase * rateInfo.factor);
@@ -536,6 +754,9 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
         oevrigeFravaersdage: 0,
       });
       if (maanederPraecis === null) continue;
+      const beregnetEet = round0(maanederPraecis * maanedligYdelse);
+      // Tabellerne på siden og i PDF'en viser kun perioder med et faktisk krav.
+      if (beregnetEet === 0) continue;
 
       computedRows.push({
         fra: sectionRow.fra,
@@ -545,7 +766,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
         grundydelseAfrundet,
         reguleringPct: rateInfo.reguleringPct,
         maanedligYdelse,
-        beregnetEet: round0(maanederPraecis * maanedligYdelse),
+        beregnetEet,
       });
     }
 
@@ -555,12 +776,14 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
       rowId: current.rowId,
       afgoerelsesdato: current.afgoerelsesdato,
       virkningsdato: current.virkningsdato,
-      kapitaliseringsdato: hasKapitalisering && effectiveKapDato ? effectiveKapDato : null,
+      kapitaliseringsdato: hasKapitalisering && current.effectiveKapDato ? current.effectiveKapDato : null,
+      skaeringsDato: currentTransition.skaeringsDato,
+      harOverlap: currentTransition.useOverlap,
       afgoerelseType: current.afgoerelseType,
       eetPct: current.eetPct,
       priorKapPct,
       eetPctFoerAktuelKap,
-      kapPctAktuel: effectiveKapPct,
+      kapPctAktuel: current.effectiveKapPct,
       kapPctKumulativ,
       restEetPct,
       harKapitalisering: hasKapitalisering,
@@ -575,8 +798,6 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
       perioder: computedRows,
       iAltBeregnetEet,
     });
-
-    kumulativKapPct = kapPctKumulativ;
   }
 
   if (issues.some((issue) => issue.severity === 'error')) {

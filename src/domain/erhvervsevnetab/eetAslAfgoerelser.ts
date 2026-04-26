@@ -23,6 +23,7 @@ export const createEmptyAslAfgoerelseRow = (): AslAfgoerelseRow => ({
   kapPct: undefined,
   afgoerelseType: undefined,
   tidlKapDato: undefined,
+  fsTilbageholdtEet: 'Nej',
 });
 
 export const isAslAfgoerelseRowEmpty = (row: AslAfgoerelseRow): boolean =>

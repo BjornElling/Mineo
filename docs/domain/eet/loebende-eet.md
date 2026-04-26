@@ -82,7 +82,37 @@ grundydelse_rest    = round2(grundydelse_fuld × (rest_eet_pct / eet_pct_før_ak
 
 En ny afgørelses EET-procent erstatter altid den forrige i sin helhed — procenter lægges ikke oven på hinanden. Kapitaliseringsprocenter fra tidligere afgørelser fratrækkes dog kumulativt, fordi de procentpoint allerede er udbetalt som engangsbeløb.
 
-To afgørelser må godt have samme afgørelsesdato og forskellig virkningsdato. I så fald anvendes afgørelsen med den tidligste virkningsdato indtil dagen før den senere virkningsdato. Fra den senere virkningsdato erstatter den senere afgørelse den tidligere.
+Afgørelser sorteres efter afgørelsesdato, derefter virkningsdato og derefter række-id. En afgørelses referenceafgørelse er den umiddelbart foregående afgørelse i denne sortering.
+
+#### Overlap mellem afgørelser
+
+For en afgørelse B med forgænger A er den normale skæringsdato:
+```
+skæringsdato(B) = første dag i måneden efter afgørelsesdato(B)
+```
+
+Hvis B's virkningsdato ligger før skæringsdatoen, og A ikke har `FS tilbageholdt EET = Ja`, opstår der en overlapsperiode:
+```
+overlapsperiode(B) = virkningsdato(B) til og med dagen før skæringsdato(B)
+```
+
+I overlapsperioden fortsætter A med sin løbende rest-EET. B bidrager kun med den positive difference mellem B's løbende rest-EET og A's løbende rest-EET:
+```
+overlap_eet_pct = max(0, rest_eet_pct(B) − rest_eet_pct(A))
+```
+
+Hvis differencen giver 0 kr. for en delperiode, vises delperioden ikke i tabellen eller PDF'en. De viste periode-rækker er derfor kravlinjer for faktiske beløb, ikke en komplet teknisk periodisering.
+
+Fra skæringsdatoen yder B sin fulde løbende rest-EET, og A er ophørt.
+
+#### FS tilbageholdt EET
+
+`FS tilbageholdt EET` er et overgangsfelt på afgørelsen, der senere afløses. Når A har `FS tilbageholdt EET = Ja`, bruges den gamle afløsningsregel for overgangen til B:
+- Der dannes ingen overlapsperiode.
+- A beregnes til og med dagen før B's faktiske virkningsdato.
+- B beregnes fra sin faktiske virkningsdato.
+
+Reglen gælder uanset om EET-procenten stiger, falder eller er uændret. Feltet på den sidste afgørelse har ingen beregningsmæssig effekt, fordi afgørelsen ikke afløses af en senere afgørelse.
 
 #### Trin 3 — Årsydelse for et givet beregningsår
 
@@ -127,9 +157,14 @@ Satsen for den første periode i en afgørelses fuld-sektion bestemmes af:
 
 **Ophørsdato** er den tidligste af:
 1. Beregningsdatoen
-2. Dagen før næste afgørelses virkningsdato
+2. Dagen før næste afgørelses afløsningsdato
 3. Dagen før kapitaliseringsdatoen (kun når afgørelsen faktisk kapitaliseres)
 4. Dagen før folkepensionsdatoen
+
+Næste afgørelses afløsningsdato er:
+- næste afgørelses faktiske virkningsdato, hvis den nuværende afgørelse har `FS tilbageholdt EET = Ja`
+- næste afgørelses skæringsdato, hvis overlapreglen bruges
+- næste afgørelses faktiske virkningsdato, hvis der ikke er overlap
 
 **Særreglen ved ≤ 2 år til folkepension gælder kun for `Endelig`:**
 - Hvis en endelig afgørelse træffes mere end 2 år før folkepensionsalderen, sker der ingen tvungen kapitalisering. Løbende ydelser fortsætter til og med dagen før folkepensionsdatoen.
@@ -141,7 +176,9 @@ Satsen for den første periode i en afgørelses fuld-sektion bestemmes af:
 
 **Rest-sektionen** (ved delvis kapitalisering med rest-EET > 0):
 
-Starter på kapitaliseringsdatoen og løber til den tidligste af beregningsdatoen, dagen før næste afgørelses virkningsdato og dagen før folkepensionsdatoen.
+Starter på kapitaliseringsdatoen og løber til den tidligste af beregningsdatoen, dagen før næste afgørelses afløsningsdato og dagen før folkepensionsdatoen.
+
+Kapitalisering er global og datoafhængig: alle kapitaliseringer med dato på eller før en delperiodes startdato reducerer løbende rest-EET for alle afgørelser. Det gælder både fuld-ydelsesperioder og overlapsperioder.
 
 #### Trin 5 — Beregnet EET per periode-række
 
@@ -176,8 +213,11 @@ I alt per afgørelse: summen af alle rækker (fuld + rest sektion). Der er ingen
 | Funktion | Beskrivelse |
 |---|---|
 | `collectResolvedAfgoerelser()` | Filtrerer og sorterer afgørelser |
-| `buildFullSectionPeriods()` | Bygger perioder for fuld-sektionen |
-| `buildRestSectionPeriods()` | Bygger perioder for rest-sektionen |
+| `resolveAfgoerelseTransition()` | Afgør om overgangen bruger overlap-skæringsdato eller faktisk virkningsdato |
+| `buildComputedSectionRows()` | Bygger kravlinjer for overlap og fuld løbende ydelse |
+| `buildFullSectionPeriods()` | Bygger fuld-ydelsesperioder inkl. satsår ved tilbagevirkende kraft |
+| `buildCalendarYearSectionPeriods()` | Bygger kalenderårssplit til overlapperioder |
+| `buildKapitaliseringEvents()` | Opløser globale kapitaliseringer og deres datoer |
 | `resolveFolkepensionsDagFoer()` | Beregner dagen før folkepensionsdatoen som ophørskandidat |
 
 ### Implementeringsstatus

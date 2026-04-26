@@ -106,6 +106,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 4. Siden må ikke læse andre fagsiders domæne-sektioner.
 5. `computeEetSnapshot(...)` er den autoritative beregnings-entry for tab- og PDF-projektioner i Erhvervsevnetab-domænet.
 6. Tab-komponenter og PDF-flow må ikke lave parallelle EET-beregninger uden om snapshot-projektionen.
+7. ASL-afgørelsesrækken indeholder `fsTilbageholdtEet` (`Ja`/`Nej`). Feltet er beregningsmæssigt knyttet til den afgørelse, der senere afløses. Når feltet er `Ja`, skal overgangen til den næste afgørelse bruge den næste afgørelses faktiske virkningsdato som afløsningsdato i stedet for den nye overlap-skæringsdato. Feltet på den sidste afgørelse har aldrig beregningsmæssig effekt, fordi den ikke afløses af en efterfølger. Der må ikke bygges parallel validering eller beregning af dette felt uden om den centrale EET-beregning.
 
 ### 6.2 Forsørgertab
 
