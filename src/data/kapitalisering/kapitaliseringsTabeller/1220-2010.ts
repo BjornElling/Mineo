@@ -1,20 +1,5 @@
 import { toISODateString } from '../../../types/branded';
-
-export interface AldersFaktorRaekke {
-  alder: number;
-  faktor: number;
-}
-
-export interface AldersKoensopdeltFaktorRaekke {
-  alder: number;
-  maendFaktor: number;
-  kvinderFaktor: number;
-}
-
-export interface ForsoergertabMatrixRaekke {
-  alder: number;
-  faktorerPraHeleAar: readonly number[];
-}
+import type { AldersFaktorRaekke, AldersKoensopdeltFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
 
 export const kapitaliseringsId = '1220/2010' as const;
 export const kapitaliseringsType = 'bkg' as const;
@@ -31,20 +16,18 @@ export const gyldigTil = toISODateString('2011-12-31');
 // og bevares 1:1 efter kilden.
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadedatoFra     foedselsdatoFra     foedselsdatoTil     ophoersalderAarLabel     tabel
-  ['2011-01-01',     '1960-07-01',     null,     '67',     'A'],
-  ['2011-01-01',     '1960-01-01',     '1960-06-30',     '66.5',     'B'],
-  ['2011-01-01',     '1959-07-01',     '1959-12-31',     '66',     'C'],
-  ['2011-01-01',     '1959-01-01',     '1959-06-30',     '65.5',     'D'],
+  // skadedatoFra     foedselsdatoFra     foedselsdatoTil     tabel
+  ['2011-01-01',     '1960-07-01',     null,     'A'],
+  ['2011-01-01',     '1960-01-01',     '1960-06-30',     'B'],
+  ['2011-01-01',     '1959-07-01',     '1959-12-31',     'C'],
+  ['2011-01-01',     '1959-01-01',     '1959-06-30',     'D'],
 ] as const;
 
 export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadedatoFra, foedselsdatoFra, foedselsdatoTil, ophoersalderAarLabel, tabel]) => ({
+  ([skadedatoFra, foedselsdatoFra, foedselsdatoTil, tabel]) => ({
     skadedatoFra: toISODateString(skadedatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
     foedselsdatoTil: foedselsdatoTil ? toISODateString(foedselsdatoTil) : null,
-    folkepensionsalderAar: null,
-    ophoersalderAarLabel,
     tabel,
   })
 );

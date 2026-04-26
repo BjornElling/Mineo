@@ -1,20 +1,5 @@
 import { toISODateString } from '../../../types/branded';
-
-export interface AldersFaktorRaekke {
-  alder: number;
-  faktor: number;
-}
-
-export interface AldersKoensopdeltFaktorRaekke {
-  alder: number;
-  maendFaktor: number;
-  kvinderFaktor: number;
-}
-
-export interface ForsoergertabMatrixRaekke {
-  alder: number;
-  faktorerPraHeleAar: readonly number[];
-}
+import type { AldersFaktorRaekke, AldersKoensopdeltFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
 
 export const kapitaliseringsId = '9871/2020' as const;
 export const kapitaliseringsType = 'vejl' as const;
@@ -29,20 +14,19 @@ export const gyldigTil = toISODateString('2024-12-31');
 // Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadedatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
-  ['2007-07-01',     '1967-01-01',     69,     'A'],
-  ['2007-07-01',     '1963-01-01',     68,     'B'],
-  ['2007-07-01',     '1955-07-01',     67,     'C'],
-  ['2004-01-01',     '1967-01-01',     69,     'E'],
-  ['2004-01-01',     '1963-01-01',     68,     'F'],
-  ['2004-01-01',     '1955-07-01',     67,     'G'],
+  // skadedatoFra     foedselsdatoFra     tabel
+  ['2007-07-01',     '1967-01-01',     'A'],
+  ['2007-07-01',     '1963-01-01',     'B'],
+  ['2007-07-01',     '1955-07-01',     'C'],
+  ['2004-01-01',     '1967-01-01',     'E'],
+  ['2004-01-01',     '1963-01-01',     'F'],
+  ['2004-01-01',     '1955-07-01',     'G'],
 ] as const;
 
 export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadedatoFra, foedselsdatoFra, folkepensionsalderAar, tabel]) => ({
+  ([skadedatoFra, foedselsdatoFra, tabel]) => ({
     skadedatoFra: toISODateString(skadedatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
-    folkepensionsalderAar,
     tabel,
   })
 );

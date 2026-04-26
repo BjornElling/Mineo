@@ -1,15 +1,6 @@
 import type { ISODateString } from '../../../types/branded';
 import { toISODateString } from '../../../types/branded';
-
-export interface AldersFaktorRaekke {
-  alder: number;
-  faktor: number;
-}
-
-export interface ForsoergertabMatrixRaekke {
-  alder: number;
-  faktorerPraHeleAar: readonly number[];
-}
+import type { AldersFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
 
 export const kapitaliseringsId = '10056/2025' as const;
 export const kapitaliseringsType = 'vejl' as const;
@@ -24,30 +15,29 @@ export const gyldigTil = toISODateString('2026-12-31');
 // Tabeller for behandlingsudgifter (Å) og varigt mén (AA) er bevidst udeladt.
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadedatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
-  ['2021-01-01',     '1971-01-01',     70,     'A'],
-  ['2021-01-01',     '1967-01-01',     69,     'B'],
-  ['2021-01-01',     '1963-01-01',     68,     'C'],
-  ['2021-01-01',     '1955-07-01',     67,     'D'],
-  ['2011-01-01',     '1971-01-01',     70,     'F'],
-  ['2011-01-01',     '1967-01-01',     69,     'G'],
-  ['2011-01-01',     '1963-01-01',     68,     'H'],
-  ['2011-01-01',     '1955-07-01',     67,     'I'],
-  ['2007-07-01',     '1971-01-01',     70,     'K'],
-  ['2007-07-01',     '1967-01-01',     69,     'L'],
-  ['2007-07-01',     '1963-01-01',     68,     'M'],
-  ['2007-07-01',     '1955-07-01',     67,     'N'],
-  ['2004-01-01',     '1971-01-01',     70,     'P'],
-  ['2004-01-01',     '1967-01-01',     69,     'Q'],
-  ['2004-01-01',     '1963-01-01',     68,     'R'],
-  ['2004-01-01',     '1955-07-01',     67,     'S'],
+  // skadedatoFra     foedselsdatoFra     tabel
+  ['2021-01-01',     '1971-01-01',     'A'],
+  ['2021-01-01',     '1967-01-01',     'B'],
+  ['2021-01-01',     '1963-01-01',     'C'],
+  ['2021-01-01',     '1955-07-01',     'D'],
+  ['2011-01-01',     '1971-01-01',     'F'],
+  ['2011-01-01',     '1967-01-01',     'G'],
+  ['2011-01-01',     '1963-01-01',     'H'],
+  ['2011-01-01',     '1955-07-01',     'I'],
+  ['2007-07-01',     '1971-01-01',     'K'],
+  ['2007-07-01',     '1967-01-01',     'L'],
+  ['2007-07-01',     '1963-01-01',     'M'],
+  ['2007-07-01',     '1955-07-01',     'N'],
+  ['2004-01-01',     '1971-01-01',     'P'],
+  ['2004-01-01',     '1967-01-01',     'Q'],
+  ['2004-01-01',     '1963-01-01',     'R'],
+  ['2004-01-01',     '1955-07-01',     'S'],
 ] as const;
 
 export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadedatoFra, foedselsdatoFra, folkepensionsalderAar, tabel]) => ({
+  ([skadedatoFra, foedselsdatoFra, tabel]) => ({
     skadedatoFra: toISODateString(skadedatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
-    folkepensionsalderAar,
     tabel,
   })
 );

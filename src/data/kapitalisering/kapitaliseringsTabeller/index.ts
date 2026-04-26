@@ -49,8 +49,6 @@ export type ErhvervsevnetabTabelvalg = Readonly<{
   skadedatoFra: ISODateString;
   foedselsdatoFra: ISODateString;
   foedselsdatoTil: ISODateString | null;
-  folkepensionsalderAar: number | null;
-  ophoersalderAarLabel: string;
   tabel: string;
 }>;
 
@@ -64,8 +62,6 @@ type InputErhvervsevnetabTabelvalg = Readonly<{
   foedselsdatoFra: ISODateString;
   tabel: string;
   foedselsdatoTil?: ISODateString | null;
-  folkepensionsalderAar?: number | null;
-  ophoersalderAarLabel?: string;
 }>;
 
 export type SaerfaktorPerSkadesinterval = Readonly<{
@@ -111,9 +107,6 @@ const normalizeErhvervsevnetabTabelvalg = (
     skadedatoFra: entry.skadedatoFra,
     foedselsdatoFra: entry.foedselsdatoFra,
     foedselsdatoTil: entry.foedselsdatoTil ?? null,
-    folkepensionsalderAar: entry.folkepensionsalderAar ?? null,
-    ophoersalderAarLabel:
-      entry.ophoersalderAarLabel ?? `${entry.folkepensionsalderAar ?? ''}`,
     tabel: entry.tabel,
   }));
 

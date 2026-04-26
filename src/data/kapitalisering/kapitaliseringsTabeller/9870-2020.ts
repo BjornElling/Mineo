@@ -1,20 +1,5 @@
 import { toISODateString } from '../../../types/branded';
-
-export interface AldersFaktorRaekke {
-  alder: number;
-  faktor: number;
-}
-
-export interface AldersKoensopdeltFaktorRaekke {
-  alder: number;
-  maendFaktor: number;
-  kvinderFaktor: number;
-}
-
-export interface ForsoergertabMatrixRaekke {
-  alder: number;
-  faktorerPraHeleAar: readonly number[];
-}
+import type { AldersFaktorRaekke, AldersKoensopdeltFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
 
 export const kapitaliseringsId = '9870/2020' as const;
 export const kapitaliseringsType = 'vejl' as const;
@@ -33,17 +18,16 @@ export const gyldigTil = toISODateString('2020-12-31');
 // eller særfaktor ved ≤2 år til folkepension. Disse felter udfyldes derfor ikke.
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadedatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
-  ['2011-01-01',     '1967-01-01',     69,     'A'],
-  ['2011-01-01',     '1963-01-01',     68,     'B'],
-  ['2011-01-01',     '1955-07-01',     67,     'C'],
+  // skadedatoFra     foedselsdatoFra     tabel
+  ['2011-01-01',     '1967-01-01',     'A'],
+  ['2011-01-01',     '1963-01-01',     'B'],
+  ['2011-01-01',     '1955-07-01',     'C'],
 ] as const;
 
 export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadedatoFra, foedselsdatoFra, folkepensionsalderAar, tabel]) => ({
+  ([skadedatoFra, foedselsdatoFra, tabel]) => ({
     skadedatoFra: toISODateString(skadedatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
-    folkepensionsalderAar,
     tabel,
   })
 );

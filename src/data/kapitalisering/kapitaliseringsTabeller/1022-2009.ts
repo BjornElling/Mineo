@@ -1,20 +1,5 @@
 import { toISODateString } from '../../../types/branded';
-
-export interface AldersFaktorRaekke {
-  alder: number;
-  faktor: number;
-}
-
-export interface AldersKoensopdeltFaktorRaekke {
-  alder: number;
-  maendFaktor: number;
-  kvinderFaktor: number;
-}
-
-export interface ForsoergertabMatrixRaekke {
-  alder: number;
-  faktorerPraHeleAar: readonly number[];
-}
+import type { AldersFaktorRaekke, AldersKoensopdeltFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
 
 export const kapitaliseringsId = '1022/2009' as const;
 export const kapitaliseringsType = 'bkg' as const;
@@ -29,21 +14,19 @@ export const gyldigTil = toISODateString('2010-12-31');
 // Tabeller for varigt mén og behandlingsudgifter er bevidst udeladt.
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadedatoFra     foedselsdatoFra     foedselsdatoTil     ophoersalderAarLabel     tabel
-  ['2007-07-01',     '1960-07-01',     null,     '67',     'A'],
-  ['2007-07-01',     '1960-01-01',     '1960-06-30',     '66.5',     'B'],
-  ['2007-07-01',     '1959-07-01',     '1959-12-31',     '66',     'C'],
-  ['2007-07-01',     '1959-01-01',     '1959-06-30',     '65.5',     'D'],
-  ['2007-07-01',     '1900-01-01',     '1958-12-31',     '65',     'E'],
+  // skadedatoFra     foedselsdatoFra     foedselsdatoTil     tabel
+  ['2007-07-01',     '1960-07-01',     null,     'A'],
+  ['2007-07-01',     '1960-01-01',     '1960-06-30',     'B'],
+  ['2007-07-01',     '1959-07-01',     '1959-12-31',     'C'],
+  ['2007-07-01',     '1959-01-01',     '1959-06-30',     'D'],
+  ['2007-07-01',     '1900-01-01',     '1958-12-31',     'E'],
 ] as const;
 
 export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadedatoFra, foedselsdatoFra, foedselsdatoTil, ophoersalderAarLabel, tabel]) => ({
+  ([skadedatoFra, foedselsdatoFra, foedselsdatoTil, tabel]) => ({
     skadedatoFra: toISODateString(skadedatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
     foedselsdatoTil: foedselsdatoTil ? toISODateString(foedselsdatoTil) : null,
-    folkepensionsalderAar: null,
-    ophoersalderAarLabel,
     tabel,
   })
 );
