@@ -2,6 +2,7 @@ import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues, JaNej } from '../
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, createDate, dateToISO, minIso, parseISODate } from '../../types/branded';
+import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
@@ -10,14 +11,14 @@ import {
 } from '../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
-import { addDays, addMonths } from '../../utils/dateUtils';
+import { addDays } from '../../utils/dateUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { ceilNearest12, round0, round2, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import { optaelMaanederPraecis } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { ASL_IDENTICAL_AFGOERELSER_ID, collectIncompleteRowIssues, hasIdenticalAfgoerelser, hasTextValue, isAslAfgoerelseRowEmpty, parsePercentDraft } from './eetAslAfgoerelser';
-import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse, resolveKapitaliseringTabelvalgForControlDate } from './eetKapitaliseringOpslag';
+import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
 
 export type EetLoebendePeriodeRow = Readonly<{
   fra: ISODateString;
@@ -550,21 +551,13 @@ const buildComputedSectionRows = (
 
 /**
  * Beregner dagen før folkepensionsdatoen for én afgørelse.
- * Returnerer undefined hvis tabelvalget ikke kan slås op.
+ * Returnerer undefined hvis folkepensionsalderen ikke kan slås op centralt.
  */
 const resolveFolkepensionsDagFoer = (
-  skadedato: ISODateString,
   fodselsdato: ISODateString,
   controlDate: ISODateString
 ): ISODateString | undefined => {
-  const tabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadedato, fodselsdato, controlDate);
-  if (!tabelvalg) return undefined;
-  const parsedBirth = parseISODate(fodselsdato);
-  if (!parsedBirth) return undefined;
-  const folkepensionsdato = addMonths(parsedBirth, tabelvalg.folkepensionsalderMaaneder);
-  const folkepensionsdatoIso = dateToISO(folkepensionsdato);
-  if (!folkepensionsdatoIso) return undefined;
-  return isoDayBefore(folkepensionsdatoIso);
+  return getDagenFoerFolkepensionsdato(fodselsdato, controlDate);
 };
 
 const OPHOER_AARSAG_PRIORITY: Readonly<Record<EetLoebendeAfgoerelseComputation['ophoerAarsag'], number>> = {
@@ -689,7 +682,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
 
     const nextTransition = next ? resolveAfgoerelseTransition(current, next) : undefined;
     const nextStopDate = nextTransition ? isoDayBefore(nextTransition.cutoverDate) : undefined;
-    const folkepensionsDagFoer = resolveFolkepensionsDagFoer(skadedato, fodselsdato, current.afgoerelsesdato);
+    const folkepensionsDagFoer = resolveFolkepensionsDagFoer(fodselsdato, current.afgoerelsesdato);
     const dayBeforeKapitalisering = current.effectiveKapDato ? isoDayBefore(current.effectiveKapDato) : undefined;
 
     const finalCandidates: Array<Readonly<{ date: ISODateString; cause: EetLoebendeAfgoerelseComputation['ophoerAarsag'] }>> = [

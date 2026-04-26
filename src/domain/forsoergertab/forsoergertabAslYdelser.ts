@@ -319,9 +319,14 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  const fpTabelvalg = resolveKapitaliseringTabelvalg(tabeldata, input.skadedato, input.efterladteFodselsdato);
+  const fpTabelvalg = resolveKapitaliseringTabelvalg(
+    tabeldata,
+    input.skadedato,
+    input.efterladteFodselsdato,
+    input.beregningsdato
+  );
   if (!fpTabelvalg) {
-    issues.push(toIssue('folkepensionsalder-unresolved', 'Folkepensionsalder kan ikke fastlægges fra kapitaliseringsbekendtgørelsen.'));
+    issues.push(toIssue('folkepensionsalder-unresolved', 'Folkepensionsalder kan ikke fastlægges fra de centrale satser.'));
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
@@ -401,7 +406,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     kapitaliseringsTabel,
     kapitaliseringsTabelKoensopdelt: usesKoen,
     alderHeleAar: alder.years,
-    folkepensionsalderAarLabel: fpTabelvalg.folkepensionsalderLabel,
+    folkepensionsalderLabel: fpTabelvalg.folkepensionsalderLabel,
     folkepensionsalderMaaneder: fpTabelvalg.folkepensionsalderMaaneder,
     harNaaetFolkepensionsalder,
     kapitalfaktor,

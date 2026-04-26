@@ -282,7 +282,7 @@ const addAslSection = (writer: PdfWriter, asl: ForsoergertabAslComputation): voi
     );
 
     if (asl.harNaaetFolkepensionsalder) {
-      writer.writeLeftRightText('Folkepensionsalder', asl.folkepensionsalderAarLabel, {
+      writer.writeLeftRightText('Folkepensionsalder', asl.folkepensionsalderLabel, {
         rightFontStyle: 'normal',
       });
       writer.writeLeftRightText(

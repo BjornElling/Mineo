@@ -551,7 +551,7 @@ const Forsoergertab = React.memo(() => {
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Folkepensionsalder</Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{aslComputation.folkepensionsalderAarLabel}</Typography>
+                      <Typography className="row--text">{aslComputation.folkepensionsalderLabel}</Typography>
                     </Box>
                   </Box>
 

@@ -418,7 +418,7 @@ export const computeEetKapitaliseringCalculation = (
       continue;
     }
 
-    const controlTabelvalg = resolveKapitaliseringTabelvalg(controlData, skadedato, fodselsdato);
+    const controlTabelvalg = resolveKapitaliseringTabelvalg(controlData, skadedato, fodselsdato, controlDate);
     if (!controlTabelvalg) {
       issues.push(
         toIssue(
@@ -483,7 +483,7 @@ export const computeEetKapitaliseringCalculation = (
         continue;
       }
       resolvedTabelData = effectiveData;
-      const effectiveTabelvalg = resolveKapitaliseringTabelvalg(effectiveData, skadedato, fodselsdato);
+      const effectiveTabelvalg = resolveKapitaliseringTabelvalg(effectiveData, skadedato, fodselsdato, effectiveKapDato);
       if (!effectiveTabelvalg) {
         issues.push(
           toIssue(

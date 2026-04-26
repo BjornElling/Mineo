@@ -5,11 +5,11 @@ import {
   type ErhvervsevnetabTabelvalg,
   type KapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
+import { getFolkepensionAlder } from '../../data/folkepensionAlderRates';
 import type { ISODateString } from '../../types/branded';
 import { dateToISO, parseISODate } from '../../types/branded';
 import { addDays } from '../../utils/dateUtils';
 import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
-import { roundByMethod } from '../../utils/rounding';
 
 export type AgeYearsMonths = Readonly<{
   years: number;
@@ -24,9 +24,9 @@ export type ResolvedKapitaliseringTabelvalg = Readonly<{
   usesKoen: boolean;
 }>;
 
-type DerivedFoerMinimumFp = Readonly<{
-  folkepensionsalderMaaneder: number;
-  folkepensionsalderLabel: string;
+type ResolvedErhvervsevnetabTabel = Readonly<{
+  tabel: string;
+  usesKoen: boolean;
 }>;
 
 export const resolveKapitaliseringsbekendtgoerelseId = (
@@ -60,47 +60,22 @@ export const resolveKapitaliseringsbekendtgoerelseId = (
   const nextDate = nextEntry ? parseISODate(nextEntry.kapitaliseringsdatoFra) : null;
   const gyldigTil = nextDate
     ? dateToISO(addDays(nextDate, -1))
+    // Antagelse: alle kapitaliseringer for samme skadesinterval udstedes inden for ét kalenderår.
+    // Brydes antagelsen (to bekendtgørelser i samme interval over et årsskifte), vil fallback give forkert gyldigTil.
     : (`${kandidat.kapitaliseringsdatoFra.slice(0, 4)}-12-31` as ISODateString);
   if (!gyldigTil) return null;
   return dato <= gyldigTil ? kandidat.id : null;
-};
-
-const parseAgeLabelToMonths = (label: string): number | null => {
-  const trimmed = label.trim().replace(',', '.');
-  const parsed = Number.parseFloat(trimmed);
-  if (!Number.isFinite(parsed)) return null;
-  const months = roundByMethod(parsed * 12, 0, 'halfAwayFromZero');
-  return months >= 0 ? months : null;
-};
-
-const deriveFoerMinimumFoedselsdatoFp = (
-  fodselsdato: ISODateString
-): DerivedFoerMinimumFp | null => {
-  if (fodselsdato >= ('1955-01-01' as ISODateString) && fodselsdato < ('1955-07-01' as ISODateString)) {
-    return { folkepensionsalderMaaneder: 798, folkepensionsalderLabel: '66,5 år' };
-  }
-  if (fodselsdato >= ('1954-07-01' as ISODateString) && fodselsdato < ('1955-01-01' as ISODateString)) {
-    return { folkepensionsalderMaaneder: 792, folkepensionsalderLabel: '66 år' };
-  }
-  if (fodselsdato >= ('1954-01-01' as ISODateString) && fodselsdato < ('1954-07-01' as ISODateString)) {
-    return { folkepensionsalderMaaneder: 786, folkepensionsalderLabel: '65,5 år' };
-  }
-  if (fodselsdato < ('1954-01-01' as ISODateString)) {
-    return { folkepensionsalderMaaneder: 780, folkepensionsalderLabel: '65 år' };
-  }
-  return null;
 };
 
 const resolveModernFoerMinimumFoedselsdatoTabelvalg = (
   tabeldata: KapitaliseringsTabelData,
   skadedato: ISODateString,
   fodselsdato: ISODateString
-): ResolvedKapitaliseringTabelvalg | null => {
+): ResolvedErhvervsevnetabTabel | null => {
   const relevanteEntries = tabeldata.erhvervsevnetabTabelvalg.filter(
     (entry) =>
       entry.skadedatoFra <= skadedato &&
-      entry.foedselsdatoTil === null &&
-      entry.folkepensionsalderAar !== null
+      entry.foedselsdatoTil === null
   );
   if (relevanteEntries.length === 0) return null;
 
@@ -118,14 +93,9 @@ const resolveModernFoerMinimumFoedselsdatoTabelvalg = (
 
   if (fodselsdato >= earliestEntry.foedselsdatoFra) return null;
 
-  const derivedFp = deriveFoerMinimumFoedselsdatoFp(fodselsdato);
-  if (!derivedFp) return null;
-
   return {
     tabel: earliestEntry.tabel,
-    folkepensionsalderMaaneder: derivedFp.folkepensionsalderMaaneder,
-    folkepensionsalderLabel: derivedFp.folkepensionsalderLabel,
-    usesKoen: false,
+    usesKoen: Object.keys(tabeldata.erhvervsevnetabKoensopdelteTabeller).length > 0,
   };
 };
 
@@ -158,7 +128,7 @@ const resolveErhvervsevnetabTabelvalg = (
   tabeldata: KapitaliseringsTabelData,
   skadedato: ISODateString,
   fodselsdato: ISODateString
-): ResolvedKapitaliseringTabelvalg | null => {
+): ResolvedErhvervsevnetabTabel | null => {
   const kandidat = tabeldata.erhvervsevnetabTabelvalg
     .filter((entry) => {
       if (entry.skadedatoFra > skadedato) return false;
@@ -178,18 +148,8 @@ const resolveErhvervsevnetabTabelvalg = (
     return resolveModernFoerMinimumFoedselsdatoTabelvalg(tabeldata, skadedato, fodselsdato);
   }
 
-  const fpLabel =
-    kandidat.folkepensionsalderAar !== null ? `${kandidat.folkepensionsalderAar}` : kandidat.ophoersalderAarLabel;
-  const fpMonths =
-    kandidat.folkepensionsalderAar !== null
-      ? kandidat.folkepensionsalderAar * 12
-      : parseAgeLabelToMonths(kandidat.ophoersalderAarLabel);
-  if (fpMonths === null) return null;
-
   return {
     tabel: kandidat.tabel,
-    folkepensionsalderMaaneder: fpMonths,
-    folkepensionsalderLabel: `${fpLabel.replace('.', ',')} år`,
     usesKoen: Object.keys(tabeldata.erhvervsevnetabKoensopdelteTabeller).length > 0,
   };
 };
@@ -197,9 +157,18 @@ const resolveErhvervsevnetabTabelvalg = (
 export const resolveKapitaliseringTabelvalg = (
   tabeldata: KapitaliseringsTabelData,
   skadedato: ISODateString,
-  fodselsdato: ISODateString
+  fodselsdato: ISODateString,
+  opslagsdato: ISODateString
 ): ResolvedKapitaliseringTabelvalg | null => {
-  return resolveErhvervsevnetabTabelvalg(tabeldata, skadedato, fodselsdato);
+  const tabelvalg = resolveErhvervsevnetabTabelvalg(tabeldata, skadedato, fodselsdato);
+  if (!tabelvalg) return null;
+  const folkepensionAlder = getFolkepensionAlder(fodselsdato, opslagsdato);
+  if (!folkepensionAlder) return null;
+  return {
+    ...tabelvalg,
+    folkepensionsalderMaaneder: folkepensionAlder.alderMaaneder,
+    folkepensionsalderLabel: folkepensionAlder.alderLabel,
+  };
 };
 
 export const resolveKapitaliseringTabelvalgForControlDate = (
@@ -215,7 +184,7 @@ export const resolveKapitaliseringTabelvalgForControlDate = (
   const controlData = getKapitaliseringsTabelData(controlBekId);
   if (!controlData) return null;
 
-  return resolveKapitaliseringTabelvalg(controlData, skadedato, fodselsdato);
+  return resolveKapitaliseringTabelvalg(controlData, skadedato, fodselsdato, controlDate);
 };
 
 export type ResolveFactorTableResult = Readonly<{

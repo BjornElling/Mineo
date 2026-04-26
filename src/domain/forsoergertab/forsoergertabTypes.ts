@@ -42,7 +42,7 @@ export type ForsoergertabAslComputation = Readonly<{
   kapitaliseringsTabel: string | null;
   kapitaliseringsTabelKoensopdelt: boolean;
   alderHeleAar: number;
-  folkepensionsalderAarLabel: string;
+  folkepensionsalderLabel: string;
   folkepensionsalderMaaneder: number;
   harNaaetFolkepensionsalder: boolean;
   kapitalfaktor: number | null;

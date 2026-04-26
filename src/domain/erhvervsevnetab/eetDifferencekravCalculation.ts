@@ -273,7 +273,7 @@ const computeProformaKapitalisering = (
     return null;
   }
 
-  const tabelvalg = resolveKapitaliseringTabelvalg(tabeldata, skadedato, fodselsdato);
+  const tabelvalg = resolveKapitaliseringTabelvalg(tabeldata, skadedato, fodselsdato, beregningsdato);
   if (!tabelvalg) {
     issues.push(toIssue(
       'proforma-kapitaliseringstabel-missing',

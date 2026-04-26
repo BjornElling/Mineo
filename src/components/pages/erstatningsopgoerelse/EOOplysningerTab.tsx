@@ -118,6 +118,8 @@ const LOENGRUPPER = [0, 1, 2, 3, 4] as const;
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 const PERIODE_INFO_TOOLTIP =
   'Indsæt alle perioder. Tidligere indtastede perioder skal ikke slettes ved senere opgørelse.';
+const DELVIS_SYGEMELDING_SATS_INFO_TOOLTIP =
+  'Juridisk omtvistet, men nyere\nretspraksis hælder mod fuld sats';
 
 const parseLoentrinSortValue = (loentrin: number | '55+'): number => (loentrin === '55+' ? 56 : loentrin);
 
@@ -1525,7 +1527,10 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 </Box>
 
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Svie/smerte sats ved delvis sygemelding:</Typography>
+                  <Typography className="row--text">
+                    Svie/smerte sats ved delvis sygemelding:
+                    <InfoTooltipIcon title={DELVIS_SYGEMELDING_SATS_INFO_TOOLTIP} />
+                  </Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledRadioButton
                       value={values.svieSmerteDelvisSygemeldingSats}

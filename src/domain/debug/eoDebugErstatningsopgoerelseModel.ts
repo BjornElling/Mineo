@@ -58,7 +58,7 @@ import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import { resolveBilagWarning } from '../erstatningsopgoerelse/helpers/bilagWarnings';
 import { ensureMoneyOre } from '../erstatningsopgoerelse/shared/eoMoney';
 import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/aarsloenRowInterval';
-import { resolveKapitaliseringTabelvalgForControlDate } from '../erhvervsevnetab/eetKapitaliseringOpslag';
+import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
 
 /**
  * Debug row id must be stable and semantically tied to field identity (not label text or array order).
@@ -181,15 +181,11 @@ const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number 
 };
 
 const resolveFolkepensionsdato = (
-  skadedato: ISODateString | undefined,
   fodselsdato: ISODateString | undefined,
   controlDate: ISODateString | undefined
 ): ISODateString | undefined => {
-  const tabelvalg = resolveKapitaliseringTabelvalgForControlDate(skadedato, fodselsdato, controlDate);
-  if (!tabelvalg || !fodselsdato) return undefined;
-  const birthDate = parseISODate(fodselsdato);
-  if (!birthDate) return undefined;
-  return dateToISO(addMonths(birthDate, tabelvalg.folkepensionsalderMaaneder));
+  if (!fodselsdato || !controlDate) return undefined;
+  return getFolkepensionsdato(fodselsdato, controlDate);
 };
 
 export const buildEODebugErstatningsopgoerelseRows = (
@@ -1424,7 +1420,6 @@ export const buildEODebugTaftRows = (
     });
   }
   const folkepensionsdato = resolveFolkepensionsdato(
-    context.skadedatoISO,
     context.skadelidteFodselsdato,
     values.opgørelseLavetDen
   );

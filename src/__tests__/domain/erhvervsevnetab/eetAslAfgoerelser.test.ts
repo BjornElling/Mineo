@@ -678,7 +678,8 @@ describe('resolveKapitaliseringTabelvalg', () => {
     const result = resolveKapitaliseringTabelvalg(
       tabeldata!,
       toISODateString('2007-07-01'),
-      toISODateString('1944-01-01')
+      toISODateString('1944-01-01'),
+      toISODateString('2009-01-01')
     );
 
     expect(result).toEqual({
@@ -696,7 +697,8 @@ describe('resolveKapitaliseringTabelvalg', () => {
     const result = resolveKapitaliseringTabelvalg(
       tabeldata!,
       toISODateString('2005-01-01'),
-      toISODateString('1944-01-01')
+      toISODateString('1944-01-01'),
+      toISODateString('2004-01-01')
     );
 
     expect(result).toEqual({
@@ -714,7 +716,8 @@ describe('resolveKapitaliseringTabelvalg', () => {
     const result = resolveKapitaliseringTabelvalg(
       tabeldata!,
       toISODateString('2025-01-01'),
-      toISODateString('1954-04-01')
+      toISODateString('1954-04-01'),
+      toISODateString('2026-01-01')
     );
 
     expect(result).toEqual({
@@ -732,7 +735,8 @@ describe('resolveKapitaliseringTabelvalg', () => {
     const result = resolveKapitaliseringTabelvalg(
       tabeldata!,
       toISODateString('2007-07-01'),
-      toISODateString('1972-01-08')
+      toISODateString('1972-01-08'),
+      toISODateString('2021-01-01')
     );
 
     expect(result).toEqual({
@@ -750,7 +754,8 @@ describe('resolveKapitaliseringTabelvalg', () => {
     const result = resolveKapitaliseringTabelvalg(
       tabeldata!,
       toISODateString('2025-01-01'),
-      toISODateString('1955-03-01')
+      toISODateString('1955-03-01'),
+      toISODateString('2026-01-01')
     );
 
     expect(result?.folkepensionsalderLabel).toBe('66,5 år');
