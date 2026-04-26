@@ -255,7 +255,7 @@ Bekendtgørelse vælges med samme opslag som i EET:
 resolveKapitaliseringsbekendtgoerelseId(skadedato, beregningsdato)
 ```
 
-Bekendtgørelsen bruges også til at fastlægge folkepensionsalderen for den efterladte på beregningsdatoen.
+Folkepensionsalderen for den efterladte på beregningsdatoen fastlægges centralt i `src/data/folkepensionAlderRates.ts`. Bekendtgørelsen bruges fortsat til at vælge relevant kapitaliserings- og forsørgertabstabel.
 
 ### 6.2 Relevant forsørgertabstabel
 
@@ -342,11 +342,11 @@ Hvis der mangler en nødvendig faktor i tabellen for interpolation, er det en bl
 
 ### 8.1 Folkepensionsalder nået på beregningsdatoen
 
-Hvis den efterladte på beregningsdatoen har nået folkepensionsalderen, fastlagt efter den relevante kapitaliseringsbekendtgørelse på beregningsdatoen, skal der ikke beregnes kapitalværdi af resterende løbende ydelser.
+Hvis den efterladte på beregningsdatoen har nået folkepensionsalderen, fastlagt centralt i `src/data/folkepensionAlderRates.ts`, skal der ikke beregnes kapitalværdi af resterende løbende ydelser.
 
 Normative regler:
 
-- folkepensionsalderen fastlægges ved opslag i den relevante kapitaliseringsbekendtgørelse på beregningsdatoen
+- folkepensionsalderen fastlægges ved opslag i `src/data/folkepensionAlderRates.ts` med efterladtes fødselsdato og beregningsdatoen
 - hvis den efterladte på beregningsdatoen har nået folkepensionsalderen, udføres intet opslag i forsørgertabstabel
 - hvis den efterladte på beregningsdatoen har nået folkepensionsalderen, sættes `kapitalbelob = 0`
 - dette er ikke en fejltilstand

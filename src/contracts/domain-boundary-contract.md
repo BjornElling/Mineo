@@ -107,6 +107,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 5. `computeEetSnapshot(...)` er den autoritative beregnings-entry for tab- og PDF-projektioner i Erhvervsevnetab-domænet.
 6. Tab-komponenter og PDF-flow må ikke lave parallelle EET-beregninger uden om snapshot-projektionen.
 7. ASL-afgørelsesrækken indeholder `fsTilbageholdtEet` (`Ja`/`Nej`). Feltet er beregningsmæssigt knyttet til den afgørelse, der senere afløses. Når feltet er `Ja`, skal overgangen til den næste afgørelse bruge den næste afgørelses faktiske virkningsdato som afløsningsdato i stedet for den nye overlap-skæringsdato. Feltet på den sidste afgørelse har aldrig beregningsmæssig effekt, fordi den ikke afløses af en efterfølger. Der må ikke bygges parallel validering eller beregning af dette felt uden om den centrale EET-beregning.
+8. Folkepensionsalder må kun beregnes via `src/data/folkepensionAlderRates.ts` — herunder `getFolkepensionAlder`, `getFolkepensionsdato` og `getDagenFoerFolkepensionsdato`. Kapitaliseringstabellerne må ikke være kilde til alder i måneder, labels eller folkepensionsdato. Filen ligger i `src/data/` (ikke under `src/data/kapitalisering/`) fordi den er tværdomæne og ikke kapitaliseringsspecifik.
 
 ### 6.2 Forsørgertab
 
@@ -115,6 +116,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 3. Siden må ikke læse andre fagsiders domæne-sektioner.
 4. `computeForsoergertabSnapshot(...)` er den autoritative beregnings-entry for side- og PDF-projektioner i Forsørgertab-domænet.
 5. UI-komponenter og PDF-flow må ikke lave parallelle Forsørgertab-beregninger uden om snapshot-projektionen.
+6. ASL-beregningen må kun bruge `src/data/folkepensionAlderRates.ts` til folkepensionsalder — herunder `getFolkepensionAlder`, `getFolkepensionsdato` og `getDagenFoerFolkepensionsdato`. Forsørgertabstabeller og kapitaliseringstabeller må ikke duplikere folkepensionsalderdata.
 
 ### 6.3 Varige mén
 

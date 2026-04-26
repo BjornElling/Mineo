@@ -30,7 +30,7 @@ Dette matcher implementeringsretningen i:
 - Ingen normalisering må ændre tabelindholdets faktiske værdier eller struktur; kun formatkonvertering er tilladt (fx komma -> punktum i decimaltal).
 - For ældre kilder med kønsopdelte tabeller skal kønsopdelingen bevares fuldt 1:1 i separate exports (ingen sammensmeltning, gennemsnit eller afledte tabeller).
 - Regel for kønsopdeling: frem til og med 28. februar 2015 anvendes kønsafhængige kapitaliseringssatser. Fra og med 1. marts 2015 bortfalder kønsopdelingen, og kapitalisering sker kønsneutralt med én fælles kapitaliseringsfaktor.
-- Pensionsalder i ældre bekendtgørelser: Det er forventelig adfærd, at pensionsalderen var lavere i ældre bekendtgørelser og er steget over tid. Samme fødselsdato/fødselsinterval kan derfor være knyttet til en lavere pensionsalder i en ældre bekendtgørelse og en højere pensionsalder i en senere bekendtgørelse.
+- Folkepensionsalder må ikke længere ligge i kapitaliseringstabelfilerne. Den centrale kilde er `src/data/folkepensionAlderRates.ts`, som slår folkepensionsalder op på fødselsdato og relevant opslagsdato.
 - Bekendtgørelse og vejledning behandles ens i data: identifikation sker via `id` i format `nummer/år`.
 - `gyldigFra/gyldigTil` er altid kapitaliseringsdato-gyldighed (omsætningstidspunkt) - aldrig fødselsdato-/tabelvalgsintervaller.
 - Der må ikke gættes på uklare værdier. Ved tvivl stoppes udtræk, og uklarhed markeres eksplicit.
@@ -50,11 +50,16 @@ Dette matcher implementeringsretningen i:
 - Tabeller for `varige mén` og `behandlingsudgifter` må ikke medtages.
 - Hvis tabeltype ikke kan afgøres entydigt fra kilden, stoppes udtrækket og brugeren skal spørges.
 
+## Forbudt i tabelfiler
+
+- **Folkepensionsalder** — brug ikke `folkepensionsalderAar`, `ophoersalderAarLabel` eller tilsvarende felter i tabelfiler. Folkepensionsalder er tværdomæne og håndteres udelukkende via `src/data/folkepensionAlderRates.ts` (`getFolkepensionAlder`, `getFolkepensionsdato`, `getDagenFoerFolkepensionsdato`). Filen ligger bevidst i `src/data/` og ikke under `src/data/kapitalisering/` — den er ikke kapitaliseringsspecifik.
+- **Afledte aldersbegreber** — ophoersalder, pensionsdato og lign. må ikke udledes eller hardkodes i tabelfiler. Disse beregnes altid dynamisk via ovenstående centrale kilde.
+
 ## Kendte undtagelser der skal dokumenteres i filerne
 
 - Der findes kun én gyldig EET-kontrakt i programmet: `erhvervsevnetabTabelvalg`.
 - Ældre bekendtgørelser skal stadig registreres i samme kontrakt som nyere bekendtgørelser. Programmet skal kunne beregne bagud i tid, men bekendtgørelser må aldrig registreres som en særskilt type.
-- Hvis kilden arbejder med ophørsalder i stedet for et helt `folkepensionsalderAar`, lægges værdien stadig i `erhvervsevnetabTabelvalg` via `ophoersalderAarLabel`.
+- Hvis kilden arbejder med ophørsalder eller folkepensionsalder, må værdien ikke indlægges i `erhvervsevnetabTabelvalg`. Kontrollér i stedet, at `src/data/folkepensionAlderRates.ts` dækker den relevante lovperiode og fødselskohorte.
 - Hvis kilden ikke har fødselsdato-intervaller, bruges stadig `erhvervsevnetabTabelvalg` med et eksplicit bredt fødselsinterval i data i stedet for en særskilt alternativ export.
 - For VEJ `9921/2019` og `9870/2020` er 2020 bevidst opdelt i to intervaller:
   - `9921/2019` dækker `2020-01-01` til `2020-12-30`.
@@ -64,7 +69,6 @@ Dette matcher implementeringsretningen i:
 - For VEJ `9741/2020`, `9864/2021`, `10141/2022` og `9820/2023` er tabelvalg bevidst begrænset til skadedatoer fra `2011-01-01`, når kilden kun angiver tabeller `A-H`.
 - `forsoergertabAfloesningsTabeller = {}` betyder, at kilden ikke indeholder afløsningstabeller for den bekendtgørelse/vejledning.
 - Hvis kilden kun angiver kønsopdelte afløsningstabeller, skal de bevares i `forsoergertabAfloesningsTabellerKoensopdelt` (ingen sammenfletning til kønsneutral tabel).
-- De fil-lokale interface-definitioner (`AldersFaktorRaekke`, `ForsoergertabMatrixRaekke`, `AldersKoensopdeltFaktorRaekke`) er en bevidst selvstændighedsstrategi for hver tabelfil, ikke en datamæssig forskel.
 - Hvis kilden kun har én EET-tabel med formuleringer som `tilkendt til det 65. år, men uden omsætningsmulighed efter 63. år` eller `uden omsætningsmulighed fra det 63. år`, skal ophørsalderen stadig udtrækkes, og tabelvalget udtrykkes i `erhvervsevnetabTabelvalg`. I disse kilder kan fødselsintervallet være bredt, fordi fødselsdato ikke er en reel del af opslagsnøglen i kilden.
 
 ## Udtræksflow (hver gang)
@@ -86,20 +90,14 @@ Dette matcher implementeringsretningen i:
 3. Identificer tabelvalg-oplysninger:
 - `skadedatoFra`.
 - `foedselsdatoFra`.
-- `folkepensionsalderAar` eller `ophoersalderAarLabel` direkte fra kilden.
 - Hvilken tabel (`A`, `B`, ...).
 
-Fortolkning af pensionsalder i kilden:
+Folkepensionsalder ved tabelvalg:
 
-- Hvis kilden ikke bruger ordet `folkepensionsalder`, men i stedet beskriver at den løbende ydelse `ophører ved det fyldte [x] år`, skal denne alder behandles som det samme som folkepensionsalderen/ophørsalderen i tabelvalget.
-- Hvis et fødselsdato-baseret tabelvalg starter ved en senere `foedselsdatoFra` end de ældste relevante fødselskohorter, er det en del af den normative model at ældre fødselsdatoer fortolkes sådan:
-  - første halvår 1955: `66,5 år`
-  - andet halvår 1954: `66 år`
-  - første halvår 1954: `65,5 år`
-  - 1953 eller tidligere: `65 år`
-- Denne fortolkning er ikke en fallback, men en korrekt afspejling af folkepensionsalderen/ophørsalderen i den konkrete bekendtgørelse og skal respekteres ved både udtræk, opslag og test.
-- Eksempel: formuleringen `for hvem den løbende ydelse ophører ved det fyldte 66½. år` skal udtrækkes som ophørsalder `66½` for den pågældende fødselsgruppe/tabel.
-- Denne fortolkning er ikke en afledning fra ekstern lovviden, men en direkte udlæsning af bekendtgørelsens egen beskrivelse af ophørstidspunktet for den løbende ydelse.
+- Tabelvalget må kun indeholde nøgler til tabelbogstavet: skadedato, fødselsdato og eventuel øvre fødselsdatogrænse.
+- Folkepensionsalder, ophørsalder, labels og alder i måneder beregnes centralt i `src/data/folkepensionAlderRates.ts`.
+- Hvis kilden viser fødselsdato-grupper, der svarer til folkepensionsalder, bruges grupperne fortsat som tabelvalgsnøgler, men alderen selv udelades fra tabelfilen.
+- Hvis en ny kilde afslører en lovperiode eller fødselskohorte, der ikke dækkes centralt, skal `src/data/folkepensionAlderRates.ts` opdateres i samme ændring.
 
 4. Identificer særfaktor ved under 2 år til folkepension.
 
@@ -130,12 +128,9 @@ Normalisering fra denne CSV-type:
 
 Vigtigt om folkepensionsalder:
 
-- Folkepensionsalder/ophørsalder skal udtrækkes direkte fra den konkrete bekendtgørelse eller vejledning.
-- En formulering om at den løbende ydelse ophører ved en bestemt alder er i denne kontekst autoritativ folkepensionsalder/ophørsalder og skal udtrækkes som sådan.
-- Hvis pensionsalder ikke står eksplicit i kilden, må den ikke gættes eller afledes fra andre filer.
-- Der findes ingen separat autoritativ `folkepensionsalder.ts`-fallback. Folkepensionsalder/ophørsalder skal altid udtrækkes direkte fra bekendtgørelsen.
-- Når bekendtgørelsen ikke eksplicit medtager de ældste fødselskohorter i sine `foedselsdatoFra`-rækker, skal de ovenstående kohorter (`66,5 / 66 / 65,5 / 65 år`) behandles som en del af den autoritative fortolkning af bekendtgørelsen.
-- Hvis folkepensionsalder ikke kan udtrækkes entydigt, stoppes udtrækket og markeres som afklaring nødvendig.
+- Folkepensionsalder/ophørsalder må ikke duplikeres i kapitaliseringstabelfilerne.
+- `src/data/folkepensionAlderRates.ts` er single point of truth for alder i måneder, labels, folkepensionsdato og dagen før folkepensionsdato.
+- Hvis folkepensionsalderen i kilden ikke stemmer med den centrale fil, stoppes udtrækket og markeres som afklaring nødvendig.
 
 ## Fast kodekontrakt for hver `xxxx-yyyy.ts`
 
@@ -146,22 +141,7 @@ Alle filer skal have samme struktur og eksportnavne:
 // I faktiske filer skal tabelindhold altid være 1:1 fra kilden (ingen udfyldning/genbrug).
 import type { ISODateString } from '../../../types/branded';
 import { toISODateString } from '../../../types/branded';
-
-export interface AldersFaktorRaekke {
-  alder: number;
-  faktor: number;
-}
-
-export interface AldersKoensopdeltFaktorRaekke {
-  alder: number;
-  maendFaktor: number;
-  kvinderFaktor: number;
-}
-
-export interface ForsoergertabMatrixRaekke {
-  alder: number;
-  faktorerPraHeleAar: readonly number[];
-}
+import type { AldersFaktorRaekke, AldersKoensopdeltFaktorRaekke, ForsoergertabMatrixRaekke } from '.';
 
 export const kapitaliseringsId = '10029/2024' as const;
 export const kapitaliseringsType = 'vejl' as const;
@@ -172,16 +152,15 @@ export const gyldigFra = toISODateString('2025-01-01');
 export const gyldigTil = toISODateString('2025-12-31');
 
 const ERHVERVSEVNETAB_TABELVALG_DATA = [
-  // skadedatoFra     foedselsdatoFra     folkepensionsalderAar     tabel
-  ['2021-01-01',     '1967-01-01',     69,     'A'],
-  ['2011-01-01',     '1967-01-01',     69,     'F'],
+  // skadedatoFra     foedselsdatoFra     tabel
+  ['2021-01-01',     '1967-01-01',     'A'],
+  ['2011-01-01',     '1967-01-01',     'F'],
 ] as const;
 
 export const erhvervsevnetabTabelvalg = ERHVERVSEVNETAB_TABELVALG_DATA.map(
-  ([skadedatoFra, foedselsdatoFra, folkepensionsalderAar, tabel]) => ({
+  ([skadedatoFra, foedselsdatoFra, tabel]) => ({
     skadedatoFra: toISODateString(skadedatoFra),
     foedselsdatoFra: toISODateString(foedselsdatoFra),
-    folkepensionsalderAar,
     tabel,
   })
 );
@@ -265,7 +244,6 @@ Præcisering for filer med ældre bekendtgørelser:
 - Hvis kilden kun har kønsopdelte forsørgertabstabeller, skal `forsoergertabTabeller` være tom (`{}`), og data skal ligge i `forsoergertabTabellerMaend` og/eller `forsoergertabTabellerKvinder`.
 - Hvis kilden har både kønsneutrale og kønsopdelte tabeller, skal begge datatyper bevares i hver deres eksport uden transformation.
 - Alle bekendtgørelser, også ældre, skal bruge `erhvervsevnetabTabelvalg`.
-- Brug `folkepensionsalderAar` når kilden angiver hele år direkte. Brug `ophoersalderAarLabel` når kilden angiver ophørsalder som fx `66.5`.
 - Brug et eksplicit bredt fødselsinterval i `erhvervsevnetabTabelvalg`, når kilden ikke arbejder med fødselsdato som egentlig opslagsnøgle.
 
 ## Krav til tabellignende layout (læsbart i kode)
@@ -302,7 +280,7 @@ Når en ny fil er udtrukket:
 
 1. Læg filen i `src/data/kapitalisering/kapitaliseringsTabeller/`.
 2. Opdater `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts` med korrekt `id` og relevante `kapitaliseringsdatoFra`-poster.
-3. Verificer at den nye fil indeholder folkepensionsalder/ophørsalder direkte i sine EET-tabelvalg.
+3. Verificer at den nye fil ikke indeholder folkepensionsalder/ophørsalder i sine EET-tabelvalg, og at `src/data/folkepensionAlderRates.ts` dækker opslagsperioden.
 4. Verificer at udløbsreglen for seneste post stadig er opfyldt.
 5. Kør `npm run typecheck`.
 
@@ -316,7 +294,7 @@ Opgave: Udtræk kapitaliseringsdata fra vedlagte tekst og lever en compile-klar 
 Krav:
 - Brug præcis den faste kodekontrakt fra `docs/arbejdsvarktoej-kapitaliseringsudtraek.md`.
 - Ingen antagelser ved tvivl; markér i stedet manglende/uklare felter.
-- Folkepensionsalder/ophørsalder skal udtrækkes direkte fra kilden, ikke afledes fra andre filer.
+- Folkepensionsalder/ophørsalder skal håndteres via `src/data/folkepensionAlderRates.ts`; kapitaliseringstabelfilen må kun indeholde tabelvalg og faktortabeller.
 - Bevar numerisk præcision fra kilden.
 - Output skal være tabellignende og menneskeligt læsbart.
 - Brug `id` som `nummer/år` og filnavn som `nummer-år.ts`.

@@ -161,6 +161,8 @@ Satsen for den første periode i en afgørelses fuld-sektion bestemmes af:
 3. Dagen før kapitaliseringsdatoen (kun når afgørelsen faktisk kapitaliseres)
 4. Dagen før folkepensionsdatoen
 
+Folkepensionsdatoen beregnes centralt i `src/data/folkepensionAlderRates.ts` ud fra skadelidtes fødselsdato og afgørelsens kontroltidspunkt. Løbende EET må ikke udlede folkepensionsalder fra kapitaliseringstabelfilerne.
+
 Næste afgørelses afløsningsdato er:
 - næste afgørelses faktiske virkningsdato, hvis den nuværende afgørelse har `FS tilbageholdt EET = Ja`
 - næste afgørelses skæringsdato, hvis overlapreglen bruges
@@ -218,7 +220,7 @@ I alt per afgørelse: summen af alle rækker (fuld + rest sektion). Der er ingen
 | `buildFullSectionPeriods()` | Bygger fuld-ydelsesperioder inkl. satsår ved tilbagevirkende kraft |
 | `buildCalendarYearSectionPeriods()` | Bygger kalenderårssplit til overlapperioder |
 | `buildKapitaliseringEvents()` | Opløser globale kapitaliseringer og deres datoer |
-| `resolveFolkepensionsDagFoer()` | Beregner dagen før folkepensionsdatoen som ophørskandidat |
+| `resolveFolkepensionsDagFoer()` | Beregner dagen før folkepensionsdatoen som ophørskandidat via `src/data/folkepensionAlderRates.ts` |
 
 ### Implementeringsstatus
 

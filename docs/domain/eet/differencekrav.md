@@ -87,6 +87,7 @@ Proformakapitaliseringen genbruger kapitaliseringslogikken fra fane 3 med disse 
 - 50 %-loftet gælder ikke
 - bekendtgørelse og tabel opslås på beregningsdatoen
 - kontroltidspunktet for ≤ 2 år til folkepension er beregningsdatoen
+- folkepensionsalderen hentes centralt fra `src/data/folkepensionAlderRates.ts`
 
 Proformakapitalisering er differencekravets egen beregningsteknik. Den kan derfor godt forekomme, selv om der i ASL-sporet aldrig er sket nogen faktisk kapitalisering.
 

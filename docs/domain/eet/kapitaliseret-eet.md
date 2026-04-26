@@ -33,9 +33,12 @@ En matrix der for en given kombination af skadedato og kapitaliseringsdato slår
 
 **Kapitaliseringstabellerne** (`src/data/kapitalisering/kapitaliseringsTabeller/`):
 Én TypeScript-fil per bekendtgørelse. Hver fil indeholder:
-- tabelvalgsdata: skadedato og fødselsdato → tabelbogstav og folkepensionsalder
+- tabelvalgsdata: skadedato og fødselsdato → tabelbogstav
 - alderstabeller: alder → faktor
 - særfaktor for skadelidte inden for eller præcis 2 år til folkepension
+
+**Folkepensionsalder** (`src/data/folkepensionAlderRates.ts`):
+Single point of truth for folkepensionsalder. Kapitaliseringsberegningen henter alder i måneder og visningslabel herfra ud fra fødselsdato og relevant kontrol-/kapitaliseringsdato.
 
 ### Trin-for-trin beregning
 
@@ -47,9 +50,10 @@ Inden det ordinære tabelopslag vurderes om skadelidte er ≤ 2 år fra sin folk
 
 Fremgangsmåde:
 1. Find bekendtgørelsen gældende på kontroltidspunktet.
-2. Slå folkepensionsalderen op i denne bekendtgørelses tabelvalgsdata.
-3. Beregn alder på kontroltidspunktet i hele år og måneder.
-4. Hvis `folkepensionsalder_måneder − alder_måneder ≤ 24`: brug særfaktoren direkte.
+2. Slå tabelbogstavet op i bekendtgørelsens tabelvalgsdata.
+3. Slå folkepensionsalderen op centralt i `src/data/folkepensionAlderRates.ts`.
+4. Beregn alder på kontroltidspunktet i hele år og måneder.
+5. Hvis `folkepensionsalder_måneder − alder_måneder ≤ 24`: brug særfaktoren direkte.
 
 Hvis særfaktoren bruges direkte, er kapitaliseringsfaktoren lig særfaktoren afrundet til 3 decimaler. Skadelidte der allerede har nået folkepensionsalderen falder også ind under særfaktoren.
 
@@ -68,7 +72,7 @@ Ved genoptagelse foretages bekendtgørelsesvalg, tabelvalg og faktorberegning so
 
 #### Trin 2 — Valg af tabel og folkepensionsalder
 
-Inden for den fundne bekendtgørelse opslås tabel og folkepensionsalder på baggrund af skadedato og fødselsdato.
+Inden for den fundne bekendtgørelse opslås tabel på baggrund af skadedato og fødselsdato. Folkepensionsalderen beregnes derefter centralt i `src/data/folkepensionAlderRates.ts` med fødselsdato og den relevante kontrol-/kapitaliseringsdato.
 
 For bekendtgørelser før 2015-03-01 er tabellerne kønsopdelte. Her skal køn være angivet.
 

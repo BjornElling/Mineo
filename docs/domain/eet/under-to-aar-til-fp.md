@@ -23,7 +23,7 @@ Grænsen er inklusiv:
 - Datoen præcis 24 måneder før folkepensionsdatoen er inden for særreglen.
 - Dagen før denne dato er uden for særreglen.
 
-Folkepensionsalderen opslås i kapitaliseringsbekendtgørelsen gældende på kontroltidspunktet (skadedato × kontroltidspunkt → bekendtgørelse → tabelvalg → folkepensionsalder i måneder).
+Folkepensionsalderen opslås centralt i `src/data/folkepensionAlderRates.ts` ud fra fødselsdato og kontroltidspunkt. Kapitaliseringsbekendtgørelsen bruges fortsat til tabelvalg og særfaktor (skadedato × kontroltidspunkt → bekendtgørelse → tabelvalg/særfaktor).
 
 ---
 
@@ -176,8 +176,9 @@ Hvis en del af EET allerede er kapitaliseret, og en del stadig løber:
 
 | Fil | Funktion | Beskrivelse |
 |---|---|---|
-| `eetLoebendeYdelserCalculation.ts` | `resolveFolkepensionsDagFoer()` | Beregner dagen før folkepensionsdatoen som ophørskandidat for løbende ydelser. |
-| `eetKapitaliseringCalculation.ts:363` | `useDirectSaerfaktor` | `controlTabelvalg.folkepensionsalderMaaneder − controlAge.totalMonths ≤ 24` |
+| `folkepensionAlderRates.ts` | `getFolkepensionAlder()` / `getFolkepensionsdato()` | Central kilde til folkepensionsalder i måneder, label og folkepensionsdato. |
+| `eetLoebendeYdelserCalculation.ts` | `resolveFolkepensionsDagFoer()` | Beregner dagen før folkepensionsdatoen som ophørskandidat for løbende ydelser via den centrale ratefil. |
+| `eetKapitaliseringCalculation.ts` | `useDirectSaerfaktor` | `controlTabelvalg.folkepensionsalderMaaneder − controlAge.totalMonths ≤ 24`, hvor `folkepensionsalderMaaneder` kommer fra den centrale ratefil. |
 | `eetDifferencekravCalculation.ts:194` | `useDirectSaerfaktor` (proforma) | Samme betingelse, men med beregningsdato som referencepunkt |
 | `eetKapitaliseringOpslag.ts:309` | `isUnderOrEqualTwoYearsToFpByBekendtgoerelse()` | Eksponeret hjælpefunktion til UI-validering |
 
