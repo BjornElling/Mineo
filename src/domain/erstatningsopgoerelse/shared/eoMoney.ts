@@ -17,6 +17,8 @@ export const clampMoneyOreToZero = (value: MoneyOre): MoneyOre => {
 
 export const roundKroner = (value: number): number => roundByMethod(value, 2, 'halfAwayFromZero');
 
+export const roundHeleKroner = (value: number): number => roundByMethod(value, 0, 'halfAwayFromZero');
+
 export const toOre = (value: MoneyKroner): MoneyOre => {
   if (!Number.isFinite(value)) {
     throw new Error('Ugyldigt beløb: ikke et endeligt tal');

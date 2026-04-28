@@ -1,5 +1,15 @@
 import { createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { renderOffentligeYdelserSection } from '../../../../../pdf/domains/eo/sections/offentligeYdelserSection';
+import {
+  buildIncomeForRanges,
+  roundIncomeBenefitAmountKroner,
+} from '../../../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
+import { roundHeleKroner } from '../../../../../domain/erstatningsopgoerelse/shared/eoMoney';
+import {
+  buildMidlertidigtEetPdfGroupsForTafRanges,
+  renderMidlertidigtEetSection,
+  renderOffentligeYdelserSection,
+} from '../../../../../pdf/domains/eo/sections/offentligeYdelserSection';
+import { toISODateString } from '../../../../../types/branded';
 
 const { autoTableMock } = vi.hoisted(() => ({
   autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
@@ -15,6 +25,7 @@ const createMockPdfDoc = () => ({
   internal: { pageSize: { width: 210, height: 297 } },
   addPage: vi.fn(),
 });
+const iso = (value: string) => toISODateString(value);
 
 const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSection>[0]> = {}) => {
   let y = 0;
@@ -171,5 +182,198 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
 
     expect(totalWidth).toBeCloseTo(170, 6);
     expect(firstColumnStyle.cellWidth).toBeGreaterThan(0);
+  });
+});
+
+describe('renderMidlertidigtEetSection TAF-clamping', () => {
+  it('bygger PDF-perioder med samme periodiserede total som TAF-fradraget for Midlertidigt EET', () => {
+    const tafRanges = [
+      { fra: iso('2024-01-01'), til: iso('2024-01-05') },
+      { fra: iso('2024-01-11'), til: iso('2024-01-15') },
+    ];
+    const groups = [{
+      afgoerelsesdato: iso('2024-01-01'),
+      rows: [],
+      perioder: [
+        {
+          fra: iso('2024-01-01'),
+          til: iso('2024-01-10'),
+          satsAar: 2024,
+          maanederPraecis: 0.101,
+          grundydelseAfrundet: 1000,
+          reguleringPct: 0,
+          maanedligYdelse: 1000,
+          beregnetEet: 101,
+        },
+        {
+          fra: iso('2024-01-11'),
+          til: iso('2024-01-20'),
+          satsAar: 2024,
+          maanederPraecis: 0.101,
+          grundydelseAfrundet: 1000,
+          reguleringPct: 0,
+          maanedligYdelse: 1000,
+          beregnetEet: 101,
+        },
+      ],
+    }];
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.midlertidigtEetFraEetSiden = 'Ja';
+    eoValues.offentligeYdelserRows = [
+      {
+        id: 'midlertidigt-eet-1',
+        fraDato: '01-01-2024',
+        tilDato: '10-01-2024',
+        ydelsestype: 'midlertidigt_eet',
+        ydelse: { kind: 'number', value: 101 },
+        tillaeg: undefined,
+      },
+      {
+        id: 'midlertidigt-eet-2',
+        fraDato: '11-01-2024',
+        tilDato: '20-01-2024',
+        ydelsestype: 'midlertidigt_eet',
+        ydelse: { kind: 'number', value: 101 },
+        tillaeg: undefined,
+      },
+    ];
+
+    const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
+    const pdfTotal = clampedGroups.flatMap((group) => group.perioder).reduce((sum, row) => sum + row.beregnetEet, 0);
+    const tafBenefit = buildIncomeForRanges(eoValues, tafRanges).benefits.find((entry) => entry.typeKey === 'midlertidigt_eet');
+
+    expect(clampedGroups).toHaveLength(1);
+    expect(clampedGroups[0]?.perioder.map((row) => [row.fra, row.til])).toEqual([
+      [iso('2024-01-01'), iso('2024-01-05')],
+      [iso('2024-01-11'), iso('2024-01-15')],
+    ]);
+    expect(pdfTotal).toBe(roundHeleKroner(tafBenefit?.amount ?? 0));
+    expect(pdfTotal).toBe(101);
+  });
+
+  it('afrunder Midlertidigt EET i hele kroner ligesom TAF-indtægtslinjen når togglen er slået til', () => {
+    const tafRanges = [{ fra: iso('2024-01-01'), til: iso('2024-01-05') }];
+    const groups = [{
+      afgoerelsesdato: iso('2024-01-01'),
+      rows: [],
+      perioder: [{
+        fra: iso('2024-01-01'),
+        til: iso('2024-01-10'),
+        satsAar: 2024,
+        maanederPraecis: 0.101,
+        grundydelseAfrundet: 1000,
+        reguleringPct: 0,
+        maanedligYdelse: 1000,
+        beregnetEet: 101,
+      }],
+    }];
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.midlertidigtEetFraEetSiden = 'Ja';
+    eoValues.offentligeYdelserRows = [{
+      id: 'midlertidigt-eet-1',
+      fraDato: '01-01-2024',
+      tilDato: '10-01-2024',
+      ydelsestype: 'midlertidigt_eet',
+      ydelse: { kind: 'number', value: 101 },
+      tillaeg: undefined,
+    }];
+
+    const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
+    const pdfTotal = clampedGroups.flatMap((group) => group.perioder).reduce((sum, row) => sum + row.beregnetEet, 0);
+    const tafBenefit = buildIncomeForRanges(eoValues, tafRanges).benefits.find((entry) => entry.typeKey === 'midlertidigt_eet');
+
+    expect(tafBenefit?.amount).toBe(50.5);
+    expect(pdfTotal).toBe(51);
+    expect(pdfTotal).toBe(roundIncomeBenefitAmountKroner(tafBenefit?.typeKey ?? '', tafBenefit?.amount ?? 0, true));
+  });
+
+  it('bevarer 2-decimal-afrunding for manuelt indtastede midlertidigt_eet-rækker når togglen er slået fra', () => {
+    // Migrationsløfte: pre-1.0.7-saver med manuelle midlertidigt_eet-rækker må ikke
+    // ændre TAF-fradragets afrunding ved blot at blive åbnet (jf. plan §3.1).
+    const tafBenefitAmount = 50.5;
+    const rounded = roundIncomeBenefitAmountKroner('midlertidigt_eet', tafBenefitAmount, false);
+    expect(rounded).toBe(50.5);
+  });
+
+  it('lægger afrundingsdelta på den største række så små rækker ikke kan blive negative', () => {
+    // To rækker med vidt forskellige beløb: lille række (≈ 1 kr) og stor (≈ 1000 kr).
+    // Hvis delta blev lagt på sidste række (her: lille), kunne den hypotetisk gå negativ.
+    // Strategien "største række modtager delta" garanterer, at delta absorberes uden
+    // tab af bilag-rækker.
+    const tafRanges = [
+      { fra: iso('2024-01-01'), til: iso('2024-01-31') },
+      { fra: iso('2024-02-01'), til: iso('2024-02-01') },
+    ];
+    const groups = [{
+      afgoerelsesdato: iso('2024-01-01'),
+      rows: [],
+      perioder: [
+        {
+          fra: iso('2024-01-01'),
+          til: iso('2024-01-31'),
+          satsAar: 2024,
+          maanederPraecis: 1,
+          grundydelseAfrundet: 1000,
+          reguleringPct: 0,
+          maanedligYdelse: 1000,
+          beregnetEet: 1000.4,
+        },
+        {
+          fra: iso('2024-02-01'),
+          til: iso('2024-02-01'),
+          satsAar: 2024,
+          maanederPraecis: 0.0333,
+          grundydelseAfrundet: 1000,
+          reguleringPct: 0,
+          maanedligYdelse: 1000,
+          beregnetEet: 33.3,
+        },
+      ],
+    }];
+
+    const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
+    const allRows = clampedGroups.flatMap((group) => group.perioder);
+
+    // Alle rækker skal være positive (ingen drop pga. delta-håndtering).
+    expect(allRows.length).toBe(2);
+    expect(allRows.every((row) => row.beregnetEet > 0)).toBe(true);
+  });
+
+  it('renderer ikke Midlertidig EET-bilaget når EET-perioder ikke overlapper TAF-perioden', () => {
+    autoTableMock.mockClear();
+    const doc = createMockPdfDoc();
+    let y = 0;
+
+    renderMidlertidigtEetSection({
+      groups: [{
+        afgoerelsesdato: iso('2024-01-01'),
+        rows: [],
+        perioder: [{
+          fra: iso('2024-01-01'),
+          til: iso('2024-01-31'),
+          satsAar: 2024,
+          maanederPraecis: 1,
+          grundydelseAfrundet: 1000,
+          reguleringPct: 0,
+          maanedligYdelse: 1000,
+          beregnetEet: 1000,
+        }],
+      }],
+      tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-29') }],
+      startEoBilagPage: vi.fn(),
+      renderSubheader: vi.fn(),
+      formatAfgoerelsesdato: (date) => date,
+      writer: {
+        addSectionSpacer: vi.fn(),
+        addSpacer: vi.fn(),
+        setY: vi.fn((nextY: number) => {
+          y = nextY;
+        }),
+        getY: vi.fn(() => y),
+        getDoc: vi.fn(() => doc),
+      },
+    });
+
+    expect(autoTableMock).not.toHaveBeenCalled();
   });
 });

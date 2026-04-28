@@ -30,6 +30,7 @@ import {
   SYGEDAGPENGE_SH_CUTOFF,
 } from '../engines/periodiseringsMotor';
 import { iterateDatesInclusive } from '../../../utils/isoDateHelpers';
+import { roundHeleKroner, roundKroner } from '../shared/eoMoney';
 
 export type { IsoRange } from '../../../utils/isoDateHelpers';
 export { parseAarsloenRowInterval } from './aarsloenRowInterval';
@@ -69,6 +70,27 @@ export type IncomeCalculationContext = Readonly<{
 }>;
 
 type RowEligibility = 'empty' | 'invalid' | 'valid';
+
+/**
+ * Afrunding af benefit-beløb til "Indtægter i erstatningsperioden"-linjen og TAF-fordeling.
+ *
+ * `useWholeKronerForMidlertidigtEet` skal sættes når togglen
+ * `midlertidigtEetFraEetSiden === 'Ja'` er aktiv. Det bringer afrundingen i
+ * overensstemmelse med PDF-bilaget "Midlertidig EET", der altid runder i hele
+ * kroner — så TAF-fradraget for `midlertidigt_eet` matcher bilags-totalen bit for bit.
+ *
+ * Når togglen er `'Nej'` (eller flaget ikke leveres), bevares den hidtidige
+ * 2-decimal-afrunding for manuelt indtastede `midlertidigt_eet`-rækker — så
+ * pre-1.0.7-saver ikke ændrer adfærd ved blot at blive åbnet (jf. plan §3.1).
+ */
+export const roundIncomeBenefitAmountKroner = (
+  typeKey: string,
+  amount: number,
+  useWholeKronerForMidlertidigtEet: boolean
+): number =>
+  typeKey === 'midlertidigt_eet' && useWholeKronerForMidlertidigtEet
+    ? roundHeleKroner(amount)
+    : roundKroner(amount);
 
 const isLoenRowEffectivelyEmptyForLoenperiode = (row: StandardLoenTableRow, loenperiode: Loenperiode): boolean => {
   const periodKeys: ReadonlyArray<keyof StandardLoenTableRow> = loenperiode === 'maaned'

@@ -5,6 +5,11 @@ import type { FieldErrorsForSection } from '../../../types/fieldErrors';
 import { erstatningsopgoerelseValidator } from '../../../validators/erstatningsopgoerelseValidator';
 import { buildEODebugSnapshot, type EODebugSnapshot } from '../../debug/eoDebugSnapshot';
 import { parseForligsgrad } from '../engines/forligsgrad';
+import type { MidlertidigtEetAfgoerelseGroup, MidlertidigtEetInsertSource } from '../helpers/midlertidigtEetInsertRows';
+import {
+  buildEoValuesWithTransientMidlertidigtEet,
+  buildMidlertidigtEetSourceResult,
+} from '../helpers/midlertidigtEetTransientInjection';
 import { buildOevrigeKravModel, buildSvieSmerteModel, buildTabtArbejdsfortjenesteModel } from './eoPresentationSectionBuilders';
 import { buildEoPdfPresentation, buildErstatningsopgoerelsePdfModelFromComputed, type EoPdfPresentation } from './eoPresentationModel';
 import type { MoneyOre } from './eoPresentationModel';
@@ -21,6 +26,7 @@ import { buildTafRanges } from '../helpers/indtaegtPerioder';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import {
   buildControlMismatchInvariant,
+  buildMidlertidigtEetSourceInvariants,
   buildTafPerYearAfrundingInvariant,
   buildTafPerYearUnavailableInvariant,
   buildValidationInvariants,
@@ -52,6 +58,7 @@ export type EoSnapshotComputedData = Readonly<{
   }>;
   presentation: EoPdfPresentation;
   canonicalOutput: EoCanonicalOutput;
+  midlertidigtEetGroups: readonly MidlertidigtEetAfgoerelseGroup[];
   /** Færdigbygget PDF-dokumentmodel. Caches i snapshot for at undgå dobbeltkald
    *  fra eoSnapshotToEoPdfDocument og eoSnapshotToTafPerYearPdfDocument. */
   pdfModel: EoModel;
@@ -148,6 +155,14 @@ export const computeEoSnapshot = (args: Readonly<{
   dagsDatoISO?: ISODateString;
   stamdataErrors?: FieldErrorsForSection<'stamdata'>;
   eoErrors?: FieldErrorsForSection<'erstatningsopgoerelse'>;
+  /**
+   * Optional EET-import-source. Bruges udelukkende, når toggle
+   * `midlertidigtEetFraEetSiden === 'Ja'`, til at injicere virtuelle midlertidigt
+   * EET-rækker transient i beregningen. Rækkerne persisteres aldrig — input
+   * (`snapshot.input.erstatningsopgoerelse`) bevarer den oprindelige committed
+   * form-state. Se `domain-boundary-contract.md` §9 og `eo-snapshot-contract.md`.
+   */
+  midlertidigtEetInsertSource?: MidlertidigtEetInsertSource;
 }>): EoSnapshot => {
   const dagsDatoISO = args.dagsDatoISO ?? TODAY;
   const stamdataErrors = args.stamdataErrors ?? EMPTY_STAMDATA_ERRORS;
@@ -181,6 +196,18 @@ export const computeEoSnapshot = (args: Readonly<{
       failClosedReason: 'schema_guard',
     };
   }
+
+  // Transient EET-injection: når togglen er 'Ja', erstattes offentligeYdelserRows med en
+  // effektiv version, hvor manuelle midlertidigt_eet-rækker er filtreret væk og virtuelle
+  // rækker fra EET-siden er tilføjet. Original committed input bevares uændret i
+  // snapshot.input.erstatningsopgoerelse — kontraktundtagelsen i domain-boundary-contract.md §9
+  // dækker den read-only kobling.
+  const midlertidigtEetSourceResult = parsedEo.data.midlertidigtEetFraEetSiden === 'Ja'
+    ? buildMidlertidigtEetSourceResult(args.midlertidigtEetInsertSource)
+    : { groups: [], issues: [] };
+  const midlertidigtEetGroups = midlertidigtEetSourceResult.groups;
+  const midlertidigtEetSourceInvariants = buildMidlertidigtEetSourceInvariants(midlertidigtEetSourceResult.issues);
+  const effectiveEoValues = buildEoValuesWithTransientMidlertidigtEet(parsedEo.data, midlertidigtEetGroups);
 
   if (isAngivetLoenHiddenStateInvalid(parsedEo.data)) {
     reportSystemIssue({
@@ -219,7 +246,10 @@ export const computeEoSnapshot = (args: Readonly<{
   const validationResult = erstatningsopgoerelseValidator.validateParsed(parsedEo.data, {
     skadedatoISO: parsedStamdata.data.skadedato,
   });
-  const validationInvariants = buildValidationInvariants(validationResult.errors);
+  const validationInvariants = [
+    ...buildValidationInvariants(validationResult.errors),
+    ...midlertidigtEetSourceInvariants,
+  ];
   if (hasAuthoritativeBlockingInvariant(validationInvariants)) {
     // Validerings-fejl-sti: autoritative totaler/PDF'er må ikke bygges.
     // Debug-snapshotten må dog stadig vise sektions-uafhængige engine-data, når de kan beregnes sikkert.
@@ -228,17 +258,17 @@ export const computeEoSnapshot = (args: Readonly<{
     // for gyldige rækker selv om andre TAF-rækker blokerer den autoritative beregning. Hvis alle
     // rækker er ugyldige eller clampes bort, er [] den forventede fail-closed debug-basis.
     const svieSmerteForDebug = computeSvieSmerteEngine({
-      erstatningsopgoerelse: parsedEo.data,
+      erstatningsopgoerelse: effectiveEoValues,
       stamdata: {
         skadedato: parsedStamdata.data.skadedato,
         skadestype: parsedStamdata.data.skadestype,
       },
     });
-    const tafRangesForDebug = buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato });
+    const tafRangesForDebug = buildTafRanges(effectiveEoValues, { skadedatoISO: parsedStamdata.data.skadedato });
     const debugSnapshotForValidationError = buildDebugSnapshotForComputed({
       revision: args.revision,
       stamdata: parsedStamdata.data,
-      eoValues: parsedEo.data,
+      eoValues: effectiveEoValues,
       stamdataErrors,
       eoErrors,
       tafRanges: tafRangesForDebug,
@@ -262,27 +292,27 @@ export const computeEoSnapshot = (args: Readonly<{
   let debugSnapshot: EODebugSnapshot | null = null;
 
   try {
-    const tafRanges = buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato });
-    const forlig = parseForligsgrad(parsedEo.data);
+    const tafRanges = buildTafRanges(effectiveEoValues, { skadedatoISO: parsedStamdata.data.skadedato });
+    const forlig = parseForligsgrad(effectiveEoValues);
     const forligFactor = forlig?.factor ?? null;
     const svieSmerte = computeSvieSmerteEngine({
-      erstatningsopgoerelse: parsedEo.data,
+      erstatningsopgoerelse: effectiveEoValues,
       stamdata: {
         skadedato: parsedStamdata.data.skadedato,
         skadestype: parsedStamdata.data.skadestype,
       },
     });
-    const tafNetto = computeTafNettoBeregning(parsedEo.data, parsedStamdata.data, {
+    const tafNetto = computeTafNettoBeregning(effectiveEoValues, parsedStamdata.data, {
       tafRanges,
     });
-    const oevrigeKrav = buildOevrigeKravModel(parsedEo.data.oevrigeKravPerioder ?? []);
+    const oevrigeKrav = buildOevrigeKravModel(effectiveEoValues.oevrigeKravPerioder ?? []);
     const totals = buildEoComputedTotals({
       svieSmerte,
       tafNetto,
       oevrige: oevrigeKrav,
       forligFactor,
     });
-    const presentation = buildEoPdfPresentation(parsedStamdata.data, parsedEo.data, { dagsDatoISO });
+    const presentation = buildEoPdfPresentation(parsedStamdata.data, effectiveEoValues, { dagsDatoISO });
     const tafPerYearOutcome = buildTafPerYearBuildOutcome(
       buildTafPerYearSourceFromComputed({
         stamdataValues: parsedStamdata.data,
@@ -290,7 +320,7 @@ export const computeEoSnapshot = (args: Readonly<{
         tabtArbejdsfortjenesteOre: totals.tabtArbejdsfortjenesteOre,
         forligFactor,
       }),
-      parsedEo.data,
+      effectiveEoValues,
       { tafRanges }
     );
     const canonicalOutput = buildCanonicalOutput({
@@ -303,7 +333,7 @@ export const computeEoSnapshot = (args: Readonly<{
     debugSnapshot = buildDebugSnapshotForComputed({
       revision: args.revision,
       stamdata: parsedStamdata.data,
-      eoValues: parsedEo.data,
+      eoValues: effectiveEoValues,
       stamdataErrors,
       eoErrors,
       tafRanges,
@@ -335,12 +365,12 @@ export const computeEoSnapshot = (args: Readonly<{
     }
 
     const forligForPdf = forlig
-      ? { erIndgaaet: true, label: forlig.label, dato: parsedEo.data.forligDato ?? null, factor: forlig.factor } as const
+      ? { erIndgaaet: true, label: forlig.label, dato: effectiveEoValues.forligDato ?? null, factor: forlig.factor } as const
       : { erIndgaaet: false, label: null, dato: null, factor: null } as const;
     const pdfModel = buildErstatningsopgoerelsePdfModelFromComputed({
       presentation,
-      svieSmerte: buildSvieSmerteModel(parsedEo.data, { engine: svieSmerte }),
-      tabtArbejdsfortjeneste: buildTabtArbejdsfortjenesteModel(parsedEo.data, {
+      svieSmerte: buildSvieSmerteModel(effectiveEoValues, { engine: svieSmerte }),
+      tabtArbejdsfortjeneste: buildTabtArbejdsfortjenesteModel(effectiveEoValues, {
         tafNetto,
         tafRanges: canonicalOutput.periodiseringer.tafPerioder,
         skadedatoISO: parsedStamdata.data.skadedato,
@@ -360,6 +390,7 @@ export const computeEoSnapshot = (args: Readonly<{
       totals,
       presentation,
       canonicalOutput,
+      midlertidigtEetGroups,
       pdfModel,
     };
 

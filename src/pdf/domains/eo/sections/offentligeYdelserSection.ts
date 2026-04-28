@@ -7,7 +7,10 @@ import { ydelsestyper } from '../../../../data/ydelsestyper';
 import { getOffentligeYdelserErrorRowIdSet } from '../../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
+import { parseISODate } from '../../../../types/branded';
 import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRange } from '../../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
+import { periodiserBeloebForOffentligYdelse } from '../../../../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
+import { roundHeleKroner } from '../../../../domain/erstatningsopgoerelse/shared/eoMoney';
 import { cellRight, createPdfDistributedColumnStyles, createPdfTableCell, renderPdfTable } from '../../../shared/pdfTableRenderer';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
@@ -180,8 +183,7 @@ type MidlertidigtEetSectionContext = Readonly<{
   startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   formatAfgoerelsesdato: (date: ISODateString) => string | undefined;
-  eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
-  eoBilagIndkomstYdelserRanges: readonly IsoRange[];
+  tafRanges: readonly IsoRange[];
   writer: Readonly<{
     addSectionSpacer: () => void;
     addSpacer: (height: number) => void;
@@ -191,9 +193,124 @@ type MidlertidigtEetSectionContext = Readonly<{
   }>;
 }>;
 
+type ClampedMidlertidigtEetRow = MidlertidigtEetAfgoerelseGroup['perioder'][number];
+type ClampedMidlertidigtEetGroup = Readonly<{
+  afgoerelsesdato: MidlertidigtEetAfgoerelseGroup['afgoerelsesdato'];
+  perioder: readonly ClampedMidlertidigtEetRow[];
+}>;
+
+type PendingClampedMidlertidigtEetRow = Readonly<{
+  groupIndex: number;
+  row: ClampedMidlertidigtEetRow;
+  rawBeregnetEet: number;
+}>;
+
+const emptyShDays = new Set<ISODateString>();
+
+const clampIsoRange = (range: IsoRange, fra: ISODateString, til: ISODateString): IsoRange | null => {
+  const clampedFra = range.fra > fra ? range.fra : fra;
+  const clampedTil = range.til < til ? range.til : til;
+  return clampedFra <= clampedTil ? { fra: clampedFra, til: clampedTil } : null;
+};
+
+export const buildMidlertidigtEetPdfGroupsForTafRanges = (
+  groups: readonly MidlertidigtEetAfgoerelseGroup[],
+  tafRanges: readonly IsoRange[]
+): readonly ClampedMidlertidigtEetGroup[] => {
+  if (groups.length === 0 || tafRanges.length === 0) return [];
+
+  const pendingRows: PendingClampedMidlertidigtEetRow[] = [];
+  const outputGroups = groups.map((group) => ({
+    afgoerelsesdato: group.afgoerelsesdato,
+    perioder: [] as ClampedMidlertidigtEetRow[],
+  }));
+
+  for (let groupIndex = 0; groupIndex < groups.length; groupIndex += 1) {
+    const group = groups[groupIndex];
+    if (!group) continue;
+    for (const row of group.perioder) {
+      const rowStart = parseISODate(row.fra);
+      const rowEnd = parseISODate(row.til);
+      if (!rowStart || !rowEnd || rowStart > rowEnd) continue;
+
+      for (const tafRange of tafRanges) {
+        const clamped = clampIsoRange(tafRange, row.fra, row.til);
+        if (!clamped) continue;
+        const clampedStart = parseISODate(clamped.fra);
+        const clampedEnd = parseISODate(clamped.til);
+        if (!clampedStart || !clampedEnd || clampedStart > clampedEnd) continue;
+
+        const rawBeregnetEet = periodiserBeloebForOffentligYdelse({
+          totalBeloeb: row.beregnetEet,
+          interval: { start: rowStart, end: rowEnd },
+          range: clamped,
+          periodisering: ydelsestyper.midlertidigt_eet.periodisering,
+          ydelsestypeKey: 'midlertidigt_eet',
+          shDays: emptyShDays,
+        });
+        if (!Number.isFinite(rawBeregnetEet) || rawBeregnetEet <= 0) continue;
+
+        const roundedBeregnetEet = roundHeleKroner(rawBeregnetEet);
+        // Skip rækker der runder til 0 — de bidrager intet til bilagets total og
+        // ville ellers indgå i delta-justeringen som en "modtager" der ikke kan
+        // bære delta uden at gå negativ.
+        if (roundedBeregnetEet <= 0) continue;
+        const maanederPraecis = row.maanedligYdelse > 0
+          ? roundedBeregnetEet / row.maanedligYdelse
+          : row.maanederPraecis;
+        pendingRows.push({
+          groupIndex,
+          rawBeregnetEet,
+          row: {
+            ...row,
+            fra: clamped.fra,
+            til: clamped.til,
+            maanederPraecis,
+            beregnetEet: roundedBeregnetEet,
+          },
+        });
+      }
+    }
+  }
+
+  if (pendingRows.length === 0) return [];
+
+  const targetRoundedTotal = roundHeleKroner(pendingRows.reduce((sum, row) => sum + row.rawBeregnetEet, 0));
+  const roundedRowsTotal = pendingRows.reduce((sum, row) => sum + row.row.beregnetEet, 0);
+  const roundingDelta = targetRoundedTotal - roundedRowsTotal;
+
+  // Læg delta'en på den største række frem for "sidste række".
+  // Største-række-strategien er stabil under sortering og garanterer, at delta
+  // ikke kan gøre en lille bær-række negativ — typisk delta er ≤ 0,5 kr, og største
+  // række har her allerede ≥ 1 kr (jf. `roundedBeregnetEet > 0`-filteret ovenfor),
+  // så `nextBeregnetEet > 0` er bevaret. Hvis to rækker har samme beregnetEet, vinder
+  // den første (deterministisk fra `findIndex`).
+  const deltaRecipientIndex = pendingRows.reduce(
+    (bestIndex, entry, index) =>
+      entry.row.beregnetEet > pendingRows[bestIndex].row.beregnetEet ? index : bestIndex,
+    0
+  );
+
+  pendingRows.forEach((entry, index) => {
+    const nextBeregnetEet = index === deltaRecipientIndex
+      ? entry.row.beregnetEet + roundingDelta
+      : entry.row.beregnetEet;
+    if (nextBeregnetEet <= 0) return;
+    const adjustedRow: ClampedMidlertidigtEetRow = {
+      ...entry.row,
+      beregnetEet: nextBeregnetEet,
+      maanederPraecis: entry.row.maanedligYdelse > 0
+        ? nextBeregnetEet / entry.row.maanedligYdelse
+        : entry.row.maanederPraecis,
+    };
+    outputGroups[entry.groupIndex]?.perioder.push(adjustedRow);
+  });
+
+  return outputGroups.filter((group) => group.perioder.length > 0);
+};
+
 export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext): void => {
-  const { groups, startEoBilagPage, renderSubheader, formatAfgoerelsesdato, eoBilagIndkomstYdelserMode, eoBilagIndkomstYdelserRanges, writer } = ctx;
-  const normalizedEoBilagMode = normalizeEoBilagIndkomstYdelserMode(eoBilagIndkomstYdelserMode);
+  const { groups, startEoBilagPage, renderSubheader, formatAfgoerelsesdato, tafRanges, writer } = ctx;
 
   const ydelserHeader: RowInput = [
     createPdfTableCell('Fra o.m.', { halign: 'center', bold: true }),
@@ -205,15 +322,11 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
     createPdfTableCell('Beregnet EET', { halign: 'right', bold: true }),
   ];
 
-  const periodeMatcherRanges = (fra: ISODateString, til: ISODateString): boolean => {
-    if (normalizedEoBilagMode === 'Alle') return true;
-    if (eoBilagIndkomstYdelserRanges.length === 0) return false;
-    return eoBilagIndkomstYdelserRanges.some((range) => range.fra <= til && fra <= range.til);
-  };
+  const clampedGroups = buildMidlertidigtEetPdfGroupsForTafRanges(groups, tafRanges);
 
   let bilagIndex = 0;
-  for (const group of groups) {
-    const perioder = group.perioder.filter((periode) => periodeMatcherRanges(periode.fra, periode.til));
+  for (const group of clampedGroups) {
+    const perioder = group.perioder;
     if (perioder.length === 0) continue;
 
     if (bilagIndex === 0) {

@@ -1,6 +1,12 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { buildBeregningsperiodeRange, buildIncomeForRanges, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
+import {
+  buildBeregningsperiodeRange,
+  buildIncomeForRanges,
+  roundIncomeBenefitAmountKroner,
+  type IncomePeriodResult,
+  type IsoRange,
+} from '../helpers/indtaegtPerioder';
 import { computeTafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { buildIndkomstSkadestidspunkt } from './indkomstSkadestidspunktBeregning';
 import { buildLoenudviklingModel } from './loenudviklingBeregning';
@@ -53,13 +59,17 @@ const buildTafIndtaegterModel = (
   ranges: readonly IsoRange[]
 ): TafIndtaegterModel => {
   const indtaegter = buildIncomeForRanges(values, ranges);
+  const useWholeKronerForMidlertidigtEet = values.midlertidigtEetFraEetSiden === 'Ja';
   const employerEntries: Array<{ label: string; amountOre: MoneyOre }> = [];
   indtaegter.employers.forEach((entry) => {
     const label = entry.name !== '' ? entry.name : 'Arbejdssted';
     employerEntries.push({ label, amountOre: toOre(roundKroner(entry.amount)) });
   });
   const benefitEntries = indtaegter.benefits
-    .map((entry) => ({ label: entry.label, amountOre: toOre(roundKroner(entry.amount)) }))
+    .map((entry) => ({
+      label: entry.label,
+      amountOre: toOre(roundIncomeBenefitAmountKroner(entry.typeKey, entry.amount, useWholeKronerForMidlertidigtEet)),
+    }))
     .sort((a, b) => a.label.localeCompare(b.label, 'da-DK', { sensitivity: 'base' }));
   const entries = [...employerEntries, ...benefitEntries];
   const oevrigeKravForbeholdYdelsestyper = Array.from(

@@ -27,11 +27,9 @@ import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsop
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
-import { buildMidlertidigtEetAfgoerelseGroups, type MidlertidigtEetInsertSource } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import {
   EO_BILAG_DYNAMIC_SELECTION_KEYS,
   getEoBilagAvailability,
-  hasMidlertidigtEetYdelsestype,
   type EoBilagDynamicSelectionKey,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 
@@ -45,7 +43,6 @@ interface EOberegningTabProps {
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
-  midlertidigtEetInsertSource: MidlertidigtEetInsertSource;
 }
 
 type SystemIssueRow = Readonly<{
@@ -55,9 +52,10 @@ type SystemIssueRow = Readonly<{
   onAction?: () => void;
 }>;
 
-type BilagWarningRow = Readonly<{
+type EetIssueRow = Readonly<{
   id: string;
   message: string;
+  severity: 'error' | 'warning';
   onAction: () => void;
 }>;
 
@@ -242,7 +240,7 @@ const getCustomDebugRowMessage = (
 };
 
 const EOberegningTab = React.memo<EOberegningTabProps>((
-  { activeTab, setActiveTab, isActive, eoSnapshot = null, stamdataValues, eoValues, setEOValues, midlertidigtEetInsertSource }
+  { activeTab, setActiveTab, isActive, eoSnapshot = null, stamdataValues, eoValues, setEOValues }
 ) => {
   // ============================================================================
   // DATA FRA COMMITTED STATE + PERSISTENCE FACADE
@@ -302,14 +300,53 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     return invariant.source === 'system';
   }, []);
 
+  const midlertidigtEetFraEetSiden = eoValues.midlertidigtEetFraEetSiden === 'Ja';
+  const midlertidigtEetGroups = React.useMemo(
+    () => (midlertidigtEetFraEetSiden ? (eoSnapshot?.data?.midlertidigtEetGroups ?? []) : []),
+    [eoSnapshot?.data?.midlertidigtEetGroups, midlertidigtEetFraEetSiden]
+  );
+
+  /**
+   * EET-issues læses fra snapshot-invarianterne. Snapshottet er den autoritative kilde
+   * til både beregningsblokering og visning, så EOberegningTab ikke kalder EET-beregningen
+   * parallelt.
+   */
+  const eetLoebendeIssueRows = React.useMemo<readonly EetIssueRow[]>(() => {
+    if (!midlertidigtEetFraEetSiden) return [];
+    return (eoSnapshot?.invariants ?? [])
+      .filter((invariant) => invariant.id.startsWith('midlertidigt_eet_source:'))
+      .map((invariant) => ({
+        id: invariant.id,
+        message: invariant.message,
+        severity: invariant.severity,
+        onAction: () => {
+          navigate('/erhvervsevnetab');
+        },
+      }));
+  }, [eoSnapshot, midlertidigtEetFraEetSiden, navigate]);
+  const eetLoebendeErrorRows = React.useMemo(
+    () => eetLoebendeIssueRows.filter((row) => row.severity === 'error'),
+    [eetLoebendeIssueRows]
+  );
+  const eetLoebendeWarningRows = React.useMemo(
+    () => eetLoebendeIssueRows.filter((row) => row.severity === 'warning'),
+    [eetLoebendeIssueRows]
+  );
+
   const firstBlockingDebugErrorMessage = React.useMemo(() => {
     const firstError = errors[0];
-    if (!firstError) return null;
-    const normalizedMessage = firstError.message?.trim() || '';
-    return getCustomDebugRowMessage(firstError) ?? (normalizedMessage || firstError.label);
-  }, [errors]);
+    if (firstError) {
+      const normalizedMessage = firstError.message?.trim() || '';
+      return getCustomDebugRowMessage(firstError) ?? (normalizedMessage || firstError.label);
+    }
+    const firstEetError = eetLoebendeErrorRows[0];
+    if (firstEetError) {
+      return firstEetError.message;
+    }
+    return null;
+  }, [errors, eetLoebendeErrorRows]);
 
-  const hasBlockingDebugErrors = errors.length > 0;
+  const hasBlockingDebugErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0;
   const canDownloadSnapshotEoPdf = eoPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors;
   const canDownloadSnapshotTafPdf = tafPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors;
 
@@ -551,16 +588,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       sygeferiegodtgoerelse: true,
     }
   ), [eoValues.eoBilagSelection]);
-  const midlertidigtEetGroups = React.useMemo(
-    () => (midlertidigtEetInsertSource ? buildMidlertidigtEetAfgoerelseGroups(midlertidigtEetInsertSource) : []),
-    [midlertidigtEetInsertSource]
-  );
   const bilagAvailability = React.useMemo(
-    () => getEoBilagAvailability({
-      eoValues,
-      hasMidlertidigEetAfgoerelser: midlertidigtEetGroups.length > 0,
-    }),
-    [eoValues, midlertidigtEetGroups]
+    () => getEoBilagAvailability({ eoValues }),
+    [eoValues]
   );
   const selectedElements = React.useMemo(() => {
     const next = { ...baseSelectedElements };
@@ -573,32 +603,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   }, [baseSelectedElements, bilagAvailability]);
   const loenindkomstOgOffentligeYdelserIndgaar =
     eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
-  const bilagWarningRows = React.useMemo<readonly BilagWarningRow[]>(() => {
-    if (
-      !selectedElements.midlertidigEet ||
-      !bilagAvailability.midlertidigEet.enabled ||
-      hasMidlertidigtEetYdelsestype(eoValues)
-    ) {
-      return [];
-    }
-
-    return [
-      {
-        id: 'bilag.midlertidigEet.udenOffentligYdelse',
-        message: 'Bilaget Midlertidig EET er valgt, men der er ikke indtastet nogen offentlig ydelse med ydelsestypen Midlertidigt EET.',
-        onAction: () => handleNavigate(
-          {
-            kind: 'erstatningsopgoerelse-tab',
-            tabId: 'offentlige_ydelser',
-            tabName: 'Offentlige ydelser',
-            sectionTitle: 'Offentlige ydelser',
-          },
-          'bilag.midlertidigEet.udenOffentligYdelse'
-        ),
-      },
-    ];
-  }, [bilagAvailability.midlertidigEet.enabled, eoValues, handleNavigate, selectedElements.midlertidigEet]);
-
   const updateSelectedElement = React.useCallback(
     (
       key: Exclude<keyof ErstatningsopgoerelseValues['eoBilagSelection'], 'opgoerelse'>,
@@ -865,7 +869,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     ));
   }, []);
 
-  const renderBilagWarningRows = React.useCallback((rows: readonly BilagWarningRow[]) => {
+  const renderEetLoebendeIssueRows = React.useCallback((rows: readonly EetIssueRow[]) => {
     return rows.map((row) => (
       <Box
         key={row.id}
@@ -878,7 +882,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         <Typography className="row--text">{row.message}</Typography>
         <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
           <Typography className="row--text">
-            Offentlige ydelser {'->'}{' '}
+            Erhvervsevnetab {'->'}{' '}
           </Typography>
           <Typography
             className="row--text icon-text-link"
@@ -894,9 +898,13 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
               font: 'inherit',
             }}
           >
-            Offentlige ydelser
+            Løbende ydelser
           </Typography>
-          <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />
+          {row.severity === 'error' ? (
+            <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />
+          ) : (
+            <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />
+          )}
         </Box>
       </Box>
     ));
@@ -941,7 +949,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   return (
     <Box>
-      {(pdfDownloadErrorMessage || systemIssueRows.length > 0 || errors.length > 0 || warnings.length > 0 || bilagWarningRows.length > 0) && (
+      {(pdfDownloadErrorMessage || systemIssueRows.length > 0 || errors.length > 0 || warnings.length > 0 || eetLoebendeIssueRows.length > 0) && (
         <ContentBox>
           <Typography className="section-header">Fejl og advarsler</Typography>
           {pdfDownloadErrorMessage && (
@@ -960,8 +968,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
           )}
           {renderSystemIssueRows(systemIssueRows)}
           {renderDebugRows(errors, 'error')}
+          {renderEetLoebendeIssueRows(eetLoebendeErrorRows)}
           {renderDebugRows(warnings, 'warning')}
-          {renderBilagWarningRows(bilagWarningRows)}
+          {renderEetLoebendeIssueRows(eetLoebendeWarningRows)}
         </ContentBox>
       )}
       <ContentBox>

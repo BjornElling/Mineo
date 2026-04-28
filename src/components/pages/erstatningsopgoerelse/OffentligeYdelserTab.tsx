@@ -3,13 +3,13 @@ import { Box, Typography } from '@mui/material';
 import { z } from 'zod';
 import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
 import ContentBox from '../../layout/ContentBox';
-import type { ErhvervsevnetabComposedValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { formatCurrency } from '../../../utils/formatUtils';
 import StyledDateField from '../../inputs/StyledDateField';
+import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import InlineActionButton from '../../inputs/InlineActionButton';
 import { buildSygedagpengeRowsForRange } from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
-import { buildMidlertidigtEetAfgoerelseGroups } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { insertOffentligeYdelserRowsBeforeTrailingEmpty } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserRowInsertion';
 import { dateRanges_offentligeYdelser } from '../../../config/dateRanges';
 import { isISODateString, type ISODateString } from '../../../types/branded';
@@ -21,6 +21,8 @@ import {
   removeOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
 } from '../../../utils/safeSessionStorage';
+import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import type { CommitEvent } from '../../../types/fieldEvents';
 
 const offentligeYdelserHelpersSessionSchema = z.object({
   sygedagpengeFraDato: z.preprocess(
@@ -35,25 +37,17 @@ const offentligeYdelserHelpersSessionSchema = z.object({
 
 type OffentligeYdelserHelpersSessionState = z.infer<typeof offentligeYdelserHelpersSessionSchema>;
 
-type MidlertidigtEetAfgoerelseGruppe = Readonly<{
-  afgoerelsesdato: string;
-  rowIds: readonly string[];
-}>;
-
 type Props = Readonly<{
   rows: OffentligeYdelserRow[];
   onRowsChange: (rows: OffentligeYdelserRow[]) => void;
-  onMidlertidigtEetGroupsChange: (groups: readonly MidlertidigtEetAfgoerelseGruppe[]) => void;
-  midlertidigtEetInsertSource: Readonly<{
-    eetValues: ErhvervsevnetabComposedValues;
-    skadedato: ISODateString | undefined;
-  }>;
+  midlertidigtEetFraEetSiden: ErstatningsopgoerelseValues['midlertidigtEetFraEetSiden'];
+  setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
 }>;
 
 /**
  * Offentlige ydelser-fanen - modtagne ydelser
  */
-const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, onMidlertidigtEetGroupsChange, midlertidigtEetInsertSource }: Props) => {
+const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFraEetSiden, setEOValues }: Props) => {
   const sygedagpengeFraInputRef = React.useRef<HTMLInputElement | null>(null);
   const shouldFocusSygedagpengeFraRef = React.useRef(false);
   const suppressSygedagpengeFieldCommitRef = React.useRef(false);
@@ -61,8 +55,6 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, onMidlertidigtEet
   const [sygedagpengeTilDato, setSygedagpengeTilDato] = React.useState<ISODateString | undefined>(undefined);
   const [sygedagpengeFraError, setSygedagpengeFraError] = React.useState<string | undefined>(undefined);
   const [sygedagpengeTilError, setSygedagpengeTilError] = React.useState<string | undefined>(undefined);
-  const [midlertidigtEetPendingGroups, setMidlertidigtEetPendingGroups] = React.useState<{ groups: MidlertidigtEetAfgoerelseGruppe[]; rows: OffentligeYdelserRow[] }>({ groups: [], rows: [] });
-  const [midlertidigtEetNoRowsDialogOpen, setMidlertidigtEetNoRowsDialogOpen] = React.useState(false);
   const [midlertidigtEetConfirmDialogOpen, setMidlertidigtEetConfirmDialogOpen] = React.useState(false);
 
   const readHelpersSessionState = React.useCallback((): OffentligeYdelserHelpersSessionState => {
@@ -144,42 +136,6 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, onMidlertidigtEet
     });
   }, [onRowsChange, rows, sygedagpengeFraDato, sygedagpengeTilDato]);
 
-  const applyMidlertidigtEetGroups = React.useCallback((groups: readonly MidlertidigtEetAfgoerelseGruppe[], generatedRows: readonly OffentligeYdelserRow[]) => {
-    const rowsUdenMidlertidigtEet = rows.filter((row) => row.ydelsestype?.trim() !== 'midlertidigt_eet');
-    onRowsChange(insertOffentligeYdelserRowsBeforeTrailingEmpty(rowsUdenMidlertidigtEet, generatedRows));
-    onMidlertidigtEetGroupsChange(groups);
-  }, [onRowsChange, onMidlertidigtEetGroupsChange, rows]);
-
-  const handleMidlertidigtEetInsertConfirm = React.useCallback(() => {
-    applyMidlertidigtEetGroups(midlertidigtEetPendingGroups.groups, midlertidigtEetPendingGroups.rows);
-    setMidlertidigtEetPendingGroups({ groups: [], rows: [] });
-    setMidlertidigtEetConfirmDialogOpen(false);
-  }, [applyMidlertidigtEetGroups, midlertidigtEetPendingGroups]);
-
-  const handleMidlertidigtEetInsert = React.useCallback(() => {
-    const { eetValues, skadedato } = midlertidigtEetInsertSource;
-    const afgoerelseGroups = buildMidlertidigtEetAfgoerelseGroups({ eetValues, skadedato });
-    const generatedRows = afgoerelseGroups.flatMap((g) => g.rows);
-    const storedGroups = afgoerelseGroups.map((g) => ({
-      afgoerelsesdato: g.afgoerelsesdato,
-      rowIds: g.rows.map((r) => r.id),
-    }));
-
-    if (generatedRows.length === 0) {
-      setMidlertidigtEetNoRowsDialogOpen(true);
-      return;
-    }
-
-    const hasExistingMidlertidigtEetRows = rows.some((row) => row.ydelsestype?.trim() === 'midlertidigt_eet');
-    if (!hasExistingMidlertidigtEetRows) {
-      applyMidlertidigtEetGroups(storedGroups, generatedRows);
-      return;
-    }
-
-    setMidlertidigtEetPendingGroups({ groups: storedGroups, rows: generatedRows });
-    setMidlertidigtEetConfirmDialogOpen(true);
-  }, [applyMidlertidigtEetGroups, midlertidigtEetInsertSource, rows]);
-
   const handleSygedagpengeFraError = React.useCallback((error: ReportableFieldError | undefined) => {
     if (suppressSygedagpengeFieldCommitRef.current) return;
     const nextMessage = getReportableFieldErrorMessage(error);
@@ -198,6 +154,63 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, onMidlertidigtEet
     && !sygedagpengeFraError
     && !sygedagpengeTilError;
 
+  const isMidlertidigtEetFraEetSiden = midlertidigtEetFraEetSiden === 'Ja';
+
+  /**
+   * Atomisk commit af togglen + sideopgaver.
+   * Når togglen aktiveres, ryddes manuelle midlertidigt_eet-rækker væk fra tabellen og
+   * bilag-checkboxen `midlertidigEet` tændes. Når togglen deaktiveres, slukkes
+   * bilag-checkboxen igen. Alle ændringer sker i én setEOValues-opdatering for at undgå
+   * inkonsistente mellemtilstande i snapshot-revisionen.
+   */
+  const commitMidlertidigtEetToggle = React.useCallback((nextChecked: boolean) => {
+    setEOValues((prev) => {
+      if (nextChecked) {
+        const filteredRows = (prev.offentligeYdelserRows ?? []).filter(
+          (row) => row.ydelsestype?.trim() !== 'midlertidigt_eet'
+        );
+        return {
+          ...prev,
+          midlertidigtEetFraEetSiden: 'Ja',
+          offentligeYdelserRows: filteredRows,
+          midlertidigtEETAfgoerelseGrupper: [],
+          eoBilagSelection: {
+            ...prev.eoBilagSelection,
+            midlertidigEet: true,
+          },
+        };
+      }
+      return {
+        ...prev,
+        midlertidigtEetFraEetSiden: 'Nej',
+        eoBilagSelection: {
+          ...prev.eoBilagSelection,
+          midlertidigEet: false,
+        },
+      };
+    });
+  }, [setEOValues]);
+
+  const handleMidlertidigtEetToggleCommit = React.useCallback((event: CommitEvent<boolean>) => {
+    const nextChecked = event.target.value;
+    if (nextChecked === isMidlertidigtEetFraEetSiden) return;
+    if (!nextChecked) {
+      commitMidlertidigtEetToggle(false);
+      return;
+    }
+    const hasExistingMidlertidigtEetRows = rows.some((row) => row.ydelsestype?.trim() === 'midlertidigt_eet');
+    if (!hasExistingMidlertidigtEetRows) {
+      commitMidlertidigtEetToggle(true);
+      return;
+    }
+    setMidlertidigtEetConfirmDialogOpen(true);
+  }, [commitMidlertidigtEetToggle, isMidlertidigtEetFraEetSiden, rows]);
+
+  const handleMidlertidigtEetConfirm = React.useCallback(() => {
+    commitMidlertidigtEetToggle(true);
+    setMidlertidigtEetConfirmDialogOpen(false);
+  }, [commitMidlertidigtEetToggle]);
+
   return (
     <>
       <ContentBox className="content-box">
@@ -211,6 +224,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, onMidlertidigtEet
           derivedByRowId={derivedByRowId}
           onTableDataChange={onRowsChange}
           saveOrderPath="erstatningsopgoerelse.offentligeYdelserRows"
+          disableMidlertidigtEetOption={isMidlertidigtEetFraEetSiden}
         />
       </ContentBox>
 
@@ -253,42 +267,32 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, onMidlertidigtEet
         </Box>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Indsæt midlertidigt EET fra Erhvervsevnetab-siden</Typography>
+          <Typography className="row--text">Midlertidigt EET indsættes fra Erhvervsevnetab-siden</Typography>
           <Box className="row--label-right-hover__content">
-            <InlineActionButton onClick={handleMidlertidigtEetInsert}>
-              Indsæt
-            </InlineActionButton>
+            <StyledToggleSwitch
+              checked={isMidlertidigtEetFraEetSiden}
+              onCommit={handleMidlertidigtEetToggleCommit}
+              ariaLabel="Midlertidigt EET indsættes fra Erhvervsevnetab-siden"
+            />
           </Box>
         </Box>
       </ContentBox>
 
       <ConfirmationDialog
-        open={midlertidigtEetNoRowsDialogOpen}
-        title="Ingen midlertidig EET"
-        message="Der er ingen perioder med midlertidigt erhvervsevnetab at indsætte"
-        confirmText="OK"
-        hideCancelButton
-        onConfirm={() => setMidlertidigtEetNoRowsDialogOpen(false)}
-      />
-
-      <ConfirmationDialog
         open={midlertidigtEetConfirmDialogOpen}
-        title="Erstat midlertidigt EET"
+        title="Slet manuelle indtastninger af Midlertidigt EET"
         message={(
           <>
-            Dette vil erstatte alle indtastninger af midlertidigt EET i tabellen.
+            Når midlertidigt EET indsættes fra Erhvervsevnetab-siden, kan der ikke samtidig stå manuelle rækker med ydelsestypen &quot;Midlertidigt EET&quot; i tabellen ovenfor. Disse rækker vil blive slettet.
             <br />
             <br />
             Bekræft venligst.
           </>
         )}
-        confirmText="Ja, indsæt"
+        confirmText="Ja, slet og aktivér"
         cancelText="Annuller"
-        onConfirm={handleMidlertidigtEetInsertConfirm}
-        onCancel={() => {
-          setMidlertidigtEetConfirmDialogOpen(false);
-          setMidlertidigtEetPendingGroups({ groups: [], rows: [] });
-        }}
+        onConfirm={handleMidlertidigtEetConfirm}
+        onCancel={() => setMidlertidigtEetConfirmDialogOpen(false)}
       />
     </>
   );

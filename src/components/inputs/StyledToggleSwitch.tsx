@@ -46,6 +46,9 @@ interface StyledToggleSwitchProps {
   labelPlacement?: 'start' | 'end' | 'top' | 'bottom';
   name?: string;
   value?: string;
+  /** Sættes når togglen bruges uden synligt label (label er placeret som søsker-element).
+   *  Giver assistive technologies — og tests — en stabil accessible name. */
+  ariaLabel?: string;
 }
 
 const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledToggleSwitchProps>(({
@@ -56,6 +59,7 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
   labelPlacement = 'end',
   name,
   value,
+  ariaLabel,
 }, ref) => {
   // State for shake-animation
   const [isShaking, setIsShaking] = React.useState(false);
@@ -155,6 +159,7 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
         input: {
           onKeyDown: handleKeyDown,
           'aria-checked': checked,
+          ...(ariaLabel ? { 'aria-label': ariaLabel } : {}),
         },
       }}
       sx={{

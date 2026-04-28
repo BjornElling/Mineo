@@ -10,9 +10,6 @@ import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerel
 import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
-import type { MidlertidigtEetInsertSource } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 
 const { collectAllDebugRowsMock } = vi.hoisted(() => ({
   collectAllDebugRowsMock: vi.fn(),
@@ -65,29 +62,6 @@ const createEmployment = (overrides: Record<string, unknown> = {}) => ({
   id: 'af-base',
   ...overrides,
 });
-
-const midlertidigtEetInsertSource: MidlertidigtEetInsertSource = {
-  eetValues: {
-    ...ERHVERVSEVNETAB_INITIAL_VALUES,
-    ...FAELLES_AARSLOEN_INITIAL_VALUES,
-    skadelidteFodselsdato: '1980-01-01',
-    beregningsdato: '2026-02-27',
-    aslAarsloen: { kind: 'number', value: 489000 },
-    aslAfgoerelser: [
-      {
-        id: 'a1',
-        afgoerelsesDato: '01-07-2023',
-        virkningsDato: '01-02-2023',
-        eetPct: '45',
-        kapDato: undefined,
-        kapPct: undefined,
-        afgoerelseType: 'Midlertidig',
-        tidlKapDato: undefined,
-      },
-    ],
-  },
-  skadedato: '2019-04-01',
-};
 
 describe('EOberegningTab kontroltjek', () => {
   const baseStamdataValues = structuredClone(STAMDATA_INITIAL_VALUES);
@@ -148,34 +122,10 @@ describe('EOberegningTab kontroltjek', () => {
     );
   });
 
-  it('viser advarsel når Midlertidig EET-bilag er valgt uden offentlig ydelse af typen Midlertidigt EET', () => {
-    const setActiveTab = vi.fn();
-    const eoValues = {
-      ...baseEoValues,
-      eoBilagSelection: {
-        ...baseEoValues.eoBilagSelection,
-        midlertidigEet: true,
-      },
-      offentligeYdelserRows: [],
-    };
-
-    renderTab({
-      activeTab: 'beregning',
-      setActiveTab,
-      isActive: true,
-      eoSnapshot: null,
-      stamdataValues: baseStamdataValues,
-      eoValues,
-      setEOValues: baseSetEoValues,
-      midlertidigtEetInsertSource,
-    });
-
-    expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
-    expect(screen.getByText('Bilaget Midlertidig EET er valgt, men der er ikke indtastet nogen offentlig ydelse med ydelsestypen Midlertidigt EET.')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Offentlige ydelser' }));
-    expect(setActiveTab).toHaveBeenCalledWith('offentlige_ydelser');
-  });
+  // Tidligere test: "viser advarsel når Midlertidig EET-bilag er valgt uden offentlig ydelse af typen Midlertidigt EET".
+  // Advarslen er fjernet, fordi koblingen mellem bilag-checkbox og manuelle midlertidigt_eet-rækker ikke
+  // længere er meningsfuld: når togglen `midlertidigtEetFraEetSiden` er aktiveret, styres kilden af
+  // EET-siden, og når togglen er deaktiveret, er bilaget alligevel disabled (jf. getEoBilagAvailability).
 
   it('viser brugerens manglende indtastning som navigerbar fejl og ikke som systemfejl', () => {
     collectAllDebugRowsMock.mockReturnValue({

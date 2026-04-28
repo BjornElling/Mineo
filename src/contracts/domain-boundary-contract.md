@@ -157,12 +157,13 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
    - `erhvervsevnetab`
    - `faellesAarsloen`
    - `stamdata`
-2. Undtagelsen gælder kun knappen, der indsætter `midlertidigt_eet`-rækker i EO-tabellen.
+2. Undtagelsen gælder togglen "Midlertidigt EET indsættes fra Erhvervsevnetab-siden" på *Offentlige ydelser*-fanen, samt den virtuelle injection denne toggle aktiverer i EO-beregning og PDF-bilag "Midlertidig EET".
 3. Importen skal kalde samme kanoniske beregningsfunktion som siden `Erhvervsevnetab -> Løbende ydelser`.
 4. Importen må ikke implementeres som en parallel EO-specifik kopi af EET-beregningen.
 5. Importen må ikke bruge differencekravs-varianten af løbende ydelser.
 6. Importen må kun medtage rækker fra afgørelser med typen `Midlertidig` eller `Delvist endelig`; rækker fra `Endelig` må ikke indgå.
 7. Undtagelsen giver kun read-only adgang; EO må ikke skrive tilbage til EET-relaterede sektioner.
+8. Virtuelle rækker injiceres aldrig i committed form-state. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen er aktiv, filtreres eksisterende manuelle `midlertidigt_eet`-rækker væk fra tabellen, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en — så der altid er præcis én kilde til midlertidigt EET-data ad gangen.
 
 ---
 

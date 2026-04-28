@@ -1,7 +1,7 @@
 import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
-import { buildMidlertidigtEetRowsFromEet } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
+import { buildMidlertidigtEetAfgoerelseGroups } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { computeEetLoebendeYdelser } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { isoToDanish } from '../../../types/branded';
 
@@ -45,13 +45,13 @@ const makeValues = (): ErhvervsevnetabComposedValues => ({
   ],
 });
 
-describe('buildMidlertidigtEetRowsFromEet', () => {
+describe('buildMidlertidigtEetAfgoerelseGroups', () => {
   it('bygger én EO-række per løbende ydelseslinje for midlertidige og delvist endelige afgørelser', () => {
     const eetValues = makeValues();
-    const rows = buildMidlertidigtEetRowsFromEet({
+    const rows = buildMidlertidigtEetAfgoerelseGroups({
       eetValues,
       skadedato: '2024-07-01',
-    });
+    }).flatMap((g) => g.rows);
     const computation = computeEetLoebendeYdelser({
       erhvervsevnetab: eetValues,
       skadedato: '2024-07-01',
@@ -78,10 +78,10 @@ describe('buildMidlertidigtEetRowsFromEet', () => {
 
   it('indsætter periodetotalbeløbet uændret og ikke som et afledt dagsbeløb', () => {
     const eetValues = makeValues();
-    const rows = buildMidlertidigtEetRowsFromEet({
+    const rows = buildMidlertidigtEetAfgoerelseGroups({
       eetValues,
       skadedato: '2024-07-01',
-    });
+    }).flatMap((g) => g.rows);
     const computation = computeEetLoebendeYdelser({
       erhvervsevnetab: eetValues,
       skadedato: '2024-07-01',
@@ -113,11 +113,11 @@ describe('buildMidlertidigtEetRowsFromEet', () => {
       },
     ];
 
-    const rows = buildMidlertidigtEetRowsFromEet({
+    const groups = buildMidlertidigtEetAfgoerelseGroups({
       eetValues: values,
       skadedato: '2024-07-01',
     });
 
-    expect(rows).toEqual([]);
+    expect(groups).toEqual([]);
   });
 });

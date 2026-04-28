@@ -170,9 +170,8 @@ const hasSygeferiegodtgoerelseEoBilagData = (values: ErstatningsopgoerelseValues
 
 export const getEoBilagAvailability = (params: Readonly<{
   eoValues: ErstatningsopgoerelseValues;
-  hasMidlertidigEetAfgoerelser: boolean;
 }>): EoBilagAvailabilityMap => {
-  const { eoValues, hasMidlertidigEetAfgoerelser } = params;
+  const { eoValues } = params;
   const eoBilagMode = eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
   const eoBilagRanges = buildEoBilagIndkomstYdelserRanges(eoValues, eoBilagMode);
   const kanViseIndkomstOgYdelserBilag = shouldRenderEoIndkomstOgYdelserBilag(eoValues, eoBilagMode);
@@ -181,6 +180,7 @@ export const getEoBilagAvailability = (params: Readonly<{
   const harOffentligeYdelser = kanViseIndkomstOgYdelserBilag && hasOffentligeYdelserEoBilagData(eoValues, eoBilagMode, eoBilagRanges);
   const harRegulering = hasReguleringEoBilagData(eoValues);
   const harSygeferiegodtgoerelse = hasSygeferiegodtgoerelseEoBilagData(eoValues);
+  const midlertidigtEetFraEetSiden = eoValues.midlertidigtEetFraEetSiden === 'Ja';
 
   return {
     loenindkomst: harLoenindkomst
@@ -199,11 +199,11 @@ export const getEoBilagAvailability = (params: Readonly<{
             ? EO_BILAG_PERIOD_FILTER_REASON
             : 'Der er ingen fejlfrie ydelsesrækker med beløb inden for det valgte bilagsfilter.',
         },
-    midlertidigEet: hasMidlertidigEetAfgoerelser
+    midlertidigEet: midlertidigtEetFraEetSiden
       ? { enabled: true }
       : {
           enabled: false,
-          disabledReason: 'Der er ikke indtastet midlertidig afgørelse på erhvervsevnetab-siden.',
+          disabledReason: 'Forudsætter at midlertidigt EET indsættes fra Erhvervsevnetab-siden.',
         },
     regulering: kanViseIndkomstOgYdelserBilag && harRegulering
       ? { enabled: true }

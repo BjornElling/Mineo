@@ -46,6 +46,13 @@ export type OffentligeYdelserTableProps = {
   onTableDataChange?: (data: OffentligeYdelserRow[]) => void;
   onValidationChange?: (summary: OffentligeYdelserTableValidationSummary) => void;
   saveOrderPath?: string;
+  /**
+   * Når sand, deaktiveres ydelsestype-optionen `midlertidigt_eet` i dropdown'en.
+   * Anvendes når togglen "Midlertidigt EET indsættes fra Erhvervsevnetab-siden"
+   * er aktiveret — så er manuel indtastning af midlertidigt_eet-rækker ikke mulig
+   * for at bevare invariant: kun én kilde til midlertidigt EET-data ad gangen.
+   */
+  disableMidlertidigtEetOption?: boolean;
 };
 
 const MIN_VISIBLE_ROWS = 2;
@@ -82,7 +89,7 @@ const fingerprintTableData = (rows: readonly OffentligeYdelserRow[]): string => 
 };
 
 const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTableHandle, OffentligeYdelserTableProps>(
-  ({ tableData, derivedByRowId, onTableDataChange, onValidationChange, saveOrderPath }, ref) => {
+  ({ tableData, derivedByRowId, onTableDataChange, onValidationChange, saveOrderPath, disableMidlertidigtEetOption = false }, ref) => {
     const headers = React.useMemo(() => getOffentligeYdelserTableHeaderNodes(), []);
     const defaultTableData = React.useMemo<OffentligeYdelserRow[]>(
       () => [
@@ -223,10 +230,17 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       return [
         ...keysBeforeTail.map((key) => ({ value: key, label: ydelsestyper[key].label })),
         { kind: 'divider', id: 'ydelsestype-divider-foer-midlertidigt-eet' },
-        { value: 'midlertidigt_eet', label: ydelsestyper.midlertidigt_eet.label },
+        {
+          value: 'midlertidigt_eet',
+          label: ydelsestyper.midlertidigt_eet.label,
+          disabled: disableMidlertidigtEetOption,
+          disabledReason: disableMidlertidigtEetOption
+            ? 'Midlertidigt EET indsættes automatisk fra Erhvervsevnetab-siden. Slå funktionen fra i "Tilføj særligt" for at indtaste manuelt.'
+            : undefined,
+        },
         { value: 'andet', label: ydelsestyper.andet.label },
       ];
-    }, []);
+    }, [disableMidlertidigtEetOption]);
 
     type YdelsestypeKey = (typeof ydelsestypeKeys)[number];
 

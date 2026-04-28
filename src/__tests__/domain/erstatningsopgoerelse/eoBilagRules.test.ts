@@ -25,7 +25,6 @@ describe('getEoBilagAvailability', () => {
 
     const result = getEoBilagAvailability({
       eoValues: values,
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.loenindkomst.enabled).toBe(false);
@@ -52,7 +51,6 @@ describe('getEoBilagAvailability', () => {
 
     const result = getEoBilagAvailability({
       eoValues: makeValues({ loenindkomstAnsaettelsesforhold: [employment] }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.loenindkomst.enabled).toBe(true);
@@ -61,7 +59,6 @@ describe('getEoBilagAvailability', () => {
   it('deaktiverer offentlige ydelser når tabellen er tom', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({ offentligeYdelserRows: [] }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.offentligeYdelser.enabled).toBe(false);
@@ -75,7 +72,6 @@ describe('getEoBilagAvailability', () => {
           { id: 'row-1', fraDato: '01-01-2024', tilDato: '', ydelse: undefined, tillaeg: undefined, ydelsestype: '' },
         ],
       }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.offentligeYdelser.enabled).toBe(false);
@@ -88,20 +84,26 @@ describe('getEoBilagAvailability', () => {
           { id: 'row-1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
         ],
       }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.offentligeYdelser.enabled).toBe(true);
   });
 
-  it('deaktiverer midlertidig EET når der ikke findes midlertidige eller delvist endelige afgørelser', () => {
+  it('deaktiverer midlertidig EET når togglen "Midlertidigt EET fra Erhvervsevnetab-siden" ikke er aktiveret', () => {
     const result = getEoBilagAvailability({
-      eoValues: makeValues(),
-      hasMidlertidigEetAfgoerelser: false,
+      eoValues: makeValues({ midlertidigtEetFraEetSiden: 'Nej' }),
     });
 
     expect(result.midlertidigEet.enabled).toBe(false);
-    expect(result.midlertidigEet.disabledReason).toBe('Der er ikke indtastet midlertidig afgørelse på erhvervsevnetab-siden.');
+    expect(result.midlertidigEet.disabledReason).toBe('Forudsætter at midlertidigt EET indsættes fra Erhvervsevnetab-siden.');
+  });
+
+  it('aktiverer midlertidig EET når togglen "Midlertidigt EET fra Erhvervsevnetab-siden" er aktiveret', () => {
+    const result = getEoBilagAvailability({
+      eoValues: makeValues({ midlertidigtEetFraEetSiden: 'Ja' }),
+    });
+
+    expect(result.midlertidigEet.enabled).toBe(true);
   });
 
   it('deaktiverer regulering ved beregningsperiode når alle ansættelsesforhold mangler reguleringsvalg', () => {
@@ -112,7 +114,6 @@ describe('getEoBilagAvailability', () => {
         tafBeregningsperiodeTil: '2024-01-31',
         loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
       }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.regulering.enabled).toBe(false);
@@ -132,7 +133,6 @@ describe('getEoBilagAvailability', () => {
         tafBeregningsperiodeTil: '2024-01-31',
         loenindkomstAnsaettelsesforhold: [employment],
       }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.regulering.enabled).toBe(true);
@@ -169,7 +169,6 @@ describe('getEoBilagAvailability', () => {
           { id: 'row-2', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
         ],
       }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.loenindkomst.enabled).toBe(false);
@@ -187,7 +186,6 @@ describe('getEoBilagAvailability', () => {
           loenudviklingBeregningsgrundlag: undefined,
         },
       }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.regulering.enabled).toBe(false);
@@ -199,7 +197,6 @@ describe('getEoBilagAvailability', () => {
   it('deaktiverer SH-dage når TAF ikke beregnes som arbejdsdage', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({ beregnesUdFra: 'Angivet månedsløn' }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.shDage.enabled).toBe(false);
@@ -209,7 +206,6 @@ describe('getEoBilagAvailability', () => {
   it('aktiverer SH-dage når TAF beregnes som arbejdsdage', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({ beregnesUdFra: 'Angivet dagsløn' }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.shDage.enabled).toBe(true);
@@ -233,7 +229,6 @@ describe('getEoBilagAvailability', () => {
           },
         ],
       }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.sygeferiegodtgoerelse.enabled).toBe(false);
@@ -260,7 +255,6 @@ describe('getEoBilagAvailability', () => {
           },
         ],
       }),
-      hasMidlertidigEetAfgoerelser: true,
     });
 
     expect(result.sygeferiegodtgoerelse.enabled).toBe(true);

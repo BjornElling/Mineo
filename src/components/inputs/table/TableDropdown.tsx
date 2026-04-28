@@ -21,7 +21,20 @@ import { TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './tableInputStyles';
  *
  * If you change the wrapper attribute or key handling, review `tableKeyboardNavigation.ts` as well.
  */
-export type TableDropdownValueOption = Readonly<{ value: string; label: string }>;
+export type TableDropdownValueOption = Readonly<{
+  value: string;
+  label: string;
+  /**
+   * Når sand, kan optionen ikke vælges (vises stadig i listen). Bruges fx når en
+   * anden indstilling et andet sted i UI'et tager funktionen som denne option dækker.
+   */
+  disabled?: boolean;
+  /**
+   * Tooltip-tekst der vises når brugeren holder over en disabled option.
+   * Kun relevant når `disabled` er `true`.
+   */
+  disabledReason?: string;
+}>;
 export type TableDropdownDividerOption = Readonly<{ kind: 'divider'; id: string }>;
 export type TableDropdownOption = TableDropdownValueOption | TableDropdownDividerOption;
 
@@ -139,6 +152,27 @@ const TableDropdown = React.memo(
       return 'kind' in option && option.kind === 'divider';
     }, []);
 
+    /**
+     * Render af én value-option som direkte MenuItem, fælles for grid- og loose-varianter.
+     * MUI Select kræver at value-options ligger som direkte MenuItem-children; wrapper vi en
+     * disabled option i fx Tooltip/span, tæller MUI ikke værdien som tilgængelig og advarer
+     * fejlagtigt om out-of-range value for eksisterende rækker.
+     */
+    const renderValueOptionMenuItem = React.useCallback((opt: TableDropdownValueOption) => {
+      const disabledReason = opt.disabled ? opt.disabledReason : undefined;
+      return (
+        <MenuItem
+          key={opt.value}
+          value={opt.value}
+          disabled={opt.disabled}
+          title={disabledReason}
+          aria-label={disabledReason ? `${opt.label}. ${disabledReason}` : opt.label}
+        >
+          {opt.label}
+        </MenuItem>
+      );
+    }, []);
+
     const handleChange = React.useCallback(
       (event: SelectChangeEvent<string>) => {
         if (readOnly) return;
@@ -208,6 +242,7 @@ const TableDropdown = React.memo(
         const matchingIndices: number[] = [];
         options.forEach((opt, index) => {
           if (isDividerOption(opt)) return;
+          if (opt.disabled) return;
           const label = opt.label.trim();
           if (label.length === 0) return;
           const firstChar = label.charAt(0).toLocaleLowerCase('da-DK');
@@ -253,6 +288,7 @@ const TableDropdown = React.memo(
         if (allowEmpty && placeholder === label) return '';
         const matched = options.find((opt) => !isDividerOption(opt) && opt.label === label);
         if (!matched || isDividerOption(matched)) return null;
+        if (matched.disabled) return null;
         return matched.value;
       },
       [allowEmpty, isDividerOption, options, placeholder]
@@ -365,11 +401,7 @@ const TableDropdown = React.memo(
                   if (isDividerOption(opt)) {
                     return <StyledDropdown.Divider key={opt.id} />;
                   }
-                  return (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  );
+                  return renderValueOptionMenuItem(opt);
                 })}
               </StyledDropdown>
             ) : (
@@ -387,11 +419,7 @@ const TableDropdown = React.memo(
                   if (isDividerOption(opt)) {
                     return <StyledDropdown.Divider key={opt.id} />;
                   }
-                  return (
-                    <MenuItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </MenuItem>
-                  );
+                  return renderValueOptionMenuItem(opt);
                 })}
               </StyledDropdown>
             )
@@ -499,11 +527,7 @@ const TableDropdown = React.memo(
                 if (isDividerOption(opt)) {
                   return <Divider key={opt.id} component="li" role="separator" />;
                 }
-                return (
-                  <MenuItem key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </MenuItem>
-                );
+                return renderValueOptionMenuItem(opt);
               })}
             </Select>
           )}

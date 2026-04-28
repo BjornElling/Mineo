@@ -570,8 +570,7 @@ export const generateErstatningsopgoerelsePdf = (
       startEoBilagPage,
       renderSubheader,
       formatAfgoerelsesdato: formatDateLong,
-      eoBilagIndkomstYdelserMode,
-      eoBilagIndkomstYdelserRanges,
+      tafRanges: model.tafRanges,
       writer,
     });
   }

@@ -37,7 +37,7 @@ import {
   toOre,
 } from '../snapshot/eoPresentationModel';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
-import { buildIncomeCalculationContext, buildIncomeForRanges } from '../helpers/indtaegtPerioder';
+import { buildIncomeCalculationContext, buildIncomeForRanges, roundIncomeBenefitAmountKroner } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { roundByMethod } from '../../../utils/rounding';
 import { scaleMoneyOre } from '../shared/eoMoney';
@@ -344,6 +344,7 @@ export const buildTafPerYearBuildOutcome = (
   // 2. Byg TAF-ranges og bestem alle relevante årstal
   const tafRanges = options.tafRanges;
   const incomeContext = buildIncomeCalculationContext(eoValues, tafRanges);
+  const useWholeKronerForMidlertidigtEet = eoValues.midlertidigtEetFraEetSiden === 'Ja';
 
   // Samler årstal fra segmenter OG TAF-ranges (fradrag kan dække år uden segmenter)
   const allYearsSet = new Set<number>(yearSegmentsMap.keys());
@@ -400,7 +401,7 @@ export const buildTafPerYearBuildOutcome = (
     );
     for (const ben of sortedBenefits) {
       if (ben.amount <= 0) continue;
-      const amountOre = toOre(roundKroner(ben.amount));
+      const amountOre = toOre(roundIncomeBenefitAmountKroner(ben.typeKey, ben.amount, useWholeKronerForMidlertidigtEet));
       deductions.push({ label: ben.label, amountOre });
     }
     if (harValgtSygeferiegodtgoerelse && sygeferiegodtgoerelseByYear.has(year)) {

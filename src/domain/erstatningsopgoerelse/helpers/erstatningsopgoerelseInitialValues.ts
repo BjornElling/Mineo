@@ -141,6 +141,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
 
   // Offentlige ydelser
   offentligeYdelserRows: [],
+  midlertidigtEetFraEetSiden: 'Nej',
 
   // Indtægt før skaden
   komprimerBeregningEfterFoersteOpgoerelse: 'Ja',

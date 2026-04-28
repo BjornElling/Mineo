@@ -92,16 +92,26 @@ const Erstatningsopgoerelse = React.memo(() => {
   );
   const setFormValues = form.setValues;
 
+  const midlertidigtEetInsertSource = useMidlertidigtEetInsertSource();
+
   // Intentional split: useSectionRevisionSelector/useFieldErrorRevisionSelector (hooks) subscribe to
   // store changes and trigger re-renders when revisions change. buildDebugRevision and buildDebugSnapshot
   // use snapshot functions (getState() reads) instead of hooks — this gives consistent state at
   // call-time without creating hook dependencies. Do not collapse these into hook reads: hooks inside
   // a useCallback would be illegal, and reading hook values via closure would give stale snapshots.
+  //
+  // EET- og faellesAarsloen-sektionerne inkluderes altid (uafhængigt af togglen
+  // `midlertidigtEetFraEetSiden`), så snapshot-cachen invalideres deterministisk når
+  // brugeren ændrer noget på EET-siden, uanset hvilken tilstand togglen er i. Den lille
+  // ekstra rebuild ved EET-ændringer mens togglen er 'Nej' er bevidst valgt fremfor en
+  // toggle-betinget revisions-sammensætning, som ville være vanskeligere at ræsonnere om.
   const buildDebugRevision = React.useCallback((): string => {
     return [
       EO_SNAPSHOT_VERSION,
       getSectionRevisionSnapshot('stamdata'),
       getSectionRevisionSnapshot('erstatningsopgoerelse'),
+      getSectionRevisionSnapshot('erhvervsevnetab'),
+      getSectionRevisionSnapshot('faellesAarsloen'),
       getFieldErrorRevisionSnapshot('stamdata'),
       getFieldErrorRevisionSnapshot('erstatningsopgoerelse'),
     ].join('-');
@@ -119,8 +129,9 @@ const Erstatningsopgoerelse = React.memo(() => {
       eoValues: persistedEO ?? initialValues,
       stamdataErrors: getFieldErrorsBySourceSnapshot('stamdata'),
       eoErrors: getFieldErrorsBySourceSnapshot('erstatningsopgoerelse'),
+      midlertidigtEetInsertSource,
     });
-  }, [buildDebugRevision, initialValues]);
+  }, [buildDebugRevision, initialValues, midlertidigtEetInsertSource]);
 
   const buildDebugSnapshotRef = React.useRef(buildDebugSnapshot);
   React.useEffect(() => {
@@ -133,15 +144,24 @@ const Erstatningsopgoerelse = React.memo(() => {
     if (!nextPersistedStamdata) return STAMDATA_INITIAL_VALUES;
     return { ...STAMDATA_INITIAL_VALUES, ...nextPersistedStamdata };
   }, [persistedStamdata]);
-  const midlertidigtEetInsertSource = useMidlertidigtEetInsertSource();
   const [eoSnapshot, setEoSnapshot] = React.useState<EoSnapshot | null>(null);
   const stamdataRevision = useSectionRevisionSelector('stamdata');
   const eoRevision = useSectionRevisionSelector('erstatningsopgoerelse');
+  const erhvervsevnetabRevision = useSectionRevisionSelector('erhvervsevnetab');
+  const faellesAarsloenRevision = useSectionRevisionSelector('faellesAarsloen');
   const stamdataErrorRevision = useFieldErrorRevisionSelector('stamdata');
   const eoErrorRevision = useFieldErrorRevisionSelector('erstatningsopgoerelse');
   const currentDebugRevision = React.useMemo(
-    () => [EO_SNAPSHOT_VERSION, stamdataRevision, eoRevision, stamdataErrorRevision, eoErrorRevision].join('-'),
-    [eoErrorRevision, eoRevision, stamdataErrorRevision, stamdataRevision]
+    () => [
+      EO_SNAPSHOT_VERSION,
+      stamdataRevision,
+      eoRevision,
+      erhvervsevnetabRevision,
+      faellesAarsloenRevision,
+      stamdataErrorRevision,
+      eoErrorRevision,
+    ].join('-'),
+    [eoErrorRevision, eoRevision, erhvervsevnetabRevision, faellesAarsloenRevision, stamdataErrorRevision, stamdataRevision]
   );
   const isSnapshotTabActive =
     activeTab === TAB_KEYS.BEREGNING || activeTab === TAB_KEYS.DEBUG || activeTab === TAB_KEYS.DEBUG_TABEL;
@@ -157,16 +177,6 @@ const Erstatningsopgoerelse = React.memo(() => {
       setFormValues((prev) => ({
         ...prev,
         offentligeYdelserRows: newData,
-      }));
-    },
-    [setFormValues]
-  );
-
-  const handleMidlertidigtEetGroupsChange = React.useCallback(
-    (groups: readonly Readonly<{ afgoerelsesdato: string; rowIds: readonly string[] }>[]) => {
-      setFormValues((prev) => ({
-        ...prev,
-        midlertidigtEETAfgoerelseGrupper: groups.map((g) => ({ afgoerelsesdato: g.afgoerelsesdato, rowIds: [...g.rowIds] })) as ErstatningsopgoerelseValues['midlertidigtEETAfgoerelseGrupper'],
       }));
     },
     [setFormValues]
@@ -355,8 +365,8 @@ const Erstatningsopgoerelse = React.memo(() => {
             <OffentligeYdelserTab
               rows={form.values.offentligeYdelserRows ?? []}
               onRowsChange={handleOffentligeYdelserRowsChange}
-              onMidlertidigtEetGroupsChange={handleMidlertidigtEetGroupsChange}
-              midlertidigtEetInsertSource={midlertidigtEetInsertSource}
+              midlertidigtEetFraEetSiden={form.values.midlertidigtEetFraEetSiden}
+              setEOValues={setFormValues}
             />
           </Box>
         )}
@@ -374,7 +384,6 @@ const Erstatningsopgoerelse = React.memo(() => {
               stamdataValues={stamdataValuesForBeregningTab}
               eoValues={form.values}
               setEOValues={setFormValues}
-              midlertidigtEetInsertSource={midlertidigtEetInsertSource}
             />
           </Box>
         )}

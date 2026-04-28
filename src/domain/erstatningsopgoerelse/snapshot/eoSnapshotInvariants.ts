@@ -1,4 +1,5 @@
 import type { ValidationError } from '../../../types/validation';
+import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
 import type { MoneyOre } from '../shared/eoTypes';
 import {
   TAF_OVERLAP_ERROR_MESSAGE,
@@ -52,6 +53,21 @@ export const buildValidationInvariants = (errors: readonly ValidationError[]): r
     evidence: error.path ? [error.path] : undefined,
     blocksAuthoritativeComputation: error.severity !== 'warning' && !isSfggValidationError(error),
     blocksOutputs: error.severity === 'warning' || isSfggValidationError(error) ? [] : VALIDATION_BLOCKED_OUTPUTS,
+  }));
+};
+
+export const buildMidlertidigtEetSourceInvariants = (
+  issues: readonly EetIssue[]
+): readonly EoInvariant[] => {
+  return issues.map((issue) => ({
+    id: `midlertidigt_eet_source:${issue.id}`,
+    passed: false,
+    severity: issue.severity,
+    source: 'validation' as const,
+    message: `Midlertidigt EET fra Erhvervsevnetab-siden: ${issue.message}`,
+    evidence: ['erhvervsevnetab'],
+    blocksAuthoritativeComputation: issue.severity === 'error',
+    blocksOutputs: issue.severity === 'error' ? VALIDATION_BLOCKED_OUTPUTS : [],
   }));
 };
 

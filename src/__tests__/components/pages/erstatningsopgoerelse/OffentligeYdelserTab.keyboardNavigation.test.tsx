@@ -5,7 +5,6 @@ import { MemoryRouter } from 'react-router-dom';
 import Container from '../../../../components/layout/Container';
 import OffentligeYdelserTab from '../../../../components/pages/erstatningsopgoerelse/OffentligeYdelserTab';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
-import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { initialOffentligYdelseRow } from '../../../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 
 describe('OffentligeYdelserTab keyboard navigation', () => {
@@ -56,10 +55,8 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
                 { ...initialOffentligYdelseRow, id: 'row-2' },
               ]}
               onRowsChange={onRowsChange}
-              midlertidigtEetInsertSource={{
-                eetValues: ERHVERVSEVNETAB_INITIAL_VALUES,
-                skadedato: undefined,
-              }}
+              midlertidigtEetFraEetSiden="Nej"
+              setEOValues={vi.fn()}
             />
           </Container>
         </AppSettingsProvider>
@@ -78,23 +75,21 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
     expect(dateInputs).toHaveLength(2);
 
     const insertButton = within(sygedagpengeRow as HTMLElement).getByRole('button', { name: 'Indsæt' });
-    const allInsertButtons = screen.getAllByRole('button', { name: 'Indsæt' });
-    const nextInsertButton = allInsertButtons[1];
+    const toggleSwitch = screen.getByRole('checkbox', { name: 'Midlertidigt EET indsættes fra Erhvervsevnetab-siden' });
 
     return {
       fraDatoInput: dateInputs[0],
       tilDatoInput: dateInputs[1],
       insertButton,
-      nextInsertButton,
+      toggleSwitch,
     };
   };
 
-  it('lader Tab gaa fra sygedagpenge til-dato til Indsaet-knappen og videre til naeste Indsaet-knap', async () => {
+  it('lader Tab gaa fra sygedagpenge til-dato til Indsaet-knappen og videre til toggle-switchen', async () => {
     const user = userEvent.setup();
-    const { tilDatoInput, insertButton, nextInsertButton } = renderTab();
+    const { tilDatoInput, insertButton, toggleSwitch } = renderTab();
 
     expect(insertButton).toHaveAttribute('aria-disabled', 'true');
-    expect(nextInsertButton).not.toHaveAttribute('aria-disabled');
 
     await act(async () => {
       tilDatoInput.focus();
@@ -108,18 +103,18 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
 
     await user.tab();
     await waitFor(() => {
-      expect(document.activeElement).toBe(nextInsertButton);
+      expect(document.activeElement).toBe(toggleSwitch);
     });
   }, 10000);
 
-  it('lader Shift+Tab gaa tilbage fra naeste Indsaet-knap til sygedagpenge til-dato', async () => {
+  it('lader Shift+Tab gaa tilbage fra toggle-switchen til sygedagpenge til-dato', async () => {
     const user = userEvent.setup();
-    const { tilDatoInput, insertButton, nextInsertButton } = renderTab();
+    const { tilDatoInput, insertButton, toggleSwitch } = renderTab();
 
     await act(async () => {
-      nextInsertButton.focus();
+      toggleSwitch.focus();
     });
-    expect(document.activeElement).toBe(nextInsertButton);
+    expect(document.activeElement).toBe(toggleSwitch);
 
     await user.tab({ shift: true });
     await waitFor(() => {

@@ -382,3 +382,48 @@ Bagudinkompatibilitet:
 ## 12. EO-feltklassificering og bounds-model
 
 EO-specifik feltklassificering, fejlgivende bounds og stille clamping er normativt defineret i §2.
+
+## 13. Transient EET-injection
+
+Når togglen `midlertidigtEetFraEetSiden` på *Offentlige ydelser*-fanen er aktiveret (`'Ja'`),
+injiceres rækker fra EET-siden transient i EO-beregningen — uden at de skrives til committed
+form-state. Dette afsnit er normativt for, hvordan injectionen indvirker på snapshot-modellen.
+
+**Inputkilder:**
+- Når togglen er `'Ja'`, modtager `computeEoSnapshot` en `midlertidigtEetInsertSource`,
+  som indeholder `eetValues` (sammensat fra `erhvervsevnetab` + `faellesAarsloen` + `stamdata.skadelidteFodselsdato`)
+  og `skadedato`. Snapshot-revisionen skal derfor inkludere både `erhvervsevnetab`- og
+  `faellesAarsloen`-sektionernes revisioner, så cachen invalideres korrekt ved EET-ændringer.
+- Når togglen er `'Nej'`, ignoreres `midlertidigtEetInsertSource` fuldstændigt, og EO-beregningen
+  påvirkes ikke af EET-data.
+
+**Substitution af effektive rækker:**
+- Når togglen er `'Ja'`, bygges en effektiv `offentligeYdelserRows` ved at:
+  1. Filtrere eksisterende `midlertidigt_eet`-rækker væk fra committed form-state (defensiv håndhævelse af invariant 6.1 i implementeringsplanen).
+  2. Tilføje virtuelle rækker fra `buildMidlertidigtEetAfgoerelseGroups(insertSource)`.
+- Engines, debug-snapshot, presentation-model og PDF-model bygges på den effektive værdi.
+- `snapshot.input.erstatningsopgoerelse` indeholder altid den oprindelige committed form-state
+  (uden virtuelle rækker), så save/load round-trip og UI-visning er upåvirkede.
+
+**PDF-bilag:**
+- "Midlertidig EET"-bilaget renderes kun når togglen er `'Ja'` *og* der findes afgørelser fra EET-siden.
+  Når togglen er `'Nej'`, sendes en tom `midlertidigtEetGroups`-array til PDF-renderen, uanset om
+  EET-siden har afgørelser.
+- "Offentlige ydelser"-bilaget læser direkte fra committed form-state (ikke fra effektive rækker),
+  så det viser kun manuelt indtastede rækker — aldrig virtuelle rækker.
+
+**Issues fra EET-løbende-ydelser:**
+- Når togglen er `'Ja'`, kalder EOberegningTab samme `buildMidlertidigtEetSourceResult`-helper
+  som snapshot-laget og viser EET-issues (errors og warnings) i "Fejl og advarsler" med link
+  til Erhvervsevnetab-siden. Errors blokerer download af både EO-PDF og TAF-fordelt-PDF
+  (samme adfærd som eksisterende `errors`-array).
+- Når togglen er `'Nej'`, vises EET-issues ikke (de er irrelevante for EO-beregningen, fordi
+  koblingen er deaktiveret).
+
+**Single source of truth:**
+- Når togglen er `'Ja'`, er EET-siden den eneste kilde til midlertidigt EET-data.
+  Manuelle `midlertidigt_eet`-rækker er hverken mulige (ydelsestype-option deaktiveres i
+  dropdown'en) eller persisterede (filtreres væk ved toggle-aktivering).
+- Invarianten "ingen manuelle midlertidigt_eet-rækker når toggle er TRUE" håndhæves både
+  i UI'et (popup ved aktivering hvis der findes manuelle rækker) og defensivt i beregningen
+  (filter i `buildEoValuesWithTransientMidlertidigtEet`).

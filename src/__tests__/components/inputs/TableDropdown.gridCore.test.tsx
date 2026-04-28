@@ -1,9 +1,17 @@
 import * as React from 'react';
-import { createEvent, fireEvent, render, screen } from '@testing-library/react';
+import { act, createEvent, fireEvent, render, screen } from '@testing-library/react';
 import TableDropdown from '../../../components/inputs/table/TableDropdown';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
 import userEvent from '@testing-library/user-event';
+
+const waitForMenuTransition = async () => {
+  await act(async () => {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
+  });
+};
 
 describe('TableDropdown GridCore integration', () => {
   it('registrerer editor-handle når gridCell er sat', () => {
@@ -207,13 +215,16 @@ describe('TableDropdown GridCore integration', () => {
 
     const trigger = screen.getByRole('combobox');
     await user.click(trigger);
+    await waitForMenuTransition();
     expect(screen.getByRole('listbox')).toBeInTheDocument();
 
     await user.keyboard('{Escape}');
+    await waitForMenuTransition();
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
 
     trigger.focus();
     await user.keyboard('{Enter}');
+    await waitForMenuTransition();
     expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 

@@ -47,9 +47,13 @@ const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
     allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata'],
   },
   {
+    // Read-only adgang til erhvervsevnetab og faellesAarsloen er autoriseret af
+    // domain-boundary-contract.md §9 (Snæver EO-import af midlertidigt EET):
+    // EO læser EET-data via useMidlertidigtEetInsertSource og snapshot-revisioner for
+    // at kunne indsætte midlertidigt EET transient i beregningen, når togglen er aktiv.
     label: 'Erstatningsopgørelse',
     rootRelativePath: 'components/pages/Erstatningsopgoerelse.tsx',
-    allowedSections: ['erstatningsopgoerelse', 'stamdata'],
+    allowedSections: ['erstatningsopgoerelse', 'stamdata', 'erhvervsevnetab', 'faellesAarsloen'],
   },
   {
     label: 'Erstatningsopgørelse tabs',
