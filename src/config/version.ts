@@ -5,8 +5,8 @@
  * Format: YYYY.MM.BUILD
  */
 
-export const VERSION = '2026.04.522';
-export const BUILD_DATE = '2026-04-28T21:19:08.646Z';
+export const VERSION = '2026.04.523';
+export const BUILD_DATE = '2026-04-28T21:29:17.918Z';
 
 /**
  * Filformat version - ændres kun hvis datastrukturen ændres.

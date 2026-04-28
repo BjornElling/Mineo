@@ -1,0 +1,11 @@
+{
+  "name": "mineo",
+  "compatibility_date": "2026-04-28",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": false
+  }
+}
