@@ -121,7 +121,10 @@ const buildPdfModel = (
 ): EoModel => {
   const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: options.dagsDatoISO });
   if (!snapshot.data) {
-    const message = snapshot.invariants[0]?.message ?? 'Snapshot fejlede uden invariant-besked';
+    const firstInvariant = snapshot.invariants[0];
+    const message = snapshot.failClosedReason === 'runtime_exception'
+      ? firstInvariant?.evidence[0] ?? firstInvariant?.message ?? 'Snapshot fejlede uden invariant-besked'
+      : firstInvariant?.message ?? 'Snapshot fejlede uden invariant-besked';
     throw new Error(message);
   }
   return snapshot.data.pdfModel;

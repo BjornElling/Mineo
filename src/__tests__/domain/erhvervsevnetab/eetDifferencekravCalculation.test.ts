@@ -38,15 +38,16 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(result.computation?.fradragKapitaliseretEet).toBeGreaterThan(0);
       expect(result.computation?.proformaKapitalisering).not.toBeNull();
       expect(result.computation?.proformaKapitalisering?.kapitaliseretPgaUnderToAarTilFp).toBe(false);
+      expect(result.computation?.resterendeLoebendeYdelser).toBeNull();
     });
   });
 
   describe('≤ 2 år til folkepension — scenarie 1 (afgørelsesdato > 2 år før FP)', () => {
-    it('fradrager løbende ydelser til folkepensionsdatoen og proformakapitaliserer rest-EET på beregningsdatoen', () => {
+    it('fradrager løbende ydelser og resterende løbende ydelser frem til folkepensionsdatoen', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2022-09-01',
+          beregningsdato: '2022-04-01',
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
@@ -65,11 +66,20 @@ describe('computeEetDifferencekravCalculation', () => {
 
       expect(result.hasBlockingErrors).toBe(false);
       expect(result.computation).not.toBeNull();
-      expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerAarsag).toBe('folkepensionsdato');
-      expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerDato).toBe('2022-06-30');
+      expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerAarsag).toBe('beregningsdato');
+      expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerDato).toBe('2022-03-31');
       expect(result.computation?.fradragKapitaliseretEet).toBe(0);
-      expect(result.computation?.proformaKapitalisering).not.toBeNull();
-      expect(result.computation?.proformaKapitalisering?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
+      expect(result.computation?.proformaKapitalisering).toBeNull();
+      expect(result.computation?.resterendeLoebendeYdelser).toEqual({
+        loebendeEetPct: 60,
+        beregningsdato: '2022-04-01',
+        dagenFoerFolkepensionsdato: '2022-06-30',
+        aarsydelse: 194400,
+        maanedligYdelse: 16200,
+        tilbageraevendeMaaneder: 3,
+        fradragBeloeb: 48600,
+      });
+      expect(result.computation?.differencekrav).toBe(638230);
     });
   });
 
@@ -181,12 +191,12 @@ describe('computeEetDifferencekravCalculation', () => {
     });
   });
 
-  describe('delvis kapitalisering med proformakapitalisering ved ≤ 2 år', () => {
+  describe('delvis kapitalisering med resterende løbende ydelser ved ≤ 2 år', () => {
     // 60 % EET, 30 % kapitaliseret ≤ 2 år til FP, 30 % løbende tilbage
-    // Beregningsdato 2021-12-01 (7 mdr til FP → ≤ 2 år) → proforma med særfaktor
+    // Beregningsdato 2021-12-01 (7 mdr til FP → ≤ 2 år) → resterende løbende ydelser
     // Virkningsdato = afgørelsesdato = 2021-10-01 → ingen løbende ydelser
 
-    it('proformakapitalisering bruger særfaktor når beregningsdato er ≤ 2 år til FP', () => {
+    it('resterende del behandles som løbende ydelse når beregningsdato er ≤ 2 år til FP', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -213,14 +223,17 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(c.fradragLoebendeYdelser).toBe(0);
       expect(c.fradragKapitaliseretEet).toBe(119611);
 
-      // Proforma for 30 % resterende EET med særfaktor (beregningsdato ≤ 2 år til FP)
-      expect(c.proformaKapitalisering).not.toBeNull();
-      expect(c.proformaKapitalisering!.kapitaliseretPgaUnderToAarTilFp).toBe(true);
-      expect(c.proformaKapitalisering!.kapitaliseringsfaktor).toBe(1.245);
-      expect(c.proformaKapitalisering!.loebendeEetPct).toBe(30);
-      expect(c.proformaKapitalisering!.proformaBeloeb).toBe(119611);
-
-      expect(c.differencekrav).toBeGreaterThan(0);
+      expect(c.proformaKapitalisering).toBeNull();
+      expect(c.resterendeLoebendeYdelser).toEqual({
+        loebendeEetPct: 30,
+        beregningsdato: '2021-12-01',
+        dagenFoerFolkepensionsdato: '2022-06-30',
+        aarsydelse: 96084,
+        maanedligYdelse: 8007,
+        tilbageraevendeMaaneder: 7,
+        fradragBeloeb: 56049,
+      });
+      expect(c.differencekrav).toBe(1031060);
     });
 
     it('loebendeEetPct = 0 giver proformaKapitalisering = null', () => {
@@ -249,7 +262,7 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(result.computation?.fradragKapitaliseretEet).toBe(239221);
     });
 
-    it('proformakapitaliserer fortsat efter folkepensionsdatoen med særfaktor', () => {
+    it('fradrager ikke resterende løbende ydelser efter folkepensionsdatoen', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -271,11 +284,8 @@ describe('computeEetDifferencekravCalculation', () => {
       });
 
       expect(result.hasBlockingErrors).toBe(false);
-      expect(result.computation?.proformaKapitalisering).not.toBeNull();
-      expect(result.computation?.proformaKapitalisering?.kapitaliseretPgaUnderToAarTilFp).toBe(true);
-      expect(result.computation?.proformaKapitalisering?.kapitaliseringsfaktor).toBe(1.245);
-      expect(result.computation?.proformaKapitalisering?.loebendeEetPct).toBe(30);
-      expect(result.computation?.proformaKapitalisering?.proformaBeloeb).toBeGreaterThan(0);
+      expect(result.computation?.proformaKapitalisering).toBeNull();
+      expect(result.computation?.resterendeLoebendeYdelser).toBeNull();
     });
   });
 
@@ -315,7 +325,8 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.hasBlockingErrors).toBe(false);
     expect(result.computation?.afgoerelser).toHaveLength(1);
     expect(result.computation?.afgoerelser[0]?.rowId).toBe('a1');
-    expect(result.computation?.proformaKapitalisering?.loebendeEetPct).toBe(30);
+    expect(result.computation?.proformaKapitalisering).toBeNull();
+    expect(result.computation?.resterendeLoebendeYdelser?.loebendeEetPct).toBe(30);
   });
 
   it('afgrænser ikke længere på afgørelsesdato når virkningsdatoen er på eller før beregningsdatoen', () => {
@@ -384,7 +395,8 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.hasBlockingErrors).toBe(false);
     expect(result.computation?.afgoerelser).toHaveLength(1);
     expect(result.computation?.afgoerelser[0]?.rowId).toBe('a1');
-    expect(result.computation?.proformaKapitalisering?.loebendeEetPct).toBe(30);
+    expect(result.computation?.proformaKapitalisering).toBeNull();
+    expect(result.computation?.resterendeLoebendeYdelser?.loebendeEetPct).toBe(30);
   });
 
   it('vurderer beregningsdato-advarsler mod den brugerangivne beregningsdato selv om løbende fradrag stopper dagen før', () => {

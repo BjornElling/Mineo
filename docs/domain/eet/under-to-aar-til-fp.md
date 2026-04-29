@@ -71,6 +71,8 @@ Hvis en `Endelig` afgørelse træffes mere end 2 år før folkepensionsalderen:
 - løbende ydelser fortsætter til og med dagen før folkepensionsdatoen
 - ophør kan dog stadig indtræde tidligere på grund af næste afgørelse eller en faktisk kapitalisering
 
+Den resterende løbende del af en `Delvist endelig` afgørelse behandles i alle henseender som en midlertidig løbende ydelse med samme procentsats. Tidligere delkapitalisering ændrer kun restprocenten; den ændrer ikke den løbende dels ophørs-, fradrags- eller differencekravslogik.
+
 ---
 
 ## Fane 3 — Kapitalisering
@@ -109,15 +111,17 @@ Når en `Endelig` afgørelse er inden for eller præcis 2 år før folkepension,
 
 ## Fane 5 — Differencekrav
 
-### Kontroltidspunkt for proformakapitalisering
+### Kontroltidspunkt for fradrag 3
 
 I fane 5 er kontroltidspunktet for ≤ 2 år-vurderingen beregningsdatoen, ikke afgørelsesdatoen.
 
-Differencekrav ser kun på afgørelser, der både er truffet og har virkning senest på beregningsdatoen.
+Differencekrav medregner alle indtastede afgørelser med virkning på eller før beregningsdatoen. Afgørelsesdatoen må godt ligge efter beregningsdatoen; det udelukker ikke afgørelsen fra differencekravet.
 
-Hvis der på beregningsdatoen fortsat består en løbende ydelse, kapitaliseres hele rest-EET proforma på beregningsdatoen. Hvis skadelidte på dette tidspunkt er ≤ 2 år fra folkepension, bruges særfaktoren.
+Hvis der på beregningsdatoen fortsat består en løbende ydelse, afhænger fradrag 3 af afstanden til folkepensionsalderen:
+- Ved beregningsdato inden for eller præcis 2 år til folkepension fratrækkes de tilbageværende løbende ydelser fra beregningsdatoen til og med dagen før folkepensionsdatoen.
+- Ved beregningsdato mere end 2 år før folkepension proformakapitaliseres hele rest-EET på beregningsdatoen.
 
-Denne vurdering ændres ikke, bare fordi beregningsdatoen ligger på eller efter folkepensionsdatoen. Datoer på eller efter folkepensionsdatoen behandles fortsat som en del af `≤ 2 år`-situationen.
+Hvis beregningsdatoen er på eller efter folkepensionsdatoen, findes der ingen tilbageværende løbende ydelser, og fradrag 3 springes over.
 
 ### Fradragslogik
 
@@ -130,7 +134,7 @@ Skadelidte har i denne situation:
 Differencekravet fratrækker derfor:
 - de løbende ydelser
 - kapitalbeløbet
-- ingen proformakapitalisering, hvis hele EET allerede er kapitaliseret
+- ingen fradrag 3, hvis hele EET allerede er kapitaliseret
 
 #### Endelig afgørelse inden for eller præcis 2 år, virkningsdato på eller efter 2-årsgrænsen
 
@@ -141,21 +145,21 @@ Skadelidte har i denne situation:
 Differencekravet fratrækker derfor:
 - ingen løbende ydelser
 - kapitalbeløbet
-- ingen proformakapitalisering, hvis hele EET allerede er kapitaliseret
+- ingen fradrag 3, hvis hele EET allerede er kapitaliseret
 
 #### Endelig afgørelse mere end 2 år før folkepension, eller ikke-endelig afgørelse
 
 I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedreglen. Differencekravet fraviger derfor ASL-forløbet på ét punkt:
 - løbende ydelser fratrækkes kun til og med dagen før beregningsdatoen, dog aldrig efter dagen før folkepensionsdatoen
-- hvis der på beregningsdatoen fortsat består rest-EET, proformakapitaliseres hele rest-EET på beregningsdatoen
-- ligger beregningsdatoen inden for, præcis på eller efter 2-årsgrænsen til folkepension, anvendes særfaktoren
+- hvis beregningsdatoen er inden for eller præcis 2 år til folkepension og før folkepensionsdatoen, fratrækkes de resterende løbende ydelser frem til dagen før folkepensionsdatoen
+- hvis beregningsdatoen er mere end 2 år før folkepension, proformakapitaliseres rest-EET på beregningsdatoen
 
 #### Delvis kapitalisering med tilbageværende løbende EET
 
 Hvis en del af EET allerede er kapitaliseret, og en del stadig løber:
 - de faktisk udbetalte løbende ydelser fratrækkes
 - det faktisk udbetalte kapitalbeløb fratrækkes
-- den resterende løbende del proformakapitaliseres på beregningsdatoen
+- den resterende løbende del behandles som en midlertidig løbende ydelse med samme procentsats
 
 ---
 
@@ -163,10 +167,10 @@ Hvis en del af EET allerede er kapitaliseret, og en del stadig løber:
 
 | Situation | Fane 2 | Fane 3 | Fane 5 |
 |---|---|---|---|
-| Endelig > 2 år før FP | Løbende til dagen før FP | Almindelige kapitaliseringsregler | Løbende fradrag til dagen før beregningsdatoen, dog aldrig efter dagen før FP, samt proforma af rest-EET på beregningsdatoen |
+| Endelig > 2 år før FP | Løbende til dagen før FP | Almindelige kapitaliseringsregler | Løbende fradrag til dagen før beregningsdatoen, dog aldrig efter dagen før FP, samt restydelser til dagen før FP hvis beregningsdatoen er ≤ 2 år til FP; ellers proforma af rest-EET på beregningsdatoen |
 | Endelig ≤ 2 år før FP, virkning før 2-årsgrænsen | Løbende til dagen før afgørelsesdatoen | Hele EET kapitaliseres | Fradrag for både løbende ydelser og kapitalbeløb |
 | Endelig ≤ 2 år før FP, virkning på/efter 2-årsgrænsen | Ingen løbende ydelser | Hele EET kapitaliseres | Kun kapitalbeløbet fratrækkes |
-| Delvist endelig eller midlertidig | Løbende til dagen før FP, medmindre andet stopper tidligere | Kun faktisk indtastet kapitalisering | Proforma af rest-EET på beregningsdatoen |
+| Delvist endelig eller midlertidig | Løbende til dagen før FP, medmindre andet stopper tidligere | Kun faktisk indtastet kapitalisering | Restydelser til dagen før FP hvis beregningsdatoen er ≤ 2 år til FP; ellers proforma af rest-EET på beregningsdatoen |
 
 ---
 
@@ -179,7 +183,7 @@ Hvis en del af EET allerede er kapitaliseret, og en del stadig løber:
 | `folkepensionAlderRates.ts` | `getFolkepensionAlder()` / `getFolkepensionsdato()` | Central kilde til folkepensionsalder i måneder, label og folkepensionsdato. |
 | `eetLoebendeYdelserCalculation.ts` | `resolveFolkepensionsDagFoer()` | Beregner dagen før folkepensionsdatoen som ophørskandidat for løbende ydelser via den centrale ratefil. |
 | `eetKapitaliseringCalculation.ts` | `useDirectSaerfaktor` | `controlTabelvalg.folkepensionsalderMaaneder − controlAge.totalMonths ≤ 24`, hvor `folkepensionsalderMaaneder` kommer fra den centrale ratefil. |
-| `eetDifferencekravCalculation.ts:194` | `useDirectSaerfaktor` (proforma) | Samme betingelse, men med beregningsdato som referencepunkt |
+| `eetDifferencekravCalculation.ts` | Fradrag 3 | Ved beregningsdato ≤ 2 år til FP opgøres rest-EET som resterende løbende ydelser til dagen før FP; ved beregningsdato > 2 år proformakapitaliseres rest-EET. |
 | `eetKapitaliseringOpslag.ts:309` | `isUnderOrEqualTwoYearsToFpByBekendtgoerelse()` | Eksponeret hjælpefunktion til UI-validering |
 
 ### Implementeringsstatus

@@ -113,7 +113,6 @@ describe('OffentligeYdelserTab midlertidigt EET-toggle', () => {
           ydelsestype: 'dagpenge' as const,
         },
       ],
-      midlertidigtEETAfgoerelseGrupper: [{ afgoerelsesdato: '2024-01-01', rowIds: ['midlertidigt-eet-1'] }],
       eoBilagSelection: {
         ...createErstatningsopgoerelseInitialValues().eoBilagSelection,
         midlertidigEet: false,
@@ -123,7 +122,6 @@ describe('OffentligeYdelserTab midlertidigt EET-toggle', () => {
 
     expect(next.midlertidigtEetFraEetSiden).toBe('Ja');
     expect(next.offentligeYdelserRows.map((row) => row.id)).toEqual(['dagpenge-1']);
-    expect(next.midlertidigtEETAfgoerelseGrupper).toEqual([]);
     expect(next.eoBilagSelection.midlertidigEet).toBe(true);
   });
 

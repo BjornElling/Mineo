@@ -2,7 +2,6 @@ import { z } from 'zod';
 import {
   coerceToIntegerOrUndefined,
   dayCount,
-  isoDateString,
   loseFeriedageCount,
   nonNegativeAmountValue,
   optionalIsoDateString,
@@ -229,15 +228,6 @@ const erstatningsopgoerelseBaseSchema = z.object({
   forligDato: optionalIsoDateString,
   oevrigeKravPerioder: z.array(oevrigeKravRowSchema),
   offentligeYdelserRows: z.array(offentligeYdelserRowSchema),
-  // @deprecated Tidligere brugt af "Indsæt midlertidigt EET"-knappen, der nu er erstattet af
-  // togglen `midlertidigtEetFraEetSiden`. Feltet bevares i schemaet for backward compatibility
-  // med gemte sager, men opdateres ikke længere af nogen handler og bruges ingen steder i kode.
-  // TODO(cleanup): Fjernes ved næste schema-bump (kræver migration af pre-1.0.7-saver, der kan
-  // have feltet udfyldt). Indtil da bevares feltet for at forhindre Zod-coalesce-fejl ved load.
-  midlertidigtEETAfgoerelseGrupper: z.array(z.object({
-    afgoerelsesdato: isoDateString,
-    rowIds: z.array(z.string()),
-  }).strict()).default([]),
   loenudviklingPaaGrundlagAf: optionalString,
   saerligeKommentarer: optionalString,
   eoBilagSelection: eoBilagSelectionSchema.default({ opgoerelse: true, loenindkomst: true, offentligeYdelser: true, midlertidigEet: true, shDage: false, regulering: true, okSatser: true, sygeferiegodtgoerelse: false }),

@@ -151,7 +151,7 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 | Type | Fejl |
 | Vises på | F3 (filtreres fra F5) |
 | Navigationslink | EET oplysninger → Arbejdsskadesikringsloven |
-| Betingelse | Rækker med EET % findes, men ingen er `Endelig` eller `Delvist endelig`. F5 filtrerer altid denne fejl fra — fane 5 proformakapitaliserer uafhængigt af om der tidligere er foretaget kapitalisering. |
+| Betingelse | Rækker med EET % findes, men ingen er `Endelig` eller `Delvist endelig`. F5 filtrerer altid denne fejl fra — fane 5 kan opgøre rest-EET som fradrag 3 uafhængigt af om der tidligere er foretaget kapitalisering. |
 
 #### `endelig-under-50-missing-kapitalisering` — "Endelig afgørelse under 50 % mangler oplysninger om kapitalisering."
 | Felt | Værdi |
@@ -223,13 +223,13 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 
 ### Regulering og satser
 
-#### `reguleringssats-missing` — "Reguleringssats mangler for år {år}" (F3, F4) / `reguleringssats-missing-{år}` (F2)
+#### `reguleringssats-missing` — "Reguleringssats mangler for år {år}" (F3, F4, F5) / `reguleringssats-missing-{år}` (F2, F5)
 | Felt | Værdi |
 |---|---|
 | Type | Fejl |
-| Vises på | F2, F3, F4 (ikke F5 — proforma har eget ID) |
+| Vises på | F2, F3, F4, F5 |
 | Navigationslink | — (systemfejl) |
-| Betingelse | En påkrævet ASL-reguleringssats mangler. F2 bruger per-år-ID (`reguleringssats-missing-2026`), F3 og F4 bruger det generiske ID. |
+| Betingelse | En påkrævet ASL-reguleringssats mangler. F2 og F5's restydelsesvariant bruger per-år-ID (`reguleringssats-missing-2026`), mens F3, F4 og F5's proformavariant bruger det generiske ID. |
 
 #### `eet-max-missing` — "Maksimum for erhvervsevnetab mangler for år {år}."
 | Felt | Værdi |
@@ -321,9 +321,9 @@ Denne fil er den autoritative kilde til alle fejl og advarsler i EET-beregninger
 
 ---
 
-### Proforma-kapitaliseringsfejl (F5-specifikke)
+### Fradrag 3-fejl (F5-specifikke)
 
-Produceres kun af proformaberegningen i `computeEetDifferencekravCalculation`. Udspringer alle af beregningsdatoen.
+Produceres af fradrag 3-beregningen i `computeEetDifferencekravCalculation`. Proforma-fejlene nedenfor opstår kun når rest-EET proformakapitaliseres, dvs. når beregningsdatoen ligger mere end 2 år før folkepension.
 
 | Issue-ID | Meddelelse | Navigationslink |
 |---|---|---|
@@ -331,7 +331,6 @@ Produceres kun af proformaberegningen i `computeEetDifferencekravCalculation`. U
 | `proforma-kapitaliseringstabel-missing` | "Ingen kapitaliseringstabel matcher skadedato og fødselsdato på beregningsdatoen." / "Ingen kapitaliseringsfaktorer for tabel {tabel}." | EET oplysninger → Grundlæggende oplysninger |
 | `proforma-kapitaliseringsalder-under-minimum` | "Ingen kapitaliseringsfaktor for alder ({alder}) — tabellen starter ved {min} år." | EET oplysninger → Grundlæggende oplysninger |
 | `proforma-kapitaliseringsfaktor-unresolved` | Varierer | EET oplysninger → Grundlæggende oplysninger |
-| `proforma-reguleringssats-missing` | "Reguleringssats mangler for år 2024." | EET oplysninger → Grundlæggende oplysninger |
 
 ---
 

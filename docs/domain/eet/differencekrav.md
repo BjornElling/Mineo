@@ -23,7 +23,7 @@ Differencekravet er det beløb skadelidte kan kræve derudover, når EAL-erstatn
 differencekrav = eal_krav
                − fradrag_løbende_ydelser
                − fradrag_kapitaliseret_eet
-               − proformakapitalisering
+               − fradrag_tilbageværende_eet
 
 hvis differencekrav < 0: differencekrav = 0
 ```
@@ -42,7 +42,8 @@ Fane 5 beregner ikke nye ASL- eller EAL-typer. Den trækker de øvrige faners re
 
 Fradrag 1 beregnes med samme grundmodel som fane 2, men altid kun til og med dagen før beregningsdatoen.
 
-Differencekravet ser kun på afgørelser, der både er truffet og har virkning senest på beregningsdatoen.
+Differencekravet medregner alle indtastede afgørelser med virkning på eller før beregningsdatoen.
+Afgørelsesdatoen må derfor godt ligge efter beregningsdatoen. I så fald indgår afgørelsen fortsat i differencekravet, fordi brugeren opgør differencekravet ud fra de indtastede afgørelser og deres virkningstidspunkt.
 
 Fradragsreglen per afgørelse afhænger fortsat af skadedatoen:
 
@@ -68,32 +69,50 @@ Ved særreglen er dette især relevant i to situationer:
 - `Endelig` inden for eller præcis 2 år før folkepension: hele kapitalbeløbet fratrækkes.
 - `Delvist endelig` inden for eller præcis 2 år før folkepension: kun den faktisk kapitaliserede andel fratrækkes.
 
-### Fradrag 3 — Proformakapitalisering af tilbageværende EET
+### Fradrag 3 — Tilbageværende EET
 
-Proformakapitaliseringen svarer til spørgsmålet:
+Fradrag 3 dækker den del af EET, der fortsat består som løbende ydelse på beregningsdatoen.
 
-"Hvad ville det tilbageværende løbende erhvervsevnetab være værd som éngangsbeløb, hvis det blev kapitaliseret på beregningsdatoen?"
+En resterende løbende del fra en `Delvist endelig` afgørelse behandles altid på samme måde som en midlertidig løbende ydelse med samme procentsats. Det gælder både ophør, fradrag og opgørelsen af fradrag 3.
 
 **Tilbageværende EET-procent:**
 ```
 løbende_eet_pct = seneste_afgørelses_eet_pct − sum(kapPct fra afgørelser med kapDato ≤ beregningsdato)
 ```
 
-Hvis `løbende_eet_pct = 0`, springes proformakapitaliseringen over.
+Hvis `løbende_eet_pct = 0`, springes fradrag 3 over.
+
+#### Beregningsdato inden for eller præcis 2 år til folkepension
+
+Hvis beregningsdatoen ligger inden for eller præcis 2 år til folkepensionsalderen, og der fortsat består rest-EET, fratrækkes de tilbageværende løbende ydelser fra beregningsdatoen til og med dagen før folkepensionsdatoen.
+
+Hvis beregningsdatoen er på eller efter folkepensionsdatoen, findes der ingen tilbageværende løbende ydelser, og fradrag 3 springes over.
+
+Beløbet beregnes som:
+
+```
+måneder = præcis månedsoptælling fra beregningsdato til dagen før folkepensionsdato
+fradrag = round0(måneder × månedlig løbende ydelse på beregningsdatoen)
+```
+
+Den månedlige ydelse beregnes efter samme løbende-ydelsesprincip som fane 2: årsydelsen afrundes til nærmeste hele kronebeløb deleligt med 12, og månedssatsen er årsydelsen divideret med 12.
+
+#### Beregningsdato mere end 2 år før folkepension
+
+Hvis beregningsdatoen ligger mere end 2 år før folkepensionsalderen, proformakapitaliseres rest-EET på beregningsdatoen.
+
+Proformakapitaliseringen svarer til spørgsmålet:
+
+"Hvad ville det tilbageværende løbende erhvervsevnetab være værd som éngangsbeløb, hvis det blev kapitaliseret på beregningsdatoen?"
 
 Proformakapitaliseringen genbruger kapitaliseringslogikken fra fane 3 med disse afvigelser:
 - kapitaliseringsdatoen = beregningsdatoen
 - alle afgørelsestyper kan indgå
 - 50 %-loftet gælder ikke
 - bekendtgørelse og tabel opslås på beregningsdatoen
-- kontroltidspunktet for ≤ 2 år til folkepension er beregningsdatoen
 - folkepensionsalderen hentes centralt fra `src/data/folkepensionAlderRates.ts`
 
 Proformakapitalisering er differencekravets egen beregningsteknik. Den kan derfor godt forekomme, selv om der i ASL-sporet aldrig er sket nogen faktisk kapitalisering.
-
-Hvis der på beregningsdatoen fortsat består en løbende ydelse, kapitaliseres hele rest-EET proforma på beregningsdatoen.
-
-Ved vurderingen af om beregningsdatoen falder inden for `≤ 2 år` til folkepension, behandles datoer på eller efter folkepensionsdatoen på samme måde som andre `≤ 2 år`-tilfælde. Særfaktoren kan derfor fortsat blive relevant.
 
 ### Særreglen i differencekrav
 
@@ -117,8 +136,8 @@ Differencekravet fratrækker derfor kun kapitalbeløbet.
 
 I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedreglen. Differencekravet fraviger derfor ASL-forløbet på ét punkt:
 - løbende ydelser fratrækkes kun til og med dagen før beregningsdatoen, dog aldrig efter dagen før folkepensionsdatoen
-- hvis der på beregningsdatoen fortsat består rest-EET, proformakapitaliseres hele rest-EET på beregningsdatoen
-- ligger beregningsdatoen inden for, præcis på eller efter 2-årsgrænsen til folkepension, anvendes særfaktoren, også når beregningsdatoen er på eller efter folkepensionsdatoen
+- hvis beregningsdatoen ligger inden for eller præcis 2 år til folkepension, og beregningsdatoen er før folkepensionsdatoen, fratrækkes de resterende løbende ydelser frem til dagen før folkepensionsdatoen
+- hvis beregningsdatoen ligger mere end 2 år før folkepension, proformakapitaliseres hele rest-EET på beregningsdatoen
 
 ---
 
@@ -133,6 +152,7 @@ I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedregle
 | Funktion | Beskrivelse |
 |---|---|
 | `computeProformaKapitalisering(args, issues)` | Proformaberegning på beregningsdatoen |
+| `computeResterendeLoebendeYdelser(args, issues)` | Opgør resterende løbende ydelser frem til folkepensionsalderen ved beregningsdato inden for 2-årsgrænsen |
 | `resolveLoebendeEetPct(afgoerelser, kapitaliseringer)` | Bestemmer tilbageværende løbende EET-procent |
 | `skalFradragForetages(afgoerelseType, skadedato)` | Afgør om en afgørelse skal fratrækkes |
 
@@ -141,7 +161,7 @@ I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedregle
 Dokumentationen ovenfor beskriver den fastlagte forretningslogik.
 Dokumentationen beskriver den implementerede forretningslogik. Hvis dokumentation og kode afviger, er denne fil den normative beskrivelse af forretningslogikken.
 
-### Proforma-specifikke issue-ID'er
+### Fradrag 3-specifikke issue-ID'er
 
 Se [fejlkatalog.md](./fejlkatalog.md) for komplet beskrivelse.
 

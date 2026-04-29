@@ -42,6 +42,8 @@ type ProformaBoxProps = Readonly<{
   koen: ErhvervsevnetabValues['koen'];
 }>;
 
+const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 4);
+
 const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
   <ContentBox className="content-box">
     <Typography className="section-header">Proformakapitalisering af rest-EET</Typography>
@@ -203,7 +205,6 @@ const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
   </ContentBox>
 );
 
-
 const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
   const { settings } = useAppSettings();
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
@@ -308,11 +309,13 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
                     onCommit={createBilagCommitHandler('eetEfterEal')}
                     label="EET efter EAL"
                   />
-                  <StyledCheckbox
-                    checked={bilagSelection.proformaKapitalisering}
-                    onCommit={createBilagCommitHandler('proformaKapitalisering')}
-                    label="Proformakap. af rest-EET"
-                  />
+                  {computation.proformaKapitalisering && (
+                    <StyledCheckbox
+                      checked={bilagSelection.proformaKapitalisering}
+                      onCommit={createBilagCommitHandler('proformaKapitalisering')}
+                      label="Proformakap. af rest-EET"
+                    />
+                  )}
                 </Box>
               </Box>
             </Box>
@@ -429,18 +432,34 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
           )}
 
           {/* Resterende erhvervsevnetab */}
-          {computation.proformaKapitalisering && (
+          {(computation.proformaKapitalisering || computation.resterendeLoebendeYdelser) && (
             <>
               <Typography className="row--subheading" sx={{ mt: 2 }}>Resterende erhvervsevnetab</Typography>
-              <TextHoverRow text="Der foretages fradrag med kapitaliseringsværdien af resterende EET." />
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">
-                  {`Proformakapitalisering (${formatKapPct(computation.proformaKapitalisering.loebendeEetPct)}) den ${formatIsoDateShort(computation.proformaKapitalisering.kapitaliseringsdato)}:`}
-                </Typography>
-                <Box className="row--label-right-hover__content">
-                  <Typography className="row--text">{`- ${formatKr(computation.proformaKapitalisering.proformaBeloeb)}`}</Typography>
-                </Box>
-              </Box>
+              {computation.resterendeLoebendeYdelser ? (
+                <>
+                  <TextHoverRow text="De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes." />
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">
+                      {`${formatMaaneder(computation.resterendeLoebendeYdelser.tilbageraevendeMaaneder)} mdr. × ${formatKr(computation.resterendeLoebendeYdelser.maanedligYdelse)}/md.`}
+                    </Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Typography className="row--text">{`- ${formatKr(computation.resterendeLoebendeYdelser.fradragBeloeb)}`}</Typography>
+                    </Box>
+                  </Box>
+                </>
+              ) : computation.proformaKapitalisering ? (
+                <>
+                  <TextHoverRow text="Der foretages fradrag med kapitaliseringsværdien af resterende EET." />
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">
+                      {`Proformakapitalisering (${formatKapPct(computation.proformaKapitalisering.loebendeEetPct)}) den ${formatIsoDateShort(computation.proformaKapitalisering.kapitaliseringsdato)}:`}
+                    </Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Typography className="row--text">{`- ${formatKr(computation.proformaKapitalisering.proformaBeloeb)}`}</Typography>
+                    </Box>
+                  </Box>
+                </>
+              ) : null}
             </>
           )}
 

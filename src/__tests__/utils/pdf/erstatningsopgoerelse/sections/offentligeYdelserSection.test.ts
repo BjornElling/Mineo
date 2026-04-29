@@ -288,8 +288,6 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
   });
 
   it('bevarer 2-decimal-afrunding for manuelt indtastede midlertidigt_eet-rækker når togglen er slået fra', () => {
-    // Migrationsløfte: pre-1.0.7-saver med manuelle midlertidigt_eet-rækker må ikke
-    // ændre TAF-fradragets afrunding ved blot at blive åbnet (jf. plan §3.1).
     const tafBenefitAmount = 50.5;
     const rounded = roundIncomeBenefitAmountKroner('midlertidigt_eet', tafBenefitAmount, false);
     expect(rounded).toBe(50.5);

@@ -10,7 +10,9 @@ import {
   aarsloenAslMax,
   erhvervsevnetabEalMax,
   reguleringssats,
+  reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../data/lovbestemteRates';
+import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { formatIsoDateShort } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
@@ -21,11 +23,12 @@ import {
   interpolateFactorBeyondTable,
   interpolateFactorWithinTable,
   resolveFactorTable,
+  isUnderOrEqualTwoYearsToFpByBekendtgoerelse,
   resolveKapitaliseringsbekendtgoerelseId,
   resolveKapitaliseringTabelvalg,
   resolveSaerfaktor,
 } from './eetKapitaliseringOpslag';
-import { ceil0, round0, round3 } from '../../utils/roundingShortcuts';
+import { ceil0, ceilNearest12, round0, round2, round3 } from '../../utils/roundingShortcuts';
 import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
 import { computeEetEalCalculation } from './eetEalCalculation';
@@ -35,6 +38,8 @@ import {
   WARN_NO_KAP_INPUT_ID,
 } from './eetKapitaliseringCalculation';
 import { hasTextValue } from './eetAslAfgoerelser';
+import { optaelMaanederPraecis } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
+import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,6 +89,16 @@ export type EetDifferencekravProformaKapitalisering = Readonly<{
   koenOpdelt: boolean;
 }>;
 
+export type EetDifferencekravResterendeLoebendeYdelser = Readonly<{
+  loebendeEetPct: number;
+  beregningsdato: ISODateString;
+  dagenFoerFolkepensionsdato: ISODateString;
+  aarsydelse: number;
+  maanedligYdelse: number;
+  tilbageraevendeMaaneder: number;
+  fradragBeloeb: number;
+}>;
+
 export type EetDifferencekravComputation = Readonly<{
   beregningsdato: ISODateString;
   skadedato: ISODateString;
@@ -94,7 +109,9 @@ export type EetDifferencekravComputation = Readonly<{
   ealEetPct: number;
   fradragLoebendeYdelser: number;
   fradragKapitaliseretEet: number;
+  // Fradrag 3-invariant: højst ét af proformaKapitalisering og resterendeLoebendeYdelser må være non-null.
   proformaKapitalisering: EetDifferencekravProformaKapitalisering | null;
+  resterendeLoebendeYdelser: EetDifferencekravResterendeLoebendeYdelser | null;
   differencekrav: number;
   afgoerelser: readonly EetDifferencekravLoebendeAfgoerelse[];
   kapitaliseringerAfgoerelser: readonly EetDifferencekravKapitaliseretAfgoerelse[];
@@ -405,7 +422,65 @@ const computeProformaKapitalisering = (
   };
 };
 
-// ─── Beregning af løbende EET-pct der skal proformakapitaliseres ──────────────
+const computeResterendeLoebendeYdelser = (
+  args: Readonly<{
+    loebendeEetPct: number;
+    beregningsdato: ISODateString;
+    fodselsdato: ISODateString;
+    grundloen: number;
+    erstatningsniveau: number;
+    amFaktor: number;
+    before2024Skade: boolean;
+  }>,
+  issues: EetIssue[]
+): EetDifferencekravResterendeLoebendeYdelser | null => {
+  const dagenFoerFolkepensionsdato = getDagenFoerFolkepensionsdato(args.fodselsdato, args.beregningsdato);
+  if (!dagenFoerFolkepensionsdato || args.beregningsdato > dagenFoerFolkepensionsdato) return null;
+
+  const tilbageraevendeMaaneder = optaelMaanederPraecis({
+    fra: args.beregningsdato,
+    til: dagenFoerFolkepensionsdato,
+    oevrigeFravaersdage: 0,
+  });
+  if (tilbageraevendeMaaneder === null || tilbageraevendeMaaneder <= 0) return null;
+
+  const beregningsaar = Number.parseInt(args.beregningsdato.slice(0, 4), 10);
+  const grundydelse = round2(
+    args.grundloen * (args.loebendeEetPct / 100) * args.erstatningsniveau * args.amFaktor
+  );
+  const grundydelse2024 = args.before2024Skade
+    ? round2(grundydelse * (1 + (reguleringsprocentErhvervsevnetabFoer2024[2024] ?? Number.NaN) / 100))
+    : grundydelse;
+  if (!Number.isFinite(grundydelse2024)) {
+    issues.push(toIssue('reguleringssats-missing-2024', 'Reguleringssats mangler for år 2024'));
+    return null;
+  }
+
+  const effektivGrundydelseBase = args.before2024Skade && beregningsaar >= 2024
+    ? grundydelse2024
+    : grundydelse;
+
+  const rateInfo = resolveAslReguleringRateForSatsAar(beregningsaar, args.before2024Skade, issues);
+  if (!rateInfo) return null;
+
+  // Resterende løbende ydelser skal bruge samme års-/månedssatsprincip som fane 2,
+  // ikke kapitaliseringsårssatsen. Årsydelsen rundes derfor op til et beløb deleligt med 12.
+  const aarsydelse = ceilNearest12(effektivGrundydelseBase * rateInfo.factor);
+  const maanedligYdelse = aarsydelse / 12;
+  const fradragBeloeb = round0(tilbageraevendeMaaneder * maanedligYdelse);
+
+  return {
+    loebendeEetPct: args.loebendeEetPct,
+    beregningsdato: args.beregningsdato,
+    dagenFoerFolkepensionsdato,
+    aarsydelse,
+    maanedligYdelse,
+    tilbageraevendeMaaneder,
+    fradragBeloeb,
+  };
+};
+
+// ─── Beregning af løbende EET-pct der skal indgå i fradrag 3 ──────────────────
 
 const resolveLoebendeEetPct = (
   afgoerelser: readonly {
@@ -528,12 +603,13 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     allSourceIssues.push({ id: 'beregningsdato-invalid', severity: 'error', message: 'Beregningsdato er ugyldig.' });
   }
 
-  // ─── Fradrag 3: Proformakapitalisering (issues indgår i blocking-evaluering) ──
-  // Proformaberegningen kræver eal-computation og alle stamdata — kør kun hvis
+  // ─── Fradrag 3: rest-EET (issues indgår i blocking-evaluering) ───────────────
+  // Rest-EET-beregningen kræver eal-computation og alle stamdata — kør kun hvis
   // disse forudsætninger er til stede, så vi undgår fejl-stacking ovenpå allerede
   // kendte blokerende fejl.
-  const proformaIssues: EetIssue[] = [];
+  const fradrag3Issues: EetIssue[] = [];
   let proformaKapitalisering: EetDifferencekravProformaKapitalisering | null = null;
+  let resterendeLoebendeYdelser: EetDifferencekravResterendeLoebendeYdelser | null = null;
   let loebendeEetPct = 0;
 
   if (ealResult.computation && beregningsdato && skadedato && fodselsdato && dagFoerBeregningsdato) {
@@ -547,7 +623,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     // Invariant: loebendeEetPct kan kun blive > 0 når loebendeComputation findes; ?? 0 er kun defensivt.
     const grundloen = loebendeComputation?.grundloen ?? 0;
 
-    // Bestem løbende EET-pct til proformakapitalisering.
+    // Bestem løbende EET-pct til fradrag 3.
     // Afgørelseslisten hentes fra løbende-computation til tie-breaking (seneste afgørelse).
     // Kapitaliseringsprocenterne hentes fra fane 3's resolvede computation og filtreres:
     // kun kapitaliseringer med dato <= beregningsdato medregnes.
@@ -561,31 +637,52 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       : 0;
 
     if (loebendeEetPct > 0 && grundloen > 0) {
-      proformaKapitalisering = computeProformaKapitalisering(
-        {
-          loebendeEetPct,
-          beregningsdato,
-          skadedato,
-          fodselsdato,
-          grundloen,
-          erstatningsniveau,
-          amFaktor,
-          before2024Skade,
-          koen: input.erhvervsevnetab.koen,
-        },
-        proformaIssues
+      const beregningUnderEllerLigeToAarTilFp = isUnderOrEqualTwoYearsToFpByBekendtgoerelse(
+        skadedato,
+        fodselsdato,
+        beregningsdato
       );
+
+      if (beregningUnderEllerLigeToAarTilFp) {
+        resterendeLoebendeYdelser = computeResterendeLoebendeYdelser(
+          {
+            loebendeEetPct,
+            beregningsdato,
+            fodselsdato,
+            grundloen,
+            erstatningsniveau,
+            amFaktor,
+            before2024Skade,
+          },
+          fradrag3Issues
+        );
+      } else {
+        proformaKapitalisering = computeProformaKapitalisering(
+          {
+            loebendeEetPct,
+            beregningsdato,
+            skadedato,
+            fodselsdato,
+            grundloen,
+            erstatningsniveau,
+            amFaktor,
+            before2024Skade,
+            koen: input.erhvervsevnetab.koen,
+          },
+          fradrag3Issues
+        );
+      }
     }
   }
 
-  // Proforma-issues merges ind før blocking-evaluering, så fejl i proformaberegningen
+  // Fradrag 3-issues merges ind før blocking-evaluering, så fejl i rest-EET-beregningen
   // blokerer download på linje med fejl fra fane 2, 3 og 4.
-  for (const issue of proformaIssues) {
+  for (const issue of fradrag3Issues) {
     allSourceIssues.push(issue);
   }
 
   // 'no-endelig-afgoerelser' er kun relevant på fane 3 og filtreres altid væk fra fane 5.
-  // F5 proformakapitaliserer uafhængigt af om der tidligere er foretaget kapitalisering.
+  // F5 kan opgøre rest-EET som fradrag 3 uafhængigt af om der tidligere er foretaget kapitalisering.
   const deduped = dedupeIssuesBySeverityAndMessage(allSourceIssues)
     .filter((issue) => {
       if (issue.id === 'no-endelig-afgoerelser') return false;
@@ -597,7 +694,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
         return false;
       }
       // Decision note:
-      // Reason: differencekrav filtrerer beregningsgrundlaget til afgørelser, der er kendt på beregningsdatoen.
+      // Reason: differencekrav filtrerer beregningsgrundlaget til afgørelser med virkning på eller før beregningsdatoen.
       // Den generiske "Ingen ASL-afgørelser er indtastet" må i differencekrav kun afhænge af, om der findes
       // nogen gyldige afgørelser overhovedet. Underberegningernes tom-tabel-fejl er derfor misvisende her,
       // fordi de udløses efter beregningsdato-filteret.
@@ -715,7 +812,12 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   // ─── Endeligt differencekrav ──────────────────────────────────────────────
   const differencekrav = Math.max(
     0,
-    round0(ealKrav - fradragLoebendeYdelser - fradragKapitaliseretEet - (proformaKapitalisering?.proformaBeloeb ?? 0))
+    round0(
+      ealKrav
+      - fradragLoebendeYdelser
+      - fradragKapitaliseretEet
+      - (proformaKapitalisering?.proformaBeloeb ?? resterendeLoebendeYdelser?.fradragBeloeb ?? 0)
+    )
   );
 
   return {
@@ -731,6 +833,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       fradragLoebendeYdelser,
       fradragKapitaliseretEet,
       proformaKapitalisering,
+      resterendeLoebendeYdelser,
       differencekrav,
       afgoerelser: loebendeAfgoerelser,
       kapitaliseringerAfgoerelser: kapAfgoerelser,

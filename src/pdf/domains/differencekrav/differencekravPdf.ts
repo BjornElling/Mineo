@@ -48,6 +48,8 @@ import { renderEfterEalBody } from '../eet/eetEfterEalPdf';
 export const buildDifferencekravPdfFilename = (journalnr?: string): string =>
   resolvePdfFileName('Differencekrav (EET)', false, journalnr);
 
+const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 4);
+
 // ============================================================================
 // PROFORMAKAPITALISERING-SEKTION
 // ============================================================================
@@ -298,18 +300,28 @@ const renderDifferencekravPage = (
     writer.writeWrappedText('Ingen afgørelser.');
   }
 
-  // Resterende erhvervsevnetab (proformakapitalisering)
-  if (computation.proformaKapitalisering) {
-    const pk = computation.proformaKapitalisering;
+  // Resterende erhvervsevnetab
+  if (computation.proformaKapitalisering || computation.resterendeLoebendeYdelser) {
 
     writer.writeBoldSubheader('Resterende erhvervsevnetab');
 
-    writer.writeWrappedText('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
-    writer.writeLeftRightText(
-      `Proformakapitalisering (${formatKapPct(pk.loebendeEetPct)}) den ${formatIsoDateShort(pk.kapitaliseringsdato)}:`,
-      `- ${formatKr(pk.proformaBeloeb)}`,
-      rowOpts
-    );
+    if (computation.resterendeLoebendeYdelser) {
+      const rest = computation.resterendeLoebendeYdelser;
+      writer.writeWrappedText('De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes.');
+      writer.writeLeftRightText(
+        `${formatMaaneder(rest.tilbageraevendeMaaneder)} mdr. x ${formatKr(rest.maanedligYdelse)}/md.`,
+        `- ${formatKr(rest.fradragBeloeb)}`,
+        rowOpts
+      );
+    } else if (computation.proformaKapitalisering) {
+      const pk = computation.proformaKapitalisering;
+      writer.writeWrappedText('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
+      writer.writeLeftRightText(
+        `Proformakapitalisering (${formatKapPct(pk.loebendeEetPct)}) den ${formatIsoDateShort(pk.kapitaliseringsdato)}:`,
+        `- ${formatKr(pk.proformaBeloeb)}`,
+        rowOpts
+      );
+    }
   }
 
   // Differencekrav

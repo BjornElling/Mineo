@@ -182,7 +182,6 @@ describe('midlertidigt EET transient injection', () => {
   });
 
   it('bevarer 2-decimal-afrunding af manuelle midlertidigt_eet-rækker når togglen er slået fra', () => {
-    // Migrationsløfte: pre-1.0.7-saver må ikke ændre TAF-fradragets afrunding ved blot at blive åbnet.
     const eoValues = {
       ...createValidEoBase(),
       tafPerioder: [

@@ -79,9 +79,8 @@ type RowEligibility = 'empty' | 'invalid' | 'valid';
  * overensstemmelse med PDF-bilaget "Midlertidig EET", der altid runder i hele
  * kroner — så TAF-fradraget for `midlertidigt_eet` matcher bilags-totalen bit for bit.
  *
- * Når togglen er `'Nej'` (eller flaget ikke leveres), bevares den hidtidige
- * 2-decimal-afrunding for manuelt indtastede `midlertidigt_eet`-rækker — så
- * pre-1.0.7-saver ikke ændrer adfærd ved blot at blive åbnet (jf. plan §3.1).
+ * Når togglen er `'Nej'` (eller flaget ikke leveres), bruger manuelt
+ * indtastede `midlertidigt_eet`-rækker fortsat almindelig 2-decimal-afrunding.
  */
 export const roundIncomeBenefitAmountKroner = (
   typeKey: string,

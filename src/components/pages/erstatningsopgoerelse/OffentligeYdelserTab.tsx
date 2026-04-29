@@ -173,7 +173,6 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
           ...prev,
           midlertidigtEetFraEetSiden: 'Ja',
           offentligeYdelserRows: filteredRows,
-          midlertidigtEETAfgoerelseGrupper: [],
           eoBilagSelection: {
             ...prev.eoBilagSelection,
             midlertidigEet: true,
