@@ -1,8 +1,8 @@
 import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
-import { buildMidlertidigtEetAfgoerelseGroups } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
-import { computeEetLoebendeYdelser } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
+import { buildMidlertidigtEetAfgoerelseGroupsFromComputation } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
+import { computeEetLoebendeYdelser, type EetLoebendeComputation } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { isoToDanish } from '../../../types/branded';
 
 const makeValues = (): ErhvervsevnetabComposedValues => ({
@@ -45,18 +45,24 @@ const makeValues = (): ErhvervsevnetabComposedValues => ({
   ],
 });
 
-describe('buildMidlertidigtEetAfgoerelseGroups', () => {
+const computeGroups = (eetValues: ErhvervsevnetabComposedValues) => {
+  const computation = computeEetLoebendeYdelser({
+    erhvervsevnetab: eetValues,
+    skadedato: '2024-07-01',
+    skadelidteFodselsdato: eetValues.skadelidteFodselsdato,
+  }).computation;
+
+  return {
+    computation,
+    groups: buildMidlertidigtEetAfgoerelseGroupsFromComputation(computation),
+  };
+};
+
+describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
   it('bygger én EO-række per løbende ydelseslinje for midlertidige og delvist endelige afgørelser', () => {
     const eetValues = makeValues();
-    const rows = buildMidlertidigtEetAfgoerelseGroups({
-      eetValues,
-      skadedato: '2024-07-01',
-    }).flatMap((g) => g.rows);
-    const computation = computeEetLoebendeYdelser({
-      erhvervsevnetab: eetValues,
-      skadedato: '2024-07-01',
-      skadelidteFodselsdato: eetValues.skadelidteFodselsdato,
-    }).computation;
+    const { computation, groups } = computeGroups(eetValues);
+    const rows = groups.flatMap((g) => g.rows);
 
     expect(computation).not.toBeNull();
     const expectedPerioder = computation!.afgoerelser
@@ -78,15 +84,8 @@ describe('buildMidlertidigtEetAfgoerelseGroups', () => {
 
   it('indsætter periodetotalbeløbet uændret og ikke som et afledt dagsbeløb', () => {
     const eetValues = makeValues();
-    const rows = buildMidlertidigtEetAfgoerelseGroups({
-      eetValues,
-      skadedato: '2024-07-01',
-    }).flatMap((g) => g.rows);
-    const computation = computeEetLoebendeYdelser({
-      erhvervsevnetab: eetValues,
-      skadedato: '2024-07-01',
-      skadelidteFodselsdato: eetValues.skadelidteFodselsdato,
-    }).computation;
+    const { computation, groups } = computeGroups(eetValues);
+    const rows = groups.flatMap((g) => g.rows);
 
     expect(computation).not.toBeNull();
     const expectedPerioder = computation!.afgoerelser
@@ -113,11 +112,64 @@ describe('buildMidlertidigtEetAfgoerelseGroups', () => {
       },
     ];
 
-    const groups = buildMidlertidigtEetAfgoerelseGroups({
-      eetValues: values,
-      skadedato: '2024-07-01',
-    });
+    const { groups } = computeGroups(values);
 
     expect(groups).toEqual([]);
+  });
+
+  it('failer eksplicit hvis EET-computation indeholder en ikke-konverterbar periode', () => {
+    const invalidComputation: EetLoebendeComputation = {
+      beregningsdato: '2026-03-19',
+      skadedato: '2024-07-01',
+      fodselsdato: '1980-01-01',
+      skadesaar: 2024,
+      aslAarsloenAfrundet1000: 600000,
+      maxAarsloenISkadesaar: 600000,
+      benyttetAarsloen: 600000,
+      grundloenNiveau: '2024',
+      grundloen: 600000,
+      erstatningsniveauPct: 83,
+      amBidragPct: 8,
+      reguleringFoer2024Pct: 0,
+      afgoerelser: [{
+        rowId: 'row-invalid',
+        afgoerelsesdato: '2026-02-01',
+        virkningsdato: '2026-02-01',
+        kapitaliseringsdato: null,
+        skaeringsDato: null,
+        harOverlap: false,
+        afgoerelseType: 'Midlertidig',
+        eetPct: 15,
+        priorKapPct: 0,
+        eetPctFoerAktuelKap: 15,
+        kapPctAktuel: 0,
+        kapPctKumulativ: 0,
+        restEetPct: 15,
+        harKapitalisering: false,
+        harRestSektion: false,
+        tilbagevirkendeKraft: false,
+        ophoerDato: '2026-03-19',
+        ophoerAarsag: 'beregningsdato',
+        grundydelseFuld: 1000,
+        grundydelseRest: null,
+        grundydelse2024Fuld: 1000,
+        grundydelse2024Rest: null,
+        iAltBeregnetEet: 1000,
+        perioder: [{
+          // @ts-expect-error Testen konstruerer et umuligt engine-output for at dække invariant-bruddet.
+          fra: 'invalid-date',
+          til: '2026-03-19',
+          satsAar: 2026,
+          maanederPraecis: 1,
+          grundydelseAfrundet: 1000,
+          reguleringPct: 0,
+          maanedligYdelse: 1000,
+          beregnetEet: 1000,
+        }],
+      }],
+    };
+
+    expect(() => buildMidlertidigtEetAfgoerelseGroupsFromComputation(invalidComputation))
+      .toThrow('CRITICAL: Kunne ikke konvertere midlertidigt EET-periode til dansk tabel-format.');
   });
 });

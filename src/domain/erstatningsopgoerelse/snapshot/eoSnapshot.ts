@@ -148,6 +148,12 @@ const isAngivetLoenHiddenStateInvalid = (
   );
 };
 
+const resolveTafSlutdato = (tafRanges: readonly IsoRange[]): ISODateString | undefined =>
+  tafRanges.reduce<ISODateString | undefined>(
+    (latest, range) => (latest && latest > range.til ? latest : range.til),
+    undefined
+  );
+
 export const computeEoSnapshot = (args: Readonly<{
   revision: string;
   stamdataValues: unknown;
@@ -202,8 +208,13 @@ export const computeEoSnapshot = (args: Readonly<{
   // rækker fra EET-siden er tilføjet. Original committed input bevares uændret i
   // snapshot.input.erstatningsopgoerelse — kontraktundtagelsen i domain-boundary-contract.md §9
   // dækker den read-only kobling.
+  const tafSlutdatoForMidlertidigtEetImport = parsedEo.data.midlertidigtEetFraEetSiden === 'Ja'
+    ? resolveTafSlutdato(buildTafRanges(parsedEo.data, { skadedatoISO: parsedStamdata.data.skadedato }))
+    : undefined;
   const midlertidigtEetSourceResult = parsedEo.data.midlertidigtEetFraEetSiden === 'Ja'
-    ? buildMidlertidigtEetSourceResult(args.midlertidigtEetInsertSource)
+    ? buildMidlertidigtEetSourceResult(args.midlertidigtEetInsertSource, {
+      loebendeYdelserSlutdatoOverride: tafSlutdatoForMidlertidigtEetImport,
+    })
     : { groups: [], issues: [] };
   const midlertidigtEetGroups = midlertidigtEetSourceResult.groups;
   const midlertidigtEetSourceInvariants = buildMidlertidigtEetSourceInvariants(midlertidigtEetSourceResult.issues);
@@ -433,7 +444,8 @@ export const computeEoSnapshot = (args: Readonly<{
         passed: false,
         severity: 'error' as const,
         source: 'system' as const,
-        message: error instanceof Error ? error.message : 'Uventet runtimefejl i EO-snapshot',
+        message: 'EO-beregningen kan ikke gennemføres på grund af en intern beregningsfejl.',
+        evidence: [normalizedError.message],
         blocksAuthoritativeComputation: true,
         blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'] as const,
       }],

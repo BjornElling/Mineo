@@ -1,5 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
+import type { ISODateString } from '../../../types/branded';
 import { isAslAfgoerelseRowEmpty } from '../../erhvervsevnetab/eetAslAfgoerelser';
 import { buildMidlertidigtEetAfgoerelseGroupsFromComputation, type MidlertidigtEetAfgoerelseGroup, type MidlertidigtEetInsertSource } from './midlertidigtEetInsertRows';
 import { computeEetLoebendeYdelser } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
@@ -16,7 +17,8 @@ export type MidlertidigtEetTransientResult = Readonly<{
  * kan dele samme beregningsresultat uden at kalde `computeEetLoebendeYdelser` to gange.
  */
 export const buildMidlertidigtEetSourceResult = (
-  source: MidlertidigtEetInsertSource | null | undefined
+  source: MidlertidigtEetInsertSource | null | undefined,
+  options?: Readonly<{ loebendeYdelserSlutdatoOverride?: ISODateString }>
 ): MidlertidigtEetTransientResult => {
   if (!source) {
     return { groups: [], issues: [] };
@@ -34,6 +36,7 @@ export const buildMidlertidigtEetSourceResult = (
     erhvervsevnetab: source.eetValues,
     skadedato: source.skadedato,
     skadelidteFodselsdato: source.eetValues.skadelidteFodselsdato,
+    loebendeYdelserSlutdatoOverride: options?.loebendeYdelserSlutdatoOverride,
   });
   const groups = buildMidlertidigtEetAfgoerelseGroupsFromComputation(result.computation);
   return {

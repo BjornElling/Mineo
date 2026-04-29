@@ -93,6 +93,7 @@ type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
+  loebendeYdelserSlutdatoOverride?: ISODateString;
 }>;
 
 type ResolvedAfgoerelse = Readonly<{
@@ -685,8 +686,9 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     const folkepensionsDagFoer = resolveFolkepensionsDagFoer(fodselsdato, current.afgoerelsesdato);
     const dayBeforeKapitalisering = current.effectiveKapDato ? isoDayBefore(current.effectiveKapDato) : undefined;
 
+    const loebendeYdelserSlutdato = input.loebendeYdelserSlutdatoOverride ?? beregningsdato;
     const finalCandidates: Array<Readonly<{ date: ISODateString; cause: EetLoebendeAfgoerelseComputation['ophoerAarsag'] }>> = [
-      { date: beregningsdato, cause: 'beregningsdato' },
+      { date: loebendeYdelserSlutdato, cause: 'beregningsdato' },
     ];
     if (nextStopDate) finalCandidates.push({ date: nextStopDate, cause: 'senere-afgoerelse' });
     if (folkepensionsDagFoer) finalCandidates.push({ date: folkepensionsDagFoer, cause: 'folkepensionsdato' });

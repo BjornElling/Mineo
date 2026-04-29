@@ -1,16 +1,14 @@
 import type { ErhvervsevnetabComposedValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
-import { computeEetLoebendeYdelser, type EetLoebendeComputation, type EetLoebendePeriodeRow } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
+import type { EetLoebendeComputation, EetLoebendePeriodeRow } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
-/** Input til buildMidlertidigtEetAfgoerelseGroups. */
+/** Input til den kanoniske EET-import via buildMidlertidigtEetSourceResult. */
 export type MidlertidigtEetInsertSource = Readonly<{
   eetValues: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
 }>;
-
-type BuildMidlertidigtEetRowsArgs = MidlertidigtEetInsertSource;
 
 /**
  * Én afgørelses data til hhv. UI-tabelindsætning og PDF-rendering.
@@ -26,19 +24,6 @@ export type MidlertidigtEetAfgoerelseGroup = Readonly<{
   rows: readonly OffentligeYdelserRow[];
   perioder: readonly EetLoebendePeriodeRow[];
 }>;
-
-export const buildMidlertidigtEetAfgoerelseGroups = ({
-  eetValues,
-  skadedato,
-}: BuildMidlertidigtEetRowsArgs): readonly MidlertidigtEetAfgoerelseGroup[] => {
-  const result = computeEetLoebendeYdelser({
-    erhvervsevnetab: eetValues,
-    skadedato,
-    skadelidteFodselsdato: eetValues.skadelidteFodselsdato,
-  });
-
-  return buildMidlertidigtEetAfgoerelseGroupsFromComputation(result.computation);
-};
 
 export const buildMidlertidigtEetAfgoerelseGroupsFromComputation = (
   computation: EetLoebendeComputation | null
@@ -81,21 +66,3 @@ export const buildMidlertidigtEetAfgoerelseGroupsFromComputation = (
 
   return groups;
 };
-
-/**
- * EO-importen af midlertidigt EET er en bevidst kontrakt-undtagelse, jf.
- * `domain-boundary-contract.md` §9 og `eo-snapshot-contract.md` §13:
- * - Den læser EET's committed input på page-niveau og kører nøjagtig samme
- *   løbende-ydelser-beregning som fanen "Løbende ydelser".
- * - Der laves ingen særskilt EO-beregning og ingen differencekravs-variant.
- * - Hver række i EET-tabellen "Beregnede ydelser" bliver til præcis én EO-række.
- * - Midlertidigt EET i EET-fanen beregnes på kalenderdage; EO-importen skal derfor
- *   bevare både periode og periodetotalbeløb uændret for at være korrekt.
- *
- * Importen aktiveres af togglen `midlertidigtEetFraEetSiden` på Offentlige ydelser-fanen.
- * Når togglen er `'Ja'`, injiceres rækkerne *transient* i EO-beregningen via
- * `buildEoValuesWithTransientMidlertidigtEet` i `midlertidigtEetTransientInjection.ts` —
- * de skrives aldrig til committed form-state. Den tidligere "Indsæt midlertidigt EET"-knap
- * (som skrev rækkerne til form-state) er udfaset og erstattet af denne toggle-baserede
- * mekanisme.
- */

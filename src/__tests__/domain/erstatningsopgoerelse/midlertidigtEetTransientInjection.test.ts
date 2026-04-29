@@ -5,7 +5,6 @@ import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildMidlertidigtEetSourceResult } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetTransientInjection';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../pdf/domains/eo/sections/offentligeYdelserSection';
 import { toISODateString } from '../../../types/branded';
@@ -125,6 +124,33 @@ describe('midlertidigt EET transient injection', () => {
     expect(snapshot.input.erstatningsopgoerelse?.offentligeYdelserRows).toEqual([]);
   });
 
+  it('afgrænser importeret midlertidigt EET efter TAF-periodens udløb og ikke EET-beregningsdatoen', () => {
+    const eoValues = {
+      ...createValidEoBase(),
+      midlertidigtEetFraEetSiden: 'Ja' as const,
+    };
+
+    const snapshot = computeEoSnapshot({
+      revision: 'midlertidigt-eet-taf-slutdato',
+      stamdataValues: stamdata,
+      eoValues,
+      midlertidigtEetInsertSource: {
+        eetValues: {
+          ...eetValues,
+          beregningsdato: iso('2024-02-29'),
+        },
+        skadedato: stamdata.skadedato,
+      },
+    });
+    const importedRows = snapshot.debugSnapshot?.eoValues.offentligeYdelserRows.filter(
+      (row) => row.ydelsestype === 'midlertidigt_eet'
+    ) ?? [];
+
+    expect(snapshot.data).not.toBeNull();
+    expect(snapshot.data?.midlertidigtEetGroups.flatMap((group) => group.perioder).at(-1)?.til).toBe('2024-04-30');
+    expect(importedRows.at(-1)?.tilDato).toBe('30-04-2024');
+  });
+
   it('holder Midlertidig EET-bilagets sammentælling identisk med TAF-fradraget', () => {
     const eoValues = {
       ...createValidEoBase(),
@@ -141,9 +167,8 @@ describe('midlertidigt EET transient injection', () => {
       eoValues,
       midlertidigtEetInsertSource: source,
     });
-    const sourceResult = buildMidlertidigtEetSourceResult(source);
     const pdfGroups = buildMidlertidigtEetPdfGroupsForTafRanges(
-      sourceResult.groups,
+      snapshot.data?.midlertidigtEetGroups ?? [],
       snapshot.data?.canonicalOutput.periodiseringer.tafPerioder ?? []
     );
     const pdfTotalKroner = pdfGroups.flatMap((group) => group.perioder).reduce((sum, row) => sum + row.beregnetEet, 0);

@@ -3,17 +3,11 @@ import {
   erhvervsevnetabSchema,
   faellesAarsloenSchema,
   stamdataSchema,
-  type ErhvervsevnetabComposedValues,
-  type StamdataValues,
 } from '../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
-
-type MidlertidigtEetInsertSource = Readonly<{
-  eetValues: ErhvervsevnetabComposedValues;
-  skadedato: StamdataValues['skadedato'];
-}>;
+import type { MidlertidigtEetInsertSource } from '../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 
 const subscribeToFormPersistenceStore = formPersistenceStore.subscribe;
 
@@ -67,6 +61,10 @@ const getMidlertidigtEetInsertSourceSnapshot = (): MidlertidigtEetInsertSource =
   };
 
   return value;
+};
+
+export const resetMidlertidigtEetInsertSourceCacheForTesting = (): void => {
+  cachedSnapshot = null;
 };
 
 export const useMidlertidigtEetInsertSource = (): MidlertidigtEetInsertSource => {

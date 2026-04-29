@@ -394,16 +394,28 @@ form-state. Dette afsnit er normativt for, hvordan injectionen indvirker på sna
   som indeholder `eetValues` (sammensat fra `erhvervsevnetab` + `faellesAarsloen` + `stamdata.skadelidteFodselsdato`)
   og `skadedato`. Snapshot-revisionen skal derfor inkludere både `erhvervsevnetab`- og
   `faellesAarsloen`-sektionernes revisioner, så cachen invalideres korrekt ved EET-ændringer.
+- Hvis `midlertidigtEetInsertSource` mangler (`null`/`undefined`), selv om togglen er `'Ja'`,
+  skal importen fail-closed funktionelt ved at returnere tomme grupper og ingen EET-issues.
+  EO må ikke gætte eller skrive defaults for at konstruere en kilde.
 - Når togglen er `'Nej'`, ignoreres `midlertidigtEetInsertSource` fuldstændigt, og EO-beregningen
   påvirkes ikke af EET-data.
+- Det kanoniske kald er `buildMidlertidigtEetSourceResult(...)`, som kalder EET-løbende-ydelser
+  én gang og returnerer både virtuelle grupper og EET-issues. Kaldere må ikke beregne grupper
+  og issues via separate EET-beregningskald.
 
 **Substitution af effektive rækker:**
 - Når togglen er `'Ja'`, bygges en effektiv `offentligeYdelserRows` ved at:
   1. Filtrere eksisterende `midlertidigt_eet`-rækker væk fra committed form-state (defensiv håndhævelse af invariant 6.1 i implementeringsplanen).
-  2. Tilføje virtuelle rækker fra `buildMidlertidigtEetAfgoerelseGroups(insertSource)`.
+  2. Tilføje virtuelle rækker fra `buildMidlertidigtEetSourceResult(...).groups`.
 - Engines, debug-snapshot, presentation-model og PDF-model bygges på den effektive værdi.
 - `snapshot.input.erstatningsopgoerelse` indeholder altid den oprindelige committed form-state
   (uden virtuelle rækker), så save/load round-trip og UI-visning er upåvirkede.
+- EO-importen bruger EET-løbende-ydelser-beregningen med TAF-periodens seneste clampede
+  slutdato som slutdato for de virtuelle midlertidigt EET-rækker. EET-sidens egen
+  løbende-ydelser-visning bruger fortsat EET-beregningsdatoen.
+- Hver beregnet EET-løbende-ydelsesrække fra midlertidige og delvist endelige afgørelser bliver
+  til præcis én virtuel EO-række. Perioder og periodetotalbeløb bevares uændret, fordi EET
+  er beregnet på kalenderdage og EO først periodiserer mod TAF-ranges i sin egen indkomstpipeline.
 
 **PDF-bilag:**
 - "Midlertidig EET"-bilaget renderes kun når togglen er `'Ja'` *og* der findes afgørelser fra EET-siden.
@@ -419,6 +431,11 @@ form-state. Dette afsnit er normativt for, hvordan injectionen indvirker på sna
   (samme adfærd som eksisterende `errors`-array).
 - Når togglen er `'Nej'`, vises EET-issues ikke (de er irrelevante for EO-beregningen, fordi
   koblingen er deaktiveret).
+- EET-issues overføres bevidst ukritisk og uden EO-specifik relevansfiltrering. Det betyder,
+  at en EET-fejl kan blokere EO/TAF-output, selv om den konkrete importregel ikke bruger
+  det pågældende EET-input som beregningsafgrænsning. Eksempel: manglende EET-beregningsdato
+  kan stadig blokere, selv om EO-importens midlertidigt EET-rækker afgrænses af TAF-perioden.
+  Dette er et bevidst designvalg for at undgå manuel klassificering af hver enkelt EET-issue.
 
 **Single source of truth:**
 - Når togglen er `'Ja'`, er EET-siden den eneste kilde til midlertidigt EET-data.
