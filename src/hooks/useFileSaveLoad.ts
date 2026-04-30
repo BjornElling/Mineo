@@ -23,6 +23,10 @@ import {
   removeOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
 } from '../utils/safeSessionStorage';
+import {
+  navigateToBlockingInputError,
+  type BlockingInputErrorTarget,
+} from '../utils/saveBlockedFocus';
 
 export type OverlayData = {
   message: string;
@@ -47,7 +51,8 @@ type UseFileSaveLoadArgs = {
   navigate: NavigateFunction;
   combinedSectionRevisionRef: MutableRefObject<number>;
   markSaved: (revision: number) => void;
-  hasBlockingInputErrors: () => boolean;
+  getFirstBlockingInputError: () => BlockingInputErrorTarget | null;
+  currentPathname: string;
   getPersistedData: <K extends StorageKey>(pageKey: K) => unknown;
   replaceAllPersistedData: ReplaceAllPersistedData;
   clearAllData: () => void;
@@ -129,7 +134,8 @@ export const useFileSaveLoad = ({
   navigate,
   combinedSectionRevisionRef,
   markSaved,
-  hasBlockingInputErrors,
+  getFirstBlockingInputError,
+  currentPathname,
   getPersistedData,
   replaceAllPersistedData,
   clearAllData,
@@ -172,10 +178,10 @@ export const useFileSaveLoad = ({
 
     try {
       const commitFlush = await commitPendingInputBeforeSave();
-      const hasInputErrors = hasBlockingInputErrors();
-      if (!commitFlush.ok || hasInputErrors) {
+      const blockingInputError = getFirstBlockingInputError();
+      if (!commitFlush.ok || blockingInputError !== null) {
         if (commitFlush.ok) {
-          restoreFocusIfPossible(focusTargetBeforeSave);
+          void navigateToBlockingInputError(blockingInputError, currentPathname, navigate);
         }
         markUserFeedback();
         showOverlay({
@@ -218,7 +224,17 @@ export const useFileSaveLoad = ({
       markUserFeedback();
       showOverlay(overlay);
     }
-  }, [combinedSectionRevisionRef, getPersistedData, hasBlockingInputErrors, markSaved, markUserFeedback, settings, showOverlay]);
+  }, [
+    combinedSectionRevisionRef,
+    currentPathname,
+    getFirstBlockingInputError,
+    getPersistedData,
+    markSaved,
+    markUserFeedback,
+    navigate,
+    settings,
+    showOverlay,
+  ]);
 
   const handleHent = React.useCallback(async () => {
     const loadGuard = await prepareForCriticalDataReplacement();

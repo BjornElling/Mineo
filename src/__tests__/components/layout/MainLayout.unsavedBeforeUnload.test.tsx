@@ -313,6 +313,74 @@ describe('MainLayout (unsaved beforeunload)', () => {
     });
   });
 
+  it('focuses the visible invalid field when save is blocked by a blocking field error', async () => {
+    const saveToFileMock = vi.mocked(saveToFile);
+    let ctx: ReturnType<typeof useFormPersistence> | null = null;
+    const getClientRectsSpy = vi
+      .spyOn(HTMLElement.prototype, 'getClientRects')
+      .mockReturnValue([{ width: 100, height: 20 } as DOMRect] as unknown as DOMRectList);
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scrollIntoViewMock = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoViewMock,
+    });
+
+    const Probe = () => {
+      const value = useFormPersistence();
+      React.useEffect(() => {
+        ctx = value;
+      }, [value]);
+      return null;
+    };
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/stamdata']}>
+            <Probe />
+            <MainLayout>
+              <div className="Mui-error">
+                <input aria-describedby="skadedato-error" readOnly />
+                <span id="skadedato-error">Ugyldig dato</span>
+              </div>
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    await waitFor(() => {
+      expect(ctx).not.toBeNull();
+    });
+
+    act(() => {
+      ctx!.persistData('stamdata', stampStamdata('GemBlokeres'));
+      ctx!.setFieldError('stamdata', 'skadedato', 'input', {
+        message: 'Ugyldig dato',
+        severity: 'error',
+        blocksSave: true,
+      });
+    });
+
+    await act(async () => {
+      screen.getByText('Gem').click();
+    });
+
+    await waitFor(() => {
+      expect(saveToFileMock).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(screen.getByRole('textbox'));
+    });
+
+    expect(scrollIntoViewMock).toHaveBeenCalled();
+
+    getClientRectsSpy.mockRestore();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: originalScrollIntoView,
+    });
+  });
+
   it('allows save when field error is UI-only and committed data already exists', async () => {
     const saveToFileMock = vi.mocked(saveToFile);
     saveToFileMock.mockResolvedValue({
