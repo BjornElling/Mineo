@@ -128,7 +128,7 @@ const Satser = React.memo(() => {
    */
   const handleYearCommit = React.useCallback(
     (e: { target: { value: number | undefined } }) => {
-      setValues((prev) => ({ ...prev, aargang: e.target.value }));
+      setValues((prev) => ({ ...prev, aargang: e.target.value }), { fieldPath: 'aargang' });
     },
     [setValues]
   );
@@ -203,6 +203,7 @@ const Satser = React.memo(() => {
           <Typography className="row--text">Vis satser for år:</Typography>
           <Box className="row--label-right-hover__content">
             <StyledYearField
+              name="aargang"
               value={values.aargang}
               onCommit={handleYearCommit}
               minYear={MIN_SATSER_YEAR}
@@ -399,4 +400,3 @@ const Satser = React.memo(() => {
 Satser.displayName = 'Satser';
 
 export default Satser;
-

@@ -104,6 +104,7 @@ const EetOplysningerTab = ({
             <Typography className="row--text">Køn</Typography>
             <Box className="row--label-right-hover__content">
               <StyledDropdown
+                name="koen"
                 value={values.koen}
                 onChange={(event) => {
                   const parsed = koenEnum.safeParse(event.target.value);
@@ -125,6 +126,7 @@ const EetOplysningerTab = ({
           <Typography className="row--text">Beregningsdato</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
             <StyledDateField
+              name="beregningsdato"
               value={values.beregningsdato || undefined}
               onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
               minDate={skadedatoMin}
@@ -134,7 +136,7 @@ const EetOplysningerTab = ({
             />
             <InsertTodayDateButton
               onCommit={(today) => {
-                setValues((prev) => ({ ...prev, beregningsdato: today }));
+                setValues((prev) => ({ ...prev, beregningsdato: today }), { fieldPath: 'beregningsdato' });
               }}
               focusRef={beregningsdatoInputRef}
             />
@@ -147,6 +149,7 @@ const EetOplysningerTab = ({
 
         <AarsloenAmountFieldRow
           label="Årsløn"
+          name="aslAarsloen"
           value={values.aslAarsloen}
           onCommit={handleAslAarsloenChange}
           errorMessage={faellesAarsloenFieldErrors.aslAarsloen?.message}
@@ -175,6 +178,7 @@ const EetOplysningerTab = ({
 
         <AarsloenAmountFieldRow
           label="Årsløn (hvis forskellig fra ASL)"
+          name="ealAarsloen"
           value={values.ealAarsloen}
           onCommit={handleEalAarsloenChange}
           errorMessage={faellesAarsloenFieldErrors.ealAarsloen?.message}
@@ -185,6 +189,7 @@ const EetOplysningerTab = ({
           <Typography className="row--text">EET % (hvis afviger fra ASL)</Typography>
           <Box className="row--label-right-hover__content">
             <StyledPercentField
+              name="ealEetPct"
               value={values.ealEetPct}
               onCommit={(event) => {
                 const nextValue = event.target.value === 0 ? undefined : event.target.value;

@@ -74,6 +74,7 @@ const RenteberegningTab = React.memo(({
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <StyledDateField
+                name="beregningsdato"
                 value={beregningsdato}
                 onCommit={onBeregningsdatoCommit}
                 minDate={dateRanges_renteberegning.renteTil.min}
@@ -121,6 +122,7 @@ const RenteberegningTab = React.memo(({
       <ContentBox className="content-box">
         <Typography className="section-header">Kommentarer</Typography>
         <StyledTextField
+          name="kommentarer"
           width={800}
           value={kommentarer ?? ''}
           onCommit={onKommentarerCommit}

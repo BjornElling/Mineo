@@ -36,7 +36,7 @@ const Stamdata = React.memo(() => {
   const handleInitialsChange = (field: 'advokat' | 'sagsbehandler') => (event: StyledTextFieldValueCommitEvent) => {
     const rawValue = String(event.target.value || '');
     const normalizedValue = rawValue.trim();
-    setValues((prev) => ({ ...prev, [field]: normalizedValue }));
+    setValues((prev) => ({ ...prev, [field]: normalizedValue }), { fieldPath: field });
   };
 
   const commitField = React.useCallback(
@@ -106,7 +106,7 @@ const Stamdata = React.memo(() => {
                 Journalnr.
               </Typography>
               <Box className="row--label-offset__content">
-                <StyledTextField value={values.journalnr ?? ''} onCommit={commitField('journalnr')} width={220} />
+                <StyledTextField name="journalnr" value={values.journalnr ?? ''} onCommit={commitField('journalnr')} width={220} />
               </Box>
             </Box>
 
@@ -117,6 +117,7 @@ const Stamdata = React.memo(() => {
               <Box className="row--label-offset__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <StyledTextField
+                    name="advokat"
                     value={values.advokat ?? ''}
                     onCommit={handleInitialsChange('advokat')}
                     placeholder="(init.)"
@@ -125,6 +126,7 @@ const Stamdata = React.memo(() => {
                   />
                   <Typography className="row--text">/</Typography>
                   <StyledTextField
+                    name="sagsbehandler"
                     value={values.sagsbehandler ?? ''}
                     onCommit={handleInitialsChange('sagsbehandler')}
                     placeholder="(init.)"
@@ -144,7 +146,7 @@ const Stamdata = React.memo(() => {
                 Skadelidtes navn
               </Typography>
               <Box className="row--label-offset__content">
-                <StyledTextField value={values.skadelidte ?? ''} onCommit={commitField('skadelidte')} width={350} />
+                <StyledTextField name="skadelidte" value={values.skadelidte ?? ''} onCommit={commitField('skadelidte')} width={350} />
               </Box>
             </Box>
 
@@ -154,6 +156,7 @@ const Stamdata = React.memo(() => {
               </Typography>
               <Box className="row--label-offset__content">
                 <StyledDateField
+                  name="skadelidteFodselsdato"
                   value={values.skadelidteFodselsdato}
                   onCommit={commitField('skadelidteFodselsdato')}
                   onFieldError={reportSkadelidteFodselsdatoError}
@@ -168,7 +171,7 @@ const Stamdata = React.memo(() => {
                 Skadestype
               </Typography>
               <Box className="row--label-offset__content">
-                <StyledDropdown value={values.skadestype} onChange={commitField('skadestype')} placeholder="Vælg skadestype" width={200}>
+                <StyledDropdown name="skadestype" value={values.skadestype} onChange={commitField('skadestype')} placeholder="Vælg skadestype" width={200}>
                   {SKADESTYPER.map((type) => (
                     <MenuItem key={type} value={type}>
                       {type}
@@ -184,6 +187,7 @@ const Stamdata = React.memo(() => {
               </Typography>
               <Box className="row--label-offset__content">
                 <StyledDateField
+                  name="skadedato"
                   value={values.skadedato}
                   onCommit={commitField('skadedato')}
                   onFieldError={reportSkadedatoError}

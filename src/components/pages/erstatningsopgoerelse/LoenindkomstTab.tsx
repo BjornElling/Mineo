@@ -733,7 +733,7 @@ const LoenindkomstTab = React.memo(({
     setTimeout(() => setLoentrinFinderButtonShake(false), 500);
   }, []);
 
-  const handleLoentrinFinderAmountFieldError = React.useCallback((errorMsg: string | undefined) => {
+  const handleLoentrinFinderAmountFieldError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
     setLoentrinFinderAmountFieldError(getReportableFieldErrorMessage(errorMsg));
   }, []);
 

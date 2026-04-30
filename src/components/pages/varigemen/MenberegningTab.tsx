@@ -286,6 +286,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
         <Typography className="row--text">Méngrad</Typography>
         <Box className="row--label-right-hover__content">
           <StyledPercentField
+            name="mengrad"
             value={values.mengrad}
             onCommit={(event) => {
               const raw = event.target.value;
@@ -310,6 +311,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
         <Typography className="row--text">Beregningsdato</Typography>
         <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
           <StyledDateField
+            name="beregningsdato"
             value={values.beregningsdato || undefined}
             onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
             minDate={VARIGE_MEN_BEREGNINGSDATO_MIN}
@@ -322,7 +324,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
               setValues((prev) => ({
                 ...prev,
                 beregningsdato: today,
-              }));
+              }), { fieldPath: 'beregningsdato' });
             }}
             focusRef={beregningsdatoInputRef}
           />

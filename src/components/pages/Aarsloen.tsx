@@ -96,7 +96,7 @@ const Aarsloen = React.memo(() => {
     tabelRef,
     toggleRef,
     onEnabledChange: (enabled) => {
-      setValues(prev => ({ ...prev, omregningTilFuldtAar: enabled }));
+      setValues(prev => ({ ...prev, omregningTilFuldtAar: enabled }), { fieldPath: 'omregningTilFuldtAar' });
     },
   });
 
@@ -189,7 +189,7 @@ const Aarsloen = React.memo(() => {
       const next: AarsloenValues = { ...prev };
       next[fieldName] = value;
       return next;
-    });
+    }, { fieldPath: String(fieldName) });
   }, [setValues]);
 
   const fieldHandlers = React.useMemo(() => {
@@ -320,6 +320,7 @@ const Aarsloen = React.memo(() => {
                 Feriegodtgørelse/-tillæg:
               </Typography>
               <StyledPercentField
+                name="feriePct"
                 value={feriePct}
                 onCommit={fieldHandlers.feriePct}
                 placeholder="0 %"
@@ -330,6 +331,7 @@ const Aarsloen = React.memo(() => {
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>
               <StyledPercentField
+                name="fritvalgPct"
                 value={fritvalgPct}
                 onCommit={fieldHandlers.fritvalgPct}
                 placeholder="0 %"
@@ -342,6 +344,7 @@ const Aarsloen = React.memo(() => {
                 SH/SO-sats:
               </Typography>
               <StyledPercentField
+                name="shSoPct"
                 value={shSoPct}
                 onCommit={fieldHandlers.shSoPct}
                 placeholder="0 %"
@@ -366,6 +369,7 @@ const Aarsloen = React.memo(() => {
                 Store Bededagstillæg:
               </Typography>
               <StyledPercentField
+                name="storeBededagPct"
                 value={storeBededagPct}
                 onCommit={fieldHandlers.storeBededagPct}
                 placeholder="0 %"
@@ -378,6 +382,7 @@ const Aarsloen = React.memo(() => {
                 Arbejdsgivers pensionsbidrag:
               </Typography>
               <StyledPercentField
+                name="pensionPct"
                 value={pensionPct}
                 onCommit={fieldHandlers.pensionPct}
                 placeholder="0 %"
@@ -440,6 +445,7 @@ const Aarsloen = React.memo(() => {
           <Typography className="row--text">Omregning til fuldt år:</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
+              name="omregningTilFuldtAar"
               ref={toggleRef}
               checked={omregningChecked}
               onCommit={handleOmregningToggle}
@@ -461,6 +467,7 @@ const Aarsloen = React.memo(() => {
             <Typography className="row--text">Fuld løn under ferie:</Typography>
             <Box className="row--label-right-hover__content">
               <StyledToggleSwitch
+                name="fuldLoenUnderFerie"
                 checked={fuldLoenUnderFerie}
                 onCommit={updateToggle('fuldLoenUnderFerie')}
                 disabled={!canShowOmregning}
@@ -474,6 +481,7 @@ const Aarsloen = React.memo(() => {
               <Typography className="row--text">Ret til 6. ferieuge:</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledToggleSwitch
+                  name="retTilSjetteFerieuge"
                   checked={retTilSjetteFerieuge}
                   onCommit={updateToggle('retTilSjetteFerieuge')}
                   disabled={!canShowOmregning}
@@ -488,6 +496,7 @@ const Aarsloen = React.memo(() => {
               <Typography className="row--text">Antal feriedage (mandag-fredag) i de indtastede perioder:</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledIntegerField
+                  name="antalFeriedage"
                   value={antalFeriedage}
                   onCommit={fieldHandlers.antalFeriedage}
                   placeholder="0"
@@ -505,6 +514,7 @@ const Aarsloen = React.memo(() => {
             <Typography className="row--text">Løn på helligdage:</Typography>
             <Box className="row--label-right-hover__content">
               <StyledDropdown
+                name="loenPaaHelligdage"
                 value={loenPaaHelligdage}
                 onChange={handleLoenPaaHelligdageChange}
                 width={185}

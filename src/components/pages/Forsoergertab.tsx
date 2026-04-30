@@ -111,6 +111,7 @@ const Forsoergertab = React.memo(() => {
           <Typography className="row--text">Beregningsdato</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
             <StyledDateField
+              name="beregningsdato"
               value={values.beregningsdato || undefined}
               onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
               minDate={snapshot.inputBounds.beregningsdatoMin}
@@ -165,6 +166,7 @@ const Forsoergertab = React.memo(() => {
             <Typography className="row--text">Køn</Typography>
             <Box className="row--label-right-hover__content">
               <StyledDropdown
+                name="koen"
                 value={values.koen}
                 onChange={(event) => {
                   const parsed = koenEnum.safeParse(event.target.value);
@@ -186,6 +188,7 @@ const Forsoergertab = React.memo(() => {
 
         <AarsloenAmountFieldRow
           label="Skadelidtes årsløn (efter ASL)"
+          name="aslAarsloen"
           value={faellesAarsloenValues.aslAarsloen}
           onCommit={(event) => setFaellesAarsloenFieldValue('aslAarsloen', event.target.value)}
           errorMessage={
@@ -198,6 +201,7 @@ const Forsoergertab = React.memo(() => {
           <Typography className="row--text">Startdato for ASL-ydelse</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDateField
+              name="virkningsdato"
               value={values.virkningsdato || undefined}
               onCommit={(event) => setFieldValue('virkningsdato', event.target.value)}
               minDate={snapshot.inputBounds.skadedatoMin}
@@ -214,6 +218,7 @@ const Forsoergertab = React.memo(() => {
           <Typography className="row--text">Tilkendt for periode</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 1 }}>
             <StyledIntegerField
+              name="tilkendtForPeriodeAar"
               value={values.tilkendtForPeriodeAar}
               onCommit={(event) => setFieldValue('tilkendtForPeriodeAar', event.target.value)}
               minValue={1}
@@ -232,6 +237,7 @@ const Forsoergertab = React.memo(() => {
           <Typography className="row--text">Efterladte ægtefælle/samlevers fødselsdato</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDateField
+              name="efterladteFodselsdato"
               value={values.efterladteFodselsdato || undefined}
               onCommit={(event) => setFieldValue('efterladteFodselsdato', event.target.value)}
               minDate={dateRanges_forsoergertab.efterladteFodselsdato.min}
@@ -247,6 +253,7 @@ const Forsoergertab = React.memo(() => {
 
         <AarsloenAmountFieldRow
           label="Skadelidtes årsløn (efter EAL)"
+          name="ealAarsloen"
           value={faellesAarsloenValues.ealAarsloen}
           onCommit={(event) => setFaellesAarsloenFieldValue('ealAarsloen', event.target.value)}
           errorMessage={
