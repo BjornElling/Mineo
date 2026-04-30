@@ -11,7 +11,7 @@ const routeToPageId = (route: string): string => route.replace(/^\/+/, '') || 's
 
 const attrSelector = (attr: string, value: string): string => `[${attr}=${JSON.stringify(value)}]`;
 
-const HISTORY_TARGET_RESTORE_MAX_ATTEMPTS = 60;
+const HISTORY_TARGET_RESTORE_MAX_ATTEMPTS = 15;
 
 const isRestoreTargetVisible = (element: HTMLElement): boolean => {
   if (!element.isConnected) return false;
@@ -50,9 +50,6 @@ const findRestoredField = (frame: HistoryFrame): HTMLElement | null => {
 };
 
 const focusRestoredField = (target: HTMLElement): boolean => {
-  // Genbrug "fejl og advarsler"-scroll-mønsteret: scroll til feltets indeholdende sektion
-  // (block: 'start') hvis vi finder en, ellers til feltet selv. Sætter derefter fokus uden
-  // ekstra scroll, så browseren ikke flytter sig efter sektion-scroll'en.
   const section = target.closest('[data-section-id]');
   if (section instanceof HTMLElement) {
     section.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -94,16 +91,41 @@ const resolveDraftRestoreState = (frame: HistoryFrame): DraftHistoryRestoreState
   return { kind: 'committed' };
 };
 
+const isFocusableUserTarget = (element: HTMLElement): boolean => {
+  return element.matches('input, textarea, select, button, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]');
+};
+
+const isSameFocusScope = (activeElement: HTMLElement, originalActiveElement: Element | null, target: HTMLElement | null): boolean => {
+  if (target && (activeElement === target || target.contains(activeElement))) return true;
+  if (originalActiveElement instanceof Node) {
+    return activeElement === originalActiveElement || originalActiveElement.contains(activeElement);
+  }
+  return false;
+};
+
 const scheduleHistoryTargetRestore = (frame: HistoryFrame): void => {
   if (!frame.origin.fieldPath && !frame.origin.focusToken) return;
 
   const state = resolveDraftRestoreState(frame);
+  const originalActiveElement = document.activeElement;
+
   // Draft-restore must be a one-shot: calling restoreFromHistory multiple times for the same
   // frame would re-apply suppressNextBlurCommit and clobber any user edits made between ticks.
   let draftRestored = false;
   let attempts = 0;
   const tick = () => {
     const target = findRestoredField(frame);
+    const activeElement = document.activeElement;
+    if (
+      attempts > 0 &&
+      activeElement instanceof HTMLElement &&
+      activeElement !== document.body &&
+      !isSameFocusScope(activeElement, originalActiveElement, target) &&
+      isFocusableUserTarget(activeElement)
+    ) {
+      return;
+    }
+
     if (target) {
       if (!draftRestored) {
         draftRestored = restoreDraftHistoryTarget(
@@ -111,9 +133,8 @@ const scheduleHistoryTargetRestore = (frame: HistoryFrame): void => {
           state
         );
       }
-      if (focusRestoredField(target)) {
-        return;
-      }
+      const focused = focusRestoredField(target);
+      if (focused) return;
     }
     attempts += 1;
     if (attempts < HISTORY_TARGET_RESTORE_MAX_ATTEMPTS) {
