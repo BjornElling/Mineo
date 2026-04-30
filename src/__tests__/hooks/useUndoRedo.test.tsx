@@ -16,6 +16,8 @@ import type { ISODateString } from '../../types/branded';
 import { erstatningsopgoerelseSchema, type TafPeriodeRow } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
+import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
+import type { StorageKey } from '../../config/storageManifest';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
 
@@ -360,6 +362,69 @@ describe('useUndoRedo', () => {
     expect(getUndoField('journalnr')).toHaveValue('SAG-1');
     expect(getUndoField('skadelidte')).toHaveValue('Test Person');
     expect(getUndoField('skadelidteFodselsdato')).toHaveValue('01-01-1980');
+
+    requestAnimationFrameSpy.mockRestore();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: originalScrollIntoView,
+    });
+  });
+
+  it('redo gendanner invalid draft når fejlen er produceret via reportError', () => {
+    const rafCallbacks: FrameRequestCallback[] = [];
+    const requestAnimationFrameSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      rafCallbacks.push(callback);
+      return rafCallbacks.length;
+    });
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    let reportError!: ReturnType<typeof useFormFieldErrorReporter>;
+    const ReporterControls = () => {
+      reportError = useFormFieldErrorReporter('stamdata' as StorageKey, 'skadelidteFodselsdato' as never);
+      controls = useUndoRedo();
+      return (
+        <Routes>
+          <Route path="/satser" element={<div>Satser</div>} />
+          <Route path="/stamdata" element={<Stamdata />} />
+        </Routes>
+      );
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/stamdata']}>
+        <AppSettingsProvider>
+          <FormPersistenceProvider>
+            <ReporterControls />
+          </FormPersistenceProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
+    );
+
+    // Et undo-bærende felt skal være "senest fokuseret" så reportError kan fange origin korrekt.
+    const target = getUndoField('skadelidteFodselsdato');
+    act(() => {
+      target.focus();
+    });
+
+    act(() => {
+      reportError({ message: 'Ugyldig dato', blocksSave: true, invalidDraft: '32-13-1980' });
+    });
+
+    act(() => {
+      controls?.undo();
+    });
+    flushAnimationFrames(rafCallbacks);
+    expect(getUndoField('skadelidteFodselsdato')).toHaveValue('');
+
+    act(() => {
+      controls?.redo();
+    });
+    flushAnimationFrames(rafCallbacks);
+    expect(getUndoField('skadelidteFodselsdato')).toHaveValue('32-13-1980');
 
     requestAnimationFrameSpy.mockRestore();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {

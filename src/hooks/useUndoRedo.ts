@@ -98,14 +98,19 @@ const scheduleHistoryTargetRestore = (frame: HistoryFrame): void => {
   if (!frame.origin.fieldPath && !frame.origin.focusToken) return;
 
   const state = resolveDraftRestoreState(frame);
+  // Draft-restore must be a one-shot: calling restoreFromHistory multiple times for the same
+  // frame would re-apply suppressNextBlurCommit and clobber any user edits made between ticks.
+  let draftRestored = false;
   let attempts = 0;
   const tick = () => {
     const target = findRestoredField(frame);
     if (target) {
-      restoreDraftHistoryTarget(
-        { focusToken: frame.origin.focusToken, fieldPath: frame.origin.fieldPath },
-        state
-      );
+      if (!draftRestored) {
+        draftRestored = restoreDraftHistoryTarget(
+          { focusToken: frame.origin.focusToken, fieldPath: frame.origin.fieldPath },
+          state
+        );
+      }
       if (focusRestoredField(target)) {
         return;
       }

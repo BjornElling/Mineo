@@ -8,6 +8,7 @@ import { trimWhitespaceEdges } from '../../utils/draftNormalization';
 import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
+import type { FieldErrorReporter } from '../../types/fieldErrors';
 
 const debugStyledTextField = (event: string, details: Record<string, unknown>): void => {
   if (!isInteractiveDevLoggingEnabled) return;
@@ -66,6 +67,13 @@ export type StyledTextFieldProps = {
    */
 
   /**
+   * Producer-owned error reporter (optional). When provided, the field reports its own
+   * commit-time validation error up to the form-error registry and rehydrates the invalid
+   * draft after undo/redo or remount via `getCurrentError()`.
+   */
+  onFieldError?: FieldErrorReporter;
+
+  /**
    * Called after internal focus bookkeeping (via `useDraftField`) has run.
    */
   onFocus?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
@@ -103,6 +111,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       onDraftChange,
       onCommit,
       validateOnCommit,
+      onFieldError,
       onBlur,
       onFocus,
       onKeyDown,
@@ -146,6 +155,18 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       [validateOnCommit]
     );
 
+    const initialInvalidDraft = React.useMemo(() => {
+      const currentError = onFieldError?.getCurrentError?.();
+      if (
+        currentError?.severity === 'error' &&
+        currentError.blocksSave !== false &&
+        typeof currentError.invalidDraft === 'string'
+      ) {
+        return { draft: currentError.invalidDraft, message: currentError.message };
+      }
+      return undefined;
+    }, [onFieldError]);
+
     const {
       draft,
       setDraft: setDraftBase,
@@ -166,11 +187,22 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       normalizeDraftOnCommit: trimWhitespaceEdges,
       clearErrorOnDraftChange: validateOnCommit !== undefined,
       commitOnBlur: false,
+      initialInvalidDraft,
     });
 
     const visibleLocalError = touched ? error : undefined;
     const resolvedHasError = externalHasError || Boolean(visibleLocalError?.message);
     const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
+
+    // Notify parent of local error state (producer-owned reporting)
+    React.useEffect(() => {
+      if (typeof onFieldError !== 'function') return;
+      if (visibleLocalError?.message) {
+        onFieldError({ message: visibleLocalError.message, blocksSave: true, invalidDraft: draft });
+        return;
+      }
+      onFieldError(undefined);
+    }, [draft, onFieldError, visibleLocalError?.message]);
 
     const skipNextBlurCommitRef = React.useRef(false);
 

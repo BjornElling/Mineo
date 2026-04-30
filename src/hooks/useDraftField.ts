@@ -126,12 +126,10 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   React.useLayoutEffect(() => {
     committedValueRef.current = value;
   }, [value]);
-  const touchedRef = React.useRef(touched);
-  const errorRef = React.useRef(error);
+  const isFocusedRef = React.useRef(isFocused);
   React.useLayoutEffect(() => {
-    touchedRef.current = touched;
-    errorRef.current = error;
-  }, [error, touched]);
+    isFocusedRef.current = isFocused;
+  }, [isFocused]);
 
   // Snapshot of the field state at focus start (pre-edit).
   // Used to ensure Escape restores the exact "existing value" the user started editing,
@@ -162,9 +160,14 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
 
   const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
     pendingValueResyncRef.current = { active: false };
-    suppressNextBlurCommitRef.current = true;
-    pendingHistoryValueResyncRef.current = false;
+    // Gate suppression on focus: undo/redo is blocked while a field is focused (MainLayout),
+    // so the field should be unfocused here. We still gate explicitly to avoid silently
+    // overriding blur-commit semantics if that invariant ever changes.
+    if (!isFocusedRef.current) {
+      suppressNextBlurCommitRef.current = true;
+    }
     if (state.kind === 'error') {
+      pendingHistoryValueResyncRef.current = false;
       setDraftState(state.draft);
       setTouched(true);
       setError(state.error);

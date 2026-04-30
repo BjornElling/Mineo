@@ -119,6 +119,18 @@ const isSameStoredInvalidDraftError = (
   current.message === error.message.trim() &&
   current.invalidDraft === error.invalidDraft;
 
+const captureInvalidDraftIfNew = (
+  pageKey: StorageKey,
+  fieldName: string,
+  error: ReportableFieldError | undefined,
+  current: FormFieldError | undefined,
+  route: string
+): void => {
+  if (!shouldCaptureInvalidDraftError(error)) return;
+  if (isSameStoredInvalidDraftError(current, error)) return;
+  undoRedoStore.getState().capture(createFieldErrorUndoOrigin(pageKey, fieldName, route));
+};
+
 /**
  * Producer-owned field error reporter.
  *
@@ -165,9 +177,7 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
       // - The producer (typically an input component) owns the error for this field and MUST clear it
       //   by calling the reporter with `undefined` once the field becomes valid again.
       // - The form layer may clear all field errors on authoritative state replacement (reset/load).
-      if (shouldCaptureInvalidDraftError(error) && !isSameStoredInvalidDraftError(getFieldError(pageKey, fieldName), error)) {
-        undoRedoStore.getState().capture(createFieldErrorUndoOrigin(pageKey, fieldName, location.pathname));
-      }
+      captureInvalidDraftIfNew(pageKey, fieldName, error, getFieldError(pageKey, fieldName), location.pathname);
 
       if (error === undefined || (typeof error === 'string' && error.trim() === '') || (typeof error !== 'string' && error.message.trim() === '')) {
         setFieldError(pageKey, fieldName, source, null);
@@ -235,9 +245,7 @@ export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
     });
     lastReportedByFieldRef.current[fieldName] = nextKey;
 
-    if (shouldCaptureInvalidDraftError(error) && !isSameStoredInvalidDraftError(getFieldError(pageKey, fieldName), error)) {
-      undoRedoStore.getState().capture(createFieldErrorUndoOrigin(pageKey, fieldName, location.pathname));
-    }
+    captureInvalidDraftIfNew(pageKey, fieldName, error, getFieldError(pageKey, fieldName), location.pathname);
 
     if (
       error === undefined

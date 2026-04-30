@@ -10,6 +10,7 @@ import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { normalizeWeekPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
+import type { FieldErrorReporter } from '../../types/fieldErrors';
 
 export type StyledWeekFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledWeekFieldDraftChangeEvent = DraftChangeEvent;
@@ -39,6 +40,13 @@ export type StyledWeekFieldProps = {
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+
+  /**
+   * Producer-owned error reporter (optional). When provided, the field reports its own
+   * invalid-draft state up to the form-error registry and rehydrates the invalid draft
+   * after undo/redo or remount via `getCurrentError()`.
+   */
+  onFieldError?: FieldErrorReporter;
 
   error?: boolean;
   helperText?: string;
@@ -72,6 +80,7 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
       onFocus,
       onBlur,
       onKeyDown,
+      onFieldError,
       error: externalHasError = false,
       helperText: externalHelperText = '',
       sx,
@@ -171,6 +180,18 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
       [maxYear, minYear, twoDigitYearPolicy]
     );
 
+    const initialInvalidDraft = React.useMemo(() => {
+      const currentError = onFieldError?.getCurrentError?.();
+      if (
+        currentError?.severity === 'error' &&
+        currentError.blocksSave !== false &&
+        typeof currentError.invalidDraft === 'string'
+      ) {
+        return { draft: currentError.invalidDraft, message: currentError.message };
+      }
+      return undefined;
+    }, [onFieldError]);
+
     const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
       useDraftField<string | undefined>({
         value,
@@ -185,11 +206,22 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
         // Feltet ejer blur-commit eksplicit, så vi kan undlade touched/commit ved uændret blur
         // og koordinere Enter/Escape-suppression med 2-trins editor-aktivering.
         commitOnBlur: false,
+        initialInvalidDraft,
       });
 
     const visibleLocalError = touched ? error : undefined;
     const resolvedHasError = externalHasError || Boolean(visibleLocalError?.message);
     const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
+
+    // Notify parent of local error state (producer-owned reporting)
+    React.useEffect(() => {
+      if (typeof onFieldError !== 'function') return;
+      if (visibleLocalError?.message) {
+        onFieldError({ message: visibleLocalError.message, blocksSave: true, invalidDraft: draft });
+        return;
+      }
+      onFieldError(undefined);
+    }, [draft, onFieldError, visibleLocalError?.message]);
 
     const skipNextBlurCommitRef = React.useRef(false);
 

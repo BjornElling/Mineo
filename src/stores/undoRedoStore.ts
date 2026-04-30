@@ -117,6 +117,7 @@ export const undoRedoStore = createStore<UndoRedoStoreState>((set, get) => ({
     return appliedTarget;
   },
   clear: () => {
+    frameSequence = 0;
     set({ past: [], future: [] });
   },
 }));
