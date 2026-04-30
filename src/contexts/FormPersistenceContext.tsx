@@ -403,7 +403,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     pageKey: K,
     fieldName: string,
     source: FieldErrorSource,
-    error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean } | null
+    error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean; invalidDraft?: string } | null
   ) => {
     formPersistenceStore.getState().setFieldError(pageKey, fieldName, source, error);
   }, []);

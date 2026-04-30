@@ -71,7 +71,7 @@ export type FormPersistenceStoreState = {
     key: K,
     fieldName: string,
     source: FieldErrorSource,
-    error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean } | null
+    error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean; invalidDraft?: string } | null
   ) => void;
   clearFieldErrorsForSection: <K extends keyof FormPersistenceSections>(key: K) => void;
   clearAllFieldErrors: () => void;
@@ -228,7 +228,8 @@ const applyFieldErrorUpdate = (
     existing.message === next.message &&
     existing.severity === next.severity &&
     existing.source === next.source &&
-    existing.blocksSave === next.blocksSave
+    existing.blocksSave === next.blocksSave &&
+    existing.invalidDraft === next.invalidDraft
   ) {
     return { kind: 'noop' };
   }
@@ -373,6 +374,7 @@ const createFormPersistenceStore = () =>
               severity: error.severity,
               source,
               blocksSave: error.blocksSave,
+              invalidDraft: error.invalidDraft,
             });
         const update = applyFieldErrorUpdate(prevForField, source, normalized);
         debugFormPersistenceStore('setFieldError', {

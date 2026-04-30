@@ -16,6 +16,13 @@ export type FormFieldError = {
    * Omitted/`true` means the error represents non-committable invalid input and blocks save.
    */
   blocksSave?: boolean;
+  /**
+   * Runtime-only draft that failed commit validation.
+   *
+   * Used to restore the exact invalid input after route/tab navigation when save is blocked.
+   * Must never be persisted to `.eo` or used for calculation.
+   */
+  invalidDraft?: string;
 };
 
 export type ReportableFieldError =
@@ -23,7 +30,12 @@ export type ReportableFieldError =
   | Readonly<{
       message: string;
       blocksSave?: boolean;
+      invalidDraft?: string;
     }>;
+
+export type FieldErrorReporter = ((error: ReportableFieldError | undefined) => void) & {
+  getCurrentError?: () => FormFieldError | undefined;
+};
 
 export const getReportableFieldErrorMessage = (
   error: ReportableFieldError | undefined
@@ -66,6 +78,7 @@ export const normalizeFieldError = (error: FormFieldError): FormFieldError | nul
     severity: error.severity,
     source: error.source,
     blocksSave: error.blocksSave !== false,
+    invalidDraft: typeof error.invalidDraft === 'string' ? error.invalidDraft : undefined,
   };
 };
 
