@@ -79,35 +79,44 @@ export const undoRedoStore = createStore<UndoRedoStoreState>((set, get) => ({
     }));
   },
   undo: () => {
-    const state = get();
-    const target = state.past.at(-1);
-    if (!target) return null;
+    const plannedTarget = get().past.at(-1);
+    if (!plannedTarget) return null;
 
     // Snapshot current committed state before the caller restores `target`.
     // The transition origin stays with the undoable/redoable action, not with the current route.
-    const current = createFrame(target.origin);
-    set({
-      past: state.past.slice(0, -1),
-      future: [current, ...state.future],
+    const current = createFrame(plannedTarget.origin);
+    let appliedTarget: HistoryFrame | null = null;
+    set((state) => {
+      const target = state.past.at(-1);
+      if (!target || target.id !== plannedTarget.id) return state;
+      appliedTarget = target;
+      return {
+        past: state.past.slice(0, -1),
+        future: [current, ...state.future],
+      };
     });
-    return target;
+    return appliedTarget;
   },
   redo: () => {
-    const state = get();
-    const [target, ...remainingFuture] = state.future;
-    if (!target) return null;
+    const plannedTarget = get().future[0];
+    if (!plannedTarget) return null;
 
     // Snapshot current committed state before the caller restores `target`.
     // The transition origin stays with the undoable/redoable action, not with the current route.
-    const current = createFrame(target.origin);
-    set({
-      past: appendPastFrame(state.past, current),
-      future: remainingFuture,
+    const current = createFrame(plannedTarget.origin);
+    let appliedTarget: HistoryFrame | null = null;
+    set((state) => {
+      const [target, ...remainingFuture] = state.future;
+      if (!target || target.id !== plannedTarget.id) return state;
+      appliedTarget = target;
+      return {
+        past: appendPastFrame(state.past, current),
+        future: remainingFuture,
+      };
     });
-    return target;
+    return appliedTarget;
   },
   clear: () => {
-    frameSequence = 0;
     set({ past: [], future: [] });
   },
 }));

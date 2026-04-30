@@ -11,7 +11,7 @@ const routeToPageId = (route: string): string => route.replace(/^\/+/, '') || 's
 
 const attrSelector = (attr: string, value: string): string => `[${attr}=${JSON.stringify(value)}]`;
 
-const FOCUS_RESTORE_MAX_ATTEMPTS = 60;
+const HISTORY_TARGET_RESTORE_MAX_ATTEMPTS = 60;
 
 const isRestoreTargetVisible = (element: HTMLElement): boolean => {
   if (!element.isConnected) return false;
@@ -69,23 +69,6 @@ const focusRestoredField = (target: HTMLElement): boolean => {
   return activeElement === target || (activeElement instanceof Node && target.contains(activeElement));
 };
 
-const scheduleFocusRestore = (frame: HistoryFrame): void => {
-  // Tab- og side-skift kan udløse async mount af det målrettede felt; retry over flere
-  // frames indtil feltet findes eller vi giver op (samme mønster som useScrollToSectionWithRetry).
-  let attempts = 0;
-  const tick = () => {
-    const target = findRestoredField(frame);
-    if (target && focusRestoredField(target)) {
-      return;
-    }
-    attempts += 1;
-    if (attempts < FOCUS_RESTORE_MAX_ATTEMPTS) {
-      requestAnimationFrame(tick);
-    }
-  };
-  requestAnimationFrame(tick);
-};
-
 const resolveDraftRestoreState = (frame: HistoryFrame): DraftHistoryRestoreState => {
   const fieldPath = frame.origin.fieldPath;
   if (fieldPath) {
@@ -111,16 +94,24 @@ const resolveDraftRestoreState = (frame: HistoryFrame): DraftHistoryRestoreState
   return { kind: 'committed' };
 };
 
-const scheduleDraftRestore = (frame: HistoryFrame): void => {
+const scheduleHistoryTargetRestore = (frame: HistoryFrame): void => {
+  if (!frame.origin.fieldPath && !frame.origin.focusToken) return;
+
   const state = resolveDraftRestoreState(frame);
   let attempts = 0;
   const tick = () => {
-    const restored = restoreDraftHistoryTarget(
-      { focusToken: frame.origin.focusToken, fieldPath: frame.origin.fieldPath },
-      state
-    );
+    const target = findRestoredField(frame);
+    if (target) {
+      restoreDraftHistoryTarget(
+        { focusToken: frame.origin.focusToken, fieldPath: frame.origin.fieldPath },
+        state
+      );
+      if (focusRestoredField(target)) {
+        return;
+      }
+    }
     attempts += 1;
-    if (!restored && attempts < FOCUS_RESTORE_MAX_ATTEMPTS) {
+    if (attempts < HISTORY_TARGET_RESTORE_MAX_ATTEMPTS) {
       requestAnimationFrame(tick);
     }
   };
@@ -129,12 +120,13 @@ const scheduleDraftRestore = (frame: HistoryFrame): void => {
 
 const restoreFrame = (frame: HistoryFrame): void => {
   writePersistenceSectionsToSessionStorageWithRollback(frame.sections, () => {
-    formPersistenceStore.getState().restoreHistorySections(
+    formPersistenceStore.getState().restoreHistoryFrame(
       frame.sections,
       frame.sectionRevisions,
+      frame.fieldErrors,
+      frame.fieldErrorRevisions,
       frame.meta
     );
-    formPersistenceStore.getState().restoreFieldErrors(frame.fieldErrors, frame.fieldErrorRevisions);
   });
 };
 
@@ -161,8 +153,7 @@ export const useUndoRedo = () => {
       setActiveTabForPage(routeToPageId(frame.origin.route), frame.origin.tabKey);
     }
     navigate(frame.origin.route);
-    scheduleDraftRestore(frame);
-    scheduleFocusRestore(frame);
+    scheduleHistoryTargetRestore(frame);
   }, [navigate]);
 
   const undo = React.useCallback(() => {

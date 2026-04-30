@@ -1,4 +1,4 @@
-# Implementeringsplan: Undo/Redo
+# Arkitekturnotat: Undo/Redo
 
 ## Overblik
 
@@ -74,12 +74,13 @@ type HistoryFrame = {
 ```typescript
 type UndoRedoState = {
   past: HistoryFrame[];     // Skridt man kan fortryde — undo går herfra
-  present: HistoryFrame;    // Nuværende tilstand
   future: HistoryFrame[];   // Skridt man kan gentage — redo går herfra
 };
 ```
 
 `past[past.length - 1]` er det seneste undo-mål. `future[0]` er det næste redo-mål.
+Der findes bevidst intet `present`-felt; den aktuelle tilstand læses fra `formPersistenceStore`
+og snapshots af den aktuelle tilstand oprettes først ved `undo()`/`redo()`, så redo-stakken kan bygges.
 
 Stakken har maks 50 elementer i `past`. Når grænsen nås droppes det ældste element.
 
@@ -87,14 +88,13 @@ Stakken har maks 50 elementer i `past`. Når grænsen nås droppes det ældste e
 
 ## Arkitekturkomponenter
 
-### 1. `undoRedoStore` (ny fil: `src/stores/undoRedoStore.ts`)
+### 1. `undoRedoStore` (`src/stores/undoRedoStore.ts`)
 
 En separat Zustand vanilla-store (uden persist-middleware — stakken lever kun i memory).
 
 ```typescript
 type UndoRedoStore = {
   past: HistoryFrame[];
-  present: HistoryFrame | null;
   future: HistoryFrame[];
 
   canUndo: () => boolean;
@@ -111,11 +111,11 @@ type UndoRedoStore = {
 
 **`undo()`** — returnerer den `HistoryFrame` der skal gendannes, og opdaterer stakkene. Returnerer `null` hvis intet kan fortrydes.
 
-**`redo()`** — returnerer den `HistoryFrame` der skal gendannes (present gemmes i future), og opdaterer stakkene.
+**`redo()`** — returnerer den `HistoryFrame` der skal gendannes, snapshottet af den aktuelle tilstand gemmes i `past`, og stakkene opdateres.
 
-**`clear()`** — tømmer past, present og future (bruges ved filindlæsning).
+**`clear()`** — tømmer past og future (bruges ved filindlæsning).
 
-### 2. `useUndoRedo` (ny fil: `src/hooks/useUndoRedo.ts`)
+### 2. `useUndoRedo` (`src/hooks/useUndoRedo.ts`)
 
 React-hook der eksponerer `canUndo`, `canRedo`, `undo()` og `redo()` til brug i `MainLayout`. Den udfører også den faktiske gendannelse mod `formPersistenceStore` og navigationen.
 
@@ -124,22 +124,15 @@ const { canUndo, canRedo, undo, redo } = useUndoRedo();
 ```
 
 Internt kalder den:
-- `formPersistenceStore.rollbackSections(frame.sections, frame.sectionRevisions, frame.authoritativeSnapshotEpoch, frame.meta)`
-- `formPersistenceStore.restoreFieldErrors(frame.fieldErrors, frame.fieldErrorRevisions)`
+- `formPersistenceStore.restoreHistoryFrame(...)`, som atomisk gendanner sections, revisions, fieldErrors og fieldErrorRevisions og bumper `authoritativeSnapshotEpoch`
 - Navigation og fokus (se nedenfor)
 
 ### 3. Capture-punkt i `usePersistedForm`
 
 `setValues` i `usePersistedForm` er stedet hvor felt-commits ender, inden de når `commitSection`. Det er her capture skal ske.
 
-Nuværende flow:
 ```
-onCommit → setValues(updater) → persistData(pageKey, next) → commitSection()
-```
-
-Nyt flow med capture:
-```
-onCommit → setValues(updater) → capture(origin) → persistData(pageKey, next) → commitSection()
+onCommit → setValues(updater) → persistData(pageKey, next, { undoOrigin }) → capture(origin) → commitSection()
 ```
 
 `usePersistedForm` modtager `origin`-informationen (route, tabKey, sectionKey, fieldPath) som parameter, eller via en kontekst. Se sektion om fieldPath-sporing nedenfor.
@@ -216,7 +209,7 @@ Dette er lavniveauadgang til en implementeringsdetalje i `usePersistedActiveTab`
 
 ### Timing
 
-Navigation og fokus skal ske *efter* at React har re-renderet med de gendannede værdier. Brug `requestAnimationFrame` eller `setTimeout(0)` til at forsinke fokus-kaldet. Scroll til elementet med `element.scrollIntoView({ behavior: 'smooth', block: 'nearest' })`.
+Navigation, draft-restore og fokus sekventeres i én `requestAnimationFrame`-retry-løkke. Først sættes route og aktiv fane, derefter venter løkken på at målfeltet er synligt i DOM. Når feltet findes, forsøges draft-restore via `draftHistoryRegistry`, og derefter scrolles/fokuseres feltet. Denne sekvensering forhindrer at separate rAF-løkker konkurrerer med React Router-mount og tab-mount.
 
 ---
 
@@ -248,55 +241,21 @@ Ctrl+Y er konventionel redo-genvej på Windows; Ctrl+Shift+Z er Mac/Linux-konven
 
 ---
 
-## Implementeringsstadier
+## Implementeringsstatus
 
-### Stadie 1: Fundament (undoRedoStore + capture)
+Undo/redo er implementeret. Punkterne nedenfor beskriver den aktuelle test- og vedligeholdelsesflade, ikke manglende implementeringsstadier.
 
-**Mål:** Stakken eksisterer og fanger commits korrekt, men ingen navigation eller fokus endnu.
-
-1. Opret `src/stores/undoRedoStore.ts` med `capture`, `undo`, `redo`, `clear`
-2. Udvid `usePersistedForm.setValues` til at kalde `capture()` inden `persistData()`
-3. Tilslut `clear()` i `executePersistenceLoadApply` efter `replaceAllPersistedData`
-4. Tilslut Ctrl+Z/Ctrl+Shift+Z/Ctrl+Y i `MainLayout.tsx`
-5. Gendannelse: kald `rollbackSections` + `restoreFieldErrors` — ingen navigation endnu
-
-**Test:** Verificer at snapshot gemmes korrekt (pre-commit tilstand), at stakstørrelsesgrænsen på 50 håndhæves, at filindlæsning tømmer stakken, og at gem ikke påvirker stakken.
-
-### Stadie 2: Navigation og fokus
-
-**Mål:** Undo/redo bringer brugeren til rette side, fane og felt.
-
-1. Tilføj `origin: HistoryFrameOrigin` til `HistoryFrame`
-2. Udbyg `usePersistedForm` til at kende `route`, `tabKey`, og `fieldPath` ved capture
-3. Tilføj `data-field-path`-attribut til `StyledTextFieldBase` (og tilsvarende base-komponenter)
-4. For tabeller: send `fieldPath` som `perioder[${rowIndex}].${fieldName}` fra tabelcellers onCommit
-5. Implementér `setActiveTabForPage(pageId, tabKey)` i `usePersistedActiveTab`
-6. Implementér navigation + fokus + scroll i `useUndoRedo` med `requestAnimationFrame`
-
-**Test:** Verificer navigation til korrekt side og fane for felter på begge flersidet-sider (`erstatningsopgoerelse`, `erhvervsevnetab`). Verificer at `data-field-path` er unik og findbar.
-
-### Stadie 3: Tabelintegration
-
-**Mål:** Undo/redo håndterer tilføjelse og sletning af tabelrækker korrekt.
-
-1. Verificer at capture-tidspunktet (før committet) er *inden* `normalizeGridRows` kører
-2. Gennemgå alle tabeller med auto-add-rækker og verificer korrekt `fieldPath`-format
-3. Håndtér edge case: undo af commit der medførte sortering af tabelrækker (snapshot indeholder pre-sort tilstand, som er korrekt)
-
-**Test:** Enhedstest for de centrale tabelscenarier:
+Automatiske tests dækker:
+- Snapshot gemmes korrekt som pre-commit-tilstand.
+- Stakstørrelsesgrænsen på 50 håndhæves.
+- Redo-grenen ryddes ved ny capture.
+- Navigation til korrekt side/fane/felt.
+- Ugyldig draft gendannes via fieldPath.
+- Atomisk history-restore af sections + field-errors.
+- Centrale tabelscenarier:
 - Tilføj ny række → undo → rækken forsvinder
 - Slet rækkeindhold → commit → undo → rækken og indholdet genskabes
-- Undo over rækkeomsorterings-commit
-
-### Stadie 4: Tværgående test og edge cases
-
-1. Test Ctrl+Z over sideskift (fra `/aarsloen` til `/erstatningsopgoerelse`, undo → hopper tilbage)
-2. Test redo-stakken tømmes ved ny commit (korrekt; sker via `capture()`)
-3. Test 50-skridt-grænsen: skridt 51 dropper det ældste
-4. Test at `authoritativeSnapshotEpoch` ikke bumpes under undo/redo (bruger `rollbackSections`, der gendanner epoch fra snapshot — skal specificeres at epoch fra snapshot bevares, ikke at en ny genereres)
-5. Test at `formVersion` reagerer korrekt: `replaceValues` kalder `bumpFormVersion()`, men undo/redo bruger `rollbackSections` direkte, som ikke bumper formVersion via den rute
-
-**Bemærk formVersion-risiko:** `formVersion` i `usePersistedForm` bumpes ved `replaceValues`, men `rollbackSections` bypasser dette. Hooks der lytter på `formVersion` (f.eks. `useRowDrafts`) resetter muligvis ikke draft-tilstand korrekt ved undo. Dette skal undersøges og adresseres i Stadie 4 — muligvis ved at expose en `bumpFormVersion()`-mekanisme der også kan trigges fra undo-stien.
+- Row-drafts resyncer efter undo via `authoritativeSnapshotEpoch`.
 
 ---
 
@@ -304,20 +263,13 @@ Ctrl+Y er konventionel redo-genvej på Windows; Ctrl+Shift+Z er Mac/Linux-konven
 
 ### formVersion og draft-resync
 
-`usePersistedForm.formVersion` bruges af tabelkomponenter (bl.a. `useRowDrafts`) til at resync lokale draft-strenge med committed-værdier. Undo bruger `rollbackSections` direkte på store-niveau, som *ikke* kalder `replaceValues` og dermed ikke bumper `formVersion`.
+`usePersistedForm.formVersion` bruges af tabelkomponenter (bl.a. `useRowDrafts`) til at resync lokale draft-strenge med committed-værdier. Undo bruger `restoreHistoryFrame`, som bumper `authoritativeSnapshotEpoch`; `usePersistedForm` observerer epoch-skiftet og bumper `formVersion`.
 
-**Risiko:** Tabelrækker viser forældet draft-tekst efter undo.
-
-**Løsning:** Undo-stien skal trigge den samme resync-mekanisme som `replaceValues`. Mulige tilgange:
-- Kald `replaceValues` for berørte sektioner fra undo-stien (men det bumper uønsket `authoritativeSnapshotEpoch`)
-- Tilføj en dedikeret `bumpFormVersionForSection(key)` funktion der kun trigge resync uden at bumpe epoch
-- Eksponér en `useUndoApplied`-event der tables kan abonnere på
-
-Dette er det teknisk vanskeligste punkt i implementeringen og bør løses i Stadie 1 inden tabeller tilføjes.
+Denne kæde er dækket af integrationstest for tilføjet og slettet tabelrække.
 
 ### authoritativeSnapshotEpoch
 
-`rollbackSections` gendanner `authoritativeSnapshotEpoch` til den værdi der var i snapshot'et. Komponenter der lytter på epoch-ændringer (f.eks. `useUnsavedChangesGuard`) kan reagere uforudsigeligt. Bekræft at undo-gendannelse producerer en epoch-ændring eller ej, og om det medfører utilsigtet side-effekt.
+`restoreHistoryFrame` bumper `authoritativeSnapshotEpoch` med +1. Det gør undo/redo til et autoritativt replace-flow for form-consumers og sikrer row-draft resync.
 
 ### Fokus-tilgængelighed
 
@@ -333,12 +285,11 @@ Tabelrækker har `id`-felter (f.eks. `{ id: string; fra: string; til: string }`)
 
 | Fil | Ændring |
 |---|---|
-| `src/stores/undoRedoStore.ts` | Ny |
-| `src/hooks/useUndoRedo.ts` | Ny |
-| `src/hooks/usePersistedForm.ts` | Tilføj capture-kald i `setValues`/`setFieldValue` |
+| `src/stores/undoRedoStore.ts` | In-memory history stack |
+| `src/hooks/useUndoRedo.ts` | Restore, navigation, draft-restore og fokus |
+| `src/hooks/usePersistedForm.ts` | Opretter undo-origin ved `setValues`/`setFieldValue` |
 | `src/hooks/usePersistedActiveTab.ts` | Tilføj `setActiveTabForPage` |
 | `src/components/layout/MainLayout.tsx` | Tilslut keyboard-shortcuts; tilslut `clear()` efter filindlæsning |
-| `src/utils/executePersistenceLoadApply.ts` | Kald `undoRedoStore.clear()` |
-| `src/components/inputs/StyledTextFieldBase.tsx` | Tilføj `data-field-path`-prop |
-| `src/components/inputs/table/Table*.tsx` | Send `fieldPath` med rækkeindex til onCommit |
+| `src/components/inputs/StyledTextFieldBase.tsx` | Bærer undo-attributter |
+| `src/components/inputs/table/Table*.tsx` | Bærer undo-attributter for grid-celler |
 | `src/contracts/form-contract.md` | Dokumentér capture-kontrakten |

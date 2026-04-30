@@ -67,6 +67,13 @@ export type FormPersistenceStoreState = {
     sectionRevisions: SectionRevisionMap,
     meta: FormPersistenceMeta
   ) => void;
+  restoreHistoryFrame: (
+    next: FormPersistenceSections,
+    sectionRevisions: SectionRevisionMap,
+    fieldErrors: FieldErrorCache,
+    fieldErrorRevisions: FieldErrorRevisionMap,
+    meta: FormPersistenceMeta
+  ) => void;
   setFieldError: <K extends keyof FormPersistenceSections>(
     key: K,
     fieldName: string,
@@ -358,6 +365,21 @@ const createFormPersistenceStore = () =>
         sectionRevisions: { ...sectionRevisions },
         fieldErrors: state.fieldErrors,
         fieldErrorRevisions: state.fieldErrorRevisions,
+        authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
+        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() },
+      }));
+    },
+    restoreHistoryFrame: (next, sectionRevisions, fieldErrors, fieldErrorRevisions, meta) => {
+      assertKeyCoverage(next);
+      assertMetaFingerprintMatch(meta);
+      assertAllSectionsValid(next);
+      assertFieldErrorKeyCoverage(fieldErrors);
+      assertFieldErrorRevisionKeyCoverage(fieldErrorRevisions);
+      set((state) => ({
+        sections: { ...next },
+        sectionRevisions: { ...sectionRevisions },
+        fieldErrors: { ...fieldErrors },
+        fieldErrorRevisions: { ...fieldErrorRevisions },
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() },
       }));

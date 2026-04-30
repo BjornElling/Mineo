@@ -16,6 +16,7 @@
 let lastFocusToken: string | null = null;
 let lastFieldPath: string | null = null;
 let installed = false;
+let installedDocument: Document | null = null;
 
 const handleFocusIn = (event: Event): void => {
   const target = event.target;
@@ -30,10 +31,14 @@ const handleFocusIn = (event: Event): void => {
 };
 
 export const installUndoFocusTracker = (): void => {
-  if (installed) return;
   if (typeof document === 'undefined') return;
+  if (installed && installedDocument === document) return;
+  if (installedDocument) {
+    installedDocument.removeEventListener('focusin', handleFocusIn, true);
+  }
   document.addEventListener('focusin', handleFocusIn, true);
   installed = true;
+  installedDocument = document;
 };
 
 export const readLastUndoFocus = (): { focusToken: string | null; fieldPath: string | null } => ({
@@ -42,6 +47,11 @@ export const readLastUndoFocus = (): { focusToken: string | null; fieldPath: str
 });
 
 export const __resetUndoFocusTrackerForTests = (): void => {
+  if (installedDocument) {
+    installedDocument.removeEventListener('focusin', handleFocusIn, true);
+  }
   lastFocusToken = null;
   lastFieldPath = null;
+  installed = false;
+  installedDocument = null;
 };

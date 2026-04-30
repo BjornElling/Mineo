@@ -456,7 +456,7 @@ const TableYearInput = React.memo(
               inputMode: 'numeric',
               'data-mineo-grid-locked': locked ? 'true' : undefined,
               'data-mineo-undo-focus-token': undoFocusToken,
-              'data-mineo-undo-field-path': gridCellKey,
+              'data-mineo-undo-field-path': gridCellKey ?? undefined,
               'aria-describedby': showError ? a11yErrorId : undefined,
             }}
             sx={{

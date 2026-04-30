@@ -278,6 +278,38 @@ describe('formPersistenceStore public API', () => {
     expect(store.getState().fieldErrorRevisions).toEqual(snapshotRevisions);
   });
 
+  it('restoreHistoryFrame restores sections and field-errors in one store notification', () => {
+    const store = __createTestStore();
+    store.getState().replaceSections(createValidSections(), VALID_META);
+    store.getState().setFieldError('stamdata', 'skadelidte', 'input', { message: 'Historisk fejl', severity: 'error' });
+    const snapshot = store.getState();
+    const observed: Array<{
+      satser: PersistedSectionMap['satser'] | null;
+      stamdataErrors: unknown;
+    }> = [];
+    const unsubscribe = store.subscribe((state) => {
+      observed.push({
+        satser: state.sections.satser,
+        stamdataErrors: state.fieldErrors.stamdata,
+      });
+    });
+
+    store.getState().clearAllFieldErrors();
+    observed.length = 0;
+    store.getState().restoreHistoryFrame(
+      snapshot.sections,
+      snapshot.sectionRevisions,
+      snapshot.fieldErrors,
+      snapshot.fieldErrorRevisions,
+      snapshot.meta
+    );
+    unsubscribe();
+
+    expect(observed).toHaveLength(1);
+    expect(observed[0]?.satser).toEqual(snapshot.sections.satser);
+    expect(observed[0]?.stamdataErrors).toEqual(snapshot.fieldErrors.stamdata);
+  });
+
   it('hydrate sets schema fingerprint and hydrated flag', () => {
     const store = __createTestStore();
     const sections = createValidSections();

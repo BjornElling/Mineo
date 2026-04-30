@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import React from 'react';
-import { act, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
+import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
+import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import Stamdata from '../../components/pages/Stamdata';
@@ -11,10 +13,14 @@ import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { undoRedoStore, type HistoryFrameOrigin } from '../../stores/undoRedoStore';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import type { ISODateString } from '../../types/branded';
+import { erstatningsopgoerelseSchema, type TafPeriodeRow } from '../../schemas/formSchemas';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
 
 type UndoRedoControls = ReturnType<typeof useUndoRedo>;
+type TafDraftRow = { id: string; fra: string };
 
 const origin: HistoryFrameOrigin = {
   route: '/target',
@@ -79,11 +85,77 @@ const StamdataControls = () => {
   );
 };
 
+const TableUndoPage = () => {
+  const form = usePersistedForm(
+    erstatningsopgoerelseSchema,
+    'erstatningsopgoerelse',
+    createErstatningsopgoerelseInitialValues()
+  );
+  const nextIdRef = React.useRef(1);
+  const rows = useRowDrafts<TafDraftRow, TafPeriodeRow, 'fra'>({
+    getCommitted: () => form.values.tafPerioder,
+    setCommitted: (updater) => {
+      form.setValues((prev) => ({
+        ...prev,
+        tafPerioder: updater(prev.tafPerioder) ?? prev.tafPerioder,
+      }));
+    },
+    toDraft: (committedRows) => committedRows.map((row) => ({ id: row.id, fra: row.fra ?? '' })),
+    toCommittedRow: (draft, previous) => ({
+      id: draft.id,
+      fra: draft.fra ? draft.fra as ISODateString : undefined,
+      til: previous?.til,
+      loseFeriedage: previous?.loseFeriedage,
+    }),
+    isRowEmpty: (row) => row.fra === undefined && row.til === undefined && row.loseFeriedage === undefined,
+    ensureRows: (committedRows) => (committedRows && committedRows.length > 0 ? committedRows : [{ id: 'empty' }]),
+    createId: () => `r${nextIdRef.current++}`,
+    createEmptyCommittedRow: (id) => ({ id }),
+    resyncToken: form.formVersion,
+  });
+
+  return (
+    <div>
+      {rows.draftRows.map((row) => (
+        <input
+          key={row.id}
+          data-testid={`taf-${row.id}`}
+          data-mineo-undo-field-path={`${row.id}:0`}
+          value={row.fra}
+          onChange={(event) => rows.onFieldChange(row.id, 'fra')(event.target.value)}
+          onBlur={() => rows.commitRow(row.id)}
+        />
+      ))}
+      <button type="button" onClick={() => rows.addRow()}>Tilføj</button>
+      <button type="button" onClick={() => rows.removeRow('r1')}>Slet r1</button>
+    </div>
+  );
+};
+
+const TableControls = () => {
+  controls = useUndoRedo();
+  return (
+    <Routes>
+      <Route path="/table" element={<TableUndoPage />} />
+    </Routes>
+  );
+};
+
 const renderStamdataUndoHarness = () => render(
   <MemoryRouter initialEntries={['/satser']}>
     <AppSettingsProvider>
       <FormPersistenceProvider>
         <StamdataControls />
+      </FormPersistenceProvider>
+    </AppSettingsProvider>
+  </MemoryRouter>
+);
+
+const renderTableUndoHarness = () => render(
+  <MemoryRouter initialEntries={['/table']}>
+    <AppSettingsProvider>
+      <FormPersistenceProvider>
+        <TableControls />
       </FormPersistenceProvider>
     </AppSettingsProvider>
   </MemoryRouter>
@@ -111,6 +183,8 @@ describe('useUndoRedo', () => {
     formPersistenceStore.getState().clearAll(VALID_META);
     formPersistenceStore.getState().clearAllFieldErrors();
     undoRedoStore.getState().clear();
+    __resetUndoFocusTrackerForTests();
+    installUndoFocusTracker();
     controls = null;
   });
 
@@ -333,6 +407,89 @@ describe('useUndoRedo', () => {
     flushAnimationFrames(rafCallbacks);
     expect(getUndoField('skadelidteFodselsdato')).toHaveValue('32-13-1980');
     expect(document.activeElement).toBe(getUndoField('skadelidteFodselsdato'));
+
+    requestAnimationFrameSpy.mockRestore();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: originalScrollIntoView,
+    });
+  });
+
+  it('undo af tilføjet tabelrække fjerner rækken og resyncer row-drafts', () => {
+    const rafCallbacks: FrameRequestCallback[] = [];
+    const requestAnimationFrameSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      rafCallbacks.push(callback);
+      return rafCallbacks.length;
+    });
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    renderTableUndoHarness();
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Tilføj' }));
+    });
+    expect(screen.getByTestId('taf-r1')).toHaveValue('');
+    expect(screen.getAllByRole('textbox')).toHaveLength(2);
+
+    act(() => {
+      controls?.undo();
+    });
+    flushAnimationFrames(rafCallbacks);
+
+    expect(screen.queryByTestId('taf-r1')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('textbox')).toHaveLength(1);
+
+    requestAnimationFrameSpy.mockRestore();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: originalScrollIntoView,
+    });
+  });
+
+  it('undo af slettet tabelrække gendanner række og indhold i row-drafts', () => {
+    const rafCallbacks: FrameRequestCallback[] = [];
+    const requestAnimationFrameSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      rafCallbacks.push(callback);
+      return rafCallbacks.length;
+    });
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    renderTableUndoHarness();
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Tilføj' }));
+    });
+    const rowInput = screen.getByTestId('taf-r1');
+    act(() => {
+      rowInput.focus();
+      fireEvent.change(rowInput, { target: { value: '2024-01-01' } });
+      fireEvent.blur(rowInput);
+    });
+    expect(screen.getByTestId('taf-r1')).toHaveValue('2024-01-01');
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Slet r1' }));
+    });
+    expect(screen.queryByTestId('taf-r1')).not.toBeInTheDocument();
+
+    act(() => {
+      controls?.undo();
+    });
+    flushAnimationFrames(rafCallbacks);
+
+    expect(screen.getByTestId('taf-r1')).toHaveValue('2024-01-01');
+    const restoredInputs = screen.getAllByRole('textbox');
+    expect(restoredInputs).toHaveLength(2);
+    expect(restoredInputs.some((input) => (input as HTMLInputElement).value === '')).toBe(true);
 
     requestAnimationFrameSpy.mockRestore();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {

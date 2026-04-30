@@ -144,7 +144,6 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
 
   const severity = options?.severity ?? 'error';
   const source = options?.source ?? 'input';
-  const lastReportedRef = React.useRef<string | null>(null);
 
   const reportError = React.useCallback(
     (error: ReportableFieldError | undefined) => {
@@ -154,15 +153,6 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
           : typeof error === 'string'
             ? `__msg__:${severity}:${source}:true:${error}`
             : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}:${error.invalidDraft ?? ''}`;
-      if (lastReportedRef.current === nextKey) {
-        debugFieldErrorReporter('report-skip-duplicate', {
-          pageKey,
-          fieldName,
-          source,
-          nextKey,
-        });
-        return;
-      }
       debugFieldErrorReporter('report', {
         pageKey,
         fieldName,
@@ -170,7 +160,6 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
         nextKey,
         error,
       });
-      lastReportedRef.current = nextKey;
 
       // Lifecycle contract:
       // - The producer (typically an input component) owns the error for this field and MUST clear it
@@ -200,11 +189,11 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
     [fieldName, getFieldError, location.pathname, pageKey, setFieldError, severity, source]
   );
 
-  return React.useMemo<FieldErrorReporter>(() => {
-    return Object.assign(reportError, {
-      getCurrentError: () => getFieldError(pageKey, fieldName),
-    });
-  }, [fieldName, getFieldError, pageKey, reportError]);
+  return Object.defineProperty(reportError, 'getCurrentError', {
+    configurable: true,
+    enumerable: true,
+    value: () => getFieldError(pageKey, fieldName),
+  }) as FieldErrorReporter;
 };
 
 export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(

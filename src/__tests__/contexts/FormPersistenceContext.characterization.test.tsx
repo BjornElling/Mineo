@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { act, render, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import type { StorageKey } from '../../config/storageManifest';
@@ -68,9 +69,11 @@ const renderProviderWithReporter = () => {
   };
 
   const rendered = render(
-    <FormPersistenceProvider>
-      <Capture mounted />
-    </FormPersistenceProvider>
+    <MemoryRouter>
+      <FormPersistenceProvider>
+        <Capture mounted />
+      </FormPersistenceProvider>
+    </MemoryRouter>
   );
 
   return {
@@ -78,9 +81,11 @@ const renderProviderWithReporter = () => {
     getReporter: () => reportError,
     rerenderMounted: (mounted: boolean) =>
       rendered.rerender(
-        <FormPersistenceProvider>
-          <Capture mounted={mounted} />
-        </FormPersistenceProvider>
+        <MemoryRouter>
+          <FormPersistenceProvider>
+            <Capture mounted={mounted} />
+          </FormPersistenceProvider>
+        </MemoryRouter>
       ),
   };
 };
