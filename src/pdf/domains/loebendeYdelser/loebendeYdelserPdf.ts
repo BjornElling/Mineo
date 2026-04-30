@@ -18,7 +18,7 @@ import {
   createPdfTableSummedTotalRow,
   renderPdfTable,
 } from '../../shared/pdfTableRenderer';
-import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
+import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
 import type {
   EetLoebendeComputation,
@@ -102,7 +102,7 @@ export const addLoebendeAfgoerelseSection = (
       : 'Kapitaliseret';
     writer.writeLeftRightText(
       kapLabel,
-      formatIsoDateShort(afgoerelse.kapitaliseringsdato),
+      formatISOToDanish(afgoerelse.kapitaliseringsdato),
       rowOpts
     );
   }
@@ -111,10 +111,10 @@ export const addLoebendeAfgoerelseSection = (
 
   writer.writeBoldSubheader('Periodeafgrænsning');
 
-  writer.writeLeftRightText('Afgørelsesdato', formatIsoDateShort(afgoerelse.afgoerelsesdato), rowOpts);
-  writer.writeLeftRightText('Virkningsdato', formatIsoDateShort(afgoerelse.virkningsdato), rowOpts);
+  writer.writeLeftRightText('Afgørelsesdato', formatISOToDanish(afgoerelse.afgoerelsesdato), rowOpts);
+  writer.writeLeftRightText('Virkningsdato', formatISOToDanish(afgoerelse.virkningsdato), rowOpts);
   writer.writeLeftRightText('Afgørelse med tilbagevirkende kraft?', formatJaNej(afgoerelse.tilbagevirkendeKraft), rowOpts);
-  writer.writeLeftRightText('Løbende ydelse ophører', formatIsoDateShort(afgoerelse.ophoerDato), rowOpts);
+  writer.writeLeftRightText('Løbende ydelse ophører', formatISOToDanish(afgoerelse.ophoerDato), rowOpts);
   writer.writeLeftRightText('Ophør skyldes', toOphoerAarsagLabel(afgoerelse.ophoerAarsag), rowOpts);
 
   writer.addSectionSpacer();
@@ -153,8 +153,8 @@ export const addLoebendeAfgoerelseSection = (
       ydelserHeader,
       ...afgoerelse.perioder.map(
         (row): RowInput => [
-          createPdfTableCell(formatIsoDateShort(row.fra), { halign: 'center' }),
-          createPdfTableCell(formatIsoDateShort(row.til), { halign: 'center' }),
+          createPdfTableCell(formatISOToDanish(row.fra), { halign: 'center' }),
+          createPdfTableCell(formatISOToDanish(row.til), { halign: 'center' }),
           cellRight(formatMaaneder4(row.maanederPraecis)),
           cellRight(formatKr(row.grundydelseAfrundet, 2)),
           cellRight(formatReguleringPct(row.reguleringPct)),
@@ -318,7 +318,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
       const restEetExpression = `${afgoerelse.eetPct} - ${formatPct(afgoerelse.kapPctAktuel)} = ${formatPct(afgoerelse.restEetPct)}`;
       const restTextPrefix =
         afgoerelse.kapitaliseringsdato !== null
-          ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatIsoDateShort(afgoerelse.kapitaliseringsdato as ISODateString)}`
+          ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatISOToDanish(afgoerelse.kapitaliseringsdato as ISODateString)}`
           : 'Resterende EET efter kapitalisering';
       writer.writeLeftRightText(restTextPrefix, formatKr(restGrundydelse2003, 2), rowOpts);
     }
@@ -335,7 +335,7 @@ export const addLoebendeUdvidetSpecifikationPage = (
         const restEetExpression = `${afgoerelse.eetPct} - ${formatPct(afgoerelse.kapPctAktuel)} = ${formatPct(afgoerelse.restEetPct)}`;
         const restTextPrefix =
           afgoerelse.kapitaliseringsdato !== null
-            ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatIsoDateShort(afgoerelse.kapitaliseringsdato as ISODateString)}`
+            ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatISOToDanish(afgoerelse.kapitaliseringsdato as ISODateString)}`
             : 'Resterende EET efter kapitalisering';
         writer.writeLeftRightText(restTextPrefix, formatKr(restGrundydelse2024, 2), rowOpts);
       }

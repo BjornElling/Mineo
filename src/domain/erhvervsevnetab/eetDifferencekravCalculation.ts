@@ -14,7 +14,7 @@ import {
 } from '../../data/lovbestemteRates';
 import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitaliseringsTabeller';
-import { formatIsoDateShort } from '../../utils/dateFormatting';
+import { formatISOToDanish } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { parsePercentDraft } from './eetAslAfgoerelser';
@@ -276,7 +276,7 @@ const computeProformaKapitalisering = (
   if (!controlBekId) {
     issues.push(toIssue(
       'proforma-kapitaliseringsbekendtgoerelse-missing',
-      `Der findes ingen gyldig kapitaliseringsbekendtgørelse for beregningsdatoen ${formatIsoDateShort(beregningsdato)}.`
+      `Der findes ingen gyldig kapitaliseringsbekendtgørelse for beregningsdatoen ${formatISOToDanish(beregningsdato)}.`
     ));
     return null;
   }

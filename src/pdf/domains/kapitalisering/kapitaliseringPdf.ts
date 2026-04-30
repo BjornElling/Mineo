@@ -7,7 +7,7 @@
 
 import { type BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
-import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
+import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import type {
   EetKapitaliseringAfgoerelseComputation,
@@ -65,7 +65,7 @@ export const addKapitaliseringAfgoerelseSection = (
 
   writer.writeLeftRightText(
     'Kapitaliseringsdato',
-    formatIsoDateShort(afgoerelse.kapitaliseringsdato),
+    formatISOToDanish(afgoerelse.kapitaliseringsdato),
     rowOpts
   );
 
@@ -108,7 +108,7 @@ export const addKapitaliseringAfgoerelseSection = (
 
   if (afgoerelse.aarsydelseReguleringsPctRounded4 !== null) {
     writer.writeLeftRightText(
-      `Reguleringsprocent (${formatIsoDateShort(afgoerelse.kapitaliseringsdato)})`,
+      `Reguleringsprocent (${formatISOToDanish(afgoerelse.kapitaliseringsdato)})`,
       `${formatAsAmountTrimmed(afgoerelse.aarsydelseReguleringsPctRounded4, 4)} %`,
       rowOpts
     );

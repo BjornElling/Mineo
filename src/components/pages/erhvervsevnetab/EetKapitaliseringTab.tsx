@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../../schemas/formSchemas';
 import { useAppSettings } from '../../../contexts/useAppSettings';
-import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
+import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { coerceToISODateString } from '../../../types/branded';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import {
@@ -90,14 +90,14 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot
             <Box className="row--label-right-hover">
               <Typography className="row--text">Beregningsdato</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatIsoDateShort(coerceToISODateString(values.beregningsdato))}</Typography>
+                <Typography className="row--text">{formatISOToDanish(coerceToISODateString(values.beregningsdato))}</Typography>
               </Box>
             </Box>
 
             <Box className="row--label-right-hover">
               <Typography className="row--text">Kapitaliseringsdato</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatIsoDateShort(afgoerelse.kapitaliseringsdato)}</Typography>
+                <Typography className="row--text">{formatISOToDanish(afgoerelse.kapitaliseringsdato)}</Typography>
               </Box>
             </Box>
 

@@ -14,7 +14,7 @@ import { roundHeleKroner } from '../../../../domain/erstatningsopgoerelse/shared
 import { cellRight, createPdfDistributedColumnStyles, createPdfTableCell, renderPdfTable } from '../../../shared/pdfTableRenderer';
 import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
-import { formatIsoDateShort } from '../../../../utils/dateFormatting';
+import { formatISOToDanish } from '../../../../utils/dateFormatting';
 import { formatMaaneder4, formatReguleringPct, formatKr } from '../../../shared/pdfFormatUtils';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
@@ -344,8 +344,8 @@ export const renderMidlertidigtEetSection = (ctx: MidlertidigtEetSectionContext)
       ydelserHeader,
       ...perioder.map(
         (row): RowInput => [
-          createPdfTableCell(formatIsoDateShort(row.fra), { halign: 'center' }),
-          createPdfTableCell(formatIsoDateShort(row.til), { halign: 'center' }),
+          createPdfTableCell(formatISOToDanish(row.fra), { halign: 'center' }),
+          createPdfTableCell(formatISOToDanish(row.til), { halign: 'center' }),
           cellRight(formatMaaneder4(row.maanederPraecis)),
           cellRight(formatKr(row.grundydelseAfrundet, 2)),
           cellRight(formatReguleringPct(row.reguleringPct)),

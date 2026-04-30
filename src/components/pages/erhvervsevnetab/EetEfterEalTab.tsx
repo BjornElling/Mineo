@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 import { useAppSettings } from '../../../contexts/useAppSettings';
-import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
+import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import {
   buildAldersreduktionFormelTekst,
   formatPercentTrimmedFromRounded4,
@@ -156,7 +156,7 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => 
             <Box className="row--label-right-hover">
               <Typography className="row--text">Fødselsdato</Typography>
               <Box className="row--label-right-hover__content">
-                <Typography className="row--text">{formatIsoDateShort(computation.fodselsdato)}</Typography>
+                <Typography className="row--text">{formatISOToDanish(computation.fodselsdato)}</Typography>
               </Box>
             </Box>
 

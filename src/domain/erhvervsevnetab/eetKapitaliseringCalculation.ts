@@ -3,7 +3,7 @@ import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { formatIsoDateShort } from '../../utils/dateFormatting';
+import { formatISOToDanish } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import {
   ASL_MAX_AARSLOEN_2003,
@@ -401,7 +401,7 @@ export const computeEetKapitaliseringCalculation = (
       issues.push(
         toIssue(
           'kapitaliseringsbekendtgoerelse-missing-control-date',
-          `Kapitaliseringsbekendtgørelse mangler for ${formatIsoDateShort(controlDate)}.`
+          `Kapitaliseringsbekendtgørelse mangler for ${formatISOToDanish(controlDate)}.`
         )
       );
       continue;
@@ -466,7 +466,7 @@ export const computeEetKapitaliseringCalculation = (
         issues.push(
           toIssue(
             'kapitaliseringsbekendtgoerelse-missing-effective-date',
-            `Kapitaliseringsbekendtgørelse mangler for ${formatIsoDateShort(effectiveKapDato)}.`
+            `Kapitaliseringsbekendtgørelse mangler for ${formatISOToDanish(effectiveKapDato)}.`
           )
         );
         continue;

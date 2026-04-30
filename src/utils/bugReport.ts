@@ -12,7 +12,7 @@
 import { getRecentLogEntries } from './logStorage';
 import type { LogEntry } from './logStorage';
 import { getTodayLocalISO } from './dateUtils';
-import { formatIsoDateShort, formatUtcTimestampSeconds } from './dateFormatting';
+import { formatISOToDanish, formatUtcTimestampSeconds } from './dateFormatting';
 import { logError } from './logger';
 import { isSystemIssueLogData } from './systemIssueReporter';
 import { VERSION } from '../config/version';
@@ -361,7 +361,7 @@ const ensureEncodedBodyWithinLimit = (
 const buildMailtoPayload = (report: string, options?: { subjectPrefix?: string }) => {
   try {
     const version = report.match(/Version: (.+)/)?.[1] || 'ukendt';
-    const dato = formatIsoDateShort(getTodayLocalISO());
+    const dato = formatISOToDanish(getTodayLocalISO());
 
     const subjectPrefix = options?.subjectPrefix ?? 'Mineo Fejlrapport';
     const subject = `${subjectPrefix} - v${version} - ${dato}`;

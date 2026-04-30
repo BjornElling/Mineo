@@ -8,7 +8,7 @@ import type {
   TabtArbejdsfortjenesteModel,
 } from '../shared/eoTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, scaleMoneyOre } from '../shared/eoMoney';
-import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
+import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
 
 export type {

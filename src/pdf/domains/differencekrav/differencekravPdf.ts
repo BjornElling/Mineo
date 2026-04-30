@@ -16,7 +16,7 @@
 
 import { type BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
-import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
+import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import type {
   EetDifferencekravComputation,
@@ -69,7 +69,7 @@ const addProformaKapitaliseringSection = (
 
   writer.writeLeftRightText(
     'Kapitaliseringsdato',
-    formatIsoDateShort(pk.kapitaliseringsdato),
+    formatISOToDanish(pk.kapitaliseringsdato),
     rowOpts
   );
 
@@ -111,7 +111,7 @@ const addProformaKapitaliseringSection = (
 
   if (pk.aarsydelseReguleringsPctRounded4 !== null) {
     writer.writeLeftRightText(
-      `Reguleringsprocent (${formatIsoDateShort(pk.kapitaliseringsdato)})`,
+      `Reguleringsprocent (${formatISOToDanish(pk.kapitaliseringsdato)})`,
       `${formatAsAmountTrimmed(pk.aarsydelseReguleringsPctRounded4, 4)} %`,
       rowOpts
     );
@@ -203,7 +203,7 @@ const renderDifferencekravPage = (
 
   writer.writeLeftRightText(
     'Beregningsdato',
-    formatIsoDateShort(computation.beregningsdato),
+    formatISOToDanish(computation.beregningsdato),
     rowOpts
   );
 
@@ -254,7 +254,7 @@ const renderDifferencekravPage = (
 
     if (foretages && afgoerelse.beloeb > 0) {
       writer.writeLeftRightText(
-        `Løbende ydelser (${formatIsoDateShort(afgoerelse.virkningsdato)} - ${formatIsoDateShort(afgoerelse.fradragesTil)}):`,
+        `Løbende ydelser (${formatISOToDanish(afgoerelse.virkningsdato)} - ${formatISOToDanish(afgoerelse.fradragesTil)}):`,
         `- ${formatKr(afgoerelse.beloeb)}`,
         rowOpts
       );
@@ -285,7 +285,7 @@ const renderDifferencekravPage = (
       afgoerelse.kapitaliseringspct !== null
     ) {
       writer.writeLeftRightText(
-        `Kapitaliseret (${formatKapitaliseringsPct(afgoerelse.kapitaliseringspct)}) den ${formatIsoDateShort(afgoerelse.kapitaliseringsdato)}:`,
+        `Kapitaliseret (${formatKapitaliseringsPct(afgoerelse.kapitaliseringspct)}) den ${formatISOToDanish(afgoerelse.kapitaliseringsdato)}:`,
         `- ${formatKr(afgoerelse.kapitalbelob)}`,
         rowOpts
       );
@@ -317,7 +317,7 @@ const renderDifferencekravPage = (
       const pk = computation.proformaKapitalisering;
       writer.writeWrappedText('Der foretages fradrag med kapitaliseringsværdien af resterende EET.');
       writer.writeLeftRightText(
-        `Proformakapitalisering (${formatKapPct(pk.loebendeEetPct)}) den ${formatIsoDateShort(pk.kapitaliseringsdato)}:`,
+        `Proformakapitalisering (${formatKapPct(pk.loebendeEetPct)}) den ${formatISOToDanish(pk.kapitaliseringsdato)}:`,
         `- ${formatKr(pk.proformaBeloeb)}`,
         rowOpts
       );

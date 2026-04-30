@@ -7,7 +7,7 @@ import StandardDisplayTable, { type StandardDisplayTableColumn, type StandardDis
 import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues, StamdataValues } from '../../../schemas/formSchemas';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { downloadLoebendeYdelserPdf } from '../../../pdf/infrastructure/pdfService';
-import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
+import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import {
   ASL_MAX_AARSLOEN_2003,
@@ -176,7 +176,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                         : 'Kapitaliseret'}
                     </Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{formatIsoDateShort(afgoerelse.kapitaliseringsdato)}</Typography>
+                      <Typography className="row--text">{formatISOToDanish(afgoerelse.kapitaliseringsdato)}</Typography>
                     </Box>
                   </Box>
                 )}
@@ -193,14 +193,14 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Afgørelsesdato</Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{formatIsoDateShort(afgoerelse.afgoerelsesdato)}</Typography>
+                    <Typography className="row--text">{formatISOToDanish(afgoerelse.afgoerelsesdato)}</Typography>
                   </Box>
                 </Box>
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Virkningsdato</Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{formatIsoDateShort(afgoerelse.virkningsdato)}</Typography>
+                    <Typography className="row--text">{formatISOToDanish(afgoerelse.virkningsdato)}</Typography>
                   </Box>
                 </Box>
 
@@ -214,7 +214,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Løbende ydelse ophører</Typography>
                   <Box className="row--label-right-hover__content">
-                    <Typography className="row--text">{formatIsoDateShort(afgoerelse.ophoerDato)}</Typography>
+                    <Typography className="row--text">{formatISOToDanish(afgoerelse.ophoerDato)}</Typography>
                   </Box>
                 </Box>
 
@@ -240,8 +240,8 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                       ...afgoerelse.perioder.map((row): StandardDisplayTableRow => ({
                         key: `${row.fra}-${row.til}-${row.satsAar}`,
                         cells: [
-                          formatIsoDateShort(row.fra),
-                          formatIsoDateShort(row.til),
+                          formatISOToDanish(row.fra),
+                          formatISOToDanish(row.til),
                           formatMaaneder(row.maanederPraecis),
                           formatKr(row.grundydelseAfrundet, 2),
                           formatRegulering(row.reguleringPct),
@@ -356,7 +356,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
               )} = ${formatPct(afgoerelse.restEetPct)}`;
               const restTextPrefix =
                 afgoerelse.kapitaliseringsdato !== null
-                  ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatIsoDateShort(afgoerelse.kapitaliseringsdato)}`
+                  ? `Resterende EET (${restEetExpression}) efter kapitalisering ${formatISOToDanish(afgoerelse.kapitaliseringsdato)}`
                   : 'Resterende EET efter kapitalisering';
               const grundydelseFormula =
                 computation.erstatningsniveauPct === 83

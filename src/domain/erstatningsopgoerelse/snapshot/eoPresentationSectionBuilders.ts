@@ -10,7 +10,7 @@ import { buildTafArbejdsstatusLinje } from '../tables/tafArbejdsstatusConfig';
 import type { Calculable, MoneyOre, OevrigeKravModel, SvieSmerteModel, TabtArbejdsfortjenesteModel } from '../shared/eoTypes';
 import { clampMoneyOreToZero, ensureMoneyOre } from '../shared/eoMoney';
 import { getDayAfterIso, perioderCoverDate } from '../helpers/eoSharedUtils';
-import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
+import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import { parseOevrigeKravBeloeb } from '../helpers/oevrigeKravAmountParser';
 import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
 import { buildTafFerieFravaerSummary } from '../engines/tafDaySets';

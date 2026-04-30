@@ -36,7 +36,7 @@ import {
 import {
   parseOptionalIsoDate,
 } from '../../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
-import { formatIsoDateShort as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
+import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,

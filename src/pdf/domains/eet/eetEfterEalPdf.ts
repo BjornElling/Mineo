@@ -7,7 +7,7 @@
 
 import { type BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
-import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
+import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { formatPercentTrimmedFromRounded4, buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
@@ -112,7 +112,7 @@ export const renderEfterEalBody = (
 
   writer.writeLeftRightText(
     'Fødselsdato',
-    formatIsoDateShort(computation.fodselsdato),
+    formatISOToDanish(computation.fodselsdato),
     rowOpts
   );
 

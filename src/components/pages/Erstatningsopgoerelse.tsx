@@ -40,7 +40,7 @@ const TAB_KEYS = {
 
 type TabKey = typeof TAB_KEYS[keyof typeof TAB_KEYS];
 
-const EO_SNAPSHOT_VERSION = 'eo-snapshot-v2';
+const EO_SNAPSHOT_VERSION = 'eo-snapshot-v1';
 
 /**
  * Erstatningsopgørelse-komponent til samlet opgørelse af erstatningskrav

@@ -6,7 +6,7 @@ import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import type { CommitEvent } from '../../../types/fieldEvents';
 import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues, StamdataValues } from '../../../schemas/formSchemas';
 import { useAppSettings } from '../../../contexts/useAppSettings';
-import { formatIsoDateLong, formatIsoDateShort } from '../../../utils/dateFormatting';
+import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import {
   type EetDifferencekravProformaKapitalisering,
@@ -51,7 +51,7 @@ const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
     <Box className="row--label-right-hover">
       <Typography className="row--text">Kapitaliseringsdato</Typography>
       <Box className="row--label-right-hover__content">
-        <Typography className="row--text">{formatIsoDateShort(pk.kapitaliseringsdato)}</Typography>
+        <Typography className="row--text">{formatISOToDanish(pk.kapitaliseringsdato)}</Typography>
       </Box>
     </Box>
 
@@ -380,7 +380,7 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
                 {foretages && afgoerelse.beloeb > 0 && (
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
-                      {`Løbende ydelser (${formatIsoDateShort(afgoerelse.virkningsdato)} - ${formatIsoDateShort(afgoerelse.fradragesTil)}):`}
+                      {`Løbende ydelser (${formatISOToDanish(afgoerelse.virkningsdato)} - ${formatISOToDanish(afgoerelse.fradragesTil)}):`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
                       <Typography className="row--text">{`- ${formatKr(afgoerelse.beloeb)}`}</Typography>
@@ -413,7 +413,7 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
               {afgoerelse.kapitalbelob !== null && afgoerelse.kapitaliseringsdato !== null && afgoerelse.kapitaliseringspct !== null ? (
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`Kapitaliseret (${formatKapPct(afgoerelse.kapitaliseringspct)}) den ${formatIsoDateShort(afgoerelse.kapitaliseringsdato)}:`}
+                    {`Kapitaliseret (${formatKapPct(afgoerelse.kapitaliseringspct)}) den ${formatISOToDanish(afgoerelse.kapitaliseringsdato)}:`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">{`- ${formatKr(afgoerelse.kapitalbelob)}`}</Typography>
@@ -452,7 +452,7 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
                   <TextHoverRow text="Der foretages fradrag med kapitaliseringsværdien af resterende EET." />
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
-                      {`Proformakapitalisering (${formatKapPct(computation.proformaKapitalisering.loebendeEetPct)}) den ${formatIsoDateShort(computation.proformaKapitalisering.kapitaliseringsdato)}:`}
+                      {`Proformakapitalisering (${formatKapPct(computation.proformaKapitalisering.loebendeEetPct)}) den ${formatISOToDanish(computation.proformaKapitalisering.kapitaliseringsdato)}:`}
                     </Typography>
                     <Box className="row--label-right-hover__content">
                       <Typography className="row--text">{`- ${formatKr(computation.proformaKapitalisering.proformaBeloeb)}`}</Typography>

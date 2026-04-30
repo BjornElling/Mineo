@@ -15,7 +15,7 @@ import { isoDateToDate } from '../../dates/isoDate';
 import type { Calculable, IndkomstSkadestidspunktModel, MoneyOre } from '../shared/eoTypes';
 import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import { formatPercentFixed2, parseDanishToIso, resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
-import { formatIsoDateShort as formatDateShort } from '../../../utils/dateFormatting';
+import { formatISOToDanish as formatDateShort } from '../../../utils/dateFormatting';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
