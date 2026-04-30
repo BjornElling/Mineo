@@ -18,7 +18,26 @@ Undo/redo implementeres som en separat Zustand-store (`undoRedoStore`) der vedli
 | Gem | Ingen effekt på stakken; undo/redo virker hen over gem-handlinger |
 | Stakstørrelse | Maks 50 skridt |
 | UI-indikator | Ingen — rent tastaturbaseret (Ctrl+Z / Ctrl+Shift+Z) |
-| Scroll | Auto-scroll til cellen ved fokus |
+| Scroll | Sektion-scroll (`block: 'start'`) på feltets nærmeste `[data-section-id]`-forfader, derefter fokus med `preventScroll: true` |
+| Aktivering mens editor er åben | **Blokeret.** Undo/redo kan ikke trigges, så længe en tekstinput-editor eller grid-celle-editor er åben. Brugeren ser en advarsel og skal afslutte/annullere editoren først. |
+
+### Centralt designvalg: undo/redo blokeres mens en editor er åben
+
+Undo og redo er blokeret når enhver af disse er sande:
+- `document.activeElement` er et åbent (ikke-readOnly) tekstinput eller textarea — dvs. en `StyledField`-editor er åben med en igangværende draft.
+- Mindst ét grid har en aktiv editing-celle (`getEditingCell() !== null`).
+
+I begge tilfælde forhindres tastaturgenvejen, og brugeren får et advarsels-overlay: *"Kan ikke fortryde eller gentage: afslut eller ret det aktive felt først."*
+
+**Hvorfor:** Hvis brugeren trykker Ctrl+Z mens et felt har en uafsluttet draft, ville flytning af fokus til undo-målet udløse en sideeffekt-commit (via blur) på det aktive felt lige inden state restores. Det skaber en ekstra, uventet entry i historikken og en non-deterministisk rækkefølge mellem brugerens intention (fortryd) og browserens fokus-skift. Ved at kræve at editoren først afsluttes (Tab/Enter) eller annulleres (Escape), bevares en simpel og forudsigelig kontrakt: undo/redo opererer altid på committed state, aldrig på drafts.
+
+**Implementering:** Detekteres i `MainLayout` via `isOpenTextEditorElement(document.activeElement) || hasOpenGridEditor()` før `undo()`/`redo()` kaldes. Detektorerne bor i `src/utils/commitFlush.ts`.
+
+### Centralt designvalg: undo-origin fanges fra senest fokuserede felt, ikke `document.activeElement`
+
+Felt-commits trigges typisk af `onBlur` *efter* fokus er flyttet til et andet felt. På det tidspunkt peger `document.activeElement` på det nye felt, ikke på feltet der ændrede sig. Hvis vi læste `activeElement` ved capture, ville undo navigere tilbage til det felt brugeren netop var på vej hen til — ikke det felt der blev redigeret.
+
+**Løsning:** Document-level `focusin` (capture phase) sporer det senest fokuserede felt der bærer `data-mineo-undo-focus-token` / `data-mineo-undo-field-path`. `usePersistedForm.createUndoOrigin` læser fra denne tracker. Bor i `src/utils/undoFocusTracker.ts`.
 
 ---
 
