@@ -9,12 +9,14 @@ import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { normalizeYearPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitHandler, type DraftChangeHandler } from '../../types/fieldEvents';
+import type { FieldErrorReporter } from '../../types/fieldErrors';
 
 export type StyledYearFieldProps = {
   value: number | undefined;
   onDraftChange?: DraftChangeHandler;
   onCommit?: CommitHandler<number | undefined>;
 
+  name?: string;
   width?: number | string;
   minYear?: number;
   maxYear?: number;
@@ -50,7 +52,7 @@ export type StyledYearFieldProps = {
    *
    * Note: this intentionally does not report `externalError`.
    */
-  onFieldError?: (errorMsg: string | undefined) => void;
+  onFieldError?: FieldErrorReporter;
 
   /**
    * External error is authoritative over local parse errors.
@@ -82,6 +84,7 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       value,
       onDraftChange,
       onCommit,
+      name,
       width = 80,
       minYear,
       maxYear,
@@ -179,6 +182,18 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       [allowEmpty, maxYear, minYear, twoDigitYearPolicy]
     );
 
+    const initialInvalidDraft = React.useMemo(() => {
+      const currentError = onFieldError?.getCurrentError?.();
+      if (
+        currentError?.severity === 'error' &&
+        currentError.blocksSave !== false &&
+        typeof currentError.invalidDraft === 'string'
+      ) {
+        return { draft: currentError.invalidDraft, message: currentError.message };
+      }
+      return undefined;
+    }, [onFieldError]);
+
     const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown, commit } = useDraftField<
       number | undefined
     >({
@@ -194,6 +209,7 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       // Feltet ejer blur-commit eksplicit, så vi kan undlade touched/commit ved uændret blur
       // og koordinere Enter/Escape-suppression med 2-trins editor-aktivering.
       commitOnBlur: false,
+      initialInvalidDraft,
     });
 
     const visibleLocalError = touched ? error : undefined;
@@ -208,8 +224,8 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
     // Notify parent of local error state (producer-owned reporting)
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
-      onFieldError(visibleLocalError?.message);
-    }, [onFieldError, visibleLocalError?.message]);
+      onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);
+    }, [draft, onFieldError, visibleLocalError?.message]);
 
     const skipNextBlurCommitRef = React.useRef(false);
 
@@ -303,6 +319,7 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
     return (
       <StyledTextFieldBase
         ref={ref}
+        name={name}
         draft={draft}
         onDraftChange={handleDraftChange}
         inputRef={inputElementRef}

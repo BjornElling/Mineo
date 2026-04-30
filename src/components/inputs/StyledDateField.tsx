@@ -14,7 +14,7 @@ import { normalizeDateDraftOnCommit, normalizeDateDraftSeparators } from '../../
 import { normalizeDatePaste } from '../../utils/inputPasteNormalization';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
-import type { ReportableFieldError } from '../../types/fieldErrors';
+import type { FieldErrorReporter } from '../../types/fieldErrors';
 import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
 
 const debugStyledDateField = (event: string, details: Record<string, unknown>): void => {
@@ -31,6 +31,7 @@ export type StyledDateFieldProps = {
   onCommit?: CommitHandler<ISODateString | undefined>;
   inputRef?: React.Ref<HTMLInputElement>;
 
+  name?: string;
   width?: number | string;
   minDate?: ISODateString;
   maxDate?: ISODateString;
@@ -46,7 +47,7 @@ export type StyledDateFieldProps = {
   /**
    * Callback for current error message (for parent validation gating)
    */
-  onFieldError?: (error: ReportableFieldError | undefined) => void;
+  onFieldError?: FieldErrorReporter;
 
   error?: boolean;
   helperText?: string;
@@ -81,6 +82,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       onDraftChange,
       onCommit,
       inputRef,
+      name,
       width = 130,
       minDate,
       maxDate,
@@ -243,6 +245,18 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       return { ok: true, value: isoDate };
     }, []);
 
+    const initialInvalidDraft = React.useMemo(() => {
+      const currentError = onFieldError?.getCurrentError?.();
+      if (
+        currentError?.severity === 'error' &&
+        currentError.blocksSave !== false &&
+        typeof currentError.invalidDraft === 'string'
+      ) {
+        return { draft: currentError.invalidDraft, message: currentError.message };
+      }
+      return undefined;
+    }, [onFieldError]);
+
     const {
       draft,
       setDraft: setDraftBase,
@@ -263,6 +277,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       inputElementRef,
       clearErrorOnDraftChange: true,
       commitOnBlur: false,
+      initialInvalidDraft,
     });
 
     const skipNextBlurCommitRef = React.useRef(false);
@@ -398,7 +413,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
             message: visibleLocalError.message,
             blocksSave: true,
           });
-          onFieldError({ message: visibleLocalError.message, blocksSave: true });
+          onFieldError({ message: visibleLocalError.message, blocksSave: true, invalidDraft: draft });
           return;
         }
         if (visibleRangeErrorMessage) {
@@ -413,7 +428,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         debugStyledDateField('report-field-error', { type: 'clear' });
         onFieldError(undefined);
       }
-    }, [visibleLocalError?.message, visibleRangeErrorMessage, onFieldError]);
+    }, [draft, visibleLocalError?.message, visibleRangeErrorMessage, onFieldError]);
 
     const handleFocus = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
@@ -496,6 +511,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     return (
       <StyledTextFieldBase
         ref={ref}
+        name={name}
         draft={draft}
         onDraftChange={setDraft}
         inputRef={assignInputRef}

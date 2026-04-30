@@ -3,6 +3,10 @@ import { Switch, FormControlLabel } from '@mui/material';
 import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
 import type { StyledToggleSwitchHandle } from '../../types/handles';
 
+type ToggleInputSlotProps = React.InputHTMLAttributes<HTMLInputElement> & {
+  'data-mineo-undo-field-path'?: string;
+};
+
 /**
  * StyledToggleSwitch - Moderne toggle switch med blå farve
  *
@@ -148,6 +152,13 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
     }
   }, [checked, disabled, commitToggle]);
 
+  const inputSlotProps: ToggleInputSlotProps = {
+    onKeyDown: handleKeyDown,
+    'aria-checked': checked,
+    'data-mineo-undo-field-path': name,
+    ...(ariaLabel ? { 'aria-label': ariaLabel } : {}),
+  };
+
   const switchComponent = (
     <Switch
       checked={checked}
@@ -156,11 +167,7 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
       name={name}
       value={value}
       slotProps={{
-        input: {
-          onKeyDown: handleKeyDown,
-          'aria-checked': checked,
-          ...(ariaLabel ? { 'aria-label': ariaLabel } : {}),
-        },
+        input: inputSlotProps,
       }}
       sx={{
         margin: 0,

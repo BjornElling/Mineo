@@ -3,21 +3,24 @@ import { Box, Typography } from '@mui/material';
 import StyledAmountField from './StyledAmountField';
 import type { CommitHandler } from '../../types/fieldEvents';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
+import type { FieldErrorReporter } from '../../types/fieldErrors';
 
 type Props = Readonly<{
   label: string;
+  name?: string;
   value: AmountValue | undefined;
   onCommit: CommitHandler<AmountValue | undefined>;
   errorMessage?: string;
-  onFieldError?: (errorMsg: string | undefined) => void;
+  onFieldError?: FieldErrorReporter;
 }>;
 
-const AarsloenAmountFieldRow = ({ label, value, onCommit, errorMessage, onFieldError }: Props) => {
+const AarsloenAmountFieldRow = ({ label, name, value, onCommit, errorMessage, onFieldError }: Props) => {
   return (
     <Box className="row--label-right-hover">
       <Typography className="row--text">{label}</Typography>
       <Box className="row--label-right-hover__content">
         <StyledAmountField
+          name={name}
           value={value}
           onCommit={onCommit}
           allowNegative={false}

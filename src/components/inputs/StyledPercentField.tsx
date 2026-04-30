@@ -10,6 +10,7 @@ import { prefixZeroBeforeLeadingComma, trimToNumericEdgesPreserveLeadingMinus } 
 import { formatAsAmount, formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { normalizePercentPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
+import type { FieldErrorReporter } from '../../types/fieldErrors';
 
 export type StyledPercentFieldValueChangeEvent = CommitEvent<number | undefined>;
 export type StyledPercentFieldDraftChangeEvent = DraftChangeEvent;
@@ -17,6 +18,7 @@ export type StyledPercentFieldDraftChangeEvent = DraftChangeEvent;
 export type StyledPercentFieldProps = {
   value: number | undefined;
 
+  name?: string;
   width?: number | string;
   placeholder?: string;
   disabled?: boolean;
@@ -53,7 +55,7 @@ export type StyledPercentFieldProps = {
   /**
    * Callback for current error message (for parent validation gating)
    */
-  onFieldError?: (errorMsg: string | undefined) => void;
+  onFieldError?: FieldErrorReporter;
 
   error?: boolean;
   helperText?: string;
@@ -85,6 +87,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
   (
     {
       value,
+      name,
       width = 100,
       placeholder = '0',
       disabled,
@@ -331,6 +334,18 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       ]
     );
 
+    const initialInvalidDraft = React.useMemo(() => {
+      const currentError = onFieldError?.getCurrentError?.();
+      if (
+        currentError?.severity === 'error' &&
+        currentError.blocksSave !== false &&
+        typeof currentError.invalidDraft === 'string'
+      ) {
+        return { draft: currentError.invalidDraft, message: currentError.message };
+      }
+      return undefined;
+    }, [onFieldError]);
+
     const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
       useDraftField<number | undefined>({
         value,
@@ -344,6 +359,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         inputElementRef,
         clearErrorOnDraftChange: true,
         commitOnBlur: false,
+        initialInvalidDraft,
       });
 
 
@@ -358,9 +374,9 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
     // Notify parent of error state
     React.useEffect(() => {
       if (typeof onFieldError === 'function') {
-        onFieldError(visibleLocalError?.message);
+        onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);
       }
-    }, [visibleLocalError?.message, onFieldError]);
+    }, [draft, visibleLocalError?.message, onFieldError]);
 
     const skipNextBlurCommitRef = React.useRef(false);
 
@@ -485,6 +501,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
     return (
       <StyledTextFieldBase
         ref={ref}
+        name={name}
         draft={draft}
         onDraftChange={handleDraftChange}
         inputRef={inputElementRef}
@@ -540,4 +557,3 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
 StyledPercentField.displayName = 'StyledPercentField';
 
 export default StyledPercentField;
-

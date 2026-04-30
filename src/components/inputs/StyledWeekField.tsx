@@ -17,6 +17,7 @@ export type StyledWeekFieldDraftChangeEvent = DraftChangeEvent;
 export type StyledWeekFieldProps = {
   value: string | undefined;
 
+  name?: string;
   width?: number | string;
   minYear?: number;
   maxYear?: number;
@@ -59,6 +60,7 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
   (
     {
       value,
+      name,
       width = 120,
       minYear,
       maxYear,
@@ -281,6 +283,7 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
     return (
       <StyledTextFieldBase
         ref={ref}
+        name={name}
         draft={draft}
         onDraftChange={handleDraftChange}
         inputRef={inputElementRef}

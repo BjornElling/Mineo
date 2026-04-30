@@ -660,6 +660,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
           'aria-haspopup': 'listbox',
           'aria-expanded': open,
           'aria-controls': open ? listboxId : undefined,
+          'data-mineo-undo-field-path': name,
           'aria-activedescendant':
             open && highlightedIndex >= 0 && isSelectableVisualIndex(highlightedIndex)
               ? `${listboxId}-option-${highlightedIndex}`

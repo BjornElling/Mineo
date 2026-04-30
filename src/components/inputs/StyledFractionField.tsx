@@ -9,6 +9,7 @@ import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { DEFAULT_FRACTION_MAX_DIGITS, getFractionMaxLength, INTEGER_FRACTION_FORMAT_MESSAGE, parseFractionString, sanitizePastedFraction } from '../../utils/fraction';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import { normalizeFractionPaste } from '../../utils/inputPasteNormalization';
+import type { FieldErrorReporter } from '../../types/fieldErrors';
 
 export type StyledFractionFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledFractionFieldDraftChangeEvent = DraftChangeEvent;
@@ -16,6 +17,7 @@ export type StyledFractionFieldDraftChangeEvent = DraftChangeEvent;
 export type StyledFractionFieldProps = {
   value: string | undefined;
 
+  name?: string;
   width?: number | string;
   placeholder?: string;
   disabled?: boolean;
@@ -49,7 +51,7 @@ export type StyledFractionFieldProps = {
    *
    * Note: this intentionally does not report `error/helperText` from the parent (external errors).
    */
-  onFieldError?: (errorMsg: string | undefined) => void;
+  onFieldError?: FieldErrorReporter;
 
   error?: boolean;
   helperText?: string;
@@ -62,6 +64,7 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
   (
     {
       value,
+      name,
       width = 100,
       placeholder = 'fx 1/3',
       disabled,
@@ -142,6 +145,18 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
       [allowNegative, allowZeroNumerator, canonicalizeOnCommit, configErrorMessage, maxDigits, requireIntegerFraction]
     );
 
+    const initialInvalidDraft = React.useMemo(() => {
+      const currentError = onFieldError?.getCurrentError?.();
+      if (
+        currentError?.severity === 'error' &&
+        currentError.blocksSave !== false &&
+        typeof currentError.invalidDraft === 'string'
+      ) {
+        return { draft: currentError.invalidDraft, message: currentError.message };
+      }
+      return undefined;
+    }, [onFieldError]);
+
     const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
       useDraftField<string | undefined>({
         value,
@@ -154,6 +169,7 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
         inputElementRef,
         clearErrorOnDraftChange: true,
         commitOnBlur: false,
+        initialInvalidDraft,
       });
 
     const visibleLocalError = touched ? error : undefined;
@@ -163,8 +179,8 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
     // Notify parent of local error state (producer-owned reporting)
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
-      onFieldError(visibleLocalError?.message);
-    }, [onFieldError, visibleLocalError?.message]);
+      onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);
+    }, [draft, onFieldError, visibleLocalError?.message]);
 
     const skipNextBlurCommitRef = React.useRef(false);
 
@@ -275,6 +291,7 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
     return (
       <StyledTextFieldBase
         ref={ref}
+        name={name}
         draft={draft}
         onDraftChange={handleDraftChange}
         inputRef={inputElementRef}

@@ -25,6 +25,7 @@ import {
   type DraftChangeEvent,
   type DraftChangeHandler,
 } from '../../types/fieldEvents';
+import type { FieldErrorReporter } from '../../types/fieldErrors';
 
 export type StyledAmountFieldValueChangeEvent = CommitEvent<AmountValue | undefined>;
 export type StyledAmountFieldDraftChangeEvent = DraftChangeEvent;
@@ -34,6 +35,7 @@ export type StyledAmountFieldProps = {
   onDraftChange?: DraftChangeHandler;
   onCommit?: CommitHandler<AmountValue | undefined>;
 
+  name?: string;
   width?: number | string;
   placeholder?: string;
   allowNegative?: boolean;
@@ -61,7 +63,7 @@ export type StyledAmountFieldProps = {
    *
    * Note: this intentionally does not report `error/helperText` from the parent (external errors).
    */
-  onFieldError?: (errorMsg: string | undefined) => void;
+  onFieldError?: FieldErrorReporter;
 
   sx?: SxProps<Theme>;
 };
@@ -86,6 +88,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       value,
       onDraftChange,
       onCommit,
+      name,
       width = 120,
       placeholder = '0,00',
       allowNegative = true,
@@ -196,6 +199,18 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       [allowDecimals, allowNegative, maxValue, minValue, resolvedPrecision]
     );
 
+    const initialInvalidDraft = React.useMemo(() => {
+      const currentError = onFieldError?.getCurrentError?.();
+      if (
+        currentError?.severity === 'error' &&
+        currentError.blocksSave !== false &&
+        typeof currentError.invalidDraft === 'string'
+      ) {
+        return { draft: currentError.invalidDraft, message: currentError.message };
+      }
+      return undefined;
+    }, [onFieldError]);
+
     const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit, commitDraft } =
       useDraftField<AmountValue | undefined>({
         value,
@@ -208,6 +223,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         clearErrorOnDraftChange: true,
         clearTouchedOnEmptyDraft: true,
         commitOnBlur: false,
+        initialInvalidDraft,
       });
 
     const visibleLocalError = touched ? error : undefined;
@@ -218,8 +234,8 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     // Notify parent of local error state (producer-owned reporting)
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
-      onFieldError(visibleLocalError?.message);
-    }, [onFieldError, visibleLocalError?.message]);
+      onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);
+    }, [draft, onFieldError, visibleLocalError?.message]);
 
     React.useEffect(() => {
       if (!onErrorChange) return;
@@ -395,6 +411,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     return (
       <StyledTextFieldBase
         ref={ref}
+        name={name}
         draft={displayDraft}
         onDraftChange={handleDraftChange}
         inputRef={inputElementRef}
