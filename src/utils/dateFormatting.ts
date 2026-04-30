@@ -41,12 +41,6 @@ export const WEEKDAY_NAMES_DA = [
   'Lørdag',
 ] as const;
 
-export const formatIsoDateShort = (isoDate: ISODateString | undefined): string => {
-  if (!isoDate || !isISODateString(isoDate)) return '';
-  const [year, month, day] = isoDate.split('-');
-  return `${day}-${month}-${year}`;
-};
-
 export const formatIsoDateLong = (isoDate: ISODateString | undefined): string => {
   if (!isoDate || !isISODateString(isoDate)) return '';
   const [year, month, day] = isoDate.split('-');
@@ -59,7 +53,7 @@ export const formatIsoDateLong = (isoDate: ISODateString | undefined): string =>
 
 export const formatUtcDateShort = (date: Date | undefined): string => {
   const iso = dateToISO(date);
-  return iso ? formatIsoDateShort(iso) : '';
+  return iso ? formatISOToDanish(iso) : '';
 };
 
 export const formatUtcDateLong = (date: Date | undefined): string => {

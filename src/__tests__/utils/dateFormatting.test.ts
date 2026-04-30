@@ -1,6 +1,5 @@
 import type { ISODateString } from '../../types/branded';
 import {
-  formatIsoDateShort,
   formatIsoDateLong,
   formatUtcDateShort,
   formatUtcDateLong,
@@ -15,29 +14,29 @@ const utcDate = (y: number, m: number, d: number): Date => {
   return new Date(Date.UTC(y, m - 1, d));
 };
 
-// ─── formatIsoDateShort ────────────────────────────────────────────────────
-// formatIsoDateShort returnerer dansk numerisk format: dd-mm-yyyy
+// ─── formatISOToDanish ─────────────────────────────────────────────────────
+// formatISOToDanish returnerer dansk numerisk format: dd-mm-yyyy
 
-describe('formatIsoDateShort', () => {
+describe('formatISOToDanish', () => {
   it('2024-01-15 → 15-01-2024', () => {
-    expect(formatIsoDateShort(iso('2024-01-15'))).toBe('15-01-2024');
+    expect(formatISOToDanish(iso('2024-01-15'))).toBe('15-01-2024');
   });
 
   it('2024-12-31 → 31-12-2024', () => {
-    expect(formatIsoDateShort(iso('2024-12-31'))).toBe('31-12-2024');
+    expect(formatISOToDanish(iso('2024-12-31'))).toBe('31-12-2024');
   });
 
   it('2024-06-01 → 01-06-2024', () => {
-    expect(formatIsoDateShort(iso('2024-06-01'))).toBe('01-06-2024');
+    expect(formatISOToDanish(iso('2024-06-01'))).toBe('01-06-2024');
   });
 
   it('undefined → tom streng', () => {
-    expect(formatIsoDateShort(undefined)).toBe('');
+    expect(formatISOToDanish(undefined)).toBe('');
   });
 
   it('er deterministisk', () => {
-    const r1 = formatIsoDateShort(iso('2024-06-15'));
-    const r2 = formatIsoDateShort(iso('2024-06-15'));
+    const r1 = formatISOToDanish(iso('2024-06-15'));
+    const r2 = formatISOToDanish(iso('2024-06-15'));
     expect(r1).toBe(r2);
   });
 });
@@ -69,7 +68,7 @@ describe('formatIsoDateLong', () => {
 });
 
 // ─── formatUtcDateShort ────────────────────────────────────────────────────
-// formatUtcDateShort delegerer til formatIsoDateShort → dansk numerisk format
+// formatUtcDateShort delegerer til formatISOToDanish → dansk numerisk format
 
 describe('formatUtcDateShort', () => {
   it('2024-06-15 UTC → 15-06-2024', () => {
