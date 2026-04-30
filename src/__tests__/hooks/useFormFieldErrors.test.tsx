@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { render, act } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import {
   useFormFieldErrors,
   useFieldErrorsBySourceForSection,
@@ -12,6 +13,7 @@ import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import type { StorageKey } from '../../config/storageManifest';
 import type { FormFieldError, ReportableFieldError } from '../../types/fieldErrors';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
+import { undoRedoStore } from '../../stores/undoRedoStore';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -37,6 +39,15 @@ const makeCtx = (overrides: Partial<FormPersistenceContextValue> = {}): FormPers
   ...overrides,
 });
 
+const renderWithMockContext = (ctx: FormPersistenceContextValue, ui: React.ReactNode) =>
+  render(
+    <MemoryRouter initialEntries={['/stamdata']}>
+      <FormPersistenceContext.Provider value={ctx}>
+        {ui}
+      </FormPersistenceContext.Provider>
+    </MemoryRouter>
+  );
+
 // ─── useFormFieldErrors ────────────────────────────────────────────────────────
 
 describe('useFormFieldErrors', () => {
@@ -49,6 +60,7 @@ describe('useFormFieldErrors', () => {
       lastCommittedAt: Date.now(),
     });
     formPersistenceStore.getState().clearAllFieldErrors();
+    undoRedoStore.getState().clear();
   });
 
   it('læser resolved errors via den reelle store-backed selector-sti', () => {
@@ -139,11 +151,7 @@ describe('useFormFieldErrorReporter', () => {
       return null;
     };
 
-    render(
-      <FormPersistenceContext.Provider value={ctx}>
-        <Comp />
-      </FormPersistenceContext.Provider>
-    );
+    renderWithMockContext(ctx, <Comp />);
 
     await act(async () => {
       reportError('Journalnummer mangler');
@@ -167,11 +175,7 @@ describe('useFormFieldErrorReporter', () => {
       return null;
     };
 
-    render(
-      <FormPersistenceContext.Provider value={ctx}>
-        <Comp />
-      </FormPersistenceContext.Provider>
-    );
+    renderWithMockContext(ctx, <Comp />);
 
     await act(async () => {
       reportError(undefined);
@@ -190,11 +194,7 @@ describe('useFormFieldErrorReporter', () => {
       return null;
     };
 
-    render(
-      <FormPersistenceContext.Provider value={ctx}>
-        <Comp />
-      </FormPersistenceContext.Provider>
-    );
+    renderWithMockContext(ctx, <Comp />);
 
     await act(async () => {
       reportError('   '); // whitespace-only → behandles som tom
@@ -217,11 +217,7 @@ describe('useFormFieldErrorReporter', () => {
       return null;
     };
 
-    render(
-      <FormPersistenceContext.Provider value={ctx}>
-        <Comp />
-      </FormPersistenceContext.Provider>
-    );
+    renderWithMockContext(ctx, <Comp />);
 
     await act(async () => {
       reportError('Advarsel');
@@ -245,11 +241,7 @@ describe('useFormFieldErrorReporter', () => {
       return null;
     };
 
-    render(
-      <FormPersistenceContext.Provider value={ctx}>
-        <Comp />
-      </FormPersistenceContext.Provider>
-    );
+    renderWithMockContext(ctx, <Comp />);
 
     await act(async () => {
       reportError({ message: 'Datoen ligger uden for intervallet', blocksSave: false });
@@ -272,11 +264,7 @@ describe('useFormFieldErrorReporter', () => {
       return null;
     };
 
-    const { unmount } = render(
-      <FormPersistenceContext.Provider value={ctx}>
-        <Comp />
-      </FormPersistenceContext.Provider>
-    );
+    const { unmount } = renderWithMockContext(ctx, <Comp />);
 
     setFieldError.mockClear();
 
@@ -285,5 +273,37 @@ describe('useFormFieldErrorReporter', () => {
     });
 
     expect(setFieldError).not.toHaveBeenCalled();
+  });
+
+  it('gemmer invalidDraft og opretter et undo-skridt for ikke-committable inputfejl', async () => {
+    const setFieldError = vi.fn();
+    const ctx = makeCtx({ setFieldError });
+
+    let reportError!: (msg: ReportableFieldError | undefined) => void;
+    const Comp = () => {
+      reportError = useFormFieldErrorReporter('stamdata' as StorageKey, 'journalnr' as never);
+      return null;
+    };
+
+    renderWithMockContext(
+      ctx,
+      <>
+        <input data-mineo-undo-focus-token="focus-a" data-mineo-undo-field-path="journalnr" />
+        <Comp />
+      </>
+    );
+
+    await act(async () => {
+      reportError({ message: 'Ugyldigt input', blocksSave: true, invalidDraft: 'abc' });
+    });
+
+    expect(setFieldError).toHaveBeenCalledWith(
+      'stamdata',
+      'journalnr',
+      'input',
+      { message: 'Ugyldigt input', severity: 'error', blocksSave: true, invalidDraft: 'abc' }
+    );
+    expect(undoRedoStore.getState().past).toHaveLength(1);
+    expect(undoRedoStore.getState().past[0].origin.fieldPath).toBe('journalnr');
   });
 });
