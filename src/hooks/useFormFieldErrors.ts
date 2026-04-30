@@ -1,11 +1,14 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import type { StorageKey } from '../config/storageManifest';
 import type { PersistedSectionMap } from '../config/persistenceRegistry';
+import { createActiveTabStorageKey } from '../config/storageManifest';
 import { useFormPersistence } from '../contexts/useFormPersistence';
 import type {
   FieldErrorsForSection,
   FieldErrorSeverity,
   FieldErrorSource,
+  FieldErrorReporter,
   FormFieldError,
   ReportableFieldError,
 } from '../types/fieldErrors';
@@ -14,6 +17,9 @@ import {
   useResolvedFieldErrorsSelector,
 } from './useFormPersistenceSelectors';
 import { isInteractiveDevLoggingEnabled } from '../utils/debugRuntime';
+import { undoRedoStore, type HistoryFrameOrigin } from '../stores/undoRedoStore';
+import { readLastUndoFocus } from '../utils/undoFocusTracker';
+import { readOptionalSessionStorageValue } from '../utils/safeSessionStorage';
 
 const debugFieldErrorReporter = (event: string, details: Record<string, unknown>): void => {
   if (!isInteractiveDevLoggingEnabled) return;
@@ -77,6 +83,42 @@ type ReporterOptions = {
   source?: FieldErrorSource;
 };
 
+const createFieldErrorUndoOrigin = (
+  pageKey: StorageKey,
+  fieldName: string,
+  route: string
+): HistoryFrameOrigin => {
+  const pageId = route.replace(/^\/+/, '') || 'stamdata';
+  const lastFocus = readLastUndoFocus();
+  return {
+    route,
+    tabKey: readOptionalSessionStorageValue(createActiveTabStorageKey(pageId)),
+    sectionKey: pageKey,
+    fieldPath: fieldName,
+    focusToken: lastFocus.focusToken,
+  };
+};
+
+const shouldCaptureInvalidDraftError = (error: ReportableFieldError | undefined): error is Readonly<{
+  message: string;
+  blocksSave?: boolean;
+  invalidDraft: string;
+}> =>
+  typeof error === 'object' &&
+  error !== null &&
+  error.message.trim() !== '' &&
+  error.blocksSave !== false &&
+  typeof error.invalidDraft === 'string';
+
+const isSameStoredInvalidDraftError = (
+  current: FormFieldError | undefined,
+  error: Readonly<{ message: string; blocksSave?: boolean; invalidDraft: string }>
+): boolean =>
+  current?.severity === 'error' &&
+  current.blocksSave !== false &&
+  current.message === error.message.trim() &&
+  current.invalidDraft === error.invalidDraft;
+
 /**
  * Producer-owned field error reporter.
  *
@@ -96,8 +138,9 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
   pageKey: K,
   fieldName: FieldName<K>,
   options?: ReporterOptions
-): ((error: ReportableFieldError | undefined) => void) => {
-  const { setFieldError } = useFormPersistence();
+): FieldErrorReporter => {
+  const { getFieldError, setFieldError } = useFormPersistence();
+  const location = useLocation();
 
   const severity = options?.severity ?? 'error';
   const source = options?.source ?? 'input';
@@ -110,7 +153,7 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
           ? '__clear__'
           : typeof error === 'string'
             ? `__msg__:${severity}:${source}:true:${error}`
-            : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}`;
+            : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}:${error.invalidDraft ?? ''}`;
       if (lastReportedRef.current === nextKey) {
         debugFieldErrorReporter('report-skip-duplicate', {
           pageKey,
@@ -133,6 +176,10 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
       // - The producer (typically an input component) owns the error for this field and MUST clear it
       //   by calling the reporter with `undefined` once the field becomes valid again.
       // - The form layer may clear all field errors on authoritative state replacement (reset/load).
+      if (shouldCaptureInvalidDraftError(error) && !isSameStoredInvalidDraftError(getFieldError(pageKey, fieldName), error)) {
+        undoRedoStore.getState().capture(createFieldErrorUndoOrigin(pageKey, fieldName, location.pathname));
+      }
+
       if (error === undefined || (typeof error === 'string' && error.trim() === '') || (typeof error !== 'string' && error.message.trim() === '')) {
         setFieldError(pageKey, fieldName, source, null);
         return;
@@ -147,19 +194,25 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
         message: error.message,
         severity,
         blocksSave: error.blocksSave !== false,
+        invalidDraft: error.blocksSave !== false ? error.invalidDraft : undefined,
       });
     },
-    [fieldName, pageKey, setFieldError, severity, source]
+    [fieldName, getFieldError, location.pathname, pageKey, setFieldError, severity, source]
   );
 
-  return reportError;
+  return React.useMemo<FieldErrorReporter>(() => {
+    return Object.assign(reportError, {
+      getCurrentError: () => getFieldError(pageKey, fieldName),
+    });
+  }, [fieldName, getFieldError, pageKey, reportError]);
 };
 
 export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
   pageKey: K,
   options?: ReporterOptions
 ): ((fieldName: DynamicFieldName<K>, error: ReportableFieldError | undefined) => void) => {
-  const { setFieldError } = useFormPersistence();
+  const { getFieldError, setFieldError } = useFormPersistence();
+  const location = useLocation();
 
   const severity = options?.severity ?? 'error';
   const source = options?.source ?? 'input';
@@ -173,7 +226,7 @@ export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
         ? '__clear__'
         : typeof error === 'string'
           ? `__msg__:${severity}:${source}:true:${error}`
-          : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}`;
+          : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}:${error.invalidDraft ?? ''}`;
 
     if (lastReportedByFieldRef.current[fieldName] === nextKey) {
       debugFieldErrorReporter('report-dynamic-skip-duplicate', {
@@ -193,6 +246,10 @@ export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
     });
     lastReportedByFieldRef.current[fieldName] = nextKey;
 
+    if (shouldCaptureInvalidDraftError(error) && !isSameStoredInvalidDraftError(getFieldError(pageKey, fieldName), error)) {
+      undoRedoStore.getState().capture(createFieldErrorUndoOrigin(pageKey, fieldName, location.pathname));
+    }
+
     if (
       error === undefined
       || (typeof error === 'string' && error.trim() === '')
@@ -211,6 +268,7 @@ export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
       message: error.message,
       severity,
       blocksSave: error.blocksSave !== false,
+      invalidDraft: error.blocksSave !== false ? error.invalidDraft : undefined,
     });
-  }, [pageKey, setFieldError, severity, source]);
+  }, [getFieldError, location.pathname, pageKey, setFieldError, severity, source]);
 };
