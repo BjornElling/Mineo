@@ -69,7 +69,7 @@ export const formatUtcTimestampSeconds = (date: Date): string => {
   return `${iso} ${hours}:${minutes}:${seconds}`;
 };
 
-export const formatISOToDanish = (isoDate: string): string => {
+export const formatISOToDanish = (isoDate: string | undefined): string => {
   const danish = isoToDanish(isISODateString(isoDate) ? isoDate : undefined);
   return danish ?? '';
 };
