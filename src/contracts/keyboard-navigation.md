@@ -76,14 +76,18 @@ Konsekvens:
 - Fallback: visuel række via elementernes Y-position
 
 **Undtagelser:**
-1. **Tabeller** (`data-mineo-table-navigation="true"`)
+1. **Radiobuttons**
+   - `ArrowRight` / `ArrowLeft` flytter den aktive radiobuttons selection og fokus i den pågældende retning inden for samme radiogruppe
+   - Wrap i radiogruppe: højre fra sidste → første, venstre fra første → sidste
+   - Det er den radiobutton der aktuelt har fokus, der er udgangspunkt for flytningen, også hvis en anden option allerede er valgt
+2. **Tabeller** (`data-mineo-table-navigation="true"`)
    - Container intercepter IKKE piletaster i table-subtrees
    - Grid/loose table beholder egen pil-navigation som hidtil
    - Fra felter uden for tabel kan vertikal navigation (`ArrowUp`/`ArrowDown`) fokusere første/last relevante tabelcelle over/under
-2. **Åbne popup-widgets** (`aria-expanded="true"`)
+3. **Åbne popup-widgets** (`aria-expanded="true"`)
    - Container intercepter IKKE piletaster
    - Widget/menu ejer intern navigation
-3. **Editor åben** (fx input med `readOnly=false`)
+4. **Editor åben** (fx input med `readOnly=false`)
    - Container intercepter IKKE piletaster
    - Eksisterende caret/editor-adfærd bevares
 
@@ -181,6 +185,7 @@ Container keyboard-navigation testes på to niveauer:
 - Enter flytter fokus fremad (ingen selection), undtagen på radiofelter
 - Enter på dropdown intercepteres IKKE
 - Enter på radiobutton vælger fokuseret option
+- ArrowLeft/ArrowRight på radiobutton flytter aktiv selection og fokus med wrap i radiogruppen
 - Cirkulær navigation fungerer
 
 ### 2. Manuel test-tjekliste

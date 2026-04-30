@@ -61,6 +61,7 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
 }, ref) => {
   const autoId = React.useId();
   const emptyValue = `__mineo_radio_empty__${autoId}`;
+  const groupName = name ?? `mineo-radio-${autoId}`;
 
   const resolvedValue = value ?? emptyValue;
   const showError = error && helperText.trim() !== '';
@@ -130,7 +131,7 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
               onChange?.(e, nextValue);
             }}
             row={row}
-            name={name}
+            name={groupName}
             sx={{
               margin: 0,
               minHeight: '40px',

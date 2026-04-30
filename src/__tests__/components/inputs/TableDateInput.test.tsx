@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, createEvent, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import TableDateInput from '../../../components/inputs/table/TableDateInput';
 import { createGridCoreTestStateStore } from './gridCoreTestUtils';
+import { restoreDraftHistoryTarget } from '../../../utils/draftHistoryRegistry';
 
 const createGridValue = (gridCell: GridCellCoord, editingCell: GridCellCoord | null) => {
   return {
@@ -95,6 +96,38 @@ describe('TableDateInput', () => {
     const errorEl = describedBy ? document.getElementById(describedBy) : null;
     expect(errorEl).toBeTruthy();
     expect(errorEl).toHaveTextContent('Ugyldig dato');
+  });
+
+  it('history-restore rydder invalid table-date draft selv når committed value er uændret', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-restore', colIndex: 0 };
+    const gridValue = createGridValue(gridCell, gridCell);
+
+    render(
+      <GridCoreProvider value={gridValue}>
+        <TableDateInput gridCell={gridCell} value="01-01-2020" />
+      </GridCoreProvider>
+    );
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.clear(input);
+    await user.type(input, '99-99-2020');
+    fireEvent.blur(input);
+
+    expect(input).toHaveValue('99-99-2020');
+
+    act(() => {
+      expect(
+        restoreDraftHistoryTarget(
+          { focusToken: null, fieldPath: 'row-restore:0' },
+          { kind: 'committed' }
+        )
+      ).toBe(true);
+    });
+
+    expect(input).toHaveValue('01-01-2020');
+    expect(input).not.toHaveAttribute('aria-describedby');
   });
 
   it('crasher ikke ved minDate > maxDate og viser konfigurationsfejl', () => {

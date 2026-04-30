@@ -152,6 +152,7 @@ Rules for instant-commit controls:
 - `onCommit` is fired immediately on user interaction (same tick as the control's native change event).
 - There is no `useDraftField` usage, and no `Escape`/rollback semantics.
 - `onCommit` may be semantically identical to the control's native change callback (e.g. radio selection).
+- For radio groups, keyboard selection via `Enter` and `ArrowLeft`/`ArrowRight` follows `keyboard-navigation.md` and is still an immediate commit.
 - For select/combobox-style controls, commit happens on selection (`onChange`); `Escape` typically only closes the popover/menu.
 - If the control has a popover/menu interaction, expose an explicit `onClose` (interaction ended) separate from physical `onBlur`.
 - If an imperative handle is exposed (e.g. `shake()`), its semantics must be documented and it must not mutate committed form state.

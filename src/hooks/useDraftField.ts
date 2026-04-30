@@ -159,10 +159,13 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   const pendingHistoryValueResyncRef = React.useRef(false);
 
   const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
+    const committedAtCallTime = committedValueRef.current;
+    const formattedAtCallTime = format(committedAtCallTime);
+
     pendingValueResyncRef.current = { active: false };
-    // Gate suppression on focus: undo/redo is blocked while a field is focused (MainLayout),
-    // so the field should be unfocused here. We still gate explicitly to avoid silently
-    // overriding blur-commit semantics if that invariant ever changes.
+    // Gate suppression on focus: undo/redo restore should only reach here after MainLayout
+    // has allowed a committed-state restore. If a focused field receives restore anyway,
+    // avoid silently overriding blur-commit semantics.
     if (!isFocusedRef.current) {
       suppressNextBlurCommitRef.current = true;
     }
@@ -175,7 +178,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     }
 
     pendingHistoryValueResyncRef.current = true;
-    setDraftState(format(committedValueRef.current));
+    setDraftState(formattedAtCallTime);
     setTouched(false);
     setError(undefined);
   }, [format]);
@@ -222,9 +225,6 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       const pending = pendingValueResyncRef.current;
 
       if (pendingHistoryValueResyncRef.current) {
-        if (isInteractiveDevLoggingEnabled && prev !== formatted) {
-          console.debug('[useDraftField] resync-effect: updating draft (history)', { prev, formatted });
-        }
         return prev === formatted ? prev : formatted;
       }
 
@@ -248,9 +248,6 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
           return prev;
         }
 
-        if (isInteractiveDevLoggingEnabled && prev !== formatted) {
-          console.debug('[useDraftField] resync-effect: updating draft (pending→resolved)', { prev, formatted });
-        }
         return prev === formatted ? prev : formatted;
       }
 
@@ -259,9 +256,6 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       // This prevents "silent rollback" to the last committed value on blur.
       if (touched && error !== undefined) return prev;
 
-      if (isInteractiveDevLoggingEnabled && prev !== formatted) {
-        console.debug('[useDraftField] resync-effect: updating draft', { prev, formatted, isFocused, hasPhysicalFocus, touched, error });
-      }
       return prev === formatted ? prev : formatted;
     });
   }, [error, format, inputElementRef, isFocused, touched, value]);
