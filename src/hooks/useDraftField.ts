@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { isInteractiveDevLoggingEnabled } from '../utils/debugRuntime';
+import { registerDraftHistoryController, type DraftHistoryRestoreState } from '../utils/draftHistoryRegistry';
 
 const defaultNormalizeDraftOnCommit = (draft: string): string => {
   return draft;
@@ -17,8 +18,8 @@ export type DraftParseResult<TModel> =
 export type DraftParse<TModel> = (draft: string, context: { mode: DraftParseMode }) => DraftParseResult<TModel>;
 
 export type DraftFieldError =
-  | { kind: 'invalid'; message: string }
-  | { kind: Exclude<DraftParseErrorKind, 'invalid'>; message?: string };
+  | { kind: 'invalid'; message: string; invalidDraft?: string }
+  | { kind: Exclude<DraftParseErrorKind, 'invalid'>; message?: string; invalidDraft?: string };
 
 export type UseDraftFieldConfig<TModel> = {
   value: TModel;
@@ -52,6 +53,10 @@ export type UseDraftFieldConfig<TModel> = {
   commitOnEnter?: boolean;
 
   clearErrorOnDraftChange?: boolean;
+  initialInvalidDraft?: Readonly<{
+    draft: string;
+    message: string;
+  }>;
   /**
    * UX policy: when the draft becomes empty, treat it as "no validation state".
    * This clears local error + touched without committing or parsing.
@@ -109,14 +114,24 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
    * - Post-commit resync intentionally trades simplicity for determinism. Do not refactor unless all scenarios are understood.
    */
   const [isFocused, setIsFocused] = React.useState(false);
-  const [touched, setTouched] = React.useState(false);
-  const [error, setError] = React.useState<DraftFieldError | undefined>(undefined);
-  const [draft, setDraftState] = React.useState<string>(() => format(value));
+  const [touched, setTouched] = React.useState(() => config.initialInvalidDraft !== undefined);
+  const [error, setError] = React.useState<DraftFieldError | undefined>(() =>
+    config.initialInvalidDraft
+      ? { kind: 'invalid', message: config.initialInvalidDraft.message, invalidDraft: config.initialInvalidDraft.draft }
+      : undefined
+  );
+  const [draft, setDraftState] = React.useState<string>(() => config.initialInvalidDraft?.draft ?? format(value));
 
   const committedValueRef = React.useRef(value);
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     committedValueRef.current = value;
   }, [value]);
+  const touchedRef = React.useRef(touched);
+  const errorRef = React.useRef(error);
+  React.useLayoutEffect(() => {
+    touchedRef.current = touched;
+    errorRef.current = error;
+  }, [error, touched]);
 
   // Snapshot of the field state at focus start (pre-edit).
   // Used to ensure Escape restores the exact "existing value" the user started editing,
@@ -143,6 +158,35 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
         userEditedSinceCommit: boolean;
       }
   >({ active: false });
+  const pendingHistoryValueResyncRef = React.useRef(false);
+
+  const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
+    pendingValueResyncRef.current = { active: false };
+    suppressNextBlurCommitRef.current = true;
+    pendingHistoryValueResyncRef.current = false;
+    if (state.kind === 'error') {
+      setDraftState(state.draft);
+      setTouched(true);
+      setError(state.error);
+      return;
+    }
+
+    pendingHistoryValueResyncRef.current = true;
+    setDraftState(format(committedValueRef.current));
+    setTouched(false);
+    setError(undefined);
+  }, [format]);
+
+  React.useEffect(() => {
+    const element = inputElementRef?.current;
+    if (!element) return undefined;
+    const focusToken = element.getAttribute('data-mineo-undo-focus-token');
+    const fieldPath = element.getAttribute('data-mineo-undo-field-path');
+    return registerDraftHistoryController(
+      { focusToken, fieldPath },
+      { restoreFromHistory }
+    );
+  }, [inputElementRef, restoreFromHistory]);
 
   const debugDepsRef = React.useRef<{ error: typeof error; format: typeof format; isFocused: boolean; touched: boolean; value: TModel } | null>(null);
   React.useEffect(() => {
@@ -173,6 +217,13 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
 
     setDraftState((prev) => {
       const pending = pendingValueResyncRef.current;
+
+      if (pendingHistoryValueResyncRef.current) {
+        if (isInteractiveDevLoggingEnabled && prev !== formatted) {
+          console.debug('[useDraftField] resync-effect: updating draft (history)', { prev, formatted });
+        }
+        return prev === formatted ? prev : formatted;
+      }
 
       if (pending.active) {
         // While we are waiting for the post-commit `value` update, never sync draft from `value`
@@ -214,6 +265,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
 
   const setDraft = React.useCallback(
     (nextDraft: string) => {
+      pendingHistoryValueResyncRef.current = false;
       setDraftState(nextDraft);
 
       suppressNextBlurCommitRef.current = false;
@@ -234,6 +286,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   );
 
   const cancel = React.useCallback(() => {
+    pendingHistoryValueResyncRef.current = false;
     const snapshot = focusSnapshotRef.current;
     if (snapshot) {
       setDraftState(snapshot.draft);
@@ -250,6 +303,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   }, [format]);
 
   const commitFromDraft = React.useCallback((rawDraft: string, source: 'blur' | 'enter' | 'imperative') => {
+    pendingHistoryValueResyncRef.current = false;
     setTouched(true);
 
     const draftForCommit = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(rawDraft);
@@ -271,7 +325,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     }
 
     if (result.kind === 'invalid') {
-      setError({ kind: result.kind, message: result.message });
+      setError({ kind: result.kind, message: result.message, invalidDraft: draftForCommit });
       return;
     }
 
@@ -289,7 +343,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       return;
     }
 
-    setError({ kind: result.kind, message: result.message });
+    setError({ kind: result.kind, message: result.message, invalidDraft: draftForCommit });
   }, [format, normalizeDraftOnCommit, onCommit, parse, value]);
 
   const commit = React.useCallback(() => {
