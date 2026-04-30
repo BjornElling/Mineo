@@ -1,7 +1,7 @@
 import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
-import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
+import { coerceToISODateString } from '../../types/branded';
 // Disse tabeller importeres direkte fordi computeEetDifferencekravCalculation selv kører
 // sub-beregningerne for fane 3 og 4 og sender dem videre som parametre. Dette bryder
 // parametrerings-mønsteret i de øvrige beregningsfunktioner, men er en bevidst trade-off:
@@ -16,7 +16,7 @@ import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates
 import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { formatIsoDateShort } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
-import { addDays } from '../../utils/dateUtils';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { parsePercentDraft } from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
@@ -570,17 +570,14 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
   let dagFoerBeregningsdato: ISODateString | null = null;
 
   if (beregningsdato) {
-    const parsedBerDato = parseISODate(beregningsdato);
-    if (parsedBerDato) {
-      const dayBefore = dateToISO(addDays(parsedBerDato, -1));
-      if (dayBefore) {
-        dagFoerBeregningsdato = dayBefore;
-        loebendeResult = computeEetLoebendeYdelser({
-          erhvervsevnetab: { ...filteredErhvervsevnetab, beregningsdato: dayBefore },
-          skadedato,
-          skadelidteFodselsdato: fodselsdato,
-        });
-      }
+    const dayBefore = getDayBeforeIso(beregningsdato);
+    if (dayBefore) {
+      dagFoerBeregningsdato = dayBefore;
+      loebendeResult = computeEetLoebendeYdelser({
+        erhvervsevnetab: { ...filteredErhvervsevnetab, beregningsdato: dayBefore },
+        skadedato,
+        skadelidteFodselsdato: fodselsdato,
+      });
     }
   }
 

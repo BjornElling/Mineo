@@ -1,10 +1,11 @@
 import type { DanishDateString, ISODateString } from '../../../types/branded';
-import { isoToDanish, parseISODate, subtractOneDay } from '../../../types/branded';
+import { isoToDanish, parseISODate } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues, LoenudviklingManuelRow, StamdataValues } from '../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from './eoPdfModelTypes';
 import { getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { clampTafRow, resolveTafConstraintBounds } from '../validation/tafPeriodConstraints';
+import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import {
   convertAnciennitetSats,
   detectDecimalPlaces,
@@ -96,7 +97,6 @@ const formatPctFromInput = (value: number | undefined): string => {
   return formatPercentUtil(value ?? 0);
 };
 
-const isZeroPct = (value: number | undefined): boolean => isEffectivelyZero(value);
 
 const hasDefinedPctInput = (value: number | undefined): value is number =>
   typeof value === 'number' && Number.isFinite(value);
@@ -395,7 +395,7 @@ const mergeConsecutiveRowsWithSameCalculation = (
   const merged: IndexRowWithIso[] = [];
   for (const row of rows) {
     const last = merged[merged.length - 1];
-    const isAdjacent = Boolean(last && subtractOneDay(row.fraIso) === last.tilIso);
+    const isAdjacent = Boolean(last && getDayBeforeIso(row.fraIso) === last.tilIso);
     const hasSameCalculation = Boolean(last && last.signature === row.signature);
     const shouldPreserveBoundary = Boolean(
       preserveStartIsos &&
@@ -464,7 +464,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.fritvalg, ansaettelsesforhold.fritvalgPct);
       const hasAgPension =
         hasAnyPctSourceOrInput(tillaegsSatser, (sats) => sats.agPension, ansaettelsesforhold.pensionPct);
-      const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
+      const showFeriePctColumn = !isEffectivelyZero(ansaettelsesforhold.feriePct);
       const showStoreBededagColumn = applyAlmindeligLoenPaaShDageRegel && tafTil >= STORE_BEDEDAG_START;
       const loenHeader = resolveReguleringsvaerdierLoenHeader({
         tafBeregningsenhed,
@@ -624,7 +624,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const hasFritvalg = hasAnyPctSourceOrInput(allSatser, (sats) => sats.fritvalg, ansaettelsesforhold.fritvalgPct);
     const hasAgPension = hasAnyPctSourceOrInput(allSatser, (sats) => sats.agPension, ansaettelsesforhold.pensionPct);
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
-    const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
+    const showFeriePctColumn = !isEffectivelyZero(ansaettelsesforhold.feriePct);
     const showStoreBededagColumn = applyAlmindeligLoenPaaShDageRegel && tafTil >= STORE_BEDEDAG_START;
     const loenHeader = resolveReguleringsvaerdierLoenHeader({
       tafBeregningsenhed,
@@ -736,7 +736,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
 
   if (grundlag === 'Manuelt angivet') {
     const feriePctDisplay = formatPctFromInput(ansaettelsesforhold.feriePct);
-    const showFeriePctColumn = !isZeroPct(ansaettelsesforhold.feriePct);
+    const showFeriePctColumn = !isEffectivelyZero(ansaettelsesforhold.feriePct);
     const hasStoreBededagPct = resolveAutoStoreBededagPct(ansaettelsesforhold, tafTil) > 0;
     const needsStoreBededagBoundaryRow = hasStoreBededagPct && tafFra < STORE_BEDEDAG_START && tafTil >= STORE_BEDEDAG_START;
     const manualRows = ansaettelsesforhold.loenudviklingManuelTableData ?? [];
@@ -973,7 +973,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
         result.push(segment);
         continue;
       }
-      const leftTil = subtractOneDay(boundaryIso);
+      const leftTil = getDayBeforeIso(boundaryIso);
       if (leftTil && segment.fra <= leftTil) {
         result.push({ ...segment, til: leftTil });
       }
@@ -1637,3 +1637,4 @@ export const buildReguleringIndexRows = (params: Readonly<{
     };
   }));
 };
+

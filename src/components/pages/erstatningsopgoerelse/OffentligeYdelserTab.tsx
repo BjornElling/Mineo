@@ -5,7 +5,7 @@ import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
 import ContentBox from '../../layout/ContentBox';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
-import { formatCurrency } from '../../../utils/formatUtils';
+import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import StyledDateField from '../../inputs/StyledDateField';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import InlineActionButton from '../../inputs/InlineActionButton';
@@ -100,7 +100,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
   }, [sygedagpengeFraDato, sygedagpengeTilDato]);
 
   const formatAntalDage = React.useCallback((value: number): string => {
-    return new Intl.NumberFormat('da-DK', { maximumFractionDigits: 0 }).format(value);
+    return formatAsAmount(value, 0);
   }, []);
 
   const derivedByRowId = React.useMemo(() => {

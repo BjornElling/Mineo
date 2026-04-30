@@ -1,8 +1,16 @@
 import type { AslAfgoerelseRow, ErhvervsevnetabComposedValues, JaNej } from '../../schemas/formSchemas';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
-import { coerceToISODateString, createDate, dateToISO, minIso, parseISODate } from '../../types/branded';
+import { coerceToISODateString } from '../../types/branded';
 import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates';
+import {
+  endOfYearIso,
+  firstOfMonthAfterIso,
+  getDayAfterIso,
+  getDayBeforeIso,
+  isoYear,
+  minISO,
+} from '../../utils/isoDateHelpers';
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
@@ -11,7 +19,6 @@ import {
 } from '../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
-import { addDays } from '../../utils/dateUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { ceilNearest12, round0, round2, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
@@ -142,38 +149,9 @@ const parsePct = (raw: string | undefined): number | undefined => {
   return parsed;
 };
 const formatPctForWarning = (value: number): string =>
-  Number.isInteger(value) ? `${value}` : `${value}`.replace('.', ',');
+  formatAsAmountTrimmed(value, 2);
 
-const toYear = (iso: ISODateString): number => Number.parseInt(iso.slice(0, 4), 10);
-
-const endOfYearIso = (year: number): ISODateString => `${year}-12-31` as ISODateString;
-
-const isoDayBefore = (iso: ISODateString): ISODateString | undefined => {
-  const parsed = parseISODate(iso);
-  if (!parsed) return undefined;
-  return dateToISO(addDays(parsed, -1));
-};
-
-const isoDayAfter = (iso: ISODateString): ISODateString | undefined => {
-  const parsed = parseISODate(iso);
-  if (!parsed) return undefined;
-  return dateToISO(addDays(parsed, 1));
-};
-
-export const firstOfMonthAfter = (iso: ISODateString): ISODateString => {
-  const parsed = parseISODate(iso);
-  if (!parsed) {
-    throw new Error(`Invalid ISODateString invariant in firstOfMonthAfter: ${iso}`);
-  }
-  const monthIndex = parsed.getUTCMonth();
-  const nextMonthYear = monthIndex === 11 ? parsed.getUTCFullYear() + 1 : parsed.getUTCFullYear();
-  const nextMonthIndex = monthIndex === 11 ? 0 : monthIndex + 1;
-  const nextMonthFirst = dateToISO(createDate(nextMonthYear, nextMonthIndex, 1));
-  if (!nextMonthFirst) {
-    throw new Error(`Could not construct first day of next month for ISODateString: ${iso}`);
-  }
-  return nextMonthFirst;
-};
+export const firstOfMonthAfter = firstOfMonthAfterIso;
 
 export const hasOverlapPeriod = (
   virkningsdato: ISODateString,
@@ -309,23 +287,23 @@ const buildFullSectionPeriods = (
 ): Array<Readonly<{ fra: ISODateString; til: ISODateString; satsAar: number }>> => {
   if (args.virkningsdato > args.slutdato) return [];
   const result: Array<Readonly<{ fra: ISODateString; til: ISODateString; satsAar: number }>> = [];
-  const virkningsaar = toYear(args.virkningsdato);
-  const afgoerelsesaar = toYear(args.afgoerelsesdato);
+  const virkningsaar = isoYear(args.virkningsdato);
+  const afgoerelsesaar = isoYear(args.afgoerelsesdato);
 
   if (virkningsaar < afgoerelsesaar) {
     // Første periode bruger afgørelsesårets sats, når virkning starter i et tidligere år.
     // Derefter skifter satsår normalt ved hvert årsskifte frem til slutdatoen.
-    const firstEnd = minIso(args.slutdato, endOfYearIso(afgoerelsesaar));
+    const firstEnd = minISO(args.slutdato, endOfYearIso(afgoerelsesaar));
     result.push({ fra: args.virkningsdato, til: firstEnd, satsAar: afgoerelsesaar });
-    const nextStart = isoDayAfter(firstEnd);
+    const nextStart = getDayAfterIso(firstEnd);
     if (!nextStart || nextStart > args.slutdato) return result;
 
     let cursor = nextStart;
     while (cursor <= args.slutdato) {
-      const year = toYear(cursor);
-      const rowEnd = minIso(args.slutdato, endOfYearIso(year));
+      const year = isoYear(cursor);
+      const rowEnd = minISO(args.slutdato, endOfYearIso(year));
       result.push({ fra: cursor, til: rowEnd, satsAar: year });
-      const after = isoDayAfter(rowEnd);
+      const after = getDayAfterIso(rowEnd);
       if (!after || after > args.slutdato) break;
       cursor = after;
     }
@@ -335,18 +313,18 @@ const buildFullSectionPeriods = (
   // Når virkning og afgørelse ligger i samme år, bliver satsåret dette år uanset datoorden.
   // Hvis virkning først indtræder efter afgørelsesdatoen i et senere år, følger første satsår virkningsåret.
   const firstSatsAar = args.virkningsdato <= args.afgoerelsesdato ? afgoerelsesaar : virkningsaar;
-  const firstEnd = minIso(args.slutdato, endOfYearIso(virkningsaar));
+  const firstEnd = minISO(args.slutdato, endOfYearIso(virkningsaar));
   result.push({ fra: args.virkningsdato, til: firstEnd, satsAar: firstSatsAar });
 
-  const nextStart = isoDayAfter(firstEnd);
+  const nextStart = getDayAfterIso(firstEnd);
   if (!nextStart || nextStart > args.slutdato) return result;
 
   let cursor = nextStart;
   while (cursor <= args.slutdato) {
-    const year = toYear(cursor);
-    const rowEnd = minIso(args.slutdato, endOfYearIso(year));
+    const year = isoYear(cursor);
+    const rowEnd = minISO(args.slutdato, endOfYearIso(year));
     result.push({ fra: cursor, til: rowEnd, satsAar: year });
-    const after = isoDayAfter(rowEnd);
+    const after = getDayAfterIso(rowEnd);
     if (!after || after > args.slutdato) break;
     cursor = after;
   }
@@ -366,10 +344,10 @@ const buildCalendarYearSectionPeriods = (
   let cursor = args.startdato;
 
   while (cursor <= args.slutdato) {
-    const year = toYear(cursor);
-    const rowEnd = minIso(args.slutdato, endOfYearIso(year));
+    const year = isoYear(cursor);
+    const rowEnd = minISO(args.slutdato, endOfYearIso(year));
     result.push({ fra: cursor, til: rowEnd, satsAar: year });
-    const after = isoDayAfter(rowEnd);
+    const after = getDayAfterIso(rowEnd);
     if (!after || after > args.slutdato) break;
     cursor = after;
   }
@@ -388,7 +366,7 @@ const splitPeriodByBoundaries = (
     .sort();
 
   for (const boundary of sortedBoundaries) {
-    const dayBeforeBoundary = isoDayBefore(boundary);
+    const dayBeforeBoundary = getDayBeforeIso(boundary);
     if (dayBeforeBoundary && cursor <= dayBeforeBoundary) {
       result.push({ fra: cursor, til: dayBeforeBoundary, satsAar: period.satsAar });
     }
@@ -501,11 +479,11 @@ const buildComputedSectionRows = (
   const { current, previous, finalStop, useOverlap, events } = args;
   const rows: PeriodSectionRow[] = [];
   const skaeringsDato = firstOfMonthAfter(current.afgoerelsesdato);
-  const overlapEnd = useOverlap ? isoDayBefore(skaeringsDato) : undefined;
+  const overlapEnd = useOverlap ? getDayBeforeIso(skaeringsDato) : undefined;
   const splitBoundaries = events.map((event) => event.dato);
 
   if (useOverlap && previous && overlapEnd) {
-    const boundedOverlapEnd = minIso(overlapEnd, finalStop);
+    const boundedOverlapEnd = minISO(overlapEnd, finalStop);
     const overlapBasePeriods = buildCalendarYearSectionPeriods({
       startdato: current.virkningsdato,
       slutdato: boundedOverlapEnd,
@@ -622,7 +600,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  const skadesaar = toYear(skadedato);
+  const skadesaar = isoYear(skadedato);
   const maxAarsloenISkadesaar = aarsloenAslMax[skadesaar];
   if (!Number.isFinite(maxAarsloenISkadesaar)) {
     issues.push(toIssue('aarsloen-max-missing', `Maksimum årsløn mangler for år ${skadesaar}`));
@@ -682,9 +660,9 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
     const hasRestSection = hasKapitalisering && restEetPct > 0;
 
     const nextTransition = next ? resolveAfgoerelseTransition(current, next) : undefined;
-    const nextStopDate = nextTransition ? isoDayBefore(nextTransition.cutoverDate) : undefined;
+    const nextStopDate = nextTransition ? getDayBeforeIso(nextTransition.cutoverDate) : undefined;
     const folkepensionsDagFoer = resolveFolkepensionsDagFoer(fodselsdato, current.afgoerelsesdato);
-    const dayBeforeKapitalisering = current.effectiveKapDato ? isoDayBefore(current.effectiveKapDato) : undefined;
+    const dayBeforeKapitalisering = current.effectiveKapDato ? getDayBeforeIso(current.effectiveKapDato) : undefined;
 
     const loebendeYdelserSlutdato = input.loebendeYdelserSlutdatoOverride ?? beregningsdato;
     const finalCandidates: Array<Readonly<{ date: ISODateString; cause: EetLoebendeAfgoerelseComputation['ophoerAarsag'] }>> = [
@@ -832,7 +810,7 @@ export const buildLoebendeAarsydelseReguleringSteps = (
     .filter((row) => row.satsAar > 2024)
     .map((row) => row.satsAar))]
     .sort((a, b) => a - b);
-  const fallbackYear = toYear(afgoerelse.afgoerelsesdato);
+  const fallbackYear = isoYear(afgoerelse.afgoerelsesdato);
   const uniqueYears = periodYears.length > 0
     ? periodYears
     : fallbackYear > 2024
@@ -892,3 +870,4 @@ export const formatSkadedatoCompact = (iso: ISODateString): string => {
 };
 
 export const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
+

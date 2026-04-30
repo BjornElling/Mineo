@@ -1,6 +1,6 @@
 import type { DateInterval } from '../types/calculation';
 import type { ISODateString } from '../types/branded';
-import { isISODateString } from '../types/branded';
+import { createDate, dateToISO, isISODateString, parseISODate } from '../types/branded';
 import { formatISOToDanish } from './dateFormatting';
 
 export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
@@ -42,6 +42,62 @@ export function maxISO(
   if (!b) return a;
   return a > b ? a : b;
 }
+
+export const isoYear = (isoDate: ISODateString): number => {
+  return Number.parseInt(isoDate.slice(0, 4), 10);
+};
+
+export const endOfYearIso = (year: number): ISODateString => {
+  const iso = dateToISO(createDate(year, 11, 31));
+  if (!iso) {
+    throw new Error(`Could not construct ISO end-of-year date for year: ${year}`);
+  }
+  return iso;
+};
+
+export function getDayBeforeIso(isoDate: ISODateString): ISODateString;
+export function getDayBeforeIso(isoDate: ISODateString | undefined): ISODateString | undefined;
+export function getDayBeforeIso(isoDate: ISODateString | undefined): ISODateString | undefined {
+  if (!isoDate) return undefined;
+  const date = parseISODate(isoDate);
+  if (!date) return undefined;
+  const result = new Date(date.getTime());
+  result.setUTCDate(result.getUTCDate() - 1);
+  return dateToISO(result);
+}
+
+export function getDayAfterIso(isoDate: ISODateString): ISODateString;
+export function getDayAfterIso(isoDate: ISODateString | undefined): ISODateString | undefined;
+export function getDayAfterIso(isoDate: ISODateString | undefined): ISODateString | undefined {
+  if (!isoDate) return undefined;
+  const date = parseISODate(isoDate);
+  if (!date) return undefined;
+  const result = new Date(date.getTime());
+  result.setUTCDate(result.getUTCDate() + 1);
+  return dateToISO(result);
+}
+
+export const firstOfMonthAfterIso = (isoDate: ISODateString): ISODateString => {
+  const parsed = parseISODate(isoDate);
+  if (!parsed) {
+    throw new Error(`Invalid ISODateString invariant in firstOfMonthAfterIso: ${isoDate}`);
+  }
+  const monthIndex = parsed.getUTCMonth();
+  const nextMonthYear = monthIndex === 11 ? parsed.getUTCFullYear() + 1 : parsed.getUTCFullYear();
+  const nextMonthIndex = monthIndex === 11 ? 0 : monthIndex + 1;
+  const nextMonthFirst = dateToISO(createDate(nextMonthYear, nextMonthIndex, 1));
+  if (!nextMonthFirst) {
+    throw new Error(`Could not construct first day of next month for ISODateString: ${isoDate}`);
+  }
+  return nextMonthFirst;
+};
+
+export const parseOptionalIsoDate = (value: unknown): ISODateString | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!isISODateString(trimmed)) return undefined;
+  return trimmed;
+};
 
 // Kanonisk helper til ISO-datoer i domænet:
 // Vi sorterer og deduplikerer bevidst, fordi de fleste kaldsteder samler datoer fra flere kilder

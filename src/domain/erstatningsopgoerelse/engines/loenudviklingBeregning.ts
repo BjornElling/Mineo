@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import { dateToISO, isoToDanish, isISODateString, subtractOneDay } from '../../../types/branded';
+import { dateToISO, isoToDanish, isISODateString } from '../../../types/branded';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
@@ -10,6 +10,7 @@ import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregni
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { isoDateToDate } from '../../dates/isoDate';
 import { addDays, createDate } from '../../../utils/dateUtils';
+import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import {
   getEffektiveSatserForDato,
@@ -275,7 +276,7 @@ const buildSegmentsFromStartDates = (
   const segments: IsoRange[] = [];
   for (let i = 0; i < segmentStarts.length; i += 1) {
     const fra = segmentStarts[i];
-    const til = i < segmentStarts.length - 1 ? subtractOneDay(segmentStarts[i + 1]) : range.til;
+    const til = i < segmentStarts.length - 1 ? getDayBeforeIso(segmentStarts[i + 1]) : range.til;
     if (!fra || !til || fra > til) continue;
     segments.push({ fra, til });
   }

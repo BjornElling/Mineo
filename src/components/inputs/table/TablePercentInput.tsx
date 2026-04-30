@@ -77,9 +77,6 @@ type PreparedPercentCommit =
 const getPercentPrecision = (allowDecimals: boolean): 0 | 2 =>
   allowDecimals ? TABLE_PERCENT_DECIMAL_PRECISION : 0;
 
-const formatPercentBound = (value: number, precision: 0 | 2): string =>
-  formatAsAmount(value, precision);
-
 const parsePercentOnCommit = (
   rawValue: string,
   {
@@ -151,12 +148,12 @@ const parsePercentOnCommit = (
     if (typeof maxValue === 'number') {
       return {
         ok: false,
-        error: `Procent skal være mellem ${formatPercentBound(minValue, precision)} og ${formatPercentBound(maxValue, precision)}`,
+        error: `Procent skal være mellem ${formatAsAmount(minValue, precision)} og ${formatAsAmount(maxValue, precision)}`,
       };
     }
     return {
       ok: false,
-      error: `Procent skal være ${formatPercentBound(minValue, precision)} eller højere`,
+      error: `Procent skal være ${formatAsAmount(minValue, precision)} eller højere`,
     };
   }
 
@@ -164,12 +161,12 @@ const parsePercentOnCommit = (
     if (typeof minValue === 'number') {
       return {
         ok: false,
-        error: `Procent skal være mellem ${formatPercentBound(minValue, precision)} og ${formatPercentBound(maxValue, precision)}`,
+        error: `Procent skal være mellem ${formatAsAmount(minValue, precision)} og ${formatAsAmount(maxValue, precision)}`,
       };
     }
     return {
       ok: false,
-      error: `Procent skal være ${formatPercentBound(maxValue, precision)} eller lavere`,
+      error: `Procent skal være ${formatAsAmount(maxValue, precision)} eller lavere`,
     };
   }
 
@@ -579,6 +576,7 @@ const TablePercentInput = React.memo(
     );
 
     const a11yErrorId = React.useId();
+    const undoFocusToken = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
@@ -707,6 +705,8 @@ const TablePercentInput = React.memo(
                 tabIndex: locked ? -1 : undefined,
                 inputMode: allowDecimals ? 'decimal' : 'numeric',
                 'data-mineo-grid-locked': locked ? 'true' : undefined,
+                'data-mineo-undo-focus-token': undoFocusToken,
+                'data-mineo-undo-field-path': gridCellKey,
                 'aria-describedby': showError ? a11yErrorId : undefined,
               }}
               sx={{
@@ -741,3 +741,4 @@ const TablePercentInput = React.memo(
 TablePercentInput.displayName = 'TablePercentInput';
 
 export default TablePercentInput;
+

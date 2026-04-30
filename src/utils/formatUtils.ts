@@ -57,7 +57,7 @@ export const formatAsAmountTrimmed = (value: number | null | undefined, precisio
  * VIGTIGT: Procent-format følger en bevidst anden visningsregel end formatAsAmount:
  * trailing .00/.0 fjernes for mere kompakt UI-visning (fx "10 %" i stedet for "10,00 %").
  */
-export const formatPercent = (num: number): string => {
+export const formatPercent = (num: number | null | undefined): string => {
   if (num === null || num === undefined) return '';
   if (!Number.isFinite(num)) return '';
 

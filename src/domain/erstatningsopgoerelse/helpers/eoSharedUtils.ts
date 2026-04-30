@@ -3,32 +3,19 @@
  */
 
 import type { ISODateString } from '../../../types/branded';
-import { danishToISO, dateToISO, isISODateString } from '../../../types/branded';
+import { danishToISO } from '../../../types/branded';
 import { isoDateToDate } from '../../dates/isoDate';
-import { addDays } from '../../../utils/dateUtils';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { StatistiskLoenudviklingId } from '../../../data/statistiskeRates';
 import { isWithinTolerance } from '../../../utils/numberComparison';
 import { round2 } from '../../../utils/roundingShortcuts';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { TIMER_TIL_MAANED_FAKTOR } from '../../../config/regulatoryRates';
-
-export const parseOptionalIsoDate = (value: unknown): ISODateString | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  if (!isISODateString(trimmed)) return undefined;
-  return trimmed;
-};
+export { getDayAfterIso, parseOptionalIsoDate } from '../../../utils/isoDateHelpers';
 
 export const parseDanishToIso = (value: string | undefined): ISODateString | undefined => {
   if (!value || value.trim() === '') return undefined;
   return danishToISO(value);
-};
-
-export const getDayAfterIso = (isoDate: ISODateString): ISODateString => {
-  const date = isoDateToDate(isoDate);
-  const nextDate = addDays(date, 1);
-  return (dateToISO(nextDate) ?? isoDate) as ISODateString;
 };
 
 export const formatPercentFixed2 = (value: number): string => {
@@ -188,6 +175,7 @@ export const detectDecimalPlaces = (values: readonly number[], maxPlaces = 4): n
         places = maxPlaces;
         break;
       }
+      // Integer convergence check only; this is not financial/domain rounding.
       if (isWithinTolerance(scaled, Math.round(scaled))) break;
     }
     if (places > max) max = places;

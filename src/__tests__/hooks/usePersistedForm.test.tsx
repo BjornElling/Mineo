@@ -1,9 +1,11 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { act, render } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { usePersistedForm, type UsePersistedFormReturn } from '../../hooks/usePersistedForm';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
+import { undoRedoStore } from '../../stores/undoRedoStore';
 import { clearResolvedFieldErrorsCache } from '../../hooks/useFormPersistenceSelectors';
 import { stamdataSchema } from '../../schemas/formSchemas';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
@@ -11,6 +13,14 @@ import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 const initialValues = {
   journalnr: '',
 };
+
+const renderWithProviders = (ui: React.ReactNode) => render(
+  <MemoryRouter initialEntries={['/stamdata']}>
+    <FormPersistenceProvider>
+      {ui}
+    </FormPersistenceProvider>
+  </MemoryRouter>
+);
 
 describe('usePersistedForm', () => {
   beforeEach(() => {
@@ -23,6 +33,7 @@ describe('usePersistedForm', () => {
     });
     formPersistenceStore.getState().clearAllFieldErrors();
     formPersistenceStore.getState().__setMetaUnsafe({ hydrated: false, lastCommittedAt: undefined });
+    undoRedoStore.getState().clear();
   });
 
   it('bevarer setValues- og resetForm-referencer når committed values ændres i storen', () => {
@@ -41,11 +52,7 @@ describe('usePersistedForm', () => {
       return null;
     };
 
-    const { rerender } = render(
-      <FormPersistenceProvider>
-        <Capture />
-      </FormPersistenceProvider>
-    );
+    const { rerender } = renderWithProviders(<Capture />);
 
     const firstSetValues = captured.setValues;
     const firstResetForm = captured.resetForm;
@@ -57,9 +64,11 @@ describe('usePersistedForm', () => {
     });
 
     rerender(
-      <FormPersistenceProvider>
+      <MemoryRouter initialEntries={['/stamdata']}>
+        <FormPersistenceProvider>
         <Capture />
-      </FormPersistenceProvider>
+        </FormPersistenceProvider>
+      </MemoryRouter>
     );
 
     expect(captured.setValues).toBe(firstSetValues);
@@ -82,11 +91,7 @@ describe('usePersistedForm', () => {
       return null;
     };
 
-    render(
-      <FormPersistenceProvider>
-        <Capture />
-      </FormPersistenceProvider>
-    );
+    renderWithProviders(<Capture />);
 
     act(() => {
       captured.setValues!((prev) => ({ ...prev, journalnr: 'A' }));
@@ -122,11 +127,7 @@ describe('usePersistedForm', () => {
       return null;
     };
 
-    render(
-      <FormPersistenceProvider>
-        <Capture />
-      </FormPersistenceProvider>
-    );
+    renderWithProviders(<Capture />);
 
     // Første hydration bumper formVersion til 1
     expect(captured.formVersion).toBe(1);
@@ -176,11 +177,7 @@ describe('usePersistedForm', () => {
       return null;
     };
 
-    render(
-      <FormPersistenceProvider>
-        <Capture />
-      </FormPersistenceProvider>
-    );
+    renderWithProviders(<Capture />);
 
     // Første hydration (sker i useEffect i FormPersistenceProvider) skal bumpe formVersion,
     // så draft-state hooks (useRowDrafts) kan resynce fra de persisterede værdier.
@@ -204,5 +201,64 @@ describe('usePersistedForm', () => {
     });
 
     expect(captured.formVersion).toBe(3);
+  });
+
+  it('capture kun history for reelle commits efter schema-validering', () => {
+    const captured: {
+      setFieldValue: UsePersistedFormReturn<typeof initialValues>['setFieldValue'] | null;
+    } = {
+      setFieldValue: null,
+    };
+
+    const Capture = () => {
+      const form = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
+      captured.setFieldValue = form.setFieldValue;
+      return null;
+    };
+
+    renderWithProviders(<Capture />);
+
+    act(() => {
+      captured.setFieldValue!('journalnr', 'A');
+    });
+
+    expect(undoRedoStore.getState().past).toHaveLength(1);
+    expect(undoRedoStore.getState().past[0].sections.stamdata).toBeNull();
+
+    act(() => {
+      captured.setFieldValue!('journalnr', 'A');
+    });
+
+    expect(undoRedoStore.getState().past).toHaveLength(1);
+  });
+
+  it('bevarer history når sektionen nulstilles eksplicit', () => {
+    const captured: {
+      setFieldValue: UsePersistedFormReturn<typeof initialValues>['setFieldValue'] | null;
+      resetForm: UsePersistedFormReturn<typeof initialValues>['resetForm'] | null;
+    } = {
+      setFieldValue: null,
+      resetForm: null,
+    };
+
+    const Capture = () => {
+      const form = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
+      captured.setFieldValue = form.setFieldValue;
+      captured.resetForm = form.resetForm;
+      return null;
+    };
+
+    renderWithProviders(<Capture />);
+
+    act(() => {
+      captured.setFieldValue!('journalnr', 'A');
+    });
+    expect(undoRedoStore.getState().canUndo()).toBe(true);
+
+    act(() => {
+      captured.resetForm!();
+    });
+
+    expect(undoRedoStore.getState().canUndo()).toBe(true);
   });
 });

@@ -43,10 +43,7 @@ const formatKronerPerEnhed = (value: number | null | undefined, enhed: string): 
   return `${formatAsAmount(value, 0)} kr./${enhed}`;
 };
 
-/**
- * Formaterer procent til dansk format
- */
-const formatProcent = (value: number | null | undefined): string => {
+const formatOptionalPercent = (value: number | null | undefined): string => {
   if (value === null || value === undefined) return '';
   return formatPercent(value);
 };
@@ -308,15 +305,15 @@ const Satser = React.memo(() => {
         />
         <DataRow
           label="Reguleringsprocent for erhvervsevnetab"
-          value={satser ? formatProcent(satser.asl.reguleringProcentErhvervsevnetab) : ''}
+          value={satser ? formatOptionalPercent(satser.asl.reguleringProcentErhvervsevnetab) : ''}
         />
         <DataRow
           label="Reguleringsprocent for erhvervsevnetab (før 2024)"
-          value={satser ? formatProcent(satser.asl.reguleringProcentErhvervsevnetabFoer2024) : ''}
+          value={satser ? formatOptionalPercent(satser.asl.reguleringProcentErhvervsevnetabFoer2024) : ''}
         />
         <DataRow
           label="Reguleringsprocent for erhvervsevnetab (fra 2024)"
-          value={satser ? formatProcent(satser.asl.reguleringProcentErhvervsevnetabFra2024) : ''}
+          value={satser ? formatOptionalPercent(satser.asl.reguleringProcentErhvervsevnetabFra2024) : ''}
         />
       </ContentBox>
 
@@ -350,7 +347,7 @@ const Satser = React.memo(() => {
         />
         <DataRow
           label="Reguleringssats"
-          value={satser ? formatProcent(satser.diverse.reguleringssats) : ''}
+          value={satser ? formatOptionalPercent(satser.diverse.reguleringssats) : ''}
         />
       </ContentBox>
 
@@ -402,3 +399,4 @@ const Satser = React.memo(() => {
 Satser.displayName = 'Satser';
 
 export default Satser;
+

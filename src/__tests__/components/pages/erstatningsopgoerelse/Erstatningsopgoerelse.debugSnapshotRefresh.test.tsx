@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 
 import Erstatningsopgoerelse from '../../../../components/pages/Erstatningsopgoerelse';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
@@ -68,12 +69,14 @@ describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
     };
 
     render(
-      <AppSettingsProvider>
-        <FormPersistenceProvider>
-          <Probe />
-          <Erstatningsopgoerelse />
-        </FormPersistenceProvider>
-      </AppSettingsProvider>
+      <MemoryRouter initialEntries={['/erstatningsopgoerelse']}>
+        <AppSettingsProvider>
+          <FormPersistenceProvider>
+            <Probe />
+            <Erstatningsopgoerelse />
+          </FormPersistenceProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
     );
 
     await waitFor(() => {

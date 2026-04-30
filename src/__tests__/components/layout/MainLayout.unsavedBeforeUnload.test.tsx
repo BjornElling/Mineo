@@ -102,7 +102,6 @@ const createSnapshot = (stamdataSkadelidte: string): Record<StorageKey, unknown 
   aarsloen: undefined,
   satser: undefined,
   faellesAarsloen: undefined,
-  faellesPersondata: undefined,
   renteberegning: undefined,
   varigemen: undefined,
   forsoergertab: undefined,

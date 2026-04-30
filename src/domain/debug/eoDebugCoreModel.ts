@@ -14,7 +14,7 @@ import type {
 } from '../../schemas/formSchemas';
 import type { DebugDay, SvieSmerte } from './eoDebugTypes';
 import { getIsoRange, minDate, maxDate, tryParseIso } from './eoDebugDateUtils';
-import { subtractOneDay } from '../../types/branded';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/tafDaySets';
 
@@ -51,7 +51,7 @@ const extractDateSources = (
   const menStopDato =
     input.erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja' &&
     input.erstatningsopgoerelseValues.verserendeKlageMen === 'Nej'
-      ? subtractOneDay(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
+      ? getDayBeforeIso(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
       : undefined;
 
   // TAF-perioder (allerede ISO-format, men afgrænses af erstatningsperioden)
@@ -250,7 +250,7 @@ export function buildDebugCoreModel(input: DebugModelInput): readonly DebugDay[]
   const menStopDato =
     input.erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja' &&
     input.erstatningsopgoerelseValues.verserendeKlageMen === 'Nej'
-      ? subtractOneDay(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
+      ? getDayBeforeIso(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
       : undefined;
   const ssMap = buildSvieSmerte(ssPerioder, { erstatningsRange, menStopDato });
 

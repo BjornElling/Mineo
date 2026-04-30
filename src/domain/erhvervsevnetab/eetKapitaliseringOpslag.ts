@@ -6,9 +6,8 @@ import {
   type KapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { getFolkepensionAlder } from '../../data/folkepensionAlderRates';
-import type { ISODateString } from '../../types/branded';
-import { dateToISO, parseISODate } from '../../types/branded';
-import { addDays } from '../../utils/dateUtils';
+import { parseISODate, type ISODateString } from '../../types/branded';
+import { endOfYearIso, getDayBeforeIso, isoYear } from '../../utils/isoDateHelpers';
 import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
 
 export type AgeYearsMonths = Readonly<{
@@ -57,12 +56,11 @@ export const resolveKapitaliseringsbekendtgoerelseId = (
 
   const kandidat = sortedKapitaliseringer[kandidatIndex]!;
   const nextEntry = sortedKapitaliseringer[kandidatIndex + 1];
-  const nextDate = nextEntry ? parseISODate(nextEntry.kapitaliseringsdatoFra) : null;
-  const gyldigTil = nextDate
-    ? dateToISO(addDays(nextDate, -1))
+  const gyldigTil = nextEntry
+    ? getDayBeforeIso(nextEntry.kapitaliseringsdatoFra)
     // Antagelse: alle kapitaliseringer for samme skadesinterval udstedes inden for ét kalenderår.
     // Brydes antagelsen (to bekendtgørelser i samme interval over et årsskifte), vil fallback give forkert gyldigTil.
-    : (`${kandidat.kapitaliseringsdatoFra.slice(0, 4)}-12-31` as ISODateString);
+    : endOfYearIso(isoYear(kandidat.kapitaliseringsdatoFra));
   if (!gyldigTil) return null;
   return dato <= gyldigTil ? kandidat.id : null;
 };

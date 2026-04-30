@@ -4,6 +4,7 @@ import TableDropdown from '../../../components/inputs/table/TableDropdown';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
 import userEvent from '@testing-library/user-event';
+import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 
 const waitForMenuTransition = async () => {
   await act(async () => {
@@ -22,8 +23,7 @@ describe('TableDropdown GridCore integration', () => {
     const { unmount } = render(
       <GridCoreProvider
         value={{
-          focusedCell: null,
-          editingCell: null,
+          gridStateStore: createGridCoreTestStateStore(null, null),
           openEditing: vi.fn(),
           closeEditing: vi.fn(),
           registerEditor,
@@ -65,8 +65,7 @@ describe('TableDropdown GridCore integration', () => {
     const { rerender } = render(
       <GridCoreProvider
         value={{
-          focusedCell: null,
-          editingCell: null,
+          gridStateStore: createGridCoreTestStateStore(null, null),
           openEditing: vi.fn(),
           closeEditing: vi.fn(),
           registerEditor,
@@ -92,8 +91,7 @@ describe('TableDropdown GridCore integration', () => {
     rerender(
       <GridCoreProvider
         value={{
-          focusedCell: null,
-          editingCell: null,
+          gridStateStore: createGridCoreTestStateStore(null, null),
           openEditing: vi.fn(),
           closeEditing: vi.fn(),
           registerEditor,
@@ -123,8 +121,7 @@ describe('TableDropdown GridCore integration', () => {
     render(
       <GridCoreProvider
         value={{
-          focusedCell: null,
-          editingCell: null,
+          gridStateStore: createGridCoreTestStateStore(null, null),
           openEditing: vi.fn(),
           closeEditing: vi.fn(),
           registerEditor: vi.fn(),
@@ -162,8 +159,7 @@ describe('TableDropdown GridCore integration', () => {
     render(
       <GridCoreProvider
         value={{
-          focusedCell: null,
-          editingCell: null,
+          gridStateStore: createGridCoreTestStateStore(null, null),
           openEditing: vi.fn(),
           closeEditing: vi.fn(),
           registerEditor: vi.fn(),
@@ -196,8 +192,7 @@ describe('TableDropdown GridCore integration', () => {
     render(
       <GridCoreProvider
         value={{
-          focusedCell: null,
-          editingCell: null,
+          gridStateStore: createGridCoreTestStateStore(null, null),
           openEditing: vi.fn(),
           closeEditing: vi.fn(),
           registerEditor: vi.fn(),
@@ -234,8 +229,7 @@ describe('TableDropdown GridCore integration', () => {
     render(
       <GridCoreProvider
         value={{
-          focusedCell: null,
-          editingCell: null,
+          gridStateStore: createGridCoreTestStateStore(null, null),
           openEditing: vi.fn(),
           closeEditing: vi.fn(),
           registerEditor: vi.fn(),
@@ -273,8 +267,7 @@ describe('TableDropdown GridCore integration', () => {
     render(
       <GridCoreProvider
         value={{
-          focusedCell: null,
-          editingCell: null,
+          gridStateStore: createGridCoreTestStateStore(null, null),
           openEditing: vi.fn(),
           closeEditing: vi.fn(),
           registerEditor: vi.fn(),

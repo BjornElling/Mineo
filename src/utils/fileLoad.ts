@@ -76,33 +76,6 @@ const toLoadIssuePath = (sectionKey: StorageKey, path: UnknownPath): string => {
   return detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
 };
 
-const migrateLegacyFaellesPersondataIntoStamdata = (
-  rawData: Record<string, unknown>
-): Record<string, unknown> => {
-  const nextData = { ...rawData };
-  const rawLegacySection = nextData.faellesPersondata;
-  if (!isRecord(rawLegacySection)) {
-    return nextData;
-  }
-
-  const legacyFodselsdato = typeof rawLegacySection.skadelidteFodselsdato === 'string'
-    ? rawLegacySection.skadelidteFodselsdato
-    : undefined;
-  if (!legacyFodselsdato) {
-    return nextData;
-  }
-
-  const rawStamdata = isRecord(nextData.stamdata) ? nextData.stamdata : {};
-  if (typeof rawStamdata.skadelidteFodselsdato !== 'string' || rawStamdata.skadelidteFodselsdato.trim() === '') {
-    nextData.stamdata = {
-      ...rawStamdata,
-      skadelidteFodselsdato: legacyFodselsdato,
-    };
-  }
-
-  return nextData;
-};
-
 /**
  * Indlæser data fra krypteret .eo fil.
  *
@@ -119,7 +92,7 @@ const processDecryptedContainer = (args: {
   requestId?: string;
 }): LoadFileResult => {
   const { fileContainer, filename, source, fileHandle, requestId } = args;
-  const fileData = migrateLegacyFaellesPersondataIntoStamdata(fileContainer.data as Record<string, unknown>);
+  const fileData = fileContainer.data as Record<string, unknown>;
   const { fieldCount: expectedFieldCount } = fileContainer._metadata;
   const loadIssues: Array<{ path: string; reason: string }> = [];
 

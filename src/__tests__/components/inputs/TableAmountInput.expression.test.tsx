@@ -5,6 +5,7 @@ import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreCo
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
 import TableAmountInput from '../../../components/inputs/table/TableAmountInput';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 
 const gridCell: GridCellCoord = { rowId: 'row-1', colIndex: 0 };
 
@@ -26,8 +27,7 @@ const setup = (
 
     const gridValue = React.useMemo(
       () => ({
-        focusedCell: gridCell,
-        editingCell,
+        gridStateStore: createGridCoreTestStateStore(gridCell, editingCell),
         openEditing: vi.fn(),
         closeEditing: () => setEditingCell(null),
         registerEditor: (_cell: GridCellCoord, handle: GridCellEditorHandle) => {

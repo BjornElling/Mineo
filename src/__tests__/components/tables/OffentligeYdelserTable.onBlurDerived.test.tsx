@@ -5,12 +5,12 @@ import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import OffentligeYdelserTable from '../../../components/tables/OffentligeYdelserTable';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
-import { formatCurrency } from '../../../utils/formatUtils';
+import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 
 type Derived = { periodiseringLabel: string; antalDageDisplay: string; ydelsePerDagDisplay: string };
 
 const formatAntalDage = (value: number): string => {
-  return new Intl.NumberFormat('da-DK', { maximumFractionDigits: 0 }).format(value);
+  return formatAsAmount(value, 0);
 };
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });

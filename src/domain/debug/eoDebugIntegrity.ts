@@ -12,7 +12,7 @@
 import { IntegrityInvariant, type DebugDay, type IntegrityIssue, type DateRange } from './eoDebugTypes';
 import type { DebugModelInput } from './eoDebugCoreModel';
 import { getOverlap, getIsoRange, tryParseIso } from './eoDebugDateUtils';
-import { subtractOneDay } from '../../types/branded';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 
 /**
@@ -212,7 +212,7 @@ const checkSvieSmerteMismatch = (
   const menStopDato =
     input.erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja' &&
     input.erstatningsopgoerelseValues.verserendeKlageMen === 'Nej'
-      ? subtractOneDay(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
+      ? getDayBeforeIso(tryParseIso(input.erstatningsopgoerelseValues.menAfgoerelseDato))
       : undefined;
 
   for (const periode of ssPerioder) {

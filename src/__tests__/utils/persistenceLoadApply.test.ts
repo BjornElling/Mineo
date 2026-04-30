@@ -2,6 +2,9 @@ import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 import { persistenceSchemas } from '../../config/persistenceRegistry';
 import type { StorageKey } from '../../config/storageManifest';
 import { executePersistenceLoadApply } from '../../utils/persistenceLoadApply';
+import { formPersistenceStore } from '../../stores/formPersistenceStore';
+import { undoRedoStore, type HistoryFrameOrigin } from '../../stores/undoRedoStore';
+import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 
 const saveFileHandleToIndexedDBMock = vi.fn();
 const deleteFileHandleFromIndexedDBMock = vi.fn();
@@ -22,6 +25,7 @@ describe('executePersistenceLoadApply', () => {
   beforeEach(() => {
     sessionStorage.clear();
     vi.clearAllMocks();
+    undoRedoStore.getState().clear();
   });
 
   it('bygger et fuldt replace-snapshot og synkroniserer load-metadata', async () => {
@@ -111,5 +115,28 @@ describe('executePersistenceLoadApply', () => {
     })).rejects.toThrow('efterfølgende load-metadata kunne ikke synkroniseres');
 
     expect(replaceAllPersistedData).toHaveBeenCalledTimes(1);
+  });
+
+  it('rydder undo/redo-stakken efter succesfuld dataindlæsning', async () => {
+    const origin: HistoryFrameOrigin = {
+      route: '/satser',
+      tabKey: null,
+      sectionKey: 'satser',
+      fieldPath: 'aargang',
+      focusToken: null,
+    };
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    undoRedoStore.getState().capture(origin);
+
+    await executePersistenceLoadApply({
+      result: {
+        success: true,
+        snapshot: {},
+      },
+      replaceAllPersistedData: vi.fn(),
+    });
+
+    expect(undoRedoStore.getState().canUndo()).toBe(false);
+    expect(undoRedoStore.getState().canRedo()).toBe(false);
   });
 });

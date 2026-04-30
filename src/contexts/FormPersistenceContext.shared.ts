@@ -9,6 +9,7 @@ import type {
   FieldErrorSeverity,
   FieldErrorSource,
 } from '../types/fieldErrors';
+import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
 
 export type ReplaceAllPersistedData = (snapshot: Record<StorageKey, unknown | undefined>) => void;
 
@@ -17,7 +18,7 @@ export type FormPersistenceContextValue = {
   // Reaktive UI-callsites skal som udgangspunkt bruge selector-hooks i stedet.
   getPersistedData: <K extends StorageKey>(pageKey: K) => PersistedSectionMap[K] | null;
   // Autoritativ commit af én sektion. Returnerer false hvis persistence afvises eller fejler.
-  persistData: <K extends StorageKey>(pageKey: K, data: PersistedSectionMap[K]) => boolean;
+  persistData: <K extends StorageKey>(pageKey: K, data: PersistedSectionMap[K], options?: { undoOrigin?: HistoryFrameOrigin }) => boolean;
   clearPageData: (pageKey: StorageKey) => void;
   clearAllData: () => void;
   hasAnyData: () => boolean;

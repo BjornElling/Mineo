@@ -1,16 +1,5 @@
-import {
-  coerceToDanishDateString,
-  coerceToISODateString,
-  danishToISO,
-  dateToISO,
-  isDanishDateString,
-  isISODateString,
-  isoToDanish,
-  parseISODate,
-  subtractOneDay,
-  toDanishDateString,
-  toISODateString,
-} from '../../types/branded';
+import { coerceToDanishDateString, coerceToISODateString, danishToISO, dateToISO, isDanishDateString, isISODateString, isoToDanish, parseISODate, toDanishDateString, toISODateString } from '../../types/branded';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 
 describe('branded.ts - Dato roundtrip tests', () => {
   describe('Roundtrip: Danish ↔ ISO', () => {
@@ -129,9 +118,9 @@ describe('branded.ts - Dato roundtrip tests', () => {
       expect(feb1).toBe('2025-02-01');
     });
 
-    it('håndterer månedsslut med subtractOneDay', () => {
+    it('håndterer månedsslut med getDayBeforeIso', () => {
       const firstOfMonth = toISODateString('2025-03-01');
-      const lastOfPrevMonth = subtractOneDay(firstOfMonth);
+      const lastOfPrevMonth = getDayBeforeIso(firstOfMonth);
 
       expect(lastOfPrevMonth).toBe('2025-02-28');
     });

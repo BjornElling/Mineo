@@ -2,6 +2,7 @@ import { persistenceSchemas } from '../config/persistenceRegistry';
 import { type StorageKey } from '../config/storageManifest';
 import type { ReplaceAllPersistedData } from '../contexts/FormPersistenceContext.shared';
 import type { LoadFileResult } from '../types/fileOperations';
+import { undoRedoStore } from '../stores/undoRedoStore';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from './fileHandleStorage';
 import { persistLoadedFilenameMetadata } from './filePersistenceMetadata';
 import { clearPendingPwaFileOpenRequest, markPendingPwaFileOpenRequestHandled } from './pwaLaunchQueue';
@@ -28,6 +29,7 @@ export const executePersistenceLoadApply = async (args: {
 
   try {
     replaceAllPersistedData(fullSnapshot);
+    undoRedoStore.getState().clear();
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
     throw new Error(`Indlæsning mislykkedes. Ingen data blev anvendt.\n\n${message}`);

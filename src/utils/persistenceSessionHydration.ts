@@ -1,6 +1,5 @@
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import {
-  LEGACY_DOMAIN_STORAGE_KEYS,
   getStorageKey,
   type StorageKey,
 } from '../config/storageManifest';
@@ -24,7 +23,6 @@ type HydrationSummary = {
   versionMismatchedSections: StorageKey[];
   incompatibleSections: StorageKey[];
   strippedUnknownFieldCount: number;
-  migratedLegacyBirthdate: boolean;
 };
 
 const CURRENT_VERSION = PERSISTED_DATA_VERSION;
@@ -78,10 +76,6 @@ const createHydrationNotice = (summary: HydrationSummary): SessionHydrationNotic
     parts.push(`${formatCount(summary.corruptedSections.length, 'korrupt sektion', 'korrupte sektioner')} blev ryddet`);
   }
 
-  if (summary.migratedLegacyBirthdate) {
-    parts.push('Legacy-feltet foedselsdato blev flyttet til Stamdata');
-  }
-
   if (parts.length === 0) {
     return null;
   }
@@ -95,30 +89,6 @@ const createHydrationNotice = (summary: HydrationSummary): SessionHydrationNotic
   };
 };
 
-const migrateLegacyFaellesPersondataIntoStamdata = (
-  currentStamdata: PersistedSectionMap['stamdata'] | null,
-  legacyRaw: unknown
-): { stamdata: PersistedSectionMap['stamdata'] | null; didMigrate: boolean } => {
-  const legacySchema = persistenceSchemas.stamdata.pick({ skadelidteFodselsdato: true });
-  const parsedLegacy = legacySchema.safeParse(nullToUndefinedDeep(legacyRaw));
-  if (!parsedLegacy.success || !parsedLegacy.data.skadelidteFodselsdato) {
-    return { stamdata: currentStamdata, didMigrate: false };
-  }
-
-  const baseStamdata = currentStamdata ?? persistenceSchemas.stamdata.parse({});
-  if (baseStamdata.skadelidteFodselsdato) {
-    return { stamdata: currentStamdata, didMigrate: false };
-  }
-
-  return {
-    didMigrate: true,
-    stamdata: {
-      ...baseStamdata,
-      skadelidteFodselsdato: parsedLegacy.data.skadelidteFodselsdato,
-    },
-  };
-};
-
 export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
   const sections = createEmptySectionsSnapshot();
   const keysToRemove: string[] = [];
@@ -127,7 +97,6 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
     versionMismatchedSections: [],
     incompatibleSections: [],
     strippedUnknownFieldCount: 0,
-    migratedLegacyBirthdate: false,
   };
 
   for (const pageKey of Object.keys(persistenceSchemas) as StorageKey[]) {
@@ -170,23 +139,6 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
       summary.versionMismatchedSections.push(pageKey);
     }
     summary.strippedUnknownFieldCount += stripped.unknownPaths.length;
-  }
-
-  const legacyStorageKey = LEGACY_DOMAIN_STORAGE_KEYS.faellesPersondata;
-  const legacyRaw = readSessionStorageValue(legacyStorageKey);
-  if (legacyRaw) {
-    keysToRemove.push(legacyStorageKey);
-
-    try {
-      const parsedLegacy = JSON.parse(legacyRaw);
-      if (isPersistedData(parsedLegacy)) {
-        const migrated = migrateLegacyFaellesPersondataIntoStamdata(sections.stamdata, parsedLegacy.data);
-        sections.stamdata = migrated.stamdata;
-        summary.migratedLegacyBirthdate = migrated.didMigrate;
-      }
-    } catch {
-      // Korrupt legacy-data ryddes altid; den maa ikke blokere startup.
-    }
   }
 
   return {

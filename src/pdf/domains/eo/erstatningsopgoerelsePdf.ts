@@ -105,7 +105,6 @@ const formatPctFromInput = (value: number | undefined): string => {
   return formatPercentUtil(value ?? 0);
 };
 
-const isZeroPct = (value: number | undefined): boolean => isEffectivelyZero(value);
 const capitalizeFirstChar = (value: string): string => {
   if (value.length === 0) return value;
   return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
@@ -541,7 +540,7 @@ export const generateErstatningsopgoerelsePdf = (
       writeLabelValueLine,
       formatDateLong,
       formatPctFromInput,
-      isZeroPct,
+      isZeroPct: isEffectivelyZero,
       getLoenindkomstTableHeaders,
       resolvePeriodColumns,
       hasNonZeroLoenAmount,
@@ -671,3 +670,4 @@ export const generateErstatningsopgoerelsePdf = (
   // Download PDF
   writer.save(resolvePdfFileName(titel, visUdkastStempel, model.brevhoved?.journalnr));
 };
+

@@ -3,12 +3,12 @@ import { flushSync } from 'react-dom';
 import { areSameGridCellOrBothNull, gridCellKey } from './gridCore/gridCoreUtils';
 import type { FocusPlan, GridCellCoord, GridCellEditorHandle, GridCoreController, GridCoreStateStore, GridOpenEditSource } from './gridCore/gridCoreTypes';
 import { attachGridCoreToTable, detachGridCoreFromTable } from './gridCore/gridCoreRegistry';
-import type { GridCoreContextValue, GridCoreTableKind } from './gridCore/gridCoreContext.shared';
+import type { GridCoreProviderValue, GridCoreTableKind } from './gridCore/gridCoreContext.shared';
 
 type UseGridCoreControllerResult = Readonly<{
   internalTableRef: React.RefObject<HTMLTableElement | null>;
   controller: GridCoreController;
-  contextValue: GridCoreContextValue;
+  contextValue: GridCoreProviderValue;
 }>;
 
 type UseGridCoreControllerOptions = Readonly<{
@@ -181,7 +181,7 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
     };
   }, [notifyStoreChange, scheduleCellFocus]);
 
-  const contextValue = React.useMemo<GridCoreContextValue>(() => {
+  const contextValue = React.useMemo<GridCoreProviderValue>(() => {
     return {
       gridStateStore,
       tableKind,

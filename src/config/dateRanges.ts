@@ -1,3 +1,4 @@
+import { endOfYearIso, isoYear, maxISO } from '../utils/isoDateHelpers';
 /**
  * Central konfiguration af dato-afgrænsninger for Mineo
  *
@@ -6,7 +7,7 @@
  */
 
 import type { ISODateString } from '../types/branded';
-import { maxIso, toISODateString } from '../types/branded';
+import { toISODateString } from '../types/branded';
 import { getTodayLocalISO } from '../utils/dateUtils';
 import { varigeMenPrGradYearBounds, svieSmerteMaxYearBounds, eetYearBounds, foersoergertabYearBounds } from '../data/lovbestemteRates';
 import { MIN_INTEREST_DATE } from '../data/interestRates';
@@ -104,30 +105,30 @@ export const TODAY: ISODateString = getTodayLocalISO();
 // ============================================================================
 
 // Minimums-år — udledt af DATE_2005_01_01 (systemets nedre datogrænse)
-export const MIN_YEAR: number = Number(DATE_2005_01_01.slice(0, 4));
+export const MIN_YEAR: number = isoYear(DATE_2005_01_01);
 
 // Aktuelt år (udledt af dags dato)
-export const CURRENT_YEAR: number = Number(TODAY.slice(0, 4));
+export const CURRENT_YEAR: number = isoYear(TODAY);
 
 // 31. december i aktuelt år (udledt af dags dato)
-const DATE_CURRENT_YEAR_END = iso(`${CURRENT_YEAR}-12-31`);
+const DATE_CURRENT_YEAR_END = endOfYearIso(CURRENT_YEAR);
 
 // 31. december 1 år frem fra aktuelt år (udledt af dags dato)
-const DATE_PLUS_1_YEAR_END = iso(`${CURRENT_YEAR + 1}-12-31`);
+const DATE_PLUS_1_YEAR_END = endOfYearIso(CURRENT_YEAR + 1);
 
 // 31. december 5 år frem fra aktuelt år (udledt af dags dato)
-const DATE_PLUS_5_YEARS_END = iso(`${CURRENT_YEAR + 5}-12-31`);
+const DATE_PLUS_5_YEARS_END = endOfYearIso(CURRENT_YEAR + 5);
 
 // Seneste år med mén-per-grad-sats — udledt af varigeMenPrGrad i lovbestemteRates.ts
-const DATE_VARIGEMEN_MAX = iso(`${varigeMenPrGradYearBounds.maxYear}-12-31`);
+const DATE_VARIGEMEN_MAX = endOfYearIso(varigeMenPrGradYearBounds.maxYear);
 
 // Seneste år med komplet EET-datadækning — sats-intersection capped af
 // kapitaliseringsbekendtgørelses-oversigtens seneste fælles gyldighedsår.
-const DATE_EET_MAX = iso(`${eetYearBounds.maxYear}-12-31`);
+const DATE_EET_MAX = endOfYearIso(eetYearBounds.maxYear);
 
 // Seneste år med komplet forsørgertab-datadækning — inkluderer foersoergertabEalMin
 // ud over EET-satserne, capped af kapitaliseringsbekendtgørelsesoversigtens seneste år.
-const DATE_FORSOERGERTAB_MAX = iso(`${foersoergertabYearBounds.maxYear}-12-31`);
+const DATE_FORSOERGERTAB_MAX = endOfYearIso(foersoergertabYearBounds.maxYear);
 
 // Tidligste år med svie/smerte-sats til UI-årsvælgeren i EO.
 // Autoritativ kilde er svieSmerteMaxYearBounds (samme minYear som svieSmertePrDag i aktuelle datasæt).
@@ -168,14 +169,14 @@ export const computeSkadedatoMinRule = (args: Readonly<{
 
   if (!args.erErhvervssygdom) {
     return {
-      minDate: maxIso(args.skadedatoISO, args.fallbackMin),
+      minDate: maxISO(args.skadedatoISO, args.fallbackMin),
       minBoundKind: 'skadedato',
       minBoundReferenceISO: args.skadedatoISO,
     };
   }
 
   const minus5Years = subtractYearsISO(args.skadedatoISO, 5);
-  const bounded = maxIso(maxIso(minus5Years, DATE_2005_01_01), args.fallbackMin);
+  const bounded = maxISO(maxISO(minus5Years, DATE_2005_01_01), args.fallbackMin);
   return {
     minDate: bounded,
     minBoundKind: 'anmeldedatoMinus5Aar',
@@ -441,7 +442,6 @@ export const dateRanges_offentligeYdelser: DateRanges_OffentligeYdelser = {
 // VARIGE MÉN-SIDEN
 // ============================================================================
 // Dags dato (beregnes dynamisk, valideret som ISODateString)
-
 
 export interface DateRanges_VarigeMen {
   readonly beregningsdato: DynamicMinDateRange;

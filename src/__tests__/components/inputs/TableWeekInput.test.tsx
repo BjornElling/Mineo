@@ -4,11 +4,11 @@ import userEvent from '@testing-library/user-event';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
+import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 
 const createGridValue = (gridCell: GridCellCoord, editingCell: GridCellCoord | null) => {
   return {
-    focusedCell: gridCell,
-    editingCell,
+    gridStateStore: createGridCoreTestStateStore(gridCell, editingCell),
     openEditing: vi.fn(),
     closeEditing: vi.fn(),
     registerEditor: vi.fn(),

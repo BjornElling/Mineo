@@ -1,8 +1,9 @@
 import type { TafPeriodeRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import { isISODateString, isoToDanish, subtractOneDay } from '../../../types/branded';
+import { isISODateString, isoToDanish } from '../../../types/branded';
 import { minISO, maxISO, type IsoRange as CanonicalIsoRange } from '../../../utils/isoDateHelpers';
 import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../helpers/eoConstants';
+import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 
 export type { IsoRange } from '../../../utils/isoDateHelpers';
 
@@ -59,10 +60,10 @@ export const resolveMidlertidigEetDatoHvisAktiv = (values: TafConstraintSource):
 
 const resolveEetMaxBounds = (values: TafConstraintSource): TafConstraintBounds => {
   const endeligEetDato = resolveEndeligEetDato(values);
-  const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(endeligEetDato);
+  const endeligEetMax = values.verserendeKlageEet === 'Ja' ? undefined : getDayBeforeIso(endeligEetDato);
 
   const midlertidigEetDato = resolveMidlertidigEetDatoHvisAktiv(values);
-  const midlertidigEetMax = values.verserendeKlageEet === 'Ja' ? undefined : subtractOneDay(midlertidigEetDato);
+  const midlertidigEetMax = values.verserendeKlageEet === 'Ja' ? undefined : getDayBeforeIso(midlertidigEetDato);
 
   return { maxEnd: minDefined(endeligEetMax, midlertidigEetMax) };
 };
@@ -110,7 +111,7 @@ export const buildTafCutoffErrorMessage = (args: Readonly<{
  * Engineen clamper stadig til den beregnede maxEnd for at producere korrekte resultater.
  */
 export const resolveTafFejlgivendeBounds = (values: TafConstraintSource): TafConstraintBounds => {
-  const differencekravMax = subtractOneDay(values.differencekravDato);
+  const differencekravMax = getDayBeforeIso(values.differencekravDato);
   const eetBounds = resolveEetMaxBounds(values);
 
   const maxEnd = minDefined(differencekravMax, eetBounds.maxEnd);
@@ -141,7 +142,7 @@ export const resolveTafConstraintBounds = (
   const minStart = source.vedroererPeriodeFra;
   const erstatningsTil = source.vedroererPeriodeTil;
 
-  const differencekravMax = subtractOneDay(source.differencekravDato);
+  const differencekravMax = getDayBeforeIso(source.differencekravDato);
   const eetBounds = resolveEetMaxBounds(source);
 
   const maxEnd = minDefined(erstatningsTil, differencekravMax, eetBounds.maxEnd);

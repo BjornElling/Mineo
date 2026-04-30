@@ -23,10 +23,6 @@ export const STORAGE_KEYS = {
   erhvervsevnetab: 'mineo_erhvervsevnetab',
 } as const;
 
-export const LEGACY_DOMAIN_STORAGE_KEYS = {
-  faellesPersondata: 'mineo_faellesPersondata',
-} as const;
-
 export const UI_STORAGE_KEYS = {
   lastSavedFilename: 'mineo_ui_lastSavedFilename',
   lastSavedFilenameBasis: 'mineo_ui_lastSavedFilenameBasis',
@@ -45,13 +41,11 @@ export const createActiveTabStorageKey = (pageId: string): string => `${UI_STORA
 
 const STORAGE_KEY_SET: ReadonlySet<string> = new Set([
   ...Object.values(STORAGE_KEYS),
-  ...Object.values(LEGACY_DOMAIN_STORAGE_KEYS),
   ...Object.values(UI_STORAGE_KEYS),
 ]);
 
 const DOMAIN_STORAGE_KEY_SET: ReadonlySet<string> = new Set([
   ...Object.values(STORAGE_KEYS),
-  ...Object.values(LEGACY_DOMAIN_STORAGE_KEYS),
 ]);
 
 /**

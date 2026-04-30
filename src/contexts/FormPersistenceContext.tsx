@@ -24,6 +24,7 @@ import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
+import { undoRedoStore, type HistoryFrameOrigin } from '../stores/undoRedoStore';
 import { buildSessionStorageHydrationPlan } from '../utils/persistenceSessionHydration';
 import {
   readSessionStorageValue,
@@ -175,7 +176,11 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
    *
    * Wrapper data i PersistedData struktur med version og timestamp.
    */
-  const persistData = React.useCallback(<K extends StorageKey>(pageKey: K, data: PersistedSectionMap[K]): boolean => {
+  const persistData = React.useCallback(<K extends StorageKey>(
+    pageKey: K,
+    data: PersistedSectionMap[K],
+    options?: { undoOrigin?: HistoryFrameOrigin }
+  ): boolean => {
     try {
       const storageKey = getStorageKey(pageKey);
 
@@ -228,6 +233,9 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       };
 
       writeSessionStorageValue(storageKey, JSON.stringify(persistedData));
+      if (options?.undoOrigin) {
+        undoRedoStore.getState().capture(options.undoOrigin);
+      }
       formPersistenceStore.getState().commitSection(pageKey, postSerializeValidated.data as PersistedSectionMap[K], {
         schemaFingerprint: CURRENT_VERSION,
       });
@@ -312,6 +320,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         nextCache,
         { hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() }
       );
+      undoRedoStore.getState().clear();
     } catch (error) {
       // Defensive strategy: always execute full rollback/restore sequence,
       // even if failure happened before any in-memory mutation.
@@ -366,6 +375,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         removeSessionStorageValue(key);
       });
       formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: CURRENT_VERSION, lastCommittedAt: Date.now() });
+      undoRedoStore.getState().clear();
     } catch (error) {
       console.error('[Persistence] Fejl ved sletning af alle data:', error);
     }

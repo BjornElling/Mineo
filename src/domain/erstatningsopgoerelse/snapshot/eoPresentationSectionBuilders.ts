@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues, OevrigeKravRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import { isISODateString, isoToDanish, subtractOneDay } from '../../../types/branded';
+import { isISODateString, isoToDanish } from '../../../types/branded';
 import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../engines/periodiseringsMotor';
 import { isoDateToDate } from '../../dates/isoDate';
 import { isTafRowEmpty } from '../helpers/rowEmpty';
@@ -16,6 +16,7 @@ import type { TafNettoBeregningResult } from '../engines/tafNettoBeregning';
 import { buildTafFerieFravaerSummary } from '../engines/tafDaySets';
 import { formatCountWithUnit } from '../../../utils/formatUtils';
 import { TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
+import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 
 const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
@@ -102,7 +103,7 @@ export const buildSvieSmerteModel = (
   }
 
   if (varigeMenAfgorelse === 'Ja' && verserendeKlageMen === 'Nej' && menDato && isISODateString(menDato)) {
-    const ophoerDato = subtractOneDay(menDato);
+    const ophoerDato = getDayBeforeIso(menDato);
     if (ophoerDato && perioderCoverDate(constrained, ophoerDato)) {
       statusLinjer.push('Afgørelsen bringer retten til svie- og smertegodtgørelse til ophør.');
     }
@@ -242,7 +243,7 @@ export const buildTabtArbejdsfortjenesteModel = (
 
   const harTafDagenFoer = (dato: ISODateString | undefined): boolean => {
     if (!dato) return false;
-    const dagenFoer = subtractOneDay(dato);
+    const dagenFoer = getDayBeforeIso(dato);
     return Boolean(dagenFoer && perioderCoverDate(tafRangesAsDates, dagenFoer));
   };
 

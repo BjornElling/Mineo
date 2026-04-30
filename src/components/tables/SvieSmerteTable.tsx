@@ -8,10 +8,11 @@ import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse } from '../..
 import type { SvieSmertePeriodeRow, Tilstand } from '../../schemas/formSchemas';
 import { tilstandEnum } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { isoToDanish, subtractOneDay } from '../../types/branded';
+import { isoToDanish } from '../../types/branded';
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
 import type { SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 
 type SvieSmerteDerived = Readonly<{
   hasRangeError: boolean;
@@ -99,7 +100,7 @@ const SvieSmerteTable = React.memo(
 
             // Mén-afgørelsesdato: til-dato skal være < menAfgoerelseDato (ikke <=)
             // Derfor trækker vi én dag fra menAfgoerelseDato
-            const menAfgoerelseDatoMinus1 = menAfgoerelseDato ? subtractOneDay(menAfgoerelseDato) : undefined;
+            const menAfgoerelseDatoMinus1 = menAfgoerelseDato ? getDayBeforeIso(menAfgoerelseDato) : undefined;
             const shouldApplyMenCutoff = !verserendeKlageMen && menAfgoerelseDato !== undefined;
             const fraAfterVarigeMen = shouldApplyMenCutoff && fraISO !== undefined && fraISO >= menAfgoerelseDato;
             const tilAfterVarigeMen = shouldApplyMenCutoff && tilISO !== undefined && tilISO >= menAfgoerelseDato;

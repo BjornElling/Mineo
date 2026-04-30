@@ -1,6 +1,7 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { ISODateString } from '../../types/branded';
-import { subtractOneDay } from '../../types/branded';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+
 import { resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 
 type StamdataValues = PersistedSectionMap['stamdata'];
@@ -39,7 +40,7 @@ export const buildSvieSmerteContext = (
   const erErhvervssygdom = stamdataValues.skadestype === 'Erhvervssygdom';
   const menAfgoerelseDatoForTabel =
     erstatningsopgoerelseValues.varigeMenAfgorelse === 'Ja'
-      ? subtractOneDay(erstatningsopgoerelseValues.menAfgoerelseDato)
+      ? getDayBeforeIso(erstatningsopgoerelseValues.menAfgoerelseDato)
       : undefined;
   const verserendeKlageMen = erstatningsopgoerelseValues.verserendeKlageMen === 'Ja';
 

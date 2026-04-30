@@ -21,6 +21,33 @@ export type UsePersistedActiveTabReturn<T extends string> = {
   readonly isAllowedTab: (value: unknown) => value is T;
 };
 
+const activeTabListeners = new Map<string, Set<(next: string) => void>>();
+
+const notifyActiveTabListeners = (pageId: string, next: string): void => {
+  const listeners = activeTabListeners.get(pageId);
+  if (!listeners) return;
+  for (const listener of listeners) {
+    listener(next);
+  }
+};
+
+const subscribeToActiveTab = (pageId: string, listener: (next: string) => void): (() => void) => {
+  const listeners = activeTabListeners.get(pageId) ?? new Set<(next: string) => void>();
+  listeners.add(listener);
+  activeTabListeners.set(pageId, listeners);
+  return () => {
+    listeners.delete(listener);
+    if (listeners.size === 0) {
+      activeTabListeners.delete(pageId);
+    }
+  };
+};
+
+export const setActiveTabForPage = (pageId: string, tabKey: string): void => {
+  writeOptionalSessionStorageValue(createActiveTabStorageKey(pageId), tabKey);
+  notifyActiveTabListeners(pageId, tabKey);
+};
+
 export const usePersistedActiveTab = <T extends string>(
   options: UsePersistedActiveTabOptions<T>
 ): UsePersistedActiveTabReturn<T> => {
@@ -47,14 +74,24 @@ export const usePersistedActiveTab = <T extends string>(
     writeOptionalSessionStorageValue(uiKey, activeTab);
   }, [uiKey, activeTab]);
 
+  React.useEffect(() => {
+    return subscribeToActiveTab(pageId, (next) => {
+      if (isAllowedTab(next)) {
+        setActiveTabState(next);
+      }
+    });
+  }, [isAllowedTab, pageId]);
+
   const setActiveTab = React.useCallback(
     (next: T) => {
       if (!allowedSet.has(next)) {
         return;
       }
       setActiveTabState(next);
+      writeOptionalSessionStorageValue(uiKey, next);
+      notifyActiveTabListeners(pageId, next);
     },
-    [allowedSet]
+    [allowedSet, pageId, uiKey]
   );
 
   return { activeTab, setActiveTab, isAllowedTab };

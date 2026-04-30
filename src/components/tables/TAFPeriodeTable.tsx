@@ -7,7 +7,9 @@ import { useTableSort } from './useTableSort';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import type { TafPeriodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { subtractOneDay } from '../../types/branded';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+import { formatAsAmountTrimmed } from '../../utils/formatUtils';
+
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
 import type { TafDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { calculateFerieHverdageMinusSHDage } from '../../domain/erstatningsopgoerelse/engines/ferieCalculations';
@@ -111,9 +113,9 @@ const TAFPeriodeTable = React.memo(
             // - differencekravDato-1 (altid anvendt)
             // - endeligEETBeregnetDato-1 (hvis ikke verserende klage)
             // - midlertidigEETBeregnetDato-1 (hvis ikke verserende klage; kun sat ved skadedato < 2011-06-16)
-            const endeligEETMinus1 = endeligEETBeregnetDato ? subtractOneDay(endeligEETBeregnetDato) : undefined;
-            const midlertidigEETMinus1 = midlertidigEETBeregnetDato ? subtractOneDay(midlertidigEETBeregnetDato) : undefined;
-            const differencekravMinus1 = differencekravDato ? subtractOneDay(differencekravDato) : undefined;
+            const endeligEETMinus1 = endeligEETBeregnetDato ? getDayBeforeIso(endeligEETBeregnetDato) : undefined;
+            const midlertidigEETMinus1 = midlertidigEETBeregnetDato ? getDayBeforeIso(midlertidigEETBeregnetDato) : undefined;
+            const differencekravMinus1 = differencekravDato ? getDayBeforeIso(differencekravDato) : undefined;
 
             let combinedExtraMaxDate: ISODateString | undefined = undefined;
 
@@ -263,11 +265,7 @@ const TAFPeriodeTable = React.memo(
                 </TableCell>
                 <TableCell>
                   <Typography variant="body1">
-                    {beregnetVaerdi !== null
-                      ? derivedColumnHeader === 'TAF-måneder'
-                        ? String(beregnetVaerdi).replace('.', ',')
-                        : String(beregnetVaerdi)
-                      : ''}
+                    {beregnetVaerdi !== null ? formatAsAmountTrimmed(beregnetVaerdi, 2) : ''}
                   </Typography>
                 </TableCell>
               </TableRow>

@@ -41,7 +41,7 @@ App-settings er ikke omfattet; se `app-settings.md`.
 1. Load skal være atomisk, medmindre brugeren eksplicit vælger delvis indlæsning efter preflight.
 2. Ingen in-memory state må muteres før preflight-beslutningen er truffet.
 3. Ved apply-fejl skal eksisterende in-memory state bevares uændret.
-4. Ældre filer skal kunne indlæses så langt det er sikkert muligt:
+4. Filer gemt fra schema-version `1.0` og frem skal kunne indlæses så langt det er sikkert muligt:
    - ukendte/udgåede felter strippes og rapporteres
    - manglende nyere felter må ikke alene få hele sektionen til at fejle
 5. Ved schema-udvikling skal manglende felter derfor være `optional()` eller have sikker default.
@@ -79,19 +79,20 @@ Den kanoniske load-rækkefølge er:
 
 1. læs/dekryptér fil eller storage
 2. strip ukendte felter/sektioner efter schema
-3. kør eventuelle sikre legacy-migrationer
-4. valider sektioner/snapshot
-5. vis preflight og afvent brugerbeslutning
-6. skriv/replace autoritativt snapshot
-7. ryd runtime-fejl og trig resync
+3. valider sektioner/snapshot
+4. vis preflight og afvent brugerbeslutning
+5. skriv/replace autoritativt snapshot
+6. ryd runtime-fejl og trig resync
 
 Ingen sidekomponent eller almindelig page-hook må omgå denne rækkefølge.
 
 ---
 
-## 7. Legacy migration
+## 7. Schema-evolution fra version 1.0
 
-Når persisted struktur ændres, skal migrering ske efter følgende prioritet:
+`PERSISTED_DATA_VERSION = '1.0'` er kompatibilitetsbaseline for `.eo`-filer.
+
+Fremadrettede ændringer af persisted struktur skal ske efter følgende prioritet:
 
 1. Bevar brugerdata hvis den gamle betydning sikkert kan mappes til ny struktur.
 2. Strip ukendte eller fjernede felter, når sikker mapping ikke findes.
@@ -101,9 +102,10 @@ Når persisted struktur ændres, skal migrering ske efter følgende prioritet:
    - kompatible sektioner bevares
    - ukendte/fjernede felter strippes
    - inkompatible eller korrupte sektioner ryddes fail-closed
-5. Kendte, sikre legacy-mappinger (fx feltflytninger mellem sektioner) må udføres før validering, når mappingen er entydig og testet.
+5. Hvis en fremtidig schema-ændring kræver mapping fra version `1.0` eller nyere, skal mappingen være eksplicit, entydig og testet.
 
-Det er tilladt at bryde bagudkompatibilitet for intern runtime-struktur, men `.eo`-load skal stadig bevare mest muligt sikkert brugerinput.
+Der holdes ikke runtime-kompatibilitetskode for filer eller interne modeller fra før schema-version `1.0`.
+Det er tilladt at bryde bagudkompatibilitet for intern runtime-struktur, men `.eo`-load skal stadig bevare mest muligt sikkert brugerinput fra version `1.0` og frem.
 
 ---
 

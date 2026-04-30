@@ -1,3 +1,4 @@
+import { maxISO, minISO } from '../../utils/isoDateHelpers';
 import type {
   FaellesAarsloenValues,
   ForsoergertabValues,
@@ -6,7 +7,7 @@ import type {
 } from '../../schemas/formSchemas';
 import { dateRanges_forsoergertab } from '../../config/dateRanges';
 import type { FormFieldError } from '../../types/fieldErrors';
-import { coerceToISODateString, maxIso, minIso, type ISODateString } from '../../types/branded';
+import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { computeForsoergertabCalculation } from './forsoergertabCalculation';
 import { PRE_2015_CUTOFF } from './forsoergertabConstants';
 
@@ -108,12 +109,12 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
   const skadedatoMin = coerceToISODateString(stamdata?.skadedato) ?? dateRanges_forsoergertab.virkningsdato.fallbackMin;
   const beregningsdatoMin = (() => {
     const virkningsdato = coerceToISODateString(values.virkningsdato);
-    return virkningsdato ? maxIso(skadedatoMin, virkningsdato) : skadedatoMin;
+    return virkningsdato ? maxISO(skadedatoMin, virkningsdato) : skadedatoMin;
   })();
   const virkningsdatoMax = (() => {
     const beregningsdato = coerceToISODateString(values.beregningsdato);
     const maxDato = dateRanges_forsoergertab.virkningsdato.max;
-    return beregningsdato ? minIso(maxDato, beregningsdato) : maxDato;
+    return beregningsdato ? minISO(maxDato, beregningsdato) : maxDato;
   })();
 
   const calculation = computeForsoergertabCalculation({

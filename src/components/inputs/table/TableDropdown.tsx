@@ -295,6 +295,7 @@ const TableDropdown = React.memo(
     );
 
     const a11yErrorId = React.useId();
+    const undoFocusToken = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const showError = externalErrorText !== '';
     const looseDropdownSx: SxProps<Theme> = {
@@ -479,6 +480,8 @@ const TableDropdown = React.memo(
               variant="standard"
               inputProps={{
                 tabIndex: readOnly ? -1 : undefined,
+                'data-mineo-undo-focus-token': undoFocusToken,
+                'data-mineo-undo-field-path': gridCellKey ?? undefined,
                 'aria-describedby': showError ? a11yErrorId : undefined,
               }}
               sx={{

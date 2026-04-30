@@ -1,5 +1,6 @@
 import type { ISODateString } from '../../../types/branded';
-import { subtractOneDay } from '../../../types/branded';
+import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
+
 import { minISO, maxISO } from '../../../utils/isoDateHelpers';
 import type { IsoRange } from './tafPeriodConstraints';
 
@@ -32,7 +33,7 @@ export const resolveSvieSmerteFejlgivendeBounds = (
   const shouldApplyMenCutoff =
     values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej';
   const menAfgoerelseDato = shouldApplyMenCutoff ? values.menAfgoerelseDato : undefined;
-  const maxEnd = subtractOneDay(menAfgoerelseDato);
+  const maxEnd = getDayBeforeIso(menAfgoerelseDato);
   return { maxEnd };
 };
 

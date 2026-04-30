@@ -1,7 +1,8 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../schemas/formSchemas';
 import type { FieldErrorsForSection } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
-import { subtractOneDay } from '../../types/branded';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+
 import { formatAsAmountTrimmed, formatCurrency } from '../../utils/formatUtils';
 import { parseDanishNumberString as parseCanonicalDanishNumberString } from '../../utils/numberParsing';
 import { debugTabelColumnId } from './eoDebugLoenTypes';
@@ -73,7 +74,7 @@ export const buildSvieSmerteContext = (
 ): SvieSmerteContext => {
   const erErhvervssygdom = stamdataValues.skadestype === 'Erhvervssygdom';
   const menAfgoerelseDatoForTabel =
-    eoValues.varigeMenAfgorelse === 'Ja' ? subtractOneDay(eoValues.menAfgoerelseDato) : undefined;
+    eoValues.varigeMenAfgorelse === 'Ja' ? getDayBeforeIso(eoValues.menAfgoerelseDato) : undefined;
   const verserendeKlageMen = eoValues.verserendeKlageMen === 'Ja';
 
   return {
@@ -286,7 +287,6 @@ const formatOptionalAmount = (value: number | null): string =>
   value === null || value === 0 ? '-' : formatCurrency(value);
 
 const parseDanishNumberString = (value: string): number | null => parseCanonicalDanishNumberString(value) ?? null;
-
 
 const buildRangeMask = (dates: readonly ISODateString[], ranges: readonly IsoRange[]): readonly boolean[] => {
   if (ranges.length === 0) return [];

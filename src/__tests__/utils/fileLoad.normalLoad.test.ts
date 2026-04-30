@@ -187,7 +187,7 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(result.preflightWarning?.issues.some((issue) => issue.path === 'stamdata.uventetFelt')).toBe(true);
   });
 
-  it('migrerer legacy faellesPersondata.skadelidteFodselsdato ind i stamdata før apply', async () => {
+  it('rapporterer faellesPersondata som ukendt sektion uden at migrere data', async () => {
     const content = await encryptLoadContainer({
       stamdata: {
         journalnr: 'J-001',
@@ -201,7 +201,7 @@ describe('fileLoad – normalLoadFlow', () => {
         skadelidteFodselsdato: '1990-01-01',
       },
     });
-    const file = new File([content], 'legacy-fodselsdato.eo', { type: 'application/octet-stream' });
+    const file = new File([content], 'ukendt-fodselsdato-sektion.eo', { type: 'application/octet-stream' });
     selectFileMock.mockResolvedValueOnce(file);
     readFileMock.mockResolvedValueOnce(content);
 
@@ -209,7 +209,7 @@ describe('fileLoad – normalLoadFlow', () => {
 
     expect(result.success).toBe(true);
     if (!result.success) return;
-    expect((result.snapshot?.stamdata as Record<string, unknown>)?.skadelidteFodselsdato).toBe('1990-01-01');
+    expect((result.snapshot?.stamdata as Record<string, unknown>)?.skadelidteFodselsdato).toBeUndefined();
     expect(result.preflightWarning?.issues.some((issue) => issue.path === 'faellesPersondata')).toBe(true);
   });
 

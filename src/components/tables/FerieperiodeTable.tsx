@@ -5,7 +5,8 @@ import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTabl
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { subtractOneDay } from '../../types/branded';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
 import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { useTableSort } from './useTableSort';
@@ -89,8 +90,8 @@ const FerieperiodeTable = React.memo(
             const tilISO = committed?.til;
             const antalFeriedage = feriedageById[row.id] ?? null;
 
-            const endeligEETMinus1 = endeligEETBeregnetDato ? subtractOneDay(endeligEETBeregnetDato) : undefined;
-            const differencekravMinus1 = differencekravDato ? subtractOneDay(differencekravDato) : undefined;
+            const endeligEETMinus1 = endeligEETBeregnetDato ? getDayBeforeIso(endeligEETBeregnetDato) : undefined;
+            const differencekravMinus1 = differencekravDato ? getDayBeforeIso(differencekravDato) : undefined;
 
             let combinedExtraMaxDate: ISODateString | undefined = undefined;
             if (differencekravMinus1) combinedExtraMaxDate = differencekravMinus1;

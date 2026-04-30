@@ -31,6 +31,7 @@ import {
 import { useDevtoolsMonitoring } from '../../hooks/useDevtoolsMonitoring';
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
+import { useUndoRedo } from '../../hooks/useUndoRedo';
 
 /**
  * Hovedlayout for applikationen
@@ -59,6 +60,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
   } = useFormPersistence();
   const authoritativeSnapshotEpoch = useAuthoritativeSnapshotEpochSelector();
   const combinedSectionRevision = useCombinedSectionRevisionSelector();
+  const { undo, redo } = useUndoRedo();
 
   // Prioritering: Track om nuværende overlay er user-feedback (højere prioritet end system errors)
   const isUserFeedbackRef = React.useRef<boolean>(false);
@@ -219,12 +221,29 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     }
   }, []);
 
-  // Ctrl+S keyboard shortcut for gem
+  // Globale keyboard shortcuts for gem og history.
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         handleGem();
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+      if (isOpenTextEditorElement(document.activeElement)) {
+        return;
+      }
+
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'z') {
+        e.preventDefault();
+        undo();
+        return;
+      }
+
+      if (((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'z') || ((e.ctrlKey || e.metaKey) && key === 'y')) {
+        e.preventDefault();
+        redo();
       }
     };
 
@@ -232,7 +251,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleGem]);
+  }, [handleGem, redo, undo]);
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>

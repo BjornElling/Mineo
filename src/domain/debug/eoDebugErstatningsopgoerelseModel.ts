@@ -1,11 +1,11 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
-import { dateToISO, isISODateString, isoToDanish, parseISODate, subtractOneDay } from '../../types/branded';
+import { dateToISO, isISODateString, isoToDanish, parseISODate } from '../../types/branded';
 import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import { computeRowDateBounds } from '../erstatningsopgoerelse/helpers/rowDateBounds';
-import { validateISODateRange } from '../../utils/isoDateHelpers';
+import { getDayBeforeIso, validateISODateRange } from '../../utils/isoDateHelpers';
 import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
 import { formatAsAmount, formatAsAmountTrimmed, formatCurrency, formatPercent } from '../../utils/formatUtils';
 import { addDays, addMonths, parseDanishDate } from '../../utils/dateUtils';
@@ -1061,7 +1061,7 @@ export const buildEODebugSvieSmerteRows = (
 
       // Begræns også til menAfgoerelseDato (dagen før) hvis udfyldt
       let maxDate = vedroererTil;
-      const dayBeforeMenISO = subtractOneDay(menAfgoerelseDato);
+      const dayBeforeMenISO = getDayBeforeIso(menAfgoerelseDato);
       if (dayBeforeMenISO) {
         const dayBeforeMen = isoDateToDate(dayBeforeMenISO);
         if (dayBeforeMen < maxDate) maxDate = dayBeforeMen;
@@ -1214,7 +1214,7 @@ export const buildEODebugSvieSmerteRows = (
       const vedroererTil = isoDateToDate(periodeTil);
 
       let maxDate = vedroererTil;
-      const dayBeforeMenISO2 = subtractOneDay(menAfgoerelseDato);
+      const dayBeforeMenISO2 = getDayBeforeIso(menAfgoerelseDato);
       if (dayBeforeMenISO2) {
         const dayBeforeMen = isoDateToDate(dayBeforeMenISO2);
         if (dayBeforeMen < maxDate) maxDate = dayBeforeMen;
@@ -1345,7 +1345,7 @@ export const buildEODebugSvieSmerteRows = (
       values.varigeMenAfgorelse === 'Ja' &&
       values.verserendeKlageMen === 'Nej' &&
       values.menAfgoerelseDato &&
-      subtractOneDay(values.menAfgoerelseDato) === lastSvieSmerteKravDato
+      getDayBeforeIso(values.menAfgoerelseDato) === lastSvieSmerteKravDato
     ) {
       return { displayValue: 'Ménafgørelse', status: 'ok' as DebugStatus };
     }
@@ -1440,17 +1440,17 @@ export const buildEODebugTaftRows = (
   const tafOphoerSkyldes = (() => {
     if (!lastTafKravDato) return tafIkkeRejstLabel;
 
-    const endeligEetMinus1 = subtractOneDay(context.endeligEETBeregnetDato);
+    const endeligEetMinus1 = getDayBeforeIso(context.endeligEETBeregnetDato);
     if (!context.verserendeKlageEet && endeligEetMinus1 && endeligEetMinus1 === lastTafKravDato) {
       return 'Endelig EET-afgørelse';
     }
 
-    const midlertidigEetMinus1 = subtractOneDay(aktivMidlertidigEETBeregnetDato);
+    const midlertidigEetMinus1 = getDayBeforeIso(aktivMidlertidigEETBeregnetDato);
     if (!context.verserendeKlageEet && midlertidigEetMinus1 && midlertidigEetMinus1 === lastTafKravDato) {
       return 'Midlertidig EET-afgørelse';
     }
 
-    const differencekravMinus1 = subtractOneDay(context.differencekravDato);
+    const differencekravMinus1 = getDayBeforeIso(context.differencekravDato);
     if (!context.verserendeKlageEet && differencekravMinus1 && differencekravMinus1 === lastTafKravDato) {
       return 'Differencekrav opgjort';
     }
@@ -1465,17 +1465,17 @@ export const buildEODebugTaftRows = (
   const tafOphoerSkyldesDatoISO = (() => {
     if (!lastTafKravDato) return undefined;
 
-    const endeligEetMinus1 = subtractOneDay(context.endeligEETBeregnetDato);
+    const endeligEetMinus1 = getDayBeforeIso(context.endeligEETBeregnetDato);
     if (!context.verserendeKlageEet && endeligEetMinus1 && endeligEetMinus1 === lastTafKravDato) {
       return context.endeligEETBeregnetDato;
     }
 
-    const midlertidigEetMinus1 = subtractOneDay(aktivMidlertidigEETBeregnetDato);
+    const midlertidigEetMinus1 = getDayBeforeIso(aktivMidlertidigEETBeregnetDato);
     if (!context.verserendeKlageEet && midlertidigEetMinus1 && midlertidigEetMinus1 === lastTafKravDato) {
       return aktivMidlertidigEETBeregnetDato;
     }
 
-    const differencekravMinus1 = subtractOneDay(context.differencekravDato);
+    const differencekravMinus1 = getDayBeforeIso(context.differencekravDato);
     if (!context.verserendeKlageEet && differencekravMinus1 && differencekravMinus1 === lastTafKravDato) {
       return context.differencekravDato;
     }
@@ -1499,9 +1499,9 @@ export const buildEODebugTaftRows = (
     status: tafOphoerSkyldes === tafIkkeRejstLabel ? 'warning' : 'ok',
   });
 
-  const endeligEETMinus1 = subtractOneDay(context.endeligEETBeregnetDato);
-  const midlertidigEETMinus1 = subtractOneDay(aktivMidlertidigEETBeregnetDato);
-  const differencekravMinus1 = subtractOneDay(context.differencekravDato);
+  const endeligEETMinus1 = getDayBeforeIso(context.endeligEETBeregnetDato);
+  const midlertidigEETMinus1 = getDayBeforeIso(aktivMidlertidigEETBeregnetDato);
+  const differencekravMinus1 = getDayBeforeIso(context.differencekravDato);
 
   let combinedExtraMaxDate: ISODateString | undefined = undefined;
   if (differencekravMinus1) {

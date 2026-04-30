@@ -11,6 +11,7 @@ import type { Koen } from '../../schemas/formSchemas';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { roundByMethod } from '../../utils/rounding';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
+import { endOfYearIso, isoYear } from '../../utils/isoDateHelpers';
 import { PRE_2015_CUTOFF } from './forsoergertabConstants';
 import { isoDateToDate } from '../dates/isoDate';
 import {
@@ -172,8 +173,8 @@ const computeLobendeYdelser = (
   let fromDate = virkningsdato;
 
   while (fromDate <= lastDay) {
-    const year = Number(fromDate.slice(0, 4));
-    const endOfYear = `${year}-12-31` as ISODateString;
+    const year = isoYear(fromDate);
+    const endOfYear = endOfYearIso(year);
     const toDate: ISODateString = lastDay < endOfYear ? lastDay : endOfYear;
 
     let maanedligYdelse: number;
@@ -189,10 +190,10 @@ const computeLobendeYdelser = (
       maanedligYdelse = opreguleretAarligYdelseForAar / 12;
     }
 
-    const fromYear = Number(fromDate.slice(0, 4));
+    const fromYear = isoYear(fromDate);
     const fromMonth = Number(fromDate.slice(5, 7));
     const fromDay = Number(fromDate.slice(8, 10));
-    const toYear = Number(toDate.slice(0, 4));
+    const toYear = isoYear(toDate);
     const toMonth = Number(toDate.slice(5, 7));
     const toDay = Number(toDate.slice(8, 10));
 
@@ -269,8 +270,8 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  const skadesaar = Number(input.skadedato.slice(0, 4));
-  const beregningsaar = Number(input.beregningsdato.slice(0, 4));
+  const skadesaar = isoYear(input.skadedato);
+  const beregningsaar = isoYear(input.beregningsdato);
   const aarsloenMaxSkadesaar = aarsloenAslMax[skadesaar];
   const aarsloenMaxBeregningsaar = aarsloenAslMax[beregningsaar];
   if (!Number.isFinite(aarsloenMaxSkadesaar)) {
@@ -283,7 +284,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  const virkningsaar = Number(input.virkningsdato.slice(0, 4));
+  const virkningsaar = isoYear(input.virkningsdato);
 
   for (let yr = virkningsaar; yr < beregningsaar; yr++) {
     if (yr === skadesaar) continue;

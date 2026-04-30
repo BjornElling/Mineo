@@ -1,3 +1,4 @@
+import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import type {
   ErstatningsopgoerelseValues,
   LoenindkomstAnsaettelsesforhold,
@@ -19,7 +20,7 @@ import { mergeIsoDateRanges } from './periodMerging';
 import { rangesOverlap } from './beregningsperiodeTafOverlap';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
-import { danishToISO, dateToISO, parseISODate, subtractOneDay, type ISODateString } from '../../../types/branded';
+import { danishToISO, dateToISO, parseISODate, type ISODateString } from '../../../types/branded';
 import { isoDateToDate } from '../../dates/isoDate';
 import { isoToDanish, toDanishDateString } from '../../../types/branded';
 import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
@@ -107,7 +108,6 @@ export const resolveSfggDayBasis = (
 export const isSfggReferenceperiodeSource = (
   source: Readonly<{ kind: SfggSourceKind }>
 ): boolean => SFGG_REFERENCEPERIODE_KILDER_MED_BEREGNINGSPERIODE.has(source.kind);
-
 
 export type SygeferiegodtgoerelseSegment = Readonly<{
   ansaettelsesforholdId: string;
@@ -269,7 +269,7 @@ export const getFirstIndtastedeTafFraDato = (
 export const resolveSfggReferenceperiodeMaxDate = (
   values: ErstatningsopgoerelseValues
 ): ISODateString | undefined => {
-  return subtractOneDay(getFirstIndtastedeTafFraDato(values));
+  return getDayBeforeIso(getFirstIndtastedeTafFraDato(values));
 };
 
 const FOUR_MONTHS_EPSILON = 1e-12;
@@ -348,7 +348,7 @@ const subtractIsoDateRanges = (
       if (excluded.fra > base.til) break;
 
       if (excluded.fra > cursor) {
-        const til = subtractOneDay(excluded.fra);
+        const til = getDayBeforeIso(excluded.fra);
         if (til && cursor <= til) {
           result.push({ fra: cursor, til });
         }
@@ -390,7 +390,7 @@ const splitRangesAtBoundaryStarts = (
 
     let currentFra = range.fra;
     for (const start of starts) {
-      const til = subtractOneDay(start);
+      const til = getDayBeforeIso(start);
       if (til && currentFra <= til) {
         result.push({ fra: currentFra, til });
       }

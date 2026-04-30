@@ -1,17 +1,11 @@
-import {
-  resolveEgetAtpBidragPrKalenderuge,
-  resolveKommunaltAtpBidragPrKalenderuge,
-  sygedagpengeRates,
-  type DatedSygedagpengeRate,
-} from '../../../data/sygedagpengeRates';
+import { resolveEgetAtpBidragPrKalenderuge, resolveKommunaltAtpBidragPrKalenderuge, sygedagpengeRates, type DatedSygedagpengeRate, } from '../../../data/sygedagpengeRates';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { roundByMethod } from '../../../utils/rounding';
 import { parseAmountInput } from '../../../utils/expressionAmount';
+import { maxISO, minISO } from '../../../utils/isoDateHelpers';
 import {
-  buildSygedagpengeArbejdsdagePrKalenderuge,
-  countOffentligYdelsePeriodiseringsdage,
-} from '../engines/periodiseringsMotor';
-import { isoToDanish, maxIso, minIso, type ISODateString } from '../../../types/branded';
+  buildSygedagpengeArbejdsdagePrKalenderuge, countOffentligYdelsePeriodiseringsdage, } from '../engines/periodiseringsMotor';
+import { isoToDanish, type ISODateString } from '../../../types/branded';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
 type SygedagpengeSegment = Readonly<{
@@ -61,8 +55,8 @@ export const splitSygedagpengeRateSegments = (
   for (const rate of sygedagpengeRates) {
     if (rate.tilDato < fraDato || rate.fraDato > tilDato) continue;
 
-    const segmentFra = maxIso(fraDato, rate.fraDato);
-    const segmentTil = minIso(tilDato, rate.tilDato);
+    const segmentFra = maxISO(fraDato, rate.fraDato);
+    const segmentTil = minISO(tilDato, rate.tilDato);
     const segmentFraDa = isoToDanish(segmentFra);
     const segmentTilDa = isoToDanish(segmentTil);
     if (!segmentFraDa || !segmentTilDa) {

@@ -14,13 +14,13 @@ import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
 import TableYearInput from '../../../components/inputs/table/TableYearInput';
 import TableDropdown from '../../../components/inputs/table/TableDropdown';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 
 const gridCell: GridCellCoord = { rowId: 'row-1', colIndex: 0 };
 
 const createGridValue = (editingCell: GridCellCoord | null) => {
   return {
-    focusedCell: gridCell,
-    editingCell,
+    gridStateStore: createGridCoreTestStateStore(gridCell, editingCell),
     openEditing: vi.fn(),
     closeEditing: vi.fn(),
     registerEditor: vi.fn(),
@@ -817,8 +817,7 @@ describe('table commit-kontrakt', () => {
       return (
         <GridCoreProvider
           value={{
-            focusedCell,
-            editingCell,
+            gridStateStore: createGridCoreTestStateStore(focusedCell, editingCell),
             openEditing: (cell) => {
               setFocusedCell(cell);
               setEditingCell(cell);

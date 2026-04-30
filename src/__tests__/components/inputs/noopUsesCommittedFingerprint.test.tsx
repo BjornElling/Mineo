@@ -11,6 +11,7 @@ import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
 import TableYearInput from '../../../components/inputs/table/TableYearInput';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import * as expressionAmountModule from '../../../utils/expressionAmount';
+import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 
 const gridCell: GridCellCoord = { rowId: 'row-1', colIndex: 0 };
 
@@ -29,8 +30,7 @@ const setup = (initialValue: AmountValue | undefined) => {
 
     const gridValue = React.useMemo(
       () => ({
-        focusedCell: gridCell,
-        editingCell,
+        gridStateStore: createGridCoreTestStateStore(gridCell, editingCell),
         openEditing: vi.fn(),
         closeEditing: () => setEditingCell(null),
         registerEditor: (_cell: GridCellCoord, handle: GridCellEditorHandle) => {
@@ -114,8 +114,7 @@ const setupStringNoop = (testCase: StringNoopCase) => {
 
     const gridValue = React.useMemo(
       () => ({
-        focusedCell: gridCell,
-        editingCell,
+        gridStateStore: createGridCoreTestStateStore(gridCell, editingCell),
         openEditing: vi.fn(),
         closeEditing: () => setEditingCell(null),
         registerEditor: vi.fn(),

@@ -277,36 +277,3 @@ export function dateToISO(date: Date | undefined): ISODateString | undefined {
 
   return isISODateString(isoString) ? isoString : undefined;
 }
-
-/**
- * Trækker én dag fra en ISO-dato
- *
- * Bruges til at konvertere "skal være < dato" til "skal være <= (dato - 1 dag)"
- * Eksempel: Ménafgørelse er 2025-03-15, til-dato skal være < 2025-03-15,
- * dvs. til-dato skal være <= 2025-03-14
- *
- * @param isoDate - ISO-formateret dato
- * @returns ISO-dato for dagen før, eller undefined hvis invalid
- */
-export function subtractOneDay(isoDate: ISODateString | undefined): ISODateString | undefined {
-  if (!isoDate) return undefined;
-
-  const date = parseISODate(isoDate);
-  if (!date) return undefined;
-
-  // Træk én dag fra
-  const newDate = new Date(date.getTime());
-  newDate.setUTCDate(newDate.getUTCDate() - 1);
-
-  return dateToISO(newDate);
-}
-
-/**
- * Returnerer den største af to ISODateStrings.
- */
-export const maxIso = (a: ISODateString, b: ISODateString): ISODateString => (a > b ? a : b);
-
-/**
- * Returnerer den mindste af to ISODateStrings.
- */
-export const minIso = (a: ISODateString, b: ISODateString): ISODateString => (a < b ? a : b);

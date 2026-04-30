@@ -1,9 +1,10 @@
+import { minISO } from '../../utils/isoDateHelpers';
 /**
  * Regulation Core Model - Indeksvisning for reguleringskilder
  */
 
 import type { ISODateString, DanishDateString } from '../../types/branded';
-import { isoToDanish, minIso, toISODateString, dateToISO, isISODateString } from '../../types/branded';
+import { isoToDanish, toISODateString, dateToISO, isISODateString } from '../../types/branded';
 import type { DebugDay } from './eoDebugTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues, LoenPaaHelligdage } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
@@ -591,7 +592,7 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
 
     const referenceDanish = toDanishOrUndefined(referenceIso);
     if (!referenceDanish) continue;
-    const timelineStartIso = minIso(referenceIso, eoRange.fra);
+    const timelineStartIso = minISO(referenceIso, eoRange.fra);
     const shDageSet = buildSHDageSet(timelineStartIso, eoRange.til);
     const ferieDageSet = buildFerieDageSet(input.eoValues, shDageSet, timelineStartIso, eoRange.til);
 

@@ -339,6 +339,7 @@ const TableAmountInput = React.memo(
     );
 
     const a11yErrorId = React.useId();
+    const undoFocusToken = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
@@ -461,6 +462,8 @@ const TableAmountInput = React.memo(
                 tabIndex: locked ? -1 : undefined,
                 inputMode: 'decimal',
                 'data-mineo-grid-locked': locked ? 'true' : undefined,
+                'data-mineo-undo-focus-token': undoFocusToken,
+                'data-mineo-undo-field-path': gridCellKey,
                 'aria-describedby': showError ? a11yErrorId : undefined,
               }}
               sx={{

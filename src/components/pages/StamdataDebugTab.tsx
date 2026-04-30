@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, CircularProgress, MenuItem, Typography } from '@mui/material';
+import { Box, Button, MenuItem, Typography } from '@mui/material';
 
 import type { ISODateString } from '../../types/branded';
 import StyledAmountField from '../inputs/StyledAmountField';
@@ -17,7 +17,6 @@ import StyledYearField from '../inputs/StyledYearField';
 import ContentBox from '../layout/ContentBox';
 import { markDevtoolsTestScenario } from '../../utils/devtoolsMonitor';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
-const BatchReviewPanel = React.lazy(async () => import('../../devtools/batchReview/ui/BatchReviewPanel'));
 
 /**
  * Debug-tab til afprøvning af styled-komponenter og devtools (kun synlig i dev-mode).
@@ -301,17 +300,6 @@ const StamdataDebugTab = React.memo(() => {
         </Box>
       </ContentBox>
 
-      <ContentBox className="content-box">
-        <Typography className="section-header">Batch-review</Typography>
-        <Typography className="row--text" sx={{ marginBottom: 2 }}>
-          Genererer et langt PDF-dokument med systematisk gennemgang af beregningsoutput på tværs af mange scenarier.
-          Vælg output-track (PDF-dokument eller Fejl og advarsler) og profil (antal scenarier), og klik Start.
-          PDF&apos;en downloades automatisk når alle scenarier er behandlet.
-        </Typography>
-        <React.Suspense fallback={<CircularProgress />}>
-          <BatchReviewPanel />
-        </React.Suspense>
-      </ContentBox>
     </Box>
   );
 });

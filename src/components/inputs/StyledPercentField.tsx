@@ -78,9 +78,6 @@ const stripTrailingPercent = (placeholder: string | undefined): string | undefin
   return placeholder;
 };
 
-const formatPercentBound = (value: number, decimals: 0 | 2): string =>
-  formatAsAmount(value, decimals);
-
 const MAX_TYPING_PERCENT = 100;
 const MAX_TYPING_PERCENT_INTEGER_DIGITS = 3;
 
@@ -301,21 +298,21 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         if (typeof effectiveMin === 'number' && signed < effectiveMin) {
           if (typeof effectiveMax === 'number') {
             return invalidOrPartial(
-              `Procent skal være mellem ${formatPercentBound(effectiveMin, allowDecimals ? 2 : 0)} og ${formatPercentBound(effectiveMax, allowDecimals ? 2 : 0)}`
+              `Procent skal være mellem ${formatAsAmount(effectiveMin, allowDecimals ? 2 : 0)} og ${formatAsAmount(effectiveMax, allowDecimals ? 2 : 0)}`
             );
           }
           return invalidOrPartial(
-            `Procent skal være ${formatPercentBound(effectiveMin, allowDecimals ? 2 : 0)} eller højere`
+            `Procent skal være ${formatAsAmount(effectiveMin, allowDecimals ? 2 : 0)} eller højere`
           );
         }
         if (typeof effectiveMax === 'number' && signed > effectiveMax) {
           if (typeof effectiveMin === 'number') {
             return invalidOrPartial(
-              `Procent skal være mellem ${formatPercentBound(effectiveMin, allowDecimals ? 2 : 0)} og ${formatPercentBound(effectiveMax, allowDecimals ? 2 : 0)}`
+              `Procent skal være mellem ${formatAsAmount(effectiveMin, allowDecimals ? 2 : 0)} og ${formatAsAmount(effectiveMax, allowDecimals ? 2 : 0)}`
             );
           }
           return invalidOrPartial(
-            `Procent skal være ${formatPercentBound(effectiveMax, allowDecimals ? 2 : 0)} eller lavere`
+            `Procent skal være ${formatAsAmount(effectiveMax, allowDecimals ? 2 : 0)} eller lavere`
           );
         }
 
@@ -543,3 +540,4 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
 StyledPercentField.displayName = 'StyledPercentField';
 
 export default StyledPercentField;
+

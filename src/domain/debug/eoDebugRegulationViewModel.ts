@@ -1,9 +1,10 @@
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 /**
  * Regulation View Model - Indeks visning (rettet)
  */
 
 import type { ISODateString } from '../../types/branded';
-import { subtractOneDay } from '../../types/branded';
+
 import type { DebugCellValue } from './eoDebugTypes';
 import { formatIsoValue, formatAmountDisplay, formatDecimal, formatPercent } from './eoDebugFormat';
 import type { RegulationIndexTimeline } from './eoDebugRegulationTypes';
@@ -89,7 +90,7 @@ const buildFallbackSegmentsFromTimeline = (params: Readonly<{
 
     orderedStarts.forEach((fra, index) => {
       const nextStart = orderedStarts[index + 1];
-      const til = nextStart ? (subtractOneDay(nextStart) ?? range.til) : range.til;
+      const til = nextStart ? (getDayBeforeIso(nextStart) ?? range.til) : range.til;
       if (fra > til) return;
 
       const matchingEntry = [...sortedEntries]

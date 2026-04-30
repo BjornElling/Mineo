@@ -28,10 +28,13 @@ const ALLOWED_FORM_PERSISTENCE_CONTEXT_IMPORTS = new Set([
 const ALLOWED_FORM_PERSISTENCE_STORE_IMPORTS = new Set([
   'src/contexts/FormPersistenceContext.tsx',
   'src/hooks/useFormPersistenceSelectors.ts',
+  'src/hooks/useUndoRedo.ts',
   // Domain-specific read model: subscribes directly to the store to build one cached,
   // schema-validated tværsektion snapshot for EO's midlertidigt EET insert-flow.
   // This is an audited exception, not a precedent for ordinary hooks/pages.
   'src/hooks/useMidlertidigtEetInsertSource.ts',
+  'src/stores/undoRedoStore.ts',
+  'src/utils/persistenceSnapshotStorage.ts',
 ]);
 
 describe('persistenceAccessIsolation', () => {

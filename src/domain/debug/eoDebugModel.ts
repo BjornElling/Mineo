@@ -1,7 +1,7 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow, SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import type { SvieSmerteConstrainedPeriod } from '../erstatningsopgoerelse/engines/svieSmerteEngine';
 import type { ISODateString } from '../../types/branded';
-import { dateToISO, isoToDanish, subtractOneDay } from '../../types/branded';
+import { dateToISO, isoToDanish } from '../../types/branded';
 import type { IsoRange } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { formatCurrency } from '../../utils/formatUtils';
 import { isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCalculations';
@@ -16,6 +16,7 @@ import { SYGEDAGPENGE_SH_CUTOFF } from '../erstatningsopgoerelse/engines/periodi
 import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/tafDaySets';
 import { iterateDatesInclusive, maxISO, minISO, validateIsoRange } from '../../utils/isoDateHelpers';
 import type { DebugDay } from './eoDebugTypes';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 
 export type DebugTabelDateSource = Readonly<{
   label: string;
@@ -176,7 +177,6 @@ const computeSummaryTableRange = (
   return { fra: tableFra, til: tableTil };
 };
 
-
 const buildIsoIndex = (dates: readonly ISODateString[]): ReadonlyMap<ISODateString, number> => {
   const map = new Map<ISODateString, number>();
   dates.forEach((d, idx) => map.set(d, idx));
@@ -315,7 +315,7 @@ const collectMinMaxSvieSmerte = (
     return { min: undefined, max: undefined };
   }
 
-  const maxSsDato = menStopDato ? subtractOneDay(menStopDato) : erstatningsRange.til;
+  const maxSsDato = menStopDato ? getDayBeforeIso(menStopDato) : erstatningsRange.til;
   const perioder: readonly SvieSmertePeriodeRow[] = values.svieSmertePerioder ?? [];
 
   for (const periode of perioder) {
@@ -357,7 +357,7 @@ const buildSsCoverage = (
     return { statusByIndex, stopAfterMenByIndex };
   }
 
-  const maxSsDato = menStopDato ? subtractOneDay(menStopDato) : erstatningsRange.til;
+  const maxSsDato = menStopDato ? getDayBeforeIso(menStopDato) : erstatningsRange.til;
 
   const sygemeldt = new Uint8Array(dayCount);
   const delvist = new Uint8Array(dayCount);

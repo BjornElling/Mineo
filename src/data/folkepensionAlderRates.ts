@@ -1,6 +1,7 @@
 import type { ISODateString } from '../types/branded';
 import { dateToISO, parseISODate } from '../types/branded';
-import { addDays, addMonths } from '../utils/dateUtils';
+import { addMonths } from '../utils/dateUtils';
+import { getDayBeforeIso } from '../utils/isoDateHelpers';
 
 /**
  * Folkepensionsalder som funktion af fødselsdato og opslagsdato.
@@ -183,6 +184,5 @@ export const getDagenFoerFolkepensionsdato = (
   opslagsdato: ISODateString
 ): ISODateString | undefined => {
   const folkepensionsdato = getFolkepensionsdato(foedselsdato, opslagsdato);
-  const parsed = folkepensionsdato ? parseISODate(folkepensionsdato) : null;
-  return parsed ? dateToISO(addDays(parsed, -1)) : undefined;
+  return getDayBeforeIso(folkepensionsdato);
 };

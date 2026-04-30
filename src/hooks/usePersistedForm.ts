@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { type z } from 'zod';
 import { useFormPersistence } from '../contexts/useFormPersistence';
 import type { StorageKey } from '../config/storageManifest';
@@ -9,14 +10,21 @@ import {
   usePersistenceHydratedSelector,
   usePersistedSectionSelector,
 } from './useFormPersistenceSelectors';
+import { createActiveTabStorageKey } from '../config/storageManifest';
+import { readOptionalSessionStorageValue } from '../utils/safeSessionStorage';
+import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
 
 /**
  * Signatur for setValues: funktionel updater-baseret felt-commit.
  * Se UsePersistedFormReturn for fuld dokumentation.
  */
-export type SetValuesUpdater<T> = (updater: (prev: T) => T) => void;
+export type CommitOriginOptions = {
+  fieldPath?: string;
+};
+
+export type SetValuesUpdater<T> = (updater: (prev: T) => T, options?: CommitOriginOptions) => void;
 export type ReplaceValuesSetter<T> = (next: T) => void;
-export type SetFieldValue<T> = <K extends keyof T>(fieldName: K, value: T[K]) => void;
+export type SetFieldValue<T> = <K extends keyof T>(fieldName: K, value: T[K], options?: CommitOriginOptions) => void;
 
 /**
  * Return type for usePersistedForm hook
@@ -82,6 +90,7 @@ export const usePersistedForm = <K extends StorageKey>(
   pageKey: K,
   initialValues: PersistedSectionMap[K]
 ): UsePersistedFormReturn<PersistedSectionMap[K]> => {
+  const location = useLocation();
   const { persistData, clearPageData, clearFieldErrors } = useFormPersistence();
   const initialValuesRef = React.useRef(initialValues);
   const persistDataRef = React.useRef(persistData);
@@ -141,18 +150,43 @@ export const usePersistedForm = <K extends StorageKey>(
     return { ...initialValuesRef.current, ...committedSnapshot };
   }, [pageKey]);
 
+  const createUndoOrigin = React.useCallback((options?: CommitOriginOptions): HistoryFrameOrigin => {
+    const route = location.pathname;
+    const pageId = route.replace(/^\/+/, '') || 'stamdata';
+    const tabKey = readOptionalSessionStorageValue(createActiveTabStorageKey(pageId));
+    const activeElement = typeof document === 'undefined' ? null : document.activeElement;
+    const focusToken = activeElement instanceof HTMLElement
+      ? activeElement.getAttribute('data-mineo-undo-focus-token')
+      : null;
+    const activeFieldPath = activeElement instanceof HTMLElement
+      ? activeElement.getAttribute('data-mineo-undo-field-path')
+      : null;
+
+    return {
+      route,
+      tabKey,
+      sectionKey: pageKey,
+      fieldPath: options?.fieldPath ?? activeFieldPath,
+      focusToken,
+    };
+  }, [location.pathname, pageKey]);
+
   // Felt-commit via funktionel updater. Bumper ikke formVersion.
   const setValues = React.useCallback(
-    (updater: (prev: PersistedSectionMap[K]) => PersistedSectionMap[K]) => {
+    (updater: (prev: PersistedSectionMap[K]) => PersistedSectionMap[K], options?: CommitOriginOptions) => {
       const next = updater(resolveCurrentValues());
-      persistDataRef.current(pageKey, next);
+      persistDataRef.current(pageKey, next, { undoOrigin: createUndoOrigin(options) });
     },
-    [pageKey, resolveCurrentValues]
+    [createUndoOrigin, pageKey, resolveCurrentValues]
   );
 
   const setFieldValue = React.useCallback(
-    <FieldKey extends keyof PersistedSectionMap[K]>(fieldName: FieldKey, value: PersistedSectionMap[K][FieldKey]) => {
-      setValues((prev) => ({ ...prev, [fieldName]: value }));
+    <FieldKey extends keyof PersistedSectionMap[K]>(
+      fieldName: FieldKey,
+      value: PersistedSectionMap[K][FieldKey],
+      options?: CommitOriginOptions
+    ) => {
+      setValues((prev) => ({ ...prev, [fieldName]: value }), { fieldPath: options?.fieldPath ?? String(fieldName) });
     },
     [setValues]
   );

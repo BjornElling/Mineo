@@ -22,6 +22,8 @@ type AllowedInputAttributes = Pick<
   | 'tabIndex'
 > & {
   'data-testid'?: string;
+  'data-mineo-undo-focus-token'?: string;
+  'data-mineo-undo-field-path'?: string;
 };
 
 export type StyledTextFieldBaseInputType = 'text' | 'search' | 'tel' | 'url' | 'email' | 'password';
@@ -118,6 +120,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
     ref
   ) => {
     const autoId = React.useId();
+    const undoFocusToken = React.useId();
     const resolvedId = id ?? autoId;
     const resolvedName = name ?? resolvedId;
 
@@ -202,9 +205,11 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       ? [describedByBase, a11yErrorId].filter((v): v is string => Boolean(v && v.trim() !== '')).join(' ')
       : describedByBase;
 
-    const mergedHtmlInputProps: React.InputHTMLAttributes<HTMLInputElement> = {
+    const mergedHtmlInputProps = {
       ...htmlInputAttributes,
       'aria-describedby': describedBy,
+      'data-mineo-undo-focus-token': undoFocusToken,
+      'data-mineo-undo-field-path': htmlInputAttributes?.['data-mineo-undo-field-path'] ?? name,
       onFocus: handleFocus,
       onBlur: handleBlur,
       onKeyDown: handleKeyDown,

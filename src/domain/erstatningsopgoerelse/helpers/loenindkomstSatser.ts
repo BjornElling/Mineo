@@ -3,7 +3,7 @@ import type {
   LoenudviklingManuelRow,
 } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import { danishToISO, isoToDanish, parseISODate, toDanishDateString } from '../../../types/branded';
+import { danishToISO, isoToDanish, toDanishDateString } from '../../../types/branded';
 import {
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
@@ -17,8 +17,8 @@ import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
 import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import type { StandardLoenRateSegment, StandardLoenSatserInput } from '../../aarsloen/standardLoenRowCalculations';
-import { dateToISO, isISODateString } from '../../../types/branded';
-import { addDays } from '../../../utils/dateUtils';
+import { isISODateString } from '../../../types/branded';
+import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { round2 } from '../../../utils/roundingShortcuts';
 import { parseDanishToIso } from './eoSharedUtils';
 
@@ -93,8 +93,7 @@ const buildSegmentsFromPeriodStarts = (
   const boundedStarts = Array.from(new Set([fra, ...starts.filter((start) => start >= fra && start <= til)])).sort();
   return boundedStarts.map((startDato, index) => {
     const nextStart = boundedStarts[index + 1];
-    const nextStartDate = nextStart ? parseISODate(nextStart) : null;
-    const tilDato = nextStartDate ? dateToISO(addDays(nextStartDate, -1)) : til;
+    const tilDato = nextStart ? getDayBeforeIso(nextStart) : til;
     return {
       fra: startDato,
       til: tilDato && tilDato < til ? tilDato : til,

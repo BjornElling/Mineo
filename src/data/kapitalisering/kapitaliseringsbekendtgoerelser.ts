@@ -1,5 +1,6 @@
 import type { ISODateString } from '../../types/branded';
-import { maxIso, minIso, toISODateString } from '../../types/branded';
+import { toISODateString } from '../../types/branded';
+import { endOfYearIso, isoYear, maxISO, minISO } from '../../utils/isoDateHelpers';
 
 // Oversigt over kapitaliseringsbekendtgørelser og -vejledninger.
 // Manuelt vedligeholdt — opdateres årligt når nye bekendtgørelser/vejledninger udstedes.
@@ -178,7 +179,7 @@ const resolveLatestKapitaliseringsdatoFraPerSkadesinterval = (
   }
 
   return interval.kapitaliseringer.reduce(
-    (latest, current) => maxIso(latest, current.kapitaliseringsdatoFra),
+    (latest, current) => maxISO(latest, current.kapitaliseringsdatoFra),
     interval.kapitaliseringer[0].kapitaliseringsdatoFra
   );
 };
@@ -194,8 +195,7 @@ export const eetKapitaliseringsDatoMaxFraBekendtgoerelser: ISODateString = (() =
 
   const earliestLatestFraDate = kapitaliseringsbekendtgoerelser
     .map(resolveLatestKapitaliseringsdatoFraPerSkadesinterval)
-    .reduce((earliest, current) => minIso(earliest, current));
+    .reduce((earliest, current) => minISO(earliest, current));
 
-  const year = earliestLatestFraDate.slice(0, 4);
-  return toISODateString(`${year}-12-31`);
+  return endOfYearIso(isoYear(earliestLatestFraDate));
 })();

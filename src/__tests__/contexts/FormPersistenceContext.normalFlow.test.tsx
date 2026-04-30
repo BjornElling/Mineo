@@ -172,41 +172,6 @@ describe('FormPersistenceContext – normalFlow', () => {
     expect(sessionStorage.getItem('mineo_stamdata')).not.toBeNull();
   });
 
-  it('migrerer legacy faellesPersondata ind i stamdata ved startup uden global wipe', async () => {
-    sessionStorage.setItem(
-      'mineo_stamdata',
-      JSON.stringify(
-        persistedWrapper({
-          journalnr: 'J-99',
-          advokat: '',
-          sagsbehandler: '',
-          skadelidte: 'InitTest',
-          skadestype: 'Arbejdsulykke',
-          skadedato: '2024-01-01',
-        })
-      )
-    );
-    sessionStorage.setItem(
-      'mineo_faellesPersondata',
-      JSON.stringify({
-        version: '0.9.0',
-        timestamp: Date.now(),
-        data: {
-          skadelidteFodselsdato: '1990-01-01',
-        },
-      })
-    );
-
-    const { getCtx } = renderProvider();
-    await waitFor(() => expect(getCtx()).not.toBeNull());
-
-    expect(getCtx()!.getPersistedData('stamdata')?.skadelidteFodselsdato).toBe('1990-01-01');
-    expect(getCtx()!.lastNotice?.message).toContain('Legacy-feltet foedselsdato blev flyttet til Stamdata');
-    await waitFor(() => {
-      expect(sessionStorage.getItem('mineo_faellesPersondata')).toBeNull();
-    });
-  });
-
   it('rydder korrupt JSON ved initialisering', async () => {
     sessionStorage.setItem('mineo_stamdata', 'ikke-json {{{');
 

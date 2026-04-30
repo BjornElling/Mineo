@@ -8,7 +8,8 @@ import { dateRanges_erhvervsevnetab } from '../../config/dateRanges';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import type { AslAfgoerelseRow, AfgoerelseType, JaNej } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { coerceToISODateString, subtractOneDay } from '../../types/branded';
+import { coerceToISODateString } from '../../types/branded';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import {
   EET_ASL_MIN_VISIBLE_ROWS,
   collectEetAslAfgoerelseValidationIssues,
@@ -331,7 +332,7 @@ const EetAslAfgoerelserTable = React.memo(
                 <TableCell>
                   {(() => {
                     const afgoerelsesDatoIso = coerceToISODateString(row.afgoerelsesDato);
-                    const tidlKapMax = subtractOneDay(afgoerelsesDatoIso);
+                    const tidlKapMax = getDayBeforeIso(afgoerelsesDatoIso);
                     const hasValidRange = !(tidlKapMax !== undefined && skadedatoMin > tidlKapMax);
                     const tidlKapSpecialErrors: DateRangeSpecialErrors = {
                       minBoundKind: 'skadedato',

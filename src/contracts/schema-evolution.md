@@ -14,7 +14,7 @@ Dette dokument har to niveauer:
 
 Tværgående save/load-regler er normativt samlet i `src/contracts/persistence-contract.md`.
 
-Mineo prioriterer at indlæse mest muligt af eksisterende filer. Et nyt felt i skemaet må **aldrig** forårsage at `erstatningsopgoerelse`-sektionen (eller andre sektioner) droppes ved indlæsning af ældre filer.
+Schema-version `1.0` er baseline for fremtidig load-kompatibilitet. Mineo prioriterer at indlæse mest muligt af filer gemt fra version `1.0` og frem. Et nyt felt i skemaet må **aldrig** forårsage at `erstatningsopgoerelse`-sektionen (eller andre sektioner) droppes ved indlæsning af ældre filer fra denne baseline eller senere.
 
 Load-mekanismen (`src/utils/fileLoad.ts`) kører `schema.safeParse(data)` på hvert sektion. Hvis parse fejler, droppes **hele sektionen** — ikke bare det manglende felt. Det er en katastrofal fejl der mister alle brugerdata i sektionen.
 
@@ -64,9 +64,9 @@ Kort sagt:
 
 ## Del 1: Load-kompatibilitet — hvad der kræves i skemaet
 
-### Regel 1.1: Alle nye felter skal have `.optional()` eller `.default(…)`
+### Regel 1.1: Alle nye felter efter version 1.0 skal have `.optional()` eller `.default(…)`
 
-Når et felt tilføjes og der kan eksistere gemte filer uden det, **skal** det have én af to egenskaber:
+Når et felt tilføjes efter schema-version `1.0`, og der derfor kan eksistere gemte version `1.0+` filer uden feltet, **skal** det have én af to egenskaber:
 
 **`JaNej`-toggle:**
 ```ts
