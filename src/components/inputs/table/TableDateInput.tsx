@@ -17,6 +17,8 @@ import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { filterDateLikeKeyDown } from '../inputKeyFilters';
 import { makeDateFingerprintFromCanonical, type CommittedPayload, type DateFingerprint } from '../../../types/parserSpec';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
+import { useTableInputSaveError } from '../../../hooks/useTableInputSaveError';
+import { registerDraftHistoryController, type DraftHistoryRestoreState } from '../../../utils/draftHistoryRegistry';
 
 export type TableDateInputChangeEvent = { target: { value: string } };
 export type TableDateSanitizeCallback = (value: string) => string;
@@ -237,6 +239,7 @@ const TableDateInput = React.memo(
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
     const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, DateFingerprint>>(toCommittedDatePayload(value));
+    const pendingHistoryValueResyncRef = React.useRef(false);
 
     const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, minDate, maxDate, specialRangeErrors, twoDigitYearPolicy });
 
@@ -248,7 +251,7 @@ const TableDateInput = React.memo(
       latest.current = { onChange, onBlur, onErrorChange, locked, minDate, maxDate, specialRangeErrors, twoDigitYearPolicy };
     }, [locked, maxDate, minDate, onBlur, onChange, onErrorChange, specialRangeErrors, twoDigitYearPolicy]);
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       latestCommittedPayloadRef.current = toCommittedDatePayload(value);
     }, [value]);
 
@@ -357,6 +360,13 @@ const TableDateInput = React.memo(
     }, [configErrorMessage, effectiveMaxDate, effectiveMinDate, preserveInvalidDraft, setLocalErrorState, specialRangeErrors, touched, value]);
 
     React.useEffect(() => {
+      const nextDraft = value ?? '';
+      if (pendingHistoryValueResyncRef.current) {
+        pendingHistoryValueResyncRef.current = false;
+        draftRef.current = nextDraft;
+        setDraft(nextDraft);
+        return;
+      }
       if (!isEditing) {
         const inputEl = inputElRef.current;
         const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
@@ -366,7 +376,7 @@ const TableDateInput = React.memo(
           (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
         if (hasPhysicalFocus) return;
         if (preserveInvalidDraft) return;
-        setDraft(value ?? '');
+        setDraft(nextDraft);
       }
     }, [isEditing, preserveInvalidDraft, value]);
 
@@ -455,6 +465,7 @@ const TableDateInput = React.memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = e.target.value ?? '';
+        pendingHistoryValueResyncRef.current = false;
         setLocalErrorState(false, '');
         draftRef.current = nextDraft;
         setDraft(nextDraft);
@@ -606,6 +617,38 @@ const TableDateInput = React.memo(
     }, [commitAndEmitBlur, gridApi, setLocalErrorState]);
 
     const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
+      keyInitiatedEditRef.current = false;
+      if (state.kind === 'error') {
+        pendingHistoryValueResyncRef.current = false;
+        draftRef.current = state.draft;
+        setDraft(state.draft);
+        setTouched(true);
+        setPreserveInvalidDraft(true);
+        setLocalErrorState(true, state.error.message ?? '');
+        return;
+      }
+
+      pendingHistoryValueResyncRef.current = true;
+      setTouched(false);
+      setPreserveInvalidDraft(false);
+      setLocalErrorState(false, '');
+    }, [setLocalErrorState]);
+
+    useTableInputSaveError({
+      key: `table-date:${a11yInputId}`,
+      active: touched && hasError && preserveInvalidDraft,
+      message: errorMessage,
+      inputRef: inputElRef,
+    });
+
+    React.useEffect(() => {
+      return registerDraftHistoryController(
+        { focusToken: undoFocusToken, fieldPath: gridCellKey },
+        { restoreFromHistory }
+      );
+    }, [gridCellKey, restoreFromHistory, undoFocusToken]);
+
     React.useEffect(() => {
       gridApi.registerEditor(gridCell, editorHandle);
       return () => {

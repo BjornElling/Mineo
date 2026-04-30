@@ -45,7 +45,7 @@ describe('getStandardLoenTableValidation', () => {
     const result = getStandardLoenTableValidation({
       rows,
       loenperiode: 'maaned',
-      cellErrorsByCellKey: { 'r1:col0_maaned': true },
+      cellErrorsByCellKey: { 'r1:0': true },
     });
 
     expect(result.summary.hasErrors).toBe(true);
@@ -101,7 +101,7 @@ describe('getStandardLoenTableValidation', () => {
     const inputResult = getStandardLoenTableValidation({
       rows,
       loenperiode: 'maaned',
-      cellErrorsByCellKey: { 'r1:col0_maaned': true },
+      cellErrorsByCellKey: { 'r1:0': true },
     });
     expect(inputResult.summary.firstErrorCell).toEqual({
       rowId: 'r1',
@@ -128,6 +128,21 @@ describe('getStandardLoenTableValidation', () => {
     expect(isStandardLoenTableValueEffectivelyEmptyForValidation(0)).toBe(false);
     expect(isStandardLoenTableValueEffectivelyEmptyForValidation({ kind: 'number', value: 0 })).toBe(false);
     expect(isStandardLoenTableValueEffectivelyEmptyForValidation({ kind: 'expression', expression: '0', value: 0 })).toBe(false);
+  });
+
+  it('fortolker numerisk cellKey som kanonisk tabelcelle-identitet', () => {
+    const rows = [row('r1', { col0_dag: '01-01-2024', col1_dag: '31-01-2024', col3: amount(100) })];
+    const result = getStandardLoenTableValidation({
+      rows,
+      loenperiode: 'dag',
+      cellErrorsByCellKey: { 'r1:3': true },
+    });
+
+    expect(result.summary.firstErrorCell).toEqual({
+      rowId: 'r1',
+      colKey: 'col3',
+      reason: 'input',
+    });
   });
 });
 
@@ -158,16 +173,16 @@ describe('buildStandardLoenPeriodOrderCellErrorMessages', () => {
   it('sætter error-message på begge periode-celler ved uge-rækkefølgefejl', () => {
     const rows = [row('r1', { col0_uge: '20/2024', col1_uge: '10/2024' })];
     expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'uge')).toEqual({
-      'r1:col0_uge': DATE_ORDER_ERROR_MESSAGE,
-      'r1:col1_uge': DATE_ORDER_ERROR_MESSAGE,
+      'r1:0': DATE_ORDER_ERROR_MESSAGE,
+      'r1:1': DATE_ORDER_ERROR_MESSAGE,
     });
   });
 
   it('sætter error-message på begge periode-celler ved dag-rækkefølgefejl', () => {
     const rows = [row('r1', { col0_dag: '31-01-2024', col1_dag: '01-01-2024' })];
     expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'dag')).toEqual({
-      'r1:col0_dag': DATE_ORDER_ERROR_MESSAGE,
-      'r1:col1_dag': DATE_ORDER_ERROR_MESSAGE,
+      'r1:0': DATE_ORDER_ERROR_MESSAGE,
+      'r1:1': DATE_ORDER_ERROR_MESSAGE,
     });
   });
 
@@ -178,10 +193,10 @@ describe('buildStandardLoenPeriodOrderCellErrorMessages', () => {
       row('r3', { col0_dag: '15-03-2024', col1_dag: '10-03-2024' }),
     ];
     expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'dag')).toEqual({
-      'r1:col0_dag': DATE_ORDER_ERROR_MESSAGE,
-      'r1:col1_dag': DATE_ORDER_ERROR_MESSAGE,
-      'r3:col0_dag': DATE_ORDER_ERROR_MESSAGE,
-      'r3:col1_dag': DATE_ORDER_ERROR_MESSAGE,
+      'r1:0': DATE_ORDER_ERROR_MESSAGE,
+      'r1:1': DATE_ORDER_ERROR_MESSAGE,
+      'r3:0': DATE_ORDER_ERROR_MESSAGE,
+      'r3:1': DATE_ORDER_ERROR_MESSAGE,
     });
   });
 

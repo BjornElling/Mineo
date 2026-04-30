@@ -25,6 +25,8 @@ import {
 } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
+import { useTableInputSaveError } from '../../../hooks/useTableInputSaveError';
+import { registerDraftHistoryController, type DraftHistoryRestoreState } from '../../../utils/draftHistoryRegistry';
 
 export type TablePercentInputValue = string | number | undefined;
 
@@ -352,6 +354,7 @@ const TablePercentInput = React.memo(
     const latestCommittedPayloadRef = React.useRef<
       CommittedPayload<string, string, PercentFingerprint>
     >(toCommittedPercentPayload(value, allowDecimals));
+    const pendingHistoryValueResyncRef = React.useRef(false);
 
     const effectiveMin = minValue ?? (useDefaultPercentRange ? 0 : undefined);
     const effectiveMax = maxValue ?? (useDefaultPercentRange ? 100 : undefined);
@@ -403,7 +406,7 @@ const TablePercentInput = React.memo(
       };
     }, [allowNegative, effectiveMax, effectiveMin, locked, onBlur, onChange, onErrorChange]);
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       latestCommittedPayloadRef.current = toCommittedPercentPayload(
         value,
         allowDecimals
@@ -426,6 +429,13 @@ const TablePercentInput = React.memo(
     }, [allowDecimals, isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
+      const nextDraft = toDisplayString(value, allowDecimals);
+      if (pendingHistoryValueResyncRef.current) {
+        pendingHistoryValueResyncRef.current = false;
+        draftRef.current = nextDraft;
+        setDraft(nextDraft);
+        return;
+      }
       if (!isEditing) {
         const inputEl = inputElRef.current;
         const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
@@ -435,7 +445,7 @@ const TablePercentInput = React.memo(
           (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
         if (hasPhysicalFocus) return;
         if (hasError || preserveInvalidDraft) return;
-        setDraft(toDisplayString(value, allowDecimals));
+        setDraft(nextDraft);
       }
     }, [allowDecimals, hasError, isEditing, preserveInvalidDraft, value]);
 
@@ -494,6 +504,7 @@ const TablePercentInput = React.memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = e.target.value ?? '';
+        pendingHistoryValueResyncRef.current = false;
         setHasError(false);
         setErrorMessage('');
         draftRef.current = nextDraft;
@@ -670,6 +681,42 @@ const TablePercentInput = React.memo(
     }, [allowDecimals, commitAndEmitBlur, gridApi]);
 
     const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
+      keyInitiatedEditRef.current = false;
+      if (state.kind === 'error') {
+        pendingHistoryValueResyncRef.current = false;
+        draftRef.current = state.draft;
+        setDraft(state.draft);
+        setTouched(true);
+        setPreserveInvalidDraft(true);
+        setHasError(true);
+        setErrorMessage(state.error.message ?? '');
+        latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
+        return;
+      }
+
+      pendingHistoryValueResyncRef.current = true;
+      setTouched(false);
+      setPreserveInvalidDraft(false);
+      setHasError(false);
+      setErrorMessage('');
+      latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+    }, []);
+
+    useTableInputSaveError({
+      key: `table-percent:${a11yErrorId}`,
+      active: touched && hasError && preserveInvalidDraft,
+      message: errorMessage,
+      inputRef: inputElRef,
+    });
+
+    React.useEffect(() => {
+      return registerDraftHistoryController(
+        { focusToken: undoFocusToken, fieldPath: gridCellKey },
+        { restoreFromHistory }
+      );
+    }, [gridCellKey, restoreFromHistory, undoFocusToken]);
+
     React.useEffect(() => {
       gridApi.registerEditor(gridCell, editorHandle);
       return () => {

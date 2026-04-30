@@ -56,7 +56,7 @@ export type StandardLoenTableProps = {
   loenperiode: Loenperiode;
   satser: StandardLoenTableSatser;
   tableData: StandardLoenTableRow[];
-  onTableDataChange?: (data: StandardLoenTableRow[]) => void;
+  onTableDataChange?: (data: StandardLoenTableRow[], options?: Readonly<{ fieldPath?: string }>) => void;
   onValidationChange?: (summary: StandardLoenTableValidationSummary) => void;
   externalCellErrorMessagesByCellKey?: Readonly<Record<string, string>>;
   useSmallFont?: boolean;
@@ -92,10 +92,19 @@ const resolveColIdxFromKey = (colKey: StandardLoenTableColumnKey): number => {
   return colKey.startsWith('col0_') ? 0 : colKey.startsWith('col1_') ? 1 : Number.parseInt(colKey.slice(3), 10);
 };
 
+const buildCellKey = (rowId: string, colKey: StandardLoenTableColumnKey): string => {
+  return `${rowId}:${resolveColIdxFromKey(colKey)}`;
+};
+
 type TableRowsState = {
   draft: StandardLoenTableRow[];
   committed: StandardLoenTableRow[];
 };
+
+type PendingPersist = Readonly<{
+  data: StandardLoenTableRow[];
+  fieldPath?: string;
+}>;
 
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
   ({ loenperiode, satser, tableData, onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false, saveOrderPath, calculateDerivedRow }, ref) => {
@@ -107,16 +116,16 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     }, []);
 
     const lastPersistedFingerprintRef = React.useRef<string | null>(null);
-    const pendingPersistRef = React.useRef<StandardLoenTableRow[] | null>(null);
+    const pendingPersistRef = React.useRef<PendingPersist | null>(null);
     const tableRef = React.useRef<HTMLTableElement | null>(null);
     const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
     const visibleRowIdsRef = React.useRef<readonly string[]>([]);
 
     const persistTableData = React.useCallback(
-      (internalData: StandardLoenTableRow[]) => {
+      (internalData: StandardLoenTableRow[], options?: Readonly<{ fieldPath?: string }>) => {
         if (!onTableDataChange) return;
         lastPersistedFingerprintRef.current = fingerprintTableData(internalData);
-        onTableDataChange(internalData);
+        onTableDataChange(internalData, options);
       },
       [onTableDataChange]
     );
@@ -171,8 +180,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       });
     }, [loenperiode, manageRows]);
 
-    const queuePersist = React.useCallback((dataToPersist: StandardLoenTableRow[]) => {
-      pendingPersistRef.current = dataToPersist;
+    const queuePersist = React.useCallback((dataToPersist: StandardLoenTableRow[], options?: Readonly<{ fieldPath?: string }>) => {
+      pendingPersistRef.current = { data: dataToPersist, fieldPath: options?.fieldPath };
     }, []);
 
     const reorderRows = React.useCallback((nextRows: StandardLoenTableRow[]) => {
@@ -189,14 +198,15 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
       // KRITISK: Match via fingerprint i stedet for reference-equality
       // fordi React kan returnere ny reference selvom data er det samme
-      const pendingFingerprint = fingerprintTableData(pendingPersistRef.current);
+      const pending = pendingPersistRef.current;
+      const pendingFingerprint = fingerprintTableData(pending.data);
       const draftFingerprint = fingerprintTableData(rowsState.draft);
 
       if (pendingFingerprint !== draftFingerprint) return;
 
       // Intentional convergence: trailing empty rows produced by table normalization
       // are persisted the same way as in other dynamic tables.
-      persistTableData(rowsState.draft);
+      persistTableData(rowsState.draft, { fieldPath: pending.fieldPath });
       pendingPersistRef.current = null;
     }, [rowsState.draft, persistTableData]);
 
@@ -277,7 +287,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           }
 
           if (commitEval.shouldPersist) {
-            queuePersist(managed);
+            queuePersist(managed, { fieldPath: `${rowId}:${resolveColIdxFromKey(colKey)}` });
           }
           return { draft: managed, committed: managed };
         });
@@ -288,17 +298,17 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     const committedById = React.useMemo(() => new Map(committedTableData.map((row) => [row.id, row])), [committedTableData]);
     const resolveCommittedRow = React.useCallback((row: StandardLoenTableRow) => committedById.get(row.id) ?? row, [committedById]);
 
-    const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
+    const cellErrorsByCellKeyRef = React.useRef<Set<string>>(new Set());
 
     React.useEffect(() => {
       const validRowIds = new Set(rowsState.draft.map((row) => row.id));
       const current = cellErrorsByCellKeyRef.current;
-      for (const cellKey of Object.keys(current)) {
+      for (const cellKey of current) {
         const separatorIdx = cellKey.indexOf(':');
         if (separatorIdx < 0) continue;
         const rowId = cellKey.slice(0, separatorIdx);
         if (!validRowIds.has(rowId)) {
-          delete current[cellKey];
+          current.delete(cellKey);
         }
       }
     }, [rowsState.draft]);
@@ -336,7 +346,10 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     // cellErrorsByCellKeyRef is intentionally NOT in the deps array — it is a mutable ref and is
     // always read at call time, so the result is always current regardless of when React calls this.
     const getValidationResult = React.useCallback(() => {
-      const combinedCellErrorsByCellKey: Record<string, true> = { ...cellErrorsByCellKeyRef.current };
+      const combinedCellErrorsByCellKey: Record<string, true> = {};
+      for (const cellKey of cellErrorsByCellKeyRef.current) {
+        combinedCellErrorsByCellKey[cellKey] = true;
+      }
       for (const [cellKey, message] of Object.entries(periodOrderCellErrorMessagesByCellKey)) {
         if (message.trim() === '') continue;
         combinedCellErrorsByCellKey[cellKey] = true;
@@ -364,14 +377,14 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     }, [getValidationResult, onValidationChange]);
 
     const handleErrorChange = React.useCallback((rowId: string, colKey: StandardLoenTableColumnKey, info: TableInputErrorInfo) => {
-      const key = `${rowId}:${colKey}`;
-      const hadError = Boolean(cellErrorsByCellKeyRef.current[key]);
+      const key = buildCellKey(rowId, colKey);
+      const hadError = cellErrorsByCellKeyRef.current.has(key);
       if (info.hasError) {
         if (hadError) return;
-        cellErrorsByCellKeyRef.current[key] = true;
+        cellErrorsByCellKeyRef.current.add(key);
       } else {
         if (!hadError) return;
-        delete cellErrorsByCellKeyRef.current[key];
+        cellErrorsByCellKeyRef.current.delete(key);
       }
       notifyValidationChange();
     }, [notifyValidationChange]);
@@ -470,7 +483,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     const getExternalErrorMessage = React.useCallback(
       (rowId: string, colKey: StandardLoenTableColumnKey): string | undefined => {
-        const periodOrderMessage = periodOrderCellErrorMessagesByCellKey[`${rowId}:${colKey}`];
+        const numericCellKey = buildCellKey(rowId, colKey);
+        const periodOrderMessage = periodOrderCellErrorMessagesByCellKey[numericCellKey];
         if (periodOrderMessage && isVisibleColKey(colKey)) {
           return periodOrderMessage;
         }
@@ -497,8 +511,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       }
       const value = row[externalCellError.colKey];
       const isEmpty = isStandardLoenTableValueEffectivelyEmptyForValidation(value);
-      const cellKey = `${externalCellError.rowId}:${externalCellError.colKey}`;
-      const hasInputError = Boolean(cellErrorsByCellKeyRef.current[cellKey]);
+      const cellKey = buildCellKey(externalCellError.rowId, externalCellError.colKey);
+      const hasInputError = cellErrorsByCellKeyRef.current.has(cellKey);
       if (!isEmpty || hasInputError) {
         setExternalCellError(null);
       }

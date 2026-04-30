@@ -43,13 +43,12 @@ export const buildStandardLoenPeriodOrderCellErrorMessages = (
   // ingen "fra/til"-rækkefølge, som kan give denne fejltype.
   if (loenperiode === 'maaned') return {};
 
-  const [periodStartKey, periodEndKey] = PERIOD_KEYS[loenperiode];
   const messages: Record<string, string> = {};
 
   for (const row of rows) {
     if (!hasAarsloenPeriodOrderError(row, loenperiode)) continue;
-    messages[`${row.id}:${periodStartKey}`] = DATE_ORDER_ERROR_MESSAGE;
-    messages[`${row.id}:${periodEndKey}`] = DATE_ORDER_ERROR_MESSAGE;
+    messages[`${row.id}:0`] = DATE_ORDER_ERROR_MESSAGE;
+    messages[`${row.id}:1`] = DATE_ORDER_ERROR_MESSAGE;
   }
 
   return messages;
@@ -81,7 +80,25 @@ const isStandardLoenTableColumnKey = (value: string): value is StandardLoenTable
   );
 };
 
-const collectCellErrorsByRow = (cellErrorsByCellKey: StandardLoenTableCellErrorMap): Map<string, Set<StandardLoenTableColumnKey>> => {
+const resolveColumnKeyFromCellKeyPart = (
+  value: string,
+  loenperiode: Loenperiode
+): StandardLoenTableColumnKey | null => {
+  if (isStandardLoenTableColumnKey(value)) return value;
+  const numeric = Number.parseInt(value, 10);
+  if (!Number.isInteger(numeric) || String(numeric) !== value) return null;
+  if (numeric === 0 || numeric === 1) return PERIOD_KEYS[loenperiode][numeric];
+  if (numeric === 2) return 'col2';
+  if (numeric === 3) return 'col3';
+  if (numeric === 4) return 'col4';
+  if (numeric === 5) return 'col5';
+  return null;
+};
+
+const collectCellErrorsByRow = (
+  cellErrorsByCellKey: StandardLoenTableCellErrorMap,
+  loenperiode: Loenperiode
+): Map<string, Set<StandardLoenTableColumnKey>> => {
   const byRow = new Map<string, Set<StandardLoenTableColumnKey>>();
 
   for (const cellKey of Object.keys(cellErrorsByCellKey)) {
@@ -89,12 +106,13 @@ const collectCellErrorsByRow = (cellErrorsByCellKey: StandardLoenTableCellErrorM
     if (separatorIdx < 0) continue;
     const rowId = cellKey.slice(0, separatorIdx);
     const colKeyRaw = cellKey.slice(separatorIdx + 1);
-    if (!isStandardLoenTableColumnKey(colKeyRaw)) continue;
+    const colKey = resolveColumnKeyFromCellKeyPart(colKeyRaw, loenperiode);
+    if (!colKey) continue;
     const set = byRow.get(rowId);
     if (set) {
-      set.add(colKeyRaw);
+      set.add(colKey);
     } else {
-      byRow.set(rowId, new Set([colKeyRaw]));
+      byRow.set(rowId, new Set([colKey]));
     }
   }
 
@@ -112,7 +130,7 @@ export const getStandardLoenTableValidation = ({
 }>): StandardLoenTableValidationResult => {
   const rowIssues: StandardLoenTableValidationSummary['rowIssues'] = [];
   const errors: TableError[] = [];
-  const cellErrorsByRow = collectCellErrorsByRow(cellErrorsByCellKey);
+  const cellErrorsByRow = collectCellErrorsByRow(cellErrorsByCellKey, loenperiode);
 
   let hasErrors = false;
   let hasWarnings = false;

@@ -21,6 +21,8 @@ import { formatRoundedCanonical } from '../../../utils/rounding';
 import { makeAmountFingerprintFromCanonical, type AmountFingerprint, type CommittedPayload } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
+import { useTableInputSaveError } from '../../../hooks/useTableInputSaveError';
+import { registerDraftHistoryController, type DraftHistoryRestoreState } from '../../../utils/draftHistoryRegistry';
 
 export type TableAmountInputValue = AmountValue | undefined;
 
@@ -135,10 +137,11 @@ const TableAmountInput = React.memo(
     const keyInitiatedEditRef = React.useRef(false);
     const skipClickSelectionRestoreRef = React.useRef(false);
     const latestCommittedPayloadRef = React.useRef<CommittedPayload<AmountValue | undefined, string, AmountFingerprint>>(toCommittedAmountPayload(value));
+    const pendingHistoryValueResyncRef = React.useRef(false);
 
     const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, canBeNegative });
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       latestCommittedPayloadRef.current = toCommittedAmountPayload(value);
     }, [value]);
 
@@ -159,6 +162,13 @@ const TableAmountInput = React.memo(
     }, []);
 
     React.useEffect(() => {
+      const nextDisplay = toDisplayString(value);
+      if (pendingHistoryValueResyncRef.current) {
+        pendingHistoryValueResyncRef.current = false;
+        draftRef.current = nextDisplay;
+        setDraft(nextDisplay);
+        return;
+      }
       if (!isEditing) {
         const inputEl = inputElRef.current;
         const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
@@ -168,7 +178,7 @@ const TableAmountInput = React.memo(
           (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
         if (hasPhysicalFocus) return;
         if (hasError) return;
-        setDraft(toDisplayString(value));
+        setDraft(nextDisplay);
       }
     }, [hasError, isEditing, value]);
 
@@ -230,6 +240,8 @@ const TableAmountInput = React.memo(
         const nextPayload = toCommittedAmountPayload(committed.value);
         const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
         // Kontrakt 1A: no-op må aldrig emitte commit til parent.
+        // Når onBlur undertrykkes her, er inputtet selv ansvarligt for at rydde/rapportere
+        // onErrorChange, så tabelvalideringen ikke afhænger af parent-commit.
         if (isNoop) {
           setHasError(false);
           setErrorMessage('');
@@ -250,6 +262,7 @@ const TableAmountInput = React.memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = sanitizePastedAmount(e.target.value ?? '');
+        pendingHistoryValueResyncRef.current = false;
         setHasError(false);
         setErrorMessage('');
         if (nextDraft === '') {
@@ -426,6 +439,43 @@ const TableAmountInput = React.memo(
     }, [commitAndEmitBlur, gridApi]);
 
     const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
+      keyInitiatedEditRef.current = false;
+      if (state.kind === 'error') {
+        pendingHistoryValueResyncRef.current = false;
+        draftRef.current = state.draft;
+        setDraft(state.draft);
+        setTouched(true);
+        setHasError(true);
+        setErrorMessage(state.error.message ?? '');
+        latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
+        return;
+      }
+
+      // Sæt kun flaget — useEffect([value]) synkroniserer draft fra den restored value-prop.
+      // Undgå at sætte draft direkte fra latestCommittedPayloadRef her: ref kan være stale
+      // hvis restoreFromHistory (via rAF) kører inden React har committet den nye render.
+      pendingHistoryValueResyncRef.current = true;
+      setTouched(false);
+      setHasError(false);
+      setErrorMessage('');
+      latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+    }, []);
+
+    useTableInputSaveError({
+      key: `table-amount:${a11yErrorId}`,
+      active: touched && hasError,
+      message: errorMessage,
+      inputRef: inputElRef,
+    });
+
+    React.useEffect(() => {
+      return registerDraftHistoryController(
+        { focusToken: undoFocusToken, fieldPath: gridCellKey },
+        { restoreFromHistory }
+      );
+    }, [gridCellKey, restoreFromHistory, undoFocusToken]);
+
     React.useEffect(() => {
       gridApi.registerEditor(gridCell, editorHandle);
       return () => {

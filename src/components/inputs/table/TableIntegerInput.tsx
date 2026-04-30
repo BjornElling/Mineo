@@ -14,6 +14,8 @@ import { getIntegerRangeErrorMessage } from '../../../utils/integerRange';
 import { normalizeIntegerPaste } from '../../../utils/inputPasteNormalization';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
+import { useTableInputSaveError } from '../../../hooks/useTableInputSaveError';
+import { registerDraftHistoryController, type DraftHistoryRestoreState } from '../../../utils/draftHistoryRegistry';
 
 export type TableIntegerInputChangeEvent = { target: { value: string } };
 
@@ -148,6 +150,7 @@ const TableIntegerInput = React.memo(
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
     const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, IntegerFingerprint>>(toCommittedIntegerPayload(value));
+    const pendingHistoryValueResyncRef = React.useRef(false);
 
     const configErrorMessage = React.useMemo(() => {
       if (minValue !== undefined && !Number.isFinite(minValue)) return 'Ugyldig konfiguration: minValue skal være et tal';
@@ -184,7 +187,7 @@ const TableIntegerInput = React.memo(
       latest.current = { onChange, onBlur, onErrorChange, locked, minValue, maxValue, maxDigits, enforceRange };
     }, [enforceRange, locked, maxDigits, maxValue, minValue, onBlur, onChange, onErrorChange]);
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       latestCommittedPayloadRef.current = toCommittedIntegerPayload(value);
     }, [value]);
 
@@ -204,6 +207,13 @@ const TableIntegerInput = React.memo(
     }, [isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
+      const nextDraft = value ?? '';
+      if (pendingHistoryValueResyncRef.current) {
+        pendingHistoryValueResyncRef.current = false;
+        draftRef.current = nextDraft;
+        setDraft(nextDraft);
+        return;
+      }
       if (!isEditing) {
         const inputEl = inputElRef.current;
         const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
@@ -213,7 +223,7 @@ const TableIntegerInput = React.memo(
           (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
         if (hasPhysicalFocus) return;
         if (hasError || preserveInvalidDraft) return;
-        setDraft(value ?? '');
+        setDraft(nextDraft);
       }
     }, [hasError, isEditing, preserveInvalidDraft, value]);
 
@@ -283,6 +293,7 @@ const TableIntegerInput = React.memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = e.target.value ?? '';
+        pendingHistoryValueResyncRef.current = false;
         setHasError(false);
         setErrorMessage('');
         draftRef.current = nextDraft;
@@ -447,6 +458,45 @@ const TableIntegerInput = React.memo(
     }, [commitAndEmitBlur, gridApi]);
 
     const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
+      keyInitiatedEditRef.current = false;
+      if (state.kind === 'error') {
+        pendingHistoryValueResyncRef.current = false;
+        draftRef.current = state.draft;
+        setDraft(state.draft);
+        setTouched(true);
+        setPreserveInvalidDraft(true);
+        setHasError(true);
+        setErrorMessage(state.error.message ?? '');
+        latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
+        return;
+      }
+
+      // Sæt kun flaget — useEffect([value]) synkroniserer draft fra den restored value-prop.
+      // Undgå at sætte draft direkte fra latestCommittedPayloadRef her: ref kan være stale
+      // hvis restoreFromHistory (via rAF) kører inden React har committet den nye render.
+      pendingHistoryValueResyncRef.current = true;
+      setTouched(false);
+      setPreserveInvalidDraft(false);
+      setHasError(false);
+      setErrorMessage('');
+      latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+    }, []);
+
+    useTableInputSaveError({
+      key: `table-integer:${a11yErrorId}`,
+      active: touched && hasError && preserveInvalidDraft,
+      message: errorMessage,
+      inputRef: inputElRef,
+    });
+
+    React.useEffect(() => {
+      return registerDraftHistoryController(
+        { focusToken: undoFocusToken, fieldPath: gridCellKey },
+        { restoreFromHistory }
+      );
+    }, [gridCellKey, restoreFromHistory, undoFocusToken]);
+
     React.useEffect(() => {
       gridApi.registerEditor(gridCell, editorHandle);
       return () => gridApi.unregisterEditor(gridCell);

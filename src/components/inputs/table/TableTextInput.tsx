@@ -11,6 +11,7 @@ import { trimWhitespaceEdges } from '../../../utils/draftNormalization';
 import { makeStringFingerprintFromCanonical, type CommittedPayload, type StringFingerprint } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
+import { registerDraftHistoryController, type DraftHistoryRestoreState } from '../../../utils/draftHistoryRegistry';
 
 export type TableTextInputChangeEvent = { target: { value: string } };
 
@@ -65,6 +66,7 @@ const TableTextInput = React.memo(
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
     const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, StringFingerprint>>(toCommittedTextPayload(value));
+    const pendingHistoryValueResyncRef = React.useRef(false);
 
     const latest = React.useRef({ onChange, onBlur, onErrorChange, locked });
 
@@ -76,7 +78,7 @@ const TableTextInput = React.memo(
       latest.current = { onChange, onBlur, onErrorChange, locked };
     }, [locked, onBlur, onChange, onErrorChange]);
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       latestCommittedPayloadRef.current = toCommittedTextPayload(value);
     }, [value]);
 
@@ -89,6 +91,13 @@ const TableTextInput = React.memo(
     }, []);
 
     React.useEffect(() => {
+      const nextDraft = value ?? '';
+      if (pendingHistoryValueResyncRef.current) {
+        pendingHistoryValueResyncRef.current = false;
+        draftRef.current = nextDraft;
+        setDraft(nextDraft);
+        return;
+      }
       if (!isEditing) {
         const inputEl = inputElRef.current;
         const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
@@ -97,7 +106,7 @@ const TableTextInput = React.memo(
           activeEl !== null &&
           (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
         if (hasPhysicalFocus) return;
-        setDraft(value ?? '');
+        setDraft(nextDraft);
       }
     }, [isEditing, value]);
 
@@ -136,6 +145,7 @@ const TableTextInput = React.memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = e.target.value ?? '';
+        pendingHistoryValueResyncRef.current = false;
         draftRef.current = nextDraft;
         setDraft(nextDraft);
         latest.current.onChange?.({ target: { value: nextDraft } });
@@ -231,6 +241,26 @@ const TableTextInput = React.memo(
     }, [commitAndEmitBlur, gridApi]);
 
     const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
+      keyInitiatedEditRef.current = false;
+      if (state.kind === 'error') {
+        pendingHistoryValueResyncRef.current = false;
+        draftRef.current = state.draft;
+        setDraft(state.draft);
+      } else {
+        pendingHistoryValueResyncRef.current = true;
+      }
+      setTouched(state.kind === 'error');
+      latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+    }, []);
+
+    React.useEffect(() => {
+      return registerDraftHistoryController(
+        { focusToken: undoFocusToken, fieldPath: gridCellKey },
+        { restoreFromHistory }
+      );
+    }, [gridCellKey, restoreFromHistory, undoFocusToken]);
+
     React.useEffect(() => {
       gridApi.registerEditor(gridCell, editorHandle);
       return () => {

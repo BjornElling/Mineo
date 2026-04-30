@@ -150,6 +150,7 @@ describe('StandardLoenTable', () => {
     await waitFor(() => {
       expect(getDerivedTexts()).toEqual(expectedAfterBlur);
       expect(onTableDataChange).toHaveBeenCalledTimes(1);
+      expect(onTableDataChange.mock.calls[0]?.[1]).toEqual({ fieldPath: `row1:${colIdx}` });
     });
   }, TEST_TIMEOUT_MS);
 
