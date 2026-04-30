@@ -9,7 +9,9 @@ const routeToPageId = (route: string): string => route.replace(/^\/+/, '') || 's
 
 const attrSelector = (attr: string, value: string): string => `[${attr}=${JSON.stringify(value)}]`;
 
-const focusRestoredField = (frame: HistoryFrame): void => {
+const FOCUS_RESTORE_MAX_ATTEMPTS = 60;
+
+const findRestoredField = (frame: HistoryFrame): HTMLElement | null => {
   const selectors: string[] = [];
   if (frame.origin.focusToken) {
     selectors.push(attrSelector('data-mineo-undo-focus-token', frame.origin.focusToken));
@@ -18,19 +20,42 @@ const focusRestoredField = (frame: HistoryFrame): void => {
     selectors.push(attrSelector('data-mineo-undo-field-path', frame.origin.fieldPath));
   }
 
-  const focusable = selectors
-    .map((selector) => document.querySelector(selector))
-    .find((element): element is HTMLElement => element instanceof HTMLElement);
+  for (const selector of selectors) {
+    const element = document.querySelector(selector);
+    if (element instanceof HTMLElement) return element;
+  }
+  return null;
+};
 
-  if (!focusable) return;
-  focusable.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  focusable.focus({ preventScroll: true });
+const focusRestoredField = (target: HTMLElement): void => {
+  // Genbrug "fejl og advarsler"-scroll-mønsteret: scroll til feltets indeholdende sektion
+  // (block: 'start') hvis vi finder en, ellers til feltet selv. Sætter derefter fokus uden
+  // ekstra scroll, så browseren ikke flytter sig efter sektion-scroll'en.
+  const section = target.closest('[data-section-id]');
+  if (section instanceof HTMLElement) {
+    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else {
+    target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  target.focus({ preventScroll: true });
 };
 
 const scheduleFocusRestore = (frame: HistoryFrame): void => {
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => focusRestoredField(frame));
-  });
+  // Tab- og side-skift kan udløse async mount af det målrettede felt; retry over flere
+  // frames indtil feltet findes eller vi giver op (samme mønster som useScrollToSectionWithRetry).
+  let attempts = 0;
+  const tick = () => {
+    const target = findRestoredField(frame);
+    if (target) {
+      focusRestoredField(target);
+      return;
+    }
+    attempts += 1;
+    if (attempts < FOCUS_RESTORE_MAX_ATTEMPTS) {
+      requestAnimationFrame(tick);
+    }
+  };
+  requestAnimationFrame(tick);
 };
 
 const restoreFrame = (frame: HistoryFrame): void => {

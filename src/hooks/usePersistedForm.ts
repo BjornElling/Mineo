@@ -13,6 +13,7 @@ import {
 import { createActiveTabStorageKey } from '../config/storageManifest';
 import { readOptionalSessionStorageValue } from '../utils/safeSessionStorage';
 import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
+import { readLastUndoFocus } from '../utils/undoFocusTracker';
 
 /**
  * Signatur for setValues: funktionel updater-baseret felt-commit.
@@ -154,20 +155,17 @@ export const usePersistedForm = <K extends StorageKey>(
     const route = location.pathname;
     const pageId = route.replace(/^\/+/, '') || 'stamdata';
     const tabKey = readOptionalSessionStorageValue(createActiveTabStorageKey(pageId));
-    const activeElement = typeof document === 'undefined' ? null : document.activeElement;
-    const focusToken = activeElement instanceof HTMLElement
-      ? activeElement.getAttribute('data-mineo-undo-focus-token')
-      : null;
-    const activeFieldPath = activeElement instanceof HTMLElement
-      ? activeElement.getAttribute('data-mineo-undo-field-path')
-      : null;
+    // Vigtigt: brug det senest fokuserede undo-bærende felt — ikke document.activeElement.
+    // Et felt-commit udløses normalt af blur efter fokus er flyttet, så activeElement
+    // peger på det nye felt og ville give forkert undo-mål. Se undoFocusTracker.ts.
+    const lastFocus = readLastUndoFocus();
 
     return {
       route,
       tabKey,
       sectionKey: pageKey,
-      fieldPath: options?.fieldPath ?? activeFieldPath,
-      focusToken,
+      fieldPath: options?.fieldPath ?? lastFocus.fieldPath,
+      focusToken: lastFocus.focusToken,
     };
   }, [location.pathname, pageKey]);
 
