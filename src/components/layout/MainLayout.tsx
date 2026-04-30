@@ -7,17 +7,16 @@ import Overlay from '../ui/Overlay';
 import ConfirmationDialog from '../ui/ConfirmationDialog';
 import BugReportButton from '../errors/BugReportButton';
 import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
-import { isRecord } from '../../utils/typeGuards';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import {
   commitActiveGridEditors,
   restoreFocusIfPossible,
   isOpenTextEditorElement,
+  hasOpenGridEditor,
 } from '../../utils/commitFlush';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
-import { persistenceSchemas } from '../../config/persistenceRegistry';
-import { UI_STORAGE_KEYS, type StorageKey } from '../../config/storageManifest';
+import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 import {
   getFieldErrorsBySourceSnapshot,
   useAuthoritativeSnapshotEpochSelector,
@@ -32,6 +31,8 @@ import { useDevtoolsMonitoring } from '../../hooks/useDevtoolsMonitoring';
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
+import { getFirstBlockingInputErrorTarget } from '../../utils/saveBlockedFocus';
+import { installUndoFocusTracker } from '../../utils/undoFocusTracker';
 
 /**
  * Hovedlayout for applikationen
@@ -61,6 +62,12 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
   const authoritativeSnapshotEpoch = useAuthoritativeSnapshotEpochSelector();
   const combinedSectionRevision = useCombinedSectionRevisionSelector();
   const { undo, redo } = useUndoRedo();
+
+  // Skal installeres før første commit, så undo-historikken fanger korrekt origin-felt
+  // (commit sker typisk på blur efter fokus allerede er flyttet — se undoFocusTracker.ts).
+  React.useEffect(() => {
+    installUndoFocusTracker();
+  }, []);
 
   // Prioritering: Track om nuværende overlay er user-feedback (højere prioritet end system errors)
   const isUserFeedbackRef = React.useRef<boolean>(false);
@@ -124,24 +131,11 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     }
   }, [location.pathname, navigate]);
 
-  const hasBlockingInputErrors = React.useCallback((): boolean => {
-    for (const pageKey of Object.keys(persistenceSchemas) as StorageKey[]) {
-      const errorsBySource = getFieldErrorsBySourceSnapshot(pageKey);
-      for (const fieldName of Object.keys(errorsBySource)) {
-        const fieldSources = errorsBySource[fieldName as keyof typeof errorsBySource];
-        if (!fieldSources) continue;
-        for (const sourceKey of Object.keys(fieldSources)) {
-          const entry = fieldSources[sourceKey as keyof typeof fieldSources] as unknown;
-          // Bevidst designvalg:
-          // Gem blokeres kun af ikke-committable fejl. UI-fejl på allerede committede værdier
-          // (fx dato/tal uden for bounds) skal fortsat vises med rød markering, men må gemmes.
-          if (isRecord(entry) && entry.severity === 'error' && entry.blocksSave !== false) {
-            return true;
-          }
-        }
-      }
-    }
-    return false;
+  const getFirstBlockingInputError = React.useCallback(() => {
+    // Bevidst designvalg:
+    // Gem blokeres kun af ikke-committable fejl. UI-fejl på allerede committede værdier
+    // (fx dato/tal uden for bounds) skal fortsat vises med rød markering, men må gemmes.
+    return getFirstBlockingInputErrorTarget(getFieldErrorsBySourceSnapshot);
   }, []);
 
   const {
@@ -162,7 +156,8 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     navigate,
     combinedSectionRevisionRef,
     markSaved,
-    hasBlockingInputErrors,
+    getFirstBlockingInputError,
+    currentPathname: location.pathname,
     getPersistedData,
     replaceAllPersistedData,
     clearAllData,
@@ -231,20 +226,33 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       }
 
       const key = e.key.toLowerCase();
-      if (isOpenTextEditorElement(document.activeElement)) {
+      const isUndoShortcut = (e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'z';
+      const isRedoShortcut =
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'z') || ((e.ctrlKey || e.metaKey) && key === 'y');
+
+      if (!isUndoShortcut && !isRedoShortcut) return;
+
+      // Designvalg: undo/redo blokeres mens en editor er åben (uafsluttet draft i et felt
+      // eller en åben grid-celle-editor). Brugeren skal afslutte eller annullere editoren først.
+      // Se docs/implementation/undo-redo.md for begrundelse.
+      if (isOpenTextEditorElement(document.activeElement) || hasOpenGridEditor()) {
+        e.preventDefault();
+        isUserFeedbackRef.current = true;
+        setOverlay({
+          message: 'Kan ikke fortryde eller gentage: afslut eller ret det aktive felt først.',
+          type: 'warning',
+        });
         return;
       }
 
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'z') {
+      if (isUndoShortcut) {
         e.preventDefault();
         undo();
         return;
       }
 
-      if (((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'z') || ((e.ctrlKey || e.metaKey) && key === 'y')) {
-        e.preventDefault();
-        redo();
-      }
+      e.preventDefault();
+      redo();
     };
 
     window.addEventListener('keydown', handleKeyDown);

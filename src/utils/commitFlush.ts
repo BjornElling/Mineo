@@ -61,6 +61,15 @@ const waitForCommitFlush = async (): Promise<void> => {
   await waitForAnimationFrame();
 };
 
+export const hasOpenGridEditor = (): boolean => {
+  const tables = Array.from(document.querySelectorAll<HTMLTableElement>('table[data-mineo-table-navigation="true"]'));
+  for (const table of tables) {
+    const core = getGridCoreForTable(table);
+    if (core?.getEditingCell()) return true;
+  }
+  return false;
+};
+
 export const commitActiveGridEditors = (): GridCommitAttemptResult => {
   let failedCount = 0;
   let firstFailedElement: HTMLElement | null = null;
