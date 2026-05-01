@@ -255,9 +255,9 @@ const Mineo = React.memo(() => {
             <Typography
               className="row--text icon-text-link"
               component="a"
-              href="mailto:bj.elling@gmail.com"
+              href="mailto:bel@fho.dk"
             >
-              bj.elling@gmail.com
+              bel@fho.dk
             </Typography>
           </Box>
 
