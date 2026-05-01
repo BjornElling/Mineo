@@ -3,6 +3,8 @@ import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 
 type DraftRow = { id: string; name: string };
 type CommittedRow = { id: string; name?: string };
+type OrderedDraftRow = { id: string; first: string; second: string };
+type OrderedCommittedRow = { id: string; first?: string; second?: string };
 
 const makeConfig = (
   store: { committed: CommittedRow[] | undefined },
@@ -71,6 +73,69 @@ describe('useRowDrafts', () => {
 
     expect(store.committed?.[0].name).toBe('new-value');
     expect(result.current.draftRows[0].name).toBe('new-value');
+  });
+
+  it('commitRow resyncer ikke andre drafts ved no-op commit', () => {
+    const store: { committed: CommittedRow[] | undefined } = {
+      committed: [
+        { id: 'r1', name: 'old' },
+        { id: 'r2', name: 'keep' },
+      ],
+    };
+    const { result } = renderHook(() =>
+      useRowDrafts<DraftRow, CommittedRow, 'name'>(makeConfig(store, 1))
+    );
+
+    act(() => {
+      result.current.onFieldChange('r2', 'name')('local-draft');
+      const didChange = result.current.commitRow('r1');
+      expect(didChange).toBe(false);
+    });
+
+    expect(store.committed?.find((row) => row.id === 'r1')?.name).toBe('old');
+    expect(result.current.draftRows.find((row) => row.id === 'r2')?.name).toBe('local-draft');
+  });
+
+  it('commitRow no-op er uafhængig af committed row property-rækkefølge', () => {
+    const store: { committed: OrderedCommittedRow[] | undefined } = {
+      committed: [
+        { id: 'r1', first: 'a', second: 'b' },
+        { id: 'r2', first: 'x', second: 'y' },
+      ],
+    };
+    const { result } = renderHook(() =>
+      useRowDrafts<OrderedDraftRow, OrderedCommittedRow, 'first' | 'second'>({
+        getCommitted: () => store.committed,
+        setCommitted: (updater) => {
+          store.committed = updater(store.committed);
+        },
+        toDraft: (rows) => rows.map((row) => ({ id: row.id, first: row.first ?? '', second: row.second ?? '' })),
+        toCommittedRow: (draft) => ({
+          second: draft.second || undefined,
+          first: draft.first || undefined,
+          id: draft.id,
+        }),
+        isRowEmpty: (row) => row.first === undefined && row.second === undefined,
+        ensureRows: (rows) => (rows && rows.length > 0 ? rows : [{ id: 'empty' }]),
+        createId: () => 'new',
+        createEmptyCommittedRow: (id) => ({ id }),
+        resyncToken: 1,
+      })
+    );
+
+    act(() => {
+      result.current.onFieldChange('r2', 'first')('local-draft');
+      result.current.onFieldChange('r1', 'first')('a');
+      result.current.onFieldChange('r1', 'second')('b');
+      const didChange = result.current.commitRow('r1');
+      expect(didChange).toBe(false);
+    });
+
+    expect(store.committed).toEqual([
+      { id: 'r1', first: 'a', second: 'b' },
+      { id: 'r2', first: 'x', second: 'y' },
+    ]);
+    expect(result.current.draftRows.find((row) => row.id === 'r2')?.first).toBe('local-draft');
   });
 
   it('addRow indsætter ny tom række før trailing empty row og bevarer øvrige rows', () => {

@@ -3,8 +3,9 @@ import { decryptFromString } from '../../utils/encryption';
 import { readFromFileHandle } from '../../utils/fileSystemAccess';
 import { SaveValidationError, saveToFile } from '../../utils/fileSave';
 import { buildAllDataRawFromSnapshot, compareData, verifyAfterSave } from '../../utils/fileSaveInternals';
-import { logError } from '../../utils/logger';
+import { logError, logWarning } from '../../utils/logger';
 import {
+  deleteFileHandleFromIndexedDB,
   loadFileHandleFromIndexedDB,
   requestPersistentStorage,
   saveFileHandleToIndexedDB,
@@ -60,7 +61,9 @@ const mockedRequestPersistentStorage = vi.mocked(requestPersistentStorage);
 const mockedLoadFileHandleFromIndexedDB = vi.mocked(loadFileHandleFromIndexedDB);
 const mockedSaveFileHandleToIndexedDB = vi.mocked(saveFileHandleToIndexedDB);
 const mockedVerifyFileHandleDetailed = vi.mocked(verifyFileHandleDetailed);
+const mockedDeleteFileHandleFromIndexedDB = vi.mocked(deleteFileHandleFromIndexedDB);
 const mockedLogError = vi.mocked(logError);
+const mockedLogWarning = vi.mocked(logWarning);
 
 describe('fileSave', () => {
   beforeEach(() => {
@@ -366,6 +369,28 @@ describe('fileSave', () => {
       expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
       expect(mockedWriteToFileHandle).toHaveBeenCalledTimes(1);
       expect(mockedWriteToFileHandle.mock.calls[0]?.[0]).toBe(loadedHandle);
+    });
+
+    it('behandler annulleret write-permission til gemt file handle som stille annullering', async () => {
+      const loadedHandle = { name: 'indlaest.eo', getFile: vi.fn(), createWritable: vi.fn() } as unknown as FileSystemFileHandle;
+
+      sessionStorage.setItem('mineo_ui_lastSavedFilename', 'indlaest.eo');
+      mockedIsFileSystemAccessSupported.mockReturnValue(true);
+      mockedRequestPersistentStorage.mockResolvedValue(true);
+      mockedLoadFileHandleFromIndexedDB.mockResolvedValue(loadedHandle);
+      mockedVerifyFileHandleDetailed.mockResolvedValue({
+        valid: false,
+        reason: 'permission_denied',
+        detail: 'permission=prompt',
+      });
+
+      const result = await saveToFile(snapshot);
+
+      expect(result).toEqual({ success: false, cancelled: true });
+      expect(mockedLogWarning).not.toHaveBeenCalled();
+      expect(mockedDeleteFileHandleFromIndexedDB).not.toHaveBeenCalled();
+      expect(mockedSaveFileWithPicker).not.toHaveBeenCalled();
+      expect(mockedWriteToFileHandle).not.toHaveBeenCalled();
     });
 
     it('persisterer ikke nyt file handle når verificering fejler', async () => {

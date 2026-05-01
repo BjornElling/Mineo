@@ -78,7 +78,7 @@ describe('SvieSmerteTable', () => {
           erErhvervssygdom={false}
           verserendeKlageMen={false}
           onFieldChange={svie.onFieldChange}
-          onRowBlur={svie.onFieldBlur}
+          onRowBlur={svie.onRowBlur}
         />
       );
     };

@@ -1507,7 +1507,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   erErhvervssygdom={erErhvervssygdom}
                   verserendeKlageMen={verserendeKlageMen}
                   onFieldChange={svie.onFieldChange}
-                  onRowBlur={(rowId) => svie.onFieldBlur(rowId)}
+                  onRowBlur={svie.onRowBlur}
                   onRowsReorder={svie.reorderRows}
                   saveOrderPath="erstatningsopgoerelse.svieSmertePerioder"
                 />
@@ -1607,7 +1607,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               committedById={taf.committedById}
               overlappingIds={taf.overlappingIds}
               onFieldChange={taf.onFieldChange}
-              onRowBlur={(rowId) => taf.onFieldBlur(rowId)}
+              onRowBlur={taf.onRowBlur}
               onRowsReorder={taf.reorderRows}
               derivedById={tafDerived.derivedById}
               derivedColumnHeader={tafDerived.kolonneOverskrift}
@@ -1627,7 +1627,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               committedById={ferie.committedById}
               feriedageById={ferieFeriedageById}
               onFieldChange={ferie.onFieldChange}
-              onRowBlur={(rowId) => ferie.onFieldBlur(rowId)}
+              onRowBlur={ferie.onRowBlur}
               onRowsReorder={ferie.reorderRows}
               skadedatoISO={skadedatoISO}
               endeligEETBeregnetDato={endeligEETBeregnetDato}
@@ -1717,7 +1717,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   committedById={fravaer.committedById}
                   feriedageById={fravaerFeriedageById}
                   onFieldChange={fravaer.onFieldChange}
-                  onRowBlur={(rowId) => fravaer.onFieldBlur(rowId)}
+                  onRowBlur={fravaer.onRowBlur}
                   onRowsReorder={fravaer.reorderRows}
                   beregningsperiodeFra={values.tafBeregningsperiodeFra}
                   beregningsperiodeTil={values.tafBeregningsperiodeTil}
@@ -2476,7 +2476,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           rows={oevrigeKrav.draftRows}
           committedById={oevrigeKrav.committedById}
           onFieldChange={oevrigeKrav.onFieldChange}
-          onRowBlur={(rowId) => oevrigeKrav.onFieldBlur(rowId)}
+          onRowBlur={oevrigeKrav.onRowBlur}
           onRowsReorder={oevrigeKrav.reorderRows}
           minDate={oevrigeKravMinDate}
           maxDate={dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato.max}

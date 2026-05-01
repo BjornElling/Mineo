@@ -150,7 +150,7 @@ const Renteberegning = React.memo(() => {
           onBeregningsdatoCommit={handleBeregningsdatoCommit}
           rentekravRows={rentekrav.draftRows}
           onRentekravChange={rentekrav.onFieldChange}
-          onRentekravBlur={rentekrav.onFieldBlur}
+          onRentekravBlur={rentekrav.onRowBlur}
           onRentekravReorder={rentekrav.reorderRows}
           onDownloadSpecifikation={handleDownloadRentePdf}
           committedRentekravById={rentekrav.committedById}

@@ -198,9 +198,9 @@ const Mineo = React.memo(() => {
         </Box>
 
         <Typography className="row--text">
-          Ved brug af programmet skal du være opmærksom på, at det er udviklet af en jurist,
-          der ved mere om paragraffer end om koder. Programmet er grundigt testet, men fejl
-          kan forekomme. Sørg derfor altid for at kontrollere dine beregninger.
+          Ved brug af programmet skal du være opmærksom på, at det aktuelt er i en åben
+          test-udgave. Programmet er grundigt testet, men fejl kan forekomme. Sørg derfor 
+          altid for at kontrollere dine beregninger.
         </Typography>
 
       </ContentBox>

@@ -5,7 +5,7 @@ import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreCo
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import TableDateInput from '../../../components/inputs/table/TableDateInput';
 import { createGridCoreTestStateStore } from './gridCoreTestUtils';
-import { restoreDraftHistoryTarget } from '../../../utils/draftHistoryRegistry';
+import { __resetDraftHistoryRegistryForTests, restoreDraftHistoryTarget } from '../../../utils/draftHistoryRegistry';
 
 const createGridValue = (gridCell: GridCellCoord, editingCell: GridCellCoord | null) => {
   return {
@@ -20,6 +20,10 @@ const createGridValue = (gridCell: GridCellCoord, editingCell: GridCellCoord | n
 };
 
 describe('TableDateInput', () => {
+  beforeEach(() => {
+    __resetDraftHistoryRegistryForTests();
+  });
+
   it('commits formatted date and shows range error when out of range', async () => {
     const user = userEvent.setup();
     const gridCell = { rowId: 'row-1', colIndex: 0 };

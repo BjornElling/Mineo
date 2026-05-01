@@ -172,6 +172,8 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
 
     const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
 
+    // Intentional table-local commit model: rows are managed with manual ordering/focus
+    // evaluation here, while each Table*Input still owns draft state until commit.
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<OffentligeYdelserRow>, colIndex: number) => {
         setInternalTableData((prev) => {
