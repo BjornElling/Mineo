@@ -52,3 +52,8 @@ export const restoreDraftHistoryTarget = (
   controller.restoreFromHistory(state);
   return true;
 };
+
+export const __resetDraftHistoryRegistryForTests = (): void => {
+  controllersByFocusToken.clear();
+  controllersByFieldPath.clear();
+};

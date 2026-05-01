@@ -140,6 +140,12 @@ Table inputs are UI-specialized, but must preserve the same principles:
 - `onBlur` = commit attempt only (table-specific deviation from Styled*Field blur semantics)
 - Validation must not run continuously via `useEffect` while typing
 - Any normalization/canonicalization must happen only on blur (commit)
+- GridCore table inputs must use `useTableInputHistoryRestore` for undo/redo draft-restore,
+  committed-value resync, physical-focus protection, and `draftHistoryRegistry` registration.
+- Individual `Table*Input` components must not each implement their own independent
+  `restoreFromHistory` + pending history resync logic. Parser/formatter differences belong in
+  the table input adapter; history timing and fieldPath/focusToken registration belong in the
+  shared hook.
 
 ## Instant-commit controls (explicit exceptions)
 
