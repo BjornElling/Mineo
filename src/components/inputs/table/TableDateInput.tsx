@@ -18,7 +18,7 @@ import { filterDateLikeKeyDown } from '../inputKeyFilters';
 import { makeDateFingerprintFromCanonical, type CommittedPayload, type DateFingerprint } from '../../../types/parserSpec';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
 import { useTableInputSaveError } from '../../../hooks/useTableInputSaveError';
-import { registerDraftHistoryController, type DraftHistoryRestoreState } from '../../../utils/draftHistoryRegistry';
+import { useTableInputHistoryRestore } from '../../../hooks/useTableInputHistoryRestore';
 
 export type TableDateInputChangeEvent = { target: { value: string } };
 export type TableDateSanitizeCallback = (value: string) => string;
@@ -239,13 +239,39 @@ const TableDateInput = React.memo(
     const originalValueOnEditStartRef = React.useRef<string>('');
     const keyInitiatedEditRef = React.useRef(false);
     const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, DateFingerprint>>(toCommittedDatePayload(value));
-    const pendingHistoryValueResyncRef = React.useRef(false);
 
     const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, minDate, maxDate, specialRangeErrors, twoDigitYearPolicy });
 
     const emitBlur = React.useCallback((nextValue: string) => {
       latest.current.onBlur?.({ target: { value: nextValue } });
     }, []);
+
+    const undoFocusToken = React.useId();
+    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    const { clearPendingHistoryResync } = useTableInputHistoryRestore<string | undefined>({
+      value,
+      formatCommittedValue: (nextValue) => nextValue ?? '',
+      inputElementRef: inputElRef,
+      isEditing,
+      preserveDraft: preserveInvalidDraft,
+      draftRef,
+      setDraft,
+      focusToken: undoFocusToken,
+      fieldPath: gridCellKey,
+      resetEditingState: () => {
+        keyInitiatedEditRef.current = false;
+      },
+      onRestoreError: (state) => {
+        setTouched(true);
+        setPreserveInvalidDraft(true);
+        setLocalErrorState(true, state.error.message ?? '');
+      },
+      onRestoreCommitted: () => {
+        setTouched(false);
+        setPreserveInvalidDraft(false);
+        setLocalErrorState(false, '');
+      },
+    });
 
     React.useEffect(() => {
       latest.current = { onChange, onBlur, onErrorChange, locked, minDate, maxDate, specialRangeErrors, twoDigitYearPolicy };
@@ -360,27 +386,6 @@ const TableDateInput = React.memo(
     }, [configErrorMessage, effectiveMaxDate, effectiveMinDate, preserveInvalidDraft, setLocalErrorState, specialRangeErrors, touched, value]);
 
     React.useEffect(() => {
-      const nextDraft = value ?? '';
-      if (pendingHistoryValueResyncRef.current) {
-        pendingHistoryValueResyncRef.current = false;
-        draftRef.current = nextDraft;
-        setDraft(nextDraft);
-        return;
-      }
-      if (!isEditing) {
-        const inputEl = inputElRef.current;
-        const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
-        const hasPhysicalFocus =
-          inputEl !== null &&
-          activeEl !== null &&
-          (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
-        if (hasPhysicalFocus) return;
-        if (preserveInvalidDraft) return;
-        setDraft(nextDraft);
-      }
-    }, [isEditing, preserveInvalidDraft, value]);
-
-    React.useEffect(() => {
       if (!isEditing) {
         keyInitiatedEditRef.current = false;
         return;
@@ -465,13 +470,13 @@ const TableDateInput = React.memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = e.target.value ?? '';
-        pendingHistoryValueResyncRef.current = false;
+        clearPendingHistoryResync();
         setLocalErrorState(false, '');
         draftRef.current = nextDraft;
         setDraft(nextDraft);
         // Ingen emitValueChange under edit.
       },
-      [isReadOnly, setLocalErrorState]
+      [clearPendingHistoryResync, isReadOnly, setLocalErrorState]
     );
 
     const handleFocus = React.useCallback(() => {
@@ -484,8 +489,16 @@ const TableDateInput = React.memo(
         // Vigtigt: grid kan lukke editor-state før input-blur ved klik udenfor.
         // I den situation skal vi stadig committe draften fra ref, hvis den afviger fra committed.
         const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
-        const committedValue = latestCommittedPayloadRef.current.canonical;
-        if (!isEditing && rawValue === committedValue) return;
+        if (!isEditing) {
+          const normalized = normalizeDateDraftOnCommit(rawValue);
+          const committed = commitDateDraft(normalized, { twoDigitYearPolicy: latest.current.twoDigitYearPolicy });
+          if (committed.kind === 'ok') {
+            const nextFingerprint = committed.iso
+              ? makeDateFingerprintFromCanonical(committed.iso)
+              : makeDateFingerprintFromCanonical('');
+            if (nextFingerprint === latestCommittedPayloadRef.current.fingerprint) return;
+          }
+        }
         commitAndEmitBlur(rawValue);
       },
       [commitAndEmitBlur, isEditing]
@@ -533,7 +546,6 @@ const TableDateInput = React.memo(
     );
 
     const a11yInputId = React.useId();
-    const undoFocusToken = React.useId();
     const a11yErrorId = `${a11yInputId}-error`;
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
@@ -616,38 +628,12 @@ const TableDateInput = React.memo(
       };
     }, [commitAndEmitBlur, gridApi, setLocalErrorState]);
 
-    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
-    const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
-      keyInitiatedEditRef.current = false;
-      if (state.kind === 'error') {
-        pendingHistoryValueResyncRef.current = false;
-        draftRef.current = state.draft;
-        setDraft(state.draft);
-        setTouched(true);
-        setPreserveInvalidDraft(true);
-        setLocalErrorState(true, state.error.message ?? '');
-        return;
-      }
-
-      pendingHistoryValueResyncRef.current = true;
-      setTouched(false);
-      setPreserveInvalidDraft(false);
-      setLocalErrorState(false, '');
-    }, [setLocalErrorState]);
-
     useTableInputSaveError({
       key: `table-date:${a11yInputId}`,
       active: touched && hasError && preserveInvalidDraft,
       message: errorMessage,
       inputRef: inputElRef,
     });
-
-    React.useEffect(() => {
-      return registerDraftHistoryController(
-        { focusToken: undoFocusToken, fieldPath: gridCellKey },
-        { restoreFromHistory }
-      );
-    }, [gridCellKey, restoreFromHistory, undoFocusToken]);
 
     React.useEffect(() => {
       gridApi.registerEditor(gridCell, editorHandle);
