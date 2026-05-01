@@ -10,7 +10,7 @@ import './index.css';
 import { hydratePendingPwaFileOpenRequest, setupPwaLaunchQueueConsumer } from './utils/pwaLaunchQueue';
 import { setupPwaInstallPromptCapture, suppressPwaInstallPrompt } from './utils/pwaInstallPrompt';
 import { VERSION } from './config/version';
-import AuthGate from './auth/AuthGate';
+import App from './App';
 
 const UNSUPPORTED_MAX_SCREEN_WIDTH_PX = 1366;
 const SW_UPDATE_CHECK_TIMEOUT_MS = 5000;
@@ -230,7 +230,7 @@ const bootstrap = async (): Promise<void> => {
 
   root.render(
     <React.StrictMode>
-      <AuthGate />
+      <App />
     </React.StrictMode>
   );
 };

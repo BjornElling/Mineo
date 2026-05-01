@@ -94,7 +94,7 @@ const UnsupportedDevicePage = () => {
 
               <p style={{ marginTop: '16px' }}>
                 Programmet laver omfattende beregninger i baggrunden, og
-                er afhængig af inputs i tabeller samt muligheden for at 
+                er afhængig af inputs i tabeller samt muligheden for at
                 gemme filer hos brugeren.
               </p>
 

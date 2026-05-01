@@ -140,13 +140,13 @@ const Mineo = React.memo(() => {
 
         <Typography className="row--text">
           Programmet kommunikerer ikke med nogen server under brug, og der indsamles,
-          gemmes eller transmitteres ingen data - hverken persondata, brugsstatistik
+          gemmes eller transmitteres ingen data — hverken persondata, brugsstatistik
           eller anden information.
         </Typography>
 
         <Typography className="row--text">
           Mens programmet kører, bliver de indtastede oplysninger midlertidigt gemt
-          i browserens hukommelse, som nulstilles når browseren lukkes.
+          i browserens hukommelse, som nulstilles, når browseren lukkes.
         </Typography>
       </ContentBox>
 
@@ -177,7 +177,7 @@ const Mineo = React.memo(() => {
           <Box className="numbered-list-item">
             <Typography className="row--text">1)</Typography>
             <Typography className="row--text">
-              Du kan bruge programmet frit - også til kommercielle formål.
+              Du kan bruge programmet frit — også til kommercielle formål.
             </Typography>
           </Box>
 
@@ -199,7 +199,7 @@ const Mineo = React.memo(() => {
 
         <Typography className="row--text">
           Ved brug af programmet skal du være opmærksom på, at det aktuelt er i en åben
-          test-udgave. Programmet er grundigt testet, men fejl kan forekomme. Sørg derfor 
+          test-udgave. Programmet er grundigt testet, men fejl kan forekomme. Sørg derfor
           altid for at kontrollere dine beregninger.
         </Typography>
 

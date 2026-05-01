@@ -15,7 +15,7 @@ import VarigeMen from './components/pages/VarigeMen';
 import Forsoergertab from './components/pages/Forsoergertab';
 import Indstillinger from './components/pages/Indstillinger';
 import Mineo from './components/pages/Mineo';
-import OpenEo from './components/pages/OpenEo';
+import OpenEo from './components/system/OpenEo';
 import { useAppSettings } from './contexts/useAppSettings';
 import { buildTheme } from './config/appTheme';
 

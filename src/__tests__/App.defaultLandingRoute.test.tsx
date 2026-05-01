@@ -56,7 +56,7 @@ vi.mock('../components/pages/Mineo', () => ({
   default: () => <div>MOCK_Mineo</div>,
 }));
 
-vi.mock('../components/pages/OpenEo', () => ({
+vi.mock('../components/system/OpenEo', () => ({
   default: () => <div>MOCK_OPEN</div>,
 }));
 

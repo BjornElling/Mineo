@@ -8,7 +8,7 @@
 | 1.2 | Kontrakter: domain-boundary, periodisering, snapshot, eo-snapshot | ⬜ Ikke startet | — |
 | 1.3 | Kontrakter: date, mineo-field-pattern, error-debug, app-settings | ⬜ Ikke startet | — |
 | 1.4 | Kontrakter: pdf, pdf-layout, keyboard-navigation (+ checklist) | ⬜ Ikke startet | — |
-| 1.5 | Arkitektur-dokumentation: calculation, pdf, auth-gate, debug-builder | ⬜ Ikke startet | — |
+| 1.5 | Arkitektur-dokumentation: calculation, pdf, debug-builder | ⬜ Ikke startet | — |
 | 1.6 | Helhedsvurdering af kontraktlandskabet og arkitektoniske grundprincipper | ⬜ Ikke startet | — |
 | 2.1 | Persistence-arkitektur | ✅ Gennemgået | [2.1-persistence-arkitektur.md](2.1-persistence-arkitektur.md) |
 | 2.2 | Undo/redo-store | ⬜ Ikke startet | — |
@@ -54,7 +54,7 @@
 | 10.3 | PDF: utils/pdf og pdf-contracts | ⬜ Ikke startet | — |
 | 11.1 | Config: persistenceRegistry, storageManifest, dateRanges | ⬜ Ikke startet | — |
 | 11.2 | Config: regulatoryRates, versioning, appTheme, tableTheme | ⬜ Ikke startet | — |
-| 11.3 | Auth: AuthGate, auth.ts, authConfig.ts | ⬜ Ikke startet | — |
+| 11.3 | ~~Auth: AuthGate, auth.ts, authConfig.ts~~ *(fjernet — ikke relevant)* | — | — |
 | 12.1 | Testkvalitet: domæneberegninger (årsløn, EET, forsørgertab, varige mén) | ⬜ Ikke startet | — |
 | 12.2 | Testkvalitet: EO-motor og EO-snapshot | ⬜ Ikke startet | — |
 | 12.3 | Testkvalitet: persistence og schema-evolution | ⬜ Ikke startet | — |
@@ -194,7 +194,7 @@ Reviewet følger afhængighedsorden nedefra og op:
 | **8 — Pages** | Sider og layout | Sammensætning af input og præsentation |
 | **9 — Hooks** | Custom React hooks | Lim mellem UI og domæne |
 | **10 — PDF** | PDF-generering | Separat outputkanal, men afhænger af domænedata |
-| **11 — Config og auth** | Konfiguration og autentificering | Rammeværk og adgangskontrol |
+| **11 — Config** | Konfiguration | Rammeværk og applikationsopsætning |
 | **12 — Testkvalitet** | Tests for ovenstående | Verificerer at de foregående reviews er testsikrede |
 | **13 — Tværgående** | Kontrakt-alignment og duplikering | Helhedsvurdering når alle dele er set |
 

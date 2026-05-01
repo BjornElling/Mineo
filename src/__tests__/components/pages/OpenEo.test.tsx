@@ -1,7 +1,7 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import OpenEo from '../../../components/pages/OpenEo';
+import OpenEo from '../../../components/system/OpenEo';
 
 const retryPendingPwaFileOpenRequestMock = vi.fn();
 
