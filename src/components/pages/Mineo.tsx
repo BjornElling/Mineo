@@ -48,13 +48,13 @@ const Mineo = React.memo(() => {
         <Typography className="section-header">Programmet</Typography>
 
         <Typography className="row--text">
-          Mineo er et specialiseret regneprogram til advokater,
-          arbejdsskadekonsulenter og andre fagpersoner, hvis arbejde
-          indebærer at beregne erstatning i person- og arbejdsskadesager.
+          Mineo er et specialiseret regneprogram, der er udviklet til brug for advokater 
+          og arbejdsskadekonsulenter, som arbejder i eller for fagbevægelsen, og som beskæftiger
+          sig med arbejdsskadesager.
         </Typography>
 
         <Typography className="row--text">
-          Programmet forudsætter, at du har et godt kendskab til emnet. Personskadesager
+          Programmet forudsætter, at du har et godt kendskab til emnet. Arbejdsskadesager
           er komplekse og beror på en lang række matematiske og juridiske forudsætninger,
           som ikke altid er indlysende.
         </Typography>
@@ -199,7 +199,7 @@ const Mineo = React.memo(() => {
 
         <Typography className="row--text">
           Ved brug af programmet skal du være opmærksom på, at det aktuelt er i en åben
-          test-udgave. Programmet er grundigt testet, men fejl kan forekomme. Sørg derfor
+          testudgave. Programmet er grundigt testet, men fejl kan forekomme. Sørg derfor
           altid for at kontrollere dine beregninger.
         </Typography>
 
