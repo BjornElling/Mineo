@@ -105,10 +105,10 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
             style={{
               margin: 0,
               marginBottom: '6px',
-              fontSize: '26px',
+              fontSize: '20px',
               fontWeight: 600,
-              letterSpacing: '-0.3px',
-              color: 'var(--color-text-primary)',
+              letterSpacing: '-0.2px',
+              color: 'var(--color-text-secondary)',
               fontFamily: 'Montserrat, sans-serif',
             }}
           >
@@ -117,11 +117,11 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
           <p
             style={{
               margin: 0,
-              fontSize: '13px',
-              fontWeight: 500,
-              color: 'var(--color-text-secondary)',
-              letterSpacing: '0.4px',
-              textTransform: 'uppercase',
+              fontSize: '15px',
+              fontWeight: 600,
+              color: 'var(--color-text-primary)',
+              letterSpacing: '0px',
+              textTransform: 'none',
               fontFamily: 'Montserrat, sans-serif',
             }}
           >
