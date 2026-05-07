@@ -14,7 +14,9 @@ import { undoRedoStore, type HistoryFrameOrigin } from '../../stores/undoRedoSto
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import type { ISODateString } from '../../types/branded';
 import { erstatningsopgoerelseSchema, type TafPeriodeRow } from '../../schemas/formSchemas';
+import { satserSchema } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { SATSER_INITIAL_VALUES } from '../../domain/satser/satserInitialValues';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import type { StorageKey } from '../../config/storageManifest';
@@ -143,6 +145,40 @@ const TableControls = () => {
   );
 };
 
+const OriginCapturePage = () => {
+  const form = usePersistedForm(satserSchema, 'satser', SATSER_INITIAL_VALUES);
+  return (
+    <div>
+      <input
+        data-testid="next-focused-cell"
+        data-mineo-undo-focus-token="next-token"
+        data-mineo-undo-field-path="row-1:3"
+      />
+      <button
+        type="button"
+        onClick={() => form.setValues(
+          (prev) => ({ ...prev, aargang: 2026 }),
+          { fieldPath: 'row-1:2' }
+        )}
+      >
+        Commit
+      </button>
+    </div>
+  );
+};
+
+const renderOriginCaptureHarness = () => render(
+  <MemoryRouter initialEntries={['/satser']}>
+    <AppSettingsProvider>
+      <FormPersistenceProvider>
+        <Routes>
+          <Route path="/satser" element={<OriginCapturePage />} />
+        </Routes>
+      </FormPersistenceProvider>
+    </AppSettingsProvider>
+  </MemoryRouter>
+);
+
 const renderStamdataUndoHarness = () => render(
   <MemoryRouter initialEntries={['/satser']}>
     <AppSettingsProvider>
@@ -188,6 +224,22 @@ describe('useUndoRedo', () => {
     __resetUndoFocusTrackerForTests();
     installUndoFocusTracker();
     controls = null;
+  });
+
+  it('ignorerer global focusToken når tabel-commit sender eksplicit fieldPath', () => {
+    renderOriginCaptureHarness();
+
+    act(() => {
+      screen.getByTestId('next-focused-cell').focus();
+    });
+
+    act(() => {
+      fireEvent.click(screen.getByRole('button', { name: 'Commit' }));
+    });
+
+    const capturedOrigin = undoRedoStore.getState().past.at(-1)?.origin;
+    expect(capturedOrigin?.fieldPath).toBe('row-1:2');
+    expect(capturedOrigin?.focusToken).toBeNull();
   });
 
   it('fokuserer feltet på den aktive fane efter undo til anden side', () => {
@@ -425,6 +477,76 @@ describe('useUndoRedo', () => {
     });
     flushAnimationFrames(rafCallbacks);
     expect(getUndoField('skadelidteFodselsdato')).toHaveValue('32-13-1980');
+
+    requestAnimationFrameSpy.mockRestore();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: originalScrollIntoView,
+    });
+  });
+
+  it('bevarer invalid draft-fejl gennem undo af efterfølgende Stamdata-commits', () => {
+    const rafCallbacks: FrameRequestCallback[] = [];
+    const requestAnimationFrameSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      rafCallbacks.push(callback);
+      return rafCallbacks.length;
+    });
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: vi.fn(),
+    });
+
+    let reportError!: ReturnType<typeof useFormFieldErrorReporter>;
+    const ReporterControls = () => {
+      reportError = useFormFieldErrorReporter('stamdata' as StorageKey, 'skadelidteFodselsdato' as never);
+      controls = useUndoRedo();
+      return (
+        <Routes>
+          <Route path="/stamdata" element={<Stamdata />} />
+        </Routes>
+      );
+    };
+
+    render(
+      <MemoryRouter initialEntries={['/stamdata']}>
+        <AppSettingsProvider>
+          <FormPersistenceProvider>
+            <ReporterControls />
+          </FormPersistenceProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
+    );
+
+    act(() => {
+      getUndoField('skadelidteFodselsdato').focus();
+      reportError({ message: 'Ugyldig dato', blocksSave: true, invalidDraft: '12-' });
+    });
+
+    act(() => {
+      undoRedoStore.getState().capture(createStamdataOrigin('journalnr'));
+      formPersistenceStore.getState().commitSection('stamdata', {
+        journalnr: 'SAG-1',
+      }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    });
+
+    act(() => {
+      controls?.undo();
+    });
+    flushAnimationFrames(rafCallbacks);
+    expect(formPersistenceStore.getState().fieldErrors.stamdata.skadelidteFodselsdato?.input?.invalidDraft).toBe('12-');
+
+    act(() => {
+      controls?.undo();
+    });
+    flushAnimationFrames(rafCallbacks);
+    expect(getUndoField('skadelidteFodselsdato')).toHaveValue('');
+
+    act(() => {
+      controls?.redo();
+    });
+    flushAnimationFrames(rafCallbacks);
+    expect(getUndoField('skadelidteFodselsdato')).toHaveValue('12-');
 
     requestAnimationFrameSpy.mockRestore();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {

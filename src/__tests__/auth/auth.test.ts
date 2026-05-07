@@ -29,7 +29,7 @@ vi.mock('../../utils/safeLocalStorage', () => ({
 vi.mock('../../auth/authConfig', () => ({
   AUTH_STORAGE_KEY: 'test:auth:key',
   AUTH_STORAGE_VALUE: 'test:auth:value',
-  SHARED_PASSWORD_HASH: 'c638833f69bbfb3c267afa0a74434812436b8f08a81fd263c6be6871de4f1265',
+  SHARED_PASSWORD_HASHES: ['c638833f69bbfb3c267afa0a74434812436b8f08a81fd263c6be6871de4f1265'],
 }));
 
 const restoreCrypto = (() => {

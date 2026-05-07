@@ -3,13 +3,17 @@ import { persistenceSchemas } from '../config/persistenceRegistry';
 import type { StorageKey } from '../config/storageManifest';
 import { setActiveTabForPage } from '../hooks/usePersistedActiveTab';
 import { focusElementWithoutScroll, waitForAnimationFrame } from './commitFlush';
+import { getFirstBlockingTableInputErrorTarget, type BlockingTableInputErrorTarget } from './tableInputErrorRegistry';
 import { isRecord } from './typeGuards';
 
-export type BlockingInputErrorTarget = Readonly<{
+export type BlockingFieldErrorTarget = Readonly<{
+  kind: 'field';
   pageKey: StorageKey;
   fieldName: string;
   message: string;
 }>;
+
+export type BlockingInputErrorTarget = BlockingFieldErrorTarget | BlockingTableInputErrorTarget;
 
 type FieldErrorsSnapshotGetter = (pageKey: StorageKey) => unknown;
 
@@ -54,6 +58,8 @@ const focusAndScrollToErrorElement = (element: HTMLElement): void => {
 };
 
 const getRouteForBlockingError = (target: BlockingInputErrorTarget, currentPathname: string): string => {
+  if (target.kind === 'table-input') return currentPathname;
+
   if (target.pageKey === 'faellesAarsloen') {
     if (currentPathname === '/forsoergertab') return '/forsoergertab';
     return '/erhvervsevnetab';
@@ -64,6 +70,8 @@ const getRouteForBlockingError = (target: BlockingInputErrorTarget, currentPathn
 };
 
 const prepareTabForBlockingError = (target: BlockingInputErrorTarget): void => {
+  if (target.kind === 'table-input') return;
+
   if (target.pageKey === 'erstatningsopgoerelse') {
     if (target.fieldName.startsWith('loenindkomstAnsaettelsesforhold')) {
       setActiveTabForPage('erstatningsopgoerelse', 'loenindkomst');
@@ -114,19 +122,23 @@ export const getFirstBlockingInputErrorTarget = (
           typeof entry.message === 'string' &&
           entry.blocksSave !== false
         ) {
-          return { pageKey, fieldName, message: entry.message };
+          return { kind: 'field', pageKey, fieldName, message: entry.message };
         }
       }
     }
   }
 
-  return null;
+  return getFirstBlockingTableInputErrorTarget();
 };
 
 export const focusFirstVisibleBlockingInputError = async (
   target?: BlockingInputErrorTarget | null
 ): Promise<boolean> => {
   await waitForAnimationFrame();
+  if (target?.kind === 'table-input' && target.element?.isConnected) {
+    focusAndScrollToErrorElement(target.element);
+    return true;
+  }
   const element = findFirstVisibleErrorElement(target?.message);
   if (!element) return false;
   focusAndScrollToErrorElement(element);

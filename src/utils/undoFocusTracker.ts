@@ -7,12 +7,10 @@
  * *nye* felt, ikke det der ændrede sig. Vi ville ende med at fange det forkerte
  * felts identitet i undo-historikken og lande fokus det forkerte sted ved undo.
  *
- * Løsningen er at gemme felts identitet *mens* feltet har fokus. Vi lytter på
- * document-niveau (capture phase) på `focusin` og persisterer det sidst sete
- * undo-bærende felts attributter. Værdien gælder indtil et andet undo-bærende
- * felt fokuseres — den ryddes ikke ved blur.
+ * Løsningen for almindelige felter er at gemme feltets identitet *mens* feltet
+ * har fokus. Tabelceller sender deres `fieldPath` eksplicit ved commit og bruger
+ * derfor ikke trackerens `focusToken` som autoritativt undo-mål.
  */
-
 let lastFocusToken: string | null = null;
 let lastFieldPath: string | null = null;
 let installed = false;
@@ -23,9 +21,7 @@ const handleFocusIn = (event: Event): void => {
   if (!(target instanceof HTMLElement)) return;
   const focusToken = target.getAttribute('data-mineo-undo-focus-token');
   const fieldPath = target.getAttribute('data-mineo-undo-field-path');
-  if (focusToken === null && fieldPath === null) {
-    return;
-  }
+  if (focusToken === null && fieldPath === null) return;
   lastFocusToken = focusToken;
   lastFieldPath = fieldPath;
 };
@@ -46,12 +42,16 @@ export const readLastUndoFocus = (): { focusToken: string | null; fieldPath: str
   fieldPath: lastFieldPath,
 });
 
+export const clearLastUndoFocus = (): void => {
+  lastFocusToken = null;
+  lastFieldPath = null;
+};
+
 export const __resetUndoFocusTrackerForTests = (): void => {
   if (installedDocument) {
     installedDocument.removeEventListener('focusin', handleFocusIn, true);
   }
-  lastFocusToken = null;
-  lastFieldPath = null;
+  clearLastUndoFocus();
   installed = false;
   installedDocument = null;
 };

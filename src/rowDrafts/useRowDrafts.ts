@@ -1,10 +1,9 @@
 import * as React from 'react';
-import type { RowId, RowErrors, WithId } from './types';
+import type { RowId, WithId } from './types';
 
 export type UseRowDraftsConfig<
   TDraft extends WithId,
   TCommitted extends WithId,
-  TField extends keyof TDraft & string,
 > = {
   // 1) Access to committed state
   getCommitted: () => TCommitted[] | undefined;
@@ -25,9 +24,6 @@ export type UseRowDraftsConfig<
   // 5) Optional draft init when committed is empty/undefined
   initFromCommitted?: (rows: TCommitted[] | undefined) => TCommitted[];
 
-  // 6) Optional per-row validation on draft
-  validateDraftRow?: (draft: TDraft) => Partial<Record<TField, string>>;
-
   /**
    * Token der ændres når committed rows skal betragtes som authoritative
    * (fx reset, load, version-migration).
@@ -43,27 +39,61 @@ export type UseRowDraftsConfig<
 
 export type UseRowDraftsResult<TDraft extends WithId, TField extends keyof TDraft & string> = {
   draftRows: TDraft[];
-  setDraftRows: React.Dispatch<React.SetStateAction<TDraft[]>>;
 
   onFieldChange: (rowId: RowId, field: TField) => (value: string) => void;
-  onFieldBlur: (rowId: RowId, field?: TField) => void;
+  onRowBlur: (rowId: RowId) => void;
 
-  commitRow: (rowId: RowId) => void;
-  commitAll: () => void;
+  commitRow: (rowId: RowId) => boolean;
+  commitAll: () => boolean;
 
   addRow: () => void;
   removeRow: (rowId: RowId) => void;
   reorderRows: (orderedIds: readonly RowId[]) => void;
   resetDraftFromCommitted: () => void;
-
-  rowErrors: RowErrors<RowId, TField>;
 };
+
+type EnsureRowsConfig<TCommitted extends WithId> = Pick<
+  UseRowDraftsConfig<WithId, TCommitted>,
+  'ensureRows' | 'initFromCommitted'
+>;
 
 const getEnsuredCommitted = <TCommitted extends WithId>(
   rows: TCommitted[] | undefined,
-  config: Pick<UseRowDraftsConfig<WithId, TCommitted, never>, 'ensureRows' | 'initFromCommitted'>
+  config: EnsureRowsConfig<TCommitted>
 ): TCommitted[] => {
   return config.initFromCommitted?.(rows) ?? config.ensureRows(rows);
+};
+
+const isPlainRecord = (value: unknown): value is Record<string, unknown> => {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === Object.prototype || prototype === null;
+};
+
+const committedValuesEqual = (left: unknown, right: unknown): boolean => {
+  if (Object.is(left, right)) return true;
+  if (left instanceof Date || right instanceof Date) {
+    return left instanceof Date && right instanceof Date && Object.is(left.getTime(), right.getTime());
+  }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+    return left.every((item, index) => committedValuesEqual(item, right[index]));
+  }
+  if (isPlainRecord(left) || isPlainRecord(right)) {
+    if (!isPlainRecord(left) || !isPlainRecord(right)) return false;
+    const leftKeys = Object.keys(left).filter((key) => left[key] !== undefined).sort();
+    const rightKeys = Object.keys(right).filter((key) => right[key] !== undefined).sort();
+    if (leftKeys.length !== rightKeys.length) return false;
+    return leftKeys.every((key, index) => key === rightKeys[index] && committedValuesEqual(left[key], right[key]));
+  }
+  return false;
+};
+
+const committedRowsEqual = <TCommitted extends WithId>(
+  left: readonly TCommitted[],
+  right: readonly TCommitted[]
+): boolean => {
+  return committedValuesEqual(left, right);
 };
 
 const reorderRowsByIds = <TRow extends WithId>(
@@ -96,7 +126,7 @@ export const useRowDrafts = <
   TCommitted extends WithId,
   TField extends keyof TDraft & string,
 >(
-  config: UseRowDraftsConfig<TDraft, TCommitted, TField>
+  config: UseRowDraftsConfig<TDraft, TCommitted>
 ): UseRowDraftsResult<TDraft, TField> => {
   const configRef = React.useRef(config);
   React.useLayoutEffect(() => {
@@ -132,15 +162,6 @@ export const useRowDrafts = <
     resetDraftFromCommitted();
   }, [resetDraftFromCommitted, config.resyncToken]);
 
-  const rowErrors = React.useMemo<RowErrors<RowId, TField>>(() => {
-    const next: RowErrors<RowId, TField> = {};
-    if (!config.validateDraftRow) return next;
-    for (const row of draftRows) {
-      next[row.id] = config.validateDraftRow(row);
-    }
-    return next;
-  }, [draftRows, config]);
-
   const onFieldChange = React.useCallback(
     (rowId: RowId, field: TField) => (value: string) => {
       const current = draftRowsRef.current;
@@ -166,29 +187,48 @@ export const useRowDrafts = <
   );
 
   const commitRow = React.useCallback(
-    (rowId: RowId) => {
+    (rowId: RowId): boolean => {
       const draft = draftRowsRef.current.find((row) => row.id === rowId);
-      if (!draft) return;
+      if (!draft) return false;
 
-      configRef.current.setCommitted((prevRows) => computeNextCommittedForRow(prevRows, draft));
+      let didChange = false;
+      configRef.current.setCommitted((prevRows) => {
+        const cfg = configRef.current;
+        const base = getEnsuredCommitted(prevRows, cfg);
+        const next = computeNextCommittedForRow(prevRows, draft);
+        // Markøren afspejler en ren, deterministisk sammenligning for samme prevRows.
+        // Selve updateren udfører ingen eksterne side effects og bruger altid nyeste
+        // committed snapshot fra caller i stedet for hookets potentielt stale values-closure.
+        didChange = !committedRowsEqual(base, next);
+        return didChange ? next : prevRows;
+      });
+      if (!didChange) return false;
+
       bumpInternalResyncToken();
+      return true;
     },
     [computeNextCommittedForRow]
   );
 
-  const commitAll = React.useCallback(() => {
+  const commitAll = React.useCallback((): boolean => {
     const drafts = draftRowsRef.current;
+    let didChange = false;
     configRef.current.setCommitted((prevRows) => {
       const cfg = configRef.current;
       const base = getEnsuredCommitted(prevRows, cfg);
       const byId = new Map<RowId, TCommitted>(base.map((row) => [row.id, row]));
       const committed = drafts.map((draft) => cfg.toCommittedRow(draft, byId.get(draft.id)));
-      return cfg.ensureRows(committed);
+      const next = cfg.ensureRows(committed);
+      didChange = !committedRowsEqual(base, next);
+      return didChange ? next : prevRows;
     });
+    if (!didChange) return false;
+
     bumpInternalResyncToken();
+    return true;
   }, []);
 
-  const onFieldBlur = React.useCallback(
+  const onRowBlur = React.useCallback(
     (rowId: RowId) => {
       commitRow(rowId);
     },
@@ -233,15 +273,13 @@ export const useRowDrafts = <
 
   return {
     draftRows,
-    setDraftRows,
     onFieldChange,
-    onFieldBlur,
+    onRowBlur,
     commitRow,
     commitAll,
     addRow,
     removeRow,
     reorderRows,
     resetDraftFromCommitted,
-    rowErrors,
   };
 };

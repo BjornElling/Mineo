@@ -42,9 +42,18 @@ export const restoreDraftHistoryTarget = (
   keys: Readonly<{ focusToken: string | null; fieldPath: string | null }>,
   state: DraftHistoryRestoreState
 ): boolean => {
-  const byFieldPath = keys.fieldPath ? controllersByFieldPath.get(keys.fieldPath) : undefined;
-  const controller = byFieldPath ?? (keys.focusToken ? controllersByFocusToken.get(keys.focusToken) : undefined);
+  // Tabelceller bruger fieldPath som autoritativ celleidentitet. focusToken er kun fallback
+  // for almindelige felter, hvor commit ikke sender en eksplicit fieldPath.
+  const controller =
+    (keys.fieldPath ? controllersByFieldPath.get(keys.fieldPath) : undefined) ??
+    (keys.focusToken ? controllersByFocusToken.get(keys.focusToken) : undefined);
+
   if (!controller) return false;
   controller.restoreFromHistory(state);
   return true;
+};
+
+export const __resetDraftHistoryRegistryForTests = (): void => {
+  controllersByFocusToken.clear();
+  controllersByFieldPath.clear();
 };

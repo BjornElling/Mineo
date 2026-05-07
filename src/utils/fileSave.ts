@@ -105,6 +105,13 @@ const buildInvalidHandleUserWarning = (
   }
 };
 
+const isUserDismissedPermissionPrompt = (
+  verification: Awaited<ReturnType<typeof verifyFileHandleDetailed>>
+): boolean =>
+  !verification.valid &&
+  verification.reason === 'permission_denied' &&
+  verification.detail === 'permission=prompt';
+
 /**
  * Gemmer alle applikationsdata til krypteret .eo fil.
  *
@@ -207,6 +214,8 @@ export const saveToFile = async (
           if (handleVerification.valid) {
             // Handle er gyldigt - brug det direkte (browseren håndterer overskrivning)
             shouldUseExistingHandle = true;
+          } else if (isUserDismissedPermissionPrompt(handleVerification)) {
+            return { success: false, cancelled: true };
           } else {
             // Handle er ugyldigt - slet fra IndexedDB og åbn file picker
             fallbackWarning = buildInvalidHandleUserWarning(handleVerification);

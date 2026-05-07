@@ -56,7 +56,7 @@ const EetIssuesBox = ({ issues, onGoToEetOplysninger }: Props) => {
               {navigation && (
                 <>
                   <Typography className="row--text">
-                    {navigation.pageName} {'->'}{' '}
+                    {navigation.pageName} {'→'}{' '}
                   </Typography>
                   <Typography
                     className="row--text icon-text-link"

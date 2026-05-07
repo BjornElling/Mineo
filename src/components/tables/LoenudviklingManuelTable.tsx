@@ -415,6 +415,8 @@ const LoenudviklingManuelTable = React.memo(
       notifyInputErrorChange();
     }, [internalTableData, notifyInputErrorChange]);
 
+    // Intentional table-local commit model: rows are managed with manual ordering/focus
+    // evaluation here, while each Table*Input still owns draft state until commit.
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<LoenudviklingManuelRow>, colIndex: number) => {
         setInternalTableData((prev) => {

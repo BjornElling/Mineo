@@ -11,6 +11,7 @@ import { trimWhitespaceEdges } from '../../../utils/draftNormalization';
 import { makeStringFingerprintFromCanonical, type CommittedPayload, type StringFingerprint } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
+import { useTableInputHistoryRestore } from '../../../hooks/useTableInputHistoryRestore';
 
 export type TableTextInputChangeEvent = { target: { value: string } };
 
@@ -72,11 +73,36 @@ const TableTextInput = React.memo(
       latest.current.onBlur?.({ target: { value: nextValue } });
     }, []);
 
+    const undoFocusToken = React.useId();
+    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    const { clearPendingHistoryResync } = useTableInputHistoryRestore<string | undefined>({
+      value,
+      formatCommittedValue: (nextValue) => nextValue ?? '',
+      inputElementRef: inputElRef,
+      isEditing,
+      preserveDraft: false,
+      draftRef,
+      setDraft,
+      focusToken: undoFocusToken,
+      fieldPath: gridCellKey,
+      resetEditingState: () => {
+        keyInitiatedEditRef.current = false;
+      },
+      onRestoreError: () => {
+        setTouched(true);
+        latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+      },
+      onRestoreCommitted: () => {
+        setTouched(false);
+        latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+      },
+    });
+
     React.useEffect(() => {
       latest.current = { onChange, onBlur, onErrorChange, locked };
     }, [locked, onBlur, onChange, onErrorChange]);
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       latestCommittedPayloadRef.current = toCommittedTextPayload(value);
     }, [value]);
 
@@ -87,19 +113,6 @@ const TableTextInput = React.memo(
     React.useEffect(() => {
       latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
     }, []);
-
-    React.useEffect(() => {
-      if (!isEditing) {
-        const inputEl = inputElRef.current;
-        const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
-        const hasPhysicalFocus =
-          inputEl !== null &&
-          activeEl !== null &&
-          (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
-        if (hasPhysicalFocus) return;
-        setDraft(value ?? '');
-      }
-    }, [isEditing, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -136,11 +149,12 @@ const TableTextInput = React.memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = e.target.value ?? '';
+        clearPendingHistoryResync();
         draftRef.current = nextDraft;
         setDraft(nextDraft);
         latest.current.onChange?.({ target: { value: nextDraft } });
       },
-      [isReadOnly]
+      [clearPendingHistoryResync, isReadOnly]
     );
 
     const handleFocus = React.useCallback(() => {
@@ -151,8 +165,12 @@ const TableTextInput = React.memo(
       (e: React.FocusEvent<HTMLInputElement>) => {
         setIsFocused(false);
         const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
-        const committedValue = latestCommittedPayloadRef.current.canonical;
-        if (!isEditing && trimWhitespaceEdges(rawValue) === committedValue) return;
+        if (
+          !isEditing &&
+          makeStringFingerprintFromCanonical(trimWhitespaceEdges(rawValue)) === latestCommittedPayloadRef.current.fingerprint
+        ) {
+          return;
+        }
         commitAndEmitBlur(rawValue);
       },
       [commitAndEmitBlur, isEditing]
@@ -171,7 +189,6 @@ const TableTextInput = React.memo(
     );
 
     const a11yInputId = React.useId();
-    const undoFocusToken = React.useId();
     const a11yErrorId = `${a11yInputId}-error`;
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
@@ -230,7 +247,6 @@ const TableTextInput = React.memo(
       };
     }, [commitAndEmitBlur, gridApi]);
 
-    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
     React.useEffect(() => {
       gridApi.registerEditor(gridCell, editorHandle);
       return () => {

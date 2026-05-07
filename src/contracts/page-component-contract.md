@@ -83,8 +83,10 @@ Ruter med et snævert flowansvar, som ikke er almindelige fagsider.
 
 Aktuelle eksempler:
 
-- `OpenEo`
-- `UnsupportedDevicePage`
+- `OpenEo` — PWA-filindlæsningsfejl-flow (`src/components/system/`)
+- `UnsupportedDevicePage` — hard-stop ved uunderstøttet enhed (`main.tsx`)
+
+Disse komponenter bor **ikke** i `src/components/pages/`. `pages/`-mappen er reserveret til kategori 2.1–2.3. Hjælpe-/systemruter placeres i `src/components/system/` (route-monterede) eller renderes direkte fra `main.tsx` (hard-stop).
 
 Regler for persisted fagsider gælder ikke automatisk for de øvrige kategorier.
 Kontrakten skal derfor altid være eksplicit om, hvilke regler der gælder for hvilke sidetyper.
@@ -157,7 +159,7 @@ En almindelig side skal selv rendere:
 - root-container (`<Box>` eller tilsvarende)
 - sidetitel via `<Typography className="page-title">`
 
-Hjælpe-/systemruter som `UnsupportedDevicePage` og `OpenEo` må afvige, når deres UX-behov er anderledes.
+Hjælpe-/systemruter (jf. 2.4) som `UnsupportedDevicePage` og `OpenEo` må afvige, når deres UX-behov er anderledes.
 
 ---
 

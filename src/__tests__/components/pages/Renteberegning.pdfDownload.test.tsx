@@ -39,7 +39,7 @@ vi.mock('../../../components/tables/useRentekravRows', () => ({
   default: () => ({
     draftRows: [],
     onFieldChange: vi.fn(),
-    onFieldBlur: vi.fn(),
+    onRowBlur: vi.fn(),
     committedById: new Map(),
   }),
 }));

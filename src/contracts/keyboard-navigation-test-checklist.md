@@ -100,6 +100,12 @@ Hvis siden har en textarea:
 - [ ] Tryk Enter
 - [ ] **Verificer:** Den fokuserede radiobutton bliver valgt
 - [ ] **Verificer:** Fokus forbliver på radiobutton (ingen fokus-flytning)
+- [ ] Tryk `ArrowRight`
+- [ ] **Verificer:** Næste radiobutton i gruppen bliver valgt og får fokus
+- [ ] Stå på sidste radiobutton i gruppen og tryk `ArrowRight`
+- [ ] **Verificer:** Første radiobutton i gruppen bliver valgt og får fokus
+- [ ] Stå på første radiobutton i gruppen og tryk `ArrowLeft`
+- [ ] **Verificer:** Sidste radiobutton i gruppen bliver valgt og får fokus
 
 ---
 
@@ -248,6 +254,7 @@ Rapportér via projektets aftalte fejlkanal med præcis beskrivelse.
 ✅ Enter på dropdown åbner menu (ikke fokus-flytning)
 ✅ Enter i textarea giver newline (ikke fokus-flytning)
 ✅ Enter på radiobutton vælger fokuseret option
+✅ ArrowRight/ArrowLeft på radiobutton flytter aktiv selection med wrap i gruppen
 ✅ Museklik giver fokus (Container intercepter IKKE)
 ✅ Cirkulær navigation fungerer (første ↔ sidste)
 ✅ Ingen console errors

@@ -244,7 +244,8 @@ Tables er rene UI-komponenter.
 
 ### 6.1 Generelle regler
 
-- Alle dynamiske tabelrækker skal bruge `useRowDrafts`
+- Dynamiske tabelrækker med add/remove/reorder skal bruge `useRowDrafts`
+- Statiske eller domænespecifikke grid-tabeller må kun bruge direkte `commitRowUpdate`, hvis hver celle stadig følger Table*Input commit-kontrakten og tabellen ikke har row-draft isolation som brugerforventning.
 - Row-drafts følger samme principper som øvrige drafts:
   - strings i draft
   - parsing på blur
@@ -253,20 +254,24 @@ Tables er rene UI-komponenter.
 ### 6.2 useRowDrafts-kontrakt
 
 - onChange opdaterer kun draft (strings)
-- Commit (typisk onBlur) opdaterer committed funktionelt og resyncer draft til samme ensured state
+- `onRowBlur(rowId)` er række-granulær: ét felt-blur committer hele rækkens aktuelle draft mod committed state.
+- Commit (typisk row blur) opdaterer committed funktionelt og resyncer kun draft til ensured state, når committed rows faktisk ændrer sig.
+- No-op blur må ikke bumpe interne resync-tokens eller nulstille andre drafts.
 - Ingen side-effects i state-updaters
+- `useRowDrafts` må ikke eksponere rå `setDraftRows`; draft-opdateringer skal gå gennem hookets kontrollerede API, så ref-state og React-state er synkrone i samme event-handler.
 
 ### 6.3 Row Draft Resync Policy
 
-Row-drafts resynkroniseres udelukkende når et eksplicit `resyncToken` ændres.
+Row-drafts resynkroniseres kun efter autoritative hændelser:
 
 Dette sker ved:
 - Initial mount
+- Faktiske interne row-commits/add/remove/reorder, hvor committed rows ændrer sig
 - Form reset
 - Indlæsning af sag
 - Versions-migration
 
-Drafts resynkroniseres **ikke** ved almindelig commit-flow (onBlur).
+Drafts resynkroniseres **ikke** ved no-op blur/commit, hvor den normaliserede committed række er uændret.
 
 **Implementationsnote (Mineo pt.):**
 - `resyncToken` er obligatorisk i `useRowDrafts`.
@@ -275,24 +280,27 @@ Drafts resynkroniseres **ikke** ved almindelig commit-flow (onBlur).
 Normativ retning:
 - Autoritative replace-flows skal være den eneste årsag til global draft-resync.
 - Section-granulær resync er den foretrukne fremtidige retning, når det kan indføres uden at svække determinismen.
-- Form-wide resync er accepteret som nuværende implementation, men må ikke udvides til almindelige commit-flows.
+- Form-wide resync er accepteret som nuværende implementation, men må ikke udvides til no-op commit-flows.
 
 Debug-regel:
-Hvis en række “nulstilles”, skal man altid kunne pege på en `resyncToken`-ændring.
+Hvis en række “nulstilles”, skal man altid kunne pege på en faktisk intern row-ændring eller en `resyncToken`-ændring.
 
 ### 6.4 Draft-systemernes ansvarsfordeling
 
-To hooks implementerer draft/committed-separationen. De løser det samme grundproblem (brugerinput ≠ domænestate) men for forskellige datastrukturer:
+Tre kanoniske mekanismer implementerer draft/committed-separationen. De løser det samme grundproblem
+(brugerinput ≠ domænestate), men for forskellige UI- og datastrukturer:
 
-| Hook | Datastruktur | Bruges til |
+| Mekanisme | Datastruktur | Bruges til |
 |------|-------------|-----------|
-| `useDraftField` | Enkelt felt (string → parsed value) | Alle individuelle text/number-inputs. Håndterer parse-on-blur, focus snapshot, cancel (Escape), error state per felt. |
-| `useRowDrafts` | Array af rækker (draft rows ↔ committed rows) | Dynamiske tabelrækker. Håndterer add/remove/commit row, resync via `resyncToken`, row-level validering. |
+| `useDraftField` | Enkelt almindeligt felt (string → parsed value) | Individuelle Styled* text/number/date-felter uden grid-editor. Håndterer parse-on-blur, focus snapshot, cancel (Escape), error state per felt. |
+| `useRowDrafts` | Array af rækker (draft rows ↔ committed rows) | Dynamiske tabelrækker. Håndterer add/remove/commit row og resync via `resyncToken`. Validering hører til Table*Input eller tabelspecifik committed validering, ikke hookets tastetryks-hot path. |
+| `useTableInputHistoryRestore` + tabel-inputtets grid-adapter | Enkelt grid-cellefelt | Table*Input-komponenter, hvor GridCore ejer editoråbning, `commitCurrent`, `clearAndCommit`, key-startet edit og cellenavigation. Hooken er obligatorisk for history-restore/resync, så undo/redo ikke duplikeres per inputtype. |
 
 **Hvornår bruges hvad:**
-- Er inputtet et enkelt felt (tekst, tal, dato)? → `useDraftField`
+- Er inputtet et almindeligt enkeltfelt uden GridCore? → `useDraftField`
 - Er inputtet en dynamisk tabel med rækker der kan tilføjes/fjernes? → `useRowDrafts`
-- Disse to hooks bruges aldrig sammen for det samme stykke data.
+- Er inputtet en GridCore-tabelcelle? → Table*Input må have en grid-specialiseret draft-adapter, men history-restore og committed-resync skal gå via `useTableInputHistoryRestore`
+- Disse mekanismer må ikke overlappe for det samme ansvar på samme stykke data.
 
 ---
 

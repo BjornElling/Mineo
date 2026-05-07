@@ -216,9 +216,9 @@ const Aarsloen = React.memo(() => {
   }, [setField]);
 
   // Funktion til at opdatere tabeldata (type-safe)
-  const handleTableDataChange = React.useCallback((newTableData: AarsloenValues['tableData']) => {
-    setField('tableData', newTableData);
-  }, [setField]);
+  const handleTableDataChange = React.useCallback((newTableData: AarsloenValues['tableData'], options?: Readonly<{ fieldPath?: string }>) => {
+    setValues(prev => ({ ...prev, tableData: newTableData }), { fieldPath: options?.fieldPath ?? 'tableData' });
+  }, [setValues]);
 
   // Type-safe funktion til at opdatere toggle-felter
   type BooleanFieldName = 'fuldLoenUnderFerie' | 'retTilSjetteFerieuge';

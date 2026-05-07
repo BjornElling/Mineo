@@ -7,7 +7,6 @@ import {
   type FormPersistenceSections,
   type SectionRevisionMap,
 } from './formPersistenceStore';
-
 const MAX_HISTORY_STEPS = 50;
 
 export type HistoryFrameOrigin = {

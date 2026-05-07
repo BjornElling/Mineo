@@ -7,7 +7,7 @@ Appen er udviklet i TypeScript og kører 100 % client-side. Alle data bevares lo
 ## Kom i gang
 
 Forudsætninger:
-- Node.js 24 LTS (anbefalet via `.nvmrc`)
+- Node.js 24 LTS
 - Git
 
 Installation:
@@ -17,8 +17,6 @@ cd mineo
 nvm use
 npm install
 ```
-
-Projektet understøtter Node.js `>=24`. Lokal udvikling er pin'et til Node 24 LTS via `.nvmrc`, mens CI verificerer både Node 24 og Node 25 for at fange kompatibilitetsproblemer tidligt.
 
 Start udviklingsserver:
 ```bash
@@ -51,7 +49,7 @@ npm run import:loen
 ## Hjælpefiler til opdateringer
 
 - Overenskomst: `docs/tilfoej-overenskomst.md`
-- Kapitaliseringsbekendtgørelser: `docs\tilfoej-overenskomst.md`
+- Kapitaliseringsbekendtgørelser: `docs/tilfoej-kapitaliseringsbekendtgoerelse.md`
 
 ## Licens
 
@@ -65,6 +63,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.04.546
+**Version**: 2026.05.547
 
 **Status**: Under udvikling

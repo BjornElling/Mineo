@@ -140,6 +140,12 @@ Table inputs are UI-specialized, but must preserve the same principles:
 - `onBlur` = commit attempt only (table-specific deviation from Styled*Field blur semantics)
 - Validation must not run continuously via `useEffect` while typing
 - Any normalization/canonicalization must happen only on blur (commit)
+- GridCore table inputs must use `useTableInputHistoryRestore` for undo/redo draft-restore,
+  committed-value resync, physical-focus protection, and `draftHistoryRegistry` registration.
+- Individual `Table*Input` components must not each implement their own independent
+  `restoreFromHistory` + pending history resync logic. Parser/formatter differences belong in
+  the table input adapter; history timing and fieldPath/focusToken registration belong in the
+  shared hook.
 
 ## Instant-commit controls (explicit exceptions)
 
@@ -152,6 +158,7 @@ Rules for instant-commit controls:
 - `onCommit` is fired immediately on user interaction (same tick as the control's native change event).
 - There is no `useDraftField` usage, and no `Escape`/rollback semantics.
 - `onCommit` may be semantically identical to the control's native change callback (e.g. radio selection).
+- For radio groups, keyboard selection via `Enter` and `ArrowLeft`/`ArrowRight` follows `keyboard-navigation.md` and is still an immediate commit.
 - For select/combobox-style controls, commit happens on selection (`onChange`); `Escape` typically only closes the popover/menu.
 - If the control has a popover/menu interaction, expose an explicit `onClose` (interaction ended) separate from physical `onBlur`.
 - If an imperative handle is exposed (e.g. `shake()`), its semantics must be documented and it must not mutate committed form state.

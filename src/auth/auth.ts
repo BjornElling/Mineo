@@ -1,14 +1,15 @@
 import {
   AUTH_STORAGE_KEY,
   AUTH_STORAGE_VALUE,
-  SHARED_PASSWORD_HASH,
+  SHARED_PASSWORD_HASHES,
 } from './authConfig';
 import { getSafeLocalStorage } from '../utils/safeLocalStorage';
 
 const toHex = (bytes: Uint8Array): string =>
   Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
 
-const timingSafeHashEqual = (left: string, right: string): boolean => {
+// SHA-256 hex output er altid 64 tegn — length-tjekket er en invariant, ikke et timing-leak.
+const hexEqual = (left: string, right: string): boolean => {
   if (left.length !== right.length) {
     return false;
   }
@@ -34,8 +35,7 @@ const hashPassword = async (password: string): Promise<string> => {
 
 export const isAuthenticated = (): boolean => {
   const storage = getSafeLocalStorage();
-  // Midlertidig udviklingsbarriere: localStorage-flagget er kun en svag UX-gate,
-  // ikke en sikkerhedsmekanisme.
+  // localStorage-flagget er kun en svag UX-gate, ikke en sikkerhedsmekanisme.
   return storage.getItem(AUTH_STORAGE_KEY) === AUTH_STORAGE_VALUE;
 };
 
@@ -50,5 +50,5 @@ export const setAuthenticated = (): void => {
 
 export const verifySharedPassword = async (password: string): Promise<boolean> => {
   const passwordHash = await hashPassword(password);
-  return timingSafeHashEqual(passwordHash, SHARED_PASSWORD_HASH.toLowerCase());
+  return SHARED_PASSWORD_HASHES.some((hash) => hexEqual(passwordHash, hash.toLowerCase()));
 };

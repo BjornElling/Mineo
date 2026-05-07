@@ -14,6 +14,8 @@ import { normalizeYearPaste } from '../../../utils/inputPasteNormalization';
 import { makeYearFingerprintFromCanonical, type CommittedPayload, type YearFingerprint } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
+import { useTableInputSaveError } from '../../../hooks/useTableInputSaveError';
+import { useTableInputHistoryRestore } from '../../../hooks/useTableInputHistoryRestore';
 
 const MAX_YEAR_DRAFT_LENGTH = 6;
 
@@ -169,11 +171,42 @@ const TableYearInput = React.memo(
       latest.current.onBlur?.({ target: { value: nextValue } });
     }, []);
 
+    const undoFocusToken = React.useId();
+    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    const { clearPendingHistoryResync } = useTableInputHistoryRestore<string | undefined>({
+      value,
+      formatCommittedValue: (nextValue) => nextValue ?? '',
+      inputElementRef: inputElRef,
+      isEditing,
+      preserveDraft: hasError || preserveInvalidDraft,
+      draftRef,
+      setDraft,
+      focusToken: undoFocusToken,
+      fieldPath: gridCellKey,
+      resetEditingState: () => {
+        keyInitiatedEditRef.current = false;
+      },
+      onRestoreError: (state) => {
+        setTouched(true);
+        setPreserveInvalidDraft(true);
+        setHasError(true);
+        setErrorMessage(state.error.message ?? '');
+        latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
+      },
+      onRestoreCommitted: () => {
+        setTouched(false);
+        setPreserveInvalidDraft(false);
+        setHasError(false);
+        setErrorMessage('');
+        latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+      },
+    });
+
     React.useEffect(() => {
       latest.current = { onChange, onBlur, onErrorChange, locked, minYear, maxYear, twoDigitYearPolicy };
     }, [locked, maxYear, minYear, onBlur, onChange, onErrorChange, twoDigitYearPolicy]);
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       latestCommittedPayloadRef.current = toCommittedYearPayload(value);
     }, [value]);
 
@@ -191,20 +224,6 @@ const TableYearInput = React.memo(
       setErrorMessage('');
       setTouched(false);
     }, [isEditing, preserveInvalidDraft, value]);
-
-    React.useEffect(() => {
-      if (!isEditing) {
-        const inputEl = inputElRef.current;
-        const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
-        const hasPhysicalFocus =
-          inputEl !== null &&
-          activeEl !== null &&
-          (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
-        if (hasPhysicalFocus) return;
-        if (hasError || preserveInvalidDraft) return;
-        setDraft(value ?? '');
-      }
-    }, [hasError, isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -265,13 +284,14 @@ const TableYearInput = React.memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = String(e.target.value ?? '').slice(0, MAX_YEAR_DRAFT_LENGTH);
+        clearPendingHistoryResync();
         setHasError(false);
         setErrorMessage('');
         draftRef.current = nextDraft;
         setDraft(nextDraft);
         // Ingen emitValueChange under edit.
       },
-      [isReadOnly]
+      [clearPendingHistoryResync, isReadOnly]
     );
 
     const handleFocus = React.useCallback(() => {
@@ -285,8 +305,19 @@ const TableYearInput = React.memo(
         // Vigtigt: grid kan lukke editor-state før input-blur ved klik udenfor.
         // I den situation skal vi stadig committe draften fra ref, hvis den afviger fra committed.
         const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
-        const committedValue = latestCommittedPayloadRef.current.canonical;
-        if (!isEditing && rawValue === committedValue) return;
+        if (!isEditing) {
+          const committed = commitYearDraft(normalizeTableDraftOnCommit(rawValue), {
+            minYear: latest.current.minYear,
+            maxYear: latest.current.maxYear,
+            twoDigitYearPolicy: latest.current.twoDigitYearPolicy,
+          });
+          if (
+            committed.kind === 'ok' &&
+            yearFingerprintFromCanonical(committedToString(committed)) === latestCommittedPayloadRef.current.fingerprint
+          ) {
+            return;
+          }
+        }
         commitAndEmitBlur(rawValue);
       },
       [commitAndEmitBlur, isEditing]
@@ -334,7 +365,6 @@ const TableYearInput = React.memo(
     );
 
     const a11yErrorId = React.useId();
-    const undoFocusToken = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
@@ -422,7 +452,13 @@ const TableYearInput = React.memo(
       };
     }, [commitAndEmitBlur, gridApi]);
 
-    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    useTableInputSaveError({
+      key: `table-year:${a11yErrorId}`,
+      active: touched && hasError && preserveInvalidDraft,
+      message: errorMessage,
+      inputRef: inputElRef,
+    });
+
     React.useEffect(() => {
       gridApi.registerEditor(gridCell, editorHandle);
       return () => gridApi.unregisterEditor(gridCell);

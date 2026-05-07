@@ -32,7 +32,7 @@ import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { getFirstBlockingInputErrorTarget } from '../../utils/saveBlockedFocus';
-import { installUndoFocusTracker } from '../../utils/undoFocusTracker';
+import { clearLastUndoFocus, installUndoFocusTracker } from '../../utils/undoFocusTracker';
 
 /**
  * Hovedlayout for applikationen
@@ -68,6 +68,10 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
   React.useEffect(() => {
     installUndoFocusTracker();
   }, []);
+
+  React.useEffect(() => {
+    clearLastUndoFocus();
+  }, [location.pathname]);
 
   // Prioritering: Track om nuværende overlay er user-feedback (højere prioritet end system errors)
   const isUserFeedbackRef = React.useRef<boolean>(false);
@@ -232,16 +236,16 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
 
       if (!isUndoShortcut && !isRedoShortcut) return;
 
-      // Designvalg: undo/redo blokeres mens en editor er åben (uafsluttet draft i et felt
-      // eller en åben grid-celle-editor). Brugeren skal afslutte eller annullere editoren først.
-      // Se docs/implementation/undo-redo.md for begrundelse.
-      if (isOpenTextEditorElement(document.activeElement) || hasOpenGridEditor()) {
+      const activeEl = document.activeElement;
+      const editorOpen = isOpenTextEditorElement(activeEl);
+      const gridEditorOpen = hasOpenGridEditor();
+
+      // Designvalg: undo/redo er et stille no-op mens en editor er åben (uafsluttet draft
+      // i et felt eller en åben grid-celle-editor). Genvejen stoppes, så browserens egen
+      // tekst-undo ikke ændrer draften, men Mineos history røres ikke.
+      // Se docs/architecture/undo-redo-architecture.md for begrundelse.
+      if (editorOpen || gridEditorOpen) {
         e.preventDefault();
-        isUserFeedbackRef.current = true;
-        setOverlay({
-          message: 'Kan ikke fortryde eller gentage: afslut eller ret det aktive felt først.',
-          type: 'warning',
-        });
         return;
       }
 

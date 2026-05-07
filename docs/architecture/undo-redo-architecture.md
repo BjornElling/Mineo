@@ -1,0 +1,197 @@
+# Undo/Redo Architecture
+
+**Status:** Gældende arkitektur  
+**Scope:** Global undo/redo for committed brugerinput i Mineo
+
+Dette dokument beskriver den implementerede undo/redo-arkitektur. Det er ikke en implementeringsplan.
+
+## 1. Formål
+
+Undo/redo giver brugeren mulighed for at fortryde og gentage committed ændringer i formular-state.
+
+Funktionen er afgrænset til Mineos committed, schema-validerede inputstate. Den arbejder ikke på åben draft-state og erstatter ikke browserens native tekst-undo inde i et aktivt inputfelt.
+
+## 2. Brugeradfærd
+
+| Situation | Adfærd |
+|---|---|
+| `Ctrl+Z` / `Cmd+Z` | Undo til seneste committed snapshot |
+| `Ctrl+Shift+Z` / `Cmd+Shift+Z` | Redo til næste snapshot |
+| `Ctrl+Y` / `Cmd+Y` | Redo |
+| Editor lukket | Genvejen håndteres af Mineo |
+| Tekstinput-editor åben | Genvejen er et stille no-op |
+| Grid-celle-editor åben | Genvejen er et stille no-op |
+| Filindlæsning | Undo/redo-stakken ryddes |
+| Gem | Ingen effekt på stakken |
+
+Når en editor er åben, kalder `MainLayout` stadig `preventDefault()` på undo/redo-genvejen. Det forhindrer browserens egen tekst-undo i at ændre en ucommitted draft uden om Mineos commit-flow. Mineos `undo()`/`redo()` kaldes ikke, history-stakken ændres ikke, og der vises ingen advarsel.
+
+## 3. Grundregel
+
+Undo/redo opererer kun på committed state.
+
+Der må ikke ske beregning, validation eller history-restore fra åben draft-state. Hvis en tekstinput-editor eller grid-celle-editor er åben, ignoreres undo/redo derfor deterministisk.
+
+## 4. History-model
+
+History ejes af `src/stores/undoRedoStore.ts`.
+
+Storen er en in-memory Zustand vanilla-store uden persist-middleware. Den gemmes ikke i `sessionStorage` og indgår ikke i `.eo`-filer.
+
+```typescript
+type HistoryFrameOrigin = {
+  route: string;
+  tabKey: string | null;
+  sectionKey: keyof FormPersistenceSections;
+  fieldPath: string | null;
+  focusToken: string | null;
+};
+
+type HistoryFrame = {
+  id: string;
+  timestamp: number;
+  sections: FormPersistenceSections;
+  sectionRevisions: SectionRevisionMap;
+  authoritativeSnapshotEpoch: number;
+  fieldErrors: FieldErrorCache;
+  fieldErrorRevisions: FieldErrorRevisionMap;
+  meta: FormPersistenceMeta;
+  origin: HistoryFrameOrigin;
+};
+```
+
+`past` indeholder undo-mål. `future` indeholder redo-mål. Der findes bevidst ikke et `present`-felt; aktuel state læses fra `formPersistenceStore`, og aktuel state snapshots først når `undo()` eller `redo()` flytter et frame mellem stakkene.
+
+Stakken er begrænset til 50 `past`-frames. Når grænsen nås, droppes de ældste frames.
+
+## 5. Capture
+
+History capture sker før en committed ændring skrives til `formPersistenceStore`.
+
+Normal formularvej:
+
+```text
+onCommit -> usePersistedForm.setValues/setFieldValue
+         -> FormPersistenceContext.persistData(..., { undoOrigin })
+         -> undoRedoStore.capture(origin)
+         -> formPersistenceStore.commitSection(...)
+```
+
+`persistData` springer capture over, hvis den serialiserede sektion er uændret. Det forhindrer no-op commits i at oprette history entries.
+
+Blocking field errors med invalid draft kan også capture en undo-origin via `useFormFieldErrors`, så undo kan gendanne både committed snapshot og den relevante invalid draft-fejl.
+
+## 6. Origin og fokus
+
+Et `HistoryFrame` gemmer origin, så undo/redo efter restore kan navigere brugeren tilbage til den side, fane og feltposition hvor ændringen hører til.
+
+Origin består af:
+- `route` fra React Router
+- `tabKey` fra aktiv fane i `sessionStorage`
+- `sectionKey` fra den persisted sektion
+- `fieldPath` fra commit-option eller senest fokuserede undo-bærende felt
+- `focusToken` fra senest fokuserede undo-bærende felt, men kun når commit ikke sender en eksplicit `fieldPath`
+
+`src/utils/undoFocusTracker.ts` installeres i `MainLayout` og lytter på `focusin` i capture phase. Den gemmer seneste element med `data-mineo-undo-focus-token` eller `data-mineo-undo-field-path`.
+
+Dette er nødvendigt, fordi felt-commit typisk sker på blur efter fokus allerede er flyttet. `document.activeElement` ville derfor ofte pege på det nye felt, ikke det felt der netop blev committed.
+
+For tabelceller er `fieldPath` den autoritative identitet. Tabellen sender cellens stabile `rowId:colIndex` med commit-kaldet, og `focusToken` sættes derfor til `null` for den history-frame. Det forhindrer, at hurtig navigation til nabocellen kan få undo/redo til at fokusere eller draft-restore den forkerte celle. Almindelige felter, der ikke sender en eksplicit `fieldPath`, bruger fortsat focus-trackeren som fallback.
+
+## 7. Restore
+
+Restore ejes af `src/hooks/useUndoRedo.ts`.
+
+Ved undo/redo:
+1. `undoRedoStore.undo()` eller `redo()` returnerer target-frame og opdaterer `past`/`future`.
+2. `useUndoRedo` skriver frame-sektionerne til `sessionStorage` via rollback-beskyttet snapshot-write.
+3. `formPersistenceStore.restoreHistoryFrame(...)` gendanner sections, revisions, field errors og meta atomisk og bumper `authoritativeSnapshotEpoch`.
+4. Aktiv fane sættes med `setActiveTabForPage(...)`, hvis frame har `tabKey`.
+5. React Router navigerer til frame-route.
+6. En `requestAnimationFrame`-retry-løkke finder det synlige target via `data-mineo-undo-field-path` eller `data-mineo-undo-focus-token`.
+7. Draft-restore forsøges via `draftHistoryRegistry`.
+8. Feltets sektion scrolles til start, og feltet fokuseres med `preventScroll: true`.
+
+Retry-løkken findes, fordi route- og tab-skift kan betyde, at target-feltet først findes i DOM efter efterfølgende renders.
+
+## 8. Draft-restore
+
+Undo/redo gendanner committed state. For felter med en gemt blocking invalid draft-fejl gendannes også draft-fejlen, så brugeren kan lande tilbage på samme fejltilstand.
+
+Mekanismen er:
+- `useDraftField` og table-inputs registrerer controllere i `src/utils/draftHistoryRegistry.ts`.
+- Controlleren registreres på `focusToken` og `fieldPath`.
+- `useUndoRedo` udleder restore-state fra frame-fieldErrors.
+- Hvis field error er blocking og har `invalidDraft`, kaldes controlleren med `{ kind: 'error' }`.
+- Ellers kaldes controlleren med `{ kind: 'committed' }`.
+
+Draft-restore er one-shot pr. restore-loop, så gentagne `requestAnimationFrame` ticks ikke overskriver brugerinput, hvis brugeren når at interagere mellem ticks.
+
+## 9. Authoritative Resync
+
+`restoreHistoryFrame` bumper `authoritativeSnapshotEpoch`.
+
+`usePersistedForm` observerer epoch-skift og bumper `formVersion`, når den relevante sektion ser et nyt authoritative snapshot. Det er signalet til row-draft-systemer som `useRowDrafts` om at resynkronisere lokale draft-strenge med restored committed state.
+
+Almindelige commits bumper ikke `formVersion`; resync er reserveret til authoritative replace-flows som load, reset/migration og undo/redo restore.
+
+## 10. Tabeller
+
+Tabeller kræver ikke særskilt undo-logik for tilføjede eller slettede rækker.
+
+Fordi capture sker før commit, indeholder undo-framet tilstanden før tabelnormalisering:
+- En ny udfyldt række fjernes igen ved undo, fordi snapshot kun havde den tomme trailing-række.
+- En slettet/tømt række genskabes ved undo, fordi snapshot havde rækken med indhold.
+
+Tabelceller bærer `data-mineo-undo-focus-token` og `data-mineo-undo-field-path`, så restore kan finde og fokusere cellen efter navigation. Ved restore slås tabelceller først op via `fieldPath`; `focusToken` er kun fallback for almindelige felter. Tabel-inputs registrerer også draft-restore-controllere, så local draft/error-state ryddes sammen med committed restore.
+
+## 11. Load, Clear og Save
+
+Filindlæsning rydder undo/redo-stakken efter en succesfuld apply:
+- `src/utils/persistenceLoadApply.ts` kalder `undoRedoStore.clear()`.
+- `FormPersistenceContext.replaceAllPersistedData(...)` rydder også stakken efter succesfuld autoritativ erstatning.
+
+`clearAllData` rydder ligeledes undo/redo-stakken.
+
+Gem påvirker ikke undo/redo. Save er persistence af allerede committed state og må ikke oprette, rydde eller flytte history frames.
+
+## 12. Debug
+
+Undo/redo har opt-in debug logging via `src/utils/undoRedoDebug.ts`.
+
+Logging er kun aktiv, når browserkonsollen sætter:
+
+```javascript
+window.__MINEO_UNDO_LOG__ = true
+```
+
+Når aktivt, bruger logging `console.debug` med `[UNDO/REDO]`-prefix. Normal drift er console-silent.
+
+## 13. Vigtige filer
+
+| Fil | Ansvar |
+|---|---|
+| `src/stores/undoRedoStore.ts` | In-memory history stack og stack-transitioner |
+| `src/hooks/useUndoRedo.ts` | Restore, navigation, draft-restore og fokus |
+| `src/hooks/usePersistedForm.ts` | Opretter undo-origin ved felt-commits |
+| `src/hooks/useFormFieldErrors.ts` | Capturer invalid draft-fejl til history |
+| `src/hooks/usePersistedActiveTab.ts` | Sætter target-fane ved restore |
+| `src/components/layout/MainLayout.tsx` | Installerer focus tracker og globale keyboard shortcuts |
+| `src/utils/undoFocusTracker.ts` | Sporer senest fokuserede undo-bærende felt |
+| `src/utils/draftHistoryRegistry.ts` | Registrerer draft-restore controllers |
+| `src/utils/persistenceLoadApply.ts` | Rydder history efter filindlæsning |
+| `src/components/inputs/StyledTextFieldBase.tsx` | Bærer undo-attributter for almindelige felter |
+| `src/components/inputs/table/Table*Input.tsx` | Bærer undo-attributter for grid-celler |
+
+## 14. Testflade
+
+Automatiske tests dækker blandt andet:
+- pre-commit snapshot capture
+- history-størrelsesgrænse
+- redo-gren ryddes ved ny capture
+- navigation til korrekt side/fane/felt
+- restore af invalid draft
+- atomisk restore af sections og field errors
+- row-draft resync efter restore
+- load rydder history
+- undo/redo er stille no-op mens editor er åben

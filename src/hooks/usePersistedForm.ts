@@ -140,7 +140,6 @@ export const usePersistedForm = <K extends StorageKey>(
     }
 
     bumpFormVersion();
-    clearFieldErrorsRef.current(pageKey);
   }, [authoritativeSnapshotEpoch, pageKey, persistenceHydrated]);
 
   const resolveCurrentValues = React.useCallback((): PersistedSectionMap[K] => {
@@ -159,13 +158,14 @@ export const usePersistedForm = <K extends StorageKey>(
     // Et felt-commit udløses normalt af blur efter fokus er flyttet, så activeElement
     // peger på det nye felt og ville give forkert undo-mål. Se undoFocusTracker.ts.
     const lastFocus = readLastUndoFocus();
+    const resolvedFieldPath = options?.fieldPath ?? lastFocus.fieldPath;
 
     return {
       route,
       tabKey,
       sectionKey: pageKey,
-      fieldPath: options?.fieldPath ?? lastFocus.fieldPath,
-      focusToken: lastFocus.focusToken,
+      fieldPath: resolvedFieldPath,
+      focusToken: options?.fieldPath ? null : lastFocus.focusToken,
     };
   }, [location.pathname, pageKey]);
 

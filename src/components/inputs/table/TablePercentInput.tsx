@@ -25,6 +25,8 @@ import {
 } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
+import { useTableInputSaveError } from '../../../hooks/useTableInputSaveError';
+import { useTableInputHistoryRestore } from '../../../hooks/useTableInputHistoryRestore';
 
 export type TablePercentInputValue = string | number | undefined;
 
@@ -391,6 +393,42 @@ const TablePercentInput = React.memo(
       latest.current.onBlur?.({ target: { value: nextValue } });
     }, []);
 
+    const formatCommittedValue = React.useCallback(
+      (nextValue: TablePercentInputValue) => toDisplayString(nextValue, allowDecimals),
+      [allowDecimals]
+    );
+
+    const undoFocusToken = React.useId();
+    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    const { clearPendingHistoryResync } = useTableInputHistoryRestore<TablePercentInputValue>({
+      value,
+      formatCommittedValue,
+      inputElementRef: inputElRef,
+      isEditing,
+      preserveDraft: hasError || preserveInvalidDraft,
+      draftRef,
+      setDraft,
+      focusToken: undoFocusToken,
+      fieldPath: gridCellKey,
+      resetEditingState: () => {
+        keyInitiatedEditRef.current = false;
+      },
+      onRestoreError: (state) => {
+        setTouched(true);
+        setPreserveInvalidDraft(true);
+        setHasError(true);
+        setErrorMessage(state.error.message ?? '');
+        latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
+      },
+      onRestoreCommitted: () => {
+        setTouched(false);
+        setPreserveInvalidDraft(false);
+        setHasError(false);
+        setErrorMessage('');
+        latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+      },
+    });
+
     React.useEffect(() => {
       latest.current = {
         onChange,
@@ -403,7 +441,7 @@ const TablePercentInput = React.memo(
       };
     }, [allowNegative, effectiveMax, effectiveMin, locked, onBlur, onChange, onErrorChange]);
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       latestCommittedPayloadRef.current = toCommittedPercentPayload(
         value,
         allowDecimals
@@ -424,20 +462,6 @@ const TablePercentInput = React.memo(
       setErrorMessage('');
       setTouched(false);
     }, [allowDecimals, isEditing, preserveInvalidDraft, value]);
-
-    React.useEffect(() => {
-      if (!isEditing) {
-        const inputEl = inputElRef.current;
-        const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
-        const hasPhysicalFocus =
-          inputEl !== null &&
-          activeEl !== null &&
-          (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
-        if (hasPhysicalFocus) return;
-        if (hasError || preserveInvalidDraft) return;
-        setDraft(toDisplayString(value, allowDecimals));
-      }
-    }, [allowDecimals, hasError, isEditing, preserveInvalidDraft, value]);
 
     React.useEffect(() => {
       if (!isEditing) {
@@ -494,13 +518,14 @@ const TablePercentInput = React.memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = e.target.value ?? '';
+        clearPendingHistoryResync();
         setHasError(false);
         setErrorMessage('');
         draftRef.current = nextDraft;
         setDraft(nextDraft);
         // Ingen emitValueChange under edit.
       },
-      [isReadOnly]
+      [clearPendingHistoryResync, isReadOnly]
     );
 
     const handleFocus = React.useCallback(() => {
@@ -576,7 +601,6 @@ const TablePercentInput = React.memo(
     );
 
     const a11yErrorId = React.useId();
-    const undoFocusToken = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
@@ -669,7 +693,13 @@ const TablePercentInput = React.memo(
       };
     }, [allowDecimals, commitAndEmitBlur, gridApi]);
 
-    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    useTableInputSaveError({
+      key: `table-percent:${a11yErrorId}`,
+      active: touched && hasError && preserveInvalidDraft,
+      message: errorMessage,
+      inputRef: inputElRef,
+    });
+
     React.useEffect(() => {
       gridApi.registerEditor(gridCell, editorHandle);
       return () => {

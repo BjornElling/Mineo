@@ -134,6 +134,8 @@ const EetAslAfgoerelserTable = React.memo(
       pendingPersistRef.current = null;
     }, [internalTableData, persistTableData]);
 
+    // Intentional table-local commit model: this domain table has fixed rows/cells and no
+    // row-draft isolation, so each Table*Input owns its draft and commits a partial row here.
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<AslAfgoerelseRow>) => {
         setInternalTableData((prev) => {

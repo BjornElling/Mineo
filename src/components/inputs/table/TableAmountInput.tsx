@@ -21,6 +21,8 @@ import { formatRoundedCanonical } from '../../../utils/rounding';
 import { makeAmountFingerprintFromCanonical, type AmountFingerprint, type CommittedPayload } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
+import { useTableInputSaveError } from '../../../hooks/useTableInputSaveError';
+import { useTableInputHistoryRestore } from '../../../hooks/useTableInputHistoryRestore';
 
 export type TableAmountInputValue = AmountValue | undefined;
 
@@ -138,7 +140,7 @@ const TableAmountInput = React.memo(
 
     const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, canBeNegative });
 
-    React.useEffect(() => {
+    React.useLayoutEffect(() => {
       latestCommittedPayloadRef.current = toCommittedAmountPayload(value);
     }, [value]);
 
@@ -158,19 +160,34 @@ const TableAmountInput = React.memo(
       latest.current.onBlur?.({ target: { value: nextValue } });
     }, []);
 
-    React.useEffect(() => {
-      if (!isEditing) {
-        const inputEl = inputElRef.current;
-        const activeEl = typeof document !== 'undefined' ? document.activeElement : null;
-        const hasPhysicalFocus =
-          inputEl !== null &&
-          activeEl !== null &&
-          (activeEl === inputEl || (activeEl instanceof Node && inputEl.contains(activeEl)));
-        if (hasPhysicalFocus) return;
-        if (hasError) return;
-        setDraft(toDisplayString(value));
-      }
-    }, [hasError, isEditing, value]);
+    const undoFocusToken = React.useId();
+    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    const { clearPendingHistoryResync } = useTableInputHistoryRestore<TableAmountInputValue>({
+      value,
+      formatCommittedValue: toDisplayString,
+      inputElementRef: inputElRef,
+      isEditing,
+      preserveDraft: hasError,
+      draftRef,
+      setDraft,
+      focusToken: undoFocusToken,
+      fieldPath: gridCellKey,
+      resetEditingState: () => {
+        keyInitiatedEditRef.current = false;
+      },
+      onRestoreError: (state) => {
+        setTouched(true);
+        setHasError(true);
+        setErrorMessage(state.error.message ?? '');
+        latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
+      },
+      onRestoreCommitted: () => {
+        setTouched(false);
+        setHasError(false);
+        setErrorMessage('');
+        latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
+      },
+    });
 
     React.useLayoutEffect(() => {
       if (!isEditing) {
@@ -230,6 +247,8 @@ const TableAmountInput = React.memo(
         const nextPayload = toCommittedAmountPayload(committed.value);
         const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
         // Kontrakt 1A: no-op må aldrig emitte commit til parent.
+        // Når onBlur undertrykkes her, er inputtet selv ansvarligt for at rydde/rapportere
+        // onErrorChange, så tabelvalideringen ikke afhænger af parent-commit.
         if (isNoop) {
           setHasError(false);
           setErrorMessage('');
@@ -250,6 +269,7 @@ const TableAmountInput = React.memo(
       (e: React.ChangeEvent<HTMLInputElement>) => {
         if (isReadOnly) return;
         const nextDraft = sanitizePastedAmount(e.target.value ?? '');
+        clearPendingHistoryResync();
         setHasError(false);
         setErrorMessage('');
         if (nextDraft === '') {
@@ -260,7 +280,7 @@ const TableAmountInput = React.memo(
         // VIGTIGT: Ingen live preview + Escape kræver at vi IKKE lækker draft til parent under edit.
         // Parent opdateres kun ved commit (onBlur/commitAndEmitBlur).
       },
-      [isReadOnly]
+      [clearPendingHistoryResync, isReadOnly]
     );
 
     const handleFocus = React.useCallback(() => {
@@ -274,8 +294,12 @@ const TableAmountInput = React.memo(
         // Vigtigt: grid kan lukke editor-state før input-blur ved klik udenfor.
         // I den situation skal vi stadig committe draften fra ref, hvis den afviger fra committed.
         const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
-        const committedValue = toDisplayString(latestCommittedPayloadRef.current.model);
-        if (!isEditing && rawValue === committedValue) return;
+        if (!isEditing) {
+          const committed = commitAmountDraft(rawValue, { canBeNegative: latest.current.canBeNegative });
+          if (committed.ok && toCommittedAmountPayload(committed.value).fingerprint === latestCommittedPayloadRef.current.fingerprint) {
+            return;
+          }
+        }
         commitAndEmitBlur(rawValue);
       },
       [commitAndEmitBlur, isEditing]
@@ -339,7 +363,6 @@ const TableAmountInput = React.memo(
     );
 
     const a11yErrorId = React.useId();
-    const undoFocusToken = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
     const showError = (hasExternalError || (touched && hasError)) && !isFocused;
@@ -425,7 +448,13 @@ const TableAmountInput = React.memo(
       };
     }, [commitAndEmitBlur, gridApi]);
 
-    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+    useTableInputSaveError({
+      key: `table-amount:${a11yErrorId}`,
+      active: touched && hasError,
+      message: errorMessage,
+      inputRef: inputElRef,
+    });
+
     React.useEffect(() => {
       gridApi.registerEditor(gridCell, editorHandle);
       return () => {

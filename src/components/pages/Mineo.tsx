@@ -48,13 +48,13 @@ const Mineo = React.memo(() => {
         <Typography className="section-header">Programmet</Typography>
 
         <Typography className="row--text">
-          Mineo er et specialiseret regneprogram til advokater,
-          arbejdsskadekonsulenter og andre fagpersoner, hvis arbejde
-          indebærer at beregne erstatning i person- og arbejdsskadesager.
+          Mineo er et specialiseret regneprogram, der er udviklet til brug for advokater 
+          og arbejdsskadekonsulenter, som arbejder i eller for fagbevægelsen, og som beskæftiger
+          sig med arbejdsskadesager.
         </Typography>
 
         <Typography className="row--text">
-          Programmet forudsætter, at du har et godt kendskab til emnet. Personskadesager
+          Programmet forudsætter, at du har et godt kendskab til emnet. Arbejdsskadesager
           er komplekse og beror på en lang række matematiske og juridiske forudsætninger,
           som ikke altid er indlysende.
         </Typography>
@@ -140,13 +140,13 @@ const Mineo = React.memo(() => {
 
         <Typography className="row--text">
           Programmet kommunikerer ikke med nogen server under brug, og der indsamles,
-          gemmes eller transmitteres ingen data - hverken persondata, brugsstatistik
+          gemmes eller transmitteres ingen data — hverken persondata, brugsstatistik
           eller anden information.
         </Typography>
 
         <Typography className="row--text">
           Mens programmet kører, bliver de indtastede oplysninger midlertidigt gemt
-          i browserens hukommelse, som nulstilles når browseren lukkes.
+          i browserens hukommelse, som nulstilles, når browseren lukkes.
         </Typography>
       </ContentBox>
 
@@ -177,7 +177,7 @@ const Mineo = React.memo(() => {
           <Box className="numbered-list-item">
             <Typography className="row--text">1)</Typography>
             <Typography className="row--text">
-              Du kan bruge programmet frit - også til kommercielle formål.
+              Du kan bruge programmet frit — også til kommercielle formål.
             </Typography>
           </Box>
 
@@ -198,9 +198,9 @@ const Mineo = React.memo(() => {
         </Box>
 
         <Typography className="row--text">
-          Ved brug af programmet skal du være opmærksom på, at det er udviklet af en jurist,
-          der ved mere om paragraffer end om koder. Programmet er grundigt testet, men fejl
-          kan forekomme. Sørg derfor altid for at kontrollere dine beregninger.
+          Ved brug af programmet skal du være opmærksom på, at det aktuelt er i en åben
+          testudgave. Programmet er grundigt testet, men fejl kan forekomme. Sørg derfor
+          altid for at kontrollere dine beregninger.
         </Typography>
 
       </ContentBox>
@@ -255,9 +255,9 @@ const Mineo = React.memo(() => {
             <Typography
               className="row--text icon-text-link"
               component="a"
-              href="mailto:bj.elling@gmail.com"
+              href="mailto:bel@fho.dk"
             >
-              bj.elling@gmail.com
+              bel@fho.dk
             </Typography>
           </Box>
 

@@ -4,23 +4,11 @@ import LoginPage from '../components/pages/LoginPage';
 import { isAuthenticated } from './auth';
 
 /**
- * Midlertidig udviklingsgate.
- * Formålet er alene at holde uvedkommende fra siden under udvikling.
- * Komponenten er bevidst svag og skal fjernes igen, når udviklingsbehovet ophører.
+ * Permanent UX-gate mod utilsigtet adgang. Bevidst svag — ikke en sikkerhedsgrænse.
+ * Se docs/architecture/auth-gate-architecture.md.
  */
 const AuthGate = (): React.JSX.Element => {
   const [authenticated, setAuthenticated] = React.useState<boolean>(() => isAuthenticated());
-
-  React.useEffect(() => {
-    const handleStorage = (): void => {
-      setAuthenticated(isAuthenticated());
-    };
-
-    window.addEventListener('storage', handleStorage);
-    return () => {
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, []);
 
   if (authenticated) {
     return <App />;

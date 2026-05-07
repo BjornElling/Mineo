@@ -23,6 +23,10 @@ import ScrollToTopButton from '../ui/ScrollToTopButton';
  *   - UNDTAGELSE: Textareas – Enter giver newline som normalt
  *   - UNDTAGELSE: Radiobuttons – Enter vælger den fokuserede radiobutton
  *
+ * ArrowLeft / ArrowRight
+ *   - Flytter fokus i samme række, når editor/menu er lukket
+ *   - UNDTAGELSE: Radiobuttons – flytter aktiv selection og fokus i radiogruppen med wrap
+ *
  * Museklik
  *   - Container håndterer IKKE museklik
  *   - Selection ved museklik er komponentens eget ansvar (ikke Container)
@@ -64,6 +68,44 @@ const CONTAINER_FOCUSABLE_SELECTOR =
   "[aria-controls][tabindex]:not([tabindex='-1']):not([aria-disabled='true'])";
 const NON_TEXT_EDITING_INPUT_TYPES = new Set(['checkbox', 'radio', 'range', 'button', 'submit', 'reset', 'file', 'color']);
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
+
+const normalizeRadioGroupTabStops = (elements: FocusableElement[]): FocusableElement[] => {
+  const radioGroupMembers = new Map<string, HTMLInputElement[]>();
+  const radioByGroup = new Map<HTMLInputElement, string>();
+
+  for (const element of elements) {
+    if (!(element instanceof HTMLInputElement)) continue;
+    if (element.type !== 'radio') continue;
+    if (element.name.trim() === '') continue;
+    const groupKey = `${element.form?.id ?? ''}:${element.name}`;
+    radioByGroup.set(element, groupKey);
+    const members = radioGroupMembers.get(groupKey) ?? [];
+    members.push(element);
+    radioGroupMembers.set(groupKey, members);
+  }
+
+  const tabStopByGroup = new Map<string, HTMLInputElement>();
+  for (const [groupKey, members] of radioGroupMembers) {
+    const checked = members.find((radio) => radio.checked);
+    tabStopByGroup.set(groupKey, checked ?? members[0]);
+  }
+
+  return elements.filter((element) => {
+    if (!(element instanceof HTMLInputElement) || element.type !== 'radio') return true;
+    const groupKey = radioByGroup.get(element);
+    if (!groupKey) return true;
+    return tabStopByGroup.get(groupKey) === element;
+  });
+};
+
+const getRadioGroupMembers = (radio: HTMLInputElement, container: HTMLElement): HTMLInputElement[] => {
+  if (radio.type !== 'radio') return [];
+  if (radio.name.trim() === '') return [radio];
+
+  return Array.from(container.querySelectorAll('input[type="radio"]:not([disabled]):not([tabindex="-1"])'))
+    .filter((candidate): candidate is HTMLInputElement => candidate instanceof HTMLInputElement)
+    .filter((candidate) => candidate.name === radio.name && candidate.form === radio.form);
+};
 
 const Container = React.memo(({ children }: ContainerProps) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -171,13 +213,14 @@ const Container = React.memo(({ children }: ContainerProps) => {
       return;
     }
 
-    focusableCacheRef.current = Array.from(
+    const focusableElements = Array.from(
       containerRef.current.querySelectorAll(CONTAINER_FOCUSABLE_SELECTOR)
     ).filter((el): el is FocusableElement => {
       if (!(el instanceof HTMLElement)) return false;
       // Tjek synlighed (hurtig check)
       return isElementVisible(el);
     });
+    focusableCacheRef.current = normalizeRadioGroupTabStops(focusableElements);
 
     cacheValidRef.current = true;
   }, [isElementVisible]);
@@ -387,6 +430,34 @@ const Container = React.memo(({ children }: ContainerProps) => {
         return;
       }
 
+      if (
+        activeFocusable instanceof HTMLInputElement &&
+        activeFocusable.type === 'radio' &&
+        (direction === 'left' || direction === 'right')
+      ) {
+        const container = containerRef.current;
+        if (!container) return;
+
+        const radioGroupMembers = getRadioGroupMembers(activeFocusable, container).filter(isElementVisible);
+        if (radioGroupMembers.length <= 1) return;
+
+        const currentRadioIndex = radioGroupMembers.indexOf(activeFocusable);
+        if (currentRadioIndex < 0) return;
+
+        const nextRadioIndex =
+          direction === 'right'
+            ? (currentRadioIndex + 1) % radioGroupMembers.length
+            : (currentRadioIndex - 1 + radioGroupMembers.length) % radioGroupMembers.length;
+        const target = radioGroupMembers[nextRadioIndex];
+        if (!target) return;
+
+        e.preventDefault();
+        target.click();
+        focusOnly(target);
+        invalidateCache();
+        return;
+      }
+
       const nonTableFocusables = focusableElements.filter((el) => !isInTableNavigation(el));
       if (!focusableElements.includes(activeFocusable)) return;
 
@@ -547,7 +618,7 @@ const Container = React.memo(({ children }: ContainerProps) => {
     }
     e.preventDefault();
     moveFocus(e.shiftKey ? -1 : 1);
-  }, [getFocusableElements, getNearestExpanded, getRowContainer, getWidgetHost, invalidateCache, isInTableNavigation, isPopupWidget]);
+  }, [getFocusableElements, getNearestExpanded, getRowContainer, getWidgetHost, invalidateCache, isElementVisible, isInTableNavigation, isPopupWidget]);
 
   return (
     <ScrollContainerProvider containerRef={containerRef}>

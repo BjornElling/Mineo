@@ -14,6 +14,7 @@ import { StandardGridTable } from '../../../components/tables/StandardGridTable'
  * - Enter flytter fokus som Tab (uden selection), undtagen på særlige widgets
  * - Enter på popup-widgets intercepteres IKKE
  * - Enter på radiobutton vælger den fokuserede radiobutton
+ * - ArrowLeft/ArrowRight på radiobutton flytter aktiv selection med wrap i gruppen
  * - Cirkulær navigation fungerer korrekt
  *
  * Se src/contracts/keyboard-navigation.md for fuld kontrakt.
@@ -293,6 +294,77 @@ describe('Container keyboard navigation', () => {
     expect(onChangeA).not.toHaveBeenCalled();
     expect(document.activeElement).toBe(radioB);
     expect(document.activeElement).not.toBe(after);
+  });
+
+  it('ArrowRight/ArrowLeft på radiobutton flytter aktiv selection med wrap i gruppen', async () => {
+    const user = userEvent.setup();
+    const onChangeA = vi.fn();
+    const onChangeB = vi.fn();
+    const onChangeC = vi.fn();
+
+    render(
+      <Container>
+        <input data-testid="radio-a" type="radio" name="valg" value="a" defaultChecked style={{ position: 'fixed' }} onChange={onChangeA} />
+        <input data-testid="radio-b" type="radio" name="valg" value="b" style={{ position: 'fixed' }} onChange={onChangeB} />
+        <input data-testid="radio-c" type="radio" name="valg" value="c" style={{ position: 'fixed' }} onChange={onChangeC} />
+      </Container>
+    );
+
+    const radioA = screen.getByTestId('radio-a') as HTMLInputElement;
+    const radioB = screen.getByTestId('radio-b') as HTMLInputElement;
+    const radioC = screen.getByTestId('radio-c') as HTMLInputElement;
+
+    radioB.focus();
+    expect(document.activeElement).toBe(radioB);
+    expect(radioA.checked).toBe(true);
+
+    await user.keyboard('{ArrowRight}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(radioC);
+    expect(radioC.checked).toBe(true);
+    expect(radioA.checked).toBe(false);
+    expect(onChangeC).toHaveBeenCalledTimes(1);
+
+    await user.keyboard('{ArrowRight}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(radioA);
+    expect(radioA.checked).toBe(true);
+
+    await user.keyboard('{ArrowLeft}');
+    await waitForSelectionClear();
+    expect(document.activeElement).toBe(radioC);
+    expect(radioC.checked).toBe(true);
+    expect(onChangeB).not.toHaveBeenCalled();
+  });
+
+  it('Tab passerer en radiogruppe som ét tabstop', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Container>
+        <input data-testid="before" type="text" style={{ position: 'fixed' }} />
+        <input data-testid="radio-a" type="radio" name="valg" value="a" style={{ position: 'fixed' }} />
+        <input data-testid="radio-b" type="radio" name="valg" value="b" defaultChecked style={{ position: 'fixed' }} />
+        <input data-testid="after" type="text" style={{ position: 'fixed' }} />
+      </Container>
+    );
+
+    const before = screen.getByTestId('before') as HTMLInputElement;
+    const radioA = screen.getByTestId('radio-a') as HTMLInputElement;
+    const radioB = screen.getByTestId('radio-b') as HTMLInputElement;
+    const after = screen.getByTestId('after') as HTMLInputElement;
+
+    before.focus();
+    await user.keyboard('{Tab}');
+    await waitForSelectionClear();
+
+    expect(document.activeElement).toBe(radioB);
+    expect(document.activeElement).not.toBe(radioA);
+
+    await user.keyboard('{Tab}');
+    await waitForSelectionClear();
+
+    expect(document.activeElement).toBe(after);
   });
 
   it('Tab fra sidste lukkede combobox går til første felt (cirkulær navigation)', async () => {

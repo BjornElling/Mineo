@@ -1,11 +1,12 @@
 # Auth-gate arkitektur (normativ afklaring)
 
 **Status:** Gældende
-**Scope:** Login-gate i klienten (`src/auth/*`, `src/components/AuthGate.tsx`, `src/components/pages/LoginPage.tsx`)
+**Sidst opdateret:** 2026-05-01
+**Scope:** Login-gate i klienten (`src/auth/*`, `src/components/pages/LoginPage.tsx`)
 
 ## Formål
 
-Auth-gaten i Mineo er en **UX-barriere** mod utilsigtet adgang på en lokal enhed.
+Auth-gaten i Mineo er en **permanent UX-barriere** mod utilsigtet adgang. Den er et bevidst designvalg og ikke en midlertidig løsning.
 
 Den er **ikke** en sikkerhedsgrænse.
 
@@ -29,6 +30,8 @@ Konsekvens:
 - login-status kan forfalskes/ændres udenfor appens UI
 - mekanismen må ikke beskrives eller behandles som egentlig sikkerhed
 
+Den svage styrke er et bevidst designvalg: gaten er tilstrækkelig til formålet og matcher appens klient-side-only arkitektur.
+
 ## Trigger for migration til reel auth
 
 Følgende krav udløser migration til server-/infrastruktur-auth:
@@ -48,4 +51,4 @@ Dette dokument introducerer ikke:
 
 ## Konsekvens for kommunikation
 
-Alle docs/kodekommentarer skal beskrive mekanismen som **UX-gate** og ikke som sikkerhed.
+Alle docs/kodekommentarer skal beskrive mekanismen som **UX-gate** og ikke som sikkerhed. Mekanismen må ikke beskrives som midlertidig.
