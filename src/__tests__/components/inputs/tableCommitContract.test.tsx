@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StandardLooseTable from '../../../components/tables/StandardLooseTable';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
-import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
+import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
 import TableAmountInput from '../../../components/inputs/table/TableAmountInput';
 import TableDateInput from '../../../components/inputs/table/TableDateInput';
 import TableIntegerInput from '../../../components/inputs/table/TableIntegerInput';
@@ -33,6 +33,12 @@ const createGridValue = (editingCell: GridCellCoord | null) => {
 type NoopCase = Readonly<{
   label: string;
   renderInput: (onBlur: (value: string) => void) => React.JSX.Element;
+}>;
+
+type DraftChangeCase = Readonly<{
+  label: string;
+  draft: string;
+  renderInput: (onChange: (value: string) => void) => React.JSX.Element;
 }>;
 
 type AutoCompleteCase = Readonly<{
@@ -138,6 +144,75 @@ const NOOP_CASES: readonly NoopCase[] = [
         gridCell={gridCell}
         value="abc"
         onBlur={(e) => onBlur(e.target.value)}
+      />
+    ),
+  },
+];
+
+const DRAFT_CHANGE_CASES: readonly DraftChangeCase[] = [
+  {
+    label: 'amount',
+    draft: '12',
+    renderInput: (onChange) => (
+      <TableAmountInput
+        gridCell={gridCell}
+        value={undefined}
+        onChange={(e) => onChange(e.target.value)}
+      />
+    ),
+  },
+  {
+    label: 'date',
+    draft: '12',
+    renderInput: (onChange) => (
+      <TableDateInput
+        gridCell={gridCell}
+        value=""
+        onChange={(e) => onChange(e.target.value)}
+      />
+    ),
+  },
+  {
+    label: 'integer',
+    draft: '12',
+    renderInput: (onChange) => (
+      <TableIntegerInput
+        gridCell={gridCell}
+        value=""
+        onChange={(e) => onChange(e.target.value)}
+      />
+    ),
+  },
+  {
+    label: 'percent',
+    draft: '12',
+    renderInput: (onChange) => (
+      <TablePercentInput
+        gridCell={gridCell}
+        value=""
+        onChange={(e) => onChange(e.target.value)}
+      />
+    ),
+  },
+  {
+    label: 'week',
+    draft: '12',
+    renderInput: (onChange) => (
+      <TableWeekInput
+        gridCell={gridCell}
+        value=""
+        onChange={(e) => onChange(e.target.value)}
+      />
+    ),
+  },
+  {
+    label: 'year',
+    draft: '12',
+    renderInput: (onChange) => (
+      <TableYearInput
+        gridCell={gridCell}
+        value=""
+        onChange={(e) => onChange(e.target.value)}
       />
     ),
   },
@@ -552,6 +627,7 @@ const setupManaged = (input: InvalidPreserveCase) => {
 const setupManagedWithOutside = (input: ClickOutsideCommitCase) => {
   const onBlur = vi.fn<(value: string) => void>();
   const setEditingCellRef = { current: null as React.Dispatch<React.SetStateAction<GridCellCoord | null>> | null };
+  let editorHandle: GridCellEditorHandle | null = null;
 
   const Wrapper = () => {
     const [value, setValue] = React.useState(input.initialValue);
@@ -563,7 +639,19 @@ const setupManagedWithOutside = (input: ClickOutsideCommitCase) => {
 
     return (
       <>
-        <GridCoreProvider value={createGridValue(editingCell)}>
+        <GridCoreProvider
+          value={{
+            ...createGridValue(editingCell),
+            closeEditing: () => setEditingCell(null),
+            registerEditor: (_cell, handle) => {
+              editorHandle = handle;
+            },
+            unregisterEditor: () => {
+              editorHandle = null;
+            },
+            getEditor: () => editorHandle,
+          }}
+        >
           {input.renderManagedInput({
             value,
             onBlur: (nextValue) => {
@@ -576,6 +664,7 @@ const setupManagedWithOutside = (input: ClickOutsideCommitCase) => {
         <button
           type="button"
           onMouseDown={() => {
+            editorHandle?.commitCurrent();
             setEditingCellRef.current?.(null);
           }}
         >
@@ -635,6 +724,22 @@ describe('table commit-kontrakt', () => {
     await user.tab();
 
     expect(onBlur).not.toHaveBeenCalled();
+  });
+
+  it.each(DRAFT_CHANGE_CASES)('$label videresender onChange som draft-kanal', async ({ draft, renderInput }) => {
+    const user = userEvent.setup();
+    const onChange = vi.fn<(value: string) => void>();
+
+    render(
+      <GridCoreProvider value={createGridValue(gridCell)}>
+        {renderInput((value) => onChange(value))}
+      </GridCoreProvider>
+    );
+
+    await user.click(screen.getByRole('textbox'));
+    await user.type(screen.getByRole('textbox'), draft);
+
+    expect(onChange).toHaveBeenLastCalledWith(draft);
   });
 
   it('no-op i amount emitter ikke onBlur-commit', async () => {
@@ -760,6 +865,7 @@ describe('table commit-kontrakt', () => {
   it('klik udenfor committer korrekt i amount', async () => {
     const user = userEvent.setup();
     const onBlur = vi.fn<(value: AmountValue | undefined) => void>();
+    let editorHandle: GridCellEditorHandle | null = null;
 
     const Wrapper = () => {
       const [value, setValue] = React.useState<AmountValue | undefined>({ kind: 'number', value: 1 });
@@ -767,7 +873,19 @@ describe('table commit-kontrakt', () => {
 
       return (
         <>
-          <GridCoreProvider value={createGridValue(editingCell)}>
+          <GridCoreProvider
+            value={{
+              ...createGridValue(editingCell),
+              closeEditing: () => setEditingCell(null),
+              registerEditor: (_cell, handle) => {
+                editorHandle = handle;
+              },
+              unregisterEditor: () => {
+                editorHandle = null;
+              },
+              getEditor: () => editorHandle,
+            }}
+          >
             <TableAmountInput
               gridCell={gridCell}
               value={value}
@@ -781,6 +899,7 @@ describe('table commit-kontrakt', () => {
           <button
             type="button"
             onMouseDown={() => {
+              editorHandle?.commitCurrent();
               setEditingCell(null);
             }}
           >

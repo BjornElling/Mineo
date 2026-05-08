@@ -48,6 +48,7 @@ const TableAmountInput = React.memo(
     value,
     canBeNegative = true,
     placeholder = '',
+    onChange,
     onBlur,
     onErrorChange,
     externalErrorMessage,
@@ -70,6 +71,7 @@ const TableAmountInput = React.memo(
       gridCell,
       value,
       locked,
+      onChange,
       onBlur,
       onErrorChange,
       externalErrorMessage,
@@ -94,24 +96,22 @@ const TableAmountInput = React.memo(
       } catch {
         // Browseren kan afvise selection i sjældne timingtilfælde; edit-start er stadig gyldig.
       }
-    }, [core.hasError, core.inputElRef, core.isEditing, core.keyInitiatedEdit, value]);
+    }, [core.hasError, core.isEditing, core.keyInitiatedEdit, value]);
 
     const handleDoubleClick = React.useCallback(() => {
       skipClickSelectionRestoreRef.current = true;
     }, []);
 
-    const renderedValue = core.isEditing ? core.draft : core.touched && core.hasError ? core.draft : core.committedDisplayValue;
-
     const handleCopy = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
         copyWholeValueFromReadOnlyField(e, {
           isReadOnly: core.isReadOnly,
-          value: renderedValue,
+          value: core.renderedValue,
           selectionStart: e.currentTarget.selectionStart,
           selectionEnd: e.currentTarget.selectionEnd,
         });
       },
-      [core.isReadOnly, renderedValue]
+      [core.isReadOnly, core.renderedValue]
     );
 
     return (
@@ -121,7 +121,7 @@ const TableAmountInput = React.memo(
             <InputBase
               inputRef={core.inputRefCallback}
               autoComplete="off"
-              value={renderedValue}
+              value={core.renderedValue}
               readOnly={core.isReadOnly}
               onChange={core.handleChange}
               onFocus={core.handleFocus}

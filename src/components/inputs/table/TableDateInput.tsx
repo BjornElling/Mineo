@@ -67,6 +67,7 @@ const TableDateInput = React.memo(
     gridCell,
     locked = false,
     value,
+    onChange,
     onBlur,
     onErrorChange,
     onRegisterSanitize,
@@ -135,6 +136,7 @@ const TableDateInput = React.memo(
       gridCell,
       value: value ?? '',
       locked,
+      onChange,
       onBlur,
       onErrorChange,
       inputRef,
@@ -149,14 +151,17 @@ const TableDateInput = React.memo(
       onRegisterSanitize?.(sanitizeValue);
     }, [onRegisterSanitize, sanitizeValue]);
 
-    const lastReportedErrorInfoRef = React.useRef<string | null>(null);
+    const lastReportedConfigErrorRef = React.useRef(false);
     React.useEffect(() => {
       if (!onErrorChange) return;
-      const kind: TableInputErrorInfo['kind'] = configErrorMessage !== '' ? 'config' : core.hasError ? 'input' : 'none';
-      const nextErrorInfoKey = `${kind}:${kind !== 'none' ? '1' : '0'}`;
-      if (lastReportedErrorInfoRef.current === nextErrorInfoKey) return;
-      lastReportedErrorInfoRef.current = nextErrorInfoKey;
-      onErrorChange({ hasError: kind !== 'none', kind });
+      const hasConfigError = configErrorMessage !== '';
+      if (lastReportedConfigErrorRef.current === hasConfigError) return;
+      lastReportedConfigErrorRef.current = hasConfigError;
+      if (hasConfigError) {
+        onErrorChange({ hasError: true, kind: 'config' });
+        return;
+      }
+      onErrorChange(core.hasError ? { hasError: true, kind: 'input' } : { hasError: false, kind: 'none' });
     }, [configErrorMessage, core.hasError, onErrorChange]);
 
     const externalErrorText = (externalErrorMessage ?? '').trim();

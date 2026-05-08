@@ -3,7 +3,7 @@ import { parseDanishNumberString } from '../../../utils/numberParsing';
 import { formatRoundedCanonical } from '../../../utils/rounding';
 import { normalizePercentPaste } from '../../../utils/inputPasteNormalization';
 import { filterPercentKeyDown } from '../../../components/inputs/inputKeyFilters';
-import { normalizeTableAmountDraftOnCommit } from '../../../utils/tableInputContracts';
+import { normalizeTableNumericDraftOnCommit } from '../../../utils/tableInputContracts';
 import { makePercentFingerprintFromCanonical, type CommittedPayload, type PercentFingerprint } from '../../../types/parserSpec';
 import type { TableInputAdapter } from '../tableInputAdapter';
 
@@ -123,29 +123,24 @@ const percentNumericCanonicalFromDisplay = (display: string, allowDecimals: bool
   return formatRoundedCanonical(parsed.numeric, getPercentPrecision(allowDecimals));
 };
 
-const percentFingerprintFromCommittedDisplay = (
-  display: string,
-  allowDecimals: boolean
-): PercentFingerprint => {
-  const numericCanonical = percentNumericCanonicalFromDisplay(display, allowDecimals);
-  return makePercentFingerprintFromCanonical(numericCanonical);
-};
-
 export const createPercentCommittedPayload = (
   value: TablePercentInputModel,
   allowDecimals: boolean
-): CommittedPayload<TablePercentInputModel, string, PercentFingerprint> => ({
-  model: value,
-  canonical: value,
-  fingerprint: percentFingerprintFromCommittedDisplay(value, allowDecimals),
-});
+): CommittedPayload<TablePercentInputModel, string, PercentFingerprint> => {
+  const canonical = percentNumericCanonicalFromDisplay(value, allowDecimals);
+  return {
+    model: value,
+    canonical,
+    fingerprint: makePercentFingerprintFromCanonical(canonical),
+  };
+};
 
 export const createPercentTableInputAdapter = (
   config: TablePercentAdapterConfig
 ): TableInputAdapter<TablePercentInputModel, string, PercentFingerprint> => ({
   format: (value) => value,
   parse: (draft) => {
-    const normalized = normalizeTableAmountDraftOnCommit(draft);
+    const normalized = normalizeTableNumericDraftOnCommit(draft);
     const parsed = parsePercentOnCommit(normalized, config);
     if (!parsed.ok) return { ok: false, errorMessage: parsed.errorMessage };
     if ('empty' in parsed) return { ok: true, value: '' };

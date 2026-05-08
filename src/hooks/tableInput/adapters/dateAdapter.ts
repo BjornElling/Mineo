@@ -99,8 +99,6 @@ const getRangeErrorMessage = (
   return resolveDateRangeErrorMessage({ iso, minDate: normalizedMin, maxDate: normalizedMax, special: specialRangeErrors });
 };
 
-export const getTableDateRangeErrorMessage = getRangeErrorMessage;
-
 const dateFingerprintFromCommittedValue = (committedValue: string | undefined): DateFingerprint => {
   const trimmed = (committedValue ?? '').trim();
   if (trimmed === '') return makeDateFingerprintFromCanonical('');

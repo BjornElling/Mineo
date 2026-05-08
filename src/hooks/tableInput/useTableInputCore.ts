@@ -53,6 +53,7 @@ export type UseTableInputCoreResult = Readonly<{
 }>;
 
 const noopErrorInfo: TableInputErrorInfo = { hasError: false, kind: 'none' };
+type LocalErrorKind = 'none' | 'input' | 'visual';
 
 export const useTableInputCore = <TModel, TCanonical extends string, TFingerprint extends string>({
   adapter,
@@ -75,6 +76,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const [touched, setTouched] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState('');
+  const [localErrorKind, setLocalErrorKind] = React.useState<LocalErrorKind>('none');
   const [saveErrorActive, setSaveErrorActive] = React.useState(false);
   const [keyInitiatedEdit, setKeyInitiatedEdit] = React.useState(false);
 
@@ -83,6 +85,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const hasErrorRef = React.useRef(false);
   const originalValueOnEditStartRef = React.useRef<string>('');
   const keyInitiatedEditRef = React.useRef(false);
+  const wasEditingRef = React.useRef(false);
   const latestCommittedPayloadRef = React.useRef<CommittedPayload<TModel, TCanonical, TFingerprint>>(
     adapter.toCommittedPayload(value)
   );
@@ -98,11 +101,19 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const a11yInputId = React.useId();
   const a11yErrorId = `${a11yInputId}-error`;
   const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+  const committedDisplayValue = adapter.format(value);
+  const committedVisualError = React.useMemo(() => {
+    if (!touched || saveErrorActive) return '';
+    const parsed = adapter.parse(committedDisplayValue);
+    if (!parsed.ok) return '';
+    return parsed.visualErrorMessage?.trim() ?? '';
+  }, [adapter, committedDisplayValue, saveErrorActive, touched]);
 
   const setLocalError = React.useCallback((message: string) => {
     hasErrorRef.current = true;
     setHasError(true);
     setErrorMessage(message);
+    setLocalErrorKind('input');
     setSaveErrorActive(true);
     latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
   }, []);
@@ -111,6 +122,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     hasErrorRef.current = false;
     setHasError(false);
     setErrorMessage('');
+    setLocalErrorKind('none');
     setSaveErrorActive(false);
     latest.current.onErrorChange?.(noopErrorInfo);
   }, []);
@@ -119,6 +131,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     hasErrorRef.current = true;
     setHasError(true);
     setErrorMessage(message);
+    setLocalErrorKind('visual');
     setSaveErrorActive(false);
     latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
   }, []);
@@ -135,7 +148,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     isEditing,
     preserveDraft: Boolean(
       (adapter.preserveInvalidDraft ?? true) &&
-      (saveErrorActive || ((adapter.preserveVisualErrorDraft ?? true) && hasError))
+      (saveErrorActive || ((adapter.preserveVisualErrorDraft ?? true) && committedVisualError !== ''))
     ),
     draftRef,
     setDraft,
@@ -173,19 +186,6 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   }, [adapter, clearLocalError, isEditing, saveErrorActive, value]);
 
   React.useEffect(() => {
-    if (!touched || saveErrorActive) return;
-    if (!hasErrorRef.current) return;
-    const parsed = adapter.parse(adapter.format(value));
-    if (!parsed.ok || parsed.visualErrorMessage === undefined || parsed.visualErrorMessage.trim() === '') {
-      if (hasErrorRef.current) clearLocalError();
-      return;
-    }
-    if (errorMessage !== parsed.visualErrorMessage) {
-      setVisualError(parsed.visualErrorMessage);
-    }
-  }, [adapter, clearLocalError, errorMessage, saveErrorActive, setVisualError, touched, value]);
-
-  React.useEffect(() => {
     draftRef.current = draft;
   }, [draft]);
 
@@ -194,10 +194,13 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   }, []);
 
   React.useLayoutEffect(() => {
+    const wasEditing = wasEditingRef.current;
+    wasEditingRef.current = isEditing;
     if (!isEditing) {
       resetEditingState();
       return;
     }
+    if (wasEditing) return;
     if (!keyInitiatedEditRef.current) {
       if ((adapter.preserveInvalidDraft ?? true) && (hasError || saveErrorActive)) {
         originalValueOnEditStartRef.current = draftRef.current;
@@ -242,10 +245,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       const nextDraft = latest.current.adapter.normalizeDraftChange?.(rawDraft) ?? rawDraft;
       clearPendingHistoryResync();
       if (latest.current.adapter.clearErrorOnChange) {
-        hasErrorRef.current = false;
-        setHasError(false);
-        setErrorMessage('');
-        setSaveErrorActive(false);
+        clearLocalError();
       }
       if (latest.current.adapter.clearTouchedOnEmptyDraft && nextDraft === '') {
         setTouched(false);
@@ -254,33 +254,23 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       setDraft(nextDraft);
       latest.current.onChange?.({ target: { value: nextDraft } });
     },
-    [clearPendingHistoryResync, isReadOnly]
+    [clearLocalError, clearPendingHistoryResync, isReadOnly]
   );
 
   const handleFocus = React.useCallback(() => {
     setIsFocused(true);
   }, []);
 
-  const parseNoopFingerprint = React.useCallback((rawValue: string): TFingerprint | null => {
-    const parsed = latest.current.adapter.parse(rawValue);
-    if (!parsed.ok) return null;
-    return latest.current.adapter.toCommittedPayload(parsed.value).fingerprint;
-  }, []);
-
   const handleBlur = React.useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(false);
-      const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
-      if (!isEditing) {
-        const nextFingerprint = parseNoopFingerprint(rawValue);
-        if (nextFingerprint !== null && nextFingerprint === latestCommittedPayloadRef.current.fingerprint) {
-          commitAndEmitBlur(rawValue);
-          return;
-        }
+      if (e.currentTarget.readOnly) {
+        return;
       }
+      const rawValue = e.currentTarget.value ?? '';
       commitAndEmitBlur(rawValue);
     },
-    [commitAndEmitBlur, isEditing, parseNoopFingerprint]
+    [commitAndEmitBlur]
   );
 
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -335,12 +325,12 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     (e: React.ClipboardEvent<HTMLInputElement>) => {
       copyWholeValueFromReadOnlyField(e, {
         isReadOnly,
-        value: isEditing ? draft : adapter.format(value),
+        value: isEditing || (touched && hasError && localErrorKind === 'input') ? draft : adapter.format(value),
         selectionStart: e.currentTarget.selectionStart,
         selectionEnd: e.currentTarget.selectionEnd,
       });
     },
-    [adapter, draft, isEditing, isReadOnly, value]
+    [adapter, draft, hasError, isEditing, isReadOnly, localErrorKind, touched, value]
   );
 
   const handleDoubleClick = React.useCallback(() => {
@@ -426,11 +416,13 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   });
 
   const externalErrorText = (externalErrorMessage ?? '').trim();
-  const displayErrorMessage = hasError ? errorMessage : externalErrorText;
+  const hasInputError = hasError && localErrorKind === 'input';
+  const hasCommittedVisualError = committedVisualError !== '';
+  const displayErrorMessage = hasInputError ? errorMessage : hasCommittedVisualError ? committedVisualError : externalErrorText;
   const hasExternalError = externalErrorText !== '';
-  const showError = (hasError || hasExternalError) && !isFocused && (touched || !isEditing);
-  const committedDisplayValue = adapter.format(value);
-  const renderedValue = isEditing || (touched && hasError) ? draft : committedDisplayValue;
+  const effectiveHasError = hasInputError || hasCommittedVisualError;
+  const showError = (effectiveHasError || hasExternalError) && !isFocused && (touched || !isEditing);
+  const renderedValue = isEditing || (touched && hasInputError) ? draft : committedDisplayValue;
 
   const inputRefCallback = React.useCallback(
     (el: HTMLInputElement | null) => {
@@ -446,7 +438,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     renderedValue,
     isFocused,
     touched,
-    hasError,
+    hasError: effectiveHasError,
     errorMessage: displayErrorMessage,
     showError,
     isEditing,

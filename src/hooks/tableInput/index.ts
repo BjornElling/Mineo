@@ -22,7 +22,6 @@ export {
 } from './adapters/weekAdapter';
 export {
   createDateTableInputAdapter,
-  getTableDateRangeErrorMessage,
   sanitizeTableDateDraft,
   toCommittedDatePayload,
   type TableDateAdapterConfig,

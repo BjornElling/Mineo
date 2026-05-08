@@ -25,9 +25,11 @@ export const normalizeTableDraftOnCommit = (draft: string): string => {
  *
  * Same as `normalizeTableDraftOnCommit`, except it preserves a leading '-' for negative values.
  */
-export const normalizeTableAmountDraftOnCommit = (draft: string): string => {
+export const normalizeTableNumericDraftOnCommit = (draft: string): string => {
   return prefixZeroBeforeLeadingComma(trimToNumericEdgesPreserveLeadingMinus(draft));
 };
+
+export const normalizeTableAmountDraftOnCommit = normalizeTableNumericDraftOnCommit;
 
 /**
  * Canonical committed table value.

@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import TablePercentInput from '../../../components/inputs/table/TablePercentInput';
+import { createPercentCommittedPayload } from '../../../hooks/tableInput';
 import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 
 const createGridValue = (gridCell: GridCellCoord, editingCell: GridCellCoord | null) => {
@@ -19,6 +20,13 @@ const createGridValue = (gridCell: GridCellCoord, editingCell: GridCellCoord | n
 };
 
 describe('TablePercentInput', () => {
+  it('bruger numerisk canonical som grundlag for percent fingerprint', () => {
+    const payload = createPercentCommittedPayload('12,50', true);
+
+    expect(payload.model).toBe('12,50');
+    expect(payload.canonical).toBe('12.50');
+  });
+
   it('accepterer commit over 100 når maxValue er højere', async () => {
     const user = userEvent.setup();
     const gridCell = { rowId: 'row-1', colIndex: 0 };
