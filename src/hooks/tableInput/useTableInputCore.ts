@@ -258,11 +258,11 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   );
 
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (latest.current.adapter.filterKeyDown?.(e, { isEditing })) {
+    if (latest.current.adapter.filterKeyDown?.(e, { isEditing, hasError })) {
       e.preventDefault();
       e.stopPropagation();
     }
-  }, [isEditing]);
+  }, [hasError, isEditing]);
 
   const handlePaste = React.useCallback(
     (e: React.ClipboardEvent<HTMLInputElement>) => {

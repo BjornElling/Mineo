@@ -14,3 +14,9 @@ export {
   type TableYearInputModel,
   type TableYearPolicy,
 } from './adapters/yearAdapter';
+export {
+  createWeekTableInputAdapter,
+  toCommittedWeekPayload,
+  type TableWeekAdapterConfig,
+  type TableWeekInputModel,
+} from './adapters/weekAdapter';

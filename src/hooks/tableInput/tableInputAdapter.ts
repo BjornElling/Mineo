@@ -27,7 +27,7 @@ export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint ex
   ) => TableInputPasteResult;
   filterKeyDown?: (
     e: React.KeyboardEvent<HTMLInputElement>,
-    context: Readonly<{ isEditing: boolean }>
+    context: Readonly<{ isEditing: boolean; hasError: boolean }>
   ) => boolean;
   normalizeDraftChange?: (draft: string) => string;
   preserveInvalidDraft?: boolean;

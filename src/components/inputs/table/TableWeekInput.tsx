@@ -2,23 +2,12 @@ import * as React from 'react';
 import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
-import { useGridCellEditing, useGridCellFocus, useGridCoreApi } from '../../tables/useGridCore';
-import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
-import { shouldClearField } from '../../../utils/inputValidation';
-import { interpretYear } from '../../../utils/dateInputValidation';
-import { yearHas53Weeks } from '../../../utils/dateUtils';
-import { asTableCommittedString, committedToString, normalizeTableDraftOnCommit, type TableCommitResult, type TableInputErrorInfo } from '../../../utils/tableInputContracts';
-import { assignRef } from './assignRef';
-import { filterWeekKeyDown } from '../inputKeyFilters';
-import { copyWholeValueFromReadOnlyField, readClipboardText } from '../../../utils/clipboardUtils';
-import { normalizeWeekPaste } from '../../../utils/inputPasteNormalization';
-import { makeWeekFingerprintFromCanonical, type CommittedPayload, type WeekFingerprint } from '../../../types/parserSpec';
+import { useGridCoreApi } from '../../tables/useGridCore';
+import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
+import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
-import { useTableInputSaveError } from '../../../hooks/useTableInputSaveError';
-import { useTableInputHistoryRestore } from '../../../hooks/useTableInputHistoryRestore';
-
-const MAX_WEEK_DRAFT_LENGTH = 8;
+import { createWeekTableInputAdapter, type TableYearPolicy, useTableInputCore } from '../../../hooks/tableInput';
 
 export type TableWeekInputChangeEvent = { target: { value: string } };
 
@@ -33,7 +22,7 @@ export type TableWeekInputProps = Readonly<{
    *
    * Default: `infer` (via `interpretYear`).
    */
-  twoDigitYearPolicy?: 'reject' | 'infer' | 'assume20xx';
+  twoDigitYearPolicy?: TableYearPolicy;
   placeholder?: string;
   onChange?: (e: TableWeekInputChangeEvent) => void;
   onBlur?: (e: TableWeekInputChangeEvent) => void;
@@ -42,96 +31,6 @@ export type TableWeekInputProps = Readonly<{
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
-
-type ParsedWeek = { ok: true; value: string } | { ok: false; error: string };
-
-const parseWeekOnCommit = (
-  draft: string,
-  {
-    minYear,
-    maxYear,
-    twoDigitYearPolicy,
-  }: { minYear: number | undefined; maxYear: number | undefined; twoDigitYearPolicy: 'reject' | 'infer' | 'assume20xx' }
-): ParsedWeek => {
-  const trimmed = draft.trim();
-  if (trimmed === '' || shouldClearField(trimmed)) return { ok: true, value: '' };
-  if (trimmed.length > MAX_WEEK_DRAFT_LENGTH) return { ok: false, error: 'Ugyldigt format' };
-
-  const normalized = trimmed.replace(/[ .:-]/g, '/');
-  const parts = normalized.split('/');
-  if (parts.length !== 2) return { ok: false, error: 'Ugyldigt format' };
-
-  const weekStr = parts[0]?.trim() ?? '';
-  const yearStrRaw = parts[1]?.trim() ?? '';
-  if (weekStr === '' || yearStrRaw === '') return { ok: false, error: 'Ugyldigt format' };
-  if (/[^0-9]/.test(weekStr) || /[^0-9]/.test(yearStrRaw)) return { ok: false, error: 'Ugyldigt format' };
-
-  const week = Number.parseInt(weekStr, 10);
-  if (!Number.isFinite(week) || week < 1 || week > 53) return { ok: false, error: 'Ugyldig uge' };
-
-  let yearStr: string;
-  if (yearStrRaw.length === 1 || yearStrRaw.length === 2) {
-    if (twoDigitYearPolicy === 'reject') return { ok: false, error: 'Ugyldigt årstal' };
-    if (twoDigitYearPolicy === 'assume20xx') {
-      const parsed = Number.parseInt(yearStrRaw, 10);
-      if (!Number.isFinite(parsed)) return { ok: false, error: 'Ugyldigt årstal' };
-      yearStr = String(2000 + parsed);
-    } else {
-      const interpreted = interpretYear(yearStrRaw);
-      if (interpreted === null) return { ok: false, error: 'Ugyldigt årstal' };
-      yearStr = String(interpreted);
-    }
-  } else if (yearStrRaw.length === 4) {
-    yearStr = yearStrRaw;
-  } else {
-    return { ok: false, error: 'Ugyldigt årstal' };
-  }
-
-  const year = Number.parseInt(yearStr, 10);
-  if (!Number.isFinite(year)) return { ok: false, error: 'Ugyldigt årstal' };
-
-  if (typeof minYear === 'number' && year < minYear) {
-    if (typeof maxYear === 'number') return { ok: false, error: `År skal være mellem ${minYear} og ${maxYear}` };
-    return { ok: false, error: `År skal være ${minYear} eller senere` };
-  }
-  if (typeof maxYear === 'number' && year > maxYear) {
-    if (typeof minYear === 'number') return { ok: false, error: `År skal være mellem ${minYear} og ${maxYear}` };
-    return { ok: false, error: `År skal være ${maxYear} eller tidligere` };
-  }
-
-  const maxWeek = yearHas53Weeks(year) ? 53 : 52;
-  if (week > maxWeek) {
-    return { ok: false, error: `Uge skal være mellem 1 og ${maxWeek}` };
-  }
-
-  return { ok: true, value: `${String(week).padStart(2, '0')}/${yearStr}` };
-};
-
-const commitWeekDraft = (
-  draft: string,
-  {
-    minYear,
-    maxYear,
-    twoDigitYearPolicy,
-  }: { minYear: number | undefined; maxYear: number | undefined; twoDigitYearPolicy: 'reject' | 'infer' | 'assume20xx' }
-): TableCommitResult => {
-  const result = parseWeekOnCommit(draft, { minYear, maxYear, twoDigitYearPolicy });
-  if (!result.ok) return { kind: 'input-error', committed: draft, errorMessage: result.error };
-  return { kind: 'ok', committed: asTableCommittedString(result.value) };
-};
-
-const weekFingerprintFromCanonical = (canonical: string): WeekFingerprint => {
-  return makeWeekFingerprintFromCanonical(canonical);
-};
-
-const toCommittedWeekPayload = (value: string | undefined): CommittedPayload<string, string, WeekFingerprint> => {
-  const canonical = value ?? '';
-  return {
-    model: canonical,
-    canonical,
-    fingerprint: weekFingerprintFromCanonical(canonical),
-  };
-};
 
 const TableWeekInput = React.memo(
   ({
@@ -142,7 +41,6 @@ const TableWeekInput = React.memo(
     maxYear,
     twoDigitYearPolicy = 'infer',
     placeholder = '',
-    onChange,
     onBlur,
     onErrorChange,
     externalErrorMessage,
@@ -150,26 +48,9 @@ const TableWeekInput = React.memo(
     sx,
   }: TableWeekInputProps) => {
     const gridApi = useGridCoreApi();
-    const cellFocused = useGridCellFocus(gridCell);
-    const isEditing = useGridCellEditing(gridCell);
-    const isReadOnly = locked || !isEditing;
     const isLooseTable = gridApi.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
     const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
-
-    const [draft, setDraft] = React.useState<string>(() => value ?? '');
-    const [hasError, setHasError] = React.useState(false);
-    const [errorMessage, setErrorMessage] = React.useState('');
-    const [isFocused, setIsFocused] = React.useState(false);
-    const [touched, setTouched] = React.useState(false);
-    const [preserveInvalidDraft, setPreserveInvalidDraft] = React.useState(false);
-
-    const inputElRef = React.useRef<HTMLInputElement | null>(null);
-    const draftRef = React.useRef<string>(draft);
-    const previousCommittedValueRef = React.useRef<string>(value ?? '');
-    const originalValueOnEditStartRef = React.useRef<string>('');
-    const keyInitiatedEditRef = React.useRef(false);
-    const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, WeekFingerprint>>(toCommittedWeekPayload(value));
 
     const configErrorMessage = React.useMemo(() => {
       if (minYear !== undefined && !Number.isFinite(minYear)) return 'Ugyldig konfiguration: minYear skal være et tal';
@@ -182,339 +63,49 @@ const TableWeekInput = React.memo(
       throw new Error(configErrorMessage);
     }
 
-    const latest = React.useRef({ onChange, onBlur, onErrorChange, locked, minYear, maxYear, twoDigitYearPolicy });
+    const adapter = React.useMemo(
+      () => createWeekTableInputAdapter({ minYear, maxYear, twoDigitYearPolicy }),
+      [maxYear, minYear, twoDigitYearPolicy]
+    );
 
-    const emitBlur = React.useCallback((nextValue: string) => {
-      latest.current.onBlur?.({ target: { value: nextValue } });
-    }, []);
-
-    const undoFocusToken = React.useId();
-    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
-    const { clearPendingHistoryResync } = useTableInputHistoryRestore<string | undefined>({
-      value,
-      formatCommittedValue: (nextValue) => nextValue ?? '',
-      inputElementRef: inputElRef,
-      isEditing,
-      preserveDraft: hasError || preserveInvalidDraft,
-      draftRef,
-      setDraft,
-      focusToken: undoFocusToken,
-      fieldPath: gridCellKey,
-      resetEditingState: () => {
-        keyInitiatedEditRef.current = false;
-      },
-      onRestoreError: (state) => {
-        setTouched(true);
-        setPreserveInvalidDraft(true);
-        setHasError(true);
-        setErrorMessage(state.error.message ?? '');
-        latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
-      },
-      onRestoreCommitted: () => {
-        setTouched(false);
-        setPreserveInvalidDraft(false);
-        setHasError(false);
-        setErrorMessage('');
-        latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-      },
+    const core = useTableInputCore({
+      adapter,
+      gridCell,
+      value: value ?? '',
+      locked,
+      onBlur,
+      onErrorChange,
+      externalErrorMessage,
+      inputRef,
     });
-
-    React.useEffect(() => {
-      latest.current = { onChange, onBlur, onErrorChange, locked, minYear, maxYear, twoDigitYearPolicy };
-    }, [locked, maxYear, minYear, onBlur, onChange, onErrorChange, twoDigitYearPolicy]);
-
-    React.useLayoutEffect(() => {
-      latestCommittedPayloadRef.current = toCommittedWeekPayload(value);
-    }, [value]);
-
-    React.useEffect(() => {
-      draftRef.current = draft;
-    }, [draft]);
-
-    React.useEffect(() => {
-      const nextCommitted = value ?? '';
-      const didParentValueChange = previousCommittedValueRef.current !== nextCommitted;
-      previousCommittedValueRef.current = nextCommitted;
-      if (!didParentValueChange || isEditing || !preserveInvalidDraft) return;
-      setPreserveInvalidDraft(false);
-      setHasError(false);
-      setErrorMessage('');
-      setTouched(false);
-    }, [isEditing, preserveInvalidDraft, value]);
-
-    React.useEffect(() => {
-      if (!isEditing) {
-        keyInitiatedEditRef.current = false;
-        return;
-      }
-      if (!keyInitiatedEditRef.current) {
-        if (hasError || preserveInvalidDraft) {
-          originalValueOnEditStartRef.current = draftRef.current;
-          return;
-        }
-        const committedValue = value ?? '';
-        originalValueOnEditStartRef.current = committedValue;
-        setDraft(committedValue);
-        // Ingen emitValueChange her – vi må ikke opdatere parent under edit.
-      }
-    }, [hasError, isEditing, preserveInvalidDraft, value]);
-
-    const commitAndEmitBlur = React.useCallback(
-      (rawDraft: string): boolean => {
-        setTouched(true);
-        const committed = commitWeekDraft(normalizeTableDraftOnCommit(rawDraft), {
-          minYear: latest.current.minYear,
-          maxYear: latest.current.maxYear,
-          twoDigitYearPolicy: latest.current.twoDigitYearPolicy,
-        });
-
-        if (committed.kind === 'input-error') {
-          setPreserveInvalidDraft(true);
-          setHasError(true);
-          setErrorMessage(committed.errorMessage);
-          latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
-          return false;
-        }
-
-        setPreserveInvalidDraft(false);
-        setHasError(false);
-        setErrorMessage('');
-        latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-        const canonical = committedToString(committed);
-        const nextPayload: CommittedPayload<string, string, WeekFingerprint> = {
-          model: canonical,
-          canonical,
-          fingerprint: weekFingerprintFromCanonical(canonical),
-        };
-
-        const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
-        if (isNoop) return true;
-
-        emitBlur(nextPayload.model);
-        return true;
-      },
-      [emitBlur]
-    );
-
-    const handleChange = React.useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (isReadOnly) return;
-        const nextDraft = String(e.target.value ?? '').slice(0, MAX_WEEK_DRAFT_LENGTH);
-        clearPendingHistoryResync();
-        setHasError(false);
-        setErrorMessage('');
-        draftRef.current = nextDraft;
-        setDraft(nextDraft);
-        // Ingen emitValueChange under edit.
-      },
-      [clearPendingHistoryResync, isReadOnly]
-    );
-
-    const handleFocus = React.useCallback(() => {
-      setIsFocused(true);
-      // Caret styling er nu declarativ via sx prop
-    }, []);
-
-    const handleBlur = React.useCallback(
-      (e: React.FocusEvent<HTMLInputElement>) => {
-        setIsFocused(false);
-        // Vigtigt: grid kan lukke editor-state før input-blur ved klik udenfor.
-        // I den situation skal vi stadig committe draften fra ref, hvis den afviger fra committed.
-        const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
-        if (!isEditing) {
-          const committed = commitWeekDraft(normalizeTableDraftOnCommit(rawValue), {
-            minYear: latest.current.minYear,
-            maxYear: latest.current.maxYear,
-            twoDigitYearPolicy: latest.current.twoDigitYearPolicy,
-          });
-          if (
-            committed.kind === 'ok' &&
-            weekFingerprintFromCanonical(committedToString(committed)) === latestCommittedPayloadRef.current.fingerprint
-          ) {
-            return;
-          }
-        }
-        commitAndEmitBlur(rawValue);
-      },
-      [commitAndEmitBlur, isEditing]
-    );
-
-    const handleKeyDown = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) => {
-        // Filtrér kun under edit-mode (arvet fra StyledWeekField)
-        if (!isEditing) return;
-        if (preserveInvalidDraft && hasError) return;
-        filterWeekKeyDown(e);
-      },
-      [hasError, isEditing, preserveInvalidDraft]
-    );
-
-    const handlePaste = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        const normalized = normalizeWeekPaste(readClipboardText(e));
-
-        if (!isEditing) {
-          e.preventDefault();
-          e.stopPropagation();
-          if (normalized === '') return;
-          setDraft(normalized);
-          draftRef.current = normalized;
-          const ok = commitAndEmitBlur(normalized);
-          if (!ok) return;
-          setIsFocused(true);
-          return;
-        }
-
-        e.preventDefault();
-        e.stopPropagation();
-        if (normalized === '') return;
-
-        const input = inputElRef.current;
-        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
-        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-        const nextDraft = draft.slice(0, start) + normalized + draft.slice(end);
-        setHasError(false);
-        setErrorMessage('');
-        draftRef.current = nextDraft;
-        setDraft(nextDraft);
-      },
-      [commitAndEmitBlur, draft, isEditing]
-    );
-
-    const a11yErrorId = React.useId();
-    const externalErrorText = (externalErrorMessage ?? '').trim();
-    const hasExternalError = externalErrorText !== '';
-    const showError = (hasExternalError || (touched && hasError)) && !isFocused;
-    const tooltipText = hasExternalError ? externalErrorText : errorMessage;
-    const showDraftWhenError = !isEditing && (preserveInvalidDraft || (touched && hasError));
-    const displayValue = isEditing ? draft : showDraftWhenError ? draft : (value ?? '');
-
-    const handleCopy = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        copyWholeValueFromReadOnlyField(e, {
-          isReadOnly,
-          value: displayValue,
-          selectionStart: e.currentTarget.selectionStart,
-          selectionEnd: e.currentTarget.selectionEnd,
-        });
-      },
-      [displayValue, isReadOnly]
-    );
-
-    const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
-      return {
-        getElement: () => inputElRef.current,
-        getIsLocked: () => latest.current.locked ?? false,
-        commitCurrent: () => {
-          if (latest.current.locked) return true;
-          const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);
-          if (!ok) return false;
-          setIsFocused(false);
-          gridApi.closeEditing();
-          return true;
-        },
-        clearAndCommit: () => {
-          if (latest.current.locked) return;
-          keyInitiatedEditRef.current = false;
-          setHasError(false);
-          setErrorMessage('');
-          setPreserveInvalidDraft(false);
-          setTouched(false);
-          latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-          setDraft('');
-          // Ingen emitValueChange. Commit sker via blur/commit-pipeline:
-          const ok = commitAndEmitBlur('');
-          if (!ok) return;
-          gridApi.closeEditing();
-        },
-        cancelEdit: () => {
-          if (latest.current.locked) return;
-          keyInitiatedEditRef.current = false;
-          setHasError(false);
-          setErrorMessage('');
-          setPreserveInvalidDraft(false);
-          setTouched(false);
-          latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-          const original = originalValueOnEditStartRef.current;
-          setDraft(original);
-          // KRITISK INVARIANT: cancelEdit må ALDRIG udløse onChange eller onBlur
-          // Original værdi er allerede committed - ingen onChange skal sendes til parent
-          gridApi.closeEditing();
-        },
-        prepareEditFromKey: (key: string) => {
-          if (latest.current.locked) return false;
-          if (!/^[0-9]$/.test(key)) return false;
-          const committedValue = latestCommittedPayloadRef.current.canonical;
-          originalValueOnEditStartRef.current = committedValue;
-          keyInitiatedEditRef.current = true;
-          setHasError(false);
-          setErrorMessage('');
-          setPreserveInvalidDraft(false);
-          setTouched(false);
-          latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-          setDraft(key);
-          // Ingen emitValueChange her – vi må ikke opdatere parent under edit.
-          requestAnimationFrame(() => {
-            const el = inputElRef.current;
-            if (!el) return;
-            try {
-              el.setSelectionRange(el.value.length, el.value.length);
-            } catch {
-              // no-op
-            }
-          });
-          return true;
-        },
-        selectAll: () => requestAnimationFrame(() => inputElRef.current?.select()),
-      };
-    }, [commitAndEmitBlur, gridApi]);
-
-    useTableInputSaveError({
-      key: `table-week:${a11yErrorId}`,
-      active: touched && hasError && preserveInvalidDraft,
-      message: errorMessage,
-      inputRef: inputElRef,
-    });
-
-    React.useEffect(() => {
-      gridApi.registerEditor(gridCell, editorHandle);
-      return () => gridApi.unregisterEditor(gridCell);
-    // gridCellKey er en stabil streng-repræsentation af gridCell-koordinaterne.
-    // gridCell er intentionelt udeladt fra dep-arrayet for at undgå re-registrering
-    // ved inline object literals i caller (ny reference, samme værdier).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editorHandle, gridApi, gridCellKey]);
 
     return (
-      <Tooltip title={showError ? tooltipText : ''} arrow placement="top">
+      <Tooltip title={core.showError ? core.errorMessage : ''} arrow placement="top">
         <Box sx={{ width: '100%', height: '100%' }}>
           <InputBase
-            inputRef={(el) => {
-              inputElRef.current = el;
-              assignRef(inputRef, el);
-            }}
+            inputRef={core.inputRefCallback}
             autoComplete="off"
-            value={displayValue}
-            readOnly={isReadOnly}
-            onChange={handleChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            onPaste={handlePaste}
-            onCopy={handleCopy}
-            placeholder={cellFocused && !isReadOnly ? '' : placeholder}
+            value={core.renderedValue}
+            readOnly={core.isReadOnly}
+            onChange={core.handleChange}
+            onFocus={core.handleFocus}
+            onBlur={core.handleBlur}
+            onKeyDown={core.handleKeyDown}
+            onPaste={core.handlePaste}
+            onCopy={core.handleCopy}
+            placeholder={core.cellFocused && !core.isReadOnly ? '' : placeholder}
             inputProps={{
-              readOnly: isReadOnly,
+              readOnly: core.isReadOnly,
               tabIndex: locked ? -1 : undefined,
               inputMode: 'numeric',
               'data-mineo-grid-locked': locked ? 'true' : undefined,
-              'data-mineo-undo-focus-token': undoFocusToken,
-              'data-mineo-undo-field-path': gridCellKey ?? undefined,
-              'aria-describedby': showError ? a11yErrorId : undefined,
+              'data-mineo-undo-focus-token': core.undoFocusToken,
+              'data-mineo-undo-field-path': core.gridCellKey ?? undefined,
+              'aria-describedby': core.showError ? core.a11yErrorId : undefined,
             }}
             sx={{
               ...getTableInputRootStyles({
-                showError,
+                showError: core.showError,
                 isLooseTable,
                 locked,
                 borderRadius: inputBorderRadius,
@@ -523,16 +114,16 @@ const TableWeekInput = React.memo(
               '& .MuiInputBase-input': {
                 ...getTableInputElementStyles({
                   textAlign: 'center',
-                  cursor: isEditing ? 'text' : 'pointer',
-                  caretColor: isEditing ? 'auto' : 'transparent',
+                  cursor: core.isEditing ? 'text' : 'pointer',
+                  caretColor: core.isEditing ? 'auto' : 'transparent',
                 }),
               },
               ...sx,
             }}
           />
-          {showError ? (
-            <span id={a11yErrorId} style={visuallyHiddenStyle}>
-              {tooltipText}
+          {core.showError ? (
+            <span id={core.a11yErrorId} style={visuallyHiddenStyle}>
+              {core.errorMessage}
             </span>
           ) : null}
         </Box>
