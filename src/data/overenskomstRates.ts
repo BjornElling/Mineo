@@ -498,6 +498,47 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     ),
   },
 
+  // Faglærte-overenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('faglaerte-overenskomsten'),
+      navn:             'Faglærte-overenskomsten',
+      loenmodtagerOrg:  ['Dansk Metal', 'Dansk El-Forbund'],
+      arbejdsgiverOrg:  ['Dansk Industri'],
+      grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: false,
+        model: 'ferielov',
+        direkteSatsErDifferentieret: false,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: false,
+        referenceperiodeLabel: '4 uger',
+      },
+    },
+    shDageAlmindeligLoenRegel: { shSoDelta: -0.025 },
+    satser: satserFromTable(
+      { fritvalg: null, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      [
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
+        ['01-03-2027',            162.95,             0.110,            0.1100 ],
+        ['01-03-2026',            158.45,             0.100,            0.1100 ],
+        ['01-05-2025',            153.70,             0.090,            0.1100 ],
+        ['01-03-2025',            153.70,             0.090,            0.1000 ],
+        ['01-03-2024',            148.70,             0.090,            0.1000 ],
+        ['01-06-2023',            142.95,             0.070,            0.1000 ],
+        ['01-03-2023',            142.95,             0.070,            0.0800 ],
+        ['01-03-2022',            136.95,             0.070,            0.0800 ],
+        ['01-03-2021',            133.80,             0.060,            0.0800 ],
+        ['01-03-2020',            130.60,             0.050,            0.0800 ],
+        ['01-03-2019',            127.40,             0.040,            0.0800 ],
+        ['01-03-2018',            124.90,             0.034,            0.0800 ],
+        ['01-03-2017',            122.40,             0.027,            0.0800 ],
+        ['01-03-2016',            119.90,             0.020,            0.0800 ],
+        ['01-03-2015',            117.50,             0.017,            0.0800 ],
+        ['01-03-2014',            115.25,             0.013,            0.0800 ]
+      ]
+    ),
+  },
+
   // Fællesoverenskomsten (DIO II)
   {
     meta: {
@@ -737,7 +778,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
     satser: satserFromTable(
       { shSoSats: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          l Grundl>n         l Fritvalg         l AG-pens.
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.
         ['01-03-2027',            146.90,            0.1500,            0.1100 ],
         ['01-03-2026',            143.40,            0.1400,            0.1100 ],
         ['01-05-2025',            139.90,            0.1300,            0.1100 ],
@@ -829,6 +870,7 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
         ['01-05-2025',            139.90,            0.1550,            0.1100 ],
         ['01-03-2024',            136.15,            0.1550,            0.1000 ],
         ['01-06-2023',            131.65,            0.1350,            0.1000 ],
+        ['01-03-2023',            131.65,            0.1350,            0.0800 ]
       ]
     ),
   },
@@ -940,6 +982,56 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
         ['01-03-2016',            177.90,            0.0350,            0.0881 ],
         ['01-03-2015',            175.50,            0.0350,            0.0881 ],
         ['01-03-2014',            173.25,            0.0350,            0.0881 ]
+      ]
+    ),
+  },
+
+  // Metal, blik- og rør-overenskomsten
+  {
+    meta: {
+      id:               toOverenskomstId('metal-blik-og-roer-overenskomsten'),
+      navn:             'Metal, blik- og rør-overenskomsten',
+      loenmodtagerOrg:  ['Dansk Metal', 'Blik&Rør'],
+      arbejdsgiverOrg:  ['Dansk Industri', 'Dansk Byggeri'],
+      grundloenAngivetPer: 'Time',
+      sfggPolicy: {
+        fravigerFerielov: true,
+        model: 'direkte_sats',
+        direkteSatsErDifferentieret: true,
+        bortfalderUnderArbejdsgiverbetaltSygeloen: true,
+        referenceperiodeLabel: null,
+      },
+    },
+    shDageAlmindeligLoenRegel: { shSoDelta: -0.059 },
+    satser: satserFromTable(
+      { fritvalg: 0, sfgg: null },
+      [
+        // fraDato          │ Grundløn         │ SH/SO-sats          │ AG-pens.         │ SFGG Fagl.Kbh    │ SFGG Fagl.Prov   │ SFGG Ufagl.Kbh   │ SFGG Ufagl.Prov
+        ['01-03-2027',            146.85,             0.167,            0.1115,            223.75,            208.35,            200.20,            201.50 ],
+        ['01-03-2026',            143.35,             0.157,            0.1115,            223.75,            208.35,            200.20,            201.50 ],
+        ['01-01-2026',            139.85,             0.147,            0.1115,            223.75,            208.35,            200.20,            201.50 ],
+        ['01-05-2025',            139.85,             0.147,            0.1115,            217.20,            202.40,            191.40,            192.45 ],
+        ['01-01-2025',            136.10,             0.147,            0.1015,            217.20,            202.40,            191.40,            192.45 ],
+        ['01-03-2024',            136.10,             0.147,            0.1015,            207.90,            195.90,            184.45,            186.45 ],
+        ['01-01-2024',            131.60,             0.129,            0.1015,            207.90,            195.90,            184.45,            186.45 ],
+        ['01-06-2023',            131.60,             0.129,            0.1015,            204.25,            190.75,            185.40,            183.90 ],
+        ['01-03-2023',            131.60,             0.129,            0.0815,            204.25,            190.75,            185.40,            183.90 ],
+        ['01-01-2023',            127.10,             0.129,            0.0815,            204.25,            190.75,            185.40,            183.90 ],
+        ['01-03-2022',            127.10,             0.129,            0.0815,            201.50,            187.20,            179.60,            179.60 ],
+        ['01-01-2022',            124.60,             0.119,            0.0815,            201.50,            187.20,            179.60,            179.60 ],
+        ['01-03-2021',            124.60,             0.119,            0.0815,            199.75,            184.60,            176.60,            178.45 ],
+        ['01-01-2021',            122.10,             0.119,            0.0815,            199.75,            184.60,            176.60,            178.45 ],
+        ['01-05-2020',            122.10,             0.109,            0.0815,            198.40,            182.90,            173.00,            175.40 ],
+        ['01-01-2020',            119.60,             0.099,            0.0815,            198.40,            182.90,            173.00,            175.40 ],
+        ['01-03-2019',            119.60,             0.099,            0.0815,            191.60,            178.70,            170.35,            172.50 ],
+        ['01-01-2019',            117.60,             0.093,            0.0815,            191.60,            178.70,            170.35,            172.50 ],
+        ['01-03-2018',            117.60,             0.093,            0.0815,            186.40,            174.80,            168.50,            170.65 ],
+        ['01-01-2018',            115.60,             0.086,            0.0815,            186.40,            174.80,            168.50,            170.65 ],
+        ['01-03-2017',            115.60,             0.086,            0.0815,            183.90,            172.05,            166.20,            169.25 ],
+        ['01-01-2017',            113.60,             0.079,            0.0815,            183.90,            172.05,            166.20,            169.25 ],
+        ['01-03-2016',            113.60,             0.079,            0.0815,            180.25,            168.95,            164.10,            168.30 ],
+        ['01-03-2015',            111.80,             0.076,            0.0815,            182.00,            167.45,            162.70,            167.15 ],
+        ['01-03-2014',            110.15,             0.072,            0.0815,            182.85,            166.50,            167.75,            163.55 ]
       ]
     ),
   },

@@ -126,6 +126,12 @@ describe('getOverenskomstMetaById', () => {
     expect(meta?.navn).toBe('Låsesmedeoverenskomsten');
   });
 
+  it('faglaerte-overenskomsten eksisterer', () => {
+    const meta = getOverenskomstMetaById('faglaerte-overenskomsten');
+    expect(meta).toBeDefined();
+    expect(meta?.navn).toBe('Faglærte-overenskomsten');
+  });
+
   it('el-overenskomsten eksisterer', () => {
     const meta = getOverenskomstMetaById('el-overenskomsten');
     expect(meta).toBeDefined();
@@ -142,6 +148,12 @@ describe('getOverenskomstMetaById', () => {
     const meta = getOverenskomstMetaById('maskinhandler-overenskomsten');
     expect(meta).toBeDefined();
     expect(meta?.navn).toBe('Maskinhandler-overenskomsten');
+  });
+
+  it('metal-blik-og-roer-overenskomsten eksisterer', () => {
+    const meta = getOverenskomstMetaById('metal-blik-og-roer-overenskomsten');
+    expect(meta).toBeDefined();
+    expect(meta?.navn).toBe('Metal, blik- og rør-overenskomsten');
   });
 
   it('metal-transport-overenskomsten eksisterer', () => {
@@ -586,6 +598,38 @@ describe('getEffektiveSatserForDato', () => {
 
     expect(med?.shSoSats).toBeCloseTo(0.01, 10);
     expect((med?.shSoSats ?? 0) >= 0).toBe(true);
+  });
+
+  it('shDageRegel true → reducerer shSoSats med 5,9 procentpoint for metal-blik-og-roer-overenskomsten', () => {
+    const uden = getEffektiveSatserForDato({
+      overenskomstId: 'metal-blik-og-roer-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+    const med = getEffektiveSatserForDato({
+      overenskomstId: 'metal-blik-og-roer-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: true,
+    });
+
+    expect(uden?.shSoSats).toBeCloseTo(0.147, 10);
+    expect(med?.shSoSats).toBeCloseTo(0.088, 10);
+  });
+
+  it('shDageRegel true → reducerer shSoSats med 2,5 procentpoint for faglaerte-overenskomsten', () => {
+    const uden = getEffektiveSatserForDato({
+      overenskomstId: 'faglaerte-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+    const med = getEffektiveSatserForDato({
+      overenskomstId: 'faglaerte-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
+      dato: d('01-03-2024'),
+      applyAlmindeligLoenPaaShDageRegel: true,
+    });
+
+    expect(uden?.shSoSats).toBeCloseTo(0.09, 10);
+    expect(med?.shSoSats).toBeCloseTo(0.065, 10);
   });
 
   it('shDageRegel true → reducerer fritvalg med 4 procentpoint for industri-og-vvs-overenskomsten', () => {
