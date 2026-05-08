@@ -40,6 +40,10 @@ const createVisualErrorAdapter = (): TableInputAdapter<string, string, ReturnTyp
     if (trimmed === '9') return { ok: true, value: trimmed, visualErrorMessage: 'Værdien er uden for intervallet' };
     return { ok: true, value: trimmed };
   },
+  getCommittedVisualError: (value) => {
+    if (value === '9') return 'Værdien er uden for intervallet';
+    return '';
+  },
 });
 
 const createWrapper = (

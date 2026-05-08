@@ -96,7 +96,7 @@ const TableAmountInput = React.memo(
       } catch {
         // Browseren kan afvise selection i sjældne timingtilfælde; edit-start er stadig gyldig.
       }
-    }, [core.hasError, core.isEditing, core.keyInitiatedEdit, value]);
+    }, [core.hasError, core.isEditing, core.inputElRef, core.keyInitiatedEdit, value]);
 
     const handleDoubleClick = React.useCallback(() => {
       skipClickSelectionRestoreRef.current = true;

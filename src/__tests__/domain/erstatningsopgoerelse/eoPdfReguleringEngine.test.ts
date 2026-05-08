@@ -124,7 +124,8 @@ describe('eoPdfReguleringEngine', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
-    af.overenskomstId = 'laasesmedeoverenskomsten';
+    // maskinhandler-overenskomsten har ældste sats 01-03-2024 (coverage start efter 01-01-2024)
+    af.overenskomstId = 'maskinhandler-overenskomsten';
     af.feriePct = 12.5;
     af.shSoPct = 2.7;
     af.pensionPct = 8.15;
@@ -148,8 +149,8 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.indeks).toBe('113,01');
-    expect(rows[0]?.loenudvikling).toBe('+ 13,01 %');
+    expect(rows[0]?.indeks).toBe('114,86');
+    expect(rows[0]?.loenudvikling).toBe('+ 14,86 %');
   });
 
   it('viser Store Bededag som særskilt fallback-beregning før første private overenskomstdækning', () => {
@@ -272,7 +273,8 @@ describe('eoPdfReguleringEngine', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
-    af.overenskomstId = 'laasesmedeoverenskomsten';
+    // maskinhandler-overenskomsten har ældste sats 01-03-2024 (coverage start efter 01-01-2024)
+    af.overenskomstId = 'maskinhandler-overenskomsten';
     af.loenPaaHelligdage = 'Almindelig løn';
     af.feriePct = 12.5;
     af.shSoPct = 2.7;

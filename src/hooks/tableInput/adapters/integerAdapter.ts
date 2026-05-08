@@ -52,6 +52,13 @@ export const createIntegerTableInputAdapter = (
   config: TableIntegerAdapterConfig
 ): TableInputAdapter<TableIntegerInputModel, string, IntegerFingerprint> => ({
   format: (value) => value,
+  getCommittedVisualError: (value) => {
+    if (value === '') return '';
+    const numValue = Number.parseInt(value, 10);
+    if (!Number.isFinite(numValue)) return '';
+    const rangeError = getIntegerRangeErrorMessage(numValue, config.minValue, config.maxValue, { preferExactForEqualBounds: false });
+    return config.enforceRange ? '' : rangeError;
+  },
   parse: (draft) => parseIntegerOnCommit(draft, config),
   toCommittedPayload: toCommittedIntegerPayload,
   isValidStartKey: (key) => /^[0-9]$/.test(key),

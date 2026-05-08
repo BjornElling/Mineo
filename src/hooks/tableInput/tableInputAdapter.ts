@@ -69,4 +69,13 @@ export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint ex
    * save until the user commits a valid value or cancels/restores the draft.
    */
   useSaveError?: boolean;
+  /**
+   * Returns a visual-only error message for an already-committed model value,
+   * without re-parsing the display string. Implement this on adapters that can
+   * produce a visualErrorMessage from parse(), so committedVisualError can be
+   * derived directly from the model instead of re-invoking parse().
+   *
+   * Omit (or return '') when the committed value carries no visual error.
+   */
+  getCommittedVisualError?: (value: TModel) => string;
 }>;

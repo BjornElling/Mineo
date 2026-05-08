@@ -133,6 +133,11 @@ export const createDateTableInputAdapter = (
   config: TableDateAdapterConfig
 ): TableInputAdapter<TableDateInputModel, string, DateFingerprint> => ({
   format: (value) => value,
+  getCommittedVisualError: (value) => {
+    const iso = coerceToISODateString(value);
+    if (!iso) return '';
+    return getRangeErrorMessage(iso, config) ?? '';
+  },
   parse: (draft) => {
     const normalized = normalizeDateDraftOnCommit(draft);
     const parsed = parseDanishDateOnCommit(normalized, config);

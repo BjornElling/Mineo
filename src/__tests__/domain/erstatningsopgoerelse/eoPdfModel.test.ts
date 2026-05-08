@@ -2674,7 +2674,8 @@ describe('eoPdfModel', () => {
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
-          overenskomstId: 'laasesmedeoverenskomsten',
+          // maskinhandler-overenskomsten har ældste sats 01-03-2024 (coverage start efter 01-01-2024)
+          overenskomstId: 'maskinhandler-overenskomsten',
           feriePct: 12.5,
           loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
         },
@@ -2707,7 +2708,8 @@ describe('eoPdfModel', () => {
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
-          overenskomstId: 'laasesmedeoverenskomsten',
+          // maskinhandler-overenskomsten har ældste sats 01-03-2024 (coverage start efter 01-01-2024)
+          overenskomstId: 'maskinhandler-overenskomsten',
           feriePct: 12.5,
           shSoPct: 2.7,
           pensionPct: 8.15,
@@ -2737,7 +2739,7 @@ describe('eoPdfModel', () => {
 
     expect(segment).toBeDefined();
     expect(segment?.fra).toBe('2024-03-01');
-    expect(segment?.deltaPct).toBeCloseTo(13.01, 2);
+    expect(segment?.deltaPct).toBeCloseTo(14.86, 2);
   });
 
   it('anvender Store Bededag-regulering fra 01-01-2024 i manuel regulering selv når næste manuelle række er 01-03-2024', () => {

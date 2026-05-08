@@ -104,10 +104,8 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const committedDisplayValue = adapter.format(value);
   const committedVisualError = React.useMemo(() => {
     if (!touched || saveErrorActive) return '';
-    const parsed = adapter.parse(committedDisplayValue);
-    if (!parsed.ok) return '';
-    return parsed.visualErrorMessage?.trim() ?? '';
-  }, [adapter, committedDisplayValue, saveErrorActive, touched]);
+    return adapter.getCommittedVisualError?.(value)?.trim() ?? '';
+  }, [adapter, saveErrorActive, touched, value]);
 
   const setLocalError = React.useCallback((message: string) => {
     hasErrorRef.current = true;
