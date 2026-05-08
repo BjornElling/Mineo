@@ -133,7 +133,10 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     formatCommittedValue: adapter.format,
     inputElementRef: inputElRef,
     isEditing,
-    preserveDraft: (adapter.preserveInvalidDraft ?? true) && hasError,
+    preserveDraft: Boolean(
+      (adapter.preserveInvalidDraft ?? true) &&
+      (saveErrorActive || ((adapter.preserveVisualErrorDraft ?? true) && hasError))
+    ),
     draftRef,
     setDraft,
     focusToken: undoFocusToken,
@@ -163,11 +166,23 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     const previousFingerprint = latestCommittedPayloadRef.current.fingerprint;
     const nextPayload = adapter.toCommittedPayload(value);
     latestCommittedPayloadRef.current = nextPayload;
-    if (!isEditing && previousFingerprint !== nextPayload.fingerprint && hasErrorRef.current) {
+    if (!isEditing && previousFingerprint !== nextPayload.fingerprint && hasErrorRef.current && saveErrorActive) {
       clearLocalError();
       setTouched(false);
     }
-  }, [adapter, clearLocalError, isEditing, value]);
+  }, [adapter, clearLocalError, isEditing, saveErrorActive, value]);
+
+  React.useEffect(() => {
+    if (!touched || saveErrorActive) return;
+    const parsed = adapter.parse(adapter.format(value));
+    if (!parsed.ok || parsed.visualErrorMessage === undefined || parsed.visualErrorMessage.trim() === '') {
+      if (hasErrorRef.current) clearLocalError();
+      return;
+    }
+    if (errorMessage !== parsed.visualErrorMessage) {
+      setVisualError(parsed.visualErrorMessage);
+    }
+  }, [adapter, clearLocalError, errorMessage, saveErrorActive, setVisualError, touched, value]);
 
   React.useEffect(() => {
     draftRef.current = draft;
@@ -183,12 +198,16 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       return;
     }
     if (!keyInitiatedEditRef.current) {
+      if ((adapter.preserveInvalidDraft ?? true) && (hasError || saveErrorActive)) {
+        originalValueOnEditStartRef.current = draftRef.current;
+        return;
+      }
       const committedValue = adapter.format(value);
       originalValueOnEditStartRef.current = committedValue;
       draftRef.current = committedValue;
       setDraft(committedValue);
     }
-  }, [adapter, isEditing, resetEditingState, value]);
+  }, [adapter, hasError, isEditing, resetEditingState, saveErrorActive, value]);
 
   const commitAndEmitBlur = React.useCallback(
     (rawDraft: string): boolean => {
@@ -250,6 +269,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
       const nextFingerprint = parseNoopFingerprint(rawValue);
       if (!isEditing && nextFingerprint !== null && nextFingerprint === latestCommittedPayloadRef.current.fingerprint) {
+        commitAndEmitBlur(rawValue);
         return;
       }
       commitAndEmitBlur(rawValue);

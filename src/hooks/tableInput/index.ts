@@ -20,3 +20,11 @@ export {
   type TableWeekAdapterConfig,
   type TableWeekInputModel,
 } from './adapters/weekAdapter';
+export {
+  createDateTableInputAdapter,
+  getTableDateRangeErrorMessage,
+  sanitizeTableDateDraft,
+  toCommittedDatePayload,
+  type TableDateAdapterConfig,
+  type TableDateInputModel,
+} from './adapters/dateAdapter';

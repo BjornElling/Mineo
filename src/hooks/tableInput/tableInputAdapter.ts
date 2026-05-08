@@ -31,6 +31,7 @@ export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint ex
   ) => boolean;
   normalizeDraftChange?: (draft: string) => string;
   preserveInvalidDraft?: boolean;
+  preserveVisualErrorDraft?: boolean;
   clearErrorOnChange?: boolean;
   useSaveError?: boolean;
 }>;
