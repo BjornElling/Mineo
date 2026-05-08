@@ -2,16 +2,12 @@ import * as React from 'react';
 import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
-import { useGridCellEditing, useGridCellFocus, useGridCoreApi } from '../../tables/useGridCore';
-import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
-import { assignRef } from './assignRef';
-import { copyWholeValueFromReadOnlyField } from '../../../utils/clipboardUtils';
+import { useGridCoreApi } from '../../tables/useGridCore';
+import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
 import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
-import { trimWhitespaceEdges } from '../../../utils/draftNormalization';
-import { makeStringFingerprintFromCanonical, type CommittedPayload, type StringFingerprint } from '../../../types/parserSpec';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
-import { useTableInputHistoryRestore } from '../../../hooks/useTableInputHistoryRestore';
+import { textTableInputAdapter, useTableInputCore } from '../../../hooks/tableInput';
 
 export type TableTextInputChangeEvent = { target: { value: string } };
 
@@ -28,15 +24,6 @@ export type TableTextInputProps = Readonly<{
   sx?: SxProps<Theme>;
 }>;
 
-const toCommittedTextPayload = (value: string | undefined): CommittedPayload<string, string, StringFingerprint> => {
-  const canonical = value ?? '';
-  return {
-    model: canonical,
-    canonical,
-    fingerprint: makeStringFingerprintFromCanonical(canonical),
-  };
-};
-
 const TableTextInput = React.memo(
   ({
     gridCell,
@@ -51,242 +38,47 @@ const TableTextInput = React.memo(
     sx,
   }: TableTextInputProps) => {
     const gridApi = useGridCoreApi();
-    const cellFocused = useGridCellFocus(gridCell);
-    const isEditing = useGridCellEditing(gridCell);
-    const isReadOnly = locked || !isEditing;
     const isLooseTable = gridApi.tableKind === 'loose';
     const inputBorderRadius = isLooseTable ? '10px' : '0px';
     const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
-
-    const [draft, setDraft] = React.useState<string>(() => value ?? '');
-    const [isFocused, setIsFocused] = React.useState(false);
-    const [touched, setTouched] = React.useState(false);
-    const inputElRef = React.useRef<HTMLInputElement | null>(null);
-    const draftRef = React.useRef<string>(draft);
-    const originalValueOnEditStartRef = React.useRef<string>('');
-    const keyInitiatedEditRef = React.useRef(false);
-    const latestCommittedPayloadRef = React.useRef<CommittedPayload<string, string, StringFingerprint>>(toCommittedTextPayload(value));
-
-    const latest = React.useRef({ onChange, onBlur, onErrorChange, locked });
-
-    const emitBlur = React.useCallback((nextValue: string) => {
-      latest.current.onBlur?.({ target: { value: nextValue } });
-    }, []);
-
-    const undoFocusToken = React.useId();
-    const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
-    const { clearPendingHistoryResync } = useTableInputHistoryRestore<string | undefined>({
-      value,
-      formatCommittedValue: (nextValue) => nextValue ?? '',
-      inputElementRef: inputElRef,
-      isEditing,
-      preserveDraft: false,
-      draftRef,
-      setDraft,
-      focusToken: undoFocusToken,
-      fieldPath: gridCellKey,
-      resetEditingState: () => {
-        keyInitiatedEditRef.current = false;
-      },
-      onRestoreError: () => {
-        setTouched(true);
-        latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-      },
-      onRestoreCommitted: () => {
-        setTouched(false);
-        latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-      },
+    const core = useTableInputCore({
+      adapter: textTableInputAdapter,
+      gridCell,
+      value: value ?? '',
+      locked,
+      onChange,
+      onBlur,
+      onErrorChange,
+      externalErrorMessage,
+      inputRef,
     });
 
-    React.useEffect(() => {
-      latest.current = { onChange, onBlur, onErrorChange, locked };
-    }, [locked, onBlur, onChange, onErrorChange]);
-
-    React.useLayoutEffect(() => {
-      latestCommittedPayloadRef.current = toCommittedTextPayload(value);
-    }, [value]);
-
-    React.useEffect(() => {
-      draftRef.current = draft;
-    }, [draft]);
-
-    React.useEffect(() => {
-      latest.current.onErrorChange?.({ hasError: false, kind: 'none' });
-    }, []);
-
-    React.useEffect(() => {
-      if (!isEditing) {
-        keyInitiatedEditRef.current = false;
-        return;
-      }
-      if (!keyInitiatedEditRef.current) {
-        const committedValue = value ?? '';
-        originalValueOnEditStartRef.current = committedValue;
-        setDraft(committedValue);
-      }
-    }, [isEditing, value]);
-
-    const commitAndEmitBlur = React.useCallback(
-      (rawDraft: string): boolean => {
-        setTouched(true);
-        const canonical = trimWhitespaceEdges(rawDraft);
-        const nextPayload: CommittedPayload<string, string, StringFingerprint> = {
-          model: canonical,
-          canonical,
-          fingerprint: makeStringFingerprintFromCanonical(canonical),
-        };
-
-        const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
-        if (isNoop) return true;
-
-        emitBlur(nextPayload.model);
-        return true;
-      },
-      [emitBlur]
-    );
-
-    const handleChange = React.useCallback(
-      (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (isReadOnly) return;
-        const nextDraft = e.target.value ?? '';
-        clearPendingHistoryResync();
-        draftRef.current = nextDraft;
-        setDraft(nextDraft);
-        latest.current.onChange?.({ target: { value: nextDraft } });
-      },
-      [clearPendingHistoryResync, isReadOnly]
-    );
-
-    const handleFocus = React.useCallback(() => {
-      setIsFocused(true);
-    }, []);
-
-    const handleBlur = React.useCallback(
-      (e: React.FocusEvent<HTMLInputElement>) => {
-        setIsFocused(false);
-        const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
-        if (
-          !isEditing &&
-          makeStringFingerprintFromCanonical(trimWhitespaceEdges(rawValue)) === latestCommittedPayloadRef.current.fingerprint
-        ) {
-          return;
-        }
-        commitAndEmitBlur(rawValue);
-      },
-      [commitAndEmitBlur, isEditing]
-    );
-
-    const handleCopy = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        copyWholeValueFromReadOnlyField(e, {
-          isReadOnly,
-          value: isEditing ? draft : (value ?? ''),
-          selectionStart: e.currentTarget.selectionStart,
-          selectionEnd: e.currentTarget.selectionEnd,
-        });
-      },
-      [draft, isEditing, isReadOnly, value]
-    );
-
-    const a11yInputId = React.useId();
-    const a11yErrorId = `${a11yInputId}-error`;
-    const externalErrorText = (externalErrorMessage ?? '').trim();
-    const hasExternalError = externalErrorText !== '';
-    const showError = hasExternalError && !isFocused && (touched || !isEditing);
-
-    const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
-      return {
-        getElement: () => inputElRef.current,
-        getIsLocked: () => latest.current.locked ?? false,
-        commitCurrent: () => {
-          if (latest.current.locked) return true;
-          const ok = commitAndEmitBlur(inputElRef.current?.value ?? draftRef.current);
-          if (!ok) return false;
-          setIsFocused(false);
-          gridApi.closeEditing();
-          return true;
-        },
-        clearAndCommit: () => {
-          if (latest.current.locked) return;
-          keyInitiatedEditRef.current = false;
-          setTouched(false);
-          setDraft('');
-          const ok = commitAndEmitBlur('');
-          if (!ok) return;
-          gridApi.closeEditing();
-        },
-        cancelEdit: () => {
-          if (latest.current.locked) return;
-          keyInitiatedEditRef.current = false;
-          setTouched(false);
-          setDraft(originalValueOnEditStartRef.current);
-          gridApi.closeEditing();
-        },
-        prepareEditFromKey: (key: string) => {
-          if (latest.current.locked) return false;
-          if (key.length !== 1) return false;
-          const committedValue = latestCommittedPayloadRef.current.canonical;
-          originalValueOnEditStartRef.current = committedValue;
-          keyInitiatedEditRef.current = true;
-          setTouched(false);
-          setDraft(key);
-          requestAnimationFrame(() => {
-            const el = inputElRef.current;
-            if (!el) return;
-            try {
-              el.setSelectionRange(el.value.length, el.value.length);
-            } catch {
-              // no-op
-            }
-          });
-          return true;
-        },
-        selectAll: () => {
-          requestAnimationFrame(() => inputElRef.current?.select());
-        },
-      };
-    }, [commitAndEmitBlur, gridApi]);
-
-    React.useEffect(() => {
-      gridApi.registerEditor(gridCell, editorHandle);
-      return () => {
-        gridApi.unregisterEditor(gridCell);
-      };
-    // gridCellKey er en stabil streng-repræsentation af gridCell-koordinaterne.
-    // gridCell er intentionelt udeladt fra dep-arayet for at undgå re-registrering
-    // ved inline object literals i caller (ny reference, samme værdier).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editorHandle, gridApi, gridCellKey]);
-
     return (
-      <Tooltip title={showError ? externalErrorText : ''} arrow placement="top">
+      <Tooltip title={core.showError ? core.errorMessage : ''} arrow placement="top">
         <Box sx={{ width: '100%', height: '100%', ...sx }}>
           <InputBase
-            inputRef={(el) => {
-              inputElRef.current = el;
-              assignRef(inputRef, el);
-            }}
+            inputRef={core.inputRefCallback}
             autoComplete="off"
-            value={isEditing ? draft : (value ?? '')}
-            readOnly={isReadOnly}
-            onChange={handleChange}
-            onFocus={handleFocus}
-            onBlur={handleBlur}
-            onCopy={handleCopy}
-            placeholder={cellFocused && !isReadOnly ? '' : placeholder}
+            value={core.renderedValue}
+            readOnly={core.isReadOnly}
+            onChange={core.handleChange}
+            onFocus={core.handleFocus}
+            onBlur={core.handleBlur}
+            onCopy={core.handleCopy}
+            placeholder={core.cellFocused && !core.isReadOnly ? '' : placeholder}
             inputProps={{
-              id: a11yInputId,
-              readOnly: isReadOnly,
+              id: core.a11yInputId,
+              readOnly: core.isReadOnly,
               tabIndex: locked ? -1 : undefined,
               inputMode: 'text',
               'data-mineo-grid-locked': locked ? 'true' : undefined,
-              'data-mineo-undo-focus-token': undoFocusToken,
-              'data-mineo-undo-field-path': gridCellKey ?? undefined,
-              'aria-describedby': showError ? a11yErrorId : undefined,
+              'data-mineo-undo-focus-token': core.undoFocusToken,
+              'data-mineo-undo-field-path': core.gridCellKey ?? undefined,
+              'aria-describedby': core.showError ? core.a11yErrorId : undefined,
             }}
             sx={{
               ...getTableInputRootStyles({
-                showError,
+                showError: core.showError,
                 isLooseTable,
                 locked,
                 borderRadius: inputBorderRadius,
@@ -295,15 +87,15 @@ const TableTextInput = React.memo(
               '& .MuiInputBase-input': {
                 ...getTableInputElementStyles({
                   textAlign: 'left',
-                  cursor: isEditing ? 'text' : 'pointer',
-                  caretColor: isEditing ? 'auto' : 'transparent',
+                  cursor: core.isEditing ? 'text' : 'pointer',
+                  caretColor: core.isEditing ? 'auto' : 'transparent',
                 }),
               },
             }}
           />
-          {showError ? (
-            <span id={a11yErrorId} style={visuallyHiddenStyle}>
-              {externalErrorText}
+          {core.showError ? (
+            <span id={core.a11yErrorId} style={visuallyHiddenStyle}>
+              {core.errorMessage}
             </span>
           ) : null}
         </Box>
