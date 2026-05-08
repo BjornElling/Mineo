@@ -75,6 +75,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const [touched, setTouched] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState('');
+  const [saveErrorActive, setSaveErrorActive] = React.useState(false);
   const [keyInitiatedEdit, setKeyInitiatedEdit] = React.useState(false);
 
   const inputElRef = React.useRef<HTMLInputElement | null>(null);
@@ -102,6 +103,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     hasErrorRef.current = true;
     setHasError(true);
     setErrorMessage(message);
+    setSaveErrorActive(true);
     latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
   }, []);
 
@@ -109,7 +111,16 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     hasErrorRef.current = false;
     setHasError(false);
     setErrorMessage('');
+    setSaveErrorActive(false);
     latest.current.onErrorChange?.(noopErrorInfo);
+  }, []);
+
+  const setVisualError = React.useCallback((message: string) => {
+    hasErrorRef.current = true;
+    setHasError(true);
+    setErrorMessage(message);
+    setSaveErrorActive(false);
+    latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
   }, []);
 
   const resetEditingState = React.useCallback(() => {
@@ -191,20 +202,31 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
 
       const nextPayload = current.adapter.toCommittedPayload(parsed.value);
       const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
-      clearLocalError();
+      if (parsed.visualErrorMessage !== undefined && parsed.visualErrorMessage.trim() !== '') {
+        setVisualError(parsed.visualErrorMessage);
+      } else {
+        clearLocalError();
+      }
       if (isNoop) return true;
 
       current.onBlur?.({ target: { value: nextPayload.model } });
       return true;
     },
-    [clearLocalError, setLocalError]
+    [clearLocalError, setLocalError, setVisualError]
   );
 
   const handleChange = React.useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       if (isReadOnly) return;
-      const nextDraft = e.target.value ?? '';
+      const rawDraft = e.target.value ?? '';
+      const nextDraft = latest.current.adapter.normalizeDraftChange?.(rawDraft) ?? rawDraft;
       clearPendingHistoryResync();
+      if (latest.current.adapter.clearErrorOnChange) {
+        hasErrorRef.current = false;
+        setHasError(false);
+        setErrorMessage('');
+        setSaveErrorActive(false);
+      }
       draftRef.current = nextDraft;
       setDraft(nextDraft);
       latest.current.onChange?.({ target: { value: nextDraft } });
@@ -236,29 +258,48 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   );
 
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (latest.current.adapter.filterKeyDown?.(e)) {
+    if (latest.current.adapter.filterKeyDown?.(e, { isEditing })) {
       e.preventDefault();
       e.stopPropagation();
     }
-  }, []);
+  }, [isEditing]);
 
   const handlePaste = React.useCallback(
     (e: React.ClipboardEvent<HTMLInputElement>) => {
-      const normalizePaste = latest.current.adapter.normalizePaste;
-      if (!normalizePaste) return;
+      const applyPaste = latest.current.adapter.applyPaste;
+      if (!applyPaste) return;
 
       e.preventDefault();
       e.stopPropagation();
       const raw = readClipboardText(e);
-      const normalized = normalizePaste(raw, { currentDraft: draftRef.current });
-      if (normalized === null) return;
+      const applied = applyPaste(raw, {
+        currentDraft: draftRef.current,
+        isEditing,
+        selectionStart: typeof e.currentTarget.selectionStart === 'number' ? e.currentTarget.selectionStart : null,
+        selectionEnd: typeof e.currentTarget.selectionEnd === 'number' ? e.currentTarget.selectionEnd : null,
+      });
+      if (applied === null) return;
 
       clearPendingHistoryResync();
-      draftRef.current = normalized;
-      setDraft(normalized);
-      latest.current.onChange?.({ target: { value: normalized } });
+      draftRef.current = applied.draft;
+      setDraft(applied.draft);
+      latest.current.onChange?.({ target: { value: applied.draft } });
       if (!isEditing) {
-        commitAndEmitBlur(normalized);
+        commitAndEmitBlur(applied.draft);
+        setIsFocused(true);
+        return;
+      }
+      if (typeof applied.caretPosition === 'number') {
+        const caretPosition = applied.caretPosition;
+        requestAnimationFrame(() => {
+          const el = inputElRef.current;
+          if (!el) return;
+          try {
+            el.setSelectionRange(caretPosition, caretPosition);
+          } catch {
+            // Browseren kan afvise selection på visse inputtyper; draften er stadig sat.
+          }
+        });
       }
     },
     [clearPendingHistoryResync, commitAndEmitBlur, isEditing]
@@ -351,7 +392,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
 
   useTableInputSaveError({
     key: a11yErrorId,
-    active: Boolean(adapter.useSaveError && hasError),
+    active: Boolean(adapter.useSaveError && saveErrorActive),
     message: errorMessage,
     inputRef: inputElRef,
   });
