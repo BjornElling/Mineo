@@ -174,6 +174,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
 
   React.useEffect(() => {
     if (!touched || saveErrorActive) return;
+    if (!hasErrorRef.current) return;
     const parsed = adapter.parse(adapter.format(value));
     if (!parsed.ok || parsed.visualErrorMessage === undefined || parsed.visualErrorMessage.trim() === '') {
       if (hasErrorRef.current) clearLocalError();
@@ -192,7 +193,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     latest.current.onErrorChange?.(noopErrorInfo);
   }, []);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     if (!isEditing) {
       resetEditingState();
       return;
@@ -202,7 +203,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         originalValueOnEditStartRef.current = draftRef.current;
         return;
       }
-      const committedValue = adapter.format(value);
+      const committedValue = adapter.toDraftString?.(value) ?? adapter.format(value);
       originalValueOnEditStartRef.current = committedValue;
       draftRef.current = committedValue;
       setDraft(committedValue);
@@ -246,6 +247,9 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         setErrorMessage('');
         setSaveErrorActive(false);
       }
+      if (latest.current.adapter.clearTouchedOnEmptyDraft && nextDraft === '') {
+        setTouched(false);
+      }
       draftRef.current = nextDraft;
       setDraft(nextDraft);
       latest.current.onChange?.({ target: { value: nextDraft } });
@@ -267,10 +271,12 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(false);
       const rawValue = isEditing ? (e.currentTarget.value ?? '') : draftRef.current;
-      const nextFingerprint = parseNoopFingerprint(rawValue);
-      if (!isEditing && nextFingerprint !== null && nextFingerprint === latestCommittedPayloadRef.current.fingerprint) {
-        commitAndEmitBlur(rawValue);
-        return;
+      if (!isEditing) {
+        const nextFingerprint = parseNoopFingerprint(rawValue);
+        if (nextFingerprint !== null && nextFingerprint === latestCommittedPayloadRef.current.fingerprint) {
+          commitAndEmitBlur(rawValue);
+          return;
+        }
       }
       commitAndEmitBlur(rawValue);
     },
@@ -375,7 +381,9 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       prepareEditFromKey: (key: string) => {
         if (latest.current.locked) return false;
         if (!latest.current.adapter.isValidStartKey(key)) return false;
-        const committedValue = latest.current.adapter.format(latestCommittedPayloadRef.current.model);
+        const committedValue =
+          latest.current.adapter.toDraftString?.(latestCommittedPayloadRef.current.model) ??
+          latest.current.adapter.format(latestCommittedPayloadRef.current.model);
         originalValueOnEditStartRef.current = committedValue;
         keyInitiatedEditRef.current = true;
         setKeyInitiatedEdit(true);

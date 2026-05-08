@@ -294,12 +294,12 @@ Tre kanoniske mekanismer implementerer draft/committed-separationen. De løser d
 |------|-------------|-----------|
 | `useDraftField` | Enkelt almindeligt felt (string → parsed value) | Individuelle Styled* text/number/date-felter uden grid-editor. Håndterer parse-on-blur, focus snapshot, cancel (Escape), error state per felt. |
 | `useRowDrafts` | Array af rækker (draft rows ↔ committed rows) | Dynamiske tabelrækker. Håndterer add/remove/commit row og resync via `resyncToken`. Validering hører til Table*Input eller tabelspecifik committed validering, ikke hookets tastetryks-hot path. |
-| `useTableInputHistoryRestore` + tabel-inputtets grid-adapter | Enkelt grid-cellefelt | Table*Input-komponenter, hvor GridCore ejer editoråbning, `commitCurrent`, `clearAndCommit`, key-startet edit og cellenavigation. Hooken er obligatorisk for history-restore/resync, så undo/redo ikke duplikeres per inputtype. |
+| `useTableInputCore` + tabel-input-adapter | Enkelt grid-cellefelt | Table*Input-komponenter, hvor GridCore ejer editoråbning, `commitCurrent`, `clearAndCommit`, key-startet edit og cellenavigation. Kernen ejer history-restore/resync via `useTableInputHistoryRestore`, no-op fingerprinting, save-error gating og editor-handle wiring, så dette ikke duplikeres per inputtype. |
 
 **Hvornår bruges hvad:**
 - Er inputtet et almindeligt enkeltfelt uden GridCore? → `useDraftField`
 - Er inputtet en dynamisk tabel med rækker der kan tilføjes/fjernes? → `useRowDrafts`
-- Er inputtet en GridCore-tabelcelle? → Table*Input må have en grid-specialiseret draft-adapter, men history-restore og committed-resync skal gå via `useTableInputHistoryRestore`
+- Er inputtet en GridCore-tabelcelle? → Table*Input skal bruge `useTableInputCore` med en type-specifik adapter. Parser/formatter/fingerprint-regler hører til adapteren; history-restore, committed-resync og GridCore editor-handle wiring hører til kernen.
 - Disse mekanismer må ikke overlappe for det samme ansvar på samme stykke data.
 
 ---

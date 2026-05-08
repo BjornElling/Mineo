@@ -36,3 +36,11 @@ export {
   type TablePercentInputModel,
   type TablePercentInputValue,
 } from './adapters/percentAdapter';
+export {
+  createAmountTableInputAdapter,
+  toAmountDisplayString,
+  toAmountDraftString,
+  toCommittedAmountPayload,
+  type TableAmountAdapterConfig,
+  type TableAmountInputValue,
+} from './adapters/amountAdapter';
