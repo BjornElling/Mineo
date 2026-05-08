@@ -28,3 +28,11 @@ export {
   type TableDateAdapterConfig,
   type TableDateInputModel,
 } from './adapters/dateAdapter';
+export {
+  createPercentCommittedPayload,
+  createPercentTableInputAdapter,
+  toPercentDisplayString,
+  type TablePercentAdapterConfig,
+  type TablePercentInputModel,
+  type TablePercentInputValue,
+} from './adapters/percentAdapter';
