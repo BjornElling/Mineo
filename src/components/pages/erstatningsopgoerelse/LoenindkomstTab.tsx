@@ -23,6 +23,7 @@ import LoenudviklingManuelTable from '../../tables/LoenudviklingManuelTable';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import ContentBox from '../../layout/ContentBox';
+import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import {
   loenPaaHelligdageSchema,
   loenudviklingBeregningsgrundlagEnum,
@@ -2718,7 +2719,7 @@ const LoenindkomstTab = React.memo(({
 
                 {sfggRow?.sfggBeregningskilde !== undefined && sfggRow.sfggBeregningskilde !== 'Ingen' && canShowSfggOverenskomstDetails ? (
                   <Box className="row--label-right-hover">
-                    <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode</Typography>
+                    <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode<InfoTooltipIcon title="Angiv kun faktisk SFGG. Feriegodtgørelse af sygeløn beregnes automatisk." /></Typography>
                     <Box className="row--label-right-hover__content">
                       <StyledAmountField
                         width={150}

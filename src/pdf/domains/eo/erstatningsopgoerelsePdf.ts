@@ -627,6 +627,19 @@ export const generateErstatningsopgoerelsePdf = (
         doc: writer.getDoc() as jsPDF,
         startY,
         body: tableRows,
+        didParseCell: (data) => {
+          const isDataRow = data.row.index >= 1;
+          const isNumericColumn = data.column.index >= 1;
+          if (!isDataRow || !isNumericColumn) return;
+
+          data.cell.styles.halign = 'right';
+          data.cell.styles.cellPadding = {
+            top: 1.5,
+            bottom: 1.5,
+            left: 1.5,
+            right: 8,
+          };
+        },
       });
       writer.setY(resolvePdfSectionEndY(finalY, startY));
     } else {
