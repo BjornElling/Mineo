@@ -2663,7 +2663,7 @@ describe('eoPdfModel', () => {
     expect(segments.some((segment) => segment.fra === '2024-01-01')).toBe(true);
   });
 
-  it('anvender Store Bededag-regulering fra 01-01-2024 som særskilt segment før første private overenskomstdækning', () => {
+  it('anvender historisk privat overenskomstdækning og Store Bededag som særskilt segment fra 01-01-2024', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
@@ -2674,7 +2674,7 @@ describe('eoPdfModel', () => {
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
-          // maskinhandler-overenskomsten har ældste sats 01-03-2024 (coverage start efter 01-01-2024)
+          // Maskinhandler-overenskomsten har historiske satser før 2024 og Store Bededag fra 01-01-2024.
           overenskomstId: 'maskinhandler-overenskomsten',
           feriePct: 12.5,
           loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
@@ -2690,10 +2690,10 @@ describe('eoPdfModel', () => {
     const segmentsBeforeStore = segments.filter((segment) => segment.fra < '2024-01-01');
 
     expect(beforeStore).toBeDefined();
-    expect(beforeStore?.deltaPct).toBe(0);
-    expect(segmentsBeforeStore.every((segment) => segment.deltaPct === 0)).toBe(true);
+    expect(beforeStore?.deltaPct).toBeCloseTo(16.47, 2);
+    expect(segmentsBeforeStore.every((segment) => Math.abs(segment.deltaPct - 16.47) < 0.005)).toBe(true);
     expect(storeSegment).toBeDefined();
-    expect(storeSegment?.deltaPct).toBeCloseTo(0.36, 2);
+    expect(storeSegment?.deltaPct).toBeCloseTo(16.89, 2);
   });
 
   it('indregner indtastede pct-satser som basis ved privat overenskomst uden sats på reguleringsdatoen', () => {
@@ -2708,7 +2708,7 @@ describe('eoPdfModel', () => {
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Overenskomst',
-          // maskinhandler-overenskomsten har ældste sats 01-03-2024 (coverage start efter 01-01-2024)
+          // Maskinhandler-overenskomsten har historiske satser, så reguleringen bruger faktisk dækning.
           overenskomstId: 'maskinhandler-overenskomsten',
           feriePct: 12.5,
           shSoPct: 2.7,
@@ -2739,7 +2739,7 @@ describe('eoPdfModel', () => {
 
     expect(segment).toBeDefined();
     expect(segment?.fra).toBe('2024-03-01');
-    expect(segment?.deltaPct).toBeCloseTo(14.86, 2);
+    expect(segment?.deltaPct).toBeCloseTo(22.19, 2);
   });
 
   it('anvender Store Bededag-regulering fra 01-01-2024 i manuel regulering selv når næste manuelle række er 01-03-2024', () => {

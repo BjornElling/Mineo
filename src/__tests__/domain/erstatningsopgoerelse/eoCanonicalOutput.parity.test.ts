@@ -83,6 +83,30 @@ const scenarios: readonly Scenario[] = [
     },
   },
   {
+    name: 'beregningsperiode med offentlige ydelser som hypotetisk indkomst',
+    eoValues: {
+      ...createValidBase(),
+      beregnesUdFra: 'Beregningsperiode',
+      maanedsloenenUdgoer: undefined,
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-01-31'),
+      loenindkomstAnsaettelsesforhold: [],
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2025-01-01'), til: iso('2025-01-31'), loseFeriedage: 0 },
+      ],
+      offentligeYdelserRows: [
+        {
+          id: 'yd-1',
+          fraDato: '01-01-2024',
+          tilDato: '31-01-2024',
+          ydelse: asAmountValue(3100),
+          tillaeg: undefined,
+          ydelsestype: 'dagpenge',
+        },
+      ],
+    },
+  },
+  {
     name: 'ingen taf-perioder',
     eoValues: {
       ...createValidBase(),
@@ -140,6 +164,10 @@ const projectCanonicalFromPdfModel = (
   },
   taf: {
     harTafPerioder: pdfModel.tabtArbejdsfortjeneste.harTafPerioder,
+    offentligeYdelserUdviklingOre:
+      pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling?.total.status === 'ok'
+        ? pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling.total.value
+        : null,
     tafIndtaegterOre:
       pdfModel.tabtArbejdsfortjeneste.tafIndtaegter?.total.status === 'ok'
         ? pdfModel.tabtArbejdsfortjeneste.tafIndtaegter.total.value

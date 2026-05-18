@@ -8,7 +8,7 @@ import type { SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from '../tables/tafArbejdsstatusConfig';
 import type { Calculable, MoneyOre, OevrigeKravModel, SvieSmerteModel, TabtArbejdsfortjenesteModel } from '../shared/eoTypes';
-import { clampMoneyOreToZero, ensureMoneyOre } from '../shared/eoMoney';
+import { asCalculable, clampMoneyOreToZero, ensureMoneyOre } from '../shared/eoMoney';
 import { getDayAfterIso, perioderCoverDate } from '../helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import { parseOevrigeKravBeloeb } from '../helpers/oevrigeKravAmountParser';
@@ -18,7 +18,6 @@ import { formatCountWithUnit } from '../../../utils/formatUtils';
 import { TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 
-const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
 
@@ -207,6 +206,7 @@ export const buildTabtArbejdsfortjenesteModel = (
       skalKomprimereIndkomstBeregning: false,
       indkomstSkadestidspunkt: null,
       loenudvikling: null,
+      offentligeYdelserUdvikling: null,
       tafIndtaegter: null,
       tidligereModtagetTaf: asCalculable(ensureMoneyOre(0)),
       sygeferiegodtgoerelse: { totalOre: ensureMoneyOre(0), perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null },
@@ -384,6 +384,7 @@ export const buildTabtArbejdsfortjenesteModel = (
     skalKomprimereIndkomstBeregning,
     indkomstSkadestidspunkt: tafMonetary.indkomstSkadestidspunkt,
     loenudvikling: tafMonetary.loenudvikling,
+    offentligeYdelserUdvikling: tafMonetary.offentligeYdelserUdvikling,
     tafIndtaegter: tafMonetary.tafIndtaegter,
     tidligereModtagetTaf: tafMonetary.tidligereModtagetTaf,
     sygeferiegodtgoerelse: tafMonetary.sygeferiegodtgoerelse,

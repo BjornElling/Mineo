@@ -1,8 +1,10 @@
 import { z } from 'zod';
 import { roundByMethod } from '../../../utils/rounding';
-import type { MoneyKroner, MoneyOre } from './eoTypes';
+import type { Calculable, MoneyKroner, MoneyOre } from './eoTypes';
 
 export const moneyOreSchema = z.number().int();
+
+export const asCalculable = <T>(value: T): Extract<Calculable<T>, { status: 'ok' }> => ({ status: 'ok', value });
 
 export const ensureMoneyOre = (value: number): MoneyOre => {
   if (!Number.isFinite(value) || !Number.isInteger(value)) {

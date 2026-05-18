@@ -39,7 +39,7 @@ import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type Loenu
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
 import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';
 import type { Calculable, IndkomstSkadestidspunktModel, LoenudviklingModel, LoenudviklingSegment, MoneyOre } from '../shared/eoTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
+import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import {
   convertAnciennitetSats,
   isAslStatistikModel,
@@ -65,8 +65,6 @@ import { resolveOverenskomstEffectiveStartIso } from './reguleringCoverage';
 // Uventede throws fanges af computeEoSnapshot og resulterer i fail_closed med
 // failClosedReason: 'runtime_exception'. Se eo-snapshot-contract.md §3.3.
 // =============================================================================
-
-const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 
 export const resolveLoenudviklingRows = (
   values: ErstatningsopgoerelseValues
@@ -1331,7 +1329,7 @@ export const buildLoenudviklingModel = (
       ?? buildIncomeForRanges(values, [beregningsperiodeRange], undefined, stamdataValues.skadedato);
     if (income.employers.length === 0) {
       const alleIngen = strategiDataByIndex.every((strategiData) => strategiData.strategi === 'ingen');
-      if (alleIngen) {
+      if (alleIngen || income.benefits.length > 0) {
         const beregnedeSegmenter = tafRanges.map<LoenudviklingSegment>((range) => (
           tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
             ? {

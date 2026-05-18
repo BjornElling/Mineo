@@ -14,6 +14,7 @@ import {
   buildTaftContext,
 } from '../../../domain/debug/eoDebugSammentaelling';
 import type { FieldErrorsForSection } from '../../../types/fieldErrors';
+import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 
 describe('buildEODebugSammentaellingModel regression', () => {
   it('beregner stadig TAF-arbejdsdage når beregningsenhed er måneder', () => {
@@ -236,6 +237,93 @@ describe('buildEODebugSammentaellingModel regression', () => {
     expect(sammentaelling.taf.beregnetDisplay).toBe('-');
     expect(sammentaelling.taf.tabelDisplay).toBe('-');
     expect(sammentaelling.tafIndtaegter).toHaveLength(0);
+  });
+
+  it('viser offentlige ydelser som hypotetisk positivt TAF-led i sammentællingen', () => {
+    const values = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: '2025-01-01',
+      vedroererPeriodeTil: '2025-01-31',
+      beregnesUdFra: 'Beregningsperiode' as const,
+      tafBeregningsperiodeFra: '2024-01-01',
+      tafBeregningsperiodeTil: '2024-01-31',
+      tafPerioder: [
+        {
+          id: 'taf-1',
+          fra: '2025-01-01',
+          til: '2025-01-31',
+          loseFeriedage: undefined,
+        },
+      ],
+      ferieperioder: [],
+      fravaerPerioder: [],
+    };
+    const canonicalOutput: EoCanonicalOutput = {
+      totals: {
+        svieSmerteOre: 0,
+        tabtArbejdsfortjenesteFoerForligOre: 322090,
+        tabtArbejdsfortjenesteOre: 322090,
+        oevrigeKravFoerForligOre: 0,
+        oevrigeKravOre: 0,
+        samletTotalOre: 322090,
+      },
+      svieSmerte: { maxApplied: false },
+      taf: {
+        harTafPerioder: true,
+        offentligeYdelserUdviklingOre: 322090,
+        tafIndtaegterOre: null,
+        tidligereModtagetTafOre: null,
+        sygeferiegodtgoerelseOre: 0,
+      },
+      periodiseringer: { tafPerioder: [{ fra: '2025-01-01', til: '2025-01-31' }] },
+      regulering: {
+        loenudviklingTotalFoerForligOre: 0,
+        loenudviklingSegmenter: [],
+        perAnsaettelse: [],
+      },
+    };
+
+    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
+    const model = buildEODebugModel(values, { tafRanges });
+    const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
+    const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
+
+    const sammentaelling = buildEODebugSammentaellingModel({
+      values,
+      errors,
+      model,
+      svieSmerteContext,
+      taftContext,
+      tafRanges,
+      canonicalOutput,
+    });
+
+    const row = sammentaelling.tafIndtaegter.find((entry) => entry.key === 'sammentaelling.taf.offentligeYdelserUdvikling');
+    expect(row).toBeDefined();
+    expect(row?.label).toBe('Offentlige ydelser (hypotetisk, kr.)');
+    expect(row?.control.beregnetValue).toBe(3220.9);
+    expect(row?.control.tabelValue).toBe(3220.9);
+
+    const zeroSammentaelling = buildEODebugSammentaellingModel({
+      values,
+      errors,
+      model,
+      svieSmerteContext,
+      taftContext,
+      tafRanges,
+      canonicalOutput: {
+        ...canonicalOutput,
+        taf: {
+          ...canonicalOutput.taf,
+          offentligeYdelserUdviklingOre: 0,
+        },
+      },
+    });
+    const zeroRow = zeroSammentaelling.tafIndtaegter.find((entry) => entry.key === 'sammentaelling.taf.offentligeYdelserUdvikling');
+    expect(zeroRow).toBeDefined();
+    expect(zeroRow?.control.beregnetValue).toBe(0);
+    expect(zeroRow?.control.tabelValue).toBe(0);
   });
 
   it('logger ikke parseAmount string-advarsel ved svie/smerte-optælling', () => {

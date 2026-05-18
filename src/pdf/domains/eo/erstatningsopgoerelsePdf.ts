@@ -15,6 +15,7 @@ import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatnings
 import { type MoneyOre, type Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
 import { isEffectivelyZero, isWithinTolerance } from '../../../utils/numberComparison';
+import { roundByMethod } from '../../../utils/rounding';
 import { TODAY } from '../../../config/dateRanges';
 import { getStandardLoenTableHeaders } from '../../../domain/aarsloen/standardLoenTableColumns';
 import {
@@ -598,6 +599,71 @@ export const generateErstatningsopgoerelsePdf = (
     });
   }
 
+  const offentligeYdelserUdvikling = model.tabtArbejdsfortjeneste.offentligeYdelserUdvikling;
+  if (
+    selectedElements.offentligeYdelserRegulering &&
+    eoValues.regulerOffentligeYdelser === 'Ja' &&
+    offentligeYdelserUdvikling &&
+    offentligeYdelserUdvikling.entries.length > 0
+  ) {
+    startEoBilagPage('Regulering af offentlige ydelser');
+    if (model.periodeDisplay) {
+      writeLabelValueLine('Periode', model.periodeDisplay);
+    }
+    if (model.skadelidteNavn) {
+      writeLabelValueLine('Skadelidte', model.skadelidteNavn);
+    }
+    for (const entry of offentligeYdelserUdvikling.entries) {
+      writer.ensureSpace(PDF_BASE_LINE_HEIGHT_MM * 4);
+      writer.addSectionSpacer();
+      const baseDato = offentligeYdelserUdvikling.reguleringsBaseIso
+        ? formatDateShort(offentligeYdelserUdvikling.reguleringsBaseIso)
+        : 'ikke angivet';
+      renderSubheader(`${entry.label} - regulering fra ${baseDato}`);
+      for (const segment of entry.beregnedeSegmenter) {
+        writer.ensureSpace(PDF_BASE_LINE_HEIGHT_MM * 2);
+        const fraDisplay = formatDateShort(segment.fra);
+        const tilDisplay = formatDateShort(segment.til);
+        const roundedDeltaPct = roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
+        const deltaPct = formatPercentDelta(roundedDeltaPct);
+        if (segment.kind === 'arbejdsdage') {
+          safeAddLeftRightText(
+            `${fraDisplay} - ${tilDisplay}: ${formatCountWithUnit(segment.arbejdsdage, 'arbejdsdag', 'arbejdsdage')} á ${formatCurrencyFromOre(segment.dagsloenOre)}${NBSP}kr. x (100 % + ${deltaPct} %) =`,
+            formatMoneyOreWithKr(segment.amountOre),
+            standardRightMaxWidth,
+            { rightFontStyle: 'normal' }
+          );
+        } else {
+          safeAddLeftRightText(
+            `${fraDisplay} - ${tilDisplay}: ${formatMaanederTrimmed(segment.maaneder)} ${isSingularCount(segment.maaneder) ? 'måned' : 'måneder'} á ${formatCurrencyFromOre(segment.maanedsloenOre)}${NBSP}kr. x (100 % + ${deltaPct} %) =`,
+            formatMoneyOreWithKr(segment.amountOre),
+            standardRightMaxWidth,
+            { rightFontStyle: 'normal' }
+          );
+        }
+      }
+      if (entry.total.status === 'ok') {
+        safeAddLeftRightText(
+          `I alt ${entry.label}`,
+          formatMoneyOreWithKr(entry.total.value),
+          standardRightMaxWidth,
+          { rightFontStyle: 'normal' }
+        );
+      }
+    }
+    if (offentligeYdelserUdvikling.total.status === 'ok') {
+      writer.addSectionSpacer();
+      safeAddLeftRightText(
+        'Samlet offentlige ydelser (hypotetisk)',
+        formatMoneyOreWithKr(offentligeYdelserUdvikling.total.value),
+        standardRightMaxWidth,
+        { rightFontStyle: 'normal' }
+      );
+    }
+    writer.addSectionSpacer();
+    writer.writeWrappedText('Offentlige ydelser fremskrives årligt per 1. januar med tilpasningsprocenten + 2 %, svarende til den almene statslige regulering af offentlige ydelser.');
+  }
+
   if (selectedElements.shDage) {
     const sfggReferenceperiodeRanges = mergeIsoDateRanges(
       model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.flatMap((entry) => {
@@ -670,4 +736,3 @@ export const generateErstatningsopgoerelsePdf = (
   // Download PDF
   writer.save(resolvePdfFileName(titel, visUdkastStempel, model.brevhoved?.journalnr));
 };
-

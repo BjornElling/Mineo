@@ -124,7 +124,7 @@ describe('eoPdfReguleringEngine', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
-    // maskinhandler-overenskomsten har ældste sats 01-03-2024 (coverage start efter 01-01-2024)
+    // Maskinhandler-overenskomsten har historiske satser, så reguleringsdatoen kan bruge faktisk dækning.
     af.overenskomstId = 'maskinhandler-overenskomsten';
     af.feriePct = 12.5;
     af.shSoPct = 2.7;
@@ -149,8 +149,8 @@ describe('eoPdfReguleringEngine', () => {
     });
 
     expect(rows).toHaveLength(1);
-    expect(rows[0]?.indeks).toBe('114,86');
-    expect(rows[0]?.loenudvikling).toBe('+ 14,86 %');
+    expect(rows[0]?.indeks).toBe('122,19');
+    expect(rows[0]?.loenudvikling).toBe('+ 22,19 %');
   });
 
   it('viser Store Bededag som særskilt fallback-beregning før første private overenskomstdækning', () => {
@@ -273,7 +273,7 @@ describe('eoPdfReguleringEngine', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
-    // maskinhandler-overenskomsten har ældste sats 01-03-2024 (coverage start efter 01-01-2024)
+    // Maskinhandler-overenskomsten har historiske satser, så 01-01-2024 bruger senest kendte faktiske sats.
     af.overenskomstId = 'maskinhandler-overenskomsten';
     af.loenPaaHelligdage = 'Almindelig løn';
     af.feriePct = 12.5;
@@ -290,7 +290,7 @@ describe('eoPdfReguleringEngine', () => {
 
     const row = table?.rows.find((entry) => entry[0] === '01-01-2024');
     expect(row).toBeDefined();
-    expect(row?.slice(1)).toEqual(['-', '12,5 %', '2,7 %', '-', '0,45 %', '8,15 %']);
+    expect(row?.slice(1)).toEqual(['131,65', '12,5 %', '0 %', '12,5 %', '0,45 %', '10,5 %']);
   });
 
   it.each([

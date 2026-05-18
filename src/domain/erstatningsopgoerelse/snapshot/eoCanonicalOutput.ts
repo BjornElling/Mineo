@@ -43,6 +43,7 @@ const eoCanonicalOutputSchema = z.object({
   }).strict(),
   taf: z.object({
     harTafPerioder: z.boolean(),
+    offentligeYdelserUdviklingOre: moneyOreSchema.nullable(),
     tafIndtaegterOre: moneyOreSchema.nullable(),
     tidligereModtagetTafOre: moneyOreSchema.nullable(),
     sygeferiegodtgoerelseOre: moneyOreSchema,
@@ -157,6 +158,7 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
     },
     taf: {
       harTafPerioder: args.tafNetto.harTafPerioder,
+      offentligeYdelserUdviklingOre: calculableMoneyToNullable(args.tafNetto.offentligeYdelserUdvikling?.total),
       tafIndtaegterOre: calculableMoneyToNullable(args.tafNetto.tafIndtaegter?.total),
       tidligereModtagetTafOre: calculableMoneyToNullable(args.tafNetto.tidligereModtagetTaf),
       sygeferiegodtgoerelseOre: args.tafNetto.sygeferiegodtgoerelse.totalOre,

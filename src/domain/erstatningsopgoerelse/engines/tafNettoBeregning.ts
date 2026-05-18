@@ -7,20 +7,23 @@ import {
   type IncomePeriodResult,
   type IsoRange,
 } from '../helpers/indtaegtPerioder';
-import { computeTafBeregningsenhed } from '../helpers/tafBeregningsenhed';
+import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
+import { getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers';
+import { resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
 import { buildIndkomstSkadestidspunkt } from './indkomstSkadestidspunktBeregning';
-import { buildLoenudviklingModel } from './loenudviklingBeregning';
+import { buildTafArbejdsdageSet, buildLoenudviklingModel } from './loenudviklingBeregning';
+import { buildOffentligeYdelserUdviklingModel } from './offentligeYdelserUdviklingBeregning';
 import { computeSygeferiegodtgoerelse, type SygeferiegodtgoerelseResult } from './sygeferiegodtgoerelse';
 import type {
   Calculable,
   IndkomstSkadestidspunktModel,
   LoenudviklingModel,
   MoneyOre,
+  OffentligeYdelserUdviklingModel,
   TafIndtaegterModel,
 } from '../shared/eoTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
+import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
 
-const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
 
@@ -93,6 +96,7 @@ export type TafNettoBeregningResult = Readonly<{
   tafBeregningsenhed: ReturnType<typeof computeTafBeregningsenhed>;
   indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null;
   loenudvikling: LoenudviklingModel | null;
+  offentligeYdelserUdvikling: OffentligeYdelserUdviklingModel | null;
   tafIndtaegter: TafIndtaegterModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
   sygeferiegodtgoerelse: SygeferiegodtgoerelseResult;
@@ -132,6 +136,32 @@ export const computeTafNettoBeregning = (
       incomeForBeregningsperiode,
     })
     : null;
+  const offentligeYdelserReguleringsBaseIso = resolveAnvendtReguleringsdato({
+    beregnesUdFra: values.beregnesUdFra,
+    angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+    saerligFraDatoRegulering: undefined,
+    beregningsperiodeTil: values.tafBeregningsperiodeTil,
+    skadedato: stamdataValues.skadedato,
+  });
+  const offentligeYdelserDivisor =
+    tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
+      ? indkomstSkadestidspunkt?.maaneder
+      : indkomstSkadestidspunkt?.arbejdsdage;
+  const offentligeYdelserUdvikling =
+    harTafPerioder && incomeForBeregningsperiode
+      ? buildOffentligeYdelserUdviklingModel({
+        values,
+        incomeForBeregningsperiode,
+        divisor: offentligeYdelserDivisor,
+        tafBeregningsenhed,
+        tafRanges,
+        tafArbejdsdageSet: tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
+          ? buildTafArbejdsdageSet(values, tafRanges)
+          : null,
+        reguler: values.regulerOffentligeYdelser === 'Ja',
+        reguleringsBaseIso: offentligeYdelserReguleringsBaseIso,
+      })
+      : null;
   const tafIndtaegter = harTafPerioder ? buildTafIndtaegterModel(values, tafRanges) : null;
   const sygeferiegodtgoerelse = harTafPerioder
     ? computeSygeferiegodtgoerelse({
@@ -158,6 +188,7 @@ export const computeTafNettoBeregning = (
         tafBeregningsenhed,
         indkomstSkadestidspunkt,
         loenudvikling,
+        offentligeYdelserUdvikling,
         tafIndtaegter,
         tidligereModtagetTaf,
         sygeferiegodtgoerelse,
@@ -165,24 +196,41 @@ export const computeTafNettoBeregning = (
       };
     }
     // Invariant: loenudviklingTotal og tafIndtaegter.total er altid asCalculable —
-    // buildLoenudviklingModel og buildTafIndtaegterModel returnerer altid status 'ok'.
-    // Disse status-checks er logisk umulige men bevares som defensive narrowing.
+    // buildLoenudviklingModel, buildOffentligeYdelserUdviklingModel og buildTafIndtaegterModel
+    // returnerer enten en model med status 'ok' eller kaster en fail-closed invariant-fejl.
+    // Status-checks bevares som defensive narrowing, hvis en fremtidig motor introducerer
+    // not_calculable uden samtidig at opdatere TAF-formlen.
     const loenTotal = loenudvikling.loenudviklingTotal;
+    const offentligeYdelserTotal = offentligeYdelserUdvikling?.total;
     const indtaegterTotal = tafIndtaegter.total;
-    if (loenTotal.status !== 'ok' || indtaegterTotal.status !== 'ok') {
+    if (
+      loenTotal.status !== 'ok' ||
+      indtaegterTotal.status !== 'ok' ||
+      (offentligeYdelserTotal !== undefined && offentligeYdelserTotal.status !== 'ok')
+    ) {
       return {
         harTafPerioder,
         tafBeregningsenhed,
         indkomstSkadestidspunkt,
         loenudvikling,
+        offentligeYdelserUdvikling,
         tafIndtaegter,
         tidligereModtagetTaf,
         sygeferiegodtgoerelse,
         tabtArbejdsfortjenesteOre,
       };
     }
+    const offentligeYdelserTotalOre =
+      offentligeYdelserTotal === undefined
+        ? 0
+        : offentligeYdelserTotal.value;
     tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
-      ensureMoneyOre(loenTotal.value - indtaegterTotal.value - sygeferiegodtgoerelse.totalOre)
+      ensureMoneyOre(
+        loenTotal.value +
+        offentligeYdelserTotalOre -
+        indtaegterTotal.value -
+        sygeferiegodtgoerelse.totalOre
+      )
     );
   }
 
@@ -191,6 +239,7 @@ export const computeTafNettoBeregning = (
     tafBeregningsenhed,
     indkomstSkadestidspunkt,
     loenudvikling,
+    offentligeYdelserUdvikling,
     tafIndtaegter,
     tidligereModtagetTaf,
     sygeferiegodtgoerelse,

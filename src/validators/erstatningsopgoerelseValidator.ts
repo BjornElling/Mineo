@@ -19,7 +19,7 @@ import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow, TafPeriodeRow, 
 import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
 import { isISODateString, type ISODateString } from '../types/branded';
-import { svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
+import { getYearBoundsForYearlyRate, reguleringssats, svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
 import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
@@ -42,6 +42,7 @@ import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
 import { isoToDanish } from '../types/branded';
 import { DATE_ORDER_ERROR_MESSAGE } from '../utils/dateOrderValidation';
+import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 
 export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
 
@@ -355,8 +356,34 @@ function validateTAF(
   // Validér lønudvikling konsistens
   errors.push(...validateLoenudviklingKonsistens(values));
   errors.push(...validateLoenudviklingsKravForAktivKilde(values));
+  errors.push(...validateOffentligeYdelserReguleringssatser(values, options));
 
   return errors;
+}
+
+function validateOffentligeYdelserReguleringssatser(
+  values: ErstatningsopgoerelseValues,
+  options?: ErstatningsopgoerelseValidationOptions
+): ValidationError[] {
+  if (values.beregnesUdFra !== 'Beregningsperiode') return [];
+  if (values.regulerOffentligeYdelser !== 'Ja') return [];
+
+  const beregningsperiode = buildBeregningsperiodeRange(values);
+  if (!beregningsperiode) return [];
+  const income = buildIncomeForRanges(values, [beregningsperiode], undefined, options?.skadedatoISO);
+  if (income.benefits.length === 0) return [];
+
+  const tafRanges = buildTafRanges(values, { skadedatoISO: options?.skadedatoISO });
+  if (tafRanges.length === 0) return [];
+  const maxTafYear = tafRanges.reduce((max, range) => Math.max(max, Number.parseInt(range.til.slice(0, 4), 10)), 0);
+  const bounds = getYearBoundsForYearlyRate(reguleringssats);
+  if (!bounds || maxTafYear <= bounds.maxYear) return [];
+
+  return [{
+    path: 'regulerOffentligeYdelser',
+    message: `Regulering af offentlige ydelser kan ikke beregnes efter ${bounds.maxYear}, fordi reguleringssatsen mangler.`,
+    severity: 'error',
+  }];
 }
 
 function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): ValidationError[] {

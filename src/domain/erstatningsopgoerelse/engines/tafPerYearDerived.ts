@@ -25,6 +25,7 @@ import type {
   LoenudviklingSegment,
   Calculable,
   LoenudviklingModel,
+  OffentligeYdelserUdviklingModel,
   TafIndtaegterModel,
 } from '../snapshot/eoPresentationModel';
 import type { SygeferiegodtgoerelseResult } from './sygeferiegodtgoerelse';
@@ -41,6 +42,7 @@ import { buildIncomeCalculationContext, buildIncomeForRanges, roundIncomeBenefit
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { roundByMethod } from '../../../utils/rounding';
 import { scaleMoneyOre } from '../shared/eoMoney';
+import { splitIsoRangeByCalendarYearsInclusive } from './periodRangeGroups';
 
 const MAX_AFRUNDING_AFVIGELSE_ORE = 100 as MoneyOre;
 
@@ -67,6 +69,7 @@ export type TafYearSegment = Readonly<{
   til: ISODateString;
   kind: 'arbejdsdage' | 'maaneder';
   quantity: number;
+  sourceLabel: string;
   unitAmountOre: MoneyOre;
   deltaPct: number;
   amountOre: MoneyOre;
@@ -97,6 +100,7 @@ export type TafPerYearResult = Readonly<{
 export type TafPerYearSource = Readonly<{
   stamdataValues: StamdataValues;
   loenudvikling: LoenudviklingModel | null;
+  offentligeYdelserUdvikling: OffentligeYdelserUdviklingModel | null;
   tafIndtaegter: TafIndtaegterModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
   sygeferiegodtgoerelse: SygeferiegodtgoerelseResult;
@@ -124,6 +128,7 @@ export const buildTafPerYearSourceFromComputed = (args: Readonly<{
 }>): TafPerYearSource => ({
   stamdataValues: args.stamdataValues,
   loenudvikling: args.tafNetto.loenudvikling,
+  offentligeYdelserUdvikling: args.tafNetto.offentligeYdelserUdvikling,
   tafIndtaegter: args.tafNetto.tafIndtaegter,
   tidligereModtagetTaf: args.tafNetto.tidligereModtagetTaf,
   sygeferiegodtgoerelse: args.tafNetto.sygeferiegodtgoerelse,
@@ -134,61 +139,14 @@ export const buildTafPerYearSourceFromComputed = (args: Readonly<{
 
 // ─── Utilities ──────────────────────────────────────────────────────────
 
-/**
- * Splitter en inklusiv [fra, til] range ved kalenderårsskift.
- * Begge grænser er inklusive (identisk med alle andre range-funktioner i systemet).
- *
- * Forudsætning: fra <= til (valideret af EO-modellen upstream).
- */
-export const splitRangeByCalendarYearsInclusive = (
-  fra: ISODateString,
-  til: ISODateString
-): Array<{ fra: ISODateString; til: ISODateString; year: number }> => {
-  if (fra > til) {
-    throw new Error(`splitRangeByCalendarYearsInclusive: fra (${fra}) > til (${til})`);
-  }
-  const fraYear = Number.parseInt(fra.slice(0, 4), 10);
-  const tilYear = Number.parseInt(til.slice(0, 4), 10);
-
-  if (fraYear === tilYear) {
-    return [{ fra, til, year: fraYear }];
-  }
-
-  const result: Array<{ fra: ISODateString; til: ISODateString; year: number }> = [];
-
-  // Første år: fra → 31. december
-  result.push({
-    fra,
-    til: `${fraYear}-12-31` as ISODateString,
-    year: fraYear,
-  });
-
-  // Mellemliggende hele år
-  for (let y = fraYear + 1; y < tilYear; y++) {
-    result.push({
-      fra: `${y}-01-01` as ISODateString,
-      til: `${y}-12-31` as ISODateString,
-      year: y,
-    });
-  }
-
-  // Sidste år: 1. januar → til
-  result.push({
-    fra: `${tilYear}-01-01` as ISODateString,
-    til,
-    year: tilYear,
-  });
-
-  return result;
-};
-
 // ─── Builder ────────────────────────────────────────────────────────────
 
 const buildSubSegment = (
   original: LoenudviklingSegment,
   subFra: ISODateString,
   subTil: ISODateString,
-  tafArbejdsdageSet: ReadonlySet<ISODateString> | null
+  tafArbejdsdageSet: ReadonlySet<ISODateString> | null,
+  sourceLabel: string
 ): TafYearSegment | null => {
   if (original.kind === 'arbejdsdage') {
     if (!tafArbejdsdageSet) return null;
@@ -200,6 +158,7 @@ const buildSubSegment = (
       til: subTil,
       kind: 'arbejdsdage',
       quantity,
+      sourceLabel,
       unitAmountOre: original.dagsloenOre,
       deltaPct: original.deltaPct,
       amountOre: segmentAmountOre(baseLoenKroner, quantity, original.deltaPct),
@@ -214,6 +173,7 @@ const buildSubSegment = (
     til: subTil,
     kind: 'maaneder',
     quantity,
+    sourceLabel,
     unitAmountOre: original.maanedsloenOre,
     deltaPct: original.deltaPct,
     amountOre: segmentAmountOre(baseLoenKroner, quantity, original.deltaPct),
@@ -327,10 +287,10 @@ export const buildTafPerYearBuildOutcome = (
   // 1. Split segmenter per kalenderår
   const yearSegmentsMap = new Map<number, TafYearSegment[]>();
 
-  for (const segment of loenudvikling.beregnedeSegmenter) {
-    const subRanges = splitRangeByCalendarYearsInclusive(segment.fra, segment.til);
+  const pushYearSegment = (segment: LoenudviklingSegment, sourceLabel: string): void => {
+    const subRanges = splitIsoRangeByCalendarYearsInclusive(segment.fra, segment.til);
     for (const sub of subRanges) {
-      const subSeg = buildSubSegment(segment, sub.fra, sub.til, tafArbejdsdageSet);
+      const subSeg = buildSubSegment(segment, sub.fra, sub.til, tafArbejdsdageSet, sourceLabel);
       if (!subSeg) continue;
       let arr = yearSegmentsMap.get(sub.year);
       if (!arr) {
@@ -338,6 +298,24 @@ export const buildTafPerYearBuildOutcome = (
         yearSegmentsMap.set(sub.year, arr);
       }
       arr.push(subSeg);
+    }
+  };
+
+  if (loenudvikling.perAnsaettelse.length > 0) {
+    for (const entry of loenudvikling.perAnsaettelse) {
+      for (const segment of entry.beregnedeSegmenter) {
+        pushYearSegment(segment, entry.ansaettelsesforholdNavn);
+      }
+    }
+  } else {
+    for (const segment of loenudvikling.beregnedeSegmenter) {
+      pushYearSegment(segment, 'Løn');
+    }
+  }
+
+  for (const entry of source.offentligeYdelserUdvikling?.entries ?? []) {
+    for (const segment of entry.beregnedeSegmenter) {
+      pushYearSegment(segment, entry.label);
     }
   }
 

@@ -13,11 +13,10 @@ import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregni
 import { getAngivetLoenBaseretPaa } from '../helpers/angivetLoenHelpers';
 import { isoDateToDate } from '../../dates/isoDate';
 import type { Calculable, IndkomstSkadestidspunktModel, MoneyOre } from '../shared/eoTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
+import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import { formatPercentFixed2, parseDanishToIso, resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort } from '../../../utils/dateFormatting';
 
-const asCalculable = <T>(value: T): Calculable<T> => ({ status: 'ok', value });
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
 const parsePctPoint = (value: string | number | undefined): number | undefined => {

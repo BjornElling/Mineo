@@ -30,6 +30,7 @@ exports[`eoCanonicalOutput parity matrix > 'arbejdsdage-segmenter i loenudviklin
   },
   "taf": {
     "harTafPerioder": true,
+    "offentligeYdelserUdviklingOre": null,
     "sygeferiegodtgoerelseOre": 0,
     "tafIndtaegterOre": 0,
     "tidligereModtagetTafOre": null,
@@ -41,6 +42,37 @@ exports[`eoCanonicalOutput parity matrix > 'arbejdsdage-segmenter i loenudviklin
     "svieSmerteOre": 0,
     "tabtArbejdsfortjenesteFoerForligOre": 2100000,
     "tabtArbejdsfortjenesteOre": 2100000,
+  },
+}
+`;
+
+exports[`eoCanonicalOutput parity matrix > 'beregningsperiode med offentlige ydel…' 1`] = `
+{
+  "periodiseringer": {
+    "tafPerioder": [],
+  },
+  "regulering": {
+    "loenudviklingSegmenter": [],
+    "loenudviklingTotalFoerForligOre": null,
+    "perAnsaettelse": [],
+  },
+  "svieSmerte": {
+    "maxApplied": false,
+  },
+  "taf": {
+    "harTafPerioder": false,
+    "offentligeYdelserUdviklingOre": null,
+    "sygeferiegodtgoerelseOre": 0,
+    "tafIndtaegterOre": null,
+    "tidligereModtagetTafOre": null,
+  },
+  "totals": {
+    "oevrigeKravFoerForligOre": 0,
+    "oevrigeKravOre": 0,
+    "samletTotalOre": 0,
+    "svieSmerteOre": 0,
+    "tabtArbejdsfortjenesteFoerForligOre": 0,
+    "tabtArbejdsfortjenesteOre": 0,
   },
 }
 `;
@@ -75,6 +107,7 @@ exports[`eoCanonicalOutput parity matrix > 'forlig + svie/smerte + oevrige krav 
   },
   "taf": {
     "harTafPerioder": true,
+    "offentligeYdelserUdviklingOre": null,
     "sygeferiegodtgoerelseOre": 0,
     "tafIndtaegterOre": 0,
     "tidligereModtagetTafOre": null,
@@ -120,6 +153,7 @@ exports[`eoCanonicalOutput parity matrix > 'forlig via broek (2/3)' 1`] = `
   },
   "taf": {
     "harTafPerioder": true,
+    "offentligeYdelserUdviklingOre": null,
     "sygeferiegodtgoerelseOre": 0,
     "tafIndtaegterOre": 0,
     "tidligereModtagetTafOre": null,
@@ -150,6 +184,7 @@ exports[`eoCanonicalOutput parity matrix > 'ingen taf-perioder' 1`] = `
   },
   "taf": {
     "harTafPerioder": false,
+    "offentligeYdelserUdviklingOre": null,
     "sygeferiegodtgoerelseOre": 0,
     "tafIndtaegterOre": null,
     "tidligereModtagetTafOre": null,
@@ -195,6 +230,7 @@ exports[`eoCanonicalOutput parity matrix > 'uden forlig med offentlige ydelser i
   },
   "taf": {
     "harTafPerioder": true,
+    "offentligeYdelserUdviklingOre": null,
     "sygeferiegodtgoerelseOre": 0,
     "tafIndtaegterOre": 100000,
     "tidligereModtagetTafOre": null,

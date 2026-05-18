@@ -9,12 +9,12 @@ import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitia
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModelTypes';
 import { computeEoSnapshot, type EoSnapshotComputedData } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import {
-  splitRangeByCalendarYearsInclusive,
   buildTafPerYearBuildOutcome,
   type TafPerYearSource,
   type TafPerYearResult,
 } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { splitIsoRangeByCalendarYearsInclusive } from '../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -59,18 +59,18 @@ const buildSnapshotData = (
   return snapshot.data;
 };
 
-// ─── splitRangeByCalendarYearsInclusive ──────────────────────────────────
+// ─── splitIsoRangeByCalendarYearsInclusive ────────────────────────────────
 
-describe('splitRangeByCalendarYearsInclusive', () => {
+describe('splitIsoRangeByCalendarYearsInclusive', () => {
   it('range inden for ét år → 1 sub-range', () => {
-    const result = splitRangeByCalendarYearsInclusive(iso('2024-03-15'), iso('2024-09-20'));
+    const result = splitIsoRangeByCalendarYearsInclusive(iso('2024-03-15'), iso('2024-09-20'));
     expect(result).toEqual([
       { fra: '2024-03-15', til: '2024-09-20', year: 2024 },
     ]);
   });
 
   it('range 2024-10-01 → 2025-01-10 → 2 sub-ranges', () => {
-    const result = splitRangeByCalendarYearsInclusive(iso('2024-10-01'), iso('2025-01-10'));
+    const result = splitIsoRangeByCalendarYearsInclusive(iso('2024-10-01'), iso('2025-01-10'));
     expect(result).toEqual([
       { fra: '2024-10-01', til: '2024-12-31', year: 2024 },
       { fra: '2025-01-01', til: '2025-01-10', year: 2025 },
@@ -78,7 +78,7 @@ describe('splitRangeByCalendarYearsInclusive', () => {
   });
 
   it('range 2023-06-22 → 2025-05-31 → 3 sub-ranges', () => {
-    const result = splitRangeByCalendarYearsInclusive(iso('2023-06-22'), iso('2025-05-31'));
+    const result = splitIsoRangeByCalendarYearsInclusive(iso('2023-06-22'), iso('2025-05-31'));
     expect(result).toEqual([
       { fra: '2023-06-22', til: '2023-12-31', year: 2023 },
       { fra: '2024-01-01', til: '2024-12-31', year: 2024 },
@@ -87,25 +87,25 @@ describe('splitRangeByCalendarYearsInclusive', () => {
   });
 
   it('grænsetest: 2024-12-31 → 2025-01-01 → 2 sub-ranges med 1 dag hver', () => {
-    const result = splitRangeByCalendarYearsInclusive(iso('2024-12-31'), iso('2025-01-01'));
+    const result = splitIsoRangeByCalendarYearsInclusive(iso('2024-12-31'), iso('2025-01-01'));
     expect(result).toEqual([
       { fra: '2024-12-31', til: '2024-12-31', year: 2024 },
       { fra: '2025-01-01', til: '2025-01-01', year: 2025 },
     ]);
   });
   it('fra > til kaster fejl', () => {
-    expect(() => splitRangeByCalendarYearsInclusive(iso('2025-01-01'), iso('2024-12-31'))).toThrow();
+    expect(() => splitIsoRangeByCalendarYearsInclusive(iso('2025-01-01'), iso('2024-12-31'))).toThrow();
   });
 
   it('samme dag → 1 sub-range', () => {
-    const result = splitRangeByCalendarYearsInclusive(iso('2024-06-15'), iso('2024-06-15'));
+    const result = splitIsoRangeByCalendarYearsInclusive(iso('2024-06-15'), iso('2024-06-15'));
     expect(result).toEqual([
       { fra: '2024-06-15', til: '2024-06-15', year: 2024 },
     ]);
   });
 
   it('5 år → 5 sub-ranges', () => {
-    const result = splitRangeByCalendarYearsInclusive(iso('2020-01-01'), iso('2024-12-31'));
+    const result = splitIsoRangeByCalendarYearsInclusive(iso('2020-01-01'), iso('2024-12-31'));
     expect(result).toHaveLength(5);
     expect(result[0].year).toBe(2020);
     expect(result[4].year).toBe(2024);
@@ -176,6 +176,78 @@ describe('buildTafPerYearResult', () => {
     expect(result.years[0].year).toBe(2024);
     expect(result.years[0].segments.length).toBeGreaterThan(0);
     expect(result.years[0].segments[0].kind).toBe('arbejdsdage');
+  });
+
+  it('holder afrundingsinvariant med offentlige ydelser som månedlige hypotetiske segmenter', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-01-31'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2025-01-01'), til: iso('2026-01-31'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        { id: 'y1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelse: asAmountValue(3100), tillaeg: undefined, ydelsestype: 'dagpenge' },
+      ],
+      loenindkomstAnsaettelsesforhold: [],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
+    const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
+    const result = snapshotData.engines.tafPerYear;
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    assertTotals(result, snapshotData.pdfModel);
+    expect(result.years).toHaveLength(2);
+    expect(result.years.flatMap((year) => year.segments).some((segment) => segment.sourceLabel === 'Dagpenge')).toBe(true);
+  });
+
+  it('holder afrundingsinvariant med offentlige ydelser som arbejdsdagsbaserede hypotetiske segmenter', () => {
+    const eoValues = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      regulerOffentligeYdelser: 'Nej',
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-01-05'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-08'), til: iso('2025-01-10'), loseFeriedage: undefined },
+      ],
+      offentligeYdelserRows: [
+        { id: 'y1', fraDato: '01-01-2024', tilDato: '05-01-2024', ydelse: asAmountValue(5000), tillaeg: undefined, ydelsestype: 'sygedagpenge' },
+      ],
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenperiode: 'dag',
+          loenPaaHelligdage: 'SH-udbetaling',
+          loenudviklingBeregningsgrundlag: 'Ingen',
+          indtaegtsoplysningerTableData: [{
+            id: 'loen-jan-2024',
+            col0_maaned: '',
+            col1_maaned: '',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '02-01-2024',
+            col1_dag: '05-01-2024',
+            col2: asAmountValue(1),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          }],
+        },
+      ],
+    });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
+    const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
+    const result = snapshotData.engines.tafPerYear;
+
+    expect(result).not.toBeNull();
+    if (!result) return;
+
+    assertTotals(result, snapshotData.pdfModel);
+    expect(result.years.flatMap((year) => year.segments).some((segment) =>
+      segment.kind === 'arbejdsdage' && segment.sourceLabel === 'Sygedagpenge'
+    )).toBe(true);
   });
 
   it('anvender forligsgrad kun på års-I alt (segmenter forbliver fulde)', () => {

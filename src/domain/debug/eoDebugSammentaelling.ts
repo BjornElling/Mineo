@@ -651,6 +651,30 @@ export const buildEODebugSammentaellingModel = (args: {
     return entries;
   };
 
+  const buildTafHypotetiskIndkomstEntries = (): SammentaellingDisplayRow[] => {
+    const offentligeYdelserUdviklingOre = args.canonicalOutput?.taf.offentligeYdelserUdviklingOre ?? null;
+    if (offentligeYdelserUdviklingOre === null) return [];
+    const amount = offentligeYdelserUdviklingOre / 100;
+    const display = formatOptionalAmount(amount);
+    return [{
+      key: 'sammentaelling.taf.offentligeYdelserUdvikling',
+      label: 'Offentlige ydelser (hypotetisk, kr.)',
+      control: {
+        beregnetDisplay: display,
+        tabelDisplay: display,
+        beregnetValue: amount,
+        tabelValue: amount,
+        loseFeriedage: 0,
+        oevrigeFravaersdage: 0,
+      },
+    }];
+  };
+
+  const tafIndtaegter = [
+    ...buildIndtaegtEntries(tafRanges, 'taf'),
+    ...buildTafHypotetiskIndkomstEntries(),
+  ];
+
   return {
     beregningsenhed,
     beregningsperiode: {
@@ -704,6 +728,6 @@ export const buildEODebugSammentaellingModel = (args: {
       oevrigeFravaersdage: 0,
     },
     beregningsperiodeIndtaegter: buildIndtaegtEntries(beregningsperiodeRanges, 'beregningsperiode'),
-    tafIndtaegter: buildIndtaegtEntries(tafRanges, 'taf'),
+    tafIndtaegter,
   };
 };

@@ -17,6 +17,8 @@ export type {
   LoenudviklingModel,
   LoenudviklingSegment,
   MoneyOre,
+  OffentligeYdelserUdviklingEntry,
+  OffentligeYdelserUdviklingModel,
   OevrigeKravModel,
   EoModel,
   SvieSmerteModel,

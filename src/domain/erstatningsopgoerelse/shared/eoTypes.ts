@@ -148,6 +148,7 @@ export type TabtArbejdsfortjenesteModel = Readonly<{
   skalKomprimereIndkomstBeregning: boolean;
   indkomstSkadestidspunkt: IndkomstSkadestidspunktModel | null;
   loenudvikling: LoenudviklingModel | null;
+  offentligeYdelserUdvikling: OffentligeYdelserUdviklingModel | null;
   tafIndtaegter: TafIndtaegterModel | null;
   tidligereModtagetTaf: Calculable<MoneyOre>;
   sygeferiegodtgoerelse: SygeferiegodtgoerelseModel;
@@ -230,6 +231,21 @@ export type LoenudviklingModel = Readonly<{
     loenudviklingTotal: Calculable<MoneyOre>;
     beregnedeSegmenter: readonly LoenudviklingSegment[];
   }>[];
+}>;
+
+export type OffentligeYdelserUdviklingEntry = Readonly<{
+  typeKey: string;
+  label: string;
+  beregnedeSegmenter: readonly LoenudviklingSegment[];
+  total: Calculable<MoneyOre>;
+}>;
+
+export type OffentligeYdelserUdviklingModel = Readonly<{
+  reguleringsLabel: string;
+  reguleringsBaseIso: ISODateString | undefined;
+  beregningsenhed: TafBeregningsenhed;
+  entries: readonly OffentligeYdelserUdviklingEntry[];
+  total: Calculable<MoneyOre>;
 }>;
 
 export type TafIndtaegterModel = Readonly<{

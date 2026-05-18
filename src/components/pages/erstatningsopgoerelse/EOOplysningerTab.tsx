@@ -1711,6 +1711,19 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   </Box>
                 </Box>
 
+                <Box className="row--label-right-hover">
+                  <Typography className="row--text">
+                    Regulering af offentlige ydelser i EO
+                    <InfoTooltipIcon title="Når feltet er slået til, fremskrives offentlige ydelser fra beregningsperioden med tilpasningsprocenten + 2 % per 1. januar, svarende til den almene statslige regulering af offentlige ydelser. Slå fra, hvis ydelserne skal medtages uden regulering." />
+                  </Typography>
+                  <Box className="row--label-right-hover__content">
+                    <StyledToggleSwitch
+                      checked={getChecked(values.regulerOffentligeYdelser)}
+                      onCommit={handleToggleChange('regulerOffentligeYdelser')}
+                    />
+                  </Box>
+                </Box>
+
                 <Typography className="row--subheading">Ferie i beregningsperioden:</Typography>
                 <BeregningsperiodeFerieTable
                   rows={fravaer.draftRows}

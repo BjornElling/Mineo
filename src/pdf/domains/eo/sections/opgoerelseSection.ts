@@ -623,9 +623,17 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           && anvendtReguleringsdatoForOpgoerelse === eoValues.tafBeregningsperiodeTil
         ),
     });
-    const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = loenudvikling?.loenudviklingLabel === 'Ingen'
-      ? `Opgøres på baggrund af ${loenSkadedatoText}.`
-      : `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger.`;
+    const offentligeYdelserUdvikling = model.tabtArbejdsfortjeneste.offentligeYdelserUdvikling;
+    const harOffentligeYdelserUdvikling = Boolean(offentligeYdelserUdvikling && offentligeYdelserUdvikling.entries.length > 0);
+    const offentligeYdelserReguleringText =
+      offentligeYdelserUdvikling?.reguleringsLabel === 'Ingen'
+        ? 'uden statslig regulering per 1. januar'
+        : 'med statslig regulering per 1. januar';
+    const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = harOffentligeYdelserUdvikling
+      ? `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger samt offentlige ydelser ${offentligeYdelserReguleringText}.`
+      : loenudvikling?.loenudviklingLabel === 'Ingen'
+        ? `Opgøres på baggrund af ${loenSkadedatoText}.`
+        : `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger.`;
     renderSubheaderWithWrappedText(
       'Indkomst, hvis skaden ikke var indtrådt',
       indkomstHvisSkadeIkkeIndtraadtBeskrivelse
@@ -639,7 +647,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       const renderLoenudviklingSegments = (
         segments: readonly LoenudviklingSegment[],
         total: Calculable<MoneyOre>,
-        forceTotalLine: boolean
+        forceTotalLine: boolean,
+        labels: Readonly<{ unitMaaned: string; unitDag: string; total: string }>
       ) => {
         if (total.status !== 'ok') {
           safeAddWrappedText('Lønudvikling kan ikke beregnes for den valgte opsætning.');
@@ -657,19 +666,21 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           if (segment.kind === 'arbejdsdage') {
             const arbejdsdageText = formatCountWithUnit(segment.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
             const dagsloenText = formatCurrencyFromOre(segment.dagsloenOre);
-            leftText = `${fraDisplay} - ${tilDisplay}: ${arbejdsdageText} á ${dagsloenText}${NBSP}kr.${factorText} =`;
+            const unitText = labels.unitDag ? `${labels.unitDag} ` : '';
+            leftText = `${fraDisplay} - ${tilDisplay}: ${arbejdsdageText} á ${unitText}${dagsloenText}${NBSP}kr.${factorText} =`;
           } else {
             const roundedMaaneder = roundByMethod(segment.maaneder, 4, 'halfAwayFromZero');
             const maanederText = formatMaanederTrimmed(roundedMaaneder);
             const maanedsloenText = formatCurrencyFromOre(segment.maanedsloenOre);
-            leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} ${isSingularCount(roundedMaaneder) ? 'måned' : 'måneder'} á ${maanedsloenText}${NBSP}kr.${factorText} =`;
+            const unitText = labels.unitMaaned ? `${labels.unitMaaned} ` : '';
+            leftText = `${fraDisplay} - ${tilDisplay}: ${maanederText} ${isSingularCount(roundedMaaneder) ? 'måned' : 'måneder'} á ${unitText}${maanedsloenText}${NBSP}kr.${factorText} =`;
           }
           const rightText = formatMoneyOreWithKr(segment.amountOre);
           safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
         }
         if ((segmentsForDisplay.length > 1 || forceTotalLine) && total.status === 'ok') {
           safeAddLeftRightText(
-            'I alt',
+            labels.total,
             formatMoneyOreWithKr(total.value),
             rightMaxWidth,
             { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
@@ -681,7 +692,11 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       if (harPerAnsaettelse) {
         for (const entry of loenudvikling.perAnsaettelse) {
           writer.writeUnderlinedSubheader(entry.ansaettelsesforholdNavn);
-          renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, false);
+          renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, false, {
+            unitMaaned: '',
+            unitDag: '',
+            total: 'I alt',
+          });
         }
         if (loenudvikling.loenudviklingTotal.status === 'ok') {
           writer.addSectionSpacer();
@@ -693,7 +708,28 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           );
         }
       } else {
-        renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, false);
+        renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, false, {
+          unitMaaned: '',
+          unitDag: '',
+          total: 'I alt',
+        });
+      }
+      for (const entry of offentligeYdelserUdvikling?.entries ?? []) {
+        writer.addSectionSpacer();
+        writer.writeUnderlinedSubheader(entry.label);
+        renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.total, true, {
+          unitMaaned: 'ydelse pr. måned',
+          unitDag: 'ydelse pr. arbejdsdag',
+          total: `I alt ${entry.label}`,
+        });
+      }
+      if (offentligeYdelserUdvikling && offentligeYdelserUdvikling.entries.length > 1 && offentligeYdelserUdvikling.total.status === 'ok') {
+        safeAddLeftRightText(
+          'Samlet offentlige ydelser (hypotetisk)',
+          formatMoneyOreWithKr(offentligeYdelserUdvikling.total.value),
+          rightMaxWidth,
+          { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
+        );
       }
     }
     const tafIndtaegter = model.tabtArbejdsfortjeneste.tafIndtaegter;
@@ -730,6 +766,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     writeCombinedBilagReferenceLinje(bilag.loenISygeperioden, bilag.offentligeYdelser);
 
     const loenudviklingTotal = model.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal ?? null;
+    const offentligeYdelserUdviklingTotal = model.tabtArbejdsfortjeneste.offentligeYdelserUdvikling?.total ?? null;
     const tafTotal = model.tabtArbejdsfortjeneste.tafIndtaegter?.total ?? null;
     const tidligereModtagetTaf = model.tabtArbejdsfortjeneste.tidligereModtagetTaf;
     if (tidligereModtagetTaf.status === 'ok') {
@@ -742,20 +779,28 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       );
     }
 
-    if (loenudviklingTotal && tafTotal && loenudviklingTotal.status === 'ok' && tafTotal.status === 'ok') {
+    if (
+      loenudviklingTotal &&
+      tafTotal &&
+      loenudviklingTotal.status === 'ok' &&
+      tafTotal.status === 'ok' &&
+      (!offentligeYdelserUdviklingTotal || offentligeYdelserUdviklingTotal.status === 'ok')
+    ) {
       renderSubheader('Beregnet krav på tabt arbejdsfortjeneste');
 
-      const ledFoerLigmed = [formatCurrencyFromOre(loenudviklingTotal.value)];
+      const positiveLed = [formatCurrencyFromOre(loenudviklingTotal.value)];
+      if (offentligeYdelserUdviklingTotal && offentligeYdelserUdviklingTotal.value !== 0) {
+        positiveLed.push(formatCurrencyFromOre(offentligeYdelserUdviklingTotal.value));
+      }
       const sygeferiegodtgoerelseOre = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre;
       const harValgtSygeferiegodtgoerelse = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.length > 0;
       const samledeIndtaegterIErstatningsperiodenOre =
         tafTotal.value + (harValgtSygeferiegodtgoerelse ? sygeferiegodtgoerelseOre : 0);
+      const fradragsLed: string[] = [];
       if (samledeIndtaegterIErstatningsperiodenOre !== 0) {
-        ledFoerLigmed.push(formatCurrencyFromOre(samledeIndtaegterIErstatningsperiodenOre));
+        fradragsLed.push(formatCurrencyFromOre(samledeIndtaegterIErstatningsperiodenOre));
       }
-      const expressionText = `${ledFoerLigmed
-        .map((led, index) => (index === ledFoerLigmed.length - 1 ? `${led}${NBSP}kr.` : led))
-        .join(' - ')}`;
+      const expressionText = `${positiveLed.join(' + ')}${fradragsLed.length > 0 ? ` - ${fradragsLed.join(' - ')}` : ''}${NBSP}kr.`;
       const leftText = (() => {
         if (model.forlig.erIndgaaet) {
           if (tidligereModtagetTaf.status === 'ok' && tidligereModtagetTaf.value !== 0) {
