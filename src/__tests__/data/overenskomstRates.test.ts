@@ -698,11 +698,29 @@ describe('getEffektiveSatserForDato', () => {
     });
 
     expect(result?.grundloen).toBe(143.4);
-    expect(result?.fritvalg).toBe(0.18);
+    expect(result?.shSoSats).toBe(0);
+    expect(result?.fritvalg).toBe(0.205);
     expect(result?.agPension).toBe(0.115);
   });
 
-  it('shDageRegel true → reducerer fritvalg med 4,5 procentpoint for maskinhandler-overenskomsten', () => {
+  it('maskinhandler-overenskomsten krydser fra SH/SO til fritvalg uden manglende satsfejl', () => {
+    const satser = getEffektiveSatserForPeriode({
+      overenskomstId: 'maskinhandler-overenskomsten' as Parameters<typeof getEffektiveSatserForPeriode>[0]['overenskomstId'],
+      fraDato: d('01-12-2017'),
+      tilDato: d('31-03-2018'),
+      applyAlmindeligLoenPaaShDageRegel: false,
+    });
+
+    expect(satser.map((sats) => sats.fraDato)).toEqual(['01-03-2018', '01-01-2018', '01-03-2017']);
+    expect(satser[2]?.shSoSats).toBe(0.107);
+    expect(satser[2]?.fritvalg).toBe(0);
+    expect(satser[1]?.shSoSats).toBe(0);
+    expect(satser[1]?.fritvalg).toBe(0.119);
+    expect(satser[0]?.shSoSats).toBe(0);
+    expect(satser[0]?.fritvalg).toBe(0.133);
+  });
+
+  it('shDageRegel true → reducerer fritvalg med 5 procentpoint for maskinhandler-overenskomsten', () => {
     const uden = getEffektiveSatserForDato({
       overenskomstId: 'maskinhandler-overenskomsten' as Parameters<typeof getEffektiveSatserForDato>[0]['overenskomstId'],
       dato: d('01-03-2024'),
@@ -714,8 +732,8 @@ describe('getEffektiveSatserForDato', () => {
       applyAlmindeligLoenPaaShDageRegel: true,
     });
 
-    expect(uden?.fritvalg).toBe(0.17);
-    expect(med?.fritvalg).toBeCloseTo(0.125, 10);
+    expect(uden?.fritvalg).toBe(0.195);
+    expect(med?.fritvalg).toBeCloseTo(0.145, 10);
   });
 
   it('metal-transport-overenskomsten har forventede satser på 01-04-2025', () => {

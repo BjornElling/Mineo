@@ -891,15 +891,27 @@ export const overenskomster: ReadonlyArray<Overenskomst> = [
         referenceperiodeLabel: '3 måneder',
       },
     },
-    shDageAlmindeligLoenRegel: { fritvalgDelta: -0.045 },
+    shDageAlmindeligLoenRegel: { fritvalgDelta: -0.05 },
     satser: satserFromTable(
-      { shSoSats: 0, sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
+      { sfgg: null, sfggFaglKbh: null, sfggFaglProv: null, sfggUfaglKbh: null, sfggUfaglProv: null },
       [
-        // fraDato          │ Grundløn         │ Fritvalg            │ AG-pens.
-        ['01-03-2027',            146.90,            0.1900,            0.1150 ],
-        ['01-03-2026',            143.40,            0.1800,            0.1150 ],
-        ['01-05-2025',            139.90,            0.1700,            0.1150 ],
-        ['01-03-2024',            136.15,            0.1700,            0.1050 ]
+        // fraDato          │ Grundløn         │ SH/SO               │ Fritvalg            │ AG-pens.
+        ['01-03-2027',            146.90,            0,                 0.2150,            0.1150 ],
+        ['01-03-2026',            143.40,            0,                 0.2050,            0.1150 ],
+        ['01-05-2025',            139.90,            0,                 0.1950,            0.1150 ],
+        ['01-03-2024',            136.15,            0,                 0.1950,            0.1050 ],
+        ['01-06-2023',            131.65,            0,                 0.1750,            0.1050 ],
+        ['01-03-2023',            131.65,            0,                 0.1750,            0.0850 ],
+        ['01-03-2022',            127.15,            0,                 0.1750,            0.0850 ],
+        ['01-03-2021',            124.65,            0,                 0.1650,            0.0850 ],
+        ['01-03-2020',            122.15,            0,                 0.1550,            0.0850 ],
+        ['01-03-2019',            117.95,            0,                 0.1450,            0.0850 ],
+        ['01-03-2018',            115.95,            0,                 0.1330,            0.0850 ],
+        ['01-01-2018',            115.40,            0,                 0.1190,            0.0850 ],
+        ['01-03-2017',            115.40,            0.1070,            0,                 0.0850 ],
+        ['01-03-2016',            115.40,            0.1000,            0,                 0.0850 ],
+        ['01-03-2015',            113.60,            0.0970,            0,                 0.0850 ],
+        ['01-03-2014',            111.95,            0.0930,            0,                 0.0850 ],
       ]
     ),
   },
