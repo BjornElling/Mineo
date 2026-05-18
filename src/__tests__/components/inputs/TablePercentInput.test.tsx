@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import TablePercentInput from '../../../components/inputs/table/TablePercentInput';
-import { createPercentCommittedPayload } from '../../../hooks/tableInput';
+import { createPercentCommittedPayload, createPercentTableInputAdapter } from '../../../hooks/tableInput';
 import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 
 const createGridValue = (gridCell: GridCellCoord, editingCell: GridCellCoord | null) => {
@@ -25,6 +25,21 @@ describe('TablePercentInput', () => {
 
     expect(payload.model).toBe('12,50');
     expect(payload.canonical).toBe('12.50');
+  });
+
+  it('bevarer fingerprint gennem parse af committed display-string', () => {
+    const adapter = createPercentTableInputAdapter({
+      allowNegative: false,
+      allowDecimals: true,
+      minValue: 0,
+      maxValue: 100,
+    });
+    const committed = '12,50';
+    const parsed = adapter.parse(committed);
+
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(adapter.toCommittedPayload(parsed.value).fingerprint).toBe(adapter.toCommittedPayload(committed).fingerprint);
   });
 
   it('accepterer commit over 100 når maxValue er højere', async () => {
@@ -110,9 +125,44 @@ describe('TablePercentInput', () => {
     }
   });
 
-  it('normalizes pasted text to the longest prefix under 100 while not editing', async () => {
+  it('normalizes pasted text to the longest prefix under default max while not editing', async () => {
     const user = userEvent.setup();
     const gridCell = { rowId: 'row-2', colIndex: 0 };
+    const onBlur = vi.fn();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<string>('');
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(null);
+      const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
+
+      return (
+        <GridCoreProvider value={gridValue}>
+          <TablePercentInput
+            gridCell={gridCell}
+            value={value}
+            onBlur={(e) => {
+              onBlur(e.target.value);
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.paste(input, 'adffergregs//sgd1712,56//');
+
+    expect(onBlur).toHaveBeenCalledWith('17,00');
+    expect(input).toHaveValue('17,00 %');
+  });
+
+  it('normalizes pasted text against explicit maxValue while not editing', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-3', colIndex: 0 };
     const onBlur = vi.fn();
 
     const Wrapper = () => {
@@ -143,7 +193,7 @@ describe('TablePercentInput', () => {
     await user.click(input);
     await user.paste(input, 'adffergregs//sgd1712,56//');
 
-    expect(onBlur).toHaveBeenCalledWith('17,00');
-    expect(input).toHaveValue('17,00 %');
+    expect(onBlur).toHaveBeenCalledWith('171,00');
+    expect(input).toHaveValue('171,00 %');
   });
 });

@@ -157,7 +157,7 @@ export const createPercentTableInputAdapter = (
     return true;
   },
   applyPaste: (raw, context) => {
-    const normalized = normalizePercentPaste(raw, { maxValue: TABLE_PERCENT_PASTE_MAX });
+    const normalized = normalizePercentPaste(raw, { maxValue: config.maxValue ?? TABLE_PERCENT_PASTE_MAX });
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 

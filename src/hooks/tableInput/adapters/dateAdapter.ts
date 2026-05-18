@@ -124,7 +124,7 @@ export const sanitizeTableDateDraft = (
   rawValue: string,
   config: Pick<TableDateAdapterConfig, 'twoDigitYearPolicy'>
 ): string => {
-  const raw = normalizeDateDraftOnCommit(String(rawValue ?? ''));
+  const raw = normalizeDateDraftOnCommit(rawValue);
   const parsed = parseDanishDateOnCommit(raw, config);
   return parsed.ok ? parsed.value : raw;
 };

@@ -6,7 +6,7 @@ import { useGridCellEditing, useGridCellFocus, useGridCoreApi } from '../../comp
 import type { GridCellCoord, GridCellEditorHandle } from '../../components/tables/gridCore/gridCoreTypes';
 import { assignRef } from '../../utils/refUtils';
 import { copyWholeValueFromReadOnlyField, readClipboardText } from '../../utils/clipboardUtils';
-import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
+import type { TableInputErrorInfo, TableInputErrorKind } from '../../utils/tableInputContracts';
 import type { CommittedPayload } from '../../types/parserSpec';
 import type { TableInputAdapter } from './tableInputAdapter';
 
@@ -33,6 +33,7 @@ export type UseTableInputCoreResult = Readonly<{
   hasError: boolean;
   errorMessage: string;
   showError: boolean;
+  errorKind: TableInputErrorKind;
   isEditing: boolean;
   isReadOnly: boolean;
   cellFocused: boolean;
@@ -76,13 +77,13 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const [touched, setTouched] = React.useState(false);
   const [hasError, setHasError] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState('');
-  const [localErrorKind, setLocalErrorKind] = React.useState<LocalErrorKind>('none');
   const [saveErrorActive, setSaveErrorActive] = React.useState(false);
   const [keyInitiatedEdit, setKeyInitiatedEdit] = React.useState(false);
 
   const inputElRef = React.useRef<HTMLInputElement | null>(null);
   const draftRef = React.useRef<string>(draft);
   const hasErrorRef = React.useRef(false);
+  const localErrorKindRef = React.useRef<LocalErrorKind>('none');
   const originalValueOnEditStartRef = React.useRef<string>('');
   const keyInitiatedEditRef = React.useRef(false);
   const wasEditingRef = React.useRef(false);
@@ -111,27 +112,27 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     hasErrorRef.current = true;
     setHasError(true);
     setErrorMessage(message);
-    setLocalErrorKind('input');
+    localErrorKindRef.current = 'input';
     setSaveErrorActive(true);
     latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
   }, []);
 
-  const clearLocalError = React.useCallback(() => {
+  const clearLocalError = React.useCallback((nextErrorInfo: TableInputErrorInfo = noopErrorInfo) => {
     hasErrorRef.current = false;
     setHasError(false);
     setErrorMessage('');
-    setLocalErrorKind('none');
+    localErrorKindRef.current = 'none';
     setSaveErrorActive(false);
-    latest.current.onErrorChange?.(noopErrorInfo);
+    latest.current.onErrorChange?.(nextErrorInfo);
   }, []);
 
   const setVisualError = React.useCallback((message: string) => {
     hasErrorRef.current = true;
     setHasError(true);
     setErrorMessage(message);
-    setLocalErrorKind('visual');
+    localErrorKindRef.current = 'visual';
     setSaveErrorActive(false);
-    latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
+    latest.current.onErrorChange?.({ hasError: true, kind: 'visual' });
   }, []);
 
   const resetEditingState = React.useCallback(() => {
@@ -177,6 +178,11 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     const previousFingerprint = latestCommittedPayloadRef.current.fingerprint;
     const nextPayload = adapter.toCommittedPayload(value);
     latestCommittedPayloadRef.current = nextPayload;
+    if (!isEditing && hasErrorRef.current && localErrorKindRef.current === 'visual') {
+      const nextVisualError = adapter.getCommittedVisualError?.(nextPayload.model)?.trim() ?? '';
+      clearLocalError(nextVisualError !== '' ? { hasError: true, kind: 'visual' } : noopErrorInfo);
+      return;
+    }
     if (!isEditing && previousFingerprint !== nextPayload.fingerprint && hasErrorRef.current && saveErrorActive) {
       clearLocalError();
       setTouched(false);
@@ -200,7 +206,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     }
     if (wasEditing) return;
     if (!keyInitiatedEditRef.current) {
-      if ((adapter.preserveInvalidDraft ?? true) && (hasError || saveErrorActive)) {
+      if ((adapter.preserveInvalidDraft ?? true) && hasErrorRef.current) {
         originalValueOnEditStartRef.current = draftRef.current;
         return;
       }
@@ -209,7 +215,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       draftRef.current = committedValue;
       setDraft(committedValue);
     }
-  }, [adapter, hasError, isEditing, resetEditingState, saveErrorActive, value]);
+  }, [adapter, isEditing, resetEditingState, value]);
 
   const commitAndEmitBlur = React.useCallback(
     (rawDraft: string): boolean => {
@@ -323,12 +329,12 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     (e: React.ClipboardEvent<HTMLInputElement>) => {
       copyWholeValueFromReadOnlyField(e, {
         isReadOnly,
-        value: isEditing || (touched && hasError && localErrorKind === 'input') ? draft : adapter.format(value),
+        value: isEditing || (touched && hasErrorRef.current && localErrorKindRef.current !== 'none') ? draft : adapter.format(value),
         selectionStart: e.currentTarget.selectionStart,
         selectionEnd: e.currentTarget.selectionEnd,
       });
     },
-    [adapter, draft, hasError, isEditing, isReadOnly, localErrorKind, touched, value]
+    [adapter, draft, isEditing, isReadOnly, touched, value]
   );
 
   const handleDoubleClick = React.useCallback(() => {
@@ -362,6 +368,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         if (latest.current.locked) return;
         resetEditingState();
         setTouched(false);
+        clearLocalError();
         draftRef.current = originalValueOnEditStartRef.current;
         setDraft(originalValueOnEditStartRef.current);
         gridApi.closeEditing();
@@ -376,6 +383,9 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         keyInitiatedEditRef.current = true;
         setKeyInitiatedEdit(true);
         setTouched(false);
+        if (latest.current.adapter.clearErrorOnChange) {
+          clearLocalError();
+        }
         draftRef.current = key;
         setDraft(key);
         requestAnimationFrame(() => {
@@ -393,7 +403,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         requestAnimationFrame(() => inputElRef.current?.select());
       },
     };
-  }, [commitAndEmitBlur, gridApi, resetEditingState]);
+  }, [clearLocalError, commitAndEmitBlur, gridApi, resetEditingState]);
 
   React.useEffect(() => {
     gridApi.registerEditor(gridCell, editorHandle);
@@ -414,13 +424,18 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   });
 
   const externalErrorText = (externalErrorMessage ?? '').trim();
-  const hasInputError = hasError && localErrorKind === 'input';
+  const hasInputError = hasErrorRef.current && localErrorKindRef.current === 'input';
   const hasCommittedVisualError = committedVisualError !== '';
-  const displayErrorMessage = hasInputError ? errorMessage : hasCommittedVisualError ? committedVisualError : externalErrorText;
+  const hasLocalVisualError =
+    hasErrorRef.current &&
+    localErrorKindRef.current === 'visual' &&
+    (adapter.getCommittedVisualError === undefined || hasCommittedVisualError);
+  const displayErrorMessage = hasInputError ? errorMessage : hasCommittedVisualError ? committedVisualError : hasLocalVisualError ? errorMessage : externalErrorText;
   const hasExternalError = externalErrorText !== '';
-  const effectiveHasError = hasInputError || hasCommittedVisualError;
+  const effectiveHasError = hasInputError || hasLocalVisualError || hasCommittedVisualError;
+  const errorKind: TableInputErrorKind = hasInputError ? 'input' : hasLocalVisualError || hasCommittedVisualError ? 'visual' : 'none';
   const showError = (effectiveHasError || hasExternalError) && !isFocused && (touched || !isEditing);
-  const renderedValue = isEditing || (touched && hasInputError) ? draft : committedDisplayValue;
+  const renderedValue = isEditing || (touched && (hasInputError || hasLocalVisualError)) ? draft : committedDisplayValue;
 
   const inputRefCallback = React.useCallback(
     (el: HTMLInputElement | null) => {
@@ -439,6 +454,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     hasError: effectiveHasError,
     errorMessage: displayErrorMessage,
     showError,
+    errorKind,
     isEditing,
     isReadOnly,
     cellFocused,

@@ -1,6 +1,6 @@
 import { prefixZeroBeforeLeadingComma, trimToAlphanumericEdges, trimToNumericEdgesPreserveLeadingMinus } from './draftNormalization';
 
-export type TableInputErrorKind = 'none' | 'input' | 'config';
+export type TableInputErrorKind = 'none' | 'input' | 'visual' | 'config';
 
 export type TableInputErrorInfo = Readonly<{
   hasError: boolean;
@@ -27,36 +27,4 @@ export const normalizeTableDraftOnCommit = (draft: string): string => {
  */
 export const normalizeTableNumericDraftOnCommit = (draft: string): string => {
   return prefixZeroBeforeLeadingComma(trimToNumericEdgesPreserveLeadingMinus(draft));
-};
-
-export const normalizeTableAmountDraftOnCommit = normalizeTableNumericDraftOnCommit;
-
-/**
- * Canonical committed table value.
- *
- * Invariant:
- * - Only use this type for values that are fully normalized/validated by the input’s commit logic.
- * - Never brand raw user drafts as committed values.
- */
-export type TableCommittedString = string & { readonly __brand: 'TableCommittedString' };
-
-export const asTableCommittedString = (value: string): TableCommittedString => {
-  return value as TableCommittedString;
-};
-
-export type TableCommitResult =
-  | { kind: 'ok'; committed: TableCommittedString }
-  | { kind: 'input-error'; committed: string; errorMessage: string }
-  | { kind: 'config-error'; committed: string };
-
-/**
- * Convert a commit result to the exact string that should be persisted in the table model.
- *
- * Contract:
- * - This MUST match what the corresponding input would emit on blur for the same raw draft.
- * - `ok` returns the canonical committed value.
- * - `input-error` and `config-error` return the raw draft as-is (no hidden normalization).
- */
-export const committedToString = (result: TableCommitResult): string => {
-  return result.committed;
 };

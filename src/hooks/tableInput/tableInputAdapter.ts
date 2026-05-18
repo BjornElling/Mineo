@@ -17,6 +17,7 @@ export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint ex
   parse: (draft: string) => TableAdapterParseResult<TModel>;
   toCommittedPayload: (value: TModel) => CommittedPayload<TModel, TCanonical, TFingerprint>;
   isValidStartKey: (key: string) => boolean;
+  /** Omit when the input should ignore paste events and keep browser/default handling untouched. */
   applyPaste?: (
     raw: string,
     context: Readonly<{

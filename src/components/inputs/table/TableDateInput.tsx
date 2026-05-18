@@ -161,11 +161,12 @@ const TableDateInput = React.memo(
         onErrorChange({ hasError: true, kind: 'config' });
         return;
       }
-      onErrorChange(core.hasError ? { hasError: true, kind: 'input' } : { hasError: false, kind: 'none' });
-    }, [configErrorMessage, core.hasError, onErrorChange]);
+      onErrorChange(core.hasError ? { hasError: true, kind: core.errorKind } : { hasError: false, kind: 'none' });
+    }, [configErrorMessage, core.errorKind, core.hasError, onErrorChange]);
 
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
+    // Date-specific config errors are produced outside core so invalid bounds can be shown even without a commit attempt.
     const showError = (hasExternalError || configErrorMessage !== '' || (core.touched && core.hasError)) && !core.isFocused;
     const tooltipText = hasExternalError ? externalErrorText : configErrorMessage !== '' ? configErrorMessage : core.errorMessage;
 

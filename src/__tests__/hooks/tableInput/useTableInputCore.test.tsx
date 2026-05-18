@@ -2,7 +2,7 @@ import * as React from 'react';
 import { act, renderHook } from '@testing-library/react';
 
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
-import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
+import type { GridCellCoord, GridCellEditorHandle, GridCoreStateStore } from '../../../components/tables/gridCore/gridCoreTypes';
 import { makeStringFingerprintFromCanonical } from '../../../types/parserSpec';
 import type { TableInputAdapter } from '../../../hooks/tableInput';
 import { useTableInputCore } from '../../../hooks/tableInput';
@@ -32,6 +32,15 @@ const createTextAdapter = (): TableInputAdapter<string, string, ReturnType<typeo
   preserveInvalidDraft: false,
 });
 
+const createRequiredAdapter = (): TableInputAdapter<string, string, ReturnType<typeof makeStringFingerprintFromCanonical>> => ({
+  ...createAdapter(),
+  parse: (draft) => {
+    const trimmed = draft.trim();
+    if (trimmed === '') return { ok: false, errorMessage: 'Værdi mangler' };
+    return { ok: true, value: trimmed };
+  },
+});
+
 const createVisualErrorAdapter = (): TableInputAdapter<string, string, ReturnType<typeof makeStringFingerprintFromCanonical>> => ({
   ...createAdapter(),
   parse: (draft) => {
@@ -48,12 +57,41 @@ const createVisualErrorAdapter = (): TableInputAdapter<string, string, ReturnTyp
 
 const createWrapper = (
   editingCell: GridCellCoord | null,
-  onRegisterEditor?: (handle: GridCellEditorHandle) => void
+  onRegisterEditor?: (handle: GridCellEditorHandle) => void,
+  options: Readonly<{ closeEditing?: () => void }> = {}
 ) => {
   const Wrapper = ({ children }: React.PropsWithChildren) => (
     <GridCoreProvider
       value={{
         gridStateStore: createGridCoreTestStateStore(gridCell, editingCell),
+        openEditing: vi.fn(),
+        closeEditing: options.closeEditing ?? vi.fn(),
+        registerEditor: (_cell, handle) => onRegisterEditor?.(handle),
+        unregisterEditor: vi.fn(),
+        getEditor: vi.fn().mockReturnValue(null),
+        requestFocusPlan: vi.fn(),
+      }}
+    >
+      {children}
+    </GridCoreProvider>
+  );
+  return Wrapper;
+};
+
+const createMutableGridWrapper = (
+  state: { editingCell: GridCellCoord | null },
+  onRegisterEditor?: (handle: GridCellEditorHandle) => void
+) => {
+  const store: GridCoreStateStore = {
+    subscribe: () => () => undefined,
+    getFocusedCell: () => gridCell,
+    getEditingCell: () => state.editingCell,
+  };
+
+  const Wrapper = ({ children }: React.PropsWithChildren) => (
+    <GridCoreProvider
+      value={{
+        gridStateStore: store,
         openEditing: vi.fn(),
         closeEditing: vi.fn(),
         registerEditor: (_cell, handle) => onRegisterEditor?.(handle),
@@ -189,6 +227,8 @@ describe('useTableInputCore', () => {
 
   it('viser visualErrorMessage afledt fra committed value uden effect-baseret resync', () => {
     const onBlur = vi.fn();
+    const onErrorChange = vi.fn();
+    const gridState = { editingCell: gridCell as GridCellCoord | null };
     const { result, rerender } = renderHook(
       ({ value }) =>
         useTableInputCore({
@@ -196,10 +236,11 @@ describe('useTableInputCore', () => {
           gridCell,
           value,
           onBlur,
+          onErrorChange,
         }),
       {
         initialProps: { value: '' },
-        wrapper: createWrapper(gridCell),
+        wrapper: createMutableGridWrapper(gridState),
       }
     );
 
@@ -211,15 +252,61 @@ describe('useTableInputCore', () => {
     });
 
     expect(onBlur).toHaveBeenCalledWith({ target: { value: '9' } });
+    expect(onErrorChange).toHaveBeenLastCalledWith({ hasError: true, kind: 'visual' });
+    act(() => {
+      gridState.editingCell = null;
+    });
     rerender({ value: '9' });
 
     expect(result.current.hasError).toBe(true);
     expect(result.current.errorMessage).toBe('Værdien er uden for intervallet');
+    expect(onErrorChange).toHaveBeenLastCalledWith({ hasError: true, kind: 'visual' });
 
     rerender({ value: '5' });
 
     expect(result.current.hasError).toBe(false);
     expect(result.current.errorMessage).toBe('');
+  });
+
+  it('rydder stale visual-only state når committed value ændres udefra', () => {
+    let editorHandle: GridCellEditorHandle | null = null;
+    const gridState = { editingCell: gridCell as GridCellCoord | null };
+    const { result, rerender } = renderHook(
+      ({ value }) =>
+        useTableInputCore({
+          adapter: createVisualErrorAdapter(),
+          gridCell,
+          value,
+        }),
+      {
+        initialProps: { value: '' },
+        wrapper: createMutableGridWrapper(gridState, (handle) => {
+          editorHandle = handle;
+        }),
+      }
+    );
+
+    act(() => {
+      result.current.handleChange({ target: { value: '9' } } as React.ChangeEvent<HTMLInputElement>);
+    });
+    act(() => {
+      result.current.handleBlur({ currentTarget: { value: '9' } } as React.FocusEvent<HTMLInputElement>);
+    });
+    rerender({ value: '9' });
+    rerender({ value: '5' });
+
+    act(() => {
+      gridState.editingCell = null;
+    });
+    rerender({ value: '5' });
+    act(() => {
+      gridState.editingCell = gridCell;
+    });
+    rerender({ value: '5' });
+
+    expect(editorHandle).not.toBeNull();
+    expect(result.current.draft).toBe('5');
+    expect(result.current.hasError).toBe(false);
   });
 
   it('overskriver ikke draft når committed value ændres udefra mens editoren er åben', () => {
@@ -261,5 +348,178 @@ describe('useTableInputCore', () => {
     rerender({ value: 'ekstern' });
 
     expect(result.current.draft).toBe('ekstern');
+  });
+
+  it('editorHandle.commitCurrent committer den aktuelle draft og lukker editoren', () => {
+    let editorHandle: GridCellEditorHandle | null = null;
+    const onBlur = vi.fn();
+    const closeEditing = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useTableInputCore({
+          adapter: createAdapter(),
+          gridCell,
+          value: '42',
+          onBlur,
+        }),
+      {
+        wrapper: createWrapper(gridCell, (handle) => {
+          editorHandle = handle;
+        }, { closeEditing }),
+      }
+    );
+
+    act(() => {
+      result.current.handleChange({ target: { value: ' 55 ' } } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    let accepted = false;
+    act(() => {
+      accepted = editorHandle?.commitCurrent() ?? false;
+    });
+
+    expect(accepted).toBe(true);
+    expect(onBlur).toHaveBeenCalledWith({ target: { value: '55' } });
+    expect(closeEditing).toHaveBeenCalledTimes(1);
+  });
+
+  it('editorHandle.clearAndCommit rydder og committer tom værdi', () => {
+    let editorHandle: GridCellEditorHandle | null = null;
+    const onBlur = vi.fn();
+    const closeEditing = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useTableInputCore({
+          adapter: createAdapter(),
+          gridCell,
+          value: '42',
+          onBlur,
+        }),
+      {
+        wrapper: createWrapper(gridCell, (handle) => {
+          editorHandle = handle;
+        }, { closeEditing }),
+      }
+    );
+
+    act(() => {
+      editorHandle?.clearAndCommit();
+    });
+
+    expect(result.current.draft).toBe('');
+    expect(onBlur).toHaveBeenCalledWith({ target: { value: '' } });
+    expect(closeEditing).toHaveBeenCalledTimes(1);
+  });
+
+  it('editorHandle.clearAndCommit lukker ikke editoren når tom commit afvises', () => {
+    let editorHandle: GridCellEditorHandle | null = null;
+    const onBlur = vi.fn();
+    const closeEditing = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useTableInputCore({
+          adapter: createRequiredAdapter(),
+          gridCell,
+          value: '42',
+          onBlur,
+        }),
+      {
+        wrapper: createWrapper(gridCell, (handle) => {
+          editorHandle = handle;
+        }, { closeEditing }),
+      }
+    );
+
+    act(() => {
+      editorHandle?.clearAndCommit();
+    });
+
+    expect(result.current.draft).toBe('');
+    expect(result.current.hasError).toBe(true);
+    expect(result.current.errorMessage).toBe('Værdi mangler');
+    expect(onBlur).not.toHaveBeenCalled();
+    expect(closeEditing).not.toHaveBeenCalled();
+  });
+
+  it('editorHandle.cancelEdit gendanner edit-start draften uden commit og rydder lokal inputfejl', () => {
+    let editorHandle: GridCellEditorHandle | null = null;
+    const onBlur = vi.fn();
+    const closeEditing = vi.fn();
+    const onErrorChange = vi.fn();
+    const { result } = renderHook(
+      () =>
+        useTableInputCore({
+          adapter: createAdapter(),
+          gridCell,
+          value: '42',
+          onBlur,
+          onErrorChange,
+        }),
+      {
+        wrapper: createWrapper(gridCell, (handle) => {
+          editorHandle = handle;
+        }, { closeEditing }),
+      }
+    );
+
+    act(() => {
+      result.current.handleChange({ target: { value: 'bad' } } as React.ChangeEvent<HTMLInputElement>);
+    });
+    let accepted = true;
+    act(() => {
+      accepted = editorHandle?.commitCurrent() ?? true;
+    });
+    expect(accepted).toBe(false);
+    expect(result.current.hasError).toBe(true);
+
+    act(() => {
+      editorHandle?.cancelEdit();
+    });
+
+    expect(result.current.draft).toBe('42');
+    expect(result.current.hasError).toBe(false);
+    expect(onBlur).not.toHaveBeenCalled();
+    expect(onErrorChange).toHaveBeenLastCalledWith({ hasError: false, kind: 'none' });
+    expect(closeEditing).toHaveBeenCalledTimes(1);
+  });
+
+  it('editorHandle.prepareEditFromKey accepterer kun adapterens starttaster og starter ny draft', () => {
+    let editorHandle: GridCellEditorHandle | null = null;
+    const gridState = { editingCell: null as GridCellCoord | null };
+    const { result, rerender } = renderHook(
+      () =>
+        useTableInputCore({
+          adapter: {
+            ...createAdapter(),
+            isValidStartKey: (key) => /^[0-9]$/.test(key),
+            clearErrorOnChange: true,
+          },
+          gridCell,
+          value: '42',
+        }),
+      {
+        wrapper: createMutableGridWrapper(gridState, (handle) => {
+          editorHandle = handle;
+        }),
+      }
+    );
+
+    let rejected = true;
+    act(() => {
+      rejected = editorHandle?.prepareEditFromKey('a') ?? true;
+    });
+    expect(rejected).toBe(false);
+    expect(result.current.draft).toBe('42');
+
+    let accepted = false;
+    act(() => {
+      accepted = editorHandle?.prepareEditFromKey('7') ?? false;
+      gridState.editingCell = gridCell;
+    });
+    rerender();
+
+    expect(accepted).toBe(true);
+    expect(result.current.draft).toBe('7');
+    expect(result.current.keyInitiatedEdit).toBe(true);
   });
 });

@@ -69,8 +69,7 @@ export const useTableInputHistoryRestore = <TValue,>({
   }, [onRestoreCommitted, onRestoreError, resetEditingState]);
 
   React.useEffect(() => {
-    const nextCommittedDisplay = formatCommittedValue(value);
-    latestCommittedDisplayRef.current = nextCommittedDisplay;
+    const nextCommittedDisplay = latestCommittedDisplayRef.current;
 
     if (pendingHistoryValueResyncRef.current) {
       pendingHistoryValueResyncRef.current = false;

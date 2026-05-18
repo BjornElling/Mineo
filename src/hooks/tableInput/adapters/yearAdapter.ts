@@ -6,7 +6,7 @@ import { normalizeYearPaste } from '../../../utils/inputPasteNormalization';
 import { normalizeTableDraftOnCommit } from '../../../utils/tableInputContracts';
 import type { TableInputAdapter } from '../tableInputAdapter';
 
-const MAX_YEAR_DRAFT_LENGTH = 6;
+const MAX_YEAR_DRAFT_LENGTH = 6; // 4 digits + whitespace tolerance before commit normalization.
 
 export type TableYearInputModel = string;
 export type TableYearPolicy = 'reject' | 'infer' | 'assume20xx';
