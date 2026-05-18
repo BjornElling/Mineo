@@ -199,7 +199,7 @@ export const buildSammentaellingDisplayTables = (model: SammentaellingModel): Sa
     sfgg: [
       {
         key: 'sfgg',
-        label: 'Sygeferiegodtgørelse (kr.)',
+        label: 'Sygeferiegodtgørelse',
         control: model.sfgg,
       },
     ],
@@ -658,7 +658,7 @@ export const buildEODebugSammentaellingModel = (args: {
     const display = formatOptionalAmount(amount);
     return [{
       key: 'sammentaelling.taf.offentligeYdelserUdvikling',
-      label: 'Offentlige ydelser (hypotetisk, kr.)',
+      label: 'Offentlige ydelser',
       control: {
         beregnetDisplay: display,
         tabelDisplay: display,

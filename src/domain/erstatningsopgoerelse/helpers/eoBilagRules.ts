@@ -11,7 +11,7 @@ import { isStandardLoenRowEffectivelyEmpty } from '../../aarsloen/standardLoenRo
 import { getOffentligeYdelserRowFilledState } from '../validation/offentligeYdelserTableValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from './indtaegtPerioder';
 import { resolveLoenudviklingKilde } from './angivetLoenHelpers';
-import type { IsoRange } from '../engines/periodRangeGroups';
+import { buildPeriodRangeGroups, type PeriodRangeGroup, type IsoRange } from '../engines/periodRangeGroups';
 import { parseDanishToIso, parseOptionalIsoDate } from '../helpers/eoSharedUtils';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { getOffentligeYdelserErrorRowIdSet, getStandardLoenErrorRowIdSet } from '../validation/indkomstRowValidation';
@@ -102,38 +102,43 @@ export const shouldRenderEoIndkomstOgYdelserBilag = (
   mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar
 ): boolean => {
   if (mode !== 'Perioden') return true;
-  return buildEoBilagIndkomstYdelserRanges(eoValues, mode).length > 0;
+  const ranges = buildEoBilagIndkomstYdelserRanges(eoValues, mode);
+  return buildPeriodRangeGroups(eoValues, mode, ranges).length > 0;
 };
 
 const hasLoenindkomstEoBilagData = (
   values: ErstatningsopgoerelseValues,
   mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
-  ranges: readonly IsoRange[]
+  rangeGroups: readonly PeriodRangeGroup[]
 ): boolean => {
   return (values.loenindkomstAnsaettelsesforhold ?? []).some((af) => {
     const errorRowIds = getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode);
-    return (af.indtaegtsoplysningerTableData ?? []).some((row) => shouldIncludeLoenRowInEoBilag({
-      row,
-      loenperiode: af.loenperiode,
-      mode,
-      ranges,
-      errorRowIds,
-    }));
+    return rangeGroups.some((group) =>
+      (af.indtaegtsoplysningerTableData ?? []).some((row) => shouldIncludeLoenRowInEoBilag({
+        row,
+        loenperiode: af.loenperiode,
+        mode,
+        ranges: group.ranges,
+        errorRowIds,
+      }))
+    );
   });
 };
 
 const hasOffentligeYdelserEoBilagData = (
   values: ErstatningsopgoerelseValues,
   mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
-  ranges: readonly IsoRange[]
+  rangeGroups: readonly PeriodRangeGroup[]
 ): boolean => {
   const errorRowIds = getOffentligeYdelserErrorRowIdSet(values.offentligeYdelserRows ?? []);
-  return (values.offentligeYdelserRows ?? []).some((row) => shouldIncludeOffentligYdelseRowInEoBilag({
-    row,
-    mode,
-    ranges,
-    errorRowIds,
-  }));
+  return rangeGroups.some((group) =>
+    (values.offentligeYdelserRows ?? []).some((row) => shouldIncludeOffentligYdelseRowInEoBilag({
+      row,
+      mode,
+      ranges: group.ranges,
+      errorRowIds,
+    }))
+  );
 };
 
 export const hasMidlertidigtEetYdelsestype = (
@@ -186,10 +191,11 @@ export const getEoBilagAvailability = (params: Readonly<{
   const { eoValues } = params;
   const eoBilagMode = eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
   const eoBilagRanges = buildEoBilagIndkomstYdelserRanges(eoValues, eoBilagMode);
+  const eoBilagRangeGroups = buildPeriodRangeGroups(eoValues, eoBilagMode, eoBilagRanges);
   const kanViseIndkomstOgYdelserBilag = shouldRenderEoIndkomstOgYdelserBilag(eoValues, eoBilagMode);
   const tafBeregningsenhed = computeTafBeregningsenhed(eoValues);
-  const harLoenindkomst = kanViseIndkomstOgYdelserBilag && hasLoenindkomstEoBilagData(eoValues, eoBilagMode, eoBilagRanges);
-  const harOffentligeYdelser = kanViseIndkomstOgYdelserBilag && hasOffentligeYdelserEoBilagData(eoValues, eoBilagMode, eoBilagRanges);
+  const harLoenindkomst = kanViseIndkomstOgYdelserBilag && hasLoenindkomstEoBilagData(eoValues, eoBilagMode, eoBilagRangeGroups);
+  const harOffentligeYdelser = kanViseIndkomstOgYdelserBilag && hasOffentligeYdelserEoBilagData(eoValues, eoBilagMode, eoBilagRangeGroups);
   const harRegulering = hasReguleringEoBilagData(eoValues);
   const harOffentligeYdelserRegulering = hasOffentligeYdelserReguleringData(eoValues);
   const harSygeferiegodtgoerelse = hasSygeferiegodtgoerelseEoBilagData(eoValues);

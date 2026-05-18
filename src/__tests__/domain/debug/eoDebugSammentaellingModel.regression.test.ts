@@ -301,7 +301,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
 
     const row = sammentaelling.tafIndtaegter.find((entry) => entry.key === 'sammentaelling.taf.offentligeYdelserUdvikling');
     expect(row).toBeDefined();
-    expect(row?.label).toBe('Offentlige ydelser (hypotetisk, kr.)');
+    expect(row?.label).toBe('Offentlige ydelser');
     expect(row?.control.beregnetValue).toBe(3220.9);
     expect(row?.control.tabelValue).toBe(3220.9);
 

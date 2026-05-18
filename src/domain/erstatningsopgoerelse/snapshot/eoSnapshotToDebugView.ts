@@ -10,6 +10,7 @@ import { buildRegulationDebugSections } from '../../debug/eoDebugRegulationViewM
 import type { SectionId } from '../../debug/eoDebugNavigationMap';
 import type { DebugRowModel } from '../../debug/eoDebugTypes';
 import type { EoCanonicalOutput } from './eoCanonicalOutput';
+import type { EoModel } from './eoPresentationModel';
 import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
 
 type EoDebugViewBlocked = Readonly<{
@@ -27,6 +28,7 @@ type EoDebugViewReady = Readonly<{
   erstatningsopgoerelseValues: NonNullable<EoSnapshot['input']['erstatningsopgoerelse']>;
   rowsBySection: ReadonlyMap<SectionId, readonly DebugRowModel[]>;
   regulationSections: readonly RegulationDebugSection[];
+  pdfModel?: EoModel | undefined;
 }>;
 
 export type EoDebugView = EoDebugViewBlocked | EoDebugViewReady;
@@ -92,6 +94,7 @@ export const eoSnapshotToDebugView = (args: Readonly<{
         eoValues: erstatningsopgoerelseValues,
         stamdataValues,
       }),
+      pdfModel,
     };
   }
 

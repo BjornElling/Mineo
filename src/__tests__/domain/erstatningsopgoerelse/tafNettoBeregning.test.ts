@@ -6,6 +6,7 @@ import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoere
 import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { computeSygeferiegodtgoerelse } from '../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
 import { computeTafNettoBeregning } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
+import { buildOffentligeYdelserReguleringTableData } from '../../../domain/erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
 import { buildSfggLoenudviklingMap } from '../../../domain/erstatningsopgoerelse/engines/tafNettoBeregning';
 import { computeTafBeregningsenhed } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
@@ -117,6 +118,41 @@ describe('computeTafNettoBeregning', () => {
     expect(result.offentligeYdelserUdvikling?.reguleringsLabel).toBe('Ingen');
     expect(result.offentligeYdelserUdvikling?.total).toEqual({ status: 'ok', value: 310000 });
     expect(result.tabtArbejdsfortjenesteOre).toBe(310000);
+  });
+
+  it('bygger reguleringstabel for offentlige ydelser med årlig og akkumuleret regulering', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2024-01-01');
+    values.tafBeregningsperiodeTil = iso('2024-01-31');
+    values.loenindkomstAnsaettelsesforhold = [];
+    values.offentligeYdelserRows = [{
+      id: 'dagpenge-jan-2024',
+      fraDato: '01-01-2024',
+      tilDato: '31-01-2024',
+      ydelse: asAmount(3100),
+      tillaeg: undefined,
+      ydelsestype: 'dagpenge',
+    }];
+
+    const result = computeTafNettoBeregning(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      { tafRanges: [{ fra: iso('2025-01-01'), til: iso('2026-01-31') }] }
+    );
+
+    expect(result.offentligeYdelserUdvikling).not.toBeNull();
+    const table = result.offentligeYdelserUdvikling
+      ? buildOffentligeYdelserReguleringTableData(result.offentligeYdelserUdvikling)
+      : null;
+
+    expect(table).toEqual({
+      columns: ['Reguleringsdato', 'Regulering', 'Akkumuleret regulering'],
+      rows: [
+        ['01-01-2025', '3,9 %', '3,9 %'],
+        ['01-01-2026', '4,8 %', '8,89 %'],
+      ],
+    });
   });
 
   it('behandler midlertidigt EET som øvrige offentlige ydelser i hypotetisk TAF-indkomst', () => {

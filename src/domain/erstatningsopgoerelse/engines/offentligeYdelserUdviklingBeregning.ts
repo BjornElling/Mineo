@@ -1,5 +1,8 @@
 import { reguleringssats } from '../../../data/lovbestemteRates';
 import type { ISODateString } from '../../../types/branded';
+import { toISODateString } from '../../../types/branded';
+import { formatISOToDanish } from '../../../utils/dateFormatting';
+import { formatPercent } from '../../../utils/formatUtils';
 import { roundByMethod } from '../../../utils/rounding';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { countTafArbejdsdageInRange, segmentAmountOre } from './loenudviklingBeregning';
@@ -16,11 +19,16 @@ import { splitIsoRangeByCalendarYearsInclusive } from './periodRangeGroups';
 
 type ReguleringsSegment = Readonly<IsoRange & { deltaPct: number }>;
 
+export type OffentligeYdelserReguleringTableData = Readonly<{
+  columns: readonly string[];
+  rows: ReadonlyArray<ReadonlyArray<string>>;
+}>;
+
 const splitRangesByCalendarYear = (ranges: readonly IsoRange[]): readonly (IsoRange & { year: number })[] => {
   return ranges.flatMap((range) => [...splitIsoRangeByCalendarYearsInclusive(range.fra, range.til)]);
 };
 
-const resolveDeltaPctByYear = (
+export const resolveOffentligeYdelserAkkumuleretReguleringPct = (
   segmentYear: number,
   baseYear: number
 ): number => {
@@ -55,8 +63,50 @@ const buildReguleringsSegments = (
   return split.map((segment) => ({
     fra: segment.fra,
     til: segment.til,
-    deltaPct: resolveDeltaPctByYear(segment.year, baseYear),
+    deltaPct: resolveOffentligeYdelserAkkumuleretReguleringPct(segment.year, baseYear),
   }));
+};
+
+export const buildOffentligeYdelserReguleringTableData = (
+  model: OffentligeYdelserUdviklingModel
+): OffentligeYdelserReguleringTableData | null => {
+  if (model.reguleringsLabel === 'Ingen') return null;
+  if (!model.reguleringsBaseIso) return null;
+
+  const baseYear = Number.parseInt(model.reguleringsBaseIso.slice(0, 4), 10);
+  if (!Number.isInteger(baseYear)) return null;
+
+  const sidsteSegmentTil = model.entries
+    .flatMap((entry) => entry.beregnedeSegmenter.map((segment) => segment.til))
+    .sort((a, b) => b.localeCompare(a))[0];
+  if (!sidsteSegmentTil) return null;
+
+  const sidsteYear = Number.parseInt(sidsteSegmentTil.slice(0, 4), 10);
+  if (!Number.isInteger(sidsteYear) || sidsteYear <= baseYear) {
+    return {
+      columns: ['Reguleringsdato', 'Regulering', 'Akkumuleret regulering'],
+      rows: [],
+    };
+  }
+
+  const rows: string[][] = [];
+  for (let year = baseYear + 1; year <= sidsteYear; year += 1) {
+    const sats = reguleringssats[year];
+    if (typeof sats !== 'number' || !Number.isFinite(sats)) {
+      throw new Error(`Offentlige ydelser kan ikke beregnes: reguleringssats mangler for ${year}`);
+    }
+    const dateIso = toISODateString(`${year}-01-01`);
+    rows.push([
+      formatISOToDanish(dateIso) ?? dateIso,
+      formatPercent(sats),
+      formatPercent(resolveOffentligeYdelserAkkumuleretReguleringPct(year, baseYear)),
+    ]);
+  }
+
+  return {
+    columns: ['Reguleringsdato', 'Regulering', 'Akkumuleret regulering'],
+    rows,
+  };
 };
 
 const buildSegmentsForBenefit = (params: Readonly<{

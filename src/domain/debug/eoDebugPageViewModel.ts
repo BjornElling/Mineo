@@ -3,6 +3,8 @@ import { isLoenindkomstAnsaettelsesforholdEffectivelyEmpty } from './eoDebugIndk
 import type { RegulationDebugSection } from './eoDebugRegulationViewModel';
 import type { DebugRowModel } from './eoDebugTypes';
 import type { EoDebugViewReady } from '../erstatningsopgoerelse/snapshot/eoSnapshotToDebugView';
+import { buildOffentligeYdelserReguleringTableData } from '../erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
+import { formatISOToDanish } from '../../utils/dateFormatting';
 
 export type EODebugDisplayTable = Readonly<{
   id: string;
@@ -44,6 +46,7 @@ export type EODebugPageViewModel = Readonly<{
   tafBeregningsgrundlagRows: readonly DebugRowModel[];
   loenindkomstRows: readonly DebugRowModel[];
   offentligeYdelserRows: readonly DebugRowModel[];
+  offentligeYdelserTables: readonly EODebugDisplayTable[];
   orphanSfggSections: readonly EODebugGroupedSectionViewModel[];
   orphanRegulationSections: readonly RegulationDebugSection[];
   employmentSections: readonly EODebugEmploymentSectionViewModel[];
@@ -266,6 +269,32 @@ export const buildEODebugPageViewModel = (
         !employmentSections.some((employmentSection) => employmentSection.id === section.id)
       )
     : [];
+  const offentligeYdelserReguleringTableData = view.pdfModel?.tabtArbejdsfortjeneste.offentligeYdelserUdvikling
+    ? buildOffentligeYdelserReguleringTableData(view.pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling)
+    : null;
+  const offentligeYdelserReguleringsBaseIso =
+    view.pdfModel?.tabtArbejdsfortjeneste.offentligeYdelserUdvikling?.reguleringsBaseIso;
+  const offentligeYdelserBaseRow: readonly DebugRowModel[] =
+    offentligeYdelserReguleringTableData && offentligeYdelserReguleringsBaseIso
+      ? [{
+          id: 'offentligeYdelser.regulering.anvendtReguleringsdato',
+          label: 'Regulering foretages med afsæt i værdier den',
+          displayValue: formatISOToDanish(offentligeYdelserReguleringsBaseIso) ?? offentligeYdelserReguleringsBaseIso,
+          status: 'ok',
+        }]
+      : [];
+  const offentligeYdelserTables: readonly EODebugDisplayTable[] =
+    offentligeYdelserReguleringTableData && offentligeYdelserReguleringTableData.rows.length > 0
+      ? [{
+          id: 'offentligeYdelser.regulering.vaerdier',
+          title: 'Reguleringsværdier:',
+          columns: offentligeYdelserReguleringTableData.columns,
+          rows: offentligeYdelserReguleringTableData.rows.map((row, index) => ({
+            id: `offentligeYdelser.regulering.vaerdier.${index}`,
+            cells: row,
+          })),
+        }]
+      : [];
 
   return {
     showSvieSmerteSection: viserSvieSmerte,
@@ -278,7 +307,10 @@ export const buildEODebugPageViewModel = (
     tafRows: viserTabtArbejdsfortjeneste ? (rowsBySection.get('taf') ?? []) : [],
     tafBeregningsgrundlagRows: viserTabtArbejdsfortjeneste ? (rowsBySection.get('taf-beregningsgrundlag') ?? []) : [],
     loenindkomstRows,
-    offentligeYdelserRows: viserTabtArbejdsfortjeneste ? (rowsBySection.get('offentlige-ydelser') ?? []) : [],
+    offentligeYdelserRows: viserTabtArbejdsfortjeneste
+      ? [...(rowsBySection.get('offentlige-ydelser') ?? []), ...offentligeYdelserBaseRow]
+      : [],
+    offentligeYdelserTables: viserTabtArbejdsfortjeneste ? offentligeYdelserTables : [],
     orphanSfggSections,
     orphanRegulationSections,
     employmentSections,

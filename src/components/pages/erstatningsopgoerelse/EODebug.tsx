@@ -63,7 +63,11 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
           )
       )}
       {pageView.showTabtArbejdsfortjenesteSections && (
-        <EODebugRowsSection title="Offentlige ydelser" rows={pageView.offentligeYdelserRows} />
+        <EODebugRowsSection
+          title="Offentlige ydelser"
+          rows={pageView.offentligeYdelserRows}
+          tables={pageView.offentligeYdelserTables}
+        />
       )}
       {pageView.showTabtArbejdsfortjenesteSections && pageView.orphanSfggSections.length > 0 && (
         <EODebugGroupedRowsSection title="Sygeferiegodtgørelse" sections={pageView.orphanSfggSections} />

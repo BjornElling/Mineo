@@ -629,15 +629,25 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       offentligeYdelserUdvikling?.reguleringsLabel === 'Ingen'
         ? 'uden statslig regulering per 1. januar'
         : 'med statslig regulering per 1. januar';
+    const offentligeYdelserBaseText = offentligeYdelserUdvikling?.reguleringsBaseIso
+      ? ` per ${formatDateLong(offentligeYdelserUdvikling.reguleringsBaseIso)}`
+      : '';
     const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = harOffentligeYdelserUdvikling
-      ? `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger samt offentlige ydelser ${offentligeYdelserReguleringText}.`
+      ? `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger.\nOffentlige ydelser beregnes${offentligeYdelserBaseText} ${offentligeYdelserReguleringText}.`
       : loenudvikling?.loenudviklingLabel === 'Ingen'
         ? `Opgøres på baggrund af ${loenSkadedatoText}.`
         : `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger.`;
-    renderSubheaderWithWrappedText(
-      'Indkomst, hvis skaden ikke var indtrådt',
-      indkomstHvisSkadeIkkeIndtraadtBeskrivelse
-    );
+    if (harOffentligeYdelserUdvikling) {
+      renderSubheader('Indkomst, hvis skaden ikke var indtrådt');
+      for (const line of indkomstHvisSkadeIkkeIndtraadtBeskrivelse.split('\n')) {
+        safeAddWrappedText(line);
+      }
+    } else {
+      renderSubheaderWithWrappedText(
+        'Indkomst, hvis skaden ikke var indtrådt',
+        indkomstHvisSkadeIkkeIndtraadtBeskrivelse
+      );
+    }
     if (model.tabtArbejdsfortjeneste.ferieFravaerLinje) {
       safeAddWrappedText(model.tabtArbejdsfortjeneste.ferieFravaerLinje);
     }
@@ -648,7 +658,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         segments: readonly LoenudviklingSegment[],
         total: Calculable<MoneyOre>,
         forceTotalLine: boolean,
-        labels: Readonly<{ unitMaaned: string; unitDag: string; total: string }>
+        labels: Readonly<{ unitMaaned: string; unitDag: string; total: string }>,
+        options?: Readonly<{ suppressTotalLine?: boolean }>
       ) => {
         if (total.status !== 'ok') {
           safeAddWrappedText('Lønudvikling kan ikke beregnes for den valgte opsætning.');
@@ -678,7 +689,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           const rightText = formatMoneyOreWithKr(segment.amountOre);
           safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
         }
-        if ((segmentsForDisplay.length > 1 || forceTotalLine) && total.status === 'ok') {
+        if (!options?.suppressTotalLine && (segmentsForDisplay.length > 1 || forceTotalLine) && total.status === 'ok') {
           safeAddLeftRightText(
             labels.total,
             formatMoneyOreWithKr(total.value),
@@ -717,15 +728,15 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       for (const entry of offentligeYdelserUdvikling?.entries ?? []) {
         writer.addSectionSpacer();
         writer.writeUnderlinedSubheader(entry.label);
-        renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.total, true, {
-          unitMaaned: 'ydelse pr. måned',
-          unitDag: 'ydelse pr. arbejdsdag',
-          total: `I alt ${entry.label}`,
-        });
+        renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.total, false, {
+          unitMaaned: '',
+          unitDag: '',
+          total: 'I alt',
+        }, { suppressTotalLine: true });
       }
-      if (offentligeYdelserUdvikling && offentligeYdelserUdvikling.entries.length > 1 && offentligeYdelserUdvikling.total.status === 'ok') {
+      if (offentligeYdelserUdvikling && offentligeYdelserUdvikling.total.status === 'ok') {
         safeAddLeftRightText(
-          'Samlet offentlige ydelser (hypotetisk)',
+          'I alt',
           formatMoneyOreWithKr(offentligeYdelserUdvikling.total.value),
           rightMaxWidth,
           { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }

@@ -508,6 +508,110 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(loenudviklingBlock.filter((text) => text === 'I alt').length).toBe(2);
   });
 
+  it('formaterer hypotetiske offentlige ydelser uden ydelses-subtotaler i indkomst uden skade', () => {
+    const { stamdata, eo } = buildBaseInput();
+    eo.vedroererPeriodeFra = iso('2024-12-01');
+    eo.vedroererPeriodeTil = iso('2025-01-31');
+    eo.tafBeregningsperiodeFra = iso('2024-12-01');
+    eo.tafBeregningsperiodeTil = iso('2024-12-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-12-01'), til: iso('2025-01-31'), loseFeriedage: undefined }];
+    eo.regulerOffentligeYdelser = 'Ja';
+    eo.offentligeYdelserRows = [
+      {
+        id: 'oy-1',
+        fraDato: '01-12-2024',
+        tilDato: '31-12-2024',
+        ydelsestype: 'dagpenge',
+        ydelse: asAmountValue(1000),
+        tillaeg: undefined,
+      },
+      {
+        id: 'oy-2',
+        fraDato: '01-12-2024',
+        tilDato: '31-12-2024',
+        ydelsestype: 'sygedagpenge',
+        ydelse: asAmountValue(500),
+        tillaeg: undefined,
+      },
+    ];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const loenudviklingBlock = getTextsBetween(
+      texts,
+      'Indkomst, hvis skaden ikke var indtrådt',
+      'Indtægter i erstatningsperioden'
+    );
+
+    expect(loenudviklingBlock).toContain('Beregnes som lønnen opgjort frem til 31. december 2024 tillagt efterfølgende lønstigninger.');
+    expect(loenudviklingBlock).toContain('Offentlige ydelser beregnes per 31. december 2024 med statslig regulering per 1. januar.');
+    expect(loenudviklingBlock).toContain('Dagpenge');
+    expect(loenudviklingBlock).toContain('Sygedagpenge');
+    expect(loenudviklingBlock.some((text) => text.includes('ydelse pr. arbejdsdag'))).toBe(false);
+    expect(loenudviklingBlock.some((text) => text.includes('ydelse pr. måned'))).toBe(false);
+    expect(loenudviklingBlock).not.toContain('I alt Dagpenge');
+    expect(loenudviklingBlock).not.toContain('I alt Sygedagpenge');
+    expect(loenudviklingBlock).not.toContain('Samlet offentlige ydelser (hypotetisk)');
+    expect(loenudviklingBlock.filter((text) => /^I alt \d/.test(text))).toHaveLength(0);
+    expect(loenudviklingBlock.filter((text) => text === 'I alt')).toHaveLength(1);
+  });
+
+  it('formaterer bilaget for regulering af offentlige ydelser uden periode, skadelidte og samlet total', () => {
+    const { stamdata, eo } = buildBaseInput();
+    stamdata.skadelidte = 'Testi Testesen';
+    eo.vedroererPeriodeFra = iso('2024-12-01');
+    eo.vedroererPeriodeTil = iso('2025-01-31');
+    eo.tafBeregningsperiodeFra = iso('2024-12-01');
+    eo.tafBeregningsperiodeTil = iso('2024-12-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2024-12-01'), til: iso('2025-01-31'), loseFeriedage: undefined }];
+    eo.regulerOffentligeYdelser = 'Ja';
+    eo.offentligeYdelserRows = [
+      {
+        id: 'oy-1',
+        fraDato: '01-12-2024',
+        tilDato: '31-12-2024',
+        ydelsestype: 'dagpenge',
+        ydelse: asAmountValue(1000),
+        tillaeg: undefined,
+      },
+      {
+        id: 'oy-2',
+        fraDato: '01-12-2024',
+        tilDato: '31-12-2024',
+        ydelsestype: 'sygedagpenge',
+        ydelse: asAmountValue(500),
+        tillaeg: undefined,
+      },
+    ];
+
+    renderPdfWithSelected(stamdata, eo, {
+      ...selected,
+      offentligeYdelserRegulering: true,
+    });
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const bilagStartIndex = texts.indexOf('Regulering af offentlige ydelser');
+    const bilagBlock = bilagStartIndex === -1 ? [] : texts.slice(bilagStartIndex + 1);
+
+    expect(bilagBlock).toContain('Regulering foretages med afsæt i værdier den');
+    expect(bilagBlock).toContain('31-12-2024');
+    expect(bilagBlock).not.toContain('Periode');
+    expect(bilagBlock).not.toContain('01-12-2024 - 31-01-2025');
+    expect(bilagBlock).not.toContain('Skadelidte');
+    expect(bilagBlock).not.toContain('Testi Testesen');
+    expect(bilagBlock).toContain('Dagpenge');
+    expect(bilagBlock).toContain('Sygedagpenge');
+    expect(bilagBlock.some((text) => text.includes('regulering fra'))).toBe(false);
+    expect(bilagBlock).not.toContain('I alt Dagpenge');
+    expect(bilagBlock).not.toContain('I alt Sygedagpenge');
+    expect(bilagBlock).not.toContain('Samlet offentlige ydelser (hypotetisk)');
+    expect(bilagBlock.filter((text) => text === 'I alt')).toHaveLength(2);
+    expect(bilagBlock).toContain(
+      'Offentlige ydelser fremskrives årligt per 1. januar med tilpasningsprocenten + 2 %, svarende til den almene statslige regulering af offentlige ydelser.'
+    );
+  });
+
   it('viser forbeholdstekst i "Øvrige krav" ved kontanthjælp i indtægter i erstatningsperioden', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.offentligeYdelserRows = [

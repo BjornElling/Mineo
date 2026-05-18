@@ -56,6 +56,38 @@ describe('getEoBilagAvailability', () => {
     expect(result.loenindkomst.enabled).toBe(true);
   });
 
+  it('aktiverer lønindkomst i Perioden når TAF beregnes fra beregningsperiode og lønnen findes i beregningsperioden', () => {
+    const employment = createDefaultLoenindkomstAnsaettelsesforhold();
+    employment.indtaegtsoplysningerTableData = [
+      {
+        id: 'row-1',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: '',
+        col1_dag: '',
+        col2: { kind: 'number', value: 1000 },
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      },
+    ];
+
+    const result = getEoBilagAvailability({
+      eoValues: makeValues({
+        beregnesUdFra: 'Beregningsperiode',
+        eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Perioden',
+        tafBeregningsperiodeFra: '2024-01-01',
+        tafBeregningsperiodeTil: '2024-01-31',
+        tafPerioder: [{ id: 'taf-1', fra: '2024-02-01', til: '2024-02-29', loseFeriedage: 0 }],
+        loenindkomstAnsaettelsesforhold: [employment],
+      }),
+    });
+
+    expect(result.loenindkomst.enabled).toBe(true);
+  });
+
   it('deaktiverer offentlige ydelser når tabellen er tom', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({ offentligeYdelserRows: [] }),
@@ -80,6 +112,23 @@ describe('getEoBilagAvailability', () => {
   it('aktiverer offentlige ydelser når mindst én række har fejlfrie beløb og overlap', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({
+        offentligeYdelserRows: [
+          { id: 'row-1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
+        ],
+      }),
+    });
+
+    expect(result.offentligeYdelser.enabled).toBe(true);
+  });
+
+  it('aktiverer offentlige ydelser i Perioden når TAF beregnes fra beregningsperiode og ydelsen findes i beregningsperioden', () => {
+    const result = getEoBilagAvailability({
+      eoValues: makeValues({
+        beregnesUdFra: 'Beregningsperiode',
+        eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Perioden',
+        tafBeregningsperiodeFra: '2024-01-01',
+        tafBeregningsperiodeTil: '2024-01-31',
+        tafPerioder: [{ id: 'taf-1', fra: '2024-02-01', til: '2024-02-29', loseFeriedage: 0 }],
         offentligeYdelserRows: [
           { id: 'row-1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
         ],

@@ -138,8 +138,8 @@ describe('buildSammentaellingDisplayTables', () => {
     );
   });
 
-  it('mærker SFGG-rækken eksplicit med kr.-enhed', () => {
+  it('mærker SFGG-rækken med korrekt label', () => {
     const tables = buildSammentaellingDisplayTables(makeModel());
-    expect(tables.sfgg[0]?.label).toBe('Sygeferiegodtgørelse (kr.)');
+    expect(tables.sfgg[0]?.label).toBe('Sygeferiegodtgørelse');
   });
 });

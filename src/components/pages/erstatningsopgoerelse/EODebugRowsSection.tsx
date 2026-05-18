@@ -3,6 +3,9 @@ import { Box, Typography } from '@mui/material';
 import { Check, ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import type { DebugRowModel, DebugStatus } from '../../../domain/debug/eoDebugTypes';
+import StandardDisplayTable from '../../tables/StandardDisplayTable';
+import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
+import type { EODebugDisplayTable } from '../../../domain/debug/eoDebugPageViewModel';
 
 const LABEL_WIDTH = '320px';
 
@@ -25,11 +28,12 @@ const getDisplayValueSx = (displayValue: string) => ({
 const EODebugRowsSection = React.memo<{
   title: string;
   rows: readonly DebugRowModel[];
-}>(({ title, rows }) => {
+  tables?: readonly EODebugDisplayTable[];
+}>(({ title, rows, tables = [] }) => {
   // Render-contract: en sektion med 0 rækker skal være helt skjult.
   // Det gør komponenten sikker som fallback, selv om de primære show/hide-beslutninger
   // normalt træffes højere oppe i EO-debug viewmodellen.
-  if (rows.length === 0) {
+  if (rows.length === 0 && tables.length === 0) {
     return null;
   }
 
@@ -44,6 +48,22 @@ const EODebugRowsSection = React.memo<{
             <Typography className="row--text" sx={getDisplayValueSx(row.displayValue)}>{row.displayValue}</Typography>
             {getStatusIcon(row.status)}
           </Box>
+        </Box>
+      ))}
+
+      {tables.map((table) => (
+        <Box key={table.id}>
+          <Typography className="row--text" sx={{ mt: 2, mb: 0.5 }}>
+            {table.title}
+          </Typography>
+          <StandardDisplayTable
+            useSmallFont
+            columns={table.columns.map((column) => ({ header: column, align: 'center' as const }))}
+            rows={table.rows.map((row): StandardDisplayTableRow => ({
+              key: row.id,
+              cells: row.cells,
+            }))}
+          />
         </Box>
       ))}
     </ContentBox>
