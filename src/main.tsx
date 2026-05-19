@@ -7,10 +7,8 @@ import '@fontsource/montserrat/500.css';
 import '@fontsource/montserrat/600.css';
 import '@fontsource/montserrat/700.css';
 import './index.css';
-import { hydratePendingPwaFileOpenRequest, setupPwaLaunchQueueConsumer } from './utils/pwaLaunchQueue';
 import { setupPwaInstallPromptCapture, suppressPwaInstallPrompt } from './utils/pwaInstallPrompt';
 import { VERSION } from './config/version';
-import AuthGate from './auth/AuthGate';
 
 const UNSUPPORTED_MAX_SCREEN_WIDTH_PX = 1366;
 const SW_UPDATE_CHECK_TIMEOUT_MS = 5000;
@@ -198,6 +196,17 @@ const setupServiceWorkerUpdateChecks = (): void => {
   });
 };
 
+const setupPwaFileOpenHandling = async (): Promise<void> => {
+  const {
+    hydratePendingPwaFileOpenRequest,
+    setupPwaLaunchQueueConsumer,
+  } = await import('./utils/pwaLaunchQueue');
+
+  // PWA file handler (Launch Queue) skal initialiseres tidligt før desktop-appen renderes.
+  setupPwaLaunchQueueConsumer();
+  await hydratePendingPwaFileOpenRequest();
+};
+
 const bootstrap = async (): Promise<void> => {
   const unsupportedDevice = isUnsupportedDevice();
   if (unsupportedDevice) {
@@ -205,10 +214,6 @@ const bootstrap = async (): Promise<void> => {
   } else {
     setupPwaInstallPromptCapture();
   }
-
-  // PWA file handler (Launch Queue) skal initialiseres tidligt, også hvis vi ender på unsupported-device gate.
-  setupPwaLaunchQueueConsumer();
-  await hydratePendingPwaFileOpenRequest();
 
   if (unsupportedDevice) {
     const { default: UnsupportedDevicePage } = await import('./components/pages/UnsupportedDevicePage');
@@ -220,6 +225,7 @@ const bootstrap = async (): Promise<void> => {
     return;
   }
 
+  await setupPwaFileOpenHandling();
   await ensureLatestVersionBeforeRender();
   setupServiceWorkerUpdateChecks();
 
@@ -228,6 +234,7 @@ const bootstrap = async (): Promise<void> => {
     return;
   }
 
+  const { default: AuthGate } = await import('./auth/AuthGate');
   root.render(
     <React.StrictMode>
       <AuthGate />
