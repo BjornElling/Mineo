@@ -4,7 +4,7 @@
  * Funktioner:
  * - Genererer komplet fejlrapport med seneste 50 fejl fra IndexedDB
  * - Inkluderer version, dato, browser info
- * - Åbner mailto: med pre-filled email til bj.elling@gmail.com
+ * - Åbner mailto: med pre-filled email til bel@fho.dk
  * - Clipboard fallback hvis mailto: fejler
  * - Håndterer mailto: length limit (~1800 chars)
  */
@@ -399,7 +399,7 @@ const buildMailtoPayload = (report: string, options?: { subjectPrefix?: string }
       bodyWasTrimmed = true;
     }
 
-    const mailtoLink = `mailto:bj.elling@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mailtoLink = `mailto:bel@fho.dk?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
     // Åbn mailto: link
     // NOTE: UI triggers email navigation (mailto:) explicitly.
@@ -459,7 +459,7 @@ export const prepareBugReport = async (options?: {
   return {
     report,
     email: {
-      to: 'bj.elling@gmail.com',
+      to: 'bel@fho.dk',
       subject: mailto.subject,
       body: mailto.body,
       mailtoLink: mailto.mailtoLink,
@@ -516,7 +516,7 @@ export const prepareContentBoxReport = async (options: {
   return {
     report,
     email: {
-      to: 'bj.elling@gmail.com',
+      to: 'bel@fho.dk',
       subject: mailto.subject,
       body: mailto.body,
       mailtoLink: mailto.mailtoLink,

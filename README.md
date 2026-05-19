@@ -59,10 +59,10 @@ MIT License, se `LICENSE`.
 
 Bjørn Elling
 - GitHub: [@BjornElling](https://github.com/BjornElling)
-- Mail: bj.elling@gmail.com
+- Mail: bel@fho.dk
 
 ---
 
-**Version**: 2026.05.576
+**Version**: 2026.05.577
 
 **Status**: Under udvikling
