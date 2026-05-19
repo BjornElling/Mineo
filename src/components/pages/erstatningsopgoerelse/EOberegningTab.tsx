@@ -590,8 +590,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
   ), [eoValues.eoBilagSelection]);
   const bilagAvailability = React.useMemo(
-    () => getEoBilagAvailability({ eoValues }),
-    [eoValues]
+    () => getEoBilagAvailability({ eoValues, skadedatoISO: stamdataValues.skadedato }),
+    [eoValues, stamdataValues.skadedato]
   );
   const selectedElements = React.useMemo(() => {
     const next = { ...baseSelectedElements };

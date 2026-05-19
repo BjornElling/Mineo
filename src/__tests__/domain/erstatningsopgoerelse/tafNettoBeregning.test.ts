@@ -56,6 +56,7 @@ describe('computeTafNettoBeregning', () => {
   it('fremskriver offentlige ydelser fra beregningsperioden som positiv hypotetisk TAF-indkomst', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
+    values.regulerOffentligeYdelser = 'Ja';
     values.tafBeregningsperiodeFra = iso('2024-01-01');
     values.tafBeregningsperiodeTil = iso('2024-01-31');
     values.loenindkomstAnsaettelsesforhold = [];
@@ -75,6 +76,7 @@ describe('computeTafNettoBeregning', () => {
     );
 
     expect(result.loenudvikling?.loenudviklingTotal).toEqual({ status: 'ok', value: 0 });
+    expect(result.offentligeYdelserUdvikling?.reguleringsBaseIso).toBe(iso('2024-01-31'));
     expect(result.offentligeYdelserUdvikling?.entries).toHaveLength(1);
     expect(result.offentligeYdelserUdvikling?.entries[0]).toEqual(expect.objectContaining({
       typeKey: 'dagpenge',
@@ -142,9 +144,12 @@ describe('computeTafNettoBeregning', () => {
     );
 
     expect(result.offentligeYdelserUdvikling).not.toBeNull();
-    const table = result.offentligeYdelserUdvikling
-      ? buildOffentligeYdelserReguleringTableData(result.offentligeYdelserUdvikling)
-      : null;
+    let table: ReturnType<typeof buildOffentligeYdelserReguleringTableData> | undefined;
+    expect(() => {
+      table = result.offentligeYdelserUdvikling
+        ? buildOffentligeYdelserReguleringTableData(result.offentligeYdelserUdvikling)
+        : null;
+    }).not.toThrow();
 
     expect(table).toEqual({
       columns: ['Reguleringsdato', 'Regulering', 'Akkumuleret regulering'],
@@ -153,6 +158,73 @@ describe('computeTafNettoBeregning', () => {
         ['01-01-2026', '4,8 %', '8,89 %'],
       ],
     });
+  });
+
+  it('bruger samme særlige reguleringsdato for offentlige ydelser som aktiv lønudvikling', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2024-01-01');
+    values.tafBeregningsperiodeTil = iso('2024-01-31');
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      loenudviklingBeregningsgrundlag: 'Statistik',
+      loenudviklingStatistikModel: 'ILON12',
+      saerligFraDatoRegulering: iso('2024-07-01'),
+    })];
+    values.offentligeYdelserRows = [{
+      id: 'dagpenge-jan-2024',
+      fraDato: '01-01-2024',
+      tilDato: '31-01-2024',
+      ydelse: asAmount(3100),
+      tillaeg: undefined,
+      ydelsestype: 'dagpenge',
+    }];
+
+    const result = computeTafNettoBeregning(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      { tafRanges: [{ fra: iso('2025-01-01'), til: iso('2025-01-31') }] }
+    );
+
+    expect(result.offentligeYdelserUdvikling?.reguleringsBaseIso).toBe(iso('2024-07-01'));
+    expect(result.offentligeYdelserUdvikling?.entries[0]?.beregnedeSegmenter[0]?.deltaPct).toBeCloseTo(3.9, 10);
+  });
+
+  it('finder aktiv lønudvikling til reguleringsbase selv når første ansættelsesforhold har Ingen', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.regulerOffentligeYdelser = 'Ja';
+    values.tafBeregningsperiodeFra = iso('2024-01-01');
+    values.tafBeregningsperiodeTil = iso('2024-01-31');
+    values.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-ingen',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      }),
+      createEmployment({
+        id: 'af-statistik',
+        navnPaaArbejdssted: 'Arbejdssted 2',
+        loenudviklingBeregningsgrundlag: 'Statistik',
+        loenudviklingStatistikModel: 'ILON12',
+        saerligFraDatoRegulering: iso('2024-07-01'),
+      }),
+    ];
+    values.offentligeYdelserRows = [{
+      id: 'dagpenge-jan-2024',
+      fraDato: '01-01-2024',
+      tilDato: '31-01-2024',
+      ydelse: asAmount(3100),
+      tillaeg: undefined,
+      ydelsestype: 'dagpenge',
+    }];
+
+    const result = computeTafNettoBeregning(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      { tafRanges: [{ fra: iso('2025-01-01'), til: iso('2025-01-31') }] }
+    );
+
+    expect(result.offentligeYdelserUdvikling?.reguleringsBaseIso).toBe(iso('2024-07-01'));
+    expect(result.offentligeYdelserUdvikling?.entries[0]?.beregnedeSegmenter[0]?.deltaPct).toBeCloseTo(3.9, 10);
   });
 
   it('behandler midlertidigt EET som øvrige offentlige ydelser i hypotetisk TAF-indkomst', () => {

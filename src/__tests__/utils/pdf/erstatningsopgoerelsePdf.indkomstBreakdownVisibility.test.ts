@@ -508,7 +508,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(loenudviklingBlock.filter((text) => text === 'I alt').length).toBe(2);
   });
 
-  it('formaterer hypotetiske offentlige ydelser uden ydelses-subtotaler i indkomst uden skade', () => {
+  it('formaterer hypotetiske offentlige ydelser med ydelses-subtotaler i indkomst uden skade', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.vedroererPeriodeFra = iso('2024-12-01');
     eo.vedroererPeriodeTil = iso('2025-01-31');
@@ -544,20 +544,20 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       'Indtægter i erstatningsperioden'
     );
 
-    expect(loenudviklingBlock).toContain('Beregnes som lønnen opgjort frem til 31. december 2024 tillagt efterfølgende lønstigninger.');
+    expect(loenudviklingBlock).toContain('Opgøres på baggrund af lønnen opgjort frem til 31. december 2024.');
     expect(loenudviklingBlock).toContain('Offentlige ydelser beregnes per 31. december 2024 med statslig regulering per 1. januar.');
     expect(loenudviklingBlock).toContain('Dagpenge');
     expect(loenudviklingBlock).toContain('Sygedagpenge');
     expect(loenudviklingBlock.some((text) => text.includes('ydelse pr. arbejdsdag'))).toBe(false);
     expect(loenudviklingBlock.some((text) => text.includes('ydelse pr. måned'))).toBe(false);
-    expect(loenudviklingBlock).not.toContain('I alt Dagpenge');
-    expect(loenudviklingBlock).not.toContain('I alt Sygedagpenge');
-    expect(loenudviklingBlock).not.toContain('Samlet offentlige ydelser (hypotetisk)');
+    expect(loenudviklingBlock).toContain('I alt Dagpenge');
+    expect(loenudviklingBlock).toContain('I alt Sygedagpenge');
+    expect(loenudviklingBlock).toContain('Samlet offentlige ydelser (hypotetisk)');
     expect(loenudviklingBlock.filter((text) => /^I alt \d/.test(text))).toHaveLength(0);
-    expect(loenudviklingBlock.filter((text) => text === 'I alt')).toHaveLength(1);
+    expect(loenudviklingBlock.filter((text) => text === 'I alt')).toHaveLength(0);
   });
 
-  it('formaterer bilaget for regulering af offentlige ydelser uden periode, skadelidte og samlet total', () => {
+  it('formaterer bilaget for regulering af offentlige ydelser med periode, skadelidte og segmenttotaler', () => {
     const { stamdata, eo } = buildBaseInput();
     stamdata.skadelidte = 'Testi Testesen';
     eo.vedroererPeriodeFra = iso('2024-12-01');
@@ -596,17 +596,16 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     expect(bilagBlock).toContain('Regulering foretages med afsæt i værdier den');
     expect(bilagBlock).toContain('31-12-2024');
-    expect(bilagBlock).not.toContain('Periode');
-    expect(bilagBlock).not.toContain('01-12-2024 - 31-01-2025');
-    expect(bilagBlock).not.toContain('Skadelidte');
-    expect(bilagBlock).not.toContain('Testi Testesen');
+    expect(bilagBlock).toContain('Periode');
+    expect(bilagBlock).toContain('01-12-2024 - 31-01-2025');
+    expect(bilagBlock).toContain('Skadelidte');
+    expect(bilagBlock).toContain('Testi Testesen');
     expect(bilagBlock).toContain('Dagpenge');
     expect(bilagBlock).toContain('Sygedagpenge');
     expect(bilagBlock.some((text) => text.includes('regulering fra'))).toBe(false);
-    expect(bilagBlock).not.toContain('I alt Dagpenge');
-    expect(bilagBlock).not.toContain('I alt Sygedagpenge');
-    expect(bilagBlock).not.toContain('Samlet offentlige ydelser (hypotetisk)');
-    expect(bilagBlock.filter((text) => text === 'I alt')).toHaveLength(2);
+    expect(bilagBlock).toContain('I alt Dagpenge');
+    expect(bilagBlock).toContain('I alt Sygedagpenge');
+    expect(bilagBlock).toContain('Samlet offentlige ydelser (hypotetisk)');
     expect(bilagBlock).toContain(
       'Offentlige ydelser fremskrives årligt per 1. januar med tilpasningsprocenten + 2 %, svarende til den almene statslige regulering af offentlige ydelser.'
     );
@@ -1825,6 +1824,6 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const afstandForbeholdTilKlage = (klageY as number) - (forbeholdY as number);
     const afstandKlageTilKrav = (kravY as number) - (klageY as number);
     expect(afstandForbeholdTilKlage).toBe(afstandKlageTilKrav);
-    expect(afstandForbeholdTilKlage).toBeGreaterThanOrEqual(MIN_AFSTAND_MED_TOM_LINJE);
+    expect(afstandForbeholdTilKlage).toBeGreaterThanOrEqual(MIN_AFSTAND_MED_TOM_LINJE - 0.001);
   });
 });

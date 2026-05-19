@@ -614,9 +614,20 @@ export const generateErstatningsopgoerelsePdf = (
     if (model.periodeDisplay) {
       writeLabelValueLine('Periode', model.periodeDisplay);
     }
+    const skadelidteNavn = (stamdataValues.skadelidte ?? '').trim();
+    if (skadelidteNavn) {
+      writeLabelValueLine('Skadelidte', skadelidteNavn);
+    }
     writer.addSectionSpacer();
     safeAddWrappedText('Reguleringsværdier:');
-    const tableData = buildOffentligeYdelserReguleringTableData(offentligeYdelserUdvikling);
+    let tableData: ReturnType<typeof buildOffentligeYdelserReguleringTableData> = null;
+    let tableDataError = false;
+    try {
+      tableData = buildOffentligeYdelserReguleringTableData(offentligeYdelserUdvikling);
+    } catch {
+      tableDataError = true;
+      tableData = null;
+    }
     if (tableData && tableData.rows.length > 0) {
       const tableRows: RowInput[] = [
         tableData.columns.map((column) => createPdfTableHeaderCell(column, 'center')),
@@ -642,8 +653,44 @@ export const generateErstatningsopgoerelsePdf = (
         },
       });
       writer.setY(resolvePdfSectionEndY(finalY, startY));
+    } else if (tableDataError) {
+      safeAddWrappedText('Reguleringsværdier kan ikke vises, fordi en nødvendig reguleringssats mangler.');
     } else {
       safeAddWrappedText('Ingen regulering i den relevante periode.');
+    }
+    for (const entry of offentligeYdelserUdvikling.entries) {
+      writer.addSectionSpacer();
+      writer.writeUnderlinedSubheader(entry.label);
+      for (const segment of entry.beregnedeSegmenter) {
+        const fraDisplay = formatDateShort(segment.fra) ?? segment.fra;
+        const tilDisplay = formatDateShort(segment.til) ?? segment.til;
+        const deltaText = Math.abs(segment.deltaPct) < 0.00001
+          ? ''
+          : ` x (100 % ${segment.deltaPct >= 0 ? '+' : '-'} ${formatPercentDelta(segment.deltaPct)} %)`;
+        const leftText = segment.kind === 'arbejdsdage'
+          ? `${fraDisplay} - ${tilDisplay}: ${formatCountWithUnit(segment.arbejdsdage, 'arbejdsdag', 'arbejdsdage')} á ${formatCurrencyFromOre(segment.dagsloenOre)}${NBSP}kr.${deltaText} =`
+          : `${fraDisplay} - ${tilDisplay}: ${formatMaanederTrimmed(segment.maaneder)} ${isSingularCount(segment.maaneder) ? 'måned' : 'måneder'} á ${formatCurrencyFromOre(segment.maanedsloenOre)}${NBSP}kr.${deltaText} =`;
+        safeAddLeftRightText(leftText, formatMoneyOreWithKr(segment.amountOre), standardRightMaxWidth, { rightFontStyle: 'normal' });
+      }
+      if (entry.total.status === 'ok') {
+        safeAddLeftRightText(
+          `I alt ${entry.label}`,
+          formatMoneyOreWithKr(entry.total.value),
+          standardRightMaxWidth,
+          { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
+        );
+      } else {
+        safeAddLeftRightText(`I alt ${entry.label}`, '—', standardRightMaxWidth, { rightFontStyle: 'normal' });
+      }
+    }
+    if (offentligeYdelserUdvikling.total.status === 'ok') {
+      writer.addSectionSpacer();
+      safeAddLeftRightText(
+        'Samlet offentlige ydelser (hypotetisk)',
+        formatMoneyOreWithKr(offentligeYdelserUdvikling.total.value),
+        standardRightMaxWidth,
+        { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
+      );
     }
     writer.addSectionSpacer();
     writer.writeWrappedText('Offentlige ydelser fremskrives årligt per 1. januar med tilpasningsprocenten + 2 %, svarende til den almene statslige regulering af offentlige ydelser.');

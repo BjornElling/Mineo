@@ -1,8 +1,19 @@
-import { buildReguleringsvaerdierTableData, buildReguleringIndexRows, resolveLoenSkadedatoText } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
+import {
+  buildReguleringsvaerdierTableData,
+  buildReguleringIndexRows,
+  resolveAnvendtReguleringsdato as resolvePdfAnvendtReguleringsdato,
+  resolveLoenSkadedatoText,
+} from '../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
+import {
+  getAngivetLoenOpreguleresFraDato,
+  resolveAktivEllerFoersteLoenudviklingKilde,
+} from '../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { resolveAnvendtReguleringsdato as resolveSharedAnvendtReguleringsdato } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
 
@@ -19,6 +30,91 @@ const cloneInitialValues = () => ({
 });
 
 describe('eoPdfReguleringEngine', () => {
+  const expectPdfReguleringsdatoParity = (
+    values: ReturnType<typeof cloneInitialValues>,
+    af: ReturnType<typeof cloneInitialValues>['loenindkomstAnsaettelsesforhold'][number]
+  ) => {
+    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') };
+    const sharedResult = resolveSharedAnvendtReguleringsdato({
+      beregnesUdFra: values.beregnesUdFra,
+      angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+      saerligFraDatoRegulering: af.saerligFraDatoRegulering,
+      beregningsperiodeTil: values.tafBeregningsperiodeTil,
+      skadedato: stamdata.skadedato,
+    });
+
+    expect(resolvePdfAnvendtReguleringsdato(stamdata, values, af)).toBe(sharedResult);
+  };
+
+  it('bruger samme reguleringsdato i PDF-adapteren som den kanoniske shared-funktion', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.saerligFraDatoRegulering = iso('2024-07-01');
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeTil = iso('2024-01-31');
+
+    expectPdfReguleringsdatoParity(values, af);
+  });
+
+  it('vælger samme aktive ansættelsesforhold til PDF-reguleringsdato som motorens fælles helper', () => {
+    const values = cloneInitialValues();
+    const førsteAf = values.loenindkomstAnsaettelsesforhold[0];
+    const aktivAf = {
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      id: 'aktiv-af',
+      navnPaaArbejdssted: 'Aktivt arbejdssted',
+      loenudviklingBeregningsgrundlag: 'Statistik' as const,
+      loenudviklingStatistikModel: 'ILON12' as const,
+      saerligFraDatoRegulering: iso('2024-07-01'),
+      indtaegtsoplysningerTableData: [],
+      loenudviklingManuelTableData: [],
+    };
+    førsteAf.loenudviklingBeregningsgrundlag = 'Ingen';
+    førsteAf.saerligFraDatoRegulering = iso('2024-02-01');
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeTil = iso('2024-01-31');
+    values.loenindkomstAnsaettelsesforhold = [førsteAf, aktivAf];
+
+    const valgtAf = resolveAktivEllerFoersteLoenudviklingKilde(values);
+
+    expect(valgtAf?.id).toBe('aktiv-af');
+    expect(resolvePdfAnvendtReguleringsdato(
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      values,
+      valgtAf ?? førsteAf
+    )).toBe(iso('2024-07-01'));
+  });
+
+  it('bruger samme reguleringsdato i PDF-adapteren for angivet månedsløn', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.saerligFraDatoRegulering = undefined;
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2024-03-15');
+
+    expectPdfReguleringsdatoParity(values, af);
+  });
+
+  it('bruger samme reguleringsdato i PDF-adapteren for angivet dagsløn', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.saerligFraDatoRegulering = undefined;
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.angivetDagsloenOpreguleresFraDato = iso('2024-04-10');
+
+    expectPdfReguleringsdatoParity(values, af);
+  });
+
+  it('bruger samme undefined-reguleringsdato i PDF-adapteren uden særskilt dato eller beregningsperiode-slutdato', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.saerligFraDatoRegulering = undefined;
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeTil = undefined;
+
+    expectPdfReguleringsdatoParity(values, af);
+  });
+
   it('formaterer implicit beregningsperiode-slutdato som "opgjort frem til"', () => {
     expect(resolveLoenSkadedatoText({
       subject: 'lønnen',

@@ -7,6 +7,7 @@ import type {
 } from '../../../schemas/formSchemas';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatToISO } from '../../../utils/dateFormatting';
+import type { ISODateString } from '../../../types/branded';
 import { isStandardLoenRowEffectivelyEmpty } from '../../aarsloen/standardLoenRowCalculations';
 import { getOffentligeYdelserRowFilledState } from '../validation/offentligeYdelserTableValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from './indtaegtPerioder';
@@ -174,21 +175,26 @@ const hasSygeferiegodtgoerelseEoBilagData = (values: ErstatningsopgoerelseValues
   });
 };
 
-const hasOffentligeYdelserReguleringData = (values: ErstatningsopgoerelseValues): boolean => {
+const hasOffentligeYdelserReguleringData = (params: Readonly<{
+  values: ErstatningsopgoerelseValues;
+  skadedatoISO?: ISODateString | undefined;
+}>): boolean => {
+  const { values, skadedatoISO } = params;
   if (values.beregnesUdFra !== 'Beregningsperiode') return false;
   if (values.regulerOffentligeYdelser !== 'Ja') return false;
   const beregningsperiodeRange = buildBeregningsperiodeRange(values);
   if (!beregningsperiodeRange) return false;
   const tafRanges = buildTafRanges(values);
   if (tafRanges.length === 0) return false;
-  const income = buildIncomeForRanges(values, [beregningsperiodeRange]);
+  const income = buildIncomeForRanges(values, [beregningsperiodeRange], undefined, skadedatoISO);
   return income.benefits.length > 0;
 };
 
 export const getEoBilagAvailability = (params: Readonly<{
   eoValues: ErstatningsopgoerelseValues;
+  skadedatoISO?: ISODateString | undefined;
 }>): EoBilagAvailabilityMap => {
-  const { eoValues } = params;
+  const { eoValues, skadedatoISO } = params;
   const eoBilagMode = eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
   const eoBilagRanges = buildEoBilagIndkomstYdelserRanges(eoValues, eoBilagMode);
   const eoBilagRangeGroups = buildPeriodRangeGroups(eoValues, eoBilagMode, eoBilagRanges);
@@ -197,7 +203,10 @@ export const getEoBilagAvailability = (params: Readonly<{
   const harLoenindkomst = kanViseIndkomstOgYdelserBilag && hasLoenindkomstEoBilagData(eoValues, eoBilagMode, eoBilagRangeGroups);
   const harOffentligeYdelser = kanViseIndkomstOgYdelserBilag && hasOffentligeYdelserEoBilagData(eoValues, eoBilagMode, eoBilagRangeGroups);
   const harRegulering = hasReguleringEoBilagData(eoValues);
-  const harOffentligeYdelserRegulering = hasOffentligeYdelserReguleringData(eoValues);
+  const harOffentligeYdelserRegulering = hasOffentligeYdelserReguleringData({
+    values: eoValues,
+    skadedatoISO,
+  });
   const harSygeferiegodtgoerelse = hasSygeferiegodtgoerelseEoBilagData(eoValues);
   const midlertidigtEetFraEetSiden = eoValues.midlertidigtEetFraEetSiden === 'Ja';
 

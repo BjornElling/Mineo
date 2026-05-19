@@ -269,9 +269,15 @@ export const buildEODebugPageViewModel = (
         !employmentSections.some((employmentSection) => employmentSection.id === section.id)
       )
     : [];
-  const offentligeYdelserReguleringTableData = view.pdfModel?.tabtArbejdsfortjeneste.offentligeYdelserUdvikling
-    ? buildOffentligeYdelserReguleringTableData(view.pdfModel.tabtArbejdsfortjeneste.offentligeYdelserUdvikling)
-    : null;
+  const offentligeYdelserReguleringTableData = (() => {
+    const offentligeYdelserUdvikling = view.pdfModel?.tabtArbejdsfortjeneste.offentligeYdelserUdvikling;
+    if (!offentligeYdelserUdvikling) return null;
+    try {
+      return buildOffentligeYdelserReguleringTableData(offentligeYdelserUdvikling);
+    } catch {
+      return null;
+    }
+  })();
   const offentligeYdelserReguleringsBaseIso =
     view.pdfModel?.tabtArbejdsfortjeneste.offentligeYdelserUdvikling?.reguleringsBaseIso;
   const offentligeYdelserBaseRow: readonly DebugRowModel[] =

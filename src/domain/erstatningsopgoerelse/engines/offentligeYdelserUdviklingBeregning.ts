@@ -67,6 +67,13 @@ const buildReguleringsSegments = (
   }));
 };
 
+/**
+ * Bygger den rene visningstabel for offentlige ydelsers statslige regulering.
+ *
+ * Kan kaste ved manglende reguleringssatser. Kald fra render-/debug-lag skal
+ * håndtere det defensivt, så et edge-case i tabelvisningen ikke vælter hele
+ * PDF- eller debug-genereringen.
+ */
 export const buildOffentligeYdelserReguleringTableData = (
   model: OffentligeYdelserUdviklingModel
 ): OffentligeYdelserReguleringTableData | null => {
@@ -95,6 +102,7 @@ export const buildOffentligeYdelserReguleringTableData = (
     if (typeof sats !== 'number' || !Number.isFinite(sats)) {
       throw new Error(`Offentlige ydelser kan ikke beregnes: reguleringssats mangler for ${year}`);
     }
+    // Statslig regulering af offentlige ydelser sker årligt per 1. januar.
     const dateIso = toISODateString(`${year}-01-01`);
     rows.push([
       formatISOToDanish(dateIso) ?? dateIso,
@@ -217,7 +225,12 @@ export const buildOffentligeYdelserUdviklingModel = (params: Readonly<{
   });
 
   const totalOre = clampMoneyOreToZero(
-    ensureMoneyOre(entries.reduce((sum, entry) => sum + entry.total.value, 0))
+    ensureMoneyOre(entries.reduce((sum, entry) => {
+      if (entry.total.status !== 'ok') {
+        throw new Error('Offentlige ydelser kan ikke beregnes: ydelsestotal mangler');
+      }
+      return sum + entry.total.value;
+    }, 0))
   );
 
   return {

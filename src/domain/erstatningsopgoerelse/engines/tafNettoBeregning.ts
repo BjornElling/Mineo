@@ -8,8 +8,9 @@ import {
   type IsoRange,
 } from '../helpers/indtaegtPerioder';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
-import { getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers';
+import { getAngivetLoenOpreguleresFraDato, resolveAktivEllerFoersteLoenudviklingKilde } from '../helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
+import { isISODateString, type ISODateString } from '../../../types/branded';
 import { buildIndkomstSkadestidspunkt } from './indkomstSkadestidspunktBeregning';
 import { buildTafArbejdsdageSet, buildLoenudviklingModel } from './loenudviklingBeregning';
 import { buildOffentligeYdelserUdviklingModel } from './offentligeYdelserUdviklingBeregning';
@@ -91,6 +92,32 @@ const buildTafIndtaegterModel = (
   };
 };
 
+const resolveOffentligeYdelserReguleringsBaseIso = (
+  values: ErstatningsopgoerelseValues,
+  stamdataValues: StamdataValues
+): ISODateString | undefined => {
+  if (values.beregnesUdFra !== 'Beregningsperiode') {
+    return resolveAnvendtReguleringsdato({
+      beregnesUdFra: values.beregnesUdFra,
+      angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+      saerligFraDatoRegulering: undefined,
+      beregningsperiodeTil: values.tafBeregningsperiodeTil,
+      skadedato: stamdataValues.skadedato,
+    });
+  }
+
+  const aktivKilde = resolveAktivEllerFoersteLoenudviklingKilde(values);
+  return resolveAnvendtReguleringsdato({
+    beregnesUdFra: values.beregnesUdFra,
+    angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+    saerligFraDatoRegulering: isISODateString(aktivKilde?.saerligFraDatoRegulering)
+      ? aktivKilde.saerligFraDatoRegulering
+      : undefined,
+    beregningsperiodeTil: values.tafBeregningsperiodeTil,
+    skadedato: stamdataValues.skadedato,
+  });
+};
+
 export type TafNettoBeregningResult = Readonly<{
   harTafPerioder: boolean;
   tafBeregningsenhed: ReturnType<typeof computeTafBeregningsenhed>;
@@ -136,13 +163,7 @@ export const computeTafNettoBeregning = (
       incomeForBeregningsperiode,
     })
     : null;
-  const offentligeYdelserReguleringsBaseIso = resolveAnvendtReguleringsdato({
-    beregnesUdFra: values.beregnesUdFra,
-    angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
-    saerligFraDatoRegulering: undefined,
-    beregningsperiodeTil: values.tafBeregningsperiodeTil,
-    skadedato: stamdataValues.skadedato,
-  });
+  const offentligeYdelserReguleringsBaseIso = resolveOffentligeYdelserReguleringsBaseIso(values, stamdataValues);
   const offentligeYdelserDivisor =
     tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
       ? indkomstSkadestidspunkt?.maaneder

@@ -108,3 +108,13 @@ export const resolveLoenudviklingKilde = (
     },
   }];
 };
+
+export const resolveAktivEllerFoersteLoenudviklingKilde = (
+  values: ErstatningsopgoerelseValues
+): LoenudviklingSource | undefined => {
+  const kilder = resolveLoenudviklingKilde(values);
+  return kilder.find((kilde) =>
+    kilde.loenudviklingBeregningsgrundlag !== undefined &&
+    kilde.loenudviklingBeregningsgrundlag !== 'Ingen'
+  ) ?? kilder[0];
+};

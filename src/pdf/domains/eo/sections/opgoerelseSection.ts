@@ -1,7 +1,7 @@
 import { MARGINS } from '../../../infrastructure/pdfConfig';
 import { ensureNonBreakingKr } from '../../../shared/pdfTextUtils';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
-import { resolveLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { resolveAktivEllerFoersteLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
 import {
   getDayAfterIso,
@@ -600,12 +600,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
     // Brug den aktive lønudviklings-ansættelse til at resolve kanonisk reguleringsdato.
     // `resolveAnvendtReguleringsdato` er den kanoniske sandhed — ingen lokal fallback-logik.
-    const aktivLoenudviklingAf = (() => {
-      const ansaettelser = resolveLoenudviklingKilde(eoValues);
-      return ansaettelser.find(
-        (af) => af.loenudviklingBeregningsgrundlag && af.loenudviklingBeregningsgrundlag !== 'Ingen'
-      ) ?? ansaettelser[0];
-    })();
+    const aktivLoenudviklingAf = resolveAktivEllerFoersteLoenudviklingKilde(eoValues);
     const skadedatoIso = parseOptionalIsoDate(stamdataValues.skadedato);
     const anvendtReguleringsdatoForOpgoerelse = aktivLoenudviklingAf
       ? resolveAnvendtReguleringsdato(stamdataValues, eoValues, aktivLoenudviklingAf)
@@ -632,11 +627,14 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const offentligeYdelserBaseText = offentligeYdelserUdvikling?.reguleringsBaseIso
       ? ` per ${formatDateLong(offentligeYdelserUdvikling.reguleringsBaseIso)}`
       : '';
-    const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = harOffentligeYdelserUdvikling
-      ? `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger.\nOffentlige ydelser beregnes${offentligeYdelserBaseText} ${offentligeYdelserReguleringText}.`
-      : loenudvikling?.loenudviklingLabel === 'Ingen'
+    const resolveIndkomstBeregningsText = (): string => {
+      const loenTekst = loenudvikling?.loenudviklingLabel === 'Ingen' || !loenudvikling
         ? `Opgøres på baggrund af ${loenSkadedatoText}.`
         : `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger.`;
+      if (!harOffentligeYdelserUdvikling) return loenTekst;
+      return `${loenTekst}\nOffentlige ydelser beregnes${offentligeYdelserBaseText} ${offentligeYdelserReguleringText}.`;
+    };
+    const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = resolveIndkomstBeregningsText();
     if (harOffentligeYdelserUdvikling) {
       renderSubheader('Indkomst, hvis skaden ikke var indtrådt');
       for (const line of indkomstHvisSkadeIkkeIndtraadtBeskrivelse.split('\n')) {
@@ -659,10 +657,14 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         total: Calculable<MoneyOre>,
         forceTotalLine: boolean,
         labels: Readonly<{ unitMaaned: string; unitDag: string; total: string }>,
-        options?: Readonly<{ suppressTotalLine?: boolean }>
+        options?: Readonly<{ suppressTotalLine?: boolean; sourceKind?: 'loen' | 'offentligYdelse' }>
       ) => {
         if (total.status !== 'ok') {
-          safeAddWrappedText('Lønudvikling kan ikke beregnes for den valgte opsætning.');
+          safeAddWrappedText(
+            options?.sourceKind === 'offentligYdelse'
+              ? 'Offentlige ydelser kan ikke beregnes for den valgte opsætning.'
+              : 'Lønudvikling kan ikke beregnes for den valgte opsætning.'
+          );
           return;
         }
         const segmentsForDisplay = mergeLoenudviklingSegments(segments);
@@ -728,15 +730,16 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       for (const entry of offentligeYdelserUdvikling?.entries ?? []) {
         writer.addSectionSpacer();
         writer.writeUnderlinedSubheader(entry.label);
-        renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.total, false, {
-          unitMaaned: '',
-          unitDag: '',
-          total: 'I alt',
-        }, { suppressTotalLine: true });
+        renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.total, true, {
+          unitMaaned: 'ydelse',
+          unitDag: 'ydelse',
+          total: `I alt ${entry.label}`,
+        }, { sourceKind: 'offentligYdelse' });
       }
       if (offentligeYdelserUdvikling && offentligeYdelserUdvikling.total.status === 'ok') {
+        writer.addSectionSpacer();
         safeAddLeftRightText(
-          'I alt',
+          'Samlet offentlige ydelser (hypotetisk)',
           formatMoneyOreWithKr(offentligeYdelserUdvikling.total.value),
           rightMaxWidth,
           { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
