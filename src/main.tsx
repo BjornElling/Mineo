@@ -2,11 +2,6 @@
 // Standard entrypunkt for Vite + React
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import '@fontsource/montserrat/400.css';
-import '@fontsource/montserrat/500.css';
-import '@fontsource/montserrat/600.css';
-import '@fontsource/montserrat/700.css';
-import './index.css';
 import { setupPwaInstallPromptCapture, suppressPwaInstallPrompt } from './utils/pwaInstallPrompt';
 import { VERSION } from './config/version';
 
@@ -207,6 +202,16 @@ const setupPwaFileOpenHandling = async (): Promise<void> => {
   await hydratePendingPwaFileOpenRequest();
 };
 
+const loadDesktopStyles = async (): Promise<void> => {
+  await Promise.all([
+    import('@fontsource/montserrat/latin-400.css'),
+    import('@fontsource/montserrat/latin-500.css'),
+    import('@fontsource/montserrat/latin-600.css'),
+    import('@fontsource/montserrat/latin-700.css'),
+    import('./index.css'),
+  ]);
+};
+
 const bootstrap = async (): Promise<void> => {
   const unsupportedDevice = isUnsupportedDevice();
   if (unsupportedDevice) {
@@ -225,6 +230,9 @@ const bootstrap = async (): Promise<void> => {
     return;
   }
 
+  const desktopStylesPromise = loadDesktopStyles();
+  const authGateModulePromise = import('./auth/AuthGate');
+
   await setupPwaFileOpenHandling();
   await ensureLatestVersionBeforeRender();
   setupServiceWorkerUpdateChecks();
@@ -234,7 +242,8 @@ const bootstrap = async (): Promise<void> => {
     return;
   }
 
-  const { default: AuthGate } = await import('./auth/AuthGate');
+  await desktopStylesPromise;
+  const { default: AuthGate } = await authGateModulePromise;
   root.render(
     <React.StrictMode>
       <AuthGate />

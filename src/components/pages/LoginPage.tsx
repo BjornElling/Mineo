@@ -206,7 +206,6 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
                   boxSizing: 'border-box',
                   backgroundColor: 'var(--color-input-bg)',
                   color: 'var(--color-text-primary)',
-                  transition: 'border-color 0.15s ease',
                 }}
                 onFocus={(e) => {
                   if (!errorMessage) {

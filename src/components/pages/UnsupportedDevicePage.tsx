@@ -39,7 +39,11 @@ const UnsupportedDevicePage = () => {
       style={{
         position: 'fixed',
         inset: 0,
-        backgroundColor: 'var(--color-surface)',
+        backgroundColor: '#f8f9fa',
+        color: 'rgba(0, 0, 0, 0.87)',
+        fontFamily: 'Arial, Helvetica, sans-serif',
+        fontSize: '14px',
+        lineHeight: 1.4,
         overflowY: 'auto',
         WebkitOverflowScrolling: 'touch',
         paddingBottom: 'env(safe-area-inset-bottom)',
@@ -64,29 +68,51 @@ const UnsupportedDevicePage = () => {
           }}
         >
           <h1
-            className="page-title"
-            style={{ fontSize: '28px', marginBottom: '24px' }}
+            style={{
+              color: 'rgba(0, 0, 0, 0.87)',
+              fontSize: '28px',
+              fontWeight: 500,
+              lineHeight: 1.4,
+              margin: '0 0 24px',
+              padding: 0,
+            }}
           >
             Mineo
           </h1>
 
           <div
-            className="content-box"
             style={{
               width: '100%',
               maxWidth: '1200px',
+              backgroundColor: '#ffffff',
+              border: '1px solid rgba(0, 0, 0, 0.08)',
+              borderRadius: '20px',
+              boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
               padding: '24px 16px',
               boxSizing: 'border-box',
             }}
           >
             <p
-              className="section-header"
-              style={{ fontSize: '16px', marginBottom: '16px' }}
+              style={{
+                color: 'rgba(0, 0, 0, 0.87)',
+                fontSize: '16px',
+                fontWeight: 500,
+                lineHeight: 1.4,
+                margin: '0 0 16px',
+                padding: 0,
+              }}
             >
               Desværre...
             </p>
 
-            <div className="body-text">
+            <div
+              style={{
+                color: 'rgba(0, 0, 0, 0.87)',
+                fontSize: '14px',
+                fontWeight: 400,
+                lineHeight: 1.4,
+              }}
+            >
               <p style={{ marginTop: 0 }}>
                 Mineo er et komplekst program, der beregner erstatning
                 i arbejdsskadesager.
