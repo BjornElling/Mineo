@@ -4,12 +4,12 @@
 
 | Punkt | Navn | Status | Fil |
 |---|---|---|---|
-| 1.1 | Kontrakter: persistence, schema-evolution, form, page-component | ⬜ Ikke startet | — |
-| 1.2 | Kontrakter: domain-boundary, periodisering, snapshot, eo-snapshot | ⬜ Ikke startet | — |
-| 1.3 | Kontrakter: date, mineo-field-pattern, error-debug, app-settings | ⬜ Ikke startet | — |
-| 1.4 | Kontrakter: pdf, pdf-layout, keyboard-navigation (+ checklist) | ⬜ Ikke startet | — |
-| 1.5 | Arkitektur-dokumentation: calculation, pdf, debug-builder | ⬜ Ikke startet | — |
-| 1.6 | Helhedsvurdering af kontraktlandskabet og arkitektoniske grundprincipper | ⬜ Ikke startet | — |
+| 1.1 | Kontrakter: persistence, schema-evolution, form, page-component | ✅ Gennemgået | [1.1-kontrakter-persistence-schema-evolution-form-page.md](1.1-kontrakter-persistence-schema-evolution-form-page.md) |
+| 1.2 | Kontrakter: domain-boundary, periodisering, snapshot, eo-snapshot | ✅ Gennemgået | [1.2-kontrakter-domain-boundary-periodisering-snapshot-eo-snapshot.md](1.2-kontrakter-domain-boundary-periodisering-snapshot-eo-snapshot.md) |
+| 1.3 | Kontrakter: date, mineo-field-pattern, error-debug, app-settings | ✅ Gennemgået | [1.3-kontrakter-date-mineo-field-pattern-error-debug-app-settings.md](1.3-kontrakter-date-mineo-field-pattern-error-debug-app-settings.md) |
+| 1.4 | Kontrakter: pdf, pdf-layout, keyboard-navigation (+ checklist) | ✅ Gennemgået | [1.4-kontrakter-pdf-pdf-layout-keyboard-navigation.md](1.4-kontrakter-pdf-pdf-layout-keyboard-navigation.md) |
+| 1.5 | Arkitektur-dokumentation: calculation, pdf, debug-builder | ✅ Gennemgået | [1.5-arkitektur-calculation-pdf-debug-builder.md](1.5-arkitektur-calculation-pdf-debug-builder.md) |
+| 1.6 | Helhedsvurdering af kontraktlandskabet og arkitektoniske grundprincipper | ✅ Gennemgået | [1.6-helhedsvurdering-kontraktlandskab.md](1.6-helhedsvurdering-kontraktlandskab.md) |
 | 2.1 | Persistence-arkitektur | ✅ Gennemgået | [2.1-persistence-arkitektur.md](2.1-persistence-arkitektur.md) |
 | 2.2 | Undo/redo-store | ⬜ Ikke startet | — |
 | 2.3 | FormPersistenceContext og store | ⬜ Ikke startet | — |
