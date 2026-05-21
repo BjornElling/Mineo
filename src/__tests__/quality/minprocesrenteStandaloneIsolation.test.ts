@@ -6,6 +6,9 @@ const standaloneRoots = [
   path.join(repoRoot, 'src/apps/minprocesrente'),
   path.join(repoRoot, 'src/components/pages/minprocesrente'),
 ];
+const standaloneFiles = [
+  path.join(repoRoot, 'src/pdf/infrastructure/standaloneRentePdfService.ts'),
+];
 
 const collectSourceFiles = (root: string): string[] => {
   const entries = readdirSync(root);
@@ -22,6 +25,7 @@ const collectSourceFiles = (root: string): string[] => {
 const readStandaloneSource = (): string => {
   return standaloneRoots
     .flatMap(collectSourceFiles)
+    .concat(standaloneFiles)
     .map((filePath) => readFileSync(filePath, 'utf8'))
     .join('\n');
 };
@@ -39,6 +43,8 @@ describe('MinProcesrente standalone isolation', () => {
   it('læser ikke stamdata, indstillinger eller andre Mineo-sektioner som brugerdata', () => {
     const source = readStandaloneSource();
 
+    // Strengmatchene her er en guard mod direkte sektionstilgang. De erstatter ikke PDF-adapterens
+    // enhedstest, som kontrollerer at kaldet sendes videre uden stamdata og settings.
     expect(source).not.toContain("usePersistedSectionSelector('stamdata')");
     expect(source).not.toContain('useAppSettings');
     expect(source).not.toContain('AppSettingsProvider');

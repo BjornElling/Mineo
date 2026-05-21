@@ -12,6 +12,10 @@ import { downloadStandaloneRentePdf } from '../../../pdf/infrastructure/standalo
 import type { CommitHandler } from '../../../types/fieldEvents';
 import RenteberegningTab from '../renteberegning/RenteberegningTab';
 
+const ignoreStandaloneForwardedError = (): void => {
+  // MinProcesrente viser PDF-fejl lokalt og har ingen overliggende Mineo-fejlkanal.
+};
+
 const MinProcesrenteCalculatorPage = React.memo(() => {
   const initialValues = React.useMemo(() => createRenteberegningInitialValues(), []);
   const { values, setValues, setFieldValue, formVersion } = usePersistedForm(
@@ -20,12 +24,6 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
     initialValues
   );
   const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
-
-  const handleError = React.useCallback((message: string, context: string, error?: unknown) => {
-    if (process.env.NODE_ENV === 'development') {
-      console.error(`[${context}] ${message}`, error);
-    }
-  }, []);
 
   const rentekrav = useRentekravRows({ values, setValues, resyncToken: formVersion });
 
@@ -50,7 +48,6 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
       const beregningsdatoDanish = isoToDanish(pdfContext.beregningsdato);
       if (!actualInterestDateDanish || !beregningsdatoDanish) {
         setPdfErrorMessage('Kunne ikke generere rente-PDF.');
-        handleError('Ugyldige datoer for PDF-generering', 'MinProcesrente.PDFGeneration');
         return;
       }
 
@@ -64,7 +61,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
       });
       setPdfErrorMessage(result.success ? null : result.error);
     },
-    [handleError, values.kommentarer]
+    [values.kommentarer]
   );
 
   return (
@@ -81,7 +78,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         onRentekravReorder={rentekrav.reorderRows}
         onDownloadSpecifikation={handleDownloadRentePdf}
         committedRentekravById={rentekrav.committedById}
-        onError={handleError}
+        onError={ignoreStandaloneForwardedError}
         pdfErrorMessage={pdfErrorMessage}
         referenceRates={referenceRates}
         surchargeRates={surchargeRates}

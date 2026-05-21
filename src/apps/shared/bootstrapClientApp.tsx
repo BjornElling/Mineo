@@ -1,12 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import { setupPwaInstallPromptCapture, suppressPwaInstallPrompt } from '../../utils/pwaInstallPrompt';
 
 const UNSUPPORTED_MAX_SCREEN_WIDTH_PX = 1366;
+let installPromptSuppressionRegistered = false;
 
 export type ClientAppBootstrapOptions = Readonly<{
   renderApp: () => React.ReactNode | Promise<React.ReactNode>;
   setupPwaFileOpenHandling?: () => Promise<void>;
+  setupPwaInstallPromptCapture?: () => void;
   beforeDesktopRender?: () => Promise<void>;
   afterDesktopRenderSetup?: () => void;
   capturePwaInstallPrompt: boolean;
@@ -50,6 +51,15 @@ const loadDesktopStyles = async (): Promise<void> => {
   ]);
 };
 
+const suppressBrowserInstallPrompt = (): void => {
+  if (typeof window === 'undefined') return;
+  if (installPromptSuppressionRegistered) return;
+  installPromptSuppressionRegistered = true;
+  window.addEventListener('beforeinstallprompt', (event: Event) => {
+    event.preventDefault();
+  });
+};
+
 export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Promise<void> => {
   const rootElement = document.getElementById('root');
   if (!rootElement) {
@@ -59,9 +69,10 @@ export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Pr
   const root = ReactDOM.createRoot(rootElement);
   const unsupportedDevice = isUnsupportedDevice();
   if (unsupportedDevice || !options.capturePwaInstallPrompt) {
-    suppressPwaInstallPrompt();
+    // Standalone app-varianter uden PWA suppresser altid browserens install-prompt.
+    suppressBrowserInstallPrompt();
   } else {
-    setupPwaInstallPromptCapture();
+    options.setupPwaInstallPromptCapture?.();
   }
 
   if (unsupportedDevice) {
@@ -79,11 +90,6 @@ export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Pr
   await options.setupPwaFileOpenHandling?.();
   await options.beforeDesktopRender?.();
   options.afterDesktopRenderSetup?.();
-
-  if (isUnsupportedDevice()) {
-    window.location.reload();
-    return;
-  }
 
   await desktopStylesPromise;
   const app = await options.renderApp();

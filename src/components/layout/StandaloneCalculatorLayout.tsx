@@ -12,7 +12,8 @@ const StandaloneCalculatorLayout = React.memo(({ children }: StandaloneCalculato
       backgroundColor: 'var(--color-surface)',
     }}
     contentSx={{
-      width: '1200px',
+      width: '100%',
+      maxWidth: '1200px',
       paddingLeft: 0,
       paddingTop: 0,
       margin: '0 auto',

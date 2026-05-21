@@ -3,6 +3,7 @@ import {
   ensureLatestServiceWorkerBeforeRender,
   setupServiceWorkerUpdateChecks,
 } from './apps/mineo/serviceWorkerBootstrap';
+import { setupPwaInstallPromptCapture } from './utils/pwaInstallPrompt';
 
 void bootstrapClientApp({
   renderApp: async () => {
@@ -20,5 +21,6 @@ void bootstrapClientApp({
   },
   beforeDesktopRender: ensureLatestServiceWorkerBeforeRender,
   afterDesktopRenderSetup: setupServiceWorkerUpdateChecks,
+  setupPwaInstallPromptCapture,
   capturePwaInstallPrompt: true,
 });

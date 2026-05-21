@@ -11,7 +11,8 @@ const STANDALONE_SETTINGS = {
 
 export const StandaloneSettingsBridge = ({ children }: { children: React.ReactNode }): React.ReactElement => {
   const updateSettings = React.useCallback(() => {
-    // MinProcesrente har ingen brugerindstillinger i første standalone-version.
+    // MinProcesrente har ingen brugerindstillinger i første standalone-version. DEFAULT_APP_SETTINGS
+    // genbruges kun for at tilfredsstille eksisterende passive setting-consumere uden persistence.
   }, []);
 
   const value = React.useMemo<AppSettingsContextValue>(
