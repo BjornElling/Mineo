@@ -203,4 +203,12 @@ describe('validateInterestCalculation', () => {
       if (!result.success) expect(result.error).toBe('INVALID_DATE_ORDER');
     });
   });
+
+  describe('DATE_BEFORE_RATE_COVERAGE', () => {
+    it('rentedato før tidligste referencesats → DATE_BEFORE_RATE_COVERAGE', () => {
+      const result = validateInterestCalculation(d('01-01-2004'), validBeloeb, d('01-01-2004'), validBeregningsdato);
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toBe('DATE_BEFORE_RATE_COVERAGE');
+    });
+  });
 });

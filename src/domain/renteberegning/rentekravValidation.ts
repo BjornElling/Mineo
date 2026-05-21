@@ -8,6 +8,7 @@
 import type { DanishDateString } from '../../types/branded';
 import { danishToISO, isoToDanish, parseISODate, dateToISO } from '../../types/branded';
 import type { Result } from '../../types/result';
+import { MIN_INTEREST_DATE, MIN_SURCHARGE_DATE } from '../../data/interestRates';
 
 // ============================================================================
 // ERROR TYPES
@@ -32,7 +33,8 @@ export type ValidationError =
   | 'MISSING_RENTEDATO'      // Manglende rentedato
   | 'MISSING_BEREGNING_DATO' // Manglende beregningsdato
   | 'INVALID_AMOUNT'         // Ugyldigt beløb (≤ 0 eller ikke-finit)
-  | 'INVALID_DATE_ORDER';    // Kravet-dato efter beregningsdato
+  | 'INVALID_DATE_ORDER'     // Kravet-dato efter beregningsdato
+  | 'DATE_BEFORE_RATE_COVERAGE'; // Rentedato før tilgængelige rente-/tillægssatser
 
 // ============================================================================
 // DOMAIN TYPES
@@ -198,6 +200,10 @@ export function validateInterestCalculation(
 
   if (!isoRentedato || !isoBeregningsdato) {
     return { success: false, error: 'INVALID_DATE_ORDER' };
+  }
+
+  if (isoRentedato < MIN_INTEREST_DATE || isoRentedato < MIN_SURCHARGE_DATE) {
+    return { success: false, error: 'DATE_BEFORE_RATE_COVERAGE' };
   }
 
   // Tjek dato-rækkefølge

@@ -1,4 +1,3 @@
-import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppSettings } from '../../../settings/appSettingsSchema';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';

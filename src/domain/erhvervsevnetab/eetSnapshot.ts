@@ -16,6 +16,7 @@ import { navigationSortKey, toFieldIssue } from './eetFormatUtils';
 import { computeEetKapitaliseringCalculation } from './eetKapitaliseringCalculation';
 import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
 import type { EetIssue } from './eetTypes';
+import { reportSystemIssue } from '../../utils/systemIssueReporter';
 
 type FieldErrorMessage = Pick<FormFieldError, 'message'> | undefined;
 
@@ -48,6 +49,39 @@ const sortAndDedupeIssues = (issues: readonly EetIssue[]): readonly EetIssue[] =
   return dedupeIssuesBySeverityAndMessage([...issues]).sort(
     (a, b) => navigationSortKey(a.id) - navigationSortKey(b.id)
   );
+};
+
+const createRuntimeExceptionIssue = (message: string): readonly EetIssue[] => [{
+  id: 'runtime-exception',
+  severity: 'error',
+  message,
+}];
+
+const safeBuildProjection = <TComputation>(
+  build: () => EetTabProjection<TComputation>,
+  context: string
+): EetTabProjection<TComputation> => {
+  try {
+    return build();
+  } catch (error) {
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    reportSystemIssue({
+      code: `eet_snapshot:${context}`,
+      area: 'calculation',
+      context: `eetSnapshot.${context}`,
+      userMessage: 'Uventet runtimefejl i EET-beregning',
+      developerMessage: normalizedError.message,
+      error: normalizedError,
+      diagnostics: {
+        errorName: normalizedError.name,
+      },
+    });
+    return {
+      issues: createRuntimeExceptionIssue('Beregningen kan ikke gennemføres på grund af en intern beregningsfejl.'),
+      hasBlockingErrors: true,
+      computation: null,
+    };
+  }
 };
 
 const createFieldIssues = (
@@ -164,9 +198,9 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
 // feltvalidering, ikke tabelrækkernes indbyrdes konsistens.
 export const computeEetSnapshot = (input: EetSnapshotInput): EetSnapshot => {
   return {
-    loebendeYdelser: buildLoebendeYdelserProjection(input),
-    kapitalisering: buildKapitaliseringProjection(input),
-    efterEal: buildEfterEalProjection(input),
-    differencekrav: buildDifferencekravProjection(input),
+    loebendeYdelser: safeBuildProjection(() => buildLoebendeYdelserProjection(input), 'loebende_ydelser'),
+    kapitalisering: safeBuildProjection(() => buildKapitaliseringProjection(input), 'kapitalisering'),
+    efterEal: safeBuildProjection(() => buildEfterEalProjection(input), 'efter_eal'),
+    differencekrav: safeBuildProjection(() => buildDifferencekravProjection(input), 'differencekrav'),
   };
 };

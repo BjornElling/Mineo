@@ -37,6 +37,7 @@ export type AmountParseOptions = Readonly<{
 }>;
 
 const EXPRESSION_ERROR_PREFIX = 'Fejl i funktion:';
+const MAX_DECIMAL_DIGITS = 15;
 
 type Token =
   | { type: 'number'; value: Rational; normalized: string }
@@ -159,6 +160,9 @@ const parseNumberToken = (
   const normalizedIntegerDigits = integerDigits.replace(/^0+(?=\d)/, '');
   const safePrecision = Math.max(0, Math.trunc(precision));
   const normalizedDecimal = decimalRaw;
+  if (normalizedDecimal !== undefined && normalizedDecimal.length > MAX_DECIMAL_DIGITS) {
+    return { ok: false, error: { code: 'INVALID_OPERATOR_SEQUENCE', message: 'For mange decimaler' } };
+  }
 
   const normalized =
     normalizedDecimal !== undefined && normalizedDecimal !== ''

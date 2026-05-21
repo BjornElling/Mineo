@@ -222,6 +222,14 @@ describe('parseAmountInput', () => {
     expect(result.error.message).toBe('Ugyldigt beløb');
   });
 
+  it('rejects decimal operands with more than 15 digits', () => {
+    const result = parse('0,1234567890123456');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.kind).toBe('number');
+    expect(result.error.message).toBe('For mange decimaler');
+  });
+
   it('rejects negative numbers when configured', () => {
     const result = parse('-1', { allowNegative: false });
     expect(result.ok).toBe(false);

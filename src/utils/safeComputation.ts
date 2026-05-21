@@ -5,9 +5,9 @@
  * Logger automatisk fejl til centraliseret logging system.
  *
  * Hvorfor?
- * - ErrorBoundary fanger KUN render-fejl
- * - Event handlers, async kode, og useMemo fanger IKKE af ErrorBoundary
- * - safeCompute sikrer at ALLE beregninger er beskyttet
+ * - ErrorBoundary fanger render-fase-fejl, herunder useMemo under render
+ * - Event handlers og async kode fanges ikke af ErrorBoundary
+ * - safeCompute lader beregninger fail-closed uden at route brugeren til crash-fallback
  *
  * Eksempel:
  * ```typescript

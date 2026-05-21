@@ -115,4 +115,27 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
     const expected2024 = buildExpectedInterest(100000, '01-01-2024', '31-12-2024', 10);
     expect(result).toBe(expected2023 + expected2024);
   });
+
+  it('dato før tilgængelige satser → null uden exception', () => {
+    const { ref, sur } = buildMinimalRates();
+    const result = calculateProcessInterestWithRates(
+      1000,
+      toDanishDateString('01-01-2009'),
+      toDanishDateString('31-01-2009'),
+      ref,
+      sur
+    );
+    expect(result).toBeNull();
+  });
+
+  it('tomme satstabeller → null uden exception', () => {
+    const result = calculateProcessInterestWithRates(
+      1000,
+      toDanishDateString('01-01-2024'),
+      toDanishDateString('31-01-2024'),
+      [],
+      []
+    );
+    expect(result).toBeNull();
+  });
 });
