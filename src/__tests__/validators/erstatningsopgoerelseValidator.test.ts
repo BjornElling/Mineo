@@ -184,6 +184,35 @@ describe('TAF validering', () => {
     });
     expect(hasError(values, 'Til-dato skal være efter fra-dato')).toBe(true);
   });
+
+  it('fanger offentlig ydelsesregulering før 1. januar 2005', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso('2004-01-01'),
+      tafBeregningsperiodeTil: iso('2004-12-31'),
+      loenindkomstAnsaettelsesforhold: [],
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2005-01-01'), til: iso('2005-01-31') },
+      ],
+      offentligeYdelserRows: [{
+        id: 'ydelse-1',
+        fraDato: '01-01-2004',
+        tilDato: '31-12-2004',
+        ydelse: asAmount(1000),
+        tillaeg: undefined,
+        ydelsestype: 'dagpenge',
+      }],
+      regulerOffentligeYdelser: 'Ja',
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values);
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'regulerOffentligeYdelser',
+      message: 'Der kan ikke indtastes datoer før 1. januar 2005 ved regulering af offentlige ydelser.',
+      severity: 'error',
+    }));
+  });
 });
 
 describe('SFGG validering', () => {
@@ -786,6 +815,52 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
       },
     });
     expect(hasError(values, 'KRL satstabel skal vælges')).toBe(true);
+  });
+
+  it('fanger statistikregulering efter datagrundlagets seneste dato', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2026-10-01'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: 'ILON12',
+        },
+      ],
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values);
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'tafBeregningsperiodeTil',
+      message: expect.stringContaining('Lønregulering kan ikke beregnes efter 30-06-2026'),
+      severity: 'error',
+    }));
+  });
+
+  it('fanger KRL-regulering efter datagrundlagets seneste dato', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2026-10-01'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'KRL satstabel',
+          loenudviklingKRLSatstabel: 'KTO (kommuner)',
+        },
+      ],
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values);
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'tafBeregningsperiodeTil',
+      message: expect.stringContaining('Lønregulering kan ikke beregnes efter 30-09-2026'),
+      severity: 'error',
+    }));
   });
 
   it('fanger manglende manuel reguleringsrække ved grundlag=Manuelt angivet', () => {
