@@ -28,5 +28,11 @@ jobs:
       - name: Install dependencies (strict)
         run: npm ci
 
-      - name: Build project
-        run: npm run build
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build all app variants
+        run: npm run build:all

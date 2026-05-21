@@ -39,7 +39,10 @@
   },
   "scripts": {
     "dev": "vite --open",
-    "build": "vite build",
+    "build": "npm run build:mineo",
+    "build:mineo": "vite build --config vite.mineo.config.ts && node scripts/ensure-build-index.mjs dist/mineo mineo.html",
+    "build:minprocesrente": "vite build --config vite.minprocesrente.config.ts && node scripts/ensure-build-index.mjs dist/minprocesrente minprocesrente.html && node scripts/cleanup-minprocesrente-public.mjs",
+    "build:all": "npm run build:mineo && npm run build:minprocesrente",
     "preview": "vite preview",
     "prepare": "husky",
     "generate:icons": "node scripts/generate-pwa-icons.js",

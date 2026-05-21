@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box } from '@mui/material';
+import { Box, type SxProps, type Theme } from '@mui/material';
 import { ScrollContainerProvider } from '../../contexts/ScrollContainerContext';
 import ScrollToTopButton from '../ui/ScrollToTopButton';
 
@@ -53,6 +53,8 @@ type FocusRow = {
 
 interface ContainerProps {
   children?: React.ReactNode;
+  scrollSx?: SxProps<Theme>;
+  contentSx?: SxProps<Theme>;
 }
 
 const ROW_CONTAINER_SELECTOR =
@@ -107,7 +109,7 @@ const getRadioGroupMembers = (radio: HTMLInputElement, container: HTMLElement): 
     .filter((candidate) => candidate.name === radio.name && candidate.form === radio.form);
 };
 
-const Container = React.memo(({ children }: ContainerProps) => {
+const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const focusableCacheRef = React.useRef<FocusableElement[]>([]);
   const cacheValidRef = React.useRef(false);
@@ -626,16 +628,24 @@ const Container = React.memo(({ children }: ContainerProps) => {
         ref={containerRef}
         data-mineo-scroll-container="true"
         onKeyDown={handleKeyDown}
-        sx={{
-          flex: 1,
-          padding: 3,
-          backgroundColor: 'var(--color-surface)',
-          overflowY: 'auto',
-          overflowX: 'auto',
-          height: '100vh'
-        }}
+        sx={[
+          {
+            flex: 1,
+            padding: 3,
+            backgroundColor: 'var(--color-surface)',
+            overflowY: 'auto',
+            overflowX: 'auto',
+            height: '100vh',
+          },
+          ...(Array.isArray(scrollSx) ? scrollSx : scrollSx ? [scrollSx] : []),
+        ]}
       >
-        <Box sx={{ width: '1000px', paddingLeft: '50px', paddingTop: '50px' }}>
+        <Box
+          sx={[
+            { width: '1000px', paddingLeft: '50px', paddingTop: '50px' },
+            ...(Array.isArray(contentSx) ? contentSx : contentSx ? [contentSx] : []),
+          ]}
+        >
           {children}
         </Box>
         <ScrollToTopButton />

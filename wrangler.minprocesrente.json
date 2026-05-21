@@ -1,8 +1,8 @@
 {
-  "name": "mineo",
+  "name": "minprocesrente",
   "compatibility_date": "2026-04-28",
   "assets": {
-    "directory": "./dist",
+    "directory": "./dist/minprocesrente",
     "not_found_handling": "single-page-application"
   },
   "observability": {
