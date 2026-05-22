@@ -1,12 +1,13 @@
 import React from 'react';
-import { Box, Fab, Tooltip, type BoxProps } from '@mui/material';
+import { Fab, Tooltip, type BoxProps } from '@mui/material';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import { useLocation } from 'react-router-dom';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import ContentBoxReportDialog from '../reports/ContentBoxReportDialog';
 import type { ContentBoxIdentity } from '../../utils/bugReport';
+import ContentBoxFrame from './ContentBoxFrame';
 
-type ContentBoxProps = BoxProps & {
+type ContentBoxProps = Omit<BoxProps, 'ref'> & {
   disableReport?: boolean;
 };
 
@@ -23,17 +24,6 @@ const ContentBox = React.memo(({ className, sx, children, disableReport = false,
   const [identity, setIdentity] = React.useState<ContentBoxIdentity>({ routePath: location.pathname });
 
   const contentBoxId = React.useId().replace(/:/g, '');
-
-  const resolvedClassName = React.useMemo(() => {
-    if (!className) return 'content-box';
-    return className.includes('content-box') ? className : `content-box ${className}`;
-  }, [className]);
-
-  const resolvedSx = React.useMemo(() => {
-    const base = { position: 'relative' as const };
-    if (!sx) return base;
-    return Array.isArray(sx) ? [base, ...sx] : [base, sx];
-  }, [sx]);
 
   const resolveIdentity = React.useCallback((): ContentBoxIdentity => {
     const element = contentBoxRef.current;
@@ -58,10 +48,10 @@ const ContentBox = React.memo(({ className, sx, children, disableReport = false,
   }, [resolveIdentity]);
 
   return (
-    <Box
+    <ContentBoxFrame
       ref={contentBoxRef}
-      className={resolvedClassName}
-      sx={resolvedSx}
+      className={className}
+      sx={sx}
       data-mineo-content-box="true"
       data-mineo-content-box-id={contentBoxId}
       {...rest}
@@ -106,7 +96,7 @@ const ContentBox = React.memo(({ className, sx, children, disableReport = false,
           contentBoxRef={contentBoxRef}
         />
       ) : null}
-    </Box>
+    </ContentBoxFrame>
   );
 });
 

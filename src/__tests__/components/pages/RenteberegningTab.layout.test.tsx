@@ -1,11 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 
-vi.mock('../../../components/layout/ContentBox', () => ({
-  __esModule: true,
-  default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-}));
-
 vi.mock('../../../components/inputs/StyledDateField', () => ({
   __esModule: true,
   default: () => <input data-testid="beregningsdato-input" readOnly value="18-04-2026" />,
@@ -28,6 +23,8 @@ vi.mock('../../../components/tables/BeregnetRenteTable', () => ({
 
 import RenteberegningTab from '../../../components/pages/renteberegning/RenteberegningTab';
 
+const TestContentBox = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
+
 describe('RenteberegningTab', () => {
   it('renderer beregningsdato-rækken som standard hover-row med label til venstre og input til højre', () => {
     render(
@@ -46,6 +43,7 @@ describe('RenteberegningTab', () => {
         pdfErrorMessage={null}
         referenceRates={[]}
         surchargeRates={[]}
+        ContentBoxComponent={TestContentBox}
       />
     );
 
@@ -71,6 +69,7 @@ describe('RenteberegningTab', () => {
         pdfErrorMessage={null}
         referenceRates={[]}
         surchargeRates={[]}
+        ContentBoxComponent={TestContentBox}
       />
     );
 

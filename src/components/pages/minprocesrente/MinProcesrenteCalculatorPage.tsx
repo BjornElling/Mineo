@@ -8,6 +8,7 @@ import { isoToDanish } from '../../../types/branded';
 import useRentekravRows from '../../tables/useRentekravRows';
 import { createRenteberegningInitialValues } from '../../../domain/renteberegning/renteberegningInitialValues';
 import type { RentePdfContext } from '../../tables/BeregnetRenteTable';
+import ContentBoxFrame from '../../layout/ContentBoxFrame';
 import { downloadStandaloneRentePdf } from '../../../pdf/infrastructure/standaloneRentePdfService';
 import type { CommitHandler } from '../../../types/fieldEvents';
 import RenteberegningTab from '../renteberegning/RenteberegningTab';
@@ -82,6 +83,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         pdfErrorMessage={pdfErrorMessage}
         referenceRates={referenceRates}
         surchargeRates={surchargeRates}
+        ContentBoxComponent={ContentBoxFrame}
       />
     </Box>
   );

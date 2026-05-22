@@ -13,6 +13,7 @@ import type { RentePdfContext } from '../tables/BeregnetRenteTable';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { downloadRentePdf } from '../../pdf/infrastructure/pdfService';
 import type { CommitHandler } from '../../types/fieldEvents';
+import ContentBox from '../layout/ContentBox';
 import RenteberegningTab from './renteberegning/RenteberegningTab';
 import RentesatserTab from './renteberegning/RentesatserTab';
 
@@ -158,6 +159,7 @@ const Renteberegning = React.memo(() => {
           pdfErrorMessage={pdfErrorMessage}
           referenceRates={referenceRates}
           surchargeRates={surchargeRates}
+          ContentBoxComponent={ContentBox}
         />
       )}
     </Box>

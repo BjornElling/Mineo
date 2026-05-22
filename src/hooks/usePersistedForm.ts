@@ -1,5 +1,4 @@
 import React from 'react';
-import { useLocation } from 'react-router-dom';
 import { type z } from 'zod';
 import { useFormPersistence } from '../contexts/useFormPersistence';
 import type { StorageKey } from '../config/storageManifest';
@@ -14,6 +13,7 @@ import { createActiveTabStorageKey } from '../config/storageManifest';
 import { readOptionalSessionStorageValue } from '../utils/safeSessionStorage';
 import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
 import { readLastUndoFocus } from '../utils/undoFocusTracker';
+import { useRoutePathnameSnapshot } from '../contexts/RoutePathnameContext.shared';
 
 /**
  * Signatur for setValues: funktionel updater-baseret felt-commit.
@@ -26,6 +26,13 @@ export type CommitOriginOptions = {
 export type SetValuesUpdater<T> = (updater: (prev: T) => T, options?: CommitOriginOptions) => void;
 export type ReplaceValuesSetter<T> = (next: T) => void;
 export type SetFieldValue<T> = <K extends keyof T>(fieldName: K, value: T[K], options?: CommitOriginOptions) => void;
+
+const getCurrentPathname = (): string => {
+  if (typeof window === 'undefined') {
+    return '/';
+  }
+  return window.location.pathname;
+};
 
 /**
  * Return type for usePersistedForm hook
@@ -91,8 +98,8 @@ export const usePersistedForm = <K extends StorageKey>(
   pageKey: K,
   initialValues: PersistedSectionMap[K]
 ): UsePersistedFormReturn<PersistedSectionMap[K]> => {
-  const location = useLocation();
   const { persistData, clearPageData, clearFieldErrors } = useFormPersistence();
+  const routePathname = useRoutePathnameSnapshot();
   const initialValuesRef = React.useRef(initialValues);
   const persistDataRef = React.useRef(persistData);
   const clearPageDataRef = React.useRef(clearPageData);
@@ -151,7 +158,7 @@ export const usePersistedForm = <K extends StorageKey>(
   }, [pageKey]);
 
   const createUndoOrigin = React.useCallback((options?: CommitOriginOptions): HistoryFrameOrigin => {
-    const route = location.pathname;
+    const route = routePathname ?? getCurrentPathname();
     const pageId = route.replace(/^\/+/, '') || 'stamdata';
     const tabKey = readOptionalSessionStorageValue(createActiveTabStorageKey(pageId));
     // Vigtigt: brug det senest fokuserede undo-bærende felt — ikke document.activeElement.
@@ -167,7 +174,7 @@ export const usePersistedForm = <K extends StorageKey>(
       fieldPath: resolvedFieldPath,
       focusToken: options?.fieldPath ? null : lastFocus.focusToken,
     };
-  }, [location.pathname, pageKey]);
+  }, [pageKey, routePathname]);
 
   // Felt-commit via funktionel updater. Bumper ikke formVersion.
   const setValues = React.useCallback(

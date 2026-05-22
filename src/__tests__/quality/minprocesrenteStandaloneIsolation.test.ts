@@ -36,20 +36,26 @@ describe('MinProcesrente standalone isolation', () => {
 
     expect(source).not.toContain('AuthGate');
     expect(source).not.toContain('../../App');
+    expect(source).not.toContain('BrowserRouter');
     expect(source).not.toContain('pwaLaunchQueue');
     expect(source).not.toContain('serviceWorker');
   });
 
-  it('læser ikke stamdata, indstillinger eller andre Mineo-sektioner som brugerdata', () => {
+  it('læser ikke stamdata, indstillinger eller andre Mineo-sektioner som brugerdata og bruger ikke Mineos diagnoseflow', () => {
     const source = readStandaloneSource();
 
-    // Strengmatchene her er en guard mod direkte sektionstilgang. De erstatter ikke PDF-adapterens
-    // enhedstest, som kontrollerer at kaldet sendes videre uden stamdata og settings.
+    // Strengmatchene her er en guard mod direkte brugerdata-adgang. PDF-adapterens enhedstest
+    // kontrollerer separat at PDF-kaldet sendes videre uden stamdata og settings.
     expect(source).not.toContain("usePersistedSectionSelector('stamdata')");
+    expect(source).not.toContain('usePersistedSectionSelector("stamdata")');
+    expect(source).not.toMatch(/usePersistedForm\s*\([^)]*['"]stamdata['"]/);
+    expect(source).not.toMatch(/usePersistedForm\s*\([^)]*['"]indstillinger['"]/);
     expect(source).not.toContain('useAppSettings');
     expect(source).not.toContain('AppSettingsProvider');
-    expect(source).not.toContain("'stamdata'");
-    expect(source).not.toContain("'indstillinger'");
+    expect(source).not.toContain('systemIssueReporter');
+    expect(source).not.toContain('reportSystemIssue');
+    expect(source).not.toContain('BugReportButton');
+    expect(source).not.toContain('logStorage');
     expect(source).toContain("'renteberegning'");
   });
 });

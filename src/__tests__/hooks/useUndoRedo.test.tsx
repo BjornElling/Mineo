@@ -8,6 +8,7 @@ import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
 import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
+import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
 import Stamdata from '../../components/pages/Stamdata';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { undoRedoStore, type HistoryFrameOrigin } from '../../stores/undoRedoStore';
@@ -170,11 +171,13 @@ const OriginCapturePage = () => {
 const renderOriginCaptureHarness = () => render(
   <MemoryRouter initialEntries={['/satser']}>
     <AppSettingsProvider>
-      <FormPersistenceProvider>
-        <Routes>
-          <Route path="/satser" element={<OriginCapturePage />} />
-        </Routes>
-      </FormPersistenceProvider>
+      <RoutePathnameProvider>
+        <FormPersistenceProvider>
+          <Routes>
+            <Route path="/satser" element={<OriginCapturePage />} />
+          </Routes>
+        </FormPersistenceProvider>
+      </RoutePathnameProvider>
     </AppSettingsProvider>
   </MemoryRouter>
 );
@@ -182,9 +185,11 @@ const renderOriginCaptureHarness = () => render(
 const renderStamdataUndoHarness = () => render(
   <MemoryRouter initialEntries={['/satser']}>
     <AppSettingsProvider>
-      <FormPersistenceProvider>
-        <StamdataControls />
-      </FormPersistenceProvider>
+      <RoutePathnameProvider>
+        <FormPersistenceProvider>
+          <StamdataControls />
+        </FormPersistenceProvider>
+      </RoutePathnameProvider>
     </AppSettingsProvider>
   </MemoryRouter>
 );
@@ -192,9 +197,11 @@ const renderStamdataUndoHarness = () => render(
 const renderTableUndoHarness = () => render(
   <MemoryRouter initialEntries={['/table']}>
     <AppSettingsProvider>
-      <FormPersistenceProvider>
-        <TableControls />
-      </FormPersistenceProvider>
+      <RoutePathnameProvider>
+        <FormPersistenceProvider>
+          <TableControls />
+        </FormPersistenceProvider>
+      </RoutePathnameProvider>
     </AppSettingsProvider>
   </MemoryRouter>
 );

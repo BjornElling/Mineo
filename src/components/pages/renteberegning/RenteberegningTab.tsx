@@ -5,7 +5,7 @@ import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledTextField from '../../inputs/StyledTextField';
 import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
-import ContentBox from '../../layout/ContentBox';
+import type { ContentBoxFrameProps } from '../../layout/ContentBoxFrame';
 import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';
@@ -17,6 +17,8 @@ import { dateRanges_renteberegning } from '../../../config/dateRanges';
 interface TechnicalAssumptionsListProps {
   items: readonly string[];
 }
+
+type ContentBoxComponent = React.ComponentType<ContentBoxFrameProps>;
 
 const TechnicalAssumptionsList = ({ items }: TechnicalAssumptionsListProps) => (
   <Box>
@@ -44,6 +46,7 @@ export interface RenteberegningTabProps {
   pdfErrorMessage: string | null;
   referenceRates: ReadonlyArray<RateEntry>;
   surchargeRates: ReadonlyArray<RateEntry>;
+  ContentBoxComponent: ContentBoxComponent;
 }
 
 const RenteberegningTab = React.memo(({
@@ -61,13 +64,14 @@ const RenteberegningTab = React.memo(({
   pdfErrorMessage,
   referenceRates,
   surchargeRates,
+  ContentBoxComponent,
 }: RenteberegningTabProps) => {
   const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
   return (
     <Box>
-      <ContentBox className="content-box">
+      <ContentBoxComponent className="content-box">
         <Typography className="section-header">Beregningsdato</Typography>
         <Box className="row--label-right-hover">
           <Typography className="row--text">Rente beregnes til og med</Typography>
@@ -91,9 +95,9 @@ const RenteberegningTab = React.memo(({
             </Box>
           </Box>
         </Box>
-      </ContentBox>
+      </ContentBoxComponent>
 
-      <ContentBox className="content-box">
+      <ContentBoxComponent className="content-box">
         <Typography className="section-header">Beregnet rente</Typography>
         {pdfErrorMessage && (
           <Box className="row--label-right-hover">
@@ -117,9 +121,9 @@ const RenteberegningTab = React.memo(({
           surchargeRates={surchargeRates}
           saveOrderPath="renteberegning.rentekravRows"
         />
-      </ContentBox>
+      </ContentBoxComponent>
 
-      <ContentBox className="content-box">
+      <ContentBoxComponent className="content-box">
         <Typography className="section-header">Kommentarer</Typography>
         <StyledTextField
           name="kommentarer"
@@ -130,12 +134,12 @@ const RenteberegningTab = React.memo(({
           rows={4}
           placeholder="Indtast eventuelle kommentarer her..."
         />
-      </ContentBox>
+      </ContentBoxComponent>
 
-      <ContentBox className="content-box">
+      <ContentBoxComponent className="content-box">
         <Typography className="section-header">Beregningstekniske forudsætninger</Typography>
         <TechnicalAssumptionsList items={RENTE_CALCULATION_PRINCIPLES} />
-      </ContentBox>
+      </ContentBoxComponent>
     </Box>
   );
 });

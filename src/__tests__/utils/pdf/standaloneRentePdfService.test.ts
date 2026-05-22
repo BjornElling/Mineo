@@ -1,10 +1,5 @@
-const { mockReportSystemIssue, mockGenerateRentePdf } = vi.hoisted(() => ({
-  mockReportSystemIssue: vi.fn(),
+const { mockGenerateRentePdf } = vi.hoisted(() => ({
   mockGenerateRentePdf: vi.fn(),
-}));
-
-vi.mock('../../../utils/systemIssueReporter', () => ({
-  reportSystemIssue: mockReportSystemIssue,
 }));
 
 vi.mock('../../../pdf/domains/renteberegning/rentePdf', () => ({
@@ -14,9 +9,15 @@ vi.mock('../../../pdf/domains/renteberegning/rentePdf', () => ({
 import { downloadStandaloneRentePdf } from '../../../pdf/infrastructure/standaloneRentePdfService';
 
 describe('downloadStandaloneRentePdf', () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
-    mockReportSystemIssue.mockReset();
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     mockGenerateRentePdf.mockReset();
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
   });
 
   it('genererer neutral rente-PDF uden brevhoved, stamdata eller settings', async () => {
@@ -56,12 +57,6 @@ describe('downloadStandaloneRentePdf', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Kunne ikke generere rente-PDF' });
-    expect(mockReportSystemIssue).toHaveBeenCalledWith(
-      expect.objectContaining({
-        code: 'pdf:download_failure',
-        area: 'pdf',
-        context: 'standaloneRentePdfService.downloadStandaloneRentePdf',
-      })
-    );
+    expect(consoleErrorSpy).toHaveBeenCalledWith('Kunne ikke generere rente-PDF', expect.any(Error));
   });
 });

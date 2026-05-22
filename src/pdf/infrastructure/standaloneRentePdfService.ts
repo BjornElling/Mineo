@@ -1,8 +1,8 @@
 import type { ProcessInterestPeriod } from '../../domain/renteberegning/procesrenteCalculator';
 import type { PdfDownloadResult } from './pdfService';
-import { reportSystemIssue } from '../../utils/systemIssueReporter';
 
 const PDF_DOWNLOAD_SUCCESS: PdfDownloadResult = { success: true };
+const PDF_DOWNLOAD_ERROR_MESSAGE = 'Kunne ikke generere rente-PDF';
 
 const toError = (value: unknown): Error => {
   return value instanceof Error ? value : new Error(String(value));
@@ -36,14 +36,7 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
     const normalizedError = toError(error);
-    reportSystemIssue({
-      code: 'pdf:download_failure',
-      area: 'pdf',
-      context: 'standaloneRentePdfService.downloadStandaloneRentePdf',
-      userMessage: 'Kunne ikke generere rente-PDF',
-      developerMessage: normalizedError.message,
-      error: normalizedError,
-    });
-    return { success: false, error: 'Kunne ikke generere rente-PDF' };
+    console.error(PDF_DOWNLOAD_ERROR_MESSAGE, normalizedError);
+    return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
   }
 };

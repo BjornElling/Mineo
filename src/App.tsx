@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from '@mui/material';
 import { FormPersistenceProvider } from './contexts/FormPersistenceContext';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
+import { RoutePathnameProvider } from './contexts/RoutePathnameProvider';
 import MainLayout from './components/layout/MainLayout';
 import ErrorBoundary from './components/errors/ErrorBoundary';
 import { useAppSettings } from './contexts/useAppSettings';
@@ -86,23 +87,25 @@ const ThemedApp = () => {
   return (
     <ThemeProvider theme={theme}>
       <BrowserRouter>
-        <FormPersistenceProvider>
-          <Routes>
-            <Route path="/" element={<RootRedirect />} />
-            {pageWrappers.map(({ path, element: PageWrapper }) => (
-              <Route key={path} path={path} element={<PageWrapper />} />
-            ))}
-            <Route
-              path="*"
-              element={
-                <div style={{ padding: '40px' }}>
-                  <h2>404 - Side ikke fundet</h2>
-                  <p>URL: {window.location.pathname}</p>
-                </div>
-              }
-            />
-          </Routes>
-        </FormPersistenceProvider>
+        <RoutePathnameProvider>
+          <FormPersistenceProvider>
+            <Routes>
+              <Route path="/" element={<RootRedirect />} />
+              {pageWrappers.map(({ path, element: PageWrapper }) => (
+                <Route key={path} path={path} element={<PageWrapper />} />
+              ))}
+              <Route
+                path="*"
+                element={
+                  <div style={{ padding: '40px' }}>
+                    <h2>404 - Side ikke fundet</h2>
+                    <p>URL: {window.location.pathname}</p>
+                  </div>
+                }
+              />
+            </Routes>
+          </FormPersistenceProvider>
+        </RoutePathnameProvider>
       </BrowserRouter>
     </ThemeProvider>
   );
