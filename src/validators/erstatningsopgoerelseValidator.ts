@@ -20,11 +20,14 @@ import { erstatningsopgoerelseSchema } from '../schemas/formSchemas';
 import type { FormValidator, ValidationError, ValidationResult } from '../types/validation';
 import { isISODateString, type ISODateString } from '../types/branded';
 import { getYearBoundsForYearlyRate, reguleringssats, svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
+import { getReguleringsDatoIntervalForStatistikModel } from '../data/statistiskeRates';
+import { getReguleringsDatoIntervalForKRL, isKRLSatstabelId } from '../data/krlRates';
 import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
-import { resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { getAngivetLoenOpreguleresFraDato, resolveAktivEllerFoersteLoenudviklingKilde, resolveLoenudviklingKilde, LoenudviklingKildeError } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+import { resolveAnvendtReguleringsdato } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import {
   getFirstIndtastedeTafFraDato,
@@ -40,7 +43,7 @@ import {
 import { calculateTafArbejdsdageBreakdown } from '../domain/erstatningsopgoerelse/engines/tafCalculations';
 import { getOffentligOverenskomstTypeById, getOverenskomstSfggPolicy } from '../data/overenskomstRates';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../utils/fraction';
-import { isoToDanish } from '../types/branded';
+import { danishToISO, isoToDanish } from '../types/branded';
 import { DATE_ORDER_ERROR_MESSAGE } from '../utils/dateOrderValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges } from '../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 
@@ -355,7 +358,7 @@ function validateTAF(
 
   // Validér lønudvikling konsistens
   errors.push(...validateLoenudviklingKonsistens(values));
-  errors.push(...validateLoenudviklingsKravForAktivKilde(values));
+  errors.push(...validateLoenudviklingsKravForAktivKilde(values, options));
   errors.push(...validateOffentligeYdelserReguleringssatser(values, options));
 
   return errors;
@@ -377,13 +380,36 @@ function validateOffentligeYdelserReguleringssatser(
   if (tafRanges.length === 0) return [];
   const maxTafYear = tafRanges.reduce((max, range) => Math.max(max, Number.parseInt(range.til.slice(0, 4), 10)), 0);
   const bounds = getYearBoundsForYearlyRate(reguleringssats);
-  if (!bounds || maxTafYear <= bounds.maxYear) return [];
+  if (!bounds) return [];
 
-  return [{
-    path: 'regulerOffentligeYdelser',
-    message: `Regulering af offentlige ydelser kan ikke beregnes efter ${bounds.maxYear}, fordi reguleringssatsen mangler.`,
-    severity: 'error',
-  }];
+  const errors: ValidationError[] = [];
+  const aktivKilde = resolveAktivEllerFoersteLoenudviklingKilde(values);
+  const reguleringsBaseIso = resolveAnvendtReguleringsdato({
+    beregnesUdFra: values.beregnesUdFra,
+    angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+    saerligFraDatoRegulering: isISODateString(aktivKilde?.saerligFraDatoRegulering)
+      ? aktivKilde.saerligFraDatoRegulering
+      : undefined,
+    beregningsperiodeTil: values.tafBeregningsperiodeTil,
+    skadedato: options?.skadedatoISO,
+  });
+  const minReguleringsdatoIso = `${bounds.minYear}-01-01`;
+  if (reguleringsBaseIso !== undefined && reguleringsBaseIso < minReguleringsdatoIso) {
+    errors.push({
+      path: 'regulerOffentligeYdelser',
+      message: `Der kan ikke indtastes datoer før 1. januar ${bounds.minYear} ved regulering af offentlige ydelser.`,
+      severity: 'error',
+    });
+  }
+  if (maxTafYear > bounds.maxYear) {
+    errors.push({
+      path: 'regulerOffentligeYdelser',
+      message: `Regulering af offentlige ydelser kan ikke beregnes efter ${bounds.maxYear}, fordi reguleringssatsen mangler.`,
+      severity: 'error',
+    });
+  }
+
+  return errors;
 }
 
 function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): ValidationError[] {
@@ -710,7 +736,10 @@ function validateLoenudviklingKonsistens(values: ErstatningsopgoerelseValues): V
  * - Ikke-tomme rækker skal have dato, udgiftTil og beløb udfyldt
  * - Beløb kan ikke være negativt
  */
-function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseValues): ValidationError[] {
+function validateLoenudviklingsKravForAktivKilde(
+  values: ErstatningsopgoerelseValues,
+  options?: ErstatningsopgoerelseValidationOptions
+): ValidationError[] {
   const errors: ValidationError[] = [];
   let loenudviklingsKilde: ReturnType<typeof resolveLoenudviklingKilde>;
   try {
@@ -790,6 +819,8 @@ function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseVa
       errors.push({ path: path('loenudviklingKRLSatstabel'), message: 'KRL satstabel skal vælges', severity: 'error' });
     }
 
+    errors.push(...validateLoenudviklingDataCoverage(values, af, index, path, options));
+
     if (grundlag === 'Manuelt angivet') {
       if (kræverFeriePct && !Number.isFinite(af.feriePct)) {
         errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
@@ -836,6 +867,63 @@ function validateLoenudviklingsKravForAktivKilde(values: ErstatningsopgoerelseVa
 
   return errors;
 }
+
+const resolveLoenudviklingCoveragePath = (
+  values: ErstatningsopgoerelseValues,
+  af: ReturnType<typeof resolveLoenudviklingKilde>[number],
+  path: (field: string) => string
+): string => {
+  if (values.beregnesUdFra === 'Beregningsperiode') {
+    return af.saerligFraDatoRegulering ? path('saerligFraDatoRegulering') : 'tafBeregningsperiodeTil';
+  }
+  if (values.beregnesUdFra === 'Angivet dagsløn') {
+    return values.angivetDagsloenOpreguleresFraDato ? 'angivetDagsloenOpreguleresFraDato' : 'beregnesUdFra';
+  }
+  return values.angivetMaanedsloenOpreguleresFraDato ? 'angivetMaanedsloenOpreguleresFraDato' : 'beregnesUdFra';
+};
+
+const validateLoenudviklingDataCoverage = (
+  values: ErstatningsopgoerelseValues,
+  af: ReturnType<typeof resolveLoenudviklingKilde>[number],
+  index: number,
+  path: (field: string) => string,
+  options?: ErstatningsopgoerelseValidationOptions
+): ValidationError[] => {
+  const grundlag = af.loenudviklingBeregningsgrundlag;
+  if (grundlag !== 'Statistik' && grundlag !== 'KRL satstabel') return [];
+
+  const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
+    beregnesUdFra: values.beregnesUdFra,
+    angivetLoenMetodeOpreguleresFraDato: getAngivetLoenOpreguleresFraDato(values),
+    saerligFraDatoRegulering: isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : undefined,
+    beregningsperiodeTil: values.tafBeregningsperiodeTil,
+    skadedato: options?.skadedatoISO,
+  });
+  if (!anvendtReguleringsdato) return [];
+
+  const coverage = grundlag === 'Statistik'
+    ? getReguleringsDatoIntervalForStatistikModel(af.loenudviklingStatistikModel ?? '')
+    : isKRLSatstabelId(af.loenudviklingKRLSatstabel)
+      ? getReguleringsDatoIntervalForKRL(af.loenudviklingKRLSatstabel)
+      : undefined;
+  if (!coverage) return [];
+
+  const maxIso = danishToISO(coverage.tilDato);
+  if (!maxIso || anvendtReguleringsdato <= maxIso) return [];
+
+  const sourceLabel = grundlag === 'Statistik'
+    ? `statistikmodellen "${af.loenudviklingStatistikModel ?? ''}"`
+    : `KRL-satstabellen "${af.loenudviklingKRLSatstabel ?? ''}"`;
+  const employmentPrefix = values.beregnesUdFra === 'Beregningsperiode'
+    ? `Ansættelsesforhold ${index + 1}: `
+    : '';
+
+  return [{
+    path: resolveLoenudviklingCoveragePath(values, af, path),
+    message: `${employmentPrefix}Lønregulering kan ikke beregnes efter ${coverage.tilDato}, fordi datagrundlaget for ${sourceLabel} mangler.`,
+    severity: 'error',
+  }];
+};
 
 const buildLoenudviklingsKildeResolutionError = (error: unknown): ValidationError => {
   const message = error instanceof Error ? error.message : 'Ugyldig lønudviklingskilde';

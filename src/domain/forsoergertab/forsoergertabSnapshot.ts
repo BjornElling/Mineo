@@ -10,8 +10,8 @@ import type { FormFieldError } from '../../types/fieldErrors';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { computeForsoergertabCalculation } from './forsoergertabCalculation';
 import { PRE_2015_CUTOFF } from './forsoergertabConstants';
-import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
+import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
 
 type FieldErrorMessage = Pick<FormFieldError, 'message'> | undefined;
 
@@ -43,17 +43,20 @@ const createRuntimeExceptionCalculation = (error: unknown): ForsoergertabCalcula
   reportSystemIssue({
     code: 'forsoergertab_snapshot:runtime_exception',
     area: 'calculation',
-    context: 'forsoergertab.computeForsoergertabSnapshot',
+    context: 'forsoergertabSnapshot.computeForsoergertabSnapshot',
     userMessage: 'Uventet runtimefejl i forsørgertabsberegning',
     developerMessage: normalizedError.message,
     error: normalizedError,
+    diagnostics: {
+      errorName: normalizedError.name,
+    },
   });
 
   return {
     issues: [{
       id: 'runtime-exception',
       severity: 'error',
-      message: 'Forsørgertabsberegningen kan ikke gennemføres på grund af en intern beregningsfejl.',
+      message: 'Beregningen kan ikke gennemføres på grund af en intern beregningsfejl.',
     }],
     ealComputation: null,
     aslComputation: null,

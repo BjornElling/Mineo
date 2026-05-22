@@ -19,6 +19,7 @@ const ALLOWED_USE_FORM_PERSISTENCE_IMPORTS = new Set([
 
 const ALLOWED_FORM_PERSISTENCE_CONTEXT_IMPORTS = new Set([
   'src/App.tsx',
+  'src/apps/minprocesrente/MinProcesrenteApp.tsx',
   'src/contexts/FormPersistenceContext.tsx',
   'src/contexts/FormPersistenceContext.shared.ts',
   'src/contexts/useFormPersistence.ts',

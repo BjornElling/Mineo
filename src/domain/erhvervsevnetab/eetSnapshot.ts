@@ -51,6 +51,39 @@ const sortAndDedupeIssues = (issues: readonly EetIssue[]): readonly EetIssue[] =
   );
 };
 
+const createRuntimeExceptionIssue = (message: string): readonly EetIssue[] => [{
+  id: 'runtime-exception',
+  severity: 'error',
+  message,
+}];
+
+const safeBuildProjection = <TComputation>(
+  build: () => EetTabProjection<TComputation>,
+  context: string
+): EetTabProjection<TComputation> => {
+  try {
+    return build();
+  } catch (error) {
+    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    reportSystemIssue({
+      code: `eet_snapshot:${context}`,
+      area: 'calculation',
+      context: `eetSnapshot.${context}`,
+      userMessage: 'Uventet runtimefejl i EET-beregning',
+      developerMessage: normalizedError.message,
+      error: normalizedError,
+      diagnostics: {
+        errorName: normalizedError.name,
+      },
+    });
+    return {
+      issues: createRuntimeExceptionIssue('Beregningen kan ikke gennemføres på grund af en intern beregningsfejl.'),
+      hasBlockingErrors: true,
+      computation: null,
+    };
+  }
+};
+
 const createFieldIssues = (
   fieldErrors: EetFieldErrors,
   ids: ReadonlyArray<Readonly<{ id: string; message: string | undefined }>>
@@ -158,53 +191,16 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
   };
 };
 
-const buildRuntimeExceptionIssue = (message: string): EetIssue => ({
-  id: 'runtime-exception',
-  severity: 'error',
-  message,
-});
-
-const buildFailClosedProjection = <TComputation>(
-  issue: EetIssue
-): EetTabProjection<TComputation> => ({
-  issues: [issue],
-  hasBlockingErrors: true,
-  computation: null,
-});
-
 // Bemærk: Row-level valideringsfejl på individuelle ASL-afgørelsesrækker indgår IKKE i
 // snapshot-issuerne. De beregnes i Erhvervsevnetab.tsx og rapporteres til error-bus via
 // useEffect. Kun den første tabelblokerende fejl vises i EetIssuesBox; øvrige row-fejl
 // vises inline i tabellen. Dette er en bevidst afgrænsning: snapshot håndterer
 // feltvalidering, ikke tabelrækkernes indbyrdes konsistens.
 export const computeEetSnapshot = (input: EetSnapshotInput): EetSnapshot => {
-  try {
-    return {
-      loebendeYdelser: buildLoebendeYdelserProjection(input),
-      kapitalisering: buildKapitaliseringProjection(input),
-      efterEal: buildEfterEalProjection(input),
-      differencekrav: buildDifferencekravProjection(input),
-    };
-  } catch (error) {
-    const normalizedError = error instanceof Error ? error : new Error(String(error));
-    reportSystemIssue({
-      code: 'eet_snapshot:runtime_exception',
-      area: 'calculation',
-      context: 'erhvervsevnetab.computeEetSnapshot',
-      userMessage: 'Uventet runtimefejl i erhvervsevnetabsberegning',
-      developerMessage: normalizedError.message,
-      error: normalizedError,
-    });
-
-    const issue = buildRuntimeExceptionIssue(
-      'Erhvervsevnetabsberegningen kan ikke gennemføres på grund af en intern beregningsfejl.'
-    );
-
-    return {
-      loebendeYdelser: buildFailClosedProjection(issue),
-      kapitalisering: buildFailClosedProjection(issue),
-      efterEal: buildFailClosedProjection(issue),
-      differencekrav: buildFailClosedProjection(issue),
-    };
-  }
+  return {
+    loebendeYdelser: safeBuildProjection(() => buildLoebendeYdelserProjection(input), 'loebende_ydelser'),
+    kapitalisering: safeBuildProjection(() => buildKapitaliseringProjection(input), 'kapitalisering'),
+    efterEal: safeBuildProjection(() => buildEfterEalProjection(input), 'efter_eal'),
+    differencekrav: safeBuildProjection(() => buildDifferencekravProjection(input), 'differencekrav'),
+  };
 };

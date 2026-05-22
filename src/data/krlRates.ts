@@ -72,6 +72,7 @@ type KRLCombinedRow = readonly [
  */
 const krlCombinedData: ReadonlyArray<KRLCombinedRow> = [
   // fraDato            │ KTO (kom.)    │ SHK (kom.)    │ KTO (reg.)    │ SHK (reg.)
+  ['01-04-2026',             65.3378,        45.0155,        19.8008,        19.8008 ],
   ['01-11-2025',             61.4627,        41.6167,        16.9930,        16.9930 ],
   ['01-10-2025',             60.2921,        40.5900,        16.1800,        16.1800 ],
   ['01-04-2025',             59.8159,        40.1724,        15.6970,        15.6970 ],

@@ -115,7 +115,18 @@ export const computeRenteberegning = (input: RenteberegningInputSnapshot): Rente
   const beregningsdato = renteberegning.beregningsdato;
 
   const rows = renteberegning.rentekravRows.map((row) => {
-    const result = calculateRowInterest(row, beregningsdato, refRates, surRates);
+    const result = (() => {
+      try {
+        return calculateRowInterest(row, beregningsdato, refRates, surRates);
+      } catch {
+        return {
+          id: row.id,
+          actualInterestDate: resolveActualInterestDateIso(row),
+          calculatedInterest: null,
+          periods: null,
+        } satisfies RentekravComputation;
+      }
+    })();
     return {
       id: result.id,
       actualInterestDate: result.actualInterestDate,
@@ -147,7 +158,12 @@ export const computeRentekravRow = (
   refRates: ReadonlyArray<RateEntry>,
   surRates: ReadonlyArray<RateEntry>,
 ): RentekravRowResult => {
-  const result = calculateRowInterest(committedRow, beregningsdato, refRates, surRates);
+  let result: RentekravComputation;
+  try {
+    result = calculateRowInterest(committedRow, beregningsdato, refRates, surRates);
+  } catch {
+    return { actualInterestDate: resolveActualInterestDateIso(committedRow), calculatedInterest: null, pdfContext: null };
+  }
 
   if (result.calculatedInterest === null || !result.actualInterestDate || !beregningsdato || result.periods === null) {
     return { actualInterestDate: result.actualInterestDate, calculatedInterest: null, pdfContext: null };
@@ -159,8 +175,12 @@ export const computeRentekravRow = (
   }
 
   const latestReferenceRateDate = (() => {
-    const latest = findLatestReferenceRatePeriodEnd(refRates);
-    return latest ? (dateToISO(latest) ?? null) : null;
+    try {
+      const latest = findLatestReferenceRatePeriodEnd(refRates);
+      return latest ? (dateToISO(latest) ?? null) : null;
+    } catch {
+      return null;
+    }
   })();
 
   return {

@@ -5,22 +5,23 @@ import { FormPersistenceProvider } from './contexts/FormPersistenceContext';
 import { AppSettingsProvider } from './contexts/AppSettingsContext';
 import MainLayout from './components/layout/MainLayout';
 import ErrorBoundary from './components/errors/ErrorBoundary';
-import Stamdata from './components/pages/Stamdata';
-import Erstatningsopgoerelse from './components/pages/Erstatningsopgoerelse';
-import Erhvervsevnetab from './components/pages/Erhvervsevnetab';
-import Satser from './components/pages/Satser';
-import Renteberegning from './components/pages/Renteberegning';
-import Aarsloen from './components/pages/Aarsloen';
-import VarigeMen from './components/pages/VarigeMen';
-import Forsoergertab from './components/pages/Forsoergertab';
-import Indstillinger from './components/pages/Indstillinger';
-import Mineo from './components/pages/Mineo';
-import OpenEo from './components/system/OpenEo';
 import { useAppSettings } from './contexts/useAppSettings';
 import { buildTheme } from './config/appTheme';
 
-type PageComponent = React.ComponentType<Record<string, never>>;
+type PageComponent = React.ElementType<Record<string, never>>;
 type AppRoute = { path: string; component: PageComponent };
+
+const OpenEo = React.lazy(async () => import('./components/system/OpenEo'));
+const Stamdata = React.lazy(async () => import('./components/pages/Stamdata'));
+const Erstatningsopgoerelse = React.lazy(async () => import('./components/pages/Erstatningsopgoerelse'));
+const Erhvervsevnetab = React.lazy(async () => import('./components/pages/Erhvervsevnetab'));
+const Satser = React.lazy(async () => import('./components/pages/Satser'));
+const Renteberegning = React.lazy(async () => import('./components/pages/Renteberegning'));
+const Aarsloen = React.lazy(async () => import('./components/pages/Aarsloen'));
+const VarigeMen = React.lazy(async () => import('./components/pages/VarigeMen'));
+const Forsoergertab = React.lazy(async () => import('./components/pages/Forsoergertab'));
+const Indstillinger = React.lazy(async () => import('./components/pages/Indstillinger'));
+const Mineo = React.lazy(async () => import('./components/pages/Mineo'));
 
 /**
  * Route-konfiguration til Mineo applikationen
@@ -51,11 +52,13 @@ const createPageWrapper = (Component: PageComponent): PageComponent => {
   const WrappedPage: PageComponent = React.memo(() => (
     <MainLayout>
       <ErrorBoundary>
-        <Component />
+        <React.Suspense fallback={null}>
+          <Component />
+        </React.Suspense>
       </ErrorBoundary>
     </MainLayout>
   ));
-  WrappedPage.displayName = `Page(${Component.displayName || Component.name || 'Component'})`;
+  WrappedPage.displayName = 'Page';
   return WrappedPage;
 };
 

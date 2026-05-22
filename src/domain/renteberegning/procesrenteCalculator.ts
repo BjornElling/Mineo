@@ -106,7 +106,7 @@ const calculatePeriodInterest = (amount: number, ratePct: number, startDate: Dat
     // Beregn dage i denne del af perioden (inklusiv slutdato)
     const days = countInclusiveUtcDays(currentDate, periodEnd);
     if (days === null) {
-      throw new Error('calculatePeriodInterest expected endDate >= startDate');
+      return 0.0;
     }
 
     // Beregn rente for dette år
@@ -179,10 +179,15 @@ export const calculateProcessInterestBreakdownWithRates = (
     return null;
   }
 
+  if (referenceRatesSorted.length === 0 || surchargeRatesSorted.length === 0) {
+    return null;
+  }
+
   const surchargeRate = calculateSurchargeRate(surchargeRatesSorted, startDate);
   if (surchargeRate === null) {
     return null;
   }
+
   let totalInterest = 0.0;
   const periods: ProcessInterestPeriod[] = [];
   let currentDate = new Date(startDate);
@@ -207,7 +212,7 @@ export const calculateProcessInterestBreakdownWithRates = (
       const totalRatePct = referenceRatePct + surchargeRate;
       const days = countInclusiveUtcDays(currentDate, periodEnd);
       if (days === null) {
-        throw new Error('calculateProcessInterestBreakdownWithRates expected endDate >= startDate');
+        return null;
       }
       const periodInterest = calculatePeriodInterest(amountNum, totalRatePct, currentDate, periodEnd);
       totalInterest += periodInterest;

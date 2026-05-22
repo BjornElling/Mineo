@@ -79,13 +79,31 @@ export type EoComputedTotals = Readonly<{
   forligFactor: number | null;
 }>;
 
+const formatZodIssuePath = (path: readonly (string | number | symbol)[]): string =>
+  path.length > 0 ? path.map(String).join('.') : '<root>';
+
+const buildCanonicalValidationErrorMessage = (
+  context: string,
+  issues: readonly z.ZodIssue[]
+): string => {
+  const details = issues
+    .map((issue) => `${formatZodIssuePath(issue.path)}: ${issue.message}`)
+    .join('; ');
+  return `EO canonical output invariant failed (${context}): ${details}`;
+};
+
 const calculableMoneyToNullable = (value: Calculable<MoneyOre> | null | undefined): MoneyOre | null => {
   if (!value || value.status !== 'ok') return null;
   return ensureMoneyOre(value.value);
 };
 
-const toCanonicalSegment = (segment: LoenudviklingSegment): z.infer<typeof loenudviklingSegmentSchema> =>
-  loenudviklingSegmentSchema.parse(segment);
+const toCanonicalSegment = (segment: LoenudviklingSegment): z.infer<typeof loenudviklingSegmentSchema> => {
+  const result = loenudviklingSegmentSchema.safeParse(segment);
+  if (!result.success) {
+    throw new Error(buildCanonicalValidationErrorMessage('loenudviklingSegment', result.error.issues));
+  }
+  return result.data;
+};
 
 export const buildEoComputedTotals = (args: Readonly<{
   svieSmerte: SvieSmerteEngineOutput;
@@ -144,7 +162,7 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
     loenudviklingSegmenter: entry.beregnedeSegmenter.map(toCanonicalSegment),
   }));
 
-  return eoCanonicalOutputSchema.parse({
+  const output = {
     totals: {
       svieSmerteOre: args.totals.svieSmerteOre,
       tabtArbejdsfortjenesteFoerForligOre: args.totals.tabtArbejdsfortjenesteFoerForligOre,
@@ -171,5 +189,10 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
       loenudviklingSegmenter,
       perAnsaettelse,
     },
-  });
+  };
+  const result = eoCanonicalOutputSchema.safeParse(output);
+  if (!result.success) {
+    throw new Error(buildCanonicalValidationErrorMessage('eoCanonicalOutput', result.error.issues));
+  }
+  return result.data;
 };

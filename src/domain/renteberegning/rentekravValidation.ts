@@ -34,7 +34,7 @@ export type ValidationError =
   | 'MISSING_BEREGNING_DATO' // Manglende beregningsdato
   | 'INVALID_AMOUNT'         // Ugyldigt beløb (≤ 0 eller ikke-finit)
   | 'INVALID_DATE_ORDER'     // Kravet-dato efter beregningsdato
-  | 'RENTEDATO_BEFORE_RATE_COVERAGE'; // Rentedato før første dækkede rentesats
+  | 'DATE_BEFORE_RATE_COVERAGE'; // Rentedato før tilgængelige rente-/tillægssatser
 
 // ============================================================================
 // DOMAIN TYPES
@@ -202,8 +202,8 @@ export function validateInterestCalculation(
     return { success: false, error: 'INVALID_DATE_ORDER' };
   }
 
-  if (isoRentedato < MIN_SURCHARGE_DATE || isoRentedato < MIN_INTEREST_DATE) {
-    return { success: false, error: 'RENTEDATO_BEFORE_RATE_COVERAGE' };
+  if (isoRentedato < MIN_INTEREST_DATE || isoRentedato < MIN_SURCHARGE_DATE) {
+    return { success: false, error: 'DATE_BEFORE_RATE_COVERAGE' };
   }
 
   // Tjek dato-rækkefølge

@@ -69,24 +69,39 @@ const surchargeRatesTable: ReadonlyArray<readonly [effectiveDate: string, ratePc
   ['01-08-2002',            7.0 ],
 ];
 
-const toIsoFromRateTableDate = (rawDate: string, context: string): ISODateString => {
-  const [day, month, year] = rawDate.split('-');
-  if (!day || !month || !year) {
-    throw new Error(`Ugyldig ${context}-dato: "${rawDate}"`);
+const parseRateTableDate = (raw: string, label: string): ISODateString => {
+  const parts = raw.split('-');
+  if (parts.length !== 3) {
+    throw new Error(`Ugyldig ${label}: "${raw}"`);
   }
+
+  const [day, month, year] = parts;
+  if (!day || !month || !year) {
+    throw new Error(`Ugyldig ${label}: "${raw}"`);
+  }
+
   return toISODateString(`${year}-${month}-${day}`);
 };
 
-// Tidligste dato i referencesatserne — udledt af det ældste element i referenceRatesTable
-// Tabellen er sorteret nyeste-først, så det sidste element har den tidligste dato
-const _minRaw = referenceRatesTable[referenceRatesTable.length - 1][0];
-export const MIN_INTEREST_DATE: ISODateString = toIsoFromRateTableDate(_minRaw, 'ældste referencesats');
+// Tidligste dato i referencesatserne — udledt af det ældste element i referenceRatesTable.
+// Tabellen er sorteret nyeste-først, så det sidste element har den tidligste dato.
+const _minRaw = referenceRatesTable[referenceRatesTable.length - 1]?.[0];
+if (!_minRaw) {
+  throw new Error('CRITICAL: Ingen referencesatser er defineret');
+}
+export const MIN_INTEREST_DATE: ISODateString = parseRateTableDate(_minRaw, 'tidligste referencesats-dato');
 
-const _minSurchargeRaw = surchargeRatesTable[surchargeRatesTable.length - 1][0];
-export const MIN_SURCHARGE_DATE: ISODateString = toIsoFromRateTableDate(_minSurchargeRaw, 'ældste tillægssats');
+const _minSurchargeRaw = surchargeRatesTable[surchargeRatesTable.length - 1]?.[0];
+if (!_minSurchargeRaw) {
+  throw new Error('CRITICAL: Ingen tillægssatser er defineret');
+}
+export const MIN_SURCHARGE_DATE: ISODateString = parseRateTableDate(_minSurchargeRaw, 'tidligste tillægssats-dato');
 
 // Seneste kalenderår i referencesatserne — udledt af nyeste referencesats
-const _maxRaw = referenceRatesTable[0][0];
+const _maxRaw = referenceRatesTable[0]?.[0];
+if (!_maxRaw) {
+  throw new Error('CRITICAL: Ingen referencesatser er defineret');
+}
 const [, , _maxYear] = _maxRaw.split('-');
 const _parsedMaxYear = Number.parseInt(_maxYear, 10);
 if (!Number.isInteger(_parsedMaxYear)) {

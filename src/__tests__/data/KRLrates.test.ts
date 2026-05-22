@@ -80,6 +80,25 @@ describe('getKRLSatstabel', () => {
       expect(getKRLSatstabel(id)).toBeDefined();
     }
   });
+
+  it('indeholder satserne for 01-04-2026 som nyeste række', () => {
+    expect(getKRLSatstabel('KTO (kommuner)')?.vaerdier[0]).toEqual({
+      fraDato: '01-04-2026',
+      reguleringsPct: 65.3378,
+    });
+    expect(getKRLSatstabel('SHK (kommuner)')?.vaerdier[0]).toEqual({
+      fraDato: '01-04-2026',
+      reguleringsPct: 45.0155,
+    });
+    expect(getKRLSatstabel('KTO (regioner)')?.vaerdier[0]).toEqual({
+      fraDato: '01-04-2026',
+      reguleringsPct: 19.8008,
+    });
+    expect(getKRLSatstabel('SHK (regioner)')?.vaerdier[0]).toEqual({
+      fraDato: '01-04-2026',
+      reguleringsPct: 19.8008,
+    });
+  });
 });
 
 describe('formatKRLSatstabelDisplay', () => {
@@ -120,6 +139,7 @@ describe('getReguleringsDatoIntervalForKRL', () => {
     const interval = getReguleringsDatoIntervalForKRL('KTO (kommuner)');
     if (interval) {
       expect(interval.tilDato).toMatch(DANISH_DATE);
+      expect(interval.tilDato).toBe('30-09-2026');
     }
   });
 });

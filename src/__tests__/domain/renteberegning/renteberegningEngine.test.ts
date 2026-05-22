@@ -411,6 +411,39 @@ describe('renteberegningEngine', () => {
       expect(result.pdfContext).toBeNull();
     });
 
+    it('dato før satsdækning → null rente og ingen throw', () => {
+      const { referenceRates, surchargeRates } = buildRates();
+      const row = {
+        id: 'row-1',
+        belob: amountNumber(1000),
+        renterFra: toISODateString('2004-01-01'),
+        tillaegstid: 0,
+        enhed: 'dage' as const,
+      };
+
+      const result = computeRentekravRow(row, toISODateString('2024-01-31'), referenceRates, surchargeRates);
+
+      expect(result.actualInterestDate).toBe(toISODateString('2004-01-01'));
+      expect(result.calculatedInterest).toBeNull();
+      expect(result.pdfContext).toBeNull();
+    });
+
+    it('manglende satsdata → null rente og ingen throw', () => {
+      const row = {
+        id: 'row-1',
+        belob: amountNumber(1000),
+        renterFra: toISODateString('2024-01-01'),
+        tillaegstid: 0,
+        enhed: 'dage' as const,
+      };
+
+      const result = computeRentekravRow(row, toISODateString('2024-01-31'), [], []);
+
+      expect(result.actualInterestDate).toBe(toISODateString('2024-01-01'));
+      expect(result.calculatedInterest).toBeNull();
+      expect(result.pdfContext).toBeNull();
+    });
+
     it('ugyldig rentedato-beregning → actualInterestDate=null og ingen pdfContext', () => {
       const { referenceRates, surchargeRates } = buildRates();
       const row = {

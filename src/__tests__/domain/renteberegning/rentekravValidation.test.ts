@@ -204,11 +204,11 @@ describe('validateInterestCalculation', () => {
     });
   });
 
-  describe('RENTEDATO_BEFORE_RATE_COVERAGE', () => {
-    it('rentedato før første referencesats → RENTEDATO_BEFORE_RATE_COVERAGE', () => {
-      const result = validateInterestCalculation(d('01-01-2004'), validBeloeb, d('01-01-2004'), d('01-01-2006'));
+  describe('DATE_BEFORE_RATE_COVERAGE', () => {
+    it('rentedato før tidligste referencesats → DATE_BEFORE_RATE_COVERAGE', () => {
+      const result = validateInterestCalculation(d('01-01-2004'), validBeloeb, d('01-01-2004'), validBeregningsdato);
       expect(result.success).toBe(false);
-      if (!result.success) expect(result.error).toBe('RENTEDATO_BEFORE_RATE_COVERAGE');
+      if (!result.success) expect(result.error).toBe('DATE_BEFORE_RATE_COVERAGE');
     });
   });
 });

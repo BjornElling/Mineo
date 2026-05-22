@@ -177,14 +177,13 @@ Konsekvens for komponentdesign:
 Tilføj separate HTML-entrypoints:
 
 ```text
-index.html
+mineo.html
 minprocesrente.html
 ```
 
 Alternativt kan der bruges separate Vite-configs:
 
 ```text
-vite.config.ts
 vite.mineo.config.ts
 vite.minprocesrente.config.ts
 ```
@@ -206,7 +205,7 @@ Package scripts:
 }
 ```
 
-Eksisterende `npm run build` bør enten fortsætte med kun at bygge Mineo eller blive en alias til `build:mineo`, så nuværende deploy ikke ændrer adfærd utilsigtet.
+Eksisterende `npm run build` bør enten fortsætte som alias for `build:mineo` eller fjernes, så nuværende deploy ikke ændrer adfærd utilsigtet.
 
 ### Cloudflare
 
@@ -233,7 +232,7 @@ Eksempelstruktur:
 }
 ```
 
-Mineos eksisterende `wrangler.json` kan bevares som Mineo-konfig eller omdøbes eksplicit, afhængigt af hvad GitHub Actions/deploy bruger i dag.
+Mineos eksisterende `wrangler.json` omdøbes til `wrangler.mineo.json`, så begge configs følger samme navneskema.
 
 ### GitHub Actions
 
@@ -303,10 +302,10 @@ Scope for første version er låst til:
 
 ### Stadium 5 - Build/deploy
 
-- Tilføj build scripts.
-- Tilføj separat Cloudflare config for MinProcesrente.
+- Tilføj `build:mineo` og `build:minprocesrente` scripts samt `build:all`.
+- Omdøb `wrangler.json` til `wrangler.mineo.json`; tilføj `wrangler.minprocesrente.json`.
 - Opdater GitHub Actions til at bygge og deploye begge varianter.
-- Sørg for at `observability.enabled` forbliver `false`.
+- Sørg for at `observability.enabled` forbliver `false` i begge Cloudflare-configs.
 
 ### Stadium 6 - Test og kvalitet
 
@@ -338,9 +337,9 @@ Hvis deploy/build-scripts ændres:
 | Renteberegneren divergerer mellem siderne | Ingen kopier; genbrug samme komponenter og domænemoduler |
 | PDF afhænger skjult af `stamdata` eller brugerindtastede `indstillinger` | Udtræk fælles rente-PDF-kerne og brug standalone-adapter uden disse input |
 | Service worker cache konflikter mellem domæner | Deaktiver service worker/PWA for MinProcesrente i første version |
-| `.eo`-flows eksponeres utilsigtet | Deaktiver Mineo file-open/save/load i standalone-versionen |
-| Rentesats-tab bliver eksponeret ved genbrug af `Renteberegning` | Brug smal standalone page eller variant-prop, og test at tabben ikke renderes |
-| CSS ændres for standalone og påvirker Mineo | Brug fælles styles uændret; læg variant-specifik layout-CSS i standalone-komponent, ikke globalt |
+| `.eo`-flows eksponeres i MinProcesrente utilsigtet | Deaktiver file-open/save/load i `MinProcesrenteApp`; bevar dem i `MineoApp` |
+| Rentesats-tab bliver eksponeret i MinProcesrente ved genbrug af `Renteberegning` | Brug smal `MinProcesrenteCalculatorPage` eller variant-prop, og test at tabben ikke renderes |
+| CSS ændres for MinProcesrente og påvirker Mineo | Brug fælles styles uændret; læg MinProcesrente-specifik layout-CSS i `StandaloneCalculatorLayout`, ikke globalt |
 
 ---
 
@@ -365,7 +364,7 @@ Hvis deploy/build-scripts ændres:
 
 1. Tilføj `MinProcesrenteApp` og separat entrypoint uden auth, PWA og file-open.
 2. Bevar Mineos eksisterende entrypoint og auth-flow.
-3. Tilføj standalone-layout uden global CSS-ændring og uden topbar/branding.
+3. Tilføj `StandaloneCalculatorLayout` til MinProcesrente uden global CSS-ændring og uden topbar/branding; `MainLayout` forbliver uændret for Mineo.
 4. Monter beregningsfladen uden `Rentesatser`-tab.
 5. Tilføj Vite build for MinProcesrente.
 6. Tilføj smoke-/guard-tests.

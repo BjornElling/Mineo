@@ -19,6 +19,41 @@ export default defineConfig({
     open: false,
   },
 
+  build: {
+    chunkSizeWarningLimit: 750,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) {
+            return undefined;
+          }
+
+          if (id.includes('/jspdf/')) {
+            return 'vendor-jspdf';
+          }
+
+          if (id.includes('/jspdf-autotable/')) {
+            return 'vendor-jspdf-autotable';
+          }
+
+          if (id.includes('/html2canvas/')) {
+            return 'vendor-html2canvas';
+          }
+
+          if (id.includes('/zod/')) {
+            return 'vendor-zod';
+          }
+
+          if (id.includes('/zustand/')) {
+            return 'vendor-zustand';
+          }
+
+          return undefined;
+        },
+      },
+    },
+  },
+
   test: {
     environment: 'jsdom',
 

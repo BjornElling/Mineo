@@ -1,0 +1,24 @@
+import { rmSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+
+const outDir = 'dist/minprocesrente';
+
+for (const relativePath of ['sw.js', 'manifest.json', 'icons']) {
+  rmSync(path.join(outDir, relativePath), { recursive: true, force: true });
+}
+
+writeFileSync(
+  path.join(outDir, '_headers'),
+  [
+    '/',
+    '  Cache-Control: no-cache, no-store, must-revalidate',
+    '',
+    '/index.html',
+    '  Cache-Control: no-cache, no-store, must-revalidate',
+    '',
+    '/assets/*',
+    '  Cache-Control: public, max-age=31536000, immutable',
+    '',
+  ].join('\n'),
+  'utf8'
+);
