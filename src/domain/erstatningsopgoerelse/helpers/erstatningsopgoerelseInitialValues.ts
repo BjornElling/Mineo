@@ -187,7 +187,6 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
     midlertidigEet: true,
     shDage: false,
     regulering: true,
-    offentligeYdelserRegulering: true,
     okSatser: true,
     sygeferiegodtgoerelse: false,
   },

@@ -587,7 +587,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     renderPdfWithSelected(stamdata, eo, {
       ...selected,
-      offentligeYdelserRegulering: true,
+      regulering: true,
     });
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);

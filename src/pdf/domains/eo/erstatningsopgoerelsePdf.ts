@@ -31,7 +31,7 @@ import {
   shouldRenderEoIndkomstOgYdelserBilag,
   shouldIncludeLoenRowInEoBilag,
   shouldIncludeOffentligYdelseRowInEoBilag,
-  shouldIncludeEoReguleringBilag,
+  hasLoenReguleringEoBilagData,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import {
   parseOptionalIsoDate,
@@ -575,7 +575,9 @@ export const generateErstatningsopgoerelsePdf = (
     });
   }
 
-  if (selectedElements.regulering && skalViseIndkomstOgYdelserBilag && shouldIncludeEoReguleringBilag(eoValues)) {
+  // Bilagsvalget "Regulering" styrer både lønregulering og regulering af offentlige ydelser.
+  // De to sektioner renderes fortsat kun, når deres eget datagrundlag faktisk findes.
+  if (selectedElements.regulering && skalViseIndkomstOgYdelserBilag && hasLoenReguleringEoBilagData(eoValues)) {
     renderReguleringSection({
       eoValues: eoValues,
       stamdataValues,
@@ -601,7 +603,7 @@ export const generateErstatningsopgoerelsePdf = (
 
   const offentligeYdelserUdvikling = model.tabtArbejdsfortjeneste.offentligeYdelserUdvikling;
   if (
-    selectedElements.offentligeYdelserRegulering &&
+    selectedElements.regulering &&
     eoValues.regulerOffentligeYdelser === 'Ja' &&
     offentligeYdelserUdvikling &&
     offentligeYdelserUdvikling.entries.length > 0

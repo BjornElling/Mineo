@@ -12,7 +12,6 @@ export interface SelectedElements {
   midlertidigEet: boolean;
   shDage: boolean;
   regulering: boolean;
-  offentligeYdelserRegulering: boolean;
   okSatser: boolean;
   sygeferiegodtgoerelse: boolean;
 }

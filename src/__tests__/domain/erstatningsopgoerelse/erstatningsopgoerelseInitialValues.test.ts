@@ -183,7 +183,7 @@ describe('erstatningsopgoerelseSchema – load-kompatibilitet for bilagsnumre', 
   });
 });
 
-describe('erstatningsopgoerelseSchema – load-kompatibilitet for offentlige ydelser-regulering', () => {
+describe('erstatningsopgoerelseSchema – offentlige ydelser-regulering', () => {
   const baseValues = createErstatningsopgoerelseInitialValues();
 
   it('manglende regulerOffentligeYdelser → "Ja" (skema-default)', () => {
@@ -191,24 +191,5 @@ describe('erstatningsopgoerelseSchema – load-kompatibilitet for offentlige yde
     const result = erstatningsopgoerelseSchema.safeParse(uden);
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.regulerOffentligeYdelser).toBe('Ja');
-  });
-
-  it('manglende eoBilagSelection.offentligeYdelserRegulering → true (skema-default)', () => {
-    const values = {
-      ...baseValues,
-      eoBilagSelection: {
-        opgoerelse: true as const,
-        loenindkomst: true,
-        offentligeYdelser: true,
-        midlertidigEet: true,
-        shDage: false,
-        regulering: true,
-        okSatser: true,
-        sygeferiegodtgoerelse: false,
-      },
-    };
-    const result = erstatningsopgoerelseSchema.safeParse(values);
-    expect(result.success).toBe(true);
-    if (result.success) expect(result.data.eoBilagSelection.offentligeYdelserRegulering).toBe(true);
   });
 });

@@ -81,7 +81,6 @@ export const EO_BILAG_DYNAMIC_SELECTION_KEYS = [
   'offentligeYdelser',
   'midlertidigEet',
   'regulering',
-  'offentligeYdelserRegulering',
   'shDage',
   'sygeferiegodtgoerelse',
 ] as const;
@@ -164,7 +163,7 @@ const hasReguleringSelection = (values: ErstatningsopgoerelseValues): boolean =>
   return false;
 };
 
-const hasReguleringEoBilagData = (values: ErstatningsopgoerelseValues): boolean => {
+export const hasLoenReguleringEoBilagData = (values: ErstatningsopgoerelseValues): boolean => {
   return hasReguleringSelection(values) && shouldIncludeEoReguleringBilag(values);
 };
 
@@ -175,7 +174,7 @@ const hasSygeferiegodtgoerelseEoBilagData = (values: ErstatningsopgoerelseValues
   });
 };
 
-const hasOffentligeYdelserReguleringData = (params: Readonly<{
+export const hasOffentligeYdelserReguleringData = (params: Readonly<{
   values: ErstatningsopgoerelseValues;
   skadedatoISO?: ISODateString | undefined;
 }>): boolean => {
@@ -202,11 +201,12 @@ export const getEoBilagAvailability = (params: Readonly<{
   const tafBeregningsenhed = computeTafBeregningsenhed(eoValues);
   const harLoenindkomst = kanViseIndkomstOgYdelserBilag && hasLoenindkomstEoBilagData(eoValues, eoBilagMode, eoBilagRangeGroups);
   const harOffentligeYdelser = kanViseIndkomstOgYdelserBilag && hasOffentligeYdelserEoBilagData(eoValues, eoBilagMode, eoBilagRangeGroups);
-  const harRegulering = hasReguleringEoBilagData(eoValues);
   const harOffentligeYdelserRegulering = hasOffentligeYdelserReguleringData({
     values: eoValues,
     skadedatoISO,
   });
+  const harLoenRegulering = hasLoenReguleringEoBilagData(eoValues);
+  const harRegulering = harLoenRegulering || harOffentligeYdelserRegulering;
   const harSygeferiegodtgoerelse = hasSygeferiegodtgoerelseEoBilagData(eoValues);
   const midlertidigtEetFraEetSiden = eoValues.midlertidigtEetFraEetSiden === 'Ja';
 
@@ -239,21 +239,7 @@ export const getEoBilagAvailability = (params: Readonly<{
           enabled: false,
           disabledReason: !kanViseIndkomstOgYdelserBilag
             ? EO_BILAG_PERIOD_FILTER_REASON
-            : eoValues.beregnesUdFra === 'Beregningsperiode'
-              ? hasReguleringSelection(eoValues)
-                ? 'Der er ingen regulering, som faktisk indgår i det valgte bilagsfilter.'
-                : 'Der er ikke valgt lønregulering for noget ansættelsesforhold.'
-              : 'Der er ikke angivet regulering af lønforhold.',
-        },
-    offentligeYdelserRegulering: harOffentligeYdelserRegulering
-      ? { enabled: true }
-      : {
-          enabled: false,
-          disabledReason: eoValues.beregnesUdFra !== 'Beregningsperiode'
-            ? 'Offentlige ydelser reguleres kun, når før-indkomst beregnes ud fra beregningsperioden.'
-            : eoValues.regulerOffentligeYdelser !== 'Ja'
-              ? 'Regulering af offentlige ydelser er slået fra.'
-              : 'Der er ingen offentlige ydelser i beregningsperioden med TAF-perioder at regulere.',
+            : 'Der er ingen løn eller offentlige ydelser, som faktisk reguleres i den aktuelle opgørelse.',
         },
     shDage: tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE
       ? { enabled: true }

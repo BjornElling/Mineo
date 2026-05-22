@@ -167,7 +167,7 @@ describe('getEoBilagAvailability', () => {
 
     expect(result.regulering.enabled).toBe(false);
     expect(result.regulering.disabledReason).toBe(
-      'Der er ikke valgt lønregulering for noget ansættelsesforhold.'
+      'Der er ingen løn eller offentlige ydelser, som faktisk reguleres i den aktuelle opgørelse.'
     );
   });
 
@@ -181,6 +181,31 @@ describe('getEoBilagAvailability', () => {
         tafBeregningsperiodeFra: '2024-01-01',
         tafBeregningsperiodeTil: '2024-01-31',
         loenindkomstAnsaettelsesforhold: [employment],
+      }),
+    });
+
+    expect(result.regulering.enabled).toBe(true);
+  });
+
+  it('aktiverer regulering ved beregningsperiode når der kun findes regulering af offentlige ydelser', () => {
+    const result = getEoBilagAvailability({
+      eoValues: makeValues({
+        beregnesUdFra: 'Beregningsperiode',
+        regulerOffentligeYdelser: 'Ja',
+        tafBeregningsperiodeFra: '2024-01-01',
+        tafBeregningsperiodeTil: '2024-01-31',
+        tafPerioder: [{ id: 'taf-1', fra: '2024-02-01', til: '2024-02-29', loseFeriedage: 0 }],
+        loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
+        offentligeYdelserRows: [
+          {
+            id: 'row-1',
+            fraDato: '01-01-2024',
+            tilDato: '31-01-2024',
+            ydelse: { kind: 'number', value: 1000 },
+            tillaeg: undefined,
+            ydelsestype: 'dagpenge',
+          },
+        ],
       }),
     });
 
@@ -239,7 +264,7 @@ describe('getEoBilagAvailability', () => {
 
     expect(result.regulering.enabled).toBe(false);
     expect(result.regulering.disabledReason).toBe(
-      'Der er ikke angivet regulering af lønforhold.'
+      'Der er ingen løn eller offentlige ydelser, som faktisk reguleres i den aktuelle opgørelse.'
     );
   });
 

@@ -620,7 +620,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       midlertidigEet: true,
       shDage: false,
       regulering: true,
-      offentligeYdelserRegulering: true,
       okSatser: true,
       sygeferiegodtgoerelse: true,
     }
@@ -1164,7 +1163,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
             </Box>
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
               {renderBilagCheckbox('regulering', 'Regulering')}
-              {renderBilagCheckbox('offentligeYdelserRegulering', 'Regulering af offentlige ydelser')}
               {renderBilagCheckbox('shDage', 'SH-dage')}
               {renderBilagCheckbox('sygeferiegodtgoerelse', 'Sygeferiegodtgørelse')}
             </Box>
