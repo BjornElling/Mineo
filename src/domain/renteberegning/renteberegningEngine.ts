@@ -88,13 +88,19 @@ const calculateRowInterest = (
   }
 
   const validated = validationResult.value;
-  const breakdown = calculateProcessInterestBreakdownWithRates(
-    validated.beloeb,
-    validated.rentedato,
-    validated.beregningsdato,
-    refRates,
-    surRates
-  );
+  const breakdown = (() => {
+    try {
+      return calculateProcessInterestBreakdownWithRates(
+        validated.beloeb,
+        validated.rentedato,
+        validated.beregningsdato,
+        refRates,
+        surRates
+      );
+    } catch {
+      return null;
+    }
+  })();
 
   return {
     id: rowValues.id,

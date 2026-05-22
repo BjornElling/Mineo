@@ -10,6 +10,8 @@ import type { FormFieldError } from '../../types/fieldErrors';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { computeForsoergertabCalculation } from './forsoergertabCalculation';
 import { PRE_2015_CUTOFF } from './forsoergertabConstants';
+import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
+import { reportSystemIssue } from '../../utils/systemIssueReporter';
 
 type FieldErrorMessage = Pick<FormFieldError, 'message'> | undefined;
 
@@ -35,6 +37,31 @@ const EAL_AARSLOEN_ASL_MAX_ERROR_MESSAGE =
   'Når årsløn efter ASL svarer til maksimum, skal den faktiske årsløn indtastes.';
 
 const EAL_AARSLOEN_ASL_MAX_ISSUE_IDS = ['warn-eal-aarsloen-is-max', 'warn-asl-aarsloen-is-max'] as const;
+
+const createRuntimeExceptionCalculation = (error: unknown): ForsoergertabCalculationResult => {
+  const normalizedError = error instanceof Error ? error : new Error(String(error));
+  reportSystemIssue({
+    code: 'forsoergertab_snapshot:runtime_exception',
+    area: 'calculation',
+    context: 'forsoergertab.computeForsoergertabSnapshot',
+    userMessage: 'Uventet runtimefejl i forsørgertabsberegning',
+    developerMessage: normalizedError.message,
+    error: normalizedError,
+  });
+
+  return {
+    issues: [{
+      id: 'runtime-exception',
+      severity: 'error',
+      message: 'Forsørgertabsberegningen kan ikke gennemføres på grund af en intern beregningsfejl.',
+    }],
+    ealComputation: null,
+    aslComputation: null,
+    foersoergertabEalMinSats: null,
+    foersoergertabForhoejtetTilMin: false,
+    result: null,
+  };
+};
 
 export type ForsoergertabPdfProjection = Readonly<{
   grundlaeggende: Readonly<{
@@ -117,17 +144,23 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     return beregningsdato ? minISO(maxDato, beregningsdato) : maxDato;
   })();
 
-  const calculation = computeForsoergertabCalculation({
-    skadedato: coerceToISODateString(stamdata?.skadedato),
-    skadelidteFodselsdato: coerceToISODateString(stamdata?.skadelidteFodselsdato),
-    efterladteFodselsdato: coerceToISODateString(values.efterladteFodselsdato),
-    beregningsdato: coerceToISODateString(values.beregningsdato),
-    virkningsdato: coerceToISODateString(values.virkningsdato),
-    koen: values.koen,
-    tilkendtForPeriodeAar: values.tilkendtForPeriodeAar,
-    aslAarsloen: faellesAarsloen.aslAarsloen,
-    ealAarsloen: faellesAarsloen.ealAarsloen,
-  });
+  const calculation = (() => {
+    try {
+      return computeForsoergertabCalculation({
+        skadedato: coerceToISODateString(stamdata?.skadedato),
+        skadelidteFodselsdato: coerceToISODateString(stamdata?.skadelidteFodselsdato),
+        efterladteFodselsdato: coerceToISODateString(values.efterladteFodselsdato),
+        beregningsdato: coerceToISODateString(values.beregningsdato),
+        virkningsdato: coerceToISODateString(values.virkningsdato),
+        koen: values.koen,
+        tilkendtForPeriodeAar: values.tilkendtForPeriodeAar,
+        aslAarsloen: faellesAarsloen.aslAarsloen,
+        ealAarsloen: faellesAarsloen.ealAarsloen,
+      });
+    } catch (error) {
+      return createRuntimeExceptionCalculation(error);
+    }
+  })();
 
   const visKoenValg = (() => {
     const beregningsdato = coerceToISODateString(values.beregningsdato);
@@ -149,6 +182,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
       'forsoergertab-tabel-missing',
       'forsoergertab-tabel-rows-missing',
       'forsoergertab-faktor-unresolved',
+      'runtime-exception',
     ]),
     beregningsdatoForEal: getIssueMessage(calculation.issues, [
       'aarsloen-max-missing-beregningsaar',

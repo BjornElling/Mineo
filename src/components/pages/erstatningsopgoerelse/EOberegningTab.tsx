@@ -26,6 +26,8 @@ import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse
 import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
+import { safeCompute } from '../../../utils/safeComputation';
+import { isErr } from '../../../types/result';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import {
   EO_BILAG_DYNAMIC_SELECTION_KEYS,
@@ -57,6 +59,13 @@ type EetIssueRow = Readonly<{
   message: string;
   severity: 'error' | 'warning';
   onAction: () => void;
+}>;
+
+type DebugRowsMemoResult = Readonly<{
+  errors: ReadonlyArray<DebugRowWithNavigation>;
+  warnings: ReadonlyArray<DebugRowWithNavigation>;
+  relevantRows: ReadonlyArray<DebugRowWithNavigation>;
+  debugAggregationErrorMessage: string | null;
 }>;
 
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
@@ -265,24 +274,38 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   // SAMLE ALLE DEBUG-ROWS MED NAVIGATION
   // ============================================================================
 
-  const { errors, warnings, relevantRows } = React.useMemo(() => {
+  const { errors, warnings, relevantRows, debugAggregationErrorMessage } = React.useMemo<DebugRowsMemoResult>(() => {
     if (!isActive) {
-      return { errors: [], warnings: [], relevantRows: [] };
+      return { errors: [], warnings: [], relevantRows: [], debugAggregationErrorMessage: null };
     }
     // Return tom liste hvis data ikke er loaded endnu
     if (!eoValues) {
-      return { errors: [], warnings: [], relevantRows: [] };
+      return { errors: [], warnings: [], relevantRows: [], debugAggregationErrorMessage: null };
     }
 
-    return collectAllDebugRows(
-      stamdataValues,
-      stamdataErrors,
-      eoValues,
-      eoErrors,
-      manuelReguleringInputErrors,
-      settings,
-      beregningView?.canonicalOutput
+    const result = safeCompute(
+      () => collectAllDebugRows(
+        stamdataValues,
+        stamdataErrors,
+        eoValues,
+        eoErrors,
+        manuelReguleringInputErrors,
+        settings,
+        beregningView?.canonicalOutput
+      ),
+      'EOberegningTab.collectAllDebugRows',
+      { code: 'eo_debug:aggregation_failed' }
     );
+    if (isErr(result)) {
+      return {
+        errors: [],
+        warnings: [],
+        relevantRows: [],
+        debugAggregationErrorMessage: 'Beregningens fejloverblik kan ikke vises på grund af en intern fejl.',
+      };
+    }
+
+    return { ...result.value, debugAggregationErrorMessage: null };
   }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings, beregningView]);
   const eoPdfProjection = React.useMemo(
     () => (eoSnapshot ? eoSnapshotToEoPdfDocument(eoSnapshot) : null),
@@ -334,6 +357,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   );
 
   const firstBlockingDebugErrorMessage = React.useMemo(() => {
+    if (debugAggregationErrorMessage) {
+      return debugAggregationErrorMessage;
+    }
     const firstError = errors[0];
     if (firstError) {
       const normalizedMessage = firstError.message?.trim() || '';
@@ -344,9 +370,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       return firstEetError.message;
     }
     return null;
-  }, [errors, eetLoebendeErrorRows]);
+  }, [debugAggregationErrorMessage, errors, eetLoebendeErrorRows]);
 
-  const hasBlockingDebugErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0;
+  const hasBlockingDebugErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0 || debugAggregationErrorMessage !== null;
   const canDownloadSnapshotEoPdf = eoPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors;
   const canDownloadSnapshotTafPdf = tafPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors;
 
@@ -451,6 +477,15 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       }
     }
 
+    if (debugAggregationErrorMessage) {
+      pushIssue({
+        id: 'debug-aggregation-failed',
+        message: debugAggregationErrorMessage,
+        actionLabel: 'Debug tabel',
+        onAction: () => setActiveTab('debug_tabel'),
+      });
+    }
+
     // Systeminvarianter med reel systemfejl-semantik vises samlet her.
     // TAF-afstemningsfejl bevarer fortsat også tooltip-blokeringen på downloadknappen.
     [
@@ -475,6 +510,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     authoritativeBlockingInvariants,
     eoPdfBlockingInvariants,
     eoSnapshot,
+    debugAggregationErrorMessage,
     isSystemInvariant,
     setActiveTab,
     tafPdfProjection,

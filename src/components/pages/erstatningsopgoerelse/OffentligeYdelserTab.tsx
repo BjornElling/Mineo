@@ -21,6 +21,7 @@ import {
   removeOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
 } from '../../../utils/safeSessionStorage';
+import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { CommitEvent } from '../../../types/fieldEvents';
 
@@ -55,6 +56,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
   const [sygedagpengeTilDato, setSygedagpengeTilDato] = React.useState<ISODateString | undefined>(undefined);
   const [sygedagpengeFraError, setSygedagpengeFraError] = React.useState<string | undefined>(undefined);
   const [sygedagpengeTilError, setSygedagpengeTilError] = React.useState<string | undefined>(undefined);
+  const [sygedagpengeInsertError, setSygedagpengeInsertError] = React.useState<string | null>(null);
   const [midlertidigtEetConfirmDialogOpen, setMidlertidigtEetConfirmDialogOpen] = React.useState(false);
 
   const readHelpersSessionState = React.useCallback((): OffentligeYdelserHelpersSessionState => {
@@ -119,9 +121,27 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
   const handleSygedagpengeInsert = React.useCallback(() => {
     if (!sygedagpengeFraDato || !sygedagpengeTilDato) return;
 
-    const generatedRows = buildSygedagpengeRowsForRange(sygedagpengeFraDato, sygedagpengeTilDato);
+    const generatedRows = (() => {
+      try {
+        return buildSygedagpengeRowsForRange(sygedagpengeFraDato, sygedagpengeTilDato);
+      } catch (error) {
+        const normalizedError = error instanceof Error ? error : new Error(String(error));
+        reportSystemIssue({
+          code: 'offentlige_ydelser:sygedagpenge_insert_failed',
+          area: 'calculation',
+          context: 'OffentligeYdelserTab.handleSygedagpengeInsert',
+          userMessage: 'Sygedagpenge-rækker kunne ikke indsættes',
+          developerMessage: normalizedError.message,
+          error: normalizedError,
+        });
+        setSygedagpengeInsertError('Sygedagpenge-rækker kunne ikke indsættes på grund af en intern beregningsfejl.');
+        return null;
+      }
+    })();
+    if (generatedRows === null) return;
     if (generatedRows.length === 0) return;
 
+    setSygedagpengeInsertError(null);
     suppressSygedagpengeFieldCommitRef.current = true;
     onRowsChange(insertOffentligeYdelserRowsBeforeTrailingEmpty(rows, generatedRows));
     shouldFocusSygedagpengeFraRef.current = true;
@@ -264,6 +284,14 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
             </InlineActionButton>
           </Box>
         </Box>
+        {sygedagpengeInsertError && (
+          <Box className="row--label-right-hover">
+            <Typography className="row--text" sx={{ color: 'error.main' }}>
+              {sygedagpengeInsertError}
+            </Typography>
+            <Box className="row--label-right-hover__content" />
+          </Box>
+        )}
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">Midlertidigt EET indsættes fra Erhvervsevnetab-siden</Typography>

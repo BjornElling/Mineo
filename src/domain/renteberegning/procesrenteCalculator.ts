@@ -11,7 +11,6 @@
 import type { RateEntry } from '../../data/interestRates';
 import type { DanishDateString } from '../../types/branded';
 import { createDate, getDaysInYear, parseDanishDate } from '../../utils/dateUtils';
-import { formatUtcDateShort } from '../../utils/dateFormatting';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 
 type DatedRate = Readonly<{ date: Date; ratePct: number }>;
@@ -45,7 +44,7 @@ const normalizeRates = (rates: ReadonlyArray<RateEntry>): DatedRate[] => {
 /**
  * Finder den gældende sats (procentpoint) på en specifik dato.
  */
-const findRatePctOnDate = (rates: ReadonlyArray<DatedRate>, targetDate: Date): number => {
+const findRatePctOnDate = (rates: ReadonlyArray<DatedRate>, targetDate: Date): number | null => {
   let applicableRate: number | null = null;
 
   for (const entry of rates) {
@@ -56,17 +55,13 @@ const findRatePctOnDate = (rates: ReadonlyArray<DatedRate>, targetDate: Date): n
     }
   }
 
-  if (applicableRate === null) {
-    throw new Error(`Ingen sats fundet for dato ${formatUtcDateShort(targetDate)}`);
-  }
-
   return applicableRate;
 };
 
 /**
  * Finder tillægssats baseret på faktisk rentedato (data-driven).
  */
-const calculateSurchargeRate = (rates: ReadonlyArray<DatedRate>, interestStartDate: Date): number => {
+const calculateSurchargeRate = (rates: ReadonlyArray<DatedRate>, interestStartDate: Date): number | null => {
   return findRatePctOnDate(rates, interestStartDate);
 };
 
@@ -185,6 +180,9 @@ export const calculateProcessInterestBreakdownWithRates = (
   }
 
   const surchargeRate = calculateSurchargeRate(surchargeRatesSorted, startDate);
+  if (surchargeRate === null) {
+    return null;
+  }
   let totalInterest = 0.0;
   const periods: ProcessInterestPeriod[] = [];
   let currentDate = new Date(startDate);
@@ -203,6 +201,9 @@ export const calculateProcessInterestBreakdownWithRates = (
 
     if (currentDate <= periodEnd) {
       const referenceRatePct = findRatePctOnDate(referenceRatesSorted, currentDate);
+      if (referenceRatePct === null) {
+        return null;
+      }
       const totalRatePct = referenceRatePct + surchargeRate;
       const days = countInclusiveUtcDays(currentDate, periodEnd);
       if (days === null) {

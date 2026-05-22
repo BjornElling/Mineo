@@ -324,6 +324,33 @@ describe('renteberegningEngine', () => {
     expect(futureRow?.calculatedInterest).toBeNull();
   });
 
+  it('returnerer null rente for rentedato før satsdækning uden at kaste', () => {
+    const { referenceRates, surchargeRates } = buildRates();
+    const output = computeRenteberegning({
+      renteberegning: {
+        beregningsdato: toISODateString('2024-12-31'),
+        rentekravRows: [
+          {
+            id: 'old-date',
+            belob: amountNumber(10000),
+            renterFra: toISODateString('2004-01-01'),
+            tillaegstid: 0,
+            enhed: 'dage',
+          },
+        ],
+      },
+      referenceRates,
+      surchargeRates,
+    });
+
+    expect(output.rows[0]).toEqual({
+      id: 'old-date',
+      actualInterestDate: toISODateString('2004-01-01'),
+      calculatedInterest: null,
+      periods: null,
+    });
+  });
+
   describe('computeRentekravRow', () => {
     it('returnerer pdfContext ved gyldig række', () => {
       const { referenceRates, surchargeRates } = buildRates();
@@ -397,6 +424,22 @@ describe('renteberegningEngine', () => {
       const result = computeRentekravRow(row, toISODateString('2024-01-31'), referenceRates, surchargeRates);
 
       expect(result.actualInterestDate).toBeNull();
+      expect(result.calculatedInterest).toBeNull();
+      expect(result.pdfContext).toBeNull();
+    });
+
+    it('tomt satsgrundlag → actualInterestDate bevares, men rente og pdfContext er null', () => {
+      const row = {
+        id: 'row-1',
+        belob: amountNumber(1000),
+        renterFra: toISODateString('2024-01-01'),
+        tillaegstid: 0,
+        enhed: 'dage' as const,
+      };
+
+      const result = computeRentekravRow(row, toISODateString('2024-01-31'), [], []);
+
+      expect(result.actualInterestDate).toBe(toISODateString('2024-01-01'));
       expect(result.calculatedInterest).toBeNull();
       expect(result.pdfContext).toBeNull();
     });

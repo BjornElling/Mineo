@@ -69,11 +69,21 @@ const surchargeRatesTable: ReadonlyArray<readonly [effectiveDate: string, ratePc
   ['01-08-2002',            7.0 ],
 ];
 
+const toIsoFromRateTableDate = (rawDate: string, context: string): ISODateString => {
+  const [day, month, year] = rawDate.split('-');
+  if (!day || !month || !year) {
+    throw new Error(`Ugyldig ${context}-dato: "${rawDate}"`);
+  }
+  return toISODateString(`${year}-${month}-${day}`);
+};
+
 // Tidligste dato i referencesatserne — udledt af det ældste element i referenceRatesTable
 // Tabellen er sorteret nyeste-først, så det sidste element har den tidligste dato
 const _minRaw = referenceRatesTable[referenceRatesTable.length - 1][0];
-const [_d, _m, _y] = _minRaw.split('-');
-export const MIN_INTEREST_DATE: ISODateString = toISODateString(`${_y}-${_m}-${_d}`);
+export const MIN_INTEREST_DATE: ISODateString = toIsoFromRateTableDate(_minRaw, 'ældste referencesats');
+
+const _minSurchargeRaw = surchargeRatesTable[surchargeRatesTable.length - 1][0];
+export const MIN_SURCHARGE_DATE: ISODateString = toIsoFromRateTableDate(_minSurchargeRaw, 'ældste tillægssats');
 
 // Seneste kalenderår i referencesatserne — udledt af nyeste referencesats
 const _maxRaw = referenceRatesTable[0][0];

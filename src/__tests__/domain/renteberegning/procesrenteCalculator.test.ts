@@ -90,6 +90,29 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
     expect(result).toBeNull();
   });
 
+  it('tomt satsgrundlag → null', () => {
+    const result = calculateProcessInterestWithRates(
+      1000,
+      toDanishDateString('01-01-2024'),
+      toDanishDateString('31-01-2024'),
+      [],
+      []
+    );
+    expect(result).toBeNull();
+  });
+
+  it('startdato før første referencesats → null', () => {
+    const { ref, sur } = buildMinimalRates();
+    const result = calculateProcessInterestWithRates(
+      1000,
+      toDanishDateString('01-01-2009'),
+      toDanishDateString('31-01-2009'),
+      ref,
+      sur
+    );
+    expect(result).toBeNull();
+  });
+
   it('startDate === endDate → ikke null (én dags rente)', () => {
     const { ref, sur } = buildMinimalRates();
     const result = calculateProcessInterestWithRates(

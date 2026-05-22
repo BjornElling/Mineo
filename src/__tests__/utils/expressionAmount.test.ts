@@ -125,6 +125,13 @@ describe('parseAmountInput', () => {
     expect(result.value?.value).toBe(1.24);
   });
 
+  it('afviser beløb med ekstremt mange decimaler før BigInt-skalering', () => {
+    const result = parse('0,1234567890123456');
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.error.message).toBe('For mange decimaler');
+  });
+
   it('rounds expression results beyond precision', () => {
     const result = parse('1/8');
     expect(result.ok).toBe(true);
