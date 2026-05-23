@@ -496,7 +496,7 @@ export const downloadTafFordeltPaaAarPdf = async (params: Readonly<{
 export const downloadVarigeMenPdf = async (params: Readonly<{
   fodselsdato: ISODateString | undefined;
   skadedato: ISODateString | undefined;
-  mengrad: number | undefined;
+  mengrad: number;
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
   settings: AppSettings;

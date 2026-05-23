@@ -1,10 +1,48 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { computeEetKapitaliseringCalculation } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
+import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('computeEetKapitaliseringCalculation', () => {
+  it('afviser ikke-positive ASL-årslønsmaksimum før grundlønsdivision', () => {
+    const original = aarsloenAslMax[2025];
+    aarsloenAslMax[2025] = 0;
+
+    try {
+      const result = computeEetKapitaliseringCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          aslAarsloen: asAmount(632000),
+          aslAfgoerelser: [
+            {
+              id: 'a',
+              afgoerelsesDato: '2025-07-01',
+              virkningsDato: '2025-07-01',
+              eetPct: '50',
+              kapDato: '2025-10-01',
+              kapPct: '25',
+              afgoerelseType: 'Delvist endelig',
+              tidlKapDato: undefined,
+            },
+          ],
+        },
+        skadedato: '2025-01-01',
+        skadelidteFodselsdato: '1965-01-01',
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual({
+        id: 'aarsloen-max-missing',
+        severity: 'error',
+        message: 'Maksimum årsløn mangler for år 2025.',
+      });
+    } finally {
+      aarsloenAslMax[2025] = original;
+    }
+  });
+
   it('giver en generel fejl når der ikke er indtastet nogen afgørelse', () => {
     const result = computeEetKapitaliseringCalculation({
       erhvervsevnetab: {

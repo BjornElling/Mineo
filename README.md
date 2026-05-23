@@ -63,6 +63,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.05.591
+**Version**: 2026.05.592
 
 **Status**: Under udvikling

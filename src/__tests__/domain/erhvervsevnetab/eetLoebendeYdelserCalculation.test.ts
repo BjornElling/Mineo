@@ -67,6 +67,34 @@ describe('hasOverlapPeriod', () => {
 });
 
 describe('computeEetLoebendeYdelser', () => {
+  it('afviser ikke-positive ASL-årslønsmaksimum før grundlønsdivision', () => {
+    const original = aarsloenAslMax[2019];
+    aarsloenAslMax[2019] = 0;
+
+    try {
+      const result = computeTestRows([
+        testRow({
+          id: 'a1',
+          afgoerelsesDato: '01-01-2023',
+          virkningsDato: '01-01-2023',
+          eetPct: '25',
+          afgoerelseType: 'Midlertidig',
+        }),
+      ], {
+        skadedato: '2019-04-01',
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual({
+        id: 'aarsloen-max-missing',
+        severity: 'error',
+        message: 'Maksimum årsløn mangler for år 2019',
+      });
+    } finally {
+      aarsloenAslMax[2019] = original;
+    }
+  });
+
   it('beregner enkelt overlap som difference frem til skæringsdatoen og fuld ydelse derefter', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {

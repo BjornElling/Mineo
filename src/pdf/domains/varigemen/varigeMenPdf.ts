@@ -58,7 +58,7 @@ const addStamdataSection = (
  */
 const addBeregningsgrundlagSection = (
   writer: PdfWriter,
-  mengrad: number | undefined,
+  mengrad: number,
   beregningsdato: ISODateString | undefined
 ): void => {
   const menSats = resolveMenSatsForBeregningsdato(beregningsdato, varigeMenPrGrad);
@@ -71,7 +71,7 @@ const addBeregningsgrundlagSection = (
 
   writer.writeBoldSubheader('Beregningsgrundlag');
   writeRows(writer, [
-    { label: 'Méngrad', value: mengrad !== undefined ? `${mengrad} %` : '' },
+    { label: 'Méngrad', value: `${mengrad} %` },
     { label: 'Beregningsdato', value: formatIsoDateLong(beregningsdato) },
     { label: satsLabel, value: satsValue },
   ]);
@@ -83,7 +83,7 @@ const addBeregningsgrundlagSection = (
  */
 const addResultatSection = (
   writer: PdfWriter,
-  mengrad: number | undefined,
+  mengrad: number,
   beregningsResultat: VarigeMenBeregningResult
 ): void => {
   writer.writeBoldSubheader('Beregnet méngodtgørelse');
@@ -111,7 +111,7 @@ const addResultatSection = (
 type GenerateVarigeMenPdfParams = PdfCommonOptions & Readonly<{
   fodselsdato: ISODateString | undefined;
   skadedato: ISODateString | undefined;
-  mengrad: number | undefined;
+  mengrad: number;
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
   /** Kanonisk: 'Skadedato' (uden s) eller 'Anmeldelsesdato' (med s) */

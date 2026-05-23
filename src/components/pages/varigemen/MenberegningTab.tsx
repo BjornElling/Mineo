@@ -169,10 +169,18 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       return;
     }
 
+    const mengrad = values.mengrad;
+    if (typeof mengrad !== 'number' || !Number.isFinite(mengrad)) {
+      setPdfErrorMessage(null);
+      setDownloadShake(true);
+      setTimeout(() => setDownloadShake(false), 500);
+      return;
+    }
+
     const result = await downloadVarigeMenPdf({
       fodselsdato: coerceToISODateString(stamValues.skadelidteFodselsdato),
       skadedato: coerceToISODateString(stamValues.skadedato),
-      mengrad: values.mengrad,
+      mengrad,
       beregningsdato: coerceToISODateString(values.beregningsdato),
       beregningsResultat: beregningsResultat,
       settings,

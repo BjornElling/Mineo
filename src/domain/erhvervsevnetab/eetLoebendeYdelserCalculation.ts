@@ -602,7 +602,7 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
 
   const skadesaar = isoYear(skadedato);
   const maxAarsloenISkadesaar = aarsloenAslMax[skadesaar];
-  if (!Number.isFinite(maxAarsloenISkadesaar)) {
+  if (!Number.isFinite(maxAarsloenISkadesaar) || maxAarsloenISkadesaar <= 0) {
     issues.push(toIssue('aarsloen-max-missing', `Maksimum årsløn mangler for år ${skadesaar}`));
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }

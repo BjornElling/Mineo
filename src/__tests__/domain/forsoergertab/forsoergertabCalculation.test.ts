@@ -161,6 +161,32 @@ describe('computeForsoergertabCalculation', () => {
 });
 
 describe('computeForsoergertabAslYdelser', () => {
+  it('afviser ikke-positive ASL-årslønsmaksimum før opreguleringsdivision', () => {
+    const original = aarsloenAslMax[2020];
+    aarsloenAslMax[2020] = 0;
+
+    try {
+      const result = computeForsoergertabAslYdelser({
+        skadedato: '2020-05-01',
+        beregningsdato: '2026-03-19',
+        virkningsdato: '2025-01-01',
+        efterladteFodselsdato: '1976-01-01',
+        koen: undefined,
+        tilkendtForPeriodeAar: 10,
+        aslAarsloen: asAmount(450000),
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual({
+        id: 'aarsloen-max-missing-skadesaar',
+        severity: 'error',
+        message: 'Årslønsmaksimum mangler for år 2020.',
+      });
+    } finally {
+      aarsloenAslMax[2020] = original;
+    }
+  });
+
   it('sætter kapitalbeløbet til 0 når resterende periode er 0 måneder', () => {
     const result = computeForsoergertabAslYdelser({
       skadedato: '2020-05-01',
@@ -384,4 +410,3 @@ describe('computeForsoergertabCalculation — minimumssats', () => {
     expect(result.result?.ealKrav ?? result.ealComputation!.ealKrav).toBeGreaterThanOrEqual(0);
   });
 });
-

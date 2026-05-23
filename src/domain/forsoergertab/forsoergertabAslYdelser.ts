@@ -183,7 +183,7 @@ const computeLobendeYdelser = (
       maanedligYdelse = aarligYdelseSkadesaar / 12;
     } else {
       const aarsloenMaxYear = aarsloenAslMax[year];
-      if (!Number.isFinite(aarsloenMaxYear)) {
+      if (!Number.isFinite(aarsloenMaxYear) || aarsloenMaxYear <= 0) {
         throw new Error(`INVARIANT: aarsloenAslMax mangler for år ${year} — burde være pre-valideret`);
       }
       const opreguleretAarligYdelseForAar = ceilNearest12(FORSOERGERTABSPROCENT * benyttetAarsloen * (aarsloenMaxYear / aarsloenMaxSkadesaar));
@@ -274,13 +274,19 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
   const beregningsaar = isoYear(input.beregningsdato);
   const aarsloenMaxSkadesaar = aarsloenAslMax[skadesaar];
   const aarsloenMaxBeregningsaar = aarsloenAslMax[beregningsaar];
-  if (!Number.isFinite(aarsloenMaxSkadesaar)) {
+  if (!Number.isFinite(aarsloenMaxSkadesaar) || aarsloenMaxSkadesaar <= 0) {
     issues.push(toIssue('aarsloen-max-missing-skadesaar', `Årslønsmaksimum mangler for år ${skadesaar}.`));
   }
-  if (!Number.isFinite(aarsloenMaxBeregningsaar)) {
+  if (!Number.isFinite(aarsloenMaxBeregningsaar) || aarsloenMaxBeregningsaar <= 0) {
     issues.push(toIssue('aarsloen-max-missing-beregningsaar', `Årslønsmaksimum mangler for år ${beregningsaar}.`));
   }
-  if (issues.length > 0 || !Number.isFinite(aarsloenMaxSkadesaar) || !Number.isFinite(aarsloenMaxBeregningsaar)) {
+  if (
+    issues.length > 0 ||
+    !Number.isFinite(aarsloenMaxSkadesaar) ||
+    aarsloenMaxSkadesaar <= 0 ||
+    !Number.isFinite(aarsloenMaxBeregningsaar) ||
+    aarsloenMaxBeregningsaar <= 0
+  ) {
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
@@ -288,7 +294,8 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
 
   for (let yr = virkningsaar; yr < beregningsaar; yr++) {
     if (yr === skadesaar) continue;
-    if (!Number.isFinite(aarsloenAslMax[yr])) {
+    const aarsloenMaxForYear = aarsloenAslMax[yr];
+    if (!Number.isFinite(aarsloenMaxForYear) || aarsloenMaxForYear <= 0) {
       issues.push(toIssue('aarsloen-max-missing-beregningsaar', `Årslønsmaksimum mangler for år ${yr}.`));
     }
   }

@@ -357,7 +357,7 @@ export const computeEetKapitaliseringCalculation = (
 
   const skadesaar = Number.parseInt(skadedato.slice(0, 4), 10);
   const maxAarsloenISkadesaar = aarsloenAslMax[skadesaar];
-  if (!Number.isFinite(maxAarsloenISkadesaar)) {
+  if (!Number.isFinite(maxAarsloenISkadesaar) || maxAarsloenISkadesaar <= 0) {
     issues.push(toIssue('aarsloen-max-missing', `Maksimum årsløn mangler for år ${skadesaar}.`));
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
