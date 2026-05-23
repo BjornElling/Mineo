@@ -14,6 +14,7 @@ import { readOptionalSessionStorageValue } from '../utils/safeSessionStorage';
 import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
 import { readLastUndoFocus } from '../utils/undoFocusTracker';
 import { useRoutePathnameSnapshot } from '../contexts/RoutePathnameContext.shared';
+import { reportSystemIssue } from '../utils/systemIssueReporter';
 
 /**
  * Signatur for setValues: funktionel updater-baseret felt-commit.
@@ -32,6 +33,16 @@ const getCurrentPathname = (): string => {
     return '/';
   }
   return window.location.pathname;
+};
+
+const formatSchemaIssueSummary = (issues: readonly z.ZodIssue[], max: number): string => {
+  return issues
+    .slice(0, max)
+    .map((issue) => {
+      const path = issue.path.length > 0 ? issue.path.join('.') : '(root)';
+      return `${path}: ${issue.message}`;
+    })
+    .join('\n');
 };
 
 /**
@@ -104,6 +115,7 @@ export const usePersistedForm = <K extends StorageKey>(
   const persistDataRef = React.useRef(persistData);
   const clearPageDataRef = React.useRef(clearPageData);
   const clearFieldErrorsRef = React.useRef(clearFieldErrors);
+  const reportedInvalidSectionKeysRef = React.useRef<Set<string>>(new Set());
   const committedSection = usePersistedSectionSelector(pageKey);
   const authoritativeSnapshotEpoch = useAuthoritativeSnapshotEpochSelector();
   const persistenceHydrated = usePersistenceHydratedSelector();
@@ -116,15 +128,49 @@ export const usePersistedForm = <K extends StorageKey>(
     clearFieldErrorsRef.current = clearFieldErrors;
   }, [clearFieldErrors, clearPageData, persistData]);
 
-  const values = React.useMemo(() => {
+  const resolvedValues = React.useMemo(() => {
     if (committedSection !== null) {
       const parsed = schema.safeParse(committedSection);
       if (!parsed.success) {
-        throw new Error(`usePersistedForm: committed section '${String(pageKey)}' matcher ikke schema`);
+        const issues = formatSchemaIssueSummary(parsed.error.issues, 5);
+        return {
+          values: initialValues,
+          invalidCommittedSection: {
+            pageKey: String(pageKey),
+            issues,
+            issueCount: parsed.error.issues.length,
+          },
+        };
       }
     }
-    return committedSection ? { ...initialValues, ...committedSection } : initialValues;
+    return {
+      values: committedSection ? { ...initialValues, ...committedSection } : initialValues,
+      invalidCommittedSection: null,
+    };
   }, [committedSection, initialValues, pageKey, schema]);
+  const values = resolvedValues.values;
+
+  React.useEffect(() => {
+    const invalidCommittedSection = resolvedValues.invalidCommittedSection;
+    if (!invalidCommittedSection) return;
+
+    const reportKey = `${invalidCommittedSection.pageKey}:${invalidCommittedSection.issues}`;
+    if (reportedInvalidSectionKeysRef.current.has(reportKey)) return;
+    reportedInvalidSectionKeysRef.current.add(reportKey);
+
+    reportSystemIssue({
+      code: 'persistence:committed_section_schema_mismatch',
+      area: 'persistence',
+      context: 'usePersistedForm',
+      userMessage: 'En gemt sektion matcher ikke schema og kan ikke anvendes.',
+      developerMessage: invalidCommittedSection.issues,
+      diagnostics: {
+        pageKey: invalidCommittedSection.pageKey,
+        issueCount: invalidCommittedSection.issueCount,
+        issues: invalidCommittedSection.issues,
+      },
+    });
+  }, [resolvedValues.invalidCommittedSection]);
 
   const [formVersion, bumpFormVersion] = React.useReducer((v: number) => v + 1, 0);
   const lastHandledAuthoritativeEpochRef = React.useRef<{ pageKey: K; epoch: number } | null>(null);

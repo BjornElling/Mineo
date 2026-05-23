@@ -57,6 +57,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
   const [sygedagpengeFraError, setSygedagpengeFraError] = React.useState<string | undefined>(undefined);
   const [sygedagpengeTilError, setSygedagpengeTilError] = React.useState<string | undefined>(undefined);
   const [sygedagpengeInsertError, setSygedagpengeInsertError] = React.useState<string | null>(null);
+  const [midlertidigtEetToggleError, setMidlertidigtEetToggleError] = React.useState<string | null>(null);
   const [midlertidigtEetConfirmDialogOpen, setMidlertidigtEetConfirmDialogOpen] = React.useState(false);
 
   const readHelpersSessionState = React.useCallback((): OffentligeYdelserHelpersSessionState => {
@@ -183,31 +184,47 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
    * bilag-checkboxen igen. Alle ændringer sker i én setEOValues-opdatering for at undgå
    * inkonsistente mellemtilstande i snapshot-revisionen.
    */
-  const commitMidlertidigtEetToggle = React.useCallback((nextChecked: boolean) => {
-    setEOValues((prev) => {
-      if (nextChecked) {
-        const filteredRows = (prev.offentligeYdelserRows ?? []).filter(
-          (row) => row.ydelsestype?.trim() !== 'midlertidigt_eet'
-        );
+  const commitMidlertidigtEetToggle = React.useCallback((nextChecked: boolean): boolean => {
+    try {
+      setEOValues((prev) => {
+        if (nextChecked) {
+          const filteredRows = (prev.offentligeYdelserRows ?? []).filter(
+            (row) => row.ydelsestype?.trim() !== 'midlertidigt_eet'
+          );
+          return {
+            ...prev,
+            midlertidigtEetFraEetSiden: 'Ja',
+            offentligeYdelserRows: filteredRows,
+            eoBilagSelection: {
+              ...prev.eoBilagSelection,
+              midlertidigEet: true,
+            },
+          };
+        }
         return {
           ...prev,
-          midlertidigtEetFraEetSiden: 'Ja',
-          offentligeYdelserRows: filteredRows,
+          midlertidigtEetFraEetSiden: 'Nej',
           eoBilagSelection: {
             ...prev.eoBilagSelection,
-            midlertidigEet: true,
+            midlertidigEet: false,
           },
         };
-      }
-      return {
-        ...prev,
-        midlertidigtEetFraEetSiden: 'Nej',
-        eoBilagSelection: {
-          ...prev.eoBilagSelection,
-          midlertidigEet: false,
-        },
-      };
-    });
+      });
+      setMidlertidigtEetToggleError(null);
+      return true;
+    } catch (error) {
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      reportSystemIssue({
+        code: 'offentlige_ydelser:midlertidigt_eet_toggle_failed',
+        area: 'persistence',
+        context: 'OffentligeYdelserTab.commitMidlertidigtEetToggle',
+        userMessage: 'Midlertidigt EET-valget kunne ikke gemmes',
+        developerMessage: normalizedError.message,
+        error: normalizedError,
+      });
+      setMidlertidigtEetToggleError('Midlertidigt EET-valget kunne ikke gemmes på grund af en intern fejl.');
+      return false;
+    }
   }, [setEOValues]);
 
   const handleMidlertidigtEetToggleCommit = React.useCallback((event: CommitEvent<boolean>) => {
@@ -226,8 +243,10 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
   }, [commitMidlertidigtEetToggle, isMidlertidigtEetFraEetSiden, rows]);
 
   const handleMidlertidigtEetConfirm = React.useCallback(() => {
-    commitMidlertidigtEetToggle(true);
-    setMidlertidigtEetConfirmDialogOpen(false);
+    const didCommit = commitMidlertidigtEetToggle(true);
+    if (didCommit) {
+      setMidlertidigtEetConfirmDialogOpen(false);
+    }
   }, [commitMidlertidigtEetToggle]);
 
   return (
@@ -303,6 +322,14 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
             />
           </Box>
         </Box>
+        {midlertidigtEetToggleError && (
+          <Box className="row--label-right-hover">
+            <Typography className="row--text" sx={{ color: 'error.main' }}>
+              {midlertidigtEetToggleError}
+            </Typography>
+            <Box className="row--label-right-hover__content" />
+          </Box>
+        )}
       </ContentBox>
 
       <ConfirmationDialog

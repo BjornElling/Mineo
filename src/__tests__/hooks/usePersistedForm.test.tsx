@@ -9,10 +9,13 @@ import { undoRedoStore } from '../../stores/undoRedoStore';
 import { clearResolvedFieldErrorsCache } from '../../hooks/useFormPersistenceSelectors';
 import { stamdataSchema } from '../../schemas/formSchemas';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
+import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
+import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 
-const initialValues = {
-  journalnr: '',
-};
+type StamdataTestValues = PersistedSectionMap['stamdata'];
+
+const initialValues: StamdataTestValues = { ...STAMDATA_INITIAL_VALUES };
+const committedInitialValues: StamdataTestValues = stamdataSchema.parse(initialValues);
 
 const renderWithProviders = (ui: React.ReactNode) => render(
   <MemoryRouter initialEntries={['/stamdata']}>
@@ -98,8 +101,8 @@ describe('usePersistedForm', () => {
       captured.setValues!((prev) => ({ ...prev, journalnr: `${prev.journalnr}B` }));
     });
 
-    expect(captured.values).toEqual({ journalnr: 'AB' });
-    expect(formPersistenceStore.getState().sections.stamdata).toEqual({ journalnr: 'AB' });
+    expect(captured.values).toEqual({ ...committedInitialValues, journalnr: 'AB' });
+    expect(formPersistenceStore.getState().sections.stamdata).toEqual({ ...committedInitialValues, journalnr: 'AB' });
   });
 
   it('bryder kun formVersion ved autoritativ replace og reset', () => {
@@ -138,14 +141,14 @@ describe('usePersistedForm', () => {
     });
 
     expect(captured.formVersion).toBe(baselineFormVersion);
-    expect(captured.values).toEqual({ journalnr: 'Normal commit' });
+    expect(captured.values).toEqual({ ...committedInitialValues, journalnr: 'Normal commit' });
 
     act(() => {
-      captured.replaceValues!({ journalnr: 'Erstatning' });
+      captured.replaceValues!({ ...initialValues, journalnr: 'Erstatning' });
     });
 
     expect(captured.formVersion).toBe(baselineFormVersion + 1);
-    expect(captured.values).toEqual({ journalnr: 'Erstatning' });
+    expect(captured.values).toEqual({ ...committedInitialValues, journalnr: 'Erstatning' });
 
     act(() => {
       captured.resetForm!();
@@ -191,7 +194,7 @@ describe('usePersistedForm', () => {
     expect(captured.formVersion).toBe(1);
 
     act(() => {
-      captured.replaceValues!({ journalnr: 'Erstatning' });
+      captured.replaceValues!({ ...initialValues, journalnr: 'Erstatning' });
     });
 
     expect(captured.formVersion).toBe(2);
@@ -260,5 +263,36 @@ describe('usePersistedForm', () => {
     });
 
     expect(undoRedoStore.getState().canUndo()).toBe(true);
+  });
+
+  it('fail-closed uden render-throw hvis committed sektion ikke matcher schema', () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const captured: {
+      values: typeof initialValues | null;
+    } = {
+      values: null,
+    };
+
+    const Capture = () => {
+      const form = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
+      captured.values = form.values;
+      return null;
+    };
+
+    try {
+      expect(() => renderWithProviders(<Capture />)).not.toThrow();
+
+      act(() => {
+        formPersistenceStore.getState().__setSectionUnsafe(
+          'stamdata',
+          { journalnr: 123 } as unknown as typeof initialValues
+        );
+      });
+
+      expect(captured.values).toEqual(initialValues);
+      expect(consoleErrorSpy).toHaveBeenCalled();
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
   });
 });
