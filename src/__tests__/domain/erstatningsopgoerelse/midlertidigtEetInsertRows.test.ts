@@ -117,6 +117,53 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
     expect(groups).toEqual([]);
   });
 
+  it('failer eksplicit ved ukendt afgørelsestype i EET-computation', () => {
+    const invalidComputation: EetLoebendeComputation = {
+      beregningsdato: '2026-03-19',
+      skadedato: '2024-07-01',
+      fodselsdato: '1980-01-01',
+      skadesaar: 2024,
+      aslAarsloenAfrundet1000: 600000,
+      maxAarsloenISkadesaar: 600000,
+      benyttetAarsloen: 600000,
+      grundloenNiveau: '2024',
+      grundloen: 600000,
+      erstatningsniveauPct: 83,
+      amBidragPct: 8,
+      reguleringFoer2024Pct: 0,
+      afgoerelser: [{
+        rowId: 'row-unknown',
+        afgoerelsesdato: '2026-02-01',
+        virkningsdato: '2026-02-01',
+        kapitaliseringsdato: null,
+        skaeringsDato: null,
+        harOverlap: false,
+        // @ts-expect-error Testen konstruerer et umuligt engine-output for at dække invariant-bruddet.
+        afgoerelseType: 'Ukendt',
+        eetPct: 15,
+        priorKapPct: 0,
+        eetPctFoerAktuelKap: 15,
+        kapPctAktuel: 0,
+        kapPctKumulativ: 0,
+        restEetPct: 15,
+        harKapitalisering: false,
+        harRestSektion: false,
+        tilbagevirkendeKraft: false,
+        ophoerDato: '2026-03-19',
+        ophoerAarsag: 'beregningsdato',
+        grundydelseFuld: 1000,
+        grundydelseRest: null,
+        grundydelse2024Fuld: 1000,
+        grundydelse2024Rest: null,
+        iAltBeregnetEet: 1000,
+        perioder: [],
+      }],
+    };
+
+    expect(() => buildMidlertidigtEetAfgoerelseGroupsFromComputation(invalidComputation))
+      .toThrow('CRITICAL: Ukendt EET-afgørelsestype i midlertidigt EET-import.');
+  });
+
   it('failer eksplicit hvis EET-computation indeholder en ikke-konverterbar periode', () => {
     const invalidComputation: EetLoebendeComputation = {
       beregningsdato: '2026-03-19',

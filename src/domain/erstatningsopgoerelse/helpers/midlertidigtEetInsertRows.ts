@@ -32,7 +32,10 @@ export const buildMidlertidigtEetAfgoerelseGroupsFromComputation = (
   const groups: MidlertidigtEetAfgoerelseGroup[] = [];
 
   for (const afgoerelse of computation.afgoerelser) {
-    if (afgoerelse.afgoerelseType !== 'Midlertidig' && afgoerelse.afgoerelseType !== 'Delvist endelig') continue;
+    if (afgoerelse.afgoerelseType === 'Endelig') continue;
+    if (afgoerelse.afgoerelseType !== 'Midlertidig' && afgoerelse.afgoerelseType !== 'Delvist endelig') {
+      throw new Error('CRITICAL: Ukendt EET-afgørelsestype i midlertidigt EET-import.');
+    }
 
     const rows: OffentligeYdelserRow[] = [];
     for (const periode of afgoerelse.perioder) {

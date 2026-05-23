@@ -38,7 +38,23 @@ export const buildMidlertidigtEetSourceResult = (
     skadelidteFodselsdato: source.eetValues.skadelidteFodselsdato,
     loebendeYdelserSlutdatoOverride: options?.loebendeYdelserSlutdatoOverride,
   });
-  const groups = buildMidlertidigtEetAfgoerelseGroupsFromComputation(result.computation);
+  let groups: readonly MidlertidigtEetAfgoerelseGroup[];
+  try {
+    groups = buildMidlertidigtEetAfgoerelseGroupsFromComputation(result.computation);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Ukendt fejl i midlertidigt EET-import.';
+    return {
+      groups: [],
+      issues: [
+        ...result.issues,
+        {
+          id: 'midlertidigt-eet-import-invariant',
+          severity: 'error',
+          message,
+        },
+      ],
+    };
+  }
   return {
     groups,
     issues: result.issues,
