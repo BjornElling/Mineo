@@ -1,7 +1,9 @@
 # Undo/Redo Architecture
 
-**Status:** Gældende arkitektur  
+**Status:** Arkitekturforklarende reference, ikke selvstændig kontrakt  
 **Scope:** Global undo/redo for committed brugerinput i Mineo
+
+Bindende regler ligger i `src/contracts/undo-redo-contract.md`, `src/contracts/persistence-contract.md`, `src/contracts/form-contract.md` og `src/contracts/error-debug-contract.md`.
 
 Dette dokument beskriver den implementerede undo/redo-arkitektur. Det er ikke en implementeringsplan.
 
@@ -62,11 +64,11 @@ type HistoryFrame = {
 
 `past` indeholder undo-mål. `future` indeholder redo-mål. Der findes bevidst ikke et `present`-felt; aktuel state læses fra `formPersistenceStore`, og aktuel state snapshots først når `undo()` eller `redo()` flytter et frame mellem stakkene.
 
-Stakken er begrænset til 50 `past`-frames. Når grænsen nås, droppes de ældste frames.
+Stakken er begrænset til 50 `past`-frames. Når grænsen nås, droppes de ældste frames. Redo-stakken kan praktisk rumme op til 50 frames, så memory-bound er op til 100 fulde snapshots.
 
 ## 5. Capture
 
-History capture sker før en committed ændring skrives til `formPersistenceStore`.
+History capture sker før en committed ændring skrives til `formPersistenceStore`, men capture, storage-write og store-commit skal behandles som én logisk transaktion efter `undo-redo-contract.md`.
 
 Normal formularvej:
 
@@ -103,14 +105,15 @@ For tabelceller er `fieldPath` den autoritative identitet. Tabellen sender celle
 Restore ejes af `src/hooks/useUndoRedo.ts`.
 
 Ved undo/redo:
-1. `undoRedoStore.undo()` eller `redo()` returnerer target-frame og opdaterer `past`/`future`.
+1. Undo/redo planlægger target-frame og current-frame uden endelig stack-mutation.
 2. `useUndoRedo` skriver frame-sektionerne til `sessionStorage` via rollback-beskyttet snapshot-write.
 3. `formPersistenceStore.restoreHistoryFrame(...)` gendanner sections, revisions, field errors og meta atomisk og bumper `authoritativeSnapshotEpoch`.
-4. Aktiv fane sættes med `setActiveTabForPage(...)`, hvis frame har `tabKey`.
-5. React Router navigerer til frame-route.
-6. En `requestAnimationFrame`-retry-løkke finder det synlige target via `data-mineo-undo-field-path` eller `data-mineo-undo-focus-token`.
-7. Draft-restore forsøges via `draftHistoryRegistry`.
-8. Feltets sektion scrolles til start, og feltet fokuseres med `preventScroll: true`.
+4. History-stack-transitionen committes først efter succesfuld restore.
+5. Aktiv fane sættes med `setActiveTabForPage(...)`, hvis frame har `tabKey`.
+6. React Router navigerer til frame-route.
+7. En `requestAnimationFrame`-retry-løkke finder det synlige target via `data-mineo-undo-field-path` eller `data-mineo-undo-focus-token`.
+8. Draft-restore forsøges via `draftHistoryRegistry`.
+9. Feltets sektion scrolles til start, og feltet fokuseres med `preventScroll: true`.
 
 Retry-løkken findes, fordi route- og tab-skift kan betyde, at target-feltet først findes i DOM efter efterfølgende renders.
 
@@ -148,8 +151,8 @@ Tabelceller bærer `data-mineo-undo-focus-token` og `data-mineo-undo-field-path`
 ## 11. Load, Clear og Save
 
 Filindlæsning rydder undo/redo-stakken efter en succesfuld apply:
-- `src/utils/persistenceLoadApply.ts` kalder `undoRedoStore.clear()`.
-- `FormPersistenceContext.replaceAllPersistedData(...)` rydder også stakken efter succesfuld autoritativ erstatning.
+- `FormPersistenceContext.replaceAllPersistedData(...)` rydder stakken efter succesfuld autoritativ erstatning.
+- Load-utilities skal ikke duplikere denne policy.
 
 `clearAllData` rydder ligeledes undo/redo-stakken.
 

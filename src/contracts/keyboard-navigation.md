@@ -1,6 +1,7 @@
 # Keyboard Navigation Kontrakt
 
 **Status:** Normativ
+**Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Implementeret i:** `src/components/layout/Container.tsx`
 
@@ -41,6 +42,7 @@ Konsekvens:
 
 **Adfærd:**
 - Opfører sig som Tab (flytter fokus fremad til næste element)
+- `Shift+Enter` flytter fokus bagud efter samme undtagelser som `Enter`/`Shift+Tab`
 - **MÅ ALDRIG selektere indhold**
 - Cirkulær navigation: Enter fra sidste felt → første felt
 
@@ -81,13 +83,16 @@ Konsekvens:
    - Wrap i radiogruppe: højre fra sidste → første, venstre fra første → sidste
    - Det er den radiobutton der aktuelt har fokus, der er udgangspunkt for flytningen, også hvis en anden option allerede er valgt
 2. **Tabeller** (`data-mineo-table-navigation="true"`)
-   - Container intercepter IKKE piletaster i table-subtrees
-   - Grid/loose table beholder egen pil-navigation som hidtil
-   - Fra felter uden for tabel kan vertikal navigation (`ArrowUp`/`ArrowDown`) fokusere første/last relevante tabelcelle over/under
+   - Container må ikke overtage tabelintern pilnavigation.
+   - Tabelmodulet ejer intern navigation og stopper propagation for taster, det selv håndterer.
+   - Lodret edge-exit ved top/bund er en aftalt integration mellem tabelmodul og Container.
+   - Fra felter uden for tabel kan vertikal navigation (`ArrowUp`/`ArrowDown`) fokusere første/sidste relevante tabelcelle over/under.
 3. **Åbne popup-widgets** (`aria-expanded="true"`)
    - Container intercepter IKKE piletaster
    - Widget/menu ejer intern navigation
-4. **Editor åben** (fx input med `readOnly=false`)
+4. **Editor åben**
+   - For Mineos Styled*-tekstfelter betyder editor åben, at det fokuserede tekstinput er redigerbart (`readOnly=false`) og ikke er en ikke-tekstlig inputtype.
+   - Andre komponenter skal eksponere en tilsvarende auditérbar edit-state.
    - Container intercepter IKKE piletaster
    - Eksisterende caret/editor-adfærd bevares
 
@@ -125,8 +130,9 @@ Normativt krav:
 Hvis en interaktiv subtree (fx tabel med Excel-navigation) implementerer sin egen traversering:
 
 **KRAV:**
-- Subtree SKAL kalde `preventDefault()` + `stopPropagation()` for de taster den ejer
-- Ellers kan fokus hoppe dobbelt (både subtree OG Container håndterer tasten)
+- Container må ikke håndtere almindelig tabelintern navigation.
+- Subtree skal kalde `preventDefault()` + `stopPropagation()` for de taster, den selv håndterer.
+- Edge-exit til/fra Container skal ske via den aftalte table-boundary mekanisme, ikke ved at lade dobbelt navigation ske tilfældigt.
 
 **Eksempel:**
 ```typescript
@@ -156,6 +162,8 @@ Krav:
 - `Enter` på åbne dropdowns håndteres af dropdown selv.
 - `ArrowUp`/`ArrowDown` må kun overtage intern popup-navigation, når dropdown-menu ikke er åben og editor ikke er åben.
 
+Overlayets interne focus-trap ejes af overlay-komponenten selv. `Container` må kun undlade at interferere med popup/portal-subtrees. Overlayet er ansvarligt for at stoppe fokuslæk til siden bagved.
+
 ---
 
 ## Implementeringsfrihed
@@ -183,14 +191,19 @@ Container keyboard-navigation testes på to niveauer:
 - Tab flytter fokus fremad (ingen selection)
 - Shift+Tab flytter fokus baglæns (ingen selection)
 - Enter flytter fokus fremad (ingen selection), undtagen på radiofelter
+- Shift+Enter flytter fokus bagud efter samme undtagelser
 - Enter på dropdown intercepteres IKKE
 - Enter på radiobutton vælger fokuseret option
+- ArrowUp/ArrowDown/ArrowLeft/ArrowRight på almindelige felter
+- pilnavigation fra sidefelter ind i tabel og tabel-edge-exit op/ned
+- at ArrowLeft/ArrowRight ikke slipper ud af tabel ved rækkekant
 - ArrowLeft/ArrowRight på radiobutton flytter aktiv selection og fokus med wrap i radiogruppen
+- inline action buttons, radiogruppe som ét tabstop, scroll til felt uden for viewport og popup-undtagelser
 - Cirkulær navigation fungerer
 
 ### 2. Manuel test-tjekliste
 
-**Placering:** `src/contracts/keyboard-navigation-test-checklist.md`
+**Placering:** `docs/testing/keyboard-navigation-test-checklist.md`
 
 **Dækker:**
 - Real-world formularer (Erstatningsopgørelse, Stamdata, etc.)
@@ -204,19 +217,21 @@ Container keyboard-navigation testes på to niveauer:
 
 Følgende adfærd er **forbudt** og betragtes som fejl:
 
-❌ Tab markerer tekst i et felt
-❌ Enter markerer tekst i et felt
-❌ Enter overskriver værdi uden brugerens samtykke
-❌ Fokus springer uventet (tab dobbelt)
-❌ Dropdown åbner utilsigtet ved Tab
-❌ Container intercepter museklik
-❌ Selection sker ved keyboard-navigation
+- FEJL: Tab markerer tekst i et felt.
+- FEJL: Enter markerer tekst i et felt.
+- FEJL: Enter overskriver værdi uden brugerens samtykke.
+- FEJL: Fokus springer uventet.
+- FEJL: Dropdown åbner utilsigtet ved Tab.
+- FEJL: Container intercepter museklik.
+- FEJL: Selection sker ved keyboard-navigation.
 
 ---
 
 ## Fremtidig evolution
 
-Hvis der i fremtiden opstår behov for selection-on-focus:
+Container-styret keyboard traversal må aldrig skabe selection.
+
+Hvis der i fremtiden opstår behov for selection-on-focus i en komponent:
 
 1. **Det må ALDRIG ske i Container**
 2. Det skal designes eksplicit i den relevante komponent
@@ -231,5 +246,5 @@ Hvis der i fremtiden opstår behov for selection-on-focus:
 
 - `src/components/layout/Container.tsx` – Implementation
 - `src/__tests__/components/layout/Container.test.tsx` – Automatiske tests
-- `src/contracts/keyboard-navigation-test-checklist.md` – Manuel test-guide
-- `AGENTS.md` – Overordnede udviklingsprincipper
+- `docs/testing/keyboard-navigation-test-checklist.md` – Manuel QA-procedure
+- `AGENTS.md` – kontrakthierarki og no-live-preview regler

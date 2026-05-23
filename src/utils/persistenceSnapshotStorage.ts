@@ -1,6 +1,6 @@
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
-import { persistenceSchemas } from '../config/persistenceRegistry';
-import { getStorageKey, type StorageKey } from '../config/storageManifest';
+import { PERSISTED_SECTION_KEYS, persistenceSchemas } from '../config/persistenceRegistry';
+import { getStorageKey } from '../config/storageManifest';
 import type { PersistedData } from '../types/persistence';
 import type { FormPersistenceSections } from '../stores/formPersistenceStore';
 import { nullToUndefinedDeep } from './nullToUndefinedDeep';
@@ -10,24 +10,13 @@ import {
   removeSessionStorageValue,
   writeSessionStorageValue,
 } from './safeSessionStorage';
+import { formatZodIssues } from './zodIssueFormatting';
 
 type SessionStorageBackup = Map<string, string | null>;
-
-const formatZodIssues = (issues: Array<{ path: PropertyKey[]; message: string }>, max: number): string => {
-  return issues
-    .slice(0, max)
-    .map((issue) => {
-      const path = issue.path.length > 0 ? issue.path.join('.') : '(root)';
-      return `${path}: ${issue.message}`;
-    })
-    .join('\n');
-};
-
 const createSessionStorageBackup = (): SessionStorageBackup => {
-  const keys = Object.keys(persistenceSchemas) as StorageKey[];
   const backup = new Map<string, string | null>();
 
-  for (const pageKey of keys) {
+  for (const pageKey of PERSISTED_SECTION_KEYS) {
     const storageKey = getStorageKey(pageKey);
     backup.set(storageKey, readSessionStorageValue(storageKey));
   }
@@ -49,12 +38,11 @@ const buildPersistenceSectionWrites = (sections: FormPersistenceSections): {
   toWrite: Array<{ storageKey: string; value: string }>;
   toRemove: string[];
 } => {
-  const keys = Object.keys(persistenceSchemas) as StorageKey[];
   const toWrite: Array<{ storageKey: string; value: string }> = [];
   const toRemove: string[] = [];
   const now = Date.now();
 
-  for (const pageKey of keys) {
+  for (const pageKey of PERSISTED_SECTION_KEYS) {
     const storageKey = getStorageKey(pageKey);
     const raw = sections[pageKey];
     if (raw === null) {
@@ -66,14 +54,14 @@ const buildPersistenceSectionWrites = (sections: FormPersistenceSections): {
     const validated = schema.safeParse(nullToUndefinedDeep(raw));
     if (!validated.success) {
       const issues = formatZodIssues(validated.error.issues, 2);
-      throw new Error(`Kan ikke skrive history-snapshot: '${pageKey}' matcher ikke schema.\n${issues}`);
+      throw new Error(`Kan ikke forberede persistence-snapshot: '${pageKey}' matcher ikke schema.\n${issues}`);
     }
 
     const persistedSectionData = serializeFormValues(validated.data);
     const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
     if (!postSerializeValidated.success) {
       const issues = formatZodIssues(postSerializeValidated.error.issues, 2);
-      throw new Error(`Kan ikke skrive history-snapshot: '${pageKey}' fejler efter serialisering.\n${issues}`);
+      throw new Error(`Kan ikke forberede persistence-snapshot: '${pageKey}' fejler efter serialisering.\n${issues}`);
     }
 
     const persistedData: PersistedData = {
@@ -87,30 +75,12 @@ const buildPersistenceSectionWrites = (sections: FormPersistenceSections): {
   return { toWrite, toRemove };
 };
 
-export const writePersistenceSectionsToSessionStorage = (sections: FormPersistenceSections): void => {
-  const backup = createSessionStorageBackup();
-  const { toWrite, toRemove } = buildPersistenceSectionWrites(sections);
-
-  try {
-    for (const storageKey of toRemove) {
-      removeSessionStorageValue(storageKey);
-    }
-    for (const { storageKey, value } of toWrite) {
-      writeSessionStorageValue(storageKey, value);
-    }
-  } catch (error) {
-    restoreSessionStorageBackup(backup);
-    const message = error instanceof Error ? error.message : 'Ukendt fejl';
-    throw new Error(`Kunne ikke skrive history-snapshot atomisk: ${message}`);
-  }
-};
-
-export const writePersistenceSectionsToSessionStorageWithRollback = (
+export const atomicWritePersistenceSections = (
   sections: FormPersistenceSections,
-  afterWrite: () => void
+  commit: () => void
 ): void => {
-  const backup = createSessionStorageBackup();
   const { toWrite, toRemove } = buildPersistenceSectionWrites(sections);
+  const backup = createSessionStorageBackup();
 
   try {
     for (const storageKey of toRemove) {
@@ -119,10 +89,12 @@ export const writePersistenceSectionsToSessionStorageWithRollback = (
     for (const { storageKey, value } of toWrite) {
       writeSessionStorageValue(storageKey, value);
     }
-    afterWrite();
+    commit();
   } catch (error) {
     restoreSessionStorageBackup(backup);
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
-    throw new Error(`Kunne ikke gendanne history-snapshot atomisk: ${message}`);
+    throw new Error(`Kunne ikke skrive persistence-snapshot atomisk: ${message}`);
   }
 };
+
+export const writePersistenceSectionsToSessionStorageWithRollback = atomicWritePersistenceSections;

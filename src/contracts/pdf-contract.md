@@ -1,6 +1,8 @@
 # Mineo – PDF-kontrakt
 
 **Status:** Gældende arkitektur (normativ)
+**Type:** Tværgående kontrakt
+**Gælder for:** Alle Mineo PDF-downloads og PDF-generering.
 
 Denne kontrakt fastlægger tværgående regler for PDF-output. Domænespecifikke snapshot-kontrakter må gerne specificere egne projektioner, men de må ikke afvige fra reglerne her.
 
@@ -22,12 +24,17 @@ Visuel struktur, teksttyper, tabeller og spacing reguleres normativt af `pdf-lay
 Download er blokeret hvis og kun hvis mindst én af følgende er sand:
 
 1. Der findes blokerende feltfejl på de relevante committed inputfelter.
-2. Den autoritative beregning ikke kan dannes (`fail_closed` eller tilsvarende domæne-stop).
+2. Den autoritative beregning ikke kan dannes. For snapshot-first-domæner betyder det en typed status/projektion fra `snapshot-contract.md` og den relevante domænekontrakt. For ikke-snapshot-domæner skal domænet levere et eksplicit preflight-/gate-resultat med samme semantik.
 3. Det konkrete PDF-output er blokeret af output-specifikke invariants eller guards.
 
 Konsekvens:
 - Feltfejl, snapshot-status og output-specifikke blokeringer skal aggregeres eksplicit.
 - Ingen download-knap må nøjes med kun én af disse tre kilder.
+- Aggregeringen ejes af domæne-/snapshot-/preflight-laget eller et centralt PDF-gate-lag, ikke af den enkelte renderer.
+- Download-knapper skal modtage et samlet gate-resultat med `canDownload` og auditerbare årsager.
+- PDF-generatorer afgør ikke selv, om domænet er `fail_closed`; de modtager en allerede godkendt model eller returnerer runtime-fejl.
+
+`pdfService.ts` er i den nuværende arkitektur service boundary for download-afvikling, lazy-load og runtime-fejl. Langsigtet skal domænepolitik og gates flyttes ud i domænesnapshots/projektioner, så service-laget bliver mekanisk adapter.
 
 ---
 
@@ -71,12 +78,18 @@ Et PDF-UI-valg er et visningsønske, ikke en ret til at overstyre semantisk frav
 2. Brugeren må ikke mødes af en `BugReportButton` inline i sideflowet eller i en download-dialog.
 3. Fejlen routes via den centrale fejlrapportering jf. `error-debug-contract.md`.
 
+Lokale PDF-fejlbeskeder må kun bruges til forventelige brugerrettelige gate-/preflight-tilstande eller DEV-specifik dev-server-nedetid. Uventede runtime-fejl under en godkendt download er systemfejl.
+
 ---
 
-## 6. EO-specifikke regler
+## 6. Domænespecifikke projektioner
 
-EO- og TAF-fordelt-på-år-projektioner må supplere denne kontrakt med egne invariants og projektionstyper i `eo-snapshot-contract.md`, men:
+EO- og TAF-fordelt-på-år-projektioner er specificeret i `eo-snapshot-contract.md`. Øvrige domæner skal pege på deres minimale domænekontrakt, fx:
 
-1. download-gate-definitionen i §2 gælder stadig,
-2. toggle-guard-kravet i §3 gælder stadig,
-3. semantisk fravalg i §4 gælder stadig.
+- `aarsloen-contract.md`
+- `renteberegning-contract.md`
+- `varigemen-contract.md`
+- `forsoergertab-snapshot-contract.md`
+- `satser-contract.md`
+
+Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække §1-§5.

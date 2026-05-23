@@ -29,26 +29,33 @@ export type HistoryFrame = {
   origin: HistoryFrameOrigin;
 };
 
+export type HistoryTransitionPlan = {
+  kind: 'undo' | 'redo';
+  target: HistoryFrame;
+  current: HistoryFrame;
+  expectedFrameSequence: number;
+};
+
 type UndoRedoStoreState = {
   past: HistoryFrame[];
   future: HistoryFrame[];
+  frameSequence: number;
   canUndo: () => boolean;
   canRedo: () => boolean;
   capture: (origin: HistoryFrameOrigin) => void;
-  undo: () => HistoryFrame | null;
-  redo: () => HistoryFrame | null;
+  planUndo: () => HistoryTransitionPlan | null;
+  planRedo: () => HistoryTransitionPlan | null;
+  canCommitPlannedTransition: (plan: HistoryTransitionPlan) => boolean;
+  commitPlannedTransition: (plan: HistoryTransitionPlan) => boolean;
   clear: () => void;
 };
 
-let frameSequence = 0;
-
 const cloneSnapshot = <T>(value: T): T => structuredClone(value);
 
-const createFrame = (origin: HistoryFrameOrigin): HistoryFrame => {
+const createFrame = (origin: HistoryFrameOrigin, sequence: number): HistoryFrame => {
   const state = formPersistenceStore.getState();
-  frameSequence += 1;
   return {
-    id: `history-${frameSequence}`,
+    id: `history-${sequence}`,
     timestamp: Date.now(),
     sections: cloneSnapshot(state.sections),
     sectionRevisions: cloneSnapshot(state.sectionRevisions),
@@ -68,57 +75,86 @@ const appendPastFrame = (past: HistoryFrame[], frame: HistoryFrame): HistoryFram
 export const undoRedoStore = createStore<UndoRedoStoreState>((set, get) => ({
   past: [],
   future: [],
+  frameSequence: 0,
   canUndo: () => get().past.length > 0,
   canRedo: () => get().future.length > 0,
   capture: (origin) => {
-    const frame = createFrame(origin);
     set((state) => ({
-      past: appendPastFrame(state.past, frame),
+      past: appendPastFrame(state.past, createFrame(origin, state.frameSequence + 1)),
       future: [],
+      frameSequence: state.frameSequence + 1,
     }));
   },
-  undo: () => {
-    const plannedTarget = get().past.at(-1);
-    if (!plannedTarget) return null;
+  planUndo: () => {
+    const state = get();
+    const target = state.past.at(-1);
+    if (!target) return null;
 
-    // Snapshot current committed state before the caller restores `target`.
-    // The transition origin stays with the undoable/redoable action, not with the current route.
-    const current = createFrame(plannedTarget.origin);
-    let appliedTarget: HistoryFrame | null = null;
-    set((state) => {
-      const target = state.past.at(-1);
-      if (!target || target.id !== plannedTarget.id) return state;
-      appliedTarget = target;
-      return {
-        past: state.past.slice(0, -1),
-        future: [current, ...state.future],
-      };
-    });
-    return appliedTarget;
+    return {
+      kind: 'undo',
+      target,
+      // Snapshot current committed state before the caller restores `target`.
+      // The transition origin stays with the undoable/redoable action, not with the current route.
+      current: createFrame(target.origin, state.frameSequence + 1),
+      expectedFrameSequence: state.frameSequence,
+    };
   },
-  redo: () => {
-    const plannedTarget = get().future[0];
-    if (!plannedTarget) return null;
+  planRedo: () => {
+    const state = get();
+    const target = state.future[0];
+    if (!target) return null;
 
-    // Snapshot current committed state before the caller restores `target`.
-    // The transition origin stays with the undoable/redoable action, not with the current route.
-    const current = createFrame(plannedTarget.origin);
-    let appliedTarget: HistoryFrame | null = null;
+    return {
+      kind: 'redo',
+      target,
+      // Snapshot current committed state before the caller restores `target`.
+      // The transition origin stays with the undoable/redoable action, not with the current route.
+      current: createFrame(target.origin, state.frameSequence + 1),
+      expectedFrameSequence: state.frameSequence,
+    };
+  },
+  canCommitPlannedTransition: (plan) => {
+    const state = get();
+    if (state.frameSequence !== plan.expectedFrameSequence) return false;
+    if (plan.kind === 'undo') {
+      return state.past.at(-1)?.id === plan.target.id;
+    }
+    return state.future[0]?.id === plan.target.id;
+  },
+  commitPlannedTransition: (plan) => {
+    let committed = false;
     set((state) => {
+      if (state.frameSequence !== plan.expectedFrameSequence) return state;
+
+      if (plan.kind === 'undo') {
+        const target = state.past.at(-1);
+        if (!target || target.id !== plan.target.id) return state;
+        committed = true;
+        return {
+          past: state.past.slice(0, -1),
+          future: [plan.current, ...state.future],
+          frameSequence: state.frameSequence + 1,
+        };
+      }
+
       const [target, ...remainingFuture] = state.future;
-      if (!target || target.id !== plannedTarget.id) return state;
-      appliedTarget = target;
+      if (!target || target.id !== plan.target.id) return state;
+      committed = true;
       return {
-        past: appendPastFrame(state.past, current),
+        past: appendPastFrame(state.past, plan.current),
         future: remainingFuture,
+        frameSequence: state.frameSequence + 1,
       };
     });
-    return appliedTarget;
+    return committed;
   },
   clear: () => {
-    frameSequence = 0;
-    set({ past: [], future: [] });
+    set({ past: [], future: [], frameSequence: 0 });
   },
 }));
 
 export const __UNDO_REDO_MAX_HISTORY_STEPS = MAX_HISTORY_STEPS;
+
+export const __resetUndoRedoStoreForTests = (): void => {
+  undoRedoStore.setState({ past: [], future: [], frameSequence: 0 });
+};

@@ -2,6 +2,7 @@
 
 **Version:** 0.1
 **Status:** Gældende arkitektur
+**Type:** Tværgående kontrakt
 **Formål:** At fastlægge ufravigelige regler for form-arkitektur, state-håndtering og validering i Mineo.
 
 ---
@@ -118,11 +119,9 @@ eller library-opgraderinger må ikke bryde disse semantikker.
   - Et printbart tegn må åbne editor og **overskrive** eksisterende indhold (feltets draft sættes til den tastede karakter).
   - Paste må **aldrig** åbne editor. Paste håndteres i lukket editor-tilstand efter feltets egne paste-regler.
   - `Backspace`/`Delete` må rydde feltets indhold, men må **ikke** åbne editor.
-- `Enter` må **aldrig** åbne editor i fokus-men-ikke-redigær:
-  - På sider opfører `Enter` sig som navigations-tast (som hidtil via `Container`).
-  - I tabeller opfører `Enter` sig som vertikal navigation i henhold til tabel-navigationens kontrakt (anchor-celle fra Tab-sekvensens start).
-- Funktionstaster (fx `F2`) må ikke indføres som alternativ editor-åbning.
-- Kun semantisk “plausible” første-tegn må kunne starte redigering (fx taltegn i numeriske inputs). Ikke-plausible tegn må ignoreres i fokus-men-ikke-redigær.
+- Tastemodellen ejes normativt af `keyboard-navigation.md`.
+- Feltadaptere eller `mineo-field-pattern.md` ejer, hvilke første tegn der er plausible for hver inputfamilie.
+- En key-startet edit må højst opdatere draft og må aldrig parse, validere domænedata eller committe før commit-eventet.
 
 **Commit og validering**
 - Parsing/validering/commit må fortsat **kun** ske ved blur (eller Enter-commit hvor det allerede er en eksplicit del af feltets kontrakt).
@@ -190,6 +189,8 @@ Rationale:
 - Rød fejlvisning i UI er ikke i sig selv nok til at blokere save; blokering afhænger af om committed
   state findes og er gyldig.
 - Dette skel skal bevares ved fremtidige refactors for at undgå regression i save-flowet.
+
+`blocksSave` og `invalidDraft` er normativt defineret i `error-debug-contract.md`. Save-gating følger `blocksSave`/commitbarhed, ikke `severity` alene.
 
 ---
 
@@ -270,17 +271,16 @@ Dette sker ved:
 - Form reset
 - Indlæsning af sag
 - Versions-migration
+- Undo/redo-restore
 
 Drafts resynkroniseres **ikke** ved no-op blur/commit, hvor den normaliserede committed række er uændret.
 
-**Implementationsnote (Mineo pt.):**
+**Normativ beslutning (Mineo pt.):**
 - `resyncToken` er obligatorisk i `useRowDrafts`.
-- Vi bruger et form-wide `formVersion` som `resyncToken`, hvilket betyder at et `formVersion`-skift resync’er **alle** row-drafts (og kan dermed kassere ucommitted row-inputs ved reset/load/migration).
-
-Normativ retning:
-- Autoritative replace-flows skal være den eneste årsag til global draft-resync.
-- Section-granulær resync er den foretrukne fremtidige retning, når det kan indføres uden at svække determinismen.
-- Form-wide resync er accepteret som nuværende implementation, men må ikke udvides til no-op commit-flows.
+- Mineo bruger et form-wide `formVersion` som `resyncToken`.
+- Load, reset, migration og undo/redo er autoritative hændelser, hvor ucommitted row-draft bevidst kan tabes efter eksplicit brugerhandling eller global restore.
+- Section-granulær resync er ikke et generelt mål nu. Den må kun genåbnes, hvis et konkret datatabsscenarie dokumenteres.
+- Form-wide resync må ikke udvides til no-op commit-flows.
 
 Debug-regel:
 Hvis en række “nulstilles”, skal man altid kunne pege på en faktisk intern row-ændring eller en `resyncToken`-ændring.
@@ -382,29 +382,11 @@ over:
 
 ---
 
-## 11. Beløbsfelter (AmountValue) – commit- og beregningsregler
+## 11. Beløbsfelter og numerik
 
-Dette afsnit er normativt for alle beløbsfelter, der kan indeholde tal eller udtryk.
+Beløbs- og afrundingsregler er samlet i `src/contracts/amount-contract.md`.
 
-1. Evaluering af udtryk:
-- Indtastede operandværdier må ikke ændres før evaluering.
-- Ingen pre-afrunding eller pre-afskæring af deltal i udtryk.
-
-2. Commit-semantik:
-- Kun slutresultatet af et beløb/udtryk må afrundes.
-- Standard for beløbsfelter er 2 decimaler med `half away from zero`.
-
-3. Datamodel og videre beregning:
-- `AmountValue.expression` er audit/UI-repræsentation.
-- `AmountValue.value` er den autoritative committed beregningsværdi.
-- Al videre domæneberegning skal bruge `AmountValue.value`.
-
-4. Persist/load:
-- Indlæste `AmountValue` skal normaliseres til samme afrundede committed semantik som ved almindelig commit.
-
-5. Precision-binding (nuværende model):
-- `AmountValue` schema-normalisering er aktuelt bundet til precision 2.
-- Felter med anden precision kræver en eksplicit kontraktændring, der udvider typen og normaliseringen til variabel precision.
+Form-kontrakten ejer kun commit-semantikken: beløb må parse/normalisere ved commit, ikke mens brugeren skriver. `AmountValue` er 2-decimalers beløb; felter med anden precision må ikke bruge `AmountValue`.
 
 ---
 

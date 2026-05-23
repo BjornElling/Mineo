@@ -102,18 +102,20 @@ describe('executePersistenceLoadApply', () => {
     expect(deleteFileHandleFromIndexedDBMock).not.toHaveBeenCalled();
   });
 
-  it('videresender sideeffekt-fejl med eksplicit load-kontekst efter apply', async () => {
+  it('returnerer metadata-advarsel efter succesfuld data-apply', async () => {
     const replaceAllPersistedData = vi.fn();
     deleteFileHandleFromIndexedDBMock.mockRejectedValueOnce(new Error('IndexedDB fejl'));
 
-    await expect(executePersistenceLoadApply({
+    const result = await executePersistenceLoadApply({
       result: {
         success: true,
         snapshot: {},
       },
       replaceAllPersistedData,
-    })).rejects.toThrow('efterfølgende load-metadata kunne ikke synkroniseres');
+    });
 
+    expect(result.status).toBe('applied-with-metadata-error');
+    expect(result.message).toContain('Sagen blev indlæst');
     expect(replaceAllPersistedData).toHaveBeenCalledTimes(1);
   });
 
@@ -133,7 +135,9 @@ describe('executePersistenceLoadApply', () => {
         success: true,
         snapshot: {},
       },
-      replaceAllPersistedData: vi.fn(),
+      replaceAllPersistedData: vi.fn(() => {
+        undoRedoStore.getState().clear();
+      }),
     });
 
     expect(undoRedoStore.getState().canUndo()).toBe(false);

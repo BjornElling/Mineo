@@ -1,6 +1,7 @@
 # Mineo – Domænegrænse-kontrakt
 
 **Status:** Gældende arkitektur (normativ)
+**Type:** Tværgående kontrakt
 
 Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideejerskab og tværdomæne-afhængigheder.
 
@@ -80,9 +81,9 @@ Aktuel anvendelse:
 
 ---
 
-## 5. Sidegrænser
+## 5. Persistensskrivende sidegrænser
 
-Følgende fagsider må ikke læse eller beregne på hinandens domæne-sektioner uden eksplicit undtagelse:
+Følgende persistensskrivende sider må ikke læse eller beregne på hinandens domæne-sektioner uden eksplicit undtagelse:
 
 - `Erstatningsopgørelse`
 - `Erhvervsevnetab`
@@ -91,6 +92,8 @@ Følgende fagsider må ikke læse eller beregne på hinandens domæne-sektioner 
 - `Renteberegning`
 - `Satser`
 - `Forsørgertab`
+
+`Satser` er en sags-global side, ikke et fagdomæne. Den står i listen, fordi den skriver persisted sagsdata og derfor er underlagt page-boundary-regler.
 
 Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 
@@ -105,6 +108,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 3. Siden må læse `stamdata` og `faellesAarsloen`.
 4. Siden må ikke læse andre fagsiders domæne-sektioner.
 5. `computeEetSnapshot(...)` er den autoritative beregnings-entry for tab- og PDF-projektioner i Erhvervsevnetab-domænet.
+   Den følger `snapshot-contract.md` og den domænespecifikke `eet-snapshot-contract.md`.
 6. Tab-komponenter og PDF-flow må ikke lave parallelle EET-beregninger uden om snapshot-projektionen.
 7. ASL-afgørelsesrækken indeholder `fsTilbageholdtEet` (`Ja`/`Nej`). Feltet er beregningsmæssigt knyttet til den afgørelse, der senere afløses. Når feltet er `Ja`, skal overgangen til den næste afgørelse bruge den næste afgørelses faktiske virkningsdato som afløsningsdato i stedet for den nye overlap-skæringsdato. Feltet på den sidste afgørelse har aldrig beregningsmæssig effekt, fordi den ikke afløses af en efterfølger. Der må ikke bygges parallel validering eller beregning af dette felt uden om den centrale EET-beregning.
 8. Folkepensionsalder må kun beregnes via `src/data/folkepensionAlderRates.ts` — herunder `getFolkepensionAlder`, `getFolkepensionsdato` og `getDagenFoerFolkepensionsdato`. Kapitaliseringstabellerne må ikke være kilde til alder i måneder, labels eller folkepensionsdato. Filen ligger i `src/data/` (ikke under `src/data/kapitalisering/`) fordi den er tværdomæne og ikke kapitaliseringsspecifik.
@@ -115,6 +119,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 2. Siden må læse `stamdata` og `faellesAarsloen`.
 3. Siden må ikke læse andre fagsiders domæne-sektioner.
 4. `computeForsoergertabSnapshot(...)` er den autoritative beregnings-entry for side- og PDF-projektioner i Forsørgertab-domænet.
+   Den følger `snapshot-contract.md` og den domænespecifikke `forsoergertab-snapshot-contract.md`.
 5. UI-komponenter og PDF-flow må ikke lave parallelle Forsørgertab-beregninger uden om snapshot-projektionen.
 6. ASL-beregningen må kun bruge `src/data/folkepensionAlderRates.ts` til folkepensionsalder — herunder `getFolkepensionAlder`, `getFolkepensionsdato` og `getDagenFoerFolkepensionsdato`. Forsørgertabstabeller og kapitaliseringstabeller må ikke duplikere folkepensionsalderdata.
 
@@ -123,14 +128,17 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 1. `Varige mén` er et selvstændigt beregningsdomæne med egen persisted state.
 2. Siden må læse `stamdata`.
 3. Siden må ikke skrive til `stamdata`.
+4. Domænets output-/PDF-model følger `varigemen-contract.md`.
 
 ### 6.4 Fælles årsløn
 
 1. `faellesAarsloen` er en neutral persisted sektion til fælles, autoritative årslønsfelter.
 2. Sektionen må kun indeholde `aslAarsloen` og `ealAarsloen`.
-3. `Erhvervsevnetab` og `Forsørgertab` må læse og skrive sektionen.
+3. `Erhvervsevnetab` og `Forsørgertab` må læse og skrive sektionen som en navngiven multi-writer-undtagelse.
 4. Felterne må ikke persisteres parallelt i de to domæne-sektioner.
-5. Fælles regler for disse felter skal implementeres i neutrale moduler under `src/domain/faellesAarsloen/`.
+5. Fælles regler for disse felter skal implementeres i neutrale moduler under `src/domain/aslEalAarsloen/`.
+6. Ingen page-local default, hydration eller initialValues-materialisering må overskrive en eksisterende committed `faellesAarsloen`-værdi uden eksplicit brugercommit.
+7. Begge sider skal bruge samme schema, initial values og valideringsregler for sektionen.
 
 ---
 
@@ -162,6 +170,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 4. Importen må ikke implementeres som en parallel EO-specifik kopi af EET-beregningen.
 5. Importen må ikke bruge differencekravs-varianten af løbende ydelser.
 6. Importen må kun medtage rækker fra afgørelser med typen `Midlertidig` eller `Delvist endelig`; rækker fra `Endelig` må ikke indgå.
+   Ukendte eller kontraktstridige importrelevante afgørelsestyper skal fail-close og rapporteres som blocking issue; de må ikke silently droppes som irrelevante.
 7. Undtagelsen giver kun read-only adgang; EO må ikke skrive tilbage til EET-relaterede sektioner.
 8. Virtuelle rækker injiceres aldrig i committed form-state. EET er den autoritative kilde, og EO's persisted offentligeYdelserRows forbliver upåvirket af EET-ændringer på persistens-niveau. Når togglen er aktiv, filtreres eksisterende manuelle `midlertidigt_eet`-rækker væk fra tabellen, og ydelsestype-optionen `midlertidigt_eet` deaktiveres i dropdown'en — så der altid er præcis én kilde til midlertidigt EET-data ad gangen.
 
@@ -172,4 +181,25 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 1. Nye hooks, viewmodels og pipelines må ikke hente persisted data fra andre fagsider end egen side plus de sags-globale sektioner, de er autoriseret til.
 2. Reviews skal afvise skjulte afhængigheder mellem fagsiders committed state.
 3. Ved tvivl gælder fail-closed: afvis koblingen, dokumentér behovet, og afvent kontraktændring.
-4. Når et domæne bruger snapshot-first, skal snapshot-entrypointet også følge `src/contracts/snapshot-contract.md`.
+4. Når et domæne bruger snapshot-first, skal snapshot-entrypointet også følge `src/contracts/snapshot-contract.md` og en domænespecifik kontrakt eller dokumenteret entrypoint-deklaration med:
+   - autoritative inputsektioner
+   - autoritative forbrugere
+   - status-/issue-model
+   - PDF/debug-projektioner
+   - runtime fail-closed-semantik
+5. Page-boundary quality-tests er et sikkerhedsnet, ikke fuld statisk sikkerhed. Aliasering, dynamiske imports og nye facade-hooks kræver stadig manuel review mod denne kontrakt.
+
+---
+
+## 11. Aktuelle domænekontrakter
+
+Minimale domænekontrakter supplerer denne fil:
+
+- `eet-snapshot-contract.md`
+- `forsoergertab-snapshot-contract.md`
+- `aarsloen-contract.md`
+- `renteberegning-contract.md`
+- `varigemen-contract.md`
+- `satser-contract.md`
+
+Nye beregnings- eller PDF-producerende domæner skal have mindst en tilsvarende kort kontrakt, før de betragtes som dækket af kontraktlandskabet.

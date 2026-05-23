@@ -2,7 +2,6 @@ import { persistenceSchemas } from '../config/persistenceRegistry';
 import { type StorageKey } from '../config/storageManifest';
 import type { ReplaceAllPersistedData } from '../contexts/FormPersistenceContext.shared';
 import type { LoadFileResult } from '../types/fileOperations';
-import { undoRedoStore } from '../stores/undoRedoStore';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from './fileHandleStorage';
 import { persistLoadedFilenameMetadata } from './filePersistenceMetadata';
 import { clearPendingPwaFileOpenRequest, markPendingPwaFileOpenRequestHandled } from './pwaLaunchQueue';
@@ -20,16 +19,21 @@ const buildAuthoritativeLoadSnapshot = (
   }, {} as Record<StorageKey, unknown | undefined>);
 };
 
+export type PersistenceLoadApplyResult =
+  | { status: 'applied' }
+  | { status: 'applied-with-metadata-error'; message: string };
+
 export const executePersistenceLoadApply = async (args: {
   result: LoadFileResult;
   replaceAllPersistedData: ReplaceAllPersistedData;
-}): Promise<void> => {
+}): Promise<PersistenceLoadApplyResult> => {
   const { result, replaceAllPersistedData } = args;
   const fullSnapshot = buildAuthoritativeLoadSnapshot(result.snapshot);
 
   try {
+    // result.snapshot er pre-valideret af fileLoad-pipelinen. Denne funktion ejer kun
+    // atomisk apply af det autoritative snapshot og efterfølgende metadata-synkronisering.
     replaceAllPersistedData(fullSnapshot);
-    undoRedoStore.getState().clear();
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
     throw new Error(`Indlæsning mislykkedes. Ingen data blev anvendt.\n\n${message}`);
@@ -49,12 +53,16 @@ export const executePersistenceLoadApply = async (args: {
 
     if (result.requestId) {
       await markPendingPwaFileOpenRequestHandled(result.requestId);
-      return;
+      return { status: 'applied' };
     }
 
     await clearPendingPwaFileOpenRequest();
+    return { status: 'applied' };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
-    throw new Error(`Indlæsning blev anvendt, men efterfølgende load-metadata kunne ikke synkroniseres.\n\n${message}`);
+    return {
+      status: 'applied-with-metadata-error',
+      message: `Sagen blev indlæst, men filnavn, filhåndtag eller efterfølgende direkte gem kunne ikke synkroniseres.\n\n${message}`,
+    };
   }
 };

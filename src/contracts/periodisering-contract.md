@@ -3,13 +3,26 @@
 **Status:** Gældende arkitektur (normativ)  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
 
-Dette dokument fastlægger den bindende model for periodisering, dagtælling og fradragsregler i Mineo.
+Dette dokument fastlægger den bindende taksonomi for periodisering, dagtælling og fradragsregler i Mineo.
 
-Kode, der periodiserer beløb eller tæller periodiseringsdage uden at følge denne kontrakt, betragtes som arkitektonisk fejl.
+Kode, der periodiserer beløb eller tæller periodiseringsdage uden at følge den relevante kategori i denne kontrakt, betragtes som arkitektonisk fejl.
 
 ---
 
-## 1. Kanonisk motor
+## 1. Periodiseringstaksonomi
+
+Mineo har flere legitime periodiseringskategorier. De må ikke blandes:
+
+1. EO-TAF/offentlige ydelser: kanonisk motor `src/domain/erstatningsopgoerelse/engines/periodiseringsMotor.ts`.
+2. Årsløn/omregning: kanoniske helpers i `src/utils/periodeBeregning.ts` og domænets årslønsmoduler.
+3. EET-løbende ydelser: kanonisk EET-motor/projektion, jf. `eet-snapshot-contract.md`.
+4. Forsørgertab/kapitalisering: kanonisk Forsørgertab-snapshot og domænemotorer, jf. `forsoergertab-snapshot-contract.md`.
+
+EO's periodiseringsmotor må ikke automatisk antages at gælde for Årsløn, EET eller Forsørgertab.
+
+---
+
+## 1A. Kanonisk EO-motor
 
 Den kanoniske kilde til sandhed for EO-periodisering er:
 
@@ -42,6 +55,8 @@ Wrappers må ikke genimplementere periodiseringsregler.
 - `Arbejdsdage`: hverdage efter de fradrag som den konkrete domæneregel kræver.
 
 `Hverdage` og `arbejdsdage` må ikke bruges som synonymer.
+
+`Hverdage` er basisbegrebet. Domænespecifikke regler kan gøre `arbejdsdage` lig `hverdage` for konkrete perioder, fx sygedagpenge før cutover.
 
 ---
 
@@ -78,8 +93,10 @@ Callsites må ikke hardcode egne periodiseringsregler for en ydelsestype, medmin
 
 Sygedagpenge er en domænespecifik undtagelse med særregel:
 
-- Til og med `2012-07-01` medregnes SH-dage ved arbejdsdagsperiodisering.
-- Fra og med `2012-07-02` fratrækkes SH-dage.
+- Hvis ydelsesrækkens slutdato er før `2012-07-02`, medregnes SH-dage ved arbejdsdagsperiodisering.
+- Hvis ydelsesrækkens slutdato er `2012-07-02` eller senere, fratrækkes SH-dage.
+
+Perioder der krydser cutover opdeles ikke automatisk dag-for-dag af denne regel; klassifikationen følger ydelsesrækkens slutdato, medmindre en senere domæneregel eksplicit ændrer dette.
 
 Denne regel skal håndhæves centralt samme sted for:
 

@@ -1,5 +1,5 @@
 import { createStore } from 'zustand/vanilla';
-import { persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
+import { PERSISTED_SECTION_KEYS, persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { isInteractiveDevLoggingEnabled } from '../utils/debugRuntime';
 import {
@@ -17,15 +17,7 @@ const debugFormPersistenceStore = (event: string, details: Record<string, unknow
 };
 
 export type FormPersistenceSections = {
-  stamdata: PersistedSectionMap['stamdata'] | null;
-  satser: PersistedSectionMap['satser'] | null;
-  aarsloen: PersistedSectionMap['aarsloen'] | null;
-  faellesAarsloen: PersistedSectionMap['faellesAarsloen'] | null;
-  renteberegning: PersistedSectionMap['renteberegning'] | null;
-  varigemen: PersistedSectionMap['varigemen'] | null;
-  forsoergertab: PersistedSectionMap['forsoergertab'] | null;
-  erstatningsopgoerelse: PersistedSectionMap['erstatningsopgoerelse'] | null;
-  erhvervsevnetab: PersistedSectionMap['erhvervsevnetab'] | null;
+  -readonly [K in keyof PersistedSectionMap]: PersistedSectionMap[K] | null;
 };
 
 export type FormPersistenceMeta = {
@@ -46,6 +38,7 @@ export type FormPersistenceStoreState = {
   sectionRevisions: SectionRevisionMap;
   fieldErrors: FieldErrorCache;
   fieldErrorRevisions: FieldErrorRevisionMap;
+  committedChangeCounter: number;
   authoritativeSnapshotEpoch: number;
   meta: FormPersistenceMeta;
   hydrate: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
@@ -84,7 +77,7 @@ export type FormPersistenceStoreState = {
   __setMetaUnsafe: (next: Partial<FormPersistenceMeta>) => void;
 };
 
-const REQUIRED_SECTION_KEYS = Object.keys(persistenceSchemas).sort();
+const REQUIRED_SECTION_KEYS = [...PERSISTED_SECTION_KEYS].sort();
 const SECTION_KEYS = REQUIRED_SECTION_KEYS as Array<keyof FormPersistenceSections>;
 
 const EMPTY_SECTIONS: FormPersistenceSections = SECTION_KEYS.reduce((acc, key) => {
@@ -260,6 +253,7 @@ const createFormPersistenceStore = () =>
     sectionRevisions: createInitialSectionRevisions(),
     fieldErrors: createEmptyFieldErrorCache(),
     fieldErrorRevisions: createInitialFieldErrorRevisions(),
+    committedChangeCounter: 0,
     authoritativeSnapshotEpoch: 0,
     meta: { hydrated: false, schemaFingerprint: PERSISTED_DATA_VERSION },
     hydrate: (next, meta) => {
@@ -271,6 +265,7 @@ const createFormPersistenceStore = () =>
         sectionRevisions: state.sectionRevisions,
         fieldErrors: state.fieldErrors,
         fieldErrorRevisions: state.fieldErrorRevisions,
+        committedChangeCounter: state.committedChangeCounter,
         // Hydration from persisted storage is authoritative for form consumers.
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
@@ -284,6 +279,7 @@ const createFormPersistenceStore = () =>
         sectionRevisions: incrementSectionRevision(state.sectionRevisions, key),
         fieldErrors: state.fieldErrors,
         fieldErrorRevisions: state.fieldErrorRevisions,
+        committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
         meta: resolveMeta(state.meta, { ...metaPatch, lastCommittedAt: Date.now() }),
       }));
@@ -295,6 +291,7 @@ const createFormPersistenceStore = () =>
         sectionRevisions: incrementSectionRevision(state.sectionRevisions, key),
         fieldErrors: state.fieldErrors,
         fieldErrorRevisions: state.fieldErrorRevisions,
+        committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
         meta: resolveMeta(state.meta, { ...metaPatch, lastCommittedAt: Date.now() }),
       }));
@@ -308,6 +305,7 @@ const createFormPersistenceStore = () =>
         sectionRevisions: incrementAllSectionRevisions(state.sectionRevisions),
         fieldErrors: state.fieldErrors,
         fieldErrorRevisions: state.fieldErrorRevisions,
+        committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
@@ -321,6 +319,7 @@ const createFormPersistenceStore = () =>
         sectionRevisions: incrementAllSectionRevisions(state.sectionRevisions),
         fieldErrors: createEmptyFieldErrorCache(),
         fieldErrorRevisions: incrementAllFieldErrorRevisions(state.fieldErrorRevisions),
+        committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
@@ -332,6 +331,7 @@ const createFormPersistenceStore = () =>
         sectionRevisions: incrementAllSectionRevisions(state.sectionRevisions),
         fieldErrors: createEmptyFieldErrorCache(),
         fieldErrorRevisions: incrementAllFieldErrorRevisions(state.fieldErrorRevisions),
+        committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
@@ -347,6 +347,7 @@ const createFormPersistenceStore = () =>
         sectionRevisions: { ...sectionRevisions },
         fieldErrors: state.fieldErrors,
         fieldErrorRevisions: state.fieldErrorRevisions,
+        committedChangeCounter: state.committedChangeCounter,
         authoritativeSnapshotEpoch,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
@@ -362,6 +363,7 @@ const createFormPersistenceStore = () =>
         sectionRevisions: { ...sectionRevisions },
         fieldErrors: { ...fieldErrors },
         fieldErrorRevisions: { ...fieldErrorRevisions },
+        committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() },
       }));
@@ -409,10 +411,7 @@ const createFormPersistenceStore = () =>
           debugFormPersistenceStore('clearFieldErrorsForSection-noop', {
             section: key,
           });
-          return {
-            fieldErrors: state.fieldErrors,
-            fieldErrorRevisions: incrementFieldErrorRevision(state.fieldErrorRevisions, key),
-          };
+          return state;
         }
         debugFormPersistenceStore('clearFieldErrorsForSection', {
           section: key,

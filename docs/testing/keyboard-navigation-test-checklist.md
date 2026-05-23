@@ -1,5 +1,6 @@
 # Keyboard Navigation Test-tjekliste
 
+**Status:** Manuel QA-procedure, ikke normativ kontrakt
 **Formål:** Manuel verifikation af keyboard-navigation kontrakt
 **Udføres:** Efter ændringer i Container.tsx eller Styled* input-komponenter
 **Reference:** `src/contracts/keyboard-navigation.md`
@@ -76,6 +77,9 @@
 - [ ] Tryk Enter
 - [ ] **Verificer:** Fokus flytter til næste felt (som Tab)
 - [ ] **Verificer:** Ingen markering i næste felt
+- [ ] Tryk Shift+Enter
+- [ ] **Verificer:** Fokus flytter til forrige felt
+- [ ] **Verificer:** Ingen markering i forrige felt
 
 ### Dropdown (popup-widget undtagelse)
 
@@ -146,10 +150,12 @@ Hvis siden har en textarea:
 
 - [ ] Fokusér et felt i en midter-række og tryk `ArrowDown`
 - [ ] **Verificer:** Fokus går til første felt i rækken under
+- [ ] Hvis rækken under starter med en tabel: **Verificer:** Fokus går til første relevante tabelcelle
 - [ ] Fokusér et felt i nederste række og tryk `ArrowDown`
 - [ ] **Verificer:** Wrap til første felt i øverste række
 - [ ] Fokusér et felt i øverste række og tryk `ArrowUp`
 - [ ] **Verificer:** Wrap til sidste felt i nederste række
+- [ ] Hvis rækken over/slutdestinationen er en tabel: **Verificer:** Fokus går til sidste relevante tabelcelle
 
 - [ ] Fokusér åbent dropdown (menu vist) og brug piletaster
 - [ ] **Verificer:** Menu-navigation håndteres af dropdown (Container intercepter ikke)
@@ -197,6 +203,12 @@ Hvis siden har en tabel med pil-navigation (fx årsløn-tabel):
 - [ ] **Verificer:** Fokus gives til første celle
 - [ ] Brug piltaster (op/ned/venstre/højre) inde i tabellen
 - [ ] **Verificer:** Pil-navigation fungerer (ikke dobbelt hop)
+- [ ] Stå i øverste tabelrække og tryk `ArrowUp`
+- [ ] **Verificer:** Fokus går til feltet over tabellen, hvis der findes et relevant felt
+- [ ] Stå i nederste tabelrække og tryk `ArrowDown`
+- [ ] **Verificer:** Fokus går til feltet under tabellen, hvis der findes et relevant felt
+- [ ] Stå på venstre/højre rækkekant og tryk `ArrowLeft`/`ArrowRight`
+- [ ] **Verificer:** Fokus bliver i tabelnavigationen og slipper ikke ud til siden
 - [ ] Tab ud af tabellen
 - [ ] **Verificer:** Fokus går til næste felt efter tabellen
 
@@ -248,16 +260,18 @@ Rapportér via projektets aftalte fejlkanal med præcis beskrivelse.
 
 ## Acceptkriterier (alt skal være opfyldt)
 
-✅ Tab flytter fokus uden markering (alle felt-typer)
-✅ Shift+Tab flytter fokus baglæns uden markering
-✅ Enter flytter fokus som Tab (uden markering), undtagen radiofelter
-✅ Enter på dropdown åbner menu (ikke fokus-flytning)
-✅ Enter i textarea giver newline (ikke fokus-flytning)
-✅ Enter på radiobutton vælger fokuseret option
-✅ ArrowRight/ArrowLeft på radiobutton flytter aktiv selection med wrap i gruppen
-✅ Museklik giver fokus (Container intercepter IKKE)
-✅ Cirkulær navigation fungerer (første ↔ sidste)
-✅ Ingen console errors
-✅ Automatiske tests består
+- [ ] Tab flytter fokus uden markering (alle felt-typer)
+- [ ] Shift+Tab flytter fokus baglæns uden markering
+- [ ] Enter flytter fokus som Tab (uden markering), undtagen radiofelter
+- [ ] Shift+Enter flytter fokus baglæns uden markering
+- [ ] Enter på dropdown åbner menu (ikke fokus-flytning)
+- [ ] Enter i textarea giver newline (ikke fokus-flytning)
+- [ ] Enter på radiobutton vælger fokuseret option
+- [ ] ArrowRight/ArrowLeft på radiobutton flytter aktiv selection med wrap i gruppen
+- [ ] Sidefelt ↔ tabel vertical navigation fungerer uden dobbelt hop
+- [ ] Museklik giver fokus (Container intercepter IKKE)
+- [ ] Cirkulær navigation fungerer (første ↔ sidste)
+- [ ] Ingen console errors
+- [ ] Automatiske tests består
 
 Når alle kriterier er opfyldt, er keyboard-navigation kontrakten verificeret.

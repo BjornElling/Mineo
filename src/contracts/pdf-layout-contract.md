@@ -1,6 +1,8 @@
 # Mineo – PDF-layout-kontrakt
 
 **Status:** Gældende arkitektur (normativ)
+**Type:** Tværgående kontrakt
+**Gælder for:** Alle Mineo PDF-renderere, writer/helpers og generatorer.
 
 Denne kontrakt fastlægger den visuelle og strukturelle standard for Mineos PDF-output.
 
@@ -63,7 +65,7 @@ Hver teksttype har én primær, gyldig renderingsvej:
 |--------|---------------|------------|
 | Dokumenttitel | `writer.writeTitle()` | Eneste gyldige titel-API |
 | Sektionsoverskrift | `writer.writeSectionHeader()` | Bruges ved egentlige sektionsskift |
-| Fed underoverskrift | `writer.writeBoldSubheader()` | Kanonisk basis-API; standard-followup er centralt defineret |
+| Fed underoverskrift | `writer.writeBoldSubheader()` | Kanonisk basis-API; standard-followup er writerens observerbare keep-together garanti |
 | Fed underoverskrift + ét tekstafsnit | `writer.writeBoldSubheaderWithWrappedText()` | Foretrækkes når underoverskrift og ét efterfølgende tekstafsnit skal holdes atomisk samlet |
 | Understreget underoverskrift | `writer.writeUnderlinedSubheader()` | Kanonisk basis-API; standard-X er centralt defineret |
 | Brødtekst | `writer.writeWrappedText()` | Standard for almindelig fritekst |
@@ -75,6 +77,8 @@ Hver teksttype har én primær, gyldig renderingsvej:
 | Tabelstart efter `addSectionHeading(...)` | `resolvePdfTableStartYAfterSectionHeading()` | Kanonisk helper til `headingY - PDF_SECTION_HEADING_GAP` |
 
 Hvis underoverskrifter kræver conditional rendering eller atomisk sammenkædning med efterfølgende indhold, skal dette løses centralt i writer/helper-laget. Generatorer må ikke reimplementere disse regler lokalt.
+
+`standard-followup-height` er ikke én offentlig konstant. Det er writerens observerbare garanti for, at underoverskrift og første meningsbærende indholdsblok ikke adskilles af sideskift. De konkrete minimumshøjder ejes af writer-laget og dets tests.
 
 `writeBoldSubheader()` skal som udgangspunkt kaldes uden `nextLineHeight`-argument. Generatorer må kun sende eksplicit `nextLineHeight`, når den første efterfølgende indholdsblok reelt kræver en anden atomisk højde end writerens standard-followup-height.
 
@@ -167,7 +171,7 @@ Hvis indholdets semantik er uklar, skal generatoren vælge den eksisterende teks
 4. Hvis der allerede er opnået spacing via forudgående `addSpacer`, `advanceY` eller `setY(...)` efter sektion/tabel, skal underoverskriften stadig ende med den centrale standardafstand og ikke mere.
 5. Hvis spacing eller sidebrydningsadfærd ændres for den ene underoverskriftstype, skal den anden automatisk følge med via samme centrale invariant.
 6. Hvis der opleves behov for lokal kompensation omkring én af underoverskriftstyperne, er det et arkitekturproblem i writer/helper-laget og skal løses centralt dér.
-7. Eventuelle options til at undertrykke topspacing må kun bruges, når underoverskriften bevidst skal stå direkte efter en sektionsoverskrift eller tilsvarende canonical header-kontekst.
+7. Eventuelle options til at undertrykke topspacing må kun bruges, når underoverskriften bevidst skal stå direkte efter en sektionsoverskrift eller tilsvarende kanonisk header-kontekst.
 
 ### 5.2 Mellem almindelige tekstblokke
 
@@ -229,11 +233,11 @@ Hvis en generator oplever behov for gentagne lokale spacing-korrektioner, er det
 
 ## 8. Direkte jsPDF-brug
 
-Direkte skrivning via `doc.text(...)` eller lignende er kun acceptabel når:
+Direkte skrivning via `doc.text(...)` eller lignende er kun acceptabel efter formålskategori:
 
-1. tabelbibliotekets callbacks kræver direkte jsPDF-adgang
-2. lavniveau-tegneprimitiver er nødvendige for streger eller lignende
-3. concernet endnu ikke er dækket af writer/helper-laget, og udvidelse af det centrale lag er uforholdsmæssig i den konkrete ændring
+1. Tabel-callbacks og `renderPdfTable()`-integration må bruge direkte jsPDF-adgang uden ekstra note.
+2. Lavniveau-tegneprimitiver for streger og geometri må bruge direkte jsPDF-adgang uden ekstra note.
+3. Almindelig tekst, spacing eller domænetekst må kun bruge direkte jsPDF-adgang, hvis writer/helper-laget mangler en nødvendig evne, og callsite dokumenterer undtagelsen efter §9.
 
 Direkte jsPDF-brug til almindelige tekstblokke er en afvigelse og skal som udgangspunkt fjernes.
 
@@ -268,7 +272,7 @@ Ved audit af en PDF-generator skal mindst følgende kontrolleres:
 11. at multiline højrekolonner i `writeLeftRightText()` ikke implementeres via lokal `split('\n')`, tom venstre kolonne og manuel `advanceY(...)`-korrektion
 12. at generatorer ikke laver lokal `setFont(...)` / `setFontSize(...)` omkring enkelte brødtekstblokke som advarsler eller noter, når en central writer-variant kan bære behovet
 13. at `nextLineHeight` til `writeBoldSubheader()` afspejler den første reelle efterfølgende indholdsblok og ikke bruges som skjult spacing- eller keep-together-mekanisme
-14. at generatorer normalt udelader `nextLineHeight` og standard-X til underoverskrifts-API’er og ikke sender `PDF_BASE_LINE_HEIGHT_MM` eller `MARGINS.left` videre blot for at gentage writerens egne standarder
+14. at generatorer udelader `nextLineHeight`, standard-X, `PDF_BASE_LINE_HEIGHT_MM`, `MARGINS.left` og tilsvarende standardargumenter, medmindre værdien semantisk afviger fra writerens default eller callsite dokumenterer en eksplicit layout-undtagelse efter §9
 15. at generatorer ikke lokalt genimplementerer tabelstart efter `addSectionHeading(...)` via `headingY - PDF_SECTION_HEADING_GAP`, men bruger en central helper
 
 ---
@@ -299,6 +303,8 @@ For at fjerne eksisterende utilsigtede forskelle bør PDF-generatorerne gennemg�
 
 Formålet med sekvensen er først at rydde de simple og mellemkomplekse generatorer og derefter de mere domænetunge dokumenter.
 
+En generator fjernes fra denne liste, når den har bestået fuld audit mod §10, og der findes relevante writer-/generator-tests for dens centrale spacing-, sidebrydnings- eller gate-invariants. Når første audit-runde er afsluttet, bør listen flyttes til et trackingdokument.
+
 ---
 
 ## 12. Enforce­ment
@@ -307,7 +313,10 @@ Denne kontrakt skal understøttes af:
 
 1. central adfærd i `pdfWriter.ts`
 2. fælles konstanter i `pdfConfig.ts`
-3. målrettede writer-tests for spacing-invariants
-4. løbende audit af generatorer, der stadig har lokale layoutafvigelser
+3. writer unit-tests for spacing- og sidebrydningsinvariants
+4. quality guards for kendte generator-anti-mønstre
+5. generator-/domænetests for trust-kritiske gates og output-specifikke blokeringer
+
+Tekstbaserede quality guards er sekundære sikkerhedsnet. De må ikke erstatte egentlige writer- og domænetests.
 
 Hvis kode og kontrakt divergerer, er det en arkitekturfejl, ikke en stilforskel.

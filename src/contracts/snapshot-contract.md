@@ -1,6 +1,7 @@
 # Mineo – Snapshot-kontrakt
 
 **Status:** Gældende arkitektur (normativ)
+**Type:** Tværgående kontrakt
 
 Denne kontrakt fastlægger, hvad et domæne-snapshot er, og hvordan snapshot-first bruges uden at tvinge alle domæner ind i samme datastruktur.
 
@@ -32,14 +33,16 @@ Et snapshot er ikke persisted state, ikke draft-state og ikke et generelt framew
 
 ## 3. Minimumsindhold
 
-Et domæne-snapshot skal som minimum returnere de projektioner, som dets forbrugere behøver for at undgå parallel logik.
+Et snapshot-entrypoint skal eksplicit deklarere de projektioner, som dets forbrugere må bruge. Kontrakten kræver ikke én universel TypeScript-shape, men hvert snapshot-first domæne skal opfylde denne checklist.
 
-Det betyder normalt:
+Minimum for alle snapshot-former:
 
-- input-afledte visningsprojektioner eller gating-flags
-- blocking-/issue-information i den form domænet bruger
-- PDF-projektion, hvis domænet har PDF-flow
-- direkte reference til den autoritative domæneberegning, når den er nødvendig for videre projektion
+1. autoritativ inputpakke og hvilke persisted sektioner den må læse,
+2. projections der må forbruges af UI, PDF og debug,
+3. gating-/statusfelter,
+4. issue-/fejlklassifikation,
+5. runtime fail-closed adfærd,
+6. om eksponeret `input` er original committed state eller effektiv/transient beregningsinput.
 
 Kontrakten kræver ikke én universel shape på tværs af alle domæner. Den kræver ét eksplicit valgt mønster pr. domæne.
 
@@ -74,6 +77,7 @@ Kendetegn:
 Aktuelt eksempel:
 
 - `computeEetSnapshot(...)`
+- `computeEoSnapshot(...)`
 
 ---
 
@@ -93,6 +97,28 @@ Når et nyt domæne løftes til snapshot-first, skal formen vælges ud fra bruge
 2. `form-contract.md` bestemmer at snapshot’et kun må bruge committed input.
 3. `page-component-contract.md` bestemmer at page-laget orkestrerer snapshot’et og sender projektioner videre top-down.
 4. Domænespecifikke kontrakter kan indsnævre, hvilke forbrugere et konkret snapshot-entrypoint er autoritativt for.
+5. `eo-snapshot-contract.md` er en domænespecifik specialisering af denne kontrakt.
+
+---
+
+## 6A. Runtimefejl
+
+Uventede runtimefejl i snapshot-entrypoints må aldrig give gyldige totals, PDF-projektioner eller debug-output, der ligner autoritativ beregning.
+
+Runtimefejl skal:
+
+1. fail-close i domænets egen status-/issue-model,
+2. rapporteres efter `error-debug-contract.md`,
+3. give dansk blokerende brugerbesked,
+4. undgå fallback-beregninger i UI/PDF/debug.
+
+---
+
+## 6B. Original vs. effektiv input
+
+Hvis et snapshot bruger transient eller virtuel input, skal original committed input bevares uændret i snapshotets audit-/inputprojektion.
+
+Effektiv input må bruges til beregning, men må ikke persisteres eller skjules som om den var brugerens committed state. EO's midlertidigt-EET-injection er referenceeksemplet på dette mønster.
 
 ---
 

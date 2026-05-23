@@ -24,6 +24,8 @@ export const persistenceSchemas = {
   erhvervsevnetab: erhvervsevnetabSchema,
 } as const satisfies Record<StorageKey, z.ZodTypeAny>;
 
+export const PERSISTED_SECTION_KEYS = Object.keys(persistenceSchemas) as StorageKey[];
+
 export type PersistedSectionMap = {
   [K in keyof typeof persistenceSchemas]: z.infer<(typeof persistenceSchemas)[K]>;
 };

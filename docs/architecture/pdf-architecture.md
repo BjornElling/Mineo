@@ -1,6 +1,8 @@
 # PDF-arkitektur i Mineo
 
-> **Formål:** Denne fil beskriver den fulde arkitektur bag Mineos PDF-generatorer. Den er primær referencekilde for alle, der skal implementere ny PDF-funktionalitet. Læs den inden du skriver en linje PDF-kode.
+> **Status:** Arkitekturforklarende reference, ikke selvstændig kontrakt.
+>
+> **Formål:** Denne fil beskriver arkitekturen bag Mineos PDF-generatorer. Den forklarer lag, filstruktur og rationale.
 
 > **Normativ afgrænsning:** Denne fil er arkitekturforklarende. De bindende regler for PDF ligger i `src/contracts/pdf-contract.md` og `src/contracts/pdf-layout-contract.md`.
 
@@ -48,11 +50,11 @@ PDF-systemet er opdelt i fire lag, fra lavniveau til brugerniveau:
 └─────────────────────────────────────────────────────────┘
 ```
 
-**Kerneprincipper:**
+**Kerneprincipper (forklarende):**
 
-- **jsPDF-isolation:** jsPDF importeres kun i `jsPdfAdapter.ts` og i `pdfLoader.ts` (lazy load). Ingen generator må importere jsPDF direkte, undtagen via adapteren eller writeren.
-- **Konfiguration ét sted:** Alle mål, farver, fontstørrelser og margener defineres i `pdfConfig.ts`. Brug altid konstanter herfra — hardkodede tal i generatorer er ikke tilladt.
-- **Writer er primær API:** Generatorer bruger `PdfWriter`-objektet til al layout. Direkte Y-koordinatstyring via `MARGINS.top` e.l. er kun tilladt, hvis writer-API'en er utilstrækkelig (og det er en afvigelse, der skal rettes).
+- **jsPDF-isolation:** se `pdf-layout-contract.md`.
+- **Konfiguration ét sted:** `pdfConfig.ts` ejer aktuelle numeriske layoutværdier. Dette dokument må ikke kopiere tal som autoritativ sandhed.
+- **Writer er primær API:** se `pdf-layout-contract.md` for de bindende writer-/helper-regler.
 
 ---
 
@@ -112,73 +114,9 @@ src/domain/erstatningsopgoerelse/
 
 **Alle** visuelle konstanter skal hentes herfra. Brug aldrig hardkodede tal i generatorer.
 
-### Farver (`COLORS`)
+Aktuelle farver, margener, fontstørrelser, tabelværdier og spacing-tal ejes af `src/pdf/infrastructure/pdfConfig.ts` og de relevante renderer-moduler. Dette dokument beskriver relationerne mellem lagene, men gengiver ikke konkrete millimetermål eller fontstørrelser som autoritative værdier.
 
-```typescript
-COLORS.lightBackground  // [248, 248, 248]  — tabelstribning og header-baggrunde
-COLORS.white            // [255, 255, 255]
-COLORS.black            // [0, 0, 0]
-COLORS.text             // [51, 51, 51]     — standardtekst
-
-PDF_MUTED_TEXT_COLOR    // [150, 150, 150]  — sekundær/dæmpet tekst
-PDF_FOOTER_TEXT_COLOR   // [200, 200, 200]  — footertekst
-```
-
-### Margener og sideformat (`MARGINS`, `A4_PAGE_WIDTH_MM`)
-
-```typescript
-MARGINS.left    // 20 mm
-MARGINS.right   // 20 mm
-MARGINS.top     // 40 mm  (ekstra plads til brevhoved)
-MARGINS.bottom  // 20 mm
-
-A4_PAGE_WIDTH_MM        // 210 mm
-PDF_CONTENT_WIDTH_MM    // 170 mm  (= 210 - 20 - 20)
-```
-
-### Fontstørrelser (`FONT_SIZES`)
-
-```typescript
-FONT_SIZES.title    // 16 pt
-FONT_SIZES.header   // 12 pt
-FONT_SIZES.normal   // 10 pt
-// Tabelindhold bruger TABLE_FONT_SIZE = 8 pt (defineret i pdfTableRenderer.ts)
-// TABLE_STYLES.fontSize = 10 pt bruges ikke af tabelrenderen — kun til reference
-// Footer bruger PDF_FOOTER_FONT_SIZE = 6 pt
-// Brevhoved bruger PDF_BREVHOVED_FONT_SIZE = 9 pt
-```
-
-### Tabelstilarter (`TABLE_STYLES`)
-
-```typescript
-TABLE_STYLES.fontSize                   // 10 pt — bruges ikke af tabelrenderen (se TABLE_FONT_SIZE = 8 pt i pdfTableRenderer.ts)
-TABLE_STYLES.cellPadding                // 1.5 mm
-TABLE_STYLES.headerBackgroundColor      // COLORS.lightBackground
-TABLE_STYLES.alternateRowBackgroundColor // COLORS.lightBackground
-```
-
-> **Bemærk:** `pdfTableRenderer.ts`'s `EO_TABLE_CELL_PADDING` peger på `TABLE_STYLES.cellPadding` (begge 1.5 mm).
-
-### Spacing-konstanter
-
-```typescript
-SECTION_SPACER              // 10 mm — tabel/autotable-afslutning via resolvePdfSectionEndY()
-PDF_BASE_LINE_HEIGHT_MM     // 4 mm  — standard linjehøjde og writer-baseret sektionsafstand
-PDF_LINE_BOTTOM_SPACING_MM  // 2 mm  — trailing spacing efter almindelig tekstlinje
-PDF_SUBHEADER_BOTTOM_SPACING_MM // 1 mm — ekstra bundafstand under fed underoverskrift
-PDF_TITLE_BOTTOM_SPACING_MM // 15 mm — afstand under dokumenttitel
-PDF_SECTION_HEADING_GAP     // 3 mm — justeringsafstand under sektionsoverskrift
-PDF_TABLE_NARROW_COLUMN_WIDTH // 25 mm — standardbredde for smalle kolonner
-PDF_FINAL_Y_FALLBACK_HEIGHT // 50 mm — fallback-Y hvis autotable ikke returnerer finalY
-```
-
-### Brevhoved-konstanter
-
-```typescript
-PDF_BREVHOVED_START_Y       // 15 mm fra øverste kant
-PDF_BREVHOVED_LINE_HEIGHT   // 5 mm pr. linje
-PDF_BREVHOVED_FONT_SIZE     // 9 pt
-```
+Hvis en konstant findes men ikke bruges af runtime-rendereren, skal koden ryddes eller navngivningen tydeliggøres i en separat kodeændring. Dokumentation må ikke legitimere ubrugt konfiguration som "referenceværdi".
 
 ---
 
@@ -238,7 +176,7 @@ const writer = createStandardPdfWriter({
 });
 ```
 
-Kald altid `createStandardPdfWriter()`. Brug ikke `createPdfWriter()` eller den interne `createPdfCursor()` direkte — `createPdfWriter` er eksponeret til intern genbrug men er ikke en del af den offentlige API.
+Kaldsmønstre for writer-API'er er bindende i `pdf-layout-contract.md`; dette afsnit forklarer kun writerens rolle.
 
 ### Vigtige `PdfWriter`-metoder
 
@@ -247,28 +185,24 @@ Kald altid `createStandardPdfWriter()`. Brug ikke `createPdfWriter()` eller den 
 writer.setProperties({ title, subject, author, creator });
 writer.setDisplayMode('fullheight');  // Kald dette på alle generatorer
 
-// Brevhoved (øverst på første side, overlay – påvirker ikke Y)
+// Brevhoved (øverst på første side, overlay - påvirker ikke Y)
 writer.writeBrevhoved(brevhovedData);
 
 // Indhold
 writer.writeTitle(text);             // 16 pt bold, øverst i indholdsblokken
-writer.writeBoldSubheader(text, nextLineHeight);  // 10 pt bold, sikrer plads til efterfølgende indhold
-// nextLineHeight er valgfri og skal normalt udelades.
-// INVARIANT: writeBoldSubheader garanterer præcis 1× lineHeight (4 mm) over sig selv,
-// uanset hvad der gik forud. Allerede akkumuleret spacing fra addSpacer()/advanceY()
-// modregnes automatisk, så det samlede mellemrum aldrig overstiger 1× lineHeight.
-// Brug options.addTopSpacing = false for at undertrykke spacing eksplicit
+writer.writeBoldSubheader(text, nextLineHeight);  // sikrer plads til efterfølgende indhold
+// Konkrete spacing-invariants ejes af pdf-layout-contract.md og writer-tests.
 // (fx første underoverskrift direkte under en sektionsoverskrift).
-writer.writeWrappedText(text);       // 10 pt normal, linjebrydes automatisk
-writer.writeSectionHeader(text, nextLineHeight);  // 12 pt bold, markerer sektionsskift
+writer.writeWrappedText(text);       // brødtekst, linjebrydes automatisk
+writer.writeSectionHeader(text, nextLineHeight);  // markerer sektionsskift
 // nextLineHeight er valgfri og skal normalt udelades.
 
 // Layout-primitiver
 writer.addSpacer(mm);               // Tilføj vertikal spacing
-writer.addSectionSpacer();          // Standardafstand mellem writer-baserede sektioner (4 mm)
+writer.addSectionSpacer();          // Standardafstand mellem writer-baserede sektioner
 writer.getY() / writer.setY(y);     // Læs/sæt cursor-position
 writer.getDoc();                    // Hent underliggende jsPDF-instans (kun til tabel-kald)
-writer.setNormalTextStyle();        // Reset til 10 pt normal
+writer.setNormalTextStyle();        // Reset til normal brødtekst
 
 // Footer og gem
 writer.addFooter();                 // Tilføj versionsnummer-footer på alle sider
@@ -325,7 +259,7 @@ writer.getPageWidth();              // Samlet sidebredde i mm (inklusive margene
 
 ### `addSectionHeading(adapter, text, startY): number`
 
-Tegner en **fed sektionsoverskrift** (10 pt bold) og returnerer Y-position **efter** overskriften. Brug denne funktion, ikke inline font-sætning, for at sikre ensartet afstand.
+Tegner en fed sektionsoverskrift og returnerer Y-position efter overskriften. Brug denne funktion, ikke inline font-sætning, for at sikre ensartet afstand.
 
 ```typescript
 const headingY = addSectionHeading(createJsPdfAdapter(doc), 'Min sektion', currentY);
@@ -351,21 +285,13 @@ I rent writer-baserede sektioner bruges derimod `writer.addSectionSpacer()`.
 
 Tilføjer ny side hvis der ikke er plads. Returnerer ny Y (enten uændret eller `MARGINS.top`).
 
-### `formatAmount(value): string` og `formatPercent(value): string`
+### Format- og spacinghelpers
 
-Danske lokalformat-hjælpere i `pdfHelpers.ts`. Sørg for at bruge disse (og ikke separate `Intl`-kald i generatorer).
+Dansk lokalformat og spacing skal gå gennem canonical PDF-/domænehelpers. Konkrete spacingkonstanter ejes af `pdfConfig.ts` og writer-tests, ikke af dette dokument.
 
-### `PDF_BASE_LINE_HEIGHT_MM`
+### Brevhoved-helper
 
-Eksporteret konstant (4 mm) for standardlinjehøjde. Bruges til spacing-beregninger og som writerens standard-sektionsafstand via `writer.addSectionSpacer()`.
-
-### `PDF_TITLE_BOTTOM_SPACING_MM`
-
-Eksporteret konstant (15 mm) for afstand under dokumenttitel. Bruges af generatorer der manuelt justerer Y efter `writer.writeTitle()`.
-
-### `addBrevhoved` — intern funktion
-
-`addBrevhoved` er eksporteret fra `pdfHelpers.ts` men bruges **kun** internt i `pdfWriter.ts` via `writer.writeBrevhoved()`. Generatorer skal aldrig kalde `addBrevhoved` direkte — brug altid `writer.writeBrevhoved(brevhovedData)`.
+Den offentlige brevhoved-adgang for generatorer er `writer.writeBrevhoved(brevhovedData)`. Hvis lavniveau-helperen stadig er eksporteret, er det teknisk gæld der bør lukkes i kode.
 
 ---
 
@@ -555,7 +481,9 @@ if (visBrevhoved) {
 
 Brevhovedet placeres som overlay øverst til højre. Det påvirker **ikke** Y-cursoren.
 
-**`dagsDatoISO` er required i `BrevhovedData`** og sættes til `TODAY` af generatoren. Dette er forskelligt fra `PdfStamdata.dagsDatoISO`, som er optional og kun bruges af EO-generatoren til at vise "Opgørelse lavet den" (ikke dags dato).
+**To-dato-model:** Brevhovedets dato er genereringsdatoen. Opgørelsesdatoen er dokumentets faglige opgørelsesdato og må ikke forveksles med brevhoveddatoen.
+
+For almindelige generatorer sættes `BrevhovedData.dagsDatoISO` til genereringsdatoen. EO/TAF kan få brevhoveddato gennem model-laget, men semantikken er stadig genereringsdato. "Opgørelse lavet den" er et separat fagligt felt.
 
 **EO og TAF bruger `StamdataValues` direkte** i stedet for `resolvePdfStamdata()` i `pdfService.ts` — brevhoved-data hentes fra modellen (`model.brevhoved`). De øvrige generatorer bruger `resolvePdfStamdata()` via `buildCommonPdfContext()` i `pdfService.ts`.
 
@@ -575,7 +503,7 @@ Tilføj en ny generator til `pdfLoader.ts`-mappingen. Brug `import()` med en mod
 
 ## 12. Standardmønster for en ny generator
 
-Følgende mønster skal følges konsekvent. Afvigelser fra dette er arkitekturfejl.
+Følgende mønster viser den typiske struktur. Bindende regler for gate, writer-brug og layout ligger i PDF-kontrakterne.
 
 ```typescript
 // minNyPdf.ts
@@ -678,85 +606,19 @@ export const loadMinNyPdfModule = () => loadModule('minNyPdf');
 
 ---
 
-## 13. Skrifttyper, farver og mål – den visuelle kontrakt
+## 13. Skrifttyper, farver og mål
 
-Alle generatorer **skal** bruge disse værdier. Det er den visuelle kontrakt, der sikrer ensartet udseende.
+Aktuelle skrifttyper, farver, mål og spacingtal ejes af `pdfConfig.ts`, `pdfWriter.ts` og de relevante renderer-moduler. Denne arkitekturfil må ikke være kilde til konkrete millimetermål, RGB-værdier eller fontstørrelser.
 
-### Skrifttype
-
-| Kontekst           | Familie     | Stil   | Størrelse       |
-|--------------------|-------------|--------|-----------------|
-| Dokumenttitel      | helvetica   | bold   | 16 pt           |
-| Sektionsoverskrift | helvetica   | bold   | 12 pt (`writeSectionHeader`) eller 10 pt (`writeBoldSubheader` / `addSectionHeading`) |
-| Brødtekst          | helvetica   | normal | 10 pt           |
-| Tabelindhold       | helvetica   | normal | 8 pt (`TABLE_FONT_SIZE`) |
-| Tabelheader        | helvetica   | bold   | 8 pt (`TABLE_FONT_SIZE`) |
-| Brevhoved          | helvetica   | normal | 9 pt            |
-| Footer             | helvetica   | normal | 6 pt            |
-
-> Der er **ingen** custom-fontindlejring. Helvetica er en standard-PDF-font og kræver ikke embedding.
-
-### Farvepalette
-
-| Brug                            | RGB-værdi          | Konstant                      |
-|---------------------------------|--------------------|-------------------------------|
-| Al brødtekst                    | `[51, 51, 51]`     | `COLORS.text`                 |
-| Tabelstribning og header-baggrund | `[248, 248, 248]` | `COLORS.lightBackground`      |
-| Sekundær/dæmpet tekst           | `[150, 150, 150]`  | `PDF_MUTED_TEXT_COLOR`        |
-| Footertekst                     | `[200, 200, 200]`  | `PDF_FOOTER_TEXT_COLOR`       |
-| Hvid baggrund                   | `[255, 255, 255]`  | `COLORS.white`                |
-| Sort (streger, o.l.)            | `[0, 0, 0]`        | `COLORS.black`                |
-
-### Mål og spacing
-
-| Element                             | Værdi            | Konstant                         |
-|-------------------------------------|------------------|----------------------------------|
-| Venstre/højre margen                | 20 mm            | `MARGINS.left` / `.right`        |
-| Top-margen (første side)            | 40 mm            | `MARGINS.top`                    |
-| Bund-margen                         | 20 mm            | `MARGINS.bottom`                 |
-| Indholdssbredde                     | 170 mm           | `PDF_CONTENT_WIDTH_MM`           |
-| Tabel/autotable-afslutning          | 10 mm            | `SECTION_SPACER`                 |
-| Standard linjehøjde                 | 4 mm             | `PDF_BASE_LINE_HEIGHT_MM`        |
-| Writer-baseret sektionsafstand      | 4 mm             | `writer.addSectionSpacer()`      |
-| Sektionsoverskrift → tabel-juster.  | 3 mm             | `PDF_SECTION_HEADING_GAP`        |
-| Smal kolonne (standardbredde)       | 25 mm            | `PDF_TABLE_NARROW_COLUMN_WIDTH`  |
-| Cellepadding (standard)             | 1,5 mm           | `TABLE_STYLES.cellPadding`       |
-| Footer fra sidens kant              | 5 mm             | `PDF_FOOTER_MARGIN_MM`           |
+Den bindende visuelle kontrakt er `src/contracts/pdf-layout-contract.md`.
 
 ---
 
 ## 14. Pengehåndtering og afrunding
 
-Gælder primært EO-systemet, men principperne er normative for alle generatorer.
+Normative numeriske regler ejes af `src/contracts/amount-contract.md` og EO-specifikke money-regler af `src/contracts/eo-snapshot-contract.md`.
 
-### Grundregel
-
-**Alle beregninger foregår i heltal (øre).** Brug `MoneyOre` (branded integer) til mellemregninger. Konverter kun til kroner ved visning.
-
-```typescript
-type MoneyOre = number & { readonly __brand: 'MoneyOre' };
-type MoneyKroner = number & { readonly __brand: 'MoneyKroner' };
-```
-
-### Afrunding
-
-Brug altid `roundByMethod(value, 2, 'halfAwayFromZero')`. Aldrig `Math.round()`, `toFixed()` eller andre metoder.
-
-```typescript
-roundKroner(value)  // Kanonisk 2-decimal-afrunding med 'halfAwayFromZero'
-```
-
-### Clamping
-
-Totallinjer må aldrig vise negative beløb:
-
-```typescript
-clampMoneyOreToZero(value)  // Sikrer >= 0
-```
-
-### Visning
-
-Brug `formatAmount2()` fra `sharedPdfUtils.ts` eller `formatAmount()` fra `pdfHelpers.ts`. Aldrig `Intl.NumberFormat` inline i generatorer.
+PDF-laget skal modtage autoritative beløb/projektioner og formatere dem med canonical PDF-/domænehelpers. Det må ikke indføre lokal beregningsafrunding.
 
 ---
 
@@ -779,13 +641,9 @@ Brug `formatAmount2()` fra `sharedPdfUtils.ts` eller `formatAmount()` fra `pdfHe
 | EET differencekrav         | `differencekravPdf.ts`         | Erhvervsevnetab: differencekrav                  | Nej                 | Ja               |
 | Forsørgertab               | `forsoergertabPdf.ts`          | Forsørgertabserstatning                          | Nej                 | Ja               |
 
-### Pseudo-tabeller er forbudt
+### Pseudo-tabeller
 
-Headerløse 2-kolonne-layouts må ikke implementeres via `renderPdfTable()`. Hvis indholdet semantisk er almindelig tekst og ikke en tabel, skal det skrives via writeren. Eksempler:
-
-- Ménberegningens stamdata- og resultatlinjer
-- Årsløns-PDF'ens satser, beregningsprincipper og mellemregninger
-- Satser-PDF'ens lovspecifikationer og referencer
+Reglen om pseudo-tabeller ejes af `pdf-layout-contract.md`. Dette overblik nævner kun, at simple label/værdi-opstillinger normalt bør være writer-baseret tekstlayout, ikke egentlige tabeller.
 
 ### Filnavngivning og journalnr
 
@@ -809,11 +667,7 @@ Dette mønster er **ikke påkrævet** for simple generatorer, men bør anvendes,
 
 ### Anbefalet audit-plan for layout-standardisering
 
-For at fjerne utilsigtede layoutforskelle mellem PDF-generatorerne bør følgende gennemgang gennemføres systematisk:
-
-1. Gennemgå alle generatorer for lokale mønstre med `writeBoldSubheader(...)` kombineret med manuel spacing før eller efter.
-2. Gennemgå alle steder med `setY(resolvePdfSectionEndY(...))` og verificér, at næste tekstblok ikke kompenseres lokalt med ekstra spacing.
-3. Gennemgå alle steder med lokal `setFont(...)` + `text(...)` for tekst, der burde være canonical writer-tekst.
+For layout-audit følges `src/contracts/pdf-layout-contract.md` §10-§12. Auditsekvensen skal kun ejes ét sted; dette arkitekturdokument dublerer den ikke.
 4. Gennemgå alle headerløse 2-kolonne-layouts og verificér, at de ikke bruger tabelrendereren.
 5. Gennemgå alle understregede labels for lokal topafstand eller efterfølgende spacing, der dublerer writerens standard.
 6. Læg eller udvid writer-tests, når en layoutregel gøres central, så afvigelsen ikke kan genopstå.

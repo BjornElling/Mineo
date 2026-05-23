@@ -11,10 +11,10 @@
 | 1.5 | Arkitektur-dokumentation: calculation, pdf, debug-builder | ✅ Gennemgået | [1.5-arkitektur-calculation-pdf-debug-builder.md](1.5-arkitektur-calculation-pdf-debug-builder.md) |
 | 1.6 | Helhedsvurdering af kontraktlandskabet og arkitektoniske grundprincipper | ✅ Gennemgået | [1.6-helhedsvurdering-kontraktlandskab.md](1.6-helhedsvurdering-kontraktlandskab.md) |
 | 2.1 | Persistence-arkitektur | ✅ Gennemgået | [2.1-persistence-arkitektur.md](2.1-persistence-arkitektur.md) |
-| 2.2 | Undo/redo-store | ⬜ Ikke startet | — |
-| 2.3 | FormPersistenceContext og store | ⬜ Ikke startet | — |
-| 2.4 | Persistence: load, apply, sanitering, session-hydration | ⬜ Ikke startet | — |
-| 2.5 | Schema-evolution og versionering | ⬜ Ikke startet | — |
+| 2.2 | Undo/redo-store | ✅ Gennemgået | [2.2-undo-redo-store.md](2.2-undo-redo-store.md) |
+| 2.3 | FormPersistenceContext og store | ✅ Gennemgået | [2.3-form-persistence-context-store.md](2.3-form-persistence-context-store.md) |
+| 2.4 | Persistence: load, apply, sanitering, session-hydration | ✅ Gennemgået | [2.4-persistence-load-apply-sanitering-session-hydration.md](2.4-persistence-load-apply-sanitering-session-hydration.md) |
+| 2.5 | Schema-evolution og versionering | ✅ Gennemgået | [2.5-schema-evolution-versionering.md](2.5-schema-evolution-versionering.md) |
 | 3.1 | Zod-schemas: Erstatningsopgørelse | ⬜ Ikke startet | — |
 | 3.2 | Zod-schemas: Årsløn, Erhvervsevnetab, Forsørgertab | ⬜ Ikke startet | — |
 | 3.3 | Zod-schemas: Renteberegning, Varige Mén, Stamdata, Satser | ⬜ Ikke startet | — |

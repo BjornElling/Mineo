@@ -1,9 +1,9 @@
 # Debug-builder arkitektur
 
-**Status:** Gældende arkitektur pr. 28. marts 2026
+**Status:** Arkitekturforklarende reference, ikke selvstændig kontrakt
 **Primært scope:** `src/domain/debug/*`, `src/domain/erstatningsopgoerelse/eoSnapshotToDebugView.ts`, `src/components/pages/erstatningsopgoerelse/EODebug.tsx`
 
-Dette dokument er et arbejdsredskab for ændringer i EO-debug. Det beskriver den aktuelle arkitektur, hvad der er canonical, hvor systemet i dag er konsistent, og hvor der fortsat findes bevidste eller ubevidste særveje.
+Dette dokument er et arbejdsredskab for ændringer i EO-debug. Bindende fejl-/debug-regler ligger i `src/contracts/error-debug-contract.md` og EO-regler i `src/contracts/eo-snapshot-contract.md`.
 
 ---
 
@@ -183,6 +183,8 @@ Fallback-rækken er:
 - id: `debug.builder.<section>.exception`
 - label: `Fejl i debug-builder (<section>)`
 - status: `error`
+
+Forventelige brugerinputtilstande må ikke kaste. Uventede builder-exceptions skal både isoleres som debug-række og rapporteres via central systemfejlrapportering med sanitiseret payload efter `error-debug-contract.md`.
 
 ---
 
@@ -403,18 +405,9 @@ Før du ændrer eller tilføjer debug-output:
 
 ## 15. Når du tilføjer en ny builder
 
-Følgende er normalt nødvendigt:
+Følg §14's tjekliste. Registry er single source of truth for builder execution order/wiring, men det er ikke hele ændringsscopet.
 
-1. Implementér builder-funktionen i passende debug-modul under `src/domain/debug/`.
-2. Tilføj builder-entry i `EO_DEBUG_BUILDERS`.
-3. Hvis det er en ny sektion: opdater `SectionId` i `eoDebugNavigationMap.ts`.
-4. Opdater `buildEODebugPageViewModel` i `eoDebugPageViewModel.ts`, så sektionens rækker eksposes i viewmodellen.
-5. Opdater `EODebug.tsx`, hvis sektionen skal have egen visningstitel eller særlig komponent.
-6. Opdater navigationen, hvis rækkernes id'er skal kunne navigeres fra Beregning-fanen.
-7. Hvis builderen bruger `canonicalOutput`, håndtér `undefined` eksplicit.
-8. Hvis builderen kalder en motor direkte, tilføj regressionstest for lovlige edge cases.
-
-Registry er ikke det eneste sted der skal opdateres.
+En ny builder kræver typisk også vurdering af `SectionId`, navigation, viewmodel, rendering og tests. Det konkrete scope afhænger af, om outputtet er en almindelig `DebugRowModel`-sektion eller en særstruktur.
 
 ---
 
@@ -434,8 +427,6 @@ Viewmodellen returnerer i dag både:
 - sektionernes rækker
 - eksplicitte synlighedsflag som `showSvieSmerteSection` og `showTabtArbejdsfortjenesteSections`
 
-Det fungerer og er bevidst valgt for at holde UI-adfærden eksplicit i `EODebug.tsx`, men det er ikke en ideel sluttilstand:
-- det skaber to relaterede sandheder, som skal holdes i sync manuelt
-- ved fremtidige sektioner kan man glemme at gate renderingen på det relevante flag
+Separate boolean flags er accepteret som permanent mønster for brede tværgående domænegates, hvor fravær ikke kan udtrykkes sikkert af sektionens dataform alene.
 
-På sigt bør viewmodellen være mere deklarativ, så sektionernes tilstedeværelse i højere grad kan udledes direkte af viewmodellens struktur frem for en kombination af `rows` og særskilte synlighedsflag.
+Almindelige nye sektioner skal som udgangspunkt være strukturelt til stede/fraværende i viewmodellen eller have tomme arrays. De må ikke kopiere flagmønsteret uden begrundelse.

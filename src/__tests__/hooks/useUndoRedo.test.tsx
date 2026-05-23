@@ -11,7 +11,7 @@ import { AppSettingsProvider } from '../../contexts/AppSettingsContext';
 import { RoutePathnameProvider } from '../../contexts/RoutePathnameProvider';
 import Stamdata from '../../components/pages/Stamdata';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
-import { undoRedoStore, type HistoryFrameOrigin } from '../../stores/undoRedoStore';
+import { __resetUndoRedoStoreForTests, undoRedoStore, type HistoryFrameOrigin } from '../../stores/undoRedoStore';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import type { ISODateString } from '../../types/branded';
 import { erstatningsopgoerelseSchema, type TafPeriodeRow } from '../../schemas/formSchemas';
@@ -21,6 +21,7 @@ import { SATSER_INITIAL_VALUES } from '../../domain/satser/satserInitialValues';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import type { StorageKey } from '../../config/storageManifest';
+import { __resetDraftHistoryRegistryForTests } from '../../utils/draftHistoryRegistry';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
 
@@ -227,10 +228,85 @@ describe('useUndoRedo', () => {
     sessionStorage.clear();
     formPersistenceStore.getState().clearAll(VALID_META);
     formPersistenceStore.getState().clearAllFieldErrors();
-    undoRedoStore.getState().clear();
+    __resetUndoRedoStoreForTests();
     __resetUndoFocusTrackerForTests();
+    __resetDraftHistoryRegistryForTests();
     installUndoFocusTracker();
     controls = null;
+  });
+
+  afterEach(() => {
+    __resetUndoFocusTrackerForTests();
+    __resetDraftHistoryRegistryForTests();
+  });
+
+  it('opdaterer undo/redo-tilgængelighed via store-subscription', () => {
+    render(
+      <MemoryRouter initialEntries={['/current']}>
+        <Controls />
+      </MemoryRouter>
+    );
+
+    expect(controls?.canUndo).toBe(false);
+    expect(controls?.canRedo).toBe(false);
+
+    act(() => {
+      formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+      undoRedoStore.getState().capture(origin);
+    });
+
+    expect(controls?.canUndo).toBe(true);
+    expect(controls?.canRedo).toBe(false);
+
+    act(() => {
+      undoRedoStore.getState().clear();
+    });
+
+    expect(controls?.canUndo).toBe(false);
+    expect(controls?.canRedo).toBe(false);
+  });
+
+  it('muterer ikke undo/redo-stakke eller form-store hvis storage-restore fejler', () => {
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    undoRedoStore.getState().capture(origin);
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+
+    const originalSessionStorage = window.sessionStorage;
+    const throwingSessionStorage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
+      getItem: (key) => originalSessionStorage.getItem(key),
+      setItem: () => {
+        throw new Error('quota');
+      },
+      removeItem: (key) => originalSessionStorage.removeItem(key),
+    };
+    Object.defineProperty(window, 'sessionStorage', {
+      configurable: true,
+      value: throwingSessionStorage,
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/current']}>
+        <Controls />
+      </MemoryRouter>
+    );
+
+    try {
+      expect(() => {
+        act(() => {
+          controls?.undo();
+        });
+      }).toThrow('Kunne ikke skrive persistence-snapshot atomisk');
+
+      expect(undoRedoStore.getState().past).toHaveLength(1);
+      expect(undoRedoStore.getState().future).toHaveLength(0);
+      expect(formPersistenceStore.getState().sections.satser).toEqual({ aargang: 2024 });
+      expect(screen.getByText('Current')).toBeInTheDocument();
+    } finally {
+      Object.defineProperty(window, 'sessionStorage', {
+        configurable: true,
+        value: originalSessionStorage,
+      });
+    }
   });
 
   it('ignorerer global focusToken når tabel-commit sender eksplicit fieldPath', () => {

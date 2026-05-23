@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
-import { type HistoryFrame, undoRedoStore } from '../stores/undoRedoStore';
+import { type HistoryFrame, type HistoryTransitionPlan, undoRedoStore } from '../stores/undoRedoStore';
 import { writePersistenceSectionsToSessionStorageWithRollback } from '../utils/persistenceSnapshotStorage';
 import { restoreDraftHistoryTarget, type DraftHistoryRestoreState } from '../utils/draftHistoryRegistry';
 import { resolveActiveFieldError } from '../types/fieldErrors';
@@ -144,37 +144,45 @@ const scheduleHistoryTargetRestore = (frame: HistoryFrame): void => {
   requestAnimationFrame(tick);
 };
 
-const restoreFrame = (frame: HistoryFrame): void => {
-  writePersistenceSectionsToSessionStorageWithRollback(frame.sections, () => {
+const restorePlannedTransition = (plan: HistoryTransitionPlan | null): HistoryFrame | null => {
+  if (!plan) return null;
+  const store = undoRedoStore.getState();
+  if (!store.canCommitPlannedTransition(plan)) return null;
+
+  writePersistenceSectionsToSessionStorageWithRollback(plan.target.sections, () => {
+    if (!undoRedoStore.getState().canCommitPlannedTransition(plan)) {
+      throw new Error('Undo/redo-history blev ændret før gendannelse kunne fuldføres.');
+    }
     formPersistenceStore.getState().restoreHistoryFrame(
-      frame.sections,
-      frame.sectionRevisions,
-      frame.fieldErrors,
-      frame.fieldErrorRevisions,
-      frame.meta
+      plan.target.sections,
+      plan.target.sectionRevisions,
+      plan.target.fieldErrors,
+      plan.target.fieldErrorRevisions,
+      plan.target.meta
     );
+    if (!undoRedoStore.getState().commitPlannedTransition(plan)) {
+      throw new Error('Undo/redo-history kunne ikke committes efter gendannelse.');
+    }
   });
+
+  return plan.target;
+};
+
+const getUndoRedoAvailabilitySnapshot = (): number => {
+  const state = undoRedoStore.getState();
+  return (state.canUndo() ? 1 : 0) | (state.canRedo() ? 2 : 0);
 };
 
 export const useUndoRedo = () => {
   const navigate = useNavigate();
-  const [availability, setAvailability] = React.useState(() => ({
-    canUndo: undoRedoStore.getState().canUndo(),
-    canRedo: undoRedoStore.getState().canRedo(),
-  }));
-
-  React.useEffect(() => {
-    return undoRedoStore.subscribe((state) => {
-      setAvailability({
-        canUndo: state.canUndo(),
-        canRedo: state.canRedo(),
-      });
-    });
-  }, []);
+  const availability = React.useSyncExternalStore(
+    undoRedoStore.subscribe,
+    getUndoRedoAvailabilitySnapshot,
+    getUndoRedoAvailabilitySnapshot
+  );
 
   const applyHistoryFrame = React.useCallback((frame: HistoryFrame | null) => {
     if (!frame) return;
-    restoreFrame(frame);
     if (frame.origin.tabKey !== null) {
       setActiveTabForPage(routeToPageId(frame.origin.route), frame.origin.tabKey);
     }
@@ -183,16 +191,16 @@ export const useUndoRedo = () => {
   }, [navigate]);
 
   const undo = React.useCallback(() => {
-    applyHistoryFrame(undoRedoStore.getState().undo());
+    applyHistoryFrame(restorePlannedTransition(undoRedoStore.getState().planUndo()));
   }, [applyHistoryFrame]);
 
   const redo = React.useCallback(() => {
-    applyHistoryFrame(undoRedoStore.getState().redo());
+    applyHistoryFrame(restorePlannedTransition(undoRedoStore.getState().planRedo()));
   }, [applyHistoryFrame]);
 
   return {
-    canUndo: availability.canUndo,
-    canRedo: availability.canRedo,
+    canUndo: (availability & 1) !== 0,
+    canRedo: (availability & 2) !== 0,
     undo,
     redo,
   };

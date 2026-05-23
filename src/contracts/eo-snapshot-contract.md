@@ -253,13 +253,13 @@ Snapshot-status sættes deterministisk:
 
 | Status | Betingelse |
 |---|---|
-| `fail_closed` | Schema-guard fejler, runtime-undtagelse i snapshot-build, eller `blocksAuthoritativeComputation`-invariant er brudt |
-| `error` | Output-specifikke fejl der ikke stopper beregningen, men blokerer relevante outputs (fx kontroluoverensstemmelse, TAF-per-år-afstemningsfejl over 100 øre). Bounds-violations (§2.2) sætter ikke snapshot til `error` — de eksponeres som feltfejl der blokerer download via EOBeregningTab. |
+| `fail_closed` | System-/schema-/runtime-tilstand hvor snapshot-build ikke må levere autoritativ beregning. `data: null`, `failClosedReason` skal være sat, og PDF/debug må ikke bruge totals. |
+| `error` med `data: null` | Forventelig bruger-/validatorblokering før autoritativ beregning, herunder `blocksAuthoritativeComputation`. Debug må kun bruge sikre delprojektioner. |
+| `error` med `data` | Output-specifikke fejl der ikke stopper beregningen, men blokerer relevante outputs (fx kontroluoverensstemmelse, TAF-per-år-afstemningsfejl over 100 øre). Bounds-violations (§2.2) sætter ikke snapshot til `error` — de eksponeres som feltfejl der blokerer download via EOBeregningTab. |
 | `warning` | Ingen errors, men mindst én warning-invariant er brudt |
 | `ok` | Ingen brudte invariants |
 
-Projektioner pattern-matcher altid på status først. Ved `fail_closed` er totals og
-mellemregninger utilgængelige og må ikke vises som gyldige.
+Projektioner må ikke gætte på statusnavn alene. De skal også respektere `data`, `debugSnapshot` og `failClosedReason`. Ved `fail_closed` er totals og mellemregninger utilgængelige og må ikke vises som gyldige.
 
 ---
 
@@ -394,6 +394,7 @@ form-state. Dette afsnit er normativt for, hvordan injectionen indvirker på sna
   som indeholder `eetValues` (sammensat fra `erhvervsevnetab` + `faellesAarsloen` + `stamdata.skadelidteFodselsdato`)
   og `skadedato`. Snapshot-revisionen skal derfor inkludere både `erhvervsevnetab`- og
   `faellesAarsloen`-sektionernes revisioner, så cachen invalideres korrekt ved EET-ændringer.
+  Revisionen skal inkludere EO, stamdata, EET og `faellesAarsloen` deterministisk, uanset om togglen aktuelt er `'Ja'` eller `'Nej'`; togglen ændrer semantik, ikke cache-invalideringsgrundlag.
 - Hvis `midlertidigtEetInsertSource` mangler (`null`/`undefined`), selv om togglen er `'Ja'`,
   skal importen fail-closed funktionelt ved at returnere tomme grupper og ingen EET-issues.
   EO må ikke gætte eller skrive defaults for at konstruere en kilde.
@@ -436,6 +437,10 @@ form-state. Dette afsnit er normativt for, hvordan injectionen indvirker på sna
   det pågældende EET-input som beregningsafgrænsning. Eksempel: manglende EET-beregningsdato
   kan stadig blokere, selv om EO-importens midlertidigt EET-rækker afgrænses af TAF-perioden.
   Dette er et bevidst designvalg for at undgå manuel klassificering af hver enkelt EET-issue.
+- Hver ny eller ændret EET-issue-type skal revurdere denne EO-konsekvens og opdatere
+  `eet-snapshot-contract.md` og dette afsnit, hvis propagation ikke længere er sikker.
+- "Ingen relevante EET-rækker" og "EET-kilden kunne ikke bygges schema-sikkert" er forskellige
+  tilstande. Førstnævnte kan være funktionelt tomt. Sidstnævnte må ikke maskeres som tom import.
 
 **Single source of truth:**
 - Når togglen er `'Ja'`, er EET-siden den eneste kilde til midlertidigt EET-data.

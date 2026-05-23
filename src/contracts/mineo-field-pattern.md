@@ -2,6 +2,9 @@
 
 This document defines the **required internal pattern** for Mineo’s custom form fields (Styled*Fields and table inputs).
 
+**Status:** Gældende arkitektur (normativ supplement)  
+**Type:** Tværgående komponent-/adapterkontrakt
+
 It is a supplement to the normative Form Contract:
 - `src/contracts/form-contract.md`
 
@@ -78,16 +81,20 @@ All Styled*Fields MUST follow this public contract (names are normative):
   - note: internal blur handling may synchronously commit and trigger parent re-renders; external `onBlur` must not assume the field is still mounted after the internal call
 
 Shared types live in:
-- `src/components/inputs/fieldEvents.ts`
+- `src/types/fieldEvents.ts`
 
 Event shape note:
 - Mineo field events are branded and are not DOM events; do not treat them as such.
+- The `{ target: { value } }` event shape applies at the Styled*Field boundary (Layer C output).
+- Layer A uses `onDraftChange(draft: string)` internally; Layer C is responsible for wrapping to branded Mineo field events.
 
 ## Parsing contract
 
 Adapters implement:
 
 `parse(draft: string, { mode: 'typing' | 'commit' }): DraftParseResult<TModel>`
+
+`DraftParseResult<TModel>` is owned by the canonical draft/field type boundary. Use the exported type where available; do not construct parallel result shapes at callsites.
 
 Rules:
 - `ok: true` means **committable**
@@ -133,11 +140,13 @@ UI must show at most one error source at a time per field instance:
 
 Local error state must be preserved even while an external error is shown (suspended, not reset).
 
+Local error state reappears automatically when the external error is cleared. Suspension is passive: the local error is not re-evaluated just because it becomes visible again.
+
 ## Table inputs
 
 Table inputs are UI-specialized, but must preserve the same principles:
 - `onChange` = draft only
-- `onBlur` = commit attempt only (table-specific deviation from Styled*Field blur semantics)
+- `onBlur` = commit attempt only. The table-specific deviation is the trigger, not the commit semantics: Tab/Enter/cell transition can commit at table boundary even when physical focus handling differs from Styled*Field blur.
 - Validation must not run continuously via `useEffect` while typing
 - Any normalization/canonicalization must happen only on blur (commit)
 - GridCore table inputs must use `useTableInputCore` with a type-specific table input adapter.
@@ -164,7 +173,7 @@ Rules for instant-commit controls:
 - `onCommit` may be semantically identical to the control's native change callback (e.g. radio selection).
 - For radio groups, keyboard selection via `Enter` and `ArrowLeft`/`ArrowRight` follows `keyboard-navigation.md` and is still an immediate commit.
 - For select/combobox-style controls, commit happens on selection (`onChange`); `Escape` typically only closes the popover/menu.
-- If the control has a popover/menu interaction, expose an explicit `onClose` (interaction ended) separate from physical `onBlur`.
+- If the control has a popover/menu interaction, expose an explicit `onClose` (interaction ended) separate from physical `onBlur`. `onClose` means the popup/menu closed regardless of whether a selection happened; `onCommit` means a concrete value was committed. Both can fire for a selected option.
 - If an imperative handle is exposed (e.g. `shake()`), its semantics must be documented and it must not mutate committed form state.
 
 These are allowed deviations, but they must remain explicit and consistent.

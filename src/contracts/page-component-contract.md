@@ -259,7 +259,8 @@ Tabs må enten:
 
 Normativ beslutningsregel:
 
-- Tabs der indeholder draft-capable inputs eller runtime-fejl som skal bevares, skal holdes mounted efter første besøg.
+- Tabs der indeholder lokal draft-state skal holdes mounted efter første besøg. "Draft-capable" betyder mindst ét felt eller tabelsystem baseret på `useDraftField`, `useRowDrafts`, `useTableInputCore` eller tilsvarende field/table engine.
+- Runtime-fejl i central store er ikke i sig selv grund til hold-mounted. Hvis en runtime-fejl kun overlever ved lokal mounted state, er det et arkitekturproblem og skal flyttes til central model eller snapshot.
 - Tabs der kun viser beregnede resultater eller andre rene visninger, må mountes betinget.
 
 Valget skal ikke være ad hoc per side.

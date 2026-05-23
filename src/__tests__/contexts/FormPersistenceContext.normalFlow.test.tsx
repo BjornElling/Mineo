@@ -128,7 +128,7 @@ describe('FormPersistenceContext – normalFlow', () => {
 
     expect(getCtx()!.getPersistedData('stamdata')?.skadelidte).toBe('Old');
     expect(getCtx()!.lastNotice?.type).toBe('warning');
-    expect(getCtx()!.lastNotice?.message).toContain('1 sektion fra en aeldre version blev bevaret');
+    expect(getCtx()!.lastNotice?.message).toContain('1 sektion fra en anden dataversion blev valideret med den aktuelle struktur');
   });
 
   it('rydder kun inkompatible sektioner ved version-mismatch og bevarer de kompatible', async () => {
@@ -164,8 +164,8 @@ describe('FormPersistenceContext – normalFlow', () => {
     expect(getCtx()!.getPersistedData('stamdata')?.skadelidte).toBe('Bevares');
     expect(getCtx()!.getPersistedData('renteberegning')).toBeNull();
     expect(getCtx()!.lastNotice?.type).toBe('error');
-    expect(getCtx()!.lastNotice?.message).toContain('1 sektion fra en aeldre version blev bevaret');
-    expect(getCtx()!.lastNotice?.message).toContain('1 sektion kunne ikke overfoeres sikkert og blev ryddet');
+    expect(getCtx()!.lastNotice?.message).toContain('1 sektion fra en anden dataversion blev valideret med den aktuelle struktur');
+    expect(getCtx()!.lastNotice?.message).toContain('1 sektion kunne ikke overføres sikkert og blev ryddet');
     await waitFor(() => {
       expect(sessionStorage.getItem('mineo_renteberegning')).toBeNull();
     });

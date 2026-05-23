@@ -8,7 +8,6 @@ import {
 import { FILE_FORMAT_VERSION, MAX_FILE_SIZE } from '../config/version';
 import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 import { persistenceSchemas } from '../config/persistenceRegistry';
-import { nullToUndefinedDeep } from './nullToUndefinedDeep';
 import {
   isFileSystemAccessSupported,
   openFileWithPicker,
@@ -17,24 +16,12 @@ import {
 import type { LoadFileResult } from '../types/fileOperations';
 import { eoFileContainerLoadSchema, type EoFileContainerLoad } from '../schemas/eoFileSchema';
 import { CalculationError } from './errorMessages';
-import { stripUnknownFieldsBySchema, type UnknownPath } from './persistenceLoadSanitization';
+import { sanitizePersistedValueForSchema, type UnknownPath } from './persistenceLoadSanitization';
 import { formatAsAmount } from './formatUtils';
+import { migratePersistedSectionValue } from './persistenceMigrations';
+import { formatZodIssues } from './zodIssueFormatting';
 
 import { isRecord } from './typeGuards';
-
-const formatZodIssues = (issues: Array<{ path: Array<string | number | symbol>; message: string }>, max: number): string => {
-  return issues
-    .slice(0, max)
-    .map((issue) => {
-      const path = issue.path.length > 0
-        ? issue.path
-          .map((seg) => (typeof seg === 'symbol' ? (seg.description ?? 'symbol') : String(seg)))
-          .join('.')
-        : '(root)';
-      return `${path}: ${issue.message}`;
-    })
-    .join('\n');
-};
 
 const normalizeDecryptedContainer = (decrypted: unknown): EoFileContainerLoad => {
   if (!isRecord(decrypted)) {
@@ -115,8 +102,14 @@ const processDecryptedContainer = (args: {
     }
 
     const schema = persistenceSchemas[sectionKey];
-    const normalizedValue = nullToUndefinedDeep(rawValue);
-    const stripped = stripUnknownFieldsBySchema(schema, normalizedValue);
+    const migrated = migratePersistedSectionValue(sectionKey, rawValue);
+    for (const issue of migrated.issues) {
+      loadIssues.push({
+        path: issue.path === '(root)' ? sectionKey : `${sectionKey}.${issue.path}`,
+        reason: issue.reason,
+      });
+    }
+    const stripped = sanitizePersistedValueForSchema(schema, migrated.value);
 
     for (const path of stripped.unknownPaths) {
       loadIssues.push({

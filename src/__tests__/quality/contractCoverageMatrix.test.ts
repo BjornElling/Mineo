@@ -57,7 +57,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     ],
   },
   {
-    contractPath: 'src/contracts/keyboard-navigation-test-checklist.md',
+    contractPath: 'docs/testing/keyboard-navigation-test-checklist.md',
     requiredTestPaths: [
       'src/__tests__/components/layout/Container.test.tsx',
     ],

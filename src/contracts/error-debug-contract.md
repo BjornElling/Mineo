@@ -1,6 +1,7 @@
 # Mineo – Error- og Debug-kontrakt
 
 **Status:** Gældende arkitektur (runtime-only)
+**Type:** Tværgående kontrakt
 
 Dette dokument beskriver den **normative** model for felt-fejl (errors) og debug-visning i Mineo.
 
@@ -22,7 +23,7 @@ Et felt identificeres af:
 - `pageKey: StorageKey` (fx `stamdata`)
 - `fieldName: keyof PersistedSectionMap[pageKey]`
 
-Dette er compile-time type-sikret. Det skal være umuligt at rapportere en fejl på et ikke-eksisterende felt uden at build’et fejler.
+Statiske sagsfelter skal rapporteres gennem typed facader som `useFormFieldErrorReporter`. Dynamiske tabel-/entity-felter må bruge string-baserede keys, men kun via canonical key-builders eller dokumenterede field-key konventioner. Absolut compile-time-sikkerhed gælder derfor ikke for alle dynamiske keys; review skal afvise frie, utestede string-keys.
 
 ### 1.2 Fejl-kilde (source)
 
@@ -50,6 +51,16 @@ Hvor `FormFieldError` mindst indeholder:
 - `message: string` (trimmes og normaliseres centralt)
 - `severity: 'error' | 'warning'`
 - `source: 'input' | 'schema' | 'rule'`
+- `blocksSave?: boolean`
+- `invalidDraft?: string`
+
+`blocksSave` er en commitbarhedsregel, ikke en severity-regel:
+
+- udeladt eller `true` betyder, at fejlen blokerer save
+- `false` skal sættes eksplicit for bounds/range-fejl, hvor committed state allerede er canonical og schema-valid
+- `severity: 'error'` kan derfor være ikke-save-blokerende
+
+`invalidDraft` er runtime-only og bruges til at genskabe en ikke-committable draft-fejl, fx ved undo/redo. Feltet må aldrig persisteres, bruges til beregning eller indgå i `.eo`.
 
 **Invariants (normative):**
 - Errors er **runtime-only** og må aldrig persisteres.
@@ -95,6 +106,8 @@ Feltfejl ryddes kun ved:
 
 `useFormFieldErrorReporter` må derfor ikke have implicit unmount-cleanup.
 
+Re-mount af en producer med samme `(pageKey, fieldName, source)` erstatter en eventuel eksisterende fejl for den source. Det er producentens normale re-registrering, ikke en autoritativ state replacement.
+
 ### 4.3 Autoritative state replacements
 
 Ved autoritative state replacements (fx reset/load/migration) rydder form-laget alle field errors for at undgå “ghost errors”.
@@ -134,7 +147,7 @@ Der findes to gyldige strategier for debug-visninger:
 - Brug by-source view: `useFormFieldErrorsBySource(pageKey)`
 - Viser input/schema/rule samtidig og gør prioritet synlig
 
-Mineo’s `EODebug` er på nuværende tidspunkt designet til strategi **B**.
+Strategi **B** er normativ default for debug-visninger, medmindre en domænekontrakt eksplicit vælger strategi A.
 
 ---
 
@@ -250,14 +263,19 @@ Formål:
 - undgå ad hoc `console.error`-payloads som varierer fra komponent til komponent
 
 Minimum:
-- stabil `code`
+- `schemaVersion`
+- stabil `kind`/`code`
+- `severity`
 - kort `userMessage`
-- teknisk `context`
+- teknisk `context`/`route`
 - `area`
-- `revision` når der findes en snapshot-/beregningsrevision
-- `diagnostics` med den konkrete tekniske tilstand der er nødvendig for fejlsøgning
+- `timestamp`
+- `revision` kun når der findes en snapshot-/beregningsrevision
+- `evidence`/`diagnostics` med den konkrete tekniske tilstand der er nødvendig for fejlsøgning
 
-Persondata må ikke lægges i payloaden; loggerens sanitizering er et sikkerhedsnet, ikke den primære kontrakt.
+Når ingen revision findes, udelades feltet helt. Skriv ikke `revision: undefined`.
+
+Persondata må ikke lægges i payloaden eller i string-felter; loggerens sanitizering er et sikkerhedsnet, ikke den primære kontrakt.
 Diagnostics-nøgler bør desuden undgå navne som ligner persondatafelter (`navn`, `email`,
 `telefon`, osv.), hvis værdien er teknisk og ikke personhenførbar, da loggerens sanitizering
 ellers med vilje kan fjerne feltet.

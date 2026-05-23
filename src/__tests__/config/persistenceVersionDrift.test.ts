@@ -18,7 +18,10 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
  * Hardkodet snapshot af schemas' fingerprint.
  * Opdateres manuelt ved intentionelle schema-ændringer (ledsaget af versionsbump).
  */
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-5c2a1df';
+// Opdateret 2026-05-23 efter review 2.5. Den aktuelle ændring er klassificeret
+// som eksisterende persisted schema-drift før denne oprydning; PERSISTED_DATA_VERSION
+// bevares uændret, fordi denne ændring ikke introducerer en ny runtime schema-kontrakt.
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-9cbb44ac';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

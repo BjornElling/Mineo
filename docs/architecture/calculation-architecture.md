@@ -1,9 +1,9 @@
-# Calculation Architecture (Normativ)
+# Calculation Architecture
 
-**Status:** Gældende arkitektur
+**Status:** Arkitekturforklarende reference, ikke selvstændig kontrakt
 **Scope:** Alle beregningsdomæner i Mineo
 
-Dette dokument er den kanoniske kontrakt for beregningsarkitektur.
+Bindende regler ligger i `src/contracts/*`, især `form-contract.md`, `domain-boundary-contract.md`, `snapshot-contract.md`, `amount-contract.md`, `date-contract.md` og domænekontrakterne. Ved konflikt har kontrakterne forrang.
 
 ## 1. Calculation boundary
 
@@ -31,6 +31,16 @@ Regler:
 - Engine er ren funktion uden sideeffekter.
 - OutputSchema er struktureret data (ikke præformatterede UI-strings).
 
+## 2A. Orkestrering og adgang
+
+Engines er rene domænefunktioner, men UI, PDF og debug må ikke kalde selvstændige engines direkte, når domænet har snapshot- eller projection-entrypoint.
+
+For snapshot-first-domæner er den kanoniske adgang:
+
+`CommittedInput -> compute<Domain>Snapshot(...) -> UI/PDF/debug projection`
+
+Direkte engine-kald fra UI/hooks/PDF er et kontraktbrud, medmindre en domænekontrakt eksplicit legitimerer et smallere section-lokalt flow. Se `src/contracts/snapshot-contract.md`.
+
 ## 3. Input- og output-regler
 
 Input:
@@ -46,10 +56,11 @@ Output:
 
 ## 4. Fail-closed krav
 
-Aggregation og tværgående beregninger skal være fail-closed:
-- Manglende nødvendige inputs/outputs giver `null`/"kan ikke beregnes"
-- Ingen implicitte defaults eller gæt i beregningslaget
-- UI må ikke erstatte manglende beregningsresultater med fallback-tal
+Snapshot-/projection-laget ejer statussemantikken. Engines producerer maskinvenlige resultater eller stopper fail-closed ved input-/invariantfejl.
+
+`status: 'fail_closed'` betyder, at autoritativ beregning ikke må bruges. `status: 'error'` kan i nogle domæner stadig have sikre delresultater; domænekontrakten afgør, hvilke projections der må vises, og hvilke outputs der blokeres.
+
+UI må aldrig erstatte manglende autoritativ beregning med fallback-tal.
 
 ## 5. Lagdeling
 
@@ -58,7 +69,9 @@ Aggregation og tværgående beregninger skal være fail-closed:
 - Tværgående/økonomiske beregninger implementeres som dedikerede engines i domænelag, ikke i selectors/UI.
 - Selectors må kun vælge/forme allerede beregnede outputs til visning.
 
-## 6. Domæneklassificering (normativ baseline)
+## 6. Domæneklassificering (forklarende baseline)
+
+Section-lokale afledninger her betyder beregningsmæssig placering, ikke persistence-ejerskab. Persistence-ejerskab ejes af `src/contracts/domain-boundary-contract.md`.
 
 Section-lokale afledninger:
 - `stamdata`
@@ -78,13 +91,7 @@ Støttedomæner i beregningslag:
 
 ## 6.1 EET løbende overlap
 
-Løbende EET bruger `computeEetLoebendeYdelser(...)` som central beregningsmotor. UI, PDF og differencekrav må ikke genskabe overlaplogik lokalt.
-
-For en afgørelse B med forgænger A gælder overlapregler kun når `fsTilbageholdtEet(A) = 'Nej'` og `virkningsDato(B) < firstOfMonthAfter(afgørelsesdato(B))`. `firstOfMonthAfter` er altid den 1. i måneden efter afgørelsesdatoens måned, også når afgørelsesdatoen selv er den 1. Hvis A har `fsTilbageholdtEet = 'Ja'`, eller hvis virkningsdatoen er på eller efter skæringsdatoen, bruges direkte afløsningsregel på B's faktiske virkningsdato.
-
-Overlapbidrag beregnes pr. delperiode som forskellen mellem B's løbende rest-EET og A's løbende rest-EET. Kapitalisering er global og datoafhængig: alle kapitaliseringer med dato på eller før delperiodens start reducerer løbende rest-EET for alle afgørelser. Delperioder splittes derfor ved både kalenderårsskift og kapitaliseringsdatoer. Perioder der beregner til 0 kr., udelades fra de beregnede ydelsesrækker, fordi tabellerne viser faktiske kravlinjer og ikke en komplet teknisk periodisering.
-
-Afgørelser sorteres fortsat efter afgørelsesdato, derefter virkningsdato, derefter sortKey. Afgørelser med samme afgørelsesdato og forskellig virkningsdato håndteres af denne eksisterende sortering; der indføres ikke en særskilt sorteringsregel.
+Løbende EET bruger `computeEetLoebendeYdelser(...)` gennem EET-snapshot/projektioner. UI, PDF og differencekrav må ikke genskabe overlaplogik lokalt. De konkrete EET-regler ejes af `src/contracts/eet-snapshot-contract.md` og EET-domænets tests, ikke af dette tværgående arkitekturdokument.
 
 ## 7. Teststrategi (krav)
 
@@ -100,26 +107,10 @@ Forbud i engine-tests:
 - Store/context-baseret inputopbygning
 - UI helpers/selectors/draft state
 
-## 8. Stop-regel
+## 8. Stop-regel (forklarende)
 
-Kode, der blander beregning med UI/store/persistence, er arkitekturbrud og må ikke merges, også hvis funktionaliteten ser korrekt ud.
+Kode, der blander beregning med UI/store/persistence, er normalt kontraktbrud efter `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`, også hvis funktionaliteten ser korrekt ud.
 
-## 9. Beløbsberegning og afrunding (normativ)
+## 9. Beløbsberegning og afrunding
 
-For felter baseret på `AmountValue` (inkl. udtryk) gælder:
-
-1. Operander bevares uændret under evaluering:
-- Indtastede deltal i et udtryk må ikke pre-afrundes eller pre-afskæres.
-- Udtryk evalueres deterministisk uden floating-point øretab.
-
-2. Afrunding sker kun på slutresultatet ved commit:
-- Feltets committed numeriske værdi afrundes til feltets precision (standard: 2 decimaler).
-- Afrundingsmetode er `half away from zero` for beløb.
-
-3. Nedstrøms beregninger må kun bruge committed værdi:
-- Engines/aggregation må ikke genberegne fra draft/udtrykstekst.
-- Beregninger skal læse `AmountValue.value` (ikke `AmountValue.expression`).
-
-4. Load/import skal konvergere til samme committed semantik:
-- Indlæste/legacy beløb normaliseres til samme precision og afrundingsmetode som commit.
-- Beregningslaget må derfor ikke modtage uafrundede `AmountValue.value` fra persistence.
+Normative beløbs- og afrundingsregler ejes af `src/contracts/amount-contract.md`. Dette dokument beskriver kun lagdelingen: beregningslaget skal modtage committed, normaliserede talværdier.

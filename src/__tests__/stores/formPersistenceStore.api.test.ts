@@ -235,14 +235,14 @@ describe('formPersistenceStore public API', () => {
     expect(store.getState().fieldErrors.stamdata.skadelidte?.input?.blocksSave).toBe(false);
   });
 
-  it('clearFieldErrorsForSection bumps only targeted field-error revision', () => {
+  it('clearFieldErrorsForSection does not bump revision when section has no errors', () => {
     const store = __createTestStore();
     const before = store.getState().fieldErrorRevisions;
 
     store.getState().clearFieldErrorsForSection('satser');
     const after = store.getState().fieldErrorRevisions;
 
-    expect(after.satser).toBe(before.satser + 1);
+    expect(after.satser).toBe(before.satser);
     expect(after.stamdata).toBe(before.stamdata);
   });
 

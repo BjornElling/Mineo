@@ -32,6 +32,9 @@ const hashString = (value: string): string => {
 export const computeSchemaFingerprint = (schemas: Record<string, ZodType>): string => {
   const keys = Object.keys(schemas).sort();
   const body = keys.map((key) => {
+    // Drift-sikringen afhænger af Zods JSON Schema-output. Ved Zod-opgradering
+    // skal fingerprint-drift derfor klassificeres manuelt som enten reel
+    // persisted schema-ændring eller toolchain-formatdrift.
     const jsonSchema = toJSONSchema(schemas[key], { io: 'input', unrepresentable: 'any' });
     return `${key}:${stableStringify(jsonSchema)}`;
   }).join('|');

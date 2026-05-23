@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { nullToUndefinedDeep } from './nullToUndefinedDeep';
 
 type ZodSchema = z.ZodType;
 export type UnknownPath = Array<string | number>;
@@ -55,11 +56,21 @@ const unwrapSchema = (schema: ZodSchema): ZodSchema => {
 };
 
 const resolveObjectShape = (schema: z.ZodObject<z.ZodRawShape>): Record<string, ZodSchema> => {
+  // ADVARSEL: `.shape`-accessoren er verificeret mod Zod 4.3.6. Hvis Zod ændrer
+  // objekt-shape API'et, kan helperen fejlklassificere kendte felter som ukendte.
   const shapeValue: unknown = (schema as unknown as { shape: unknown }).shape;
   const resolved = typeof shapeValue === 'function'
     ? (shapeValue as () => unknown)()
     : shapeValue;
   return isRecord(resolved) ? (resolved as Record<string, ZodSchema>) : {};
+};
+
+export const sanitizePersistedValueForSchema = (
+  schema: ZodSchema,
+  value: unknown
+): { sanitized: unknown; unknownPaths: UnknownPath[] } => {
+  const normalized = nullToUndefinedDeep(value);
+  return stripUnknownFieldsBySchema(schema, normalized);
 };
 
 export const stripUnknownFieldsBySchema = (

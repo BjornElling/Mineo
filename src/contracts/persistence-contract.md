@@ -1,6 +1,8 @@
 # Mineo – Persistence-kontrakt
 
 **Status:** Gældende arkitektur (normativ)
+**Type:** Tværgående kontrakt
+**Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter. `schema-evolution.md` ejer konkrete schema-ændringsregler.
 
 Denne kontrakt samler de trust-kritiske regler for persistence, save/load og autoritative state replacements.
 
@@ -41,11 +43,14 @@ App-settings er ikke omfattet; se `app-settings.md`.
 1. Load skal være atomisk, medmindre brugeren eksplicit vælger delvis indlæsning efter preflight.
 2. Ingen in-memory state må muteres før preflight-beslutningen er truffet.
 3. Ved apply-fejl skal eksisterende in-memory state bevares uændret.
-4. Filer gemt fra schema-version `1.0` og frem skal kunne indlæses så langt det er sikkert muligt:
+4. Filer skal kunne indlæses så langt det er sikkert muligt inden for den aktuelle schema-/formatpolitik:
    - ukendte/udgåede felter strippes og rapporteres
-   - manglende nyere felter må ikke alene få hele sektionen til at fejle
-5. Ved schema-udvikling skal manglende felter derfor være `optional()` eller have sikker default.
+   - manglende nyere felter må ikke alene få hele sektionen til at fejle, hvis de kan håndteres via `optional()`, sikker default eller eksplicit migrator
+   - ugyldige eksisterende felter kan medføre hel-sektion-drop, hvis de ikke sikkert kan migreres
+5. Ved schema-udvikling skal manglende felter derfor være `optional()` eller have sikker default, medmindre en eksplicit breaking-change beslutning i `schema-evolution.md` siger andet.
 6. Ukendte sektioner i `.eo`-filer må ikke i sig selv få hele loaden til at fejle; de skal rapporteres som ikke-indlæste og holdes ude af apply-snapshot’et.
+
+**Implementation status:** Den aktuelle load-model er sektion-baseret: efter sanitization parses hver sektion med Zod. Fejler en sektion parse, indlæses den ikke delvist. Denne kontrakts "så langt det er sikkert muligt" betyder derfor aktuelt: bevar sektioner der parser sikkert; drop sektioner der ikke parser; rapportér årsagen i preflight. Feltvis recovery kræver eksplicit migrator/recovery-lag og må ikke antages implicit.
 
 ---
 
@@ -64,6 +69,14 @@ Preflight skal tilbyde præcis disse valg:
 - `Send fejloplysninger`
 - `Stop og gør intet`
 
+Semantik:
+
+1. `Indlæs trods fejl` betyder hel-sags-erstatning med de sektioner, der er loadbare efter preflight. Sektioner der ikke kan indlæses, bevares ikke fra den aktive runtime-sag.
+2. `Send fejloplysninger` må ikke sende brugerdata ud af browseren. Funktionen skal være lokal, fx kopiering/eksport af sanitiserede fejloplysninger eller åbning af eksisterende lokale bugrapport-flow.
+3. `Stop og gør intet` må ikke mutere in-memory state, `sessionStorage` eller undo/redo-historik.
+
+Preflight-UI skal gøre destruktiv partial-load tydelig: ved `Indlæs trods fejl` fjernes fejlede sektioner fra den aktive sag.
+
 ---
 
 ## 6. Autoritative state replacements
@@ -74,15 +87,17 @@ Ved reset, load eller anden autoritativ erstatning gælder:
 2. Sektioner erstattes atomisk.
 3. Runtime-feltfejl ryddes atomisk sammen med apply.
 4. Draft-resync må kun trigges af autoritative replace-events.
+5. Undo/redo-history ryddes ved succesfuld autoritativ hel-sags-erstatning, jf. `undo-redo-contract.md`.
 
 Den kanoniske load-rækkefølge er:
 
 1. læs/dekryptér fil eller storage
 2. strip ukendte felter/sektioner efter schema
-3. valider sektioner/snapshot
-4. vis preflight og afvent brugerbeslutning
-5. skriv/replace autoritativt snapshot
-6. ryd runtime-fejl og trig resync
+3. anvend eventuelle eksplicitte migratorer
+4. valider sektioner/snapshot
+5. vis preflight og afvent brugerbeslutning
+6. skriv/replace autoritativt snapshot
+7. ryd runtime-fejl, ryd undo/redo-history ved hel-sags-apply og trig resync
 
 Ingen sidekomponent eller almindelig page-hook må omgå denne rækkefølge.
 
@@ -90,7 +105,12 @@ Ingen sidekomponent eller almindelig page-hook må omgå denne rækkefølge.
 
 ## 7. Schema-evolution fra version 1.0
 
-`PERSISTED_DATA_VERSION = '1.0'` er kompatibilitetsbaseline for `.eo`-filer.
+Mineo har to uafhængige versionsbegreber:
+
+1. `FILE_FORMAT_VERSION` er `.eo`-containerens version. Den bumpes kun ved inkompatible ændringer i container/top-level format, metadata eller krypterings-/indpakningsstruktur.
+2. `PERSISTED_DATA_VERSION` er sagsinput-schema-versionen for sektionerne i `persistenceRegistry`. Den bumpes ved ændringer i persisted sektionsschemas, migrator-/parse-semantik eller load-sanitization der ændrer sagsinput-kontrakten.
+
+De to versioner må ikke bumpes "for en sikkerheds skyld" uden klassifikation. De behøver ikke følges ad.
 
 Fremadrettede ændringer af persisted struktur skal ske efter følgende prioritet:
 
@@ -102,10 +122,9 @@ Fremadrettede ændringer af persisted struktur skal ske efter følgende priorite
    - kompatible sektioner bevares
    - ukendte/fjernede felter strippes
    - inkompatible eller korrupte sektioner ryddes fail-closed
-5. Hvis en fremtidig schema-ændring kræver mapping fra version `1.0` eller nyere, skal mappingen være eksplicit, entydig og testet.
+5. Hvis en fremtidig schema-ændring kræver mapping, skal mappingen være eksplicit, entydig og testet.
 
-Der holdes ikke runtime-kompatibilitetskode for filer eller interne modeller fra før schema-version `1.0`.
-Det er tilladt at bryde bagudkompatibilitet for intern runtime-struktur, men `.eo`-load skal stadig bevare mest muligt sikkert brugerinput fra version `1.0` og frem.
+Der holdes ikke legacy runtime-kode eller kompatibilitetslag alene for at bevare forældede interne modeller. Ved breaking schema- eller container-ændringer er en klar dansk afvisnings-/preflight-fejl acceptabel, hvis migration ikke er sikker eller proportional.
 
 ---
 
@@ -114,8 +133,16 @@ Det er tilladt at bryde bagudkompatibilitet for intern runtime-struktur, men `.e
 1. `sessionStorage` er browser-sessionens durable cache, ikke den autoritative runtime-sandhed.
 2. Data i `sessionStorage` må forsvinde ved tab-/vindueslukning eller browseroprydning; `.eo` er den eneste brugerrettede, eksplicitte langtidsbevaring.
 3. Hydrering fra `sessionStorage` må kun ske som autoritativ initialization/replacement, ikke som skjult løbende overskrivning af aktiv committed state.
-4. Fejl ved skrivning til `sessionStorage` skal behandles fail-closed og må ikke skjules som om persist lykkedes.
-5. Skjult persisted sagsinput skal forblive i `sessionStorage`, indtil brugeren eksplicit ændrer eller sletter det; ren visningslogik må ikke strippe det.
+4. Initial hydrering skal ske, før app-children kan læse committed state, eller også skal et eksplicit startup-gate forhindre læsning. Børn under provideren må ikke basere beregning på et unhydreret `null`-snapshot.
+5. Fejl ved skrivning til `sessionStorage` skal behandles fail-closed og må ikke skjules som om persist lykkedes.
+   - Gælder `persistData`, `replaceAllPersistedData`, `clearPageData` og `clearAllData`.
+   - Hvis storage-mutationen fejler, må committed runtime-store ikke ændres.
+   - Hvis fejl opstår efter delvis mutation, skal store, storage og undo/redo-state rulles tilbage eller operationen rapporteres som ikke gennemført.
+   - Brugeren skal have synlig dansk fejlfeedback; normal drift skal være console-silent.
+6. Skjult persisted sagsinput skal forblive i `sessionStorage`, indtil brugeren eksplicit ændrer eller sletter det; ren visningslogik må ikke strippe det.
+7. Afviste/korrupte storage-nøgler fra startup-hydrering må ryddes som efterfølgende cleanup. Runtime-apply af det hydrerede snapshot skal stadig være atomisk; cleanup-vinduet må ikke anvende afviste nøgler i runtime.
+
+SessionStorage keys ejes af `src/config/storageManifest.ts`. Manifestet er eneste registry for domæne-keys, UI-state keys og dynamiske prefix-keys. Rename eller fjernelse af en Mineo-key kræver eksplicit obsolete-key politik: rydning, migration eller bevidst bevarelse.
 
 ---
 
@@ -129,5 +156,19 @@ Følgende regler er bindende for persistence-laget under aktiv runtime:
 4. Reaktive læsninger af persisted sektioner, revisions eller feltfejl skal gå via store-selectors/read-model hooks, ikke via providerens render-cyklus.
 5. `FormPersistenceContext` er et infrastrukturlag for imperative persistence-operationer, hydration, notices og autoritative replaces; det må ikke udvikle sig til generel state-broker for almindelige sektionslæsninger.
 6. Persistence-API'er må ikke eksponere `onChange`-lignende convenience-API'er, der inviterer til commit af committed state fra draft-semantik.
-7. Tværsektion-readmodels skal være eksplicitte og read-only. Når et tværsektion-flow bliver et etableret mønster, skal sammensætningen ligge i et dedikeret hook/modul frem for som ad hoc hydrering spredt i page-komponenter.
+7. Tværsektion-readmodels skal være eksplicitte og read-only. `usePersistedSectionSelector(pageKey)` er den kanoniske read-only adgang til enkeltsektioner. Gentagne sammensatte tværsektion-læsninger skal samles i navngivne hooks/readmodels senest ved anden forekomst.
 8. UI-synlighed er ikke i sig selv en persistence-grænse: når et persisted sagsfelt eller en persisted række skjules, skal committed værdier fortsat bevares, mens validering og beregning eksplicit skal ignorere dem, når de ikke længere er domænemæssigt aktive.
+9. Der findes en monotont stigende global committed-change token for "noget committed er ændret". Sektion-revisions må bruges til fine-grained selectors, men ikke som kollisionsfri global change-identitet.
+
+---
+
+## 10. Post-apply metadata
+
+Load består af to faser:
+
+1. atomisk apply af sagsdata,
+2. efterfølgende metadata-synkronisering, fx filnavn, file handle og PWA pending-request.
+
+Hvis fase 1 fejler, er load ikke anvendt, og eksisterende state skal være uændret.
+
+Hvis fase 2 fejler efter succesfuld fase 1, må fejlen ikke præsenteres som om sagsdata ikke blev indlæst. UI skal vise en separat dansk advarsel om, at sagen er indlæst, men efterfølgende filmetadata eller direkte "Gem"-kobling muligvis ikke er synkroniseret.

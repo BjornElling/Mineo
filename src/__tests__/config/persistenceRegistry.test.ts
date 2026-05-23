@@ -18,7 +18,7 @@ describe('persistenceSchemas', () => {
     }
   });
 
-  it('har præcis 6 schemas (én per StorageKey)', () => {
+  it('har præcis ét schema per StorageKey', () => {
     const storageKeyCount = Object.keys(STORAGE_KEYS).length;
     const schemaCount = Object.keys(persistenceSchemas).length;
     expect(schemaCount).toBe(storageKeyCount);

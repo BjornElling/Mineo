@@ -18,7 +18,7 @@ import { getUserMessage, isCalculationError } from '../utils/errorMessages';
 import { EncryptionError } from '../utils/encryption';
 import type { AppSettings } from '../settings/appSettingsSchema';
 import type { ReplaceAllPersistedData } from '../contexts/FormPersistenceContext.shared';
-import { executePersistenceLoadApply } from '../utils/persistenceLoadApply';
+import { executePersistenceLoadApply, type PersistenceLoadApplyResult } from '../utils/persistenceLoadApply';
 import {
   removeOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
@@ -147,8 +147,8 @@ export const useFileSaveLoad = ({
   const [pendingLoadResult, setPendingLoadResult] = React.useState<PendingLoadApply | null>(null);
   const [pendingOverwriteApply, setPendingOverwriteApply] = React.useState<PendingOverwriteApply | null>(null);
 
-  const applyLoadedSnapshot = React.useCallback(async (result: LoadFileResult) => {
-    await executePersistenceLoadApply({
+  const applyLoadedSnapshot = React.useCallback(async (result: LoadFileResult): Promise<PersistenceLoadApplyResult> => {
+    return executePersistenceLoadApply({
       result,
       replaceAllPersistedData,
     });
@@ -164,9 +164,11 @@ export const useFileSaveLoad = ({
       return 'awaitingUser';
     }
 
-    await applyLoadedSnapshot(result);
+    const applyResult = await applyLoadedSnapshot(result);
     markUserFeedback();
-    showOverlay(overlayData);
+    showOverlay(applyResult.status === 'applied-with-metadata-error'
+      ? { message: applyResult.message, type: 'warning' }
+      : overlayData);
     if (navigateToStamdataAfterApply) {
       navigate('/stamdata', { replace: true });
     }
@@ -362,9 +364,11 @@ export const useFileSaveLoad = ({
     setPendingOverwriteApply(null);
 
     try {
-      await applyLoadedSnapshot(pending.result);
+      const applyResult = await applyLoadedSnapshot(pending.result);
       markUserFeedback();
-      showOverlay(pending.overlay);
+      showOverlay(applyResult.status === 'applied-with-metadata-error'
+        ? { message: applyResult.message, type: 'warning' }
+        : pending.overlay);
       if (pending.navigateToStamdataAfterApply) {
         navigate('/stamdata', { replace: true });
       }

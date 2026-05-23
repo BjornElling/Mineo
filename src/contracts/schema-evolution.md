@@ -1,6 +1,7 @@
 # Skema-evolution og load-kompatibilitet — Mineo
 
 **Status:** Normativ kontrakt
+**Type:** Tværgående kontrakt
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -14,9 +15,9 @@ Dette dokument har to niveauer:
 
 Tværgående save/load-regler er normativt samlet i `src/contracts/persistence-contract.md`.
 
-Schema-version `1.0` er baseline for fremtidig load-kompatibilitet. Mineo prioriterer at indlæse mest muligt af filer gemt fra version `1.0` og frem. Et nyt felt i skemaet må **aldrig** forårsage at `erstatningsopgoerelse`-sektionen (eller andre sektioner) droppes ved indlæsning af ældre filer fra denne baseline eller senere.
+`FILE_FORMAT_VERSION` og `PERSISTED_DATA_VERSION` er forskellige versionsbegreber, jf. `persistence-contract.md` §7. Denne kontrakt ejer kun reglerne for persisted sektionsschemas og load-sanitization.
 
-Load-mekanismen (`src/utils/fileLoad.ts`) kører `schema.safeParse(data)` på hvert sektion. Hvis parse fejler, droppes **hele sektionen** — ikke bare det manglende felt. Det er en katastrofal fejl der mister alle brugerdata i sektionen.
+Load-mekanismen kører sanitization og derefter `schema.safeParse(data)` pr. sektion. Hvis parse fejler, droppes **hele sektionen** — ikke bare det enkelte felt. Det er den nuværende fail-closed model og skal forklares i preflight.
 
 ---
 
@@ -168,8 +169,11 @@ Brug denne tabel til at instantiere skabelonen ovenfor med de rigtige filer:
 | `aarsloen` | `src/schemas/formSchemas/sections/aarsloenSchemas.ts` | `src/domain/aarsloen/aarsloenInitialValues.ts` | `src/components/pages/Aarsloen.tsx` | `src/components/pages/aarsloen/` hvis relevant |
 | `faellesAarsloen` | `src/schemas/formSchemas/sections/faellesAarsloenSchemas.ts` | `src/domain/aslEalAarsloen/faellesAarsloenInitialValues.ts` | `src/components/pages/Erhvervsevnetab.tsx` / `src/components/pages/Forsoergertab.tsx` | respektive page-filer |
 | `satser` | `src/schemas/formSchemas/sections/satserSchemas.ts` | `src/domain/satser/satserInitialValues.ts` | `src/components/pages/Satser.tsx` | page-filen er primær UI-entry |
+| `renteberegning` | `src/schemas/formSchemas/sections/renteberegningSchemas.ts` | `src/domain/renteberegning/renteberegningInitialValues.ts` | `src/components/pages/Renteberegning.tsx` | `src/components/pages/renteberegning/` hvis relevant |
 
-Hvis et domæne ikke står i tabellen, er det et signal om at kontrakten skal udvides samtidig med schema-arbejdet.
+`minProcesrente` er ikke en `.eo`-sagssektion, medmindre den registreres i `persistenceRegistry`.
+
+Hvis et domæne ikke står i tabellen, må schema-arbejdet ikke fortsætte før kontrakten og registry-mapping er opdateret. `persistenceRegistry.ts` er teknisk autoritet for persisted sektionskeys; denne tabel skal holdes i sync med registry.
 
 ### 2.3 EO som referenceimplementation
 
@@ -199,7 +203,45 @@ Typiske fejlsymptomer hvis EO-opdateringer glemmes:
 - `undefined`/`null`: tæller ikke
 - `array`: tæller hvis mindst ét element er meningsfuldt
 
-**Konsekvens:** Et nyt `JaNej`-felt med default `'Nej'` øger `fieldCount` med 1 i alle nygemte filer. Ældre filer har ikke dette felt og rapporterer dermed et lavere `expectedCount`. Det giver load-advarslen "Forventet: X · Indlæst: X-1" — dette er korrekt og forventet opførsel, ikke en fejl.
+**Konsekvens:** Et nyt `JaNej`-felt med default `'Nej'` øger `fieldCount` med 1 i alle nygemte filer. Ældre filer har ikke dette felt og rapporterer dermed et lavere `expectedCount`. Count-mismatch er ikke alene en fejlklassifikation. Brugervendt alvorlighed skal styres af issue-kategorier, ikke kun af expected/loaded tal.
+
+Minimum issue-kategorier:
+
+- `strippedUnknownField`: kendt sektion, felt findes ikke i current schema.
+- `missingDefaultedField`: felt manglede og blev udfyldt via schema-default eller optional.
+- `sectionDropped`: sektion kunne ikke parses og indlæses ikke.
+- `unknownSection`: sektionen kendes ikke i current registry.
+- `migratedField`: eksplicit migrator har flyttet eller omsat et felt.
+
+Preflight bør kun kalde noget "fejl", når faktisk brugerdata ikke indlæses eller ikke kan valideres. Harmløs schema-evolution bør vises neutralt eller udelades.
+
+### 3.1a Breaking schema-ændringer
+
+Følgende er breaking schema-ændringer:
+
+1. feltomdøbning,
+2. feltflytning mellem sektioner,
+3. ændret felttype,
+4. fjernet eller omdøbt enum-værdi,
+5. ændret feltsemantik,
+6. ændret row-identitet i tabeldata.
+
+Breaking ændringer må ikke håndteres med strip/default alene, medmindre den bevidste beslutning er at tabe den gamle værdi og rapportere det tydeligt.
+
+Hvis data kan bevares sikkert, skal der bruges en eksplicit migrator pr. `StorageKey`. Migrator kører i denne rækkefølge:
+
+1. `nullToUndefinedDeep`
+2. migrator for kendt gammel struktur
+3. `stripUnknownFieldsBySchema`
+4. `schema.safeParse`
+
+Migratorer må kun mappe kendte gamle strukturer til current struktur. De må ikke gætte domæneværdier. En migrator er et extension point, ikke en generel forpligtelse til bagudkompatibilitet.
+
+Fjernelse eller omdøbning af enum-værdier kræver enten:
+
+1. entydig migrator før parse, eller
+2. deprecated load-værdi i schema med eksplicit domain-/UI-håndtering, hvis værdien fortsat kan indlæses sikkert men ikke vælges fremadrettet, eller
+3. tydelig preflight-fejl og hel-sektion-drop.
 
 ### 3.2 `.strict()` i mergede sub-skemaer
 
@@ -226,6 +268,8 @@ Se `src/contracts/app-settings.md` for den normative regel om nested merge-logik
 ```
 .eo-fil
   → decrypt
+  → nullToUndefinedDeep(data)
+  → eventuel migrator pr. StorageKey
   → stripUnknownFieldsBySchema(schema, data)
       → felter i data men ikke i schema: strippes, rapporteres som "ikke indlæst"
   → schema.safeParse(stripped)
@@ -234,6 +278,28 @@ Se `src/contracts/app-settings.md` for den normative regel om nested merge-logik
       → felter i schema der er .optional(): sættes til undefined hvis de mangler
   → snapshot opdateres med sektionens data
 ```
+
+Samme sanitization-rækkefølge gælder session-hydrering. Zod-versioner og `stripUnknownFieldsBySchema`'s `.shape`/pipe-afhængigheder skal verificeres ved Zod-opgradering, fordi fejl her kan give forkert strip eller fingerprint-drift.
+
+---
+
+## Del 4A: Versionering
+
+`PERSISTED_DATA_VERSION` bumpes ved:
+
+1. ændring i et schema i `persistenceRegistry`,
+2. ændret migrator-/parse-semantik,
+3. ændret load-sanitization der påvirker sagsinput,
+4. bevidst breaking schema-ændring.
+
+`FILE_FORMAT_VERSION` bumpes kun ved containerændringer uden for persisted sektionsdata, fx top-level containerfeltkrav, metadata-struktur eller krypterings-/indpakningsformat.
+
+En fremtidig `FILE_FORMAT_VERSION` bump kræver en eksplicit beslutning:
+
+1. implementér adapter for tidligere container-version, eller
+2. afvis gamle filer med klar dansk fejlbesked.
+
+Standardvalget er hård afvisning, medmindre der er en konkret stærk grund til adapter. Der bygges ikke legacy kompatibilitetslag af princip.
 
 ---
 
