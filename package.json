@@ -38,7 +38,8 @@
     "zustand": "^5.0.10"
   },
   "scripts": {
-    "dev": "vite --open",
+    "dev": "vite --config vite.mineo.config.ts --open /mineo.html",
+    "dev:minprocesrente": "vite --config vite.minprocesrente.config.ts --open /minprocesrente.html",
     "build": "npm run build:mineo",
     "build:mineo": "vite build --config vite.mineo.config.ts && node scripts/ensure-build-index.mjs dist/mineo mineo.html",
     "build:minprocesrente": "vite build --config vite.minprocesrente.config.ts && node scripts/ensure-build-index.mjs dist/minprocesrente minprocesrente.html && node scripts/cleanup-minprocesrente-public.mjs dist/minprocesrente",

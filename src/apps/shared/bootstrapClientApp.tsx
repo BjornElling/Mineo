@@ -11,6 +11,7 @@ export type ClientAppBootstrapOptions = Readonly<{
   beforeDesktopRender?: () => Promise<void>;
   afterDesktopRenderSetup?: () => void;
   capturePwaInstallPrompt: boolean;
+  enforceUnsupportedDeviceGate?: boolean;
 }>;
 
 const isTouchLikeDevice = (): boolean => {
@@ -67,7 +68,7 @@ export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Pr
   }
 
   const root = ReactDOM.createRoot(rootElement);
-  const unsupportedDevice = isUnsupportedDevice();
+  const unsupportedDevice = (options.enforceUnsupportedDeviceGate ?? true) && isUnsupportedDevice();
   if (unsupportedDevice || !options.capturePwaInstallPrompt) {
     // Standalone app-varianter uden PWA suppresser altid browserens install-prompt.
     suppressBrowserInstallPrompt();

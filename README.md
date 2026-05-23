@@ -25,10 +25,16 @@ npm run dev
 
 Åbn: `http://localhost:3000`
 
+Start procesrente som standalone-app:
+```bash
+npm run dev:minprocesrente
+```
+
 ## Scripts
 
 ```bash
 npm run dev
+npm run dev:minprocesrente
 npm run build
 npm run preview
 npm run typecheck
@@ -63,6 +69,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.05.594
+**Version**: 2026.05.595
 
 **Status**: Under udvikling

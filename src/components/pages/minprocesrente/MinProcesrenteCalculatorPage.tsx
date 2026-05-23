@@ -66,7 +66,36 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   );
 
   return (
-    <Box>
+    <Box
+      sx={{
+        '& .page-title': {
+          fontSize: { xs: '24px', sm: '28px', md: '32px' },
+          marginBottom: { xs: '20px', sm: '24px', md: '32px' },
+        },
+        '& .content-box': {
+          width: '100%',
+          maxWidth: '100%',
+          padding: { xs: '24px 16px', sm: '32px 24px', md: '40px 32px' },
+          borderRadius: { xs: 'var(--border-radius-small)', md: 'var(--border-radius-large)' },
+          margin: { xs: '24px 0', md: '40px 0' },
+        },
+        '& .row--label-right-hover': {
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'stretch', sm: 'center' },
+          gap: { xs: 1, sm: 0 },
+          padding: { xs: 0, sm: '0 12px' },
+        },
+        '& .row--label-right-hover__label, & .hover-row__label': {
+          width: { xs: 'auto', sm: 'var(--label-width)' },
+          minWidth: { xs: 0, sm: 'var(--label-width)' },
+        },
+        '& .row--label-right-hover__content': {
+          justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+          minWidth: { xs: 0, sm: '220px' },
+          width: { xs: '100%', sm: 'auto' },
+        },
+      }}
+    >
       <Typography className="page-title">Procesrente</Typography>
       <RenteberegningTab
         beregningsdato={values.beregningsdato}

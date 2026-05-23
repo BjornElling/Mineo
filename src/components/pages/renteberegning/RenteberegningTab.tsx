@@ -107,27 +107,29 @@ const RenteberegningTab = React.memo(({
             <Box className="row--label-right-hover__content" />
           </Box>
         )}
-        <BeregnetRenteTable
-          rows={rentekravRows}
-          onFieldChange={onRentekravChange}
-          onRowBlur={onRentekravBlur}
-          onRowsReorder={onRentekravReorder}
-          beregningsdato={beregningsdato}
-          onDownloadSpecifikation={onDownloadSpecifikation}
-          committedById={committedRentekravById}
-          onError={onError}
-          beregningsdatoHasError={beregningsdatoHasError}
-          referenceRates={referenceRates}
-          surchargeRates={surchargeRates}
-          saveOrderPath="renteberegning.rentekravRows"
-        />
+        <Box sx={{ width: '100%', overflowX: 'auto', overflowY: 'hidden' }}>
+          <BeregnetRenteTable
+            rows={rentekravRows}
+            onFieldChange={onRentekravChange}
+            onRowBlur={onRentekravBlur}
+            onRowsReorder={onRentekravReorder}
+            beregningsdato={beregningsdato}
+            onDownloadSpecifikation={onDownloadSpecifikation}
+            committedById={committedRentekravById}
+            onError={onError}
+            beregningsdatoHasError={beregningsdatoHasError}
+            referenceRates={referenceRates}
+            surchargeRates={surchargeRates}
+            saveOrderPath="renteberegning.rentekravRows"
+          />
+        </Box>
       </ContentBoxComponent>
 
       <ContentBoxComponent className="content-box">
         <Typography className="section-header">Kommentarer</Typography>
         <StyledTextField
           name="kommentarer"
-          width={800}
+          width="min(800px, 100%)"
           value={kommentarer ?? ''}
           onCommit={onKommentarerCommit}
           multiline

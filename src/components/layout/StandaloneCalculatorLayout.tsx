@@ -8,7 +8,7 @@ type StandaloneCalculatorLayoutProps = Readonly<{
 const StandaloneCalculatorLayout = React.memo(({ children }: StandaloneCalculatorLayoutProps) => (
   <Container
     scrollSx={{
-      padding: '40px 32px',
+      padding: { xs: '24px 16px', sm: '32px 24px', md: '40px 32px' },
       backgroundColor: 'var(--color-surface)',
     }}
     contentSx={{
