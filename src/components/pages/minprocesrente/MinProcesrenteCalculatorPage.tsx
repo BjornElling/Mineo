@@ -96,7 +96,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         },
       }}
     >
-      <Typography className="page-title">Procesrente</Typography>
+      <Typography className="page-title">MinProcesrente</Typography>
       <RenteberegningTab
         beregningsdato={values.beregningsdato}
         kommentarer={values.kommentarer}

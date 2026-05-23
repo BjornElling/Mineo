@@ -85,7 +85,7 @@ describe('MinProcesrenteCalculatorPage', () => {
   it('viser kun procesrente-beregneren uden rentesatser-tab', () => {
     render(<MinProcesrenteCalculatorPage />);
 
-    expect(screen.getByText('Procesrente')).toBeInTheDocument();
+    expect(screen.getByText('MinProcesrente')).toBeInTheDocument();
     expect(screen.getByText('MOCK_BEREGNINGSTAB')).toBeInTheDocument();
     expect(screen.queryByText('Rentesatser')).not.toBeInTheDocument();
   });
