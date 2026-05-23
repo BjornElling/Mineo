@@ -54,4 +54,14 @@ describe('persistenceSessionHydration', () => {
 
     getItemSpy.mockRestore();
   });
+
+  it('rapporterer versionsmismatch som validering med aktuel struktur', () => {
+    writeSection('satser', { aargang: 2025 }, '1.0');
+
+    const plan = buildSessionStorageHydrationPlan();
+
+    expect(plan.sections.satser).toEqual({ aargang: 2025 });
+    expect(plan.notice?.type).toBe('warning');
+    expect(plan.notice?.message).toContain('anden dataversion blev valideret med den aktuelle struktur');
+  });
 });

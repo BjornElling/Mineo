@@ -52,6 +52,7 @@ export type FormPersistenceStoreState = {
   rollbackSections: (
     next: FormPersistenceSections,
     sectionRevisions: SectionRevisionMap,
+    committedChangeCounter: number,
     authoritativeSnapshotEpoch: number,
     meta: FormPersistenceMeta
   ) => void;
@@ -336,7 +337,7 @@ const createFormPersistenceStore = () =>
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
     },
-    rollbackSections: (next, sectionRevisions, authoritativeSnapshotEpoch, meta) => {
+    rollbackSections: (next, sectionRevisions, committedChangeCounter, authoritativeSnapshotEpoch, meta) => {
       assertKeyCoverage(next);
       assertMetaFingerprintMatch(meta);
       assertAllSectionsValid(next);
@@ -347,7 +348,7 @@ const createFormPersistenceStore = () =>
         sectionRevisions: { ...sectionRevisions },
         fieldErrors: state.fieldErrors,
         fieldErrorRevisions: state.fieldErrorRevisions,
-        committedChangeCounter: state.committedChangeCounter,
+        committedChangeCounter,
         authoritativeSnapshotEpoch,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));

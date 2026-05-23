@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
 import { type HistoryFrame, type HistoryTransitionPlan, undoRedoStore } from '../stores/undoRedoStore';
-import { writePersistenceSectionsToSessionStorageWithRollback } from '../utils/persistenceSnapshotStorage';
+import { atomicWritePersistenceSections } from '../utils/persistenceSnapshotStorage';
 import { restoreDraftHistoryTarget, type DraftHistoryRestoreState } from '../utils/draftHistoryRegistry';
 import { resolveActiveFieldError } from '../types/fieldErrors';
 import { setActiveTabForPage } from './usePersistedActiveTab';
@@ -149,7 +149,7 @@ const restorePlannedTransition = (plan: HistoryTransitionPlan | null): HistoryFr
   const store = undoRedoStore.getState();
   if (!store.canCommitPlannedTransition(plan)) return null;
 
-  writePersistenceSectionsToSessionStorageWithRollback(plan.target.sections, () => {
+  atomicWritePersistenceSections(plan.target.sections, () => {
     if (!undoRedoStore.getState().canCommitPlannedTransition(plan)) {
       throw new Error('Undo/redo-history blev ændret før gendannelse kunne fuldføres.');
     }

@@ -77,9 +77,12 @@ type StoreRollbackSnapshot = {
   sectionRevisions: SectionRevisionMap;
   fieldErrors: FieldErrorCache;
   fieldErrorRevisions: FieldErrorRevisionMap;
+  committedChangeCounter: number;
   authoritativeSnapshotEpoch: number;
   meta: FormPersistenceMeta;
 };
+
+type UndoRedoRollbackSnapshot = Pick<ReturnType<typeof undoRedoStore.getState>, 'past' | 'future' | 'frameSequence'>;
 
 const captureStoreRollbackSnapshot = (): StoreRollbackSnapshot => {
   const state = formPersistenceStore.getState();
@@ -88,15 +91,34 @@ const captureStoreRollbackSnapshot = (): StoreRollbackSnapshot => {
     sectionRevisions: state.sectionRevisions,
     fieldErrors: state.fieldErrors,
     fieldErrorRevisions: state.fieldErrorRevisions,
+    committedChangeCounter: state.committedChangeCounter,
     authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
     meta: state.meta,
   };
+};
+
+const captureUndoRedoRollbackSnapshot = (): UndoRedoRollbackSnapshot => {
+  const state = undoRedoStore.getState();
+  return {
+    past: structuredClone(state.past),
+    future: structuredClone(state.future),
+    frameSequence: state.frameSequence,
+  };
+};
+
+const restoreUndoRedoRollbackSnapshot = (snapshot: UndoRedoRollbackSnapshot): void => {
+  undoRedoStore.setState({
+    past: snapshot.past,
+    future: snapshot.future,
+    frameSequence: snapshot.frameSequence,
+  });
 };
 
 const restoreStoreRollbackSnapshot = (snapshot: StoreRollbackSnapshot): void => {
   formPersistenceStore.getState().rollbackSections(
     snapshot.sections,
     snapshot.sectionRevisions,
+    snapshot.committedChangeCounter,
     snapshot.authoritativeSnapshotEpoch,
     snapshot.meta
   );
@@ -242,6 +264,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
       const previousStorageValue = readSessionStorageValue(storageKey);
       const rollbackSnapshot = captureStoreRollbackSnapshot();
+      const undoRollbackSnapshot = captureUndoRedoRollbackSnapshot();
       try {
         writeSessionStorageValue(storageKey, JSON.stringify(persistedData));
         if (options?.undoOrigin) {
@@ -257,6 +280,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
           writeSessionStorageValue(storageKey, previousStorageValue);
         }
         restoreStoreRollbackSnapshot(rollbackSnapshot);
+        restoreUndoRedoRollbackSnapshot(undoRollbackSnapshot);
         throw error;
       }
       logPersistSaveDebug(storageKey, getFieldCount(data));
@@ -355,6 +379,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       formPersistenceStore.getState().rollbackSections(
         prevSections,
         prevSectionRevisions,
+        prevStoreState.committedChangeCounter,
         prevAuthoritativeSnapshotEpoch,
         prevMeta
       );
@@ -380,6 +405,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         schemaFingerprint: PERSISTED_DATA_VERSION,
       });
       formPersistenceStore.getState().clearFieldErrorsForSection(pageKey);
+      clearResolvedFieldErrorsCache();
     } catch (error) {
       if (rollbackSnapshot) {
         if (previousStorageValue === null) {

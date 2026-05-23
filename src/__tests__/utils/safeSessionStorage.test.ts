@@ -72,4 +72,17 @@ describe('safeSessionStorage', () => {
 
     setItemSpy.mockRestore();
   });
+
+  it('normaliserer quota-fejl fra strict write helper til dansk besked', () => {
+    const storageProto = Object.getPrototypeOf(window.sessionStorage) as Storage;
+    const setItemSpy = vi.spyOn(storageProto, 'setItem').mockImplementation(() => {
+      throw new DOMException('quota', 'QuotaExceededError');
+    });
+
+    expect(() => writeSessionStorageValue('mineo_ui_test', 'vaerdi')).toThrow(
+      'Browserens midlertidige lager er fyldt'
+    );
+
+    setItemSpy.mockRestore();
+  });
 });

@@ -169,6 +169,7 @@ describe('formPersistenceStore public API', () => {
     store.getState().rollbackSections(
       snapshot.sections,
       snapshot.sectionRevisions,
+      snapshot.committedChangeCounter,
       snapshot.authoritativeSnapshotEpoch,
       snapshot.meta
     );
@@ -176,6 +177,7 @@ describe('formPersistenceStore public API', () => {
 
     expect(restored.sections).toEqual(snapshot.sections);
     expect(restored.sectionRevisions).toEqual(snapshot.sectionRevisions);
+    expect(restored.committedChangeCounter).toBe(snapshot.committedChangeCounter);
     expect(restored.authoritativeSnapshotEpoch).toBe(snapshot.authoritativeSnapshotEpoch);
     expect(restored.meta).toEqual(snapshot.meta);
   });
@@ -193,6 +195,7 @@ describe('formPersistenceStore public API', () => {
     store.getState().rollbackSections(
       snapshot.sections,
       snapshot.sectionRevisions,
+      snapshot.committedChangeCounter,
       snapshot.authoritativeSnapshotEpoch,
       snapshot.meta
     );

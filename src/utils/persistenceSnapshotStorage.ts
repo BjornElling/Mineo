@@ -51,6 +51,8 @@ const buildPersistenceSectionWrites = (sections: FormPersistenceSections): {
     }
 
     const schema = persistenceSchemas[pageKey];
+    // This is defensive pre-save normalization of already committed store data,
+    // not load-sanitization. Unknown fields must still fail schema validation here.
     const validated = schema.safeParse(nullToUndefinedDeep(raw));
     if (!validated.success) {
       const issues = formatZodIssues(validated.error.issues, 2);
@@ -80,7 +82,13 @@ export const atomicWritePersistenceSections = (
   commit: () => void
 ): void => {
   const { toWrite, toRemove } = buildPersistenceSectionWrites(sections);
-  const backup = createSessionStorageBackup();
+  let backup: SessionStorageBackup;
+  try {
+    backup = createSessionStorageBackup();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Ukendt fejl';
+    throw new Error(`Browserens midlertidige lager kunne ikke aflæses; snapshot-skrivning blev annulleret. ${message}`);
+  }
 
   try {
     for (const storageKey of toRemove) {
@@ -96,5 +104,3 @@ export const atomicWritePersistenceSections = (
     throw new Error(`Kunne ikke skrive persistence-snapshot atomisk: ${message}`);
   }
 };
-
-export const writePersistenceSectionsToSessionStorageWithRollback = atomicWritePersistenceSections;
