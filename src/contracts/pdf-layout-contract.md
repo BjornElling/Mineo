@@ -178,7 +178,7 @@ Hvis indholdets semantik er uklar, skal generatoren vælge den eksisterende teks
 1. Brødtekst og venstre/højre-oplysningslinjer bruger writerens indbyggede line-height og trailing spacing.
 2. Generatorer må ikke kompensere for standard line-height med lokale negative `advanceY(...)`, medmindre det er en veldokumenteret teknisk undtagelse.
 3. Et tilbagevendende anti-mønster i venstre/højre-oplysningslinjer er lokal `value.split('\n')` efterfulgt af manuel Y-korrektion for at få fortsættelseslinjer til at "sidde rigtigt". Det skal betragtes som en afvigelse og erstattes af central writer-adfærd.
-4. Et tilbagevendende anti-mønster omkring underoverskrifter er kunstigt oppustet `nextLineHeight` for at simulere ekstra sektionsafstand eller holde større lokale blokke samlet. Det skal betragtes som en afvigelse og erstattes af central writer-adfærd eller reelle canonical overgange.
+4. Et tilbagevendende anti-mønster omkring underoverskrifter er kunstigt oppustet `nextLineHeight` for at simulere ekstra sektionsafstand eller holde større lokale blokke samlet. Det skal betragtes som en afvigelse og erstattes af central writer-adfærd eller reelle kanoniske overgange.
 
 ### 5.3 Mellem sektioner
 
@@ -204,7 +204,7 @@ Hvis indholdets semantik er uklar, skal generatoren vælge den eksisterende teks
 
 Manuel spacing via `writer.addSpacer(...)` eller `writer.advanceY(...)` er kun tilladt når:
 
-1. der bevidst indsættes afstand mellem to indholdsblokke, som ikke allerede har en canonical overgang
+1. der bevidst indsættes afstand mellem to indholdsblokke, som ikke allerede har en kanonisk overgang
 2. en tabel eller anden kompleks blok kræver en tydelig afslutning før næste sektion
 3. en teknisk layoutjustering er nødvendig for korrekt sidebrydning eller tabelgeometri
 
@@ -247,7 +247,7 @@ Direkte jsPDF-brug til almindelige tekstblokke er en afvigelse og skal som udgan
 
 Hvis en bevidst afvigelse er nødvendig, skal den dokumenteres kort ved callsite i koden med:
 
-1. hvorfor canonical API ikke kan bruges sikkert
+1. hvorfor kanonisk API ikke kan bruges sikkert
 2. hvilken konkret layout-risiko afvigelsen håndterer
 3. hvad der skal være sandt før afvigelsen kan fjernes igen
 
@@ -259,11 +259,11 @@ Undtagelser må ikke bruges som stilvalg.
 
 Ved audit af en PDF-generator skal mindst følgende kontrolleres:
 
-1. at alle overskrifter bruger canonical writer-metoder
+1. at alle overskrifter bruger kanoniske writer-metoder
 2. at der ikke findes lokal manuel topafstand eller bundafstand omkring `writeBoldSubheader()` eller `writeUnderlinedSubheader()`
 3. at begge underoverskriftstyper følger samme centrale spacing- og sidebrydningsregler
 4. at underoverskrifter uden efterfølgende meningsbærende indhold undertrykkes
-5. at tabeller afsluttes via canonical section-end-regel
+5. at tabeller afsluttes via kanonisk section-end-regel
 6. at headerløse pseudo-tabeller er erstattet med writer-baseret tekstlayout
 7. at lokale `setFont`/`setFontSize`-forløb ikke emulerer eksisterende teksttyper
 8. at line-height og sektionafstand alene kommer fra centrale konstanter — og at den rigtige konstant er valgt til konteksten (autotable vs. writer, jf. §5.3)

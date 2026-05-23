@@ -7,6 +7,7 @@
 - Any logic that counts calendar days or derives day-based periods.
 - Any logic that computes interest days, svie/smerte days, TAF days, or period days.
 - Persisted/form layer owns `ISODateString`; this contract owns calendar math after the value is validated or normalized.
+- Parsing og coercion af `ISODateString` fra brugerinput eller persistering hører til `form-contract.md` §4. Denne kontrakt gælder fra og med en valideret UTC-dato-instans.
 
 ## Rules
 - All date-only `Date` instances MUST be treated as UTC calendar days.

@@ -388,6 +388,8 @@ EO-specifik feltklassificering, fejlgivende bounds og stille clamping er normati
 Når togglen `midlertidigtEetFraEetSiden` på *Offentlige ydelser*-fanen er aktiveret (`'Ja'`),
 injiceres rækker fra EET-siden transient i EO-beregningen — uden at de skrives til committed
 form-state. Dette afsnit er normativt for, hvordan injectionen indvirker på snapshot-modellen.
+EET-sidens tilsvarende kontrakt er `src/contracts/eet-snapshot-contract.md` §5; ændringer i
+EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 
 **Inputkilder:**
 - Når togglen er `'Ja'`, modtager `computeEoSnapshot` en `midlertidigtEetInsertSource`,

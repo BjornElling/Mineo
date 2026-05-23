@@ -318,7 +318,7 @@ Tests for komponent-adfærd skal verificere kontrakterne i:
 
 - `src/contracts/form-contract.md` — commit/draft-semantik
 - `src/contracts/keyboard-navigation.md` — tastatur-navigation
-- `src/contracts/keyboard-navigation-test-checklist.md` — manuel verifikation
+- `docs/testing/keyboard-navigation-test-checklist.md` — manuel QA-procedure
 - `src/contracts/mineo-field-pattern.md` — felt-mønster
 - `src/contracts/date-contract.md` — dato-invarianter
 - `src/contracts/domain-boundary-contract.md` — domæneisolation

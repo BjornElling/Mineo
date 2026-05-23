@@ -99,7 +99,9 @@ Follow these documents as binding contracts:
 - `src/contracts/domain-boundary-contract.md`
 - `src/contracts/page-component-contract.md`
 - `src/contracts/keyboard-navigation.md`
-- `src/contracts/keyboard-navigation-test-checklist.md`
+
+Also review this QA procedure when keyboard behavior is in scope:
+- `docs/testing/keyboard-navigation-test-checklist.md`
 
 Contracts must be reviewed before implementing any feature within their scope.
 If code and contract diverge, treat it as an architectural error and resolve explicitly.
@@ -117,8 +119,10 @@ When contracts appear to overlap, use this priority order:
    - `keyboard-navigation.md`
    - `error-debug-contract.md`
    - `pdf-contract.md`
+   - `amount-contract.md`
+   - `undo-redo-contract.md`
 3. `page-component-contract.md` is subordinate to the relevant cross-cutting contracts above.
-4. Domain contracts such as `eo-snapshot-contract.md` are subordinate to the relevant general contracts except where they define domain-specific rules the general contracts intentionally defer.
+4. Domain contracts such as `eo-snapshot-contract.md`, `eet-snapshot-contract.md`, `forsoergertab-snapshot-contract.md`, `aarsloen-contract.md`, `renteberegning-contract.md`, `varigemen-contract.md` and `satser-contract.md` are subordinate to the relevant general contracts except where they define domain-specific rules the general contracts intentionally defer.
 5. `docs/architecture/*.md` are informative unless a contract explicitly elevates a rule from them.
 
 ## Desktop-only gate + styling exception

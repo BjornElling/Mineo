@@ -92,14 +92,16 @@ Ved reset, load eller anden autoritativ erstatning gælder:
 Den kanoniske load-rækkefølge er:
 
 1. læs/dekryptér fil eller storage
-2. strip ukendte felter/sektioner efter schema
-3. anvend eventuelle eksplicitte migratorer
+2. anvend eventuelle eksplicitte migratorer på den rå sektionsværdi
+3. strip ukendte felter/sektioner efter schema
 4. valider sektioner/snapshot
 5. vis preflight og afvent brugerbeslutning
 6. skriv/replace autoritativt snapshot
 7. ryd runtime-fejl, ryd undo/redo-history ved hel-sags-apply og trig resync
 
 Ingen sidekomponent eller almindelig page-hook må omgå denne rækkefølge.
+
+Versionsmismatch er ikke i sig selv en migration. Hvis en sektion fra en anden `PERSISTED_DATA_VERSION` validerer mod aktuel struktur efter migrator/sanitization, betyder det kun at den kan bevares; eventuelle nye schema-defaults kan være anvendt under parse. Feltvis brugerinformation om breaking changes kræver eksplicit migrator-resultat.
 
 ---
 

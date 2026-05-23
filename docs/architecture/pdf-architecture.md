@@ -668,30 +668,8 @@ Dette mønster er **ikke påkrævet** for simple generatorer, men bør anvendes,
 ### Anbefalet audit-plan for layout-standardisering
 
 For layout-audit følges `src/contracts/pdf-layout-contract.md` §10-§12. Auditsekvensen skal kun ejes ét sted; dette arkitekturdokument dublerer den ikke.
-4. Gennemgå alle headerløse 2-kolonne-layouts og verificér, at de ikke bruger tabelrendereren.
-5. Gennemgå alle understregede labels for lokal topafstand eller efterfølgende spacing, der dublerer writerens standard.
-6. Læg eller udvid writer-tests, når en layoutregel gøres central, så afvigelsen ikke kan genopstå.
+Se `src/contracts/pdf-layout-contract.md` §11 for den kanoniske audit-rækkefølge.
 
-### Prioriteret audit-rækkefølge
-
-1. `src/pdf/domains/satser/satserPdf.ts`
-2. `src/pdf/domains/renteberegning/rentePdf.ts`
-3. `src/pdf/domains/aarsloen/aarsloenPdf.ts`
-4. `src/pdf/domains/aarsloen/shDagePdf.ts`
-5. `src/pdf/domains/varigemen/varigeMenPdf.ts`
-6. `src/pdf/domains/krl/krlPdf.ts`
-7. `src/pdf/domains/eo/reguleringPdf.ts`
-8. `src/pdf/domains/loebendeYdelser/loebendeYdelserPdf.ts`
-9. `src/pdf/domains/kapitalisering/kapitaliseringPdf.ts`
-10. `src/pdf/domains/eet/eetEfterEalPdf.ts`
-11. `src/pdf/domains/differencekrav/differencekravPdf.ts`
-12. `src/pdf/domains/forsoergertab/forsoergertabPdf.ts`
-13. `src/pdf/domains/tafFordelt/tafFordeltPaaAarPdf.ts`
-14. `src/pdf/domains/eo/erstatningsopgoerelsePdf.ts`
-15. `src/pdf/domains/eo/sections/opgoerelseSection.ts`
-16. `src/pdf/domains/eo/sections/shDageSection.ts`
-17. `src/pdf/domains/eo/sections/loenindkomstSection.ts`
-18. `src/pdf/domains/eo/sections/offentligeYdelserSection.ts`
-19. `src/pdf/domains/eo/sections/reguleringSection.ts`
+Auditten skal fortsat kontrollere headerløse 2-kolonne-layouts, understregede labels med lokal spacing og writer-tests for regler der gøres centrale.
 
 *(ingen øvrige kendte udeståender — senest gennemgået 2026-04-17)*
