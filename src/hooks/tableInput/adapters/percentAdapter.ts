@@ -2,14 +2,15 @@ import { formatAsAmount } from '../../../utils/formatUtils';
 import { parseDanishNumberString } from '../../../utils/numberParsing';
 import { formatRoundedCanonical } from '../../../utils/rounding';
 import { normalizePercentPaste } from '../../../utils/inputPasteNormalization';
+import {
+  DEFAULT_PERCENT_DECIMAL_PRECISION,
+  DEFAULT_PERCENT_PASTE_MAX,
+  MAX_PERCENT_RAW_LENGTH,
+} from '../../../utils/percentInputUtils';
 import { filterPercentKeyDown } from '../../../components/inputs/inputKeyFilters';
 import { normalizeTableNumericDraftOnCommit } from '../../../utils/tableInputContracts';
 import { makePercentFingerprintFromCanonical, type CommittedPayload, type PercentFingerprint } from '../../../types/parserSpec';
 import type { TableInputAdapter } from '../tableInputAdapter';
-
-const TABLE_PERCENT_DECIMAL_PRECISION = 2;
-const MAX_PERCENT_RAW_LENGTH = 64;
-const TABLE_PERCENT_PASTE_MAX = 100;
 
 export type TablePercentInputValue = string | number | undefined;
 export type TablePercentInputModel = string;
@@ -27,7 +28,7 @@ type ParsedPercent =
   | Readonly<{ ok: false; errorMessage: string }>;
 
 const getPercentPrecision = (allowDecimals: boolean): 0 | 2 =>
-  allowDecimals ? TABLE_PERCENT_DECIMAL_PRECISION : 0;
+  allowDecimals ? DEFAULT_PERCENT_DECIMAL_PRECISION : 0;
 
 export const toPercentDisplayString = (
   value: TablePercentInputValue,
@@ -68,7 +69,7 @@ const parsePercentOnCommit = (
   if (decimalRaw !== undefined) {
     if (/[^0-9]/.test(decimalRaw)) return { ok: false, errorMessage: 'Ugyldig procent' };
     if (!allowDecimals) return { ok: false, errorMessage: 'Ugyldig procent' };
-    if (decimalRaw.length > TABLE_PERCENT_DECIMAL_PRECISION) return { ok: false, errorMessage: 'Ugyldig procent' };
+    if (decimalRaw.length > DEFAULT_PERCENT_DECIMAL_PRECISION) return { ok: false, errorMessage: 'Ugyldig procent' };
   }
 
   if (integerRaw.includes('.')) {
@@ -157,7 +158,7 @@ export const createPercentTableInputAdapter = (
     return true;
   },
   applyPaste: (raw, context) => {
-    const normalized = normalizePercentPaste(raw, { maxValue: config.maxValue ?? TABLE_PERCENT_PASTE_MAX });
+    const normalized = normalizePercentPaste(raw, { maxValue: config.maxValue ?? DEFAULT_PERCENT_PASTE_MAX });
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 

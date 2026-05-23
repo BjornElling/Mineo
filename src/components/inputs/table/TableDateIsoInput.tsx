@@ -44,7 +44,7 @@ const TableDateIsoInput = React.memo(
     specialRangeErrors,
     noValidRangeCause,
     twoDigitYearPolicy = 'infer',
-    placeholder = '',
+    placeholder = 'dd-mm-åååå',
     onChange,
     onBlur,
     onErrorChange,

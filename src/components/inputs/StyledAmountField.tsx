@@ -5,7 +5,13 @@ import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import { containsUnaryMinusToken, filterAmountExpressionKeyDown } from './inputKeyFilters';
 import { stripAmountGroupingSeparators } from '../../utils/draftNormalization';
-import { sanitizePastedAmount } from '../../utils/amountInputUtils';
+import {
+  DEFAULT_AMOUNT_PLACEHOLDER,
+  DEFAULT_AMOUNT_PRECISION,
+  MAX_AMOUNT_INTEGER_DIGITS,
+  MAX_AMOUNT_RAW_LENGTH,
+  sanitizePastedAmount,
+} from '../../utils/amountInputUtils';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { formatAsAmount } from '../../utils/formatUtils';
 import { normalizeAmountPaste } from '../../utils/inputPasteNormalization';
@@ -72,9 +78,6 @@ const clampInt = (value: number, min: number, max: number): number => {
   return Math.max(min, Math.min(max, value));
 };
 
-const MAX_AMOUNT_RAW_LENGTH = 64;
-const MAX_AMOUNT_INTEGER_DIGITS = 20;
-
 const mapCaretFromGroupedAmount = (draft: string, caret: number): number => {
   if (caret <= 0) return 0;
   const before = draft.slice(0, caret);
@@ -90,12 +93,12 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       onCommit,
       name,
       width = 120,
-      placeholder = '0,00',
+      placeholder = DEFAULT_AMOUNT_PLACEHOLDER,
       allowNegative = true,
       allowDecimals = true,
       minValue,
       maxValue,
-      precision = 2,
+      precision = DEFAULT_AMOUNT_PRECISION,
       disabled,
       onFocus,
       onBlur,
@@ -140,8 +143,11 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
 
     const resolvedPrecision = React.useMemo(() => {
       if (!allowDecimals) return 0;
-      if (!Number.isFinite(precision ?? 2) || !Number.isInteger(precision ?? 2)) return 2;
-      return clampInt(precision ?? 2, 0, 6);
+      const fallbackPrecision = precision ?? DEFAULT_AMOUNT_PRECISION;
+      if (!Number.isFinite(fallbackPrecision) || !Number.isInteger(fallbackPrecision)) {
+        return DEFAULT_AMOUNT_PRECISION;
+      }
+      return clampInt(fallbackPrecision, 0, 6);
     }, [allowDecimals, precision]);
 
     const resolvedPlaceholder = React.useMemo(() => {

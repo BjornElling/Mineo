@@ -9,20 +9,54 @@ import ErrorBoundary from './components/errors/ErrorBoundary';
 import { useAppSettings } from './contexts/useAppSettings';
 import { buildTheme } from './config/appTheme';
 
-type PageComponent = React.ElementType<Record<string, never>>;
+type PageComponent = React.ComponentType<Record<string, never>>;
 type AppRoute = { path: string; component: PageComponent };
 
-const OpenEo = React.lazy(async () => import('./components/system/OpenEo'));
-const Stamdata = React.lazy(async () => import('./components/pages/Stamdata'));
-const Erstatningsopgoerelse = React.lazy(async () => import('./components/pages/Erstatningsopgoerelse'));
-const Erhvervsevnetab = React.lazy(async () => import('./components/pages/Erhvervsevnetab'));
-const Satser = React.lazy(async () => import('./components/pages/Satser'));
-const Renteberegning = React.lazy(async () => import('./components/pages/Renteberegning'));
-const Aarsloen = React.lazy(async () => import('./components/pages/Aarsloen'));
-const VarigeMen = React.lazy(async () => import('./components/pages/VarigeMen'));
-const Forsoergertab = React.lazy(async () => import('./components/pages/Forsoergertab'));
-const Indstillinger = React.lazy(async () => import('./components/pages/Indstillinger'));
-const Mineo = React.lazy(async () => import('./components/pages/Mineo'));
+const routeModuleLoaders = {
+  openEo: async () => import('./components/system/OpenEo'),
+  stamdata: async () => import('./components/pages/Stamdata'),
+  erstatningsopgoerelse: async () => import('./components/pages/Erstatningsopgoerelse'),
+  erhvervsevnetab: async () => import('./components/pages/Erhvervsevnetab'),
+  satser: async () => import('./components/pages/Satser'),
+  renteberegning: async () => import('./components/pages/Renteberegning'),
+  aarsloen: async () => import('./components/pages/Aarsloen'),
+  varigeMen: async () => import('./components/pages/VarigeMen'),
+  forsoergertab: async () => import('./components/pages/Forsoergertab'),
+  indstillinger: async () => import('./components/pages/Indstillinger'),
+  mineo: async () => import('./components/pages/Mineo'),
+} satisfies Record<string, () => Promise<{ default: PageComponent }>>;
+
+const lazyRoute = (loader: () => Promise<{ default: PageComponent }>) => React.lazy(loader);
+
+const OpenEo = lazyRoute(routeModuleLoaders.openEo);
+const Stamdata = lazyRoute(routeModuleLoaders.stamdata);
+const Erstatningsopgoerelse = lazyRoute(routeModuleLoaders.erstatningsopgoerelse);
+const Erhvervsevnetab = lazyRoute(routeModuleLoaders.erhvervsevnetab);
+const Satser = lazyRoute(routeModuleLoaders.satser);
+const Renteberegning = lazyRoute(routeModuleLoaders.renteberegning);
+const Aarsloen = lazyRoute(routeModuleLoaders.aarsloen);
+const VarigeMen = lazyRoute(routeModuleLoaders.varigeMen);
+const Forsoergertab = lazyRoute(routeModuleLoaders.forsoergertab);
+const Indstillinger = lazyRoute(routeModuleLoaders.indstillinger);
+const Mineo = lazyRoute(routeModuleLoaders.mineo);
+
+const preloadRouteModules = () => {
+  void Promise.allSettled(Object.values(routeModuleLoaders).map((loadRouteModule) => loadRouteModule()));
+};
+
+const scheduleRouteModulePreload = () => {
+  if ('requestIdleCallback' in window) {
+    const idleCallbackId = window.requestIdleCallback(preloadRouteModules, { timeout: 2_000 });
+    return () => {
+      window.cancelIdleCallback(idleCallbackId);
+    };
+  }
+
+  const timeoutId = globalThis.setTimeout(preloadRouteModules, 500);
+  return () => {
+    globalThis.clearTimeout(timeoutId);
+  };
+};
 
 /**
  * Route-konfiguration til Mineo applikationen
@@ -75,6 +109,8 @@ const RootRedirect = () => {
 const ThemedApp = () => {
   const { settings } = useAppSettings();
   const theme = React.useMemo(() => buildTheme(settings.themeMode), [settings.themeMode]);
+
+  React.useEffect(() => scheduleRouteModulePreload(), []);
 
   // Memoisér page wrappers for at undgå at genoprette dem ved hver render
   const pageWrappers = React.useMemo(() => {

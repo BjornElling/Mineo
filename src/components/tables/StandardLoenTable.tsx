@@ -721,7 +721,6 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                         onBlur={(e) => handleFieldBlur(row.id, colKey, e.target.value)}
                         onErrorChange={(info) => handleErrorChange(row.id, colKey, info)}
                         externalErrorMessage={getExternalErrorMessage(row.id, colKey)}
-                        placeholder=""
                       />
                     </td>
                   );

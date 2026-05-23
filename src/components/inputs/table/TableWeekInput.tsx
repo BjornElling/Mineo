@@ -40,7 +40,7 @@ const TableWeekInput = React.memo(
     minYear,
     maxYear,
     twoDigitYearPolicy = 'infer',
-    placeholder = '',
+    placeholder = 'uu/åååå',
     onChange,
     onBlur,
     onErrorChange,

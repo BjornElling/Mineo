@@ -1,6 +1,11 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { containsUnaryMinusToken, filterAmountExpressionKeyDown } from '../../../components/inputs/inputKeyFilters';
-import { sanitizePastedAmount } from '../../../utils/amountInputUtils';
+import {
+  DEFAULT_AMOUNT_PRECISION,
+  MAX_AMOUNT_INTEGER_DIGITS,
+  MAX_AMOUNT_RAW_LENGTH,
+  sanitizePastedAmount,
+} from '../../../utils/amountInputUtils';
 import { normalizeAmountPaste } from '../../../utils/inputPasteNormalization';
 import {
   amountValueToDisplayString,
@@ -11,10 +16,6 @@ import {
 import { formatRoundedCanonical } from '../../../utils/rounding';
 import { makeAmountFingerprintFromCanonical, type AmountFingerprint, type CommittedPayload } from '../../../types/parserSpec';
 import type { TableInputAdapter } from '../tableInputAdapter';
-
-const TABLE_AMOUNT_PRECISION = 2;
-const MAX_AMOUNT_RAW_LENGTH = 64;
-const MAX_AMOUNT_INTEGER_DIGITS = 20;
 
 export type TableAmountInputValue = AmountValue | undefined;
 
@@ -27,7 +28,7 @@ const commitAmountDraft = (
   { canBeNegative }: TableAmountAdapterConfig
 ): { ok: true; value: AmountValue | undefined } | { ok: false; errorMessage: string } => {
   const parsed = parseAmountInput(draft, {
-    precision: TABLE_AMOUNT_PRECISION,
+    precision: DEFAULT_AMOUNT_PRECISION,
     allowNegative: canBeNegative,
     maxIntegerDigits: MAX_AMOUNT_INTEGER_DIGITS,
     maxRawLength: MAX_AMOUNT_RAW_LENGTH,
@@ -42,19 +43,19 @@ const commitAmountDraft = (
 };
 
 export const toAmountDisplayString = (value: TableAmountInputValue): string => {
-  return amountValueToDisplayString(value, TABLE_AMOUNT_PRECISION);
+  return amountValueToDisplayString(value, DEFAULT_AMOUNT_PRECISION);
 };
 
 export const toAmountDraftString = (value: TableAmountInputValue): string => {
-  return amountValueToDraftString(value, TABLE_AMOUNT_PRECISION);
+  return amountValueToDraftString(value, DEFAULT_AMOUNT_PRECISION);
 };
 
 const amountCanonicalFromModel = (value: TableAmountInputValue): string => {
   if (!value) return '';
   if (value.kind === 'expression') {
-    return `e:${value.expression.length}:${value.expression}|${formatRoundedCanonical(value.value, TABLE_AMOUNT_PRECISION)}`;
+    return `e:${value.expression.length}:${value.expression}|${formatRoundedCanonical(value.value, DEFAULT_AMOUNT_PRECISION)}`;
   }
-  return `n:${formatRoundedCanonical(value.value, TABLE_AMOUNT_PRECISION)}`;
+  return `n:${formatRoundedCanonical(value.value, DEFAULT_AMOUNT_PRECISION)}`;
 };
 
 export const toCommittedAmountPayload = (

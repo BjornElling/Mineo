@@ -88,7 +88,12 @@ const DerivedHarness = ({ initial, onPersist }: { initial: OffentligeYdelserRow[
     [onPersist]
   );
 
-  return <OffentligeYdelserTable tableData={tableData} derivedByRowId={derivedByRowId} onTableDataChange={handleTableDataChange} />;
+  return (
+    <>
+      <OffentligeYdelserTable tableData={tableData} derivedByRowId={derivedByRowId} onTableDataChange={handleTableDataChange} />
+      <button type="button">Udenfor</button>
+    </>
+  );
 };
 
 describe('OffentligeYdelserTable (Ydelse / dag)', () => {
@@ -384,6 +389,36 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
+      expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00' });
+    });
+  }, TEST_TIMEOUT_MS);
+
+  it('gemmer fra-dato ved klik udenfor standard grid table', async () => {
+    const user = userEvent.setup();
+    const onPersist = vi.fn();
+
+    render(
+      <DerivedHarness
+        onPersist={onPersist}
+        initial={[
+          makeRow({
+            fraDato: '',
+            tilDato: '10-01-2024',
+            ydelsestype: 'flextilskud',
+            ydelse: asAmount(100),
+          }),
+        ]}
+      />
+    );
+
+    const input = getFraDatoInput();
+    await user.dblClick(input);
+    await user.type(input, '1-1-2024');
+    await user.click(screen.getByRole('button', { name: 'Udenfor' }));
+
+    await waitFor(() => {
+      expect(onPersist).toHaveBeenCalledTimes(1);
+      expect(getFraDatoInput()).toHaveValue('01-01-2024');
       expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00' });
     });
   }, TEST_TIMEOUT_MS);

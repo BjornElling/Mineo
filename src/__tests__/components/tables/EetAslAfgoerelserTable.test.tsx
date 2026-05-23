@@ -118,6 +118,39 @@ describe('EetAslAfgoerelserTable', () => {
     await waitFor(() => expect(onTableDataChange).toHaveBeenCalledTimes(1));
   }, ASYNC_TEST_TIMEOUT_MS);
 
+  it('bevarer FS tilbageholdt EET når det vælges før øvrige afgørelsesfelter', async () => {
+    const user = userEvent.setup();
+    const onTableDataChange = vi.fn();
+
+    render(
+      <EetAslAfgoerelserTable
+        tableData={[createEmptyAslAfgoerelseRow()]}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
+        onTableDataChange={onTableDataChange}
+      />
+    );
+
+    const rows = screen.getAllByRole('row');
+    const firstDataRow = rows[1];
+    const fsCell = within(firstDataRow).getAllByRole('cell')[7];
+    const fsDropdown = within(fsCell).getByRole('combobox');
+
+    await user.click(fsDropdown);
+    await user.click(await screen.findByRole('option', { name: 'Ja' }));
+
+    await waitFor(() => {
+      expect(within(fsCell).getByRole('combobox')).toHaveValue('Ja');
+      expect(onTableDataChange).toHaveBeenCalledTimes(1);
+    });
+
+    const persistedRows = onTableDataChange.mock.calls[0]?.[0] as AslAfgoerelseRow[];
+    expect(persistedRows).toHaveLength(1);
+    expect(persistedRows[0]?.fsTilbageholdtEet).toBe('Ja');
+  }, ASYNC_TEST_TIMEOUT_MS);
+
   it('sætter tidl. kap.dato max til dagen før afgørelsesdato', async () => {
     const user = userEvent.setup();
 

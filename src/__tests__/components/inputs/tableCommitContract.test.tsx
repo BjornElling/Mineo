@@ -3,10 +3,12 @@ import { act } from '@testing-library/react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import StandardLooseTable from '../../../components/tables/StandardLooseTable';
+import { StandardGridTable } from '../../../components/tables/StandardGridTable';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
 import TableAmountInput from '../../../components/inputs/table/TableAmountInput';
 import TableDateInput from '../../../components/inputs/table/TableDateInput';
+import TableDateIsoInput from '../../../components/inputs/table/TableDateIsoInput';
 import TableIntegerInput from '../../../components/inputs/table/TableIntegerInput';
 import TablePercentInput from '../../../components/inputs/table/TablePercentInput';
 import TableTextInput from '../../../components/inputs/table/TableTextInput';
@@ -14,6 +16,7 @@ import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
 import TableYearInput from '../../../components/inputs/table/TableYearInput';
 import TableDropdown from '../../../components/inputs/table/TableDropdown';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import type { ISODateString } from '../../../types/branded';
 import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 
 const gridCell: GridCellCoord = { rowId: 'row-1', colIndex: 0 };
@@ -43,6 +46,12 @@ type DraftChangeCase = Readonly<{
 
 type AutoCompleteCase = Readonly<{
   label: string;
+  renderInput: () => React.JSX.Element;
+}>;
+
+type PlaceholderCase = Readonly<{
+  label: string;
+  expectedPlaceholder: string;
   renderInput: () => React.JSX.Element;
 }>;
 
@@ -281,6 +290,39 @@ const AUTOCOMPLETE_OFF_CASES: readonly AutoCompleteCase[] = [
         value="2025"
       />
     ),
+  },
+];
+
+const CANONICAL_PLACEHOLDER_CASES: readonly PlaceholderCase[] = [
+  {
+    label: 'amount',
+    expectedPlaceholder: '0,00',
+    renderInput: () => <TableAmountInput gridCell={gridCell} value={undefined} />,
+  },
+  {
+    label: 'percent',
+    expectedPlaceholder: '0 %',
+    renderInput: () => <TablePercentInput gridCell={gridCell} value="" />,
+  },
+  {
+    label: 'date',
+    expectedPlaceholder: 'dd-mm-åååå',
+    renderInput: () => <TableDateInput gridCell={gridCell} value="" />,
+  },
+  {
+    label: 'iso-date',
+    expectedPlaceholder: 'dd-mm-åååå',
+    renderInput: () => <TableDateIsoInput gridCell={gridCell} value={undefined} />,
+  },
+  {
+    label: 'week',
+    expectedPlaceholder: 'uu/åååå',
+    renderInput: () => <TableWeekInput gridCell={gridCell} value="" />,
+  },
+  {
+    label: 'year',
+    expectedPlaceholder: 'åååå',
+    renderInput: () => <TableYearInput gridCell={gridCell} value="" />,
   },
 ];
 
@@ -692,6 +734,16 @@ describe('table commit-kontrakt', () => {
     expect(screen.getByRole('textbox')).toHaveAttribute('autocomplete', 'off');
   });
 
+  it.each(CANONICAL_PLACEHOLDER_CASES)('$label bruger samme standard-placeholder som almindelige felter', ({ expectedPlaceholder, renderInput }) => {
+    render(
+      <GridCoreProvider value={createGridValue(null)}>
+        {renderInput()}
+      </GridCoreProvider>
+    );
+
+    expect(screen.getByRole('textbox')).toHaveAttribute('placeholder', expectedPlaceholder);
+  });
+
   it.each(LOCKED_SELECTABLE_CASES)('låst $label-felt kan stadig markeres og er ude af tab-sekvensen', ({ renderInput }) => {
     render(
       <GridCoreProvider value={createGridValue(null)}>
@@ -862,6 +914,198 @@ describe('table commit-kontrakt', () => {
     }
   );
 
+  it('StandardGridTable committer date ved klik udenfor tabellen', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: string) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('');
+      return (
+        <>
+          <StandardGridTable tableWidth="160px">
+            <tbody>
+              <tr data-mineo-row-id="row-1">
+                <td>
+                  <TableDateInput
+                    gridCell={gridCell}
+                    value={value}
+                    onBlur={(e) => {
+                      onBlur(e.target.value);
+                      setValue(e.target.value);
+                    }}
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </StandardGridTable>
+          <button type="button">Udenfor</button>
+        </>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+    const outside = screen.getByRole('button', { name: 'Udenfor' });
+
+    await user.click(input);
+    await user.click(input);
+    await waitFor(() => {
+      expect(input).not.toHaveAttribute('readonly');
+    });
+    await user.type(input, '1-2-2025');
+    await user.click(outside);
+
+    expect(onBlur).toHaveBeenCalledWith('01-02-2025');
+    expect(input).toHaveValue('01-02-2025');
+  });
+
+  it('StandardGridTable committer key-startet date-edit ved klik udenfor tabellen', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: string) => void>();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState('');
+      return (
+        <>
+          <StandardGridTable tableWidth="160px">
+            <tbody>
+              <tr data-mineo-row-id="row-1">
+                <td>
+                  <TableDateInput
+                    gridCell={gridCell}
+                    value={value}
+                    onBlur={(e) => {
+                      onBlur(e.target.value);
+                      setValue(e.target.value);
+                    }}
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </StandardGridTable>
+          <button type="button">Udenfor</button>
+        </>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+    const outside = screen.getByRole('button', { name: 'Udenfor' });
+
+    await user.click(input);
+    await user.keyboard('1');
+    await waitFor(() => {
+      expect(input).not.toHaveAttribute('readonly');
+    });
+    await user.keyboard('-2-2025');
+    await user.click(outside);
+
+    expect(onBlur).toHaveBeenCalledWith('01-02-2025');
+    expect(input).toHaveValue('01-02-2025');
+  });
+
+  it('StandardGridTable committer åben editor ved klik på anden celle', async () => {
+    const user = userEvent.setup();
+    const onFirstBlur = vi.fn<(value: string) => void>();
+
+    const Wrapper = () => {
+      const [firstValue, setFirstValue] = React.useState('');
+      const [secondValue, setSecondValue] = React.useState('');
+      return (
+        <StandardGridTable tableWidth="320px">
+          <tbody>
+            <tr data-mineo-row-id="row-1">
+              <td>
+                <TableIntegerInput
+                  gridCell={{ rowId: 'row-1', colIndex: 0 }}
+                  value={firstValue}
+                  onBlur={(e) => {
+                    onFirstBlur(e.target.value);
+                    setFirstValue(e.target.value);
+                  }}
+                />
+              </td>
+              <td>
+                <TableIntegerInput
+                  gridCell={{ rowId: 'row-1', colIndex: 1 }}
+                  value={secondValue}
+                  onBlur={(e) => setSecondValue(e.target.value)}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </StandardGridTable>
+      );
+    };
+
+    render(<Wrapper />);
+    const [firstInput, secondInput] = screen.getAllByRole('textbox');
+
+    await user.click(firstInput);
+    await user.click(firstInput);
+    await waitFor(() => {
+      expect(firstInput).not.toHaveAttribute('readonly');
+    });
+    await user.type(firstInput, '42');
+    await user.click(secondInput);
+
+    await waitFor(() => {
+      expect(onFirstBlur).toHaveBeenCalledWith('42');
+      expect(firstInput).toHaveValue('42');
+    });
+  });
+
+  it('StandardLooseTable committer åben editor ved klik på anden celle', async () => {
+    const user = userEvent.setup();
+    const onFirstBlur = vi.fn<(value: string) => void>();
+
+    const Wrapper = () => {
+      const [firstValue, setFirstValue] = React.useState('');
+      const [secondValue, setSecondValue] = React.useState('');
+      return (
+        <StandardLooseTable>
+          <tbody>
+            <tr data-mineo-row-id="row-1">
+              <td>
+                <TableIntegerInput
+                  gridCell={{ rowId: 'row-1', colIndex: 0 }}
+                  value={firstValue}
+                  onBlur={(e) => {
+                    onFirstBlur(e.target.value);
+                    setFirstValue(e.target.value);
+                  }}
+                />
+              </td>
+              <td>
+                <TableIntegerInput
+                  gridCell={{ rowId: 'row-1', colIndex: 1 }}
+                  value={secondValue}
+                  onBlur={(e) => setSecondValue(e.target.value)}
+                />
+              </td>
+            </tr>
+          </tbody>
+        </StandardLooseTable>
+      );
+    };
+
+    render(<Wrapper />);
+    const [firstInput, secondInput] = screen.getAllByRole('textbox');
+
+    await user.click(firstInput);
+    await user.click(firstInput);
+    await waitFor(() => {
+      expect(firstInput).not.toHaveAttribute('readonly');
+    });
+    await user.type(firstInput, '42');
+    await user.click(secondInput);
+
+    await waitFor(() => {
+      expect(onFirstBlur).toHaveBeenCalledWith('42');
+      expect(firstInput).toHaveValue('42');
+    });
+  });
+
   it('klik udenfor committer korrekt i amount', async () => {
     const user = userEvent.setup();
     const onBlur = vi.fn<(value: AmountValue | undefined) => void>();
@@ -919,6 +1163,66 @@ describe('table commit-kontrakt', () => {
     await user.click(outside);
 
     expect(onBlur).toHaveBeenCalledWith({ kind: 'number', value: 42 });
+  });
+
+  it('klik udenfor committer korrekt i iso-date', async () => {
+    const user = userEvent.setup();
+    const onBlur = vi.fn<(value: ISODateString | undefined) => void>();
+    let editorHandle: GridCellEditorHandle | null = null;
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+
+      return (
+        <>
+          <GridCoreProvider
+            value={{
+              ...createGridValue(editingCell),
+              closeEditing: () => setEditingCell(null),
+              registerEditor: (_cell, handle) => {
+                editorHandle = handle;
+              },
+              unregisterEditor: () => {
+                editorHandle = null;
+              },
+              getEditor: () => editorHandle,
+            }}
+          >
+            <TableDateIsoInput
+              gridCell={gridCell}
+              value={value}
+              onBlur={(e) => {
+                onBlur(e.target.value);
+                setValue(e.target.value);
+                setEditingCell(null);
+              }}
+            />
+          </GridCoreProvider>
+          <button
+            type="button"
+            onMouseDown={() => {
+              editorHandle?.commitCurrent();
+              setEditingCell(null);
+            }}
+          >
+            Udenfor
+          </button>
+        </>
+      );
+    };
+
+    render(<Wrapper />);
+    const input = screen.getByRole('textbox');
+    const outside = screen.getByRole('button', { name: 'Udenfor' });
+
+    await user.click(input);
+    await user.clear(input);
+    await user.type(input, '1-2-2025');
+    await user.click(outside);
+
+    expect(onBlur).toHaveBeenCalledWith('2025-02-01');
+    expect(input).toHaveValue('01-02-2025');
   });
 
   it('ArrowDown under edit committer præcis én gang før fokus flyttes', async () => {

@@ -35,6 +35,9 @@ export const isAslAfgoerelseRowEmpty = (row: AslAfgoerelseRow): boolean =>
   !row.afgoerelseType &&
   !row.tidlKapDato;
 
+export const isAslAfgoerelseRowPersistenceEmpty = (row: AslAfgoerelseRow): boolean =>
+  isAslAfgoerelseRowEmpty(row) && (row.fsTilbageholdtEet ?? 'Nej') === 'Nej';
+
 export const parsePercentDraft = (raw: string | undefined): number | undefined => {
   return parsePercentPointString(raw);
 };

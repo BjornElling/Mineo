@@ -443,7 +443,6 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                       onErrorChange={handleErrorChange(row.id, 'ydelse')}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'ydelse')}
                       inputRef={registerCellRef(row.id, 2)}
-                      placeholder=""
                     />
                   </td>
 
@@ -455,7 +454,6 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                       onErrorChange={handleErrorChange(row.id, 'tillaeg')}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'tillaeg')}
                       inputRef={registerCellRef(row.id, 3)}
-                      placeholder=""
                     />
                   </td>
 

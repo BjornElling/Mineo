@@ -3,6 +3,7 @@ import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 import { copyWholeValueFromReadOnlyField } from '../../../utils/clipboardUtils';
+import { DEFAULT_PERCENT_PLACEHOLDER, withPercentPlaceholderSuffix } from '../../../utils/percentInputUtils';
 import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
 import { useGridCoreApi } from '../../tables/useGridCore';
@@ -57,7 +58,7 @@ const TablePercentInput = React.memo(
     minValue,
     maxValue,
     useDefaultPercentRange = true,
-    placeholder = '',
+    placeholder = DEFAULT_PERCENT_PLACEHOLDER,
     onChange,
     onBlur,
     onErrorChange,
@@ -113,6 +114,7 @@ const TablePercentInput = React.memo(
       inputRef,
     });
 
+    const resolvedPlaceholder = React.useMemo(() => withPercentPlaceholderSuffix(placeholder), [placeholder]);
     const showDraftWhenError = !core.isEditing && core.touched && core.hasError;
     const readOnlyDisplayValue =
       showDraftWhenError || core.committedDisplayValue === ''
@@ -149,7 +151,7 @@ const TablePercentInput = React.memo(
               onKeyDown={core.handleKeyDown}
               onPaste={core.handlePaste}
               onCopy={handleCopy}
-              placeholder={core.cellFocused && !core.isReadOnly ? '' : placeholder}
+              placeholder={core.cellFocused && !core.isReadOnly ? '' : resolvedPlaceholder}
               inputProps={{
                 readOnly: core.isReadOnly,
                 tabIndex: locked ? -1 : undefined,

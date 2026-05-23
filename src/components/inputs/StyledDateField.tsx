@@ -4,18 +4,18 @@ import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import type { ISODateString } from '../../types/branded';
-import { danishToISO, isoToDanish } from '../../types/branded';
-import { interpretYear } from '../../utils/dateInputValidation';
+import { isoToDanish } from '../../types/branded';
 import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import { filterDateLikeKeyDown } from './inputKeyFilters';
 import { readClipboardText } from '../../utils/clipboardUtils';
-import { normalizeDateDraftOnCommit, normalizeDateDraftSeparators } from '../../utils/dateDraftNormalization';
+import { normalizeDateDraftOnCommit } from '../../utils/dateDraftNormalization';
 import { normalizeDatePaste } from '../../utils/inputPasteNormalization';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
 import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
+import { parseDateDraftForCommit } from '../../utils/dateDraftCommit';
 
 const debugStyledDateField = (event: string, details: Record<string, unknown>): void => {
   if (!isInteractiveDevLoggingEnabled) return;
@@ -59,21 +59,10 @@ const formatISODateAsDanish = (value: ISODateString | undefined): string => {
   return isoToDanish(value) ?? '';
 };
 
-type SplitDateParts = { day: string; month: string; year: string } | null;
-
 const MAX_CANONICAL_DANISH_DATE_LENGTH = 10; // dd-mm-åååå
 // Allow slightly more draft characters than the canonical committed form to support permissive typing
 // (e.g. separators/whitespace) without the UI blocking mid-entry. This is an explicit UX tolerance.
 const MAX_DRAFT_LENGTH = MAX_CANONICAL_DANISH_DATE_LENGTH + 6;
-
-const splitDateParts = (draft: string): SplitDateParts => {
-  const normalized = normalizeDateDraftSeparators(draft);
-
-  const [dayRaw = '', monthRaw = '', yearRaw = '', ...rest] = normalized.split('-');
-  if (rest.length > 0) return null;
-  if (dayRaw === '' && monthRaw === '' && yearRaw === '') return null;
-  return { day: dayRaw, month: monthRaw, year: yearRaw };
-};
 
 const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
   (
@@ -165,84 +154,13 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
 
       const trimmed = draft.trim();
       if (trimmed === '') return { ok: true, value: undefined };
-
       if (trimmed.length > MAX_DRAFT_LENGTH) {
         return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
       }
 
-      const parts = splitDateParts(trimmed);
-      if (!parts) {
-        return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
-      }
-
-      const dayDigits = parts.day.replace(/[^\d]/g, '');
-      const monthDigits = parts.month.replace(/[^\d]/g, '');
-      const yearDigits = parts.year.replace(/[^\d]/g, '');
-
-      // Reject any non-digit content on commit (typing is lenient).
-      if (mode === 'commit' && (dayDigits !== parts.day || monthDigits !== parts.month || yearDigits !== parts.year)) {
-        return commitInvalid('Ugyldig dato');
-      }
-
-      if (dayDigits === '' || monthDigits === '' || yearDigits === '') {
-        return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
-      }
-
-      if (dayDigits.length > 2 || monthDigits.length > 2 || yearDigits.length > 4) {
-        return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
-      }
-
-      if (yearDigits.length === 3) {
-        return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
-      }
-
-      const dayNum = Number.parseInt(dayDigits, 10);
-      const monthNum = Number.parseInt(monthDigits, 10);
-      if (!Number.isFinite(dayNum) || !Number.isFinite(monthNum)) {
-        return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
-      }
-
-      if (monthNum < 1 || monthNum > 12) {
-        return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
-      }
-      if (dayNum < 1 || dayNum > 31) {
-        return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
-      }
-
-      let yearNum: number;
-      if (yearDigits.length === 1 || yearDigits.length === 2) {
-        if (mode === 'typing') return typingPartial();
-        const interpreted = interpretYear(yearDigits);
-        if (interpreted === null) {
-          return commitInvalid('Ugyldig dato');
-        }
-        yearNum = interpreted;
-      } else if (yearDigits.length === 4) {
-        const parsed = Number.parseInt(yearDigits, 10);
-        if (!Number.isFinite(parsed)) {
-          return commitInvalid('Ugyldig dato');
-        }
-        yearNum = parsed;
-      } else {
-        return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
-      }
-
-      const maxDay = new Date(Date.UTC(yearNum, monthNum, 0)).getUTCDate();
-      if (dayNum > maxDay) {
-        return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
-      }
-
-      const day = String(dayNum).padStart(2, '0');
-      const month = String(monthNum).padStart(2, '0');
-      const year = String(yearNum);
-
-      const danish = `${day}-${month}-${year}`;
-      const isoDate = danishToISO(danish);
-      if (!isoDate) {
-        return commitInvalid('Ugyldig dato');
-      }
-
-      return { ok: true, value: isoDate };
+      const parsed = parseDateDraftForCommit(trimmed, { mode, twoDigitYearPolicy: 'infer' });
+      if (!parsed.ok) return parsed.kind === 'partial' ? typingPartial() : commitInvalid(parsed.message);
+      return { ok: true, value: parsed.iso };
     }, []);
 
     const initialInvalidDraft = React.useMemo(() => {

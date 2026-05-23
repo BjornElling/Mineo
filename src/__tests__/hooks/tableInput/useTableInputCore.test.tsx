@@ -383,6 +383,37 @@ describe('useTableInputCore', () => {
     expect(closeEditing).toHaveBeenCalledTimes(1);
   });
 
+  it('committer stadig blur når GridCore lukker editoren før input-blur', () => {
+    const onBlur = vi.fn();
+    const gridState = { editingCell: gridCell as GridCellCoord | null };
+    const { result, rerender } = renderHook(
+      () =>
+        useTableInputCore({
+          adapter: createAdapter(),
+          gridCell,
+          value: '',
+          onBlur,
+        }),
+      {
+        wrapper: createMutableGridWrapper(gridState),
+      }
+    );
+
+    act(() => {
+      result.current.handleChange({ target: { value: ' 55 ' } } as React.ChangeEvent<HTMLInputElement>);
+    });
+    act(() => {
+      gridState.editingCell = null;
+    });
+    rerender();
+
+    act(() => {
+      result.current.handleBlur({ currentTarget: { value: '', readOnly: true } } as React.FocusEvent<HTMLInputElement>);
+    });
+
+    expect(onBlur).toHaveBeenCalledWith({ target: { value: '55' } });
+  });
+
   it('editorHandle.clearAndCommit rydder og committer tom værdi', () => {
     let editorHandle: GridCellEditorHandle | null = null;
     const onBlur = vi.fn();

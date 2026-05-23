@@ -3,6 +3,7 @@ import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 import { copyWholeValueFromReadOnlyField } from '../../../utils/clipboardUtils';
+import { DEFAULT_AMOUNT_PLACEHOLDER } from '../../../utils/amountInputUtils';
 import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
 import { useGridCoreApi } from '../../tables/useGridCore';
@@ -47,7 +48,7 @@ const TableAmountInput = React.memo(
     locked = false,
     value,
     canBeNegative = true,
-    placeholder = '',
+    placeholder = DEFAULT_AMOUNT_PLACEHOLDER,
     onChange,
     onBlur,
     onErrorChange,

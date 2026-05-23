@@ -40,7 +40,7 @@ const TableYearInput = React.memo(
     minYear,
     maxYear,
     twoDigitYearPolicy = 'infer',
-    placeholder = '',
+    placeholder = 'åååå',
     onChange,
     onBlur,
     onErrorChange,

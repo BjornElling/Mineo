@@ -14,7 +14,7 @@ import {
   EET_ASL_MIN_VISIBLE_ROWS,
   collectEetAslAfgoerelseValidationIssues,
   createEmptyAslAfgoerelseRow,
-  isAslAfgoerelseRowEmpty,
+  isAslAfgoerelseRowPersistenceEmpty,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useTableSort } from './useTableSort';
@@ -81,7 +81,7 @@ const EetAslAfgoerelserTable = React.memo(
         return normalizeGridRows({
           rows,
           minRows: EET_ASL_MIN_VISIBLE_ROWS,
-          isRowEmpty: isAslAfgoerelseRowEmpty,
+          isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
           createEmptyRow: createEmptyAslAfgoerelseRow,
         });
       },
@@ -124,7 +124,7 @@ const EetAslAfgoerelserTable = React.memo(
       if (!pendingPersistRef.current) return;
       const pendingPersist = pendingPersistRef.current;
       const currentFingerprint = fingerprintTableData(
-        internalTableData.filter((row) => !isAslAfgoerelseRowEmpty(row))
+        internalTableData.filter((row) => !isAslAfgoerelseRowPersistenceEmpty(row))
       );
       if (pendingPersist.fingerprint !== currentFingerprint) {
         pendingPersistRef.current = null;
@@ -141,7 +141,7 @@ const EetAslAfgoerelserTable = React.memo(
         setInternalTableData((prev) => {
           const updated = prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row));
           const normalized = normalizeRows(updated);
-          const toSave = normalized.filter((row) => !isAslAfgoerelseRowEmpty(row));
+          const toSave = normalized.filter((row) => !isAslAfgoerelseRowPersistenceEmpty(row));
           const nextFingerprint = fingerprintTableData(toSave);
           if (nextFingerprint !== lastPersistedFingerprintRef.current) {
             queuePersist(toSave, nextFingerprint);
@@ -176,10 +176,10 @@ const EetAslAfgoerelserTable = React.memo(
     const { sortedRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
       rows: internalTableData,
       getRowId: (row) => row.id,
-      isRowEmpty: isAslAfgoerelseRowEmpty,
+      isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
       columns: sortColumns,
       onSortedRowsChange: (nextRows) => {
-        const toSave = nextRows.filter((row) => !isAslAfgoerelseRowEmpty(row));
+        const toSave = nextRows.filter((row) => !isAslAfgoerelseRowPersistenceEmpty(row));
         const nextFingerprint = fingerprintTableData(toSave);
         if (nextFingerprint !== lastPersistedFingerprintRef.current) {
           queuePersist(toSave, nextFingerprint);
@@ -275,7 +275,6 @@ const EetAslAfgoerelserTable = React.memo(
                     minValue={0}
                     maxValue={100}
                     useDefaultPercentRange={false}
-                    placeholder=""
                     onBlur={(e) => commitRowUpdate(row.id, { eetPct: e.target.value || undefined })}
                     externalErrorMessage={eetPctError}
                   />
@@ -326,7 +325,6 @@ const EetAslAfgoerelserTable = React.memo(
                     minValue={0}
                     maxValue={100}
                     useDefaultPercentRange={false}
-                    placeholder=""
                     onBlur={(e) => commitRowUpdate(row.id, { kapPct: e.target.value || undefined })}
                     externalErrorMessage={kapPctError}
                   />

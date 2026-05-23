@@ -582,7 +582,6 @@ const LoenudviklingManuelTable = React.memo(
                     value={row.grundloen}
                     onBlur={(e) => commitRowUpdate(row.id, { grundloen: e.target.value }, 1)}
                     onErrorChange={handleErrorChange(row.id, 'grundloen')}
-                    placeholder=""
                   />
                 </td>
 
@@ -601,7 +600,6 @@ const LoenudviklingManuelTable = React.memo(
                       onBlur={(e) => commitRowUpdate(row.id, { feriepenge: e.target.value }, 2)}
                       onErrorChange={handleErrorChange(row.id, 'feriepenge')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.feriepenge : undefined}
-                      placeholder=""
                     />
                   )}
                 </td>
@@ -621,7 +619,6 @@ const LoenudviklingManuelTable = React.memo(
                       onBlur={(e) => commitRowUpdate(row.id, { shSoSats: e.target.value }, 3)}
                       onErrorChange={handleErrorChange(row.id, 'shSoSats')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.shSoSats : undefined}
-                      placeholder=""
                     />
                   )}
                 </td>
@@ -641,7 +638,6 @@ const LoenudviklingManuelTable = React.memo(
                       onBlur={(e) => commitRowUpdate(row.id, { fritvalg: e.target.value }, 4)}
                       onErrorChange={handleErrorChange(row.id, 'fritvalg')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.fritvalg : undefined}
-                      placeholder=""
                     />
                   )}
                 </td>
@@ -661,7 +657,6 @@ const LoenudviklingManuelTable = React.memo(
                       onBlur={(e) => commitRowUpdate(row.id, { agPension: e.target.value }, 5)}
                       onErrorChange={handleErrorChange(row.id, 'agPension')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.agPension : undefined}
-                      placeholder=""
                     />
                   )}
                 </td>

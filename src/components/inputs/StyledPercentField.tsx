@@ -9,6 +9,12 @@ import { readClipboardText } from '../../utils/clipboardUtils';
 import { prefixZeroBeforeLeadingComma, trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
 import { formatAsAmount, formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { normalizePercentPaste } from '../../utils/inputPasteNormalization';
+import {
+  DEFAULT_PERCENT_PLACEHOLDER,
+  DEFAULT_PERCENT_PASTE_MAX,
+  DEFAULT_PERCENT_TYPING_MAX_INTEGER_DIGITS,
+  stripTrailingPercentPlaceholder,
+} from '../../utils/percentInputUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
 
@@ -71,25 +77,13 @@ const formatPercentMinimal = (
   return formatAsAmountTrimmed(value, decimals);
 };
 
-const stripTrailingPercent = (placeholder: string | undefined): string | undefined => {
-  if (!placeholder) return placeholder;
-  const trimmed = placeholder.trim();
-  if (trimmed.endsWith('%')) {
-    return trimmed.slice(0, -1).trimEnd();
-  }
-  return placeholder;
-};
-
-const MAX_TYPING_PERCENT = 100;
-const MAX_TYPING_PERCENT_INTEGER_DIGITS = 3;
-
 const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldProps>(
   (
     {
       value,
       name,
       width = 100,
-      placeholder = '0',
+      placeholder = DEFAULT_PERCENT_PLACEHOLDER,
       disabled,
       disabledAppearance = 'default',
       allowNegative = false,
@@ -405,7 +399,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled || hasConfigError),
       getDraftForKey,
-      normalizePasteText: (text) => normalizePercentPaste(text, { maxValue: MAX_TYPING_PERCENT }),
+      normalizePasteText: (text) => normalizePercentPaste(text, { maxValue: DEFAULT_PERCENT_PASTE_MAX }),
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
     });
 
@@ -453,10 +447,10 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         if (!e.defaultPrevented) {
           filterPercentKeyDown(e, {
             allowNegative,
-            maxIntegerDigits: MAX_TYPING_PERCENT_INTEGER_DIGITS,
-            maxIntegerPart: MAX_TYPING_PERCENT,
+            maxIntegerDigits: DEFAULT_PERCENT_TYPING_MAX_INTEGER_DIGITS,
+            maxIntegerPart: DEFAULT_PERCENT_PASTE_MAX,
             allowDecimals,
-            maxValue: MAX_TYPING_PERCENT,
+            maxValue: DEFAULT_PERCENT_PASTE_MAX,
           });
         }
         onKeyDown?.(e);
@@ -485,7 +479,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
           return;
         }
 
-        const normalized = normalizePercentPaste(readClipboardText(e), { maxValue: MAX_TYPING_PERCENT });
+        const normalized = normalizePercentPaste(readClipboardText(e), { maxValue: DEFAULT_PERCENT_PASTE_MAX });
         e.preventDefault();
         e.stopPropagation();
         if (normalized === '') return;
@@ -528,7 +522,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         onMouseDown={activation.handleMouseDown}
         onClick={activation.handleClick}
         onPaste={handlePaste}
-        placeholder={stripTrailingPercent(placeholder)}
+        placeholder={stripTrailingPercentPlaceholder(placeholder)}
         width={width}
         disabled={disabled || hasConfigError}
         disabledAppearance={disabledAppearance}

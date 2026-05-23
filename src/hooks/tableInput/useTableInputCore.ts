@@ -83,6 +83,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const inputElRef = React.useRef<HTMLInputElement | null>(null);
   const draftRef = React.useRef<string>(draft);
   const hasErrorRef = React.useRef(false);
+  const pendingDraftCommitRef = React.useRef(false);
   const localErrorKindRef = React.useRef<LocalErrorKind>('none');
   const originalValueOnEditStartRef = React.useRef<string>('');
   const keyInitiatedEditRef = React.useRef(false);
@@ -146,6 +147,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     inputElementRef: inputElRef,
     isEditing,
     preserveDraft: Boolean(
+      pendingDraftCommitRef.current ||
       (adapter.preserveInvalidDraft ?? true) &&
       (saveErrorActive || ((adapter.preserveVisualErrorDraft ?? true) && committedVisualError !== ''))
     ),
@@ -219,6 +221,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
 
   const commitAndEmitBlur = React.useCallback(
     (rawDraft: string): boolean => {
+      pendingDraftCommitRef.current = false;
       setTouched(true);
       const current = latest.current;
       const parsed = current.adapter.parse(rawDraft);
@@ -255,6 +258,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         setTouched(false);
       }
       draftRef.current = nextDraft;
+      pendingDraftCommitRef.current = true;
       setDraft(nextDraft);
       latest.current.onChange?.({ target: { value: nextDraft } });
     },
@@ -268,10 +272,15 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const handleBlur = React.useCallback(
     (e: React.FocusEvent<HTMLInputElement>) => {
       setIsFocused(false);
-      if (e.currentTarget.readOnly) {
+      if (latest.current.locked) {
+        pendingDraftCommitRef.current = false;
         return;
       }
-      const rawValue = e.currentTarget.value ?? '';
+      const shouldCommit = !e.currentTarget.readOnly || pendingDraftCommitRef.current;
+      if (!shouldCommit) return;
+      const rawValue = e.currentTarget.readOnly && pendingDraftCommitRef.current
+        ? draftRef.current
+        : e.currentTarget.value ?? '';
       commitAndEmitBlur(rawValue);
     },
     [commitAndEmitBlur]
@@ -302,6 +311,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
 
       clearPendingHistoryResync();
       draftRef.current = applied.draft;
+      pendingDraftCommitRef.current = true;
       setDraft(applied.draft);
       latest.current.onChange?.({ target: { value: applied.draft } });
       if (!isEditing) {
@@ -357,6 +367,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       clearAndCommit: () => {
         if (latest.current.locked) return;
         resetEditingState();
+        pendingDraftCommitRef.current = false;
         setTouched(false);
         draftRef.current = '';
         setDraft('');
@@ -367,6 +378,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       cancelEdit: () => {
         if (latest.current.locked) return;
         resetEditingState();
+        pendingDraftCommitRef.current = false;
         setTouched(false);
         clearLocalError();
         draftRef.current = originalValueOnEditStartRef.current;
@@ -387,6 +399,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
           clearLocalError();
         }
         draftRef.current = key;
+        pendingDraftCommitRef.current = true;
         setDraft(key);
         requestAnimationFrame(() => {
           const el = inputElRef.current;

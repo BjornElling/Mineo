@@ -1,3 +1,8 @@
+export const DEFAULT_AMOUNT_PLACEHOLDER = '0,00';
+export const DEFAULT_AMOUNT_PRECISION = 2;
+export const MAX_AMOUNT_RAW_LENGTH = 64;
+export const MAX_AMOUNT_INTEGER_DIGITS = 20;
+
 export const containsAnyDigit = (input: string): boolean => {
   return /\d/.test(input);
 };

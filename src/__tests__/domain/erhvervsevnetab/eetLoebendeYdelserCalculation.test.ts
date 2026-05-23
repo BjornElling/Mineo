@@ -11,7 +11,7 @@ import {
   shouldShowLoebende2024ConversionBlock,
   toAfgoerelseTypeLabel,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
-import { isAslAfgoerelseRowEmpty } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import { isAslAfgoerelseRowEmpty, isAslAfgoerelseRowPersistenceEmpty } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -1588,5 +1588,31 @@ describe('isAslAfgoerelseRowEmpty', () => {
       tidlKapDato: undefined,
       fsTilbageholdtEet: 'Ja',
     })).toBe(true);
+  });
+
+  it('behandler FS tilbageholdt EET som brugerindtastning i persistens-tomhedsreglen', () => {
+    expect(isAslAfgoerelseRowPersistenceEmpty({
+      id: 'empty-nej',
+      afgoerelsesDato: undefined,
+      virkningsDato: undefined,
+      eetPct: undefined,
+      kapDato: undefined,
+      kapPct: undefined,
+      afgoerelseType: undefined,
+      tidlKapDato: undefined,
+      fsTilbageholdtEet: 'Nej',
+    })).toBe(true);
+
+    expect(isAslAfgoerelseRowPersistenceEmpty({
+      id: 'empty-ja',
+      afgoerelsesDato: undefined,
+      virkningsDato: undefined,
+      eetPct: undefined,
+      kapDato: undefined,
+      kapPct: undefined,
+      afgoerelseType: undefined,
+      tidlKapDato: undefined,
+      fsTilbageholdtEet: 'Ja',
+    })).toBe(false);
   });
 });

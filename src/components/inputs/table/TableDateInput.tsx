@@ -76,7 +76,7 @@ const TableDateInput = React.memo(
     specialRangeErrors,
     noValidRangeCause,
     twoDigitYearPolicy = 'infer',
-    placeholder = '',
+    placeholder = 'dd-mm-åååå',
     externalErrorMessage,
     inputRef,
     sx,
