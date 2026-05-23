@@ -38,7 +38,8 @@ export type EODebugBuilderEntry = {
  *
  * Rækkefølge: Samme som i original EODebug.tsx for konsistens i visning.
  *
- * VIGTIGT: Dette er det ENESTE sted der skal opdateres når du tilføjer ny builder.
+ * VIGTIGT: Nye builders skal registreres her og gennemgå den fulde debug-builder
+ * tjekliste i docs/architecture/debug-builder-architecture.md §14.
  */
 export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   {

@@ -66,7 +66,7 @@ export const createSystemIssueEnvelope = (
     timestamp: getTimestamp(),
     userMessage: input.userMessage,
     developerMessage: input.developerMessage,
-    revision: input.revision,
+    ...(input.revision !== undefined ? { revision: input.revision } : {}),
     evidence: input.evidence,
     diagnostics: input.diagnostics,
   };
