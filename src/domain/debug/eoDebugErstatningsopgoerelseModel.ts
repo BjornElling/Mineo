@@ -1725,7 +1725,7 @@ export const buildEODebugTaftRows = (
       rows.push({
         id: `taf.folkepensionsalder.${periode.id}`,
         label: 'Advarsel',
-        displayValue: `Advarsel (TAF-perioden løber til efter skadelidtes folkepensionsalder (${isoToDanish(folkepensionsdato)}). Kontrollér om dette er korrekt.)`,
+        displayValue: `Advarsel (TAF-perioden løber til efter skadelidtes folkepensionsalder (${isoToDanish(folkepensionsdato)}).)`,
         status: 'warning',
         summaryDisplay: 'messageOnly',
       });
