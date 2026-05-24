@@ -1,5 +1,5 @@
 import { makeDateFingerprintFromCanonical, type CommittedPayload, type DateFingerprint } from '../../../types/parserSpec';
-import { coerceToISODateString, type ISODateString } from '../../../types/branded';
+import { coerceToDanishDateString, coerceToISODateString, type ISODateString } from '../../../types/branded';
 import { normalizeDateDraftOnCommit } from '../../../utils/dateDraftNormalization';
 import { normalizeDatePaste } from '../../../utils/inputPasteNormalization';
 import { validateISODateRange } from '../../../utils/isoDateHelpers';
@@ -9,7 +9,7 @@ import { parseDateDraftForCommit } from '../../../utils/dateDraftCommit';
 import type { TableInputAdapter } from '../tableInputAdapter';
 import type { TableYearPolicy } from './yearAdapter';
 
-export type TableDateInputModel = string;
+export type TableDateInputModel = ISODateString | undefined;
 
 export type TableDateAdapterConfig = Readonly<{
   minDate?: string;
@@ -29,44 +29,33 @@ const getRangeErrorMessage = (
   return resolveDateRangeErrorMessage({ iso, minDate: normalizedMin, maxDate: normalizedMax, special: specialRangeErrors });
 };
 
-const dateFingerprintFromCommittedValue = (committedValue: string | undefined): DateFingerprint => {
-  const trimmed = (committedValue ?? '').trim();
-  if (trimmed === '') return makeDateFingerprintFromCanonical('');
-  const iso = coerceToISODateString(trimmed);
-  if (!iso) {
-    return makeDateFingerprintFromCanonical(trimmed);
-  }
-  return makeDateFingerprintFromCanonical(iso);
-};
-
 export const toCommittedDatePayload = (
   value: TableDateInputModel
 ): CommittedPayload<TableDateInputModel, string, DateFingerprint> => {
-  const canonical = value;
+  const canonical = value ?? '';
   return {
-    model: canonical,
+    model: value,
     canonical,
-    fingerprint: dateFingerprintFromCommittedValue(canonical),
+    fingerprint: makeDateFingerprintFromCanonical(canonical),
   };
 };
 
 export const sanitizeTableDateDraft = (
   rawValue: string,
   config: Pick<TableDateAdapterConfig, 'twoDigitYearPolicy'>
-): string => {
+): ISODateString | undefined => {
   const raw = normalizeDateDraftOnCommit(rawValue);
   const parsed = parseDateDraftForCommit(raw, { mode: 'commit', twoDigitYearPolicy: config.twoDigitYearPolicy });
-  return parsed.ok ? parsed.danish : raw;
+  return parsed.ok ? parsed.iso : undefined;
 };
 
 export const createDateTableInputAdapter = (
   config: TableDateAdapterConfig
 ): TableInputAdapter<TableDateInputModel, string, DateFingerprint> => ({
-  format: (value) => value,
+  format: (value) => (value ? coerceToDanishDateString(value) ?? '' : ''),
   getCommittedVisualError: (value) => {
-    const iso = coerceToISODateString(value);
-    if (!iso) return '';
-    return getRangeErrorMessage(iso, config) ?? '';
+    if (!value) return '';
+    return getRangeErrorMessage(value, config) ?? '';
   },
   parse: (draft) => {
     const normalized = normalizeDateDraftOnCommit(draft);
@@ -79,7 +68,7 @@ export const createDateTableInputAdapter = (
           specialRangeErrors: config.specialRangeErrors,
         })
       : null;
-    return rangeErrorMessage ? { ok: true, value: parsed.danish, visualErrorMessage: rangeErrorMessage } : { ok: true, value: parsed.danish };
+    return rangeErrorMessage ? { ok: true, value: parsed.iso, visualErrorMessage: rangeErrorMessage } : { ok: true, value: parsed.iso };
   },
   toCommittedPayload: toCommittedDatePayload,
   isValidStartKey: (key) => /^[0-9]$/.test(key),

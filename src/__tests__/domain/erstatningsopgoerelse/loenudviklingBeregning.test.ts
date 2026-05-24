@@ -146,7 +146,7 @@ describe('buildLoenudviklingModel', () => {
       loenudviklingManuelTableData: [
         {
           id: 'manual-base',
-          dato: '29-03-2024',
+          dato: '2024-03-29',
           grundloen: asAmount(1000),
           feriepenge: '0',
           shSoSats: '0',
@@ -155,7 +155,7 @@ describe('buildLoenudviklingModel', () => {
         },
         {
           id: 'manual-change',
-          dato: '01-04-2024',
+          dato: '2024-04-01',
           grundloen: asAmount(1100),
           feriepenge: '0',
           shSoSats: '0',
@@ -186,7 +186,7 @@ describe('buildLoenudviklingModel', () => {
       loenudviklingManuelTableData: [
         {
           id: 'manual-base',
-          dato: '01-01-2023',
+          dato: '2023-01-01',
           grundloen: asAmount(1000),
           feriepenge: '0',
           shSoSats: '0',

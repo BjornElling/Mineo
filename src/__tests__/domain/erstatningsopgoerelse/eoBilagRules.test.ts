@@ -101,7 +101,7 @@ describe('getEoBilagAvailability', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({
         offentligeYdelserRows: [
-          { id: 'row-1', fraDato: '01-01-2024', tilDato: '', ydelse: undefined, tillaeg: undefined, ydelsestype: '' },
+          { id: 'row-1', fraDato: '2024-01-01', tilDato: '', ydelse: undefined, tillaeg: undefined, ydelsestype: '' },
         ],
       }),
     });
@@ -113,7 +113,7 @@ describe('getEoBilagAvailability', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({
         offentligeYdelserRows: [
-          { id: 'row-1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
+          { id: 'row-1', fraDato: '2024-01-01', tilDato: '2024-01-31', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
         ],
       }),
     });
@@ -130,7 +130,7 @@ describe('getEoBilagAvailability', () => {
         tafBeregningsperiodeTil: '2024-01-31',
         tafPerioder: [{ id: 'taf-1', fra: '2024-02-01', til: '2024-02-29', loseFeriedage: 0 }],
         offentligeYdelserRows: [
-          { id: 'row-1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
+          { id: 'row-1', fraDato: '2024-01-01', tilDato: '2024-01-31', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
         ],
       }),
     });
@@ -199,8 +199,8 @@ describe('getEoBilagAvailability', () => {
         offentligeYdelserRows: [
           {
             id: 'row-1',
-            fraDato: '01-01-2024',
-            tilDato: '31-01-2024',
+            fraDato: '2024-01-01',
+            tilDato: '2024-01-31',
             ydelse: { kind: 'number', value: 1000 },
             tillaeg: undefined,
             ydelsestype: 'dagpenge',
@@ -240,7 +240,7 @@ describe('getEoBilagAvailability', () => {
         tafPerioder: [],
         loenindkomstAnsaettelsesforhold: [employment],
         offentligeYdelserRows: [
-          { id: 'row-2', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
+          { id: 'row-2', fraDato: '2024-01-01', tilDato: '2024-01-31', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
         ],
       }),
     });
@@ -349,7 +349,7 @@ describe('hasMidlertidigtEetYdelsestype', () => {
   it('returnerer false når ingen offentlig ydelse har ydelsestypen Midlertidigt EET', () => {
     const values = makeValues({
       offentligeYdelserRows: [
-        { id: 'row-1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'sygedagpenge' },
+        { id: 'row-1', fraDato: '2024-01-01', tilDato: '2024-01-31', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'sygedagpenge' },
       ],
     });
 

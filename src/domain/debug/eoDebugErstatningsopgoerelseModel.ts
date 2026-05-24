@@ -1,14 +1,14 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import type { ISODateString } from '../../types/branded';
-import { dateToISO, isISODateString, isoToDanish, parseISODate } from '../../types/branded';
+import { coerceToISODateString, dateToISO, isISODateString, isoToDanish, parseISODate } from '../../types/branded';
 import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import { computeRowDateBounds } from '../erstatningsopgoerelse/helpers/rowDateBounds';
 import { getDayBeforeIso, validateISODateRange } from '../../utils/isoDateHelpers';
 import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
 import { formatAsAmount, formatAsAmountTrimmed, formatCurrency, formatPercent } from '../../utils/formatUtils';
-import { addDays, addMonths, parseDanishDate } from '../../utils/dateUtils';
+import { addDays, addMonths } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildNoValidDateRangeMessage, collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
@@ -2476,9 +2476,7 @@ type ReguleringsRange = Readonly<{
 
 const parseDanishToIsoDebug = (value: string | undefined): ISODateString | undefined => {
   if (!value || value.trim() === '') return undefined;
-  const parsed = parseDanishDate(value.trim());
-  if (!parsed) return undefined;
-  return dateToISO(parsed);
+  return coerceToISODateString(value.trim());
 };
 
 const getRangeForManualReguleringDebug = (

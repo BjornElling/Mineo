@@ -191,7 +191,7 @@ const buildManualEntries = (args: Readonly<{
 
   const dates = new Set<ISODateString>([args.referenceIso]);
   for (const row of rows.slice(1)) {
-    const iso = parseDanishToIso(row.dato);
+    const iso = row.dato;
     if (!iso) continue;
     if (iso >= args.eoFra && iso <= args.eoTil) dates.add(iso);
   }
@@ -207,7 +207,7 @@ const buildManualEntries = (args: Readonly<{
   const entries = sortedDates.map((iso, index) => {
     const matchingRow = rows
       .slice(1)
-      .map((row) => ({ row, iso: parseDanishToIso(row.dato) }))
+      .map((row) => ({ row, iso: row.dato }))
       .filter((entry): entry is Readonly<{ row: typeof baseRow; iso: ISODateString }> => Boolean(entry.iso))
       .filter((entry) => entry.iso <= iso)
       .sort((a, b) => b.iso.localeCompare(a.iso))[0]?.row ?? baseRow;

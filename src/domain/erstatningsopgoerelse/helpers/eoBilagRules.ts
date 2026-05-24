@@ -7,13 +7,13 @@ import type {
 } from '../../../schemas/formSchemas';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatToISO } from '../../../utils/dateFormatting';
-import type { ISODateString } from '../../../types/branded';
+import { coerceToISODateString, type ISODateString } from '../../../types/branded';
 import { isStandardLoenRowEffectivelyEmpty } from '../../aarsloen/standardLoenRowCalculations';
 import { getOffentligeYdelserRowFilledState } from '../validation/offentligeYdelserTableValidation';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, buildTafRanges, parseAarsloenRowInterval } from './indtaegtPerioder';
 import { resolveLoenudviklingKilde } from './angivetLoenHelpers';
 import { buildPeriodRangeGroups, type PeriodRangeGroup, type IsoRange } from '../engines/periodRangeGroups';
-import { parseDanishToIso, parseOptionalIsoDate } from '../helpers/eoSharedUtils';
+import { parseOptionalIsoDate } from '../helpers/eoSharedUtils';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { getOffentligeYdelserErrorRowIdSet, getStandardLoenErrorRowIdSet } from '../validation/indkomstRowValidation';
 
@@ -65,8 +65,8 @@ export const hasOffentligYdelseRowOverlapWithRanges = (
   mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
   ranges: readonly IsoRange[]
 ): boolean => {
-  const fra = parseDanishToIso(row.fraDato);
-  const til = parseDanishToIso(row.tilDato);
+  const fra = coerceToISODateString(row.fraDato);
+  const til = coerceToISODateString(row.tilDato);
   if (!fra || !til || fra > til) return shouldIncludeByEoBilagRanges(mode, ranges, null);
   const rowRange: IsoRange = { fra, til };
   return shouldIncludeByEoBilagRanges(mode, ranges, rowRange);

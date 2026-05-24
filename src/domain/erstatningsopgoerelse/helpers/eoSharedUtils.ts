@@ -3,7 +3,7 @@
  */
 
 import type { ISODateString } from '../../../types/branded';
-import { danishToISO } from '../../../types/branded';
+import { coerceToISODateString } from '../../../types/branded';
 import { isoDateToDate } from '../../dates/isoDate';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { StatistiskLoenudviklingId } from '../../../data/statistiskeRates';
@@ -15,7 +15,7 @@ export { getDayAfterIso, parseOptionalIsoDate } from '../../../utils/isoDateHelp
 
 export const parseDanishToIso = (value: string | undefined): ISODateString | undefined => {
   if (!value || value.trim() === '') return undefined;
-  return danishToISO(value);
+  return coerceToISODateString(value);
 };
 
 export const formatPercentFixed2 = (value: number): string => {

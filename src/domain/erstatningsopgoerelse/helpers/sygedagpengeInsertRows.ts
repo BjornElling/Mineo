@@ -5,7 +5,7 @@ import { parseAmountInput } from '../../../utils/expressionAmount';
 import { maxISO, minISO } from '../../../utils/isoDateHelpers';
 import {
   buildSygedagpengeArbejdsdagePrKalenderuge, countOffentligYdelsePeriodiseringsdage, } from '../engines/periodiseringsMotor';
-import { isoToDanish, type ISODateString } from '../../../types/branded';
+import type { ISODateString } from '../../../types/branded';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
 type SygedagpengeSegment = Readonly<{
@@ -57,12 +57,6 @@ export const splitSygedagpengeRateSegments = (
 
     const segmentFra = maxISO(fraDato, rate.fraDato);
     const segmentTil = minISO(tilDato, rate.tilDato);
-    const segmentFraDa = isoToDanish(segmentFra);
-    const segmentTilDa = isoToDanish(segmentTil);
-    if (!segmentFraDa || !segmentTilDa) {
-      throw new Error('CRITICAL: Kunne ikke konvertere sygedagpenge-segment til dansk datoformat');
-    }
-
     const arbejdsdage = countOffentligYdelsePeriodiseringsdage({
       fra: segmentFra,
       til: segmentTil,
@@ -90,16 +84,11 @@ export const buildSygedagpengeRowsForRange = (
 
   return segments.map((segment) => {
     const kommunaltAtpExpression = buildKommunaltAtpExpression(segment);
-    const fraDatoDa = isoToDanish(segment.fraDato);
-    const tilDatoDa = isoToDanish(segment.tilDato);
-    if (!fraDatoDa || !tilDatoDa) {
-      throw new Error('CRITICAL: Kunne ikke konvertere indsatte sygedagpengedatoer til dansk tabel-format');
-    }
 
     return {
       id: generateOffentligYdelseRowId(),
-      fraDato: fraDatoDa,
-      tilDato: tilDatoDa,
+      fraDato: segment.fraDato,
+      tilDato: segment.tilDato,
       ydelse: toExpressionAmount(buildSegmentExpression(segment.arbejdsdage, segment.rate.sygedagpengePrDagMax)),
       tillaeg: toExpressionAmount(kommunaltAtpExpression),
       ydelsestype: 'sygedagpenge',

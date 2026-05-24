@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
-import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
+import TableDateInput from '../inputs/table/TableDateInput';
 import TableIntegerInput from '../inputs/table/TableIntegerInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { useTableSort } from './useTableSort';
@@ -210,7 +210,7 @@ const TAFPeriodeTable = React.memo(
             return (
               <TableRow key={row.id} data-mineo-row-id={row.id}>
                 <TableCell>
-                  <TableDateIsoInput
+                  <TableDateInput
                     gridCell={{ rowId: row.id, colIndex: 0 }}
                     value={fraISO}
                     onBlur={(e) => {
@@ -229,7 +229,7 @@ const TAFPeriodeTable = React.memo(
                   />
                 </TableCell>
                 <TableCell>
-                  <TableDateIsoInput
+                  <TableDateInput
                     gridCell={{ rowId: row.id, colIndex: 1 }}
                     value={tilISO}
                     onBlur={(e) => {

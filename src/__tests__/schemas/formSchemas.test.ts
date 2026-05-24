@@ -14,6 +14,7 @@ import {
   oevrigeKravRowSchema,
   offentligeYdelserRowSchema,
 } from '../../schemas/formSchemas';
+import { tableIsoDateCellString } from '../../schemas/formSchemas/baseSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 // ─── aarsloenSchema ────────────────────────────────────────────────────────────
@@ -36,6 +37,29 @@ describe('aarsloenSchema', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('normaliserer dagkolonner i løntabel til ISO-datoer', () => {
+    const result = aarsloenSchema.safeParse({
+      feriePct: undefined,
+      fritvalgPct: undefined,
+      shSoPct: undefined,
+      storeBededagPct: undefined,
+      pensionPct: undefined,
+      loenperiode: 'dag',
+      tableData: [{ id: 'r1', col0_dag: '01-01-2024', col1_dag: '2024-01-31' }],
+      omregningTilFuldtAar: false,
+      fuldLoenUnderFerie: false,
+      retTilSjetteFerieuge: false,
+      antalFeriedage: undefined,
+      loenPaaHelligdage: 'Almindelig løn',
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tableData[0]?.col0_dag).toBe('2024-01-01');
+      expect(result.data.tableData[0]?.col1_dag).toBe('2024-01-31');
+    }
   });
 });
 
@@ -390,6 +414,22 @@ describe('offentligeYdelserRowSchema', () => {
       ydelsestype: 'sygedagpenge',
     });
     expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.fraDato).toBe('2023-01-01');
+      expect(result.data.tilDato).toBe('2023-01-31');
+    }
+  });
+});
+
+describe('tableIsoDateCellString', () => {
+  it('normaliserer ISO og legacy dansk tabeldato til ISO', () => {
+    expect(tableIsoDateCellString.parse('2026-05-24')).toBe('2026-05-24');
+    expect(tableIsoDateCellString.parse('24-05-2026')).toBe('2026-05-24');
+  });
+
+  it('normaliserer tomme tabeldatoer til undefined og afviser ugyldige ikke-tomme datoer', () => {
+    expect(tableIsoDateCellString.parse('')).toBeUndefined();
+    expect(tableIsoDateCellString.safeParse('ugyldig').success).toBe(false);
   });
 });
 

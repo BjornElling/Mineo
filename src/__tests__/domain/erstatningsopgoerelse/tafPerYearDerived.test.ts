@@ -155,7 +155,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2024-01-02'), til: iso('2024-01-04'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '02-01-2024', tilDato: '04-01-2024', ydelse: asAmountValue(100), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2024-01-02', tilDato: '2024-01-04', ydelse: asAmountValue(100), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -187,7 +187,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2025-01-01'), til: iso('2026-01-31'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelse: asAmountValue(3100), tillaeg: undefined, ydelsestype: 'dagpenge' },
+        { id: 'y1', fraDato: '2024-01-01', tilDato: '2024-01-31', ydelse: asAmountValue(3100), tillaeg: undefined, ydelsestype: 'dagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [],
     });
@@ -213,7 +213,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2024-01-08'), til: iso('2025-01-10'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '01-01-2024', tilDato: '05-01-2024', ydelse: asAmountValue(5000), tillaeg: undefined, ydelsestype: 'sygedagpenge' },
+        { id: 'y1', fraDato: '2024-01-01', tilDato: '2024-01-05', ydelse: asAmountValue(5000), tillaeg: undefined, ydelsestype: 'sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -227,8 +227,8 @@ describe('buildTafPerYearResult', () => {
             col1_maaned: '',
             col0_uge: '',
             col1_uge: '',
-            col0_dag: '02-01-2024',
-            col1_dag: '05-01-2024',
+            col0_dag: '2024-01-02',
+            col1_dag: '2024-01-05',
             col2: asAmountValue(1),
             col3: undefined,
             col4: undefined,
@@ -341,7 +341,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2024-12-01'), til: iso('2025-01-31'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '01-12-2024', tilDato: '31-01-2025', ydelse: asAmountValue(100), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2024-12-01', tilDato: '2025-01-31', ydelse: asAmountValue(100), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -388,8 +388,8 @@ describe('buildTafPerYearResult', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-12-2024',
-          tilDato: '31-01-2025',
+          fraDato: '2024-12-01',
+          tilDato: '2025-01-31',
           ydelse: asAmountValue(5000),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -645,16 +645,16 @@ describe('buildTafPerYearResult', () => {
       offentligeYdelserRows: [
         {
           id: 'y1',
-          fraDato: '10-01-2024',
-          tilDato: '10-01-2024',
+          fraDato: '2024-01-10',
+          tilDato: '2024-01-10',
           ydelse: asAmountValue(10),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
         },
         {
           id: 'y2',
-          fraDato: '10-01-2024',
-          tilDato: '10-01-2024',
+          fraDato: '2024-01-10',
+          tilDato: '2024-01-10',
           ydelse: asAmountValue(10),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Midlertidigt EET',
@@ -684,8 +684,8 @@ describe('buildTafPerYearResult', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '22-06-2023',
-          tilDato: '31-05-2025',
+          fraDato: '2023-06-22',
+          tilDato: '2025-05-31',
           ydelse: asAmountValue(8000),
           tillaeg: asAmountValue(500),
           ydelsestype: 'Sygedagpenge',
@@ -719,7 +719,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2024-11-01'), til: iso('2025-02-28'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '01-11-2024', tilDato: '28-02-2025', ydelse: asAmountValue(100), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2024-11-01', tilDato: '2025-02-28', ydelse: asAmountValue(100), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -752,7 +752,7 @@ describe('buildTafPerYearResult', () => {
       ],
       // Ydelse kun i 2024 → 2025 har ingen fradrag
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '01-12-2024', tilDato: '31-12-2024', ydelse: asAmountValue(100), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2024-12-01', tilDato: '2024-12-31', ydelse: asAmountValue(100), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -788,7 +788,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2024-12-30'), til: iso('2025-01-03'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '30-12-2024', tilDato: '03-01-2025', ydelse: asAmountValue(50), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2024-12-30', tilDato: '2025-01-03', ydelse: asAmountValue(50), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -818,7 +818,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2020-06-01'), til: iso('2024-12-31'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '01-06-2020', tilDato: '31-12-2024', ydelse: asAmountValue(500), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2020-06-01', tilDato: '2024-12-31', ydelse: asAmountValue(500), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -847,7 +847,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2023-10-01'), til: iso('2025-03-31'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '01-10-2023', tilDato: '31-03-2025', ydelse: asAmountValue(200), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2023-10-01', tilDato: '2025-03-31', ydelse: asAmountValue(200), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -878,7 +878,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2024-12-30'), til: iso('2025-01-02'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '30-12-2024', tilDato: '02-01-2025', ydelse: asAmountValue(1), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2024-12-30', tilDato: '2025-01-02', ydelse: asAmountValue(1), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -907,7 +907,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2020-03-15'), til: iso('2025-11-30'), loseFeriedage: 5 },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '15-03-2020', tilDato: '30-11-2025', ydelse: asAmountValue(12000), tillaeg: asAmountValue(1500), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2020-03-15', tilDato: '2025-11-30', ydelse: asAmountValue(12000), tillaeg: asAmountValue(1500), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -950,8 +950,8 @@ describe('buildTafPerYearResult', () => {
               col1_maaned: '',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '10-01-2024',
-              col1_dag: '10-01-2024',
+              col0_dag: '2024-01-10',
+              col1_dag: '2024-01-10',
               col2: asAmountValue(1000),
               col3: undefined,
               col4: undefined,
@@ -1035,7 +1035,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2024-06-17'), til: iso('2024-06-17'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '17-06-2024', tilDato: '17-06-2024', ydelse: asAmountValue(50), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2024-06-17', tilDato: '2024-06-17', ydelse: asAmountValue(50), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -1070,7 +1070,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2024-12-31'), til: iso('2025-01-01'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '31-12-2024', tilDato: '01-01-2025', ydelse: asAmountValue(500), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2024-12-31', tilDato: '2025-01-01', ydelse: asAmountValue(500), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -1109,7 +1109,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-01-10'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '01-01-2024', tilDato: '10-01-2024', ydelse: asAmountValue(500), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2024-01-01', tilDato: '2024-01-10', ydelse: asAmountValue(500), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -1139,7 +1139,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: iso('2023-06-22'), til: iso('2025-05-31'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
-        { id: 'y1', fraDato: '22-06-2023', tilDato: '31-05-2025', ydelse: asAmountValue(100), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
+        { id: 'y1', fraDato: '2023-06-22', tilDato: '2025-05-31', ydelse: asAmountValue(100), tillaeg: asAmountValue(0), ydelsestype: 'Sygedagpenge' },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -1272,8 +1272,8 @@ describe('buildTafPerYearResult', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-06-2024',
-          tilDato: '31-03-2025',
+          fraDato: '2024-06-01',
+          tilDato: '2025-03-31',
           ydelse: asAmountValue(3000),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Kontanthjælp',

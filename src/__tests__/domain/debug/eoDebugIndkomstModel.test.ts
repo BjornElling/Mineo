@@ -179,8 +179,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: '2024-01-01',
+        tilDato: '2024-01-31',
         ydelsestype: 'dagpenge',
         ydelse: amount(1200),
       },
@@ -197,7 +197,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
       {
         id: 'row-1',
         fraDato: '',
-        tilDato: '31-01-2024',
+        tilDato: '2024-01-31',
         ydelsestype: 'dagpenge',
         ydelse: amount(1200),
       },
@@ -214,8 +214,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: '2024-01-01',
+        tilDato: '2024-01-31',
         ydelsestype: '',
         ydelse: amount(1200),
       },
@@ -233,8 +233,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: '2024-01-01',
+        tilDato: '2024-01-31',
         ydelsestype: 'dagpenge',
         ydelse: { kind: 'expression' as const, value: 100, expression: '' },
       },
@@ -251,8 +251,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: '2024-01-01',
+        tilDato: '2024-01-31',
         ydelsestype: 'dagpenge',
         ydelse: undefined,
         tillaeg: { kind: 'expression' as const, value: 100, expression: '' },
@@ -270,8 +270,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: '2024-01-01',
+        tilDato: '2024-01-31',
         ydelsestype: 'dagpenge',
       },
     ];
@@ -287,8 +287,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: '2024-01-01',
+        tilDato: '2024-01-31',
         ydelsestype: 'dagpenge',
         ydelse: amount(0),
       },

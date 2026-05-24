@@ -1,6 +1,6 @@
 import type { OffentligeYdelserRow, StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../schemas/formSchemas';
-import { dateToISO } from '../../../types/branded';
-import { parseDanishDate, parseWeekString } from '../../../utils/dateUtils';
+import { dateToISO, isISODateString } from '../../../types/branded';
+import { parseWeekString } from '../../../utils/dateUtils';
 import { MIN_YEAR, CURRENT_YEAR } from '../../../config/dateRanges';
 import { getStandardLoenTableValidation, isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../aarsloen/standardLoenTableValidation';
 import type { StandardLoenTableColumnKey } from '../../../types/table';
@@ -67,7 +67,7 @@ const isValidWeekValue = (value: string | undefined): boolean => {
 
 const isValidDateValue = (value: string | undefined): boolean => {
   if (isStandardLoenTableValueEffectivelyEmptyForValidation(value)) return true;
-  return parseDanishDate((value ?? '').trim()) !== null;
+  return isISODateString(value);
 };
 
 export const buildStandardLoenCellErrors = (rows: readonly StandardLoenTableRow[], loenperiode: Loenperiode): Record<string, true> => {
@@ -97,7 +97,7 @@ export const buildStandardLoenCellErrors = (rows: readonly StandardLoenTableRow[
 
 const isValidOffentligDatoValue = (value: string | undefined): boolean => {
   if (isOffentligeYdelserTableValueEffectivelyEmptyForValidation(value)) return true;
-  return parseDanishDate((value ?? '').trim()) !== null;
+  return isISODateString(value);
 };
 
 export const buildOffentligeYdelserCellErrors = (rows: readonly OffentligeYdelserRow[]): Record<string, true> => {

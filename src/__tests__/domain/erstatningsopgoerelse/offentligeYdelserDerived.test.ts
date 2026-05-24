@@ -23,8 +23,8 @@ describe('deriveOffentligeYdelserRow', () => {
   it('beregner ydelse pr. dag for kalenderdage', () => {
     const row: OffentligeYdelserRow = {
       ...baseRow,
-      fraDato: '01-01-2024',
-      tilDato: '10-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-10',
       ydelsestype: 'dagpenge',
       ydelse: asAmountValue(1000),
       tillaeg: asAmountValue(0),
@@ -37,8 +37,8 @@ describe('deriveOffentligeYdelserRow', () => {
   it('returnerer null ved ugyldig periode', () => {
     const row: OffentligeYdelserRow = {
       ...baseRow,
-      fraDato: '10-01-2024',
-      tilDato: '01-01-2024',
+      fraDato: '2024-01-10',
+      tilDato: '2024-01-01',
       ydelsestype: 'dagpenge',
       ydelse: asAmountValue(100),
       tillaeg: asAmountValue(0),
@@ -51,8 +51,8 @@ describe('deriveOffentligeYdelserRow', () => {
   it('returnerer periodiseringLabel fra ydelsestype-config', () => {
     const row: OffentligeYdelserRow = {
       ...baseRow,
-      fraDato: '01-01-2024',
-      tilDato: '10-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-10',
       ydelsestype: 'dagpenge',
       ydelse: asAmountValue(1000),
     };
@@ -69,8 +69,8 @@ describe('deriveOffentligeYdelserRow', () => {
   it('antalDage sat men ydelsePerDag null når ydelse og tillaeg begge mangler', () => {
     const row: OffentligeYdelserRow = {
       ...baseRow,
-      fraDato: '01-01-2024',
-      tilDato: '10-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-10',
       ydelsestype: 'dagpenge',
       ydelse: undefined,
       tillaeg: undefined,
@@ -83,8 +83,8 @@ describe('deriveOffentligeYdelserRow', () => {
   it('summerer ydelse + tillaeg korrekt', () => {
     const row: OffentligeYdelserRow = {
       ...baseRow,
-      fraDato: '01-01-2024',
-      tilDato: '10-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-10',
       ydelsestype: 'dagpenge',
       ydelse: asAmountValue(800),
       tillaeg: asAmountValue(200),
@@ -96,16 +96,16 @@ describe('deriveOffentligeYdelserRow', () => {
   it('behandler de to ydelsesfelter ens og summerer dem blot i beregningen', () => {
     const kunFoersteFelt: OffentligeYdelserRow = {
       ...baseRow,
-      fraDato: '01-01-2024',
-      tilDato: '10-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-10',
       ydelsestype: 'dagpenge',
       ydelse: asAmountValue(1000),
       tillaeg: asAmountValue(0),
     };
     const fordeltMellemBegge: OffentligeYdelserRow = {
       ...baseRow,
-      fraDato: '01-01-2024',
-      tilDato: '10-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-10',
       ydelsestype: 'dagpenge',
       ydelse: asAmountValue(800),
       tillaeg: asAmountValue(200),
@@ -117,8 +117,8 @@ describe('deriveOffentligeYdelserRow', () => {
   it('sygedagpenge bruger arbejdsdage-periodisering (periodiseringLabel = Arbejdsdage)', () => {
     const row: OffentligeYdelserRow = {
       ...baseRow,
-      fraDato: '08-01-2024',
-      tilDato: '12-01-2024',
+      fraDato: '2024-01-08',
+      tilDato: '2024-01-12',
       ydelsestype: 'sygedagpenge',
       ydelse: asAmountValue(2500),
       tillaeg: asAmountValue(0),
@@ -132,8 +132,8 @@ describe('deriveOffentligeYdelserRow', () => {
   it('kun tillaeg (ydelse undefined) → ydelsePerDag beregnes fra tillaeg alene', () => {
     const row: OffentligeYdelserRow = {
       ...baseRow,
-      fraDato: '01-01-2024',
-      tilDato: '10-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-10',
       ydelsestype: 'dagpenge',
       ydelse: undefined,
       tillaeg: asAmountValue(500),
@@ -146,8 +146,8 @@ describe('deriveOffentligeYdelserRow', () => {
   it('beregner ydelse pr. dag for midlertidigt EET ved at dividere periodetotalbeløbet med kalenderdage', () => {
     const row: OffentligeYdelserRow = {
       ...baseRow,
-      fraDato: '01-01-2024',
-      tilDato: '10-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-10',
       ydelsestype: 'midlertidigt_eet',
       ydelse: asAmountValue(1000),
     };

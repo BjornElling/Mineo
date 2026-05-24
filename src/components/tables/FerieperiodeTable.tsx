@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
-import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
+import TableDateInput from '../inputs/table/TableDateInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
@@ -143,7 +143,7 @@ const FerieperiodeTable = React.memo(
             return (
               <TableRow key={row.id} data-mineo-row-id={row.id}>
                 <TableCell>
-                  <TableDateIsoInput
+                  <TableDateInput
                     gridCell={{ rowId: row.id, colIndex: 0 }}
                     value={fraISO}
                     onBlur={(e) => {
@@ -161,7 +161,7 @@ const FerieperiodeTable = React.memo(
                   />
                 </TableCell>
                 <TableCell>
-                  <TableDateIsoInput
+                  <TableDateInput
                     gridCell={{ rowId: row.id, colIndex: 1 }}
                     value={tilISO}
                     onBlur={(e) => {

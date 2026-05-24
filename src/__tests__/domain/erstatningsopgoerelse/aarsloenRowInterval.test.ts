@@ -168,44 +168,47 @@ describe('parseAarsloenRowInterval — dag', () => {
     expect(parseAarsloenRowInterval(dagRow('', ''), 'dag')).toBeNull();
   });
 
-  it('accepterer gyldigt dansk datoformat', () => {
+  it('accepterer gyldigt ISO-datoformat', () => {
+    const result = parseAarsloenRowInterval(dagRow('2024-01-01', '2024-01-31'), 'dag');
+    expect(result).not.toBeNull();
+    expect(toUtcDateStr(result!.start)).toBe('2024-01-01');
+    expect(toUtcDateStr(result!.end)).toBe('2024-01-31');
+  });
+
+  it('accepterer legacy dansk visningsformat ved intervalberegning', () => {
     const result = parseAarsloenRowInterval(dagRow('01-01-2024', '31-01-2024'), 'dag');
     expect(result).not.toBeNull();
     expect(toUtcDateStr(result!.start)).toBe('2024-01-01');
     expect(toUtcDateStr(result!.end)).toBe('2024-01-31');
   });
 
-  it('returnerer null for ISO-format (ikke dansk)', () => {
-    expect(parseAarsloenRowInterval(dagRow('2024-01-01', '2024-01-31'), 'dag')).toBeNull();
-  });
-
   it('returnerer null for fra > til', () => {
-    expect(parseAarsloenRowInterval(dagRow('31-01-2024', '01-01-2024'), 'dag')).toBeNull();
+    expect(parseAarsloenRowInterval(dagRow('2024-01-31', '2024-01-01'), 'dag')).toBeNull();
   });
 
   it('accepterer fra = til (samme dag)', () => {
-    const result = parseAarsloenRowInterval(dagRow('15-06-2024', '15-06-2024'), 'dag');
+    const result = parseAarsloenRowInterval(dagRow('2024-06-15', '2024-06-15'), 'dag');
     expect(result).not.toBeNull();
     expect(toUtcDateStr(result!.start)).toBe('2024-06-15');
     expect(toUtcDateStr(result!.end)).toBe('2024-06-15');
   });
 
   it('over månedsskift: korrekte datoer', () => {
-    const result = parseAarsloenRowInterval(dagRow('29-01-2024', '02-02-2024'), 'dag');
+    const result = parseAarsloenRowInterval(dagRow('2024-01-29', '2024-02-02'), 'dag');
     expect(result).not.toBeNull();
     expect(toUtcDateStr(result!.start)).toBe('2024-01-29');
     expect(toUtcDateStr(result!.end)).toBe('2024-02-02');
   });
 
   it('over DST-skift (marts→april 2024)', () => {
-    const result = parseAarsloenRowInterval(dagRow('29-03-2024', '01-04-2024'), 'dag');
+    const result = parseAarsloenRowInterval(dagRow('2024-03-29', '2024-04-01'), 'dag');
     expect(result).not.toBeNull();
     expect(toUtcDateStr(result!.start)).toBe('2024-03-29');
     expect(toUtcDateStr(result!.end)).toBe('2024-04-01');
   });
 
   it('over nytår: korrekte datoer', () => {
-    const result = parseAarsloenRowInterval(dagRow('30-12-2023', '02-01-2024'), 'dag');
+    const result = parseAarsloenRowInterval(dagRow('2023-12-30', '2024-01-02'), 'dag');
     expect(result).not.toBeNull();
     expect(toUtcDateStr(result!.start)).toBe('2023-12-30');
     expect(toUtcDateStr(result!.end)).toBe('2024-01-02');
@@ -216,7 +219,7 @@ describe('parseAarsloenRowInterval — dag', () => {
   });
 
   it('håndterer whitespace', () => {
-    const result = parseAarsloenRowInterval(dagRow('  01-01-2024  ', '  31-01-2024  '), 'dag');
+    const result = parseAarsloenRowInterval(dagRow('2024-01-01', '2024-01-31'), 'dag');
     expect(result).not.toBeNull();
   });
 });

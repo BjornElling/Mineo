@@ -4,7 +4,6 @@ import TableDateInput from '../inputs/table/TableDateInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 import { dateRanges_offentligeYdelser } from '../../config/dateRanges';
-import { coerceToISODateString } from '../../types/branded';
 import { initialOffentligYdelseRow, generateOffentligYdelseRowId } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
@@ -63,13 +62,6 @@ const isEffectivelyEmpty = (value: string | undefined): boolean => {
 
 const isAmountEmpty = (value: AmountValue | undefined): boolean => {
   return value === undefined;
-};
-
-const asValidDateBound = (raw: string | undefined): string | undefined => {
-  if (typeof raw !== 'string') return undefined;
-  const trimmed = raw.trim();
-  if (trimmed === '') return undefined;
-  return coerceToISODateString(trimmed);
 };
 
 const isRowEmpty = (row: OffentligeYdelserRow): boolean => {
@@ -251,8 +243,8 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
     }, []);
 
     const sortColumns = React.useMemo(() => [
-      { colId: 'fraDato', getSortValue: (row: OffentligeYdelserRow) => coerceToISODateString(row.fraDato?.trim() ?? '') ?? '' },
-      { colId: 'tilDato', getSortValue: (row: OffentligeYdelserRow) => coerceToISODateString(row.tilDato?.trim() ?? '') ?? '' },
+      { colId: 'fraDato', getSortValue: (row: OffentligeYdelserRow) => row.fraDato ?? '' },
+      { colId: 'tilDato', getSortValue: (row: OffentligeYdelserRow) => row.tilDato ?? '' },
       { colId: 'ydelse', getSortValue: (row: OffentligeYdelserRow) => amountValueToNumber(row.ydelse) },
       { colId: 'tillaeg', getSortValue: (row: OffentligeYdelserRow) => amountValueToNumber(row.tillaeg) },
       {
@@ -414,7 +406,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                       externalErrorMessage={getExternalErrorMessage(row.id, 'fraDato')}
                       inputRef={registerCellRef(row.id, 0)}
                       minDate={dateRanges_offentligeYdelser.fraDato.min}
-                      maxDate={asValidDateBound(row.tilDato) ?? dateRanges_offentligeYdelser.fraDato.fallbackMax}
+                      maxDate={row.tilDato ?? dateRanges_offentligeYdelser.fraDato.fallbackMax}
                       specialRangeErrors={{ fraTilRole: 'fra' }}
                       noValidRangeCause="Til-dato i samme række"
                     />
@@ -428,7 +420,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                       onErrorChange={handleErrorChange(row.id, 'tilDato')}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'tilDato')}
                       inputRef={registerCellRef(row.id, 1)}
-                      minDate={asValidDateBound(row.fraDato) ?? dateRanges_offentligeYdelser.tilDato.fallbackMin}
+                      minDate={row.fraDato ?? dateRanges_offentligeYdelser.tilDato.fallbackMin}
                       maxDate={dateRanges_offentligeYdelser.tilDato.max}
                       specialRangeErrors={{ fraTilRole: 'til' }}
                       noValidRangeCause="Fra-dato i samme række"

@@ -166,7 +166,7 @@ const isManualReguleringRowEffectivelyEmpty = (
     typeof value !== 'number' || !Number.isFinite(value);
 
   return (
-    (row.dato?.trim() ?? '') === '' &&
+    row.dato === undefined &&
     isStandardLoenTableValueEffectivelyEmptyForValidation(row.grundloen) &&
     isManualPercentEmpty(row.feriepenge) &&
     isManualPercentEmpty(row.shSoSats) &&

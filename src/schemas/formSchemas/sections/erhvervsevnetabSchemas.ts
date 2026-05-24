@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { optionalIsoDateString, percentageDecimal, tableDateCellString } from '../baseSchemas';
+import { optionalIsoDateString, percentageDecimal, tableIsoDateCellString } from '../baseSchemas';
 import { afgoerelseTypeEnum, jaNejEnum, koenEnum } from '../enumSchemas';
 import type { FaellesAarsloenValues } from './faellesAarsloenSchemas';
 import type { StamdataValues } from './stamdataSchemas';
@@ -8,13 +8,13 @@ import type { StamdataValues } from './stamdataSchemas';
 
 export const aslAfgoerelseRowSchema = z.object({
   id: z.string().min(1, 'Række-ID må ikke være tomt'),
-  afgoerelsesDato: tableDateCellString,
-  virkningsDato: tableDateCellString,
+  afgoerelsesDato: tableIsoDateCellString,
+  virkningsDato: tableIsoDateCellString,
   eetPct: percentageDecimal,
-  kapDato: tableDateCellString,
+  kapDato: tableIsoDateCellString,
   kapPct: percentageDecimal,
   afgoerelseType: afgoerelseTypeEnum.optional(),
-  tidlKapDato: tableDateCellString,
+  tidlKapDato: tableIsoDateCellString,
   fsTilbageholdtEet: jaNejEnum.default('Nej'),
 }).strict();
 

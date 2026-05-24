@@ -8,7 +8,6 @@ import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreCo
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
 import TableAmountInput from '../../../components/inputs/table/TableAmountInput';
 import TableDateInput from '../../../components/inputs/table/TableDateInput';
-import TableDateIsoInput from '../../../components/inputs/table/TableDateIsoInput';
 import TableIntegerInput from '../../../components/inputs/table/TableIntegerInput';
 import TablePercentInput from '../../../components/inputs/table/TablePercentInput';
 import TableTextInput from '../../../components/inputs/table/TableTextInput';
@@ -16,7 +15,7 @@ import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
 import TableYearInput from '../../../components/inputs/table/TableYearInput';
 import TableDropdown from '../../../components/inputs/table/TableDropdown';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import type { ISODateString } from '../../../types/branded';
+import { isISODateString, toISODateString, type ISODateString } from '../../../types/branded';
 import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 
 const gridCell: GridCellCoord = { rowId: 'row-1', colIndex: 0 };
@@ -96,6 +95,9 @@ type DeleteClearCase = Readonly<{
   renderManagedInput: (props: Readonly<{ value: TestCommitValue; onBlur: (value: TestCommitValue) => void }>) => React.JSX.Element;
 }>;
 
+const iso = (value: string): ISODateString => toISODateString(value);
+const asDateInputValue = (value: TestCommitValue): ISODateString | undefined => (isISODateString(value) ? value : undefined);
+
 const NOOP_CASES: readonly NoopCase[] = [
   {
     label: 'integer',
@@ -142,7 +144,7 @@ const NOOP_CASES: readonly NoopCase[] = [
     renderInput: (onBlur) => (
       <TableDateInput
         gridCell={gridCell}
-        value="01-01-2025"
+        value={iso('2025-01-01')}
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -243,7 +245,7 @@ const AUTOCOMPLETE_OFF_CASES: readonly AutoCompleteCase[] = [
     renderInput: () => (
       <TableDateInput
         gridCell={gridCell}
-        value="01-01-2025"
+        value={iso('2025-01-01')}
       />
     ),
   },
@@ -308,12 +310,7 @@ const CANONICAL_PLACEHOLDER_CASES: readonly PlaceholderCase[] = [
   {
     label: 'date',
     expectedPlaceholder: 'dd-mm-åååå',
-    renderInput: () => <TableDateInput gridCell={gridCell} value="" />,
-  },
-  {
-    label: 'iso-date',
-    expectedPlaceholder: 'dd-mm-åååå',
-    renderInput: () => <TableDateIsoInput gridCell={gridCell} value={undefined} />,
+    renderInput: () => <TableDateInput gridCell={gridCell} value={undefined} />,
   },
   {
     label: 'week',
@@ -334,7 +331,7 @@ const LOCKED_SELECTABLE_CASES: readonly LockedSelectableCase[] = [
   },
   {
     label: 'date',
-    renderInput: () => <TableDateInput gridCell={gridCell} value="01-01-2025" locked />,
+    renderInput: () => <TableDateInput gridCell={gridCell} value={iso('2025-01-01')} locked />,
   },
   {
     label: 'integer',
@@ -423,12 +420,12 @@ const INVALID_PRESERVE_CASES: readonly InvalidPreserveCase[] = [
   },
   {
     label: 'date',
-    initialValue: '01-01-2025',
+    initialValue: '2025-01-01',
     invalidDraft: '32-01-2025',
     renderManagedInput: ({ value, onBlur }) => (
       <TableDateInput
         gridCell={gridCell}
-        value={typeof value === 'string' ? value : ''}
+        value={asDateInputValue(value)}
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -537,13 +534,13 @@ const CLICK_OUTSIDE_COMMIT_CASES: readonly ClickOutsideCommitCase[] = [
   },
   {
     label: 'date',
-    initialValue: '01-01-2024',
+    initialValue: '2024-01-01',
     typedDraft: '1-2-2025',
-    expectedCommitted: '01-02-2025',
+    expectedCommitted: '2025-02-01',
     renderManagedInput: ({ value, onBlur }) => (
       <TableDateInput
         gridCell={gridCell}
-        value={value}
+        value={asDateInputValue(value)}
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -591,9 +588,10 @@ const ESCAPE_CANCEL_CASES: readonly EscapeCancelCase[] = [
   },
   {
     label: 'date',
-    initialValue: '01-01-2025',
+    initialValue: '2025-01-01',
     typedDraft: '15-06-2025',
-    renderManagedInput: ({ value, onBlur }) => <TableDateInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+    expectedDisplayAfterCancel: '01-01-2025',
+    renderManagedInput: ({ value, onBlur }) => <TableDateInput gridCell={gridCell} value={asDateInputValue(value)} onBlur={(e) => onBlur(e.target.value)} />,
   },
 ];
 
@@ -624,9 +622,9 @@ const DELETE_CLEAR_CASES: readonly DeleteClearCase[] = [
   },
   {
     label: 'date',
-    initialValue: '01-01-2025',
-    expectedCommitted: '',
-    renderManagedInput: ({ value, onBlur }) => <TableDateInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+    initialValue: '2025-01-01',
+    expectedCommitted: undefined,
+    renderManagedInput: ({ value, onBlur }) => <TableDateInput gridCell={gridCell} value={asDateInputValue(value)} onBlur={(e) => onBlur(e.target.value)} />,
   },
 ];
 
@@ -917,10 +915,10 @@ describe('table commit-kontrakt', () => {
 
   it('StandardGridTable committer date ved klik udenfor tabellen', async () => {
     const user = userEvent.setup();
-    const onBlur = vi.fn<(value: string) => void>();
+    const onBlur = vi.fn<(value: ISODateString | undefined) => void>();
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState('');
+      const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
       return (
         <>
           <StandardGridTable tableWidth="160px">
@@ -956,16 +954,16 @@ describe('table commit-kontrakt', () => {
     await user.type(input, '1-2-2025');
     await user.click(outside);
 
-    expect(onBlur).toHaveBeenCalledWith('01-02-2025');
+    expect(onBlur).toHaveBeenCalledWith('2025-02-01');
     expect(input).toHaveValue('01-02-2025');
   });
 
   it('StandardGridTable committer key-startet date-edit ved klik udenfor tabellen', async () => {
     const user = userEvent.setup();
-    const onBlur = vi.fn<(value: string) => void>();
+    const onBlur = vi.fn<(value: ISODateString | undefined) => void>();
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState('');
+      const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
       return (
         <>
           <StandardGridTable tableWidth="160px">
@@ -1001,7 +999,7 @@ describe('table commit-kontrakt', () => {
     await user.keyboard('-2-2025');
     await user.click(outside);
 
-    expect(onBlur).toHaveBeenCalledWith('01-02-2025');
+    expect(onBlur).toHaveBeenCalledWith('2025-02-01');
     expect(input).toHaveValue('01-02-2025');
   });
 
@@ -1190,7 +1188,7 @@ describe('table commit-kontrakt', () => {
               getEditor: () => editorHandle,
             }}
           >
-            <TableDateIsoInput
+            <TableDateInput
               gridCell={gridCell}
               value={value}
               onBlur={(e) => {

@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord } from '../../../components/tables/gridCore/gridCoreTypes';
 import TableDateInput from '../../../components/inputs/table/TableDateInput';
+import { sanitizeTableDateDraft } from '../../../hooks/tableInput';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 import { __resetDraftHistoryRegistryForTests, restoreDraftHistoryTarget } from '../../../utils/draftHistoryRegistry';
 
@@ -20,6 +22,8 @@ const createGridValue = (gridCell: GridCellCoord, editingCell: GridCellCoord | n
 };
 
 describe('TableDateInput', () => {
+  const iso = (value: string): ISODateString => toISODateString(value);
+
   beforeEach(() => {
     __resetDraftHistoryRegistryForTests();
   });
@@ -29,7 +33,7 @@ describe('TableDateInput', () => {
     const gridCell = { rowId: 'row-1', colIndex: 0 };
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState('');
+      const [value, setValue] = React.useState<React.ComponentProps<typeof TableDateInput>['value']>(undefined);
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
@@ -64,12 +68,27 @@ describe('TableDateInput', () => {
     expect(errorEl).toHaveTextContent(/Dato skal/);
   });
 
+  it('viser ISO-model som dansk display og sanitizer dansk draft til ISO', () => {
+    const gridCell = { rowId: 'row-iso-display', colIndex: 0 };
+    const gridValue = createGridValue(gridCell, null);
+
+    render(
+      <GridCoreProvider value={gridValue}>
+        <TableDateInput gridCell={gridCell} value={iso('2026-05-24')} />
+      </GridCoreProvider>
+    );
+
+    expect(screen.getByRole('textbox')).toHaveValue('24-05-2026');
+    expect(sanitizeTableDateDraft('24-05-2026', { twoDigitYearPolicy: 'infer' })).toBe('2026-05-24');
+    expect(sanitizeTableDateDraft('ikke en dato', { twoDigitYearPolicy: 'infer' })).toBeUndefined();
+  });
+
   it('keeps invalid format and shows error', async () => {
     const user = userEvent.setup();
     const gridCell = { rowId: 'row-2', colIndex: 0 };
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState('');
+      const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
@@ -109,7 +128,7 @@ describe('TableDateInput', () => {
 
     render(
       <GridCoreProvider value={gridValue}>
-        <TableDateInput gridCell={gridCell} value="01-01-2020" />
+        <TableDateInput gridCell={gridCell} value={iso('2020-01-01')} />
       </GridCoreProvider>
     );
 
@@ -143,7 +162,7 @@ describe('TableDateInput', () => {
         <GridCoreProvider value={gridValue}>
           <TableDateInput
             gridCell={gridCell}
-            value="15-06-2025"
+            value={iso('2025-06-15')}
             minDate="2025-12-31"
             maxDate="2025-01-01"
           />
@@ -163,7 +182,7 @@ describe('TableDateInput', () => {
     const gridCell = { rowId: 'row-4', colIndex: 0 };
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState('01-01-2023');
+      const [value, setValue] = React.useState<ISODateString | undefined>(iso('2023-01-01'));
       const [minDate, setMinDate] = React.useState('2024-01-01');
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
@@ -212,7 +231,7 @@ describe('TableDateInput', () => {
     const gridCell = { rowId: 'row-5', colIndex: 0 };
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState('');
+      const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(null);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
@@ -244,7 +263,7 @@ describe('TableDateInput', () => {
     const gridCell = { rowId: 'row-5b', colIndex: 0 };
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState('');
+      const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
@@ -277,7 +296,7 @@ describe('TableDateInput', () => {
     const gridCell = { rowId: 'row-5bb', colIndex: 0 };
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState('');
+      const [value, setValue] = React.useState<ISODateString | undefined>(undefined);
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
@@ -316,7 +335,7 @@ describe('TableDateInput', () => {
 
     render(
       <GridCoreProvider value={gridValue}>
-        <TableDateInput gridCell={gridCell} value="" />
+        <TableDateInput gridCell={gridCell} value={undefined} />
       </GridCoreProvider>
     );
 
@@ -337,7 +356,7 @@ describe('TableDateInput', () => {
 
       return (
         <GridCoreProvider value={gridValue}>
-          <TableDateInput gridCell={gridCell} value="01-05-2023" />
+          <TableDateInput gridCell={gridCell} value={iso('2023-05-01')} />
         </GridCoreProvider>
       );
     };

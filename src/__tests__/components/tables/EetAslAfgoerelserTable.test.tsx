@@ -55,7 +55,7 @@ describe('EetAslAfgoerelserTable', () => {
     const lastCallArg = onTableDataChange.mock.calls[0]?.[0] as Array<Record<string, unknown>>;
     expect(Array.isArray(lastCallArg)).toBe(true);
     expect(lastCallArg).toHaveLength(1);
-    expect(lastCallArg[0]?.afgoerelsesDato).toBe('01-02-2024');
+    expect(lastCallArg[0]?.afgoerelsesDato).toBe('2024-02-01');
   }, ASYNC_TEST_TIMEOUT_MS);
 
   it('viser valideringsfeedback for procent- og datofelter', () => {

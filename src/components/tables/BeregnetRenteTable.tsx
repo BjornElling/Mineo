@@ -3,7 +3,7 @@ import { Box, IconButton, TableBody, TableCell, TableHead, TableRow, Typography 
 import { Download } from '@mui/icons-material';
 import type { RateEntry } from '../../data/interestRates';
 import TableAmountInput from '../inputs/table/TableAmountInput';
-import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
+import TableDateInput from '../inputs/table/TableDateInput';
 import TableIntegerInput from '../inputs/table/TableIntegerInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
@@ -124,7 +124,7 @@ const BeregnetRenteRow = React.memo(
         </TableCell>
 
         <TableCell>
-          <TableDateIsoInput
+          <TableDateInput
             gridCell={{ rowId: row.id, colIndex: 1 }}
             value={committedRow.renterFra}
             onBlur={(e) => {

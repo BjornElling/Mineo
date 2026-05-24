@@ -43,7 +43,7 @@ describe('calculateLoenindkomstRowDerived', () => {
       shSoPct: 0,
       loenudviklingManuelTableData: [
         { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '0', fritvalg: '', agPension: '' },
-        { id: 'step', dato: '15-01-2024', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
+        { id: 'step', dato: '2024-01-15', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
       ],
     };
     const row: StandardLoenTableRow = {
@@ -78,8 +78,8 @@ describe('calculateLoenindkomstRowDerived', () => {
       storeBededagPct: 0,
       pensionPct: 10,
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '28-02-2025', grundloen: asAmountValue(0), feriepenge: '15', shSoSats: '', fritvalg: '', agPension: '10' },
-        { id: 'step', dato: '01-05-2025', grundloen: asAmountValue(0), feriepenge: '15', shSoSats: '', fritvalg: '', agPension: '12' },
+        { id: 'base', dato: '2025-02-28', grundloen: asAmountValue(0), feriepenge: '15', shSoSats: '', fritvalg: '', agPension: '10' },
+        { id: 'step', dato: '2025-05-01', grundloen: asAmountValue(0), feriepenge: '15', shSoSats: '', fritvalg: '', agPension: '12' },
       ],
     };
     const row: StandardLoenTableRow = {
@@ -113,13 +113,13 @@ describe('calculateLoenindkomstRowDerived', () => {
       shSoPct: 0,
       loenudviklingManuelTableData: [
         { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '0', fritvalg: '', agPension: '' },
-        { id: 'step', dato: '15-01-2024', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
+        { id: 'step', dato: '2024-01-15', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
       ],
     };
     const row: StandardLoenTableRow = {
       ...createEmptyRow(),
-      col0_dag: '01-01-2024',
-      col1_dag: '19-01-2024',
+      col0_dag: '2024-01-01',
+      col1_dag: '2024-01-19',
       col2: asAmountValue(1400),
     };
     const context = {
@@ -146,13 +146,13 @@ describe('calculateLoenindkomstRowDerived', () => {
       shSoPct: 0,
       loenudviklingManuelTableData: [
         { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '0', fritvalg: '', agPension: '' },
-        { id: 'step', dato: '10-01-2024', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
+        { id: 'step', dato: '2024-01-10', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
       ],
     };
     const row: StandardLoenTableRow = {
       ...createEmptyRow(),
-      col0_dag: '08-01-2024',
-      col1_dag: '12-01-2024',
+      col0_dag: '2024-01-08',
+      col1_dag: '2024-01-12',
       col2: asAmountValue(1000),
     };
     const context = {
@@ -189,8 +189,8 @@ describe('calculateLoenindkomstRowDerived', () => {
     };
     const row: StandardLoenTableRow = {
       ...createEmptyRow(),
-      col0_dag: '26-02-2024',
-      col1_dag: '05-03-2024',
+      col0_dag: '2024-02-26',
+      col1_dag: '2024-03-05',
       col2: asAmountValue(900),
     };
     const context = {

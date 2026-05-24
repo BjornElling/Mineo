@@ -12,8 +12,8 @@ export const initialRow: Omit<StandardLoenTableRow, 'id'> & { id: '' } = {
   col1_maaned: '',
   col0_uge: '',
   col1_uge: '',
-  col0_dag: '',
-  col1_dag: '',
+  col0_dag: undefined,
+  col1_dag: undefined,
   col2: undefined,
   col3: undefined,
   col4: undefined,
@@ -54,8 +54,8 @@ export const generateLoenudviklingRowId = (): string => {
  */
 export const initialOffentligYdelseRow = {
   id: '',
-  fraDato: '',
-  tilDato: '',
+  fraDato: undefined,
+  tilDato: undefined,
   ydelse: undefined,
   tillaeg: undefined,
   ydelsestype: '',
@@ -66,7 +66,7 @@ export const initialOffentligYdelseRow = {
  */
 export const initialLoenudviklingManuelRow = {
   id: '',
-  dato: '',
+  dato: undefined,
   grundloen: undefined,
   feriepenge: undefined,
   shSoSats: undefined,

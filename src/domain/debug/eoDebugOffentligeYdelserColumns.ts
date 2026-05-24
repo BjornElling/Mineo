@@ -1,7 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { dateToISO } from '../../types/branded';
-import { parseDanishDate } from '../../utils/dateUtils';
+import { coerceToISODateString, dateToISO } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { parseAmount } from '../../utils/numberParsing';
 import { ydelsestyper, type Periodisering } from '../../data/ydelsestyper';
@@ -22,9 +21,7 @@ export type OffentligYdelseCoreColumn = Readonly<{
 export const parseOffentligDato = (value: string | undefined): ISODateString | undefined => {
   const trimmed = (value ?? '').trim();
   if (trimmed === '') return undefined;
-  const parsed = parseDanishDate(trimmed);
-  if (!parsed) return undefined;
-  return dateToISO(parsed);
+  return coerceToISODateString(trimmed);
 };
 
 const isOffentligYdelseDatoMedregnet = (

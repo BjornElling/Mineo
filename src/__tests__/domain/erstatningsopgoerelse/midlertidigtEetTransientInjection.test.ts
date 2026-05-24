@@ -148,7 +148,7 @@ describe('midlertidigt EET transient injection', () => {
 
     expect(snapshot.data).not.toBeNull();
     expect(snapshot.data?.midlertidigtEetGroups.flatMap((group) => group.perioder).at(-1)?.til).toBe('2024-04-30');
-    expect(importedRows.at(-1)?.tilDato).toBe('30-04-2024');
+    expect(importedRows.at(-1)?.tilDato).toBe('2024-04-30');
   });
 
   it('holder Midlertidig EET-bilagets sammentælling identisk med TAF-fradraget', () => {
@@ -190,8 +190,8 @@ describe('midlertidigt EET transient injection', () => {
       midlertidigtEetFraEetSiden: 'Nej' as const,
       offentligeYdelserRows: [{
         id: 'midlertidigt-eet-1',
-        fraDato: '01-01-2024',
-        tilDato: '10-01-2024',
+        fraDato: '2024-01-01',
+        tilDato: '2024-01-10',
         ydelsestype: 'midlertidigt_eet' as const,
         ydelse: asAmountValue(101),
         tillaeg: undefined,

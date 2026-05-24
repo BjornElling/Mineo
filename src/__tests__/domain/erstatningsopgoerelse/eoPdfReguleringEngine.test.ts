@@ -510,7 +510,7 @@ describe('eoPdfReguleringEngine', () => {
     af.loenudviklingManuelTableData = [
       {
         id: 'm1',
-        dato: '26-01-2024',
+        dato: '2024-01-26',
         grundloen: asAmountValue(177.56),
         feriepenge: '',
         shSoSats: '',
@@ -549,7 +549,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm2',
-        dato: '01-03-2024',
+        dato: '2024-03-01',
         grundloen: asAmountValue(25174),
         feriepenge: '15,00',
         shSoSats: '',
@@ -558,7 +558,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm3',
-        dato: '01-04-2024',
+        dato: '2024-04-01',
         grundloen: asAmountValue(25895),
         feriepenge: '15,00',
         shSoSats: '',
@@ -598,7 +598,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm2',
-        dato: '01-04-2024',
+        dato: '2024-04-01',
         grundloen: asAmountValue(184.66),
         feriepenge: '',
         shSoSats: '',
@@ -646,7 +646,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm2',
-        dato: '01-04-2024',
+        dato: '2024-04-01',
         grundloen: asAmountValue(184.66),
         feriepenge: '',
         shSoSats: '',
@@ -694,7 +694,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm2',
-        dato: '01-03-2024',
+        dato: '2024-03-01',
         grundloen: asAmountValue(142.65),
         feriepenge: '',
         shSoSats: '14,70',
@@ -732,7 +732,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm2',
-        dato: '01-06-2023',
+        dato: '2023-06-01',
         grundloen: asAmountValue(125),
         feriepenge: '',
         shSoSats: '',
@@ -741,7 +741,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm3',
-        dato: '01-02-2024',
+        dato: '2024-02-01',
         grundloen: asAmountValue(150),
         feriepenge: '',
         shSoSats: '',
@@ -788,7 +788,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm2',
-        dato: '01-03-2025',
+        dato: '2025-03-01',
         grundloen: asAmountValue(29613.15),
         feriepenge: '15,00',
         shSoSats: '',
@@ -797,7 +797,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm3',
-        dato: '01-05-2025',
+        dato: '2025-05-01',
         grundloen: asAmountValue(29613.15),
         feriepenge: '15,00',
         shSoSats: '',
@@ -835,7 +835,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm2',
-        dato: '10-01-2024',
+        dato: '2024-01-10',
         grundloen: asAmountValue(110),
         feriepenge: '',
         shSoSats: '',
@@ -873,7 +873,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm2',
-        dato: '15-02-2024',
+        dato: '2024-02-15',
         grundloen: asAmountValue(200),
         feriepenge: '',
         shSoSats: '20,00',
@@ -920,7 +920,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm2',
-        dato: '01-03-2024',
+        dato: '2024-03-01',
         grundloen: asAmountValue(25174),
         feriepenge: '15,00',
         shSoSats: '',
@@ -929,7 +929,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm3',
-        dato: '01-04-2024',
+        dato: '2024-04-01',
         grundloen: asAmountValue(25895),
         feriepenge: '15,00',
         shSoSats: '',
@@ -992,7 +992,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm2',
-        dato: '01-04-2024',
+        dato: '2024-04-01',
         grundloen: asAmountValue(110),
         feriepenge: '',
         shSoSats: '',
@@ -1001,7 +1001,7 @@ describe('eoPdfReguleringEngine', () => {
       },
       {
         id: 'm3',
-        dato: '01-06-2024',
+        dato: '2024-06-01',
         grundloen: asAmountValue(120),
         feriepenge: '',
         shSoSats: '',
@@ -1039,7 +1039,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-04-2020',
+        dato: '2020-04-01',
         grundloen: asAmountValue(141.78),
         feriepenge: '',
         shSoSats: '',
@@ -1047,7 +1047,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-10-2020',
+        dato: '2020-10-01',
         grundloen: asAmountValue(142.85),
         feriepenge: '',
         shSoSats: '',
@@ -1055,7 +1055,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-04-2021',
+        dato: '2021-04-01',
         grundloen: asAmountValue(144.28),
         feriepenge: '',
         shSoSats: '',
@@ -1063,7 +1063,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-10-2021',
+        dato: '2021-10-01',
         grundloen: asAmountValue(145.69),
         feriepenge: '',
         shSoSats: '',
@@ -1071,7 +1071,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-04-2022',
+        dato: '2022-04-01',
         grundloen: asAmountValue(145.69),
         feriepenge: '',
         shSoSats: '',
@@ -1112,7 +1112,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-04-2020',
+        dato: '2020-04-01',
         grundloen: asAmountValue(141.7798),
         feriepenge: '',
         shSoSats: '',
@@ -1120,7 +1120,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-10-2020',
+        dato: '2020-10-01',
         grundloen: asAmountValue(142.8511),
         feriepenge: '',
         shSoSats: '',
@@ -1128,7 +1128,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-04-2021',
+        dato: '2021-04-01',
         grundloen: asAmountValue(144.2796),
         feriepenge: '',
         shSoSats: '',
@@ -1136,7 +1136,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-10-2021',
+        dato: '2021-10-01',
         grundloen: asAmountValue(145.6933),
         feriepenge: '',
         shSoSats: '',
@@ -1144,7 +1144,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-04-2022',
+        dato: '2022-04-01',
         grundloen: asAmountValue(145.6933),
         feriepenge: '',
         shSoSats: '',
@@ -1152,7 +1152,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-10-2022',
+        dato: '2022-10-01',
         grundloen: asAmountValue(149.4018),
         feriepenge: '',
         shSoSats: '',
@@ -1160,7 +1160,7 @@ describe('eoPdfReguleringEngine', () => {
         agPension: '',
       },
       {
-        dato: '01-01-2023',
+        dato: '2023-01-01',
         grundloen: asAmountValue(149.4018),
         feriepenge: '',
         shSoSats: '',

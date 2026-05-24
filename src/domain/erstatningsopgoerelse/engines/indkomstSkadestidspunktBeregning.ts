@@ -14,7 +14,7 @@ import { getAngivetLoenBaseretPaa } from '../helpers/angivetLoenHelpers';
 import { isoDateToDate } from '../../dates/isoDate';
 import type { Calculable, IndkomstSkadestidspunktModel, MoneyOre } from '../shared/eoTypes';
 import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
-import { formatPercentFixed2, parseDanishToIso, resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
+import { formatPercentFixed2, resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort } from '../../../utils/dateFormatting';
 
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
@@ -101,13 +101,10 @@ export const buildIndkomstSkadestidspunkt = (
             const datedRow = manualRows
               .slice(1)
               .filter((row) => {
-                const rowIso = parseDanishToIso(row.dato);
-                return Boolean(rowIso && rowIso <= anvendtReguleringsdato);
+                return Boolean(row.dato && row.dato <= anvendtReguleringsdato);
               })
               .sort((left, right) => {
-                const leftIso = parseDanishToIso(left.dato) ?? '';
-                const rightIso = parseDanishToIso(right.dato) ?? '';
-                return leftIso.localeCompare(rightIso);
+                return (left.dato ?? '').localeCompare(right.dato ?? '');
               })
               .at(-1);
             return {

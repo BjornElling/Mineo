@@ -39,8 +39,8 @@ describe('sygedagpengeInsertRows', () => {
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
-      fraDato: '06-01-2025',
-      tilDato: '10-01-2025',
+      fraDato: '2025-01-06',
+      tilDato: '2025-01-10',
       ydelsestype: 'sygedagpenge',
     });
     expect(rows[0]?.ydelse).toEqual({

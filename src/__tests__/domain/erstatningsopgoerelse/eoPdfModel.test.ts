@@ -252,8 +252,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '31-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-31',
           ydelse: asAmountValue(1000),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -669,8 +669,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '02-01-2024',
-          tilDato: '04-01-2024',
+          fraDato: '2024-01-02',
+          tilDato: '2024-01-04',
           ydelse: asAmountValue(100),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -713,8 +713,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '10-01-2024',
-              col1_dag: '10-01-2024',
+              col0_dag: '2024-01-10',
+              col1_dag: '2024-01-10',
               col2: asAmountValue(1000),
               col3: undefined,
               col4: undefined,
@@ -726,16 +726,16 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '10-01-2024',
-          tilDato: '10-01-2024',
+          fraDato: '2024-01-10',
+          tilDato: '2024-01-10',
           ydelse: asAmountValue(10),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
         },
         {
           id: 'ydelse-2',
-          fraDato: '10-01-2024',
-          tilDato: '10-01-2024',
+          fraDato: '2024-01-10',
+          tilDato: '2024-01-10',
           ydelse: asAmountValue(20),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Midlertidigt EET',
@@ -764,8 +764,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '02-01-2024',
-          tilDato: '02-01-2024',
+          fraDato: '2024-01-02',
+          tilDato: '2024-01-02',
           ydelse: asAmountValue(100),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -801,8 +801,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -832,8 +832,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -866,8 +866,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -902,8 +902,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -937,8 +937,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -986,8 +986,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1023,8 +1023,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-02-2024',
-          tilDato: '01-02-2024',
+          fraDato: '2024-02-01',
+          tilDato: '2024-02-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1061,8 +1061,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-05-2024',
-          tilDato: '01-05-2024',
+          fraDato: '2024-05-01',
+          tilDato: '2024-05-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1203,8 +1203,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1218,7 +1218,7 @@ describe('eoPdfModel', () => {
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
             { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
-            { id: 'm2', dato: '01-07-2024', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm2', dato: '2024-07-01', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
           ],
         },
       ],
@@ -1247,8 +1247,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1262,7 +1262,7 @@ describe('eoPdfModel', () => {
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
             { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
-            { id: 'm2', dato: '31-01-2024', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm2', dato: '2024-01-31', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
           ],
         },
       ],
@@ -1288,8 +1288,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1303,7 +1303,7 @@ describe('eoPdfModel', () => {
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
             { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
-            { id: 'm2', dato: '02-01-2024', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm2', dato: '2024-01-02', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
           ],
         },
       ],
@@ -1329,8 +1329,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1344,7 +1344,7 @@ describe('eoPdfModel', () => {
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
             { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
-            { id: 'm2', dato: '01-01-2024', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm2', dato: '2024-01-01', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
           ],
         },
       ],
@@ -1368,8 +1368,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-12-2024',
-          tilDato: '01-12-2024',
+          fraDato: '2024-12-01',
+          tilDato: '2024-12-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1383,7 +1383,7 @@ describe('eoPdfModel', () => {
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
             { id: 'm1', dato: '', grundloen: asAmountValue(30000), feriepenge: '12,5', shSoSats: '0', fritvalg: '0', agPension: '10' },
-            { id: 'm2', dato: '01-01-2025', grundloen: asAmountValue(31000), feriepenge: '15,0', shSoSats: '0', fritvalg: '0', agPension: '10' },
+            { id: 'm2', dato: '2025-01-01', grundloen: asAmountValue(31000), feriepenge: '15,0', shSoSats: '0', fritvalg: '0', agPension: '10' },
           ],
         },
       ],
@@ -1407,8 +1407,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-12-2024',
-          tilDato: '01-12-2024',
+          fraDato: '2024-12-01',
+          tilDato: '2024-12-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1422,7 +1422,7 @@ describe('eoPdfModel', () => {
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
             { id: 'm1', dato: '', grundloen: asAmountValue(30000), feriepenge: '', shSoSats: '0', fritvalg: '0', agPension: '10' },
-            { id: 'm2', dato: '01-01-2025', grundloen: asAmountValue(31000), feriepenge: '', shSoSats: '0', fritvalg: '0', agPension: '10' },
+            { id: 'm2', dato: '2025-01-01', grundloen: asAmountValue(31000), feriepenge: '', shSoSats: '0', fritvalg: '0', agPension: '10' },
           ],
         },
       ],
@@ -1447,8 +1447,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1523,8 +1523,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1600,8 +1600,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1992,8 +1992,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2046,8 +2046,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2099,8 +2099,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '01-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2159,8 +2159,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-02-2024',
-          tilDato: '01-02-2024',
+          fraDato: '2024-02-01',
+          tilDato: '2024-02-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2180,8 +2180,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '01-01-2024',
-              col1_dag: '10-01-2024',
+              col0_dag: '2024-01-01',
+              col1_dag: '2024-01-10',
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -2226,8 +2226,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2024',
-          tilDato: '31-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-31',
           ydelse: asAmountValue(1000),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2292,7 +2292,7 @@ describe('eoPdfModel', () => {
           ],
           loenudviklingManuelTableData: [
             { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '', fritvalg: '', agPension: '8' },
-            { id: 'm2', dato: '01-02-2024', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '', fritvalg: '', agPension: '10' },
+            { id: 'm2', dato: '2024-02-01', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '', fritvalg: '', agPension: '10' },
           ],
         },
       ],
@@ -2469,8 +2469,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2004',
-          tilDato: '01-01-2004',
+          fraDato: '2004-01-01',
+          tilDato: '2004-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2498,8 +2498,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '01-01-2004',
-          tilDato: '01-01-2004',
+          fraDato: '2004-01-01',
+          tilDato: '2004-01-01',
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2768,7 +2768,7 @@ describe('eoPdfModel', () => {
             },
             {
               id: 'm2',
-              dato: '01-03-2024',
+              dato: '2024-03-01',
               grundloen: asAmountValue(25174),
               feriepenge: '15,00',
               shSoSats: '',
@@ -2777,7 +2777,7 @@ describe('eoPdfModel', () => {
             },
             {
               id: 'm3',
-              dato: '01-04-2024',
+              dato: '2024-04-01',
               grundloen: asAmountValue(25895),
               feriepenge: '15,00',
               shSoSats: '',
@@ -2824,7 +2824,7 @@ describe('eoPdfModel', () => {
             },
             {
               id: 'm2',
-              dato: '01-04-2024',
+              dato: '2024-04-01',
               grundloen: asAmountValue(184.66),
               feriepenge: '',
               shSoSats: '',
@@ -2833,7 +2833,7 @@ describe('eoPdfModel', () => {
             },
             {
               id: 'm3',
-              dato: '01-10-2024',
+              dato: '2024-10-01',
               grundloen: asAmountValue(187.06),
               feriepenge: '',
               shSoSats: '',
@@ -2933,7 +2933,7 @@ describe('eoPdfModel', () => {
           },
         ],
       });
-      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2001-01-01') });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2001-04-01') });
       expectSilencedConsoleErrorThrow(
         () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
         'Loenudvikling kan ikke beregnes: ugyldigt KRL indeks for segment'
@@ -2945,7 +2945,7 @@ describe('eoPdfModel', () => {
 
   it('fejler fail-closed ved ugyldig overenskomst-satsdata (privat)', () => {
     const spy = vi.spyOn(overenskomstRatesData, 'getEffektiveSatserForDato').mockReturnValue({
-      fraDato: '01-03-2011',
+      fraDato: '2011-03-01',
       grundloen: 0,
       shSoSats: 0.069,
       fritvalg: null,

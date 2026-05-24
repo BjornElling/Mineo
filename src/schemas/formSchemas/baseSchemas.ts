@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { isISODateString, type ISODateString } from '../../types/branded';
+import { coerceToISODateString, isISODateString, type ISODateString } from '../../types/branded';
 import { optionalAmountValueSchema } from '../amountExpressionSchema';
 
 export const normalizeEmptyToUndefined = (value: unknown): unknown => {
@@ -100,19 +100,15 @@ export const tableCellString = z.preprocess((val) => {
   return '';
 }, z.string().optional());
 
-const isoToDanishDateString = (iso: string): string => {
-  const match = iso.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!match) return iso;
-  const [, year, month, day] = match;
-  return `${day}-${month}-${year}`;
-};
-
-export const tableDateCellString = z.preprocess((val) => {
-  if (val === undefined || val === null) return '';
+export const tableIsoDateCellString = z.preprocess((val) => {
+  if (val === undefined || val === null) return undefined;
   if (typeof val === 'string') {
-    return validateISODateFormat(val) ? isoToDanishDateString(val) : val;
+    const trimmed = val.trim();
+    if (trimmed === '') return undefined;
+    if (isISODateString(trimmed)) return trimmed;
+    return coerceToISODateString(trimmed) ?? trimmed;
   }
-  return '';
-}, z.string().optional());
+  return val;
+}, isoDateString.optional());
 
 export const tableAmountCellValue = optionalAmountValueSchema;

@@ -1637,4 +1637,3 @@ export const buildReguleringIndexRows = (params: Readonly<{
     };
   }));
 };
-

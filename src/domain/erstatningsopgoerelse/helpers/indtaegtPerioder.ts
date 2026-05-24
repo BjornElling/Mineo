@@ -5,10 +5,10 @@ import type {
   OffentligeYdelserRow,
 } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import { dateToISO, isISODateString } from '../../../types/branded';
+import { coerceToISODateString, dateToISO, isISODateString, parseISODate } from '../../../types/branded';
 import { calculateStandardLoenProjectedAmounts } from '../../aarsloen/standardLoenRowCalculations';
 import { parseAmount } from '../../../utils/numberParsing';
-import { createDate, parseDanishDate } from '../../../utils/dateUtils';
+import { createDate } from '../../../utils/dateUtils';
 import { ydelsestyper } from '../../../data/ydelsestyper';
 import { type DateInterval, type IsoRange, validateIsoRange } from '../../../utils/isoDateHelpers';
 import { mergeIsoDateRanges } from '../engines/periodMerging';
@@ -103,11 +103,11 @@ const isLoenRowEffectivelyEmptyForLoenperiode = (row: StandardLoenTableRow, loen
 };
 
 const parseOffentligInterval = (row: OffentligeYdelserRow): DateInterval | null => {
-  const fraStr = row.fraDato?.trim() ?? '';
-  const tilStr = row.tilDato?.trim() ?? '';
-  if (fraStr === '' || tilStr === '') return null;
-  const fra = parseDanishDate(fraStr);
-  const til = parseDanishDate(tilStr);
+  const fraIso = coerceToISODateString(row.fraDato);
+  const tilIso = coerceToISODateString(row.tilDato);
+  if (!fraIso || !tilIso) return null;
+  const fra = parseISODate(fraIso);
+  const til = parseISODate(tilIso);
   if (!fra || !til) return null;
   if (fra > til) return null;
   return {
@@ -395,8 +395,8 @@ export const buildIncomeForRanges = (
   const benefitsMap = new Map<string, { label: string; typeKey: string; amount: number }>();
   const classifyOffentligRow = (row: OffentligeYdelserRow): RowEligibility => {
     const hasAnyFilled =
-      (row.fraDato?.trim() ?? '') !== '' ||
-      (row.tilDato?.trim() ?? '') !== '' ||
+      row.fraDato !== undefined ||
+      row.tilDato !== undefined ||
       (row.ydelsestype?.trim() ?? '') !== '' ||
       row.ydelse !== undefined ||
       row.tillaeg !== undefined;

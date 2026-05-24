@@ -62,8 +62,8 @@ describe('computeTafNettoBeregning', () => {
     values.loenindkomstAnsaettelsesforhold = [];
     values.offentligeYdelserRows = [{
       id: 'dagpenge-jan-2024',
-      fraDato: '01-01-2024',
-      tilDato: '31-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-31',
       ydelse: asAmount(3100),
       tillaeg: undefined,
       ydelsestype: 'dagpenge',
@@ -104,8 +104,8 @@ describe('computeTafNettoBeregning', () => {
     values.loenindkomstAnsaettelsesforhold = [];
     values.offentligeYdelserRows = [{
       id: 'dagpenge-jan-2024',
-      fraDato: '01-01-2024',
-      tilDato: '31-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-31',
       ydelse: asAmount(3100),
       tillaeg: undefined,
       ydelsestype: 'dagpenge',
@@ -130,8 +130,8 @@ describe('computeTafNettoBeregning', () => {
     values.loenindkomstAnsaettelsesforhold = [];
     values.offentligeYdelserRows = [{
       id: 'dagpenge-jan-2024',
-      fraDato: '01-01-2024',
-      tilDato: '31-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-31',
       ydelse: asAmount(3100),
       tillaeg: undefined,
       ydelsestype: 'dagpenge',
@@ -172,8 +172,8 @@ describe('computeTafNettoBeregning', () => {
     })];
     values.offentligeYdelserRows = [{
       id: 'dagpenge-jan-2024',
-      fraDato: '01-01-2024',
-      tilDato: '31-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-31',
       ydelse: asAmount(3100),
       tillaeg: undefined,
       ydelsestype: 'dagpenge',
@@ -210,8 +210,8 @@ describe('computeTafNettoBeregning', () => {
     ];
     values.offentligeYdelserRows = [{
       id: 'dagpenge-jan-2024',
-      fraDato: '01-01-2024',
-      tilDato: '31-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-31',
       ydelse: asAmount(3100),
       tillaeg: undefined,
       ydelsestype: 'dagpenge',
@@ -235,8 +235,8 @@ describe('computeTafNettoBeregning', () => {
     values.loenindkomstAnsaettelsesforhold = [];
     values.offentligeYdelserRows = [{
       id: 'midlertidigt-eet-jan-2024',
-      fraDato: '01-01-2024',
-      tilDato: '31-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-31',
       ydelse: asAmount(4200),
       tillaeg: undefined,
       ydelsestype: 'midlertidigt_eet',
@@ -273,8 +273,8 @@ describe('computeTafNettoBeregning', () => {
         col1_maaned: '',
         col0_uge: '',
         col1_uge: '',
-        col0_dag: '02-01-2024',
-        col1_dag: '05-01-2024',
+        col0_dag: '2024-01-02',
+        col1_dag: '2024-01-05',
         col2: asAmount(1),
         col3: undefined,
         col4: undefined,
@@ -283,8 +283,8 @@ describe('computeTafNettoBeregning', () => {
     })];
     values.offentligeYdelserRows = [{
       id: 'sygedagpenge-jan-2024',
-      fraDato: '01-01-2024',
-      tilDato: '05-01-2024',
+      fraDato: '2024-01-01',
+      tilDato: '2024-01-05',
       ydelse: asAmount(5000),
       tillaeg: undefined,
       ydelsestype: 'sygedagpenge',

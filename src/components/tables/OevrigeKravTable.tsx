@@ -1,13 +1,12 @@
 import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow } from '@mui/material';
 import TableAmountInput from '../inputs/table/TableAmountInput';
-import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
+import TableDateInput from '../inputs/table/TableDateInput';
 import TableTextInput from '../inputs/table/TableTextInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import type { OevrigeKravRow } from '../../schemas/formSchemas';
 import type { OevrigeKravDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import type { ISODateString } from '../../types/branded';
-import { coerceToISODateString } from '../../types/branded';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
 import { useTableSort } from './useTableSort';
@@ -31,9 +30,6 @@ const isRowEmpty = (row: OevrigeKravDraftRow) => row.dato.trim() === '' && row.u
 
 const OevrigeKravTable = React.memo(
   ({ rows, committedById, onFieldChange, onRowBlur, minDate, maxDate, specialRangeErrors, noValidRangeCause, saveOrderPath, onRowsReorder }: OevrigeKravTableProps) => {
-  const minIso = React.useMemo(() => coerceToISODateString(minDate), [minDate]);
-  const maxIso = React.useMemo(() => coerceToISODateString(maxDate), [maxDate]);
-
   const sortColumns = React.useMemo(() => [
     { colId: 'dato', getSortValue: (row: OevrigeKravDraftRow) => committedById.get(row.id)?.dato },
     { colId: 'udgiftTil', getSortValue: (row: OevrigeKravDraftRow) => committedById.get(row.id)?.udgiftTil },
@@ -75,20 +71,19 @@ const OevrigeKravTable = React.memo(
       <TableBody>
         {sortedRows.map((row) => {
           const committed = committedById.get(row.id);
-          const committedDatoIso = coerceToISODateString(committed?.dato);
 
           return (
             <TableRow key={row.id} data-mineo-row-id={row.id}>
               <TableCell>
-                <TableDateIsoInput
+                <TableDateInput
                   gridCell={{ rowId: row.id, colIndex: 0 }}
-                  value={committedDatoIso}
+                  value={committed?.dato}
                   onBlur={(e) => {
                     onFieldChange(row.id, 'dato')(e.target.value ?? '');
                     onRowBlur(row.id);
                   }}
-                  minDate={minIso}
-                  maxDate={maxIso}
+                  minDate={minDate}
+                  maxDate={maxDate}
                   specialRangeErrors={specialRangeErrors}
                   noValidRangeCause={noValidRangeCause}
                 />

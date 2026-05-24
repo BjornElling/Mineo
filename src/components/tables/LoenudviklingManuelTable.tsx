@@ -476,8 +476,8 @@ const LoenudviklingManuelTable = React.memo(
       {
         colId: 'dato',
         getSortValue: (row: LoenudviklingManuelRow) => {
-          const raw = row.id === baseRowId ? baseDateDisplay : row.dato;
-          return coerceToISODateString(raw?.trim() ?? '') ?? '';
+          if (row.id === baseRowId) return coerceToISODateString(baseDateDisplay) ?? '';
+          return row.dato ?? '';
         },
       },
       { colId: 'grundloen', getSortValue: (row: LoenudviklingManuelRow) => parseAmountForSort(row.grundloen) },

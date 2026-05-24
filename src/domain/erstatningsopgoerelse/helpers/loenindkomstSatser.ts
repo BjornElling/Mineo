@@ -3,7 +3,7 @@ import type {
   LoenudviklingManuelRow,
 } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import { danishToISO, isoToDanish, toDanishDateString } from '../../../types/branded';
+import { coerceToISODateString, danishToISO, isoToDanish, toDanishDateString } from '../../../types/branded';
 import {
   getEffektiveSatserForDato,
   getEffektiveSatserForPeriode,
@@ -17,10 +17,8 @@ import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
 import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import type { StandardLoenRateSegment, StandardLoenSatserInput } from '../../aarsloen/standardLoenRowCalculations';
-import { isISODateString } from '../../../types/branded';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { round2 } from '../../../utils/roundingShortcuts';
-import { parseDanishToIso } from './eoSharedUtils';
 
 export type OverenskomstSatsField = 'fritvalgPct' | 'shSoPct' | 'pensionPct';
 
@@ -235,10 +233,8 @@ export const buildLoenindkomstRateSegments = (args: Readonly<{
 
   if (af.loenudviklingBeregningsgrundlag === 'Manuelt angivet') {
     const rows = (af.loenudviklingManuelTableData ?? [])
-      .filter((row): row is LoenudviklingManuelRow => typeof row.dato === 'string' && row.dato.trim() !== '')
       .map((row) => {
-        const dato = (row.dato ?? '').trim();
-        const startDato = isISODateString(dato) ? dato as ISODateString : parseDanishToIso(dato);
+        const startDato = coerceToISODateString(row.dato);
         return startDato ? { row, startDato } : null;
       })
       .filter((entry): entry is Readonly<{ row: LoenudviklingManuelRow; startDato: ISODateString }> => entry !== null)

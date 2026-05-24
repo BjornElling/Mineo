@@ -10,7 +10,6 @@ import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 import { CURRENT_YEAR, MIN_YEAR, dateRanges_aarsloen } from '../../config/dateRanges';
 import type { StandardLoenTableRow, Loenperiode } from '../../schemas/formSchemas';
 import { formatAsAmount } from '../../utils/formatUtils';
-import { danishToISO } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type {
   StandardLoenTableColumnKey,
@@ -419,7 +418,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           const committed = resolveCommittedRow(row);
           if (loenperiode === 'maaned') return parseSortableInteger(committed.col0_maaned);
           if (loenperiode === 'uge') return parseSortableWeekKey(committed.col0_uge);
-          return danishToISO(committed.col0_dag ?? '');
+          return committed.col0_dag ?? '';
         },
       },
       {
@@ -428,7 +427,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           const committed = resolveCommittedRow(row);
           if (loenperiode === 'maaned') return parseSortableInteger(committed.col1_maaned);
           if (loenperiode === 'uge') return parseSortableWeekKey(committed.col1_uge);
-          return danishToISO(committed.col1_dag ?? '');
+          return committed.col1_dag ?? '';
         },
       },
       { colId: 'col-2', getSortValue: (row: StandardLoenTableRow) => amountValueToNumber(resolveCommittedRow(row).col2) },
@@ -652,7 +651,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       onErrorChange={(info) => handleErrorChange(row.id, 'col0_dag', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col0_dag')}
                       minDate={dateRanges_aarsloen.tabelAarsloenFra.min}
-                      maxDate={danishToISO(committedRow.col1_dag ?? '') || dateRanges_aarsloen.tabelAarsloenFra.fallbackMax}
+                      maxDate={committedRow.col1_dag ?? dateRanges_aarsloen.tabelAarsloenFra.fallbackMax}
                       specialRangeErrors={{ fraTilRole: 'fra' }}
                       noValidRangeCause="Dato til i samme række"
                     />
@@ -697,7 +696,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       onBlur={(e) => handleFieldBlur(row.id, 'col1_dag', e.target.value)}
                       onErrorChange={(info) => handleErrorChange(row.id, 'col1_dag', info)}
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col1_dag')}
-                      minDate={danishToISO(committedRow.col0_dag ?? '') || dateRanges_aarsloen.tabelAarsloenTil.fallbackMin}
+                      minDate={committedRow.col0_dag ?? dateRanges_aarsloen.tabelAarsloenTil.fallbackMin}
                       maxDate={dateRanges_aarsloen.tabelAarsloenTil.max}
                       specialRangeErrors={{ fraTilRole: 'til' }}
                       noValidRangeCause="Dato fra i samme række"

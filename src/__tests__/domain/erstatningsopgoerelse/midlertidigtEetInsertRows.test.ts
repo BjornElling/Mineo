@@ -3,7 +3,6 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { buildMidlertidigtEetAfgoerelseGroupsFromComputation } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { computeEetLoebendeYdelser, type EetLoebendeComputation } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
-import { isoToDanish } from '../../../types/branded';
 
 const makeValues = (): ErhvervsevnetabComposedValues => ({
   ...ERHVERVSEVNETAB_INITIAL_VALUES,
@@ -73,8 +72,8 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
     expect(rows).toEqual(
       expectedPerioder.map((periode, index) => ({
         id: rows[index]!.id,
-        fraDato: isoToDanish(periode.fra),
-        tilDato: isoToDanish(periode.til),
+        fraDato: periode.fra,
+        tilDato: periode.til,
         ydelse: { kind: 'number', value: periode.beregnetEet },
         tillaeg: undefined,
         ydelsestype: 'midlertidigt_eet',
@@ -217,6 +216,6 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
     };
 
     expect(() => buildMidlertidigtEetAfgoerelseGroupsFromComputation(invalidComputation))
-      .toThrow('CRITICAL: Kunne ikke konvertere midlertidigt EET-periode til dansk tabel-format.');
+      .toThrow('CRITICAL: Kunne ikke konvertere midlertidigt EET-periode til ISO EO-række.');
   });
 });

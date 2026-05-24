@@ -31,7 +31,7 @@ const buildIsoSet = (start: Date, end: Date): Set<string> => {
 describe('periodeBeregning', () => {
   it('beregnDagPeriode counts inclusive days across DST', () => {
     const rows: StandardLoenTableRow[] = [
-      { id: 'row-1', col0_dag: '26-01-2024', col1_dag: '20-10-2024' },
+      { id: 'row-1', col0_dag: '2024-01-26', col1_dag: '2024-10-20' },
     ];
     const result = beregnDagPeriode(rows);
     expect(result?.totalEnheder).toBe(269);
@@ -64,8 +64,8 @@ describe('periodeBeregning', () => {
 
   it('beregnDagPeriode tæller kun unikke kalenderdage ved overlappende perioder', () => {
     const rows: StandardLoenTableRow[] = [
-      { id: 'row-1', col0_dag: '01-01-2024', col1_dag: '10-01-2024' },
-      { id: 'row-2', col0_dag: '05-01-2024', col1_dag: '15-01-2024' },
+      { id: 'row-1', col0_dag: '2024-01-01', col1_dag: '2024-01-10' },
+      { id: 'row-2', col0_dag: '2024-01-05', col1_dag: '2024-01-15' },
     ];
     const result = beregnDagPeriode(rows);
     expect(result?.unikkeEnheder).toBe(15);

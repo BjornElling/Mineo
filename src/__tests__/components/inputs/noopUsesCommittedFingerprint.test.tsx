@@ -11,6 +11,7 @@ import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
 import TableYearInput from '../../../components/inputs/table/TableYearInput';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import * as expressionAmountModule from '../../../utils/expressionAmount';
+import { isISODateString, toISODateString, type ISODateString } from '../../../types/branded';
 import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 
 const gridCell: GridCellCoord = { rowId: 'row-1', colIndex: 0 };
@@ -77,6 +78,14 @@ type StringNoopCase = Readonly<{
   renderInput: (value: string, onBlur: (value: string) => void) => React.JSX.Element;
 }>;
 
+type DateNoopCase = Readonly<{
+  label: string;
+  value: ISODateString;
+  renderInput: (value: ISODateString | undefined, onBlur: (value: ISODateString | undefined) => void) => React.JSX.Element;
+}>;
+
+const iso = (value: string): ISODateString => toISODateString(value);
+
 const STRING_NOOP_CASES: readonly StringNoopCase[] = [
   {
     label: 'integer',
@@ -98,9 +107,12 @@ const STRING_NOOP_CASES: readonly StringNoopCase[] = [
     value: '2025',
     renderInput: (value, onBlur) => <TableYearInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
   },
+];
+
+const DATE_NOOP_CASES: readonly DateNoopCase[] = [
   {
     label: 'date',
-    value: '01-01-2025',
+    value: iso('2025-01-01'),
     renderInput: (value, onBlur) => <TableDateInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
   },
 ];
@@ -130,6 +142,41 @@ const setupStringNoop = (testCase: StringNoopCase) => {
         {testCase.renderInput(value, (next) => {
           onBlur(next);
           setValue(next);
+          setEditingCell(null);
+        })}
+      </GridCoreProvider>
+    );
+  };
+
+  render(<Wrapper />);
+  return { onBlur, input: screen.getByRole('textbox') };
+};
+
+const setupDateNoop = (testCase: DateNoopCase) => {
+  const onBlur = vi.fn<(value: ISODateString | undefined) => void>();
+
+  const Wrapper = () => {
+    const [value, setValue] = React.useState<ISODateString | undefined>(testCase.value);
+    const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
+
+    const gridValue = React.useMemo(
+      () => ({
+        gridStateStore: createGridCoreTestStateStore(gridCell, editingCell),
+        openEditing: vi.fn(),
+        closeEditing: () => setEditingCell(null),
+        registerEditor: vi.fn(),
+        unregisterEditor: vi.fn(),
+        getEditor: () => null,
+        requestFocusPlan: vi.fn(),
+      }),
+      [editingCell]
+    );
+
+    return (
+      <GridCoreProvider value={gridValue}>
+        {testCase.renderInput(value, (next) => {
+          onBlur(next);
+          setValue(isISODateString(next) ? next : undefined);
           setEditingCell(null);
         })}
       </GridCoreProvider>
@@ -170,6 +217,16 @@ describe('no-op bruger committed fingerprint', () => {
   it.each(STRING_NOOP_CASES)('emitter ikke commit på no-op for $label', async (testCase) => {
     const user = userEvent.setup();
     const { input, onBlur } = setupStringNoop(testCase);
+
+    await user.click(input);
+    await user.tab();
+
+    expect(onBlur).not.toHaveBeenCalled();
+  });
+
+  it.each(DATE_NOOP_CASES)('emitter ikke commit på no-op for $label', async (testCase) => {
+    const user = userEvent.setup();
+    const { input, onBlur } = setupDateNoop(testCase);
 
     await user.click(input);
     await user.tab();

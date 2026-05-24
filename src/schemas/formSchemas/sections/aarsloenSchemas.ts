@@ -4,6 +4,7 @@ import {
   dayCount,
   percentageDecimal,
   tableAmountCellValue,
+  tableIsoDateCellString,
 } from '../baseSchemas';
 import { loenPaaHelligdageSchema, loenperiodeSchema } from '../enumSchemas';
 
@@ -13,8 +14,8 @@ export const standardLoenTableRowSchema = z.object({
   col1_maaned: allowEmptyString,
   col0_uge: allowEmptyString,
   col1_uge: allowEmptyString,
-  col0_dag: allowEmptyString,
-  col1_dag: allowEmptyString,
+  col0_dag: tableIsoDateCellString,
+  col1_dag: tableIsoDateCellString,
   // col2 og col3 er to visuelt adskilte lønfelter med identisk domænebetydning.
   // Beregninger må ikke skelne mellem dem; de lægges blot sammen.
   col2: tableAmountCellValue,

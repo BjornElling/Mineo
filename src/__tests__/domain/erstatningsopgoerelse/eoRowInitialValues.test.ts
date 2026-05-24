@@ -15,13 +15,13 @@ describe('initialRow', () => {
     expect(initialRow.id).toBe('');
   });
 
-  it('alle periode-felter er tomme strenge', () => {
+  it('tekstbaserede periodefelter er tomme strenge og datofelter er undefined', () => {
     expect(initialRow.col0_maaned).toBe('');
     expect(initialRow.col1_maaned).toBe('');
     expect(initialRow.col0_uge).toBe('');
     expect(initialRow.col1_uge).toBe('');
-    expect(initialRow.col0_dag).toBe('');
-    expect(initialRow.col1_dag).toBe('');
+    expect(initialRow.col0_dag).toBeUndefined();
+    expect(initialRow.col1_dag).toBeUndefined();
   });
 
   it('alle col-felter er undefined', () => {
@@ -111,9 +111,9 @@ describe('initialOffentligYdelseRow', () => {
     expect(initialOffentligYdelseRow.id).toBe('');
   });
 
-  it('datofelter er tomme strenge', () => {
-    expect(initialOffentligYdelseRow.fraDato).toBe('');
-    expect(initialOffentligYdelseRow.tilDato).toBe('');
+  it('datofelter er undefined', () => {
+    expect(initialOffentligYdelseRow.fraDato).toBeUndefined();
+    expect(initialOffentligYdelseRow.tilDato).toBeUndefined();
   });
 
   it('ydelse og tillaeg er undefined', () => {
@@ -133,8 +133,8 @@ describe('initialLoenudviklingManuelRow', () => {
     expect(initialLoenudviklingManuelRow.id).toBe('');
   });
 
-  it('dato er tom streng', () => {
-    expect(initialLoenudviklingManuelRow.dato).toBe('');
+  it('dato er undefined', () => {
+    expect(initialLoenudviklingManuelRow.dato).toBeUndefined();
   });
 
   it('alle sats-felter er undefined', () => {

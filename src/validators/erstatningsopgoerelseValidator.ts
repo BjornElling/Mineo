@@ -830,9 +830,8 @@ function validateLoenudviklingsKravForAktivKilde(
       const hasManualPercentValue = (value: number | undefined): boolean =>
         typeof value === 'number' && Number.isFinite(value);
       const aktiveRows = rows.filter((row) => {
-        const dato = (row.dato ?? '').trim();
         return (
-          dato !== '' ||
+          row.dato !== undefined ||
           hasManualPercentValue(row.feriepenge) ||
           hasManualPercentValue(row.shSoSats) ||
           hasManualPercentValue(row.fritvalg) ||

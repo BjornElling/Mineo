@@ -4,7 +4,7 @@ import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/mate
 import type { ISODateString } from '../../types/branded';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
-import TableDateIsoInput from '../inputs/table/TableDateIsoInput';
+import TableDateInput from '../inputs/table/TableDateInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
@@ -136,7 +136,7 @@ const BeregningsperiodeFerieTable = React.memo(
             return (
               <TableRow key={row.id} data-mineo-row-id={row.id}>
                 <TableCell>
-                  <TableDateIsoInput
+                  <TableDateInput
                     gridCell={{ rowId: row.id, colIndex: 0 }}
                     value={fraISO}
                     onBlur={(e) => {
@@ -151,7 +151,7 @@ const BeregningsperiodeFerieTable = React.memo(
                   />
                 </TableCell>
                 <TableCell>
-                  <TableDateIsoInput
+                  <TableDateInput
                     gridCell={{ rowId: row.id, colIndex: 1 }}
                     value={tilISO}
                     onBlur={(e) => {

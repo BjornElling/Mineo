@@ -606,7 +606,6 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
   });
 
   it('model med offentligeYdelserRows indeholder offentlig-kolonner', () => {
-    // fraDato/tilDato er i dansk format (dd-mm-åååå) — bruges af parseOffentligDato i column-builder
     // ydelsestype er registry-nøglen (lowercase), ydelse er AmountValue-objekt { kind: 'number', value }
     const model = buildEODebugModel({
       ...base(),
@@ -616,8 +615,8 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
         {
           id: 'oy-1',
           ydelsestype: 'sygedagpenge',
-          fraDato: '08-01-2024',
-          tilDato: '12-01-2024',
+          fraDato: '2024-01-08',
+          tilDato: '2024-01-12',
           ydelse: { kind: 'number', value: 1000 },
           tillaeg: undefined,
         },

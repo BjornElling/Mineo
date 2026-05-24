@@ -1,6 +1,6 @@
 import type { ErhvervsevnetabComposedValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import { isoToDanish } from '../../../types/branded';
+import { isISODateString } from '../../../types/branded';
 import type { EetLoebendeComputation, EetLoebendePeriodeRow } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
@@ -39,16 +39,13 @@ export const buildMidlertidigtEetAfgoerelseGroupsFromComputation = (
 
     const rows: OffentligeYdelserRow[] = [];
     for (const periode of afgoerelse.perioder) {
-      const fraDato = isoToDanish(periode.fra);
-      const tilDato = isoToDanish(periode.til);
-      if (!fraDato || !tilDato) {
-        throw new Error('CRITICAL: Kunne ikke konvertere midlertidigt EET-periode til dansk tabel-format.');
+      if (!isISODateString(periode.fra) || !isISODateString(periode.til)) {
+        throw new Error('CRITICAL: Kunne ikke konvertere midlertidigt EET-periode til ISO EO-række.');
       }
-
       rows.push({
         id: generateOffentligYdelseRowId(),
-        fraDato,
-        tilDato,
+        fraDato: periode.fra,
+        tilDato: periode.til,
         ydelse: {
           kind: 'number',
           value: periode.beregnetEet,

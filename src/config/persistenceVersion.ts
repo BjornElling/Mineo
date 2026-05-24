@@ -6,4 +6,4 @@
  * `src/contracts/schema-evolution.md`.
  */
 
-export const PERSISTED_DATA_VERSION = '1.2';
+export const PERSISTED_DATA_VERSION = '1.3';

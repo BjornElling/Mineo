@@ -13,7 +13,7 @@ Funktionen implementeres udelukkende i StandardGridTable. LooseGridTable-kompati
 | Spørgsmål | Beslutning |
 |---|---|
 | Scope | Kun StandardGridTable i første omgang |
-| Understøttede input-typer | TableDateInput, TableDateIsoInput, TableIntegerInput, TableAmountInput, TableYearInput, TableWeekInput, TablePercentInput, TableTextInput |
+| Understøttede input-typer | TableDateInput, TableIntegerInput, TableAmountInput, TableYearInput, TableWeekInput, TablePercentInput, TableTextInput |
 | Minimum rækker for aktivering | 2 udfyldte rækker i samme kolonne |
 | Aktiveringstidspunkt | Straks ved fokus, opdateres dynamisk mens brugeren skriver |
 | Ghost-tekst placering | Inline efter det brugeren har skrevet (ghost input-overlay) |
@@ -31,7 +31,7 @@ Funktionen implementeres udelukkende i StandardGridTable. LooseGridTable-kompati
 
 Mønstergenkendelse sker altid ud fra de **to seneste udfyldte rækker** i kolonnen (ikke nødvendigvis de øverste). Det giver det mest relevante mønster og undgår at gamle data dominerer.
 
-### Dato (`TableDateInput`, `TableDateIsoInput`)
+### Dato (`TableDateInput`)
 
 Understøttede mønstre (alle målt på den parsede dato):
 
@@ -170,7 +170,6 @@ src/components/tables/gridCore/tableKeyboardNavigation.ts
   — modificér Enter-handling: tjek autofill-suggest-callback før nedadnavigation
 
 src/components/inputs/table/TableDateInput.tsx      — integrer AutofillGhostOverlay
-src/components/inputs/table/TableDateIsoInput.tsx   — integrer AutofillGhostOverlay
 src/components/inputs/table/TableIntegerInput.tsx   — integrer AutofillGhostOverlay
 src/components/inputs/table/TableAmountInput.tsx    — integrer AutofillGhostOverlay
 src/components/inputs/table/TableYearInput.tsx      — integrer AutofillGhostOverlay

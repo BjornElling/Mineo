@@ -18,9 +18,9 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
  * Hardkodet snapshot af schemas' fingerprint.
  * Opdateres manuelt ved intentionelle schema-ændringer (ledsaget af versionsbump).
  */
-// Opdateret 2026-05-24 efter procentfelter i tabelrækker blev migreret fra
-// committed display-string til number | undefined.
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-3939538';
+// Opdateret 2026-05-24 efter tabeldatoer blev migreret fra danske display-strings
+// til ISODateString | undefined i committed/persisted state.
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-b8bf9180';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

@@ -3,6 +3,7 @@ import { InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 import { coerceToDanishDateString, coerceToISODateString } from '../../../types/branded';
+import type { ISODateString } from '../../../types/branded';
 import type { DateRangeSpecialErrors } from '../../../utils/dateRangeErrorMessages';
 import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
@@ -17,12 +18,13 @@ import {
 } from '../../../hooks/tableInput';
 
 export type TableDateInputChangeEvent = { target: { value: string } };
-export type TableDateSanitizeCallback = (value: string) => string;
+export type TableDateInputCommitEvent = { target: { value: ISODateString | undefined } };
+export type TableDateSanitizeCallback = (value: string) => ISODateString | undefined;
 
 export type TableDateInputProps = Readonly<{
   gridCell: GridCellCoord;
   locked?: boolean;
-  value?: string;
+  value?: ISODateString;
   minDate?: string;
   maxDate?: string;
   specialRangeErrors?: DateRangeSpecialErrors;
@@ -52,7 +54,7 @@ export type TableDateInputProps = Readonly<{
    * Invalid input or config errors stay local (error state) and do not update parent value.
    * Range violations never block commit (they only show a validation error).
    */
-  onBlur?: (e: TableDateInputChangeEvent) => void;
+  onBlur?: (e: TableDateInputCommitEvent) => void;
 
   onErrorChange?: (info: TableInputErrorInfo) => void;
   onRegisterSanitize?: (sanitize: TableDateSanitizeCallback) => void;
@@ -61,6 +63,13 @@ export type TableDateInputProps = Readonly<{
   inputRef?: React.Ref<HTMLInputElement>;
   sx?: SxProps<Theme>;
 }>;
+
+const normalizeDateBoundConfig = (value: string | undefined): ISODateString | undefined => {
+  if (value === undefined) return undefined;
+  const trimmed = value.trim();
+  if (trimmed === '') return undefined;
+  return coerceToISODateString(trimmed);
+};
 
 const TableDateInput = React.memo(
   ({
@@ -84,15 +93,16 @@ const TableDateInput = React.memo(
     const gridApi = useGridCoreApi();
 
     const boundsStatus = React.useMemo(() => {
-      if (minDate !== undefined && coerceToISODateString(minDate) === undefined) {
+      const normalizedMin = normalizeDateBoundConfig(minDate);
+      const normalizedMax = normalizeDateBoundConfig(maxDate);
+
+      if (minDate !== undefined && minDate.trim() !== '' && normalizedMin === undefined) {
         return { kind: 'hard-config' as const, message: `Ugyldig konfiguration: minDate er ikke en dato (${String(minDate)})` };
       }
-      if (maxDate !== undefined && coerceToISODateString(maxDate) === undefined) {
+      if (maxDate !== undefined && maxDate.trim() !== '' && normalizedMax === undefined) {
         return { kind: 'hard-config' as const, message: `Ugyldig konfiguration: maxDate er ikke en dato (${String(maxDate)})` };
       }
 
-      const normalizedMin = minDate ? coerceToISODateString(minDate) : undefined;
-      const normalizedMax = maxDate ? coerceToISODateString(maxDate) : undefined;
       if (normalizedMin && normalizedMax && normalizedMin > normalizedMax) {
         const minText = coerceToDanishDateString(normalizedMin) ?? normalizedMin;
         const maxText = coerceToDanishDateString(normalizedMax) ?? normalizedMax;
@@ -114,8 +124,8 @@ const TableDateInput = React.memo(
     }
 
     const configErrorMessage = boundsStatus.kind === 'no-valid-range' ? boundsStatus.message : '';
-    const effectiveMinDate = configErrorMessage === '' ? minDate : undefined;
-    const effectiveMaxDate = configErrorMessage === '' ? maxDate : undefined;
+    const effectiveMinDate = configErrorMessage === '' ? normalizeDateBoundConfig(minDate) : undefined;
+    const effectiveMaxDate = configErrorMessage === '' ? normalizeDateBoundConfig(maxDate) : undefined;
 
     const adapter = React.useMemo(
       () =>
@@ -131,7 +141,7 @@ const TableDateInput = React.memo(
     const core = useTableInputCore({
       adapter,
       gridCell,
-      value: value ?? '',
+      value,
       locked,
       onChange,
       onBlur,

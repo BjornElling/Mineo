@@ -6,8 +6,8 @@
 
 import type { DateInterval } from '../types/calculation';
 import type { StandardLoenTableRow } from '../schemas/formSchemas';
-import { parseISODate, toISODateString, type ISODateString } from '../types/branded';
-import { addDays, createDate, formatToISO, isLeapYear, parseDanishDate, parseWeekString } from './dateUtils';
+import { coerceToISODateString, parseISODate, toISODateString, type ISODateString } from '../types/branded';
+import { addDays, createDate, formatToISO, isLeapYear, parseWeekString } from './dateUtils';
 import type { Periodisering } from '../data/ydelsestyper';
 import { countInclusiveUtcDays } from './utcDayMath';
 import { MONTH_NAMES_DA_SHORT } from './dateFormatting';
@@ -402,8 +402,8 @@ export const beregnDagPeriode = (tableData: StandardLoenTableRow[]): PeriodeResu
     const datoTil = row.col1_dag;
 
     if (datoFra && datoTil) {
-      const fraDate = parseDanishDate(datoFra);
-      const tilDate = parseDanishDate(datoTil);
+      const fraDate = parseISODate(datoFra);
+      const tilDate = parseISODate(datoTil);
 
       if (fraDate && tilDate) {
         // Tilføj periode
@@ -458,8 +458,8 @@ export const beregnDagPeriode = (tableData: StandardLoenTableRow[]): PeriodeResu
  * Bruges til beregning af ydelse pr. dag for offentlige ydelser.
  * Bygger et datoSet via kalender-iteration (DST-safe uden ms-diff).
  *
- * @param fraDato - Startdato (dansk format dd-mm-åååå)
- * @param tilDato - Slutdato (dansk format dd-mm-åååå)
+ * @param fraDato - Startdato (ISO eller dansk datoformat)
+ * @param tilDato - Slutdato (ISO eller dansk datoformat)
  * @param periodisering - 'kalenderdage' | 'arbejdsdage'
  * @param ydelsestype - Ydelsestype (bruges til speciel regel for Sygedagpenge)
  * @returns Antal dage, eller null hvis datoer er ugyldige
@@ -473,8 +473,10 @@ export const beregnPeriodiseringsDage = (
   if (!fraDato || !tilDato) return null;
   if (periodisering !== 'kalenderdage' && periodisering !== 'arbejdsdage') return null;
 
-  const fra = parseDanishDate(fraDato);
-  const til = parseDanishDate(tilDato);
+  const fraIso = coerceToISODateString(fraDato);
+  const tilIso = coerceToISODateString(tilDato);
+  const fra = parseISODate(fraIso);
+  const til = parseISODate(tilIso);
   if (!fra || !til || fra > til) return null;
 
   return countOffentligYdelsePeriodiseringsdage({

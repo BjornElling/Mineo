@@ -62,8 +62,11 @@ describe('parseDanishToIso', () => {
     expect(parseDanishToIso('31-12-2023')).toBe('2023-12-31');
   });
 
-  it('returnerer undefined for ugyldigt format', () => {
-    expect(parseDanishToIso('2024-01-15')).toBeUndefined();
+  it('accepterer allerede-kanonisk ISO-format', () => {
+    expect(parseDanishToIso('2024-01-15')).toBe('2024-01-15');
+  });
+
+  it('returnerer undefined for ugyldige datoer', () => {
     expect(parseDanishToIso('abc')).toBeUndefined();
     expect(parseDanishToIso('')).toBeUndefined();
     expect(parseDanishToIso(undefined)).toBeUndefined();

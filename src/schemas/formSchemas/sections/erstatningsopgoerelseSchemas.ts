@@ -10,7 +10,7 @@ import {
   positiveAmountValue,
   tableAmountCellValue,
   tableCellString,
-  tableDateCellString,
+  tableIsoDateCellString,
   yearInteger,
   normalizeEmptyToUndefined
 } from '../baseSchemas';
@@ -104,8 +104,8 @@ export type OevrigeKravRow = z.infer<typeof oevrigeKravRowSchema>;
 
 export const offentligeYdelserRowSchema = z.object({
   id: z.string().min(1, 'Række-ID må ikke være tomt'),
-  fraDato: tableDateCellString,
-  tilDato: tableDateCellString,
+  fraDato: tableIsoDateCellString,
+  tilDato: tableIsoDateCellString,
   // `ydelse` og `tillaeg` er to visuelt adskilte ydelsesfelter med identisk domænebetydning.
   // Beregninger må ikke skelne mellem dem; de lægges blot sammen til én samlet ydelse.
   ydelse: tableAmountCellValue,
@@ -117,7 +117,7 @@ export type OffentligeYdelserRow = z.infer<typeof offentligeYdelserRowSchema>;
 
 export const loenudviklingManuelRowSchema = z.object({
   id: z.string().min(1, 'Række-ID må ikke være tomt'),
-  dato: tableDateCellString,
+  dato: tableIsoDateCellString,
   grundloen: tableAmountCellValue,
   feriepenge: percentageDecimal,
   shSoSats: percentageDecimal,

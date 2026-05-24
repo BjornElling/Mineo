@@ -1,6 +1,7 @@
 import type { StandardLoenTableRow, Loenperiode } from '../../../schemas/formSchemas';
-import { createDate, parseDanishDate, parseWeekString } from '../../../utils/dateUtils';
+import { createDate, parseWeekString } from '../../../utils/dateUtils';
 import type { DateInterval } from '../../../utils/isoDateHelpers';
+import { coerceToISODateString, parseISODate } from '../../../types/branded';
 
 const toUtcDay = (date: Date): Date => {
   return createDate(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
@@ -35,12 +36,12 @@ export const parseAarsloenRowInterval = (row: StandardLoenTableRow, loenperiode:
     return { start: toUtcDay(fra.start), end: toUtcDay(til.end) };
   }
 
-  const fraDato = row.col0_dag?.trim() ?? '';
-  const tilDato = row.col1_dag?.trim() ?? '';
-  if (fraDato === '' || tilDato === '') return null;
+  const fraDato = coerceToISODateString(row.col0_dag);
+  const tilDato = coerceToISODateString(row.col1_dag);
+  if (!fraDato || !tilDato) return null;
 
-  const fra = parseDanishDate(fraDato);
-  const til = parseDanishDate(tilDato);
+  const fra = parseISODate(fraDato);
+  const til = parseISODate(tilDato);
   if (!fra || !til) return null;
   if (fra > til) return null;
   return { start: toUtcDay(fra), end: toUtcDay(til) };
@@ -59,12 +60,12 @@ export const hasAarsloenPeriodOrderError = (row: StandardLoenTableRow, loenperio
   }
 
   if (loenperiode === 'dag') {
-    const fraDato = row.col0_dag?.trim() ?? '';
-    const tilDato = row.col1_dag?.trim() ?? '';
-    if (fraDato === '' || tilDato === '') return false;
+    const fraDato = coerceToISODateString(row.col0_dag);
+    const tilDato = coerceToISODateString(row.col1_dag);
+    if (!fraDato || !tilDato) return false;
 
-    const fra = parseDanishDate(fraDato);
-    const til = parseDanishDate(tilDato);
+    const fra = parseISODate(fraDato);
+    const til = parseISODate(tilDato);
     if (!fra || !til) return false;
     return fra > til;
   }

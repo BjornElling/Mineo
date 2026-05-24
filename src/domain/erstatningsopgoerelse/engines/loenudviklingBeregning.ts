@@ -1146,7 +1146,7 @@ const buildLoenudviklingFromManual = (
   const datedRows = manualRows
     .slice(1)
     .map((row) => {
-      const startIso = parseDanishToIso(row.dato);
+      const startIso = row.dato;
       if (!startIso) return null;
       const components = {
         grundloen: amountValueToNumber(row.grundloen) ?? 0,

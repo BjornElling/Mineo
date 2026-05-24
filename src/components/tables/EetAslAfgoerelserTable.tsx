@@ -8,7 +8,6 @@ import { dateRanges_erhvervsevnetab } from '../../config/dateRanges';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import type { AslAfgoerelseRow, AfgoerelseType, JaNej } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { coerceToISODateString } from '../../types/branded';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import {
   EET_ASL_MIN_VISIBLE_ROWS,
@@ -249,7 +248,7 @@ const EetAslAfgoerelserTable = React.memo(
                   <TableDateInput
                     gridCell={{ rowId: row.id, colIndex: 0 }}
                     value={row.afgoerelsesDato}
-                    onBlur={(e) => commitRowUpdate(row.id, { afgoerelsesDato: e.target.value || undefined })}
+                    onBlur={(e) => commitRowUpdate(row.id, { afgoerelsesDato: e.target.value })}
                     minDate={skadedatoMin}
                     maxDate={tabelAfgoerelsesdatoMax}
                     specialRangeErrors={afgoerelsesDatoSpecialErrors}
@@ -260,7 +259,7 @@ const EetAslAfgoerelserTable = React.memo(
                   <TableDateInput
                     gridCell={{ rowId: row.id, colIndex: 1 }}
                     value={row.virkningsDato}
-                    onBlur={(e) => commitRowUpdate(row.id, { virkningsDato: e.target.value || undefined })}
+                    onBlur={(e) => commitRowUpdate(row.id, { virkningsDato: e.target.value })}
                     minDate={skadedatoMin}
                     maxDate={tabelVirkningsdatoMax}
                     specialRangeErrors={VIRKNINGSDATO_SPECIAL_RANGE_ERRORS}
@@ -297,7 +296,7 @@ const EetAslAfgoerelserTable = React.memo(
                 </TableCell>
                 <TableCell>
                   {(() => {
-                    const afgoerelsesDatoIso = coerceToISODateString(row.afgoerelsesDato);
+                    const afgoerelsesDatoIso = row.afgoerelsesDato;
                     const kapDatoMin = afgoerelsesDatoIso ?? skadedatoMin;
                     const kapDatoMax = tabelKapitaliseringsdatoMax;
                     const hasValidRange = !(kapDatoMax !== undefined && kapDatoMin > kapDatoMax);
@@ -308,7 +307,7 @@ const EetAslAfgoerelserTable = React.memo(
                       <TableDateInput
                         gridCell={{ rowId: row.id, colIndex: 4 }}
                         value={row.kapDato}
-                        onBlur={(e) => commitRowUpdate(row.id, { kapDato: e.target.value || undefined })}
+                        onBlur={(e) => commitRowUpdate(row.id, { kapDato: e.target.value })}
                         minDate={hasValidRange ? kapDatoMin : undefined}
                         maxDate={hasValidRange ? kapDatoMax : undefined}
                         specialRangeErrors={kapDatoSpecialErrors}
@@ -331,7 +330,7 @@ const EetAslAfgoerelserTable = React.memo(
                 </TableCell>
                 <TableCell>
                   {(() => {
-                    const afgoerelsesDatoIso = coerceToISODateString(row.afgoerelsesDato);
+                    const afgoerelsesDatoIso = row.afgoerelsesDato;
                     const tidlKapMax = getDayBeforeIso(afgoerelsesDatoIso);
                     const hasValidRange = !(tidlKapMax !== undefined && skadedatoMin > tidlKapMax);
                     const tidlKapSpecialErrors: DateRangeSpecialErrors = {
@@ -343,7 +342,7 @@ const EetAslAfgoerelserTable = React.memo(
                       <TableDateInput
                         gridCell={{ rowId: row.id, colIndex: 6 }}
                         value={row.tidlKapDato}
-                        onBlur={(e) => commitRowUpdate(row.id, { tidlKapDato: e.target.value || undefined })}
+                        onBlur={(e) => commitRowUpdate(row.id, { tidlKapDato: e.target.value })}
                         minDate={hasValidRange ? skadedatoMin : undefined}
                         maxDate={hasValidRange ? tidlKapMax : undefined}
                         specialRangeErrors={tidlKapSpecialErrors}

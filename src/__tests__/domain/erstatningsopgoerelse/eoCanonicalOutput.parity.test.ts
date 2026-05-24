@@ -73,8 +73,8 @@ const scenarios: readonly Scenario[] = [
       offentligeYdelserRows: [
         {
           id: 'yd-1',
-          fraDato: '01-02-2024',
-          tilDato: '29-02-2024',
+          fraDato: '2024-02-01',
+          tilDato: '2024-02-29',
           ydelse: asAmountValue(1000),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -97,8 +97,8 @@ const scenarios: readonly Scenario[] = [
       offentligeYdelserRows: [
         {
           id: 'yd-1',
-          fraDato: '01-01-2024',
-          tilDato: '31-01-2024',
+          fraDato: '2024-01-01',
+          tilDato: '2024-01-31',
           ydelse: asAmountValue(3100),
           tillaeg: undefined,
           ydelsestype: 'dagpenge',

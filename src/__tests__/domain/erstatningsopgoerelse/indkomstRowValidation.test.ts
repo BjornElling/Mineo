@@ -182,25 +182,24 @@ describe('buildStandardLoenCellErrors', () => {
       expect(errors).toEqual({});
     });
 
-    it('ingen fejl for gyldigt dansk datoformat', () => {
-      const errors = buildStandardLoenCellErrors([dagRow('r1', '01-01-2024', '31-01-2024')], 'dag');
+    it('ingen fejl for gyldigt ISO-datoformat', () => {
+      const errors = buildStandardLoenCellErrors([dagRow('r1', '2024-01-01', '2024-01-31')], 'dag');
       expect(errors).toEqual({});
     });
 
     it('fejl for ugyldigt datoformat', () => {
-      const errors = buildStandardLoenCellErrors([dagRow('r1', '2024-01-01', '2024-01-31')], 'dag');
-      // ISO-format er ikke gyldigt dansk datoformat
+      const errors = buildStandardLoenCellErrors([dagRow('r1', '01-01-2024', '2024-01-31')], 'dag');
       expect(errors['r1:col0_dag']).toBe(true);
     });
 
     it('fejl for fra > til (rækkefølgefejl)', () => {
-      const errors = buildStandardLoenCellErrors([dagRow('r1', '31-01-2024', '01-01-2024')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', '2024-01-31', '2024-01-01')], 'dag');
       expect(errors['r1:col0_dag']).toBe(true);
       expect(errors['r1:col1_dag']).toBe(true);
     });
 
     it('ingen fejl for fra = til (samme dag)', () => {
-      const errors = buildStandardLoenCellErrors([dagRow('r1', '15-06-2024', '15-06-2024')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', '2024-06-15', '2024-06-15')], 'dag');
       expect(errors).toEqual({});
     });
 
@@ -222,8 +221,8 @@ describe('buildOffentligeYdelserCellErrors', () => {
   it('ingen fejl for gyldige datoer og beløb', () => {
     const errors = buildOffentligeYdelserCellErrors([
       offentligRow('r1', {
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: '2024-01-01',
+        tilDato: '2024-01-31',
         ydelse: amount(1000),
         tillaeg: amount(200),
       }),
@@ -233,7 +232,7 @@ describe('buildOffentligeYdelserCellErrors', () => {
 
   it('fejl for ugyldigt fraDato-format', () => {
     const errors = buildOffentligeYdelserCellErrors([
-      offentligRow('r1', { fraDato: '2024-01-01' }),
+      offentligRow('r1', { fraDato: '01-01-2024' }),
     ]);
     expect(errors['r1:fraDato']).toBe(true);
   });
@@ -283,8 +282,8 @@ describe('buildOffentligeYdelserCellErrors', () => {
 
   it('returnerer fejl for alle rækker med fejl', () => {
     const rows = [
-      offentligRow('r1', { fraDato: '2024-01-01' }), // fejl
-      offentligRow('r2', { fraDato: '01-01-2024' }), // ok
+      offentligRow('r1', { fraDato: '01-01-2024' }), // fejl
+      offentligRow('r2', { fraDato: '2024-01-01' }), // ok
     ];
     const errors = buildOffentligeYdelserCellErrors(rows);
     expect(errors['r1:fraDato']).toBe(true);
@@ -410,16 +409,16 @@ describe('getOffentligeYdelserErrorRowIdSet', () => {
 
   it('returnerer row id ved ugyldigt fraDato', () => {
     const result = getOffentligeYdelserErrorRowIdSet([
-      offentligRow('r1', { fraDato: '2024-01-01' }),
+      offentligRow('r1', { fraDato: '01-01-2024' }),
     ]);
     expect(result.has('r1')).toBe(true);
   });
 
   it('kun rækker med fejl er inkluderet', () => {
-    // r1: ugyldigt dato-format (ISO) → cellfejl
+    // r1: ugyldigt dato-format (dansk visningsdato) → cellfejl
     // r2: tom række → ingen fejl (hasAnyFilled = false → ingen krav)
     const rows = [
-      offentligRow('r1', { fraDato: '2024-01-01' }), // ISO-format = ugyldigt dansk format
+      offentligRow('r1', { fraDato: '01-01-2024' }),
       offentligRow('r2'),                              // tom række → ingen fejl
     ];
     const result = getOffentligeYdelserErrorRowIdSet(rows);
