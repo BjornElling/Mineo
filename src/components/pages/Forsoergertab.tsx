@@ -134,7 +134,7 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Download specifikation</Typography>
           <Box className="row--label-right-hover__content">
-            <PdfDownloadButton onClick={handlePdfDownload} disabled={!snapshot.canDownloadPdf} />
+            <PdfDownloadButton onClick={handlePdfDownload} disabled={!snapshot.pdfGate.canDownload} />
           </Box>
         </Box>
       </ContentBox>

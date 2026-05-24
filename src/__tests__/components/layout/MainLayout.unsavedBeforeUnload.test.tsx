@@ -6,7 +6,9 @@ import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import type { SaveFileResult } from '../../../types/fileOperations';
-import type { StorageKey } from '../../../config/storageManifest';
+import { getStorageKey, type StorageKey } from '../../../config/storageManifest';
+import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
+import { formPersistenceStore } from '../../../stores/formPersistenceStore';
 
 vi.mock('../../../utils/fileLoad', () => ({
   loadFromFile: vi.fn(),
@@ -66,6 +68,12 @@ const stampStamdata = (skadelidte: string) => ({
   skadelidte,
   skadestype: '',
   skadedato: '',
+});
+
+const persistedWrapper = (data: unknown) => ({
+  version: PERSISTED_DATA_VERSION,
+  timestamp: Date.now(),
+  data,
 });
 
 const getBeforeUnloadHandler = (
@@ -170,6 +178,33 @@ describe('MainLayout (unsaved beforeunload)', () => {
     handler(event);
     expect(event.preventDefault).toHaveBeenCalledTimes(1);
     expect(event.returnValue).toBe('');
+
+    addEventListenerSpy.mockRestore();
+    removeEventListenerSpy.mockRestore();
+  });
+
+  it('keeps beforeunload disabled after session hydration without a new commit', async () => {
+    sessionStorage.setItem(getStorageKey('stamdata'), JSON.stringify(persistedWrapper(stampStamdata('Hydreret'))));
+    const addEventListenerSpy = vi.spyOn(window, 'addEventListener');
+    const removeEventListenerSpy = vi.spyOn(window, 'removeEventListener');
+
+    render(
+      <AppSettingsProvider>
+        <FormPersistenceProvider>
+          <MemoryRouter initialEntries={['/stamdata']}>
+            <MainLayout>
+              <div />
+            </MainLayout>
+          </MemoryRouter>
+        </FormPersistenceProvider>
+      </AppSettingsProvider>
+    );
+
+    await waitFor(() => {
+      expect(formPersistenceStore.getState().sections.stamdata?.skadelidte).toBe('Hydreret');
+    });
+
+    expect(isBeforeUnloadHandlerRegistered(addEventListenerSpy, removeEventListenerSpy)).toBe(false);
 
     addEventListenerSpy.mockRestore();
     removeEventListenerSpy.mockRestore();

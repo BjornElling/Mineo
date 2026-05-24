@@ -10,25 +10,38 @@
     "src/contracts/domain-boundary-contract.md",
     "src/contracts/form-contract.md",
     "src/contracts/persistence-contract.md",
+    "src/contracts/schema-evolution.md",
     "src/contracts/keyboard-navigation.md",
     "src/contracts/error-debug-contract.md",
     "src/contracts/pdf-contract.md",
+    "src/contracts/pdf-layout-contract.md",
+    "src/contracts/periodisering-contract.md",
+    "src/contracts/date-contract.md",
+    "src/contracts/mineo-field-pattern.md",
     "src/contracts/amount-contract.md",
-    "src/contracts/undo-redo-contract.md"
+    "src/contracts/undo-redo-contract.md",
+    "src/contracts/app-settings.md"
   ],
   "subordinateContracts": {
     "src/contracts/page-component-contract.md": [
       "src/contracts/domain-boundary-contract.md",
       "src/contracts/form-contract.md",
       "src/contracts/persistence-contract.md",
+      "src/contracts/schema-evolution.md",
       "src/contracts/keyboard-navigation.md",
       "src/contracts/error-debug-contract.md",
       "src/contracts/pdf-contract.md",
+      "src/contracts/pdf-layout-contract.md",
+      "src/contracts/periodisering-contract.md",
+      "src/contracts/date-contract.md",
+      "src/contracts/mineo-field-pattern.md",
       "src/contracts/amount-contract.md",
-      "src/contracts/undo-redo-contract.md"
+      "src/contracts/undo-redo-contract.md",
+      "src/contracts/app-settings.md"
     ]
   },
   "domainContracts": [
+    "src/contracts/snapshot-contract.md",
     "src/contracts/eo-snapshot-contract.md",
     "src/contracts/eet-snapshot-contract.md",
     "src/contracts/forsoergertab-snapshot-contract.md",
@@ -37,6 +50,10 @@
     "src/contracts/varigemen-contract.md",
     "src/contracts/satser-contract.md"
   ],
+  "contractAuthoring": {
+    "templatePath": "src/contracts/contract-template.md",
+    "procedurePath": "docs/architecture/contract-topology-procedure.md"
+  },
   "informativeArchitectureDocs": [
     "docs/architecture/auth-gate-architecture.md",
     "docs/architecture/calculation-architecture.md",

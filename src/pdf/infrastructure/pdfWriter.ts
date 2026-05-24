@@ -593,6 +593,8 @@ const createPdfCursor = (params: Readonly<{
     writeSignatureBlock,
     writeBrevhoved: (brevhovedData: BrevhovedData) => {
       y = renderBrevhoved(adapter, brevhovedData);
+      setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+      setFontSize(FONT_SIZES.normal);
     },
     addUdkastWatermark: () => {
       if (visUdkastStempel) {

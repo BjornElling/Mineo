@@ -7,7 +7,7 @@ const SRC_ROOT = path.resolve(process.cwd(), 'src');
 const USE_FORM_PERSISTENCE_IMPORT_PATTERN =
   /from\s+['"][^'"]*contexts\/useFormPersistence['"]/;
 const FORM_PERSISTENCE_CONTEXT_IMPORT_PATTERN =
-  /from\s+['"][^'"]*FormPersistenceContext(?:\.shared)?['"]/;
+  /from\s+['"][^'"]*FormPersistenceContext(?:\.shared|\.internal)?['"]/;
 const FORM_PERSISTENCE_STORE_IMPORT_PATTERN =
   /from\s+['"][^'"]*stores\/formPersistenceStore['"]/;
 
@@ -21,8 +21,10 @@ const ALLOWED_FORM_PERSISTENCE_CONTEXT_IMPORTS = new Set([
   'src/App.tsx',
   'src/apps/minprocesrente/MinProcesrenteApp.tsx',
   'src/contexts/FormPersistenceContext.tsx',
+  'src/contexts/FormPersistenceContext.internal.ts',
   'src/contexts/FormPersistenceContext.shared.ts',
   'src/contexts/useFormPersistence.ts',
+  'src/__tests__/hooks/useFormFieldErrors.test.tsx',
   'src/hooks/useFileSaveLoad.ts',
   'src/utils/persistenceLoadApply.ts',
 ]);

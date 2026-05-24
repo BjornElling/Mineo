@@ -109,16 +109,11 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
     expect(values.visBilagsnumre).toBe('Ja');
   });
 
-  it('regulerings-tilladelser materialiseres som sagsinput for nye EO-sager', () => {
-    const settings = {
-      ...DEFAULT_APP_SETTINGS,
-      allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true,
-      allowReguleringMedUdloebMedMaaneder: 9,
-    };
-    const values = createErstatningsopgoerelseInitialValues(settings);
+  it('regulerings-tilladelser materialiseres som sagsinput uafhængigt af device-settings', () => {
+    const values = createErstatningsopgoerelseInitialValues(DEFAULT_APP_SETTINGS);
 
-    expect(values.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden).toBe(true);
-    expect(values.allowReguleringMedUdloebMedMaaneder).toBe(9);
+    expect(values.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden).toBe(false);
+    expect(values.allowReguleringMedUdloebMedMaaneder).toBe(6);
   });
 
   it('ugyldig settings → falder tilbage til defaults og returnerer gyldigt skema', () => {

@@ -5,7 +5,7 @@ import {
   brevhovedIndstillingerSchema,
   resolveDefaultOverenskomstFilter,
 } from '../../settings/appSettingsSchema';
-import { resolveAppSettings } from '../../settings/appSettingsParse';
+import { parseStoredSettings, resolveAppSettings } from '../../settings/appSettingsParse';
 
 describe('DEFAULT_APP_SETTINGS', () => {
   it('er gyldig iht. appSettingsSchema', () => {
@@ -22,7 +22,6 @@ describe('DEFAULT_APP_SETTINGS', () => {
     expect(typeof DEFAULT_APP_SETTINGS.defaultLoenPaaHelligdage).toBe('string');
     expect(DEFAULT_APP_SETTINGS.defaultSvieSmerteDelvisSygemeldingSats).toBe('halv');
     expect(DEFAULT_APP_SETTINGS.erstatningsopgoerelseAfsluttesMed).toBe('Bekræftet godkendt');
-    expect(DEFAULT_APP_SETTINGS.allowReguleringMedUdloebMedMaaneder).toBe(6);
     expect(DEFAULT_APP_SETTINGS.brevhovedIndstillinger).toBeDefined();
     expect(DEFAULT_APP_SETTINGS.defaultVisBilagsnumre).toBe(false);
     expect(DEFAULT_APP_SETTINGS.defaultStartsideErStamdata).toBe(false);
@@ -67,16 +66,6 @@ describe('appSettingsSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('afviser negativt allowReguleringMedUdloebMedMaaneder', () => {
-    const result = appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, allowReguleringMedUdloebMedMaaneder: -1 });
-    expect(result.success).toBe(false);
-  });
-
-  it('afviser allowReguleringMedUdloebMedMaaneder > 12', () => {
-    const result = appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, allowReguleringMedUdloebMedMaaneder: 13 });
-    expect(result.success).toBe(false);
-  });
-
   it('accepterer "Underskrift-linje" som enum-værdi', () => {
     const result = appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, erstatningsopgoerelseAfsluttesMed: 'Underskrift-linje' });
     expect(result.success).toBe(true);
@@ -93,6 +82,26 @@ describe('appSettingsSchema', () => {
   it('accepterer defaultSvieSmerteDelvisSygemeldingSats="fuld"', () => {
     const result = appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, defaultSvieSmerteDelvisSygemeldingSats: 'fuld' });
     expect(result.success).toBe(true);
+  });
+
+  it('holder regulerings-tilladelser ude af device-local settings', () => {
+    expect('allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden' in DEFAULT_APP_SETTINGS).toBe(false);
+    expect('allowReguleringMedUdloebMedMaaneder' in DEFAULT_APP_SETTINGS).toBe(false);
+  });
+});
+
+describe('parseStoredSettings', () => {
+  it('ignorerer tidligere regulerings-settings uden at nulstille øvrige gyldige indstillinger', () => {
+    const settings = parseStoredSettings({
+      ...DEFAULT_APP_SETTINGS,
+      themeMode: 'dark',
+      allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true,
+      allowReguleringMedUdloebMedMaaneder: 9,
+    });
+
+    expect(settings.themeMode).toBe('dark');
+    expect('allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden' in settings).toBe(false);
+    expect('allowReguleringMedUdloebMedMaaneder' in settings).toBe(false);
   });
 });
 

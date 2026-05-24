@@ -220,6 +220,7 @@ describe('contract linkage matrix', () => {
       crossCuttingContracts: string[];
       domainContracts: string[];
       subordinateContracts: Record<string, string[]>;
+      contractAuthoring: { templatePath: string; procedurePath: string };
       informativeArchitectureDocs: string[];
     };
 
@@ -229,9 +230,52 @@ describe('contract linkage matrix', () => {
       ...topology.domainContracts,
       ...Object.keys(topology.subordinateContracts),
       ...Object.values(topology.subordinateContracts).flat(),
+      topology.contractAuthoring.templatePath,
+      topology.contractAuthoring.procedurePath,
       ...topology.informativeArchitectureDocs,
     ]) {
       assertFileExists(contractPath);
+    }
+  });
+
+  it('holder kontrakttopologi og dækningsmatrix synkroniseret begge veje', () => {
+    const topologyPath = 'src/contracts/contract-topology.json';
+    const topology = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), topologyPath), 'utf8')) as {
+      crossCuttingContracts: string[];
+      domainContracts: string[];
+      subordinateContracts: Record<string, string[]>;
+    };
+
+    const matrixContracts = new Set(COVERAGE_MATRIX.map((entry) => entry.contractPath));
+    const topologyContracts = new Set([
+      ...topology.crossCuttingContracts,
+      ...topology.domainContracts,
+      ...Object.keys(topology.subordinateContracts),
+    ]);
+    const classifiedBaseContracts = new Set([
+      ...topology.crossCuttingContracts,
+      ...topology.domainContracts,
+      ...Object.keys(topology.subordinateContracts),
+    ]);
+
+    for (const contractPath of topologyContracts) {
+      expect(matrixContracts.has(contractPath), `Mangler dækningsmatrix-entry for ${contractPath}`).toBe(true);
+    }
+
+    for (const [contractPath, parentContracts] of Object.entries(topology.subordinateContracts)) {
+      expect(classifiedBaseContracts.has(contractPath), `Underordnet kontrakt er ikke selv klassificeret: ${contractPath}`).toBe(true);
+      for (const parentContract of parentContracts) {
+        expect(classifiedBaseContracts.has(parentContract), `Underordnet reference er ikke klassificeret: ${parentContract}`).toBe(true);
+      }
+    }
+
+    const nonTopologyMatrixEntries = new Set([
+      'src/contracts/contract-topology.json',
+      'docs/testing/keyboard-navigation-test-checklist.md',
+    ]);
+    for (const contractPath of matrixContracts) {
+      if (nonTopologyMatrixEntries.has(contractPath)) continue;
+      expect(topologyContracts.has(contractPath), `Mangler topologi-klassifikation for ${contractPath}`).toBe(true);
     }
   });
 });

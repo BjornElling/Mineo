@@ -29,8 +29,6 @@ const baseSettings: AppSettings = {
   defaultSvieSmerteDelvisSygemeldingSats: 'halv',
   defaultIndsaetUdkastStempel: true,
   defaultVisBilagsnumre: false,
-  allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
-  allowReguleringMedUdloebMedMaaneder: 6,
   defaultDirectoryHandleId: 'dir-1',
   brevhovedIndstillinger: {
     erstatningsopgoerelse: true,

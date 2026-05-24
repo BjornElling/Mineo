@@ -51,7 +51,7 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.canShowEal).toBe(true);
     expect(snapshot.canShowAsl).toBe(true);
     expect(snapshot.canShowResult).toBe(true);
-    expect(snapshot.canDownloadPdf).toBe(true);
+    expect(snapshot.pdfGate.canDownload).toBe(true);
     expect(snapshot.pdfProjection.result).toEqual(snapshot.calculation.result);
     expect(snapshot.pdfProjection.ealComputation).toEqual(snapshot.calculation.ealComputation);
     expect(snapshot.pdfProjection.aslComputation).toEqual(snapshot.calculation.aslComputation);
@@ -77,7 +77,10 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.canShowEal).toBe(true);
     expect(snapshot.canShowAsl).toBe(false);
     expect(snapshot.canShowResult).toBe(false);
-    expect(snapshot.canDownloadPdf).toBe(false);
+    expect(snapshot.pdfGate.canDownload).toBe(false);
+    expect(snapshot.pdfGate.reasons).toContainEqual(expect.objectContaining({
+      code: 'forsoergertab:blocking-input-error',
+    }));
     expect(snapshot.pdfProjection.ealComputation).not.toBeNull();
     expect(snapshot.pdfProjection.aslComputation).toBeNull();
     expect(snapshot.pdfProjection.result).toBeNull();
@@ -102,7 +105,7 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.fieldUi.ealAarsloen.hasError).toBe(true);
     expect(snapshot.fieldUi.ealAarsloen.helperText).toBe('Feltfejl fra UI');
     expect(snapshot.canShowEal).toBe(false);
-    expect(snapshot.canDownloadPdf).toBe(false);
+    expect(snapshot.pdfGate.canDownload).toBe(false);
     expect(snapshot.pdfProjection.ealComputation).toBeNull();
   });
 
@@ -128,7 +131,7 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.fieldUi.aslAarsloen.hasError).toBe(true);
     expect(snapshot.canShowEal).toBe(true);
     expect(snapshot.canShowAsl).toBe(false);
-    expect(snapshot.canDownloadPdf).toBe(false);
+    expect(snapshot.pdfGate.canDownload).toBe(false);
   });
 
   it('markerer EAL-årsløn som fejl men bevarer beregning og download når tom EAL genbruger ASL-maksimum', () => {
@@ -152,7 +155,7 @@ describe('computeForsoergertabSnapshot', () => {
     );
     expect(snapshot.canShowEal).toBe(true);
     expect(snapshot.canShowResult).toBe(true);
-    expect(snapshot.canDownloadPdf).toBe(true);
+    expect(snapshot.pdfGate.canDownload).toBe(true);
     expect(snapshot.pdfProjection.ealComputation).not.toBeNull();
     expect(snapshot.pdfProjection.result).not.toBeNull();
   });
@@ -178,7 +181,7 @@ describe('computeForsoergertabSnapshot', () => {
     );
     expect(snapshot.canShowEal).toBe(true);
     expect(snapshot.canShowResult).toBe(true);
-    expect(snapshot.canDownloadPdf).toBe(true);
+    expect(snapshot.pdfGate.canDownload).toBe(true);
     expect(snapshot.pdfProjection.ealComputation).not.toBeNull();
     expect(snapshot.pdfProjection.result).not.toBeNull();
   });
@@ -225,7 +228,7 @@ describe('computeForsoergertabSnapshot', () => {
 
       expect(snapshot.calculation.result).toBeNull();
       expect(snapshot.canShowResult).toBe(false);
-      expect(snapshot.canDownloadPdf).toBe(false);
+      expect(snapshot.pdfGate.canDownload).toBe(false);
       expect(snapshot.calculation.issues).toContainEqual(expect.objectContaining({
         id: 'runtime-exception',
         severity: 'error',

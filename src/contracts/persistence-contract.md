@@ -3,6 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Overordnet `schema-evolution.md` for save/load-invarianter. `schema-evolution.md` ejer konkrete schema-ændringsregler.
+**Senest verificeret mod kode:** 2026-05-24
 
 Denne kontrakt samler de trust-kritiske regler for persistence, save/load og autoritative state replacements.
 

@@ -12,6 +12,7 @@ import { computeForsoergertabCalculation } from './forsoergertabCalculation';
 import { PRE_2015_CUTOFF } from './forsoergertabConstants';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
+import { allowPdfDownload, blockPdfDownload, type PdfDownloadGateResult, type PdfDownloadGateReason } from '../../pdf/pdfGateTypes';
 
 type FieldErrorMessage = Pick<FormFieldError, 'message'> | undefined;
 
@@ -108,7 +109,7 @@ export type ForsoergertabSnapshot = Readonly<{
   canShowEal: boolean;
   canShowAsl: boolean;
   canShowResult: boolean;
-  canDownloadPdf: boolean;
+  pdfGate: PdfDownloadGateResult;
   pdfProjection: ForsoergertabPdfProjection;
 }>;
 
@@ -133,6 +134,11 @@ const resolveHelperText = (
 ): string => {
   return fieldError?.message ?? helperIssue ?? '';
 };
+
+const createDownloadBlockingReason = (code: string, message: string): PdfDownloadGateReason => ({
+  code: `forsoergertab:${code}`,
+  message,
+});
 
 export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput): ForsoergertabSnapshot => {
   const { values, faellesAarsloen, stamdata, fieldErrors } = input;
@@ -292,7 +298,23 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     hasBlockingEalAarsloenError ||
     fieldUi.skadedato.hasError ||
     fieldUi.skadelidteFodselsdato.hasError;
-  const canDownloadPdf = (canShowEal || canShowAsl) && !hasDownloadBlockingFieldError;
+  const pdfGate = (() => {
+    const reasons: PdfDownloadGateReason[] = [];
+    if (!canShowEal && !canShowAsl) {
+      reasons.push(createDownloadBlockingReason('no-pdf-projection', 'Der er ikke beregnet en PDF-klar EAL- eller ASL-del.'));
+    }
+    if (hasDownloadBlockingFieldError) {
+      reasons.push(createDownloadBlockingReason('blocking-input-error', 'Et eller flere nødvendige felter har blokerende fejl.'));
+    }
+    if (reasons.length === 0) {
+      return allowPdfDownload();
+    }
+    const [firstReason, ...additionalReasons] = reasons;
+    return {
+      ...blockPdfDownload(firstReason),
+      reasons: [firstReason, ...additionalReasons],
+    };
+  })();
 
   return {
     calculation,
@@ -306,7 +328,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     canShowEal,
     canShowAsl,
     canShowResult,
-    canDownloadPdf,
+    pdfGate,
     pdfProjection: {
       grundlaeggende: {
         beregningsdato: coerceToISODateString(values.beregningsdato),

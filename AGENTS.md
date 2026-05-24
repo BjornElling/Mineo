@@ -94,7 +94,8 @@ Only 3 immediate-commit exceptions:
 3. Toggle/radio activation commits immediately.
 
 ## Normative architecture contracts
-Follow these documents as binding contracts:
+Follow the normative contracts classified in `src/contracts/contract-topology.json` as binding contracts.
+Core contracts that are broadly relevant to most implementation work include:
 - `src/contracts/form-contract.md`
 - `src/contracts/domain-boundary-contract.md`
 - `src/contracts/page-component-contract.md`
@@ -106,24 +107,19 @@ Also review this QA procedure when keyboard behavior is in scope:
 Contracts must be reviewed before implementing any feature within their scope.
 If code and contract diverge, treat it as an architectural error and resolve explicitly.
 Contracts override informal existing implementations when they conflict.
+When adding, removing, renaming, or reclassifying a contract, follow `docs/architecture/contract-topology-procedure.md` and update the machine-readable topology in the same change.
 
 ### Contract hierarchy
 
 When contracts appear to overlap, use this priority order:
 
-1. The most specific domain contract wins over a more general contract for the same subject area.
-2. Cross-cutting general contracts that typically constrain other contracts:
-   - `domain-boundary-contract.md`
-   - `form-contract.md`
-   - `persistence-contract.md`
-   - `keyboard-navigation.md`
-   - `error-debug-contract.md`
-   - `pdf-contract.md`
-   - `amount-contract.md`
-   - `undo-redo-contract.md`
-3. `page-component-contract.md` is subordinate to the relevant cross-cutting contracts above.
-4. Domain contracts such as `eo-snapshot-contract.md`, `eet-snapshot-contract.md`, `forsoergertab-snapshot-contract.md`, `aarsloen-contract.md`, `renteberegning-contract.md`, `varigemen-contract.md` and `satser-contract.md` are subordinate to the relevant general contracts except where they define domain-specific rules the general contracts intentionally defer.
-5. `docs/architecture/*.md` are informative unless a contract explicitly elevates a rule from them.
+| Priority | Contract class | Rule |
+|----------|----------------|------|
+| 1 | Most specific domain contract | Wins over a more general contract for the same subject area. |
+| 2 | Cross-cutting contracts | Constrain other contracts. Includes `domain-boundary-contract.md`, `form-contract.md`, `persistence-contract.md`, `schema-evolution.md`, `keyboard-navigation.md`, `error-debug-contract.md`, `pdf-contract.md`, `pdf-layout-contract.md`, `periodisering-contract.md`, `date-contract.md`, `mineo-field-pattern.md`, `amount-contract.md`, `undo-redo-contract.md`, and `app-settings.md`. |
+| 3 | `page-component-contract.md` | Subordinate to the relevant cross-cutting contracts above. |
+| 4 | Domain contracts | `eo-snapshot-contract.md`, `eet-snapshot-contract.md`, `forsoergertab-snapshot-contract.md`, `aarsloen-contract.md`, `renteberegning-contract.md`, `varigemen-contract.md`, `satser-contract.md`, and other topology-classified domain contracts are subordinate to relevant general contracts except where they define domain-specific rules the general contracts intentionally defer. |
+| 5 | `docs/architecture/*.md` | Informative unless a contract explicitly elevates a rule from them. |
 
 ## Desktop-only gate + styling exception
 - App must be blocked on mobile/tablet.

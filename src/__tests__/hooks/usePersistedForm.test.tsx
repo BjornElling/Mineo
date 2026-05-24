@@ -2,14 +2,16 @@
 import React from 'react';
 import { act, render } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { z } from 'zod';
 import { usePersistedForm, type UsePersistedFormReturn } from '../../hooks/usePersistedForm';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { undoRedoStore } from '../../stores/undoRedoStore';
 import { clearResolvedFieldErrorsCache } from '../../hooks/useFormPersistenceSelectors';
-import { stamdataSchema } from '../../schemas/formSchemas';
+import { faellesAarsloenSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
+import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 
 type StamdataTestValues = PersistedSectionMap['stamdata'];
@@ -103,6 +105,32 @@ describe('usePersistedForm', () => {
 
     expect(captured.values).toEqual({ ...committedInitialValues, journalnr: 'AB' });
     expect(formPersistenceStore.getState().sections.stamdata).toEqual({ ...committedInitialValues, journalnr: 'AB' });
+  });
+
+  it('materialiserer subset-return fra setValues oven på seneste committed schema-værdi', () => {
+    const captured: {
+      setValues: UsePersistedFormReturn<typeof initialValues>['setValues'] | null;
+      values: typeof initialValues | null;
+    } = {
+      setValues: null,
+      values: null,
+    };
+
+    const Capture = () => {
+      const form = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
+      captured.setValues = form.setValues;
+      captured.values = form.values;
+      return null;
+    };
+
+    renderWithProviders(<Capture />);
+
+    act(() => {
+      captured.setValues!(() => ({ journalnr: 'Subset' }));
+    });
+
+    expect(captured.values).toEqual({ ...committedInitialValues, journalnr: 'Subset' });
+    expect(formPersistenceStore.getState().sections.stamdata).toEqual({ ...committedInitialValues, journalnr: 'Subset' });
   });
 
   it('bryder kun formVersion ved autoritativ replace og reset', () => {
@@ -294,5 +322,71 @@ describe('usePersistedForm', () => {
     } finally {
       consoleErrorSpy.mockRestore();
     }
+  });
+
+  it('materialiserer initialValues gennem schema før committed fallback bruges', () => {
+    const defaultingSchema = stamdataSchema.extend({
+      schemaDefaultFelt: z.string().default('schema-default'),
+    });
+    const defaults = {
+      ...initialValues,
+    } as z.input<typeof defaultingSchema>;
+    const captured: {
+      values: z.output<typeof defaultingSchema> | null;
+    } = {
+      values: null,
+    };
+
+    const Capture = () => {
+      const form = usePersistedForm(defaultingSchema, 'stamdata', defaults as PersistedSectionMap['stamdata']);
+      captured.values = form.values as z.output<typeof defaultingSchema>;
+      return null;
+    };
+
+    renderWithProviders(<Capture />);
+
+    expect(captured.values?.schemaDefaultFelt).toBe('schema-default');
+  });
+
+  it('overskriver ikke committed fælles årsløn med initialValues ved navigation/remount', () => {
+    const committedFaellesAarsloen = {
+      ...faellesAarsloenSchema.parse(FAELLES_AARSLOEN_INITIAL_VALUES),
+      aslAarsloen: { kind: 'number' as const, value: 512000 },
+    };
+    const captured: {
+      values: PersistedSectionMap['faellesAarsloen'] | null;
+    } = {
+      values: null,
+    };
+
+    const Capture = () => {
+      const form = usePersistedForm(
+        faellesAarsloenSchema,
+        'faellesAarsloen',
+        FAELLES_AARSLOEN_INITIAL_VALUES
+      );
+      captured.values = form.values;
+      return null;
+    };
+
+    const rendered = renderWithProviders(<Capture />);
+
+    act(() => {
+      formPersistenceStore.getState().commitSection('faellesAarsloen', committedFaellesAarsloen, {
+        schemaFingerprint: PERSISTED_DATA_VERSION,
+      });
+    });
+
+    expect(captured.values?.aslAarsloen).toEqual({ kind: 'number', value: 512000 });
+
+    rendered.rerender(
+      <MemoryRouter initialEntries={['/forsoergertab']}>
+        <FormPersistenceProvider>
+          <Capture />
+        </FormPersistenceProvider>
+      </MemoryRouter>
+    );
+
+    expect(captured.values?.aslAarsloen).toEqual({ kind: 'number', value: 512000 });
   });
 });

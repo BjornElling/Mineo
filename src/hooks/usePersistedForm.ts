@@ -24,7 +24,7 @@ export type CommitOriginOptions = {
   fieldPath?: string;
 };
 
-export type SetValuesUpdater<T> = (updater: (prev: T) => T, options?: CommitOriginOptions) => void;
+export type SetValuesUpdater<T extends object> = (updater: (prev: T) => T | Partial<T>, options?: CommitOriginOptions) => void;
 export type ReplaceValuesSetter<T> = (next: T) => void;
 export type SetFieldValue<T> = <K extends keyof T>(fieldName: K, value: T[K], options?: CommitOriginOptions) => void;
 
@@ -48,10 +48,10 @@ const formatSchemaIssueSummary = (issues: readonly z.ZodIssue[], max: number): s
 /**
  * Return type for usePersistedForm hook
  */
-export interface UsePersistedFormReturn<T> {
+export interface UsePersistedFormReturn<T extends object> {
   values: T;
   /**
-   * Felt-commit via funktionel updater (prev => next). Bumper ikke formVersion.
+   * Felt-commit via funktionel updater (prev => next eller prev => patch). Bumper ikke formVersion.
    * Brug til normale committed mutationer.
    */
   setValues: SetValuesUpdater<T>;
@@ -225,8 +225,9 @@ export const usePersistedForm = <K extends StorageKey>(
 
   // Felt-commit via funktionel updater. Bumper ikke formVersion.
   const setValues = React.useCallback(
-    (updater: (prev: PersistedSectionMap[K]) => PersistedSectionMap[K], options?: CommitOriginOptions) => {
-      const next = updater(resolveCurrentValues());
+    (updater: (prev: PersistedSectionMap[K]) => PersistedSectionMap[K] | Partial<PersistedSectionMap[K]>, options?: CommitOriginOptions) => {
+      const current = resolveCurrentValues();
+      const next = { ...current, ...updater(current) };
       persistDataRef.current(pageKey, next, { undoOrigin: createUndoOrigin(options) });
     },
     [createUndoOrigin, pageKey, resolveCurrentValues]

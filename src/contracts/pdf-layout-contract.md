@@ -305,6 +305,8 @@ Formålet med sekvensen er først at rydde de simple og mellemkomplekse generato
 
 En generator fjernes fra denne liste, når den har bestået fuld audit mod §10, og der findes relevante writer-/generator-tests for dens centrale spacing-, sidebrydnings- eller gate-invariants. Når første audit-runde er afsluttet, bør listen flyttes til et trackingdokument.
 
+Navngivning i denne sektion er bevidst ikke normativ ud over de konkrete filreferencer. Eventuel konsolidering af generator-/sektionsnavne skal ske som del af PDF-auditten, så dokumentation, runtime og tests ændres samlet.
+
 ---
 
 ## 12. Enforce­ment

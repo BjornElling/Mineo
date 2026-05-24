@@ -1,7 +1,7 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { AppSettings } from '../../../settings/appSettingsSchema';
 
-type EoCaseReguleringSettings = Pick<
+export type EoCaseReguleringSettings = Pick<
   ErstatningsopgoerelseValues,
   'allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden' | 'allowReguleringMedUdloebMedMaaneder'
 >;
@@ -9,12 +9,10 @@ type EoCaseReguleringSettings = Pick<
 export const resolveEoCaseReguleringSettings = (
   settings: AppSettings,
   eoValues: Partial<EoCaseReguleringSettings> | null | undefined
-): AppSettings => ({
+): AppSettings & EoCaseReguleringSettings => ({
   ...settings,
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden:
-    eoValues?.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden
-    ?? settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden,
+    eoValues?.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden ?? false,
   allowReguleringMedUdloebMedMaaneder:
-    eoValues?.allowReguleringMedUdloebMedMaaneder
-    ?? settings.allowReguleringMedUdloebMedMaaneder,
+    eoValues?.allowReguleringMedUdloebMedMaaneder ?? 6,
 });

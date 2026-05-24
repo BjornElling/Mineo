@@ -27,6 +27,13 @@ const createDefaultAppSettings = (): AppSettings => ({
   themeMode: readSystemThemeMode(),
 });
 
+const stripObsoleteAppSettingsFields = (raw: Record<string, unknown>): Record<string, unknown> => {
+  const current = { ...raw };
+  delete current.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
+  delete current.allowReguleringMedUdloebMedMaaneder;
+  return current;
+};
+
 export const resolveAppSettings = (raw: unknown): AppSettings => {
   const parsed = appSettingsSchema.safeParse(raw);
   return parsed.success ? parsed.data : createDefaultAppSettings();
@@ -41,13 +48,14 @@ export const parseStoredSettings = (raw: unknown): AppSettings => {
 
   // Tolerant mod manglende keys (fremtidig schema-evolution).
   // Vi håndhæver stadig korrekte typer via Zod.
+  const currentRaw = stripObsoleteAppSettingsFields(raw);
   const merged: unknown = {
     ...createDefaultAppSettings(),
-    ...raw,
-    brevhovedIndstillinger: isRecord(raw.brevhovedIndstillinger)
+    ...currentRaw,
+    brevhovedIndstillinger: isRecord(currentRaw.brevhovedIndstillinger)
       ? {
         ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger,
-        ...raw.brevhovedIndstillinger,
+        ...currentRaw.brevhovedIndstillinger,
       }
       : { ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger },
   };

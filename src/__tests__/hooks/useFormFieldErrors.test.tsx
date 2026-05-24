@@ -8,7 +8,8 @@ import {
   useFormFieldErrorReporter,
 } from '../../hooks/useFormFieldErrors';
 import { clearResolvedFieldErrorsCache } from '../../hooks/useFormPersistenceSelectors';
-import { FormPersistenceContext, type FormPersistenceContextValue } from '../../contexts/FormPersistenceContext.shared';
+import type { FormPersistenceContextValue } from '../../contexts/FormPersistenceContext.shared';
+import { FormPersistenceContext } from '../../contexts/FormPersistenceContext.internal';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import type { StorageKey } from '../../config/storageManifest';
 import type { FormFieldError, ReportableFieldError } from '../../types/fieldErrors';

@@ -5,6 +5,7 @@ import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
+import { undoRedoStore } from '../../stores/undoRedoStore';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ const renderProvider = () => {
 describe('FormPersistenceContext – normalFlow', () => {
   beforeEach(() => {
     sessionStorage.clear();
+    undoRedoStore.getState().clear();
   });
 
   it('getPersistedData returnerer null ved tom sessionStorage', async () => {
@@ -144,6 +146,70 @@ describe('FormPersistenceContext – normalFlow', () => {
     expect(didPersist).toBe(false);
     expect(sessionStorage.getItem('mineo_stamdata')).toContain('Før');
     expect(getCtx()!.getPersistedData('stamdata')?.skadelidte).toBe('Før');
+  });
+
+  it('gennemfører store-rollback selv hvis storage-rollback fejler i persistData', async () => {
+    const { getCtx } = renderProvider();
+    await waitFor(() => expect(getCtx()).not.toBeNull());
+
+    const commitSpy = vi.spyOn(formPersistenceStore.getState(), 'commitSection').mockImplementation(() => {
+      throw new Error('Injected commit failure');
+    });
+    const storageProto = Object.getPrototypeOf(window.sessionStorage) as Storage;
+    const removeSpy = vi.spyOn(storageProto, 'removeItem').mockImplementation(() => {
+      throw new Error('Injected remove failure');
+    });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    let didPersist = true;
+    await act(async () => {
+      didPersist = getCtx()!.persistData('stamdata', {
+        journalnr: '',
+        advokat: '',
+        sagsbehandler: '',
+        skadelidte: 'Efter',
+        skadestype: undefined,
+        skadedato: undefined,
+      });
+    });
+
+    commitSpy.mockRestore();
+    removeSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+
+    expect(didPersist).toBe(false);
+    expect(getCtx()!.getPersistedData('stamdata')).toBeNull();
+  });
+
+  it('ruller storage og store tilbage hvis undo-capture fejler under persistData', async () => {
+    const { getCtx } = renderProvider();
+    await waitFor(() => expect(getCtx()).not.toBeNull());
+
+    const captureSpy = vi.spyOn(undoRedoStore.getState(), 'capture').mockImplementation(() => {
+      throw new Error('Injected undo capture failure');
+    });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    let didPersist = true;
+    await act(async () => {
+      didPersist = getCtx()!.persistData('stamdata', {
+        journalnr: '',
+        advokat: '',
+        sagsbehandler: '',
+        skadelidte: 'Efter',
+        skadestype: undefined,
+        skadedato: undefined,
+      }, {
+        undoOrigin: { pageId: 'stamdata', fieldPath: 'skadelidte', focusToken: null },
+      });
+    });
+
+    captureSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+
+    expect(didPersist).toBe(false);
+    expect(sessionStorage.getItem('mineo_stamdata')).toBeNull();
+    expect(getCtx()!.getPersistedData('stamdata')).toBeNull();
   });
 
   it('bevarer kompatible sektioner ved version-mismatch i sessionStorage', async () => {

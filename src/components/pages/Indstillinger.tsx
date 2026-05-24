@@ -63,8 +63,6 @@ const svieSmerteDelvisSygemeldingSatsOptions = APP_SETTINGS_SVIE_SMERTE_DELVIS_S
   label: value === 'fuld' ? 'Fuld sats' : 'Halv sats',
 } satisfies { value: AppSettingsSvieSmerteDelvisSygemeldingSatsOption; label: string }));
 
-const udloebMaanederOptions = Array.from({ length: 13 }, (_, index) => index);
-
 const BrevhovedCheckboxRow = React.memo((props: {
   items: readonly BrevhovedOption[];
   checked: BrevhovedIndstillinger;
@@ -464,44 +462,6 @@ const Indstillinger = React.memo(() => {
 
       <ContentBox className="content-box">
         <Typography className="section-header">Beregningsteknisk</Typography>
-
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">
-            Tillad regulering med overenskomst, der ikke dækker hele perioden
-          </Typography>
-          <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch
-              checked={settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden}
-              onCommit={(e: CommitEvent<boolean>) =>
-                updateSettings({ allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: e.target.value })
-              }
-            />
-          </Box>
-        </Box>
-
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Efter udløb anses overenskomst for forældet efter</Typography>
-          <Box className="row--label-right-hover__content">
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <StyledDropdown
-                allowEmpty={false}
-                value={settings.allowReguleringMedUdloebMedMaaneder}
-                onChange={(e: StyledDropdownChangeEvent<number>) => {
-                  // Kun værdier fra udloebMaanederOptions kan nå hertil; schemaets min/max er defensiv backup.
-                  updateSettings({ allowReguleringMedUdloebMedMaaneder: e.target.value });
-                }}
-                width={80}
-              >
-                {udloebMaanederOptions.map((option) => (
-                  <MenuItem key={option} value={option}>
-                    {option}
-                  </MenuItem>
-                ))}
-              </StyledDropdown>
-              <Typography className="row--text">måneder</Typography>
-            </Box>
-          </Box>
-        </Box>
 
         <Box className="row--label-right-hover">
           <Typography className="row--text">

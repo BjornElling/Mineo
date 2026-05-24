@@ -3,6 +3,7 @@
 **Version:** 0.1
 **Status:** Gældende arkitektur
 **Type:** Tværgående kontrakt
+**Senest verificeret mod kode:** 2026-05-24
 **Formål:** At fastlægge ufravigelige regler for form-arkitektur, state-håndtering og validering i Mineo.
 
 ---
@@ -64,6 +65,7 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 - Før `initialValues` bruges som committed fallback, skal de materialiseres gennem sektionens Zod-schema.
 - Schema-defaults må dermed anvendes ved oprettelse af nye runtime-værdier, men må ikke injiceres i `.eo` load for at skjule manglende nyere felter, jf. `persistence-contract.md`.
 - En eksisterende committed sektion må aldrig overskrives med `initialValues` pga. navigation, rerender, settings-ændring eller lokal resync.
+- Funktionelle form-commits via `usePersistedForm().setValues` må returnere en fuld sektion eller et subset-patch. Subset-patches skal materialiseres oven på seneste committed schema-værdi og derefter gennem den normale schema-validerede persistence-vej.
 
 ---
 

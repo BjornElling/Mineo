@@ -62,6 +62,40 @@ describe('persistenceSnapshotStorage', () => {
     expect(parseStoredSection('satser')?.data).toEqual({ aargang: 2024 });
   });
 
+  it('ruller delvist skrevne sektioner tilbage hvis en senere section-write fejler', () => {
+    const existingSatser: PersistedData = {
+      version: PERSISTED_DATA_VERSION,
+      timestamp: 1,
+      data: { aargang: 2024 },
+    };
+    sessionStorage.setItem(getStorageKey('satser'), JSON.stringify(existingSatser));
+    const storageProto = Object.getPrototypeOf(window.sessionStorage) as Storage;
+    const originalSetItem = storageProto.setItem;
+    const setItemSpy = vi.spyOn(storageProto, 'setItem').mockImplementation(function (
+      this: Storage,
+      key: string,
+      value: string
+    ) {
+      if (key === getStorageKey('renteberegning')) {
+        throw new Error('Injected partial write failure');
+      }
+      return originalSetItem.call(this, key, value);
+    });
+    const sections = emptySections();
+    sections.satser = { aargang: 2025 };
+    sections.renteberegning = { rentekravRows: [] };
+
+    try {
+      expect(() => atomicWritePersistenceSections(sections, () => undefined)).toThrow(
+        'Kunne ikke skrive persistence-snapshot atomisk'
+      );
+      expect(parseStoredSection('satser')?.data).toEqual({ aargang: 2024 });
+      expect(sessionStorage.getItem(getStorageKey('renteberegning'))).toBeNull();
+    } finally {
+      setItemSpy.mockRestore();
+    }
+  });
+
   it('sletter null-sektioner og kan hydrere toRemove-stien', () => {
     sessionStorage.setItem(
       getStorageKey('satser'),

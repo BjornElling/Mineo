@@ -33,7 +33,7 @@ Snapshot skal mindst deklarere:
 1. felt-UI projektioner,
 2. gates for ASL/EAL/resultatvisning,
 3. beregningsresultat eller tom tilstand,
-4. `canDownloadPdf`,
+4. `pdfGate`,
 5. PDF-projektion,
 6. issues/fejlklassifikation.
 
@@ -52,7 +52,7 @@ Runtimefejl skal routes efter `error-debug-contract.md` og give dansk blokerende
 Tests skal dække:
 
 1. snapshot bygges kun fra committed input,
-2. `canDownloadPdf` følger samme gate som PDF-projektionen,
+2. `pdfGate.canDownload` følger samme gate som PDF-projektionen og `pdfGate.reasons` angiver blokerende årsager,
 3. runtime exception blokerer output,
 4. changes i `faellesAarsloen` påvirker snapshot deterministisk,
 5. PDF-flow bruger snapshot-projektionen.

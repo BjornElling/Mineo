@@ -3,6 +3,7 @@
 **Version:** 0.2
 **Status:** Gældende arkitektur (normativ)
 **Prioritet:** Underordnet `domain-boundary-contract.md`, `form-contract.md` og `keyboard-navigation.md`, som går forud ved konflikt.
+**Senest verificeret mod kode:** 2026-05-24
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.

@@ -6,9 +6,9 @@ import {
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import type { PersistedData } from '../types/persistence';
 import {
-  FormPersistenceContext,
   type ReplaceAllPersistedData,
 } from './FormPersistenceContext.shared';
+import { FormPersistenceContext } from './FormPersistenceContext.internal';
 import {
   type FieldErrorsForSection,
   type FormFieldError,
@@ -123,6 +123,35 @@ const restoreStoreRollbackSnapshot = (snapshot: StoreRollbackSnapshot): void => 
   );
   formPersistenceStore.getState().restoreFieldErrors(snapshot.fieldErrors, snapshot.fieldErrorRevisions);
   clearResolvedFieldErrorsCache();
+};
+
+const restoreStorageValue = (storageKey: string, value: string | null): void => {
+  if (value === null) {
+    removeSessionStorageValue(storageKey);
+    return;
+  }
+  writeSessionStorageValue(storageKey, value);
+};
+
+const attemptRollbackStep = (
+  failures: Error[],
+  step: () => void
+): void => {
+  try {
+    step();
+  } catch (rollbackError) {
+    failures.push(rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError)));
+  }
+};
+
+const createRollbackError = (operation: string, originalError: unknown, rollbackFailures: readonly Error[]): Error => {
+  const originalMessage = originalError instanceof Error ? originalError.message : String(originalError);
+  if (rollbackFailures.length === 0) {
+    return originalError instanceof Error ? originalError : new Error(originalMessage);
+  }
+
+  const rollbackMessages = rollbackFailures.map((failure) => failure.message).join(' | ');
+  return new Error(`${operation} fejlede og rollback havde ${rollbackFailures.length} fejl: ${rollbackMessages}. Oprindelig fejl: ${originalMessage}`);
 };
 
 /**
@@ -274,14 +303,11 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
           lastCommittedAt: Date.now(),
         });
       } catch (error) {
-        if (previousStorageValue === null) {
-          removeSessionStorageValue(storageKey);
-        } else {
-          writeSessionStorageValue(storageKey, previousStorageValue);
-        }
-        restoreStoreRollbackSnapshot(rollbackSnapshot);
-        restoreUndoRedoRollbackSnapshot(undoRollbackSnapshot);
-        throw error;
+        const rollbackFailures: Error[] = [];
+        attemptRollbackStep(rollbackFailures, () => restoreStorageValue(storageKey, previousStorageValue));
+        attemptRollbackStep(rollbackFailures, () => restoreStoreRollbackSnapshot(rollbackSnapshot));
+        attemptRollbackStep(rollbackFailures, () => restoreUndoRedoRollbackSnapshot(undoRollbackSnapshot));
+        throw createRollbackError('persistData', error, rollbackFailures);
       }
       logPersistSaveDebug(storageKey, getFieldCount(data));
       return true;
@@ -366,26 +392,25 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     } catch (error) {
       // Defensive strategy: always execute full rollback/restore sequence,
       // even if failure happened before any in-memory mutation.
+      const rollbackFailures: Error[] = [];
       for (const { storageKey } of toWrite) {
-        removeSessionStorageValue(storageKey);
+        attemptRollbackStep(rollbackFailures, () => removeSessionStorageValue(storageKey));
       }
       for (const [key, value] of backup.entries()) {
-        if (value === null || value === undefined) {
-          removeSessionStorageValue(key);
-        } else {
-          writeSessionStorageValue(key, value);
-        }
+        attemptRollbackStep(rollbackFailures, () => restoreStorageValue(key, value));
       }
-      formPersistenceStore.getState().rollbackSections(
-        prevSections,
-        prevSectionRevisions,
-        prevStoreState.committedChangeCounter,
-        prevAuthoritativeSnapshotEpoch,
-        prevMeta
-      );
-      formPersistenceStore.getState().restoreFieldErrors(prevFieldErrors, prevFieldErrorRevisions);
-      clearResolvedFieldErrorsCache();
-      const message = error instanceof Error ? error.message : 'Ukendt fejl';
+      attemptRollbackStep(rollbackFailures, () => {
+        formPersistenceStore.getState().rollbackSections(
+          prevSections,
+          prevSectionRevisions,
+          prevStoreState.committedChangeCounter,
+          prevAuthoritativeSnapshotEpoch,
+          prevMeta
+        );
+        formPersistenceStore.getState().restoreFieldErrors(prevFieldErrors, prevFieldErrorRevisions);
+        clearResolvedFieldErrorsCache();
+      });
+      const message = createRollbackError('replaceAllPersistedData', error, rollbackFailures).message;
       throw new Error(`Kunne ikke anvende snapshot atomisk: ${message}`);
     }
   }, []);
@@ -408,12 +433,10 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       clearResolvedFieldErrorsCache();
     } catch (error) {
       if (rollbackSnapshot) {
-        if (previousStorageValue === null) {
-          removeSessionStorageValue(storageKey);
-        } else {
-          writeSessionStorageValue(storageKey, previousStorageValue);
-        }
-        restoreStoreRollbackSnapshot(rollbackSnapshot);
+        const snapshot = rollbackSnapshot;
+        const rollbackFailures: Error[] = [];
+        attemptRollbackStep(rollbackFailures, () => restoreStorageValue(storageKey, previousStorageValue));
+        attemptRollbackStep(rollbackFailures, () => restoreStoreRollbackSnapshot(snapshot));
       }
       emitUserNotice(`Kunne ikke slette data for '${pageKey}'. Ingen data blev ændret.`, 'error');
       console.error(`[Persistence] Fejl ved sletning af data for '${pageKey}':`, error);
@@ -443,14 +466,12 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       undoRedoStore.getState().clear();
     } catch (error) {
       if (rollbackSnapshot) {
+        const snapshot = rollbackSnapshot;
+        const rollbackFailures: Error[] = [];
         for (const [key, value] of backup.entries()) {
-          if (value === null) {
-            removeSessionStorageValue(key);
-          } else {
-            writeSessionStorageValue(key, value);
-          }
+          attemptRollbackStep(rollbackFailures, () => restoreStorageValue(key, value));
         }
-        restoreStoreRollbackSnapshot(rollbackSnapshot);
+        attemptRollbackStep(rollbackFailures, () => restoreStoreRollbackSnapshot(snapshot));
       }
       emitUserNotice('Kunne ikke slette alle sagsdata. Ingen data blev ændret.', 'error');
       console.error('[Persistence] Fejl ved sletning af alle data:', error);

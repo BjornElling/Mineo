@@ -1,5 +1,4 @@
 import {
-  FONT_SIZES,
   MARGINS,
   PDF_BREVHOVED_FONT_SIZE,
   PDF_BREVHOVED_LINE_HEIGHT,
@@ -43,9 +42,6 @@ export const renderBrevhoved = (doc: PdfDocumentAdapter, data: BrevhovedData): n
   }
 
   doc.text(resolvedDatoText, rightX, currentY, { align: 'right' });
-
-  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-  doc.setFontSize(FONT_SIZES.normal);
 
   return MARGINS.top;
 };
