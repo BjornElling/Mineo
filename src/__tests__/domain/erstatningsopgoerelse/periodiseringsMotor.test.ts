@@ -121,6 +121,29 @@ describe('periodiseringsMotor', () => {
     expect(efterSyntetiskCutoff).toBe(3);
   });
 
+  it('isOffentligYdelseDatoMedregnet bruger 2012-07-02 som reel sygedagpenge-cutover efter periodens slutdato', () => {
+    const shDays = new Set<ISODateString>([iso('2012-06-05')]);
+    const foerCutover = isOffentligYdelseDatoMedregnet({
+      iso: iso('2012-06-05'),
+      dateObj: d('2012-06-05'),
+      shDays,
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'sygedagpenge',
+      rowTilISO: iso('2012-07-01'),
+    });
+    const paaCutover = isOffentligYdelseDatoMedregnet({
+      iso: iso('2012-06-05'),
+      dateObj: d('2012-06-05'),
+      shDays,
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'sygedagpenge',
+      rowTilISO: iso('2012-07-02'),
+    });
+
+    expect(foerCutover).toBe(true);
+    expect(paaCutover).toBe(false);
+  });
+
   it('buildSygedagpengeArbejdsdagePrKalenderuge deler arbejdsdage pr. kalenderuge via central motor', () => {
     const result = buildSygedagpengeArbejdsdagePrKalenderuge(iso('2025-01-09'), iso('2025-01-14'));
     expect(result).toEqual([

@@ -10,7 +10,7 @@ import {
   prepareForCriticalDataReplacement,
   restoreFocusIfPossible,
 } from '../utils/commitFlush';
-import { persistenceSchemas } from '../config/persistenceRegistry';
+import { PERSISTED_SECTION_KEYS, type PersistedSectionMap } from '../config/persistenceRegistry';
 import { UI_STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 import type { LoadFileResult, SaveFileResult } from '../types/fileOperations';
 import { type PwaFileOpenRequest } from '../utils/pwaLaunchQueue';
@@ -19,6 +19,7 @@ import { EncryptionError } from '../utils/encryption';
 import type { AppSettings } from '../settings/appSettingsSchema';
 import type { ReplaceAllPersistedData } from '../contexts/FormPersistenceContext.shared';
 import { executePersistenceLoadApply, type PersistenceLoadApplyResult } from '../utils/persistenceLoadApply';
+import type { SaveSnapshot } from '../utils/fileSaveTypes';
 import {
   removeOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
@@ -53,7 +54,7 @@ type UseFileSaveLoadArgs = {
   markSaved: (revision: number) => void;
   getFirstBlockingInputError: () => BlockingInputErrorTarget | null;
   currentPathname: string;
-  getPersistedData: <K extends StorageKey>(pageKey: K) => unknown;
+  getPersistedData: <K extends StorageKey>(pageKey: K) => PersistedSectionMap[K] | null;
   replaceAllPersistedData: ReplaceAllPersistedData;
   clearAllData: () => void;
   hasAnyData: () => boolean;
@@ -193,12 +194,11 @@ export const useFileSaveLoad = ({
         return;
       }
 
-      const snapshot = Object.keys(persistenceSchemas).reduce((acc, key) => {
-        const pageKey = key as StorageKey;
+      const snapshot = PERSISTED_SECTION_KEYS.reduce((acc, pageKey) => {
         const value = getPersistedData(pageKey);
-        acc[pageKey] = value ?? undefined;
+        (acc as Record<StorageKey, unknown | undefined>)[pageKey] = value ?? undefined;
         return acc;
-      }, {} as Record<StorageKey, unknown | undefined>);
+      }, {} as SaveSnapshot);
       const snapshotRevision = combinedSectionRevisionRef.current;
       const resolvedDirectory = await resolveDefaultDirectoryHandle(settings);
       const result: SaveFileResult = await saveToFile(snapshot, resolvedDirectory);

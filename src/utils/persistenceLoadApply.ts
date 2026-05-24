@@ -1,4 +1,4 @@
-import { persistenceSchemas } from '../config/persistenceRegistry';
+import { PERSISTED_SECTION_KEYS, type PersistedSectionsSnapshot } from '../config/persistenceRegistry';
 import { type StorageKey } from '../config/storageManifest';
 import type { ReplaceAllPersistedData } from '../contexts/FormPersistenceContext.shared';
 import type { LoadFileResult } from '../types/fileOperations';
@@ -8,15 +8,23 @@ import { clearPendingPwaFileOpenRequest, markPendingPwaFileOpenRequestHandled } 
 
 const buildAuthoritativeLoadSnapshot = (
   partialSnapshot: Partial<Record<StorageKey, unknown>> | undefined
-): Record<StorageKey, unknown | undefined> => {
+): PersistedSectionsSnapshot => {
   if (!partialSnapshot) {
     throw new Error('Kunne ikke anvende indlæst data: mangler snapshot');
   }
 
-  return (Object.keys(persistenceSchemas) as StorageKey[]).reduce((acc, key) => {
-    acc[key] = partialSnapshot[key];
+  const assignSnapshotValue = <K extends StorageKey>(
+    target: PersistedSectionsSnapshot,
+    key: K,
+    value: PersistedSectionsSnapshot[K]
+  ): void => {
+    target[key] = value;
+  };
+
+  return PERSISTED_SECTION_KEYS.reduce((acc, key) => {
+    assignSnapshotValue(acc, key, partialSnapshot[key] as PersistedSectionsSnapshot[typeof key]);
     return acc;
-  }, {} as Record<StorageKey, unknown | undefined>);
+  }, {} as PersistedSectionsSnapshot);
 };
 
 export type PersistenceLoadApplyResult =

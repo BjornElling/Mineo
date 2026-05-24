@@ -65,10 +65,10 @@ export const createSystemIssueEnvelope = (
     route: getRoute(),
     timestamp: getTimestamp(),
     userMessage: input.userMessage,
-    developerMessage: input.developerMessage,
+    ...(input.developerMessage !== undefined ? { developerMessage: input.developerMessage } : {}),
     ...(input.revision !== undefined ? { revision: input.revision } : {}),
-    evidence: input.evidence,
-    diagnostics: input.diagnostics,
+    ...(input.evidence !== undefined ? { evidence: input.evidence } : {}),
+    ...(input.diagnostics !== undefined ? { diagnostics: input.diagnostics } : {}),
   };
 };
 

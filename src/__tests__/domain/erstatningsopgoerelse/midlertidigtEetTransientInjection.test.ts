@@ -346,4 +346,33 @@ describe('midlertidigt EET transient injection', () => {
       blocksAuthoritativeComputation: true,
     }));
   });
+
+  it('blokerer autoritativ EO-beregning når EET-kilden ikke matcher schema', () => {
+    const eoValues = {
+      ...createValidEoBase(),
+      midlertidigtEetFraEetSiden: 'Ja' as const,
+    };
+
+    const snapshot = computeEoSnapshot({
+      revision: 'midlertidigt-eet-source-schema-invalid',
+      stamdataValues: stamdata,
+      eoValues,
+      midlertidigtEetInsertSource: {
+        eetValues,
+        skadedato: stamdata.skadedato,
+        issues: [{
+          id: 'midlertidigt-eet-source-schema-invalid',
+          severity: 'error',
+          message: 'Erhvervsevnetab-data kunne ikke valideres og kan derfor ikke importeres som midlertidigt EET.',
+        }],
+      },
+    });
+
+    expect(snapshot.data).toBeNull();
+    expect(snapshot.invariants).toContainEqual(expect.objectContaining({
+      id: 'midlertidigt_eet_source:midlertidigt-eet-source-schema-invalid',
+      severity: 'error',
+      blocksAuthoritativeComputation: true,
+    }));
+  });
 });

@@ -1,21 +1,22 @@
 import * as React from 'react';
 import { isInteractiveDevLoggingEnabled } from '../utils/debugRuntime';
 import { registerDraftHistoryController, type DraftHistoryRestoreState } from '../utils/draftHistoryRegistry';
+import type {
+  DraftParse,
+  DraftParseErrorKind,
+  DraftParseResult,
+} from '../types/fieldEvents';
+
+export type {
+  DraftParse,
+  DraftParseErrorKind,
+  DraftParseMode,
+  DraftParseResult,
+} from '../types/fieldEvents';
 
 const defaultNormalizeDraftOnCommit = (draft: string): string => {
   return draft;
 };
-
-export type DraftParseMode = 'typing' | 'commit';
-
-export type DraftParseErrorKind = 'empty' | 'partial' | 'invalid';
-
-export type DraftParseResult<TModel> =
-  | { ok: true; value: TModel }
-  | { ok: false; kind: 'invalid'; message: string }
-  | { ok: false; kind: Exclude<DraftParseErrorKind, 'invalid'>; message?: string };
-
-export type DraftParse<TModel> = (draft: string, context: { mode: DraftParseMode }) => DraftParseResult<TModel>;
 
 export type DraftFieldError =
   | { kind: 'invalid'; message: string; invalidDraft?: string }

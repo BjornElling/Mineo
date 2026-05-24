@@ -58,6 +58,13 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 - Hvis et persisted sagsfelt eller en persisted række skjules, skal den committede værdi fortsat kunne overleve `F5`, `.eo`-save og `.eo`-load
 - Skjulte committed værdier må kun neutraliseres ved, at validering og beregning eksplicit gater på de aktive domæneregler; de må ikke neutraliseres ved skjult state-clearing
 
+### 2.3 `initialValues`-materialisering
+
+- `initialValues` er kun fallback for fraværende committed sektioner eller nye sagsdata.
+- Før `initialValues` bruges som committed fallback, skal de materialiseres gennem sektionens Zod-schema.
+- Schema-defaults må dermed anvendes ved oprettelse af nye runtime-værdier, men må ikke injiceres i `.eo` load for at skjule manglende nyere felter, jf. `persistence-contract.md`.
+- En eksisterende committed sektion må aldrig overskrives med `initialValues` pga. navigation, rerender, settings-ændring eller lokal resync.
+
 ---
 
 ## 3. Event-semantik

@@ -8,6 +8,12 @@ type CoverageEntry = Readonly<{
 
 const COVERAGE_MATRIX: readonly CoverageEntry[] = [
   {
+    contractPath: 'src/contracts/contract-topology.json',
+    requiredTestPaths: [
+      'src/__tests__/quality/contractCoverageMatrix.test.ts',
+    ],
+  },
+  {
     contractPath: 'src/contracts/form-contract.md',
     requiredTestPaths: [
       'src/__tests__/quality/formContractIsolation.test.ts',
@@ -30,6 +36,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/domain/forsoergertab/forsoergertabSnapshot.test.ts',
       'src/__tests__/domain/erhvervsevnetab/eetSnapshot.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/eoSnapshot.test.ts',
     ],
   },
   {
@@ -39,7 +46,16 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/quality/persistenceCommittedMirrorIsolation.test.ts',
       'src/__tests__/quality/sessionStorageBoundaryIsolation.test.ts',
       'src/__tests__/utils/persistenceLoadApply.test.ts',
+      'src/__tests__/utils/persistenceSnapshotStorage.test.ts',
       'src/__tests__/utils/safeSessionStorage.test.ts',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/schema-evolution.md',
+    requiredTestPaths: [
+      'src/__tests__/config/persistenceVersionDrift.test.ts',
+      'src/__tests__/config/persistenceRegistry.test.ts',
+      'src/__tests__/utils/persistenceLoadSanitization.test.ts',
     ],
   },
   {
@@ -54,6 +70,94 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/components/layout/Container.test.tsx',
       'src/__tests__/components/tables/tableKeyboardNavigation.looseNavigation.test.tsx',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/pdf-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/quality/pdfDownloadCommittedStateGuard.test.ts',
+      'src/__tests__/utils/pdf/pdfService.downloadFunctions.test.ts',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/pdf-layout-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/quality/pdfPseudoTableGuard.test.ts',
+      'src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts',
+      'src/__tests__/utils/pdf/pdfWriter.test.ts',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/periodisering-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/domain/erstatningsopgoerelse/periodiseringsMotor.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/periodMerging.test.ts',
+      'src/__tests__/utils/periodeBeregning.test.ts',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/eo-snapshot-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/domain/erstatningsopgoerelse/eoSnapshot.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/eoSnapshotPdfProjection.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/eoSnapshotToDebugView.test.ts',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/eet-snapshot-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/domain/erhvervsevnetab/eetSnapshot.test.ts',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/forsoergertab-snapshot-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/domain/forsoergertab/forsoergertabSnapshot.test.ts',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/aarsloen-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/domain/aarsloen/aarsloenCalculations.test.ts',
+      'src/__tests__/domain/aarsloen/aarsloenValidationPolicies.test.ts',
+      'src/__tests__/hooks/useAarsloenPdfGates.test.tsx',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/renteberegning-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/domain/renteberegning/renteberegningEngine.test.ts',
+      'src/__tests__/domain/renteberegning/procesrenteCalculator.test.ts',
+      'src/__tests__/components/pages/Renteberegning.pdfDownload.test.tsx',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/varigemen-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/domain/varigemen/varigeMenEngine.test.ts',
+      'src/__tests__/components/pages/varigemen/MenberegningTab.pdfStamdataConsistency.test.tsx',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/satser-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/domain/calculations/satserCalculations.test.ts',
+      'src/__tests__/stores/formPersistenceStore.satser.test.ts',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/amount-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/utils/amountInputUtils.test.ts',
+      'src/__tests__/schemas/amountExpressionSchema.test.ts',
+      'src/__tests__/components/tables/BeregnetRenteTable.amountfield.test.tsx',
+    ],
+  },
+  {
+    contractPath: 'src/contracts/undo-redo-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/stores/undoRedoStore.test.ts',
+      'src/__tests__/components/layout/MainLayout.undoRedoEditorGuard.test.tsx',
     ],
   },
   {
@@ -106,6 +210,28 @@ describe('contract linkage matrix', () => {
       for (const testPath of entry.requiredTestPaths) {
         assertFileExists(testPath);
       }
+    }
+  });
+
+  it('har en maskinlæsbar kontrakttopologi med eksisterende kontraktfiler', () => {
+    const topologyPath = 'src/contracts/contract-topology.json';
+    const topology = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), topologyPath), 'utf8')) as {
+      version: number;
+      crossCuttingContracts: string[];
+      domainContracts: string[];
+      subordinateContracts: Record<string, string[]>;
+      informativeArchitectureDocs: string[];
+    };
+
+    expect(topology.version).toBe(1);
+    for (const contractPath of [
+      ...topology.crossCuttingContracts,
+      ...topology.domainContracts,
+      ...Object.keys(topology.subordinateContracts),
+      ...Object.values(topology.subordinateContracts).flat(),
+      ...topology.informativeArchitectureDocs,
+    ]) {
+      assertFileExists(contractPath);
     }
   });
 });

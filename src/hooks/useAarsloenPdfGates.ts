@@ -19,15 +19,11 @@ import { hasAtLeastOneValidRow } from '../domain/aarsloen/standardLoenRowCalcula
 import type { PersistedSectionMap } from '../config/persistenceRegistry';
 import type { AppSettings } from '../settings/appSettingsSchema';
 import { downloadAarsloenPdf, downloadSHDagePdf } from '../pdf/infrastructure/pdfService';
+import { allowPdfDownload, blockPdfDownload, type PdfDownloadGateResult } from '../pdf/pdfGateTypes';
 
 // ============================================================================
 // TYPES
 // ============================================================================
-
-type PdfEligibility = {
-  canDownload: boolean;
-  reason?: string;
-};
 
 type UseAarsloenPdfGatesProps = {
   values: AarsloenValues;
@@ -122,15 +118,15 @@ export const useAarsloenPdfGates = ({
    * VIGTIGT: Dette er single source of truth for PDF-eligibility.
    * Alle gates samlet ét sted for nem vedligeholdelse.
    */
-  const getPdfEligibility = React.useMemo((): PdfEligibility => {
+  const getPdfEligibility = React.useMemo((): PdfDownloadGateResult => {
     // GATE 1: Data i tabellen
     if (!tableData || tableData.length === 0) {
-      return { canDownload: false, reason: 'Ingen data i tabel' };
+      return blockPdfDownload({ code: 'aarsloen:no-table-data', message: 'Ingen data i tabel' });
     }
 
     // GATE 2: Valideringsfejl i tabel
     if (harTabelValideringsFejl(tableData, loenperiode)) {
-      return { canDownload: false, reason: 'Valideringsfejl i tabel' };
+      return blockPdfDownload({ code: 'aarsloen:table-validation-error', message: 'Valideringsfejl i tabel' });
     }
 
     // GATE 3: Mindst én gyldig række (komplet periode + samlet løn ≠ 0)
@@ -143,22 +139,22 @@ export const useAarsloenPdfGates = ({
         pensionPct,
       })
     ) {
-      return { canDownload: false, reason: 'Ingen gyldige rækker i tabel' };
+      return blockPdfDownload({ code: 'aarsloen:no-valid-rows', message: 'Ingen gyldige rækker i tabel' });
     }
 
     // GATE 4: Fatale beregningsfejl
     if (harFatalBeregningsFejl) {
-      return { canDownload: false, reason: 'Fatale beregningsfejl' };
+      return blockPdfDownload({ code: 'aarsloen:fatal-calculation-error', message: 'Fatale beregningsfejl' });
     }
 
     // GATE 5: Hvis omregning aktiveret - kræv periodeData
     if (omregningAktiveret) {
       if (!periodeData) {
-        return { canDownload: false, reason: 'Mangler periode-data' };
+        return blockPdfDownload({ code: 'aarsloen:missing-period-data', message: 'Mangler periode-data' });
       }
     }
 
-    return { canDownload: true };
+    return allowPdfDownload();
   }, [
     tableData,
     loenperiode,

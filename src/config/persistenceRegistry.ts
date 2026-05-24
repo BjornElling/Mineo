@@ -31,3 +31,11 @@ export type PersistedSectionMap = {
 };
 
 export type PersistedSection<K extends StorageKey> = PersistedSectionMap[K];
+
+export type PersistedSectionsSnapshot = {
+  [K in StorageKey]: PersistedSectionMap[K] | undefined;
+};
+
+export type HydratedPersistedSectionsSnapshot = {
+  [K in StorageKey]: PersistedSectionMap[K] | null;
+};

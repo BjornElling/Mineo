@@ -16,6 +16,17 @@ export type DraftChangeHandler = (e: DraftChangeEvent) => void;
 
 export type CommitHandler<TValue> = (e: CommitEvent<TValue>) => void;
 
+export type DraftParseMode = 'typing' | 'commit';
+
+export type DraftParseErrorKind = 'empty' | 'partial' | 'invalid';
+
+export type DraftParseResult<TModel> =
+  | { ok: true; value: TModel }
+  | { ok: false; kind: 'invalid'; message: string }
+  | { ok: false; kind: Exclude<DraftParseErrorKind, 'invalid'>; message?: string };
+
+export type DraftParse<TModel> = (draft: string, context: { mode: DraftParseMode }) => DraftParseResult<TModel>;
+
 export const createDraftChangeEvent = (value: string): DraftChangeEvent => ({
   __mineoEvent: 'MineoFieldEvent',
   kind: 'draft',

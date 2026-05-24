@@ -129,12 +129,13 @@ export const usePersistedForm = <K extends StorageKey>(
   }, [clearFieldErrors, clearPageData, persistData]);
 
   const resolvedValues = React.useMemo(() => {
+    const materializedInitialValues = schema.parse(initialValues);
     if (committedSection !== null) {
       const parsed = schema.safeParse(committedSection);
       if (!parsed.success) {
         const issues = formatSchemaIssueSummary(parsed.error.issues, 5);
         return {
-          values: initialValues,
+          values: materializedInitialValues,
           invalidCommittedSection: {
             pageKey: String(pageKey),
             issues,
@@ -144,7 +145,7 @@ export const usePersistedForm = <K extends StorageKey>(
       }
     }
     return {
-      values: committedSection ? { ...initialValues, ...committedSection } : initialValues,
+      values: committedSection ? schema.parse(committedSection) : materializedInitialValues,
       invalidCommittedSection: null,
     };
   }, [committedSection, initialValues, pageKey, schema]);
@@ -200,8 +201,8 @@ export const usePersistedForm = <K extends StorageKey>(
     if (!committedSnapshot) {
       return initialValuesRef.current;
     }
-    return { ...initialValuesRef.current, ...committedSnapshot };
-  }, [pageKey]);
+    return schema.parse(committedSnapshot);
+  }, [pageKey, schema]);
 
   const createUndoOrigin = React.useCallback((options?: CommitOriginOptions): HistoryFrameOrigin => {
     const route = routePathname ?? getCurrentPathname();

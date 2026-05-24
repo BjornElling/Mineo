@@ -1,6 +1,7 @@
 import type { ErhvervsevnetabComposedValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString } from '../../../types/branded';
+import type { EetIssue } from '../../erhvervsevnetab/eetTypes';
 import type { EetLoebendeComputation, EetLoebendePeriodeRow } from '../../erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 
@@ -8,6 +9,7 @@ import { generateOffentligYdelseRowId } from './eoRowInitialValues';
 export type MidlertidigtEetInsertSource = Readonly<{
   eetValues: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
+  issues?: readonly EetIssue[];
 }>;
 
 /**

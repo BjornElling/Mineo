@@ -48,6 +48,18 @@ const DOMAIN_STORAGE_KEY_SET: ReadonlySet<string> = new Set([
   ...Object.values(STORAGE_KEYS),
 ]);
 
+const getSessionStorageKeySnapshot = (): string[] => {
+  const keys: string[] = [];
+  const { length } = sessionStorage;
+  for (let index = 0; index < length; index += 1) {
+    const key = sessionStorage.key(index);
+    if (typeof key === 'string') {
+      keys.push(key);
+    }
+  }
+  return keys;
+};
+
 /**
  * Type-safe storage key type
  *
@@ -85,8 +97,7 @@ export const isValidStorageKey = (key: string): boolean => {
  * @returns Array af gyldige sessionStorage keys
  */
 export const getAllMineoKeys = (): string[] => {
-  return Array.from({ length: sessionStorage.length }, (_, index) => sessionStorage.key(index))
-    .filter((key): key is string => typeof key === 'string' && isValidStorageKey(key));
+  return getSessionStorageKeySnapshot().filter(isValidStorageKey);
 };
 
 /**
@@ -98,6 +109,5 @@ export const getAllMineoKeys = (): string[] => {
  * @returns Array af domæne-relaterede sessionStorage keys
  */
 export const getDomainStorageKeys = (): string[] => {
-  return Array.from({ length: sessionStorage.length }, (_, index) => sessionStorage.key(index))
-    .filter((key): key is string => typeof key === 'string' && DOMAIN_STORAGE_KEY_SET.has(key));
+  return getSessionStorageKeySnapshot().filter((key) => DOMAIN_STORAGE_KEY_SET.has(key));
 };

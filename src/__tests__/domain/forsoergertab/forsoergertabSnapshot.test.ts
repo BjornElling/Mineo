@@ -1,4 +1,5 @@
 import { computeForsoergertabSnapshot } from '../../../domain/forsoergertab/forsoergertabSnapshot';
+import * as forsoergertabCalculation from '../../../domain/forsoergertab/forsoergertabCalculation';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import type {
   FaellesAarsloenValues,
@@ -202,5 +203,36 @@ describe('computeForsoergertabSnapshot', () => {
     expect(snapshot.inputBounds.skadedatoMin).toBe('2020-05-01');
     expect(snapshot.inputBounds.beregningsdatoMin).toBe('2025-01-01');
     expect(snapshot.inputBounds.virkningsdatoMax).toBe('2026-03-19');
+  });
+
+  it('failer lukket med snapshot-issue hvis forsørgertabsberegningen kaster runtimefejl', () => {
+    const spy = vi.spyOn(forsoergertabCalculation, 'computeForsoergertabCalculation').mockImplementation(() => {
+      throw new Error('Injected FST failure');
+    });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const snapshot = computeForsoergertabSnapshot({
+        values: createValues(),
+        faellesAarsloen: createFaellesAarsloen(),
+        stamdata: createStamdata(),
+        fieldErrors: {
+          forsoergertab: {},
+          faellesAarsloen: {},
+          stamdata: {},
+        },
+      });
+
+      expect(snapshot.calculation.result).toBeNull();
+      expect(snapshot.canShowResult).toBe(false);
+      expect(snapshot.canDownloadPdf).toBe(false);
+      expect(snapshot.calculation.issues).toContainEqual(expect.objectContaining({
+        id: 'runtime-exception',
+        severity: 'error',
+      }));
+    } finally {
+      spy.mockRestore();
+      consoleErrorSpy.mockRestore();
+    }
   });
 });

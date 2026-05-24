@@ -112,6 +112,8 @@ Mineo har to uafhængige versionsbegreber:
 1. `FILE_FORMAT_VERSION` er `.eo`-containerens version. Den bumpes kun ved inkompatible ændringer i container/top-level format, metadata eller krypterings-/indpakningsstruktur.
 2. `PERSISTED_DATA_VERSION` er sagsinput-schema-versionen for sektionerne i `persistenceRegistry`. Den bumpes ved ændringer i persisted sektionsschemas, migrator-/parse-semantik eller load-sanitization der ændrer sagsinput-kontrakten.
 
+Den aktuelle runtime-konstant ejes alene af `PERSISTED_DATA_VERSION` i `src/config/persistenceVersion.ts`; kontrakten må ikke hardkode konstantværdien. Version `1.0` er historisk kompatibilitetsbaseline, ikke den aktuelle konstantværdi.
+
 De to versioner må ikke bumpes "for en sikkerheds skyld" uden klassifikation. De behøver ikke følges ad.
 
 Fremadrettede ændringer af persisted struktur skal ske efter følgende prioritet:

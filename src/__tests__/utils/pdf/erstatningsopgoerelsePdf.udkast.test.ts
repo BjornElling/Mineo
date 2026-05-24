@@ -1,6 +1,10 @@
 /// <reference types="vitest/globals" />
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
+import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { FONT_SIZES, PDF_BASE_LINE_HEIGHT_MM } from '../../../pdf/infrastructure/pdfConfig';
 
 const mockInstances: MockJsPDF[] = [];
@@ -48,7 +52,9 @@ class MockJsPDF {
 }
 
 vi.mock('jspdf', () => ({ default: MockJsPDF }));
-const logWarningMock = vi.fn();
+const { logWarningMock } = vi.hoisted(() => ({
+  logWarningMock: vi.fn(),
+}));
 vi.mock('../../../utils/logger', () => ({
   logWarning: logWarningMock,
   logError: vi.fn(),
@@ -88,6 +94,19 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     return values;
   };
 
+  const buildProjectedDocument = (stamdata: StamdataValues, eo: ErstatningsopgoerelseValues): EoModel => {
+    const snapshot = computeEoSnapshot({
+      revision: 'pdf-udkast-test',
+      stamdataValues: stamdata,
+      eoValues: eo,
+    });
+    const projection = eoSnapshotToEoPdfDocument(snapshot);
+    if (projection.kind === 'blocked') {
+      throw new Error(projection.message);
+    }
+    return projection.document;
+  };
+
   const hasUdkastCall = (instance: MockJsPDF | null): boolean => {
     if (!instance) return false;
     return instance.text.mock.calls.some((call) => {
@@ -99,7 +118,10 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   it('adds draft watermark when visUdkastStempel=true', () => {
     const baseStamdata = createBaseStamdata();
     const baseEo = createBaseEo();
-    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, { visUdkastStempel: true });
+    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, {
+      visUdkastStempel: true,
+      document: buildProjectedDocument(baseStamdata, baseEo),
+    });
     expect(hasUdkastCall(MockJsPDF.lastInstance)).toBe(true);
     const lastSaveCall = MockJsPDF.lastInstance?.save.mock.calls.at(-1);
     expect(lastSaveCall?.[0]).toMatch(/ \(udkast\)\.pdf$/);
@@ -112,7 +134,10 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       ...baseStamdata,
       journalnr: '1234',
     };
-    generateErstatningsopgoerelsePdf(stamdataWithJournal, baseEo, selected, { visUdkastStempel: true });
+    generateErstatningsopgoerelsePdf(stamdataWithJournal, baseEo, selected, {
+      visUdkastStempel: true,
+      document: buildProjectedDocument(stamdataWithJournal, baseEo),
+    });
     const lastSaveCall = MockJsPDF.lastInstance?.save.mock.calls.at(-1);
     expect(lastSaveCall?.[0]).toMatch(/^1234 - .* \(udkast\)\.pdf$/);
   });
@@ -120,7 +145,10 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   it('does not add draft watermark when visUdkastStempel=false', () => {
     const baseStamdata = createBaseStamdata();
     const baseEo = createBaseEo();
-    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, { visUdkastStempel: false });
+    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, {
+      visUdkastStempel: false,
+      document: buildProjectedDocument(baseStamdata, baseEo),
+    });
     expect(hasUdkastCall(MockJsPDF.lastInstance)).toBe(false);
     const lastSaveCall = MockJsPDF.lastInstance?.save.mock.calls.at(-1);
     const fileName = String(lastSaveCall?.[0] ?? '');
@@ -138,7 +166,10 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     baseStamdata.skadestype = 'Arbejdsulykke';
     baseStamdata.skadedato = '2025-04-03';
 
-    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, { visUdkastStempel: false });
+    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, {
+      visUdkastStempel: false,
+      document: buildProjectedDocument(baseStamdata, baseEo),
+    });
 
     const textCalls = MockJsPDF.lastInstance?.text.mock.calls ?? [];
     const titleCall = textCalls.find((call) => call[0] === 'Erstatningsopgørelse 1');
@@ -160,7 +191,10 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       sygeferiegodtgoerelse: true,
     };
 
-    expect(() => generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selectedWithUnsupported, { visUdkastStempel: false }))
+    expect(() => generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selectedWithUnsupported, {
+      visUdkastStempel: false,
+      document: buildProjectedDocument(baseStamdata, baseEo),
+    }))
       .not.toThrow();
   });
 
@@ -179,7 +213,10 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return [text];
     };
 
-    generateErstatningsopgoerelsePdf(baseStamdata, eoWithLongComment, selected, { visUdkastStempel: false });
+    generateErstatningsopgoerelsePdf(baseStamdata, eoWithLongComment, selected, {
+      visUdkastStempel: false,
+      document: buildProjectedDocument(baseStamdata, eoWithLongComment),
+    });
     expect(MockJsPDF.lastInstance?.addPage).toHaveBeenCalled();
   });
   it('creates multiple new pages for very long wrapped text', () => {
@@ -197,7 +234,10 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return [text];
     };
 
-    generateErstatningsopgoerelsePdf(baseStamdata, eoWithVeryLongComment, selected, { visUdkastStempel: false });
+    generateErstatningsopgoerelsePdf(baseStamdata, eoWithVeryLongComment, selected, {
+      visUdkastStempel: false,
+      document: buildProjectedDocument(baseStamdata, eoWithVeryLongComment),
+    });
     expect((MockJsPDF.lastInstance?.addPage.mock.calls.length ?? 0)).toBeGreaterThanOrEqual(2);
   });
 
@@ -215,7 +255,10 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return text.length;
     };
 
-    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, { visUdkastStempel: false });
+    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, {
+      visUdkastStempel: false,
+      document: buildProjectedDocument(baseStamdata, baseEo),
+    });
 
     expect(logWarningMock).toHaveBeenCalledWith(
       'PDF-layout fallback aktiveret',
@@ -274,7 +317,10 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return [text];
     };
 
-    generateErstatningsopgoerelsePdf(baseStamdata, eoWithLongSignaturIntro, selected, { visUdkastStempel: false });
+    generateErstatningsopgoerelsePdf(baseStamdata, eoWithLongSignaturIntro, selected, {
+      visUdkastStempel: false,
+      document: buildProjectedDocument(baseStamdata, eoWithLongSignaturIntro),
+    });
     expect(MockJsPDF.lastInstance?.addPage).toHaveBeenCalled();
     expect(MockJsPDF.lastInstance?.text).toHaveBeenCalledWith(
       '____ / ____ - ____________',

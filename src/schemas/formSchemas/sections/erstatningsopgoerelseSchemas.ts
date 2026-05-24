@@ -223,6 +223,8 @@ const erstatningsopgoerelseBaseSchema = z.object({
   revideretOpgoerelse: jaNejEnum,
   midlertidigtEetFraEetSiden: jaNejEnum.default('Nej'),
   regulerOffentligeYdelser: jaNejEnum.default('Ja'),
+  allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: z.boolean().default(false),
+  allowReguleringMedUdloebMedMaaneder: z.number().int().min(0).max(12).default(6),
   erstatningsopgoerelseAfsluttesMed: afsluttesMedEnum,
   forligAnsvarsgradProcent: percentageDecimal,
   forligAnsvarsgradBroek: optionalString,

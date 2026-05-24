@@ -81,6 +81,8 @@ export const atomicWritePersistenceSections = (
   sections: FormPersistenceSections,
   commit: () => void
 ): void => {
+  // Caller-owned rollback state (store fields, undo/redo history, notices) must be restored
+  // by the callback owner. This helper only guarantees sessionStorage rollback.
   const { toWrite, toRemove } = buildPersistenceSectionWrites(sections);
   let backup: SessionStorageBackup;
   try {

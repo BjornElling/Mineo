@@ -155,7 +155,7 @@ describe('usePersistedForm', () => {
     });
 
     expect(captured.formVersion).toBe(baselineFormVersion + 2);
-    expect(captured.values).toEqual(initialValues);
+    expect(captured.values).toEqual(committedInitialValues);
   });
 
   it('bryder formVersion ved første hydration og ved efterfølgende authoritative events', () => {
@@ -289,7 +289,7 @@ describe('usePersistedForm', () => {
         );
       });
 
-      expect(captured.values).toEqual(initialValues);
+      expect(captured.values).toEqual(committedInitialValues);
       expect(consoleErrorSpy).toHaveBeenCalled();
     } finally {
       consoleErrorSpy.mockRestore();

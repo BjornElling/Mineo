@@ -5,6 +5,21 @@
 
 import type { StorageKey } from '../config/storageManifest';
 
+export type LoadIssueKind =
+  | 'migratedField'
+  | 'strippedUnknownField'
+  | 'sectionDropped'
+  | 'unknownSection';
+
+export type LoadIssue = Readonly<{
+  /** Maskinlæsbar kategori til preflight/audit uden at parse dansk tekst. */
+  kind: LoadIssueKind;
+  /** Felt/sektion sti i filen (forståelig, men ikke teknisk perfekt). */
+  path: string;
+  /** Kort, brugerrettet årsag. */
+  reason: string;
+}>;
+
 /**
  * Resultat fra saveToFile() operation
  */
@@ -68,12 +83,7 @@ export interface LoadFileResult {
     expectedCount?: number;
     loadedCount: number;
     failedCount?: number;
-    issues: Array<{
-      /** Felt/sektion sti i filen (forståelig, men ikke teknisk perfekt). */
-      path: string;
-      /** Kort, brugerrettet årsag. */
-      reason: string;
-    }>;
+    issues: LoadIssue[];
   };
   /**
    * Schema-valideret snapshot af indlæst data pr. side (anvendes atomisk via persistence-laget).

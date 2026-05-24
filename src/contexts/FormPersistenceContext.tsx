@@ -2,7 +2,6 @@ import React from 'react';
 import {
   type StorageKey,
   getStorageKey,
-  getDomainStorageKeys,
 } from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import type { PersistedData } from '../types/persistence';
@@ -123,6 +122,7 @@ const restoreStoreRollbackSnapshot = (snapshot: StoreRollbackSnapshot): void => 
     snapshot.meta
   );
   formPersistenceStore.getState().restoreFieldErrors(snapshot.fieldErrors, snapshot.fieldErrorRevisions);
+  clearResolvedFieldErrorsCache();
 };
 
 /**
@@ -271,7 +271,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
           undoRedoStore.getState().capture(options.undoOrigin);
         }
         formPersistenceStore.getState().commitSection(pageKey, postSerializeValidated.data as PersistedSectionMap[K], {
-          schemaFingerprint: PERSISTED_DATA_VERSION,
+          lastCommittedAt: Date.now(),
         });
       } catch (error) {
         if (previousStorageValue === null) {
@@ -312,7 +312,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
     // Backup og erstatning sker kun for domæne-keys — UI-state (filnavn, sidebar, overlay)
     // er uafhængig af sags-data og skal ikke berøres ved fil-load.
-    const keysToReplace = getDomainStorageKeys();
+    const keysToReplace = PERSISTED_SECTION_KEYS.map(getStorageKey);
     const backup = new Map<string, string | null>();
     for (const key of keysToReplace) {
       backup.set(key, readSessionStorageValue(key));
@@ -402,7 +402,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       rollbackSnapshot = captureStoreRollbackSnapshot();
       removeSessionStorageValue(storageKey);
       formPersistenceStore.getState().clearSection(pageKey, {
-        schemaFingerprint: PERSISTED_DATA_VERSION,
+        lastCommittedAt: Date.now(),
       });
       formPersistenceStore.getState().clearFieldErrorsForSection(pageKey);
       clearResolvedFieldErrorsCache();
@@ -430,7 +430,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     let rollbackSnapshot: StoreRollbackSnapshot | null = null;
     try {
       // Kun domæne-data keys — UI-state (filnavn, sidebar, overlay) bevares bevidst.
-      const domainKeys = getDomainStorageKeys();
+      const domainKeys = PERSISTED_SECTION_KEYS.map(getStorageKey);
       for (const key of domainKeys) {
         backup.set(key, readSessionStorageValue(key));
       }

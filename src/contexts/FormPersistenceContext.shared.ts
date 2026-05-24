@@ -2,7 +2,7 @@
 // Adskilt fra .tsx for at tillade import fra test og domænelag uden React-komponent-afhængigheder.
 import React from 'react';
 import type { StorageKey } from '../config/storageManifest';
-import type { PersistedSectionMap } from '../config/persistenceRegistry';
+import type { PersistedSectionMap, PersistedSectionsSnapshot } from '../config/persistenceRegistry';
 import type {
   FieldErrorsForSection,
   FormFieldError,
@@ -11,7 +11,7 @@ import type {
 } from '../types/fieldErrors';
 import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
 
-export type ReplaceAllPersistedData = (snapshot: Record<StorageKey, unknown | undefined>) => void;
+export type ReplaceAllPersistedData = (snapshot: PersistedSectionsSnapshot) => void;
 
 export type FormPersistenceContextValue = {
   // Imperative snapshot-read af committed sektion.

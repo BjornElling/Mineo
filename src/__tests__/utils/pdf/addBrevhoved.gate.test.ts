@@ -1,6 +1,7 @@
 /// <reference types="vitest/globals" />
 
-import { addBrevhoved, type BrevhovedData } from '../../../pdf/shared/pdfHelpers';
+import { renderBrevhoved } from '../../../pdf/infrastructure/pdfBrevhovedRenderer';
+import type { BrevhovedData } from '../../../pdf/shared/pdfHelpers';
 import { toISODateString } from '../../../types/branded';
 import { createMockPdfDocumentAdapter } from './mockPdfDocumentAdapter';
 
@@ -8,12 +9,12 @@ import { createMockPdfDocumentAdapter } from './mockPdfDocumentAdapter';
  * Test af brevhoved-rendering
  *
  * FORMÅL:
- * - Dato-linjen skal altid vises når addBrevhoved kaldes
+ * - Dato-linjen skal altid vises når brevhoved-rendereren kaldes
  * - Journalnr-linjen er den eneste betingede linje
  * - PDF-generatorer styrer om brevhoved kaldes (visBrevhoved)
  */
 
-describe('addBrevhoved rendering', () => {
+describe('renderBrevhoved', () => {
 
   it('render dato-linjen altid', () => {
     const mockDoc = createMockPdfDocumentAdapter();
@@ -21,7 +22,7 @@ describe('addBrevhoved rendering', () => {
       dagsDatoISO: toISODateString('2026-02-02'),
     };
 
-    const result = addBrevhoved(mockDoc, data);
+    const result = renderBrevhoved(mockDoc, data);
 
     // Skal ALTID returnere MARGINS.top (brevhoved er overlay - påvirker ikke layout)
     expect(result).toBe(40);
@@ -42,7 +43,7 @@ describe('addBrevhoved rendering', () => {
       dagsDatoISO: toISODateString('2026-02-02'),
     };
 
-    const result = addBrevhoved(mockDoc, data);
+    const result = renderBrevhoved(mockDoc, data);
 
     // Skal ALTID returnere MARGINS.top (brevhoved er overlay)
     expect(result).toBe(40);
@@ -71,7 +72,7 @@ describe('addBrevhoved rendering', () => {
       // Kun journalnr, ingen andre felter
     };
 
-    const result = addBrevhoved(mockDoc, data);
+    const result = renderBrevhoved(mockDoc, data);
 
     // Skal stadig indsætte brevhoved når mindst ét felt har data
     // Men ALTID returnere MARGINS.top (overlay)
@@ -88,7 +89,7 @@ describe('addBrevhoved rendering', () => {
       dagsDatoISO: toISODateString('2026-02-02'),
     };
 
-    addBrevhoved(mockDoc, data);
+    renderBrevhoved(mockDoc, data);
 
     expect(mockDoc.text).toHaveBeenCalledWith(
       'J.nr. SAG-789 AB/CD',
@@ -105,7 +106,7 @@ describe('addBrevhoved rendering', () => {
       advokat: 'AB',
       dagsDatoISO: toISODateString('2026-02-02'),
     };
-    addBrevhoved(mockDoc, advokatData);
+    renderBrevhoved(mockDoc, advokatData);
     expect(mockDoc.text).toHaveBeenCalledWith(
       'J.nr. SAG-321 AB',
       expect.any(Number),
@@ -119,7 +120,7 @@ describe('addBrevhoved rendering', () => {
       sagsbehandler: 'CD',
       dagsDatoISO: toISODateString('2026-02-02'),
     };
-    addBrevhoved(mockDoc2, sagsbehandlerData);
+    renderBrevhoved(mockDoc2, sagsbehandlerData);
     expect(mockDoc2.text).toHaveBeenCalledWith(
       'J.nr. SAG-654 CD',
       expect.any(Number),
@@ -135,7 +136,7 @@ describe('addBrevhoved rendering', () => {
       dagsDatoISO: toISODateString('2026-02-02'),
     };
 
-    const result = addBrevhoved(mockDoc, data);
+    const result = renderBrevhoved(mockDoc, data);
 
     // Dato-linjen skal stadig skrives
     expect(result).toBe(40);
@@ -149,7 +150,7 @@ describe('addBrevhoved rendering', () => {
       dagsDatoISO: toISODateString('2026-01-15'),
     };
 
-    addBrevhoved(mockDoc, data);
+    renderBrevhoved(mockDoc, data);
 
     const calls = mockDoc.text.mock.calls as [string, ...unknown[]][];
     expect(calls.some(([text]) => String(text).includes('15. januar 2026'))).toBe(true);
@@ -161,7 +162,7 @@ describe('addBrevhoved rendering', () => {
       dagsDatoISO: '' as ReturnType<typeof toISODateString>,
     };
 
-    expect(() => addBrevhoved(mockDoc, data)).toThrow('CRITICAL');
+    expect(() => renderBrevhoved(mockDoc, data)).toThrow('CRITICAL');
   });
 
   it('behandler journalnr med kun mellemrum som tom (ingen J.nr.-linje)', () => {
@@ -171,7 +172,7 @@ describe('addBrevhoved rendering', () => {
       dagsDatoISO: toISODateString('2026-02-02'),
     };
 
-    addBrevhoved(mockDoc, data);
+    renderBrevhoved(mockDoc, data);
 
     // Kun dato-linjen — ingen J.nr.-linje
     expect(mockDoc.text).toHaveBeenCalledTimes(1);
@@ -188,7 +189,7 @@ describe('addBrevhoved rendering', () => {
       dagsDatoISO: toISODateString('2026-02-02'),
     };
 
-    addBrevhoved(mockDoc, data);
+    renderBrevhoved(mockDoc, data);
 
     // Ingen suffix — kun journalnr
     expect(mockDoc.text).toHaveBeenCalledWith(
@@ -211,7 +212,7 @@ describe('addBrevhoved rendering', () => {
       // Simuler PDF-generator gate
       let currentY = 40; // MARGINS.top
       if (visBrevhoved && stamdata) {
-        currentY = addBrevhoved(mockDoc, stamdata);
+        currentY = renderBrevhoved(mockDoc, stamdata);
       }
 
       // Brevhoved skal IKKE være kaldt
@@ -230,7 +231,7 @@ describe('addBrevhoved rendering', () => {
       // Simuler PDF-generator gate
       let currentY = 40; // MARGINS.top
       if (visBrevhoved && stamdata) {
-        currentY = addBrevhoved(mockDoc, stamdata);
+        currentY = renderBrevhoved(mockDoc, stamdata);
       }
 
       // Brevhoved skal være kaldt
@@ -246,7 +247,7 @@ describe('addBrevhoved rendering', () => {
       // Simuler PDF-generator gate
       let currentY = 40; // MARGINS.top
       if (visBrevhoved) {
-        currentY = addBrevhoved(mockDoc, { dagsDatoISO: toISODateString('2026-02-02') });
+        currentY = renderBrevhoved(mockDoc, { dagsDatoISO: toISODateString('2026-02-02') });
       }
 
       // Brevhoved skal være kaldt (dato-linjen vises altid)

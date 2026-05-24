@@ -9,9 +9,9 @@ import { satserSchema } from '../../schemas/formSchemas';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import {
-  canDownloadSatser,
   resolveSatserAargangErrorMessage,
   resolveSatserEffectiveAargang,
+  resolveSatserPdfGate,
 } from '../../domain/policies';
 import { SATSER_INITIAL_VALUES } from '../../domain/satser/satserInitialValues';
 import ContentBox from '../layout/ContentBox';
@@ -143,10 +143,11 @@ const Satser = React.memo(() => {
     [MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]
   );
   const yearError = yearErrorMessage ? { message: yearErrorMessage } : undefined;
-  const canDownload = React.useMemo(
-    () => canDownloadSatser(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR),
+  const pdfGate = React.useMemo(
+    () => resolveSatserPdfGate(values, MIN_SATSER_YEAR, MAX_SATSER_YEAR),
     [MAX_SATSER_YEAR, MIN_SATSER_YEAR, values]
   );
+  const canDownload = pdfGate.canDownload;
 
   const gyldigtAar = effectiveYear ?? MAX_SATSER_YEAR;
   const satser = React.useMemo(() => getSatserForYear(gyldigtAar), [gyldigtAar]);

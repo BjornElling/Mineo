@@ -233,12 +233,14 @@ Container-styret keyboard traversal må aldrig skabe selection.
 
 Hvis der i fremtiden opstår behov for selection-on-focus i en komponent:
 
-1. **Det må ALDRIG ske i Container**
-2. Det skal designes eksplicit i den relevante komponent
-3. Det skal skelne mellem:
-   - Keyboard-fokus (aldrig selection)
-   - Pointer-fokus (evt. selection)
-4. Det skal dokumenteres i komponentens kontrakt
+Designnoten er:
+
+- Selection-on-focus må ikke implementeres i Container.
+- Den relevante komponent skal selv eje interaktionen.
+- Komponenten skal skelne mellem keyboard-fokus og pointer-fokus.
+- Komponenten skal dokumentere sin egen observerbare adfærd.
+
+Den normative tværgående invariant er uændret: keyboard traversal må aldrig skabe selection.
 
 ---
 

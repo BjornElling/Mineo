@@ -1,0 +1,47 @@
+{
+  "version": 1,
+  "priorityOrder": [
+    "domain-specific-contract",
+    "cross-cutting-contract",
+    "page-component-contract",
+    "architecture-document"
+  ],
+  "crossCuttingContracts": [
+    "src/contracts/domain-boundary-contract.md",
+    "src/contracts/form-contract.md",
+    "src/contracts/persistence-contract.md",
+    "src/contracts/keyboard-navigation.md",
+    "src/contracts/error-debug-contract.md",
+    "src/contracts/pdf-contract.md",
+    "src/contracts/amount-contract.md",
+    "src/contracts/undo-redo-contract.md"
+  ],
+  "subordinateContracts": {
+    "src/contracts/page-component-contract.md": [
+      "src/contracts/domain-boundary-contract.md",
+      "src/contracts/form-contract.md",
+      "src/contracts/persistence-contract.md",
+      "src/contracts/keyboard-navigation.md",
+      "src/contracts/error-debug-contract.md",
+      "src/contracts/pdf-contract.md",
+      "src/contracts/amount-contract.md",
+      "src/contracts/undo-redo-contract.md"
+    ]
+  },
+  "domainContracts": [
+    "src/contracts/eo-snapshot-contract.md",
+    "src/contracts/eet-snapshot-contract.md",
+    "src/contracts/forsoergertab-snapshot-contract.md",
+    "src/contracts/aarsloen-contract.md",
+    "src/contracts/renteberegning-contract.md",
+    "src/contracts/varigemen-contract.md",
+    "src/contracts/satser-contract.md"
+  ],
+  "informativeArchitectureDocs": [
+    "docs/architecture/auth-gate-architecture.md",
+    "docs/architecture/calculation-architecture.md",
+    "docs/architecture/debug-builder-architecture.md",
+    "docs/architecture/pdf-architecture.md",
+    "docs/architecture/undo-redo-architecture.md"
+  ]
+}

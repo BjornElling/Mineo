@@ -15,7 +15,6 @@ import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatnings
 import { type MoneyOre, type Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
 import { isEffectivelyZero, isWithinTolerance } from '../../../utils/numberComparison';
-import { TODAY } from '../../../config/dateRanges';
 import { getStandardLoenTableHeaders } from '../../../domain/aarsloen/standardLoenTableColumns';
 import {
   createPdfTableCell,
@@ -68,8 +67,6 @@ import { renderMidlertidigtEetSection, renderOffentligeYdelserSection } from './
 import { renderShDageSection } from './sections/shDageSection';
 import { renderReguleringSection } from './sections/reguleringSection';
 import { renderOpgorelseSection } from './sections/opgoerelseSection';
-import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { mergeIsoDateRanges } from '../../../domain/erstatningsopgoerelse/engines/periodMerging';
 import {
@@ -171,7 +168,7 @@ const resolveUdkastStempelValue = (value: unknown): boolean => value === 'Ja';
 interface ErstatningsopgoerelsePdfOptions extends PdfCommonOptions {
   erstatningsopgoerelseAfsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje';
   visUdkastStempel?: boolean;
-  document?: EoModel;
+  document: EoModel;
   midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
 }
 
@@ -187,7 +184,7 @@ export const generateErstatningsopgoerelsePdf = (
   stamdataValues: StamdataValues,
   eoValues: ErstatningsopgoerelseValues,
   selectedElements: SelectedElements,
-  options: ErstatningsopgoerelsePdfOptions = {}
+  options: ErstatningsopgoerelsePdfOptions
 ) => {
   if (!selectedElements.opgoerelse) {
     throw new Error('PDF-generering kræver, at elementet "Opgørelse" er valgt.');
@@ -198,19 +195,10 @@ export const generateErstatningsopgoerelsePdf = (
   const afsluttesMed = options.erstatningsopgoerelseAfsluttesMed ?? eoValues.erstatningsopgoerelseAfsluttesMed;
   const lineHeight = PDF_BASE_LINE_HEIGHT_MM;
   const doubleLineHeight = lineHeight * 2;
-  const model = options.document ?? (() => {
-    const snapshot = computeEoSnapshot({
-      revision: 'pdf-erstatningsopgoerelse',
-      stamdataValues,
-      eoValues,
-      dagsDatoISO: TODAY,
-    });
-    const projection = eoSnapshotToEoPdfDocument(snapshot);
-    if (projection.kind === 'blocked') {
-      throw new Error(projection.message);
-    }
-    return projection.document;
-  })();
+  if (!options.document) {
+    throw new Error('EO-PDF kræver et præ-projiceret PDF-dokument.');
+  }
+  const model = options.document;
   const eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar =
     eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
   const eoBilagIndkomstYdelserRanges = buildEoBilagIndkomstYdelserRanges(eoValues, eoBilagIndkomstYdelserMode);

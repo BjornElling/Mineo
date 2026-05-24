@@ -9,9 +9,6 @@ import {
   FONT_SIZES,
   MARGINS,
   PDF_BASE_LINE_HEIGHT_MM,
-  PDF_BREVHOVED_FONT_SIZE,
-  PDF_BREVHOVED_LINE_HEIGHT,
-  PDF_BREVHOVED_START_Y,
   PDF_FINAL_Y_FALLBACK_HEIGHT,
   PDF_FONT_FAMILY,
   PDF_FONT_STYLES,
@@ -25,7 +22,6 @@ import type { PdfDocumentAdapter } from '../infrastructure/pdfDocumentAdapter';
 import { VERSION } from '../../config/version';
 import type { ISODateString } from '../../types/branded';
 
-import { formatIsoDateLong } from '../../utils/dateFormatting';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../../utils/formatUtils';
 const FOOTER_IMAGE_WIDTH_MM = 5.2;
 const FOOTER_BASE_CANVAS_WIDTH_PX = 20;
@@ -200,54 +196,6 @@ export const formatPercent = (percent: number | null | undefined): string => {
     return '0,00 %';
   }
   return formatPercentUtil(percent);
-};
-
-/**
- * Tilføj brevhoved til PDF-dokument
- *
- * Indsætter et brevhoved øverst til højre på dokumentet med:
- * - Journalnummer-linje (højre-aligneret) når journalnr findes
- * - Dato-linje (højre-aligneret) altid
- *
- * VIGTIGT: Brevhovedet er et overlay - det påvirker IKKE placeringen af hovedindholdet.
- * Funktionen returnerer altid MARGINS.top uanset om brevhoved indsættes eller ej.
- */
-export const addBrevhoved = (doc: PdfDocumentAdapter, data: BrevhovedData): number => {
-  const { journalnr, dagsDatoISO, advokat, sagsbehandler } = data;
-  const trimmedJournalnr = typeof journalnr === 'string' ? journalnr.trim() : '';
-  const resolvedDatoText = formatIsoDateLong(dagsDatoISO);
-  if (!resolvedDatoText) {
-    throw new Error('CRITICAL: Brevhoved kræver en gyldig dagsDatoISO');
-  }
-  const hasJournalnr = trimmedJournalnr !== '';
-  const trimmedAdvokat = typeof advokat === 'string' ? advokat.trim() : '';
-  const trimmedSagsbehandler = typeof sagsbehandler === 'string' ? sagsbehandler.trim() : '';
-  const hasAdvokat = trimmedAdvokat !== '';
-  const hasSagsbehandler = trimmedSagsbehandler !== '';
-
-  const rightX = doc.getPageWidth() - MARGINS.right;
-  let currentY = PDF_BREVHOVED_START_Y;
-
-  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-  doc.setFontSize(PDF_BREVHOVED_FONT_SIZE);
-
-  if (hasJournalnr) {
-    const roleSuffix = hasAdvokat && hasSagsbehandler
-      ? ` ${trimmedAdvokat}/${trimmedSagsbehandler}`
-      : hasAdvokat
-        ? ` ${trimmedAdvokat}`
-        : hasSagsbehandler
-          ? ` ${trimmedSagsbehandler}`
-          : '';
-    doc.text(`J.nr. ${trimmedJournalnr}${roleSuffix}`, rightX, currentY, { align: 'right' });
-    currentY += PDF_BREVHOVED_LINE_HEIGHT;
-  }
-
-  doc.text(resolvedDatoText, rightX, currentY, { align: 'right' });
-
-  applyNormalTextStyle(doc);
-
-  return MARGINS.top;
 };
 
 // Re-eksporterede konfigurationskonstanter — beholdt her for at undgå at alle

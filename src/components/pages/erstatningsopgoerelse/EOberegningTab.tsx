@@ -34,6 +34,8 @@ import {
   getEoBilagAvailability,
   type EoBilagDynamicSelectionKey,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
+import { allowPdfDownload, blockPdfDownload, type PdfDownloadGateResult } from '../../../pdf/pdfGateTypes';
+import { resolveEoCaseReguleringSettings } from '../../../domain/erstatningsopgoerelse/helpers/eoCaseReguleringSettings';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -67,6 +69,15 @@ type DebugRowsMemoResult = Readonly<{
   relevantRows: ReadonlyArray<DebugRowWithNavigation>;
   debugAggregationErrorMessage: string | null;
 }>;
+
+const createPdfGate = (canDownload: boolean, reason: string | null, fallbackReason: string): PdfDownloadGateResult => {
+  return canDownload
+    ? allowPdfDownload()
+    : blockPdfDownload({
+      code: 'erstatningsopgoerelse:pdf-blocked',
+      message: reason ?? fallbackReason,
+    });
+};
 
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
@@ -257,6 +268,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   const navigate = useNavigate();
   const { settings } = useAppSettings();
+  const caseSettings = React.useMemo(
+    () => resolveEoCaseReguleringSettings(settings, eoValues),
+    [eoValues, settings]
+  );
   const stamdataErrors = useFieldErrorsBySourceForSection('stamdata');
   const eoErrors = useFieldErrorsBySourceForSection('erstatningsopgoerelse');
   const manuelReguleringInputErrors = useBlockingFieldIdsBySuffixForSection('erstatningsopgoerelse', EO_LOENINDKOMST_INPUT_ERROR_SUFFIX);
@@ -290,7 +305,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         eoValues,
         eoErrors,
         manuelReguleringInputErrors,
-        settings,
+        caseSettings,
         beregningView?.canonicalOutput
       ),
       'EOberegningTab.collectAllDebugRows',
@@ -306,7 +321,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
 
     return { ...result.value, debugAggregationErrorMessage: null };
-  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings, beregningView]);
+  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, caseSettings, beregningView]);
   const eoPdfProjection = React.useMemo(
     () => (eoSnapshot ? eoSnapshotToEoPdfDocument(eoSnapshot) : null),
     [eoSnapshot]
@@ -373,9 +388,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
   }, [debugAggregationErrorMessage, errors, eetLoebendeErrorRows]);
 
   const hasBlockingDebugErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0 || debugAggregationErrorMessage !== null;
-  const canDownloadSnapshotEoPdf = eoPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors;
-  const canDownloadSnapshotTafPdf = tafPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors;
-
   const eoPdfDisabledReason = React.useMemo(() => {
     if (firstBlockingDebugErrorMessage) {
       return firstBlockingDebugErrorMessage;
@@ -409,6 +421,25 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
     return null;
   }, [authoritativeBlockingInvariants, eoSnapshot, tafPdfProjection, firstBlockingDebugErrorMessage]);
+
+  const eoPdfGate = React.useMemo(
+    () => createPdfGate(
+      eoPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors,
+      eoPdfDisabledReason,
+      'EO-PDF kan ikke genereres for den aktuelle sag.'
+    ),
+    [eoPdfDisabledReason, eoPdfProjection, hasBlockingDebugErrors]
+  );
+  const tafPdfGate = React.useMemo(
+    () => createPdfGate(
+      tafPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors,
+      tafPdfDisabledReason,
+      'TAF fordelt på år kan ikke genereres for den aktuelle sag.'
+    ),
+    [hasBlockingDebugErrors, tafPdfDisabledReason, tafPdfProjection]
+  );
+  const canDownloadSnapshotEoPdf = eoPdfGate.canDownload;
+  const canDownloadSnapshotTafPdf = tafPdfGate.canDownload;
 
   const reportableSystemInvariants = React.useMemo(() => {
     return [

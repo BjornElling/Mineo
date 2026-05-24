@@ -13,7 +13,7 @@ import {
   openFileWithPicker,
   readFromFileHandle,
 } from './fileSystemAccess';
-import type { LoadFileResult } from '../types/fileOperations';
+import type { LoadFileResult, LoadIssue } from '../types/fileOperations';
 import { eoFileContainerLoadSchema, type EoFileContainerLoad } from '../schemas/eoFileSchema';
 import { CalculationError } from './errorMessages';
 import { sanitizePersistedValueForSchema, type UnknownPath } from './persistenceLoadSanitization';
@@ -81,7 +81,7 @@ const processDecryptedContainer = (args: {
   const { fileContainer, filename, source, fileHandle, requestId } = args;
   const fileData = fileContainer.data as Record<string, unknown>;
   const { fieldCount: expectedFieldCount } = fileContainer._metadata;
-  const loadIssues: Array<{ path: string; reason: string }> = [];
+  const loadIssues: LoadIssue[] = [];
 
   const fileVersion = fileContainer.version;
 
@@ -105,6 +105,7 @@ const processDecryptedContainer = (args: {
     const migrated = migratePersistedSectionValue(sectionKey, rawValue);
     for (const issue of migrated.issues) {
       loadIssues.push({
+        kind: 'migratedField',
         path: issue.path === '(root)' ? sectionKey : `${sectionKey}.${issue.path}`,
         reason: issue.reason,
       });
@@ -113,6 +114,7 @@ const processDecryptedContainer = (args: {
 
     for (const path of stripped.unknownPaths) {
       loadIssues.push({
+        kind: 'strippedUnknownField',
         path: toLoadIssuePath(sectionKey, path),
         reason: 'Feltet findes ikke i denne version og blev ikke indlæst',
       });
@@ -130,6 +132,7 @@ const processDecryptedContainer = (args: {
     const detailPath = formatPathSegments(issuePathSegments);
     const issuePath = detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
     loadIssues.push({
+      kind: 'sectionDropped',
       path: issuePath,
       reason: `Sektionen kunne ikke indlæses (${firstIssue?.message ?? 'Forkert format'}) og blev ikke indlæst`,
     });
@@ -139,6 +142,7 @@ const processDecryptedContainer = (args: {
     if (key.startsWith('_')) continue;
     if (!Object.prototype.hasOwnProperty.call(persistenceSchemas, key)) {
       loadIssues.push({
+        kind: 'unknownSection',
         path: key,
         reason: 'Sektionen findes ikke i denne version og blev ikke indlæst',
       });

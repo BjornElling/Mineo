@@ -84,6 +84,7 @@ Shared types live in:
 - `src/types/fieldEvents.ts`
 
 Event shape note:
+- `DraftChangeEvent` and `CommitEvent<T>` from `src/types/fieldEvents.ts` are the normative public event types.
 - Mineo field events are branded and are not DOM events; do not treat them as such.
 - The `{ target: { value } }` event shape applies at the Styled*Field boundary (Layer C output).
 - Layer A uses `onDraftChange(draft: string)` internally; Layer C is responsible for wrapping to branded Mineo field events.
@@ -94,7 +95,7 @@ Adapters implement:
 
 `parse(draft: string, { mode: 'typing' | 'commit' }): DraftParseResult<TModel>`
 
-`DraftParseResult<TModel>` is owned by the canonical draft/field type boundary. Use the exported type where available; do not construct parallel result shapes at callsites.
+`DraftParseResult<TModel>` is owned by `src/types/fieldEvents.ts`. Use that exported type; do not construct parallel result shapes at callsites.
 
 Rules:
 - `ok: true` means **committable**

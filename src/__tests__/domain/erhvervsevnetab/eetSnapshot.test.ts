@@ -1,6 +1,7 @@
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { computeEetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
+import * as eetLoebendeYdelserCalculation from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../../schemas/formSchemas';
 
 const createValues = (): ErhvervsevnetabComposedValues => ({
@@ -139,5 +140,34 @@ describe('computeEetSnapshot', () => {
 
     expect(snapshot.differencekrav.computation).toBeNull();
     expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+  });
+
+  it('failer lukket med snapshot-issue hvis en EET-beregner kaster runtimefejl', () => {
+    const spy = vi.spyOn(eetLoebendeYdelserCalculation, 'computeEetLoebendeYdelser').mockImplementation(() => {
+      throw new Error('Injected EET failure');
+    });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    try {
+      const snapshot = computeEetSnapshot({
+        values: createValues(),
+        stamdata: createStamdata(),
+        fieldErrors: {
+          stamdata: {},
+          erhvervsevnetab: {},
+          faellesAarsloen: {},
+        },
+      });
+
+      expect(snapshot.loebendeYdelser.computation).toBeNull();
+      expect(snapshot.loebendeYdelser.hasBlockingErrors).toBe(true);
+      expect(snapshot.loebendeYdelser.issues).toContainEqual(expect.objectContaining({
+        id: 'runtime-exception',
+        severity: 'error',
+      }));
+    } finally {
+      spy.mockRestore();
+      consoleErrorSpy.mockRestore();
+    }
   });
 });

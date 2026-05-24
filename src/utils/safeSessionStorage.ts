@@ -16,7 +16,7 @@ const withOptionalSessionStorage = <T>(fallbackValue: T, action: (storage: Stora
   }
 };
 
-const normalizeStorageWriteError = (error: unknown): Error => {
+export const normalizeStorageWriteError = (error: unknown): Error => {
   if (error instanceof DOMException && error.name === 'QuotaExceededError') {
     return new Error('Browserens midlertidige lager er fyldt. Data kunne ikke gemmes sikkert.');
   }
@@ -27,8 +27,8 @@ const normalizeStorageWriteError = (error: unknown): Error => {
 };
 
 export const readSessionStorageValue = (key: string): string | null => {
-  // Strict variant for trust-critical callsites: read failures must bubble so callers
-  // cannot proceed as if persistence succeeded.
+  // Strict variant for trust-critical callsites: unavailable sessionStorage or read
+  // exceptions must bubble so callers cannot proceed as if persistence succeeded.
   return getSessionStorageInstance().getItem(key);
 };
 
@@ -41,7 +41,11 @@ export const writeSessionStorageValue = (key: string, value: string): void => {
 };
 
 export const removeSessionStorageValue = (key: string): void => {
-  getSessionStorageInstance().removeItem(key);
+  try {
+    getSessionStorageInstance().removeItem(key);
+  } catch (error) {
+    throw normalizeStorageWriteError(error);
+  }
 };
 
 export const readOptionalSessionStorageValue = (key: string): string | null => {

@@ -1,5 +1,5 @@
-import { persistenceSchemas } from '../../config/persistenceRegistry';
-import { STORAGE_KEYS } from '../../config/storageManifest';
+import { PERSISTED_SECTION_KEYS, persistenceSchemas } from '../../config/persistenceRegistry';
+import { STORAGE_KEYS, getStorageKey } from '../../config/storageManifest';
 import type { StorageKey } from '../../config/storageManifest';
 import { z } from 'zod';
 
@@ -22,6 +22,16 @@ describe('persistenceSchemas', () => {
     const storageKeyCount = Object.keys(STORAGE_KEYS).length;
     const schemaCount = Object.keys(persistenceSchemas).length;
     expect(schemaCount).toBe(storageKeyCount);
+  });
+
+  it('matcher domain storage manifestet præcist', () => {
+    const schemaKeys = [...PERSISTED_SECTION_KEYS].sort();
+    const manifestKeys = (Object.keys(STORAGE_KEYS) as StorageKey[]).sort();
+    const schemaStorageKeys = PERSISTED_SECTION_KEYS.map(getStorageKey).sort();
+    const manifestStorageKeys = Object.values(STORAGE_KEYS).sort();
+
+    expect(schemaKeys).toEqual(manifestKeys);
+    expect(schemaStorageKeys).toEqual(manifestStorageKeys);
   });
 
   it('stamdata-schema afviser null', () => {

@@ -11,11 +11,11 @@ import jsPDF from 'jspdf';
 import { FONT_SIZES, MARGINS, PDF_BASE_LINE_HEIGHT_MM, PDF_FONT_FAMILY, PDF_FONT_STYLES, PDF_LINE_BOTTOM_SPACING_MM, PDF_SECTION_HEADER_BOTTOM_SPACING_MM, PDF_SECTION_HEADER_TOP_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM, PDF_SUBHEADER_TOP_SPACING_MM, PDF_TITLE_BOTTOM_SPACING_MM } from './pdfConfig';
 import {
   addFooter,
-  addBrevhoved,
   applyNormalTextStyle,
   type BrevhovedData,
 } from '../shared/pdfHelpers';
 import { createJsPdfAdapter } from './jsPdfAdapter';
+import { renderBrevhoved } from './pdfBrevhovedRenderer';
 import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from '../shared/pdfTextUtils';
 import { formatRoundedCanonical } from '../../utils/rounding';
 
@@ -592,7 +592,7 @@ const createPdfCursor = (params: Readonly<{
     writeUnderlinedSubheader,
     writeSignatureBlock,
     writeBrevhoved: (brevhovedData: BrevhovedData) => {
-      y = addBrevhoved(adapter, brevhovedData);
+      y = renderBrevhoved(adapter, brevhovedData);
     },
     addUdkastWatermark: () => {
       if (visUdkastStempel) {

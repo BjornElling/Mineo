@@ -5,8 +5,11 @@ import { MemoryRouter } from 'react-router-dom';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import type { StorageKey } from '../../config/storageManifest';
+import { getStorageKey } from '../../config/storageManifest';
+import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
+import type { PersistedData } from '../../types/persistence';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
-import { getAuthoritativeSnapshotEpochSnapshot } from '../../hooks/useFormPersistenceSelectors';
+import { getAuthoritativeSnapshotEpochSnapshot, usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 
 const stampStamdata = (skadelidte: string) => ({
   journalnr: '',
@@ -108,6 +111,29 @@ describe('FormPersistenceContext characterization', () => {
 
     expect(getCtx()!.getSectionRevision('stamdata')).toBe(initialRevision + 1);
     expect(getAuthoritativeSnapshotEpochSnapshot()).toBe(initialEpoch);
+  });
+
+  it('gør session-hydreret data synlig for child-komponentens første render', () => {
+    const payload: PersistedData = {
+      version: PERSISTED_DATA_VERSION,
+      timestamp: Date.now(),
+      data: { aargang: 2026 },
+    };
+    sessionStorage.setItem(getStorageKey('satser'), JSON.stringify(payload));
+    const firstRenderValues: Array<number | undefined> = [];
+
+    const CaptureFirstRender = () => {
+      firstRenderValues.push(usePersistedSectionSelector('satser')?.aargang);
+      return null;
+    };
+
+    render(
+      <FormPersistenceProvider>
+        <CaptureFirstRender />
+      </FormPersistenceProvider>
+    );
+
+    expect(firstRenderValues[0]).toBe(2026);
   });
 
   it('increments field-error revision on set/clear field error', async () => {

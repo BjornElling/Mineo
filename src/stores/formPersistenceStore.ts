@@ -26,6 +26,8 @@ export type FormPersistenceMeta = {
   lastCommittedAt?: number;
 };
 
+type SectionMetaPatch = Pick<FormPersistenceMeta, 'lastCommittedAt'>;
+
 export type SectionRevisionMap = {
   [K in keyof FormPersistenceSections]: number;
 };
@@ -42,8 +44,8 @@ export type FormPersistenceStoreState = {
   authoritativeSnapshotEpoch: number;
   meta: FormPersistenceMeta;
   hydrate: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
-  commitSection: <K extends keyof FormPersistenceSections>(key: K, next: FormPersistenceSections[K] | null, metaPatch?: Partial<FormPersistenceMeta>) => void;
-  clearSection: <K extends keyof FormPersistenceSections>(key: K, metaPatch?: Partial<FormPersistenceMeta>) => void;
+  commitSection: <K extends keyof FormPersistenceSections>(key: K, next: FormPersistenceSections[K] | null, metaPatch?: SectionMetaPatch) => void;
+  clearSection: <K extends keyof FormPersistenceSections>(key: K, metaPatch?: SectionMetaPatch) => void;
   // NOTE: replaceSections preserves existing field-errors.
   // Use replaceSectionsAndClearFieldErrors for load/replace flows that must clear errors atomically.
   replaceSections: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
@@ -118,13 +120,6 @@ const assertKeyCoverage = (next: FormPersistenceSections): void => {
 
 const assertMetaFingerprintMatch = (meta: FormPersistenceMeta): void => {
   if (meta.schemaFingerprint !== PERSISTED_DATA_VERSION) {
-    throw new Error('formPersistenceStore: schemaFingerprint mismatch');
-  }
-};
-
-const assertMetaPatchFingerprint = (metaPatch?: Partial<FormPersistenceMeta>): void => {
-  if (!metaPatch?.schemaFingerprint) return;
-  if (metaPatch.schemaFingerprint !== PERSISTED_DATA_VERSION) {
     throw new Error('formPersistenceStore: schemaFingerprint mismatch');
   }
 };
@@ -233,7 +228,7 @@ const applyFieldErrorUpdate = (
   return { kind: 'updateField', nextForField: { ...prevForField, [source]: next } };
 };
 
-const resolveMeta = (prev: FormPersistenceMeta, metaPatch?: Partial<FormPersistenceMeta>): FormPersistenceMeta => {
+const resolveMeta = (prev: FormPersistenceMeta, metaPatch?: SectionMetaPatch): FormPersistenceMeta => {
   const next: FormPersistenceMeta = {
     ...prev,
     ...metaPatch,
@@ -274,7 +269,6 @@ const createFormPersistenceStore = () =>
     },
     commitSection: (key, next, metaPatch) => {
       assertSectionValid(key, next);
-      assertMetaPatchFingerprint(metaPatch);
       set((state) => ({
         sections: { ...state.sections, [key]: next },
         sectionRevisions: incrementSectionRevision(state.sectionRevisions, key),
@@ -286,7 +280,6 @@ const createFormPersistenceStore = () =>
       }));
     },
     clearSection: (key, metaPatch) => {
-      assertMetaPatchFingerprint(metaPatch);
       set((state) => ({
         sections: { ...state.sections, [key]: null },
         sectionRevisions: incrementSectionRevision(state.sectionRevisions, key),

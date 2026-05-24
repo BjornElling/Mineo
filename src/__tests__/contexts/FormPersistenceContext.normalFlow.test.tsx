@@ -4,6 +4,7 @@ import { act, render, waitFor } from '@testing-library/react';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
+import { formPersistenceStore } from '../../stores/formPersistenceStore';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -103,6 +104,46 @@ describe('FormPersistenceContext – normalFlow', () => {
     const parsed = JSON.parse(raw!) as { version: string; data: Record<string, unknown> };
     expect(parsed.version).toBe(PERSISTED_DATA_VERSION);
     expect(parsed.data.skadelidte).toBe('StorageTest');
+  });
+
+  it('ruller persistData storage tilbage hvis cache-commit fejler', async () => {
+    sessionStorage.setItem(
+      'mineo_stamdata',
+      JSON.stringify(persistedWrapper({
+        journalnr: '',
+        advokat: '',
+        sagsbehandler: '',
+        skadelidte: 'Før',
+        skadestype: undefined,
+        skadedato: undefined,
+      }))
+    );
+    const { getCtx } = renderProvider();
+    await waitFor(() => expect(getCtx()).not.toBeNull());
+
+    const commitSpy = vi.spyOn(formPersistenceStore.getState(), 'commitSection').mockImplementation(() => {
+      throw new Error('Injected commit failure');
+    });
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    let didPersist = true;
+    await act(async () => {
+      didPersist = getCtx()!.persistData('stamdata', {
+        journalnr: '',
+        advokat: '',
+        sagsbehandler: '',
+        skadelidte: 'Efter',
+        skadestype: undefined,
+        skadedato: undefined,
+      });
+    });
+
+    commitSpy.mockRestore();
+    consoleErrorSpy.mockRestore();
+
+    expect(didPersist).toBe(false);
+    expect(sessionStorage.getItem('mineo_stamdata')).toContain('Før');
+    expect(getCtx()!.getPersistedData('stamdata')?.skadelidte).toBe('Før');
   });
 
   it('bevarer kompatible sektioner ved version-mismatch i sessionStorage', async () => {

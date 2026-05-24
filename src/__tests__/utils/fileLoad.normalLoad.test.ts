@@ -161,7 +161,10 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(result.success).toBe(true);
     if (!result.success) return;
     expect(result.snapshot?.stamdata).toBeDefined();
-    expect(result.preflightWarning?.issues.some((issue) => issue.path === 'ukendtSektion')).toBe(true);
+    expect(result.preflightWarning?.issues).toContainEqual(expect.objectContaining({
+      kind: 'unknownSection',
+      path: 'ukendtSektion',
+    }));
   });
 
   it('returnerer preflight-advarsel og stripper ukendte felter i kendt sektion', async () => {
@@ -184,7 +187,10 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(result.success).toBe(true);
     if (!result.success) return;
     expect((result.snapshot?.stamdata as Record<string, unknown>)?.uventetFelt).toBeUndefined();
-    expect(result.preflightWarning?.issues.some((issue) => issue.path === 'stamdata.uventetFelt')).toBe(true);
+    expect(result.preflightWarning?.issues).toContainEqual(expect.objectContaining({
+      kind: 'strippedUnknownField',
+      path: 'stamdata.uventetFelt',
+    }));
   });
 
   it('rapporterer faellesPersondata som ukendt sektion uden at migrere data', async () => {
@@ -210,7 +216,10 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(result.success).toBe(true);
     if (!result.success) return;
     expect((result.snapshot?.stamdata as Record<string, unknown>)?.skadelidteFodselsdato).toBeUndefined();
-    expect(result.preflightWarning?.issues.some((issue) => issue.path === 'faellesPersondata')).toBe(true);
+    expect(result.preflightWarning?.issues).toContainEqual(expect.objectContaining({
+      kind: 'unknownSection',
+      path: 'faellesPersondata',
+    }));
   });
 
   it('springer ugyldig sektion over og bevarer øvrige gyldige sektioner', async () => {
@@ -238,7 +247,10 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(result.snapshot?.stamdata).toBeDefined();
     expect(result.snapshot?.renteberegning).toBeUndefined();
     expect(result.preflightWarning?.failedCount).toBe(result.preflightWarning?.issues.length);
-    expect(result.preflightWarning?.issues.some((issue) => issue.path.startsWith('renteberegning'))).toBe(true);
+    expect(result.preflightWarning?.issues).toContainEqual(expect.objectContaining({
+      kind: 'sectionDropped',
+      path: expect.stringMatching(/^renteberegning/),
+    }));
   });
 
   it('afviser filer hvor kun ukendte sektioner har indhold', async () => {

@@ -1,5 +1,5 @@
 import type { EoFileData } from '../schemas/eoFileSchema';
-import type { StorageKey } from '../config/storageManifest';
+import type { PersistedSectionsSnapshot } from '../config/persistenceRegistry';
 
 /**
  * Autoritativt snapshot fra persistence-laget.
@@ -8,7 +8,7 @@ import type { StorageKey } from '../config/storageManifest';
  * - Skal indeholde alle `StorageKey`s (brug `undefined` for at udelade en sektion).
  * - Må ikke indeholde `null` (fail-fast; ellers risikerer vi silent data loss).
  */
-export type SaveSnapshot = Record<StorageKey, unknown | undefined>;
+export type SaveSnapshot = PersistedSectionsSnapshot;
 
 /**
  * Canonical `.eo` payload representation.

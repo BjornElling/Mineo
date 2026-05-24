@@ -3,17 +3,21 @@ import {
   getStorageKey,
   type StorageKey,
 } from '../config/storageManifest';
-import { PERSISTED_SECTION_KEYS, persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
+import {
+  PERSISTED_SECTION_KEYS,
+  persistenceSchemas,
+  type HydratedPersistedSectionsSnapshot,
+  type PersistedSectionMap,
+} from '../config/persistenceRegistry';
 import type { PersistedData } from '../types/persistence';
 import { sanitizePersistedValueForSchema } from './persistenceLoadSanitization';
 import { readSessionStorageValue } from './safeSessionStorage';
 import { migratePersistedSectionValue } from './persistenceMigrations';
 
 export type SessionHydrationNotice = { message: string; type: 'warning' | 'error' };
-export type PersistedSectionsSnapshot = { [K in StorageKey]: PersistedSectionMap[K] | null };
 
 type SessionHydrationPlan = {
-  sections: PersistedSectionsSnapshot;
+  sections: HydratedPersistedSectionsSnapshot;
   keysToRemove: string[];
   notice: SessionHydrationNotice | null;
 };
@@ -36,15 +40,15 @@ const isPersistedData = (value: unknown): value is PersistedData => {
     && obj.data !== null;
 };
 
-const createEmptySectionsSnapshot = (): PersistedSectionsSnapshot => {
+const createEmptySectionsSnapshot = (): HydratedPersistedSectionsSnapshot => {
   return PERSISTED_SECTION_KEYS.reduce((acc, key) => {
     acc[key as StorageKey] = null;
     return acc;
-  }, {} as PersistedSectionsSnapshot);
+  }, {} as HydratedPersistedSectionsSnapshot);
 };
 
 const assignSection = <K extends StorageKey>(
-  target: PersistedSectionsSnapshot,
+  target: HydratedPersistedSectionsSnapshot,
   key: K,
   value: PersistedSectionMap[K] | null
 ): void => {

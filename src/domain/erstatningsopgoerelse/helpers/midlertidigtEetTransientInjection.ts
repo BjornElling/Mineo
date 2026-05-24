@@ -23,6 +23,9 @@ export const buildMidlertidigtEetSourceResult = (
   if (!source) {
     return { groups: [], issues: [] };
   }
+  if (source.issues && source.issues.length > 0) {
+    return { groups: [], issues: source.issues };
+  }
   const hasImportRelevantAslRow = source.eetValues.aslAfgoerelser.some((row) =>
     !isAslAfgoerelseRowEmpty(row) &&
     (row.afgoerelseType === 'Midlertidig' || row.afgoerelseType === 'Delvist endelig')
