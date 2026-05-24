@@ -1,9 +1,6 @@
 import { formatRoundedCanonical } from '../../../utils/rounding';
 import { normalizePercentPaste } from '../../../utils/inputPasteNormalization';
 import {
-  DEFAULT_PERCENT_PASTE_MAX,
-} from '../../../utils/percentInputUtils';
-import {
   formatPercentDisplay,
   getPercentPrecision,
   parsePercentDraftForCommit,
@@ -14,7 +11,6 @@ import { normalizeTableNumericDraftOnCommit } from '../../../utils/tableInputCon
 import { makePercentFingerprintFromCanonical, type CommittedPayload, type PercentFingerprint } from '../../../types/parserSpec';
 import type { TableInputAdapter } from '../tableInputAdapter';
 
-export type TablePercentInputValue = number | undefined;
 export type TablePercentInputModel = number | undefined;
 
 export type TablePercentAdapterConfig = PercentParseConfig;
@@ -61,7 +57,7 @@ export const createPercentTableInputAdapter = (
     return true;
   },
   applyPaste: (raw, context) => {
-    const normalized = normalizePercentPaste(raw, { maxValue: config.maxValue ?? DEFAULT_PERCENT_PASTE_MAX });
+    const normalized = normalizePercentPaste(raw, { maxValue: config.maxValue });
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 

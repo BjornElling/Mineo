@@ -61,9 +61,6 @@ const TableIntegerInput = React.memo(
     sx,
   }: TableIntegerInputProps) => {
     const gridApi = useGridCoreApi();
-    const isLooseTable = gridApi.tableKind === 'loose';
-    const inputBorderRadius = isLooseTable ? '10px' : '0px';
-    const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
 
     const configErrorMessage = React.useMemo(() => {
       if (minValue !== undefined && !Number.isFinite(minValue)) return 'Ugyldig konfiguration: minValue skal være et tal';
@@ -134,10 +131,8 @@ const TableIntegerInput = React.memo(
             sx={{
               ...getTableInputRootStyles({
                 showError: core.showError,
-                isLooseTable,
-                locked,
-                borderRadius: inputBorderRadius,
-                borderColor: inputBorderColor,
+                  tableKind: gridApi.tableKind,
+                  locked,
               }),
               '& .MuiInputBase-input': {
                 ...getTableInputElementStyles({

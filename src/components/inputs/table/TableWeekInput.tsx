@@ -49,9 +49,6 @@ const TableWeekInput = React.memo(
     sx,
   }: TableWeekInputProps) => {
     const gridApi = useGridCoreApi();
-    const isLooseTable = gridApi.tableKind === 'loose';
-    const inputBorderRadius = isLooseTable ? '10px' : '0px';
-    const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
 
     const configErrorMessage = React.useMemo(() => {
       if (minYear !== undefined && !Number.isFinite(minYear)) return 'Ugyldig konfiguration: minYear skal være et tal';
@@ -108,10 +105,8 @@ const TableWeekInput = React.memo(
             sx={{
               ...getTableInputRootStyles({
                 showError: core.showError,
-                isLooseTable,
-                locked,
-                borderRadius: inputBorderRadius,
-                borderColor: inputBorderColor,
+                  tableKind: gridApi.tableKind,
+                  locked,
               }),
               ...(core.cellFocused ? { outline: 'none' } : {}),
               '& .MuiInputBase-input': {

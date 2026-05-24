@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import type { GridCoreTableKind } from '../../tables/gridCore/gridCoreContext.shared';
 
 export const TABLE_INPUT_HEIGHT = '32px';
 export const TABLE_INPUT_PADDING_X = '8px';
@@ -6,10 +7,8 @@ export const TABLE_INPUT_PADDING_Y = '4px';
 
 type TableInputRootStyleOptions = Readonly<{
   showError: boolean;
-  isLooseTable: boolean;
+  tableKind: GridCoreTableKind | undefined;
   locked: boolean;
-  borderRadius: string;
-  borderColor: string;
 }>;
 
 type TableInputElementStyleOptions = Readonly<{
@@ -19,13 +18,22 @@ type TableInputElementStyleOptions = Readonly<{
   color?: CSSProperties['color'];
 }>;
 
+export const getTableInputBorderAppearance = (tableKind: GridCoreTableKind | undefined) => {
+  const isLooseTable = tableKind === 'loose';
+  return {
+    isLooseTable,
+    borderRadius: isLooseTable ? '10px' : '0px',
+    borderColor: isLooseTable ? 'var(--color-input-border)' : 'transparent',
+  } as const;
+};
+
 export const getTableInputRootStyles = ({
   showError,
-  isLooseTable,
+  tableKind,
   locked,
-  borderRadius,
-  borderColor,
 }: TableInputRootStyleOptions) => {
+  const { isLooseTable, borderRadius, borderColor } = getTableInputBorderAppearance(tableKind);
+
   return {
     width: '100%',
     height: TABLE_INPUT_HEIGHT,

@@ -42,7 +42,8 @@ export const parseDanishNumberString = (value: string): number | undefined => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
-export const parsePercentPointString = (value: string | undefined): number | undefined => {
+export const parsePercentPointString = (value: string | number | undefined): number | undefined => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
   if (typeof value !== 'string') return undefined;
   const withoutPercent = value.replace('%', '').trim();
   return parseDanishNumberString(withoutPercent);

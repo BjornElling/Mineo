@@ -100,5 +100,5 @@ export const parsePercentDraftForCommit = (
   const rangeErrorMessage = buildPercentRangeErrorMessage(numericValue, config);
   if (rangeErrorMessage !== null) return { ok: false, errorMessage: rangeErrorMessage };
 
-  return { ok: true, value: numericValue === 0 ? 0 : numericValue };
+  return { ok: true, value: numericValue };
 };

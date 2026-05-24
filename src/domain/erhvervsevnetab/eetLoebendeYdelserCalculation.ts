@@ -142,7 +142,7 @@ type AfgoerelseTransition = Readonly<{
 const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
 const toWarning = (id: string, message: string): EetIssue => ({ id, severity: 'warning', message });
 
-const parsePct = (raw: string | undefined): number | undefined => {
+const parsePct = (raw: string | number | undefined): number | undefined => {
   const parsed = parsePercentDraft(raw);
   // 0 % giver ingen løbende ydelse og behandles derfor som ikke-deltagende række.
   if (parsed === undefined || parsed === 0) return undefined;

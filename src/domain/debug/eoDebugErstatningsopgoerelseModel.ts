@@ -2749,18 +2749,17 @@ export const buildEODebugIndkomstRows = (
       }
 
       const manuelRows = ansaettelsesforhold.loenudviklingManuelTableData ?? [];
+      const hasManualPercentValue = (value: number | undefined): boolean =>
+        typeof value === 'number' && Number.isFinite(value);
+
       const aktiveRows = manuelRows.filter((row) => {
         const dato = row.dato ?? '';
-        const feriepenge = row.feriepenge ?? '';
-        const shSoSats = row.shSoSats ?? '';
-        const fritvalg = row.fritvalg ?? '';
-        const agPension = row.agPension ?? '';
         return (
           dato.trim() !== '' ||
-          feriepenge.trim() !== '' ||
-          shSoSats.trim() !== '' ||
-          fritvalg.trim() !== '' ||
-          agPension.trim() !== '' ||
+          hasManualPercentValue(row.feriepenge) ||
+          hasManualPercentValue(row.shSoSats) ||
+          hasManualPercentValue(row.fritvalg) ||
+          hasManualPercentValue(row.agPension) ||
           row.grundloen !== undefined
         );
       });
@@ -2783,10 +2782,10 @@ export const buildEODebugIndkomstRows = (
       ] as const;
 
       const usedSupplements = supplementFields.filter((field) =>
-        aktiveRows.some((row) => (row[field] ?? '').trim() !== '')
+        aktiveRows.some((row) => hasManualPercentValue(row[field]))
       );
       const supplementsOk = usedSupplements.every((field) =>
-        aktiveRows.every((row) => (row[field] ?? '').trim() !== '')
+        aktiveRows.every((row) => hasManualPercentValue(row[field]))
       );
 
       const ok = grundloenOk && supplementsOk;

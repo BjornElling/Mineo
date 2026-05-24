@@ -38,9 +38,6 @@ const TableTextInput = React.memo(
     sx,
   }: TableTextInputProps) => {
     const gridApi = useGridCoreApi();
-    const isLooseTable = gridApi.tableKind === 'loose';
-    const inputBorderRadius = isLooseTable ? '10px' : '0px';
-    const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
     const core = useTableInputCore({
       adapter: textTableInputAdapter,
       gridCell,
@@ -79,10 +76,8 @@ const TableTextInput = React.memo(
             sx={{
               ...getTableInputRootStyles({
                 showError: core.showError,
-                isLooseTable,
-                locked,
-                borderRadius: inputBorderRadius,
-                borderColor: inputBorderColor,
+                  tableKind: gridApi.tableKind,
+                  locked,
               }),
               '& .MuiInputBase-input': {
                 ...getTableInputElementStyles({

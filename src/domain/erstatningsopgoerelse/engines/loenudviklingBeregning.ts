@@ -150,16 +150,18 @@ type KonsolideretLoenudvikling =
     tafRanges: readonly IsoRange[];
   }>;
 
-const parseManualPercentToPct = (value: string | undefined): number => parsePercentToDecimal(value) * 100;
+const parseManualPercentToPct = (value: string | number | undefined): number => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+  return parsePercentToDecimal(value) * 100;
+};
 
 /**
  * Manuel ferieprocent i PDF-sporet returneres i pct-point-konvention
  * (fx `15` for 15 %), fordi computePackageValuePct arbejder i pct-point.
  */
-const resolveManualFeriePctPct = (rowFeriepenge: string | undefined, defaultFeriePct: number | undefined): number => {
-  if (typeof rowFeriepenge === 'string' && rowFeriepenge.trim() !== '') {
-    return parsePercentToDecimal(rowFeriepenge) * 100;
-  }
+const resolveManualFeriePctPct = (rowFeriepenge: string | number | undefined, defaultFeriePct: number | undefined): number => {
+  if (typeof rowFeriepenge === 'number' && Number.isFinite(rowFeriepenge)) return rowFeriepenge;
+  if (typeof rowFeriepenge === 'string' && rowFeriepenge.trim() !== '') return parsePercentToDecimal(rowFeriepenge) * 100;
   return defaultFeriePct ?? 0;
 };
 

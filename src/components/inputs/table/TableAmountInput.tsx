@@ -56,9 +56,6 @@ const TableAmountInput = React.memo(
     sx,
   }: TableAmountInputProps) => {
     const gridApi = useGridCoreApi();
-    const isLooseTable = gridApi.tableKind === 'loose';
-    const inputBorderRadius = isLooseTable ? '10px' : '0px';
-    const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
     const skipClickSelectionRestoreRef = React.useRef(false);
 
     const adapter = React.useMemo(
@@ -131,10 +128,8 @@ const TableAmountInput = React.memo(
               sx={{
                 ...getTableInputRootStyles({
                   showError: core.showError,
-                  isLooseTable,
+                  tableKind: gridApi.tableKind,
                   locked,
-                  borderRadius: inputBorderRadius,
-                  borderColor: inputBorderColor,
                 }),
                 ...(core.cellFocused ? { outline: 'none' } : {}),
                 '& .MuiInputBase-input': {

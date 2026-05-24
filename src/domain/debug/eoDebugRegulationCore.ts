@@ -156,12 +156,11 @@ const getTidsenhedsvaerdier = (
 };
 
 const resolveManualFeriePctDecimal = (
-  rowFeriepenge: string | undefined,
+  rowFeriepenge: string | number | undefined,
   defaultFeriePct: number | undefined
 ): number => {
-  if (typeof rowFeriepenge === 'string' && rowFeriepenge.trim() !== '') {
-    return parsePercentToDecimal(rowFeriepenge);
-  }
+  if (typeof rowFeriepenge === 'number' && Number.isFinite(rowFeriepenge)) return rowFeriepenge / 100;
+  if (typeof rowFeriepenge === 'string' && rowFeriepenge.trim() !== '') return parsePercentToDecimal(rowFeriepenge);
   return parsePercentToDecimal(defaultFeriePct);
 };
 

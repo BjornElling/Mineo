@@ -61,7 +61,7 @@ describe('LoenudviklingManuelTable fokus-gendannelse', () => {
     render(
       <LoenudviklingManuelTable
         tableData={[
-          makeRow('base-row', { feriepenge: '15,00', shSoSats: '0,00', fritvalg: '7,00', agPension: '9,00' }),
+          makeRow('base-row', { feriepenge: 15, shSoSats: 0, fritvalg: 7, agPension: 9 }),
           makeRow('row-a'),
         ]}
         baseDateDisplay="01-01-2024"
@@ -91,7 +91,7 @@ describe('LoenudviklingManuelTable fokus-gendannelse', () => {
     render(
       <LoenudviklingManuelTable
         tableData={[
-          makeRow('base-row', { feriepenge: '15,00', shSoSats: '0,00', fritvalg: '7,00', agPension: '9,00' }),
+          makeRow('base-row', { feriepenge: 15, shSoSats: 0, fritvalg: 7, agPension: 9 }),
           makeRow('row-a'),
         ]}
         baseDateDisplay="01-01-2024"

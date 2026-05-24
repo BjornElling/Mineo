@@ -36,7 +36,7 @@ const createGridValue = (editingCell: GridCellCoord | null) => {
 
 type NoopCase = Readonly<{
   label: string;
-  renderInput: (onBlur: (value: string) => void) => React.JSX.Element;
+  renderInput: (onBlur: (value: TestCommitValue) => void) => React.JSX.Element;
 }>;
 
 type DraftChangeCase = Readonly<{
@@ -63,9 +63,9 @@ type LockedSelectableCase = Readonly<{
 
 type InvalidPreserveCase = Readonly<{
   label: string;
-  initialValue: string;
+  initialValue: TestCommitValue;
   invalidDraft: string;
-  renderManagedInput: (props: Readonly<{ value: string; onBlur: (value: TestCommitValue) => void }>) => React.JSX.Element;
+  renderManagedInput: (props: Readonly<{ value: TestCommitValue; onBlur: (value: TestCommitValue) => void }>) => React.JSX.Element;
 }>;
 
 type ConfigPreserveCase = Readonly<{
@@ -83,15 +83,15 @@ type ClickOutsideCommitCase = Readonly<{
 
 type EscapeCancelCase = Readonly<{
   label: string;
-  initialValue: string;
+  initialValue: TestCommitValue;
   typedDraft: string;
   expectedDisplayAfterCancel?: string;
-  renderManagedInput: (props: Readonly<{ value: string; onBlur: (value: TestCommitValue) => void }>) => React.JSX.Element;
+  renderManagedInput: (props: Readonly<{ value: TestCommitValue; onBlur: (value: TestCommitValue) => void }>) => React.JSX.Element;
 }>;
 
 type DeleteClearCase = Readonly<{
   label: string;
-  initialValue: string;
+  initialValue: TestCommitValue;
   expectedCommitted: TestCommitValue;
   renderManagedInput: (props: Readonly<{ value: TestCommitValue; onBlur: (value: TestCommitValue) => void }>) => React.JSX.Element;
 }>;
@@ -112,7 +112,7 @@ const NOOP_CASES: readonly NoopCase[] = [
     renderInput: (onBlur) => (
       <TablePercentInput
         gridCell={gridCell}
-        value="12,50"
+        value={12.5}
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -177,7 +177,7 @@ const DRAFT_CHANGE_CASES: readonly DraftChangeCase[] = [
     renderInput: (onChange) => (
       <TableDateInput
         gridCell={gridCell}
-        value=""
+        value={undefined}
         onChange={(e) => onChange(e.target.value)}
       />
     ),
@@ -199,7 +199,7 @@ const DRAFT_CHANGE_CASES: readonly DraftChangeCase[] = [
     renderInput: (onChange) => (
       <TablePercentInput
         gridCell={gridCell}
-        value=""
+        value={undefined}
         onChange={(e) => onChange(e.target.value)}
       />
     ),
@@ -261,7 +261,7 @@ const AUTOCOMPLETE_OFF_CASES: readonly AutoCompleteCase[] = [
     renderInput: () => (
       <TablePercentInput
         gridCell={gridCell}
-        value="12,50"
+        value={12.5}
       />
     ),
   },
@@ -303,7 +303,7 @@ const CANONICAL_PLACEHOLDER_CASES: readonly PlaceholderCase[] = [
   {
     label: 'percent',
     expectedPlaceholder: '0 %',
-    renderInput: () => <TablePercentInput gridCell={gridCell} value="" />,
+    renderInput: () => <TablePercentInput gridCell={gridCell} value={undefined} />,
   },
   {
     label: 'date',
@@ -342,7 +342,7 @@ const LOCKED_SELECTABLE_CASES: readonly LockedSelectableCase[] = [
   },
   {
     label: 'percent',
-    renderInput: () => <TablePercentInput gridCell={gridCell} value="12,50" locked />,
+    renderInput: () => <TablePercentInput gridCell={gridCell} value={12.5} locked />,
   },
   {
     label: 'text',
@@ -377,7 +377,7 @@ const INVALID_PRESERVE_CASES: readonly InvalidPreserveCase[] = [
     renderManagedInput: ({ value, onBlur }) => (
       <TableIntegerInput
         gridCell={gridCell}
-        value={value}
+        value={typeof value === 'string' ? value : ''}
         maxValue={5}
         onBlur={(e) => onBlur(e.target.value)}
       />
@@ -385,12 +385,12 @@ const INVALID_PRESERVE_CASES: readonly InvalidPreserveCase[] = [
   },
   {
     label: 'percent',
-    initialValue: '1,00',
+    initialValue: 1,
     invalidDraft: '9',
     renderManagedInput: ({ value, onBlur }) => (
       <TablePercentInput
         gridCell={gridCell}
-        value={value}
+        value={typeof value === 'number' ? value : undefined}
         maxValue={5}
         onBlur={(e) => onBlur(e.target.value)}
       />
@@ -403,7 +403,7 @@ const INVALID_PRESERVE_CASES: readonly InvalidPreserveCase[] = [
     renderManagedInput: ({ value, onBlur }) => (
       <TableWeekInput
         gridCell={gridCell}
-        value={value}
+        value={typeof value === 'string' ? value : ''}
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -415,7 +415,7 @@ const INVALID_PRESERVE_CASES: readonly InvalidPreserveCase[] = [
     renderManagedInput: ({ value, onBlur }) => (
       <TableYearInput
         gridCell={gridCell}
-        value={value}
+        value={typeof value === 'string' ? value : ''}
         minYear={2000}
         onBlur={(e) => onBlur(e.target.value)}
       />
@@ -428,7 +428,7 @@ const INVALID_PRESERVE_CASES: readonly InvalidPreserveCase[] = [
     renderManagedInput: ({ value, onBlur }) => (
       <TableDateInput
         gridCell={gridCell}
-        value={value}
+        value={typeof value === 'string' ? value : ''}
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -452,7 +452,7 @@ const CONFIG_PRESERVE_CASES: readonly ConfigPreserveCase[] = [
     renderInput: () => (
       <TablePercentInput
         gridCell={gridCell}
-        value="1,00"
+        value={1}
         minValue={10}
         maxValue={5}
       />
@@ -498,13 +498,13 @@ const CLICK_OUTSIDE_COMMIT_CASES: readonly ClickOutsideCommitCase[] = [
   },
   {
     label: 'percent',
-    initialValue: '1,00',
+    initialValue: 1,
     typedDraft: '2,5',
     expectedCommitted: 2.5,
     renderManagedInput: ({ value, onBlur }) => (
       <TablePercentInput
         gridCell={gridCell}
-        value={value}
+        value={typeof value === 'number' ? value : undefined}
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -572,10 +572,10 @@ const ESCAPE_CANCEL_CASES: readonly EscapeCancelCase[] = [
   },
   {
     label: 'percent',
-    initialValue: '12,50',
+    initialValue: 12.5,
     typedDraft: '33',
     expectedDisplayAfterCancel: '12,50 %',
-    renderManagedInput: ({ value, onBlur }) => <TablePercentInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+    renderManagedInput: ({ value, onBlur }) => <TablePercentInput gridCell={gridCell} value={typeof value === 'number' ? value : undefined} onBlur={(e) => onBlur(e.target.value)} />,
   },
   {
     label: 'week',
@@ -606,9 +606,9 @@ const DELETE_CLEAR_CASES: readonly DeleteClearCase[] = [
   },
   {
     label: 'percent',
-    initialValue: '12,50',
+    initialValue: 12.5,
     expectedCommitted: undefined,
-    renderManagedInput: ({ value, onBlur }) => <TablePercentInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+    renderManagedInput: ({ value, onBlur }) => <TablePercentInput gridCell={gridCell} value={typeof value === 'number' ? value : undefined} onBlur={(e) => onBlur(e.target.value)} />,
   },
   {
     label: 'week',
@@ -631,11 +631,11 @@ const DELETE_CLEAR_CASES: readonly DeleteClearCase[] = [
 ];
 
 const setupManaged = (input: InvalidPreserveCase) => {
-  const onBlur = vi.fn<(value: string) => void>();
+  const onBlur = vi.fn<(value: TestCommitValue) => void>();
   const setEditingCellRef = { current: null as React.Dispatch<React.SetStateAction<GridCellCoord | null>> | null };
 
   const Wrapper = () => {
-    const [value, setValue] = React.useState(input.initialValue);
+    const [value, setValue] = React.useState<TestCommitValue>(input.initialValue);
     const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
 
     React.useEffect(() => {

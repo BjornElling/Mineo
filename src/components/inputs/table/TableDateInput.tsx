@@ -82,9 +82,6 @@ const TableDateInput = React.memo(
     sx,
   }: TableDateInputProps) => {
     const gridApi = useGridCoreApi();
-    const isLooseTable = gridApi.tableKind === 'loose';
-    const inputBorderRadius = isLooseTable ? '10px' : '0px';
-    const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
 
     const boundsStatus = React.useMemo(() => {
       if (minDate !== undefined && coerceToISODateString(minDate) === undefined) {
@@ -172,6 +169,7 @@ const TableDateInput = React.memo(
 
     return (
       <Tooltip title={showError ? tooltipText : ''} arrow placement="top">
+        {/* Tooltip child stays a native span so table layout semantics are unaffected by a MUI Box wrapper. */}
         <span style={{ display: 'block', width: '100%', height: '100%' }}>
           <InputBase
             inputRef={core.inputRefCallback}
@@ -198,10 +196,8 @@ const TableDateInput = React.memo(
             sx={{
               ...getTableInputRootStyles({
                 showError,
-                isLooseTable,
-                locked,
-                borderRadius: inputBorderRadius,
-                borderColor: inputBorderColor,
+                  tableKind: gridApi.tableKind,
+                  locked,
               }),
               ...(core.cellFocused ? { outline: 'none' } : {}),
               '& .MuiInputBase-input': {

@@ -35,6 +35,10 @@ describe('inputPasteNormalization', () => {
     expect(normalizePercentPaste('abc999', { maxValue: 8 })).toBe('');
   });
 
+  it('normalizes percent paste without capping when max value is undefined', () => {
+    expect(normalizePercentPaste('adffergregs//sgd1712,56//', { maxValue: undefined })).toBe('1712');
+  });
+
   it('normalizes fraction paste from first number slash optional denominator', () => {
     expect(normalizeFractionPaste('adffergregs//sgd1712,56//')).toBe('1712,56/');
     expect(normalizeFractionPaste('foo12,5/bar8,25baz')).toBe('12,5/8,25');

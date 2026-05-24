@@ -119,10 +119,10 @@ export const loenudviklingManuelRowSchema = z.object({
   id: z.string().min(1, 'Række-ID må ikke være tomt'),
   dato: tableDateCellString,
   grundloen: tableAmountCellValue,
-  feriepenge: tableCellString,
-  shSoSats: tableCellString,
-  fritvalg: tableCellString,
-  agPension: tableCellString,
+  feriepenge: percentageDecimal,
+  shSoSats: percentageDecimal,
+  fritvalg: percentageDecimal,
+  agPension: percentageDecimal,
 }).strict();
 
 export type LoenudviklingManuelRow = z.infer<typeof loenudviklingManuelRowSchema>;

@@ -32,7 +32,6 @@ export {
   createPercentTableInputAdapter,
   type TablePercentAdapterConfig,
   type TablePercentInputModel,
-  type TablePercentInputValue,
 } from './adapters/percentAdapter';
 export {
   createAmountTableInputAdapter,

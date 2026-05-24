@@ -10,11 +10,9 @@ import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
 import {
   createPercentTableInputAdapter,
+  type TablePercentInputModel,
   useTableInputCore,
 } from '../../../hooks/tableInput';
-import { parsePercentDraftForCommit } from '../../../utils/percentDraftCore';
-
-export type TablePercentInputValue = string | number | undefined;
 
 export type TablePercentInputChangeEvent = { target: { value: string } };
 export type TablePercentInputCommitEvent = { target: { value: number | undefined } };
@@ -22,11 +20,7 @@ export type TablePercentInputCommitEvent = { target: { value: number | undefined
 export type TablePercentInputProps = Readonly<{
   gridCell: GridCellCoord;
   locked?: boolean;
-  /**
-   * Existing table rows still persist percent cells as canonical display strings.
-   * Internally the table-input adapter works with the numeric domain model.
-   */
-  value?: TablePercentInputValue;
+  value?: TablePercentInputModel;
   allowNegative?: boolean;
   allowDecimals?: boolean;
   minValue?: number;
@@ -63,9 +57,6 @@ const TablePercentInput = React.memo(
     sx,
   }: TablePercentInputProps) => {
     const gridApi = useGridCoreApi();
-    const isLooseTable = gridApi.tableKind === 'loose';
-    const inputBorderRadius = isLooseTable ? '10px' : '0px';
-    const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
 
     const effectiveMin = minValue ?? (useDefaultPercentRange ? 0 : undefined);
     const effectiveMax = maxValue ?? (useDefaultPercentRange ? 100 : undefined);
@@ -83,22 +74,7 @@ const TablePercentInput = React.memo(
       throw new Error(configErrorMessage);
     }
 
-    const committedValue = React.useMemo(() => {
-      if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
-      if (typeof value !== 'string' || value.trim() === '') return undefined;
-
-      const trimmed = value.trim();
-      const withoutPercentSuffix = trimmed.endsWith('%') ? trimmed.slice(0, -1).trim() : trimmed;
-      const parsed = parsePercentDraftForCommit(withoutPercentSuffix, {
-        allowNegative: true,
-        allowDecimals: true,
-      });
-      if (parsed.ok) return parsed.value;
-      if (import.meta.env.DEV) {
-        throw new Error(`Invariant brudt: committed procentværdi kan ikke parses (${value})`);
-      }
-      return undefined;
-    }, [value]);
+    const committedValue = typeof value === 'number' && Number.isFinite(value) ? value : undefined;
     const adapter = React.useMemo(
       () =>
         createPercentTableInputAdapter({
@@ -160,10 +136,8 @@ const TablePercentInput = React.memo(
               sx={{
                 ...getTableInputRootStyles({
                   showError: core.showError,
-                  isLooseTable,
+                  tableKind: gridApi.tableKind,
                   locked,
-                  borderRadius: inputBorderRadius,
-                  borderColor: inputBorderColor,
                 }),
                 ...(core.cellFocused ? { outline: 'none' } : {}),
                 '& .MuiInputBase-input': {

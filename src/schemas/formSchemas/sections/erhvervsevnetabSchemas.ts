@@ -10,11 +10,9 @@ export const aslAfgoerelseRowSchema = z.object({
   id: z.string().min(1, 'Række-ID må ikke være tomt'),
   afgoerelsesDato: tableDateCellString,
   virkningsDato: tableDateCellString,
-  // Persisteres som committed tabel-display (string). Domæneregler valideres i eetAslAfgoerelser.ts.
-  eetPct: z.string().optional(),
+  eetPct: percentageDecimal,
   kapDato: tableDateCellString,
-  // Persisteres som committed tabel-display (string). Domæneregler valideres i eetAslAfgoerelser.ts.
-  kapPct: z.string().optional(),
+  kapPct: percentageDecimal,
   afgoerelseType: afgoerelseTypeEnum.optional(),
   tidlKapDato: tableDateCellString,
   fsTilbageholdtEet: jaNejEnum.default('Nej'),

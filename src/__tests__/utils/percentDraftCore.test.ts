@@ -27,10 +27,19 @@ describe('percentDraftCore', () => {
     expect(parsePercentDraftForCommit('50', baseConfig)).toEqual({ ok: true, value: 50 });
     expect(parsePercentDraftForCommit('50,25', baseConfig)).toEqual({ ok: true, value: 50.25 });
     expect(parsePercentDraftForCommit('1.000', { ...baseConfig, maxValue: 2000 })).toEqual({ ok: true, value: 1000 });
+    expect(parsePercentDraftForCommit('1.000,50', { ...baseConfig, maxValue: 2000 })).toEqual({
+      ok: true,
+      value: 1000.5,
+    });
   });
 
   it('respekterer decimal- og negativ-konfiguration', () => {
     expect(parsePercentDraftForCommit('50,25', { ...baseConfig, allowDecimals: false }).ok).toBe(false);
+    expect(parsePercentDraftForCommit('5,0', { ...baseConfig, allowDecimals: false }).ok).toBe(false);
+    expect(parsePercentDraftForCommit('-5', baseConfig)).toEqual({
+      ok: false,
+      errorMessage: 'Procent kan ikke være negativ',
+    });
     expect(parsePercentDraftForCommit('-10', baseConfig)).toEqual({
       ok: false,
       errorMessage: 'Procent kan ikke være negativ',
@@ -71,6 +80,7 @@ describe('percentDraftCore', () => {
       const parsed = parsePercentDraftForCommit(formatted, {
         allowNegative: true,
         allowDecimals: true,
+        minValue: -100,
       });
 
       expect(parsed).toEqual({ ok: true, value });

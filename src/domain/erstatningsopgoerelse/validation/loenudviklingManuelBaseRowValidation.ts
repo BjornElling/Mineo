@@ -1,7 +1,6 @@
 import type { LoenudviklingManuelRow } from '../../../schemas/formSchemas';
 import { isWithinTolerance } from '../../../utils/numberComparison';
-import { parsePercentPointString } from '../../../utils/numberParsing';
-import { formatPercentFixed2 } from '../helpers/eoSharedUtils';
+import { formatPercentDisplay } from '../../../utils/percentDraftCore';
 
 export type ManualBaseRowPercentField = 'feriepenge' | 'fritvalg' | 'shSoSats' | 'agPension';
 
@@ -14,8 +13,12 @@ type ExpectedSatser = Readonly<{
   pensionPct: number | null | undefined;
 }>;
 
-const parseCommittedPercent = (value: string | undefined): number | undefined => {
-  return parsePercentPointString(value);
+const parseCommittedPercent = (value: number | undefined): number | undefined => {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+};
+
+const formatExpectedPercent = (value: number): string => {
+  return `${formatPercentDisplay(value, true)} %`;
 };
 
 const hasMismatch = (actual: number | undefined, expected: number | null | undefined): boolean => {
@@ -60,7 +63,7 @@ export const validateLoenudviklingManualBaseRowSatser = (
 
   for (const check of checks) {
     if (hasMismatch(check.actual, check.expected)) {
-      errors[check.field] = `Værdien er ovenfor angivet til ${formatPercentFixed2(check.expected ?? 0)}`;
+      errors[check.field] = `Værdien er ovenfor angivet til ${formatExpectedPercent(check.expected ?? 0)}`;
     }
   }
 

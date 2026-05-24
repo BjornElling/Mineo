@@ -197,4 +197,40 @@ describe('TablePercentInput', () => {
     expect(onBlur).toHaveBeenCalledWith(171);
     expect(input).toHaveValue('171,00 %');
   });
+
+  it('normalizes pasted text without upper paste cap when default range is disabled', async () => {
+    const user = userEvent.setup();
+    const gridCell = { rowId: 'row-4', colIndex: 0 };
+    const onBlur = vi.fn();
+
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<number | undefined>(undefined);
+      const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(null);
+      const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
+
+      return (
+        <GridCoreProvider value={gridValue}>
+          <TablePercentInput
+            gridCell={gridCell}
+            value={value}
+            useDefaultPercentRange={false}
+            onBlur={(e) => {
+              onBlur(e.target.value);
+              setValue(e.target.value);
+              setEditingCell(null);
+            }}
+          />
+        </GridCoreProvider>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox');
+    await user.click(input);
+    await user.paste(input, 'adffergregs//sgd1712,56//');
+
+    expect(onBlur).toHaveBeenCalledWith(1712);
+    expect(input).toHaveValue('1.712,00 %');
+  });
 });

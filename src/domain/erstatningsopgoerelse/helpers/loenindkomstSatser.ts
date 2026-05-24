@@ -66,12 +66,11 @@ const resolveStoreBededagPct = (
 };
 
 const resolveManualPercentValue = (
-  rowValue: string | undefined,
+  rowValue: string | number | undefined,
   fallback: number | undefined
 ): number | undefined => {
-  if (typeof rowValue === 'string' && rowValue.trim() !== '') {
-    return round2(parsePercentToDecimal(rowValue) * 100);
-  }
+  if (typeof rowValue === 'number' && Number.isFinite(rowValue)) return round2(rowValue);
+  if (typeof rowValue === 'string' && rowValue.trim() !== '') return round2(parsePercentToDecimal(rowValue) * 100);
   return fallback;
 };
 

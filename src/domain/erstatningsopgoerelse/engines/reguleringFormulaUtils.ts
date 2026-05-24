@@ -28,17 +28,20 @@ export type FormulaVisibility = Readonly<{
   showStoreBededag: boolean;
 }>;
 
-export const parsePercentInput = (raw: string | undefined): number => {
+export const parsePercentInput = (raw: string | number | undefined): number => {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : 0;
   return parsePercentPointString(raw) ?? 0;
 };
 
-export const resolveFeriePctForFormula = (rowFeriepengeRaw: string | undefined, fallbackFeriePct: number | undefined): number => {
+export const resolveFeriePctForFormula = (rowFeriepengeRaw: string | number | undefined, fallbackFeriePct: number | undefined): number => {
+  if (typeof rowFeriepengeRaw === 'number') return Number.isFinite(rowFeriepengeRaw) ? rowFeriepengeRaw : 0;
   const trimmed = rowFeriepengeRaw?.replace('%', '').trim() ?? '';
   if (trimmed !== '') return parsePercentInput(rowFeriepengeRaw);
   return typeof fallbackFeriePct === 'number' && Number.isFinite(fallbackFeriePct) ? fallbackFeriePct : 0;
 };
 
-export const formatPercentCellFromRaw = (raw: string | undefined): string => {
+export const formatPercentCellFromRaw = (raw: string | number | undefined): string => {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? formatPercentFixed2(raw) : '-';
   const trimmed = raw?.trim() ?? '';
   if (trimmed === '' || trimmed === '-') return '-';
   const num = parsePercentPointString(trimmed);
@@ -46,8 +49,9 @@ export const formatPercentCellFromRaw = (raw: string | undefined): string => {
   return formatPercentFixed2(num);
 };
 
-export const mergeFeriepengeDisplay = (fromFeriePct: string | undefined, fromFeriepenge: string | undefined): string => {
-  const normalize = (value: string | undefined): string | null => {
+export const mergeFeriepengeDisplay = (fromFeriePct: string | number | undefined, fromFeriepenge: string | number | undefined): string => {
+  const normalize = (value: string | number | undefined): string | null => {
+    if (typeof value === 'number') return Number.isFinite(value) ? formatPercentFixed2(value) : null;
     const trimmed = value?.trim() ?? '';
     if (trimmed === '' || trimmed === '-') return null;
     return trimmed;

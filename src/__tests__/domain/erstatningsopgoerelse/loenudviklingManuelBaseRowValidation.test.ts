@@ -16,10 +16,10 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
   it('giver ingen fejl når første række matcher satser på skadestidspunktet', () => {
     const errors = validateLoenudviklingManualBaseRowSatser(
       makeBaseRow({
-        feriepenge: '12,5',
-        fritvalg: '2',
-        shSoSats: '1,75',
-        agPension: '10',
+        feriepenge: 12.5,
+        fritvalg: 2,
+        shSoSats: 1.75,
+        agPension: 10,
       }),
       {
         feriePct: 12.5,
@@ -35,10 +35,10 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
   it('giver cellefejl når en eller flere værdier ikke matcher', () => {
     const errors = validateLoenudviklingManualBaseRowSatser(
       makeBaseRow({
-        feriepenge: '12,5',
-        fritvalg: '2,5',
-        shSoSats: '1,75',
-        agPension: '',
+        feriepenge: 12.5,
+        fritvalg: 2.5,
+        shSoSats: 1.75,
+        agPension: undefined,
       }),
       {
         feriePct: 12.5,
@@ -57,10 +57,10 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
   it('giver fejl når sats på skadestidspunktet er udfyldt men tabelværdi mangler', () => {
     const errors = validateLoenudviklingManualBaseRowSatser(
       makeBaseRow({
-        feriepenge: '12,5',
-        fritvalg: '',
-        shSoSats: '1,75',
-        agPension: '10',
+        feriepenge: 12.5,
+        fritvalg: undefined,
+        shSoSats: 1.75,
+        agPension: 10,
       }),
       {
         feriePct: 12.5,
@@ -76,10 +76,10 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
   it('springer felter over hvor sats på skadestidspunktet ikke er angivet', () => {
     const errors = validateLoenudviklingManualBaseRowSatser(
       makeBaseRow({
-        feriepenge: '',
-        fritvalg: '',
-        shSoSats: '',
-        agPension: '',
+        feriepenge: undefined,
+        fritvalg: undefined,
+        shSoSats: undefined,
+        agPension: undefined,
       }),
       {
         feriePct: undefined,
@@ -95,10 +95,10 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
   it('behandler null som 0 i sats-sammenligning', () => {
     const errors = validateLoenudviklingManualBaseRowSatser(
       makeBaseRow({
-        feriepenge: '',
-        fritvalg: '',
-        shSoSats: '',
-        agPension: '',
+        feriepenge: undefined,
+        fritvalg: undefined,
+        shSoSats: undefined,
+        agPension: undefined,
       }),
       {
         feriePct: null,
@@ -135,31 +135,17 @@ describe('validateLoenudviklingManualBaseRowSatser', () => {
     expect(errors.agPension).toBeDefined();
   });
 
-  it('ugyldig streng → parseCommittedPercent returnerer undefined → normaliseres til 0', () => {
-    const errors = validateLoenudviklingManualBaseRowSatser(
-      makeBaseRow({ feriepenge: 'abc', fritvalg: 'NaN', shSoSats: 'Infinity', agPension: 'ugyldig' }),
-      { feriePct: 0, fritvalgPct: 0, shSoPct: 0, pensionPct: 0 }
-    );
-    // 'abc' → not finite → undefined → 0 vs 0 = ingen fejl
-    expect(errors.feriepenge).toBeUndefined();
-    expect(errors.fritvalg).toBeUndefined();
-    expect(errors.shSoSats).toBeUndefined();
-    expect(errors.agPension).toBeUndefined();
-  });
-
   it('tolerance 0.01: delta ≤ 0.01 → ingen fejl', () => {
-    // |12.505 - 12.5| = 0.005 ≤ 0.01
     const errors = validateLoenudviklingManualBaseRowSatser(
-      makeBaseRow({ feriepenge: '12,505' }),
+      makeBaseRow({ feriepenge: 12.505 }),
       { feriePct: 12.5, fritvalgPct: undefined, shSoPct: undefined, pensionPct: undefined }
     );
     expect(errors.feriepenge).toBeUndefined();
   });
 
   it('tolerance 0.01: delta > 0.01 → fejl', () => {
-    // |12.52 - 12.5| = 0.02 > 0.01
     const errors = validateLoenudviklingManualBaseRowSatser(
-      makeBaseRow({ feriepenge: '12,52' }),
+      makeBaseRow({ feriepenge: 12.52 }),
       { feriePct: 12.5, fritvalgPct: undefined, shSoPct: undefined, pensionPct: undefined }
     );
     expect(errors.feriepenge).toBeDefined();

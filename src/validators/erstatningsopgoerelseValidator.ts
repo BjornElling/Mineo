@@ -827,18 +827,16 @@ function validateLoenudviklingsKravForAktivKilde(
       }
 
       const rows = af.loenudviklingManuelTableData ?? [];
+      const hasManualPercentValue = (value: number | undefined): boolean =>
+        typeof value === 'number' && Number.isFinite(value);
       const aktiveRows = rows.filter((row) => {
         const dato = (row.dato ?? '').trim();
-        const feriepenge = (row.feriepenge ?? '').trim();
-        const shSoSats = (row.shSoSats ?? '').trim();
-        const fritvalg = (row.fritvalg ?? '').trim();
-        const agPension = (row.agPension ?? '').trim();
         return (
           dato !== '' ||
-          feriepenge !== '' ||
-          shSoSats !== '' ||
-          fritvalg !== '' ||
-          agPension !== '' ||
+          hasManualPercentValue(row.feriepenge) ||
+          hasManualPercentValue(row.shSoSats) ||
+          hasManualPercentValue(row.fritvalg) ||
+          hasManualPercentValue(row.agPension) ||
           row.grundloen !== undefined
         );
       });

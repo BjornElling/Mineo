@@ -205,9 +205,9 @@ const getOffentligLoenEkstraGrundloenSuffix = (
   offentligLoenType: Ansaettelsesforhold['offentligLoenType']
 ): string => (offentligLoenType === 'Timeløn' ? '/ time' : '/ måned');
 
-const formatManualBaseRowPercent = (value: number | undefined): string | undefined => {
+const formatManualBaseRowPercent = (value: number | undefined): number | undefined => {
   if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
-  return formatAsAmount(value, 2);
+  return value;
 };
 
 const LOCKED_SATS_FIELD_SX = { width: '100px' } as const;

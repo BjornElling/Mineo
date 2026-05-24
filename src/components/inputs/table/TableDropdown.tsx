@@ -7,7 +7,7 @@ import { useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../StyledDropdown';
-import { TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './tableInputStyles';
+import { getTableInputBorderAppearance, TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './tableInputStyles';
 
 /**
  * TableDropdown (table-cell select)
@@ -138,10 +138,8 @@ const TableDropdown = React.memo(
 
     const grid = useGridCoreApi();
     const menuHighlightColor = 'var(--color-active-bg)';
-    const isLooseTable = grid.tableKind === 'loose';
+    const { isLooseTable, borderRadius: inputBorderRadius, borderColor: inputBorderColor } = getTableInputBorderAppearance(grid.tableKind);
     const resolvedAppearance = appearance === 'grid' ? (isLooseTable ? 'loose' : 'grid') : appearance;
-    const inputBorderRadius = isLooseTable ? '10px' : '0px';
-    const inputBorderColor = isLooseTable ? 'var(--color-input-border)' : 'transparent';
     const allowEmpty: boolean = (rest as Readonly<{ allowEmpty?: boolean }>).allowEmpty ?? true;
 
     if (import.meta.env.DEV && allowEmpty === false && (value === undefined || value.trim() === '')) {

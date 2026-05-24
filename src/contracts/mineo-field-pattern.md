@@ -128,8 +128,11 @@ Default policy (all fields unless explicitly justified):
 - `Blur` → commit attempt
 - `Enter` → commit attempt (prevent default)
 - `Escape` → cancel (never commit; suppress the immediately following blur-triggered commit)
+- `Backspace`/`Delete` in focused closed-editor state → clear and commit immediately without opening the editor
 
 `useDraftField` implements this policy.
+
+The `Backspace`/`Delete` exception matches `form-contract.md` and `keyboard-navigation.md`: clearing is an explicit user action, so it may commit immediately, but it must not start editing or parse arbitrary draft text.
 
 ## Error ownership (single source in UI)
 

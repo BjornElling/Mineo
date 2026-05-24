@@ -19,7 +19,6 @@ import {
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
-import { formatPercentDisplay } from '../../utils/percentDraftCore';
 
 export type EetAslAfgoerelserTableProps = Readonly<{
   tableData: AslAfgoerelseRow[];
@@ -166,10 +165,10 @@ const EetAslAfgoerelserTable = React.memo(
     const sortColumns = React.useMemo(() => [
       { colId: 'afgoerelsesDato', getSortValue: (row: AslAfgoerelseRow) => row.afgoerelsesDato },
       { colId: 'virkningsDato', getSortValue: (row: AslAfgoerelseRow) => row.virkningsDato },
-      { colId: 'eetPct', getSortValue: (row: AslAfgoerelseRow) => row.eetPct !== undefined ? Number.parseFloat(row.eetPct) : undefined },
+      { colId: 'eetPct', getSortValue: (row: AslAfgoerelseRow) => row.eetPct },
       { colId: 'afgoerelseType', getSortValue: (row: AslAfgoerelseRow) => row.afgoerelseType },
       { colId: 'kapDato', getSortValue: (row: AslAfgoerelseRow) => row.kapDato },
-      { colId: 'kapPct', getSortValue: (row: AslAfgoerelseRow) => row.kapPct !== undefined ? Number.parseFloat(row.kapPct) : undefined },
+      { colId: 'kapPct', getSortValue: (row: AslAfgoerelseRow) => row.kapPct },
       { colId: 'tidlKapDato', getSortValue: (row: AslAfgoerelseRow) => row.tidlKapDato },
       { colId: 'fsTilbageholdtEet', getSortValue: (row: AslAfgoerelseRow) => row.fsTilbageholdtEet },
     ], []);
@@ -276,7 +275,7 @@ const EetAslAfgoerelserTable = React.memo(
                     minValue={0}
                     maxValue={100}
                     useDefaultPercentRange={false}
-                    onBlur={(e) => commitRowUpdate(row.id, { eetPct: formatPercentDisplay(e.target.value, false) || undefined })}
+                    onBlur={(e) => commitRowUpdate(row.id, { eetPct: e.target.value })}
                     externalErrorMessage={eetPctError}
                   />
                 </TableCell>
@@ -326,7 +325,7 @@ const EetAslAfgoerelserTable = React.memo(
                     minValue={0}
                     maxValue={100}
                     useDefaultPercentRange={false}
-                    onBlur={(e) => commitRowUpdate(row.id, { kapPct: formatPercentDisplay(e.target.value, false) || undefined })}
+                    onBlur={(e) => commitRowUpdate(row.id, { kapPct: e.target.value })}
                     externalErrorMessage={kapPctError}
                   />
                 </TableCell>

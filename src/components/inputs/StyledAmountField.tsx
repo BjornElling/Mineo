@@ -62,8 +62,6 @@ export type StyledAmountFieldProps = {
 
   error?: boolean;
   helperText?: string;
-  onErrorChange?: (hasError: boolean) => void;
-  onLocalErrorChange?: (hasLocalError: boolean) => void;
   /**
    * Callback for current local error message (for producer-owned error reporting).
    *
@@ -105,8 +103,6 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       onKeyDown,
       error: externalHasError = false,
       helperText: externalHelperText = '',
-      onErrorChange,
-      onLocalErrorChange,
       onFieldError,
       sx,
     },
@@ -242,16 +238,6 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       if (typeof onFieldError !== 'function') return;
       onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);
     }, [draft, onFieldError, visibleLocalError?.message]);
-
-    React.useEffect(() => {
-      if (!onErrorChange) return;
-      onErrorChange(resolvedHasError);
-    }, [onErrorChange, resolvedHasError]);
-
-    React.useEffect(() => {
-      if (!onLocalErrorChange) return;
-      onLocalErrorChange(localHasError);
-    }, [localHasError, onLocalErrorChange]);
 
     const skipNextBlurCommitRef = React.useRef(false);
     const hadErrorOnEditStartRef = React.useRef(false);

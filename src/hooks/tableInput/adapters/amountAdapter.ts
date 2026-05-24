@@ -50,6 +50,11 @@ export const toAmountDraftString = (value: TableAmountInputValue): string => {
   return amountValueToDraftString(value, DEFAULT_AMOUNT_PRECISION);
 };
 
+const toAmountClipboardString = (value: TableAmountInputValue): string => {
+  if (value?.kind === 'expression') return value.expression;
+  return toAmountDisplayString(value);
+};
+
 const amountCanonicalFromModel = (value: TableAmountInputValue): string => {
   if (!value) return '';
   if (value.kind === 'expression') {
@@ -74,6 +79,7 @@ export const createAmountTableInputAdapter = (
 ): TableInputAdapter<TableAmountInputValue, string, AmountFingerprint> => ({
   format: toAmountDisplayString,
   toDraftString: toAmountDraftString,
+  toClipboardString: toAmountClipboardString,
   parse: (draft) => commitAmountDraft(draft, config),
   toCommittedPayload: toCommittedAmountPayload,
   isValidStartKey: (key) => {

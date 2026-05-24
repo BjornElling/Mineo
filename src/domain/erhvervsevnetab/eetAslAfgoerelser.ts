@@ -29,21 +29,22 @@ export const createEmptyAslAfgoerelseRow = (): AslAfgoerelseRow => ({
 export const isAslAfgoerelseRowEmpty = (row: AslAfgoerelseRow): boolean =>
   !row.afgoerelsesDato &&
   !row.virkningsDato &&
-  !row.eetPct &&
+  !hasTextValue(row.eetPct) &&
   !row.kapDato &&
-  !row.kapPct &&
+  !hasTextValue(row.kapPct) &&
   !row.afgoerelseType &&
   !row.tidlKapDato;
 
 export const isAslAfgoerelseRowPersistenceEmpty = (row: AslAfgoerelseRow): boolean =>
   isAslAfgoerelseRowEmpty(row) && (row.fsTilbageholdtEet ?? 'Nej') === 'Nej';
 
-export const parsePercentDraft = (raw: string | undefined): number | undefined => {
+export const parsePercentDraft = (raw: string | number | undefined): number | undefined => {
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : undefined;
   return parsePercentPointString(raw);
 };
 
-export const hasTextValue = (raw: string | undefined): boolean =>
-  typeof raw === 'string' && raw.trim() !== '';
+export const hasTextValue = (raw: string | number | undefined): boolean =>
+  typeof raw === 'number' ? Number.isFinite(raw) : typeof raw === 'string' && raw.trim() !== '';
 
 const DUPLICATE_AFGOERELSE_MESSAGE = 'Der er angivet to identiske afgørelser med samme afgørelsesdato og virkningsdato.';
 
@@ -399,7 +400,7 @@ export const validateTidlKapDatoByAfgoerelsestype = (
 };
 
 export const validatePercentNotZeroFromDraft = (
-  raw: string | undefined,
+  raw: string | number | undefined,
   label: string
 ): string | undefined => {
   const parsed = parsePercentDraft(raw);
@@ -409,7 +410,7 @@ export const validatePercentNotZeroFromDraft = (
 };
 
 export const validatePercentDivisibleBy5FromDraft = (
-  raw: string | undefined,
+  raw: string | number | undefined,
   label: string
 ): string | undefined => {
   const parsed = parsePercentDraft(raw);

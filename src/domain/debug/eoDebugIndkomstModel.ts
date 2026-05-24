@@ -162,13 +162,16 @@ const isLoenRowEffectivelyEmpty = (
 const isManualReguleringRowEffectivelyEmpty = (
   row: NonNullable<Ansaettelsesforhold['loenudviklingManuelTableData']>[number]
 ): boolean => {
+  const isManualPercentEmpty = (value: number | undefined): boolean =>
+    typeof value !== 'number' || !Number.isFinite(value);
+
   return (
     (row.dato?.trim() ?? '') === '' &&
     isStandardLoenTableValueEffectivelyEmptyForValidation(row.grundloen) &&
-    (row.feriepenge?.trim() ?? '') === '' &&
-    (row.shSoSats?.trim() ?? '') === '' &&
-    (row.fritvalg?.trim() ?? '') === '' &&
-    (row.agPension?.trim() ?? '') === ''
+    isManualPercentEmpty(row.feriepenge) &&
+    isManualPercentEmpty(row.shSoSats) &&
+    isManualPercentEmpty(row.fritvalg) &&
+    isManualPercentEmpty(row.agPension)
   );
 };
 
