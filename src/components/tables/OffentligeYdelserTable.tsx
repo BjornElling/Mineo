@@ -32,6 +32,7 @@ import {
 } from './gridCore/tableRowFocus';
 import { getOffentligeYdelserTableHeaderNodes } from '../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import type { ISODateString } from '../../types/branded';
 
 export type OffentligeYdelserDerivedCellValues = Readonly<{
   periodiseringLabel: string;
@@ -56,6 +57,10 @@ export type OffentligeYdelserTableProps = {
 
 const MIN_VISIBLE_ROWS = 2;
 
+const isIsoDateEmpty = (value: ISODateString | undefined): boolean => {
+  return value === undefined;
+};
+
 const isEffectivelyEmpty = (value: string | undefined): boolean => {
   return value === undefined || value.trim() === '';
 };
@@ -66,8 +71,8 @@ const isAmountEmpty = (value: AmountValue | undefined): boolean => {
 
 const isRowEmpty = (row: OffentligeYdelserRow): boolean => {
   return (
-    isEffectivelyEmpty(row.fraDato) &&
-    isEffectivelyEmpty(row.tilDato) &&
+    isIsoDateEmpty(row.fraDato) &&
+    isIsoDateEmpty(row.tilDato) &&
     isAmountEmpty(row.ydelse) &&
     isAmountEmpty(row.tillaeg) &&
     isEffectivelyEmpty(row.ydelsestype)

@@ -79,6 +79,7 @@ const OevrigeKravTable = React.memo(
                   gridCell={{ rowId: row.id, colIndex: 0 }}
                   value={committed?.dato}
                   onBlur={(e) => {
+                    // The row-draft boundary still uses strings; undefined clears the draft.
                     onFieldChange(row.id, 'dato')(e.target.value ?? '');
                     onRowBlur(row.id);
                   }}

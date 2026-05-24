@@ -476,6 +476,7 @@ const LoenudviklingManuelTable = React.memo(
       {
         colId: 'dato',
         getSortValue: (row: LoenudviklingManuelRow) => {
+          // baseDateDisplay is a display-string prop, not ISO; convert before sorting.
           if (row.id === baseRowId) return coerceToISODateString(baseDateDisplay) ?? '';
           return row.dato ?? '';
         },

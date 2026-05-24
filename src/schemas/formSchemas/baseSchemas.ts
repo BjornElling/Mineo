@@ -106,7 +106,10 @@ export const tableIsoDateCellString = z.preprocess((val) => {
     const trimmed = val.trim();
     if (trimmed === '') return undefined;
     if (isISODateString(trimmed)) return trimmed;
-    return coerceToISODateString(trimmed) ?? trimmed;
+    const coerced = coerceToISODateString(trimmed);
+    if (coerced) return coerced;
+    // Preserve invalid non-empty input so the schema fails closed instead of silently dropping saved data.
+    return trimmed;
   }
   return val;
 }, isoDateString.optional());
