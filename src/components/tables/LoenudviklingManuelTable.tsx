@@ -24,6 +24,7 @@ import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
+import { formatPercentDisplay } from '../../utils/percentDraftCore';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 
 export type LoenudviklingManuelTableProps = Readonly<{
@@ -197,6 +198,10 @@ const formatReadOnlyPercentDisplay = (value: string | undefined): string => {
   const trimmed = value?.trim() ?? '';
   if (trimmed === '') return '';
   return trimmed.endsWith('%') ? trimmed : `${trimmed} %`;
+};
+
+const formatCommittedPercentCell = (value: number | undefined): string => {
+  return formatPercentDisplay(value, true);
 };
 
 const ReadOnlyPercentCell = React.memo(
@@ -597,7 +602,7 @@ const LoenudviklingManuelTable = React.memo(
                     <TablePercentInput
                       gridCell={{ rowId: row.id, colIndex: 2 }}
                       value={row.feriepenge}
-                      onBlur={(e) => commitRowUpdate(row.id, { feriepenge: e.target.value }, 2)}
+                      onBlur={(e) => commitRowUpdate(row.id, { feriepenge: formatCommittedPercentCell(e.target.value) }, 2)}
                       onErrorChange={handleErrorChange(row.id, 'feriepenge')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.feriepenge : undefined}
                     />
@@ -616,7 +621,7 @@ const LoenudviklingManuelTable = React.memo(
                     <TablePercentInput
                       gridCell={{ rowId: row.id, colIndex: 3 }}
                       value={row.shSoSats}
-                      onBlur={(e) => commitRowUpdate(row.id, { shSoSats: e.target.value }, 3)}
+                      onBlur={(e) => commitRowUpdate(row.id, { shSoSats: formatCommittedPercentCell(e.target.value) }, 3)}
                       onErrorChange={handleErrorChange(row.id, 'shSoSats')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.shSoSats : undefined}
                     />
@@ -635,7 +640,7 @@ const LoenudviklingManuelTable = React.memo(
                     <TablePercentInput
                       gridCell={{ rowId: row.id, colIndex: 4 }}
                       value={row.fritvalg}
-                      onBlur={(e) => commitRowUpdate(row.id, { fritvalg: e.target.value }, 4)}
+                      onBlur={(e) => commitRowUpdate(row.id, { fritvalg: formatCommittedPercentCell(e.target.value) }, 4)}
                       onErrorChange={handleErrorChange(row.id, 'fritvalg')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.fritvalg : undefined}
                     />
@@ -654,7 +659,7 @@ const LoenudviklingManuelTable = React.memo(
                     <TablePercentInput
                       gridCell={{ rowId: row.id, colIndex: 5 }}
                       value={row.agPension}
-                      onBlur={(e) => commitRowUpdate(row.id, { agPension: e.target.value }, 5)}
+                      onBlur={(e) => commitRowUpdate(row.id, { agPension: formatCommittedPercentCell(e.target.value) }, 5)}
                       onErrorChange={handleErrorChange(row.id, 'agPension')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.agPension : undefined}
                     />

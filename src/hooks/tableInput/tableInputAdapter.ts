@@ -14,6 +14,7 @@ export type TableInputPasteResult = Readonly<{
 export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint extends string> = Readonly<{
   format: (value: TModel) => string;
   toDraftString?: (value: TModel) => string;
+  toClipboardString?: (value: TModel) => string;
   parse: (draft: string) => TableAdapterParseResult<TModel>;
   toCommittedPayload: (value: TModel) => CommittedPayload<TModel, TCanonical, TFingerprint>;
   isValidStartKey: (key: string) => boolean;

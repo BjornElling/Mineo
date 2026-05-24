@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
-import { copyWholeValueFromReadOnlyField } from '../../../utils/clipboardUtils';
 import { DEFAULT_AMOUNT_PLACEHOLDER } from '../../../utils/amountInputUtils';
 import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
@@ -103,18 +102,6 @@ const TableAmountInput = React.memo(
       skipClickSelectionRestoreRef.current = true;
     }, []);
 
-    const handleCopy = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        copyWholeValueFromReadOnlyField(e, {
-          isReadOnly: core.isReadOnly,
-          value: core.renderedValue,
-          selectionStart: e.currentTarget.selectionStart,
-          selectionEnd: e.currentTarget.selectionEnd,
-        });
-      },
-      [core.isReadOnly, core.renderedValue]
-    );
-
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>
         <Tooltip title={core.showError ? core.errorMessage : ''} arrow placement="top">
@@ -129,7 +116,7 @@ const TableAmountInput = React.memo(
               onBlur={core.handleBlur}
               onKeyDown={core.handleKeyDown}
               onPaste={core.handlePaste}
-              onCopy={handleCopy}
+              onCopy={core.handleCopy}
               onDoubleClick={handleDoubleClick}
               placeholder={core.cellFocused && !core.isReadOnly ? '' : placeholder}
               inputProps={{

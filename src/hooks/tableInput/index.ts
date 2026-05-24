@@ -30,7 +30,6 @@ export {
 export {
   createPercentCommittedPayload,
   createPercentTableInputAdapter,
-  toPercentDisplayString,
   type TablePercentAdapterConfig,
   type TablePercentInputModel,
   type TablePercentInputValue,

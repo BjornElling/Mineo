@@ -2,7 +2,6 @@ import * as React from 'react';
 import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
-import { copyWholeValueFromReadOnlyField } from '../../../utils/clipboardUtils';
 import { DEFAULT_PERCENT_PLACEHOLDER, withPercentPlaceholderSuffix } from '../../../utils/percentInputUtils';
 import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
@@ -11,24 +10,21 @@ import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import { getTableInputElementStyles, getTableInputRootStyles } from './tableInputStyles';
 import {
   createPercentTableInputAdapter,
-  toPercentDisplayString,
-  type TablePercentInputValue,
   useTableInputCore,
 } from '../../../hooks/tableInput';
+import { parsePercentDraftForCommit } from '../../../utils/percentDraftCore';
 
-export type { TablePercentInputValue };
+export type TablePercentInputValue = string | number | undefined;
 
 export type TablePercentInputChangeEvent = { target: { value: string } };
+export type TablePercentInputCommitEvent = { target: { value: number | undefined } };
 
 export type TablePercentInputProps = Readonly<{
   gridCell: GridCellCoord;
   locked?: boolean;
   /**
-   * Table cell values persist as strings.
-   *
-   * Invariant:
-   * - If `value` is a `string`, it must already be a committed (canonical display) value, not a raw user draft.
-   * - If `value` is a `number`, it will be formatted for display.
+   * Existing table rows still persist percent cells as canonical display strings.
+   * Internally the table-input adapter works with the numeric domain model.
    */
   value?: TablePercentInputValue;
   allowNegative?: boolean;
@@ -41,7 +37,7 @@ export type TablePercentInputProps = Readonly<{
   useDefaultPercentRange?: boolean;
   placeholder?: string;
   onChange?: (e: TablePercentInputChangeEvent) => void;
-  onBlur?: (e: TablePercentInputChangeEvent) => void;
+  onBlur?: (e: TablePercentInputCommitEvent) => void;
   onErrorChange?: (info: TableInputErrorInfo) => void;
   externalErrorMessage?: string;
   inputRef?: React.Ref<HTMLInputElement>;
@@ -87,10 +83,22 @@ const TablePercentInput = React.memo(
       throw new Error(configErrorMessage);
     }
 
-    const committedValue = React.useMemo(
-      () => toPercentDisplayString(value, allowDecimals),
-      [allowDecimals, value]
-    );
+    const committedValue = React.useMemo(() => {
+      if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
+      if (typeof value !== 'string' || value.trim() === '') return undefined;
+
+      const trimmed = value.trim();
+      const withoutPercentSuffix = trimmed.endsWith('%') ? trimmed.slice(0, -1).trim() : trimmed;
+      const parsed = parsePercentDraftForCommit(withoutPercentSuffix, {
+        allowNegative: true,
+        allowDecimals: true,
+      });
+      if (parsed.ok) return parsed.value;
+      if (import.meta.env.DEV) {
+        throw new Error(`Invariant brudt: committed procentværdi kan ikke parses (${value})`);
+      }
+      return undefined;
+    }, [value]);
     const adapter = React.useMemo(
       () =>
         createPercentTableInputAdapter({
@@ -124,18 +132,6 @@ const TablePercentInput = React.memo(
         : `${core.committedDisplayValue} %`;
     const renderedValue = core.isEditing ? core.draft : readOnlyDisplayValue;
 
-    const handleCopy = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        copyWholeValueFromReadOnlyField(e, {
-          isReadOnly: core.isReadOnly,
-          value: renderedValue,
-          selectionStart: e.currentTarget.selectionStart,
-          selectionEnd: e.currentTarget.selectionEnd,
-        });
-      },
-      [core.isReadOnly, renderedValue]
-    );
-
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>
         <Tooltip title={core.showError ? core.errorMessage : ''} arrow placement="top">
@@ -150,7 +146,7 @@ const TablePercentInput = React.memo(
               onBlur={core.handleBlur}
               onKeyDown={core.handleKeyDown}
               onPaste={core.handlePaste}
-              onCopy={handleCopy}
+              onCopy={core.handleCopy}
               placeholder={core.cellFocused && !core.isReadOnly ? '' : resolvedPlaceholder}
               inputProps={{
                 readOnly: core.isReadOnly,
@@ -169,6 +165,7 @@ const TablePercentInput = React.memo(
                   borderRadius: inputBorderRadius,
                   borderColor: inputBorderColor,
                 }),
+                ...(core.cellFocused ? { outline: 'none' } : {}),
                 '& .MuiInputBase-input': {
                   ...getTableInputElementStyles({
                     textAlign: 'right',

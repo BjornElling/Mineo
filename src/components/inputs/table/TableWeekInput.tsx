@@ -113,6 +113,7 @@ const TableWeekInput = React.memo(
                 borderRadius: inputBorderRadius,
                 borderColor: inputBorderColor,
               }),
+              ...(core.cellFocused ? { outline: 'none' } : {}),
               '& .MuiInputBase-input': {
                 ...getTableInputElementStyles({
                   textAlign: 'center',

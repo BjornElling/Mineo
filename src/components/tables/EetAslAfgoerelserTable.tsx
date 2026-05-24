@@ -19,6 +19,7 @@ import {
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import { formatPercentDisplay } from '../../utils/percentDraftCore';
 
 export type EetAslAfgoerelserTableProps = Readonly<{
   tableData: AslAfgoerelseRow[];
@@ -275,7 +276,7 @@ const EetAslAfgoerelserTable = React.memo(
                     minValue={0}
                     maxValue={100}
                     useDefaultPercentRange={false}
-                    onBlur={(e) => commitRowUpdate(row.id, { eetPct: e.target.value || undefined })}
+                    onBlur={(e) => commitRowUpdate(row.id, { eetPct: formatPercentDisplay(e.target.value, false) || undefined })}
                     externalErrorMessage={eetPctError}
                   />
                 </TableCell>
@@ -325,7 +326,7 @@ const EetAslAfgoerelserTable = React.memo(
                     minValue={0}
                     maxValue={100}
                     useDefaultPercentRange={false}
-                    onBlur={(e) => commitRowUpdate(row.id, { kapPct: e.target.value || undefined })}
+                    onBlur={(e) => commitRowUpdate(row.id, { kapPct: formatPercentDisplay(e.target.value, false) || undefined })}
                     externalErrorMessage={kapPctError}
                   />
                 </TableCell>

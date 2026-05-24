@@ -7,8 +7,8 @@ import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivati
 import { filterPercentKeyDown } from './inputKeyFilters';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { prefixZeroBeforeLeadingComma, trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
-import { formatAsAmount, formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { normalizePercentPaste } from '../../utils/inputPasteNormalization';
+import { formatPercentDraft, parsePercentDraftForCommit } from '../../utils/percentDraftCore';
 import {
   DEFAULT_PERCENT_PLACEHOLDER,
   DEFAULT_PERCENT_PASTE_MAX,
@@ -67,14 +67,6 @@ export type StyledPercentFieldProps = {
   helperText?: string;
 
   sx?: SxProps<Theme>;
-};
-
-const formatPercentMinimal = (
-  value: number | undefined,
-  decimals: 0 | 2
-): string => {
-  if (typeof value !== 'number' || !Number.isFinite(value)) return '';
-  return formatAsAmountTrimmed(value, decimals);
 };
 
 const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldProps>(
@@ -177,15 +169,6 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       return Math.max(1, Math.floor(maxAbs).toString().length);
     }, [maxIntegerDigitsProp, resolvedRange.effectiveMax, resolvedRange.effectiveMin]);
 
-    const maxAllowedIntegerPart = React.useMemo(() => {
-      const maxAbs = Math.max(
-        Math.abs(resolvedRange.effectiveMin ?? 0),
-        Math.abs(resolvedRange.effectiveMax ?? 0)
-      );
-      if (!Number.isFinite(maxAbs)) return undefined;
-      return Math.floor(maxAbs);
-    }, [resolvedRange.effectiveMax, resolvedRange.effectiveMin]);
-
     const maxLength =
       effectiveMaxIntegerDigits +
       (allowDecimals ? 3 : 0) +
@@ -218,110 +201,45 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       if (last && Object.is(normalizePercentValueForIdentity(last.value), normalized)) {
         const decimals = last.decimals;
         if (decimals === 0) return String(Math.trunc(v));
-        return formatAsAmountTrimmed(v, decimals);
+        return formatPercentDraft(v, decimals);
       }
 
-      return formatPercentMinimal(v, allowDecimals ? 2 : 0);
+      return formatPercentDraft(v, allowDecimals ? 2 : 0);
     }, [allowDecimals, normalizePercentValueForIdentity]);
 
     const parsePercent: DraftParse<number | undefined> = React.useCallback(
       (draft, { mode }) => {
-        const trimmed = draft.trim();
-        if (trimmed === '') return { ok: true, value: undefined };
-
         const invalidOrPartial = (message: string) => {
           if (mode === 'typing') return { ok: false, kind: 'partial' } as const;
           return { ok: false, kind: 'invalid', message } as const;
         };
 
-        const normalized = trimmed.replace(/\s+/g, '');
-        if (normalized.length > maxLength) return invalidOrPartial('Ugyldig procent');
+        if (draft.trim().length > maxLength) return invalidOrPartial('Ugyldig procent');
 
-        const percentPattern = allowDecimals
-          ? allowNegative
-            ? /^-?\d*(,\d{0,2})?$/
-            : /^\d*(,\d{0,2})?$/
-          : allowNegative
-            ? /^-?\d*$/
-            : /^\d*$/;
-        if (!percentPattern.test(normalized)) return invalidOrPartial('Ugyldig procent');
-
-        const hasLeadingMinus = normalized.startsWith('-');
-        if (hasLeadingMinus && !allowNegative) return invalidOrPartial('Procent kan ikke være negativ');
-
-        const withoutSign = hasLeadingMinus ? normalized.slice(1) : normalized;
-        const [integerPart, decimalPart] = withoutSign.split(',') as [string, string | undefined];
-        if (integerPart.trim() === '') return invalidOrPartial('Ugyldig procent');
-        if (!/^\d+$/.test(integerPart)) return invalidOrPartial('Ugyldig procent');
-
-        if (decimalPart === '') {
-          return invalidOrPartial('Ugyldig procent');
-        }
-        if (!allowDecimals && decimalPart !== undefined) {
-          return invalidOrPartial('Ugyldig procent');
-        }
-        if (decimalPart !== undefined && !/^\d+$/.test(decimalPart))
-          return invalidOrPartial('Ugyldig procent');
-
-        const decimals = allowDecimals
-          ? decimalPart?.length === 2
-            ? 2
-            : decimalPart?.length === 1
-              ? 1
-              : 0
-          : 0;
-
-        const integerNum = Number.parseInt(integerPart, 10);
-        if (!Number.isFinite(integerNum)) return invalidOrPartial('Ugyldig procent');
-        if (typeof maxAllowedIntegerPart === 'number' && integerNum > maxAllowedIntegerPart) {
-          return invalidOrPartial(`Maks ${maxAllowedIntegerPart} før komma`);
-        }
-
-        const decimalScaled =
-          !allowDecimals || decimalPart === undefined
-            ? 0
-            : decimalPart.length === 1
-              ? Number.parseInt(decimalPart, 10) * 10
-              : Number.parseInt(decimalPart, 10);
-        if (!Number.isFinite(decimalScaled)) return invalidOrPartial('Ugyldig procent');
-
-        const scaled = integerNum * 100 + decimalScaled;
-        const numeric = scaled / 100;
-        const signedRaw = hasLeadingMinus ? -numeric : numeric;
-        const signed = signedRaw === 0 ? 0 : signedRaw;
-
-        const effectiveMin = resolvedRange.effectiveMin;
-        const effectiveMax = resolvedRange.effectiveMax;
-        if (typeof effectiveMin === 'number' && signed < effectiveMin) {
-          if (typeof effectiveMax === 'number') {
-            return invalidOrPartial(
-              `Procent skal være mellem ${formatAsAmount(effectiveMin, allowDecimals ? 2 : 0)} og ${formatAsAmount(effectiveMax, allowDecimals ? 2 : 0)}`
-            );
-          }
-          return invalidOrPartial(
-            `Procent skal være ${formatAsAmount(effectiveMin, allowDecimals ? 2 : 0)} eller højere`
-          );
-        }
-        if (typeof effectiveMax === 'number' && signed > effectiveMax) {
-          if (typeof effectiveMin === 'number') {
-            return invalidOrPartial(
-              `Procent skal være mellem ${formatAsAmount(effectiveMin, allowDecimals ? 2 : 0)} og ${formatAsAmount(effectiveMax, allowDecimals ? 2 : 0)}`
-            );
-          }
-          return invalidOrPartial(
-            `Procent skal være ${formatAsAmount(effectiveMax, allowDecimals ? 2 : 0)} eller lavere`
-          );
-        }
+        const result = parsePercentDraftForCommit(draft, {
+          allowNegative,
+          allowDecimals,
+          minValue: resolvedRange.effectiveMin,
+          maxValue: resolvedRange.effectiveMax,
+        });
+        if (!result.ok) return invalidOrPartial(result.errorMessage);
 
         if (mode === 'commit') {
+          const [, decimalPart] = draft.trim().replace(/\s+/g, '').split(',') as [string, string | undefined];
+          const decimals = allowDecimals
+            ? decimalPart?.length === 2
+              ? 2
+              : decimalPart?.length === 1
+                ? 1
+                : 0
+            : 0;
           pendingCommitDecimalsRef.current = decimals;
         }
-        return { ok: true, value: signed };
+        return { ok: true, value: result.value };
       },
       [
         allowDecimals,
         allowNegative,
-        maxAllowedIntegerPart,
         maxLength,
         resolvedRange.effectiveMax,
         resolvedRange.effectiveMin,

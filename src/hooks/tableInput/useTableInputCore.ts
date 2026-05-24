@@ -339,7 +339,9 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     (e: React.ClipboardEvent<HTMLInputElement>) => {
       copyWholeValueFromReadOnlyField(e, {
         isReadOnly,
-        value: isEditing || (touched && hasErrorRef.current && localErrorKindRef.current !== 'none') ? draft : adapter.format(value),
+        value: isEditing || (touched && hasErrorRef.current && localErrorKindRef.current !== 'none')
+          ? draft
+          : adapter.toClipboardString?.(value) ?? adapter.format(value),
         selectionStart: e.currentTarget.selectionStart,
         selectionEnd: e.currentTarget.selectionEnd,
       });

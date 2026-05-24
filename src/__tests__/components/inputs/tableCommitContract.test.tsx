@@ -20,6 +20,7 @@ import type { ISODateString } from '../../../types/branded';
 import { createGridCoreTestStateStore } from './gridCoreTestUtils';
 
 const gridCell: GridCellCoord = { rowId: 'row-1', colIndex: 0 };
+type TestCommitValue = string | number | undefined;
 
 const createGridValue = (editingCell: GridCellCoord | null) => {
   return {
@@ -64,7 +65,7 @@ type InvalidPreserveCase = Readonly<{
   label: string;
   initialValue: string;
   invalidDraft: string;
-  renderManagedInput: (props: Readonly<{ value: string; onBlur: (value: string) => void }>) => React.JSX.Element;
+  renderManagedInput: (props: Readonly<{ value: string; onBlur: (value: TestCommitValue) => void }>) => React.JSX.Element;
 }>;
 
 type ConfigPreserveCase = Readonly<{
@@ -76,8 +77,8 @@ type ClickOutsideCommitCase = Readonly<{
   label: string;
   initialValue: string;
   typedDraft: string;
-  expectedCommitted: string;
-  renderManagedInput: (props: Readonly<{ value: string; onBlur: (value: string) => void }>) => React.JSX.Element;
+  expectedCommitted: TestCommitValue;
+  renderManagedInput: (props: Readonly<{ value: TestCommitValue; onBlur: (value: TestCommitValue) => void }>) => React.JSX.Element;
 }>;
 
 type EscapeCancelCase = Readonly<{
@@ -85,14 +86,14 @@ type EscapeCancelCase = Readonly<{
   initialValue: string;
   typedDraft: string;
   expectedDisplayAfterCancel?: string;
-  renderManagedInput: (props: Readonly<{ value: string; onBlur: (value: string) => void }>) => React.JSX.Element;
+  renderManagedInput: (props: Readonly<{ value: string; onBlur: (value: TestCommitValue) => void }>) => React.JSX.Element;
 }>;
 
 type DeleteClearCase = Readonly<{
   label: string;
   initialValue: string;
-  expectedCommitted: string;
-  renderManagedInput: (props: Readonly<{ value: string; onBlur: (value: string) => void }>) => React.JSX.Element;
+  expectedCommitted: TestCommitValue;
+  renderManagedInput: (props: Readonly<{ value: TestCommitValue; onBlur: (value: TestCommitValue) => void }>) => React.JSX.Element;
 }>;
 
 const NOOP_CASES: readonly NoopCase[] = [
@@ -499,7 +500,7 @@ const CLICK_OUTSIDE_COMMIT_CASES: readonly ClickOutsideCommitCase[] = [
     label: 'percent',
     initialValue: '1,00',
     typedDraft: '2,5',
-    expectedCommitted: '2,50',
+    expectedCommitted: 2.5,
     renderManagedInput: ({ value, onBlur }) => (
       <TablePercentInput
         gridCell={gridCell}
@@ -606,7 +607,7 @@ const DELETE_CLEAR_CASES: readonly DeleteClearCase[] = [
   {
     label: 'percent',
     initialValue: '12,50',
-    expectedCommitted: '',
+    expectedCommitted: undefined,
     renderManagedInput: ({ value, onBlur }) => <TablePercentInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
   },
   {
@@ -667,12 +668,12 @@ const setupManaged = (input: InvalidPreserveCase) => {
 };
 
 const setupManagedWithOutside = (input: ClickOutsideCommitCase) => {
-  const onBlur = vi.fn<(value: string) => void>();
+  const onBlur = vi.fn<(value: TestCommitValue) => void>();
   const setEditingCellRef = { current: null as React.Dispatch<React.SetStateAction<GridCellCoord | null>> | null };
   let editorHandle: GridCellEditorHandle | null = null;
 
   const Wrapper = () => {
-    const [value, setValue] = React.useState(input.initialValue);
+    const [value, setValue] = React.useState<TestCommitValue>(input.initialValue);
     const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
 
     React.useEffect(() => {
@@ -763,7 +764,7 @@ describe('table commit-kontrakt', () => {
 
   it.each(NOOP_CASES)('no-op i $label emitter ikke onBlur-commit', async ({ renderInput }) => {
     const user = userEvent.setup();
-    const onBlur = vi.fn<(value: string) => void>();
+    const onBlur = vi.fn<(value: TestCommitValue) => void>();
 
     render(
       <GridCoreProvider value={createGridValue(gridCell)}>
@@ -1593,7 +1594,7 @@ describe('table commit-kontrakt', () => {
     const onBlur = vi.fn<(value: string) => void>();
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState(inputCase.initialValue);
+      const [value, setValue] = React.useState<TestCommitValue>(inputCase.initialValue);
       return (
         <StandardLooseTable>
           <tbody>

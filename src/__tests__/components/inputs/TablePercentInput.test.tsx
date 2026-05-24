@@ -21,13 +21,13 @@ const createGridValue = (gridCell: GridCellCoord, editingCell: GridCellCoord | n
 
 describe('TablePercentInput', () => {
   it('bruger numerisk canonical som grundlag for percent fingerprint', () => {
-    const payload = createPercentCommittedPayload('12,50', true);
+    const payload = createPercentCommittedPayload(12.5, true);
 
-    expect(payload.model).toBe('12,50');
+    expect(payload.model).toBe(12.5);
     expect(payload.canonical).toBe('12.50');
   });
 
-  it('bevarer fingerprint gennem parse af committed display-string', () => {
+  it('bevarer fingerprint gennem parse af committed display-string til numerisk model', () => {
     const adapter = createPercentTableInputAdapter({
       allowNegative: false,
       allowDecimals: true,
@@ -39,7 +39,8 @@ describe('TablePercentInput', () => {
 
     expect(parsed.ok).toBe(true);
     if (!parsed.ok) return;
-    expect(adapter.toCommittedPayload(parsed.value).fingerprint).toBe(adapter.toCommittedPayload(committed).fingerprint);
+    expect(parsed.value).toBe(12.5);
+    expect(adapter.toCommittedPayload(parsed.value).fingerprint).toBe(adapter.toCommittedPayload(12.5).fingerprint);
   });
 
   it('accepterer commit over 100 når maxValue er højere', async () => {
@@ -48,7 +49,7 @@ describe('TablePercentInput', () => {
     const onBlur = vi.fn();
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState<string>('');
+      const [value, setValue] = React.useState<number | undefined>(undefined);
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
@@ -77,7 +78,7 @@ describe('TablePercentInput', () => {
     await user.type(input, '150,25');
     await user.tab();
 
-    expect(onBlur).toHaveBeenCalledWith('150,25');
+    expect(onBlur).toHaveBeenCalledWith(150.25);
     expect(input).toHaveValue('150,25 %');
   });
 
@@ -87,7 +88,7 @@ describe('TablePercentInput', () => {
     const onBlur = vi.fn();
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState<string>('');
+      const [value, setValue] = React.useState<number | undefined>(undefined);
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
@@ -131,7 +132,7 @@ describe('TablePercentInput', () => {
     const onBlur = vi.fn();
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState<string>('');
+      const [value, setValue] = React.useState<number | undefined>(undefined);
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(null);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
@@ -156,7 +157,7 @@ describe('TablePercentInput', () => {
     await user.click(input);
     await user.paste(input, 'adffergregs//sgd1712,56//');
 
-    expect(onBlur).toHaveBeenCalledWith('17,00');
+    expect(onBlur).toHaveBeenCalledWith(17);
     expect(input).toHaveValue('17,00 %');
   });
 
@@ -166,7 +167,7 @@ describe('TablePercentInput', () => {
     const onBlur = vi.fn();
 
     const Wrapper = () => {
-      const [value, setValue] = React.useState<string>('');
+      const [value, setValue] = React.useState<number | undefined>(undefined);
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(null);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
@@ -193,7 +194,7 @@ describe('TablePercentInput', () => {
     await user.click(input);
     await user.paste(input, 'adffergregs//sgd1712,56//');
 
-    expect(onBlur).toHaveBeenCalledWith('171,00');
+    expect(onBlur).toHaveBeenCalledWith(171);
     expect(input).toHaveValue('171,00 %');
   });
 });
