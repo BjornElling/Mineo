@@ -3,9 +3,12 @@ import { act, fireEvent, render, screen, waitFor, within } from '@testing-librar
 import userEvent from '@testing-library/user-event';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import type { ISODateString } from '../../../types/branded';
 import OffentligeYdelserTable from '../../../components/tables/OffentligeYdelserTable';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
+
+const asDate = (s: string) => s as ISODateString;
 
 type Derived = { periodiseringLabel: string; antalDageDisplay: string; ydelsePerDagDisplay: string };
 
@@ -17,8 +20,8 @@ const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 const makeRow = (overrides: Partial<OffentligeYdelserRow>): OffentligeYdelserRow => ({
   id: 'row1',
-  fraDato: '',
-  tilDato: '',
+  fraDato: undefined,
+  tilDato: undefined,
   ydelse: undefined,
   tillaeg: undefined,
   ydelsestype: '',
@@ -116,8 +119,8 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
         onPersist={onPersist}
         initial={[
           makeRow({
-            fraDato: '01-01-2024',
-            tilDato: '10-01-2024',
+            fraDato: asDate('01-01-2024'),
+            tilDato: asDate('10-01-2024'),
             ydelsestype: 'flextilskud',
             ydelse: asAmount(100),
           }),
@@ -152,8 +155,8 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
         initial={[
           makeRow({
             id: 'row-a',
-            fraDato: '01-01-2024',
-            tilDato: '10-01-2024',
+            fraDato: asDate('01-01-2024'),
+            tilDato: asDate('10-01-2024'),
             ydelsestype: 'flextilskud',
             ydelse: asAmount(100),
           }),
@@ -184,7 +187,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
 
     const input = getYdelseInput();
 
-    await user.dblClick(input);
+    await user.click(input);
     await user.type(input, '100');
     fireEvent.blur(input);
 
@@ -243,8 +246,8 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
         onPersist={onPersist}
         initial={[
           makeRow({
-            fraDato: '01-01-2024',
-            tilDato: '10-01-2024',
+            fraDato: asDate('01-01-2024'),
+            tilDato: asDate('10-01-2024'),
             ydelsestype: 'flextilskud',
             ydelse: undefined,
           }),
@@ -258,6 +261,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     await user.dblClick(input);
     await user.type(input, '100,00');
 
+    expect(input).toHaveValue('100,00');
     expect(onPersist).not.toHaveBeenCalled();
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '' });
 
@@ -278,8 +282,8 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
         onPersist={onPersist}
         initial={[
           makeRow({
-            fraDato: '01-01-2024',
-            tilDato: '10-01-2024',
+            fraDato: asDate('01-01-2024'),
+            tilDato: asDate('10-01-2024'),
             ydelsestype: 'flextilskud',
             ydelse: undefined,
             tillaeg: asAmount(50),
@@ -314,8 +318,8 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
         onPersist={onPersist}
         initial={[
           makeRow({
-            fraDato: '01-01-2024',
-            tilDato: '10-01-2024',
+            fraDato: asDate('01-01-2024'),
+            tilDato: asDate('10-01-2024'),
             ydelsestype: 'flextilskud',
             ydelse: asAmount(100),
           }),
@@ -346,8 +350,8 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
         onPersist={vi.fn()}
         initial={[
           makeRow({
-            fraDato: '01-01-2024',
-            tilDato: '10-01-2024',
+            fraDato: asDate('01-01-2024'),
+            tilDato: asDate('10-01-2024'),
             ydelsestype: 'midlertidigt_eet',
             ydelse: asAmount(1000),
           }),
@@ -367,8 +371,8 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
         onPersist={onPersist}
         initial={[
           makeRow({
-            fraDato: '',
-            tilDato: '10-01-2024',
+            fraDato: undefined,
+            tilDato: asDate('10-01-2024'),
             ydelsestype: 'flextilskud',
             ydelse: asAmount(100),
           }),
@@ -382,6 +386,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     await user.dblClick(input);
     await user.type(input, '01-01-2024');
 
+    expect(input).toHaveValue('01-01-2024');
     expect(onPersist).not.toHaveBeenCalled();
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '', ydelsePerDagDisplay: '' });
 
@@ -402,8 +407,8 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
         onPersist={onPersist}
         initial={[
           makeRow({
-            fraDato: '',
-            tilDato: '10-01-2024',
+            fraDato: undefined,
+            tilDato: asDate('10-01-2024'),
             ydelsestype: 'flextilskud',
             ydelse: asAmount(100),
           }),
