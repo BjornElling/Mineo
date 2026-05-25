@@ -305,10 +305,12 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       }
       const pendingCaret = pendingClickCaretRef.current;
       if (pendingCaret === null) return;
+      const draftAtSchedule = draft;
       pendingClickCaretRef.current = null;
       requestAnimationFrame(() => {
         const el = inputElementRef.current;
         if (!el) return;
+        if (el.value !== draftAtSchedule) return;
         const clamped = Math.min(pendingCaret, el.value.length);
         try {
           el.setSelectionRange(clamped, clamped);

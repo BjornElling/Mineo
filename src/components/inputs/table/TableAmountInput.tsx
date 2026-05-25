@@ -97,7 +97,8 @@ const TableAmountInput = React.memo(
 
     const handleDoubleClick = React.useCallback(() => {
       skipClickSelectionRestoreRef.current = true;
-    }, []);
+      core.handleDoubleClick();
+    }, [core.handleDoubleClick]);
 
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>

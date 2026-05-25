@@ -192,6 +192,7 @@ const TableDateInput = React.memo(
             onKeyDown={core.handleKeyDown}
             onPaste={core.handlePaste}
             onCopy={core.handleCopy}
+            onDoubleClick={core.handleDoubleClick}
             placeholder={core.cellFocused && !core.isReadOnly ? '' : placeholder}
             inputProps={{
               id: core.a11yInputId,

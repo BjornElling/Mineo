@@ -85,6 +85,33 @@ describe('StyledAmountField expression behavior', () => {
     expect(onCommit).not.toHaveBeenCalled();
   }, TEST_TIMEOUT_MS);
 
+  it('does not move caret with stale click placement after typing starts', async () => {
+    const rafCallbacks: FrameRequestCallback[] = [];
+    const requestAnimationFrameSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      rafCallbacks.push(callback);
+      return rafCallbacks.length;
+    });
+
+    try {
+      const user = userEvent.setup();
+      const onCommit = vi.fn<OnCommit>();
+      const input = renderField(undefined, onCommit);
+
+      await openEditor(user, input);
+      await user.type(input, '1');
+
+      for (const callback of rafCallbacks.splice(0)) {
+        callback(performance.now());
+      }
+
+      await user.type(input, '+');
+
+      expect(input).toHaveValue('1+');
+    } finally {
+      requestAnimationFrameSpy.mockRestore();
+    }
+  }, TEST_TIMEOUT_MS);
+
   it('clears error state when draft is emptied', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn<OnCommit>();
