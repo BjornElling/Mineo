@@ -258,7 +258,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '' });
 
     const input = getYdelseInput();
-    await user.dblClick(input);
+    await user.click(input);
     await user.type(input, '100,00');
 
     expect(input).toHaveValue('100,00');
@@ -383,7 +383,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     expect(getDerivedTexts()).toEqual({ antalDageDisplay: '', ydelsePerDagDisplay: '' });
 
     const input = getFraDatoInput();
-    await user.dblClick(input);
+    await user.click(input);
     await user.type(input, '01-01-2024');
 
     expect(input).toHaveValue('01-01-2024');
