@@ -204,6 +204,26 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
   }, [controller]);
 
   React.useEffect(() => {
+    const handleDocumentPointerDown = (event: PointerEvent) => {
+      const table = internalTableRef.current;
+      if (!table) return;
+      const target = event.target;
+      if (target instanceof Node && table.contains(target)) return;
+
+      const editingCell = controller.getEditingCell();
+      if (!editingCell) return;
+      const editor = controller.getEditor(editingCell);
+      if (!editor || editor.getIsLocked()) return;
+      editor.commitCurrent();
+    };
+
+    document.addEventListener('pointerdown', handleDocumentPointerDown, true);
+    return () => {
+      document.removeEventListener('pointerdown', handleDocumentPointerDown, true);
+    };
+  }, [controller]);
+
+  React.useEffect(() => {
     return () => {
       if (focusRafIdRef.current !== null) {
         cancelAnimationFrame(focusRafIdRef.current);
