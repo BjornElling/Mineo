@@ -352,6 +352,14 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const handleDoubleClick = React.useCallback(() => {
     if (latest.current.locked) return;
     gridApi.openEditing(gridCell, 'doubleClick');
+    const el = inputElRef.current;
+    if (!el) return;
+    el.focus();
+    try {
+      el.select();
+    } catch {
+      // Browseren kan afvise selection på visse inputtyper; editoren er stadig åbnet.
+    }
   }, [gridApi, gridCell]);
 
   const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
@@ -415,6 +423,15 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         return true;
       },
       selectAll: () => {
+        const el = inputElRef.current;
+        if (el) {
+          el.focus();
+          try {
+            el.select();
+          } catch {
+            // Browseren kan afvise selection på visse inputtyper; RAF-fallback forsøger igen.
+          }
+        }
         requestAnimationFrame(() => inputElRef.current?.select());
       },
     };

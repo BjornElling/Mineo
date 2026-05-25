@@ -5,6 +5,7 @@ import { getMuiTableStyles } from '../../config/tableTheme';
 import { GridCoreProvider } from './gridCore/gridCoreContext';
 import {
   handleTableBlurCapture,
+  handleTableClickCapture,
   handleTableDoubleClickCapture,
   handleTableFocusCapture,
   handleTableKeyDownCapture,
@@ -30,6 +31,7 @@ const StandardLooseTable = React.memo(({
   sx,
   onKeyDownCapture,
   onBlurCapture,
+  onClickCapture,
   onPointerDownCapture,
   onFocusCapture,
   onDoubleClickCapture,
@@ -72,6 +74,10 @@ const StandardLooseTable = React.memo(({
         onPointerDownCapture={(e) => {
           handleTablePointerDownCapture(e);
           onPointerDownCapture?.(e);
+        }}
+        onClickCapture={(e) => {
+          handleTableClickCapture(e);
+          onClickCapture?.(e);
         }}
         onFocusCapture={(e) => {
           handleTableFocusCapture(e);

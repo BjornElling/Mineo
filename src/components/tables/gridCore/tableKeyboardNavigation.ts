@@ -2,6 +2,7 @@ import type * as React from 'react';
 import { getGridCoreForTable } from './gridCoreRegistry';
 import { getWrappedNextColumn } from './tableNavigationCommon';
 import { focusTableElement, isTableElementVisible, TABLE_FOCUSABLE_SELECTOR } from './tableFocusHelpers';
+import type { GridCellCoord } from './gridCoreTypes';
 
 type CellLocator = Readonly<{ rowIndex: number; colIndex: number; subIndex: number; rowId?: string }>;
 
@@ -13,6 +14,8 @@ type TabAnchor = CellLocator;
 
 const tabAnchorByTable = new WeakMap<HTMLTableElement, TabAnchor>();
 const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired: CellLocator }>>();
+const physicalFocusByTable = new WeakMap<HTMLTableElement, Readonly<{ cell: GridCellCoord }>>();
+const pointerDownFocusedCellByTable = new WeakMap<HTMLTableElement, GridCellCoord>();
 const CONTAINER_ROW_SELECTOR =
   '.row--label-right-hover,.row--label-right,.row--label-offset,.row,[class*="row--label-right"],[class*="row--label-offset"],[class*="hover-row"]';
 const CONTAINER_FOCUSABLE_SELECTOR =
@@ -435,6 +438,7 @@ export const handleTableFocusCapture = (e: React.FocusEvent<HTMLTableElement>) =
   const cell = toCellCoord(locator);
   if (!cell) return;
 
+  physicalFocusByTable.set(table, { cell });
   core.setFocusedCell(cell);
 };
 
@@ -613,6 +617,7 @@ export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableEle
   const table = e.currentTarget;
   tabAnchorByTable.delete(table);
   pendingRecoveryByTable.delete(table);
+  pointerDownFocusedCellByTable.delete(table);
 
   const core = getGridCoreForTable(table);
   if (!core) return;
@@ -629,13 +634,35 @@ export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableEle
   const cell = toCellCoord(locator);
   if (!cell) return;
 
-  const activeElement = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  const activeLocator = activeElement && table.contains(activeElement) ? getActiveLocator(table, activeElement, grid) : null;
-  const activeCell = activeLocator ? toCellCoord(activeLocator) : null;
+  const activeCell = physicalFocusByTable.get(table)?.cell ?? null;
   const editing = core.getEditingCell();
   if (isSameCell(activeCell, cell) && !isSameCell(editing, cell)) {
-    core.openEditing(cell, 'pointer');
+    pointerDownFocusedCellByTable.set(table, cell);
   }
+};
+
+export const handleTableClickCapture = (e: React.MouseEvent<HTMLTableElement>) => {
+  const table = e.currentTarget;
+  const focusedCellAtPointerDown = pointerDownFocusedCellByTable.get(table);
+  pointerDownFocusedCellByTable.delete(table);
+  if (!focusedCellAtPointerDown) return;
+
+  const target = e.target instanceof HTMLElement ? e.target : null;
+  if (!target) return;
+  if (!table.contains(target)) return;
+  if (target.closest('[data-mineo-table-dropdown="true"]')) return;
+
+  const core = getGridCoreForTable(table);
+  if (!core) return;
+  const grid = buildGrid(table);
+  if (grid.order.length === 0) return;
+  const locator = getActiveLocator(table, target, grid);
+  if (!locator) return;
+  const cell = toCellCoord(locator);
+  if (!cell) return;
+  if (!isSameCell(focusedCellAtPointerDown, cell)) return;
+  if (isSameCell(core.getEditingCell(), cell)) return;
+  core.openEditing(cell, 'pointer');
 };
 
 export const handleTableBlurCapture = (e: React.FocusEvent<HTMLTableElement>) => {
@@ -669,6 +696,8 @@ export const handleTableBlurCapture = (e: React.FocusEvent<HTMLTableElement>) =>
 
   const related = e.relatedTarget;
   if (related instanceof Node && table.contains(related)) return;
+  physicalFocusByTable.delete(table);
+  pointerDownFocusedCellByTable.delete(table);
   tabAnchorByTable.delete(table);
 };
 

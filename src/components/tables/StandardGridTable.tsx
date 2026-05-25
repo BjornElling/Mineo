@@ -4,7 +4,7 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import type { CSSProperties } from 'react';
 import { getHtmlTableStyles } from '../../config/tableTheme';
 import { GridCoreProvider } from './gridCore/gridCoreContext';
-import { handleTableBlurCapture, handleTableDoubleClickCapture, handleTableFocusCapture, handleTableKeyDownCapture, handleTablePointerDownCapture } from './gridCore/tableKeyboardNavigation';
+import { handleTableBlurCapture, handleTableClickCapture, handleTableDoubleClickCapture, handleTableFocusCapture, handleTableKeyDownCapture, handleTablePointerDownCapture } from './gridCore/tableKeyboardNavigation';
 import type { GridSortDirection, GridSortRole } from './gridCore/gridModel';
 import { SortIcon } from './SortIcon';
 import { assignRef } from '../inputs/table/assignRef';
@@ -85,6 +85,7 @@ export const StandardGridTable = React.memo(
               onBlurCapture={handleTableBlurCapture}
               onFocusCapture={handleTableFocusCapture}
               onPointerDownCapture={handleTablePointerDownCapture}
+              onClickCapture={handleTableClickCapture}
               onDoubleClickCapture={handleTableDoubleClickCapture}
               style={{
                 ...getHtmlTableStyles(useSmallFont),
