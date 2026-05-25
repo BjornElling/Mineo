@@ -412,9 +412,23 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     );
 
     const input = getFraDatoInput();
-    await user.dblClick(input);
+    const outsideButton = screen.getByRole('button', { name: 'Udenfor' });
+
+    await user.click(input);
     await user.type(input, '1-1-2024');
-    await user.click(screen.getByRole('button', { name: 'Udenfor' }));
+
+    expect(input).toHaveFocus();
+    expect(input).toHaveValue('1-1-2024');
+
+    await user.click(outsideButton);
+
+    await waitFor(() => {
+      expect(outsideButton).toHaveFocus();
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
