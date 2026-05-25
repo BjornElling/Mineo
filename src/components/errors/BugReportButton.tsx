@@ -196,7 +196,7 @@ const BugReportButton = ({
                 fullWidth
                 multiline
                 minRows={14}
-                inputProps={{ readOnly: true }}
+                slotProps={{ htmlInput: { readOnly: true } }}
                 sx={{ fontFamily: 'monospace' }}
               />
             </>

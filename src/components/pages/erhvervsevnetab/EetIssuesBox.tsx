@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { ErrorOutline, WarningAmber } from '@mui/icons-material';
+import { ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import ContentBox from '../../layout/ContentBox';
 import { useScrollToSectionWithRetry } from '../../../hooks/useScrollToSectionWithRetry';

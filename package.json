@@ -23,19 +23,19 @@
     "npm": ">=11"
   },
   "dependencies": {
-    "@emotion/react": "^11.11.1",
-    "@emotion/styled": "^11.11.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@fontsource/montserrat": "^5.2.8",
-    "@mui/icons-material": "^7.3.7",
-    "@mui/material": "^7.3.7",
+    "@mui/icons-material": "^9.0.1",
+    "@mui/material": "^9.0.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
-    "jspdf-autotable": "^5.0.7",
-    "react": "^19.2.4",
-    "react-dom": "^19.2.4",
-    "react-router-dom": "^7.13.0",
-    "zod": "^4.3.6",
-    "zustand": "^5.0.10"
+    "jspdf-autotable": "^5.0.8",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "react-router-dom": "^7.15.1",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.13"
   },
   "scripts": {
     "dev": "vite --config vite.mineo.config.ts --open /",
@@ -56,7 +56,7 @@
     "import:loen": "node scripts/import-offentlig-loen.mjs"
   },
   "overrides": {
-    "dompurify": "^3.3.3",
+    "dompurify": "^3.4.5",
     "flatted": "^3.4.2"
   },
   "browserslist": {
@@ -72,27 +72,28 @@
     ]
   },
   "devDependencies": {
-    "@eslint/js": "^9.39.2",
+    "@eslint/js": "^9.39.4",
     "@resvg/resvg-js": "^2.6.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
-    "@types/node": "^24.0.0",
-    "@types/react": "^19.2.10",
+    "@types/node": "^25.9.1",
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
-    "@typescript-eslint/eslint-plugin": "^8.54.0",
-    "@typescript-eslint/parser": "^8.54.0",
-    "@vitejs/plugin-react-swc": "^4.2.2",
-    "@vitest/coverage-v8": "^4.0.18",
-    "eslint": "^9.39.2",
+    "@typescript-eslint/eslint-plugin": "^8.59.4",
+    "@typescript-eslint/parser": "^8.59.4",
+    "@vitejs/plugin-react-swc": "^4.3.1",
+    "@vitest/coverage-v8": "^4.1.7",
+    "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "globals": "^17.2.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "globals": "^17.6.0",
     "husky": "^9.1.7",
-    "jsdom": "^27.4.0",
-    "typescript": "^5.9.3",
-    "vite": "^7.3.2",
-    "vitest": "^4.0.18",
+    "jsdom": "^29.1.1",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.14",
+    "vitest": "^4.1.7",
+    "wrangler": "^4.94.0",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz"
   }
 }

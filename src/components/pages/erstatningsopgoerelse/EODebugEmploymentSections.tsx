@@ -5,7 +5,7 @@ import type { DebugRowModel, DebugStatus } from '../../../domain/debug/eoDebugTy
 import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegulationViewModel';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
-import { Check, ErrorOutline, WarningAmber } from '@mui/icons-material';
+import { Check, ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import { getRegulationTableColumns } from './regulationTableColumns';
 import { renderRegulationTableCellContent } from './regulationTableCellContent';
 

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Box, Typography } from '@mui/material';
-import { Check, ErrorOutline, WarningAmber } from '@mui/icons-material';
+import { Check, ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import type { DebugRowModel, DebugStatus } from '../../../domain/debug/eoDebugTypes';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';

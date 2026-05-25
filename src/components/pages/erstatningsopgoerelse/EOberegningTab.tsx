@@ -1,7 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Checkbox, FormControlLabel, Tooltip, MenuItem } from '@mui/material';
-import { Download, ErrorOutline, WarningAmber } from '@mui/icons-material';
+import { Download, ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
 import { useBlockingFieldIdsBySuffixForSection, useFieldErrorsBySourceForSection } from '../../../hooks/useFormFieldErrors';
 import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';

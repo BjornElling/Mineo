@@ -98,7 +98,7 @@ const StamdataDebugTab = React.memo(() => {
 
         {/* StyledTextField */}
         <Box className="row--label-offset">
-          <Typography className="row--text" minWidth="250px">
+          <Typography className="row--text" sx={{ minWidth: '250px' }}>
             StyledTextField
           </Typography>
           <Box className="row--label-offset__content">
@@ -113,7 +113,7 @@ const StamdataDebugTab = React.memo(() => {
 
         {/* StyledDateField */}
         <Box className="row--label-offset">
-          <Typography className="row--text" minWidth="250px">
+          <Typography className="row--text" sx={{ minWidth: '250px' }}>
             StyledDateField
           </Typography>
           <Box className="row--label-offset__content">
@@ -126,7 +126,7 @@ const StamdataDebugTab = React.memo(() => {
 
         {/* StyledDropdown */}
         <Box className="row--label-offset">
-          <Typography className="row--text" minWidth="250px">
+          <Typography className="row--text" sx={{ minWidth: '250px' }}>
             StyledDropdown
           </Typography>
           <Box className="row--label-offset__content">
@@ -145,7 +145,7 @@ const StamdataDebugTab = React.memo(() => {
 
         {/* StyledIntegerField */}
         <Box className="row--label-offset">
-          <Typography className="row--text" minWidth="250px">
+          <Typography className="row--text" sx={{ minWidth: '250px' }}>
             StyledIntegerField
           </Typography>
           <Box className="row--label-offset__content">
@@ -160,7 +160,7 @@ const StamdataDebugTab = React.memo(() => {
 
         {/* StyledAmountField */}
         <Box className="row--label-offset">
-          <Typography className="row--text" minWidth="250px">
+          <Typography className="row--text" sx={{ minWidth: '250px' }}>
             StyledAmountField
           </Typography>
           <Box className="row--label-offset__content">
@@ -175,7 +175,7 @@ const StamdataDebugTab = React.memo(() => {
 
         {/* StyledPercentField */}
         <Box className="row--label-offset">
-          <Typography className="row--text" minWidth="250px">
+          <Typography className="row--text" sx={{ minWidth: '250px' }}>
             StyledPercentField
           </Typography>
           <Box className="row--label-offset__content">
@@ -191,7 +191,7 @@ const StamdataDebugTab = React.memo(() => {
 
         {/* StyledFractionField */}
         <Box className="row--label-offset">
-          <Typography className="row--text" minWidth="250px">
+          <Typography className="row--text" sx={{ minWidth: '250px' }}>
             StyledFractionField
           </Typography>
           <Box className="row--label-offset__content">
@@ -206,7 +206,7 @@ const StamdataDebugTab = React.memo(() => {
 
         {/* StyledWeekField */}
         <Box className="row--label-offset">
-          <Typography className="row--text" minWidth="250px">
+          <Typography className="row--text" sx={{ minWidth: '250px' }}>
             StyledWeekField
           </Typography>
           <Box className="row--label-offset__content">
@@ -219,7 +219,7 @@ const StamdataDebugTab = React.memo(() => {
 
         {/* StyledYearField */}
         <Box className="row--label-offset">
-          <Typography className="row--text" minWidth="250px">
+          <Typography className="row--text" sx={{ minWidth: '250px' }}>
             StyledYearField
           </Typography>
           <Box className="row--label-offset__content">
@@ -232,7 +232,7 @@ const StamdataDebugTab = React.memo(() => {
 
         {/* StyledToggleSwitch */}
         <Box className="row--label-offset">
-          <Typography className="row--text" minWidth="250px">
+          <Typography className="row--text" sx={{ minWidth: '250px' }}>
             StyledToggleSwitch
           </Typography>
           <Box className="row--label-offset__content">

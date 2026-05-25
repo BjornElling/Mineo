@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Box, MenuItem, OutlinedInput, Popover, Tooltip } from '@mui/material';
+import { Box, MenuItem, MenuList, OutlinedInput, Popover, Tooltip } from '@mui/material';
 import ArrowDropDownIcon from '@mui/icons-material/ArrowDropDown';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { copyTextToClipboard, readClipboardText } from '../../utils/clipboardUtils';
@@ -768,7 +768,15 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         }}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
       >
-        <Box component="div" id={listboxId} role="listbox" sx={listboxSxMerged} ref={listboxRef}>
+        <MenuList
+          component="div"
+          id={listboxId}
+          role="listbox"
+          sx={listboxSxMerged}
+          ref={listboxRef}
+          disablePadding
+          autoFocusItem={false}
+        >
           {visualOptions.map((opt, index) => {
             if (opt.kind === 'divider') {
               return (
@@ -845,7 +853,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
               </MenuItem>
             );
           })}
-        </Box>
+        </MenuList>
       </Popover>
     </Box>
     </Tooltip>

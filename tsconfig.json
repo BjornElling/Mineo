@@ -23,7 +23,7 @@
 
     /* Type resolution */
     "resolveJsonModule": true,
-    "types": ["vite/client", "node"],
+    "types": ["node"],
 
     /* Inference cost control */
     "exactOptionalPropertyTypes": false,

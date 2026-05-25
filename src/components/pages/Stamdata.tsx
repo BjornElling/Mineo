@@ -102,7 +102,7 @@ const Stamdata = React.memo(() => {
             <Typography className="section-header">Sagsinfo</Typography>
 
             <Box className="row--label-offset">
-              <Typography className="row--text" minWidth="250px">
+              <Typography className="row--text" sx={{ minWidth: '250px' }}>
                 Journalnr.
               </Typography>
               <Box className="row--label-offset__content">
@@ -111,7 +111,7 @@ const Stamdata = React.memo(() => {
             </Box>
 
             <Box className="row--label-offset">
-              <Typography className="row--text" minWidth="250px">
+              <Typography className="row--text" sx={{ minWidth: '250px' }}>
                 Advokat/Sagsbehandler
               </Typography>
               <Box className="row--label-offset__content">
@@ -142,7 +142,7 @@ const Stamdata = React.memo(() => {
             <Typography className="section-header">Skadelidte</Typography>
 
             <Box className="row--label-offset">
-              <Typography className="row--text" minWidth="250px">
+              <Typography className="row--text" sx={{ minWidth: '250px' }}>
                 Skadelidtes navn
               </Typography>
               <Box className="row--label-offset__content">
@@ -151,7 +151,7 @@ const Stamdata = React.memo(() => {
             </Box>
 
             <Box className="row--label-offset">
-              <Typography className="row--text" minWidth="250px">
+              <Typography className="row--text" sx={{ minWidth: '250px' }}>
                 Fødselsdato
               </Typography>
               <Box className="row--label-offset__content">
@@ -167,7 +167,7 @@ const Stamdata = React.memo(() => {
             </Box>
 
             <Box className="row--label-offset">
-              <Typography className="row--text" minWidth="250px">
+              <Typography className="row--text" sx={{ minWidth: '250px' }}>
                 Skadestype
               </Typography>
               <Box className="row--label-offset__content">
@@ -182,7 +182,7 @@ const Stamdata = React.memo(() => {
             </Box>
 
             <Box className="row--label-offset">
-              <Typography className="row--text" minWidth="250px">
+              <Typography className="row--text" sx={{ minWidth: '250px' }}>
                 {datoLabel}
               </Typography>
               <Box className="row--label-offset__content">

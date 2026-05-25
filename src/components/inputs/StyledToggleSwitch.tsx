@@ -153,6 +153,7 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
   }, [checked, disabled, commitToggle]);
 
   const inputSlotProps: ToggleInputSlotProps = {
+    role: 'checkbox',
     onKeyDown: handleKeyDown,
     'aria-checked': checked,
     'data-mineo-undo-field-path': name,

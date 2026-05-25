@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { Alert, AlertTitle, Box, Typography } from '@mui/material';
-import { Check, Download, ErrorOutline } from '@mui/icons-material';
+import { Check, Download, ErrorOutlined as ErrorOutline } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import ContentBox from '../../layout/ContentBox';
 import { getSammentaellingControlStatus, type SammentaellingControl, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';

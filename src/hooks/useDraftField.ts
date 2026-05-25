@@ -4,7 +4,6 @@ import { registerDraftHistoryController, type DraftHistoryRestoreState } from '.
 import type {
   DraftParse,
   DraftParseErrorKind,
-  DraftParseResult,
 } from '../types/fieldEvents';
 
 export type {

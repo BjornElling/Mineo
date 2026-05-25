@@ -36,7 +36,7 @@ export type StyledTextFieldBaseInputType = 'text' | 'search' | 'tel' | 'url' | '
  * - Single-line only (no textarea / multiline); consumers must use a dedicated component for multiline.
  * - Keyboard handlers are bound to the underlying `<input>` via MUI `slotProps.htmlInput`.
  * - Mouse interaction handlers (`onClick`/`onMouseDown`/`onDoubleClick`) are bound to the input root
- *   (`InputProps`) so the full field hit-area (including adornments) participates in two-stage activation.
+ *   (`slotProps.input`) so the full field hit-area (including adornments) participates in two-stage activation.
  * - Invalid-input errors are shown via red border + tooltip on hover (helper text is hidden).
  * - `inputType` only affects browser UI/IME and autofill; it must not be relied on for domain semantics.
  * - `htmlInputAttributes` can affect what the browser allows the user to enter; it must be set by field-adapters
@@ -321,13 +321,13 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
             type={inputType}
             error={error}
             helperText={undefined}
-            InputProps={{
-              ...(endAdornment ? { endAdornment } : {}),
-              onClick: handleClick,
-              onMouseDown: handleMouseDown,
-              onDoubleClick: handleDoubleClick,
-            }}
             slotProps={{
+              input: {
+                ...(endAdornment ? { endAdornment } : {}),
+                onClick: handleClick,
+                onMouseDown: handleMouseDown,
+                onDoubleClick: handleDoubleClick,
+              },
               htmlInput: mergedHtmlInputProps,
             }}
             disabled={disabled}
