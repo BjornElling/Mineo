@@ -144,7 +144,7 @@ const TO_FIXED_ALLOWLIST = new Set([
   'utils/formatUtils.ts',
   'utils/rounding.ts',
   // Fingerprint: deterministisk canonical streng til ændringsdetektion (ikke display)
-  'utils/fingerprintParsers.ts',
+  'utils/parserSpecs.ts',
   'components/inputs/table/TableAmountInput.tsx',
   // Filstørrelse: bytes→MB i fejlbeskeder til brugeren (ikke finansielt beløb)
   'utils/fileLoad.ts',

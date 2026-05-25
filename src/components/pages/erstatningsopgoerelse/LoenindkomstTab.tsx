@@ -25,7 +25,7 @@ import FloatingActionButton from '../../ui/FloatingActionButton';
 import ContentBox from '../../layout/ContentBox';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import {
-  loenPaaHelligdageSchema,
+  loenPaaHelligdageEnum,
   loenudviklingBeregningsgrundlagEnum,
   loenudviklingStatistikModelEnum,
   krlSatstabelEnum,
@@ -1310,7 +1310,7 @@ const LoenindkomstTab = React.memo(({
   const handleLoenPaaHelligdageChange = React.useCallback(
     (id: string) =>
       (event: StyledDropdownChangeEvent<string>) => {
-        const parsed = loenPaaHelligdageSchema.safeParse(event.target.value);
+        const parsed = loenPaaHelligdageEnum.safeParse(event.target.value);
         if (!parsed.success) return;
         updateAnsaettelsesforhold(id, (prev) => {
           const next = { ...prev, loenPaaHelligdage: parsed.data };

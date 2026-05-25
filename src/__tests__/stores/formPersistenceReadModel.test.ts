@@ -38,4 +38,30 @@ describe('formPersistenceReadModel', () => {
       blocksSave: true,
     });
   });
+
+  it('genberegner resolved field errors automatisk efter feltfejl ændres', () => {
+    formPersistenceStore.getState().setFieldError('stamdata', 'skadedato', 'input', {
+      message: 'Ugyldig dato',
+      severity: 'error',
+      blocksSave: true,
+    });
+
+    const firstSnapshot = getResolvedFieldErrorsSnapshot('stamdata');
+    expect(firstSnapshot.skadedato?.message).toBe('Ugyldig dato');
+
+    formPersistenceStore.getState().setFieldError('stamdata', 'skadedato', 'input', {
+      message: 'Dato ligger uden for intervallet',
+      severity: 'error',
+      blocksSave: true,
+    });
+
+    const refreshedSnapshot = getResolvedFieldErrorsSnapshot('stamdata');
+
+    expect(refreshedSnapshot).not.toBe(firstSnapshot);
+    expect(refreshedSnapshot.skadedato).toMatchObject({
+      message: 'Dato ligger uden for intervallet',
+      source: 'input',
+      blocksSave: true,
+    });
+  });
 });

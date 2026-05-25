@@ -6,6 +6,7 @@ import type { PersistedData } from '../../types/persistence';
 import type { FormPersistenceSections } from '../../stores/formPersistenceStore';
 import { atomicWritePersistenceSections } from '../../utils/persistenceSnapshotStorage';
 import { buildSessionStorageHydrationPlan } from '../../utils/persistenceSessionHydration';
+import { createRenteberegningInitialValues } from '../../domain/renteberegning/renteberegningInitialValues';
 
 const emptySections = (): FormPersistenceSections => {
   return PERSISTED_SECTION_KEYS.reduce((acc, key) => {
@@ -83,7 +84,7 @@ describe('persistenceSnapshotStorage', () => {
     });
     const sections = emptySections();
     sections.satser = { aargang: 2025 };
-    sections.renteberegning = { rentekravRows: [] };
+    sections.renteberegning = createRenteberegningInitialValues();
 
     try {
       expect(() => atomicWritePersistenceSections(sections, () => undefined)).toThrow(

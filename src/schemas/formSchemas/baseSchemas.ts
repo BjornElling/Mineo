@@ -44,6 +44,17 @@ export const coerceToIntegerOrUndefined = (value: unknown): unknown => {
   return coerced;
 };
 
+export const coerceToWholeNumberOrUndefined = (value: unknown): unknown => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'number') return value;
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '') return undefined;
+    return /^-?\d+$/.test(trimmed) ? Number.parseInt(trimmed, 10) : value;
+  }
+  return value;
+};
+
 export const nonNegativeAmountValue = optionalAmountValueSchema
   .refine((v) => v === undefined || v.value >= 0, 'Kan ikke være negativ')
   .refine((v) => v === undefined || !Object.is(v.value, -0), 'Kan ikke være -0');
@@ -84,9 +95,20 @@ export const percentageDecimal = z.preprocess(coerceToNumberOrUndefined, z.numbe
   .refine(Number.isFinite, 'Skal være et endeligt tal')
   .optional());
 
-export const optionalString = z.string()
-  .transform(v => v.trim() === '' ? undefined : v)
-  .optional();
+export const positiveWholePercentage = (label: string) => z.preprocess(
+  coerceToWholeNumberOrUndefined,
+  z.number({ error: `${label} skal være et heltal` })
+    .int(`${label} skal være et heltal`)
+    .min(1, `${label} skal være mindst 1`)
+    .max(100, `${label} må højst være 100`)
+    .refine(Number.isFinite, `${label} skal være et endeligt tal`)
+    .optional()
+);
+
+export const optionalString = z.preprocess(
+  normalizeEmptyToUndefined,
+  z.string().optional()
+);
 
 export const allowEmptyString = z.preprocess(
   (val) => (val === null ? undefined : val),

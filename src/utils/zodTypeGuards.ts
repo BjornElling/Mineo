@@ -7,7 +7,7 @@
  * Brug disse i stedet for manuelle type guards.
  */
 
-import { loenperiodeSchema, loenPaaHelligdageSchema } from '../schemas/formSchemas';
+import { loenperiodeEnum, loenPaaHelligdageEnum } from '../schemas/formSchemas';
 import type { Loenperiode, LoenPaaHelligdage } from '../types/loen';
 
 /**
@@ -17,7 +17,7 @@ import type { Loenperiode, LoenPaaHelligdage } from '../types/loen';
  * @returns true hvis værdien er en gyldig Loenperiode
  */
 export const isLoenperiodeValue = (value: unknown): value is Loenperiode => {
-  const result = loenperiodeSchema.safeParse(value);
+  const result = loenperiodeEnum.safeParse(value);
   return result.success;
 };
 
@@ -28,6 +28,6 @@ export const isLoenperiodeValue = (value: unknown): value is Loenperiode => {
  * @returns true hvis værdien er en gyldig LoenPaaHelligdage
  */
 export const isLoenPaaHelligdageValue = (value: unknown): value is LoenPaaHelligdage => {
-  const result = loenPaaHelligdageSchema.safeParse(value);
+  const result = loenPaaHelligdageEnum.safeParse(value);
   return result.success;
 };

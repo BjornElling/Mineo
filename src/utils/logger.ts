@@ -10,16 +10,12 @@
 
 import { saveLogEntry } from './logStorage';
 import type { LogEntry } from './logStorage';
+import { fnv1a32 } from './fnv1a32';
 
 const EXTENSION_REGEX = /\.([a-zA-Z0-9]{1,8})$/;
 
 const hashString = (value: string): string => {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < value.length; i += 1) {
-    hash ^= value.charCodeAt(i);
-    hash = (hash * 0x01000193) >>> 0;
-  }
-  return hash.toString(16).padStart(8, '0');
+  return fnv1a32(value).toString(16).padStart(8, '0');
 };
 
 export const sanitizeFilenameForLog = (filename: unknown): string => {

@@ -13,11 +13,11 @@ export {
   type Beregningsmetode,
   afsluttesMedEnum,
   type AfsluttesMed,
-  loenperiodeSchema,
+  loenperiodeEnum,
   type Loenperiode,
   anciennitetSatsPerEnum,
   type AnciennitetSatsPer,
-  loenPaaHelligdageSchema,
+  loenPaaHelligdageEnum,
   type LoenPaaHelligdage,
   offentligLoenTypeEnum,
   type OffentligLoenTypeLabel,
@@ -33,6 +33,12 @@ export {
   type AfgoerelseType,
   koenEnum,
   type Koen,
+  sygeferiegodtgoerelseBeregningskildeEnum,
+  type SygeferiegodtgoerelseBeregningskilde,
+  sygeferiegodtgoerelseSatsvalgEnum,
+  type SygeferiegodtgoerelseSatsvalg,
+  eoBilagLoenindkomstOgOffentligeYdelserIndgaarSchema,
+  type EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
 } from './formSchemas/enumSchemas';
 
 export { stamdataSchema, type StamdataValues } from './formSchemas/sections/stamdataSchemas';
@@ -58,10 +64,6 @@ export {
   type TafPeriodeRow,
   ferieperiodeRowSchema,
   type FerieperiodeRow,
-  sygeferiegodtgoerelseBeregningskildeEnum,
-  type SygeferiegodtgoerelseBeregningskilde,
-  sygeferiegodtgoerelseSatsvalgEnum,
-  type SygeferiegodtgoerelseSatsvalg,
   sygeferiegodtgoerelseAnsaettelsesforholdRowSchema,
   type SygeferiegodtgoerelseAnsaettelsesforholdRow,
   oevrigeKravRowSchema,
@@ -80,9 +82,7 @@ export {
   type EOAngivetLoenLoenudvikling,
   erstatningsopgoerelseSchema,
   type ErstatningsopgoerelseValues,
-  type EoBilagLoenindkomstOgOffentligeYdelserIndgaar,
 } from './formSchemas/sections/erstatningsopgoerelseSchemas';
-export { type AarsloenMetode, type AarsloenBeregningResult, type DateInterval } from './formSchemas/formSchemaTypes';
 export {
   aslAfgoerelseRowSchema,
   type AslAfgoerelseRow,

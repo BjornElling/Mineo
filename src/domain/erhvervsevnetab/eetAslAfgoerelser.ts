@@ -1,7 +1,6 @@
 import type { AslAfgoerelseRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
-import { parsePercentPointString } from '../../utils/numberParsing';
 import { createRowId } from '../../utils/rowId';
 import {
   validateAslAarsloenBySkadesaarMax,
@@ -38,9 +37,9 @@ export const isAslAfgoerelseRowEmpty = (row: AslAfgoerelseRow): boolean =>
 export const isAslAfgoerelseRowPersistenceEmpty = (row: AslAfgoerelseRow): boolean =>
   isAslAfgoerelseRowEmpty(row) && (row.fsTilbageholdtEet ?? 'Nej') === 'Nej';
 
-export const parsePercentDraft = (raw: string | number | undefined): number | undefined => {
+export const parseCommittedPercent = (raw: number | undefined): number | undefined => {
   if (typeof raw === 'number') return Number.isFinite(raw) ? raw : undefined;
-  return parsePercentPointString(raw);
+  return undefined;
 };
 
 export const hasTextValue = (raw: string | number | undefined): boolean =>
@@ -84,7 +83,7 @@ const sumPriorKapPct = (
     if (candidate.id === row.id) return sum;
     const compare = compareAfgoerelseOrder(candidate, row);
     if (compare === null || compare >= 0) return sum;
-    const candidateKapPct = parsePercentDraft(candidate.kapPct);
+    const candidateKapPct = parseCommittedPercent(candidate.kapPct);
     if (candidateKapPct === undefined) return sum;
     return sum + candidateKapPct;
   }, 0);
@@ -94,7 +93,7 @@ export const validateEetPctByPriorKapPct = (
   row: AslAfgoerelseRow,
   allRows: readonly AslAfgoerelseRow[] = [row]
 ): string | undefined => {
-  const eetPct = parsePercentDraft(row.eetPct);
+  const eetPct = parseCommittedPercent(row.eetPct);
   if (eetPct === undefined || eetPct === 0) return undefined;
 
   const priorKapPctSum = sumPriorKapPct(row, allRows);
@@ -149,12 +148,12 @@ export const validateKapPctByAfgoerelsestype = (
     return undefined;
   }
 
-  const kapPct = parsePercentDraft(row.kapPct);
+  const kapPct = parseCommittedPercent(row.kapPct);
   if (kapPct === undefined) return undefined;
   const priorKapPctSum = sumPriorKapPct(row, allRows);
   const kapPctMedTidligere = kapPct + priorKapPctSum;
 
-  const eetPctRaw = parsePercentDraft(row.eetPct);
+  const eetPctRaw = parseCommittedPercent(row.eetPct);
   const eetPct = eetPctRaw === 0 ? undefined : eetPctRaw;
   const controlDateIso = coerceToISODateString(row.tidlKapDato) ?? coerceToISODateString(row.afgoerelsesDato);
   const isWithinTwoYearsRuleActive =
@@ -314,8 +313,8 @@ export const collectEetAslAfgoerelseValidationIssues = (
     }
 
     const eetPctError =
-      validatePercentNotZeroFromDraft(row.eetPct, 'EET %') ??
-      validatePercentDivisibleBy5FromDraft(row.eetPct, 'EET %') ??
+      validatePercentNotZero(row.eetPct, 'EET %') ??
+      validatePercentDivisibleBy5(row.eetPct, 'EET %') ??
       validateEetPctByPriorKapPct(row, rows);
     if (eetPctError) {
       issues.push({ rowId: row.id, field: 'eetPct', message: eetPctError });
@@ -331,8 +330,8 @@ export const collectEetAslAfgoerelseValidationIssues = (
     }
 
     const kapPctError =
-      validatePercentNotZeroFromDraft(row.kapPct, 'Kapitaliseringsprocent') ??
-      validatePercentDivisibleBy5FromDraft(row.kapPct, 'Kapitaliseringsprocent') ??
+      validatePercentNotZero(row.kapPct, 'Kapitaliseringsprocent') ??
+      validatePercentDivisibleBy5(row.kapPct, 'Kapitaliseringsprocent') ??
       validateKapPctByAfgoerelsestype(row, rows, skadedato, fodselsdato);
     if (kapPctError) {
       issues.push({ rowId: row.id, field: 'kapPct', message: kapPctError });
@@ -399,21 +398,21 @@ export const validateTidlKapDatoByAfgoerelsestype = (
   return undefined;
 };
 
-export const validatePercentNotZeroFromDraft = (
-  raw: string | number | undefined,
+export const validatePercentNotZero = (
+  raw: number | undefined,
   label: string
 ): string | undefined => {
-  const parsed = parsePercentDraft(raw);
+  const parsed = parseCommittedPercent(raw);
   if (parsed === undefined) return undefined;
   if (parsed === 0) return `${label} må ikke være 0 %.`;
   return undefined;
 };
 
-export const validatePercentDivisibleBy5FromDraft = (
-  raw: string | number | undefined,
+export const validatePercentDivisibleBy5 = (
+  raw: number | undefined,
   label: string
 ): string | undefined => {
-  const parsed = parsePercentDraft(raw);
+  const parsed = parseCommittedPercent(raw);
   if (parsed === undefined) return undefined;
   if (!Number.isInteger(parsed)) return `${label} skal være et heltal.`;
   if (parsed % 5 !== 0) return `${label} skal være deleligt med 5.`;
@@ -481,7 +480,7 @@ export const collectIncompleteRowIssues = (
   }
 
   const hasMissingEetPct = startedRows.some((row) => {
-    const pct = parsePercentDraft(row.eetPct);
+    const pct = parseCommittedPercent(row.eetPct);
     return pct === undefined || pct === 0;
   });
   if (hasMissingEetPct) {
@@ -495,7 +494,7 @@ export const collectIncompleteRowIssues = (
 
   const hasEndeligUnder50MissingKap = startedRows.some((row) => {
     if (row.afgoerelseType !== 'Endelig') return false;
-    const eetPct = parsePercentDraft(row.eetPct);
+    const eetPct = parseCommittedPercent(row.eetPct);
     if (eetPct === undefined || eetPct === 0 || eetPct >= 50) return false;
     return !hasTextValue(row.kapDato) && !hasTextValue(row.kapPct);
   });

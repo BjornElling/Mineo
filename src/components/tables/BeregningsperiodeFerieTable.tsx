@@ -8,6 +8,7 @@ import TableDateInput from '../inputs/table/TableDateInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 export type BeregningsperiodeFerieTableProps = Readonly<{
   rows: FerieDraftRow[];
@@ -17,7 +18,7 @@ export type BeregningsperiodeFerieTableProps = Readonly<{
   onRowBlur: (rowId: string) => void;
   beregningsperiodeFra: ISODateString | undefined;
   beregningsperiodeTil: ISODateString | undefined;
-  saveOrderPath?: string;
+  saveOrderPath?: TableSaveOrderPath;
   onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 

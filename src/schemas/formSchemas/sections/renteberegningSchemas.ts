@@ -20,7 +20,7 @@ export type RentekravRow = z.infer<typeof rentekravRowSchema>;
 export const renteberegningSchema = z.object({
   beregningsdato: optionalIsoDateString,
   kommentarer: optionalString,
-  rentekravRows: z.array(rentekravRowSchema),
+  rentekravRows: z.array(rentekravRowSchema).min(1, 'Der skal være mindst én rentekravsrække'),
 }).strict();
 
 export type RenteberegningValues = z.infer<typeof renteberegningSchema>;

@@ -10,8 +10,8 @@ import { roundByMethod } from '../../utils/rounding';
 import {
   ASL_IDENTICAL_AFGOERELSER_ID,
   hasIdenticalAfgoerelser,
-  parsePercentDraft,
-  validatePercentDivisibleBy5FromDraft,
+  parseCommittedPercent,
+  validatePercentDivisibleBy5,
   validatePercentDivisibleBy5FromValue,
 } from './eetAslAfgoerelser';
 import { round0, round4 } from '../../utils/roundingShortcuts';
@@ -135,13 +135,13 @@ const resolveEetPctFromAslRows = (
   const selected = endelig[0] ?? delvist[0] ?? tiedOnDates[0];
   if (!selected) return { resolved: null, issues };
 
-  const eetPctDivisibleError = validatePercentDivisibleBy5FromDraft(selected.row.eetPct, 'EET %');
+  const eetPctDivisibleError = validatePercentDivisibleBy5(selected.row.eetPct, 'EET %');
   if (eetPctDivisibleError) {
     issues.push(toIssue('asl-selected-eet-pct-invalid', eetPctDivisibleError));
     return { resolved: null, issues };
   }
 
-  const parsed = parsePercentDraft(selected.row.eetPct);
+  const parsed = parseCommittedPercent(selected.row.eetPct);
   if (parsed === undefined || parsed === 0) {
     return { resolved: null, issues };
   }

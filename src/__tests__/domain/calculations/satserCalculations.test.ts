@@ -5,11 +5,12 @@ import {
   hasSatserAny,
 } from '../../../domain/policies/satserCalculations';
 import type { SatserValues } from '../../../domain/policies/satserCalculations';
+import { satserAngivAarYearBounds } from '../../../data/lovbestemteRates';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
-const MIN = 2000;
-const MAX = 2030;
+const MIN = satserAngivAarYearBounds.minYear;
+const MAX = satserAngivAarYearBounds.maxYear;
 
 const satser = (aargang: number | undefined): SatserValues => ({ aargang } as SatserValues);
 

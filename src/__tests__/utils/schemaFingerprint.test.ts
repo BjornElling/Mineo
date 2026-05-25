@@ -39,12 +39,12 @@ describe('computeSchemaFingerprint', () => {
 
   it('tomt schema → returnerer gyldig streng (fnv1a prefix)', () => {
     const result = computeSchemaFingerprint({});
-    expect(result).toMatch(/^fnv1a-[0-9a-f]+$/);
+    expect(result).toMatch(/^fnv1a-[0-9a-f]{8}$/);
   });
 
   it('fingerprint er fnv1a-format', () => {
     const result = computeSchemaFingerprint({ x: z.string() });
-    expect(result).toMatch(/^fnv1a-[0-9a-f]+$/);
+    expect(result).toMatch(/^fnv1a-[0-9a-f]{8}$/);
   });
 
   it('ændring af type (string → boolean) → andet fingerprint', () => {
@@ -69,6 +69,12 @@ describe('computeSchemaFingerprint', () => {
   it('to schemas med samme struktur men forskellige navne → forskelligt fingerprint', () => {
     const fp1 = computeSchemaFingerprint({ aaa: z.string() });
     const fp2 = computeSchemaFingerprint({ bbb: z.string() });
+    expect(fp1).not.toBe(fp2);
+  });
+
+  it('separator-tegn i topnøgler kolliderer ikke', () => {
+    const fp1 = computeSchemaFingerprint({ 'a:b|c': z.string() });
+    const fp2 = computeSchemaFingerprint({ 'a:b': z.object({ c: z.string() }) });
     expect(fp1).not.toBe(fp2);
   });
 });

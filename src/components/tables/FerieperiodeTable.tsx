@@ -11,6 +11,7 @@ import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers
 import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 export type FerieperiodeTableProps = Readonly<{
   rows: FerieDraftRow[];
@@ -23,7 +24,7 @@ export type FerieperiodeTableProps = Readonly<{
   differencekravDato: ISODateString | undefined;
   erErhvervssygdom: boolean;
   verserendeKlageEet: boolean;
-  saveOrderPath?: string;
+  saveOrderPath?: TableSaveOrderPath;
   onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 

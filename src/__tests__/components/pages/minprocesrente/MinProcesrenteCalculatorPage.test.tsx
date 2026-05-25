@@ -16,7 +16,7 @@ vi.mock('../../../../hooks/usePersistedForm', async () => {
       const [values, setValues] = React.useState({
         beregningsdato: '2024-01-31',
         kommentarer: undefined as string | undefined,
-        rentekravRows: [],
+        rentekravRows: [{ id: 'r1', belob: undefined, renterFra: undefined, tillaegstid: undefined, enhed: 'dage' }],
       });
       const setFieldValue = <K extends keyof typeof values>(fieldName: K, value: (typeof values)[K]) => {
         setValues((prev) => ({ ...prev, [fieldName]: value }));
@@ -29,7 +29,7 @@ vi.mock('../../../../hooks/usePersistedForm', async () => {
 vi.mock('../../../../components/tables/useRentekravRows', () => ({
   __esModule: true,
   default: () => ({
-    draftRows: [],
+    draftRows: [{ id: 'r1', belob: '', renterFra: '', tillaegstid: '', enhed: 'dage' }],
     onFieldChange: vi.fn(),
     onRowBlur: vi.fn(),
     reorderRows: vi.fn(),

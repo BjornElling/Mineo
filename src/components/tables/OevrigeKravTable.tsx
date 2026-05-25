@@ -11,6 +11,7 @@ import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages'
 import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 export type OevrigeKravTableProps = Readonly<{
   rows: OevrigeKravDraftRow[];
@@ -21,7 +22,7 @@ export type OevrigeKravTableProps = Readonly<{
   maxDate?: ISODateString | string;
   specialRangeErrors?: DateRangeSpecialErrors;
   noValidRangeCause?: string;
-  saveOrderPath?: string;
+  saveOrderPath?: TableSaveOrderPath;
   onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 

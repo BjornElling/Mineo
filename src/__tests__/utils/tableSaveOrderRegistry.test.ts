@@ -1,10 +1,15 @@
-import { applyRegisteredTableSaveOrder, registerTableSaveOrder, unregisterTableSaveOrder } from '../../utils/tableSaveOrderRegistry';
+import {
+  applyRegisteredTableSaveOrder,
+  clearTableSaveOrderRegistryForTests,
+  isTableSaveOrderPath,
+  registerTableSaveOrder,
+} from '../../utils/tableSaveOrderRegistry';
 import type { SaveSnapshot } from '../../utils/fileSaveTypes';
 
 describe('tableSaveOrderRegistry', () => {
   afterEach(() => {
-    unregisterTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows');
-    unregisterTableSaveOrder('erstatningsopgoerelse.ansaettelsesforhold.1.indtaegtsoplysningerTableData');
+    clearTableSaveOrderRegistryForTests();
+    vi.restoreAllMocks();
   });
 
   it('reordner rows i snapshot efter registreret synlig rækkefølge', () => {
@@ -67,5 +72,20 @@ describe('tableSaveOrderRegistry', () => {
 
     expect(ansaettelsesforhold[0]?.indtaegtsoplysningerTableData.map((row) => row.id)).toEqual(['x1', 'x2']);
     expect(ansaettelsesforhold[1]?.indtaegtsoplysningerTableData.map((row) => row.id)).toEqual(['r2', 'r1']);
+  });
+
+  it('afviser ugyldige paths før registrering', () => {
+    expect(isTableSaveOrderPath('erstatningsopgoerelse')).toBe(false);
+    expect(isTableSaveOrderPath('ukendt.rows')).toBe(false);
+    expect(isTableSaveOrderPath('erstatningsopgoerelse..rows')).toBe(false);
+  });
+
+  it('logger fejl ved dobbeltregistrering af samme path', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    registerTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows', ['a']);
+    registerTableSaveOrder('erstatningsopgoerelse.offentligeYdelserRows', ['b']);
+
+    expect(errorSpy).toHaveBeenCalledTimes(1);
   });
 });

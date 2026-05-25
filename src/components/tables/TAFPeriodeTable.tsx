@@ -15,6 +15,7 @@ import type { TafDraftRow } from '../../domain/erstatningsopgoerelse/tables/tabl
 import { calculateFerieHverdageMinusSHDage } from '../../domain/erstatningsopgoerelse/engines/ferieCalculations';
 import { buildTafCutoffErrorMessage } from '../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 export type TAFPeriodeTableProps = Readonly<{
   rows: TafDraftRow[];
@@ -32,7 +33,7 @@ export type TAFPeriodeTableProps = Readonly<{
   differencekravDato: ISODateString | undefined;
   erErhvervssygdom: boolean;
   verserendeKlageEet: boolean;
-  saveOrderPath?: string;
+  saveOrderPath?: TableSaveOrderPath;
   onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 

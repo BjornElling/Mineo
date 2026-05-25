@@ -15,7 +15,7 @@ import * as offentligLoenLookupData from '../../../data/offentligLoenLookup';
 import type { OffentligLoenResultat } from '../../../data/offentligLoenTypes';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { calculateTafArbejdsdageBreakdown } from '../../../domain/erstatningsopgoerelse/engines/tafCalculations';
-import { beregningsmetodeEnum, loenPaaHelligdageSchema, loenudviklingStatistikModelEnum } from '../../../schemas/formSchemas';
+import { beregningsmetodeEnum, loenPaaHelligdageEnum, loenudviklingStatistikModelEnum } from '../../../schemas/formSchemas';
 import { roundByMethod } from '../../../utils/rounding';
 
 const iso = (value: string) => toISODateString(value);
@@ -915,7 +915,7 @@ describe('eoPdfModel', () => {
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'bygge-anlaeg',
           feriePct: undefined,
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
         },
       ],
     });
@@ -950,7 +950,7 @@ describe('eoPdfModel', () => {
           id: 'a1',
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'bygge-anlaeg',
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
           feriePct: undefined,
           indtaegtsoplysningerTableData: [
             {
@@ -1036,7 +1036,7 @@ describe('eoPdfModel', () => {
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'bygge-anlaeg',
           feriePct: 12.5,
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
         },
       ],
     });
@@ -1077,7 +1077,7 @@ describe('eoPdfModel', () => {
           offentligLoenTrin: 31,
           offentligLoenGruppe: 2,
           feriePct: 17.68,
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
           fuldLoenUnderFerie: 'Ja',
           harAnciennitetstillaegEfterSkadedatoen: true,
           anciennitetstillaegDato: iso('2024-01-15'),
@@ -1111,7 +1111,7 @@ describe('eoPdfModel', () => {
           offentligLoenTrin: 31,
           offentligLoenGruppe: 2,
           feriePct: 17.68,
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
           saerligFraDatoRegulering: iso('2011-12-31'),
         },
       ],
@@ -1134,7 +1134,7 @@ describe('eoPdfModel', () => {
       offentligLoenTrin: 31,
       offentligLoenGruppe: 2,
       feriePct: 17.68,
-      loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+      loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
       harAnciennitetstillaegEfterSkadedatoen: true,
       anciennitetstillaegDato: iso('2024-03-01'),
       anciennitetstillaegSats: asAmountValue(1200),
@@ -2004,7 +2004,7 @@ describe('eoPdfModel', () => {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Ja',
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
           indtaegtsoplysningerTableData: [
             {
               id: 'r1',
@@ -2058,7 +2058,7 @@ describe('eoPdfModel', () => {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Ja',
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
           indtaegtsoplysningerTableData: [
             {
               id: 'r1',
@@ -2111,7 +2111,7 @@ describe('eoPdfModel', () => {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Ja',
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
           indtaegtsoplysningerTableData: [
             {
               id: 'r1',
@@ -2171,7 +2171,7 @@ describe('eoPdfModel', () => {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Ingen',
           fuldLoenUnderFerie: 'Nej',
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
           loenperiode: 'dag',
           indtaegtsoplysningerTableData: [
             {
@@ -2329,7 +2329,7 @@ describe('eoPdfModel', () => {
             ...createDefaultLoenindkomstAnsaettelsesforhold(),
             harOverenskomst: false,
             overenskomstId: undefined,
-            loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+            loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
             loenudviklingBeregningsgrundlag: grundlag,
             feriePct: 0,
             fritvalgPct: 0,
@@ -2398,7 +2398,7 @@ describe('eoPdfModel', () => {
             ...createDefaultLoenindkomstAnsaettelsesforhold(),
             harOverenskomst: false,
             overenskomstId: undefined,
-            loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+            loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
             loenudviklingBeregningsgrundlag: grundlag,
             feriePct: 0,
             fritvalgPct: 0,
@@ -2596,7 +2596,7 @@ describe('eoPdfModel', () => {
           loenudviklingBeregningsgrundlag: 'Overenskomst',
           overenskomstId: 'bygge-anlaeg',
           feriePct: 12.5,
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
         },
       ],
     });
@@ -2624,7 +2624,7 @@ describe('eoPdfModel', () => {
           offentligLoenTrin: 31,
           offentligLoenGruppe: 2,
           feriePct: 17.68,
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
         },
       ],
     });
@@ -2652,7 +2652,7 @@ describe('eoPdfModel', () => {
           offentligLoenTrin: 20,
           offentligLoenGruppe: 0,
           feriePct: 16.95,
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
         },
       ],
     });
@@ -2677,7 +2677,7 @@ describe('eoPdfModel', () => {
           // Maskinhandler-overenskomsten har historiske satser før 2024 og Store Bededag fra 01-01-2024.
           overenskomstId: 'maskinhandler-overenskomsten',
           feriePct: 12.5,
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
         },
       ],
     });
@@ -2713,7 +2713,7 @@ describe('eoPdfModel', () => {
           feriePct: 12.5,
           shSoPct: 2.7,
           pensionPct: 8.15,
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['SH-udbetaling'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['SH-udbetaling'],
           saerligFraDatoRegulering: iso('2020-01-01'),
           indtaegtsoplysningerTableData: [
             {
@@ -2754,7 +2754,7 @@ describe('eoPdfModel', () => {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           loenudviklingManuelNavn: 'overenskomst Tandlægeforening/HK',
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
           feriePct: 15,
           loenudviklingManuelTableData: [
             {
@@ -2810,7 +2810,7 @@ describe('eoPdfModel', () => {
           loenudviklingBeregningsgrundlag: 'Manuelt angivet',
           loenudviklingManuelNavn: 'Manuelt angivet',
           saerligFraDatoRegulering: iso('2023-12-31'),
-          loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+          loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
           feriePct: 16.95,
           loenudviklingManuelTableData: [
             {
@@ -2967,7 +2967,7 @@ describe('eoPdfModel', () => {
             loenudviklingBeregningsgrundlag: 'Overenskomst',
             overenskomstId: 'bygge-anlaeg',
             feriePct: 12.5,
-            loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+            loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
           },
         ],
       });
@@ -3004,7 +3004,7 @@ describe('eoPdfModel', () => {
             offentligLoenTrin: 31,
             offentligLoenGruppe: 2,
             feriePct: 17.68,
-            loenPaaHelligdage: loenPaaHelligdageSchema.enum['Almindelig løn'],
+            loenPaaHelligdage: loenPaaHelligdageEnum.enum['Almindelig løn'],
           },
         ],
       });

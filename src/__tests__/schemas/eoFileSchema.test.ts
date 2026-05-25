@@ -64,7 +64,7 @@ describe('eoFileDataSchema', () => {
             id: 'eet_asl_1',
             afgoerelsesDato: '2025-01-15',
             virkningsDato: '2025-01-01',
-            eetPct: '15',
+            eetPct: 15,
             kapDato: undefined,
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',

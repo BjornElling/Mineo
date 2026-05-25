@@ -4,8 +4,9 @@
  * Denne test fanger schema-ændringer, der ikke er ledsaget af en PERSISTED_DATA_VERSION bump.
  *
  * Hvis testen fejler, skal du:
- * 1. Bump PERSISTED_DATA_VERSION i src/config/persistenceVersion.ts
- * 2. Opdater SCHEMA_FINGERPRINT_SNAPSHOT herunder til det nye fingerprint
+ * 1. Klassificer ændringen som reel persisted schema-ændring eller Zod JSON-schema formatdrift.
+ * 2. Bump kun PERSISTED_DATA_VERSION ved reel schema-/parse-semantikændring.
+ * 3. Opdater SCHEMA_FINGERPRINT_SNAPSHOT herunder til det nye fingerprint.
  *
  * For at se det aktuelle fingerprint, kør testen med --reporter=verbose
  * og aflæs værdien i fejlmeddelelsen.
@@ -18,9 +19,9 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
  * Hardkodet snapshot af schemas' fingerprint.
  * Opdateres manuelt ved intentionelle schema-ændringer (ledsaget af versionsbump).
  */
-// Opdateret 2026-05-24 efter regulerings-tilladelser blev flyttet fra device-lokale
-// AppSettings til schema-valideret EO-sagsinput.
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-e587ee8e';
+// Opdateret 2026-05-25 efter EO-load-defaults, EET number-fixtures, løn-enum-rename
+// og parser-spec filrename blev konsolideret.
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-73205a6c';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

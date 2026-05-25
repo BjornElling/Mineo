@@ -8,8 +8,11 @@ import {
   resolveSatserEffectiveAargang,
 } from '../../domain/policies';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
+import { satserAngivAarYearBounds } from '../../data/lovbestemteRates';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
+const SATSER_MIN_YEAR = satserAngivAarYearBounds.minYear;
+const SATSER_MAX_YEAR = satserAngivAarYearBounds.maxYear;
 
 describe('formPersistenceStore (satser selectors)', () => {
   let store: ReturnType<typeof __createTestStore>;
@@ -27,37 +30,37 @@ describe('formPersistenceStore (satser selectors)', () => {
     const state = store.getState();
 
     // assert
-    expect(resolveSatserEffectiveAargang(state.sections.satser, 2000, 2020)).toBeUndefined();
+    expect(resolveSatserEffectiveAargang(state.sections.satser, SATSER_MIN_YEAR, SATSER_MAX_YEAR)).toBeUndefined();
     expect(hasSatserAny(state.sections.satser)).toBe(false);
-    expect(resolveSatserAargangErrorMessage(state.sections.satser, 2000, 2020)).toBe('Årstallet skal være mellem 2000 og 2020');
-    expect(canDownloadSatser(state.sections.satser, 2000, 2020)).toBe(false);
+    expect(resolveSatserAargangErrorMessage(state.sections.satser, SATSER_MIN_YEAR, SATSER_MAX_YEAR)).toBe(`Årstallet skal være mellem ${SATSER_MIN_YEAR} og ${SATSER_MAX_YEAR}`);
+    expect(canDownloadSatser(state.sections.satser, SATSER_MIN_YEAR, SATSER_MAX_YEAR)).toBe(false);
   });
 
   it('returns the selected year when present', () => {
     // arrange
-    store.getState().commitSection('satser', { aargang: 2025 });
+    store.getState().commitSection('satser', { aargang: SATSER_MAX_YEAR });
 
     // act
     const state = store.getState();
 
     // assert
-    expect(resolveSatserEffectiveAargang(state.sections.satser, 2000, 2030)).toBe(2025);
+    expect(resolveSatserEffectiveAargang(state.sections.satser, SATSER_MIN_YEAR, SATSER_MAX_YEAR)).toBe(SATSER_MAX_YEAR);
     expect(hasSatserAny(state.sections.satser)).toBe(true);
-    expect(resolveSatserAargangErrorMessage(state.sections.satser, 2000, 2030)).toBeUndefined();
-    expect(canDownloadSatser(state.sections.satser, 2000, 2030)).toBe(true);
+    expect(resolveSatserAargangErrorMessage(state.sections.satser, SATSER_MIN_YEAR, SATSER_MAX_YEAR)).toBeUndefined();
+    expect(canDownloadSatser(state.sections.satser, SATSER_MIN_YEAR, SATSER_MAX_YEAR)).toBe(true);
   });
 
   it('returns undefined for out-of-range year', () => {
     // arrange
-    store.getState().commitSection('satser', { aargang: 2010 });
+    store.getState().commitSection('satser', { aargang: SATSER_MIN_YEAR - 1 });
 
     // act
     const state = store.getState();
 
     // assert
-    expect(resolveSatserEffectiveAargang(state.sections.satser, 2011, 2020)).toBeUndefined();
+    expect(resolveSatserEffectiveAargang(state.sections.satser, SATSER_MIN_YEAR, SATSER_MAX_YEAR)).toBeUndefined();
     expect(hasSatserAny(state.sections.satser)).toBe(true);
-    expect(resolveSatserAargangErrorMessage(state.sections.satser, 2011, 2020)).toBe('Årstallet skal være mellem 2011 og 2020');
-    expect(canDownloadSatser(state.sections.satser, 2011, 2020)).toBe(false);
+    expect(resolveSatserAargangErrorMessage(state.sections.satser, SATSER_MIN_YEAR, SATSER_MAX_YEAR)).toBe(`Årstallet skal være mellem ${SATSER_MIN_YEAR} og ${SATSER_MAX_YEAR}`);
+    expect(canDownloadSatser(state.sections.satser, SATSER_MIN_YEAR, SATSER_MAX_YEAR)).toBe(false);
   });
 });

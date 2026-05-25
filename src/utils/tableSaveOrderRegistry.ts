@@ -1,7 +1,10 @@
 import type { SaveSnapshot } from './fileSaveTypes';
-import type { StorageKey } from '../config/storageManifest';
+import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
+
+export type TableSaveOrderPath = `${StorageKey}.${string}`;
 
 const tableSaveOrderRegistry = new Map<string, readonly string[]>();
+const storageKeySet: ReadonlySet<string> = new Set(Object.keys(STORAGE_KEYS));
 
 const hasStringId = (value: unknown): value is { id: string } => {
   if (!value || typeof value !== 'object') return false;
@@ -69,12 +72,35 @@ const applyOrderedIdsAtPath = (
   return { ...record, [head]: next };
 };
 
-export const registerTableSaveOrder = (path: string, rowIds: readonly string[]): void => {
+export const isTableSaveOrderPath = (path: string): path is TableSaveOrderPath => {
+  const segments = path.split('.');
+  const [rootKey] = segments;
+  return segments.length >= 2 && segments.every((segment) => segment.trim() !== '') && !!rootKey && storageKeySet.has(rootKey);
+};
+
+export const registerTableSaveOrder = (path: TableSaveOrderPath, rowIds: readonly string[]): void => {
+  const segments = path.split('.');
+  const [rootKey] = segments;
+  if (!isTableSaveOrderPath(path)) {
+    console.error(`tableSaveOrderRegistry: invalid path "${path}" - must contain non-empty dot-separated segments.`);
+    return;
+  }
+  if (!rootKey || !storageKeySet.has(rootKey)) {
+    console.error(`tableSaveOrderRegistry: invalid root key "${rootKey ?? ''}" in path "${path}".`);
+    return;
+  }
+  if (tableSaveOrderRegistry.has(path)) {
+    console.error(`tableSaveOrderRegistry: path "${path}" is already registered.`);
+  }
   tableSaveOrderRegistry.set(path, [...rowIds]);
 };
 
-export const unregisterTableSaveOrder = (path: string): void => {
+export const unregisterTableSaveOrder = (path: TableSaveOrderPath): void => {
   tableSaveOrderRegistry.delete(path);
+};
+
+export const clearTableSaveOrderRegistryForTests = (): void => {
+  tableSaveOrderRegistry.clear();
 };
 
 export const applyRegisteredTableSaveOrder = (snapshot: SaveSnapshot): SaveSnapshot => {
@@ -82,7 +108,10 @@ export const applyRegisteredTableSaveOrder = (snapshot: SaveSnapshot): SaveSnaps
 
   for (const [path, orderedIds] of tableSaveOrderRegistry.entries()) {
     const [rootKey, ...rest] = path.split('.');
-    if (rest.length === 0) continue;
+    if (rest.length === 0) {
+      console.error(`tableSaveOrderRegistry: invalid registered path "${path}".`);
+      continue;
+    }
 
     const storageKey = rootKey as StorageKey;
     const currentSection = nextSnapshot[storageKey];

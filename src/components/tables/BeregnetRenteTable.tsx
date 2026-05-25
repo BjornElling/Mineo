@@ -20,6 +20,7 @@ import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
 import { dateRanges_renteberegning } from '../../config/dateRanges';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 export type RentePdfContext = NonNullable<RentekravRowResult['pdfContext']>;
 
@@ -52,7 +53,7 @@ export type BeregnetRenteTableProps = Readonly<{
   beregningsdatoHasError: boolean;
   referenceRates: ReadonlyArray<RateEntry>;
   surchargeRates: ReadonlyArray<RateEntry>;
-  saveOrderPath?: string;
+  saveOrderPath?: TableSaveOrderPath;
   onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 

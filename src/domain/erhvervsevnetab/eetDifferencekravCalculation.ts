@@ -17,7 +17,7 @@ import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitalis
 import { formatISOToDanish } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
-import { parsePercentDraft } from './eetAslAfgoerelser';
+import { parseCommittedPercent } from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
   interpolateFactorBeyondTable,
@@ -152,7 +152,7 @@ const hasAnyEetPctInput = (values: ErhvervsevnetabComposedValues): boolean => {
     return true;
   }
   return (values.aslAfgoerelser ?? []).some((row) => {
-    const eetPct = parsePercentDraft(row.eetPct);
+    const eetPct = parseCommittedPercent(row.eetPct);
     return eetPct !== undefined && eetPct !== 0;
   });
 };
@@ -198,7 +198,7 @@ const analyzeAslRowsAtBeregningsdato = (
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
     const virkningsdato = coerceToISODateString(row.virkningsDato);
     const kapDato = coerceToISODateString(row.kapDato);
-    const eetPct = parsePercentDraft(row.eetPct);
+    const eetPct = parseCommittedPercent(row.eetPct);
 
     if (!afgoerelsesdato || !virkningsdato || !row.afgoerelseType || eetPct === undefined || eetPct <= 0) {
       continue;
@@ -763,7 +763,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
 
   const aslRowsForDisplay = aslRowsKnownAtBeregningsdato
     .filter((row) => {
-      const eetPct = parsePercentDraft(row.eetPct);
+      const eetPct = parseCommittedPercent(row.eetPct);
       return eetPct !== undefined && eetPct > 0 && coerceToISODateString(row.afgoerelsesDato) !== undefined;
     })
     .map((row) => {

@@ -3,6 +3,7 @@ import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { createRenteberegningInitialValues } from '../../domain/renteberegning/renteberegningInitialValues';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
@@ -38,10 +39,7 @@ const createValidSections = (): PersistedSectionMap => ({
     aslAarsloen: undefined,
     ealAarsloen: undefined,
   },
-  renteberegning: {
-    beregningsdato: undefined,
-    rentekravRows: [],
-  },
+  renteberegning: createRenteberegningInitialValues(),
   varigemen: {
     mengrad: undefined,
     beregningsdato: undefined,

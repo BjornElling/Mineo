@@ -14,7 +14,7 @@ import {
 import {
   getKapitaliseringsTabelData,
 } from '../../data/kapitalisering/kapitaliseringsTabeller';
-import { collectIncompleteRowIssues, hasTextValue, isAslAfgoerelseRowEmpty, parsePercentDraft } from './eetAslAfgoerelser';
+import { collectIncompleteRowIssues, hasTextValue, isAslAfgoerelseRowEmpty, parseCommittedPercent } from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
   interpolateFactorBeyondTable,
@@ -185,7 +185,7 @@ const collectResolvedRows = (
   const result: ResolvedKapitaliseringsRow[] = [];
   const startedRows = rows.filter((row) => !isAslAfgoerelseRowEmpty(row));
   const rowsWithAfgoerelse = startedRows.filter((row) => {
-    const eetPct = parsePercentDraft(row.eetPct);
+    const eetPct = parseCommittedPercent(row.eetPct);
     return (
       eetPct !== undefined &&
       eetPct > 0 &&
@@ -222,7 +222,7 @@ const collectResolvedRows = (
 
   for (const row of rows) {
     if (row.afgoerelseType !== 'Endelig' && row.afgoerelseType !== 'Delvist endelig') continue;
-    const kapPct = parsePercentDraft(row.kapPct);
+    const kapPct = parseCommittedPercent(row.kapPct);
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
     if (!afgoerelsesdato) continue;
     const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;
@@ -237,7 +237,7 @@ const collectResolvedRows = (
       rowId: row.id,
       afgoerelsesdato,
       virkningsdato: coerceToISODateString(row.virkningsDato) ?? null,
-      eetPct: parsePercentDraft(row.eetPct) ?? 0,
+      eetPct: parseCommittedPercent(row.eetPct) ?? 0,
       kapDato: coerceToISODateString(row.kapDato) ?? null,
       kapPct: kapPct ?? 0,
       afgoerelseType: row.afgoerelseType,
@@ -256,7 +256,7 @@ const collectResolvedRows = (
   }
 
   const hasKapPctZeroOnKapitaliserbarRow = rowsWithKapitaliserbarAfgoerelse.some((row) => {
-    const kapPct = parsePercentDraft(row.kapPct);
+    const kapPct = parseCommittedPercent(row.kapPct);
     return hasTextValue(row.kapPct) && (kapPct === undefined || kapPct === 0);
   });
 
@@ -268,7 +268,7 @@ const collectResolvedRows = (
   const hasKapPctWithoutKapDato = rows.some((row) => hasTextValue(row.kapPct) && !hasTextValue(row.kapDato));
   const hasEndeligUnder50MissingKap = rowsWithKapitaliserbarAfgoerelse.some((row) => {
     if (row.afgoerelseType !== 'Endelig') return false;
-    const eetPct = parsePercentDraft(row.eetPct);
+    const eetPct = parseCommittedPercent(row.eetPct);
     if (eetPct === undefined || eetPct === 0 || eetPct >= 50) return false;
     const afgoerelsesdato = coerceToISODateString(row.afgoerelsesDato);
     const controlDate = coerceToISODateString(row.tidlKapDato) ?? afgoerelsesdato;

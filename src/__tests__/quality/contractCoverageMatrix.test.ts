@@ -201,6 +201,15 @@ const assertFileExists = (relativePath: string): void => {
   expect(fs.existsSync(absolutePath), `Mangler fil: ${relativePath}`).toBe(true);
 };
 
+const getContractTopology = (): {
+  version: number;
+  crossCuttingContracts: string[];
+  domainContracts: string[];
+  subordinateContracts: Record<string, string[]>;
+  contractAuthoring: { templatePath: string; procedurePath: string };
+  informativeArchitectureDocs: string[];
+} => JSON.parse(fs.readFileSync(path.resolve(process.cwd(), 'src/contracts/contract-topology.json'), 'utf8'));
+
 describe('contract linkage matrix', () => {
   it('har mindst én koblet test-suite pr. normativ kontraktfil', () => {
     // NOTE: Dette er en ren linkage-guard (kontrakt <-> testsuite-eksistens).
@@ -214,15 +223,7 @@ describe('contract linkage matrix', () => {
   });
 
   it('har en maskinlæsbar kontrakttopologi med eksisterende kontraktfiler', () => {
-    const topologyPath = 'src/contracts/contract-topology.json';
-    const topology = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), topologyPath), 'utf8')) as {
-      version: number;
-      crossCuttingContracts: string[];
-      domainContracts: string[];
-      subordinateContracts: Record<string, string[]>;
-      contractAuthoring: { templatePath: string; procedurePath: string };
-      informativeArchitectureDocs: string[];
-    };
+    const topology = getContractTopology();
 
     expect(topology.version).toBe(1);
     for (const contractPath of [
@@ -238,13 +239,26 @@ describe('contract linkage matrix', () => {
     }
   });
 
+  it('registrerer alle kontrakt-markdownfiler i topologien', () => {
+    const topology = getContractTopology();
+    const registeredContractFiles = new Set([
+      ...topology.crossCuttingContracts,
+      ...topology.domainContracts,
+      ...Object.keys(topology.subordinateContracts),
+      topology.contractAuthoring.templatePath,
+    ]);
+    const contractMarkdownFiles = fs
+      .readdirSync(path.resolve(process.cwd(), 'src/contracts'))
+      .filter((fileName) => fileName.endsWith('.md'))
+      .map((fileName) => `src/contracts/${fileName}`);
+
+    for (const contractPath of contractMarkdownFiles) {
+      expect(registeredContractFiles.has(contractPath), `Mangler topologi-registrering for ${contractPath}`).toBe(true);
+    }
+  });
+
   it('holder kontrakttopologi og dækningsmatrix synkroniseret begge veje', () => {
-    const topologyPath = 'src/contracts/contract-topology.json';
-    const topology = JSON.parse(fs.readFileSync(path.resolve(process.cwd(), topologyPath), 'utf8')) as {
-      crossCuttingContracts: string[];
-      domainContracts: string[];
-      subordinateContracts: Record<string, string[]>;
-    };
+    const topology = getContractTopology();
 
     const matrixContracts = new Set(COVERAGE_MATRIX.map((entry) => entry.contractPath));
     const topologyContracts = new Set([

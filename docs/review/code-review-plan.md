@@ -15,10 +15,10 @@
 | 2.3 | FormPersistenceContext og store | ✅ Gennemgået | [2.3-form-persistence-context-store.md](2.3-form-persistence-context-store.md) |
 | 2.4 | Persistence: load, apply, sanitering, session-hydration | ✅ Gennemgået | [2.4-persistence-load-apply-sanitering-session-hydration.md](2.4-persistence-load-apply-sanitering-session-hydration.md) |
 | 2.5 | Schema-evolution og versionering | ✅ Gennemgået | [2.5-schema-evolution-versionering.md](2.5-schema-evolution-versionering.md) |
-| 3.1 | Zod-schemas: Erstatningsopgørelse | ⬜ Ikke startet | — |
-| 3.2 | Zod-schemas: Årsløn, Erhvervsevnetab, Forsørgertab | ⬜ Ikke startet | — |
-| 3.3 | Zod-schemas: Renteberegning, Varige Mén, Stamdata, Satser | ⬜ Ikke startet | — |
-| 3.4 | Schema-fingerprint og save-order-registry | ⬜ Ikke startet | — |
+| 3.1 | Zod-schemas: Erstatningsopgørelse | ✅ Gennemgået | [3.1-zod-schemas-erstatningsopgoerelse.md](3.1-zod-schemas-erstatningsopgoerelse.md) |
+| 3.2 | Zod-schemas: Årsløn, Erhvervsevnetab, Forsørgertab | ✅ Gennemgået | [3.2-zod-schemas-aarsloen-eet-forsoergertab.md](3.2-zod-schemas-aarsloen-eet-forsoergertab.md) |
+| 3.3 | Zod-schemas: Renteberegning, Varige Mén, Stamdata, Satser | ✅ Gennemgået | [3.3-zod-schemas-renteberegning-varigemen-stamdata-satser.md](3.3-zod-schemas-renteberegning-varigemen-stamdata-satser.md) |
+| 3.4 | Schema-fingerprint og save-order-registry | ✅ Gennemgået | [3.4-schema-fingerprint-save-order-registry.md](3.4-schema-fingerprint-save-order-registry.md) |
 | 4.1 | Årsløn: beregning og validering | ⬜ Ikke startet | — |
 | 4.2 | Erhvervsevnetab (EET): kernemotor og delberegninger | ⬜ Ikke startet | — |
 | 4.3 | EET: aldersreduktion, regulering, differencekrav | ⬜ Ikke startet | — |

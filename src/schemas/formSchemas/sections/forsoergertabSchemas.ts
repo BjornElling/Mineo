@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { coerceToIntegerOrUndefined, optionalIsoDateString } from '../baseSchemas';
+import { coerceToWholeNumberOrUndefined, optionalIsoDateString } from '../baseSchemas';
 import { koenEnum } from '../enumSchemas';
 import { PRE_2015_CUTOFF } from '../../../domain/forsoergertab/forsoergertabConstants';
 
@@ -9,8 +9,8 @@ export const forsoergertabSchema = z.object({
   virkningsdato: optionalIsoDateString,
   koen: koenEnum.optional(),
   tilkendtForPeriodeAar: z.preprocess(
-    coerceToIntegerOrUndefined,
-    z.number()
+    coerceToWholeNumberOrUndefined,
+    z.number({ error: 'Tilkendt for periode skal være et heltal' })
       .int('Tilkendt for periode skal være et heltal')
       .min(1, 'Tilkendt for periode skal være mindst 1 år')
       .max(10, 'Tilkendt for periode må højst være 10 år')
@@ -22,9 +22,9 @@ export const forsoergertabSchema = z.object({
     value.virkningsdato !== undefined &&
     value.beregningsdato < value.virkningsdato
   ) {
-    const message = 'Beregningsdato må ikke være før virkningsdato.';
+    // ISO-formatet YYYY-MM-DD har samme leksikografiske og kronologiske orden.
+    const message = 'Beregningsdato er før virkningsdato.';
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['beregningsdato'], message });
-    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['virkningsdato'], message });
   }
 
   if (value.beregningsdato !== undefined && value.beregningsdato < PRE_2015_CUTOFF && value.koen === undefined) {

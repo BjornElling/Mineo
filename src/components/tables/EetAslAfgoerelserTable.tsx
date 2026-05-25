@@ -18,6 +18,7 @@ import {
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 export type EetAslAfgoerelserTableProps = Readonly<{
   tableData: AslAfgoerelseRow[];
@@ -26,7 +27,7 @@ export type EetAslAfgoerelserTableProps = Readonly<{
   beregningsdato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
   onTableDataChange?: (rows: AslAfgoerelseRow[]) => void;
-  saveOrderPath?: string;
+  saveOrderPath?: TableSaveOrderPath;
 }>;
 
 const AFGOERELSES_TYPE_OPTIONS: readonly TableDropdownOption[] = [

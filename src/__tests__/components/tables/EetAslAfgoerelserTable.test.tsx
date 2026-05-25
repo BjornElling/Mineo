@@ -64,8 +64,8 @@ describe('EetAslAfgoerelserTable', () => {
         tableData={[
           buildRow({
             afgoerelseType: 'Midlertidig',
-            eetPct: '7',
-            kapPct: '5',
+            eetPct: 7,
+            kapPct: 5,
             kapDato: '01-01-2024',
             tidlKapDato: '01-01-2024',
           }),
@@ -227,13 +227,13 @@ describe('EetAslAfgoerelserTable', () => {
           buildRow({
             id: 'r1',
             afgoerelsesDato: '01-01-2024',
-            kapPct: '20',
+            kapPct: 20,
             afgoerelseType: 'Endelig',
           }),
           buildRow({
             id: 'r2',
             afgoerelsesDato: '01-02-2024',
-            eetPct: '15',
+            eetPct: 15,
             afgoerelseType: 'Endelig',
           }),
         ]}
@@ -341,15 +341,15 @@ describe('EetAslAfgoerelserTable', () => {
             id: 'r1',
             afgoerelseType: 'Delvist endelig',
             afgoerelsesDato: '01-01-2024',
-            eetPct: '80',
-            kapPct: '20',
+            eetPct: 80,
+            kapPct: 20,
           }),
           buildRow({
             id: 'r2',
             afgoerelseType: 'Endelig',
             afgoerelsesDato: '01-07-2025',
-            eetPct: '80',
-            kapPct: '40',
+            eetPct: 80,
+            kapPct: 40,
           }),
         ]}
         skadedato={toISODateString('2025-01-01')}
@@ -369,9 +369,9 @@ describe('EetAslAfgoerelserTable', () => {
         afgoerelseType: 'Endelig',
         afgoerelsesDato: '01-07-2025',
         virkningsDato: '01-07-2025',
-        eetPct: '80',
+        eetPct: 80,
         kapDato: '01-10-2025',
-        kapPct: '40',
+        kapPct: 40,
       }),
     ];
 

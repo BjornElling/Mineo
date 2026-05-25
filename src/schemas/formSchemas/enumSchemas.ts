@@ -33,14 +33,14 @@ export type Beregningsmetode = z.infer<typeof beregningsmetodeEnum>;
 export const afsluttesMedEnum = z.enum(['Bekræftet godkendt', 'Underskrift-linje']);
 export type AfsluttesMed = z.infer<typeof afsluttesMedEnum>;
 
-export const loenperiodeSchema = z.enum(['maaned', 'uge', 'dag']);
-export type Loenperiode = z.infer<typeof loenperiodeSchema>;
+export const loenperiodeEnum = z.enum(['maaned', 'uge', 'dag']);
+export type Loenperiode = z.infer<typeof loenperiodeEnum>;
 
 export const anciennitetSatsPerEnum = z.enum(['Time', 'Måned']);
 export type AnciennitetSatsPer = z.infer<typeof anciennitetSatsPerEnum>;
 
-export const loenPaaHelligdageSchema = z.enum(['Almindelig løn', 'SH-udbetaling', 'Ingen']);
-export type LoenPaaHelligdage = z.infer<typeof loenPaaHelligdageSchema>;
+export const loenPaaHelligdageEnum = z.enum(['Almindelig løn', 'SH-udbetaling', 'Ingen']);
+export type LoenPaaHelligdage = z.infer<typeof loenPaaHelligdageEnum>;
 
 export const offentligLoenTypeEnum = z.enum(['Månedsløn', 'Timeløn']);
 export type OffentligLoenTypeLabel = z.infer<typeof offentligLoenTypeEnum>;
@@ -71,3 +71,22 @@ export type AfgoerelseType = z.infer<typeof afgoerelseTypeEnum>;
 
 export const koenEnum = z.enum(['Mand', 'Kvinde']);
 export type Koen = z.infer<typeof koenEnum>;
+
+export const sygeferiegodtgoerelseBeregningskildeEnum = z.enum([
+  'Overenskomst',
+  'Manuelt angivet',
+  'Ferieloven',
+  'Ingen',
+]);
+export type SygeferiegodtgoerelseBeregningskilde = z.infer<typeof sygeferiegodtgoerelseBeregningskildeEnum>;
+
+export const sygeferiegodtgoerelseSatsvalgEnum = z.enum([
+  'Faglaert-Koebenhavn',
+  'Faglaert-Provinsen',
+  'Ufaglaert-Koebenhavn',
+  'Ufaglaert-Provinsen',
+]);
+export type SygeferiegodtgoerelseSatsvalg = z.infer<typeof sygeferiegodtgoerelseSatsvalgEnum>;
+
+export const eoBilagLoenindkomstOgOffentligeYdelserIndgaarSchema = z.enum(['Alle', 'Perioden']);
+export type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = z.infer<typeof eoBilagLoenindkomstOgOffentligeYdelserIndgaarSchema>;

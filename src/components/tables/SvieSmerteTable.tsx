@@ -13,6 +13,7 @@ import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers
 import type { SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 type SvieSmerteDerived = Readonly<{
   hasRangeError: boolean;
@@ -30,7 +31,7 @@ export type SvieSmerteTableProps = Readonly<{
   verserendeKlageMen: boolean;
   onFieldChange: (rowId: string, field: 'fra' | 'til' | 'tilstand') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
-  saveOrderPath?: string;
+  saveOrderPath?: TableSaveOrderPath;
   onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
 

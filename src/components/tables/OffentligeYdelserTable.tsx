@@ -33,6 +33,7 @@ import {
 import { getOffentligeYdelserTableHeaderNodes } from '../../domain/erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { ISODateString } from '../../types/branded';
+import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 export type OffentligeYdelserDerivedCellValues = Readonly<{
   periodiseringLabel: string;
@@ -45,7 +46,7 @@ export type OffentligeYdelserTableProps = {
   derivedByRowId?: ReadonlyMap<string, OffentligeYdelserDerivedCellValues>;
   onTableDataChange?: (data: OffentligeYdelserRow[]) => void;
   onValidationChange?: (summary: OffentligeYdelserTableValidationSummary) => void;
-  saveOrderPath?: string;
+  saveOrderPath?: TableSaveOrderPath;
   /**
    * Når sand, deaktiveres ydelsestype-optionen `midlertidigt_eet` i dropdown'en.
    * Anvendes når togglen "Midlertidigt EET indsættes fra Erhvervsevnetab-siden"

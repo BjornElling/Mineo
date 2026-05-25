@@ -54,7 +54,7 @@ const eetValues: ErhvervsevnetabComposedValues = {
       id: 'asl-1',
       afgoerelsesDato: '01-02-2024',
       virkningsDato: '01-01-2024',
-      eetPct: '20',
+      eetPct: 20,
       kapDato: '',
       kapPct: undefined,
       afgoerelseType: 'Midlertidig',

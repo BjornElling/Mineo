@@ -2,6 +2,7 @@ import { PERSISTED_SECTION_KEYS, persistenceSchemas } from '../../config/persist
 import { STORAGE_KEYS, getStorageKey } from '../../config/storageManifest';
 import type { StorageKey } from '../../config/storageManifest';
 import { z } from 'zod';
+import { createRenteberegningInitialValues } from '../../domain/renteberegning/renteberegningInitialValues';
 
 describe('persistenceSchemas', () => {
   it('indeholder alle StorageKeys', () => {
@@ -40,10 +41,10 @@ describe('persistenceSchemas', () => {
     expect(result.success).toBe(false);
   });
 
-  it('renteberegning-schema accepterer tom rentekravRows', () => {
+  it('renteberegning-schema afviser tom rentekravRows', () => {
     const schema = persistenceSchemas.renteberegning;
     const result = schema.safeParse({ rentekravRows: [] });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
   // ── Per-schema validering ──────────────────────────────────────────────────
@@ -112,12 +113,15 @@ describe('persistenceSchemas', () => {
 
   describe('renteberegning', () => {
     it('afviser activeTab som ukendt felt', () => {
-      const result = persistenceSchemas.renteberegning.safeParse({ rentekravRows: [], activeTab: 'anything' });
+      const result = persistenceSchemas.renteberegning.safeParse({ ...createRenteberegningInitialValues(), activeTab: 'anything' });
       expect(result.success).toBe(false);
     });
 
     it('beregningsdato er optional', () => {
-      const result = persistenceSchemas.renteberegning.safeParse({ rentekravRows: [] });
+      const result = persistenceSchemas.renteberegning.safeParse({
+        ...createRenteberegningInitialValues(),
+        beregningsdato: undefined,
+      });
       expect(result.success).toBe(true);
     });
   });

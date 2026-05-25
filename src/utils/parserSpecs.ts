@@ -21,6 +21,9 @@ import {
 
 const amountCanonicalFromModel = (value: AmountValue | undefined, precision: number): string => {
   if (!value) return '';
+  if (typeof value.value !== 'number' || !Number.isFinite(value.value)) {
+    throw new Error('amountCanonicalFromModel: invalid pre-validated amount value');
+  }
   if (value.kind === 'expression') return `e:${value.expression.length}:${value.expression}|${formatRoundedCanonical(value.value, precision)}`;
   return `n:${formatRoundedCanonical(value.value, precision)}`;
 };

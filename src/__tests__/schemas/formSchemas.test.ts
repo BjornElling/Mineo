@@ -8,6 +8,8 @@ import {
   stamdataSchema,
   satserSchema,
   rentekravRowSchema,
+  faellesAarsloenSchema,
+  aslAfgoerelseRowSchema,
   svieSmertePeriodeRowSchema,
   tafPeriodeRowSchema,
   ferieperiodeRowSchema,
@@ -16,6 +18,13 @@ import {
 } from '../../schemas/formSchemas';
 import { tableIsoDateCellString } from '../../schemas/formSchemas/baseSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
+import { FORSOERGERTAB_INITIAL_VALUES } from '../../domain/forsoergertab/forsoergertabInitialValues';
+import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
+import { createRenteberegningInitialValues } from '../../domain/renteberegning/renteberegningInitialValues';
+import { VARIGE_MEN_INITIAL_VALUES } from '../../domain/varigemen/varigeMenInitialValues';
+import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
+import { isAslAfgoerelseRowEmpty } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 
 // ─── aarsloenSchema ────────────────────────────────────────────────────────────
 
@@ -92,6 +101,65 @@ describe('erstatningsopgoerelseSchema', () => {
     const withExtra = { ...values, ukendt_felt: 'hej' };
     const result = erstatningsopgoerelseSchema.safeParse(withExtra);
     expect(result.success).toBe(false);
+  });
+
+  it('udfylder konservative defaults ved load af ældre EO-data', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const legacyAnsaettelsesforhold = {
+      id: 'legacy-ansaettelse-1',
+      loenPaaHelligdage: 'Almindelig løn',
+      harOverenskomst: undefined,
+      ansatPaaSkadestidspunktet: undefined,
+      ansaettelsesforholdOphoert: undefined,
+      loenperiode: undefined,
+      fuldLoenUnderFerie: undefined,
+      harAnciennitetstillaegEfterSkadedatoen: undefined,
+      anciennitetstillaegSatsAngivesPer: undefined,
+    };
+    const legacy = {
+      ...values,
+      varigeMenAfgorelse: undefined,
+      verserendeKlageMen: undefined,
+      midlertidigtEETAfgorelse: undefined,
+      endeligtEETAfgorelse: undefined,
+      verserendeKlageEet: undefined,
+      tidligereSsMax: undefined,
+      svieSmerteDelvisSygemeldingSats: undefined,
+      opsagtFraStilling: undefined,
+      beregnesUdFra: undefined,
+      erstatningsopgoerelseAfsluttesMed: undefined,
+      eoBilagSelection: {},
+      loenindkomstAnsaettelsesforhold: [legacyAnsaettelsesforhold],
+    };
+
+    const result = erstatningsopgoerelseSchema.safeParse(legacy);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.varigeMenAfgorelse).toBe('Nej');
+      expect(result.data.svieSmerteDelvisSygemeldingSats).toBe('halv');
+      expect(result.data.beregnesUdFra).toBe('Beregningsperiode');
+      expect(result.data.erstatningsopgoerelseAfsluttesMed).toBe('Bekræftet godkendt');
+      expect(result.data.eoBilagSelection.shDage).toBe(false);
+      expect(result.data.loenindkomstAnsaettelsesforhold[0]?.harOverenskomst).toBe(false);
+      expect(result.data.loenindkomstAnsaettelsesforhold[0]?.loenperiode).toBe('maaned');
+      expect(result.data.loenindkomstAnsaettelsesforhold[0]?.anciennitetstillaegSatsAngivesPer).toBe('Måned');
+    }
+  });
+
+  it('afviser bogstav-input i offentlige løntrin med dansk heltalsbesked', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    const result = erstatningsopgoerelseSchema.safeParse({
+      ...values,
+      eoAngivetLoenLoenudvikling: {
+        ...values.eoAngivetLoenLoenudvikling,
+        offentligLoenTrin: 'abc',
+      },
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((issue) => issue.message === 'Skal være et heltal mellem 1 og 99')).toBe(true);
+    }
   });
 });
 
@@ -175,15 +243,51 @@ describe('stamdataSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('afviser ukendt felt skadelidteFodselsdato', () => {
+  it('accepterer skadelidteFodselsdato som gyldigt felt', () => {
     const result = stamdataSchema.safeParse({
       skadelidteFodselsdato: '1990-01-01',
     });
     expect(result.success).toBe(true);
   });
+
+  it('normaliserer null i tekstfelter til undefined', () => {
+    const result = stamdataSchema.safeParse({
+      journalnr: null,
+      advokat: null,
+      sagsbehandler: null,
+      skadelidte: null,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.journalnr).toBeUndefined();
+      expect(result.data.advokat).toBeUndefined();
+    }
+  });
+
+  it('initialValues materialiseres til undefined for tomme tekstfelter', () => {
+    const result = stamdataSchema.safeParse(STAMDATA_INITIAL_VALUES);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.journalnr).toBeUndefined();
+      expect(result.data.skadelidte).toBeUndefined();
+    }
+  });
+
+  it('afviser skadedato før fødselsdato', () => {
+    const result = stamdataSchema.safeParse({
+      skadelidteFodselsdato: '1990-01-01',
+      skadedato: '1989-12-31',
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe('erhvervsevnetabSchema', () => {
+  it('initialValues er gyldigt mod schema (round-trip)', () => {
+    const result = erhvervsevnetabSchema.safeParse(ERHVERVSEVNETAB_INITIAL_VALUES);
+    expect(result.success).toBe(true);
+  });
+
   it('accepterer værdier uden skadelidtes fødselsdato', () => {
     const result = erhvervsevnetabSchema.safeParse({
       beregningsdato: '2024-01-01',
@@ -219,9 +323,48 @@ describe('erhvervsevnetabSchema', () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it('afviser ugyldige kønsværdier', () => {
+    expect(erhvervsevnetabSchema.safeParse({ ...ERHVERVSEVNETAB_INITIAL_VALUES, koen: 'mand' }).success).toBe(false);
+    expect(erhvervsevnetabSchema.safeParse({ ...ERHVERVSEVNETAB_INITIAL_VALUES, koen: 'Andet' }).success).toBe(false);
+  });
 });
 
-describe('forsoergertabSchema', () => {
+describe('aslAfgoerelseRowSchema', () => {
+  const baseRow = {
+    id: 'r1',
+    afgoerelsesDato: undefined,
+    virkningsDato: undefined,
+    eetPct: undefined,
+    kapDato: undefined,
+    kapPct: undefined,
+    afgoerelseType: undefined,
+    tidlKapDato: undefined,
+  };
+
+  it('sætter fsTilbageholdtEet til Nej når feltet mangler', () => {
+    const result = aslAfgoerelseRowSchema.safeParse(baseRow);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.fsTilbageholdtEet).toBe('Nej');
+    }
+  });
+
+  it('afviser EET % og kapitaliseringsprocent der ikke er hele fem-procenter', () => {
+    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, eetPct: 7.5 }).success).toBe(false);
+    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, eetPct: 7 }).success).toBe(false);
+    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, kapPct: 12.5 }).success).toBe(false);
+    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, kapPct: 12 }).success).toBe(false);
+  });
+
+  it('behandler explicit 0 som udfyldt committed procentværdi', () => {
+    expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, eetPct: 0, kapPct: 0 }).success).toBe(true);
+    expect(isAslAfgoerelseRowEmpty({ ...baseRow, eetPct: 0, fsTilbageholdtEet: 'Nej' })).toBe(false);
+    expect(isAslAfgoerelseRowEmpty({ ...baseRow, kapPct: 0, fsTilbageholdtEet: 'Nej' })).toBe(false);
+  });
+});
+
+describe('forsoergertabSchema cross-field', () => {
   it('kræver køn ved beregning før 1. marts 2015', () => {
     const result = forsoergertabSchema.safeParse({
       efterladteFodselsdato: '1980-01-01',
@@ -233,7 +376,7 @@ describe('forsoergertabSchema', () => {
     expect(result.success).toBe(false);
   });
 
-  it('giver fejl på både beregningsdato og virkningsdato når beregningsdato er før virkningsdato', () => {
+  it('giver fejl på beregningsdato når den er før virkningsdato', () => {
     const result = forsoergertabSchema.safeParse({
       efterladteFodselsdato: '1980-01-01',
       beregningsdato: '2020-01-01',
@@ -246,8 +389,24 @@ describe('forsoergertabSchema', () => {
     if (!result.success) {
       const paths = result.error.issues.map((issue) => issue.path.join('.'));
       expect(paths).toContain('beregningsdato');
-      expect(paths).toContain('virkningsdato');
+      expect(paths).not.toContain('virkningsdato');
     }
+  });
+});
+
+describe('faellesAarsloenSchema', () => {
+  it('initialValues og positive beløb er gyldige', () => {
+    expect(faellesAarsloenSchema.safeParse(FAELLES_AARSLOEN_INITIAL_VALUES).success).toBe(true);
+    expect(faellesAarsloenSchema.safeParse({
+      aslAarsloen: { kind: 'number', value: 500000 },
+      ealAarsloen: { kind: 'number', value: 600000 },
+    }).success).toBe(true);
+  });
+
+  it('afviser nul, negative beløb og ukendte felter', () => {
+    expect(faellesAarsloenSchema.safeParse({ aslAarsloen: { kind: 'number', value: 0 } }).success).toBe(false);
+    expect(faellesAarsloenSchema.safeParse({ ealAarsloen: { kind: 'number', value: -1 } }).success).toBe(false);
+    expect(faellesAarsloenSchema.safeParse({ ukendt: 'felt' }).success).toBe(false);
   });
 });
 
@@ -436,18 +595,21 @@ describe('tableIsoDateCellString', () => {
 // ─── renteberegningSchema round-trip ─────────────────────────────────────────
 
 describe('renteberegningSchema', () => {
-  it('tom rentekravRows er gyldigt (minimalt gyldigt objekt)', () => {
+  it('tom rentekravRows afvises', () => {
     const result = renteberegningSchema.safeParse({ rentekravRows: [] });
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(false);
   });
 
-  it('tom rentekravRows er gyldigt', () => {
-    const result = renteberegningSchema.safeParse({ rentekravRows: [] });
+  it('initialValues er gyldigt mod schema (round-trip)', () => {
+    const result = renteberegningSchema.safeParse(createRenteberegningInitialValues());
     expect(result.success).toBe(true);
   });
 
   it('kommentarer normaliserer tom streng til undefined', () => {
-    const result = renteberegningSchema.safeParse({ rentekravRows: [], kommentarer: '   ' });
+    const result = renteberegningSchema.safeParse({
+      ...createRenteberegningInitialValues(),
+      kommentarer: '   ',
+    });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.kommentarer).toBeUndefined();
@@ -456,15 +618,15 @@ describe('renteberegningSchema', () => {
 
   it('afviser activeTab som ukendt felt', () => {
     const result = renteberegningSchema.safeParse({
+      ...createRenteberegningInitialValues(),
       activeTab: 'some-tab',
-      rentekravRows: [],
     });
     expect(result.success).toBe(false);
   });
 
   it('ukendt felt afvises (strict)', () => {
     const result = renteberegningSchema.safeParse({
-      rentekravRows: [],
+      ...createRenteberegningInitialValues(),
       ukendt: 'felt',
     });
     expect(result.success).toBe(false);
@@ -474,6 +636,11 @@ describe('renteberegningSchema', () => {
 // ─── varigeMenSchema round-trip ───────────────────────────────────────────────
 
 describe('varigeMenSchema', () => {
+  it('initialValues er gyldigt mod schema (round-trip)', () => {
+    const result = varigeMenSchema.safeParse(VARIGE_MEN_INITIAL_VALUES);
+    expect(result.success).toBe(true);
+  });
+
   it('accepterer tomme felter (alle optional)', () => {
     const result = varigeMenSchema.safeParse({
       mengrad: undefined,
@@ -516,6 +683,11 @@ describe('varigeMenSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('afviser méngrad 0 og decimalpunkt uden at trunkere', () => {
+    expect(varigeMenSchema.safeParse({ mengrad: 0 }).success).toBe(false);
+    expect(varigeMenSchema.safeParse({ mengrad: '15.5' }).success).toBe(false);
+  });
+
   it('afviser ukendt felt fodselsdato', () => {
     const result = varigeMenSchema.safeParse({
       mengrad: 10,
@@ -527,6 +699,11 @@ describe('varigeMenSchema', () => {
 });
 
 describe('forsoergertabSchema', () => {
+  it('initialValues er gyldigt mod schema (round-trip)', () => {
+    const result = forsoergertabSchema.safeParse(FORSOERGERTAB_INITIAL_VALUES);
+    expect(result.success).toBe(true);
+  });
+
   it('accepterer tomme felter (alle optional)', () => {
     const result = forsoergertabSchema.safeParse({
       efterladteFodselsdato: undefined,
@@ -552,6 +729,13 @@ describe('forsoergertabSchema', () => {
       tilkendtForPeriodeAar: 11,
     });
     expect(result.success).toBe(false);
+  });
+
+  it('afviser decimaltal i tilkendt periode og ugyldige kønsværdier', () => {
+    expect(forsoergertabSchema.safeParse({ tilkendtForPeriodeAar: 4.9 }).success).toBe(false);
+    expect(forsoergertabSchema.safeParse({ tilkendtForPeriodeAar: '4,9' }).success).toBe(false);
+    expect(forsoergertabSchema.safeParse({ koen: 'mand' }).success).toBe(false);
+    expect(forsoergertabSchema.safeParse({ koen: 'Andet' }).success).toBe(false);
   });
 
   it('afviser activeTab som ukendt felt', () => {
@@ -583,5 +767,34 @@ describe('aarsloenSchema (round-trip)', () => {
       loenPaaHelligdage: 'Almindelig løn',
     });
     expect(result.success).toBe(true);
+  });
+
+  it('accepterer minimal løntabelrække og afviser ukendte eller ugyldige felter', () => {
+    expect(aarsloenSchema.safeParse({
+      loenperiode: 'maaned',
+      tableData: [{ id: 'r1' }],
+      omregningTilFuldtAar: false,
+      fuldLoenUnderFerie: true,
+      retTilSjetteFerieuge: false,
+      loenPaaHelligdage: 'Almindelig løn',
+    }).success).toBe(true);
+
+    expect(aarsloenSchema.safeParse({
+      loenperiode: 'maaned',
+      tableData: [{ id: 'r1', ukendt: 'felt' }],
+      omregningTilFuldtAar: false,
+      fuldLoenUnderFerie: true,
+      retTilSjetteFerieuge: false,
+      loenPaaHelligdage: 'Almindelig løn',
+    }).success).toBe(false);
+
+    expect(aarsloenSchema.safeParse({
+      loenperiode: 'maaned',
+      tableData: [{ id: 'r1', col0_dag: 'ugyldig' }],
+      omregningTilFuldtAar: false,
+      fuldLoenUnderFerie: true,
+      retTilSjetteFerieuge: false,
+      loenPaaHelligdage: 'Almindelig løn',
+    }).success).toBe(false);
   });
 });

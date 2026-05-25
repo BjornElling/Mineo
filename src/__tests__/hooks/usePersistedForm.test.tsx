@@ -8,11 +8,12 @@ import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { undoRedoStore } from '../../stores/undoRedoStore';
 import { clearResolvedFieldErrorsCache } from '../../hooks/useFormPersistenceSelectors';
-import { faellesAarsloenSchema, stamdataSchema } from '../../schemas/formSchemas';
+import { erstatningsopgoerelseSchema, faellesAarsloenSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 type StamdataTestValues = PersistedSectionMap['stamdata'];
 
@@ -131,6 +132,46 @@ describe('usePersistedForm', () => {
 
     expect(captured.values).toEqual({ ...committedInitialValues, journalnr: 'Subset' });
     expect(formPersistenceStore.getState().sections.stamdata).toEqual({ ...committedInitialValues, journalnr: 'Subset' });
+  });
+
+  it('materialiserer subset-return oven på committed sektion med genuint fraværende default-felter', () => {
+    const eoInitialValues = createErstatningsopgoerelseInitialValues();
+    const oldCommittedValues = { ...eoInitialValues };
+    delete (oldCommittedValues as Partial<typeof eoInitialValues>).allowReguleringMedUdloebMedMaaneder;
+    const captured: {
+      setValues: UsePersistedFormReturn<typeof eoInitialValues>['setValues'] | null;
+      values: typeof eoInitialValues | null;
+    } = {
+      setValues: null,
+      values: null,
+    };
+
+    const Capture = () => {
+      const form = usePersistedForm(erstatningsopgoerelseSchema, 'erstatningsopgoerelse', eoInitialValues);
+      captured.setValues = form.setValues;
+      captured.values = form.values;
+      return null;
+    };
+
+    renderWithProviders(<Capture />);
+
+    act(() => {
+      formPersistenceStore.getState().__setSectionUnsafe('erstatningsopgoerelse', oldCommittedValues);
+    });
+
+    act(() => {
+      captured.setValues!(() => ({ eoNummer: 'Patch' }));
+    });
+
+    expect(captured.values).toMatchObject({
+      ...eoInitialValues,
+      eoNummer: 'Patch',
+      allowReguleringMedUdloebMedMaaneder: 6,
+    });
+    expect(formPersistenceStore.getState().sections.erstatningsopgoerelse).toMatchObject({
+      eoNummer: 'Patch',
+      allowReguleringMedUdloebMedMaaneder: 6,
+    });
   });
 
   it('bryder kun formVersion ved autoritativ replace og reset', () => {

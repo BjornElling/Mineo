@@ -9,7 +9,13 @@ import { getStorageKey } from '../../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import type { PersistedData } from '../../types/persistence';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
-import { getAuthoritativeSnapshotEpochSnapshot, usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
+import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
+import {
+  getAuthoritativeSnapshotEpochSnapshot,
+  useAuthoritativeSnapshotEpochSelector,
+  useCombinedSectionRevisionSelector,
+  usePersistedSectionSelector,
+} from '../../hooks/useFormPersistenceSelectors';
 
 const stampStamdata = (skadelidte: string) => ({
   journalnr: '',
@@ -134,6 +140,35 @@ describe('FormPersistenceContext characterization', () => {
     );
 
     expect(firstRenderValues[0]).toBe(2026);
+  });
+
+  it('markerer ikke hydreret sessionStorage-data som ikke-gemte ændringer uden efterfølgende commit', () => {
+    const payload: PersistedData = {
+      version: PERSISTED_DATA_VERSION,
+      timestamp: Date.now(),
+      data: stampStamdata('Hydreret sag'),
+    };
+    sessionStorage.setItem(getStorageKey('stamdata'), JSON.stringify(payload));
+    const observedHasUnsavedChanges: boolean[] = [];
+
+    const CaptureUnsavedState = () => {
+      const combinedSectionRevision = useCombinedSectionRevisionSelector();
+      const authoritativeSnapshotEpoch = useAuthoritativeSnapshotEpochSelector();
+      const { hasUnsavedChanges } = useUnsavedChangesGuard({
+        combinedSectionRevision,
+        authoritativeSnapshotEpoch,
+      });
+      observedHasUnsavedChanges.push(hasUnsavedChanges);
+      return null;
+    };
+
+    render(
+      <FormPersistenceProvider>
+        <CaptureUnsavedState />
+      </FormPersistenceProvider>
+    );
+
+    expect(observedHasUnsavedChanges.at(-1)).toBe(false);
   });
 
   it('increments field-error revision on set/clear field error', async () => {

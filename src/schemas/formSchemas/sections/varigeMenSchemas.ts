@@ -1,11 +1,8 @@
 import { z } from 'zod';
-import { optionalIsoDateString, percentageDecimal } from '../baseSchemas';
+import { optionalIsoDateString, positiveWholePercentage } from '../baseSchemas';
 
 export const varigeMenSchema = z.object({
-  mengrad: percentageDecimal.refine(
-    (value) => value === undefined || Number.isInteger(value),
-    'Méngrad skal være et heltal'
-  ),
+  mengrad: positiveWholePercentage('Méngrad'),
   beregningsdato: optionalIsoDateString,
 }).strict();
 

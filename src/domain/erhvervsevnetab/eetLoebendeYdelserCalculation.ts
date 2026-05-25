@@ -24,7 +24,7 @@ import { ceilNearest12, round0, round2, round4, roundNearest1000 } from '../../u
 import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import { optaelMaanederPraecis } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
-import { ASL_IDENTICAL_AFGOERELSER_ID, collectIncompleteRowIssues, hasIdenticalAfgoerelser, hasTextValue, isAslAfgoerelseRowEmpty, parsePercentDraft } from './eetAslAfgoerelser';
+import { ASL_IDENTICAL_AFGOERELSER_ID, collectIncompleteRowIssues, hasIdenticalAfgoerelser, hasTextValue, isAslAfgoerelseRowEmpty, parseCommittedPercent } from './eetAslAfgoerelser';
 import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
 
 export type EetLoebendePeriodeRow = Readonly<{
@@ -142,8 +142,8 @@ type AfgoerelseTransition = Readonly<{
 const toIssue = (id: string, message: string): EetIssue => ({ id, severity: 'error', message });
 const toWarning = (id: string, message: string): EetIssue => ({ id, severity: 'warning', message });
 
-const parsePct = (raw: string | number | undefined): number | undefined => {
-  const parsed = parsePercentDraft(raw);
+const parsePct = (raw: number | undefined): number | undefined => {
+  const parsed = parseCommittedPercent(raw);
   // 0 % giver ingen løbende ydelse og behandles derfor som ikke-deltagende række.
   if (parsed === undefined || parsed === 0) return undefined;
   return parsed;

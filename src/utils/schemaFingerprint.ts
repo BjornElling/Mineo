@@ -1,32 +1,35 @@
 import { toJSONSchema, z } from 'zod';
+import { fnv1a32 } from './fnv1a32';
 
 type ZodType = z.ZodType;
 
-const stableStringify = (value: unknown): string => {
+const stableStringify = (value: unknown, seen = new WeakSet<object>()): string => {
   if (value === null) return 'null';
   if (value === undefined) return 'undefined';
   if (typeof value === 'string') return JSON.stringify(value);
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   if (value instanceof RegExp) return `/${value.source}/${value.flags}`;
   if (Array.isArray(value)) {
-    return `[${value.map(stableStringify).join(',')}]`;
+    if (seen.has(value)) return '"[Circular]"';
+    seen.add(value);
+    const serialized = `[${value.map((item) => stableStringify(item, seen)).join(',')}]`;
+    seen.delete(value);
+    return serialized;
   }
   if (typeof value === 'object') {
+    if (seen.has(value)) return '"[Circular]"';
+    seen.add(value);
     const record = value as Record<string, unknown>;
     const keys = Object.keys(record).sort();
-    const parts = keys.map((key) => `${key}:${stableStringify(record[key])}`);
+    const parts = keys.map((key) => `${JSON.stringify(key)}:${stableStringify(record[key], seen)}`);
+    seen.delete(value);
     return `{${parts.join(',')}}`;
   }
-  return typeof value;
+  throw new Error(`stableStringify: unsupported type ${typeof value}`);
 };
 
 const hashString = (value: string): string => {
-  let hash = 2166136261;
-  for (const ch of value) {
-    hash ^= ch.codePointAt(0) ?? 0;
-    hash = Math.imul(hash, 16777619);
-  }
-  return `fnv1a-${(hash >>> 0).toString(16)}`;
+  return `fnv1a-${fnv1a32(value).toString(16).padStart(8, '0')}`;
 };
 
 export const computeSchemaFingerprint = (schemas: Record<string, ZodType>): string => {
@@ -36,7 +39,7 @@ export const computeSchemaFingerprint = (schemas: Record<string, ZodType>): stri
     // skal fingerprint-drift derfor klassificeres manuelt som enten reel
     // persisted schema-ændring eller toolchain-formatdrift.
     const jsonSchema = toJSONSchema(schemas[key], { io: 'input', unrepresentable: 'any' });
-    return `${key}:${stableStringify(jsonSchema)}`;
+    return `${JSON.stringify(key)}:${stableStringify(jsonSchema)}`;
   }).join('|');
   return hashString(body);
 };

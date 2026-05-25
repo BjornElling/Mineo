@@ -42,6 +42,7 @@ import {
   type RowRemovalFocusPlan,
 } from './gridCore/tableRowFocus';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 export type StandardLoenTableSatser = {
   ferie?: number;
@@ -59,7 +60,7 @@ export type StandardLoenTableProps = {
   onValidationChange?: (summary: StandardLoenTableValidationSummary) => void;
   externalCellErrorMessagesByCellKey?: Readonly<Record<string, string>>;
   useSmallFont?: boolean;
-  saveOrderPath?: string;
+  saveOrderPath?: TableSaveOrderPath;
   calculateDerivedRow?: (row: StandardLoenTableRow) => StandardLoenRowDerived;
 };
 

@@ -31,8 +31,8 @@ const buildRow = (patch: Partial<AslAfgoerelseRow>): AslAfgoerelseRow => ({
 describe('validateKapPctByAfgoerelsestype', () => {
   it('anvender de almindelige kapitaliseringsregler ved endelig afgørelse mere end 2 år før folkepension', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '80', kapPct: '55' }),
-      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '80', kapPct: '55' })],
+      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 80, kapPct: 55 }),
+      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 80, kapPct: 55 })],
       toISODateString('2025-01-01'),
       toISODateString('1965-01-01')
     );
@@ -41,8 +41,8 @@ describe('validateKapPctByAfgoerelsestype', () => {
 
   it('afviser endelig kapitalisering mere end 2 år før folkepension når kap % overstiger EET %', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '40', kapPct: '45' }),
-      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '40', kapPct: '45' })],
+      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 40, kapPct: 45 }),
+      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 40, kapPct: 45 })],
       toISODateString('2025-01-01'),
       toISODateString('1965-01-01')
     );
@@ -51,8 +51,8 @@ describe('validateKapPctByAfgoerelsestype', () => {
 
   it('kræver fortsat fuld kapitalisering ved endelig afgørelse under 50 % mere end 2 år før folkepension', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '40', kapPct: '35' }),
-      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: '40', kapPct: '35' })],
+      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 40, kapPct: 35 }),
+      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 40, kapPct: 35 })],
       toISODateString('2025-01-01'),
       toISODateString('1965-01-01')
     );
@@ -61,35 +61,35 @@ describe('validateKapPctByAfgoerelsestype', () => {
 
   it('afviser delvist endelig når kap % er under 5 %', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Delvist endelig', eetPct: '40', kapPct: '4' })
+      buildRow({ afgoerelseType: 'Delvist endelig', eetPct: 40, kapPct: 4 })
     );
     expect(error).toContain('5 %');
   });
 
   it('afviser delvist endelig når kap % overstiger EET %', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Delvist endelig', eetPct: '30', kapPct: '31' })
+      buildRow({ afgoerelseType: 'Delvist endelig', eetPct: 30, kapPct: 31 })
     );
     expect(error).toContain('mere end det samlede EET');
   });
 
   it('accepterer delvist endelig når kap % mangler (fejl vises på andre faner)', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Delvist endelig', eetPct: '40', kapPct: undefined })
+      buildRow({ afgoerelseType: 'Delvist endelig', eetPct: 40, kapPct: undefined })
     );
     expect(error).toBeUndefined();
   });
 
   it('afviser midlertidig eller tom type når kap % er over 0', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: undefined, eetPct: '40', kapPct: '5' })
+      buildRow({ afgoerelseType: undefined, eetPct: 40, kapPct: 5 })
     );
     expect(error).toContain('må ikke udfyldes');
   });
 
   it('afviser midlertidig eller tom type når kap % er udfyldt (også 0)', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Midlertidig', eetPct: '40', kapPct: '0' })
+      buildRow({ afgoerelseType: 'Midlertidig', eetPct: 40, kapPct: 0 })
     );
     expect(error).toContain('må ikke udfyldes');
   });
@@ -155,14 +155,14 @@ describe('validateKapPctByAfgoerelsestype', () => {
 
   it('accepterer gyldig endelig under 50 når kap % matcher EET %', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', eetPct: '40', kapPct: '40' })
+      buildRow({ afgoerelseType: 'Endelig', eetPct: 40, kapPct: 40 })
     );
     expect(error).toBeUndefined();
   });
 
   it('suspenderer EET-afhængige kap %-regler ved EET % = 0', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', eetPct: '0', kapPct: '15' })
+      buildRow({ afgoerelseType: 'Endelig', eetPct: 0, kapPct: 15 })
     );
     expect(error).toBeUndefined();
   });
@@ -172,15 +172,15 @@ describe('validateKapPctByAfgoerelsestype', () => {
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
       afgoerelseType: 'Endelig',
-      eetPct: '25',
-      kapPct: '25',
+      eetPct: 25,
+      kapPct: 25,
     });
     const current = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-01-2025',
       afgoerelseType: 'Endelig',
-      eetPct: '40',
-      kapPct: '15',
+      eetPct: 40,
+      kapPct: 15,
     });
 
     const error = validateKapPctByAfgoerelsestype(current, [previous, current]);
@@ -192,15 +192,15 @@ describe('validateKapPctByAfgoerelsestype', () => {
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
       afgoerelseType: 'Delvist endelig',
-      eetPct: '80',
-      kapPct: '30',
+      eetPct: 80,
+      kapPct: 30,
     });
     const current = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-03-2024',
       afgoerelseType: 'Delvist endelig',
-      eetPct: '80',
-      kapPct: '25',
+      eetPct: 80,
+      kapPct: 25,
     });
 
     const error = validateKapPctByAfgoerelsestype(current, [previous, current]);
@@ -212,15 +212,15 @@ describe('validateKapPctByAfgoerelsestype', () => {
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
       afgoerelseType: 'Delvist endelig',
-      eetPct: '40',
-      kapPct: '20',
+      eetPct: 40,
+      kapPct: 20,
     });
     const current = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-03-2024',
       afgoerelseType: 'Delvist endelig',
-      eetPct: '40',
-      kapPct: '25',
+      eetPct: 40,
+      kapPct: 25,
     });
 
     const error = validateKapPctByAfgoerelsestype(current, [previous, current]);
@@ -232,22 +232,22 @@ describe('validateKapPctByAfgoerelsestype', () => {
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
       afgoerelseType: 'Delvist endelig',
-      eetPct: '80',
-      kapPct: '10',
+      eetPct: 80,
+      kapPct: 10,
     });
     const previousB = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-02-2024',
       afgoerelseType: 'Delvist endelig',
-      eetPct: '80',
-      kapPct: '20',
+      eetPct: 80,
+      kapPct: 20,
     });
     const current = buildRow({
       id: 'r2',
       afgoerelsesDato: '01-03-2024',
       afgoerelseType: 'Delvist endelig',
-      eetPct: '80',
-      kapPct: '25',
+      eetPct: 80,
+      kapPct: 25,
     });
 
     const error = validateKapPctByAfgoerelsestype(current, [previousA, previousB, current]);
@@ -259,15 +259,15 @@ describe('validateKapPctByAfgoerelsestype', () => {
       id: 'r2',
       afgoerelsesDato: '01-05-2024',
       afgoerelseType: 'Endelig',
-      eetPct: '50',
-      kapPct: '20',
+      eetPct: 50,
+      kapPct: 20,
     });
     const current = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-03-2024',
       afgoerelseType: 'Endelig',
-      eetPct: '50',
-      kapPct: '35',
+      eetPct: 50,
+      kapPct: 35,
     });
 
     const error = validateKapPctByAfgoerelsestype(current, [current, later]);
@@ -279,15 +279,15 @@ describe('validateKapPctByAfgoerelsestype', () => {
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
       afgoerelseType: 'Delvist endelig',
-      eetPct: '80',
-      kapPct: '20',
+      eetPct: 80,
+      kapPct: 20,
     });
     const current = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-07-2025',
       afgoerelseType: 'Endelig',
-      eetPct: '80',
-      kapPct: '40',
+      eetPct: 80,
+      kapPct: 40,
     });
 
     const error = validateKapPctByAfgoerelsestype(
@@ -304,15 +304,15 @@ describe('validateKapPctByAfgoerelsestype', () => {
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
       afgoerelseType: 'Delvist endelig',
-      eetPct: '80',
-      kapPct: '20',
+      eetPct: 80,
+      kapPct: 20,
     });
     const current = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-07-2025',
       afgoerelseType: 'Endelig',
-      eetPct: '80',
-      kapPct: '60',
+      eetPct: 80,
+      kapPct: 60,
     });
 
     const error = validateKapPctByAfgoerelsestype(
@@ -330,17 +330,17 @@ describe('validateEetPctByPriorKapPct', () => {
     const previousA = buildRow({
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
-      kapPct: '10',
+      kapPct: 10,
     });
     const previousB = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-02-2024',
-      kapPct: '20',
+      kapPct: 20,
     });
     const current = buildRow({
       id: 'r2',
       afgoerelsesDato: '01-03-2024',
-      eetPct: '25',
+      eetPct: 25,
     });
 
     const error = validateEetPctByPriorKapPct(current, [previousA, previousB, current]);
@@ -351,17 +351,17 @@ describe('validateEetPctByPriorKapPct', () => {
     const previousA = buildRow({
       id: 'r0',
       afgoerelsesDato: '01-01-2024',
-      kapPct: '10',
+      kapPct: 10,
     });
     const previousB = buildRow({
       id: 'r1',
       afgoerelsesDato: '01-02-2024',
-      kapPct: '20',
+      kapPct: 20,
     });
     const current = buildRow({
       id: 'r2',
       afgoerelsesDato: '01-03-2024',
-      eetPct: '30',
+      eetPct: 30,
     });
 
     const error = validateEetPctByPriorKapPct(current, [previousA, previousB, current]);
@@ -372,12 +372,12 @@ describe('validateEetPctByPriorKapPct', () => {
     const later = buildRow({
       id: 'r3',
       afgoerelsesDato: '01-05-2024',
-      kapPct: '40',
+      kapPct: 40,
     });
     const current = buildRow({
       id: 'r2',
       afgoerelsesDato: '01-03-2024',
-      eetPct: '10',
+      eetPct: 10,
     });
 
     const error = validateEetPctByPriorKapPct(current, [current, later]);
@@ -471,9 +471,9 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
         afgoerelsesDato: '10-01-2025',
         virkningsDato: '09-01-2025',
         afgoerelseType: 'Endelig',
-        eetPct: '40',
+        eetPct: 40,
         kapDato: '09-01-2025',
-        kapPct: '40',
+        kapPct: 40,
       }),
     ];
 
@@ -488,9 +488,9 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
         afgoerelsesDato: '01-07-2024',
         virkningsDato: '01-07-2024',
         afgoerelseType: 'Endelig',
-        eetPct: '40',
+        eetPct: 40,
         kapDato: '02-07-2024',
-        kapPct: '40',
+        kapPct: 40,
         tidlKapDato: '01-01-2024',
       }),
     ];
@@ -541,9 +541,9 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
         afgoerelsesDato: '01-07-2025',
         virkningsDato: '01-07-2025',
         afgoerelseType: 'Delvist endelig',
-        eetPct: '80',
+        eetPct: 80,
         kapDato: '01-10-2025',
-        kapPct: '80',
+        kapPct: 80,
       }),
     ];
 
@@ -569,9 +569,9 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
         afgoerelsesDato: '01-07-2025',
         virkningsDato: '01-07-2025',
         afgoerelseType: 'Endelig',
-        eetPct: '40',
+        eetPct: 40,
         kapDato: '01-10-2025',
-        kapPct: '40',
+        kapPct: 40,
       }),
     ];
 
@@ -605,17 +605,17 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
         afgoerelsesDato: '01-01-2024',
         virkningsDato: '01-01-2024',
         afgoerelseType: 'Delvist endelig',
-        eetPct: '80',
-        kapPct: '20',
+        eetPct: 80,
+        kapPct: 20,
       }),
       buildRow({
         id: 'r1',
         afgoerelsesDato: '01-07-2025',
         virkningsDato: '01-07-2025',
         afgoerelseType: 'Endelig',
-        eetPct: '80',
+        eetPct: 80,
         kapDato: '01-07-2025',
-        kapPct: '40',
+        kapPct: 40,
       }),
     ];
 

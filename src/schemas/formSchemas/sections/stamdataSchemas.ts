@@ -10,6 +10,16 @@ export const stamdataSchema = z.object({
   skadelidteFodselsdato: optionalIsoDateString,
   skadestype: z.preprocess(normalizeEmptyToUndefined, skadestypeEnum.optional()),
   skadedato: optionalIsoDateString,
-}).strict();
+}).strict().superRefine((value, ctx) => {
+  if (
+    value.skadelidteFodselsdato !== undefined &&
+    value.skadedato !== undefined &&
+    value.skadedato < value.skadelidteFodselsdato
+  ) {
+    const message = 'Skadedato er før fødselsdato.';
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['skadedato'], message });
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['skadelidteFodselsdato'], message });
+  }
+});
 
 export type StamdataValues = z.infer<typeof stamdataSchema>;

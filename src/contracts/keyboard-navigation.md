@@ -4,6 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Implementeret i:** `src/components/layout/Container.tsx`
+**Senest verificeret mod kode:** 2026-05-25
 
 ---
 
