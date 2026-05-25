@@ -1,6 +1,6 @@
 import React from 'react';
 import { Alert, AlertTitle, Button, Box, Typography } from '@mui/material';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { ErrorOutlined as ErrorOutlineIcon } from '@mui/icons-material';
 import { getUserMessage } from '../../utils/errorMessages';
 
 interface ComputationErrorAlertProps {
