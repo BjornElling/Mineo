@@ -67,13 +67,14 @@ export const useTwoStageInputActivation = <TElement extends HTMLElement>(
   const handleMouseDown = React.useCallback((e: React.MouseEvent<TElement>) => {
     if (disabled) return;
     if (singleStageClick) {
-      mouseDownWasFocusedRef.current = true;
+      openEditor('click');
+      e.stopPropagation();
       return;
     }
     const active = document.activeElement;
     mouseDownWasFocusedRef.current =
       active instanceof Node && e.currentTarget instanceof Node && e.currentTarget.contains(active);
-  }, [disabled, singleStageClick]);
+  }, [disabled, singleStageClick, openEditor]);
 
   const handleClick = React.useCallback((_e: React.MouseEvent<TElement>) => {
     if (disabled) return;

@@ -10,9 +10,15 @@ import MinProcesrenteCalculatorPage from '../../components/pages/minprocesrente/
 
 const theme = buildTheme('light');
 
+// index.css sætter body og #root til overflow:hidden (nødvendigt for Mineo-desktop).
+// Det importeres EFTER minprocesrente.css via bootstrapClientApp og overskriver CSS-filens
+// @media (pointer:coarse)-regler, fordi cascade-rækkefølgen afgøres af load-tidspunktet.
+// Inline styles (højere specificitet end stylesheets) løser dette deterministisk.
 const useMobileScrollFix = () => {
   React.useEffect(() => {
-    const isTouchDevice = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+    const isTouchDevice =
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(pointer: coarse)').matches;
     if (!isTouchDevice) return;
 
     const body = document.body;

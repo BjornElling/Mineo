@@ -18,7 +18,7 @@ const focusInAct = async (element: HTMLElement) => {
 describe('tableKeyboardNavigation immediateEditing', () => {
   const TEST_TIMEOUT_MS = 15000;
 
-  it('standard two-step flow: første klik sætter kun fokus, andet klik åbner editor', async () => {
+  it('standard two-step flow: første pointerDown sætter fokus men åbner ikke editor', async () => {
     render(
       <StandardLooseTable>
         <tbody>
@@ -33,15 +33,11 @@ describe('tableKeyboardNavigation immediateEditing', () => {
 
     const input = screen.getByRole('textbox');
 
-    // Første pointerDown: sætter fokus men åbner ikke editor (input er ikke editerbart endnu)
-    await focusInAct(input);
+    // Første pointerDown uden forudgående fokus: fokus sættes, men editor åbnes ikke.
+    // Input skal forblive readOnly (editor er ikke åben) efter første tryk.
     await pointerDownInAct(input);
 
-    // Input er stadig closed (ikke editerbart) — men fokuseret
-    // Ved standard to-trins-flow kræves andet pointerDown for at åbne
-    // Vi verificerer ved at tjekke at data-mineo-immediate-editing IKKE er sat
-    const table = input.closest('table');
-    expect(table?.dataset.mineoImmediateEditing).toBeUndefined();
+    expect(input).toHaveAttribute('readonly');
   }, TEST_TIMEOUT_MS);
 
   it('immediateEditing=true sætter data-mineo-immediate-editing attribut på table-elementet', () => {
@@ -98,6 +94,30 @@ describe('tableKeyboardNavigation immediateEditing', () => {
     await pointerDownInAct(input);
 
     // Editor er åben: input er ikke readOnly
+    expect(input).not.toHaveAttribute('readonly');
+  }, TEST_TIMEOUT_MS);
+
+  it('immediateEditing=true: click-event efter pointerDown nulstiller ikke editor (pointerDown→click sekvens)', async () => {
+    render(
+      <StandardLooseTable immediateEditing={true}>
+        <tbody>
+          <tr data-mineo-row-id="r1">
+            <td>
+              <TableIntegerInput gridCell={{ rowId: 'r1', colIndex: 0 }} value="42" />
+            </td>
+          </tr>
+        </tbody>
+      </StandardLooseTable>
+    );
+
+    const input = screen.getByRole('textbox');
+
+    // pointerDown åbner editor
+    await pointerDownInAct(input);
+    expect(input).not.toHaveAttribute('readonly');
+
+    // click-event (som browser altid sender efter pointerDown) må ikke lukke eller nulstille editor
+    await act(async () => { fireEvent.click(input); });
     expect(input).not.toHaveAttribute('readonly');
   }, TEST_TIMEOUT_MS);
 

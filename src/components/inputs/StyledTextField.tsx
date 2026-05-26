@@ -38,6 +38,7 @@ export type StyledTextFieldProps = {
 
   multiline?: boolean;
   rows?: number;
+  singleStageClick?: boolean;
 
   /**
    * Draft callback (typing only).
@@ -108,6 +109,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       sx,
       multiline = false,
       rows,
+      singleStageClick = false,
       onDraftChange,
       onCommit,
       validateOnCommit,
@@ -227,12 +229,14 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
 
     const inputActivation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
+      singleStageClick,
       getDraftForKey,
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
     });
 
     const textAreaActivation = useTwoStageInputActivation<HTMLTextAreaElement>({
       disabled: Boolean(disabled),
+      singleStageClick,
       getDraftForKey,
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
     });

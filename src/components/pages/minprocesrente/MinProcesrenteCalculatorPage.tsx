@@ -20,6 +20,7 @@ const ignoreStandaloneForwardedError = (): void => {
 const MinProcesrenteCalculatorPage = React.memo(() => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const mobileContentFontSize = '12px';
   const initialValues = React.useMemo(() => createRenteberegningInitialValues(), []);
   const { values, setValues, setFieldValue, formVersion } = usePersistedForm(
     renteberegningSchema,
@@ -110,6 +111,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
           // CSS custom properties for rækkehøjde og linjeafstand
           '--min-height-row': '28px',
           '--spacing-row-vertical': '2px',
+          '--minprocesrente-mobile-content-font-size': mobileContentFontSize,
 
           '& .page-title': {
             fontSize: '20px',
@@ -125,7 +127,13 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
             margin: '16px 0',
           },
           '& .row--text': {
-            fontSize: '13px',
+            fontSize: 'var(--minprocesrente-mobile-content-font-size)',
+          },
+          '& .content-box--beregningsdato .row--text': {
+            fontSize: 'var(--minprocesrente-mobile-content-font-size)',
+          },
+          '& .MuiTableCell-root, & .MuiInputBase-root, & .MuiInputBase-input, & textarea.MuiInputBase-input': {
+            fontSize: 'var(--minprocesrente-mobile-content-font-size)',
           },
           '& .row--label-right-hover': {
             flexDirection: 'row',

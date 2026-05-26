@@ -125,7 +125,21 @@ const RenteberegningTab = React.memo(({
                 inputRef={beregningsdatoInputRef}
                 width={isMobile ? 110 : 130}
                 singleStageClick={isMobile}
-                sx={isMobile ? { '& .MuiInputBase-input': { fontSize: '12px', textAlign: 'center' } } : undefined}
+                sx={isMobile
+                  ? {
+                    '& .MuiInputBase-root': {
+                      fontSize: 'var(--minprocesrente-mobile-content-font-size)',
+                      fontVariantNumeric: 'tabular-nums',
+                      lineHeight: 'var(--line-height-base)',
+                    },
+                    '& .MuiInputBase-input': {
+                      fontSize: 'var(--minprocesrente-mobile-content-font-size)',
+                      fontVariantNumeric: 'tabular-nums',
+                      lineHeight: 'var(--line-height-base)',
+                      textAlign: 'center',
+                    },
+                  }
+                  : undefined}
               />
               <InsertTodayDateButton
                 onCommit={(today) => {
@@ -187,8 +201,9 @@ const RenteberegningTab = React.memo(({
           onCommit={onKommentarerCommit}
           multiline
           rows={isMobile ? 3 : 4}
+          singleStageClick={isMobile}
           placeholder="Indtast eventuelle kommentarer her..."
-          sx={isMobile ? { fontSize: '13px', '& .MuiInputBase-input': { fontSize: '13px' } } : undefined}
+          sx={isMobile ? { fontSize: 'var(--minprocesrente-mobile-content-font-size)' } : undefined}
         />
       </ContentBoxComponent>
 

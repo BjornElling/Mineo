@@ -336,7 +336,18 @@ const BeregnetRenteTable = React.memo(
           '& .MuiTableCell-root': {
             whiteSpace: 'nowrap',
             verticalAlign: 'middle',
-            ...(isMobile && { paddingLeft: '6px', paddingRight: '6px', paddingTop: '4px', paddingBottom: '4px', fontSize: '12px' }),
+            ...(isMobile && {
+              paddingLeft: '6px',
+              paddingRight: '6px',
+              paddingTop: '4px',
+              paddingBottom: '4px',
+              fontSize: 'var(--minprocesrente-mobile-content-font-size)',
+            }),
+            ...(isMobile && {
+              '& .MuiInputBase-root, & .MuiInputBase-input': {
+                fontSize: 'var(--minprocesrente-mobile-content-font-size)',
+              },
+            }),
           },
           '& thead th': {
             textAlign: 'center',

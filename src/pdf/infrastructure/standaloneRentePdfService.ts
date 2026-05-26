@@ -79,9 +79,6 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
       creator: 'mineo.dk',
     });
 
-    let firstStart: Date | null = null;
-    let firstEnd: Date | null = null;
-
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
       if (i > 0) {
@@ -97,11 +94,6 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
         throw new Error('Ingen perioder fundet for renteberegning');
       }
 
-      if (i === 0) {
-        firstStart = startDate;
-        firstEnd = endDate;
-      }
-
       writeRentePdfContent(writer, row.beloeb, startDate, endDate, row.periods, {
         visBrevhoved: false,
         stamdata: null,
@@ -113,6 +105,8 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
     writer.addFooter();
 
     const firstRow = rows[0];
+    const firstStart = parseDanishDate(firstRow.actualInterestDate);
+    const firstEnd = parseDanishDate(firstRow.beregningsdato);
     const baseTitle = firstStart && firstEnd
       ? buildRentePdfBaseTitle(firstRow.beloeb, firstStart, firstEnd)
       : 'Procesrente-specifikationer';

@@ -654,6 +654,11 @@ export const handleTableClickCapture = (e: React.MouseEvent<HTMLTableElement>) =
   pointerDownFocusedCellByTable.delete(table);
   if (!focusedCellAtPointerDown) return;
 
+  // immediateEditing: openEditing er allerede kaldt i pointerDown — klik-eventet skal ikke åbne igen.
+  // Denne guard er nødvendig fordi React state-opdateringen fra openEditing kan være asynkron,
+  // så getEditingCell() nedenfor ikke nødvendigvis returnerer den nye celle endnu.
+  if (table.dataset.mineoImmediateEditing === 'true') return;
+
   const target = e.target instanceof HTMLElement ? e.target : null;
   if (!target) return;
   if (!table.contains(target)) return;
