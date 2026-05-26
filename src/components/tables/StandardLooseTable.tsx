@@ -24,11 +24,13 @@ export type StandardLooseTableProps = Omit<TableProps, 'sx'> & Readonly<{
    */
   useSmallFont?: boolean;
   sx?: SxProps<Theme>;
+  immediateEditing?: boolean;
 }>;
 
 const StandardLooseTable = React.memo(({
   useSmallFont = false,
   sx,
+  immediateEditing = false,
   onKeyDownCapture,
   onBlurCapture,
   onClickCapture,
@@ -63,6 +65,7 @@ const StandardLooseTable = React.memo(({
         ref={internalTableRef}
         size="small"
         data-mineo-table-navigation="true"
+        data-mineo-immediate-editing={immediateEditing ? 'true' : undefined}
         onKeyDownCapture={(e) => {
           handleTableKeyDownCapture(e);
           onKeyDownCapture?.(e);

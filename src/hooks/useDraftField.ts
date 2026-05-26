@@ -157,6 +157,9 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       }
   >({ active: false });
   const pendingHistoryValueResyncRef = React.useRef(false);
+  // Tracks the `value` prop at the time we last preserved an invalid draft due to touched+error.
+  // When `value` changes externally (e.g. InsertTodayDateButton), the guard is bypassed.
+  const valueAtInvalidDraftPreserveRef = React.useRef<TModel>(value);
 
   const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
     const committedAtCallTime = committedValueRef.current;
@@ -221,6 +224,16 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       (active === el || (el instanceof HTMLElement && active instanceof Node && el.contains(active)));
     const isEffectivelyFocused = isFocused || hasPhysicalFocus;
 
+    // External value update while field holds an invalid draft (e.g. InsertTodayDateButton):
+    // clear the error state so the resync below can sync to the new value.
+    if (touched && error !== undefined && value !== valueAtInvalidDraftPreserveRef.current) {
+      setTouched(false);
+      setError(undefined);
+      valueAtInvalidDraftPreserveRef.current = value;
+      setDraftState(formatted);
+      return;
+    }
+
     setDraftState((prev) => {
       const pending = pendingValueResyncRef.current;
 
@@ -254,7 +267,10 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       if (isEffectivelyFocused) return prev;
       // If the last commit attempt failed, preserve the user's invalid draft even while unfocused.
       // This prevents "silent rollback" to the last committed value on blur.
-      if (touched && error !== undefined) return prev;
+      if (touched && error !== undefined) {
+        valueAtInvalidDraftPreserveRef.current = value;
+        return prev;
+      }
 
       return prev === formatted ? prev : formatted;
     });

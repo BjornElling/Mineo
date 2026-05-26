@@ -42,6 +42,7 @@ export type TableDateInputProps = Readonly<{
    */
   twoDigitYearPolicy?: TableYearPolicy;
   placeholder?: string;
+  inputMode?: 'text' | 'numeric' | 'decimal' | 'tel';
 
   /**
    * Draft change (typing only).
@@ -86,6 +87,7 @@ const TableDateInput = React.memo(
     noValidRangeCause,
     twoDigitYearPolicy = 'infer',
     placeholder = 'dd-mm-åååå',
+    inputMode = 'text',
     externalErrorMessage,
     inputRef,
     sx,
@@ -198,7 +200,7 @@ const TableDateInput = React.memo(
               id: core.a11yInputId,
               readOnly: core.isReadOnly,
               tabIndex: locked ? -1 : undefined,
-              inputMode: 'text',
+              inputMode,
               'data-mineo-grid-locked': locked ? 'true' : undefined,
               'data-mineo-undo-focus-token': core.undoFocusToken,
               'data-mineo-undo-field-path': core.gridCellKey ?? undefined,

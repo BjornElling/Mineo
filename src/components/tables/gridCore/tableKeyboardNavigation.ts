@@ -636,7 +636,14 @@ export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableEle
 
   const activeCell = physicalFocusByTable.get(table)?.cell ?? null;
   const editing = core.getEditingCell();
-  if (isSameCell(activeCell, cell) && !isSameCell(editing, cell)) {
+  const immediateEditing = table.dataset.mineoImmediateEditing === 'true';
+  if (immediateEditing) {
+    if (!isSameCell(editing, cell)) {
+      core.openEditing(cell, 'pointer');
+    }
+    // Sæt flag så handleTableClickCapture ikke åbner editing igen (editing-guard dækker det).
+    pointerDownFocusedCellByTable.set(table, cell);
+  } else if (isSameCell(activeCell, cell) && !isSameCell(editing, cell)) {
     pointerDownFocusedCellByTable.set(table, cell);
   }
 };

@@ -86,6 +86,7 @@ const ScrollToTopButton = React.memo(() => {
             right: SCROLL_BUTTON_POSITION_RIGHT_PX,
             width: SCROLL_BUTTON_SIZE_PX,
             height: SCROLL_BUTTON_SIZE_PX,
+            '@media (pointer: coarse)': { display: 'none' },
             backgroundColor: 'var(--color-surface-raised)',
             color: 'var(--color-text-primary)',
             border: '1px solid var(--color-border)',

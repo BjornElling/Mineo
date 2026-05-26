@@ -54,76 +54,6 @@ export const buildRentePdfBaseTitle = (amount: number, startDate: Date, endDate:
   return sanitizeFilenamePart(`Procesrente, ${formatAmount(amount)} kr. (${formatDanishDate(startDate)} - ${formatDanishDate(endDate)})`);
 };
 
-/**
- * Generer og download PDF for procesrenteberegning
- *
- * @param {number} amount - Hovedstol
- * @param {string} interestStartDate - Rentens startdato (dd-mm-åååå)
- * @param {string} calculationDate - Beregningens slutdato (dd-mm-åååå)
- * @param {ReadonlyArray<ProcessInterestPeriod>} periods - Periode-output fra motoren
- * @param {RentePdfOptions} options - Valgfrie indstillinger
- */
-export const generateRentePdf = (
-  amount: number,
-  interestStartDate: string,
-  calculationDate: string,
-  periods: ReadonlyArray<ProcessInterestPeriod>,
-  options: RentePdfOptions = {}
-): void => {
-  const {
-    visBrevhoved = false,
-    stamdata = null,
-    kommentarer,
-    latestReferenceRateDate = null,
-  } = options;
-
-  if (!periods || periods.length === 0) {
-    throw new Error('Ingen perioder fundet for renteberegning');
-  }
-
-  const startDate = parseDanishDate(interestStartDate);
-  const endDate = parseDanishDate(calculationDate);
-
-  if (!startDate || !endDate) {
-    throw new Error('Ugyldige datoer for renteberegning');
-  }
-
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  writer.setProperties({
-    title: 'Procesrente',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
-
-  if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
-  }
-
-  writer.writeTitle('Procesrente');
-  addDescription(writer, amount, startDate, endDate);
-  addSpecificationTable(
-    writer,
-    periods,
-    endDate,
-    latestReferenceRateDate ? parseDanishDate(latestReferenceRateDate) : null
-  );
-  addCalculationPrinciples(writer, kommentarer);
-  writer.addFooter();
-
-  const baseTitle = buildRentePdfBaseTitle(amount, startDate, endDate);
-  const filename = buildRentePdfFilename(baseTitle, stamdata?.journalnr);
-  writer.save(filename);
-};
-
 const addDescription = (
   writer: PdfWriter,
   amount: number,
@@ -246,4 +176,89 @@ const addCalculationPrinciples = (
   for (const principle of principles) {
     writer.writeWrappedText(principle);
   }
+};
+
+/**
+ * Skriver én rente-specifikation-sektion til en eksisterende PdfWriter.
+ * Kalder ikke addFooter eller save — det er kalderens ansvar.
+ */
+export const writeRentePdfContent = (
+  writer: PdfWriter,
+  amount: number,
+  startDate: Date,
+  endDate: Date,
+  periods: ReadonlyArray<ProcessInterestPeriod>,
+  options: RentePdfOptions
+): void => {
+  const {
+    visBrevhoved = false,
+    stamdata = null,
+    kommentarer,
+    latestReferenceRateDate = null,
+  } = options;
+
+  if (visBrevhoved) {
+    const brevhovedData: BrevhovedData = {
+      journalnr: stamdata?.journalnr,
+      advokat: stamdata?.advokat,
+      sagsbehandler: stamdata?.sagsbehandler,
+      dagsDatoISO: TODAY,
+    };
+    writer.writeBrevhoved(brevhovedData);
+  }
+
+  writer.writeTitle('Procesrente');
+  addDescription(writer, amount, startDate, endDate);
+  addSpecificationTable(
+    writer,
+    periods,
+    endDate,
+    latestReferenceRateDate ? parseDanishDate(latestReferenceRateDate) : null
+  );
+  addCalculationPrinciples(writer, kommentarer);
+};
+
+/**
+ * Generer og download PDF for procesrenteberegning
+ *
+ * @param {number} amount - Hovedstol
+ * @param {string} interestStartDate - Rentens startdato (dd-mm-åååå)
+ * @param {string} calculationDate - Beregningens slutdato (dd-mm-åååå)
+ * @param {ReadonlyArray<ProcessInterestPeriod>} periods - Periode-output fra motoren
+ * @param {RentePdfOptions} options - Valgfrie indstillinger
+ */
+export const generateRentePdf = (
+  amount: number,
+  interestStartDate: string,
+  calculationDate: string,
+  periods: ReadonlyArray<ProcessInterestPeriod>,
+  options: RentePdfOptions = {}
+): void => {
+  if (!periods || periods.length === 0) {
+    throw new Error('Ingen perioder fundet for renteberegning');
+  }
+
+  const startDate = parseDanishDate(interestStartDate);
+  const endDate = parseDanishDate(calculationDate);
+
+  if (!startDate || !endDate) {
+    throw new Error('Ugyldige datoer for renteberegning');
+  }
+
+  const writer = createStandardPdfWriter();
+  writer.setDisplayMode('fullheight');
+
+  writer.setProperties({
+    title: 'Procesrente',
+    subject: 'Erstatningsberegning',
+    author: 'Mineo',
+    creator: 'mineo.dk',
+  });
+
+  writeRentePdfContent(writer, amount, startDate, endDate, periods, options);
+  writer.addFooter();
+
+  const baseTitle = buildRentePdfBaseTitle(amount, startDate, endDate);
+  const filename = buildRentePdfFilename(baseTitle, options.stamdata?.journalnr);
+  writer.save(filename);
 };

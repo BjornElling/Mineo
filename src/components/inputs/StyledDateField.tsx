@@ -4,12 +4,13 @@ import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
 import type { ISODateString } from '../../types/branded';
-import { isoToDanish } from '../../types/branded';
+import { isISODateString, isoToDanish } from '../../types/branded';
 import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import { filterDateLikeKeyDown } from './inputKeyFilters';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { normalizeDateDraftOnCommit } from '../../utils/dateDraftNormalization';
+import { INSERT_TODAY_DATE_EVENT } from '../../utils/insertTodayDate';
 import { normalizeDatePaste } from '../../utils/inputPasteNormalization';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
@@ -52,6 +53,8 @@ export type StyledDateFieldProps = {
   error?: boolean;
   helperText?: string;
   sx?: SxProps<Theme>;
+  /** Åbn editoren ved første klik uden forudgående fokus (til touch/mobil). */
+  singleStageClick?: boolean;
 };
 
 const formatISODateAsDanish = (value: ISODateString | undefined): string => {
@@ -85,6 +88,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       helperText: externalHelperText = '',
       sx,
       onFieldError,
+      singleStageClick = false,
     },
     ref
   ) => {
@@ -210,6 +214,21 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       [onDraftChange, setDraftBase]
     );
 
+    const handleInsertTodayDateEvent = React.useCallback((event: Event) => {
+      const detail = event instanceof CustomEvent ? event.detail : undefined;
+      if (!isISODateString(detail)) return;
+      setDraft(formatISODateAsDanish(detail));
+    }, [setDraft]);
+
+    React.useEffect(() => {
+      const input = inputElementRef.current;
+      if (!input) return undefined;
+      input.addEventListener(INSERT_TODAY_DATE_EVENT, handleInsertTodayDateEvent);
+      return () => {
+        input.removeEventListener(INSERT_TODAY_DATE_EVENT, handleInsertTodayDateEvent);
+      };
+    }, [handleInsertTodayDateEvent]);
+
     const getDraftForKey = React.useCallback((key: string): string | null => {
       if (/^[0-9]$/.test(key)) return key;
       return null;
@@ -217,6 +236,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
 
     const activation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
+      singleStageClick,
       getDraftForKey,
       normalizePasteText: normalizeDatePaste,
       onReplaceDraft: (nextDraft) => setDraft(nextDraft),

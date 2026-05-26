@@ -23,6 +23,8 @@ const isPrintableCharacter = (e: TwoStageKeyDownEvent): boolean => {
 
 type TwoStageConfig = Readonly<{
   disabled?: boolean;
+  /** Åbn editor ved første klik uden forudgående fokus (til mobil/touch). */
+  singleStageClick?: boolean;
   getDraftForKey: (key: string) => string | null;
   normalizePasteText?: (text: string) => string;
   onStartEditing?: (source: TwoStageStartSource) => void;
@@ -42,7 +44,7 @@ export type UseTwoStageInputActivationResult<TElement extends HTMLElement> = Rea
 export const useTwoStageInputActivation = <TElement extends HTMLElement>(
   config: TwoStageConfig
 ): UseTwoStageInputActivationResult<TElement> => {
-  const { disabled = false, getDraftForKey, normalizePasteText, onStartEditing, onReplaceDraft } = config;
+  const { disabled = false, singleStageClick = false, getDraftForKey, normalizePasteText, onStartEditing, onReplaceDraft } = config;
 
   const [isEditorOpen, setIsEditorOpen] = React.useState(false);
   const mouseDownWasFocusedRef = React.useRef(false);
@@ -64,10 +66,14 @@ export const useTwoStageInputActivation = <TElement extends HTMLElement>(
 
   const handleMouseDown = React.useCallback((e: React.MouseEvent<TElement>) => {
     if (disabled) return;
+    if (singleStageClick) {
+      mouseDownWasFocusedRef.current = true;
+      return;
+    }
     const active = document.activeElement;
     mouseDownWasFocusedRef.current =
       active instanceof Node && e.currentTarget instanceof Node && e.currentTarget.contains(active);
-  }, [disabled]);
+  }, [disabled, singleStageClick]);
 
   const handleClick = React.useCallback((_e: React.MouseEvent<TElement>) => {
     if (disabled) return;

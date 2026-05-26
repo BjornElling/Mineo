@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { createEvent, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { toISODateString, type ISODateString } from '../../../types/branded';
+import { isoToDanish, toISODateString, type ISODateString } from '../../../types/branded';
 import StyledDateField from '../../../components/inputs/StyledDateField';
+import { getTodayLocalISO } from '../../../utils/dateUtils';
+import { insertTodayDate } from '../../../utils/insertTodayDate';
 
 describe('StyledDateField', () => {
   it('commits cleared value on blur when cleared via Delete/Backspace while closed', async () => {
@@ -189,6 +191,58 @@ describe('StyledDateField', () => {
     await user.type(input, '1a1');
 
     expect(input).toHaveValue('11');
+  });
+
+  it('erstatter ugyldig draft med dags dato, selv når committed værdi allerede er dags dato', async () => {
+    const user = userEvent.setup();
+    const today = getTodayLocalISO();
+    const expectedDisplay = isoToDanish(today);
+    const handleCommit = vi.fn();
+
+    const Wrapper = () => {
+      const inputRef = React.useRef<HTMLInputElement>(null);
+      const [value, setValue] = React.useState<ISODateString | undefined>(today);
+
+      return (
+        <>
+          <StyledDateField
+            value={value}
+            inputRef={inputRef}
+            onCommit={(e) => {
+              handleCommit(e.target.value);
+              setValue(e.target.value);
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => insertTodayDate({
+              onCommit: (nextToday) => {
+                handleCommit(nextToday);
+                setValue(nextToday);
+              },
+              focusRef: inputRef,
+            })}
+          >
+            Indsæt dags dato
+          </button>
+        </>
+      );
+    };
+
+    render(<Wrapper />);
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    await user.click(input);
+    await user.click(input);
+    await user.keyboard('{Control>}a{/Control}1-1');
+
+    expect(input).toHaveValue('1-1');
+
+    await user.click(screen.getByRole('button', { name: 'Indsæt dags dato' }));
+
+    expect(input).toHaveValue(expectedDisplay);
+    expect(screen.queryByText('Ugyldig dato')).toBeNull();
+    expect(handleCommit).toHaveBeenLastCalledWith(today);
   });
 
   it('copies the full field value while focused and editor is closed', async () => {

@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, type BoxProps } from '@mui/material';
 
 export type ContentBoxFrameProps = Omit<BoxProps, 'ref'>;
+export type ContentBoxComponent = React.ComponentType<ContentBoxFrameProps>;
 
 const ContentBoxFrame = React.memo(React.forwardRef<HTMLDivElement, ContentBoxFrameProps>(
   ({ className, sx, children, ...props }, ref) => {
