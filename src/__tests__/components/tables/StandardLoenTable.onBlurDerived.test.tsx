@@ -135,14 +135,15 @@ describe('StandardLoenTable', () => {
     const targetCell = cellsBefore[colIdx];
     const input = within(targetCell).getByRole('textbox');
 
-    await user.dblClick(input);
-    await user.clear(input);
-    await user.type(input, nextValue);
+    await user.click(input);
+    await user.keyboard(nextValue);
 
     expect(onTableDataChange).not.toHaveBeenCalled();
     expect(getDerivedTexts()).toEqual(initial);
 
-    fireEvent.blur(input);
+    await act(async () => {
+      fireEvent.blur(input);
+    });
 
     const nextAmounts = { ...baseAmounts, [colKey]: Number(nextValue) } as typeof baseAmounts;
     const expectedAfterBlur = computeDerived(nextAmounts);
