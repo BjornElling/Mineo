@@ -15,6 +15,7 @@ type TabAnchor = CellLocator;
 const tabAnchorByTable = new WeakMap<HTMLTableElement, TabAnchor>();
 const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired: CellLocator }>>();
 const physicalFocusByTable = new WeakMap<HTMLTableElement, Readonly<{ cell: GridCellCoord }>>();
+const clickEditableCellByTable = new WeakMap<HTMLTableElement, GridCellCoord>();
 const pointerDownFocusedCellByTable = new WeakMap<HTMLTableElement, GridCellCoord>();
 const CONTAINER_ROW_SELECTOR =
   '.row--label-right-hover,.row--label-right,.row--label-offset,.row,[class*="row--label-right"],[class*="row--label-offset"],[class*="hover-row"]';
@@ -421,6 +422,10 @@ const toCellCoord = (locator: CellLocator): Readonly<{ rowId: string; colIndex: 
   return { rowId: locator.rowId, colIndex: locator.colIndex };
 };
 
+const armClickEditableCell = (table: HTMLTableElement, cell: GridCellCoord) => {
+  clickEditableCellByTable.set(table, cell);
+};
+
 export const handleTableFocusCapture = (e: React.FocusEvent<HTMLTableElement>) => {
   const table = e.currentTarget;
   const target = e.target instanceof HTMLElement ? e.target : null;
@@ -635,6 +640,7 @@ export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableEle
   if (!cell) return;
 
   const activeCell = physicalFocusByTable.get(table)?.cell ?? null;
+  const clickEditableCell = clickEditableCellByTable.get(table) ?? null;
   const editing = core.getEditingCell();
   const immediateEditing = table.dataset.mineoImmediateEditing === 'true';
   if (immediateEditing) {
@@ -643,7 +649,7 @@ export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableEle
     }
     // Sæt flag så handleTableClickCapture ikke åbner editing igen (editing-guard dækker det).
     pointerDownFocusedCellByTable.set(table, cell);
-  } else if (isSameCell(activeCell, cell) && !isSameCell(editing, cell)) {
+  } else if (isSameCell(activeCell, cell) && isSameCell(clickEditableCell, cell) && !isSameCell(editing, cell)) {
     pointerDownFocusedCellByTable.set(table, cell);
   }
 };
@@ -652,7 +658,6 @@ export const handleTableClickCapture = (e: React.MouseEvent<HTMLTableElement>) =
   const table = e.currentTarget;
   const focusedCellAtPointerDown = pointerDownFocusedCellByTable.get(table);
   pointerDownFocusedCellByTable.delete(table);
-  if (!focusedCellAtPointerDown) return;
 
   // immediateEditing: openEditing er allerede kaldt i pointerDown — klik-eventet skal ikke åbne igen.
   // Denne guard er nødvendig fordi React state-opdateringen fra openEditing kan være asynkron,
@@ -672,6 +677,8 @@ export const handleTableClickCapture = (e: React.MouseEvent<HTMLTableElement>) =
   if (!locator) return;
   const cell = toCellCoord(locator);
   if (!cell) return;
+  armClickEditableCell(table, cell);
+  if (!focusedCellAtPointerDown) return;
   if (!isSameCell(focusedCellAtPointerDown, cell)) return;
   if (isSameCell(core.getEditingCell(), cell)) return;
   core.openEditing(cell, 'pointer');
@@ -709,6 +716,7 @@ export const handleTableBlurCapture = (e: React.FocusEvent<HTMLTableElement>) =>
   const related = e.relatedTarget;
   if (related instanceof Node && table.contains(related)) return;
   physicalFocusByTable.delete(table);
+  clickEditableCellByTable.delete(table);
   pointerDownFocusedCellByTable.delete(table);
   tabAnchorByTable.delete(table);
 };
