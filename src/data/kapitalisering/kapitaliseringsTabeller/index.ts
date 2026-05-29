@@ -2,6 +2,7 @@ import type { ISODateString } from '../../../types/branded';
 import * as k10029_2024 from './10029-2024';
 import * as k10056_2025 from './10056-2025';
 import * as k10141_2022 from './10141-2022';
+import * as k10183_2025 from './10183-2025';
 import * as k1022_2009 from './1022-2009';
 import * as k1047_2008 from './1047-2008';
 import * as k1068_2003 from './1068-2003';
@@ -127,6 +128,7 @@ export const kapitaliseringsTabelDataById: Readonly<Record<string, Kapitaliserin
   [k10029_2024.kapitaliseringsId]: createKapitaliseringsEntry(k10029_2024),
   [k10056_2025.kapitaliseringsId]: createKapitaliseringsEntry(k10056_2025),
   [k10141_2022.kapitaliseringsId]: createKapitaliseringsEntry(k10141_2022),
+  [k10183_2025.kapitaliseringsId]: createKapitaliseringsEntry(k10183_2025),
   [k1022_2009.kapitaliseringsId]: createKapitaliseringsEntry(k1022_2009),
   [k1047_2008.kapitaliseringsId]: createKapitaliseringsEntry(k1047_2008),
   [k1068_2003.kapitaliseringsId]: createKapitaliseringsEntry(k1068_2003),

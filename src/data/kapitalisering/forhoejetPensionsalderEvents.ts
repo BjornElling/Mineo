@@ -66,14 +66,14 @@ const RAW_FORHOEJET_PENSIONSALDER_EVENTS: readonly RawForhoejetPensionsalderEven
   },
 
   // 69 → 70. L 710/2020 (forhøjelse vedtaget 22-05-2025), i kraft 31-12-2025 for årgange fra 1971.
-  // Data-gap: tabeller med 70 år findes først i 2026-vejledningen (10056/2025, gælder fra 01-01-2026).
-  // På selve 31-12-2025 gælder fortsat 10029/2024 (kun til 69 år). Opslagsdatoerne parres derfor
-  // eksplicit: gammel = 30-12-2025 (10029/2024), ny = 01-01-2026 (10056/2025). Selve beregningen
-  // sker dog på virkningsdatoen 31-12-2025 (satsår = 1 måned efter = 31-01-2026 → 2026).
+  // Vejl. 10183/2025 (gælder specifikt for kapitalisering den 31-12-2025) indeholder tabeller til
+  // det 70. år. Opslagsdatoerne parres derfor på selve virkningsdatoen: gammel = 30-12-2025
+  // (Vejl. 10029/2024, kun til 69 år), ny = 31-12-2025 (Vejl. 10183/2025, til 70 år). Selve
+  // beregningen sker på virkningsdatoen 31-12-2025 (satsår = 1 måned efter = 31-01-2026 → 2026).
   {
     virkningsdato: '2025-12-31',
     opslagsdatoGammel: '2025-12-30',
-    opslagsdatoNy: '2026-01-01',
+    opslagsdatoNy: '2025-12-31',
     gammelAlderLabel: '69 år',
     nyAlderLabel: '70 år',
   },

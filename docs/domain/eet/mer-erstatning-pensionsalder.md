@@ -72,7 +72,7 @@ kapitalisering og beregningsdato), beregnes hver forhøjelse for sig, og beløbe
 |---|---|---|---|---|
 | 67 → 68 | 29-12-2015 | 67 år | 68 år | Bkg. 198/2015 → Bkg. 1700/2015 |
 | 68 → 69 | 31-12-2020 | 68 år | 69 år | bekendtgørelse pr. 30-12-2020 → 31-12-2020 |
-| 69 → 70 | 31-12-2025 | 69 år | 70 år | Vejl. 10029/2024 → Vejl. 10056/2025 |
+| 69 → 70 | 31-12-2025 | 69 år | 70 år | Vejl. 10029/2024 → Vejl. 10183/2025 |
 
 Indfasningen fra 65 til 67 år (L 485/2009, virkning 1. juli 2009) udløser **ikke** mer-erstatning
 efter denne model: de dagældende kapitaliseringstabeller afspejlede ikke en forhøjet
@@ -80,11 +80,11 @@ folkepensionsalder, og betingelse 3 er derfor ikke opfyldt.
 
 #### Bemærkning om 69 → 70
 
-Loven hævede folkepensionsalderen pr. 31-12-2025, men de kapitaliseringstabeller, der afspejler
-70 år, findes først i 2026-vejledningen (Vejl. 10056/2025, gældende fra 01-01-2026). På selve
-31-12-2025 gælder fortsat Vejl. 10029/2024 (kun til 69 år). Derfor parres den gamle og den nye
-bekendtgørelse eksplicit i datakilden (se `forhoejetPensionsalderEvents.ts`), så den gamle
-kapitalværdi opslås i 10029/2024 og den nye i 10056/2025. Selve beregningen sker fortsat på
+Loven hævede folkepensionsalderen pr. 31-12-2025. Vejl. 10183/2025 gælder specifikt for
+kapitalisering den 31-12-2025 og indeholder tabeller til det 70. år for de berørte årgange. Den
+gamle og den nye bekendtgørelse parres derfor i datakilden (se `forhoejetPensionsalderEvents.ts`),
+så den gamle kapitalværdi opslås i Vejl. 10029/2024 (kun til 69 år, opslagsdato 30-12-2025) og den
+nye i Vejl. 10183/2025 (til 70 år, opslagsdato 31-12-2025). Selve beregningen sker på
 virkningsdatoen 31-12-2025 (satsår 2026).
 
 ### Autoritativt eksempel
