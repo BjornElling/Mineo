@@ -44,7 +44,7 @@ export type OffentligeYdelserDerivedCellValues = Readonly<{
 export type OffentligeYdelserTableProps = {
   tableData: OffentligeYdelserRow[];
   derivedByRowId?: ReadonlyMap<string, OffentligeYdelserDerivedCellValues>;
-  onTableDataChange?: (data: OffentligeYdelserRow[]) => void;
+  onTableDataChange?: (data: OffentligeYdelserRow[], origin?: { fieldPath?: string }) => void;
   onValidationChange?: (summary: OffentligeYdelserTableValidationSummary) => void;
   saveOrderPath?: TableSaveOrderPath;
   /**
@@ -98,7 +98,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
     );
 
     const lastPersistedFingerprintRef = React.useRef<string | null>(null);
-    const pendingPersistRef = React.useRef<OffentligeYdelserRow[] | null>(null);
+    const pendingPersistRef = React.useRef<{ rows: OffentligeYdelserRow[]; fieldPath?: string } | null>(null);
     const committedRowsRef = React.useRef<OffentligeYdelserRow[]>([]);
     const committedRowIdsRef = React.useRef<Set<string>>(new Set());
     const tableRef = React.useRef<HTMLTableElement | null>(null);
@@ -128,12 +128,12 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
     }, [getValidationResult, onValidationChange]);
 
     const persistTableData = React.useCallback(
-      (internalData: OffentligeYdelserRow[]) => {
+      (internalData: OffentligeYdelserRow[], fieldPath?: string) => {
         if (!onTableDataChange) return;
         committedRowsRef.current = internalData;
         syncCommittedRowIds(internalData);
         lastPersistedFingerprintRef.current = fingerprintTableData(internalData);
-        onTableDataChange(internalData);
+        onTableDataChange(internalData, fieldPath ? { fieldPath } : undefined);
         notifyValidationChange();
       },
       [notifyValidationChange, onTableDataChange, syncCommittedRowIds]
@@ -196,7 +196,8 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
 
           // Only persist when the normalized result differs from what we've last told the parent.
           if (commitEval.shouldPersist) {
-            pendingPersistRef.current = normalized;
+            // Tag commit'et med den redigerede celles identitet, så undo/redo lander fokus korrekt.
+            pendingPersistRef.current = { rows: normalized, fieldPath: `${rowId}:${colIndex}` };
           }
           return normalized;
         });
@@ -208,7 +209,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       if (pendingPersistRef.current === null) return;
       const dataToPersist = pendingPersistRef.current;
       pendingPersistRef.current = null;
-      persistTableData(dataToPersist);
+      persistTableData(dataToPersist.rows, dataToPersist.fieldPath);
     }, [persistTableData, internalTableData]);
 
     const handleErrorChange = React.useCallback(
@@ -269,7 +270,8 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
     const reorderRows = React.useCallback((nextRows: OffentligeYdelserRow[]) => {
       const nextFingerprint = fingerprintTableData(nextRows);
       if (nextFingerprint !== lastPersistedFingerprintRef.current) {
-        pendingPersistRef.current = nextRows;
+        // Reorder er ikke en celle-redigering; fieldPath udelades (falder tilbage til focus-tracker).
+        pendingPersistRef.current = { rows: nextRows };
       }
       committedRowsRef.current = nextRows;
       syncCommittedRowIds(nextRows);

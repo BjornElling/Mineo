@@ -26,9 +26,25 @@ export type EetAslAfgoerelserTableProps = Readonly<{
   skadedatoMin: ISODateString;
   beregningsdato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
-  onTableDataChange?: (rows: AslAfgoerelseRow[]) => void;
+  onTableDataChange?: (rows: AslAfgoerelseRow[], origin?: { fieldPath?: string }) => void;
   saveOrderPath?: TableSaveOrderPath;
 }>;
+
+/**
+ * Felt → kolonneindeks, så et celle-commit kan tagges med `rowId:colIndex` — samme identitet
+ * som Table*Input-cellerne registrerer deres draft-history-controller under (gridCell.colIndex).
+ * Bruges til at give undo/redo korrekt fokus-mål; jf. StandardLoenTable-mønstret.
+ */
+const FIELD_COL_INDEX: Readonly<Partial<Record<keyof AslAfgoerelseRow, number>>> = {
+  afgoerelsesDato: 0,
+  virkningsDato: 1,
+  eetPct: 2,
+  afgoerelseType: 3,
+  kapDato: 4,
+  kapPct: 5,
+  tidlKapDato: 6,
+  fsTilbageholdtEet: 7,
+};
 
 const AFGOERELSES_TYPE_OPTIONS: readonly TableDropdownOption[] = [
   { value: 'Midlertidig', label: 'Midlertidig' },
@@ -92,6 +108,7 @@ const EetAslAfgoerelserTable = React.memo(
     const pendingPersistRef = React.useRef<{
       rows: AslAfgoerelseRow[];
       fingerprint: string;
+      fieldPath?: string;
     } | null>(null);
     const initialTableData = React.useMemo(
       () => (tableData.length > 0 ? normalizeRows(tableData) : normalizeRows(defaultTableData)),
@@ -108,16 +125,16 @@ const EetAslAfgoerelserTable = React.memo(
     }, [initialTableData]);
 
     const persistTableData = React.useCallback(
-      (rows: AslAfgoerelseRow[]) => {
+      (rows: AslAfgoerelseRow[], fieldPath?: string) => {
         if (!onTableDataChange) return;
         lastPersistedFingerprintRef.current = fingerprintTableData(rows);
-        onTableDataChange(rows);
+        onTableDataChange(rows, fieldPath ? { fieldPath } : undefined);
       },
       [onTableDataChange]
     );
 
-    const queuePersist = React.useCallback((rows: AslAfgoerelseRow[], fingerprint: string) => {
-      pendingPersistRef.current = { rows, fingerprint };
+    const queuePersist = React.useCallback((rows: AslAfgoerelseRow[], fingerprint: string, fieldPath?: string) => {
+      pendingPersistRef.current = { rows, fingerprint, fieldPath };
     }, []);
 
     React.useEffect(() => {
@@ -130,7 +147,7 @@ const EetAslAfgoerelserTable = React.memo(
         pendingPersistRef.current = null;
         return;
       }
-      persistTableData(pendingPersist.rows);
+      persistTableData(pendingPersist.rows, pendingPersist.fieldPath);
       pendingPersistRef.current = null;
     }, [internalTableData, persistTableData]);
 
@@ -138,13 +155,18 @@ const EetAslAfgoerelserTable = React.memo(
     // row-draft isolation, so each Table*Input owns its draft and commits a partial row here.
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<AslAfgoerelseRow>) => {
+        // updates er altid en enkelt-felt-patch (én celle pr. commit). Felt → colIndex
+        // giver undo-framet den redigerede celles identitet (rowId:colIndex).
+        const editedField = Object.keys(updates)[0] as keyof AslAfgoerelseRow | undefined;
+        const colIndex = editedField ? FIELD_COL_INDEX[editedField] : undefined;
+        const fieldPath = colIndex !== undefined ? `${rowId}:${colIndex}` : undefined;
         setInternalTableData((prev) => {
           const updated = prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row));
           const normalized = normalizeRows(updated);
           const toSave = normalized.filter((row) => !isAslAfgoerelseRowPersistenceEmpty(row));
           const nextFingerprint = fingerprintTableData(toSave);
           if (nextFingerprint !== lastPersistedFingerprintRef.current) {
-            queuePersist(toSave, nextFingerprint);
+            queuePersist(toSave, nextFingerprint, fieldPath);
           }
           return normalized;
         });

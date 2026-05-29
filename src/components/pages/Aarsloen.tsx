@@ -398,6 +398,7 @@ const Aarsloen = React.memo(() => {
           <Typography className="row--text">Løn indtastes som:</Typography>
           <Box className="row--label-right-hover__content">
             <StyledRadioButton
+              name="loenperiode"
               value={loenperiode}
               onChange={handleLoenperiodeChange}
               row={true}

@@ -100,6 +100,15 @@ Dette er nødvendigt, fordi felt-commit typisk sker på blur efter fokus allered
 
 For tabelceller er `fieldPath` den autoritative identitet. Tabellen sender cellens stabile `rowId:colIndex` med commit-kaldet, og `focusToken` sættes derfor til `null` for den history-frame. Det forhindrer, at hurtig navigation til nabocellen kan få undo/redo til at fokusere eller draft-restore den forkerte celle. Almindelige felter, der ikke sender en eksplicit `fieldPath`, bruger fortsat focus-trackeren som fallback.
 
+### Immediate-commit widgets (toggle, dropdown, radio)
+
+Toggle/dropdown/radio committer øjeblikkeligt (ikke på blur) og kan derfor ikke spores pålideligt af focus-trackeren: på commit-tidspunktet peger `document.activeElement`/trackeren ofte på det *forrige* felt. Disse widgets **skal** derfor:
+
+1. sende en eksplicit `fieldPath` i deres commit (`setValues(..., { fieldPath })`), og
+2. bære en `name`-prop, så elementet emitterer `data-mineo-undo-field-path` og kan findes + fokuseres ved restore.
+
+For widgets pr. række/ansættelsesforhold er identiteten `${id}:${felt}` (samme princip som tabelceller), så flere instanser ikke kolliderer. `src/__tests__/quality/immediateCommitWidgetUndoName.test.ts` håndhæver `name`-kravet på alle sags-input-sider.
+
 ## 7. Restore
 
 Restore ejes af `src/hooks/useUndoRedo.ts`.
@@ -185,6 +194,8 @@ Når aktivt, bruger logging `console.debug` med `[UNDO/REDO]`-prefix. Normal dri
 | `src/utils/persistenceLoadApply.ts` | Rydder history efter filindlæsning |
 | `src/components/inputs/StyledTextFieldBase.tsx` | Bærer undo-attributter for almindelige felter |
 | `src/components/inputs/table/Table*Input.tsx` | Bærer undo-attributter for grid-celler |
+| `src/rowDrafts/useRowDrafts.ts` | Bygger `rowId:colIndex` fieldPath ved row-commit (via `fieldColIndex`-mapping) |
+| `src/components/inputs/StyledToggleSwitch.tsx` / `StyledDropdown.tsx` / `StyledRadioButton.tsx` | Emitterer `data-mineo-undo-field-path` fra `name`-prop for immediate-commit fokus-restore |
 
 ## 14. Testflade
 
@@ -198,3 +209,5 @@ Automatiske tests dækker blandt andet:
 - row-draft resync efter restore
 - load rydder history
 - undo/redo er stille no-op mens editor er åben
+- celle-commit tagges med korrekt `rowId:colIndex` (`undoRedoCellIdentity.test.tsx`, `EetAslAfgoerelserTable.test.tsx`)
+- immediate-commit widgets tagges med eget felt og bærer `name` (`undoRedoToggleFocus.test.tsx`, `immediateCommitWidgetUndoName.test.ts`)

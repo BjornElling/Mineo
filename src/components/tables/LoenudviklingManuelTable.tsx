@@ -28,7 +28,7 @@ import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 
 export type LoenudviklingManuelTableProps = Readonly<{
   tableData: LoenudviklingManuelRow[];
-  onTableDataChange?: (data: LoenudviklingManuelRow[]) => void;
+  onTableDataChange?: (data: LoenudviklingManuelRow[], origin?: { fieldPath?: string }) => void;
   onInputErrorChange?: (hasError: boolean) => void;
   baseDateDisplay: string;
   baseDateErrorMessage?: string;
@@ -321,7 +321,7 @@ const LoenudviklingManuelTable = React.memo(
       []
     );
 
-    const pendingPersistRef = React.useRef<LoenudviklingManuelRow[] | null>(null);
+    const pendingPersistRef = React.useRef<{ rows: LoenudviklingManuelRow[]; fieldPath?: string } | null>(null);
     const tableRef = React.useRef<HTMLTableElement | null>(null);
     const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
     const visibleRowIdsRef = React.useRef<readonly string[]>([]);
@@ -351,10 +351,10 @@ const LoenudviklingManuelTable = React.memo(
     );
 
     const persistTableData = React.useCallback(
-      (internalData: LoenudviklingManuelRow[]) => {
+      (internalData: LoenudviklingManuelRow[], fieldPath?: string) => {
         if (!onTableDataChange) return;
         lastPersistedFingerprintRef.current = fingerprintTableData(internalData);
-        onTableDataChange(internalData);
+        onTableDataChange(internalData, fieldPath ? { fieldPath } : undefined);
       },
       [onTableDataChange]
     );
@@ -434,7 +434,8 @@ const LoenudviklingManuelTable = React.memo(
           }
 
           if (commitEval.shouldPersist) {
-            pendingPersistRef.current = normalized;
+            // Tag commit'et med den redigerede celles identitet, så undo/redo lander fokus korrekt.
+            pendingPersistRef.current = { rows: normalized, fieldPath: `${rowId}:${colIndex}` };
           }
           return normalized;
         });
@@ -446,7 +447,7 @@ const LoenudviklingManuelTable = React.memo(
       if (pendingPersistRef.current === null) return;
       const dataToPersist = pendingPersistRef.current;
       pendingPersistRef.current = null;
-      persistTableData(dataToPersist);
+      persistTableData(dataToPersist.rows, dataToPersist.fieldPath);
     }, [persistTableData, internalTableData]);
 
     const handleErrorChange = React.useCallback(
@@ -496,7 +497,8 @@ const LoenudviklingManuelTable = React.memo(
       onSortedRowsChange: (nextRows) => {
         const nextFingerprint = fingerprintTableData(nextRows);
         if (nextFingerprint !== lastPersistedFingerprintRef.current) {
-          pendingPersistRef.current = nextRows;
+          // Sortering er ikke en celle-redigering; fieldPath udelades.
+          pendingPersistRef.current = { rows: nextRows };
         }
         setInternalTableData(nextRows);
       },

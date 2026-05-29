@@ -30,12 +30,12 @@ export type UseTafRowsResult = UseRowDraftsResult<TafDraftRow, 'fra' | 'til' | '
 const useTafRows = ({ values, setValues, resyncToken }: UseTafRowsArgs): UseTafRowsResult => {
   const tafRows = useRowDrafts<TafDraftRow, TafPeriodeRow, 'fra' | 'til' | 'loseFeriedage'>({
     getCommitted: () => values.tafPerioder,
-    setCommitted: (updater) => {
+    setCommitted: (updater, origin) => {
       setValues((prev) => {
         const nextRows = updater(prev.tafPerioder);
         if (!nextRows) return prev;
         return { ...prev, tafPerioder: nextRows };
-      });
+      }, origin);
     },
     toDraft: committedToTafDraftRows,
     toCommittedRow: (draft) => tafDraftToCommittedRow(draft),
@@ -43,6 +43,8 @@ const useTafRows = ({ values, setValues, resyncToken }: UseTafRowsArgs): UseTafR
     ensureRows: ensureTafRows,
     createId: createTafRowId,
     createEmptyCommittedRow: createEmptyTafCommittedRow,
+    // colIndex matcher TAFPeriodeTable: fra=0, til=1, loseFeriedage=2
+    fieldColIndex: { fra: 0, til: 1, loseFeriedage: 2 },
     resyncToken,
   });
 

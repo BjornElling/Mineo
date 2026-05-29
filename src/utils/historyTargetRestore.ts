@@ -42,6 +42,25 @@ const findRestoredField = (frame: HistoryFrame): HTMLElement | null => {
   return null;
 };
 
+/**
+ * Markér det restore-fokuserede element, så komponenter kan tegne en synlig fokus-ring.
+ *
+ * Programmatisk `focus()` sætter DOM-fokus, men udløser IKKE browserens/MUI's
+ * `:focus-visible`/`.Mui-focusVisible` (den vises kun ved tastatur-navigation). Uden et
+ * eksplicit signal får fx en toggle switch derfor ingen visuel indikation ved undo/redo.
+ * Markeringen ryddes ved blur, så den kun er synlig indtil brugeren bevæger sig videre.
+ */
+const UNDO_FOCUS_MARKER = 'data-mineo-undo-focused';
+
+const markRestoreFocus = (target: HTMLElement): void => {
+  target.setAttribute(UNDO_FOCUS_MARKER, 'true');
+  const clear = () => target.removeAttribute(UNDO_FOCUS_MARKER);
+  target.addEventListener('blur', clear, { once: true });
+  // Hvis brugeren begynder at indtaste/skifte uden at blur'e først, ryd også da.
+  target.addEventListener('input', clear, { once: true });
+  target.addEventListener('keydown', clear, { once: true });
+};
+
 const focusRestoredField = (target: HTMLElement): boolean => {
   const section = target.closest('[data-section-id]');
   if (section instanceof HTMLElement) {
@@ -56,7 +75,11 @@ const focusRestoredField = (target: HTMLElement): boolean => {
   }
 
   const activeElement = document.activeElement;
-  return activeElement === target || (activeElement instanceof Node && target.contains(activeElement));
+  const focused = activeElement === target || (activeElement instanceof Node && target.contains(activeElement));
+  if (focused) {
+    markRestoreFocus(target);
+  }
+  return focused;
 };
 
 const resolveDraftRestoreState = (frame: HistoryFrame): DraftHistoryRestoreState => {

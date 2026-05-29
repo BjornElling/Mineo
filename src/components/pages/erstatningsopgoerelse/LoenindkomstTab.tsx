@@ -122,7 +122,7 @@ type Props = {
   fravaerPerioder: ErstatningsopgoerelseValues['fravaerPerioder'];
   eoValues: ErstatningsopgoerelseValues;
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
-  onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList) => void;
+  onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList, origin?: { fieldPath?: string }) => void;
   onNavigateToTabtArbejdsfortjeneste: () => void;
 };
 
@@ -610,9 +610,10 @@ const LoenindkomstTab = React.memo(({
     ansaettelsesforholdId: string,
     updater: (
       current: ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number]
-    ) => ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number]
+    ) => ErstatningsopgoerelseValues['sfggAnsaettelsesforhold'][number],
+    origin?: { fieldPath?: string }
   ) => {
-    setEOValues((prev) => updateSfggAnsaettelsesforholdRow(prev, ansaettelsesforholdId, updater));
+    setEOValues((prev) => updateSfggAnsaettelsesforholdRow(prev, ansaettelsesforholdId, updater), origin);
   }, [setEOValues]);
 
   const getSfggReferenceperiodeAvailability = React.useCallback((
@@ -1019,7 +1020,7 @@ const LoenindkomstTab = React.memo(({
   const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);
   const alleArbejdsgiverOrg = React.useMemo(() => getAlleArbejdsgiverOrg(), []);
   const updateAnsaettelsesforhold = React.useCallback(
-    (id: string, updater: (prev: Ansaettelsesforhold) => Ansaettelsesforhold) => {
+    (id: string, updater: (prev: Ansaettelsesforhold) => Ansaettelsesforhold, origin?: { fieldPath?: string }) => {
       onAnsaettelsesforholdChange((prev) => {
         const index = prev.findIndex((item) => item.id === id);
         if (index === -1) return prev;
@@ -1029,7 +1030,7 @@ const LoenindkomstTab = React.memo(({
         nextItems[index] = syncManualBaseRowSatser(updated);
 
         return nextItems;
-      });
+      }, origin);
     },
     [onAnsaettelsesforholdChange]
   );
@@ -1052,7 +1053,7 @@ const LoenindkomstTab = React.memo(({
     (id: string, field: keyof Pick<Ansaettelsesforhold, 'navnPaaArbejdssted' | 'loenudviklingManuelNavn'>) =>
       (event: CommitEvent<string | undefined>) => {
         const nextValue = normalizeOptionalFreeText(event.target.value);
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, [field]: nextValue }));
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, [field]: nextValue }), { fieldPath: `${id}:${field}` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1069,7 +1070,7 @@ const LoenindkomstTab = React.memo(({
         updateAnsaettelsesforhold(id, (prev) => {
           const next = applyAnsaettelsesforholdToggleCleanup(prev, field, event.target.value);
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
-        });
+        }, { fieldPath: `${id}:${field}` });
       },
     [getAnvendtReguleringsdatoForAnsaettelsesforhold, updateAnsaettelsesforhold]
   );
@@ -1088,7 +1089,7 @@ const LoenindkomstTab = React.memo(({
                 : prev.offentligLoenType,
           };
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
-        });
+        }, { fieldPath: `${id}:overenskomstId` });
 
         // Revalider alle satser når overenskomst ændres
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
@@ -1111,7 +1112,7 @@ const LoenindkomstTab = React.memo(({
         updateAnsaettelsesforhold(id, (prev) => ({
           ...prev,
           offentligLoenType: nextValue,
-        }));
+        }), { fieldPath: `${id}:offentligLoenType` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1122,7 +1123,7 @@ const LoenindkomstTab = React.memo(({
         updateAnsaettelsesforhold(id, (prev) => ({
           ...prev,
           offentligLoenTrin: event.target.value,
-        }));
+        }), { fieldPath: `${id}:offentligLoenTrin` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1133,7 +1134,7 @@ const LoenindkomstTab = React.memo(({
         updateAnsaettelsesforhold(id, (prev) => ({
           ...prev,
           offentligLoenGruppe: event.target.value,
-        }));
+        }), { fieldPath: `${id}:offentligLoenGruppe` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1144,7 +1145,7 @@ const LoenindkomstTab = React.memo(({
         updateAnsaettelsesforhold(id, (prev) => ({
           ...prev,
           offentligLoenEkstraGrundloen: event.target.value,
-        }));
+        }), { fieldPath: `${id}:offentligLoenEkstraGrundloen` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1152,7 +1153,7 @@ const LoenindkomstTab = React.memo(({
   const handleSidsteArbejdsdagCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<Ansaettelsesforhold['sidsteArbejdsdag']>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, sidsteArbejdsdag: event.target.value }));
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, sidsteArbejdsdag: event.target.value }), { fieldPath: `${id}:sidsteArbejdsdag` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1164,7 +1165,7 @@ const LoenindkomstTab = React.memo(({
         updateAnsaettelsesforhold(id, (prev) => {
           const next = { ...prev, saerligFraDatoRegulering: nextSaerligFraDatoRegulering };
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
-        });
+        }, { fieldPath: `${id}:saerligFraDatoRegulering` });
 
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
         if (!ansaettelsesforhold) return;
@@ -1178,7 +1179,7 @@ const LoenindkomstTab = React.memo(({
   const handleAnciennitetstillaegDatoCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<Ansaettelsesforhold['anciennitetstillaegDato']>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegDato: event.target.value }));
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegDato: event.target.value }), { fieldPath: `${id}:anciennitetstillaegDato` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1188,7 +1189,7 @@ const LoenindkomstTab = React.memo(({
       (event: StyledDropdownChangeEvent<string>) => {
         const parsed = anciennitetSatsPerEnum.safeParse(event.target.value);
         if (!parsed.success) return;
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegSatsAngivesPer: parsed.data }));
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegSatsAngivesPer: parsed.data }), { fieldPath: `${id}:anciennitetstillaegSatsAngivesPer` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1196,7 +1197,7 @@ const LoenindkomstTab = React.memo(({
   const handleAnciennitetstillaegSatsCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<Ansaettelsesforhold['anciennitetstillaegSats']>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegSats: event.target.value }));
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, anciennitetstillaegSats: event.target.value }), { fieldPath: `${id}:anciennitetstillaegSats` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1204,7 +1205,7 @@ const LoenindkomstTab = React.memo(({
   const handleFeriePctCommit = React.useCallback(
     (id: string) =>
       (event: CommitEvent<number | undefined>) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, feriePct: event.target.value }));
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, feriePct: event.target.value }), { fieldPath: `${id}:feriePct` });
 
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
         if (!ansaettelsesforhold) return;
@@ -1238,7 +1239,7 @@ const LoenindkomstTab = React.memo(({
     ) =>
       (event: CommitEvent<number | undefined>) => {
         // Opdater værdien
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, [field]: event.target.value }));
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, [field]: event.target.value }), { fieldPath: `${id}:${field}` });
 
         // Valider værdien
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find(af => af.id === id);
@@ -1274,7 +1275,7 @@ const LoenindkomstTab = React.memo(({
     (id: string) =>
       (_event: React.ChangeEvent<HTMLInputElement>, value: string) => {
         if (!isLoenperiodeValue(value)) return;
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenperiode: value }));
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenperiode: value }), { fieldPath: `${id}:loenperiode` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1283,7 +1284,7 @@ const LoenindkomstTab = React.memo(({
     (id: string): CommitHandler<boolean> =>
       (event: CommitEvent<boolean>) => {
         const nextValue: Ansaettelsesforhold['fuldLoenUnderFerie'] = event.target.value ? 'Ja' : 'Nej';
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, fuldLoenUnderFerie: nextValue }));
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, fuldLoenUnderFerie: nextValue }), { fieldPath: `${id}:fuldLoenUnderFerie` });
 
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
         if (!ansaettelsesforhold) return;
@@ -1315,7 +1316,7 @@ const LoenindkomstTab = React.memo(({
         updateAnsaettelsesforhold(id, (prev) => {
           const next = { ...prev, loenPaaHelligdage: parsed.data };
           return syncManualBaseRowSatser(applyAutoSatsFields(next, getAnvendtReguleringsdatoForAnsaettelsesforhold(next)));
-        });
+        }, { fieldPath: `${id}:loenPaaHelligdage` });
 
         // Revalider alle satser når "Løn på helligdage" ændres.
         const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
@@ -1329,8 +1330,8 @@ const LoenindkomstTab = React.memo(({
 
   const handleTableDataChange = React.useCallback(
     (id: string) =>
-      (newTableData: Ansaettelsesforhold['indtaegtsoplysningerTableData']) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, indtaegtsoplysningerTableData: newTableData }));
+      (newTableData: Ansaettelsesforhold['indtaegtsoplysningerTableData'], origin?: { fieldPath?: string }) => {
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, indtaegtsoplysningerTableData: newTableData }), origin);
       },
     [updateAnsaettelsesforhold]
   );
@@ -1356,7 +1357,7 @@ const LoenindkomstTab = React.memo(({
           });
           updateAnsaettelsesforhold(id, (prev) =>
             applyLoenudviklingBeregningsgrundlagChange(prev, undefined)
-          );
+          , { fieldPath: `${id}:loenudviklingBeregningsgrundlag` });
           return;
         }
         const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(raw);
@@ -1372,7 +1373,7 @@ const LoenindkomstTab = React.memo(({
 
         updateAnsaettelsesforhold(id, (prev) =>
           applyLoenudviklingBeregningsgrundlagChange(prev, parsed.data)
-        );
+        , { fieldPath: `${id}:loenudviklingBeregningsgrundlag` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1382,12 +1383,12 @@ const LoenindkomstTab = React.memo(({
       (event: StyledDropdownChangeEvent<string | undefined>) => {
         const raw = event.target.value;
         if (!raw) {
-          updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingStatistikModel: undefined }));
+          updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingStatistikModel: undefined }), { fieldPath: `${id}:loenudviklingStatistikModel` });
           return;
         }
         const parsed = loenudviklingStatistikModelEnum.safeParse(raw);
         if (!parsed.success) return;
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingStatistikModel: parsed.data }));
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingStatistikModel: parsed.data }), { fieldPath: `${id}:loenudviklingStatistikModel` });
       },
     [updateAnsaettelsesforhold]
   );
@@ -1397,20 +1398,20 @@ const LoenindkomstTab = React.memo(({
       (event: StyledDropdownChangeEvent<string | undefined>) => {
         const raw = event.target.value;
         if (!raw) {
-          updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingKRLSatstabel: undefined }));
+          updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingKRLSatstabel: undefined }), { fieldPath: `${id}:loenudviklingKRLSatstabel` });
           return;
         }
         const parsed = krlSatstabelEnum.safeParse(raw);
         if (!parsed.success) return;
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingKRLSatstabel: parsed.data }));
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingKRLSatstabel: parsed.data }), { fieldPath: `${id}:loenudviklingKRLSatstabel` });
       },
     [updateAnsaettelsesforhold]
   );
 
   const handleLoenudviklingManuelTableChange = React.useCallback(
     (id: string) =>
-      (newTableData: Ansaettelsesforhold['loenudviklingManuelTableData']) => {
-        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingManuelTableData: newTableData }));
+      (newTableData: Ansaettelsesforhold['loenudviklingManuelTableData'], origin?: { fieldPath?: string }) => {
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenudviklingManuelTableData: newTableData }), origin);
       },
     [updateAnsaettelsesforhold]
   );
@@ -1534,7 +1535,7 @@ const LoenindkomstTab = React.memo(({
           ...prev.overenskomstFilter,
           [filterType]: value,
         },
-      }));
+      }), { fieldPath: `${afId}:overenskomstFilter.${filterType}` });
     },
     [updateAnsaettelsesforhold]
   );
@@ -1796,6 +1797,7 @@ const LoenindkomstTab = React.memo(({
               <Typography className="row--text">Ansat på skadestidspunktet</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledToggleSwitch
+                  name={`${af.id}:ansatPaaSkadestidspunktet`}
                   checked={af.ansatPaaSkadestidspunktet}
                   onCommit={handleToggleChange(af.id, 'ansatPaaSkadestidspunktet')}
                 />
@@ -1807,6 +1809,7 @@ const LoenindkomstTab = React.memo(({
                 <Typography className="row--text">Opsagt fra stillingen</Typography>
                 <Box className="row--label-right-hover__content">
                   <StyledToggleSwitch
+                    name={`${af.id}:ansaettelsesforholdOphoert`}
                     checked={af.ansaettelsesforholdOphoert}
                     onCommit={handleToggleChange(af.id, 'ansaettelsesforholdOphoert')}
                   />
@@ -1828,7 +1831,7 @@ const LoenindkomstTab = React.memo(({
             <Box className="row--label-right-hover">
               <Typography className="row--text">Overenskomst</Typography>
               <Box className="row--label-right-hover__content">
-                <StyledToggleSwitch checked={af.harOverenskomst} onCommit={handleToggleChange(af.id, 'harOverenskomst')} />
+                <StyledToggleSwitch name={`${af.id}:harOverenskomst`} checked={af.harOverenskomst} onCommit={handleToggleChange(af.id, 'harOverenskomst')} />
               </Box>
             </Box>
 
@@ -1840,6 +1843,7 @@ const LoenindkomstTab = React.memo(({
                     {/* Lønmodtager filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
                     <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>L:</Typography>
                     <StyledDropdown
+                      name={`${af.id}:overenskomstFilter.loenmodtager`}
                       value={af.overenskomstFilter.loenmodtager ?? 'ALLE'}
                       onChange={(e: StyledDropdownChangeEvent<string>) => {
                         const uiValue = e.target.value;
@@ -1884,6 +1888,7 @@ const LoenindkomstTab = React.memo(({
                     {/* Arbejdsgiver filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
                     <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>A:</Typography>
                     <StyledDropdown
+                      name={`${af.id}:overenskomstFilter.arbejdsgiver`}
                       value={af.overenskomstFilter.arbejdsgiver ?? 'ALLE'}
                       onChange={(e: StyledDropdownChangeEvent<string>) => {
                         const uiValue = e.target.value;
@@ -1926,6 +1931,7 @@ const LoenindkomstTab = React.memo(({
                     </StyledDropdown>
 
                     <StyledDropdown
+                      name={`${af.id}:overenskomstId`}
                       value={af.overenskomstId || undefined}
                       onChange={handleOverenskomstChange(af.id)}
                       width={460}
@@ -1959,6 +1965,7 @@ const LoenindkomstTab = React.memo(({
               <Typography className="row--text">Fuld løn under ferie:</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledToggleSwitch
+                  name={`${af.id}:fuldLoenUnderFerie`}
                   checked={getCheckedJaNej(af.fuldLoenUnderFerie)}
                   onCommit={handleFuldLoenUnderFerieChange(af.id)}
                 />
@@ -1969,6 +1976,7 @@ const LoenindkomstTab = React.memo(({
               <Typography className="row--text">Løn på helligdage:</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledDropdown
+                  name={`${af.id}:loenPaaHelligdage`}
                   width={185}
                   value={af.loenPaaHelligdage}
                   onChange={handleLoenPaaHelligdageChange(af.id)}
@@ -2101,6 +2109,7 @@ const LoenindkomstTab = React.memo(({
               <Typography className="row--text">Løn indtastes som:</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledRadioButton
+                  name={`${af.id}:loenperiode`}
                   value={af.loenperiode}
                   onChange={handleLoenperiodeChange(af.id)}
                   row={true}
@@ -2133,6 +2142,7 @@ const LoenindkomstTab = React.memo(({
               <Typography className="row--text">Lønudvikling beregnes ud fra</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledDropdown
+                  name={`${af.id}:loenudviklingBeregningsgrundlag`}
                   width={220}
                   value={loenudviklingBasis}
                   onChange={handleLoenudviklingBeregningsgrundlagChange(af.id)}
@@ -2165,6 +2175,7 @@ const LoenindkomstTab = React.memo(({
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                       <Typography className="row--text">Ansættelse</Typography>
                       <StyledDropdown
+                        name={`${af.id}:offentligLoenType`}
                         width={160}
                         value={af.offentligLoenType ?? 'Månedsløn'}
                         onChange={handleOffentligLoenTypeChange(af.id)}
@@ -2245,6 +2256,7 @@ const LoenindkomstTab = React.memo(({
                 <Typography className="row--text">Statistisk beregningsmodel</Typography>
                 <Box className="row--label-right-hover__content">
                   <StyledDropdown
+                    name={`${af.id}:loenudviklingStatistikModel`}
                     width={270}
                     value={af.loenudviklingStatistikModel}
                     onChange={handleLoenudviklingStatistikModelChange(af.id)}
@@ -2264,6 +2276,7 @@ const LoenindkomstTab = React.memo(({
                 <Typography className="row--text">Satstabel</Typography>
                 <Box className="row--label-right-hover__content">
                   <StyledDropdown
+                    name={`${af.id}:loenudviklingKRLSatstabel`}
                     width={270}
                     value={af.loenudviklingKRLSatstabel}
                     onChange={handleLoenudviklingKRLSatstabelChange(af.id)}
@@ -2414,6 +2427,7 @@ const LoenindkomstTab = React.memo(({
                   <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadedatoen</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledToggleSwitch
+                      name={`${af.id}:harAnciennitetstillaegEfterSkadedatoen`}
                       checked={af.harAnciennitetstillaegEfterSkadedatoen}
                       onCommit={handleToggleChange(af.id, 'harAnciennitetstillaegEfterSkadedatoen')}
                     />
@@ -2441,6 +2455,7 @@ const LoenindkomstTab = React.memo(({
                       <Typography className="row--text">Satsen angives per</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledDropdown
+                          name={`${af.id}:anciennitetstillaegSatsAngivesPer`}
                           width={160}
                           value={af.anciennitetstillaegSatsAngivesPer}
                           onChange={handleAnciennitetstillaegSatsAngivesPerChange(af.id)}
@@ -2506,6 +2521,7 @@ const LoenindkomstTab = React.memo(({
                   <Typography className="row--text">Sygeferiegodtgørelse beregnes ud fra</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledDropdown
+                      name={`${af.id}:sfggBeregningskilde`}
                       width={200}
                       value={sfggRow?.sfggBeregningskilde}
                       placeholder="Vælg..."
@@ -2518,7 +2534,8 @@ const LoenindkomstTab = React.memo(({
                             : undefined;
                         updateSfggAnsaettelsesforhold(
                           af.id,
-                          (current) => applySfggBeregningskildeChange(current, nextBeregningskilde)
+                          (current) => applySfggBeregningskildeChange(current, nextBeregningskilde),
+                          { fieldPath: `${af.id}:sfggBeregningskilde` }
                         );
                       }}
                     >
@@ -2557,6 +2574,7 @@ const LoenindkomstTab = React.memo(({
                     <Typography className="row--text">Angiv skadelidtes uddannelse og arbejdssted</Typography>
                     <Box className="row--label-right-hover__content">
                       <StyledDropdown
+                        name={`${af.id}:sfggSatsvalg`}
                         width={220}
                         value={sfggRow?.sfggSatsvalg}
                         placeholder="Vælg..."
@@ -2572,7 +2590,7 @@ const LoenindkomstTab = React.memo(({
                               nextValue === 'Ufaglaert-Provinsen'
                                 ? nextValue
                                 : undefined,
-                          }));
+                          }), { fieldPath: `${af.id}:sfggSatsvalg` });
                         }}
                       >
                         <MenuItem value="Faglaert-Koebenhavn">Faglært-København</MenuItem>
@@ -2704,12 +2722,13 @@ const LoenindkomstTab = React.memo(({
                       <Typography className="row--text">Først sygeferiegodtgørelse efter ophør af sygeløn</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledToggleSwitch
+                          name={`${af.id}:sfggManuelFoerstEfterSygeloen`}
                           checked={sfggRow?.sfggManuelFoerstEfterSygeloen === 'Ja'}
                           onCommit={(event) => {
                             updateSfggAnsaettelsesforhold(af.id, (current) => ({
                               ...current,
                               sfggManuelFoerstEfterSygeloen: event.target.value ? 'Ja' : 'Nej',
-                            }));
+                            }), { fieldPath: `${af.id}:sfggManuelFoerstEfterSygeloen` });
                           }}
                         />
                       </Box>

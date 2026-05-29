@@ -88,8 +88,8 @@ const EetOplysningerTab = ({
   }, [hasBeregningsdatoFoer2015, hasKapDatoFoer2015, values.koen]);
 
   const handleAslAfgoerelserChange = React.useCallback(
-    (rows: ErhvervsevnetabValues['aslAfgoerelser']) => {
-      setValues((prev) => ({ ...prev, aslAfgoerelser: rows }));
+    (rows: ErhvervsevnetabValues['aslAfgoerelser'], origin?: { fieldPath?: string }) => {
+      setValues((prev) => ({ ...prev, aslAfgoerelser: rows }), origin);
     },
     [setValues]
   );

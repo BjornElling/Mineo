@@ -79,7 +79,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
           ...prev.eetDifferencekravBilagSelection,
           visUdvidetSpecifikation: event.target.value,
         },
-      }));
+      }), { fieldPath: 'visUdvidetSpecifikation' });
     },
     [setValues]
   );
@@ -120,6 +120,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
               <Typography className="row--text">Medtag udvidet specifikation i PDF</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledToggleSwitch
+                  name="visUdvidetSpecifikation"
                   checked={showExtendedSpecification}
                   onCommit={handleExtendedSpecificationCommit}
                 />

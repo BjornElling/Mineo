@@ -693,7 +693,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       setEOValues((prev) => ({
         ...prev,
         eoBilagLoenindkomstOgOffentligeYdelserIndgaar: value,
-      }));
+      }), { fieldPath: 'eoBilagLoenindkomstOgOffentligeYdelserIndgaar' });
     },
     [setEOValues]
   );
@@ -1204,6 +1204,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
           <Typography className="row--text">Lønindkomst og offentlige ydelser, der indsættes som bilag</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDropdown
+              name="eoBilagLoenindkomstOgOffentligeYdelserIndgaar"
               allowEmpty={false}
               value={loenindkomstOgOffentligeYdelserIndgaar}
               onChange={updateLoenindkomstOgOffentligeYdelserIndgaar}

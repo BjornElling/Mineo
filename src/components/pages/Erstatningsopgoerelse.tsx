@@ -173,21 +173,24 @@ const Erstatningsopgoerelse = React.memo(() => {
   }, [currentDebugRevision, eoSnapshot?.revision, isSnapshotTabActive]);
 
   const handleOffentligeYdelserRowsChange = React.useCallback(
-    (newData: NonNullable<ErstatningsopgoerelseValues['offentligeYdelserRows']>) => {
+    (newData: NonNullable<ErstatningsopgoerelseValues['offentligeYdelserRows']>, origin?: { fieldPath?: string }) => {
       setFormValues((prev) => ({
         ...prev,
         offentligeYdelserRows: newData,
-      }));
+      }), origin);
     },
     [setFormValues]
   );
 
   const handleLoenindkomstAnsaettelsesforholdChange = React.useCallback(
-    (updater: (prev: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => {
+    (
+      updater: (prev: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'],
+      origin?: { fieldPath?: string }
+    ) => {
       setFormValues((prev) => ({
         ...prev,
         loenindkomstAnsaettelsesforhold: updater(prev.loenindkomstAnsaettelsesforhold),
-      }));
+      }), origin);
     },
     [setFormValues]
   );

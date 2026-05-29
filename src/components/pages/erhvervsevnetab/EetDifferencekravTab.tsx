@@ -248,7 +248,7 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
           ...prev.eetDifferencekravBilagSelection,
           visUdvidetSpecifikationLoebendeYdelserBilag: event.target.value,
         },
-      }));
+      }), { fieldPath: 'visUdvidetSpecifikationLoebendeYdelserBilag' });
     },
     [setValues]
   );
@@ -325,6 +325,7 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
             <Typography className="row--text">Medtag udvidet specifikation på løbende ydelser</Typography>
             <Box className="row--label-right-hover__content">
               <StyledToggleSwitch
+                name="visUdvidetSpecifikationLoebendeYdelserBilag"
                 checked={bilagSelection.visUdvidetSpecifikationLoebendeYdelserBilag}
                 onCommit={handleExtendedSpecificationCommit}
               />

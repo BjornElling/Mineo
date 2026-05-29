@@ -170,6 +170,13 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
                 control={
                   <Radio
                     size="small"
+                    // Undo/redo-fokus: bær feltidentiteten på den valgte radio, så
+                    // historyTargetRestore kan finde og fokusere gruppen efter undo/redo.
+                    slotProps={
+                      name && option.value === resolvedValue
+                        ? { input: { 'data-mineo-undo-field-path': name } as React.InputHTMLAttributes<HTMLInputElement> }
+                        : undefined
+                    }
                     sx={{
                       padding: '4px',
                       '&.Mui-checked': {

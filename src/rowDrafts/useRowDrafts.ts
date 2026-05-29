@@ -1,13 +1,24 @@
 import * as React from 'react';
 import type { RowId, WithId } from './types';
 
+/**
+ * Celle-identitet for et commit, så undo/redo kan tagge history-framet med den celle
+ * brugeren faktisk redigerede (fieldPath = `rowId:colIndex`). Uden den falder
+ * `createUndoOrigin` tilbage på focus-trackeren, som ved blur peger på det *næste* felt.
+ */
+export type RowCommitOrigin = Readonly<{ fieldPath?: string }>;
+
 export type UseRowDraftsConfig<
   TDraft extends WithId,
   TCommitted extends WithId,
+  TField extends keyof TDraft & string = keyof TDraft & string,
 > = {
   // 1) Access to committed state
   getCommitted: () => TCommitted[] | undefined;
-  setCommitted: (updater: (prevRows: TCommitted[] | undefined) => TCommitted[] | undefined) => void;
+  setCommitted: (
+    updater: (prevRows: TCommitted[] | undefined) => TCommitted[] | undefined,
+    origin?: RowCommitOrigin
+  ) => void;
 
   // 2) Mapping between committed and draft
   toDraft: (rows: TCommitted[]) => TDraft[];
@@ -20,6 +31,14 @@ export type UseRowDraftsConfig<
   // 4) ID generation (used for addRow / empty init helpers)
   createId: () => RowId;
   createEmptyCommittedRow: (id: RowId) => TCommitted;
+
+  /**
+   * Felt → kolonneindeks, så et celle-commit kan tagges med `rowId:colIndex` —
+   * samme identitet som Table*Input-cellerne registrerer deres draft-history-controller
+   * under (`gridCell.colIndex`). Udelades den, falder undo-origin tilbage til focus-trackeren
+   * (uændret tidligere adfærd).
+   */
+  fieldColIndex?: Readonly<Record<TField, number>>;
 
   // 5) Optional draft init when committed is empty/undefined
   initFromCommitted?: (rows: TCommitted[] | undefined) => TCommitted[];
@@ -126,12 +145,27 @@ export const useRowDrafts = <
   TCommitted extends WithId,
   TField extends keyof TDraft & string,
 >(
-  config: UseRowDraftsConfig<TDraft, TCommitted>
+  config: UseRowDraftsConfig<TDraft, TCommitted, TField>
 ): UseRowDraftsResult<TDraft, TField> => {
   const configRef = React.useRef(config);
   React.useLayoutEffect(() => {
     configRef.current = config;
   }, [config]);
+
+  // Sidst-redigerede (rowId, field) før commit. onFieldChange kaldes altid umiddelbart
+  // før onRowBlur/commitRow, så dette identificerer hvilken celle der udløste commit'et.
+  // Bruges til at bygge fieldPath = `rowId:colIndex` til undo-origin.
+  const lastEditedRef = React.useRef<{ rowId: RowId; field: TField } | null>(null);
+
+  const resolveCommitOrigin = React.useCallback((rowId: RowId): RowCommitOrigin | undefined => {
+    const cfg = configRef.current;
+    const last = lastEditedRef.current;
+    const map = cfg.fieldColIndex;
+    if (!map || !last || last.rowId !== rowId) return undefined;
+    const colIndex = map[last.field];
+    if (colIndex === undefined) return undefined;
+    return { fieldPath: `${rowId}:${colIndex}` };
+  }, []);
 
   const [draftRows, setDraftRows] = React.useState<TDraft[]>(() => {
     const committed0 = getEnsuredCommitted(config.getCommitted(), config);
@@ -164,6 +198,7 @@ export const useRowDrafts = <
 
   const onFieldChange = React.useCallback(
     (rowId: RowId, field: TField) => (value: string) => {
+      lastEditedRef.current = { rowId, field };
       const current = draftRowsRef.current;
       const next = current.map((row) => (row.id === rowId ? { ...row, [field]: value } : row));
       draftRowsRef.current = next;
@@ -201,13 +236,13 @@ export const useRowDrafts = <
         // committed snapshot fra caller i stedet for hookets potentielt stale values-closure.
         didChange = !committedRowsEqual(base, next);
         return didChange ? next : prevRows;
-      });
+      }, resolveCommitOrigin(rowId));
       if (!didChange) return false;
 
       bumpInternalResyncToken();
       return true;
     },
-    [computeNextCommittedForRow]
+    [computeNextCommittedForRow, resolveCommitOrigin]
   );
 
   const commitAll = React.useCallback((): boolean => {

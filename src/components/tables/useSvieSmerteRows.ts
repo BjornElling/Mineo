@@ -41,12 +41,12 @@ const deriveSvieSmerteById = (rows: readonly SvieSmertePeriodeRow[] | undefined)
 const useSvieSmerteRows = ({ values, setValues, resyncToken }: UseSvieSmerteRowsArgs): UseSvieSmerteRowsResult => {
   const svieRows = useRowDrafts<SvieSmerteDraftRow, SvieSmertePeriodeRow, 'fra' | 'til' | 'tilstand'>({
     getCommitted: () => values.svieSmertePerioder,
-    setCommitted: (updater) => {
+    setCommitted: (updater, origin) => {
       setValues((prev) => {
         const nextRows = updater(prev.svieSmertePerioder);
         if (!nextRows) return prev;
         return { ...prev, svieSmertePerioder: nextRows };
-      });
+      }, origin);
     },
     toDraft: committedToSvieDraftRows,
     toCommittedRow: (draft) => svieDraftToCommittedRow(draft),
@@ -54,6 +54,8 @@ const useSvieSmerteRows = ({ values, setValues, resyncToken }: UseSvieSmerteRows
     ensureRows: ensureSvieRows,
     createId: createSvieRowId,
     createEmptyCommittedRow: createEmptySvieCommittedRow,
+    // colIndex matcher SvieSmerteTable: fra=0, til=1, tilstand=3 (colIndex 2 er ikke-redigerbar)
+    fieldColIndex: { fra: 0, til: 1, tilstand: 3 },
     resyncToken,
   });
 

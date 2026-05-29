@@ -33,12 +33,12 @@ const useFerieRows = ({ values, setValues, resyncToken, fieldName = 'ferieperiod
   const createId = fieldName === 'sfggSygeperioderFoer2015' ? createSfggSygeperiodeRowId : createTafFerieRowId;
   const ferieRows = useRowDrafts<FerieDraftRow, FerieperiodeRow, 'fra' | 'til'>({
     getCommitted: () => values[fieldName],
-    setCommitted: (updater) => {
+    setCommitted: (updater, origin) => {
       setValues((prev) => {
         const nextRows = updater(prev[fieldName]);
         if (!nextRows) return prev;
         return { ...prev, [fieldName]: nextRows };
-      });
+      }, origin);
     },
     toDraft: committedToFerieDraftRows,
     toCommittedRow: (draft) => ferieDraftToCommittedRow(draft),
@@ -46,6 +46,8 @@ const useFerieRows = ({ values, setValues, resyncToken, fieldName = 'ferieperiod
     ensureRows,
     createId,
     createEmptyCommittedRow: createEmptyFerieCommittedRow,
+    // colIndex matcher Ferie-/BeregningsperiodeFerieTable: fra=0, til=1
+    fieldColIndex: { fra: 0, til: 1 },
     resyncToken,
   });
 

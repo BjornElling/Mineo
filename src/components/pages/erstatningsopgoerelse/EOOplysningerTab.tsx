@@ -179,7 +179,9 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const handleToggleChange = React.useCallback(
     (fieldName: ToggleFieldName): CommitHandler<boolean> =>
       (event: CommitEvent<boolean>) => {
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value ? 'Ja' : 'Nej' }));
+        // Immediate-commit widget: send fieldPath, ellers gætter undo-origin via focus-trackeren,
+        // som peger på det forrige (tekst)felt — derfor lander undo-fokus forkert (fejl B).
+        setValues((prev) => ({ ...prev, [fieldName]: event.target.value ? 'Ja' : 'Nej' }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -195,7 +197,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         const asString = typeof raw === 'string' ? raw : raw == null ? '' : String(raw);
         const trimmed = asString.trim();
         const nextValue = trimmed || undefined;
-        setValues((prev) => ({ ...prev, [fieldName]: nextValue }));
+        setValues((prev) => ({ ...prev, [fieldName]: nextValue }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -207,7 +209,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const handleIntegerBlur = React.useCallback(
     <K extends NumberLikeKeys>(fieldName: K) =>
       (event: CommitEvent<number | undefined>) => {
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }));
+        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -219,7 +221,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const handleNumberBlur = React.useCallback(
     <K extends NumberLikeKeys>(fieldName: K) =>
       (event: CommitEvent<number | undefined>) => {
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }));
+        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -230,7 +232,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const handleAmountBlur = React.useCallback(
     <K extends AmountLikeKeys>(fieldName: K) =>
       (event: CommitEvent<AmountValue | undefined>) => {
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }));
+        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -245,12 +247,12 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
   const handleHelbredsfoholdChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = helbredsstatusEnum.safeParse(event.target.value);
-    setValues((prev) => ({ ...prev, svieSmerteHelbredsstatus: parsed.success ? parsed.data : undefined }));
+    setValues((prev) => ({ ...prev, svieSmerteHelbredsstatus: parsed.success ? parsed.data : undefined }), { fieldPath: 'svieSmerteHelbredsstatus' });
   }, [setValues]);
 
   const handleArbejdssituationChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = arbejdsstatusEnum.safeParse(event.target.value);
-    setValues((prev) => ({ ...prev, tafArbejdsstatus: parsed.success ? parsed.data : undefined }));
+    setValues((prev) => ({ ...prev, tafArbejdsstatus: parsed.success ? parsed.data : undefined }), { fieldPath: 'tafArbejdsstatus' });
   }, [setValues]);
 
   const handleBeregnesUdFraChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
@@ -267,13 +269,13 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
             ? 'Time'
             : 'Måned',
       },
-    }));
+    }), { fieldPath: 'beregnesUdFra' });
   }, [ensureEoLoenPaaHelligdage, setValues]);
 
   const handleAfsluttesMedChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = afsluttesMedEnum.safeParse(event.target.value);
     if (!parsed.success) return;
-    setValues((prev) => ({ ...prev, erstatningsopgoerelseAfsluttesMed: parsed.data }));
+    setValues((prev) => ({ ...prev, erstatningsopgoerelseAfsluttesMed: parsed.data }), { fieldPath: 'erstatningsopgoerelseAfsluttesMed' });
   }, [setValues]);
 
   const visLoenudviklingFraEO =
@@ -296,8 +298,8 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const loentrinFinderHeadingId = React.useId();
 
   const updateEoLoenudvikling = React.useCallback(
-    (updater: (prev: EOAngivetLoenLoenudvikling) => EOAngivetLoenLoenudvikling) => {
-      setValues((prev) => ({ ...prev, eoAngivetLoenLoenudvikling: updater(prev.eoAngivetLoenLoenudvikling) }));
+    (updater: (prev: EOAngivetLoenLoenudvikling) => EOAngivetLoenLoenudvikling, origin?: { fieldPath?: string }) => {
+      setValues((prev) => ({ ...prev, eoAngivetLoenLoenudvikling: updater(prev.eoAngivetLoenLoenudvikling) }), origin);
     },
     [setValues]
   );
@@ -584,7 +586,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     updateEoLoenudvikling((prev) => ({
       ...prev,
       loenudviklingBeregningsgrundlag: parsed.success ? parsed.data : undefined,
-    }));
+    }), { fieldPath: 'loenudviklingBeregningsgrundlag' });
   }, [updateEoLoenudvikling]);
 
   const handleLoenudviklingStatistikModelChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
@@ -592,7 +594,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     updateEoLoenudvikling((prev) => ({
       ...prev,
       loenudviklingStatistikModel: parsed.success ? parsed.data : undefined,
-    }));
+    }), { fieldPath: 'loenudviklingStatistikModel' });
   }, [updateEoLoenudvikling]);
 
   const handleLoenudviklingKRLSatstabelChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
@@ -600,7 +602,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     updateEoLoenudvikling((prev) => ({
       ...prev,
       loenudviklingKRLSatstabel: parsed.success ? parsed.data : undefined,
-    }));
+    }), { fieldPath: 'loenudviklingKRLSatstabel' });
   }, [updateEoLoenudvikling]);
 
   const handleEoOverenskomstFilterChange = React.useCallback(
@@ -611,7 +613,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           ...prev.overenskomstFilter,
           [filterType]: value,
         },
-      }));
+      }), { fieldPath: `overenskomstFilter.${filterType}` });
     },
     [updateEoLoenudvikling]
   );
@@ -627,7 +629,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           nextOverenskomstId && isOffentligOverenskomstId(nextOverenskomstId)
             ? (prev.offentligLoenType ?? 'Månedsløn')
             : prev.offentligLoenType,
-      }));
+      }), { fieldPath: 'overenskomstId' });
     },
     [updateEoLoenudvikling]
   );
@@ -637,49 +639,49 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     updateEoLoenudvikling((prev) => ({
       ...prev,
       offentligLoenType: parsed.success ? parsed.data : prev.offentligLoenType,
-    }));
+    }), { fieldPath: 'offentligLoenType' });
   }, [updateEoLoenudvikling]);
 
   const handleOffentligLoenTrinCommit = React.useCallback((event: CommitEvent<number | undefined>) => {
     updateEoLoenudvikling((prev) => ({
       ...prev,
       offentligLoenTrin: event.target.value,
-    }));
+    }), { fieldPath: 'offentligLoenTrin' });
   }, [updateEoLoenudvikling]);
 
   const handleOffentligLoenGruppeCommit = React.useCallback((event: CommitEvent<number | undefined>) => {
     updateEoLoenudvikling((prev) => ({
       ...prev,
       offentligLoenGruppe: event.target.value,
-    }));
+    }), { fieldPath: 'offentligLoenGruppe' });
   }, [updateEoLoenudvikling]);
 
   const handleOffentligLoenEkstraGrundloenCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['offentligLoenEkstraGrundloen']>) => {
     updateEoLoenudvikling((prev) => ({
       ...prev,
       offentligLoenEkstraGrundloen: event.target.value,
-    }));
+    }), { fieldPath: 'offentligLoenEkstraGrundloen' });
   }, [updateEoLoenudvikling]);
 
   const handleEoAnciennitetstillaegToggleCommit = React.useCallback((event: CommitEvent<boolean>) => {
     updateEoLoenudvikling((prev) => ({
       ...prev,
       harAnciennitetstillaegEfterSkadedatoen: event.target.value,
-    }));
+    }), { fieldPath: 'harAnciennitetstillaegEfterSkadedatoen' });
   }, [updateEoLoenudvikling]);
 
   const handleEoAnciennitetstillaegDatoCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegDato']>) => {
     updateEoLoenudvikling((prev) => ({
       ...prev,
       anciennitetstillaegDato: event.target.value,
-    }));
+    }), { fieldPath: 'anciennitetstillaegDato' });
   }, [updateEoLoenudvikling]);
 
   const handleEoAnciennitetstillaegSatsCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegSats']>) => {
     updateEoLoenudvikling((prev) => ({
       ...prev,
       anciennitetstillaegSats: event.target.value,
-    }));
+    }), { fieldPath: 'anciennitetstillaegSats' });
   }, [updateEoLoenudvikling]);
 
   const handleLoenudviklingManuelNavnCommit = React.useCallback((event: CommitEvent<string | undefined>) => {
@@ -687,16 +689,17 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     updateEoLoenudvikling((prev) => ({
       ...prev,
       loenudviklingManuelNavn: trimmed,
-    }));
+    }), { fieldPath: 'loenudviklingManuelNavn' });
   }, [updateEoLoenudvikling]);
 
   const handleLoenudviklingManuelTableChange = React.useCallback((
-    tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelTableData']
+    tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelTableData'],
+    origin?: { fieldPath?: string }
   ) => {
     updateEoLoenudvikling((prev) => ({
       ...prev,
       loenudviklingManuelTableData: tableData,
-    }));
+    }), origin);
   }, [updateEoLoenudvikling]);
 
   const handleLoenudviklingManuelInputErrorChange = React.useCallback((hasError: boolean) => {
@@ -747,7 +750,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           const next: ErstatningsopgoerelseValues = { ...prev };
           next[fieldName] = nextValue;
           return next;
-        });
+        }, { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -1094,6 +1097,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Revideret opgørelse</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
+              name="revideretOpgoerelse"
               checked={getChecked(values.revideretOpgoerelse)}
               onCommit={handleToggleChange('revideretOpgoerelse')}
             />
@@ -1159,6 +1163,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Indsæt udkast-stempel</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
+              name="indsaetUdkastStempel"
               checked={getChecked(values.indsaetUdkastStempel)}
               onCommit={handleToggleChange('indsaetUdkastStempel')}
             />
@@ -1171,6 +1176,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Helbredsforhold</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDropdown
+              name="svieSmerteHelbredsstatus"
               width={200}
               value={values.svieSmerteHelbredsstatus}
               onChange={handleHelbredsfoholdChange}
@@ -1186,6 +1192,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Arbejdssituation</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDropdown
+              name="tafArbejdsstatus"
               width={200}
               value={values.tafArbejdsstatus}
               onChange={handleArbejdssituationChange}
@@ -1212,6 +1219,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Erstatningsopgørelse afsluttes med</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDropdown
+              name="erstatningsopgoerelseAfsluttesMed"
               allowEmpty={false}
               width={220}
               value={values.erstatningsopgoerelseAfsluttesMed}
@@ -1289,6 +1297,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Truffet afgørelse om varige mén på 5 % eller derover</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
+              name="varigeMenAfgorelse"
               checked={getChecked(values.varigeMenAfgorelse)}
               onCommit={handleToggleChange('varigeMenAfgorelse')}
             />
@@ -1318,6 +1327,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <Typography className="row--text">Verserende klagesag over ménafgørelse?</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledToggleSwitch
+                  name="verserendeKlageMen"
                   checked={getChecked(values.verserendeKlageMen)}
                   onCommit={handleToggleChange('verserendeKlageMen')}
                 />
@@ -1335,6 +1345,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Truffet afgørelse om midlertidigt erhvervsevnetab på 15 % eller derover</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
+              name="midlertidigtEETAfgorelse"
               checked={getChecked(values.midlertidigtEETAfgorelse)}
               onCommit={handleToggleChange('midlertidigtEETAfgorelse')}
             />
@@ -1387,6 +1398,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Truffet afgørelse om endeligt erhvervsevnetab på 15 % eller derover</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
+              name="endeligtEETAfgorelse"
               checked={getChecked(values.endeligtEETAfgorelse)}
               onCommit={handleToggleChange('endeligtEETAfgorelse')}
             />
@@ -1440,6 +1452,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
             <Typography className="row--text">Verserende klagesag over EET-afgørelse?</Typography>
             <Box className="row--label-right-hover__content">
               <StyledToggleSwitch
+                name="verserendeKlageEet"
                 checked={getChecked(values.verserendeKlageEet)}
                 onCommit={handleToggleChange('verserendeKlageEet')}
               />
@@ -1473,6 +1486,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Beregnes der svie/smerte godtgørelse i opgørelsen</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
+              name="beregnesSvieSmerteGodtgoerelse"
               checked={getChecked(values.beregnesSvieSmerteGodtgoerelse)}
               onCommit={handleToggleChange('beregnesSvieSmerteGodtgoerelse')}
             />
@@ -1485,6 +1499,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <Typography className="row--text">Tidligere beregnet S/S til max.</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledToggleSwitch
+                  name="tidligereSsMax"
                   checked={getChecked(values.tidligereSsMax)}
                   onCommit={handleToggleChange('tidligereSsMax')}
                 />
@@ -1533,6 +1548,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   </Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledRadioButton
+                      name="svieSmerteDelvisSygemeldingSats"
                       value={values.svieSmerteDelvisSygemeldingSats}
                       onCommit={(event) => {
                         const next = event.target.value;
@@ -1590,6 +1606,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Beregnes der tabt arbejdsfortjeneste i opgørelsen</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
+              name="beregnesTabtArbejdsfortjeneste"
               checked={getChecked(values.beregnesTabtArbejdsfortjeneste)}
               onCommit={handleToggleChange('beregnesTabtArbejdsfortjeneste')}
             />
@@ -1664,6 +1681,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Skjul beregning efter første opgørelse</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
+              name="komprimerBeregningEfterFoersteOpgoerelse"
               checked={getChecked(values.komprimerBeregningEfterFoersteOpgoerelse)}
               onCommit={handleToggleChange('komprimerBeregningEfterFoersteOpgoerelse')}
             />
@@ -1676,6 +1694,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <Typography className="row--text">Beregnes ud fra</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledDropdown
+                  name="beregnesUdFra"
                   width={200}
                   value={values.beregnesUdFra}
                   onChange={handleBeregnesUdFraChange}
@@ -1718,6 +1737,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   </Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledToggleSwitch
+                      name="regulerOffentligeYdelser"
                       checked={getChecked(values.regulerOffentligeYdelser)}
                       onCommit={handleToggleChange('regulerOffentligeYdelser')}
                     />
@@ -1756,6 +1776,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <Typography className="row--text">Øvrigt fravær uden løn</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledToggleSwitch
+                      name="oevrigtFravaerUdenLoen"
                       checked={getChecked(values.oevrigtFravaerUdenLoen)}
                       onCommit={handleToggleChange('oevrigtFravaerUdenLoen')}
                     />
@@ -1868,6 +1889,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <Typography className="row--text">Lønudvikling beregnes ud fra</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledDropdown
+                      name="loenudviklingBeregningsgrundlag"
                       width={220}
                       value={loenudviklingBasis}
                       onChange={handleLoenudviklingBeregningsgrundlagChange}
@@ -1891,6 +1913,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                         {/* Lønmodtager filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
                         <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>L:</Typography>
                         <StyledDropdown
+                          name="overenskomstFilter.loenmodtager"
                           value={eoLoenudvikling.overenskomstFilter?.loenmodtager ?? 'ALLE'}
                           onChange={(e: StyledDropdownChangeEvent<string>) => {
                             const uiValue = e.target.value;
@@ -1934,6 +1957,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                         {/* Arbejdsgiver filter dropdown - UI viser 'ALLE', domæne bruger undefined */}
                         <Typography sx={{ fontSize: '11px', lineHeight: '24px' }}>A:</Typography>
                         <StyledDropdown
+                          name="overenskomstFilter.arbejdsgiver"
                           value={eoLoenudvikling.overenskomstFilter?.arbejdsgiver ?? 'ALLE'}
                           onChange={(e: StyledDropdownChangeEvent<string>) => {
                             const uiValue = e.target.value;
@@ -1975,6 +1999,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                         </StyledDropdown>
 
                         <StyledDropdown
+                          name="overenskomstId"
                           value={eoLoenudvikling.overenskomstId || undefined}
                           onChange={handleEoOverenskomstChange}
                           width={460}
@@ -2012,6 +2037,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                           <Typography className="row--text">Ansættelse</Typography>
                           <StyledDropdown
+                            name="offentligLoenType"
                             width={160}
                             value={eoLoenudvikling.offentligLoenType ?? 'Månedsløn'}
                             onChange={handleOffentligLoenTypeChange}
@@ -2092,6 +2118,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     <Typography className="row--text">Statistisk beregningsmodel</Typography>
                     <Box className="row--label-right-hover__content">
                       <StyledDropdown
+                        name="loenudviklingStatistikModel"
                         width={270}
                         value={eoLoenudvikling.loenudviklingStatistikModel}
                         onChange={handleLoenudviklingStatistikModelChange}
@@ -2111,6 +2138,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     <Typography className="row--text">Satstabel</Typography>
                     <Box className="row--label-right-hover__content">
                       <StyledDropdown
+                        name="loenudviklingKRLSatstabel"
                         width={270}
                         value={eoLoenudvikling.loenudviklingKRLSatstabel}
                         onChange={handleLoenudviklingKRLSatstabelChange}
@@ -2248,6 +2276,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <Typography className="row--text">Ville skadelidte have opnået anciennitetstillæg efter skadedatoen</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledToggleSwitch
+                      name="harAnciennitetstillaegEfterSkadedatoen"
                       checked={eoLoenudvikling.harAnciennitetstillaegEfterSkadedatoen}
                       onCommit={handleEoAnciennitetstillaegToggleCommit}
                     />
@@ -2523,6 +2552,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Indsæt bilagsnumre i erstatningsopgørelsen</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
+              name="visBilagsnumre"
               checked={getChecked(values.visBilagsnumre)}
               onCommit={handleToggleChange('visBilagsnumre')}
             />

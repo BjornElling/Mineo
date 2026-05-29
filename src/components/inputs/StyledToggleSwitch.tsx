@@ -71,6 +71,7 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
   // Ref til cleanup af shake-timeout
   const shakeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+
   // Cleanup timeout ved unmount
   React.useEffect(() => {
     return () => {
@@ -188,6 +189,13 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
         // (MUI uses currentColor for the focus ripple; unchecked defaults to a grey tone.)
         '& .MuiSwitch-switchBase.Mui-focusVisible': {
           color: 'primary.main',
+        },
+        // Synlig fokus-halo bag thumb'en. Dækker BÅDE tab-fokus (.Mui-focusVisible) og
+        // undo/redo-restore (data-mineo-undo-focused), så de to tilstande ser ens ud.
+        // Nødvendigt fordi MUI's default focus-ripple IKKE udløses af programmatisk focus()
+        // (undo/redo) — se historyTargetRestore.ts.
+        '& .MuiSwitch-switchBase.Mui-focusVisible .MuiSwitch-thumb, & .MuiSwitch-switchBase:has(.MuiSwitch-input[data-mineo-undo-focused]) .MuiSwitch-thumb': {
+          boxShadow: (theme) => `0 0 0 8px ${theme.palette.primary.main}29`,
         },
       }}
     />

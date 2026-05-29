@@ -28,12 +28,12 @@ export type UseOevrigeKravRowsResult = UseRowDraftsResult<OevrigeKravDraftRow, '
 const useOevrigeKravRows = ({ values, setValues, resyncToken }: UseOevrigeKravRowsArgs): UseOevrigeKravRowsResult => {
   const rows = useRowDrafts<OevrigeKravDraftRow, OevrigeKravRow, 'dato' | 'udgiftTil' | 'beloeb'>({
     getCommitted: () => values.oevrigeKravPerioder,
-    setCommitted: (updater) => {
+    setCommitted: (updater, origin) => {
       setValues((prev) => {
         const nextRows = updater(prev.oevrigeKravPerioder);
         if (!nextRows) return prev;
         return { ...prev, oevrigeKravPerioder: nextRows };
-      });
+      }, origin);
     },
     toDraft: committedToOevrigeKravDraftRows,
     toCommittedRow: (draft, prev) => oevrigeKravDraftToCommittedRow(draft, prev),
@@ -41,6 +41,8 @@ const useOevrigeKravRows = ({ values, setValues, resyncToken }: UseOevrigeKravRo
     ensureRows: ensureOevrigeKravRows,
     createId: createOevrigeKravRowId,
     createEmptyCommittedRow: createEmptyOevrigeKravCommittedRow,
+    // colIndex matcher OevrigeKravTable: dato=0, udgiftTil=1, beloeb=2
+    fieldColIndex: { dato: 0, udgiftTil: 1, beloeb: 2 },
     resyncToken,
   });
 

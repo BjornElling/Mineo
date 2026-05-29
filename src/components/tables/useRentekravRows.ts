@@ -31,12 +31,12 @@ export type UseRentekravRowsResult = UseRowDraftsResult<
 const useRentekravRows = ({ values, setValues, resyncToken }: UseRentekravRowsArgs): UseRentekravRowsResult => {
   const rows = useRowDrafts<RentekravDraftRow, RentekravRow, 'belob' | 'renterFra' | 'tillaegstid' | 'enhed'>({
     getCommitted: () => values.rentekravRows,
-    setCommitted: (updater) => {
+    setCommitted: (updater, origin) => {
       setValues((prev) => {
         const nextRows = updater(prev.rentekravRows);
         if (!nextRows) return prev;
         return { ...prev, rentekravRows: nextRows };
-      });
+      }, origin);
     },
     toDraft: committedToRentekravDraftRows,
     toCommittedRow: (draft, prev) => rentekravDraftToCommittedRow(draft, prev),
@@ -44,6 +44,8 @@ const useRentekravRows = ({ values, setValues, resyncToken }: UseRentekravRowsAr
     ensureRows: ensureRentekravRows,
     createId: createRentekravRowId,
     createEmptyCommittedRow: createEmptyRentekravCommittedRow,
+    // colIndex matcher BeregnetRenteTable: belob=0, renterFra=1, tillaegstid=2, enhed=3
+    fieldColIndex: { belob: 0, renterFra: 1, tillaegstid: 2, enhed: 3 },
     resyncToken,
   });
 

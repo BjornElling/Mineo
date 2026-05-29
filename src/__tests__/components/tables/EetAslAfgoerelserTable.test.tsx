@@ -83,6 +83,78 @@ describe('EetAslAfgoerelserTable', () => {
     expect(screen.getByText('Tidligere kapitaliseringsdato må ikke udfyldes ved midlertidig eller ikke-valgt afgørelsestype.')).toBeInTheDocument();
   });
 
+  it('sender den redigerede celles fieldPath (rowId:colIndex) med commit til undo/redo', async () => {
+    const user = userEvent.setup();
+    const onTableDataChange = vi.fn();
+
+    render(
+      <EetAslAfgoerelserTable
+        tableData={[createEmptyAslAfgoerelseRow()]}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
+        onTableDataChange={onTableDataChange}
+      />
+    );
+
+    // Rediger EET %-cellen (colIndex 2) i første række.
+    const firstDataRow = screen.getAllByRole('row')[1];
+    const eetPctCell = within(firstDataRow).getAllByRole('cell')[2];
+    const eetPctInput = within(eetPctCell).getByRole('textbox');
+    await openInputEditing(user, eetPctInput);
+    await user.clear(eetPctInput);
+    await user.type(eetPctInput, '15');
+    await user.tab();
+
+    await waitFor(() => expect(onTableDataChange).toHaveBeenCalled());
+    const lastCall = onTableDataChange.mock.calls.at(-1);
+    const persistedRows = lastCall?.[0] as Array<{ id: string }>;
+    const origin = lastCall?.[1] as { fieldPath?: string } | undefined;
+    // fieldPath skal pege på EET %-cellen (colIndex 2) i den række der blev redigeret.
+    expect(origin?.fieldPath).toBe(`${persistedRows[0].id}:2`);
+  }, ASYNC_TEST_TIMEOUT_MS);
+
+  it('skaber ét separat commit pr. redigeret celle (to celler → to frames)', async () => {
+    const user = userEvent.setup();
+    const onTableDataChange = vi.fn();
+
+    render(
+      <EetAslAfgoerelserTable
+        tableData={[createEmptyAslAfgoerelseRow()]}
+        skadedato={toISODateString('2020-01-01')}
+        skadedatoMin={toISODateString('2020-01-01')}
+        beregningsdato={toISODateString('2025-12-31')}
+        skadelidteFodselsdato={toISODateString('1990-01-01')}
+        onTableDataChange={onTableDataChange}
+      />
+    );
+
+    const firstDataRow = screen.getAllByRole('row')[1];
+    const afgoerelsesDatoInput = within(within(firstDataRow).getAllByRole('cell')[0]).getByRole('textbox');
+    const virkningsDatoInput = within(within(firstDataRow).getAllByRole('cell')[1]).getByRole('textbox');
+
+    // Celle 0 (afgørelsesdato), tab væk.
+    await openInputEditing(user, afgoerelsesDatoInput);
+    await user.clear(afgoerelsesDatoInput);
+    await user.type(afgoerelsesDatoInput, '01-02-2024');
+    await user.tab();
+    await waitFor(() => expect(onTableDataChange).toHaveBeenCalledTimes(1));
+
+    // Celle 1 (virkningsdato), tab væk.
+    await openInputEditing(user, virkningsDatoInput);
+    await user.clear(virkningsDatoInput);
+    await user.type(virkningsDatoInput, '01-03-2024');
+    await user.tab();
+    await waitFor(() => expect(onTableDataChange).toHaveBeenCalledTimes(2));
+
+    // Hvert commit bærer sin egen celles identitet — to distinkte undo-frames.
+    const firstOrigin = onTableDataChange.mock.calls[0]?.[1] as { fieldPath?: string } | undefined;
+    const secondOrigin = onTableDataChange.mock.calls[1]?.[1] as { fieldPath?: string } | undefined;
+    expect(firstOrigin?.fieldPath).toMatch(/:0$/);
+    expect(secondOrigin?.fieldPath).toMatch(/:1$/);
+  }, ASYNC_TEST_TIMEOUT_MS);
+
   it('deduplikerer identiske opdateringer så onTableDataChange ikke trigges igen', async () => {
     const user = userEvent.setup();
     const onTableDataChange = vi.fn();

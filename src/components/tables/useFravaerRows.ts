@@ -28,12 +28,12 @@ export type UseFravaerRowsResult = UseRowDraftsResult<FerieDraftRow, 'fra' | 'ti
 const useFravaerRows = ({ values, setValues, resyncToken }: UseFravaerRowsArgs): UseFravaerRowsResult => {
   const fravaerRows = useRowDrafts<FerieDraftRow, FerieperiodeRow, 'fra' | 'til'>({
     getCommitted: () => values.fravaerPerioder,
-    setCommitted: (updater) => {
+    setCommitted: (updater, origin) => {
       setValues((prev) => {
         const nextRows = updater(prev.fravaerPerioder);
         if (!nextRows) return prev;
         return { ...prev, fravaerPerioder: nextRows };
-      });
+      }, origin);
     },
     toDraft: committedToFerieDraftRows,
     toCommittedRow: (draft) => ferieDraftToCommittedRow(draft),
@@ -41,6 +41,8 @@ const useFravaerRows = ({ values, setValues, resyncToken }: UseFravaerRowsArgs):
     ensureRows: ensureFravaerRows,
     createId: createFravaerRowId,
     createEmptyCommittedRow: createEmptyFerieCommittedRow,
+    // colIndex matcher fravær-tabellens fra=0, til=1
+    fieldColIndex: { fra: 0, til: 1 },
     resyncToken,
   });
 

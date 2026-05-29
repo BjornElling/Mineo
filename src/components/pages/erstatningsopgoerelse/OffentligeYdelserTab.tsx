@@ -40,7 +40,7 @@ type OffentligeYdelserHelpersSessionState = z.infer<typeof offentligeYdelserHelp
 
 type Props = Readonly<{
   rows: OffentligeYdelserRow[];
-  onRowsChange: (rows: OffentligeYdelserRow[]) => void;
+  onRowsChange: (rows: OffentligeYdelserRow[], origin?: { fieldPath?: string }) => void;
   midlertidigtEetFraEetSiden: ErstatningsopgoerelseValues['midlertidigtEetFraEetSiden'];
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
 }>;
@@ -209,7 +209,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
             midlertidigEet: false,
           },
         };
-      });
+      }, { fieldPath: 'midlertidigtEetFraEetSiden' });
       setMidlertidigtEetToggleError(null);
       return true;
     } catch (error) {
@@ -316,6 +316,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
           <Typography className="row--text">Midlertidigt EET indsættes fra Erhvervsevnetab-siden</Typography>
           <Box className="row--label-right-hover__content">
             <StyledToggleSwitch
+              name="midlertidigtEetFraEetSiden"
               checked={isMidlertidigtEetFraEetSiden}
               onCommit={handleMidlertidigtEetToggleCommit}
               ariaLabel="Midlertidigt EET indsættes fra Erhvervsevnetab-siden"
