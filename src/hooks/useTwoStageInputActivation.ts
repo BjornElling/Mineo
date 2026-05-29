@@ -99,19 +99,25 @@ export const useTwoStageInputActivation = <TElement extends HTMLElement>(
     const el = editableElementRef?.current;
     if (!el || el.readOnly) return;
     if (document.activeElement !== el) return; // kun det allerede-fokuserede tilfælde
-    // Bevar caret-positionen fra klikket: læs den eksisterende selection FØR blur
-    // og genskab den efter focus. På et tomt felt er start/end = 0; på et udfyldt
-    // felt lander caret'en dér hvor brugeren klikkede — identisk med de øvrige
-    // inputfelter. (`selectionStart` kan være null for visse input-typer; i så fald
-    // falder vi tilbage til enden af teksten.)
+    // Bevar caret-positionen fra klikket, men ALTID som en kollapset caret — aldrig
+    // et selektions-interval. På et tomt felt er caret = 0; på et udfyldt felt lander
+    // caret'en dér hvor brugeren klikkede — identisk med de øvrige inputfelter
+    // (tabel-felterne kollapser også altid caret'en, se StyledAmountField).
+    //
+    // Hvorfor kollapse i stedet for at genskabe selectionStart→selectionEnd:
+    // når et readOnly-felt får fokus ved tap på mobil, markerer browseren ofte HELE
+    // indholdet (selectionStart=0, selectionEnd=length). Genskaber vi det interval,
+    // blinker hele feltets indhold blåt et øjeblik før editoren tager over. Ved at
+    // kollapse til caret-positionen undgås det blink, og adfærden bliver ensartet
+    // med tabel-felterne. (`selectionStart` kan være null for visse input-typer; i
+    // så fald falder vi tilbage til enden af teksten.)
     const end = el.value.length;
-    const start = el.selectionStart ?? end;
-    const stop = el.selectionEnd ?? start;
+    const caret = el.selectionStart ?? end;
     ignoreBlurRef.current = true;
     try {
       el.blur();
       el.focus({ preventScroll: true });
-      el.setSelectionRange(start, stop);
+      el.setSelectionRange(caret, caret);
     } finally {
       ignoreBlurRef.current = false;
     }
