@@ -126,10 +126,8 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
             borderRadius: 'var(--border-radius-small)',
             margin: '16px 0',
           },
+          // Global mobil-fontstørrelse for alle row--text (inkl. beregningsdato-boksen og tabellens talværdier).
           '& .row--text': {
-            fontSize: 'var(--minprocesrente-mobile-content-font-size)',
-          },
-          '& .content-box--beregningsdato .row--text': {
             fontSize: 'var(--minprocesrente-mobile-content-font-size)',
           },
           '& .MuiTableCell-root, & .MuiInputBase-root, & .MuiInputBase-input, & textarea.MuiInputBase-input': {

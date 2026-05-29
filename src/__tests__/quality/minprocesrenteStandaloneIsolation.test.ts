@@ -41,6 +41,14 @@ describe('MinProcesrente standalone isolation', () => {
     expect(source).not.toContain('serviceWorker');
   });
 
+  it('isolerer sessionStorage fra Mineo ved at sætte et eget storage-namespace ved bootstrap', () => {
+    const entrypoint = readFileSync(
+      path.join(repoRoot, 'src/apps/minprocesrente/minprocesrenteMain.tsx'),
+      'utf8'
+    );
+    expect(entrypoint).toMatch(/setStorageNamespace\(\s*['"]minprocesrente['"]\s*\)/);
+  });
+
   it('læser ikke stamdata, indstillinger eller andre Mineo-sektioner som brugerdata og bruger ikke Mineos diagnoseflow', () => {
     const source = readStandaloneSource();
 

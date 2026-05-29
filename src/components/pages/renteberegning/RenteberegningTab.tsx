@@ -6,7 +6,7 @@ import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledTextField from '../../inputs/StyledTextField';
 import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
 import type { RentekravPdfContextMap } from '../../tables/BeregnetRenteTable';
-import type { ContentBoxFrameProps, ContentBoxComponent } from '../../layout/ContentBoxFrame';
+import type { ContentBoxComponent } from '../../layout/ContentBoxFrame';
 import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';

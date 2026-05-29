@@ -3,50 +3,79 @@
  *
  * Centraliseret definition af alle sessionStorage keys brugt i Mineo.
  * Dette sikrer type-safety og forhindrer typos ved gem/hent operationer.
+ *
+ * Namespace-isolation: Alle keys får et variant-prefix (default `mineo`). MinProcesrente-
+ * standalone-buildet kalder `setStorageNamespace('minprocesrente')` ved bootstrap — FØR
+ * nogen storage-adgang sker — så de to varianter aldrig deler sessionStorage-keys, selv
+ * hvis de en dag serveres fra samme origin (lokal dev, preview, sti-baseret deploy).
+ * Mineo beholder de uændrede `mineo_*`-keys, så eksisterende data bevares.
+ *
+ * Keys resolveres dovent (ved access) via getters, fordi `setStorageNamespace` skal kunne
+ * sættes på entrypoint-niveau efter dette modul er importeret.
  */
+
+let storageNamespace = 'mineo';
 
 /**
- * Alle gyldige storage keys i Mineo
- *
- * Hver side/modul har sin egen key til sessionStorage.
- * Mapping: pageKey → sessionStorage key
+ * Sæt storage-namespace for hele app-varianten. Skal kaldes ÉN gang ved bootstrap,
+ * før nogen sessionStorage-adgang. Idempotent for samme værdi.
  */
-export const STORAGE_KEYS = {
-  stamdata: 'mineo_stamdata',
-  satser: 'mineo_satser',
-  aarsloen: 'mineo_aarsloen',
-  faellesAarsloen: 'mineo_faellesAarsloen',
-  renteberegning: 'mineo_renteberegning',
-  varigemen: 'mineo_varigemen',
-  forsoergertab: 'mineo_forsoergertab',
-  erstatningsopgoerelse: 'mineo_erstatningsopgoerelse',
-  erhvervsevnetab: 'mineo_erhvervsevnetab',
+export const setStorageNamespace = (namespace: string): void => {
+  storageNamespace = namespace;
+};
+
+export const getStorageNamespace = (): string => storageNamespace;
+
+const ns = (suffix: string): string => `${storageNamespace}_${suffix}`;
+
+/**
+ * Suffix-mapping pr. domæne-sektion. De faktiske storage-keys bygges med namespace
+ * via `getStorageKey` / `STORAGE_KEYS`-getterne nedenfor.
+ */
+const STORAGE_KEY_SUFFIXES = {
+  stamdata: 'stamdata',
+  satser: 'satser',
+  aarsloen: 'aarsloen',
+  faellesAarsloen: 'faellesAarsloen',
+  renteberegning: 'renteberegning',
+  varigemen: 'varigemen',
+  forsoergertab: 'forsoergertab',
+  erstatningsopgoerelse: 'erstatningsopgoerelse',
+  erhvervsevnetab: 'erhvervsevnetab',
 } as const;
 
-export const UI_STORAGE_KEYS = {
-  lastSavedFilename: 'mineo_ui_lastSavedFilename',
-  lastSavedFilenameBasis: 'mineo_ui_lastSavedFilenameBasis',
-  loentrinFinderOverlay: 'mineo_ui_loentrinFinderOverlay',
-  eoOffentligeYdelserHelpers: 'mineo_ui_eoOffentligeYdelserHelpers',
-  devtoolsLastSeenIssueId: 'mineo_ui_devtools_lastSeenIssueId',
-  pendingOverlay: 'mineo_pendingOverlay',
-  sideMenuExpanded: 'mineo_sideMenuExpanded',
+const UI_STORAGE_KEY_SUFFIXES = {
+  lastSavedFilename: 'ui_lastSavedFilename',
+  lastSavedFilenameBasis: 'ui_lastSavedFilenameBasis',
+  loentrinFinderOverlay: 'ui_loentrinFinderOverlay',
+  eoOffentligeYdelserHelpers: 'ui_eoOffentligeYdelserHelpers',
+  devtoolsLastSeenIssueId: 'ui_devtools_lastSeenIssueId',
+  pendingOverlay: 'pendingOverlay',
+  sideMenuExpanded: 'sideMenuExpanded',
 } as const;
 
-const UI_STORAGE_PREFIXES = {
-  activeTab: 'mineo_ui_activeTab_',
-} as const;
+const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
 
-export const createActiveTabStorageKey = (pageId: string): string => `${UI_STORAGE_PREFIXES.activeTab}${pageId}`;
+const buildKeyMap = <T extends Record<string, string>>(suffixes: T): { readonly [K in keyof T]: string } => {
+  const descriptors = {} as { [K in keyof T]: PropertyDescriptor };
+  for (const name of Object.keys(suffixes) as (keyof T)[]) {
+    descriptors[name] = {
+      enumerable: true,
+      get: () => ns(suffixes[name]),
+    };
+  }
+  return Object.defineProperties({} as { [K in keyof T]: string }, descriptors);
+};
 
-const STORAGE_KEY_SET: ReadonlySet<string> = new Set([
-  ...Object.values(STORAGE_KEYS),
-  ...Object.values(UI_STORAGE_KEYS),
-]);
+/**
+ * Alle gyldige domæne-storage keys. Hver property resolveres dovent med aktuelt namespace.
+ * Mapping: pageKey → sessionStorage key (fx `mineo_renteberegning`).
+ */
+export const STORAGE_KEYS = buildKeyMap(STORAGE_KEY_SUFFIXES);
 
-const DOMAIN_STORAGE_KEY_SET: ReadonlySet<string> = new Set([
-  ...Object.values(STORAGE_KEYS),
-]);
+export const UI_STORAGE_KEYS = buildKeyMap(UI_STORAGE_KEY_SUFFIXES);
+
+export const createActiveTabStorageKey = (pageId: string): string => ns(`${ACTIVE_TAB_SUFFIX_PREFIX}${pageId}`);
 
 const getSessionStorageKeySnapshot = (): string[] => {
   const keys: string[] = [];
@@ -66,7 +95,7 @@ const getSessionStorageKeySnapshot = (): string[] => {
  * Bruges til at sikre at kun gyldige pageKeys kan bruges
  * i persistence-funktioner.
  */
-export type StorageKey = keyof typeof STORAGE_KEYS;
+export type StorageKey = keyof typeof STORAGE_KEY_SUFFIXES;
 
 /**
  * Helper til at få sessionStorage key fra pageKey
@@ -79,13 +108,20 @@ export const getStorageKey = (pageKey: StorageKey): string => {
 };
 
 /**
- * Tjek om en sessionStorage key er en gyldig Mineo key
+ * Tjek om en sessionStorage key er en gyldig key for den aktive variant.
+ *
+ * Sættene bygges dynamisk fra aktuelt namespace, så `setStorageNamespace` virker
+ * uanset import-rækkefølge.
  *
  * @param key - SessionStorage key at tjekke
- * @returns true hvis key er en kendt Mineo key
+ * @returns true hvis key er en kendt key for den aktive variant
  */
 export const isValidStorageKey = (key: string): boolean => {
-  return STORAGE_KEY_SET.has(key) || key.startsWith(UI_STORAGE_PREFIXES.activeTab);
+  const domainKeys = Object.values(STORAGE_KEYS) as string[];
+  const uiKeys = Object.values(UI_STORAGE_KEYS) as string[];
+  return domainKeys.includes(key)
+    || uiKeys.includes(key)
+    || key.startsWith(ns(ACTIVE_TAB_SUFFIX_PREFIX));
 };
 
 /**
@@ -109,5 +145,6 @@ export const getAllMineoKeys = (): string[] => {
  * @returns Array af domæne-relaterede sessionStorage keys
  */
 export const getDomainStorageKeys = (): string[] => {
-  return getSessionStorageKeySnapshot().filter((key) => DOMAIN_STORAGE_KEY_SET.has(key));
+  const domainKeys = new Set(Object.values(STORAGE_KEYS) as string[]);
+  return getSessionStorageKeySnapshot().filter((key) => domainKeys.has(key));
 };

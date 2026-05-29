@@ -95,10 +95,11 @@ const TableAmountInput = React.memo(
       }
     }, [core.hasError, core.isEditing, core.inputElRef, core.keyInitiatedEdit, value]);
 
+    const coreHandleDoubleClick = core.handleDoubleClick;
     const handleDoubleClick = React.useCallback(() => {
       skipClickSelectionRestoreRef.current = true;
-      core.handleDoubleClick();
-    }, [core.handleDoubleClick]);
+      coreHandleDoubleClick();
+    }, [coreHandleDoubleClick]);
 
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>

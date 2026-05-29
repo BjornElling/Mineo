@@ -4,6 +4,8 @@ import {
   getStorageKey,
   isValidStorageKey,
   createActiveTabStorageKey,
+  setStorageNamespace,
+  getStorageNamespace,
 } from '../../config/storageManifest';
 import type { StorageKey } from '../../config/storageManifest';
 
@@ -97,5 +99,43 @@ describe('createActiveTabStorageKey', () => {
   it('genererede keys er gyldige iht. isValidStorageKey', () => {
     const key = createActiveTabStorageKey('aarsloen');
     expect(isValidStorageKey(key)).toBe(true);
+  });
+});
+
+describe('storage namespace isolation', () => {
+  afterEach(() => {
+    // Gendan default-namespace, så mutationen ikke lækker til andre tests.
+    setStorageNamespace('mineo');
+  });
+
+  it('default-namespace er "mineo"', () => {
+    expect(getStorageNamespace()).toBe('mineo');
+  });
+
+  it('setStorageNamespace ændrer alle domæne-keys til det nye prefix', () => {
+    setStorageNamespace('minprocesrente');
+    expect(getStorageKey('renteberegning')).toBe('minprocesrente_renteberegning');
+    expect(getStorageKey('stamdata')).toBe('minprocesrente_stamdata');
+  });
+
+  it('setStorageNamespace ændrer UI-keys og activeTab-keys', () => {
+    setStorageNamespace('minprocesrente');
+    expect(UI_STORAGE_KEYS.sideMenuExpanded).toBe('minprocesrente_sideMenuExpanded');
+    expect(createActiveTabStorageKey('aarsloen')).toBe('minprocesrente_ui_activeTab_aarsloen');
+  });
+
+  it('mineo og minprocesrente deler aldrig samme renteberegning-key', () => {
+    setStorageNamespace('mineo');
+    const mineoKey = getStorageKey('renteberegning');
+    setStorageNamespace('minprocesrente');
+    const standaloneKey = getStorageKey('renteberegning');
+    expect(mineoKey).not.toBe(standaloneKey);
+  });
+
+  it('isValidStorageKey følger aktivt namespace', () => {
+    setStorageNamespace('minprocesrente');
+    expect(isValidStorageKey('minprocesrente_renteberegning')).toBe(true);
+    // Mineos key er ikke gyldig i standalone-namespace — netop pointen med isolationen.
+    expect(isValidStorageKey('mineo_renteberegning')).toBe(false);
   });
 });

@@ -642,6 +642,10 @@ export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableEle
   const activeCell = physicalFocusByTable.get(table)?.cell ?? null;
   const clickEditableCell = clickEditableCellByTable.get(table) ?? null;
   const editing = core.getEditingCell();
+  // `immediateEditing` (data-attribut) er touch-aktiveringen for grid-CELLER (tabel-inputs).
+  // Den frie inputs uden for grid'et (beregningsdato-felt, kommentar-textarea) bruger i stedet
+  // `singleStageClick` i useTwoStageInputActivation. Begge drives af samme isMobile-flag og dækker
+  // samme UX-mål (åbn editor ved første tap), men ad to forskellige infrastrukturer — ret dem samlet.
   const immediateEditing = table.dataset.mineoImmediateEditing === 'true';
   if (immediateEditing) {
     if (!isSameCell(editing, cell)) {

@@ -9,12 +9,6 @@ const pointerDownInAct = async (element: HTMLElement) => {
   });
 };
 
-const focusInAct = async (element: HTMLElement) => {
-  await act(async () => {
-    element.focus();
-  });
-};
-
 describe('tableKeyboardNavigation immediateEditing', () => {
   const TEST_TIMEOUT_MS = 15000;
 
