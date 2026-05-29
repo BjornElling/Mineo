@@ -64,10 +64,12 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
       { writeRentePdfContent, buildRentePdfBaseTitle, buildRentePdfFilename },
       { createStandardPdfWriter },
       { parseDanishDate },
+      { getPdfCreatorBrand },
     ] = await Promise.all([
       import('../domains/renteberegning/rentePdf'),
       import('./pdfWriter'),
       import('../../utils/dateUtils'),
+      import('../shared/pdfHelpers'),
     ]);
 
     const writer = createStandardPdfWriter();
@@ -76,7 +78,7 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
       title: 'Procesrente',
       subject: 'Erstatningsberegning',
       author: 'Mineo',
-      creator: 'mineo.dk',
+      creator: getPdfCreatorBrand(),
     });
 
     for (let i = 0; i < rows.length; i++) {

@@ -93,13 +93,19 @@ export const resolvePdfSectionEndY = (
 };
 
 /**
- * Footer-brand i vandmærket nederst til højre. Standardbuildet er Mineo.dk;
- * minprocesrente-standalone-buildet sætter denne til minprocesrente.dk ved bootstrap.
+ * PDF-brand: vandmærket nederst til højre og `creator`-metadata.
+ * Standardbuildet er Mineo.dk; minprocesrente-standalone-buildet sætter
+ * brandet til minprocesrente.dk ved bootstrap.
  */
 let footerBrand = 'Mineo.dk';
+let creatorBrand = 'mineo.dk';
 export const setPdfFooterBrand = (brand: string): void => {
   footerBrand = brand;
+  creatorBrand = brand.toLowerCase();
 };
+
+/** `creator`-metadata til setProperties(); følger samme brand som footeren. */
+export const getPdfCreatorBrand = (): string => creatorBrand;
 
 /**
  * Tilføj footer med versionsnummer på alle sider

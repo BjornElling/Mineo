@@ -11,6 +11,7 @@ import {
   resolvePdfSectionEndY,
   formatAmount,
   formatPercent,
+  getPdfCreatorBrand,
   type BrevhovedData
 } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
@@ -252,7 +253,7 @@ export const generateRentePdf = (
     title: 'Procesrente',
     subject: 'Erstatningsberegning',
     author: 'Mineo',
-    creator: 'mineo.dk',
+    creator: getPdfCreatorBrand(),
   });
 
   writeRentePdfContent(writer, amount, startDate, endDate, periods, options);
