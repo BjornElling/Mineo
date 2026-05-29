@@ -169,6 +169,10 @@ Fordi capture sker før commit, indeholder undo-framet tilstanden før tabelnorm
 
 Tabelceller bærer `data-mineo-undo-focus-token` og `data-mineo-undo-field-path`, så restore kan finde og fokusere cellen efter navigation. Ved restore slås tabelceller først op via `fieldPath`; `focusToken` er kun fallback for almindelige felter. Tabel-inputs registrerer også draft-restore-controllere, så local draft/error-state ryddes sammen med committed restore.
 
+**Identitet skal sidde på det fokuserbare element.** For celle-dropdowns (`TableDropdown`) er det fokuserbare element combobox-triggeren — IKKE et skjult native `<input>`. `data-mineo-undo-field-path` (= `rowId:colIndex`) sættes derfor på triggeren: i loose-varianten via `StyledDropdown`s `name`-prop, i grid-varianten via `SelectDisplayProps`. Ellers fokuserer restore et element der ikke tegner fokus-ringen.
+
+**Stabil række-identitet ved resync.** De tabel-lokale modeller (`EetAslAfgoerelserTable`, `OffentligeYdelserTable`, `LoenudviklingManuelTable`) genererer friske `rowId`'er når en tom rækkeliste normaliseres. Ved en undo der tømmer en række ville den udfyldte rækkes id derfor blive erstattet — og cellens fokus-mål `rowId:colIndex` ville pege på et element der ikke længere findes (fokus faldt til `<body>`). Resync bevarer derfor rækkernes id positionelt via `reconcileRowIdsByPosition` (`gridModel.ts`): indgående række `i` arver den nuværende rækkes id på samme position. Det matcher den visuelle rækkeorden (ikke-tomme først, derefter den efterfølgende tomme), så "den første række" forbliver det samme DOM-element hen over udfyldt↔tom-overgangen.
+
 ## 11. Load, Clear og Save
 
 Filindlæsning rydder undo/redo-stakken efter en succesfuld apply:
@@ -225,3 +229,5 @@ Automatiske tests dækker blandt andet:
 - immediate-commit widgets tagges med eget felt og bærer `name` (`undoRedoToggleFocus.test.tsx`, `immediateCommitWidgetUndoName.test.ts`)
 - blur-commit-felter og radio får fokus/fokus-halo efter undo (`undoRedoBlurCommitFocus.test.tsx`)
 - alle persisterede sags-input-felter (immediate-commit + blur-commit) bærer `name` (`immediateCommitWidgetUndoName.test.ts` — værnet dækker nu begge klasser)
+- celle-dropdown bærer undo-identitet på combobox-triggeren, og en celle bevarer fokus efter en undo der tømmer rækken (`undoRedoEetTableFocus.test.tsx`)
+- positionel række-id-bevarelse ved resync (`gridModelReconcile.test.ts`)

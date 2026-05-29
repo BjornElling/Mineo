@@ -107,6 +107,36 @@ export const sortGridRows = <TRow>(params: Readonly<{
   return [...sorted, ...emptyRows];
 };
 
+/**
+ * Bevar rækkernes DOM-identitet (id) positionelt når en tabel resynkroniseres fra en ny
+ * committed kilde (fx undo/redo-restore).
+ *
+ * Hvorfor: tabel-lokale modeller (uden row-draft-isolation) genererer friske row-id'er når en
+ * tom/normaliseret rækkeliste bygges. Ved undo der tømmer en række erstattes den udfyldte rækkes
+ * id derfor med et nyt — og undo-fokus-målet `rowId:colIndex` peger pludselig på et element der
+ * ikke længere findes. Ved at genbruge den nuværende rækkes id på samme position bevares cellens
+ * identitet hen over udfyldt↔tom-overgangen, så fokus-restore kan finde cellen igen.
+ *
+ * Identitet bindes positionelt: indgående række `i` arver `current[i]`'s id hvis den findes.
+ * Det matcher den visuelle rækkeorden (ikke-tomme rækker først, derefter den efterfølgende tomme),
+ * så "den første række" forbliver det samme DOM-element uanset om den er udfyldt eller tom.
+ */
+export const reconcileRowIdsByPosition = <TRow>(params: Readonly<{
+  incoming: readonly TRow[];
+  current: readonly TRow[];
+  getRowId: (row: TRow) => string;
+  withRowId: (row: TRow, id: string) => TRow;
+}>): TRow[] => {
+  const { incoming, current, getRowId, withRowId } = params;
+  return incoming.map((row, index) => {
+    const currentRow = current[index];
+    if (!currentRow) return row;
+    const currentId = getRowId(currentRow);
+    if (currentId === getRowId(row)) return row;
+    return withRowId(row, currentId);
+  });
+};
+
 export const normalizeGridRows = <TRow>(params: Readonly<{
   rows: readonly TRow[];
   minRows: number;

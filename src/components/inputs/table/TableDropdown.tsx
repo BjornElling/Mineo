@@ -386,6 +386,7 @@ const TableDropdown = React.memo(
           {resolvedAppearance === 'loose' ? (
             allowEmpty ? (
               <StyledDropdown
+                name={gridCellKey ?? undefined}
                 width="100%"
                 value={(value ?? '') === '' ? undefined : value}
                 allowEmpty
@@ -405,6 +406,7 @@ const TableDropdown = React.memo(
               </StyledDropdown>
             ) : (
               <StyledDropdown
+                name={gridCellKey ?? undefined}
                 width="100%"
                 value={value ?? ''}
                 allowEmpty={false}
@@ -473,13 +475,17 @@ const TableDropdown = React.memo(
                 onClick: handleTriggerClick,
                 onKeyDown: handleTriggerKeyDown,
                 onMouseUp: handleTriggerMouseUp,
-              }}
+                // Undo/redo-fokus: bær feltidentiteten på den FOKUSERBARE combobox-trigger
+                // (det element tab fokuserer og som tegner den blå ring via :focus-within),
+                // ikke på det skjulte native <input>. Ellers fokuserer restore det skjulte
+                // input og ringen vises aldrig.
+                'data-mineo-undo-focus-token': undoFocusToken,
+                'data-mineo-undo-field-path': gridCellKey ?? undefined,
+              } as React.HTMLAttributes<HTMLDivElement>}
               size="small"
               variant="standard"
               inputProps={{
                 tabIndex: readOnly ? -1 : undefined,
-                'data-mineo-undo-focus-token': undoFocusToken,
-                'data-mineo-undo-field-path': gridCellKey ?? undefined,
                 'aria-describedby': showError ? a11yErrorId : undefined,
               }}
               sx={{

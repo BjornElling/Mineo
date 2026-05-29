@@ -11,7 +11,7 @@ import { useGridCoreApi } from './useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from './gridCore/gridCoreTypes';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { normalizeGridRows } from './gridCore/gridModel';
+import { normalizeGridRows, reconcileRowIdsByPosition } from './gridCore/gridModel';
 import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
@@ -364,6 +364,18 @@ const LoenudviklingManuelTable = React.memo(
     );
 
     React.useEffect(() => {
+      // Bevar rækkernes DOM-identitet positionelt ved resync (fx undo der tømmer en række),
+      // så en celles undo-fokus-mål (rowId:colIndex) ikke peger på et element der ikke længere
+      // findes. Se reconcileRowIdsByPosition.
+      const reconcileWithCurrent = (incoming: LoenudviklingManuelRow[]) =>
+        setInternalTableData((current) =>
+          reconcileRowIdsByPosition({
+            incoming,
+            current,
+            getRowId: (row) => row.id,
+            withRowId: (row, id) => ({ ...row, id }),
+          })
+        );
       if (tableData.length > 0) {
         const normalizedData = normalizeRows(tableData);
         const fingerprint = fingerprintTableData(normalizedData);
@@ -371,12 +383,12 @@ const LoenudviklingManuelTable = React.memo(
           return;
         }
         lastPersistedFingerprintRef.current = fingerprint;
-        setInternalTableData(normalizedData);
+        reconcileWithCurrent(normalizedData);
         return;
       }
       const normalizedDefault = normalizeRows(defaultTableData);
       lastPersistedFingerprintRef.current = fingerprintTableData(normalizedDefault);
-      setInternalTableData(normalizedDefault);
+      reconcileWithCurrent(normalizedDefault);
     }, [defaultTableData, normalizeRows, tableData]);
 
     const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});

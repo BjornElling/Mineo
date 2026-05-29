@@ -15,7 +15,7 @@ import {
   createEmptyAslAfgoerelseRow,
   isAslAfgoerelseRowPersistenceEmpty,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
-import { normalizeGridRows } from './gridCore/gridModel';
+import { normalizeGridRows, reconcileRowIdsByPosition } from './gridCore/gridModel';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
@@ -121,7 +121,18 @@ const EetAslAfgoerelserTable = React.memo(
       if (lastPersistedFingerprintRef.current === fingerprint) return;
       pendingPersistRef.current = null;
       lastPersistedFingerprintRef.current = fingerprint;
-      setInternalTableData(initialTableData);
+      // Bevar rækkernes DOM-identitet positionelt, så en celle (rowId:colIndex) ikke skifter id
+      // når committed-state resynkroniseres (fx undo der tømmer en række). Ellers ville undo-fokus
+      // ramme et element der ikke længere findes. Fingerprint ovenfor er id-uafhængigt (TABLE_FINGERPRINT_KEYS
+      // medtager id, men reconcile bevarer netop de id'er der allerede var i brug på samme position).
+      setInternalTableData((current) =>
+        reconcileRowIdsByPosition({
+          incoming: initialTableData,
+          current,
+          getRowId: (row) => row.id,
+          withRowId: (row, id) => ({ ...row, id }),
+        })
+      );
     }, [initialTableData]);
 
     const persistTableData = React.useCallback(

@@ -23,7 +23,7 @@ import {
 } from '../../domain/erstatningsopgoerelse/validation/offentligeYdelserTableValidation';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { normalizeGridRows } from './gridCore/gridModel';
+import { normalizeGridRows, reconcileRowIdsByPosition } from './gridCore/gridModel';
 import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
@@ -162,9 +162,18 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
         return;
       }
       lastPersistedFingerprintRef.current = fingerprint;
-      committedRowsRef.current = initialTableData;
-      syncCommittedRowIds(initialTableData);
-      setInternalTableData(initialTableData);
+      // Bevar rækkernes DOM-identitet positionelt ved resync (fx undo der tømmer en række),
+      // så en celles undo-fokus-mål (rowId:colIndex) ikke peger på et element der ikke længere
+      // findes. Se reconcileRowIdsByPosition.
+      const reconciled = reconcileRowIdsByPosition({
+        incoming: initialTableData,
+        current: committedRowsRef.current,
+        getRowId: (row) => row.id,
+        withRowId: (row, id) => ({ ...row, id }),
+      });
+      committedRowsRef.current = reconciled;
+      syncCommittedRowIds(reconciled);
+      setInternalTableData(reconciled);
       notifyValidationChange();
     }, [initialTableData, notifyValidationChange, syncCommittedRowIds]);
 
