@@ -1078,6 +1078,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text">Nummer</Typography>
               <StyledTextField
+                name="eoNummer"
                 width={80}
                 value={values.eoNummer || ''}
                 onCommit={handleStringBlur('eoNummer')}
@@ -1085,6 +1086,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               />
               <Typography className="row--text">+ evt. ledsagetekst</Typography>
               <StyledTextField
+                name="eoLedsagetekst"
                 width={200}
                 value={values.eoLedsagetekst || ''}
                 onCommit={handleStringBlur('eoLedsagetekst')}
@@ -1109,6 +1111,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <StyledDateField
+                name="vedroererPeriodeFra"
                 value={values.vedroererPeriodeFra}
                 onCommit={handleIsoDateBlur('vedroererPeriodeFra')}
                 onFieldError={reportVedroererPeriodeFraInputError}
@@ -1122,6 +1125,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               />
               <Typography className="row--text">til og med</Typography>
               <StyledDateField
+                name="vedroererPeriodeTil"
                 value={values.vedroererPeriodeTil}
                 onCommit={handleIsoDateBlur('vedroererPeriodeTil')}
                 onFieldError={reportVedroererPeriodeTilInputError}
@@ -1138,6 +1142,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Box className="row--label-right-hover__content">
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <StyledDateField
+                name="opgørelseLavetDen"
                 value={values.opgørelseLavetDen}
                 onCommit={handleIsoDateBlur('opgørelseLavetDen')}
                 onFieldError={reportOpgoerelseLavetDenInputError}
@@ -1245,6 +1250,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Typography className="row--text">Procent</Typography>
               <StyledPercentField
+                name="forligAnsvarsgradProcent"
                 width={100}
                 value={values.forligAnsvarsgradProcent}
                 onCommit={handleNumberBlur('forligAnsvarsgradProcent')}
@@ -1255,6 +1261,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               />
               <Typography className="row--text">eller brøk</Typography>
               <StyledFractionField
+                name="forligAnsvarsgradBroek"
                 width={120}
                 value={values.forligAnsvarsgradBroek}
                 onCommit={handleStringBlur('forligAnsvarsgradBroek')}
@@ -1270,6 +1277,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Evt. dato for forlig</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDateField
+              name="forligDato"
               value={values.forligDato}
               onCommit={handleIsoDateBlur('forligDato')}
               onFieldError={reportForligDatoInputErrorSafe}
@@ -1310,6 +1318,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <Typography className="row--text">Dato for første ménafgørelse</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledDateField
+                  name="menAfgoerelseDato"
                   value={values.menAfgoerelseDato}
                   onCommit={handleIsoDateBlur('menAfgoerelseDato')}
                   onFieldError={reportMenAfgoerelseDatoInputError}
@@ -1358,6 +1367,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <Typography className="row--text">Dato for første midlertidige erhvervsevnetabsafgørelse</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledDateField
+                  name="midlertidigEETAfgoerelseDato"
                   value={values.midlertidigEETAfgoerelseDato}
                   onCommit={handleIsoDateBlur('midlertidigEETAfgoerelseDato')}
                   onFieldError={reportMidlertidigEETAfgoerelseDatoInputError}
@@ -1375,6 +1385,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <Typography className="row--text">Virkningsdato (hvis forskellig fra afgørelsesdatoen)</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledDateField
+                  name="midlertidigEETVirkningsdato"
                   value={values.midlertidigEETVirkningsdato}
                   onCommit={handleIsoDateBlur('midlertidigEETVirkningsdato')}
                   onFieldError={reportMidlertidigEETVirkningsdatoInputError}
@@ -1411,6 +1422,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <Typography className="row--text">Dato for endelig erhvervsevnetabsafgørelse</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledDateField
+                  name="endeligEETAfgoerelseDato"
                   value={values.endeligEETAfgoerelseDato}
                   onCommit={handleIsoDateBlur('endeligEETAfgoerelseDato')}
                   onFieldError={reportEndeligEETAfgoerelseDatoInputError}
@@ -1428,6 +1440,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <Typography className="row--text">Virkningsdato (hvis forskellig fra afgørelsesdatoen)</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledDateField
+                  name="endeligEETVirkningsdato"
                   value={values.endeligEETVirkningsdato}
                   onCommit={handleIsoDateBlur('endeligEETVirkningsdato')}
                   onFieldError={reportEndeligEETVirkningsdatoInputError}
@@ -1464,6 +1477,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           <Typography className="row--text">Evt. differencekrav opgjort per</Typography>
           <Box className="row--label-right-hover__content">
             <StyledDateField
+              name="differencekravDato"
               value={values.differencekravDato}
               onCommit={handleIsoDateBlur('differencekravDato')}
               onFieldError={reportDifferencekravDatoInputError}
@@ -1531,6 +1545,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <Typography className="row--text">Hvilket års svie/smerte satser lægges til grund?</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledYearField
+                      name="svieSmerteSatserAar"
                       width={100}
                       value={values.svieSmerteSatserAar}
                       onCommit={handleNumberBlur('svieSmerteSatserAar')}
@@ -1572,6 +1587,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                     <Typography className="row--text">Svie/smerte krav i tidligere erstatningsopgørelser:</Typography>
                     <Box className="row--label-right-hover__content">
                       <StyledAmountField
+                        name="svieSmerteTidligereTotal"
                         width={150}
                         value={values.svieSmerteTidligereTotal}
                         onCommit={handleAmountBlur('svieSmerteTidligereTotal')}
@@ -1585,6 +1601,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <Typography className="row--text">Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode:</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledAmountField
+                      name="svieSmerteAktuelPeriode"
                       width={150}
                       value={values.svieSmerteAktuelPeriode}
                       onCommit={handleAmountBlur('svieSmerteAktuelPeriode')}
@@ -1660,6 +1677,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               <Typography className="row--text">Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode:</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledAmountField
+                  name="tidligereModtagetTaf"
                   width={150}
                   value={values.tidligereModtagetTaf}
                   onCommit={handleAmountBlur('tidligereModtagetTaf')}
@@ -1714,6 +1732,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <Box className="row--label-right-hover__content">
                     <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
                       <StyledDateField
+                        name="tafBeregningsperiodeFra"
                         value={values.tafBeregningsperiodeFra}
                         onCommit={handleIsoDateBlur('tafBeregningsperiodeFra')}
                         error={beregningsperiodeTafOverlap.firstOverlapMessage !== undefined}
@@ -1721,6 +1740,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       />
                       <Typography sx={{ minWidth: 'auto' }}>til:</Typography>
                       <StyledDateField
+                        name="tafBeregningsperiodeTil"
                         value={values.tafBeregningsperiodeTil}
                         onCommit={handleIsoDateBlur('tafBeregningsperiodeTil')}
                         error={beregningsperiodeTafOverlap.firstOverlapMessage !== undefined}
@@ -1761,6 +1781,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <Typography className="row--text">Uspecificerede ferie-/feriefridage</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledIntegerField
+                      name="uspecificeredeFerieFridage"
                       width={80}
                       value={values.uspecificeredeFerieFridage}
                       onCommit={handleIntegerBlur('uspecificeredeFerieFridage')}
@@ -1789,6 +1810,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       <Typography className="row--text">Antal fraværsdage (mandag-fredag)</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledIntegerField
+                          name="oevrigeFravaersdage"
                           width={80}
                           value={values.oevrigeFravaersdage}
                           onCommit={handleIntegerBlur('oevrigeFravaersdage')}
@@ -1802,6 +1824,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       <Typography className="row--text">Årsag til fravær</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledTextField
+                          name="oevrigeFravaersdageBeskrivelse"
                           width={300}
                           value={values.oevrigeFravaersdageBeskrivelse || ''}
                           onCommit={commitField('oevrigeFravaersdageBeskrivelse')}
@@ -1823,6 +1846,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 <Typography className="row--text">Månedslønnen udgør</Typography>
                 <Box className="row--label-right-hover__content">
                 <StyledAmountField
+                  name="maanedsloenenUdgoer"
                   width={150}
                   value={values.maanedsloenenUdgoer}
                   onCommit={handleAmountBlur('maanedsloenenUdgoer')}
@@ -1836,6 +1860,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 <Typography className="row--text">Dagslønnen udgør</Typography>
                 <Box className="row--label-right-hover__content">
                 <StyledAmountField
+                  name="dagsloenenUdgoer"
                   width={150}
                   value={values.dagsloenenUdgoer}
                   onCommit={handleAmountBlur('dagsloenenUdgoer')}
@@ -1849,6 +1874,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 <Typography className="row--text">- baseret på</Typography>
                 <Box className="row--label-right-hover__content">
                   <StyledTextField
+                    name={
+                      values.beregnesUdFra === 'Angivet månedsløn'
+                        ? 'angivetMaanedsloenBaseretPaa'
+                        : 'angivetDagsloenBaseretPaa'
+                    }
                     width={300}
                     value={
                       values.beregnesUdFra === 'Angivet månedsløn'
@@ -1870,6 +1900,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 <Typography className="row--text">{angivetLoenOpreguleringLabel}</Typography>
                 <Box className="row--label-right-hover__content">
                   <StyledDateField
+                    name={
+                      values.beregnesUdFra === 'Angivet månedsløn'
+                        ? 'angivetMaanedsloenOpreguleresFraDato'
+                        : 'angivetDagsloenOpreguleresFraDato'
+                    }
                     value={aktivAngivetLoenOpreguleresFraDato}
                     onCommit={
                       values.beregnesUdFra === 'Angivet månedsløn'
@@ -2051,6 +2086,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                           </StyledDropdown>
                           <Typography className="row--text">Løntrin</Typography>
                           <StyledIntegerField
+                            name="offentligLoenTrin"
                             value={eoLoenudvikling.offentligLoenTrin}
                             onCommit={handleOffentligLoenTrinCommit}
                             minValue={1}
@@ -2060,6 +2096,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                           />
                           <Typography className="row--text">Gruppe</Typography>
                           <StyledIntegerField
+                            name="offentligLoenGruppe"
                             value={eoLoenudvikling.offentligLoenGruppe}
                             onCommit={handleOffentligLoenGruppeCommit}
                             minValue={0}
@@ -2101,6 +2138,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       <Box className="row--label-right-hover__content">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <StyledAmountField
+                            name="offentligLoenEkstraGrundloen"
                             width={160}
                             value={eoLoenudvikling.offentligLoenEkstraGrundloen}
                             allowNegative={false}
@@ -2161,6 +2199,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       <Typography className="row--text">Navn på reguleringsform</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledTextField
+                          name="loenudviklingManuelNavn"
                           width={300}
                           value={eoLoenudvikling.loenudviklingManuelNavn || ''}
                           onCommit={handleLoenudviklingManuelNavnCommit}
@@ -2289,6 +2328,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledDateField
+                          name="anciennitetstillaegDato"
                           value={eoLoenudvikling.anciennitetstillaegDato}
                           minDate={skadedatoISO}
                           specialRangeErrors={{
@@ -2304,6 +2344,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       <Typography className="row--text">{`Sats per ${eoAnciennitetSatsPerTekst}`}</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledAmountField
+                          name="anciennitetstillaegSats"
                           width={160}
                           value={eoLoenudvikling.anciennitetstillaegSats}
                           allowNegative={false}
@@ -2535,6 +2576,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         <Typography className="section-header">Eventuelle særlige kommentarer</Typography>
 
         <StyledTextField
+          name="saerligeKommentarer"
           width={800}
           value={values.saerligeKommentarer || ''}
           onCommit={commitField('saerligeKommentarer')}
@@ -2569,6 +2611,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <StyledTextField
                     width={130}
                     value={values.bilagsnumreMenAfgoerelse || ''}
+                    name="bilagsnumreMenAfgoerelse"
                     onCommit={handleStringBlur('bilagsnumreMenAfgoerelse')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
@@ -2584,6 +2627,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <StyledTextField
                     width={130}
                     value={values.bilagsnumreEetAfgoerelser || ''}
+                    name="bilagsnumreEetAfgoerelser"
                     onCommit={handleStringBlur('bilagsnumreEetAfgoerelser')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
@@ -2599,6 +2643,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <StyledTextField
                     width={130}
                     value={values.bilagsnumreSvieSmerteDokumentation || ''}
+                    name="bilagsnumreSvieSmerteDokumentation"
                     onCommit={handleStringBlur('bilagsnumreSvieSmerteDokumentation')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
@@ -2614,6 +2659,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <StyledTextField
                     width={130}
                     value={values.bilagsnumreBeregningsgrundlagTaf || ''}
+                    name="bilagsnumreBeregningsgrundlagTaf"
                     onCommit={handleStringBlur('bilagsnumreBeregningsgrundlagTaf')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
@@ -2629,6 +2675,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <StyledTextField
                     width={130}
                     value={values.bilagsnumreLoenISygeperioden || ''}
+                    name="bilagsnumreLoenISygeperioden"
                     onCommit={handleStringBlur('bilagsnumreLoenISygeperioden')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
@@ -2644,6 +2691,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <StyledTextField
                     width={130}
                     value={values.bilagsnumreOffentligeYdelser || ''}
+                    name="bilagsnumreOffentligeYdelser"
                     onCommit={handleStringBlur('bilagsnumreOffentligeYdelser')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />
@@ -2659,6 +2707,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   <StyledTextField
                     width={130}
                     value={values.bilagsnumreOevrigeErstatningskrav || ''}
+                    name="bilagsnumreOevrigeErstatningskrav"
                     onCommit={handleStringBlur('bilagsnumreOevrigeErstatningskrav')}
                     sx={{ '& .MuiInputBase-input': { textAlign: 'center' } }}
                   />

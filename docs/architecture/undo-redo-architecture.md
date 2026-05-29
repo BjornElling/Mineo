@@ -100,6 +100,18 @@ Dette er nødvendigt, fordi felt-commit typisk sker på blur efter fokus allered
 
 For tabelceller er `fieldPath` den autoritative identitet. Tabellen sender cellens stabile `rowId:colIndex` med commit-kaldet, og `focusToken` sættes derfor til `null` for den history-frame. Det forhindrer, at hurtig navigation til nabocellen kan få undo/redo til at fokusere eller draft-restore den forkerte celle. Almindelige felter, der ikke sender en eksplicit `fieldPath`, bruger fortsat focus-trackeren som fallback.
 
+### Blur-commit input-felter (dato, tekst, beløb m.fl.)
+
+Et blur-commit-felt committer på blur, *efter* fokus typisk er flyttet videre. På commit-tidspunktet kender call-sitet feltets `fieldPath` (det er feltnøglen, fx `forligDato`), og sender den enten eksplicit via `setValues(..., { fieldPath })` eller implicit via `setFieldValue(key, ...)`.
+
+For at restore kan finde feltet igen, **skal feltet bære en `name`-prop lig sin `fieldPath`**. `name` udsendes som `data-mineo-undo-field-path` på `<input>` (se `StyledTextFieldBase`), og det er den DOM-identitet `historyTargetRestore` slår op. Mangler `name`, har elementet ingen `data-mineo-undo-field-path`, og restore kan ikke lande fokus via fieldPath-stien.
+
+`focusToken` (et stabilt per-mount `useId` på samme element) udsendes altid og fungerer som fallback for den live undo/redo i samme mount. Men den durable identitet — invalid-draft-restore (hvor `useFormFieldErrors` capter framet med `fieldPath = feltnøgle`), navigation mellem sider og remounts — kræver det stabile `name`. Derfor er `name` obligatorisk på alle persisterede blur-commit-felter på sags-sider, på linje med immediate-commit widgets.
+
+For felter pr. ansættelsesforhold/række er identiteten `${id}:${felt}` (samme princip som tabelceller), så flere instanser ikke kolliderer.
+
+Undtaget: transiente "komponér-og-indsæt"-hjælpefelter (fx løntrin-finderen og sygedagpenge-indsæt), der kun skriver til lokal React-state og aldrig committer til persisteret state — de deltager ikke i undo/redo og bærer derfor ikke `name`.
+
 ### Immediate-commit widgets (toggle, dropdown, radio)
 
 Toggle/dropdown/radio committer øjeblikkeligt (ikke på blur) og kan derfor ikke spores pålideligt af focus-trackeren: på commit-tidspunktet peger `document.activeElement`/trackeren ofte på det *forrige* felt. Disse widgets **skal** derfor:
@@ -192,10 +204,10 @@ Når aktivt, bruger logging `console.debug` med `[UNDO/REDO]`-prefix. Normal dri
 | `src/utils/undoFocusTracker.ts` | Sporer senest fokuserede undo-bærende felt |
 | `src/utils/draftHistoryRegistry.ts` | Registrerer draft-restore controllers |
 | `src/utils/persistenceLoadApply.ts` | Rydder history efter filindlæsning |
-| `src/components/inputs/StyledTextFieldBase.tsx` | Bærer undo-attributter for almindelige felter |
+| `src/components/inputs/StyledTextFieldBase.tsx` | Bærer undo-attributter (`data-mineo-undo-field-path` fra `name`, `data-mineo-undo-focus-token`) for almindelige blur-commit-felter |
 | `src/components/inputs/table/Table*Input.tsx` | Bærer undo-attributter for grid-celler |
 | `src/rowDrafts/useRowDrafts.ts` | Bygger `rowId:colIndex` fieldPath ved row-commit (via `fieldColIndex`-mapping) |
-| `src/components/inputs/StyledToggleSwitch.tsx` / `StyledDropdown.tsx` / `StyledRadioButton.tsx` | Emitterer `data-mineo-undo-field-path` fra `name`-prop for immediate-commit fokus-restore |
+| `src/components/inputs/StyledToggleSwitch.tsx` / `StyledDropdown.tsx` / `StyledRadioButton.tsx` | Emitterer `data-mineo-undo-field-path` fra `name`-prop for immediate-commit fokus-restore. Toggle og radio tegner desuden en eksplicit fokus-halo bundet til BÅDE `.Mui-focusVisible` (tab) og `[data-mineo-undo-focused]` (undo/redo-restore), så de to ser ens ud |
 
 ## 14. Testflade
 
@@ -211,3 +223,5 @@ Automatiske tests dækker blandt andet:
 - undo/redo er stille no-op mens editor er åben
 - celle-commit tagges med korrekt `rowId:colIndex` (`undoRedoCellIdentity.test.tsx`, `EetAslAfgoerelserTable.test.tsx`)
 - immediate-commit widgets tagges med eget felt og bærer `name` (`undoRedoToggleFocus.test.tsx`, `immediateCommitWidgetUndoName.test.ts`)
+- blur-commit-felter og radio får fokus/fokus-halo efter undo (`undoRedoBlurCommitFocus.test.tsx`)
+- alle persisterede sags-input-felter (immediate-commit + blur-commit) bærer `name` (`immediateCommitWidgetUndoName.test.ts` — værnet dækker nu begge klasser)

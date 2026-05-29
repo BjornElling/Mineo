@@ -1786,6 +1786,7 @@ const LoenindkomstTab = React.memo(({
               <Typography className="row--text">Navn på arbejdssted</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledTextField
+                  name={`${af.id}:navnPaaArbejdssted`}
                   width={300}
                   value={af.navnPaaArbejdssted || ''}
                   onCommit={handleTextCommit(af.id, 'navnPaaArbejdssted')}
@@ -1821,7 +1822,7 @@ const LoenindkomstTab = React.memo(({
               <Box className="row--label-right-hover">
                 <Typography className="row--text">Sidste dag i ansættelsesforholdet</Typography>
                 <Box className="row--label-right-hover__content">
-                  <StyledDateField value={af.sidsteArbejdsdag} onCommit={handleSidsteArbejdsdagCommit(af.id)} />
+                  <StyledDateField name={`${af.id}:sidsteArbejdsdag`} value={af.sidsteArbejdsdag} onCommit={handleSidsteArbejdsdagCommit(af.id)} />
                 </Box>
               </Box>
             </Box>
@@ -1994,6 +1995,7 @@ const LoenindkomstTab = React.memo(({
                 <Typography className="row--text">Evt. særlig fra-dato for regulering</Typography>
                 <Box className="row--label-right-hover__content">
                   <StyledDateField
+                    name={`${af.id}:saerligFraDatoRegulering`}
                     value={af.saerligFraDatoRegulering}
                     onCommit={handleSaerligFraDatoReguleringCommit(af.id)}
                   />
@@ -2017,6 +2019,7 @@ const LoenindkomstTab = React.memo(({
                     Feriegodtgørelse/-tillæg:
                   </Typography>
                   <StyledPercentField
+                    name={`${af.id}:feriePct`}
                     value={af.feriePct}
                     onCommit={handleFeriePctCommit(af.id)}
                     placeholder="0 %"
@@ -2029,6 +2032,7 @@ const LoenindkomstTab = React.memo(({
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text" sx={{ minWidth: '60px' }}>Fritvalg:</Typography>
                   <StyledPercentField
+                    name={`${af.id}:fritvalgPct`}
                     value={af.fritvalgPct}
                     onCommit={handleValidatedSatsCommit(af.id, 'fritvalgPct')}
                     placeholder="0 %"
@@ -2045,6 +2049,7 @@ const LoenindkomstTab = React.memo(({
                     SH/SO-sats:
                   </Typography>
                   <StyledPercentField
+                    name={`${af.id}:shSoPct`}
                     value={af.shSoPct}
                     onCommit={handleValidatedSatsCommit(af.id, 'shSoPct')}
                     placeholder="0 %"
@@ -2089,6 +2094,7 @@ const LoenindkomstTab = React.memo(({
                     Arbejdsgivers pensionsbidrag:
                   </Typography>
                   <StyledPercentField
+                    name={`${af.id}:pensionPct`}
                     value={af.pensionPct}
                     onCommit={handleValidatedSatsCommit(af.id, 'pensionPct')}
                     placeholder="0 %"
@@ -2189,6 +2195,7 @@ const LoenindkomstTab = React.memo(({
                       </StyledDropdown>
                       <Typography className="row--text">Løntrin</Typography>
                       <StyledIntegerField
+                        name={`${af.id}:offentligLoenTrin`}
                         value={af.offentligLoenTrin}
                         onCommit={handleOffentligLoenTrinCommit(af.id)}
                         minValue={1}
@@ -2198,6 +2205,7 @@ const LoenindkomstTab = React.memo(({
                       />
                       <Typography className="row--text">Gruppe</Typography>
                       <StyledIntegerField
+                        name={`${af.id}:offentligLoenGruppe`}
                         value={af.offentligLoenGruppe}
                         onCommit={handleOffentligLoenGruppeCommit(af.id)}
                         minValue={0}
@@ -2239,6 +2247,7 @@ const LoenindkomstTab = React.memo(({
                   <Box className="row--label-right-hover__content">
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                       <StyledAmountField
+                        name={`${af.id}:offentligLoenEkstraGrundloen`}
                         width={160}
                         value={af.offentligLoenEkstraGrundloen}
                         allowNegative={false}
@@ -2315,6 +2324,7 @@ const LoenindkomstTab = React.memo(({
                         <Typography className="row--text">Navn på reguleringsform</Typography>
                         <Box className="row--label-right-hover__content">
                           <StyledTextField
+                            name={`${af.id}:loenudviklingManuelNavn`}
                             width={350}
                             value={af.loenudviklingManuelNavn || ''}
                             onCommit={handleTextCommit(af.id, 'loenudviklingManuelNavn')}
@@ -2440,6 +2450,7 @@ const LoenindkomstTab = React.memo(({
                       <Typography className="row--text">Dato for opnået anciennitetstillæg</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledDateField
+                          name={`${af.id}:anciennitetstillaegDato`}
                           value={af.anciennitetstillaegDato}
                           minDate={stamdataValues?.skadedato}
                           specialRangeErrors={{
@@ -2471,6 +2482,7 @@ const LoenindkomstTab = React.memo(({
                       <Typography className="row--text">{`Sats per ${anciennitetSatsPerTekst}`}</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledAmountField
+                          name={`${af.id}:anciennitetstillaegSats`}
                           width={160}
                           value={af.anciennitetstillaegSats}
                           allowNegative={false}
@@ -2609,6 +2621,7 @@ const LoenindkomstTab = React.memo(({
                       <Box className="row--label-right-hover__content">
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <StyledDateField
+                            name={`${af.id}:sfggReferenceperiodeFra`}
                             value={sfggRow?.sfggReferenceperiodeFra}
                             maxDate={
                               sfggRow?.sfggReferenceperiodeTil && sfggReferenceperiodeMaxDate
@@ -2631,6 +2644,7 @@ const LoenindkomstTab = React.memo(({
                           />
                           <Typography className="row--text">til og med</Typography>
                           <StyledDateField
+                            name={`${af.id}:sfggReferenceperiodeTil`}
                             value={sfggRow?.sfggReferenceperiodeTil}
                             minDate={sfggRow?.sfggReferenceperiodeFra}
                             maxDate={sfggReferenceperiodeMaxDate}
@@ -2656,6 +2670,7 @@ const LoenindkomstTab = React.memo(({
                       <Typography className="row--text">Evt. ferie- og fraværsdage i referenceperioden uden løn</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledIntegerField
+                          name={`${af.id}:sfggReferenceperiodeFravaersdageUdenLoen`}
                           width={100}
                           minValue={0}
                           maxValue={sfggReferenceperiodeFravaersdageMax ?? DAY_COUNT_MAX}
@@ -2689,6 +2704,7 @@ const LoenindkomstTab = React.memo(({
                       <Typography className="row--text">Dagssats for sygeferiegodtgørelse (mandag-fredag)</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledAmountField
+                          name={`${af.id}:sfggManuelDagssats`}
                           width={150}
                           value={sfggRow?.sfggManuelDagssats}
                           allowNegative={false}
@@ -2706,6 +2722,7 @@ const LoenindkomstTab = React.memo(({
                       <Typography className="row--text">Beløbet er i henhold til</Typography>
                       <Box className="row--label-right-hover__content">
                         <StyledTextField
+                          name={`${af.id}:sfggManuelBeloebIHenholdTil`}
                           width={260}
                           value={sfggRow?.sfggManuelBeloebIHenholdTil ?? ''}
                           onCommit={(event) => {
@@ -2741,6 +2758,7 @@ const LoenindkomstTab = React.memo(({
                     <Typography className="row--text">Evt. allerede betalt sygeferiegodtgørelse i denne erstatningsperiode<InfoTooltipIcon title="Angiv kun faktisk SFGG. Feriegodtgørelse af sygeløn beregnes automatisk." /></Typography>
                     <Box className="row--label-right-hover__content">
                       <StyledAmountField
+                        name={`${af.id}:sfggAlleredeBetaltBeloeb`}
                         width={150}
                         value={sfggRow?.sfggAlleredeBetaltBeloeb}
                         allowNegative={false}

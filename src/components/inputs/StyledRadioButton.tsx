@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Radio, FormControlLabel, RadioGroup, FormLabel, FormControl, Tooltip, Typography } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 
@@ -44,6 +45,26 @@ interface StyledRadioButtonProps {
   error?: boolean;
   helperText?: string;
 }
+
+/**
+ * Fælles fokus-halo for radio-knapper. Dækker BÅDE tab-fokus (`.Mui-focusVisible`) og
+ * undo/redo-restore (`[data-mineo-undo-focused]` sættes på `<input>` af historyTargetRestore),
+ * så de to tilstande ser ens ud. Nødvendigt fordi MUI's default focus-ripple IKKE udløses af
+ * programmatisk `focus()` (undo/redo) — se `historyTargetRestore.ts` og StyledToggleSwitch.
+ */
+const RADIO_FOCUS_HALO_SX = {
+  padding: '4px',
+  '&.Mui-checked': {
+    color: 'primary.main',
+  },
+  // Halo på den runde radio-ikon-figur ved tab-fokus (.Mui-focusVisible på roden) OG ved
+  // undo/redo-restore (data-mineo-undo-focused på <input>, som er søsken til ikonet i roden).
+  '&.Mui-focusVisible .MuiSvgIcon-root, & input[data-mineo-undo-focused] ~ * .MuiSvgIcon-root, & input[data-mineo-undo-focused] ~ .MuiSvgIcon-root':
+    {
+      borderRadius: '50%',
+      boxShadow: (theme: Theme) => `0 0 0 6px ${theme.palette.primary.main}29`,
+    },
+} as const;
 
 const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProps>(({
   label,
@@ -152,12 +173,7 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
                 control={
                   <Radio
                     size="small"
-                    sx={{
-                      padding: '4px',
-                      '&.Mui-checked': {
-                        color: 'primary.main',
-                      },
-                    }}
+                    sx={RADIO_FOCUS_HALO_SX}
                   />
                 }
                 label={<Typography className="row--text">{emptyLabel}</Typography>}
@@ -177,12 +193,7 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
                         ? { input: { 'data-mineo-undo-field-path': name } as React.InputHTMLAttributes<HTMLInputElement> }
                         : undefined
                     }
-                    sx={{
-                      padding: '4px',
-                      '&.Mui-checked': {
-                        color: 'primary.main',
-                      },
-                    }}
+                    sx={RADIO_FOCUS_HALO_SX}
                   />
                 }
                 label={<Typography className="row--text">{option.label}</Typography>}
