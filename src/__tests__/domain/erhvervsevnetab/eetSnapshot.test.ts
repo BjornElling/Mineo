@@ -47,7 +47,6 @@ describe('computeEetSnapshot', () => {
         erhvervsevnetab: {},
         faellesAarsloen: {},
       },
-      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(snapshot.loebendeYdelser.computation).not.toBeNull();
@@ -71,7 +70,6 @@ describe('computeEetSnapshot', () => {
         },
         faellesAarsloen: {},
       },
-      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(snapshot.loebendeYdelser.hasBlockingErrors).toBe(true);
@@ -96,7 +94,6 @@ describe('computeEetSnapshot', () => {
         },
         faellesAarsloen: {},
       },
-      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(snapshot.loebendeYdelser.hasBlockingErrors).toBe(true);
@@ -118,7 +115,6 @@ describe('computeEetSnapshot', () => {
         },
         faellesAarsloen: {},
       },
-      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     // beregningsdato er ikke i buildKapitaliseringProjection's field-mapping
@@ -140,7 +136,6 @@ describe('computeEetSnapshot', () => {
         erhvervsevnetab: {},
         faellesAarsloen: {},
       },
-      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(snapshot.differencekrav.computation).toBeNull();
@@ -162,7 +157,6 @@ describe('computeEetSnapshot', () => {
           erhvervsevnetab: {},
           faellesAarsloen: {},
         },
-        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       });
 
       expect(snapshot.loebendeYdelser.computation).toBeNull();

@@ -63,11 +63,11 @@ Ved særreglen for ≤ 2 år til folkepension gælder derudover:
 
 #### Tilbagevirkende kraft — endelig afgørelse gør midlertidig ydelse endelig (toggle)
 
-Denne regel styres af den device-lokale toggle `endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft` (se `src/contracts/app-settings.md`). Den påvirker **kun** differencekravet (fane 5), ikke fane 2.
+Denne regel styres af valgmuligheden `endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft` på differencekrav-fanen (fane 5, sektion "Valgmuligheder"). Valget er **sagsdata** på erhvervsevnetab-sektionen, gemmes i `.eo` og følger med sagen. Default for nye sager er `true`; ældre `.eo`-filer uden feltet får `true` ved load. Reglen påvirker **kun** differencekravet (fane 5), ikke fane 2.
 
-**Når toggle = false:** beregningen er som beskrevet ovenfor (uændret).
+**Når valget = false:** beregningen er som beskrevet ovenfor (uændret).
 
-**Når toggle = true** og `skadedato ≥ 16-06-2011`:
+**Når valget = true** og `skadedato ≥ 16-06-2011`:
 
 Hovedreglen er, at midlertidigt EET ikke fradrages i differencekravet for skader fra 16-06-2011 og frem. Denne regel bryder med det princip i ét tilfælde:
 
@@ -176,7 +176,6 @@ I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedregle
 
 ### Implementeringsstatus
 
-Dokumentationen ovenfor beskriver den fastlagte forretningslogik.
 Dokumentationen beskriver den implementerede forretningslogik. Hvis dokumentation og kode afviger, er denne fil den normative beskrivelse af forretningslogikken.
 
 ### Fradrag 3-specifikke issue-ID'er

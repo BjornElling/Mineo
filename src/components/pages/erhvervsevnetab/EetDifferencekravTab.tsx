@@ -23,6 +23,7 @@ import EetIssuesBox from './EetIssuesBox';
 import TextHoverRow from './TextHoverRow';
 import UnderlinedHoverRow from './UnderlinedHoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
+import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
 import { formatFaktor, formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
@@ -261,6 +262,28 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
     [updateBilag]
   );
 
+  const handleTilbagevirkendeKraftCommit = React.useCallback(
+    (event: CommitEvent<boolean>) => {
+      setValues((prev) => ({
+        ...prev,
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: event.target.value,
+      }), { fieldPath: 'endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft' });
+    },
+    [setValues]
+  );
+
+  // TODO: Knyt beregningsteknisk konsekvens til indregnMerErstatningVedForhoejetPensionsalder.
+  // Feltet gemmes i .eo og bevarer brugerens valg, men påvirker p.t. ingen beregning.
+  const handleMerErstatningPensionsalderCommit = React.useCallback(
+    (event: CommitEvent<boolean>) => {
+      setValues((prev) => ({
+        ...prev,
+        indregnMerErstatningVedForhoejetPensionsalder: event.target.value,
+      }), { fieldPath: 'indregnMerErstatningVedForhoejetPensionsalder' });
+    },
+    [setValues]
+  );
+
   return (
     <Box>
       <EetIssuesBox
@@ -333,6 +356,38 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
           </Box>
         </ContentBox>
       )}
+
+      {/* Valgmuligheder */}
+      <ContentBox className="content-box">
+        <Typography className="section-header">Valgmuligheder</Typography>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft
+            <InfoTooltipIcon title="Opstår ved endelig afgørelse, der får virkning for en periode, der tidligere er udbetalt midlertidig EET for" />
+          </Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledToggleSwitch
+              name="endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft"
+              checked={values.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft}
+              onCommit={handleTilbagevirkendeKraftCommit}
+            />
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            Indregn mer-erstatning ved forhøjet pensionsalder
+          </Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledToggleSwitch
+              name="indregnMerErstatningVedForhoejetPensionsalder"
+              checked={values.indregnMerErstatningVedForhoejetPensionsalder}
+              onCommit={handleMerErstatningPensionsalderCommit}
+            />
+          </Box>
+        </Box>
+      </ContentBox>
 
       {/* Specifikation */}
       {!hasBlockingErrors && computation && (

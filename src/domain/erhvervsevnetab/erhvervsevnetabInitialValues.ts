@@ -13,4 +13,6 @@ export const ERHVERVSEVNETAB_INITIAL_VALUES = {
     visUdvidetSpecifikation: false,
     visUdvidetSpecifikationLoebendeYdelserBilag: false,
   },
+  endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: true,
+  indregnMerErstatningVedForhoejetPensionsalder: true,
 } satisfies PersistedSectionMap['erhvervsevnetab'];

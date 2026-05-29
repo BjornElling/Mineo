@@ -145,9 +145,8 @@ type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
-  // Device-lokal beregnings-toggle (jf. src/contracts/app-settings.md). Injiceres eksplicit
-  // som parameter — beregningslaget læser aldrig AppSettingsContext direkte.
-  // Default-adfærden (true) sættes af kalderen; her er den et rent påkrævet boolean.
+  // Beregnings-valgmulighed fra differencekrav-fanen (sagsdata på erhvervsevnetab-sektionen).
+  // Injiceres eksplicit som parameter — beregningslaget læser aldrig form-state direkte.
   endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: boolean;
 }>;
 

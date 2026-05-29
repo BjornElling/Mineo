@@ -19,9 +19,12 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
  * Hardkodet snapshot af schemas' fingerprint.
  * Opdateres manuelt ved intentionelle schema-ændringer (ledsaget af versionsbump).
  */
-// Opdateret 2026-05-25 efter Zod 4.4 JSON-schema formatdrift.
-// Ingen PERSISTED_DATA_VERSION-bump: persisted sektionsschemas er uændrede.
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-d7e4f540';
+// Opdateret 2026-05-29: nyt felt endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft
+// på erhvervsevnetab-sektionen (flyttet fra app-settings til sagsdata). PERSISTED_DATA_VERSION
+// bumpet til 1.7 (reel persisted schema-ændring).
+// Opdateret 2026-05-29: nyt felt indregnMerErstatningVedForhoejetPensionsalder på
+// erhvervsevnetab-sektionen. PERSISTED_DATA_VERSION bumpet til 1.8 (reel persisted schema-ændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-f35784d9';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

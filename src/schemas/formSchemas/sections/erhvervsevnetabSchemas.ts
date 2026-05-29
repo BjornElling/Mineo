@@ -45,6 +45,16 @@ export const erhvervsevnetabSchema = z.object({
   // ealEetPct gemmes som decimaltal (ikke tabel-draft-string) og parses derfor i schema-laget.
   ealEetPct: percentageDecimal,
   eetDifferencekravBilagSelection: eetDifferencekravBilagSelectionSchema,
+  // Beregnings-valgmulighed på differencekrav-fanen (fane 5): når true gør en endelig
+  // afgørelse en tidligere midlertidig EET-ydelse fradragsberettiget i differencekravet
+  // med tilbagevirkende kraft. Er sagsdata og følger med .eo. Reglen er beskrevet normativt
+  // i docs/domain/eet/differencekrav.md. Schema-evolution: ældre .eo uden feltet får default true.
+  endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: z.boolean().default(true),
+  // Valgmulighed på differencekrav-fanen (fane 5): når true skal mer-erstatning ved forhøjet
+  // pensionsalder indregnes. Er sagsdata og følger med .eo. Schema-evolution: ældre .eo uden
+  // feltet får default true (breaking/ikke-bagudkompatibel ift. tidligere gemte filer er accepteret).
+  // TODO: Beregningsteknisk konsekvens er endnu ikke knyttet til feltet — kommer senere.
+  indregnMerErstatningVedForhoejetPensionsalder: z.boolean().default(true),
 }).strict();
 
 export type ErhvervsevnetabValues = z.infer<typeof erhvervsevnetabSchema>;

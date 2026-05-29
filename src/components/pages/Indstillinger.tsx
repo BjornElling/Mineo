@@ -461,25 +461,6 @@ const Indstillinger = React.memo(() => {
       </ContentBox>
 
       <ContentBox className="content-box">
-        <Typography className="section-header">Beregningsteknisk</Typography>
-
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">
-            Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft
-          </Typography>
-          <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch
-              checked={settings.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft}
-              onCommit={(e: CommitEvent<boolean>) =>
-                updateSettings({ endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: e.target.value })
-              }
-            />
-          </Box>
-        </Box>
-
-      </ContentBox>
-
-      <ContentBox className="content-box">
         <Typography className="section-header">Debug</Typography>
 
         <Box className="row--label-right-hover">

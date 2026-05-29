@@ -38,6 +38,11 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
         visUdvidetSpecifikation: false,
         visUdvidetSpecifikationLoebendeYdelserBilag: false,
       },
+      // Forsørgertab bruger kun EAL-beregningen, ikke differencekravet; feltet er irrelevant her,
+      // men kræves af typen. Default-værdien holdes.
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: true,
+      // Som ovenfor: irrelevant for EAL-beregningen, men kræves af typen. Default-værdien holdes.
+      indregnMerErstatningVedForhoejetPensionsalder: true,
       aslAarsloen: input.aslAarsloen,
       ealAarsloen: input.ealAarsloen,
     },

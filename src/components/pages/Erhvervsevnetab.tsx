@@ -21,7 +21,6 @@ import EetLoebendeYdelserTab from './erhvervsevnetab/EetLoebendeYdelserTab';
 import EetKapitaliseringTab from './erhvervsevnetab/EetKapitaliseringTab';
 import EetDifferencekravTab from './erhvervsevnetab/EetDifferencekravTab';
 import { useAslAarsloenRuleReporter } from '../../hooks/useAslAarsloenRuleReporter';
-import { useAppSettings } from '../../contexts/useAppSettings';
 
 // ─── Fane-konstanter ─────────────────────────────────────────────────────────
 
@@ -67,9 +66,6 @@ const ErhvervsevnetabPage = React.memo(() => {
   const stamdataFieldErrors = useFormFieldErrors('stamdata');
   const eetFieldErrors = useFormFieldErrors('erhvervsevnetab');
   const faellesAarsloenFieldErrors = useFormFieldErrors('faellesAarsloen');
-  const { settings } = useAppSettings();
-  const endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft =
-    settings.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft;
 
   const composedValues = React.useMemo<ErhvervsevnetabComposedValues>(
     () => ({ ...values, ...faellesAarsloenValues, skadelidteFodselsdato: stamdata?.skadelidteFodselsdato }),
@@ -86,7 +82,6 @@ const ErhvervsevnetabPage = React.memo(() => {
           erhvervsevnetab: eetFieldErrors,
           faellesAarsloen: faellesAarsloenFieldErrors,
         },
-        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft,
       }),
     [
       composedValues,
@@ -94,7 +89,6 @@ const ErhvervsevnetabPage = React.memo(() => {
       faellesAarsloenFieldErrors,
       stamdata,
       stamdataFieldErrors,
-      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft,
     ]
   );
 

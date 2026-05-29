@@ -642,7 +642,15 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(tvk).not.toBeNull();
       expect(tvk?.endeligVirkningsdato).toBe('2019-09-01');
       expect(tvk?.fra).toBe('2019-09-01');
-      expect(tvk?.beloeb).toBeGreaterThan(0);
+      // Låst kronebeløb: midlertidigs egen 55 %-ydelse for delperioden [01-09-2019, 31-12-2019].
+      // Den endelige danner en overlap-periode i samme vindue med bidraget (65−55)=10 %,
+      // så summen i vinduet svarer til den endeliges fulde sats uden dobbelttælling.
+      expect(tvk).toEqual({
+        endeligVirkningsdato: '2019-09-01',
+        fra: '2019-09-01',
+        til: '2019-12-31',
+        beloeb: 60776,
+      });
       // Fradraget skal øge det samlede løbende fradrag med præcis tvk-beløbet.
       const off = buildEksempel(false);
       expect(result.computation?.fradragLoebendeYdelser).toBe(
@@ -650,6 +658,109 @@ describe('computeEetDifferencekravCalculation', () => {
       );
       // Differencekravet bliver derfor mindre med flaget slået til (eller forbliver 0).
       expect(result.computation?.differencekrav ?? 0).toBeLessThanOrEqual(off.computation?.differencekrav ?? 0);
+    });
+
+    it('endelig-virkning efter midlertidigs naturlige ophør: ingen TVK, endelig fradrages fuldt fra egen virkning', () => {
+      // Geometri-invariant: ligger den endelige virkning EFTER midlertidigs ophør, er der intet
+      // overlappende vindue, og der er derfor intet at gøre endeligt med tilbagevirkende kraft.
+      // Midlertidigs løbende ydelse afsluttes naturligt dagen før den endeliges cutover (30-09-2019),
+      // og den endelige fradrages fuldt fra sin egen virkning (01-10-2019). TVK er hverken nødvendig
+      // eller aktiv. Låser fund 2's "ikke-overlap"-tilfælde: faktisk udbetalt midlertidig ydelse
+      // dækkes allerede uden TVK, fordi der ikke er noget hul mellem afgørelserne.
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: '2021-03-01',
+          aslAarsloen: asAmount(401000),
+          aslAfgoerelser: [
+            {
+              id: 'midl',
+              afgoerelsesDato: '01-02-2019',
+              virkningsDato: '01-02-2019',
+              eetPct: 55,
+              kapDato: undefined,
+              kapPct: undefined,
+              afgoerelseType: 'Midlertidig',
+              tidlKapDato: undefined,
+            },
+            {
+              id: 'endelig',
+              afgoerelsesDato: '15-08-2019',
+              virkningsDato: '01-10-2019',
+              eetPct: 65,
+              kapDato: undefined,
+              kapPct: undefined,
+              afgoerelseType: 'Endelig',
+              tidlKapDato: undefined,
+            },
+          ],
+        },
+        skadedato: '2015-01-01',
+        skadelidteFodselsdato: '1980-01-01',
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: true,
+      });
+
+      expect(result.hasBlockingErrors).toBe(false);
+      const midl = result.computation?.afgoerelser.find((a) => a.rowId === 'midl');
+      const endelig = result.computation?.afgoerelser.find((a) => a.rowId === 'endelig');
+      // Midlertidigs løbende ydelse stopper dagen før den endeliges cutover.
+      expect(result.computation?.loebendeComputation?.afgoerelser.find((a) => a.rowId === 'midl')?.ophoerDato)
+        .toBe('2019-09-30');
+      // Ingen TVK, fordi endelig-virkning (01-10-2019) ligger efter midlertidigs ophør (30-09-2019).
+      expect(midl?.tilbagevirkendeKraftFradrag).toBeNull();
+      expect(midl?.beloeb).toBe(0);
+      // Den endelige fradrages fuldt fra sin egen virkning.
+      expect(endelig?.fradragForetages).toBe(true);
+      expect(endelig?.beloeb).toBe(311582);
+      expect(result.computation?.fradragLoebendeYdelser).toBe(311582);
+    });
+
+    it('omvendt rækkefølge: midlertidig truffet efter endelig fradrages stadig (bevidst — rækkefølge gates ikke)', () => {
+      // Bevidst designvalg (jf. review): TVK-reglen gates IKKE på, at den midlertidige er truffet
+      // før den endelige. Så længe datoerne overlapper, fradrages den midlertidiges egen ydelse.
+      // Fane 2 markerer sagen med en advarsel, men blokerer ikke beregningen.
+      const result = computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: '2021-03-01',
+          aslAarsloen: asAmount(401000),
+          aslAfgoerelser: [
+            {
+              id: 'endelig',
+              afgoerelsesDato: '01-12-2019',
+              virkningsDato: '01-09-2019',
+              eetPct: 65,
+              kapDato: undefined,
+              kapPct: undefined,
+              afgoerelseType: 'Endelig',
+              tidlKapDato: undefined,
+            },
+            {
+              id: 'midl',
+              afgoerelsesDato: '01-08-2020',
+              virkningsDato: '01-06-2019',
+              eetPct: 55,
+              kapDato: undefined,
+              kapPct: undefined,
+              afgoerelseType: 'Midlertidig',
+              tidlKapDato: undefined,
+            },
+          ],
+        },
+        skadedato: '2015-01-01',
+        skadelidteFodselsdato: '1980-01-01',
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: true,
+      });
+
+      expect(result.hasBlockingErrors).toBe(false);
+      expect(result.issues.some((issue) => issue.id === 'warn-non-endelig-after-endelig')).toBe(true);
+      const midl = result.computation?.afgoerelser.find((a) => a.rowId === 'midl');
+      expect(midl?.tilbagevirkendeKraftFradrag).toEqual({
+        endeligVirkningsdato: '2019-09-01',
+        fra: '2019-09-01',
+        til: '2021-02-28',
+        beloeb: 93874,
+      });
     });
 
     it('skade før 16-06-2011: flaget er en no-op (midlertidig fradrages allerede 100 %)', () => {
