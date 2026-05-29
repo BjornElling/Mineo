@@ -74,6 +74,11 @@ export const appSettingsSchema = z
     defaultSvieSmerteDelvisSygemeldingSats: z.enum(APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS),
     defaultIndsaetUdkastStempel: z.boolean(),
     defaultVisBilagsnumre: z.boolean(),
+    // Beregnings-/regel-toggle (device-lokal, jf. src/contracts/app-settings.md):
+    // Når true gør en endelig afgørelse med tilbagevirkende kraft tidligere udbetalt
+    // midlertidig EET til endeligt, så den midlertidige ydelse fradrages i differencekravet
+    // fra den endelige afgørelses virkningsdato og frem. Påvirker kun differencekrav (fane 5).
+    endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: z.boolean(),
     // Fil-placering (IndexedDB handle ID - validering sker runtime, ikke i schema)
     defaultDirectoryHandleId: z.string().optional(),
     // Brevhoved-indstillinger for PDF-dokumenter
@@ -99,6 +104,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   defaultSvieSmerteDelvisSygemeldingSats: 'halv',
   defaultIndsaetUdkastStempel: true,
   defaultVisBilagsnumre: false,
+  // Default true: bevarer den hidtil hårdkodede adfærd (fradrag med tilbagevirkende kraft).
+  endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: true,
   // Fil-placering (undefined = brug desktop som fallback)
   defaultDirectoryHandleId: undefined,
   // Brevhoved-indstillinger

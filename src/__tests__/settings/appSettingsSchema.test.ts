@@ -25,6 +25,8 @@ describe('DEFAULT_APP_SETTINGS', () => {
     expect(DEFAULT_APP_SETTINGS.brevhovedIndstillinger).toBeDefined();
     expect(DEFAULT_APP_SETTINGS.defaultVisBilagsnumre).toBe(false);
     expect(DEFAULT_APP_SETTINGS.defaultStartsideErStamdata).toBe(false);
+    // Default true bevarer den hidtil hårdkodede tilbagevirkende kraft-adfærd.
+    expect(DEFAULT_APP_SETTINGS.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft).toBe(true);
   });
 
   it('defaultOverenskomstLoenmodtager = "ALLE"', () => {

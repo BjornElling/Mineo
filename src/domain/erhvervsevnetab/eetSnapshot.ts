@@ -30,6 +30,9 @@ export type EetSnapshotInput = Readonly<{
   values: ErhvervsevnetabComposedValues;
   stamdata: StamdataValues | null;
   fieldErrors: EetFieldErrors;
+  // Device-lokal beregnings-toggle (jf. src/contracts/app-settings.md). Injiceres af kalderen
+  // fra AppSettings — snapshot/domænelaget læser aldrig context direkte.
+  endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: boolean;
 }>;
 
 type EetTabProjection<TComputation> = Readonly<{
@@ -169,6 +172,8 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
     skadelidteFodselsdato: input.values.skadelidteFodselsdato,
+    endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft:
+      input.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft,
   });
 
   const fieldIssues = createFieldIssues(input.fieldErrors, [

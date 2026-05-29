@@ -367,8 +367,13 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
           {computation.afgoerelser.map((afgoerelse) => {
             const foretages = afgoerelse.fradragForetages;
             const pctLabel = foretages ? ` (${formatKapPct(afgoerelse.eetPct)})` : '';
+            const tvk = afgoerelse.tilbagevirkendeKraftFradrag;
             const typeLabel = (() => {
-              if (afgoerelse.afgoerelseType === 'Midlertidig') return `Midlertidig afgørelse${foretages ? pctLabel : ''}`;
+              if (afgoerelse.afgoerelseType === 'Midlertidig') {
+                if (foretages) return `Midlertidig afgørelse${pctLabel}`;
+                if (tvk) return `Midlertidig afgørelse (gjort endelig fra ${formatISOToDanish(tvk.endeligVirkningsdato)})`;
+                return 'Midlertidig afgørelse';
+              }
               if (afgoerelse.afgoerelseType === 'Delvist endelig') return `Delvist endelig afgørelse${foretages ? pctLabel : ''}`;
               return `Endelig afgørelse (${formatKapPct(afgoerelse.eetPct)})`;
             })();
@@ -389,7 +394,18 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
                   </Box>
                 )}
 
-                {!foretages && afgoerelse.afgoerelseType !== 'Midlertidig' && (
+                {!foretages && tvk && (
+                  <Box className="row--label-right-hover">
+                    <Typography className="row--text">
+                      {`Løbende ydelser (${formatISOToDanish(tvk.fra)} - ${formatISOToDanish(tvk.til)}):`}
+                    </Typography>
+                    <Box className="row--label-right-hover__content">
+                      <Typography className="row--text">{`- ${formatKr(tvk.beloeb)}`}</Typography>
+                    </Box>
+                  </Box>
+                )}
+
+                {!foretages && !tvk && afgoerelse.afgoerelseType !== 'Midlertidig' && (
                   <TextHoverRow text="Løbende ydelser derfor ikke relevante." />
                 )}
 

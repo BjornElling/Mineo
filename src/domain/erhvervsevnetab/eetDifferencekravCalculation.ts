@@ -52,6 +52,18 @@ export type EetDifferencekravLoebendeAfgoerelse = Readonly<{
   fradragesTil: ISODateString;
   beloeb: number;
   fradragForetages: boolean;
+  // Sat når en midlertidig afgørelse gøres endelig med tilbagevirkende kraft (toggle):
+  // dens egen løbende ydelse fradrages fra den endelige afgørelses virkningsdato og frem.
+  // null når reglen ikke gælder for rækken.
+  tilbagevirkendeKraftFradrag: EetDifferencekravTilbagevirkendeKraftFradrag | null;
+}>;
+
+export type EetDifferencekravTilbagevirkendeKraftFradrag = Readonly<{
+  // Den endelige afgørelses virkningsdato — fradraget løber herfra og frem.
+  endeligVirkningsdato: ISODateString;
+  fra: ISODateString;
+  til: ISODateString;
+  beloeb: number;
 }>;
 
 export type EetDifferencekravKapitaliseretAfgoerelse = Readonly<{
@@ -133,6 +145,10 @@ type Input = Readonly<{
   erhvervsevnetab: ErhvervsevnetabComposedValues;
   skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
+  // Device-lokal beregnings-toggle (jf. src/contracts/app-settings.md). Injiceres eksplicit
+  // som parameter — beregningslaget læser aldrig AppSettingsContext direkte.
+  // Default-adfærden (true) sættes af kalderen; her er den et rent påkrævet boolean.
+  endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: boolean;
 }>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -534,6 +550,62 @@ const skalFradragForetages = (
   return afgoerelseType === 'Endelig';
 };
 
+// ─── Tilbagevirkende kraft: midlertidig gøres endelig (toggle) ─────────────────
+
+type LoebendeAfgoerelseComputation =
+  import('./eetLoebendeYdelserCalculation').EetLoebendeAfgoerelseComputation;
+
+/**
+ * Beregner det fradrag der opstår, når en endelig afgørelse med tilbagevirkende kraft
+ * gør en tidligere midlertidig afgørelses løbende ydelse fradragsberettiget i differencekravet.
+ *
+ * Reglen (jf. docs/domain/eet/differencekrav.md):
+ * - Gælder kun midlertidige afgørelser og kun skader >= 16-06-2011.
+ * - Aktiveres når en endelig afgørelses virkningsdato ligger inden i den midlertidiges
+ *   egen løbende-ydelsesperiode [virkningsdato, ophørDato].
+ * - Fradraget = den midlertidiges egen løbende ydelse (dens egen rest-EET og sats, præcis
+ *   som fane 2 har beregnet den) for delperioden [endeligVirkningsdato, midlertidigs ophør].
+ *
+ * Genbruger den midlertidiges allerede beregnede periode-rækker frem for at genberegne,
+ * og recomputeer kun den eventuelle delperiode der krydser den endelige virkningsdato med
+ * samme måneds-/afrundingsregel som kilden (round0(måneder × månedlig ydelse)).
+ */
+const computeTilbagevirkendeKraftFradrag = (
+  midlertidig: LoebendeAfgoerelseComputation,
+  endeligVirkningsdato: ISODateString
+): EetDifferencekravTilbagevirkendeKraftFradrag | null => {
+  // Den endelige virkningsdato skal ligge inden i den midlertidiges løbende periode.
+  if (endeligVirkningsdato < midlertidig.virkningsdato || endeligVirkningsdato > midlertidig.ophoerDato) {
+    return null;
+  }
+
+  let beloeb = 0;
+  for (const row of midlertidig.perioder) {
+    if (row.til < endeligVirkningsdato) continue;
+    if (row.fra >= endeligVirkningsdato) {
+      beloeb += row.beregnetEet;
+      continue;
+    }
+    // Rækken krydser den endelige virkningsdato — medregn kun delen fra og med den dato.
+    const maaneder = optaelMaanederPraecis({
+      fra: endeligVirkningsdato,
+      til: row.til,
+      oevrigeFravaersdage: 0,
+    });
+    if (maaneder === null) continue;
+    beloeb += round0(maaneder * row.maanedligYdelse);
+  }
+
+  if (beloeb <= 0) return null;
+
+  return {
+    endeligVirkningsdato,
+    fra: endeligVirkningsdato,
+    til: midlertidig.ophoerDato,
+    beloeb,
+  };
+};
+
 // ─── Beregning ────────────────────────────────────────────────────────────────
 
 export const computeEetDifferencekravCalculation = (input: Input): EetDifferencekravCalculationResult => {
@@ -737,6 +809,22 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       (a, b) => a.virkningsdato.localeCompare(b.virkningsdato)
     );
 
+    // Tilbagevirkende kraft-reglen (toggle): kun aktuel for skader >= 16-06-2011, hvor
+    // midlertidigt EET ellers er fradragsfrit. Før denne dato fradrages midlertidige ydelser
+    // allerede 100 %, så reglen ville være en no-op/dobbelttælling og deaktiveres derfor.
+    const tilbagevirkendeKraftAktiv =
+      input.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft && skadedato >= SKAERING_2011_06_16;
+    // Tidligste endelige afgørelses virkningsdato — det er denne der kan gøre tidligere
+    // midlertidige ydelser endelige med tilbagevirkende kraft.
+    const tidligsteEndeligVirkningsdato = tilbagevirkendeKraftAktiv
+      ? loebendeComputation.afgoerelser
+          .filter((a) => a.afgoerelseType === 'Endelig')
+          .reduce<ISODateString | null>(
+            (earliest, a) => (earliest === null || a.virkningsdato < earliest ? a.virkningsdato : earliest),
+            null
+          )
+      : null;
+
     for (let i = 0; i < sortedByVirkningsdato.length; i++) {
       const afgoerelse = sortedByVirkningsdato[i]!;
       const fradragesTil = afgoerelse.ophoerDato;
@@ -744,6 +832,24 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       const foretages = skalFradragForetages(afgoerelse.afgoerelseType, skadedato);
       const beloeb = foretages ? afgoerelse.iAltBeregnetEet : 0;
       fradragLoebendeYdelser += beloeb;
+
+      // Tilbagevirkende kraft: en midlertidig afgørelse, der ellers ikke fradrages, får
+      // sin egen løbende ydelse fradraget fra den endelige afgørelses virkningsdato og frem.
+      let tilbagevirkendeKraftFradrag: EetDifferencekravTilbagevirkendeKraftFradrag | null = null;
+      if (
+        !foretages &&
+        afgoerelse.afgoerelseType === 'Midlertidig' &&
+        tidligsteEndeligVirkningsdato !== null
+      ) {
+        tilbagevirkendeKraftFradrag = computeTilbagevirkendeKraftFradrag(
+          afgoerelse,
+          tidligsteEndeligVirkningsdato
+        );
+        if (tilbagevirkendeKraftFradrag) {
+          fradragLoebendeYdelser += tilbagevirkendeKraftFradrag.beloeb;
+        }
+      }
+
       loebendeAfgoerelser.push({
         rowId: afgoerelse.rowId,
         afgoerelsesdato: afgoerelse.afgoerelsesdato,
@@ -753,6 +859,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
         fradragesTil,
         beloeb,
         fradragForetages: foretages,
+        tilbagevirkendeKraftFradrag,
       });
     }
   }

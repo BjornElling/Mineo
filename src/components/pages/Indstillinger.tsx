@@ -468,11 +468,12 @@ const Indstillinger = React.memo(() => {
             Endelig EET-afgørelse kan gøre tidligere udbetalt midl. EET til endeligt med tilbagevirkende kraft
           </Typography>
           <Box className="row--label-right-hover__content">
-            <Tooltip title="Ikke implementeret som valgfri indstilling — programmet er låst til denne adfærd">
-              <span>
-                <StyledToggleSwitch checked disabled onCommit={() => {}} />
-              </span>
-            </Tooltip>
+            <StyledToggleSwitch
+              checked={settings.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft}
+              onCommit={(e: CommitEvent<boolean>) =>
+                updateSettings({ endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: e.target.value })
+              }
+            />
           </Box>
         </Box>
 

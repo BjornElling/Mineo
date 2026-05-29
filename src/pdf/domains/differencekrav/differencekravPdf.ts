@@ -241,9 +241,13 @@ const renderDifferencekravPage = (
   for (const afgoerelse of computation.afgoerelser) {
     const foretages = afgoerelse.fradragForetages;
     const pctLabel = foretages ? ` (${formatKapPct(afgoerelse.eetPct)})` : '';
+    const tvk = afgoerelse.tilbagevirkendeKraftFradrag;
     const typeLabel = (() => {
-      if (afgoerelse.afgoerelseType === 'Midlertidig')
-        return `Midlertidig afgørelse${foretages ? pctLabel : ''}`;
+      if (afgoerelse.afgoerelseType === 'Midlertidig') {
+        if (foretages) return `Midlertidig afgørelse${pctLabel}`;
+        if (tvk) return `Midlertidig afgørelse (gjort endelig fra ${formatISOToDanish(tvk.endeligVirkningsdato)})`;
+        return 'Midlertidig afgørelse';
+      }
       if (afgoerelse.afgoerelseType === 'Delvist endelig')
         return `Delvist endelig afgørelse${foretages ? pctLabel : ''}`;
       return `Endelig afgørelse (${formatKapPct(afgoerelse.eetPct)})`;
@@ -258,8 +262,14 @@ const renderDifferencekravPage = (
         `- ${formatKr(afgoerelse.beloeb)}`,
         rowOpts
       );
+    } else if (!foretages && tvk) {
+      writer.writeLeftRightText(
+        `Løbende ydelser (${formatISOToDanish(tvk.fra)} - ${formatISOToDanish(tvk.til)}):`,
+        `- ${formatKr(tvk.beloeb)}`,
+        rowOpts
+      );
     } else if (!foretages && afgoerelse.afgoerelseType === 'Midlertidig') {
-      // Post-2011 midlertidige afgørelser vises kun informativt med type-linjen.
+      // Post-2011 midlertidige afgørelser uden tilbagevirkende kraft vises kun informativt.
     } else if (!foretages && afgoerelse.afgoerelseType !== 'Midlertidig') {
       writer.writeWrappedText('Løbende ydelser derfor ikke relevante.');
     } else {

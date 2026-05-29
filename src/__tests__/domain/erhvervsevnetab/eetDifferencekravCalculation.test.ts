@@ -30,6 +30,7 @@ describe('computeEetDifferencekravCalculation', () => {
         },
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1980-01-01',
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -62,6 +63,7 @@ describe('computeEetDifferencekravCalculation', () => {
         },
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -109,6 +111,7 @@ describe('computeEetDifferencekravCalculation', () => {
         },
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -147,6 +150,7 @@ describe('computeEetDifferencekravCalculation', () => {
         },
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       });
 
       const loebendeAfg = result.computation?.loebendeComputation?.afgoerelser[0];
@@ -179,6 +183,7 @@ describe('computeEetDifferencekravCalculation', () => {
         },
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -215,6 +220,7 @@ describe('computeEetDifferencekravCalculation', () => {
         },
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -256,6 +262,7 @@ describe('computeEetDifferencekravCalculation', () => {
         },
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       });
 
       expect(result.computation?.proformaKapitalisering).toBeNull();
@@ -281,6 +288,7 @@ describe('computeEetDifferencekravCalculation', () => {
         },
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -320,6 +328,7 @@ describe('computeEetDifferencekravCalculation', () => {
       },
       skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(result.hasBlockingErrors).toBe(false);
@@ -350,6 +359,7 @@ describe('computeEetDifferencekravCalculation', () => {
       },
       skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(true);
@@ -390,6 +400,7 @@ describe('computeEetDifferencekravCalculation', () => {
       },
       skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(result.hasBlockingErrors).toBe(false);
@@ -418,6 +429,7 @@ describe('computeEetDifferencekravCalculation', () => {
       },
       skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);
@@ -446,6 +458,7 @@ describe('computeEetDifferencekravCalculation', () => {
       },
       skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);
@@ -476,6 +489,7 @@ describe('computeEetDifferencekravCalculation', () => {
       },
       skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(result.issues.some((issue) => issue.id === 'asl-afgoerelser-empty')).toBe(true);
@@ -502,6 +516,7 @@ describe('computeEetDifferencekravCalculation', () => {
       },
       skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(result.issues.some((issue) => issue.id === 'eet-pct-missing')).toBe(false);
@@ -528,6 +543,7 @@ describe('computeEetDifferencekravCalculation', () => {
       },
       skadedato: '2011-01-01',
       skadelidteFodselsdato: '1961-11-01',
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(result.hasBlockingErrors).toBe(false);
@@ -555,6 +571,7 @@ describe('computeEetDifferencekravCalculation', () => {
       },
       skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
     });
 
     expect(result.hasBlockingErrors).toBe(false);
@@ -567,5 +584,117 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(proforma?.aarsydelseGrundlag).toBe(proforma?.grundydelse2024);
     expect(proforma?.aarsydelseReguleringsPctRounded4).toBe(8.9);
     expect(proforma?.aarsydelse).toBeGreaterThan(proforma?.aarsydelseGrundlag ?? 0);
+  });
+
+  describe('tilbagevirkende kraft — endelig gør midlertidig endelig (toggle)', () => {
+    // Brugerens eksempel: midlertidig 55 % (virkning 01-02-2019),
+    // endelig 65 % (virkning 01-09-2019, afgjort 01-12-2019).
+    // Skade 2015 (>= 16-06-2011), ung skadelidt → ingen ≤ 2 år til FP-komplikationer.
+    const buildEksempel = (flag: boolean) =>
+      computeEetDifferencekravCalculation({
+        erhvervsevnetab: {
+          ...ERHVERVSEVNETAB_INITIAL_VALUES,
+          beregningsdato: '2021-03-01',
+          aslAarsloen: asAmount(401000),
+          aslAfgoerelser: [
+            {
+              id: 'midl',
+              afgoerelsesDato: '01-10-2019',
+              virkningsDato: '01-02-2019',
+              eetPct: 55,
+              kapDato: undefined,
+              kapPct: undefined,
+              afgoerelseType: 'Midlertidig',
+              tidlKapDato: undefined,
+            },
+            {
+              id: 'endelig',
+              afgoerelsesDato: '01-12-2019',
+              virkningsDato: '01-09-2019',
+              eetPct: 65,
+              kapDato: undefined,
+              kapPct: undefined,
+              afgoerelseType: 'Endelig',
+              tidlKapDato: undefined,
+            },
+          ],
+        },
+        skadedato: '2015-01-01',
+        skadelidteFodselsdato: '1980-01-01',
+        endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: flag,
+      });
+
+    it('flag = false: midlertidig fradrages ikke (uændret adfærd)', () => {
+      const result = buildEksempel(false);
+      expect(result.hasBlockingErrors).toBe(false);
+      const midl = result.computation?.afgoerelser.find((a) => a.rowId === 'midl');
+      expect(midl?.afgoerelseType).toBe('Midlertidig');
+      expect(midl?.fradragForetages).toBe(false);
+      expect(midl?.beloeb).toBe(0);
+      expect(midl?.tilbagevirkendeKraftFradrag).toBeNull();
+    });
+
+    it('flag = true: midlertidigs egen ydelse fradrages fra endelig-virkning (01-09-2019) og frem', () => {
+      const result = buildEksempel(true);
+      expect(result.hasBlockingErrors).toBe(false);
+      const midl = result.computation?.afgoerelser.find((a) => a.rowId === 'midl');
+      const tvk = midl?.tilbagevirkendeKraftFradrag;
+      expect(tvk).not.toBeNull();
+      expect(tvk?.endeligVirkningsdato).toBe('2019-09-01');
+      expect(tvk?.fra).toBe('2019-09-01');
+      expect(tvk?.beloeb).toBeGreaterThan(0);
+      // Fradraget skal øge det samlede løbende fradrag med præcis tvk-beløbet.
+      const off = buildEksempel(false);
+      expect(result.computation?.fradragLoebendeYdelser).toBe(
+        (off.computation?.fradragLoebendeYdelser ?? 0) + (tvk?.beloeb ?? 0)
+      );
+      // Differencekravet bliver derfor mindre med flaget slået til (eller forbliver 0).
+      expect(result.computation?.differencekrav ?? 0).toBeLessThanOrEqual(off.computation?.differencekrav ?? 0);
+    });
+
+    it('skade før 16-06-2011: flaget er en no-op (midlertidig fradrages allerede 100 %)', () => {
+      const buildFoer2011 = (flag: boolean) =>
+        computeEetDifferencekravCalculation({
+          erhvervsevnetab: {
+            ...ERHVERVSEVNETAB_INITIAL_VALUES,
+            beregningsdato: '2021-03-01',
+            aslAarsloen: asAmount(401000),
+            aslAfgoerelser: [
+              {
+                id: 'midl',
+                afgoerelsesDato: '01-10-2010',
+                virkningsDato: '01-02-2010',
+                eetPct: 55,
+                kapDato: undefined,
+                kapPct: undefined,
+                afgoerelseType: 'Midlertidig',
+                tidlKapDato: undefined,
+              },
+              {
+                id: 'endelig',
+                afgoerelsesDato: '01-12-2010',
+                virkningsDato: '01-09-2010',
+                eetPct: 65,
+                kapDato: undefined,
+                kapPct: undefined,
+                afgoerelseType: 'Endelig',
+                tidlKapDato: undefined,
+              },
+            ],
+          },
+          skadedato: '2010-01-01',
+          skadelidteFodselsdato: '1980-01-01',
+          endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: flag,
+        });
+
+      const off = buildFoer2011(false);
+      const on = buildFoer2011(true);
+      expect(off.hasBlockingErrors).toBe(false);
+      expect(on.hasBlockingErrors).toBe(false);
+      // Ingen tilbagevirkende kraft-fradrag uanset flag — midlertidig fradrages allerede via skalFradragForetages.
+      expect(on.computation?.afgoerelser.every((a) => a.tilbagevirkendeKraftFradrag === null)).toBe(true);
+      expect(on.computation?.fradragLoebendeYdelser).toBe(off.computation?.fradragLoebendeYdelser);
+      expect(on.computation?.differencekrav).toBe(off.computation?.differencekrav);
+    });
   });
 });

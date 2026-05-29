@@ -61,6 +61,23 @@ Ved særreglen for ≤ 2 år til folkepension gælder derudover:
 - Hvis der er truffet `Endelig` afgørelse inden for eller præcis 2 år før folkepensionsalderen, og virkningsdatoen ligger på eller efter 2-årsgrænsen, fratrækkes ingen løbende ydelser.
 - Hvis der er truffet `Endelig` afgørelse mere end 2 år før folkepension, eller afgørelsen ikke er endelig, fratrækkes løbende ydelser til og med den faktiske sidste dag, som ydelsen er beregnet til, dog aldrig efter dagen før folkepensionsdatoen.
 
+#### Tilbagevirkende kraft — endelig afgørelse gør midlertidig ydelse endelig (toggle)
+
+Denne regel styres af den device-lokale toggle `endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft` (se `src/contracts/app-settings.md`). Den påvirker **kun** differencekravet (fane 5), ikke fane 2.
+
+**Når toggle = false:** beregningen er som beskrevet ovenfor (uændret).
+
+**Når toggle = true** og `skadedato ≥ 16-06-2011`:
+
+Hovedreglen er, at midlertidigt EET ikke fradrages i differencekravet for skader fra 16-06-2011 og frem. Denne regel bryder med det princip i ét tilfælde:
+
+- Hvis en `Endelig` afgørelses virkningsdato ligger inden i den periode, hvor der beregnes løbende ydelse for en `Midlertidig` afgørelse (dvs. inden for `[midlertidigs virkningsdato, midlertidigs ophørsdato]`), så bliver den midlertidige ydelse endelig med tilbagevirkende kraft fra den endelige virkningsdato.
+- Der foretages derfor fradrag i differencekravet for den midlertidige afgørelses **egen** løbende ydelse — beregnet med den midlertidiges egen rest-EET-procent og egen sats, præcis som fane 2 har beregnet den — for delperioden fra den endelige afgørelses virkningsdato til den midlertidiges normale ophør.
+
+Beløbet beregnes ved at genbruge den midlertidiges allerede beregnede periode-rækker: rækker der starter på eller efter den endelige virkningsdato medregnes fuldt, og en eventuel række der krydser den endelige virkningsdato recomputes for delperioden med samme regel som kilden (`round0(måneder × månedlig ydelse)`).
+
+**Gating:** Reglen er en no-op for skader før 16-06-2011, fordi midlertidige ydelser her allerede fradrages 100 % efter hovedreglen. Den tidligste endelige afgørelses virkningsdato er den, der udløser reglen.
+
 ### Fradrag 2 — Kapitaliseret EET
 
 Det samlede kapitaliserede beløb hentes fra fane 3. Kun kapitaliseringer med kapitaliseringsdato på eller før beregningsdatoen medregnes.
@@ -155,6 +172,7 @@ I disse situationer er der ikke sket tvungen fuldkapitalisering efter hovedregle
 | `computeResterendeLoebendeYdelser(args, issues)` | Opgør resterende løbende ydelser frem til folkepensionsalderen ved beregningsdato inden for 2-årsgrænsen |
 | `resolveLoebendeEetPct(afgoerelser, kapitaliseringer)` | Bestemmer tilbageværende løbende EET-procent |
 | `skalFradragForetages(afgoerelseType, skadedato)` | Afgør om en afgørelse skal fratrækkes |
+| `computeTilbagevirkendeKraftFradrag(midlertidig, endeligVirkningsdato)` | Beregner fradraget når en endelig afgørelse gør midlertidig ydelse endelig med tilbagevirkende kraft (toggle) |
 
 ### Implementeringsstatus
 
