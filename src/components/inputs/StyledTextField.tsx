@@ -227,11 +227,14 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
 
     const getDraftForKey = React.useCallback((key: string): string | null => key, []);
 
+    // Caret-etablering ved editor-åbning (to-trins-aktivering) ejes nu af hook'en
+    // via `editableElementRef` + `shouldIgnoreBlur`. Se useTwoStageInputActivation.
     const inputActivation = useTwoStageInputActivation<HTMLElement>({
       disabled: Boolean(disabled),
       singleStageClick,
       getDraftForKey,
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
+      editableElementRef: inputElementRef,
     });
 
     const textAreaActivation = useTwoStageInputActivation<HTMLTextAreaElement>({
@@ -239,39 +242,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       singleStageClick,
       getDraftForKey,
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
-    });
-
-    // Når editoren åbnes (readOnly fjernes) på et element der ALLEREDE har fokus
-    // — hvilket sker ved to-trins-aktivering — etablerer browseren ikke automatisk
-    // en redigerbar caret. Symptomet: feltet er fokuseret og ikke-readonly, men
-    // tastetryk producerer hverken `beforeinput` eller `input` før næste klik.
-    // Det rammer specifikt tomme felter (ingen tekstposition at sætte caret ved).
-    // Fix: når isEditorOpen går false→true, re-fokusér elementet i en layout-effekt
-    // (efter readOnly er fjernet i DOM) så browseren giver en aktiv caret.
-    const editorOpenForRefocus = multiline ? textAreaActivation.isEditorOpen : inputActivation.isEditorOpen;
-    const prevEditorOpenRef = React.useRef(editorOpenForRefocus);
-    // Sættes mens vi udfører den programmatiske blur()+focus() nedenfor, så
-    // onBlur-handleren springer ALLE sine sideeffekter over (commit/luk/isFocused).
-    const programmaticRefocusRef = React.useRef(false);
-    React.useLayoutEffect(() => {
-      const justOpened = !prevEditorOpenRef.current && editorOpenForRefocus;
-      prevEditorOpenRef.current = editorOpenForRefocus;
-      if (!justOpened) return;
-      const el = (multiline ? textAreaElementRef.current : inputElementRef.current) as
-        | HTMLInputElement
-        | HTMLTextAreaElement
-        | null;
-      if (!el || el.readOnly) return;
-      if (document.activeElement !== el) return; // kun det allerede-fokuserede tilfælde
-      // blur()+focus() tvinger browseren til at re-evaluere editing-tilstanden og
-      // give en aktiv caret. Guard'en undertrykker onBlur/onFocus-sideeffekter,
-      // så editoren ikke lukkes og draft ikke committes af det programmatiske skift.
-      programmaticRefocusRef.current = true;
-      el.blur();
-      el.focus({ preventScroll: true });
-      const end = el.value.length;
-      el.setSelectionRange(end, end);
-      programmaticRefocusRef.current = false;
+      editableElementRef: textAreaElementRef,
     });
 
     const handleKeyDown = React.useCallback(
@@ -389,9 +360,9 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
           inputRef={mergedTextAreaRef}
           onFocus={handleFocus as (e: React.FocusEvent<HTMLTextAreaElement>) => void}
           onBlur={(e) => {
-            // Ignorér det blur der stammer fra vores egen programmatiske re-fokus
-            // (blur()+focus() ved editor-åbning): ingen commit, ingen lukning.
-            if (programmaticRefocusRef.current) return;
+            // Ignorér det blur der stammer fra hook'ens programmatiske re-fokus
+            // (caret-etablering ved editor-åbning): ingen commit, ingen lukning.
+            if (textAreaActivation.shouldIgnoreBlur()) return;
             onBlurBase(e);
             const unchanged = draft === value;
             debugStyledTextField('blur', {
@@ -453,6 +424,8 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
         inputRef={mergedInputRef}
         onFocus={handleFocus as (e: React.FocusEvent<HTMLInputElement>) => void}
         onBlur={(e) => {
+          // Symmetrisk med textarea-grenen: ignorér hook'ens programmatiske re-fokus.
+          if (inputActivation.shouldIgnoreBlur()) return;
           onBlurBase(e);
           const unchanged = draft === value;
           debugStyledTextField('blur', {
