@@ -31,6 +31,7 @@ describe('computeEetDifferencekravCalculation', () => {
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1980-01-01',
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -64,6 +65,7 @@ describe('computeEetDifferencekravCalculation', () => {
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -112,6 +114,7 @@ describe('computeEetDifferencekravCalculation', () => {
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -151,6 +154,7 @@ describe('computeEetDifferencekravCalculation', () => {
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
       const loebendeAfg = result.computation?.loebendeComputation?.afgoerelser[0];
@@ -184,6 +188,7 @@ describe('computeEetDifferencekravCalculation', () => {
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -221,6 +226,7 @@ describe('computeEetDifferencekravCalculation', () => {
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -263,6 +269,7 @@ describe('computeEetDifferencekravCalculation', () => {
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
       expect(result.computation?.proformaKapitalisering).toBeNull();
@@ -289,6 +296,7 @@ describe('computeEetDifferencekravCalculation', () => {
         skadedato: '2019-04-01',
         skadelidteFodselsdato: '1955-07-01',
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -329,6 +337,7 @@ describe('computeEetDifferencekravCalculation', () => {
       skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
     expect(result.hasBlockingErrors).toBe(false);
@@ -360,6 +369,7 @@ describe('computeEetDifferencekravCalculation', () => {
       skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(true);
@@ -401,6 +411,7 @@ describe('computeEetDifferencekravCalculation', () => {
       skadedato: '2019-04-01',
       skadelidteFodselsdato: '1955-07-01',
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
     expect(result.hasBlockingErrors).toBe(false);
@@ -430,6 +441,7 @@ describe('computeEetDifferencekravCalculation', () => {
       skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);
@@ -459,6 +471,7 @@ describe('computeEetDifferencekravCalculation', () => {
       skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);
@@ -490,6 +503,7 @@ describe('computeEetDifferencekravCalculation', () => {
       skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
     expect(result.issues.some((issue) => issue.id === 'asl-afgoerelser-empty')).toBe(true);
@@ -517,6 +531,7 @@ describe('computeEetDifferencekravCalculation', () => {
       skadedato: '2022-09-17',
       skadelidteFodselsdato: '1978-05-03',
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
     expect(result.issues.some((issue) => issue.id === 'eet-pct-missing')).toBe(false);
@@ -544,6 +559,7 @@ describe('computeEetDifferencekravCalculation', () => {
       skadedato: '2011-01-01',
       skadelidteFodselsdato: '1961-11-01',
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
     expect(result.hasBlockingErrors).toBe(false);
@@ -572,6 +588,7 @@ describe('computeEetDifferencekravCalculation', () => {
       skadedato: '2019-04-01',
       skadelidteFodselsdato: '1980-01-01',
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
     });
 
     expect(result.hasBlockingErrors).toBe(false);
@@ -622,6 +639,7 @@ describe('computeEetDifferencekravCalculation', () => {
         skadedato: '2015-01-01',
         skadelidteFodselsdato: '1980-01-01',
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: flag,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
     it('flag = false: midlertidig fradrages ikke (uændret adfærd)', () => {
@@ -698,6 +716,7 @@ describe('computeEetDifferencekravCalculation', () => {
         skadedato: '2015-01-01',
         skadelidteFodselsdato: '1980-01-01',
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: true,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -750,6 +769,7 @@ describe('computeEetDifferencekravCalculation', () => {
         skadedato: '2015-01-01',
         skadelidteFodselsdato: '1980-01-01',
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: true,
+        indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
       expect(result.hasBlockingErrors).toBe(false);
@@ -796,6 +816,7 @@ describe('computeEetDifferencekravCalculation', () => {
           skadedato: '2010-01-01',
           skadelidteFodselsdato: '1980-01-01',
           endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: flag,
+          indregnMerErstatningVedForhoejetPensionsalder: false,
         });
 
       const off = buildFoer2011(false);

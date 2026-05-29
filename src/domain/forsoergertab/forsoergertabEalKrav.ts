@@ -35,6 +35,7 @@ export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravR
         kapitalisering: false,
         eetEfterEal: false,
         proformaKapitalisering: false,
+        merErstatningPensionsalder: false,
         visUdvidetSpecifikation: false,
         visUdvidetSpecifikationLoebendeYdelserBilag: false,
       },

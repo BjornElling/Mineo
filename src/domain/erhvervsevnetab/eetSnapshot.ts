@@ -171,6 +171,8 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
     skadelidteFodselsdato: input.values.skadelidteFodselsdato,
     endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft:
       input.values.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft,
+    indregnMerErstatningVedForhoejetPensionsalder:
+      input.values.indregnMerErstatningVedForhoejetPensionsalder,
   });
 
   const fieldIssues = createFieldIssues(input.fieldErrors, [

@@ -11,6 +11,10 @@ import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import {
   type EetDifferencekravProformaKapitalisering,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
+import type {
+  MerErstatningPensionsalderComputation,
+  MerErstatningPensionsalderEvent,
+} from '../../../domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation';
 import { formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import {
   buildKapitaliseringAarsydelseExpression,
@@ -206,6 +210,149 @@ const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
   </ContentBox>
 );
 
+type MerErstatningBoxProps = Readonly<{
+  computation: MerErstatningPensionsalderComputation;
+  koen: ErhvervsevnetabValues['koen'];
+}>;
+
+const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensionsalderEvent; koen: ErhvervsevnetabValues['koen'] }) => (
+  <>
+    <UnderlinedHoverRow
+      text={`Forhøjelse pr. ${formatIsoDateLong(event.virkningsdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel})`}
+    />
+
+    <Typography className="row--subheading">Løbende ydelse</Typography>
+
+    <Box className="row--label-right-hover">
+      <Typography className="row--text">
+        {buildKapitaliseringGrundydelseLabel(formatKapPct(event.kapitaliseringspct), event.amBidragPct)}
+      </Typography>
+      <Box className="row--label-right-hover__content">
+        <Typography className="row--text">
+          {buildKapitaliseringGrundydelseExpression(
+            formatKr(event.grundloen, 0),
+            formatKapPct(event.kapitaliseringspct),
+            event.erstatningsniveauPct,
+            event.amBidragPct,
+            formatKr(event.grundydelse, 2)
+          )}
+        </Typography>
+      </Box>
+    </Box>
+
+    {event.grundydelse2024 !== null && event.opreguleringTil2024PctRounded4 !== null && (
+      <Box className="row--label-right-hover">
+        <Typography className="row--text">
+          {buildKapitaliseringOpreguleringTil2024Expression(
+            formatKr(event.grundydelse, 2),
+            formatAsAmountTrimmed(1 + event.opreguleringTil2024PctRounded4 / 100, 4),
+            `${formatAsAmountTrimmed(event.opreguleringTil2024PctRounded4, 4)} %`
+          )}
+        </Typography>
+        <Box className="row--label-right-hover__content">
+          <Typography className="row--text">{formatKr(event.grundydelse2024, 2)}</Typography>
+        </Box>
+      </Box>
+    )}
+
+    {event.aarsydelseReguleringsPctRounded4 !== null && (
+      <Box className="row--label-right-hover">
+        <Typography className="row--text">{`Reguleringsprocent (${event.satsAar})`}</Typography>
+        <Box className="row--label-right-hover__content">
+          <Typography className="row--text">{`${formatAsAmountTrimmed(event.aarsydelseReguleringsPctRounded4, 4)} %`}</Typography>
+        </Box>
+      </Box>
+    )}
+
+    <Box className="row--label-right-hover">
+      <Typography className="row--text">
+        {buildKapitaliseringAarsydelseExpression(
+          formatKr(event.aarsydelseGrundlag, 2),
+          event.aarsydelseReguleringsPctRounded4 === null
+            ? null
+            : `${formatAsAmountTrimmed(100 + event.aarsydelseReguleringsPctRounded4, 4)} %`
+        )}
+      </Typography>
+      <Box className="row--label-right-hover__content">
+        <Typography className="row--text">{formatKr(event.aarsydelse, 2)}</Typography>
+      </Box>
+    </Box>
+
+    <Typography className="row--subheading" sx={{ mt: 2 }}>Kapitalværdi til hidtidig folkepensionsalder ({event.gammelAlderLabel})</Typography>
+
+    <Box className="row--label-right-hover">
+      <Typography className="row--text">{event.gammel.kapitaliseringsbekendtgoerelseLabel}</Typography>
+      <Box className="row--label-right-hover__content">
+        <Typography className="row--text">{formatFaktor(event.gammel.kapitaliseringsfaktor)}</Typography>
+      </Box>
+    </Box>
+    <Box className="row--label-right-hover">
+      <Typography className="row--text">
+        {`Kapitalværdi (${formatKr(event.aarsydelse, 2)} × ${formatFaktor(event.gammel.kapitaliseringsfaktor)})`}
+      </Typography>
+      <Box className="row--label-right-hover__content">
+        <Typography className="row--text">{formatKr(event.gammel.kapitalvaerdi, 2)}</Typography>
+      </Box>
+    </Box>
+
+    <Typography className="row--subheading" sx={{ mt: 2 }}>Kapitalværdi til forhøjet folkepensionsalder ({event.nyAlderLabel})</Typography>
+
+    <Box className="row--label-right-hover">
+      <Typography className="row--text">{event.ny.kapitaliseringsbekendtgoerelseLabel}</Typography>
+      <Box className="row--label-right-hover__content">
+        <Typography className="row--text">{formatFaktor(event.ny.kapitaliseringsfaktor)}</Typography>
+      </Box>
+    </Box>
+    <Box className="row--label-right-hover">
+      <Typography className="row--text">
+        {`Kapitalværdi (${formatKr(event.aarsydelse, 2)} × ${formatFaktor(event.ny.kapitaliseringsfaktor)})`}
+      </Typography>
+      <Box className="row--label-right-hover__content">
+        <Typography className="row--text">{formatKr(event.ny.kapitalvaerdi, 2)}</Typography>
+      </Box>
+    </Box>
+
+    {event.koenOpdelt && (
+      <Box className="row--label-right-hover">
+        <Typography className="row--text">Køn</Typography>
+        <Box className="row--label-right-hover__content">
+          <Typography className="row--text">{koen}</Typography>
+        </Box>
+      </Box>
+    )}
+
+    <Box className="row--label-right-hover" sx={{ mt: 1 }}>
+      <Typography className="row--text">
+        {`Mer-erstatning (${formatKr(event.ny.kapitalvaerdi, 2)} − ${formatKr(event.gammel.kapitalvaerdi, 2)})`}
+      </Typography>
+      <Box className="row--label-right-hover__content">
+        <Typography className="row--text text-bold">{formatKr(event.merErstatning)}</Typography>
+      </Box>
+    </Box>
+  </>
+);
+
+const EetMerErstatningPensionsalderBox = ({ computation, koen }: MerErstatningBoxProps) => (
+  <ContentBox className="content-box">
+    <Typography className="section-header">Mer-erstatning ved forhøjet folkepensionsalder</Typography>
+
+    {computation.events.map((event, index) => (
+      <Box key={`${event.rowId}-${event.virkningsdato}`} sx={{ mt: index === 0 ? 0 : 2 }}>
+        <EetMerErstatningEventRows event={event} koen={koen} />
+      </Box>
+    ))}
+
+    {computation.events.length > 1 && (
+      <Box className="row--label-right-hover" sx={{ mt: 2 }}>
+        <Typography className="row--text">Samlet mer-erstatning</Typography>
+        <Box className="row--label-right-hover__content">
+          <Typography className="row--text text-bold">{formatKr(computation.samletMerErstatning)}</Typography>
+        </Box>
+      </Box>
+    )}
+  </ContentBox>
+);
+
 const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
   const { settings } = useAppSettings();
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
@@ -272,8 +419,6 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
     [setValues]
   );
 
-  // TODO: Knyt beregningsteknisk konsekvens til indregnMerErstatningVedForhoejetPensionsalder.
-  // Feltet gemmes i .eo og bevarer brugerens valg, men påvirker p.t. ingen beregning.
   const handleMerErstatningPensionsalderCommit = React.useCallback(
     (event: CommitEvent<boolean>) => {
       setValues((prev) => ({
@@ -337,6 +482,13 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
                       checked={bilagSelection.proformaKapitalisering}
                       onCommit={createBilagCommitHandler('proformaKapitalisering')}
                       label="Proformakap. af rest-EET"
+                    />
+                  )}
+                  {computation.merErstatningPensionsalder && (
+                    <StyledCheckbox
+                      checked={bilagSelection.merErstatningPensionsalder}
+                      onCommit={createBilagCommitHandler('merErstatningPensionsalder')}
+                      label="Mer-erstatning forhøjet folkepension"
                     />
                   )}
                 </Box>
@@ -535,6 +687,24 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
             </>
           )}
 
+          {/* Mer-erstatning ved forhøjet folkepensionsalder */}
+          {computation.merErstatningPensionsalder && (
+            <>
+              <Typography className="row--subheading" sx={{ mt: 2 }}>Mer-erstatning ved forhøjet folkepensionsalder</Typography>
+              <TextHoverRow text="Forskellen mellem kapitalværdien til den forhøjede og den hidtidige folkepensionsalder fratrækkes." />
+              {computation.merErstatningPensionsalder.events.map((event) => (
+                <Box key={`${event.rowId}-${event.virkningsdato}`} className="row--label-right-hover">
+                  <Typography className="row--text">
+                    {`Forhøjelse pr. ${formatISOToDanish(event.virkningsdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`}
+                  </Typography>
+                  <Box className="row--label-right-hover__content">
+                    <Typography className="row--text">{`- ${formatKr(event.merErstatning)}`}</Typography>
+                  </Box>
+                </Box>
+              ))}
+            </>
+          )}
+
           {/* Differencekrav */}
           <Typography className="row--subheading" sx={{ mt: 2 }}>Differencekrav</Typography>
           <Box className="row--label-right-hover">
@@ -550,6 +720,14 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
       {!hasBlockingErrors && computation?.proformaKapitalisering && (
         <EetProformaKapitaliseringBox
           pk={computation.proformaKapitalisering}
+          koen={values.koen}
+        />
+      )}
+
+      {/* Mer-erstatning ved forhøjet folkepensionsalder */}
+      {!hasBlockingErrors && computation?.merErstatningPensionsalder && (
+        <EetMerErstatningPensionsalderBox
+          computation={computation.merErstatningPensionsalder}
           koen={values.koen}
         />
       )}

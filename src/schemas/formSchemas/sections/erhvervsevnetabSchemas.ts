@@ -32,6 +32,9 @@ const eetDifferencekravBilagSelectionSchema = z.object({
   kapitalisering: z.boolean(),
   eetEfterEal: z.boolean(),
   proformaKapitalisering: z.boolean(),
+  // Bilag for mer-erstatning ved forhøjet folkepensionsalder. Schema-evolution: ældre .eo
+  // uden feltet får default true (samme tilgang som de øvrige differencekrav-valg).
+  merErstatningPensionsalder: z.boolean().default(true),
   visUdvidetSpecifikation: z.boolean(),
   visUdvidetSpecifikationLoebendeYdelserBilag: z.boolean(),
 }).strict();
@@ -50,10 +53,10 @@ export const erhvervsevnetabSchema = z.object({
   // med tilbagevirkende kraft. Er sagsdata og følger med .eo. Reglen er beskrevet normativt
   // i docs/domain/eet/differencekrav.md. Schema-evolution: ældre .eo uden feltet får default true.
   endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: z.boolean().default(true),
-  // Valgmulighed på differencekrav-fanen (fane 5): når true skal mer-erstatning ved forhøjet
-  // pensionsalder indregnes. Er sagsdata og følger med .eo. Schema-evolution: ældre .eo uden
-  // feltet får default true (breaking/ikke-bagudkompatibel ift. tidligere gemte filer er accepteret).
-  // TODO: Beregningsteknisk konsekvens er endnu ikke knyttet til feltet — kommer senere.
+  // Valgmulighed på differencekrav-fanen (fane 5): når true fratrækkes mer-erstatning ved
+  // forhøjet folkepensionsalder (fradrag 4) i differencekravet. Er sagsdata og følger med .eo.
+  // Reglen er beskrevet normativt i docs/domain/eet/mer-erstatning-pensionsalder.md.
+  // Schema-evolution: ældre .eo uden feltet får default true.
   indregnMerErstatningVedForhoejetPensionsalder: z.boolean().default(true),
 }).strict();
 

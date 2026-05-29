@@ -22,12 +22,17 @@ import type {
   EetDifferencekravComputation,
   EetDifferencekravProformaKapitalisering,
 } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
+import type {
+  MerErstatningPensionsalderComputation,
+  MerErstatningPensionsalderEvent,
+} from '../../../domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation';
 import { formatPct as formatKapPct } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { formatKapitaliseringsPct } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import {
   buildKapitaliseringAarsydelseExpression,
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
+  buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { TODAY } from '../../../config/dateRanges';
@@ -190,6 +195,120 @@ const addProformaKapitaliseringSection = (
 };
 
 // ============================================================================
+// MER-ERSTATNING VED FORHØJET FOLKEPENSIONSALDER-SEKTION
+// ============================================================================
+
+const addMerErstatningEvent = (
+  writer: ReturnType<typeof createStandardPdfWriter>,
+  event: MerErstatningPensionsalderEvent,
+  koen: string | undefined,
+  isFirst: boolean
+): void => {
+  const rowOpts = { rightFontStyle: 'normal' as const };
+
+  if (!isFirst) {
+    writer.addSpacer(4);
+  }
+
+  writer.writeUnderlinedSubheader(
+    `Forhøjelse pr. ${formatIsoDateLong(event.virkningsdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel})`
+  );
+
+  writer.writeBoldSubheader('Løbende ydelse');
+
+  writer.writeWrappedTextContinued(
+    `${buildKapitaliseringGrundydelseLabel(formatKapPct(event.kapitaliseringspct), event.amBidragPct)} =`
+  );
+  writer.writeLeftRightText(
+    buildKapitaliseringGrundydelseExpression(
+      formatKr(event.grundloen, 0),
+      formatKapPct(event.kapitaliseringspct),
+      event.erstatningsniveauPct,
+      event.amBidragPct
+    ),
+    formatKr(event.grundydelse, 2),
+    rowOpts
+  );
+
+  if (event.grundydelse2024 !== null && event.opreguleringTil2024PctRounded4 !== null) {
+    writer.writeWrappedTextContinued(
+      `Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatAsAmountTrimmed(event.opreguleringTil2024PctRounded4, 4)} %) =`
+    );
+    writer.writeLeftRightText(
+      `${formatKr(event.grundydelse, 2)} × ${formatAsAmountTrimmed(1 + event.opreguleringTil2024PctRounded4 / 100, 4)} =`,
+      formatKr(event.grundydelse2024, 2),
+      rowOpts
+    );
+  }
+
+  if (event.aarsydelseReguleringsPctRounded4 !== null) {
+    writer.writeLeftRightText(
+      `Reguleringsprocent (${event.satsAar})`,
+      `${formatAsAmountTrimmed(event.aarsydelseReguleringsPctRounded4, 4)} %`,
+      rowOpts
+    );
+  }
+
+  writer.writeLeftRightText(
+    buildKapitaliseringAarsydelseExpression(
+      formatKr(event.aarsydelseGrundlag, 2),
+      event.aarsydelseReguleringsPctRounded4 === null
+        ? null
+        : `${formatAsAmountTrimmed(100 + event.aarsydelseReguleringsPctRounded4, 4)} %`
+    ),
+    formatKr(event.aarsydelse, 2),
+    rowOpts
+  );
+
+  writer.writeBoldSubheader(`Kapitalværdi til hidtidig folkepensionsalder (${event.gammelAlderLabel})`);
+  writer.writeLeftRightText(event.gammel.kapitaliseringsbekendtgoerelseLabel, formatFaktor(event.gammel.kapitaliseringsfaktor), rowOpts);
+  writer.writeLeftRightText(
+    `Kapitalværdi (${formatKr(event.aarsydelse, 2)} × ${formatFaktor(event.gammel.kapitaliseringsfaktor)})`,
+    formatKr(event.gammel.kapitalvaerdi, 2),
+    rowOpts
+  );
+
+  writer.writeBoldSubheader(`Kapitalværdi til forhøjet folkepensionsalder (${event.nyAlderLabel})`);
+  writer.writeLeftRightText(event.ny.kapitaliseringsbekendtgoerelseLabel, formatFaktor(event.ny.kapitaliseringsfaktor), rowOpts);
+  writer.writeLeftRightText(
+    `Kapitalværdi (${formatKr(event.aarsydelse, 2)} × ${formatFaktor(event.ny.kapitaliseringsfaktor)})`,
+    formatKr(event.ny.kapitalvaerdi, 2),
+    rowOpts
+  );
+
+  if (event.koenOpdelt && koen) {
+    writer.writeLeftRightText('Køn', koen, rowOpts);
+  }
+
+  writer.writeLeftRightText(
+    `Mer-erstatning (${formatKr(event.ny.kapitalvaerdi, 2)} − ${formatKr(event.gammel.kapitalvaerdi, 2)})`,
+    formatKr(event.merErstatning),
+    { rightFontStyle: 'bold' as const }
+  );
+};
+
+const addMerErstatningPensionsalderSection = (
+  writer: ReturnType<typeof createStandardPdfWriter>,
+  computation: MerErstatningPensionsalderComputation,
+  koen: string | undefined
+): void => {
+  writer.addPage();
+  writer.writeSectionHeader('Mer-erstatning ved forhøjet folkepensionsalder');
+
+  computation.events.forEach((event, index) => {
+    addMerErstatningEvent(writer, event, koen, index === 0);
+  });
+
+  if (computation.events.length > 1) {
+    writer.writeLeftRightText(
+      'Samlet mer-erstatning',
+      formatKr(computation.samletMerErstatning),
+      { rightFontStyle: 'bold' as const }
+    );
+  }
+};
+
+// ============================================================================
 // DIFFERENCEKRAV HOVED-SIDE
 // ============================================================================
 
@@ -334,6 +453,21 @@ const renderDifferencekravPage = (
     }
   }
 
+  // Mer-erstatning ved forhøjet folkepensionsalder
+  if (computation.merErstatningPensionsalder) {
+    writer.writeBoldSubheader('Mer-erstatning ved forhøjet folkepensionsalder');
+    writer.writeWrappedText(
+      'Forskellen mellem kapitalværdien til den forhøjede og den hidtidige folkepensionsalder fratrækkes.'
+    );
+    for (const event of computation.merErstatningPensionsalder.events) {
+      writer.writeLeftRightText(
+        `Forhøjelse pr. ${formatISOToDanish(event.virkningsdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`,
+        `- ${formatKr(event.merErstatning)}`,
+        rowOpts
+      );
+    }
+  }
+
   // Differencekrav
   writer.writeBoldSubheader('Differencekrav');
 
@@ -353,6 +487,7 @@ export type BilagSelection = Readonly<{
   kapitalisering: boolean;
   eetEfterEal: boolean;
   proformaKapitalisering: boolean;
+  merErstatningPensionsalder: boolean;
   visUdvidetSpecifikationLoebendeYdelserBilag: boolean;
 }>;
 
@@ -440,6 +575,11 @@ export const generateDifferencekravPdf = (
   // Bilag: Proformakapitalisering af rest-EET
   if (bilagSelection.proformaKapitalisering && computation.proformaKapitalisering) {
     addProformaKapitaliseringSection(writer, computation.proformaKapitalisering, koen);
+  }
+
+  // Bilag: Mer-erstatning ved forhøjet folkepensionsalder
+  if (bilagSelection.merErstatningPensionsalder && computation.merErstatningPensionsalder) {
+    addMerErstatningPensionsalderSection(writer, computation.merErstatningPensionsalder, koen);
   }
 
   writer.addFooter();

@@ -10,6 +10,7 @@ export const ERHVERVSEVNETAB_INITIAL_VALUES = {
     kapitalisering: true,
     eetEfterEal: true,
     proformaKapitalisering: true,
+    merErstatningPensionsalder: true,
     visUdvidetSpecifikation: false,
     visUdvidetSpecifikationLoebendeYdelserBilag: false,
   },

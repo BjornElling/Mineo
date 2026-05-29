@@ -37,6 +37,10 @@ import {
   resolveKapitaliseringAarsydelseBreakdown,
   WARN_NO_KAP_INPUT_ID,
 } from './eetKapitaliseringCalculation';
+import {
+  computeMerErstatningPensionsalder,
+  type MerErstatningPensionsalderComputation,
+} from './eetMerErstatningPensionsalderCalculation';
 import { hasTextValue } from './eetAslAfgoerelser';
 import { optaelMaanederPraecis } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
@@ -124,6 +128,9 @@ export type EetDifferencekravComputation = Readonly<{
   // Fradrag 3-invariant: højst ét af proformaKapitalisering og resterendeLoebendeYdelser må være non-null.
   proformaKapitalisering: EetDifferencekravProformaKapitalisering | null;
   resterendeLoebendeYdelser: EetDifferencekravResterendeLoebendeYdelser | null;
+  // Fradrag 4: mer-erstatning ved forhøjet folkepensionsalder. null når toggle er fra,
+  // eller ingen forhøjelse kvalificerer.
+  merErstatningPensionsalder: MerErstatningPensionsalderComputation | null;
   differencekrav: number;
   afgoerelser: readonly EetDifferencekravLoebendeAfgoerelse[];
   kapitaliseringerAfgoerelser: readonly EetDifferencekravKapitaliseretAfgoerelse[];
@@ -148,6 +155,9 @@ type Input = Readonly<{
   // Beregnings-valgmulighed fra differencekrav-fanen (sagsdata på erhvervsevnetab-sektionen).
   // Injiceres eksplicit som parameter — beregningslaget læser aldrig form-state direkte.
   endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: boolean;
+  // Beregnings-valgmulighed fra differencekrav-fanen (sagsdata). Når true fratrækkes
+  // mer-erstatning ved forhøjet folkepensionsalder (fradrag 4) i differencekravet.
+  indregnMerErstatningVedForhoejetPensionsalder: boolean;
 }>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -912,6 +922,47 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
 
   kapAfgoerelser.push(...aslRowsForDisplay);
 
+  // ─── Fradrag 4: Mer-erstatning ved forhøjet folkepensionsalder ────────────
+  // Når et erhvervsevnetab tidligere er kapitaliseret, og folkepensionsalderen senere
+  // forhøjes, er kapitalbeløbet beregnet til en for lav pensionsalder. Forskellen mellem
+  // kapitalværdien til den nye og den gamle folkepensionsalder fratrækkes differencekravet.
+  // Beregnes på grundlag af de faktisk kapitaliserede afgørelser fra fane 3.
+  let merErstatningPensionsalder: MerErstatningPensionsalderComputation | null = null;
+  if (input.indregnMerErstatningVedForhoejetPensionsalder && kapResult.computation) {
+    const before2024Skade = skadedato < SKAERING_2024_07_01;
+    const kapitaliseringerForMerErstatning = kapResult.computation.afgoerelser
+      .filter((a) => a.kapitaliseringsdato <= beregningsdato && a.kapitaliseringspct > 0)
+      .map((a) => ({
+        rowId: a.rowId,
+        afgoerelsesdato: a.afgoerelsesdato,
+        kapitaliseringsdato: a.kapitaliseringsdato,
+        kapitaliseringspct: a.kapitaliseringspct,
+        grundloen: a.grundloen,
+        erstatningsniveauPct: a.erstatningsniveauPct,
+        amBidragPct: a.amBidragPct,
+      }));
+
+    if (kapitaliseringerForMerErstatning.length > 0) {
+      const merErstatningIssues: EetIssue[] = [];
+      merErstatningPensionsalder = computeMerErstatningPensionsalder(
+        {
+          kapitaliseringer: kapitaliseringerForMerErstatning,
+          beregningsdato,
+          skadedato,
+          fodselsdato,
+          before2024Skade,
+          koen: input.erhvervsevnetab.koen,
+        },
+        merErstatningIssues
+      );
+      // Mer-erstatning er et fradrag der genbruger allerede validerede stamdata; opstår der
+      // alligevel et opslagsproblem, må det ikke nulstille hele differencekravet. Issues
+      // rapporteres ikke som blokerende her (computation er allerede gyldig på dette punkt),
+      // men hvis beregningen fejler udelades fradraget, så et forkert (for lavt) fradrag
+      // aldrig anvendes.
+    }
+  }
+
   // ─── Endeligt differencekrav ──────────────────────────────────────────────
   const differencekrav = Math.max(
     0,
@@ -920,6 +971,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       - fradragLoebendeYdelser
       - fradragKapitaliseretEet
       - (proformaKapitalisering?.proformaBeloeb ?? resterendeLoebendeYdelser?.fradragBeloeb ?? 0)
+      - (merErstatningPensionsalder?.samletMerErstatning ?? 0)
     )
   );
 
@@ -937,6 +989,7 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       fradragKapitaliseretEet,
       proformaKapitalisering,
       resterendeLoebendeYdelser,
+      merErstatningPensionsalder,
       differencekrav,
       afgoerelser: loebendeAfgoerelser,
       kapitaliseringerAfgoerelser: kapAfgoerelser,

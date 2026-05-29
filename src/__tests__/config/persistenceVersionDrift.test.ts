@@ -24,7 +24,9 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // bumpet til 1.7 (reel persisted schema-ændring).
 // Opdateret 2026-05-29: nyt felt indregnMerErstatningVedForhoejetPensionsalder på
 // erhvervsevnetab-sektionen. PERSISTED_DATA_VERSION bumpet til 1.8 (reel persisted schema-ændring).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-f35784d9';
+// Opdateret 2026-05-30: nyt bilag-felt merErstatningPensionsalder på
+// eetDifferencekravBilagSelection. PERSISTED_DATA_VERSION bumpet til 1.9 (reel persisted schema-ændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-c52974da';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

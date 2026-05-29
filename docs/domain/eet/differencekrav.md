@@ -6,6 +6,7 @@ Se også:
 - [loebende-eet.md](./loebende-eet.md) — fane 2
 - [kapitaliseret-eet.md](./kapitaliseret-eet.md) — fane 3
 - [eal-beregning.md](./eal-beregning.md) — fane 4
+- [mer-erstatning-pensionsalder.md](./mer-erstatning-pensionsalder.md) — fradrag 4: mer-erstatning ved forhøjet folkepensionsalder
 - [fejlkatalog.md](./fejlkatalog.md) — alle fejl og advarsler
 - [under-to-aar-til-fp.md](./under-to-aar-til-fp.md) — særregel for ≤ 2 år til folkepensionsalderen
 
@@ -24,9 +25,14 @@ differencekrav = eal_krav
                − fradrag_løbende_ydelser
                − fradrag_kapitaliseret_eet
                − fradrag_tilbageværende_eet
+               − fradrag_mer_erstatning_forhøjet_folkepension
 
 hvis differencekrav < 0: differencekrav = 0
 ```
+
+Fradrag 4 (mer-erstatning ved forhøjet folkepensionsalder) er beskrevet i sin egen normative fil:
+[mer-erstatning-pensionsalder.md](./mer-erstatning-pensionsalder.md). Det indregnes kun når
+valgmuligheden "Indregn mer-erstatning ved forhøjet pensionsalder" er slået til.
 
 Fane 5 beregner ikke nye ASL- eller EAL-typer. Den trækker de øvrige faners resultater ind, men fradrag 1 og 3 har deres egen særlogik.
 
