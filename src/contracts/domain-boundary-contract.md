@@ -2,6 +2,8 @@
 
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
+**Prioritet:** Tværgående; constrainer `page-component-contract.md`.
+**Senest verificeret mod kode:** 2026-05-30
 
 Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideejerskab og tværdomæne-afhængigheder.
 

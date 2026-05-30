@@ -2,6 +2,8 @@
 
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
+**Prioritet:** Tværgående snapshot-mønster; specialiseres af `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og `forsoergertab-snapshot-contract.md`.
+**Senest verificeret mod kode:** 2026-05-30
 
 Denne kontrakt fastlægger, hvad et domæne-snapshot er, og hvordan snapshot-first bruges uden at tvinge alle domæner ind i samme datastruktur.
 
@@ -97,7 +99,7 @@ Når et nyt domæne løftes til snapshot-first, skal formen vælges ud fra bruge
 2. `form-contract.md` bestemmer at snapshot’et kun må bruge committed input.
 3. `page-component-contract.md` bestemmer at page-laget orkestrerer snapshot’et og sender projektioner videre top-down.
 4. Domænespecifikke kontrakter kan indsnævre, hvilke forbrugere et konkret snapshot-entrypoint er autoritativt for.
-5. `eo-snapshot-contract.md` er en domænespecifik specialisering af denne kontrakt.
+5. `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og `forsoergertab-snapshot-contract.md` er domænespecifikke specialiseringer af denne kontrakt.
 
 ---
 

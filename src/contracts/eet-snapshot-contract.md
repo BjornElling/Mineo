@@ -2,7 +2,8 @@
 
 **Status:** Minimal domænekontrakt (normativ)  
 **Type:** Domænekontrakt  
-**Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.
+**Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `snapshot-contract.md`.  
+**Senest verificeret mod kode:** 2026-05-30
 
 ---
 
@@ -64,5 +65,6 @@ Tests skal dække:
 1. snapshot bygges fra committed state,
 2. runtime exception giver blokerende tom projektion,
 3. de fire projektioners blocking-status,
-4. row-level error-bus undtagelsen,
-5. EO-import med `Midlertidig`, `Delvist endelig`, `Endelig` og ukendt afgørelsestype.
+4. row-level error-bus undtagelsen.
+
+EO-import-konsekvensen (`Midlertidig`/`Delvist endelig` importeres, `Endelig` ignoreres, schema-/kontraktstridigt output fail-closer) testdækkes på EO-importens test-flade, ikke EET-snapshottets: se `src/__tests__/domain/erstatningsopgoerelse/midlertidigtEetTransientInjection.test.ts` og `midlertidigtEetInsertRows.test.ts`.

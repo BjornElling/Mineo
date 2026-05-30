@@ -9,7 +9,7 @@ import { isRecord } from './typeGuards';
 /**
  * Pakker et Zod-schema ud til dets inderste ZodObject eller ZodArray.
  *
- * ADVARSEL: Verificeret mod Zod 4.3.6. Bruger Zod's offentlige `.def`-felt (`type`, `in`, `out`) for at
+ * ADVARSEL: Verificeret mod Zod 4.4.3. Bruger Zod's offentlige `.def`-felt (`type`, `in`, `out`) for at
  * traversere pipe-wrappere (z.preprocess / z.transform). Hvis Zod ændrer
  * sin `.def`-struktur for pipes, returnerer funktionen det umodificerede schema
  * lydløst — hvilket medfører at ukendte felter *ikke* strippes.
@@ -56,7 +56,7 @@ const unwrapSchema = (schema: ZodSchema): ZodSchema => {
 };
 
 const resolveObjectShape = (schema: z.ZodObject<z.ZodRawShape>): Record<string, ZodSchema> => {
-  // ADVARSEL: `.shape`-accessoren er verificeret mod Zod 4.3.6. Hvis Zod ændrer
+  // ADVARSEL: `.shape`-accessoren er verificeret mod Zod 4.4.3. Hvis Zod ændrer
   // objekt-shape API'et, kan helperen fejlklassificere kendte felter som ukendte.
   const shapeValue: unknown = (schema as unknown as { shape: unknown }).shape;
   const resolved = typeof shapeValue === 'function'

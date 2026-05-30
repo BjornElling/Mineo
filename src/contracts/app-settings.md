@@ -1,7 +1,8 @@
 # Programindstillinger (App Settings) — Mineo
 
 **Status:** Gældende arkitektur (normativ)  
-**Type:** Tværgående kontrakt
+**Type:** Tværgående kontrakt  
+**Senest verificeret mod kode:** 2026-05-30
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -27,7 +28,7 @@ Konsekvens:
 ## Kontrakter (normative, ikke-forklarende)
 - **AppSettings må aldrig være skjult sagsdata.** Defaults til ny sagsdata må kun materialiseres ved oprettelse af ny sag eller ny brugerhandling, ikke under load for at gøre en gammel sag komplet.
 - **EO-data er altid fuldt udfyldt** (ingen implicitte defaults ved load/merge).
-- **PDF-laget læser aldrig AppSettingsContext/localStorage direkte**. `brevhovedIndstillinger` og andre PDF-præferencer skal mappes til små validerede PDF-options DTO'er eller eksplicitte options ved kaldet. Nuværende direkte AppSettings-parameterisering i service/callsite er midlertidig teknisk gæld, ikke en renderer-afhængighed.
+- **PDF-laget læser aldrig AppSettingsContext/localStorage direkte**. `brevhovedIndstillinger` og andre PDF-præferencer skal mappes til små validerede PDF-options DTO'er eller eksplicitte options ved kaldet. Den nuværende kobling er dog dybere end ren callsite-parameterisering: `src/pdf/shared/pdfBrevhoved.ts` type-binder direkte til `AppSettings` (`PdfType = keyof AppSettings['brevhovedIndstillinger']`, `getVisBrevhoved(settings: AppSettings)`), og `pdfService.ts` tager hele `AppSettings`-typen som parameter i en række download-wrappers. Dette er erkendt teknisk gæld. Slutretning (re-evaluering ved næste PDF-audit, jf. punkt 10): map `brevhovedIndstillinger` til en selvstændig PDF-options-DTO, så hverken `shared/`- eller `infrastructure/`-laget importerer `AppSettings`-typen.
 - **Beregnings-/regel-toggles** må ikke ændre beregning, validering, gating eller audit for en eksisterende sag som skjult device-lokal tilstand. Slutretningen er schema-valideret sagsdata eller eksplicit brugerobserverbar runtime-beslutning.
 - **KRL satstabeller har ingen separat brevhoved-toggle**:
   KRL skal altid arve `regulering`-indstillingen 1-til-1 for visning af brevhoved.

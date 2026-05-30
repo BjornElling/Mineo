@@ -1,7 +1,7 @@
 # Debug-builder arkitektur
 
 **Status:** Arkitekturforklarende reference, ikke selvstændig kontrakt
-**Primært scope:** `src/domain/debug/*`, `src/domain/erstatningsopgoerelse/eoSnapshotToDebugView.ts`, `src/components/pages/erstatningsopgoerelse/EODebug.tsx`
+**Primært scope:** `src/domain/debug/*`, `src/domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView.ts`, `src/components/pages/erstatningsopgoerelse/EODebug.tsx`
 
 Dette dokument er et arbejdsredskab for ændringer i EO-debug. Bindende fejl-/debug-regler ligger i `src/contracts/error-debug-contract.md` og EO-regler i `src/contracts/eo-snapshot-contract.md`.
 
@@ -238,12 +238,12 @@ Direkte motorkald i debug er kun forsvarligt når alle disse betingelser er opfy
 
 At debug bruger disse helpers er ikke i sig selv et problem. Problemet opstår først, hvis debug bruger dem med bredere eller andre forudsætninger end de autoritative flows.
 
-### Særlig undtagelse: regulerings-debug genbruger PDF-engine logik
+### Særlig undtagelse: regulerings-debug genbruger PDF-lagets regulerings-rækkebygger
 
-`buildRegulationDebugSections` importerer `buildReguleringIndexRows(...)` fra `src/domain/erstatningsopgoerelse/eoPdfReguleringEngine.ts`.
+`buildRegulationDebugSections` (`src/domain/debug/eoDebugRegulationViewModel.ts`) importerer `buildReguleringIndexRows(...)` fra PDF-laget `src/domain/erstatningsopgoerelse/pdf/eoPdfRegulering.ts`.
 
 Det er et andet mønster end SFGG-builderen:
-- her genbruges PDF-engine logik direkte i debug
+- her genbruges PDF-lagets regulerings-logik direkte i debug
 - der er ikke tilsvarende dokumenteret, domænespecifik gating foran kaldet
 
 Aktuel vurdering:
@@ -413,9 +413,9 @@ En ny builder kræver typisk også vurdering af `SectionId`, navigation, viewmod
 
 ## 16. Udestående teknisk gæld
 
-### A. `buildReguleringIndexRows` er importeret fra PDF-engine
+### A. `buildReguleringIndexRows` er importeret fra PDF-laget
 
-Se afsnit 8. Udestår som arkitektonisk afklaring.
+Se afsnit 8: `buildRegulationDebugSections` genbruger `buildReguleringIndexRows` fra `src/domain/erstatningsopgoerelse/pdf/eoPdfRegulering.ts`. Udestår som arkitektonisk afklaring.
 
 ### B. Regex-baseret id-parsing i `eoDebugPageViewModel.ts`
 

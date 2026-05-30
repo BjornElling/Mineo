@@ -1,7 +1,9 @@
 # Date Contract (Trust-Critical)
 
 **Status:** Gældende arkitektur (normativ)  
-**Type:** Tværgående kontrakt
+**Type:** Tværgående kontrakt  
+**Prioritet:** Tværgående; supplerer `form-contract.md §4` (form ejer parsing/coercion frem til valideret instans, denne kontrakt ejer kalendermatematik derefter).  
+**Senest verificeret mod kode:** 2026-05-30
 
 ## Scope
 - Any logic that counts calendar days or derives day-based periods.

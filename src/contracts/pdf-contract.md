@@ -3,6 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Gælder for:** Alle Mineo PDF-downloads og PDF-generering.
+**Senest verificeret mod kode:** 2026-05-30
 
 Denne kontrakt fastlægger tværgående regler for PDF-output. Domænespecifikke snapshot-kontrakter må gerne specificere egne projektioner, men de må ikke afvige fra reglerne her.
 
@@ -93,3 +94,14 @@ EO- og TAF-fordelt-på-år-projektioner er specificeret i `eo-snapshot-contract.
 - `satser-contract.md`
 
 Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække §1-§5.
+
+---
+
+## 7. Autoritative kilder og PDF-lag-topologi
+
+1. `src/pdf/` er det **kanoniske** PDF-lag og opdelt i:
+   - `src/pdf/infrastructure/` — adapter, writer, loader, config og service-boundary (`pdfService.ts`).
+   - `src/pdf/shared/` — tabel-renderer, tekst-/format-utils, brevhoved-mapping og fælles options.
+   - `src/pdf/domains/` — én generator (+ evt. `sections/`) pr. domæne.
+2. `src/domain/erstatningsopgoerelse/pdf/*` (`eoPdfRegulering.ts`, `eoPdfLoenudvikling.ts`, `eoPdfMoneyUtils.ts`, `sharedPdfUtils.ts`, `eoPdfModelTypes.ts`) er et **resterende, ikke-kanonisk** EO-PDF-lag under afvikling. Ny PDF-kode skal lægges i `src/pdf/`, ikke her. Afviklingen/konsolideringen af dette lag er review-planens punkt 10.5; indtil da er filerne kun tilladt som understøttelse af eksisterende EO-regulerings-/lønudviklings-output.
+3. Ingen ny generator må oprettes uden for `src/pdf/domains/`.

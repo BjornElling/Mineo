@@ -3,7 +3,9 @@
 This document defines the **required internal pattern** for Mineo’s custom form fields (Styled*Fields and table inputs).
 
 **Status:** Gældende arkitektur (normativ supplement)  
-**Type:** Tværgående komponent-/adapterkontrakt
+**Type:** Tværgående komponent-/adapterkontrakt  
+**Prioritet:** Supplement til `form-contract.md`; ejer komponent-/adaptermønstret (lag A/B/C), ikke draft/commit-semantikken.  
+**Senest verificeret mod kode:** 2026-05-30
 
 It is a supplement to the normative Form Contract:
 - `src/contracts/form-contract.md`
@@ -129,9 +131,9 @@ Default policy (all fields unless explicitly justified):
 - `Blur` → commit attempt
 - `Enter` → commit attempt (prevent default)
 - `Escape` → cancel (never commit; suppress the immediately following blur-triggered commit)
-- `Backspace`/`Delete` in focused closed-editor state → clear and commit immediately without opening the editor
+- `Backspace`/`Delete` in focused closed-editor (grid cell) state → clear and commit immediately without opening the editor
 
-`useDraftField` implements this policy.
+`useDraftField` implements the `Blur`/`Enter`/`Escape` policy for the open-editor state. The closed-cell `Backspace`/`Delete`-clear is a grid-cell state, owned by gridCore (`src/components/tables/gridCore/tableKeyboardNavigation.ts` and `gridUxSpec.ts`), not by `useDraftField`.
 
 The `Backspace`/`Delete` exception matches `form-contract.md` and `keyboard-navigation.md`: clearing is an explicit user action, so it may commit immediately, but it must not start editing or parse arbitrary draft text.
 

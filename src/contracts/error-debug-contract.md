@@ -2,6 +2,7 @@
 
 **Status:** Gældende arkitektur (runtime-only)
 **Type:** Tværgående kontrakt
+**Senest verificeret mod kode:** 2026-05-30
 
 Dette dokument beskriver den **normative** model for felt-fejl (errors) og debug-visning i Mineo.
 
@@ -161,6 +162,10 @@ out-of-range-input, som håndteres via feltfejl og EOBeregningTab-blokering.
 
 - `ErrorFallback` (ErrorBoundary-flow ved uventede React-komponent-crashes)
 - `DevtoolsIssueNotice` (devtools-monitor-flow ved `console.error`-detektion)
+- Fil-load-preflight-dialogen (`MainLayout`), men **kun** som betinget `extraAction` når preflight
+  faktisk fangede en systemteknisk load-fejl (`pendingPreflightBugReportError`). Denne placering er
+  påkrævet af save/load-garantierne i `AGENTS.md` (preflight skal tilbyde "Send fejloplysninger") og
+  er netop en systemteknisk fejlsti, ikke et normalt beregningsflow.
 
 ### 7.2 Forbudte placeringer
 
@@ -168,7 +173,8 @@ out-of-range-input, som håndteres via feltfejl og EOBeregningTab-blokering.
 - I `EODebug` eller `EODebugTabel`
 - I “Fejl og advarsler”-sektionen i `EOberegningTab` — hverken ved `fail_closed` med
   `runtime_exception`, `schema_guard` eller `invariant_guard`
-- I download-fejl-dialog eller enhver anden dialog som del af normale brugerflows
+- I download-fejl-dialog eller enhver anden dialog som del af **normale, forventelige** brugerflows
+  (modsat den systemtekniske load-preflight-fejlsti i §7.1)
 - Enhver visning der vises som fast element ved normale og forventelige brugerscenarier
 
 Bemærk:

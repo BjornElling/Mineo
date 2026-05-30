@@ -2,36 +2,31 @@
 
 **Status:** Minimal domænekontrakt (normativ)  
 **Type:** Domænekontrakt  
-**Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.
+**Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
+**Senest verificeret mod kode:** 2026-05-30
 
 ---
 
-## 1. Nuværende Model
+## 1. Nuværende Model (autoritativ)
 
 Varige mén er et persisted domæne med sektionen `varigemen`.
 
-Domænet har en central engine, men PDF-flowet må i dag modtage beregningsresultat og input fra UI-tabben. Det er accepteret som nuværende model, men må ikke udvides med nye parallelle afledninger.
+**Autoritativ beregningskilde:** `src/domain/varigemen/varigeMenEngine.ts` (`computeVarigeMenEngine`) er den kanoniske engine; underberegninger ejes af `varigeMenCalculations.ts`. PDF-flowet modtager i dag beregningsresultat og input fra UI-tabben oven på denne engine. Det er den bindende nuværende model: ingen nye parallelle afledninger må indføres, og beregning må kun ske via engine-modulet.
 
 ---
 
-## 2. Måltilstand
-
-Varige mén skal have en minimal snapshot/projection, der samler:
-
-1. committed input,
-2. engine-resultat,
-3. issue-/blocking-status,
-4. PDF-gate,
-5. PDF-model.
-
----
-
-## 3. Kanoniske Regler
+## 2. Kanoniske Regler
 
 1. Siden må læse `stamdata` og egen `varigemen`-sektion.
-2. Beregning må ikke læse draft-state eller lokal UI-state.
+2. Beregning må ikke læse draft-state eller lokal UI-state, og må kun ske via det autoritative engine-modul i §1.
 3. PDF-download skal gates før renderer-kald.
 4. Runtimefejl må ikke give gyldige totals eller PDF-projektion.
+
+---
+
+## 3. Fremtidig retning (ikke-bindende)
+
+Varige mén bør på sigt have en minimal snapshot/projection, der samler committed input, engine-resultat, issue-/blocking-status, PDF-gate og PDF-model. Indtil da er §1 den bindende model; dette afsnit beskriver kun ønsket slutarkitektur.
 
 ---
 

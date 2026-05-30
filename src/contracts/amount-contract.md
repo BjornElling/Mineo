@@ -2,7 +2,8 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Prioritet:** Underordnet `form-contract.md` for draft/commit-semantik; overordnet arkitekturdokumenter ved konflikt.
+**Prioritet:** Underordnet `form-contract.md` for draft/commit-semantik; overordnet arkitekturdokumenter ved konflikt.  
+**Senest verificeret mod kode:** 2026-05-30
 
 Denne kontrakt samler de numeriske regler, som tidligere var spredt mellem form- og beregningsdokumentation.
 
@@ -19,13 +20,16 @@ Denne kontrakt samler de numeriske regler, som tidligere var spredt mellem form-
 
 ## 2. AmountValue
 
-`AmountValue` er Mineos canonical type for beløbsfelter med brugerindtastet tal eller udtryk.
+`AmountValue` er Mineos canonical type for beløbsfelter med brugerindtastet tal eller udtryk. Den er en **diskrimineret union** på `kind` (autoritativ kilde: `src/schemas/amountExpressionSchema.ts`):
+
+- `{ kind: 'number'; value: number }`
+- `{ kind: 'expression'; expression: string; value: number }`
 
 Regler:
 
-1. `AmountValue.expression` er audit-/UI-repræsentation.
-2. `AmountValue.value` er den autoritative committed beregningsværdi.
-3. Nedstrøms domæneberegning skal bruge `AmountValue.value`, aldrig genberegne fra `expression`.
+1. `value` findes på begge varianter og er den autoritative committed beregningsværdi.
+2. `expression` findes **kun** på `'expression'`-varianten og er ren audit-/UI-repræsentation; adgang skal ske via `kind`-narrowing, aldrig som om feltet altid findes.
+3. Nedstrøms domæneberegning skal bruge `value`, aldrig genberegne fra `expression`.
 4. Operander i brugerens udtryk må ikke pre-afrundes eller pre-afskæres før evaluering.
 5. Kun slutresultatet må afrundes ved commit.
 

@@ -2,7 +2,8 @@
 
 **Status:** Minimal domænekontrakt (normativ)  
 **Type:** Domæne-/sagsglobal kontrakt  
-**Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `persistence-contract.md`.
+**Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og `persistence-contract.md`.  
+**Senest verificeret mod kode:** 2026-05-30
 
 ---
 

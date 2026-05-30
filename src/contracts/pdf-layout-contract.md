@@ -3,6 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Gælder for:** Alle Mineo PDF-renderere, writer/helpers og generatorer.
+**Senest verificeret mod kode:** 2026-05-30
 
 Denne kontrakt fastlægger den visuelle og strukturelle standard for Mineos PDF-output.
 
@@ -283,23 +284,24 @@ For at fjerne eksisterende utilsigtede forskelle bør PDF-generatorerne gennemg�
 
 1. `satserPdf.ts`
 2. `rentePdf.ts`
-3. `aarsloenPdf.ts`
-4. `shDagePdf.ts`
-5. `varigeMenPdf.ts`
-6. `krlPdf.ts`
-7. `reguleringPdf.ts`
-8. `loebendeYdelserPdf.ts`
-9. `kapitaliseringPdf.ts`
-10. `eetEfterEalPdf.ts`
-11. `differencekravPdf.ts`
-12. `forsoergertabPdf.ts`
-13. `tafFordeltPaaAarPdf.ts`
-14. `erstatningsopgoerelsePdf.ts`
-15. `opgoerelseSection.ts`
-16. `shDageSection.ts`
-17. `loenindkomstSection.ts`
-18. `offentligeYdelserSection.ts`
-19. `reguleringSection.ts`
+3. `renteOversigtPdf.ts`
+4. `aarsloenPdf.ts`
+5. `shDagePdf.ts`
+6. `varigeMenPdf.ts`
+7. `krlPdf.ts`
+8. `reguleringPdf.ts`
+9. `loebendeYdelserPdf.ts`
+10. `kapitaliseringPdf.ts`
+11. `eetEfterEalPdf.ts`
+12. `differencekravPdf.ts`
+13. `forsoergertabPdf.ts`
+14. `tafFordeltPaaAarPdf.ts`
+15. `erstatningsopgoerelsePdf.ts`
+16. `opgoerelseSection.ts`
+17. `shDageSection.ts`
+18. `loenindkomstSection.ts`
+19. `offentligeYdelserSection.ts`
+20. `reguleringSection.ts`
 
 Formålet med sekvensen er først at rydde de simple og mellemkomplekse generatorer og derefter de mere domænetunge dokumenter.
 

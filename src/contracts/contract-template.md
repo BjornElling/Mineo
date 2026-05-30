@@ -1,9 +1,11 @@
 # <Kontraktnavn>
 
+> **Skabelonens status:** Metadata-feltet **Senest verificeret mod kode** er *obligatorisk* og håndhæves af `contractCoverageMatrix.test.ts` for alle kontrakter i `src/contracts/`. De øvrige felter og afsnit nedenfor er en *anbefalet* struktur — kontrakter må have en anden, veludviklet form, så længe den dækker de samme dimensioner (scope, regler, kilder, testkobling, undtagelser). Skabelonen er en støtte, ikke en tvangstrøje.
+
 **Status:** Gældende arkitektur (normativ)
 **Type:** <Tværgående kontrakt | Domænekontrakt>
 **Prioritet:** Beskriv forholdet til mere generelle og mere specifikke kontrakter.
-**Senest verificeret mod kode:** YYYY-MM-DD
+**Senest verificeret mod kode:** YYYY-MM-DD  ← obligatorisk; opdateres kun efter en reel verifikation mod koden.
 
 ## 1. Scope
 

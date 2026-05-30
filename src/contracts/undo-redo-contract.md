@@ -2,7 +2,8 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet `docs/architecture/undo-redo-architecture.md`.
+**Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet `docs/architecture/undo-redo-architecture.md`.  
+**Senest verificeret mod kode:** 2026-05-30
 
 Denne kontrakt fastlægger de trust-kritiske grænser for global undo/redo. Arkitekturdokumentet må forklare implementationen, men må ikke eje afvigende regler.
 

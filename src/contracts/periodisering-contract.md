@@ -1,7 +1,9 @@
 # Mineo – Periodiseringskontrakt
 
 **Status:** Gældende arkitektur (normativ)  
+**Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
+**Senest verificeret mod kode:** 2026-05-30  
 
 Dette dokument fastlægger den bindende taksonomi for periodisering, dagtælling og fradragsregler i Mineo.
 

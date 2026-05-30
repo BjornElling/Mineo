@@ -2,8 +2,8 @@
 
 **Version:** 0.2
 **Status:** Gældende arkitektur (normativ)
-**Prioritet:** Underordnet `domain-boundary-contract.md`, `form-contract.md` og `keyboard-navigation.md`, som går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-05-24
+**Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt.
+**Senest verificeret mod kode:** 2026-05-30
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -85,9 +85,9 @@ Ruter med et snævert flowansvar, som ikke er almindelige fagsider.
 Aktuelle eksempler:
 
 - `OpenEo` — PWA-filindlæsningsfejl-flow (`src/components/system/`)
-- `UnsupportedDevicePage` — hard-stop ved uunderstøttet enhed (`main.tsx`)
+- `UnsupportedDevicePage` — hard-stop ved uunderstøttet enhed (renderet af `apps/shared/bootstrapClientApp.tsx`)
 
-Disse komponenter bor **ikke** i `src/components/pages/`. `pages/`-mappen er reserveret til kategori 2.1–2.3. Hjælpe-/systemruter placeres i `src/components/system/` (route-monterede) eller renderes direkte fra `main.tsx` (hard-stop).
+Disse komponenter bor **ikke** i `src/components/pages/`. `pages/`-mappen er reserveret til kategori 2.1–2.3. Hjælpe-/systemruter placeres i `src/components/system/` (route-monterede) eller renderes direkte fra app-shellen (`apps/shared/bootstrapClientApp.tsx`, hard-stop).
 
 Regler for persisted fagsider gælder ikke automatisk for de øvrige kategorier.
 Kontrakten skal derfor altid være eksplicit om, hvilke regler der gælder for hvilke sidetyper.
@@ -96,16 +96,17 @@ Kontrakten skal derfor altid være eksplicit om, hvilke regler der gælder for h
 
 ## 3. Route- og layoutansvar
 
-### 3.1 `main.tsx`
+### 3.1 App-entry (`main.tsx`) + app-shell (`apps/shared/bootstrapClientApp.tsx`)
 
-`main.tsx` er top-level runtime gate og må eje:
+Hver app-entry (`src/main.tsx`, `src/apps/minprocesrente/minprocesrenteMain.tsx`) er tynd og delegerer top-level runtime-opstart til den delte app-shell `apps/shared/bootstrapClientApp.tsx`. App-shellen ejer:
 
-- device gating
-- PWA bootstrap
-- service worker-opstart
+- device gating (mobil/tablet-blokering)
 - initial render-beslutning mellem app og hard-stop side
+- install-prompt-suppression
 
-Mobil/tablet-blokering skal fortsat ligge her og renderere `UnsupportedDevicePage` som et separat stop.
+Hver app-entry vælger app-roden (fx `AuthGate` for Mineo) og leverer PWA-/service-worker-opstart som callbacks til shellen.
+
+Mobil/tablet-blokering renderes som et separat hard-stop (`UnsupportedDevicePage`) af `bootstrapClientApp.tsx` — ikke i den enkelte app-entry. (Tidligere lå gaten i `main.tsx`; den er flyttet til app-shellen som led i multi-app-arkitekturen.)
 
 ### 3.2 `App.tsx`
 
@@ -204,7 +205,7 @@ Hvis en side kun læser en delt sektion, skal den bruge den mest præcise read-m
 
 Det betyder typisk:
 
-- `usePersistedSection(...)`
+- `usePersistedSectionSelector(pageKey)` (fra `hooks/useFormPersistenceSelectors`) — den kanoniske read-model-hook
 - selector/snapshot-hooks, når siden har revisions- eller snapshotbehov
 
 At bruge fuld `usePersistedForm(...)` til ren read-only adgang er som udgangspunkt forkert og må kun ske, hvis siden faktisk ejer commit-adgangen til den sektion.

@@ -20,7 +20,8 @@
     "src/contracts/mineo-field-pattern.md",
     "src/contracts/amount-contract.md",
     "src/contracts/undo-redo-contract.md",
-    "src/contracts/app-settings.md"
+    "src/contracts/app-settings.md",
+    "src/contracts/snapshot-contract.md"
   ],
   "subordinateContracts": {
     "src/contracts/page-component-contract.md": [
@@ -41,7 +42,6 @@
     ]
   },
   "domainContracts": [
-    "src/contracts/snapshot-contract.md",
     "src/contracts/eo-snapshot-contract.md",
     "src/contracts/eet-snapshot-contract.md",
     "src/contracts/forsoergertab-snapshot-contract.md",

@@ -123,7 +123,7 @@ When contracts appear to overlap, use this priority order:
 
 ## Desktop-only gate + styling exception
 - App must be blocked on mobile/tablet.
-- Top-level capability gate must be in `src/main.tsx`.
+- Top-level capability gate must live in the shared app-shell `src/apps/shared/bootstrapClientApp.tsx` and be invoked from every app-entry (`src/main.tsx`, `src/apps/minprocesrente/minprocesrenteMain.tsx`).
 - Unsupported devices must render `src/components/pages/UnsupportedDevicePage.tsx` as hard stop.
 - `UnsupportedDevicePage.tsx` must stay isolated from app business logic/state/persistence.
 - Mobile/tablet-specific styling may exist only in `UnsupportedDevicePage.tsx`.

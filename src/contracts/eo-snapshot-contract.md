@@ -2,10 +2,12 @@
 
 **Version:** 1.0
 **Status:** Gældende arkitektur (normativ)
+**Type:** Domænekontrakt
 **Formål:** At fastlægge bindende regler for `computeEoSnapshot`, clampingmodel,
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
-**Prioritet:** `src/contracts/form-contract.md` > denne kontrakt
+**Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
+**Senest verificeret mod kode:** 2026-05-30
 
 ---
 

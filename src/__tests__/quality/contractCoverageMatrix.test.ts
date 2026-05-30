@@ -257,6 +257,27 @@ describe('contract linkage matrix', () => {
     }
   });
 
+  it('kræver et gyldigt "Senest verificeret mod kode"-felt i hver kontraktfil', () => {
+    // Skabelonen er undtaget: den bruger en YYYY-MM-DD-placeholder, ikke en reel dato.
+    const EXEMPT_FILES = new Set(['contract-template.md']);
+    const contractsDir = path.resolve(process.cwd(), 'src/contracts');
+    const contractMarkdownFiles = fs
+      .readdirSync(contractsDir)
+      .filter((fileName) => fileName.endsWith('.md') && !EXEMPT_FILES.has(fileName));
+
+    expect(contractMarkdownFiles.length).toBeGreaterThan(0);
+
+    const datePattern = /\*\*Senest verificeret mod kode:\*\*\s*(\d{4}-\d{2}-\d{2})/;
+    for (const fileName of contractMarkdownFiles) {
+      const content = fs.readFileSync(path.join(contractsDir, fileName), 'utf8');
+      const match = content.match(datePattern);
+      expect(
+        match,
+        `Kontrakt mangler et gyldigt "**Senest verificeret mod kode:** YYYY-MM-DD"-felt: src/contracts/${fileName}`
+      ).not.toBeNull();
+    }
+  });
+
   it('holder kontrakttopologi og dækningsmatrix synkroniseret begge veje', () => {
     const topology = getContractTopology();
 

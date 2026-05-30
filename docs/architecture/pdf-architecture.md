@@ -69,6 +69,8 @@ src/pdf/
 │   ├── jsPdfAdapter.ts           # Eneste sted jsPDF bruges direkte
 │   ├── pdfWriter.ts              # Cursor-baseret layout-abstraktion
 │   ├── pdfLoader.ts              # Lazy loader for alle generatorer
+│   ├── pdfBrevhovedRenderer.ts   # Renderer der tegner brevhovedet via writer
+│   ├── standaloneRentePdfService.ts # Download-wrappers for standalone MinProcesrente-app
 │   └── pdfService.ts             # UI-lagets download-wrappers
 ├── shared/
 │   ├── pdfHelpers.ts             # Brevhoved, footer, section headings, spacing-hjælpere
@@ -80,16 +82,19 @@ src/pdf/
 └── domains/
     ├── satser/satserPdf.ts
     ├── renteberegning/rentePdf.ts
+    ├── renteberegning/renteOversigtPdf.ts   # Samlet oversigt over alle renteberegninger
     ├── aarsloen/aarsloenPdf.ts
     ├── aarsloen/shDagePdf.ts
     ├── varigemen/varigeMenPdf.ts
     ├── krl/krlPdf.ts
     ├── eo/reguleringPdf.ts
     ├── eo/erstatningsopgoerelsePdf.ts
+    ├── eo/types.ts
     ├── eo/sections/*.ts
     ├── loebendeYdelser/loebendeYdelserPdf.ts
     ├── kapitalisering/kapitaliseringPdf.ts
     ├── eet/eetEfterEalPdf.ts
+    ├── eet/eetPdfUtils.ts
     ├── differencekrav/differencekravPdf.ts
     ├── forsoergertab/forsoergertabPdf.ts
     └── tafFordelt/tafFordeltPaaAarPdf.ts
@@ -630,6 +635,7 @@ PDF-laget skal modtage autoritative beløb/projektioner og formatere dem med can
 | TAF fordelt på år          | `tafFordeltPaaAarPdf.ts`       | TAF-beregning brudt ned per kalenderår           | Ja (`eoSnapshotToTafPerYearPdfDocument`) | Ja |
 | Arbejdsskadesatser         | `satserPdf.ts`                 | Årsspecifikke satser (EAL, ASL, diverse)         | Nej                 | Ja               |
 | Procesrente                | `rentePdf.ts`                  | Halvårlige renteperioder med referencerenter     | Nej                 | Ja               |
+| Renteoversigt (samlet)     | `renteOversigtPdf.ts`          | Samlet oversigt over alle renteberegninger       | Nej                 | Ja               |
 | Årslønsberegning           | `aarsloenPdf.ts`               | Årsløn med periodedata, satser og beregning      | Nej                 | Ja               |
 | SH-dage                    | `shDagePdf.ts`                 | Søgnehelligdage i perioder                       | Nej                 | Ja               |
 | Méngodtgørelse             | `varigeMenPdf.ts`              | Varige mén med aldersreduktion                   | Nej                 | Ja               |
