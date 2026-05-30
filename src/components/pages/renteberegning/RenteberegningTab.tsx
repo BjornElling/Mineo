@@ -223,13 +223,13 @@ const RenteberegningTab = React.memo(({
               </Box>
             )}
             <Box className="row--label-right-hover">
-              <Typography className="row--text">Download oversigt over alle beregninger</Typography>
+              <Typography className="row--text">Download samlet oversigt</Typography>
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
                   <IconButton
                     onClick={() => { void handleDownloadOversigt(); }}
                     disabled={oversigtDownloadDisabled}
-                    aria-label="Download oversigt over alle beregninger"
+                    aria-label="Download samlet oversigt"
                     size="small"
                     sx={(theme) => ({
                       width: '32px',

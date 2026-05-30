@@ -49,7 +49,7 @@ export const buildRenteOversigtPdfFilename = (journalnr?: string): string => {
 };
 
 const addDateLine = (writer: PdfWriter, beregningsdato: ISODateString): void => {
-  writer.writeWrappedText(`Renter beregnes til og med ${formatIsoDateLong(beregningsdato)}.`);
+  writer.writeWrappedText(`Rente beregnes til og med ${formatIsoDateLong(beregningsdato)}.`);
   writer.addSectionSpacer();
 };
 
