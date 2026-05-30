@@ -374,6 +374,7 @@ describe('renteberegningEngine', () => {
         beregningsdato,
         periods: result.pdfContext?.periods ?? [],
         latestReferenceRateDate: toISODateString('2020-06-30'),
+        calculatedInterest: result.calculatedInterest,
       });
     });
 

@@ -1,4 +1,6 @@
 import type { ProcessInterestPeriod } from '../../domain/renteberegning/procesrenteCalculator';
+import type { RenteOversigtRow } from '../domains/renteberegning/renteOversigtPdf';
+import type { ISODateString } from '../../types/branded';
 import type { PdfDownloadResult } from './pdfService';
 
 const PDF_DOWNLOAD_SUCCESS: PdfDownloadResult = { success: true };
@@ -32,6 +34,32 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
       stamdata: null,
       kommentarer,
       latestReferenceRateDate,
+    });
+    return PDF_DOWNLOAD_SUCCESS;
+  } catch (error) {
+    const normalizedError = toError(error);
+    console.error(PDF_DOWNLOAD_ERROR_MESSAGE, normalizedError);
+    return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
+  }
+};
+
+export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
+  beregningsdato: ISODateString;
+  rows: ReadonlyArray<RenteOversigtRow>;
+  kommentarer?: string;
+}>): Promise<PdfDownloadResult> => {
+  const { beregningsdato, rows, kommentarer } = params;
+
+  if (rows.length === 0) {
+    return { success: false, error: 'Ingen renteberegninger at downloade' };
+  }
+
+  try {
+    const { generateRenteOversigtPdf } = await import('../domains/renteberegning/renteOversigtPdf');
+    generateRenteOversigtPdf(beregningsdato, rows, {
+      visBrevhoved: false,
+      stamdata: null,
+      kommentarer,
     });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {

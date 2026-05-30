@@ -21,6 +21,7 @@ import {
   loadDifferencekravPdfModule,
   loadReguleringPdfModule,
   loadRentePdfModule,
+  loadRenteOversigtPdfModule,
   loadSHDagePdfModule,
   loadSatserPdfModule,
   loadTafFordeltPaaAarPdfModule,
@@ -44,6 +45,7 @@ import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { getSatserForYear } from '../../data/lovbestemteRates';
 import { resolveStamdataDatoLabel } from '../../domain/policies/stamdataCalculations';
 import type { ProcessInterestPeriod } from '../../domain/renteberegning/procesrenteCalculator';
+import type { RenteOversigtRow } from '../domains/renteberegning/renteOversigtPdf';
 
 type ReguleringInterval = Readonly<{
   fraDato: string;
@@ -380,6 +382,27 @@ export const downloadRentePdf = async (params: Readonly<{
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
     return await createPdfDownloadFailure('Kunne ikke generere rente-PDF', 'pdfService.downloadRentePdf', error);
+  }
+};
+
+export const downloadRenteOversigtPdf = async (params: Readonly<{
+  beregningsdato: ISODateString;
+  rows: ReadonlyArray<RenteOversigtRow>;
+  kommentarer?: string;
+  settings: AppSettings;
+  persistedStamdata: unknown;
+}>): Promise<PdfDownloadResult> => {
+  const { beregningsdato, rows, kommentarer, settings, persistedStamdata } = params;
+  const common = buildCommonPdfContext(settings, 'renteberegning', persistedStamdata);
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadRenteOversigtPdf');
+  if (preflightFailure) return preflightFailure;
+
+  try {
+    const { generateRenteOversigtPdf } = await loadRenteOversigtPdfModule();
+    generateRenteOversigtPdf(beregningsdato, rows, { ...common, kommentarer });
+    return PDF_DOWNLOAD_SUCCESS;
+  } catch (error) {
+    return await createPdfDownloadFailure('Kunne ikke generere rente-oversigt-PDF', 'pdfService.downloadRenteOversigtPdf', error);
   }
 };
 

@@ -149,6 +149,8 @@ export type RentekravRowResult = Readonly<{
     beregningsdato: ISODateString;
     periods: ReadonlyArray<ProcessInterestPeriod>;
     latestReferenceRateDate: ISODateString | null;
+    /** Autoritativt afrundet samlet rente for rækken (matcher tabellens "Beregnet rente"). */
+    calculatedInterest: number;
   }> | null;
 }>;
 
@@ -192,6 +194,7 @@ export const computeRentekravRow = (
       beregningsdato,
       periods: result.periods,
       latestReferenceRateDate,
+      calculatedInterest: result.calculatedInterest,
     },
   };
 };

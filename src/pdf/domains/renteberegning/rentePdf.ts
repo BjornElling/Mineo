@@ -161,7 +161,12 @@ const addSpecificationTable = (
   writer.setY(resolvePdfSectionEndY(finalY, tableStartY));
 };
 
-const addCalculationPrinciples = (
+/**
+ * Skriver "Kommentarer" (hvis udfyldt) efterfulgt af "Beregningsprincipper".
+ * Kanonisk for både per-række-specifikationer og oversigts-PDF'en, så de to
+ * dokumenttyper deler præcis samme afsnit.
+ */
+export const addCalculationPrinciples = (
   writer: PdfWriter,
   kommentarer: string | undefined
 ): void => {

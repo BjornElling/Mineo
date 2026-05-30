@@ -2,6 +2,7 @@
 type PdfModuleMap = {
   satser: typeof import('../domains/satser/satserPdf');
   rente: typeof import('../domains/renteberegning/rentePdf');
+  renteOversigt: typeof import('../domains/renteberegning/renteOversigtPdf');
   shDage: typeof import('../domains/aarsloen/shDagePdf');
   aarsloen: typeof import('../domains/aarsloen/aarsloenPdf');
   regulering: typeof import('../domains/eo/reguleringPdf');
@@ -21,6 +22,7 @@ const moduleCache = new Map<keyof PdfModuleMap, Promise<PdfModuleMap[keyof PdfMo
 const moduleLoaders: { [K in keyof PdfModuleMap]: () => Promise<PdfModuleMap[K]> } = {
   satser: () => import('../domains/satser/satserPdf'),
   rente: () => import('../domains/renteberegning/rentePdf'),
+  renteOversigt: () => import('../domains/renteberegning/renteOversigtPdf'),
   shDage: () => import('../domains/aarsloen/shDagePdf'),
   aarsloen: () => import('../domains/aarsloen/aarsloenPdf'),
   regulering: () => import('../domains/eo/reguleringPdf'),
@@ -51,6 +53,7 @@ const loadModule = async <TKey extends keyof PdfModuleMap>(key: TKey): Promise<P
 
 export const loadSatserPdfModule = () => loadModule('satser');
 export const loadRentePdfModule = () => loadModule('rente');
+export const loadRenteOversigtPdfModule = () => loadModule('renteOversigt');
 export const loadSHDagePdfModule = () => loadModule('shDage');
 export const loadAarsloenPdfModule = () => loadModule('aarsloen');
 export const loadReguleringPdfModule = () => loadModule('regulering');

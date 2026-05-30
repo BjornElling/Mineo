@@ -11,7 +11,8 @@ import useRentekravRows from '../tables/useRentekravRows';
 import { createRenteberegningInitialValues } from '../../domain/renteberegning/renteberegningInitialValues';
 import type { RentePdfContext } from '../tables/BeregnetRenteTable';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import { downloadRentePdf } from '../../pdf/infrastructure/pdfService';
+import { downloadRentePdf, downloadRenteOversigtPdf } from '../../pdf/infrastructure/pdfService';
+import type { RenteOversigtRow } from '../../pdf/domains/renteberegning/renteOversigtPdf';
 import type { CommitHandler } from '../../types/fieldEvents';
 import ContentBox from '../layout/ContentBox';
 import RenteberegningTab from './renteberegning/RenteberegningTab';
@@ -43,6 +44,7 @@ const Renteberegning = React.memo(() => {
     initialValues
   );
   const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
+  const [oversigtErrorMessage, setOversigtErrorMessage] = React.useState<string | null>(null);
 
   const handleError = React.useCallback((message: string, context: string, error?: unknown) => {
     if (process.env.NODE_ENV === 'development') {
@@ -97,6 +99,20 @@ const Renteberegning = React.memo(() => {
       setPdfErrorMessage(result.success ? null : result.error);
     },
     [persistedStamdata, handleError, settings, values.kommentarer]
+  );
+
+  const handleDownloadOversigt = React.useCallback(
+    async (rows: readonly RenteOversigtRow[], beregningsdato: ISODateString) => {
+      const result = await downloadRenteOversigtPdf({
+        beregningsdato,
+        rows,
+        kommentarer: values.kommentarer,
+        settings,
+        persistedStamdata,
+      });
+      setOversigtErrorMessage(result.success ? null : result.error);
+    },
+    [settings, persistedStamdata, values.kommentarer]
   );
 
   return (
@@ -160,6 +176,9 @@ const Renteberegning = React.memo(() => {
           referenceRates={referenceRates}
           surchargeRates={surchargeRates}
           ContentBoxComponent={ContentBox}
+          onDownloadOversigt={handleDownloadOversigt}
+          oversigtErrorMessage={oversigtErrorMessage}
+          showOversigtBox
         />
       )}
     </Box>

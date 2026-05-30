@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box, IconButton, Typography } from '@mui/material';
+import { Download } from '@mui/icons-material';
 import type { RateEntry } from '../../../data/interestRates';
 import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
@@ -15,6 +16,7 @@ import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvent
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import { dateRanges_renteberegning } from '../../../config/dateRanges';
 import SpecifikationDownloadBox from './SpecifikationDownloadBox';
+import type { RenteOversigtRow } from '../../../pdf/domains/renteberegning/renteOversigtPdf';
 
 interface TechnicalAssumptionsListProps {
   items: readonly string[];
@@ -50,6 +52,9 @@ export interface RenteberegningTabProps {
   isMobile?: boolean;
   onDownloadAllSpecifikationer?: (contexts: RentekravPdfContextMap) => Promise<void>;
   downloadAllErrorMessage?: string | null;
+  onDownloadOversigt?: (rows: readonly RenteOversigtRow[], beregningsdato: ISODateString) => Promise<void>;
+  oversigtErrorMessage?: string | null;
+  showOversigtBox?: boolean;
 }
 
 const RenteberegningTab = React.memo(({
@@ -71,6 +76,9 @@ const RenteberegningTab = React.memo(({
   isMobile = false,
   onDownloadAllSpecifikationer,
   downloadAllErrorMessage = null,
+  onDownloadOversigt,
+  oversigtErrorMessage = null,
+  showOversigtBox = false,
 }: RenteberegningTabProps) => {
   const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
@@ -106,6 +114,30 @@ const RenteberegningTab = React.memo(({
     downloadAllIsLoading;
 
   const showDownloadAllBox = isMobile && onDownloadAllSpecifikationer !== undefined;
+
+  // Oversigts-download-gate:
+  //  a) beregningsdato udfyldt og gyldig
+  //  b) mindst én gyldig rente-linje
+  //  c) ingen rente-linje med indtastning er ugyldig
+  const oversigtDownloadDisabled =
+    beregningsdato === undefined ||
+    beregningsdatoHasError ||
+    !hasValidPdfContexts ||
+    anyRowHasError;
+
+  const handleDownloadOversigt = React.useCallback(async () => {
+    if (!onDownloadOversigt || beregningsdato === undefined) return;
+    const rows: RenteOversigtRow[] = Array.from(pdfContexts.values()).map((ctx) => ({
+      beloeb: ctx.beloeb,
+      renterFra: ctx.actualInterestDate,
+      beregnetRente: ctx.calculatedInterest,
+    }));
+    if (rows.length === 0) return;
+    await onDownloadOversigt(rows, beregningsdato);
+  }, [onDownloadOversigt, pdfContexts, beregningsdato]);
+
+  // Vis kun oversigts-linjen på desktop (kalderen sætter showOversigtBox).
+  const renderOversigtRow = showOversigtBox && onDownloadOversigt !== undefined && !isMobile;
 
   return (
     <Box>
@@ -180,6 +212,41 @@ const RenteberegningTab = React.memo(({
             onPdfContextsChange={handlePdfContextsChange}
           />
         </Box>
+        {renderOversigtRow && (
+          <>
+            {oversigtErrorMessage && (
+              <Box className="row--label-right-hover">
+                <Typography className="row--text" sx={{ color: 'error.main' }}>
+                  {oversigtErrorMessage}
+                </Typography>
+                <Box className="row--label-right-hover__content" />
+              </Box>
+            )}
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Download oversigt over alle beregninger</Typography>
+              <Box className="row--label-right-hover__content">
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                  <IconButton
+                    onClick={() => { void handleDownloadOversigt(); }}
+                    disabled={oversigtDownloadDisabled}
+                    aria-label="Download oversigt over alle beregninger"
+                    size="small"
+                    sx={(theme) => ({
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      '&:hover': {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                    })}
+                  >
+                    <Download sx={{ fontSize: '24px', color: oversigtDownloadDisabled ? 'action.disabled' : 'primary.main' }} />
+                  </IconButton>
+                </Box>
+              </Box>
+            </Box>
+          </>
+        )}
       </ContentBoxComponent>
 
       {showDownloadAllBox && (

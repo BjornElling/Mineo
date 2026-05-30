@@ -8,7 +8,8 @@ import useRentekravRows from '../../tables/useRentekravRows';
 import { createRenteberegningInitialValues } from '../../../domain/renteberegning/renteberegningInitialValues';
 import type { RentePdfContext, RentekravPdfContextMap } from '../../tables/BeregnetRenteTable';
 import ContentBoxFrame from '../../layout/ContentBoxFrame';
-import { downloadStandaloneRentePdf, downloadAllStandaloneRentePdf } from '../../../pdf/infrastructure/standaloneRentePdfService';
+import { downloadStandaloneRentePdf, downloadAllStandaloneRentePdf, downloadStandaloneRenteOversigtPdf } from '../../../pdf/infrastructure/standaloneRentePdfService';
+import type { RenteOversigtRow } from '../../../pdf/domains/renteberegning/renteOversigtPdf';
 import type { CommitHandler } from '../../../types/fieldEvents';
 import RenteberegningTab from '../renteberegning/RenteberegningTab';
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
@@ -29,6 +30,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   );
   const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
   const [downloadAllErrorMessage, setDownloadAllErrorMessage] = React.useState<string | null>(null);
+  const [oversigtErrorMessage, setOversigtErrorMessage] = React.useState<string | null>(null);
 
   const rentekrav = useRentekravRows({ values, setValues, resyncToken: formVersion });
 
@@ -89,6 +91,14 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
       kommentarer: values.kommentarer,
     });
     setDownloadAllErrorMessage(result.success ? null : result.error);
+  }, [values.kommentarer]);
+
+  const handleDownloadOversigt = React.useCallback(async (
+    rows: readonly RenteOversigtRow[],
+    beregningsdato: ISODateString,
+  ) => {
+    const result = await downloadStandaloneRenteOversigtPdf({ beregningsdato, rows, kommentarer: values.kommentarer });
+    setOversigtErrorMessage(result.success ? null : result.error);
   }, [values.kommentarer]);
 
   return (
@@ -190,6 +200,9 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         isMobile={isMobile}
         onDownloadAllSpecifikationer={handleDownloadAllSpecifikationer}
         downloadAllErrorMessage={downloadAllErrorMessage}
+        onDownloadOversigt={handleDownloadOversigt}
+        oversigtErrorMessage={oversigtErrorMessage}
+        showOversigtBox
       />
     </Box>
   );
