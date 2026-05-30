@@ -13,6 +13,7 @@ import {
   Typography,
 } from '@mui/material';
 import BugReportIcon from '@mui/icons-material/BugReport';
+import MineoTextareaInputComponent from '../inputs/MineoTextareaInputComponent';
 import {
   copyBugReportToClipboard,
   downloadBugReport,
@@ -197,8 +198,13 @@ const BugReportButton = ({
                 value={prepared.report}
                 fullWidth
                 multiline
-                minRows={14}
-                slotProps={{ htmlInput: { readOnly: true } }}
+                rows={14}
+                slotProps={{
+                  input: {
+                    inputComponent: MineoTextareaInputComponent,
+                  },
+                  htmlInput: { readOnly: true },
+                }}
                 sx={{ fontFamily: 'monospace' }}
               />
             </>

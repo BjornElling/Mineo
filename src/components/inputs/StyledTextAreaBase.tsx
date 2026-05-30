@@ -3,6 +3,7 @@ import { TextField, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 import { copyWholeValueFromReadOnlyField } from '../../utils/clipboardUtils';
+import MineoTextareaInputComponent from './MineoTextareaInputComponent';
 
 type AllowedInputAttributes = Pick<
   React.TextareaHTMLAttributes<HTMLTextAreaElement>,
@@ -204,6 +205,9 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
             multiline
             rows={rows}
             slotProps={{
+              input: {
+                inputComponent: MineoTextareaInputComponent,
+              },
               htmlInput: {
                 ...htmlTextAreaAttributes,
                 'aria-describedby': describedBy,

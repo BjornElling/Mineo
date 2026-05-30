@@ -39,4 +39,16 @@ describe('StyledTextField caret preservation on editor open', () => {
   it('multiline: preserves caret position from click', () => {
     openEditorPreservingCaret(true);
   });
+
+  it('multiline: renderer kun textarea-noder med form-identitet', () => {
+    const { container } = render(
+      <StyledTextField name="saerligeKommentarer" value="linje 1\nlinje 2" onCommit={vi.fn()} multiline rows={4} />
+    );
+
+    const textareas = Array.from(container.querySelectorAll('textarea'));
+
+    expect(textareas).toHaveLength(1);
+    expect(textareas[0]).toHaveAttribute('id');
+    expect(textareas[0]).toHaveAttribute('name', 'saerligeKommentarer');
+  });
 });
