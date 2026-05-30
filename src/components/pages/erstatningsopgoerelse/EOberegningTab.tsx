@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Box, Typography, Checkbox, FormControlLabel, Tooltip, MenuItem } from '@mui/material';
 import { Download, ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
+import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import { useBlockingFieldIdsBySuffixForSection, useFieldErrorsBySourceForSection } from '../../../hooks/useFormFieldErrors';
 import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator';
 import type { DebugRowWithNavigation } from '../../../domain/debug/eoDebugRowAggregator';
@@ -1221,7 +1222,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         <Typography className="section-header">Alternative beregninger</Typography>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">TAF-krav fordelt på kalenderår</Typography>
+          <Typography className="row--text">
+            TAF-krav fordelt på kalenderår
+            <InfoTooltipIcon title={'Til brug for skattemyndighedernes\nfordeling på relevante skatteår'} />
+          </Typography>
           <Box className="row--label-right-hover__content">
             {canDownloadSnapshotTafPdf && (
               <Box
