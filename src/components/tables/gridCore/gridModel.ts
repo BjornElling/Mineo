@@ -137,24 +137,48 @@ export const reconcileRowIdsByPosition = <TRow>(params: Readonly<{
   });
 };
 
+/**
+ * Determinisme-kontrakt for `createEmptyRow`:
+ *
+ * `normalizeGridRows` kaldes typisk INDE i en React `setState`-updater. Under StrictMode (og
+ * fremtidig concurrent rendering) dobbelt-invokeres updateren, så `normalizeGridRows` — og dermed
+ * `createEmptyRow` — kører to gange for samme input. Hvis `createEmptyRow` genererede et tilfældigt
+ * id (fx `crypto.randomUUID()`), ville de to kørsler producere FORSKELLIGE id'er. Tabeller der
+ * gater persistering på et id-følsomt fingerprint ville så se de to resultater divergere og
+ * springe persisteringen over → datatab (en ryddet celle blev aldrig gemt).
+ *
+ * Derfor SKAL `createEmptyRow` være ren: id'et udledes deterministisk af `seed`-argumentet, ikke af
+ * en RNG. To kørsler med samme input giver da identiske rækker. De deterministiske id'er er bevidst
+ * transiente — `reconcileRowIdsByPosition` re-stabiliserer dem ved næste prop-resync, og fokus-systemet
+ * adresserer celler positionelt (`rowId:colIndex`).
+ *
+ * `seed` er et monotont tal (0, 1, 2 …) pr. tom række oprettet i denne normalisering, så de
+ * deterministiske id'er er unikke indbyrdes og ikke kolliderer.
+ */
 export const normalizeGridRows = <TRow>(params: Readonly<{
   rows: readonly TRow[];
   minRows: number;
   isRowEmpty: (row: TRow) => boolean;
-  createEmptyRow: () => TRow;
+  createEmptyRow: (seed: number) => TRow;
 }>): TRow[] => {
   const { rows, minRows, isRowEmpty, createEmptyRow } = params;
+
+  // Monotont seed pr. nyoprettet tom række. Deterministisk (samme input → samme sekvens) og unikt
+  // pr. række, så de deterministiske id'er hverken divergerer mellem StrictMode-kørsler eller
+  // kolliderer indbyrdes. Se determinisme-kontrakten ovenfor.
+  let nextEmptyRowSeed = 0;
+  const makeEmptyRow = (): TRow => createEmptyRow(nextEmptyRowSeed++);
 
   const existingTrailingEmpty = rows.length > 0 && isRowEmpty(rows[rows.length - 1]) ? rows[rows.length - 1] : null;
   const nonEmptyRows = rows.filter((row) => !isRowEmpty(row));
 
   const normalized: TRow[] = [...nonEmptyRows];
-  normalized.push(existingTrailingEmpty ?? createEmptyRow());
+  normalized.push(existingTrailingEmpty ?? makeEmptyRow());
 
   // Ensure minimum row count while keeping the trailing empty row at the end.
   const safeMinRows = Math.max(1, Math.trunc(minRows));
   while (normalized.length < safeMinRows) {
-    normalized.splice(Math.max(0, normalized.length - 1), 0, createEmptyRow());
+    normalized.splice(Math.max(0, normalized.length - 1), 0, makeEmptyRow());
   }
 
   return normalized;

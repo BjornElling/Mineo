@@ -20,6 +20,7 @@ import {
 } from './gridCore/tableRowFocus';
 import { coerceToISODateString } from '../../types/branded';
 import { initialLoenudviklingManuelRow, generateLoenudviklingRowId } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
+import { createEmptyRowId } from '../../utils/rowId';
 import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -326,13 +327,17 @@ const LoenudviklingManuelTable = React.memo(
     const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
     const visibleRowIdsRef = React.useRef<readonly string[]>([]);
 
-    const createEmptyRow = React.useCallback((): LoenudviklingManuelRow => {
-      return { ...initialLoenudviklingManuelRow, id: generateLoenudviklingRowId() };
+    // Determinisme-kontrakt (se normalizeGridRows): id'et udledes af seed'et, ikke en RNG,
+    // så StrictMode-dobbeltinvokering af setState-updateren ikke giver divergerende id'er.
+    const createEmptyRow = React.useCallback((seed: number): LoenudviklingManuelRow => {
+      return { ...initialLoenudviklingManuelRow, id: createEmptyRowId('loenudvikling', seed) };
     }, []);
 
     const normalizeRows = React.useCallback(
       (rows: readonly LoenudviklingManuelRow[]): LoenudviklingManuelRow[] => {
-        const baseRow = rows[0] ?? createEmptyRow();
+        // Basisrækken har sit eget id-namespace ('loenudvikling_base'), så dens deterministiske
+        // fallback-id aldrig kolliderer med tail-rækkernes seed-baserede id'er.
+        const baseRow = rows[0] ?? { ...initialLoenudviklingManuelRow, id: createEmptyRowId('loenudvikling_base', 0) };
         const tail = rows.slice(1);
         const tailMinRows = Math.max(1, MIN_VISIBLE_ROWS - 1);
         const normalizedTail = normalizeGridRows({ rows: tail, minRows: tailMinRows, isRowEmpty, createEmptyRow });

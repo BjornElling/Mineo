@@ -10,11 +10,14 @@ import type { AslAfgoerelseRow, AfgoerelseType, JaNej } from '../../schemas/form
 import type { ISODateString } from '../../types/branded';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import {
+  ASL_AFGOERELSE_ROW_ID_PREFIX,
   EET_ASL_MIN_VISIBLE_ROWS,
   collectEetAslAfgoerelseValidationIssues,
   createEmptyAslAfgoerelseRow,
+  emptyAslAfgoerelseRowFields,
   isAslAfgoerelseRowPersistenceEmpty,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import { createEmptyRowId } from '../../utils/rowId';
 import { normalizeGridRows, reconcileRowIdsByPosition } from './gridCore/gridModel';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
@@ -98,7 +101,12 @@ const EetAslAfgoerelserTable = React.memo(
           rows,
           minRows: EET_ASL_MIN_VISIBLE_ROWS,
           isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
-          createEmptyRow: createEmptyAslAfgoerelseRow,
+          // Determinisme-kontrakt (se normalizeGridRows): id'et udledes af seed'et, ikke en RNG,
+          // så StrictMode-dobbeltinvokering af setState-updateren ikke giver divergerende id'er.
+          createEmptyRow: (seed) => ({
+            ...emptyAslAfgoerelseRowFields,
+            id: createEmptyRowId(ASL_AFGOERELSE_ROW_ID_PREFIX, seed),
+          }),
         });
       },
       []

@@ -11,10 +11,12 @@ import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitalisering
 export const EET_ASL_MIN_VISIBLE_ROWS = 2;
 export { validateAslAarsloenBySkadesaarMax, validateAslAarsloenDivisibleBy1000 };
 
-export const createAslAfgoerelseRowId = (): string => createRowId('eet_asl');
+export const ASL_AFGOERELSE_ROW_ID_PREFIX = 'eet_asl';
 
-export const createEmptyAslAfgoerelseRow = (): AslAfgoerelseRow => ({
-  id: createAslAfgoerelseRowId(),
+export const createAslAfgoerelseRowId = (): string => createRowId(ASL_AFGOERELSE_ROW_ID_PREFIX);
+
+/** Tom rækkes felter UDEN id — id sættes af caller (random ved defaults, deterministisk ved normalisering). */
+export const emptyAslAfgoerelseRowFields: Omit<AslAfgoerelseRow, 'id'> = {
   afgoerelsesDato: undefined,
   virkningsDato: undefined,
   eetPct: undefined,
@@ -23,6 +25,11 @@ export const createEmptyAslAfgoerelseRow = (): AslAfgoerelseRow => ({
   afgoerelseType: undefined,
   tidlKapDato: undefined,
   fsTilbageholdtEet: 'Nej',
+};
+
+export const createEmptyAslAfgoerelseRow = (): AslAfgoerelseRow => ({
+  id: createAslAfgoerelseRowId(),
+  ...emptyAslAfgoerelseRowFields,
 });
 
 export const isAslAfgoerelseRowEmpty = (row: AslAfgoerelseRow): boolean =>

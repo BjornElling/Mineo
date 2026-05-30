@@ -235,4 +235,25 @@ describe('normalizeGridRows', () => {
     expect(result).toHaveLength(1);
     expect(isEmpty(result[0]!)).toBe(true);
   });
+
+  describe('determinisme-kontrakt (StrictMode-sikkerhed)', () => {
+    // createEmptyRow er deterministisk pr. seed — modellerer en korrekt implementering
+    // (fx createEmptyRowId('row', seed)) i stedet for en RNG.
+    const createDeterministicEmpty = (seed: number): Row => ({ id: `empty-${seed}`, val: undefined });
+
+    it('to kald med samme input giver IDENTISKE rækker inkl. id (forhindrer persist-desync)', () => {
+      const input: Row[] = [{ id: '1', val: 'a' }];
+      const a = normalizeGridRows({ rows: input, minRows: 3, isRowEmpty: isEmpty, createEmptyRow: createDeterministicEmpty });
+      const b = normalizeGridRows({ rows: input, minRows: 3, isRowEmpty: isEmpty, createEmptyRow: createDeterministicEmpty });
+      expect(a).toEqual(b);
+      expect(a.map((r) => r.id)).toEqual(b.map((r) => r.id));
+    });
+
+    it('seed er unikt pr. oprettet tom række, så deterministiske id ikke kolliderer', () => {
+      const input: Row[] = [{ id: '1', val: 'a' }];
+      const result = normalizeGridRows({ rows: input, minRows: 4, isRowEmpty: isEmpty, createEmptyRow: createDeterministicEmpty });
+      const emptyIds = result.filter((r) => isEmpty(r)).map((r) => r.id);
+      expect(new Set(emptyIds).size).toBe(emptyIds.length);
+    });
+  });
 });

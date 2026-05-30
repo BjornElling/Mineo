@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { reconcileRowIdsByPosition } from '../../../components/tables/gridCore/gridModel';
 
 type Row = { id: string; v?: string };

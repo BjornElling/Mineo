@@ -19,6 +19,7 @@ import type {
 } from '../../types/table';
 import type { StandardLoenTableHandle } from '../../types/handles';
 import { initialRow, generateRowId } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
+import { createEmptyRowId } from '../../utils/rowId';
 import {
   calculateStandardLoenRowDerived,
   isStandardLoenRowEffectivelyEmpty,
@@ -135,8 +136,10 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       [loenperiode]
     );
 
-    const createEmptyRow = React.useCallback((): StandardLoenTableRow => {
-      return { ...initialRow, id: generateRowId() };
+    // Determinisme-kontrakt (se normalizeGridRows): id'et udledes af seed'et, ikke en RNG,
+    // så StrictMode-dobbeltinvokering af setState-updateren ikke giver divergerende id'er.
+    const createEmptyRow = React.useCallback((seed: number): StandardLoenTableRow => {
+      return { ...initialRow, id: createEmptyRowId('row', seed) };
     }, []);
 
     const manageRows = React.useCallback(
@@ -629,6 +632,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       externalErrorMessage={getExternalErrorMessage(row.id, 'col0_maaned')}
                       minValue={1}
                       maxValue={12}
+                      placeholder="mm"
                     />
                   ) : loenperiode === 'uge' ? (
                     <TableWeekInput

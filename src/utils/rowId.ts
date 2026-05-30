@@ -1,3 +1,19 @@
+/**
+ * Deterministisk id til en TOM grid-række på en given position.
+ *
+ * Bruges af `normalizeGridRows`' `createEmptyRow(seed)` i stedet for et tilfældigt `createRowId`.
+ * Determinismen er kritisk: normalisering kører inde i React `setState`-updaters, som StrictMode
+ * dobbelt-invokerer — et tilfældigt id ville divergere mellem de to kørsler og bryde id-følsomme
+ * persist-fingerprints (datatab). Se determinisme-kontrakten i `gridModel.normalizeGridRows`.
+ *
+ * `__empty__`-segmentet adskiller transiente tomme-række-id'er fra persisterede UUID-id'er
+ * (`<prefix>_<uuid>`), så de aldrig kolliderer. Id'erne er transiente og re-stabiliseres af
+ * `reconcileRowIdsByPosition` ved næste prop-resync.
+ */
+export const createEmptyRowId = (prefix: string, index: number): string => {
+  return `${prefix}_empty_${index}`;
+};
+
 export const createRowId = (prefix: string): string => {
   if (typeof globalThis.crypto?.randomUUID === 'function') {
     return `${prefix}_${globalThis.crypto.randomUUID()}`;

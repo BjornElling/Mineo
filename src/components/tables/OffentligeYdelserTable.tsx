@@ -5,6 +5,7 @@ import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDr
 import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 import { dateRanges_offentligeYdelser } from '../../config/dateRanges';
 import { initialOffentligYdelseRow, generateOffentligYdelseRowId } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
+import { createEmptyRowId } from '../../utils/rowId';
 import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -139,8 +140,10 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       [notifyValidationChange, onTableDataChange, syncCommittedRowIds]
     );
 
-    const createEmptyRow = React.useCallback((): OffentligeYdelserRow => {
-      return { ...initialOffentligYdelseRow, id: generateOffentligYdelseRowId() };
+    // Determinisme-kontrakt (se normalizeGridRows): id'et udledes af seed'et, ikke en RNG,
+    // så StrictMode-dobbeltinvokering af setState-updateren ikke giver divergerende id'er.
+    const createEmptyRow = React.useCallback((seed: number): OffentligeYdelserRow => {
+      return { ...initialOffentligYdelseRow, id: createEmptyRowId('offentlig_ydelse', seed) };
     }, []);
 
     const normalizeRows = React.useCallback(

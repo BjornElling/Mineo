@@ -21,7 +21,6 @@
 //     persist-vej (setValues/setFieldValue/update.../commitField/handle...Blur/handle...Commit).
 //     Det dækker "komponér-og-indsæt"-hjælpere (fx sygedagpenge-indsæt på OffentligeYdelserTab).
 //   - Disabled felter med `onCommit={undefined}` (committer aldrig → ingen undo-frame).
-import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
