@@ -48,6 +48,7 @@ interface StyledToggleSwitchProps {
   disabled?: boolean;
   /** Kun relevant når `label` er angivet. */
   labelPlacement?: 'start' | 'end' | 'top' | 'bottom';
+  id?: string;
   name?: string;
   value?: string;
   /** Sættes når togglen bruges uden synligt label (label er placeret som søsker-element).
@@ -61,10 +62,15 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
   onCommit,
   disabled = false,
   labelPlacement = 'end',
+  id,
   name,
   value,
   ariaLabel,
 }, ref) => {
+  const autoId = React.useId();
+  const resolvedId = id ?? autoId;
+  const resolvedName = name ?? resolvedId;
+
   // State for shake-animation
   const [isShaking, setIsShaking] = React.useState(false);
 
@@ -154,19 +160,22 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
   }, [checked, disabled, commitToggle]);
 
   const inputSlotProps: ToggleInputSlotProps = {
+    id: resolvedId,
+    name: resolvedName,
     role: 'checkbox',
     onKeyDown: handleKeyDown,
     'aria-checked': checked,
-    'data-mineo-undo-field-path': name,
+    'data-mineo-undo-field-path': resolvedName,
     ...(ariaLabel ? { 'aria-label': ariaLabel } : {}),
   };
 
   const switchComponent = (
     <Switch
+      id={resolvedId}
       checked={checked}
       onChange={handleMuiChange}
       disabled={disabled}
-      name={name}
+      name={resolvedName}
       value={value}
       slotProps={{
         input: inputSlotProps,

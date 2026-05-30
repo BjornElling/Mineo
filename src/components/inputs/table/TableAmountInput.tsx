@@ -119,6 +119,8 @@ const TableAmountInput = React.memo(
               onDoubleClick={handleDoubleClick}
               placeholder={core.cellFocused && !core.isReadOnly ? '' : placeholder}
               inputProps={{
+                id: core.a11yInputId,
+                name: core.htmlInputName,
                 readOnly: core.isReadOnly,
                 tabIndex: locked ? -1 : undefined,
                 inputMode: 'decimal',

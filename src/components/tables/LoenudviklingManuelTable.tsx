@@ -9,6 +9,7 @@ import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 import { assignRef } from '../inputs/table/assignRef';
 import { useGridCoreApi } from './useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from './gridCore/gridCoreTypes';
+import { gridCellKey } from './gridCore/gridCoreUtils';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows, reconcileRowIdsByPosition } from './gridCore/gridModel';
@@ -134,6 +135,8 @@ const ReadOnlyDateCell = React.memo(
     }, [editorHandle, grid, gridCell]);
 
     const a11yErrorId = React.useId();
+    const a11yInputId = React.useId();
+    const htmlInputName = gridCellKey(gridCell);
 
     return (
       <Tooltip title={tooltipText} arrow placement="top" disableHoverListener={tooltipText.trim() === ''}>
@@ -146,6 +149,8 @@ const ReadOnlyDateCell = React.memo(
             value={value}
             readOnly
             inputProps={{
+              id: a11yInputId,
+              name: htmlInputName,
               readOnly: true,
               inputMode: 'text',
               'data-mineo-grid-locked': 'true',
@@ -242,6 +247,8 @@ const ReadOnlyPercentCell = React.memo(
     }, [editorHandle, grid, gridCell]);
 
     const a11yErrorId = React.useId();
+    const a11yInputId = React.useId();
+    const htmlInputName = gridCellKey(gridCell);
 
     return (
       <Tooltip title={tooltipText} arrow placement="top" disableHoverListener={tooltipText.trim() === ''}>
@@ -254,6 +261,8 @@ const ReadOnlyPercentCell = React.memo(
             value={formatPercentDisplay(value, true) ? `${formatPercentDisplay(value, true)} %` : ''}
             readOnly
             inputProps={{
+              id: a11yInputId,
+              name: htmlInputName,
               readOnly: true,
               inputMode: 'text',
               'data-mineo-grid-locked': 'true',

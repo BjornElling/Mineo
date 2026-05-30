@@ -4,6 +4,7 @@ import { useTableInputHistoryRestore } from '../useTableInputHistoryRestore';
 import { useTableInputSaveError } from '../useTableInputSaveError';
 import { useGridCellEditing, useGridCellFocus, useGridCoreApi } from '../../components/tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../components/tables/gridCore/gridCoreTypes';
+import { gridCellKey } from '../../components/tables/gridCore/gridCoreUtils';
 import { assignRef } from '../../utils/refUtils';
 import { copyWholeValueFromReadOnlyField, readClipboardText } from '../../utils/clipboardUtils';
 import type { TableInputErrorInfo, TableInputErrorKind } from '../../utils/tableInputContracts';
@@ -42,6 +43,7 @@ export type UseTableInputCoreResult = Readonly<{
   undoFocusToken: string;
   gridCellKey: string;
   a11yInputId: string;
+  htmlInputName: string;
   a11yErrorId: string;
   keyInitiatedEdit: boolean;
   handleChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
@@ -102,7 +104,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const undoFocusToken = React.useId();
   const a11yInputId = React.useId();
   const a11yErrorId = `${a11yInputId}-error`;
-  const gridCellKey = `${gridCell.rowId}:${gridCell.colIndex}`;
+  const resolvedGridCellKey = gridCellKey(gridCell);
   const committedDisplayValue = adapter.format(value);
   const committedVisualError = React.useMemo(() => {
     if (!touched || saveErrorActive) return '';
@@ -154,7 +156,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     draftRef,
     setDraft,
     focusToken: undoFocusToken,
-    fieldPath: gridCellKey,
+    fieldPath: resolvedGridCellKey,
     resetEditingState,
     onRestoreError: (state) => {
       setTouched(true);
@@ -442,11 +444,11 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     return () => {
       gridApi.unregisterEditor(gridCell);
     };
-    // gridCellKey er en stabil streng-repræsentation af gridCell-koordinaterne.
+    // resolvedGridCellKey er en stabil streng-repræsentation af gridCell-koordinaterne.
     // gridCell er intentionelt udeladt fra dep-arrayet for at undgå re-registrering
     // ved inline object literals i caller (ny reference, samme værdier).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editorHandle, gridApi, gridCellKey]);
+  }, [editorHandle, gridApi, resolvedGridCellKey]);
 
   useTableInputSaveError({
     key: a11yErrorId,
@@ -493,8 +495,9 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     inputElRef,
     inputRefCallback,
     undoFocusToken,
-    gridCellKey,
+    gridCellKey: resolvedGridCellKey,
     a11yInputId,
+    htmlInputName: resolvedGridCellKey,
     a11yErrorId,
     keyInitiatedEdit,
     handleChange,

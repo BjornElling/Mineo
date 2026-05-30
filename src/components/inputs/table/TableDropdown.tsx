@@ -293,6 +293,7 @@ const TableDropdown = React.memo(
     );
 
     const a11yErrorId = React.useId();
+    const a11yInputId = React.useId();
     const undoFocusToken = React.useId();
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const showError = externalErrorText !== '';
@@ -426,6 +427,8 @@ const TableDropdown = React.memo(
             )
           ) : (
             <Select
+              id={a11yInputId}
+              name={gridCellKey ?? undefined}
               open={open}
               value={value ?? ''}
               onChange={handleChange}
@@ -485,6 +488,7 @@ const TableDropdown = React.memo(
               size="small"
               variant="standard"
               inputProps={{
+                name: gridCellKey ?? undefined,
                 tabIndex: readOnly ? -1 : undefined,
                 'aria-describedby': showError ? a11yErrorId : undefined,
               }}

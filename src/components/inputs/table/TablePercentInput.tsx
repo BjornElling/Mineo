@@ -125,6 +125,8 @@ const TablePercentInput = React.memo(
               onCopy={core.handleCopy}
               placeholder={core.cellFocused && !core.isReadOnly ? '' : resolvedPlaceholder}
               inputProps={{
+                id: core.a11yInputId,
+                name: core.htmlInputName,
                 readOnly: core.isReadOnly,
                 tabIndex: locked ? -1 : undefined,
                 inputMode: allowDecimals ? 'decimal' : 'numeric',

@@ -6,6 +6,8 @@ type StyledCheckboxProps = Readonly<{
   checked: boolean;
   onCommit: CommitHandler<boolean>;
   label: React.ReactNode;
+  id?: string;
+  name?: string;
   disabled?: boolean;
   size?: 'small' | 'medium';
 }>;
@@ -14,9 +16,15 @@ const StyledCheckbox = ({
   checked,
   onCommit,
   label,
+  id,
+  name,
   disabled = false,
   size = 'small',
 }: StyledCheckboxProps) => {
+  const autoId = React.useId();
+  const resolvedId = id ?? autoId;
+  const resolvedName = name ?? resolvedId;
+
   const commitChecked = React.useCallback(
     (nextChecked: boolean) => {
       if (nextChecked === checked) return;
@@ -51,12 +59,16 @@ const StyledCheckbox = ({
     <FormControlLabel
       control={(
         <Checkbox
+          id={resolvedId}
+          name={resolvedName}
           checked={checked}
           onChange={handleChange}
           disabled={disabled}
           size={size}
           slotProps={{
             input: {
+              id: resolvedId,
+              name: resolvedName,
               onKeyDown: handleKeyDown,
               'aria-checked': checked,
             },

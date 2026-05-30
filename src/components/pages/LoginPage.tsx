@@ -183,6 +183,7 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
 
               <input
                 id="mineo-login-password"
+                name="mineo-login-password"
                 type="password"
                 value={passwordDraft}
                 autoFocus

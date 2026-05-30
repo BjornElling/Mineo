@@ -988,6 +988,9 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         className="mineo-disabled-hover-target"
         control={(
           <Checkbox
+            id={`eo-bilag-${key}`}
+            name={`eo-bilag-${key}`}
+            slotProps={{ input: { id: `eo-bilag-${key}`, name: `eo-bilag-${key}` } }}
             checked={selectedElements[key]}
             disabled={!availability.enabled}
             onChange={(event) => {
@@ -1185,7 +1188,15 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
               <Box component="span" className="mineo-disabled-hover-target">
                 <FormControlLabel
                   className="mineo-disabled-hover-target"
-                  control={<Checkbox checked={selectedElements.opgoerelse} disabled />}
+                  control={(
+                    <Checkbox
+                      id="eo-bilag-opgoerelse"
+                      name="eo-bilag-opgoerelse"
+                      slotProps={{ input: { id: 'eo-bilag-opgoerelse', name: 'eo-bilag-opgoerelse' } }}
+                      checked={selectedElements.opgoerelse}
+                      disabled
+                    />
+                  )}
                   label="Opgørelse"
                 />
               </Box>

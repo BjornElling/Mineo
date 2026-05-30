@@ -65,6 +65,7 @@ const TableTextInput = React.memo(
             placeholder={core.cellFocused && !core.isReadOnly ? '' : placeholder}
             inputProps={{
               id: core.a11yInputId,
+              name: core.htmlInputName,
               readOnly: core.isReadOnly,
               tabIndex: locked ? -1 : undefined,
               inputMode: 'text',

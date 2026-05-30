@@ -107,6 +107,22 @@ const createMutableGridWrapper = (
 };
 
 describe('useTableInputCore', () => {
+  it('udstiller stabil HTML-identitet fra grid-cellen', () => {
+    const { result } = renderHook(
+      () =>
+        useTableInputCore({
+          adapter: createAdapter(),
+          gridCell,
+          value: '42',
+        }),
+      { wrapper: createWrapper(null) }
+    );
+
+    expect(result.current.gridCellKey).toBe('row-1:0');
+    expect(result.current.htmlInputName).toBe('row-1:0');
+    expect(result.current.a11yInputId).not.toBe('');
+  });
+
   it('blur med lukket editor fokuserer kun og markerer ikke feltet touched', () => {
     const onBlur = vi.fn();
     const { result } = renderHook(
