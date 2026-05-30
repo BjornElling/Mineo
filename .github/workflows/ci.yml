@@ -8,20 +8,16 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: [25]
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      - name: Setup Node ${{ matrix.node-version }}
-        uses: actions/setup-node@v5
+      - name: Setup Node from .nvmrc
+        uses: actions/setup-node@v6
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
+          node-version-file: .nvmrc
+          package-manager-cache: false
 
       - name: Install dependencies (strict)
         run: npm ci
@@ -42,13 +38,13 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
 
-      - name: Setup Node 25
-        uses: actions/setup-node@v5
+      - name: Setup Node from .nvmrc
+        uses: actions/setup-node@v6
         with:
-          node-version: 25
-          cache: 'npm'
+          node-version-file: .nvmrc
+          package-manager-cache: false
 
       - name: Install dependencies (strict)
         run: npm ci

@@ -7,7 +7,7 @@ Appen er udviklet i TypeScript og kører 100 % client-side. Alle data bevares lo
 ## Kom i gang
 
 Forudsætninger:
-- Node.js 24 LTS
+- Node.js 25
 - Git
 
 Installation:
@@ -69,6 +69,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.05.644
+**Version**: 2026.05.645
 
 **Status**: Under udvikling

@@ -2,6 +2,16 @@ import type { ProcessInterestPeriod } from '../../domain/renteberegning/procesre
 import type { RenteOversigtRow } from '../domains/renteberegning/renteOversigtPdf';
 import type { ISODateString } from '../../types/branded';
 import type { PdfDownloadResult } from './pdfService';
+import {
+  buildRentePdfBaseTitle,
+  buildRentePdfFilename,
+  generateRentePdf,
+  writeRentePdfContent,
+} from '../domains/renteberegning/rentePdf';
+import { generateRenteOversigtPdf } from '../domains/renteberegning/renteOversigtPdf';
+import { createStandardPdfWriter } from './pdfWriter';
+import { parseDanishDate } from '../../utils/dateUtils';
+import { getPdfCreatorBrand } from '../shared/pdfHelpers';
 
 const PDF_DOWNLOAD_SUCCESS: PdfDownloadResult = { success: true };
 const PDF_DOWNLOAD_ERROR_MESSAGE = 'Kunne ikke generere rente-PDF';
@@ -28,7 +38,6 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
   } = params;
 
   try {
-    const { generateRentePdf } = await import('../domains/renteberegning/rentePdf');
     generateRentePdf(beloeb, actualInterestDate, beregningsdato, periods, {
       visBrevhoved: false,
       stamdata: null,
@@ -55,7 +64,6 @@ export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
   }
 
   try {
-    const { generateRenteOversigtPdf } = await import('../domains/renteberegning/renteOversigtPdf');
     generateRenteOversigtPdf(beregningsdato, rows, {
       visBrevhoved: false,
       stamdata: null,
@@ -88,18 +96,6 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
   }
 
   try {
-    const [
-      { writeRentePdfContent, buildRentePdfBaseTitle, buildRentePdfFilename },
-      { createStandardPdfWriter },
-      { parseDanishDate },
-      { getPdfCreatorBrand },
-    ] = await Promise.all([
-      import('../domains/renteberegning/rentePdf'),
-      import('./pdfWriter'),
-      import('../../utils/dateUtils'),
-      import('../shared/pdfHelpers'),
-    ]);
-
     const writer = createStandardPdfWriter();
     writer.setDisplayMode('fullheight');
     writer.setProperties({
