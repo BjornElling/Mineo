@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * Generates PNG PWA icons from `public/favicon.svg`.
+ * Generates PNG PWA icons from `public/favicon-mineo.svg`.
  *
  * Trust-critical note:
  * - Icons are build artifacts only; they must not affect runtime logic.
@@ -13,7 +13,7 @@ const path = require('path');
 const { Resvg } = require('@resvg/resvg-js');
 
 const ROOT = path.join(__dirname, '..');
-const SRC_SVG = path.join(ROOT, 'public', 'favicon.svg');
+const SRC_SVG = path.join(ROOT, 'public', 'favicon-mineo.svg');
 const OUT_DIR = path.join(ROOT, 'public', 'icons');
 
 /** @param {number} size */
@@ -47,9 +47,9 @@ function main() {
 
   ensureDir(OUT_DIR);
 
-  writeIcon('icon-192.png', 192);
-  writeIcon('icon-512.png', 512);
-  writeIcon('apple-touch-icon-180.png', 180);
+  writeIcon('mineo-icon-192.png', 192);
+  writeIcon('mineo-icon-512.png', 512);
+  writeIcon('mineo-apple-touch-icon-180.png', 180);
 }
 
 main();
