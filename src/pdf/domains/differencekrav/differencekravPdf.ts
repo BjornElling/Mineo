@@ -32,7 +32,6 @@ import {
   buildKapitaliseringAarsydelseExpression,
   buildKapitaliseringGrundydelseExpression,
   buildKapitaliseringGrundydelseLabel,
-  buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { TODAY } from '../../../config/dateRanges';
@@ -211,7 +210,7 @@ const addMerErstatningEvent = (
   }
 
   writer.writeUnderlinedSubheader(
-    `Forhøjelse pr. ${formatIsoDateLong(event.virkningsdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel})`
+    `Forhøjelse pr. ${formatIsoDateLong(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel})`
   );
 
   writer.writeBoldSubheader('Løbende ydelse');
@@ -298,14 +297,6 @@ const addMerErstatningPensionsalderSection = (
   computation.events.forEach((event, index) => {
     addMerErstatningEvent(writer, event, koen, index === 0);
   });
-
-  if (computation.events.length > 1) {
-    writer.writeLeftRightText(
-      'Samlet mer-erstatning',
-      formatKr(computation.samletMerErstatning),
-      { rightFontStyle: 'bold' as const }
-    );
-  }
 };
 
 // ============================================================================
@@ -456,12 +447,9 @@ const renderDifferencekravPage = (
   // Mer-erstatning ved forhøjet folkepensionsalder
   if (computation.merErstatningPensionsalder) {
     writer.writeBoldSubheader('Mer-erstatning ved forhøjet folkepensionsalder');
-    writer.writeWrappedText(
-      'Forskellen mellem kapitalværdien til den forhøjede og den hidtidige folkepensionsalder fratrækkes.'
-    );
     for (const event of computation.merErstatningPensionsalder.events) {
       writer.writeLeftRightText(
-        `Forhøjelse pr. ${formatISOToDanish(event.virkningsdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`,
+        `Forhøjelse pr. ${formatISOToDanish(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`,
         `- ${formatKr(event.merErstatning)}`,
         rowOpts
       );

@@ -37,8 +37,9 @@ får `true` ved load.
 For hver kapitaliseret EET-afgørelse vurderes hver kendt folkepensionsalder-forhøjelse. En forhøjelse
 udløser mer-erstatning for den pågældende kapitalisering, når **alle** følgende er opfyldt:
 
-1. Forhøjelsens virkningsår ligger **efter** kapitaliseringsåret (et senere kalenderår — ikke samme år).
-2. Forhøjelsens virkningsdato ligger **på eller før** beregningsdatoen.
+1. Forhøjelsesdatoen ligger **efter** kapitaliseringsdatoen (datosammenligning — også hvis det er
+   samme kalenderår).
+2. Forhøjelsesdatoen ligger **på eller før** beregningsdatoen.
 3. Forhøjelsen hæver den folkepensionsalder, kapitaliseringstabellerne regner med (den gamle
    kapitalværdi er lavere end den nye).
 
@@ -54,21 +55,21 @@ mer-erstatning = kapitalværdi(ny folkepensionsalder) − kapitalværdi(hidtidig
 ```
 
 Begge kapitalværdier beregnes:
-- på forhøjelsens **virkningsdato**,
+- på forhøjelsens **forhøjelsesdato**,
 - med **samme kapitaliseringsprocent** som den faktiske kapitalisering (fra fane 3),
 - med **samme løbende ydelse** (årsydelse). Kun kapitaliseringsfaktoren — og dermed
   kapitalværdien — er forskellig, fordi den nye og den gamle bekendtgørelse henfører skadelidte
   til hver sin tabel med hver sin folkepensionsalder.
 
 Den løbende ydelse (årsydelsen) reguleres til satsåret, der er **kalenderåret 1 måned efter
-forhøjelsens virkningsdato**. For forhøjelsen pr. 29-12-2015 er satsåret derfor 2016 (29-01-2016).
+forhøjelsesdatoen**. For forhøjelsen pr. 29-12-2015 er satsåret derfor 2016 (29-01-2016).
 
 Rammer flere forhøjelser den samme kapitalisering (fordi der er gået flere forhøjelser mellem
 kapitalisering og beregningsdato), beregnes hver forhøjelse for sig, og beløbene summeres.
 
 ### Folkepensionsalder-forhøjelser i modellen
 
-| Forhøjelse | Virkningsdato | Hidtidig | Forhøjet | Bekendtgørelse (gammel → ny) |
+| Forhøjelse | Forhøjelsesdato | Hidtidig | Forhøjet | Bekendtgørelse (gammel → ny) |
 |---|---|---|---|---|
 | 67 → 68 | 29-12-2015 | 67 år | 68 år | Bkg. 198/2015 → Bkg. 1700/2015 |
 | 68 → 69 | 31-12-2020 | 68 år | 69 år | bekendtgørelse pr. 30-12-2020 → 31-12-2020 |
@@ -85,7 +86,7 @@ kapitalisering den 31-12-2025 og indeholder tabeller til det 70. år for de ber�
 gamle og den nye bekendtgørelse parres derfor i datakilden (se `forhoejetPensionsalderEvents.ts`),
 så den gamle kapitalværdi opslås i Vejl. 10029/2024 (kun til 69 år, opslagsdato 30-12-2025) og den
 nye i Vejl. 10183/2025 (til 70 år, opslagsdato 31-12-2025). Selve beregningen sker på
-virkningsdatoen 31-12-2025 (satsår 2026).
+forhøjelsesdatoen 31-12-2025 (satsår 2026).
 
 ### Autoritativt eksempel
 
@@ -120,7 +121,7 @@ forkert.
 
 | Fil | Ansvar |
 |---|---|
-| `src/data/kapitalisering/forhoejetPensionsalderEvents.ts` | Eksplicit datatabel over forhøjelser: virkningsdato, opslagsdato for gammel/ny bekendtgørelse, alderslabels. |
+| `src/data/kapitalisering/forhoejetPensionsalderEvents.ts` | Eksplicit datatabel over forhøjelser: forhøjelsesdato, opslagsdato for gammel/ny bekendtgørelse, alderslabels. |
 | `src/domain/erhvervsevnetab/eetMerErstatningPensionsalderCalculation.ts` | `computeMerErstatningPensionsalder()` — beregner mer-erstatningen pr. kapitalisering pr. forhøjelse. |
 | `src/domain/erhvervsevnetab/eetDifferencekravCalculation.ts` | Kører fradrag 4 og trækker `samletMerErstatning` fra differencekravet. |
 | `src/pdf/domains/differencekrav/differencekravPdf.ts` | Hoved-side-fradragslinje og valgfrit bilag. |
@@ -134,13 +135,13 @@ forkert.
    kapitaliseringer (rowId, afgørelsesdato, kapitaliseringsdato, kapitaliseringspct, grundløn,
    erstatningsniveau, AM-bidrag — alle hentet fra fane 3's computation).
 3. For hver kapitalisering × hver forhøjelse:
-   - betingelse 1 (senere kalenderår) og 2 (≤ beregningsdato) tjekkes,
+   - betingelse 1 (forhøjelsesdato > kapitaliseringsdato) og 2 (≤ beregningsdato) tjekkes,
    - kapitaliseringsfaktoren opslås for både `opslagsdatoGammel` og `opslagsdatoNy` via
      `resolveFaktorForBekendtgoerelse` (genbruger fane 3's faktor-regler: tabelvalg,
      interpolation, ekstrapolation mod særfaktor, direkte særfaktor ≤ 2 år til FP),
    - betingelse 3 (ny faktor > gammel faktor) tjekkes,
    - årsydelsen beregnes via `resolveKapitaliseringAarsydelseBreakdown` med satsår = året
-     1 måned efter virkningsdatoen,
+     1 måned efter forhøjelsesdatoen,
    - kapitalværdier og mer-erstatning beregnes og lægges i `events`.
 4. `samletMerErstatning` trækkes fra differencekravet sammen med de øvrige fradrag.
 

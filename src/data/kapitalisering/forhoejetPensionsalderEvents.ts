@@ -13,10 +13,12 @@ import { toISODateString } from '../../types/branded';
 // før forhøjelsen og én gang under bekendtgørelsen fra forhøjelsen — og tage differencen.
 //
 // Struktur:
-//   - virkningsdato: forhøjelsens ikrafttrædelsesdato. Alt beregnes på denne dato (alder, sats).
+//   - forhoejelsesdato: forhøjelsens ikrafttrædelsesdato. Alt beregnes på denne dato (alder, sats).
+//     (Bevidst ikke "virkningsdato": det ord er reserveret til erhvervsevnetabsafgørelsernes
+//     virkningsdato andetsteds i differencekravet, og sammenfaldet skabte forvirring.)
 //   - opslagsdatoGammel / opslagsdatoNy: datoer der via resolveKapitaliseringsbekendtgoerelseId
-//     slår henholdsvis den gamle og den nye bekendtgørelse op. De er adskilt fra virkningsdatoen,
-//     fordi bekendtgørelsesoversigten ikke altid har en post præcis på virkningsdatoen
+//     slår henholdsvis den gamle og den nye bekendtgørelse op. De er adskilt fra forhøjelsesdatoen,
+//     fordi bekendtgørelsesoversigten ikke altid har en post præcis på forhøjelsesdatoen
 //     (se 69→70 nedenfor).
 //   - gammelAlderLabel / nyAlderLabel: visningslabels til specifikation og PDF.
 //
@@ -25,12 +27,12 @@ import { toISODateString } from '../../types/branded';
 // udløser derfor ikke mer-erstatning efter denne model.
 //
 // Sådan tilføjes en ny forhøjelse:
-//   1. Tilføj en post nederst med virkningsdato og de to opslagsdatoer.
+//   1. Tilføj en post nederst med forhøjelsesdato og de to opslagsdatoer.
 //   2. Bekræft at resolveKapitaliseringsbekendtgoerelseId giver forskellige bekendtgørelser
 //      for opslagsdatoGammel og opslagsdatoNy (ellers giver forhøjelsen 0 kr.).
 
 export interface ForhoejetPensionsalderEvent {
-  virkningsdato: ISODateString
+  forhoejelsesdato: ISODateString
   opslagsdatoGammel: ISODateString
   opslagsdatoNy: ISODateString
   gammelAlderLabel: string
@@ -38,7 +40,7 @@ export interface ForhoejetPensionsalderEvent {
 }
 
 type RawForhoejetPensionsalderEvent = Readonly<{
-  virkningsdato: string;
+  forhoejelsesdato: string;
   opslagsdatoGammel: string;
   opslagsdatoNy: string;
   gammelAlderLabel: string;
@@ -49,7 +51,7 @@ const RAW_FORHOEJET_PENSIONSALDER_EVENTS: readonly RawForhoejetPensionsalderEven
   // 67 → 68. L 395/2015 (Lov nr. 1810 af 23-12-2015), i kraft dagen efter offentliggørelse = 29-12-2015.
   // Bkg. 198/2015 (til 67 år) → Bkg. 1700/2015 (til 68 år).
   {
-    virkningsdato: '2015-12-29',
+    forhoejelsesdato: '2015-12-29',
     opslagsdatoGammel: '2015-12-28',
     opslagsdatoNy: '2015-12-29',
     gammelAlderLabel: '67 år',
@@ -58,7 +60,7 @@ const RAW_FORHOEJET_PENSIONSALDER_EVENTS: readonly RawForhoejetPensionsalderEven
 
   // 68 → 69. L 105/2020 (vedtaget 21-12-2020), i kraft 31-12-2020 for årgange fra 1967.
   {
-    virkningsdato: '2020-12-31',
+    forhoejelsesdato: '2020-12-31',
     opslagsdatoGammel: '2020-12-30',
     opslagsdatoNy: '2020-12-31',
     gammelAlderLabel: '68 år',
@@ -67,11 +69,11 @@ const RAW_FORHOEJET_PENSIONSALDER_EVENTS: readonly RawForhoejetPensionsalderEven
 
   // 69 → 70. L 710/2020 (forhøjelse vedtaget 22-05-2025), i kraft 31-12-2025 for årgange fra 1971.
   // Vejl. 10183/2025 (gælder specifikt for kapitalisering den 31-12-2025) indeholder tabeller til
-  // det 70. år. Opslagsdatoerne parres derfor på selve virkningsdatoen: gammel = 30-12-2025
+  // det 70. år. Opslagsdatoerne parres derfor på selve forhøjelsesdatoen: gammel = 30-12-2025
   // (Vejl. 10029/2024, kun til 69 år), ny = 31-12-2025 (Vejl. 10183/2025, til 70 år). Selve
-  // beregningen sker på virkningsdatoen 31-12-2025 (satsår = 1 måned efter = 31-01-2026 → 2026).
+  // beregningen sker på forhøjelsesdatoen 31-12-2025 (satsår = 1 måned efter = 31-01-2026 → 2026).
   {
-    virkningsdato: '2025-12-31',
+    forhoejelsesdato: '2025-12-31',
     opslagsdatoGammel: '2025-12-30',
     opslagsdatoNy: '2025-12-31',
     gammelAlderLabel: '69 år',
@@ -81,7 +83,7 @@ const RAW_FORHOEJET_PENSIONSALDER_EVENTS: readonly RawForhoejetPensionsalderEven
 
 export const forhoejetPensionsalderEvents: readonly ForhoejetPensionsalderEvent[] =
   RAW_FORHOEJET_PENSIONSALDER_EVENTS.map((event) => ({
-    virkningsdato: toISODateString(event.virkningsdato),
+    forhoejelsesdato: toISODateString(event.forhoejelsesdato),
     opslagsdatoGammel: toISODateString(event.opslagsdatoGammel),
     opslagsdatoNy: toISODateString(event.opslagsdatoNy),
     gammelAlderLabel: event.gammelAlderLabel,

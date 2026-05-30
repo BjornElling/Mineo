@@ -218,7 +218,7 @@ type MerErstatningBoxProps = Readonly<{
 const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensionsalderEvent; koen: ErhvervsevnetabValues['koen'] }) => (
   <>
     <UnderlinedHoverRow
-      text={`Forhøjelse pr. ${formatIsoDateLong(event.virkningsdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel})`}
+      text={`Forhøjelse pr. ${formatIsoDateLong(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel})`}
     />
 
     <Typography className="row--subheading">Løbende ydelse</Typography>
@@ -337,7 +337,7 @@ const EetMerErstatningPensionsalderBox = ({ computation, koen }: MerErstatningBo
     <Typography className="section-header">Mer-erstatning ved forhøjet folkepensionsalder</Typography>
 
     {computation.events.map((event, index) => (
-      <Box key={`${event.rowId}-${event.virkningsdato}`} sx={{ mt: index === 0 ? 0 : 2 }}>
+      <Box key={`${event.rowId}-${event.forhoejelsesdato}`} sx={{ mt: index === 0 ? 0 : 2 }}>
         <EetMerErstatningEventRows event={event} koen={koen} />
       </Box>
     ))}
@@ -691,11 +691,10 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
           {computation.merErstatningPensionsalder && (
             <>
               <Typography className="row--subheading" sx={{ mt: 2 }}>Mer-erstatning ved forhøjet folkepensionsalder</Typography>
-              <TextHoverRow text="Forskellen mellem kapitalværdien til den forhøjede og den hidtidige folkepensionsalder fratrækkes." />
               {computation.merErstatningPensionsalder.events.map((event) => (
-                <Box key={`${event.rowId}-${event.virkningsdato}`} className="row--label-right-hover">
+                <Box key={`${event.rowId}-${event.forhoejelsesdato}`} className="row--label-right-hover">
                   <Typography className="row--text">
-                    {`Forhøjelse pr. ${formatISOToDanish(event.virkningsdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`}
+                    {`Forhøjelse pr. ${formatISOToDanish(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel}):`}
                   </Typography>
                   <Box className="row--label-right-hover__content">
                     <Typography className="row--text">{`- ${formatKr(event.merErstatning)}`}</Typography>

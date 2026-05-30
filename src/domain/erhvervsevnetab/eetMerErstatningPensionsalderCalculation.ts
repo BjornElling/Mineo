@@ -23,7 +23,7 @@ import { resolveKapitaliseringAarsydelseBreakdown } from './eetKapitaliseringCal
 
 /**
  * Kapitalværdien af et erhvervsevnetab opgjort til folkepensionsalderen i én bestemt
- * bekendtgørelse, på en forhøjelses virkningsdato. Begge sider (gammel/ny) i en
+ * bekendtgørelse, på en forhøjelses forhøjelsesdato. Begge sider (gammel/ny) i en
  * mer-erstatning har samme årsydelse; kun tabel, folkepensionsalder og faktor skifter.
  */
 export type MerErstatningKapitalvaerdi = Readonly<{
@@ -40,8 +40,8 @@ export type MerErstatningPensionsalderEvent = Readonly<{
   afgoerelsesdato: ISODateString;
   kapitaliseringsdato: ISODateString;
   kapitaliseringspct: number;
-  virkningsdato: ISODateString;
-  // Satsår = kalenderåret 1 måned efter virkningsdatoen.
+  forhoejelsesdato: ISODateString;
+  // Satsår = kalenderåret 1 måned efter forhøjelsesdatoen.
   satsAar: number;
   gammelAlderLabel: string;
   nyAlderLabel: string;
@@ -234,12 +234,12 @@ const resolveFaktorForBekendtgoerelse = (
  *
  * Reglen (jf. docs/domain/eet/mer-erstatning-pensionsalder.md):
  * For hver kapitaliseret afgørelse og hver folkepensionsalder-forhøjelse hvor
- *   1. virkningsdatoens år > kapitaliseringens år (senere kalenderår), og
- *   2. virkningsdato ≤ beregningsdato, og
+ *   1. forhøjelsesdato > kapitaliseringsdato, og
+ *   2. forhøjelsesdato ≤ beregningsdato, og
  *   3. forhøjelsen hæver bekendtgørelsens tabel-folkepensionsalder (gammel faktor ≠ ny faktor/tabel),
  * beregnes mer-erstatningen som forskellen mellem kapitalværdien til den nye og den gamle
- * folkepensionsalder, begge opgjort på virkningsdatoen med samme årsydelse (satsår = året
- * 1 måned efter virkningsdatoen) og samme kapitaliseringsprocent som den faktiske kapitalisering.
+ * folkepensionsalder, begge opgjort på forhøjelsesdatoen med samme årsydelse (satsår = året
+ * 1 måned efter forhøjelsesdatoen) og samme kapitaliseringsprocent som den faktiske kapitalisering.
  *
  * Flere forhøjelser for samme kapitalisering summeres trin-for-trin.
  */
@@ -251,14 +251,12 @@ export const computeMerErstatningPensionsalder = (
 
   for (const kap of input.kapitaliseringer) {
     if (kap.kapitaliseringspct <= 0) continue;
-    const kapAar = Number.parseInt(kap.kapitaliseringsdato.slice(0, 4), 10);
 
     for (const event of forhoejetPensionsalderEvents) {
-      // Betingelse 1: forhøjelsen sker i et senere kalenderår end kapitaliseringen.
-      const virkningsaar = Number.parseInt(event.virkningsdato.slice(0, 4), 10);
-      if (virkningsaar <= kapAar) continue;
+      // Betingelse 1: forhøjelsen ligger efter kapitaliseringen (datosammenligning, ikke kalenderår).
+      if (event.forhoejelsesdato <= kap.kapitaliseringsdato) continue;
       // Betingelse 2: forhøjelsen er trådt i kraft senest på beregningsdatoen.
-      if (event.virkningsdato > input.beregningsdato) continue;
+      if (event.forhoejelsesdato > input.beregningsdato) continue;
 
       const faktorMaanedsAfhaengig = input.skadedato >= SKAERING_2007_07_01;
 
@@ -290,10 +288,10 @@ export const computeMerErstatningPensionsalder = (
       // er identiske (samme faktor) er der ingen mer-erstatning, og forhøjelsen springes over.
       if (nyFaktor.kapitaliseringsfaktor <= gammelFaktor.kapitaliseringsfaktor) continue;
 
-      // Satsår = kalenderåret 1 måned efter virkningsdatoen (29-12-2015 → 29-01-2016 → 2016).
-      const virkningsDate = parseISODate(event.virkningsdato);
-      if (!virkningsDate) continue;
-      const satsDato = dateToISO(addMonths(virkningsDate, 1));
+      // Satsår = kalenderåret 1 måned efter forhøjelsesdatoen (29-12-2015 → 29-01-2016 → 2016).
+      const forhoejelsesDate = parseISODate(event.forhoejelsesdato);
+      if (!forhoejelsesDate) continue;
+      const satsDato = dateToISO(addMonths(forhoejelsesDate, 1));
       if (!satsDato) continue;
       const satsAar = Number.parseInt(satsDato.slice(0, 4), 10);
 
@@ -313,7 +311,7 @@ export const computeMerErstatningPensionsalder = (
       );
       if (!aarsydelseBreakdown) continue;
 
-      const age = calculateAgeYearsMonths(input.fodselsdato, event.virkningsdato);
+      const age = calculateAgeYearsMonths(input.fodselsdato, event.forhoejelsesdato);
       if (!age) continue;
 
       const gammelKapitalvaerdi = round2(aarsydelseBreakdown.aarsydelse * gammelFaktor.kapitaliseringsfaktor);
@@ -326,7 +324,7 @@ export const computeMerErstatningPensionsalder = (
         afgoerelsesdato: kap.afgoerelsesdato,
         kapitaliseringsdato: kap.kapitaliseringsdato,
         kapitaliseringspct: kap.kapitaliseringspct,
-        virkningsdato: event.virkningsdato,
+        forhoejelsesdato: event.forhoejelsesdato,
         satsAar,
         gammelAlderLabel: event.gammelAlderLabel,
         nyAlderLabel: event.nyAlderLabel,

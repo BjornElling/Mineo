@@ -98,16 +98,27 @@ describe('computeMerErstatningPensionsalder — betingelser', () => {
     amBidragPct: 0,
   });
 
-  it('medtager ikke en forhøjelse i samme kalenderår som kapitaliseringen', () => {
+  it('medtager en forhøjelse senere på året end kapitaliseringen (datokriterium, ikke kalenderår)', () => {
     const issues: EetIssue[] = [];
-    // Kapitaliseret 2015 → 67→68-forhøjelsen (virkning 29-12-2015) er samme år → ingen mer-erstatning.
+    // Kapitaliseret 01-06-2015 → 67→68-forhøjelsen 29-12-2015 ligger efter kapitaliseringsdatoen
+    // (samme kalenderår, men senere dato) → mer-erstatning skal medregnes.
     const computation = computeMerErstatningPensionsalder(
       { ...base, kapitaliseringer: [kap('2015-06-01')] },
       issues
     );
-    // 2020- og 2025-forhøjelserne er i senere år og kan stadig give mer-erstatning,
-    // men den indledende same-year-forhøjelse må ikke indgå.
-    const har2015 = computation?.events.some((e) => e.virkningsdato === '2015-12-29');
+    const har2015 = computation?.events.some((e) => e.forhoejelsesdato === '2015-12-29');
+    expect(har2015).toBeTruthy();
+  });
+
+  it('medtager ikke en forhøjelse på eller før kapitaliseringsdatoen', () => {
+    const issues: EetIssue[] = [];
+    // Kapitaliseret 30-12-2015 → 67→68-forhøjelsen 29-12-2015 ligger før kapitaliseringsdatoen
+    // → ingen mer-erstatning for den forhøjelse.
+    const computation = computeMerErstatningPensionsalder(
+      { ...base, kapitaliseringer: [kap('2015-12-30')] },
+      issues
+    );
+    const har2015 = computation?.events.some((e) => e.forhoejelsesdato === '2015-12-29');
     expect(har2015).toBeFalsy();
   });
 
@@ -118,17 +129,88 @@ describe('computeMerErstatningPensionsalder — betingelser', () => {
       { ...base, beregningsdato: iso('2017-01-01'), kapitaliseringer: [kap('2014-06-01')] },
       issues
     );
-    const har2020 = computation?.events.some((e) => e.virkningsdato === '2020-12-31');
+    const har2020 = computation?.events.some((e) => e.forhoejelsesdato === '2020-12-31');
     expect(har2020).toBeFalsy();
   });
 
   it('returnerer null når ingen forhøjelse kvalificerer', () => {
     const issues: EetIssue[] = [];
     const computation = computeMerErstatningPensionsalder(
-      // Kapitaliseret 2024, beregningsdato 2025-06 → ingen forhøjelse i senere år ≤ beregningsdato.
+      // Kapitaliseret 01-06-2024, beregningsdato 01-06-2025 → 31-12-2025-forhøjelsen ligger efter
+      // beregningsdatoen, og ingen tidligere forhøjelse ligger efter kapitaliseringsdatoen.
       { ...base, beregningsdato: iso('2025-06-01'), kapitaliseringer: [kap('2024-06-01')] },
       issues
     );
     expect(computation).toBeNull();
+  });
+});
+
+describe('computeMerErstatningPensionsalder — autoritativt eksempel (67→68, skade fra 2011, 22.641 kr.)', () => {
+  // Skade 01-01-2011 → erstatningsniveau 83 % og AM-bidrag 8 % (giver 0,92-faktoren i kæden, som
+  // fane 3 anvender for skade fra 2011), bekendtgørelsesspor 199/2015 → 1663/2015.
+  // Grundløn 216.019 kr. er den allerede reguleret grundløn fra fane 3 (279.000 × 367.000/474.000).
+  // Forhøjelse 67 → 68 pr. 29-12-2015. Kapitaliseret 01-06-2014 (tidligere år end forhøjelsen).
+  // Alder 29-12-2015: 41 år, 10 måneder (født 28-02-1974).
+  // Løbende ydelse i satsår 2016: 216.019 × 83 % × 25 % × 0,92 × 137,60 % = 56.743,53 kr.
+  // Kapitalværdi til 67 år (Bkg. 199/2015, faktor 13,291): 754.178,26 kr.
+  // Kapitalværdi til 68 år (Bkg. 1663/2015, faktor 13,69): 776.818,93 kr.
+  // Mer-erstatning: 22.641 kr.
+  const run = () => {
+    const issues: EetIssue[] = [];
+    const computation = computeMerErstatningPensionsalder(
+      {
+        kapitaliseringer: [
+          {
+            rowId: 'a1',
+            afgoerelsesdato: iso('2014-06-01'),
+            kapitaliseringsdato: iso('2014-06-01'),
+            kapitaliseringspct: 25,
+            grundloen: 216019,
+            erstatningsniveauPct: 83,
+            amBidragPct: 8,
+          },
+        ],
+        beregningsdato: iso('2016-06-01'),
+        skadedato: iso('2011-01-01'),
+        fodselsdato: iso('1974-02-28'),
+        before2024Skade: true,
+        koen: undefined,
+      },
+      issues
+    );
+    return { computation, issues };
+  };
+
+  it('beregner mer-erstatningen til 22.641 kr.', () => {
+    const { computation, issues } = run();
+    expect(issues).toEqual([]);
+    expect(computation).not.toBeNull();
+    expect(computation?.events).toHaveLength(1);
+    expect(computation?.samletMerErstatning).toBe(22641);
+  });
+
+  it('rammer den løbende ydelse (årsydelse) på 56.743,53 kr. i satsår 2016', () => {
+    const { computation } = run();
+    const event = computation!.events[0]!;
+    expect(event.satsAar).toBe(2016);
+    expect(event.aarsydelse).toBe(56743.53);
+  });
+
+  it('beregner kapitalværdierne med faktor 13,291 (67 år) og 13,69 (68 år)', () => {
+    const { computation } = run();
+    const event = computation!.events[0]!;
+    expect(event.gammel.kapitaliseringsfaktor).toBe(13.291);
+    expect(event.gammel.kapitalvaerdi).toBe(754178.26);
+    expect(event.gammel.folkepensionsalderLabel).toBe('67 år');
+    expect(event.ny.kapitaliseringsfaktor).toBe(13.69);
+    expect(event.ny.kapitalvaerdi).toBe(776818.93);
+    expect(event.ny.folkepensionsalderLabel).toBe('68 år');
+  });
+
+  it('slår de korrekte bekendtgørelser op (Bkg. 199/2015 → Bkg. 1663/2015)', () => {
+    const { computation } = run();
+    const event = computation!.events[0]!;
+    expect(event.gammel.kapitaliseringsbekendtgoerelseLabel).toContain('199/2015');
+    expect(event.ny.kapitaliseringsbekendtgoerelseLabel).toContain('1663/2015');
   });
 });
