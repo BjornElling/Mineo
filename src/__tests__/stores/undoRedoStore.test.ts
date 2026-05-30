@@ -33,7 +33,8 @@ const restoreFrameToFormStore = (frame: HistoryFrame): void => {
     frame.sectionRevisions,
     frame.fieldErrors,
     frame.fieldErrorRevisions,
-    frame.meta
+    frame.meta,
+    frame.timestamp
   );
 };
 

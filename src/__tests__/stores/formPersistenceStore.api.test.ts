@@ -92,16 +92,16 @@ describe('formPersistenceStore public API', () => {
     expect(store.getState().sections).toEqual(before);
   });
 
-  it('commitSection updates meta deterministically', () => {
+  it('commitSection records the caller-provided lastCommittedAt deterministically', () => {
     const store = __createTestStore();
     store.getState().clearAll(VALID_META);
-    const before = store.getState().meta.lastCommittedAt;
-    store.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
-    const after = store.getState().meta.lastCommittedAt;
-    expect(after).not.toBeUndefined();
-    if (before !== undefined) {
-      expect(after).not.toBe(before);
-    }
+    // lastCommittedAt er nu deterministisk: den kommer fra kalderens metaPatch, ikke fra
+    // et ikke-deterministisk Date.now() inde i store-updater'en.
+    store.getState().commitSection('satser', { aargang: 2025 }, { lastCommittedAt: 1234 });
+    expect(store.getState().meta.lastCommittedAt).toBe(1234);
+
+    store.getState().commitSection('satser', { aargang: 2026 }, { lastCommittedAt: 5678 });
+    expect(store.getState().meta.lastCommittedAt).toBe(5678);
   });
 
   it('commitSection increments only the targeted section revision', () => {
@@ -302,7 +302,8 @@ describe('formPersistenceStore public API', () => {
       snapshot.sectionRevisions,
       snapshot.fieldErrors,
       snapshot.fieldErrorRevisions,
-      snapshot.meta
+      snapshot.meta,
+      snapshot.meta.lastCommittedAt ?? 0
     );
     unsubscribe();
 

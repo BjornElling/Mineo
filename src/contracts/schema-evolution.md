@@ -236,6 +236,8 @@ Hvis data kan bevares sikkert, skal der bruges en eksplicit migrator pr. `Storag
 3. `stripUnknownFieldsBySchema`
 4. `schema.safeParse`
 
+Trin 1–2 ejes af migrator-dispatcheren `migratePersistedSectionValue()` i `src/utils/persistenceMigrations.ts`: den normaliserer (`nullToUndefinedDeep`) før en eventuel sektion-migrator, så invarianten holder uanset om kalderen (fil-load vs. session-hydrering) selv har normaliseret. Trin 3 ligger i `sanitizePersistedValueForSchema()`, trin 4 hos kalderen.
+
 Migratorer må kun mappe kendte gamle strukturer til current struktur. De må ikke gætte domæneværdier. En migrator er et extension point, ikke en generel forpligtelse til bagudkompatibilitet.
 
 Fjernelse eller omdøbning af enum-værdier kræver enten:

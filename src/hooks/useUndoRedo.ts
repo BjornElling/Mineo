@@ -22,7 +22,8 @@ const restorePlannedTransition = (plan: HistoryTransitionPlan | null): HistoryFr
       plan.target.sectionRevisions,
       plan.target.fieldErrors,
       plan.target.fieldErrorRevisions,
-      plan.target.meta
+      plan.target.meta,
+      Date.now()
     );
     if (!undoRedoStore.getState().commitPlannedTransition(plan)) {
       throw new Error('Undo/redo-history kunne ikke committes efter gendannelse.');

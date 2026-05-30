@@ -28,12 +28,12 @@ Planen følger **afhængighedsorden nedefra og op** — det fundamentale først,
 | 1.6 | Page-component-kontrakten + arkitektur-docs: calculation, pdf, debug-builder, undo-redo, auth-gate | ✅ Gennemgået | [1.6-page-component-og-arkitektur-docs.md](1.6-page-component-og-arkitektur-docs.md) |
 | 1.7 | Helhedsvurdering af kontraktlandskabet og de arkitektoniske grundprincipper | ✅ Gennemgået | [1.7-helhedsvurdering-kontraktlandskab.md](1.7-helhedsvurdering-kontraktlandskab.md) |
 | **2 — Persistence** | | | |
-| 2.1 | Persistence-arkitektur: store, read-model, registry, storageManifest | ⬜ Ikke startet | — |
-| 2.2 | Undo/redo-store og fokus-restore | ⬜ Ikke startet | — |
-| 2.3 | FormPersistenceContext (public/internal/shared) og useFormPersistence | ⬜ Ikke startet | — |
-| 2.4 | Persistence: load, apply, sanitering, session-hydration, snapshot-storage | ⬜ Ikke startet | — |
-| 2.5 | Schema-evolution, migrations og versionering (persistenceVersion, fingerprint) | ⬜ Ikke startet | — |<br>↳ _Fra 1.2: konsolidér den normativt duplikerede migrator-rækkefølge (persistence-contract §6 ↔ schema-evolution Del 3.1a) — lad schema-evolution eje detaljen, persistence henvise._ |
-| 2.6 | Fil-I/O: save/load, encryption, file-system-access, file-handle-storage | ⬜ Ikke startet | — |
+| 2.1 | Persistence-arkitektur: store, read-model, registry, storageManifest | ✅ Gennemgået | [2.1-persistence-arkitektur.md](2.1-persistence-arkitektur.md) |
+| 2.2 | Undo/redo-store og fokus-restore | ✅ Gennemgået | [2.2-undo-redo-store-og-fokus-restore.md](2.2-undo-redo-store-og-fokus-restore.md) |
+| 2.3 | FormPersistenceContext (public/internal/shared) og useFormPersistence | ✅ Gennemgået | [2.3-formpersistencecontext.md](2.3-formpersistencecontext.md) |
+| 2.4 | Persistence: load, apply, sanitering, session-hydration, snapshot-storage | ✅ Gennemgået | [2.4-persistence-load-apply-sanitering-hydration.md](2.4-persistence-load-apply-sanitering-hydration.md) |
+| 2.5 | Schema-evolution, migrations og versionering (persistenceVersion, fingerprint) | ✅ Gennemgået | [2.5-schema-evolution-migrations-versionering.md](2.5-schema-evolution-migrations-versionering.md) |<br>↳ _Fra 1.2: ✅ konsolideret — schema-evolution §3.1a ejer migrator-rækkefølgen, persistence-contract §6 henviser._ |
+| 2.6 | Fil-I/O: save/load, encryption, file-system-access, file-handle-storage | ✅ Gennemgået | [2.6-fil-io-encryption-fs-access.md](2.6-fil-io-encryption-fs-access.md) |
 | **3 — Schemas** | | | |
 | 3.1 | Schema-fundament: formSchemas-entry, baseSchemas, enumSchemas, amountExpressionSchema | ⬜ Ikke startet | — |
 | 3.2 | Section-schemas A: stamdata, satser, aarsloen, faellesAarsloen | ⬜ Ikke startet | — |

@@ -93,7 +93,7 @@ Ved reset, load eller anden autoritativ erstatning gælder:
 Den kanoniske load-rækkefølge er:
 
 1. læs/dekryptér fil eller storage
-2. anvend eventuelle eksplicitte migratorer på den rå sektionsværdi
+2. normalisér + anvend eventuelle eksplicitte migratorer på sektionsværdien (detaljeret trin-rækkefølge ejes af `schema-evolution.md` §3.1a)
 3. strip ukendte felter/sektioner efter schema
 4. valider sektioner/snapshot
 5. vis preflight og afvent brugerbeslutning

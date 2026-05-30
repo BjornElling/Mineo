@@ -63,7 +63,8 @@ export type FormPersistenceStoreState = {
     sectionRevisions: SectionRevisionMap,
     fieldErrors: FieldErrorCache,
     fieldErrorRevisions: FieldErrorRevisionMap,
-    meta: FormPersistenceMeta
+    meta: FormPersistenceMeta,
+    committedAt: number
   ) => void;
   setFieldError: <K extends keyof FormPersistenceSections>(
     key: K,
@@ -269,6 +270,8 @@ const createFormPersistenceStore = () =>
     },
     commitSection: (key, next, metaPatch) => {
       assertSectionValid(key, next);
+      // lastCommittedAt resolves fra caller-leveret metaPatch — ingen ikke-deterministisk
+      // Date.now() inde i state-updater'en (jf. undo/redo-mønstret: ingen RNG/tid i setState).
       set((state) => ({
         sections: { ...state.sections, [key]: next },
         sectionRevisions: incrementSectionRevision(state.sectionRevisions, key),
@@ -276,7 +279,7 @@ const createFormPersistenceStore = () =>
         fieldErrorRevisions: state.fieldErrorRevisions,
         committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
-        meta: resolveMeta(state.meta, { ...metaPatch, lastCommittedAt: Date.now() }),
+        meta: resolveMeta(state.meta, metaPatch),
       }));
     },
     clearSection: (key, metaPatch) => {
@@ -287,7 +290,7 @@ const createFormPersistenceStore = () =>
         fieldErrorRevisions: state.fieldErrorRevisions,
         committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
-        meta: resolveMeta(state.meta, { ...metaPatch, lastCommittedAt: Date.now() }),
+        meta: resolveMeta(state.meta, metaPatch),
       }));
     },
     replaceSections: (next, meta) => {
@@ -346,12 +349,13 @@ const createFormPersistenceStore = () =>
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
     },
-    restoreHistoryFrame: (next, sectionRevisions, fieldErrors, fieldErrorRevisions, meta) => {
+    restoreHistoryFrame: (next, sectionRevisions, fieldErrors, fieldErrorRevisions, meta, committedAt) => {
       assertKeyCoverage(next);
       assertMetaFingerprintMatch(meta);
       assertAllSectionsValid(next);
       assertFieldErrorKeyCoverage(fieldErrors);
       assertFieldErrorRevisionKeyCoverage(fieldErrorRevisions);
+      // committedAt leveres af caller udenfor updater'en — undgår ikke-deterministisk Date.now() i setState.
       set((state) => ({
         sections: { ...next },
         sectionRevisions: { ...sectionRevisions },
@@ -359,7 +363,7 @@ const createFormPersistenceStore = () =>
         fieldErrorRevisions: { ...fieldErrorRevisions },
         committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
-        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: Date.now() },
+        meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: committedAt },
       }));
     },
     setFieldError: (key, fieldName, source, error) => {

@@ -79,7 +79,11 @@ export interface UsePersistedFormReturn<T extends object> {
  * - Type-safe storage keys
  * - Automatisk versionering via FormPersistenceContext
  * - Zod-baseret serialization/deserialization
- * - Defensiv merge: Nye felter får altid fallback-værdier fra initialValues
+ * - Schema-default-udfyldning: nye felter (tilføjet efter en gemt sags schema-version) får
+ *   deres værdi fra schemaets egen `.default()`/`.optional()` via `schema.parse(committedSection)`,
+ *   ikke fra `initialValues`. Det er bevidst: device-lokale initialValues må ikke injiceres oven
+ *   på indlæst sagsinput (jf. AGENTS.md save/load-garantier). `initialValues` bruges kun som basis,
+ *   når der ikke findes en committed sektion (helt ny sag).
  * - Type-sikker håndtering af numbers, booleans, ISO dates
  *
  * VIGTIGT: Kræver Zod schema for runtime type-validation.
