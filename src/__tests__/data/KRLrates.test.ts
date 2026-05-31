@@ -6,7 +6,6 @@ import {
   getReguleringsDatoIntervalForKRL,
 } from '../../data/krlRates';
 import type { KRLSatstabelId } from '../../data/krlRates';
-import { toISODateString } from '../../types/branded';
 
 const KRL_IDS: KRLSatstabelId[] = [
   'KTO (kommuner)',

@@ -1,4 +1,3 @@
-import { describe, it, expect } from 'vitest';
 import { migratePersistedSectionValue } from '../../utils/persistenceMigrations';
 
 describe('migratePersistedSectionValue', () => {

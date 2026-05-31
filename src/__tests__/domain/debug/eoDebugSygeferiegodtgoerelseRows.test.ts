@@ -109,7 +109,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
         sfggManuelDagssats: undefined,
         sfggManuelBeloebIHenholdTil: undefined,
@@ -395,7 +394,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -469,7 +467,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -595,7 +592,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
@@ -638,7 +634,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
@@ -692,7 +687,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggReferenceperiodeFra: toISODateString('2023-12-01'),
         sfggReferenceperiodeTil: toISODateString('2023-12-31'),
@@ -837,7 +831,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Ferieloven',
         sfggReferenceperiodeFra: toISODateString('2023-12-01'),
         sfggReferenceperiodeTil: toISODateString('2023-12-31'),
@@ -881,7 +874,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -932,7 +924,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -986,7 +977,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -1030,7 +1020,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -1145,7 +1134,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -1863,7 +1851,6 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
-        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
