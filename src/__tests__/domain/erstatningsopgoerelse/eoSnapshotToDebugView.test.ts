@@ -37,6 +37,7 @@ vi.mock('../../../domain/debug/eoDebugRegulationViewModel', () => ({
 
 import { eoSnapshotToDebugView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
+import { toISODateString } from '../../../types/branded';
 
 describe('eoSnapshotToDebugView', () => {
   beforeEach(() => {
@@ -66,7 +67,7 @@ describe('eoSnapshotToDebugView', () => {
     const debugSnapshot = {
       model: {
         tableData: {
-          dates: ['2024-01-01'],
+          dates: [toISODateString('2024-01-01')],
           weekdayIndexByRow: [1],
           isSognehelligdagByIndex: [true],
           isWorkdayByIndex: [false],
@@ -79,7 +80,7 @@ describe('eoSnapshotToDebugView', () => {
       },
       debugDays: [
         {
-          iso: '2024-01-01',
+          iso: toISODateString('2024-01-01'),
           weekday: 1,
           isWeekend: false,
           isSognehelligdag: true,
@@ -191,7 +192,7 @@ describe('eoSnapshotToDebugView', () => {
     const debugSnapshot = {
       model: {
         tableData: {
-          dates: ['2024-01-01'],
+          dates: [toISODateString('2024-01-01')],
           weekdayIndexByRow: [1],
           isSognehelligdagByIndex: [false],
           isWorkdayByIndex: [true],
@@ -206,7 +207,7 @@ describe('eoSnapshotToDebugView', () => {
       sammentaellingRows: [],
       stamdataValues: {
         journalnr: 'J-2',
-        skadedato: '2024-01-01',
+        skadedato: toISODateString('2024-01-01'),
         skadestype: 'Arbejdsulykke',
       },
       eoValues: {
@@ -235,7 +236,7 @@ describe('eoSnapshotToDebugView', () => {
         input: {
           stamdata: {
             journalnr: 'J-2',
-            skadedato: '2024-01-01',
+            skadedato: toISODateString('2024-01-01'),
             skadestype: 'Arbejdsulykke',
           },
           erstatningsopgoerelse: {

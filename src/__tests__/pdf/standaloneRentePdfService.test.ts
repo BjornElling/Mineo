@@ -38,10 +38,11 @@ vi.mock('../../pdf/infrastructure/pdfWriter', () => ({
 }));
 
 import { downloadAllStandaloneRentePdf, downloadStandaloneRentePdf } from '../../pdf/infrastructure/standaloneRentePdfService';
+import { toISODateString } from '../../types/branded';
 
 const makePeriod = (): ProcessInterestPeriod => ({
-  startDate: new Date('2024-01-01'),
-  endDate: new Date('2024-06-30'),
+  startDate: new Date(toISODateString('2024-01-01')),
+  endDate: new Date(toISODateString('2024-06-30')),
   amount: 1000,
   referenceRatePct: 4.25,
   surchargeRatePct: 8,
@@ -74,7 +75,7 @@ describe('downloadStandaloneRentePdf', () => {
     const result = await downloadStandaloneRentePdf({
       beloeb: 5000,
       actualInterestDate: '01-06-2024',
-      beregningsdato: '01-07-2024',
+      beregningsdato: toISODateString('2024-07-01'),
       periods: [makePeriod()],
       latestReferenceRateDate: null,
       kommentarer: 'Standalone',
@@ -84,7 +85,7 @@ describe('downloadStandaloneRentePdf', () => {
     expect(mockGenerateRentePdf).toHaveBeenCalledWith(
       5000,
       '01-06-2024',
-      '01-07-2024',
+      toISODateString('2024-07-01'),
       [expect.objectContaining({ amount: 1000 })],
       {
         visBrevhoved: false,
@@ -101,7 +102,7 @@ describe('downloadStandaloneRentePdf', () => {
     const result = await downloadStandaloneRentePdf({
       beloeb: 0,
       actualInterestDate: '01-01-2024',
-      beregningsdato: '01-01-2024',
+      beregningsdato: toISODateString('2024-01-01'),
       periods: [],
       latestReferenceRateDate: null,
     });

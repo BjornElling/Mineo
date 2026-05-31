@@ -9,6 +9,7 @@ import type { SammentaellingDisplayTables, SammentaellingModel } from '../../../
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
+import { toISODateString } from '../../../../types/branded';
 
 const makeModel = (patch: Partial<EODebugModel>): EODebugModel => {
   const base: EODebugModel = {
@@ -131,7 +132,7 @@ describe('EODebugTabel', () => {
   });
 
   it('viser den normale tom-tabel advarsel når snapshot findes men ikke kan bygge rækker', () => {
-    const snapshot = makeSnapshot(makeModel({ rowCount: 0, tableFra: '2026-01-01', tableTil: '2026-01-31' }));
+    const snapshot = makeSnapshot(makeModel({ rowCount: 0, tableFra: toISODateString('2026-01-01'), tableTil: toISODateString('2026-01-31') }));
 
     renderComponent({
       debugSnapshot: snapshot,

@@ -2,6 +2,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EetDifferencekravTab from '../../../../components/pages/erhvervsevnetab/EetDifferencekravTab';
+import { toISODateString } from '../../../../types/branded';
 
 vi.mock('../../../../contexts/useAppSettings', () => ({
   useAppSettings: () => ({
@@ -42,14 +43,14 @@ describe('EetDifferencekravTab', () => {
             issues: [],
             hasBlockingErrors: false,
             computation: {
-              beregningsdato: '2026-03-17',
+              beregningsdato: toISODateString('2026-03-17'),
               fradragGaelderForFoer2011: false,
               ealEetPct: 15,
               ealKrav: 100000,
               afgoerelser: [{
                 rowId: 'a1',
-                afgoerelsesdato: '2020-01-01',
-                virkningsdato: '2020-02-01',
+                afgoerelsesdato: toISODateString('2020-01-01'),
+                virkningsdato: toISODateString('2020-02-01'),
                 afgoerelseType: 'Midlertidig',
                 eetPct: 15,
                 beloeb: 0,

@@ -1,4 +1,5 @@
 import type { StandardLoenTableRow, OffentligeYdelserRow } from '../../../schemas/formSchemas';
+import type { ISODateString } from '../../../types/branded';
 import { toISODateString } from '../../../types/branded';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
@@ -12,6 +13,7 @@ import {
 import { resolveValgtReguleringDisplay } from '../../../domain/erstatningsopgoerelse/helpers/loenudviklingDisplay';
 
 const iso = (value: string) => toISODateString(value);
+const invalidIso = (value: string): ISODateString => value as unknown as ISODateString;
 
 const makeLoenRow = (overrides: Partial<StandardLoenTableRow>): StandardLoenTableRow => ({
   id: 'row1',
@@ -37,8 +39,8 @@ const createEmployment = (overrides: Record<string, unknown> = {}) => ({
 describe('erstatningsopgoerelsePdf periodefilter', () => {
   it('ignorerer ranges og medtager række i Alle-mode', () => {
     const loenRow = makeLoenRow({
-      col0_dag: '01-01-2024',
-      col1_dag: '31-01-2024',
+      col0_dag: toISODateString('2024-01-01'),
+      col1_dag: toISODateString('2024-01-31'),
     });
     const arbitraryRanges = [{ fra: iso('2025-01-01'), til: iso('2025-12-31') }] as const;
 
@@ -46,8 +48,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
 
     const offentligRow: OffentligeYdelserRow = {
       id: 'oy-alle',
-      fraDato: '01-01-2024',
-      tilDato: '31-01-2024',
+      fraDato: toISODateString('2024-01-01'),
+      tilDato: toISODateString('2024-01-31'),
       ydelsestype: 'sygedagpenge',
     };
     expect(hasOffentligYdelseRowOverlapWithRanges(offentligRow, 'Alle', arbitraryRanges)).toBe(true);
@@ -58,15 +60,15 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
 
     const offentligUgyldig: OffentligeYdelserRow = {
       id: 'oy-alle-invalid',
-      fraDato: '31-02-2024',
-      tilDato: '31-02-2024',
+      fraDato: invalidIso('2024-02-31'),
+      tilDato: invalidIso('2024-02-31'),
       ydelsestype: 'sygedagpenge',
     };
     expect(hasOffentligYdelseRowOverlapWithRanges(offentligUgyldig, 'Alle', arbitraryRanges)).toBe(false);
 
     const loenUgyldig = makeLoenRow({
-      col0_dag: '31-02-2024',
-      col1_dag: '31-02-2024',
+      col0_dag: invalidIso('2024-02-31'),
+      col1_dag: invalidIso('2024-02-31'),
     });
     expect(hasAarsloenRowOverlapWithRanges(loenUgyldig, 'dag', 'Alle', arbitraryRanges)).toBe(false);
   });
@@ -84,15 +86,15 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
 
     const offentligRow: OffentligeYdelserRow = {
       id: 'oy-1',
-      fraDato: '01-01-2024',
-      tilDato: '31-01-2024',
+      fraDato: toISODateString('2024-01-01'),
+      tilDato: toISODateString('2024-01-31'),
       ydelsestype: 'sygedagpenge',
     };
     expect(hasOffentligYdelseRowOverlapWithRanges(offentligRow, 'Perioden', ranges)).toBe(false);
 
     const loenRow = makeLoenRow({
-      col0_dag: '01-01-2024',
-      col1_dag: '31-01-2024',
+      col0_dag: toISODateString('2024-01-01'),
+      col1_dag: toISODateString('2024-01-31'),
     });
     expect(hasAarsloenRowOverlapWithRanges(loenRow, 'dag', 'Perioden', ranges)).toBe(false);
   });
@@ -120,16 +122,16 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
 
     const offentligKunBeregningsperiode: OffentligeYdelserRow = {
       id: 'oy-2',
-      fraDato: '15-01-2024',
-      tilDato: '20-01-2024',
+      fraDato: toISODateString('2024-01-15'),
+      tilDato: toISODateString('2024-01-20'),
       ydelsestype: 'sygedagpenge',
     };
     expect(hasOffentligYdelseRowOverlapWithRanges(offentligKunBeregningsperiode, 'Perioden', ranges)).toBe(true);
 
     const offentligUdenOverlap: OffentligeYdelserRow = {
       id: 'oy-3',
-      fraDato: '01-03-2024',
-      tilDato: '15-03-2024',
+      fraDato: toISODateString('2024-03-01'),
+      tilDato: toISODateString('2024-03-15'),
       ydelsestype: 'sygedagpenge',
     };
     expect(hasOffentligYdelseRowOverlapWithRanges(offentligUdenOverlap, 'Perioden', ranges)).toBe(false);
@@ -151,15 +153,15 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
 
     const offentligUgyldig: OffentligeYdelserRow = {
       id: 'oy-invalid',
-      fraDato: '31-02-2024',
-      tilDato: '31-02-2024',
+      fraDato: invalidIso('2024-02-31'),
+      tilDato: invalidIso('2024-02-31'),
       ydelsestype: 'sygedagpenge',
     };
     expect(hasOffentligYdelseRowOverlapWithRanges(offentligUgyldig, 'Perioden', ranges)).toBe(false);
 
     const loenUgyldigDato = makeLoenRow({
-      col0_dag: '31-02-2024',
-      col1_dag: '31-02-2024',
+      col0_dag: invalidIso('2024-02-31'),
+      col1_dag: invalidIso('2024-02-31'),
     });
     expect(hasAarsloenRowOverlapWithRanges(loenUgyldigDato, 'dag', 'Perioden', ranges)).toBe(false);
   });
@@ -170,14 +172,14 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
 
     const rowIOverlap = makeLoenRow({
       id: 'loen-overlap',
-      col0_dag: '01-01-2024',
-      col1_dag: '31-01-2024',
+      col0_dag: toISODateString('2024-01-01'),
+      col1_dag: toISODateString('2024-01-31'),
       col2: { kind: 'number', value: 1000 },
     });
     const rowUdenforPeriode = makeLoenRow({
       id: 'loen-udenfor',
-      col0_dag: '01-02-2024',
-      col1_dag: '29-02-2024',
+      col0_dag: toISODateString('2024-02-01'),
+      col1_dag: toISODateString('2024-02-29'),
       col2: { kind: 'number', value: 1000 },
     });
 
@@ -206,8 +208,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     const errorRowIds = new Set<string>();
     const rowMedNulBeloeb = makeLoenRow({
       id: 'loen-nul',
-      col0_dag: '15-12-2023',
-      col1_dag: '15-01-2024',
+      col0_dag: toISODateString('2023-12-15'),
+      col1_dag: toISODateString('2024-01-15'),
       col2: { kind: 'number', value: 0 },
     });
 
@@ -228,15 +230,15 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
 
     const ydelseIOverlap: OffentligeYdelserRow = {
       id: 'oy-overlap',
-      fraDato: '15-12-2023',
-      tilDato: '15-01-2024',
+      fraDato: toISODateString('2023-12-15'),
+      tilDato: toISODateString('2024-01-15'),
       ydelsestype: 'sygedagpenge',
       ydelse: { kind: 'number', value: 100 },
     };
     const ydelseUdenforPeriode: OffentligeYdelserRow = {
       id: 'oy-udenfor',
-      fraDato: '01-02-2024',
-      tilDato: '29-02-2024',
+      fraDato: toISODateString('2024-02-01'),
+      tilDato: toISODateString('2024-02-29'),
       ydelsestype: 'sygedagpenge',
       ydelse: { kind: 'number', value: 100 },
     };
@@ -264,8 +266,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     const errorRowIds = new Set<string>();
     const ydelseUdenBeloeb: OffentligeYdelserRow = {
       id: 'oy-uden-beloeb',
-      fraDato: '15-12-2023',
-      tilDato: '15-01-2024',
+      fraDato: toISODateString('2023-12-15'),
+      tilDato: toISODateString('2024-01-15'),
       ydelsestype: 'sygedagpenge',
       ydelse: undefined,
       tillaeg: undefined,
@@ -286,8 +288,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
     const errorRowIds = new Set<string>();
     const ydelseMedNulBeloeb: OffentligeYdelserRow = {
       id: 'oy-nul-beloeb',
-      fraDato: '15-12-2023',
-      tilDato: '15-01-2024',
+      fraDato: toISODateString('2023-12-15'),
+      tilDato: toISODateString('2024-01-15'),
       ydelsestype: 'sygedagpenge',
       ydelse: { kind: 'number', value: 0 },
       tillaeg: undefined,
@@ -309,8 +311,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
 
     const rowFoerPeriode = makeLoenRow({
       id: 'loen-foer',
-      col0_dag: '01-02-2022',
-      col1_dag: '28-02-2022',
+      col0_dag: toISODateString('2022-02-01'),
+      col1_dag: toISODateString('2022-02-28'),
       col2: { kind: 'number', value: 1000 },
     });
 
@@ -331,8 +333,8 @@ describe('erstatningsopgoerelsePdf periodefilter', () => {
 
     const ydelseFoerPeriode: OffentligeYdelserRow = {
       id: 'oy-foer',
-      fraDato: '01-02-2022',
-      tilDato: '28-02-2022',
+      fraDato: toISODateString('2022-02-01'),
+      tilDato: toISODateString('2022-02-28'),
       ydelsestype: 'sygedagpenge',
     };
 

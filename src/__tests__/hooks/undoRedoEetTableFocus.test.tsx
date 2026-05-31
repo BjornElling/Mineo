@@ -20,7 +20,7 @@ import { __resetUndoRedoStoreForTests, undoRedoStore } from '../../stores/undoRe
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { erhvervsevnetabSchema, type ErhvervsevnetabValues } from '../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
-import { coerceToISODateString } from '../../types/branded';
+import { coerceToISODateString, toISODateString } from '../../types/branded';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
 import { __resetDraftHistoryRegistryForTests } from '../../utils/draftHistoryRegistry';
 
@@ -39,10 +39,10 @@ const EetTablePage = () => {
     <div data-section-id="eet-section">
       <EetAslAfgoerelserTable
         tableData={form.values.aslAfgoerelser}
-        skadedato={coerceToISODateString('2020-01-01')}
-        skadedatoMin={coerceToISODateString('2020-01-01')!}
-        beregningsdato={coerceToISODateString('2023-01-01')}
-        skadelidteFodselsdato={coerceToISODateString('1980-01-01')}
+        skadedato={coerceToISODateString(toISODateString('2020-01-01'))}
+        skadedatoMin={coerceToISODateString(toISODateString('2020-01-01'))!}
+        beregningsdato={coerceToISODateString(toISODateString('2023-01-01'))}
+        skadelidteFodselsdato={coerceToISODateString(toISODateString('1980-01-01'))}
         onTableDataChange={handleChange}
       />
     </div>
@@ -141,7 +141,7 @@ describe('undo/redo-fokus i EET-tabellen', () => {
       undoRedoStore.getState().capture(makeOrigin(`${rowId}:0`));
       formPersistenceStore.getState().commitSection(
         'erhvervsevnetab',
-        { ...ERHVERVSEVNETAB_INITIAL_VALUES, aslAfgoerelser: [{ id: rowId, afgoerelsesDato: coerceToISODateString('2024-03-15') }] },
+        { ...ERHVERVSEVNETAB_INITIAL_VALUES, aslAfgoerelser: [{ id: rowId, afgoerelsesDato: coerceToISODateString(toISODateString('2024-03-15')) }] },
         { schemaFingerprint: PERSISTED_DATA_VERSION }
       );
     });
@@ -156,7 +156,7 @@ describe('undo/redo-fokus i EET-tabellen', () => {
         'erhvervsevnetab',
         {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          aslAfgoerelser: [{ id: rowId, afgoerelsesDato: coerceToISODateString('2024-03-15'), virkningsDato: coerceToISODateString('2024-03-20') }],
+          aslAfgoerelser: [{ id: rowId, afgoerelsesDato: coerceToISODateString(toISODateString('2024-03-15')), virkningsDato: coerceToISODateString(toISODateString('2024-03-20')) }],
         },
         { schemaFingerprint: PERSISTED_DATA_VERSION }
       );

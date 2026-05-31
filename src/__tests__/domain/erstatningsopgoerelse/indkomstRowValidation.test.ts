@@ -9,12 +9,15 @@ import {
   getStandardLoenErrorRowIdSet,
   getOffentligeYdelserErrorRowIdSet,
 } from '../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
+import { toISODateString } from '../../../types/branded';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import type { ISODateString } from '../../../types/branded';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
+const invalidIso = (value: string): ISODateString => value as unknown as ISODateString;
 
 // ─── StandardLoenTableRow factory ─────────────────────────────────────────────
 
@@ -183,23 +186,23 @@ describe('buildStandardLoenCellErrors', () => {
     });
 
     it('ingen fejl for gyldigt ISO-datoformat', () => {
-      const errors = buildStandardLoenCellErrors([dagRow('r1', '2024-01-01', '2024-01-31')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', toISODateString('2024-01-01'), toISODateString('2024-01-31'))], 'dag');
       expect(errors).toEqual({});
     });
 
     it('fejl for ugyldigt datoformat', () => {
-      const errors = buildStandardLoenCellErrors([dagRow('r1', '01-01-2024', '2024-01-31')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', '01-01-2024', toISODateString('2024-01-31'))], 'dag');
       expect(errors['r1:col0_dag']).toBe(true);
     });
 
     it('fejl for fra > til (rækkefølgefejl)', () => {
-      const errors = buildStandardLoenCellErrors([dagRow('r1', '2024-01-31', '2024-01-01')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', toISODateString('2024-01-31'), toISODateString('2024-01-01'))], 'dag');
       expect(errors['r1:col0_dag']).toBe(true);
       expect(errors['r1:col1_dag']).toBe(true);
     });
 
     it('ingen fejl for fra = til (samme dag)', () => {
-      const errors = buildStandardLoenCellErrors([dagRow('r1', '2024-06-15', '2024-06-15')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', toISODateString('2024-06-15'), toISODateString('2024-06-15'))], 'dag');
       expect(errors).toEqual({});
     });
 
@@ -221,8 +224,8 @@ describe('buildOffentligeYdelserCellErrors', () => {
   it('ingen fejl for gyldige datoer og beløb', () => {
     const errors = buildOffentligeYdelserCellErrors([
       offentligRow('r1', {
-        fraDato: '2024-01-01',
-        tilDato: '2024-01-31',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelse: amount(1000),
         tillaeg: amount(200),
       }),
@@ -232,7 +235,7 @@ describe('buildOffentligeYdelserCellErrors', () => {
 
   it('fejl for ugyldigt fraDato-format', () => {
     const errors = buildOffentligeYdelserCellErrors([
-      offentligRow('r1', { fraDato: '01-01-2024' }),
+      offentligRow('r1', { fraDato: invalidIso('ikke-en-dato') }),
     ]);
     expect(errors['r1:fraDato']).toBe(true);
   });
@@ -282,8 +285,8 @@ describe('buildOffentligeYdelserCellErrors', () => {
 
   it('returnerer fejl for alle rækker med fejl', () => {
     const rows = [
-      offentligRow('r1', { fraDato: '01-01-2024' }), // fejl
-      offentligRow('r2', { fraDato: '2024-01-01' }), // ok
+      offentligRow('r1', { fraDato: invalidIso('ikke-en-dato') }), // fejl
+      offentligRow('r2', { fraDato: toISODateString('2024-01-01') }), // ok
     ];
     const errors = buildOffentligeYdelserCellErrors(rows);
     expect(errors['r1:fraDato']).toBe(true);
@@ -332,7 +335,7 @@ describe('buildStandardLoenZeroArbejdsdageIssues', () => {
         col2: amount(1000),
       },
     ];
-    values.ferieperioder = [{ id: 'ferie-1', fra: '2024-07-01', til: '2024-07-31' }];
+    values.ferieperioder = [{ id: 'ferie-1', fra: toISODateString('2024-07-01'), til: toISODateString('2024-07-31') }];
 
     const result = buildStandardLoenZeroArbejdsdageIssues(values, af.id);
 
@@ -359,7 +362,7 @@ describe('buildStandardLoenZeroArbejdsdageIssues', () => {
         col2: amount(1000),
       },
     ];
-    values.ferieperioder = [{ id: 'ferie-1', fra: '2024-07-01', til: '2024-07-31' }];
+    values.ferieperioder = [{ id: 'ferie-1', fra: toISODateString('2024-07-01'), til: toISODateString('2024-07-31') }];
 
     const result = buildStandardLoenZeroArbejdsdageIssues(values, af.id);
 
@@ -383,7 +386,7 @@ describe('buildStandardLoenZeroArbejdsdageCellErrorMessages', () => {
         col3: amount(200),
       },
     ];
-    values.ferieperioder = [{ id: 'ferie-1', fra: '2024-07-01', til: '2024-07-31' }];
+    values.ferieperioder = [{ id: 'ferie-1', fra: toISODateString('2024-07-01'), til: toISODateString('2024-07-31') }];
 
     const result = buildStandardLoenZeroArbejdsdageCellErrorMessages(values, af.id);
 
@@ -409,7 +412,7 @@ describe('getOffentligeYdelserErrorRowIdSet', () => {
 
   it('returnerer row id ved ugyldigt fraDato', () => {
     const result = getOffentligeYdelserErrorRowIdSet([
-      offentligRow('r1', { fraDato: '01-01-2024' }),
+      offentligRow('r1', { fraDato: toISODateString('2024-01-01') }),
     ]);
     expect(result.has('r1')).toBe(true);
   });
@@ -418,7 +421,7 @@ describe('getOffentligeYdelserErrorRowIdSet', () => {
     // r1: ugyldigt dato-format (dansk visningsdato) → cellfejl
     // r2: tom række → ingen fejl (hasAnyFilled = false → ingen krav)
     const rows = [
-      offentligRow('r1', { fraDato: '01-01-2024' }),
+      offentligRow('r1', { fraDato: toISODateString('2024-01-01') }),
       offentligRow('r2'),                              // tom række → ingen fejl
     ];
     const result = getOffentligeYdelserErrorRowIdSet(rows);

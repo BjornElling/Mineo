@@ -163,7 +163,8 @@ describe('StyledAmountField expression behavior', () => {
     const input = renderField(undefined, onCommit);
 
     await user.click(input);
-    await user.paste(input, 'adffergregs//sgd1712,56//');
+    input.focus();
+    await user.paste('adffergregs//sgd1712,56//');
     await user.tab();
 
     expect(onCommit).toHaveBeenCalledWith(
@@ -182,7 +183,8 @@ describe('StyledAmountField expression behavior', () => {
     const input = renderField(undefined, onCommit);
 
     await openEditor(user, input);
-    await user.paste(input, '9.602,05 kr.');
+    input.focus();
+    await user.paste('9.602,05 kr.');
     await user.tab();
 
     expect(onCommit).toHaveBeenCalledWith(
@@ -201,7 +203,8 @@ describe('StyledAmountField expression behavior', () => {
     const input = renderField(undefined, onCommit);
 
     await user.click(input);
-    await user.paste(input, '100+25');
+    input.focus();
+    await user.paste('100+25');
     await user.tab();
 
     expect(onCommit).toHaveBeenCalledWith(
@@ -220,7 +223,8 @@ describe('StyledAmountField expression behavior', () => {
     const input = renderField(undefined, onCommit);
 
     await user.click(input);
-    await user.paste(input, '9.602,05 kr.');
+    input.focus();
+    await user.paste('9.602,05 kr.');
     await user.tab();
 
     expect(onCommit).toHaveBeenCalledTimes(1);
@@ -241,7 +245,8 @@ describe('StyledAmountField expression behavior', () => {
     const input = renderField({ kind: 'number', value: 42 }, onCommit);
 
     await user.click(input);
-    await user.paste(input, 'se bilag');
+    input.focus();
+    await user.paste('se bilag');
 
     expect(onCommit).not.toHaveBeenCalled();
     expect(input).toHaveValue('42,00');
@@ -293,7 +298,8 @@ describe('StyledAmountField expression behavior', () => {
     const input = renderField(undefined, onCommit, { allowNegative: false });
 
     await openEditor(user, input);
-    await user.paste(input, '-123');
+    input.focus();
+    await user.paste('-123');
     await user.tab();
 
     expect(onCommit).toHaveBeenCalledWith(
@@ -312,7 +318,8 @@ describe('StyledAmountField expression behavior', () => {
     const input = renderField(undefined, onCommit, { allowNegative: true });
 
     await user.click(input);
-    await user.paste(input, 'abc - 123,45 kr.');
+    input.focus();
+    await user.paste('abc - 123,45 kr.');
     await user.tab();
 
     expect(onCommit).toHaveBeenCalledWith(

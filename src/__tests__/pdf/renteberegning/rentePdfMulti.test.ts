@@ -1,10 +1,11 @@
 import { writeRentePdfContent, generateRentePdf } from '../../../pdf/domains/renteberegning/rentePdf';
 import { createStandardPdfWriter } from '../../../pdf/infrastructure/pdfWriter';
 import type { ProcessInterestPeriod } from '../../../domain/renteberegning/procesrenteCalculator';
+import { toISODateString } from '../../../types/branded';
 
 const makePeriod = (overrides?: Partial<ProcessInterestPeriod>): ProcessInterestPeriod => ({
-  startDate: new Date('2024-01-01'),
-  endDate: new Date('2024-06-30'),
+  startDate: new Date(toISODateString('2024-01-01')),
+  endDate: new Date(toISODateString('2024-06-30')),
   amount: 1000,
   referenceRatePct: 4.25,
   surchargeRatePct: 8,
@@ -18,8 +19,8 @@ describe('writeRentePdfContent', () => {
   it('kan kaldes to gange på samme PdfWriter uden undtagelse', () => {
     const writer = createStandardPdfWriter();
     const periods = [makePeriod()];
-    const startDate = new Date('2024-01-01');
-    const endDate = new Date('2024-06-30');
+    const startDate = new Date(toISODateString('2024-01-01'));
+    const endDate = new Date(toISODateString('2024-06-30'));
 
     expect(() => {
       writeRentePdfContent(writer, 1000, startDate, endDate, periods, {});
@@ -33,7 +34,7 @@ describe('writeRentePdfContent', () => {
     const saveSpy = vi.spyOn(writer, 'save');
     const addFooterSpy = vi.spyOn(writer, 'addFooter');
 
-    writeRentePdfContent(writer, 1000, new Date('2024-01-01'), new Date('2024-06-30'), [makePeriod()], {});
+    writeRentePdfContent(writer, 1000, new Date(toISODateString('2024-01-01')), new Date(toISODateString('2024-06-30')), [makePeriod()], {});
 
     expect(saveSpy).not.toHaveBeenCalled();
     expect(addFooterSpy).not.toHaveBeenCalled();

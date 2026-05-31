@@ -10,6 +10,7 @@ import {
   type StandardLoenRateSegment,
 } from '../../../domain/aarsloen/standardLoenRowCalculations';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
+import { toISODateString } from '../../../types/branded';
 
 const createRow = (overrides: Partial<StandardLoenTableRow> = {}): StandardLoenTableRow => ({
   id: 'row-1',
@@ -35,11 +36,11 @@ describe('calculateStandardLoenRowDerived — Store Bededag', () => {
     // pension  = 30000 × (1 + 0.1295) × 0 = 0
     const row = createRow({ col2: 30000, col3: 0, col4: 0, col5: 0 });
     const satser: StandardLoenSatserInput = {
-      feriePct: '12,5',
+      feriePct: 12.5,
       fritvalgPct: '0',
       shSoPct: '0',
       storeBededagPct: '0,45',
-      pensionPct: '0',
+      pensionPct: 0,
     };
     const result = calculateStandardLoenRowDerived(row, satser);
     expect(result.fpFvShSo).toBeCloseTo(3885, 6);
@@ -50,11 +51,11 @@ describe('calculateStandardLoenRowDerived — Store Bededag', () => {
     //         = 30000 × 1.1295 × 0.10 = 3388.5
     const row = createRow({ col2: 30000, col3: 0, col4: 0, col5: 0 });
     const satser: StandardLoenSatserInput = {
-      feriePct: '12,5',
+      feriePct: 12.5,
       fritvalgPct: '0',
       shSoPct: '0',
       storeBededagPct: '0,45',
-      pensionPct: '10',
+      pensionPct: 10,
     };
     const result = calculateStandardLoenRowDerived(row, satser);
     expect(result.pension).toBeCloseTo(3388.5, 6);
@@ -63,10 +64,10 @@ describe('calculateStandardLoenRowDerived — Store Bededag', () => {
   it('storeBededagPct = 0 giver samme resultat som at udelade feltet', () => {
     const row = createRow({ col2: 30000, col3: 2000, col4: 1000, col5: 300 });
     const medNul: StandardLoenSatserInput = {
-      feriePct: '12,5', fritvalgPct: '1,0', shSoPct: '2,0', storeBededagPct: '0', pensionPct: '10,0',
+      feriePct: 12.5, fritvalgPct: '1,0', shSoPct: '2,0', storeBededagPct: '0', pensionPct: 10.0,
     };
     const udenFelt: StandardLoenSatserInput = {
-      feriePct: '12,5', fritvalgPct: '1,0', shSoPct: '2,0', storeBededagPct: undefined, pensionPct: '10,0',
+      feriePct: 12.5, fritvalgPct: '1,0', shSoPct: '2,0', storeBededagPct: undefined, pensionPct: 10.0,
     };
     const medNulResult = calculateStandardLoenRowDerived(row, medNul);
     const udenFeltResult = calculateStandardLoenRowDerived(row, udenFelt);
@@ -85,11 +86,11 @@ describe('calculateStandardLoenRowDerived', () => {
       col5: 300,
     });
     const satser: StandardLoenSatserInput = {
-      feriePct: '12,5',
+      feriePct: 12.5,
       fritvalgPct: '1,0',
       shSoPct: '2,0',
       storeBededagPct: '0,45',
-      pensionPct: '10,0',
+      pensionPct: 10.0,
     };
 
     // totalPct = 0.1595
@@ -114,11 +115,11 @@ describe('calculateStandardLoenRowDerived', () => {
       col5: 1000,
     });
     const satser: StandardLoenSatserInput = {
-      feriePct: '0',
+      feriePct: 0,
       fritvalgPct: '0',
       shSoPct: '0',
       storeBededagPct: '0',
-      pensionPct: '10',
+      pensionPct: 10,
     };
 
     // loenPlusLoen2 = 15000, totalPct = 0
@@ -133,11 +134,11 @@ describe('calculateStandardLoenRowDerived', () => {
 
   it('behandler de to lønfelter ens og summerer dem blot i beregningen', () => {
     const satser: StandardLoenSatserInput = {
-      feriePct: '12,5',
+      feriePct: 12.5,
       fritvalgPct: '1,0',
       shSoPct: '2,0',
       storeBededagPct: '0,45',
-      pensionPct: '10,0',
+      pensionPct: 10.0,
     };
 
     const samletICol2 = calculateStandardLoenRowDerived(createRow({ col2: 32000, col3: 0, col4: 1000, col5: 300 }), satser);
@@ -154,11 +155,11 @@ describe('calculateStandardLoenRowDerived', () => {
       col5: 136,
     });
     const satser: StandardLoenSatserInput = {
-      feriePct: '12,5',
+      feriePct: 12.5,
       fritvalgPct: '0',
       shSoPct: '6,9',
       storeBededagPct: '0',
-      pensionPct: '8,15',
+      pensionPct: 8.15,
     };
 
     // totalPct = 0.194
@@ -179,15 +180,15 @@ describe('calculateStandardLoenRowDerived med rateSegments', () => {
   // segment B: 16–31 jan (16 dage), shSoPct = 6,9 %
   // share A = 15/31, share B = 16/31
   const satser: StandardLoenSatserInput = {
-    feriePct: '0',
+    feriePct: 0,
     fritvalgPct: '0',
     shSoPct: '0',
     storeBededagPct: '0',
-    pensionPct: '0',
+    pensionPct: 0,
   };
   const rateSegments: StandardLoenRateSegment[] = [
-    { fra: '2024-01-01', til: '2024-01-15', satser: { ...satser, shSoPct: '2,0' } },
-    { fra: '2024-01-16', til: '2024-01-31', satser: { ...satser, shSoPct: '6,9' } },
+    { fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-15'), satser: { ...satser, shSoPct: '2,0' } },
+    { fra: toISODateString('2024-01-16'), til: toISODateString('2024-01-31'), satser: { ...satser, shSoPct: '6,9' } },
   ];
   const row = createRow({
     col0_maaned: '1',
@@ -217,15 +218,15 @@ describe('calculateStandardLoenRowDerived med rateSegments', () => {
 
   it('afrunder segmenteret pension og samlet til kanoniske 2 decimaler efter summering', () => {
     const roundedSatser: StandardLoenSatserInput = {
-      feriePct: '12,5',
+      feriePct: 12.5,
       fritvalgPct: '1,0',
       shSoPct: '0',
       storeBededagPct: '0',
-      pensionPct: '10,0',
+      pensionPct: 10.0,
     };
     const roundedSegments: StandardLoenRateSegment[] = [
-      { fra: '2024-01-01', til: '2024-01-15', satser: { ...roundedSatser, shSoPct: '2,0' } },
-      { fra: '2024-01-16', til: '2024-01-31', satser: { ...roundedSatser, shSoPct: '6,9' } },
+      { fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-15'), satser: { ...roundedSatser, shSoPct: '2,0' } },
+      { fra: toISODateString('2024-01-16'), til: toISODateString('2024-01-31'), satser: { ...roundedSatser, shSoPct: '6,9' } },
     ];
     const roundedRow = createRow({
       col0_maaned: '1',
@@ -292,8 +293,8 @@ describe('calculateStandardLoenRowDerived med rateSegments', () => {
 describe('calculateStandardLoenProjectedAmounts', () => {
   it('summerer valgte dage med de satser der gælder på de enkelte dage', () => {
     const row = createRow({
-      col0_dag: '26-02-2024',
-      col1_dag: '05-03-2024',
+      col0_dag: toISODateString('2024-02-26'),
+      col1_dag: toISODateString('2024-03-05'),
       col2: 900,
     });
     const satser: StandardLoenSatserInput = {
@@ -307,32 +308,32 @@ describe('calculateStandardLoenProjectedAmounts', () => {
     const result = calculateStandardLoenProjectedAmounts(row, satser, {
       loenperiode: 'dag',
       allocationDates: [
-        '2024-02-26',
-        '2024-02-27',
-        '2024-02-28',
-        '2024-02-29',
-        '2024-03-01',
-        '2024-03-02',
-        '2024-03-03',
-        '2024-03-04',
-        '2024-03-05',
+        toISODateString('2024-02-26'),
+        toISODateString('2024-02-27'),
+        toISODateString('2024-02-28'),
+        toISODateString('2024-02-29'),
+        toISODateString('2024-03-01'),
+        toISODateString('2024-03-02'),
+        toISODateString('2024-03-03'),
+        toISODateString('2024-03-04'),
+        toISODateString('2024-03-05'),
       ],
       selectedDates: [
-        '2024-03-01',
-        '2024-03-02',
-        '2024-03-03',
-        '2024-03-04',
-        '2024-03-05',
+        toISODateString('2024-03-01'),
+        toISODateString('2024-03-02'),
+        toISODateString('2024-03-03'),
+        toISODateString('2024-03-04'),
+        toISODateString('2024-03-05'),
       ],
       rateSegments: [
         {
-          fra: '2024-02-26',
-          til: '2024-02-29',
+          fra: toISODateString('2024-02-26'),
+          til: toISODateString('2024-02-29'),
           satser: { ...satser, shSoPct: 7.0 },
         },
         {
-          fra: '2024-03-01',
-          til: '2024-03-05',
+          fra: toISODateString('2024-03-01'),
+          til: toISODateString('2024-03-05'),
           satser: { ...satser, shSoPct: 8.8 },
         },
       ],
@@ -489,12 +490,12 @@ describe('hasCompletePeriodForLoenperiode', () => {
   });
 
   it('dag: begge felter sat → true', () => {
-    const row = createRow({ col0_dag: '01-01-2024', col1_dag: '31-01-2024' });
+    const row = createRow({ col0_dag: toISODateString('2024-01-01'), col1_dag: toISODateString('2024-01-31') });
     expect(hasCompletePeriodForLoenperiode(row, 'dag')).toBe(true);
   });
 
   it('dag: kun til-felt sat → false', () => {
-    const row = createRow({ col0_dag: '', col1_dag: '31-01-2024' });
+    const row = createRow({ col0_dag: '', col1_dag: toISODateString('2024-01-31') });
     expect(hasCompletePeriodForLoenperiode(row, 'dag')).toBe(false);
   });
 });
@@ -502,7 +503,7 @@ describe('hasCompletePeriodForLoenperiode', () => {
 // ─── hasAtLeastOneValidRow ───────────────────────────────────────────────────
 
 describe('hasAtLeastOneValidRow', () => {
-  const satser: StandardLoenSatserInput = { feriePct: '0', fritvalgPct: '0', shSoPct: '0', storeBededagPct: '0', pensionPct: '0' };
+  const satser: StandardLoenSatserInput = { feriePct: 0, fritvalgPct: '0', shSoPct: '0', storeBededagPct: '0', pensionPct: 0 };
 
   it('tom liste → false', () => {
     expect(hasAtLeastOneValidRow([], 'maaned', satser)).toBe(false);

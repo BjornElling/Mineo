@@ -64,7 +64,7 @@ describe('renderOffentligeYdelserSection – gate (ingen rækker)', () => {
     const startEoBilagPage = vi.fn();
     ctx.startEoBilagPage = startEoBilagPage;
     ctx.eoValues.offentligeYdelserRows = [
-      { id: 'r1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelsestype: 'sygedagpenge', ydelse: undefined, tillaeg: undefined },
+      { id: 'r1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelsestype: 'sygedagpenge', ydelse: undefined, tillaeg: undefined },
     ];
 
     renderOffentligeYdelserSection(ctx);
@@ -92,7 +92,7 @@ describe('renderOffentligeYdelserSection – startEoBilagPage', () => {
     const startEoBilagPage = vi.fn();
     ctx.startEoBilagPage = startEoBilagPage;
     ctx.eoValues.offentligeYdelserRows = [
-      { id: 'r1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
+      { id: 'r1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
     ];
 
     renderOffentligeYdelserSection(ctx);
@@ -109,8 +109,8 @@ describe('renderOffentligeYdelserSection – gruppering per ydelsestype', () => 
     const renderSubheader = vi.fn();
     ctx.renderSubheader = renderSubheader;
     ctx.eoValues.offentligeYdelserRows = [
-      { id: 'r1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
-      { id: 'r2', fraDato: '01-02-2024', tilDato: '29-02-2024', ydelsestype: 'dagpenge', ydelse: { kind: 'number', value: 300 }, tillaeg: undefined },
+      { id: 'r1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
+      { id: 'r2', fraDato: toISODateString('2024-02-01'), tilDato: toISODateString('2024-02-29'), ydelsestype: 'dagpenge', ydelse: { kind: 'number', value: 300 }, tillaeg: undefined },
     ];
 
     renderOffentligeYdelserSection(ctx);
@@ -124,8 +124,8 @@ describe('renderOffentligeYdelserSection – gruppering per ydelsestype', () => 
     const renderSubheader = vi.fn();
     ctx.renderSubheader = renderSubheader;
     ctx.eoValues.offentligeYdelserRows = [
-      { id: 'r1', fraDato: '01-01-2024', tilDato: '31-01-2024', ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
-      { id: 'r2', fraDato: '01-02-2024', tilDato: '29-02-2024', ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 400 }, tillaeg: undefined },
+      { id: 'r1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
+      { id: 'r2', fraDato: toISODateString('2024-02-01'), tilDato: toISODateString('2024-02-29'), ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 400 }, tillaeg: undefined },
     ];
 
     renderOffentligeYdelserSection(ctx);
@@ -144,8 +144,8 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
     eoValues.offentligeYdelserRows = [
       {
         id: 'row-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'sygedagpenge',
         ydelse: { kind: 'number', value: 1000 },
         tillaeg: { kind: 'number', value: 100 },
@@ -222,16 +222,16 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     eoValues.offentligeYdelserRows = [
       {
         id: 'midlertidigt-eet-1',
-        fraDato: '01-01-2024',
-        tilDato: '10-01-2024',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-10'),
         ydelsestype: 'midlertidigt_eet',
         ydelse: { kind: 'number', value: 101 },
         tillaeg: undefined,
       },
       {
         id: 'midlertidigt-eet-2',
-        fraDato: '11-01-2024',
-        tilDato: '20-01-2024',
+        fraDato: toISODateString('2024-01-11'),
+        tilDato: toISODateString('2024-01-20'),
         ydelsestype: 'midlertidigt_eet',
         ydelse: { kind: 'number', value: 101 },
         tillaeg: undefined,
@@ -271,8 +271,8 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
     eoValues.midlertidigtEetFraEetSiden = 'Ja';
     eoValues.offentligeYdelserRows = [{
       id: 'midlertidigt-eet-1',
-      fraDato: '01-01-2024',
-      tilDato: '10-01-2024',
+      fraDato: toISODateString('2024-01-01'),
+      tilDato: toISODateString('2024-01-10'),
       ydelsestype: 'midlertidigt_eet',
       ydelse: { kind: 'number', value: 101 },
       tillaeg: undefined,

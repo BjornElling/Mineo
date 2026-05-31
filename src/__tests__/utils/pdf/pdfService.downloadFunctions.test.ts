@@ -105,6 +105,7 @@ vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPd
   eoSnapshotToTafPerYearPdfDocument: mockEoSnapshotToTafPerYearPdfDocument,
 }));
 
+import { toISODateString } from '../../../types/branded';
 import {
   downloadSatserPdf,
   downloadRentePdf,
@@ -228,7 +229,7 @@ describe('downloadRentePdf', () => {
     const result = await downloadRentePdf({
       beloeb: 5000,
       actualInterestDate: '01-06-2024',
-      beregningsdato: '01-01-2024',
+      beregningsdato: toISODateString('2024-01-01'),
       settings,
       persistedStamdata: null,
     });
@@ -241,7 +242,7 @@ describe('downloadRentePdf', () => {
     const result = await downloadRentePdf({
       beloeb: 0,
       actualInterestDate: '01-01-2024',
-      beregningsdato: '01-01-2024',
+      beregningsdato: toISODateString('2024-01-01'),
       settings,
       persistedStamdata: null,
     });
@@ -253,7 +254,7 @@ describe('downloadRentePdf', () => {
 // ─── downloadReguleringPdf ────────────────────────────────────────────────────
 
 describe('downloadReguleringPdf', () => {
-  const validInterval = { fraDato: '2024-01-01', tilDato: '2024-12-31' };
+  const validInterval = { fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-12-31') };
 
   it('returnerer success=true og kalder generator', async () => {
     const result = await downloadReguleringPdf({
@@ -324,7 +325,7 @@ describe('downloadKrlPdf', () => {
 
 describe('EET PDF downloads', () => {
   it('videresender løbende-yddelser computation uændret til generatoren', async () => {
-    const computation = { beregningsdato: '2026-01-14', afgoerelser: [] } as never;
+    const computation = { beregningsdato: toISODateString('2026-01-14'), afgoerelser: [] } as never;
 
     const result = await downloadLoebendeYdelserPdf({
       computation,
@@ -362,7 +363,7 @@ describe('EET PDF downloads', () => {
   });
 
   it('videresender EET efter EAL-computation uændret til generatoren', async () => {
-    const computation = { beregningsdato: '2026-01-15', ealKrav: 123 } as never;
+    const computation = { beregningsdato: toISODateString('2026-01-15'), ealKrav: 123 } as never;
 
     const result = await downloadEfterEalPdf({
       computation,
@@ -380,9 +381,9 @@ describe('EET PDF downloads', () => {
 
   it('videresender differencekrav-computation uændret til generatoren, inklusive løbende bilag med dagen-før-beregningsdato', async () => {
     const computation = {
-      beregningsdato: '2026-01-15',
-      dagFoerBeregningsdato: '2026-01-14',
-      loebendeComputation: { beregningsdato: '2026-01-14', afgoerelser: [] },
+      beregningsdato: toISODateString('2026-01-15'),
+      dagFoerBeregningsdato: toISODateString('2026-01-14'),
+      loebendeComputation: { beregningsdato: toISODateString('2026-01-14'), afgoerelser: [] },
     } as never;
     const bilagSelection = {
       loebendeYdelser: true,
@@ -482,11 +483,11 @@ describe('downloadErstatningsopgoerelsePdf', () => {
 
   it('videresender midlertidigt EET-grupper til generatoren', async () => {
     const midlertidigtEetGroups = [{
-      afgoerelsesdato: '2024-01-01' as never,
+      afgoerelsesdato: toISODateString('2024-01-01') as never,
       rows: [{
         id: 'oy-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'midlertidigt_eet',
       }],
     }];

@@ -1,6 +1,7 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { computeEetDifferencekravCalculation } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
+import { toISODateString } from '../../../types/branded';
 
 // Fælles stamdata for alle ≤ 2 år-tests i denne fil:
 //   skadedato 2019-04-01, fødselsdato 1955-07-01
@@ -15,21 +16,21 @@ describe('computeEetDifferencekravCalculation', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2026-12-01',
+          beregningsdato: toISODateString('2026-12-01'),
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
-            afgoerelsesDato: '01-01-2024',
-            virkningsDato: '01-01-2024',
+            afgoerelsesDato: toISODateString('2024-01-01'),
+            virkningsDato: toISODateString('2024-01-01'),
             eetPct: 60,
-            kapDato: '01-01-2025',
+            kapDato: toISODateString('2025-01-01'),
             kapPct: 30,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           }],
         },
-        skadedato: '2019-04-01',
-        skadelidteFodselsdato: '1980-01-01',
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1980-01-01'),
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
         indregnMerErstatningVedForhoejetPensionsalder: false,
       });
@@ -49,12 +50,12 @@ describe('computeEetDifferencekravCalculation', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2022-04-01',
+          beregningsdato: toISODateString('2022-04-01'),
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
-            afgoerelsesDato: '01-06-2019',
-            virkningsDato: '01-06-2019',
+            afgoerelsesDato: toISODateString('2019-06-01'),
+            virkningsDato: toISODateString('2019-06-01'),
             eetPct: 60,
             kapDato: undefined,
             kapPct: undefined,
@@ -62,8 +63,8 @@ describe('computeEetDifferencekravCalculation', () => {
             tidlKapDato: undefined,
           }],
         },
-        skadedato: '2019-04-01',
-        skadelidteFodselsdato: '1955-07-01',
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
         indregnMerErstatningVedForhoejetPensionsalder: false,
       });
@@ -71,13 +72,13 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(result.hasBlockingErrors).toBe(false);
       expect(result.computation).not.toBeNull();
       expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerAarsag).toBe('beregningsdato');
-      expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerDato).toBe('2022-03-31');
+      expect(result.computation?.loebendeComputation?.afgoerelser[0]?.ophoerDato).toBe(toISODateString('2022-03-31'));
       expect(result.computation?.fradragKapitaliseretEet).toBe(0);
       expect(result.computation?.proformaKapitalisering).toBeNull();
       expect(result.computation?.resterendeLoebendeYdelser).toEqual({
         loebendeEetPct: 60,
-        beregningsdato: '2022-04-01',
-        dagenFoerFolkepensionsdato: '2022-06-30',
+        beregningsdato: toISODateString('2022-04-01'),
+        dagenFoerFolkepensionsdato: toISODateString('2022-06-30'),
         aarsydelse: 194400,
         maanedligYdelse: 16200,
         tilbageraevendeMaaneder: 3,
@@ -98,21 +99,21 @@ describe('computeEetDifferencekravCalculation', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2022-09-01',
+          beregningsdato: toISODateString('2022-09-01'),
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
-            afgoerelsesDato: '01-10-2021',
-            virkningsDato: '01-01-2020',
+            afgoerelsesDato: toISODateString('2021-10-01'),
+            virkningsDato: toISODateString('2020-01-01'),
             eetPct: 60,
-            kapDato: '01-10-2021',
+            kapDato: toISODateString('2021-10-01'),
             kapPct: 60,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           }],
         },
-        skadedato: '2019-04-01',
-        skadelidteFodselsdato: '1955-07-01',
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
         indregnMerErstatningVedForhoejetPensionsalder: false,
       });
@@ -138,28 +139,28 @@ describe('computeEetDifferencekravCalculation', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2022-09-01',
+          beregningsdato: toISODateString('2022-09-01'),
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
-            afgoerelsesDato: '01-10-2021',
-            virkningsDato: '01-01-2020',
+            afgoerelsesDato: toISODateString('2021-10-01'),
+            virkningsDato: toISODateString('2020-01-01'),
             eetPct: 60,
-            kapDato: '01-10-2021',
+            kapDato: toISODateString('2021-10-01'),
             kapPct: 60,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           }],
         },
-        skadedato: '2019-04-01',
-        skadelidteFodselsdato: '1955-07-01',
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
         indregnMerErstatningVedForhoejetPensionsalder: false,
       });
 
       const loebendeAfg = result.computation?.loebendeComputation?.afgoerelser[0];
       expect(loebendeAfg?.ophoerAarsag).toBe('kapitalisering');
-      expect(loebendeAfg?.ophoerDato).toBe('2021-09-30');
+      expect(loebendeAfg?.ophoerDato).toBe(toISODateString('2021-09-30'));
     });
   });
 
@@ -172,21 +173,21 @@ describe('computeEetDifferencekravCalculation', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2022-09-01',
+          beregningsdato: toISODateString('2022-09-01'),
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
-            afgoerelsesDato: '01-10-2021',
-            virkningsDato: '01-10-2021',
+            afgoerelsesDato: toISODateString('2021-10-01'),
+            virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
-            kapDato: '01-10-2021',
+            kapDato: toISODateString('2021-10-01'),
             kapPct: 60,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           }],
         },
-        skadedato: '2019-04-01',
-        skadelidteFodselsdato: '1955-07-01',
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
         indregnMerErstatningVedForhoejetPensionsalder: false,
       });
@@ -210,21 +211,21 @@ describe('computeEetDifferencekravCalculation', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2021-12-01',
+          beregningsdato: toISODateString('2021-12-01'),
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
-            afgoerelsesDato: '01-10-2021',
-            virkningsDato: '01-10-2021',
+            afgoerelsesDato: toISODateString('2021-10-01'),
+            virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
-            kapDato: '01-10-2021',
+            kapDato: toISODateString('2021-10-01'),
             kapPct: 30,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           }],
         },
-        skadedato: '2019-04-01',
-        skadelidteFodselsdato: '1955-07-01',
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
         indregnMerErstatningVedForhoejetPensionsalder: false,
       });
@@ -238,8 +239,8 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(c.proformaKapitalisering).toBeNull();
       expect(c.resterendeLoebendeYdelser).toEqual({
         loebendeEetPct: 30,
-        beregningsdato: '2021-12-01',
-        dagenFoerFolkepensionsdato: '2022-06-30',
+        beregningsdato: toISODateString('2021-12-01'),
+        dagenFoerFolkepensionsdato: toISODateString('2022-06-30'),
         aarsydelse: 96084,
         maanedligYdelse: 8007,
         tilbageraevendeMaaneder: 7,
@@ -253,21 +254,21 @@ describe('computeEetDifferencekravCalculation', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2022-09-01',
+          beregningsdato: toISODateString('2022-09-01'),
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
-            afgoerelsesDato: '01-10-2021',
-            virkningsDato: '01-10-2021',
+            afgoerelsesDato: toISODateString('2021-10-01'),
+            virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
-            kapDato: '01-10-2021',
+            kapDato: toISODateString('2021-10-01'),
             kapPct: 60,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           }],
         },
-        skadedato: '2019-04-01',
-        skadelidteFodselsdato: '1955-07-01',
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
         indregnMerErstatningVedForhoejetPensionsalder: false,
       });
@@ -280,21 +281,21 @@ describe('computeEetDifferencekravCalculation', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2022-09-01',
+          beregningsdato: toISODateString('2022-09-01'),
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
-            afgoerelsesDato: '01-10-2021',
-            virkningsDato: '01-10-2021',
+            afgoerelsesDato: toISODateString('2021-10-01'),
+            virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
-            kapDato: '01-10-2021',
+            kapDato: toISODateString('2021-10-01'),
             kapPct: 30,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           }],
         },
-        skadedato: '2019-04-01',
-        skadelidteFodselsdato: '1955-07-01',
+        skadedato: toISODateString('2019-04-01'),
+        skadelidteFodselsdato: toISODateString('1955-07-01'),
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
         indregnMerErstatningVedForhoejetPensionsalder: false,
       });
@@ -309,23 +310,23 @@ describe('computeEetDifferencekravCalculation', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2021-12-01',
+        beregningsdato: toISODateString('2021-12-01'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-10-2021',
-            virkningsDato: '01-10-2021',
+            afgoerelsesDato: toISODateString('2021-10-01'),
+            virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
-            kapDato: '01-10-2021',
+            kapDato: toISODateString('2021-10-01'),
             kapPct: 30,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
           {
             id: 'a2',
-            afgoerelsesDato: '01-02-2022',
-            virkningsDato: '01-02-2022',
+            afgoerelsesDato: toISODateString('2022-02-01'),
+            virkningsDato: toISODateString('2022-02-01'),
             eetPct: 80,
             kapDato: undefined,
             kapPct: undefined,
@@ -334,8 +335,8 @@ describe('computeEetDifferencekravCalculation', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1955-07-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
@@ -351,13 +352,13 @@ describe('computeEetDifferencekravCalculation', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2021-12-01',
+        beregningsdato: toISODateString('2021-12-01'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-02-2022',
-            virkningsDato: '01-10-2021',
+            afgoerelsesDato: toISODateString('2022-02-01'),
+            virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
             kapDato: undefined,
             kapPct: undefined,
@@ -366,8 +367,8 @@ describe('computeEetDifferencekravCalculation', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1955-07-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
@@ -383,22 +384,22 @@ describe('computeEetDifferencekravCalculation', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2021-12-01',
+        beregningsdato: toISODateString('2021-12-01'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-10-2021',
-            virkningsDato: '01-10-2021',
+            afgoerelsesDato: toISODateString('2021-10-01'),
+            virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
-            kapDato: '01-10-2021',
+            kapDato: toISODateString('2021-10-01'),
             kapPct: 30,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
           {
             id: 'a2',
-            afgoerelsesDato: '01-11-2021',
+            afgoerelsesDato: toISODateString('2021-11-01'),
             virkningsDato: undefined,
             eetPct: 80,
             kapDato: undefined,
@@ -408,8 +409,8 @@ describe('computeEetDifferencekravCalculation', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1955-07-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
@@ -425,21 +426,21 @@ describe('computeEetDifferencekravCalculation', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-01-15',
+        beregningsdato: toISODateString('2026-01-15'),
         aslAarsloen: asAmount(339000),
         aslAfgoerelser: [{
           id: 'a1',
-          afgoerelsesDato: '15-01-2026',
-          virkningsDato: '15-01-2026',
+          afgoerelsesDato: toISODateString('2026-01-15'),
+          virkningsDato: toISODateString('2026-01-15'),
           eetPct: 15,
-          kapDato: '15-01-2026',
+          kapDato: toISODateString('2026-01-15'),
           kapPct: 15,
           afgoerelseType: 'Endelig',
           tidlKapDato: undefined,
         }],
       },
-      skadedato: '2022-09-17',
-      skadelidteFodselsdato: '1978-05-03',
+      skadedato: toISODateString('2022-09-17'),
+      skadelidteFodselsdato: toISODateString('1978-05-03'),
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
@@ -447,29 +448,29 @@ describe('computeEetDifferencekravCalculation', () => {
     expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'warn-virkningsdato-after-beregningsdato')).toBe(false);
     expect(result.issues.some((issue) => issue.id === 'warn-kap-dato-after-beregningsdato')).toBe(false);
-    expect(result.computation?.dagFoerBeregningsdato).toBe('2026-01-14');
-    expect(result.computation?.loebendeComputation?.beregningsdato).toBe('2026-01-14');
+    expect(result.computation?.dagFoerBeregningsdato).toBe(toISODateString('2026-01-14'));
+    expect(result.computation?.loebendeComputation?.beregningsdato).toBe(toISODateString('2026-01-14'));
   });
 
   it('viser dato-advarsler og præcis fejl når alle indtastede afgørelser først har virkning efter beregningsdatoen', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-01-14',
+        beregningsdato: toISODateString('2026-01-14'),
         aslAarsloen: asAmount(339000),
         aslAfgoerelser: [{
           id: 'a1',
-          afgoerelsesDato: '15-01-2026',
-          virkningsDato: '15-01-2026',
+          afgoerelsesDato: toISODateString('2026-01-15'),
+          virkningsDato: toISODateString('2026-01-15'),
           eetPct: 15,
-          kapDato: '15-01-2026',
+          kapDato: toISODateString('2026-01-15'),
           kapPct: 15,
           afgoerelseType: 'Endelig',
           tidlKapDato: undefined,
         }],
       },
-      skadedato: '2022-09-17',
-      skadelidteFodselsdato: '1978-05-03',
+      skadedato: toISODateString('2022-09-17'),
+      skadelidteFodselsdato: toISODateString('1978-05-03'),
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
@@ -487,7 +488,7 @@ describe('computeEetDifferencekravCalculation', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-01-14',
+        beregningsdato: toISODateString('2026-01-14'),
         aslAarsloen: asAmount(339000),
         aslAfgoerelser: [{
           id: 'a1',
@@ -500,8 +501,8 @@ describe('computeEetDifferencekravCalculation', () => {
           tidlKapDato: undefined,
         }],
       },
-      skadedato: '2022-09-17',
-      skadelidteFodselsdato: '1978-05-03',
+      skadedato: toISODateString('2022-09-17'),
+      skadelidteFodselsdato: toISODateString('1978-05-03'),
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
@@ -514,22 +515,22 @@ describe('computeEetDifferencekravCalculation', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-01-14',
+        beregningsdato: toISODateString('2026-01-14'),
         aslAarsloen: asAmount(339000),
         ealEetPct: 0,
         aslAfgoerelser: [{
           id: 'a1',
-          afgoerelsesDato: '15-01-2026',
-          virkningsDato: '15-01-2026',
+          afgoerelsesDato: toISODateString('2026-01-15'),
+          virkningsDato: toISODateString('2026-01-15'),
           eetPct: 15,
-          kapDato: '15-01-2026',
+          kapDato: toISODateString('2026-01-15'),
           kapPct: 15,
           afgoerelseType: 'Endelig',
           tidlKapDato: undefined,
         }],
       },
-      skadedato: '2022-09-17',
-      skadelidteFodselsdato: '1978-05-03',
+      skadedato: toISODateString('2022-09-17'),
+      skadelidteFodselsdato: toISODateString('1978-05-03'),
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
@@ -543,12 +544,12 @@ describe('computeEetDifferencekravCalculation', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-01-01',
+        beregningsdato: toISODateString('2026-01-01'),
         aslAarsloen: asAmount(632000),
         aslAfgoerelser: [{
           id: 'a1',
-          afgoerelsesDato: '2025-01-01',
-          virkningsDato: '2025-01-01',
+          afgoerelsesDato: toISODateString('2025-01-01'),
+          virkningsDato: toISODateString('2025-01-01'),
           eetPct: 50,
           kapDato: undefined,
           kapPct: undefined,
@@ -556,8 +557,8 @@ describe('computeEetDifferencekravCalculation', () => {
           tidlKapDato: undefined,
         }],
       },
-      skadedato: '2011-01-01',
-      skadelidteFodselsdato: '1961-11-01',
+      skadedato: toISODateString('2011-01-01'),
+      skadelidteFodselsdato: toISODateString('1961-11-01'),
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
@@ -572,12 +573,12 @@ describe('computeEetDifferencekravCalculation', () => {
     const result = computeEetDifferencekravCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-12-01',
+        beregningsdato: toISODateString('2026-12-01'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [{
           id: 'a1',
-          afgoerelsesDato: '01-01-2024',
-          virkningsDato: '01-01-2024',
+          afgoerelsesDato: toISODateString('2024-01-01'),
+          virkningsDato: toISODateString('2024-01-01'),
           eetPct: 60,
           kapDato: undefined,
           kapPct: undefined,
@@ -585,8 +586,8 @@ describe('computeEetDifferencekravCalculation', () => {
           tidlKapDato: undefined,
         }],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
       endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
       indregnMerErstatningVedForhoejetPensionsalder: false,
     });
@@ -611,13 +612,13 @@ describe('computeEetDifferencekravCalculation', () => {
       computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2021-03-01',
+          beregningsdato: toISODateString('2021-03-01'),
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [
             {
               id: 'midl',
-              afgoerelsesDato: '01-10-2019',
-              virkningsDato: '01-02-2019',
+              afgoerelsesDato: toISODateString('2019-10-01'),
+              virkningsDato: toISODateString('2019-02-01'),
               eetPct: 55,
               kapDato: undefined,
               kapPct: undefined,
@@ -626,8 +627,8 @@ describe('computeEetDifferencekravCalculation', () => {
             },
             {
               id: 'endelig',
-              afgoerelsesDato: '01-12-2019',
-              virkningsDato: '01-09-2019',
+              afgoerelsesDato: toISODateString('2019-12-01'),
+              virkningsDato: toISODateString('2019-09-01'),
               eetPct: 65,
               kapDato: undefined,
               kapPct: undefined,
@@ -636,8 +637,8 @@ describe('computeEetDifferencekravCalculation', () => {
             },
           ],
         },
-        skadedato: '2015-01-01',
-        skadelidteFodselsdato: '1980-01-01',
+        skadedato: toISODateString('2015-01-01'),
+        skadelidteFodselsdato: toISODateString('1980-01-01'),
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: flag,
         indregnMerErstatningVedForhoejetPensionsalder: false,
       });
@@ -658,15 +659,15 @@ describe('computeEetDifferencekravCalculation', () => {
       const midl = result.computation?.afgoerelser.find((a) => a.rowId === 'midl');
       const tvk = midl?.tilbagevirkendeKraftFradrag;
       expect(tvk).not.toBeNull();
-      expect(tvk?.endeligVirkningsdato).toBe('2019-09-01');
-      expect(tvk?.fra).toBe('2019-09-01');
+      expect(tvk?.endeligVirkningsdato).toBe(toISODateString('2019-09-01'));
+      expect(tvk?.fra).toBe(toISODateString('2019-09-01'));
       // Låst kronebeløb: midlertidigs egen 55 %-ydelse for delperioden [01-09-2019, 31-12-2019].
       // Den endelige danner en overlap-periode i samme vindue med bidraget (65−55)=10 %,
       // så summen i vinduet svarer til den endeliges fulde sats uden dobbelttælling.
       expect(tvk).toEqual({
-        endeligVirkningsdato: '2019-09-01',
-        fra: '2019-09-01',
-        til: '2019-12-31',
+        endeligVirkningsdato: toISODateString('2019-09-01'),
+        fra: toISODateString('2019-09-01'),
+        til: toISODateString('2019-12-31'),
         beloeb: 60776,
       });
       // Fradraget skal øge det samlede løbende fradrag med præcis tvk-beløbet.
@@ -688,13 +689,13 @@ describe('computeEetDifferencekravCalculation', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2021-03-01',
+          beregningsdato: toISODateString('2021-03-01'),
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [
             {
               id: 'midl',
-              afgoerelsesDato: '01-02-2019',
-              virkningsDato: '01-02-2019',
+              afgoerelsesDato: toISODateString('2019-02-01'),
+              virkningsDato: toISODateString('2019-02-01'),
               eetPct: 55,
               kapDato: undefined,
               kapPct: undefined,
@@ -703,8 +704,8 @@ describe('computeEetDifferencekravCalculation', () => {
             },
             {
               id: 'endelig',
-              afgoerelsesDato: '15-08-2019',
-              virkningsDato: '01-10-2019',
+              afgoerelsesDato: toISODateString('2019-08-15'),
+              virkningsDato: toISODateString('2019-10-01'),
               eetPct: 65,
               kapDato: undefined,
               kapPct: undefined,
@@ -713,8 +714,8 @@ describe('computeEetDifferencekravCalculation', () => {
             },
           ],
         },
-        skadedato: '2015-01-01',
-        skadelidteFodselsdato: '1980-01-01',
+        skadedato: toISODateString('2015-01-01'),
+        skadelidteFodselsdato: toISODateString('1980-01-01'),
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: true,
         indregnMerErstatningVedForhoejetPensionsalder: false,
       });
@@ -724,7 +725,7 @@ describe('computeEetDifferencekravCalculation', () => {
       const endelig = result.computation?.afgoerelser.find((a) => a.rowId === 'endelig');
       // Midlertidigs løbende ydelse stopper dagen før den endeliges cutover.
       expect(result.computation?.loebendeComputation?.afgoerelser.find((a) => a.rowId === 'midl')?.ophoerDato)
-        .toBe('2019-09-30');
+        .toBe(toISODateString('2019-09-30'));
       // Ingen TVK, fordi endelig-virkning (01-10-2019) ligger efter midlertidigs ophør (30-09-2019).
       expect(midl?.tilbagevirkendeKraftFradrag).toBeNull();
       expect(midl?.beloeb).toBe(0);
@@ -741,13 +742,13 @@ describe('computeEetDifferencekravCalculation', () => {
       const result = computeEetDifferencekravCalculation({
         erhvervsevnetab: {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          beregningsdato: '2021-03-01',
+          beregningsdato: toISODateString('2021-03-01'),
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [
             {
               id: 'endelig',
-              afgoerelsesDato: '01-12-2019',
-              virkningsDato: '01-09-2019',
+              afgoerelsesDato: toISODateString('2019-12-01'),
+              virkningsDato: toISODateString('2019-09-01'),
               eetPct: 65,
               kapDato: undefined,
               kapPct: undefined,
@@ -756,8 +757,8 @@ describe('computeEetDifferencekravCalculation', () => {
             },
             {
               id: 'midl',
-              afgoerelsesDato: '01-08-2020',
-              virkningsDato: '01-06-2019',
+              afgoerelsesDato: toISODateString('2020-08-01'),
+              virkningsDato: toISODateString('2019-06-01'),
               eetPct: 55,
               kapDato: undefined,
               kapPct: undefined,
@@ -766,8 +767,8 @@ describe('computeEetDifferencekravCalculation', () => {
             },
           ],
         },
-        skadedato: '2015-01-01',
-        skadelidteFodselsdato: '1980-01-01',
+        skadedato: toISODateString('2015-01-01'),
+        skadelidteFodselsdato: toISODateString('1980-01-01'),
         endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: true,
         indregnMerErstatningVedForhoejetPensionsalder: false,
       });
@@ -776,9 +777,9 @@ describe('computeEetDifferencekravCalculation', () => {
       expect(result.issues.some((issue) => issue.id === 'warn-non-endelig-after-endelig')).toBe(true);
       const midl = result.computation?.afgoerelser.find((a) => a.rowId === 'midl');
       expect(midl?.tilbagevirkendeKraftFradrag).toEqual({
-        endeligVirkningsdato: '2019-09-01',
-        fra: '2019-09-01',
-        til: '2021-02-28',
+        endeligVirkningsdato: toISODateString('2019-09-01'),
+        fra: toISODateString('2019-09-01'),
+        til: toISODateString('2021-02-28'),
         beloeb: 93874,
       });
     });
@@ -788,13 +789,13 @@ describe('computeEetDifferencekravCalculation', () => {
         computeEetDifferencekravCalculation({
           erhvervsevnetab: {
             ...ERHVERVSEVNETAB_INITIAL_VALUES,
-            beregningsdato: '2021-03-01',
+            beregningsdato: toISODateString('2021-03-01'),
             aslAarsloen: asAmount(401000),
             aslAfgoerelser: [
               {
                 id: 'midl',
-                afgoerelsesDato: '01-10-2010',
-                virkningsDato: '01-02-2010',
+                afgoerelsesDato: toISODateString('2010-10-01'),
+                virkningsDato: toISODateString('2010-02-01'),
                 eetPct: 55,
                 kapDato: undefined,
                 kapPct: undefined,
@@ -803,8 +804,8 @@ describe('computeEetDifferencekravCalculation', () => {
               },
               {
                 id: 'endelig',
-                afgoerelsesDato: '01-12-2010',
-                virkningsDato: '01-09-2010',
+                afgoerelsesDato: toISODateString('2010-12-01'),
+                virkningsDato: toISODateString('2010-09-01'),
                 eetPct: 65,
                 kapDato: undefined,
                 kapPct: undefined,
@@ -813,8 +814,8 @@ describe('computeEetDifferencekravCalculation', () => {
               },
             ],
           },
-          skadedato: '2010-01-01',
-          skadelidteFodselsdato: '1980-01-01',
+          skadedato: toISODateString('2010-01-01'),
+          skadelidteFodselsdato: toISODateString('1980-01-01'),
           endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: flag,
           indregnMerErstatningVedForhoejetPensionsalder: false,
         });

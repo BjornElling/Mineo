@@ -4,6 +4,7 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeTafBeregningsenhed, TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { toISODateString } from '../../../types/branded';
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
@@ -74,8 +75,8 @@ describe('computeTafBeregningsenhed', () => {
   it('is forced to workdays in "Beregningsperiode" when holiday pay deviates', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2024-01-01',
-      tafBeregningsperiodeTil: '2024-12-31',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -118,8 +119,8 @@ describe('computeTafBeregningsenhed', () => {
   it('stays months when non-standard settings exist but no overlapping income row in beregningsperiode', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2024-01-01',
-      tafBeregningsperiodeTil: '2024-12-31',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -148,8 +149,8 @@ describe('computeTafBeregningsenhed', () => {
   it('stays months when overlap exists but no indtastet løn in overlap row', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2024-01-01',
-      tafBeregningsperiodeTil: '2024-12-31',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -179,8 +180,8 @@ describe('computeTafBeregningsenhed', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
       // tafBeregningsperiodeFra er EFTER tafBeregningsperiodeTil
-      tafBeregningsperiodeFra: '2024-12-31',
-      tafBeregningsperiodeTil: '2024-01-01',
+      tafBeregningsperiodeFra: toISODateString('2024-12-31'),
+      tafBeregningsperiodeTil: toISODateString('2024-01-01'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -210,8 +211,8 @@ describe('computeTafBeregningsenhed', () => {
   it('tom loenindkomstAnsaettelsesforhold → MAANEDER (ingen ansættelsesforhold at oversty re fra)', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2024-01-01',
-      tafBeregningsperiodeTil: '2024-12-31',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [],
     });
     expect(computeTafBeregningsenhed(values)).toBe(TAF_BEREGNES_SOM.MAANEDER);
@@ -221,8 +222,8 @@ describe('computeTafBeregningsenhed', () => {
     // Grænsetilfælde: enkeltdags-beregningsperiode
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2024-06-17',
-      tafBeregningsperiodeTil: '2024-06-17',
+      tafBeregningsperiodeFra: toISODateString('2024-06-17'),
+      tafBeregningsperiodeTil: toISODateString('2024-06-17'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),

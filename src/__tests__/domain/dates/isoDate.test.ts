@@ -1,5 +1,6 @@
 import type { ISODateString } from '../../../types/branded';
 import { parseIsoDateOrUndefined, isoDateToDate } from '../../../domain/dates/isoDate';
+import { toISODateString } from '../../../types/branded';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -10,17 +11,17 @@ const iso = (s: string): ISODateString => s as ISODateString;
 
 describe('parseIsoDateOrUndefined', () => {
   it('gyldig ISO dato → returnerer ISODateString uændret', () => {
-    expect(parseIsoDateOrUndefined(iso('2024-01-15'))).toBe('2024-01-15');
+    expect(parseIsoDateOrUndefined(iso('2024-01-15'))).toBe(toISODateString('2024-01-15'));
   });
 
   it('2024-02-29 (skudår) → returnerer strengen (isISODateString=true for valid format)', () => {
     // isISODateString tjekker kun format, ikke kalender-gyldighed
-    expect(parseIsoDateOrUndefined(iso('2024-02-29'))).toBe('2024-02-29');
+    expect(parseIsoDateOrUndefined(iso('2024-02-29'))).toBe(toISODateString('2024-02-29'));
   });
 
   it('gyldig ISO dato med whitespace → returnerer trimmet ISODateString', () => {
     const result = parseIsoDateOrUndefined('  2024-01-15  ' as unknown as ISODateString);
-    expect(result).toBe('2024-01-15');
+    expect(result).toBe(toISODateString('2024-01-15'));
   });
 
   it('undefined input → undefined', () => {

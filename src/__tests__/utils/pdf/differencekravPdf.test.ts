@@ -1,3 +1,4 @@
+import { toISODateString } from '../../../types/branded';
 /// <reference types="vitest/globals" />
 
 class MockJsPDF {
@@ -46,9 +47,9 @@ describe('generateDifferencekravPdf', () => {
 
     generateDifferencekravPdf({
       computation: {
-        beregningsdato: '2026-03-17',
-        skadedato: '2011-06-16',
-        dagFoerBeregningsdato: '2026-03-16',
+        beregningsdato: toISODateString('2026-03-17'),
+        skadedato: toISODateString('2011-06-16'),
+        dagFoerBeregningsdato: toISODateString('2026-03-16'),
         ealKrav: 100000,
         ealEetPct: 15,
         fradragLoebendeYdelser: 0,
@@ -57,8 +58,8 @@ describe('generateDifferencekravPdf', () => {
         proformaBeloeb: 0,
         differencekrav: 100000,
         afgoerelser: [{
-          afgoerelsesdato: '2020-01-01',
-          virkningsdato: '2020-02-01',
+          afgoerelsesdato: toISODateString('2020-01-01'),
+          virkningsdato: toISODateString('2020-02-01'),
           afgoerelseType: 'Midlertidig',
           eetPct: 15,
           beloeb: 0,
@@ -94,16 +95,16 @@ describe('generateDifferencekravPdf', () => {
 
     generateDifferencekravPdf({
       computation: {
-        beregningsdato: '2026-03-17',
-        skadedato: '2020-01-01',
-        dagFoerBeregningsdato: '2026-03-16',
+        beregningsdato: toISODateString('2026-03-17'),
+        skadedato: toISODateString('2020-01-01'),
+        dagFoerBeregningsdato: toISODateString('2026-03-16'),
         ealKrav: 100000,
         ealEetPct: 15,
         fradragLoebendeYdelser: 0,
         fradragKapitaliseretEet: 0,
         proformaKapitalisering: {
           loebendeEetPct: 50,
-          kapitaliseringsdato: '2026-03-17',
+          kapitaliseringsdato: toISODateString('2026-03-17'),
           grundloen: 351539,
           grundydelse: 111444.9,
           grundydelse2024: 184664.2,

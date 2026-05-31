@@ -4,6 +4,7 @@ import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import StandardLoenTable from '../../../components/tables/StandardLoenTable';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../../utils/dateOrderValidation';
+import { toISODateString } from '../../../types/branded';
 
 type Derived = { fpFvShSo: string; pension: string; samlet: string };
 
@@ -194,7 +195,7 @@ describe('StandardLoenTable', () => {
   it.each([
     {
       loenperiode: 'dag' as const,
-      row: makeRow({ col0_dag: '10-01-2024', col1_dag: '09-01-2024' }),
+      row: makeRow({ col0_dag: toISODateString('2024-01-10'), col1_dag: toISODateString('2024-01-09') }),
     },
     {
       loenperiode: 'uge' as const,
@@ -241,14 +242,14 @@ describe('StandardLoenTable', () => {
         tableData={[
           makeRow({
             id: 'row-a',
-            col0_dag: '01-01-2025',
-            col1_dag: '31-01-2025',
+            col0_dag: toISODateString('2025-01-01'),
+            col1_dag: toISODateString('2025-01-31'),
             col2: asAmount(11111),
           }),
           makeRow({
             id: 'row-b',
-            col0_dag: '01-02-2025',
-            col1_dag: '28-02-2025',
+            col0_dag: toISODateString('2025-02-01'),
+            col1_dag: toISODateString('2025-02-28'),
             col2: asAmount(22222),
           }),
           makeRow({
@@ -298,8 +299,8 @@ describe('StandardLoenTable', () => {
         tableData={[
           makeRow({
             id: 'row-a',
-            col0_dag: '01-01-2025',
-            col1_dag: '31-01-2025',
+            col0_dag: toISODateString('2025-01-01'),
+            col1_dag: toISODateString('2025-01-31'),
             col2: asAmount(11111),
           }),
           makeRow({

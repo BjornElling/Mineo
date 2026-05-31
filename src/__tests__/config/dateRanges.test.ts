@@ -50,7 +50,7 @@ describe('dateRanges_stamdata', () => {
   });
 
   it('skadedato min er 2005-01-01', () => {
-    expect(dateRanges_stamdata.skadedato.min).toBe('2005-01-01');
+    expect(dateRanges_stamdata.skadedato.min).toBe(toISODateString('2005-01-01'));
   });
 
   it('skadedato max er TODAY', () => {
@@ -71,7 +71,7 @@ describe('dateRanges_erstatningsopgoerelse', () => {
   });
 
   it('periodeFra min er 2005-01-01', () => {
-    expect(dateRanges_erstatningsopgoerelse.periodeFra.min).toBe('2005-01-01');
+    expect(dateRanges_erstatningsopgoerelse.periodeFra.min).toBe(toISODateString('2005-01-01'));
   });
 
   it('periodeTil er dynamic-min', () => {
@@ -82,7 +82,7 @@ describe('dateRanges_erstatningsopgoerelse', () => {
   it('opgoerelse er dynamic-min', () => {
     expect(dateRanges_erstatningsopgoerelse.opgoerelse.type).toBe('dynamic-min');
     expect(dateRanges_erstatningsopgoerelse.opgoerelse.min).toBe('DYNAMIC');
-    expect(dateRanges_erstatningsopgoerelse.opgoerelse.fallbackMin).toBe('2005-01-01');
+    expect(dateRanges_erstatningsopgoerelse.opgoerelse.fallbackMin).toBe(toISODateString('2005-01-01'));
     expect(dateRanges_erstatningsopgoerelse.opgoerelse.max).toBe(TODAY);
   });
 
@@ -128,13 +128,13 @@ describe('dateRanges_erstatningsopgoerelse', () => {
 
 describe('dateRanges_offentligeYdelser', () => {
   it('afgrænser fra-dato til seneste fælles startdato for sygedagpenge og ATP', () => {
-    expect(dateRanges_offentligeYdelser.fraDato.min).toBe('2005-01-03');
-    expect(dateRanges_offentligeYdelser.fraDato.fallbackMax).toBe('2027-01-03');
+    expect(dateRanges_offentligeYdelser.fraDato.min).toBe(toISODateString('2005-01-03'));
+    expect(dateRanges_offentligeYdelser.fraDato.fallbackMax).toBe(toISODateString('2027-01-03'));
   });
 
   it('afgrænser til-dato til tidligste fælles slutdato for sygedagpenge og ATP', () => {
-    expect(dateRanges_offentligeYdelser.tilDato.fallbackMin).toBe('2005-01-03');
-    expect(dateRanges_offentligeYdelser.tilDato.max).toBe('2027-01-03');
+    expect(dateRanges_offentligeYdelser.tilDato.fallbackMin).toBe(toISODateString('2005-01-03'));
+    expect(dateRanges_offentligeYdelser.tilDato.max).toBe(toISODateString('2027-01-03'));
   });
 });
 
@@ -149,7 +149,7 @@ describe('computeSkadedatoMinRule', () => {
       erErhvervssygdom: false,
       fallbackMin,
     });
-    expect(rule.minDate).toBe('2005-01-01');
+    expect(rule.minDate).toBe(toISODateString('2005-01-01'));
     expect(rule.minBoundKind).toBeUndefined();
   });
 
@@ -160,9 +160,9 @@ describe('computeSkadedatoMinRule', () => {
       erErhvervssygdom: false,
       fallbackMin,
     });
-    expect(rule.minDate).toBe('2020-06-15');
+    expect(rule.minDate).toBe(toISODateString('2020-06-15'));
     expect(rule.minBoundKind).toBe('skadedato');
-    expect(rule.minBoundReferenceISO).toBe('2020-06-15');
+    expect(rule.minBoundReferenceISO).toBe(toISODateString('2020-06-15'));
   });
 
   it('arbejdsulykke med skadedato før fallback → bruger fallback', () => {
@@ -174,7 +174,7 @@ describe('computeSkadedatoMinRule', () => {
       fallbackMin,
     });
     // max(2004-06-01, 2005-01-01) = 2005-01-01
-    expect(rule.minDate).toBe('2005-01-01');
+    expect(rule.minDate).toBe(toISODateString('2005-01-01'));
   });
 
   it('erhvervssygdom → minBoundKind er anmeldedatoMinus5Aar', () => {
@@ -185,7 +185,7 @@ describe('computeSkadedatoMinRule', () => {
       fallbackMin,
     });
     expect(rule.minBoundKind).toBe('anmeldedatoMinus5Aar');
-    expect(rule.minBoundReferenceISO).toBe('2020-06-15');
+    expect(rule.minBoundReferenceISO).toBe(toISODateString('2020-06-15'));
   });
 
   it('erhvervssygdom 2020 → minDate er 2015-06-15 (5 år tilbage)', () => {
@@ -195,7 +195,7 @@ describe('computeSkadedatoMinRule', () => {
       erErhvervssygdom: true,
       fallbackMin,
     });
-    expect(rule.minDate).toBe('2015-06-15');
+    expect(rule.minDate).toBe(toISODateString('2015-06-15'));
   });
 
   it('erhvervssygdom 2008 → minDate er 2005-01-01 (5 år minus = 2003, begrænset af 2005)', () => {
@@ -206,7 +206,7 @@ describe('computeSkadedatoMinRule', () => {
       fallbackMin,
     });
     // minus5Years = 2003-03-01, DATE_2005_01_01 er grænse → max(2003-03-01, 2005-01-01) = 2005-01-01
-    expect(rule.minDate).toBe('2005-01-01');
+    expect(rule.minDate).toBe(toISODateString('2005-01-01'));
   });
 
   it('erhvervssygdom med 29. feb → håndterer skudår korrekt', () => {
@@ -217,6 +217,6 @@ describe('computeSkadedatoMinRule', () => {
       fallbackMin,
     });
     // 2024-02-29 minus 5 år → 2019 har ikke 29. feb → 2019-02-28
-    expect(rule.minDate).toBe('2019-02-28');
+    expect(rule.minDate).toBe(toISODateString('2019-02-28'));
   });
 });

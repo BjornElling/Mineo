@@ -259,8 +259,8 @@ describe('buildIncomeCalculationContext', () => {
       offentligeYdelserRows: [
         {
           id: 'oy1',
-          fraDato: '2022-01-01',
-          tilDato: '2022-12-31',
+          fraDato: toISODateString('2022-01-01'),
+          tilDato: toISODateString('2022-12-31'),
           ydelse: asAmount(5000),
           tillaeg: undefined,
           ydelsestype: 'sygedagpenge',

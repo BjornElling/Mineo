@@ -3,17 +3,18 @@ import { computeForsoergertabCalculation } from '../../../domain/forsoergertab/f
 import { computeForsoergertabAslYdelser } from '../../../domain/forsoergertab/forsoergertabAslYdelser';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { round2 } from '../../../utils/roundingShortcuts';
+import { toISODateString } from '../../../types/branded';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('computeForsoergertabCalculation', () => {
   it('beregner den løbende ASL-ydelse som 30 pct. af den opregulerede ASL-årsløn', () => {
     const result = computeForsoergertabCalculation({
-      skadedato: '2020-05-01',
-      skadelidteFodselsdato: '1980-01-01',
-      efterladteFodselsdato: '1973-01-01',
-      beregningsdato: '2026-03-19',
-      virkningsdato: '2025-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      efterladteFodselsdato: toISODateString('1973-01-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-01-01'),
       koen: 'Kvinde',
       tilkendtForPeriodeAar: 10,
       aslAarsloen: asAmount(450000),
@@ -35,11 +36,11 @@ describe('computeForsoergertabCalculation', () => {
 
   it('kræver køn og slår korrekt op i kønsafhængige tabeller før 1. marts 2015', () => {
     const commonInput = {
-      skadedato: '2008-01-10' as const,
-      skadelidteFodselsdato: '1980-01-01' as const,
-      efterladteFodselsdato: '1973-01-01' as const,
-      beregningsdato: '2014-02-15' as const,
-      virkningsdato: '2013-01-01' as const,
+      skadedato: toISODateString('2008-01-10') as const,
+      skadelidteFodselsdato: toISODateString('1980-01-01') as const,
+      efterladteFodselsdato: toISODateString('1973-01-01') as const,
+      beregningsdato: toISODateString('2014-02-15') as const,
+      virkningsdato: toISODateString('2013-01-01') as const,
       tilkendtForPeriodeAar: 10,
       aslAarsloen: asAmount(400000),
       ealAarsloen: asAmount(400000),
@@ -69,11 +70,11 @@ describe('computeForsoergertabCalculation', () => {
 
   it('giver blokerende fejl når beregningsdato er før virkningsdato', () => {
     const result = computeForsoergertabCalculation({
-      skadedato: '2020-01-01',
-      skadelidteFodselsdato: '1980-01-01',
-      efterladteFodselsdato: '1980-01-01',
-      beregningsdato: '2020-01-01',
-      virkningsdato: '2020-02-01',
+      skadedato: toISODateString('2020-01-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      efterladteFodselsdato: toISODateString('1980-01-01'),
+      beregningsdato: toISODateString('2020-01-01'),
+      virkningsdato: toISODateString('2020-02-01'),
       koen: 'Mand',
       tilkendtForPeriodeAar: 5,
       aslAarsloen: asAmount(400000),
@@ -90,11 +91,11 @@ describe('computeForsoergertabCalculation', () => {
 
   it('sætter ASL-kapitalbeløbet til 0 når folkepensionsalderen er nået på beregningsdatoen', () => {
     const result = computeForsoergertabCalculation({
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1980-01-01',
-      efterladteFodselsdato: '1950-01-01',
-      beregningsdato: '2026-03-01',
-      virkningsdato: '2025-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      efterladteFodselsdato: toISODateString('1950-01-01'),
+      beregningsdato: toISODateString('2026-03-01'),
+      virkningsdato: toISODateString('2025-01-01'),
       koen: 'Kvinde',
       tilkendtForPeriodeAar: 10,
       aslAarsloen: asAmount(500000),
@@ -108,11 +109,11 @@ describe('computeForsoergertabCalculation', () => {
 
   it('kræver eksakt aldersmatch i forsørgertabstabellen', () => {
     const result = computeForsoergertabCalculation({
-      skadedato: '2008-01-01',
-      skadelidteFodselsdato: '1980-01-01',
-      efterladteFodselsdato: '1997-06-01',
-      beregningsdato: '2014-02-15',
-      virkningsdato: '2013-01-01',
+      skadedato: toISODateString('2008-01-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      efterladteFodselsdato: toISODateString('1997-06-01'),
+      beregningsdato: toISODateString('2014-02-15'),
+      virkningsdato: toISODateString('2013-01-01'),
       koen: 'Mand',
       tilkendtForPeriodeAar: 5,
       aslAarsloen: asAmount(400000),
@@ -125,11 +126,11 @@ describe('computeForsoergertabCalculation', () => {
 
   it('bruger kønsneutral forsørgertabstabel fra og med 1. marts 2015 uden køn', () => {
     const result = computeForsoergertabCalculation({
-      skadedato: '2014-01-10',
-      skadelidteFodselsdato: '1980-01-01',
-      efterladteFodselsdato: '1970-01-01',
-      beregningsdato: '2015-03-01',
-      virkningsdato: '2014-03-01',
+      skadedato: toISODateString('2014-01-10'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      efterladteFodselsdato: toISODateString('1970-01-01'),
+      beregningsdato: toISODateString('2015-03-01'),
+      virkningsdato: toISODateString('2014-03-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 5,
       aslAarsloen: asAmount(400000),
@@ -143,11 +144,11 @@ describe('computeForsoergertabCalculation', () => {
 
   it('clamp er nettokrav til 0 når ASL-kapitalbeløbet overstiger EAL-kravet', () => {
     const result = computeForsoergertabCalculation({
-      skadedato: '2020-05-01',
-      skadelidteFodselsdato: '1980-01-01',
-      efterladteFodselsdato: '1976-01-01',
-      beregningsdato: '2026-03-19',
-      virkningsdato: '2025-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 10,
       aslAarsloen: asAmount(700000),
@@ -167,10 +168,10 @@ describe('computeForsoergertabAslYdelser', () => {
 
     try {
       const result = computeForsoergertabAslYdelser({
-        skadedato: '2020-05-01',
-        beregningsdato: '2026-03-19',
-        virkningsdato: '2025-01-01',
-        efterladteFodselsdato: '1976-01-01',
+        skadedato: toISODateString('2020-05-01'),
+        beregningsdato: toISODateString('2026-03-19'),
+        virkningsdato: toISODateString('2025-01-01'),
+        efterladteFodselsdato: toISODateString('1976-01-01'),
         koen: undefined,
         tilkendtForPeriodeAar: 10,
         aslAarsloen: asAmount(450000),
@@ -189,10 +190,10 @@ describe('computeForsoergertabAslYdelser', () => {
 
   it('sætter kapitalbeløbet til 0 når resterende periode er 0 måneder', () => {
     const result = computeForsoergertabAslYdelser({
-      skadedato: '2020-05-01',
-      beregningsdato: '2026-01-01',
-      virkningsdato: '2025-01-01',
-      efterladteFodselsdato: '1976-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      beregningsdato: toISODateString('2026-01-01'),
+      virkningsdato: toISODateString('2025-01-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 1,
       aslAarsloen: asAmount(450000),
@@ -208,19 +209,19 @@ describe('computeForsoergertabAslYdelser', () => {
     // De konkrete faktorværdier følger de nuværende kapitaliseringstabeller og skal opdateres,
     // hvis datagrundlaget ændres legitimt.
     const exactOneYear = computeForsoergertabAslYdelser({
-      skadedato: '2020-05-01',
-      beregningsdato: '2026-03-19',
-      virkningsdato: '2025-04-01',
-      efterladteFodselsdato: '1976-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-04-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 2,
       aslAarsloen: asAmount(450000),
     });
     const result = computeForsoergertabAslYdelser({
-      skadedato: '2020-05-01',
-      beregningsdato: '2026-03-19',
-      virkningsdato: '2026-01-01',
-      efterladteFodselsdato: '1976-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2026-01-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 1,
       aslAarsloen: asAmount(450000),
@@ -240,28 +241,28 @@ describe('computeForsoergertabAslYdelser', () => {
     // De konkrete faktorværdier følger de nuværende kapitaliseringstabeller og skal opdateres,
     // hvis datagrundlaget ændres legitimt.
     const exactTwoYears = computeForsoergertabAslYdelser({
-      skadedato: '2020-05-01',
-      beregningsdato: '2026-03-19',
-      virkningsdato: '2025-04-01',
-      efterladteFodselsdato: '1976-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-04-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 3,
       aslAarsloen: asAmount(450000),
     });
     const exactThreeYears = computeForsoergertabAslYdelser({
-      skadedato: '2020-05-01',
-      beregningsdato: '2026-03-19',
-      virkningsdato: '2025-04-01',
-      efterladteFodselsdato: '1976-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-04-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 4,
       aslAarsloen: asAmount(450000),
     });
     const result = computeForsoergertabAslYdelser({
-      skadedato: '2020-05-01',
-      beregningsdato: '2026-03-19',
-      virkningsdato: '2025-10-01',
-      efterladteFodselsdato: '1976-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-10-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 3,
       aslAarsloen: asAmount(450000),
@@ -285,10 +286,10 @@ describe('computeForsoergertabAslYdelser', () => {
 
   it('afrunder kapitalbeløbet opad med ceil0', () => {
     const result = computeForsoergertabAslYdelser({
-      skadedato: '2020-05-01',
-      beregningsdato: '2026-03-19',
-      virkningsdato: '2025-10-01',
-      efterladteFodselsdato: '1976-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-10-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 3,
       aslAarsloen: asAmount(450000),
@@ -304,10 +305,10 @@ describe('computeForsoergertabAslYdelser', () => {
 
   it('tæller virkningsdato og beregningsdato i samme måned som 1 allerede udbetalt måned', () => {
     const result = computeForsoergertabAslYdelser({
-      skadedato: '2020-05-01',
-      beregningsdato: '2026-03-01',
-      virkningsdato: '2026-03-01',
-      efterladteFodselsdato: '1976-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      beregningsdato: toISODateString('2026-03-01'),
+      virkningsdato: toISODateString('2026-03-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 1,
       aslAarsloen: asAmount(450000),
@@ -320,10 +321,10 @@ describe('computeForsoergertabAslYdelser', () => {
 
   it('afviser ugyldig tilkendt periode i domænelaget', () => {
     const result = computeForsoergertabAslYdelser({
-      skadedato: '2020-05-01',
-      beregningsdato: '2026-03-19',
-      virkningsdato: '2026-01-01',
-      efterladteFodselsdato: '1976-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2026-01-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 0,
       aslAarsloen: asAmount(450000),
@@ -342,10 +343,10 @@ describe('computeForsoergertabAslYdelser', () => {
     // beregningsdato 2026-03-19 er efter periodens slutdato
     // lobendeYdelser skal stoppe ved 2025-12-31, ikke ved 2026-03-18
     const result = computeForsoergertabAslYdelser({
-      skadedato: '2020-05-01',
-      beregningsdato: '2026-03-19',
-      virkningsdato: '2025-01-01',
-      efterladteFodselsdato: '1976-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-01-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 1,
       aslAarsloen: asAmount(450000),
@@ -355,7 +356,7 @@ describe('computeForsoergertabAslYdelser', () => {
     const ydelser = result.computation!.lobendeYdelser;
     expect(ydelser.length).toBeGreaterThan(0);
     const sidsteRaekke = ydelser[ydelser.length - 1];
-    expect(sidsteRaekke!.tilDato).toBe('2025-12-31');
+    expect(sidsteRaekke!.tilDato).toBe(toISODateString('2025-12-31'));
     // resterendeMaanederTotal skal være 0 fordi perioden er udløbet
     expect(result.computation!.resterendeMaanederTotal).toBe(0);
   });
@@ -364,10 +365,10 @@ describe('computeForsoergertabAslYdelser', () => {
     // virkningsdato 2025-03-15: 17 dage ud af 31 i marts = 17/31 måneder (afrundet til 4 decimaler)
     // beregningsdato 2025-03-31 (samme måned): 17 dage ud af 31
     const result = computeForsoergertabAslYdelser({
-      skadedato: '2020-05-01',
-      beregningsdato: '2025-03-31',
-      virkningsdato: '2025-03-15',
-      efterladteFodselsdato: '1976-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      beregningsdato: toISODateString('2025-03-31'),
+      virkningsdato: toISODateString('2025-03-15'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 1,
       aslAarsloen: asAmount(450000),
@@ -377,8 +378,8 @@ describe('computeForsoergertabAslYdelser', () => {
     const ydelser = result.computation!.lobendeYdelser;
     expect(ydelser.length).toBe(1);
     const raekke = ydelser[0]!;
-    expect(raekke.fraDato).toBe('2025-03-15');
-    expect(raekke.tilDato).toBe('2025-03-31');
+    expect(raekke.fraDato).toBe(toISODateString('2025-03-15'));
+    expect(raekke.tilDato).toBe(toISODateString('2025-03-31'));
     // 17 dage ud af 31 dage i marts
     const forventetMaaneder = Math.round((17 / 31) * 10000) / 10000;
     expect(raekke.maaneder).toBe(forventetMaaneder);
@@ -390,11 +391,11 @@ describe('computeForsoergertabCalculation — minimumssats', () => {
     // Med ealAarsloen=100000 og kapitaliseringsfaktor ~3 bliver eetBeregnet langt under
     // foersoergertabEalMin[2026]=1239000, så forhøjelse skal ske.
     const result = computeForsoergertabCalculation({
-      skadedato: '2020-05-01',
-      skadelidteFodselsdato: '1980-01-01',
-      efterladteFodselsdato: '1976-01-01',
-      beregningsdato: '2026-03-19',
-      virkningsdato: '2025-01-01',
+      skadedato: toISODateString('2020-05-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-01-01'),
       koen: undefined,
       tilkendtForPeriodeAar: 10,
       aslAarsloen: asAmount(100000),

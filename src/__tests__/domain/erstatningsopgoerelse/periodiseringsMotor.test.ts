@@ -20,7 +20,7 @@ describe('periodiseringsMotor', () => {
   it('periodiserBeloebForMaaneder periodiserer proportionalt på kalenderdage', () => {
     const result = periodiserBeloebForMaaneder({
       totalBeloeb: 310,
-      interval: { start: d('2024-01-01'), end: d('2024-01-31') },
+      interval: { start: d(toISODateString('2024-01-01')), end: d(toISODateString('2024-01-31')) },
       ranges: [{ fra: iso('2024-01-01'), til: iso('2024-01-10') }],
     });
     expect(result).toBe(100);
@@ -35,7 +35,7 @@ describe('periodiseringsMotor', () => {
     ]);
     const result = periodiserBeloebForArbejdsdage({
       totalBeloeb: 100,
-      interval: { start: d('2024-01-01'), end: d('2024-01-05') },
+      interval: { start: d(toISODateString('2024-01-01')), end: d(toISODateString('2024-01-05')) },
       ranges: [{ fra: iso('2024-01-03'), til: iso('2024-01-05') }],
       arbejdsdageSet,
     });
@@ -46,7 +46,7 @@ describe('periodiseringsMotor', () => {
     const shDays = new Set<ISODateString>([iso('2012-06-05')]);
     const result = periodiserBeloebForOffentligYdelse({
       totalBeloeb: 100,
-      interval: { start: d('2012-06-04'), end: d('2012-06-07') },
+      interval: { start: d(toISODateString('2012-06-04')), end: d(toISODateString('2012-06-07')) },
       range: { fra: iso('2012-06-05'), til: iso('2024-01-01') },
       periodisering: 'arbejdsdage',
       ydelsestypeKey: 'sygedagpenge',
@@ -58,7 +58,7 @@ describe('periodiseringsMotor', () => {
   it('periodiserBeloebForOffentligYdelse er fail-closed ved ugyldig range-dato', () => {
     const result = periodiserBeloebForOffentligYdelse({
       totalBeloeb: 100,
-      interval: { start: d('2024-01-01'), end: d('2024-01-10') },
+      interval: { start: d(toISODateString('2024-01-01')), end: d(toISODateString('2024-01-10')) },
       range: { fra: 'invalid' as unknown as ISODateString, til: iso('2024-01-10') },
       periodisering: 'kalenderdage',
       ydelsestypeKey: 'dagpenge',
@@ -125,7 +125,7 @@ describe('periodiseringsMotor', () => {
     const shDays = new Set<ISODateString>([iso('2012-06-05')]);
     const foerCutover = isOffentligYdelseDatoMedregnet({
       iso: iso('2012-06-05'),
-      dateObj: d('2012-06-05'),
+      dateObj: d(toISODateString('2012-06-05')),
       shDays,
       periodisering: 'arbejdsdage',
       ydelsestypeKey: 'sygedagpenge',
@@ -133,7 +133,7 @@ describe('periodiseringsMotor', () => {
     });
     const paaCutover = isOffentligYdelseDatoMedregnet({
       iso: iso('2012-06-05'),
-      dateObj: d('2012-06-05'),
+      dateObj: d(toISODateString('2012-06-05')),
       shDays,
       periodisering: 'arbejdsdage',
       ydelsestypeKey: 'sygedagpenge',
@@ -212,7 +212,7 @@ describe('periodiseringsMotor', () => {
     const shDays = new Set<ISODateString>([iso('2012-06-05')]);
     const included = isOffentligYdelseDatoMedregnet({
       iso: iso('2012-06-05'),
-      dateObj: d('2012-06-05'),
+      dateObj: d(toISODateString('2012-06-05')),
       shDays,
       periodisering: 'arbejdsdage',
       ydelsestypeKey: 'sygedagpenge',
@@ -226,7 +226,7 @@ describe('periodiseringsMotor', () => {
     const shDays = new Set<ISODateString>([iso('2024-01-01')]);
     const result = isOffentligYdelseDatoMedregnet({
       iso: iso('2024-01-01'),
-      dateObj: d('2024-01-01'),
+      dateObj: d(toISODateString('2024-01-01')),
       shDays,
       periodisering: 'kalenderdage',
       ydelsestypeKey: 'sygedagpenge',
@@ -241,7 +241,7 @@ describe('periodiseringsMotor', () => {
     const emptyShDays = new Set<ISODateString>();
     const result = isOffentligYdelseDatoMedregnet({
       iso: iso('2024-01-06'),
-      dateObj: d('2024-01-06'),
+      dateObj: d(toISODateString('2024-01-06')),
       shDays: emptyShDays,
       periodisering: 'arbejdsdage',
       ydelsestypeKey: 'dagpenge',
@@ -255,7 +255,7 @@ describe('periodiseringsMotor', () => {
     const shDays = new Set<ISODateString>([iso('2024-01-01')]);
     const result = isOffentligYdelseDatoMedregnet({
       iso: iso('2024-01-01'),
-      dateObj: d('2024-01-01'),
+      dateObj: d(toISODateString('2024-01-01')),
       shDays,
       periodisering: 'arbejdsdage',
       ydelsestypeKey: 'dagpenge',
@@ -269,7 +269,7 @@ describe('periodiseringsMotor', () => {
     const shDays = new Set<ISODateString>([iso('2024-01-01')]);
     const result = isOffentligYdelseDatoMedregnet({
       iso: iso('2024-01-01'),
-      dateObj: d('2024-01-01'),
+      dateObj: d(toISODateString('2024-01-01')),
       shDays,
       periodisering: 'arbejdsdage',
       ydelsestypeKey: 'sygedagpenge',
@@ -283,7 +283,7 @@ describe('periodiseringsMotor', () => {
     const shDays = new Set<ISODateString>([iso('2024-01-01')]);
     const result = periodiserBeloebForOffentligYdelse({
       totalBeloeb: 500,
-      interval: { start: d('2024-01-01'), end: d('2024-01-05') },
+      interval: { start: d(toISODateString('2024-01-01')), end: d(toISODateString('2024-01-05')) },
       range: { fra: iso('2024-01-01'), til: iso('2024-12-31') },
       periodisering: 'kalenderdage',
       ydelsestypeKey: 'sygedagpenge',

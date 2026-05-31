@@ -8,6 +8,7 @@ import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { toISODateString } from '../../../../types/branded';
 
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useFieldErrorsBySourceForSection: () => ({}),
@@ -19,7 +20,7 @@ describe('EOberegningTab svie/smerte sats-aar integration', () => {
 
   it('viser sats-aar advarslen i fejl og advarsler', async () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.opgørelseLavetDen = '2025-12-15';
+    eoValues.opgørelseLavetDen = toISODateString('2025-12-15');
     eoValues.svieSmerteSatserAar = 2025;
     eoValues.revideretOpgoerelse = 'Nej';
 

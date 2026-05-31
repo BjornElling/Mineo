@@ -53,7 +53,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --maxWorkers=25%",
     "test:watch": "vitest",
-    "import:loen": "node scripts/import-offentlig-loen.mjs"
+    "import:loen": "node scripts/import-offentlig-loen.mjs",
+    "typecheck:test": "tsc -p tsconfig.test.json --noEmit",
+    "check": "npm run typecheck && npm run typecheck:test && npm run test"
   },
   "overrides": {
     "dompurify": "^3.4.5",

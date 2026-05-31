@@ -6,6 +6,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { toISODateString } from '../../../types/branded';
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
@@ -48,8 +49,8 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
   it('hides Måneder when TAF beregnes som is Arbejdsdage', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2024-01-01',
-      tafBeregningsperiodeTil: '2024-12-31',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -83,8 +84,8 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
   it('adds error row for missing indkomst i beregningsperioden with period in message', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2025-01-01',
-      tafBeregningsperiodeTil: '2025-01-31',
+      tafBeregningsperiodeFra: toISODateString('2025-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2025-01-31'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -107,8 +108,8 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
   it('does not add missing-indkomst row when indkomst exists in beregningsperioden', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2025-01-01',
-      tafBeregningsperiodeTil: '2025-01-31',
+      tafBeregningsperiodeFra: toISODateString('2025-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2025-01-31'),
       loenindkomstAnsaettelsesforhold: [
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -140,8 +141,8 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
   it('hides Antal fraværsdage og Beskrivelse når Øvrigt fravær uden løn er Nej', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2024-01-01',
-      tafBeregningsperiodeTil: '2024-12-31',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
       oevrigtFravaerUdenLoen: 'Nej',
       oevrigeFravaersdage: 0,
       oevrigeFravaersdageBeskrivelse: '',
@@ -157,8 +158,8 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
   it('viser månedsrækken med Beregningsperiode-prefix og uden fradragsled når der ikke er fraværsdage uden løn', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2024-01-01',
-      tafBeregningsperiodeTil: '2024-12-31',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
       oevrigtFravaerUdenLoen: 'Nej',
     });
 
@@ -172,8 +173,8 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
   it('viser månedsrækken med Beregningsperiode-prefix og fradragsled når der er fraværsdage uden løn', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2024-01-01',
-      tafBeregningsperiodeTil: '2024-12-31',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
       oevrigtFravaerUdenLoen: 'Ja',
       oevrigeFravaersdage: 1,
     });
@@ -188,8 +189,8 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
   it('ignorerer stale fraværsbeskrivelse i månedsrækken når Øvrigt fravær uden løn er Nej', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
-      tafBeregningsperiodeFra: '2024-01-01',
-      tafBeregningsperiodeTil: '2024-12-31',
+      tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+      tafBeregningsperiodeTil: toISODateString('2024-12-31'),
       oevrigtFravaerUdenLoen: 'Nej',
       oevrigeFravaersdage: 1,
       oevrigeFravaersdageBeskrivelse: 'orlov',

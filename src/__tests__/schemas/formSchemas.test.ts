@@ -25,6 +25,7 @@ import { createRenteberegningInitialValues } from '../../domain/renteberegning/r
 import { VARIGE_MEN_INITIAL_VALUES } from '../../domain/varigemen/varigeMenInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import { isAslAfgoerelseRowEmpty } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import { toISODateString } from '../../types/branded';
 
 // ─── aarsloenSchema ────────────────────────────────────────────────────────────
 
@@ -56,7 +57,7 @@ describe('aarsloenSchema', () => {
       storeBededagPct: undefined,
       pensionPct: undefined,
       loenperiode: 'dag',
-      tableData: [{ id: 'r1', col0_dag: '01-01-2024', col1_dag: '2024-01-31' }],
+      tableData: [{ id: 'r1', col0_dag: toISODateString('2024-01-01'), col1_dag: toISODateString('2024-01-31') }],
       omregningTilFuldtAar: false,
       fuldLoenUnderFerie: false,
       retTilSjetteFerieuge: false,
@@ -66,8 +67,8 @@ describe('aarsloenSchema', () => {
 
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.tableData[0]?.col0_dag).toBe('2024-01-01');
-      expect(result.data.tableData[0]?.col1_dag).toBe('2024-01-31');
+      expect(result.data.tableData[0]?.col0_dag).toBe(toISODateString('2024-01-01'));
+      expect(result.data.tableData[0]?.col1_dag).toBe(toISODateString('2024-01-31'));
     }
   });
 });
@@ -201,7 +202,7 @@ describe('stamdataSchema', () => {
       sagsbehandler: undefined,
       skadelidte: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2023-06-15',
+      skadedato: toISODateString('2023-06-15'),
     });
     expect(result.success).toBe(true);
   });
@@ -245,7 +246,7 @@ describe('stamdataSchema', () => {
 
   it('accepterer skadelidteFodselsdato som gyldigt felt', () => {
     const result = stamdataSchema.safeParse({
-      skadelidteFodselsdato: '1990-01-01',
+      skadelidteFodselsdato: toISODateString('1990-01-01'),
     });
     expect(result.success).toBe(true);
   });
@@ -275,8 +276,8 @@ describe('stamdataSchema', () => {
 
   it('afviser skadedato før fødselsdato', () => {
     const result = stamdataSchema.safeParse({
-      skadelidteFodselsdato: '1990-01-01',
-      skadedato: '1989-12-31',
+      skadelidteFodselsdato: toISODateString('1990-01-01'),
+      skadedato: toISODateString('1989-12-31'),
     });
     expect(result.success).toBe(false);
   });
@@ -290,7 +291,7 @@ describe('erhvervsevnetabSchema', () => {
 
   it('accepterer værdier uden skadelidtes fødselsdato', () => {
     const result = erhvervsevnetabSchema.safeParse({
-      beregningsdato: '2024-01-01',
+      beregningsdato: toISODateString('2024-01-01'),
       koen: 'Mand',
       aslAfgoerelser: [],
       ealEetPct: undefined,
@@ -308,8 +309,8 @@ describe('erhvervsevnetabSchema', () => {
 
   it('afviser ukendt felt skadelidteFodselsdato', () => {
     const result = erhvervsevnetabSchema.safeParse({
-      beregningsdato: '2024-01-01',
-      skadelidteFodselsdato: '1990-01-01',
+      beregningsdato: toISODateString('2024-01-01'),
+      skadelidteFodselsdato: toISODateString('1990-01-01'),
       aslAfgoerelser: [],
       ealEetPct: undefined,
       eetDifferencekravBilagSelection: {
@@ -379,9 +380,9 @@ describe('aslAfgoerelseRowSchema', () => {
 describe('forsoergertabSchema cross-field', () => {
   it('kræver køn ved beregning før 1. marts 2015', () => {
     const result = forsoergertabSchema.safeParse({
-      efterladteFodselsdato: '1980-01-01',
-      beregningsdato: '2015-02-28',
-      virkningsdato: '2015-02-01',
+      efterladteFodselsdato: toISODateString('1980-01-01'),
+      beregningsdato: toISODateString('2015-02-28'),
+      virkningsdato: toISODateString('2015-02-01'),
       tilkendtForPeriodeAar: 5,
     });
 
@@ -390,9 +391,9 @@ describe('forsoergertabSchema cross-field', () => {
 
   it('giver fejl på beregningsdato når den er før virkningsdato', () => {
     const result = forsoergertabSchema.safeParse({
-      efterladteFodselsdato: '1980-01-01',
-      beregningsdato: '2020-01-01',
-      virkningsdato: '2020-02-01',
+      efterladteFodselsdato: toISODateString('1980-01-01'),
+      beregningsdato: toISODateString('2020-01-01'),
+      virkningsdato: toISODateString('2020-02-01'),
       tilkendtForPeriodeAar: 5,
       koen: 'Mand',
     });
@@ -461,7 +462,7 @@ describe('rentekravRowSchema', () => {
     const result = rentekravRowSchema.safeParse({
       id: 'r1',
       belob: { kind: 'number', value: 10000 },
-      renterFra: '2023-01-01',
+      renterFra: toISODateString('2023-01-01'),
       tillaegstid: 30,
       enhed: 'dage',
     });
@@ -486,7 +487,7 @@ describe('rentekravRowSchema', () => {
     const result = rentekravRowSchema.safeParse({
       id: 'r1',
       belob: undefined,
-      renterFra: '2023-01-01',
+      renterFra: toISODateString('2023-01-01'),
       tillaegstid: 0,
       enhed: 'timer',
     });
@@ -533,8 +534,8 @@ describe('tafPeriodeRowSchema', () => {
   it('accepterer gyldig række', () => {
     const result = tafPeriodeRowSchema.safeParse({
       id: 'r1',
-      fra: '2023-01-01',
-      til: '2023-12-31',
+      fra: toISODateString('2023-01-01'),
+      til: toISODateString('2023-12-31'),
       loseFeriedage: 5,
     });
     expect(result.success).toBe(true);
@@ -578,24 +579,24 @@ describe('offentligeYdelserRowSchema', () => {
   it('accepterer gyldig udfyldt række', () => {
     const result = offentligeYdelserRowSchema.safeParse({
       id: 'r1',
-      fraDato: '01-01-2023',
-      tilDato: '31-01-2023',
+      fraDato: toISODateString('2023-01-01'),
+      tilDato: toISODateString('2023-01-31'),
       ydelse: { kind: 'number', value: 5000 },
       tillaeg: undefined,
       ydelsestype: 'sygedagpenge',
     });
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.fraDato).toBe('2023-01-01');
-      expect(result.data.tilDato).toBe('2023-01-31');
+      expect(result.data.fraDato).toBe(toISODateString('2023-01-01'));
+      expect(result.data.tilDato).toBe(toISODateString('2023-01-31'));
     }
   });
 });
 
 describe('tableIsoDateCellString', () => {
   it('normaliserer ISO og legacy dansk tabeldato til ISO', () => {
-    expect(tableIsoDateCellString.parse('2026-05-24')).toBe('2026-05-24');
-    expect(tableIsoDateCellString.parse('24-05-2026')).toBe('2026-05-24');
+    expect(tableIsoDateCellString.parse(toISODateString('2026-05-24'))).toBe(toISODateString('2026-05-24'));
+    expect(tableIsoDateCellString.parse('24-05-2026')).toBe(toISODateString('2026-05-24'));
   });
 
   it('normaliserer tomme tabeldatoer til undefined og afviser ugyldige ikke-tomme datoer', () => {
@@ -664,7 +665,7 @@ describe('varigeMenSchema', () => {
   it('accepterer gyldige værdier', () => {
     const result = varigeMenSchema.safeParse({
       mengrad: 25,
-      beregningsdato: '2023-01-01',
+      beregningsdato: toISODateString('2023-01-01'),
     });
     expect(result.success).toBe(true);
   });
@@ -690,7 +691,7 @@ describe('varigeMenSchema', () => {
   it('afviser decimal méngrad', () => {
     const result = varigeMenSchema.safeParse({
       mengrad: 10.5,
-      beregningsdato: '2023-01-01',
+      beregningsdato: toISODateString('2023-01-01'),
     });
     expect(result.success).toBe(false);
   });
@@ -703,8 +704,8 @@ describe('varigeMenSchema', () => {
   it('afviser ukendt felt fodselsdato', () => {
     const result = varigeMenSchema.safeParse({
       mengrad: 10,
-      beregningsdato: '2023-01-01',
-      fodselsdato: '1990-01-01',
+      beregningsdato: toISODateString('2023-01-01'),
+      fodselsdato: toISODateString('1990-01-01'),
     });
     expect(result.success).toBe(false);
   });
@@ -728,9 +729,9 @@ describe('forsoergertabSchema', () => {
 
   it('accepterer gyldige værdier', () => {
     const result = forsoergertabSchema.safeParse({
-      efterladteFodselsdato: '1988-03-04',
-      beregningsdato: '2024-01-01',
-      virkningsdato: '2024-01-01',
+      efterladteFodselsdato: toISODateString('1988-03-04'),
+      beregningsdato: toISODateString('2024-01-01'),
+      virkningsdato: toISODateString('2024-01-01'),
       tilkendtForPeriodeAar: 4,
     });
     expect(result.success).toBe(true);
@@ -766,7 +767,7 @@ describe('forsoergertabSchema', () => {
 
   it('afviser ukendt felt fodselsdato', () => {
     const result = forsoergertabSchema.safeParse({
-      fodselsdato: '1988-03-04',
+      fodselsdato: toISODateString('1988-03-04'),
     });
     expect(result.success).toBe(false);
   });

@@ -8,6 +8,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../../domain/ers
 import { initialOffentligYdelseRow } from '../../../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../../schemas/formSchemas';
 import type { SetValuesUpdater } from '../../../../hooks/usePersistedForm';
+import { toISODateString } from '../../../../types/branded';
 
 const renderTab = (params: Readonly<{
   rows: OffentligeYdelserRow[];
@@ -42,8 +43,8 @@ const applySetValuesCall = (
 const midlertidigtEetRow: OffentligeYdelserRow = {
   ...initialOffentligYdelseRow,
   id: 'midlertidigt-eet-1',
-  fraDato: '01-01-2024',
-  tilDato: '31-01-2024',
+  fraDato: toISODateString('2024-01-01'),
+  tilDato: toISODateString('2024-01-31'),
   ydelse: { kind: 'number', value: 1000 },
   ydelsestype: 'midlertidigt_eet',
 };

@@ -5,7 +5,7 @@ import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerel
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { LoenudviklingModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import { ensureMoneyOre, resolveLoenudviklingRows } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
-import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModelTypes';
+import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import * as statistikRatesData from '../../../data/statistiskeRates';
@@ -252,8 +252,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-31',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-31'),
           ydelse: asAmountValue(1000),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -669,8 +669,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-02',
-          tilDato: '2024-01-04',
+          fraDato: toISODateString('2024-01-02'),
+          tilDato: toISODateString('2024-01-04'),
           ydelse: asAmountValue(100),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -713,8 +713,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '2024-01-10',
-              col1_dag: '2024-01-10',
+              col0_dag: toISODateString('2024-01-10'),
+              col1_dag: toISODateString('2024-01-10'),
               col2: asAmountValue(1000),
               col3: undefined,
               col4: undefined,
@@ -726,16 +726,16 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-10',
-          tilDato: '2024-01-10',
+          fraDato: toISODateString('2024-01-10'),
+          tilDato: toISODateString('2024-01-10'),
           ydelse: asAmountValue(10),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
         },
         {
           id: 'ydelse-2',
-          fraDato: '2024-01-10',
-          tilDato: '2024-01-10',
+          fraDato: toISODateString('2024-01-10'),
+          tilDato: toISODateString('2024-01-10'),
           ydelse: asAmountValue(20),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Midlertidigt EET',
@@ -764,8 +764,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-02',
-          tilDato: '2024-01-02',
+          fraDato: toISODateString('2024-01-02'),
+          tilDato: toISODateString('2024-01-02'),
           ydelse: asAmountValue(100),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -801,8 +801,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -832,8 +832,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -866,8 +866,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -880,7 +880,7 @@ describe('eoPdfModel', () => {
           feriePct: undefined,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
           ],
         },
       ],
@@ -902,8 +902,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -937,8 +937,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -986,8 +986,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1009,7 +1009,7 @@ describe('eoPdfModel', () => {
     expect(loenudvikling?.beregningsenhed).toBe(TAF_BEREGNES_SOM.MAANEDER);
     expect((loenudvikling?.beregnedeSegmenter.length ?? 0) > 0).toBe(true);
     assertSortedAndContinuous(loenudvikling?.beregnedeSegmenter ?? []);
-    assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [{ fra: '2024-01-01', til: '2025-12-31' }]);
+    assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [{ fra: toISODateString('2024-01-01'), til: toISODateString('2025-12-31') }]);
     assertTotalMatchesSegmentSum(loenudvikling);
   });
 
@@ -1023,8 +1023,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-02-01',
-          tilDato: '2024-02-01',
+          fraDato: toISODateString('2024-02-01'),
+          tilDato: toISODateString('2024-02-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1047,7 +1047,7 @@ describe('eoPdfModel', () => {
     expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
     expect((loenudvikling?.beregnedeSegmenter.length ?? 0) > 1).toBe(true);
     assertSortedAndContinuous(loenudvikling?.beregnedeSegmenter ?? []);
-    assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [{ fra: '2024-02-01', til: '2025-06-01' }]);
+    assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [{ fra: toISODateString('2024-02-01'), til: toISODateString('2025-06-01') }]);
     assertTotalMatchesSegmentSum(loenudvikling);
   });
 
@@ -1061,8 +1061,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-05-01',
-          tilDato: '2024-05-01',
+          fraDato: toISODateString('2024-05-01'),
+          tilDato: toISODateString('2024-05-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1091,8 +1091,8 @@ describe('eoPdfModel', () => {
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
 
     expect(loenudvikling?.loenudviklingTotal.status).toBe('ok');
-    assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [{ fra: '2024-05-01', til: '2024-06-30' }]);
-    expect((loenudvikling?.beregnedeSegmenter ?? [])[0]?.fra).toBe('2024-05-01');
+    assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [{ fra: toISODateString('2024-05-01'), til: toISODateString('2024-06-30') }]);
+    expect((loenudvikling?.beregnedeSegmenter ?? [])[0]?.fra).toBe(toISODateString('2024-05-01'));
   });
 
   it('tillader offentlig overenskomst-regulering før 01-01-2012 med fallback-segmenter', () => {
@@ -1120,8 +1120,8 @@ describe('eoPdfModel', () => {
 
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-19') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
-    expect(segments.some((segment) => segment.fra === '2010-01-01' && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra >= '2012-01-01')).toBe(true);
+    expect(segments.some((segment) => segment.fra === toISODateString('2010-01-01') && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= toISODateString('2012-01-01'))).toBe(true);
   });
 
   it('bruger samme lønudviklingsresultat for angivet månedsløn uanset persisted anciennitet sats-per (resolver-immunitet)', () => {
@@ -1203,8 +1203,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1217,8 +1217,8 @@ describe('eoPdfModel', () => {
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
-            { id: 'm2', dato: '2024-07-01', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
+            { id: 'm2', dato: toISODateString('2024-07-01'), grundloen: asAmountValue(110), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
           ],
         },
       ],
@@ -1231,8 +1231,8 @@ describe('eoPdfModel', () => {
     expect(loenudvikling?.beregnedeSegmenter.length).toBeGreaterThanOrEqual(2);
     assertSortedAndContinuous(loenudvikling?.beregnedeSegmenter ?? []);
     assertCoveragePerRange(loenudvikling?.beregnedeSegmenter ?? [], [
-      { fra: '2024-01-01', til: '2024-03-31' },
-      { fra: '2024-05-01', til: '2024-12-31' },
+      { fra: toISODateString('2024-01-01'), til: toISODateString('2024-03-31') },
+      { fra: toISODateString('2024-05-01'), til: toISODateString('2024-12-31') },
     ]);
     assertTotalMatchesSegmentSum(loenudvikling);
   });
@@ -1247,8 +1247,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1261,8 +1261,8 @@ describe('eoPdfModel', () => {
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
-            { id: 'm2', dato: '2024-01-31', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
+            { id: 'm2', dato: toISODateString('2024-01-31'), grundloen: asAmountValue(110), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
           ],
         },
       ],
@@ -1272,10 +1272,10 @@ describe('eoPdfModel', () => {
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
     expect(segments.length).toBe(2);
-    expect(segments[0].fra).toBe('2024-01-01');
-    expect(segments[0].til).toBe('2024-01-30');
-    expect(segments[1].fra).toBe('2024-01-31');
-    expect(segments[1].til).toBe('2024-01-31');
+    expect(segments[0].fra).toBe(toISODateString('2024-01-01'));
+    expect(segments[0].til).toBe(toISODateString('2024-01-30'));
+    expect(segments[1].fra).toBe(toISODateString('2024-01-31'));
+    expect(segments[1].til).toBe(toISODateString('2024-01-31'));
   });
 
   it('segmenterer manuel regulering korrekt ved startdato lig range.fra + 1 dag', () => {
@@ -1288,8 +1288,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1302,8 +1302,8 @@ describe('eoPdfModel', () => {
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
-            { id: 'm2', dato: '2024-01-02', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
+            { id: 'm2', dato: toISODateString('2024-01-02'), grundloen: asAmountValue(110), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
           ],
         },
       ],
@@ -1313,10 +1313,10 @@ describe('eoPdfModel', () => {
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
     expect(segments.length).toBe(2);
-    expect(segments[0].fra).toBe('2024-01-01');
-    expect(segments[0].til).toBe('2024-01-01');
-    expect(segments[1].fra).toBe('2024-01-02');
-    expect(segments[1].til).toBe('2024-01-31');
+    expect(segments[0].fra).toBe(toISODateString('2024-01-01'));
+    expect(segments[0].til).toBe(toISODateString('2024-01-01'));
+    expect(segments[1].fra).toBe(toISODateString('2024-01-02'));
+    expect(segments[1].til).toBe(toISODateString('2024-01-31'));
   });
 
   it('ignorerer manuel startdato lig range.fra uden dubletsegment', () => {
@@ -1329,8 +1329,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1343,8 +1343,8 @@ describe('eoPdfModel', () => {
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
-            { id: 'm2', dato: '2024-01-01', grundloen: asAmountValue(110), feriepenge: '12,5', shSoSats: '5', fritvalg: '2', agPension: '8' },
+            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
+            { id: 'm2', dato: toISODateString('2024-01-01'), grundloen: asAmountValue(110), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
           ],
         },
       ],
@@ -1354,8 +1354,8 @@ describe('eoPdfModel', () => {
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
     expect(segments.length).toBe(1);
-    expect(segments[0].fra).toBe('2024-01-01');
-    expect(segments[0].til).toBe('2024-01-31');
+    expect(segments[0].fra).toBe(toISODateString('2024-01-01'));
+    expect(segments[0].til).toBe(toISODateString('2024-01-31'));
   });
 
   it('anvender manuel ferieprocent fra dateret række i PDF-reguleringen', () => {
@@ -1368,8 +1368,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-12-01',
-          tilDato: '2024-12-01',
+          fraDato: toISODateString('2024-12-01'),
+          tilDato: toISODateString('2024-12-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1382,8 +1382,8 @@ describe('eoPdfModel', () => {
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(30000), feriepenge: '12,5', shSoSats: '0', fritvalg: '0', agPension: '10' },
-            { id: 'm2', dato: '2025-01-01', grundloen: asAmountValue(31000), feriepenge: '15,0', shSoSats: '0', fritvalg: '0', agPension: '10' },
+            { id: 'm1', dato: '', grundloen: asAmountValue(30000), feriepenge: 12.5, shSoSats: 0, fritvalg: 0, agPension: 10 },
+            { id: 'm2', dato: toISODateString('2025-01-01'), grundloen: asAmountValue(31000), feriepenge: 15.0, shSoSats: 0, fritvalg: 0, agPension: 10 },
           ],
         },
       ],
@@ -1392,7 +1392,7 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    const changedSegment = segments.find((segment) => segment.fra === '2025-01-01');
+    const changedSegment = segments.find((segment) => segment.fra === toISODateString('2025-01-01'));
     expect(changedSegment).toBeDefined();
     expect(changedSegment?.deltaPct).toBeCloseTo(5.62, 2);
   });
@@ -1407,8 +1407,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-12-01',
-          tilDato: '2024-12-01',
+          fraDato: toISODateString('2024-12-01'),
+          tilDato: toISODateString('2024-12-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1421,8 +1421,8 @@ describe('eoPdfModel', () => {
           feriePct: 15,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(30000), feriepenge: '', shSoSats: '0', fritvalg: '0', agPension: '10' },
-            { id: 'm2', dato: '2025-01-01', grundloen: asAmountValue(31000), feriepenge: '', shSoSats: '0', fritvalg: '0', agPension: '10' },
+            { id: 'm1', dato: '', grundloen: asAmountValue(30000), feriepenge: undefined, shSoSats: 0, fritvalg: 0, agPension: 10 },
+            { id: 'm2', dato: toISODateString('2025-01-01'), grundloen: asAmountValue(31000), feriepenge: undefined, shSoSats: 0, fritvalg: 0, agPension: 10 },
           ],
         },
       ],
@@ -1431,7 +1431,7 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    const changedSegment = segments.find((segment) => segment.fra === '2025-01-01');
+    const changedSegment = segments.find((segment) => segment.fra === toISODateString('2025-01-01'));
     expect(changedSegment).toBeDefined();
     expect(changedSegment?.deltaPct).toBeCloseTo(3.33, 2);
   });
@@ -1447,8 +1447,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1523,8 +1523,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1600,8 +1600,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -1992,8 +1992,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2046,8 +2046,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2099,8 +2099,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-01',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2159,8 +2159,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-02-01',
-          tilDato: '2024-02-01',
+          fraDato: toISODateString('2024-02-01'),
+          tilDato: toISODateString('2024-02-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2180,8 +2180,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '2024-01-01',
-              col1_dag: '2024-01-10',
+              col0_dag: toISODateString('2024-01-01'),
+              col1_dag: toISODateString('2024-01-10'),
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -2226,8 +2226,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-31',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-31'),
           ydelse: asAmountValue(1000),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2291,8 +2291,8 @@ describe('eoPdfModel', () => {
             },
           ],
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '', fritvalg: '', agPension: '8' },
-            { id: 'm2', dato: '2024-02-01', grundloen: asAmountValue(100), feriepenge: '12,5', shSoSats: '', fritvalg: '', agPension: '10' },
+            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: undefined, fritvalg: undefined, agPension: 8 },
+            { id: 'm2', dato: toISODateString('2024-02-01'), grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: undefined, fritvalg: undefined, agPension: 10 },
           ],
         },
       ],
@@ -2469,8 +2469,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2004-01-01',
-          tilDato: '2004-01-01',
+          fraDato: toISODateString('2004-01-01'),
+          tilDato: toISODateString('2004-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2482,9 +2482,9 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    const firstSegment = segments.find((segment) => segment.fra === '2004-01-01');
+    const firstSegment = segments.find((segment) => segment.fra === toISODateString('2004-01-01'));
     expect(firstSegment?.deltaPct).toBe(0);
-    expect(segments.some((segment) => segment.fra >= '2006-01-01' && segment.deltaPct > 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= toISODateString('2006-01-01') && segment.deltaPct > 0)).toBe(true);
   });
 
   it('anvender statistik-fallback (variant B) for manglende basisdækning ved Beregningsperiode', () => {
@@ -2498,8 +2498,8 @@ describe('eoPdfModel', () => {
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: '2004-01-01',
-          tilDato: '2004-01-01',
+          fraDato: toISODateString('2004-01-01'),
+          tilDato: toISODateString('2004-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2533,8 +2533,8 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    expect(segments.some((segment) => segment.fra === '2004-01-01' && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra >= '2006-01-01' && segment.deltaPct > 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra === toISODateString('2004-01-01') && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= toISODateString('2006-01-01') && segment.deltaPct > 0)).toBe(true);
   });
 
   it('bevarer ASL-segmenter uden data som 0-regulering (ikke filtreret væk)', () => {
@@ -2556,8 +2556,8 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    expect(segments.some((segment) => segment.fra === '2004-01-01' && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra === '2005-01-01')).toBe(true);
+    expect(segments.some((segment) => segment.fra === toISODateString('2004-01-01') && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra === toISODateString('2005-01-01'))).toBe(true);
   });
 
   it('anvender KRL-fallback (variant B) når reguleringsdato ligger før første sats', () => {
@@ -2579,8 +2579,8 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    expect(segments.some((segment) => segment.fra === '2000-01-01' && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra >= '2001-10-01' && segment.deltaPct > 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra === toISODateString('2000-01-01') && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= toISODateString('2001-10-01') && segment.deltaPct > 0)).toBe(true);
   });
 
   it('anvender overenskomst-fallback (privat) for tidlige perioder uden sats', () => {
@@ -2604,8 +2604,8 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    expect(segments.some((segment) => segment.fra === '2009-01-01' && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra >= '2011-03-01')).toBe(true);
+    expect(segments.some((segment) => segment.fra === toISODateString('2009-01-01') && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= toISODateString('2011-03-01'))).toBe(true);
   });
 
   it('anvender overenskomst-fallback (offentlig) for perioder før 01-01-2012 uden crash', () => {
@@ -2632,8 +2632,8 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    expect(segments.some((segment) => segment.fra === '2010-01-01' && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra >= '2012-01-01')).toBe(true);
+    expect(segments.some((segment) => segment.fra === toISODateString('2010-01-01') && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= toISODateString('2012-01-01'))).toBe(true);
   });
 
   it('indsætter Store Bededag som separat segment 01-01-2024 for offentlig overenskomst', () => {
@@ -2660,7 +2660,7 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    expect(segments.some((segment) => segment.fra === '2024-01-01')).toBe(true);
+    expect(segments.some((segment) => segment.fra === toISODateString('2024-01-01'))).toBe(true);
   });
 
   it('anvender historisk privat overenskomstdækning og Store Bededag som særskilt segment fra 01-01-2024', () => {
@@ -2685,9 +2685,9 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    const beforeStore = segments.find((segment) => segment.fra === '2023-12-01');
-    const storeSegment = segments.find((segment) => segment.fra === '2024-01-01');
-    const segmentsBeforeStore = segments.filter((segment) => segment.fra < '2024-01-01');
+    const beforeStore = segments.find((segment) => segment.fra === toISODateString('2023-12-01'));
+    const storeSegment = segments.find((segment) => segment.fra === toISODateString('2024-01-01'));
+    const segmentsBeforeStore = segments.filter((segment) => segment.fra < toISODateString('2024-01-01'));
 
     expect(beforeStore).toBeDefined();
     expect(beforeStore?.deltaPct).toBeCloseTo(16.47, 2);
@@ -2738,7 +2738,7 @@ describe('eoPdfModel', () => {
     const segment = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter[0];
 
     expect(segment).toBeDefined();
-    expect(segment?.fra).toBe('2024-03-01');
+    expect(segment?.fra).toBe(toISODateString('2024-03-01'));
     expect(segment?.deltaPct).toBeCloseTo(22.19, 2);
   });
 
@@ -2761,28 +2761,28 @@ describe('eoPdfModel', () => {
               id: 'm1',
               dato: '',
               grundloen: asAmountValue(25174),
-              feriepenge: '15,00',
-              shSoSats: '',
-              fritvalg: '7,00',
-              agPension: '9,00',
+              feriepenge: 15.00,
+              shSoSats: undefined,
+              fritvalg: 7.00,
+              agPension: 9.00,
             },
             {
               id: 'm2',
-              dato: '2024-03-01',
+              dato: toISODateString('2024-03-01'),
               grundloen: asAmountValue(25174),
-              feriepenge: '15,00',
-              shSoSats: '',
-              fritvalg: '9,00',
-              agPension: '11,00',
+              feriepenge: 15.00,
+              shSoSats: undefined,
+              fritvalg: 9.00,
+              agPension: 11.00,
             },
             {
               id: 'm3',
-              dato: '2024-04-01',
+              dato: toISODateString('2024-04-01'),
               grundloen: asAmountValue(25895),
-              feriepenge: '15,00',
-              shSoSats: '',
-              fritvalg: '9,00',
-              agPension: '11,00',
+              feriepenge: 15.00,
+              shSoSats: undefined,
+              fritvalg: 9.00,
+              agPension: 11.00,
             },
           ],
         },
@@ -2792,9 +2792,9 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    const storeSegment = segments.find((segment) => segment.fra === '2024-01-01');
+    const storeSegment = segments.find((segment) => segment.fra === toISODateString('2024-01-01'));
     expect(storeSegment).toBeDefined();
-    expect(storeSegment?.til).toBe('2024-02-29');
+    expect(storeSegment?.til).toBe(toISODateString('2024-02-29'));
   });
 
   it('anvender Store Bededag i manuel regulering når hele TAF-perioden ligger efter 01-01-2024 men reguleringsdatoen ligger før', () => {
@@ -2817,28 +2817,28 @@ describe('eoPdfModel', () => {
               id: 'm1',
               dato: '',
               grundloen: asAmountValue(177.56),
-              feriepenge: '',
-              shSoSats: '',
-              fritvalg: '',
-              agPension: '14,37',
+              feriepenge: undefined,
+              shSoSats: undefined,
+              fritvalg: undefined,
+              agPension: 14.37,
             },
             {
               id: 'm2',
-              dato: '2024-04-01',
+              dato: toISODateString('2024-04-01'),
               grundloen: asAmountValue(184.66),
-              feriepenge: '',
-              shSoSats: '',
-              fritvalg: '',
-              agPension: '14,37',
+              feriepenge: undefined,
+              shSoSats: undefined,
+              fritvalg: undefined,
+              agPension: 14.37,
             },
             {
               id: 'm3',
-              dato: '2024-10-01',
+              dato: toISODateString('2024-10-01'),
               grundloen: asAmountValue(187.06),
-              feriepenge: '',
-              shSoSats: '',
-              fritvalg: '',
-              agPension: '14,37',
+              feriepenge: undefined,
+              shSoSats: undefined,
+              fritvalg: undefined,
+              agPension: 14.37,
             },
           ],
         },
@@ -2848,7 +2848,7 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    expect(segments[0]?.fra).toBe('2024-01-26');
+    expect(segments[0]?.fra).toBe(toISODateString('2024-01-26'));
     expect(segments[0]?.deltaPct).toBeCloseTo(0.38, 2);
   });
 
@@ -2916,8 +2916,8 @@ describe('eoPdfModel', () => {
       id: 'KTO (kommuner)',
       navn: 'KTO (kommuner)',
       vaerdier: [
-        { fraDato: '01-10-2001', reguleringsPct: -100 },
-        { fraDato: '01-04-2001', reguleringsPct: 0 },
+        { fraDato: toISODateString('2001-10-01'), reguleringsPct: -100 },
+        { fraDato: toISODateString('2001-04-01'), reguleringsPct: 0 },
       ],
     });
     try {
@@ -2945,7 +2945,7 @@ describe('eoPdfModel', () => {
 
   it('fejler fail-closed ved ugyldig overenskomst-satsdata (privat)', () => {
     const spy = vi.spyOn(overenskomstRatesData, 'getEffektiveSatserForDato').mockReturnValue({
-      fraDato: '2011-03-01',
+      fraDato: toISODateString('2011-03-01'),
       grundloen: 0,
       shSoSats: 0.069,
       fritvalg: null,

@@ -116,7 +116,7 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
 
 describe('renderLoenindkomstSection – gate', () => {
   it('returnerer tidligt uden at kalde startEoBilagPage når loenindkomst=false', () => {
-    const { ctx, startEoBilagPage } = makeContext(new Set(['2022-10-01']));
+    const { ctx, startEoBilagPage } = makeContext(new Set([toISODateString('2022-10-01')]));
     ctx.selectedElements = { ...selectedElements, loenindkomst: false };
 
     renderLoenindkomstSection(ctx);
@@ -136,7 +136,7 @@ describe('renderLoenindkomstSection – gate', () => {
 
 describe('renderLoenindkomstSection opsigelseslinje', () => {
   it('viser opsigelseslinje efter lønindkomsttabellen når ansættelsesforhold er opsagt', () => {
-    const { ctx } = makeContext(new Set(['2022-10-01']));
+    const { ctx } = makeContext(new Set([toISODateString('2022-10-01')]));
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansatPaaSkadestidspunktet = true;
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansaettelsesforholdOphoert = true;
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].sidsteArbejdsdag = undefined;
@@ -147,7 +147,7 @@ describe('renderLoenindkomstSection opsigelseslinje', () => {
   });
 
   it('viser opsigelseslinje med sidste arbejdsdag når dato er angivet', () => {
-    const { ctx } = makeContext(new Set(['2022-10-01']));
+    const { ctx } = makeContext(new Set([toISODateString('2022-10-01')]));
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansatPaaSkadestidspunktet = true;
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansaettelsesforholdOphoert = true;
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].sidsteArbejdsdag = iso('2024-04-30');
@@ -165,7 +165,7 @@ describe('renderLoenindkomstSection opsigelseslinje', () => {
 
 describe('renderLoenindkomstSection periode-underoverskrifter', () => {
   it('viser ikke TAF-/Beregningsperiode-underoverskrift når kun én periodegruppe har rækker', () => {
-    const { ctx, renderSubheader } = makeContext(new Set(['2022-10-01']));
+    const { ctx, renderSubheader } = makeContext(new Set([toISODateString('2022-10-01')]));
 
     renderLoenindkomstSection(ctx);
 
@@ -175,7 +175,7 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
   });
 
   it('viser heller ikke TAF-/Beregningsperiode-underoverskrifter når begge periodegrupper har rækker', () => {
-    const { ctx, renderSubheader } = makeContext(new Set(['2022-10-01', '2024-01-01']));
+    const { ctx, renderSubheader } = makeContext(new Set([toISODateString('2022-10-01'), toISODateString('2024-01-01')]));
 
     renderLoenindkomstSection(ctx);
 
@@ -187,7 +187,7 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
 
   it('fordeler lønindkomstkolonner over fuld tabelbredde i PDF', () => {
     autoTableMock.mockClear();
-    const { ctx } = makeContext(new Set(['2022-10-01']));
+    const { ctx } = makeContext(new Set([toISODateString('2022-10-01')]));
 
     renderLoenindkomstSection(ctx);
 
@@ -203,7 +203,7 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
 
   it('beregner FP/FV/SH/SO/St.B. i PDF-tabellen efter satsen i den enkelte lønrække', () => {
     autoTableMock.mockClear();
-    const { ctx } = makeContext(new Set(['2022-10-01']));
+    const { ctx } = makeContext(new Set([toISODateString('2022-10-01')]));
     ctx.eoValues.beregnesUdFra = 'Angivet månedsløn';
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0] = {
       ...ctx.eoValues.loenindkomstAnsaettelsesforhold[0],
@@ -217,8 +217,8 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
           col1_maaned: '',
           col0_uge: '',
           col1_uge: '',
-          col0_dag: '01-01-2024',
-          col1_dag: '31-01-2024',
+          col0_dag: toISODateString('2024-01-01'),
+          col1_dag: toISODateString('2024-01-31'),
           col2: { kind: 'number', value: 3100 },
           col3: undefined,
           col4: undefined,
@@ -226,8 +226,8 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
         },
       ],
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '', grundloen: { kind: 'number', value: 0 }, feriepenge: '', shSoSats: '0', fritvalg: '', agPension: '' },
-        { id: 'step', dato: '15-01-2024', grundloen: { kind: 'number', value: 0 }, feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
+        { id: 'base', dato: '', grundloen: { kind: 'number', value: 0 }, feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
+        { id: 'step', dato: toISODateString('2024-01-15'), grundloen: { kind: 'number', value: 0 }, feriepenge: undefined, shSoSats: 10, fritvalg: undefined, agPension: undefined },
       ],
     };
     ctx.getLoenindkomstTableHeaders = vi.fn(() => getStandardLoenTableHeaders('dag'));
@@ -244,7 +244,7 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
 
   it('respekterer arbejdsdagsfradrag i PDF-tabellen ved manuel satsfordeling', () => {
     autoTableMock.mockClear();
-    const { ctx } = makeContext(new Set(['2022-10-01']));
+    const { ctx } = makeContext(new Set([toISODateString('2022-10-01')]));
     ctx.eoValues.beregnesUdFra = 'Angivet dagsløn';
     ctx.eoValues.ferieperioder = [{ id: 'ferie-1', fra: iso('2024-01-11'), til: iso('2024-01-11') }];
     ctx.eoValues.fravaerPerioder = [{ id: 'fravaer-1', fra: iso('2024-01-12'), til: iso('2024-01-12') }];
@@ -260,8 +260,8 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
           col1_maaned: '',
           col0_uge: '',
           col1_uge: '',
-          col0_dag: '08-01-2024',
-          col1_dag: '12-01-2024',
+          col0_dag: toISODateString('2024-01-08'),
+          col1_dag: toISODateString('2024-01-12'),
           col2: { kind: 'number', value: 1000 },
           col3: undefined,
           col4: undefined,
@@ -269,8 +269,8 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
         },
       ],
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '', grundloen: { kind: 'number', value: 0 }, feriepenge: '', shSoSats: '0', fritvalg: '', agPension: '' },
-        { id: 'step', dato: '10-01-2024', grundloen: { kind: 'number', value: 0 }, feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
+        { id: 'base', dato: '', grundloen: { kind: 'number', value: 0 }, feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
+        { id: 'step', dato: toISODateString('2024-01-10'), grundloen: { kind: 'number', value: 0 }, feriepenge: undefined, shSoSats: 10, fritvalg: undefined, agPension: undefined },
       ],
     };
     ctx.getLoenindkomstTableHeaders = vi.fn(() => getStandardLoenTableHeaders('dag'));

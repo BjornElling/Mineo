@@ -29,6 +29,7 @@ vi.mock('../../pdf/infrastructure/pdfService', () => ({
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 import { DEFAULT_APP_SETTINGS } from '../../settings/appSettingsSchema';
+import { toISODateString } from '../../types/branded';
 
 const makeBaseProps = (overrides: Partial<Parameters<typeof useAarsloenPdfGates>[0]> = {}) => ({
   values: {
@@ -107,7 +108,7 @@ describe('useAarsloenPdfGates — canDownloadPdf', () => {
       harFatalBeregningsFejl: true,
       values: {
         ...makeBaseProps().values,
-        tableData: [{ id: 'r1', col0_maaned: '2024-01-01', col1_maaned: '2024-06-30', col2: '50000' } as never],
+        tableData: [{ id: 'r1', col0_maaned: toISODateString('2024-01-01'), col1_maaned: toISODateString('2024-06-30'), col2: '50000' } as never],
       },
     }));
     expect(canDownloadPdf).toBe(false);
@@ -119,7 +120,7 @@ describe('useAarsloenPdfGates — canDownloadPdf', () => {
       periodeData: null,
       values: {
         ...makeBaseProps().values,
-        tableData: [{ id: 'r1', col0_maaned: '2024-01-01', col1_maaned: '2024-06-30', col2: '50000' } as never],
+        tableData: [{ id: 'r1', col0_maaned: toISODateString('2024-01-01'), col1_maaned: toISODateString('2024-06-30'), col2: '50000' } as never],
       },
     }));
     expect(canDownloadPdf).toBe(false);
@@ -178,7 +179,7 @@ describe('useAarsloenPdfGates — runtime PDF-fejl', () => {
     const captured = renderHook(makeBaseProps({
       values: {
         ...baseValues,
-        tableData: [{ id: 'r1', col0_maaned: '2024-01-01', col1_maaned: '2024-06-30', col2: '50000' } as never],
+        tableData: [{ id: 'r1', col0_maaned: toISODateString('2024-01-01'), col1_maaned: toISODateString('2024-06-30'), col2: '50000' } as never],
       },
     }));
 

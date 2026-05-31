@@ -22,6 +22,7 @@ import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import type { StorageKey } from '../../config/storageManifest';
 import { __resetDraftHistoryRegistryForTests } from '../../utils/draftHistoryRegistry';
+import { toISODateString } from '../../types/branded';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
 
@@ -385,11 +386,11 @@ describe('useUndoRedo', () => {
 
     act(() => {
       formPersistenceStore.getState().commitSection('stamdata', {
-        skadelidteFodselsdato: '1980-01-01' as ISODateString,
+        skadelidteFodselsdato: toISODateString('1980-01-01') as ISODateString,
       }, { schemaFingerprint: PERSISTED_DATA_VERSION });
       undoRedoStore.getState().capture(stamdataOrigin);
       formPersistenceStore.getState().commitSection('stamdata', {
-        skadelidteFodselsdato: '1981-01-01' as ISODateString,
+        skadelidteFodselsdato: toISODateString('1981-01-01') as ISODateString,
       }, { schemaFingerprint: PERSISTED_DATA_VERSION });
       controls?.undo();
     });
@@ -446,7 +447,7 @@ describe('useUndoRedo', () => {
       formPersistenceStore.getState().commitSection('stamdata', {
         journalnr: 'SAG-1',
         skadelidte: 'Test Person',
-        skadelidteFodselsdato: '1980-01-01' as ISODateString,
+        skadelidteFodselsdato: toISODateString('1980-01-01') as ISODateString,
       }, { schemaFingerprint: PERSISTED_DATA_VERSION });
     });
 
@@ -741,10 +742,10 @@ describe('useUndoRedo', () => {
     const rowInput = screen.getByTestId('taf-r1');
     act(() => {
       rowInput.focus();
-      fireEvent.change(rowInput, { target: { value: '2024-01-01' } });
+      fireEvent.change(rowInput, { target: { value: toISODateString('2024-01-01') } });
       fireEvent.blur(rowInput);
     });
-    expect(screen.getByTestId('taf-r1')).toHaveValue('2024-01-01');
+    expect(screen.getByTestId('taf-r1')).toHaveValue(toISODateString('2024-01-01'));
 
     act(() => {
       fireEvent.click(screen.getByRole('button', { name: 'Slet r1' }));
@@ -756,7 +757,7 @@ describe('useUndoRedo', () => {
     });
     flushAnimationFrames(rafCallbacks);
 
-    expect(screen.getByTestId('taf-r1')).toHaveValue('2024-01-01');
+    expect(screen.getByTestId('taf-r1')).toHaveValue(toISODateString('2024-01-01'));
     const restoredInputs = screen.getAllByRole('textbox');
     expect(restoredInputs).toHaveLength(2);
     expect(restoredInputs.some((input) => (input as HTMLInputElement).value === '')).toBe(true);

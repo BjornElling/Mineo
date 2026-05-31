@@ -21,7 +21,7 @@ describe('StyledWeekField', () => {
 
     render(<Wrapper />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.click(input);
     input.setSelectionRange(0, 2);
@@ -50,9 +50,10 @@ describe('StyledWeekField', () => {
 
     render(<Wrapper />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
-    await user.paste(input, 'adffergregs//sgd1712,56//');
+    input.focus();
+    await user.paste('adffergregs//sgd1712,56//');
     await user.tab();
 
     expect(input).toHaveValue('17/2012');

@@ -6,6 +6,7 @@ import Container from '../../../../components/layout/Container';
 import OffentligeYdelserTab from '../../../../components/pages/erstatningsopgoerelse/OffentligeYdelserTab';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import { initialOffentligYdelseRow } from '../../../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
+import { toISODateString } from '../../../../types/branded';
 
 describe('OffentligeYdelserTab keyboard navigation', () => {
   const getRectsSpy = vi.spyOn(HTMLElement.prototype, 'getClientRects');
@@ -134,8 +135,8 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
     sessionStorage.setItem(
       'mineo_ui_eoOffentligeYdelserHelpers',
       JSON.stringify({
-        sygedagpengeFraDato: '2024-01-01',
-        sygedagpengeTilDato: '2024-01-31',
+        sygedagpengeFraDato: toISODateString('2024-01-01'),
+        sygedagpengeTilDato: toISODateString('2024-01-31'),
       })
     );
 

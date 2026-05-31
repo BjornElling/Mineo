@@ -3,9 +3,19 @@ import { render, screen } from '@testing-library/react';
 import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow } from '../../../schemas/formSchemas';
 import type { SvieSmerteDraftRow } from '../../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import type { SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import useSvieSmerteRows from '../../../components/tables/useSvieSmerteRows';
 import { toISODateString } from '../../../types/branded';
 import SvieSmerteTable from '../../../components/tables/SvieSmerteTable';
+
+const useTestEoValues = (initialValues: ErstatningsopgoerelseValues) => {
+  const [state, setState] = React.useState<ErstatningsopgoerelseValues>(initialValues);
+  const setValues = React.useCallback<SetValuesUpdater<ErstatningsopgoerelseValues>>((updater) => {
+    setState((prev) => ({ ...prev, ...updater(prev) }));
+  }, []);
+
+  return { state, setValues };
+};
 
 describe('SvieSmerteTable', () => {
   it('shows a special error message when svie/smerte is on/after the varige mén decision date (no appeal)', () => {
@@ -64,8 +74,8 @@ describe('SvieSmerteTable', () => {
     };
 
     const TestHarness = () => {
-      const [state, setState] = React.useState<ErstatningsopgoerelseValues>(values);
-      const svie = useSvieSmerteRows({ values: state, setValues: setState, resyncToken: 0 });
+      const { state, setValues } = useTestEoValues(values);
+      const svie = useSvieSmerteRows({ values: state, setValues, resyncToken: 0 });
 
       return (
         <SvieSmerteTable
@@ -87,7 +97,10 @@ describe('SvieSmerteTable', () => {
     expect(screen.getByText('269')).toBeInTheDocument();
   });
 
-  it('marks overlapping rows when svie/smerte periods overlap with different tilstand', () => {
+  it('marks overlapping rows uanset tilstand (ethvert overlap afvises)', () => {
+    // Tilstand er irrelevant: ethvert overlap markeres, fordi validator og svieSmerteEngine
+    // afviser ethvert overlap. Her overlapper kun row-1 og row-3 (forskellig tilstand);
+    // row-2 ligger separat.
     const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       svieSmertePerioder: [
@@ -113,13 +126,43 @@ describe('SvieSmerteTable', () => {
     };
 
     const TestHarness = () => {
-      const [state, setState] = React.useState<ErstatningsopgoerelseValues>(values);
-      const svie = useSvieSmerteRows({ values: state, setValues: setState, resyncToken: 0 });
+      const { state, setValues } = useTestEoValues(values);
+      const svie = useSvieSmerteRows({ values: state, setValues, resyncToken: 0 });
       const ids = Array.from(svie.overlappingIds).sort().join(',');
       return <div data-testid="overlap-ids">{ids}</div>;
     };
 
     render(<TestHarness />);
     expect(screen.getByTestId('overlap-ids').textContent).toBe('row-1,row-3');
+  });
+
+  it('marks ikke overlapping rows MED SAMME tilstand', () => {
+    const values: ErstatningsopgoerelseValues = {
+      ...createErstatningsopgoerelseInitialValues(),
+      svieSmertePerioder: [
+        {
+          id: 'row-1',
+          fra: toISODateString('2024-01-01'),
+          til: toISODateString('2024-01-15'),
+          tilstand: 'sygemeldt',
+        },
+        {
+          id: 'row-2',
+          fra: toISODateString('2024-01-10'),
+          til: toISODateString('2024-01-20'),
+          tilstand: 'sygemeldt',
+        },
+      ],
+    };
+
+    const TestHarness = () => {
+      const { state, setValues } = useTestEoValues(values);
+      const svie = useSvieSmerteRows({ values: state, setValues, resyncToken: 0 });
+      const ids = Array.from(svie.overlappingIds).sort().join(',');
+      return <div data-testid="overlap-ids">{ids}</div>;
+    };
+
+    render(<TestHarness />);
+    expect(screen.getByTestId('overlap-ids').textContent).toBe('');
   });
 });

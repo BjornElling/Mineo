@@ -5,6 +5,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { toISODateString } from '../../../types/branded';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -42,8 +43,8 @@ describe('calculateLoenindkomstRowDerived', () => {
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       shSoPct: 0,
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '0', fritvalg: '', agPension: '' },
-        { id: 'step', dato: '2024-01-15', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
+        { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
+        { id: 'step', dato: toISODateString('2024-01-15'), grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 10, fritvalg: undefined, agPension: undefined },
       ],
     };
     const row: StandardLoenTableRow = {
@@ -78,8 +79,8 @@ describe('calculateLoenindkomstRowDerived', () => {
       storeBededagPct: 0,
       pensionPct: 10,
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '2025-02-28', grundloen: asAmountValue(0), feriepenge: '15', shSoSats: '', fritvalg: '', agPension: '10' },
-        { id: 'step', dato: '2025-05-01', grundloen: asAmountValue(0), feriepenge: '15', shSoSats: '', fritvalg: '', agPension: '12' },
+        { id: 'base', dato: toISODateString('2025-02-28'), grundloen: asAmountValue(0), feriepenge: 15, shSoSats: undefined, fritvalg: undefined, agPension: 10 },
+        { id: 'step', dato: toISODateString('2025-05-01'), grundloen: asAmountValue(0), feriepenge: 15, shSoSats: undefined, fritvalg: undefined, agPension: 12 },
       ],
     };
     const row: StandardLoenTableRow = {
@@ -112,14 +113,14 @@ describe('calculateLoenindkomstRowDerived', () => {
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       shSoPct: 0,
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '0', fritvalg: '', agPension: '' },
-        { id: 'step', dato: '2024-01-15', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
+        { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
+        { id: 'step', dato: toISODateString('2024-01-15'), grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 10, fritvalg: undefined, agPension: undefined },
       ],
     };
     const row: StandardLoenTableRow = {
       ...createEmptyRow(),
-      col0_dag: '2024-01-01',
-      col1_dag: '2024-01-19',
+      col0_dag: toISODateString('2024-01-01'),
+      col1_dag: toISODateString('2024-01-19'),
       col2: asAmountValue(1400),
     };
     const context = {
@@ -145,22 +146,22 @@ describe('calculateLoenindkomstRowDerived', () => {
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       shSoPct: 0,
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '0', fritvalg: '', agPension: '' },
-        { id: 'step', dato: '2024-01-10', grundloen: asAmountValue(0), feriepenge: '', shSoSats: '10', fritvalg: '', agPension: '' },
+        { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
+        { id: 'step', dato: toISODateString('2024-01-10'), grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 10, fritvalg: undefined, agPension: undefined },
       ],
     };
     const row: StandardLoenTableRow = {
       ...createEmptyRow(),
-      col0_dag: '2024-01-08',
-      col1_dag: '2024-01-12',
+      col0_dag: toISODateString('2024-01-08'),
+      col1_dag: toISODateString('2024-01-12'),
       col2: asAmountValue(1000),
     };
     const context = {
       ...createBaseContext(),
       beregnesUdFra: 'Angivet dagsløn' as const,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
-      ferieperioder: [{ id: 'ferie-1', fra: '2024-01-11' as const, til: '2024-01-11' as const }],
-      fravaerPerioder: [{ id: 'fravaer-1', fra: '2024-01-12' as const, til: '2024-01-12' as const }],
+      ferieperioder: [{ id: 'ferie-1', fra: toISODateString('2024-01-11') as const, til: toISODateString('2024-01-11') as const }],
+      fravaerPerioder: [{ id: 'fravaer-1', fra: toISODateString('2024-01-12') as const, til: toISODateString('2024-01-12') as const }],
     };
 
     const result = calculateLoenindkomstRowDerived({
@@ -189,8 +190,8 @@ describe('calculateLoenindkomstRowDerived', () => {
     };
     const row: StandardLoenTableRow = {
       ...createEmptyRow(),
-      col0_dag: '2024-02-26',
-      col1_dag: '2024-03-05',
+      col0_dag: toISODateString('2024-02-26'),
+      col1_dag: toISODateString('2024-03-05'),
       col2: asAmountValue(900),
     };
     const context = {

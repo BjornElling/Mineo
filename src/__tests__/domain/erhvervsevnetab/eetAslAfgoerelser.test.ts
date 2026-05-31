@@ -31,8 +31,8 @@ const buildRow = (patch: Partial<AslAfgoerelseRow>): AslAfgoerelseRow => ({
 describe('validateKapPctByAfgoerelsestype', () => {
   it('anvender de almindelige kapitaliseringsregler ved endelig afgørelse mere end 2 år før folkepension', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 80, kapPct: 55 }),
-      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 80, kapPct: 55 })],
+      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: toISODateString('2025-07-01'), eetPct: 80, kapPct: 55 }),
+      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: toISODateString('2025-07-01'), eetPct: 80, kapPct: 55 })],
       toISODateString('2025-01-01'),
       toISODateString('1965-01-01')
     );
@@ -41,8 +41,8 @@ describe('validateKapPctByAfgoerelsestype', () => {
 
   it('afviser endelig kapitalisering mere end 2 år før folkepension når kap % overstiger EET %', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 40, kapPct: 45 }),
-      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 40, kapPct: 45 })],
+      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: toISODateString('2025-07-01'), eetPct: 40, kapPct: 45 }),
+      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: toISODateString('2025-07-01'), eetPct: 40, kapPct: 45 })],
       toISODateString('2025-01-01'),
       toISODateString('1965-01-01')
     );
@@ -51,8 +51,8 @@ describe('validateKapPctByAfgoerelsestype', () => {
 
   it('kræver fortsat fuld kapitalisering ved endelig afgørelse under 50 % mere end 2 år før folkepension', () => {
     const error = validateKapPctByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 40, kapPct: 35 }),
-      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: '01-07-2025', eetPct: 40, kapPct: 35 })],
+      buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: toISODateString('2025-07-01'), eetPct: 40, kapPct: 35 }),
+      [buildRow({ afgoerelseType: 'Endelig', afgoerelsesDato: toISODateString('2025-07-01'), eetPct: 40, kapPct: 35 })],
       toISODateString('2025-01-01'),
       toISODateString('1965-01-01')
     );
@@ -96,21 +96,21 @@ describe('validateKapPctByAfgoerelsestype', () => {
 
   it('afviser midlertidig eller tom type når kap.dato er udfyldt', () => {
     const error = validateKapDatoByAfgoerelsestype(
-      buildRow({ afgoerelseType: undefined, kapDato: '2024-01-10' })
+      buildRow({ afgoerelseType: undefined, kapDato: toISODateString('2024-01-10') })
     );
     expect(error).toContain('må kun udfyldes ved endelig');
   });
 
   it('afviser midlertidig eller tom type når tidl. kap.dato er udfyldt', () => {
     const error = validateTidlKapDatoByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Midlertidig', tidlKapDato: '2024-01-10', kapDato: '2024-01-10' })
+      buildRow({ afgoerelseType: 'Midlertidig', tidlKapDato: toISODateString('2024-01-10'), kapDato: toISODateString('2024-01-10') })
     );
     expect(error).toContain('må ikke udfyldes');
   });
 
   it('afviser tidl. kap.dato når kap.dato ikke er udfyldt', () => {
     const error = validateTidlKapDatoByAfgoerelsestype(
-      buildRow({ afgoerelseType: 'Endelig', tidlKapDato: '2024-01-10', kapDato: undefined })
+      buildRow({ afgoerelseType: 'Endelig', tidlKapDato: toISODateString('2024-01-10'), kapDato: undefined })
     );
     expect(error).toBe('Kun relevant ved tidligere kapitalisering.');
   });
@@ -119,9 +119,9 @@ describe('validateKapPctByAfgoerelsestype', () => {
     const error = validateKapDatoByAfgoerelsestype(
       buildRow({
         afgoerelseType: 'Endelig',
-        afgoerelsesDato: '01-07-2024',
-        kapDato: '02-07-2024',
-        tidlKapDato: '01-01-2024',
+        afgoerelsesDato: toISODateString('2024-07-01'),
+        kapDato: toISODateString('2024-07-02'),
+        tidlKapDato: toISODateString('2024-01-01'),
       })
     );
     expect(error).toBe('Fra 1. juli 2024 sker kapitalisering fra afgørelsesdagen ved genoptagelse.');
@@ -131,9 +131,9 @@ describe('validateKapPctByAfgoerelsestype', () => {
     const error = validateKapDatoByAfgoerelsestype(
       buildRow({
         afgoerelseType: 'Endelig',
-        afgoerelsesDato: '01-07-2025',
-        virkningsDato: '01-07-2025',
-        kapDato: '01-10-2025',
+        afgoerelsesDato: toISODateString('2025-07-01'),
+        virkningsDato: toISODateString('2025-07-01'),
+        kapDato: toISODateString('2025-10-01'),
       }),
       toISODateString('2025-01-01'),
       toISODateString('1959-01-01')
@@ -145,9 +145,9 @@ describe('validateKapPctByAfgoerelsestype', () => {
     const error = validateKapDatoByAfgoerelsestype(
       buildRow({
         afgoerelseType: 'Endelig',
-        afgoerelsesDato: '10-01-2025',
-        virkningsDato: '15-01-2025',
-        kapDato: '14-01-2025',
+        afgoerelsesDato: toISODateString('2025-01-10'),
+        virkningsDato: toISODateString('2025-01-15'),
+        kapDato: toISODateString('2025-01-14'),
       })
     );
     expect(error).toBe('Kapitaliseringsdato er før virkningsdato.');
@@ -170,14 +170,14 @@ describe('validateKapPctByAfgoerelsestype', () => {
   it('accepterer endelig under 50 når samlet kap % (inkl. tidligere) matcher EET %', () => {
     const previous = buildRow({
       id: 'r0',
-      afgoerelsesDato: '01-01-2024',
+      afgoerelsesDato: toISODateString('2024-01-01'),
       afgoerelseType: 'Endelig',
       eetPct: 25,
       kapPct: 25,
     });
     const current = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-01-2025',
+      afgoerelsesDato: toISODateString('2025-01-01'),
       afgoerelseType: 'Endelig',
       eetPct: 40,
       kapPct: 15,
@@ -190,14 +190,14 @@ describe('validateKapPctByAfgoerelsestype', () => {
   it('afviser fortsat delvist endelig når senere kap % + tidligere kap % overstiger 50 %', () => {
     const previous = buildRow({
       id: 'r0',
-      afgoerelsesDato: '01-01-2024',
+      afgoerelsesDato: toISODateString('2024-01-01'),
       afgoerelseType: 'Delvist endelig',
       eetPct: 80,
       kapPct: 30,
     });
     const current = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-03-2024',
+      afgoerelsesDato: toISODateString('2024-03-01'),
       afgoerelseType: 'Delvist endelig',
       eetPct: 80,
       kapPct: 25,
@@ -210,14 +210,14 @@ describe('validateKapPctByAfgoerelsestype', () => {
   it('afviser delvist endelig når senere kap % + tidligere kap % overstiger EET %', () => {
     const previous = buildRow({
       id: 'r0',
-      afgoerelsesDato: '01-01-2024',
+      afgoerelsesDato: toISODateString('2024-01-01'),
       afgoerelseType: 'Delvist endelig',
       eetPct: 40,
       kapPct: 20,
     });
     const current = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-03-2024',
+      afgoerelsesDato: toISODateString('2024-03-01'),
       afgoerelseType: 'Delvist endelig',
       eetPct: 40,
       kapPct: 25,
@@ -230,21 +230,21 @@ describe('validateKapPctByAfgoerelsestype', () => {
   it('medregner kap % fra alle tidligere delvise kapitaliseringer (ikke kun én)', () => {
     const previousA = buildRow({
       id: 'r0',
-      afgoerelsesDato: '01-01-2024',
+      afgoerelsesDato: toISODateString('2024-01-01'),
       afgoerelseType: 'Delvist endelig',
       eetPct: 80,
       kapPct: 10,
     });
     const previousB = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-02-2024',
+      afgoerelsesDato: toISODateString('2024-02-01'),
       afgoerelseType: 'Delvist endelig',
       eetPct: 80,
       kapPct: 20,
     });
     const current = buildRow({
       id: 'r2',
-      afgoerelsesDato: '01-03-2024',
+      afgoerelsesDato: toISODateString('2024-03-01'),
       afgoerelseType: 'Delvist endelig',
       eetPct: 80,
       kapPct: 25,
@@ -257,14 +257,14 @@ describe('validateKapPctByAfgoerelsestype', () => {
   it('accepterer når kun senere afgørelser har kap % (de tæller ikke med)', () => {
     const later = buildRow({
       id: 'r2',
-      afgoerelsesDato: '01-05-2024',
+      afgoerelsesDato: toISODateString('2024-05-01'),
       afgoerelseType: 'Endelig',
       eetPct: 50,
       kapPct: 20,
     });
     const current = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-03-2024',
+      afgoerelsesDato: toISODateString('2024-03-01'),
       afgoerelseType: 'Endelig',
       eetPct: 50,
       kapPct: 35,
@@ -277,14 +277,14 @@ describe('validateKapPctByAfgoerelsestype', () => {
   it('kræver fuld kapitalisering ved endelig afgørelse ≤ 2 år til folkepension (inkl. tidligere kapitalisering)', () => {
     const previous = buildRow({
       id: 'r0',
-      afgoerelsesDato: '01-01-2024',
+      afgoerelsesDato: toISODateString('2024-01-01'),
       afgoerelseType: 'Delvist endelig',
       eetPct: 80,
       kapPct: 20,
     });
     const current = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-07-2025',
+      afgoerelsesDato: toISODateString('2025-07-01'),
       afgoerelseType: 'Endelig',
       eetPct: 80,
       kapPct: 40,
@@ -302,14 +302,14 @@ describe('validateKapPctByAfgoerelsestype', () => {
   it('accepterer kap % over 50 ved endelig afgørelse ≤ 2 år til folkepension når samlet kap % matcher EET %', () => {
     const previous = buildRow({
       id: 'r0',
-      afgoerelsesDato: '01-01-2024',
+      afgoerelsesDato: toISODateString('2024-01-01'),
       afgoerelseType: 'Delvist endelig',
       eetPct: 80,
       kapPct: 20,
     });
     const current = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-07-2025',
+      afgoerelsesDato: toISODateString('2025-07-01'),
       afgoerelseType: 'Endelig',
       eetPct: 80,
       kapPct: 60,
@@ -329,17 +329,17 @@ describe('validateEetPctByPriorKapPct', () => {
   it('afviser når EET % er lavere end akkumuleret tidligere kap %', () => {
     const previousA = buildRow({
       id: 'r0',
-      afgoerelsesDato: '01-01-2024',
+      afgoerelsesDato: toISODateString('2024-01-01'),
       kapPct: 10,
     });
     const previousB = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-02-2024',
+      afgoerelsesDato: toISODateString('2024-02-01'),
       kapPct: 20,
     });
     const current = buildRow({
       id: 'r2',
-      afgoerelsesDato: '01-03-2024',
+      afgoerelsesDato: toISODateString('2024-03-01'),
       eetPct: 25,
     });
 
@@ -350,17 +350,17 @@ describe('validateEetPctByPriorKapPct', () => {
   it('accepterer når EET % er lig med akkumuleret tidligere kap %', () => {
     const previousA = buildRow({
       id: 'r0',
-      afgoerelsesDato: '01-01-2024',
+      afgoerelsesDato: toISODateString('2024-01-01'),
       kapPct: 10,
     });
     const previousB = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-02-2024',
+      afgoerelsesDato: toISODateString('2024-02-01'),
       kapPct: 20,
     });
     const current = buildRow({
       id: 'r2',
-      afgoerelsesDato: '01-03-2024',
+      afgoerelsesDato: toISODateString('2024-03-01'),
       eetPct: 30,
     });
 
@@ -371,12 +371,12 @@ describe('validateEetPctByPriorKapPct', () => {
   it('ser fortsat bort fra senere afgørelser ved vurdering af tidligere kap %-sum', () => {
     const later = buildRow({
       id: 'r3',
-      afgoerelsesDato: '01-05-2024',
+      afgoerelsesDato: toISODateString('2024-05-01'),
       kapPct: 40,
     });
     const current = buildRow({
       id: 'r2',
-      afgoerelsesDato: '01-03-2024',
+      afgoerelsesDato: toISODateString('2024-03-01'),
       eetPct: 10,
     });
 
@@ -389,13 +389,13 @@ describe('validateDuplicateAfgoerelse', () => {
   it('giver fejl for nederste række når afgørelsesdato og virkningsdato er identiske', () => {
     const first = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-11-2025',
-      virkningsDato: '01-10-2025',
+      afgoerelsesDato: toISODateString('2025-11-01'),
+      virkningsDato: toISODateString('2025-10-01'),
     });
     const second = buildRow({
       id: 'r2',
-      afgoerelsesDato: '01-11-2025',
-      virkningsDato: '01-10-2025',
+      afgoerelsesDato: toISODateString('2025-11-01'),
+      virkningsDato: toISODateString('2025-10-01'),
     });
 
     const firstError = validateDuplicateAfgoerelse(first, [first, second]);
@@ -408,14 +408,14 @@ describe('validateDuplicateAfgoerelse', () => {
   it('giver fejl selvom afgørelsestype er forskellig', () => {
     const first = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-11-2025',
-      virkningsDato: '01-10-2025',
+      afgoerelsesDato: toISODateString('2025-11-01'),
+      virkningsDato: toISODateString('2025-10-01'),
       afgoerelseType: 'Endelig',
     });
     const second = buildRow({
       id: 'r2',
-      afgoerelsesDato: '01-11-2025',
-      virkningsDato: '01-10-2025',
+      afgoerelsesDato: toISODateString('2025-11-01'),
+      virkningsDato: toISODateString('2025-10-01'),
       afgoerelseType: 'Delvist endelig',
     });
 
@@ -426,13 +426,13 @@ describe('validateDuplicateAfgoerelse', () => {
   it('giver ingen fejl når virkningsdato er forskellig', () => {
     const first = buildRow({
       id: 'r1',
-      afgoerelsesDato: '01-11-2025',
-      virkningsDato: '01-10-2025',
+      afgoerelsesDato: toISODateString('2025-11-01'),
+      virkningsDato: toISODateString('2025-10-01'),
     });
     const second = buildRow({
       id: 'r2',
-      afgoerelsesDato: '01-11-2025',
-      virkningsDato: '01-11-2025',
+      afgoerelsesDato: toISODateString('2025-11-01'),
+      virkningsDato: toISODateString('2025-11-01'),
     });
 
     const secondError = validateDuplicateAfgoerelse(second, [first, second]);
@@ -468,11 +468,11 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({
         id: 'r1',
-        afgoerelsesDato: '10-01-2025',
-        virkningsDato: '09-01-2025',
+        afgoerelsesDato: toISODateString('2025-01-10'),
+        virkningsDato: toISODateString('2025-01-09'),
         afgoerelseType: 'Endelig',
         eetPct: 40,
-        kapDato: '09-01-2025',
+        kapDato: toISODateString('2025-01-09'),
         kapPct: 40,
       }),
     ];
@@ -485,13 +485,13 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({
         id: 'r1',
-        afgoerelsesDato: '01-07-2024',
-        virkningsDato: '01-07-2024',
+        afgoerelsesDato: toISODateString('2024-07-01'),
+        virkningsDato: toISODateString('2024-07-01'),
         afgoerelseType: 'Endelig',
         eetPct: 40,
-        kapDato: '02-07-2024',
+        kapDato: toISODateString('2024-07-02'),
         kapPct: 40,
-        tidlKapDato: '01-01-2024',
+        tidlKapDato: toISODateString('2024-01-01'),
       }),
     ];
 
@@ -512,8 +512,8 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
       buildRow({
         id: 'r1',
         afgoerelseType: 'Midlertidig',
-        kapDato: '01-01-2024',
-        tidlKapDato: '01-01-2024',
+        kapDato: toISODateString('2024-01-01'),
+        tidlKapDato: toISODateString('2024-01-01'),
       }),
     ];
 
@@ -538,11 +538,11 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({
         id: 'r1',
-        afgoerelsesDato: '01-07-2025',
-        virkningsDato: '01-07-2025',
+        afgoerelsesDato: toISODateString('2025-07-01'),
+        virkningsDato: toISODateString('2025-07-01'),
         afgoerelseType: 'Delvist endelig',
         eetPct: 80,
-        kapDato: '01-10-2025',
+        kapDato: toISODateString('2025-10-01'),
         kapPct: 80,
       }),
     ];
@@ -566,11 +566,11 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({
         id: 'r1',
-        afgoerelsesDato: '01-07-2025',
-        virkningsDato: '01-07-2025',
+        afgoerelsesDato: toISODateString('2025-07-01'),
+        virkningsDato: toISODateString('2025-07-01'),
         afgoerelseType: 'Endelig',
         eetPct: 40,
-        kapDato: '01-10-2025',
+        kapDato: toISODateString('2025-10-01'),
         kapPct: 40,
       }),
     ];
@@ -602,19 +602,19 @@ describe('collectEetAslAfgoerelseValidationIssues', () => {
     const rows: AslAfgoerelseRow[] = [
       buildRow({
         id: 'r0',
-        afgoerelsesDato: '01-01-2024',
-        virkningsDato: '01-01-2024',
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
         afgoerelseType: 'Delvist endelig',
         eetPct: 80,
         kapPct: 20,
       }),
       buildRow({
         id: 'r1',
-        afgoerelsesDato: '01-07-2025',
-        virkningsDato: '01-07-2025',
+        afgoerelsesDato: toISODateString('2025-07-01'),
+        virkningsDato: toISODateString('2025-07-01'),
         afgoerelseType: 'Endelig',
         eetPct: 80,
-        kapDato: '01-07-2025',
+        kapDato: toISODateString('2025-07-01'),
         kapPct: 40,
       }),
     ];

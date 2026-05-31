@@ -3,18 +3,19 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { buildMidlertidigtEetAfgoerelseGroupsFromComputation } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { computeEetLoebendeYdelser, type EetLoebendeComputation } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
+import { toISODateString } from '../../../types/branded';
 
 const makeValues = (): ErhvervsevnetabComposedValues => ({
   ...ERHVERVSEVNETAB_INITIAL_VALUES,
   ...FAELLES_AARSLOEN_INITIAL_VALUES,
-  beregningsdato: '2026-03-19',
-  skadelidteFodselsdato: '1980-01-01',
+  beregningsdato: toISODateString('2026-03-19'),
+  skadelidteFodselsdato: toISODateString('1980-01-01'),
   aslAarsloen: { kind: 'number', value: 600000 },
   aslAfgoerelser: [
     {
       id: 'row-1',
-      afgoerelsesDato: '01-02-2026',
-      virkningsDato: '01-02-2026',
+      afgoerelsesDato: toISODateString('2026-02-01'),
+      virkningsDato: toISODateString('2026-02-01'),
       eetPct: 15,
       kapDato: '',
       kapPct: undefined,
@@ -23,18 +24,18 @@ const makeValues = (): ErhvervsevnetabComposedValues => ({
     },
     {
       id: 'row-2',
-      afgoerelsesDato: '12-03-2026',
-      virkningsDato: '12-03-2026',
+      afgoerelsesDato: toISODateString('2026-03-12'),
+      virkningsDato: toISODateString('2026-03-12'),
       eetPct: 20,
-      kapDato: '12-03-2026',
+      kapDato: toISODateString('2026-03-12'),
       kapPct: 5,
       afgoerelseType: 'Delvist endelig',
       tidlKapDato: '',
     },
     {
       id: 'row-3',
-      afgoerelsesDato: '20-03-2026',
-      virkningsDato: '20-03-2026',
+      afgoerelsesDato: toISODateString('2026-03-20'),
+      virkningsDato: toISODateString('2026-03-20'),
       eetPct: 25,
       kapDato: '',
       kapPct: undefined,
@@ -47,7 +48,7 @@ const makeValues = (): ErhvervsevnetabComposedValues => ({
 const computeGroups = (eetValues: ErhvervsevnetabComposedValues) => {
   const computation = computeEetLoebendeYdelser({
     erhvervsevnetab: eetValues,
-    skadedato: '2024-07-01',
+    skadedato: toISODateString('2024-07-01'),
     skadelidteFodselsdato: eetValues.skadelidteFodselsdato,
   }).computation;
 
@@ -118,9 +119,9 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
 
   it('failer eksplicit ved ukendt afgørelsestype i EET-computation', () => {
     const invalidComputation: EetLoebendeComputation = {
-      beregningsdato: '2026-03-19',
-      skadedato: '2024-07-01',
-      fodselsdato: '1980-01-01',
+      beregningsdato: toISODateString('2026-03-19'),
+      skadedato: toISODateString('2024-07-01'),
+      fodselsdato: toISODateString('1980-01-01'),
       skadesaar: 2024,
       aslAarsloenAfrundet1000: 600000,
       maxAarsloenISkadesaar: 600000,
@@ -132,8 +133,8 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
       reguleringFoer2024Pct: 0,
       afgoerelser: [{
         rowId: 'row-unknown',
-        afgoerelsesdato: '2026-02-01',
-        virkningsdato: '2026-02-01',
+        afgoerelsesdato: toISODateString('2026-02-01'),
+        virkningsdato: toISODateString('2026-02-01'),
         kapitaliseringsdato: null,
         skaeringsDato: null,
         harOverlap: false,
@@ -148,7 +149,7 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
         harKapitalisering: false,
         harRestSektion: false,
         tilbagevirkendeKraft: false,
-        ophoerDato: '2026-03-19',
+        ophoerDato: toISODateString('2026-03-19'),
         ophoerAarsag: 'beregningsdato',
         grundydelseFuld: 1000,
         grundydelseRest: null,
@@ -165,9 +166,9 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
 
   it('failer eksplicit hvis EET-computation indeholder en ikke-konverterbar periode', () => {
     const invalidComputation: EetLoebendeComputation = {
-      beregningsdato: '2026-03-19',
-      skadedato: '2024-07-01',
-      fodselsdato: '1980-01-01',
+      beregningsdato: toISODateString('2026-03-19'),
+      skadedato: toISODateString('2024-07-01'),
+      fodselsdato: toISODateString('1980-01-01'),
       skadesaar: 2024,
       aslAarsloenAfrundet1000: 600000,
       maxAarsloenISkadesaar: 600000,
@@ -179,8 +180,8 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
       reguleringFoer2024Pct: 0,
       afgoerelser: [{
         rowId: 'row-invalid',
-        afgoerelsesdato: '2026-02-01',
-        virkningsdato: '2026-02-01',
+        afgoerelsesdato: toISODateString('2026-02-01'),
+        virkningsdato: toISODateString('2026-02-01'),
         kapitaliseringsdato: null,
         skaeringsDato: null,
         harOverlap: false,
@@ -194,7 +195,7 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
         harKapitalisering: false,
         harRestSektion: false,
         tilbagevirkendeKraft: false,
-        ophoerDato: '2026-03-19',
+        ophoerDato: toISODateString('2026-03-19'),
         ophoerAarsag: 'beregningsdato',
         grundydelseFuld: 1000,
         grundydelseRest: null,
@@ -204,7 +205,7 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
         perioder: [{
           // @ts-expect-error Testen konstruerer et umuligt engine-output for at dække invariant-bruddet.
           fra: 'invalid-date',
-          til: '2026-03-19',
+          til: toISODateString('2026-03-19'),
           satsAar: 2026,
           maanederPraecis: 1,
           grundydelseAfrundet: 1000,

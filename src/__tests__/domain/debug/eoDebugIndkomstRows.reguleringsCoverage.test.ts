@@ -50,12 +50,12 @@ describe('buildEODebugIndkomstRows regulering details', () => {
     af.loenudviklingManuelTableData = [
       {
         ...af.loenudviklingManuelTableData[0],
-        dato: '01-01-2024',
+        dato: toISODateString('2024-01-01'),
         grundloen: 100,
-        feriepenge: '',
-        shSoSats: '',
-        fritvalg: '',
-        agPension: '',
+        feriepenge: undefined,
+        shSoSats: undefined,
+        fritvalg: undefined,
+        agPension: undefined,
       },
     ];
 
@@ -81,12 +81,12 @@ describe('buildEODebugIndkomstRows regulering details', () => {
     af.loenudviklingManuelTableData = [
       {
         ...af.loenudviklingManuelTableData[0],
-        dato: '02-01-2024',
+        dato: toISODateString('2024-01-02'),
         grundloen: 100,
-        feriepenge: '',
-        shSoSats: '',
-        fritvalg: '',
-        agPension: '',
+        feriepenge: undefined,
+        shSoSats: undefined,
+        fritvalg: undefined,
+        agPension: undefined,
       },
     ];
 
@@ -158,12 +158,12 @@ describe('buildEODebugIndkomstRows regulering details', () => {
     af.loenudviklingManuelTableData = [
       {
         ...af.loenudviklingManuelTableData[0],
-        dato: '01-01-2024',
+        dato: toISODateString('2024-01-01'),
         grundloen: 100,
-        feriepenge: '',
-        shSoSats: '',
-        fritvalg: '',
-        agPension: '',
+        feriepenge: undefined,
+        shSoSats: undefined,
+        fritvalg: undefined,
+        agPension: undefined,
       },
     ];
 

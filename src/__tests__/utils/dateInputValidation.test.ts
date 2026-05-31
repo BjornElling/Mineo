@@ -1,3 +1,4 @@
+import { toISODateString } from '../../types/branded';
 import {
   isValidDate,
   interpretYear,
@@ -137,38 +138,38 @@ describe('isDateFormatValid', () => {
 
 describe('validateDateRange', () => {
   it('dato indenfor range → true', () => {
-    expect(validateDateRange('15-06-2024', '2024-01-01', '2024-12-31')).toBe(true);
+    expect(validateDateRange('15-06-2024', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
   });
 
   it('dato = minDate → true', () => {
-    expect(validateDateRange('01-01-2024', '2024-01-01', '2024-12-31')).toBe(true);
+    expect(validateDateRange('01-01-2024', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
   });
 
   it('dato = maxDate → true', () => {
-    expect(validateDateRange('31-12-2024', '2024-01-01', '2024-12-31')).toBe(true);
+    expect(validateDateRange('31-12-2024', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
   });
 
   it('dato < minDate → fejlstreng', () => {
-    const result = validateDateRange('31-12-2023', '2024-01-01', '2024-12-31');
+    const result = validateDateRange('31-12-2023', toISODateString('2024-01-01'), toISODateString('2024-12-31'));
     expect(result).not.toBe(true);
     expect(typeof result).toBe('string');
   });
 
   it('dato > maxDate → fejlstreng', () => {
-    const result = validateDateRange('01-01-2025', '2024-01-01', '2024-12-31');
+    const result = validateDateRange('01-01-2025', toISODateString('2024-01-01'), toISODateString('2024-12-31'));
     expect(result).not.toBe(true);
     expect(typeof result).toBe('string');
   });
 
   it('tom dato → true (ingen validering af tomme felter)', () => {
-    expect(validateDateRange('', '2024-01-01', '2024-12-31')).toBe(true);
+    expect(validateDateRange('', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
   });
 
   it('for kort dato → true (ingen validering)', () => {
-    expect(validateDateRange('15-06', '2024-01-01', '2024-12-31')).toBe(true);
+    expect(validateDateRange('15-06', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
   });
 
   it('ugyldig dato der ikke kan parses → true (graceful håndtering)', () => {
-    expect(validateDateRange('abc-def-ghij', '2024-01-01', '2024-12-31')).toBe(true);
+    expect(validateDateRange('abc-def-ghij', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
   });
 });

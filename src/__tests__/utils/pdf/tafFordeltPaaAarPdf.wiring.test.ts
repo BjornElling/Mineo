@@ -3,6 +3,7 @@
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
 import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { TafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
+import { toISODateString } from '../../../types/branded';
 
 class MockJsPDF {
   static instances: MockJsPDF[] = [];
@@ -56,8 +57,8 @@ const FAKE_RESULT: TafPerYearResult = {
       year: 2024,
       segments: [
         {
-          fra: '2024-01-02' as any,
-          til: '2024-12-31' as any,
+          fra: toISODateString('2024-01-02') as any,
+          til: toISODateString('2024-12-31') as any,
           kind: 'arbejdsdage',
           quantity: 250,
           unitAmountOre: 200000 as MoneyOre,
@@ -262,7 +263,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
       document: {
         model: {
           ...FAKE_MODEL,
-          forlig: { erIndgaaet: true, label: '50%', dato: '2024-04-01', factor: 0.5 },
+          forlig: { erIndgaaet: true, label: '50%', dato: toISODateString('2024-04-01'), factor: 0.5 },
         } as never,
         presentation: {
           ...FAKE_RESULT,

@@ -8,6 +8,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { svieSmertePrDag } from '../../../data/lovbestemteRates';
+import { toISODateString } from '../../../types/branded';
 
 const makeDebugDay = (
   iso: string,
@@ -27,8 +28,8 @@ const makeEOValues = (
   overrides: Partial<ErstatningsopgoerelseValues> = {}
 ): ErstatningsopgoerelseValues => ({
   ...createErstatningsopgoerelseInitialValues(),
-  vedroererPeriodeFra: '2024-01-01',
-  vedroererPeriodeTil: '2024-12-31',
+  vedroererPeriodeFra: toISODateString('2024-01-01'),
+  vedroererPeriodeTil: toISODateString('2024-12-31'),
   svieSmerteSatserAar: 2024,
   svieSmerteDelvisSygemeldingSats: 'halv',
   loenindkomstAnsaettelsesforhold: [
@@ -70,17 +71,17 @@ const makeInput = (
 describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
   it('bygger grundloenspakke for arbejdsdage inden for EO-periode', () => {
     const debugDays = [
-      makeDebugDay('2024-01-02', true),
-      makeDebugDay('2024-01-06', false),
+      makeDebugDay(toISODateString('2024-01-02'), true),
+      makeDebugDay(toISODateString('2024-01-06'), false),
     ];
 
     const result = buildLoenTimeline(makeInput(debugDays));
     expect(result.loenDays.length).toBe(1);
-    expect(result.loenDays[0]?.iso).toBe('2024-01-02');
+    expect(result.loenDays[0]?.iso).toBe(toISODateString('2024-01-02'));
   });
 
   it('udelader grundloenspakke uden EO-periode', () => {
-    const debugDays = [makeDebugDay('2024-01-02', true)];
+    const debugDays = [makeDebugDay(toISODateString('2024-01-02'), true)];
     const result = buildLoenTimeline(
       makeInput(debugDays, { vedroererPeriodeFra: '', vedroererPeriodeTil: '' })
     );
@@ -89,13 +90,13 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
 
   it('anvender store bededag tillæg fra 2024-01-01 ved almindelig løn på helligdage', () => {
     const debugDays = [
-      makeDebugDay('2023-12-15', true),
-      makeDebugDay('2024-01-15', true),
+      makeDebugDay(toISODateString('2023-12-15'), true),
+      makeDebugDay(toISODateString('2024-01-15'), true),
     ];
 
     const result = buildLoenTimeline(makeInput(debugDays));
-    const before = result.loenDays.find((d) => d.iso === '2023-12-15');
-    const after = result.loenDays.find((d) => d.iso === '2024-01-15');
+    const before = result.loenDays.find((d) => d.iso === toISODateString('2023-12-15'));
+    const after = result.loenDays.find((d) => d.iso === toISODateString('2024-01-15'));
 
     const beforeTypes = before?.components.map((c) => c.type) ?? [];
     const afterTypes = after?.components.map((c) => c.type) ?? [];
@@ -105,8 +106,8 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
 
   it('bygger svie/smerte pr. kalenderdag med fast sats for valgt aar', () => {
     const debugDays = [
-      makeDebugDay('2024-01-06', false, 'Fuld'),
-      makeDebugDay('2024-01-07', false, 'Delvis'),
+      makeDebugDay(toISODateString('2024-01-06'), false, 'Fuld'),
+      makeDebugDay(toISODateString('2024-01-07'), false, 'Delvis'),
     ];
 
     const result = buildLoenTimeline(makeInput(debugDays));
@@ -119,7 +120,7 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
   });
 
   it('udelader store bededag naar loen paa helligdage ikke er almindelig', () => {
-    const debugDays = [makeDebugDay('2024-02-15', true)];
+    const debugDays = [makeDebugDay(toISODateString('2024-02-15'), true)];
     const result = buildLoenTimeline(
       makeInput(debugDays, {
         loenindkomstAnsaettelsesforhold: [
@@ -141,7 +142,7 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
   });
 
   it('bruger svie/smerte sats fra valgt aar, ikke datoens aar', () => {
-    const debugDays = [makeDebugDay('2025-01-06', false, 'Fuld')];
+    const debugDays = [makeDebugDay(toISODateString('2025-01-06'), false, 'Fuld')];
     const result = buildLoenTimeline(
       makeInput(debugDays, { svieSmerteSatserAar: 2024 })
     );
@@ -149,7 +150,7 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
   });
 
   it('returnerer tom timeline ved ukendt overenskomstId', () => {
-    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const debugDays = [makeDebugDay(toISODateString('2024-03-04'), true)];
     const result = buildLoenTimeline(
       makeInput(debugDays, {
         loenindkomstAnsaettelsesforhold: [
@@ -168,7 +169,7 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
   });
 
   it('returnerer tom timeline når overenskomstId mangler', () => {
-    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const debugDays = [makeDebugDay(toISODateString('2024-03-04'), true)];
     const result = buildLoenTimeline(
       makeInput(debugDays, {
         loenindkomstAnsaettelsesforhold: [
@@ -197,8 +198,8 @@ describe('buildLoenTimeline — offentlig løn-path (KL)', () => {
     debugDays,
     eoValues: {
       ...createErstatningsopgoerelseInitialValues(),
-      vedroererPeriodeFra: '2024-01-01',
-      vedroererPeriodeTil: '2024-12-31',
+      vedroererPeriodeFra: toISODateString('2024-01-01'),
+      vedroererPeriodeTil: toISODateString('2024-12-31'),
       svieSmerteSatserAar: 2024,
       svieSmerteDelvisSygemeldingSats: 'halv',
       loenindkomstAnsaettelsesforhold: [
@@ -221,49 +222,49 @@ describe('buildLoenTimeline — offentlig løn-path (KL)', () => {
 
   it('bygger loendag via offentlig løn-opslag (KL, løntrin 20, gruppe 0)', () => {
     // 2024-03-04 er mandag — en normal arbejdsdag
-    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const debugDays = [makeDebugDay(toISODateString('2024-03-04'), true)];
     const result = buildLoenTimeline(makeKLInput(debugDays));
     expect(result.loenDays).toHaveLength(1);
-    expect(result.loenDays[0]?.iso).toBe('2024-03-04');
+    expect(result.loenDays[0]?.iso).toBe(toISODateString('2024-03-04'));
     const types = result.loenDays[0]?.components.map((c) => c.type) ?? [];
     expect(types).toContain('grundloen');
   });
 
   it('daglig total er et positivt beløb ved KL-opslag', () => {
-    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const debugDays = [makeDebugDay(toISODateString('2024-03-04'), true)];
     const result = buildLoenTimeline(makeKLInput(debugDays));
     expect(result.loenDays[0]?.dailyTotal).toBeGreaterThan(0);
   });
 
   it('inkluderer store bededag-komponent for KL-dag efter 2024-01-01', () => {
-    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const debugDays = [makeDebugDay(toISODateString('2024-03-04'), true)];
     const result = buildLoenTimeline(makeKLInput(debugDays));
     const types = result.loenDays[0]?.components.map((c) => c.type) ?? [];
     expect(types).toContain('storeBededag');
   });
 
   it('ekskluderer KL-dag udenfor EO-perioden', () => {
-    const debugDays = [makeDebugDay('2023-06-01', true)]; // udenfor 2024-perioden
+    const debugDays = [makeDebugDay(toISODateString('2023-06-01'), true)]; // udenfor 2024-perioden
     const result = buildLoenTimeline(makeKLInput(debugDays));
     expect(result.loenDays).toHaveLength(0);
   });
 
   it('ignorerer ikke-arbejdsdage i KL-path', () => {
-    const debugDays = [makeDebugDay('2024-03-02', false)]; // lørdag
+    const debugDays = [makeDebugDay(toISODateString('2024-03-02'), false)]; // lørdag
     const result = buildLoenTimeline(makeKLInput(debugDays));
     expect(result.loenDays).toHaveLength(0);
   });
 
   it('svie/smerte akkumuleres uanset offentlig løn-path', () => {
     // Kalenderdag uden for EO-periode med svie/smerte → svieSmerteDays udfyldes
-    const debugDays = [makeDebugDay('2024-03-04', false, 'Fuld')];
+    const debugDays = [makeDebugDay(toISODateString('2024-03-04'), false, 'Fuld')];
     const result = buildLoenTimeline(makeKLInput(debugDays));
     expect(result.svieSmerteDays).toHaveLength(1);
     expect(result.svieSmerteDays[0]?.niveau).toBe('Fuld');
   });
 
   it('KL månedsløntype: grundloen-komponent eksisterer', () => {
-    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const debugDays = [makeDebugDay(toISODateString('2024-03-04'), true)];
     const result = buildLoenTimeline(
       makeKLInput(debugDays, {
         loenindkomstAnsaettelsesforhold: [
@@ -287,7 +288,7 @@ describe('buildLoenTimeline — offentlig løn-path (KL)', () => {
   });
 
   it('KL fallback: bruger input-pension når overenskomst-tillæg mangler', () => {
-    const debugDays = [makeDebugDay('2024-03-04', true)];
+    const debugDays = [makeDebugDay(toISODateString('2024-03-04'), true)];
     const result = buildLoenTimeline(
       makeKLInput(debugDays, {
         loenindkomstAnsaettelsesforhold: [

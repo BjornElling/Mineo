@@ -420,7 +420,7 @@ const INVALID_PRESERVE_CASES: readonly InvalidPreserveCase[] = [
   },
   {
     label: 'date',
-    initialValue: '2025-01-01',
+    initialValue: toISODateString('2025-01-01'),
     invalidDraft: '32-01-2025',
     renderManagedInput: ({ value, onBlur }) => (
       <TableDateInput
@@ -534,9 +534,9 @@ const CLICK_OUTSIDE_COMMIT_CASES: readonly ClickOutsideCommitCase[] = [
   },
   {
     label: 'date',
-    initialValue: '2024-01-01',
+    initialValue: toISODateString('2024-01-01'),
     typedDraft: '1-2-2025',
-    expectedCommitted: '2025-02-01',
+    expectedCommitted: toISODateString('2025-02-01'),
     renderManagedInput: ({ value, onBlur }) => (
       <TableDateInput
         gridCell={gridCell}
@@ -588,7 +588,7 @@ const ESCAPE_CANCEL_CASES: readonly EscapeCancelCase[] = [
   },
   {
     label: 'date',
-    initialValue: '2025-01-01',
+    initialValue: toISODateString('2025-01-01'),
     typedDraft: '15-06-2025',
     expectedDisplayAfterCancel: '01-01-2025',
     renderManagedInput: ({ value, onBlur }) => <TableDateInput gridCell={gridCell} value={asDateInputValue(value)} onBlur={(e) => onBlur(e.target.value)} />,
@@ -622,7 +622,7 @@ const DELETE_CLEAR_CASES: readonly DeleteClearCase[] = [
   },
   {
     label: 'date',
-    initialValue: '2025-01-01',
+    initialValue: toISODateString('2025-01-01'),
     expectedCommitted: undefined,
     renderManagedInput: ({ value, onBlur }) => <TableDateInput gridCell={gridCell} value={asDateInputValue(value)} onBlur={(e) => onBlur(e.target.value)} />,
   },
@@ -770,7 +770,7 @@ describe('table commit-kontrakt', () => {
       </GridCoreProvider>
     );
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.tab();
 
@@ -807,7 +807,7 @@ describe('table commit-kontrakt', () => {
       </GridCoreProvider>
     );
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.tab();
 
@@ -819,7 +819,7 @@ describe('table commit-kontrakt', () => {
     async (inputCase) => {
       const user = userEvent.setup();
       const { onBlur, setEditingCell } = setupManaged(inputCase);
-      const input = screen.getByRole('textbox');
+      const input = screen.getByRole('textbox') as HTMLInputElement;
 
       await user.click(input);
       await user.clear(input);
@@ -866,7 +866,7 @@ describe('table commit-kontrakt', () => {
 
     render(<Wrapper />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.clear(input);
     await user.type(input, '3+');
@@ -901,7 +901,7 @@ describe('table commit-kontrakt', () => {
     async (inputCase) => {
       const user = userEvent.setup();
       const { onBlur } = setupManagedWithOutside(inputCase);
-      const input = screen.getByRole('textbox');
+      const input = screen.getByRole('textbox') as HTMLInputElement;
       const outside = screen.getByRole('button', { name: 'Udenfor' });
 
       await user.click(input);
@@ -943,7 +943,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     const outside = screen.getByRole('button', { name: 'Udenfor' });
 
     await user.click(input);
@@ -954,7 +954,7 @@ describe('table commit-kontrakt', () => {
     await user.type(input, '1-2-2025');
     await user.click(outside);
 
-    expect(onBlur).toHaveBeenCalledWith('2025-02-01');
+    expect(onBlur).toHaveBeenCalledWith(toISODateString('2025-02-01'));
     expect(input).toHaveValue('01-02-2025');
   });
 
@@ -988,7 +988,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     const outside = screen.getByRole('button', { name: 'Udenfor' });
 
     await user.click(input);
@@ -999,7 +999,7 @@ describe('table commit-kontrakt', () => {
     await user.keyboard('-2-2025');
     await user.click(outside);
 
-    expect(onBlur).toHaveBeenCalledWith('2025-02-01');
+    expect(onBlur).toHaveBeenCalledWith(toISODateString('2025-02-01'));
     expect(input).toHaveValue('01-02-2025');
   });
 
@@ -1153,7 +1153,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     const outside = screen.getByRole('button', { name: 'Udenfor' });
 
     await user.click(input);
@@ -1212,7 +1212,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     const outside = screen.getByRole('button', { name: 'Udenfor' });
 
     await user.click(input);
@@ -1220,7 +1220,7 @@ describe('table commit-kontrakt', () => {
     await user.type(input, '1-2-2025');
     await user.click(outside);
 
-    expect(onBlur).toHaveBeenCalledWith('2025-02-01');
+    expect(onBlur).toHaveBeenCalledWith(toISODateString('2025-02-01'));
     expect(input).toHaveValue('01-02-2025');
   });
 
@@ -1327,7 +1327,7 @@ describe('table commit-kontrakt', () => {
 
     render(<Wrapper />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.clear(input);
     await user.type(input, '/2022');
@@ -1375,7 +1375,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
 
     await user.click(input);
     await user.clear(input);
@@ -1414,7 +1414,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
 
     await user.click(input);
     await user.clear(input);
@@ -1452,7 +1452,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
 
     await user.click(input);
     await user.click(input);
@@ -1495,7 +1495,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
 
     await user.click(input);
     await user.click(input);
@@ -1538,7 +1538,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
 
     await user.click(input);
     await user.keyboard('{Delete}');
@@ -1575,7 +1575,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
 
     await user.click(input);
     await user.keyboard('{Delete}');
@@ -1613,7 +1613,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
 
     await user.click(input);
     await user.click(input);
@@ -1654,7 +1654,7 @@ describe('table commit-kontrakt', () => {
     };
 
     render(<Wrapper />);
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
 
     await user.click(input);
     await user.keyboard('{Delete}');

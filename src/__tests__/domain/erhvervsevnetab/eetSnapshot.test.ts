@@ -3,12 +3,13 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/
 import { computeEetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import * as eetLoebendeYdelserCalculation from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import type { ErhvervsevnetabComposedValues, StamdataValues } from '../../../schemas/formSchemas';
+import { toISODateString } from '../../../types/branded';
 
 const createValues = (): ErhvervsevnetabComposedValues => ({
   ...ERHVERVSEVNETAB_INITIAL_VALUES,
   ...FAELLES_AARSLOEN_INITIAL_VALUES,
-  beregningsdato: '2026-03-19',
-  skadelidteFodselsdato: '1980-01-01',
+  beregningsdato: toISODateString('2026-03-19'),
+  skadelidteFodselsdato: toISODateString('1980-01-01'),
   koen: 'Kvinde',
   aslAarsloen: { kind: 'number', value: 600000 },
   ealAarsloen: { kind: 'number', value: 600000 },
@@ -16,10 +17,10 @@ const createValues = (): ErhvervsevnetabComposedValues => ({
   aslAfgoerelser: [
     {
       id: 'row-1',
-      afgoerelsesDato: '01-02-2026',
-      virkningsDato: '01-02-2026',
+      afgoerelsesDato: toISODateString('2026-02-01'),
+      virkningsDato: toISODateString('2026-02-01'),
       eetPct: 25,
-      kapDato: '01-03-2026',
+      kapDato: toISODateString('2026-03-01'),
       kapPct: 10,
       afgoerelseType: 'Endelig',
       tidlKapDato: '',
@@ -33,8 +34,8 @@ const createStamdata = (): StamdataValues => ({
   sagsbehandler: '',
   skadelidte: 'Test',
   skadestype: 'Arbejdsulykke',
-  skadedato: '2024-07-01',
-  skadelidteFodselsdato: '1980-01-01',
+  skadedato: toISODateString('2024-07-01'),
+  skadelidteFodselsdato: toISODateString('1980-01-01'),
 });
 
 describe('computeEetSnapshot', () => {

@@ -4,6 +4,7 @@ import { loadFromFile, loadFromFileHandle } from '../../utils/fileLoad';
 import { encryptToString } from '../../utils/encryption';
 import { countFilledFields } from '../../utils/dataCollection';
 import { FILE_FORMAT_VERSION, VERSION } from '../../config/version';
+import { toISODateString } from '../../types/branded';
 
 const readFromFileHandleMock = vi.fn();
 
@@ -55,7 +56,7 @@ const makeValidContainer = async (overrides: Record<string, unknown> = {}): Prom
       sagsbehandler: '',
       skadelidte: 'Testperson',
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-15',
+      skadedato: toISODateString('2024-01-15'),
     },
     ...overrides,
   });
@@ -201,10 +202,10 @@ describe('fileLoad – normalLoadFlow', () => {
         sagsbehandler: '',
         skadelidte: 'Test',
         skadestype: undefined,
-        skadedato: '2024-01-15',
+        skadedato: toISODateString('2024-01-15'),
       },
       faellesPersondata: {
-        skadelidteFodselsdato: '1990-01-01',
+        skadelidteFodselsdato: toISODateString('1990-01-01'),
       },
     });
     const file = new File([content], 'ukendt-fodselsdato-sektion.eo', { type: 'application/octet-stream' });

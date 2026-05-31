@@ -8,6 +8,7 @@ import { PERSISTED_DATA_VERSION } from '../../../../config/persistenceVersion';
 import { AppSettingsProvider } from '../../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
 import { createErstatningsopgoerelseInitialValues } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { toISODateString } from '../../../../types/branded';
 
 const persistedWrapper = (data: unknown) => ({
   version: PERSISTED_DATA_VERSION,
@@ -28,7 +29,7 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
       JSON.stringify(
         persistedWrapper({
           ...createErstatningsopgoerelseInitialValues(),
-          opgørelseLavetDen: '2025-12-15',
+          opgørelseLavetDen: toISODateString('2025-12-15'),
           svieSmerteSatserAar: 2025,
           revideretOpgoerelse: 'Nej',
         })

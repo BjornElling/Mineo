@@ -196,8 +196,8 @@ describe('TAF validering', () => {
       ],
       offentligeYdelserRows: [{
         id: 'ydelse-1',
-        fraDato: '01-01-2004',
-        tilDato: '31-12-2004',
+        fraDato: toISODateString('2004-01-01'),
+        tilDato: toISODateString('2004-12-31'),
         ydelse: asAmount(1000),
         tillaeg: undefined,
         ydelsestype: 'dagpenge',
@@ -826,7 +826,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Statistik',
-          loenudviklingStatistikModel: 'ILON12',
+          loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
         },
       ],
     });
@@ -884,7 +884,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
         ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
         loenudviklingBeregningsgrundlag: 'Manuelt angivet',
         loenudviklingManuelTableData: [
-          { id: 'row-1', dato: '2024-01-01', grundloen: undefined, feriepenge: '', shSoSats: '', fritvalg: '', agPension: '' },
+          { id: 'row-1', dato: toISODateString('2024-01-01'), grundloen: undefined, feriepenge: undefined, shSoSats: undefined, fritvalg: undefined, agPension: undefined },
         ],
       },
     });
@@ -899,7 +899,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
         ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
         loenudviklingBeregningsgrundlag: 'Manuelt angivet',
         loenudviklingManuelTableData: [
-          { id: 'row-1', dato: '2024-01-01', grundloen: asAmount(0), feriepenge: '', shSoSats: '', fritvalg: '', agPension: '' },
+          { id: 'row-1', dato: toISODateString('2024-01-01'), grundloen: asAmount(0), feriepenge: undefined, shSoSats: undefined, fritvalg: undefined, agPension: undefined },
         ],
       },
     });

@@ -18,7 +18,7 @@ function renderControlledToggle(
   disabled = false,
   withLabel = true
 ) {
-  const commitSpy = vi.fn<[CommitEvent<boolean>], void>();
+  const commitSpy = vi.fn<(event: CommitEvent<boolean>) => void>();
 
   const Wrapper = () => {
     const [checked, setChecked] = React.useState(initialChecked);
@@ -48,7 +48,7 @@ function renderControlledToggle(
  * Test-wrapper med ref til at teste shake() funktionalitet.
  */
 function renderWithRef(initialChecked = false) {
-  const commitSpy = vi.fn<[CommitEvent<boolean>], void>();
+  const commitSpy = vi.fn<(event: CommitEvent<boolean>) => void>();
   const toggleRef = React.createRef<StyledToggleSwitchHandle>();
 
   const Wrapper = () => {

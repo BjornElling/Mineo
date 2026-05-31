@@ -26,6 +26,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { toISODateString } from '../../types/branded';
 
 const SRC_ROOT = path.resolve(__dirname, '../../');
 
@@ -259,7 +260,7 @@ describe('Afrundingsnorm-guard', () => {
   // ── 5. new Date(stringLiteral) — direkte ISO-streng-parsing ───────────────
 
   it('forbyder new Date(iso-literal) som kan forårsage timezone-shift', () => {
-    // Matcher: new Date("2024-01-01") eller new Date('2024-01-01')
+    // Matcher: new Date(toISODateString("2024-01-01")) eller new Date(toISODateString('2024-01-01'))
     // og varianter som new Date(someVar + '-01-01')
     // Undgår at matche lovlige mønstre som new Date(num), new Date(), Date.UTC(...)
     //

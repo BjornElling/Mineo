@@ -9,6 +9,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../../domain/ers
 import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { toISODateString } from '../../../../types/branded';
 
 const { downloadErstatningsopgoerelsePdfMock, downloadTafFordeltPaaAarPdfMock } = vi.hoisted(() => {
   return {
@@ -55,7 +56,7 @@ describe('EOberegningTab PDF-afslutning', () => {
     eoValuesFromForm.beregnesSvieSmerteGodtgoerelse = 'Nej';
     eoValuesFromForm.beregnesTabtArbejdsfortjeneste = 'Nej';
     eoValuesFromForm.erstatningsopgoerelseAfsluttesMed = 'Underskrift-linje';
-    eoValuesFromForm.differencekravDato = '2026-01-15';
+    eoValuesFromForm.differencekravDato = toISODateString('2026-01-15');
     eoSnapshot = computeEoSnapshot({
       revision: 'rev-1',
       stamdataValues: structuredClone(STAMDATA_INITIAL_VALUES),
@@ -114,7 +115,7 @@ describe('EOberegningTab PDF-afslutning', () => {
     await waitFor(() => expect(downloadErstatningsopgoerelsePdfMock).toHaveBeenCalledTimes(1));
 
     const submittedEo = downloadErstatningsopgoerelsePdfMock.mock.calls[0]?.[0]?.eoValues;
-    expect(submittedEo.differencekravDato).toBe('2026-01-15');
+    expect(submittedEo.differencekravDato).toBe(toISODateString('2026-01-15'));
   });
 
   it('blokerer PDF-download når Beregning-fanen har brugerfejl', async () => {

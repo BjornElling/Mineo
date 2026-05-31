@@ -56,7 +56,7 @@ describe('StyledDateField', () => {
 
     render(<Wrapper />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.type(input, '1-1-28');
     await user.tab();
@@ -85,7 +85,7 @@ describe('StyledDateField', () => {
 
     render(<Wrapper />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.type(input, '1-1');
     await user.tab();
@@ -110,7 +110,7 @@ describe('StyledDateField', () => {
 
     render(<Wrapper />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.click(input);
     input.setSelectionRange(0, 5);
@@ -139,9 +139,10 @@ describe('StyledDateField', () => {
 
     render(<Wrapper />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
-    await user.paste(input, 'adffergregs//sgd1712,56//');
+    input.focus();
+    await user.paste('adffergregs//sgd1712,56//');
     await user.tab();
 
     expect(input).toHaveValue('17-12-1956');
@@ -157,7 +158,7 @@ describe('StyledDateField', () => {
 
     render(<Wrapper />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.type(input, '1,1@28');
     await user.tab();
@@ -171,7 +172,7 @@ describe('StyledDateField', () => {
 
     render(<StyledDateField value={undefined} onCommit={handleCommit} />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.type(input, '1-1-2-');
     await user.tab();

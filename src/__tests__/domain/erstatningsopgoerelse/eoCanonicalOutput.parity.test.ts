@@ -8,7 +8,7 @@ import {
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
-import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModelTypes';
+import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
@@ -73,8 +73,8 @@ const scenarios: readonly Scenario[] = [
       offentligeYdelserRows: [
         {
           id: 'yd-1',
-          fraDato: '2024-02-01',
-          tilDato: '2024-02-29',
+          fraDato: toISODateString('2024-02-01'),
+          tilDato: toISODateString('2024-02-29'),
           ydelse: asAmountValue(1000),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -97,8 +97,8 @@ const scenarios: readonly Scenario[] = [
       offentligeYdelserRows: [
         {
           id: 'yd-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-31',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-31'),
           ydelse: asAmountValue(3100),
           tillaeg: undefined,
           ydelsestype: 'dagpenge',

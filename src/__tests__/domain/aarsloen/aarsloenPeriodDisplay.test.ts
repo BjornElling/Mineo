@@ -2,6 +2,7 @@ import type { DateInterval, AarsloenBeregningResultBeregnet } from '../../../typ
 import type { PeriodeResult } from '../../../utils/periodeBeregning';
 import { resolveAarsloenIndtastetEnhedSummary } from '../../../domain/aarsloen/aarsloenPeriodDisplay';
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
+import { toISODateString } from '../../../types/branded';
 
 const buildPeriodeResult = (unikkeEnheder: number, perioder: DateInterval[] = []): PeriodeResult => ({
   periodeTekst: 'test',
@@ -100,8 +101,8 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
 
   it('viser entalslabel når der kun er én indtastet periode', () => {
     const result = resolveAarsloenIndtastetEnhedSummary({
-      tableData: [buildRow({ col0_dag: '01-01-2024' })],
-      periodeData: buildPeriodeResult(1, [{ start: new Date('2024-01-01'), end: new Date('2024-01-31') }]),
+      tableData: [buildRow({ col0_dag: toISODateString('2024-01-01') })],
+      periodeData: buildPeriodeResult(1, [{ start: new Date(toISODateString('2024-01-01')), end: new Date(toISODateString('2024-01-31')) }]),
       beregningsData: { ...baseBeregnet, metode: 'A', arbejdsdageIPeriode: 1, hverdageIPeriode: 3 },
       loenperiode: 'dag',
     });
@@ -115,10 +116,10 @@ describe('resolveAarsloenIndtastetEnhedSummary', () => {
   it('beholder flertalslabel når flere rækker er udfyldt selv om perioden samler til én periode', () => {
     const result = resolveAarsloenIndtastetEnhedSummary({
       tableData: [
-        buildRow({ id: 'row-1', col0_dag: '01-01-2024' }),
-        buildRow({ id: 'row-2', col0_dag: '02-01-2024' }),
+        buildRow({ id: 'row-1', col0_dag: toISODateString('2024-01-01') }),
+        buildRow({ id: 'row-2', col0_dag: toISODateString('2024-01-02') }),
       ],
-      periodeData: buildPeriodeResult(19, [{ start: new Date('2024-01-01'), end: new Date('2024-01-31') }]),
+      periodeData: buildPeriodeResult(19, [{ start: new Date(toISODateString('2024-01-01')), end: new Date(toISODateString('2024-01-31')) }]),
       beregningsData: { ...baseBeregnet, metode: 'A', arbejdsdageIPeriode: 19, hverdageIPeriode: 24 },
       loenperiode: 'dag',
     });

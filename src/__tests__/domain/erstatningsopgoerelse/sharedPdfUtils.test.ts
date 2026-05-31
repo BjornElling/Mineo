@@ -15,6 +15,7 @@ import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLo
 import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
 import type { ISODateString } from '../../../types/branded';
+import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string): ISODateString => value as ISODateString;
 
@@ -24,8 +25,8 @@ const iso = (value: string): ISODateString => value as ISODateString;
 
 describe('parseOptionalIsoDate', () => {
   it('parser gyldige ISO-datoer', () => {
-    expect(parseOptionalIsoDate('2024-01-15')).toBe('2024-01-15');
-    expect(parseOptionalIsoDate('2000-12-31')).toBe('2000-12-31');
+    expect(parseOptionalIsoDate(toISODateString('2024-01-15'))).toBe(toISODateString('2024-01-15'));
+    expect(parseOptionalIsoDate(toISODateString('2000-12-31'))).toBe(toISODateString('2000-12-31'));
   });
 
   it('returnerer undefined for ugyldigt format', () => {
@@ -48,7 +49,7 @@ describe('parseOptionalIsoDate', () => {
   });
 
   it('trimmer whitespace', () => {
-    expect(parseOptionalIsoDate('  2024-01-15  ')).toBe('2024-01-15');
+    expect(parseOptionalIsoDate('  2024-01-15  ')).toBe(toISODateString('2024-01-15'));
   });
 });
 
@@ -58,12 +59,12 @@ describe('parseOptionalIsoDate', () => {
 
 describe('parseDanishToIso', () => {
   it('konverterer dansk dato til ISO', () => {
-    expect(parseDanishToIso('15-01-2024')).toBe('2024-01-15');
-    expect(parseDanishToIso('31-12-2023')).toBe('2023-12-31');
+    expect(parseDanishToIso('15-01-2024')).toBe(toISODateString('2024-01-15'));
+    expect(parseDanishToIso('31-12-2023')).toBe(toISODateString('2023-12-31'));
   });
 
   it('accepterer allerede-kanonisk ISO-format', () => {
-    expect(parseDanishToIso('2024-01-15')).toBe('2024-01-15');
+    expect(parseDanishToIso(toISODateString('2024-01-15'))).toBe(toISODateString('2024-01-15'));
   });
 
   it('returnerer undefined for ugyldige datoer', () => {
@@ -79,16 +80,16 @@ describe('parseDanishToIso', () => {
 
 describe('getDayAfterIso', () => {
   it('lægger én dag til en almindelig dato', () => {
-    expect(getDayAfterIso(iso('2024-01-15'))).toBe('2024-01-16');
+    expect(getDayAfterIso(iso('2024-01-15'))).toBe(toISODateString('2024-01-16'));
   });
 
   it('håndterer årsskifte', () => {
-    expect(getDayAfterIso(iso('2024-12-31'))).toBe('2025-01-01');
+    expect(getDayAfterIso(iso('2024-12-31'))).toBe(toISODateString('2025-01-01'));
   });
 
   it('håndterer skudår korrekt', () => {
-    expect(getDayAfterIso(iso('2024-02-28'))).toBe('2024-02-29');
-    expect(getDayAfterIso(iso('2024-02-29'))).toBe('2024-03-01');
+    expect(getDayAfterIso(iso('2024-02-28'))).toBe(toISODateString('2024-02-29'));
+    expect(getDayAfterIso(iso('2024-02-29'))).toBe(toISODateString('2024-03-01'));
   });
 });
 
@@ -105,7 +106,7 @@ describe('resolveAnvendtReguleringsdato', () => {
       beregningsperiodeTil: iso('2024-12-31'),
       skadedato: iso('2024-01-01'),
     });
-    expect(result).toBe('2024-03-01');
+    expect(result).toBe(toISODateString('2024-03-01'));
   });
 
   it('falder tilbage til beregningsperiodens slutdato ved Beregningsperiode uden saerligFraDato', () => {
@@ -116,7 +117,7 @@ describe('resolveAnvendtReguleringsdato', () => {
       beregningsperiodeTil: iso('2024-12-31'),
       skadedato: iso('2024-01-01'),
     });
-    expect(result).toBe('2024-12-31');
+    expect(result).toBe(toISODateString('2024-12-31'));
   });
 
   it('returnerer angivetLoenMetodeOpreguleresFraDato ved andre metoder', () => {
@@ -127,7 +128,7 @@ describe('resolveAnvendtReguleringsdato', () => {
       beregningsperiodeTil: iso('2024-12-31'),
       skadedato: iso('2024-01-01'),
     });
-    expect(result).toBe('2024-06-01');
+    expect(result).toBe(toISODateString('2024-06-01'));
   });
 
   it('falder tilbage til skadedato ved andre metoder uden angivetLoenDato', () => {
@@ -138,7 +139,7 @@ describe('resolveAnvendtReguleringsdato', () => {
       beregningsperiodeTil: iso('2024-12-31'),
       skadedato: iso('2024-01-01'),
     });
-    expect(result).toBe('2024-01-01');
+    expect(result).toBe(toISODateString('2024-01-01'));
   });
 
   it('returnerer undefined når intet er givet', () => {
@@ -160,7 +161,7 @@ describe('resolveAnvendtReguleringsdato', () => {
       beregningsperiodeTil: undefined,
       skadedato: iso('2024-01-01'),
     });
-    expect(result).toBe('2024-01-01');
+    expect(result).toBe(toISODateString('2024-01-01'));
   });
 });
 
@@ -190,7 +191,7 @@ describe('resolveStatistikModelId', () => {
 
 describe('formatDateShort', () => {
   it('formaterer ISO til dansk kort format', () => {
-    expect(formatDateShort('2024-01-15' as any)).toBe('15-01-2024');
+    expect(formatDateShort(toISODateString('2024-01-15') as any)).toBe('15-01-2024');
   });
 
   it('returnerer tom streng for undefined', () => {
@@ -200,7 +201,7 @@ describe('formatDateShort', () => {
 
 describe('formatDateLong', () => {
   it('formaterer ISO til langt dansk format', () => {
-    expect(formatDateLong('2024-01-15' as any)).toBe('15. januar 2024');
+    expect(formatDateLong(toISODateString('2024-01-15') as any)).toBe('15. januar 2024');
   });
 
   it('returnerer tom streng for undefined', () => {
@@ -303,7 +304,7 @@ describe('hasAnyPctSourceOrInput', () => {
 
 describe('konstanter', () => {
   it('STORE_BEDEDAG_START er 2024-01-01', () => {
-    expect(STORE_BEDEDAG_START).toBe('2024-01-01');
+    expect(STORE_BEDEDAG_START).toBe(toISODateString('2024-01-01'));
   });
 
   it('STORE_BEDEDAG_PCT er 0.45', () => {

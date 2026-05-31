@@ -2,11 +2,12 @@ import { collectAllDebugRows } from '../../../domain/debug/eoDebugRowAggregator'
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { toISODateString } from '../../../types/branded';
 
 describe('collectAllDebugRows integration', () => {
   it('materialises svie/smerte sats-aar warning with summary message', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.opgørelseLavetDen = '2025-12-15';
+    eoValues.opgørelseLavetDen = toISODateString('2025-12-15');
     eoValues.svieSmerteSatserAar = 2025;
     eoValues.revideretOpgoerelse = 'Nej';
 
@@ -25,12 +26,12 @@ describe('collectAllDebugRows integration', () => {
 
   it('materialises TAF warning when valid periods are fully clamped outside EO-perioden', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-02-01';
-    eoValues.vedroererPeriodeTil = '2024-02-29';
-    eoValues.tafBeregningsperiodeFra = '2023-01-01';
-    eoValues.tafBeregningsperiodeTil = '2023-12-31';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-02-01');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-02-29');
+    eoValues.tafBeregningsperiodeFra = toISODateString('2023-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2023-12-31');
     eoValues.tafPerioder = [
-      { id: 'taf-1', fra: '2024-01-01', til: '2024-01-31', loseFeriedage: 0 },
+      { id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loseFeriedage: 0 },
     ];
 
     const snapshot = computeEoSnapshot({

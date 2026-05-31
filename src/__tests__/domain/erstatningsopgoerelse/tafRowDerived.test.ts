@@ -3,6 +3,7 @@ import type { TafPeriodeRow, FerieperiodeRow, ErstatningsopgoerelseValues } from
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { buildTafDerived, buildBeregningsperiodeTafOverlap } from '../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string): ISODateString => value as ISODateString;
 
@@ -53,7 +54,7 @@ describe('buildTafDerived', () => {
     it('returnerer null for række med manglende fra', () => {
       const result = buildTafDerived({
         values: makeValues({}),
-        tafPerioder: [makeTafRow('r1', undefined, '2024-01-31')],
+        tafPerioder: [makeTafRow('r1', undefined, toISODateString('2024-01-31'))],
         ferieperioder: [],
       });
       expect(result.derivedById['r1']).toBeNull();
@@ -62,7 +63,7 @@ describe('buildTafDerived', () => {
     it('returnerer null for række med manglende til', () => {
       const result = buildTafDerived({
         values: makeValues({}),
-        tafPerioder: [makeTafRow('r1', '2024-01-01', undefined)],
+        tafPerioder: [makeTafRow('r1', toISODateString('2024-01-01'), undefined)],
         ferieperioder: [],
       });
       expect(result.derivedById['r1']).toBeNull();
@@ -71,7 +72,7 @@ describe('buildTafDerived', () => {
     it('returnerer null for række med fra > til', () => {
       const result = buildTafDerived({
         values: makeValues({}),
-        tafPerioder: [makeTafRow('r1', '2024-01-31', '2024-01-01')],
+        tafPerioder: [makeTafRow('r1', toISODateString('2024-01-31'), toISODateString('2024-01-01'))],
         ferieperioder: [],
       });
       expect(result.derivedById['r1']).toBeNull();
@@ -80,7 +81,7 @@ describe('buildTafDerived', () => {
     it('beregner 1 måned for januar 2024', () => {
       const result = buildTafDerived({
         values: makeValues({}),
-        tafPerioder: [makeTafRow('r1', '2024-01-01', '2024-01-31')],
+        tafPerioder: [makeTafRow('r1', toISODateString('2024-01-01'), toISODateString('2024-01-31'))],
         ferieperioder: [],
       });
       expect(result.derivedById['r1']).toBe(1);
@@ -89,7 +90,7 @@ describe('buildTafDerived', () => {
     it('beregner korrekt for periode på tværs af månedsskift', () => {
       const result = buildTafDerived({
         values: makeValues({}),
-        tafPerioder: [makeTafRow('r1', '2024-01-01', '2024-06-30')],
+        tafPerioder: [makeTafRow('r1', toISODateString('2024-01-01'), toISODateString('2024-06-30'))],
         ferieperioder: [],
       });
       expect(result.derivedById['r1']).toBe(6);
@@ -99,8 +100,8 @@ describe('buildTafDerived', () => {
       const result = buildTafDerived({
         values: makeValues({}),
         tafPerioder: [
-          makeTafRow('r1', '2024-01-01', '2024-01-31'),
-          makeTafRow('r2', '2024-03-01', '2024-03-31'),
+          makeTafRow('r1', toISODateString('2024-01-01'), toISODateString('2024-01-31')),
+          makeTafRow('r2', toISODateString('2024-03-01'), toISODateString('2024-03-31')),
         ],
         ferieperioder: [],
       });
@@ -112,8 +113,8 @@ describe('buildTafDerived', () => {
       const result = buildTafDerived({
         values: makeValues({}),
         tafPerioder: [
-          makeTafRow('r1', '2024-01-01', '2024-01-31'),
-          makeTafRow('r2', undefined, '2024-02-28'),
+          makeTafRow('r1', toISODateString('2024-01-01'), toISODateString('2024-01-31')),
+          makeTafRow('r2', undefined, toISODateString('2024-02-28')),
         ],
         ferieperioder: [],
       });
@@ -128,7 +129,7 @@ describe('buildTafDerived', () => {
       // Helligdagen tæller i buildTafDerived ved kind: 'taf' — se tafCalculations
       const result = buildTafDerived({
         values: makeValues({ beregnesUdFra: 'Angivet dagsløn' }),
-        tafPerioder: [makeTafRow('r1', '2024-01-02', '2024-01-05')],
+        tafPerioder: [makeTafRow('r1', toISODateString('2024-01-02'), toISODateString('2024-01-05'))],
         ferieperioder: [],
       });
       // 2-5 januar: 4 dage, alle hverdage, ingen helligdage
@@ -139,8 +140,8 @@ describe('buildTafDerived', () => {
       // 2024-02-05 = mandag til 2024-02-09 = fredag = 5 hverdage
       const result = buildTafDerived({
         values: makeValues({ beregnesUdFra: 'Angivet dagsløn' }),
-        tafPerioder: [makeTafRow('r1', '2024-02-05', '2024-02-09', 0)],
-        ferieperioder: [makeFerieRow('f1', '2024-02-06', '2024-02-07')],
+        tafPerioder: [makeTafRow('r1', toISODateString('2024-02-05'), toISODateString('2024-02-09'), 0)],
+        ferieperioder: [makeFerieRow('f1', toISODateString('2024-02-06'), toISODateString('2024-02-07'))],
       });
       // 5 hverdage - 2 feriedage = 3
       expect(result.derivedById['r1']).toBe(3);
@@ -154,7 +155,7 @@ describe('buildTafDerived', () => {
           vedroererPeriodeFra: iso('2024-01-01'),
           vedroererPeriodeTil: iso('2024-01-05'),
         }),
-        tafPerioder: [makeTafRow('r1', '2024-02-01', '2024-02-29')],
+        tafPerioder: [makeTafRow('r1', toISODateString('2024-02-01'), toISODateString('2024-02-29'))],
         ferieperioder: [],
       });
       expect(result.derivedById['r1']).toBe(0);
@@ -170,7 +171,7 @@ describe('buildTafDerived', () => {
           vedroererPeriodeFra: iso('2024-01-01'),
           vedroererPeriodeTil: iso('2024-01-31'),
         }),
-        tafPerioder: [makeTafRow('r1', '2024-01-01', '2024-03-31')],
+        tafPerioder: [makeTafRow('r1', toISODateString('2024-01-01'), toISODateString('2024-03-31'))],
         ferieperioder: [],
       });
       expect(result.derivedById['r1']).toBe(1);
@@ -180,12 +181,12 @@ describe('buildTafDerived', () => {
       // loseFeriedage = undefined → 0 fradrag
       const withUndefined = buildTafDerived({
         values: makeValues({ beregnesUdFra: 'Angivet dagsløn' }),
-        tafPerioder: [makeTafRow('r1', '2024-02-05', '2024-02-09', undefined)],
+        tafPerioder: [makeTafRow('r1', toISODateString('2024-02-05'), toISODateString('2024-02-09'), undefined)],
         ferieperioder: [],
       });
       const withZero = buildTafDerived({
         values: makeValues({ beregnesUdFra: 'Angivet dagsløn' }),
-        tafPerioder: [makeTafRow('r1', '2024-02-05', '2024-02-09', 0)],
+        tafPerioder: [makeTafRow('r1', toISODateString('2024-02-05'), toISODateString('2024-02-09'), 0)],
         ferieperioder: [],
       });
       expect(withUndefined.derivedById['r1']).toBe(withZero.derivedById['r1']);
@@ -196,8 +197,8 @@ describe('buildTafDerived', () => {
     it('er deterministisk for identisk input', () => {
       const args = {
         values: makeValues({ beregnesUdFra: 'Angivet dagsløn' }),
-        tafPerioder: [makeTafRow('r1', '2024-03-01', '2024-03-31')],
-        ferieperioder: [makeFerieRow('f1', '2024-03-11', '2024-03-15')],
+        tafPerioder: [makeTafRow('r1', toISODateString('2024-03-01'), toISODateString('2024-03-31'))],
+        ferieperioder: [makeFerieRow('f1', toISODateString('2024-03-11'), toISODateString('2024-03-15'))],
       } as const;
       const r1 = buildTafDerived(args);
       const r2 = buildTafDerived(args);
@@ -222,7 +223,7 @@ describe('buildBeregningsperiodeTafOverlap', () => {
         tafBeregningsperiodeFra: iso('2024-01-01'),
         tafBeregningsperiodeTil: iso('2024-06-30'),
       }),
-      tafPerioder: [makeTafRow('r1', '2024-03-01', '2024-04-30')],
+      tafPerioder: [makeTafRow('r1', toISODateString('2024-03-01'), toISODateString('2024-04-30'))],
     });
     // Overlap findes: taf-periode er inden for beregningsperiode
     expect(result).toBeDefined();
@@ -247,8 +248,8 @@ describe('buildBeregningsperiodeTafOverlap', () => {
         tafBeregningsperiodeTil: iso('2024-12-31'),
       }),
       tafPerioder: [
-        makeTafRow('r1', undefined, '2024-06-30'),
-        makeTafRow('r2', '2024-03-01', undefined),
+        makeTafRow('r1', undefined, toISODateString('2024-06-30')),
+        makeTafRow('r2', toISODateString('2024-03-01'), undefined),
       ],
     });
     expect(result).toBeDefined();

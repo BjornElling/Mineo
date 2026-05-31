@@ -62,8 +62,8 @@ describe('computeTafNettoBeregning', () => {
     values.loenindkomstAnsaettelsesforhold = [];
     values.offentligeYdelserRows = [{
       id: 'dagpenge-jan-2024',
-      fraDato: '2024-01-01',
-      tilDato: '2024-01-31',
+      fraDato: toISODateString('2024-01-01'),
+      tilDato: toISODateString('2024-01-31'),
       ydelse: asAmount(3100),
       tillaeg: undefined,
       ydelsestype: 'dagpenge',
@@ -104,8 +104,8 @@ describe('computeTafNettoBeregning', () => {
     values.loenindkomstAnsaettelsesforhold = [];
     values.offentligeYdelserRows = [{
       id: 'dagpenge-jan-2024',
-      fraDato: '2024-01-01',
-      tilDato: '2024-01-31',
+      fraDato: toISODateString('2024-01-01'),
+      tilDato: toISODateString('2024-01-31'),
       ydelse: asAmount(3100),
       tillaeg: undefined,
       ydelsestype: 'dagpenge',
@@ -130,8 +130,8 @@ describe('computeTafNettoBeregning', () => {
     values.loenindkomstAnsaettelsesforhold = [];
     values.offentligeYdelserRows = [{
       id: 'dagpenge-jan-2024',
-      fraDato: '2024-01-01',
-      tilDato: '2024-01-31',
+      fraDato: toISODateString('2024-01-01'),
+      tilDato: toISODateString('2024-01-31'),
       ydelse: asAmount(3100),
       tillaeg: undefined,
       ydelsestype: 'dagpenge',
@@ -167,13 +167,13 @@ describe('computeTafNettoBeregning', () => {
     values.tafBeregningsperiodeTil = iso('2024-01-31');
     values.loenindkomstAnsaettelsesforhold = [createEmployment({
       loenudviklingBeregningsgrundlag: 'Statistik',
-      loenudviklingStatistikModel: 'ILON12',
+      loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
       saerligFraDatoRegulering: iso('2024-07-01'),
     })];
     values.offentligeYdelserRows = [{
       id: 'dagpenge-jan-2024',
-      fraDato: '2024-01-01',
-      tilDato: '2024-01-31',
+      fraDato: toISODateString('2024-01-01'),
+      tilDato: toISODateString('2024-01-31'),
       ydelse: asAmount(3100),
       tillaeg: undefined,
       ydelsestype: 'dagpenge',
@@ -204,14 +204,14 @@ describe('computeTafNettoBeregning', () => {
         id: 'af-statistik',
         navnPaaArbejdssted: 'Arbejdssted 2',
         loenudviklingBeregningsgrundlag: 'Statistik',
-        loenudviklingStatistikModel: 'ILON12',
+        loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
         saerligFraDatoRegulering: iso('2024-07-01'),
       }),
     ];
     values.offentligeYdelserRows = [{
       id: 'dagpenge-jan-2024',
-      fraDato: '2024-01-01',
-      tilDato: '2024-01-31',
+      fraDato: toISODateString('2024-01-01'),
+      tilDato: toISODateString('2024-01-31'),
       ydelse: asAmount(3100),
       tillaeg: undefined,
       ydelsestype: 'dagpenge',
@@ -235,8 +235,8 @@ describe('computeTafNettoBeregning', () => {
     values.loenindkomstAnsaettelsesforhold = [];
     values.offentligeYdelserRows = [{
       id: 'midlertidigt-eet-jan-2024',
-      fraDato: '2024-01-01',
-      tilDato: '2024-01-31',
+      fraDato: toISODateString('2024-01-01'),
+      tilDato: toISODateString('2024-01-31'),
       ydelse: asAmount(4200),
       tillaeg: undefined,
       ydelsestype: 'midlertidigt_eet',
@@ -273,8 +273,8 @@ describe('computeTafNettoBeregning', () => {
         col1_maaned: '',
         col0_uge: '',
         col1_uge: '',
-        col0_dag: '2024-01-02',
-        col1_dag: '2024-01-05',
+        col0_dag: toISODateString('2024-01-02'),
+        col1_dag: toISODateString('2024-01-05'),
         col2: asAmount(1),
         col3: undefined,
         col4: undefined,
@@ -283,8 +283,8 @@ describe('computeTafNettoBeregning', () => {
     })];
     values.offentligeYdelserRows = [{
       id: 'sygedagpenge-jan-2024',
-      fraDato: '2024-01-01',
-      tilDato: '2024-01-05',
+      fraDato: toISODateString('2024-01-01'),
+      tilDato: toISODateString('2024-01-05'),
       ydelse: asAmount(5000),
       tillaeg: undefined,
       ydelsestype: 'sygedagpenge',

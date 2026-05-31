@@ -1,4 +1,5 @@
 import { findFirstDebugTableParityDiff } from '../../../domain/debug/eoDebugParity';
+import { toISODateString } from '../../../types/branded';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -100,8 +101,8 @@ describe('findFirstDebugTableParityDiff', () => {
 
   it('opdager række-nøgle-mismatch (colId = meta:row-key)', () => {
     const col = makeCol('c', 'H', ['val']);
-    const a = makeModel([col], 1, ['2024-01-01']);
-    const b = makeModel([makeCol('c', 'H', ['val'])], 1, ['2024-01-02']);
+    const a = makeModel([col], 1, [toISODateString('2024-01-01')]);
+    const b = makeModel([makeCol('c', 'H', ['val'])], 1, [toISODateString('2024-01-02')]);
     const diff = findFirstDebugTableParityDiff(a, b);
     expect(diff).not.toBeNull();
     expect(diff!.colId).toBe('meta:row-key');

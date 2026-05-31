@@ -8,6 +8,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import { toISODateString } from '../../../types/branded';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -39,8 +40,8 @@ describe('normalizeEoBilagIndkomstYdelserMode', () => {
 
 describe('buildPeriodRangeGroups – Alle', () => {
   const allRanges: readonly IsoRange[] = [
-    range('2023-01-01', '2023-06-30'),
-    range('2023-07-01', '2023-12-31'),
+    range(toISODateString('2023-01-01'), toISODateString('2023-06-30')),
+    range(toISODateString('2023-07-01'), toISODateString('2023-12-31')),
   ];
 
   it('returnerer én gruppe med label=null og alle ranges uændret', () => {
@@ -63,7 +64,7 @@ describe('buildPeriodRangeGroups – Alle', () => {
 
   it('allRanges passes igennem uforandret (reference-identitet)', () => {
     const eoValues = makeEoValues();
-    const allRanges: readonly IsoRange[] = [range('2023-03-01', '2023-03-31')];
+    const allRanges: readonly IsoRange[] = [range(toISODateString('2023-03-01'), toISODateString('2023-03-31'))];
     const groups = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_ALLE, allRanges);
     expect(groups[0]!.ranges).toBe(allRanges);
   });
@@ -72,7 +73,7 @@ describe('buildPeriodRangeGroups – Alle', () => {
 // ─── buildPeriodRangeGroups – mode "Perioden" ─────────────────────────────────
 
 describe('buildPeriodRangeGroups – Perioden', () => {
-  const someRanges: readonly IsoRange[] = [range('2023-01-01', '2023-12-31')];
+  const someRanges: readonly IsoRange[] = [range(toISODateString('2023-01-01'), toISODateString('2023-12-31'))];
 
   describe('eoNummer = undefined (første opgørelse)', () => {
     it('med beregningsperiode og ingen TAF → én "Beregningsperiode"-gruppe', () => {
@@ -231,8 +232,8 @@ describe('buildPeriodRangeGroups – Perioden', () => {
 
       const groups1 = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, []);
       const groups2 = buildPeriodRangeGroups(eoValues, EO_BILAG_MODE_PERIODEN, [
-        range('2020-01-01', '2020-12-31'),
-        range('2021-01-01', '2021-12-31'),
+        range(toISODateString('2020-01-01'), toISODateString('2020-12-31')),
+        range(toISODateString('2021-01-01'), toISODateString('2021-12-31')),
       ]);
 
       // Output skal være identisk uanset allRanges

@@ -7,6 +7,7 @@ import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerel
 import { buildLoenindkomstZeroArbejdsdageMessage } from '../../../domain/erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
+import { toISODateString } from '../../../types/branded';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 const createEmployment = (overrides: Record<string, unknown> = {}) => ({
@@ -100,7 +101,7 @@ describe('buildIndkomstSectionStatuses', () => {
         col2: amount(1000),
       },
     ];
-    values.ferieperioder = [{ id: 'ferie-1', fra: '2024-07-01', til: '2024-07-31' }];
+    values.ferieperioder = [{ id: 'ferie-1', fra: toISODateString('2024-07-01'), til: toISODateString('2024-07-31') }];
 
     const result = buildIndkomstSectionStatuses(values, undefined);
 
@@ -179,8 +180,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '2024-01-01',
-        tilDato: '2024-01-31',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'dagpenge',
         ydelse: amount(1200),
       },
@@ -197,7 +198,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
       {
         id: 'row-1',
         fraDato: '',
-        tilDato: '2024-01-31',
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'dagpenge',
         ydelse: amount(1200),
       },
@@ -214,8 +215,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '2024-01-01',
-        tilDato: '2024-01-31',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: '',
         ydelse: amount(1200),
       },
@@ -233,8 +234,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '2024-01-01',
-        tilDato: '2024-01-31',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'dagpenge',
         ydelse: { kind: 'expression' as const, value: 100, expression: '' },
       },
@@ -251,8 +252,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '2024-01-01',
-        tilDato: '2024-01-31',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'dagpenge',
         ydelse: undefined,
         tillaeg: { kind: 'expression' as const, value: 100, expression: '' },
@@ -270,8 +271,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '2024-01-01',
-        tilDato: '2024-01-31',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'dagpenge',
       },
     ];
@@ -287,8 +288,8 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '2024-01-01',
-        tilDato: '2024-01-31',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'dagpenge',
         ydelse: amount(0),
       },

@@ -1,5 +1,5 @@
 import { toISODateString } from '../../../types/branded';
-import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from '../../../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
+import { detectOverlappingPeriods } from '../../../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -55,54 +55,16 @@ describe('detectOverlappingPeriods', () => {
     expect(overlap.has('b')).toBe(true);
     expect(overlap.has('c')).toBe(true);
   });
-});
 
-describe('detectConflictingSvieSmerteOverlaps', () => {
-  it('tom liste → tomt set', () => {
-    expect(detectConflictingSvieSmerteOverlaps([])).toEqual(new Set());
-  });
-
-  it('enkelt række → ingen overlap', () => {
-    const rows = [{ id: 'a', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: 'Sygemeldt' as const }];
-    expect(detectConflictingSvieSmerteOverlaps(rows).size).toBe(0);
-  });
-
-  it('markerer kun overlap med forskellig tilstand', () => {
+  it('svie/smerte: ethvert overlap markeres — også når perioderne har samme tilstand', () => {
+    // Tilstand er irrelevant for overlap-afvisning: validator og svieSmerteEngine afviser
+    // ethvert overlap. detectOverlappingPeriods ser kun på fra/til, og det er den korrekte regel.
     const rows = [
-      { id: 'a', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: 'Sygemeldt' as const },
-      { id: 'b', fra: iso('2024-01-05'), til: iso('2024-01-12'), tilstand: 'Delvist Sygemeldt' as const },
-      { id: 'c', fra: iso('2024-02-01'), til: iso('2024-02-05'), tilstand: 'Sygemeldt' as const },
+      { id: 'a', fra: iso('2024-01-01'), til: iso('2024-01-15') },
+      { id: 'b', fra: iso('2024-01-10'), til: iso('2024-01-20') },
     ];
-    const overlap = detectConflictingSvieSmerteOverlaps(rows);
+    const overlap = detectOverlappingPeriods(rows);
     expect(overlap.has('a')).toBe(true);
     expect(overlap.has('b')).toBe(true);
-    expect(overlap.has('c')).toBe(false);
-  });
-
-  it('overlappende rækker med samme tilstand → ingen konflikt (overlap tilladt)', () => {
-    const rows = [
-      { id: 'a', fra: iso('2024-01-01'), til: iso('2024-01-15'), tilstand: 'Sygemeldt' as const },
-      { id: 'b', fra: iso('2024-01-10'), til: iso('2024-01-20'), tilstand: 'Sygemeldt' as const },
-    ];
-    const overlap = detectConflictingSvieSmerteOverlaps(rows);
-    expect(overlap.size).toBe(0);
-  });
-
-  it('overlappende rækker uden tilstand → ingen konflikt (ignoreres)', () => {
-    const rows = [
-      { id: 'a', fra: iso('2024-01-01'), til: iso('2024-01-15'), tilstand: undefined },
-      { id: 'b', fra: iso('2024-01-10'), til: iso('2024-01-20'), tilstand: undefined },
-    ];
-    const overlap = detectConflictingSvieSmerteOverlaps(rows);
-    expect(overlap.size).toBe(0);
-  });
-
-  it('én med tilstand, én uden → ingen konflikt (manglende tilstand ignoreres)', () => {
-    const rows = [
-      { id: 'a', fra: iso('2024-01-01'), til: iso('2024-01-15'), tilstand: 'Sygemeldt' as const },
-      { id: 'b', fra: iso('2024-01-10'), til: iso('2024-01-20'), tilstand: undefined },
-    ];
-    const overlap = detectConflictingSvieSmerteOverlaps(rows);
-    expect(overlap.size).toBe(0);
   });
 });

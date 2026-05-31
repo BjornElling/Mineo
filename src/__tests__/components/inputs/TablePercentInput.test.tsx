@@ -155,7 +155,8 @@ describe('TablePercentInput', () => {
 
     const input = screen.getByRole('textbox');
     await user.click(input);
-    await user.paste(input, 'adffergregs//sgd1712,56//');
+    input.focus();
+    await user.paste('adffergregs//sgd1712,56//');
 
     expect(onBlur).toHaveBeenCalledWith(17);
     expect(input).toHaveValue('17,00 %');
@@ -192,7 +193,8 @@ describe('TablePercentInput', () => {
 
     const input = screen.getByRole('textbox');
     await user.click(input);
-    await user.paste(input, 'adffergregs//sgd1712,56//');
+    input.focus();
+    await user.paste('adffergregs//sgd1712,56//');
 
     expect(onBlur).toHaveBeenCalledWith(171);
     expect(input).toHaveValue('171,00 %');
@@ -228,7 +230,8 @@ describe('TablePercentInput', () => {
 
     const input = screen.getByRole('textbox');
     await user.click(input);
-    await user.paste(input, 'adffergregs//sgd1712,56//');
+    input.focus();
+    await user.paste('adffergregs//sgd1712,56//');
 
     expect(onBlur).toHaveBeenCalledWith(1712);
     expect(input).toHaveValue('1.712,00 %');

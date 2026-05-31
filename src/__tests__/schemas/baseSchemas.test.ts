@@ -1,3 +1,4 @@
+import { toISODateString } from '../../types/branded';
 import {
   nonNegativeInteger,
   dayCount,
@@ -79,7 +80,7 @@ describe('percentageDecimal', () => {
 
 describe('optionalIsoDateString', () => {
   it('validerer kalenderdage, ikke kun formatet', () => {
-    expect(optionalIsoDateString.parse('2024-01-31')).toBe('2024-01-31');
+    expect(optionalIsoDateString.parse(toISODateString('2024-01-31'))).toBe(toISODateString('2024-01-31'));
     expect(optionalIsoDateString.safeParse('2024-02-30').success).toBe(false);
     expect(optionalIsoDateString.safeParse('2024-13-40').success).toBe(false);
     expect(optionalIsoDateString.safeParse('31-01-2024').success).toBe(false); // dansk format afvises

@@ -4,6 +4,7 @@ import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import { toISODateString } from '../../../types/branded';
 
 const { reportSystemIssueMock } = vi.hoisted(() => ({
   reportSystemIssueMock: vi.fn(),
@@ -105,13 +106,13 @@ describe('computeEoSnapshot', () => {
 
   it('returnerer error uden data ved overlappende TAF-perioder', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-01';
-    eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.tafBeregningsperiodeFra = '2023-01-01';
-    eoValues.tafBeregningsperiodeTil = '2023-12-31';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
+    eoValues.tafBeregningsperiodeFra = toISODateString('2023-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2023-12-31');
     eoValues.tafPerioder = [
-      { id: 'r1', fra: '2024-01-01', til: '2024-06-30', loseFeriedage: 0 },
-      { id: 'r2', fra: '2024-06-15', til: '2024-12-31', loseFeriedage: 0 },
+      { id: 'r1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-06-30'), loseFeriedage: 0 },
+      { id: 'r2', fra: toISODateString('2024-06-15'), til: toISODateString('2024-12-31'), loseFeriedage: 0 },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -132,18 +133,18 @@ describe('computeEoSnapshot', () => {
     // Snapshot producerer ingen invariant for dette — snapshot beregnes på den clampede værdi med data tilgængeligt.
     // Dette er den korrekte og tilstrækkelige mekanisme; feltfejl-tilgangen er ikke et udestående.
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-01';
-    eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.tafBeregningsperiodeFra = '2023-01-01';
-    eoValues.tafBeregningsperiodeTil = '2023-12-31';
-    eoValues.differencekravDato = '2024-07-01';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
+    eoValues.tafBeregningsperiodeFra = toISODateString('2023-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2023-12-31');
+    eoValues.differencekravDato = toISODateString('2024-07-01');
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
         loenudviklingBeregningsgrundlag: 'Ingen',
       }),
     ];
     eoValues.tafPerioder = [
-      { id: 'r1', fra: '2024-01-01', til: '2024-07-15', loseFeriedage: 0 },
+      { id: 'r1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-07-15'), loseFeriedage: 0 },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -158,17 +159,17 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.invariants.some((inv) => inv.id.includes('taf_perioder:upper_bound:differencekrav'))).toBe(false);
     // Snapshot bruger den clampede range (til 2024-06-30 = dagen før differencekravDato)
     expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([
-      { fra: '2024-01-01', til: '2024-06-30' },
+      { fra: toISODateString('2024-01-01'), til: toISODateString('2024-06-30') },
     ]);
   });
 
   it('TAF-periode inden for differencekrav-grænse (stille clamping mod vedroererPeriodeTil) giver ok', () => {
     // TAF til-dato <= vedroererPeriodeTil er stille clamping — ingen fejl
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-01';
-    eoValues.vedroererPeriodeTil = '2024-06-30';
-    eoValues.tafBeregningsperiodeFra = '2023-01-01';
-    eoValues.tafBeregningsperiodeTil = '2023-12-31';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-06-30');
+    eoValues.tafBeregningsperiodeFra = toISODateString('2023-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2023-12-31');
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
         loenudviklingBeregningsgrundlag: 'Ingen',
@@ -187,7 +188,7 @@ describe('computeEoSnapshot', () => {
       sfggAlleredeBetaltBeloeb: undefined,
     }];
     eoValues.tafPerioder = [
-      { id: 'r1', fra: '2024-01-01', til: '2024-12-31', loseFeriedage: 0 },
+      { id: 'r1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-12-31'), loseFeriedage: 0 },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -201,7 +202,7 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.data).not.toBeNull();
     // Canonical output bruger clampet range (til vedroererPeriodeTil)
     expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([
-      { fra: '2024-01-01', til: '2024-06-30' },
+      { fra: toISODateString('2024-01-01'), til: toISODateString('2024-06-30') },
     ]);
   });
 
@@ -211,19 +212,19 @@ describe('computeEoSnapshot', () => {
     // Validator rapporterer fejl → blocksAuthoritativeComputation: true → data: null.
     // Snapshot status er 'error', debugSnapshot er tilgængeligt (bygges i validerings-fejl-stien).
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2023-05-24';
-    eoValues.vedroererPeriodeTil = '2025-12-21';
+    eoValues.vedroererPeriodeFra = toISODateString('2023-05-24');
+    eoValues.vedroererPeriodeTil = toISODateString('2025-12-21');
     eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
     eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
     eoValues.tidligereSsMax = 'Nej';
     eoValues.varigeMenAfgorelse = 'Ja';
     eoValues.verserendeKlageMen = 'Nej';
-    eoValues.menAfgoerelseDato = '2024-04-22';
+    eoValues.menAfgoerelseDato = toISODateString('2024-04-22');
     eoValues.svieSmerteSatserAar = 2026;
     eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
     eoValues.svieSmertePerioder = [
       // til-dato 2025-04-21 >= menAfgoerelseDato 2024-04-22 → fejlgivende bound
-      { id: 'ss-1', fra: '2023-05-24', til: '2025-04-21', tilstand: 'sygemeldt' },
+      { id: 'ss-1', fra: toISODateString('2023-05-24'), til: toISODateString('2025-04-21'), tilstand: 'sygemeldt' },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -248,19 +249,19 @@ describe('computeEoSnapshot', () => {
     // Perioden overskrider ménafgørelsesdatoen, selv om den OGSÅ overstiger vedroererPeriodeTil.
     // Ménafgørelsesbound er fejlgivende uanset om EO-periode-clamping ville have begrænset perioden.
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2023-05-24';
-    eoValues.vedroererPeriodeTil = '2024-06-01';
+    eoValues.vedroererPeriodeFra = toISODateString('2023-05-24');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-06-01');
     eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
     eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
     eoValues.tidligereSsMax = 'Nej';
     eoValues.varigeMenAfgorelse = 'Ja';
     eoValues.verserendeKlageMen = 'Nej';
-    eoValues.menAfgoerelseDato = '2024-04-22';
+    eoValues.menAfgoerelseDato = toISODateString('2024-04-22');
     eoValues.svieSmerteSatserAar = 2026;
     eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
     eoValues.svieSmertePerioder = [
       // til-dato 2024-05-01 >= menAfgoerelseDato 2024-04-22 → fejlgivende bound
-      { id: 'ss-1', fra: '2023-05-24', til: '2024-05-01', tilstand: 'sygemeldt' },
+      { id: 'ss-1', fra: toISODateString('2023-05-24'), til: toISODateString('2024-05-01'), tilstand: 'sygemeldt' },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -277,20 +278,20 @@ describe('computeEoSnapshot', () => {
   it('svie/smerte til-dato under ménafgørelsesdato: ingen fejl (stille clamping mod EO-periode)', () => {
     // til-dato er lovlig ift. ménafgørelse, men overskrider EO-perioden → stille clamping
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2023-05-24';
-    eoValues.vedroererPeriodeTil = '2024-03-01';
+    eoValues.vedroererPeriodeFra = toISODateString('2023-05-24');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-03-01');
     eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
     eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
     eoValues.tidligereSsMax = 'Nej';
     eoValues.varigeMenAfgorelse = 'Ja';
     eoValues.verserendeKlageMen = 'Nej';
-    eoValues.menAfgoerelseDato = '2024-04-22';
+    eoValues.menAfgoerelseDato = toISODateString('2024-04-22');
     eoValues.svieSmerteSatserAar = 2026;
     eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
     eoValues.svieSmertePerioder = [
       // til-dato 2024-04-01 < menAfgoerelseDato 2024-04-22 → ménafgørelse-bound OK
       // men > vedroererPeriodeTil 2024-03-01 → stille clamping
-      { id: 'ss-1', fra: '2023-05-24', til: '2024-04-01', tilstand: 'sygemeldt' },
+      { id: 'ss-1', fra: toISODateString('2023-05-24'), til: toISODateString('2024-04-01'), tilstand: 'sygemeldt' },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -305,19 +306,19 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.failClosedReason).toBeUndefined();
     // Engine clamper til vedroererPeriodeTil
     expect(snapshot.data?.engines.svieSmerte.constrainedPeriods).toEqual([
-      { fra: '2023-05-24', til: '2024-03-01', isDelvist: false },
+      { fra: toISODateString('2023-05-24'), til: toISODateString('2024-03-01'), isDelvist: false },
     ]);
     expect(snapshot.invariants.some((invariant) => invariant.id === 'runtime_exception')).toBe(false);
   });
 
   it('returnerer error uden data ved overbooking af løse feriedage i TAF-periode', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-01';
-    eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.tafBeregningsperiodeFra = '2024-01-01';
-    eoValues.tafBeregningsperiodeTil = '2024-01-31';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
+    eoValues.tafBeregningsperiodeFra = toISODateString('2024-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2024-01-31');
     eoValues.tafPerioder = [
-      { id: 'r1', fra: '2024-01-01', til: '2024-01-05', loseFeriedage: 10 },
+      { id: 'r1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-05'), loseFeriedage: 10 },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -334,10 +335,10 @@ describe('computeEoSnapshot', () => {
 
   it('returnerer error uden data ved overbooking af uspecificerede ferie-/fridage', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-01';
-    eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.tafBeregningsperiodeFra = '2024-01-01';
-    eoValues.tafBeregningsperiodeTil = '2024-01-05';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
+    eoValues.tafBeregningsperiodeFra = toISODateString('2024-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2024-01-05');
     eoValues.uspecificeredeFerieFridage = 10;
 
     const snapshot = computeEoSnapshot({
@@ -354,12 +355,12 @@ describe('computeEoSnapshot', () => {
 
   it('behandler manglende lønregulering som valideringsfejl og ikke som fail_closed runtimefejl', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-01';
-    eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.tafBeregningsperiodeFra = '2023-01-01';
-    eoValues.tafBeregningsperiodeTil = '2023-12-31';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
+    eoValues.tafBeregningsperiodeFra = toISODateString('2023-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2023-12-31');
     eoValues.tafPerioder = [
-      { id: 'taf-1', fra: '2024-01-01', til: '2024-01-31', loseFeriedage: 0 },
+      { id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loseFeriedage: 0 },
     ];
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
@@ -420,7 +421,7 @@ describe('computeEoSnapshot', () => {
     eoValues.oevrigeKravPerioder = [
       {
         id: 'krav-1',
-        dato: '2024-01-15',
+        dato: toISODateString('2024-01-15'),
         udgiftTil: 'Transport',
         beloeb: { kind: 'number', value: 1200 },
       },
@@ -461,13 +462,13 @@ describe('computeEoSnapshot', () => {
     // Når validering fejler, kører autoritative totaler ikke. Debug må dog stadig vise
     // clampede TAF-ranges for de rækker der kan parses sikkert.
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-01';
-    eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.tafBeregningsperiodeFra = '2023-01-01';
-    eoValues.tafBeregningsperiodeTil = '2023-12-31';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
+    eoValues.tafBeregningsperiodeFra = toISODateString('2023-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2023-12-31');
     eoValues.tafPerioder = [
-      { id: 'r1', fra: '2024-01-01', til: '2024-06-30', loseFeriedage: 0 },
-      { id: 'r2', fra: '2024-06-15', til: '2024-12-31', loseFeriedage: 0 },
+      { id: 'r1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-06-30'), loseFeriedage: 0 },
+      { id: 'r2', fra: toISODateString('2024-06-15'), til: toISODateString('2024-12-31'), loseFeriedage: 0 },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -485,14 +486,14 @@ describe('computeEoSnapshot', () => {
 
   it('validerings-fejl-sti: urelateret svie/smerte-fejl undertrykker ikke TAF-sammentælling', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2023-05-24';
-    eoValues.vedroererPeriodeTil = '2025-12-21';
+    eoValues.vedroererPeriodeFra = toISODateString('2023-05-24');
+    eoValues.vedroererPeriodeTil = toISODateString('2025-12-21');
     eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
     eoValues.beregnesUdFra = 'Beregningsperiode';
-    eoValues.tafBeregningsperiodeFra = '2023-01-01';
-    eoValues.tafBeregningsperiodeTil = '2023-12-31';
+    eoValues.tafBeregningsperiodeFra = toISODateString('2023-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2023-12-31');
     eoValues.tafPerioder = [
-      { id: 'taf-1', fra: '2024-01-01', til: '2024-03-31', loseFeriedage: 0 },
+      { id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-03-31'), loseFeriedage: 0 },
     ];
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
@@ -519,11 +520,11 @@ describe('computeEoSnapshot', () => {
     eoValues.tidligereSsMax = 'Nej';
     eoValues.varigeMenAfgorelse = 'Ja';
     eoValues.verserendeKlageMen = 'Nej';
-    eoValues.menAfgoerelseDato = '2024-04-22';
+    eoValues.menAfgoerelseDato = toISODateString('2024-04-22');
     eoValues.svieSmerteSatserAar = 2025;
     eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
     eoValues.svieSmertePerioder = [
-      { id: 'ss-1', fra: '2023-05-24', til: '2025-04-21', tilstand: 'sygemeldt' },
+      { id: 'ss-1', fra: toISODateString('2023-05-24'), til: toISODateString('2025-04-21'), tilstand: 'sygemeldt' },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -542,8 +543,8 @@ describe('computeEoSnapshot', () => {
 
   it('validerings-fejl-sti: urelateret TAF-fejl undertrykker ikke svie/smerte i debug-sammentælling', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-26';
-    eoValues.vedroererPeriodeTil = '2025-11-02';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-01-26');
+    eoValues.vedroererPeriodeTil = toISODateString('2025-11-02');
     eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
     eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
     eoValues.tidligereSsMax = 'Nej';
@@ -551,13 +552,13 @@ describe('computeEoSnapshot', () => {
     eoValues.svieSmerteSatserAar = 2025;
     eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
     eoValues.svieSmertePerioder = [
-      { id: 'ss-1', fra: '2024-01-26', til: '2024-10-20', tilstand: 'sygemeldt' },
-      { id: 'ss-2', fra: '2025-08-12', til: '2025-09-22', tilstand: 'sygemeldt' },
-      { id: 'ss-3', fra: '2025-09-23', til: '2025-11-02', tilstand: 'delvist-sygemeldt' },
+      { id: 'ss-1', fra: toISODateString('2024-01-26'), til: toISODateString('2024-10-20'), tilstand: 'sygemeldt' },
+      { id: 'ss-2', fra: toISODateString('2025-08-12'), til: toISODateString('2025-09-22'), tilstand: 'sygemeldt' },
+      { id: 'ss-3', fra: toISODateString('2025-09-23'), til: toISODateString('2025-11-02'), tilstand: 'delvist-sygemeldt' },
     ];
     eoValues.tafPerioder = [
-      { id: 'taf-1', fra: '2024-02-01', til: '2024-06-30', loseFeriedage: 0 },
-      { id: 'taf-2', fra: '2024-06-15', til: '2024-08-01', loseFeriedage: 0 },
+      { id: 'taf-1', fra: toISODateString('2024-02-01'), til: toISODateString('2024-06-30'), loseFeriedage: 0 },
+      { id: 'taf-2', fra: toISODateString('2024-06-15'), til: toISODateString('2024-08-01'), loseFeriedage: 0 },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -577,12 +578,12 @@ describe('computeEoSnapshot', () => {
 
   it('SFGG-valideringsfejl registreres uden at blokere autoritativ snapshot-data', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-01';
-    eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.tafBeregningsperiodeFra = '2023-01-01';
-    eoValues.tafBeregningsperiodeTil = '2023-12-31';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
+    eoValues.tafBeregningsperiodeFra = toISODateString('2023-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2023-12-31');
     eoValues.tafPerioder = [
-      { id: 'taf-1', fra: '2024-01-01', til: '2024-06-30', loseFeriedage: 0 },
+      { id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-06-30'), loseFeriedage: 0 },
     ];
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
@@ -607,20 +608,20 @@ describe('computeEoSnapshot', () => {
       blocksOutputs: [],
     }));
     expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([
-      { fra: '2024-01-01', til: '2024-06-30' },
+      { fra: toISODateString('2024-01-01'), til: toISODateString('2024-06-30') },
     ]);
   });
 
   it('bygger et ok-snapshot for en simpel sag uden TAF med verificerede totals og EO-dokument', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-01';
-    eoValues.vedroererPeriodeTil = '2024-01-31';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-01-31');
     eoValues.beregnesSvieSmerteGodtgoerelse = 'Nej';
     eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
     eoValues.oevrigeKravPerioder = [
       {
         id: 'krav-1',
-        dato: '2024-01-15',
+        dato: toISODateString('2024-01-15'),
         udgiftTil: 'Transport',
         beloeb: { kind: 'number', value: 1200 },
       },

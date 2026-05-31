@@ -5,6 +5,7 @@ import {
   resolveAutoStoreBededagPct,
 } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { toISODateString } from '../../../types/branded';
 
 // ─── resolveAutoStoreBededagPct ───────────────────────────────────────────────
 
@@ -13,20 +14,20 @@ describe('resolveAutoStoreBededagPct', () => {
   const shUdbetaling = { loenPaaHelligdage: 'SH-udbetaling' as const };
 
   it('returnerer 0,45 ved Almindelig løn og dato = 2024-01-01', () => {
-    expect(resolveAutoStoreBededagPct(almindelig, '2024-01-01')).toBe(0.45);
+    expect(resolveAutoStoreBededagPct(almindelig, toISODateString('2024-01-01'))).toBe(0.45);
   });
 
   it('returnerer 0,45 ved Almindelig løn og dato efter 2024-01-01', () => {
-    expect(resolveAutoStoreBededagPct(almindelig, '2025-06-15')).toBe(0.45);
+    expect(resolveAutoStoreBededagPct(almindelig, toISODateString('2025-06-15'))).toBe(0.45);
   });
 
   it('returnerer 0 ved Almindelig løn og dato = 2023-12-31 (dagen før grænsen)', () => {
-    expect(resolveAutoStoreBededagPct(almindelig, '2023-12-31')).toBe(0);
+    expect(resolveAutoStoreBededagPct(almindelig, toISODateString('2023-12-31'))).toBe(0);
   });
 
   it('returnerer 0 ved SH-udbetaling og dato >= 2024-01-01', () => {
-    expect(resolveAutoStoreBededagPct(shUdbetaling, '2024-01-01')).toBe(0);
-    expect(resolveAutoStoreBededagPct(shUdbetaling, '2025-01-01')).toBe(0);
+    expect(resolveAutoStoreBededagPct(shUdbetaling, toISODateString('2024-01-01'))).toBe(0);
+    expect(resolveAutoStoreBededagPct(shUdbetaling, toISODateString('2025-01-01'))).toBe(0);
   });
 
   it('returnerer 0 når reguleringsdato er undefined', () => {
@@ -45,17 +46,17 @@ describe('applyAutoSatsFields — Store Bededag', () => {
   });
 
   it('sætter 0,45 % ved Almindelig løn og reguleringsdato = 2024-01-01', () => {
-    expect(applyAutoSatsFields(base(), '2024-01-01').storeBededagPct).toBeCloseTo(0.45, 10);
+    expect(applyAutoSatsFields(base(), toISODateString('2024-01-01')).storeBededagPct).toBeCloseTo(0.45, 10);
   });
 
   it('sætter 0 % ved Almindelig løn og reguleringsdato = 2023-12-31 (dagen før grænsen)', () => {
-    expect(applyAutoSatsFields(base(), '2023-12-31').storeBededagPct).toBe(0);
+    expect(applyAutoSatsFields(base(), toISODateString('2023-12-31')).storeBededagPct).toBe(0);
   });
 
   it('sætter 0 % ved SH-udbetaling selvom reguleringsdato er >= 2024-01-01', () => {
     const result = applyAutoSatsFields(
       { ...base(), loenPaaHelligdage: 'SH-udbetaling' as const },
-      '2024-01-01'
+      toISODateString('2024-01-01')
     );
     expect(result.storeBededagPct).toBe(0);
   });
@@ -66,13 +67,13 @@ describe('applyAutoSatsFields — Store Bededag', () => {
 
   it('overrider stale storeBededagPct fra tidligere sync når loenPaaHelligdage skifter til SH-udbetaling', () => {
     const staleSats = { ...base(), loenPaaHelligdage: 'SH-udbetaling' as const, storeBededagPct: 0.45 };
-    expect(applyAutoSatsFields(staleSats, '2024-06-01').storeBededagPct).toBe(0);
+    expect(applyAutoSatsFields(staleSats, toISODateString('2024-06-01')).storeBededagPct).toBe(0);
   });
 
   it('fastsætter øvrige overenskomstsatser korrekt sammen med bededagstillæg', () => {
     const result = applyAutoSatsFields(
       { ...base(), fritvalgPct: undefined, shSoPct: undefined, storeBededagPct: undefined, pensionPct: undefined },
-      '2024-01-01'
+      toISODateString('2024-01-01')
     );
     expect(result.fritvalgPct).toBe(0);
     expect(result.shSoPct).toBeCloseTo(7, 10);
@@ -90,11 +91,11 @@ describe('applyAutoSatsFields — Store Bededag', () => {
       fritvalgPct: 99,
       shSoPct: 99,
       pensionPct: 99,
-    }, '2023-03-01');
+    }, toISODateString('2023-03-01'));
 
     expect(beforeDateChange.storeBededagPct).toBe(0);
 
-    const result = applyAutoSatsFields(beforeDateChange, '2024-01-01');
+    const result = applyAutoSatsFields(beforeDateChange, toISODateString('2024-01-01'));
 
     expect(result.feriePct).toBe(12.5);
     expect(result.fritvalgPct).toBe(0);        // låst af bygge-anlaeg
@@ -110,13 +111,13 @@ describe('applyAutoSatsFields — Store Bededag', () => {
       harOverenskomst: true,
       overenskomstId: 'bygge-anlaeg',
       loenPaaHelligdage: 'Almindelig løn' as const,
-    }, '2024-01-01');
+    }, toISODateString('2024-01-01'));
 
     const result = applyAutoSatsFields({
       ...autoSynced,
       harOverenskomst: false,
       overenskomstId: undefined,
-    }, '2024-01-01');
+    }, toISODateString('2024-01-01'));
 
     expect(result.storeBededagPct).toBeCloseTo(0.45, 10);
   });
@@ -134,7 +135,7 @@ describe('applyAutoSatsFields — overenskomstsatser', () => {
       fritvalgPct: 3.5,
       shSoPct: 4.25,
       pensionPct: 9,
-    }, '2024-01-01');
+    }, toISODateString('2024-01-01'));
 
     expect(result.fritvalgPct).toBe(3.5);
     expect(result.shSoPct).toBe(4.25);
@@ -152,7 +153,7 @@ describe('applyAutoSatsFields — overenskomstsatser', () => {
       pensionPct: 9,
     };
 
-    const result = applyAutoSatsFields(beforeDateChange, '2025-01-01');
+    const result = applyAutoSatsFields(beforeDateChange, toISODateString('2025-01-01'));
 
     expect(result.fritvalgPct).toBe(3.5);
     expect(result.shSoPct).toBe(4.25);
@@ -168,7 +169,7 @@ describe('applyAutoSatsFields — overenskomstsatser', () => {
       overenskomstId: 'bygge-anlaeg',
       loenPaaHelligdage: 'Almindelig løn' as const,
       fritvalgPct: 3.5,
-    }, '2024-01-01');
+    }, toISODateString('2024-01-01'));
 
     expect(result.fritvalgPct).toBe(0);
   });
@@ -185,9 +186,9 @@ describe('isOverenskomstSatsFieldLocked', () => {
       loenPaaHelligdage: 'Almindelig løn' as const,
     };
 
-    expect(isOverenskomstSatsFieldLocked(af, '2024-01-01', 'fritvalgPct')).toBe(true);
-    expect(isOverenskomstSatsFieldLocked(af, '2024-01-01', 'shSoPct')).toBe(true);
-    expect(isOverenskomstSatsFieldLocked(af, '2024-01-01', 'pensionPct')).toBe(true);
+    expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'fritvalgPct')).toBe(true);
+    expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'shSoPct')).toBe(true);
+    expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'pensionPct')).toBe(true);
   });
 
   it('låser ikke KL-overenskomstens fritvalg, SH/SO og pension', () => {
@@ -198,9 +199,9 @@ describe('isOverenskomstSatsFieldLocked', () => {
       loenPaaHelligdage: 'Almindelig løn' as const,
     };
 
-    expect(isOverenskomstSatsFieldLocked(af, '2024-01-01', 'fritvalgPct')).toBe(false);
-    expect(isOverenskomstSatsFieldLocked(af, '2024-01-01', 'shSoPct')).toBe(false);
-    expect(isOverenskomstSatsFieldLocked(af, '2024-01-01', 'pensionPct')).toBe(false);
+    expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'fritvalgPct')).toBe(false);
+    expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'shSoPct')).toBe(false);
+    expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'pensionPct')).toBe(false);
   });
 
   it('låser lærer-overenskomstens fritvalg og pension, men ikke SH/SO', () => {
@@ -211,9 +212,9 @@ describe('isOverenskomstSatsFieldLocked', () => {
       loenPaaHelligdage: 'Almindelig løn' as const,
     };
 
-    expect(isOverenskomstSatsFieldLocked(af, '2024-01-01', 'fritvalgPct')).toBe(true);
-    expect(isOverenskomstSatsFieldLocked(af, '2024-01-01', 'pensionPct')).toBe(true);
-    expect(isOverenskomstSatsFieldLocked(af, '2024-01-01', 'shSoPct')).toBe(false);
+    expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'fritvalgPct')).toBe(true);
+    expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'pensionPct')).toBe(true);
+    expect(isOverenskomstSatsFieldLocked(af, toISODateString('2024-01-01'), 'shSoPct')).toBe(false);
   });
 });
 
@@ -232,8 +233,8 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
         storeBededagPct: undefined, // ikke auto-synced fra upstream
       },
       skadedato: undefined,
-      fra: '2024-01-01',
-      til: '2024-01-01',
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-01-01'),
     });
 
     expect(segments).toHaveLength(1);
@@ -251,8 +252,8 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
         storeBededagPct: 0.45, // stale/forkert værdi
       },
       skadedato: undefined,
-      fra: '2023-06-01',
-      til: '2023-12-31',
+      fra: toISODateString('2023-06-01'),
+      til: toISODateString('2023-12-31'),
     });
 
     expect(segments).toHaveLength(1);
@@ -270,18 +271,18 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
         loenPaaHelligdage: 'Almindelig løn' as const,
         storeBededagPct: undefined,
         loenudviklingManuelTableData: [
-          { dato: '2024-01-01', feriepenge: '12,5', shSoSats: '6,9', fritvalg: '0', agPension: '10' },
+          { dato: toISODateString('2024-01-01'), feriepenge: 12.5, shSoSats: 6.9, fritvalg: 0, agPension: 10 },
         ],
       },
       skadedato: undefined,
-      fra: '2023-10-01',
-      til: '2024-03-31',
+      fra: toISODateString('2023-10-01'),
+      til: toISODateString('2024-03-31'),
     });
 
     // Segment for 2023-10-01 til 2023-12-31 → bededagssats = 0 (dato < 2024-01-01)
-    const segmentFoer2024 = segments.find((s) => s.fra < '2024-01-01');
+    const segmentFoer2024 = segments.find((s) => s.fra < toISODateString('2024-01-01'));
     // Segment fra 2024-01-01 → bededagssats = 0,45
-    const segmentEfter2024 = segments.find((s) => s.fra >= '2024-01-01');
+    const segmentEfter2024 = segments.find((s) => s.fra >= toISODateString('2024-01-01'));
 
     expect(segmentFoer2024).toBeDefined();
     expect(segmentFoer2024?.satser.storeBededagPct).toBe(0);
@@ -300,20 +301,20 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
         feriePct: 15,
         pensionPct: 10,
         loenudviklingManuelTableData: [
-          { dato: '2025-02-28', feriepenge: '15,00', shSoSats: '', fritvalg: '', agPension: '10,00' },
-          { dato: '2025-03-01', feriepenge: '15,00', shSoSats: '', fritvalg: '', agPension: '10,00' },
-          { dato: '2025-05-01', feriepenge: '15,00', shSoSats: '', fritvalg: '', agPension: '12,00' },
-          { dato: '2026-03-01', feriepenge: '15,00', shSoSats: '', fritvalg: '', agPension: '12,00' },
+          { dato: toISODateString('2025-02-28'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 10.00 },
+          { dato: toISODateString('2025-03-01'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 10.00 },
+          { dato: toISODateString('2025-05-01'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 12.00 },
+          { dato: toISODateString('2026-03-01'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 12.00 },
         ],
       },
       skadedato: undefined,
-      fra: '2025-06-01',
-      til: '2025-06-30',
+      fra: toISODateString('2025-06-01'),
+      til: toISODateString('2025-06-30'),
     });
 
     expect(segments).toHaveLength(1);
-    expect(segments[0]?.fra).toBe('2025-06-01');
-    expect(segments[0]?.til).toBe('2025-06-30');
+    expect(segments[0]?.fra).toBe(toISODateString('2025-06-01'));
+    expect(segments[0]?.til).toBe(toISODateString('2025-06-30'));
     expect(segments[0]?.satser.feriePct).toBe(15);
     expect(segments[0]?.satser.pensionPct).toBe(12);
   });
@@ -327,8 +328,8 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
         loenPaaHelligdage: 'SH-udbetaling' as const,
       },
       skadedato: undefined,
-      fra: '2024-01-01',
-      til: '2024-03-31',
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-03-31'),
     });
 
     for (const segment of segments) {
@@ -345,8 +346,8 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
         loenPaaHelligdage: 'Almindelig løn' as const,
       },
       skadedato: undefined,
-      fra: '2024-01-01',
-      til: '2024-03-31',
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-03-31'),
     });
 
     expect(segments.length).toBeGreaterThan(0);
@@ -364,14 +365,14 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
         loenPaaHelligdage: 'Almindelig løn' as const,
       },
       skadedato: undefined,
-      fra: '2024-01-01',
-      til: '2024-03-31',
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-03-31'),
     });
 
     expect(segments).toHaveLength(2);
-    expect(segments[0]?.fra).toBe('2024-01-01');
+    expect(segments[0]?.fra).toBe(toISODateString('2024-01-01'));
     expect(segments[0]?.satser.shSoPct).toBeCloseTo(7, 10);
-    expect(segments[1]?.fra).toBe('2024-03-01');
+    expect(segments[1]?.fra).toBe(toISODateString('2024-03-01'));
     expect(segments[1]?.satser.shSoPct).toBeCloseTo(8.8, 10);
   });
 
@@ -384,14 +385,14 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
         loenPaaHelligdage: 'SH-udbetaling' as const,
       },
       skadedato: undefined,
-      fra: '2024-01-01',
-      til: '2024-03-31',
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-03-31'),
     });
 
     expect(segments).toHaveLength(2);
-    expect(segments[0]?.fra).toBe('2024-01-01');
+    expect(segments[0]?.fra).toBe(toISODateString('2024-01-01'));
     expect(segments[0]?.satser.shSoPct).toBeCloseTo(12.9, 10);
-    expect(segments[1]?.fra).toBe('2024-03-01');
+    expect(segments[1]?.fra).toBe(toISODateString('2024-03-01'));
     expect(segments[1]?.satser.shSoPct).toBeCloseTo(14.7, 10);
   });
 });

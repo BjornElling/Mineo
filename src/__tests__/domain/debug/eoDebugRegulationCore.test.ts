@@ -9,6 +9,7 @@ import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { ISODateString } from '../../../types/branded';
 import { aarsloenAslMax, getYearBoundsForYearlyRate } from '../../../data/lovbestemteRates';
+import { toISODateString } from '../../../types/branded';
 
 // Test helper: Cast string literal til ISODateString (kun til tests)
 const iso = (date: string): ISODateString => date as ISODateString;
@@ -28,12 +29,12 @@ const makeInput = (): {
   eoValues: ErstatningsopgoerelseValues;
   stamdataValues: StamdataValues;
 } => ({
-  debugDays: [makeDebugDay('2024-01-01')],
+  debugDays: [makeDebugDay(toISODateString('2024-01-01'))],
   eoValues: ({
     ...createErstatningsopgoerelseInitialValues(),
-    vedroererPeriodeFra: '2024-01-01',
-    vedroererPeriodeTil: '2024-12-31',
-    tafBeregningsperiodeTil: '2024-01-01',
+    vedroererPeriodeFra: toISODateString('2024-01-01'),
+    vedroererPeriodeTil: toISODateString('2024-12-31'),
+    tafBeregningsperiodeTil: toISODateString('2024-01-01'),
     svieSmerteSatserAar: 2024,
     svieSmerteDelvisSygemeldingSats: 'halv',
     loenindkomstAnsaettelsesforhold: [
@@ -81,34 +82,34 @@ describe('buildRegulationTimeline - Index model', () => {
 
   it('indsætter store bededag-dato ved almindelig loen paa helligdage', () => {
     const input = makeInput();
-    input.eoValues.vedroererPeriodeFra = '2023-12-01';
-    input.eoValues.vedroererPeriodeTil = '2024-06-01';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2023-12-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2024-06-01');
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.ALMINDELIG;
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
-    const hasSbd = entries.some((entry) => entry.effectiveFrom === '2024-01-01');
+    const hasSbd = entries.some((entry) => entry.effectiveFrom === toISODateString('2024-01-01'));
     expect(hasSbd).toBe(true);
   });
 
   it('indsætter 01-01-2024 som entry for bygge-anlaeg fordi overenskomsten har en regulering på den dato', () => {
     const input = makeInput();
-    input.eoValues.vedroererPeriodeFra = '2023-12-01';
-    input.eoValues.vedroererPeriodeTil = '2024-06-01';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2023-12-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2024-06-01');
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.SH_UDBETALING;
     input.stamdataValues.skadedato = iso('2023-12-01');
     input.eoValues.tafBeregningsperiodeTil = iso('2023-12-01');
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
-    const hasSbd = entries.some((entry) => entry.effectiveFrom === '2024-01-01');
+    const hasSbd = entries.some((entry) => entry.effectiveFrom === toISODateString('2024-01-01'));
     expect(hasSbd).toBe(true);
   });
 
   it('udelader 01-01-2024 for overenskomst uden regulering på datoen når SH-dage udbetales særskilt', () => {
     const input = makeInput();
-    input.eoValues.vedroererPeriodeFra = '2023-12-01';
-    input.eoValues.vedroererPeriodeTil = '2024-06-01';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2023-12-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2024-06-01');
     input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = 'industriens-overenskomst';
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenPaaHelligdage = LOEN_PAA_HELLIGDAGE.SH_UDBETALING;
     input.stamdataValues.skadedato = iso('2023-12-01');
@@ -116,7 +117,7 @@ describe('buildRegulationTimeline - Index model', () => {
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
-    const hasFirstJanuaryEntry = entries.some((entry) => entry.effectiveFrom === '2024-01-01');
+    const hasFirstJanuaryEntry = entries.some((entry) => entry.effectiveFrom === toISODateString('2024-01-01'));
 
     expect(hasFirstJanuaryEntry).toBe(false);
   });
@@ -162,7 +163,7 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
 
   it('bruger manuel reguleringsdato som reference uden parenteslabel når datoen ikke matcher standardsporene', () => {
     const input = makeInput();
-    input.eoValues.loenindkomstAnsaettelsesforhold[0].saerligFraDatoRegulering = '2024-02-01';
+    input.eoValues.loenindkomstAnsaettelsesforhold[0].saerligFraDatoRegulering = toISODateString('2024-02-01');
 
     const result = buildRegulationTimeline(input);
     const af = result.ansaettelser[0];
@@ -183,8 +184,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
 
   it('inkluderer altid en entry på reference-/reguleringsdatoen for privat overenskomst', () => {
     const input = makeInput();
-    input.eoValues.vedroererPeriodeFra = '2024-01-01';
-    input.eoValues.vedroererPeriodeTil = '2024-12-31';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
     input.stamdataValues.skadedato = iso('2023-11-01');
     input.eoValues.tafBeregningsperiodeTil = iso('2023-11-01');
 
@@ -222,8 +223,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
   it('bygger regulering fra eoAngivetLoenLoenudvikling ved angivet månedsløn og KRL satstabel', () => {
     const input = makeInput();
     input.eoValues.beregnesUdFra = 'Angivet månedsløn';
-    input.eoValues.vedroererPeriodeFra = '2019-04-01';
-    input.eoValues.vedroererPeriodeTil = '2026-02-26';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2019-04-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2026-02-26');
     input.eoValues.angivetMaanedsloenOpreguleresFraDato = iso('2020-01-01') as any;
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'KRL satstabel';
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel = 'KTO (kommuner)';
@@ -243,8 +244,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
   it('viser ikke særskilt Store Bededag-regulering i debug-timeline for KRL satstabel', () => {
     const input = makeInput();
     input.eoValues.beregnesUdFra = 'Angivet månedsløn';
-    input.eoValues.vedroererPeriodeFra = '2023-12-01';
-    input.eoValues.vedroererPeriodeTil = '2024-12-31';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2023-12-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
     input.eoValues.angivetMaanedsloenOpreguleresFraDato = iso('2023-12-31') as any;
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'KRL satstabel';
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingKRLSatstabel = 'KTO (kommuner)';
@@ -261,8 +262,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
   it('bygger regulering fra eoAngivetLoenLoenudvikling ved angivet månedsløn og statistikgrundlag', () => {
     const input = makeInput();
     input.eoValues.beregnesUdFra = 'Angivet månedsløn';
-    input.eoValues.vedroererPeriodeFra = '2019-04-01';
-    input.eoValues.vedroererPeriodeTil = '2026-02-26';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2019-04-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2026-02-26');
     input.eoValues.angivetMaanedsloenOpreguleresFraDato = iso('2020-01-01') as any;
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Statistik';
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
@@ -282,8 +283,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
   it('viser ikke særskilt Store Bededag-regulering i debug-timeline for statistikgrundlag', () => {
     const input = makeInput();
     input.eoValues.beregnesUdFra = 'Angivet månedsløn';
-    input.eoValues.vedroererPeriodeFra = '2023-12-01';
-    input.eoValues.vedroererPeriodeTil = '2024-12-31';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2023-12-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
     input.eoValues.angivetMaanedsloenOpreguleresFraDato = iso('2023-12-31') as any;
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Statistik';
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel = 'ILON12 (Danmarks Statistik)';
@@ -304,8 +305,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
 
     const input = makeInput();
     input.eoValues.beregnesUdFra = 'Angivet månedsløn';
-    input.eoValues.vedroererPeriodeFra = '2000-01-01';
-    input.eoValues.vedroererPeriodeTil = '2006-12-31';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2000-01-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2006-12-31');
     input.eoValues.angivetMaanedsloenOpreguleresFraDato = iso('2000-06-01') as any;
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Statistik';
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
@@ -329,10 +330,10 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
         id: 'row-1',
         dato: '',
         grundloen: { value: 100 } as any,
-        feriepenge: '0',
-        shSoSats: '0',
-        fritvalg: '0',
-        agPension: '0',
+        feriepenge: 0,
+        shSoSats: 0,
+        fritvalg: 0,
+        agPension: 0,
       } as any,
     ];
 
@@ -346,8 +347,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
   it('bygger regulering fra eoAngivetLoenLoenudvikling ved angivet dagsløn og statistikgrundlag', () => {
     const input = makeInput();
     input.eoValues.beregnesUdFra = 'Angivet dagsløn';
-    input.eoValues.vedroererPeriodeFra = '2019-04-01';
-    input.eoValues.vedroererPeriodeTil = '2026-02-26';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2019-04-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2026-02-26');
     input.eoValues.angivetDagsloenOpreguleresFraDato = iso('2020-01-01') as any;
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Statistik';
     input.eoValues.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
@@ -386,10 +387,10 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
         id: 'row-1',
         dato: '',
         grundloen: { value: 150 },
-        feriepenge: '12,5',
-        shSoSats: '0',
-        fritvalg: '0',
-        agPension: '10,15',
+        feriepenge: 12.5,
+        shSoSats: 0,
+        fritvalg: 0,
+        agPension: 10.15,
       } as any,
     ];
 
@@ -401,8 +402,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
 
   it('indsætter 01-01-2024 som separat manuel reguleringsdato for Store Bededag selv når næste række er 01-03-2024', () => {
     const input = makeInput();
-    input.eoValues.vedroererPeriodeFra = '2023-06-01';
-    input.eoValues.vedroererPeriodeTil = '2026-02-04';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2023-06-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2026-02-04');
     input.stamdataValues.skadedato = iso('2023-05-24');
     input.eoValues.tafBeregningsperiodeTil = iso('2023-05-24');
     input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
@@ -415,41 +416,41 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
         id: 'row-1',
         dato: '',
         grundloen: { value: 25174 },
-        feriepenge: '15,00',
-        shSoSats: '',
-        fritvalg: '7,00',
-        agPension: '9,00',
+        feriepenge: 15.00,
+        shSoSats: undefined,
+        fritvalg: 7.00,
+        agPension: 9.00,
       } as any,
       {
         id: 'row-2',
-        dato: '01-03-2024',
+        dato: toISODateString('2024-03-01'),
         grundloen: { value: 25174 },
-        feriepenge: '15,00',
-        shSoSats: '',
-        fritvalg: '9,00',
-        agPension: '11,00',
+        feriepenge: 15.00,
+        shSoSats: undefined,
+        fritvalg: 9.00,
+        agPension: 11.00,
       } as any,
       {
         id: 'row-3',
-        dato: '01-04-2024',
+        dato: toISODateString('2024-04-01'),
         grundloen: { value: 25895 },
-        feriepenge: '15,00',
-        shSoSats: '',
-        fritvalg: '9,00',
-        agPension: '11,00',
+        feriepenge: 15.00,
+        shSoSats: undefined,
+        fritvalg: 9.00,
+        agPension: 11.00,
       } as any,
     ];
 
     const result = buildRegulationTimeline(input);
     const entries = result.ansaettelser[0]?.entries ?? [];
 
-    expect(entries.some((entry) => entry.effectiveFrom === '2024-01-01')).toBe(true);
+    expect(entries.some((entry) => entry.effectiveFrom === toISODateString('2024-01-01'))).toBe(true);
   });
 
   it('bevarer privat overenskomst som placeholder når reference-dato ligger før første reguleringsværdi', () => {
     const input = makeInput();
-    input.eoValues.vedroererPeriodeFra = '2020-04-01';
-    input.eoValues.vedroererPeriodeTil = '2026-02-26';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2020-04-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2026-02-26');
     input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = 'laasesmedeoverenskomsten';
     input.stamdataValues.skadedato = iso('2020-01-01');
     input.eoValues.tafBeregningsperiodeTil = iso('2020-01-01');
@@ -466,8 +467,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'Statistik';
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingStatistikModel = 'ILON12 (Danmarks Statistik)';
-    input.eoValues.vedroererPeriodeFra = '2000-01-01';
-    input.eoValues.vedroererPeriodeTil = '2006-12-31';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2000-01-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2006-12-31');
     input.stamdataValues.skadedato = iso('2000-01-01');
     input.eoValues.tafBeregningsperiodeTil = iso('2000-01-01');
 
@@ -483,8 +484,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     input.eoValues.loenindkomstAnsaettelsesforhold[0].overenskomstId = undefined as any;
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingBeregningsgrundlag = 'KRL satstabel';
     input.eoValues.loenindkomstAnsaettelsesforhold[0].loenudviklingKRLSatstabel = 'KTO (kommuner)';
-    input.eoValues.vedroererPeriodeFra = '2000-01-01';
-    input.eoValues.vedroererPeriodeTil = '2002-12-31';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2000-01-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2002-12-31');
     input.stamdataValues.skadedato = iso('2000-01-01');
     input.eoValues.tafBeregningsperiodeTil = iso('2000-01-01');
 
@@ -502,8 +503,8 @@ describe('buildRegulationTimeline — periode-overgange', () => {
   it('to reguleringsperioder i EO-perioden → mindst 2 entries', () => {
     // EO-periode 2023-01-01 → 2024-12-31 dækker typisk 2+ reguleringsdatoer for bygge-anlaeg
     const input = makeInput();
-    input.eoValues.vedroererPeriodeFra = '2022-01-01';
-    input.eoValues.vedroererPeriodeTil = '2024-12-31';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2022-01-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
     input.stamdataValues.skadedato = iso('2022-01-01');
     input.eoValues.tafBeregningsperiodeTil = iso('2022-01-01');
 
@@ -514,8 +515,8 @@ describe('buildRegulationTimeline — periode-overgange', () => {
 
   it('seneste entry har højere index end første (løn stiger over tid)', () => {
     const input = makeInput();
-    input.eoValues.vedroererPeriodeFra = '2022-01-01';
-    input.eoValues.vedroererPeriodeTil = '2024-12-31';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2022-01-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
     input.stamdataValues.skadedato = iso('2022-01-01');
     input.eoValues.tafBeregningsperiodeTil = iso('2022-01-01');
 
@@ -531,8 +532,8 @@ describe('buildRegulationTimeline — periode-overgange', () => {
 
   it('arbejdsdage og maaneder er sat for alle entries', () => {
     const input = makeInput();
-    input.eoValues.vedroererPeriodeFra = '2022-01-01';
-    input.eoValues.vedroererPeriodeTil = '2024-12-31';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2022-01-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
     input.stamdataValues.skadedato = iso('2022-01-01');
     input.eoValues.tafBeregningsperiodeTil = iso('2022-01-01');
 
@@ -550,12 +551,12 @@ describe('buildRegulationTimeline — periode-overgange', () => {
 
 describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
   const makeKLInput = (): ReturnType<typeof makeInput> => ({
-    debugDays: [makeDebugDay('2024-01-01')],
+    debugDays: [makeDebugDay(toISODateString('2024-01-01'))],
     eoValues: ({
       ...createErstatningsopgoerelseInitialValues(),
-      vedroererPeriodeFra: '2024-01-01',
-      vedroererPeriodeTil: '2024-12-31',
-      tafBeregningsperiodeTil: '2024-01-01',
+      vedroererPeriodeFra: toISODateString('2024-01-01'),
+      vedroererPeriodeTil: toISODateString('2024-12-31'),
+      tafBeregningsperiodeTil: toISODateString('2024-01-01'),
       svieSmerteSatserAar: 2024,
       svieSmerteDelvisSygemeldingSats: 'halv',
       loenindkomstAnsaettelsesforhold: [
@@ -634,8 +635,8 @@ describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
 
   it('inkluderer altid en entry på reference-/reguleringsdatoen for offentlig løn', () => {
     const input = makeKLInput();
-    input.eoValues.vedroererPeriodeFra = '2024-01-01';
-    input.eoValues.vedroererPeriodeTil = '2024-12-31';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
     input.stamdataValues.skadedato = iso('2023-11-01');
     input.eoValues.tafBeregningsperiodeTil = iso('2023-11-01');
 
@@ -648,8 +649,8 @@ describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
 
   it('indsætter Store Bededag som separat reguleringsdato 01-01-2024 for offentlig løn', () => {
     const input = makeKLInput();
-    input.eoValues.vedroererPeriodeFra = '2023-06-01';
-    input.eoValues.vedroererPeriodeTil = '2025-12-31';
+    input.eoValues.vedroererPeriodeFra = toISODateString('2023-06-01');
+    input.eoValues.vedroererPeriodeTil = toISODateString('2025-12-31');
     input.stamdataValues.skadedato = iso('2023-05-24');
     input.eoValues.tafBeregningsperiodeTil = iso('2023-05-24');
 
@@ -695,7 +696,7 @@ describe('buildFerieDageSet', () => {
     // 2024-03-04 er mandag
     const shDage = new Set<ISODateString>();
     const result = buildFerieDageSet(
-      { ferieperioder: [{ fra: '2024-03-04', til: '2024-03-04' }] },
+      { ferieperioder: [{ fra: toISODateString('2024-03-04'), til: toISODateString('2024-03-04') }] },
       shDage,
       iso('2024-03-01'),
       iso('2024-03-31')
@@ -707,7 +708,7 @@ describe('buildFerieDageSet', () => {
     // 2024-03-02 er lørdag
     const shDage = new Set<ISODateString>();
     const result = buildFerieDageSet(
-      { ferieperioder: [{ fra: '2024-03-02', til: '2024-03-02' }] },
+      { ferieperioder: [{ fra: toISODateString('2024-03-02'), til: toISODateString('2024-03-02') }] },
       shDage,
       iso('2024-03-01'),
       iso('2024-03-31')
@@ -720,7 +721,7 @@ describe('buildFerieDageSet', () => {
     const shDage = new Set<ISODateString>();
     const result = buildFerieDageSet(
       {
-        tafPerioder: [{ fra: '2024-03-04', til: '2024-03-08', loseFeriedage: 2 }],
+        tafPerioder: [{ fra: toISODateString('2024-03-04'), til: toISODateString('2024-03-08'), loseFeriedage: 2 }],
       },
       shDage,
       iso('2024-03-01'),

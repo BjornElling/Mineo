@@ -302,8 +302,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'Sygedagpenge',
         ydelse: asAmountValue(1000),
         tillaeg: undefined,
@@ -519,16 +519,16 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
-        fraDato: '01-12-2024',
-        tilDato: '31-12-2024',
+        fraDato: toISODateString('2024-12-01'),
+        tilDato: toISODateString('2024-12-31'),
         ydelsestype: 'dagpenge',
         ydelse: asAmountValue(1000),
         tillaeg: undefined,
       },
       {
         id: 'oy-2',
-        fraDato: '01-12-2024',
-        tilDato: '31-12-2024',
+        fraDato: toISODateString('2024-12-01'),
+        tilDato: toISODateString('2024-12-31'),
         ydelsestype: 'sygedagpenge',
         ydelse: asAmountValue(500),
         tillaeg: undefined,
@@ -569,16 +569,16 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
-        fraDato: '01-12-2024',
-        tilDato: '31-12-2024',
+        fraDato: toISODateString('2024-12-01'),
+        tilDato: toISODateString('2024-12-31'),
         ydelsestype: 'dagpenge',
         ydelse: asAmountValue(1000),
         tillaeg: undefined,
       },
       {
         id: 'oy-2',
-        fraDato: '01-12-2024',
-        tilDato: '31-12-2024',
+        fraDato: toISODateString('2024-12-01'),
+        tilDato: toISODateString('2024-12-31'),
         ydelsestype: 'sygedagpenge',
         ydelse: asAmountValue(500),
         tillaeg: undefined,
@@ -616,8 +616,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'kontanthjaelp',
         ydelse: asAmountValue(5000),
         tillaeg: undefined,
@@ -1672,16 +1672,16 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'kontanthjaelp',
         ydelse: asAmountValue(3000),
         tillaeg: undefined,
       },
       {
         id: 'oy-2',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'ressourceforloebsydelse',
         ydelse: asAmountValue(2000),
         tillaeg: undefined,
@@ -1701,8 +1701,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'kontanthjaelp',
         ydelse: asAmountValue(5000),
         tillaeg: undefined,
@@ -1740,8 +1740,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'kontanthjaelp',
         ydelse: asAmountValue(5000),
         tillaeg: undefined,
@@ -1783,8 +1783,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'kontanthjaelp',
         ydelse: asAmountValue(5000),
         tillaeg: undefined,

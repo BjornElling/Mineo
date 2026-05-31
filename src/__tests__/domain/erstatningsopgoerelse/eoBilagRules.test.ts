@@ -7,6 +7,7 @@ import {
   hasMidlertidigtEetYdelsestype,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import { toISODateString } from '../../../types/branded';
 
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues> = {}): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
@@ -78,9 +79,9 @@ describe('getEoBilagAvailability', () => {
       eoValues: makeValues({
         beregnesUdFra: 'Beregningsperiode',
         eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Perioden',
-        tafBeregningsperiodeFra: '2024-01-01',
-        tafBeregningsperiodeTil: '2024-01-31',
-        tafPerioder: [{ id: 'taf-1', fra: '2024-02-01', til: '2024-02-29', loseFeriedage: 0 }],
+        tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+        tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+        tafPerioder: [{ id: 'taf-1', fra: toISODateString('2024-02-01'), til: toISODateString('2024-02-29'), loseFeriedage: 0 }],
         loenindkomstAnsaettelsesforhold: [employment],
       }),
     });
@@ -101,7 +102,7 @@ describe('getEoBilagAvailability', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({
         offentligeYdelserRows: [
-          { id: 'row-1', fraDato: '2024-01-01', tilDato: '', ydelse: undefined, tillaeg: undefined, ydelsestype: '' },
+          { id: 'row-1', fraDato: toISODateString('2024-01-01'), tilDato: '', ydelse: undefined, tillaeg: undefined, ydelsestype: '' },
         ],
       }),
     });
@@ -113,7 +114,7 @@ describe('getEoBilagAvailability', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({
         offentligeYdelserRows: [
-          { id: 'row-1', fraDato: '2024-01-01', tilDato: '2024-01-31', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
+          { id: 'row-1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
         ],
       }),
     });
@@ -126,11 +127,11 @@ describe('getEoBilagAvailability', () => {
       eoValues: makeValues({
         beregnesUdFra: 'Beregningsperiode',
         eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Perioden',
-        tafBeregningsperiodeFra: '2024-01-01',
-        tafBeregningsperiodeTil: '2024-01-31',
-        tafPerioder: [{ id: 'taf-1', fra: '2024-02-01', til: '2024-02-29', loseFeriedage: 0 }],
+        tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+        tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+        tafPerioder: [{ id: 'taf-1', fra: toISODateString('2024-02-01'), til: toISODateString('2024-02-29'), loseFeriedage: 0 }],
         offentligeYdelserRows: [
-          { id: 'row-1', fraDato: '2024-01-01', tilDato: '2024-01-31', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
+          { id: 'row-1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
         ],
       }),
     });
@@ -159,8 +160,8 @@ describe('getEoBilagAvailability', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({
         beregnesUdFra: 'Beregningsperiode',
-        tafBeregningsperiodeFra: '2024-01-01',
-        tafBeregningsperiodeTil: '2024-01-31',
+        tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+        tafBeregningsperiodeTil: toISODateString('2024-01-31'),
         loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
       }),
     });
@@ -178,8 +179,8 @@ describe('getEoBilagAvailability', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({
         beregnesUdFra: 'Beregningsperiode',
-        tafBeregningsperiodeFra: '2024-01-01',
-        tafBeregningsperiodeTil: '2024-01-31',
+        tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+        tafBeregningsperiodeTil: toISODateString('2024-01-31'),
         loenindkomstAnsaettelsesforhold: [employment],
       }),
     });
@@ -192,15 +193,15 @@ describe('getEoBilagAvailability', () => {
       eoValues: makeValues({
         beregnesUdFra: 'Beregningsperiode',
         regulerOffentligeYdelser: 'Ja',
-        tafBeregningsperiodeFra: '2024-01-01',
-        tafBeregningsperiodeTil: '2024-01-31',
-        tafPerioder: [{ id: 'taf-1', fra: '2024-02-01', til: '2024-02-29', loseFeriedage: 0 }],
+        tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+        tafBeregningsperiodeTil: toISODateString('2024-01-31'),
+        tafPerioder: [{ id: 'taf-1', fra: toISODateString('2024-02-01'), til: toISODateString('2024-02-29'), loseFeriedage: 0 }],
         loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
         offentligeYdelserRows: [
           {
             id: 'row-1',
-            fraDato: '2024-01-01',
-            tilDato: '2024-01-31',
+            fraDato: toISODateString('2024-01-01'),
+            tilDato: toISODateString('2024-01-31'),
             ydelse: { kind: 'number', value: 1000 },
             tillaeg: undefined,
             ydelsestype: 'dagpenge',
@@ -240,7 +241,7 @@ describe('getEoBilagAvailability', () => {
         tafPerioder: [],
         loenindkomstAnsaettelsesforhold: [employment],
         offentligeYdelserRows: [
-          { id: 'row-2', fraDato: '2024-01-01', tilDato: '2024-01-31', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
+          { id: 'row-2', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
         ],
       }),
     });
@@ -349,7 +350,7 @@ describe('hasMidlertidigtEetYdelsestype', () => {
   it('returnerer false når ingen offentlig ydelse har ydelsestypen Midlertidigt EET', () => {
     const values = makeValues({
       offentligeYdelserRows: [
-        { id: 'row-1', fraDato: '2024-01-01', tilDato: '2024-01-31', ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'sygedagpenge' },
+        { id: 'row-1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'sygedagpenge' },
       ],
     });
 

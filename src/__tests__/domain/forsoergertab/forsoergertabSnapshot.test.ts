@@ -1,6 +1,7 @@
 import { computeForsoergertabSnapshot } from '../../../domain/forsoergertab/forsoergertabSnapshot';
 import * as forsoergertabCalculation from '../../../domain/forsoergertab/forsoergertabCalculation';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { toISODateString } from '../../../types/branded';
 import type {
   FaellesAarsloenValues,
   ForsoergertabValues,
@@ -10,9 +11,9 @@ import type {
 const asAmount = (value: number) => ({ kind: 'number' as const, value });
 
 const createValues = (overrides: Partial<ForsoergertabValues> = {}): ForsoergertabValues => ({
-  beregningsdato: '2026-03-19',
-  efterladteFodselsdato: '1973-01-01',
-  virkningsdato: '2025-01-01',
+  beregningsdato: toISODateString('2026-03-19'),
+  efterladteFodselsdato: toISODateString('1973-01-01'),
+  virkningsdato: toISODateString('2025-01-01'),
   koen: 'Kvinde',
   tilkendtForPeriodeAar: 10,
   ...overrides,
@@ -30,8 +31,8 @@ const createStamdata = (overrides: Partial<StamdataValues> = {}): StamdataValues
   sagsbehandler: '',
   skadelidte: 'Test',
   skadestype: 'Arbejdsulykke',
-  skadedato: '2020-05-01',
-  skadelidteFodselsdato: '1980-01-01',
+  skadedato: toISODateString('2020-05-01'),
+  skadelidteFodselsdato: toISODateString('1980-01-01'),
   ...overrides,
 });
 
@@ -60,8 +61,8 @@ describe('computeForsoergertabSnapshot', () => {
   it('bevarer EAL-visning men blokerer ASL og download ved beregningsdato før virkningsdato', () => {
     const snapshot = computeForsoergertabSnapshot({
       values: createValues({
-        beregningsdato: '2020-01-01',
-        virkningsdato: '2020-02-01',
+        beregningsdato: toISODateString('2020-01-01'),
+        virkningsdato: toISODateString('2020-02-01'),
       }),
       faellesAarsloen: createFaellesAarsloen(),
       stamdata: createStamdata(),
@@ -189,12 +190,12 @@ describe('computeForsoergertabSnapshot', () => {
   it('projicerer dato-bounds til page-laget fra snapshot', () => {
     const snapshot = computeForsoergertabSnapshot({
       values: createValues({
-        beregningsdato: '2026-03-19',
-        virkningsdato: '2025-01-01',
+        beregningsdato: toISODateString('2026-03-19'),
+        virkningsdato: toISODateString('2025-01-01'),
       }),
       faellesAarsloen: createFaellesAarsloen(),
       stamdata: createStamdata({
-        skadedato: '2020-05-01',
+        skadedato: toISODateString('2020-05-01'),
       }),
       fieldErrors: {
         forsoergertab: {},
@@ -203,9 +204,9 @@ describe('computeForsoergertabSnapshot', () => {
       },
     });
 
-    expect(snapshot.inputBounds.skadedatoMin).toBe('2020-05-01');
-    expect(snapshot.inputBounds.beregningsdatoMin).toBe('2025-01-01');
-    expect(snapshot.inputBounds.virkningsdatoMax).toBe('2026-03-19');
+    expect(snapshot.inputBounds.skadedatoMin).toBe(toISODateString('2020-05-01'));
+    expect(snapshot.inputBounds.beregningsdatoMin).toBe(toISODateString('2025-01-01'));
+    expect(snapshot.inputBounds.virkningsdatoMax).toBe(toISODateString('2026-03-19'));
   });
 
   it('failer lukket med snapshot-issue hvis forsørgertabsberegningen kaster runtimefejl', () => {

@@ -10,6 +10,7 @@ import {
   beregnMaanedPeriode,
 } from '../../utils/periodeBeregning';
 import type { ISODateString } from '../../types/branded';
+import { toISODateString } from '../../types/branded';
 
 const formatIso = (date: Date): string => {
   const year = date.getUTCFullYear();
@@ -31,7 +32,7 @@ const buildIsoSet = (start: Date, end: Date): Set<string> => {
 describe('periodeBeregning', () => {
   it('beregnDagPeriode counts inclusive days across DST', () => {
     const rows: StandardLoenTableRow[] = [
-      { id: 'row-1', col0_dag: '2024-01-26', col1_dag: '2024-10-20' },
+      { id: 'row-1', col0_dag: toISODateString('2024-01-26'), col1_dag: toISODateString('2024-10-20') },
     ];
     const result = beregnDagPeriode(rows);
     expect(result?.totalEnheder).toBe(269);
@@ -64,8 +65,8 @@ describe('periodeBeregning', () => {
 
   it('beregnDagPeriode tæller kun unikke kalenderdage ved overlappende perioder', () => {
     const rows: StandardLoenTableRow[] = [
-      { id: 'row-1', col0_dag: '2024-01-01', col1_dag: '2024-01-10' },
-      { id: 'row-2', col0_dag: '2024-01-05', col1_dag: '2024-01-15' },
+      { id: 'row-1', col0_dag: toISODateString('2024-01-01'), col1_dag: toISODateString('2024-01-10') },
+      { id: 'row-2', col0_dag: toISODateString('2024-01-05'), col1_dag: toISODateString('2024-01-15') },
     ];
     const result = beregnDagPeriode(rows);
     expect(result?.unikkeEnheder).toBe(15);
@@ -273,8 +274,8 @@ describe('beregnMaanedPeriode', () => {
   it('datoSet indeholder alle dage i januar 2024 (31 dage)', () => {
     const result = beregnMaanedPeriode([makeRow('1', '2024')]);
     expect(result!.datoSet.size).toBe(31);
-    expect(result!.datoSet.has('2024-01-01' as ISODateString)).toBe(true);
-    expect(result!.datoSet.has('2024-01-31' as ISODateString)).toBe(true);
+    expect(result!.datoSet.has(toISODateString('2024-01-01') as ISODateString)).toBe(true);
+    expect(result!.datoSet.has(toISODateString('2024-01-31') as ISODateString)).toBe(true);
   });
 
   it('periodeTekst er formateret korrekt', () => {

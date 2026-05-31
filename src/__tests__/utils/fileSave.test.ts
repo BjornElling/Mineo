@@ -11,6 +11,7 @@ import {
   saveFileHandleToIndexedDB,
   verifyFileHandleDetailed,
 } from '../../utils/fileHandleStorage';
+import { toISODateString } from '../../types/branded';
 import {
   saveFileWithPicker,
   writeToFileHandle,
@@ -256,26 +257,26 @@ describe('fileSave', () => {
     it('bevarer faellesAarsloen, forsoergertab og erhvervsevnetab i round-trip verifikation', async () => {
       const expectedData = eoFileDataSchema.parse({
         stamdata: {
-          skadelidteFodselsdato: '1990-01-01',
+          skadelidteFodselsdato: toISODateString('1990-01-01'),
         },
         faellesAarsloen: {
           aslAarsloen: { kind: 'number', value: 450000 },
           ealAarsloen: { kind: 'number', value: 500000 },
         },
         forsoergertab: {
-          efterladteFodselsdato: '1988-03-04',
-          beregningsdato: '2025-01-15',
-          virkningsdato: '2025-01-01',
+          efterladteFodselsdato: toISODateString('1988-03-04'),
+          beregningsdato: toISODateString('2025-01-15'),
+          virkningsdato: toISODateString('2025-01-01'),
           tilkendtForPeriodeAar: 5,
         },
         erhvervsevnetab: {
-          beregningsdato: '2025-01-15',
+          beregningsdato: toISODateString('2025-01-15'),
           koen: 'Kvinde',
           aslAfgoerelser: [
             {
               id: 'eet_asl_1',
-              afgoerelsesDato: '2025-01-15',
-              virkningsDato: '2025-01-01',
+              afgoerelsesDato: toISODateString('2025-01-15'),
+              virkningsDato: toISODateString('2025-01-01'),
               eetPct: 20,
               kapDato: undefined,
               kapPct: undefined,

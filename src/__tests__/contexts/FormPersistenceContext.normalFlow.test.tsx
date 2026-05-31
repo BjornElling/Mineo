@@ -6,6 +6,7 @@ import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { undoRedoStore } from '../../stores/undoRedoStore';
+import { toISODateString } from '../../types/branded';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -55,7 +56,7 @@ describe('FormPersistenceContext – normalFlow', () => {
         sagsbehandler: '',
         skadelidte: 'InitTest',
         skadestype: 'Arbejdsulykke',
-        skadedato: '2024-01-01',
+        skadedato: toISODateString('2024-01-01'),
       }))
     );
 
@@ -78,7 +79,7 @@ describe('FormPersistenceContext – normalFlow', () => {
         sagsbehandler: '',
         skadelidte: 'PersistTest',
         skadestype: 'Arbejdsulykke',
-        skadedato: '2024-06-15',
+        skadedato: toISODateString('2024-06-15'),
       });
     });
 
@@ -225,7 +226,7 @@ describe('FormPersistenceContext – normalFlow', () => {
           sagsbehandler: '',
           skadelidte: 'Old',
           skadestype: 'Arbejdsulykke',
-          skadedato: '2024-01-01',
+          skadedato: toISODateString('2024-01-01'),
         },
       })
     );
@@ -250,7 +251,7 @@ describe('FormPersistenceContext – normalFlow', () => {
           sagsbehandler: '',
           skadelidte: 'Bevares',
           skadestype: 'Arbejdsulykke',
-          skadedato: '2024-01-01',
+          skadedato: toISODateString('2024-01-01'),
         },
       })
     );

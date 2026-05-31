@@ -22,6 +22,7 @@ import { erstatningsopgoerelseSchema, type TafPeriodeRow } from '../../schemas/f
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
 import { __resetDraftHistoryRegistryForTests } from '../../utils/draftHistoryRegistry';
+import { toISODateString } from '../../types/branded';
 
 type TafDraftRow = { id: string; fra: string; til: string };
 
@@ -126,7 +127,7 @@ describe('undo/redo celle-identitet (repro)', () => {
 
     // Rediger celle 0 (fra), tab væk → blur committer celle 0 mens fokus er på celle 1.
     act(() => {
-      fireEvent.change(fra, { target: { value: '2024-01-01' } });
+      fireEvent.change(fra, { target: { value: toISODateString('2024-01-01') } });
     });
     act(() => {
       til.focus(); // fokus flytter til celle 1 FØR commit (som ved tab)
@@ -135,7 +136,7 @@ describe('undo/redo celle-identitet (repro)', () => {
 
     // Rediger celle 1 (til), tab væk.
     act(() => {
-      fireEvent.change(til, { target: { value: '2024-02-01' } });
+      fireEvent.change(til, { target: { value: toISODateString('2024-02-01') } });
     });
     act(() => {
       fireEvent.blur(til);
@@ -154,11 +155,11 @@ describe('undo/redo celle-identitet (repro)', () => {
     const { fra, til } = findCells(container);
 
     act(() => {
-      fireEvent.change(fra, { target: { value: '2024-01-01' } });
+      fireEvent.change(fra, { target: { value: toISODateString('2024-01-01') } });
       fireEvent.blur(fra);
     });
     act(() => {
-      fireEvent.change(til, { target: { value: '2024-02-01' } });
+      fireEvent.change(til, { target: { value: toISODateString('2024-02-01') } });
       fireEvent.blur(til);
     });
 

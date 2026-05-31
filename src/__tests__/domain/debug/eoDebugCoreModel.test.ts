@@ -5,6 +5,7 @@
 import type { DebugModelInput } from '../../../domain/debug/eoDebugCoreModel';
 import { buildDebugCoreModel } from '../../../domain/debug/eoDebugCoreModel';
 import type { ISODateString } from '../../../types/branded';
+import { toISODateString } from '../../../types/branded';
 
 // Test helper: Cast string literal til ISODateString (kun til tests)
 const iso = (date: string): ISODateString => date as ISODateString;
@@ -44,8 +45,8 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso('2024-01-01'),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-01',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-01'),
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -53,7 +54,7 @@ describe('eoDebugCoreModel', () => {
 
       const result = buildDebugCoreModel(input);
       expect(result.length).toBe(1);
-      expect(result[0]?.iso).toBe('2024-01-01');
+      expect(result[0]?.iso).toBe(toISODateString('2024-01-01'));
     });
 
     it('genererer inklusiv–inklusiv interval', () => {
@@ -67,8 +68,8 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-03',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-03'),
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -77,9 +78,9 @@ describe('eoDebugCoreModel', () => {
       const result = buildDebugCoreModel(input);
       expect(result.length).toBe(3);
       expect(result.map((d) => d.iso)).toEqual([
-        '2024-01-01',
-        '2024-01-02',
-        '2024-01-03',
+        toISODateString('2024-01-01'),
+        toISODateString('2024-01-02'),
+        toISODateString('2024-01-03'),
       ]);
     });
 
@@ -94,8 +95,8 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01', // Mandag
-          vedroererPeriodeTil: '2024-01-07', // Søndag
+          vedroererPeriodeFra: toISODateString('2024-01-01'), // Mandag
+          vedroererPeriodeTil: toISODateString('2024-01-07'), // Søndag
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -129,8 +130,8 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-02',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-02'),
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -157,8 +158,8 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-12-24',
-          vedroererPeriodeTil: '2024-12-26',
+          vedroererPeriodeFra: toISODateString('2024-12-24'),
+          vedroererPeriodeTil: toISODateString('2024-12-26'),
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -167,7 +168,7 @@ describe('eoDebugCoreModel', () => {
       const result = buildDebugCoreModel(input);
 
       // 2024-12-25 er juledag (onsdag) → søgnehelligdag
-      const juledag = result.find((d) => d.iso === '2024-12-25');
+      const juledag = result.find((d) => d.iso === toISODateString('2024-12-25'));
       expect(juledag?.isSognehelligdag).toBe(true);
       expect(juledag?.isArbejdsdag).toBe(false);
     });
@@ -183,8 +184,8 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01', // Nytårsdag (mandag, men helligdag)
-          vedroererPeriodeTil: '2024-01-03', // Onsdag (normal arbejdsdag)
+          vedroererPeriodeFra: toISODateString('2024-01-01'), // Nytårsdag (mandag, men helligdag)
+          vedroererPeriodeTil: toISODateString('2024-01-03'), // Onsdag (normal arbejdsdag)
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -215,13 +216,13 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-05',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-05'),
           tafPerioder: [
             {
               id: 'taf-1',
-              fra: '2024-01-02',
-              til: '2024-01-04',
+              fra: toISODateString('2024-01-02'),
+              til: toISODateString('2024-01-04'),
               loseFeriedage: '',
             },
           ],
@@ -258,19 +259,19 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-05',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-05'),
           tafPerioder: [
             {
               id: 'taf-1',
-              fra: '2024-01-01',
-              til: '2024-01-03',
+              fra: toISODateString('2024-01-01'),
+              til: toISODateString('2024-01-03'),
               loseFeriedage: '',
             },
             {
               id: 'taf-2',
-              fra: '2024-01-03',
-              til: '2024-01-05',
+              fra: toISODateString('2024-01-03'),
+              til: toISODateString('2024-01-05'),
               loseFeriedage: '',
             },
           ],
@@ -306,14 +307,14 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-05',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-05'),
           tafPerioder: [],
           svieSmertePerioder: [
             {
               id: 'ss-1',
-              fra: '2024-01-02',
-              til: '2024-01-04',
+              fra: toISODateString('2024-01-02'),
+              til: toISODateString('2024-01-04'),
               tilstand: 'sygemeldt',
             },
           ],
@@ -349,26 +350,26 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-06',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-06'),
           tafPerioder: [],
           svieSmertePerioder: [
             {
               id: 'ss-1',
-              fra: '2024-01-01',
-              til: '2024-01-02',
+              fra: toISODateString('2024-01-01'),
+              til: toISODateString('2024-01-02'),
               tilstand: 'sygemeldt',
             },
             {
               id: 'ss-2',
-              fra: '2024-01-03',
-              til: '2024-01-04',
+              fra: toISODateString('2024-01-03'),
+              til: toISODateString('2024-01-04'),
               tilstand: 'delvist-sygemeldt',
             },
             {
               id: 'ss-3',
-              fra: '2024-01-05',
-              til: '2024-01-06',
+              fra: toISODateString('2024-01-05'),
+              til: toISODateString('2024-01-06'),
               tilstand: '',
             },
           ],
@@ -398,20 +399,20 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-03',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-03'),
           tafPerioder: [],
           svieSmertePerioder: [
             {
               id: 'ss-1',
-              fra: '2024-01-01',
-              til: '2024-01-02',
+              fra: toISODateString('2024-01-01'),
+              til: toISODateString('2024-01-02'),
               tilstand: 'delvist-sygemeldt',
             },
             {
               id: 'ss-2',
-              fra: '2024-01-02',
-              til: '2024-01-03',
+              fra: toISODateString('2024-01-02'),
+              til: toISODateString('2024-01-03'),
               tilstand: 'sygemeldt',
             },
           ],
@@ -443,8 +444,8 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-30',
-          vedroererPeriodeTil: '2024-02-02',
+          vedroererPeriodeFra: toISODateString('2024-01-30'),
+          vedroererPeriodeTil: toISODateString('2024-02-02'),
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -454,10 +455,10 @@ describe('eoDebugCoreModel', () => {
 
       expect(result.length).toBe(4);
       expect(result.map((d) => d.iso)).toEqual([
-        '2024-01-30',
-        '2024-01-31',
-        '2024-02-01',
-        '2024-02-02',
+        toISODateString('2024-01-30'),
+        toISODateString('2024-01-31'),
+        toISODateString('2024-02-01'),
+        toISODateString('2024-02-02'),
       ]);
     });
 
@@ -472,8 +473,8 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-02-28',
-          vedroererPeriodeTil: '2024-03-01',
+          vedroererPeriodeFra: toISODateString('2024-02-28'),
+          vedroererPeriodeTil: toISODateString('2024-03-01'),
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -483,9 +484,9 @@ describe('eoDebugCoreModel', () => {
 
       expect(result.length).toBe(3);
       expect(result.map((d) => d.iso)).toEqual([
-        '2024-02-28',
-        '2024-02-29',
-        '2024-03-01',
+        toISODateString('2024-02-28'),
+        toISODateString('2024-02-29'),
+        toISODateString('2024-03-01'),
       ]);
     });
 
@@ -500,13 +501,13 @@ describe('eoDebugCoreModel', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-05',
-          vedroererPeriodeTil: '2024-01-10',
+          vedroererPeriodeFra: toISODateString('2024-01-05'),
+          vedroererPeriodeTil: toISODateString('2024-01-10'),
           tafPerioder: [
             {
               id: 'taf-1',
-              fra: '2024-01-01', // Før EO-periode
-              til: '2024-01-15', // Efter EO-periode
+              fra: toISODateString('2024-01-01'), // Før EO-periode
+              til: toISODateString('2024-01-15'), // Efter EO-periode
               loseFeriedage: '',
             },
           ],
@@ -518,8 +519,8 @@ describe('eoDebugCoreModel', () => {
 
       // Tidslinjen skal kun dække erstatningsperioden
       expect(result.length).toBe(6);
-      expect(result[0]?.iso).toBe('2024-01-05');
-      expect(result[result.length - 1]?.iso).toBe('2024-01-10');
+      expect(result[0]?.iso).toBe(toISODateString('2024-01-05'));
+      expect(result[result.length - 1]?.iso).toBe(toISODateString('2024-01-10'));
     });
   });
 });

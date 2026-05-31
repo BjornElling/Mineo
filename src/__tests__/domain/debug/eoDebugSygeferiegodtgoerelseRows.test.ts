@@ -7,8 +7,12 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 
-const createValues = () => ({
+const asAmount = (value: number) => ({ kind: 'number' as const, value });
+
+const createValues = (): ErstatningsopgoerelseValues => ({
   ...createErstatningsopgoerelseInitialValues(),
   loenindkomstAnsaettelsesforhold: [
     {
@@ -20,20 +24,20 @@ const createValues = () => ({
 
 const buildRows = (
   values: ReturnType<typeof createValues>,
-  stamdata: Partial<typeof STAMDATA_INITIAL_VALUES>
+  stamdata: Partial<StamdataValues>
 ) => {
   const snapshotValues = structuredClone(values);
   const tafFra = snapshotValues.tafPerioder
     .map((row) => row.fra)
-    .find((value): value is string => value !== undefined);
+    .find((value): value is ISODateString => value !== undefined);
   const tafTil = [...snapshotValues.tafPerioder]
     .reverse()
     .map((row) => row.til)
-    .find((value): value is string => value !== undefined);
-  snapshotValues.vedroererPeriodeFra ??= tafFra ?? '2024-01-01';
-  snapshotValues.vedroererPeriodeTil ??= tafTil ?? '2024-01-31';
-  snapshotValues.tafBeregningsperiodeFra ??= '2024-01-01';
-  snapshotValues.tafBeregningsperiodeTil ??= '2024-01-31';
+    .find((value): value is ISODateString => value !== undefined);
+  snapshotValues.vedroererPeriodeFra ??= tafFra ?? toISODateString('2024-01-01');
+  snapshotValues.vedroererPeriodeTil ??= tafTil ?? toISODateString('2024-01-31');
+  snapshotValues.tafBeregningsperiodeFra ??= toISODateString('2024-01-01');
+  snapshotValues.tafBeregningsperiodeTil ??= toISODateString('2024-01-31');
   if (snapshotValues.beregnesUdFra === 'Angivet dagsløn' && snapshotValues.dagsloenenUdgoer === undefined) {
     snapshotValues.dagsloenenUdgoer = { kind: 'number', value: 100 };
   }
@@ -46,8 +50,8 @@ const buildRows = (
   if ((snapshotValues.tafPerioder?.length ?? 0) === 0) {
     snapshotValues.tafPerioder = [{
       id: 'taf-1',
-      fra: '2024-01-01',
-      til: '2024-01-31',
+      fra: toISODateString('2024-01-01'),
+      til: toISODateString('2024-01-31'),
       loseFeriedage: undefined,
     }];
   }
@@ -77,7 +81,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual([
@@ -93,8 +97,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
 
   it('viser bemærkning og fejl på sfggSatsvalg ved differentieret direkte SFGG-sats', () => {
     const values = createValues();
-    values.tafBeregningsperiodeFra = '2014-06-01';
-    values.tafBeregningsperiodeTil = '2014-06-30';
+    values.tafBeregningsperiodeFra = toISODateString('2014-06-01');
+    values.tafBeregningsperiodeTil = toISODateString('2014-06-30');
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       harOverenskomst: true,
@@ -105,6 +109,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
         sfggManuelDagssats: undefined,
         sfggManuelBeloebIHenholdTil: undefined,
@@ -113,7 +118,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: undefined,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     const buildLoenudviklingModelSpy = vi.spyOn(loenudviklingBeregningModule, 'buildLoenudviklingModel');
@@ -122,7 +127,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       const rows = buildRows(values, {
         journalnr: undefined,
         skadestype: 'Arbejdsulykke',
-        skadedato: '2014-12-31',
+        skadedato: toISODateString('2014-12-31'),
       });
 
       expect(buildLoenudviklingModelSpy).not.toHaveBeenCalled();
@@ -161,18 +166,19 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
 
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -216,18 +222,19 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
-        sfggReferenceperiodeFra: '2023-12-01',
-        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+        sfggReferenceperiodeTil: toISODateString('2023-12-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-01-15',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-01-15'),
         loseFeriedage: undefined,
       },
     ];
@@ -235,7 +242,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -345,18 +352,19 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Ferieloven',
-        sfggReferenceperiodeFra: '2024-01-01',
-        sfggReferenceperiodeTil: '2024-01-31',
+        sfggReferenceperiodeFra: toISODateString('2024-01-01'),
+        sfggReferenceperiodeTil: toISODateString('2024-01-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 1,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-02-01',
-        til: '2024-02-01',
+        fra: toISODateString('2024-02-01'),
+        til: toISODateString('2024-02-01'),
         loseFeriedage: undefined,
       },
     ];
@@ -364,7 +372,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -387,6 +395,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -395,20 +404,20 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: undefined,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-01-16',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-01-16'),
         loseFeriedage: undefined,
       },
       {
         id: 'taf-2',
-        fra: '2024-01-20',
-        til: '2024-01-21',
+        fra: toISODateString('2024-01-20'),
+        til: toISODateString('2024-01-21'),
         loseFeriedage: undefined,
       },
     ];
@@ -416,7 +425,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -460,6 +469,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -468,14 +478,14 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: undefined,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-01-16',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-01-16'),
         loseFeriedage: undefined,
       },
     ];
@@ -483,7 +493,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows.find((row) => row.id === `sfgg.periode.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toEqual(
@@ -506,18 +516,19 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
 
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -542,18 +553,19 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
-        sfggReferenceperiodeFra: '2023-12-01',
-        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+        sfggReferenceperiodeTil: toISODateString('2023-12-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
 
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -583,20 +595,21 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggManuelDagssats: undefined,
         sfggManuelFoerstEfterSygeloen: 'Nej',
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-01-15',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-01-15'),
         loseFeriedage: undefined,
       },
     ];
@@ -604,7 +617,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -625,13 +638,14 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggManuelDagssats: undefined,
         sfggManuelFoerstEfterSygeloen: 'Nej',
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [];
@@ -639,7 +653,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -678,20 +692,21 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
-        sfggReferenceperiodeFra: '2023-12-01',
-        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+        sfggReferenceperiodeTil: toISODateString('2023-12-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelFoerstEfterSygeloen: 'Ja',
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-01-15',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-01-15'),
         loseFeriedage: undefined,
       },
     ];
@@ -699,7 +714,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -726,8 +741,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Beregningsperiode';
-    values.tafBeregningsperiodeFra = '2024-01-01';
-    values.tafBeregningsperiodeTil = '2024-01-31';
+    values.tafBeregningsperiodeFra = toISODateString('2024-01-01');
+    values.tafBeregningsperiodeTil = toISODateString('2024-01-31');
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       harOverenskomst: true,
@@ -751,19 +766,20 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: 'Ufaglaert-Koebenhavn',
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-29',
-        til: '2024-02-06',
+        fra: toISODateString('2024-01-29'),
+        til: toISODateString('2024-02-06'),
         loseFeriedage: undefined,
       },
     ];
@@ -771,7 +787,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -821,20 +837,21 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Ferieloven',
-        sfggReferenceperiodeFra: '2023-12-01',
-        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+        sfggReferenceperiodeTil: toISODateString('2023-12-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggManuelDagssats: undefined,
         sfggManuelFoerstEfterSygeloen: 'Nej',
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-29',
-        til: '2024-02-06',
+        fra: toISODateString('2024-01-29'),
+        til: toISODateString('2024-02-06'),
         loseFeriedage: undefined,
       },
     ];
@@ -842,7 +859,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -864,6 +881,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -872,14 +890,14 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: undefined,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-01-15',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-01-15'),
         loseFeriedage: undefined,
       },
     ];
@@ -887,7 +905,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -909,11 +927,12 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       ansaettelsesforholdOphoert: true,
-      sidsteArbejdsdag: '2024-02-15',
+      sidsteArbejdsdag: toISODateString('2024-02-15'),
     };
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -922,14 +941,14 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: undefined,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-03-15',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-03-15'),
         loseFeriedage: undefined,
       },
     ];
@@ -937,7 +956,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -967,6 +986,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -975,14 +995,14 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: undefined,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-26',
-        til: '2024-12-31',
+        fra: toISODateString('2024-01-26'),
+        til: toISODateString('2024-12-31'),
         loseFeriedage: undefined,
       },
     ];
@@ -990,7 +1010,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2014-01-01',
+      skadedato: toISODateString('2014-01-01'),
     });
 
     expect(rows.find((row) => row.label === '4-månedersgrænse')).toBeUndefined();
@@ -1010,6 +1030,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -1018,14 +1039,14 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: undefined,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-26',
-        til: '2024-12-31',
+        fra: toISODateString('2024-01-26'),
+        til: toISODateString('2024-12-31'),
         loseFeriedage: undefined,
       },
     ];
@@ -1033,7 +1054,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2014-01-01',
+      skadedato: toISODateString('2014-01-01'),
     });
 
     expect(rows).not.toEqual(
@@ -1076,18 +1097,19 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Ferieloven',
-        sfggReferenceperiodeFra: '2023-12-01',
-        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+        sfggReferenceperiodeTil: toISODateString('2023-12-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 1,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-01-15',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-01-15'),
         loseFeriedage: undefined,
       },
     ];
@@ -1095,7 +1117,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -1123,6 +1145,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -1137,8 +1160,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-29',
-        til: '2024-02-04',
+        fra: toISODateString('2024-01-29'),
+        til: toISODateString('2024-02-04'),
         loseFeriedage: undefined,
       },
     ];
@@ -1146,7 +1169,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -1191,18 +1214,19 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
-        sfggReferenceperiodeFra: '2023-12-01',
-        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+        sfggReferenceperiodeTil: toISODateString('2023-12-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-02-26',
-        til: '2024-03-05',
+        fra: toISODateString('2024-02-26'),
+        til: toISODateString('2024-03-05'),
         loseFeriedage: undefined,
       },
     ];
@@ -1220,8 +1244,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
             beregnedeSegmenter: [
               {
                 kind: 'arbejdsdage',
-                fra: '2024-02-26',
-                til: '2024-02-29',
+                fra: toISODateString('2024-02-26'),
+                til: toISODateString('2024-02-29'),
                 arbejdsdage: 4,
                 dagsloenOre: 0,
                 deltaPct: 0,
@@ -1229,8 +1253,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
               },
               {
                 kind: 'arbejdsdage',
-                fra: '2024-03-01',
-                til: '2024-03-05',
+                fra: toISODateString('2024-03-01'),
+                til: toISODateString('2024-03-05'),
                 arbejdsdage: 3,
                 dagsloenOre: 0,
                 deltaPct: 5.03,
@@ -1245,7 +1269,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
       const rows = buildRows(values, {
         journalnr: undefined,
         skadestype: 'Arbejdsulykke',
-        skadedato: '2024-01-01',
+        skadedato: toISODateString('2024-01-01'),
       });
 
       const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
@@ -1269,8 +1293,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Beregningsperiode';
-    values.tafBeregningsperiodeFra = '2023-12-01';
-    values.tafBeregningsperiodeTil = '2023-12-31';
+    values.tafBeregningsperiodeFra = toISODateString('2023-12-01');
+    values.tafBeregningsperiodeTil = toISODateString('2023-12-31');
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       harOverenskomst: true,
@@ -1294,18 +1318,19 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
-        sfggReferenceperiodeFra: '2023-12-01',
-        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+        sfggReferenceperiodeTil: toISODateString('2023-12-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-02-26',
-        til: '2024-03-05',
+        fra: toISODateString('2024-02-26'),
+        til: toISODateString('2024-03-05'),
         loseFeriedage: undefined,
       },
     ];
@@ -1313,7 +1338,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
@@ -1326,8 +1351,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Beregningsperiode';
-    values.tafBeregningsperiodeFra = '2024-12-01';
-    values.tafBeregningsperiodeTil = '2024-12-31';
+    values.tafBeregningsperiodeFra = toISODateString('2024-12-01');
+    values.tafBeregningsperiodeTil = toISODateString('2024-12-31');
     values.loenindkomstAnsaettelsesforhold[0] = {
       ...values.loenindkomstAnsaettelsesforhold[0],
       harOverenskomst: true,
@@ -1351,19 +1376,20 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: 'Ufaglaert-Koebenhavn',
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-12-30',
-        til: '2025-01-03',
+        fra: toISODateString('2024-12-30'),
+        til: toISODateString('2025-01-03'),
         loseFeriedage: undefined,
       },
     ];
@@ -1371,7 +1397,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
@@ -1407,19 +1433,20 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: 'Faglaert-Koebenhavn',
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-01-15',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-01-15'),
         loseFeriedage: undefined,
       },
     ];
@@ -1427,7 +1454,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows.find((row) => row.id === `sfgg.referencesats.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toEqual(
@@ -1464,19 +1491,20 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: 'Faglaert-Provinsen',
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-26',
-        til: '2024-03-05',
+        fra: toISODateString('2024-01-26'),
+        til: toISODateString('2024-03-05'),
         loseFeriedage: undefined,
       },
     ];
@@ -1484,7 +1512,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -1512,19 +1540,20 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: undefined,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2010-01-04',
-        til: '2010-01-05',
+        fra: toISODateString('2010-01-04'),
+        til: toISODateString('2010-01-05'),
         loseFeriedage: undefined,
       },
     ];
@@ -1532,7 +1561,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2010-01-01',
+      skadedato: toISODateString('2010-01-01'),
     });
 
     expect(rows).toEqual(
@@ -1568,19 +1597,20 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: undefined,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-04',
-        til: '2024-01-05',
+        fra: toISODateString('2024-01-04'),
+        til: toISODateString('2024-01-05'),
         loseFeriedage: undefined,
       },
     ];
@@ -1588,7 +1618,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -1637,18 +1667,19 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Overenskomst',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-01-15',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-01-15'),
         loseFeriedage: undefined,
       },
     ];
@@ -1667,14 +1698,14 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
         buildRows(values, {
           journalnr: undefined,
           skadestype: 'Arbejdsulykke',
-          skadedato: '2024-01-01',
+          skadedato: toISODateString('2024-01-01'),
         })
       ).not.toThrow();
 
       const rows = buildRows(values, {
         journalnr: undefined,
         skadestype: 'Arbejdsulykke',
-        skadedato: '2024-01-01',
+        skadedato: toISODateString('2024-01-01'),
       });
 
       expect(rows).toEqual(
@@ -1716,18 +1747,19 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Ferieloven',
-        sfggReferenceperiodeFra: '2023-12-01',
-        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+        sfggReferenceperiodeTil: toISODateString('2023-12-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmount(0),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-01-15',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-01-15'),
         loseFeriedage: undefined,
       },
     ];
@@ -1735,7 +1767,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -1772,18 +1804,19 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Ferieloven',
-        sfggReferenceperiodeFra: '2023-12-01',
-        sfggReferenceperiodeTil: '2023-12-31',
+        sfggReferenceperiodeFra: toISODateString('2023-12-01'),
+        sfggReferenceperiodeTil: toISODateString('2023-12-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
-        sfggAlleredeBetaltBeloeb: '100,00',
+        sfggAlleredeBetaltBeloeb: asAmount(100),
       },
     ];
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-01-15',
-        til: '2024-01-15',
+        fra: toISODateString('2024-01-15'),
+        til: toISODateString('2024-01-15'),
         loseFeriedage: undefined,
       },
     ];
@@ -1791,7 +1824,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     expect(rows).toEqual(
@@ -1830,6 +1863,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.sfggAnsaettelsesforhold = [
       {
         ansaettelsesforholdId: values.loenindkomstAnsaettelsesforhold[0].id,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggBeregningskilde: 'Manuelt angivet',
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: undefined,
@@ -1844,8 +1878,8 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     values.tafPerioder = [
       {
         id: 'taf-1',
-        fra: '2024-12-30',
-        til: '2025-01-03',
+        fra: toISODateString('2024-12-30'),
+        til: toISODateString('2025-01-03'),
         loseFeriedage: undefined,
       },
     ];
@@ -1853,7 +1887,7 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     const rows = buildRows(values, {
       journalnr: undefined,
       skadestype: 'Arbejdsulykke',
-      skadedato: '2024-01-01',
+      skadedato: toISODateString('2024-01-01'),
     });
 
     const yearRow = rows.find((row) => row.id === `sfgg.aarsfordeling.${values.loenindkomstAnsaettelsesforhold[0].id}`);

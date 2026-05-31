@@ -1,3 +1,4 @@
+import { toISODateString } from '../../types/branded';
 import {
   addDays,
   addMonths,
@@ -28,18 +29,18 @@ describe('dateUtils', () => {
   describe('formatToISO', () => {
     it('konverterer Date til ISO-format (åååå-mm-dd)', () => {
       const date = createDate(2024, 2, 15); // 15. marts 2024
-      expect(formatToISO(date)).toBe('2024-03-15');
+      expect(formatToISO(date)).toBe(toISODateString('2024-03-15'));
     });
 
     it('padder måned og dag med nul', () => {
       const date = createDate(2024, 0, 5); // 5. januar 2024
-      expect(formatToISO(date)).toBe('2024-01-05');
+      expect(formatToISO(date)).toBe(toISODateString('2024-01-05'));
     });
 
     it('roundtrip: formatToISO → parseDanishDate → formatDanishDate', () => {
       const date = createDate(2024, 11, 31); // 31. december 2024
       const iso = formatToISO(date);
-      expect(iso).toBe('2024-12-31');
+      expect(iso).toBe(toISODateString('2024-12-31'));
     });
   });
 
@@ -97,31 +98,31 @@ describe('dateUtils', () => {
     it('tilføjer dage inden for samme måned', () => {
       const date = createDate(2024, 0, 10); // 10. januar 2024
       const result = addDays(date, 5);
-      expect(formatToISO(result)).toBe('2024-01-15');
+      expect(formatToISO(result)).toBe(toISODateString('2024-01-15'));
     });
 
     it('krydser månedsskifte', () => {
       const date = createDate(2024, 0, 29); // 29. januar 2024
       const result = addDays(date, 3);
-      expect(formatToISO(result)).toBe('2024-02-01');
+      expect(formatToISO(result)).toBe(toISODateString('2024-02-01'));
     });
 
     it('krydser årsskifte', () => {
       const date = createDate(2024, 11, 30); // 30. december 2024
       const result = addDays(date, 5);
-      expect(formatToISO(result)).toBe('2025-01-04');
+      expect(formatToISO(result)).toBe(toISODateString('2025-01-04'));
     });
 
     it('negative dage går baglæns', () => {
       const date = createDate(2024, 1, 1); // 1. februar 2024
       const result = addDays(date, -1);
-      expect(formatToISO(result)).toBe('2024-01-31');
+      expect(formatToISO(result)).toBe(toISODateString('2024-01-31'));
     });
 
     it('0 dage returnerer samme dato', () => {
       const date = createDate(2024, 5, 15); // 15. juni 2024
       const result = addDays(date, 0);
-      expect(formatToISO(result)).toBe('2024-06-15');
+      expect(formatToISO(result)).toBe(toISODateString('2024-06-15'));
     });
 
     it('muterer ikke input-datoen', () => {
@@ -158,7 +159,7 @@ describe('dateUtils', () => {
       const start = parseDanishDate('15-06-2024');
       expect(start).toBeDefined();
       const result = addMonths(start!, 0);
-      expect(formatToISO(result)).toBe('2024-06-15');
+      expect(formatToISO(result)).toBe(toISODateString('2024-06-15'));
       expect(result).not.toBe(start); // ny instans
     });
 

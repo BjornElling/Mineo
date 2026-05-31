@@ -131,15 +131,23 @@ const readClipboardArg = (value: unknown): string => {
 };
 
 const originalUserEventSetup = userEvent.setup.bind(userEvent);
-userEvent.setup = ((...args: Parameters<typeof originalUserEventSetup>) => {
+const mutableUserEvent = userEvent as typeof userEvent & {
+  setup: (...args: Parameters<typeof originalUserEventSetup>) => ReturnType<typeof originalUserEventSetup>;
+};
+
+mutableUserEvent.setup = ((...args: Parameters<typeof originalUserEventSetup>) => {
   const api = originalUserEventSetup(...args);
-  api.paste = (async (...pasteArgs: Parameters<typeof api.paste>) => {
+  const mutableApi = api as typeof api & {
+    paste: (targetOrClipboardData?: Element | DataTransfer | string, clipboardData?: DataTransfer | string) => Promise<void>;
+  };
+
+  mutableApi.paste = (async (...pasteArgs: Parameters<typeof mutableApi.paste>) => {
     const firstArg = pasteArgs[0];
     const secondArg = pasteArgs[1];
     const hasExplicitTarget = firstArg instanceof Element;
     const target = hasExplicitTarget
       ? firstArg
-      : (api.config.document.activeElement instanceof Element ? api.config.document.activeElement : null);
+      : (document.activeElement instanceof Element ? document.activeElement : null);
     const text = hasExplicitTarget ? readClipboardArg(secondArg) : readClipboardArg(firstArg);
 
     if (!target) return;
@@ -168,10 +176,10 @@ userEvent.setup = ((...args: Parameters<typeof originalUserEventSetup>) => {
       Object.defineProperty(inputEvent, 'inputType', { configurable: true, value: 'insertFromPaste' });
       target.dispatchEvent(inputEvent);
     });
-  }) as typeof api.paste;
+  }) as typeof mutableApi.paste;
 
-  return api;
-}) as typeof userEvent.setup;
+  return mutableApi;
+}) as typeof mutableUserEvent.setup;
 
 /**
  * Cleanup after each test.

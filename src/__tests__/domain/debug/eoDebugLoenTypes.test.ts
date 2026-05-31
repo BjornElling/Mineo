@@ -2,6 +2,7 @@
  * Tests for Loen Types - Phase 5.1 (rettet)
  */
 
+import { toISODateString } from '../../../types/branded';
 import type {
   LoenComponentType,
   LoenComponentSource,
@@ -51,7 +52,7 @@ describe('eoDebugLoenTypes - Phase 5.1 (Type Definitions)', () => {
   describe('DailyLoen', () => {
     it('kan konstrueres med tom komponent-liste', () => {
       const dailyLoen: DailyLoen = {
-        iso: '2024-01-01' as any,
+        iso: toISODateString('2024-01-01') as any,
         components: [],
         dailyTotal: 0,
       };
@@ -64,7 +65,7 @@ describe('eoDebugLoenTypes - Phase 5.1 (Type Definitions)', () => {
   describe('DailySvieSmerte', () => {
     it('kan konstrueres med korrekt struktur', () => {
       const daily: DailySvieSmerte = {
-        iso: '2024-01-01' as any,
+        iso: toISODateString('2024-01-01') as any,
         niveau: 'Fuld',
         amount: 230,
       };

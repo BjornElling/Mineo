@@ -85,8 +85,8 @@ vi.mock('../../../components/pages/renteberegning/RenteberegningTab', () => ({
         onClick={() => {
           void props.onDownloadSpecifikation({
             beloeb: 1000,
-            actualInterestDate: '2024-01-01',
-            beregningsdato: '2024-01-31',
+            actualInterestDate: toISODateString('2024-01-01'),
+            beregningsdato: toISODateString('2024-01-31'),
           });
         }}
       >
@@ -97,6 +97,7 @@ vi.mock('../../../components/pages/renteberegning/RenteberegningTab', () => ({
 }));
 
 import Renteberegning from '../../../components/pages/Renteberegning';
+import { toISODateString } from '../../../types/branded';
 
 describe('Renteberegning PDF-download', () => {
   beforeEach(() => {

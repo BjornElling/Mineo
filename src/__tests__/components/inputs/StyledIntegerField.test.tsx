@@ -16,7 +16,8 @@ describe('StyledIntegerField', () => {
 
     const input = screen.getByRole('textbox');
     await user.click(input);
-    await user.paste(input, 'adffergregs//sgd1712,56//');
+    input.focus();
+    await user.paste('adffergregs//sgd1712,56//');
     await user.tab();
 
     expect(input).toHaveValue('1712');
@@ -30,7 +31,8 @@ describe('StyledIntegerField', () => {
     const input = screen.getByRole('textbox') as HTMLInputElement;
     await user.click(input);
     await user.click(input);
-    await user.paste(input, 'adffergregs//sgd1712,56//');
+    input.focus();
+    await user.paste('adffergregs//sgd1712,56//');
 
     expect(input).toHaveValue('1712');
   });
@@ -47,7 +49,8 @@ describe('StyledIntegerField', () => {
 
     const input = screen.getByRole('textbox');
     await user.click(input);
-    await user.paste(input, 'abc - 1712,56');
+    input.focus();
+    await user.paste('abc - 1712,56');
     await user.tab();
 
     expect(input).toHaveValue('-1712');

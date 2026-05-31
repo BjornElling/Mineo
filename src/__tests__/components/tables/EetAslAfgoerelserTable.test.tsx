@@ -55,7 +55,7 @@ describe('EetAslAfgoerelserTable', () => {
     const lastCallArg = onTableDataChange.mock.calls[0]?.[0] as Array<Record<string, unknown>>;
     expect(Array.isArray(lastCallArg)).toBe(true);
     expect(lastCallArg).toHaveLength(1);
-    expect(lastCallArg[0]?.afgoerelsesDato).toBe('2024-02-01');
+    expect(lastCallArg[0]?.afgoerelsesDato).toBe(toISODateString('2024-02-01'));
   }, ASYNC_TEST_TIMEOUT_MS);
 
   it('viser valideringsfeedback for procent- og datofelter', () => {
@@ -66,8 +66,8 @@ describe('EetAslAfgoerelserTable', () => {
             afgoerelseType: 'Midlertidig',
             eetPct: 7,
             kapPct: 5,
-            kapDato: '01-01-2024',
-            tidlKapDato: '01-01-2024',
+            kapDato: toISODateString('2024-01-01'),
+            tidlKapDato: toISODateString('2024-01-01'),
           }),
         ]}
         skadedato={toISODateString('2020-01-01')}
@@ -230,9 +230,9 @@ describe('EetAslAfgoerelserTable', () => {
       <EetAslAfgoerelserTable
         tableData={[
           buildRow({
-            afgoerelsesDato: '10-01-2024',
+            afgoerelsesDato: toISODateString('2024-01-10'),
             afgoerelseType: 'Endelig',
-            kapDato: '10-01-2024',
+            kapDato: toISODateString('2024-01-10'),
           }),
         ]}
         skadedato={toISODateString('2020-01-01')}
@@ -267,7 +267,7 @@ describe('EetAslAfgoerelserTable', () => {
         tableData={[
           buildRow({
             afgoerelseType: 'Endelig',
-            afgoerelsesDato: '10-01-2024',
+            afgoerelsesDato: toISODateString('2024-01-10'),
           }),
         ]}
         skadedato={toISODateString('2020-01-01')}
@@ -298,13 +298,13 @@ describe('EetAslAfgoerelserTable', () => {
         tableData={[
           buildRow({
             id: 'r1',
-            afgoerelsesDato: '01-01-2024',
+            afgoerelsesDato: toISODateString('2024-01-01'),
             kapPct: 20,
             afgoerelseType: 'Endelig',
           }),
           buildRow({
             id: 'r2',
-            afgoerelsesDato: '01-02-2024',
+            afgoerelsesDato: toISODateString('2024-02-01'),
             eetPct: 15,
             afgoerelseType: 'Endelig',
           }),
@@ -329,7 +329,7 @@ describe('EetAslAfgoerelserTable', () => {
         tableData={[
           buildRow({
             afgoerelseType: 'Endelig',
-            afgoerelsesDato: '30-06-2027',
+            afgoerelsesDato: toISODateString('2027-06-30'),
           }),
         ]}
         skadedato={toISODateString('2020-01-01')}
@@ -348,8 +348,8 @@ describe('EetAslAfgoerelserTable', () => {
         tableData={[
           buildRow({
             afgoerelseType: 'Endelig',
-            afgoerelsesDato: '30-06-2023',
-            kapDato: '30-06-2023',
+            afgoerelsesDato: toISODateString('2023-06-30'),
+            kapDato: toISODateString('2023-06-30'),
           }),
         ]}
         skadedato={toISODateString('2024-08-01')}
@@ -368,8 +368,8 @@ describe('EetAslAfgoerelserTable', () => {
         tableData={[
           buildRow({
             afgoerelseType: 'Endelig',
-            afgoerelsesDato: '01-07-2024',
-            tidlKapDato: '01-01-2024',
+            afgoerelsesDato: toISODateString('2024-07-01'),
+            tidlKapDato: toISODateString('2024-01-01'),
           }),
         ]}
         skadedato={toISODateString('2020-01-01')}
@@ -388,9 +388,9 @@ describe('EetAslAfgoerelserTable', () => {
         tableData={[
           buildRow({
             afgoerelseType: 'Endelig',
-            afgoerelsesDato: '01-07-2024',
-            kapDato: '02-07-2024',
-            tidlKapDato: '01-01-2024',
+            afgoerelsesDato: toISODateString('2024-07-01'),
+            kapDato: toISODateString('2024-07-02'),
+            tidlKapDato: toISODateString('2024-01-01'),
           }),
         ]}
         skadedato={toISODateString('2020-01-01')}
@@ -412,14 +412,14 @@ describe('EetAslAfgoerelserTable', () => {
           buildRow({
             id: 'r1',
             afgoerelseType: 'Delvist endelig',
-            afgoerelsesDato: '01-01-2024',
+            afgoerelsesDato: toISODateString('2024-01-01'),
             eetPct: 80,
             kapPct: 20,
           }),
           buildRow({
             id: 'r2',
             afgoerelseType: 'Endelig',
-            afgoerelsesDato: '01-07-2025',
+            afgoerelsesDato: toISODateString('2025-07-01'),
             eetPct: 80,
             kapPct: 40,
           }),
@@ -439,10 +439,10 @@ describe('EetAslAfgoerelserTable', () => {
       buildRow({
         id: 'r1',
         afgoerelseType: 'Endelig',
-        afgoerelsesDato: '01-07-2025',
-        virkningsDato: '01-07-2025',
+        afgoerelsesDato: toISODateString('2025-07-01'),
+        virkningsDato: toISODateString('2025-07-01'),
         eetPct: 80,
-        kapDato: '01-10-2025',
+        kapDato: toISODateString('2025-10-01'),
         kapPct: 40,
       }),
     ];
@@ -493,14 +493,14 @@ describe('EetAslAfgoerelserTable', () => {
         tableData={[
           buildRow({
             id: 'r1',
-            afgoerelsesDato: '01-11-2025',
-            virkningsDato: '01-10-2025',
+            afgoerelsesDato: toISODateString('2025-11-01'),
+            virkningsDato: toISODateString('2025-10-01'),
             afgoerelseType: 'Endelig',
           }),
           buildRow({
             id: 'r2',
-            afgoerelsesDato: '01-11-2025',
-            virkningsDato: '01-10-2025',
+            afgoerelsesDato: toISODateString('2025-11-01'),
+            virkningsDato: toISODateString('2025-10-01'),
             afgoerelseType: 'Endelig',
           }),
         ]}

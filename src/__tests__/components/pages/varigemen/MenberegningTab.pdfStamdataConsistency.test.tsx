@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import type { ISODateString } from '../../../../types/branded';
 
 const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mockStamValues } = vi.hoisted(() => ({
   mockDownloadVarigeMenPdf: vi.fn(),
@@ -10,8 +11,8 @@ const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mock
     advokat: 'Test Advokat',
     sagsbehandler: 'Test Sagsbehandler',
     skadestype: 'Arbejdsulykke',
-    skadedato: '2025-01-01',
-    skadelidteFodselsdato: '1980-01-01',
+    skadedato: '2025-01-01' as ISODateString,
+    skadelidteFodselsdato: '1980-01-01' as ISODateString,
   },
 }));
 
@@ -31,6 +32,7 @@ vi.mock('../../../../contexts/useAppSettings', () => ({
 }));
 
 import MenberegningTab from '../../../../components/pages/varigemen/MenberegningTab';
+import { toISODateString } from '../../../../types/branded';
 
 const setFieldValue = vi.fn();
 
@@ -55,7 +57,7 @@ describe('MenberegningTab', () => {
     render(
       <MemoryRouter>
         <MenberegningTab
-          values={{ mengrad: 10, beregningsdato: '2026-01-01' }}
+          values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
           setValues={vi.fn()}
           setFieldValue={setFieldValue}
           stamdata={{
@@ -91,7 +93,7 @@ describe('MenberegningTab', () => {
     render(
       <MemoryRouter>
         <MenberegningTab
-          values={{ mengrad: 10, beregningsdato: '2026-01-01' }}
+          values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
           setValues={vi.fn()}
           setFieldValue={setFieldValue}
           stamdata={{

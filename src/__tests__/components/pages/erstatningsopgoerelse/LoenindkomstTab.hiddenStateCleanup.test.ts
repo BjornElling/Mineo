@@ -4,6 +4,7 @@ import {
   applySfggBeregningskildeChange,
 } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { toISODateString } from '../../../../types/branded';
 
 describe('LoenindkomstTab hidden state cleanup', () => {
   it('bevarer overenskomstId og overenskomstFilter når harOverenskomst slås fra', () => {
@@ -26,34 +27,34 @@ describe('LoenindkomstTab hidden state cleanup', () => {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       ansatPaaSkadestidspunktet: true,
       ansaettelsesforholdOphoert: true,
-      sidsteArbejdsdag: '2024-02-15',
+      sidsteArbejdsdag: toISODateString('2024-02-15'),
     };
 
     const result = applyAnsaettelsesforholdToggleCleanup(initial, 'ansatPaaSkadestidspunktet', false);
 
     expect(result.ansatPaaSkadestidspunktet).toBe(false);
     expect(result.ansaettelsesforholdOphoert).toBe(true);
-    expect(result.sidsteArbejdsdag).toBe('2024-02-15');
+    expect(result.sidsteArbejdsdag).toBe(toISODateString('2024-02-15'));
   });
 
   it('bevarer sidsteArbejdsdag når ansaettelsesforholdOphoert slås fra', () => {
     const initial = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       ansaettelsesforholdOphoert: true,
-      sidsteArbejdsdag: '2024-02-15',
+      sidsteArbejdsdag: toISODateString('2024-02-15'),
     };
 
     const result = applyAnsaettelsesforholdToggleCleanup(initial, 'ansaettelsesforholdOphoert', false);
 
     expect(result.ansaettelsesforholdOphoert).toBe(false);
-    expect(result.sidsteArbejdsdag).toBe('2024-02-15');
+    expect(result.sidsteArbejdsdag).toBe(toISODateString('2024-02-15'));
   });
 
   it('bevarer anciennitetstillægfelter når tillæg slås fra', () => {
     const initial = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       harAnciennitetstillaegEfterSkadedatoen: true,
-      anciennitetstillaegDato: '2024-02-15',
+      anciennitetstillaegDato: toISODateString('2024-02-15'),
       anciennitetstillaegSatsAngivesPer: 'Time' as const,
       anciennitetstillaegSats: { kind: 'number' as const, value: 150 },
     };
@@ -61,7 +62,7 @@ describe('LoenindkomstTab hidden state cleanup', () => {
     const result = applyAnsaettelsesforholdToggleCleanup(initial, 'harAnciennitetstillaegEfterSkadedatoen', false);
 
     expect(result.harAnciennitetstillaegEfterSkadedatoen).toBe(false);
-    expect(result.anciennitetstillaegDato).toBe('2024-02-15');
+    expect(result.anciennitetstillaegDato).toBe(toISODateString('2024-02-15'));
     expect(result.anciennitetstillaegSatsAngivesPer).toBe('Time');
     expect(result.anciennitetstillaegSats).toEqual({ kind: 'number', value: 150 });
   });
@@ -73,7 +74,7 @@ describe('LoenindkomstTab hidden state cleanup', () => {
       loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
       loenudviklingKRLSatstabel: 'KRL-2024' as never,
       loenudviklingManuelNavn: 'DA-tillægstrin',
-      loenudviklingManuelTableData: [{ id: 'row-1', dato: '2024-01-01', grundloen: { kind: 'number' as const, value: 50000 }, feriepenge: '', shSoSats: '', fritvalg: '', agPension: '' }],
+      loenudviklingManuelTableData: [{ id: 'row-1', dato: toISODateString('2024-01-01'), grundloen: { kind: 'number' as const, value: 50000 }, feriepenge: undefined, shSoSats: undefined, fritvalg: undefined, agPension: undefined }],
     };
 
     const result = applyLoenudviklingBeregningsgrundlagChange(initial, 'Manuelt angivet');
@@ -90,8 +91,8 @@ describe('LoenindkomstTab hidden state cleanup', () => {
       {
         ansaettelsesforholdId: 'af-1',
         sfggBeregningskilde: 'Overenskomst',
-        sfggReferenceperiodeFra: '2024-01-01',
-        sfggReferenceperiodeTil: '2024-01-31',
+        sfggReferenceperiodeFra: toISODateString('2024-01-01'),
+        sfggReferenceperiodeTil: toISODateString('2024-01-31'),
         sfggReferenceperiodeFravaersdageUdenLoen: 2,
         sfggManuelDagssats: { kind: 'number', value: 100 },
         sfggManuelBeloebIHenholdTil: 'Overenskomstens tabel 3.2', // fritekstfelt — ingen enum
@@ -103,8 +104,8 @@ describe('LoenindkomstTab hidden state cleanup', () => {
     );
 
     expect(result.sfggBeregningskilde).toBe('Manuelt angivet');
-    expect(result.sfggReferenceperiodeFra).toBe('2024-01-01');
-    expect(result.sfggReferenceperiodeTil).toBe('2024-01-31');
+    expect(result.sfggReferenceperiodeFra).toBe(toISODateString('2024-01-01'));
+    expect(result.sfggReferenceperiodeTil).toBe(toISODateString('2024-01-31'));
     expect(result.sfggReferenceperiodeFravaersdageUdenLoen).toBe(2);
     expect(result.sfggManuelDagssats).toEqual({ kind: 'number', value: 100 });
     expect(result.sfggManuelBeloebIHenholdTil).toBe('Overenskomstens tabel 3.2');

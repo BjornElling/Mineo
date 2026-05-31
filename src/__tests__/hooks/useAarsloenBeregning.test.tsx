@@ -7,6 +7,7 @@ import { beregnSHDageForDatoSet } from '../../domain/dates/shDageBeregning';
 import { beregnOmregnetAarsloen } from '../../domain/aarsloen/aarsloenCalculations';
 import { harTabelData } from '../../domain/aarsloen/aarsloenValidationPolicies';
 import { beregnMaanedPeriode } from '../../utils/periodeBeregning';
+import { toISODateString } from '../../types/branded';
 
 vi.mock('../../utils/safeComputation', () => ({
   safeCompute: vi.fn(),
@@ -80,7 +81,7 @@ describe('useAarsloenBeregning (wire-up/control-flow)', () => {
     mockedBeregnMaanedPeriode.mockReturnValue({
       antalEnheder: 1,
       periodeDage: 31,
-      datoSet: new Set(['2024-01-01']),
+      datoSet: new Set([toISODateString('2024-01-01')]),
     });
     mockedBeregnSHDageForDatoSet.mockReturnValue(2);
     mockedBeregnOmregnetAarsloen.mockReturnValue({ metode: 'periode', erEtAar: false });

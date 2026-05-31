@@ -102,11 +102,11 @@ describe('varigeMenEngine', () => {
         rates,
       }).result;
 
-    expect(build('1985-01-01')?.beregnetGodtgoerelse).toBe(10000); // 39 years -> 0%
-    expect(build('1984-01-01')?.beregnetGodtgoerelse).toBe(9900);  // 40 years -> 1%
-    expect(build('1964-01-01')?.beregnetGodtgoerelse).toBe(7800);  // 60 years -> 22%
-    expect(build('1955-01-01')?.beregnetGodtgoerelse).toBe(6000);  // 69 years -> 40% cap
-    expect(build('1954-01-01')?.beregnetGodtgoerelse).toBe(6000);  // 70 years -> 40% cap
+    expect(build(toISODateString('1985-01-01'))?.beregnetGodtgoerelse).toBe(10000); // 39 years -> 0%
+    expect(build(toISODateString('1984-01-01'))?.beregnetGodtgoerelse).toBe(9900);  // 40 years -> 1%
+    expect(build(toISODateString('1964-01-01'))?.beregnetGodtgoerelse).toBe(7800);  // 60 years -> 22%
+    expect(build(toISODateString('1955-01-01'))?.beregnetGodtgoerelse).toBe(6000);  // 69 years -> 40% cap
+    expect(build(toISODateString('1954-01-01'))?.beregnetGodtgoerelse).toBe(6000);  // 70 years -> 40% cap
   });
 
   it('is deterministic for identical input snapshots', () => {

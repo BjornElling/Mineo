@@ -91,8 +91,8 @@ describe('eoCanonicalOutput', () => {
       offentligeYdelserRows: [
         {
           id: 'yd-1',
-          fraDato: '2024-01-01',
-          tilDato: '2024-01-31',
+          fraDato: toISODateString('2024-01-01'),
+          tilDato: toISODateString('2024-01-31'),
           ydelse: asAmountValue(1000),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -136,7 +136,7 @@ describe('eoCanonicalOutput', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     const invalidStamdata = {
       ...STAMDATA_INITIAL_VALUES,
-      skadedato: '31-12-2024',
+      skadedato: 'ikke-en-dato',
     } as unknown as typeof STAMDATA_INITIAL_VALUES;
 
     const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: invalidStamdata, eoValues });

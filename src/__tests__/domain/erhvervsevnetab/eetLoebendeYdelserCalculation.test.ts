@@ -12,6 +12,7 @@ import {
   toAfgoerelseTypeLabel,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { isAslAfgoerelseRowEmpty, isAslAfgoerelseRowPersistenceEmpty } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
+import { toISODateString } from '../../../types/branded';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -37,32 +38,32 @@ const computeTestRows = (
 ) => computeEetLoebendeYdelser({
   erhvervsevnetab: {
     ...ERHVERVSEVNETAB_INITIAL_VALUES,
-    beregningsdato: options.beregningsdato ?? '2025-12-31',
+    beregningsdato: options.beregningsdato ?? toISODateString('2025-12-31'),
     aslAarsloen: asAmount(options.aslAarsloen ?? 401000),
     aslAfgoerelser: rows,
   },
-  skadedato: options.skadedato ?? '2019-04-01',
-  skadelidteFodselsdato: options.skadelidteFodselsdato ?? '1980-01-01',
+  skadedato: options.skadedato ?? toISODateString('2019-04-01'),
+  skadelidteFodselsdato: options.skadelidteFodselsdato ?? toISODateString('1980-01-01'),
 });
 
 describe('firstOfMonthAfter', () => {
   it('returnerer den første dag i måneden efter datoens måned', () => {
-    expect(firstOfMonthAfter('2024-03-15')).toBe('2024-04-01');
-    expect(firstOfMonthAfter('2024-03-01')).toBe('2024-04-01');
-    expect(firstOfMonthAfter('2024-03-31')).toBe('2024-04-01');
-    expect(firstOfMonthAfter('2024-12-15')).toBe('2025-01-01');
-    expect(firstOfMonthAfter('2024-12-01')).toBe('2025-01-01');
+    expect(firstOfMonthAfter(toISODateString('2024-03-15'))).toBe(toISODateString('2024-04-01'));
+    expect(firstOfMonthAfter(toISODateString('2024-03-01'))).toBe(toISODateString('2024-04-01'));
+    expect(firstOfMonthAfter(toISODateString('2024-03-31'))).toBe(toISODateString('2024-04-01'));
+    expect(firstOfMonthAfter(toISODateString('2024-12-15'))).toBe(toISODateString('2025-01-01'));
+    expect(firstOfMonthAfter(toISODateString('2024-12-01'))).toBe(toISODateString('2025-01-01'));
   });
 });
 
 describe('hasOverlapPeriod', () => {
   it('returnerer kun true når virkningsdato ligger før skæringsdatoen', () => {
-    expect(hasOverlapPeriod('2024-03-01', '2024-03-15')).toBe(true);
-    expect(hasOverlapPeriod('2024-04-01', '2024-03-15')).toBe(false);
-    expect(hasOverlapPeriod('2024-05-01', '2024-04-15')).toBe(false);
-    expect(hasOverlapPeriod('2024-05-01', '2024-03-15')).toBe(false);
-    expect(hasOverlapPeriod('2024-04-01', '2024-04-01')).toBe(true);
-    expect(hasOverlapPeriod('2023-11-01', '2024-03-15')).toBe(true);
+    expect(hasOverlapPeriod(toISODateString('2024-03-01'), toISODateString('2024-03-15'))).toBe(true);
+    expect(hasOverlapPeriod(toISODateString('2024-04-01'), toISODateString('2024-03-15'))).toBe(false);
+    expect(hasOverlapPeriod(toISODateString('2024-05-01'), toISODateString('2024-04-15'))).toBe(false);
+    expect(hasOverlapPeriod(toISODateString('2024-05-01'), toISODateString('2024-03-15'))).toBe(false);
+    expect(hasOverlapPeriod(toISODateString('2024-04-01'), toISODateString('2024-04-01'))).toBe(true);
+    expect(hasOverlapPeriod(toISODateString('2023-11-01'), toISODateString('2024-03-15'))).toBe(true);
   });
 });
 
@@ -75,13 +76,13 @@ describe('computeEetLoebendeYdelser', () => {
       const result = computeTestRows([
         testRow({
           id: 'a1',
-          afgoerelsesDato: '01-01-2023',
-          virkningsDato: '01-01-2023',
+          afgoerelsesDato: toISODateString('2023-01-01'),
+          virkningsDato: toISODateString('2023-01-01'),
           eetPct: 25,
           afgoerelseType: 'Midlertidig',
         }),
       ], {
-        skadedato: '2019-04-01',
+        skadedato: toISODateString('2019-04-01'),
       });
 
       expect(result.computation).toBeNull();
@@ -99,13 +100,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2024-12-31',
+        beregningsdato: toISODateString('2024-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2023',
-            virkningsDato: '01-01-2023',
+            afgoerelsesDato: toISODateString('2023-01-01'),
+            virkningsDato: toISODateString('2023-01-01'),
             eetPct: 25,
             kapDato: undefined,
             kapPct: undefined,
@@ -115,8 +116,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
-            afgoerelsesDato: '15-03-2024',
-            virkningsDato: '01-02-2024',
+            afgoerelsesDato: toISODateString('2024-03-15'),
+            virkningsDato: toISODateString('2024-02-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -126,20 +127,20 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.issues.some((issue) => issue.severity === 'error')).toBe(false);
     const [first, second] = result.computation?.afgoerelser ?? [];
     if (!result.computation || !first || !second) throw new Error('expected two decisions');
 
-    expect(first.ophoerDato).toBe('2024-03-31');
+    expect(first.ophoerDato).toBe(toISODateString('2024-03-31'));
     expect(second.harOverlap).toBe(true);
-    expect(second.skaeringsDato).toBe('2024-04-01');
-    expect(second.perioder[0]?.fra).toBe('2024-02-01');
-    expect(second.perioder[0]?.til).toBe('2024-03-31');
-    expect(second.perioder[1]?.fra).toBe('2024-04-01');
+    expect(second.skaeringsDato).toBe(toISODateString('2024-04-01'));
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2024-02-01'));
+    expect(second.perioder[0]?.til).toBe(toISODateString('2024-03-31'));
+    expect(second.perioder[1]?.fra).toBe(toISODateString('2024-04-01'));
     expect(second.perioder[0]?.grundydelseAfrundet).toBe(
       roundByMethod(second.perioder[1]!.grundydelseAfrundet * (15 / 40), 2, 'halfAwayFromZero')
     );
@@ -149,13 +150,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2024-12-31',
+        beregningsdato: toISODateString('2024-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2023',
-            virkningsDato: '01-01-2023',
+            afgoerelsesDato: toISODateString('2023-01-01'),
+            virkningsDato: toISODateString('2023-01-01'),
             eetPct: 25,
             kapDato: undefined,
             kapPct: undefined,
@@ -165,8 +166,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
-            afgoerelsesDato: '15-03-2024',
-            virkningsDato: '01-04-2024',
+            afgoerelsesDato: toISODateString('2024-03-15'),
+            virkningsDato: toISODateString('2024-04-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -176,32 +177,32 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     const [first, second] = result.computation?.afgoerelser ?? [];
     if (!first || !second) throw new Error('expected two decisions');
 
-    expect(first.ophoerDato).toBe('2024-03-31');
+    expect(first.ophoerDato).toBe(toISODateString('2024-03-31'));
     expect(second.harOverlap).toBe(false);
     expect(second.skaeringsDato).toBeNull();
-    expect(second.perioder[0]?.fra).toBe('2024-04-01');
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2024-04-01'));
   });
 
   it('bruger eksisterende afløsningsregel når virkningsdato ligger efter skæringsdatoen', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
-        afgoerelsesDato: '01-01-2023',
-        virkningsDato: '01-01-2023',
+        afgoerelsesDato: toISODateString('2023-01-01'),
+        virkningsDato: toISODateString('2023-01-01'),
         eetPct: 25,
         afgoerelseType: 'Midlertidig',
       }),
       testRow({
         id: 'a2',
-        afgoerelsesDato: '15-03-2024',
-        virkningsDato: '01-05-2024',
+        afgoerelsesDato: toISODateString('2024-03-15'),
+        virkningsDato: toISODateString('2024-05-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
       }),
@@ -210,26 +211,26 @@ describe('computeEetLoebendeYdelser', () => {
     const [first, second] = result.computation?.afgoerelser ?? [];
     if (!first || !second) throw new Error('expected two decisions');
 
-    expect(first.ophoerDato).toBe('2024-04-30');
+    expect(first.ophoerDato).toBe(toISODateString('2024-04-30'));
     expect(second.harOverlap).toBe(false);
     expect(second.skaeringsDato).toBeNull();
-    expect(second.perioder[0]?.fra).toBe('2024-05-01');
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2024-05-01'));
   });
 
   it('giver 0 procent overlap-bidrag ved fald når FS tilbageholdt EET er Nej', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
-        afgoerelsesDato: '01-01-2023',
-        virkningsDato: '01-01-2023',
+        afgoerelsesDato: toISODateString('2023-01-01'),
+        virkningsDato: toISODateString('2023-01-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
         fsTilbageholdtEet: 'Nej',
       }),
       testRow({
         id: 'a2',
-        afgoerelsesDato: '15-03-2024',
-        virkningsDato: '01-02-2024',
+        afgoerelsesDato: toISODateString('2024-03-15'),
+        virkningsDato: toISODateString('2024-02-01'),
         eetPct: 25,
         afgoerelseType: 'Midlertidig',
       }),
@@ -238,11 +239,11 @@ describe('computeEetLoebendeYdelser', () => {
     const [first, second] = result.computation?.afgoerelser ?? [];
     if (!first || !second) throw new Error('expected two decisions');
 
-    expect(first.ophoerDato).toBe('2024-03-31');
+    expect(first.ophoerDato).toBe(toISODateString('2024-03-31'));
     expect(second.harOverlap).toBe(true);
-    expect(second.perioder[0]?.fra).toBe('2024-04-01');
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2024-04-01'));
     expect(second.perioder[0]?.grundydelseAfrundet).toBeGreaterThan(0);
-    expect(second.perioder.some((row) => row.fra < '2024-04-01')).toBe(false);
+    expect(second.perioder.some((row) => row.fra < toISODateString('2024-04-01'))).toBe(false);
     expect(second.perioder.every((row) => row.beregnetEet !== 0)).toBe(true);
   });
 
@@ -250,16 +251,16 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
-        afgoerelsesDato: '01-01-2023',
-        virkningsDato: '01-01-2023',
+        afgoerelsesDato: toISODateString('2023-01-01'),
+        virkningsDato: toISODateString('2023-01-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
         fsTilbageholdtEet: 'Nej',
       }),
       testRow({
         id: 'a2',
-        afgoerelsesDato: '15-03-2024',
-        virkningsDato: '01-02-2024',
+        afgoerelsesDato: toISODateString('2024-03-15'),
+        virkningsDato: toISODateString('2024-02-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
       }),
@@ -268,11 +269,11 @@ describe('computeEetLoebendeYdelser', () => {
     const [first, second] = result.computation?.afgoerelser ?? [];
     if (!first || !second) throw new Error('expected two decisions');
 
-    expect(first.ophoerDato).toBe('2024-03-31');
+    expect(first.ophoerDato).toBe(toISODateString('2024-03-31'));
     expect(second.harOverlap).toBe(true);
-    expect(second.perioder[0]?.fra).toBe('2024-04-01');
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2024-04-01'));
     expect(second.perioder[0]?.grundydelseAfrundet).toBeGreaterThan(0);
-    expect(second.perioder.some((row) => row.fra < '2024-04-01')).toBe(false);
+    expect(second.perioder.some((row) => row.fra < toISODateString('2024-04-01'))).toBe(false);
     expect(second.perioder.every((row) => row.beregnetEet !== 0)).toBe(true);
   });
 
@@ -280,16 +281,16 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
-        afgoerelsesDato: '01-01-2023',
-        virkningsDato: '01-01-2023',
+        afgoerelsesDato: toISODateString('2023-01-01'),
+        virkningsDato: toISODateString('2023-01-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
         fsTilbageholdtEet: 'Ja',
       }),
       testRow({
         id: 'a2',
-        afgoerelsesDato: '15-03-2024',
-        virkningsDato: '01-02-2024',
+        afgoerelsesDato: toISODateString('2024-03-15'),
+        virkningsDato: toISODateString('2024-02-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
       }),
@@ -298,25 +299,25 @@ describe('computeEetLoebendeYdelser', () => {
     const [first, second] = result.computation?.afgoerelser ?? [];
     if (!first || !second) throw new Error('expected two decisions');
 
-    expect(first.ophoerDato).toBe('2024-01-31');
+    expect(first.ophoerDato).toBe(toISODateString('2024-01-31'));
     expect(second.harOverlap).toBe(false);
     expect(second.skaeringsDato).toBeNull();
-    expect(second.perioder[0]?.fra).toBe('2024-02-01');
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2024-02-01'));
   });
 
   it('splitter overlapperioden ved kalenderårsskifte når skæringsdatoen ligger i det nye år', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
-        afgoerelsesDato: '01-01-2024',
-        virkningsDato: '01-01-2024',
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
         eetPct: 25,
         afgoerelseType: 'Midlertidig',
       }),
       testRow({
         id: 'a2',
-        afgoerelsesDato: '15-01-2025',
-        virkningsDato: '01-11-2024',
+        afgoerelsesDato: toISODateString('2025-01-15'),
+        virkningsDato: toISODateString('2024-11-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
       }),
@@ -326,29 +327,29 @@ describe('computeEetLoebendeYdelser', () => {
     if (!second) throw new Error('expected second decision');
 
     expect(second.harOverlap).toBe(true);
-    expect(second.skaeringsDato).toBe('2025-02-01');
-    expect(second.perioder[0]?.fra).toBe('2024-11-01');
-    expect(second.perioder[0]?.til).toBe('2024-12-31');
+    expect(second.skaeringsDato).toBe(toISODateString('2025-02-01'));
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2024-11-01'));
+    expect(second.perioder[0]?.til).toBe(toISODateString('2024-12-31'));
     expect(second.perioder[0]?.satsAar).toBe(2024);
-    expect(second.perioder[1]?.fra).toBe('2025-01-01');
-    expect(second.perioder[1]?.til).toBe('2025-01-31');
+    expect(second.perioder[1]?.fra).toBe(toISODateString('2025-01-01'));
+    expect(second.perioder[1]?.til).toBe(toISODateString('2025-01-31'));
     expect(second.perioder[1]?.satsAar).toBe(2025);
-    expect(second.perioder[2]?.fra).toBe('2025-02-01');
+    expect(second.perioder[2]?.fra).toBe(toISODateString('2025-02-01'));
   });
 
   it('beregner delvise måneder i overlapperioden med præcis dagbrøk', () => {
     const partial = computeTestRows([
       testRow({
         id: 'a1',
-        afgoerelsesDato: '01-01-2024',
-        virkningsDato: '01-01-2024',
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
         eetPct: 25,
         afgoerelseType: 'Midlertidig',
       }),
       testRow({
         id: 'a2',
-        afgoerelsesDato: '15-03-2024',
-        virkningsDato: '10-03-2024',
+        afgoerelsesDato: toISODateString('2024-03-15'),
+        virkningsDato: toISODateString('2024-03-10'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
       }),
@@ -356,15 +357,15 @@ describe('computeEetLoebendeYdelser', () => {
     const full = computeTestRows([
       testRow({
         id: 'a1',
-        afgoerelsesDato: '01-01-2024',
-        virkningsDato: '01-01-2024',
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
         eetPct: 25,
         afgoerelseType: 'Midlertidig',
       }),
       testRow({
         id: 'a2',
-        afgoerelsesDato: '31-03-2024',
-        virkningsDato: '01-03-2024',
+        afgoerelsesDato: toISODateString('2024-03-31'),
+        virkningsDato: toISODateString('2024-03-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
       }),
@@ -374,11 +375,11 @@ describe('computeEetLoebendeYdelser', () => {
     const fullOverlap = full.computation?.afgoerelser[1]?.perioder[0];
     if (!partialOverlap || !fullOverlap) throw new Error('expected overlap periods');
 
-    expect(partialOverlap.fra).toBe('2024-03-10');
-    expect(partialOverlap.til).toBe('2024-03-31');
+    expect(partialOverlap.fra).toBe(toISODateString('2024-03-10'));
+    expect(partialOverlap.til).toBe(toISODateString('2024-03-31'));
     expect(partialOverlap.maanederPraecis).toBeCloseTo(22 / 31, 10);
-    expect(fullOverlap.fra).toBe('2024-03-01');
-    expect(fullOverlap.til).toBe('2024-03-31');
+    expect(fullOverlap.fra).toBe(toISODateString('2024-03-01'));
+    expect(fullOverlap.til).toBe(toISODateString('2024-03-31'));
     expect(fullOverlap.maanederPraecis).toBe(1);
   });
 
@@ -386,15 +387,15 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
-        afgoerelsesDato: '01-03-2024',
-        virkningsDato: '01-01-2024',
+        afgoerelsesDato: toISODateString('2024-03-01'),
+        virkningsDato: toISODateString('2024-01-01'),
         eetPct: 25,
         afgoerelseType: 'Midlertidig',
       }),
       testRow({
         id: 'a2',
-        afgoerelsesDato: '01-03-2024',
-        virkningsDato: '01-02-2024',
+        afgoerelsesDato: toISODateString('2024-03-01'),
+        virkningsDato: toISODateString('2024-02-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
       }),
@@ -403,35 +404,35 @@ describe('computeEetLoebendeYdelser', () => {
     const [first, second] = result.computation?.afgoerelser ?? [];
     if (!first || !second) throw new Error('expected two decisions');
 
-    expect(first.ophoerDato).toBe('2024-03-31');
+    expect(first.ophoerDato).toBe(toISODateString('2024-03-31'));
     expect(second.harOverlap).toBe(true);
-    expect(second.skaeringsDato).toBe('2024-04-01');
-    expect(second.perioder[0]?.fra).toBe('2024-02-01');
-    expect(second.perioder[0]?.til).toBe('2024-03-31');
+    expect(second.skaeringsDato).toBe(toISODateString('2024-04-01'));
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2024-02-01'));
+    expect(second.perioder[0]?.til).toBe(toISODateString('2024-03-31'));
     expect(second.perioder[0]?.grundydelseAfrundet).toBeGreaterThan(0);
-    expect(second.perioder[1]?.fra).toBe('2024-04-01');
+    expect(second.perioder[1]?.fra).toBe(toISODateString('2024-04-01'));
   });
 
   it('fordeler kædet overlap mellem seneste referenceafgørelser når procenterne stiger trinvist', () => {
     const result = computeTestRows([
       testRow({
         id: 'a',
-        afgoerelsesDato: '01-01-2023',
-        virkningsDato: '01-01-2023',
+        afgoerelsesDato: toISODateString('2023-01-01'),
+        virkningsDato: toISODateString('2023-01-01'),
         eetPct: 25,
         afgoerelseType: 'Midlertidig',
       }),
       testRow({
         id: 'c',
-        afgoerelsesDato: '10-04-2024',
-        virkningsDato: '01-03-2024',
+        afgoerelsesDato: toISODateString('2024-04-10'),
+        virkningsDato: toISODateString('2024-03-01'),
         eetPct: 30,
         afgoerelseType: 'Midlertidig',
       }),
       testRow({
         id: 'b',
-        afgoerelsesDato: '15-04-2024',
-        virkningsDato: '01-03-2024',
+        afgoerelsesDato: toISODateString('2024-04-15'),
+        virkningsDato: toISODateString('2024-03-01'),
         eetPct: 35,
         afgoerelseType: 'Midlertidig',
       }),
@@ -442,35 +443,35 @@ describe('computeEetLoebendeYdelser', () => {
 
     expect(second.rowId).toBe('c');
     expect(third.rowId).toBe('b');
-    expect(second.perioder[0]?.fra).toBe('2024-03-01');
-    expect(second.perioder[0]?.til).toBe('2024-04-30');
-    expect(third.perioder[0]?.fra).toBe('2024-03-01');
-    expect(third.perioder[0]?.til).toBe('2024-04-30');
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2024-03-01'));
+    expect(second.perioder[0]?.til).toBe(toISODateString('2024-04-30'));
+    expect(third.perioder[0]?.fra).toBe(toISODateString('2024-03-01'));
+    expect(third.perioder[0]?.til).toBe(toISODateString('2024-04-30'));
     expect(second.perioder[0]?.grundydelseAfrundet).toBe(third.perioder[0]?.grundydelseAfrundet);
-    expect(third.perioder[1]?.fra).toBe('2024-05-01');
+    expect(third.perioder[1]?.fra).toBe(toISODateString('2024-05-01'));
   });
 
   it('aktiverer FS-undtagelsen i kædet overlap når den seneste referenceafgørelse falder', () => {
     const result = computeTestRows([
       testRow({
         id: 'a',
-        afgoerelsesDato: '01-01-2023',
-        virkningsDato: '01-01-2023',
+        afgoerelsesDato: toISODateString('2023-01-01'),
+        virkningsDato: toISODateString('2023-01-01'),
         eetPct: 25,
         afgoerelseType: 'Midlertidig',
       }),
       testRow({
         id: 'c',
-        afgoerelsesDato: '10-04-2024',
-        virkningsDato: '01-03-2024',
+        afgoerelsesDato: toISODateString('2024-04-10'),
+        virkningsDato: toISODateString('2024-03-01'),
         eetPct: 50,
         afgoerelseType: 'Midlertidig',
         fsTilbageholdtEet: 'Ja',
       }),
       testRow({
         id: 'b',
-        afgoerelsesDato: '15-04-2024',
-        virkningsDato: '01-03-2024',
+        afgoerelsesDato: toISODateString('2024-04-15'),
+        virkningsDato: toISODateString('2024-03-01'),
         eetPct: 35,
         afgoerelseType: 'Midlertidig',
       }),
@@ -479,28 +480,28 @@ describe('computeEetLoebendeYdelser', () => {
     const [first, second, third] = result.computation?.afgoerelser ?? [];
     if (!first || !second || !third) throw new Error('expected chained decisions');
 
-    expect(first.ophoerDato).toBe('2024-04-30');
-    expect(second.ophoerDato).toBe('2024-02-29');
+    expect(first.ophoerDato).toBe(toISODateString('2024-04-30'));
+    expect(second.ophoerDato).toBe(toISODateString('2024-02-29'));
     expect(second.perioder).toEqual([]);
     expect(third.harOverlap).toBe(false);
-    expect(third.perioder[0]?.fra).toBe('2024-03-01');
+    expect(third.perioder[0]?.fra).toBe(toISODateString('2024-03-01'));
   });
 
   it('fradrager tidligere kapitalisering i overlapperiodens difference og efter skæringsdatoen', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
-        afgoerelsesDato: '01-01-2024',
-        virkningsDato: '01-01-2024',
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
         eetPct: 40,
-        kapDato: '01-01-2024',
+        kapDato: toISODateString('2024-01-01'),
         kapPct: 20,
         afgoerelseType: 'Delvist endelig',
       }),
       testRow({
         id: 'a2',
-        afgoerelsesDato: '15-03-2024',
-        virkningsDato: '01-03-2024',
+        afgoerelsesDato: toISODateString('2024-03-15'),
+        virkningsDato: toISODateString('2024-03-01'),
         eetPct: 50,
         afgoerelseType: 'Midlertidig',
       }),
@@ -511,9 +512,9 @@ describe('computeEetLoebendeYdelser', () => {
 
     expect(first.restEetPct).toBe(20);
     expect(second.priorKapPct).toBe(20);
-    expect(second.perioder[0]?.fra).toBe('2024-03-01');
-    expect(second.perioder[0]?.til).toBe('2024-03-31');
-    expect(second.perioder[1]?.fra).toBe('2024-04-01');
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2024-03-01'));
+    expect(second.perioder[0]?.til).toBe(toISODateString('2024-03-31'));
+    expect(second.perioder[1]?.fra).toBe(toISODateString('2024-04-01'));
     expect(second.perioder[0]?.grundydelseAfrundet).toBeCloseTo(
       second.perioder[1]!.grundydelseAfrundet * (10 / 30),
       1
@@ -524,17 +525,17 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
-        afgoerelsesDato: '01-01-2024',
-        virkningsDato: '01-01-2024',
+        afgoerelsesDato: toISODateString('2024-01-01'),
+        virkningsDato: toISODateString('2024-01-01'),
         eetPct: 30,
         afgoerelseType: 'Midlertidig',
       }),
       testRow({
         id: 'a2',
-        afgoerelsesDato: '15-03-2024',
-        virkningsDato: '01-03-2024',
+        afgoerelsesDato: toISODateString('2024-03-15'),
+        virkningsDato: toISODateString('2024-03-01'),
         eetPct: 50,
-        kapDato: '01-10-2024',
+        kapDato: toISODateString('2024-10-01'),
         kapPct: 20,
         afgoerelseType: 'Delvist endelig',
       }),
@@ -543,24 +544,24 @@ describe('computeEetLoebendeYdelser', () => {
     const second = result.computation?.afgoerelser[1];
     if (!second) throw new Error('expected second decision');
 
-    const overlapRows = second.perioder.filter((row) => row.til <= '2024-03-31');
+    const overlapRows = second.perioder.filter((row) => row.til <= toISODateString('2024-03-31'));
     expect(overlapRows).toHaveLength(1);
-    expect(overlapRows[0]?.fra).toBe('2024-03-01');
-    expect(overlapRows[0]?.til).toBe('2024-03-31');
-    expect(second.perioder.some((row) => row.fra === '2024-10-01')).toBe(true);
+    expect(overlapRows[0]?.fra).toBe(toISODateString('2024-03-01'));
+    expect(overlapRows[0]?.til).toBe(toISODateString('2024-03-31'));
+    expect(second.perioder.some((row) => row.fra === toISODateString('2024-10-01'))).toBe(true);
   });
 
   it('bruger faktisk virkningsdato ved stigning når forgængeren har FS tilbageholdt EET', () => {
     const increase = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2024-12-31',
+        beregningsdato: toISODateString('2024-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2023',
-            virkningsDato: '01-01-2023',
+            afgoerelsesDato: toISODateString('2023-01-01'),
+            virkningsDato: toISODateString('2023-01-01'),
             eetPct: 25,
             kapDato: undefined,
             kapPct: undefined,
@@ -570,8 +571,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
-            afgoerelsesDato: '15-03-2024',
-            virkningsDato: '01-02-2024',
+            afgoerelsesDato: toISODateString('2024-03-15'),
+            virkningsDato: toISODateString('2024-02-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -581,27 +582,27 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(increase.computation?.afgoerelser[1]?.harOverlap).toBe(false);
     expect(increase.computation?.afgoerelser[1]?.skaeringsDato).toBeNull();
-    expect(increase.computation?.afgoerelser[0]?.ophoerDato).toBe('2024-01-31');
-    expect(increase.computation?.afgoerelser[1]?.perioder[0]?.fra).toBe('2024-02-01');
+    expect(increase.computation?.afgoerelser[0]?.ophoerDato).toBe(toISODateString('2024-01-31'));
+    expect(increase.computation?.afgoerelser[1]?.perioder[0]?.fra).toBe(toISODateString('2024-02-01'));
   });
 
   it('bruger faktisk virkningsdato ved fald når forgængeren har FS tilbageholdt EET', () => {
     const decrease = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2024-12-31',
+        beregningsdato: toISODateString('2024-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2023',
-            virkningsDato: '01-01-2023',
+            afgoerelsesDato: toISODateString('2023-01-01'),
+            virkningsDato: toISODateString('2023-01-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -611,8 +612,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
-            afgoerelsesDato: '15-03-2024',
-            virkningsDato: '01-02-2024',
+            afgoerelsesDato: toISODateString('2024-03-15'),
+            virkningsDato: toISODateString('2024-02-01'),
             eetPct: 25,
             kapDato: undefined,
             kapPct: undefined,
@@ -622,27 +623,27 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(decrease.computation?.afgoerelser[1]?.harOverlap).toBe(false);
     expect(decrease.computation?.afgoerelser[1]?.skaeringsDato).toBeNull();
-    expect(decrease.computation?.afgoerelser[0]?.ophoerDato).toBe('2024-01-31');
-    expect(decrease.computation?.afgoerelser[1]?.perioder[0]?.fra).toBe('2024-02-01');
+    expect(decrease.computation?.afgoerelser[0]?.ophoerDato).toBe(toISODateString('2024-01-31'));
+    expect(decrease.computation?.afgoerelser[1]?.perioder[0]?.fra).toBe(toISODateString('2024-02-01'));
   });
 
   it('lader FS tilbageholdt EET på forgængeren afløse på næste afgørelses faktiske virkningsdato', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2021-12-31',
+        beregningsdato: toISODateString('2021-12-31'),
         aslAarsloen: asAmount(500000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-10-2019',
-            virkningsDato: '01-02-2019',
+            afgoerelsesDato: toISODateString('2019-10-01'),
+            virkningsDato: toISODateString('2019-02-01'),
             eetPct: 55,
             kapDato: undefined,
             kapPct: undefined,
@@ -652,8 +653,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
-            afgoerelsesDato: '15-02-2021',
-            virkningsDato: '01-02-2021',
+            afgoerelsesDato: toISODateString('2021-02-15'),
+            virkningsDato: toISODateString('2021-02-01'),
             eetPct: 65,
             kapDato: undefined,
             kapPct: undefined,
@@ -663,30 +664,30 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-01-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-01-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     const [first, second] = result.computation?.afgoerelser ?? [];
     if (!first || !second) throw new Error('expected two decisions');
 
-    expect(first.ophoerDato).toBe('2021-01-31');
+    expect(first.ophoerDato).toBe(toISODateString('2021-01-31'));
     expect(second.harOverlap).toBe(false);
     expect(second.skaeringsDato).toBeNull();
-    expect(second.perioder[0]?.fra).toBe('2021-02-01');
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2021-02-01'));
   });
 
   it('lader kapitalisering midt i overlap reducere både forgænger og ny afgørelse', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2024-12-31',
+        beregningsdato: toISODateString('2024-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2024',
-            virkningsDato: '01-01-2024',
+            afgoerelsesDato: toISODateString('2024-01-01'),
+            virkningsDato: toISODateString('2024-01-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -696,10 +697,10 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
-            afgoerelsesDato: '15-03-2024',
-            virkningsDato: '01-03-2024',
+            afgoerelsesDato: toISODateString('2024-03-15'),
+            virkningsDato: toISODateString('2024-03-01'),
             eetPct: 50,
-            kapDato: '20-03-2024',
+            kapDato: toISODateString('2024-03-20'),
             kapPct: 20,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
@@ -707,18 +708,18 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     const [first, second] = result.computation?.afgoerelser ?? [];
     if (!first || !second) throw new Error('expected two decisions');
 
-    expect(first.perioder.some((row) => row.til === '2024-03-19')).toBe(true);
-    expect(first.perioder.some((row) => row.fra === '2024-03-20')).toBe(true);
+    expect(first.perioder.some((row) => row.til === toISODateString('2024-03-19'))).toBe(true);
+    expect(first.perioder.some((row) => row.fra === toISODateString('2024-03-20'))).toBe(true);
 
-    const beforeKapOverlap = second.perioder.find((row) => row.fra === '2024-03-01' && row.til === '2024-03-19');
-    const afterKapOverlap = second.perioder.find((row) => row.fra === '2024-03-20' && row.til === '2024-03-31');
+    const beforeKapOverlap = second.perioder.find((row) => row.fra === toISODateString('2024-03-01') && row.til === toISODateString('2024-03-19'));
+    const afterKapOverlap = second.perioder.find((row) => row.fra === toISODateString('2024-03-20') && row.til === toISODateString('2024-03-31'));
     if (!beforeKapOverlap || !afterKapOverlap) throw new Error('expected overlap split around kapitalisering');
 
     expect(beforeKapOverlap.grundydelseAfrundet).toBe(afterKapOverlap.grundydelseAfrundet);
@@ -728,13 +729,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2024-12-31',
+        beregningsdato: toISODateString('2024-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2024',
-            virkningsDato: '01-01-2024',
+            afgoerelsesDato: toISODateString('2024-01-01'),
+            virkningsDato: toISODateString('2024-01-01'),
             eetPct: 25,
             kapDato: undefined,
             kapPct: undefined,
@@ -744,8 +745,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
-            afgoerelsesDato: '01-06-2024',
-            virkningsDato: '01-11-2023',
+            afgoerelsesDato: toISODateString('2024-06-01'),
+            virkningsDato: toISODateString('2023-11-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -755,20 +756,20 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     const second = result.computation?.afgoerelser[1];
     if (!second) throw new Error('expected second decision');
 
     expect(second.harOverlap).toBe(true);
-    expect(second.skaeringsDato).toBe('2024-07-01');
-    expect(second.perioder[0]?.fra).toBe('2023-11-01');
-    expect(second.perioder[0]?.til).toBe('2023-12-31');
-    expect(second.perioder[1]?.fra).toBe('2024-01-01');
-    expect(second.perioder[1]?.til).toBe('2024-06-30');
-    expect(second.perioder[2]?.fra).toBe('2024-07-01');
+    expect(second.skaeringsDato).toBe(toISODateString('2024-07-01'));
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2023-11-01'));
+    expect(second.perioder[0]?.til).toBe(toISODateString('2023-12-31'));
+    expect(second.perioder[1]?.fra).toBe(toISODateString('2024-01-01'));
+    expect(second.perioder[1]?.til).toBe(toISODateString('2024-06-30'));
+    expect(second.perioder[2]?.fra).toBe(toISODateString('2024-07-01'));
     expect(second.perioder[1]?.grundydelseAfrundet).toBe(
       roundByMethod(second.perioder[2]!.grundydelseAfrundet * (15 / 40), 2, 'halfAwayFromZero')
     );
@@ -780,13 +781,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2024-12-31',
+        beregningsdato: toISODateString('2024-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2023',
-            virkningsDato: '01-01-2023',
+            afgoerelsesDato: toISODateString('2023-01-01'),
+            virkningsDato: toISODateString('2023-01-01'),
             eetPct: 25,
             kapDato: undefined,
             kapPct: undefined,
@@ -796,8 +797,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'c',
-            afgoerelsesDato: '10-04-2024',
-            virkningsDato: '01-03-2024',
+            afgoerelsesDato: toISODateString('2024-04-10'),
+            virkningsDato: toISODateString('2024-03-01'),
             eetPct: 50,
             kapDato: undefined,
             kapPct: undefined,
@@ -807,8 +808,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'b',
-            afgoerelsesDato: '15-04-2024',
-            virkningsDato: '01-03-2024',
+            afgoerelsesDato: toISODateString('2024-04-15'),
+            virkningsDato: toISODateString('2024-03-01'),
             eetPct: 35,
             kapDato: undefined,
             kapPct: undefined,
@@ -818,8 +819,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     const [first, second, third] = result.computation?.afgoerelser ?? [];
@@ -828,11 +829,11 @@ describe('computeEetLoebendeYdelser', () => {
     expect(first.rowId).toBe('a1');
     expect(second.rowId).toBe('c');
     expect(third.rowId).toBe('b');
-    expect(first.ophoerDato).toBe('2024-04-30');
-    expect(second.ophoerDato).toBe('2024-04-30');
+    expect(first.ophoerDato).toBe(toISODateString('2024-04-30'));
+    expect(second.ophoerDato).toBe(toISODateString('2024-04-30'));
     expect(second.perioder[0]?.grundydelseAfrundet).toBeGreaterThan(0);
     expect(third.perioder).toHaveLength(1);
-    expect(third.perioder[0]?.fra).toBe('2024-05-01');
+    expect(third.perioder[0]?.fra).toBe(toISODateString('2024-05-01'));
     expect(third.perioder[0]?.grundydelseAfrundet).toBeGreaterThan(0);
     expect(third.perioder.every((row) => row.beregnetEet !== 0)).toBe(true);
   });
@@ -841,13 +842,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: toISODateString('2026-02-27'),
         aslAarsloen: asAmount(489000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-07-2023',
-            virkningsDato: '01-02-2023',
+            afgoerelsesDato: toISODateString('2023-07-01'),
+            virkningsDato: toISODateString('2023-02-01'),
             eetPct: 45,
             kapDato: undefined,
             kapPct: undefined,
@@ -856,18 +857,18 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
-            afgoerelsesDato: '01-11-2025',
-            virkningsDato: '01-10-2025',
+            afgoerelsesDato: toISODateString('2025-11-01'),
+            virkningsDato: toISODateString('2025-10-01'),
             eetPct: 75,
-            kapDato: '15-01-2026',
+            kapDato: toISODateString('2026-01-15'),
             kapPct: 50,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.issues.some((issue) => issue.severity === 'error')).toBe(false);
@@ -890,13 +891,13 @@ describe('computeEetLoebendeYdelser', () => {
     const second = computation.afgoerelser[1];
     expect(second.restEetPct).toBe(25);
     expect(second.harOverlap).toBe(true);
-    expect(second.skaeringsDato).toBe('2025-12-01');
+    expect(second.skaeringsDato).toBe(toISODateString('2025-12-01'));
     expect(second.perioder).toHaveLength(4);
-    expect(second.perioder[0]?.fra).toBe('2025-10-01');
-    expect(second.perioder[0]?.til).toBe('2025-11-30');
-    expect(second.perioder[1]?.fra).toBe('2025-12-01');
-    expect(second.perioder[2]?.fra).toBe('2026-01-01');
-    expect(second.perioder[3]?.fra).toBe('2026-01-15');
+    expect(second.perioder[0]?.fra).toBe(toISODateString('2025-10-01'));
+    expect(second.perioder[0]?.til).toBe(toISODateString('2025-11-30'));
+    expect(second.perioder[1]?.fra).toBe(toISODateString('2025-12-01'));
+    expect(second.perioder[2]?.fra).toBe(toISODateString('2026-01-01'));
+    expect(second.perioder[3]?.fra).toBe(toISODateString('2026-01-15'));
     expect(second.perioder[0]?.maanedligYdelse).toBeLessThan(second.perioder[1]!.maanedligYdelse);
     expect(second.perioder[3]?.maanedligYdelse).toBe(9558);
   });
@@ -905,23 +906,23 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: toISODateString('2026-02-27'),
         aslAarsloen: asAmount(400000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-11-2025',
-            virkningsDato: '01-10-2025',
+            afgoerelsesDato: toISODateString('2025-11-01'),
+            virkningsDato: toISODateString('2025-10-01'),
             eetPct: 40,
-            kapDato: '15-01-2026',
+            kapDato: toISODateString('2026-01-15'),
             kapPct: undefined,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.computation).toBeNull();
@@ -932,13 +933,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: toISODateString('2026-02-27'),
         aslAarsloen: asAmount(400000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-11-2025',
-            virkningsDato: '01-10-2025',
+            afgoerelsesDato: toISODateString('2025-11-01'),
+            virkningsDato: toISODateString('2025-10-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -947,8 +948,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.computation).not.toBeNull();
@@ -959,13 +960,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: toISODateString('2026-02-27'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-08-2025',
-            virkningsDato: '01-08-2025',
+            afgoerelsesDato: toISODateString('2025-08-01'),
+            virkningsDato: toISODateString('2025-08-01'),
             eetPct: 55,
             kapDato: undefined,
             kapPct: undefined,
@@ -974,8 +975,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2024-07-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2024-07-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.computation).not.toBeNull();
@@ -992,23 +993,23 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-01-14',
+        beregningsdato: toISODateString('2026-01-14'),
         aslAarsloen: asAmount(339000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '15-01-2026',
-            virkningsDato: '15-01-2026',
+            afgoerelsesDato: toISODateString('2026-01-15'),
+            virkningsDato: toISODateString('2026-01-15'),
             eetPct: 15,
-            kapDato: '15-01-2026',
+            kapDato: toISODateString('2026-01-15'),
             kapPct: 15,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2022-09-17',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2022-09-17'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-afgoerelsesdato-after-beregningsdato')).toBe(true);
@@ -1020,23 +1021,23 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: toISODateString('2026-02-27'),
         aslAarsloen: asAmount(489000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-11-2025',
-            virkningsDato: '01-10-2025',
+            afgoerelsesDato: toISODateString('2025-11-01'),
+            virkningsDato: toISODateString('2025-10-01'),
             eetPct: 75,
-            kapDato: '15-01-2026',
+            kapDato: toISODateString('2026-01-15'),
             kapPct: 50,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.computation).not.toBeNull();
@@ -1059,33 +1060,33 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-12-31',
+        beregningsdato: toISODateString('2026-12-31'),
         aslAarsloen: asAmount(489000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-07-2023',
-            virkningsDato: '01-02-2023',
+            afgoerelsesDato: toISODateString('2023-07-01'),
+            virkningsDato: toISODateString('2023-02-01'),
             eetPct: 60,
-            kapDato: '01-10-2023',
+            kapDato: toISODateString('2023-10-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
           {
             id: 'a2',
-            afgoerelsesDato: '01-11-2025',
-            virkningsDato: '01-10-2025',
+            afgoerelsesDato: toISODateString('2025-11-01'),
+            virkningsDato: toISODateString('2025-10-01'),
             eetPct: 75,
-            kapDato: '15-07-2026',
+            kapDato: toISODateString('2026-07-15'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.computation).not.toBeNull();
@@ -1101,8 +1102,8 @@ describe('computeEetLoebendeYdelser', () => {
     expect(second.harRestSektion).toBe(true);
     expect(second.grundydelseFuld).toBe(roundByMethod(computation.grundloen * 0.5 * 0.83 * 0.92, 2, 'halfAwayFromZero'));
 
-    const beforeKapRow = second.perioder.find((row) => row.til === '2026-07-14');
-    const afterKapRow = second.perioder.find((row) => row.fra === '2026-07-15');
+    const beforeKapRow = second.perioder.find((row) => row.til === toISODateString('2026-07-14'));
+    const afterKapRow = second.perioder.find((row) => row.fra === toISODateString('2026-07-15'));
     if (!beforeKapRow || !afterKapRow) throw new Error('expected split rows around kapitaliseringsdato');
 
     expect(afterKapRow.maanedligYdelse).toBeLessThan(beforeKapRow.maanedligYdelse);
@@ -1112,13 +1113,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: toISODateString('2026-02-27'),
         aslAarsloen: asAmount(450000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2024',
-            virkningsDato: '01-01-2024',
+            afgoerelsesDato: toISODateString('2024-01-01'),
+            virkningsDato: toISODateString('2024-01-01'),
             eetPct: 60,
             kapDato: undefined,
             kapPct: undefined,
@@ -1127,8 +1128,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
-            afgoerelsesDato: '01-06-2024',
-            virkningsDato: '01-06-2024',
+            afgoerelsesDato: toISODateString('2024-06-01'),
+            virkningsDato: toISODateString('2024-06-01'),
             eetPct: 45,
             kapDato: undefined,
             kapPct: undefined,
@@ -1137,8 +1138,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-non-endelig-after-endelig')).toBe(true);
@@ -1148,13 +1149,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2027-12-31',
+        beregningsdato: toISODateString('2027-12-31'),
         aslAarsloen: asAmount(500000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2027',
-            virkningsDato: '01-01-2027',
+            afgoerelsesDato: toISODateString('2027-01-01'),
+            virkningsDato: toISODateString('2027-01-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -1163,8 +1164,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2024-07-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2024-07-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.computation).toBeNull();
@@ -1175,13 +1176,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-01',
+        beregningsdato: toISODateString('2026-02-01'),
         aslAarsloen: asAmount(489000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-06-2024',
-            virkningsDato: '01-03-2022',
+            afgoerelsesDato: toISODateString('2024-06-01'),
+            virkningsDato: toISODateString('2022-03-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -1190,8 +1191,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.computation).not.toBeNull();
@@ -1202,13 +1203,13 @@ describe('computeEetLoebendeYdelser', () => {
 
     expect(afgoerelse.tilbagevirkendeKraft).toBe(true);
     expect(afgoerelse.perioder).toHaveLength(3);
-    expect(afgoerelse.perioder[0]?.fra).toBe('2022-03-01');
-    expect(afgoerelse.perioder[0]?.til).toBe('2024-12-31');
+    expect(afgoerelse.perioder[0]?.fra).toBe(toISODateString('2022-03-01'));
+    expect(afgoerelse.perioder[0]?.til).toBe(toISODateString('2024-12-31'));
     expect(afgoerelse.perioder[0]?.satsAar).toBe(2024);
-    expect(afgoerelse.perioder[1]?.fra).toBe('2025-01-01');
+    expect(afgoerelse.perioder[1]?.fra).toBe(toISODateString('2025-01-01'));
     expect(afgoerelse.perioder[1]?.satsAar).toBe(2025);
-    expect(afgoerelse.perioder[2]?.fra).toBe('2026-01-01');
-    expect(afgoerelse.perioder[2]?.til).toBe('2026-02-01');
+    expect(afgoerelse.perioder[2]?.fra).toBe(toISODateString('2026-01-01'));
+    expect(afgoerelse.perioder[2]?.til).toBe(toISODateString('2026-02-01'));
     expect(afgoerelse.perioder[2]?.satsAar).toBe(2026);
   });
 
@@ -1216,13 +1217,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-12-31',
+        beregningsdato: toISODateString('2026-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2026',
-            virkningsDato: '01-01-2026',
+            afgoerelsesDato: toISODateString('2026-01-01'),
+            virkningsDato: toISODateString('2026-01-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -1231,8 +1232,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2024-07-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2024-07-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.computation).not.toBeNull();
@@ -1251,13 +1252,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-12-31',
+        beregningsdato: toISODateString('2026-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2026',
-            virkningsDato: '01-01-2026',
+            afgoerelsesDato: toISODateString('2026-01-01'),
+            virkningsDato: toISODateString('2026-01-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -1266,8 +1267,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2009-01-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2009-01-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.computation).not.toBeNull();
@@ -1286,13 +1287,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2024-12-31',
+        beregningsdato: toISODateString('2024-12-31'),
         aslAarsloen: asAmount(489000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-01-2024',
-            virkningsDato: '01-01-2024',
+            afgoerelsesDato: toISODateString('2024-01-01'),
+            virkningsDato: toISODateString('2024-01-01'),
             eetPct: 40,
             kapDato: undefined,
             kapPct: undefined,
@@ -1301,8 +1302,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.issues.some((issue) => issue.severity === 'error')).toBe(false);
@@ -1317,23 +1318,23 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-01-15',
+        beregningsdato: toISODateString('2026-01-15'),
         aslAarsloen: asAmount(339000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '15-01-2026',
-            virkningsDato: '15-01-2026',
+            afgoerelsesDato: toISODateString('2026-01-15'),
+            virkningsDato: toISODateString('2026-01-15'),
             eetPct: 15,
-            kapDato: '15-01-2026',
+            kapDato: toISODateString('2026-01-15'),
             kapPct: 15,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2022-09-17',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2022-09-17'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.issues.some((issue) => issue.severity === 'error')).toBe(false);
@@ -1357,13 +1358,13 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2023-12-31',
+        beregningsdato: toISODateString('2023-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-06-2019',
-            virkningsDato: '01-06-2019',
+            afgoerelsesDato: toISODateString('2019-06-01'),
+            virkningsDato: toISODateString('2019-06-01'),
             eetPct: 60,
             kapDato: undefined,
             kapPct: undefined,
@@ -1372,8 +1373,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1955-07-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
     });
 
     expect(result.computation).not.toBeNull();
@@ -1383,20 +1384,20 @@ describe('computeEetLoebendeYdelser', () => {
     if (!afgoerelse) throw new Error('expected first decision');
 
     expect(afgoerelse.ophoerAarsag).toBe('folkepensionsdato');
-    expect(afgoerelse.ophoerDato).toBe('2022-06-30');
+    expect(afgoerelse.ophoerDato).toBe(toISODateString('2022-06-30'));
   });
 
   it('lader to afgørelser med samme afgørelsesdato afløse hinanden efter virkningsdato', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2024-12-31',
+        beregningsdato: toISODateString('2024-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-05-2024',
-            virkningsDato: '01-01-2024',
+            afgoerelsesDato: toISODateString('2024-05-01'),
+            virkningsDato: toISODateString('2024-01-01'),
             eetPct: 50,
             kapDato: undefined,
             kapPct: undefined,
@@ -1405,8 +1406,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
-            afgoerelsesDato: '01-05-2024',
-            virkningsDato: '01-07-2024',
+            afgoerelsesDato: toISODateString('2024-05-01'),
+            virkningsDato: toISODateString('2024-07-01'),
             eetPct: 30,
             kapDato: undefined,
             kapPct: undefined,
@@ -1415,28 +1416,28 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.issues.some((issue) => issue.severity === 'error')).toBe(false);
     expect(result.computation?.afgoerelser).toHaveLength(2);
     expect(result.computation?.afgoerelser[0]?.ophoerAarsag).toBe('senere-afgoerelse');
-    expect(result.computation?.afgoerelser[0]?.ophoerDato).toBe('2024-06-30');
-    expect(result.computation?.afgoerelser[1]?.virkningsdato).toBe('2024-07-01');
+    expect(result.computation?.afgoerelser[0]?.ophoerDato).toBe(toISODateString('2024-06-30'));
+    expect(result.computation?.afgoerelser[1]?.virkningsdato).toBe(toISODateString('2024-07-01'));
   });
 
   it('ender med kapitalisering på afgørelsesdatoen når endelig afgørelse er ≤ 2 år før FP', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2021-12-31',
+        beregningsdato: toISODateString('2021-12-31'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-08-2021',
-            virkningsDato: '01-01-2020',
+            afgoerelsesDato: toISODateString('2021-08-01'),
+            virkningsDato: toISODateString('2020-01-01'),
             eetPct: 60,
             kapDato: undefined,
             kapPct: undefined,
@@ -1445,8 +1446,8 @@ describe('computeEetLoebendeYdelser', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1955-07-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
     });
 
     expect(result.computation).not.toBeNull();
@@ -1456,7 +1457,7 @@ describe('computeEetLoebendeYdelser', () => {
     if (!afgoerelse) throw new Error('expected first decision');
 
     expect(afgoerelse.ophoerAarsag).toBe('kapitalisering');
-    expect(afgoerelse.ophoerDato).toBe('2021-07-31');
+    expect(afgoerelse.ophoerDato).toBe(toISODateString('2021-07-31'));
   });
 
   it('midlertidig afgoerelse faar ikke folkepensionsdato som ophoer før den faktisk indtraeder', () => {
@@ -1465,12 +1466,12 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2021-06-30',
+        beregningsdato: toISODateString('2021-06-30'),
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [{
           id: 'a1',
-          afgoerelsesDato: '01-06-2019',
-          virkningsDato: '01-06-2019',
+          afgoerelsesDato: toISODateString('2019-06-01'),
+          virkningsDato: toISODateString('2019-06-01'),
           eetPct: 40,
           kapDato: undefined,
           kapPct: undefined,
@@ -1478,8 +1479,8 @@ describe('computeEetLoebendeYdelser', () => {
           tidlKapDato: undefined,
         }],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1955-07-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
     });
 
     expect(result.computation).not.toBeNull();
@@ -1489,7 +1490,7 @@ describe('computeEetLoebendeYdelser', () => {
     if (!afgoerelse) throw new Error('expected first decision');
 
     expect(afgoerelse.ophoerAarsag).toBe('beregningsdato');
-    expect(afgoerelse.ophoerDato).toBe('2021-06-30');
+    expect(afgoerelse.ophoerDato).toBe(toISODateString('2021-06-30'));
   });
 });
 
@@ -1511,13 +1512,13 @@ describe('warn-asl-aarsloen-is-max', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: toISODateString('2026-02-27'),
         aslAarsloen: asAmount(maxAarsloen2019),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-07-2023',
-            virkningsDato: '01-02-2023',
+            afgoerelsesDato: toISODateString('2023-07-01'),
+            virkningsDato: toISODateString('2023-02-01'),
             eetPct: 20,
             kapDato: undefined,
             kapPct: undefined,
@@ -1526,8 +1527,8 @@ describe('warn-asl-aarsloen-is-max', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-asl-aarsloen-is-max')).toBe(true);
@@ -1540,13 +1541,13 @@ describe('warn-asl-aarsloen-is-max', () => {
     const result = computeEetLoebendeYdelser({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: toISODateString('2026-02-27'),
         aslAarsloen: asAmount(maxAarsloen2019 + 1),
         aslAfgoerelser: [
           {
             id: 'a1',
-            afgoerelsesDato: '01-07-2023',
-            virkningsDato: '01-02-2023',
+            afgoerelsesDato: toISODateString('2023-07-01'),
+            virkningsDato: toISODateString('2023-02-01'),
             eetPct: 20,
             kapDato: undefined,
             kapPct: undefined,
@@ -1555,8 +1556,8 @@ describe('warn-asl-aarsloen-is-max', () => {
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1980-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
     });
 
     expect(result.issues.some((issue) => issue.id === 'warn-asl-aarsloen-is-max')).toBe(false);

@@ -6,7 +6,7 @@ describe('branded.ts - Dato roundtrip tests', () => {
     it('roundtrip: dansk til ISO og tilbage', () => {
       const danish = '15-03-2025';
       const iso = danishToISO(danish);
-      expect(iso).toBe('2025-03-15');
+      expect(iso).toBe(toISODateString('2025-03-15'));
 
       const backToDanish = isoToDanish(iso!);
       expect(backToDanish).toBe(danish);
@@ -41,10 +41,10 @@ describe('branded.ts - Dato roundtrip tests', () => {
 
     it('roundtrip: batch af ISO-datoer', () => {
       const isoDates = [
-        '2025-01-01',
-        '2025-06-15',
-        '2025-12-31',
-        '2024-02-29',  // Skudår
+        toISODateString('2025-01-01'),
+        toISODateString('2025-06-15'),
+        toISODateString('2025-12-31'),
+        toISODateString('2024-02-29'),  // Skudår
       ];
 
       for (const iso of isoDates) {
@@ -61,7 +61,7 @@ describe('branded.ts - Dato roundtrip tests', () => {
     it('håndterer 29. februar i skudår', () => {
       const danish = '29-02-2024';  // 2024 er skudår
       const iso = danishToISO(danish);
-      expect(iso).toBe('2024-02-29');
+      expect(iso).toBe(toISODateString('2024-02-29'));
 
       // Roundtrip
       const backToDanish = isoToDanish(iso!);
@@ -77,8 +77,8 @@ describe('branded.ts - Dato roundtrip tests', () => {
     it('accepterer 28. februar i alle år', () => {
       const feb28_2024 = danishToISO('28-02-2024');
       const feb28_2025 = danishToISO('28-02-2025');
-      expect(feb28_2024).toBe('2024-02-28');
-      expect(feb28_2025).toBe('2025-02-28');
+      expect(feb28_2024).toBe(toISODateString('2024-02-28'));
+      expect(feb28_2025).toBe(toISODateString('2025-02-28'));
     });
   });
 
@@ -105,7 +105,7 @@ describe('branded.ts - Dato roundtrip tests', () => {
       date.setUTCDate(date.getUTCDate() + 1);
       const newYear = dateToISO(date);
 
-      expect(newYear).toBe('2025-01-01');
+      expect(newYear).toBe(toISODateString('2025-01-01'));
     });
 
     it('håndterer 31. januar → 1. februar', () => {
@@ -115,14 +115,14 @@ describe('branded.ts - Dato roundtrip tests', () => {
       date.setUTCDate(date.getUTCDate() + 1);
       const feb1 = dateToISO(date);
 
-      expect(feb1).toBe('2025-02-01');
+      expect(feb1).toBe(toISODateString('2025-02-01'));
     });
 
     it('håndterer månedsslut med getDayBeforeIso', () => {
       const firstOfMonth = toISODateString('2025-03-01');
       const lastOfPrevMonth = getDayBeforeIso(firstOfMonth);
 
-      expect(lastOfPrevMonth).toBe('2025-02-28');
+      expect(lastOfPrevMonth).toBe(toISODateString('2025-02-28'));
     });
   });
 
@@ -130,9 +130,9 @@ describe('branded.ts - Dato roundtrip tests', () => {
     it('roundtrip over DST-skift i marts (sidste søndag kl. 02:00 → 03:00)', () => {
       // 2025-03-30 er sidste søndag i marts (DST starter)
       const dates = [
-        '2025-03-29',  // Lørdag før DST
-        '2025-03-30',  // Søndag (DST starter kl. 02:00)
-        '2025-03-31',  // Mandag efter DST
+        toISODateString('2025-03-29'),  // Lørdag før DST
+        toISODateString('2025-03-30'),  // Søndag (DST starter kl. 02:00)
+        toISODateString('2025-03-31'),  // Mandag efter DST
       ];
 
       for (const isoDate of dates) {
@@ -149,9 +149,9 @@ describe('branded.ts - Dato roundtrip tests', () => {
     it('roundtrip over DST-skift i oktober (sidste søndag kl. 03:00 → 02:00)', () => {
       // 2025-10-26 er sidste søndag i oktober (DST slutter)
       const dates = [
-        '2025-10-25',  // Lørdag før DST-shift
-        '2025-10-26',  // Søndag (DST slutter kl. 03:00)
-        '2025-10-27',  // Mandag efter DST
+        toISODateString('2025-10-25'),  // Lørdag før DST-shift
+        toISODateString('2025-10-26'),  // Søndag (DST slutter kl. 03:00)
+        toISODateString('2025-10-27'),  // Mandag efter DST
       ];
 
       for (const isoDate of dates) {
@@ -174,7 +174,7 @@ describe('branded.ts - Dato roundtrip tests', () => {
       date.setUTCDate(date.getUTCDate() + 3);
       const afterDst = dateToISO(date);
 
-      expect(afterDst).toBe('2025-03-31');
+      expect(afterDst).toBe(toISODateString('2025-03-31'));
 
       // Roundtrip tilbage
       const roundtrip = parseISODate(afterDst);
@@ -213,15 +213,15 @@ describe('branded.ts - Dato roundtrip tests', () => {
 describe('branded.ts — type guards', () => {
   describe('isISODateString', () => {
     it('accepterer gyldigt ISO-format', () => {
-      expect(isISODateString('2024-06-15')).toBe(true);
+      expect(isISODateString(toISODateString('2024-06-15'))).toBe(true);
     });
 
     it('accepterer grænseår 1900', () => {
-      expect(isISODateString('1900-01-01')).toBe(true);
+      expect(isISODateString(toISODateString('1900-01-01'))).toBe(true);
     });
 
     it('accepterer grænseår 2100', () => {
-      expect(isISODateString('2100-12-31')).toBe(true);
+      expect(isISODateString(toISODateString('2100-12-31'))).toBe(true);
     });
 
     it('afviser år udenfor 1900–2100', () => {
@@ -250,7 +250,7 @@ describe('branded.ts — type guards', () => {
     });
 
     it('afviser ISO-format', () => {
-      expect(isDanishDateString('2024-06-15')).toBe(false);
+      expect(isDanishDateString(toISODateString('2024-06-15'))).toBe(false);
     });
 
     it('afviser ugyldig dato (31-04)', () => {
@@ -265,11 +265,11 @@ describe('branded.ts — type guards', () => {
 
   describe('coerceToISODateString', () => {
     it('ISO-input returneres direkte', () => {
-      expect(coerceToISODateString('2024-06-15')).toBe('2024-06-15');
+      expect(coerceToISODateString(toISODateString('2024-06-15'))).toBe(toISODateString('2024-06-15'));
     });
 
     it('dansk input konverteres til ISO', () => {
-      expect(coerceToISODateString('15-06-2024')).toBe('2024-06-15');
+      expect(coerceToISODateString('15-06-2024')).toBe(toISODateString('2024-06-15'));
     });
 
     it('ugyldig streng → undefined', () => {
@@ -288,7 +288,7 @@ describe('branded.ts — type guards', () => {
     });
 
     it('ISO input konverteres til dansk', () => {
-      expect(coerceToDanishDateString('2024-06-15')).toBe('15-06-2024');
+      expect(coerceToDanishDateString(toISODateString('2024-06-15'))).toBe('15-06-2024');
     });
 
     it('ugyldig streng → undefined', () => {

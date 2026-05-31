@@ -2,6 +2,7 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { computeEetKapitaliseringCalculation } from '../../../domain/erhvervsevnetab/eetKapitaliseringCalculation';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { toISODateString } from '../../../types/branded';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -18,18 +19,18 @@ describe('computeEetKapitaliseringCalculation', () => {
           aslAfgoerelser: [
             {
               id: 'a',
-              afgoerelsesDato: '2025-07-01',
-              virkningsDato: '2025-07-01',
+              afgoerelsesDato: toISODateString('2025-07-01'),
+              virkningsDato: toISODateString('2025-07-01'),
               eetPct: 50,
-              kapDato: '2025-10-01',
+              kapDato: toISODateString('2025-10-01'),
               kapPct: 25,
               afgoerelseType: 'Delvist endelig',
               tidlKapDato: undefined,
             },
           ],
         },
-        skadedato: '2025-01-01',
-        skadelidteFodselsdato: '1965-01-01',
+        skadedato: toISODateString('2025-01-01'),
+        skadelidteFodselsdato: toISODateString('1965-01-01'),
       });
 
       expect(result.computation).toBeNull();
@@ -50,8 +51,8 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAarsloen: asAmount(632000),
         aslAfgoerelser: [],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1965-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
     expect(result.computation).toBeNull();
@@ -83,8 +84,8 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1965-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
     expect(result.computation).toBeNull();
@@ -106,8 +107,8 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2025-07-01',
-            virkningsDato: '2025-07-01',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
             kapDato: undefined,
             kapPct: undefined,
@@ -116,8 +117,8 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1965-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
     expect(result.issues.some((issue) => issue.id === 'missing-kap-dato')).toBe(false);
@@ -132,18 +133,18 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2025-07-01',
-            virkningsDato: '2025-07-01',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
-            kapDato: '2025-07-01',
+            kapDato: toISODateString('2025-07-01'),
             kapPct: undefined,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1965-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
     expect(result.issues).toContainEqual({
@@ -163,8 +164,8 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2025-07-01',
-            virkningsDato: '2025-07-01',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
             kapDato: undefined,
             kapPct: 50,
@@ -173,8 +174,8 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1965-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
     expect(result.issues).toContainEqual({
@@ -194,8 +195,8 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2025-07-01',
-            virkningsDato: '2025-07-01',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
             kapDato: undefined,
             kapPct: undefined,
@@ -204,8 +205,8 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1965-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
     expect(result.computation).toBeNull();
@@ -227,7 +228,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           {
             id: 'a',
             afgoerelsesDato: undefined,
-            virkningsDato: '2025-07-01',
+            virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
             kapDato: undefined,
             kapPct: undefined,
@@ -236,8 +237,8 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1965-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
     expect(result.computation).toBeNull();
@@ -253,18 +254,18 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2025-07-01',
-            virkningsDato: '2025-07-01',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
-            kapDato: '2025-10-01',
+            kapDato: toISODateString('2025-10-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1965-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
     expect(result.issues).toEqual([]);
@@ -284,18 +285,18 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2026-01-01',
-            virkningsDato: '2026-01-01',
+            afgoerelsesDato: toISODateString('2026-01-01'),
+            virkningsDato: toISODateString('2026-01-01'),
             eetPct: 50,
-            kapDato: '2026-01-01',
+            kapDato: toISODateString('2026-01-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2011-01-01',
-      skadelidteFodselsdato: '1961-11-01',
+      skadedato: toISODateString('2011-01-01'),
+      skadelidteFodselsdato: toISODateString('1961-11-01'),
     });
 
     expect(result.issues).toEqual([]);
@@ -314,18 +315,18 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2024-01-15',
-            virkningsDato: '2024-01-15',
+            afgoerelsesDato: toISODateString('2024-01-15'),
+            virkningsDato: toISODateString('2024-01-15'),
             eetPct: 25,
-            kapDato: '2024-02-01',
+            kapDato: toISODateString('2024-02-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1965-01-01',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
     expect(result.issues).toEqual([]);
@@ -346,18 +347,18 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2026-01-15',
-            virkningsDato: '2026-01-15',
+            afgoerelsesDato: toISODateString('2026-01-15'),
+            virkningsDato: toISODateString('2026-01-15'),
             eetPct: 15,
-            kapDato: '2026-01-15',
+            kapDato: toISODateString('2026-01-15'),
             kapPct: 15,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2019-04-01',
-      skadelidteFodselsdato: '1978-05-15',
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1978-05-15'),
     });
 
     expect(result.issues).toEqual([]);
@@ -380,18 +381,18 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2025-07-01',
-            virkningsDato: '2025-07-01',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
-            kapDato: '2025-10-01',
+            kapDato: toISODateString('2025-10-01'),
             kapPct: 25,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1959-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1959-01-01'),
     });
 
     expect(result.issues).toEqual([]);
@@ -408,18 +409,18 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2025-07-01',
-            virkningsDato: '2025-07-01',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
-            kapDato: '2026-12-01',
+            kapDato: toISODateString('2026-12-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1959-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1959-01-01'),
     });
 
     expect(result.issues).toEqual([]);
@@ -436,8 +437,8 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2025-07-01',
-            virkningsDato: '2025-07-01',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
             kapDato: undefined,
             kapPct: 25,
@@ -446,8 +447,8 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
         ],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1965-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
     expect(result.computation).toBeNull();
@@ -463,18 +464,18 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2008-01-15',
-            virkningsDato: '2008-01-15',
+            afgoerelsesDato: toISODateString('2008-01-15'),
+            virkningsDato: toISODateString('2008-01-15'),
             eetPct: 50,
-            kapDato: '2008-02-01',
+            kapDato: toISODateString('2008-02-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2007-07-01',
-      skadelidteFodselsdato: '1960-01-01',
+      skadedato: toISODateString('2007-07-01'),
+      skadelidteFodselsdato: toISODateString('1960-01-01'),
     });
 
     expect(result.computation).toBeNull();
@@ -494,18 +495,18 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2008-01-15',
-            virkningsDato: '2008-01-15',
+            afgoerelsesDato: toISODateString('2008-01-15'),
+            virkningsDato: toISODateString('2008-01-15'),
             eetPct: 50,
-            kapDato: '2008-02-01',
+            kapDato: toISODateString('2008-02-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2007-07-01',
-      skadelidteFodselsdato: '1960-01-01',
+      skadedato: toISODateString('2007-07-01'),
+      skadelidteFodselsdato: toISODateString('1960-01-01'),
     });
 
     expect(result.issues).toEqual([]);
@@ -523,18 +524,18 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
-            afgoerelsesDato: '2004-01-15',
-            virkningsDato: '2004-01-15',
+            afgoerelsesDato: toISODateString('2004-01-15'),
+            virkningsDato: toISODateString('2004-01-15'),
             eetPct: 50,
-            kapDato: '2004-02-01',
+            kapDato: toISODateString('2004-02-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2005-01-01',
-      skadelidteFodselsdato: '1944-01-01',
+      skadedato: toISODateString('2005-01-01'),
+      skadelidteFodselsdato: toISODateString('1944-01-01'),
     });
 
     expect(result.computation).toBeNull();
@@ -553,38 +554,38 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'c',
-            afgoerelsesDato: '2025-07-01',
-            virkningsDato: '2025-07-01',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
-            kapDato: '2025-10-01',
+            kapDato: toISODateString('2025-10-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
           {
             id: 'a',
-            afgoerelsesDato: '2025-06-01',
-            virkningsDato: '2025-06-01',
+            afgoerelsesDato: toISODateString('2025-06-01'),
+            virkningsDato: toISODateString('2025-06-01'),
             eetPct: 50,
-            kapDato: '2025-08-01',
+            kapDato: toISODateString('2025-08-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
           {
             id: 'b',
-            afgoerelsesDato: '2025-07-01',
-            virkningsDato: '2025-07-01',
+            afgoerelsesDato: toISODateString('2025-07-01'),
+            virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
-            kapDato: '2025-09-01',
+            kapDato: toISODateString('2025-09-01'),
             kapPct: 25,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
           },
         ],
       },
-      skadedato: '2025-01-01',
-      skadelidteFodselsdato: '1965-01-01',
+      skadedato: toISODateString('2025-01-01'),
+      skadelidteFodselsdato: toISODateString('1965-01-01'),
     });
 
     expect(result.issues).toEqual([]);

@@ -2,6 +2,7 @@ import type { ISODateString } from '../../../types/branded';
 import type { VarigeMenValues } from '../../../schemas/formSchemas';
 import type { YearlyRate } from '../../../data/lovbestemteRates';
 import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
+import { toISODateString } from '../../../types/branded';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -190,7 +191,7 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
 
     it('alder 39 år: 0% fradrag', () => {
       // Født 1985-01-01, skade 2024-01-01 = 39 år
-      const result = beregn('1985-01-01');
+      const result = beregn(toISODateString('1985-01-01'));
       expect(result?.aldersreduktionPct).toBe(0);
       expect(result?.alderVedSkade).toBe(39);
       expect(result?.beregnetGodtgoerelse).toBe(10000);
@@ -198,21 +199,21 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
 
     it('alder 40 år: 1% fradrag', () => {
       // Født 1984-01-01, skade 2024-01-01 = 40 år
-      const result = beregn('1984-01-01');
+      const result = beregn(toISODateString('1984-01-01'));
       expect(result?.aldersreduktionPct).toBe(1);
       // 10000 * (1 - 0.01) = 9900 → ceil(9900) = 9900
       expect(result?.beregnetGodtgoerelse).toBe(9900);
     });
 
     it('alder 50 år: 11% fradrag (10 år over 39)', () => {
-      const result = beregn('1974-01-01');
+      const result = beregn(toISODateString('1974-01-01'));
       expect(result?.aldersreduktionPct).toBe(11);
       // 10000 * (1 - 0.11) = 8900
       expect(result?.beregnetGodtgoerelse).toBe(8900);
     });
 
     it('alder 59 år: 20% fradrag (20 år over 39)', () => {
-      const result = beregn('1965-01-01');
+      const result = beregn(toISODateString('1965-01-01'));
       expect(result?.aldersreduktionPct).toBe(20);
       // 10000 * (1 - 0.20) = 8000
       expect(result?.beregnetGodtgoerelse).toBe(8000);
@@ -222,7 +223,7 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
       // 60 > 39 → basis = min(30, 60-39) = 21
       // 60 > 59 → ekstra = min(10, 60-59) = 1
       // Total = 22%
-      const result = beregn('1964-01-01');
+      const result = beregn(toISODateString('1964-01-01'));
       expect(result?.aldersreduktionPct).toBe(22);
       // 10000 * (1 - 0.22) = 7800
       expect(result?.beregnetGodtgoerelse).toBe(7800);
@@ -232,27 +233,27 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
       // 65 > 39 → basis = min(30, 65-39) = 26
       // 65 > 59 → ekstra = min(10, 65-59) = 6
       // Total = 32%
-      const result = beregn('1959-01-01');
+      const result = beregn(toISODateString('1959-01-01'));
       expect(result?.aldersreduktionPct).toBe(32);
       // 10000 * (1 - 0.32) = 6800
       expect(result?.beregnetGodtgoerelse).toBe(6800);
     });
 
     it('alder 69 år: 40% fradrag (max) — 30 basis + 10 ekstra', () => {
-      const result = beregn('1955-01-01');
+      const result = beregn(toISODateString('1955-01-01'));
       expect(result?.aldersreduktionPct).toBe(40);
       // 10000 * (1 - 0.40) = 6000
       expect(result?.beregnetGodtgoerelse).toBe(6000);
     });
 
     it('alder 70 år: stadig 40% fradrag (cap ved 69)', () => {
-      const result = beregn('1954-01-01');
+      const result = beregn(toISODateString('1954-01-01'));
       expect(result?.aldersreduktionPct).toBe(40);
       expect(result?.beregnetGodtgoerelse).toBe(6000);
     });
 
     it('alder 80 år: stadig 40% fradrag (cap)', () => {
-      const result = beregn('1944-01-01');
+      const result = beregn(toISODateString('1944-01-01'));
       expect(result?.aldersreduktionPct).toBe(40);
       expect(result?.beregnetGodtgoerelse).toBe(6000);
     });

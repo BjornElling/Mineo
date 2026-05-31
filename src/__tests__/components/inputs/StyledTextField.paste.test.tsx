@@ -13,7 +13,8 @@ describe('StyledTextField paste behavior', () => {
     await user.click(input);
     expect(input).toHaveAttribute('readonly');
 
-    await user.paste(input, 'hej');
+    input.focus();
+    await user.paste('hej');
 
     expect(input).toHaveValue('hej');
     expect(input).toHaveAttribute('readonly');

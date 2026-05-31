@@ -179,7 +179,8 @@ describe('StyledDropdown', () => {
     await user.click(input);
     expect((input as HTMLInputElement).value).toBe('Alfa');
 
-    await user.paste(input, 'Charlie');
+    input.focus();
+    await user.paste('Charlie');
 
     expect((input as HTMLInputElement).value).toBe('Charlie');
   });
@@ -191,7 +192,8 @@ describe('StyledDropdown', () => {
     const input = screen.getByRole('combobox');
     await user.click(input);
 
-    await user.paste(input, 'charlie');
+    input.focus();
+    await user.paste('charlie');
 
     expect((input as HTMLInputElement).value).toBe('Alfa');
   });

@@ -5,6 +5,7 @@ import { executePersistenceLoadApply } from '../../utils/persistenceLoadApply';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { undoRedoStore, type HistoryFrameOrigin } from '../../stores/undoRedoStore';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
+import { toISODateString } from '../../types/branded';
 
 const saveFileHandleToIndexedDBMock = vi.fn();
 const deleteFileHandleFromIndexedDBMock = vi.fn();
@@ -42,7 +43,7 @@ describe('executePersistenceLoadApply', () => {
             sagsbehandler: '',
             skadelidte: 'Testperson',
             skadestype: 'Arbejdsulykke',
-            skadedato: '2024-01-15',
+            skadedato: toISODateString('2024-01-15'),
           },
         },
       },

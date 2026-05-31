@@ -1,5 +1,6 @@
 import { buildEODebugForligRows } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { toISODateString } from '../../../types/branded';
 
 describe('buildEODebugForligRows visibility', () => {
   it('viser kun den samlede forligsrække med bindestreg når ingen værdi er udfyldt', () => {
@@ -17,7 +18,7 @@ describe('buildEODebugForligRows visibility', () => {
   it('viser samlet forligsrække samt afledte rækker når kun procent er udfyldt', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.forligAnsvarsgradProcent = 50;
-    values.forligDato = '2024-01-31';
+    values.forligDato = toISODateString('2024-01-31');
 
     const rows = buildEODebugForligRows(values, {});
 
@@ -63,7 +64,7 @@ describe('buildEODebugForligRows visibility', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.forligAnsvarsgradProcent = 50;
     values.forligAnsvarsgradBroek = '1/3';
-    values.forligDato = '2024-01-31';
+    values.forligDato = toISODateString('2024-01-31');
 
     const rows = buildEODebugForligRows(values, {
       forligAnsvarsgradProcent: {
@@ -100,7 +101,7 @@ describe('buildEODebugForligRows visibility', () => {
 
   it('viser fejl på forligsdato når dato er udfyldt uden ansvarsgrad', () => {
     const values = createErstatningsopgoerelseInitialValues();
-    values.forligDato = '2024-01-31';
+    values.forligDato = toISODateString('2024-01-31');
 
     const rows = buildEODebugForligRows(values, {
       forligDato: {

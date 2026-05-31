@@ -11,6 +11,7 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import EODebugRegulationSections from '../../../../components/pages/erstatningsopgoerelse/EODebugRegulationSections';
 import type { RegulationDebugSection } from '../../../../domain/debug/eoDebugRegulationViewModel';
+import { toISODateString } from '../../../../types/branded';
 
 vi.mock('../../../../contexts/useAppSettings', () => ({
   useAppSettings: () => ({ settings: { showContentBoxReportButton: false } }),
@@ -37,7 +38,7 @@ describe('EODebugRegulationSections - Phase 4.5 UI', () => {
           {
             id: 'test.foerste',
             label: 'Første reguleringsdato',
-            value: { rawValue: '2024-01-01', displayValue: '01-01-2024' },
+            value: { rawValue: toISODateString('2024-01-01'), displayValue: '01-01-2024' },
           },
         ],
       },
@@ -53,7 +54,7 @@ describe('EODebugRegulationSections - Phase 4.5 UI', () => {
               {
                 id: 'timeline.row1',
                 cells: [
-                  { rawValue: '2024-01-01', displayValue: '01-01-2024' },
+                  { rawValue: toISODateString('2024-01-01'), displayValue: '01-01-2024' },
                   { rawValue: 1.38, displayValue: '1,3800' },
                   'Årlig indeks',
                   'Årlig indeks=1,3800',
@@ -104,7 +105,7 @@ describe('EODebugRegulationSections - Phase 4.5 UI', () => {
               {
                 id: 'timeline.row1',
                 cells: [
-                  { rawValue: '2024-01-01', displayValue: '01-01-2024' },
+                  { rawValue: toISODateString('2024-01-01'), displayValue: '01-01-2024' },
                   { rawValue: 1.38, displayValue: '1,3800' },
                 ],
               },

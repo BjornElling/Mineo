@@ -5,6 +5,7 @@ import Aarsloen from '../../../components/pages/Aarsloen';
 import { AARSLOEN_INITIAL_VALUES } from '../../../domain/aarsloen/aarsloenInitialValues';
 import type { StandardLoenTableValidationSummary, TableError } from '../../../types/table';
 import type { StandardLoenTableHandle } from '../../../types/handles';
+import { toISODateString } from '../../../types/branded';
 
 const {
   stateRef,
@@ -170,7 +171,7 @@ describe('Aarsloen omregning gate UI', () => {
       ...AARSLOEN_INITIAL_VALUES,
       loenperiode: 'dag',
       omregningTilFuldtAar: true,
-      tableData: [{ id: 'row-1', col0_dag: '01-01-2024', col1_dag: '31-01-2024' }],
+      tableData: [{ id: 'row-1', col0_dag: toISODateString('2024-01-01'), col1_dag: toISODateString('2024-01-31') }],
     };
     summaryRef.current = {
       rowIssues: [],
@@ -230,7 +231,7 @@ describe('Aarsloen omregning gate UI', () => {
       ...AARSLOEN_INITIAL_VALUES,
       loenperiode: 'dag',
       omregningTilFuldtAar: false,
-      tableData: [{ id: 'row-1', col0_dag: '10-01-2024', col1_dag: '09-01-2024' }],
+      tableData: [{ id: 'row-1', col0_dag: toISODateString('2024-01-10'), col1_dag: toISODateString('2024-01-09') }],
     };
     summaryRef.current = {
       rowIssues: [{ rowId: 'row-1', level: 'error' }],

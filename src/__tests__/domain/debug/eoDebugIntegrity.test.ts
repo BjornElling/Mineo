@@ -6,6 +6,7 @@ import type { DebugModelInput } from '../../../domain/debug/eoDebugCoreModel';
 import { buildDebugCoreModel } from '../../../domain/debug/eoDebugCoreModel';
 import { validateDebugModel } from '../../../domain/debug/eoDebugIntegrity';
 import type { ISODateString } from '../../../types/branded';
+import { toISODateString } from '../../../types/branded';
 
 // Test helper: Cast string literal til ISODateString (kun til tests)
 const iso = (date: string): ISODateString => date as ISODateString;
@@ -23,19 +24,19 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-10',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-10'),
           tafPerioder: [
             {
               id: 'taf-1',
-              fra: '2024-01-01',
-              til: '2024-01-05',
+              fra: toISODateString('2024-01-01'),
+              til: toISODateString('2024-01-05'),
               loseFeriedage: '',
             },
             {
               id: 'taf-2',
-              fra: '2024-01-03', // Overlapper med taf-1
-              til: '2024-01-08',
+              fra: toISODateString('2024-01-03'), // Overlapper med taf-1
+              til: toISODateString('2024-01-08'),
               loseFeriedage: '',
             },
           ],
@@ -64,19 +65,19 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-10',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-10'),
           tafPerioder: [
             {
               id: 'taf-1',
-              fra: '2024-01-01',
-              til: '2024-01-05',
+              fra: toISODateString('2024-01-01'),
+              til: toISODateString('2024-01-05'),
               loseFeriedage: '',
             },
             {
               id: 'taf-2',
-              fra: '2024-01-05', // Touching (samme som taf-1 slut)
-              til: '2024-01-10',
+              fra: toISODateString('2024-01-05'), // Touching (samme som taf-1 slut)
+              til: toISODateString('2024-01-10'),
               loseFeriedage: '',
             },
           ],
@@ -106,19 +107,19 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-15',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-15'),
           tafPerioder: [
             {
               id: 'taf-1',
-              fra: '2024-01-01',
-              til: '2024-01-05',
+              fra: toISODateString('2024-01-01'),
+              til: toISODateString('2024-01-05'),
               loseFeriedage: '',
             },
             {
               id: 'taf-2',
-              fra: '2024-01-07', // Gap på én dag
-              til: '2024-01-10',
+              fra: toISODateString('2024-01-07'), // Gap på én dag
+              til: toISODateString('2024-01-10'),
               loseFeriedage: '',
             },
           ],
@@ -148,8 +149,8 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-10',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-10'),
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -200,9 +201,9 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-12-31',
-          menAfgoerelseDato: '2025-01-15', // Efter periode-slut
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-12-31'),
+          menAfgoerelseDato: toISODateString('2025-01-15'), // Efter periode-slut
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -229,9 +230,9 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-12-31',
-          forligDato: '2025-02-01', // Efter periode-slut
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-12-31'),
+          forligDato: toISODateString('2025-02-01'), // Efter periode-slut
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -258,10 +259,10 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-12-31',
-          menAfgoerelseDato: '2024-06-15', // Inden for periode
-          forligDato: '2024-08-20', // Inden for periode
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-12-31'),
+          menAfgoerelseDato: toISODateString('2024-06-15'), // Inden for periode
+          forligDato: toISODateString('2024-08-20'), // Inden for periode
           tafPerioder: [],
           svieSmertePerioder: [],
         } as any,
@@ -289,13 +290,13 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-10',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-10'),
           tafPerioder: [
             {
               id: 'taf-1',
-              fra: '2024-01-01',
-              til: '2024-01-05', // 5 dage
+              fra: toISODateString('2024-01-01'),
+              til: toISODateString('2024-01-05'), // 5 dage
               loseFeriedage: '',
             },
           ],
@@ -327,13 +328,13 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-10',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-10'),
           tafPerioder: [
             {
               id: 'taf-1',
-              fra: '2024-01-02',
-              til: '2024-01-04', // 3 dage
+              fra: toISODateString('2024-01-02'),
+              til: toISODateString('2024-01-04'), // 3 dage
               loseFeriedage: '',
             },
           ],
@@ -361,14 +362,14 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-10',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-10'),
           tafPerioder: [],
           svieSmertePerioder: [
             {
               id: 'ss-1',
-              fra: '2024-01-02',
-              til: '2024-01-05', // 4 dage
+              fra: toISODateString('2024-01-02'),
+              til: toISODateString('2024-01-05'), // 4 dage
               tilstand: 'sygemeldt',
             },
           ],
@@ -379,7 +380,7 @@ describe('eoDebugIntegrity', () => {
 
       // Verificer at core-model genererede 4 dage med 'Fuld'
       const fuldDays = debugDays.filter(
-        (d) => d.iso >= '2024-01-02' && d.iso <= '2024-01-05' && d.svieSmerte === 'Fuld'
+        (d) => d.iso >= toISODateString('2024-01-02') && d.iso <= toISODateString('2024-01-05') && d.svieSmerte === 'Fuld'
       );
       expect(fuldDays.length).toBe(4);
 
@@ -402,14 +403,14 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-10',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-10'),
           tafPerioder: [],
           svieSmertePerioder: [
             {
               id: 'ss-1',
-              fra: '2024-01-01',
-              til: '2024-01-10',
+              fra: toISODateString('2024-01-01'),
+              til: toISODateString('2024-01-10'),
               tilstand: '', // Tom/ugyldig → Ingen
             },
           ],
@@ -439,20 +440,20 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-10',
-          menAfgoerelseDato: '2025-01-01', // Inkonsistent dato
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-10'),
+          menAfgoerelseDato: toISODateString('2025-01-01'), // Inkonsistent dato
           tafPerioder: [
             {
               id: 'taf-1',
-              fra: '2024-01-01',
-              til: '2024-01-05',
+              fra: toISODateString('2024-01-01'),
+              til: toISODateString('2024-01-05'),
               loseFeriedage: '',
             },
             {
               id: 'taf-2',
-              fra: '2024-01-03', // Overlapper med taf-1
-              til: '2024-01-08',
+              fra: toISODateString('2024-01-03'), // Overlapper med taf-1
+              til: toISODateString('2024-01-08'),
               loseFeriedage: '',
             },
           ],
@@ -482,23 +483,23 @@ describe('eoDebugIntegrity', () => {
           skadedato: iso('2024-01-01'),
         },
         erstatningsopgoerelseValues: {
-          vedroererPeriodeFra: '2024-01-01',
-          vedroererPeriodeTil: '2024-01-10',
-          menAfgoerelseDato: '2024-01-05',
-          forligDato: '2024-01-06',
+          vedroererPeriodeFra: toISODateString('2024-01-01'),
+          vedroererPeriodeTil: toISODateString('2024-01-10'),
+          menAfgoerelseDato: toISODateString('2024-01-05'),
+          forligDato: toISODateString('2024-01-06'),
           tafPerioder: [
             {
               id: 'taf-1',
-              fra: '2024-01-02',
-              til: '2024-01-05',
+              fra: toISODateString('2024-01-02'),
+              til: toISODateString('2024-01-05'),
               loseFeriedage: '',
             },
           ],
           svieSmertePerioder: [
             {
               id: 'ss-1',
-              fra: '2024-01-03',
-              til: '2024-01-04',
+              fra: toISODateString('2024-01-03'),
+              til: toISODateString('2024-01-04'),
               tilstand: 'delvist-sygemeldt',
             },
           ],

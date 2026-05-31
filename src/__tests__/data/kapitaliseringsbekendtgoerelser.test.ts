@@ -4,7 +4,7 @@ import {
   kapitaliseringsbekendtgoerelser,
   eetKapitaliseringsDatoMaxFraBekendtgoerelser,
 } from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
-import { dateToISO, parseISODate } from '../../types/branded';
+import { dateToISO, parseISODate, toISODateString } from '../../types/branded';
 import { addDays } from '../../utils/dateUtils';
 
 const resolveIdForDatoer = (
@@ -112,15 +112,15 @@ describe('kapitaliseringsbekendtgørelser', () => {
   });
 
   it('vælger deterministisk 9921/2019 frem til og med 2020-12-30, og 9870/2020 på 2020-12-31', () => {
-    expect(resolveIdForDatoer('2011-01-01', '2020-12-30')).toBe('9921/2019');
-    expect(resolveIdForDatoer('2011-01-01', '2020-12-31')).toBe('9870/2020');
+    expect(resolveIdForDatoer(toISODateString('2011-01-01'), toISODateString('2020-12-30'))).toBe('9921/2019');
+    expect(resolveIdForDatoer(toISODateString('2011-01-01'), toISODateString('2020-12-31'))).toBe('9870/2020');
   });
 
   it('skifter deterministisk fra 9820/2023 til 9376/2024 på skæringsdatoen 2024-07-01', () => {
-    expect(resolveIdForDatoer('2011-01-01', '2024-06-30')).toBe('9820/2023');
-    expect(resolveIdForDatoer('2011-01-01', '2024-07-01')).toBe('9376/2024');
-    expect(resolveIdForDatoer('2021-01-01', '2024-06-30')).toBe('9820/2023');
-    expect(resolveIdForDatoer('2021-01-01', '2024-07-01')).toBe('9376/2024');
+    expect(resolveIdForDatoer(toISODateString('2011-01-01'), toISODateString('2024-06-30'))).toBe('9820/2023');
+    expect(resolveIdForDatoer(toISODateString('2011-01-01'), toISODateString('2024-07-01'))).toBe('9376/2024');
+    expect(resolveIdForDatoer(toISODateString('2021-01-01'), toISODateString('2024-06-30'))).toBe('9820/2023');
+    expect(resolveIdForDatoer(toISODateString('2021-01-01'), toISODateString('2024-07-01'))).toBe('9376/2024');
   });
 
   it('har fuld 1:1 dækning mellem oversigtens IDer og lokale kapitaliseringstabelfiler', () => {

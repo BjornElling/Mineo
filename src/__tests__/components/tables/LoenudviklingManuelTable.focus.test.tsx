@@ -10,10 +10,10 @@ const makeRow = (id: string, overrides: Partial<LoenudviklingManuelRow> = {}): L
   id,
   dato: '',
   grundloen: undefined,
-  feriepenge: '',
-  shSoSats: '',
-  fritvalg: '',
-  agPension: '',
+  feriepenge: undefined,
+  shSoSats: undefined,
+  fritvalg: undefined,
+  agPension: undefined,
   ...overrides,
 });
 

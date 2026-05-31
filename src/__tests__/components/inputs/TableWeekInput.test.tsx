@@ -161,7 +161,8 @@ describe('TableWeekInput', () => {
 
     const input = screen.getByRole('textbox');
     await user.click(input);
-    await user.paste(input, 'adffergregs//sgd1712,56//');
+    input.focus();
+    await user.paste('adffergregs//sgd1712,56//');
 
     expect(input).toHaveValue('17/2012');
   });

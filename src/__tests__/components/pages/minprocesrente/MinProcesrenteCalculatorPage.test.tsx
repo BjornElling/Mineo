@@ -14,7 +14,7 @@ vi.mock('../../../../hooks/usePersistedForm', async () => {
   return {
     usePersistedForm: () => {
       const [values, setValues] = React.useState({
-        beregningsdato: '2024-01-31',
+        beregningsdato: toISODateString('2024-01-31'),
         kommentarer: undefined as string | undefined,
         rentekravRows: [{ id: 'r1', belob: undefined, renterFra: undefined, tillaegstid: undefined, enhed: 'dage' }],
       });
@@ -62,10 +62,10 @@ vi.mock('../../../../components/pages/renteberegning/RenteberegningTab', () => (
         onClick={() => {
           void props.onDownloadSpecifikation({
             beloeb: 1000,
-            actualInterestDate: '2024-01-01',
-            beregningsdato: '2024-01-31',
+            actualInterestDate: toISODateString('2024-01-01'),
+            beregningsdato: toISODateString('2024-01-31'),
             periods: [],
-            latestReferenceRateDate: '2024-01-01',
+            latestReferenceRateDate: toISODateString('2024-01-01'),
           });
         }}
       >
@@ -76,6 +76,7 @@ vi.mock('../../../../components/pages/renteberegning/RenteberegningTab', () => (
 }));
 
 import MinProcesrenteCalculatorPage from '../../../../components/pages/minprocesrente/MinProcesrenteCalculatorPage';
+import { toISODateString } from '../../../../types/branded';
 
 describe('MinProcesrenteCalculatorPage', () => {
   beforeEach(() => {

@@ -1,6 +1,7 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { OevrigeKravRow } from '../../../schemas/formSchemas';
 import { parseOevrigeKravBeloeb } from '../../../domain/erstatningsopgoerelse/helpers/oevrigeKravAmountParser';
+import { toISODateString } from '../../../types/branded';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -26,7 +27,7 @@ describe('parseOevrigeKravBeloeb', () => {
 
   it('returnerer null for ikke-tom række med manglende beløb', () => {
     const result = parse([
-      { id: 'r1', dato: '2024-01-01', udgiftTil: undefined, beloeb: undefined },
+      { id: 'r1', dato: toISODateString('2024-01-01'), udgiftTil: undefined, beloeb: undefined },
     ]);
     expect(result).toBeNull();
   });

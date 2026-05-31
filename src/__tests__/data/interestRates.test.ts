@@ -1,4 +1,5 @@
 import { referenceRates, surchargeRates, MIN_INTEREST_DATE } from '../../data/interestRates';
+import { toISODateString } from '../../types/branded';
 
 describe('referenceRates', () => {
   it('er ikke tom', () => {
@@ -63,6 +64,6 @@ describe('surchargeRates', () => {
 
 describe('MIN_INTEREST_DATE', () => {
   it('er 2005-01-01', () => {
-    expect(MIN_INTEREST_DATE).toBe('2005-01-01');
+    expect(MIN_INTEREST_DATE).toBe(toISODateString('2005-01-01'));
   });
 });

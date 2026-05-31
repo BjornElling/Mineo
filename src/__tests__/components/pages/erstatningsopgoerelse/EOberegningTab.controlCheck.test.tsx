@@ -10,6 +10,7 @@ import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerel
 import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { toISODateString } from '../../../../types/branded';
 
 const { collectAllDebugRowsMock } = vi.hoisted(() => ({
   collectAllDebugRowsMock: vi.fn(),
@@ -354,7 +355,7 @@ describe('EOberegningTab kontroltjek', () => {
     eoValues.eoNummer = '1';
     eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
     eoValues.tafPerioder = [
-      { id: 'taf-1', fra: '2024-01-01', til: '2025-01-01', loseFeriedage: 0 },
+      { id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2025-01-01'), loseFeriedage: 0 },
     ];
 
     collectAllDebugRowsMock.mockReturnValue({
@@ -435,17 +436,17 @@ describe('EOberegningTab kontroltjek', () => {
     });
 
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2023-05-24';
-    eoValues.vedroererPeriodeTil = '2025-12-21';
+    eoValues.vedroererPeriodeFra = toISODateString('2023-05-24');
+    eoValues.vedroererPeriodeTil = toISODateString('2025-12-21');
     eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
     eoValues.tidligereSsMax = 'Nej';
     eoValues.varigeMenAfgorelse = 'Ja';
     eoValues.verserendeKlageMen = 'Nej';
-    eoValues.menAfgoerelseDato = '2024-04-22';
+    eoValues.menAfgoerelseDato = toISODateString('2024-04-22');
     eoValues.svieSmerteSatserAar = 2026;
     eoValues.svieSmerteDelvisSygemeldingSats = 'fuld';
     eoValues.svieSmertePerioder = [
-      { id: 'ss-1', fra: '2023-05-24', til: '2025-04-21', tilstand: 'sygemeldt' },
+      { id: 'ss-1', fra: toISODateString('2023-05-24'), til: toISODateString('2025-04-21'), tilstand: 'sygemeldt' },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -474,7 +475,7 @@ describe('EOberegningTab kontroltjek', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
     eoValues.svieSmertePerioder = [
-      { id: 'ss-1', fra: '2024-01-01', til: '2025-01-01', tilstand: 'sygemeldt' },
+      { id: 'ss-1', fra: toISODateString('2024-01-01'), til: toISODateString('2025-01-01'), tilstand: 'sygemeldt' },
     ];
 
     collectAllDebugRowsMock.mockReturnValue({
@@ -552,18 +553,18 @@ describe('EOberegningTab kontroltjek', () => {
 
   it('viser clampet TAF-periode i beregningsoversigten når snapshotten er autoritativt beregnet', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = '2024-01-01';
-    eoValues.vedroererPeriodeTil = '2024-12-31';
-    eoValues.tafBeregningsperiodeFra = '2023-01-01';
-    eoValues.tafBeregningsperiodeTil = '2023-12-31';
-    eoValues.differencekravDato = '2024-07-01';
+    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
+    eoValues.tafBeregningsperiodeFra = toISODateString('2023-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2023-12-31');
+    eoValues.differencekravDato = toISODateString('2024-07-01');
     eoValues.loenindkomstAnsaettelsesforhold = [
       createEmployment({
         loenudviklingBeregningsgrundlag: 'Ingen',
       }),
     ];
     eoValues.tafPerioder = [
-      { id: 'r1', fra: '2024-01-01', til: '2024-07-15', loseFeriedage: 0 },
+      { id: 'r1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-07-15'), loseFeriedage: 0 },
     ];
 
     const snapshot = computeEoSnapshot({
@@ -573,7 +574,7 @@ describe('EOberegningTab kontroltjek', () => {
     });
 
     expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([
-      { fra: '2024-01-01', til: '2024-06-30' },
+      { fra: toISODateString('2024-01-01'), til: toISODateString('2024-06-30') },
     ]);
 
     renderTab({

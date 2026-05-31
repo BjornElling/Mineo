@@ -1,27 +1,35 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import type { AslAfgoerelseRow } from '../../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import {
   buildAldersreduktionFormelTekst,
   computeEetEalCalculation,
   formatPercentTrimmedFromRounded4,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { emptyAslAfgoerelseRowFields } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/lovbestemteRates';
+import { toISODateString } from '../../../types/branded';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
+const iso = (value: string) => toISODateString(value);
+const aslRow = (patch: Partial<AslAfgoerelseRow> & Pick<AslAfgoerelseRow, 'id'>): AslAfgoerelseRow => ({
+  ...emptyAslAfgoerelseRowFields,
+  ...patch,
+});
 
 describe('computeEetEalCalculation', () => {
   it('beregner EAL-krav med regulering, maksimum og aldersreduktion', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: iso('2026-02-27'),
         aslAarsloen: asAmount(489000),
         ealAarsloen: undefined,
         ealEetPct: 75,
         aslAfgoerelser: [],
       },
-      skadedato: '2019-06-01',
-      skadelidteFodselsdato: '1966-01-08',
+      skadedato: iso('2019-06-01'),
+      skadelidteFodselsdato: iso('1966-01-08'),
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
@@ -42,35 +50,29 @@ describe('computeEetEalCalculation', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: iso('2026-02-27'),
         aslAarsloen: asAmount(500000),
         ealAarsloen: undefined,
         ealEetPct: undefined,
         aslAfgoerelser: [
-          {
+          aslRow({
             id: 'a',
-            afgoerelsesDato: '2025-01-01',
-            virkningsDato: '2025-06-01',
+            afgoerelsesDato: iso('2025-01-01'),
+            virkningsDato: iso('2025-06-01'),
             eetPct: 40,
-            kapDato: undefined,
-            kapPct: undefined,
             afgoerelseType: 'Midlertidig',
-            tidlKapDato: undefined,
-          },
-          {
+          }),
+          aslRow({
             id: 'b',
-            afgoerelsesDato: '2025-01-01',
-            virkningsDato: '2025-09-01',
+            afgoerelsesDato: iso('2025-01-01'),
+            virkningsDato: iso('2025-09-01'),
             eetPct: 45,
-            kapDato: undefined,
-            kapPct: undefined,
             afgoerelseType: 'Endelig',
-            tidlKapDato: undefined,
-          },
+          }),
         ],
       },
-      skadedato: '2020-01-01',
-      skadelidteFodselsdato: '1990-01-01',
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
@@ -85,35 +87,29 @@ describe('computeEetEalCalculation', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: iso('2026-02-27'),
         aslAarsloen: asAmount(500000),
         ealAarsloen: undefined,
         ealEetPct: undefined,
         aslAfgoerelser: [
-          {
+          aslRow({
             id: 'a',
-            afgoerelsesDato: '2025-01-01',
-            virkningsDato: '2025-06-01',
+            afgoerelsesDato: iso('2025-01-01'),
+            virkningsDato: iso('2025-06-01'),
             eetPct: 40,
-            kapDato: undefined,
-            kapPct: undefined,
             afgoerelseType: 'Endelig',
-            tidlKapDato: undefined,
-          },
-          {
+          }),
+          aslRow({
             id: 'b',
-            afgoerelsesDato: '2025-01-01',
-            virkningsDato: '2025-06-01',
+            afgoerelsesDato: iso('2025-01-01'),
+            virkningsDato: iso('2025-06-01'),
             eetPct: 45,
-            kapDato: undefined,
-            kapPct: undefined,
             afgoerelseType: 'Endelig',
-            tidlKapDato: undefined,
-          },
+          }),
         ],
       },
-      skadedato: '2020-01-01',
-      skadelidteFodselsdato: '1990-01-01',
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
@@ -127,25 +123,22 @@ describe('computeEetEalCalculation', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: iso('2026-02-27'),
         aslAarsloen: asAmount(500000),
         ealAarsloen: undefined,
         ealEetPct: undefined,
         aslAfgoerelser: [
-          {
+          aslRow({
             id: 'a',
-            afgoerelsesDato: '2025-01-01',
-            virkningsDato: '2025-06-01',
+            afgoerelsesDato: iso('2025-01-01'),
+            virkningsDato: iso('2025-06-01'),
             eetPct: undefined,
-            kapDato: undefined,
-            kapPct: undefined,
             afgoerelseType: 'Endelig',
-            tidlKapDato: undefined,
-          },
+          }),
         ],
       },
-      skadedato: '2020-01-01',
-      skadelidteFodselsdato: '1990-01-01',
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
@@ -159,14 +152,14 @@ describe('computeEetEalCalculation', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: iso('2026-02-27'),
         aslAarsloen: asAmount(500000),
         ealAarsloen: undefined,
         ealEetPct: 40,
         aslAfgoerelser: [],
       },
-      skadedato: '2024-01-01',
-      skadelidteFodselsdato: '1990-01-01',
+      skadedato: iso('2024-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
       reguleringssats: { ...reguleringssats, 2025: undefined as unknown as number },
       erhvervsevnetabEalMax,
       aarsloenAslMax,
@@ -180,14 +173,14 @@ describe('computeEetEalCalculation', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: iso('2026-02-27'),
         aslAarsloen: asAmount(500123),
         ealAarsloen: asAmount(500123),
         ealEetPct: 40,
         aslAfgoerelser: [],
       },
-      skadedato: '2026-01-01',
-      skadelidteFodselsdato: '1990-01-01',
+      skadedato: iso('2026-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
@@ -205,14 +198,14 @@ describe('computeEetEalCalculation', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: iso('2026-02-27'),
         aslAarsloen: asAmount(500000),
         ealAarsloen: undefined,
         ealEetPct: 10,
         aslAfgoerelser: [],
       },
-      skadedato: '2020-01-01',
-      skadelidteFodselsdato: '1990-01-01',
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
@@ -225,25 +218,22 @@ describe('computeEetEalCalculation', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: iso('2026-02-27'),
         aslAarsloen: asAmount(500000),
         ealAarsloen: undefined,
         ealEetPct: undefined,
         aslAfgoerelser: [
-          {
+          aslRow({
             id: 'a',
-            afgoerelsesDato: '2025-01-01',
-            virkningsDato: '2025-01-01',
+            afgoerelsesDato: iso('2025-01-01'),
+            virkningsDato: iso('2025-01-01'),
             eetPct: 10,
-            kapDato: undefined,
-            kapPct: undefined,
             afgoerelseType: 'Endelig',
-            tidlKapDato: undefined,
-          },
+          }),
         ],
       },
-      skadedato: '2020-01-01',
-      skadelidteFodselsdato: '1990-01-01',
+      skadedato: iso('2020-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
@@ -256,14 +246,14 @@ describe('computeEetEalCalculation', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: iso('2026-02-27'),
         aslAarsloen: asAmount(500000),
         ealAarsloen: asAmount(539000),
         ealEetPct: 20,
         aslAfgoerelser: [],
       },
-      skadedato: '2019-01-01',
-      skadelidteFodselsdato: '1990-01-01',
+      skadedato: iso('2019-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
@@ -276,14 +266,14 @@ describe('computeEetEalCalculation', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: iso('2026-02-27'),
         aslAarsloen: asAmount(539000),
         ealAarsloen: undefined,
         ealEetPct: 20,
         aslAfgoerelser: [],
       },
-      skadedato: '2019-01-01',
-      skadelidteFodselsdato: '1990-01-01',
+      skadedato: iso('2019-01-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
@@ -296,14 +286,14 @@ describe('computeEetEalCalculation', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {
         ...ERHVERVSEVNETAB_INITIAL_VALUES,
-        beregningsdato: '2026-02-27',
+        beregningsdato: iso('2026-02-27'),
         aslAarsloen: asAmount(600000),
         ealAarsloen: undefined,
         ealEetPct: 20,
         aslAfgoerelser: [],
       },
-      skadedato: '2024-07-01',
-      skadelidteFodselsdato: '1990-01-01',
+      skadedato: iso('2024-07-01'),
+      skadelidteFodselsdato: iso('1990-01-01'),
       reguleringssats,
       erhvervsevnetabEalMax,
       aarsloenAslMax,
@@ -329,13 +319,16 @@ describe('formatPercentTrimmedFromRounded4', () => {
 });
 
 describe('buildAldersreduktionFormelTekst', () => {
-  it('tilføjer max 70 %-markering når den ubeskårne aldersreduktion ville overstige 70 %', () => {
+  it('viser den cappede alder når alderen er over 69 år', () => {
     expect(buildAldersreduktionFormelTekst(72)).toBe('(72 - 29) + (72 - 54) x 2 (max 70 %) =');
   });
 
-  it('viser ikke max 70 %-markering når aldersreduktionen ikke capped ved 70 %', () => {
+  it('viser den faktiske alder når alderen højst er 69 år', () => {
     expect(buildAldersreduktionFormelTekst(54)).toBe('(54 - 29) =');
     expect(buildAldersreduktionFormelTekst(69)).toBe('(69 - 29) + (69 - 54) x 2 =');
+  });
+
+  it('capped også visningsformlen ved 70 år', () => {
     expect(buildAldersreduktionFormelTekst(70)).toBe('(70 - 29) + (70 - 54) x 2 (max 70 %) =');
   });
 });

@@ -181,7 +181,8 @@ describe('TableDropdown GridCore integration', () => {
 
     const trigger = screen.getByRole('combobox');
     await user.click(trigger);
-    await user.paste(trigger, 'Beta');
+    trigger.focus();
+    await user.paste('Beta');
 
     expect(onChange).toHaveBeenCalledWith({ target: { value: 'b' } });
   });

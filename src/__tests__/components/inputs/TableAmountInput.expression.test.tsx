@@ -58,7 +58,7 @@ const setup = (
 
   render(<Wrapper />);
 
-  const input = screen.getByRole('textbox');
+  const input = screen.getByRole('textbox') as HTMLInputElement;
   const setEditingCell = (next: GridCellCoord | null) => {
     if (!setEditingCellRef.current) return;
     act(() => {
@@ -213,7 +213,8 @@ describe('TableAmountInput expression behavior', () => {
     const { input, onBlur } = setup(undefined);
 
     await user.click(input);
-    await user.paste(input, 'adffergregs//sgd1712,56//');
+    input.focus();
+    await user.paste('adffergregs//sgd1712,56//');
     await user.tab();
 
     expect(onBlur).toHaveBeenCalledWith(
@@ -232,7 +233,8 @@ describe('TableAmountInput expression behavior', () => {
 
     setEditingCell(null);
     await user.click(input);
-    await user.paste(input, '9.602,05 kr.');
+    input.focus();
+    await user.paste('9.602,05 kr.');
 
     await waitFor(() => {
       expect(onBlur).toHaveBeenCalledWith(
@@ -254,7 +256,8 @@ describe('TableAmountInput expression behavior', () => {
 
     setEditingCell(null);
     await user.click(input);
-    await user.paste(input, '-9.602,05 kr.');
+    input.focus();
+    await user.paste('-9.602,05 kr.');
 
     await waitFor(() => {
       expect(onBlur).toHaveBeenCalledWith(
@@ -276,7 +279,8 @@ describe('TableAmountInput expression behavior', () => {
 
     setEditingCell(null);
     await user.click(input);
-    await user.paste(input, 'abc - 123,45 kr.');
+    input.focus();
+    await user.paste('abc - 123,45 kr.');
 
     await waitFor(() => {
       expect(onBlur).toHaveBeenCalledWith(
@@ -296,7 +300,8 @@ describe('TableAmountInput expression behavior', () => {
 
     setEditingCell(null);
     await user.click(input);
-    await user.paste(input, 'kr.');
+    input.focus();
+    await user.paste('kr.');
 
     expect(onBlur).not.toHaveBeenCalled();
     expect(input).toHaveValue('42,00');
@@ -338,7 +343,8 @@ describe('TableAmountInput expression behavior', () => {
     const { input, onBlur } = setup(undefined, { canBeNegative: false });
 
     await user.click(input);
-    await user.paste(input, '-123');
+    input.focus();
+    await user.paste('-123');
     await user.tab();
 
     expect(onBlur).toHaveBeenCalledWith(

@@ -2,6 +2,7 @@
 
 import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { toISODateString } from '../../../types/branded';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -38,8 +39,8 @@ describe('buildEODebugModel — kilde-bounds (sources)', () => {
   it('indeholder altid 5 kilde-entries', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
     });
     expect(model.sources).toHaveLength(5);
   });
@@ -47,22 +48,22 @@ describe('buildEODebugModel — kilde-bounds (sources)', () => {
   it('erstatningsperiode bounds er sat korrekt', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-03-01' as never,
-      vedroererPeriodeTil: '2024-03-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-03-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-03-31') as never,
     });
     const src = model.sources.find((s) => s.label === 'Erstatningsperiode');
-    expect(src?.fra).toBe('2024-03-01');
-    expect(src?.til).toBe('2024-03-31');
+    expect(src?.fra).toBe(toISODateString('2024-03-01'));
+    expect(src?.til).toBe(toISODateString('2024-03-31'));
   });
 
   it('beregningsperiode bounds er undefined når beregnesUdFra ikke er Beregningsperiode', () => {
     const model = buildEODebugModel({
       ...base(),
       beregnesUdFra: 'Angivet månedsløn' as const,
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
-      tafBeregningsperiodeFra: '2023-01-01' as never,
-      tafBeregningsperiodeTil: '2023-12-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
+      tafBeregningsperiodeFra: toISODateString('2023-01-01') as never,
+      tafBeregningsperiodeTil: toISODateString('2023-12-31') as never,
     });
     const src = model.sources.find((s) => s.label === 'Beregningsperiode');
     expect(src?.fra).toBeUndefined();
@@ -73,14 +74,14 @@ describe('buildEODebugModel — kilde-bounds (sources)', () => {
     const model = buildEODebugModel({
       ...base(),
       beregnesUdFra: 'Beregningsperiode' as const,
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-12-31' as never,
-      tafBeregningsperiodeFra: '2023-06-01' as never,
-      tafBeregningsperiodeTil: '2024-05-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-12-31') as never,
+      tafBeregningsperiodeFra: toISODateString('2023-06-01') as never,
+      tafBeregningsperiodeTil: toISODateString('2024-05-31') as never,
     });
     const src = model.sources.find((s) => s.label === 'Beregningsperiode');
-    expect(src?.fra).toBe('2023-06-01');
-    expect(src?.til).toBe('2024-05-31');
+    expect(src?.fra).toBe(toISODateString('2023-06-01'));
+    expect(src?.til).toBe(toISODateString('2024-05-31'));
   });
 
   it('kombinedMinFra er minimum på tværs af alle kilder', () => {
@@ -89,44 +90,44 @@ describe('buildEODebugModel — kilde-bounds (sources)', () => {
     const model = buildEODebugModel({
       ...base(),
       beregnesUdFra: 'Beregningsperiode' as const,
-      vedroererPeriodeFra: '2024-03-01' as never,
-      vedroererPeriodeTil: '2024-06-30' as never,
-      tafBeregningsperiodeFra: '2023-01-01' as never,
-      tafBeregningsperiodeTil: '2023-12-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-03-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-06-30') as never,
+      tafBeregningsperiodeFra: toISODateString('2023-01-01') as never,
+      tafBeregningsperiodeTil: toISODateString('2023-12-31') as never,
     });
-    expect(model.combinedMinFra).toBe('2023-01-01');
+    expect(model.combinedMinFra).toBe(toISODateString('2023-01-01'));
   });
 
   it('kombinedMaxTil er maximum på tværs af alle kilder', () => {
     const model = buildEODebugModel({
       ...base(),
       beregnesUdFra: 'Beregningsperiode' as const,
-      vedroererPeriodeFra: '2023-01-01' as never,
-      vedroererPeriodeTil: '2023-06-30' as never,
-      tafBeregningsperiodeFra: '2022-01-01' as never,
-      tafBeregningsperiodeTil: '2023-09-30' as never,
+      vedroererPeriodeFra: toISODateString('2023-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2023-06-30') as never,
+      tafBeregningsperiodeFra: toISODateString('2022-01-01') as never,
+      tafBeregningsperiodeTil: toISODateString('2023-09-30') as never,
     });
-    expect(model.combinedMaxTil).toBe('2023-09-30');
+    expect(model.combinedMaxTil).toBe(toISODateString('2023-09-30'));
   });
 
   it('medtager svie/smerte som kilde når kun svie/smerte-perioder driver tabellen', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-26' as never,
-      vedroererPeriodeTil: '2025-11-02' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-26') as never,
+      vedroererPeriodeTil: toISODateString('2025-11-02') as never,
       beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
       svieSmertePerioder: [
-        { id: 'ss-1', fra: '2024-01-26', til: '2024-10-20', tilstand: 'sygemeldt' },
-        { id: 'ss-2', fra: '2025-08-12', til: '2025-09-22', tilstand: 'sygemeldt' },
-        { id: 'ss-3', fra: '2025-09-23', til: '2025-11-02', tilstand: 'delvist-sygemeldt' },
+        { id: 'ss-1', fra: toISODateString('2024-01-26'), til: toISODateString('2024-10-20'), tilstand: 'sygemeldt' },
+        { id: 'ss-2', fra: toISODateString('2025-08-12'), til: toISODateString('2025-09-22'), tilstand: 'sygemeldt' },
+        { id: 'ss-3', fra: toISODateString('2025-09-23'), til: toISODateString('2025-11-02'), tilstand: 'delvist-sygemeldt' },
       ] as never,
       loenindkomstAnsaettelsesforhold: [],
       offentligeYdelserRows: [],
     });
 
     const src = model.sources.find((source) => source.label === 'Svie/smerte');
-    expect(src?.fra).toBe('2024-01-26');
-    expect(src?.til).toBe('2025-11-02');
+    expect(src?.fra).toBe(toISODateString('2024-01-26'));
+    expect(src?.til).toBe(toISODateString('2025-11-02'));
     expect(model.rowCount).toBeGreaterThan(0);
   });
 });
@@ -137,41 +138,41 @@ describe('buildEODebugModel — summaryTableFra/Til (månedsgrænser)', () => {
   it('summaryTableFra er første dag i måneden for combinedMinFra', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-03-15' as never,
-      vedroererPeriodeTil: '2024-04-15' as never,
+      vedroererPeriodeFra: toISODateString('2024-03-15') as never,
+      vedroererPeriodeTil: toISODateString('2024-04-15') as never,
     });
     // 2024-03-15 → tableFra = 2024-03-01
-    expect(model.summaryTableFra).toBe('2024-03-01');
+    expect(model.summaryTableFra).toBe(toISODateString('2024-03-01'));
   });
 
   it('summaryTableTil er sidste dag i måneden for combinedMaxTil', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-03-15' as never,
-      vedroererPeriodeTil: '2024-04-15' as never,
+      vedroererPeriodeFra: toISODateString('2024-03-15') as never,
+      vedroererPeriodeTil: toISODateString('2024-04-15') as never,
     });
     // 2024-04-15 → tableTil = 2024-04-30
-    expect(model.summaryTableTil).toBe('2024-04-30');
+    expect(model.summaryTableTil).toBe(toISODateString('2024-04-30'));
   });
 
   it('summaryTableTil håndterer februar korrekt (ikke-skudår)', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2023-02-01' as never,
-      vedroererPeriodeTil: '2023-02-15' as never,
+      vedroererPeriodeFra: toISODateString('2023-02-01') as never,
+      vedroererPeriodeTil: toISODateString('2023-02-15') as never,
     });
     // 2023 er ikke skudår → feb = 28 dage
-    expect(model.summaryTableTil).toBe('2023-02-28');
+    expect(model.summaryTableTil).toBe(toISODateString('2023-02-28'));
   });
 
   it('summaryTableTil håndterer februar i skudår', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-02-01' as never,
-      vedroererPeriodeTil: '2024-02-15' as never,
+      vedroererPeriodeFra: toISODateString('2024-02-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-02-15') as never,
     });
     // 2024 er skudår → feb = 29 dage
-    expect(model.summaryTableTil).toBe('2024-02-29');
+    expect(model.summaryTableTil).toBe(toISODateString('2024-02-29'));
   });
 });
 
@@ -181,8 +182,8 @@ describe('buildEODebugModel — rækkegenerering', () => {
   it('rowCount matcher antallet af dage i tabelperioden', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-15' as never,
-      vedroererPeriodeTil: '2024-01-17' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-15') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-17') as never,
     });
     // tableFra = 2024-01-01, tableTil = 2024-01-31 → 31 dage
     expect(model.rowCount).toBe(31);
@@ -191,8 +192,8 @@ describe('buildEODebugModel — rækkegenerering', () => {
   it('rows.length === rowCount', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-01' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-01') as never,
     });
     expect(model.rows.length).toBe(model.rowCount);
   });
@@ -200,22 +201,22 @@ describe('buildEODebugModel — rækkegenerering', () => {
   it('getRowKey returnerer ISO-dato for gyldig rowIndex', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
     });
-    expect(model.getRowKey(0)).toBe('2024-01-01');
-    expect(model.getRowKey(30)).toBe('2024-01-31');
+    expect(model.getRowKey(0)).toBe(toISODateString('2024-01-01'));
+    expect(model.getRowKey(30)).toBe(toISODateString('2024-01-31'));
   });
 
   it('tableData.dates har korrekt første og sidste dato', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-06-15' as never,
-      vedroererPeriodeTil: '2024-06-15' as never,
+      vedroererPeriodeFra: toISODateString('2024-06-15') as never,
+      vedroererPeriodeTil: toISODateString('2024-06-15') as never,
     });
     // tableFra = 2024-06-01, tableTil = 2024-06-30 → 30 dage
-    expect(model.tableData.dates[0]).toBe('2024-06-01');
-    expect(model.tableData.dates[29]).toBe('2024-06-30');
+    expect(model.tableData.dates[0]).toBe(toISODateString('2024-06-01'));
+    expect(model.tableData.dates[29]).toBe(toISODateString('2024-06-30'));
   });
 });
 
@@ -224,8 +225,8 @@ describe('buildEODebugModel — rækkegenerering', () => {
 describe('buildEODebugModel — basiskolonner', () => {
   const withJanuary = () => buildEODebugModel({
     ...base(),
-    vedroererPeriodeFra: '2024-01-01' as never,
-    vedroererPeriodeTil: '2024-01-31' as never,
+    vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+    vedroererPeriodeTil: toISODateString('2024-01-31') as never,
   });
 
   it('indeholder basiskolonnerne: weekday, date, hverdag, sh_day, feriedag, arbejdsdag, ss_day', () => {
@@ -242,19 +243,19 @@ describe('buildEODebugModel — basiskolonner', () => {
 
   it('2024-01-01 (nytårsdag, mandag) er markeret som S/H-dag', () => {
     const model = withJanuary();
-    const idx = model.tableData.dates.indexOf('2024-01-01' as never);
+    const idx = model.tableData.dates.indexOf(toISODateString('2024-01-01') as never);
     expect(model.getCell(idx, 'base:sh_day')).toBe('x');
   });
 
   it('2024-01-06 (lørdag) er ikke hverdag', () => {
     const model = withJanuary();
-    const idx = model.tableData.dates.indexOf('2024-01-06' as never);
+    const idx = model.tableData.dates.indexOf(toISODateString('2024-01-06') as never);
     expect(model.getCell(idx, 'base:hverdag')).toBe('');
   });
 
   it('2024-01-08 (mandag, ingen SH) er hverdag', () => {
     const model = withJanuary();
-    const idx = model.tableData.dates.indexOf('2024-01-08' as never);
+    const idx = model.tableData.dates.indexOf(toISODateString('2024-01-08') as never);
     expect(model.getCell(idx, 'base:hverdag')).toBe('x');
   });
 });
@@ -266,11 +267,11 @@ describe('buildEODebugModel — ferie-set', () => {
     const model = buildEODebugModel({
       ...base(),
       beregnesUdFra: 'Angivet dagsløn' as const,
-      vedroererPeriodeFra: '2024-03-01' as never,
-      vedroererPeriodeTil: '2024-03-31' as never,
-      ferieperioder: [{ id: 'f1', fra: '2024-03-04', til: '2024-03-04' }] as never,
+      vedroererPeriodeFra: toISODateString('2024-03-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-03-31') as never,
+      ferieperioder: [{ id: 'f1', fra: toISODateString('2024-03-04'), til: toISODateString('2024-03-04') }] as never,
     });
-    const idx = model.tableData.dates.indexOf('2024-03-04' as never);
+    const idx = model.tableData.dates.indexOf(toISODateString('2024-03-04') as never);
     expect(idx).toBeGreaterThanOrEqual(0);
     expect(model.getCell(idx, 'base:ferie_day')).toBe('x');
     expect(model.getCell(idx, 'base:arbejdsdag')).toBe('');
@@ -280,11 +281,11 @@ describe('buildEODebugModel — ferie-set', () => {
     const model = buildEODebugModel({
       ...base(),
       beregnesUdFra: 'Angivet dagsløn' as const,
-      vedroererPeriodeFra: '2024-03-01' as never,
-      vedroererPeriodeTil: '2024-03-31' as never,
-      fravaerPerioder: [{ id: 'f2', fra: '2024-03-05', til: '2024-03-05' }] as never,
+      vedroererPeriodeFra: toISODateString('2024-03-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-03-31') as never,
+      fravaerPerioder: [{ id: 'f2', fra: toISODateString('2024-03-05'), til: toISODateString('2024-03-05') }] as never,
     });
-    const idx = model.tableData.dates.indexOf('2024-03-05' as never);
+    const idx = model.tableData.dates.indexOf(toISODateString('2024-03-05') as never);
     expect(model.getCell(idx, 'base:ferie_day')).toBe('x');
   });
 
@@ -292,11 +293,11 @@ describe('buildEODebugModel — ferie-set', () => {
     // 2024-03-09 er lørdag
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-03-01' as never,
-      vedroererPeriodeTil: '2024-03-31' as never,
-      ferieperioder: [{ id: 'f3', fra: '2024-03-09', til: '2024-03-09' }] as never,
+      vedroererPeriodeFra: toISODateString('2024-03-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-03-31') as never,
+      ferieperioder: [{ id: 'f3', fra: toISODateString('2024-03-09'), til: toISODateString('2024-03-09') }] as never,
     });
-    const idx = model.tableData.dates.indexOf('2024-03-09' as never);
+    const idx = model.tableData.dates.indexOf(toISODateString('2024-03-09') as never);
     expect(model.getCell(idx, 'base:ferie_day')).toBe('');
   });
 });
@@ -305,18 +306,18 @@ describe('buildEODebugModel — TAF fallback', () => {
   it('bruger skadedatoISO ved fallback-beregning af TAF-ranges', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
       midlertidigtEETAfgorelse: 'Ja' as const,
-      midlertidigEETVirkningsdato: '2024-01-10' as never,
+      midlertidigEETVirkningsdato: toISODateString('2024-01-10') as never,
       verserendeKlageEet: 'Nej' as const,
       tafPerioder: [
-        { id: 'taf-1', fra: '2024-01-01', til: '2024-01-31', loseFeriedage: 0 },
+        { id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loseFeriedage: 0 },
       ] as never,
-    }, { skadedatoISO: '2010-06-15' as never });
+    }, { skadedatoISO: toISODateString('2010-06-15') as never });
 
-    const beforeCutoffIndex = model.tableData.dates.indexOf('2024-01-09' as never);
-    const cutoffIndex = model.tableData.dates.indexOf('2024-01-10' as never);
+    const beforeCutoffIndex = model.tableData.dates.indexOf(toISODateString('2024-01-09') as never);
+    const cutoffIndex = model.tableData.dates.indexOf(toISODateString('2024-01-10') as never);
 
     expect(model.tableData.tafDayStatusByIndex[beforeCutoffIndex]).toBe('Ja');
     expect(model.tableData.tafDayStatusByIndex[cutoffIndex]).toBe('-');
@@ -329,37 +330,37 @@ describe('buildEODebugModel — SS-dag (svie/smerte)', () => {
   it('sygemeldt-periode → Ja i S/S-kolonnen for dage indenfor erstatningsperioden', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-03-01' as never,
-      vedroererPeriodeTil: '2024-03-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-03-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-03-31') as never,
       svieSmertePerioder: [
-        { id: 'ss1', fra: '2024-03-04', til: '2024-03-06', tilstand: 'sygemeldt' },
+        { id: 'ss1', fra: toISODateString('2024-03-04'), til: toISODateString('2024-03-06'), tilstand: 'sygemeldt' },
       ] as never,
     });
-    const idx = model.tableData.dates.indexOf('2024-03-04' as never);
+    const idx = model.tableData.dates.indexOf(toISODateString('2024-03-04') as never);
     expect(model.getCell(idx, 'base:ss_day')).toBe('Ja');
   });
 
   it('delvist-sygemeldt → Delvis i S/S-kolonnen', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-03-01' as never,
-      vedroererPeriodeTil: '2024-03-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-03-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-03-31') as never,
       svieSmertePerioder: [
-        { id: 'ss2', fra: '2024-03-10', til: '2024-03-10', tilstand: 'delvist-sygemeldt' },
+        { id: 'ss2', fra: toISODateString('2024-03-10'), til: toISODateString('2024-03-10'), tilstand: 'delvist-sygemeldt' },
       ] as never,
     });
-    const idx = model.tableData.dates.indexOf('2024-03-10' as never);
+    const idx = model.tableData.dates.indexOf(toISODateString('2024-03-10') as never);
     expect(model.getCell(idx, 'base:ss_day')).toBe('Delvis');
   });
 
   it('dag udenfor erstatningsperioden har tom streng i S/S-kolonnen', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-03-05' as never,
-      vedroererPeriodeTil: '2024-03-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-03-05') as never,
+      vedroererPeriodeTil: toISODateString('2024-03-31') as never,
     });
     // 2024-03-01 er i tabellen (tableFra=2024-03-01) men udenfor erstatningsperioden
-    const idx = model.tableData.dates.indexOf('2024-03-01' as never);
+    const idx = model.tableData.dates.indexOf(toISODateString('2024-03-01') as never);
     expect(model.getCell(idx, 'base:ss_day')).toBe('');
   });
 });
@@ -370,8 +371,8 @@ describe('buildEODebugModel — getCell', () => {
   it('getCell returnerer tom streng for ukendt kolonne-id', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
     });
     expect(model.getCell(0, 'base:ukendt' as never)).toBe('');
   });
@@ -380,18 +381,18 @@ describe('buildEODebugModel — getCell', () => {
     // 2024-01-01 er mandag
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
     });
-    const idx = model.tableData.dates.indexOf('2024-01-01' as never);
+    const idx = model.tableData.dates.indexOf(toISODateString('2024-01-01') as never);
     expect(model.getCell(idx, 'base:weekday')).toBe('Mandag');
   });
 
   it('rows[i].cells[colId] matcher getCell(i, colId)', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-07' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-07') as never,
     });
     for (let i = 0; i < model.rowCount; i += 1) {
       const row = model.rows[i];
@@ -408,8 +409,8 @@ describe('buildEODebugModel — columnRawValues', () => {
   it('returnerer et Map-objekt (evt. tomt)', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
     });
     expect(model.columnRawValues).toBeInstanceOf(Map);
   });
@@ -421,9 +422,9 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
   it('viser kun én fælles TAF dag-kolonne selv ved flere ansættelsesforhold', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
-      tafPerioder: [{ id: 'taf-1', fra: '2024-01-02', til: '2024-01-10', loseFeriedage: 0 }] as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
+      tafPerioder: [{ id: 'taf-1', fra: toISODateString('2024-01-02'), til: toISODateString('2024-01-10'), loseFeriedage: 0 }] as never,
       loenindkomstAnsaettelsesforhold: [
         {
           id: 'af-1',
@@ -446,7 +447,7 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
           loenudviklingStatistikModel: undefined,
           loenudviklingManuelTableData: [],
           indtaegtsoplysningerTableData: [
-            { id: 'row-1', fra: '2024-01-01', til: '2024-01-31', loen: '30000', loenperiode: 'maaned' },
+            { id: 'row-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loen: '30000', loenperiode: 'maaned' },
           ],
         },
         {
@@ -470,7 +471,7 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
           loenudviklingStatistikModel: undefined,
           loenudviklingManuelTableData: [],
           indtaegtsoplysningerTableData: [
-            { id: 'row-2', fra: '2024-01-01', til: '2024-01-31', loen: '32000', loenperiode: 'maaned' },
+            { id: 'row-2', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loen: '32000', loenperiode: 'maaned' },
           ],
         },
       ] as never,
@@ -490,8 +491,8 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
     // Tabellen skal have loen-kolonner når der er ansaettelsesforhold med data
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
       loenindkomstAnsaettelsesforhold: [
         {
           id: 'af-1',
@@ -516,8 +517,8 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
           indtaegtsoplysningerTableData: [
             {
               id: 'row-1',
-              fra: '2024-01-01',
-              til: '2024-01-31',
+              fra: toISODateString('2024-01-01'),
+              til: toISODateString('2024-01-31'),
               loen: '30000',
               loenperiode: 'maaned',
             },
@@ -533,8 +534,8 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
   it('employment-kolonner viser nu underoverskrifter uden ansættelsesnummer', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
       loenindkomstAnsaettelsesforhold: [
         {
           id: 'af-1',
@@ -557,7 +558,7 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
           loenudviklingStatistikModel: undefined,
           loenudviklingManuelTableData: [],
           indtaegtsoplysningerTableData: [
-            { id: 'row-1', fra: '2024-01-01', til: '2024-01-31', loen: '30000', loenperiode: 'maaned' },
+            { id: 'row-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loen: '30000', loenperiode: 'maaned' },
           ],
         },
       ] as never,
@@ -571,8 +572,8 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
   it('employment-kolonner bruger samme underoverskrift uden fallback-navn i kolonneoverskriften', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
       loenindkomstAnsaettelsesforhold: [
         {
           id: 'af-1',
@@ -595,7 +596,7 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
           loenudviklingStatistikModel: undefined,
           loenudviklingManuelTableData: [],
           indtaegtsoplysningerTableData: [
-            { id: 'row-1', fra: '2024-01-01', til: '2024-01-31', loen: '30000', loenperiode: 'maaned' },
+            { id: 'row-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loen: '30000', loenperiode: 'maaned' },
           ],
         },
       ] as never,
@@ -609,14 +610,14 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
     // ydelsestype er registry-nøglen (lowercase), ydelse er AmountValue-objekt { kind: 'number', value }
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
       offentligeYdelserRows: [
         {
           id: 'oy-1',
           ydelsestype: 'sygedagpenge',
-          fraDato: '2024-01-08',
-          tilDato: '2024-01-12',
+          fraDato: toISODateString('2024-01-08'),
+          tilDato: toISODateString('2024-01-12'),
           ydelse: { kind: 'number', value: 1000 },
           tillaeg: undefined,
         },
@@ -630,8 +631,8 @@ describe('buildEODebugModel — loenindkomst og offentligeydelser kolonner (smok
   it('integrityIssues er tom ved gyldig model med lønindkomst', () => {
     const model = buildEODebugModel({
       ...base(),
-      vedroererPeriodeFra: '2024-01-01' as never,
-      vedroererPeriodeTil: '2024-01-31' as never,
+      vedroererPeriodeFra: toISODateString('2024-01-01') as never,
+      vedroererPeriodeTil: toISODateString('2024-01-31') as never,
       loenindkomstAnsaettelsesforhold: [
         {
           id: 'af-1',

@@ -1,4 +1,5 @@
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
+import { toISODateString } from '../../../types/branded';
 import {
   beregnFejlmeddelelser,
   harTabelValideringsFejl,
@@ -181,7 +182,7 @@ describe('harTabelValideringsFejl', () => {
   });
 
   it('delvis dagrække (kun fra) → true', () => {
-    const partialRow: StandardLoenTableRow = { ...emptyRow('r1'), col0_dag: '01-01-2024' };
+    const partialRow: StandardLoenTableRow = { ...emptyRow('r1'), col0_dag: toISODateString('2024-01-01') };
     expect(harTabelValideringsFejl([partialRow], 'dag')).toBe(true);
   });
 

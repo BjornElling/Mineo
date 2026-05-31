@@ -22,6 +22,7 @@ vi.mock('../../../components/tables/BeregnetRenteTable', () => ({
 }));
 
 import RenteberegningTab from '../../../components/pages/renteberegning/RenteberegningTab';
+import { toISODateString } from '../../../types/branded';
 
 const TestContentBox = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
 
@@ -29,7 +30,7 @@ describe('RenteberegningTab', () => {
   it('renderer beregningsdato-rækken som standard hover-row med label til venstre og input til højre', () => {
     render(
       <RenteberegningTab
-        beregningsdato={'2026-04-18'}
+        beregningsdato={toISODateString('2026-04-18')}
         kommentarer={undefined}
         onBeregningsdatoCommit={vi.fn()}
         onKommentarerCommit={vi.fn()}
@@ -55,7 +56,7 @@ describe('RenteberegningTab', () => {
   it('renderer beregningstekniske forudsætninger som hover-rækker', () => {
     render(
       <RenteberegningTab
-        beregningsdato={'2026-04-18'}
+        beregningsdato={toISODateString('2026-04-18')}
         kommentarer={undefined}
         onBeregningsdatoCommit={vi.fn()}
         onKommentarerCommit={vi.fn()}

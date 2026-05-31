@@ -42,8 +42,8 @@ describe('TableDateInput', () => {
           <TableDateInput
             gridCell={gridCell}
             value={value}
-            minDate="2020-01-01"
-            maxDate="2020-12-31"
+            minDate={toISODateString("2020-01-01")}
+            maxDate={toISODateString("2020-12-31")}
             onBlur={(e) => {
               setValue(e.target.value);
               setEditingCell(null);
@@ -79,7 +79,7 @@ describe('TableDateInput', () => {
     );
 
     expect(screen.getByRole('textbox')).toHaveValue('24-05-2026');
-    expect(sanitizeTableDateDraft('24-05-2026', { twoDigitYearPolicy: 'infer' })).toBe('2026-05-24');
+    expect(sanitizeTableDateDraft('24-05-2026', { twoDigitYearPolicy: 'infer' })).toBe(toISODateString('2026-05-24'));
     expect(sanitizeTableDateDraft('ikke en dato', { twoDigitYearPolicy: 'infer' })).toBeUndefined();
   });
 
@@ -163,8 +163,8 @@ describe('TableDateInput', () => {
           <TableDateInput
             gridCell={gridCell}
             value={iso('2025-06-15')}
-            minDate="2025-12-31"
-            maxDate="2025-01-01"
+            minDate={toISODateString("2025-12-31")}
+            maxDate={toISODateString("2025-01-01")}
           />
         </GridCoreProvider>
       );
@@ -183,20 +183,20 @@ describe('TableDateInput', () => {
 
     const Wrapper = () => {
       const [value, setValue] = React.useState<ISODateString | undefined>(iso('2023-01-01'));
-      const [minDate, setMinDate] = React.useState('2024-01-01');
+      const [minDate, setMinDate] = React.useState(toISODateString('2024-01-01'));
       const [editingCell, setEditingCell] = React.useState<GridCellCoord | null>(gridCell);
       const gridValue = React.useMemo(() => createGridValue(gridCell, editingCell), [editingCell]);
 
       return (
         <GridCoreProvider value={gridValue}>
-          <button type="button" onClick={() => setMinDate('2023-01-01')}>
+          <button type="button" onClick={() => setMinDate(toISODateString('2023-01-01'))}>
             loosen-min
           </button>
           <TableDateInput
             gridCell={gridCell}
             value={value}
             minDate={minDate}
-            maxDate="2026-12-31"
+            maxDate={toISODateString("2026-12-31")}
             onBlur={(e) => {
               setValue(e.target.value);
               setEditingCell(null);
@@ -253,7 +253,8 @@ describe('TableDateInput', () => {
 
     const input = screen.getByRole('textbox');
     await user.click(input);
-    await user.paste(input, 'adffergregs//sgd1712,56//');
+    input.focus();
+    await user.paste('adffergregs//sgd1712,56//');
 
     expect(input).toHaveValue('17-12-1956');
   });

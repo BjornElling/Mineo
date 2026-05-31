@@ -1,4 +1,5 @@
 import { serializeFormValues } from '../../utils/serialization';
+import { toISODateString } from '../../types/branded';
 
 describe('serializeFormValues', () => {
   describe('primitive typer', () => {
@@ -74,7 +75,7 @@ describe('serializeFormValues', () => {
       const values = {
         name: 'Test',
         amount: 100,
-        date: '2024-01-01',
+        date: toISODateString('2024-01-01'),
         optional: undefined,
         nested: { a: 1, b: undefined },
         list: [1, undefined, 3],

@@ -103,10 +103,10 @@ describe('computeMerErstatningPensionsalder — betingelser', () => {
     // Kapitaliseret 01-06-2015 → 67→68-forhøjelsen 29-12-2015 ligger efter kapitaliseringsdatoen
     // (samme kalenderår, men senere dato) → mer-erstatning skal medregnes.
     const computation = computeMerErstatningPensionsalder(
-      { ...base, kapitaliseringer: [kap('2015-06-01')] },
+      { ...base, kapitaliseringer: [kap(toISODateString('2015-06-01'))] },
       issues
     );
-    const har2015 = computation?.events.some((e) => e.forhoejelsesdato === '2015-12-29');
+    const har2015 = computation?.events.some((e) => e.forhoejelsesdato === toISODateString('2015-12-29'));
     expect(har2015).toBeTruthy();
   });
 
@@ -115,10 +115,10 @@ describe('computeMerErstatningPensionsalder — betingelser', () => {
     // Kapitaliseret 30-12-2015 → 67→68-forhøjelsen 29-12-2015 ligger før kapitaliseringsdatoen
     // → ingen mer-erstatning for den forhøjelse.
     const computation = computeMerErstatningPensionsalder(
-      { ...base, kapitaliseringer: [kap('2015-12-30')] },
+      { ...base, kapitaliseringer: [kap(toISODateString('2015-12-30'))] },
       issues
     );
-    const har2015 = computation?.events.some((e) => e.forhoejelsesdato === '2015-12-29');
+    const har2015 = computation?.events.some((e) => e.forhoejelsesdato === toISODateString('2015-12-29'));
     expect(har2015).toBeFalsy();
   });
 
@@ -126,10 +126,10 @@ describe('computeMerErstatningPensionsalder — betingelser', () => {
     const issues: EetIssue[] = [];
     const computation = computeMerErstatningPensionsalder(
       // Beregningsdato før 2020-forhøjelsen → kun 67→68 må kunne indgå.
-      { ...base, beregningsdato: iso('2017-01-01'), kapitaliseringer: [kap('2014-06-01')] },
+      { ...base, beregningsdato: iso('2017-01-01'), kapitaliseringer: [kap(toISODateString('2014-06-01'))] },
       issues
     );
-    const har2020 = computation?.events.some((e) => e.forhoejelsesdato === '2020-12-31');
+    const har2020 = computation?.events.some((e) => e.forhoejelsesdato === toISODateString('2020-12-31'));
     expect(har2020).toBeFalsy();
   });
 
@@ -138,7 +138,7 @@ describe('computeMerErstatningPensionsalder — betingelser', () => {
     const computation = computeMerErstatningPensionsalder(
       // Kapitaliseret 01-06-2024, beregningsdato 01-06-2025 → 31-12-2025-forhøjelsen ligger efter
       // beregningsdatoen, og ingen tidligere forhøjelse ligger efter kapitaliseringsdatoen.
-      { ...base, beregningsdato: iso('2025-06-01'), kapitaliseringer: [kap('2024-06-01')] },
+      { ...base, beregningsdato: iso('2025-06-01'), kapitaliseringer: [kap(toISODateString('2024-06-01'))] },
       issues
     );
     expect(computation).toBeNull();

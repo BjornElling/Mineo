@@ -1,3 +1,4 @@
+import { toISODateString } from '../../../types/branded';
 /// <reference types="vitest/globals" />
 
 class MockJsPDF {
@@ -46,8 +47,8 @@ describe('EET PDF empty states', () => {
 
     generateLoebendeYdelserPdf({
       computation: {
-        beregningsdato: '2026-03-17',
-        skadedato: '2020-01-01',
+        beregningsdato: toISODateString('2026-03-17'),
+        skadedato: toISODateString('2020-01-01'),
         maxAarsloenISkadesaar: 500000,
         benyttetAarsloen: 500000,
         grundloen: 400000,
@@ -89,8 +90,8 @@ describe('EET PDF empty states', () => {
         afgoerelser: [
           {
             rowId: '1',
-            afgoerelsesdato: '2022-07-01',
-            kapitaliseringsdato: '2022-11-11',
+            afgoerelsesdato: toISODateString('2022-07-01'),
+            kapitaliseringsdato: toISODateString('2022-11-11'),
             kapitaliseringspct: 50,
             grundloen: 351539,
             erstatningsniveauPct: 80,
@@ -132,9 +133,9 @@ describe('EET PDF empty states', () => {
 
     generateDifferencekravPdf({
       computation: {
-        beregningsdato: '2026-03-17',
-        skadedato: '2020-01-01',
-        dagFoerBeregningsdato: '2026-03-16',
+        beregningsdato: toISODateString('2026-03-17'),
+        skadedato: toISODateString('2020-01-01'),
+        dagFoerBeregningsdato: toISODateString('2026-03-16'),
         ealKrav: 100000,
         ealEetPct: 15,
         fradragLoebendeYdelser: 0,
@@ -145,8 +146,8 @@ describe('EET PDF empty states', () => {
         afgoerelser: [],
         kapitaliseringerAfgoerelser: [],
         loebendeComputation: {
-          beregningsdato: '2026-03-16',
-          skadedato: '2020-01-01',
+          beregningsdato: toISODateString('2026-03-16'),
+          skadedato: toISODateString('2020-01-01'),
           maxAarsloenISkadesaar: 500000,
           benyttetAarsloen: 500000,
           grundloen: 400000,
@@ -181,16 +182,16 @@ describe('EET PDF empty states', () => {
 
     generateDifferencekravPdf({
       computation: {
-        beregningsdato: '2026-03-17',
-        skadedato: '2020-01-01',
-        dagFoerBeregningsdato: '2026-03-16',
+        beregningsdato: toISODateString('2026-03-17'),
+        skadedato: toISODateString('2020-01-01'),
+        dagFoerBeregningsdato: toISODateString('2026-03-16'),
         ealKrav: 100000,
         ealEetPct: 15,
         fradragLoebendeYdelser: 0,
         fradragKapitaliseretEet: 0,
         proformaKapitalisering: {
           loebendeEetPct: 50,
-          kapitaliseringsdato: '2026-03-17',
+          kapitaliseringsdato: toISODateString('2026-03-17'),
           grundloen: 351539,
           grundydelse: 140615.6,
           erstatningsniveauPct: 80,
@@ -212,8 +213,8 @@ describe('EET PDF empty states', () => {
         afgoerelser: [],
         kapitaliseringerAfgoerelser: [],
         loebendeComputation: {
-          beregningsdato: '2026-03-16',
-          skadedato: '2020-01-01',
+          beregningsdato: toISODateString('2026-03-16'),
+          skadedato: toISODateString('2020-01-01'),
           maxAarsloenISkadesaar: 500000,
           benyttetAarsloen: 500000,
           grundloen: 400000,
@@ -256,9 +257,9 @@ describe('EET PDF empty states', () => {
 
     generateDifferencekravPdf({
       computation: {
-        beregningsdato: '2026-01-15',
-        skadedato: '2022-09-17',
-        dagFoerBeregningsdato: '2026-01-14',
+        beregningsdato: toISODateString('2026-01-15'),
+        skadedato: toISODateString('2022-09-17'),
+        dagFoerBeregningsdato: toISODateString('2026-01-14'),
         ealKrav: 100000,
         ealEetPct: 15,
         fradragLoebendeYdelser: 0,
@@ -269,8 +270,8 @@ describe('EET PDF empty states', () => {
         afgoerelser: [],
         kapitaliseringerAfgoerelser: [],
         loebendeComputation: {
-          beregningsdato: '2026-01-14',
-          skadedato: '2022-09-17',
+          beregningsdato: toISODateString('2026-01-14'),
+          skadedato: toISODateString('2022-09-17'),
           maxAarsloenISkadesaar: 500000,
           benyttetAarsloen: 339000,
           grundloen: 300000,
@@ -278,13 +279,13 @@ describe('EET PDF empty states', () => {
           erstatningsniveauPct: 83,
           amBidragPct: 8,
           reguleringFoer2024Pct: 0,
-          fodselsdato: '1978-05-03',
+          fodselsdato: toISODateString('1978-05-03'),
           skadesaar: 2022,
           afgoerelser: [{
             rowId: 'a1',
-            afgoerelsesdato: '2026-01-15',
-            virkningsdato: '2026-01-15',
-            kapitaliseringsdato: '2026-01-15',
+            afgoerelsesdato: toISODateString('2026-01-15'),
+            virkningsdato: toISODateString('2026-01-15'),
+            kapitaliseringsdato: toISODateString('2026-01-15'),
             afgoerelseType: 'Endelig',
             eetPct: 15,
             priorKapPct: 0,
@@ -295,7 +296,7 @@ describe('EET PDF empty states', () => {
             harKapitalisering: true,
             harRestSektion: false,
             tilbagevirkendeKraft: false,
-            ophoerDato: '2026-01-14',
+            ophoerDato: toISODateString('2026-01-14'),
             ophoerAarsag: 'beregningsdato',
             grundydelseFuld: 0,
             grundydelseRest: null,
@@ -343,8 +344,8 @@ describe('EET PDF empty states', () => {
 
     generateLoebendeYdelserPdf({
       computation: {
-        beregningsdato: '2026-03-17',
-        skadedato: '2020-01-01',
+        beregningsdato: toISODateString('2026-03-17'),
+        skadedato: toISODateString('2020-01-01'),
         maxAarsloenISkadesaar: 500000,
         benyttetAarsloen: 500000,
         grundloen: 400000,
@@ -373,9 +374,9 @@ describe('EET PDF empty states', () => {
 
     generateDifferencekravPdf({
       computation: {
-        beregningsdato: '2026-03-17',
-        skadedato: '2020-01-01',
-        dagFoerBeregningsdato: '2026-03-16',
+        beregningsdato: toISODateString('2026-03-17'),
+        skadedato: toISODateString('2020-01-01'),
+        dagFoerBeregningsdato: toISODateString('2026-03-16'),
         ealKrav: 100000,
         ealEetPct: 15,
         fradragLoebendeYdelser: 0,
@@ -386,8 +387,8 @@ describe('EET PDF empty states', () => {
         afgoerelser: [],
         kapitaliseringerAfgoerelser: [],
         loebendeComputation: {
-          beregningsdato: '2026-03-16',
-          skadedato: '2020-01-01',
+          beregningsdato: toISODateString('2026-03-16'),
+          skadedato: toISODateString('2020-01-01'),
           maxAarsloenISkadesaar: 500000,
           benyttetAarsloen: 500000,
           grundloen: 400000,

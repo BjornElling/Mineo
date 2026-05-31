@@ -7,6 +7,7 @@ import {
   isStandardLoenTableValueEffectivelyEmptyForValidation,
 } from '../../../domain/aarsloen/standardLoenTableValidation';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../../utils/dateOrderValidation';
+import { toISODateString } from '../../../types/branded';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -131,7 +132,7 @@ describe('getStandardLoenTableValidation', () => {
   });
 
   it('fortolker numerisk cellKey som kanonisk tabelcelle-identitet', () => {
-    const rows = [row('r1', { col0_dag: '01-01-2024', col1_dag: '31-01-2024', col3: amount(100) })];
+    const rows = [row('r1', { col0_dag: toISODateString('2024-01-01'), col1_dag: toISODateString('2024-01-31'), col3: amount(100) })];
     const result = getStandardLoenTableValidation({
       rows,
       loenperiode: 'dag',
@@ -165,7 +166,7 @@ describe('buildStandardLoenPeriodOrderCellErrorMessages', () => {
 
   it('returnerer tom map når ingen rækker har rækkefølge-fejl (dag)', () => {
     const rows = [
-      row('r1', { col0_dag: '01-01-2024', col1_dag: '31-01-2024' }),
+      row('r1', { col0_dag: toISODateString('2024-01-01'), col1_dag: toISODateString('2024-01-31') }),
     ];
     expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'dag')).toEqual({});
   });
@@ -179,7 +180,7 @@ describe('buildStandardLoenPeriodOrderCellErrorMessages', () => {
   });
 
   it('sætter error-message på begge periode-celler ved dag-rækkefølgefejl', () => {
-    const rows = [row('r1', { col0_dag: '31-01-2024', col1_dag: '01-01-2024' })];
+    const rows = [row('r1', { col0_dag: toISODateString('2024-01-31'), col1_dag: toISODateString('2024-01-01') })];
     expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'dag')).toEqual({
       'r1:0': DATE_ORDER_ERROR_MESSAGE,
       'r1:1': DATE_ORDER_ERROR_MESSAGE,
@@ -188,9 +189,9 @@ describe('buildStandardLoenPeriodOrderCellErrorMessages', () => {
 
   it('rapporterer fejl pr. række uafhængigt ved blandet validitet', () => {
     const rows = [
-      row('r1', { col0_dag: '31-01-2024', col1_dag: '01-01-2024' }),
-      row('r2', { col0_dag: '01-02-2024', col1_dag: '28-02-2024' }),
-      row('r3', { col0_dag: '15-03-2024', col1_dag: '10-03-2024' }),
+      row('r1', { col0_dag: toISODateString('2024-01-31'), col1_dag: toISODateString('2024-01-01') }),
+      row('r2', { col0_dag: toISODateString('2024-02-01'), col1_dag: toISODateString('2024-02-28') }),
+      row('r3', { col0_dag: toISODateString('2024-03-15'), col1_dag: toISODateString('2024-03-10') }),
     ];
     expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'dag')).toEqual({
       'r1:0': DATE_ORDER_ERROR_MESSAGE,
@@ -202,8 +203,8 @@ describe('buildStandardLoenPeriodOrderCellErrorMessages', () => {
 
   it('ignorerer rækker med ufuldstændige perioder (kan ikke være i forkert rækkefølge)', () => {
     const rows = [
-      row('r1', { col0_dag: '31-01-2024', col1_dag: '' }),
-      row('r2', { col0_dag: '', col1_dag: '01-01-2024' }),
+      row('r1', { col0_dag: toISODateString('2024-01-31'), col1_dag: '' }),
+      row('r2', { col0_dag: '', col1_dag: toISODateString('2024-01-01') }),
     ];
     expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'dag')).toEqual({});
   });

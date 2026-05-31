@@ -4,6 +4,7 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { toISODateString } from '../../../types/branded';
 
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -47,12 +48,12 @@ describe('buildEODebugIndkomstRows display', () => {
     af.loenudviklingManuelTableData = [
       {
         ...af.loenudviklingManuelTableData[0],
-        dato: '01-01-2024',
+        dato: toISODateString('2024-01-01'),
         grundloen: 100,
-        feriepenge: '',
-        shSoSats: '',
-        fritvalg: '',
-        agPension: '',
+        feriepenge: undefined,
+        shSoSats: undefined,
+        fritvalg: undefined,
+        agPension: undefined,
       },
     ];
 
@@ -73,12 +74,12 @@ describe('buildEODebugIndkomstRows display', () => {
     af.loenudviklingManuelTableData = [
       {
         ...af.loenudviklingManuelTableData[0],
-        dato: '01-01-2024',
+        dato: toISODateString('2024-01-01'),
         grundloen: 100,
-        feriepenge: '',
-        shSoSats: '',
-        fritvalg: '',
-        agPension: '',
+        feriepenge: undefined,
+        shSoSats: undefined,
+        fritvalg: undefined,
+        agPension: undefined,
       },
     ];
 
@@ -120,12 +121,12 @@ describe('buildEODebugIndkomstRows display', () => {
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenperiode = 'dag';
     af.ansaettelsesforholdOphoert = true;
-    af.sidsteArbejdsdag = '2024-03-15';
+    af.sidsteArbejdsdag = toISODateString('2024-03-15');
     af.indtaegtsoplysningerTableData = [
       {
         id: 'row-1',
-        col0_dag: '01-03-2024',
-        col1_dag: '31-03-2024',
+        col0_dag: toISODateString('2024-03-01'),
+        col1_dag: toISODateString('2024-03-31'),
         col2: amount(1000),
       },
     ];

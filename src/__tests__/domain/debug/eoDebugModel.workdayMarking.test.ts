@@ -1,13 +1,14 @@
 import { buildEODebugModel } from '../../../domain/debug/eoDebugModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { toISODateString } from '../../../types/branded';
 
 const createBaseValues = () => ({
   ...createErstatningsopgoerelseInitialValues(),
-  vedroererPeriodeFra: '2024-01-01',
-  vedroererPeriodeTil: '2024-01-03',
-  tafBeregningsperiodeFra: '2024-01-01',
-  tafBeregningsperiodeTil: '2024-01-03',
-  ferieperioder: [{ id: 'ferie-1', fra: '2024-01-02', til: '2024-01-02' }],
+  vedroererPeriodeFra: toISODateString('2024-01-01'),
+  vedroererPeriodeTil: toISODateString('2024-01-03'),
+  tafBeregningsperiodeFra: toISODateString('2024-01-01'),
+  tafBeregningsperiodeTil: toISODateString('2024-01-03'),
+  ferieperioder: [{ id: 'ferie-1', fra: toISODateString('2024-01-02'), til: toISODateString('2024-01-02') }],
 });
 
 describe('eoDebugModel arbejdsdag-markering', () => {
@@ -15,8 +16,8 @@ describe('eoDebugModel arbejdsdag-markering', () => {
     const values = {
       ...createBaseValues(),
       beregnesUdFra: 'Angivet månedsløn' as const,
-      tafBeregningsperiodeFra: '2021-05-01',
-      tafBeregningsperiodeTil: '2022-02-28',
+      tafBeregningsperiodeFra: toISODateString('2021-05-01'),
+      tafBeregningsperiodeTil: toISODateString('2022-02-28'),
     };
 
     const model = buildEODebugModel(values);
@@ -33,8 +34,8 @@ describe('eoDebugModel arbejdsdag-markering', () => {
     };
 
     const model = buildEODebugModel(values);
-    const indexSh = model.tableData.dates.indexOf('2024-01-01');
-    const indexFerie = model.tableData.dates.indexOf('2024-01-02');
+    const indexSh = model.tableData.dates.indexOf(toISODateString('2024-01-01'));
+    const indexFerie = model.tableData.dates.indexOf(toISODateString('2024-01-02'));
 
     expect(indexSh).toBeGreaterThanOrEqual(0);
     expect(indexFerie).toBeGreaterThanOrEqual(0);
@@ -49,8 +50,8 @@ describe('eoDebugModel arbejdsdag-markering', () => {
     };
 
     const model = buildEODebugModel(values);
-    const indexSh = model.tableData.dates.indexOf('2024-01-01');
-    const indexFerie = model.tableData.dates.indexOf('2024-01-02');
+    const indexSh = model.tableData.dates.indexOf(toISODateString('2024-01-01'));
+    const indexFerie = model.tableData.dates.indexOf(toISODateString('2024-01-02'));
 
     expect(indexSh).toBeGreaterThanOrEqual(0);
     expect(indexFerie).toBeGreaterThanOrEqual(0);

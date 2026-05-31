@@ -30,8 +30,8 @@ describe('buildEODebugOevrigeKravRows visibility', () => {
     values.offentligeYdelserRows = [
       {
         id: 'oy-1',
-        fraDato: '01-01-2024',
-        tilDato: '31-01-2024',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'kontanthjaelp',
         ydelse: asAmountValue(5000),
         tillaeg: undefined,

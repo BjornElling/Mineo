@@ -92,8 +92,8 @@ describe('mergeDateRanges', () => {
 
   it('merger overlappende Date-ranges korrekt', () => {
     const ranges = [
-      { fra: d('2024-01-10'), til: d('2024-01-20') },
-      { fra: d('2024-01-01'), til: d('2024-01-12') },
+      { fra: d(toISODateString('2024-01-10')), til: d(toISODateString('2024-01-20')) },
+      { fra: d(toISODateString('2024-01-01')), til: d(toISODateString('2024-01-12')) },
     ];
     const merged = mergeDateRanges(ranges);
     expect(merged).toHaveLength(1);
@@ -101,12 +101,12 @@ describe('mergeDateRanges', () => {
     expect(merged[0].fra).toBeInstanceOf(Date);
     expect(merged[0].til).toBeInstanceOf(Date);
     // Verificer tidspunkter
-    expect(merged[0].fra.toISOString().startsWith('2024-01-01')).toBe(true);
-    expect(merged[0].til.toISOString().startsWith('2024-01-20')).toBe(true);
+    expect(merged[0].fra.toISOString().startsWith(toISODateString('2024-01-01'))).toBe(true);
+    expect(merged[0].til.toISOString().startsWith(toISODateString('2024-01-20'))).toBe(true);
   });
 
   it('enkelt range returneres som Date-objekt', () => {
-    const ranges = [{ fra: d('2024-06-01'), til: d('2024-06-30') }];
+    const ranges = [{ fra: d(toISODateString('2024-06-01')), til: d(toISODateString('2024-06-30')) }];
     const merged = mergeDateRanges(ranges);
     expect(merged).toHaveLength(1);
     expect(merged[0].fra).toBeInstanceOf(Date);

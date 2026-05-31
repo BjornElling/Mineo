@@ -13,17 +13,18 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
 import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import { toISODateString } from '../../../types/branded';
 
 const buildBaseSnapshot = () => {
   const eoValues = createErstatningsopgoerelseInitialValues();
-  eoValues.vedroererPeriodeFra = '2024-01-01';
-  eoValues.vedroererPeriodeTil = '2024-01-31';
+  eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+  eoValues.vedroererPeriodeTil = toISODateString('2024-01-31');
   eoValues.beregnesSvieSmerteGodtgoerelse = 'Nej';
   eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
   eoValues.oevrigeKravPerioder = [
     {
       id: 'krav-1',
-      dato: '2024-01-15',
+      dato: toISODateString('2024-01-15'),
       udgiftTil: 'Transport',
       beloeb: { kind: 'number', value: 1200 },
     },

@@ -6,6 +6,7 @@ import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { FONT_SIZES, PDF_BASE_LINE_HEIGHT_MM } from '../../../pdf/infrastructure/pdfConfig';
+import { toISODateString } from '../../../types/branded';
 
 const mockInstances: MockJsPDF[] = [];
 
@@ -160,11 +161,11 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     const baseStamdata = createBaseStamdata();
     const baseEo = createBaseEo();
     baseEo.eoNummer = '1';
-    baseEo.vedroererPeriodeFra = '2025-04-03';
-    baseEo.vedroererPeriodeTil = '2026-02-22';
+    baseEo.vedroererPeriodeFra = toISODateString('2025-04-03');
+    baseEo.vedroererPeriodeTil = toISODateString('2026-02-22');
     baseStamdata.skadelidte = 'Kim Thinggaard Plehn Larsen';
     baseStamdata.skadestype = 'Arbejdsulykke';
-    baseStamdata.skadedato = '2025-04-03';
+    baseStamdata.skadedato = toISODateString('2025-04-03');
 
     generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, {
       visUdkastStempel: false,
