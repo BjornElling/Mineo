@@ -328,6 +328,12 @@ describe('erhvervsevnetabSchema', () => {
     expect(erhvervsevnetabSchema.safeParse({ ...ERHVERVSEVNETAB_INITIAL_VALUES, koen: 'mand' }).success).toBe(false);
     expect(erhvervsevnetabSchema.safeParse({ ...ERHVERVSEVNETAB_INITIAL_VALUES, koen: 'Andet' }).success).toBe(false);
   });
+
+  it('normaliserer tomt køn til undefined uden at droppe sektionen (kanonisk optional-enum-mønster)', () => {
+    const result = erhvervsevnetabSchema.safeParse({ ...ERHVERVSEVNETAB_INITIAL_VALUES, koen: '' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.koen).toBeUndefined();
+  });
 });
 
 describe('aslAfgoerelseRowSchema', () => {
@@ -361,6 +367,12 @@ describe('aslAfgoerelseRowSchema', () => {
     expect(aslAfgoerelseRowSchema.safeParse({ ...baseRow, eetPct: 0, kapPct: 0 }).success).toBe(true);
     expect(isAslAfgoerelseRowEmpty({ ...baseRow, eetPct: 0, fsTilbageholdtEet: 'Nej' })).toBe(false);
     expect(isAslAfgoerelseRowEmpty({ ...baseRow, kapPct: 0, fsTilbageholdtEet: 'Nej' })).toBe(false);
+  });
+
+  it('normaliserer tom afgoerelseType til undefined uden at droppe rækken', () => {
+    const result = aslAfgoerelseRowSchema.safeParse({ ...baseRow, afgoerelseType: '' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.afgoerelseType).toBeUndefined();
   });
 });
 
@@ -736,6 +748,12 @@ describe('forsoergertabSchema', () => {
     expect(forsoergertabSchema.safeParse({ tilkendtForPeriodeAar: '4,9' }).success).toBe(false);
     expect(forsoergertabSchema.safeParse({ koen: 'mand' }).success).toBe(false);
     expect(forsoergertabSchema.safeParse({ koen: 'Andet' }).success).toBe(false);
+  });
+
+  it('normaliserer tomt køn til undefined uden at droppe sektionen', () => {
+    const result = forsoergertabSchema.safeParse({ koen: '' });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.koen).toBeUndefined();
   });
 
   it('afviser activeTab som ukendt felt', () => {

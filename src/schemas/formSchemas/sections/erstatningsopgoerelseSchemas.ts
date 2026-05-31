@@ -24,6 +24,7 @@ import {
   krlSatstabelEnum,
   loenPaaHelligdageEnum,
   loenperiodeEnum,
+  svieSmerteDelvisSygemeldingSatsEnum,
   loenudviklingBeregningsgrundlagEnum,
   loenudviklingStatistikModelEnum,
   offentligLoenTypeEnum,
@@ -32,7 +33,7 @@ import {
   tilstandEnum,
   eoBilagLoenindkomstOgOffentligeYdelserIndgaarSchema,
 } from '../enumSchemas';
-// Reuse of årsløn row schema is intentional: EO lønindkomst rows share the same persisted table contract,
+// Genbrug af årsløn-row-schemaet er bevidst: EO-lønindkomstrækker deler samme persisted table-kontrakt,
 // herunder at col2 og col3 er to visuelt adskilte lønfelter med identisk beregningsmæssig betydning.
 import { standardLoenTableRowSchema } from './aarsloenSchemas';
 
@@ -132,7 +133,7 @@ const svieSmerteSchema = z.object({
   tidligereSsMax: jaNejEnum.default('Nej'),
   svieSmertePerioder: z.array(svieSmertePeriodeRowSchema).default([]),
   svieSmerteSatserAar: yearInteger,
-  svieSmerteDelvisSygemeldingSats: z.enum(['fuld', 'halv']).default('halv'),
+  svieSmerteDelvisSygemeldingSats: svieSmerteDelvisSygemeldingSatsEnum.default('halv'),
   svieSmerteTidligereTotal: nonNegativeAmountValue,
   svieSmerteAktuelPeriode: nonNegativeAmountValue,
 }).strict();

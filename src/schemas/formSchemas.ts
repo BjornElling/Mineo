@@ -33,6 +33,8 @@ export {
   type AfgoerelseType,
   koenEnum,
   type Koen,
+  svieSmerteDelvisSygemeldingSatsEnum,
+  type SvieSmerteDelvisSygemeldingSats,
   sygeferiegodtgoerelseBeregningskildeEnum,
   type SygeferiegodtgoerelseBeregningskilde,
   sygeferiegodtgoerelseSatsvalgEnum,

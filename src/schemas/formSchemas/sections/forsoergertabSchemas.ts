@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { coerceToWholeNumberOrUndefined, optionalIsoDateString } from '../baseSchemas';
+import { coerceToWholeNumberOrUndefined, optionalIsoDateString, normalizeEmptyToUndefined } from '../baseSchemas';
 import { koenEnum } from '../enumSchemas';
 import { PRE_2015_CUTOFF } from '../../../domain/forsoergertab/forsoergertabConstants';
 
@@ -7,7 +7,9 @@ export const forsoergertabSchema = z.object({
   efterladteFodselsdato: optionalIsoDateString,
   beregningsdato: optionalIsoDateString,
   virkningsdato: optionalIsoDateString,
-  koen: koenEnum.optional(),
+  // Kanonisk optional-enum-mønster: '' → undefined før enum-validering, så et persisteret
+  // tomt køn ikke dropper hele forsørgertab-sektionen.
+  koen: z.preprocess(normalizeEmptyToUndefined, koenEnum.optional()),
   tilkendtForPeriodeAar: z.preprocess(
     coerceToWholeNumberOrUndefined,
     z.number({ error: 'Tilkendt for periode skal være et heltal' })

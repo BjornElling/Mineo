@@ -72,6 +72,11 @@ export type AfgoerelseType = z.infer<typeof afgoerelseTypeEnum>;
 export const koenEnum = z.enum(['Mand', 'Kvinde']);
 export type Koen = z.infer<typeof koenEnum>;
 
+// Sats for svie/smerte ved delvis sygemelding ('fuld' = fuld dagssats, 'halv' = halv).
+// Kanonisk kilde for både EO-sektionsfeltet og AppSettings-defaulten (jf. app-settings.md).
+export const svieSmerteDelvisSygemeldingSatsEnum = z.enum(['fuld', 'halv']);
+export type SvieSmerteDelvisSygemeldingSats = z.infer<typeof svieSmerteDelvisSygemeldingSatsEnum>;
+
 export const sygeferiegodtgoerelseBeregningskildeEnum = z.enum([
   'Overenskomst',
   'Manuelt angivet',

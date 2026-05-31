@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { optionalIsoDateString, percentageDecimal, tableIsoDateCellString } from '../baseSchemas';
+import { optionalIsoDateString, percentageDecimal, tableIsoDateCellString, normalizeEmptyToUndefined } from '../baseSchemas';
 import { afgoerelseTypeEnum, jaNejEnum, koenEnum } from '../enumSchemas';
 import type { FaellesAarsloenValues } from './faellesAarsloenSchemas';
 import type { StamdataValues } from './stamdataSchemas';
@@ -17,7 +17,9 @@ export const aslAfgoerelseRowSchema = z.object({
   eetPct: aslAfgoerelsePercent('EET %'),
   kapDato: tableIsoDateCellString,
   kapPct: aslAfgoerelsePercent('Kapitaliseringsprocent'),
-  afgoerelseType: afgoerelseTypeEnum.optional(),
+  // Normaliser tom streng → undefined før enum-valideringen, så et persisteret '' ikke
+  // dropper hele afgørelsesrækken. Kanonisk optional-enum-mønster (jf. EO-sektionens enums).
+  afgoerelseType: z.preprocess(normalizeEmptyToUndefined, afgoerelseTypeEnum.optional()),
   tidlKapDato: tableIsoDateCellString,
   // Schema-evolution fallback for ældre afgørelsesrækker uden feltet.
   fsTilbageholdtEet: jaNejEnum.default('Nej'),
@@ -43,7 +45,7 @@ export type EetDifferencekravBilagSelection = z.infer<typeof eetDifferencekravBi
 
 export const erhvervsevnetabSchema = z.object({
   beregningsdato: optionalIsoDateString,
-  koen: koenEnum.optional(),
+  koen: z.preprocess(normalizeEmptyToUndefined, koenEnum.optional()),
   aslAfgoerelser: z.array(aslAfgoerelseRowSchema),
   // ealEetPct gemmes som decimaltal (ikke tabel-draft-string) og parses derfor i schema-laget.
   ealEetPct: percentageDecimal,

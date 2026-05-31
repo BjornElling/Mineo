@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
 import { type HistoryFrame, type HistoryTransitionPlan, undoRedoStore } from '../stores/undoRedoStore';
 import { atomicWritePersistenceSections } from '../utils/persistenceSnapshotStorage';

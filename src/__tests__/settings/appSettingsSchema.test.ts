@@ -4,8 +4,32 @@ import {
   DEFAULT_BREVHOVED_INDSTILLINGER,
   brevhovedIndstillingerSchema,
   resolveDefaultOverenskomstFilter,
+  APP_SETTINGS_AFSLUTTES_MED_OPTIONS,
+  APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS,
+  APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS,
 } from '../../settings/appSettingsSchema';
 import { parseStoredSettings, resolveAppSettings } from '../../settings/appSettingsParse';
+import {
+  afsluttesMedEnum,
+  loenPaaHelligdageEnum,
+  svieSmerteDelvisSygemeldingSatsEnum,
+} from '../../schemas/formSchemas';
+
+// Konvergens-værn: AppSettings-option-listerne skal forblive identiske med de kanoniske
+// domæne-enums, så defaults og .eo-sektionsfelter ikke kan komme ud af sync.
+describe('AppSettings option-lister er afledt af de kanoniske enums', () => {
+  it('afsluttesMed matcher afsluttesMedEnum', () => {
+    expect(APP_SETTINGS_AFSLUTTES_MED_OPTIONS).toEqual(afsluttesMedEnum.options);
+  });
+  it('loenPaaHelligdage matcher loenPaaHelligdageEnum', () => {
+    expect(APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS).toEqual(loenPaaHelligdageEnum.options);
+  });
+  it('svieSmerteDelvisSygemeldingSats matcher svieSmerteDelvisSygemeldingSatsEnum', () => {
+    expect(APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS).toEqual(
+      svieSmerteDelvisSygemeldingSatsEnum.options
+    );
+  });
+});
 
 describe('DEFAULT_APP_SETTINGS', () => {
   it('er gyldig iht. appSettingsSchema', () => {

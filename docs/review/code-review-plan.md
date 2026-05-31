@@ -35,11 +35,11 @@ Planen følger **afhængighedsorden nedefra og op** — det fundamentale først,
 | 2.5 | Schema-evolution, migrations og versionering (persistenceVersion, fingerprint) | ✅ Gennemgået | [2.5-schema-evolution-migrations-versionering.md](2.5-schema-evolution-migrations-versionering.md) |<br>↳ _Fra 1.2: ✅ konsolideret — schema-evolution §3.1a ejer migrator-rækkefølgen, persistence-contract §6 henviser._ |
 | 2.6 | Fil-I/O: save/load, encryption, file-system-access, file-handle-storage | ✅ Gennemgået | [2.6-fil-io-encryption-fs-access.md](2.6-fil-io-encryption-fs-access.md) |
 | **3 — Schemas** | | | |
-| 3.1 | Schema-fundament: formSchemas-entry, baseSchemas, enumSchemas, amountExpressionSchema | ⬜ Ikke startet | — |
-| 3.2 | Section-schemas A: stamdata, satser, aarsloen, faellesAarsloen | ⬜ Ikke startet | — |
-| 3.3 | Section-schemas B: erstatningsopgoerelse, erhvervsevnetab, forsoergertab | ⬜ Ikke startet | — |
-| 3.4 | Section-schemas C: renteberegning, varigeMen + eoFileSchema (download/upload) | ⬜ Ikke startet | — |
-| 3.5 | Schema-fingerprint og save-order-registry | ⬜ Ikke startet | — |
+| 3.1 | Schema-fundament: formSchemas-entry, baseSchemas, enumSchemas, amountExpressionSchema | ✅ Gennemgået | [3.1-schema-fundament.md](3.1-schema-fundament.md) |
+| 3.2 | Section-schemas A: stamdata, satser, aarsloen, faellesAarsloen | ✅ Gennemgået | [3.2-section-schemas-a.md](3.2-section-schemas-a.md) |<br>↳ _Åbent til 4.2: aarsloenSchema har required felter uden default — vurder load-semantik sammen med beregningsrollen._ |
+| 3.3 | Section-schemas B: erstatningsopgoerelse, erhvervsevnetab, forsoergertab | ✅ Gennemgået | [3.3-section-schemas-b.md](3.3-section-schemas-b.md) |
+| 3.4 | Section-schemas C: renteberegning, varigeMen + eoFileSchema (download/upload) | ✅ Gennemgået | [3.4-section-schemas-c-og-eofile.md](3.4-section-schemas-c-og-eofile.md) |
+| 3.5 | Schema-fingerprint og save-order-registry | ✅ Gennemgået | [3.5-schema-fingerprint-og-save-order-registry.md](3.5-schema-fingerprint-og-save-order-registry.md) |
 | **4 — Domænelogik (beregningskernen)** | | | |
 | 4.1 | Stamdata, satser og policies (stamdataCalculations, satserCalculations, aarsloenPolicy) | ⬜ Ikke startet | — |
 | 4.2 | Årsløn: aarsloen + aslEalAarsloen (beregning, validering, periodevisning) | ⬜ Ikke startet | — |

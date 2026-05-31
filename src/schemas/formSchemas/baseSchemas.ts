@@ -63,10 +63,13 @@ export const positiveAmountValue = optionalAmountValueSchema
   .refine((v) => v === undefined || v.value > 0, 'Skal være større end 0')
   .refine((v) => v === undefined || !Object.is(v.value, -0), 'Kan ikke være -0');
 
+// Note: z.number() afviser selv Infinity/NaN i Zod 4 (verificeret), og der er ingen
+// transform mellem number-checket og .optional(), så en .refine(Number.isFinite) ville
+// være død kode her. Den load-bearende finiteness-guard ligger i amountExpressionSchema,
+// hvor refinet sidder EFTER en transform der kan producere non-finite.
 export const nonNegativeInteger = z.preprocess(coerceToIntegerOrUndefined, z.number()
   .int()
   .min(0, 'Kan ikke være negativ')
-  .refine(Number.isFinite, 'Skal være et endeligt heltal')
   .optional());
 
 export const yearInteger = z.preprocess(coerceToIntegerOrUndefined, z.number()
@@ -92,7 +95,6 @@ export const loseFeriedageCount = z.preprocess(coerceToIntegerOrUndefined, z.num
 export const percentageDecimal = z.preprocess(coerceToNumberOrUndefined, z.number()
   .min(0, 'Kan ikke være negativ')
   .max(100, 'Må højst være 100%')
-  .refine(Number.isFinite, 'Skal være et endeligt tal')
   .optional());
 
 export const positiveWholePercentage = (label: string) => z.preprocess(
@@ -101,7 +103,6 @@ export const positiveWholePercentage = (label: string) => z.preprocess(
     .int(`${label} skal være et heltal`)
     .min(1, `${label} skal være mindst 1`)
     .max(100, `${label} må højst være 100`)
-    .refine(Number.isFinite, `${label} skal være et endeligt tal`)
     .optional()
 );
 
@@ -130,7 +131,7 @@ export const tableIsoDateCellString = z.preprocess((val) => {
     if (isISODateString(trimmed)) return trimmed;
     const coerced = coerceToISODateString(trimmed);
     if (coerced) return coerced;
-    // Preserve invalid non-empty input so the schema fails closed instead of silently dropping saved data.
+    // Bevar ugyldigt ikke-tomt input, så schemaet fejler fail-closed i stedet for stiltiende at droppe gemte data.
     return trimmed;
   }
   return val;

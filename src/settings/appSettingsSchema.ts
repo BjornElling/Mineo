@@ -1,17 +1,22 @@
 import { z } from 'zod';
+import {
+  afsluttesMedEnum,
+  loenPaaHelligdageEnum,
+  svieSmerteDelvisSygemeldingSatsEnum,
+} from '../schemas/formSchemas';
 
 /**
- * App settings (programindstillinger) – NOT part of `.eo` persistence.
+ * Programindstillinger (app settings) – IKKE en del af `.eo`-persistence.
  *
- * IMPORTANT (trust-critical + persistence separation):
- * - These settings are stored in `localStorage` and are meant to be "device local".
- * - They MUST NOT be stored in FormPersistenceContext / sessionStorage `STORAGE_KEYS`,
- *   and therefore MUST NOT be included in `.eo` save/load operations.
+ * VIGTIGT (trust-kritisk + adskillelse af persistence):
+ * - Disse indstillinger gemmes i `localStorage` og er ment som "enhedslokale".
+ * - De MÅ IKKE gemmes i FormPersistenceContext / sessionStorage `STORAGE_KEYS`,
+ *   og MÅ derfor IKKE indgå i `.eo` save/load-operationer.
  *
- * Refs:
- * - `src/config/storageManifest.ts` (only sessionStorage keys in manifest are saved to `.eo`)
- * - `src/utils/fileSave.ts` / `src/utils/fileLoad.ts` (operate on manifest-bound data)
- * - `src/contracts/app-settings.md` (normative documentation for this separation)
+ * Referencer:
+ * - `src/config/storageManifest.ts` (kun sessionStorage-keys i manifestet gemmes til `.eo`)
+ * - `src/utils/fileSave.ts` / `src/utils/fileLoad.ts` (opererer på manifest-bundne data)
+ * - `src/contracts/app-settings.md` (normativ dokumentation for denne adskillelse)
  */
 
 /**
@@ -48,9 +53,12 @@ export const DEFAULT_BREVHOVED_INDSTILLINGER: BrevhovedIndstillinger = {
   forsoergertab: true,
 };
 
-export const APP_SETTINGS_AFSLUTTES_MED_OPTIONS = ['Bekræftet godkendt', 'Underskrift-linje'] as const;
-export const APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS = ['Almindelig løn', 'SH-udbetaling', 'Ingen'] as const;
-export const APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS = ['fuld', 'halv'] as const;
+// Option-listerne udledes fra de kanoniske domæne-enums (enumSchemas.ts), så AppSettings
+// og .eo-sektionsfelterne aldrig kan komme ud af sync. Enum-værdierne er den eneste
+// sandhed; en ny enum-værdi dukker automatisk op her. Jf. app-settings.md.
+export const APP_SETTINGS_AFSLUTTES_MED_OPTIONS = afsluttesMedEnum.options;
+export const APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS = loenPaaHelligdageEnum.options;
+export const APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS = svieSmerteDelvisSygemeldingSatsEnum.options;
 
 export type AppSettingsAfsluttesMedOption = (typeof APP_SETTINGS_AFSLUTTES_MED_OPTIONS)[number];
 export type AppSettingsLoenPaaHelligdageOption = (typeof APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS)[number];
