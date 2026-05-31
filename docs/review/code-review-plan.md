@@ -54,7 +54,7 @@ Planen følger **afhængighedsorden nedefra og op** — det fundamentale først,
 | 4.11 | EO: helpers, initial values, row-derived og tabel-modeller | ✅ Gennemgået | [4.11-eo-helpers-initial-values-tabeller.md](4.11-eo-helpers-initial-values-tabeller.md) |
 | 4.12 | EO: validation-lag og erstatningsopgoerelseValidator | ✅ Gennemgået | [4.12-eo-validation-lag.md](4.12-eo-validation-lag.md) |
 | 4.13 | EO: snapshot, presentation-model, canonical output og invarianter | ✅ Gennemgået | [4.13-eo-snapshot-presentation-canonical.md](4.13-eo-snapshot-presentation-canonical.md) |<br>↳ _Fra 1.5: ✅ løst — detaljeret TAF-/svie-behandlingsrækkefølge flyttet til `docs/architecture/eo-clamping-pipeline-architecture.md`; kontrakt §2.3 beholder de bindende invarianter._ |
-| 4.14 | EO-debug: view-model, regulation/loen/indkomst-modeller, parity, severity, navigation | ⬜ Ikke startet | — |
+| 4.14 | EO-debug: view-model, regulation/loen/indkomst-modeller, parity, severity, navigation | ✅ Gennemgået | [4.14-eo-debug-viewmodels-parity-severity-navigation.md](4.14-eo-debug-viewmodels-parity-severity-navigation.md) |
 | **5 — Hjælpefunktioner** | | | |
 | 5.1 | Datohåndtering: isoDate, dateCommit, dateUtils, dateFormatting, isoDateHelpers, draft-normalisering | ⬜ Ikke startet | — |
 | 5.2 | Datohåndtering: input-validering, range-errors, dato-ordens-validering, utcDayMath | ⬜ Ikke startet | — |

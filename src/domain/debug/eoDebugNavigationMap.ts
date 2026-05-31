@@ -8,9 +8,17 @@
 // Bevidst ingen DebugRowId-union her: navigationen accepterer string-input for at undgå runtime-nedbrud.
 
 /**
- * SectionId er canonical - bruges både i NavigationTarget OG data-section-id attributes
+ * SectionId angiver et scroll-mål i UI'et: værdien skrives som `sectionId` på
+ * NavigationTarget og bruges af `scrollToSection` til at finde det tilsvarende
+ * `data-section-id`-element.
  *
- * VIGTIGT: Denne type skal holdes synkroniseret med data-section-id attributes i EOOplysningerTab.tsx
+ * VIGTIGT: Hver værdi der faktisk sættes som `sectionId` herunder, SKAL svare til
+ * et `data-section-id`-attribut i UI'et (primært EOOplysningerTab.tsx samt
+ * Stamdata.tsx og LoenindkomstTab.tsx). Bemærk at ikke alle medlemmer p.t. bruges
+ * som scroll-mål: rækker i fanerne `erstatningsopgoerelse`/`offentligeYdelser`
+ * navigerer kun til fanen (uden `sectionId`) og scroller derefter direkte til
+ * selve debug-rækken. De medlemmer bevares for at dokumentere de mulige sektioner
+ * og holde navnerummet i sync med builder-sektionsnøglerne.
  */
 export type SectionId =
   | 'stamdata'
