@@ -30,14 +30,14 @@ const ALLOWED_EFFECT_WRITES = new Map<string, readonly string[]>([
 const ALLOWED_QUEUE_MICROTASK_CALLS = new Map<string, readonly string[]>([
   [
     'src/components/tables/gridCore/tableKeyboardNavigation.ts',
-    ['Decision note: this microtask is an infrastructure exception to the normal form rule.'],
+    ['Decision note: denne microtask er en infrastruktur-undtagelse fra den normale form-regel.'],
   ],
 ]);
 
 const ALLOWED_PROMISE_RESOLVE_TICKS = new Map<string, readonly string[]>([
   [
     'src/utils/commitFlush.ts',
-    ['Decision note: this Promise tick is an infrastructure exception to the normal form rule.'],
+    ['Beslutningsnote: denne Promise-tick er en infrastruktur-undtagelse fra den normale form-regel.'],
   ],
 ]);
 
