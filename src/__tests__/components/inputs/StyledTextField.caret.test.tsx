@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import StyledTextField from '../../../components/inputs/StyledTextField';
 
 /**
@@ -17,14 +17,18 @@ const openEditorPreservingCaret = (multiline: boolean) => {
 
   // Feltet er allerede fokuseret med caret midt i teksten (svarende til at klik 1
   // har fokuseret feltet og placeret caret'en dér, hvor brugeren klikkede).
-  el.focus();
-  el.setSelectionRange(4, 4);
+  act(() => {
+    el.focus();
+    el.setSelectionRange(4, 4);
+  });
 
   // Klik åbner editoren (allerede-fokuseret → to-trins åbner ved klik) og kører
   // caret-etableringen. Den eksisterende caret-position skal bevares — ikke tvinges
   // til enden.
-  fireEvent.mouseDown(el);
-  fireEvent.click(el);
+  act(() => {
+    fireEvent.mouseDown(el);
+    fireEvent.click(el);
+  });
 
   expect(el).not.toHaveAttribute('readonly');
   expect(el.selectionStart).toBe(4);

@@ -5,6 +5,7 @@
 // Fejl A: to felter ændret i samme række — kun ét undo'es.
 import React from 'react';
 import { act, fireEvent, render } from '@testing-library/react';
+import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
@@ -22,6 +23,16 @@ import { __resetDraftHistoryRegistryForTests } from '../../utils/draftHistoryReg
 
 type Controls = ReturnType<typeof useUndoRedo>;
 let controls: Controls | null = null;
+
+const testTheme = createTheme({
+  components: {
+    MuiButtonBase: {
+      defaultProps: {
+        disableRipple: true,
+      },
+    },
+  },
+});
 
 const TogglePage = () => {
   const form = usePersistedForm(aarsloenSchema, 'aarsloen', AARSLOEN_INITIAL_VALUES);
@@ -58,13 +69,15 @@ const Harness = () => {
 const renderHarness = () =>
   render(
     <MemoryRouter initialEntries={['/aarsloen']}>
-      <AppSettingsProvider>
-        <RoutePathnameProvider>
-          <FormPersistenceProvider>
-            <Harness />
-          </FormPersistenceProvider>
-        </RoutePathnameProvider>
-      </AppSettingsProvider>
+      <ThemeProvider theme={testTheme}>
+        <AppSettingsProvider>
+          <RoutePathnameProvider>
+            <FormPersistenceProvider>
+              <Harness />
+            </FormPersistenceProvider>
+          </RoutePathnameProvider>
+        </AppSettingsProvider>
+      </ThemeProvider>
     </MemoryRouter>
   );
 
