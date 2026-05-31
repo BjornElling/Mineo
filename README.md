@@ -32,14 +32,32 @@ npm run dev:minprocesrente
 
 ## Scripts
 
+Udvikling:
 ```bash
-npm run dev
-npm run dev:minprocesrente
-npm run build
-npm run preview
-npm run typecheck
-npm run test
-npm run import:loen
+npm run dev                  # Mineo-appen
+npm run dev:minprocesrente   # standalone procesrente-app
+npm run preview              # preview af produktions-build
+```
+
+Build:
+```bash
+npm run build                # bygger Mineo (build:mineo)
+npm run build:minprocesrente # bygger standalone procesrente-app
+npm run build:all            # bygger begge apps
+```
+
+Kvalitetstjek:
+```bash
+npm run typecheck       # typecheck af kildekode (tsconfig.json)
+npm run typecheck:test  # typecheck af testkode (tsconfig.test.json — separat config)
+npm run lint            # eslint (--max-warnings 0)
+npm run test            # kør hele testsuiten (Vitest)
+npm run test:watch      # Vitest i watch-mode
+```
+
+Data:
+```bash
+npm run import:loen     # importér offentlige løndata (KL/RLTN) fra Excel
 ```
 
 ## Data der skal opdateres løbende
@@ -69,6 +87,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.05.661
+**Version**: 2026.05.662
 
 **Status**: Under udvikling
