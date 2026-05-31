@@ -5,6 +5,8 @@ Mineo er en trust-kritisk, 100 % client-side erstatningsberegner for danske arbe
 
 **Fase:** Programmet er funktionelt næsten færdigt og fungerer i brugerens øjne, men er i intern testfase — der er ingen eksterne brugere. Arkitekturen er vokset organisk og er mange steder ustruktureret. Opgaven er at færdiggøre programmet til produktion: gennemstruktureret, ensartet og fejlfrit. Der er ingen tidshorisont; slutproduktets kvalitet er det eneste mål.
 
+**Feature-omfang er låst.** Alle store features er implementeret, og der kommer ingen flere overordnede beregningstyper til. Konkret betyder det fx ingen nye erstatningstyper, der skal tilføjes i sidemenuen. Der kan stadig komme mindre justeringer og tilføjelser til eksisterende beregningslogik og UI, men den overordnede feature-flade er fastlagt. Antag derfor ikke fremtidige beregningstyper i arkitekturen — favorisér forenkling og konsolidering af det eksisterende frem for udvidelsespunkter til hypotetiske nye features (jf. [Konvergens](#konvergens-rød-tråd)).
+
 **Stack:** TypeScript (strict) · React 19 · Vite 7 · MUI 7 · Zustand 5 · Zod 4 · jsPDF · dayjs.
 
 ## Roller
