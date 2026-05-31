@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Tværgående; supplerer `form-contract.md §4` (form ejer parsing/coercion frem til valideret instans, denne kontrakt ejer kalendermatematik derefter).  
-**Senest verificeret mod kode:** 2026-05-30
+**Senest verificeret mod kode:** 2026-05-31
 
 ## Scope
 - Al logik der tæller kalenderdage eller udleder dag-baserede perioder.

@@ -6,7 +6,7 @@
  */
 
 export const VERSION = '2026.05.654';
-export const BUILD_DATE = '2026-05-31T12:15:45.402Z';
+export const BUILD_DATE = '2026-05-31T12:16:03.905Z';
 
 /**
  * Filformat version - ændres kun hvis datastrukturen ændres.

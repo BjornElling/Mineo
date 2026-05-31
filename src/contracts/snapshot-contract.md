@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående snapshot-mønster; specialiseres af `eo-snapshot-contract.md`, `eet-snapshot-contract.md` og `forsoergertab-snapshot-contract.md`.
-**Senest verificeret mod kode:** 2026-05-30
+**Senest verificeret mod kode:** 2026-05-31
 
 Denne kontrakt fastlægger, hvad et domæne-snapshot er, og hvordan snapshot-first bruges uden at tvinge alle domæner ind i samme datastruktur.
 
