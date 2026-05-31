@@ -29,14 +29,14 @@ export type TableDateInputProps = Readonly<{
   maxDate?: string;
   specialRangeErrors?: DateRangeSpecialErrors;
   /**
-   * Optional human-readable explanation of which other inputs determine the min/max bounds.
+   * Valgfri læsbar forklaring af hvilke andre inputs der bestemmer min/max-bounds.
    *
-   * Used when there are no valid dates because `minDate > maxDate`.
-   * This must reference concrete user-visible inputs (e.g. "Dato til i samme række", etc.).
+   * Bruges når der ikke er nogen gyldige datoer, fordi `minDate > maxDate`.
+   * Dette skal referere til konkrete brugersynlige inputs (fx "Dato til i samme række" osv.).
    */
   noValidRangeCause?: string;
   /**
-   * Policy for interpreting 1-2 digit years on commit.
+   * Politik for fortolkning af 1-2-cifrede år ved commit.
    *
    * Default: `infer` (via `interpretYear`).
    */
@@ -45,15 +45,15 @@ export type TableDateInputProps = Readonly<{
   inputMode?: 'text' | 'numeric' | 'decimal' | 'tel';
 
   /**
-   * Draft change (typing only).
+   * Draft-ændring (kun typing).
    */
   onChange?: (e: TableDateInputChangeEvent) => void;
 
   /**
-   * Commit attempt (blur only).
-   * Emits the committed value only when commit succeeds.
-   * Invalid input or config errors stay local (error state) and do not update parent value.
-   * Range violations never block commit (they only show a validation error).
+   * Commit-forsøg (kun blur).
+   * Udsender kun den committede værdi når commit lykkes.
+   * Ugyldigt input eller config-fejl forbliver lokale (fejltilstand) og opdaterer ikke forælderens værdi.
+   * Range-overtrædelser blokerer aldrig commit (de viser kun en valideringsfejl).
    */
   onBlur?: (e: TableDateInputCommitEvent) => void;
 
@@ -175,7 +175,7 @@ const TableDateInput = React.memo(
 
     const externalErrorText = (externalErrorMessage ?? '').trim();
     const hasExternalError = externalErrorText !== '';
-    // Date-specific config errors are produced outside core so invalid bounds can be shown even without a commit attempt.
+    // Dato-specifikke config-fejl produceres uden for core, så ugyldige bounds kan vises selv uden et commit-forsøg.
     const showError = (hasExternalError || configErrorMessage !== '' || (core.touched && core.hasError)) && !core.isFocused;
     const tooltipText = hasExternalError ? externalErrorText : configErrorMessage !== '' ? configErrorMessage : core.errorMessage;
 

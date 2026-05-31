@@ -91,9 +91,9 @@ export type EoSnapshotWithData = Readonly<Omit<EoSnapshot, 'data' | 'input'>> & 
 export const hasEoSnapshotData = (
   snapshot: EoSnapshot
 ): snapshot is EoSnapshotWithData => {
-  // Current snapshot contract only materializes `data` for non-fail-closed computed snapshots.
-  // This guard intentionally narrows on data/input presence instead of `status`, because projections
-  // depend on the computed payload rather than a specific status string.
+  // Den nuværende snapshot-kontrakt materialiserer kun `data` for ikke-fail-closed beregnede snapshots.
+  // Denne guard narrower bevidst på data/input-tilstedeværelse i stedet for `status`, fordi projektioner
+  // afhænger af det beregnede payload frem for en bestemt status-streng.
   return snapshot.data !== null &&
     snapshot.input.stamdata !== null &&
     snapshot.input.erstatningsopgoerelse !== null;
@@ -365,9 +365,9 @@ export const computeEoSnapshot = (args: Readonly<{
       invariants.push(buildTafPerYearUnavailableInvariant(tafPerYearOutcome.reason));
     }
 
-    // This invariant is intentionally derived from the debug-table sammentælling model.
-    // It cross-checks authoritative engine outputs against the committed EO debug table projection,
-    // so it depends on debug infrastructure by design rather than being a pure engine-to-engine check.
+    // Denne invariant er bevidst udledt af debug-tabellens sammentælling-model.
+    // Den krydstjekker autoritative engine-outputs mod den committede EO-debug-tabel-projektion,
+    // så den afhænger af debug-infrastruktur efter design frem for at være et rent engine-til-engine-check.
     // Invariant: debugSnapshot er altid non-null her, da den sættes tidligt i try-blokken inden engine-kald.
     if (!debugSnapshot) throw new Error('debugSnapshot mangler ved kontrol-mismatch-check — invariant brudt');
     const controlMismatchMessages = collectSammentaellingControlMismatchMessages(debugSnapshot.sammentaellingRows);

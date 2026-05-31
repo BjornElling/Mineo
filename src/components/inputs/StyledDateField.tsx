@@ -46,7 +46,7 @@ export type StyledDateFieldProps = {
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 
   /**
-   * Callback for current error message (for parent validation gating)
+   * Callback for den aktuelle fejlbesked (til forælderens validation gating)
    */
   onFieldError?: FieldErrorReporter;
 
@@ -63,8 +63,8 @@ const formatISODateAsDanish = (value: ISODateString | undefined): string => {
 };
 
 const MAX_CANONICAL_DANISH_DATE_LENGTH = 10; // dd-mm-åååå
-// Allow slightly more draft characters than the canonical committed form to support permissive typing
-// (e.g. separators/whitespace) without the UI blocking mid-entry. This is an explicit UX tolerance.
+// Tillad lidt flere draft-tegn end den kanoniske committede form for at understøtte eftergivende typing
+// (fx separatorer/whitespace) uden at UI'et blokerer midt i indtastningen. Dette er en eksplicit UX-tolerance.
 const MAX_DRAFT_LENGTH = MAX_CANONICAL_DANISH_DATE_LENGTH + 6;
 
 const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
@@ -242,9 +242,9 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       onReplaceDraft: (nextDraft) => setDraft(nextDraft),
     });
 
-    // Range validation is a separate concern from parsing:
-    // - Parsing determines whether we can commit an ISO date.
-    // - Range validation reports an error message but never blocks commit.
+    // Range-validering er et separat anliggende fra parsing:
+    // - Parsing afgør om vi kan committe en ISO-dato.
+    // - Range-validering rapporterer en fejlbesked, men blokerer aldrig commit.
     const rangeEffectDepsRef = React.useRef<{ effectiveMaxDate: typeof effectiveMaxDate; effectiveMinDate: typeof effectiveMinDate; specialRangeErrors: typeof specialRangeErrors; validateRange: typeof validateRange; value: typeof value } | null>(null);
     React.useEffect(() => {
       if (isInteractiveDevLoggingEnabled) {
@@ -327,7 +327,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       activation.isEditorOpen,
     ]);
 
-    // Notify parent of error state
+    // Underret forælderen om fejltilstand
     const onFieldErrorDepsRef = React.useRef<{ visibleLocalErrorMsg: string | undefined; visibleRangeErrorMessage: string; onFieldError: typeof onFieldError } | null>(null);
     React.useEffect(() => {
       if (isInteractiveDevLoggingEnabled) {

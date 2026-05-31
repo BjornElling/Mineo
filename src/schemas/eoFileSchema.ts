@@ -1,5 +1,5 @@
 /**
- * Zod schemas for `.eo` file payloads.
+ * Zod-schemas for `.eo`-filers payloads.
  *
  * VIGTIGT:
  * - `.eo` filer må kun indeholde schema-defineret brugerinput (ingen derived/UI state).
@@ -12,9 +12,9 @@ import { persistenceSchemas } from '../config/persistenceRegistry';
 import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 
 /**
- * Root data structure inside decrypted `.eo` file.
+ * Rod-datastruktur inde i den dekrypterede `.eo`-fil.
  *
- * NOTE: keys matches `StorageKey` (see `src/config/storageManifest.ts`).
+ * BEMÆRK: nøgler matcher `StorageKey` (se `src/config/storageManifest.ts`).
  */
 const eoFileDataInnerSchema = z.object({
   stamdata: persistenceSchemas.stamdata.optional(),
@@ -33,7 +33,7 @@ export const eoFileDataSchema = z.preprocess(nullToUndefinedDeep, eoFileDataInne
 export type EoFileData = z.infer<typeof eoFileDataSchema>;
 
 /**
- * Load-only data schema.
+ * Load-only data-schema.
  *
  * Accepterer alle sektioner som unknown så load-pipelinen kan validere kendte sektioner
  * enkeltvis og rapportere ukendte felter/sektioner i preflight.
@@ -42,7 +42,7 @@ export const eoFileDataLoadSchema = z.preprocess(nullToUndefinedDeep, z.looseObj
 
 
 /**
- * Full decrypted `.eo` container.
+ * Fuld dekrypteret `.eo`-container.
  */
 export const eoFileContainerSchema = z.object({
   version: z.literal(FILE_FORMAT_VERSION),
@@ -57,7 +57,7 @@ export const eoFileContainerSchema = z.object({
 export type EoFileContainer = z.infer<typeof eoFileContainerSchema>;
 
 /**
- * Load-only decrypted `.eo` container.
+ * Load-only dekrypteret `.eo`-container.
  *
  * Top-level container skal stadig have korrekt struktur, men `data` er permissiv så
  * kendte sektioner kan valideres enkeltvis.

@@ -1,5 +1,5 @@
-// .shared.ts: public persistence types without context implementation.
-// The React context object lives in FormPersistenceContext.internal.ts to keep this file type-only.
+// .shared.ts: offentlige persistence-typer uden context-implementering.
+// React-context-objektet ligger i FormPersistenceContext.internal.ts for at holde denne fil type-only.
 import type { StorageKey } from '../config/storageManifest';
 import type { PersistedSectionMap, PersistedSectionsSnapshot } from '../config/persistenceRegistry';
 import type {

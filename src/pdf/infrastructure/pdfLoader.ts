@@ -1,4 +1,4 @@
-// Lazy loader for heavy PDF generators so jspdf only loads on demand.
+// Lazy loader for tunge PDF-generatorer, så jspdf kun indlæses on demand.
 type PdfModuleMap = {
   satser: typeof import('../domains/satser/satserPdf');
   rente: typeof import('../domains/renteberegning/rentePdf');

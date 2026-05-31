@@ -27,15 +27,15 @@ export type StyledFractionFieldProps = {
   maxDigits?: number;
   allowNegative?: boolean;
   /**
-   * If `true`, `0/x` is accepted on commit (still rejects `x=0`).
+   * Hvis `true`, accepteres `0/x` ved commit (afviser stadig `x=0`).
    *
-   * Default: `false` (domain-specific constraint).
+   * Default: `false` (domænespecifik begrænsning).
    */
   allowZeroNumerator?: boolean;
   /**
-   * If `true`, the committed fraction is normalized to a canonical reduced form (e.g. `-2/4` -> `-1/2`).
+   * Hvis `true`, normaliseres den committede brøk til en kanonisk forkortet form (fx `-2/4` -> `-1/2`).
    *
-   * Note: if `allowZeroNumerator=true`, `0/x` is canonicalized to `0/1` when `canonicalizeOnCommit=true`.
+   * Bemærk: hvis `allowZeroNumerator=true`, kanoniseres `0/x` til `0/1` når `canonicalizeOnCommit=true`.
    */
   canonicalizeOnCommit?: boolean;
   requireIntegerFraction?: boolean;
@@ -47,9 +47,9 @@ export type StyledFractionFieldProps = {
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 
   /**
-   * Callback for current local error message (for producer-owned error reporting).
+   * Callback for den aktuelle lokale fejlbesked (til producer-owned fejlrapportering).
    *
-   * Note: this intentionally does not report `error/helperText` from the parent (external errors).
+   * Bemærk: dette rapporterer bevidst ikke `error/helperText` fra forælderen (eksterne fejl).
    */
   onFieldError?: FieldErrorReporter;
 
@@ -103,8 +103,8 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
         if (trimmed === '') return { ok: true, value: undefined };
 
         if (mode === 'typing') {
-          // Invariant: typing must not claim committable for incomplete non-empty input.
-          // Keep typing parse intentionally minimal: any non-empty draft is treated as partial until commit.
+          // Invariant: typing må ikke hævde committable for ufuldstændig, ikke-tom input.
+          // Hold typing-parse bevidst minimal: enhver ikke-tom draft behandles som partial indtil commit.
           return { ok: false, kind: 'partial' };
         }
 
@@ -176,7 +176,7 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
     const resolvedHasError = externalHasError || Boolean(visibleLocalError?.message);
     const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
 
-    // Notify parent of local error state (producer-owned reporting)
+    // Underret forælderen om lokal fejltilstand (producer-owned rapportering)
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
       onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);

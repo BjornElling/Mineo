@@ -1,5 +1,5 @@
 /**
- * Type definitions for File System Access API
+ * Typedefinitioner for File System Access API
  *
  * Baseret på WICG specifikationen:
  * https://wicg.github.io/file-system-access/
@@ -8,7 +8,7 @@
 export {};
 
 /**
- * Well-known directory identifiers
+ * Identifikatorer for well-known directories
  */
 type WellKnownDirectory = 'desktop' | 'documents' | 'downloads' | 'music' | 'pictures' | 'videos';
 
@@ -18,7 +18,7 @@ type WellKnownDirectory = 'desktop' | 'documents' | 'downloads' | 'music' | 'pic
 type StartInOption = WellKnownDirectory | FileSystemHandle;
 
 /**
- * File picker accept options
+ * Accept-indstillinger for file picker
  */
 interface FilePickerAcceptType {
   description?: string;
@@ -26,7 +26,7 @@ interface FilePickerAcceptType {
 }
 
 /**
- * Options for showOpenFilePicker
+ * Indstillinger til showOpenFilePicker
  */
 interface OpenFilePickerOptions {
   multiple?: boolean;
@@ -36,7 +36,7 @@ interface OpenFilePickerOptions {
 }
 
 /**
- * Options for showSaveFilePicker
+ * Indstillinger til showSaveFilePicker
  */
 interface SaveFilePickerOptions {
   suggestedName?: string;
@@ -46,7 +46,7 @@ interface SaveFilePickerOptions {
 }
 
 /**
- * Options for showDirectoryPicker
+ * Indstillinger til showDirectoryPicker
  */
 interface DirectoryPickerOptions {
   id?: string;
@@ -55,7 +55,7 @@ interface DirectoryPickerOptions {
 }
 
 /**
- * Permission mode for file system handles
+ * Permission-tilstand for file system handles
  */
 interface FileSystemHandlePermissionDescriptor {
   mode?: 'read' | 'readwrite';

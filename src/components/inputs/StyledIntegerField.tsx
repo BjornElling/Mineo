@@ -20,9 +20,9 @@ export type StyledIntegerFieldProps = {
   onCommit?: CommitHandler<number | undefined>;
   onErrorChange?: (hasError: boolean) => void;
   /**
-   * Callback for current local error message (for producer-owned error reporting).
+   * Callback for den aktuelle lokale fejlbesked (til producer-owned fejlrapportering).
    *
-   * Note: this intentionally does not report external errors/config errors.
+   * Bemærk: dette rapporterer bevidst ikke eksterne fejl/config-fejl.
    */
   onFieldError?: FieldErrorReporter;
 
@@ -31,22 +31,22 @@ export type StyledIntegerFieldProps = {
   minValue?: number;
   maxValue?: number;
   /**
-   * If `true`, min/max validation is part of commit (commit will be blocked when out of range).
-   * If `false`, min/max validation is UI-only (value is still committed).
+   * Hvis `true`, er min/max-validering en del af commit (commit blokeres når værdien er uden for intervallet).
+   * Hvis `false`, er min/max-validering kun UI (værdien committes stadig).
    */
   enforceRange?: boolean;
   /**
-   * Maximum number of digits allowed in the input (excluding an optional leading `-`).
+   * Største antal cifre tilladt i inputtet (ekskl. et valgfrit foranstillet `-`).
    *
-   * Note: If `minValue`/`maxValue` is provided, `maxDigits` must be large enough to represent those bounds.
-   * This is treated as a configuration error in DEV (and the field is disabled in PROD) to avoid silently
-   * making valid values impossible to enter.
+   * Bemærk: Hvis `minValue`/`maxValue` er angivet, skal `maxDigits` være stor nok til at repræsentere de bounds.
+   * Dette behandles som en konfigurationsfejl i DEV (og feltet deaktiveres i PROD) for at undgå i det skjulte
+   * at gøre gyldige værdier umulige at indtaste.
    */
   maxDigits?: number;
   /**
-   * Safety cap used when `maxDigits` is not provided.
+   * Sikkerhedsloft der bruges når `maxDigits` ikke er angivet.
    *
-   * This prevents pathological drafts from growing without bound.
+   * Dette forhindrer patologiske drafts i at vokse ubegrænset.
    * Default: `18`.
    */
   safetyMaxDigits?: number;
@@ -136,8 +136,8 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         else if (safetyMaxDigits < 1 || safetyMaxDigits > 18) errors.push('Ugyldig konfiguration: safetyMaxDigits skal være mellem 1 og 18');
       }
 
-      // Bounds are commit-time constraints and do NOT affect input length directly.
-      // However, if `maxDigits` is provided, it must be able to represent any configured bounds.
+      // Bounds er commit-time-begrænsninger og påvirker IKKE input-længden direkte.
+      // Men hvis `maxDigits` er angivet, skal den kunne repræsentere alle konfigurerede bounds.
       const digitsRequiredByBounds = Math.max(
         typeof minValue === 'number' && Number.isFinite(minValue) ? digitsRequired(minValue) : 1,
         typeof maxValue === 'number' && Number.isFinite(maxValue) ? digitsRequired(maxValue) : 1
@@ -150,7 +150,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         } else if (maxDigits < 1 || maxDigits > 18) {
           errors.push('Ugyldig konfiguration: maxDigits skal være mellem 1 og 18');
         } else if (maxDigits < digitsRequiredByBounds) {
-          // DEV-only signal. In runtime we ignore the inconsistent maxDigits to avoid surfacing config errors as parse errors.
+          // Kun DEV-signal. I runtime ignorerer vi den inkonsistente maxDigits for ikke at vise config-fejl som parse-fejl.
           errors.push('Ugyldig konfiguration: maxDigits er mindre end cifre(|min/maxValue|)');
         } else {
           resolvedMaxDigits = maxDigits;
@@ -278,7 +278,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
       onErrorChange(resolvedHasError);
     }, [onErrorChange, resolvedHasError]);
 
-    // Notify parent of local error state (producer-owned reporting)
+    // Underret forælderen om lokal fejltilstand (producer-owned rapportering)
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
       if (visibleLocalError?.message) {

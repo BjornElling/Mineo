@@ -8,11 +8,11 @@ type MineoTextareaInputComponentProps = React.TextareaHTMLAttributes<HTMLTextAre
 };
 
 /**
- * Native textarea input component for MUI InputBase.
+ * Native textarea-input-komponent til MUI InputBase.
  *
- * MUI's default multiline path uses TextareaAutosize, which renders a hidden
- * measurement textarea without id/name. Mineo uses fixed row counts, so the
- * autosize shadow node is unnecessary and triggers browser DevTools warnings.
+ * MUI's default multiline-vej bruger TextareaAutosize, som renderer en skjult
+ * måle-textarea uden id/name. Mineo bruger faste rækketal, så autosize-shadow-noden
+ * er unødvendig og udløser advarsler i browserens DevTools.
  */
 const MineoTextareaInputComponent = React.forwardRef<HTMLTextAreaElement, MineoTextareaInputComponentProps>(
   ({ maxRows: _maxRows, minRows: _minRows, ownerState: _ownerState, type: _type, ...props }, ref) => (

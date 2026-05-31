@@ -1,7 +1,7 @@
 import { getSafeLocalStorage } from '../utils/safeLocalStorage';
 
 /**
- * App Settings Storage
+ * Lagring af programindstillinger
  *
  * Ansvar: localStorage I/O for programindstillinger.
  * Best-effort persistence - fail-safe fallback til in-memory state.

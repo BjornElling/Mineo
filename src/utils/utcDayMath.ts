@@ -1,7 +1,7 @@
 /**
- * Trust-critical contract:
- * - All calendar day counts MUST go through these helpers.
- * - Do NOT use ms-diff (getTime / 86400000) for day counts.
+ * Trust-kritisk kontrakt:
+ * - Alle kalenderdags-optællinger SKAL gå gennem disse hjælpere.
+ * - Brug IKKE ms-diff (getTime / 86400000) til dags-optællinger.
  */
 export const diffUtcDays = (start: Date, end: Date): number => {
   const msPerDay = 24 * 60 * 60 * 1000;

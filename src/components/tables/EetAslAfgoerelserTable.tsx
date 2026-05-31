@@ -170,8 +170,8 @@ const EetAslAfgoerelserTable = React.memo(
       pendingPersistRef.current = null;
     }, [internalTableData, persistTableData]);
 
-    // Intentional table-local commit model: this domain table has fixed rows/cells and no
-    // row-draft isolation, so each Table*Input owns its draft and commits a partial row here.
+    // Bevidst tabel-lokal commit-model: denne domæne-tabel har faste rækker/celler og ingen
+    // row-draft-isolation, så hvert Table*Input ejer sin draft og committer en partiel række her.
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<AslAfgoerelseRow>) => {
         // updates er altid en enkelt-felt-patch (én celle pr. commit). Felt → colIndex

@@ -1,8 +1,8 @@
 /**
- * Shared table-navigation helpers.
+ * Fælles hjælpefunktioner til tabel-navigation.
  *
- * This module contains pure, side-effect free traversal rules that are reused
- * by both grid-table and loose-table navigation implementations.
+ * Dette modul indeholder rene, side-effect-frie traverserings-regler der genbruges
+ * af både grid-table- og loose-table-navigations-implementeringerne.
  */
 
 export const getWrappedNextColumn = (

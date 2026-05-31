@@ -29,13 +29,13 @@ const CONTAINER_FOCUSABLE_SELECTOR =
   '[aria-haspopup][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"]),' +
   '[aria-controls][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"])';
 
-// Navigation semantics (owned by this module):
-// - Enter / Shift+Enter: move vertically while keeping the "anchor cell" if one exists; otherwise use current cell.
-// - ArrowUp/ArrowDown: move vertically from the current cell (clears the anchor).
-//   - At table top/bottom edge, event is intentionally released so Container can continue navigation outside the table.
-// - ArrowLeft/ArrowRight: move horizontally within the current row and wrap at row edges.
-// Note: We `stopPropagation()` for owned keys so the Container-level Tab trap does not also run.
-// Tab is NOT owned here; it is handled by Container-level navigation for natural flow across tables.
+// Navigations-semantik (ejet af dette modul):
+// - Enter / Shift+Enter: flyt vertikalt mens "anchor-cellen" bevares hvis den findes; ellers brug den aktuelle celle.
+// - ArrowUp/ArrowDown: flyt vertikalt fra den aktuelle celle (rydder ankeret).
+//   - Ved tabellens top-/bundkant frigives eventet bevidst, så Container kan fortsætte navigation uden for tabellen.
+// - ArrowLeft/ArrowRight: flyt horisontalt inden for den aktuelle række og wrap ved rækkekanter.
+// Bemærk: Vi kalder `stopPropagation()` for ejede taster, så Container-niveauets Tab-trap ikke også kører.
+// Tab ejes IKKE her; den håndteres af navigation på Container-niveau for et naturligt flow på tværs af tabeller.
 
 const isComposing = (e: React.KeyboardEvent): boolean => {
   const native = e.nativeEvent as unknown as { isComposing?: boolean };
@@ -469,7 +469,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
   if (!activePos) return;
 
   const widgetIsExpanded = getNearestExpanded(target) || isTableDropdownExpanded(target);
-  // When a popup widget is expanded/open, do not interfere with its internal keyboard handling.
+  // Når en popup-widget er expanded/åben, så bland dig ikke i dens interne keyboard-håndtering.
   if (widgetIsExpanded) return;
 
   const core = getGridCoreForTable(table);
@@ -493,7 +493,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     return;
   }
 
-  // TableDropdown: keep its existing keyboard contract (Enter opens, Delete clears when allowed).
+  // TableDropdown: behold dens eksisterende keyboard-kontrakt (Enter åbner, Delete rydder når tilladt).
   if (isTableDropdownTarget) {
     if (!isNavigationKey && !isDeleteKey) return;
   }
@@ -559,7 +559,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     const atTopEdge = key === 'ArrowUp' && activePos.rowIndex === 0;
     const atBottomEdge = key === 'ArrowDown' && activePos.rowIndex === Math.max(0, rowCount - 1);
 
-    // Release edge arrows so Container can continue navigation outside the table.
+    // Frigiv kant-piletaster, så Container kan fortsætte navigation uden for tabellen.
     if (atTopEdge || atBottomEdge) {
       const nativeEvent = e.nativeEvent as unknown as { mineoTableBoundaryExit?: boolean };
       nativeEvent.mineoTableBoundaryExit = true;
@@ -589,7 +589,7 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     return;
   }
 
-  // ArrowLeft/ArrowRight in editor mode belongs to caret movement and must not clear the Tab-anchor.
+  // ArrowLeft/ArrowRight i editor-mode hører til caret-bevægelse og må ikke rydde Tab-ankeret.
   if (key === 'ArrowLeft' || key === 'ArrowRight') {
     if (isEditing) return;
   }
@@ -700,13 +700,13 @@ export const handleTableBlurCapture = (e: React.FocusEvent<HTMLTableElement>) =>
       if (locator) {
         const cell = toCellCoord(locator);
         if (cell && isSameCell(core.getEditingCell(), cell)) {
-          // Invariant: queueMicrotask ensures input onBlur runs first (while isEditing is still true).
-          // Do NOT make this synchronous/flushSync; it would break commit-on-blur and can overwrite drafts.
-          // Decision note: this microtask is an infrastructure exception to the normal form rule.
-          // Reason: table blur-capture must defer editor shutdown until the cell input's own blur-commit
-          // has completed, otherwise valid committed input can be lost.
-          // Risk: widening this pattern outside grid infrastructure would reintroduce hidden commit timing.
-          // Re-evaluate when: grid-core can express "blur finished" synchronously without microtask ordering.
+          // Invariant: queueMicrotask sikrer at input onBlur kører først (mens isEditing stadig er true).
+          // Gør IKKE dette synkront/flushSync; det ville bryde commit-on-blur og kan overskrive drafts.
+          // Decision note: denne microtask er en infrastruktur-undtagelse fra den normale form-regel.
+          // Reason: tabellens blur-capture skal udskyde editor-nedlukning indtil celle-inputtets eget blur-commit
+          // er fuldført, ellers kan gyldigt committet input gå tabt.
+          // Risk: at udvide dette mønster uden for grid-infrastrukturen ville genindføre skjult commit-timing.
+          // Re-evaluate when: grid-core kan udtrykke "blur finished" synkront uden microtask-ordering.
           queueMicrotask(() => {
             if (isSameCell(core.getEditingCell(), cell)) {
               core.setEditingCell(null);

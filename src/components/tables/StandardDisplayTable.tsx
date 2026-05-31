@@ -22,31 +22,31 @@ export type StandardDisplayTableProps = Readonly<{
   columns: readonly StandardDisplayTableColumn[];
   rows: readonly StandardDisplayTableRow[];
   /**
-   * Convenience wrapper styling around the table (not global responsive CSS).
+   * Convenience-wrapper-styling omkring tabellen (ikke global responsiv CSS).
    *
-   * Width is owned centrally by StandardDisplayTable and is always 100%.
-   * Call sites may adjust spacing and other wrapper concerns, but must not
-   * attempt to control table width here.
+   * Bredden ejes centralt af StandardDisplayTable og er altid 100%.
+   * Call sites kan justere spacing og andre wrapper-anliggender, men må ikke
+   * forsøge at styre tabel-bredden her.
    */
   containerSx?: SxProps<Theme>;
   /**
-   * Per-table sx extension. Use sparingly; prefer adjusting columns.
+   * sx-udvidelse pr. tabel. Brug sparsomt; foretræk at justere kolonner.
    *
-   * Column widths are part of normal use of this table type and may be left
-   * automatic or set manually per column. Overall table width is owned
-   * centrally and locked to 100%.
+   * Kolonnebredder er en del af normal brug af denne tabeltype og kan efterlades
+   * automatiske eller sættes manuelt pr. kolonne. Den samlede tabel-bredde ejes
+   * centralt og er låst til 100%.
    */
   tableSx?: SxProps<Theme>;
   useSmallFont?: boolean;
 }>;
 
 /**
- * Table type 1: ren visning.
+ * Tabeltype 1: ren visning.
  *
- * - Uses central table styling (`getMuiTableStyles`)
- * - No inputs, no parsing, no business logic
- * - Overall width is always 100%
- * - Column widths may be automatic or manually specified per column
+ * - Bruger central tabel-styling (`getMuiTableStyles`)
+ * - Ingen inputs, ingen parsing, ingen forretningslogik
+ * - Den samlede bredde er altid 100%
+ * - Kolonnebredder kan være automatiske eller angives manuelt pr. kolonne
  */
 const StandardDisplayTable = React.memo(
   ({ columns, rows, containerSx, tableSx, useSmallFont = false }: StandardDisplayTableProps) => {
@@ -85,9 +85,9 @@ const StandardDisplayTable = React.memo(
                 ...tableStyles['& .MuiTableCell-root'],
                 whiteSpace: 'nowrap',
               },
-              // View-only tables must not display grid lines between body rows/columns.
-              // Keep the header/body separator (defined in `getMuiTableStyles` via `& thead th`).
-              // Allow rowSx to override borders if needed (e.g., for section separators).
+              // View-only-tabeller må ikke vise grid-linjer mellem body-rækker/-kolonner.
+              // Behold header-/body-separatoren (defineret i `getMuiTableStyles` via `& thead th`).
+              // Tillad rowSx at overskrive kanter ved behov (fx til sektions-separatorer).
               '& tbody .MuiTableCell-root': {
                 border: 'none',
               },

@@ -206,7 +206,7 @@ const buildSvieSmerte = (
  *
  * Indeholder ikke løn, beløb, regulering eller offentlige ydelser.
  *
- * @param input - Form values
+ * @param input - Formularværdier
  * @returns Array af DebugDay (tom hvis ingen gyldige datoer)
  */
 export function buildDebugCoreModel(input: DebugModelInput): readonly DebugDay[] {

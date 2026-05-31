@@ -277,7 +277,7 @@ const checkSvieSmerteMismatch = (
  * Kører alle Niveau A integrity checks automatisk.
  *
  * @param debugDays - DebugDay array fra buildDebugCoreModel
- * @param input - Original input data
+ * @param input - Oprindelige input-data
  * @returns Array af integrity issues (tom hvis alt OK)
  */
 export function validateDebugModel(

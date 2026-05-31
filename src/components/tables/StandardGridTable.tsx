@@ -17,10 +17,10 @@ const BASE_CONTAINER_SX: SxProps<Theme> = {
 
 export type StandardGridTableProps = Readonly<{
   /**
-   * Table type 2: egentlig tabel (HTML table + table-inputs).
+   * Tabeltype 2: egentlig tabel (HTML table + table-inputs).
    *
    * - Central styling via `getHtmlTableStyles`
-   * - Intended for Table*Input components (draft onChange, commit onBlur)
+   * - Beregnet til Table*Input-komponenter (draft onChange, commit onBlur)
    */
   children: React.ReactNode;
   beforeTable?: React.ReactNode;
@@ -28,11 +28,11 @@ export type StandardGridTableProps = Readonly<{
   tableLayout?: CSSProperties['tableLayout'];
   useSmallFont?: boolean;
   /**
-   * Optional max-width wrapper + horizontal scrolling.
+   * Valgfri max-width-wrapper + horisontal scrolling.
    */
   containerSx?: SxProps<Theme>;
   /**
-   * Optional table ref for focus coordination.
+   * Valgfri table-ref til fokus-koordinering.
    */
   tableRef?: React.Ref<HTMLTableElement>;
 }>;

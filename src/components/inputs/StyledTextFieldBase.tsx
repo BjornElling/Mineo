@@ -29,22 +29,22 @@ type AllowedInputAttributes = Pick<
 export type StyledTextFieldBaseInputType = 'text' | 'search' | 'tel' | 'url' | 'email' | 'password';
 
 /**
- * UI-only text input base.
+ * UI-only tekst-input-base.
  *
- * Invariants:
- * - Controlled by `draft` (string); no parsing/validation/commit is performed here.
- * - Single-line only (no textarea / multiline); consumers must use a dedicated component for multiline.
- * - Keyboard handlers are bound to the underlying `<input>` via MUI `slotProps.htmlInput`.
- * - Mouse interaction handlers (`onClick`/`onMouseDown`/`onDoubleClick`) are bound to the input root
- *   (`slotProps.input`) so the full field hit-area (including adornments) participates in two-stage activation.
- * - Invalid-input errors are shown via red border + tooltip on hover (helper text is hidden).
- * - `inputType` only affects browser UI/IME and autofill; it must not be relied on for domain semantics.
- * - `htmlInputAttributes` can affect what the browser allows the user to enter; it must be set by field-adapters
- *   (e.g. `StyledXField...` components), not by pages/call-sites.
+ * Invarianter:
+ * - Styret af `draft` (string); ingen parsing/validering/commit udføres her.
+ * - Kun enkelt linje (ingen textarea / multiline); consumere skal bruge en dedikeret komponent til multiline.
+ * - Keyboard-handlere bindes til det underliggende `<input>` via MUI `slotProps.htmlInput`.
+ * - Muse-interaktions-handlere (`onClick`/`onMouseDown`/`onDoubleClick`) bindes til input-roden
+ *   (`slotProps.input`), så hele feltets hit-area (inkl. adornments) deltager i to-trins-aktivering.
+ * - Fejl ved ugyldigt input vises via rød kant + tooltip ved hover (helper text er skjult).
+ * - `inputType` påvirker kun browserens UI/IME og autofill; man må ikke regne med det for domæne-semantik.
+ * - `htmlInputAttributes` kan påvirke hvad browseren tillader brugeren at indtaste; det skal sættes af field-adaptere
+ *   (fx `StyledXField...`-komponenter), ikke af sider/call-sites.
  *
  * Refs:
- * - Forwarded `ref` targets the MUI TextField root element (wrapper).
- * - Use `inputRef` for interacting with the actual `<input>`.
+ * - Den forwardede `ref` peger på MUI TextField-rodelementet (wrapper).
+ * - Brug `inputRef` til at interagere med selve `<input>`.
  */
 export type StyledTextFieldBaseProps = {
   width?: number | string;

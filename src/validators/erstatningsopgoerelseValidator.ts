@@ -1,5 +1,5 @@
 /**
- * Central validator for Erstatningsopgørelse
+ * Central validator for erstatningsopgørelsen
  *
  * Arkitektur:
  * 1. Schema-validering (Zod) - datatyper, required fields

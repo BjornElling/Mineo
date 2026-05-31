@@ -1,7 +1,7 @@
 /**
  * EODebugLoenSections - Render-only komponent til løn
  *
- * Phase 5.5 - UI Wire:
+ * Fase 5.5 - UI-wire:
  * - Rendere løn sections fra adapter
  * - Ingen beregninger
  * - Ingen parsing

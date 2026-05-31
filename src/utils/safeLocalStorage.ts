@@ -24,7 +24,7 @@ export const getSafeLocalStorage = (): StorageLike => {
       return window.localStorage;
     }
   } catch {
-    // Ignore and fall back to in-memory storage.
+    // Ignorér og fald tilbage til in-memory storage.
   }
 
   return createMemoryStorage();

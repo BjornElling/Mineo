@@ -35,22 +35,22 @@ export type StyledPercentFieldProps = {
   minValue?: number;
   maxValue?: number;
   /**
-   * Range constraint (inclusive).
+   * Range-begrænsning (inklusiv).
    *
-   * Default range is forbidden unless explicitly opted in via `useDefaultPercentRange`.
+   * Default-interval er forbudt med mindre det eksplicit slås til via `useDefaultPercentRange`.
    */
   useDefaultPercentRange?: boolean;
 
   /**
-   * Optional: freezes the input grammar independent of `minValue`/`maxValue`.
+   * Valgfri: fryser input-grammatikken uafhængigt af `minValue`/`maxValue`.
    *
-   * Controls how many integer digits are accepted (excluding thousands separators).
-   * Must be an integer between 1 and 18.
+   * Styrer hvor mange heltalscifre der accepteres (ekskl. tusindtalsseparatorer).
+   * Skal være et heltal mellem 1 og 18.
    */
   maxIntegerDigits?: number;
 
   /**
-   * Draft callback (typing only).
+   * Draft-callback (kun typing).
    */
   onDraftChange?: DraftChangeHandler;
   onCommit?: CommitHandler<number | undefined>;
@@ -59,7 +59,7 @@ export type StyledPercentFieldProps = {
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 
   /**
-   * Callback for current error message (for parent validation gating)
+   * Callback for den aktuelle fejlbesked (til forælderens validation gating)
    */
   onFieldError?: FieldErrorReporter;
 
@@ -283,7 +283,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         ? externalHelperText
         : visibleLocalError?.message ?? '';
 
-    // Notify parent of error state
+    // Underret forælderen om fejltilstand
     React.useEffect(() => {
       if (typeof onFieldError === 'function') {
         onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);

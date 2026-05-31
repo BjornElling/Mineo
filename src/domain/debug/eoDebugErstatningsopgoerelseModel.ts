@@ -61,9 +61,9 @@ import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/aarsl
 import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
 
 /**
- * Debug row id must be stable and semantically tied to field identity (not label text or array order).
+ * Debug-row-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
  *
- * This protects React key stability and makes debug output auditable.
+ * Dette beskytter React-key-stabilitet og gør debug-output auditerbart.
  */
 export type DebugRowId =
   | 'erstatningsopgoerelse.eoNummer'

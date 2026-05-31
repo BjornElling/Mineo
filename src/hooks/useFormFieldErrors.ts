@@ -30,16 +30,16 @@ type FieldName<K extends StorageKey> = Extract<keyof PersistedSectionMap[K], str
 type DynamicFieldName<K extends StorageKey> = FieldName<K> | string;
 
 /**
- * Resolved "active" errors per field (flattened across sources via the deterministic resolver).
+ * Opløste "aktive" fejl pr. felt (fladet ud på tværs af sources via den deterministiske resolver).
  *
- * Use when you want UI-parity: "what is wrong right now?"
+ * Brug når du vil have UI-paritet: "hvad er galt lige nu?"
  */
 export const useFormFieldErrors = <K extends StorageKey>(pageKey: K): Partial<Record<FieldName<K>, FormFieldError>> => {
   return useResolvedFieldErrorsSelector(pageKey);
 };
 
 /**
- * Selector-style hook for field errors by source, scoped to a single section.
+ * Selector-baseret hook for feltfejl pr. source, afgrænset til en enkelt sektion.
  */
 export const useFieldErrorsBySourceForSection = <K extends StorageKey>(pageKey: K): FieldErrorsForSection<K> => {
   return useFieldErrorsBySourceSelector(pageKey);
@@ -132,19 +132,19 @@ const captureInvalidDraftIfNew = (
 };
 
 /**
- * Producer-owned field error reporter.
+ * Producer-ejet feltfejl-reporter.
  *
- * Contract (normative):
- * - The caller owns the error for `(pageKey, fieldName, source)`.
- * - Clearing (`undefined` / empty string) only clears the caller's `source` (never other sources).
- * - Component unmount/navigation does not clear errors. Only an explicit clear from the producer
- *   or an authoritative form reset/load may remove them.
- * - This hook intentionally has no unmount cleanup. Tab/page navigation must not silently hide
- *   blocking committed field errors that other tabs still depend on.
+ * Kontrakt (normativ):
+ * - Kalderen ejer fejlen for `(pageKey, fieldName, source)`.
+ * - Rydning (`undefined` / tom streng) rydder kun kalderens egen `source` (aldrig andre sources).
+ * - Unmount/navigation af komponenten rydder ikke fejl. Kun en eksplicit rydning fra produceren
+ *   eller en autoritativ form-reset/load må fjerne dem.
+ * - Denne hook har bevidst ingen unmount-cleanup. Tab-/sidenavigation må ikke stille skjule
+ *   blokerende committede feltfejl, som andre tabs stadig afhænger af.
  *
- * Preferred usage:
- * - Bind this reporter at the call-site that owns the error (typically an input adapter).
- * - Drive it from the same commit/validation lifecycle as the field (see `src/contracts/error-debug-contract.md`).
+ * Foretrukken brug:
+ * - Bind denne reporter på det call-site, der ejer fejlen (typisk en input-adapter).
+ * - Driv den fra samme commit-/valideringslivscyklus som feltet (se `src/contracts/error-debug-contract.md`).
  */
 export const useFormFieldErrorReporter = <K extends StorageKey>(
   pageKey: K,
@@ -173,10 +173,10 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
         error,
       });
 
-      // Lifecycle contract:
-      // - The producer (typically an input component) owns the error for this field and MUST clear it
-      //   by calling the reporter with `undefined` once the field becomes valid again.
-      // - The form layer may clear all field errors on authoritative state replacement (reset/load).
+      // Livscyklus-kontrakt:
+      // - Produceren (typisk en input-komponent) ejer fejlen for dette felt og SKAL rydde den
+      //   ved at kalde reporteren med `undefined`, så snart feltet bliver gyldigt igen.
+      // - Form-laget må rydde alle feltfejl ved autoritativ state-erstatning (reset/load).
       captureInvalidDraftIfNew(pageKey, fieldName, error, getFieldError(pageKey, fieldName), location.pathname);
 
       if (error === undefined || (typeof error === 'string' && error.trim() === '') || (typeof error !== 'string' && error.message.trim() === '')) {

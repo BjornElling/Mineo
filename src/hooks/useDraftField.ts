@@ -25,16 +25,16 @@ export type UseDraftFieldConfig<TModel> = {
   value: TModel;
 
   /**
-   * Must be deterministic and stable for semantically equivalent values.
+   * Skal være deterministisk og stabil for semantisk ækvivalente værdier.
    *
-   * The hook uses `format(value)` snapshots to detect parent updates after a commit; if `format` can vary
-   * across renders for the same value (e.g. locale/timezone-dependent output), draft resync behavior
-   * becomes unpredictable.
+   * Hooken bruger `format(value)`-snapshots til at detektere parent-opdateringer efter et commit; hvis `format`
+   * kan variere på tværs af renders for den samme værdi (fx locale-/tidszoneafhængigt output), bliver
+   * draft-resync-adfærden uforudsigelig.
    *
-   * Practical requirement:
-   * - `format` should be the field's canonical committed representation (what the user should see after commit).
-   * - `format` must not collapse distinct committed values within the semantics of the field, otherwise parent
-   *   updates may be missed (because resync detection is string-based).
+   * Praktisk krav:
+   * - `format` bør være feltets kanoniske committed-repræsentation (det brugeren bør se efter commit).
+   * - `format` må ikke kollapse distinkte committed-værdier inden for feltets semantik, ellers kan parent-
+   *   opdateringer blive overset (fordi resync-detektion er streng-baseret).
    */
   format: (value: TModel) => string;
   parse: DraftParse<TModel>;
@@ -42,10 +42,10 @@ export type UseDraftFieldConfig<TModel> = {
   onCommit: (nextValue: TModel) => void;
 
   /**
-   * Optional ref to the actual input/textarea DOM element controlled by this hook.
+   * Valgfri ref til det egentlige input-/textarea-DOM-element, som denne hook styrer.
    *
-   * Mineo invariant: draft MUST NOT be overwritten by parent-driven resync while the control
-   * is physically focused in the DOM. React focus state can lag during rapid tab navigation.
+   * Mineo-invariant: draft MÅ IKKE overskrives af parent-drevet resync, mens kontrollen
+   * er fysisk fokuseret i DOM'en. Reacts focus state kan lagge under hurtig tab-navigation.
    */
   inputElementRef?: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>;
 
@@ -58,8 +58,8 @@ export type UseDraftFieldConfig<TModel> = {
     message: string;
   }>;
   /**
-   * UX policy: when the draft becomes empty, treat it as "no validation state".
-   * This clears local error + touched without committing or parsing.
+   * UX-politik: når draften bliver tom, behandl det som "ingen valideringstilstand".
+   * Dette rydder lokal error + touched uden at committe eller parse.
    */
   clearTouchedOnEmptyDraft?: boolean;
 };
@@ -70,8 +70,8 @@ export type UseDraftFieldResult = {
   isFocused: boolean;
 
   /**
-   * Semantic: "has a commit been attempted?" (not "has the user interacted?").
-   * Used to gate when parse errors should be shown.
+   * Semantik: "er der forsøgt et commit?" (ikke "har brugeren interageret?").
+   * Bruges til at gate, hvornår parse-fejl skal vises.
    */
   touched: boolean;
   error: DraftFieldError | undefined;
@@ -81,11 +81,11 @@ export type UseDraftFieldResult = {
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 
   /**
-   * Imperative commit attempt of the current draft.
+   * Imperativt commit-forsøg på den nuværende draft.
    *
-   * Note: this does not apply blur-suppression. If you call `commit()` from an event that may also cause
-   * an `onBlur` (e.g. mouse click outside), rely on the hook's own `onBlur`/`onKeyDown` wiring or manage
-   * suppression externally.
+   * Bemærk: dette anvender ikke blur-suppression. Hvis du kalder `commit()` fra en event, der også kan
+   * udløse en `onBlur` (fx museklik udenfor), så stol på hookens egen `onBlur`/`onKeyDown`-wiring eller
+   * håndtér suppression eksternt.
    */
   commit: () => void;
   commitDraft: (nextDraft: string) => void;
@@ -107,11 +107,11 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
   } = config;
 
   /**
-   * Internal state invariants (Mineo):
-   * - Consumers must use `setDraft` (not `setDraftState`) so blur-suppression + pending-resync bookkeeping stays correct.
-   * - After Escape-cancel or Enter-commit, a blur may follow in the same interaction; suppression must be one-shot and
-   *   applies to the immediately following blur-triggered commit attempt.
-   * - Post-commit resync intentionally trades simplicity for determinism. Do not refactor unless all scenarios are understood.
+   * Interne state-invarianter (Mineo):
+   * - Consumere skal bruge `setDraft` (ikke `setDraftState`), så blur-suppression + pending-resync-bogføring forbliver korrekt.
+   * - Efter Escape-cancel eller Enter-commit kan en blur følge i samme interaktion; suppression skal være one-shot og
+   *   gælder det umiddelbart efterfølgende blur-udløste commit-forsøg.
+   * - Post-commit-resync bytter bevidst enkelhed for determinisme. Refaktorér ikke, medmindre alle scenarier er forstået.
    */
   const [isFocused, setIsFocused] = React.useState(false);
   const [touched, setTouched] = React.useState(() => config.initialInvalidDraft !== undefined);
@@ -131,21 +131,21 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     isFocusedRef.current = isFocused;
   }, [isFocused]);
 
-  // Snapshot of the field state at focus start (pre-edit).
-  // Used to ensure Escape restores the exact "existing value" the user started editing,
-  // even when that value is currently invalid (i.e. not representable by the committed model).
+  // Snapshot af feltets state ved fokus-start (før redigering).
+  // Bruges til at sikre, at Escape gendanner præcis den "eksisterende værdi", brugeren begyndte at redigere,
+  // selv når den værdi aktuelt er ugyldig (dvs. ikke repræsenterbar af den committede model).
   const focusSnapshotRef = React.useRef<{
     draft: string;
     touched: boolean;
     error: DraftFieldError | undefined;
   } | null>(null);
 
-  // After Escape-cancel or Enter-commit, a blur may follow in the same interaction.
-  // Invariant: cancel must never lead to commit, and Enter must not double-commit via blur.
+  // Efter Escape-cancel eller Enter-commit kan en blur følge i samme interaktion.
+  // Invariant: cancel må aldrig føre til commit, og Enter må ikke dobbelt-committe via blur.
   //
-  // Policy: suppression is one-shot for the next blur-commit, and is cleared either:
-  // - when consumed by `onBlur`, or
-  // - when the user changes the draft again (new interaction).
+  // Politik: suppression er one-shot for det næste blur-commit og ryddes enten:
+  // - når den forbruges af `onBlur`, eller
+  // - når brugeren ændrer draften igen (ny interaktion).
   const suppressNextBlurCommitRef = React.useRef(false);
   const pendingValueResyncRef = React.useRef<
     | { active: false }
@@ -157,8 +157,8 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       }
   >({ active: false });
   const pendingHistoryValueResyncRef = React.useRef(false);
-  // Tracks the `value` prop at the time we last preserved an invalid draft due to touched+error.
-  // When `value` changes externally (e.g. InsertTodayDateButton), the guard is bypassed.
+  // Sporer `value`-proppen på det tidspunkt, vi senest bevarede en ugyldig draft pga. touched+error.
+  // Når `value` ændres eksternt (fx InsertTodayDateButton), forbigås guarden.
   const valueAtInvalidDraftPreserveRef = React.useRef<TModel>(value);
 
   const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
@@ -166,9 +166,9 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     const formattedAtCallTime = format(committedAtCallTime);
 
     pendingValueResyncRef.current = { active: false };
-    // Gate suppression on focus: undo/redo restore should only reach here after MainLayout
-    // has allowed a committed-state restore. If a focused field receives restore anyway,
-    // avoid silently overriding blur-commit semantics.
+    // Gate suppression på fokus: undo/redo-restore bør kun nå hertil, efter MainLayout
+    // har tilladt en committed-state-restore. Hvis et fokuseret felt alligevel modtager restore,
+    // undgå stiltiende at tilsidesætte blur-commit-semantikken.
     if (!isFocusedRef.current) {
       suppressNextBlurCommitRef.current = true;
     }
@@ -224,8 +224,8 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       (active === el || (el instanceof HTMLElement && active instanceof Node && el.contains(active)));
     const isEffectivelyFocused = isFocused || hasPhysicalFocus;
 
-    // External value update while field holds an invalid draft (e.g. InsertTodayDateButton):
-    // clear the error state so the resync below can sync to the new value.
+    // Ekstern value-opdatering, mens feltet holder en ugyldig draft (fx InsertTodayDateButton):
+    // ryd error-state, så resync nedenfor kan synce til den nye værdi.
     if (touched && error !== undefined && value !== valueAtInvalidDraftPreserveRef.current) {
       setTouched(false);
       setError(undefined);
@@ -242,8 +242,8 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       }
 
       if (pending.active) {
-        // While we are waiting for the post-commit `value` update, never sync draft from `value`
-        // (avoids flicker and overwriting the local post-commit formatting).
+        // Mens vi venter på post-commit-`value`-opdateringen, synk aldrig draft fra `value`
+        // (undgår flicker og overskrivning af den lokale post-commit-formattering).
         const valueHasUpdatedSinceCommit = formatted !== pending.formattedValueAtCommit;
         if (!valueHasUpdatedSinceCommit) {
           if (formatted === pending.draftAfterLocalFormat) pendingValueResyncRef.current = { active: false };
@@ -256,7 +256,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
           return prev;
         }
 
-        // Only sync while focused if the user hasn't typed since we locally formatted after commit.
+        // Synk kun mens fokuseret, hvis brugeren ikke har tastet, siden vi lokalt formatterede efter commit.
         if (isEffectivelyFocused && prev !== pending.draftAfterLocalFormat) {
           return prev;
         }
@@ -265,8 +265,8 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       }
 
       if (isEffectivelyFocused) return prev;
-      // If the last commit attempt failed, preserve the user's invalid draft even while unfocused.
-      // This prevents "silent rollback" to the last committed value on blur.
+      // Hvis det seneste commit-forsøg fejlede, bevar brugerens ugyldige draft selv mens ufokuseret.
+      // Dette forhindrer "silent rollback" til den senest committede værdi ved blur.
       if (touched && error !== undefined) {
         valueAtInvalidDraftPreserveRef.current = value;
         return prev;
@@ -342,9 +342,9 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       return;
     }
 
-    // Contract guard:
-    // In commit mode, non-committable values should be surfaced deterministically.
-    // If a field returns `partial/empty` without a message on commit, it will appear as a "silent failure".
+    // Kontrakt-guard:
+    // I commit-mode bør ikke-committbare værdier overflades deterministisk.
+    // Hvis et felt returnerer `partial/empty` uden en message ved commit, vil det fremstå som en "silent failure".
     if (isInteractiveDevLoggingEnabled && result.message === undefined) {
       throw new Error(
         `useDraftField.parse(commit) returned kind='${result.kind}' without message (commit source: ${source})`
@@ -404,9 +404,9 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
 
     if (e.key === 'Enter' && commitOnEnter) {
       e.preventDefault();
-      // IMPORTANT:
-      // Enter must bubble for Container/table-owned traversal.
-      // Outside those contexts (e.g. dialogs/overlays), handle locally.
+      // VIGTIGT:
+      // Enter skal bubble for Container-/tabel-ejet traversal.
+      // Uden for de kontekster (fx dialogs/overlays), håndtér lokalt.
       if (!shouldBubbleEnterForNavigation(e.target)) {
         e.stopPropagation();
       }

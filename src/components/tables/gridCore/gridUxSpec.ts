@@ -1,11 +1,11 @@
 /**
- * Grid UX Spec (normative)
+ * Grid UX Spec (normativ)
  *
- * This file intentionally contains no runtime logic.
- * It is the frozen UX contract that all Mineo grid tables MUST follow.
+ * Denne fil indeholder bevidst ingen runtime-logik.
+ * Den er den frosne UX-kontrakt som alle Mineos grid-tabeller SKAL følge.
  *
- * Scope (current): HTML-grid tables using `StandardGridTable` + `Table*Input` components,
- * including (at least):
+ * Scope (aktuelt): HTML-grid-tabeller der bruger `StandardGridTable` + `Table*Input`-komponenter,
+ * herunder (mindst):
  * - Årsløn/Lønindkomst (`src/components/tables/StandardLoenTable.tsx`)
  * - Offentlige ydelser (`src/components/tables/OffentligeYdelserTable.tsx`)
  */
@@ -13,34 +13,34 @@
 export const GRID_UX_SPEC = {
   navigation: {
     /**
-     * Global model: all Mineo grid tables share the same keyboard semantics.
+     * Global model: alle Mineos grid-tabeller deler den samme keyboard-semantik.
      *
-     * - Tab / Shift+Tab: horizontal traversal (row-major) within the table; wraps/cycles.
-     * - Enter / Shift+Enter: vertical traversal within the table; wraps/cycles.
+     * - Tab / Shift+Tab: horisontal traversering (row-major) inden for tabellen; wrapper/cykler.
+     * - Enter / Shift+Enter: vertikal traversering inden for tabellen; wrapper/cykler.
      *
-     * Focus is trapped: Tab/Shift+Tab MUST NOT leave the table. Exiting is explicit via pointer click outside
-     * (or programmatic focus changes).
+     * Fokus er trapped: Tab/Shift+Tab MÅ IKKE forlade tabellen. Udgang sker eksplicit via pointer-klik udenfor
+     * (eller programmatiske fokus-ændringer).
      */
     traversalModel: 'excel-like' as const,
 
     /**
-     * Tab-anchor rule (universal):
-     * After a Tab-sequence, Enter/Shift+Enter uses the cell where the sequence started (anchor cell),
-     * not the cell where focus currently is.
+     * Tab-anchor-regel (universel):
+     * Efter en Tab-sekvens bruger Enter/Shift+Enter den celle hvor sekvensen startede (anchor-cellen),
+     * ikke den celle hvor fokus aktuelt er.
      *
      * Reset:
-     * - Anchor clears after Enter/Shift+Enter navigation is executed.
-     * - Anchor clears on Escape-cancel.
+     * - Anchor ryddes efter at Enter/Shift+Enter-navigation er udført.
+     * - Anchor ryddes ved Escape-cancel.
      *
-     * NOTE: The anchor concerns both row and column (and possible sub-control index).
+     * BEMÆRK: Ankeret vedrører både række og kolonne (og evt. sub-control-indeks).
      */
     tabAnchor: 'cell' as const,
 
     /**
-     * Arrow keys:
-     * - ArrowUp/ArrowDown participate in vertical traversal and clear the Tab-anchor.
-     *   At top/bottom edge, event is released so container-level navigation can continue outside the table.
-     * - ArrowLeft/ArrowRight navigate horisontalt i samme række med wrap ved rækkekanter.
+     * Piletaster:
+     * - ArrowUp/ArrowDown deltager i vertikal traversering og rydder Tab-ankeret.
+     *   Ved top-/bundkanten frigives eventet, så navigation på container-niveau kan fortsætte uden for tabellen.
+     * - ArrowLeft/ArrowRight navigerer horisontalt i samme række med wrap ved rækkekanter.
      */
     arrowKeySemantics: {
       upDown: 'vertical-navigation' as const,
@@ -48,19 +48,19 @@ export const GRID_UX_SPEC = {
     },
 
     /**
-     * Popup widgets:
-     * When a popup widget is expanded/open, GridCore MUST NOT interfere with its internal keyboard handling.
+     * Popup-widgets:
+     * Når en popup-widget er expanded/åben, MÅ GridCore IKKE blande sig i dens interne keyboard-håndtering.
      */
     expandedWidgetBypass: true,
 
     /**
-     * Dropdown cells (TableDropdown contract):
-     * - Tab can focus the dropdown
-     * - Enter opens the menu (must NOT trigger grid Enter navigation)
-     * - Selection commits immediately
-     * - Delete/Backspace clears (only when allowEmpty=true and menu is closed)
+     * Dropdown-celler (TableDropdown-kontrakt):
+     * - Tab kan fokusere dropdownen
+     * - Enter åbner menuen (må IKKE udløse grid Enter-navigation)
+     * - Valg committer øjeblikkeligt
+     * - Delete/Backspace rydder (kun når allowEmpty=true og menuen er lukket)
      *
-     * This contract relies on the wrapper attribute:
+     * Denne kontrakt afhænger af wrapper-attributten:
      * `data-mineo-table-dropdown="true"`
      */
     dropdownContract: true,
@@ -68,57 +68,57 @@ export const GRID_UX_SPEC = {
 
   editing: {
     /**
-     * Two-stage editing model:
-     * - Cell focus (readOnly): navigation mode
-     * - Editor open: typing mode
+     * To-trins redigeringsmodel:
+     * - Celle-fokus (readOnly): navigations-mode
+     * - Editor åben: typing-mode
      *
-     * Activation:
-     * - First click on an unfocused cell: focus only (readOnly)
-     * - Click on an already focused cell: open editor, keep caret position
-     * - Double click: open editor, select all
-     * - First printable key: open editor and replace all content with the first key
+     * Aktivering:
+     * - Første klik på en ufokuseret celle: kun fokus (readOnly)
+     * - Klik på en allerede fokuseret celle: åbn editor, behold caret-position
+     * - Dobbeltklik: åbn editor, markér alt
+     * - Første printbare tast: åbn editor og erstat alt indhold med den første tast
      */
     twoStageActivation: true,
 
     /**
-     * Commit timing:
-     * Commit is triggered when the editor closes (typically via blur by focus movement).
+     * Commit-timing:
+     * Commit udløses når editoren lukker (typisk via blur ved fokus-flytning).
      *
-     * Enter semantics:
-     * - When Enter/Shift+Enter is pressed (even while the editor is open), grid navigation occurs.
-     *   The focus move causes blur, which triggers the commit pipeline.
+     * Enter-semantik:
+     * - Når Enter/Shift+Enter trykkes (selv mens editoren er åben), sker der grid-navigation.
+     *   Fokus-flytningen forårsager blur, hvilket udløser commit-pipelinen.
      */
     commitOnEditorClose: true,
 
     /**
-     * Validation failures:
-     * Navigation MUST NOT be blocked by invalid input.
-     * The raw draft may remain visible in the cell with red border + tooltip.
+     * Valideringsfejl:
+     * Navigation MÅ IKKE blokeres af ugyldigt input.
+     * Den rå draft kan forblive synlig i cellen med rød kant + tooltip.
      */
     allowLeavingInvalidDraft: true,
 
     /**
      * Escape:
-     * If the editor is open, Escape reverts the cell to its original value (at editor-open time)
-     * and closes the editor.
+     * Hvis editoren er åben, ruller Escape cellen tilbage til dens oprindelige værdi (på editor-åbnings-tidspunktet)
+     * og lukker editoren.
      */
     escapeRevertsAndCloses: true,
 
     /**
-     * Delete/Backspace (editor closed / cell-focus):
-     * Clears the cell and commits immediately, without opening the editor.
-     * Focus remains in the cell in readOnly mode.
+     * Delete/Backspace (editor lukket / celle-fokus):
+     * Rydder cellen og committer øjeblikkeligt uden at åbne editoren.
+     * Fokus forbliver i cellen i readOnly-mode.
      */
     deleteClearsAndCommitsImmediately: true,
   },
 
   rows: {
     /**
-     * Row lifecycle (universal for Mineo grid tables):
-     * - At least 2 rows exist at all times.
-     * - At least 1 trailing empty input row exists at all times.
-     * - Empty middle rows may be deleted at every commit/blur (aggressive cleanup).
-     * - "Blur is blur": there is no special case for "internal navigation" vs leaving the table.
+     * Rækkers livscyklus (universel for Mineos grid-tabeller):
+     * - Der findes til enhver tid mindst 2 rækker.
+     * - Der findes til enhver tid mindst 1 efterfølgende tom input-række.
+     * - Tomme mellem-rækker kan slettes ved hvert commit/blur (aggressiv oprydning).
+     * - "Blur er blur": der er ingen special-case for "intern navigation" vs. at forlade tabellen.
      */
     minRows: 2,
     trailingEmptyRow: true,
@@ -128,15 +128,15 @@ export const GRID_UX_SPEC = {
 
   sorting: {
     /**
-     * Sorting (shared model):
-     * - All header cells are clickable.
-     * - No icon is shown initially.
-     * - Clicking a header sorts by that column; clicking again flips direction.
-     * - Sorting is stable and memory-based:
-     *   - Primary sort: active (blue) icon
-     *   - Secondary sort: previous primary (grey) icon
-     *   - Ties in primary are resolved by secondary, then original insertion order.
-     * - Sorting is permanent once activated (no "clear sorting" state).
+     * Sortering (delt model):
+     * - Alle header-celler er klikbare.
+     * - Intet ikon vises indledningsvist.
+     * - Klik på en header sorterer efter den kolonne; klik igen vender retningen.
+     * - Sortering er stabil og memory-baseret:
+     *   - Primær sortering: aktivt (blåt) ikon
+     *   - Sekundær sortering: tidligere primær (gråt) ikon
+     *   - Uafgjorte i primær afgøres af sekundær, derefter oprindelig insertion-rækkefølge.
+     * - Sortering er permanent når den først er aktiveret (ingen "ryd sortering"-tilstand).
      */
     headersAlwaysClickable: true,
     defaultDirection: 'asc' as const,

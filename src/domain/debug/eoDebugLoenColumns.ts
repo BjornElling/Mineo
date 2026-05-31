@@ -370,7 +370,7 @@ export const buildLoenindkomstColumns = (args: {
       )
     );
 
-    // NOTE: Float64Array is intentional for deterministic summation.
+    // NOTE: Float64Array er bevidst valgt for deterministisk summation.
     const arraysByKey = new Map<(typeof WAGE_COLUMNS)[number]['key'], Float64Array>();
     for (const col of includeKeys) {
       arraysByKey.set(col.key, new Float64Array(dates.length));

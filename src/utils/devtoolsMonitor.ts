@@ -279,7 +279,7 @@ const notifyListeners = (issue: DevtoolsIssue): void => {
     try {
       listener(snapshot, issue);
     } catch {
-      // Listener errors must never break capture.
+      // Fejl i en listener må aldrig bryde capture.
     }
   });
 };

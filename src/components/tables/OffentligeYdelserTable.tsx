@@ -182,8 +182,8 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
 
     const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
 
-    // Intentional table-local commit model: rows are managed with manual ordering/focus
-    // evaluation here, while each Table*Input still owns draft state until commit.
+    // Bevidst tabel-lokal commit-model: rækker styres med manuel ordning/fokus-evaluering
+    // her, mens hvert Table*Input stadig ejer draft-state indtil commit.
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<OffentligeYdelserRow>, colIndex: number) => {
         setInternalTableData((prev) => {
@@ -202,11 +202,11 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
             lastPersistedFingerprint: lastPersistedFingerprintRef.current,
           });
           if (commitEval.focusPlan) {
-            // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
+            // Last-plan-wins by design: kun det sidste commit i en render-cyklus skal afgøre fokus-gendannelse.
             pendingRowFocusPlanRef.current = commitEval.focusPlan;
           }
 
-          // Only persist when the normalized result differs from what we've last told the parent.
+          // Persistér kun når det normaliserede resultat afviger fra det, vi sidst har fortalt forælderen.
           if (commitEval.shouldPersist) {
             // Tag commit'et med den redigerede celles identitet, så undo/redo lander fokus korrekt.
             pendingPersistRef.current = { rows: normalized, fieldPath: `${rowId}:${colIndex}` };

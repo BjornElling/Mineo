@@ -53,7 +53,7 @@ const ScrollToTopButton = React.memo(() => {
       }
     };
 
-    // Initial check
+    // Indledende tjek
     handleScroll();
 
     container.addEventListener('scroll', handleScroll, { passive: true });

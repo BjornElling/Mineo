@@ -175,7 +175,7 @@ export const detectDecimalPlaces = (values: readonly number[], maxPlaces = 4): n
         places = maxPlaces;
         break;
       }
-      // Integer convergence check only; this is not financial/domain rounding.
+      // Kun konvergens-check på heltal; dette er ikke økonomisk/domæne-afrunding.
       if (isWithinTolerance(scaled, Math.round(scaled))) break;
     }
     if (places > max) max = places;

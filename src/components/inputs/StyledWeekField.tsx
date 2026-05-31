@@ -23,11 +23,11 @@ export type StyledWeekFieldProps = {
   minYear?: number;
   maxYear?: number;
   /**
-   * Policy for interpreting 1-2 digit years on commit.
+   * Politik for fortolkning af 1-2-cifrede år ved commit.
    *
-   * - `reject`: reject 1-2 digit years (must enter 4 digits)
-   * - `infer`: infer century via `interpretYear`
-   * - `assume20xx`: always interpret as 20xx
+   * - `reject`: afvis 1-2-cifrede år (skal indtaste 4 cifre)
+   * - `infer`: udled århundrede via `interpretYear`
+   * - `assume20xx`: fortolk altid som 20xx
    *
    * Default: `infer`.
    */
@@ -42,9 +42,9 @@ export type StyledWeekFieldProps = {
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 
   /**
-   * Producer-owned error reporter (optional). When provided, the field reports its own
-   * invalid-draft state up to the form-error registry and rehydrates the invalid draft
-   * after undo/redo or remount via `getCurrentError()`.
+   * Producer-owned fejlrapportør (valgfri). Når angivet rapporterer feltet sin egen
+   * invalid-draft-tilstand op til form-error-registret og rehydrerer den ugyldige draft
+   * efter undo/redo eller remount via `getCurrentError()`.
    */
   onFieldError?: FieldErrorReporter;
 
@@ -55,14 +55,14 @@ export type StyledWeekFieldProps = {
 
 const formatWeek = (value: string | undefined): string => value ?? '';
 const MAX_CANONICAL_WEEK_LENGTH = 7; // uu/åååå
-// Allow slightly more draft characters than the canonical committed form to support permissive typing
-// (e.g. separators/whitespace) without the UI blocking mid-entry. This is an explicit UX tolerance.
+// Tillad lidt flere draft-tegn end den kanoniske committede form for at understøtte eftergivende typing
+// (fx separatorer/whitespace) uden at UI'et blokerer midt i indtastningen. Dette er en eksplicit UX-tolerance.
 const MAX_WEEK_DRAFT_LENGTH = MAX_CANONICAL_WEEK_LENGTH + 2;
 
 /**
- * Week input parsing rules:
- * - Canonical committed form: `uu/åååå`
- * - 1-2 digit years are accepted only on commit and normalized via `interpretYear`
+ * Parse-regler for uge-input:
+ * - Kanonisk committet form: `uu/åååå`
+ * - 1-2-cifrede år accepteres kun ved commit og normaliseres via `interpretYear`
  */
 const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
   (
@@ -213,7 +213,7 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
     const resolvedHasError = externalHasError || Boolean(visibleLocalError?.message);
     const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
 
-    // Notify parent of local error state (producer-owned reporting)
+    // Underret forælderen om lokal fejltilstand (producer-owned rapportering)
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
       if (visibleLocalError?.message) {

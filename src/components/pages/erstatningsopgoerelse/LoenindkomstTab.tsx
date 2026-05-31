@@ -988,10 +988,10 @@ const LoenindkomstTab = React.memo(({
       const active = document.activeElement as HTMLElement | null;
       const activeIndex = tabOrder.findIndex((element) => element === active);
 
-      // Intentionally hardcoded tab sequence:
+      // Bevidst hardcodet tab-sekvens:
       // Ansættelse -> Beløb -> Dato -> Beregn.
-      // We force this order because generic focus-trap behavior proved unstable with StyledDropdown popover focus,
-      // causing focus leaks to the underlying page. This explicit sequence is deliberate and audited UX behavior.
+      // Vi tvinger denne rækkefølge, fordi generisk focus-trap-adfærd viste sig ustabil med StyledDropdowns popover-fokus
+      // og forårsagede focus leaks til den underliggende side. Denne eksplicitte sekvens er bevidst og auditeret UX-adfærd.
       event.preventDefault();
       event.stopPropagation();
 
@@ -1553,7 +1553,7 @@ const LoenindkomstTab = React.memo(({
   const cannotAddMore = totalAnsaettelsesforhold >= MAX_ANSAETTELSESFORHOLD;
   const showDeleteButton = totalAnsaettelsesforhold > 0;
 
-  // Stable per-af props for React.memo'd StandardLoenTable.
+  // Stabile props pr. af til React.memo'd StandardLoenTable.
   const satserByAfId = React.useMemo(() => {
     const map = new Map<string, StandardLoenTableSatser>();
     for (const af of loenindkomstAnsaettelsesforhold) {

@@ -1,5 +1,5 @@
 // src/utils/mui/isFocusVisible.ts
-// Local override to silence MUI's :focus-visible support warning without changing behavior.
+// Lokal override der dæmper MUI's :focus-visible-support-advarsel uden at ændre adfærd.
 
 const isFocusVisible = (element: Element): boolean => {
   try {

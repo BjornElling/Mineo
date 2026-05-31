@@ -1,5 +1,5 @@
 /**
- * Exhaustiveness check for switch statements.
+ * Udtømmendeheds-tjek for switch-sætninger.
  *
  * Bruges som default case i switch for at sikre compile-time exhaustiveness.
  * Kaster altid en fejl ved runtime hvis kaldt (hvilket aldrig bør ske).

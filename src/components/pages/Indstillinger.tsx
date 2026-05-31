@@ -91,7 +91,7 @@ BrevhovedCheckboxRow.displayName = 'BrevhovedCheckboxRow';
  *
  * Programindstillinger (device-lokale) – gemmes i localStorage og indgår ikke i `.eo` filer.
  *
- * IMPORTANT (trust-critical + persistence separation):
+ * VIGTIGT (trust-kritisk + persistence-adskillelse):
  * - Disse indstillinger er ikke en del af sagsdata.
  * - `.eo` filer må kun indeholde schema-valideret brugerinput fra FormPersistenceContext (sessionStorage).
  *
@@ -101,7 +101,7 @@ BrevhovedCheckboxRow.displayName = 'BrevhovedCheckboxRow';
 const Indstillinger = React.memo(() => {
   const { settings, updateSettings } = useAppSettings();
 
-  // State for default directory display name
+  // State for visningsnavn for standardplacering
   const [directoryDisplayName, setDirectoryDisplayName] = React.useState<string>('Skrivebord (standard)');
   const [isLoadingDirectory, setIsLoadingDirectory] = React.useState(() => Boolean(settings.defaultDirectoryHandleId));
   const handleBrevhovedToggle = React.useCallback((key: keyof BrevhovedIndstillinger, checked: boolean) => {

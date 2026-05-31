@@ -1,8 +1,8 @@
 /**
- * Best-effort scroll to concrete debug row via `data-mineo-row-id`.
+ * Best-effort-scroll til konkret debug-række via `data-mineo-row-id`.
  *
- * DebugRowId patterns with row-id are supported directly, and new rows in the
- * same patterns work without extra configuration.
+ * DebugRowId-mønstre med row-id understøttes direkte, og nye rækker i de
+ * samme mønstre virker uden ekstra konfiguration.
  */
 import { scrollWithRetry } from './scrollWithRetry';
 

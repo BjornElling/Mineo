@@ -8,13 +8,13 @@ export const parseIsoDateOrUndefined = (value: string | undefined): ISODateStrin
 };
 
 /**
- * Converts an `ISODateString` to a UTC date-only `Date` without timezone shifts.
+ * Konverterer en `ISODateString` til en UTC-dato (kun dato) uden tidszoneforskydninger.
  *
- * Trust-critical invariant:
- * - This must never silently return an invalid date for a value that claims to be an `ISODateString`.
+ * Trust-kritisk invariant:
+ * - Denne må aldrig stille returnere en ugyldig dato for en værdi, der hævder at være en `ISODateString`.
  */
 export const isoDateToDate = (isoDate: ISODateString): Date => {
-  // Runtime guard to prevent silent miscalculations if invalid data reaches here.
+  // Runtime-guard der forhindrer stille fejlberegninger, hvis ugyldige data når hertil.
   if (!isISODateString(isoDate)) {
     throw new Error(`isoDateToDate expected ISODateString, got: ${String(isoDate)}`);
   }

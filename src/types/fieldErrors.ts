@@ -8,19 +8,19 @@ export type FormFieldError = {
   severity: FieldErrorSeverity;
   source: FieldErrorSource;
   /**
-   * Save-gating flag.
+   * Flag der styrer save-gating.
    *
-   * `false` means the value is already committed/canonical and the error is UI-only
-   * (for example a range/bounds violation that must stay visible but must not block `.eo` save).
+   * `false` betyder, at værdien allerede er committet/kanonisk, og at fejlen kun er UI-relevant
+   * (for eksempel en interval-/grænseoverskridelse, der skal forblive synlig, men ikke må blokere `.eo`-save).
    *
-   * Omitted/`true` means the error represents non-committable invalid input and blocks save.
+   * Udeladt/`true` betyder, at fejlen repræsenterer ikke-committbart, ugyldigt input og blokerer save.
    */
   blocksSave?: boolean;
   /**
-   * Runtime-only draft that failed commit validation.
+   * Runtime-only draft, der fejlede commit-validering.
    *
-   * Used to restore the exact invalid input after route/tab navigation when save is blocked.
-   * Must never be persisted to `.eo` or used for calculation.
+   * Bruges til at genskabe det præcise ugyldige input efter route-/tab-navigation, når save er blokeret.
+   * Må aldrig persisteres til `.eo` eller bruges til beregning.
    */
   invalidDraft?: string;
 };
@@ -51,24 +51,24 @@ export type FieldErrorsForSection<_K extends StorageKey> = Partial<
 >;
 
 /**
- * Default resolver priority (normative).
+ * Standard resolver-prioritet (normativ).
  *
- * Used by UI to select the single "active" error when multiple sources exist for the same field.
+ * Bruges af UI til at vælge den ene "aktive" fejl, når der findes flere kilder for samme felt.
  *
- * Priority rules:
- * 1) Severity: `error` before `warning`
- * 2) Within same severity: `source` in this fixed order
+ * Prioritetsregler:
+ * 1) Severity: `error` før `warning`
+ * 2) Inden for samme severity: `source` i denne faste rækkefølge
  */
 export const DEFAULT_FIELD_ERROR_SOURCE_PRIORITY: readonly FieldErrorSource[] = ['input', 'rule', 'schema'] as const;
 export const DEFAULT_FIELD_ERROR_SEVERITY_PRIORITY: readonly FieldErrorSeverity[] = ['error', 'warning'] as const;
 
 /**
- * Field error model invariants (trust-critical):
- * - Errors are runtime-only diagnostics (never persisted).
- * - A field can have multiple concurrent errors, separated by `source`.
- * - UI rendering must use a deterministic resolver to avoid timing-dependent output:
- *   - severity priority: `error` before `warning`
- *   - within the same severity: a stable `sourcePriority` order (default: input → rule → schema)
+ * Invarianter for field error-modellen (trust-kritisk):
+ * - Fejl er runtime-only diagnostik (persisteres aldrig).
+ * - Et felt kan have flere samtidige fejl, adskilt efter `source`.
+ * - UI-rendering skal bruge en deterministisk resolver for at undgå timing-afhængigt output:
+ *   - severity-prioritet: `error` før `warning`
+ *   - inden for samme severity: en stabil `sourcePriority`-rækkefølge (standard: input → rule → schema)
  */
 export const normalizeFieldError = (error: FormFieldError): FormFieldError | null => {
   const message = error.message.trim();

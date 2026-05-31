@@ -200,9 +200,9 @@ export const verifyAfterSave = async (
     const actualData = decryptedData as Record<string, unknown>;
 
     // Tæl felter
-    // Canonicalize both sides like the save pipeline does:
-    // - apply `.eo` schema normalization (`null` -> `undefined`)
-    // - drop `undefined` keys (JSON.stringify omits them)
+    // Kanonisér begge sider, ligesom save-pipelinen gør:
+    // - anvend `.eo`-schema-normalisering (`null` -> `undefined`)
+    // - drop `undefined`-nøgler (JSON.stringify udelader dem)
     const actualParsed = eoFileDataSchema.safeParse(actualData);
     if (!actualParsed.success) {
       logError('? KRITISK: Gemt fil matcher ikke schemas!');

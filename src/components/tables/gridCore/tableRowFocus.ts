@@ -1,7 +1,7 @@
 import { focusTableElement, isTableElementVisible, TABLE_FOCUSABLE_SELECTOR } from './tableFocusHelpers';
 
 export type RowRemovalFocusPlan = Readonly<{
-  // Column mapping is DOM-index based and assumes no colSpan divergence between rows.
+  // Kolonne-mapping er DOM-indeks-baseret og antager ingen colSpan-divergens mellem rækker.
   targetIndex: number;
   colIndex: number;
 }>;
@@ -112,12 +112,12 @@ const buildRemovedRowSet = <TRow>(prevRows: readonly TRow[], nextRows: readonly 
 };
 
 /**
- * Build a focus plan for row removal.
+ * Byg en fokus-plan til fjernelse af en række.
  *
- * Preconditions:
- * - `visibleRowIds` is the current (pre-update) DOM order of `<tr data-mineo-row-id>`.
- * - `prevRows` and `nextRows` represent the pre/post committed data model (not DOM).
- * - Apply the plan in a layout effect after the DOM has rendered the next rows.
+ * Forudsætninger:
+ * - `visibleRowIds` er den aktuelle (før-opdatering) DOM-rækkefølge af `<tr data-mineo-row-id>`.
+ * - `prevRows` og `nextRows` repræsenterer den committede datamodel før/efter (ikke DOM).
+ * - Anvend planen i en layout effect efter at DOM'en har renderet de næste rækker.
  */
 export const buildRowRemovalFocusPlan = <TRow>(params: BuildPlanParams<TRow>): RowRemovalFocusPlan | null => {
   const { table, prevRows, nextRows, visibleRowIds, getRowId } = params;
@@ -136,8 +136,8 @@ export const buildRowRemovalFocusPlan = <TRow>(params: BuildPlanParams<TRow>): R
 };
 
 /**
- * Build a focus plan when a row becomes empty but is retained by table normalization
- * (e.g. min-row policy keeps 2 rows visible).
+ * Byg en fokus-plan når en række bliver tom, men beholdes af tabel-normaliseringen
+ * (fx min-row-politikken holder 2 rækker synlige).
  */
 export const buildRetainedEmptyRowFocusPlan = <TRow>(params: BuildRetainedEmptyRowPlanParams<TRow>): RowRemovalFocusPlan | null => {
   const { table, prevRows, nextRows, rowId, colIndex, visibleRowIds, isRowEmpty, getRowId } = params;
@@ -159,8 +159,8 @@ export const buildRetainedEmptyRowFocusPlan = <TRow>(params: BuildRetainedEmptyR
 };
 
 /**
- * Build fallback focus plan for blur-commit scenarios where `activeElement` may
- * already be outside table while the committed row is still removed.
+ * Byg en fallback-fokus-plan til blur-commit-scenarier hvor `activeElement` allerede
+ * kan være uden for tabellen, mens den committede række stadig fjernes.
  */
 export const buildRemovedRowFallbackFocusPlan = <TRow>(params: BuildRemovedRowFallbackFocusPlanParams<TRow>): RowRemovalFocusPlan | null => {
   const { prevRows, nextRows, rowId, colIndex, visibleRowIds, getRowId } = params;
@@ -177,8 +177,8 @@ export const buildRemovedRowFallbackFocusPlan = <TRow>(params: BuildRemovedRowFa
 };
 
 /**
- * Canonical three-step focus-plan chain for row commits:
- * 1) active-row removal, 2) blur-safe removed-row fallback, 3) retained-empty row.
+ * Kanonisk tre-trins fokus-plan-kæde for række-commits:
+ * 1) fjernelse af aktiv række, 2) blur-sikker fallback for fjernet række, 3) beholdt tom række.
  */
 export const buildCommitFocusPlan = <TRow>(params: BuildCommitFocusPlanParams<TRow>): RowRemovalFocusPlan | null => {
   const { table, prevRows, nextRows, rowId, colIndex, visibleRowIds, isRowEmpty, getRowId } = params;
@@ -215,9 +215,9 @@ export const buildCommitFocusPlan = <TRow>(params: BuildCommitFocusPlanParams<TR
 };
 
 /**
- * Shared evaluation for row-commit outcome used by multiple tables:
- * - computes canonical focus plan
- * - reports if persistence should run (fingerprint delta vs last persisted)
+ * Fælles evaluering af udfaldet af et række-commit, brugt af flere tabeller:
+ * - beregner kanonisk fokus-plan
+ * - rapporterer om persistering skal køre (fingerprint-delta vs. sidst persisteret)
  */
 export const evaluateRowCommit = <TRow>(params: EvaluateRowCommitParams<TRow>): EvaluateRowCommitResult => {
   const {
@@ -251,17 +251,17 @@ export const evaluateRowCommit = <TRow>(params: EvaluateRowCommitParams<TRow>): 
 };
 
 /**
- * Apply a previously computed focus plan.
+ * Anvend en tidligere beregnet fokus-plan.
  *
- * Preconditions:
- * - `visibleRowIds` is the current (post-update) DOM order of `<tr data-mineo-row-id>`.
- * - The table DOM has been committed (useLayoutEffect).
+ * Forudsætninger:
+ * - `visibleRowIds` er den aktuelle (efter-opdatering) DOM-rækkefølge af `<tr data-mineo-row-id>`.
+ * - Tabellens DOM er committed (useLayoutEffect).
  */
 export const applyRowRemovalFocusPlan = (params: ApplyPlanParams): void => {
   const { table, plan, visibleRowIds } = params;
   if (!table) return;
 
-  // By design, deleting the last visible row does not force a fallback focus target.
+  // By design tvinger sletning af den sidste synlige række ikke et fallback-fokus-mål frem.
   const targetRowId = visibleRowIds[plan.targetIndex];
   if (!targetRowId) return;
 

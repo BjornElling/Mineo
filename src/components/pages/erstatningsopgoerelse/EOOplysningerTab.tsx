@@ -552,10 +552,10 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       const active = document.activeElement as HTMLElement | null;
       const activeIndex = tabOrder.findIndex((element) => element === active);
 
-      // Intentionally hardcoded tab sequence:
+      // Bevidst hardcodet tab-sekvens:
       // Ansættelse -> Beløb -> Dato -> Beregn.
-      // We force this order because generic focus-trap behavior proved unstable with StyledDropdown popover focus,
-      // causing focus leaks to the underlying page. This explicit sequence is deliberate and audited UX behavior.
+      // Vi tvinger denne rækkefølge, fordi generisk focus-trap-adfærd viste sig ustabil med StyledDropdowns popover-fokus
+      // og forårsagede focus leaks til den underliggende side. Denne eksplicitte sekvens er bevidst og auditeret UX-adfærd.
       event.preventDefault();
       event.stopPropagation();
 
@@ -773,9 +773,9 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     };
   }, [values.forligAnsvarsgradProcent, values.forligAnsvarsgradBroek]);
 
-  // Error reporting for debug/diagnostics (runtime-only).
-  // These are intentionally reported to the central field-error model so EODebug can reflect current invalid inputs
-  // even when the committed persisted value remains unchanged (draft ≠ committed).
+  // Fejlrapportering til debug/diagnostik (kun runtime).
+  // Disse rapporteres bevidst til den centrale field-error-model, så EODebug kan afspejle aktuelle ugyldige inputs
+  // selv når den committede, persisterede værdi forbliver uændret (draft ≠ committed).
   const reportVedroererPeriodeFraInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'vedroererPeriodeFra', {
     severity: 'error',
     source: 'input',

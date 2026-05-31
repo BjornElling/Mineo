@@ -46,8 +46,8 @@ export type FormPersistenceStoreState = {
   hydrate: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
   commitSection: <K extends keyof FormPersistenceSections>(key: K, next: FormPersistenceSections[K] | null, metaPatch?: SectionMetaPatch) => void;
   clearSection: <K extends keyof FormPersistenceSections>(key: K, metaPatch?: SectionMetaPatch) => void;
-  // NOTE: replaceSections preserves existing field-errors.
-  // Use replaceSectionsAndClearFieldErrors for load/replace flows that must clear errors atomically.
+  // NOTE: replaceSections bevarer eksisterende field-errors.
+  // Brug replaceSectionsAndClearFieldErrors til load/replace-flows, der skal rydde fejl atomisk.
   replaceSections: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
   replaceSectionsAndClearFieldErrors: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
   clearAll: (meta: FormPersistenceMeta) => void;
@@ -263,7 +263,7 @@ const createFormPersistenceStore = () =>
         fieldErrors: state.fieldErrors,
         fieldErrorRevisions: state.fieldErrorRevisions,
         committedChangeCounter: state.committedChangeCounter,
-        // Hydration from persisted storage is authoritative for form consumers.
+        // Hydration fra persisteret storage er autoritativ for form-consumers.
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
@@ -337,8 +337,8 @@ const createFormPersistenceStore = () =>
       assertKeyCoverage(next);
       assertMetaFingerprintMatch(meta);
       assertAllSectionsValid(next);
-      // NOTE: rollbackSections intentionally only rolls back section state.
-      // Field errors are restored via restoreFieldErrors() by the caller.
+      // NOTE: rollbackSections ruller bevidst kun section-state tilbage.
+      // Field errors gendannes via restoreFieldErrors() af kalderen.
       set((state) => ({
         sections: { ...next },
         sectionRevisions: { ...sectionRevisions },

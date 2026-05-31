@@ -125,7 +125,7 @@ const checkForServiceWorkerUpdate = async (): Promise<void> => {
     await registration.update();
     registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
   } catch {
-    // Non-fatal: next trigger retries deterministically.
+    // Ikke-fatal: næste trigger forsøger igen deterministisk.
   }
 };
 

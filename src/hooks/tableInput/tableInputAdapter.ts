@@ -18,7 +18,7 @@ export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint ex
   parse: (draft: string) => TableAdapterParseResult<TModel>;
   toCommittedPayload: (value: TModel) => CommittedPayload<TModel, TCanonical, TFingerprint>;
   isValidStartKey: (key: string) => boolean;
-  /** Omit when the input should ignore paste events and keep browser/default handling untouched. */
+  /** Udelad, når inputtet skal ignorere paste-events og bevare browserens/standardhåndteringen urørt. */
   applyPaste?: (
     raw: string,
     context: Readonly<{
@@ -34,50 +34,50 @@ export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint ex
   ) => boolean;
   normalizeDraftChange?: (draft: string) => string;
   /**
-   * Controls whether a non-committable draft survives committed-value resyncs.
+   * Styrer, om en ikke-committbar draft overlever committed-value-resyncs.
    *
-   * Default: true. Set to false only for inputs where every draft is committable
-   * and stale local draft text should immediately yield to the committed value.
+   * Default: true. Sæt kun til false for inputs, hvor hver draft er committbar,
+   * og forældet lokal draft-tekst straks skal vige for den committede værdi.
    */
   preserveInvalidDraft?: boolean;
   /**
-   * Controls whether a successfully committed draft with visual-only validation
-   * error (for example an allowed but out-of-range date) stays visible after
-   * committed-value resync.
+   * Styrer, om en succesfuldt committet draft med visual-only valideringsfejl
+   * (fx en tilladt, men uden-for-interval dato) forbliver synlig efter
+   * committed-value-resync.
    *
-   * Default: true. Set to false when the committed display value is the canonical
-   * UI representation and the draft form should not be kept solely because the
-   * field has a visual validation error.
+   * Default: true. Sæt til false, når den committede display-værdi er den kanoniske
+   * UI-repræsentation, og draft-formen ikke bør bevares alene, fordi feltet
+   * har en visuel valideringsfejl.
    */
   preserveVisualErrorDraft?: boolean;
   /**
-   * Clears local input/save error state as soon as the user edits the draft.
+   * Rydder lokal input-/save-error-state, så snart brugeren redigerer draften.
    *
-   * Default: false. Use for constrained inputs where typing is expected to be a
-   * fresh correction attempt. It does not validate or commit during onChange.
+   * Default: false. Brug til afgrænsede inputs, hvor tastning forventes at være et
+   * nyt korrektionsforsøg. Den validerer eller committer ikke under onChange.
    */
   clearErrorOnChange?: boolean;
   /**
-   * Clears touched state when the user edits the draft to an empty string.
+   * Rydder touched-state, når brugeren redigerer draften til en tom streng.
    *
-   * Default: false. Use for inputs whose empty draft should temporarily remove
-   * the red commit-error UI until the next explicit commit.
+   * Default: false. Brug til inputs, hvis tomme draft midlertidigt skal fjerne
+   * den røde commit-error-UI indtil næste eksplicitte commit.
    */
   clearTouchedOnEmptyDraft?: boolean;
   /**
-   * Registers non-committable input errors with the save-error registry.
+   * Registrerer ikke-committbare input-fejl i save-error-registret.
    *
-   * Default: false. Enable for table inputs where an invalid draft must block
-   * save until the user commits a valid value or cancels/restores the draft.
+   * Default: false. Aktivér til tabel-inputs, hvor en ugyldig draft skal blokere
+   * save, indtil brugeren committer en gyldig værdi eller annullerer/gendanner draften.
    */
   useSaveError?: boolean;
   /**
-   * Returns a visual-only error message for an already-committed model value,
-   * without re-parsing the display string. Implement this on adapters that can
-   * produce a visualErrorMessage from parse(), so committedVisualError can be
-   * derived directly from the model instead of re-invoking parse().
+   * Returnerer en visual-only fejlbesked for en allerede-committet model-værdi,
+   * uden at re-parse display-strengen. Implementér dette på adaptere, der kan
+   * producere en visualErrorMessage fra parse(), så committedVisualError kan
+   * udledes direkte fra modellen i stedet for at gen-invoke parse().
    *
-   * Omit (or return '') when the committed value carries no visual error.
+   * Udelad (eller returnér '') når den committede værdi ikke bærer nogen visuel fejl.
    */
   getCommittedVisualError?: (value: TModel) => string;
 }>;

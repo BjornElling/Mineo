@@ -22,8 +22,8 @@ export const toggleGridSort = (state: GridSortState, colId: string): GridSortSta
     return { primary: { colId, dir: nextDir }, secondary };
   }
 
-  // New primary sort is always ascending.
-  // The previous primary becomes secondary (stable sort memory).
+  // Ny primær sortering er altid stigende.
+  // Den tidligere primære bliver sekundær (stabil sorterings-hukommelse).
   return {
     primary: { colId, dir: 'asc' },
     secondary: primary ? { colId: primary.colId, dir: primary.dir } : undefined,
@@ -44,7 +44,7 @@ const compareSortValues = (a: GridSortValue, b: GridSortValue): number => {
   const aEmpty = isEmptySortValue(a);
   const bEmpty = isEmptySortValue(b);
   if (aEmpty && bEmpty) return 0;
-  // Empty values always sort last (both directions handled by sign flip at the callsite).
+  // Tomme værdier sorteres altid sidst (begge retninger håndteres ved fortegnsskift på callsite'et).
   if (aEmpty) return 1;
   if (bEmpty) return -1;
 
@@ -175,7 +175,7 @@ export const normalizeGridRows = <TRow>(params: Readonly<{
   const normalized: TRow[] = [...nonEmptyRows];
   normalized.push(existingTrailingEmpty ?? makeEmptyRow());
 
-  // Ensure minimum row count while keeping the trailing empty row at the end.
+  // Sikr minimum-rækketal, mens den efterfølgende tomme række holdes til sidst.
   const safeMinRows = Math.max(1, Math.trunc(minRows));
   while (normalized.length < safeMinRows) {
     normalized.splice(Math.max(0, normalized.length - 1), 0, makeEmptyRow());

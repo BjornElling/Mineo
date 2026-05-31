@@ -27,8 +27,8 @@ export const normalizeStorageWriteError = (error: unknown): Error => {
 };
 
 export const readSessionStorageValue = (key: string): string | null => {
-  // Strict variant for trust-critical callsites: unavailable sessionStorage or read
-  // exceptions must bubble so callers cannot proceed as if persistence succeeded.
+  // Streng variant til trust-kritiske kaldssteder: utilgængelig sessionStorage eller
+  // read-exceptions skal boble op, så kaldere ikke kan fortsætte, som om persistence lykkedes.
   return getSessionStorageInstance().getItem(key);
 };
 

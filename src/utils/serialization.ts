@@ -1,5 +1,5 @@
 /**
- * Serialization layer for persisted form values.
+ * Serialiseringslag for persisterede formularværdier.
  *
  * Runtime invariant:
  * - `undefined` serialiseres som `null` (JSON-kompatibelt)

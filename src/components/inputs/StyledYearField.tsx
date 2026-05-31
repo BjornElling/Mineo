@@ -22,11 +22,11 @@ export type StyledYearFieldProps = {
   maxYear?: number;
   allowEmpty?: boolean;
   /**
-   * Policy for interpreting 1-2 digit years on commit.
+   * Politik for fortolkning af 1-2-cifrede år ved commit.
    *
-   * - `reject`: reject 1-2 digit years (must enter 4 digits)
-   * - `infer`: infer century via `interpretYear`
-   * - `assume20xx`: always interpret as 20xx
+   * - `reject`: afvis 1-2-cifrede år (skal indtaste 4 cifre)
+   * - `infer`: udled århundrede via `interpretYear`
+   * - `assume20xx`: fortolk altid som 20xx
    *
    * Default: `infer`.
    */
@@ -36,30 +36,30 @@ export type StyledYearFieldProps = {
   disabled?: boolean;
 
   /**
-   * Called after internal focus bookkeeping (via `useDraftField`) has run.
+   * Kaldes efter at intern focus-bookkeeping (via `useDraftField`) er kørt.
    */
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   /**
-   * Level-triggered error signal for parent integrations.
+   * Level-triggered fejlsignal til forælder-integrationer.
    *
-   * Invariant: called on mount and whenever the resolved error state changes.
+   * Invariant: kaldes ved mount og hver gang den resolved fejltilstand ændrer sig.
    */
   onErrorChange?: (hasError: boolean) => void;
   /**
-   * Callback for current local error message (for producer-owned error reporting).
+   * Callback for den aktuelle lokale fejlbesked (til producer-owned fejlrapportering).
    *
-   * Note: this intentionally does not report `externalError`.
+   * Bemærk: dette rapporterer bevidst ikke `externalError`.
    */
   onFieldError?: FieldErrorReporter;
 
   /**
-   * External error is authoritative over local parse errors.
-   * Useful for parent-level validation gates.
+   * Ekstern fejl er autoritativ over lokale parse-fejl.
+   * Nyttig til validation gates på forælder-niveau.
    *
-   * Note: local parse error state is preserved (suspended in the UI while `externalError` is present),
-   * and will become visible again if `externalError` is cleared.
+   * Bemærk: lokal parse-fejltilstand bevares (suspenderet i UI'et mens `externalError` er til stede)
+   * og bliver synlig igen, hvis `externalError` ryddes.
    */
   externalError?: { message: string } | undefined;
 
@@ -70,13 +70,13 @@ const formatYear = (value: number | undefined): string => {
   return typeof value === 'number' && Number.isFinite(value) ? String(value) : '';
 };
 
-const MAX_YEAR_DRAFT_LENGTH = 6; // 4 digits + whitespace tolerance
+const MAX_YEAR_DRAFT_LENGTH = 6; // 4 cifre + whitespace-tolerance
 
 /**
- * Year input with strict parsing:
- * - Parsing/validation is performed exclusively in `parseYear`.
- * - 1-3 digits is treated as partial while typing, and as an error after commit.
- * - 2-digit years are accepted only on commit and normalized via `interpretYear`.
+ * År-input med striks parsing:
+ * - Parsing/validering udføres udelukkende i `parseYear`.
+ * - 1-3 cifre behandles som partial under typing, og som en fejl efter commit.
+ * - 2-cifrede år accepteres kun ved commit og normaliseres via `interpretYear`.
  */
 const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
   (
@@ -141,7 +141,7 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
             const parsed = Number.parseInt(trimmed, 10);
             year = Number.isFinite(parsed) ? 2000 + parsed : undefined;
           } else {
-            // 2-digit years are accepted only on commit and normalized to a 4-digit year.
+            // 2-cifrede år accepteres kun ved commit og normaliseres til et 4-cifret år.
             const interpreted = interpretYear(trimmed);
             year = interpreted === null ? undefined : interpreted;
           }
@@ -221,7 +221,7 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       onErrorChange(resolvedHasError);
     }, [onErrorChange, resolvedHasError]);
 
-    // Notify parent of local error state (producer-owned reporting)
+    // Underret forælderen om lokal fejltilstand (producer-owned rapportering)
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
       onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);

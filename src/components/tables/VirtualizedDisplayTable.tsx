@@ -5,17 +5,17 @@ import { getHtmlTableStyles, htmlTableHeaderStyles } from '../../config/tableThe
 
 export type VirtualizedDisplayTableColumn = Readonly<{
   /**
-   * Stable identifier for the column (optional).
+   * Stabil identifikator for kolonnen (valgfri).
    *
-   * When provided, it is used for React keys and is exposed as `data-mineo-column-id`
-   * on both header and body cells for diagnostics/debugging.
+   * Når angivet bruges den til React keys og eksponeres som `data-mineo-column-id`
+   * på både header- og body-celler til diagnostik/debugging.
    */
   id?: string;
   header: React.ReactNode;
   align?: 'left' | 'center' | 'right';
   width: number;
   /**
-   * Visual group separator (vertical line) before this column.
+   * Visuel gruppe-separator (lodret linje) før denne kolonne.
    */
   borderLeft?: boolean;
 }>;
@@ -44,20 +44,20 @@ export type VirtualizedDisplayTableProps = Readonly<{
   height: number;
   overscan?: number;
   /**
-   * When enabled, the table header row stays visible at the top of the nearest scroll container.
+   * Når aktiveret, forbliver tabellens header-række synlig øverst i den nærmeste scroll-container.
    *
-   * Intended for very large tables where users must always see the column headings.
+   * Beregnet til meget store tabeller hvor brugeren altid skal kunne se kolonneoverskrifterne.
    */
   stickyHeader?: boolean;
   /**
-   * Sticky offset from the top of the scroll container (pixels).
+   * Sticky-offset fra toppen af scroll-containeren (pixels).
    */
   stickyHeaderTop?: number;
   /**
-   * Scroll strategy:
-   * - 'self' (default): the table renders inside its own vertical scroll container.
-   * - 'ancestor': the table does not create its own scroll container; virtualization follows the nearest
-   *   ancestor marked with `data-mineo-scroll-container="true"` (fallback: window).
+   * Scroll-strategi:
+   * - 'self' (default): tabellen renderer inde i sin egen vertikale scroll-container.
+   * - 'ancestor': tabellen opretter ikke sin egen scroll-container; virtualiseringen følger den nærmeste
+   *   ancestor markeret med `data-mineo-scroll-container="true"` (fallback: window).
    */
   scrollMode?: 'self' | 'ancestor';
   getRowKey: (rowIndex: number) => React.Key;
@@ -226,8 +226,8 @@ const VirtualizedDisplayTable = React.memo(
 
     const headerSeparatorBackground = React.useMemo<React.CSSProperties>(
       () => ({
-        // `border-collapse: collapse` can prevent borders from painting reliably on sticky headers.
-        // Paint the separator line as a background to guarantee it shows both in normal and sticky states.
+        // `border-collapse: collapse` kan forhindre kanter i at blive tegnet pålideligt på sticky headers.
+        // Tegn separator-linjen som en baggrund for at garantere at den vises både i normal- og sticky-tilstand.
         backgroundImage: 'linear-gradient(to bottom, transparent calc(100% - 2px), var(--color-table-border) 0)',
       }),
       []
@@ -302,8 +302,8 @@ const VirtualizedDisplayTable = React.memo(
             ref={tableRef}
             style={{
               ...tableStyle,
-              // Sticky headers don't work reliably when the table itself establishes an overflow clipping context.
-              // Keep overflow visible so the sticky header can stick to the scroll container (window/Container).
+              // Sticky headers virker ikke pålideligt når tabellen selv etablerer en overflow-clipping-kontekst.
+              // Hold overflow synlig, så den sticky header kan klæbe til scroll-containeren (window/Container).
               overflow: stickyHeader ? 'visible' : tableStyle.overflow,
               width: 'fit-content',
               tableLayout: 'fixed',

@@ -1,8 +1,8 @@
 /**
- * Shared focus/query helpers used by table keyboard navigation and row-focus recovery.
+ * Fælles focus-/query-hjælpefunktioner brugt af tabellens keyboard-navigation og row-focus-recovery.
  */
 
-// IMPORTANT: keep this selector aligned with Container-level focus semantics for table fields.
+// VIGTIGT: hold denne selector på linje med focus-semantikken på Container-niveau for tabelfelter.
 export const TABLE_FOCUSABLE_SELECTOR =
   'input[role="combobox"]:not([disabled]):not([tabindex="-1"]):not([type="hidden"]),' +
   'input:not([disabled]):not([tabindex="-1"]):not([type="hidden"]),' +
@@ -15,8 +15,8 @@ export const TABLE_FOCUSABLE_SELECTOR =
 
 type IsTableElementVisibleOptions = Readonly<{
   /**
-   * Use `true` when callers must reject detached nodes (e.g. post-commit row-focus recovery).
-   * Leave `false/undefined` for in-table keyboard traversal where candidates are queried from live DOM.
+   * Brug `true` når kaldere skal afvise detached noder (fx row-focus-recovery efter commit).
+   * Lad være `false/undefined` til keyboard-traversering inde i tabellen, hvor kandidater forespørges fra live DOM.
    */
   requireConnected?: boolean;
 }>;
@@ -26,8 +26,8 @@ export const isTableElementVisible = (el: HTMLElement, options?: IsTableElementV
   const style = window.getComputedStyle(el);
   if (style.display === 'none') return false;
   if (style.visibility === 'hidden') return false;
-  // JSDOM does not implement layout; treat rect-less elements as visible unless explicitly hidden.
-  // We intentionally do not enforce width/height checks in browser layout here.
+  // JSDOM implementerer ikke layout; behandl elementer uden rect som synlige med mindre de er eksplicit skjult.
+  // Vi håndhæver bevidst ikke width/height-tjek i browser-layout her.
   return true;
 };
 

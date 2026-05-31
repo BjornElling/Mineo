@@ -40,7 +40,7 @@ import type { StyledIntegerFieldValueChangeEvent } from '../inputs/StyledInteger
 import type { StyledDropdownChangeEvent } from '../inputs/StyledDropdown';
 import type { CommitEvent, CommitHandler } from '../../types/fieldEvents';
 
-// Infer type from Zod schema (source of truth for runtime validation)
+// Udled type fra Zod-schema (source of truth for runtime-validering)
 type AarsloenValues = z.infer<typeof aarsloenSchema>;
 
 /**
@@ -256,7 +256,7 @@ const Aarsloen = React.memo(() => {
     setTableValidationSummary(summary);
   }, []);
 
-  // Derived boolean for conditional rendering
+  // Afledt boolean til betinget rendering
   const canShowOmregning = omregningAktiveret && periodeData !== null;
   const shouldShowFerieFields = React.useMemo(
     () => shouldShowAarsloenFerieFields(values),

@@ -271,7 +271,7 @@ export const buildIncomeForRanges = (
     return previousRange ? previousRange.til < range.fra : true;
   });
   if (!areRangesDisjoint) {
-    // NOTE: Fail-closed by design.
+    // NOTE: Fail-closed efter design.
     // Uventede overlappende ranges må ikke kunne give dobbelttælling.
     if (import.meta.env.DEV) {
       console.warn('Indkomstberegning: overlap i beregnings-ranges; beregning afbrydes fail-closed.');
@@ -401,7 +401,7 @@ export const buildIncomeForRanges = (
       row.ydelse !== undefined ||
       row.tillaeg !== undefined;
     if (!hasAnyFilled) return 'empty';
-    // NOTE: Fail-closed by design.
+    // NOTE: Fail-closed efter design.
     // Offentlige ydelser indgår kun med udfyldt ydelsestype og gyldig periode.
     if ((row.ydelsestype?.trim() ?? '') === '') return 'invalid';
     const interval = parseOffentligInterval(row);

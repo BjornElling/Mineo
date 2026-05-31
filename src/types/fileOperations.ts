@@ -1,5 +1,5 @@
 /**
- * Type definitions for file save/load operations
+ * Typedefinitioner for file save/load-operationer
  * Bruges til at undgå 'any' types i MainLayout og andre steder
  */
 

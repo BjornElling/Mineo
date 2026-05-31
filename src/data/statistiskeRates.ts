@@ -198,7 +198,7 @@ for (const model of statistiskLoenudvikling) {
 // ===== OPSLAGS-FUNKTIONER =====
 
 /**
- * Find statistisk lønudviklingsmodel by ID
+ * Find statistisk lønudviklingsmodel ud fra ID
  */
 export const getStatistiskLoenudvikling = (
   id: StatistiskLoenudviklingId

@@ -1,5 +1,5 @@
-// Mineo field events are NOT DOM events. They are intentionally minimal, serializable payloads.
-// Brand them to avoid accidental mixing with React/MUI events in larger codebases.
+// Mineos field events er IKKE DOM-events. De er bevidst minimale, serialiserbare payloads.
+// De brandes for at undgå utilsigtet sammenblanding med React/MUI-events i større kodebaser.
 
 export type MineoFieldEventKind = 'draft' | 'commit';
 
@@ -40,12 +40,12 @@ export const createCommitEvent = <TValue>(value: TValue): CommitEvent<TValue> =>
 });
 
 /**
- * Field blur invariant (Mineo):
- * - Styled*Field components wire internal `useDraftField.onBlur` first.
- * - The external `onBlur` (React focus event) runs after internal blur handling.
+ * Field blur-invariant (Mineo):
+ * - Styled*Field-komponenter kobler den interne `useDraftField.onBlur` først.
+ * - Den eksterne `onBlur` (React focus event) kører efter den interne blur-håndtering.
  *
- * Implication:
- * - `onBlur` MUST NOT be treated as the "commit" callback.
- * - Any commit attempt caused by blur has already been processed before `onBlur` runs
- *   (it may have been suppressed via Escape/Enter policies).
+ * Konsekvens:
+ * - `onBlur` MÅ IKKE behandles som "commit"-callback.
+ * - Ethvert commit-forsøg udløst af blur er allerede behandlet, før `onBlur` kører
+ *   (det kan være blevet undertrykt via Escape-/Enter-politikker).
  */

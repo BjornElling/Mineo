@@ -1,7 +1,7 @@
 /**
- * Type definitions for GridCore system
+ * Type-definitioner for GridCore-systemet
  *
- * VIGTIGT: Denne fil indeholder KUN type definitions - ingen runtime-kode.
+ * VIGTIGT: Denne fil indeholder KUN type-definitioner - ingen runtime-kode.
  */
 
 export type GridCellCoord = Readonly<{ rowId: string; colIndex: number }>;
@@ -11,10 +11,10 @@ export type GridOpenEditSource = 'pointer' | 'key' | 'doubleClick';
 export type FocusChangeReason = 'tab' | 'enter' | 'arrow' | 'sort' | 'commit';
 
 /**
- * FocusPlan invariants:
- * - `from` MUST equal the focused cell at request-time
- * - `to` MUST be a valid, focusable cell
- * - plan is ignored if editor is open
+ * FocusPlan-invarianter:
+ * - `from` SKAL svare til den fokuserede celle på request-tidspunktet
+ * - `to` SKAL være en gyldig, fokusbar celle
+ * - planen ignoreres hvis editoren er åben
  */
 export type FocusPlan = Readonly<{
   from: GridCellCoord;
@@ -29,10 +29,10 @@ export type GridCellEditorHandle = Readonly<{
   clearAndCommit: () => void;
   cancelEdit: () => void;
   /**
-   * Prepare a key-initiated edit (overwrite-all semantics).
+   * Forbered en tast-initieret redigering (overwrite-all-semantik).
    *
-   * Returns `true` when the key is accepted and the editor can be opened.
-   * Returns `false` to indicate "ignore this key for edit-start" (e.g. non-digit on an integer cell).
+   * Returnerer `true` når tasten accepteres og editoren kan åbnes.
+   * Returnerer `false` for at angive "ignorér denne tast til edit-start" (fx ikke-ciffer på en heltalscelle).
    */
   prepareEditFromKey: (key: string) => boolean;
   selectAll: () => void;

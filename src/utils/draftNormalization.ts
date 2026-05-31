@@ -1,31 +1,31 @@
 /**
- * Draft normalization helpers (commit-time only).
+ * Hjælpere til draft-normalisering (kun ved commit).
  *
- * All helpers are deterministic and locale/timezone independent.
- * Unicode-safe: all character inspection is done on full code points.
+ * Alle hjælpere er deterministiske og uafhængige af locale/tidszone.
+ * Unicode-sikre: al tegninspektion sker på fulde code points.
  */
 
 /**
- * Split string into Unicode code points once, to avoid UTF-16 pitfalls.
+ * Opdel streng i Unicode-code points én gang for at undgå UTF-16-faldgruber.
  */
 const toCodePoints = (s: string): readonly string[] => Array.from(s);
 
 /**
- * Unicode letter or digit.
+ * Unicode-bogstav eller -ciffer.
  */
 const isLetterOrDigit = (ch: string): boolean =>
   /[\p{L}\p{N}]/u.test(ch);
 
 /**
- * Unicode digit.
+ * Unicode-ciffer.
  */
 const isDigit = (ch: string): boolean =>
   /[\p{N}]/u.test(ch);
 
 /**
- * Characters that are treated as minus signs (single source of truth).
+ * Tegn der behandles som minustegn (single source of truth).
  *
- * All of these are normalized to ASCII '-' in output.
+ * Alle disse normaliseres til ASCII '-' i output.
  */
 const MINUS_REGEX_CLASS = '\u002D\u2212\u2013\u2014\u2011';
 
@@ -39,16 +39,16 @@ const isMinusChar = (ch: string): boolean =>
   MINUS_CHARS.has(ch);
 
 /**
- * Remove whitespace before the first character and after the last character.
+ * Fjern whitespace før det første tegn og efter det sidste tegn.
  */
 export const trimWhitespaceEdges = (draft: string): string => {
   return draft.trim();
 };
 
 /**
- * Remove everything before the first letter/digit and everything after the last letter/digit.
+ * Fjern alt før det første bogstav/ciffer og alt efter det sidste bogstav/ciffer.
  *
- * If the string contains no letters/digits, returns "".
+ * Hvis strengen ikke indeholder bogstaver/cifre, returneres "".
  */
 export const trimToAlphanumericEdges = (draft: string): string => {
   if (draft === '') return draft;
@@ -77,17 +77,17 @@ export const trimToAlphanumericEdges = (draft: string): string => {
 };
 
 /**
- * Amount-field normalization.
+ * Normalisering af beløbsfelt.
  *
- * Rules:
- * - Extracts the numeric core between first and last digit.
- * - Preserves a single leading minus (any Unicode minus/hyphen) if it appears
- *   anywhere before the first digit.
- * - Preserves a leading decimal comma (",50", "-,50").
- * - If no digits are present, returns "".
+ * Regler:
+ * - Udtrækker den numeriske kerne mellem første og sidste ciffer.
+ * - Bevarer et enkelt foranstillet minus (ethvert Unicode-minus/bindestreg), hvis det optræder
+ *   et eller andet sted før det første ciffer.
+ * - Bevarer et foranstillet decimalkomma (",50", "-,50").
+ * - Hvis der ikke er nogen cifre, returneres "".
  *
- * Normalization:
- * - Any recognized minus character is normalized to ASCII '-'.
+ * Normalisering:
+ * - Ethvert genkendt minustegn normaliseres til ASCII '-'.
  */
 export const trimToNumericEdgesPreserveLeadingMinus = (draft: string): string => {
   if (draft === '') return draft;
@@ -112,7 +112,7 @@ export const trimToNumericEdgesPreserveLeadingMinus = (draft: string): string =>
   }
   if (lastDigit === -1) return '';
 
-  // Detect any minus character before the first digit
+  // Find ethvert minustegn før det første ciffer
   let hasLeadingMinus = false;
   for (let i = 0; i < firstDigit; i += 1) {
     if (isMinusChar(chars[i]!)) {
@@ -121,7 +121,7 @@ export const trimToNumericEdgesPreserveLeadingMinus = (draft: string): string =>
     }
   }
 
-  // Detect leading decimal comma directly before the first digit
+  // Find foranstillet decimalkomma direkte før det første ciffer
   const hasLeadingComma =
     firstDigit > 0 && chars[firstDigit - 1] === ',';
 
@@ -136,7 +136,7 @@ export const trimToNumericEdgesPreserveLeadingMinus = (draft: string): string =>
 
   let core = chars.slice(safeStart, lastDigit + 1).join('');
 
-  // Normalize any minus character to ASCII '-'
+  // Normalisér ethvert minustegn til ASCII '-'
   if (hasLeadingMinus) {
     core = `-${core.replace(LEADING_MINUS_REGEX, '')}`;
   }
@@ -145,9 +145,9 @@ export const trimToNumericEdgesPreserveLeadingMinus = (draft: string): string =>
 };
 
 /**
- * If the committed draft starts with a decimal comma, prefix a zero.
+ * Hvis den committede draft starter med et decimalkomma, sættes et nul foran.
  *
- * Examples:
+ * Eksempler:
  * - ",50"  -> "0,50"
  * - "-,50" -> "-0,50"
  */
@@ -162,10 +162,10 @@ export const prefixZeroBeforeLeadingComma = (draft: string): string => {
 };
 
 /**
- * Strip grouping separators (thousands dots) from amount drafts.
+ * Fjern grupperingsseparatorer (tusind-punktummer) fra beløbs-drafts.
  *
- * This is intentionally aggressive.
- * Input is assumed to be Danish-formatted only.
+ * Dette er bevidst aggressivt.
+ * Input antages udelukkende at være dansk-formateret.
  */
 export const stripAmountGroupingSeparators = (draft: string): string => {
   if (draft === '') return draft;

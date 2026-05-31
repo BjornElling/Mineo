@@ -26,7 +26,7 @@ export type TablePercentInputProps = Readonly<{
   minValue?: number;
   maxValue?: number;
   /**
-   * Default percent range (0-100). Applied only when `minValue`/`maxValue` are not provided.
+   * Default procent-interval (0-100). Anvendes kun når `minValue`/`maxValue` ikke er angivet.
    */
   useDefaultPercentRange?: boolean;
   placeholder?: string;

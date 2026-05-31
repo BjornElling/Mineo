@@ -707,7 +707,7 @@ export const buildEODebugModel = (
     ...offentligeIssues,
   ];
 
-  // Summary table uses the same range as the debug table (month boundaries).
+  // Summary-tabellen bruger samme interval som debug-tabellen (månedsgrænser).
   const tafColumnIds = columnData
     .filter((col) => col.id === DEBUG_TABEL_COLUMN_IDS.tafDay)
     .map((col) => col.id);

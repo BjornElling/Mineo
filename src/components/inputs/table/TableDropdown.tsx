@@ -10,16 +10,16 @@ import StyledDropdown, { type StyledDropdownChangeEvent } from '../StyledDropdow
 import { getTableInputBorderAppearance, TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './tableInputStyles';
 
 /**
- * TableDropdown (table-cell select)
+ * TableDropdown (tabelcelle-select)
  *
- * Cross-cutting navigation contract:
- * - The wrapper sets `data-mineo-table-dropdown="true"` so table keyboard navigation can detect this widget.
- * - `src/components/tables/tableKeyboardNavigation.ts` has a special-case:
- *     - Enter on a TableDropdown must open the menu (do NOT trigger table-level Enter navigation).
- * - This component must NOT intercept Tab; Tab is handled by table- or container-level navigation.
- * - We only intercept Delete/Backspace (when allowEmpty) to clear the selection, and only when the menu is closed.
+ * Tværgående navigations-kontrakt:
+ * - Wrapperen sætter `data-mineo-table-dropdown="true"`, så tabellens keyboard-navigation kan registrere denne widget.
+ * - `src/components/tables/tableKeyboardNavigation.ts` har en special-case:
+ *     - Enter på en TableDropdown skal åbne menuen (udløs IKKE Enter-navigation på tabel-niveau).
+ * - Denne komponent må IKKE intercepte Tab; Tab håndteres af navigation på tabel- eller container-niveau.
+ * - Vi intercepter kun Delete/Backspace (når allowEmpty) for at rydde valget, og kun når menuen er lukket.
  *
- * If you change the wrapper attribute or key handling, review `tableKeyboardNavigation.ts` as well.
+ * Hvis du ændrer wrapper-attributten eller key handling, så gennemgå også `tableKeyboardNavigation.ts`.
  */
 export type TableDropdownValueOption = Readonly<{
   value: string;
@@ -57,10 +57,10 @@ export type TableDropdownProps = (TableDropdownPropsAllowEmpty | TableDropdownPr
     gridCell?: GridCellCoord;
     readOnly?: boolean;
     /**
-     * Visual style variant.
+     * Visuel stil-variant.
      *
-     * - `grid`: compact/flat look intended for HTML-grid tables.
-     * - `loose`: outlined look matching `Styled*Field` inputs (used in MUI "loose" tables).
+     * - `grid`: kompakt/fladt udseende beregnet til HTML-grid-tabeller.
+     * - `loose`: outlined udseende der matcher `Styled*Field`-inputs (brugt i MUI "loose"-tabeller).
      */
     appearance?: 'grid' | 'loose';
     options: readonly TableDropdownOption[];
@@ -222,8 +222,8 @@ const TableDropdown = React.memo(
         if (expanded) return;
 
         if (e.key === 'Backspace' || e.key === 'Delete') {
-          // In table context, Delete is normally handled at table-capture level first.
-          // Keep this as a defensive fallback for isolated/non-table usage.
+          // I tabel-kontekst håndteres Delete normalt først på table-capture-niveau.
+          // Behold dette som en defensiv fallback til isoleret brug uden for tabel.
           if (!allowEmpty) return;
           e.preventDefault();
           e.stopPropagation();
@@ -436,7 +436,7 @@ const TableDropdown = React.memo(
               onClose={closeMenu}
               MenuProps={{
                 variant: 'selectedMenu',
-                // Keep focus off Menu paper/root; focus is set explicitly in `onEntered`.
+                // Hold fokus væk fra Menu paper/root; fokus sættes eksplicit i `onEntered`.
                 autoFocus: false,
                 disableAutoFocusItem: false,
                 slotProps: {
@@ -468,11 +468,11 @@ const TableDropdown = React.memo(
                   },
                 },
               }}
-              // Keep MUI from hijacking `mousedown`; we open explicitly from click/key handlers
-              // so closed dropdown text can be selected with the mouse.
+              // Forhindr MUI i at kapre `mousedown`; vi åbner eksplicit fra click-/key-handlere,
+              // så tekst i en lukket dropdown kan markeres med musen.
               readOnly
-              // Note: MUI Select key handling differs by variant/implementation.
-              // Capture handler on the wrapper is the single source of truth for clear-on-Delete.
+              // Bemærk: MUI Selects key handling varierer efter variant/implementering.
+              // Capture-handleren på wrapperen er single source of truth for clear-on-Delete.
               displayEmpty={allowEmpty}
               SelectDisplayProps={{
                 onClick: handleTriggerClick,

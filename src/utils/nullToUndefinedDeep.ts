@@ -1,8 +1,8 @@
 export const nullToUndefinedDeep = (value: unknown): unknown => {
   if (value === null) return undefined;
   if (Array.isArray(value)) return value.map(nullToUndefinedDeep);
-  // This helper intentionally assumes plain JSON-like objects used in persistence.
-  // Do not pass class instances (e.g., Date), Maps, Sets, or objects with symbol keys.
+  // Denne hjælper antager bevidst almindelige JSON-lignende objekter brugt i persistence.
+  // Send ikke klasse-instanser (fx Date), Maps, Sets eller objekter med symbol-nøgler.
   if (typeof value === 'object' && value !== null) {
     const result: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(value)) {

@@ -23,11 +23,11 @@ export type TableAmountInputProps = Readonly<{
   gridCell: GridCellCoord;
   locked?: boolean;
   /**
-   * Table cell values persist as committed amount values.
+   * Tabelcelle-værdier persisteres som committede beløbsværdier.
    */
   value?: TableAmountInputValue;
   /**
-   * Column policy: whether negative values are allowed.
+   * Kolonnepolitik: om negative værdier er tilladt.
    *
    * Default: true.
    */

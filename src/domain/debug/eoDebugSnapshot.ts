@@ -19,11 +19,11 @@ import {
 import type { EODebugModel } from './eoDebugModel';
 
 /**
- * EODebugSnapshot is a consistency-critical, entry-bound snapshot.
+ * EODebugSnapshot er et konsistens-kritisk, entry-bundet snapshot.
  *
- * Invariants:
- * - built only on tab entry
- * - revision is monotonic and must change on EO input/error mutation
+ * Invarianter:
+ * - bygges kun ved tab-entry
+ * - revision er monotont voksende og skal ændre sig ved mutation af EO-input/-fejl
  */
 export type EODebugSnapshot = Readonly<{
   revision: string;

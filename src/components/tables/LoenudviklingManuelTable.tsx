@@ -435,8 +435,8 @@ const LoenudviklingManuelTable = React.memo(
       notifyInputErrorChange();
     }, [internalTableData, notifyInputErrorChange]);
 
-    // Intentional table-local commit model: rows are managed with manual ordering/focus
-    // evaluation here, while each Table*Input still owns draft state until commit.
+    // Bevidst tabel-lokal commit-model: rækker styres med manuel ordning/fokus-evaluering
+    // her, mens hvert Table*Input stadig ejer draft-state indtil commit.
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<LoenudviklingManuelRow>, colIndex: number) => {
         setInternalTableData((prev) => {
@@ -455,7 +455,7 @@ const LoenudviklingManuelTable = React.memo(
             lastPersistedFingerprint: lastPersistedFingerprintRef.current,
           });
           if (commitEval.focusPlan) {
-            // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
+            // Last-plan-wins by design: kun det sidste commit i en render-cyklus skal afgøre fokus-gendannelse.
             pendingRowFocusPlanRef.current = commitEval.focusPlan;
           }
 
@@ -503,7 +503,7 @@ const LoenudviklingManuelTable = React.memo(
       {
         colId: 'dato',
         getSortValue: (row: LoenudviklingManuelRow) => {
-          // baseDateDisplay is a display-string prop, not ISO; convert before sorting.
+          // baseDateDisplay er en display-streng-prop, ikke ISO; konvertér før sortering.
           if (row.id === baseRowId) return coerceToISODateString(baseDateDisplay) ?? '';
           return row.dato ?? '';
         },

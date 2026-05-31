@@ -23,6 +23,6 @@ export const computeVarigeMenEngine = (input: VarigeMenEngineInputSnapshot): Var
     input.fodselsdato
   );
 
-  // Missing inputs yield null; this is a deliberate domain decision, not an error state.
+  // Manglende input giver null; dette er et bevidst domænevalg, ikke en fejltilstand.
   return { result };
 };

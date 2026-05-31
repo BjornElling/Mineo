@@ -93,8 +93,8 @@ export const undoRedoStore = createStore<UndoRedoStoreState>((set, get) => ({
     return {
       kind: 'undo',
       target,
-      // Snapshot current committed state before the caller restores `target`.
-      // The transition origin stays with the undoable/redoable action, not with the current route.
+      // Tag et snapshot af nuværende committed state, før kalderen gendanner `target`.
+      // Transitionens oprindelse bliver hos undo/redo-handlingen, ikke hos den nuværende rute.
       current: createFrame(target.origin, state.frameSequence + 1),
       expectedFrameSequence: state.frameSequence,
     };
@@ -107,8 +107,8 @@ export const undoRedoStore = createStore<UndoRedoStoreState>((set, get) => ({
     return {
       kind: 'redo',
       target,
-      // Snapshot current committed state before the caller restores `target`.
-      // The transition origin stays with the undoable/redoable action, not with the current route.
+      // Tag et snapshot af nuværende committed state, før kalderen gendanner `target`.
+      // Transitionens oprindelse bliver hos undo/redo-handlingen, ikke hos den nuværende rute.
       current: createFrame(target.origin, state.frameSequence + 1),
       expectedFrameSequence: state.frameSequence,
     };

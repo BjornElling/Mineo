@@ -115,7 +115,7 @@ const DEV_SERVER_DOWN_CACHE_TTL_MS = 5_000;
 const DEV_SERVER_PING_RETRY_DELAY_MS = 150;
 const DEV_SERVER_PING_MAX_ATTEMPTS = 2;
 
-// Known limitation: vi matcher på browser-specifikke fejlstrenge for dynamic-import-fejl
+// Kendt begrænsning: vi matcher på browser-specifikke fejlstrenge for dynamic-import-fejl
 // (Chromium: "Failed to fetch dynamically imported module"; WebKit: "Importing a module script failed";
 // Firefox: "error loading dynamically imported module"). Strengene er ikke del af nogen spec og
 // kan ændre sig mellem browser-versioner. Vi accepterer skrøbeligheden fordi:
@@ -434,7 +434,7 @@ export const downloadKrlPdf = async (params: Readonly<{
   persistedStamdata: unknown;
 }>): Promise<PdfDownloadResult> => {
   const { settings, persistedStamdata } = params;
-  // Intentional UX: KRL shares the same letterhead setting as regulering (no separate KRL toggle).
+  // Bevidst UX: KRL bruger samme brevhoved-indstilling som regulering (ingen separat KRL-toggle).
   const common = buildCommonPdfContext(settings, 'regulering', persistedStamdata);
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadKrlPdf');
   if (preflightFailure) return preflightFailure;

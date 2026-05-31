@@ -141,8 +141,8 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
     if (controlled.hasAttribute('hidden')) return false;
     if (controlled.getAttribute('aria-hidden') === 'true') return false;
 
-    // Some widgets keep expanded state on a sibling/wrapper, but expose `aria-controls` to the popup element.
-    // Use the controlled element's visibility as a conservative "is open" signal.
+    // Nogle widgets holder expanded-tilstand på en søsker/wrapper, men eksponerer `aria-controls` til popup-elementet.
+    // Brug det kontrollerede elements synlighed som et konservativt "er åben"-signal.
     const rects = controlled.getClientRects();
     if (rects.length === 0) return false;
     const style = window.getComputedStyle(controlled);
@@ -156,7 +156,7 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
     const hasPopup = host.getAttribute('aria-haspopup') !== null;
     const hasControls = host.getAttribute('aria-controls') !== null;
 
-    // `aria-controls` alone is too broad; treat it as a widget signal only when combined with other widget semantics.
+    // `aria-controls` alene er for bredt; behandl det kun som et widget-signal når det kombineres med anden widget-semantik.
     if (role === 'combobox') return true;
     if (hasPopup) return true;
     if (hasControls && isExpanded) return true;
@@ -278,13 +278,13 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
     if (e.key !== 'Tab' && e.key !== 'Enter' && !isArrowKey) return;
     if (!containerRef.current) return;
 
-    // Do not intercept keys originating outside the container DOM subtree.
-    // React events bubble through portals; allowing container navigation to handle those
-    // would break popovers/dialogs/portals (datepicker/autocomplete/etc.).
+    // Intercept ikke taster der stammer fra uden for containerens DOM-subtræ.
+    // React-events bobler gennem portals; hvis container-navigationen håndterede dem,
+    // ville det ødelægge popovers/dialogs/portals (datepicker/autocomplete/osv.).
     const targetNode = e.target instanceof Node ? e.target : null;
     if (targetNode && !containerRef.current.contains(targetNode)) return;
 
-    // IME/composition and OS/browser-level commands should not be interfered with.
+    // IME/composition og kommandoer på OS-/browser-niveau må ikke forstyrres.
     const native = e.nativeEvent as unknown as { isComposing?: boolean; mineoTableBoundaryExit?: boolean };
     if (native.isComposing === true) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -315,7 +315,7 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
       return null;
     })();
 
-    // Widget detection for key interception must consider wrappers, not just raw inputs.
+    // Widget-detektion til key-interception skal tage højde for wrappers, ikke kun rå inputs.
     const activeElementAsHtml = activeElement instanceof HTMLElement ? activeElement : null;
     const activeWidgetHost = getWidgetHost(activeElementAsHtml);
     const activeWidgetIsExpanded = getNearestExpanded(activeElementAsHtml);
@@ -364,7 +364,7 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
           nextScrollTop = clamp(desiredScrollTop, 0, maxScrollTop);
         }
 
-        // Horizontal behavior remains edge-based; only vertical behavior is centered.
+        // Horisontal adfærd forbliver kant-baseret; kun vertikal adfærd centreres.
         if (elementRect.left < containerRect.left + viewportPadding) {
           nextScrollLeft += elementRect.left - (containerRect.left + viewportPadding);
         } else if (elementRect.right > containerRect.right - viewportPadding) {
@@ -578,8 +578,8 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
     // Enter opfører sig PRÆCIS som Tab (cirkulær navigation).
     // Shift+Enter opfører sig som Shift+Tab.
     if (e.key === 'Enter') {
-      // Some controls use Enter internally (select/autocomplete/datepicker-like patterns).
-      // Detect widget semantics at the active element or its wrapper (not just the raw input).
+      // Nogle kontroller bruger Enter internt (select/autocomplete/datepicker-lignende mønstre).
+      // Registrér widget-semantik på det aktive element eller dets wrapper (ikke kun det rå input).
       if (activeWidgetHasPopup) return;
 
       if (activeFocusable instanceof HTMLInputElement && activeFocusable.type === 'radio') {
@@ -596,8 +596,8 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
     }
 
     // Tab navigation - ALTID prevent default for at forhindre at forlade containeren
-    // unless widget popup is currently expanded (open).
-    // Closed combobox/select controls must still participate in circular container Tab-order.
+    // med mindre en widget-popup aktuelt er expanded (åben).
+    // Lukkede combobox-/select-kontroller skal stadig indgå i containerens cirkulære Tab-rækkefølge.
     if (activeWidgetIsExpanded) {
       // KRITISK FIX: Selvom vi ikke intercepter Tab for popup-widgets,
       // skal vi stadig neutralisere selection på næste felt efter browser's default Tab.

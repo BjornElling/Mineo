@@ -38,16 +38,16 @@ export const buildFilenameBasisFromStamdata = (stamdata: unknown): SavedFilename
   };
 };
 
-// Save-flow writes both values unconditionally because the chosen filename becomes
-// the new authoritative basis for subsequent overwrite decisions.
+// Save-flow skriver begge værdier ubetinget, fordi det valgte filnavn bliver
+// det nye autoritative grundlag for efterfølgende overwrite-beslutninger.
 export const persistSavedFilenameMetadata = (filename: string, stamdata: unknown): void => {
   writeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename, filename);
   writeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilenameBasis, JSON.stringify(buildFilenameBasisFromStamdata(stamdata)));
 };
 
-// Load/apply-flow preserves an existing filename when none came from the load result,
-// but recalculates the basis from the loaded stamdata so future save decisions follow
-// the imported case data rather than stale local metadata.
+// Load/apply-flow bevarer et eksisterende filnavn, når intet kom fra load-resultatet,
+// men genberegner grundlaget ud fra de indlæste stamdata, så fremtidige save-beslutninger følger
+// de importerede sagsdata frem for forældede lokale metadata.
 export const persistLoadedFilenameMetadata = (args: {
   filename?: string;
   stamdata?: unknown;

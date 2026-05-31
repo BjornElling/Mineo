@@ -6,28 +6,28 @@ import { DATE_ORDER_ERROR_MESSAGE } from './dateOrderValidation';
 
 export type DateRangeSpecialErrors = {
   /**
-   * Used for paired "Fra-dato" / "Til-dato" inputs where the max/min is derived from the other field.
+   * Bruges til parrede "Fra-dato" / "Til-dato"-inputs, hvor max/min udledes fra det andet felt.
    */
   fraTilRole?: 'fra' | 'til';
   /**
-   * Identifies the semantic origin of the min-bound for domain-specific error messages.
+   * Identificerer min-grænsens semantiske oprindelse til domæne-specifikke fejlbeskeder.
    */
   minBoundKind?: 'skadedato' | 'anmeldedatoMinus5Aar' | 'kapDatoFoerAfgoerelsesdato';
   /**
-   * The user-visible reference date that produced the bound (typically Skadedato/Anmeldedato).
-   * This is used for special messages that must mention the concrete reference date.
+   * Den brugersynlige referencedato, der frembragte grænsen (typisk Skadedato/Anmeldedato).
+   * Bruges til specielle beskeder, der skal nævne den konkrete referencedato.
    */
   minBoundReferenceISO?: ISODateString;
   /**
-   * When set, overrides the generic max-date error with "[fieldLabel] kan senest være 31. december ÅÅÅÅ".
-   * The year is extracted from maxDate. Use for EET fields bounded by data coverage year.
+   * Når sat, overskriver den den generiske max-dato-fejl med "[fieldLabel] kan senest være 31. december ÅÅÅÅ".
+   * Året udtrækkes fra maxDate. Bruges til EET-felter afgrænset af data-dækningsår.
    */
   maxBoundKind?: 'eetDataMax' | 'dataCoverageMax' | 'foerAfgoerelsesdato' | 'foerFoersteTafFraDato';
-  /** The field label used in the maxBoundKind error message, e.g. "Beregningsdato". */
+  /** Feltlabelet brugt i maxBoundKind-fejlbeskeden, fx "Beregningsdato". */
   maxBoundFieldLabel?: string;
   /**
-   * The reference date shown in the 'foerAfgoerelsesdato' max-bound error message.
-   * Should be the afgørelsesdato of the row (not the derived max = subtractOneDay(afgørelsesdato)).
+   * Referencedatoen vist i 'foerAfgoerelsesdato'-max-grænsefejlbeskeden.
+   * Skal være rækkens afgørelsesdato (ikke den udledte max = subtractOneDay(afgørelsesdato)).
    */
   maxBoundReferenceISO?: ISODateString;
 };
@@ -42,8 +42,8 @@ export const resolveDateRangeErrorMessage = (args: {
 }): string => {
   const { iso, minDate, maxDate, special } = args;
 
-  // Bound-kind messages must take precedence over paired Fra/Til messages to avoid misleading output.
-  // Example: when the effective min is "Skadedato", the correct message is about Skadedato, not "Til < Fra".
+  // Bound-kind-beskeder skal have forrang over parrede Fra/Til-beskeder for at undgå misvisende output.
+  // Eksempel: når den effektive min er "Skadedato", er den korrekte besked om Skadedato, ikke "Til < Fra".
   if (maxDate && maxDate === TODAY && iso > maxDate) {
     return `Datoen er efter dags dato (${formatISOForTooltip(maxDate)})`;
   }

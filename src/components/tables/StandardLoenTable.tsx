@@ -174,8 +174,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       }
     }, [defaultTableData, manageRows, tableData]);
 
-    // Intentional: loenperiode change commits all draft edits and re-evaluates row emptiness
-    // against the newly active period columns, so stale hidden period values cannot keep rows alive.
+    // Bevidst: ændring af loenperiode committer alle draft-edits og re-evaluerer rækkers tomhed
+    // mod de nyligt aktive periode-kolonner, så forældede skjulte periodeværdier ikke kan holde rækker i live.
     React.useEffect(() => {
       setRowsState((current) => {
         const managed = manageRows(current.draft);
@@ -207,8 +207,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
       if (pendingFingerprint !== draftFingerprint) return;
 
-      // Intentional convergence: trailing empty rows produced by table normalization
-      // are persisted the same way as in other dynamic tables.
+      // Bevidst konvergens: efterfølgende tomme rækker produceret af tabel-normaliseringen
+      // persisteres på samme måde som i andre dynamiske tabeller.
       persistTableData(rowsState.draft, { fieldPath: pending.fieldPath });
       pendingPersistRef.current = null;
     }, [rowsState.draft, persistTableData]);
@@ -263,8 +263,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           const updated = updateCellValueInTable(prev.draft, rowId, colKey, value);
           const managed = manageRows(updated);
 
-          // Intentional Mineo contract: table edits stay in draft while typing.
-          // Derived values and downstream calculations must update only from committed rows on blur.
+          // Bevidst Mineo-kontrakt: tabel-edits forbliver i draft mens man typer.
+          // Afledte værdier og downstream-beregninger må kun opdatere fra committede rækker ved blur.
           // KRITISK: Sammenlign mod prev.committed (ikke prev.draft)
           // handleFieldBlur er en commit-handler - baseline skal ALTID være committed
           const managedFingerprint = fingerprintTableData(managed);
@@ -285,7 +285,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           });
 
           if (commitEval.focusPlan) {
-            // Last-plan-wins by design: only the final commit in a render cycle should decide focus restoration.
+            // Last-plan-wins by design: kun det sidste commit i en render-cyklus skal afgøre fokus-gendannelse.
             pendingRowFocusPlanRef.current = commitEval.focusPlan;
           }
 
@@ -346,8 +346,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       [committedTableData, loenperiode]
     );
 
-    // cellErrorsByCellKeyRef is intentionally NOT in the deps array — it is a mutable ref and is
-    // always read at call time, so the result is always current regardless of when React calls this.
+    // cellErrorsByCellKeyRef er bevidst IKKE i deps-arrayet — det er en mutable ref og
+    // læses altid på call-tidspunktet, så resultatet er altid aktuelt uanset hvornår React kalder dette.
     const getValidationResult = React.useCallback(() => {
       const combinedCellErrorsByCellKey: Record<string, true> = {};
       for (const cellKey of cellErrorsByCellKeyRef.current) {

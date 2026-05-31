@@ -51,8 +51,8 @@ const buildPersistenceSectionWrites = (sections: FormPersistenceSections): {
     }
 
     const schema = persistenceSchemas[pageKey];
-    // This is defensive pre-save normalization of already committed store data,
-    // not load-sanitization. Unknown fields must still fail schema validation here.
+    // Dette er defensiv pre-save-normalisering af allerede committede store-data,
+    // ikke load-sanitization. Ukendte felter skal stadig fejle schema-validering her.
     const validated = schema.safeParse(nullToUndefinedDeep(raw));
     if (!validated.success) {
       const issues = formatZodIssues(validated.error.issues, 2);
@@ -81,8 +81,8 @@ export const atomicWritePersistenceSections = (
   sections: FormPersistenceSections,
   commit: () => void
 ): void => {
-  // Caller-owned rollback state (store fields, undo/redo history, notices) must be restored
-  // by the callback owner. This helper only guarantees sessionStorage rollback.
+  // Caller-ejet rollback-state (store-felter, undo/redo-historik, notices) skal gendannes
+  // af callback-ejeren. Denne hjælper garanterer kun sessionStorage-rollback.
   const { toWrite, toRemove } = buildPersistenceSectionWrites(sections);
   let backup: SessionStorageBackup;
   try {

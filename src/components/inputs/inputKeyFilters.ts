@@ -14,7 +14,7 @@ type IntegerInputConstraints = Readonly<{
 }>;
 
 const isBypassKeyEvent = (e: KeyDownEvent): boolean => {
-  // IME/composition and OS/browser-level commands should not be interfered with.
+  // IME/composition og kommandoer på OS-/browser-niveau må ikke forstyrres.
   const native = e.nativeEvent as unknown as { isComposing?: boolean };
   if (native.isComposing === true || e.key === 'Process' || e.key === 'Unidentified') return true;
   if (e.ctrlKey || e.metaKey || e.altKey) return true;
@@ -22,7 +22,7 @@ const isBypassKeyEvent = (e: KeyDownEvent): boolean => {
 };
 
 const isNonCharacterKey = (e: KeyDownEvent): boolean => {
-  // Allow navigation/editing keys.
+  // Tillad navigations-/redigeringstaster.
   const nonCharKeys = new Set([
     'Backspace',
     'Delete',
@@ -89,7 +89,7 @@ export const isIntegerDraftAllowed = (input: string, options?: IntegerInputConst
 };
 
 /**
- * Integer: digits only.
+ * Heltal: kun cifre.
  */
 export const filterIntegerKeyDown = (e: KeyDownEvent, options?: IntegerInputConstraints): void => {
   if (!shouldValidateCharInsertion(e)) return;
@@ -98,7 +98,7 @@ export const filterIntegerKeyDown = (e: KeyDownEvent, options?: IntegerInputCons
 };
 
 /**
- * Integer paste guard that enforces the same constraints as keydown filtering.
+ * Heltals-paste-værn der håndhæver de samme begrænsninger som keydown-filtreringen.
  */
 export const filterIntegerPaste = (e: PasteEvent, options?: IntegerInputConstraints): void => {
   const text = readClipboardText(e);
@@ -108,9 +108,9 @@ export const filterIntegerPaste = (e: PasteEvent, options?: IntegerInputConstrai
 };
 
 /**
- * Year: digits only, up to 4 digits (`YYYY`).
+ * År: kun cifre, op til 4 cifre (`YYYY`).
  *
- * This is a typing-time guard only; paste can still bypass.
+ * Dette er kun et værn under indtastning; paste kan stadig omgå det.
  */
 export const filterYearKeyDown = (e: KeyDownEvent): void => {
   if (!shouldValidateCharInsertion(e)) return;
@@ -119,7 +119,7 @@ export const filterYearKeyDown = (e: KeyDownEvent): void => {
 };
 
 /**
- * Fraction: digits and '/', at most one slash.
+ * Brøk: cifre og '/', højst én skråstreg.
  */
 export const filterFractionKeyDown = (
   e: KeyDownEvent,
@@ -131,7 +131,7 @@ export const filterFractionKeyDown = (
 };
 
 /**
- * Amount/Percent: digits and comma, at most one comma, max 2 decimals after comma.
+ * Beløb/procent: cifre og komma, højst ét komma, maks. 2 decimaler efter komma.
  */
 export const filterCommaDecimal2KeyDown = (e: KeyDownEvent, options?: { allowNegative?: boolean }): void => {
   if (!shouldValidateCharInsertion(e)) return;
@@ -142,7 +142,7 @@ export const filterCommaDecimal2KeyDown = (e: KeyDownEvent, options?: { allowNeg
 };
 
 /**
- * Amount expressions: allow digits, one comma, operators, parentheses, and spaces.
+ * Beløbsudtryk: tillad cifre, ét komma, operatorer, parenteser og mellemrum.
  */
 export const filterAmountExpressionKeyDown = (
   e: KeyDownEvent,
@@ -171,8 +171,8 @@ export const filterAmountExpressionKeyDown = (
 };
 
 /**
- * Percent: digits and comma, at most one comma, max 2 decimals after comma,
- * with optional integer-part constraints supplied via options.
+ * Procent: cifre og komma, højst ét komma, maks. 2 decimaler efter komma,
+ * med valgfri begrænsninger på heltalsdelen leveret via options.
  */
 export const filterPercentKeyDown = (
   e: KeyDownEvent,
@@ -228,13 +228,13 @@ export const filterPercentKeyDown = (
 };
 
 /**
- * Date: digits and separator characters, with a segment-length guard to prevent
- * 3-digit days/months and >4-digit years during typing.
+ * Dato: cifre og separatortegn, med et værn på segmentlængden der forhindrer
+ * 3-cifrede dage/måneder og år på over 4 cifre under indtastning.
  *
- * Allowed separators: any non-alphanumeric character (spaces and special characters).
- * Segment rules (by digits between separators): `DD`-`MM`-`YYYY` (2-2-4), partial input allowed.
+ * Tilladte separatorer: ethvert ikke-alfanumerisk tegn (mellemrum og specialtegn).
+ * Segmentregler (efter cifre mellem separatorer): `DD`-`MM`-`YYYY` (2-2-4), delvis indtastning tilladt.
  *
- * This is a typing-time guard only; paste can still bypass.
+ * Dette er kun et værn under indtastning; paste kan stadig omgå det.
  */
 export const filterDateLikeKeyDown = (e: KeyDownEvent): void => {
   if (!shouldValidateCharInsertion(e)) return;
@@ -243,10 +243,10 @@ export const filterDateLikeKeyDown = (e: KeyDownEvent): void => {
 };
 
 /**
- * Week input: digits + one separator, constrained as `WW-YYYY` by segment length (2-4).
+ * Uge-input: cifre + én separator, begrænset til `WW-YYYY` efter segmentlængde (2-4).
  *
- * Allowed separators: `. , / \\ - space`
- * Segment rules: `WW`-`YYYY`, partial input allowed.
+ * Tilladte separatorer: `. , / \\ - mellemrum`
+ * Segmentregler: `WW`-`YYYY`, delvis indtastning tilladt.
  */
 export const filterWeekKeyDown = (e: KeyDownEvent): void => {
   if (!shouldValidateCharInsertion(e)) return;

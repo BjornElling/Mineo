@@ -152,9 +152,9 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
 
     assignSection(sections, pageKey, validated.data);
 
-    // Future structurally incompatible versions must add an explicit migrator step here
-    // before validation. A version mismatch alone only means the section was preserved as-is
-    // after sanitization + current-schema validation; it does not imply that a migration ran.
+    // Fremtidige strukturelt inkompatible versioner skal tilføje et eksplicit migrator-trin her
+    // før validering. Et version-mismatch alene betyder kun, at sektionen blev bevaret som den var
+    // efter sanitization + validering mod nuværende schema; det indebærer ikke, at en migration kørte.
     if (parsed.version !== PERSISTED_DATA_VERSION) {
       summary.versionMismatchedSections.push(pageKey);
     }

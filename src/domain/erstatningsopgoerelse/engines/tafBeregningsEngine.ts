@@ -161,7 +161,7 @@ export const computeTafEngine = (input: TafEngineInputSnapshot): TafEngineOutput
         }).size;
       })();
     if (value === null) {
-      // Missing dates yield null for TAF; this is a deliberate domain decision, not an error state.
+      // Manglende datoer giver null for TAF; dette er et bevidst domænevalg, ikke en fejltilstand.
       return { id: group.id, value: null };
     }
     return { id: group.id, value: roundTafValue(value) };

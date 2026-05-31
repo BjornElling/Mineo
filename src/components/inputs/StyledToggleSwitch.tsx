@@ -194,8 +194,8 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
         '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
           backgroundColor: 'primary.main',
         },
-        // Ensure consistent focus-visible ring color regardless of checked state.
-        // (MUI uses currentColor for the focus ripple; unchecked defaults to a grey tone.)
+        // Sørg for konsistent focus-visible ring-farve uanset checked-tilstand.
+        // (MUI bruger currentColor til focus-ripple; unchecked falder tilbage til en grå tone.)
         '& .MuiSwitch-switchBase.Mui-focusVisible': {
           color: 'primary.main',
         },

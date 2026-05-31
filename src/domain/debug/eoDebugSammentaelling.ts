@@ -106,7 +106,7 @@ export const buildTaftContext = (
 };
 
 export const getSammentaellingControlStatus = (control: SammentaellingControl): SammentaellingControlStatus => {
-  // Explicit domain choice: tiny tolerance (0.005) for floating rounding; 0 and null are treated as empty ("-") in UI.
+  // Eksplicit domænevalg: lille tolerance (0.005) for floating-afrunding; 0 og null behandles som tomt ("-") i UI.
   const EPS = 0.005;
   const normalizedBeregnet = control.beregnetValue === null || control.beregnetValue === 0 ? null : control.beregnetValue;
   const normalizedTabel = control.tabelValue === null || control.tabelValue === 0 ? null : control.tabelValue;

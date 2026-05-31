@@ -18,7 +18,7 @@ export type TableYearInputProps = Readonly<{
   minYear?: number;
   maxYear?: number;
   /**
-   * Policy for interpreting 1-2 digit years on commit.
+   * Politik for fortolkning af 1-2-cifrede år ved commit.
    *
    * Default: `infer` (via `interpretYear`).
    */

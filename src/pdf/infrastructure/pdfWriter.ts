@@ -1,8 +1,8 @@
 /**
  * PDF Writer Infrastructure
  *
- * Shared cursor/writer abstraction for all PDF generators.
- * Extracted from erstatningsopgoerelsePdf.ts for reuse.
+ * Fælles cursor/writer-abstraktion for alle PDF-generatorer.
+ * Udtrukket fra erstatningsopgoerelsePdf.ts til genbrug.
  *
  * Import-kæde: pdfWriter → pdfConfig + pdfHelpers (begge pure, ingen domain-logik).
  */
@@ -56,7 +56,7 @@ const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): st
     return null;
   }
 
-  // Transparent image with only watermark text to keep content selectable and avoid opaque overlays.
+  // Transparent billede med kun vandmærke-tekst, så indhold forbliver markerbart og uden uigennemsigtige overlejringer.
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.translate(canvas.width / 2, canvas.height / 2);
   ctx.rotate((-45 * Math.PI) / 180);
@@ -81,7 +81,7 @@ const addUdkastWatermark = (doc: jsPDF): void => {
     return;
   }
 
-  // Fallback if canvas is unavailable at runtime.
+  // Fallback hvis canvas ikke er tilgængelig ved runtime.
   const text = 'UDKAST';
   const centerX = pageWidth / 2 + 18;
   const centerY = pageHeight / 2 - 80;
@@ -693,7 +693,7 @@ export type PdfWriter = {
 };
 
 // ============================================================================
-// PDF WRITER (public – wraps cursor with higher-level operations)
+// PDF WRITER (public – wrapper cursor med operationer på højere niveau)
 // ============================================================================
 
 export const createPdfWriter = (params: Readonly<{
@@ -838,7 +838,7 @@ export const createPdfWriter = (params: Readonly<{
       return;
     }
 
-    // Keep only the heading and the first row together.
+    // Hold kun overskriften og den første række sammen.
     cursor.renderAtomicBlock(headerHeight + estimateRowHeight, () => {
       renderHeader();
       renderRow(rows[0]);

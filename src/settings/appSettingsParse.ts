@@ -1,5 +1,5 @@
 /**
- * App Settings Parse
+ * Parsing af programindstillinger
  *
  * Ansvar: Tolerant parsing og merge af settings fra localStorage.
  * Håndterer schema-evolution ved at merge ukendte værdier med defaults.

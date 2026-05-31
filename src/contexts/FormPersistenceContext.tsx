@@ -39,7 +39,7 @@ import {
 } from '../stores/formPersistenceReadModel';
 import { formatZodIssues } from '../utils/zodIssueFormatting';
 
-// Persisted sections are handled via an internal Zustand store; FormPersistenceContext is a facade and not the SoT for committed inputs.
+// Persisterede sektioner håndteres via et internt Zustand store; FormPersistenceContext er en facade og ikke SoT for committede inputs.
 
 /**
  * FormPersistenceContext
@@ -48,7 +48,7 @@ import { formatZodIssues } from '../utils/zodIssueFormatting';
  * Data bevares når man navigerer mellem sider, men slettes når browseren lukkes.
  *
  * Features:
- * - Type-safe storage keys via manifest
+ * - Type-sikre storage keys via manifest
  * - Versionering af data
  */
 
@@ -243,8 +243,8 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     try {
       const storageKey = getStorageKey(pageKey);
 
-      // Defensive runtime check: should never happen because persistenceSchemas is keyed by StorageKey,
-      // but protects against hot-reload / partial module state during development.
+      // Defensivt runtime-tjek: bør aldrig ske, fordi persistenceSchemas er nøglet på StorageKey,
+      // men beskytter mod hot-reload / delvis modul-state under udvikling.
       if (!Object.prototype.hasOwnProperty.call(persistenceSchemas, pageKey)) {
         console.error(`[Persistence] Missing schema for '${pageKey}'. Cannot persist data.`, { pageKey });
         emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern konfigurationsfejl.`, 'error');
@@ -268,7 +268,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       }
 
       const persistedSectionData = serializeFormValues(validated.data);
-      // Trust-critical invariant: cache must match the post-serialization representation (reload-equivalent).
+      // Trust-kritisk invariant: cachen skal matche repræsentationen efter serialisering (reload-ækvivalent).
       const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
       if (!postSerializeValidated.success) {
         emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern serialiseringsfejl.`, 'error');
@@ -361,7 +361,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       }
 
       const persistedSectionData = serializeFormValues(validated.data);
-      // Trust-critical invariant: cache must match the post-serialization representation.
+      // Trust-kritisk invariant: cachen skal matche repræsentationen efter serialisering.
       const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
       if (!postSerializeValidated.success) {
         const issues = formatZodIssues(postSerializeValidated.error.issues, 2);
@@ -390,8 +390,8 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       clearResolvedFieldErrorsCache();
       undoRedoStore.getState().clear();
     } catch (error) {
-      // Defensive strategy: always execute full rollback/restore sequence,
-      // even if failure happened before any in-memory mutation.
+      // Defensiv strategi: udfør altid hele rollback/restore-sekvensen,
+      // selv hvis fejlen skete før nogen in-memory-mutation.
       const rollbackFailures: Error[] = [];
       for (const { storageKey } of toWrite) {
         attemptRollbackStep(rollbackFailures, () => removeSessionStorageValue(storageKey));

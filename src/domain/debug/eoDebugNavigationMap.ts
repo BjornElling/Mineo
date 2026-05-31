@@ -5,7 +5,7 @@
  * for at understøtte klikbare links i Beregning-fanen.
  */
 
-// Intentionally no DebugRowId union here: navigation accepts string input to avoid runtime crashes.
+// Bevidst ingen DebugRowId-union her: navigationen accepterer string-input for at undgå runtime-nedbrud.
 
 /**
  * SectionId er canonical - bruges både i NavigationTarget OG data-section-id attributes

@@ -94,11 +94,11 @@ const Erstatningsopgoerelse = React.memo(() => {
 
   const midlertidigtEetInsertSource = useMidlertidigtEetInsertSource();
 
-  // Intentional split: useSectionRevisionSelector/useFieldErrorRevisionSelector (hooks) subscribe to
-  // store changes and trigger re-renders when revisions change. buildDebugRevision and buildDebugSnapshot
-  // use snapshot functions (getState() reads) instead of hooks — this gives consistent state at
-  // call-time without creating hook dependencies. Do not collapse these into hook reads: hooks inside
-  // a useCallback would be illegal, and reading hook values via closure would give stale snapshots.
+  // Bevidst opdeling: useSectionRevisionSelector/useFieldErrorRevisionSelector (hooks) abonnerer på
+  // store-ændringer og udløser re-renders når revisioner ændrer sig. buildDebugRevision og buildDebugSnapshot
+  // bruger snapshot-funktioner (getState()-læsninger) i stedet for hooks — det giver konsistent state på
+  // call-tidspunktet uden at skabe hook-afhængigheder. Slå dem ikke sammen til hook-læsninger: hooks inde i
+  // en useCallback ville være ulovligt, og at læse hook-værdier via closure ville give forældede snapshots.
   //
   // EET- og faellesAarsloen-sektionerne inkluderes altid (uafhængigt af togglen
   // `midlertidigtEetFraEetSiden`), så snapshot-cachen invalideres deterministisk når
@@ -209,7 +209,7 @@ const Erstatningsopgoerelse = React.memo(() => {
   }, [scrollToSectionWithRetry, setActiveTab]);
 
   React.useEffect(() => {
-    // If the debug tab is turned off while currently active, fall back deterministically.
+    // Hvis debug-fanen slås fra mens den aktuelt er aktiv, falder vi deterministisk tilbage.
     if (!isAllowedTab(activeTab)) {
       setActiveTab(defaultTab);
     }
@@ -328,9 +328,9 @@ const Erstatningsopgoerelse = React.memo(() => {
 
         {/* Indhold */}
         {/*
-         * IMPORTANT (trust-critical UX):
-         * - EOOplysningerTab is always mounted (preserve draft state + runtime field errors).
-         * - Other tabs mount on first visit, then stay mounted to preserve state while avoiding heavy initial render.
+         * VIGTIGT (trust-kritisk UX):
+         * - EOOplysningerTab er altid mounted (bevarer draft-state + runtime field errors).
+         * - Øvrige faner mountes ved første besøg og forbliver derefter mounted for at bevare state, mens en tung initial render undgås.
          */}
         <Box
           role="tabpanel"

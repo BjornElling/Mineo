@@ -37,7 +37,7 @@ export type OverenskomstRef = Readonly<{
   baseId: OverenskomstId;
 }>;
 
-// Obsolete suffix from a previous data format; still handled for saved cases that may contain it.
+// Forældet suffix fra et tidligere dataformat; håndteres stadig for gemte sager der kan indeholde det.
 const OBSOLETE_SH_DAGE_LOEN_SUFFIX = '-almindelig-loen-paa-sh-dage';
 
 const resolveOverenskomstRefFromString = (rawId: string): OverenskomstRef | undefined => {
@@ -1458,7 +1458,7 @@ offentligeOverenskomster.forEach((meta) =>
 // ===== OPSLAGS-FUNKTIONER =====
 
 /**
- * Find overenskomst by ID
+ * Find overenskomst ud fra ID
  */
 export const getOverenskomst = (id: OverenskomstId): Overenskomst | undefined => {
   const ref = resolveOverenskomstRefFromString(id as string);

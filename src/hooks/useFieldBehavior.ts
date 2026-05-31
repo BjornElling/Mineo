@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 
 /**
- * Type for synthetic change event
+ * Type for syntetisk change event
  */
 export interface FieldChangeEvent {
   target: {
@@ -10,7 +10,7 @@ export interface FieldChangeEvent {
 }
 
 /**
- * Return type for useFieldBehavior hook
+ * Returtype for useFieldBehavior-hook
  */
 export interface UseFieldBehaviorReturn {
   isFocused: boolean;

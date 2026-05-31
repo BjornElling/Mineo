@@ -16,20 +16,20 @@ export type TableIntegerInputProps = Readonly<{
   locked?: boolean;
   value?: string | undefined;
   /**
-   * TableIntegerInput commits and sanitizes to a string value (table cells persist strings).
+   * TableIntegerInput committer og saniterer til en streng-værdi (tabelceller persisterer strenge).
    *
-   * Domain note: This input only accepts non-negative integers.
+   * Domæne-note: Dette input accepterer kun ikke-negative heltal.
    */
   minValue?: number;
   maxValue?: number;
   /**
-   * If true, out-of-range values are blocked on commit.
-   * If false, out-of-range values commit but are shown as validation errors.
+   * Hvis true, blokeres værdier uden for intervallet ved commit.
+   * Hvis false, committes værdier uden for intervallet, men vises som valideringsfejl.
    */
   enforceRange?: boolean;
   /**
-   * Optional hard cap for committed digit count (excluding sign).
-   * If omitted, derives from bounds.
+   * Valgfrit hårdt loft for antallet af committede cifre (ekskl. fortegn).
+   * Hvis udeladt, udledes det fra bounds.
    */
   maxDigits?: number;
   placeholder?: string;

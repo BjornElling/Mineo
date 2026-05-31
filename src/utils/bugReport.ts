@@ -115,7 +115,7 @@ const getActiveTestInjectionsAndFeatureFlags = (): readonly string[] => {
 /**
  * Hent browser info
  *
- * @returns {string} Browser info string
+ * @returns {string} Streng med browser info
  */
 const getBrowserInfo = (): string => {
   const userAgent = navigator.userAgent;
@@ -356,7 +356,7 @@ const ensureEncodedBodyWithinLimit = (
  * Åbn mailto: link med pre-filled bug report
  *
  * @param {string} report - Bug report tekst
- * @returns {boolean} Success status
+ * @returns {boolean} Succes-status
  */
 const buildMailtoPayload = (report: string, options?: { subjectPrefix?: string }) => {
   try {
@@ -402,7 +402,7 @@ const buildMailtoPayload = (report: string, options?: { subjectPrefix?: string }
     const mailtoLink = `mailto:bel@fho.dk?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
     // Åbn mailto: link
-    // NOTE: UI triggers email navigation (mailto:) explicitly.
+    // BEMÆRK: UI udløser email-navigation (mailto:) eksplicit.
 
     return {
       subject,
@@ -420,7 +420,7 @@ const buildMailtoPayload = (report: string, options?: { subjectPrefix?: string }
  * Kopiér bug report til clipboard
  *
  * @param {string} report - Bug report tekst
- * @returns {Promise<boolean>} Success status
+ * @returns {Promise<boolean>} Succes-status
  */
 export const copyBugReportToClipboard = async (report: string): Promise<void> => {
   try {

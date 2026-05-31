@@ -49,7 +49,7 @@ export type StyledAmountFieldProps = {
   minValue?: number;
   maxValue?: number;
   /**
-   * Precision applied to all commits (afrunding af slutresultat).
+   * Precision der anvendes på alle commits (afrunding af slutresultat).
    *
    * Default: `precision=2`.
    */
@@ -63,9 +63,9 @@ export type StyledAmountFieldProps = {
   error?: boolean;
   helperText?: string;
   /**
-   * Callback for current local error message (for producer-owned error reporting).
+   * Callback for den aktuelle lokale fejlbesked (til producer-owned fejlrapportering).
    *
-   * Note: this intentionally does not report `error/helperText` from the parent (external errors).
+   * Bemærk: dette rapporterer bevidst ikke `error/helperText` fra forælderen (eksterne fejl).
    */
   onFieldError?: FieldErrorReporter;
 
@@ -233,7 +233,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     const resolvedHasError = externalHasError || localHasError;
     const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
 
-    // Notify parent of local error state (producer-owned reporting)
+    // Underret forælderen om lokal fejltilstand (producer-owned rapportering)
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
       onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);

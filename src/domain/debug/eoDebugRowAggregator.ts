@@ -156,8 +156,8 @@ const shouldSuppressRow = (
   row: DebugRowWithNavigation,
   maxAncestorSeverityById: ReadonlyMap<string, number>
 ): boolean => {
-  // Policy (explicit): suppress child rows when an ancestor has equal or higher severity.
-  // This keeps Beregning-fanen focused on root-cause rows and avoids duplicate fault reporting.
+  // Policy (eksplicit): undertryk child-rækker, når en ancestor har samme eller højere severity.
+  // Dette holder Beregning-fanen fokuseret på root-cause-rækker og undgår dobbelt fejlrapportering.
   const rowSeverity = toDebugStatusRank(row.status);
   if (rowSeverity === 0) return false;
   const maxAncestorSeverity = maxAncestorSeverityById.get(row.id) ?? 0;
@@ -189,8 +189,8 @@ const isRowRelevantForEoValues = (
   row: DebugRowWithNavigation,
   values: ErstatningsopgoerelseValues
 ): boolean => {
-  // Domain relevance rules:
-  // A row is irrelevant when the corresponding feature is explicitly disabled.
+  // Domæne-relevansregler:
+  // En række er irrelevant, når den tilsvarende funktion er eksplicit slået fra.
   if (values.beregnesSvieSmerteGodtgoerelse === 'Nej' && row.id.startsWith('sviesmerte.')) {
     return false;
   }
@@ -239,10 +239,10 @@ const isRowRelevantForEoValues = (
  * Bruger samme builder-registry som EO-debug siden for rå debug-rækker.
  * EO-debug siden og Beregning-fanen har stadig forskellig post-processing.
  *
- * @param stamdataValues - Stamdata values fra FormPersistence
- * @param stamdataErrors - Stamdata field errors by source
- * @param erstatningsopgoerelseValues - Erstatningsopgørelse values fra FormPersistence
- * @param erstatningsopgoerelseErrors - Erstatningsopgørelse field errors by source
+ * @param stamdataValues - Stamdata-værdier fra FormPersistence
+ * @param stamdataErrors - Stamdata field-fejl pr. kilde
+ * @param erstatningsopgoerelseValues - Erstatningsopgørelse-værdier fra FormPersistence
+ * @param erstatningsopgoerelseErrors - Erstatningsopgørelse field-fejl pr. kilde
  * @returns Grupperet efter status (errors, warnings)
  */
 export const collectAllDebugRows = (
@@ -270,7 +270,7 @@ export const collectAllDebugRows = (
 
   // Tilføj navigation-metadata til alle rows
   const rowsWithNavigation = allRows.map(addNavigationMetadata);
-  // Duplicate-id check MUST run before relevance filtering.
+  // Duplicate-id-check SKAL køre før relevansfiltrering.
   const duplicateIds = findDuplicateIds(rowsWithNavigation);
   if (duplicateIds.length > 0) {
     throw new Error(
@@ -293,7 +293,7 @@ export const collectAllDebugRows = (
     const message = `Debug dependency cycle detected (no suppression applied for cycle nodes): ${idsPreview.join(
       ', '
     )}${suffix}`;
-    // Fail-closed in all environments: cycles make suppression non-deterministic.
+    // Fail-closed i alle miljøer: cyklusser gør suppression ikke-deterministisk.
     throw new Error(message);
   }
   const maxAncestorSeverityById = buildMaxAncestorSeverityMap(ids, depsById, statusById, inCycle);

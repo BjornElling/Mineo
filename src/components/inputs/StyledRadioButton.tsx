@@ -26,16 +26,16 @@ interface StyledRadioButtonProps {
   value?: string | undefined;
   onChange?: (event: React.ChangeEvent<HTMLInputElement>, value: string) => void;
   /**
-   * Selection is an immediate commit for radio buttons.
-   * This provides Mineo-style commit semantics in addition to the native MUI callback.
+   * Valg er en immediate commit for radio-knapper.
+   * Dette giver Mineo-style commit-semantik ud over det native MUI-callback.
    */
   onCommit?: CommitHandler<string | undefined>;
   /**
-   * If `true`, the component supports "no selection" by committing `undefined`.
+   * Hvis `true`, understøtter komponenten "intet valg" ved at committe `undefined`.
    *
-   * Note: Internally this is implemented via a per-instance sentinel string value
-   * to satisfy MUI's `RadioGroup` controlled `value` contract. Consumers MUST treat
-   * `undefined` as the only "no value" state.
+   * Bemærk: Internt er dette implementeret via en sentinel-streng pr. instans
+   * for at opfylde MUI's controlled `value`-kontrakt for `RadioGroup`. Consumere SKAL behandle
+   * `undefined` som den eneste "ingen værdi"-tilstand.
    */
   allowEmpty?: boolean;
   emptyLabel?: string;
@@ -126,8 +126,8 @@ const StyledRadioButton = React.forwardRef<HTMLDivElement, StyledRadioButtonProp
           sx={{
             position: 'relative',
             borderRadius: '10px',
-            // No visible "frame" around radio groups in normal state.
-            // Keep a transparent border to avoid layout shift when error border appears.
+            // Ingen synlig "ramme" omkring radio-grupper i normaltilstand.
+            // Behold en gennemsigtig kant for at undgå layout shift når fejl-kanten dukker op.
             border: '1px solid',
             borderColor: showError ? 'var(--color-input-border-error)' : 'transparent',
             padding: 0,

@@ -22,7 +22,7 @@ import {
   writeOptionalSessionStorageValue,
 } from '../../utils/safeSessionStorage';
 
-// Type definitions
+// Type-definitioner
 type NavigationItem = {
   id: string;
   label: string;
@@ -116,8 +116,8 @@ const SideMenu = React.memo(({ activePage, onPageChange, onGem, onHent, onSletAl
   }, []);
 
   const handleMenuButtonMouseDown = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    // Keep current field/cell focus when menu actions are triggered by pointer click.
-    // MainLayout performs the authoritative commit/navigation flow explicitly on click.
+    // Bevar det aktuelle felt-/celle-fokus når menu-handlinger udløses ved pointer-klik.
+    // MainLayout udfører det autoritative commit-/navigations-flow eksplicit ved klik.
     event.preventDefault();
   }, []);
 

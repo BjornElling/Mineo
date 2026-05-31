@@ -1,7 +1,7 @@
 /**
  * EODebugRegulationSections - Render-only komponent til regulering
  *
- * Phase 4.5 - UI Wire:
+ * Fase 4.5 - UI-wire:
  * - Rendere regulation sections fra adapter
  * - Ingen beregninger
  * - Ingen parsing

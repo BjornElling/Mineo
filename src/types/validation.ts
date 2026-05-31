@@ -1,5 +1,5 @@
 /**
- * Central validation types for form validation
+ * Centrale validation types til form-validering
  *
  * Denne arkitektur sikrer:
  * - Deterministisk validering (pure functions)
@@ -55,7 +55,7 @@ export type ValidationErrorMap = {
 };
 
 /**
- * Generic form validator interface
+ * Generisk form validator-interface
  */
 export interface FormValidator<TValues> {
   /**

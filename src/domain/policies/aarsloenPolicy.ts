@@ -4,8 +4,8 @@ import { isStandardLoenRowEffectivelyEmpty } from '../aarsloen/standardLoenRowCa
 
 export type AarsloenValues = PersistedSectionMap['aarsloen'];
 
-// UI policy helpers for Aarsloen.
-// These functions express visibility/warning rules, not financial calculations.
+// UI-policy-hjælpere for Aarsloen.
+// Disse funktioner udtrykker synligheds-/advarselsregler, ikke økonomiske beregninger.
 
 export const resolveAarsloenDefaultLoenperiode = (aarsloen: AarsloenValues | null): Loenperiode => {
   return aarsloen?.loenperiode ?? LOENPERIODE.MAANED;

@@ -8,22 +8,22 @@ export type TableInputErrorInfo = Readonly<{
 }>;
 
 /**
- * Canonical commit-time normalization for table input drafts.
+ * Kanonisk commit-tids-normalisering for tabel-input-drafts.
  *
- * Contract:
- * - Applied ONLY on blur/commit (never while typing).
- * - Trims everything before the first letter/digit and after the last letter/digit.
+ * Kontrakt:
+ * - Anvendes KUN ved blur/commit (aldrig mens der tastes).
+ * - Trimmer alt før det første bogstav/ciffer og efter det sidste bogstav/ciffer.
  */
 export const normalizeTableDraftOnCommit = (draft: string): string => {
-  // Tables consist of numeric/date-like inputs; normalize aggressively at commit.
-  // This must happen BEFORE commit parsing so a trimmed value can be accepted without showing an error.
+  // Tabeller består af numeriske/dato-lignende inputs; normalisér aggressivt ved commit.
+  // Dette skal ske FØR commit-parsing, så en trimmet værdi kan accepteres uden at vise en fejl.
   return trimToAlphanumericEdges(draft);
 };
 
 /**
- * Commit-time normalization for amount-table cells.
+ * Commit-tids-normalisering for beløbs-tabelceller.
  *
- * Same as `normalizeTableDraftOnCommit`, except it preserves a leading '-' for negative values.
+ * Samme som `normalizeTableDraftOnCommit`, bortset fra at den bevarer et foranstillet '-' for negative værdier.
  */
 export const normalizeTableNumericDraftOnCommit = (draft: string): string => {
   return prefixZeroBeforeLeadingComma(trimToNumericEdgesPreserveLeadingMinus(draft));

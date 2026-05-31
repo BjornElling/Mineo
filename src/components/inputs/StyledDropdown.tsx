@@ -6,19 +6,19 @@ import { copyTextToClipboard, readClipboardText } from '../../utils/clipboardUti
 import { createCommitEvent, type CommitEvent } from '../../types/fieldEvents';
 
 /**
- * StyledDropdown (combobox trigger + popover listbox)
+ * StyledDropdown (combobox-trigger + popover-listbox)
  *
- * This component is part of a cross-cutting keyboard-navigation contract:
- * - It renders an `OutlinedInput` that is intentionally `readOnly` (not free-text), but it must still participate in Tab order.
- * - It exposes `role="combobox"` + `aria-controls`/`aria-expanded` so the app's Container-level Tab/Enter navigation can:
- *   - include the control even though it's readOnly
- *   - detect when the popup is open and avoid hijacking Tab/Enter meant for the widget
- * - When the popover is open and the user presses Tab, we close the popover WITHOUT calling `preventDefault()`;
- *   this preserves normal focus traversal (or table-level Tab navigation), and avoids "Tab eats focus" regressions.
+ * Denne komponent er en del af en tværgående keyboard-navigations-kontrakt:
+ * - Den renderer et `OutlinedInput` der bevidst er `readOnly` (ikke fri tekst), men som stadig skal indgå i Tab-rækkefølgen.
+ * - Den eksponerer `role="combobox"` + `aria-controls`/`aria-expanded`, så app'ens Tab/Enter-navigation på Container-niveau kan:
+ *   - inkludere kontrollen selvom den er readOnly
+ *   - registrere når popup'en er åben og undgå at kapre Tab/Enter beregnet til widget'en
+ * - Når popover'en er åben og brugeren trykker Tab, lukker vi popover'en UDEN at kalde `preventDefault()`;
+ *   dette bevarer normal fokus-traversering (eller Tab-navigation på tabel-niveau) og undgår "Tab æder fokus"-regressioner.
  *
- * If you change any of the above, also review:
- * - `src/components/layout/Container.tsx` (focusable selector + popup-widget detection)
- * - `src/components/tables/tableKeyboardNavigation.ts` (table-level key capture and widget detection)
+ * Hvis du ændrer noget af ovenstående, så gennemgå også:
+ * - `src/components/layout/Container.tsx` (focusable selector + detektion af popup-widgets)
+ * - `src/components/tables/tableKeyboardNavigation.ts` (key capture på tabel-niveau og widget-detektion)
  */
 export type StyledDropdownValue = string | number;
 
@@ -37,31 +37,31 @@ type StyledDropdownCommonProps<TValue extends StyledDropdownValue> = Omit<
   error?: boolean;
   helperText?: string;
   /**
-   * Optional styling hooks for the popover listbox and its options.
+   * Valgfri styling-hooks for popover-listbox'en og dens options.
    *
-   * Note: this component is not a MUI Select; it renders a custom Popover + MenuItem list.
+   * Bemærk: denne komponent er ikke en MUI Select; den renderer en custom Popover + MenuItem-liste.
    */
   listboxSx?: SxProps<Theme>;
   optionSx?: SxProps<Theme>;
   iconSx?: SxProps<Theme>;
   /**
-   * Optional single source of truth for how the selected value is displayed in the closed control.
+   * Valgfri single source of truth for hvordan den valgte værdi vises i den lukkede kontrol.
    *
-   * If omitted, the component expects option children to be `string | number`.
+   * Hvis udeladt, forventer komponenten at option-children er `string | number`.
    */
   getOptionLabel?: (value: TValue) => string;
   returnFocusOnClose?: boolean;
   /**
-   * Fired when the dropdown popover closes (interaction ended).
-   * This is intentionally separate from `onBlur`, which is a physical blur.
+   * Udløses når dropdown-popover'en lukker (interaktionen er slut).
+   * Dette er bevidst adskilt fra `onBlur`, som er en fysisk blur.
    */
   onClose?: () => void;
   /**
-   * Styling for wrapper container (`Box`) around the input.
+   * Styling for wrapper-containeren (`Box`) omkring inputtet.
    */
   containerSx?: SxProps<Theme>;
   /**
-   * Styling for the `OutlinedInput` only.
+   * Styling kun for `OutlinedInput`.
    */
   sx?: SxProps<Theme>;
   disabled?: boolean;
@@ -74,9 +74,9 @@ type StyledDropdownPropsAllowEmpty<TValue extends StyledDropdownValue> = {
   onChange?: (e: StyledDropdownChangeEvent<TValue | undefined>) => void;
 
   /**
-   * Physical blur (focus leaves the control).
+   * Fysisk blur (fokus forlader kontrollen).
    *
-   * Note: this is not a "commit" callback; commits happen on selection via `onChange`.
+   * Bemærk: dette er ikke et "commit"-callback; commit sker ved valg via `onChange`.
    */
   onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
 };
@@ -87,9 +87,9 @@ type StyledDropdownPropsNoEmpty<TValue extends StyledDropdownValue> = {
   onChange?: (e: StyledDropdownChangeEvent<TValue>) => void;
 
   /**
-   * Physical blur (focus leaves the control).
+   * Fysisk blur (fokus forlader kontrollen).
    *
-   * Note: this is not a "commit" callback; commits happen on selection via `onChange`.
+   * Bemærk: dette er ikke et "commit"-callback; commit sker ved valg via `onChange`.
    */
   onBlur?: (e: React.FocusEvent<HTMLElement>) => void;
 };
@@ -324,8 +324,8 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     if (resolvedValue === undefined) return hasEmptyOption ? 0 : -1;
     const index = visualOptions.findIndex((opt) => opt.kind === 'value' && opt.value === resolvedValue);
     if (index >= 0) return index;
-    // Runtime fallback (PROD): if allowEmpty=false and a value is missing among options,
-    // keep keyboard/navigation deterministic by highlighting the first option.
+    // Runtime-fallback (PROD): hvis allowEmpty=false og en værdi mangler blandt options,
+    // hold keyboard-/navigation deterministisk ved at highlighte den første option.
     if (hasEmptyOption) return 0;
     return visualOptions.findIndex((opt) => opt.kind === 'value');
   }, [hasEmptyOption, resolvedValue, visualOptions]);
@@ -351,7 +351,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
 
   const handleOpen = React.useCallback(() => {
     if (disabled || hasConfigError) return;
-    // Ensure the combobox input keeps focus when opening; keyboard navigation is handled on the input.
+    // Sørg for at combobox-inputtet beholder fokus ved åbning; keyboard-navigation håndteres på inputtet.
     inputElementRef.current?.focus();
     setAnchorEl(anchorRef.current);
     setOpen(true);
@@ -366,8 +366,8 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       setAnchorEl(null);
       setHighlightedIndex(-1);
       onClose?.();
-      // IMPORTANT: only restore focus for keyboard-close reasons where focus should remain on control.
-      // For pointer/blur/tab closure, let normal browser focus semantics proceed.
+      // VIGTIGT: gendan kun fokus ved keyboard-lukninger, hvor fokus skal blive på kontrollen.
+      // Ved pointer-/blur-/tab-lukning lader vi browserens normale fokus-semantik fortsætte.
       if (returnFocusOnClose && (reason === 'escapeKeyDown' || reason === 'select')) {
         inputElementRef.current?.focus();
       }
@@ -401,9 +401,9 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
     (val: TValue | undefined) => {
       if (val === undefined && !allowEmpty) return;
 
-      // Safe due to the `allowEmpty` runtime guard:
-      // - if `allowEmpty === false`, `val` cannot be `undefined` here
-      // - if `allowEmpty === true`, `onChange` expects `TValue | undefined`
+      // Sikkert pga. `allowEmpty`-runtime-værnet:
+      // - hvis `allowEmpty === false`, kan `val` ikke være `undefined` her
+      // - hvis `allowEmpty === true`, forventer `onChange` `TValue | undefined`
       const commitEvent = createCommitEvent<TValue | undefined>(val);
       (onChange as ((e: StyledDropdownChangeEvent<TValue | undefined>) => void) | undefined)?.({
         ...commitEvent,
@@ -633,9 +633,9 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
         id={resolvedId}
         value={selectedLabel}
         inputRef={inputElementRef}
-        // Intentionally `readOnly`: the control is a combobox trigger, not a free-text input.
-        // Note: `readOnly` inputs are normally excluded from the app's Container-level tab/enter navigation.
-        // This dropdown is included via an explicit Container exception keyed on `input[role="combobox"]`.
+        // Bevidst `readOnly`: kontrollen er en combobox-trigger, ikke et fritekst-input.
+        // Bemærk: `readOnly`-inputs er normalt udelukket fra app'ens tab/enter-navigation på Container-niveau.
+        // Denne dropdown medtages via en eksplicit Container-undtagelse nøglet på `input[role="combobox"]`.
         readOnly
         name={name}
         error={error || hasConfigError}
@@ -751,12 +751,12 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       <Popover
         open={open}
         anchorEl={anchorEl}
-        // Keep focus on the combobox input (focus ring + arrow-key navigation).
-        // MUI Popover is Modal-based; default focus management may steal focus into the popover.
+        // Behold fokus på combobox-inputtet (focus ring + pil-navigation).
+        // MUI Popover er Modal-baseret; default focus management kan stjæle fokus ind i popover'en.
         disableAutoFocus
         disableEnforceFocus
         disableRestoreFocus
-        // Disable modal backdrop to prevent aria-hidden warning.
+        // Slå modal-backdrop fra for at undgå aria-hidden-advarsel.
         // MUI Modal sætter aria-hidden="true" på root-elementet, hvilket er ugyldigt når inputtet beholder fokus.
         // hideBackdrop fjerner backdrop-overlay (kun visuel ændring, funktionalitet bevares).
         hideBackdrop
@@ -868,8 +868,8 @@ type StyledDropdownComponent = {
   displayName?: string;
 };
 
-// `forwardRef` cannot preserve this component's generic call signature.
-// The assertion is intentionally isolated at this boundary.
+// `forwardRef` kan ikke bevare denne komponents generiske kaldesignatur.
+// Assertionen er bevidst isoleret ved denne grænse.
 const StyledDropdown = React.forwardRef(StyledDropdownInner) as unknown as StyledDropdownComponent;
 
 StyledDropdown.Divider = StyledDropdownDivider;

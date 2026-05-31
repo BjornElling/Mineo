@@ -41,48 +41,48 @@ export type StyledTextFieldProps = {
   singleStageClick?: boolean;
 
   /**
-   * Draft callback (typing only).
+   * Draft-callback (kun typing).
    */
   onDraftChange?: DraftChangeHandler;
 
   /**
-   * Commit callback (blur/enter/imperative).
+   * Commit-callback (blur/enter/imperativt).
    */
   onCommit?: CommitHandler<string>;
 
   /**
-   * Optional local commit-time validation.
+   * Valgfri lokal commit-time-validering.
    *
-   * - Return a non-empty string to block commit with that error message.
-   * - Return `undefined` to accept the value.
+   * - Returnér en ikke-tom streng for at blokere commit med den fejlbesked.
+   * - Returnér `undefined` for at acceptere værdien.
    *
-   * Note: this validates the committed string value; mapping empty string to `undefined` (if desired)
-   * is a consumer responsibility.
+   * Bemærk: dette validerer den committede streng-værdi; at mappe tom streng til `undefined` (hvis ønsket)
+   * er consumerens ansvar.
    */
   validateOnCommit?: (value: string) => string | undefined;
 
   /**
-   * This field is a "raw text" input:
-   * - Typing is always considered committable (`ok: true`) unless `validateOnCommit` is provided.
-   * - Local validation is therefore commit-time only (by design).
+   * Dette felt er et "rå tekst"-input:
+   * - Typing betragtes altid som committable (`ok: true`) med mindre `validateOnCommit` er angivet.
+   * - Lokal validering er derfor kun commit-time (by design).
    */
 
   /**
-   * Producer-owned error reporter (optional). When provided, the field reports its own
-   * commit-time validation error up to the form-error registry and rehydrates the invalid
-   * draft after undo/redo or remount via `getCurrentError()`.
+   * Producer-owned fejlrapportør (valgfri). Når angivet rapporterer feltet sin egen
+   * commit-time-valideringsfejl op til form-error-registret og rehydrerer den ugyldige
+   * draft efter undo/redo eller remount via `getCurrentError()`.
    */
   onFieldError?: FieldErrorReporter;
 
   /**
-   * Called after internal focus bookkeeping (via `useDraftField`) has run.
+   * Kaldes efter at intern focus-bookkeeping (via `useDraftField`) er kørt.
    */
   onFocus?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 
   /**
-   * Physical blur (focus leaves the control).
+   * Fysisk blur (fokus forlader kontrollen).
    *
-   * Invariant: internal `useDraftField` bookkeeping runs before this callback.
+   * Invariant: intern `useDraftField`-bookkeeping kører før dette callback.
    */
   onBlur?: (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
@@ -196,7 +196,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
     const resolvedHasError = externalHasError || Boolean(visibleLocalError?.message);
     const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
 
-    // Notify parent of local error state (producer-owned reporting)
+    // Underret forælderen om lokal fejltilstand (producer-owned rapportering)
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
       if (visibleLocalError?.message) {

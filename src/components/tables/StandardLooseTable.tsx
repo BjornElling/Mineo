@@ -17,10 +17,10 @@ import { useGridCoreController } from './useGridCoreController';
 
 export type StandardLooseTableProps = Omit<TableProps, 'sx'> & Readonly<{
   /**
-   * Table type 3: løs tabel.
+   * Tabeltype 3: løs tabel.
    *
-   * - Still uses central table styling
-   * - Typically contains Styled-* inputs in cells
+   * - Bruger stadig central tabel-styling
+   * - Indeholder typisk Styled-*-inputs i celler
    */
   useSmallFont?: boolean;
   sx?: SxProps<Theme>;
@@ -52,8 +52,8 @@ const StandardLooseTable = React.memo(({
       '& thead th': {
         backgroundColor: 'var(--color-table-row-odd)',
       },
-      // Loose tables must not display grid lines between body rows/columns.
-      // Keep the header/body separator (defined in `getMuiTableStyles` via `& thead th`).
+      // Løse tabeller må ikke vise grid-linjer mellem body-rækker/-kolonner.
+      // Behold header-/body-separatoren (defineret i `getMuiTableStyles` via `& thead th`).
       '& tbody .MuiTableCell-root': {
         borderBottom: 'none !important',
       },

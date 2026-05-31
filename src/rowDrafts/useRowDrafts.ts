@@ -13,14 +13,14 @@ export type UseRowDraftsConfig<
   TCommitted extends WithId,
   TField extends keyof TDraft & string = keyof TDraft & string,
 > = {
-  // 1) Access to committed state
+  // 1) Adgang til committed state
   getCommitted: () => TCommitted[] | undefined;
   setCommitted: (
     updater: (prevRows: TCommitted[] | undefined) => TCommitted[] | undefined,
     origin?: RowCommitOrigin
   ) => void;
 
-  // 2) Mapping between committed and draft
+  // 2) Mapping mellem committed og draft
   toDraft: (rows: TCommitted[]) => TDraft[];
   toCommittedRow: (draft: TDraft, prevCommittedRow?: TCommitted) => TCommitted;
 
@@ -28,7 +28,7 @@ export type UseRowDraftsConfig<
   isRowEmpty: (row: TCommitted) => boolean;
   ensureRows: (rows: TCommitted[] | undefined) => TCommitted[];
 
-  // 4) ID generation (used for addRow / empty init helpers)
+  // 4) ID-generering (bruges til addRow / tomme init-hjælpere)
   createId: () => RowId;
   createEmptyCommittedRow: (id: RowId) => TCommitted;
 
@@ -40,7 +40,7 @@ export type UseRowDraftsConfig<
    */
   fieldColIndex?: Readonly<Record<TField, number>>;
 
-  // 5) Optional draft init when committed is empty/undefined
+  // 5) Valgfri draft-init når committed er tom/undefined
   initFromCommitted?: (rows: TCommitted[] | undefined) => TCommitted[];
 
   /**

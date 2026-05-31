@@ -138,8 +138,8 @@ export const computeRenteberegning = (input: RenteberegningInputSnapshot): Rente
   return { rows };
 };
 
-// Per-row entry point for table rendering. Callers must pass the same rate snapshot
-// they use for batch calculations to preserve determinism across UI and tests.
+// Entry point pr. række til table-rendering. Callers skal sende det samme rate-snapshot,
+// som de bruger til batch-beregninger, for at bevare determinisme på tværs af UI og tests.
 export type RentekravRowResult = Readonly<{
   actualInterestDate: ISODateString | null;
   calculatedInterest: number | null;

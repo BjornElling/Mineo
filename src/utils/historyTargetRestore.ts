@@ -125,8 +125,8 @@ export const scheduleHistoryTargetRestore = (frame: HistoryFrame): void => {
   const state = resolveDraftRestoreState(frame);
   const originalActiveElement = document.activeElement;
 
-  // Draft-restore must be a one-shot: calling restoreFromHistory multiple times for the same
-  // frame would re-apply suppressNextBlurCommit and clobber any user edits made between ticks.
+  // Draft-restore skal være en one-shot: at kalde restoreFromHistory flere gange for samme
+  // frame ville genanvende suppressNextBlurCommit og overskrive eventuelle brugerredigeringer mellem ticks.
   let draftRestored = false;
   let attempts = 0;
   const tick = () => {

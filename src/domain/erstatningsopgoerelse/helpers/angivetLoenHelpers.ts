@@ -89,7 +89,7 @@ export const resolveLoenudviklingKilde = (
     pensionPct: undefined,
     loenperiode: LOENPERIODE.MAANED,
     fuldLoenUnderFerie: 'Ja',
-    // Deliberately no fallback; invalid values must throw to avoid silent propagation.
+    // Bevidst ingen fallback; ugyldige værdier skal kaste for at undgå stille propagering.
     loenPaaHelligdage,
     saerligFraDatoRegulering: eo.saerligFraDatoRegulering,
     indtaegtsoplysningerTableData: [],

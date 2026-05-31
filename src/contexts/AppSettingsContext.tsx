@@ -18,7 +18,7 @@ const THEME_COLOR_BY_MODE = {
  * - Local: `localStorage` (best-effort; fail-safe fallback til in-memory).
  * - `.eo`: NEVER. `.eo` payload bygges ud fra sessionStorage keys i storage-manifestet.
  *
- * See `src/contracts/app-settings.md` for normative rationale and constraints.
+ * Se `src/contracts/app-settings.md` for normativt rationale og constraints.
  */
 
 export const AppSettingsProvider = ({ children }: { children: React.ReactNode }): React.ReactElement => {
@@ -36,7 +36,7 @@ export const AppSettingsProvider = ({ children }: { children: React.ReactNode })
   }, [settings]);
 
   React.useEffect(() => {
-    // Cross-cutting UI debug control (CSS-level).
+    // Tværgående UI-debug-kontrol (CSS-niveau).
     // Når `fontStyleColorDebug=false`, bruger appen normale typografi-farver.
     document.documentElement.dataset.mineoFontStyleColors = settings.fontStyleColorDebug ? 'on' : 'off';
   }, [settings.fontStyleColorDebug]);

@@ -35,11 +35,11 @@ const shouldIncludeByEoBilagRanges = (
   ranges: readonly IsoRange[],
   rowRange: IsoRange | null
 ): boolean => {
-  // NOTE: Fail-closed by design.
+  // NOTE: Fail-closed efter design.
   // Rækker uden gyldigt dato-interval medtages aldrig i PDF-bilag.
   if (!rowRange) return false;
   if (mode === 'Alle') return true;
-  // NOTE: Fail-closed by design.
+  // NOTE: Fail-closed efter design.
   // Når "Perioden" er valgt uden gyldige bilag-ranges, medtages ingen rækker.
   if (ranges.length === 0) return false;
   return ranges.some((range) => isIsoRangeOverlap(rowRange, range));
@@ -270,7 +270,7 @@ export const shouldIncludeLoenRowInEoBilag = (params: Readonly<{
 }>): boolean => {
   const { row, loenperiode, mode, ranges, errorRowIds } = params;
   if (isStandardLoenRowEffectivelyEmpty(row, loenperiode)) return false;
-  // NOTE: Fail-closed by design.
+  // NOTE: Fail-closed efter design.
   // PDF må kun vise rækker uden valideringsfejl.
   if (errorRowIds.has(row.id)) return false;
   const hasAnyIncomeInput =
@@ -290,7 +290,7 @@ export const shouldIncludeOffentligYdelseRowInEoBilag = (params: Readonly<{
 }>): boolean => {
   const { row, mode, ranges, errorRowIds } = params;
   if (isOffentligeYdelserRowEmpty(row)) return false;
-  // NOTE: Fail-closed by design.
+  // NOTE: Fail-closed efter design.
   // PDF må kun vise rækker uden valideringsfejl.
   if (errorRowIds.has(row.id)) return false;
   const hasAnyAmountInput =
