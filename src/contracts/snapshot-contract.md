@@ -83,9 +83,21 @@ Aktuelt eksempel:
 
 ---
 
-## 5. Valg af form
+## 5. Hvilke domæner er snapshot-first (afgrænsning)
 
-Når et nyt domæne løftes til snapshot-first, skal formen vælges ud fra brugeroplevelsen og domænets struktur:
+Snapshot-first er et **bevidst afgrænset** mønster, ikke en destination alle domæner migrerer mod. Det er forbeholdt domæner, der er komplekse nok til reelt at risikere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF — dvs. domæner med flere tabber/delberegninger, selvstændige blocking-regler eller en PDF-sti der ellers ville genberegne domæneafledninger.
+
+**Snapshot-first-domænerne er præcis disse tre:**
+
+- erstatningsopgørelse (`computeEoSnapshot`)
+- erhvervsevnetab (`computeEetSnapshot`)
+- forsørgertab (`computeForsoergertabSnapshot`)
+
+De øvrige beregningsdomæner (årsløn, renteberegning, varige mén) er **bevidst ikke** snapshot-first: deres engine-resultat beregnes ét sted og genbruges af PDF-stien uden genberegning, så der er ingen parallel beregning at konsolidere. Det er deres slutarkitektur, ikke en umoden tilstand — se de respektive domænekontrakters §3. Indfør ikke et snapshot-lag for et af disse domæner uden at et reelt parallel-beregnings- eller genberegningsproblem først er opstået og dokumenteret; ellers strider det mod konvergensreglen i `AGENTS.md`.
+
+### Valg af form for et snapshot-first-domæne
+
+Når et af de tre domæner (eller et fremtidigt domæne, der reelt udløser ovenstående afgrænsning) struktureres som snapshot, vælges formen ud fra brugeroplevelsen og domænets struktur:
 
 1. Vælg felt-UI-formen, hvis siden i praksis er én samlet visning med feltlokale helpertekster og få resultatgates.
 2. Vælg issue-/tab-formen, hvis siden har flere delberegninger eller tabs med selvstændige blocking-regler.

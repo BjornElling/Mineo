@@ -24,9 +24,13 @@
 
 ---
 
-## 3. Fremtidig retning (ikke-bindende)
+## 3. Arkitekturvalg: ikke snapshot-first (bevidst)
 
-Årsløn bør på sigt migrere mod snapshot-first eller en tilsvarende autoritativ projektion, så tabelafledninger, SH-dage, PDF-gate og PDF-model bygges fra samme committed projektion, og PDF-rendereren ikke genberegner domæneafledninger. Indtil migrationen sker, er §1 den bindende model; dette afsnit beskriver kun ønsket slutarkitektur og må ikke læses som et krav til nuværende kode.
+Årsløn er **bevidst ikke** snapshot-first. Den section-lokale engine-/calculations-model i §1 er den valgte slutarkitektur for dette domæne — ikke et mellemtrin på vej mod en snapshot-projektion.
+
+Begrundelse: snapshot-first findes for at eliminere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF (jf. `snapshot-contract.md §1`). Det problem findes ikke her. Årsløns engine-resultat beregnes ét sted (`useAarsloenBeregning`-hook), og PDF-stien **genbruger** det allerede beregnede `beregningsData` — den genberegner ikke domæneafledninger. Der er derfor hverken duplikering eller grænse-smerte at retfærdiggøre et snapshot-lag for, jf. konvergensreglen i `AGENTS.md` (ingen abstraktioner til hypotetisk fremtidig genbrug). Et snapshot-lag her ville tilføje vægt uden at fjerne en risiko.
+
+Beslutningen er truffet endeligt og er ikke et udestående. Snapshot-first er forbeholdt de tre tunge domæner (EO/EET/forsørgertab), jf. `snapshot-contract.md §5`.
 
 ---
 
@@ -37,4 +41,4 @@ Tests skal dække:
 1. tabelafledninger fra committed rows,
 2. SH-/hverdagsregler,
 3. PDF-gate ved manglende eller invalid beregningsgrundlag,
-4. samme projektion til UI og PDF, hvis/når snapshot/projektion indføres.
+4. at PDF og UI bruger samme beregnede `beregningsData` (PDF genberegner ikke domæneafledninger).

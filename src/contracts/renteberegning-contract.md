@@ -25,9 +25,13 @@ Renteberegning er et persisted domæne med sektionen `renteberegning`.
 
 ---
 
-## 3. Fremtidig retning (ikke-bindende)
+## 3. Arkitekturvalg: ikke snapshot-first (bevidst)
 
-Renteberegning bør på sigt migrere mod en autoritativ snapshot- eller preflight-projektion, der samler committed rentekravsrækker, beregningsdato, periodeoutput, kommentarer/visningsvalg samt PDF-gate og PDF-model. Indtil da er §1 den bindende model; dette afsnit beskriver kun ønsket slutarkitektur.
+Renteberegning er **bevidst ikke** snapshot-first. Den tabel-/engine-drevne model i §1 er den valgte slutarkitektur for dette domæne — ikke et mellemtrin på vej mod en snapshot-/preflight-projektion.
+
+Begrundelse: snapshot-first findes for at eliminere parallelle, inkonsistente beregningsveje mellem UI, tab og PDF (jf. `snapshot-contract.md §1`). Det problem findes ikke her. Hver rentekravsrække beregnes idempotent af `computeRentekravRow`, og PDF-stien **genbruger** rækkens allerede beregnede `pdfContext` (periodeoutput m.m.) — den genberegner ikke renteperioder. Beregningen er rækkelokal og selvstændig pr. række; der er ingen tværgående delberegninger eller blocking-projektioner, et snapshot skulle samle. Et snapshot-lag ville her tilføje vægt uden at fjerne en risiko, hvilket strider mod konvergensreglen i `AGENTS.md`.
+
+Beslutningen er truffet endeligt og er ikke et udestående. Snapshot-first er forbeholdt de tre tunge domæner (EO/EET/forsørgertab), jf. `snapshot-contract.md §5`.
 
 ---
 
@@ -38,4 +42,4 @@ Tests skal dække:
 1. dagtælling for grænseperioder,
 2. renteperioder og afrunding,
 3. PDF-gate ved manglende/invalid input,
-4. at PDF-output bruger samme preflight/projektion som UI.
+4. at PDF-output bruger samme rækkeberegnede `pdfContext` som UI (PDF genberegner ikke renteperioder).
