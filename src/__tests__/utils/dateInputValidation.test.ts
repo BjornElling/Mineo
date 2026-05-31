@@ -2,7 +2,6 @@ import { toISODateString } from '../../types/branded';
 import {
   isValidDate,
   interpretYear,
-  isDateFormatValid,
   validateDateRange,
 } from '../../utils/dateInputValidation';
 
@@ -91,46 +90,6 @@ describe('interpretYear', () => {
 
   it('3-cifret år → null (ugyldigt)', () => {
     expect(interpretYear('202')).toBeNull();
-  });
-});
-
-// ─── isDateFormatValid ────────────────────────────────────────────────────
-
-describe('isDateFormatValid', () => {
-  it('gyldig dag, måned, 4-cifret år → true', () => {
-    expect(isDateFormatValid('15', '6', '2024')).toBe(true);
-  });
-
-  it('dag = 0 → false', () => {
-    expect(isDateFormatValid('0', '6', '2024')).toBe(false);
-  });
-
-  it('dag = 32 → false', () => {
-    expect(isDateFormatValid('32', '6', '2024')).toBe(false);
-  });
-
-  it('måned = 0 → false', () => {
-    expect(isDateFormatValid('15', '0', '2024')).toBe(false);
-  });
-
-  it('måned = 13 → false', () => {
-    expect(isDateFormatValid('15', '13', '2024')).toBe(false);
-  });
-
-  it('29 feb 2024 (skudår) → true', () => {
-    expect(isDateFormatValid('29', '2', '2024')).toBe(true);
-  });
-
-  it('29 feb 2023 (ikke skudår) → false', () => {
-    expect(isDateFormatValid('29', '2', '2023')).toBe(false);
-  });
-
-  it('31. april → false', () => {
-    expect(isDateFormatValid('31', '4', '2024')).toBe(false);
-  });
-
-  it('31. januar → true', () => {
-    expect(isDateFormatValid('31', '1', '2024')).toBe(true);
   });
 });
 

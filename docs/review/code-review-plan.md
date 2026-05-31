@@ -56,11 +56,11 @@ Planen følger **afhængighedsorden nedefra og op** — det fundamentale først,
 | 4.13 | EO: snapshot, presentation-model, canonical output og invarianter | ✅ Gennemgået | [4.13-eo-snapshot-presentation-canonical.md](4.13-eo-snapshot-presentation-canonical.md) |<br>↳ _Fra 1.5: ✅ løst — detaljeret TAF-/svie-behandlingsrækkefølge flyttet til `docs/architecture/eo-clamping-pipeline-architecture.md`; kontrakt §2.3 beholder de bindende invarianter._ |
 | 4.14 | EO-debug: view-model, regulation/loen/indkomst-modeller, parity, severity, navigation | ✅ Gennemgået | [4.14-eo-debug-viewmodels-parity-severity-navigation.md](4.14-eo-debug-viewmodels-parity-severity-navigation.md) |
 | **5 — Hjælpefunktioner** | | | |
-| 5.1 | Datohåndtering: isoDate, dateCommit, dateUtils, dateFormatting, isoDateHelpers, draft-normalisering | ⬜ Ikke startet | — |
-| 5.2 | Datohåndtering: input-validering, range-errors, dato-ordens-validering, utcDayMath | ⬜ Ikke startet | — |
-| 5.3 | SH-dage: beregning og oversigt (shDageBeregning, shDageOversigt) | ⬜ Ikke startet | — |
-| 5.4 | Talbehandling: parsing, expression-amount, afrunding, percent, fraction, sammenligning | ⬜ Ikke startet | — |
-| 5.5 | Øvrige utils: serialization, typeGuards, zod-issue-formatting, safeComputation, tabel-/row-helpers | ⬜ Ikke startet | — |
+| 5.1 | Datohåndtering: isoDate, dateCommit, dateUtils, dateFormatting, isoDateHelpers, draft-normalisering | ✅ Gennemgået | [5.1-datohaandtering-kerne.md](5.1-datohaandtering-kerne.md) |
+| 5.2 | Datohåndtering: input-validering, range-errors, dato-ordens-validering, utcDayMath | ✅ Gennemgået | [5.2-datohaandtering-validering.md](5.2-datohaandtering-validering.md) |
+| 5.3 | SH-dage: beregning og oversigt (shDageBeregning, shDageOversigt) | ✅ Gennemgået | [5.3-sh-dage.md](5.3-sh-dage.md) |
+| 5.4 | Talbehandling: parsing, expression-amount, afrunding, percent, fraction, sammenligning | ✅ Gennemgået | [5.4-talbehandling.md](5.4-talbehandling.md) |
+| 5.5 | Øvrige utils: serialization, typeGuards, zod-issue-formatting, safeComputation, tabel-/row-helpers | ✅ Gennemgået | [5.5-oevrige-utils.md](5.5-oevrige-utils.md) |
 | **6 — Data** | | | |
 | 6.1 | Renter og lovbestemte/statistiske rater: interestRates, lovbestemteRates, statistiskeRates | ⬜ Ikke startet | — |
 | 6.2 | Folkepension, sygedagpenge, overenskomst, KRL, ydelsestyper, retsinfo-links | ⬜ Ikke startet | — |

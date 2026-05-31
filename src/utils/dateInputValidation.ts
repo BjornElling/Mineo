@@ -58,29 +58,6 @@ export const interpretYear = (yearStr: string): number | null => {
 };
 
 /**
- * Tjekker om dato-format er gyldigt (ikke om datoen eksisterer i interval)
- *
- * @param {string} day - Dag-streng
- * @param {string} month - Måned-streng
- * @param {string} year - År-streng
- * @returns {boolean} True hvis formatet er gyldigt
- */
-export const isDateFormatValid = (day: string, month: string, year: string): boolean => {
-  const dayNum = parseInt(day, 10);
-  const monthNum = parseInt(month, 10);
-
-  if (dayNum < 1 || dayNum > 31) return false;
-  if (monthNum < 1 || monthNum > 12) return false;
-
-  if (year && year.length === 4) {
-    const yearNum = parseInt(year, 10);
-    return isValidDate(dayNum, monthNum, yearNum);
-  }
-
-  return isValidDate(dayNum, monthNum, 2024);
-};
-
-/**
  * Validerer om dato er inden for et interval
  *
  * Denne funktion kaldes KUN på komplette, sanerede datoer (dd-mm-åååå)

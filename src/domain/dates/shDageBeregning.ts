@@ -131,24 +131,44 @@ export const buildSHDageSetForDatoSet = (
   return shDageSet;
 };
 
+/**
+ * Bygger SH-dag-sættet for et inklusivt ISO-interval [fra, til].
+ *
+ * Itererer kun helligdagene pr. år (≈11/år), ikke hver kalenderdag: resultatet
+ * afhænger udelukkende af helligdage, så en dag-for-dag-materialisering af hele
+ * intervallet ville være spildt arbejde (O(dage) frem for O(år)).
+ *
+ * Intervalgrænsen tjekkes leksikografisk på ISO-strenge (`yyyy-mm-dd`), hvilket er
+ * identisk med kronologisk sammenligning af UTC-dage — derfor er outputtet bevisligt
+ * det samme som ved at filtrere et fuldt dag-sæt.
+ */
 export const buildSHDageSetForIsoRange = (
   fra: ISODateString,
   til: ISODateString
 ): ReadonlySet<ISODateString> => {
+  // Fail-closed mod ikke-validerede strenge der måtte være castet til ISODateString,
+  // samt mod omvendt rækkefølge — bevarer den oprindelige guards adfærd.
   const fraDato = parseISODate(fra);
   const tilDato = parseISODate(til);
   if (!fraDato || !tilDato || fraDato > tilDato) {
     return new Set<ISODateString>();
   }
 
-  const datoSet = new Set<ISODateString>();
-  let current = new Date(fraDato);
-  while (current <= tilDato) {
-    datoSet.add(formatToISO(current));
-    current = addDays(current, 1);
+  const shDageSet = new Set<ISODateString>();
+  const fraYear = fraDato.getUTCFullYear();
+  const tilYear = tilDato.getUTCFullYear();
+
+  for (let year = fraYear; year <= tilYear; year += 1) {
+    for (const helligdag of beregnHelligdage(year)) {
+      if (!erSHDag(helligdag)) continue;
+      const helligdagStr = formatToISO(helligdag);
+      if (helligdagStr >= fra && helligdagStr <= til) {
+        shDageSet.add(helligdagStr);
+      }
+    }
   }
 
-  return buildSHDageSetForDatoSet(datoSet);
+  return shDageSet;
 };
 
 /**

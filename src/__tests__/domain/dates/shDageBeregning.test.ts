@@ -6,8 +6,32 @@ import {
   beregnSHDageForDatoSet,
   buildSHDageSetForDatoSet,
   buildSHDageSetForIsoRange,
+  erHverdagUtc,
+  erSHDag,
 } from '../../../domain/dates/shDageBeregning';
-import { createDate } from '../../../utils/dateUtils';
+import { createDate, addDays, formatToISO } from '../../../utils/dateUtils';
+import { parseISODate, type ISODateString } from '../../../types/branded';
+
+/**
+ * Reference-implementation: den oprindelige "materialisér hele intervallet"-algoritme.
+ * Bruges udelukkende til at bevise, at den optimerede `buildSHDageSetForIsoRange`
+ * (helligdags-iteration) giver præcis samme output.
+ */
+const buildSHDageSetForIsoRangeReference = (
+  fra: ISODateString,
+  til: ISODateString
+): ReadonlySet<ISODateString> => {
+  const fraDato = parseISODate(fra);
+  const tilDato = parseISODate(til);
+  if (!fraDato || !tilDato || fraDato > tilDato) return new Set<ISODateString>();
+  const datoSet = new Set<ISODateString>();
+  let current = new Date(fraDato);
+  while (current <= tilDato) {
+    datoSet.add(formatToISO(current));
+    current = addDays(current, 1);
+  }
+  return buildSHDageSetForDatoSet(datoSet);
+};
 
 describe('shDageBeregning', () => {
   it('returnerer samme antal helligdage som beregnHelligdage', () => {
@@ -207,5 +231,60 @@ describe('buildSHDageSetForIsoRange', () => {
     );
 
     expect(result.size).toBe(0);
+  });
+
+  it('giver identisk output som reference-implementationen (ækvivalens)', () => {
+    const ranges: Array<[string, string]> = [
+      ['2024-01-01', '2024-01-31'], // enkelt måned med nytår
+      ['2024-01-01', '2024-12-31'], // helt år
+      ['2023-01-01', '2025-12-31'], // flere år, inkl. afskaffelse af store bededag
+      ['2023-12-25', '2024-01-01'], // år-overgang
+      ['2024-05-18', '2024-05-20'], // pinse-weekend (pinsedag søndag = ikke SH)
+      ['2024-03-28', '2024-04-01'], // påske
+      ['2024-06-10', '2024-06-14'], // uge uden helligdage → tomt sæt
+      ['2024-01-01', '2024-01-01'], // én enkelt SH-dag
+    ];
+
+    for (const [fra, til] of ranges) {
+      const actual = buildSHDageSetForIsoRange(toISODateString(fra), toISODateString(til));
+      const reference = buildSHDageSetForIsoRangeReference(toISODateString(fra), toISODateString(til));
+      expect([...actual].sort()).toEqual([...reference].sort());
+    }
+  });
+
+  it('samler SH-dage på tværs af et flerårigt interval', () => {
+    // 25-12-2023 (man) → 01-01-2024 (man): juledag 2023, 2. juledag 2023 (tir), nytår 2024
+    const result = buildSHDageSetForIsoRange(
+      toISODateString('2023-12-25'),
+      toISODateString('2024-01-01')
+    );
+
+    expect(result.has(toISODateString('2023-12-25'))).toBe(true);
+    expect(result.has(toISODateString('2023-12-26'))).toBe(true);
+    expect(result.has(toISODateString('2024-01-01'))).toBe(true);
+    expect(result.size).toBe(3);
+  });
+});
+
+// ─── erHverdagUtc / erSHDag ───────────────────────────────────────────────────
+
+describe('erHverdagUtc / erSHDag', () => {
+  it('mandag-fredag → hverdag', () => {
+    // 01-01-2024 = mandag, 05-01-2024 = fredag
+    expect(erHverdagUtc(createDate(2024, 0, 1))).toBe(true);
+    expect(erHverdagUtc(createDate(2024, 0, 5))).toBe(true);
+  });
+
+  it('lørdag/søndag → ikke hverdag', () => {
+    // 06-01-2024 = lørdag, 07-01-2024 = søndag
+    expect(erHverdagUtc(createDate(2024, 0, 6))).toBe(false);
+    expect(erHverdagUtc(createDate(2024, 0, 7))).toBe(false);
+  });
+
+  it('erSHDag er identisk med erHverdagUtc', () => {
+    for (let day = 1; day <= 7; day += 1) {
+      const d = createDate(2024, 0, day);
+      expect(erSHDag(d)).toBe(erHverdagUtc(d));
+    }
   });
 });
