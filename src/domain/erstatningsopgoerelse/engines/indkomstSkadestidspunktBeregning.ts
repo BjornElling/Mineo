@@ -9,7 +9,7 @@ import { calculateStandardLoenDerivedFromAmounts } from '../../aarsloen/standard
 import { buildIncomeForRanges, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
 import { buildLoenindkomstRateSegments, resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../engines/tafCalculations';
-import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
+import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { getAngivetLoenBaseretPaa } from '../helpers/angivetLoenHelpers';
 import { isoDateToDate } from '../../dates/isoDate';
 import type { Calculable, IndkomstSkadestidspunktModel, MoneyOre } from '../shared/eoTypes';
@@ -253,7 +253,7 @@ export const buildIndkomstSkadestidspunkt = (
         };
 
         const totalMaaneder = beregnMaanederForDage(periodeDage);
-        const fravaerMaaneder = oevrigeFravaersdageValue * 0.048;
+        const fravaerMaaneder = oevrigeFravaersdageValue * TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR;
         const roundedTotalMaaneder = roundByMethod(totalMaaneder, 2, 'halfAwayFromZero');
         const roundedFravaerMaaneder = roundByMethod(fravaerMaaneder, 2, 'halfAwayFromZero');
         const maanederEfterFradrag = Math.max(

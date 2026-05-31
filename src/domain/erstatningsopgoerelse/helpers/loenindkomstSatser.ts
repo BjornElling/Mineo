@@ -22,10 +22,12 @@ import { round2 } from '../../../utils/roundingShortcuts';
 
 export type OverenskomstSatsField = 'fritvalgPct' | 'shSoPct' | 'pensionPct';
 
-export type OverenskomstSatsBinding = Readonly<{
-  locked: boolean;
-  value: number | undefined;
-}>;
+// Diskrimineret union: locked === true garanterer et tal. Tidligere var typen
+// `{ locked: boolean; value: number | undefined }`, hvilket tillod den umulige tilstand
+// `{ locked: true, value: undefined }` og krævede tillidsbaseret value-adgang ved callsites.
+export type OverenskomstSatsBinding =
+  | Readonly<{ locked: true; value: number }>
+  | Readonly<{ locked: false; value: undefined }>;
 
 type OverenskomstSatsBindings = Readonly<Record<OverenskomstSatsField, OverenskomstSatsBinding>>;
 

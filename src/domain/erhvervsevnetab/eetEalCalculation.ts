@@ -15,6 +15,7 @@ import {
   validatePercentDivisibleBy5FromValue,
 } from './eetAslAfgoerelser';
 import { round0, round4 } from '../../utils/roundingShortcuts';
+import { SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 
 export type EetEalResolvedEetPct = Readonly<{
   value: number;
@@ -305,7 +306,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   const maxAarsloenForSkadesaar = input.aarsloenAslMax[skadesaar];
   const maxAarsloenWarningMessage =
     'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL.';
-  const isSkadeFraJuli2024EllerSenere = skadedato >= '2024-07-01';
+  const isSkadeFraJuli2024EllerSenere = skadedato >= SKAERING_2024_07_01;
 
   if (
     isSkadeFraJuli2024EllerSenere &&

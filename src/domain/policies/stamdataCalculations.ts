@@ -20,10 +20,10 @@ export const resolveStamdataDatoLabel = (
 export const hasStamdataAny = (stamdata: StamdataValues | null): boolean => {
   if (!stamdata) return false;
   return (
-    typeof stamdata.journalnr === 'string' && stamdata.journalnr.trim().length > 0 ||
-    typeof stamdata.advokat === 'string' && stamdata.advokat.trim().length > 0 ||
-    typeof stamdata.sagsbehandler === 'string' && stamdata.sagsbehandler.trim().length > 0 ||
-    typeof stamdata.skadelidte === 'string' && stamdata.skadelidte.trim().length > 0 ||
+    (typeof stamdata.journalnr === 'string' && stamdata.journalnr.trim().length > 0) ||
+    (typeof stamdata.advokat === 'string' && stamdata.advokat.trim().length > 0) ||
+    (typeof stamdata.sagsbehandler === 'string' && stamdata.sagsbehandler.trim().length > 0) ||
+    (typeof stamdata.skadelidte === 'string' && stamdata.skadelidte.trim().length > 0) ||
     stamdata.skadestype !== undefined ||
     stamdata.skadedato !== undefined
   );

@@ -41,19 +41,19 @@ Planen følger **afhængighedsorden nedefra og op** — det fundamentale først,
 | 3.4 | Section-schemas C: renteberegning, varigeMen + eoFileSchema (download/upload) | ✅ Gennemgået | [3.4-section-schemas-c-og-eofile.md](3.4-section-schemas-c-og-eofile.md) |
 | 3.5 | Schema-fingerprint og save-order-registry | ✅ Gennemgået | [3.5-schema-fingerprint-og-save-order-registry.md](3.5-schema-fingerprint-og-save-order-registry.md) |
 | **4 — Domænelogik (beregningskernen)** | | | |
-| 4.1 | Stamdata, satser og policies (stamdataCalculations, satserCalculations, aarsloenPolicy) | ⬜ Ikke startet | — |
-| 4.2 | Årsløn: aarsloen + aslEalAarsloen (beregning, validering, periodevisning) | ⬜ Ikke startet | — |
-| 4.3 | EET: kernemotor, ASL/EAL, differencekrav, skæringsdatoer, typer | ⬜ Ikke startet | — |
-| 4.4 | EET: kapitalisering, løbende ydelser, mer-erstatning ved forhøjet pensionsalder, regulering | ⬜ Ikke startet | — |
-| 4.5 | Forsørgertab: beregning, ASL-ydelser, EAL-krav, snapshot | ⬜ Ikke startet | — |
-| 4.6 | Varige Mén: motor og beregninger | ⬜ Ikke startet | — |
-| 4.7 | Renteberegning: motor, procesrente, principper, validering, tabelmodel | ⬜ Ikke startet | — |
-| 4.8 | EO-engines I: periodiseringsmotor, period-merging/overlap/range-groups, ferie, arbejdsdage | ⬜ Ikke startet | — |
-| 4.9 | EO-engines II: TAF (calculations, engine, netto, per-year, day-sets), forligsgrad, svie/smerte | ⬜ Ikke startet | — |
-| 4.10 | EO-engines III: løn-/ydelsesudvikling og regulering (loenudvikling, offentligeYdelser, regulerings*) | ⬜ Ikke startet | — |
-| 4.11 | EO: helpers, initial values, row-derived og tabel-modeller | ⬜ Ikke startet | — |
-| 4.12 | EO: validation-lag og erstatningsopgoerelseValidator | ⬜ Ikke startet | — |
-| 4.13 | EO: snapshot, presentation-model, canonical output og invarianter | ⬜ Ikke startet | — |<br>↳ _Fra 1.5: overvej at flytte EO-snapshot-kontraktens detaljerede TAF-behandlingsrækkefølge (§2.3, ~454 linjer) til `docs/architecture/` som informativ pipeline-doc og lade kontrakten beholde invarianterne (abstraktions-asymmetri vs. øvrige domæne-kontrakter)._ |
+| 4.1 | Stamdata, satser og policies (stamdataCalculations, satserCalculations, aarsloenPolicy) | ✅ Gennemgået | [4.1-stamdata-satser-policies.md](4.1-stamdata-satser-policies.md) |
+| 4.2 | Årsløn: aarsloen + aslEalAarsloen (beregning, validering, periodevisning) | ✅ Gennemgået | [4.2-aarsloen.md](4.2-aarsloen.md) |<br>↳ _Fra 3.2: ✅ afgjort — aarsloenSchemas required felter er v1.0-originaler; fail-closed er korrekt, ingen default-injektion._ |
+| 4.3 | EET: kernemotor, ASL/EAL, differencekrav, skæringsdatoer, typer | ✅ Gennemgået | [4.3-eet-kerne-asl-eal-differencekrav.md](4.3-eet-kerne-asl-eal-differencekrav.md) |
+| 4.4 | EET: kapitalisering, løbende ydelser, mer-erstatning ved forhøjet pensionsalder, regulering | ✅ Gennemgået | [4.4-eet-kapitalisering-loebende-mer-regulering.md](4.4-eet-kapitalisering-loebende-mer-regulering.md) |
+| 4.5 | Forsørgertab: beregning, ASL-ydelser, EAL-krav, snapshot | ✅ Gennemgået | [4.5-forsoergertab.md](4.5-forsoergertab.md) |
+| 4.6 | Varige Mén: motor og beregninger | ✅ Gennemgået | [4.6-varige-men.md](4.6-varige-men.md) |
+| 4.7 | Renteberegning: motor, procesrente, principper, validering, tabelmodel | ✅ Gennemgået | [4.7-renteberegning.md](4.7-renteberegning.md) |
+| 4.8 | EO-engines I: periodiseringsmotor, period-merging/overlap/range-groups, ferie, arbejdsdage | ✅ Gennemgået | [4.8-eo-engines-i-periodisering.md](4.8-eo-engines-i-periodisering.md) |
+| 4.9 | EO-engines II: TAF (calculations, engine, netto, per-year, day-sets), forligsgrad, svie/smerte | ✅ Gennemgået | [4.9-eo-engines-ii-taf-forligsgrad-svie-smerte.md](4.9-eo-engines-ii-taf-forligsgrad-svie-smerte.md) |
+| 4.10 | EO-engines III: løn-/ydelsesudvikling og regulering (loenudvikling, offentligeYdelser, regulerings*) | ✅ Gennemgået | [4.10-eo-engines-iii-loenudvikling-regulering.md](4.10-eo-engines-iii-loenudvikling-regulering.md) |
+| 4.11 | EO: helpers, initial values, row-derived og tabel-modeller | ✅ Gennemgået | [4.11-eo-helpers-initial-values-tabeller.md](4.11-eo-helpers-initial-values-tabeller.md) |
+| 4.12 | EO: validation-lag og erstatningsopgoerelseValidator | ✅ Gennemgået | [4.12-eo-validation-lag.md](4.12-eo-validation-lag.md) |
+| 4.13 | EO: snapshot, presentation-model, canonical output og invarianter | ✅ Gennemgået | [4.13-eo-snapshot-presentation-canonical.md](4.13-eo-snapshot-presentation-canonical.md) |<br>↳ _Fra 1.5: ✅ løst — detaljeret TAF-/svie-behandlingsrækkefølge flyttet til `docs/architecture/eo-clamping-pipeline-architecture.md`; kontrakt §2.3 beholder de bindende invarianter._ |
 | 4.14 | EO-debug: view-model, regulation/loen/indkomst-modeller, parity, severity, navigation | ⬜ Ikke startet | — |
 | **5 — Hjælpefunktioner** | | | |
 | 5.1 | Datohåndtering: isoDate, dateCommit, dateUtils, dateFormatting, isoDateHelpers, draft-normalisering | ⬜ Ikke startet | — |

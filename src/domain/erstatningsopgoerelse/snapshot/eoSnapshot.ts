@@ -389,6 +389,7 @@ export const computeEoSnapshot = (args: Readonly<{
       oevrigeKrav,
       forlig: forligForPdf,
       tafRanges: canonicalOutput.periodiseringer.tafPerioder,
+      totals,
     });
     const data: EoSnapshotComputedData = {
       engines: {

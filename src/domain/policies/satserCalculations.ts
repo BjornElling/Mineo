@@ -20,8 +20,10 @@ export const resolveSatserAargangErrorMessage = (
   maxYear: number
 ): string | undefined => {
   const year = satser?.aargang;
-  if (year === undefined) return `Årstallet skal være mellem ${minYear} og ${maxYear}`;
-  if (year < minYear || year > maxYear) return `Årstallet skal være mellem ${minYear} og ${maxYear}`;
+  // Manglende årgang og årgang uden for [minYear, maxYear] giver samme brugervendte fejl.
+  if (year === undefined || year < minYear || year > maxYear) {
+    return `Årstallet skal være mellem ${minYear} og ${maxYear}`;
+  }
   return undefined;
 };
 

@@ -2,10 +2,12 @@ import type { ISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildBeregningsperiodeRange, buildTafRanges } from '../helpers/indtaegtPerioder';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
+import type { IsoRange } from '../../../utils/isoDateHelpers';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 
-export type IsoRange = Readonly<{ fra: ISODateString; til: ISODateString }>;
+// Kanonisk fra isoDateHelpers; re-eksporteres så eksisterende importører bevares.
+export type { IsoRange };
 
 export type CalendarYearIsoRange = IsoRange & Readonly<{ year: number }>;
 

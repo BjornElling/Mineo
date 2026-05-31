@@ -6,16 +6,11 @@
  */
 
 import type { ISODateString } from '../../../types/branded';
-import type { Tilstand } from '../../../schemas/formSchemas';
 
 export type PeriodRow = Readonly<{
   id: string;
   fra?: ISODateString | undefined;
   til?: ISODateString | undefined;
-}>;
-
-export type SvieSmertePeriodRow = PeriodRow & Readonly<{
-  tilstand?: Tilstand | undefined;
 }>;
 
 /**
@@ -67,31 +62,6 @@ export const detectOverlappingPeriods = (rows: readonly PeriodRow[]): ReadonlySe
         overlappingIds.add(rows[i].id);
         overlappingIds.add(rows[j].id);
       }
-    }
-  }
-
-  return overlappingIds;
-};
-
-/**
- * Finder svie/smerte-rækker med overlap på tværs af forskellige tilstande.
- *
- * Overlap med samme tilstand er tilladt, da perioderne sammenlægges i beregningen.
- */
-export const detectConflictingSvieSmerteOverlaps = (
-  rows: readonly SvieSmertePeriodRow[]
-): ReadonlySet<string> => {
-  const overlappingIds = new Set<string>();
-
-  for (let i = 0; i < rows.length; i += 1) {
-    for (let j = i + 1; j < rows.length; j += 1) {
-      const rowA = rows[i];
-      const rowB = rows[j];
-      if (!rowsOverlap(rowA, rowB)) continue;
-      if (!rowA.tilstand || !rowB.tilstand) continue;
-      if (rowA.tilstand === rowB.tilstand) continue;
-      overlappingIds.add(rowA.id);
-      overlappingIds.add(rowB.id);
     }
   }
 

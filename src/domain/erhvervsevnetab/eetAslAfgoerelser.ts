@@ -7,6 +7,7 @@ import {
   validateAslAarsloenDivisibleBy1000,
 } from '../aslEalAarsloen/aarsloenValidators';
 import { isUnderOrEqualTwoYearsToFpByBekendtgoerelse } from './eetKapitaliseringOpslag';
+import { SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 
 export const EET_ASL_MIN_VISIBLE_ROWS = 2;
 export { validateAslAarsloenBySkadesaarMax, validateAslAarsloenDivisibleBy1000 };
@@ -242,7 +243,7 @@ export const validateKapDatoByAfgoerelsestype = (
     const afgoerelsesdatoIso = coerceToISODateString(row.afgoerelsesDato);
     if (
       afgoerelsesdatoIso !== undefined &&
-      afgoerelsesdatoIso >= '2024-07-01' &&
+      afgoerelsesdatoIso >= SKAERING_2024_07_01 &&
       kapDatoIso !== undefined &&
       kapDatoIso !== afgoerelsesdatoIso
     ) {

@@ -6,7 +6,7 @@ import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import { computeRowDateBounds } from '../erstatningsopgoerelse/helpers/rowDateBounds';
 import { getDayBeforeIso, validateISODateRange } from '../../utils/isoDateHelpers';
-import { detectConflictingSvieSmerteOverlaps, detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
+import { detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
 import { formatAsAmount, formatAsAmountTrimmed, formatCurrency, formatPercent } from '../../utils/formatUtils';
 import { addDays, addMonths } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -16,7 +16,7 @@ import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
-import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { computeTafBeregningsenhed, TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder, calculateTafAntalMaanederPraecis } from '../erstatningsopgoerelse/engines/tafCalculations';
 import { calculateFerieHverdageMinusSHDage } from '../erstatningsopgoerelse/engines/ferieCalculations';
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/engines/beregningsperiodeTafOverlap';
@@ -649,7 +649,9 @@ export const buildEODebugSvieSmerteRows = (
   // 2) Periode rows fra tabellen - kun hvis synlig
   const perioder = periodeErSynlig ? (values.svieSmertePerioder ?? []) : [];
   const harPerioder = perioder.length > 0 && perioder.some((p) => p.fra || p.til || p.tilstand);
-  const svieSmerteOverlappingIds = detectConflictingSvieSmerteOverlaps(perioder);
+  // Ethvert overlap afvises (også samme tilstand) — debug skal matche validator/engine
+  // (svieSmerteEngine returnerer null ved ethvert overlap), jf. periodisering-contract §7.
+  const svieSmerteOverlappingIds = detectOverlappingPeriods(perioder);
 
   // Samler alle periode-fejl til senere brug
   const periodeFejlBeskeder: string[] = [];
@@ -2339,7 +2341,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     };
 
     const totalMaaneder = beregnMaanederForDage(periodeDage);
-    const fravaerMaaneder = oevrigeFravaersdageValue * 0.048;
+    const fravaerMaaneder = oevrigeFravaersdageValue * TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR;
 
     const fravaerBeskrivelse =
       values.oevrigtFravaerUdenLoen === 'Ja'

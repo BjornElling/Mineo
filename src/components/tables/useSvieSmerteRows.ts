@@ -7,7 +7,7 @@ import { calculateKalenderdageInclusive } from '../../domain/erstatningsopgoerel
 import { isSvieSmerteRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import type { SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { committedToSvieDraftRows, createEmptySvieCommittedRow, createSvieRowId, ensureSvieRows, svieDraftToCommittedRow, type SvieSmerteDerived } from '../../domain/erstatningsopgoerelse/tables/svieSmerteTableModel';
-import { detectConflictingSvieSmerteOverlaps } from '../../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
+import { detectOverlappingPeriods } from '../../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
 
 export type UseSvieSmerteRowsArgs = Readonly<{
   values: ErstatningsopgoerelseValues;
@@ -71,8 +71,11 @@ const useSvieSmerteRows = ({ values, setValues, resyncToken }: UseSvieSmerteRows
 
   const derivedById = React.useMemo(() => deriveSvieSmerteById(committedRowsEnsured), [committedRowsEnsured]);
 
+  // Alle overlap (også samme tilstand) afvises — validator og svieSmerteEngine afviser
+  // ethvert overlap (svieSmerteEngine returnerer null ved overlap.size > 0). Tabellen skal
+  // derfor markere ethvert overlap rødt, så fejlen er synlig FØR brugeren forsøger at gemme.
   const overlappingIds = React.useMemo(
-    () => detectConflictingSvieSmerteOverlaps(committedRowsEnsured),
+    () => detectOverlappingPeriods(committedRowsEnsured),
     [committedRowsEnsured]
   );
 

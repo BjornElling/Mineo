@@ -136,7 +136,9 @@ describe('SvieSmerteTable', () => {
     expect(screen.getByTestId('overlap-ids').textContent).toBe('row-1,row-3');
   });
 
-  it('marks ikke overlapping rows MED SAMME tilstand', () => {
+  it('marks overlapping rows MED SAMME tilstand (streng regel — ethvert overlap afvist)', () => {
+    // Tidligere blev samme-tilstand-overlap ikke markeret i tabellen; det var inkonsistent med
+    // validator/engine. Nu markeres også samme-tilstand-overlap, så fejlen ses før gem-forsøg.
     const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       svieSmertePerioder: [
@@ -163,6 +165,6 @@ describe('SvieSmerteTable', () => {
     };
 
     render(<TestHarness />);
-    expect(screen.getByTestId('overlap-ids').textContent).toBe('');
+    expect(screen.getByTestId('overlap-ids').textContent).toBe('row-1,row-2');
   });
 });

@@ -147,6 +147,11 @@ const interpolateKapitalfaktor = (
   return round3(faktorX + (faktorXplus1 - faktorX) * (resterendeMaaneder / 12));
 };
 
+// month er 1-indekseret (1 = januar … 12 = december), som det udtrækkes af ISO-strengens
+// måneds-segment. Date.UTC(year, month, 0) udnytter at "dag 0" = sidste dag i den FOREGÅENDE
+// 0-indekserede måned: med 1-indekseret input peger month derfor på den 0-indekserede MÅNED-EFTER,
+// og dag 0 dér giver præcis sidste dag i den ønskede måned. De to off-by-one-forskydninger
+// ophæver hinanden — ret IKKE month til month-1, det ville give forrige måneds dage.
 const daysInMonth = (year: number, month: number): number => new Date(Date.UTC(year, month, 0)).getUTCDate();
 
 const computeLobendeYdelser = (

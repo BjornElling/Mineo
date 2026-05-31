@@ -7,9 +7,9 @@ import type {
   SvieSmerteModel,
   TabtArbejdsfortjenesteModel,
 } from '../shared/eoTypes';
-import { clampMoneyOreToZero, ensureMoneyOre, scaleMoneyOre } from '../shared/eoMoney';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
+import type { EoComputedTotals } from './eoCanonicalOutput';
 
 export type {
   Calculable,
@@ -94,34 +94,20 @@ export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
   oevrigeKrav: OevrigeKravModel;
   forlig: ForligModel;
   tafRanges: readonly IsoRange[];
+  // Single source of truth: PDF-modellen genberegner IKKE EO-totaler. Den læser de
+  // autoritative, allerede-clampede/-skalerede totaler fra snapshot-orkestreringens
+  // buildEoComputedTotals (eoCanonicalOutput.ts), jf. eo-snapshot-contract.md §1
+  // ("Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller debug-lag").
+  totals: EoComputedTotals;
 }>): EoModel => {
-  const tidligereModtagetTafOre = args.tabtArbejdsfortjeneste.tidligereModtagetTaf.status === 'ok'
-    ? args.tabtArbejdsfortjeneste.tidligereModtagetTaf.value
-    : ensureMoneyOre(0);
-  const tabtArbejdsfortjenesteEfterForligOre = args.forlig.erIndgaaet
-    ? scaleMoneyOre(args.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre, args.forlig.factor)
-    : args.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre;
-  const tabtArbejdsfortjenesteOre = clampMoneyOreToZero(
-    ensureMoneyOre(tabtArbejdsfortjenesteEfterForligOre - tidligereModtagetTafOre)
-  );
   const tabtArbejdsfortjeneste = {
     ...args.tabtArbejdsfortjeneste,
-    tabtArbejdsfortjenesteOre,
+    tabtArbejdsfortjenesteOre: args.totals.tabtArbejdsfortjenesteOre,
   };
-  const oevrigeKravOre = args.forlig.erIndgaaet
-    ? clampMoneyOreToZero(scaleMoneyOre(args.oevrigeKrav.totalFoerForligOre, args.forlig.factor))
-    : args.oevrigeKrav.totalFoerForligOre;
   const oevrigeKrav = {
     ...args.oevrigeKrav,
-    totalOre: oevrigeKravOre,
+    totalOre: args.totals.oevrigeKravOre,
   };
-
-  const svieSmerteOre = clampMoneyOreToZero(args.svieSmerte.totalOre);
-  const tabtArbejdsfortjenesteOreClamped = clampMoneyOreToZero(tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
-  const oevrigeKravOreClamped = clampMoneyOreToZero(oevrigeKrav.totalOre);
-  const totalOre = clampMoneyOreToZero(
-    ensureMoneyOre(svieSmerteOre + tabtArbejdsfortjenesteOreClamped + oevrigeKravOreClamped)
-  );
 
   return {
     titel: args.presentation.titel,
@@ -136,10 +122,10 @@ export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
     tabtArbejdsfortjeneste,
     oevrigeKrav,
     samlet: {
-      svieSmerteOre,
-      tabtArbejdsfortjenesteOre: tabtArbejdsfortjenesteOreClamped,
-      oevrigeKravOre: oevrigeKravOreClamped,
-      totalOre,
+      svieSmerteOre: args.totals.svieSmerteOre,
+      tabtArbejdsfortjenesteOre: args.totals.tabtArbejdsfortjenesteOre,
+      oevrigeKravOre: args.totals.oevrigeKravOre,
+      totalOre: args.totals.samletTotalOre,
     },
     saerligeKommentarer: args.presentation.saerligeKommentarer,
     tafRanges: args.tafRanges,

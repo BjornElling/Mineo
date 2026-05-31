@@ -1,15 +1,10 @@
 import type { ISODateString } from '../../../types/branded';
 import { dateToISO, isISODateString, parseISODate } from '../../../types/branded';
+import type { IsoRange } from '../../../utils/isoDateHelpers';
 
-export type IsoDateRange = Readonly<{
-  fra: ISODateString;
-  til: ISODateString;
-}>;
-
-type MergeableIsoRange = Readonly<{
-  fra: ISODateString;
-  til: ISODateString;
-}>;
+// IsoDateRange er den ISO-baserede periode-form; identisk med den kanoniske IsoRange
+// i isoDateHelpers. Bevarer det velbrugte navn (8 importører) som alias for ét sandt struktur-grundlag.
+export type IsoDateRange = IsoRange;
 
 type MergeableDateRange = Readonly<{
   fra: Date;
@@ -30,7 +25,7 @@ const addDaysIso = (isoDate: ISODateString, days: number): ISODateString => {
   return nextIso;
 };
 
-export const mergeIsoDateRanges = <TRange extends MergeableIsoRange>(
+export const mergeIsoDateRanges = <TRange extends IsoRange>(
   ranges: readonly TRange[],
   options?: Readonly<{ mergeAdjacent?: boolean }>
 ): IsoDateRange[] => {

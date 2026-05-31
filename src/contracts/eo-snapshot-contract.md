@@ -116,86 +116,40 @@ indtastninger. De lægges ukritisk til grund som indtastet. Den eneste undtagels
 rækkens egen datologik: `fra-dato > til-dato` eller `til-dato < fra-dato` er fejl på samme
 niveau som tilsvarende rækkefejl for TAF- og svie/smerte-perioder.
 
-### 2.3 Fuld behandlingsrækkefølge for TAF-perioder
+### 2.3 Behandlingsrækkefølge for TAF- og svie/smerte-perioder (bindende invarianter)
 
-1. **Syntaksvalidering:** Ufuldstændige datoer (fx `dd-mm`) afvises i inputfeltet og
-   committes ikke. Kun gyldige ISO-datoer committes.
+Den fulde, trinvise behandlingsrækkefølge er udfoldet informativt i
+`docs/architecture/eo-clamping-pipeline-architecture.md`. Kontrakten ejer følgende **bindende
+invarianter** for rækkefølgen; pipeline-doc'en må aldrig modsige dem:
 
-2. **Semantisk validering (fejlgivende bounds):** Efter commit undersøges de committede
-   datoer mod fejlgivende bounds (§2.2). Violation giver feltfejl (rød kant + tooltip) og
-   blokerer download via EOBeregningTab. Disse checks inkluderer: fra-dato mod 2005-grænse,
-   skadedato/anmeldedato-grænse, fra > til, til < fra, til >= differencekravDato,
-   til >= EET-virkningsdato (ikke påklaget), overlap mellem rækker.
+1. **Validering før relevansvurdering.** Semantisk validering (fejlgivende bounds, §2.2) sker
+   på de committede rækker som sådanne — ikke først efter en relevansvurdering mod de
+   clampede ranges. En ugyldig periode bliver ikke "reddet" af, at den senere ville være uden
+   betydning for beregningsintervallet.
 
-   Validering sker på de committede rækker som sådanne — ikke først efter en
-   relevansvurdering mod de autoritative, clampede ranges. En ugyldig TAF-række bliver
-   derfor ikke "reddet" af, at den senere ville være uden betydning for det autoritative
-   beregningsinterval.
+2. **Fejlgivende clamping FØR stille EO-periode-clamping.** Til-dato clampes mod de
+   fejlgivende øvre grænser (TAF: strengeste af `differencekravDato − 1`, `endelig
+   EET-virkningsdato − 1` og — ved skadedato < 2011-06-16 — `midlertidig EET-virkningsdato − 1`,
+   alle ophævet ved `verserendeKlageEet = 'Ja'`; svie/smerte: `menAfgoerelseDato − 1` når
+   ménafgørelsen er endelig) **før** den stille clamping mod EO-perioden. Rækkefølgen sikrer,
+   at en feltfejl ikke skjules af, at EO-perioden forinden har afkortet perioden.
 
-3. **Clamping mod fejlgivende øvre grænser:** Til-dato clampes mod strengeste af:
-   `differencekravDato − 1`, `endelig EET-virkningsdato − 1`, og (ved skadedato < 2011-06-16)
-   `midlertidig EET-virkningsdato − 1`. Alle tre EET-grænser ophæves hvis `verserendeKlageEet = 'Ja'`.
-   Validator rapporterer violation som feltfejl der blokerer download. Rækkefølge: FØR
-   EO-periode-clamping, så feltfejlen ikke skjules af at EO-perioden forinden har afkortet perioden.
+3. **Løse feriedage er række-bundne pre-merge.** `loseFeriedage` på en TAF-række knyttes til
+   den oprindelige indtastede række og placeres pre-merge — merge ændrer ikke placeringen.
 
-4. **Løse feriedage er række-bundne før merge:** Hvis brugeren har indtastet
-   `loseFeriedage` på en TAF-række, knyttes disse dage til den oprindelige indtastede række
-   og placeres fra periodens start i netop denne række. Hvis flere TAF-rækker efterfølgende
-   merges, ændrer merge ikke den logiske placering af løse feriedage; placeringen sker
-   dermed pre-merge, ikke på baggrund af den samlede merged periode.
+4. **Merge er centraliseret.** Overlappende og tilstødende ranges slås sammen via den
+   kanoniske `mergeIsoDateRanges(...)` / `mergeDateRanges(...)` i
+   `src/domain/erstatningsopgoerelse/engines/periodMerging.ts` (`mergeAdjacent: true`). Lokale,
+   ad hoc merge-implementeringer i TAF-, svie/smerte-, ferie- eller SFGG-flow er arkitektonisk
+   fejl, medmindre en kontrakt udtrykkeligt kræver afvigende merge-semantik.
 
-5. **Merge:** Overlappende og tilstødende ranges slås sammen til sammenhængende perioder
-   (`mergeAdjacent: true`) via den kanoniske EO-helper i
-   `src/domain/erstatningsopgoerelse/engines/periodMerging.ts`.
+5. **Ethvert svie/smerte-overlap afvises** — også overlap mellem perioder med samme tilstand.
+   Validator og `svieSmerteEngine` afviser ethvert overlap, og tabel-/debug-laget markerer det
+   synligt før gem. Der findes ingen "samme tilstand er tilladt"-undtagelse.
 
-6. **Stille clamping mod EO-perioden:** Fra-dato `< vedroererPeriodeFra` clampes til
-   `vedroererPeriodeFra`. Til-dato `> vedroererPeriodeTil` clampes til `vedroererPeriodeTil`.
-   Ingen fejlindikation. Sker EFTER fejlgivende clamping.
-
-7. De resulterende ranges lægges til grund for beregning i EODebug, EODebugTabel og
-   EOBeregning. Download er blokeret hvis der er fejl fra trin 2.
-
-Bemærk om projektioner: EO-domænet kan have flere tekniske TAF-forbrugere, fx en
-per-række/merged-output-sti og en snapshot-baseret aggregationssti. Det er ikke i sig selv
-et kontraktbrud, så længe de følger samme autoritative domænesemantik: clampede ranges som
-beregningsgrundlag, pre-merge placering af løse feriedage og ingen parallelle fallback-totaler.
-
-Tilsvarende proces gælder for svie/smerte-perioder:
-
-1. **Syntaksvalidering:** Ufuldstændige datoer (fx `dd-mm`) afvises i inputfeltet og
-   committes ikke. Kun gyldige ISO-datoer committes.
-
-2. **Semantisk validering (fejlgivende bounds):** Efter commit undersøges de committede
-   datoer mod fejlgivende bounds (§2.2). Violation giver feltfejl (rød kant + tooltip) og
-   blokerer download via EOBeregningTab. Disse checks inkluderer: fra-dato mod 2005-grænse,
-   skadedato/anmeldedato-grænse, fra > til, til < fra, til >= ménafgørelsesdato
-   (ikke påklaget), overlap mellem rækker.
-
-3. **Clamping mod fejlgivende øvre grænse:** Til-dato clampes mod
-   `menAfgoerelseDato − 1`, når ménafgørelsen er endelig
-   (`varigeMenAfgorelse = 'Ja'` og `verserendeKlageMen = 'Nej'`).
-   Validator rapporterer violation som feltfejl der blokerer download. Rækkefølge: FØR
-   EO-periode-clamping, så feltfejlen ikke skjules af at EO-perioden forinden har afkortet
-   perioden.
-
-4. **Merge:** Overlappende og tilstødende ranges slås sammen til sammenhængende perioder
-   (`mergeAdjacent: true`) via den kanoniske EO-helper i
-   `src/domain/erstatningsopgoerelse/engines/periodMerging.ts`.
-
-5. **Stille clamping mod EO-perioden:** Fra-dato `< vedroererPeriodeFra` clampes til
-   `vedroererPeriodeFra`. Til-dato `> vedroererPeriodeTil` clampes til `vedroererPeriodeTil`.
-   Ingen fejlindikation. Sker EFTER fejlgivende clamping.
-
-6. De resulterende ranges lægges til grund for beregning i EODebug, EODebugTabel og
-   EOBeregning. Download er blokeret hvis der er fejl fra trin 2.
-
-Implementeringen bruger parallelle constraint-typer (`SvieSmerteConstraintBounds`,
-`resolveSvieSmerteFejlgivendeBounds`, `resolveSvieSmerteEoPeriodeBounds`) i
-`svieSmerteConstraints.ts`.
-
-Periodemerge i EO er centraliseret:
-- `mergeIsoDateRanges(...)` / `mergeDateRanges(...)` i `src/domain/erstatningsopgoerelse/engines/periodMerging.ts`
-- Lokale, ad hoc merge-implementeringer i TAF-, svie/smerte-, ferie- eller SFGG-flow er arkitektonisk fejl, medmindre en kontrakt udtrykkeligt kræver en afvigende merge-semantik.
+6. **Ingen parallelle fallback-totaler.** EO-domænet kan have flere tekniske TAF-forbrugere
+   (per-række/merged-output og snapshot-aggregation), men de skal følge samme autoritative
+   domænesemantik: clampede ranges som beregningsgrundlag og ingen parallelle fallback-totaler.
 
 ### 2.4 Clampinggaranti
 

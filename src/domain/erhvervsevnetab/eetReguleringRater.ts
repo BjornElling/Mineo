@@ -2,13 +2,12 @@ import {
   reguleringsprocentErhvervsevnetab,
   reguleringsprocentErhvervsevnetabFra2024,
 } from '../../data/lovbestemteRates';
+import type { EetIssue } from './eetTypes';
 
 export type AslReguleringRateInfo = Readonly<{
   factor: number;
   reguleringPct: number;
 }>;
-
-type Issue = Readonly<{ id: string; severity: 'error' | 'warning'; message: string }>;
 
 /**
  * Fælles kerne for reguleringsrate-opslag.
@@ -27,7 +26,7 @@ type Issue = Readonly<{ id: string; severity: 'error' | 'warning'; message: stri
 export const resolveAslReguleringRateForAar = (
   year: number,
   before2024Skade: boolean,
-  issues: Issue[],
+  issues: EetIssue[],
   issueId: string
 ): AslReguleringRateInfo | null => {
   if (before2024Skade) {
@@ -64,7 +63,7 @@ export const resolveAslReguleringRateForAar = (
 export const resolveAslReguleringRateForKapAar = (
   kapitaliseringsaar: number,
   before2024Skade: boolean,
-  issues: Issue[]
+  issues: EetIssue[]
 ): AslReguleringRateInfo | null =>
   resolveAslReguleringRateForAar(kapitaliseringsaar, before2024Skade, issues, 'reguleringssats-missing');
 
@@ -76,6 +75,6 @@ export const resolveAslReguleringRateForKapAar = (
 export const resolveAslReguleringRateForSatsAar = (
   year: number,
   before2024Skade: boolean,
-  issues: Issue[]
+  issues: EetIssue[]
 ): AslReguleringRateInfo | null =>
   resolveAslReguleringRateForAar(year, before2024Skade, issues, `reguleringssats-missing-${year}`);
