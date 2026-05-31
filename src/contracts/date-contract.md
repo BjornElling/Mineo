@@ -1,4 +1,4 @@
-# Date Contract (Trust-Critical)
+# Datokontrakt (trust-kritisk)
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
@@ -6,41 +6,41 @@
 **Senest verificeret mod kode:** 2026-05-30
 
 ## Scope
-- Any logic that counts calendar days or derives day-based periods.
-- Any logic that computes interest days, svie/smerte days, TAF days, or period days.
-- Persisted/form layer owns `ISODateString`; this contract owns calendar math after the value is validated or normalized.
+- Al logik der tæller kalenderdage eller udleder dag-baserede perioder.
+- Al logik der beregner rentedage, svie/smerte-dage, TAF-dage eller periodedage.
+- Persistence-/form-laget ejer `ISODateString`; denne kontrakt ejer kalendermatematikken, efter værdien er valideret eller normaliseret.
 - Parsing og coercion af `ISODateString` fra brugerinput eller persistering hører til `form-contract.md` §4. Denne kontrakt gælder fra og med en valideret UTC-dato-instans.
 
-## Rules
-- All date-only `Date` instances MUST be treated as UTC calendar days.
-  - Use `getUTC*` / `setUTC*` for all date component access.
-  - Never rely on local time getters for date-only logic.
-- Minimum time unit is days; hours/minutes/seconds are out of scope.
-- All calendar day counts MUST use `src/utils/utcDayMath.ts`.
-  - Inclusive counts: `countInclusiveUtcDays`
-  - Exclusive counts: `countExclusiveUtcDays`
-  - Raw diff: `diffUtcDays` / `diffUtcDaysAbs`
-- Local ms-diff day counts are forbidden in business logic:
-  - `(end.getTime() - start.getTime()) / 86400000` on local/date-only instances or variants
-  - `Math.floor/ceil/round` on local ms-diff for day counts
-- UTC-normalized ms-diff inside `utcDayMath.ts` is allowed:
-  - normalize with `Date.UTC(getUTCFullYear(), getUTCMonth(), getUTCDate())`
-  - then divide by day milliseconds in the canonical helper only
-- `countInclusiveUtcDays` and `countExclusiveUtcDays` return `null` when `start > end`.
-  - Callers must handle `null` explicitly.
-  - Non-null assertion is forbidden unless a nearby comment explains the proven invariant.
-- Invalid `Date` / NaN input must not be accepted silently. Callers must validate before UTC day math, or helpers must fail-fast if they own the validation boundary.
-- Calendar iteration (day-by-day) is allowed ONLY when the domain needs per-day logic
-  (e.g., holidays, weekdays, month fractions). It must be explicitly documented.
+## Regler
+- Alle dato-kun `Date`-instanser SKAL behandles som UTC-kalenderdage.
+  - Brug `getUTC*` / `setUTC*` til al adgang til dato-komponenter.
+  - Stol aldrig på local time-getters til dato-kun-logik.
+- Mindste tidsenhed er dage; timer/minutter/sekunder er uden for scope.
+- Alle kalenderdag-tællinger SKAL bruge `src/utils/utcDayMath.ts`.
+  - Inklusive tællinger: `countInclusiveUtcDays`
+  - Eksklusive tællinger: `countExclusiveUtcDays`
+  - Rå diff: `diffUtcDays` / `diffUtcDaysAbs`
+- Lokale ms-diff dag-tællinger er forbudt i forretningslogik:
+  - `(end.getTime() - start.getTime()) / 86400000` på lokale/dato-kun-instanser eller varianter
+  - `Math.floor/ceil/round` på lokal ms-diff til dag-tællinger
+- UTC-normaliseret ms-diff inde i `utcDayMath.ts` er tilladt:
+  - normalisér med `Date.UTC(getUTCFullYear(), getUTCMonth(), getUTCDate())`
+  - dividér derefter med dag-millisekunder kun i den kanoniske helper
+- `countInclusiveUtcDays` og `countExclusiveUtcDays` returnerer `null`, når `start > end`.
+  - Kaldere SKAL håndtere `null` eksplicit.
+  - Non-null assertion er forbudt, medmindre en nærliggende kommentar forklarer den beviste invariant.
+- Ugyldigt `Date` / NaN-input MÅ IKKE accepteres i stilhed. Kaldere SKAL validere før UTC-dag-matematik, eller helpers SKAL fejle fail-fast, hvis de ejer valideringsgrænsen.
+- Kalender-iteration (dag-for-dag) er KUN tilladt, når domænet kræver per-dag-logik
+  (fx helligdage, ugedage, månedsbrøker). Det SKAL dokumenteres eksplicit.
 
-## Date Pipeline
+## Datopipeline
 
-1. Form/persistence layer stores date-only values as `ISODateString`.
-2. Parsing/coercion uses branded/date helpers in `src/types/branded.ts` and `src/domain/dates/isoDate.ts`.
-3. Calculation layer may receive validated `ISODateString` or UTC-normalized date instances.
-4. Day counts use `src/utils/utcDayMath.ts`.
+1. Form-/persistence-laget gemmer dato-kun-værdier som `ISODateString`.
+2. Parsing/coercion bruger branded/dato-helpers i `src/types/branded.ts` og `src/domain/dates/isoDate.ts`.
+3. Beregningslaget kan modtage valideret `ISODateString` eller UTC-normaliserede dato-instanser.
+4. Dag-tællinger bruger `src/utils/utcDayMath.ts`.
 
-## Review Checklist
-- Any new day count uses `utcDayMath`.
-- If iteration is used, the function JSDoc must state inclusivity (whether start and end day are both iterated) and why iteration is required.
-- Sorting with `getTime()` is allowed only for ordering, never for day counts.
+## Review-tjekliste
+- Enhver ny dag-tælling bruger `utcDayMath`.
+- Hvis iteration bruges, SKAL funktionens JSDoc angive inklusivitet (om både start- og slutdag itereres) og hvorfor iteration er nødvendig.
+- Sortering med `getTime()` er kun tilladt til ordning, aldrig til dag-tællinger.

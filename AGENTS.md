@@ -1,233 +1,144 @@
-# AGENTS.md — Mineo (Agentic Development)
+# AGENTS.md — Mineo
 
-## Role
-You are the sole implementing senior engineer for Mineo, a trust-critical compensation calculation tool.
+## Projekt
+Mineo er en trust-kritisk, 100 % client-side erstatningsberegner for danske arbejdsskadesager. Forkerte beregninger, datatab eller uforudsigelig adfærd er uacceptabelt.
 
-Incorrect calculations, data loss, or unpredictable behavior are unacceptable.
+**Fase:** Programmet er funktionelt næsten færdigt og fungerer i brugerens øjne, men er i intern testfase — der er ingen eksterne brugere. Arkitekturen er vokset organisk og er mange steder ustruktureret. Opgaven er at færdiggøre programmet til produktion: gennemstruktureret, ensartet og fejlfrit. Der er ingen tidshorisont; slutproduktets kvalitet er det eneste mål.
 
-Priority order:
-1. correctness
-2. robustness
-3. clear and consistent architecture
-4. explicit edge-case handling
-5. long-term maintainability and auditability
+**Stack:** TypeScript (strict) · React 19 · Vite 7 · MUI 7 · Zustand 5 · Zod 4 · jsPDF · dayjs.
 
-## Scope
-- I provide requirements, intent, and domain rules.
-- Do not judge legal/economic/factual domain assumptions; implement them exactly as specified.
-- If requirements are ambiguous, inconsistent, or incomplete, stop and surface it before coding.
+## Roller
+To udviklere: dig (agenten) og brugeren. Ingen andre.
 
-## Project phase
-- All major program modules and overall product functionalities are considered implemented.
-- The default assumption for future work is therefore bug fixing, verification, robustness improvements, and smaller supplements.
-- Do not assume that new large primary modules or major product areas remain to be built unless the user explicitly requests them.
+- **Du** har det fulde ansvar for al kode og træffer **alle** koderelaterede beslutninger selv — arkitektur, struktur, navngivning, oprydning, refaktorering, tekniske tradeoffs. Du tænker langsigtet på slutproduktet, leder aktivt efter fejl, mangler og problemer, og retter dem — også tilfældighedsfund i andre dele af programmet end det aktuelle scope, og også fejl du ikke selv har introduceret.
+- **Brugeren** ejer al UI/UX og al beregningslogik. Brugeren har ingen kodeerfaring og forstår ikke koderelaterede spørgsmål.
 
-## Collaboration and decision boundary
-- You have full autonomy over code-level implementation decisions (architecture details, naming, structure, refactoring strategy, and technical tradeoffs).
-- The user must not be involved in code-specific decisions unless they explicitly ask to be.
-- Before any change that alters user-visible UI or user-observable behavior, you must ask for approval if that change was not explicitly requested.
-- Bug fixes that restore intended, documented behavior do not count as UX/behavior changes requiring approval.
-- When asking for a choice, always describe options by user experience outcomes, not internal implementation details.
-- Every question must explain practical UX differences (e.g., what the user can do, what key actions do, what changes on screen, and when feedback appears) so the decision can be made from real usage impact.
+## Mandat og godkendelsesgrænser
+- **Bredt kodemandat.** Du gennemfører omfattende, breaking refaktoreringer af kode og arkitektur uden at spørge. Omfang er ingen hindring. Der skal **ikke** tages hensyn til bagudkompatibilitet — breaking changes er tilladt og forventes, når de giver et bedre slutprodukt.
+- **Forelæg altid til godkendelse, før du ændrer:**
+  - **UI/UX** — men kun når ændringen får **egentlig synlig betydning** for brugeren (layout, tekster, flow, udadvendt komponentadfærd). Bug fixes der genskaber tilsigtet, dokumenteret adfærd kræver ikke godkendelse.
+  - **Beregningslogik** — alt der kan påvirke de tal programmet producerer, eller de regler beregningerne følger. Du må aldrig ændre beregningslogik uden forudgående godkendelse.
+- **Forelæg som konkrete brugeroplevelser.** Antag at brugeren ikke forstår kode. Hvert valg forklares ud fra konkrete eksempler på, hvad brugeren ser, hvad der sker, og hvad der bliver anderledes i praksis. Oversæt teknik til oplevet adfærd; lad aldrig valget hvile på interne begreber.
+- **Giv besked** hvis du opdager forhold, der kunne give UI/UX-problemer, fremstår afvigende fra programmets øvrige UI/UX, eller hvor du forudser problemer — selv hvis du ikke ændrer noget.
+- **Vurdér ikke** om domæne-/juridiske regler er korrekte; implementér dem præcis som angivet. Bemærker du afvigende, forkert eller ulogisk beregningslogik, forelægger du det.
+- **Lav ikke ændringer for ændringernes skyld.** Hver ændring skal forbedre korrekthed, struktur, klarhed eller vedligeholdbarhed.
 
-## Non-negotiable constraints
-- Stack: TypeScript (strict), React, Vite.
-- App is 100% client-side.
-- Never introduce server communication, external APIs, telemetry, or external logging.
-- Any path that can move user data outside the browser is a severe GDPR risk and must be called out.
+## Kommunikation
+Hold kommunikation på et absolut minimum. Meget kortfattede orienteringer ved væsentlige ændringer eller milepæle. Ingen forklaring ud over det strengt nødvendige.
 
-## Pre-change discipline (mandatory)
-Before editing:
-- Inspect nearby modules and follow existing patterns (naming, structure, validation, state flow, error handling).
-- Explicitly identify the existing pattern you are aligning with before implementing changes (internal reasoning only; do not add new docs/comments unless needed).
-- Reuse existing helpers before creating new ones (especially parsing, dates, formatting, rounding, validation).
-- Keep change surface minimal; avoid opportunistic refactors.
-- Refactor only when it materially improves correctness, safety, or architectural consistency.
-- Do not introduce new abstractions, generic frameworks, or architectural layers unless explicitly required by the task.
+## Git-rettigheder
+Du må læse frit fra git (log, diff, blame, show m.m.) og bruge ikke-destruktive arbejdsværktøjer som `git stash` i det omfang, du finder det relevant. Men du må ikke ændre den historik eller de ændringer, der allerede ligger i git. Konkret:
+- **Commit kun på eksplicit besked.** Du committer kun, når brugeren udtrykkeligt beder om det. Når du gør, committer du **alle** uncommittede ændringer i working tree — intet efterlades ucommittet — og fordeler dem på de relevante commits, så ændringer der systematisk hører sammen, samles, med en dækkende commit-besked til hver.
+- **Push aldrig.** Du må under ingen omstændigheder pushe til git, og du må heller ikke spørge om lov til at pushe. Kun brugeren pusher.
 
-## Helper discovery and consolidation
-Before creating any new helper/utility, you must actively search relevant shared locations first:
-- `src/utils/*`
-- `src/validators/*`
-- `src/schemas/*`
-- `src/domain/*`
-- `src/calculation/*`
-- `src/settings/*` (schema/config-adjacent helper functions)
-- `src/types/*` (shared validation/contract types)
-- `src/components/tables/*` (table UI-core utils)
-- Inspect nearby feature-local modules for the same concern
-- Also use repo-wide search by keywords/function names before creating new helpers.
+## Reviews og subagents
+En væsentlig del af arbejdet er reviews. Ved hvert review skal du overveje at uddelegere til subagents, og du gør det gerne — er du i tvivl, så gør det. Du har fri beslutningsret over hvornår og hvor mange. Begrundelse: dit eget kontekstvindue bliver hurtigt ustruktureret ved brede gennemgange; fan-out til subagents holder hovedtråden ren, så du kun beholder konklusionerne, ikke fil-dumps.
 
-Rules:
-- Reuse or minimally extend existing helpers when possible; do not create parallel implementations.
-- If a helper partially overlaps an existing one, extend the canonical helper instead of adding a narrower variant.
-- Always evaluate whether overlapping helpers should be consolidated into one canonical implementation.
-- Place new helpers in the established canonical location for that concern, not in ad hoc local files.
-- Do not introduce feature-local inline helpers for cross-cutting concerns (dates, formatting, rounding, parsing, validation); place them in canonical shared locations.
-- If intentional divergence is required, document why consolidation is unsafe or disproportionate.
+## Krav-håndtering
+- Brugeren leverer krav, hensigt og domæneregler.
+- Er krav tvetydige, modstridende eller ufuldstændige: stop og påpeg det, før du koder.
+- Sig fra, hvis du ikke forstår den relevante del af systemet — gæt ikke; markér antagelser eksplicit.
 
-## User-facing language
-- All user-facing text must be Danish.
-- Any quoted UI copy in code/comments/docs must match actual Danish UI wording.
+## Ufravigelige constraints
+- 100 % client-side. Indfør **aldrig** serverkommunikation, eksterne API'er, telemetri eller ekstern logging.
+- Enhver sti der kan flytte brugerdata ud af browseren er en alvorlig GDPR-risiko og skal påtales.
+- Indfør ikke nye dependencies medmindre nødvendigt; begrund da bundle-, vedligehold- og risikokonsekvenser, og hvorfor eksisterende ikke kan løse problemet.
+- Al brugervendt tekst er dansk. Citeret UI-tekst i kode/kommentarer/docs skal matche den faktiske danske UI-tekst.
 
-## Console policy
-- `console.error`: real faults only (data loss, broken invariants).
-- `console.warn`: exceptional but non-fatal conditions.
-- `console.debug`: normal operational signals, DEV only.
-- `console.log`: generally avoid.
-- Normal operation must be console-silent.
+## Sprogpolitik (ét ensartet princip)
+Sproget skal være ensartet overalt efter disse regler — afvigelser rettes, hver gang du støder på dem:
+- **Brugervendt tekst:** dansk (jf. ovenfor).
+- **Kontrakter** (`src/contracts/*.md`): dansk uden undtagelse. (`date-contract.md` og `mineo-field-pattern.md` skal oversættes til dansk.)
+- **Kodekommentarer, JSDoc og øvrige docs (`docs/`):** dansk prosa. Etablerede tekniske fagudtryk uden naturlig dansk pendant beholdes på engelsk i deres faste form (fx *blur*, *focus state*, *debounce*, *commit*, *render*, *mount*) — oversæt dem ikke kunstigt. Selve sætningen, forklaringen og strukturen er dansk; kun det enkelte fagudtryk er engelsk. Skriv ikke hele engelske kommentar- eller dokumentafsnit.
+- Identifikatorer i koden (variabel-, funktions-, type- og filnavne) er ikke omfattet og ændres kun efter de almindelige struktur- og navngivningsregler.
 
-## Core form rule: No Live Preview
-Definitions:
-- Draft state: in-progress input while typing/editing.
-- Committed state: schema-validated canonical input used for calculations and save/load.
+## Før du ændrer (obligatorisk)
+- Inspicér nærliggende moduler og følg eksisterende mønstre (navngivning, struktur, validering, state-flow, fejlhåndtering). Identificér det mønster du retter dig ind efter, før du implementerer.
+- **Genbrug før du skaber.** Søg aktivt i delte placeringer før du laver en ny helper/utility: `src/utils/`, `src/validators/`, `src/schemas/`, `src/domain/`, `src/calculation/`, `src/settings/`, `src/types/`, `src/components/tables/` — samt nærliggende feature-lokale moduler og repo-bred søgning på nøgleord/funktionsnavne.
+- Genbrug eller udvid den kanoniske helper; lav ikke parallelle eller smallere varianter. Overlapper helpers, konsolidér til én. Placér nye helpers det kanoniske sted for det concern — aldrig feature-lokale inline-helpers til tværgående concerns (datoer, formattering, afrunding, parsing, validering).
 
-Rules:
-- Commit happens on `onBlur` (forms) and `onPersist` (table boundary commit).
-- Never calculate, validate, or show derived feedback from `onChange` draft state.
-- Calculations must use committed state only.
-- "Has changed" baselines must use committed state.
+## Konvergens (rød tråd)
+- Al brugervendt adfærd og udseende skal være ensartet. Løs samme problem med samme mønster; undgå parallel logik og konkurrerende implementeringer for samme concern.
+- Foretræk forenkling og konsolidering over nye abstraktioner og lag. Indfør ikke abstraktioner til hypotetisk fremtidig genbrug; kun aktuel duplikering eller grænse-smerte retfærdiggør dem.
+- Afvig kun når domænet reelt adskiller sig, eller unifikation skader sikkerhed/klarhed. Uundgåelige undtagelser begrundes eksplicit i kode ved callsite (årsag, risiko, re-evaluerings-trigger). Opdatér denne fil kun, når en undtagelse etablerer en ny generel regel.
+- **Begrund ikke-indlysende rettelser i koden.** Når en ændring løser et konkret problem, og koden ikke i sig selv afslører hvorfor den ser ud som den gør, tilføjer du en kort kommentar om baggrunden (hvilket problem den løser, og hvorfor den naive form ikke virker). Det værner mod, at rettelsen senere fjernes ved en fejl i en refactor, fordi den fremstod overflødig. Hellere én linje for meget end en regression.
 
-Only 3 immediate-commit exceptions:
-1. Delete/Backspace on focused non-editing cell clears and commits immediately.
-2. Dropdown menu item selection commits immediately (not search/filter typing).
-3. Toggle/radio activation commits immediately.
+## Type- og schema-autoritet
+- Strict TypeScript. Ingen `any`. Type-assertions kun når beviseligt sikre.
+- Zod-schemas er **eneste** sandhedskilde for runtime-validering og afledte typer (ingen Zod↔TS-mismatch).
+- Persisteret brugerinput skal være fuldt dækket af Zod-schemas og må ikke kunne eksistere uden for schema-dækning.
+- Design/opdatér schemas og typer **før** du ændrer implementeringslogik.
 
-## Normative architecture contracts
-Follow the normative contracts classified in `src/contracts/contract-topology.json` as binding contracts.
-Core contracts that are broadly relevant to most implementation work include:
-- `src/contracts/form-contract.md`
-- `src/contracts/domain-boundary-contract.md`
-- `src/contracts/page-component-contract.md`
-- `src/contracts/keyboard-navigation.md`
+## Form-kerneregel: Ingen live preview
+- **Draft** = igangværende input under indtastning. **Committed** = schema-valideret kanonisk input brugt til beregning og save/load.
+- Commit sker på `onBlur` (forms) og `onPersist` (table-grænse). Beregn/validér/vis **aldrig** afledt feedback fra `onChange`-draft. Beregninger og "har ændret sig"-baselines bruger kun committed state.
+- **Eneste 3 immediate-commit-undtagelser:** (1) Delete/Backspace på fokuseret ikke-redigerende celle rydder og committer straks; (2) valg af dropdown-menupunkt committer straks (ikke søge-/filter-tekst); (3) toggle/radio-aktivering committer straks.
 
-Also review this QA procedure when keyboard behavior is in scope:
-- `docs/testing/keyboard-navigation-test-checklist.md`
+## Runtime data-integritet
+- I en aktiv session må committed brugerinput ikke forsvinde, nulstilles eller muteres implicit pga. navigation, re-renders, tab-skift eller intern sync.
+- State-synkronisering må aldrig overskrive committed brugerinput med afledte/default-værdier uden eksplicit brugerhandling. Effekter der synker props→state må aldrig overskrive allerede committed input.
+- Brug eksplicitte immutable opdateringer; undgå skjult mutation i domæne-/state-flows.
 
-Contracts must be reviewed before implementing any feature within their scope.
-If code and contract diverge, treat it as an architectural error and resolve explicitly.
-Contracts override informal existing implementations when they conflict.
-When adding, removing, renaming, or reclassifying a contract, follow `docs/architecture/contract-topology-procedure.md` and update the machine-readable topology in the same change.
+## Save/load (.eo) — trust-kritisk
+- Stille datatab er uacceptabelt. Save inkluderer alt brugerindtastet input og kun schema-valideret brugerinput. Persistér kun brugerindtastet/-valgt data; genberegn afledte værdier efter load.
+- Load er atomisk medmindre brugeren eksplicit accepterer delvis load i preflight. Ingen in-memory state muteres før preflight-beslutningen er bekræftet. Ved load/apply-fejl: bevar nuværende state uændret og vis eksplicit fejl.
+- Samme Zod-schemas (eller direkte schema-afledte validatorer) validerer både pre-save state og loaded `.eo`-data før apply.
+- **Forward/backward-tolerant load:** En gammel `.eo`-fil indlæses med så meget schema-gyldigt input som muligt. Ukendte/fjernede felter eller sektioner må ikke i sig selv fejle hele loadet. Nye schema-felter der mangler i en ældre fil må aldrig blokere load eller udløse advarsel. App-settings/device-lokale defaults må ikke injiceres under load for at få en gammel fil til at se komplet ud. Kan alle faktisk tilstedeværende værdier loades, tæller loadet som vellykket.
+- **Preflight** viser forventede/loadbare/fejlende counts og brugervenlige fejlårsager, med præcis disse valg: "Indlæs trods fejl", "Send fejloplysninger", "Stop og gør intet".
+- Vellykket fejlfrit load skal opfylde streng save→load round-trip for brugerinput. Behold ikke legacy-runtimekode eller kompatibilitets-stier alene for at bevare gamle interne modeller.
 
-### Contract hierarchy
+## Kanoniske persistence-hooks
+Brug det mest restriktive niveau der dækker behovet:
 
-When contracts appear to overlap, use this priority order:
+| Niveau | Hook / API | Bruges af |
+|--------|-----------|-----------|
+| **Læs** | `usePersistedSectionSelector(pageKey)` (`hooks/useFormPersistenceSelectors`) | Al kode der læser persisted data (read-only, re-rendrer kun ved ændring i sektionen) |
+| **Rediger** | `usePersistedForm(schema, pageKey, initialValues)` | Sidekomponenter med formularer (`setValues`, `handleChange`, commitOnBlur) |
+| **System** | `useFormPersistence()` context direkte | Kun `MainLayout`, `FormPersistenceProvider`, persistence-infrastruktur (fuld API: `replaceAllPersistedData`, `clearAllData`, `persistData`) |
 
-| Priority | Contract class | Rule |
-|----------|----------------|------|
-| 1 | Most specific domain contract | Wins over a more general contract for the same subject area. |
-| 2 | Cross-cutting contracts | Constrain other contracts. Includes `domain-boundary-contract.md`, `form-contract.md`, `persistence-contract.md`, `schema-evolution.md`, `keyboard-navigation.md`, `error-debug-contract.md`, `pdf-contract.md`, `pdf-layout-contract.md`, `periodisering-contract.md`, `date-contract.md`, `mineo-field-pattern.md`, `amount-contract.md`, `undo-redo-contract.md`, and `app-settings.md`. |
-| 3 | `page-component-contract.md` | Subordinate to the relevant cross-cutting contracts above. |
-| 4 | Domain contracts | `eo-snapshot-contract.md`, `eet-snapshot-contract.md`, `forsoergertab-snapshot-contract.md`, `aarsloen-contract.md`, `renteberegning-contract.md`, `varigemen-contract.md`, `satser-contract.md`, and other topology-classified domain contracts are subordinate to relevant general contracts except where they define domain-specific rules the general contracts intentionally defer. |
-| 5 | `docs/architecture/*.md` | Informative unless a contract explicitly elevates a rule from them. |
+`FormPersistenceContext` er en facade over `formPersistenceStore` (Zustand) — storen er source of truth. Importér aldrig `FormPersistenceContext` direkte fra domæne-/sidekomponenter.
 
-## Desktop-only gate + styling exception
-- App must be blocked on mobile/tablet.
-- Top-level capability gate must live in the shared app-shell `src/apps/shared/bootstrapClientApp.tsx` and be invoked from every app-entry (`src/main.tsx`, `src/apps/minprocesrente/minprocesrenteMain.tsx`).
-- Unsupported devices must render `src/components/pages/UnsupportedDevicePage.tsx` as hard stop.
-- `UnsupportedDevicePage.tsx` must stay isolated from app business logic/state/persistence.
-- Mobile/tablet-specific styling may exist only in `UnsupportedDevicePage.tsx`.
-- Do not add global responsive behavior (`@media`) in shared/global styles.
+## Validering og fejl-UI
+- Ugyldigt input: rød kant + tooltip ved hover. Ingen inline-valideringstekst under felter.
+- Range/dato-tooltips skal indeholde konkrete grænser. Findes ingen gyldige datoer (min > max): tooltippen forklarer dette, viser begge grænser og navngiver de brugervendte inputs der producerer dem.
+- Talformattering i UI/tooltips følger danske konventioner.
 
-## Validation and error UI
-- Invalid inputs: red border + tooltip on hover.
-- No inline validation text under fields.
-- Range/date tooltips must include concrete bounds.
-- If no valid dates exist (min > max), tooltip must explain this, show both bounds, and name the user-facing inputs producing them.
-- Number formatting in UI/tooltips must follow Danish conventions.
+## Numerik
+- Deterministisk numerik. Genbrug kanoniske afrundings-/formatterings-/currency-helpers; ingen ad hoc-afrunding eller inline numerik/currency i feature-komponenter. Indfør ikke nye numeriske strategier.
 
-## Type system and schema authority
-- Strict TypeScript only.
-- Zod schemas are the single source of truth for runtime validation and inferred types.
-- No `any`.
-- Type assertions only when provably safe.
-- Persisted user input must be fully covered by Zod schemas and impossible to exist outside schema coverage.
+## Console-politik
+Normal drift er console-tavs. `console.error`: reelle fejl (datatab, brudte invarianter). `console.warn`: exceptionelle ikke-fatale tilstande. `console.debug`: normale signaler, kun DEV. `console.log`: undgå.
 
-## Commit vs persist terminology
-- Commit: draft -> validated committed user input used for calculations.
-- Persist: durable storage (`sessionStorage`, `.eo`).
-- Table `onPersist` names refer to commit semantics at table boundary.
+## Desktop-only gate
+- Appen blokeres på mobil/tablet. Den øverste capability-gate ligger i `src/apps/shared/bootstrapClientApp.tsx` og kaldes fra hver app-entry (`src/main.tsx`, `src/apps/minprocesrente/minprocesrenteMain.tsx`).
+- Ikke-understøttede enheder renderer `src/components/pages/UnsupportedDevicePage.tsx` som hård stop; den holdes isoleret fra forretningslogik/state/persistence.
+- Mobil/tablet-specifik styling må kun findes i `UnsupportedDevicePage.tsx`. Ingen global responsiv adfærd (`@media`) i delte/globale styles.
 
-## Runtime data integrity
-During active session, committed user input must not disappear/reset/mutate implicitly due to navigation, rerenders, tab switches, or internal sync.
-State synchronization must never overwrite committed user input with derived/default values without explicit user action.
-Effects that synchronize props to state must never overwrite already committed user input.
+## Normative kontrakter
+Følg de kontrakter der er klassificeret som bindende i `src/contracts/contract-topology.json`. Bredt relevante: `form-contract.md`, `domain-boundary-contract.md`, `page-component-contract.md`, `keyboard-navigation.md` (+ QA: `docs/testing/keyboard-navigation-test-checklist.md`).
 
-## Save/load guarantees (.eo)
-- Save/load is trust-critical; silent data loss is unacceptable.
-- Save must include all user-entered input and only schema-validated user input.
-- Mineo must not keep legacy runtime code or compatibility-only code paths solely to preserve old internal models.
-- Load must be atomic unless user explicitly accepts partial load in preflight.
-- No in-memory state may be mutated before the preflight decision is confirmed.
-- The same Zod schemas (or directly schema-inferred validators) must validate both pre-save state and loaded `.eo` data before apply.
-- Preflight (before apply) must include expected/loadable/failing counts and user-friendly failure reasons.
-- Loading an old `.eo` file must preserve and import as much schema-valid user input as safely possible.
-- Unknown/removed fields or sections in old files must not by themselves fail the entire load if the remaining data can be imported safely.
-- Future schema additions must never block loading an older `.eo` file merely because those newer fields are absent in the file.
-- If all values actually present in an older file can be loaded, the load counts as successful and the user must not be warned only because newer schema fields do not exist in that file.
-- App settings or other device-local defaults must not be injected during load just to make an old file look complete under a newer schema.
-- Preflight must offer exactly:
-  - "Indlæs trods fejl"
-  - "Send fejloplysninger"
-  - "Stop og gør intet"
-- On load/apply failure: keep current in-memory state unchanged and show explicit error.
-- Successful no-issue load must satisfy strict save->load round-trip for user input.
-- Persist only user-entered/chosen data; recompute derived values after load.
+**Du ejer kontrakterne og enhver anden autoritativ beskrivelse.** Du er ikke bundet af deres nuværende tilstand — din opgave er at holde dem opdateret til det bedst mulige slutprodukt og derefter implementere på baggrund af den opdaterede kontrakt, ikke den gamle. Læs relevante kontrakter før du implementerer inden for deres scope. Kontrakter er bindende, **så længe de tjener det bedst mulige slutprodukt** — står en kontrakt i vejen for en reel forbedring eller er ude af sync med en sundere arkitektur, forbedrer du selve kontrakten frem for blindt at følge den. En kontraktændring er en arkitekturbeslutning: berører den ikke UI/UX eller beregningslogik, træffer du den selv; ellers forelægges den. Kode der afviger fra en gældende kontrakt uden at kontrakten er opdateret, er en arkitekturfejl. Ved tilføjelse/fjernelse/omdøbning/omklassificering af en kontrakt: følg `docs/architecture/contract-topology-procedure.md` og opdatér topologien i samme ændring.
 
-## Kanoniske hooks for persistence-adgang
+**Kontrakthierarki ved overlap:** (1) mest specifikke domænekontrakt vinder for sit emne; (2) tværgående kontrakter (`domain-boundary`, `form`, `persistence`, `schema-evolution`, `keyboard-navigation`, `error-debug`, `pdf`, `pdf-layout`, `periodisering`, `date`, `mineo-field-pattern`, `amount`, `undo-redo`, `app-settings`) begrænser øvrige; (3) `page-component-contract.md` underordnet de tværgående; (4) domænekontrakter underordnet relevante generelle, undtagen hvor de definerer domænespecifikke regler de generelle bevidst overlader; (5) `docs/architecture/*.md` informativt medmindre en kontrakt eksplicit ophøjer en regel derfra.
 
-Tre adgangsniveauer — brug det mest restriktive der dækker behovet:
+**Prioritet ved konflikt:** `src/contracts/*.md` > `AGENTS.md`.
 
-| Niveau | Hook / API | Bruges af | Formål |
-|--------|-----------|-----------|--------|
-| **Læs** | `usePersistedSectionSelector(pageKey)` fra `hooks/useFormPersistenceSelectors` | Al kode der læser persisted data | Read-only adgang. Bruger `useSyncExternalStore` direkte på storen — re-rendrer kun ved ændringer i den specifikke sektion. |
-| **Rediger** | `usePersistedForm(schema, pageKey, initialValues)` | Sidekomponenter med formularer | Formular-binding med `setValues`, `handleChange`, commitOnBlur. |
-| **System** | `useFormPersistence()` context direkte | Kun `MainLayout`, `FormPersistenceProvider` og persistence-infrastruktur | Fuld API inkl. `replaceAllPersistedData`, `clearAllData`, `persistData`. Må ikke importeres fra almindelige sidekomponenter. |
+## Filstruktur og placering — stående ansvar
+Du har ansvar for, at filer og helpers/utils er korrekt navngivet og placeret. Hver gang du bliver opmærksom på, at noget hører mere hensigtsmæssigt hjemme et andet sted, **flytter og omdøber du det** — du venter ikke på tilladelse (det er en koderelateret beslutning). Du **opdeler** filer med for mange ansvarsområder og **merger** filer der overlapper, i det omfang det forbedrer kvalitet og en ensartet struktur. Opdatér alle imports/referencer i samme ændring, så intet efterlades brudt.
 
-- `FormPersistenceContext` er en facade over `formPersistenceStore` (Zustand) — storen er source of truth.
-- Import aldrig `FormPersistenceContext` direkte fra domæne- eller sidekomponenter.
+## Tilfældighedsfund — rapportér altid
+Filnavngivning · filplacering · forældet indhold (kommentarer/config/kode der ikke afspejler virkeligheden) · filer der bør konsolideres eller splittes · overflødige/ubrugte filer og exports · død kode · kontraktdrift (kode ↔ dokumentation ude af sync) · inkonsistente mønstre (samme problem løst på to måder uden grund). Prioritér fund der påvirker korrekthed, vedligeholdbarhed eller konvergens; undgå mikro-nits.
 
-## Convergence and exceptions
-- Solve similar problems with shared patterns.
-- Avoid competing implementations for the same concern.
-- Diverge only when domain meaningfully differs or unification harms safety/clarity.
-- Any unavoidable exception must be explicitly justified and documented in code at callsite.
-- Update this file only when the exception establishes a new general rule.
+## Tests
+- **Stående ansvar for testdækning.** Hver gang du kommer i berøring med et område, vurderer du, om det er tilstrækkelig testdækket. Er det ikke det, tager du selv ansvar for at skrive de manglende tests — også når det blot er et tilfældighedsfund uden for det aktuelle scope, og også for kode du ikke selv har skrevet. Gælder især kritiske stier (beregning, validering, save/load).
+- Kritiske stier (beregning, validering, save/load) skal have meningsfulde tests, der hævder korrekte invarianter — ikke implementeringsdetaljer. Tilføj/opdatér tests når adfærd ændres; prioritér beregnings- og persistence-tests før UI-tests.
+- Følg eksisterende teststruktur og -mønstre (Vitest, `src/__tests__/` der spejler kildestrukturen); indfør ikke nye frameworks/paradigmer. Mindst ét top-level `describe('<modul-eller-funktion>')` pr. testfil; ingen flade top-level `it(...)`-filer.
+- Undgå over-mocking og flakiness. Fjern kode der kun eksisterer for at understøtte tests.
 
-## Change discipline
-- Implement the minimum safe change set.
-- Prefer explicit, auditable code over clever shortcuts.
-- Avoid hidden state and implicit behavior.
-- Design or update schemas and types before modifying implementation logic.
-- Do not generalize code for hypothetical future reuse.
+## Kvalitetsgate før handoff
+Verificér: krav-korrekthed · Zod↔TS-alignment · ingen usikker typing · ingen utilsigtede sideeffekter/datatab · arkitektonisk konsistens med kontrakter.
 
-## Execution governance (trust-critical)
-- Classify each task before implementation: `No UX/behavior change` or `UX/behavior change`.
-- If classification is `UX/behavior change` and not explicitly requested, ask for approval before coding.
-- Classification is internal reasoning and should not be output unless relevant to approval flow.
-- Apply fail-closed behavior on uncertain/invalid critical data; do not silently guess.
-- Keep numeric behavior deterministic: reuse canonical rounding/formatting helpers, no ad hoc rounding logic in feature code.
-- Inline numeric formatting, rounding, or currency logic inside feature components is forbidden.
-- All monetary calculations must follow existing numeric handling patterns in the codebase; do not introduce new numeric strategies.
-- For critical paths (calculation, validation, save/load), add or update tests when behavior changes.
-- Follow existing test structure and patterns; do not introduce new testing frameworks or paradigms.
-- Test naming convention: use at least one top-level `describe('<module-or-function>')` per test file; avoid flat top-level `it(...)` only files.
-- Avoid hidden mutation in domain/state flows; use explicit immutable updates.
-- If a rule exception is unavoidable, record a short decision note at callsite in code: reason, risk, and re-evaluation trigger.
+Kør efter hver kodeændring: `npm run typecheck`. Fejler typecheck/lint/test/build og kan rettes deterministisk: ret det før handoff. Ellers stop og spørg.
 
-## Quality gate before handoff
-You must verify:
-- requirements correctness
-- Zod <-> TypeScript alignment
-- no unsafe typing
-- no accidental side effects or data loss
-- architectural consistency with contracts
-
-After every code change, run:
-- `npm run typecheck`
-
-If lint/test/build/typecheck fails and can be fixed deterministically, fix it before handoff. If not safely fixable without domain clarification, stop and ask.
-
-## Professional posture
-- Challenge unsafe architectural assumptions.
-- Optimize for deterministic behavior, trust, and clarity over speed.
+## Holdning
+Udfordr usikre arkitekturantagelser. Optimér for deterministisk adfærd, tillid og klarhed over hastighed. Foretræk eksplicit, auditerbar kode over smarte genveje; undgå skjult state og implicit adfærd. Anvend fail-closed på usikre/ugyldige kritiske data — gæt ikke i stilhed.

@@ -1,11 +1,11 @@
-# Calculation Architecture
+# Beregningsarkitektur
 
 **Status:** Arkitekturforklarende reference, ikke selvstændig kontrakt
 **Scope:** Alle beregningsdomæner i Mineo
 
 Bindende regler ligger i `src/contracts/*`, især `form-contract.md`, `domain-boundary-contract.md`, `snapshot-contract.md`, `amount-contract.md`, `date-contract.md` og domænekontrakterne. Ved konflikt har kontrakterne forrang.
 
-## 1. Calculation boundary
+## 1. Beregningsgrænse (calculation boundary)
 
 Beregningslaget må kun arbejde på:
 - Committed, schema-valideret input
