@@ -87,7 +87,7 @@ export const buildTafArbejdsdageSet = (
 };
 
 // Scanner hele sættet pr. kald (O(sæt)). Kaldes i segment-løkker, men sættet er præbygget (ikke
-// gen-materialiseret pr. segment, jf. fund 1 i docs/review/perf-dato-interval-iteration.md), og
+// gen-materialiseret pr. segment, jf. docs/architecture/date-interval-performance-architecture.md), og
 // segmenter stammer fra regulerings-brudpunkter (få pr. år) — en amortiseret binær-søgnings-tæller
 // ville kræve threading gennem alle kaldsteder for marginal gevinst og er bevidst undladt.
 export const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateString>, fra: ISODateString, til: ISODateString): number => {

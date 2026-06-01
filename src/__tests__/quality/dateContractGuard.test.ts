@@ -9,6 +9,14 @@ const DAY_MS_PATTERNS: ReadonlyArray<RegExp> = [
   /\/\s*\(\s*1000\s*\*\s*60\s*\*\s*60\s*\*\s*24\s*\)/,
 ];
 
+const MATERIALIZE_TO_COUNT_PATTERNS: ReadonlyArray<RegExp> = [
+  /collectIsoDatesInclusive\([^)]*\)\.length/,
+  /buildIsoDateSetInclusive\([^)]*\)\.size/,
+];
+
+const MANUAL_DAY_LOOP_PATTERN =
+  /while\s*\([^)]*(?:<=|<)[^)]*\)\s*{[\s\S]{0,1200}\.setUTCDate\([^)]*\.getUTCDate\(\)\s*\+\s*1\s*\)/;
+
 const collectSourceFiles = (root: string): string[] => {
   const files: string[] = [];
   const stack = [root];
@@ -47,6 +55,37 @@ describe('date-contract guard', () => {
         if (pattern.test(source)) {
           violations.push(`${relativePath}: ${pattern.source}`);
         }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('forbyder materialisering af ISO-dage kun for at tælle', () => {
+    const violations: string[] = [];
+
+    for (const absolutePath of collectSourceFiles(SRC_ROOT)) {
+      const source = fs.readFileSync(absolutePath, 'utf8');
+      const relativePath = path.relative(process.cwd(), absolutePath);
+      for (const pattern of MATERIALIZE_TO_COUNT_PATTERNS) {
+        if (pattern.test(source)) {
+          violations.push(`${relativePath}: ${pattern.source}`);
+        }
+      }
+    }
+
+    expect(violations).toEqual([]);
+  });
+
+  it('forbyder nye håndskrevne dag-for-dag-løkker uden for den kanoniske helper', () => {
+    const violations: string[] = [];
+
+    for (const absolutePath of collectSourceFiles(SRC_ROOT)) {
+      if (absolutePath.endsWith(`${path.sep}utils${path.sep}isoDateHelpers.ts`)) continue;
+
+      const source = fs.readFileSync(absolutePath, 'utf8');
+      if (MANUAL_DAY_LOOP_PATTERN.test(source)) {
+        violations.push(path.relative(process.cwd(), absolutePath));
       }
     }
 

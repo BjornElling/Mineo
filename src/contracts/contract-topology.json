@@ -57,6 +57,7 @@
   "informativeArchitectureDocs": [
     "docs/architecture/auth-gate-architecture.md",
     "docs/architecture/calculation-architecture.md",
+    "docs/architecture/date-interval-performance-architecture.md",
     "docs/architecture/debug-builder-architecture.md",
     "docs/architecture/eo-clamping-pipeline-architecture.md",
     "docs/architecture/pdf-architecture.md",
