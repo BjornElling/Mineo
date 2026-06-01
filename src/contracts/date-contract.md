@@ -38,6 +38,10 @@
   `src/utils/isoDateHelpers.ts`. Skriv ALDRIG en ny `while (current <= end) { …; setUTCDate/addDays }`
   i forretningslogik — udtryk per-dag-arbejde via denne primitiv (eller en af dens afledte nedenfor).
   `onDate` modtager den samme muterede `Date`-instans hver gang; behold aldrig referencen.
+  Returnér `false` fra callbacken for at stoppe iterationen tidligt.
+- Løkker der springer direkte mellem år, halve år, kapitaliserings-/satsperioder eller andre
+  allerede-aggregerede perioder er ikke dag-for-dag-iteration. De må blive domænelokale, når de ikke
+  materialiserer eller vurderer hver kalenderdag.
 - Afledte ISO-helpers (samme fil), alle udtrykt via primitiven:
   - `iterateIsoDatesInclusive(fra, til, onIso)` — iterér ISO-strenge uden at materialisere (O(1) hukommelse).
   - `collectIsoDatesInclusive(fra, til)` / `buildIsoDateSetInclusive(fra, til)` — materialisér et

@@ -26,6 +26,7 @@ import { getStatistiskLoenudvikling, getReguleringsDatoIntervalForStatistikModel
 import { getKRLSatstabel, formatKRLSatstabelDisplay, getReguleringsDatoIntervalForKRL, isKRLSatstabelId } from '../../data/krlRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
+import { iterateDatesInclusive } from '../../utils/isoDateHelpers';
 import { buildSHDageSetForIsoRange } from '../dates/shDageBeregning';
 import { STORE_BEDEDAG_START } from '../../config/dateRanges';
 import { STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../config/regulatoryRates';
@@ -475,20 +476,19 @@ export const buildFerieDageSet = (
     if (!isISODateString(ferieFraRaw) || !isISODateString(ferieTilRaw)) continue;
     if (ferieFraRaw > ferieTilRaw) continue;
 
-    const ferieFra = isoDateToDate(ferieFraRaw);
-    const ferieTil = isoDateToDate(ferieTilRaw);
+    const constrainedFra = ferieFraRaw > periodeFra ? ferieFraRaw : periodeFra;
+    const constrainedTil = ferieTilRaw < periodeTil ? ferieTilRaw : periodeTil;
+    if (constrainedFra > constrainedTil) continue;
 
-    const current = new Date(ferieFra);
-    while (current <= ferieTil) {
+    iterateDatesInclusive(isoDateToDate(constrainedFra), isoDateToDate(constrainedTil), (current) => {
       const iso = dateToISO(current);
-      if (iso && iso >= periodeFra && iso <= periodeTil) {
+      if (iso) {
         const dow = current.getUTCDay();
         if (dow >= 1 && dow <= 5 && !shDage.has(iso)) {
           allFerie.add(iso);
         }
       }
-      current.setUTCDate(current.getUTCDate() + 1);
-    }
+    });
   }
 
   // 2. Løse feriedage fra TAF-perioder (placeres som første dage)
@@ -504,21 +504,21 @@ export const buildFerieDageSet = (
     if (loseCount <= 0) continue;
 
     let remaining = loseCount;
-    const tafFra = isoDateToDate(tafFraRaw);
-    const tafTil = isoDateToDate(tafTilRaw);
+    const constrainedFra = tafFraRaw > periodeFra ? tafFraRaw : periodeFra;
+    const constrainedTil = tafTilRaw < periodeTil ? tafTilRaw : periodeTil;
+    if (constrainedFra > constrainedTil) continue;
 
-    const current = new Date(tafFra);
-    while (current <= tafTil && remaining > 0) {
+    iterateDatesInclusive(isoDateToDate(constrainedFra), isoDateToDate(constrainedTil), (current) => {
       const iso = dateToISO(current);
-      if (iso && iso >= periodeFra && iso <= periodeTil) {
+      if (iso) {
         const dow = current.getUTCDay();
         if (dow >= 1 && dow <= 5 && !shDage.has(iso) && !allFerie.has(iso)) {
           allFerie.add(iso);
           remaining--;
         }
       }
-      current.setUTCDate(current.getUTCDate() + 1);
-    }
+      return remaining > 0 ? undefined : false;
+    });
   }
 
   return allFerie;

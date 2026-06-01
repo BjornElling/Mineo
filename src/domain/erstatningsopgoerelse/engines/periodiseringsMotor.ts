@@ -8,7 +8,7 @@ import type { Periodisering } from '../../../data/ydelsestyper';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from '../helpers/tafBeregningsenhed';
 import { SYGEDAGPENGE_SH_CUTOFF } from '../helpers/eoConstants';
-import { beregnSHDageForDatoSet } from '../../dates/shDageBeregning';
+import { beregnSHDageForDatoSet, buildSHDageSetForIsoRange } from '../../dates/shDageBeregning';
 import { roundByMethod } from '../../../utils/rounding';
 import { type DateInterval, type IsoRange } from '../../../utils/isoDateHelpers';
 import { toNonNegativeInt } from '../../../utils/numberParsing';
@@ -170,19 +170,49 @@ export const periodiserBeloebForOffentligYdelse = (args: {
   shDays: ReadonlySet<ISODateString>;
   sygedagpengeShCutoff?: ISODateString;
 }): number => {
-  const {
-    totalBeloeb,
-    interval,
-    range,
-    periodisering,
-    ydelsestypeKey,
-    shDays,
-    sygedagpengeShCutoff,
-  } = args;
+  const { totalBeloeb, range } = args;
+  const grundlag = buildOffentligYdelsePeriodiseringsGrundlag(args);
+  return grundlag
+    ? periodiserBeloebForOffentligYdelseMedGrundlag({ totalBeloeb, range, grundlag })
+    : 0;
+};
+
+export type OffentligYdelsePeriodiseringsGrundlag = Readonly<{
+  interval: DateInterval;
+  periodisering: Periodisering;
+  ydelsestypeKey: string;
+  shDays: ReadonlySet<ISODateString>;
+  sygedagpengeShCutoff?: ISODateString;
+  rowTilISO: ISODateString;
+  totalDays: number;
+  periodiseringsDage: number;
+}>;
+
+export const buildOffentligYdelsePeriodiseringsGrundlag = (args: {
+  interval: DateInterval;
+  periodisering: Periodisering;
+  ydelsestypeKey: string;
+  shDays: ReadonlySet<ISODateString>;
+  sygedagpengeShCutoff?: ISODateString;
+}): OffentligYdelsePeriodiseringsGrundlag | null => {
+  const { interval, periodisering, ydelsestypeKey, shDays, sygedagpengeShCutoff } = args;
   const totalDays = countInclusiveUtcDays(interval.start, interval.end);
-  if (!totalDays || totalDays <= 0) return 0;
+  if (!totalDays || totalDays <= 0) return null;
   const rowTilISO = dateToISO(interval.end);
-  if (!rowTilISO) return 0;
+  if (!rowTilISO) return null;
+
+  if (periodisering === 'kalenderdage') {
+    return {
+      interval,
+      periodisering,
+      ydelsestypeKey,
+      shDays,
+      sygedagpengeShCutoff,
+      rowTilISO,
+      totalDays,
+      periodiseringsDage: totalDays,
+    };
+  }
 
   let periodiseringsDage = 0;
   iterateDatesInclusive(interval.start, interval.end, (date) => {
@@ -201,35 +231,59 @@ export const periodiserBeloebForOffentligYdelse = (args: {
     }
     periodiseringsDage += 1;
   });
-  if (periodiseringsDage <= 0) return 0;
+  if (periodiseringsDage <= 0) return null;
+
+  return {
+    interval,
+    periodisering,
+    ydelsestypeKey,
+    shDays,
+    sygedagpengeShCutoff,
+    rowTilISO,
+    totalDays,
+    periodiseringsDage,
+  };
+};
+
+export const periodiserBeloebForOffentligYdelseMedGrundlag = (args: {
+  totalBeloeb: number;
+  range: IsoRange;
+  grundlag: OffentligYdelsePeriodiseringsGrundlag;
+}): number => {
+  const { totalBeloeb, range, grundlag } = args;
 
   let overlapDage = 0;
   const rangeFraDate = parseISODate(range.fra);
   const rangeTilDate = parseISODate(range.til);
   if (!rangeFraDate || !rangeTilDate) return 0;
-  const overlapStart = interval.start > rangeFraDate ? interval.start : rangeFraDate;
-  const overlapEnd = interval.end < rangeTilDate ? interval.end : rangeTilDate;
+  const overlapStart = grundlag.interval.start > rangeFraDate ? grundlag.interval.start : rangeFraDate;
+  const overlapEnd = grundlag.interval.end < rangeTilDate ? grundlag.interval.end : rangeTilDate;
   if (overlapStart > overlapEnd) return 0;
   const overlapDaysInclusive = countInclusiveUtcDays(overlapStart, overlapEnd);
   if (!overlapDaysInclusive || overlapDaysInclusive <= 0) return 0;
+
+  if (grundlag.periodisering === 'kalenderdage') {
+    return totalBeloeb * (overlapDaysInclusive / grundlag.totalDays);
+  }
+
   iterateDatesInclusive(overlapStart, overlapEnd, (date) => {
     const iso = dateToISO(date);
     if (!iso) return;
     if (!isOffentligYdelseDatoMedregnet({
       iso,
       dateObj: date,
-      shDays,
-      periodisering,
-      ydelsestypeKey,
-      rowTilISO,
-      sygedagpengeShCutoff,
+      shDays: grundlag.shDays,
+      periodisering: grundlag.periodisering,
+      ydelsestypeKey: grundlag.ydelsestypeKey,
+      rowTilISO: grundlag.rowTilISO,
+      sygedagpengeShCutoff: grundlag.sygedagpengeShCutoff,
     })) {
       return;
     }
     overlapDage += 1;
   });
   if (overlapDage <= 0) return 0;
-  return totalBeloeb * (overlapDage / periodiseringsDage);
+  return totalBeloeb * (overlapDage / grundlag.periodiseringsDage);
 };
 
 export const countOffentligYdelsePeriodiseringsdage = (args: {
@@ -246,12 +300,15 @@ export const countOffentligYdelsePeriodiseringsdage = (args: {
   const tilDate = parseISODate(til);
   if (!fraDate || !tilDate) return null;
 
-  const datoSet = buildDatoSetInclusiveFromDates(fraDate, tilDate);
-  const shDays = buildShDageSet(fraDate, tilDate, datoSet);
+  if (periodisering === 'kalenderdage') {
+    return countInclusiveUtcDays(fraDate, tilDate) ?? 0;
+  }
+
+  const shDays = buildSHDageSetForIsoRange(fra, til);
   let count = 0;
-  for (const iso of datoSet) {
-    const dateObj = parseISODate(iso);
-    if (!dateObj) continue;
+  iterateDatesInclusive(fraDate, tilDate, (dateObj) => {
+    const iso = dateToISO(dateObj);
+    if (!iso) return;
     if (!isOffentligYdelseDatoMedregnet({
       iso,
       dateObj,
@@ -261,10 +318,10 @@ export const countOffentligYdelsePeriodiseringsdage = (args: {
       rowTilISO: til,
       sygedagpengeShCutoff,
     })) {
-      continue;
+      return;
     }
     count += 1;
-  }
+  });
   return count;
 };
 
@@ -321,7 +378,7 @@ export const optaelMaanederPraecis = (args: {
 
   const fravaersdageFradrag = toNonNegativeInt(oevrigeFravaersdage) * TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR;
   return Math.max(0, antalMaaneder - fravaersdageFradrag);
-}
+};
 
 /**
  * Summen af måneds-brøker for et interval: hver kalenderdag tæller som 1/x af sin måned
@@ -330,8 +387,7 @@ export const optaelMaanederPraecis = (args: {
  * Kanonisk kilde til "antal måneder ud fra dage"-princippet — genbruges af både
  * {@link optaelMaanederPraecis} og indkomst-på-skadestidspunkt-mellemregningen, så de to
  * tidligere parallelle implementeringer ikke kan drive fra hinanden. Grupperer pr. måned og
- * dividerer én gang pr. måned (frem for at summere 1/x pr. dag); resultatet er identisk efter
- * den 2-decimal-afrunding begge kaldere anvender.
+ * dividerer én gang pr. måned, så hele måneder giver præcist heltal i rå forbrugere.
  */
 export const sumMaanedsbroekForInterval = (
   fra: ISODateString | undefined,
@@ -355,7 +411,7 @@ export const sumMaanedsbroekForInterval = (
     antalMaaneder += count / dageIMaaned;
   }
   return antalMaaneder;
-};;
+};
 
 export const optaelMaanederAfrundet = (args: {
   fra: ISODateString | undefined;

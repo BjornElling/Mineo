@@ -2,9 +2,8 @@ import type { FerieperiodeRow, TafPeriodeRow } from '../../../schemas/formSchema
 import type { ISODateString } from '../../../types/branded';
 import { dateToISO } from '../../../types/branded';
 import { isoDateToDate } from '../../dates/isoDate';
-import { addDays } from '../../../utils/dateUtils';
 import { iterateDatesInclusive, type IsoRange } from '../../../utils/isoDateHelpers';
-import { buildSHDageSetForDatoSet } from '../../dates/shDageBeregning';
+import { buildSHDageSetForDatoSet, buildSHDageSetForIsoRange } from '../../dates/shDageBeregning';
 import { toNonNegativeInt } from '../../../utils/numberParsing';
 import { getValidTafRange } from '../validation/tafPeriodConstraints';
 import { mergeIsoDateRanges } from './periodMerging';
@@ -61,8 +60,11 @@ export const buildFerieDageSet = (
   for (const periode of ferieperioder) {
     if (!periode.fra || !periode.til) continue;
     if (periode.fra > periode.til) continue;
-    const ferieFra = isoDateToDate(periode.fra);
-    const ferieTil = isoDateToDate(periode.til);
+    const constrainedFra = periode.fra > rangeFra ? periode.fra : rangeFra;
+    const constrainedTil = periode.til < rangeTil ? periode.til : rangeTil;
+    if (constrainedFra > constrainedTil) continue;
+    const ferieFra = isoDateToDate(constrainedFra);
+    const ferieTil = isoDateToDate(constrainedTil);
     iterateDatesInclusive(ferieFra, ferieTil, (ferieCurrent) => {
       const isoStr = toIsoOrThrow(ferieCurrent, 'ferieperiode');
       // SH-dage omfatter kun hverdagshelligdage. Ved kalenderdage skal helligdage på weekend
@@ -90,8 +92,7 @@ export const buildShDageSetFromIsoRange = (fra: ISODateString, til: ISODateStrin
   const fraDate = isoDateToDate(fra);
   const tilDate = isoDateToDate(til);
   if (fraDate > tilDate) return new Set<ISODateString>();
-  const datoSet = buildDatoSetInclusiveFromDates(fraDate, tilDate);
-  return buildShDageSet(fraDate, tilDate, datoSet);
+  return new Set(buildSHDageSetForIsoRange(fra, til));
 };
 
 export const placeLoseFeriedage = (
@@ -108,15 +109,14 @@ export const placeLoseFeriedage = (
   let remaining = toNonNegativeInt(count);
   if (remaining === 0) return selected;
 
-  let candidate = new Date(fraDate);
-  while (candidate <= tilDate && remaining > 0) {
+  iterateDatesInclusive(fraDate, tilDate, (candidate) => {
     const iso = toIsoOrThrow(candidate, 'lose feriedage');
     if (isWeekdayUtc(candidate) && !blocked.has(iso)) {
       selected.add(iso);
       remaining -= 1;
     }
-    candidate = addDays(candidate, 1);
-  }
+    return remaining > 0 ? undefined : false;
+  });
 
   return selected;
 };

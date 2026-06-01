@@ -18,6 +18,7 @@ import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
 import { computeTafBeregningsenhed, TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder, calculateTafAntalMaanederPraecis } from '../erstatningsopgoerelse/engines/tafCalculations';
+import { sumMaanedsbroekForInterval } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { calculateFerieHverdageMinusSHDage } from '../erstatningsopgoerelse/engines/ferieCalculations';
 import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse/engines/beregningsperiodeTafOverlap';
 import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
@@ -2319,28 +2320,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       return { label: 'Måneder', displayValue: 'Fejl (Antal fraværsdage mangler)', status: 'error' as DebugStatus };
     }
 
-    const periodeDage = new Set<ISODateString>();
-    const fraDate = isoDateToDate(periodeFra);
-    const tilDate = isoDateToDate(periodeTil);
-    const currentDate = new Date(fraDate);
-    while (currentDate <= tilDate) {
-      const iso = dateToISO(currentDate);
-      if (iso) periodeDage.add(iso);
-      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-    }
-
-    const beregnMaanederForDage = (dage: ReadonlySet<ISODateString>): number => {
-      let total = 0;
-      for (const isoStr of dage) {
-        const year = Number.parseInt(isoStr.slice(0, 4), 10);
-        const month = Number.parseInt(isoStr.slice(5, 7), 10);
-        const dageIMaaned = new Date(Date.UTC(year, month, 0)).getUTCDate();
-        total += 1 / dageIMaaned;
-      }
-      return total;
-    };
-
-    const totalMaaneder = beregnMaanederForDage(periodeDage);
+    const totalMaaneder = sumMaanedsbroekForInterval(periodeFra, periodeTil);
     const fravaerMaaneder = oevrigeFravaersdageValue * TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR;
 
     const fravaerBeskrivelse =

@@ -25,8 +25,9 @@ import { parseAarsloenRowInterval } from './aarsloenRowInterval';
 import { buildShDageSetFromIsoRange } from '../engines/tafDaySets';
 import { buildLoenindkomstRateSegments } from './loenindkomstSatser';
 import {
+  buildOffentligYdelsePeriodiseringsGrundlag,
   buildLoenArbejdsdageSet,
-  periodiserBeloebForOffentligYdelse,
+  periodiserBeloebForOffentligYdelseMedGrundlag,
   SYGEDAGPENGE_SH_CUTOFF,
 } from '../engines/periodiseringsMotor';
 import { iterateDatesInclusive } from '../../../utils/isoDateHelpers';
@@ -425,15 +426,19 @@ export const buildIncomeForRanges = (
     if (!resolvedType) continue;
     const typeKey = resolvedType.key;
     const label = resolvedType.label;
+    const periodiseringsGrundlag = buildOffentligYdelsePeriodiseringsGrundlag({
+      interval,
+      periodisering: resolvedType.periodisering,
+      ydelsestypeKey: typeKey,
+      shDays: shDaysForYdelser,
+      sygedagpengeShCutoff: SYGEDAGPENGE_SH_CUTOFF,
+    });
+    if (!periodiseringsGrundlag) continue;
     const periodiseretAmount = ranges.reduce((sum, range) => {
-      return sum + periodiserBeloebForOffentligYdelse({
+      return sum + periodiserBeloebForOffentligYdelseMedGrundlag({
         totalBeloeb: amount,
-        interval,
         range,
-        periodisering: resolvedType.periodisering,
-        ydelsestypeKey: typeKey,
-        shDays: shDaysForYdelser,
-        sygedagpengeShCutoff: SYGEDAGPENGE_SH_CUTOFF,
+        grundlag: periodiseringsGrundlag,
       });
     }, 0);
     if (!Number.isFinite(periodiseretAmount) || periodiseretAmount <= 0) continue;

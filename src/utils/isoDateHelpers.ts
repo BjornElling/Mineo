@@ -114,10 +114,12 @@ export const sortIsoDates = (values: Iterable<ISODateString>): ISODateString[] =
  * findes ét sted hvor en kalenderdag-løkke faktisk inkrementeres. `onDate` modtager den samme
  * muterede `Date`-instans hver gang og må derfor ikke beholde referencen — læs værdien straks.
  */
-export const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => void): void => {
+export const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => unknown): void => {
   const current = new Date(start.getTime());
   while (current <= end) {
-    onDate(current);
+    if (onDate(current) === false) {
+      return;
+    }
     current.setUTCDate(current.getUTCDate() + 1);
   }
 };

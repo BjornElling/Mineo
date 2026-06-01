@@ -1,4 +1,4 @@
-import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
+import { getDayBeforeIso, iterateDatesInclusive, sortIsoDates } from '../../../utils/isoDateHelpers';
 import type {
   ErstatningsopgoerelseValues,
   LoenindkomstAnsaettelsesforhold,
@@ -8,7 +8,6 @@ import type {
 } from '../../../schemas/formSchemas';
 import { TODAY } from '../../../config/dateRanges';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { sortIsoDates } from '../../../utils/isoDateHelpers';
 import { addDays, addMonths } from '../../../utils/dateUtils';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import { roundByMethod } from '../../../utils/rounding';
@@ -280,9 +279,10 @@ const buildDateSetFromRanges = (ranges: readonly IsoRange[]): Set<ISODateString>
     const start = parseISODate(range.fra);
     const end = parseISODate(range.til);
     if (!start || !end || start > end) continue;
-    for (const iso of buildDatoSetInclusiveFromDates(start, end)) {
-      result.add(iso);
-    }
+    iterateDatesInclusive(start, end, (date) => {
+      const iso = dateToISO(date);
+      if (iso) result.add(iso);
+    });
   }
   return result;
 };
@@ -444,10 +444,18 @@ const buildCapComputation = (
 
   let cutoffDate: ISODateString | null = null;
   const rows: SygeferiegodtgoerelseCapRow[] = [];
+  const monthFractionByDate = new Map<ISODateString, number>();
+  const fractionForDate = (iso: ISODateString): number => {
+    const cached = monthFractionByDate.get(iso);
+    if (cached !== undefined) return cached;
+    const value = dateInMonthFraction(iso, mode);
+    monthFractionByDate.set(iso, value);
+    return value;
+  };
 
   for (const range of buildRangesFromSortedDates(dates)) {
     const rangeDates = dates.filter((iso) => iso >= range.fra && iso <= range.til);
-    const monthsPrecise = rangeDates.reduce((sum, iso) => sum + dateInMonthFraction(iso, mode), 0);
+    const monthsPrecise = rangeDates.reduce((sum, iso) => sum + fractionForDate(iso), 0);
     rows.push({
       fra: range.fra,
       til: range.til,
@@ -458,7 +466,7 @@ const buildCapComputation = (
 
   let totalMonths = 0;
   for (const iso of dates) {
-    totalMonths += dateInMonthFraction(iso, mode);
+    totalMonths += fractionForDate(iso);
     if (totalMonths + FOUR_MONTHS_EPSILON >= 4) {
       cutoffDate = iso;
       break;
@@ -675,6 +683,23 @@ const buildEmploymentSfggCalculator = (
     return sum;
   };
 
+  const sumRanges = (ranges: readonly IsoRange[]): number => {
+    const validRanges = ranges.filter((range) => range.fra <= range.til);
+    if (validRanges.length === 0) return 0;
+    let sum = 0;
+    for (const row of precomputedRows) {
+      let overlapArbejdsdage = 0;
+      for (const iso of row.arbejdsdageSet) {
+        if (validRanges.some((range) => iso >= range.fra && iso <= range.til)) {
+          overlapArbejdsdage += 1;
+        }
+      }
+      if (overlapArbejdsdage <= 0) continue;
+      sum += row.loenPlusLoen2PlusIkkePensLoen * (overlapArbejdsdage / row.totalArbejdsdage);
+    }
+    return sum;
+  };
+
   const buildFeriepengeOreForDate = (iso: ISODateString): MoneyOre => {
     const cached = feriepengeOreByDate.get(iso);
     if (cached !== undefined) return cached;
@@ -687,7 +712,7 @@ const buildEmploymentSfggCalculator = (
   return {
     sumLoenInRangesKroner: (ranges) => {
       if (ranges.length === 0) return 0;
-      return sumDates(buildDateSetFromRanges(ranges));
+      return sumRanges(ranges);
     },
     sumLoenForDatesKroner: (dates) => {
       if (dates.length === 0) return 0;
@@ -837,17 +862,17 @@ const sumLoenPlusLoen2PlusIkkePensLoenForEligibleDatesKroner = (
       ferieperioder
     );
 
-const buildIncomeExcludedDateSet = (employment: LoenindkomstAnsaettelsesforhold): Set<ISODateString> => {
-  const result = new Set<ISODateString>();
+const buildIncomeExcludedRanges = (employment: LoenindkomstAnsaettelsesforhold): IsoRange[] => {
+  const ranges: IsoRange[] = [];
   for (const row of employment.indtaegtsoplysningerTableData ?? []) {
     if (!rowHasPositiveIncome(row)) continue;
     const interval = parseAarsloenRowInterval(row, employment.loenperiode);
     if (!interval) continue;
-    for (const iso of buildDatoSetInclusiveFromDates(interval.start, interval.end)) {
-      result.add(iso);
-    }
+    const fra = dateToISO(interval.start);
+    const til = dateToISO(interval.end);
+    if (fra && til && fra <= til) ranges.push({ fra, til });
   }
-  return result;
+  return mergeIsoDateRanges(ranges, { mergeAdjacent: true });
 };
 
 const getLastIncomeDate = (employment: LoenindkomstAnsaettelsesforhold): ISODateString | null => {
@@ -1268,7 +1293,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
 
     let afterEmployerSickPayExcludedAny = false;
     if (foerstEfterSygeloen) {
-      const excludedRanges = buildRangesFromSortedDates(sortIsoDates(buildIncomeExcludedDateSet(employment)));
+      const excludedRanges = buildIncomeExcludedRanges(employment);
       afterEmployerSickPayExcludedAny = excludedRanges.some((excludedRange) =>
         arbejdsforlobsRanges.some((arbejdsforlobsRange) => rangesOverlap(arbejdsforlobsRange, excludedRange))
       );
