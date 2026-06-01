@@ -86,6 +86,10 @@ export const buildTafArbejdsdageSet = (
   });
 };
 
+// Scanner hele sættet pr. kald (O(sæt)). Kaldes i segment-løkker, men sættet er præbygget (ikke
+// gen-materialiseret pr. segment, jf. fund 1 i docs/review/perf-dato-interval-iteration.md), og
+// segmenter stammer fra regulerings-brudpunkter (få pr. år) — en amortiseret binær-søgnings-tæller
+// ville kræve threading gennem alle kaldsteder for marginal gevinst og er bevidst undladt.
 export const countTafArbejdsdageInRange = (arbejdsdage: ReadonlySet<ISODateString>, fra: ISODateString, til: ISODateString): number => {
   let count = 0;
   for (const iso of arbejdsdage) {
@@ -1332,8 +1336,15 @@ export const buildLoenudviklingModel = (
     if (income.employers.length === 0) {
       const alleIngen = strategiDataByIndex.every((strategiData) => strategiData.strategi === 'ingen');
       if (alleIngen || income.benefits.length > 0) {
-        const beregnedeSegmenter = tafRanges.map<LoenudviklingSegment>((range) => (
+        // Arbejdsdage-grundlaget afhænger kun af (values, tafRanges) og er dermed loop-invariant.
+        // Byg det ÉN gang frem for pr. range — ellers gen-materialiseres hele arbejdsdage-sættet
+        // (som selv itererer alle ranges) for hver eneste range = O(ranges² × dage).
+        const ingenArbejdsdageSet =
           tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER
+            ? null
+            : buildTafArbejdsdageSet(values, tafRanges);
+        const beregnedeSegmenter = tafRanges.map<LoenudviklingSegment>((range) => (
+          tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER || ingenArbejdsdageSet === null
             ? {
               kind: 'maaneder',
               fra: range.fra,
@@ -1352,7 +1363,7 @@ export const buildLoenudviklingModel = (
               fra: range.fra,
               til: range.til,
               arbejdsdage: countTafArbejdsdageInRange(
-                buildTafArbejdsdageSet(values, tafRanges),
+                ingenArbejdsdageSet,
                 range.fra,
                 range.til
               ),

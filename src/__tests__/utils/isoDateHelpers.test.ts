@@ -8,6 +8,9 @@ import {
   getDayAfterIso,
   getDayBeforeIso,
   iterateDatesInclusive,
+  iterateIsoDatesInclusive,
+  collectIsoDatesInclusive,
+  buildIsoDateSetInclusive,
   isoYear,
   parseOptionalIsoDate,
   validateISODateRange,
@@ -225,6 +228,67 @@ describe('iterateDatesInclusive', () => {
     let count = 0;
     iterateDatesInclusive(utcDate(2023, 12, 30), utcDate(2024, 1, 2), () => count++);
     expect(count).toBe(4);
+  });
+});
+
+describe('iterateIsoDatesInclusive', () => {
+  it('itererer ISO-strenge inklusiv–inklusiv', () => {
+    const result: ISODateString[] = [];
+    iterateIsoDatesInclusive(iso('2024-01-30'), iso('2024-02-02'), (d) => result.push(d));
+    expect(result).toEqual([
+      iso('2024-01-30'),
+      iso('2024-01-31'),
+      iso('2024-02-01'),
+      iso('2024-02-02'),
+    ]);
+  });
+
+  it('enkelt dag → 1 ISO', () => {
+    const result: ISODateString[] = [];
+    iterateIsoDatesInclusive(iso('2024-06-15'), iso('2024-06-15'), (d) => result.push(d));
+    expect(result).toEqual([iso('2024-06-15')]);
+  });
+
+  it('fra > til → ingen iterationer (fail-closed)', () => {
+    let count = 0;
+    iterateIsoDatesInclusive(iso('2024-06-15'), iso('2024-06-14'), () => count++);
+    expect(count).toBe(0);
+  });
+});
+
+describe('collectIsoDatesInclusive', () => {
+  it('bygger kronologisk array af alle dage', () => {
+    expect(collectIsoDatesInclusive(iso('2024-02-28'), iso('2024-03-01'))).toEqual([
+      iso('2024-02-28'),
+      iso('2024-02-29'),
+      iso('2024-03-01'),
+    ]);
+  });
+
+  it('fra > til → tomt array', () => {
+    expect(collectIsoDatesInclusive(iso('2024-03-01'), iso('2024-02-28'))).toEqual([]);
+  });
+
+  it('antal elementer = inklusiv dag-tælling for et helt år (skudår)', () => {
+    expect(collectIsoDatesInclusive(iso('2024-01-01'), iso('2024-12-31'))).toHaveLength(366);
+  });
+});
+
+describe('buildIsoDateSetInclusive', () => {
+  it('bygger Set med alle dage', () => {
+    const set = buildIsoDateSetInclusive(iso('2024-01-01'), iso('2024-01-03'));
+    expect(set.size).toBe(3);
+    expect(set.has(iso('2024-01-02'))).toBe(true);
+  });
+
+  it('fra > til → tomt Set', () => {
+    expect(buildIsoDateSetInclusive(iso('2024-01-03'), iso('2024-01-01')).size).toBe(0);
+  });
+
+  it('collect og buildSet er konsistente (samme dage)', () => {
+    const arr = collectIsoDatesInclusive(iso('2023-12-30'), iso('2024-01-02'));
+    const set = buildIsoDateSetInclusive(iso('2023-12-30'), iso('2024-01-02'));
+    expect(new Set(arr)).toEqual(set);
   });
 });
 

@@ -11,6 +11,7 @@ import {
   periodiserBeloebForArbejdsdage,
   periodiserBeloebForMaaneder,
   periodiserBeloebForOffentligYdelse,
+  sumMaanedsbroekForInterval,
 } from '../../../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
 
 const iso = (value: string): ISODateString => toISODateString(value);
@@ -306,5 +307,61 @@ describe('periodiseringsMotor', () => {
   it('optaelMaanederAfrundet returnerer null ved undefined fra', () => {
     const value = optaelMaanederAfrundet({ fra: undefined, til: iso('2024-01-31') });
     expect(value).toBeNull();
+  });
+});
+
+describe('sumMaanedsbroekForInterval', () => {
+  it('hel kalendermåned → 1', () => {
+    expect(sumMaanedsbroekForInterval(iso('2024-03-01'), iso('2024-03-31'))).toBeCloseTo(1, 10);
+  });
+
+  it('halv måned (15 af 31 dage i januar)', () => {
+    expect(sumMaanedsbroekForInterval(iso('2024-01-01'), iso('2024-01-15'))).toBeCloseTo(15 / 31, 10);
+  });
+
+  it('ugyldigt interval (fra > til) → 0', () => {
+    expect(sumMaanedsbroekForInterval(iso('2024-03-31'), iso('2024-03-01'))).toBe(0);
+  });
+
+  it('undefined grænse → 0', () => {
+    expect(sumMaanedsbroekForInterval(undefined, iso('2024-03-31'))).toBe(0);
+    expect(sumMaanedsbroekForInterval(iso('2024-03-01'), undefined)).toBe(0);
+  });
+
+  // Ækvivalens-lås: den kanoniske helper grupperer pr. måned og dividerer én gang (Σ count/x),
+  // mens den tidligere indkomst-mellemregning summerede 1/x pr. dag (Σ 1/x). De to summer kan
+  // afvige i sidste ULP pga. floating point, men SKAL være identiske efter den 2-decimal-afrunding
+  // begge kaldere anvender. Denne test fanger drift hvis nogen ændrer grupperingsstrategien.
+  it('matcher den tidligere "Σ 1/dage-i-måned"-formel efter 2-decimal-afrunding', () => {
+    const daysInMonth = (year: number, month: number): number =>
+      new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const inlineSum = (fra: ISODateString, til: ISODateString): number => {
+      let total = 0;
+      let cur = d(fra);
+      const end = d(til);
+      while (cur <= end) {
+        total += 1 / daysInMonth(cur.getUTCFullYear(), cur.getUTCMonth() + 1);
+        const next = new Date(cur.getTime());
+        next.setUTCDate(next.getUTCDate() + 1);
+        cur = next;
+      }
+      return total;
+    };
+    const round2 = (x: number): number => {
+      const v = x * 100;
+      return (Math.sign(v) * Math.round(Math.abs(v))) / 100;
+    };
+    const start = d(iso('2018-01-01'));
+    for (let offset = 0; offset < 800; offset += 11) {
+      for (let len = 0; len < 1100; len += 29) {
+        const fraDate = new Date(start.getTime());
+        fraDate.setUTCDate(fraDate.getUTCDate() + offset);
+        const tilDate = new Date(fraDate.getTime());
+        tilDate.setUTCDate(tilDate.getUTCDate() + len);
+        const fra = toISODateString(fraDate.toISOString().slice(0, 10));
+        const til = toISODateString(tilDate.toISOString().slice(0, 10));
+        expect(round2(sumMaanedsbroekForInterval(fra, til))).toBe(round2(inlineSum(fra, til)));
+      }
+    }
   });
 });

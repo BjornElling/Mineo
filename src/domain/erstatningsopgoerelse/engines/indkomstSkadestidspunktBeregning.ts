@@ -1,6 +1,5 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
-import type { ISODateString } from '../../../types/branded';
-import { dateToISO, isISODateString } from '../../../types/branded';
+import { isISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatAsAmount, formatAsAmountTrimmed, formatPercent, isSingularCount } from '../../../utils/formatUtils';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
@@ -9,9 +8,9 @@ import { calculateStandardLoenDerivedFromAmounts } from '../../aarsloen/standard
 import { buildIncomeForRanges, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
 import { buildLoenindkomstRateSegments, resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from '../engines/tafCalculations';
+import { sumMaanedsbroekForInterval } from '../engines/periodiseringsMotor';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { getAngivetLoenBaseretPaa } from '../helpers/angivetLoenHelpers';
-import { isoDateToDate } from '../../dates/isoDate';
 import type { Calculable, IndkomstSkadestidspunktModel, MoneyOre } from '../shared/eoTypes';
 import { asCalculable, clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../shared/eoMoney';
 import { formatPercentFixed2, resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
@@ -231,28 +230,11 @@ export const buildIndkomstSkadestidspunkt = (
 
       if (tafBeregningsenhed === TAF_BEREGNES_SOM.MAANEDER && maanederResult !== null) {
         const oevrigeFravaersdageValue = oevrigeFravaersdage;
-        const periodeDage = new Set<ISODateString>();
-        const fraDate = isoDateToDate(periodeTilBeregning.fra);
-        const tilDate = isoDateToDate(periodeTilBeregning.til);
-        const currentDate = new Date(fraDate);
-        while (currentDate <= tilDate) {
-          const iso = dateToISO(currentDate);
-          if (iso) periodeDage.add(iso);
-          currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-        }
-
-        const beregnMaanederForDage = (dage: ReadonlySet<ISODateString>): number => {
-          let total = 0;
-          for (const isoStr of dage) {
-            const year = Number.parseInt(isoStr.slice(0, 4), 10);
-            const month = Number.parseInt(isoStr.slice(5, 7), 10);
-            const dageIMaaned = new Date(Date.UTC(year, month, 0)).getUTCDate();
-            total += 1 / dageIMaaned;
-          }
-          return total;
-        };
-
-        const totalMaaneder = beregnMaanederForDage(periodeDage);
+        // Samme "antal måneder ud fra dage"-princip som beregningsgrundlaget; brug den kanoniske
+        // motor-helper i stedet for en lokal dag-for-dag-løkke (ingen materialiseret dag-Set, og
+        // de to implementeringer kan ikke længere drive fra hinanden). Resultatet er identisk
+        // efter den 2-decimal-afrunding nedenfor.
+        const totalMaaneder = sumMaanedsbroekForInterval(periodeTilBeregning.fra, periodeTilBeregning.til);
         const fravaerMaaneder = oevrigeFravaersdageValue * TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR;
         const roundedTotalMaaneder = roundByMethod(totalMaaneder, 2, 'halfAwayFromZero');
         const roundedFravaerMaaneder = roundByMethod(fravaerMaaneder, 2, 'halfAwayFromZero');

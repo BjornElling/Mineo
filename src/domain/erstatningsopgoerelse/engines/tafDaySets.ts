@@ -3,7 +3,7 @@ import type { ISODateString } from '../../../types/branded';
 import { dateToISO } from '../../../types/branded';
 import { isoDateToDate } from '../../dates/isoDate';
 import { addDays } from '../../../utils/dateUtils';
-import type { IsoRange } from '../../../utils/isoDateHelpers';
+import { iterateDatesInclusive, type IsoRange } from '../../../utils/isoDateHelpers';
 import { buildSHDageSetForDatoSet } from '../../dates/shDageBeregning';
 import { toNonNegativeInt } from '../../../utils/numberParsing';
 import { getValidTafRange } from '../validation/tafPeriodConstraints';
@@ -34,11 +34,9 @@ export const buildDatoSetInclusiveFromDates = (fraDate: Date, tilDate: Date): Se
     throw new Error('buildDatoSetInclusiveFromDates: fraDate > tilDate');
   }
   const datoSet = new Set<ISODateString>();
-  let currentDate = new Date(fraDate);
-  while (currentDate <= tilDate) {
-    datoSet.add(toIsoOrThrow(currentDate, 'datoSet'));
-    currentDate = addDays(currentDate, 1);
-  }
+  iterateDatesInclusive(fraDate, tilDate, (date) => {
+    datoSet.add(toIsoOrThrow(date, 'datoSet'));
+  });
   return datoSet;
 };
 
@@ -65,16 +63,14 @@ export const buildFerieDageSet = (
     if (periode.fra > periode.til) continue;
     const ferieFra = isoDateToDate(periode.fra);
     const ferieTil = isoDateToDate(periode.til);
-    let ferieCurrent = new Date(ferieFra);
-    while (ferieCurrent <= ferieTil) {
+    iterateDatesInclusive(ferieFra, ferieTil, (ferieCurrent) => {
       const isoStr = toIsoOrThrow(ferieCurrent, 'ferieperiode');
       // SH-dage omfatter kun hverdagshelligdage. Ved kalenderdage skal helligdage på weekend
       // derfor fortsat tælle som kalenderdage og må ikke filtreres bort her.
       if (datoSet.has(isoStr) && !shDageSet.has(isoStr) && (includeWeekends || isWeekdayUtc(ferieCurrent))) {
         ferieDageSet.add(isoStr);
       }
-      ferieCurrent = addDays(ferieCurrent, 1);
-    }
+    });
   }
   return ferieDageSet;
 };

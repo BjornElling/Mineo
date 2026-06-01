@@ -7,7 +7,7 @@
 
 import type { ISODateString } from '../../types/branded';
 import { toISODateString } from '../../types/branded';
-import { createDate } from '../../utils/dateUtils';
+import { collectIsoDatesInclusive } from '../../utils/isoDateHelpers';
 import type { DateRange, OverlapResult } from './eoDebugTypes';
 
 /**
@@ -132,30 +132,9 @@ export function getIsoRange(
   start: ISODateString,
   end: ISODateString
 ): ISODateString[] {
-  const result: ISODateString[] = [];
-
-  // Parse start-dato
-  const [startYear, startMonth, startDay] = start.split('-').map(Number);
-  const current = createDate(startYear, startMonth - 1, startDay);
-
-  // Parse slut-dato
-  const [endYear, endMonth, endDay] = end.split('-').map(Number);
-  const endDate = createDate(endYear, endMonth - 1, endDay);
-
-  // Byg array af datoer
-  while (current <= endDate) {
-    const year = current.getUTCFullYear();
-    const month = String(current.getUTCMonth() + 1).padStart(2, '0');
-    const day = String(current.getUTCDate()).padStart(2, '0');
-    const isoDate = `${year}-${month}-${day}` as ISODateString;
-
-    result.push(isoDate);
-
-    // Næste dag
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
-
-  return result;
+  // Delegér til den kanoniske dag-materialiserer (date-contract §"Kanonisk dag-iteration").
+  // Bevarer inklusiv–inklusiv-semantikken og tomt array når start > end.
+  return collectIsoDatesInclusive(start, end);
 }
 
 /**

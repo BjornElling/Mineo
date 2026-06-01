@@ -3,6 +3,7 @@ import type { ISODateString } from '../../../types/branded';
 import { dateToISO, parseISODate } from '../../../types/branded';
 import { addDays } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
+import { iterateDatesInclusive, iterateIsoDatesInclusive } from '../../../utils/isoDateHelpers';
 import type { Periodisering } from '../../../data/ydelsestyper';
 import { buildDatoSetInclusiveFromDates, buildFerieDageSet, buildShDageSet, isWeekdayUtc, placeLoseFeriedage } from './tafDaySets';
 import { TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR } from '../helpers/tafBeregningsenhed';
@@ -118,17 +119,15 @@ export const periodiserBeloebForArbejdsdage = (args: {
 
   let totalArbejdsdage = 0;
   let overlapArbejdsdage = 0;
-  for (let i = 0; i < totalDays; i += 1) {
-    const date = new Date(interval.start.getTime());
-    date.setUTCDate(interval.start.getUTCDate() + i);
+  iterateDatesInclusive(interval.start, interval.end, (date) => {
     const iso = dateToISO(date);
-    if (!iso) continue;
-    if (!arbejdsdageSet.has(iso)) continue;
+    if (!iso) return;
+    if (!arbejdsdageSet.has(iso)) return;
     totalArbejdsdage += 1;
     if (isDateInRanges(iso, ranges)) {
       overlapArbejdsdage += 1;
     }
-  }
+  });
   if (totalArbejdsdage <= 0 || overlapArbejdsdage <= 0) return 0;
   return totalBeloeb * (overlapArbejdsdage / totalArbejdsdage);
 };
@@ -186,11 +185,9 @@ export const periodiserBeloebForOffentligYdelse = (args: {
   if (!rowTilISO) return 0;
 
   let periodiseringsDage = 0;
-  for (let i = 0; i < totalDays; i += 1) {
-    const date = new Date(interval.start.getTime());
-    date.setUTCDate(interval.start.getUTCDate() + i);
+  iterateDatesInclusive(interval.start, interval.end, (date) => {
     const iso = dateToISO(date);
-    if (!iso) continue;
+    if (!iso) return;
     if (!isOffentligYdelseDatoMedregnet({
       iso,
       dateObj: date,
@@ -200,10 +197,10 @@ export const periodiserBeloebForOffentligYdelse = (args: {
       rowTilISO,
       sygedagpengeShCutoff,
     })) {
-      continue;
+      return;
     }
     periodiseringsDage += 1;
-  }
+  });
   if (periodiseringsDage <= 0) return 0;
 
   let overlapDage = 0;
@@ -215,11 +212,9 @@ export const periodiserBeloebForOffentligYdelse = (args: {
   if (overlapStart > overlapEnd) return 0;
   const overlapDaysInclusive = countInclusiveUtcDays(overlapStart, overlapEnd);
   if (!overlapDaysInclusive || overlapDaysInclusive <= 0) return 0;
-  for (let i = 0; i < overlapDaysInclusive; i += 1) {
-    const date = new Date(overlapStart.getTime());
-    date.setUTCDate(overlapStart.getUTCDate() + i);
+  iterateDatesInclusive(overlapStart, overlapEnd, (date) => {
     const iso = dateToISO(date);
-    if (!iso) continue;
+    if (!iso) return;
     if (!isOffentligYdelseDatoMedregnet({
       iso,
       dateObj: date,
@@ -229,10 +224,10 @@ export const periodiserBeloebForOffentligYdelse = (args: {
       rowTilISO,
       sygedagpengeShCutoff,
     })) {
-      continue;
+      return;
     }
     overlapDage += 1;
-  }
+  });
   if (overlapDage <= 0) return 0;
   return totalBeloeb * (overlapDage / periodiseringsDage);
 };
@@ -283,8 +278,7 @@ export const buildSygedagpengeArbejdsdagePrKalenderuge = (
   if (!fra || !til || fra > til) return [];
 
   const uger = new Map<ISODateString, Set<ISODateString>>();
-  let current = new Date(fra);
-  while (current <= til) {
+  iterateDatesInclusive(fra, til, (current) => {
     const weekday = current.getUTCDay();
     if (weekday >= 1 && weekday <= 5) {
       const weekdayOffset = (weekday + 6) % 7;
@@ -296,8 +290,7 @@ export const buildSygedagpengeArbejdsdagePrKalenderuge = (
         uger.set(ugeStart, datoer);
       }
     }
-    current = addDays(current, 1);
-  }
+  });
 
   const fratraekSH = tilDato >= (options?.sygedagpengeShCutoff ?? SYGEDAGPENGE_SH_CUTOFF);
 
@@ -324,15 +317,33 @@ export const optaelMaanederPraecis = (args: {
   const tilDate = parseISODate(til);
   if (!fraDate || !tilDate) return null;
 
+  const antalMaaneder = sumMaanedsbroekForInterval(fra, til);
+
+  const fravaersdageFradrag = toNonNegativeInt(oevrigeFravaersdage) * TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR;
+  return Math.max(0, antalMaaneder - fravaersdageFradrag);
+}
+
+/**
+ * Summen af måneds-brøker for et interval: hver kalenderdag tæller som 1/x af sin måned
+ * (x = antal dage i den pågældende måned). Returnerer 0 ved ugyldigt interval.
+ *
+ * Kanonisk kilde til "antal måneder ud fra dage"-princippet — genbruges af både
+ * {@link optaelMaanederPraecis} og indkomst-på-skadestidspunkt-mellemregningen, så de to
+ * tidligere parallelle implementeringer ikke kan drive fra hinanden. Grupperer pr. måned og
+ * dividerer én gang pr. måned (frem for at summere 1/x pr. dag); resultatet er identisk efter
+ * den 2-decimal-afrunding begge kaldere anvender.
+ */
+export const sumMaanedsbroekForInterval = (
+  fra: ISODateString | undefined,
+  til: ISODateString | undefined
+): number => {
+  if (!fra || !til || fra > til) return 0;
+
   const monthCounts = new Map<string, number>();
-  let currentDate = new Date(fraDate);
-  while (currentDate <= tilDate) {
-    const year = currentDate.getUTCFullYear();
-    const month = currentDate.getUTCMonth() + 1;
-    const monthKey = `${year}-${String(month).padStart(2, '0')}`;
+  iterateIsoDatesInclusive(fra, til, (iso) => {
+    const monthKey = iso.slice(0, 7);
     monthCounts.set(monthKey, (monthCounts.get(monthKey) ?? 0) + 1);
-    currentDate = addDays(currentDate, 1);
-  }
+  });
 
   let antalMaaneder = 0;
   for (const [monthKey, count] of monthCounts) {
@@ -343,10 +354,8 @@ export const optaelMaanederPraecis = (args: {
     const dageIMaaned = new Date(Date.UTC(year, month, 0)).getUTCDate();
     antalMaaneder += count / dageIMaaned;
   }
-
-  const fravaersdageFradrag = toNonNegativeInt(oevrigeFravaersdage) * TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR;
-  return Math.max(0, antalMaaneder - fravaersdageFradrag);
-};
+  return antalMaaneder;
+};;
 
 export const optaelMaanederAfrundet = (args: {
   fra: ISODateString | undefined;

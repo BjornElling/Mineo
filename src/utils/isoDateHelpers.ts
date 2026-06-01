@@ -108,6 +108,11 @@ export const sortIsoDates = (values: Iterable<ISODateString>): ISODateString[] =
 /**
  * Itererer alle UTC-dage i intervallet [start, end] inklusivt.
  * Kontrakt: `start` og `end` er date-only UTC-dage, og `start <= end`.
+ *
+ * Dette er den ENESTE kanoniske dag-for-dag-iterator i domænet (jf. date-contract §"Kanonisk
+ * dag-iteration"). Materialiserere og ISO-iteratorer nedenfor er udtrykt via denne, så der kun
+ * findes ét sted hvor en kalenderdag-løkke faktisk inkrementeres. `onDate` modtager den samme
+ * muterede `Date`-instans hver gang og må derfor ikke beholde referencen — læs værdien straks.
  */
 export const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Date) => void): void => {
   const current = new Date(start.getTime());
@@ -115,6 +120,54 @@ export const iterateDatesInclusive = (start: Date, end: Date, onDate: (date: Dat
     onDate(current);
     current.setUTCDate(current.getUTCDate() + 1);
   }
+};
+
+/**
+ * Itererer alle UTC-dage i intervallet [fra, til] inklusivt som ISO-strenge.
+ * Returnerer uden at gøre noget hvis en grænse er ugyldig eller `fra > til` (fail-closed).
+ *
+ * Foretræk denne frem for at materialisere et helt array/Set, når du kun skal læse hver dag
+ * én gang (fx tælle eller akkumulere) — den allokerer O(1) i stedet for O(dage).
+ */
+export const iterateIsoDatesInclusive = (
+  fra: ISODateString,
+  til: ISODateString,
+  onIso: (iso: ISODateString) => void
+): void => {
+  const start = parseISODate(fra);
+  const end = parseISODate(til);
+  if (!start || !end || start > end) return;
+  iterateDatesInclusive(start, end, (date) => {
+    const iso = dateToISO(date);
+    if (iso) onIso(iso);
+  });
+};
+
+/**
+ * Bygger et array af alle UTC-dage i intervallet [fra, til] inklusivt (kronologisk rækkefølge).
+ * Tomt array hvis en grænse er ugyldig eller `fra > til`.
+ *
+ * Brug KUN når du reelt har brug for alle dage materialiseret (fx én række pr. dag). Skal du blot
+ * tælle dage, brug `countInclusiveUtcDays`; skal du iterere uden at gemme, brug
+ * `iterateIsoDatesInclusive`.
+ */
+export const collectIsoDatesInclusive = (fra: ISODateString, til: ISODateString): ISODateString[] => {
+  const result: ISODateString[] = [];
+  iterateIsoDatesInclusive(fra, til, (iso) => result.push(iso));
+  return result;
+};
+
+/**
+ * Bygger et `Set` af alle UTC-dage i intervallet [fra, til] inklusivt.
+ * Tomt sæt hvis en grænse er ugyldig eller `fra > til`.
+ *
+ * Samme valg som {@link collectIsoDatesInclusive}: kun til reel medlemskabs-test (`.has`), ikke
+ * til ren optælling.
+ */
+export const buildIsoDateSetInclusive = (fra: ISODateString, til: ISODateString): Set<ISODateString> => {
+  const result = new Set<ISODateString>();
+  iterateIsoDatesInclusive(fra, til, (iso) => result.add(iso));
+  return result;
 };
 
 export const validateISODateRange = (

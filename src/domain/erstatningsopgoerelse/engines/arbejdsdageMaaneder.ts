@@ -1,6 +1,7 @@
 import type { ISODateString } from '../../../types/branded';
 import { dateToISO } from '../../../types/branded';
 import { isoDateToDate } from '../../dates/isoDate';
+import { iterateDatesInclusive } from '../../../utils/isoDateHelpers';
 import { optaelMaanederPraecis } from './periodiseringsMotor';
 
 export const beregnArbejdsdageOgMaaneder = (
@@ -14,8 +15,7 @@ export const beregnArbejdsdageOgMaaneder = (
 
   let arbejdsdage = 0;
 
-  const current = new Date(fraDate);
-  while (current <= tilDate) {
+  iterateDatesInclusive(fraDate, tilDate, (current) => {
     const iso = dateToISO(current);
     if (iso) {
       const dow = current.getUTCDay();
@@ -28,9 +28,7 @@ export const beregnArbejdsdageOgMaaneder = (
         arbejdsdage++;
       }
     }
-
-    current.setUTCDate(current.getUTCDate() + 1);
-  }
+  });
 
   const maaneder = optaelMaanederPraecis({ fra, til, oevrigeFravaersdage: 0 }) ?? 0;
   return { arbejdsdage, maaneder };

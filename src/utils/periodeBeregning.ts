@@ -7,9 +7,10 @@
 import type { DateInterval } from '../types/calculation';
 import type { StandardLoenTableRow } from '../schemas/formSchemas';
 import { coerceToISODateString, parseISODate, toISODateString, type ISODateString } from '../types/branded';
-import { addDays, createDate, formatToISO, isLeapYear, parseWeekString } from './dateUtils';
+import { createDate, formatToISO, isLeapYear, parseWeekString } from './dateUtils';
 import type { Periodisering } from '../data/ydelsestyper';
 import { countInclusiveUtcDays } from './utcDayMath';
+import { iterateDatesInclusive } from './isoDateHelpers';
 import { MONTH_NAMES_DA_SHORT } from './dateFormatting';
 import {
   buildSygedagpengeArbejdsdagePrKalenderuge as buildSygedagpengeArbejdsdagePrKalenderugeCentral,
@@ -192,11 +193,9 @@ export const beregnMaanedPeriode = (tableData: StandardLoenTableRow[]): PeriodeR
         perioder.push({ start: foersteDag, end: sidsteDag });
 
         // Tilføj alle dage i måneden til datoSet
-        let currentDate = new Date(foersteDag);
-        while (currentDate <= sidsteDag) {
+        iterateDatesInclusive(foersteDag, sidsteDag, (currentDate) => {
           datoSet.add(formatToISO(currentDate));
-          currentDate = addDays(currentDate, 1);
-        }
+        });
       }
     }
   });
@@ -290,11 +289,9 @@ export const beregnUgePeriode = (tableData: StandardLoenTableRow[]): PeriodeResu
         }
 
         // Tilføj alle dage mellem fra og til til datoSet
-        let currentDate = new Date(fraData.start);
-        while (currentDate <= tilData.end) {
+        iterateDatesInclusive(fraData.start, tilData.end, (currentDate) => {
           datoSet.add(formatToISO(currentDate));
-          currentDate = addDays(currentDate, 1);
-        }
+        });
       }
     }
   });
@@ -410,11 +407,9 @@ export const beregnDagPeriode = (tableData: StandardLoenTableRow[]): PeriodeResu
         perioder.push({ start: fraDate, end: tilDate });
 
         // Tilføj alle dage mellem fra og til
-        let currentDate = new Date(fraDate);
-        while (currentDate <= tilDate) {
+        iterateDatesInclusive(fraDate, tilDate, (currentDate) => {
           dage.add(formatToISO(currentDate));
-          currentDate = addDays(currentDate, 1);
-        }
+        });
       }
     }
   });

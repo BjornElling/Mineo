@@ -13,7 +13,20 @@ import { IntegrityInvariant, type DebugDay, type IntegrityIssue, type DateRange 
 import type { DebugModelInput } from './eoDebugCoreModel';
 import { getOverlap, getIsoRange, tryParseIso } from './eoDebugDateUtils';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+import { parseISODate, type ISODateString } from '../../types/branded';
+import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+
+/**
+ * Antal dage i [fra, til] inklusiv–inklusiv. Forudsætter `fra <= til` (kaldere har clampet/guardet);
+ * returnerer 0 ved ugyldige grænser, så et integritets-tjek aldrig crasher på korrupt input.
+ */
+const countDagesInclusive = (fra: ISODateString, til: ISODateString): number => {
+  const start = parseISODate(fra);
+  const end = parseISODate(til);
+  if (!start || !end) return 0;
+  return countInclusiveUtcDays(start, end) ?? 0;
+};
 
 /**
  * Tjek for overlappende TAF-perioder
@@ -170,9 +183,9 @@ const checkTafDaysMismatch = (
     const clamped = clampTafRange({ fra, til }, tafBounds);
     if (!clamped) continue;
 
-    // Forventet antal dage (inklusiv-inklusiv)
-    const expectedRange = getIsoRange(clamped.fra, clamped.til);
-    const expectedCount = expectedRange.length;
+    // Forventet antal dage (inklusiv-inklusiv). Vi tæller direkte i stedet for at
+    // materialisere hele intervallet som array kun for at læse `.length` (O(1) frem for O(dage)).
+    const expectedCount = countDagesInclusive(clamped.fra, clamped.til);
 
     // Faktisk antal dage markeret i debug-model
     const actualCount = debugDays.filter((d) => d.tafFlags.has(periode.id))
@@ -231,9 +244,8 @@ const checkSvieSmerteMismatch = (
     if (menStopDato && clampedTil > menStopDato) clampedTil = menStopDato;
     if (clampedFra > clampedTil) continue;
 
-    // Forventet antal dage
-    const expectedRange = getIsoRange(clampedFra, clampedTil);
-    const expectedCount = expectedRange.length;
+    // Forventet antal dage (se note ved TAF-dage-tjekket: tæl direkte frem for at materialisere).
+    const expectedCount = countDagesInclusive(clampedFra, clampedTil);
 
     // Forventet niveau
     let expectedNiveau: 'Fuld' | 'Delvis' | 'Ingen';
