@@ -37,6 +37,7 @@ pnpm-debug.log*
 
 # OS
 Thumbs.db
+desktop.ini
 
 # Claude Code lokale filer
 .claude/
