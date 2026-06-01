@@ -62,10 +62,10 @@ Planen følger **afhængighedsorden nedefra og op** — det fundamentale først,
 | 5.4 | Talbehandling: parsing, expression-amount, afrunding, percent, fraction, sammenligning | ✅ Gennemgået | [5.4-talbehandling.md](5.4-talbehandling.md) |
 | 5.5 | Øvrige utils: serialization, typeGuards, zod-issue-formatting, safeComputation, tabel-/row-helpers | ✅ Gennemgået | [5.5-oevrige-utils.md](5.5-oevrige-utils.md) |
 | **6 — Data** | | | |
-| 6.1 | Renter og lovbestemte/statistiske rater: interestRates, lovbestemteRates, statistiskeRates | ⬜ Ikke startet | — |
-| 6.2 | Folkepension, sygedagpenge, overenskomst, KRL, ydelsestyper, retsinfo-links | ⬜ Ikke startet | — |
-| 6.3 | Offentlig løn: KL- og RLTN-satser, lookup, typer, import-script | ⬜ Ikke startet | — |
-| 6.4 | Kapitaliseringstabeller, bekendtgørelser og forhøjet-pensionsalder-events | ⬜ Ikke startet | — |
+| 6.1 | Renter og lovbestemte/statistiske rater: interestRates, lovbestemteRates, statistiskeRates | ✅ Gennemgået | [6.1-renter-lovbestemte-statistiske-rater.md](6.1-renter-lovbestemte-statistiske-rater.md) |<br>↳ _✅ Afklaret: `vejledendeUdtalelseEet`-diskontinuitet bekræftet korrekt af bruger; dokumenteret i kode._ |
+| 6.2 | Folkepension, sygedagpenge, overenskomst, KRL, ydelsestyper, retsinfo-links | ✅ Gennemgået | [6.2-folkepension-sygedagpenge-overenskomst-krl-ydelsestyper-retsinfo.md](6.2-folkepension-sygedagpenge-overenskomst-krl-ydelsestyper-retsinfo.md) |
+| 6.3 | Offentlig løn: KL- og RLTN-satser, lookup, typer, import-script | ✅ Gennemgået | [6.3-offentlig-loen.md](6.3-offentlig-loen.md) |<br>↳ _⏭ Parkeret: `import:loen`-script fejler på de ældste `.xls`-filer (legacy-layout) — forelagt; data er korrekt og valideret._ |
+| 6.4 | Kapitaliseringstabeller, bekendtgørelser og forhøjet-pensionsalder-events | ✅ Gennemgået | [6.4-kapitalisering-bekendtgoerelser-pensionsalder.md](6.4-kapitalisering-bekendtgoerelser-pensionsalder.md) |
 | **7 — UI-inputs & grid** | | | |
 | 7.1 | StyledField-familien: amount, date, integer, percent, fraction, week, year, text(area), dropdown, checkbox, radio, toggle | ⬜ Ikke startet | — |
 | 7.2 | Table-inputs og adaptere (inputs/table + hooks/tableInput/adapters) + inputKeyFilters | ⬜ Ikke startet | — |
