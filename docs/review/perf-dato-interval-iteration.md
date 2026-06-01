@@ -9,6 +9,24 @@ bygger datoer/datointervaller eller beregner per-dag unødigt stort/dyrt, og ret
 hotspots, låst med ækvivalens-tests). Konsolidér de mange håndskrevne dag-løkker til én kanonisk
 primitiv. Brugeren committer til sidst.
 
+## Opfølgende subagent-review og rettelser
+
+To read-only subagents gennemgik indsatsen efterfølgende:
+
+- **A (kvalitet/regressionsrisiko):** pegede især på, at rå månedsfraktioner ikke måtte ændres uden
+  fuld bevisførelse. Fuld test bekræftede, at den nuværende kanoniske gruppering pr. måned er det
+  forventede resultatgrundlag, så den er bevaret. `sumMaanedsbroekForInterval` er fortsat fælles
+  helper, men kommentaren er strammet, og den overflødige `};;` er fjernet.
+- **B (omfang):** fandt tre reelle udvidelser af indsatsen, som nu er rettet:
+  `buildShDageSetFromIsoRange` delegerer direkte til den O(år)-baserede SH-helper; offentlige
+  ydelser bygger periodiseringsgrundlaget én gang pr. række og genbruger det for alle ranges; SFGG
+  repræsenterer sygelønsudelukkelser som ranges i stedet for først at materialisere alle datoer.
+
+Derudover er debug-lagets parallelle månedslogik erstattet med den kanoniske månedshelper, og
+håndskrevne dag-for-dag-løkker i debug/TAF-hjælpere er flyttet til `iterateDatesInclusive` med
+tidlig stop-understøttelse. Kontrakten præciserer nu, at perioder der springer år/halvår/satsperioder
+ikke er dag-for-dag-iteration.
+
 **Filer ændret:**
 - `src/utils/isoDateHelpers.ts` — nye kanoniske primitiver
 - `src/contracts/date-contract.md` — ny sektion "Kanonisk dag-iteration og materialisering"
@@ -96,12 +114,18 @@ læst den faktiske kode (agenternes linjenumre var stedvis forældede).
 
 ## Verifikation
 
-- `npm run typecheck` → ren.
-- `npm run typecheck:test` → (se commit-gate).
-- Berørte suiter (EO, debug, periodeBeregning, isoDateHelpers, periodiseringsMotor): grønne.
-- Nye tests: kanoniske primitiver (iterate/collect/buildSet) + ækvivalens-lås for
-  `sumMaanedsbroekForInterval` (26k+ intervaller).
-- Fuld suite + lint → (se commit-gate).
+- `npm run typecheck`, `npm run typecheck:test`, `npm run lint` → rene.
+- Fuld suite: 4624 tests grønne (369 filer).
+- Ækvivalens-/karakteriserings-låse (så de adfærdsbevarende antagelser ikke kan drive):
+  - `sumMaanedsbroekForInterval` mod den gamle "Σ 1/dage-i-måned"-form efter 2-decimal-afrunding
+    (26k+ intervaller).
+  - `buildSHDageSetForIsoRange` mod materialiser-reference for ALLE år 1900–2100 + helligdagsgrænser.
+  - Kanoniske primitiver: `iterate/collect/buildSet` + tidlig-stop (`false` fra callback).
+  - `periodiserBeloebForOffentligYdelseMedGrundlag` mod den direkte (iterende) form for både
+    `arbejdsdage` og `kalenderdage`-hurtigstien; `countOffentligYdelsePeriodiseringsdage(kalenderdage)`
+    mod inklusiv dag-tælling.
+  - `mergeIsoDateRanges({mergeAdjacent:true})` ≡ materialisér-sortér-resegmentér (300-iterations
+    property-test) — låser SFGG's `buildIncomeExcludedRanges`-refaktorering.
 
 ## Sammenfatning
 

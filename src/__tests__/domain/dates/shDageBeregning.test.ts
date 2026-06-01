@@ -252,6 +252,31 @@ describe('buildSHDageSetForIsoRange', () => {
     }
   });
 
+  it('giver identisk output som reference for alle år og helligdagsgrænser i supporteret interval', () => {
+    for (let year = 1900; year <= 2100; year += 1) {
+      const wholeYearActual = buildSHDageSetForIsoRange(
+        toISODateString(`${year}-01-01`),
+        toISODateString(`${year}-12-31`)
+      );
+      const wholeYearReference = buildSHDageSetForIsoRangeReference(
+        toISODateString(`${year}-01-01`),
+        toISODateString(`${year}-12-31`)
+      );
+      expect([...wholeYearActual].sort()).toEqual([...wholeYearReference].sort());
+
+      for (const helligdag of beregnHelligdage(year)) {
+        const fraDate = addDays(helligdag, -2);
+        const tilDate = addDays(helligdag, 2);
+        if (fraDate.getUTCFullYear() < 1900 || tilDate.getUTCFullYear() > 2100) continue;
+        const fra = formatToISO(fraDate);
+        const til = formatToISO(tilDate);
+        const actual = buildSHDageSetForIsoRange(fra, til);
+        const reference = buildSHDageSetForIsoRangeReference(fra, til);
+        expect([...actual].sort()).toEqual([...reference].sort());
+      }
+    }
+  });
+
   it('samler SH-dage på tværs af et flerårigt interval', () => {
     // 25-12-2023 (man) → 01-01-2024 (man): juledag 2023, 2. juledag 2023 (tir), nytår 2024
     const result = buildSHDageSetForIsoRange(

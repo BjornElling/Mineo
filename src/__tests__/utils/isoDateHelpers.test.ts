@@ -224,6 +224,15 @@ describe('iterateDatesInclusive', () => {
     expect(count).toBe(0);
   });
 
+  it('callback kan stoppe iterationen tidligt med false', () => {
+    const dates: number[] = [];
+    iterateDatesInclusive(utcDate(2024, 6, 1), utcDate(2024, 6, 10), (d) => {
+      dates.push(d.getUTCDate());
+      return dates.length < 3;
+    });
+    expect(dates).toEqual([1, 2, 3]);
+  });
+
   it('nytårsskift: 2023-12-30 til 2024-01-02 → 4 callbacks', () => {
     let count = 0;
     iterateDatesInclusive(utcDate(2023, 12, 30), utcDate(2024, 1, 2), () => count++);

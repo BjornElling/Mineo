@@ -1,5 +1,6 @@
 import { toISODateString, type ISODateString } from '../../../types/branded';
 import {
+  buildOffentligYdelsePeriodiseringsGrundlag,
   buildLoenArbejdsdageSet,
   buildSygedagpengeArbejdsdagePrKalenderuge,
   countOffentligYdelsePeriodiseringsdage,
@@ -11,6 +12,7 @@ import {
   periodiserBeloebForArbejdsdage,
   periodiserBeloebForMaaneder,
   periodiserBeloebForOffentligYdelse,
+  periodiserBeloebForOffentligYdelseMedGrundlag,
   sumMaanedsbroekForInterval,
 } from '../../../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
 
@@ -292,6 +294,87 @@ describe('periodiseringsMotor', () => {
     });
     // Alle 5 dage tæller → 500 * 5/5 = 500
     expect(result).toBe(500);
+  });
+
+  it('periodiserBeloebForOffentligYdelseMedGrundlag matcher direkte periodisering for flere ranges', () => {
+    const interval = { start: d(toISODateString('2024-01-01')), end: d(toISODateString('2024-01-10')) };
+    const shDays = new Set<ISODateString>([iso('2024-01-01')]);
+    const ranges = [
+      { fra: iso('2024-01-01'), til: iso('2024-01-03') },
+      { fra: iso('2024-01-08'), til: iso('2024-01-10') },
+    ];
+    const grundlag = buildOffentligYdelsePeriodiseringsGrundlag({
+      interval,
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'dagpenge',
+      shDays,
+    });
+
+    expect(grundlag).not.toBeNull();
+    if (!grundlag) throw new Error('Forventede gyldigt periodiseringsgrundlag');
+    const direct = ranges.reduce((sum, range) => sum + periodiserBeloebForOffentligYdelse({
+      totalBeloeb: 1000,
+      interval,
+      range,
+      periodisering: 'arbejdsdage',
+      ydelsestypeKey: 'dagpenge',
+      shDays,
+    }), 0);
+    const prepared = ranges.reduce((sum, range) => sum + periodiserBeloebForOffentligYdelseMedGrundlag({
+      totalBeloeb: 1000,
+      range,
+      grundlag,
+    }), 0);
+
+    expect(prepared).toBe(direct);
+  });
+
+  // Lås kalenderdage-hurtigstien: når periodisering = 'kalenderdage' medregnes hver dag, så
+  // grundlaget springer dag-for-dag-iterationen over og bruger countInclusiveUtcDays. Skal være
+  // byte-identisk med den direkte (iterende) periodisering.
+  it('periodiserBeloebForOffentligYdelse(MedGrundlag) er identisk for kalenderdage (hurtigsti vs. direkte)', () => {
+    const interval = { start: d(toISODateString('2024-03-01')), end: d(toISODateString('2024-03-31')) };
+    const shDays = new Set<ISODateString>([iso('2024-03-28')]); // ignoreres ved kalenderdage
+    const ranges = [
+      { fra: iso('2024-03-01'), til: iso('2024-03-10') },
+      { fra: iso('2024-03-20'), til: iso('2024-03-31') },
+    ];
+    const grundlag = buildOffentligYdelsePeriodiseringsGrundlag({
+      interval,
+      periodisering: 'kalenderdage',
+      ydelsestypeKey: 'folkepension',
+      shDays,
+    });
+    expect(grundlag).not.toBeNull();
+    if (!grundlag) throw new Error('Forventede gyldigt periodiseringsgrundlag');
+    expect(grundlag.periodiseringsDage).toBe(31);
+
+    const direct = ranges.reduce((sum, range) => sum + periodiserBeloebForOffentligYdelse({
+      totalBeloeb: 3100,
+      interval,
+      range,
+      periodisering: 'kalenderdage',
+      ydelsestypeKey: 'folkepension',
+      shDays,
+    }), 0);
+    const prepared = ranges.reduce((sum, range) => sum + periodiserBeloebForOffentligYdelseMedGrundlag({
+      totalBeloeb: 3100,
+      range,
+      grundlag,
+    }), 0);
+
+    expect(prepared).toBe(direct);
+    // 10 + 12 kalenderdage af 31 → 3100 * 22/31
+    expect(prepared).toBeCloseTo(3100 * (22 / 31), 9);
+  });
+
+  it('countOffentligYdelsePeriodiseringsdage(kalenderdage) = inklusiv dag-tælling', () => {
+    expect(countOffentligYdelsePeriodiseringsdage({
+      fra: iso('2024-03-01'),
+      til: iso('2024-03-31'),
+      periodisering: 'kalenderdage',
+      ydelsestypeKey: 'folkepension',
+    })).toBe(31);
   });
 
   it('optaelMaanederPraecis returnerer null ved undefined fra', () => {

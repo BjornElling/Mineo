@@ -1,5 +1,6 @@
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 import { mergeIsoDateRanges, mergeDateRanges } from '../../../domain/erstatningsopgoerelse/engines/periodMerging';
+import type { IsoRange } from '../../../utils/isoDateHelpers';
 
 const iso = (value: string) => toISODateString(value);
 const d = (value: string) => new Date(`${value}T00:00:00.000Z`);
@@ -110,5 +111,67 @@ describe('mergeDateRanges', () => {
     const merged = mergeDateRanges(ranges);
     expect(merged).toHaveLength(1);
     expect(merged[0].fra).toBeInstanceOf(Date);
+  });
+});
+
+// Ækvivalens-lås for SFGG-refaktoreringen (buildIncomeExcludedRanges): den nye form bruger
+// mergeIsoDateRanges({mergeAdjacent:true}) i stedet for at materialisere alle dage, sortere og
+// re-segmentere til sammenhængende ranges. Disse SKAL give præcis samme dag-dækning, ellers
+// ændres hvilke perioder der udelukkes. Property-test over mange tilfældige interval-sæt.
+describe('mergeIsoDateRanges ≡ materialisér-sortér-resegmentér (mergeAdjacent)', () => {
+  const oneDayMs = 86_400_000;
+  const isoOf = (ms: number): ISODateString =>
+    toISODateString(new Date(ms).toISOString().slice(0, 10));
+
+  // Reference: materialisér alle dage → dedup → sortér → segmentér i maksimalt sammenhængende ranges.
+  const referenceResegment = (ranges: readonly IsoRange[]): IsoRange[] => {
+    const days = new Set<ISODateString>();
+    for (const r of ranges) {
+      const start = Date.parse(`${r.fra}T00:00:00.000Z`);
+      const end = Date.parse(`${r.til}T00:00:00.000Z`);
+      if (Number.isNaN(start) || Number.isNaN(end) || start > end) continue;
+      for (let ms = start; ms <= end; ms += oneDayMs) days.add(isoOf(ms));
+    }
+    const sorted = [...days].sort();
+    const out: IsoRange[] = [];
+    let fra: ISODateString | null = null;
+    let prev: ISODateString | null = null;
+    for (const day of sorted) {
+      if (fra === null || prev === null) {
+        fra = day;
+        prev = day;
+        continue;
+      }
+      const expectedNext = isoOf(Date.parse(`${prev}T00:00:00.000Z`) + oneDayMs);
+      if (day !== expectedNext) {
+        out.push({ fra, til: prev });
+        fra = day;
+      }
+      prev = day;
+    }
+    if (fra !== null && prev !== null) out.push({ fra, til: prev });
+    return out;
+  };
+
+  it('matcher referencen for mange tilfældige (overlappende/adjacent/adskilte) interval-sæt', () => {
+    const base = Date.parse('2020-01-01T00:00:00.000Z');
+    // Deterministisk LCG, så testen ikke er flaky (ingen Math.random).
+    let seed = 123456789;
+    const nextInt = (n: number): number => {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      return seed % n;
+    };
+    for (let iteration = 0; iteration < 300; iteration += 1) {
+      const count = 1 + nextInt(5);
+      const ranges: IsoRange[] = [];
+      for (let r = 0; r < count; r += 1) {
+        const startMs = base + nextInt(120) * oneDayMs;
+        const lenDays = nextInt(40);
+        ranges.push({ fra: isoOf(startMs), til: isoOf(startMs + lenDays * oneDayMs) });
+      }
+      const merged = mergeIsoDateRanges(ranges, { mergeAdjacent: true });
+      const reference = referenceResegment(ranges);
+      expect(merged).toEqual(reference);
+    }
   });
 });
