@@ -21,12 +21,19 @@ describe('referenceRates', () => {
     }
   });
 
-  it('er sorteret nyeste først (datofælde)', () => {
-    // Bekræft at første entry er nyere end anden
-    // Datostrengen er på dansk format dd-mm-yyyy — vi kan ikke sammenligne direkte,
-    // men vi ved at de er ment nyeste-først fra tabellen
-    expect(referenceRates[0]).toBeDefined();
-    expect(referenceRates[0].effectiveDate).toBeTruthy();
+  it('er sorteret strengt nyeste først', () => {
+    // Tabellen er kontraktuelt nyeste-først (MIN_INTEREST_DATE udledes af sidste
+    // element). Konvertér dd-mm-åååå → sammenligneligt tal og bekræft streng faldende
+    // orden, så en fejlsortering ved manuel redigering fanges af testen.
+    const toNum = (d: string): number => {
+      const [day, month, year] = d.split('-');
+      return Number(`${year}${month}${day}`);
+    };
+    for (let i = 1; i < referenceRates.length; i++) {
+      expect(toNum(referenceRates[i].effectiveDate)).toBeLessThan(
+        toNum(referenceRates[i - 1].effectiveDate)
+      );
+    }
   });
 
   it('dækker fra mindst 2005', () => {

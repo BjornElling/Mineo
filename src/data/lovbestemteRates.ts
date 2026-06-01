@@ -193,6 +193,9 @@ export const foersoergertabEalMin: YearlyRate = {
 };
 
 // Vejledende udtalelse om erhvervsevnetab (§ 10)
+// NB: Værdierne er IKKE en glat årlig fremskrivning. Der er bevidste spring i kilden —
+// bl.a. 2016 (8.600) → 2017 (23.040) og 2020 (24.690) → 2021 (20.120). Tallene er
+// verificeret korrekte; ret dem ikke til at "se mere ensartede ud".
 export const vejledendeUdtalelseEet: YearlyRate = {
   2026: 26378,
   2025: 25122,

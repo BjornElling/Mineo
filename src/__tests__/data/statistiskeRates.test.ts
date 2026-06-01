@@ -75,7 +75,7 @@ describe('statistiskLoenudvikling – dataintegritet', () => {
 
 describe('getStatistiskLoenudvikling', () => {
   it('ILON12 → returnerer model', () => {
-    const model = getStatistiskLoenudvikling('ILON12' as ReturnType<typeof getStatistiskLoenudvikling> extends infer T ? T extends undefined ? never : T : never extends { meta: { id: infer I } } ? I : never);
+    const model = getStatistiskLoenudvikling('ILON12' as Parameters<typeof getStatistiskLoenudvikling>[0]);
     expect(model).toBeDefined();
     expect(model?.meta.id).toBe('ILON12');
   });

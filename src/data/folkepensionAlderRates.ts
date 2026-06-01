@@ -1,5 +1,5 @@
 import type { ISODateString } from '../types/branded';
-import { dateToISO, parseISODate } from '../types/branded';
+import { dateToISO, parseISODate, toISODateString } from '../types/branded';
 import { addMonths } from '../utils/dateUtils';
 import { getDayBeforeIso } from '../utils/isoDateHelpers';
 
@@ -38,13 +38,19 @@ type FpAlderRaekke = readonly [
   alderLabel: string,
 ];
 
+// Validér dato-literals ved modul-load (kaster ved fejl) frem for usikre `as`-casts,
+// så en tastefejl i tabellen fanges med det samme — samme mønster som de øvrige
+// data-filer (interestRates, kapitaliseringsbekendtgoerelser).
 const fp = (rows: readonly FpAlderRaekke[]): readonly FolkepensionAlderEntry[] =>
   rows.map(([fra, til, maaneder, label]) => ({
-    foedselsdatoFra: fra !== null ? (fra as ISODateString) : null,
-    foedselsdatoTil: til !== null ? (til as ISODateString) : null,
+    foedselsdatoFra: fra !== null ? toISODateString(fra) : null,
+    foedselsdatoTil: til !== null ? toISODateString(til) : null,
     alderMaaneder: maaneder,
     alderLabel: label,
   }));
+
+// Kort helper til validerede opslagsdato-grænser (samme begrundelse som `fp`).
+const iso = (value: string): ISODateString => toISODateString(value);
 
 // Måneder: 65 = 780 · 65½ = 786 · 66 = 792 · 66½ = 798 · 67 = 804 · 68 = 816 · 69 = 828 · 70 = 840
 
@@ -53,8 +59,8 @@ export const folkepensionAlderPerioder: readonly FolkepensionAlderPeriode[] = [
   // ─── 2003-01-01 – 2009-06-30 ────────────────────────────────────────────────
   // Før L 485 (2009): 65 år for alle født 1. juli 1939 eller senere; 67 år for tidligere årgange
   {
-    opslagsdatoFra: '2003-01-01' as ISODateString,
-    opslagsdatoTil: '2009-06-30' as ISODateString,
+    opslagsdatoFra: iso('2003-01-01'),
+    opslagsdatoTil: iso('2009-06-30'),
     entries: fp([
       // Fødselsdato fra  │ Fødselsdato til  │ Mdr. │ Label
       [ null,               '1939-06-30',       804,   '67 år'   ],
@@ -65,8 +71,8 @@ export const folkepensionAlderPerioder: readonly FolkepensionAlderPeriode[] = [
   // ─── 2009-07-01 – 2015-12-28 ────────────────────────────────────────────────
   // L 485 (2009): indfasning fra 65 til 67 år for årgange 1954–1955
   {
-    opslagsdatoFra: '2009-07-01' as ISODateString,
-    opslagsdatoTil: '2015-12-28' as ISODateString,
+    opslagsdatoFra: iso('2009-07-01'),
+    opslagsdatoTil: iso('2015-12-28'),
     entries: fp([
       // Fødselsdato fra  │ Fødselsdato til  │ Mdr. │ Label
       [ null,               '1953-12-31',       780,   '65 år'   ],
@@ -80,8 +86,8 @@ export const folkepensionAlderPerioder: readonly FolkepensionAlderPeriode[] = [
   // ─── 2015-12-29 – 2020-12-30 ────────────────────────────────────────────────
   // L 395 (2015): indfasning til 68 år for årgange fra 1963
   {
-    opslagsdatoFra: '2015-12-29' as ISODateString,
-    opslagsdatoTil: '2020-12-30' as ISODateString,
+    opslagsdatoFra: iso('2015-12-29'),
+    opslagsdatoTil: iso('2020-12-30'),
     entries: fp([
       // Fødselsdato fra  │ Fødselsdato til  │ Mdr. │ Label
       [ null,               '1953-12-31',       780,   '65 år'   ],
@@ -96,8 +102,8 @@ export const folkepensionAlderPerioder: readonly FolkepensionAlderPeriode[] = [
   // ─── 2020-12-31 – 2025-12-30 ────────────────────────────────────────────────
   // L 710 (2020): indfasning til 69 år for årgange fra 1967
   {
-    opslagsdatoFra: '2020-12-31' as ISODateString,
-    opslagsdatoTil: '2025-12-30' as ISODateString,
+    opslagsdatoFra: iso('2020-12-31'),
+    opslagsdatoTil: iso('2025-12-30'),
     entries: fp([
       // Fødselsdato fra  │ Fødselsdato til  │ Mdr. │ Label
       [ null,               '1953-12-31',       780,   '65 år'   ],
@@ -114,7 +120,7 @@ export const folkepensionAlderPerioder: readonly FolkepensionAlderPeriode[] = [
   // L 710 (2020): indfasning til 70 år for årgange fra 1971
   // opslagsdatoTil er null: næste periodeskift kendes ikke (fremtidig lovændring)
   {
-    opslagsdatoFra: '2025-12-31' as ISODateString,
+    opslagsdatoFra: iso('2025-12-31'),
     opslagsdatoTil: null,
     entries: fp([
       // Fødselsdato fra  │ Fødselsdato til  │ Mdr. │ Label
