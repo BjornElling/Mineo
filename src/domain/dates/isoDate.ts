@@ -1,13 +1,9 @@
 import type { ISODateString } from '../../types/branded';
 import { createDate, isISODateString } from '../../types/branded';
 
-export const parseIsoDateOrUndefined = (value: string | undefined): ISODateString | undefined => {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  return isISODateString(trimmed) ? trimmed : undefined;
-};
-
 /**
+ * Kanonisk ISO→Date-konvertering for domænet.
+ *
  * Konverterer en `ISODateString` til en UTC-dato (kun dato) uden tidszoneforskydninger.
  *
  * Trust-kritisk invariant:
