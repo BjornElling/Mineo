@@ -9,8 +9,9 @@
  */
 
 import type { RateEntry } from '../../data/interestRates';
-import type { DanishDateString } from '../../types/branded';
-import { createDate, getDaysInYear, parseDanishDate } from '../../utils/dateUtils';
+import type { ISODateString } from '../../types/branded';
+import { parseISODate } from '../../types/branded';
+import { createDate, getDaysInYear } from '../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 
 type DatedRate = Readonly<{ date: Date; ratePct: number }>;
@@ -34,10 +35,10 @@ export type ProcessInterestBreakdown = Readonly<{
 const normalizeRates = (rates: ReadonlyArray<RateEntry>): DatedRate[] => {
   return rates
     .map((entry) => ({
-      date: parseDanishDate(entry.effectiveDate),
+      date: parseISODate(entry.effectiveDate),
       ratePct: entry.ratePct,
     }))
-    .filter((entry): entry is DatedRate => entry.date !== null && Number.isFinite(entry.ratePct))
+    .filter((entry): entry is DatedRate => entry.date !== undefined && Number.isFinite(entry.ratePct))
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 };
 
@@ -96,12 +97,12 @@ const calculatePeriodInterest = (amount: number, ratePct: number, startDate: Dat
   }
 
   let totalInterest = 0.0;
-  let currentDate = new Date(startDate);
+  let currentDate = new Date(startDate.getTime());
 
   while (currentDate <= endDate) {
     // Find årets slutning eller periodens slutning (hvad der kommer først)
     const yearEnd = createDate(currentDate.getUTCFullYear(), 11, 31);
-    const periodEnd = endDate < yearEnd ? new Date(endDate) : new Date(yearEnd);
+    const periodEnd = endDate < yearEnd ? new Date(endDate.getTime()) : yearEnd;
 
     // Beregn dage i denne del af perioden (inklusiv slutdato)
     const days = countInclusiveUtcDays(currentDate, periodEnd);
@@ -131,15 +132,15 @@ const calculatePeriodInterest = (amount: number, ratePct: number, startDate: Dat
  * Beregningen opdeles i halvårlige perioder (1. jan - 30. jun, 1. jul - 31. dec)
  * hvor referencesatsen kan ændre sig ved periodens start.
  *
- * @param {string|number} amount - Beløb som string eller nummer
- * @param {string} interestStartDate - Startdato i format dd-mm-åååå
- * @param {string} calculationDate - Slutdato i format dd-mm-åååå
+ * @param {number} amount - Beløb
+ * @param {ISODateString} interestStartDate - Startdato (åååå-mm-dd)
+ * @param {ISODateString} calculationDate - Slutdato (åååå-mm-dd)
  * @returns {number|null} Samlet rentebeløb afrundet til 2 decimaler, eller null ved fejl
  */
 export const calculateProcessInterestWithRates = (
   amount: number,
-  interestStartDate: DanishDateString,
-  calculationDate: DanishDateString,
+  interestStartDate: ISODateString,
+  calculationDate: ISODateString,
   referenceRatesInput: ReadonlyArray<RateEntry>,
   surchargeRatesInput: ReadonlyArray<RateEntry>
 ): number | null => {
@@ -156,15 +157,15 @@ export const calculateProcessInterestWithRates = (
 
 export const calculateProcessInterestBreakdownWithRates = (
   amount: number,
-  interestStartDate: DanishDateString,
-  calculationDate: DanishDateString,
+  interestStartDate: ISODateString,
+  calculationDate: ISODateString,
   referenceRatesInput: ReadonlyArray<RateEntry>,
   surchargeRatesInput: ReadonlyArray<RateEntry>
 ): ProcessInterestBreakdown | null => {
   const referenceRatesSorted = normalizeRates(referenceRatesInput);
   const surchargeRatesSorted = normalizeRates(surchargeRatesInput);
-  const startDate = parseDanishDate(interestStartDate);
-  const endDate = parseDanishDate(calculationDate);
+  const startDate = parseISODate(interestStartDate);
+  const endDate = parseISODate(calculationDate);
 
   if (!startDate || !endDate) {
     return null;
@@ -190,7 +191,7 @@ export const calculateProcessInterestBreakdownWithRates = (
 
   let totalInterest = 0.0;
   const periods: ProcessInterestPeriod[] = [];
-  let currentDate = new Date(startDate);
+  let currentDate = new Date(startDate.getTime());
 
   while (currentDate <= endDate) {
     let periodEnd;
@@ -201,7 +202,7 @@ export const calculateProcessInterestBreakdownWithRates = (
     }
 
     if (periodEnd > endDate) {
-      periodEnd = new Date(endDate);
+      periodEnd = new Date(endDate.getTime());
     }
 
     if (currentDate <= periodEnd) {
@@ -217,8 +218,8 @@ export const calculateProcessInterestBreakdownWithRates = (
       const periodInterest = calculatePeriodInterest(amountNum, totalRatePct, currentDate, periodEnd);
       totalInterest += periodInterest;
       periods.push({
-        startDate: new Date(currentDate),
-        endDate: new Date(periodEnd),
+        startDate: new Date(currentDate.getTime()),
+        endDate: new Date(periodEnd.getTime()),
         amount: amountNum,
         referenceRatePct,
         surchargeRatePct: surchargeRate,

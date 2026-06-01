@@ -1,19 +1,19 @@
 import type { RateEntry } from '../../../data/interestRates';
-import { toDanishDateString } from '../../../types/branded';
+import { toISODateString, parseISODate } from '../../../types/branded';
 import { calculateProcessInterestWithRates } from '../../../domain/renteberegning/procesrenteCalculator';
-import { getDaysInYear, parseDanishDate } from '../../../utils/dateUtils';
+import { getDaysInYear } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 
 // ─── calculateProcessInterestWithRates — null-paths og edge cases ────────────
 
 const buildMinimalRates = (): { ref: RateEntry[]; sur: RateEntry[] } => ({
-  ref: [{ effectiveDate: toDanishDateString('01-01-2010'), ratePct: 2 }],
-  sur: [{ effectiveDate: toDanishDateString('01-01-2010'), ratePct: 8 }],
+  ref: [{ effectiveDate: toISODateString('2010-01-01'), ratePct: 2 }],
+  sur: [{ effectiveDate: toISODateString('2010-01-01'), ratePct: 8 }],
 });
 
 const buildExpectedInterest = (amount: number, start: string, end: string, ratePct: number): number => {
-  const startDate = parseDanishDate(start);
-  const endDate = parseDanishDate(end);
+  const startDate = parseISODate(toISODateString(start));
+  const endDate = parseISODate(toISODateString(end));
   if (!startDate || !endDate) {
     throw new Error('Invalid test dates');
   }
@@ -25,9 +25,9 @@ const buildExpectedInterest = (amount: number, start: string, end: string, rateP
   return (amount * ratePct / 100 * days) / getDaysInYear(startDate.getUTCFullYear());
 };
 
-// Omgå branded-type-validering for null-path tests — parseDanishDate tager 'DanishDateString | string'
-// men calculateProcessInterestWithRates tager DanishDateString; vi caster til at teste null-paths.
-const badDate = 'not-a-date' as unknown as Parameters<typeof calculateProcessInterestWithRates>[0];
+// Omgå branded-type-validering for null-path tests — calculateProcessInterestWithRates
+// tager ISODateString; vi caster en ugyldig streng for at teste null-paths.
+const badDate = 'not-a-date' as unknown as Parameters<typeof calculateProcessInterestWithRates>[1];
 
 describe('calculateProcessInterestWithRates — null-paths', () => {
   it('ugyldig startdato (ikke-parseable) → null', () => {
@@ -35,7 +35,7 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
     const result = calculateProcessInterestWithRates(
       1000,
       badDate,
-      toDanishDateString('31-12-2024'),
+      toISODateString('2024-12-31'),
       ref,
       sur
     );
@@ -46,7 +46,7 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
     const { ref, sur } = buildMinimalRates();
     const result = calculateProcessInterestWithRates(
       1000,
-      toDanishDateString('01-01-2024'),
+      toISODateString('2024-01-01'),
       badDate,
       ref,
       sur
@@ -58,8 +58,8 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
     const { ref, sur } = buildMinimalRates();
     const result = calculateProcessInterestWithRates(
       1000,
-      toDanishDateString('31-12-2024'),
-      toDanishDateString('01-01-2024'),
+      toISODateString('2024-12-31'),
+      toISODateString('2024-01-01'),
       ref,
       sur
     );
@@ -70,8 +70,8 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
     const { ref, sur } = buildMinimalRates();
     const result = calculateProcessInterestWithRates(
       Number.POSITIVE_INFINITY,
-      toDanishDateString('01-01-2024'),
-      toDanishDateString('31-12-2024'),
+      toISODateString('2024-01-01'),
+      toISODateString('2024-12-31'),
       ref,
       sur
     );
@@ -82,8 +82,8 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
     const { ref, sur } = buildMinimalRates();
     const result = calculateProcessInterestWithRates(
       Number.NaN,
-      toDanishDateString('01-01-2024'),
-      toDanishDateString('31-12-2024'),
+      toISODateString('2024-01-01'),
+      toISODateString('2024-12-31'),
       ref,
       sur
     );
@@ -93,8 +93,8 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
   it('tomt satsgrundlag → null', () => {
     const result = calculateProcessInterestWithRates(
       1000,
-      toDanishDateString('01-01-2024'),
-      toDanishDateString('31-01-2024'),
+      toISODateString('2024-01-01'),
+      toISODateString('2024-01-31'),
       [],
       []
     );
@@ -105,8 +105,8 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
     const { ref, sur } = buildMinimalRates();
     const result = calculateProcessInterestWithRates(
       1000,
-      toDanishDateString('01-01-2009'),
-      toDanishDateString('31-01-2009'),
+      toISODateString('2009-01-01'),
+      toISODateString('2009-01-31'),
       ref,
       sur
     );
@@ -117,25 +117,25 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
     const { ref, sur } = buildMinimalRates();
     const result = calculateProcessInterestWithRates(
       10000,
-      toDanishDateString('15-06-2024'),
-      toDanishDateString('15-06-2024'),
+      toISODateString('2024-06-15'),
+      toISODateString('2024-06-15'),
       ref,
       sur
     );
-    expect(result).toBe(buildExpectedInterest(10000, '15-06-2024', '15-06-2024', 10));
+    expect(result).toBe(buildExpectedInterest(10000, '2024-06-15', '2024-06-15', 10));
   });
 
   it('multi-år periode krydser halvårsskift og årsgrænse', () => {
     const { ref, sur } = buildMinimalRates();
     const result = calculateProcessInterestWithRates(
       100000,
-      toDanishDateString('01-01-2023'),
-      toDanishDateString('31-12-2024'),
+      toISODateString('2023-01-01'),
+      toISODateString('2024-12-31'),
       ref,
       sur
     );
-    const expected2023 = buildExpectedInterest(100000, '01-01-2023', '31-12-2023', 10);
-    const expected2024 = buildExpectedInterest(100000, '01-01-2024', '31-12-2024', 10);
+    const expected2023 = buildExpectedInterest(100000, '2023-01-01', '2023-12-31', 10);
+    const expected2024 = buildExpectedInterest(100000, '2024-01-01', '2024-12-31', 10);
     expect(result).toBe(expected2023 + expected2024);
   });
 
@@ -143,8 +143,8 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
     const { ref, sur } = buildMinimalRates();
     const result = calculateProcessInterestWithRates(
       1000,
-      toDanishDateString('01-01-2009'),
-      toDanishDateString('31-01-2009'),
+      toISODateString('2009-01-01'),
+      toISODateString('2009-01-31'),
       ref,
       sur
     );
@@ -154,8 +154,8 @@ describe('calculateProcessInterestWithRates — null-paths', () => {
   it('tomme satstabeller → null uden exception', () => {
     const result = calculateProcessInterestWithRates(
       1000,
-      toDanishDateString('01-01-2024'),
-      toDanishDateString('31-01-2024'),
+      toISODateString('2024-01-01'),
+      toISODateString('2024-01-31'),
       [],
       []
     );

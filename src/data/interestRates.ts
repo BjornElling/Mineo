@@ -4,14 +4,18 @@
  * - surchargeRates: Tillægssats jf. renteloven
  */
 
-import type { DanishDateString, ISODateString } from '../types/branded';
-import { toDanishDateString, toISODateString } from '../types/branded';
+import type { ISODateString } from '../types/branded';
+import { toISODateString } from '../types/branded';
 
 /**
  * Interface for rentesats-objekt
+ *
+ * `effectiveDate` er ISO (åååå-mm-dd) som alt øvrigt lager og beregning i domænet.
+ * Rå-tabellerne nedenfor skrives i dansk dd-mm-åååå (læsevenligt for vedligehold) og
+ * konverteres til ISO ved indlæsning via `parseRateTableDate`.
  */
 export interface RateEntry {
-  effectiveDate: DanishDateString;
+  effectiveDate: ISODateString;
   /** Rentesats i procentpoint (fx 2.75 = 2,75 %) */
   ratePct: number;
 }
@@ -110,11 +114,11 @@ if (!Number.isInteger(_parsedMaxYear)) {
 export const MAX_INTEREST_YEAR: number = _parsedMaxYear;
 
 export const referenceRates: RateEntry[] = referenceRatesTable.map(([effectiveDate, ratePct]) => ({
-  effectiveDate: toDanishDateString(effectiveDate),
+  effectiveDate: parseRateTableDate(effectiveDate, 'referencesats-dato'),
   ratePct,
 }));
 
 export const surchargeRates: RateEntry[] = surchargeRatesTable.map(([effectiveDate, ratePct]) => ({
-  effectiveDate: toDanishDateString(effectiveDate),
+  effectiveDate: parseRateTableDate(effectiveDate, 'tillægssats-dato'),
   ratePct,
 }));

@@ -14,37 +14,31 @@ describe('referenceRates', () => {
     }
   });
 
-  it('effectiveDate er dansk datoformat (dd-mm-åååå)', () => {
-    const DANISH_DATE = /^\d{2}-\d{2}-\d{4}$/;
+  it('effectiveDate er ISO datoformat (åååå-mm-dd)', () => {
+    const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
     for (const entry of referenceRates) {
-      expect(entry.effectiveDate).toMatch(DANISH_DATE);
+      expect(entry.effectiveDate).toMatch(ISO_DATE);
     }
   });
 
   it('er sorteret strengt nyeste først', () => {
     // Tabellen er kontraktuelt nyeste-først (MIN_INTEREST_DATE udledes af sidste
-    // element). Konvertér dd-mm-åååå → sammenligneligt tal og bekræft streng faldende
-    // orden, så en fejlsortering ved manuel redigering fanges af testen.
-    const toNum = (d: string): number => {
-      const [day, month, year] = d.split('-');
-      return Number(`${year}${month}${day}`);
-    };
+    // element). ISO-strenge (åååå-mm-dd) er leksikografisk sammenlignelige som datoer,
+    // så streng faldende orden fanger en fejlsortering ved manuel redigering.
     for (let i = 1; i < referenceRates.length; i++) {
-      expect(toNum(referenceRates[i].effectiveDate)).toBeLessThan(
-        toNum(referenceRates[i - 1].effectiveDate)
-      );
+      expect(referenceRates[i].effectiveDate < referenceRates[i - 1].effectiveDate).toBe(true);
     }
   });
 
   it('dækker fra mindst 2005', () => {
     // Der bør være entries for 2005
-    const has2005 = referenceRates.some(e => e.effectiveDate.endsWith('2005'));
+    const has2005 = referenceRates.some(e => e.effectiveDate.startsWith('2005'));
     expect(has2005).toBe(true);
   });
 
   it('indeholder kendte sats-værdier', () => {
-    // 01-01-2026: 1.75 % (fra tabellen)
-    const entry2026 = referenceRates.find(e => e.effectiveDate === '01-01-2026');
+    // 2026-01-01: 1.75 % (fra tabellen)
+    const entry2026 = referenceRates.find(e => e.effectiveDate === '2026-01-01');
     expect(entry2026).toBeDefined();
     expect(entry2026?.ratePct).toBeCloseTo(1.75, 5);
   });
@@ -63,7 +57,7 @@ describe('surchargeRates', () => {
   });
 
   it('indeholder 8% sats fra 2013', () => {
-    const entry = surchargeRates.find(e => e.effectiveDate === '01-03-2013');
+    const entry = surchargeRates.find(e => e.effectiveDate === '2013-03-01');
     expect(entry).toBeDefined();
     expect(entry?.ratePct).toBe(8.0);
   });

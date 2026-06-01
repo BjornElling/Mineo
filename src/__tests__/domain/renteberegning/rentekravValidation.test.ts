@@ -1,90 +1,96 @@
 import { calculateInterestDate, validateInterestCalculation } from '../../../domain/renteberegning/rentekravValidation';
-import type { DanishDateString } from '../../../types/branded';
+import type { ISODateString } from '../../../types/branded';
 
-const d = (s: string): DanishDateString => s as DanishDateString;
+const iso = (s: string): ISODateString => s as ISODateString;
 
 // ─── calculateInterestDate ────────────────────────────────────────────────────
 
 describe('calculateInterestDate', () => {
   describe('FORRETNINGSREGEL: tillaegstid ≤ 0 → returner kravetDato uændret', () => {
     it('tillaegstid = 0 → success med kravetDato', () => {
-      const result = calculateInterestDate({ kravetDato: d('01-01-2024'), tillaegstid: 0, enhed: 'dage' });
+      const result = calculateInterestDate({ kravetDato: iso('2024-01-01'), tillaegstid: 0, enhed: 'dage' });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.value).toBe('01-01-2024');
+      if (result.success) expect(result.value).toBe('2024-01-01');
     });
 
     it('tillaegstid = -5 → success med kravetDato (negativ ignoreres)', () => {
-      const result = calculateInterestDate({ kravetDato: d('15-06-2023'), tillaegstid: -5, enhed: 'uger' });
+      const result = calculateInterestDate({ kravetDato: iso('2023-06-15'), tillaegstid: -5, enhed: 'uger' });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.value).toBe('15-06-2023');
+      if (result.success) expect(result.value).toBe('2023-06-15');
     });
   });
 
   describe('enhed = dage', () => {
-    it('01-01-2024 + 30 dage = 31-01-2024', () => {
-      const result = calculateInterestDate({ kravetDato: d('01-01-2024'), tillaegstid: 30, enhed: 'dage' });
+    it('2024-01-01 + 30 dage = 2024-01-31', () => {
+      const result = calculateInterestDate({ kravetDato: iso('2024-01-01'), tillaegstid: 30, enhed: 'dage' });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.value).toBe('31-01-2024');
+      if (result.success) expect(result.value).toBe('2024-01-31');
     });
 
-    it('01-01-2024 + 1 dag = 02-01-2024', () => {
-      const result = calculateInterestDate({ kravetDato: d('01-01-2024'), tillaegstid: 1, enhed: 'dage' });
+    it('2024-01-01 + 1 dag = 2024-01-02', () => {
+      const result = calculateInterestDate({ kravetDato: iso('2024-01-01'), tillaegstid: 1, enhed: 'dage' });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.value).toBe('02-01-2024');
+      if (result.success) expect(result.value).toBe('2024-01-02');
     });
   });
 
   describe('enhed = uger', () => {
-    it('01-01-2024 + 2 uger = 15-01-2024', () => {
-      const result = calculateInterestDate({ kravetDato: d('01-01-2024'), tillaegstid: 2, enhed: 'uger' });
+    it('2024-01-01 + 2 uger = 2024-01-15', () => {
+      const result = calculateInterestDate({ kravetDato: iso('2024-01-01'), tillaegstid: 2, enhed: 'uger' });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.value).toBe('15-01-2024');
+      if (result.success) expect(result.value).toBe('2024-01-15');
     });
 
-    it('01-01-2024 + 1 uge = 08-01-2024', () => {
-      const result = calculateInterestDate({ kravetDato: d('01-01-2024'), tillaegstid: 1, enhed: 'uger' });
+    it('2024-01-01 + 1 uge = 2024-01-08', () => {
+      const result = calculateInterestDate({ kravetDato: iso('2024-01-01'), tillaegstid: 1, enhed: 'uger' });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.value).toBe('08-01-2024');
+      if (result.success) expect(result.value).toBe('2024-01-08');
     });
   });
 
   describe('enhed = maaneder', () => {
-    it('01-01-2024 + 3 måneder = 01-04-2024', () => {
-      const result = calculateInterestDate({ kravetDato: d('01-01-2024'), tillaegstid: 3, enhed: 'maaneder' });
+    it('2024-01-01 + 3 måneder = 2024-04-01', () => {
+      const result = calculateInterestDate({ kravetDato: iso('2024-01-01'), tillaegstid: 3, enhed: 'maaneder' });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.value).toBe('01-04-2024');
+      if (result.success) expect(result.value).toBe('2024-04-01');
     });
 
-    it('01-01-2024 + 1 måned = 01-02-2024', () => {
-      const result = calculateInterestDate({ kravetDato: d('01-01-2024'), tillaegstid: 1, enhed: 'maaneder' });
+    it('2024-01-01 + 1 måned = 2024-02-01', () => {
+      const result = calculateInterestDate({ kravetDato: iso('2024-01-01'), tillaegstid: 1, enhed: 'maaneder' });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.value).toBe('01-02-2024');
+      if (result.success) expect(result.value).toBe('2024-02-01');
     });
 
-    it('31-01-2024 + 1 måned følger dokumenteret UTC-month rollover = 02-03-2024', () => {
-      const result = calculateInterestDate({ kravetDato: d('31-01-2024'), tillaegstid: 1, enhed: 'maaneder' });
+    it('2024-01-31 + 1 måned følger dokumenteret UTC-month rollover = 2024-03-02', () => {
+      const result = calculateInterestDate({ kravetDato: iso('2024-01-31'), tillaegstid: 1, enhed: 'maaneder' });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.value).toBe('02-03-2024');
+      if (result.success) expect(result.value).toBe('2024-03-02');
     });
   });
 
   describe('fejlscenarier', () => {
     it('tom kravetDato → MISSING_INPUT', () => {
-      const result = calculateInterestDate({ kravetDato: d(''), tillaegstid: 1, enhed: 'dage' });
+      const result = calculateInterestDate({ kravetDato: iso(''), tillaegstid: 1, enhed: 'dage' });
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error).toBe('MISSING_INPUT');
     });
 
     it('whitespace kravetDato → MISSING_INPUT', () => {
-      const result = calculateInterestDate({ kravetDato: d('   '), tillaegstid: 1, enhed: 'dage' });
+      const result = calculateInterestDate({ kravetDato: iso('   '), tillaegstid: 1, enhed: 'dage' });
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error).toBe('MISSING_INPUT');
     });
 
-    it('ugyldig datoformat → INVALID_DATE_FORMAT', () => {
-      const result = calculateInterestDate({ kravetDato: d('ikke-en-dato'), tillaegstid: 1, enhed: 'dage' });
+    it('ugyldig ISO-dato → DATE_PARSE_ERROR', () => {
+      const result = calculateInterestDate({ kravetDato: iso('ikke-en-dato'), tillaegstid: 1, enhed: 'dage' });
       expect(result.success).toBe(false);
-      if (!result.success) expect(result.error).toBe('INVALID_DATE_FORMAT');
+      if (!result.success) expect(result.error).toBe('DATE_PARSE_ERROR');
+    });
+
+    it('dansk format afvises (forventer ISO) → DATE_PARSE_ERROR', () => {
+      const result = calculateInterestDate({ kravetDato: iso('01-01-2024'), tillaegstid: 1, enhed: 'dage' });
+      expect(result.success).toBe(false);
+      if (!result.success) expect(result.error).toBe('DATE_PARSE_ERROR');
     });
   });
 });
@@ -92,9 +98,9 @@ describe('calculateInterestDate', () => {
 // ─── validateInterestCalculation ─────────────────────────────────────────────
 
 describe('validateInterestCalculation', () => {
-  const validKravetDato = d('01-01-2024');
-  const validRentedato = d('15-01-2024');
-  const validBeregningsdato = d('01-06-2024');
+  const validKravetDato = iso('2024-01-01');
+  const validRentedato = iso('2024-01-15');
+  const validBeregningsdato = iso('2024-06-01');
   const validBeloeb = 10000;
 
   describe('succesfuld validering', () => {
@@ -122,15 +128,15 @@ describe('validateInterestCalculation', () => {
     });
 
     it('tom kravetDato → MISSING_KRAVET_DATO', () => {
-      const result = validateInterestCalculation(d(''), validBeloeb, validRentedato, validBeregningsdato);
+      const result = validateInterestCalculation(iso(''), validBeloeb, validRentedato, validBeregningsdato);
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error).toBe('MISSING_KRAVET_DATO');
     });
   });
 
   describe('INVALID_KRAVET_DATO', () => {
-    it('ugyldig kravetDato → INVALID_KRAVET_DATO', () => {
-      const result = validateInterestCalculation(d('31-02-2024'), validBeloeb, validRentedato, validBeregningsdato);
+    it('ugyldig kravetDato (31-02 i ISO) → INVALID_KRAVET_DATO', () => {
+      const result = validateInterestCalculation(iso('2024-02-31'), validBeloeb, validRentedato, validBeregningsdato);
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error).toBe('INVALID_KRAVET_DATO');
     });
@@ -176,7 +182,7 @@ describe('validateInterestCalculation', () => {
     });
 
     it('tom rentedato → MISSING_RENTEDATO', () => {
-      const result = validateInterestCalculation(validKravetDato, validBeloeb, d(''), validBeregningsdato);
+      const result = validateInterestCalculation(validKravetDato, validBeloeb, iso(''), validBeregningsdato);
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error).toBe('MISSING_RENTEDATO');
     });
@@ -190,7 +196,7 @@ describe('validateInterestCalculation', () => {
     });
 
     it('tom beregningsdato → MISSING_BEREGNING_DATO', () => {
-      const result = validateInterestCalculation(validKravetDato, validBeloeb, validRentedato, d(''));
+      const result = validateInterestCalculation(validKravetDato, validBeloeb, validRentedato, iso(''));
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error).toBe('MISSING_BEREGNING_DATO');
     });
@@ -198,7 +204,7 @@ describe('validateInterestCalculation', () => {
 
   describe('INVALID_DATE_ORDER', () => {
     it('rentedato > beregningsdato → INVALID_DATE_ORDER', () => {
-      const result = validateInterestCalculation(validKravetDato, validBeloeb, d('01-12-2024'), d('01-01-2024'));
+      const result = validateInterestCalculation(validKravetDato, validBeloeb, iso('2024-12-01'), iso('2024-01-01'));
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error).toBe('INVALID_DATE_ORDER');
     });
@@ -206,7 +212,7 @@ describe('validateInterestCalculation', () => {
 
   describe('DATE_BEFORE_RATE_COVERAGE', () => {
     it('rentedato før tidligste referencesats → DATE_BEFORE_RATE_COVERAGE', () => {
-      const result = validateInterestCalculation(d('01-01-2004'), validBeloeb, d('01-01-2004'), validBeregningsdato);
+      const result = validateInterestCalculation(iso('2004-01-01'), validBeloeb, iso('2004-01-01'), validBeregningsdato);
       expect(result.success).toBe(false);
       if (!result.success) expect(result.error).toBe('DATE_BEFORE_RATE_COVERAGE');
     });

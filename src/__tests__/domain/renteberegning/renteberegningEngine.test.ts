@@ -1,6 +1,6 @@
 import type { RateEntry } from '../../../data/interestRates';
-import { toDanishDateString, toISODateString, isoToDanish } from '../../../types/branded';
-import { getDaysInYear, parseDanishDate } from '../../../utils/dateUtils';
+import { toISODateString, parseISODate } from '../../../types/branded';
+import { getDaysInYear } from '../../../utils/dateUtils';
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 import { computeRenteberegning, computeRentekravRow } from '../../../domain/renteberegning/renteberegningEngine';
 import {
@@ -10,15 +10,15 @@ import {
 import { roundByMethod } from '../../../utils/rounding';
 
 const buildRates = (referenceRatePct = 1, surchargeRatePct = 2): { referenceRates: RateEntry[]; surchargeRates: RateEntry[] } => ({
-  referenceRates: [{ effectiveDate: toDanishDateString('01-01-2020'), ratePct: referenceRatePct }],
-  surchargeRates: [{ effectiveDate: toDanishDateString('01-01-2020'), ratePct: surchargeRatePct }],
+  referenceRates: [{ effectiveDate: toISODateString('2020-01-01'), ratePct: referenceRatePct }],
+  surchargeRates: [{ effectiveDate: toISODateString('2020-01-01'), ratePct: surchargeRatePct }],
 });
 
 const amountNumber = (value: number) => ({ kind: 'number' as const, value });
 
 const buildExpectedInterest = (amount: number, start: string, end: string, ratePct: number): number => {
-  const startDate = parseDanishDate(start);
-  const endDate = parseDanishDate(end);
+  const startDate = parseISODate(toISODateString(start));
+  const endDate = parseISODate(toISODateString(end));
   if (!startDate || !endDate) {
     throw new Error('Invalid test dates');
   }
@@ -41,7 +41,7 @@ describe('renteberegningEngine', () => {
     const amount = 1000;
     const startIso = toISODateString('2024-01-01');
     const endIso = toISODateString('2024-01-31');
-    const expected = buildExpectedInterest(amount, '01-01-2024', '31-01-2024', 3);
+    const expected = buildExpectedInterest(amount, '2024-01-01', '2024-01-31', 3);
 
     const output = computeRenteberegning({
       renteberegning: {
@@ -227,8 +227,8 @@ describe('renteberegningEngine', () => {
 
     const expectedRaw = calculateProcessInterestWithRates(
       125000,
-      isoToDanish(actualInterestDate ?? undefined)!,
-      isoToDanish(beregningsdato)!,
+      actualInterestDate!,
+      beregningsdato,
       referenceRates,
       surchargeRates
     );
@@ -480,13 +480,13 @@ describe('renteberegningEngine', () => {
 
     it('pdfContext-perioder matcher motor-breakdown og summerer til beregnet rente', () => {
       const referenceRates = [
-        { effectiveDate: toDanishDateString('01-01-2013'), ratePct: 2 },
-        { effectiveDate: toDanishDateString('01-07-2013'), ratePct: 3 },
-        { effectiveDate: toDanishDateString('01-01-2014'), ratePct: 4 },
+        { effectiveDate: toISODateString('2013-01-01'), ratePct: 2 },
+        { effectiveDate: toISODateString('2013-07-01'), ratePct: 3 },
+        { effectiveDate: toISODateString('2014-01-01'), ratePct: 4 },
       ];
       const surchargeRates = [
-        { effectiveDate: toDanishDateString('01-01-2010'), ratePct: 7 },
-        { effectiveDate: toDanishDateString('01-03-2013'), ratePct: 8 },
+        { effectiveDate: toISODateString('2010-01-01'), ratePct: 7 },
+        { effectiveDate: toISODateString('2013-03-01'), ratePct: 8 },
       ];
       const row = {
         id: 'row-1',
@@ -502,8 +502,8 @@ describe('renteberegningEngine', () => {
 
       const expectedBreakdown = calculateProcessInterestBreakdownWithRates(
         100000,
-        '15-02-2013',
-        '31-01-2014',
+        toISODateString('2013-02-15'),
+        toISODateString('2014-01-31'),
         referenceRates,
         surchargeRates
       );

@@ -5,8 +5,8 @@
  * De er deterministiske, testbare og kan bruges til både UI og PDF.
  */
 
-import type { DanishDateString } from '../../types/branded';
-import { danishToISO, isoToDanish, parseISODate, dateToISO } from '../../types/branded';
+import type { ISODateString } from '../../types/branded';
+import { isISODateString, parseISODate, dateToISO } from '../../types/branded';
 import type { Result } from '../../types/result';
 import { MIN_INTEREST_DATE, MIN_SURCHARGE_DATE } from '../../data/interestRates';
 
@@ -52,7 +52,7 @@ export type TimeUnit = 'dage' | 'uger' | 'maaneder';
  * Domain-laget håndterer denne regel - UI skal sende rå data
  */
 export type InterestDateInput = {
-  readonly kravetDato: DanishDateString;
+  readonly kravetDato: ISODateString;
   readonly tillaegstid: number;
   readonly enhed: TimeUnit;
 };
@@ -62,8 +62,8 @@ export type InterestDateInput = {
  */
 export type ValidatedInterestInput = {
   readonly beloeb: number;
-  readonly rentedato: DanishDateString;
-  readonly beregningsdato: DanishDateString;
+  readonly rentedato: ISODateString;
+  readonly beregningsdato: ISODateString;
 };
 
 // ============================================================================
@@ -80,7 +80,7 @@ export type ValidatedInterestInput = {
  */
 export function calculateInterestDate(
   input: InterestDateInput
-): Result<DanishDateString, DateCalculationError> {
+): Result<ISODateString, DateCalculationError> {
   const { kravetDato, tillaegstid, enhed } = input;
 
   // Validér kravet-dato
@@ -88,14 +88,8 @@ export function calculateInterestDate(
     return { success: false, error: 'MISSING_INPUT' };
   }
 
-  // Konverter til ISO-format
-  const isoKravetDato = danishToISO(kravetDato);
-  if (!isoKravetDato) {
-    return { success: false, error: 'INVALID_DATE_FORMAT' };
-  }
-
-  // Parser til Date-objekt
-  const kravetDate = parseISODate(isoKravetDato);
+  // Parser til Date-objekt (UTC-dag)
+  const kravetDate = parseISODate(kravetDato);
   if (!kravetDate) {
     return { success: false, error: 'DATE_PARSE_ERROR' };
   }
@@ -107,23 +101,20 @@ export function calculateInterestDate(
   }
 
   // Beregn ny dato baseret på enhed
-  let resultDate: Date;
+  const resultDate = new Date(kravetDate.getTime());
 
   switch (enhed) {
     case 'dage': {
-      resultDate = new Date(kravetDate);
       resultDate.setUTCDate(resultDate.getUTCDate() + tillaegstid);
       break;
     }
 
     case 'uger': {
-      resultDate = new Date(kravetDate);
       resultDate.setUTCDate(resultDate.getUTCDate() + (tillaegstid * 7));
       break;
     }
 
     case 'maaneder': {
-      resultDate = new Date(kravetDate);
       // Normativt dokumenteret nuværende adfærd: månedstillæg følger JavaScripts
       // UTC-month rollover semantik. 31-01 + 1 måned bliver derfor 02-03 i skudår,
       // ikke klippet til sidste dag i februar. En egentlig "clip til månedsslut"
@@ -136,18 +127,12 @@ export function calculateInterestDate(
       return { success: false, error: 'INVALID_UNIT' };
   }
 
-  // Konverter tilbage til dansk format
   const isoResult = dateToISO(resultDate);
   if (!isoResult) {
     return { success: false, error: 'DATE_PARSE_ERROR' };
   }
 
-  const danishResult = isoToDanish(isoResult);
-  if (!danishResult) {
-    return { success: false, error: 'INVALID_DATE_FORMAT' };
-  }
-
-  return { success: true, value: danishResult };
+  return { success: true, value: isoResult };
 }
 
 // ============================================================================
@@ -165,17 +150,17 @@ export function calculateInterestDate(
  * - Rentedato skal være ≤ beregningsdato
  */
 export function validateInterestCalculation(
-  kravetDato: DanishDateString | undefined,
+  kravetDato: ISODateString | undefined,
   beloeb: number | undefined,
-  rentedato: DanishDateString | undefined,
-  beregningsdato: DanishDateString | undefined
+  rentedato: ISODateString | undefined,
+  beregningsdato: ISODateString | undefined
 ): Result<ValidatedInterestInput, ValidationError> {
   // Validér kravet-dato
   if (!kravetDato || !kravetDato.trim()) {
     return { success: false, error: 'MISSING_KRAVET_DATO' };
   }
 
-  if (!danishToISO(kravetDato)) {
+  if (!isISODateString(kravetDato)) {
     return { success: false, error: 'INVALID_KRAVET_DATO' };
   }
 
@@ -194,20 +179,17 @@ export function validateInterestCalculation(
     return { success: false, error: 'MISSING_BEREGNING_DATO' };
   }
 
-  // Konverter til ISO for dato-sammenligning
-  const isoRentedato = danishToISO(rentedato);
-  const isoBeregningsdato = danishToISO(beregningsdato);
-
-  if (!isoRentedato || !isoBeregningsdato) {
+  if (!isISODateString(rentedato) || !isISODateString(beregningsdato)) {
     return { success: false, error: 'INVALID_DATE_ORDER' };
   }
 
-  if (isoRentedato < MIN_INTEREST_DATE || isoRentedato < MIN_SURCHARGE_DATE) {
+  // ISO-strenge (åååå-mm-dd) er leksikografisk sammenlignelige som datoer.
+  if (rentedato < MIN_INTEREST_DATE || rentedato < MIN_SURCHARGE_DATE) {
     return { success: false, error: 'DATE_BEFORE_RATE_COVERAGE' };
   }
 
   // Tjek dato-rækkefølge
-  if (isoRentedato > isoBeregningsdato) {
+  if (rentedato > beregningsdato) {
     return { success: false, error: 'INVALID_DATE_ORDER' };
   }
 

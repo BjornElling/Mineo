@@ -2,7 +2,7 @@ import type { RateEntry } from '../../data/interestRates';
 import type { RentekravRow, RenteberegningValues } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import type { DeepReadonly } from '../../types/deepReadonly';
-import { danishToISO, isoToDanish, dateToISO } from '../../types/branded';
+import { dateToISO } from '../../types/branded';
 import {
   calculateProcessInterestBreakdownWithRates,
   findLatestReferenceRatePeriodEnd,
@@ -44,19 +44,19 @@ type RentekravComputation = Readonly<{
 }>;
 
 const resolveActualInterestDateIso = (rowValues: RentekravRow): ISODateString | null => {
-  const danishDate = isoToDanish(rowValues.renterFra);
-  if (!danishDate) return null;
+  const renterFra = rowValues.renterFra;
+  if (!renterFra) return null;
 
   const tillaegstid = rowValues.tillaegstid ?? 0;
   const input: InterestDateInput = {
-    kravetDato: danishDate,
+    kravetDato: renterFra,
     tillaegstid,
     enhed: rowValues.enhed,
   };
 
   const result = calculateInterestDate(input);
   if (!result.success) return null;
-  return danishToISO(result.value) ?? null;
+  return result.value;
 };
 
 const calculateRowInterest = (
@@ -71,17 +71,11 @@ const calculateRowInterest = (
     return { id: rowValues.id, actualInterestDate, calculatedInterest: null, periods: null };
   }
 
-  const danishRenterFra = isoToDanish(renterFra);
-  const danishBeregningsdato = isoToDanish(beregningsdato);
-  if (!danishRenterFra || !danishBeregningsdato) {
-    return { id: rowValues.id, actualInterestDate, calculatedInterest: null, periods: null };
-  }
-
   const validationResult = validateInterestCalculation(
-    danishRenterFra,
+    renterFra,
     amountValueToNumber(rowValues.belob),
-    isoToDanish(actualInterestDate) ?? undefined,
-    danishBeregningsdato
+    actualInterestDate,
+    beregningsdato
   );
   if (!validationResult.success) {
     return { id: rowValues.id, actualInterestDate, calculatedInterest: null, periods: null };
