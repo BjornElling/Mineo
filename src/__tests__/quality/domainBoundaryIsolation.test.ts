@@ -90,6 +90,13 @@ const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
     rootRelativePath: 'components/pages/varigemen',
     allowedSections: ['stamdata', 'varigemen'],
   },
+  {
+    // Standalone-MinProcesrente-appen er en isoleret renteberegner; den deler renteberegning-sektionen
+    // med hovedappen og må kun tilgå den (ingen stamdata/andre domæner i den isolerede app).
+    label: 'MinProcesrente (standalone)',
+    rootRelativePath: 'components/pages/minprocesrente',
+    allowedSections: ['renteberegning'],
+  },
 ];
 
 // Bruges kun med patterns der matcher sektionsnavn som streng-literal ('x', "x", `x`).
@@ -122,6 +129,35 @@ describe('domainBoundaryIsolation', () => {
     );
 
     expect(Array.from(coveredSections).sort()).toEqual([...STORAGE_KEYS].sort());
+  });
+
+  it('enhver page-fil der tilgår en persisteret sektion er dækket af en PAGE_BOUNDARY_RULE-rod', () => {
+    // Lukker silent-pass-hullet: den per-sektions-adgangskontrol nedenfor itererer kun
+    // PAGE_BOUNDARY_RULES. En NY page-fil/-mappe der ikke er i listen, men som læser/skriver en
+    // persisteret sektion, ville slet ikke blive kontrolleret. Her hævder vi at hver page-fil med
+    // sektionsadgang ligger under mindst én regel-rod — ellers er den uovervåget.
+    const ruledRoots = PAGE_BOUNDARY_RULES.map((rule) =>
+      path.resolve(SRC_ROOT, rule.rootRelativePath)
+    );
+    const isUnderRuledRoot = (absolutePath: string): boolean =>
+      ruledRoots.some((root) => absolutePath === root || absolutePath.startsWith(`${root}${path.sep}`));
+
+    const uncovered: string[] = [];
+    for (const absolutePath of collectSourceFiles(PAGES_ROOT)) {
+      const source = fs.readFileSync(absolutePath, 'utf8');
+      const accessesSection = SECTION_ACCESS_PATTERN.test(source);
+      // Nulstil lastIndex efter .test() på et global regex (ellers springer næste .test over).
+      SECTION_ACCESS_PATTERN.lastIndex = 0;
+      if (!accessesSection) continue;
+      if (!isUnderRuledRoot(absolutePath)) {
+        uncovered.push(toRepoRelativePath(absolutePath));
+      }
+    }
+
+    expect(
+      uncovered,
+      `Page-filer med persisteret sektionsadgang uden en PAGE_BOUNDARY_RULE: ${uncovered.join(', ')}`
+    ).toEqual([]);
   });
 
   it('forbyder direkte formPersistenceStore-imports i page-laget', () => {

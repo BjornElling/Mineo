@@ -91,4 +91,29 @@ describe('date-contract guard', () => {
 
     expect(violations).toEqual([]);
   });
+
+  // Selv-test: bevis at hvert mønster faktisk fanger en syntetisk overtrædelse OG afviser ren kode.
+  // Uden dette ville et brudt regex (fx en forkert escape under en refaktor) lade vagten passere
+  // vakuøst — alle scan-testene ville være grønne, mens kontrakten reelt var uden håndhævelse.
+  describe('mønstrene er ikke inerte (selv-test mod syntetiske overtrædelser)', () => {
+    it('DAY_MS_PATTERNS fanger ms-diff dag-optælling', () => {
+      expect(DAY_MS_PATTERNS.some((p) => p.test('const d = diffMs / 86400000;'))).toBe(true);
+      expect(DAY_MS_PATTERNS.some((p) => p.test('const d = diffMs / (24 * 60 * 60 * 1000);'))).toBe(true);
+      expect(DAY_MS_PATTERNS.some((p) => p.test('const d = diffMs / (1000 * 60 * 60 * 24);'))).toBe(true);
+      // Ren kode (kanonisk helper) matcher ikke.
+      expect(DAY_MS_PATTERNS.some((p) => p.test('const d = countInclusiveUtcDays(a, b);'))).toBe(false);
+    });
+
+    it('MATERIALIZE_TO_COUNT_PATTERNS fanger materialisér-for-at-tælle', () => {
+      expect(MATERIALIZE_TO_COUNT_PATTERNS.some((p) => p.test('const n = collectIsoDatesInclusive(a, b).length;'))).toBe(true);
+      expect(MATERIALIZE_TO_COUNT_PATTERNS.some((p) => p.test('const n = buildIsoDateSetInclusive(a, b).size;'))).toBe(true);
+      expect(MATERIALIZE_TO_COUNT_PATTERNS.some((p) => p.test('const n = countInclusiveUtcDays(a, b);'))).toBe(false);
+    });
+
+    it('MANUAL_DAY_LOOP_PATTERN fanger en håndskreven dag-for-dag-løkke', () => {
+      const violation = 'while (cur <= end) { rows.push(cur); cur.setUTCDate(cur.getUTCDate() + 1); }';
+      expect(MANUAL_DAY_LOOP_PATTERN.test(violation)).toBe(true);
+      expect(MANUAL_DAY_LOOP_PATTERN.test('iterateDatesInclusive(a, b, (d) => rows.push(d));')).toBe(false);
+    });
+  });
 });
