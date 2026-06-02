@@ -411,3 +411,100 @@ describe('computeForsoergertabCalculation — minimumssats', () => {
     expect(result.result?.ealKrav ?? result.ealComputation!.ealKrav).toBeGreaterThanOrEqual(0);
   });
 });
+
+describe('computeForsoergertabAslYdelser — inputvalidering (fail-closed grænser)', () => {
+  const validInput = {
+    skadedato: toISODateString('2020-05-01'),
+    beregningsdato: toISODateString('2026-03-19'),
+    virkningsdato: toISODateString('2026-01-01'),
+    efterladteFodselsdato: toISODateString('1976-01-01'),
+    koen: undefined,
+    tilkendtForPeriodeAar: 5,
+    aslAarsloen: asAmount(450000),
+  };
+
+  it('årsløn på præcis 0 afvises med dedikeret issue (adskilt fra "mangler")', () => {
+    const result = computeForsoergertabAslYdelser({ ...validInput, aslAarsloen: asAmount(0) });
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'asl-aarsloen-zero',
+      severity: 'error',
+      message: 'Årsløn efter ASL må ikke være 0 kr.',
+    });
+    // Må IKKE samtidig rapportere "mangler".
+    expect(result.issues.some((i) => i.id === 'asl-aarsloen-missing')).toBe(false);
+  });
+
+  it('manglende årsløn (undefined) afvises med "mangler"-issue', () => {
+    const result = computeForsoergertabAslYdelser({ ...validInput, aslAarsloen: undefined });
+    expect(result.computation).toBeNull();
+    expect(result.issues.some((i) => i.id === 'asl-aarsloen-missing')).toBe(true);
+  });
+
+  it('tilkendt periode over 10 år afvises (øvre grænse)', () => {
+    const result = computeForsoergertabAslYdelser({ ...validInput, tilkendtForPeriodeAar: 11 });
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'tilkendt-for-periode-invalid',
+      severity: 'error',
+      message: 'Tilkendt periode må højst være 10 år.',
+    });
+  });
+
+  it('ikke-heltallig tilkendt periode afvises', () => {
+    const result = computeForsoergertabAslYdelser({ ...validInput, tilkendtForPeriodeAar: 5.5 });
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'tilkendt-for-periode-invalid',
+      severity: 'error',
+      message: 'Tilkendt periode skal være et heltal.',
+    });
+  });
+
+  it('grænseværdierne 1 og 10 år accepteres (ingen periode-issue)', () => {
+    const lav = computeForsoergertabAslYdelser({ ...validInput, tilkendtForPeriodeAar: 1 });
+    const hoej = computeForsoergertabAslYdelser({ ...validInput, tilkendtForPeriodeAar: 10 });
+    expect(lav.issues.some((i) => i.id === 'tilkendt-for-periode-invalid')).toBe(false);
+    expect(hoej.issues.some((i) => i.id === 'tilkendt-for-periode-invalid')).toBe(false);
+  });
+
+  it('flere manglende felter samtidig rapporteres som distinkte issues (ingen dubletter)', () => {
+    const result = computeForsoergertabAslYdelser({
+      skadedato: undefined,
+      beregningsdato: undefined,
+      virkningsdato: undefined,
+      efterladteFodselsdato: undefined,
+      koen: undefined,
+      tilkendtForPeriodeAar: undefined,
+      aslAarsloen: undefined,
+    });
+    expect(result.computation).toBeNull();
+    const ids = result.issues.map((i) => i.id);
+    // Hver mangel er sin egen issue.
+    expect(ids).toEqual(expect.arrayContaining([
+      'asl-aarsloen-missing',
+      'skadedato-missing',
+      'beregningsdato-missing',
+      'virkningsdato-missing',
+      'efterladte-fodselsdato-missing',
+      'tilkendt-for-periode-missing',
+    ]));
+    // Ingen dubletter (dedupeIssuesBySeverityAndMessage).
+    const messages = result.issues.map((i) => `${i.severity}|${i.message}`);
+    expect(new Set(messages).size).toBe(messages.length);
+  });
+
+  it('beregningsdato før virkningsdato giver blokerende ordens-issue', () => {
+    const result = computeForsoergertabAslYdelser({
+      ...validInput,
+      beregningsdato: toISODateString('2025-01-01'),
+      virkningsdato: toISODateString('2026-01-01'),
+    });
+    expect(result.computation).toBeNull();
+    expect(result.issues).toContainEqual({
+      id: 'beregningsdato-before-virkningsdato',
+      severity: 'error',
+      message: 'Beregningsdato må ikke være før virkningsdato.',
+    });
+  });
+});
