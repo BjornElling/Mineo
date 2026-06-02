@@ -84,11 +84,11 @@ Planen følger **afhængighedsorden nedefra og op** — det fundamentale først,
 | 9.3 | Fil-/PWA-/guard-hooks: useFileSaveLoad, usePwaLaunchQueue, useUnsavedChangesGuard, useDevtoolsMonitoring | ✅ Gennemgået | [9.3-fil-pwa-guard-hooks.md](9.3-fil-pwa-guard-hooks.md) |
 | 9.4 | Domæne-hooks: useAarsloenBeregning, useAslAarsloenRuleReporter, useAarsloenPdfGates, useOmregningToggle, useMidlertidigtEetInsertSource | ✅ Gennemgået | [9.4-domaene-hooks.md](9.4-domaene-hooks.md) |
 | **10 — PDF** | | | |
-| 10.1 | PDF-infrastruktur: pdfService, jsPdfAdapter, pdfWriter/loader, brevhoved, config | ⬜ Ikke startet | — |
-| 10.2 | PDF-shared: tekst, tabel-renderer, format-utils, options, helpers | ⬜ Ikke startet | — |
-| 10.3 | PDF-domæner I: eo (+ sections), differencekrav, eet, kapitalisering, loebendeYdelser | ⬜ Ikke startet | — |
-| 10.4 | PDF-domæner II: aarsloen, satser, varigemen, forsoergertab, renteberegning, tafFordelt, krl | ⬜ Ikke startet | — |
-| 10.5 | Legacy-PDF-konsolidering: `src/domain/erstatningsopgoerelse/pdf/*` vs. `src/pdf/*` — afklar og afvikl duplikering | ⬜ Ikke startet | — |
+| 10.1 | PDF-infrastruktur: pdfService, jsPdfAdapter, pdfWriter/loader, brevhoved, config | ✅ Gennemgået | [10.1-pdf-infrastruktur.md](10.1-pdf-infrastruktur.md) |<br>↳ _Kritisk jsPDF-isolationsbrud i `addUdkastWatermark` rettet; `toError` konsolideret mod kanonisk `asError`._ |
+| 10.2 | PDF-shared: tekst, tabel-renderer, format-utils, options, helpers | ✅ Gennemgået | [10.2-pdf-shared.md](10.2-pdf-shared.md) |<br>↳ _✅ Godkendt+rettet: `formatReguleringPct` "- 0 %" → "+ 0 %". Pure-code: dead exports fjernet, fail-closed empty-body-guard + test, JSDoc rettet._ |
+| 10.3 | PDF-domæner I: eo (+ sections), differencekrav, eet, kapitalisering, loebendeYdelser | ✅ Gennemgået | [10.3-pdf-domaener-i-eo-eet.md](10.3-pdf-domaener-i-eo-eet.md) |<br>↳ _✅ Godkendt+rettet: svie/smerte-per-dag-sats → præsentationsmodel; `formatReguleringFactorText` forener segment-faktortekst (skjul ved 0,00 %). Pure-code: `capitalizeFirstCharDa`. ⏭ Parkeret: regulerings-tillægs-bestemmelse i reguleringSection (selvstændigt arbejde)._ |
+| 10.4 | PDF-domæner II: aarsloen, satser, varigemen, forsoergertab, renteberegning, tafFordelt, krl | ✅ Gennemgået | [10.4-pdf-domaener-ii.md](10.4-pdf-domaener-ii.md) |<br>↳ _✅ Godkendt+rettet: varigeMen reduktions-afstemning (Høj) + méngrad-sats fra beregningslag (UI+PDF); TAF/EO-segment-faktortekst forenet. Pure-code: KRL-sort via `danishToISO`, død null-gren, rente-barrel._ |
+| 10.5 | Legacy-PDF-konsolidering: `src/domain/erstatningsopgoerelse/pdf/*` vs. `src/pdf/*` — afklar og afvikl duplikering | ✅ Gennemgået | [10.5-pdf-konsolidering.md](10.5-pdf-konsolidering.md) |<br>↳ _✅ `pdf/`-mappen + 2 ekstra shim-lag afviklet; `eoPdfRegulering`→`engines/reguleringsPresentation`; kontrakt+arkitektur-docs i sync. ⏭ Latente test-type-fejl parkeret til 13.2._ |
 | **11 — Config & settings** | | | |
 | 11.1 | Config: persistenceRegistry, storageManifest, persistenceVersion, dateRanges, version, scrollToTop | ⬜ Ikke startet | — |
 | 11.2 | Config: regulatoryRates, appTheme, tableTheme | ⬜ Ikke startet | — |
