@@ -2,7 +2,7 @@ export const AUTH_STORAGE_KEY = 'mineo:authenticated';
 export const AUTH_STORAGE_VALUE = 'true';
 
 /**
- * Beslutningsnote:
+ * Beslutningsnote (normativ, jf. src/contracts/auth-gate-contract.md):
  * - Denne gate er en permanent UX-barriere mod utilsigtet adgang. Det er et bevidst designvalg.
  * - Den er bevidst svag og er ikke en sikkerhedsgrænse — dette er acceptabelt og intentionelt.
  * - Kan omgås via DevTools/localStorage og beskytter ikke mod målrettet adgang.

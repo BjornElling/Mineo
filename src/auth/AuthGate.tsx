@@ -5,7 +5,7 @@ import { isAuthenticated } from './auth';
 
 /**
  * Permanent UX-gate mod utilsigtet adgang. Bevidst svag — ikke en sikkerhedsgrænse.
- * Se docs/architecture/auth-gate-architecture.md.
+ * Bindende regler: src/contracts/auth-gate-contract.md (uddybning: docs/architecture/auth-gate-architecture.md).
  */
 const AuthGate = (): React.JSX.Element => {
   const [authenticated, setAuthenticated] = React.useState<boolean>(() => isAuthenticated());

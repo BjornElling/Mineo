@@ -1,8 +1,10 @@
-# Auth-gate arkitektur (normativ afklaring)
+# Auth-gate arkitektur (informativ uddybning)
 
-**Status:** Gældende
-**Sidst opdateret:** 2026-05-01
+**Status:** Informativ
+**Sidst opdateret:** 2026-06-02
 **Scope:** Login-gate i klienten (`src/auth/*`, `src/components/pages/LoginPage.tsx`)
+
+> De **bindende** regler for auth-gaten ejes af `src/contracts/auth-gate-contract.md`. Dette dokument er forklarende (trusselsmodel, afgrænsninger, migrations-triggere) og må ikke modsige kontrakten.
 
 ## Formål
 
@@ -51,4 +53,4 @@ Dette dokument introducerer ikke:
 
 ## Konsekvens for kommunikation
 
-Alle docs/kodekommentarer skal beskrive mekanismen som **UX-gate** og ikke som sikkerhed. Mekanismen må ikke beskrives som midlertidig.
+Kommunikationsreglen — beskriv mekanismen som **UX-gate**, ikke som sikkerhed, og ikke som midlertidig — er bindende og ejes af `src/contracts/auth-gate-contract.md §2`.

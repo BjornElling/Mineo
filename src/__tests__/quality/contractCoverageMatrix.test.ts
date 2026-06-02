@@ -194,6 +194,13 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/components/inputs/StyledAmountField.expression.test.tsx',
     ],
   },
+  {
+    contractPath: 'src/contracts/auth-gate-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/auth/auth.test.ts',
+      'src/__tests__/quality/authGateContractIsolation.test.ts',
+    ],
+  },
 ];
 
 const assertFileExists = (relativePath: string): void => {
