@@ -77,4 +77,34 @@ describe('computeSchemaFingerprint', () => {
     const fp2 = computeSchemaFingerprint({ 'a:b': z.object({ c: z.string() }) });
     expect(fp1).not.toBe(fp2);
   });
+
+  // Load-bearing invariant (jf. schema-evolution-kontrakt §): fingerprintet bygger KUN på
+  // toJSONSchema({io:'input'}). Runtime-only-ændringer (.refine/.superRefine/.preprocess) ændrer
+  // ikke input-JSON-skemaet og må derfor IKKE flytte fingerprintet — ellers ville en ren
+  // valideringstilføjelse fejlagtigt kræve et PERSISTED_DATA_VERSION-bump. Hvis disse tests
+  // begynder at fejle efter en Zod-opgradering, er drift-antagelsen brudt og skal revurderes.
+  it('.refine ændrer ikke fingerprintet (runtime-only validering)', () => {
+    const base = z.object({ navn: z.string() });
+    const refined = z.object({ navn: z.string() }).refine((v) => v.navn.length > 0);
+    expect(computeSchemaFingerprint({ s: refined })).toBe(computeSchemaFingerprint({ s: base }));
+  });
+
+  it('.superRefine ændrer ikke fingerprintet', () => {
+    const base = z.object({ navn: z.string() });
+    const refined = z.object({ navn: z.string() }).superRefine(() => {});
+    expect(computeSchemaFingerprint({ s: refined })).toBe(computeSchemaFingerprint({ s: base }));
+  });
+
+  it('.preprocess ændrer ikke fingerprintet når output-skemaet er uændret', () => {
+    const base = z.number();
+    const preprocessed = z.preprocess((v) => Number(v), z.number());
+    expect(computeSchemaFingerprint({ s: preprocessed })).toBe(computeSchemaFingerprint({ s: base }));
+  });
+
+  it('felt skiftet fra required til optional → andet fingerprint (reel strukturændring)', () => {
+    // Modsætning til runtime-only: optionalitet ÆNDRER input-JSON-skemaet og SKAL flytte fingerprintet.
+    const required = z.object({ navn: z.string() });
+    const optional = z.object({ navn: z.string().optional() });
+    expect(computeSchemaFingerprint({ s: required })).not.toBe(computeSchemaFingerprint({ s: optional }));
+  });
 });
