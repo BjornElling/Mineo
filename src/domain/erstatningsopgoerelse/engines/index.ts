@@ -9,7 +9,7 @@ export * as periodOverlapDetection from './periodOverlapDetection';
 export * as periodRangeGroups from './periodRangeGroups';
 export * as reguleringCoverage from './reguleringCoverage';
 export * as reguleringFormulaUtils from './reguleringFormulaUtils';
-export * as reguleringsBeregning from './reguleringsBeregning';
+export * as reguleringsPresentation from './reguleringsPresentation';
 export * as svieSmerteEngine from './svieSmerteEngine';
 export * as sygeferiegodtgoerelse from './sygeferiegodtgoerelse';
 export * as tafBeregningsEngine from './tafBeregningsEngine';

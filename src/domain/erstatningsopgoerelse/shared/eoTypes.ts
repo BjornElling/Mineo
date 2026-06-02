@@ -121,11 +121,19 @@ export type SvieSmerteModel = Readonly<{
   harPerioder: boolean;
   satserAar: number | null;
   satserPerDag: Calculable<MoneyOre>;
+  /**
+   * Per-dag-satsen for en delvis sygedag = `satserPerDag * delvisFaktor`, afrundet til øre.
+   * Beregnes i præsentationslaget (ikke i rendereren), så den viste delvis-dagssats er
+   * konsistent med totalberegningen. Er ikke-beregnelig når `satserPerDag` er det.
+   */
+  delvisSatsPerDag: Calculable<MoneyOre>;
   satserMax: Calculable<MoneyOre>;
   forligLabel: string | null;
   forligSatserSuffix: string | null;
   forligFactor: number | null;
   satserPerDagFoerForlig: Calculable<MoneyOre>;
+  /** Delvis-dagssatsen før forlig = `satserPerDagFoerForlig * delvisFaktor`, afrundet til øre. */
+  delvisSatsPerDagFoerForlig: Calculable<MoneyOre>;
   satserMaxFoerForlig: Calculable<MoneyOre>;
   tidligere: Calculable<MoneyOre>;
   aktuel: Calculable<MoneyOre>;

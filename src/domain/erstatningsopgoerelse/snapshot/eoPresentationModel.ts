@@ -27,7 +27,7 @@ export type {
   TafIndtaegterModel,
 } from '../shared/eoTypes';
 export { clampMoneyOreToZero, ensureMoneyOre, roundKroner, toOre } from '../shared/eoMoney';
-export { buildTafArbejdsdageSet, countTafArbejdsdageInRange, resolveLoenudviklingRows, segmentAmountOre } from '../pdf/eoPdfLoenudvikling';
+export { buildTafArbejdsdageSet, countTafArbejdsdageInRange, resolveLoenudviklingRows, segmentAmountOre } from '../engines/loenudviklingBeregning';
 
 export type EoPdfPresentation = Readonly<{
   titel: string;

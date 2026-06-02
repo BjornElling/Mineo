@@ -33,8 +33,10 @@ const replacePdfUnsafeUnicode = (value: string): string => {
 };
 
 /**
- * Erstatter linjeskift (\r\n eller \n) med ikke-brydende mellemrum mellem
- * tal og "kr." — forhindrer linjeskift midt i beløb i PDF-output.
+ * Indsætter ikke-brydende mellemrum (NBSP) mellem et tal og efterfølgende "kr.",
+ * uanset om adskillelsen er mellemrum, tab eller linjeskift — forhindrer linjebrud
+ * midt i et beløb i PDF-output. En eventuel adskillelse på flere whitespace-tegn
+ * normaliseres til ét NBSP.
  */
 export const ensureNonBreakingKr = (value: string): string => {
   return value.replace(/(-?\d[\d.,]*)\s+kr\./g, `$1${NBSP}kr.`);

@@ -12,13 +12,10 @@ import { generateRenteOversigtPdf } from '../domains/renteberegning/renteOversig
 import { createStandardPdfWriter } from './pdfWriter';
 import { parseDanishDate } from '../../utils/dateUtils';
 import { getPdfCreatorBrand } from '../shared/pdfHelpers';
+import { asError } from '../../utils/typeGuards';
 
 const PDF_DOWNLOAD_SUCCESS: PdfDownloadResult = { success: true };
 const PDF_DOWNLOAD_ERROR_MESSAGE = 'Kunne ikke generere rente-PDF';
-
-const toError = (value: unknown): Error => {
-  return value instanceof Error ? value : new Error(String(value));
-};
 
 export const downloadStandaloneRentePdf = async (params: Readonly<{
   beloeb: number;
@@ -46,7 +43,7 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
     });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
-    const normalizedError = toError(error);
+    const normalizedError = asError(error);
     console.error(PDF_DOWNLOAD_ERROR_MESSAGE, normalizedError);
     return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
   }
@@ -71,7 +68,7 @@ export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
     });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
-    const normalizedError = toError(error);
+    const normalizedError = asError(error);
     console.error(PDF_DOWNLOAD_ERROR_MESSAGE, normalizedError);
     return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
   }
@@ -142,7 +139,7 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
 
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
-    const normalizedError = toError(error);
+    const normalizedError = asError(error);
     console.error(PDF_DOWNLOAD_ERROR_MESSAGE, normalizedError);
     return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
   }

@@ -8,12 +8,11 @@ import type { BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
-import { resolveMenSatsForBeregningsdato, type VarigeMenBeregningResult } from '../../../domain/varigemen/varigeMenCalculations';
+import { type VarigeMenBeregningResult } from '../../../domain/varigemen/varigeMenCalculations';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { TODAY } from '../../../config/dateRanges';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { resolvePdfFileName } from '../../shared/pdfFormatUtils';
-import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 
 export const buildVarigeMenPdfFilename = (journalnr?: string): string => resolvePdfFileName('Méngodtgørelse', false, journalnr);
 
@@ -59,21 +58,19 @@ const addStamdataSection = (
 const addBeregningsgrundlagSection = (
   writer: PdfWriter,
   mengrad: number,
-  beregningsdato: ISODateString | undefined
+  beregningsdato: ISODateString | undefined,
+  beregningsResultat: VarigeMenBeregningResult
 ): void => {
-  const menSats = resolveMenSatsForBeregningsdato(beregningsdato, varigeMenPrGrad);
-  const satsLabel = menSats !== undefined
-    ? `Sats per méngrad i år ${menSats.aar}`
-    : 'Sats per méngrad i beregningsåret';
-  const satsValue = menSats !== undefined
-    ? `${formatAsAmount(menSats.sats, 0)} kr.`
-    : '';
-
+  // Satsen og året kommer fra den autoritative beregning (ikke en re-resolve i PDF-laget),
+  // så den viste sats altid matcher den sats beregningen faktisk brugte.
   writer.writeBoldSubheader('Beregningsgrundlag');
   writeRows(writer, [
     { label: 'Méngrad', value: `${mengrad} %` },
     { label: 'Beregningsdato', value: formatIsoDateLong(beregningsdato) },
-    { label: satsLabel, value: satsValue },
+    {
+      label: `Sats per méngrad i år ${beregningsResultat.beregningsaar}`,
+      value: `${formatAsAmount(beregningsResultat.satsPerMengrad, 0)} kr.`,
+    },
   ]);
   writer.addSectionSpacer();
 };
@@ -87,7 +84,8 @@ const addResultatSection = (
   beregningsResultat: VarigeMenBeregningResult
 ): void => {
   writer.writeBoldSubheader('Beregnet méngodtgørelse');
-  const reduktionsBeloeb = beregningsResultat.grundbeloebUdenReduktion * beregningsResultat.aldersreduktionPct / 100;
+  // Reduktionsbeløbet kommer fra beregningen (afstemt mod den oprundede slutgodtgørelse),
+  // så grundbeløb − reduktion = godtgørelse går nøjagtigt op.
   writeRows(writer, [
     {
       label: `Grundbeløb: ${mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`,
@@ -95,7 +93,7 @@ const addResultatSection = (
     },
     {
       label: `Aldersreduktion, ${beregningsResultat.alderVedSkade} år = - ${beregningsResultat.aldersreduktionPct} %`,
-      value: `- ${formatAsAmount(reduktionsBeloeb, 2)} kr.`,
+      value: `- ${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`,
     },
     {
       label: 'Beregnet méngodtgørelse',
@@ -159,7 +157,7 @@ export const generateVarigeMenPdf = (params: GenerateVarigeMenPdfParams): void =
   addStamdataSection(writer, fodselsdato, skadedato, beregningsResultat.alderVedSkade, skadedatoLabel);
 
   // Tilføj beregningsgrundlag-sektion
-  addBeregningsgrundlagSection(writer, mengrad, beregningsdato);
+  addBeregningsgrundlagSection(writer, mengrad, beregningsdato, beregningsResultat);
 
   // Tilføj resultat-sektion
   addResultatSection(writer, mengrad, beregningsResultat);

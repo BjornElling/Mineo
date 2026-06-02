@@ -25,6 +25,8 @@ describe('varigeMenEngine', () => {
       satsPerMengrad: 1000,
       aldersreduktionPct: 0,
       grundbeloebUdenReduktion: 10000,
+      aldersreduktionBeloeb: 0,
+      beregningsaar: 2024,
       alderVedSkade: 30,
     });
   });

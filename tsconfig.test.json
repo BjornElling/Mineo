@@ -70,7 +70,7 @@
     "src/__tests__/domain/erstatningsopgoerelse/eoBilagRules.test.ts",
     "src/__tests__/domain/erstatningsopgoerelse/eoCanonicalOutput.parity.test.ts",
     "src/__tests__/domain/erstatningsopgoerelse/eoPdfModel.test.ts",
-    "src/__tests__/domain/erstatningsopgoerelse/eoPdfReguleringEngine.test.ts",
+    "src/__tests__/domain/erstatningsopgoerelse/reguleringsPresentation.test.ts",
     "src/__tests__/domain/erstatningsopgoerelse/eoSnapshot.test.ts",
     "src/__tests__/domain/erstatningsopgoerelse/eoSnapshotPdfProjection.test.ts",
     "src/__tests__/domain/erstatningsopgoerelse/eoSnapshotToBeregningView.test.ts",

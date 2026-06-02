@@ -166,4 +166,19 @@ describe('renderPdfTable adaptive column widths', () => {
     expect(styles[1]?.cellWidth).toBeLessThan(initialDistributedWidth);
     expect(totalWidth).toBeCloseTo(PDF_CONTENT_WIDTH_MM, 6);
   });
+
+  it('fejler fail-closed når body er tom i stedet for at rendere en blank tabel', async () => {
+    const { renderPdfTable } = await import('../../../pdf/shared/pdfTableRenderer');
+
+    const doc = new MockJsPDF();
+
+    expect(() =>
+      renderPdfTable({
+        doc: doc as never,
+        startY: 40,
+        body: [],
+      })
+    ).toThrow(/tom body/i);
+    expect(autoTableMock).not.toHaveBeenCalled();
+  });
 });

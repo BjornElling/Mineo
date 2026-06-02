@@ -340,9 +340,7 @@ const addBeregningsprinciperSection = (
     });
 
     // Antal feriedage
-    const feriedageVal = antalFeriedage === null || antalFeriedage === undefined
-      ? '0'
-      : String(antalFeriedage);
+    const feriedageVal = String(antalFeriedage ?? 0);
     rows.push({
       label: 'Antal feriedage (mandag-fredag) i de indtastede perioder',
       value: feriedageVal,
@@ -359,7 +357,7 @@ const addBeregningsprinciperSection = (
   if (loenPaaHelligdage === 'SH-udbetaling' || loenPaaHelligdage === 'Ingen') {
     rows.push({
       label: 'Antal SH-dage i de indtastede perioder',
-      value: String(shDageAntal || 0),
+      value: String(shDageAntal ?? 0),
     });
   }
 

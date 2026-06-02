@@ -11,7 +11,6 @@
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import { ensureNonBreakingKr } from '../../shared/pdfTextUtils';
 import { type BrevhovedData } from '../../shared/pdfHelpers';
-import { roundByMethod } from '../../../utils/rounding';
 import { logWarning } from '../../../utils/logger';
 import { formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import {
@@ -19,7 +18,7 @@ import {
   formatCurrencyFromOre,
   formatMaanederTrimmed,
   formatMoneyOreWithKr,
-  formatPercentDelta,
+  formatReguleringFactorText,
   isSingularCount,
   resolvePdfFileName,
 } from '../../shared/pdfFormatUtils';
@@ -163,10 +162,7 @@ export const generateTafFordeltPaaAarPdf = (
 
     // Segmenter (identisk format med EO-pdf)
     for (const segment of yearEntry.segments) {
-      const roundedDeltaPct = roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
-      const factorText = Math.abs(roundedDeltaPct) < 0.00001
-        ? ''
-        : ` x (100 % ${roundedDeltaPct >= 0 ? '+' : '-'} ${formatPercentDelta(roundedDeltaPct)} %)`;
+      const factorText = formatReguleringFactorText(segment.deltaPct);
       let leftText = '';
       if (segment.kind === 'arbejdsdage') {
         const arbejdsdageText = formatCountWithUnit(segment.quantity, 'arbejdsdag', 'arbejdsdage');

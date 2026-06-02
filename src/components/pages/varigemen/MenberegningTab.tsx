@@ -130,11 +130,9 @@ const beregningsResultat = React.useMemo(() => {
   return resultat;
 }, [values, stamValues.skadelidteFodselsdato, stamValues.skadedato, beregningsFejl, manglendeFelter]);
 
-// Beregn aldersreduktionsbeløb (kun én gang)
-const aldersreduktionsBeloeb = React.useMemo(() => {
-  if (!beregningsResultat || beregningsResultat.aldersreduktionPct === 0) return 0;
-  return beregningsResultat.grundbeloebUdenReduktion * beregningsResultat.aldersreduktionPct / 100;
-}, [beregningsResultat]);
+// Aldersreduktionsbeløbet kommer fra den autoritative beregning (afstemt mod den
+// oprundede slutgodtgørelse), så de viste linjer går op og UI matcher PDF.
+const aldersreduktionsBeloeb = beregningsResultat?.aldersreduktionBeloeb ?? 0;
 
   // PDF download handler
   const handlePdfDownload = React.useCallback(async () => {

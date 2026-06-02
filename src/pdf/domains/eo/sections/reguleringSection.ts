@@ -22,17 +22,18 @@ import {
   formatAmountWithoutTrailingDecimals,
   formatAnciennitetConversion,
   isAslStatistikModel,
-} from '../../../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
+} from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
 import { STORE_BEDEDAG_START } from '../../../../config/dateRanges';
 import { STORE_BEDEDAG_PCT } from '../../../../config/regulatoryRates';
 import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
-import type {
-  ReguleringIndexRow,
-  ReguleringValuesTableData,
-} from '../../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
-import { resolveLoenudviklingSegmentBounds } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsBeregning';
+import {
+  resolveLoenudviklingSegmentBounds,
+  type ReguleringIndexRow,
+  type ReguleringValuesTableData,
+} from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
 import { isGreaterThanWithTolerance } from '../../../../utils/numberComparison';
 import { parsePercentPointString } from '../../../../utils/numberParsing';
@@ -245,11 +246,6 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     resolveStatistikModelIdFromLabel,
     writer,
   } = ctx;
-  const toSentenceCase = (value: string): string => {
-    if (value.length === 0) return value;
-    return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
-  };
-
   const tafBeregnesSom = computeTafBeregningsenhed(eoValues);
 
   const resolveAnciennitetValueDisplay = (
@@ -404,14 +400,14 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Ingen') {
       writeLabelValueLine('Regulering', valgtReguleringForSection);
-      writeLabelValueLine('Opgøres på baggrund af', toSentenceCase(loenSkadedatoText));
+      writeLabelValueLine('Opgøres på baggrund af', capitalizeFirstCharDa(loenSkadedatoText));
       writer.addSectionSpacer();
       continue;
     }
 
     writeLabelValueLine(
       'Beregnes som',
-      `${loenSkadedatoText.charAt(0).toUpperCase()}${loenSkadedatoText.slice(1)} tillagt efterfølgende lønstigninger`
+      `${capitalizeFirstCharDa(loenSkadedatoText)} tillagt efterfølgende lønstigninger`
     );
     writeLabelValueLine('Regulering', valgtReguleringForSection);
     const anciennitetValueDisplay = resolveAnciennitetValueDisplay(ansaettelsesforhold);

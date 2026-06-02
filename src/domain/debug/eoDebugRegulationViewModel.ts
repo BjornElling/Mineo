@@ -18,8 +18,8 @@ import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafB
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,
+  resolveLoenudviklingSegmentBounds,
 } from '../erstatningsopgoerelse/engines/reguleringsPresentation';
-import { resolveLoenudviklingSegmentBounds } from '../erstatningsopgoerelse/engines/reguleringsBeregning';
 
 export type RegulationDebugSection = {
   readonly id: string;

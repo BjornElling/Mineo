@@ -13,7 +13,7 @@ import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { type MoneyOre, type Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
-import { formatAsAmount, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
+import { capitalizeFirstCharDa, formatAsAmount, formatPercent as formatPercentUtil } from '../../../utils/formatUtils';
 import { isEffectivelyZero, isWithinTolerance } from '../../../utils/numberComparison';
 import { getStandardLoenTableHeaders } from '../../../domain/aarsloen/standardLoenTableColumns';
 import {
@@ -34,19 +34,17 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import {
   parseOptionalIsoDate,
-} from '../../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
+} from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
+import { buildOffentligeYdelserReguleringTableData } from '../../../domain/erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
 import {
   buildReguleringIndexRows,
   buildReguleringsvaerdierTableData,
-} from '../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
-import { buildOffentligeYdelserReguleringTableData } from '../../../domain/erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
-import {
   resolveLoenSkadedatoText,
   resolveAnvendtReguleringsdato,
   resolveStatistikModelIdFromLabel,
   resolveTafDateBounds,
-} from '../../../domain/erstatningsopgoerelse/engines/reguleringsBeregning';
+} from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import {
   resolveValgtReguleringDisplayForPdf,
 } from '../../../domain/erstatningsopgoerelse/helpers/loenudviklingDisplay';
@@ -57,7 +55,7 @@ import {
   formatMaanederTrimmed,
   formatMoneyOreWithKr,
   formatMoneyOreWithKrTrimmed,
-  formatPercentDelta,
+  formatReguleringFactorText,
   isSingularCount,
   resolvePdfFileName,
 } from '../../shared/pdfFormatUtils';
@@ -103,15 +101,10 @@ const formatPctFromInput = (value: number | undefined): string => {
   return formatPercentUtil(value ?? 0);
 };
 
-const capitalizeFirstChar = (value: string): string => {
-  if (value.length === 0) return value;
-  return `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
-};
-
 const normalizeSfggIntroRightText = (value: string): string => {
   const trimmed = value.trim();
   if (trimmed === '') return trimmed;
-  return capitalizeFirstChar(trimmed.replace(/\.$/, ''));
+  return capitalizeFirstCharDa(trimmed.replace(/\.$/, ''));
 };
 
 const resolveSfggReferenceSatsUnit = (divisorLabel: 'kalenderdage' | 'arbejdsdage'): string =>
@@ -254,7 +247,7 @@ export const generateErstatningsopgoerelsePdf = (
   const renderSubheader = writer.writeBoldSubheader;
 
   const writeLabelValueLine = (label: string, value: string) => {
-    safeAddLeftRightText(label, capitalizeFirstChar(value), standardRightMaxWidth, { rightFontStyle: 'normal' });
+    safeAddLeftRightText(label, capitalizeFirstCharDa(value), standardRightMaxWidth, { rightFontStyle: 'normal' });
   };
 
   const renderSfggReferenceSatsBlock = (
@@ -511,7 +504,6 @@ export const generateErstatningsopgoerelsePdf = (
     resolveLoenSkadedatoText,
     formatDateShort,
     formatDateLong,
-    formatPercentDelta,
     writer,
   });
 
@@ -654,9 +646,7 @@ export const generateErstatningsopgoerelsePdf = (
       for (const segment of entry.beregnedeSegmenter) {
         const fraDisplay = formatDateShort(segment.fra) ?? segment.fra;
         const tilDisplay = formatDateShort(segment.til) ?? segment.til;
-        const deltaText = Math.abs(segment.deltaPct) < 0.00001
-          ? ''
-          : ` x (100 % ${segment.deltaPct >= 0 ? '+' : '-'} ${formatPercentDelta(segment.deltaPct)} %)`;
+        const deltaText = formatReguleringFactorText(segment.deltaPct);
         const leftText = segment.kind === 'arbejdsdage'
           ? `${fraDisplay} - ${tilDisplay}: ${formatCountWithUnit(segment.arbejdsdage, 'arbejdsdag', 'arbejdsdage')} á ${formatCurrencyFromOre(segment.dagsloenOre)}${NBSP}kr.${deltaText} =`
           : `${fraDisplay} - ${tilDisplay}: ${formatMaanederTrimmed(segment.maaneder)} ${isSingularCount(segment.maaneder) ? 'måned' : 'måneder'} á ${formatCurrencyFromOre(segment.maanedsloenOre)}${NBSP}kr.${deltaText} =`;

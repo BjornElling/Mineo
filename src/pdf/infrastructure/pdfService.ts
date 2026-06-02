@@ -41,6 +41,7 @@ import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/sn
 import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { logWarning } from '../../utils/logger';
+import { asError } from '../../utils/typeGuards';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { getSatserForYear } from '../../data/lovbestemteRates';
 import { resolveStamdataDatoLabel } from '../../domain/policies/stamdataCalculations';
@@ -101,10 +102,6 @@ type SHDagePeriod = Readonly<{
 }>;
 type SatserData = ReturnType<typeof getSatserForYear>;
 type PdfDownloadFailureKind = 'pdf_generation_failed' | 'dev_server_unavailable';
-
-const toError = (value: unknown): Error => {
-  return value instanceof Error ? value : new Error(String(value));
-};
 
 const PDF_DOWNLOAD_SUCCESS: PdfDownloadResult = { success: true };
 
@@ -269,7 +266,7 @@ const createPdfDownloadFailure = async (
   context: string,
   error: unknown
 ): Promise<PdfDownloadResult> => {
-  const normalizedError = toError(error);
+  const normalizedError = asError(error);
   const failureKind = await resolvePdfDownloadFailureKind(normalizedError);
   if (failureKind === 'dev_server_unavailable') {
     return createDevServerUnavailableFailure(context, {

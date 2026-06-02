@@ -17,6 +17,7 @@ import { buildTafFerieFravaerSummary } from '../engines/tafDaySets';
 import { formatCountWithUnit } from '../../../utils/formatUtils';
 import { TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
+import { roundByMethod } from '../../../utils/rounding';
 
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
@@ -117,15 +118,27 @@ export const buildSvieSmerteModel = (
     return [`${fraDisplay} - ${tilDisplay}${suffix}`];
   });
 
+  // Delvis-dagssatsen = per-dag-satsen (i øre) × delvisFaktor, afrundet til hel øre.
+  // Beregnes her i præsentationslaget (ikke i PDF-/UI-rendereren), så den viste
+  // delvis-dagssats er konsistent på tværs af kanaler og med totalberegningen.
+  const roundDelvisSatsOre = (perDagOre: number): MoneyOre =>
+    ensureMoneyOre(roundByMethod(perDagOre * engine.delvisFaktor, 0, 'halfAwayFromZero'));
+
   const satserPerDag: Calculable<MoneyOre> = engine.satserPerDagOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
     : asCalculable(ensureMoneyOre(engine.satserPerDagOre));
+  const delvisSatsPerDag: Calculable<MoneyOre> = engine.satserPerDagOre === null
+    ? notCalculableMoney('Satser kan ikke beregnes')
+    : asCalculable(roundDelvisSatsOre(engine.satserPerDagOre));
   const satserMax: Calculable<MoneyOre> = engine.satserMaxOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
     : asCalculable(ensureMoneyOre(engine.satserMaxOre));
   const satserPerDagFoerForlig: Calculable<MoneyOre> = engine.satserPerDagFoerForligOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
     : asCalculable(ensureMoneyOre(engine.satserPerDagFoerForligOre));
+  const delvisSatsPerDagFoerForlig: Calculable<MoneyOre> = engine.satserPerDagFoerForligOre === null
+    ? notCalculableMoney('Satser kan ikke beregnes')
+    : asCalculable(roundDelvisSatsOre(engine.satserPerDagFoerForligOre));
   const satserMaxFoerForlig: Calculable<MoneyOre> = engine.satserMaxFoerForligOre === null
     ? notCalculableMoney('Satser kan ikke beregnes')
     : asCalculable(ensureMoneyOre(engine.satserMaxFoerForligOre));
@@ -150,11 +163,13 @@ export const buildSvieSmerteModel = (
     harPerioder: engine.harPerioder,
     satserAar: engine.satserAar,
     satserPerDag,
+    delvisSatsPerDag,
     satserMax,
     forligLabel: engine.forligLabel,
     forligSatserSuffix: engine.forligSatserSuffix,
     forligFactor: engine.forligFactor,
     satserPerDagFoerForlig,
+    delvisSatsPerDagFoerForlig,
     satserMaxFoerForlig,
     tidligere,
     aktuel,

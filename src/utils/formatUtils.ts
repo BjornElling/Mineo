@@ -9,6 +9,14 @@ import { isWithinTolerance } from './numberComparison';
 
 export const isSingularCount = (value: number): boolean => isWithinTolerance(value, 1);
 
+/**
+ * Gør første tegn i en streng til stort efter danske locale-regler (`da-DK`).
+ * Tom streng returneres uændret. Brug denne kanoniske helper frem for ad hoc
+ * `charAt(0).toUpperCase()`, så dansk-specifikke tegn håndteres ensartet.
+ */
+export const capitalizeFirstCharDa = (value: string): string =>
+  value.length === 0 ? value : `${value.charAt(0).toLocaleUpperCase('da-DK')}${value.slice(1)}`;
+
 export const formatCountWithUnit = (count: number, singular: string, plural: string): string =>
   `${formatAsAmountTrimmed(count, 2)} ${isSingularCount(count) ? singular : plural}`;
 

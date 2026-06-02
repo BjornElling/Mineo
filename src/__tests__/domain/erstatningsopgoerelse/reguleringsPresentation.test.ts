@@ -3,7 +3,7 @@ import {
   buildReguleringIndexRows,
   resolveAnvendtReguleringsdato as resolvePdfAnvendtReguleringsdato,
   resolveLoenSkadedatoText,
-} from '../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
+} from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import {
   getAngivetLoenOpreguleresFraDato,
   resolveAktivEllerFoersteLoenudviklingKilde,
@@ -29,7 +29,7 @@ const cloneInitialValues = () => ({
   })),
 });
 
-describe('eoPdfReguleringEngine', () => {
+describe('reguleringsPresentation', () => {
   const expectPdfReguleringsdatoParity = (
     values: ReturnType<typeof cloneInitialValues>,
     af: ReturnType<typeof cloneInitialValues>['loenindkomstAnsaettelsesforhold'][number]

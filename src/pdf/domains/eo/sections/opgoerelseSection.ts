@@ -1,11 +1,12 @@
 import { MARGINS } from '../../../infrastructure/pdfConfig';
 import { ensureNonBreakingKr } from '../../../shared/pdfTextUtils';
+import { formatReguleringFactorText } from '../../../shared/pdfFormatUtils';
 import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { resolveAktivEllerFoersteLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
-import { resolveAnvendtReguleringsdato } from '../../../../domain/erstatningsopgoerelse/pdf/eoPdfRegulering';
+import { resolveAnvendtReguleringsdato } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import {
   getDayAfterIso,
-} from '../../../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
+} from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { round4 as roundToFourDecimals } from '../../../../utils/roundingShortcuts';
 import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { resolveBilagWarning } from '../../../../domain/erstatningsopgoerelse/helpers/bilagWarnings';
@@ -72,7 +73,6 @@ type OpgorelseSectionContext = Readonly<{
   }) => string;
   formatDateShort: (dateIso: ISODateString | undefined) => string;
   formatDateLong: (isoDate: ISODateString | undefined) => string;
-  formatPercentDelta: (value: number) => string;
   writer: Readonly<{
     addSectionSpacer: () => void;
     addPage: () => void;
@@ -168,7 +168,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     resolveLoenSkadedatoText,
     formatDateShort,
     formatDateLong,
-    formatPercentDelta,
     writer,
   } = ctx;
 
@@ -268,14 +267,14 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       model.svieSmerte.satserPerDagFoerForlig.status === 'ok' &&
       model.svieSmerte.satserMaxFoerForlig.status === 'ok';
     if (model.svieSmerte.satserPerDag.status === 'ok') {
-      const delvisSatsOre = roundByMethod(model.svieSmerte.satserPerDag.value * model.svieSmerte.delvisFaktor, 0, 'halfAwayFromZero');
-      const delvisSatsOreFoerForlig = model.svieSmerte.satserPerDagFoerForlig.status === 'ok'
-        ? roundByMethod(model.svieSmerte.satserPerDagFoerForlig.value * model.svieSmerte.delvisFaktor, 0, 'halfAwayFromZero')
+      // Delvis-dagssatsen kommer fra præsentationsmodellen (afrundet konsistent med beregningen),
+      // ikke en lokal genberegning i rendereren.
+      const delvisSatsDisplayWithKr = model.svieSmerte.delvisSatsPerDag.status === 'ok'
+        ? formatMoneyOreWithKrTrimmed(model.svieSmerte.delvisSatsPerDag.value)
+        : formatMoneyOreWithKrTrimmed(model.svieSmerte.satserPerDag.value);
+      const delvisSatsDisplayWithKrFoerForlig = model.svieSmerte.delvisSatsPerDagFoerForlig.status === 'ok'
+        ? formatMoneyOreWithKrTrimmed(model.svieSmerte.delvisSatsPerDagFoerForlig.value)
         : null;
-      const delvisSatsDisplayWithKr = formatMoneyOreWithKrTrimmed(delvisSatsOre);
-      const delvisSatsDisplayWithKrFoerForlig = delvisSatsOreFoerForlig === null
-        ? null
-        : formatMoneyOreWithKrTrimmed(delvisSatsOreFoerForlig);
 
       const takstLed: string[] = [];
       if (hasSygedage && hasDelviseSygedage && model.svieSmerte.delvisFaktor === 1) {
@@ -333,7 +332,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const sygedage = model.svieSmerte.sygedage;
     const delviseSygedage = model.svieSmerte.delviseSygedage;
     const perDagOre = model.svieSmerte.satserPerDag.status === 'ok' ? model.svieSmerte.satserPerDag.value : null;
-    const delvisOre = perDagOre !== null ? roundByMethod(perDagOre * model.svieSmerte.delvisFaktor, 0, 'halfAwayFromZero') : null;
+    // Delvis-dagssatsen kommer fra præsentationsmodellen, ikke en lokal genberegning.
+    const delvisOre = model.svieSmerte.delvisSatsPerDag.status === 'ok' ? model.svieSmerte.delvisSatsPerDag.value : null;
 
     const perDagText = perDagOre !== null ? formatCurrencyFromOreTrimmed(perDagOre) : '—';
     const delvisText = delvisOre !== null ? formatCurrencyFromOreTrimmed(delvisOre) : '—';
@@ -669,10 +669,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         }
         const segmentsForDisplay = mergeLoenudviklingSegments(segments);
         for (const segment of segmentsForDisplay) {
-          const roundedDeltaPct = roundByMethod(segment.deltaPct, 2, 'halfAwayFromZero');
-          const factorText = Math.abs(roundedDeltaPct) < 0.00001
-            ? ''
-            : ` x (100 % ${roundedDeltaPct >= 0 ? '+' : '-'} ${formatPercentDelta(roundedDeltaPct)} %)`;
+          const factorText = formatReguleringFactorText(segment.deltaPct);
           const fraDisplay = formatDateShort(segment.fra);
           const tilDisplay = formatDateShort(segment.til);
           let leftText = '';

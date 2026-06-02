@@ -15,6 +15,7 @@ import {
   type BrevhovedData,
 } from '../shared/pdfHelpers';
 import { createJsPdfAdapter } from './jsPdfAdapter';
+import type { PdfDocumentAdapter } from './pdfDocumentAdapter';
 import { renderBrevhoved } from './pdfBrevhovedRenderer';
 import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from '../shared/pdfTextUtils';
 import { formatRoundedCanonical } from '../../utils/rounding';
@@ -72,12 +73,15 @@ const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): st
   return dataUrl;
 };
 
-const addUdkastWatermark = (doc: jsPDF): void => {
-  const pageWidth = doc.internal.pageSize.width;
-  const pageHeight = doc.internal.pageSize.height;
+// Vandmærket går via PdfDocumentAdapter, ikke direkte mod jsPDF: al brug af
+// jsPDF (inkl. internal.pageSize) skal være isoleret i jsPdfAdapter.ts. Sidemål
+// slås op per-kald via adapteren, fordi pageSize er mutable (jf. pdf-architecture §4).
+const addUdkastWatermark = (adapter: PdfDocumentAdapter): void => {
+  const pageWidth = adapter.getPageWidth();
+  const pageHeight = adapter.getPageHeight();
   const watermarkDataUrl = getUdkastWatermarkPngDataUrl(pageWidth, pageHeight);
   if (watermarkDataUrl) {
-    doc.addImage(watermarkDataUrl, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
+    adapter.addImage(watermarkDataUrl, 'PNG', 0, 0, pageWidth, pageHeight, undefined, 'FAST');
     return;
   }
 
@@ -85,13 +89,13 @@ const addUdkastWatermark = (doc: jsPDF): void => {
   const text = 'UDKAST';
   const centerX = pageWidth / 2 + 18;
   const centerY = pageHeight / 2 - 80;
-  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-  doc.setFontSize(130);
-  doc.setTextColor(235);
-  doc.text(text, centerX, centerY, { align: 'center', angle: -45 });
-  doc.setTextColor(0);
-  doc.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
-  doc.setFontSize(FONT_SIZES.normal);
+  adapter.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
+  adapter.setFontSize(130);
+  adapter.setTextColor(235, 235, 235);
+  adapter.text(text, centerX, centerY, { align: 'center', angle: -45 });
+  adapter.setTextColor(0, 0, 0);
+  adapter.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
+  adapter.setFontSize(FONT_SIZES.normal);
 };
 
 // ============================================================================
@@ -196,7 +200,7 @@ const createPdfCursor = (params: Readonly<{
     doc.addPage();
     y = MARGINS.top;
     if (visUdkastStempel) {
-      addUdkastWatermark(doc);
+      addUdkastWatermark(adapter);
     }
   };
 
@@ -598,7 +602,7 @@ const createPdfCursor = (params: Readonly<{
     },
     addUdkastWatermark: () => {
       if (visUdkastStempel) {
-        addUdkastWatermark(doc);
+        addUdkastWatermark(adapter);
       }
     },
     splitWrappedLines,

@@ -62,6 +62,16 @@ export type VarigeMenBeregningResult = {
   satsPerMengrad: number;
   aldersreduktionPct: number;
   grundbeloebUdenReduktion: number;
+  /**
+   * Aldersreduktionens beløb i kroner, defineret som
+   * `grundbeloebUdenReduktion - beregnetGodtgoerelse`. Bevidst afstemt mod den
+   * oprundede slutgodtgørelse (ikke `grundbeloeb * pct / 100`), så de tre viste
+   * linjer (grundbeløb − reduktion = godtgørelse) altid går nøjagtigt op i både
+   * UI og PDF. Er 0 når der ingen reduktion er.
+   */
+  aldersreduktionBeloeb: number;
+  /** Året beregningsdatoen falder i; satsen (`satsPerMengrad`) er slået op for dette år. */
+  beregningsaar: number;
   alderVedSkade: number;
 };
 
@@ -152,12 +162,19 @@ export function beregnVarigeMenGodtgoerelseWithRates(
   }
 
   // Afrund altid OP til nærmeste hele krone
+  const beregnetGodtgoerelse = roundMenAmount(godtgorelse);
+  // Reduktionsbeløbet udledes som differencen mod den oprundede slutgodtgørelse,
+  // så grundbeløb − reduktion = godtgørelse går nøjagtigt op i visningen (i stedet
+  // for `grundbeloebUdenReduktion * pct / 100`, der ikke afstemmer med oprundingen).
+  const aldersreduktionBeloeb = fradragsPct > 0 ? grundbeloebUdenReduktion - beregnetGodtgoerelse : 0;
   return {
-    beregnetGodtgoerelse: roundMenAmount(godtgorelse),
+    beregnetGodtgoerelse,
     grundbeloeb,
     satsPerMengrad,
     aldersreduktionPct: fradragsPct,
     grundbeloebUdenReduktion,
+    aldersreduktionBeloeb,
+    beregningsaar,
     alderVedSkade,
   };
 }

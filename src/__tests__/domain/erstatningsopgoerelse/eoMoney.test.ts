@@ -1,6 +1,6 @@
-import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../../../domain/erstatningsopgoerelse/pdf/eoPdfMoneyUtils';
+import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../../../domain/erstatningsopgoerelse/shared/eoMoney';
 
-describe('eoPdfMoneyUtils', () => {
+describe('eoMoney', () => {
   describe('toOre', () => {
     it('konverterer kroner med 2 decimaler til øre', () => {
       expect(toOre(0)).toBe(0);

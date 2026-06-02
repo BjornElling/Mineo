@@ -86,16 +86,20 @@ export const formatPercentDelta = (value: number): string => {
   return formatAsAmountTrimmed(rounded, 2);
 };
 
-/** Formaterer kroner-beløb til PDF med NBSP efter minus ved negative tal. */
-export const formatCurrencyForPdf = (value: number | null | undefined): string => {
-  if (value === null || value === undefined || !Number.isFinite(value)) return '-';
-  return addNbspAfterMinus(formatCurrency(value));
-};
-
-/** Formaterer beløb (fri precision) til PDF med NBSP efter minus ved negative tal. */
-export const formatAmountForPdf = (value: number | null | undefined, precision: number = 2): string => {
-  const s = formatAsAmount(value, precision);
-  return addNbspAfterMinus(s);
+/**
+ * Bygger den kanoniske regulerings-faktortekst til segment-linjer i EO-/TAF-PDF'er:
+ * `" x (100 % + X,XX %)"` / `" x (100 % - X,XX %)"`.
+ *
+ * `deltaPct` afrundes til 2 decimaler (`halfAwayFromZero`); afrunder den til `0,00 %`
+ * undertrykkes faktoren helt (returnerer `''`), så near-nul-regulering ikke giver en
+ * støjende `"x (100 % + 0,00 %)"`-linje. Denne ene helper sikrer at faktorteksten er
+ * ens i hovedopgørelsen, offentlige-ydelser-bilaget og TAF-fordelt-på-år.
+ */
+export const formatReguleringFactorText = (deltaPct: number): string => {
+  if (!Number.isFinite(deltaPct)) return '';
+  const rounded = roundByMethod(deltaPct, 2, 'halfAwayFromZero');
+  if (rounded === 0) return '';
+  return ` x (100 % ${rounded > 0 ? '+' : '-'} ${formatPercentDelta(rounded)} %)`;
 };
 
 /**
@@ -109,10 +113,16 @@ export const formatMaaneder4 = (value: number): string => formatAsAmount(round4(
 /**
  * Formaterer et reguleringsprocent-tal med fortegn: "+ X,YZ %" eller "- X,YZ %".
  * Trailing zeros trimmes (fx "22,81 %" frem for "22,8100 %").
+ *
+ * Fortegnet vælges ud fra den *afrundede* størrelse, ikke den rå værdi: en lille
+ * negativ værdi der afrundes til 0 (fx -0,00001) skal vises som "+ 0 %", ikke
+ * "- 0 %" — et negativt fortegn på nul er misvisende i et tillidskritisk dokument.
  */
 export const formatReguleringPct = (value: number): string => {
-  const inner = formatAsAmountTrimmed(round4(Math.abs(value)), 4);
-  return `${value >= 0 ? '+' : '-'} ${inner} %`;
+  const rounded = round4(Math.abs(value));
+  const inner = formatAsAmountTrimmed(rounded, 4);
+  const sign = value < 0 && rounded !== 0 ? '-' : '+';
+  return `${sign} ${inner} %`;
 };
 
 /** Formaterer et kr.-beløb med valgfrit antal decimaler (0 som standard). */

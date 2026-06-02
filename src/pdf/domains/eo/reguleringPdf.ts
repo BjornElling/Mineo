@@ -21,7 +21,7 @@ import {
   formatAmountWithoutTrailingDecimals,
   isAslStatistikModel,
   resolveStatistikModelId,
-} from '../../../domain/erstatningsopgoerelse/pdf/sharedPdfUtils';
+} from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import {
   formatOverenskomstAmount,
   formatOverenskomstPercent,

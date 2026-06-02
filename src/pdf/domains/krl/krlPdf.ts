@@ -20,7 +20,7 @@ import {
 } from '../../shared/pdfTableRenderer';
 import { TODAY } from '../../../config/dateRanges';
 import { krlSatstabeller } from '../../../data/krlRates';
-import type { DanishDateString } from '../../../types/branded';
+import { danishToISO, type DanishDateString } from '../../../types/branded';
 import { resolvePdfFileName } from '../../shared/pdfFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
@@ -49,13 +49,14 @@ const buildCombinedRows = (): { dates: DanishDateString[]; rows: string[][] } =>
     }
   }
 
-  // Sortér datoer nyeste først (DD-MM-YYYY → sammenlignelig)
+  // Sortér datoer nyeste først. ISO-strenge (YYYY-MM-DD) sorterer kronologisk
+  // ved ren strengsammenligning, så vi konverterer via den kanoniske danishToISO
+  // i stedet for ad hoc-parsing. Uparselige datoer ('') sorteres sidst.
   const dates = Array.from(dateSet).sort((a, b) => {
-    const [dA, mA, yA] = a.split('-').map(Number);
-    const [dB, mB, yB] = b.split('-').map(Number);
-    const numA = yA * 10000 + mA * 100 + dA;
-    const numB = yB * 10000 + mB * 100 + dB;
-    return numB - numA;
+    const isoA = danishToISO(a) ?? '';
+    const isoB = danishToISO(b) ?? '';
+    if (isoA === isoB) return 0;
+    return isoA > isoB ? -1 : 1;
   });
 
   // Byg lookup pr. tabel: fraDato → reguleringsPct

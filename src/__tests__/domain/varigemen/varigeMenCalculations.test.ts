@@ -338,7 +338,19 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
       expect(typeof result!.satsPerMengrad).toBe('number');
       expect(typeof result!.aldersreduktionPct).toBe('number');
       expect(typeof result!.grundbeloebUdenReduktion).toBe('number');
+      expect(typeof result!.aldersreduktionBeloeb).toBe('number');
+      expect(typeof result!.beregningsaar).toBe('number');
       expect(typeof result!.alderVedSkade).toBe('number');
+    });
+
+    it('beregningsaar = året fra beregningsdato', () => {
+      const result = beregnVarigeMenGodtgoerelseWithRates(
+        baseValues({ beregningsdato: iso('2023-05-01') }),
+        iso('2023-05-01'),
+        buildRates({ 2023: 1000 }),
+        DEFAULT_FODSELSDATO
+      );
+      expect(result?.beregningsaar).toBe(2023);
     });
 
     it('grundbeloebUdenReduktion = satsPerMengrad * mengrad', () => {
@@ -359,6 +371,32 @@ describe('beregnVarigeMenGodtgoerelseWithRates', () => {
         DEFAULT_FODSELSDATO
       );
       expect(result?.grundbeloeb).toBe(750 * 100);
+    });
+  });
+
+  describe('aldersreduktionBeloeb (afstemning af viste linjer)', () => {
+    it('er 0 når der ingen aldersreduktion er', () => {
+      const result = beregnVarigeMenGodtgoerelseWithRates(
+        baseValues({ mengrad: 10 }),
+        iso('2024-01-01'), // alder 34 → ingen fradrag
+        buildRates({ 2024: 1000 }),
+        iso('1990-01-01')
+      );
+      expect(result?.aldersreduktionBeloeb).toBe(0);
+    });
+
+    it('grundbeløb − reduktion = oprundet godtgørelse går nøjagtigt op (også med decimaler)', () => {
+      // sats 1001,23 kr/trin, 10% méngrad, 1% fradrag (alder 40):
+      // grundbeloebUdenReduktion = 10012,30; godtgørelse = ceil(10012,30 * 0,99) = ceil(9912,177) = 9913
+      // reduktion skal være 10012,30 − 9913 = 99,30 så linjerne afstemmer.
+      const result = beregnVarigeMenGodtgoerelseWithRates(
+        baseValues({ mengrad: 10 }),
+        iso('2024-01-01'),
+        buildRates({ 2024: 1001.23 }),
+        iso('1984-01-01')
+      );
+      expect(result).not.toBeNull();
+      expect(result!.grundbeloebUdenReduktion - result!.aldersreduktionBeloeb).toBe(result!.beregnetGodtgoerelse);
     });
   });
 
