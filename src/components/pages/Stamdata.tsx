@@ -5,7 +5,7 @@ import { dateRanges_skadelidteFodselsdato, dateRanges_stamdata } from '../../con
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
-import { stamdataSchema } from '../../schemas/formSchemas';
+import { skadestypeEnum, stamdataSchema } from '../../schemas/formSchemas';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import { resolveStamdataDatoLabel } from '../../domain/policies';
 import StyledDateField from '../inputs/StyledDateField';
@@ -14,7 +14,8 @@ import StyledTextField, { type StyledTextFieldValueCommitEvent } from '../inputs
 import ContentBox from '../layout/ContentBox';
 const StamdataDebugTab = React.lazy(async () => import('./StamdataDebugTab'));
 
-const SKADESTYPER = ['Arbejdsulykke', 'Erhvervssygdom'] as const;
+// Afled dropdown-valgmulighederne fra schemaets enum, så UI og validering aldrig kan komme ud af sync.
+const SKADESTYPER = skadestypeEnum.options;
 
 const Stamdata = React.memo(() => {
   const { settings } = useAppSettings();
