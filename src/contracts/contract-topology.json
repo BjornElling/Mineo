@@ -22,7 +22,8 @@
     "src/contracts/undo-redo-contract.md",
     "src/contracts/app-settings.md",
     "src/contracts/snapshot-contract.md",
-    "src/contracts/auth-gate-contract.md"
+    "src/contracts/auth-gate-contract.md",
+    "src/contracts/app-shell-contract.md"
   ],
   "subordinateContracts": {
     "src/contracts/page-component-contract.md": [
@@ -39,7 +40,8 @@
       "src/contracts/mineo-field-pattern.md",
       "src/contracts/amount-contract.md",
       "src/contracts/undo-redo-contract.md",
-      "src/contracts/app-settings.md"
+      "src/contracts/app-settings.md",
+      "src/contracts/app-shell-contract.md"
     ]
   },
   "domainContracts": [

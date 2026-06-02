@@ -2,8 +2,8 @@
 
 **Version:** 0.2
 **Status:** Gældende arkitektur (normativ)
-**Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-05-30
+**Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
+**Senest verificeret mod kode:** 2026-06-02
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -98,15 +98,11 @@ Kontrakten skal derfor altid være eksplicit om, hvilke regler der gælder for h
 
 ### 3.1 App-entry (`main.tsx`) + app-shell (`apps/shared/bootstrapClientApp.tsx`)
 
-Hver app-entry (`src/main.tsx`, `src/apps/minprocesrente/minprocesrenteMain.tsx`) er tynd og delegerer top-level runtime-opstart til den delte app-shell `apps/shared/bootstrapClientApp.tsx`. App-shellen ejer:
+> Dette afsnit er **underordnet `app-shell-contract.md`**, som ejer de bindende regler for app-entry, device-gate-placering, multi-app-isolation, install-prompt-politik og service-worker-reload. Afsnittet her opsummerer kun grænsefladen mod side-laget; ved tvivl gælder app-shell-kontrakten.
 
-- device gating (mobil/tablet-blokering)
-- initial render-beslutning mellem app og hard-stop side
-- install-prompt-suppression
+Hver app-entry (`src/main.tsx`, `src/apps/minprocesrente/minprocesrenteMain.tsx`) er tynd og delegerer top-level runtime-opstart til den delte app-shell `apps/shared/bootstrapClientApp.tsx`. App-shellen ejer device gating, initial render-beslutning mellem app og hard-stop side, og install-prompt-politik. Hver app-entry vælger app-roden (fx `AuthGate` for Mineo) og leverer PWA-/service-worker-opstart som callbacks til shellen.
 
-Hver app-entry vælger app-roden (fx `AuthGate` for Mineo) og leverer PWA-/service-worker-opstart som callbacks til shellen.
-
-Mobil/tablet-blokering renderes som et separat hard-stop (`UnsupportedDevicePage`) af `bootstrapClientApp.tsx` — ikke i den enkelte app-entry. (Tidligere lå gaten i `main.tsx`; den er flyttet til app-shellen som led i multi-app-arkitekturen.)
+Mobil/tablet-blokering renderes som et separat hard-stop (`UnsupportedDevicePage`) af `bootstrapClientApp.tsx` — ikke i den enkelte app-entry.
 
 ### 3.2 `App.tsx`
 
