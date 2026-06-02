@@ -103,15 +103,19 @@ src/domain/erstatningsopgoerelse/
 ├── snapshot/                     # Snapshot- og projection-lag til EO/TAF-PDF'er
 │   ├── eoSnapshot.ts
 │   ├── eoSnapshotToEoPdfDocument.ts
-│   └── eoSnapshotToTafPerYearPdfDocument.ts
-├── pdf/                          # EO-PDF-model, money-typer og formattering
-│   ├── eoPdfModelTypes.ts
-│   ├── eoPdfMoneyUtils.ts
-│   ├── eoPdfLoenudvikling.ts
-│   ├── eoPdfRegulering.ts
-│   └── sharedPdfUtils.ts
-└── engines/ og helpers/          # Domæneberegning og shared regler
+│   ├── eoSnapshotToTafPerYearPdfDocument.ts
+│   └── eoPresentationModel.ts    # Præsentationsmodel forbrugt af projektionen
+├── shared/
+│   ├── eoTypes.ts                # EO-model-typer (tidligere eoPdfModelTypes)
+│   └── eoMoney.ts                # MoneyOre/MoneyKroner-typer og -afrunding (tidligere eoPdfMoneyUtils)
+├── helpers/
+│   └── eoSharedUtils.ts          # Delte EO-dato-/sats-/pct-helpers (tidligere sharedPdfUtils)
+└── engines/                      # Domæneberegning og -præsentation
+    ├── loenudviklingBeregning.ts # Segmentering (tidligere eoPdfLoenudvikling re-eksporterede herfra)
+    └── reguleringsPresentation.ts # Regulerings-/lønudviklings-tabeldata (tidligere eoPdfRegulering)
 ```
+
+> **Konsolidering (review 10.5):** Det tidligere `src/domain/erstatningsopgoerelse/pdf/`-lag er afviklet. Det indeholdt ingen jsPDF-kode — kun EO-præsentations- og reguleringslogik der byggede tabel-*data* — og er flyttet ind i `engines/`, `shared/` og `helpers/` som vist ovenfor. PDF-renderingen lever fortsat udelukkende i `src/pdf/`.
 
 ---
 
@@ -421,9 +425,9 @@ export const buildMinPdfFilename = (journalnr?: string): string =>
 
 ## 9. Domænespecifikke hjælpere
 
-### `sharedPdfUtils.ts` (`src/domain/erstatningsopgoerelse/pdf/`)
+### `eoSharedUtils.ts` (`src/domain/erstatningsopgoerelse/helpers/`)
 
-Deduplerede funktioner brugt af EO-systemets model-builders og sektionsrenderere. Relevante også uden for EO-kontekst:
+Deduplerede funktioner brugt af EO-systemets model-builders og sektionsrenderere (tidligere `sharedPdfUtils.ts` i det afviklede `pdf/`-lag). Relevante også uden for EO-kontekst:
 
 ```typescript
 // Datoformatering
@@ -440,9 +444,9 @@ resolveReguleringsdato(...)  // Bestem reguleringsstartdato ud fra metode
 perioderCoverDate(perioder, dato)  // Tjek om dato falder i en periode
 ```
 
-### `eoPdfMoneyUtils.ts` (`src/domain/erstatningsopgoerelse/`)
+### `eoMoney.ts` (`src/domain/erstatningsopgoerelse/shared/`)
 
-Bruges kun i EO-systemet. Definerer `MoneyOre` (branded integer) og `MoneyKroner` (branded decimal) for korrekt pengehåndtering. Se [afsnit 14](#14-pengehåndtering-og-afrunding).
+Bruges kun i EO-systemet (tidligere `eoPdfMoneyUtils.ts` i det afviklede `pdf/`-lag). Definerer `MoneyOre` (branded integer) og `MoneyKroner` (branded decimal) for korrekt pengehåndtering. Se [afsnit 14](#14-pengehåndtering-og-afrunding).
 
 ---
 
@@ -660,7 +664,7 @@ Reglen om pseudo-tabeller ejes af `pdf-layout-contract.md`. Dette overblik nævn
 Den komplekse EO-PDF bruger et tre-lags design:
 
 1. **Snapshot-lag** (`eoSnapshot.ts`): Beregner `EoSnapshot` fra form-state.
-2. **Projection-lag** (`eoSnapshotToEoPdfDocument.ts`): Omsætter snapshot til `EoPdfDocumentProjection` — en `PdfModel` med alle beløb som `MoneyOre`. Dette er den faktiske entry point som rendereren kalder. Bygger på snapshot-/presentationslaget (`eoPresentationModel.ts`, `eoPresentationSectionBuilders.ts`) og EO-PDF-hjælpere i `src/domain/erstatningsopgoerelse/pdf/`, bl.a. `eoPdfLoenudvikling.ts`, `eoPdfRegulering.ts` og `sharedPdfUtils.ts`. Afhænger ikke af jsPDF.
+2. **Projection-lag** (`eoSnapshotToEoPdfDocument.ts`): Omsætter snapshot til `EoPdfDocumentProjection` — en `PdfModel` med alle beløb som `MoneyOre`. Dette er den faktiske entry point som rendereren kalder. Bygger på snapshot-/presentationslaget (`eoPresentationModel.ts`, `eoPresentationSectionBuilders.ts`) og de delte EO-domænemoduler, bl.a. `engines/loenudviklingBeregning.ts`, `engines/reguleringsPresentation.ts` og `helpers/eoSharedUtils.ts`. Afhænger ikke af jsPDF.
 3. **Renderer-lag** (`erstatningsopgoerelsePdf.ts` + `sections/`): Modtager `PdfModel`, renderer til PDF via writeren.
 
 TAF-fordelt-på-år bruger et tilsvarende mønster via `eoSnapshotToTafPerYearPdfDocument.ts`.

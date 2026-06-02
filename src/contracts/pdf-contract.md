@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Gælder for:** Alle Mineo PDF-downloads og PDF-generering.
-**Senest verificeret mod kode:** 2026-05-30
+**Senest verificeret mod kode:** 2026-06-02
 
 Denne kontrakt fastlægger tværgående regler for PDF-output. Domænespecifikke snapshot-kontrakter må gerne specificere egne projektioner, men de må ikke afvige fra reglerne her.
 
@@ -103,5 +103,10 @@ Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække
    - `src/pdf/infrastructure/` — adapter, writer, loader, config og service-boundary (`pdfService.ts`).
    - `src/pdf/shared/` — tabel-renderer, tekst-/format-utils, brevhoved-mapping og fælles options.
    - `src/pdf/domains/` — én generator (+ evt. `sections/`) pr. domæne.
-2. `src/domain/erstatningsopgoerelse/pdf/*` (`eoPdfRegulering.ts`, `eoPdfLoenudvikling.ts`, `eoPdfMoneyUtils.ts`, `sharedPdfUtils.ts`, `eoPdfModelTypes.ts`) er et **resterende, ikke-kanonisk** EO-PDF-lag under afvikling. Ny PDF-kode skal lægges i `src/pdf/`, ikke her. Afviklingen/konsolideringen af dette lag er review-planens punkt 10.5; indtil da er filerne kun tilladt som understøttelse af eksisterende EO-regulerings-/lønudviklings-output.
+2. Der findes **ikke** længere et selvstændigt EO-PDF-lag under `src/domain/erstatningsopgoerelse/pdf/`. Det tidligere lag var ikke reel PDF-kode (ingen jsPDF), men EO-præsentations- og regulerings-logik der byggede tabel-*data*. Den er konsolideret ind i domænelaget (review-planens punkt 10.5):
+   - Regulerings-/lønudviklings-tabeldata: `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`.
+   - Money-typer og -afrunding: `src/domain/erstatningsopgoerelse/shared/eoMoney.ts`.
+   - EO-model-typer: `src/domain/erstatningsopgoerelse/shared/eoTypes.ts`.
+   - Delte EO-helpers (dato-/sats-/pct-utils): `src/domain/erstatningsopgoerelse/helpers/eoSharedUtils.ts`.
+   - Lønudviklings-segmentering: `src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts`.
 3. Ingen ny generator må oprettes uden for `src/pdf/domains/`.

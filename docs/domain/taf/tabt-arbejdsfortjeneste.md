@@ -289,8 +289,8 @@ resolveTafConstraintBounds(values): TafConstraintBounds
 | `beregnHelligdage` | `src/utils/shDageBeregning.ts` |
 | `mergeIsoDateRanges` | `src/domain/erstatningsopgoerelse/engines/periodMerging.ts` |
 | `buildIncomeForRanges`, `buildIncomeCalculationContext` | `src/domain/erstatningsopgoerelse/indtaegtPerioder.ts` |
-| `buildIndkomstSkadestidspunkt` | `src/domain/erstatningsopgoerelse/eoPdfIndkomstSkadestidspunkt.ts` |
-| `buildLoenudviklingModel` | `src/domain/erstatningsopgoerelse/eoPdfLoenudvikling.ts` |
+| `buildIndkomstSkadestidspunkt` | `src/domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning.ts` |
+| `buildLoenudviklingModel` | `src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts` |
 | `roundByMethod` | `src/utils/rounding.ts` |
 | `countInclusiveUtcDays` | `src/utils/utcDayMath.ts` |
 

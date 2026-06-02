@@ -461,7 +461,7 @@ Status er gennemgået mod den aktuelle kode i især:
 - `src/domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse.ts`
 - `src/domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts.ts`
 - `src/domain/erstatningsopgoerelse/snapshot/eoPresentationSectionBuilders.ts`
-- `src/domain/erstatningsopgoerelse/pdf/eoPdfRegulering.ts`
+- `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`
 - relevante tests under `src/__tests__`
 
 ### Overordnet status

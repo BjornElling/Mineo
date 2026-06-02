@@ -238,12 +238,12 @@ Direkte motorkald i debug er kun forsvarligt når alle disse betingelser er opfy
 
 At debug bruger disse helpers er ikke i sig selv et problem. Problemet opstår først, hvis debug bruger dem med bredere eller andre forudsætninger end de autoritative flows.
 
-### Særlig undtagelse: regulerings-debug genbruger PDF-lagets regulerings-rækkebygger
+### Særlig undtagelse: regulerings-debug genbruger regulerings-præsentationens rækkebygger
 
-`buildRegulationDebugSections` (`src/domain/debug/eoDebugRegulationViewModel.ts`) importerer `buildReguleringIndexRows(...)` fra PDF-laget `src/domain/erstatningsopgoerelse/pdf/eoPdfRegulering.ts`.
+`buildRegulationDebugSections` (`src/domain/debug/eoDebugRegulationViewModel.ts`) importerer `buildReguleringIndexRows(...)` fra regulerings-præsentationslaget `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`. (Dette modul hed tidligere `pdf/eoPdfRegulering.ts`, men er konsolideret ind i `engines/` ved review 10.5 — det er domæne-præsentationslogik der bygger tabel-data, ikke jsPDF-rendering.)
 
 Det er et andet mønster end SFGG-builderen:
-- her genbruges PDF-lagets regulerings-logik direkte i debug
+- her genbruges regulerings-præsentationslogikken direkte i debug
 - der er ikke tilsvarende dokumenteret, domænespecifik gating foran kaldet
 
 Aktuel vurdering:
@@ -413,9 +413,9 @@ En ny builder kræver typisk også vurdering af `SectionId`, navigation, viewmod
 
 ## 16. Udestående teknisk gæld
 
-### A. `buildReguleringIndexRows` er importeret fra PDF-laget
+### A. `buildReguleringIndexRows` deles mellem PDF og debug
 
-Se afsnit 8: `buildRegulationDebugSections` genbruger `buildReguleringIndexRows` fra `src/domain/erstatningsopgoerelse/pdf/eoPdfRegulering.ts`. Udestår som arkitektonisk afklaring.
+Se afsnit 8: `buildRegulationDebugSections` genbruger `buildReguleringIndexRows` fra `src/domain/erstatningsopgoerelse/engines/reguleringsPresentation.ts`. Ved review 10.5 blev dette modul flyttet ud af det tidligere `pdf/`-lag og ind i `engines/`, hvilket afklarer ejerskabet: det er domæne-præsentationslogik (tabel-data), der bevidst deles af både EO-PDF-projektionen og regulerings-debug. Det er dermed ikke længere en uafklaret afhængighed til "PDF-laget".
 
 ### B. Regex-baseret id-parsing i `eoDebugPageViewModel.ts`
 
