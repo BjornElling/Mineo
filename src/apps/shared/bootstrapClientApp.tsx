@@ -69,7 +69,7 @@ export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Pr
   }
 
   if (unsupportedDevice) {
-    const { default: UnsupportedDevicePage } = await import('../../components/pages/UnsupportedDevicePage');
+    const { default: UnsupportedDevicePage } = await import('../../components/system/UnsupportedDevicePage');
     root.render(
       <React.StrictMode>
         <UnsupportedDevicePage />

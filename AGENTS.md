@@ -115,7 +115,7 @@ Normal drift er console-tavs. `console.error`: reelle fejl (datatab, brudte inva
 
 ## Desktop-only gate
 - Appen blokeres på mobil/tablet. Den øverste capability-gate ligger i `src/apps/shared/bootstrapClientApp.tsx` og kaldes fra hver app-entry (`src/main.tsx`, `src/apps/minprocesrente/minprocesrenteMain.tsx`).
-- Ikke-understøttede enheder renderer `src/components/pages/UnsupportedDevicePage.tsx` som hård stop; den holdes isoleret fra forretningslogik/state/persistence.
+- Ikke-understøttede enheder renderer `src/components/system/UnsupportedDevicePage.tsx` som hård stop; den holdes isoleret fra forretningslogik/state/persistence.
 - Mobil/tablet-specifik styling må kun findes i `UnsupportedDevicePage.tsx`. Ingen global responsiv adfærd (`@media`) i delte/globale styles.
 
 ## Normative kontrakter

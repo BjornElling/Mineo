@@ -2,7 +2,7 @@
 
 **Status:** Normativ kontrakt
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-05-31
+**Senest verificeret mod kode:** 2026-06-02
 **Formål:** At fastlægge ufravigelige regler og EO-tjekliste for tilføjelse af nye felter til persisterede skemaer, så eksisterende `.eo`-filer fortsat kan indlæses, og ny funktionalitet kobles korrekt til alle relevante led.
 
 ---
@@ -181,8 +181,8 @@ Hvis et domæne ikke står i tabellen, må schema-arbejdet ikke fortsætte før 
 EO er fortsat den mest detaljeret beskrevne referenceimplementering. Ved EO-feltarbejde skal man derudover typisk kontrollere:
 
 - `src/validators/erstatningsopgoerelseValidator.ts`
-- `src/domain/erstatningsopgoerelse/eoSnapshot.ts`
-- `src/domain/erstatningsopgoerelse/eoCanonicalOutput.ts`
+- `src/domain/erstatningsopgoerelse/snapshot/eoSnapshot.ts`
+- `src/domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput.ts`
 - relevante engines under `src/domain/erstatningsopgoerelse/`
 - relevante tabs under `src/components/pages/erstatningsopgoerelse/`
 
@@ -206,13 +206,14 @@ Typiske fejlsymptomer hvis EO-opdateringer glemmes:
 
 **Konsekvens:** Et nyt `JaNej`-felt med default `'Nej'` øger `fieldCount` med 1 i alle nygemte filer. Ældre filer har ikke dette felt og rapporterer dermed et lavere `expectedCount`. Count-mismatch er ikke alene en fejlklassifikation. Brugervendt alvorlighed skal styres af issue-kategorier, ikke kun af expected/loaded tal.
 
-Minimum issue-kategorier:
+Issue-kategorier (`LoadIssueKind` i `src/types/fileOperations.ts`):
 
 - `strippedUnknownField`: kendt sektion, felt findes ikke i current schema.
-- `missingDefaultedField`: felt manglede og blev udfyldt via schema-default eller optional.
 - `sectionDropped`: sektion kunne ikke parses og indlæses ikke.
 - `unknownSection`: sektionen kendes ikke i current registry.
 - `migratedField`: eksplicit migrator har flyttet eller omsat et felt.
+
+Felter der manglede og blev udfyldt via schema-default eller optional surfaces **bevidst ikke** som en egen issue-kategori: det er harmløs schema-evolution og rapporteres tavst (jf. neden­for). Tilføj kun en `missingDefaultedField`-kategori, hvis defaulting på et tidspunkt skal være brugervendt synligt.
 
 Preflight bør kun kalde noget "fejl", når faktisk brugerdata ikke indlæses eller ikke kan valideres. Harmløs schema-evolution bør vises neutralt eller udelades.
 

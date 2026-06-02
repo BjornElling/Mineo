@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-05-31
+**Senest verificeret mod kode:** 2026-06-02
 
 ---
 
@@ -159,10 +159,15 @@ værdier — også når der vises fejl for fejlgivende bounds (§2.2).
 `debugSnapshot` bygges eksplicit med de clampede ranges efter `buildTafRanges` er kaldt i
 `computeEoSnapshot`, så EODebug aldrig viser TAF-dage der ikke indgik i beregningen.
 
-I validerings-fejl-stien (engines ikke kørt) bygges `debugSnapshot` uden ranges — dette er
-korrekt, da ingen beregning har fundet sted.
-Debug-laget må i denne sti ikke lave nye fallback-enginekald for at udfylde svie/smerte-tal,
-TAF-tal eller andre delresultater. Når autoritativt engine-output mangler, skal debug vise
+I validerings-fejl-stien (autoritative totaler/PDF'er bygges ikke) bygges `debugSnapshot`
+stadig med de **sektions-uafhængige** engine-data der kan beregnes sikkert: svie/smerte-engine
+(afhænger ikke af løn-/TAF-validering) samt clampede TAF-ranges for de rækker der stadig kan
+parses. Det giver EODebug samme clamping-billede for gyldige rækker, uden at vise dagtal der
+ikke indgik i en autoritativ beregning. Er alle rækker ugyldige eller clampes bort, er `[]`
+den forventede fail-closed debug-basis. I `fail_closed`-stien (uventet runtime-exception) er
+`debugSnapshot` derimod `null`.
+Debug-laget må ikke lave nye fallback-enginekald for sektions-**afhængige** delresultater
+(TAF-totaler, løn-afledte beløb). Når autoritativt engine-output mangler, skal debug vise
 tom/ikke-beregnet tilstand i stedet for semi-autoritative beløb eller dagtal.
 
 ---
