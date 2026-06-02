@@ -17,7 +17,7 @@ import {
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import { downloadKapitaliseringPdf } from '../../../pdf/infrastructure/pdfService';
 import EetIssuesBox from './EetIssuesBox';
-import TextHoverRow from './TextHoverRow';
+import HoverRow from './HoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
 import { formatFaktor, formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
@@ -76,7 +76,7 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot
       {!hasBlockingErrors && afgoerelser.length === 0 && (
         <ContentBox className="content-box">
           <Typography className="section-header">Specifikation</Typography>
-          <TextHoverRow text="Der er ingen kapitaliserede afgørelser i sagen." />
+          <HoverRow text="Der er ingen kapitaliserede afgørelser i sagen." />
         </ContentBox>
       )}
 

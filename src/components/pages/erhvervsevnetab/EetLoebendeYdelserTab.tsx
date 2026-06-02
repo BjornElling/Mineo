@@ -22,8 +22,7 @@ import {
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { roundByMethod } from '../../../utils/rounding';
 import EetIssuesBox from './EetIssuesBox';
-import TextHoverRow from './TextHoverRow';
-import UnderlinedHoverRow from './UnderlinedHoverRow';
+import HoverRow from './HoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
 import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
@@ -228,10 +227,10 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
 
                 <Typography className="row--subheading">Beregnede ydelser</Typography>
                 {viserGrundydelseNiveauSkift && (
-                  <TextHoverRow text="Frem til 1. januar 2024 beregnes grundydelsen i 2003-niveau og derefter i 2024-niveau." />
+                  <HoverRow text="Frem til 1. januar 2024 beregnes grundydelsen i 2003-niveau og derefter i 2024-niveau." />
                 )}
                 {ingenLoebendeYdelse && (
-                  <TextHoverRow text="Afgørelsen giver ingen løbende ydelse i den valgte periode." />
+                  <HoverRow text="Afgørelsen giver ingen løbende ydelse i den valgte periode." />
                 )}
 
                 {!ingenLoebendeYdelse && (
@@ -278,7 +277,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
 
             {computation.grundloenNiveau === '2003' ? (
               <>
-                <TextHoverRow text="Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau." />
+                <HoverRow text="Skaden er sket før 1. juli 2024, og grundlønnen beregnes derfor i 2003-niveau." />
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
                     {`Årsløn × (Maks. årsløn 1/1-2003 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2003, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`}
@@ -290,7 +289,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
               </>
             ) : (
               <>
-                <TextHoverRow text="Skaden er sket fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau." />
+                <HoverRow text="Skaden er sket fra 1. juli 2024, og grundlønnen beregnes derfor i 2024-niveau." />
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
                     {`Årsløn × (Maks. årsløn 1/1-2024 / Maks. årsløn ${formatSkadedatoCompact(computation.skadedato)}) = ${formatKr(computation.benyttetAarsloen)} × (${formatAsAmount(ASL_MAX_AARSLOEN_2024, 0)} / ${formatAsAmount(computation.maxAarsloenISkadesaar, 0)}) =`}
@@ -327,7 +326,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                     <Typography className="row--text">80 %</Typography>
                   </Box>
                 </Box>
-                <TextHoverRow text="Der trækkes ikke AM-bidrag fra årslønnen." />
+                <HoverRow text="Der trækkes ikke AM-bidrag fra årslønnen." />
               </>
             )}
 
@@ -394,7 +393,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                     </Box>
                   </Box>
 
-                  <UnderlinedHoverRow
+                  <HoverRow underlined
                     text={
                       showSplitHeading
                         ? 'Grundydelse før 1. januar 2024'
@@ -422,7 +421,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
 
                   {showSplitHeading && (
                     <>
-                      <UnderlinedHoverRow text="Grundydelse fra 1. januar 2024" />
+                      <HoverRow underlined text="Grundydelse fra 1. januar 2024" />
                       <Box className="row--label-right-hover">
                         <Typography className="row--text">{`Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ ${formatPct(reguleringFoer2024Pct)}): ${formatKr(grundydelse2003BaseFor2024, 2)} × ${reguleringFoer2024FaktorTekst} =`}</Typography>
                         <Box className="row--label-right-hover__content">

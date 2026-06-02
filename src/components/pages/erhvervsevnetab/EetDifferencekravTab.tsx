@@ -24,8 +24,7 @@ import {
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import { downloadDifferencekravPdf } from '../../../pdf/infrastructure/pdfService';
 import EetIssuesBox from './EetIssuesBox';
-import TextHoverRow from './TextHoverRow';
-import UnderlinedHoverRow from './UnderlinedHoverRow';
+import HoverRow from './HoverRow';
 import PdfDownloadButton from '../../inputs/PdfDownloadButton';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
@@ -183,7 +182,8 @@ const EetProformaKapitaliseringBox = ({ pk, koen }: ProformaBoxProps) => (
           <Box className="row--label-right-hover">
             <Typography className="row--text">Køn</Typography>
             <Box className="row--label-right-hover__content">
-              <Typography className="row--text">{koen}</Typography>
+              {/* koenOpdelt forudsætter at køn er sat; ?? '' undgår at vise teksten "undefined" hvis typen er løs. */}
+              <Typography className="row--text">{koen ?? ''}</Typography>
             </Box>
           </Box>
         )}
@@ -217,7 +217,7 @@ type MerErstatningBoxProps = Readonly<{
 
 const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensionsalderEvent; koen: ErhvervsevnetabValues['koen'] }) => (
   <>
-    <UnderlinedHoverRow
+    <HoverRow underlined
       text={`Forhøjelse pr. ${formatIsoDateLong(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel})`}
     />
 
@@ -316,7 +316,8 @@ const EetMerErstatningEventRows = ({ event, koen }: { event: MerErstatningPensio
       <Box className="row--label-right-hover">
         <Typography className="row--text">Køn</Typography>
         <Box className="row--label-right-hover__content">
-          <Typography className="row--text">{koen}</Typography>
+          {/* koenOpdelt forudsætter at køn er sat; ?? '' undgår at vise teksten "undefined" hvis typen er løs. */}
+          <Typography className="row--text">{koen ?? ''}</Typography>
         </Box>
       </Box>
     )}
@@ -548,7 +549,7 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
 
           {/* EAL-krav */}
           <Typography className="row--subheading">EAL-krav</Typography>
-          <TextHoverRow text={`Erhvervsevnetabet udgør ${formatKapPct(computation.ealEetPct)}.`} />
+          <HoverRow text={`Erhvervsevnetabet udgør ${formatKapPct(computation.ealEetPct)}.`} />
           <Box className="row--label-right-hover">
             <Typography className="row--text">Det svarer til et beregnet erhvervsevnetab på:</Typography>
             <Box className="row--label-right-hover__content">
@@ -561,13 +562,13 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
 
           {computation.fradragGaelderForFoer2011 ? (
             <>
-              <TextHoverRow text="Skaden er indtrådt før 16. juni 2011." />
-              <TextHoverRow text="Der foretages derfor fradrag i differencekravet med midlertidige EET-ydelser." />
+              <HoverRow text="Skaden er indtrådt før 16. juni 2011." />
+              <HoverRow text="Der foretages derfor fradrag i differencekravet med midlertidige EET-ydelser." />
             </>
           ) : (
             <>
-              <TextHoverRow text="Skaden er indtrådt den 16. juni 2011 eller senere." />
-              <TextHoverRow text="Der foretages derfor ikke fradrag i differencekravet med midlertidige EET-ydelser." />
+              <HoverRow text="Skaden er indtrådt den 16. juni 2011 eller senere." />
+              <HoverRow text="Der foretages derfor ikke fradrag i differencekravet med midlertidige EET-ydelser." />
             </>
           )}
 
@@ -587,8 +588,8 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
 
             return (
               <Box key={afgoerelse.rowId} sx={{ mt: 1 }}>
-                <UnderlinedHoverRow text={`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`} />
-                <TextHoverRow text={typeLabel} />
+                <HoverRow underlined text={`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`} />
+                <HoverRow text={typeLabel} />
 
                 {foretages && afgoerelse.beloeb > 0 && (
                   <Box className="row--label-right-hover">
@@ -613,27 +614,27 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
                 )}
 
                 {!foretages && !tvk && afgoerelse.afgoerelseType !== 'Midlertidig' && (
-                  <TextHoverRow text="Løbende ydelser derfor ikke relevante." />
+                  <HoverRow text="Løbende ydelser derfor ikke relevante." />
                 )}
 
                 {foretages && afgoerelse.beloeb === 0 && (
-                  <TextHoverRow text="Ingen løbende ydelser." />
+                  <HoverRow text="Ingen løbende ydelser." />
                 )}
               </Box>
             );
           })}
 
           {computation.afgoerelser.length === 0 && (
-            <TextHoverRow text="Ingen afgørelser." />
+            <HoverRow text="Ingen afgørelser." />
           )}
 
           {/* Kapitaliserede ASL-beløb */}
           <Typography className="row--subheading" sx={{ mt: 2 }}>Kapitaliserede ASL-beløb</Typography>
-          <TextHoverRow text="Værdien af modtagne kapitalbeløb fratrækkes." />
+          <HoverRow text="Værdien af modtagne kapitalbeløb fratrækkes." />
 
           {computation.kapitaliseringerAfgoerelser.map((afgoerelse) => (
             <Box key={afgoerelse.rowId} sx={{ mt: 1 }}>
-              <UnderlinedHoverRow text={`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`} />
+              <HoverRow underlined text={`Afgørelse ${formatIsoDateLong(afgoerelse.afgoerelsesdato)}`} />
               {afgoerelse.kapitalbelob !== null && afgoerelse.kapitaliseringsdato !== null && afgoerelse.kapitaliseringspct !== null ? (
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
@@ -644,15 +645,15 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
                   </Box>
                 </Box>
               ) : afgoerelse.kapitaliseringEfterBeregningsdato ? (
-                <TextHoverRow text="Ikke kapitaliseret på beregningsdatoen." />
+                <HoverRow text="Ikke kapitaliseret på beregningsdatoen." />
               ) : (
-                <TextHoverRow text="Ikke kapitaliseret." />
+                <HoverRow text="Ikke kapitaliseret." />
               )}
             </Box>
           ))}
 
           {computation.kapitaliseringerAfgoerelser.length === 0 && (
-            <TextHoverRow text="Ingen afgørelser." />
+            <HoverRow text="Ingen afgørelser." />
           )}
 
           {/* Resterende erhvervsevnetab */}
@@ -661,7 +662,7 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
               <Typography className="row--subheading" sx={{ mt: 2 }}>Resterende erhvervsevnetab</Typography>
               {computation.resterendeLoebendeYdelser ? (
                 <>
-                  <TextHoverRow text="De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes." />
+                  <HoverRow text="De tilbageværende løbende ydelser frem til folkepensionsalderen fratrækkes." />
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
                       {`${formatMaaneder(computation.resterendeLoebendeYdelser.tilbageraevendeMaaneder)} mdr. × ${formatKr(computation.resterendeLoebendeYdelser.maanedligYdelse)}/md.`}
@@ -673,7 +674,7 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
                 </>
               ) : computation.proformaKapitalisering ? (
                 <>
-                  <TextHoverRow text="Der foretages fradrag med kapitaliseringsværdien af resterende EET." />
+                  <HoverRow text="Der foretages fradrag med kapitaliseringsværdien af resterende EET." />
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">
                       {`Proformakapitalisering (${formatKapPct(computation.proformaKapitalisering.loebendeEetPct)}) den ${formatISOToDanish(computation.proformaKapitalisering.kapitaliseringsdato)}:`}
