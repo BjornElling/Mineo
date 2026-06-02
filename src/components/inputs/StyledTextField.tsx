@@ -248,23 +248,23 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
     const handleKeyDown = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         if (multiline) {
-        if (!textAreaActivation.isEditorOpen) {
-          if (e.key === 'Backspace' || e.key === 'Delete') {
-            e.preventDefault();
-            e.stopPropagation();
-            // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
-            // Parse og commit direkte (synkront) som table-felter gør
-            const normalized = trimWhitespaceEdges('');
-            const result = parseString(normalized, { mode: 'commit' });
-            if (result.ok) {
-              onCommit?.(createCommitEvent(result.value));
+          if (!textAreaActivation.isEditorOpen) {
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+              e.preventDefault();
+              e.stopPropagation();
+              // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
+              // Parse og commit direkte (synkront) som table-felter gør
+              const normalized = trimWhitespaceEdges('');
+              const result = parseString(normalized, { mode: 'commit' });
+              if (result.ok) {
+                onCommit?.(createCommitEvent(result.value));
+              }
+              setDraftBase('');
+              return;
             }
-            setDraftBase('');
-            return;
-          }
-          textAreaActivation.handleKeyDown(e as React.KeyboardEvent<HTMLTextAreaElement>);
-          if (e.defaultPrevented) return;
-          onKeyDown?.(e);
+            textAreaActivation.handleKeyDown(e as React.KeyboardEvent<HTMLTextAreaElement>);
+            if (e.defaultPrevented) return;
+            onKeyDown?.(e);
             return;
           }
 

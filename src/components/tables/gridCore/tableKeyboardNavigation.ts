@@ -1,7 +1,13 @@
 import type * as React from 'react';
 import { getGridCoreForTable } from './gridCoreRegistry';
 import { getWrappedNextColumn } from './tableNavigationCommon';
-import { focusTableElement, isTableElementVisible, TABLE_FOCUSABLE_SELECTOR } from './tableFocusHelpers';
+import {
+  CONTAINER_FOCUSABLE_SELECTOR,
+  CONTAINER_ROW_SELECTOR,
+  focusTableElement,
+  isTableElementVisible,
+  TABLE_FOCUSABLE_SELECTOR,
+} from './tableFocusHelpers';
 import type { GridCellCoord } from './gridCoreTypes';
 
 type CellLocator = Readonly<{ rowIndex: number; colIndex: number; subIndex: number; rowId?: string }>;
@@ -17,17 +23,6 @@ const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired:
 const physicalFocusByTable = new WeakMap<HTMLTableElement, Readonly<{ cell: GridCellCoord }>>();
 const clickEditableCellByTable = new WeakMap<HTMLTableElement, GridCellCoord>();
 const pointerDownFocusedCellByTable = new WeakMap<HTMLTableElement, GridCellCoord>();
-const CONTAINER_ROW_SELECTOR =
-  '.row--label-right-hover,.row--label-right,.row--label-offset,.row,[class*="row--label-right"],[class*="row--label-offset"],[class*="hover-row"]';
-const CONTAINER_FOCUSABLE_SELECTOR =
-  'input[role="combobox"]:not([disabled]):not([tabindex="-1"]):not([type="hidden"]):not([type="button"]),' +
-  'input:not([disabled]):not([tabindex="-1"]):not([type="hidden"]):not([type="button"]),' +
-  'select:not([disabled]):not([tabindex="-1"]),' +
-  'textarea:not([disabled]):not([tabindex="-1"]),' +
-  'button[data-mineo-focusable-button="true"]:not([tabindex="-1"]),' +
-  '[role="combobox"][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"]),' +
-  '[aria-haspopup][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"]),' +
-  '[aria-controls][tabindex]:not([tabindex="-1"]):not([aria-disabled="true"])';
 
 // Navigations-semantik (ejet af dette modul):
 // - Enter / Shift+Enter: flyt vertikalt mens "anchor-cellen" bevares hvis den findes; ellers brug den aktuelle celle.
@@ -324,17 +319,6 @@ const findInRow = (gridRow: ReadonlyArray<ReadonlyArray<HTMLElement>>, preferred
   return null;
 };
 
-const moveVertical = (grid: TableGrid, base: CellLocator, deltaRows: number) => {
-  const rowCount = grid.cellFocusables.length;
-  if (rowCount === 0) return;
-
-  const nextRowIndex = (base.rowIndex + deltaRows + rowCount) % rowCount;
-  const nextRow = grid.cellFocusables[nextRowIndex] ?? [];
-  const target = findInRow(nextRow, base.colIndex, base.subIndex);
-  if (!target) return;
-  focusTableElement(target);
-};
-
 const resolveAnchorLocator = (grid: TableGrid, anchor: TabAnchor, fallback: CellLocator): CellLocator => {
   const rowCount = grid.cellFocusables.length;
   if (rowCount === 0) return fallback;
@@ -541,13 +525,13 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     e.preventDefault();
     e.stopPropagation();
     const deltaRows = e.shiftKey ? -1 : 1;
-    const { nextRowIndex, nextRowId } = pickVerticalTarget(grid, base, deltaRows);
+    const { nextRowIndex, nextRowId, target } = pickVerticalTarget(grid, base, deltaRows);
     const targetLocator = { rowIndex: nextRowIndex, colIndex: base.colIndex, subIndex: base.subIndex, ...(nextRowId ? { rowId: nextRowId } : {}) };
     const targetCell = toCellCoord(targetLocator);
     if (core && activeCell && targetCell) {
       core.requestFocusPlan({ from: activeCell, to: targetCell, reason: 'enter' });
     }
-    moveVertical(grid, base, deltaRows);
+    if (target) focusTableElement(target);
     scheduleFocusRecovery(table, targetLocator);
     // Enter fuldfører tab-anker-navigation og skal altid nulstille ankeret.
     tabAnchorByTable.delete(table);
@@ -578,13 +562,13 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     e.preventDefault();
     e.stopPropagation();
     const deltaRows = key === 'ArrowUp' ? -1 : 1;
-    const { nextRowIndex, nextRowId } = pickVerticalTarget(grid, activePos, deltaRows);
+    const { nextRowIndex, nextRowId, target } = pickVerticalTarget(grid, activePos, deltaRows);
     const targetLocator = { rowIndex: nextRowIndex, colIndex: activePos.colIndex, subIndex: activePos.subIndex, ...(nextRowId ? { rowId: nextRowId } : {}) };
     const targetCell = toCellCoord(targetLocator);
     if (core && activeCell && targetCell) {
       core.requestFocusPlan({ from: activeCell, to: targetCell, reason: 'arrow' });
     }
-    moveVertical(grid, activePos, deltaRows);
+    if (target) focusTableElement(target);
     scheduleFocusRecovery(table, targetLocator);
     return;
   }

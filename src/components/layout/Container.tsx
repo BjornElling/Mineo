@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, type SxProps, type Theme } from '@mui/material';
 import { ScrollContainerProvider } from '../../contexts/ScrollContainerContext';
 import ScrollToTopButton from '../ui/ScrollToTopButton';
+import { CONTAINER_FOCUSABLE_SELECTOR, CONTAINER_ROW_SELECTOR } from '../tables/gridCore/tableFocusHelpers';
 
 /**
  * Container komponent til content-område
@@ -57,17 +58,6 @@ interface ContainerProps {
   contentSx?: SxProps<Theme>;
 }
 
-const ROW_CONTAINER_SELECTOR =
-  '.row--label-right-hover,.row--label-right,.row--label-offset,.row,[class*="row--label-right"],[class*="row--label-offset"],[class*="hover-row"]';
-const CONTAINER_FOCUSABLE_SELECTOR =
-  "input:not([disabled]):not([tabindex='-1']):not([type=\"hidden\"]):not([type=\"button\"]), " +
-  "input[role=\"combobox\"]:not([disabled]):not([tabindex='-1']):not([type=\"hidden\"]):not([type=\"button\"]), " +
-  "select:not([disabled]):not([tabindex='-1']), " +
-  "textarea:not([disabled]):not([tabindex='-1']), " +
-  "button[data-mineo-focusable-button=\"true\"]:not([tabindex='-1']), " +
-  "[role=\"combobox\"][tabindex]:not([tabindex='-1']):not([aria-disabled='true']), " +
-  "[aria-haspopup][tabindex]:not([tabindex='-1']):not([aria-disabled='true']), " +
-  "[aria-controls][tabindex]:not([tabindex='-1']):not([aria-disabled='true'])";
 const NON_TEXT_EDITING_INPUT_TYPES = new Set(['checkbox', 'radio', 'range', 'button', 'submit', 'reset', 'file', 'color']);
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
@@ -120,7 +110,7 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
   }, []);
 
   const getRowContainer = React.useCallback((el: HTMLElement): HTMLElement | null => {
-    const container = el.closest(ROW_CONTAINER_SELECTOR);
+    const container = el.closest(CONTAINER_ROW_SELECTOR);
     if (!(container instanceof HTMLElement)) return null;
     if (!containerRef.current?.contains(container)) return null;
     return container;
