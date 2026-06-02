@@ -28,6 +28,7 @@
 import { ok, err } from '../types/result';
 import type { Result } from '../types/result';
 import { reportSystemIssue } from './systemIssueReporter';
+import { asError } from './typeGuards';
 
 const toSafeComputeCodeSuffix = (context: string): string => {
   return context
@@ -53,7 +54,7 @@ export function safeCompute<T>(
     const value = fn();
     return ok(value);
   } catch (error) {
-    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    const normalizedError = asError(error);
     reportSystemIssue({
       code: options?.code ?? `safe_compute:${toSafeComputeCodeSuffix(context)}`,
       area: 'calculation',

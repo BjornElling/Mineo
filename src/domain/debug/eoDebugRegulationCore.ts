@@ -1,4 +1,4 @@
-import { minISO } from '../../utils/isoDateHelpers';
+import { minISO, startOfYearIso } from '../../utils/isoDateHelpers';
 /**
  * Regulation Core Model - Indeksvisning for reguleringskilder
  */
@@ -258,7 +258,7 @@ const buildStatistikEntries = (args: Readonly<{
       const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
       if (typeof value !== 'number') continue;
       if (firstAvailableValue === null) firstAvailableValue = value;
-      const iso = `${year}-01-01` as ISODateString;
+      const iso = startOfYearIso(year);
       if (iso >= args.referenceIso && iso <= args.eoTil) dates.add(iso);
       valuesByIso.set(iso, value);
     }

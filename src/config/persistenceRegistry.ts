@@ -30,8 +30,6 @@ export type PersistedSectionMap = {
   [K in keyof typeof persistenceSchemas]: z.infer<(typeof persistenceSchemas)[K]>;
 };
 
-export type PersistedSection<K extends StorageKey> = PersistedSectionMap[K];
-
 export type PersistedSectionsSnapshot = {
   [K in StorageKey]: PersistedSectionMap[K] | undefined;
 };

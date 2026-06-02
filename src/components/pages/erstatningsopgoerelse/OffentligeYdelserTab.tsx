@@ -24,6 +24,7 @@ import {
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { CommitEvent } from '../../../types/fieldEvents';
+import { asError } from '../../../utils/typeGuards';
 
 const offentligeYdelserHelpersSessionSchema = z.object({
   sygedagpengeFraDato: z.preprocess(
@@ -126,7 +127,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
       try {
         return buildSygedagpengeRowsForRange(sygedagpengeFraDato, sygedagpengeTilDato);
       } catch (error) {
-        const normalizedError = error instanceof Error ? error : new Error(String(error));
+        const normalizedError = asError(error);
         reportSystemIssue({
           code: 'offentlige_ydelser:sygedagpenge_insert_failed',
           area: 'calculation',
@@ -213,7 +214,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
       setMidlertidigtEetToggleError(null);
       return true;
     } catch (error) {
-      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      const normalizedError = asError(error);
       reportSystemIssue({
         code: 'offentlige_ydelser:midlertidigt_eet_toggle_failed',
         area: 'persistence',

@@ -13,7 +13,6 @@ import { countInclusiveUtcDays } from './utcDayMath';
 import { iterateDatesInclusive } from './isoDateHelpers';
 import { MONTH_NAMES_DA_SHORT } from './dateFormatting';
 import {
-  buildSygedagpengeArbejdsdagePrKalenderuge as buildSygedagpengeArbejdsdagePrKalenderugeCentral,
   countOffentligYdelsePeriodiseringsdage,
 } from '../domain/erstatningsopgoerelse/engines/periodiseringsMotor';
 
@@ -482,27 +481,3 @@ export const beregnPeriodiseringsDage = (
   });
 };
 
-/**
- * Pr-uge arbejdsdage for en sygedagpenge-periode.
- *
- * Returnerer én indgang pr. kalenderuge (mandag-start) med de arbejdsdage der falder i
- * ugen og *samtidig* i intervallet [fraDato, tilDato]. Arbejdsdage = hverdage minus SH-dage,
- * med samme sygedagpenge-særregel som {@link beregnPeriodiseringsDage}:
- * perioder der slutter før {@link SYGEDAGPENGE_SH_CUTOFF} fratrækker ikke SH-dage.
- *
- * Uger uden arbejdsdage i intervallet udelades.
- *
- * Bruges til ATP-beregning for sygedagpenge, hvor den ugentlige ATP-sats fordeles
- * forholdsmæssigt efter antallet af arbejdsdage i kalenderugen.
- */
-export interface KalenderugeArbejdsdage {
-  readonly ugeStart: ISODateString;
-  readonly arbejdsdage: number;
-}
-
-export const beregnSygedagpengeArbejdsdagePrKalenderuge = (
-  fraDato: ISODateString,
-  tilDato: ISODateString
-): readonly KalenderugeArbejdsdage[] => {
-  return buildSygedagpengeArbejdsdagePrKalenderugeCentral(fraDato, tilDato);
-};

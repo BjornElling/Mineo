@@ -24,6 +24,7 @@ import {
 } from './eoCanonicalOutput';
 import { buildTafRanges } from '../helpers/indtaegtPerioder';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
+import { asError } from '../../../utils/typeGuards';
 import {
   buildControlMismatchInvariant,
   buildMidlertidigtEetSourceInvariants,
@@ -424,7 +425,7 @@ export const computeEoSnapshot = (args: Readonly<{
       },
     };
   } catch (error) {
-    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    const normalizedError = asError(error);
     reportSystemIssue({
       code: 'eo_snapshot:runtime_exception',
       area: 'eo',

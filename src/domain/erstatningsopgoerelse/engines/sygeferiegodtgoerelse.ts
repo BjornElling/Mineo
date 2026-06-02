@@ -104,10 +104,6 @@ export const resolveSfggDayBasis = (
     ? 'kalenderdage'
     : 'arbejdsdage';
 
-export const isSfggReferenceperiodeSource = (
-  source: Readonly<{ kind: SfggSourceKind }>
-): boolean => SFGG_REFERENCEPERIODE_KILDER_MED_BEREGNINGSPERIODE.has(source.kind);
-
 export type SygeferiegodtgoerelseSegment = Readonly<{
   ansaettelsesforholdId: string;
   ansaettelsesforholdNavn: string;

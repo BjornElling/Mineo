@@ -38,6 +38,7 @@ import {
   clearResolvedFieldErrorsCache,
 } from '../stores/formPersistenceReadModel';
 import { formatZodIssues } from '../utils/zodIssueFormatting';
+import { asError } from '../utils/typeGuards';
 
 // Persisterede sektioner håndteres via et internt Zustand store; FormPersistenceContext er en facade og ikke SoT for committede inputs.
 
@@ -140,7 +141,7 @@ const attemptRollbackStep = (
   try {
     step();
   } catch (rollbackError) {
-    failures.push(rollbackError instanceof Error ? rollbackError : new Error(String(rollbackError)));
+    failures.push(asError(rollbackError));
   }
 };
 

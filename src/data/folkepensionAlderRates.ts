@@ -170,11 +170,6 @@ export const getFolkepensionAlder = (
     : null;
 };
 
-export const getFolkepensionAlderMaaneder = (
-  foedselsdato: ISODateString,
-  opslagsdato: ISODateString
-): number | null => getFolkepensionAlder(foedselsdato, opslagsdato)?.alderMaaneder ?? null;
-
 export const getFolkepensionsdato = (
   foedselsdato: ISODateString,
   opslagsdato: ISODateString

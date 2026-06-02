@@ -9,7 +9,7 @@ import { endOfYearIso, isoYear, maxISO } from '../utils/isoDateHelpers';
 import type { ISODateString } from '../types/branded';
 import { toISODateString } from '../types/branded';
 import { getTodayLocalISO } from '../utils/dateUtils';
-import { varigeMenPrGradYearBounds, svieSmerteMaxYearBounds, eetYearBounds, foersoergertabYearBounds } from '../data/lovbestemteRates';
+import { svieSmerteMaxYearBounds, eetYearBounds, foersoergertabYearBounds } from '../data/lovbestemteRates';
 import { MIN_INTEREST_DATE } from '../data/interestRates';
 import { SYGEDAGPENGE_INSERT_MAX_DATE, SYGEDAGPENGE_INSERT_MIN_DATE } from '../data/sygedagpengeRates';
 
@@ -91,13 +91,6 @@ interface UnconstrainedDateRange {
  * - Statiske ranges ikke har unødvendige fallbacks
  * - Ingen afgrænsning er eksplicit modelleret
  */
-export type DateRangeConfig =
-  | StaticDateRange
-  | DynamicMinDateRange
-  | DynamicMaxDateRange
-  | DynamicBothDateRange
-  | UnconstrainedDateRange;
-
 export const TODAY: ISODateString = getTodayLocalISO();
 
 // ============================================================================
@@ -118,9 +111,6 @@ const DATE_PLUS_1_YEAR_END = endOfYearIso(CURRENT_YEAR + 1);
 
 // 31. december 5 år frem fra aktuelt år (udledt af dags dato)
 const DATE_PLUS_5_YEARS_END = endOfYearIso(CURRENT_YEAR + 5);
-
-// Seneste år med mén-per-grad-sats — udledt af varigeMenPrGrad i lovbestemteRates.ts
-const DATE_VARIGEMEN_MAX = endOfYearIso(varigeMenPrGradYearBounds.maxYear);
 
 // Seneste år med komplet EET-datadækning — sats-intersection capped af
 // kapitaliseringsbekendtgørelses-oversigtens seneste fælles gyldighedsår.
@@ -438,25 +428,6 @@ export const dateRanges_offentligeYdelser: DateRanges_OffentligeYdelser = {
   },
 };
 
-// ============================================================================
-// VARIGE MÉN-SIDEN
-// ============================================================================
-// Dags dato (beregnes dynamisk, valideret som ISODateString)
-
-export interface DateRanges_VarigeMen {
-  readonly beregningsdato: DynamicMinDateRange;
-}
-
-export const dateRanges_varigemen: DateRanges_VarigeMen = {
-  beregningsdato: {
-    type: 'dynamic-min',
-    min: 'DYNAMIC', // Højeste af: skadedato fra Stamdata eller fallbackMin
-    fallbackMin: DATE_2005_01_01,
-    max: DATE_VARIGEMEN_MAX,
-    placeholder: 'dd-mm-åååå',
-    notes: 'Valideres mod dynamisk min-værdi (skadedato) og dynamisk max-værdi (31-12 i seneste år med mén-per-grad-sats)',
-  },
-};
 
 // ============================================================================
 // FORSØRGERTAB-SIDEN

@@ -10,7 +10,7 @@ import { tilstandEnum } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
-import type { SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
+import { isFraTilDraftRowEmpty as isRowEmpty, type SvieSmerteDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
@@ -46,7 +46,6 @@ const buildAfterVarigeMenErrorMessage = (menAfgoerelseDato: ISODateString): stri
 };
 
 const getRowId = (row: SvieSmerteDraftRow) => row.id;
-const isRowEmpty = (row: SvieSmerteDraftRow) => row.fra.trim() === '' && row.til.trim() === '';
 
 const SvieSmerteTable = React.memo(
   ({ rows, committedById, derivedById, overlappingIds, skadedatoISO, menAfgoerelseDato, erErhvervssygdom, verserendeKlageMen, onFieldChange, onRowBlur, saveOrderPath, onRowsReorder }: SvieSmerteTableProps) => {

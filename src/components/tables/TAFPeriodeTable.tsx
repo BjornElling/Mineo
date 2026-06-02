@@ -11,7 +11,7 @@ import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
-import type { TafDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
+import { isFraTilDraftRowEmpty as isRowEmpty, type TafDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { calculateFerieHverdageMinusSHDage } from '../../domain/erstatningsopgoerelse/engines/ferieCalculations';
 import { buildTafCutoffErrorMessage } from '../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
@@ -38,7 +38,6 @@ export type TAFPeriodeTableProps = Readonly<{
 }>;
 
 const getRowId = (row: TafDraftRow) => row.id;
-const isRowEmpty = (row: TafDraftRow) => row.fra.trim() === '' && row.til.trim() === '';
 
 const TAFPeriodeTable = React.memo(
   ({

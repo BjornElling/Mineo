@@ -421,17 +421,11 @@ export const createPdfTableCell = (
 export const cellLeft = (content: string): PdfTableCell => createPdfTableCell(content, { halign: 'left' });
 export const cellRight = (content: string): PdfTableCell => createPdfTableCell(content, { halign: 'right' });
 export const cellCenter = (content: string): PdfTableCell => createPdfTableCell(content, { halign: 'center' });
-export const cellRightBold = (content: string): PdfTableCell =>
-  createPdfTableCell(content, { halign: 'right', bold: true });
 
 export const createPdfTableHeaderCell = (
   content: string,
   halign: PdfCellAlign = 'left'
 ): PdfTableCell => createPdfTableCell(content, { halign, bold: true });
-
-export const createPdfTableTransparentRow = (columnCount: number): RowInput => {
-  return Array.from({ length: columnCount }, () => createPdfTableCell('', { transparent: true }));
-};
 
 export const resolvePdfTotalValueMinWidthMm = (
   formattedValue: string,

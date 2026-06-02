@@ -1,5 +1,3 @@
-export type AarsloenMetode = 'A' | 'B' | 'C' | 'ingen';
-
 export interface AarsloenBeregningResultIngen {
   metode: 'ingen';
   erEtAar: false;

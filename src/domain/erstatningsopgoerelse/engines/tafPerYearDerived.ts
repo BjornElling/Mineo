@@ -43,6 +43,7 @@ import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregni
 import { roundByMethod } from '../../../utils/rounding';
 import { scaleMoneyOre } from '../shared/eoMoney';
 import { splitIsoRangeByCalendarYearsInclusive } from './periodRangeGroups';
+import { startOfYearIso, endOfYearIso } from '../../../utils/isoDateHelpers';
 
 const MAX_AFRUNDING_AFVIGELSE_ORE = 100 as MoneyOre;
 
@@ -184,8 +185,8 @@ const buildYearClippedRanges = (
   year: number,
   tafRanges: readonly { fra: ISODateString; til: ISODateString }[]
 ): readonly { fra: ISODateString; til: ISODateString }[] => {
-  const yearStart = `${year}-01-01` as ISODateString;
-  const yearEnd = `${year}-12-31` as ISODateString;
+  const yearStart = startOfYearIso(year);
+  const yearEnd = endOfYearIso(year);
   return tafRanges.flatMap((range) => {
     const clippedFra = range.fra > yearStart ? range.fra : yearStart;
     const clippedTil = range.til < yearEnd ? range.til : yearEnd;

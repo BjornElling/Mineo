@@ -41,7 +41,6 @@ import {
 } from './filePersistenceMetadata';
 import {
   readOptionalSessionStorageValue,
-  removeOptionalSessionStorageValue,
 } from './safeSessionStorage';
 
 export class SaveIntegrityError extends Error {
@@ -434,10 +433,3 @@ export const saveToFile = async (
   }
 };
 
-/**
- * Nulstiller gemt filsti (bruges hvis bruger vil gemme som ny fil).
- */
-export const resetSavedFilePath = () => {
-  removeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilename);
-  removeOptionalSessionStorageValue(UI_STORAGE_KEYS.lastSavedFilenameBasis);
-};

@@ -47,6 +47,14 @@ export const isoYear = (isoDate: ISODateString): number => {
   return Number.parseInt(isoDate.slice(0, 4), 10);
 };
 
+export const startOfYearIso = (year: number): ISODateString => {
+  const iso = dateToISO(createDate(year, 0, 1));
+  if (!iso) {
+    throw new Error(`Could not construct ISO start-of-year date for year: ${year}`);
+  }
+  return iso;
+};
+
 export const endOfYearIso = (year: number): ISODateString => {
   const iso = dateToISO(createDate(year, 11, 31));
   if (!iso) {

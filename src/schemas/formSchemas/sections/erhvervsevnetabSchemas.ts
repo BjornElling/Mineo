@@ -41,8 +41,6 @@ const eetDifferencekravBilagSelectionSchema = z.object({
   visUdvidetSpecifikationLoebendeYdelserBilag: z.boolean(),
 }).strict();
 
-export type EetDifferencekravBilagSelection = z.infer<typeof eetDifferencekravBilagSelectionSchema>;
-
 export const erhvervsevnetabSchema = z.object({
   beregningsdato: optionalIsoDateString,
   koen: z.preprocess(normalizeEmptyToUndefined, koenEnum.optional()),

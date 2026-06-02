@@ -11,7 +11,7 @@ import type { Koen } from '../../schemas/formSchemas';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { roundByMethod } from '../../utils/rounding';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
-import { endOfYearIso, isoYear } from '../../utils/isoDateHelpers';
+import { endOfYearIso, isoYear, startOfYearIso } from '../../utils/isoDateHelpers';
 import { PRE_2015_CUTOFF } from './forsoergertabConstants';
 import { isoDateToDate } from '../dates/isoDate';
 import {
@@ -223,7 +223,7 @@ const computeLobendeYdelser = (
       ydelseIAlt,
     });
 
-    fromDate = `${year + 1}-01-01` as ISODateString;
+    fromDate = startOfYearIso(year + 1);
   }
 
   return rows;

@@ -16,10 +16,7 @@ export type PwaFileOpenRequest = {
   ignoredFileCount: number;
 };
 
-export type PwaLaunchQueueSupport = 'supported' | 'unsupported';
-
 let isInitialized = false;
-let support: PwaLaunchQueueSupport = 'unsupported';
 let requestCounter = 0;
 let pendingRequest: PwaFileOpenRequest | null = null;
 let hydratePendingRequestPromise: Promise<void> | null = null;
@@ -42,10 +39,6 @@ const isLaunchQueueLike = (value: unknown): value is LaunchQueueLike => {
 const getLaunchQueue = (): LaunchQueueLike | null => {
   const queue = (window as unknown as { launchQueue?: unknown }).launchQueue;
   return isLaunchQueueLike(queue) ? queue : null;
-};
-
-export const getPwaLaunchQueueSupport = (): PwaLaunchQueueSupport => {
-  return support;
 };
 
 const isStoredPwaFileOpenRequest = (value: unknown): value is PwaFileOpenRequest => {
@@ -93,12 +86,10 @@ export const setupPwaLaunchQueueConsumer = (): void => {
 
   const launchQueue = getLaunchQueue();
   if (!launchQueue) {
-    support = 'unsupported';
     return;
   }
 
   isInitialized = true;
-  support = 'supported';
 
   launchQueue.setConsumer(async (launchParams) => {
     const handles = (launchParams.files ?? []).filter(isFileHandle);

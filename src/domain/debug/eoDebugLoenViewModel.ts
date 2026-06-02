@@ -5,19 +5,10 @@
  * - Ingen beregninger
  */
 
-import type { ISODateString } from '../../types/branded';
 import type { CellValue, DebugCellValue } from './eoDebugTypes';
 import { formatAmountDisplay, formatIsoValue } from './eoDebugFormat';
 import type { LoenTimeline, LoenComponentType } from './eoDebugLoenTypes';
 
-export type DailyLoenRow = {
-  readonly iso: ISODateString;
-  readonly components: readonly {
-    readonly label: string;
-    readonly value: CellValue<number>;
-  }[];
-  readonly dailyTotal: CellValue<number>;
-};
 
 export type LoenDebugSection = {
   readonly id: 'loen.daily' | 'loen.summary' | 'svieSmerte.daily' | 'svieSmerte.summary';

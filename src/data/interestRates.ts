@@ -101,18 +101,6 @@ if (!_minSurchargeRaw) {
 }
 export const MIN_SURCHARGE_DATE: ISODateString = parseRateTableDate(_minSurchargeRaw, 'tidligste tillægssats-dato');
 
-// Seneste kalenderår i referencesatserne — udledt af nyeste referencesats
-const _maxRaw = referenceRatesTable[0]?.[0];
-if (!_maxRaw) {
-  throw new Error('CRITICAL: Ingen referencesatser er defineret');
-}
-const [, , _maxYear] = _maxRaw.split('-');
-const _parsedMaxYear = Number.parseInt(_maxYear, 10);
-if (!Number.isInteger(_parsedMaxYear)) {
-  throw new Error(`Ugyldig nyeste referencesats-dato: "${_maxRaw}"`);
-}
-export const MAX_INTEREST_YEAR: number = _parsedMaxYear;
-
 export const referenceRates: RateEntry[] = referenceRatesTable.map(([effectiveDate, ratePct]) => ({
   effectiveDate: parseRateTableDate(effectiveDate, 'referencesats-dato'),
   ratePct,

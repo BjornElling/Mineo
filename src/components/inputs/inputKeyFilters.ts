@@ -131,17 +131,6 @@ export const filterFractionKeyDown = (
 };
 
 /**
- * Beløb/procent: cifre og komma, højst ét komma, maks. 2 decimaler efter komma.
- */
-export const filterCommaDecimal2KeyDown = (e: KeyDownEvent, options?: { allowNegative?: boolean }): void => {
-  if (!shouldValidateCharInsertion(e)) return;
-  const next = getNextValueFromInsertion(e.currentTarget, e.key);
-  const allowNegative = options?.allowNegative === true;
-  const pattern = allowNegative ? /^-?\d*(,\d{0,2})?$/ : /^\d*(,\d{0,2})?$/;
-  if (!pattern.test(next)) block(e);
-};
-
-/**
  * Beløbsudtryk: tillad cifre, ét komma, operatorer, parenteser og mellemrum.
  */
 export const filterAmountExpressionKeyDown = (

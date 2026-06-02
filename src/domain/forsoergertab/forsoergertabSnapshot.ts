@@ -11,6 +11,7 @@ import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { computeForsoergertabCalculation } from './forsoergertabCalculation';
 import { PRE_2015_CUTOFF } from './forsoergertabConstants';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
+import { asError } from '../../utils/typeGuards';
 import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
 import { allowPdfDownload, blockPdfDownload, type PdfDownloadGateResult, type PdfDownloadGateReason } from '../../pdf/pdfGateTypes';
 
@@ -40,7 +41,7 @@ const EAL_AARSLOEN_ASL_MAX_ERROR_MESSAGE =
 const EAL_AARSLOEN_ASL_MAX_ISSUE_IDS = ['warn-eal-aarsloen-is-max', 'warn-asl-aarsloen-is-max'] as const;
 
 const createRuntimeExceptionCalculation = (error: unknown): ForsoergertabCalculationResult => {
-  const normalizedError = error instanceof Error ? error : new Error(String(error));
+  const normalizedError = asError(error);
   reportSystemIssue({
     code: 'forsoergertab_snapshot:runtime_exception',
     area: 'calculation',

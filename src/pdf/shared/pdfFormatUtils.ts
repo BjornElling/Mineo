@@ -125,9 +125,7 @@ export const formatReguleringPct = (value: number): string => {
   return `${sign} ${inner} %`;
 };
 
-/** Formaterer et kr.-beløb med valgfrit antal decimaler (0 som standard). */
-export const formatKr = (value: number, decimals = 0): string =>
-  `${formatAsAmount(value, decimals)} kr.`;
-
 export { isSingularCount } from '../../utils/formatUtils';
 export { formatCountWithUnit } from '../../utils/formatUtils';
+/** Kanonisk kr.-formatering (0 som standard) — genbruges fra UI-laget for at undgå dobbelt sandhed. */
+export { formatKr } from '../../utils/formatUtils';

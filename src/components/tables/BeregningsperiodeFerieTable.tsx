@@ -3,7 +3,7 @@ import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/mate
 
 import type { ISODateString } from '../../types/branded';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
-import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
+import { isFraTilDraftRowEmpty as isRowEmpty, type FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import TableDateInput from '../inputs/table/TableDateInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { useTableSort } from './useTableSort';
@@ -25,7 +25,6 @@ export type BeregningsperiodeFerieTableProps = Readonly<{
 const OUTSIDE_BEREGNINGSPERIODE_ERROR_MESSAGE = 'Ferie i beregningsperioden skal også ligge inden for beregningsperioden.';
 
 const getRowId = (row: FerieDraftRow) => row.id;
-const isRowEmpty = (row: FerieDraftRow) => row.fra.trim() === '' && row.til.trim() === '';
 
 const BeregningsperiodeFerieTable = React.memo(
   ({

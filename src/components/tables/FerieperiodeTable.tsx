@@ -8,7 +8,7 @@ import type { ISODateString } from '../../types/branded';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
-import type { FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
+import { isFraTilDraftRowEmpty as isRowEmpty, type FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
@@ -29,7 +29,6 @@ export type FerieperiodeTableProps = Readonly<{
 }>;
 
 const getRowId = (row: FerieDraftRow) => row.id;
-const isRowEmpty = (row: FerieDraftRow) => row.fra.trim() === '' && row.til.trim() === '';
 
 const FerieperiodeTable = React.memo(
   ({

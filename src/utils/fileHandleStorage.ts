@@ -1,5 +1,5 @@
 import { logWarning, logError } from './logger';
-import { isRecord } from './typeGuards';
+import { isRecord, asError } from './typeGuards';
 
 // IndexedDB database navn og version
 // VIGTIGT: Ved fremtidige skemaændringer skal DB_VERSION øges og logik tilføjes
@@ -106,7 +106,7 @@ export const saveFileHandleToIndexedDB = async (fileHandle: FileSystemFileHandle
     });
 
   } catch (error: unknown) {
-    logError('Fejl ved gemning af file handle:', error instanceof Error ? error : new Error(String(error)));
+    logError('Fejl ved gemning af file handle:', asError(error));
     return false;
   }
 };
@@ -147,7 +147,7 @@ export const loadFileHandleFromIndexedDB = async (): Promise<FileSystemFileHandl
     });
 
   } catch (error: unknown) {
-    logError('Fejl ved hentning af file handle:', error instanceof Error ? error : new Error(String(error)));
+    logError('Fejl ved hentning af file handle:', asError(error));
     return null;
   }
 };
@@ -188,7 +188,7 @@ export const deleteFileHandleFromIndexedDB = async (): Promise<boolean> => {
     });
 
   } catch (error: unknown) {
-    logError('Fejl ved sletning af file handle:', error instanceof Error ? error : new Error(String(error)));
+    logError('Fejl ved sletning af file handle:', asError(error));
     return false;
   }
 };
@@ -401,7 +401,7 @@ export const saveDefaultDirectoryHandle = async (directoryHandle: FileSystemDire
     });
 
   } catch (error: unknown) {
-    logError('Fejl ved gemning af directory handle:', error instanceof Error ? error : new Error(String(error)));
+    logError('Fejl ved gemning af directory handle:', asError(error));
     return null;
   }
 };
@@ -486,7 +486,7 @@ export const loadDefaultDirectoryHandle = async (): Promise<FileSystemDirectoryH
     });
 
   } catch (error: unknown) {
-    logError('Fejl ved hentning af directory handle:', error instanceof Error ? error : new Error(String(error)));
+    logError('Fejl ved hentning af directory handle:', asError(error));
     return null;
   }
 };
@@ -553,7 +553,7 @@ export const deleteDefaultDirectoryHandle = async (): Promise<boolean> => {
     });
 
   } catch (error: unknown) {
-    logError('Fejl ved sletning af directory handle:', error instanceof Error ? error : new Error(String(error)));
+    logError('Fejl ved sletning af directory handle:', asError(error));
     return false;
   }
 };
@@ -658,7 +658,7 @@ export const savePendingPwaOpenRequestToIndexedDB = async (request: StoredPendin
       };
     });
   } catch (error: unknown) {
-    logError('Fejl ved gemning af pending PWA-open request:', error instanceof Error ? error : new Error(String(error)));
+    logError('Fejl ved gemning af pending PWA-open request:', asError(error));
     return false;
   }
 };
@@ -692,7 +692,7 @@ export const loadPendingPwaOpenRequestFromIndexedDB = async (): Promise<StoredPe
       };
     });
   } catch (error: unknown) {
-    logError('Fejl ved hentning af pending PWA-open request:', error instanceof Error ? error : new Error(String(error)));
+    logError('Fejl ved hentning af pending PWA-open request:', asError(error));
     return null;
   }
 };
@@ -726,7 +726,7 @@ export const deletePendingPwaOpenRequestFromIndexedDB = async (): Promise<boolea
       };
     });
   } catch (error: unknown) {
-    logError('Fejl ved sletning af pending PWA-open request:', error instanceof Error ? error : new Error(String(error)));
+    logError('Fejl ved sletning af pending PWA-open request:', asError(error));
     return false;
   }
 };

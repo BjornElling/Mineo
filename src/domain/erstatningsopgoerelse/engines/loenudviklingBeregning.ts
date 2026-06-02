@@ -8,9 +8,8 @@ import { roundByMethod } from '../../../utils/rounding';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
-import { isoDateToDate } from '../../dates/isoDate';
-import { addDays, createDate } from '../../../utils/dateUtils';
-import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
+import { createDate } from '../../../utils/dateUtils';
+import { getDayBeforeIso, getDayAfterIso, endOfYearIso } from '../../../utils/isoDateHelpers';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import {
   getEffektiveSatserForDato,
@@ -1473,10 +1472,10 @@ const buildAslReguleringsSegments = (ranges: readonly IsoRange[]): ReadonlyArray
     while (currentStart <= range.til) {
       const year = Number(currentStart.slice(0, 4));
       if (!Number.isFinite(year)) break;
-      const yearEnd = `${year}-12-31` as ISODateString;
+      const yearEnd = endOfYearIso(year);
       const segmentEnd = range.til < yearEnd ? range.til : yearEnd;
       segments.push({ fra: currentStart, til: segmentEnd, year });
-      const nextStartDate = getDayAfter(segmentEnd);
+      const nextStartDate = getDayAfterIso(segmentEnd);
       if (nextStartDate <= currentStart) break;
       currentStart = nextStartDate;
     }
@@ -1524,9 +1523,3 @@ const resolveDagsloenBase = (
   return fromOre(indkomstSkadestidspunkt.dagsloen.value);
 };
 
-const getDayAfter = (isoDate: ISODateString): ISODateString => {
-  const date = isoDateToDate(isoDate);
-  const nextDate = addDays(date, 1);
-  // invariant: dateToISO returnerer aldrig null på en gyldig dato fra addDays
-  return (dateToISO(nextDate) ?? isoDate) as ISODateString;
-};

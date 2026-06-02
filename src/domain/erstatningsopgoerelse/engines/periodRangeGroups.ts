@@ -2,7 +2,7 @@ import type { ISODateString } from '../../../types/branded';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { buildBeregningsperiodeRange, buildTafRanges } from '../helpers/indtaegtPerioder';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
-import type { IsoRange } from '../../../utils/isoDateHelpers';
+import { startOfYearIso, endOfYearIso, type IsoRange } from '../../../utils/isoDateHelpers';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 
@@ -41,8 +41,8 @@ export const splitIsoRangeByCalendarYearsInclusive = (
 
   const result: CalendarYearIsoRange[] = [];
   for (let year = fraYear; year <= tilYear; year += 1) {
-    const yearStart = `${year}-01-01` as ISODateString;
-    const yearEnd = `${year}-12-31` as ISODateString;
+    const yearStart = startOfYearIso(year);
+    const yearEnd = endOfYearIso(year);
     result.push({
       fra: year === fraYear ? fra : yearStart,
       til: year === tilYear ? til : yearEnd,

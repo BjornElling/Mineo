@@ -17,6 +17,7 @@ import { computeEetKapitaliseringCalculation } from './eetKapitaliseringCalculat
 import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
 import type { EetIssue } from './eetTypes';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
+import { asError } from '../../utils/typeGuards';
 
 type FieldErrorMessage = Pick<FormFieldError, 'message'> | undefined;
 
@@ -64,7 +65,7 @@ const safeBuildProjection = <TComputation>(
   try {
     return build();
   } catch (error) {
-    const normalizedError = error instanceof Error ? error : new Error(String(error));
+    const normalizedError = asError(error);
     reportSystemIssue({
       code: `eet_snapshot:${context}`,
       area: 'calculation',
