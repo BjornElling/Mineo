@@ -67,10 +67,10 @@ Planen følger **afhængighedsorden nedefra og op** — det fundamentale først,
 | 6.3 | Offentlig løn: KL- og RLTN-satser, lookup, typer, import-script | ✅ Gennemgået | [6.3-offentlig-loen.md](6.3-offentlig-loen.md) |<br>↳ _⏭ Parkeret: `import:loen`-script fejler på de ældste `.xls`-filer (legacy-layout) — forelagt; data er korrekt og valideret._ |
 | 6.4 | Kapitaliseringstabeller, bekendtgørelser og forhøjet-pensionsalder-events | ✅ Gennemgået | [6.4-kapitalisering-bekendtgoerelser-pensionsalder.md](6.4-kapitalisering-bekendtgoerelser-pensionsalder.md) |
 | **7 — UI-inputs & grid** | | | |
-| 7.1 | StyledField-familien: amount, date, integer, percent, fraction, week, year, text(area), dropdown, checkbox, radio, toggle | ⬜ Ikke startet | — |
-| 7.2 | Table-inputs og adaptere (inputs/table + hooks/tableInput/adapters) + inputKeyFilters | ⬜ Ikke startet | — |
-| 7.3 | Grid-infrastruktur: gridCore (registry, context, navigation, focus, types, ux-spec) | ⬜ Ikke startet | — |
-| 7.4 | Tabel-komponenter: standard-tabeller (display/grid/loose/virtualized) og domæne-tabeller | ⬜ Ikke startet | — |
+| 7.1 | StyledField-familien: amount, date, integer, percent, fraction, week, year, text(area), dropdown, checkbox, radio, toggle | ✅ Gennemgået | [7.1-styledfield-familien.md](7.1-styledfield-familien.md) |
+| 7.2 | Table-inputs og adaptere (inputs/table + hooks/tableInput/adapters) + inputKeyFilters | ✅ Gennemgået | [7.2-table-inputs-og-adaptere.md](7.2-table-inputs-og-adaptere.md) |
+| 7.3 | Grid-infrastruktur: gridCore (registry, context, navigation, focus, types, ux-spec) | ✅ Gennemgået | [7.3-grid-infrastruktur.md](7.3-grid-infrastruktur.md) |
+| 7.4 | Tabel-komponenter: standard-tabeller (display/grid/loose/virtualized) og domæne-tabeller | ✅ Gennemgået | [7.4-tabel-komponenter.md](7.4-tabel-komponenter.md) |
 | **8 — Pages** | | | |
 | 8.1 | Page-komponenter: Stamdata, Årsløn, Satser, Mineo (forside), Indstillinger | ⬜ Ikke startet | — |
 | 8.2 | Page-komponenter: Erhvervsevnetab og underkomponenter | ⬜ Ikke startet | — |
