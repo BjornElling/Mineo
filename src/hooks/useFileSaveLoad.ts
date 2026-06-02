@@ -15,6 +15,7 @@ import { UI_STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 import type { LoadFileResult, SaveFileResult } from '../types/fileOperations';
 import { type PwaFileOpenRequest } from '../utils/pwaLaunchQueue';
 import { getUserMessage, isCalculationError } from '../utils/errorMessages';
+import { asError } from '../utils/typeGuards';
 import { EncryptionError } from '../utils/encryption';
 import type { AppSettings } from '../settings/appSettingsSchema';
 import type { ReplaceAllPersistedData } from '../contexts/FormPersistenceContext.shared';
@@ -89,7 +90,7 @@ const resolveSaveError = (error: unknown): OverlayData => {
   }
 
   return {
-    message: (error as Error)?.message || 'Kunne ikke gemme fil',
+    message: asError(error).message || 'Kunne ikke gemme fil',
     type: 'error',
   };
 };
@@ -352,7 +353,7 @@ export const useFileSaveLoad = ({
       console.error('Hent (trods fejl) fejlede:', error);
       markUserFeedback();
       showOverlay({
-        message: (error as Error)?.message || 'Kunne ikke hente fil',
+        message: asError(error).message || 'Kunne ikke hente fil',
         type: 'error',
       });
     }
@@ -376,7 +377,7 @@ export const useFileSaveLoad = ({
       console.error('Overskriv og hent fejlede:', error);
       markUserFeedback();
       showOverlay({
-        message: (error as Error)?.message || 'Kunne ikke hente fil',
+        message: asError(error).message || 'Kunne ikke hente fil',
         type: 'error',
       });
     }

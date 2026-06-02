@@ -5,6 +5,8 @@ import {
   Mineo_PWA_FILE_OPEN_EVENT,
   type PwaFileOpenRequest,
 } from '../utils/pwaLaunchQueue';
+import { logWarning } from '../utils/logger';
+import { asError } from '../utils/typeGuards';
 
 const PWA_OPEN_REQUEST_RETRY_INTERVAL_MS = 100;
 const PWA_OPEN_REQUEST_RETRY_WINDOW_MS = 3000;
@@ -53,7 +55,14 @@ export const usePwaLaunchQueue = ({
       if (pendingLoadResultOpen || pendingOverwriteApplyOpen) {
         const dropped = getPendingPwaFileOpenRequest();
         if (dropped) {
-          void clearPendingPwaFileOpenRequest();
+          // Best-effort oprydning af den droppede request; en IndexedDB-fejl her er
+          // ikke-fatal (selve sagsdata røres ikke), men må ikke blive en unhandled rejection.
+          void clearPendingPwaFileOpenRequest().catch((error: unknown) => {
+            logWarning('Kunne ikke rydde droppet PWA-fil-request', {
+              context: 'usePwaLaunchQueue.dropPendingRequest',
+              data: { errorMessage: asError(error).message },
+            });
+          });
           markUserFeedback();
           showOverlay({ message: 'Ny fil blev forsøgt åbnet – prøv igen når du er færdig', type: 'warning' });
         }
