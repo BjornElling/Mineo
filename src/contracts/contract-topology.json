@@ -49,7 +49,8 @@
     "src/contracts/aarsloen-contract.md",
     "src/contracts/renteberegning-contract.md",
     "src/contracts/varigemen-contract.md",
-    "src/contracts/satser-contract.md"
+    "src/contracts/satser-contract.md",
+    "src/contracts/indskudte-loentillaeg-contract.md"
   ],
   "contractAuthoring": {
     "templatePath": "src/contracts/contract-template.md",

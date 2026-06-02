@@ -6,8 +6,7 @@ import {
   type OverenskomstId,
   type OverenskomstPeriodeSats,
 } from '../../../data/overenskomstRates';
-import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
-import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
+import { STORE_BEDEDAG_PCT, STORE_BEDEDAG_START } from '../../../config/indskudteLoentillaeg';
 import { differsFromZero } from '../../../utils/numberComparison';
 import { parseDanishToIso, resolvePctPointFromSatsOrInput } from '../helpers/eoSharedUtils';
 import type { FormulaComponents } from './reguleringFormulaUtils';

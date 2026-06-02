@@ -201,6 +201,13 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/quality/authGateContractIsolation.test.ts',
     ],
   },
+  {
+    contractPath: 'src/contracts/indskudte-loentillaeg-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/config/indskudteLoentillaeg.test.ts',
+      'src/__tests__/domain/erstatningsopgoerelse/eoSharedUtils.test.ts',
+    ],
+  },
 ];
 
 const assertFileExists = (relativePath: string): void => {

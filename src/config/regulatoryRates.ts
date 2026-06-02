@@ -1,9 +1,9 @@
 /**
  * Central konfiguration af faste reguleringsrelaterede konstanter.
+ *
+ * BEMÆRK: Indskudte lønregulerings-tillæg (Store Bededagstillæg, Særligt ferietillæg)
+ * bor samlet i `src/config/indskudteLoentillaeg.ts` — ikke her.
  */
-
-// Tillæg for afskaffelsen af Store Bededag (angivet i procentpoint)
-export const STORE_BEDEDAG_PCT = 0.45;
 
 // Standardfaktor til konvertering mellem time- og månedssats
 export const TIMER_TIL_MAANED_FAKTOR = 160.33;

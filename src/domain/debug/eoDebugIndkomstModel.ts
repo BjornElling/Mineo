@@ -1,8 +1,7 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { isWithinTolerance } from '../../utils/numberComparison';
-import { STORE_BEDEDAG_START } from '../../config/dateRanges';
-import { STORE_BEDEDAG_PCT } from '../../config/regulatoryRates';
+import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../config/indskudteLoentillaeg';
 import {
   getStandardLoenTableValidation,
   isStandardLoenTableValueEffectivelyEmptyForValidation,

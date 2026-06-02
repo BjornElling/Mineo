@@ -33,8 +33,7 @@ import {
 } from '../../../data/offentligLoenTypes';
 import { getStatistiskLoenudvikling, type StatistiskLoenudviklingId } from '../../../data/statistiskeRates';
 import { getKRLSatstabel, type KRLSatstabelId } from '../../../data/krlRates';
-import { STORE_BEDEDAG_START } from '../../../config/dateRanges';
-import { STORE_BEDEDAG_PCT } from '../../../config/regulatoryRates';
+import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../config/indskudteLoentillaeg';
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde, type LoenudviklingSource } from '../helpers/angivetLoenHelpers';
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
 import { hasIndtastetLoenoplysninger } from '../helpers/loenoplysningerInput';

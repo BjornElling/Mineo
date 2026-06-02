@@ -25,8 +25,7 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { svieSmertePrDag } from '../../data/lovbestemteRates';
-import { STORE_BEDEDAG_START } from '../../config/dateRanges';
-import { STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../config/regulatoryRates';
+import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT as STORE_BEDEDAG_PCT_PCT } from '../../config/indskudteLoentillaeg';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import {
   resolveOffentligLoenEkstraGrundloen,

@@ -24,8 +24,7 @@ import {
   isAslStatistikModel,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { capitalizeFirstCharDa } from '../../../../utils/formatUtils';
-import { STORE_BEDEDAG_START } from '../../../../config/dateRanges';
-import { STORE_BEDEDAG_PCT } from '../../../../config/regulatoryRates';
+import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../../../config/indskudteLoentillaeg';
 import { isoToDanish, type ISODateString } from '../../../../types/branded';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
