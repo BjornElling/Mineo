@@ -1,11 +1,9 @@
 /**
- * EODebugRegulationSections - Render-only komponent til regulering
+ * EODebugRegulationSections - render-only komponent til regulering.
  *
- * Fase 4.5 - UI-wire:
- * - Rendere regulation sections fra adapter
- * - Ingen beregninger
- * - Ingen parsing
- * - Bruger { rawValue, displayValue } direkte
+ * Viser regulerings-sektioner fra `RegulationDebugSection`-view-modellen:
+ * - ingen beregninger, ingen parsing
+ * - bruger `{ rawValue, displayValue }` direkte fra view-modellen
  */
 
 import * as React from 'react';

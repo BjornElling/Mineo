@@ -1,11 +1,9 @@
 /**
- * EODebugLoenSections - Render-only komponent til løn
+ * EODebugLoenSections - render-only komponent til løn-debugvisning.
  *
- * Fase 5.5 - UI-wire:
- * - Rendere løn sections fra adapter
- * - Ingen beregninger
- * - Ingen parsing
- * - Bruger { rawValue, displayValue } direkte
+ * Viser løn-sektioner fra `LoenDebugSection`-view-modellen:
+ * - ingen beregninger, ingen parsing
+ * - bruger `{ rawValue, displayValue }` direkte fra view-modellen
  */
 
 import * as React from 'react';
