@@ -72,12 +72,12 @@ Planen følger **afhængighedsorden nedefra og op** — det fundamentale først,
 | 7.3 | Grid-infrastruktur: gridCore (registry, context, navigation, focus, types, ux-spec) | ✅ Gennemgået | [7.3-grid-infrastruktur.md](7.3-grid-infrastruktur.md) |
 | 7.4 | Tabel-komponenter: standard-tabeller (display/grid/loose/virtualized) og domæne-tabeller | ✅ Gennemgået | [7.4-tabel-komponenter.md](7.4-tabel-komponenter.md) |
 | **8 — Pages** | | | |
-| 8.1 | Page-komponenter: Stamdata, Årsløn, Satser, Mineo (forside), Indstillinger | ⬜ Ikke startet | — |
-| 8.2 | Page-komponenter: Erhvervsevnetab og underkomponenter | ⬜ Ikke startet | — |
-| 8.3 | Page-komponenter: Erstatningsopgørelse (Loenindkomst, OffentligeYdelser, EOberegning, EOOplysninger) | ⬜ Ikke startet | — |
-| 8.4 | Page-komponenter: EO-debug-komponenter | ⬜ Ikke startet | — |
-| 8.5 | Page-komponenter: Forsørgertab, Varige Mén, Renteberegning, MinProcesrente | ⬜ Ikke startet | — |
-| 8.6 | Layout & UI-skal: MainLayout, StandaloneCalculatorLayout, SideMenu, Container, ContentBox, ui/, errors/ | ⬜ Ikke startet | — |
+| 8.1 | Page-komponenter: Stamdata, Årsløn, Satser, Mineo (forside), Indstillinger | ✅ Gennemgået | [8.1-page-komponenter-stamdata-aarsloen-satser-mineo-indstillinger.md](8.1-page-komponenter-stamdata-aarsloen-satser-mineo-indstillinger.md) |
+| 8.2 | Page-komponenter: Erhvervsevnetab og underkomponenter | ✅ Gennemgået | [8.2-page-komponenter-erhvervsevnetab.md](8.2-page-komponenter-erhvervsevnetab.md) |
+| 8.3 | Page-komponenter: Erstatningsopgørelse (Loenindkomst, OffentligeYdelser, EOberegning, EOOplysninger) | ✅ Gennemgået | [8.3-page-komponenter-erstatningsopgoerelse.md](8.3-page-komponenter-erstatningsopgoerelse.md) |
+| 8.4 | Page-komponenter: EO-debug-komponenter | ✅ Gennemgået | [8.4-page-komponenter-eo-debug.md](8.4-page-komponenter-eo-debug.md) |
+| 8.5 | Page-komponenter: Forsørgertab, Varige Mén, Renteberegning, MinProcesrente | ✅ Gennemgået | [8.5-page-komponenter-forsoergertab-varigemen-renteberegning-minprocesrente.md](8.5-page-komponenter-forsoergertab-varigemen-renteberegning-minprocesrente.md) |
+| 8.6 | Layout & UI-skal: MainLayout, StandaloneCalculatorLayout, SideMenu, Container, ContentBox, ui/, errors/ | ✅ Gennemgået | [8.6-layout-ui-skal.md](8.6-layout-ui-skal.md) |
 | **9 — Hooks** | | | |
 | 9.1 | Form-/draft-hooks: usePersistedForm, useDraftField, useFieldBehavior, useTwoStageInputActivation, rowDrafts | ⬜ Ikke startet | — |
 | 9.2 | Undo/redo- og persisterings-hooks: useUndoRedo, useTableInputHistoryRestore, usePersistedActiveTab | ⬜ Ikke startet | — |
