@@ -180,6 +180,14 @@ const BugReportButton = ({
 
           {!isPreparing && prepared && (
             <>
+              {/*
+                Bevidst designbeslutning: fejlrapporten kan bære incidentelt brugerinput (fx en
+                fejlbesked eller system-issue-payload der ekko'er et indtastet feltværdi). Frem for
+                at forsøge automatisk sanitering (skrøbeligt, kan skjule relevant diagnostik)
+                orienteres brugeren eksplicit her — og i dialogtitlen "gennemgå før du sender" — om
+                at kontrollere indholdet før kopiering/afsendelse/download. Afsendelse er altid
+                bruger-initieret via mailto: til brugerens egen adresse; intet sendes automatisk.
+              */}
               <Alert severity="warning" sx={{ borderRadius: '10px', marginBottom: 2 }}>
                 Rapporten kan indeholde persondata eller sagsoplysninger. Gennemgå indholdet før du
                 kopierer, sender eller downloader.

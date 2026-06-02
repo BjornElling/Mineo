@@ -86,6 +86,10 @@ const ScrollToTopButton = React.memo(() => {
             right: SCROLL_BUTTON_POSITION_RIGHT_PX,
             width: SCROLL_BUTTON_SIZE_PX,
             height: SCROLL_BUTTON_SIZE_PX,
+            // Bevidst: skjul knappen på touch-input. På touch-enheder er sidens indhold kort nok
+            // til ét skærmbillede, så scroll-til-top er irrelevant. Dette er en input-modalitets-
+            // affordance (pointer: coarse), ikke responsivt mobil-layout — mobil/tablet er i forvejen
+            // hård-blokeret af device-gaten, så reglen rammer kun touch-capable desktops.
             '@media (pointer: coarse)': { display: 'none' },
             backgroundColor: 'var(--color-surface-raised)',
             color: 'var(--color-text-primary)',
