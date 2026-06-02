@@ -61,6 +61,7 @@ const MenberegningTab = ({ values, setValues, setFieldValue, stamdata }: {
 // --- Feltvalidering ---
 const [mengradError, setMengradError] = React.useState<string | undefined>(undefined);
 const [beregningsdatoError, setBeregningsdatoError] = React.useState<string | undefined>(undefined);
+const mengradInputRef = React.useRef<HTMLInputElement>(null);
 const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
 const handleMengradError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
@@ -151,15 +152,15 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
       } else if (!stamValues.skadedato) {
         // Skadedato kan ikke markeres direkte, men brugeren vil se fejlen
       } else if (values.mengrad === undefined || values.mengrad === 0 || mengradError) {
-        // Markér méngrad-feltet
-        const mengradInput = document.querySelector('input[type="text"][value*="%"]') as HTMLInputElement;
+        // Markér méngrad-feltet via ref (ikke skrøbelig DOM-query på value-attributten).
+        const mengradInput = mengradInputRef.current;
         if (mengradInput) {
           mengradInput.focus();
           mengradInput.blur();
         }
       } else if (!values.beregningsdato || beregningsdatoError) {
-        // Markér beregningsdato-feltet
-        const beregningsdatoInput = document.querySelector('input[value*="' + (values.beregningsdato || '') + '"]') as HTMLInputElement;
+        // Markér beregningsdato-feltet via ref (ikke skrøbelig DOM-query på value-attributten).
+        const beregningsdatoInput = beregningsdatoInputRef.current;
         if (beregningsdatoInput) {
           beregningsdatoInput.focus();
           beregningsdatoInput.blur();
@@ -311,6 +312,7 @@ const aldersreduktionsBeloeb = React.useMemo(() => {
             placeholder="0"
             // Fanger valideringsfejl fra feltet
             onFieldError={handleMengradError}
+            inputRef={mengradInputRef}
           />
         </Box>
       </Box>

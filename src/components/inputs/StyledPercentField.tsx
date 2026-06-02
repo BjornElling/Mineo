@@ -17,6 +17,7 @@ import {
 } from '../../utils/percentInputUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { assignRef } from '../../utils/refUtils';
 
 export type StyledPercentFieldValueChangeEvent = CommitEvent<number | undefined>;
 export type StyledPercentFieldDraftChangeEvent = DraftChangeEvent;
@@ -59,6 +60,11 @@ export type StyledPercentFieldProps = {
   onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 
   /**
+   * Valgfri ref til selve `<input>` (fx til fokusering ved fejl). Merges med feltets interne ref.
+   */
+  inputRef?: React.Ref<HTMLInputElement>;
+
+  /**
    * Callback for den aktuelle fejlbesked (til forælderens validation gating)
    */
   onFieldError?: FieldErrorReporter;
@@ -93,10 +99,18 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       helperText: externalHelperText = '',
       sx,
       onFieldError,
+      inputRef,
     },
     ref
   ) => {
     const inputElementRef = React.useRef<HTMLInputElement>(null);
+    const assignInputRef = React.useCallback(
+      (node: HTMLInputElement | null) => {
+        inputElementRef.current = node;
+        assignRef(inputRef, node);
+      },
+      [inputRef]
+    );
 
     const configErrorMessage = React.useMemo(() => {
       if (!useDefaultPercentRange && minValue === undefined && maxValue === undefined) {
@@ -416,7 +430,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         name={name}
         draft={draft}
         onDraftChange={handleDraftChange}
-        inputRef={inputElementRef}
+        inputRef={assignInputRef}
         onFocus={handleFocus}
         onBlur={(e) => {
           onBlurBase(e);
