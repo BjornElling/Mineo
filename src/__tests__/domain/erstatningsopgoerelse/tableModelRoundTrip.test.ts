@@ -71,4 +71,21 @@ describe('tableModel roundtrip', () => {
     expect(oevrige[oevrige.length - 1].id).toBeTruthy();
     expect(oevrige[oevrige.length - 1].dato).toBeUndefined();
   });
+
+  it('øvrige krav bevarer expression-beløb gennem draft↔committed (ingen stille tab af formel)', () => {
+    // Et udtryks-beløb (kind: 'expression') skal overleve round-trippet som udtryk, ikke
+    // kollapse til sin numeriske værdi. Ellers tabes brugerens indtastede formel ved save/load.
+    const committed = [{
+      id: 'o-expr',
+      dato: toISODateString('2024-01-10'),
+      udgiftTil: 'Medicin',
+      beloeb: { kind: 'expression', expression: '50+50', value: 100 },
+    }] as const;
+    const draft = committedToOevrigeKravDraftRows([...committed])[0];
+    // Draften viser formlen, ikke "100".
+    expect(draft!.beloeb).toBe('50+50');
+    const back = oevrigeKravDraftToCommittedRow(draft!, committed[0]);
+    expect(back.beloeb?.kind).toBe('expression');
+    expect(back.beloeb).toEqual({ kind: 'expression', expression: '50+50', value: 100 });
+  });
 });

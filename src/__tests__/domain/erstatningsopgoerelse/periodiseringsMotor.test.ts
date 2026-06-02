@@ -447,4 +447,57 @@ describe('sumMaanedsbroekForInterval', () => {
       }
     }
   });
+
+  it('enkelt dag → 1/dage-i-måned (skudårsfølsom)', () => {
+    // Februar 2024 (skudår): 1/29. Februar 2023: 1/28.
+    expect(sumMaanedsbroekForInterval(iso('2024-02-15'), iso('2024-02-15'))).toBeCloseTo(1 / 29, 10);
+    expect(sumMaanedsbroekForInterval(iso('2023-02-15'), iso('2023-02-15'))).toBeCloseTo(1 / 28, 10);
+  });
+
+  it('hele februar i skudår → 1 (alle 29 dage)', () => {
+    expect(sumMaanedsbroekForInterval(iso('2024-02-01'), iso('2024-02-29'))).toBeCloseTo(1, 10);
+  });
+});
+
+describe('periodiseringsMotor — division-værn ved degenererede grundlag', () => {
+  it('periodiserBeloebForMaaneder: tomt ranges-sæt → 0 (ingen overlap)', () => {
+    const result = periodiserBeloebForMaaneder({
+      totalBeloeb: 1000,
+      interval: { start: d(iso('2024-01-01')), end: d(iso('2024-01-31')) },
+      ranges: [],
+    });
+    expect(result).toBe(0);
+    expect(Number.isNaN(result)).toBe(false);
+  });
+
+  it('periodiserBeloebForMaaneder: én-dags interval bevarer endeligt resultat (ingen NaN ved totalDays=1)', () => {
+    const result = periodiserBeloebForMaaneder({
+      totalBeloeb: 1000,
+      interval: { start: d(iso('2024-01-15')), end: d(iso('2024-01-15')) },
+      ranges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+    });
+    // Fuldt overlap på det ene døgn → hele beløbet.
+    expect(result).toBe(1000);
+  });
+
+  it('periodiserBeloebForArbejdsdage: tomt arbejdsdage-sæt → 0 (totalArbejdsdage=0, ingen NaN)', () => {
+    const result = periodiserBeloebForArbejdsdage({
+      totalBeloeb: 1000,
+      interval: { start: d(iso('2024-01-01')), end: d(iso('2024-01-31')) },
+      ranges: [{ fra: iso('2024-01-01'), til: iso('2024-01-10') }],
+      arbejdsdageSet: new Set<ISODateString>(),
+    });
+    expect(result).toBe(0);
+    expect(Number.isNaN(result)).toBe(false);
+  });
+
+  it('periodiserBeloebForArbejdsdage: ingen overlap mellem range og arbejdsdage → 0', () => {
+    const result = periodiserBeloebForArbejdsdage({
+      totalBeloeb: 1000,
+      interval: { start: d(iso('2024-01-01')), end: d(iso('2024-01-31')) },
+      ranges: [{ fra: iso('2024-01-20'), til: iso('2024-01-25') }],
+      arbejdsdageSet: new Set<ISODateString>([iso('2024-01-02'), iso('2024-01-03')]),
+    });
+    expect(result).toBe(0);
+  });
 });

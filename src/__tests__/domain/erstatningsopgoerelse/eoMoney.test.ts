@@ -1,4 +1,4 @@
-import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, toOre } from '../../../domain/erstatningsopgoerelse/shared/eoMoney';
+import { clampMoneyOreToZero, ensureMoneyOre, fromOre, roundKroner, scaleMoneyOre, toOre } from '../../../domain/erstatningsopgoerelse/shared/eoMoney';
 
 describe('eoMoney', () => {
   describe('toOre', () => {
@@ -30,6 +30,24 @@ describe('eoMoney', () => {
       expect(clampMoneyOreToZero(ensureMoneyOre(-1))).toBe(0);
       expect(clampMoneyOreToZero(ensureMoneyOre(0))).toBe(0);
       expect(clampMoneyOreToZero(ensureMoneyOre(1))).toBe(1);
+    });
+  });
+
+  describe('scaleMoneyOre', () => {
+    it('skalerer med en faktor i (0,1] og afrunder half-away-from-zero', () => {
+      expect(scaleMoneyOre(ensureMoneyOre(10000), 0.5)).toBe(5000);
+      // 12345 · 0,5 = 6172,5 → 6173 (half-away-from-zero, ikke banker's).
+      expect(scaleMoneyOre(ensureMoneyOre(12345), 0.5)).toBe(6173);
+      // Faktor præcis 1 er tilladt (øvre inklusiv grænse) og er identitet.
+      expect(scaleMoneyOre(ensureMoneyOre(777), 1)).toBe(777);
+    });
+
+    it('afviser faktor uden for (0,1] og ikke-endelige faktorer (fail-closed)', () => {
+      expect(() => scaleMoneyOre(ensureMoneyOre(1000), 0)).toThrow('Ugyldig faktor');
+      expect(() => scaleMoneyOre(ensureMoneyOre(1000), -0.5)).toThrow('Ugyldig faktor');
+      expect(() => scaleMoneyOre(ensureMoneyOre(1000), 1.0001)).toThrow('Ugyldig faktor');
+      expect(() => scaleMoneyOre(ensureMoneyOre(1000), Number.NaN)).toThrow('Ugyldig faktor');
+      expect(() => scaleMoneyOre(ensureMoneyOre(1000), Number.POSITIVE_INFINITY)).toThrow('Ugyldig faktor');
     });
   });
 
