@@ -41,12 +41,28 @@ describe('MinProcesrente standalone isolation', () => {
     expect(source).not.toContain('serviceWorker');
   });
 
-  it('isolerer sessionStorage fra Mineo ved at sætte et eget storage-namespace ved bootstrap', () => {
+  it('isolerer sessionStorage fra Mineo ved at sætte et eget storage-namespace via en bivirknings-import der står først', () => {
+    const namespaceModule = readFileSync(
+      path.join(repoRoot, 'src/apps/minprocesrente/standaloneStorageNamespace.ts'),
+      'utf8'
+    );
+    // Namespacet sættes i et dedikeret side-effect-only modul.
+    expect(namespaceModule).toMatch(/setStorageNamespace\(\s*['"]minprocesrente['"]\s*\)/);
+
     const entrypoint = readFileSync(
       path.join(repoRoot, 'src/apps/minprocesrente/minprocesrenteMain.tsx'),
       'utf8'
     );
-    expect(entrypoint).toMatch(/setStorageNamespace\(\s*['"]minprocesrente['"]\s*\)/);
+    // Selve namespacet må IKKE sættes inline i entrypointet — det ville køre efter App-importen
+    // pga. import-hoisting. Det skal i stedet importeres som bivirkning.
+    expect(entrypoint).not.toMatch(/setStorageNamespace\(/);
+    expect(entrypoint).toMatch(/import\s+['"]\.\/standaloneStorageNamespace['"]/);
+
+    // Bivirknings-importen skal stå FØR App-importen, ellers er hoisting-garantien tabt.
+    const namespaceImportIndex = entrypoint.indexOf("import './standaloneStorageNamespace'");
+    const appImportIndex = entrypoint.indexOf("import MinProcesrenteApp");
+    expect(namespaceImportIndex).toBeGreaterThanOrEqual(0);
+    expect(appImportIndex).toBeGreaterThan(namespaceImportIndex);
   });
 
   it('læser ikke stamdata, indstillinger eller andre Mineo-sektioner som brugerdata og bruger ikke Mineos diagnoseflow', () => {

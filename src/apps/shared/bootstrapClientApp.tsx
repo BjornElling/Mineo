@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { suppressPwaInstallPrompt } from '../../utils/pwaInstallPrompt';
 
 const UNSUPPORTED_MAX_SCREEN_WIDTH_PX = 1366;
-let installPromptSuppressionRegistered = false;
 
 export type ClientAppBootstrapOptions = Readonly<{
   renderApp: () => React.ReactNode | Promise<React.ReactNode>;
@@ -52,15 +52,6 @@ const loadDesktopStyles = async (): Promise<void> => {
   ]);
 };
 
-const suppressBrowserInstallPrompt = (): void => {
-  if (typeof window === 'undefined') return;
-  if (installPromptSuppressionRegistered) return;
-  installPromptSuppressionRegistered = true;
-  window.addEventListener('beforeinstallprompt', (event: Event) => {
-    event.preventDefault();
-  });
-};
-
 export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Promise<void> => {
   const rootElement = document.getElementById('root');
   if (!rootElement) {
@@ -70,8 +61,9 @@ export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Pr
   const root = ReactDOM.createRoot(rootElement);
   const unsupportedDevice = (options.enforceUnsupportedDeviceGate ?? true) && isUnsupportedDevice();
   if (unsupportedDevice || !options.capturePwaInstallPrompt) {
-    // Standalone app-varianter uden PWA suppresser altid browserens install-prompt.
-    suppressBrowserInstallPrompt();
+    // Standalone app-varianter uden PWA suppresser altid browserens install-prompt
+    // (kanonisk implementering i utils/pwaInstallPrompt).
+    suppressPwaInstallPrompt();
   } else {
     options.setupPwaInstallPromptCapture?.();
   }
