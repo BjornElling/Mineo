@@ -52,8 +52,6 @@ function generateVersion() {
 
 /** Opdater version.ts */
 function updateVersionFile(version) {
-  const buildDate = new Date().toISOString();
-
   const content = `/**
  * Version Configuration (autogenereret)
  *
@@ -62,7 +60,6 @@ function updateVersionFile(version) {
  */
 
 export const VERSION = '${version}';
-export const BUILD_DATE = '${buildDate}';
 
 /**
  * Filformat version - ændres kun hvis datastrukturen ændres.

@@ -626,34 +626,3 @@ export const dateRanges_erhvervsevnetab: DateRanges_Erhvervsevnetab = {
   },
 };
 
-// ============================================================================
-// SAMLET DATERANGES OBJEKT (til bagudkompatibilitet)
-// ============================================================================
-
-/**
- * Dato-intervaller organiseret efter sider
- *
- * VIGTIGT: Dette objekt dokumenterer ALLE datofelter i Mineo.
- * - Alle felter er type-safe med kendte keys
- * - 'DYNAMIC' ranges har altid påkrævet fallback
- * - Statiske ranges er validerede ISODateString
- */
-export interface DateRanges {
-  readonly stamdata: DateRanges_Stamdata;
-  readonly erstatningsopgoerelse: DateRanges_Erstatningsopgoerelse;
-  readonly varigemen: DateRanges_VarigeMen;
-  readonly forsoergertab: DateRanges_Forsoergertab;
-  readonly aarsloen: DateRanges_Aarsloen;
-  readonly renteberegning: DateRanges_Renteberegning;
-  readonly erhvervsevnetab: DateRanges_Erhvervsevnetab;
-}
-
-export const dateRanges: DateRanges = {
-  stamdata: dateRanges_stamdata,
-  erstatningsopgoerelse: dateRanges_erstatningsopgoerelse,
-  varigemen: dateRanges_varigemen,
-  forsoergertab: dateRanges_forsoergertab,
-  aarsloen: dateRanges_aarsloen,
-  renteberegning: dateRanges_renteberegning,
-  erhvervsevnetab: dateRanges_erhvervsevnetab,
-};

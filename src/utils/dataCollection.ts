@@ -1,10 +1,3 @@
-import { UI_STORAGE_KEYS } from '../config/storageManifest';
-import { isInteractiveDevLoggingEnabled } from './debugRuntime';
-
-const debugEnabled = isInteractiveDevLoggingEnabled;
-const debugLog = (...args: unknown[]): void => {
-  if (debugEnabled) console.debug(...args);
-};
 /**
  * Tjekker om en værdi indeholder meningsfulde data (ikke tom/null).
  */
@@ -117,30 +110,4 @@ export const countFilledFields = (data: unknown): number => {
  */
 export const hasRealData = (data: unknown): boolean => {
   return countFilledFields(data) > 0;
-};
-
-/**
- * Rydder alle mineo_* keys fra sessionStorage.
- * Bruges før indlæsning af ny fil for at sikre tomme felter overskrives.
- */
-export const clearAllData = (): void => {
-  const keysToRemove: string[] = [];
-  const keysToPreserve: ReadonlySet<string> = new Set([
-    UI_STORAGE_KEYS.sideMenuExpanded, // Behold brugerens menu-tilstand ved hent/slet
-  ]);
-
-  // Samle alle mineo_* keys
-  for (let i = 0; i < sessionStorage.length; i++) {
-    const key = sessionStorage.key(i);
-    if (key && key.startsWith('mineo_') && !keysToPreserve.has(key)) {
-      keysToRemove.push(key);
-    }
-  }
-
-  // Fjern alle keys (gør det i separat loop for at undgå iterator-problemer)
-  keysToRemove.forEach(key => {
-    sessionStorage.removeItem(key);
-  });
-
-  debugLog(`Ryddet ${keysToRemove.length} mineo_* keys fra sessionStorage (beholdt ${keysToPreserve.size})`);
 };

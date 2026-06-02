@@ -77,18 +77,6 @@ export const UI_STORAGE_KEYS = buildKeyMap(UI_STORAGE_KEY_SUFFIXES);
 
 export const createActiveTabStorageKey = (pageId: string): string => ns(`${ACTIVE_TAB_SUFFIX_PREFIX}${pageId}`);
 
-const getSessionStorageKeySnapshot = (): string[] => {
-  const keys: string[] = [];
-  const { length } = sessionStorage;
-  for (let index = 0; index < length; index += 1) {
-    const key = sessionStorage.key(index);
-    if (typeof key === 'string') {
-      keys.push(key);
-    }
-  }
-  return keys;
-};
-
 /**
  * Type-safe storage key type
  *
@@ -122,29 +110,4 @@ export const isValidStorageKey = (key: string): boolean => {
   return domainKeys.includes(key)
     || uiKeys.includes(key)
     || key.startsWith(ns(ACTIVE_TAB_SUFFIX_PREFIX));
-};
-
-/**
- * Hent alle Mineo keys fra sessionStorage
- *
- * Returnerer kun keys der matcher vores manifest (domæne-data + UI-state).
- * Brug getDomainStorageKeys() hvis kun domæne-data skal ryddes.
- *
- * @returns Array af gyldige sessionStorage keys
- */
-export const getAllMineoKeys = (): string[] => {
-  return getSessionStorageKeySnapshot().filter(isValidStorageKey);
-};
-
-/**
- * Hent kun domæne-data keys fra sessionStorage (udelader UI-state keys)
- *
- * Bruges ved "ryd sagsdata"-operationer, hvor UI-præferencer
- * (filnavn, sidebar-tilstand, overlay-tilstand) skal bevares.
- *
- * @returns Array af domæne-relaterede sessionStorage keys
- */
-export const getDomainStorageKeys = (): string[] => {
-  const domainKeys = new Set(Object.values(STORAGE_KEYS) as string[]);
-  return getSessionStorageKeySnapshot().filter((key) => domainKeys.has(key));
 };
