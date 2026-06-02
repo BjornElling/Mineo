@@ -79,10 +79,10 @@ Planen følger **afhængighedsorden nedefra og op** — det fundamentale først,
 | 8.5 | Page-komponenter: Forsørgertab, Varige Mén, Renteberegning, MinProcesrente | ✅ Gennemgået | [8.5-page-komponenter-forsoergertab-varigemen-renteberegning-minprocesrente.md](8.5-page-komponenter-forsoergertab-varigemen-renteberegning-minprocesrente.md) |
 | 8.6 | Layout & UI-skal: MainLayout, StandaloneCalculatorLayout, SideMenu, Container, ContentBox, ui/, errors/ | ✅ Gennemgået | [8.6-layout-ui-skal.md](8.6-layout-ui-skal.md) |
 | **9 — Hooks** | | | |
-| 9.1 | Form-/draft-hooks: usePersistedForm, useDraftField, useFieldBehavior, useTwoStageInputActivation, rowDrafts | ⬜ Ikke startet | — |
-| 9.2 | Undo/redo- og persisterings-hooks: useUndoRedo, useTableInputHistoryRestore, usePersistedActiveTab | ⬜ Ikke startet | — |
-| 9.3 | Fil-/PWA-/guard-hooks: useFileSaveLoad, usePwaLaunchQueue, useUnsavedChangesGuard, useDevtoolsMonitoring | ⬜ Ikke startet | — |
-| 9.4 | Domæne-hooks: useAarsloenBeregning, useAslAarsloenRuleReporter, useAarsloenPdfGates, useOmregningToggle, useMidlertidigtEetInsertSource | ⬜ Ikke startet | — |
+| 9.1 | Form-/draft-hooks: usePersistedForm, useDraftField, useFieldBehavior, useTwoStageInputActivation, rowDrafts | ✅ Gennemgået | [9.1-form-draft-hooks.md](9.1-form-draft-hooks.md) |
+| 9.2 | Undo/redo- og persisterings-hooks: useUndoRedo, useTableInputHistoryRestore, usePersistedActiveTab | ✅ Gennemgået | [9.2-undo-redo-persisterings-hooks.md](9.2-undo-redo-persisterings-hooks.md) |
+| 9.3 | Fil-/PWA-/guard-hooks: useFileSaveLoad, usePwaLaunchQueue, useUnsavedChangesGuard, useDevtoolsMonitoring | ✅ Gennemgået | [9.3-fil-pwa-guard-hooks.md](9.3-fil-pwa-guard-hooks.md) |
+| 9.4 | Domæne-hooks: useAarsloenBeregning, useAslAarsloenRuleReporter, useAarsloenPdfGates, useOmregningToggle, useMidlertidigtEetInsertSource | ✅ Gennemgået | [9.4-domaene-hooks.md](9.4-domaene-hooks.md) |
 | **10 — PDF** | | | |
 | 10.1 | PDF-infrastruktur: pdfService, jsPdfAdapter, pdfWriter/loader, brevhoved, config | ⬜ Ikke startet | — |
 | 10.2 | PDF-shared: tekst, tabel-renderer, format-utils, options, helpers | ⬜ Ikke startet | — |
