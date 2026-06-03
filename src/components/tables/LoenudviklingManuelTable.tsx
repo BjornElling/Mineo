@@ -349,7 +349,7 @@ const LoenudviklingManuelTable = React.memo(
         const baseRow = rows[0] ?? { ...initialLoenudviklingManuelRow, id: createEmptyRowId('loenudvikling_base', 0) };
         const tail = rows.slice(1);
         const tailMinRows = Math.max(1, MIN_VISIBLE_ROWS - 1);
-        const normalizedTail = normalizeGridRows({ rows: tail, minRows: tailMinRows, isRowEmpty, createEmptyRow });
+        const normalizedTail = normalizeGridRows({ rows: tail, minRows: tailMinRows, getRowId: (row) => row.id, isRowEmpty, createEmptyRow });
         return [baseRow, ...normalizedTail];
       },
       [createEmptyRow]

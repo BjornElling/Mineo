@@ -158,16 +158,26 @@ export const reconcileRowIdsByPosition = <TRow>(params: Readonly<{
 export const normalizeGridRows = <TRow>(params: Readonly<{
   rows: readonly TRow[];
   minRows: number;
+  getRowId: (row: TRow) => string;
   isRowEmpty: (row: TRow) => boolean;
   createEmptyRow: (seed: number) => TRow;
 }>): TRow[] => {
-  const { rows, minRows, isRowEmpty, createEmptyRow } = params;
+  const { rows, minRows, getRowId, isRowEmpty, createEmptyRow } = params;
 
-  // Monotont seed pr. nyoprettet tom række. Deterministisk (samme input → samme sekvens) og unikt
-  // pr. række, så de deterministiske id'er hverken divergerer mellem StrictMode-kørsler eller
-  // kolliderer indbyrdes. Se determinisme-kontrakten ovenfor.
+  const usedRowIds = new Set(rows.map(getRowId));
+  // Monotont seed pr. nyoprettet tom række. Seeds springes over, hvis deres deterministiske id
+  // allerede findes i inputtet; ellers kan en persisteret trailing tom række (`*_empty_0`) kollidere
+  // med den ekstra minRows-række og ødelægge React-/grid-identitet.
   let nextEmptyRowSeed = 0;
-  const makeEmptyRow = (): TRow => createEmptyRow(nextEmptyRowSeed++);
+  const makeEmptyRow = (): TRow => {
+    while (true) {
+      const candidate = createEmptyRow(nextEmptyRowSeed++);
+      const rowId = getRowId(candidate);
+      if (usedRowIds.has(rowId)) continue;
+      usedRowIds.add(rowId);
+      return candidate;
+    }
+  };
 
   const existingTrailingEmpty = rows.length > 0 && isRowEmpty(rows[rows.length - 1]) ? rows[rows.length - 1] : null;
   const nonEmptyRows = rows.filter((row) => !isRowEmpty(row));
@@ -183,4 +193,3 @@ export const normalizeGridRows = <TRow>(params: Readonly<{
 
   return normalized;
 };
-

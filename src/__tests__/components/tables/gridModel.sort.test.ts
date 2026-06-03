@@ -173,6 +173,7 @@ describe('getGridSortRole', () => {
 
 describe('normalizeGridRows', () => {
   type Row = { id: string; val: string | undefined };
+  const getNormalizeRowId = (row: Row) => row.id;
   const isEmpty = (r: Row) => r.val === undefined;
   let counter = 0;
   const createEmpty = (): Row => ({ id: `new-${++counter}`, val: undefined });
@@ -187,7 +188,7 @@ describe('normalizeGridRows', () => {
       { id: '2', val: 'b' },
       { id: '3', val: undefined },
     ];
-    const result = normalizeGridRows({ rows: input, minRows: 1, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
+    const result = normalizeGridRows({ rows: input, minRows: 1, getRowId: getNormalizeRowId, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
     expect(result).toHaveLength(3);
     expect(result[2]?.id).toBe('3'); // eksisterende tom bevaret
     expect(isEmpty(result[result.length - 1]!)).toBe(true);
@@ -195,7 +196,7 @@ describe('normalizeGridRows', () => {
 
   it('tilføjer trailing tom række når ingen tom eksisterer', () => {
     const input: Row[] = [{ id: '1', val: 'a' }, { id: '2', val: 'b' }];
-    const result = normalizeGridRows({ rows: input, minRows: 1, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
+    const result = normalizeGridRows({ rows: input, minRows: 1, getRowId: getNormalizeRowId, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
     expect(result).toHaveLength(3);
     expect(isEmpty(result[2]!)).toBe(true);
   });
@@ -206,7 +207,7 @@ describe('normalizeGridRows', () => {
       { id: '2', val: undefined },
       { id: '3', val: undefined },
     ];
-    const result = normalizeGridRows({ rows: input, minRows: 1, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
+    const result = normalizeGridRows({ rows: input, minRows: 1, getRowId: getNormalizeRowId, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
     expect(result).toHaveLength(2);
     expect(result[0]?.val).toBe('a');
     expect(isEmpty(result[1]!)).toBe(true);
@@ -214,7 +215,7 @@ describe('normalizeGridRows', () => {
 
   it('opfylder minRows ved at indsætte tomme rækker før trailing tom', () => {
     const input: Row[] = [{ id: '1', val: 'a' }];
-    const result = normalizeGridRows({ rows: input, minRows: 4, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
+    const result = normalizeGridRows({ rows: input, minRows: 4, getRowId: getNormalizeRowId, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
     expect(result).toHaveLength(4);
     expect(result[0]?.val).toBe('a');
     expect(isEmpty(result[result.length - 1]!)).toBe(true);
@@ -225,13 +226,13 @@ describe('normalizeGridRows', () => {
   });
 
   it('tom input giver præcis minRows rækker (alle tomme)', () => {
-    const result = normalizeGridRows({ rows: [], minRows: 3, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
+    const result = normalizeGridRows({ rows: [], minRows: 3, getRowId: getNormalizeRowId, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
     expect(result).toHaveLength(3);
     result.forEach((r) => expect(isEmpty(r)).toBe(true));
   });
 
   it('minRows <= 1 giver altid mindst 1 række', () => {
-    const result = normalizeGridRows({ rows: [], minRows: 0, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
+    const result = normalizeGridRows({ rows: [], minRows: 0, getRowId: getNormalizeRowId, isRowEmpty: isEmpty, createEmptyRow: createEmpty });
     expect(result).toHaveLength(1);
     expect(isEmpty(result[0]!)).toBe(true);
   });
@@ -243,17 +244,34 @@ describe('normalizeGridRows', () => {
 
     it('to kald med samme input giver IDENTISKE rækker inkl. id (forhindrer persist-desync)', () => {
       const input: Row[] = [{ id: '1', val: 'a' }];
-      const a = normalizeGridRows({ rows: input, minRows: 3, isRowEmpty: isEmpty, createEmptyRow: createDeterministicEmpty });
-      const b = normalizeGridRows({ rows: input, minRows: 3, isRowEmpty: isEmpty, createEmptyRow: createDeterministicEmpty });
+      const a = normalizeGridRows({ rows: input, minRows: 3, getRowId: getNormalizeRowId, isRowEmpty: isEmpty, createEmptyRow: createDeterministicEmpty });
+      const b = normalizeGridRows({ rows: input, minRows: 3, getRowId: getNormalizeRowId, isRowEmpty: isEmpty, createEmptyRow: createDeterministicEmpty });
       expect(a).toEqual(b);
       expect(a.map((r) => r.id)).toEqual(b.map((r) => r.id));
     });
 
     it('seed er unikt pr. oprettet tom række, så deterministiske id ikke kolliderer', () => {
       const input: Row[] = [{ id: '1', val: 'a' }];
-      const result = normalizeGridRows({ rows: input, minRows: 4, isRowEmpty: isEmpty, createEmptyRow: createDeterministicEmpty });
+      const result = normalizeGridRows({ rows: input, minRows: 4, getRowId: getNormalizeRowId, isRowEmpty: isEmpty, createEmptyRow: createDeterministicEmpty });
       const emptyIds = result.filter((r) => isEmpty(r)).map((r) => r.id);
       expect(new Set(emptyIds).size).toBe(emptyIds.length);
+    });
+
+    it('springer seed over når en eksisterende trailing tom række allerede bruger samme deterministiske id', () => {
+      const input: Row[] = [
+        { id: 'udfyldt', val: 'a' },
+        { id: 'empty-0', val: undefined },
+      ];
+      const result = normalizeGridRows({
+        rows: input,
+        minRows: 3,
+        getRowId: getNormalizeRowId,
+        isRowEmpty: isEmpty,
+        createEmptyRow: createDeterministicEmpty,
+      });
+
+      expect(result.map((r) => r.id)).toEqual(['udfyldt', 'empty-1', 'empty-0']);
+      expect(new Set(result.map((r) => r.id)).size).toBe(result.length);
     });
   });
 });

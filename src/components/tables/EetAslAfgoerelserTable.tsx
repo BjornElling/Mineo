@@ -100,6 +100,7 @@ const EetAslAfgoerelserTable = React.memo(
         return normalizeGridRows({
           rows,
           minRows: EET_ASL_MIN_VISIBLE_ROWS,
+          getRowId: (row) => row.id,
           isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
           // Determinisme-kontrakt (se normalizeGridRows): id'et udledes af seed'et, ikke en RNG,
           // så StrictMode-dobbeltinvokering af setState-updateren ikke giver divergerende id'er.

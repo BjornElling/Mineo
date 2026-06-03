@@ -144,7 +144,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     const manageRows = React.useCallback(
       (rows: readonly StandardLoenTableRow[]): StandardLoenTableRow[] => {
-        return normalizeGridRows({ rows, minRows: MIN_VISIBLE_ROWS, isRowEmpty, createEmptyRow });
+        return normalizeGridRows({ rows, minRows: MIN_VISIBLE_ROWS, getRowId: (row) => row.id, isRowEmpty, createEmptyRow });
       },
       [createEmptyRow, isRowEmpty]
     );

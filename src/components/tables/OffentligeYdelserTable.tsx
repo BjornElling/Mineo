@@ -148,7 +148,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
 
     const normalizeRows = React.useCallback(
       (rows: readonly OffentligeYdelserRow[]): OffentligeYdelserRow[] => {
-        return normalizeGridRows({ rows, minRows: MIN_VISIBLE_ROWS, isRowEmpty, createEmptyRow });
+        return normalizeGridRows({ rows, minRows: MIN_VISIBLE_ROWS, getRowId: (row) => row.id, isRowEmpty, createEmptyRow });
       },
       [createEmptyRow]
     );
