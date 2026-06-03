@@ -16,6 +16,13 @@ export type SygedagpengeAtpPrincip = Readonly<{
   kommunaltAtpPrKalenderuge: number;
 }>;
 
+export type SygedagpengeObligatoriskPensionSats = Readonly<{
+  fraDato: ISODateString;
+  tilDato: ISODateString;
+  /** Procentsats for obligatorisk pension (fx 0.3 for 0,3 pct.). */
+  procent: number;
+}>;
+
 const iso = (value: string): ISODateString => toISODateString(value);
 
 /**
@@ -34,6 +41,33 @@ export const sygedagpengeAtpPrincipper: readonly SygedagpengeAtpPrincip[] = [
   { fraDato: iso('2008-01-07'), tilDato: iso('2020-01-05'), egetAtpPrKalenderuge: 44, kommunaltAtpPrKalenderuge: 88 },
   { fraDato: iso('2020-01-06'), tilDato: iso('2023-12-31'), egetAtpPrKalenderuge: 48, kommunaltAtpPrKalenderuge: 96 },
   { fraDato: iso('2024-01-01'), tilDato: iso('2027-01-03'), egetAtpPrKalenderuge: 53, kommunaltAtpPrKalenderuge: 106 },
+] as const;
+
+/**
+ * Kanonisk oversigt over satser for obligatorisk pension (OP) for sygedagpenge,
+ * jf. § 67 a i bekendtgørelse om sygedagpenge.
+ *
+ * OP-bidraget beregnes med den angivne procentsats på grundlag af sygedagpengene
+ * efter fradrag for dagpengemodtagerens eget ATP-bidrag (§ 67, stk. 2), og bidraget
+ * for 1 uge afrundes til nærmeste hele kronebeløb.
+ *
+ * Ikrafttrædelsestidspunkterne følger dagpenge-satsåret (samme uge-grænser som
+ * `sygedagpengeRates` og `sygedagpengeAtpPrincipper`), så hvert satssegment har
+ * præcis én OP-procentsats. Før 6. januar 2020 fandtes ordningen ikke (0 pct.);
+ * `resolveObligatoriskPensionProcent` returnerer derfor 0 for datoer før første sats.
+ */
+export const sygedagpengeObligatoriskPensionSatser: readonly SygedagpengeObligatoriskPensionSats[] = [
+  { fraDato: iso('2020-01-06'), tilDato: iso('2021-01-03'), procent: 0.3 },
+  { fraDato: iso('2021-01-04'), tilDato: iso('2022-01-02'), procent: 0.6 },
+  { fraDato: iso('2022-01-03'), tilDato: iso('2023-01-01'), procent: 0.9 },
+  { fraDato: iso('2023-01-02'), tilDato: iso('2023-12-31'), procent: 1.2 },
+  { fraDato: iso('2024-01-01'), tilDato: iso('2025-01-05'), procent: 1.5 },
+  { fraDato: iso('2025-01-06'), tilDato: iso('2026-01-04'), procent: 1.8 },
+  { fraDato: iso('2026-01-05'), tilDato: iso('2027-01-03'), procent: 2.1 },
+  { fraDato: iso('2027-01-04'), tilDato: iso('2028-01-02'), procent: 2.4 },
+  { fraDato: iso('2028-01-03'), tilDato: iso('2028-12-31'), procent: 2.7 },
+  { fraDato: iso('2029-01-01'), tilDato: iso('2030-01-06'), procent: 3.0 },
+  { fraDato: iso('2030-01-07'), tilDato: iso('2030-12-31'), procent: 3.3 },
 ] as const;
 
 export const sygedagpengeRates: readonly DatedSygedagpengeRate[] = [
@@ -65,8 +99,18 @@ const firstSygedagpengeRate = sygedagpengeRates[0];
 const lastSygedagpengeRate = sygedagpengeRates[sygedagpengeRates.length - 1];
 const firstSygedagpengeAtpPrincip = sygedagpengeAtpPrincipper[0];
 const lastSygedagpengeAtpPrincip = sygedagpengeAtpPrincipper[sygedagpengeAtpPrincipper.length - 1];
+const firstObligatoriskPensionSats = sygedagpengeObligatoriskPensionSatser[0];
+const lastObligatoriskPensionSats =
+  sygedagpengeObligatoriskPensionSatser[sygedagpengeObligatoriskPensionSatser.length - 1];
 
-if (!firstSygedagpengeRate || !lastSygedagpengeRate || !firstSygedagpengeAtpPrincip || !lastSygedagpengeAtpPrincip) {
+if (
+  !firstSygedagpengeRate ||
+  !lastSygedagpengeRate ||
+  !firstSygedagpengeAtpPrincip ||
+  !lastSygedagpengeAtpPrincip ||
+  !firstObligatoriskPensionSats ||
+  !lastObligatoriskPensionSats
+) {
   throw new Error('CRITICAL: Ingen sygedagpengesatser er defineret');
 }
 
@@ -74,6 +118,10 @@ export const SYGEDAGPENGE_RATE_MIN_DATE: ISODateString = firstSygedagpengeRate.f
 export const SYGEDAGPENGE_RATE_MAX_DATE: ISODateString = lastSygedagpengeRate.tilDato;
 export const SYGEDAGPENGE_ATP_MIN_DATE: ISODateString = firstSygedagpengeAtpPrincip.fraDato;
 export const SYGEDAGPENGE_ATP_MAX_DATE: ISODateString = lastSygedagpengeAtpPrincip.tilDato;
+/** Første dag hvor obligatorisk pension trådte i kraft (6. januar 2020). */
+export const SYGEDAGPENGE_OP_MIN_DATE: ISODateString = firstObligatoriskPensionSats.fraDato;
+/** Sidste dag dækket af en defineret OP-procentsats. */
+export const SYGEDAGPENGE_OP_MAX_DATE: ISODateString = lastObligatoriskPensionSats.tilDato;
 export const SYGEDAGPENGE_INSERT_MIN_DATE: ISODateString =
   SYGEDAGPENGE_RATE_MIN_DATE > SYGEDAGPENGE_ATP_MIN_DATE ? SYGEDAGPENGE_RATE_MIN_DATE : SYGEDAGPENGE_ATP_MIN_DATE;
 export const SYGEDAGPENGE_INSERT_MAX_DATE: ISODateString =
@@ -93,6 +141,29 @@ export const resolveEgetAtpBidragPrKalenderuge = (rate: DatedSygedagpengeRate): 
     );
   }
   return princip.egetAtpPrKalenderuge;
+};
+
+/**
+ * Resolver OP-procentsatsen for et sygedagpenge-satssegment.
+ *
+ * Forudsætter at OP-grænserne følger dagpenge-satsåret, så et helt rate-segment
+ * ligger inden for præcis én OP-periode. Returnerer 0 hvis segmentet ligger helt
+ * før første OP-sats (ordningen fandtes ikke før 6. januar 2020).
+ */
+export const resolveObligatoriskPensionProcent = (rate: DatedSygedagpengeRate): number => {
+  if (rate.tilDato < sygedagpengeObligatoriskPensionSatser[0]!.fraDato) {
+    return 0;
+  }
+  const sats = sygedagpengeObligatoriskPensionSatser.find(
+    (entry) => entry.fraDato <= rate.fraDato && entry.tilDato >= rate.tilDato
+  );
+  if (!sats) {
+    throw new Error(
+      `CRITICAL: Ukendt OP-procentsats for sygedagpenge-perioden ${rate.fraDato} - ${rate.tilDato}. ` +
+        'OP-grænserne skal følge dagpenge-satsåret, så hvert rate-segment ligger inden for præcis én OP-periode.'
+    );
+  }
+  return sats.procent;
 };
 
 export const resolveKommunaltAtpBidragPrKalenderuge = (rate: DatedSygedagpengeRate): number => {
