@@ -427,6 +427,70 @@ describe('computeTafNettoBeregning', () => {
     );
   });
 
+  it('beregner lønudvikling med særskilt reguleringsdato pr. ansættelsesforhold', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2024-01-01');
+    values.tafBeregningsperiodeTil = iso('2024-01-31');
+    values.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-1',
+        navnPaaArbejdssted: 'Arbejdssted 1',
+        loenudviklingBeregningsgrundlag: 'Statistik',
+        loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+        saerligFraDatoRegulering: iso('2023-01-01'),
+        indtaegtsoplysningerTableData: [{
+          id: 'loen-jan-2024-af-1',
+          col0_maaned: '1',
+          col1_maaned: '2024',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmount(31000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        }],
+      }),
+      createEmployment({
+        id: 'af-2',
+        navnPaaArbejdssted: 'Arbejdssted 2',
+        loenudviklingBeregningsgrundlag: 'Statistik',
+        loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+        saerligFraDatoRegulering: iso('2024-01-01'),
+        indtaegtsoplysningerTableData: [{
+          id: 'loen-jan-2024-af-2',
+          col0_maaned: '1',
+          col1_maaned: '2024',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: '',
+          col1_dag: '',
+          col2: asAmount(27000),
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        }],
+      }),
+    ];
+
+    const result = computeTafNettoBeregning(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      { tafRanges: [{ fra: iso('2025-01-01'), til: iso('2025-01-31') }] }
+    );
+
+    expect(result.loenudvikling?.perAnsaettelse).toHaveLength(2);
+    const af1 = result.loenudvikling?.perAnsaettelse.find((entry) => entry.ansaettelsesforholdId === 'af-1');
+    const af2 = result.loenudvikling?.perAnsaettelse.find((entry) => entry.ansaettelsesforholdId === 'af-2');
+    expect(af1?.loenudviklingTotal.status).toBe('ok');
+    expect(af2?.loenudviklingTotal.status).toBe('ok');
+    expect(af1?.beregnedeSegmenter[0]?.deltaPct).not.toBe(af2?.beregnedeSegmenter[0]?.deltaPct);
+    expect(result.loenudvikling?.loenudviklingTotal.status).toBe('ok');
+  });
+
   it('genbruger beregningsperiode-indkomsten mellem indkomstskadestidspunkt og loenudvikling', () => {
     const buildIncomeForRangesSpy = vi.spyOn(indtaegtPerioderModule, 'buildIncomeForRanges');
     try {
