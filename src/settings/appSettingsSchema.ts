@@ -82,6 +82,8 @@ export const appSettingsSchema = z
     defaultSvieSmerteDelvisSygemeldingSats: z.enum(APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS),
     defaultIndsaetUdkastStempel: z.boolean(),
     defaultVisBilagsnumre: z.boolean(),
+    allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: z.boolean(),
+    allowReguleringMedUdloebMedMaaneder: z.number().int().min(0).max(12),
     // Fil-placering (IndexedDB handle ID - validering sker runtime, ikke i schema)
     defaultDirectoryHandleId: z.string().optional(),
     // Brevhoved-indstillinger for PDF-dokumenter
@@ -107,6 +109,8 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   defaultSvieSmerteDelvisSygemeldingSats: 'halv',
   defaultIndsaetUdkastStempel: true,
   defaultVisBilagsnumre: false,
+  allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
+  allowReguleringMedUdloebMedMaaneder: 6,
   // Fil-placering (undefined = brug desktop som fallback)
   defaultDirectoryHandleId: undefined,
   // Brevhoved-indstillinger

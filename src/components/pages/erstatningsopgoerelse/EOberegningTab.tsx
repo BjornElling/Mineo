@@ -36,7 +36,6 @@ import {
   type EoBilagDynamicSelectionKey,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
 import { allowPdfDownload, blockPdfDownload, type PdfDownloadGateResult } from '../../../pdf/pdfGateTypes';
-import { resolveEoCaseReguleringSettings } from '../../../domain/erstatningsopgoerelse/helpers/eoCaseReguleringSettings';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -271,10 +270,6 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
 
   const navigate = useNavigate();
   const { settings } = useAppSettings();
-  const caseSettings = React.useMemo(
-    () => resolveEoCaseReguleringSettings(settings, eoValues),
-    [eoValues, settings]
-  );
   const stamdataErrors = useFieldErrorsBySourceForSection('stamdata');
   const eoErrors = useFieldErrorsBySourceForSection('erstatningsopgoerelse');
   const manuelReguleringInputErrors = useBlockingFieldIdsBySuffixForSection('erstatningsopgoerelse', EO_LOENINDKOMST_INPUT_ERROR_SUFFIX);
@@ -308,7 +303,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
         eoValues,
         eoErrors,
         manuelReguleringInputErrors,
-        caseSettings,
+        settings,
         beregningView?.canonicalOutput
       ),
       'EOberegningTab.collectAllDebugRows',
@@ -324,7 +319,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
 
     return { ...result.value, debugAggregationErrorMessage: null };
-  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, caseSettings, beregningView]);
+  }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings, beregningView]);
   const eoPdfProjection = React.useMemo(
     () => (eoSnapshot ? eoSnapshotToEoPdfDocument(eoSnapshot) : null),
     [eoSnapshot]

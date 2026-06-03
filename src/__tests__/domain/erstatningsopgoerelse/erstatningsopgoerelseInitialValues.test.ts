@@ -109,13 +109,6 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
     expect(values.visBilagsnumre).toBe('Ja');
   });
 
-  it('regulerings-tilladelser materialiseres som sagsinput uafhængigt af device-settings', () => {
-    const values = createErstatningsopgoerelseInitialValues(DEFAULT_APP_SETTINGS);
-
-    expect(values.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden).toBe(false);
-    expect(values.allowReguleringMedUdloebMedMaaneder).toBe(6);
-  });
-
   it('ugyldig settings → falder tilbage til defaults og returnerer gyldigt skema', () => {
     const values = createErstatningsopgoerelseInitialValues(
       { invalid: 'settings' } as unknown as Parameters<typeof createErstatningsopgoerelseInitialValues>[0]

@@ -6,7 +6,6 @@ import { useAppSettings } from '../../../contexts/useAppSettings';
 import { buildEODebugPageViewModel } from '../../../domain/debug/eoDebugPageViewModel';
 import { eoSnapshotToDebugView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { resolveEoCaseReguleringSettings } from '../../../domain/erstatningsopgoerelse/helpers/eoCaseReguleringSettings';
 import EODebugRegulationSections from './EODebugRegulationSections';
 import EODebugRowsSection from './EODebugRowsSection';
 import EODebugEmploymentSections from './EODebugEmploymentSections';
@@ -24,9 +23,7 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
 
   const view = React.useMemo(() => eoSnapshotToDebugView({
     snapshot: eoSnapshot,
-    appSettings: eoSnapshot?.debugSnapshot
-      ? resolveEoCaseReguleringSettings(settings, eoSnapshot.debugSnapshot.eoValues)
-      : settings,
+    appSettings: settings,
     loenindkomstManuelReguleringInputErrors: manuelReguleringInputErrors,
   }), [eoSnapshot, manuelReguleringInputErrors, settings]);
 
@@ -43,7 +40,7 @@ const EODebug = ({ eoSnapshot = null }: EODebugProps) => {
 
   const pageView = buildEODebugPageViewModel(
     view,
-    resolveEoCaseReguleringSettings(settings, view.erstatningsopgoerelseValues)
+    settings
   );
 
   return (

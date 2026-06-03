@@ -2551,11 +2551,11 @@ export const buildEODebugIndkomstRows = (
   values: ErstatningsopgoerelseValues,
   skadedato: ISODateString | undefined,
   manualReguleringInputErrors: Readonly<Record<string, true>> = {},
-  _appSettings: AppSettings = DEFAULT_APP_SETTINGS
+  appSettings: AppSettings = DEFAULT_APP_SETTINGS
 ): DebugRowModel[] => {
   const rows: DebugRowModel[] = [];
-  const allowIncompleteOverenskomst = values.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
-  const overenskomstUdloebMaanederGraense = values.allowReguleringMedUdloebMedMaaneder;
+  const allowIncompleteOverenskomst = appSettings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
+  const overenskomstUdloebMaanederGraense = appSettings.allowReguleringMedUdloebMedMaaneder;
   const tafBoundaryDates = resolveTafBoundaryDatesInSkadetPeriode(values);
 
   const sections = buildIndkomstSectionStatuses(values, skadedato);

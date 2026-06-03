@@ -26,7 +26,10 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // erhvervsevnetab-sektionen. PERSISTED_DATA_VERSION bumpet til 1.8 (reel persisted schema-ændring).
 // Opdateret 2026-05-30: nyt bilag-felt merErstatningPensionsalder på
 // eetDifferencekravBilagSelection. PERSISTED_DATA_VERSION bumpet til 1.9 (reel persisted schema-ændring).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-c52974da';
+// Opdateret 2026-06-03: fjernet allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden og
+// allowReguleringMedUdloebMedMaaneder fra erstatningsopgoerelse-sektionen (rullet tilbage til
+// device-lokale app-settings). PERSISTED_DATA_VERSION bumpet til 2.0 (bevidst breaking schema-ændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-b99316b8';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

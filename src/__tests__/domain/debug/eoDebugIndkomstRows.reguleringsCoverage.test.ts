@@ -103,7 +103,6 @@ describe('buildEODebugIndkomstRows regulering details', () => {
   it('klassificerer manglende overenskomstdækning som warning når allow=true', () => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
-    values.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden = true;
     values.vedroererPeriodeFra = iso('2009-01-01');
     values.vedroererPeriodeTil = iso('2012-12-31');
     values.tafPerioder = [{ id: 'taf-1', fra: iso('2009-01-01'), til: iso('2012-12-31'), loseFeriedage: undefined }];
@@ -115,7 +114,8 @@ describe('buildEODebugIndkomstRows regulering details', () => {
     af.offentligLoenTrin = 31;
     af.offentligLoenGruppe = 2;
 
-    const rows = buildEODebugIndkomstRows(values, iso('2009-01-01'), {}, DEFAULT_APP_SETTINGS);
+    const appSettings = { ...DEFAULT_APP_SETTINGS, allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true };
+    const rows = buildEODebugIndkomstRows(values, iso('2009-01-01'), {}, appSettings);
     const prefix = `loenindkomst.${af.id}.regulering`;
     const startRow = rows.find((row) => row.id === `${prefix}.startvaerdi`);
 

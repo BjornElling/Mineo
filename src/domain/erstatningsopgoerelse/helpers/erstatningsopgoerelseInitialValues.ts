@@ -143,8 +143,6 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   offentligeYdelserRows: [],
   midlertidigtEetFraEetSiden: 'Nej',
   regulerOffentligeYdelser: 'Ja',
-  allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
-  allowReguleringMedUdloebMedMaaneder: 6,
 
   // Indtægt før skaden
   komprimerBeregningEfterFoersteOpgoerelse: 'Ja',

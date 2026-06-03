@@ -137,7 +137,7 @@ describe('usePersistedForm', () => {
   it('materialiserer subset-return oven på committed sektion med genuint fraværende default-felter', () => {
     const eoInitialValues = createErstatningsopgoerelseInitialValues();
     const oldCommittedValues = { ...eoInitialValues };
-    delete (oldCommittedValues as Partial<typeof eoInitialValues>).allowReguleringMedUdloebMedMaaneder;
+    delete (oldCommittedValues as Partial<typeof eoInitialValues>).regulerOffentligeYdelser;
     const captured: {
       setValues: UsePersistedFormReturn<typeof eoInitialValues>['setValues'] | null;
       values: typeof eoInitialValues | null;
@@ -166,11 +166,11 @@ describe('usePersistedForm', () => {
     expect(captured.values).toMatchObject({
       ...eoInitialValues,
       eoNummer: 'Patch',
-      allowReguleringMedUdloebMedMaaneder: 6,
+      regulerOffentligeYdelser: 'Ja',
     });
     expect(formPersistenceStore.getState().sections.erstatningsopgoerelse).toMatchObject({
       eoNummer: 'Patch',
-      allowReguleringMedUdloebMedMaaneder: 6,
+      regulerOffentligeYdelser: 'Ja',
     });
   });
 

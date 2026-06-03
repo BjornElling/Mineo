@@ -108,14 +108,19 @@ describe('appSettingsSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('holder regulerings-tilladelser ude af device-local settings', () => {
-    expect('allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden' in DEFAULT_APP_SETTINGS).toBe(false);
-    expect('allowReguleringMedUdloebMedMaaneder' in DEFAULT_APP_SETTINGS).toBe(false);
+  it('har regulerings-tilladelser som device-local settings med konservative defaults', () => {
+    expect(DEFAULT_APP_SETTINGS.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden).toBe(false);
+    expect(DEFAULT_APP_SETTINGS.allowReguleringMedUdloebMedMaaneder).toBe(6);
+  });
+
+  it('afviser allowReguleringMedUdloebMedMaaneder uden for 0–12', () => {
+    expect(appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, allowReguleringMedUdloebMedMaaneder: 13 }).success).toBe(false);
+    expect(appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, allowReguleringMedUdloebMedMaaneder: -1 }).success).toBe(false);
   });
 });
 
 describe('parseStoredSettings', () => {
-  it('ignorerer tidligere regulerings-settings uden at nulstille øvrige gyldige indstillinger', () => {
+  it('bevarer gemte regulerings-settings sammen med øvrige gyldige indstillinger', () => {
     const settings = parseStoredSettings({
       ...DEFAULT_APP_SETTINGS,
       themeMode: 'dark',
@@ -124,8 +129,8 @@ describe('parseStoredSettings', () => {
     });
 
     expect(settings.themeMode).toBe('dark');
-    expect('allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden' in settings).toBe(false);
-    expect('allowReguleringMedUdloebMedMaaneder' in settings).toBe(false);
+    expect(settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden).toBe(true);
+    expect(settings.allowReguleringMedUdloebMedMaaneder).toBe(9);
   });
 });
 
