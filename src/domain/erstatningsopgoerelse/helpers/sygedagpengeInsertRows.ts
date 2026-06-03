@@ -42,6 +42,38 @@ const buildSegmentExpression = (arbejdsdage: number, satsPrDag: number): string 
   return `${arbejdsdage}*${satsPrDag}`;
 };
 
+/**
+ * Komprimerer konsekutive identiske uge-led til `antal*(led)`.
+ *
+ * Fulde uger i et satssegment giver identiske led (samme afrundede ATP og OP),
+ * mens delvise uger i enderne (eller uger med SH-dage) har egne beløb og bevares
+ * for sig. Run-length-kodning over uge-rækkefølgen holder derfor det naturlige
+ * tidsforløb og afrundingen pr. uge intakt:
+ *   - led der optræder én gang skrives uændret (fx `21*2+35`),
+ *   - led der gentages skrives som `antal*(led)` når det indeholder `+` (fx `26*(48*2+54)`),
+ *     ellers som `antal*led` (fx `26*48*2`) da multiplikation er associativ.
+ */
+const compressUgeBidrag = (ugeLed: readonly string[]): string => {
+  const grupper: string[] = [];
+  let i = 0;
+  while (i < ugeLed.length) {
+    const led = ugeLed[i]!;
+    let antal = 1;
+    while (i + antal < ugeLed.length && ugeLed[i + antal] === led) {
+      antal += 1;
+    }
+    if (antal === 1) {
+      grupper.push(led);
+    } else if (led.includes('+')) {
+      grupper.push(`${antal}*(${led})`);
+    } else {
+      grupper.push(`${antal}*${led}`);
+    }
+    i += antal;
+  }
+  return grupper.join('+');
+};
+
 const buildTillaegExpression = (segment: SygedagpengeSegment): string => {
   const egetAtpPrKalenderuge = resolveEgetAtpBidragPrKalenderuge(segment.rate);
   const kommunaltFaktor = resolveKommunaltAtpBidragPrKalenderuge(segment.rate) / egetAtpPrKalenderuge;
@@ -68,7 +100,7 @@ const buildTillaegExpression = (segment: SygedagpengeSegment): string => {
     throw new Error('CRITICAL: Sygedagpenge-segment med arbejdsdage gav intet tillæg pr. kalenderuge');
   }
 
-  return ugeBidrag.join('+');
+  return compressUgeBidrag(ugeBidrag);
 };
 
 export const splitSygedagpengeRateSegments = (
@@ -213,4 +245,12 @@ export const buildSygedagpengeRowsForRange = (
  *   forudberegnede, uge-afrundede OP-beløb.
  * - Procentsatserne resolves af `resolveObligatoriskPensionProcent` fra `sygedagpengeRates.ts`,
  *   hvor de står sammen med ATP-satserne.
+ *
+ * Vigtigt om udtryks-komprimering:
+ * - Fulde uger i et satssegment giver identiske uge-led; for at undgå unødigt lange udtryk
+ *   (fx `48*2+54+48*2+54+...` gentaget snesevis af gange) komprimeres konsekutive identiske
+ *   led til `antal*(led)` af `compressUgeBidrag`, fx `26*(48*2+54)`.
+ * - Delvise uger i enderne (eller uger med SH-dage) har egne beløb og bevares som selvstændige
+ *   led, så uge-afrundingen er uændret. Komprimeringen er rent kosmetisk: den evaluerede sum
+ *   er identisk med den ukomprimerede form.
  */

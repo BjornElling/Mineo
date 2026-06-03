@@ -79,10 +79,51 @@ describe('sygedagpengeInsertRows', () => {
     expect(rows).toHaveLength(1);
     // To delvise uger med hver 2 arbejdsdage: eget ATP = round(2*53/5) = 21 pr. uge.
     // OP (1,8 pct.) på grundlag af sygedagpenge minus eget ATP: round(0,018*(2*973-21)) = 35 pr. uge.
+    // De to identiske uge-led komprimeres til 2*(21*2+35).
     expect(rows[0]?.tillaeg).toEqual({
       kind: 'expression',
-      expression: '21*2+35+21*2+35',
+      expression: '2*(21*2+35)',
       value: 154,
+    });
+  });
+
+  it('komprimerer gentagne identiske fulde uger til antal*(uge-led)', () => {
+    // 8 fulde uger i 2023 (sats 910, eget 48, OP 1,2 %): hver uge giver leddet 48*2+54.
+    // Perioden 2023-02-06 (mandag) til 2023-03-31 (fredag) rummer 8 hele arbejdsuger uden helligdage.
+    const rows = buildSygedagpengeRowsForRange(toISODateString('2023-02-06'), toISODateString('2023-03-31'));
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.tillaeg).toEqual({
+      kind: 'expression',
+      expression: '8*(48*2+54)',
+      value: 8 * (48 * 2 + 54),
+    });
+  });
+
+  it('bevarer delvise uger for sig og komprimerer kun de identiske fulde uger imellem', () => {
+    // Start midt i en uge (onsdag 2023-02-08) → første uge er delvis (3 dage), derefter 3 fulde uger.
+    const rows = buildSygedagpengeRowsForRange(toISODateString('2023-02-08'), toISODateString('2023-03-03'));
+
+    expect(rows).toHaveLength(1);
+    // Delvis uge (3 dage): eget = round(3*48/5) = 29, OP = round(0,012*(3*910-29)) = 32 → 29*2+32.
+    // Derefter tre fulde uger: 3*(48*2+54).
+    expect(rows[0]?.tillaeg).toEqual({
+      kind: 'expression',
+      expression: '29*2+32+3*(48*2+54)',
+      value: 29 * 2 + 32 + 3 * (48 * 2 + 54),
+    });
+  });
+
+  it('komprimerer fulde uger uden OP (før 2020) som antal*led uden parentes', () => {
+    // 8 fulde uger i 2019 (eget 44, ingen OP): hver uge er leddet 44*2. Uden et +-led er
+    // multiplikation associativ, så komprimeringen skrives som 8*44*2 (ingen parentes).
+    const rows = buildSygedagpengeRowsForRange(toISODateString('2019-02-04'), toISODateString('2019-03-29'));
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.tillaeg).toEqual({
+      kind: 'expression',
+      expression: '8*44*2',
+      value: 8 * 44 * 2,
     });
   });
 
