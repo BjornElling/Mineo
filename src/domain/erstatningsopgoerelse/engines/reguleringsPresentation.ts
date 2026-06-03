@@ -819,7 +819,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
         const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
           return typeof value === 'number' ? [[String(year), formatCurrency(value)]] : [];
         });
-      if (rows.length === 0) return null;
+      if (rows.length !== years.size) return null;
       return { columns: ['År', 'Maksimum årsløn'], rows };
     }
 
@@ -1512,7 +1512,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
         const periodStarts: Array<{ startIso: ISODateString; components: FormulaComponents }> = [];
         for (let year = startYear; year <= endYear; year += 1) {
           const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
-          if (typeof value !== 'number') continue;
+          if (typeof value !== 'number') return [];
           const startIso = parseOptionalIsoDate(`${year}-01-01`);
           if (!startIso) continue;
           periodStarts.push({

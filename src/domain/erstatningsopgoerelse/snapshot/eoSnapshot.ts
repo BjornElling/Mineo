@@ -30,7 +30,7 @@ import {
   buildControlMismatchInvariant,
   buildMidlertidigtEetSourceInvariants,
   buildTafPerYearAfrundingInvariant,
-  buildTafPerYearOpreguleretManglendeIndeksInvariant,
+  buildTafPerYearOpreguleretManglendeReguleringssatsInvariant,
   buildTafPerYearUnavailableInvariant,
   buildValidationInvariants,
   hasAnyErrorInvariant,
@@ -373,8 +373,8 @@ export const computeEoSnapshot = (args: Readonly<{
     if (tafPerYearOutcome.kind === 'not_applicable' && tafNetto.harTafPerioder) {
       invariants.push(buildTafPerYearUnavailableInvariant(tafPerYearOutcome.reason));
     }
-    if (tafPerYearOpreguleretOutcome.kind === 'error' && tafPerYearOpreguleretOutcome.reason === 'manglende_indeks') {
-      invariants.push(buildTafPerYearOpreguleretManglendeIndeksInvariant(tafPerYearOpreguleretOutcome.manglendeAar));
+    if (tafPerYearOpreguleretOutcome.kind === 'error' && tafPerYearOpreguleretOutcome.reason === 'manglende_reguleringssats') {
+      invariants.push(buildTafPerYearOpreguleretManglendeReguleringssatsInvariant(tafPerYearOpreguleretOutcome.manglendeAar));
     }
 
     // Denne invariant er bevidst udledt af debug-tabellens sammentælling-model.

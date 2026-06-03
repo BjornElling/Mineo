@@ -20,6 +20,8 @@ import {
 } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import AarsloenAmountFieldRow from '../../inputs/AarsloenAmountFieldRow';
 import { type SetFieldValue, type SetValuesUpdater } from '../../../hooks/usePersistedForm';
+import { opregulerMedAkkumuleretReguleringssats } from '../../../domain/satser/opreguleringsmotorer';
+import { reguleringssats } from '../../../data/lovbestemteRates';
 
 export type EetOplysningerTabProps = {
   values: ErhvervsevnetabComposedValues;
@@ -75,6 +77,20 @@ const EetOplysningerTab = ({
     () => validatePercentDivisibleBy5FromValue(values.ealEetPct, 'EET %'),
     [values.ealEetPct]
   );
+  const ealReguleringssatsError = React.useMemo(() => {
+    const skadedatoIso = coerceToISODateString(skadedato);
+    const beregningsdatoIso = coerceToISODateString(values.beregningsdato);
+    if (!skadedatoIso || !beregningsdatoIso) return undefined;
+    const skadesaar = Number.parseInt(skadedatoIso.slice(0, 4), 10);
+    const beregningsaar = Number.parseInt(beregningsdatoIso.slice(0, 4), 10);
+    if (!Number.isInteger(skadesaar) || !Number.isInteger(beregningsaar)) return undefined;
+    const { manglendeAar } = opregulerMedAkkumuleretReguleringssats(
+      { kildeAar: skadesaar, maalAar: beregningsaar },
+      reguleringssats
+    );
+    if (manglendeAar.length === 0) return undefined;
+    return `EAL-beregningen kan ikke gennemføres, fordi der mangler reguleringssats for ${manglendeAar.join(', ')}.`;
+  }, [skadedato, values.beregningsdato]);
 
   const koenError = React.useMemo(() => {
     if (values.koen) return undefined;
@@ -133,6 +149,8 @@ const EetOplysningerTab = ({
               maxDate={dateRanges_erhvervsevnetab.beregningsdato.max}
               specialRangeErrors={{ maxBoundKind: 'eetDataMax', maxBoundFieldLabel: 'Beregningsdato' }}
               inputRef={beregningsdatoInputRef}
+              error={Boolean(ealReguleringssatsError)}
+              helperText={ealReguleringssatsError ?? ''}
             />
             <InsertTodayDateButton
               onCommit={(today) => {

@@ -2521,12 +2521,12 @@ describe('eoPdfModel', () => {
     const baseAf = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       loenudviklingBeregningsgrundlag: 'Statistik' as const,
-      loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ILON12 (Danmarks Statistik)'],
+      loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['SBLON2 (Danmarks Statistik)'],
       indtaegtsoplysningerTableData: [
         {
           id: 'r1',
           col0_maaned: '6',
-          col1_maaned: '2000',
+          col1_maaned: '2015',
           col0_uge: '',
           col1_uge: '',
           col0_dag: undefined,
@@ -2544,13 +2544,13 @@ describe('eoPdfModel', () => {
       maanedsloenenUdgoer: beregningsmetode === 'Angivet månedsløn' ? asAmountValue(32000) : undefined,
       dagsloenenUdgoer: beregningsmetode === 'Angivet dagsløn' ? asAmountValue(1500) : undefined,
       tafPerioder: [
-        { id: 'taf-1', fra: iso('2004-01-01'), til: iso('2006-12-31'), loseFeriedage: undefined },
+        { id: 'taf-1', fra: iso('2015-01-01'), til: iso('2017-12-31'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: toISODateString('2004-01-01'),
-          tilDato: toISODateString('2004-01-01'),
+          fraDato: toISODateString('2015-01-01'),
+          tilDato: toISODateString('2015-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2558,13 +2558,13 @@ describe('eoPdfModel', () => {
       ],
       loenindkomstAnsaettelsesforhold: [baseAf],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2000-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2015-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    const firstSegment = segments.find((segment) => segment.fra === toISODateString('2004-01-01'));
+    const firstSegment = segments.find((segment) => segment.fra === toISODateString('2015-01-01'));
     expect(firstSegment?.deltaPct).toBe(0);
-    expect(segments.some((segment) => segment.fra >= toISODateString('2006-01-01') && segment.deltaPct > 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= toISODateString('2016-01-01') && segment.deltaPct > 0)).toBe(true);
   });
 
   it('anvender statistik-fallback (variant B) for manglende basisdækning ved Beregningsperiode', () => {
@@ -2573,13 +2573,13 @@ describe('eoPdfModel', () => {
       tafBeregningsperiodeFra: iso('2023-01-01'),
       tafBeregningsperiodeTil: iso('2023-12-31'),
       tafPerioder: [
-        { id: 'taf-1', fra: iso('2004-01-01'), til: iso('2006-12-31'), loseFeriedage: undefined },
+        { id: 'taf-1', fra: iso('2015-01-01'), til: iso('2017-12-31'), loseFeriedage: undefined },
       ],
       offentligeYdelserRows: [
         {
           id: 'ydelse-1',
-          fraDato: toISODateString('2004-01-01'),
-          tilDato: toISODateString('2004-01-01'),
+          fraDato: toISODateString('2015-01-01'),
+          tilDato: toISODateString('2015-01-01'),
           ydelse: asAmountValue(1),
           tillaeg: asAmountValue(0),
           ydelsestype: 'Sygedagpenge',
@@ -2589,8 +2589,8 @@ describe('eoPdfModel', () => {
         {
           ...createDefaultLoenindkomstAnsaettelsesforhold(),
           loenudviklingBeregningsgrundlag: 'Statistik',
-          loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
-          saerligFraDatoRegulering: iso('2000-01-01'),
+          loenudviklingStatistikModel: 'SBLON2 (Danmarks Statistik)',
+          saerligFraDatoRegulering: iso('2015-01-01'),
           indtaegtsoplysningerTableData: [
             {
               id: 'row-1',
@@ -2613,11 +2613,11 @@ describe('eoPdfModel', () => {
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    expect(segments.some((segment) => segment.fra === toISODateString('2004-01-01') && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra >= toISODateString('2006-01-01') && segment.deltaPct > 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra === toISODateString('2015-01-01') && segment.deltaPct === 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra >= toISODateString('2016-01-01') && segment.deltaPct > 0)).toBe(true);
   });
 
-  it('bevarer ASL-segmenter uden data som 0-regulering (ikke filtreret væk)', () => {
+  it('afviser ASL-segmenter uden årslønsmaksimum i stedet for 0-regulering', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
@@ -2633,19 +2633,17 @@ describe('eoPdfModel', () => {
       ],
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2000-01-01') });
-    const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
-    const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
-
-    expect(segments.some((segment) => segment.fra === toISODateString('2004-01-01') && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra === toISODateString('2005-01-01'))).toBe(true);
+    expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') })).toThrow(
+      'ASL-årslønsmaksimum mangler for 2000'
+    );
   });
 
-  it('anvender KRL-fallback (variant B) når reguleringsdato ligger før første sats', () => {
+  it('anvender KRL-regulering når reguleringsdatoen har satsdækning', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(30000),
       tafPerioder: [
-        { id: 'taf-1', fra: iso('2000-01-01'), til: iso('2002-12-31'), loseFeriedage: undefined },
+        { id: 'taf-1', fra: iso('2005-01-01'), til: iso('2006-12-31'), loseFeriedage: undefined },
       ],
       loenindkomstAnsaettelsesforhold: [
         {
@@ -2655,12 +2653,12 @@ describe('eoPdfModel', () => {
         },
       ],
     });
-    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2000-01-01') });
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2005-01-01') });
     const model = buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') });
     const segments = model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [];
 
-    expect(segments.some((segment) => segment.fra === toISODateString('2000-01-01') && segment.deltaPct === 0)).toBe(true);
-    expect(segments.some((segment) => segment.fra >= toISODateString('2001-10-01') && segment.deltaPct > 0)).toBe(true);
+    expect(segments.some((segment) => segment.fra === toISODateString('2005-01-01'))).toBe(true);
+    expect(segments.some((segment) => segment.deltaPct > 0)).toBe(true);
   });
 
   it('anvender overenskomst-fallback (privat) for tidlige perioder uden sats', () => {
@@ -2984,7 +2982,7 @@ describe('eoPdfModel', () => {
       const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2005-01-01') });
       expectSilencedConsoleErrorThrow(
         () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
-        'Loenudvikling kan ikke beregnes: ugyldigt ASL indeks'
+        'ASL-årslønsmaksimum mangler for 2006'
       );
     } finally {
       aarsloenAslMax[2006] = original2006;
@@ -3004,7 +3002,7 @@ describe('eoPdfModel', () => {
       const eoValues = makeValues({
         beregnesUdFra: 'Angivet månedsløn',
         maanedsloenenUdgoer: asAmountValue(32000),
-        tafPerioder: [{ id: 'taf-1', fra: iso('2001-04-01'), til: iso('2002-01-01'), loseFeriedage: undefined }],
+        tafPerioder: [{ id: 'taf-1', fra: iso('2005-04-01'), til: iso('2006-01-01'), loseFeriedage: undefined }],
         loenindkomstAnsaettelsesforhold: [
           {
             ...createDefaultLoenindkomstAnsaettelsesforhold(),
@@ -3013,10 +3011,10 @@ describe('eoPdfModel', () => {
           },
         ],
       });
-      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2001-04-01') });
+      const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2005-04-01') });
       expectSilencedConsoleErrorThrow(
         () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
-        'Loenudvikling kan ikke beregnes: ugyldigt KRL indeks for segment'
+        'Loenudvikling kan ikke beregnes: ugyldigt KRL basisindeks'
       );
     } finally {
       spy.mockRestore();

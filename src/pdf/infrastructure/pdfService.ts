@@ -518,10 +518,12 @@ export const downloadTafFordeltPaaAarPdf = async (params: Readonly<{
 export const downloadTafOpreguleretPaaAarPdf = async (params: Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
+  selectedElements: SelectedElements;
   settings: AppSettings;
   snapshot: EoSnapshot;
+  midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
 }>): Promise<PdfDownloadResult> => {
-  const { settings, snapshot } = params;
+  const { settings, snapshot, selectedElements } = params;
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
   const tafOpreguleretPdfDocument = eoSnapshotToTafPerYearOpreguleretPdfDocument(snapshot);
   if (tafOpreguleretPdfDocument.kind === 'blocked') {
@@ -536,6 +538,10 @@ export const downloadTafOpreguleretPaaAarPdf = async (params: Readonly<{
       visBrevhoved,
       visUdkastStempel: params.eoValues.indsaetUdkastStempel === 'Ja',
       document: tafOpreguleretPdfDocument.document,
+      eoValues: params.eoValues,
+      stamdataValues: params.stamdataValues,
+      selectedElements,
+      midlertidigtEetGroups: params.midlertidigtEetGroups,
     });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {

@@ -8,28 +8,29 @@
  * bruges, uanset dag og måned.
  *
  * PRINCIP:
- *   For hvert år Y opreguleres med faktoren idx[beregningsår] / idx[Y], hvor
- *   idx er den lovbestemte årslønsindeks-tabel (aarsloenAslMax). Det er samme
- *   indeksserie og samme fremgangsmåde som anvendes ved opregulering af årsløn,
- *   men her udtrykt som en selvstændig ydelse.
+ *   For hvert år Y opreguleres med den AKKUMULEREDE REGULERINGSSATS for de
+ *   mellemliggende år (∏(1 + sats/100)), dvs. "tilpasningsprocenten plus to
+ *   procent" — samme metode som ved fremskrivning af årsløn til EET efter EAL og
+ *   ved regulering af offentlige ydelser. Selve beregningen ligger i den fælles
+ *   motor `opregulerMedAkkumuleretReguleringssats`.
  *
  *   Faktoren udtrykkes som en deltaprocent (deltaPct), så PDF'en kan vise
  *   "x (100 % + d %)" på samme måde som lønudviklingssegmenterne. Det
- *   opregulerede beløb beregnes konsistent med deltaPct, så visning og tal
- *   stemmer overens.
+ *   opregulerede beløb beregnes konsistent med den VISTE (afrundede) deltaPct, så
+ *   visning og tal stemmer overens.
  *
  * FAIL-CLOSED:
- *   Mangler indeks for beregningsåret eller for et af de relevante år (med et
- *   nettobeløb forskelligt fra 0), returneres en fejl i stedet for en
- *   misvisende delvis opregulering. Snapshot-laget oversætter fejlen til en
- *   blokerende invariant.
+ *   Mangler reguleringssats for et af de mellemliggende år (frem til
+ *   beregningsåret) for et år med et nettobeløb forskelligt fra 0, returneres en
+ *   fejl i stedet for en misvisende delvis opregulering. Snapshot-laget oversætter
+ *   fejlen til en blokerende invariant.
  */
 
 import type { ISODateString } from '../../../types/branded';
 import type { MoneyOre } from '../snapshot/eoPresentationModel';
 import { roundKroner, toOre } from '../snapshot/eoPresentationModel';
 import { roundByMethod } from '../../../utils/rounding';
-import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { opregulerMedAkkumuleretReguleringssats } from '../../satser/opreguleringsmotorer';
 import type { TafPerYearResult } from './tafPerYearDerived';
 
 // ─── Types ──────────────────────────────────────────────────────────────
@@ -57,20 +58,19 @@ export type TafPerYearOpreguleretBuildOutcome =
   | Readonly<{ kind: 'not_applicable' }>
   | Readonly<{
     kind: 'error';
-    reason: 'manglende_indeks';
-    /** Årstal der mangler indeks (inkl. evt. beregningsåret). */
+    reason: 'manglende_reguleringssats';
+    /** Mellemliggende år der mangler reguleringssats (frem til beregningsåret). */
     manglendeAar: readonly number[];
   }>;
 
 // ─── Builder ────────────────────────────────────────────────────────────
 
-const indexForYear = (year: number): number | undefined => {
-  const idx = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
-  return typeof idx === 'number' && Number.isFinite(idx) && idx > 0 ? idx : undefined;
-};
-
 /**
  * Opregulerer det per-år fordelte TAF-krav til beregningsårets prisniveau.
+ *
+ * Bruger den fælles motor `opregulerMedAkkumuleretReguleringssats` (akkumuleret
+ * reguleringssats / "tilpasningsprocenten plus to procent") — samme metode som
+ * fremskrivning af årsløn til EET efter EAL og regulering af offentlige ydelser.
  *
  * @param tafPerYear  Resultatet fra buildTafPerYearBuildOutcome (kind 'ok').
  * @param beregningsDatoISO  Datoen opgørelsen er lavet (kun årstallet bruges).
@@ -85,29 +85,26 @@ export const buildTafPerYearOpreguleretBuildOutcome = (
 
   const beregningsAar = Number.parseInt(beregningsDatoISO.slice(0, 4), 10);
   if (!Number.isInteger(beregningsAar)) {
-    return { kind: 'error', reason: 'manglende_indeks', manglendeAar: [] };
+    return { kind: 'error', reason: 'manglende_reguleringssats', manglendeAar: [] };
   }
 
-  const baseIndex = indexForYear(beregningsAar);
-
-  // Indsaml manglende år: beregningsåret samt ethvert år med et nettobeløb ≠ 0
-  // hvor indeks mangler. År med 0-beløb påvirker ikke totalen, så de behøver
-  // ikke indeks (men de vises stadig med faktor 0).
-  const manglendeAar: number[] = [];
-  if (baseIndex === undefined) {
-    manglendeAar.push(beregningsAar);
-  }
+  // Indsaml manglende reguleringssatser: ethvert mellemliggende år (frem til
+  // beregningsåret) for et år med et nettobeløb ≠ 0. År med 0-beløb påvirker ikke
+  // totalen, så de behøver ikke fuld satsdækning (de vises med faktor 0).
+  const manglendeAarSet = new Set<number>();
   for (const yearEntry of tafPerYear.years) {
     if (yearEntry.yearTafOre === 0) continue;
-    if (indexForYear(yearEntry.year) === undefined) {
-      manglendeAar.push(yearEntry.year);
-    }
+    const { manglendeAar } = opregulerMedAkkumuleretReguleringssats({
+      kildeAar: yearEntry.year,
+      maalAar: beregningsAar,
+    });
+    for (const aar of manglendeAar) manglendeAarSet.add(aar);
   }
-  if (manglendeAar.length > 0 || baseIndex === undefined) {
+  if (manglendeAarSet.size > 0) {
     return {
       kind: 'error',
-      reason: 'manglende_indeks',
-      manglendeAar: [...new Set(manglendeAar)].sort((a, b) => a - b),
+      reason: 'manglende_reguleringssats',
+      manglendeAar: [...manglendeAarSet].sort((a, b) => a - b),
     };
   }
 
@@ -115,9 +112,13 @@ export const buildTafPerYearOpreguleretBuildOutcome = (
   let sumOpreguleretOre = 0;
 
   for (const yearEntry of tafPerYear.years) {
-    const yearIndex = indexForYear(yearEntry.year);
-    // yearIndex kan kun være undefined her hvis yearTafOre === 0 (ellers fanget ovenfor).
-    if (yearIndex === undefined) {
+    const opregulering = opregulerMedAkkumuleretReguleringssats({
+      kildeAar: yearEntry.year,
+      maalAar: beregningsAar,
+    });
+    // 0-beløbs-år kan have manglende satser uden at blokere (fanget ovenfor).
+    // Vis dem med faktor 0 og uændret beløb.
+    if (opregulering.manglendeAar.length > 0) {
       years.push({
         year: yearEntry.year,
         yearTafOre: yearEntry.yearTafOre,
@@ -127,7 +128,7 @@ export const buildTafPerYearOpreguleretBuildOutcome = (
       continue;
     }
 
-    const deltaPct = roundByMethod((baseIndex / yearIndex - 1) * 100, 2, 'halfAwayFromZero');
+    const deltaPct = roundByMethod(opregulering.deltaPct, 2, 'halfAwayFromZero');
     // Beregn det opregulerede beløb konsistent med den viste deltaPct, så
     // visning og tal stemmer overens (parallelt med segmentAmountOre).
     const baseKroner = yearEntry.yearTafOre / 100;

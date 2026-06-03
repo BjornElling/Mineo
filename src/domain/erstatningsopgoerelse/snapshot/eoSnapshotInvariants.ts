@@ -90,17 +90,17 @@ export const buildTafPerYearAfrundingInvariant = (args: Readonly<{
   blocksOutputs: ['taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
 });
 
-export const buildTafPerYearOpreguleretManglendeIndeksInvariant = (
+export const buildTafPerYearOpreguleretManglendeReguleringssatsInvariant = (
   manglendeAar: readonly number[]
 ): EoInvariant => ({
-  id: 'taf_per_year_opreguleret:manglende_indeks',
+  id: 'taf_per_year_opreguleret:manglende_reguleringssats',
   passed: false,
   severity: 'error',
   source: 'system',
   message: manglendeAar.length > 0
-    ? `TAF opreguleret til beregningsåret kan ikke beregnes, fordi der mangler reguleringsindeks for ${manglendeAar.join(', ')}.`
-    : 'TAF opreguleret til beregningsåret kan ikke beregnes, fordi der mangler reguleringsindeks.',
-  evidence: manglendeAar.map((aar) => `Mangler indeks for ${aar}`),
+    ? `TAF opreguleret til beregningsåret kan ikke beregnes, fordi der mangler reguleringssats for ${manglendeAar.join(', ')}.`
+    : 'TAF opreguleret til beregningsåret kan ikke beregnes, fordi der mangler reguleringssats.',
+  evidence: manglendeAar.map((aar) => `Mangler reguleringssats for ${aar}`),
   blocksAuthoritativeComputation: false,
   blocksOutputs: ['taf_per_year_opreguleret_pdf'],
 });

@@ -213,6 +213,40 @@ describe('TAF validering', () => {
       severity: 'error',
     }));
   });
+
+  it('fanger manglende reguleringssats for TAF-opreguleringens startår på TAF-perioden', () => {
+    const values = makeValues({
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2004-01-01'), til: iso('2004-01-31') },
+      ],
+      opgørelseLavetDen: iso('2024-01-01'),
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values);
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'tafPerioder[0].fra',
+      message: expect.stringContaining('mangler reguleringssats for 2004'),
+      severity: 'error',
+    }));
+  });
+
+  it('fanger manglende reguleringssats for TAF-opreguleringens slutår på opgørelsesdatoen', () => {
+    const values = makeValues({
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2026-01-01'), til: iso('2026-01-31') },
+      ],
+      opgørelseLavetDen: iso('2027-01-01'),
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values);
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'opgørelseLavetDen',
+      message: expect.stringContaining('mangler reguleringssats for 2027'),
+      severity: 'error',
+    }));
+  });
 });
 
 describe('SFGG validering', () => {
@@ -802,6 +836,29 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     });
 
     expect(hasError(values, 'Statistisk beregningsmodel skal vælges')).toBe(false);
+  });
+
+  it('fanger ASL-årslønsmaksimum-regulering før første tilgængelige indeksår', () => {
+    const values = makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      tafBeregningsperiodeFra: iso('2004-01-01'),
+      tafBeregningsperiodeTil: iso('2004-01-31'),
+      loenindkomstAnsaettelsesforhold: [
+        {
+          ...createDefaultLoenindkomstAnsaettelsesforhold(),
+          loenudviklingBeregningsgrundlag: 'Statistik',
+          loenudviklingStatistikModel: 'ASL-årslønsmaksimum',
+        },
+      ],
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values);
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'tafBeregningsperiodeTil',
+      message: expect.stringContaining('ASL-årslønsmaksimum mangler for 2004'),
+      severity: 'error',
+    }));
   });
 
   it('fanger manglende KRL satstabel ved grundlag=KRL satstabel', () => {

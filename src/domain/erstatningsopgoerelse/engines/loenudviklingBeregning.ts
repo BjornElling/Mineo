@@ -2,6 +2,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 import type { ISODateString } from '../../../types/branded';
 import { dateToISO, isoToDanish, isISODateString } from '../../../types/branded';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { opregulerMedAslAarsloensmaksimum } from '../../satser/opreguleringsmotorer';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import { roundByMethod } from '../../../utils/rounding';
@@ -314,10 +315,10 @@ const buildZeroDeltaSegment = (segment: IsoRange): LoenreguleringsSegment => ({
 });
 
 const ensurePositiveFiniteNumber = (
-  value: number,
+  value: number | undefined,
   errorMessage: string
 ): number => {
-  if (!Number.isFinite(value) || value <= 0) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
     throw new Error(errorMessage);
   }
   return value;
@@ -580,40 +581,29 @@ const buildLoenudviklingFromStatistik = (
   if (isAslStatistikModel(modelLabel)) {
     const baseYear = Number(konsolideret.reguleringsdato.slice(0, 4));
     const directBaseIndex = Number.isFinite(baseYear) ? aarsloenAslMax[baseYear as keyof typeof aarsloenAslMax] : undefined;
-    if (directBaseIndex !== undefined) {
-      ensurePositiveFiniteNumber(directBaseIndex, 'Loenudvikling kan ikke beregnes: ugyldigt ASL basisindeks');
-    }
-
-    const availableAslYears = Object.entries(aarsloenAslMax)
-      .map(([yearRaw, idxRaw]) => ({ year: Number(yearRaw), idx: idxRaw }))
-      .filter((entry) => Number.isFinite(entry.year))
-      .sort((a, b) => a.year - b.year);
-    const availableAslEntries = availableAslYears.filter(
-      (entry): entry is Readonly<{ year: number; idx: number }> => typeof entry.idx === 'number'
+    const baseIndex = ensurePositiveFiniteNumber(
+      directBaseIndex,
+      'Loenudvikling kan ikke beregnes: mangler ASL basisindeks'
     );
-    const firstAvailable = availableAslEntries[0];
-    if (!firstAvailable) {
-      throw new Error('Loenudvikling kan ikke beregnes: mangler ASL basisindeks');
-    }
-    const firstAvailableIndex = ensurePositiveFiniteNumber(
-      firstAvailable.idx,
-      'Loenudvikling kan ikke beregnes: ugyldigt ASL basisindeks'
-    );
-    const baseIndex = typeof directBaseIndex === 'number' ? directBaseIndex : firstAvailableIndex;
-    const effectiveBaseYear = typeof directBaseIndex === 'number' ? baseYear : firstAvailable.year;
 
+    // OPREGULERINGSMETODE: ASL-årslønsmaksimum. Selve indeksforholdet beregnes af den
+    // fælles motor (idx[segmentår] / idx[basisår]); guards for manglende indeks bevares.
     const aslSegments = buildAslReguleringsSegments(konsolideret.tafRanges)
       .map<LoenreguleringsSegment>((segment) => {
-        if (segment.year < effectiveBaseYear) {
+        if (segment.year < baseYear) {
           return buildZeroDeltaSegment(segment);
         }
         const idx = aarsloenAslMax[segment.year as keyof typeof aarsloenAslMax];
-        if (idx === undefined) {
-          return buildZeroDeltaSegment(segment);
+        const segmentIndex = ensurePositiveFiniteNumber(idx, 'Loenudvikling kan ikke beregnes: mangler ASL indeks');
+        const { deltaPct, manglendeAar } = opregulerMedAslAarsloensmaksimum(
+          { kildeAar: baseYear, maalAar: segment.year },
+          { [baseYear]: baseIndex, [segment.year]: segmentIndex }
+        );
+        if (manglendeAar.length > 0) {
+          throw new Error(`Loenudvikling kan ikke beregnes: mangler ASL indeks for ${manglendeAar.join(', ')}`);
         }
-        ensurePositiveFiniteNumber(idx, 'Loenudvikling kan ikke beregnes: ugyldigt ASL indeks');
-        return { fra: segment.fra, til: segment.til, deltaPct: roundByMethod((idx / baseIndex - 1) * 100, 2, 'halfAwayFromZero') };
-      })
+        return { fra: segment.fra, til: segment.til, deltaPct: roundByMethod(deltaPct, 2, 'halfAwayFromZero') };
+      });
     return aslSegments;
   }
 

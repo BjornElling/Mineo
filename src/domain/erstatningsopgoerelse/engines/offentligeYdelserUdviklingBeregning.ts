@@ -1,4 +1,5 @@
 import { reguleringssats } from '../../../data/lovbestemteRates';
+import { opregulerMedAkkumuleretReguleringssats } from '../../satser/opreguleringsmotorer';
 import type { ISODateString } from '../../../types/branded';
 import { toISODateString } from '../../../types/branded';
 import { formatISOToDanish } from '../../../utils/dateFormatting';
@@ -32,18 +33,16 @@ export const resolveOffentligeYdelserAkkumuleretReguleringPct = (
   segmentYear: number,
   baseYear: number
 ): number => {
-  if (segmentYear <= baseYear) return 0;
-
-  let index = 100;
-  for (let year = baseYear + 1; year <= segmentYear; year += 1) {
-    const sats = reguleringssats[year];
-    if (typeof sats !== 'number' || !Number.isFinite(sats)) {
-      throw new Error(`Offentlige ydelser kan ikke beregnes: reguleringssats mangler for ${year}`);
-    }
-    index *= 1 + sats / 100;
+  // Akkumuleret reguleringssats ("tilpasningsprocenten plus to procent") via den
+  // fælles motor. Bevarer den eksisterende throw-kontrakt ved manglende sats.
+  const { deltaPct, manglendeAar } = opregulerMedAkkumuleretReguleringssats(
+    { kildeAar: baseYear, maalAar: segmentYear },
+    reguleringssats
+  );
+  if (manglendeAar.length > 0) {
+    throw new Error(`Offentlige ydelser kan ikke beregnes: reguleringssats mangler for ${manglendeAar[0]}`);
   }
-
-  return (index / 100 - 1) * 100;
+  return deltaPct;
 };
 
 const buildReguleringsSegments = (

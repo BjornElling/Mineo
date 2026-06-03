@@ -253,17 +253,12 @@ const buildStatistikEntries = (args: Readonly<{
   if (isAslStatistikModel(modelLabel)) {
     const startYear = Number(args.referenceIso.slice(0, 4));
     const endYear = Number(args.eoTil.slice(0, 4));
-    let firstAvailableValue: number | null = null;
     for (let year = startYear; year <= endYear; year += 1) {
       const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
-      if (typeof value !== 'number') continue;
-      if (firstAvailableValue === null) firstAvailableValue = value;
+      if (typeof value !== 'number') return null;
       const iso = startOfYearIso(year);
       if (iso >= args.referenceIso && iso <= args.eoTil) dates.add(iso);
       valuesByIso.set(iso, value);
-    }
-    if (firstAvailableValue !== null && !valuesByIso.has(args.referenceIso)) {
-      valuesByIso.set(args.referenceIso, firstAvailableValue);
     }
   } else {
     const modelId = resolveStatistikModelId(modelLabel);

@@ -1,9 +1,20 @@
 /**
  * PDF Generator for TAF opreguleret til beregningsåret
  *
- * Viser tabt arbejdsfortjeneste brudt ned per kalenderår – men med hvert års
- * nettobeløb opreguleret til beregningsårets prisniveau. Opreguleringen følger
- * samme indeksprincip som regulering af årsløn.
+ * Viser tabt arbejdsfortjeneste opbygget i samme stil som den almindelige
+ * erstatningsopgørelse-PDF, men hvor TAF-kravet beregnes individuelt for hvert
+ * kalenderår og dernæst opreguleres til beregningsårets prisniveau. De opregulerede
+ * årsbeløb summeres til sidst til ét samlet krav.
+ *
+ * Fælles top (Status, Erstatningsperiode, Beregningsgrundlag, Forventet indkomst-
+ * introtekst) vises én gang. Herefter ét afsnit pr. kalenderår med understregede
+ * underafsnit (Forventet indkomst, Indtægter i erstatningsperioden, Beregnet krav,
+ * Opreguleret til beregningsåret). Til sidst medtages præcis de samme bilag som i den
+ * almindelige erstatningsopgørelse-PDF (gated på de samme valgte elementer).
+ *
+ * Opreguleringen følger den akkumulerede reguleringssats ("tilpasningsprocenten
+ * plus to procent") — samme metode som fremskrivning af årsløn til EET efter EAL
+ * og regulering af offentlige ydelser.
  *
  * Dokumentet genererer kun fra et præ-projiceret snapshot-dokument.
  * Eventuel fail-closed / blokering er allerede afgjort før denne generator kaldes.
@@ -12,8 +23,9 @@
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import { ensureNonBreakingKr } from '../../shared/pdfTextUtils';
 import { type BrevhovedData } from '../../shared/pdfHelpers';
+import { PDF_BASE_LINE_HEIGHT_MM } from '../../infrastructure/pdfConfig';
 import { logWarning } from '../../../utils/logger';
-import { formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
+import { formatIsoDateLong as formatDateLong, formatISOToDanish as formatDateShort } from '../../../utils/dateFormatting';
 import {
   formatCountWithUnit,
   formatCurrencyFromOre,
@@ -23,6 +35,17 @@ import {
   isSingularCount,
   resolvePdfFileName,
 } from '../../shared/pdfFormatUtils';
+import { parseOptionalIsoDate } from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
+import { resolveLoenSkadedatoText } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
+import type { Calculable, MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
+import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
+import type { SelectedElements } from '../../domains/eo/types';
+import { renderEoBilagSections } from '../../domains/eo/sections/eoBilagSections';
+import {
+  renderTafBeregningsgrundlag,
+  resolveTafForventetIndkomstIntroText,
+} from '../../domains/eo/sections/tafBeregningsgrundlagSection';
 import type { TafPerYearOpreguleretPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretPdfDocument';
 
 const NBSP = ' ';
@@ -35,6 +58,11 @@ interface TafOpreguleretPaaAarPdfOptions {
   document: TafPerYearOpreguleretPdfDocument;
   visBrevhoved?: boolean;
   visUdkastStempel?: boolean;
+  /** Valgfri – kræves kun for at medtage bilag (samme som den almindelige EO-PDF). */
+  eoValues?: ErstatningsopgoerelseValues;
+  stamdataValues?: StamdataValues;
+  selectedElements?: SelectedElements;
+  midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
 }
 
 export const generateTafOpreguleretPaaAarPdf = (
@@ -42,6 +70,7 @@ export const generateTafOpreguleretPaaAarPdf = (
 ): void => {
   const { visBrevhoved = false, visUdkastStempel = false } = options;
   const { model, presentation, opreguleret } = options.document;
+  const { eoValues, stamdataValues, selectedElements, midlertidigtEetGroups } = options;
 
   const titel = 'TAF opreguleret til beregningsår';
 
@@ -62,6 +91,31 @@ export const generateTafOpreguleretPaaAarPdf = (
     author: 'Mineo',
     creator: 'mineo.dk',
   });
+
+  const lineHeight = PDF_BASE_LINE_HEIGHT_MM;
+  const rightMaxWidth = writer.getTextWidth('000.000.000,00');
+
+  // Lokale tekst-hjælpere på linje med den almindelige EO-PDF (samme signatur).
+  const safeAddLeftRightText = (
+    leftText: string,
+    rightText: string,
+    minRightWidth: number,
+    options?: Readonly<{
+      leftFontStyle?: 'normal' | 'bold';
+      rightFontStyle?: 'normal' | 'bold';
+      lineAboveRightWidth?: number;
+      lineAboveRightOffset?: number;
+    }>
+  ) => {
+    writer.writeLeftRightText(leftText, rightText, {
+      ...options,
+      minRightColumnWidth: Math.max(minRightWidth, TAF_RIGHT_COLUMN_WIDTH),
+    });
+  };
+  const renderMoneyWithKr = (value: Calculable<MoneyOre>): string =>
+    value.status === 'ok' ? `${formatCurrencyFromOre(value.value)}${NBSP}kr.` : '—';
+  const renderMoneyWithKrOrError = (value: Calculable<MoneyOre>): string =>
+    value.status === 'ok' ? `${formatCurrencyFromOre(value.value)}${NBSP}kr.` : `Fejl (${value.reason})`;
 
   // Udkast-stempel på første side
   writer.addUdkastWatermark();
@@ -97,7 +151,12 @@ export const generateTafOpreguleretPaaAarPdf = (
     writer.addSectionSpacer();
   }
 
-  // ─── Tabt arbejdsfortjeneste sektion ──────────────────────────────────
+  const finishAndSave = () => {
+    writer.addFooter();
+    writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
+  };
+
+  // ─── Tabt arbejdsfortjeneste sektion (fælles top) ─────────────────────
 
   writer.writeSectionHeader('Tabt arbejdsfortjeneste');
 
@@ -129,14 +188,13 @@ export const generateTafOpreguleretPaaAarPdf = (
     writer.writeWrappedText('Ingen');
     writer.writeBoldSubheader('TAF opreguleret til beregningsåret');
     writer.writeWrappedText('Ingen');
-    writer.addFooter();
-    writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
+    finishAndSave();
     return;
-  } else {
-    for (const line of model.tabtArbejdsfortjeneste.tafPerioderLinjer) {
-      writer.writeWrappedText(line);
-    }
   }
+  for (const line of model.tabtArbejdsfortjeneste.tafPerioderLinjer) {
+    writer.writeWrappedText(line);
+  }
+
   if (model.forlig.erIndgaaet) {
     writer.writeBoldSubheader('Forlig');
     const forligDatoTekst = model.forlig.dato ? `den ${formatDateLong(model.forlig.dato)}` : null;
@@ -149,94 +207,156 @@ export const generateTafOpreguleretPaaAarPdf = (
   if (!presentation || !opreguleret) {
     writer.writeBoldSubheader('TAF opreguleret til beregningsåret');
     writer.writeWrappedText('TAF opreguleret til beregningsåret kan ikke beregnes for den valgte opsætning.');
-    writer.addFooter();
-    writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
+    finishAndSave();
     return;
   }
 
-  // ─── TAF opreguleret til beregningsåret ───────────────────────────────
+  // Beregningsgrundlag (dagsløn/månedsløn ved skadestidspunktet) – fælles for alle år.
+  renderTafBeregningsgrundlag({
+    model,
+    lineHeight,
+    rightColumnWidth: TAF_RIGHT_COLUMN_WIDTH,
+    rightMaxWidth,
+    NBSP,
+    renderSubheader: writer.writeBoldSubheader,
+    safeAddWrappedText: writer.writeWrappedText,
+    safeAddLeftRightText,
+    renderMoneyWithKr,
+    renderMoneyWithKrOrError,
+    formatMoneyOreWithKr,
+    formatCurrencyFromOre,
+    formatCountWithUnit,
+    formatMaanederTrimmed,
+    isSingularCount,
+    writer,
+  });
 
-  const rightMaxWidth = writer.getTextWidth('000.000.000,00');
+  // Forventet indkomst-introtekst – fælles for alle år (kan kun beregnes med rå-input).
+  if (eoValues && stamdataValues) {
+    const introTekst = resolveTafForventetIndkomstIntroText({
+      model,
+      eoValues,
+      stamdataValues,
+      parseOptionalIsoDate,
+      resolveLoenSkadedatoText,
+      formatDateLong,
+    });
+    writer.writeBoldSubheader('Forventet indkomst');
+    for (const line of introTekst.split('\n')) {
+      writer.writeWrappedText(line);
+    }
+    if (model.tabtArbejdsfortjeneste.ferieFravaerLinje) {
+      writer.writeWrappedText(model.tabtArbejdsfortjeneste.ferieFravaerLinje);
+    }
+  }
+
   const beregningsAar = opreguleret.beregningsAar;
   const opreguleretByYear = new Map(opreguleret.years.map((entry) => [entry.year, entry] as const));
 
-  for (const yearEntry of presentation.years) {
-    writer.writeBoldSubheader(`${yearEntry.year}`);
+  // ─── Beregning pr. kalenderår ─────────────────────────────────────────
 
-    // Segmenter (identisk format med TAF-fordelt-på-år-PDF)
+  for (const yearEntry of presentation.years) {
+    writer.writeSectionHeader(`${yearEntry.year}`);
+
+    // Forventet indkomst (årets løn-/ydelsessegmenter).
+    writer.writeUnderlinedSubheader('Forventet indkomst');
+    if (yearEntry.segments.length === 0) {
+      writer.writeWrappedText('Ingen');
+    }
     for (const segment of yearEntry.segments) {
       const factorText = formatReguleringFactorText(segment.deltaPct);
       let leftText = '';
       if (segment.kind === 'arbejdsdage') {
         const arbejdsdageText = formatCountWithUnit(segment.quantity, 'arbejdsdag', 'arbejdsdage');
         const dagsloenText = formatCurrencyFromOre(segment.unitAmountOre);
-        leftText = `${arbejdsdageText} á ${dagsloenText}${NBSP}kr.${factorText} =`;
+        leftText = `${formatDateShort(segment.fra)} - ${formatDateShort(segment.til)}: ${arbejdsdageText} á ${dagsloenText}${NBSP}kr.${factorText} =`;
       } else {
         const maanederText = `${formatMaanederTrimmed(segment.quantity)} ${isSingularCount(segment.quantity) ? 'måned' : 'måneder'}`;
         const maanedsloenText = formatCurrencyFromOre(segment.unitAmountOre);
-        leftText = `${maanederText} á ${maanedsloenText}${NBSP}kr.${factorText} =`;
+        leftText = `${formatDateShort(segment.fra)} - ${formatDateShort(segment.til)}: ${maanederText} á ${maanedsloenText}${NBSP}kr.${factorText} =`;
       }
-
       const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(segment.amountOre));
-      writer.writeLeftRightText(leftText, rightText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
+      safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
+    }
+    if (yearEntry.segments.length > 1) {
+      const indkomstIAltText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearIncomeOre));
+      safeAddLeftRightText('I alt', indkomstIAltText, rightMaxWidth, {
+        rightFontStyle: 'normal',
+        lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
+        lineAboveRightOffset: 4,
+      });
     }
 
-    // Fradrag (med minus-prefix)
+    // Indtægter i erstatningsperioden (årets fradrag).
+    writer.writeUnderlinedSubheader('Indtægter i erstatningsperioden');
+    if (yearEntry.deductions.length === 0) {
+      writer.writeWrappedText('Ingen');
+    }
     for (const deduction of yearEntry.deductions) {
-      const rightText = deduction.amountOre === 0
-        ? ensureNonBreakingKr(formatMoneyOreWithKr(deduction.amountOre))
-        : ensureNonBreakingKr(`- ${formatMoneyOreWithKr(deduction.amountOre)}`);
-      writer.writeLeftRightText(deduction.label, rightText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
+      const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(deduction.amountOre));
+      safeAddLeftRightText(deduction.label, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
+    }
+    if (yearEntry.deductions.length > 1) {
+      const fradragIAltText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearDeductionsOre));
+      safeAddLeftRightText('I alt', fradragIAltText, rightMaxWidth, {
+        rightFontStyle: 'normal',
+        lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
+        lineAboveRightOffset: 4,
+      });
     }
 
-    // I alt for året (oprindeligt beløb, med streg)
-    const iAltRightText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearTafOre));
-    const iAltLeftText = (() => {
-      if (!model.forlig.erIndgaaet) return 'I alt';
-      const foerForligOre = yearEntry.yearTafFoerForligOre;
-      return `I alt (${model.forlig.label} af ${formatMoneyOreWithKr(foerForligOre)})`;
-    })();
-    writer.writeLeftRightText(iAltLeftText, iAltRightText, {
-      rightFontStyle: 'normal',
-      lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
-      lineAboveRightOffset: 4,
-      minRightColumnWidth: rightMaxWidth,
-    });
+    // Beregnet krav for året (fuld udregningslinje, som i den almindelige EO-PDF).
+    writer.writeUnderlinedSubheader('Beregnet krav');
+    const positiveLed = formatCurrencyFromOre(yearEntry.yearIncomeOre);
+    const fradragLed = yearEntry.deductions.map((deduction) => formatCurrencyFromOre(deduction.amountOre));
+    const expressionText = `${positiveLed}${fradragLed.length > 0 ? ` - ${fradragLed.join(' - ')}` : ''}${NBSP}kr.`;
+    const beregnetKravLeftText = model.forlig.erIndgaaet
+      ? `${model.forlig.label} x (${expressionText}) =`
+      : `${expressionText} =`;
+    const beregnetKravRightText = ensureNonBreakingKr(formatMoneyOreWithKr(yearEntry.yearTafOre));
+    safeAddLeftRightText(beregnetKravLeftText, beregnetKravRightText, rightMaxWidth, { rightFontStyle: 'normal' });
 
-    // Opregulering til beregningsåret
+    // Opregulering til beregningsåret.
     const opreguleretEntry = opreguleretByYear.get(yearEntry.year);
     if (opreguleretEntry) {
-      writer.addSectionSpacer();
+      writer.writeUnderlinedSubheader('Opreguleret til beregningsåret');
       const factorText = formatReguleringFactorText(opreguleretEntry.deltaPct);
       const opreguleretLeftText = `Opreguleret til ${beregningsAar}${factorText} =`;
       const opreguleretRightText = ensureNonBreakingKr(formatMoneyOreWithKr(opreguleretEntry.yearTafOpreguleretOre));
-      writer.writeLeftRightText(opreguleretLeftText, opreguleretRightText, {
-        rightFontStyle: 'bold',
-        minRightColumnWidth: rightMaxWidth,
-      });
+      safeAddLeftRightText(opreguleretLeftText, opreguleretRightText, rightMaxWidth, { rightFontStyle: 'bold' });
     }
   }
 
   // ─── Samlet ──────────────────────────────────────────────────────────
 
-  writer.writeBoldSubheader('Samlet');
+  writer.writeSectionHeader('Samlet');
 
   // Per-år linjer (opregulerede beløb)
   for (const opreguleretEntry of opreguleret.years) {
     const rightText = ensureNonBreakingKr(formatMoneyOreWithKr(opreguleretEntry.yearTafOpreguleretOre));
-    writer.writeLeftRightText(`${opreguleretEntry.year}`, rightText, { rightFontStyle: 'normal', minRightColumnWidth: rightMaxWidth });
+    safeAddLeftRightText(`${opreguleretEntry.year}`, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
   }
 
   // Samlet opreguleret TAF-krav (fed, med streg)
   const samletText = ensureNonBreakingKr(formatMoneyOreWithKr(opreguleret.sumOpreguleretOre));
-  writer.writeLeftRightText(`Samlet TAF opreguleret til ${beregningsAar}`, samletText, {
+  safeAddLeftRightText(`Samlet TAF opreguleret til ${beregningsAar}`, samletText, rightMaxWidth, {
     rightFontStyle: 'bold',
     lineAboveRightWidth: TAF_RIGHT_COLUMN_WIDTH,
     lineAboveRightOffset: 4,
-    minRightColumnWidth: rightMaxWidth,
   });
 
-  // Footer og gem
-  writer.addFooter();
-  writer.save(resolvePdfFileName(FILE_BASE_NAME, visUdkastStempel, model.brevhoved?.journalnr));
+  // ─── Bilag (samme som den almindelige erstatningsopgørelse-PDF) ───────
+
+  if (eoValues && stamdataValues && selectedElements) {
+    renderEoBilagSections({
+      writer,
+      model,
+      eoValues,
+      stamdataValues,
+      selectedElements,
+      midlertidigtEetGroups,
+    });
+  }
+
+  finishAndSave();
 };

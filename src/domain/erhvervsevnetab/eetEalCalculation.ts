@@ -16,6 +16,7 @@ import {
 } from './eetAslAfgoerelser';
 import { round0, round4 } from '../../utils/roundingShortcuts';
 import { SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
+import { opregulerMedAkkumuleretReguleringssats } from '../satser/opreguleringsmotorer';
 
 export type EetEalResolvedEetPct = Readonly<{
   value: number;
@@ -200,22 +201,20 @@ const computeEalReguleringsfaktorFromYearlyChain = (
   beregningsaar: number,
   reguleringssats: YearlyRate
 ): Readonly<{ reguleringsaar: number[]; manglendeAar: number[]; faktor: number }> => {
+  // Den faktiske opregulering (akkumuleret reguleringssats / "tilpasningsprocenten
+  // plus to procent") ligger i den fælles motor. Listen af mellemliggende år
+  // (reguleringsaar) bevares her, da EAL-beregningen bruger den til visning/evidens.
   const reguleringsaar: number[] = [];
   for (let year = skadesaar + 1; year <= beregningsaar; year += 1) {
     reguleringsaar.push(year);
   }
 
-  const manglendeAar = reguleringsaar.filter((year) => {
-    const sats = reguleringssats[year];
-    return !Number.isFinite(sats);
-  });
+  const { faktor, manglendeAar } = opregulerMedAkkumuleretReguleringssats(
+    { kildeAar: skadesaar, maalAar: beregningsaar },
+    reguleringssats
+  );
 
-  let faktor = 1;
-  for (const year of reguleringsaar) {
-    faktor *= 1 + reguleringssats[year] / 100;
-  }
-
-  return { reguleringsaar, manglendeAar, faktor };
+  return { reguleringsaar, manglendeAar: [...manglendeAar], faktor };
 };
 
 export const computeEetEalCalculation = (input: Input): EetEalCalculationResult => {

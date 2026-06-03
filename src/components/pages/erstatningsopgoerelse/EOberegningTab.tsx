@@ -838,11 +838,13 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     const result = await downloadTafOpreguleretPaaAarPdf({
       stamdataValues,
       eoValues,
+      selectedElements,
       settings,
       snapshot: eoSnapshot,
+      midlertidigtEetGroups,
     });
     setPdfDownloadErrorMessage(result.success ? null : result.error);
-  }, [canDownloadSnapshotTafOpreguleretPdf, eoSnapshot, stamdataValues, eoValues, settings]);
+  }, [canDownloadSnapshotTafOpreguleretPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetGroups]);
 
   const getCustomSummaryText = React.useCallback((row: (typeof errors)[number]): string | null => {
     return getCustomDebugRowMessage(row);

@@ -298,7 +298,7 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     expect(entries.every((entry) => entry.storeBededagPct === 0)).toBe(true);
   });
 
-  it('falder tilbage til første tilgængelige ASL-år når referenceåret mangler i ASL-data', () => {
+  it('afviser ASL-regulering når referenceåret mangler i ASL-data', () => {
     const aslBounds = getYearBoundsForYearlyRate(aarsloenAslMax);
     expect(aslBounds).not.toBeNull();
     expect(aslBounds?.minYear).toBeGreaterThan(2000);
@@ -315,8 +315,8 @@ describe('buildRegulationTimeline — indeks-beregning', () => {
     const result = buildRegulationTimeline(input);
 
     expect(result.ansaettelser).toHaveLength(1);
-    expect(result.ansaettelser[0]?.entries.length).toBeGreaterThan(0);
-    expect(result.ansaettelser[0]?.referenceValue).toBeGreaterThan(0);
+    expect(result.ansaettelser[0]?.entries).toEqual([]);
+    expect(result.ansaettelser[0]?.referenceValue).toBe(0);
   });
 
   it('bevarer 0 pct ferie i manuelle reguleringsrækker uden fallback til ansættelsens feriePct', () => {

@@ -5,7 +5,8 @@ import type {
   TafYearEntry,
 } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
 import { buildTafPerYearOpreguleretBuildOutcome } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
-import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { reguleringssats } from '../../../data/lovbestemteRates';
+import { opregulerMedAkkumuleretReguleringssats } from '../../../domain/satser/opreguleringsmotorer';
 import { roundByMethod } from '../../../utils/rounding';
 
 const iso = (value: string) => toISODateString(value);
@@ -30,13 +31,11 @@ const makeResult = (years: TafYearEntry[]): TafPerYearResult => {
   };
 };
 
-// Forventet opregulering svarende til engine-logikken:
-// deltaPct = round((idx[beregningsår]/idx[år] - 1) * 100, 2)
-// opreguleret = toOre(roundKroner(baseKroner * (1 + deltaPct/100)))
+// Forventet opregulering svarende til engine-logikken (akkumuleret reguleringssats):
+// deltaPct = round(motor.deltaPct, 2); opreguleret = toOre(roundKroner(baseKroner * (1 + deltaPct/100)))
 const expectedOpregulering = (yearTafOre: number, year: number, beregningsAar: number): { deltaPct: number; opreguleretOre: number } => {
-  const idxBase = aarsloenAslMax[beregningsAar as keyof typeof aarsloenAslMax] as number;
-  const idxYear = aarsloenAslMax[year as keyof typeof aarsloenAslMax] as number;
-  const deltaPct = roundByMethod((idxBase / idxYear - 1) * 100, 2, 'halfAwayFromZero');
+  const motor = opregulerMedAkkumuleretReguleringssats({ kildeAar: year, maalAar: beregningsAar });
+  const deltaPct = roundByMethod(motor.deltaPct, 2, 'halfAwayFromZero');
   const opreguleretKroner = roundByMethod((yearTafOre / 100) * (1 + deltaPct / 100), 2, 'halfAwayFromZero');
   return { deltaPct, opreguleretOre: Math.round(opreguleretKroner * 100) };
 };
@@ -47,7 +46,7 @@ describe('buildTafPerYearOpreguleretBuildOutcome', () => {
     expect(buildTafPerYearOpreguleretBuildOutcome(makeResult([]), iso('2024-05-01')).kind).toBe('not_applicable');
   });
 
-  it('opregulerer hvert år til beregningsåret med ASL-indeksforholdet', () => {
+  it('opregulerer hvert år til beregningsåret med akkumuleret reguleringssats', () => {
     const result = makeResult([
       makeYear(2020, 10_000_00),
       makeYear(2021, 20_000_00),
@@ -71,6 +70,18 @@ describe('buildTafPerYearOpreguleretBuildOutcome', () => {
     expect(outcome.result.sumOpreguleretOre).toBe(exp2020.opreguleretOre + exp2021.opreguleretOre);
   });
 
+  it('bruger den akkumulerede reguleringssats-metode (ikke ASL-årslønsmaksimum)', () => {
+    // 2021 → 2024: ∏(1 + sats/100) for 2022,2023,2024 = 1.012 * 1.03 * 1.035
+    const result = makeResult([makeYear(2021, 100_000_00)]);
+    const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2024-06-01'));
+    expect(outcome.kind).toBe('ok');
+    if (outcome.kind !== 'ok') return;
+    const forventetFaktor =
+      (1 + reguleringssats[2022] / 100) * (1 + reguleringssats[2023] / 100) * (1 + reguleringssats[2024] / 100);
+    const forventetDeltaPct = roundByMethod((forventetFaktor - 1) * 100, 2, 'halfAwayFromZero');
+    expect(outcome.result.years[0].deltaPct).toBe(forventetDeltaPct);
+  });
+
   it('giver deltaPct 0 og uændret beløb når året er beregningsåret', () => {
     const result = makeResult([makeYear(2024, 50_000_00)]);
     const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2024-01-15'));
@@ -91,25 +102,17 @@ describe('buildTafPerYearOpreguleretBuildOutcome', () => {
     expect(outcome.result.years[0].yearTafOpreguleretOre).toBeLessThan(0);
   });
 
-  it('fail-closer når beregningsåret mangler indeks', () => {
-    const result = makeResult([makeYear(2020, 10_000_00)]);
-    // 2099 findes ikke i aarsloenAslMax
-    const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2099-03-03'));
-    expect(outcome.kind).toBe('error');
-    if (outcome.kind !== 'error') return;
-    expect(outcome.reason).toBe('manglende_indeks');
-    expect(outcome.manglendeAar).toContain(2099);
-  });
-
-  it('fail-closer når et år med beløb mangler indeks', () => {
+  it('fail-closer når et mellemliggende år mangler reguleringssats', () => {
+    // 1999 → 2024 kræver satser for 2000..2024; 2000-2004 mangler i reguleringssats.
     const result = makeResult([makeYear(1999, 10_000_00)]);
     const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2024-03-03'));
     expect(outcome.kind).toBe('error');
     if (outcome.kind !== 'error') return;
-    expect(outcome.manglendeAar).toContain(1999);
+    expect(outcome.reason).toBe('manglende_reguleringssats');
+    expect(outcome.manglendeAar).toContain(2000);
   });
 
-  it('ignorerer manglende indeks for år med 0-beløb', () => {
+  it('ignorerer manglende reguleringssats for år med 0-beløb', () => {
     const result = makeResult([makeYear(1999, 0), makeYear(2020, 10_000_00)]);
     const outcome = buildTafPerYearOpreguleretBuildOutcome(result, iso('2024-03-03'));
     expect(outcome.kind).toBe('ok');

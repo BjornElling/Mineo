@@ -598,6 +598,7 @@ describe('downloadTafOpreguleretPaaAarPdf', () => {
     const result = await downloadTafOpreguleretPaaAarPdf({
       stamdataValues: stamdata,
       eoValues,
+      selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
     });
@@ -615,6 +616,7 @@ describe('downloadTafOpreguleretPaaAarPdf', () => {
     const result = await downloadTafOpreguleretPaaAarPdf({
       stamdataValues: stamdata,
       eoValues,
+      selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
     });
@@ -633,6 +635,7 @@ describe('downloadTafOpreguleretPaaAarPdf', () => {
     const result = await downloadTafOpreguleretPaaAarPdf({
       stamdataValues: stamdata,
       eoValues,
+      selectedElements: {} as never,
       settings,
       snapshot: eoSnapshot,
     });

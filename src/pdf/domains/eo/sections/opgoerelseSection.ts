@@ -1,9 +1,6 @@
 import { MARGINS } from '../../../infrastructure/pdfConfig';
 import { ensureNonBreakingKr } from '../../../shared/pdfTextUtils';
 import { formatReguleringFactorText } from '../../../shared/pdfFormatUtils';
-import { TAF_BEREGNES_SOM } from '../../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
-import { resolveAktivEllerFoersteLoenudviklingKilde } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
-import { resolveAnvendtReguleringsdato } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
 import {
   getDayAfterIso,
 } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
@@ -14,6 +11,7 @@ import type { Calculable, LoenudviklingSegment, MoneyOre, EoModel } from '../../
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
 import { roundByMethod } from '../../../../utils/rounding';
+import { renderTafBeregningsgrundlag, resolveTafForventetIndkomstIntroText } from './tafBeregningsgrundlagSection';
 
 type OpgorelseSectionContext = Readonly<{
   model: EoModel;
@@ -427,269 +425,37 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       safeAddWrappedText(line);
     }
 
-    renderSubheader('Beregningsgrundlag');
-    const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
-
-    if (model.tabtArbejdsfortjeneste.skalKomprimereIndkomstBeregning && indkomst) {
-      const erArbejdsdage = model.tabtArbejdsfortjeneste.tafBeregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE;
-      const loenLabel = erArbejdsdage ? 'Løn per arbejdsdag' : 'Månedsløn';
-      const beloebDisplay = erArbejdsdage
-        ? renderMoneyWithKr(indkomst.dagsloen)
-        : renderMoneyWithKr(indkomst.maanedsloen);
-      safeAddLeftRightText(
-        `${loenLabel} er i tidligere erstatningsopgørelse beregnet til`,
-        beloebDisplay,
-        rightMaxWidth,
-        { rightFontStyle: 'normal' }
-      );
-    } else {
-      if (indkomst?.beregningsperiodeLabel) {
-        safeAddWrappedText(indkomst.beregningsperiodeLabel);
-      }
-      const udskydMellemregningVedBeregningsperiode =
-        indkomst?.beregnesUdFra === 'Beregningsperiode';
-      if (!udskydMellemregningVedBeregningsperiode) {
-        if (indkomst?.beregningsgrundlagMellemregningLabel && indkomst?.beregningsgrundlagMellemregningResultat) {
-          safeAddLeftRightText(
-            indkomst.beregningsgrundlagMellemregningLabel,
-            indkomst.beregningsgrundlagMellemregningResultat,
-            rightMaxWidth,
-            { rightFontStyle: 'normal' }
-          );
-          writer.addSectionSpacer();
-        } else if (indkomst?.beregningsgrundlagMellemregningLabel) {
-          safeAddWrappedText(indkomst.beregningsgrundlagMellemregningLabel);
-          writer.addSectionSpacer();
-        } else if (indkomst?.beregningsgrundlagMellemregningResultat) {
-          safeAddWrappedText(indkomst.beregningsgrundlagMellemregningResultat);
-        }
-      }
-
-      if (indkomst?.beregnesUdFra === 'Beregningsperiode') {
-        for (const arbejdssted of indkomst.arbejdssteder) {
-          const componentRows: ReadonlyArray<Readonly<{ label: string; amountOre: number }>> = [
-            {
-              label: 'Løn i beregningsperioden',
-              amountOre: arbejdssted.breakdown.loenPlusLoen2PlusIkkePensLoenOre,
-            },
-            {
-              label: arbejdssted.fpLabel,
-              amountOre: arbejdssted.breakdown.fpFvShSoOre,
-            },
-            {
-              label: arbejdssted.pensionLabel,
-              amountOre: arbejdssted.breakdown.pensionOre,
-            },
-            {
-              label: 'Arbejdsgivers ATP-bidrag og anden indkomst uden tillæg',
-              amountOre: arbejdssted.breakdown.atpOre,
-            },
-          ];
-          const visibleComponentRows = componentRows.filter((row) => row.amountOre !== 0);
-          if (visibleComponentRows.length > 0) {
-            writer.ensureSpace(lineHeight * 2);
-          }
-
-          writer.writeUnderlinedSubheader(arbejdssted.navn);
-
-          for (const row of visibleComponentRows) {
-            safeAddLeftRightText(
-              row.label,
-              formatMoneyOreWithKr(row.amountOre),
-              rightMaxWidth,
-              { rightFontStyle: 'normal' }
-            );
-          }
-
-          if (visibleComponentRows.length > 1) {
-            safeAddLeftRightText('I alt:', formatMoneyOreWithKr(arbejdssted.breakdown.samletOre), rightMaxWidth,
-              { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
-            );
-          }
-          writer.addSectionSpacer();
-        }
-        if (indkomst.offentligeYdelser.length > 0) {
-          if (indkomst.arbejdssteder.length === 0) {
-            writer.addSectionSpacer();
-          }
-          writer.ensureSpace(lineHeight * 2);
-          writer.writeUnderlinedSubheader('Offentlige ydelser');
-          for (const ydelse of indkomst.offentligeYdelser) {
-            safeAddLeftRightText(
-              ydelse.label,
-              formatMoneyOreWithKr(ydelse.amountOre),
-              rightMaxWidth,
-              { rightFontStyle: 'normal' }
-            );
-          }
-          if (indkomst.offentligeYdelser.length > 1) {
-            safeAddLeftRightText(
-              'I alt:',
-              formatMoneyOreWithKr(indkomst.offentligeYdelserTotalOre),
-              rightMaxWidth,
-              { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
-            );
-          }
-          writer.addSectionSpacer();
-        }
-
-        if (indkomst.samletBeregningsgrundlagOre !== null) {
-          const addends = indkomst.arbejdssteder.map((arbejdssted) =>
-            formatCurrencyFromOre(arbejdssted.breakdown.samletOre)
-          );
-          if (indkomst.offentligeYdelserTotalOre > 0) {
-            addends.push(formatCurrencyFromOre(indkomst.offentligeYdelserTotalOre));
-          }
-          if (udskydMellemregningVedBeregningsperiode) {
-            if (indkomst.beregningsgrundlagMellemregningLabel && indkomst.beregningsgrundlagMellemregningResultat) {
-              safeAddLeftRightText(
-                indkomst.beregningsgrundlagMellemregningLabel,
-                indkomst.beregningsgrundlagMellemregningResultat,
-                rightMaxWidth,
-                { rightFontStyle: 'normal' }
-              );
-            } else if (indkomst.beregningsgrundlagMellemregningLabel) {
-              safeAddWrappedText(indkomst.beregningsgrundlagMellemregningLabel);
-            } else if (indkomst.beregningsgrundlagMellemregningResultat) {
-              safeAddWrappedText(indkomst.beregningsgrundlagMellemregningResultat);
-            }
-          }
-          if (indkomst.beregningsenhed === TAF_BEREGNES_SOM.ARBEJDSDAGE && indkomst.arbejdsdage) {
-            const arbejdsdageText = formatCountWithUnit(indkomst.arbejdsdage, 'arbejdsdag', 'arbejdsdage');
-            const basisText = addends.length > 1
-              ? `Dagsindkomst: (${addends.join(' + ')}${NBSP}kr.) / ${arbejdsdageText} =`
-              : `Dagsindkomst: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${arbejdsdageText} =`;
-            safeAddLeftRightText(
-              basisText,
-              renderMoneyWithKr(indkomst.dagsloen),
-              rightMaxWidth,
-              { rightFontStyle: 'normal' }
-            );
-          } else if (indkomst.maaneder) {
-            const maanederText = formatMaanederTrimmed(indkomst.maaneder);
-            const maanederMedEnhed = `${maanederText} ${isSingularCount(indkomst.maaneder) ? 'måned' : 'måneder'}`;
-            const basisText = addends.length > 1
-              ? `Månedsløn: (${addends.join(' + ')}${NBSP}kr.) / ${maanederMedEnhed} =`
-              : `Månedsløn: ${formatMoneyOreWithKr(indkomst.samletBeregningsgrundlagOre)} / ${maanederMedEnhed} =`;
-            safeAddLeftRightText(
-              basisText,
-              renderMoneyWithKr(indkomst.maanedsloen),
-              rightMaxWidth,
-              { rightFontStyle: 'normal' }
-            );
-          }
-        }
-      } else if (indkomst?.beregnesUdFra === 'Angivet månedsløn') {
-        const venstreTekst = indkomst.loenBaseretPaa
-          ? `På baggrund af ${indkomst.loenBaseretPaa} lægges en månedsløn til grund på`
-          : 'Der lægges en månedsløn til grund på';
-        safeAddLeftRightText(
-          venstreTekst,
-          renderMoneyWithKrOrError(indkomst.maanedsloen),
-          rightMaxWidth,
-          { rightFontStyle: 'normal' }
-        );
-      } else if (indkomst?.beregnesUdFra === 'Angivet dagsløn') {
-        const venstreTekst = indkomst.loenBaseretPaa
-          ? `På baggrund af ${indkomst.loenBaseretPaa} lægges en dagsløn til grund på`
-          : 'Der lægges en dagsløn til grund på';
-        safeAddLeftRightText(
-          venstreTekst,
-          renderMoneyWithKrOrError(indkomst.dagsloen),
-          rightMaxWidth,
-          { rightFontStyle: 'normal' }
-        );
-      }
-    }
+    renderTafBeregningsgrundlag({
+      model,
+      lineHeight,
+      rightColumnWidth,
+      rightMaxWidth,
+      NBSP,
+      renderSubheader,
+      safeAddWrappedText,
+      safeAddLeftRightText,
+      renderMoneyWithKr,
+      renderMoneyWithKrOrError,
+      formatMoneyOreWithKr,
+      formatCurrencyFromOre,
+      formatCountWithUnit,
+      formatMaanederTrimmed,
+      isSingularCount,
+      writer,
+    });
     writeBilagReferenceLinje(bilag.beregningsgrundlagTaf);
 
     const loenudvikling = model.tabtArbejdsfortjeneste.loenudvikling;
-    // Brug den aktive lønudviklings-ansættelse til at resolve kanonisk reguleringsdato.
-    // `resolveAnvendtReguleringsdato` er den kanoniske sandhed — ingen lokal fallback-logik.
-    const aktivLoenudviklingAf = resolveAktivEllerFoersteLoenudviklingKilde(eoValues);
-    const skadedatoIso = parseOptionalIsoDate(stamdataValues.skadedato);
-    const anvendtReguleringsdatoForOpgoerelse = aktivLoenudviklingAf
-      ? resolveAnvendtReguleringsdato(stamdataValues, eoValues, aktivLoenudviklingAf)
-      : undefined;
-    const loenSkadedatoText = resolveLoenSkadedatoText({
-      subject: 'lønnen',
-      anvendtReguleringsdato: anvendtReguleringsdatoForOpgoerelse,
-      skadedato: skadedatoIso,
-      useUntilWordingForImplicitBeregningsperiodeDate:
-        eoValues.beregnesUdFra === 'Beregningsperiode'
-        && !aktivLoenudviklingAf?.saerligFraDatoRegulering
-        && Boolean(
-          aktivLoenudviklingAf
-          && eoValues.tafBeregningsperiodeTil
-          && anvendtReguleringsdatoForOpgoerelse === eoValues.tafBeregningsperiodeTil
-        ),
-    });
     const offentligeYdelserUdvikling = model.tabtArbejdsfortjeneste.offentligeYdelserUdvikling;
     const harOffentligeYdelserUdvikling = Boolean(offentligeYdelserUdvikling && offentligeYdelserUdvikling.entries.length > 0);
-    const offentligeYdelserReguleringText =
-      offentligeYdelserUdvikling?.reguleringsLabel === 'Ingen'
-        ? 'uden statslig regulering per 1. januar'
-        : 'med statslig regulering per 1. januar';
-    const offentligeYdelserBaseText = offentligeYdelserUdvikling?.reguleringsBaseIso
-      ? ` per ${formatDateLong(offentligeYdelserUdvikling.reguleringsBaseIso)}`
-      : '';
-    // Når flere ansættelsesforhold indgår i TAF-beregningsgrundlaget, kan de hver
-    // især have forskellig reguleringsdato og forskelligt reguleringsgrundlag (fx
-    // ét på overenskomst og ét uden regulering). I så fald opgøres løn-referencedatoen
-    // per ansættelsesforhold i stedet for via én samlet aktiv kilde.
-    const resolveLoenDatoFragment = (
-      anvendtReguleringsdato: ISODateString | undefined,
-      brugFremTilFormulering: boolean
-    ): string => {
-      if (anvendtReguleringsdato && anvendtReguleringsdato !== skadedatoIso) {
-        const formatted = formatDateLong(anvendtReguleringsdato);
-        if (formatted) {
-          return brugFremTilFormulering ? `frem til ${formatted}` : `per ${formatted}`;
-        }
-      }
-      return 'på skadedatoen';
-    };
-    const resolvePerAnsaettelseLoenTekst = (): string | undefined => {
-      // Kun relevant når flere ansættelsesforhold faktisk indgår i beregningsgrundlaget.
-      if (!loenudvikling || loenudvikling.perAnsaettelse.length <= 1) return undefined;
-      const ansaettelserById = new Map(
-        eoValues.loenindkomstAnsaettelsesforhold.map((af) => [af.id, af] as const)
-      );
-      const fragmenter = loenudvikling.perAnsaettelse.map((entry) => {
-        const af = ansaettelserById.get(entry.ansaettelsesforholdId);
-        const anvendtReguleringsdato = af
-          ? resolveAnvendtReguleringsdato(stamdataValues, eoValues, af)
-          : undefined;
-        const brugFremTilFormulering =
-          eoValues.beregnesUdFra === 'Beregningsperiode'
-          && !af?.saerligFraDatoRegulering
-          && Boolean(
-            af
-            && eoValues.tafBeregningsperiodeTil
-            && anvendtReguleringsdato === eoValues.tafBeregningsperiodeTil
-          );
-        const datoFragment = resolveLoenDatoFragment(anvendtReguleringsdato, brugFremTilFormulering);
-        const tillaeg = entry.loenudviklingLabel === 'Ingen'
-          ? ''
-          : ' tillagt efterfølgende lønstigninger';
-        return `${entry.ansaettelsesforholdNavn} ${datoFragment}${tillaeg}`;
-      });
-      const sammensat = fragmenter.length === 1
-        ? fragmenter[0]
-        : `${fragmenter.slice(0, -1).join(', ')} og ${fragmenter[fragmenter.length - 1]}`;
-      return `Beregnes som lønnen opgjort således: ${sammensat}.`;
-    };
-    const resolveIndkomstBeregningsText = (): string => {
-      const perAnsaettelseTekst = resolvePerAnsaettelseLoenTekst();
-      const loenTekst = perAnsaettelseTekst ?? (
-        loenudvikling?.loenudviklingLabel === 'Ingen' || !loenudvikling
-          ? `Opgøres på baggrund af ${loenSkadedatoText}.`
-          : `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger.`
-      );
-      if (!harOffentligeYdelserUdvikling) return loenTekst;
-      return `${loenTekst}\nOffentlige ydelser beregnes${offentligeYdelserBaseText} ${offentligeYdelserReguleringText}.`;
-    };
-    const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = resolveIndkomstBeregningsText();
+    const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = resolveTafForventetIndkomstIntroText({
+      model,
+      eoValues,
+      stamdataValues,
+      parseOptionalIsoDate,
+      resolveLoenSkadedatoText,
+      formatDateLong,
+    });
     if (harOffentligeYdelserUdvikling) {
       renderSubheader('Forventet indkomst');
       for (const line of indkomstHvisSkadeIkkeIndtraadtBeskrivelse.split('\n')) {

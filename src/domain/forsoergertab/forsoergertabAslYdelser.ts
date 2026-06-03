@@ -1,4 +1,5 @@
 import { aarsloenAslMax } from '../../data/lovbestemteRates';
+import { opregulerMedAslAarsloensmaksimum } from '../satser/opreguleringsmotorer';
 import {
   getKapitaliseringsTabelData,
   type ForsoergertabMatrixRaekke,
@@ -187,6 +188,10 @@ const computeLobendeYdelser = (
       const aarligYdelseSkadesaar = ceilNearest12(FORSOERGERTABSPROCENT * benyttetAarsloen);
       maanedligYdelse = aarligYdelseSkadesaar / 12;
     } else {
+      // OPREGULERINGSMETODE: ASL-årslønsmaksimum (idx[år] / idx[skadeår]) — jf.
+      // `opregulerMedAslAarsloensmaksimum`. Beregnes direkte her, fordi løbende
+      // ydelser også kan ligge FØR skadeåret (de-regulering med faktor < 1),
+      // hvilket motorens "kun frem i tid"-clamp ikke dækker.
       const aarsloenMaxYear = aarsloenAslMax[year];
       if (!Number.isFinite(aarsloenMaxYear) || aarsloenMaxYear <= 0) {
         throw new Error(`INVARIANT: aarsloenAslMax mangler for år ${year} — burde være pre-valideret`);
@@ -310,7 +315,8 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
 
   const aslAarsloenAfrundet1000 = roundNearest1000(aslAarsloen);
   const benyttetAarsloen = Math.min(aslAarsloenAfrundet1000, aarsloenMaxSkadesaar);
-  const opreguleringsfaktor = aarsloenMaxBeregningsaar / aarsloenMaxSkadesaar;
+  // OPREGULERINGSMETODE: ASL-årslønsmaksimum (idx[beregningsår] / idx[skadeår]).
+  const opreguleringsfaktor = opregulerMedAslAarsloensmaksimum({ kildeAar: skadesaar, maalAar: beregningsaar }).faktor;
   const opreguleretAarligYdelse = round2(FORSOERGERTABSPROCENT * benyttetAarsloen * opreguleringsfaktor);
   const virkningsmaaned = Number(input.virkningsdato.slice(5, 7));
   const beregningsmaaned = Number(input.beregningsdato.slice(5, 7));
