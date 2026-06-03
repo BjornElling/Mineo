@@ -139,7 +139,7 @@ describe('tafFordeltPaaAarPdf wiring', () => {
     const instance = MockJsPDF.instances.at(-1);
     const renderedText = (instance?.text.mock.calls ?? []).map((call) => call[0]);
     expect(renderedText).not.toContain('Status');
-    expect(renderedText).toContain('Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste');
+    expect(renderedText).toContain('Erstatningsperiode hvor der beregnes tabt arbejdsfortjeneste');
     expect(renderedText).toContain('TAF fordelt på kalenderår');
     expect(renderedText.filter((text) => text === 'Ingen')).toHaveLength(2);
   });

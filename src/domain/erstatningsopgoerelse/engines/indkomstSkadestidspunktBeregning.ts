@@ -64,7 +64,7 @@ export const buildIndkomstSkadestidspunkt = (
       const fraText = formatDateShort(periodeTilBeregning.fra);
       const tilText = formatDateShort(periodeTilBeregning.til);
       if (fraText && tilText) {
-        beregningsperiodeLabel = `Beregnes på baggrund af indkomsten i perioden ${fraText} - ${tilText}.`;
+        beregningsperiodeLabel = `Opgøres på baggrund af indkomsten i perioden ${fraText} - ${tilText}.`;
       }
     }
 
