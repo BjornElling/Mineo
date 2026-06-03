@@ -7,6 +7,7 @@ import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../..
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import StyledDateField from '../../inputs/StyledDateField';
+import StyledTextField from '../../inputs/StyledTextField';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import InlineActionButton from '../../inputs/InlineActionButton';
 import { buildSygedagpengeRowsForRange } from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
@@ -42,6 +43,7 @@ type OffentligeYdelserHelpersSessionState = z.infer<typeof offentligeYdelserHelp
 type Props = Readonly<{
   rows: OffentligeYdelserRow[];
   onRowsChange: (rows: OffentligeYdelserRow[], origin?: { fieldPath?: string }) => void;
+  kommentarer: ErstatningsopgoerelseValues['offentligeYdelserKommentarer'];
   midlertidigtEetFraEetSiden: ErstatningsopgoerelseValues['midlertidigtEetFraEetSiden'];
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
 }>;
@@ -49,7 +51,7 @@ type Props = Readonly<{
 /**
  * Offentlige ydelser-fanen - modtagne ydelser
  */
-const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFraEetSiden, setEOValues }: Props) => {
+const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midlertidigtEetFraEetSiden, setEOValues }: Props) => {
   const sygedagpengeFraInputRef = React.useRef<HTMLInputElement | null>(null);
   const shouldFocusSygedagpengeFraRef = React.useRef(false);
   const suppressSygedagpengeFieldCommitRef = React.useRef(false);
@@ -243,6 +245,17 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
     setMidlertidigtEetConfirmDialogOpen(true);
   }, [commitMidlertidigtEetToggle, isMidlertidigtEetFraEetSiden, rows]);
 
+  const handleKommentarerCommit = React.useCallback((event: CommitEvent<string>) => {
+    const normalized = event.target.value.trim();
+    setEOValues(
+      (prev) => ({
+        ...prev,
+        offentligeYdelserKommentarer: normalized === '' ? undefined : normalized,
+      }),
+      { fieldPath: 'offentligeYdelserKommentarer' }
+    );
+  }, [setEOValues]);
+
   const handleMidlertidigtEetConfirm = React.useCallback(() => {
     const didCommit = commitMidlertidigtEetToggle(true);
     if (didCommit) {
@@ -332,6 +345,19 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, midlertidigtEetFr
             <Box className="row--label-right-hover__content" />
           </Box>
         )}
+      </ContentBox>
+
+      <ContentBox className="content-box">
+        <Typography className="section-header">Kommentarer</Typography>
+        <StyledTextField
+          name="offentligeYdelserKommentarer"
+          width={800}
+          value={kommentarer ?? ''}
+          onCommit={handleKommentarerCommit}
+          multiline
+          rows={4}
+          placeholder="Indtast eventuelle kommentarer her..."
+        />
       </ContentBox>
 
       <ConfirmationDialog

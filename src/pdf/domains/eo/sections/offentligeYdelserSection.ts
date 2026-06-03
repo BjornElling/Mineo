@@ -31,6 +31,7 @@ type OffentligeYdelserSectionContext = Readonly<{
   }>) => boolean;
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
+  writeBoldSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
   writer: Readonly<{
     addSectionSpacer: () => void;
     addSpacer: (height: number) => void;
@@ -131,6 +132,7 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     shouldIncludeOffentligYdelseRowInEoBilag,
     eoBilagIndkomstYdelserMode,
     eoBilagIndkomstYdelserRanges,
+    writeBoldSubheaderWithWrappedText,
     writer,
   } = ctx;
   const normalizedEoBilagMode = normalizeEoBilagIndkomstYdelserMode(eoBilagIndkomstYdelserMode);
@@ -175,6 +177,14 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
       renderSubheader,
       writer,
     });
+  }
+
+  // Kommentarer (hvis udfyldt) renderes under en underoverskrift nederst på bilaget,
+  // i samme stil som procesrente-PDF'ens kommentarafsnit.
+  const kommentarer = eoValues.offentligeYdelserKommentarer?.trim() ?? '';
+  if (kommentarer !== '') {
+    writer.addSectionSpacer();
+    writeBoldSubheaderWithWrappedText('Kommentarer', kommentarer);
   }
 };
 

@@ -368,6 +368,7 @@ const Erstatningsopgoerelse = React.memo(() => {
             <OffentligeYdelserTab
               rows={form.values.offentligeYdelserRows ?? []}
               onRowsChange={handleOffentligeYdelserRowsChange}
+              kommentarer={form.values.offentligeYdelserKommentarer}
               midlertidigtEetFraEetSiden={form.values.midlertidigtEetFraEetSiden}
               setEOValues={setFormValues}
             />

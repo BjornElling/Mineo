@@ -56,6 +56,7 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
                 { ...initialOffentligYdelseRow, id: 'row-2' },
               ]}
               onRowsChange={onRowsChange}
+              kommentarer={undefined}
               midlertidigtEetFraEetSiden="Nej"
               setEOValues={vi.fn()}
             />

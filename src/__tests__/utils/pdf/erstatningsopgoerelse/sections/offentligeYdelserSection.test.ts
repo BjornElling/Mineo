@@ -42,6 +42,7 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
       shouldIncludeOffentligYdelseRowInEoBilag: vi.fn(() => true),
       eoBilagIndkomstYdelserMode: 'Alle' as const,
       eoBilagIndkomstYdelserRanges: [] as const,
+      writeBoldSubheaderWithWrappedText: vi.fn(),
       writer: {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),
@@ -135,6 +136,50 @@ describe('renderOffentligeYdelserSection – gruppering per ydelsestype', () => 
   });
 });
 
+// ─── Kommentarer ──────────────────────────────────────────────────────────────
+
+describe('renderOffentligeYdelserSection – kommentarer', () => {
+  it('renderer kommentar-underoverskrift når kommentarfeltet er udfyldt', () => {
+    const { ctx } = makeCtx();
+    const writeBoldSubheaderWithWrappedText = vi.fn();
+    ctx.writeBoldSubheaderWithWrappedText = writeBoldSubheaderWithWrappedText;
+    ctx.eoValues.offentligeYdelserRows = [
+      { id: 'r1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
+    ];
+    ctx.eoValues.offentligeYdelserKommentarer = '  Bemærkning til ydelserne  ';
+
+    renderOffentligeYdelserSection(ctx);
+
+    expect(writeBoldSubheaderWithWrappedText).toHaveBeenCalledWith('Kommentarer', 'Bemærkning til ydelserne');
+  });
+
+  it('renderer ikke kommentar-underoverskrift når feltet er tomt', () => {
+    const { ctx } = makeCtx();
+    const writeBoldSubheaderWithWrappedText = vi.fn();
+    ctx.writeBoldSubheaderWithWrappedText = writeBoldSubheaderWithWrappedText;
+    ctx.eoValues.offentligeYdelserRows = [
+      { id: 'r1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
+    ];
+    ctx.eoValues.offentligeYdelserKommentarer = '   ';
+
+    renderOffentligeYdelserSection(ctx);
+
+    expect(writeBoldSubheaderWithWrappedText).not.toHaveBeenCalled();
+  });
+
+  it('renderer ikke kommentar-underoverskrift når sektionen er tom (ingen rækker)', () => {
+    const { ctx } = makeCtx();
+    const writeBoldSubheaderWithWrappedText = vi.fn();
+    ctx.writeBoldSubheaderWithWrappedText = writeBoldSubheaderWithWrappedText;
+    ctx.eoValues.offentligeYdelserRows = [];
+    ctx.eoValues.offentligeYdelserKommentarer = 'Kommentar uden rækker';
+
+    renderOffentligeYdelserSection(ctx);
+
+    expect(writeBoldSubheaderWithWrappedText).not.toHaveBeenCalled();
+  });
+});
+
 // ─── Tabelbredde ──────────────────────────────────────────────────────────────
 
 describe('renderOffentligeYdelserSection tabelbredde', () => {
@@ -163,6 +208,7 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
       shouldIncludeOffentligYdelseRowInEoBilag: vi.fn(() => true),
       eoBilagIndkomstYdelserMode: 'Alle',
       eoBilagIndkomstYdelserRanges: [],
+      writeBoldSubheaderWithWrappedText: vi.fn(),
       writer: {
         addSectionSpacer: vi.fn(),
         addSpacer: vi.fn(),

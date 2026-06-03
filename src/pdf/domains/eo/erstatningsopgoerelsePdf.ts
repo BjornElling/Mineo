@@ -540,6 +540,7 @@ export const generateErstatningsopgoerelsePdf = (
       shouldIncludeOffentligYdelseRowInEoBilag,
       eoBilagIndkomstYdelserMode,
       eoBilagIndkomstYdelserRanges,
+      writeBoldSubheaderWithWrappedText: writer.writeBoldSubheaderWithWrappedText,
       writer,
     });
   }

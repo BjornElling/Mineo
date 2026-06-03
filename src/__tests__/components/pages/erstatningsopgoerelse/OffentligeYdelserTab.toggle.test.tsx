@@ -21,6 +21,7 @@ const renderTab = (params: Readonly<{
         <OffentligeYdelserTab
           rows={params.rows}
           onRowsChange={vi.fn()}
+          kommentarer={undefined}
           midlertidigtEetFraEetSiden={params.midlertidigtEetFraEetSiden ?? 'Nej'}
           setEOValues={params.setEOValues ?? vi.fn()}
         />

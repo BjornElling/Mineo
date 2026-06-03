@@ -142,6 +142,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
 
   // Offentlige ydelser
   offentligeYdelserRows: [],
+  offentligeYdelserKommentarer: '',
   midlertidigtEetFraEetSiden: 'Nej',
   regulerOffentligeYdelser: 'Ja',
 

@@ -222,6 +222,7 @@ const erstatningsopgoerelseBaseSchema = z.object({
   kravPaaOevrigeErstatningskrav: jaNejSkjulEnum.default('Ja'),
   oevrigeKravPerioder: z.array(oevrigeKravRowSchema).default([]),
   offentligeYdelserRows: z.array(offentligeYdelserRowSchema).default([]),
+  offentligeYdelserKommentarer: optionalString,
   loenudviklingPaaGrundlagAf: optionalString,
   saerligeKommentarer: optionalString,
   eoBilagSelection: eoBilagSelectionSchema.default({ opgoerelse: true, loenindkomst: true, offentligeYdelser: true, midlertidigEet: true, shDage: false, regulering: true, okSatser: true, sygeferiegodtgoerelse: false }),

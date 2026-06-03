@@ -34,7 +34,9 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // PERSISTED_DATA_VERSION bumpet til 3.0 (bevidst breaking schema-ændring; gamle værdier tabes, default 'Ja').
 // Opdateret 2026-06-03: nyt felt kravPaaOevrigeErstatningskrav (Ja/Nej/Skjul) på erstatningsopgoerelse-sektionen,
 // magen til de to ovenstående. PERSISTED_DATA_VERSION bumpet til 3.1 (reel persisted schema-ændring).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-c9d3a060';
+// Opdateret 2026-06-03: nyt felt offentligeYdelserKommentarer (optionalString) på erstatningsopgoerelse-sektionen
+// — kommentarfelt på Offentlige ydelser-siden. PERSISTED_DATA_VERSION bumpet til 3.2 (reel persisted schema-ændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-b8f0fe5d';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {
