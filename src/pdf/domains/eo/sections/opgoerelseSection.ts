@@ -331,7 +331,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         safeAddWrappedText(tekst);
       }
     }
-    renderSubheader('Beregnet krav på svie- og smertegodtgørelse');
+    renderSubheader('Beregnet krav');
     const sygedage = model.svieSmerte.sygedage;
     const delviseSygedage = model.svieSmerte.delviseSygedage;
     const perDagOre = model.svieSmerte.satserPerDag.status === 'ok' ? model.svieSmerte.satserPerDag.value : null;
@@ -852,7 +852,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       tafTotal.status === 'ok' &&
       (!offentligeYdelserUdviklingTotal || offentligeYdelserUdviklingTotal.status === 'ok')
     ) {
-      renderSubheader('Beregnet krav på tabt arbejdsfortjeneste');
+      renderSubheader('Beregnet krav');
 
       const positiveLed = [formatCurrencyFromOre(loenudviklingTotal.value)];
       if (offentligeYdelserUdviklingTotal && offentligeYdelserUdviklingTotal.value !== 0) {
@@ -882,8 +882,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       const rightText = formatMoneyOreWithKr(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre);
       safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'bold' });
     } else if (model.tabtArbejdsfortjeneste.harTafPerioder) {
-      renderSubheader('Beregnet krav på tabt arbejdsfortjeneste');
-      safeAddLeftRightText('Beregnet krav på tabt arbejdsfortjeneste', '—', rightMaxWidth, { rightFontStyle: 'bold' });
+      renderSubheader('Beregnet krav');
+      safeAddLeftRightText('Beregnet krav', '—', rightMaxWidth, { rightFontStyle: 'bold' });
     }
     }
   }

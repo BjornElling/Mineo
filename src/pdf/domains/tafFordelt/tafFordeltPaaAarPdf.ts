@@ -77,7 +77,7 @@ export const generateTafFordeltPaaAarPdf = (
   }
 
   // Titel
-  writer.writeTitle(titel);
+  writer.writeTitle(titel, { trailingSpacing: 0 });
 
   // Erstatningsperiode
   if (model.periodeDisplay) {

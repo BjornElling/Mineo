@@ -402,7 +402,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const model = buildProjectedDocument(stamdata, eo);
     renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
-    const beregnetKravHeaderIndex = texts.indexOf('Beregnet krav på tabt arbejdsfortjeneste');
+    const beregnetKravHeaderIndex = texts.indexOf('Beregnet krav');
     const beregnetKravLinje = beregnetKravHeaderIndex === -1 ? null : texts[beregnetKravHeaderIndex + 1];
     const loenTotalOre =
       model.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal.status === 'ok'
@@ -793,7 +793,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
-    const beregnetKravHeaderIndex = texts.indexOf('Beregnet krav på tabt arbejdsfortjeneste');
+    const beregnetKravHeaderIndex = texts.indexOf('Beregnet krav');
     const beregnetKravLinje = beregnetKravHeaderIndex === -1 ? null : texts[beregnetKravHeaderIndex + 1];
 
     expect(texts).not.toContain('Sygeferiegodtgørelse');
@@ -1730,7 +1730,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     renderPdf(stamdata, eo);
     const texts = collectTextStrings(MockJsPDF.lastInstance);
-    const beregnetKravHeaderIndex = texts.indexOf('Beregnet krav på tabt arbejdsfortjeneste');
+    const beregnetKravHeaderIndex = texts.indexOf('Beregnet krav');
     const beregnetKravLinje = beregnetKravHeaderIndex === -1 ? null : texts[beregnetKravHeaderIndex + 1];
 
     expect(texts).toContain('Sygeferiegodtgørelse');
