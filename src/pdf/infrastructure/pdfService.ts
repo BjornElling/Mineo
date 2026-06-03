@@ -25,6 +25,7 @@ import {
   loadSHDagePdfModule,
   loadSatserPdfModule,
   loadTafFordeltPaaAarPdfModule,
+  loadTafOpreguleretPaaAarPdfModule,
   loadVarigeMenPdfModule,
   loadForsoergertabPdfModule,
 } from './pdfLoader';
@@ -39,6 +40,7 @@ import type { BilagSelection } from '../domains/differencekrav/differencekravPdf
 import type { EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
 import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
+import { eoSnapshotToTafPerYearOpreguleretPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretPdfDocument';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { logWarning } from '../../utils/logger';
 import { asError } from '../../utils/typeGuards';
@@ -508,6 +510,38 @@ export const downloadTafFordeltPaaAarPdf = async (params: Readonly<{
     return await createPdfDownloadFailure(
       'Kunne ikke generere TAF fordelt på år-PDF',
       'pdfService.downloadTafFordeltPaaAarPdf',
+      error
+    );
+  }
+};
+
+export const downloadTafOpreguleretPaaAarPdf = async (params: Readonly<{
+  stamdataValues: StamdataValues;
+  eoValues: ErstatningsopgoerelseValues;
+  settings: AppSettings;
+  snapshot: EoSnapshot;
+}>): Promise<PdfDownloadResult> => {
+  const { settings, snapshot } = params;
+  const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
+  const tafOpreguleretPdfDocument = eoSnapshotToTafPerYearOpreguleretPdfDocument(snapshot);
+  if (tafOpreguleretPdfDocument.kind === 'blocked') {
+    return { success: false, error: tafOpreguleretPdfDocument.message };
+  }
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadTafOpreguleretPaaAarPdf');
+  if (preflightFailure) return preflightFailure;
+
+  try {
+    const { generateTafOpreguleretPaaAarPdf } = await loadTafOpreguleretPaaAarPdfModule();
+    generateTafOpreguleretPaaAarPdf({
+      visBrevhoved,
+      visUdkastStempel: params.eoValues.indsaetUdkastStempel === 'Ja',
+      document: tafOpreguleretPdfDocument.document,
+    });
+    return PDF_DOWNLOAD_SUCCESS;
+  } catch (error) {
+    return await createPdfDownloadFailure(
+      'Kunne ikke generere TAF opreguleret til beregningsår-PDF',
+      'pdfService.downloadTafOpreguleretPaaAarPdf',
       error
     );
   }

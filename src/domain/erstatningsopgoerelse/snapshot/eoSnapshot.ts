@@ -17,6 +17,7 @@ import type { EoModel } from '../shared/eoTypes';
 import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { computeTafNettoBeregning, type TafNettoBeregningResult } from '../engines/tafNettoBeregning';
 import { buildTafPerYearBuildOutcome, buildTafPerYearSourceFromComputed, type TafPerYearResult } from '../engines/tafPerYearDerived';
+import { buildTafPerYearOpreguleretBuildOutcome, type TafPerYearOpreguleretResult } from '../engines/tafPerYearOpreguleretDerived';
 import {
   buildEoCanonicalOutputFromComputed,
   buildEoComputedTotals,
@@ -29,6 +30,7 @@ import {
   buildControlMismatchInvariant,
   buildMidlertidigtEetSourceInvariants,
   buildTafPerYearAfrundingInvariant,
+  buildTafPerYearOpreguleretManglendeIndeksInvariant,
   buildTafPerYearUnavailableInvariant,
   buildValidationInvariants,
   hasAnyErrorInvariant,
@@ -44,6 +46,7 @@ export type EoSnapshotComputedData = Readonly<{
     svieSmerte: SvieSmerteEngineOutput;
     tafNetto: TafNettoBeregningResult;
     tafPerYear: TafPerYearResult | null;
+    tafPerYearOpreguleret: TafPerYearOpreguleretResult | null;
     oevrigeKrav: ReturnType<typeof buildOevrigeKravModel>;
     forlig: ReturnType<typeof parseForligsgrad>;
   }>;
@@ -192,7 +195,7 @@ export const computeEoSnapshot = (args: Readonly<{
         source: 'system' as const,
         message,
         blocksAuthoritativeComputation: true,
-        blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'] as const,
+        blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
       })),
       data: null,
       debugSnapshot: null,
@@ -243,7 +246,7 @@ export const computeEoSnapshot = (args: Readonly<{
         source: 'system' as const,
         message: 'EO-beregningen kan ikke gennemføres på grund af en intern datafejl i angivet løn. Genindlæs sagen eller vælg beregningsgrundlaget igen.',
         blocksAuthoritativeComputation: true,
-        blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'] as const,
+        blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
       }],
       data: null,
       debugSnapshot: null,
@@ -335,6 +338,11 @@ export const computeEoSnapshot = (args: Readonly<{
       effectiveEoValues,
       { tafRanges }
     );
+    const tafPerYearResult = tafPerYearOutcome.kind === 'ok' ? tafPerYearOutcome.result : null;
+    const tafPerYearOpreguleretOutcome = buildTafPerYearOpreguleretBuildOutcome(
+      tafPerYearResult,
+      presentation.brevhoved?.dagsDatoISO ?? dagsDatoISO
+    );
     const canonicalOutput = buildCanonicalOutput({
       tafRanges,
       svieSmerte,
@@ -364,6 +372,9 @@ export const computeEoSnapshot = (args: Readonly<{
     }
     if (tafPerYearOutcome.kind === 'not_applicable' && tafNetto.harTafPerioder) {
       invariants.push(buildTafPerYearUnavailableInvariant(tafPerYearOutcome.reason));
+    }
+    if (tafPerYearOpreguleretOutcome.kind === 'error' && tafPerYearOpreguleretOutcome.reason === 'manglende_indeks') {
+      invariants.push(buildTafPerYearOpreguleretManglendeIndeksInvariant(tafPerYearOpreguleretOutcome.manglendeAar));
     }
 
     // Denne invariant er bevidst udledt af debug-tabellens sammentælling-model.
@@ -396,7 +407,8 @@ export const computeEoSnapshot = (args: Readonly<{
       engines: {
         svieSmerte,
         tafNetto,
-        tafPerYear: tafPerYearOutcome.kind === 'ok' ? tafPerYearOutcome.result : null,
+        tafPerYear: tafPerYearResult,
+        tafPerYearOpreguleret: tafPerYearOpreguleretOutcome.kind === 'ok' ? tafPerYearOpreguleretOutcome.result : null,
         oevrigeKrav,
         forlig,
       },
@@ -449,7 +461,7 @@ export const computeEoSnapshot = (args: Readonly<{
         message: 'EO-beregningen kan ikke gennemføres på grund af en intern beregningsfejl.',
         evidence: [normalizedError.message],
         blocksAuthoritativeComputation: true,
-        blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'] as const,
+        blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
       }],
       data: null,
       debugSnapshot,

@@ -5,7 +5,7 @@ import {
   TAF_OVERLAP_ERROR_MESSAGE,
 } from '../../../validators/erstatningsopgoerelseValidator';
 
-export type EoProjectionTarget = 'beregning' | 'debug' | 'eo_pdf' | 'taf_per_year_pdf';
+export type EoProjectionTarget = 'beregning' | 'debug' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf';
 
 /**
  * source klassificerer invariantens oprindelse:
@@ -23,7 +23,7 @@ export type EoInvariant = Readonly<{
   blocksOutputs?: ReadonlyArray<EoProjectionTarget>;
 }>;
 
-const VALIDATION_BLOCKED_OUTPUTS: readonly EoProjectionTarget[] = ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf'];
+const VALIDATION_BLOCKED_OUTPUTS: readonly EoProjectionTarget[] = ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'];
 const SFGG_VALIDATION_PATH_PREFIXES = ['sfggAnsaettelsesforhold', 'sfggSygeperioderFoer2015'] as const;
 
 const isSfggValidationError = (error: ValidationError): boolean =>
@@ -87,7 +87,22 @@ export const buildTafPerYearAfrundingInvariant = (args: Readonly<{
     `Samlet TAF-krav: ${args.samletTafKravOre}`,
   ],
   blocksAuthoritativeComputation: false,
-  blocksOutputs: ['taf_per_year_pdf'],
+  blocksOutputs: ['taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
+});
+
+export const buildTafPerYearOpreguleretManglendeIndeksInvariant = (
+  manglendeAar: readonly number[]
+): EoInvariant => ({
+  id: 'taf_per_year_opreguleret:manglende_indeks',
+  passed: false,
+  severity: 'error',
+  source: 'system',
+  message: manglendeAar.length > 0
+    ? `TAF opreguleret til beregningsåret kan ikke beregnes, fordi der mangler reguleringsindeks for ${manglendeAar.join(', ')}.`
+    : 'TAF opreguleret til beregningsåret kan ikke beregnes, fordi der mangler reguleringsindeks.',
+  evidence: manglendeAar.map((aar) => `Mangler indeks for ${aar}`),
+  blocksAuthoritativeComputation: false,
+  blocksOutputs: ['taf_per_year_opreguleret_pdf'],
 });
 
 export const buildTafPerYearUnavailableInvariant = (reason: 'missing_loenudvikling' | 'missing_taf_indtaegter'): EoInvariant => ({
@@ -99,7 +114,7 @@ export const buildTafPerYearUnavailableInvariant = (reason: 'missing_loenudvikli
     ? 'TAF fordelt på år kan ikke genereres, fordi lønudvikling ikke kunne beregnes autoritativt.'
     : 'TAF fordelt på år kan ikke genereres, fordi indtægter i TAF-perioden ikke kunne beregnes autoritativt.',
   blocksAuthoritativeComputation: false,
-  blocksOutputs: ['taf_per_year_pdf'],
+  blocksOutputs: ['taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
 });
 
 export const buildControlMismatchInvariant = (messages: readonly string[]): EoInvariant => ({
@@ -110,7 +125,7 @@ export const buildControlMismatchInvariant = (messages: readonly string[]): EoIn
   message: 'Der er konstateret kontroluoverensstemmelser i EO-beregningen.',
   evidence: messages,
   blocksAuthoritativeComputation: false,
-  blocksOutputs: ['eo_pdf', 'taf_per_year_pdf'],
+  blocksOutputs: ['eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
 });
 
 

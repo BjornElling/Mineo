@@ -11,7 +11,7 @@ const EO_SECTION_PERSISTED_PATTERNS = [
   /\busePersistedSection\s*\(\s*['"]erstatningsopgoerelse['"]\s*\)/,
   /\bgetPersistedData\s*\(\s*['"]erstatningsopgoerelse['"]\s*\)/,
 ];
-const EO_PDF_DOWNLOAD_FILE_PATTERN = /\b(downloadErstatningsopgoerelsePdf|downloadTafFordeltPaaAarPdf)\s*\(/;
+const EO_PDF_DOWNLOAD_FILE_PATTERN = /\b(downloadErstatningsopgoerelsePdf|downloadTafFordeltPaaAarPdf|downloadTafOpreguleretPaaAarPdf)\s*\(/;
 const EO_PDF_CRITICAL_PERSISTED_PATTERNS = [
   ...EO_SECTION_PERSISTED_PATTERNS,
   /\busePersistedSection\s*\(\s*['"]stamdata['"]\s*\)/,
