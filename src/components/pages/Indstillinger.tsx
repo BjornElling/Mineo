@@ -398,7 +398,7 @@ const Indstillinger = React.memo(() => {
         </Box>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Svie/smerte sats ved delvis sygemelding</Typography>
+          <Typography className="row--text">Svie/smerte-sats ved delvis sygemelding</Typography>
           <Box className="row--label-right-hover__content">
             <StyledRadioButton
               value={settings.defaultSvieSmerteDelvisSygemeldingSats}

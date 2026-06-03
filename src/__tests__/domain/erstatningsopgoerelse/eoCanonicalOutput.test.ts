@@ -18,7 +18,7 @@ describe('eoCanonicalOutput', () => {
       ...initial,
       beregnesUdFra: 'Angivet månedsløn' as const,
       maanedsloenenUdgoer: asAmountValue(48705.13),
-      beregnesTabtArbejdsfortjeneste: 'Ja' as const,
+      kravPaaTabtArbejdsfortjeneste: 'Ja' as const,
       vedroererPeriodeFra: iso('2024-01-01'),
       vedroererPeriodeTil: iso('2024-12-31'),
       svieSmertePerioder: [

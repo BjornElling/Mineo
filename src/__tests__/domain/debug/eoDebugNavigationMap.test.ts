@@ -51,7 +51,7 @@ describe('getNavigationTargetFromRowId', () => {
       ],
       [
         'sviesmerte.satserAar',
-        { tabId: 'eo_oplysninger', sectionId: 'sviesmerte', tabName: 'EO oplysninger', sectionTitle: 'Svie/smerte godtgørelse' },
+        { tabId: 'eo_oplysninger', sectionId: 'sviesmerte', tabName: 'EO oplysninger', sectionTitle: 'Svie- og smertegodtgørelse' },
       ],
       [
         'taf.beregningsgrundlag.indkomst',

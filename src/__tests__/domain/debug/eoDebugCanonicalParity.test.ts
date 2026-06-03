@@ -63,7 +63,7 @@ describe('eoDebug canonical parity', () => {
   it('læser taf.tidligereModtagetTaf fra canonical taf.tidligereModtagetTafOre', () => {
     const eoValues = {
       ...createErstatningsopgoerelseInitialValues(),
-      beregnesTabtArbejdsfortjeneste: 'Ja' as const,
+      kravPaaTabtArbejdsfortjeneste: 'Ja' as const,
       beregnesUdFra: 'Angivet månedsløn' as const,
       maanedsloenenUdgoer: amount(30000),
       vedroererPeriodeFra: iso('2024-01-01'),

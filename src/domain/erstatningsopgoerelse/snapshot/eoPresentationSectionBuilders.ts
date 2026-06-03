@@ -1,4 +1,4 @@
-import type { ErstatningsopgoerelseValues, OevrigeKravRow } from '../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import { isISODateString, isoToDanish } from '../../../types/branded';
 import { TAF_MIDLERTIDIG_EET_SKAERINGSDATO } from '../engines/periodiseringsMotor';
@@ -59,7 +59,8 @@ export const buildSvieSmerteModel = (
   values: ErstatningsopgoerelseValues,
   options: Readonly<{ engine: SvieSmerteEngineOutput }>
 ): SvieSmerteModel => {
-  const beregnes = values.beregnesSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej';
+  const beregnes = values.kravPaaSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej';
+  const skjul = values.kravPaaSvieSmerteGodtgoerelse === 'Skjul';
   const statusLinjer: string[] = [];
   const periodeTilISO = values.vedroererPeriodeTil;
 
@@ -156,6 +157,7 @@ export const buildSvieSmerteModel = (
 
   return {
     beregnes,
+    skjul,
     statusLinjer,
     opgjortFremTilPeriodeTil,
     periodeHeading,
@@ -207,10 +209,12 @@ export const buildTabtArbejdsfortjenesteModel = (
     skadedatoISO?: ISODateString;
   }>
 ): TabtArbejdsfortjenesteModel => {
-  const beregnes = values.beregnesTabtArbejdsfortjeneste === 'Ja';
+  const beregnes = values.kravPaaTabtArbejdsfortjeneste === 'Ja';
+  const skjul = values.kravPaaTabtArbejdsfortjeneste === 'Skjul';
   if (!beregnes) {
     return {
       beregnes,
+      skjul,
       statusLinjer: [],
       eetLinjer: [],
       differencekravLinje: null,
@@ -389,6 +393,7 @@ export const buildTabtArbejdsfortjenesteModel = (
 
   return {
     beregnes,
+    skjul,
     statusLinjer,
     eetLinjer,
     differencekravLinje,
@@ -410,10 +415,16 @@ export const buildTabtArbejdsfortjenesteModel = (
   };
 };
 
-export const buildOevrigeKravModel = (rows: OevrigeKravRow[]): OevrigeKravModel => {
-  const parsed = parseOevrigeKravBeloeb(rows);
+export const buildOevrigeKravModel = (values: ErstatningsopgoerelseValues): OevrigeKravModel => {
+  const beregnes = values.kravPaaOevrigeErstatningskrav === 'Ja';
+  const skjul = values.kravPaaOevrigeErstatningskrav === 'Skjul';
+  if (!beregnes) {
+    return { beregnes, skjul, entries: [], totalFoerForligOre: ensureMoneyOre(0), totalOre: ensureMoneyOre(0) };
+  }
+
+  const parsed = parseOevrigeKravBeloeb(values.oevrigeKravPerioder ?? []);
   if (!parsed) {
-    return { entries: [], totalFoerForligOre: ensureMoneyOre(0), totalOre: ensureMoneyOre(0) };
+    return { beregnes, skjul, entries: [], totalFoerForligOre: ensureMoneyOre(0), totalOre: ensureMoneyOre(0) };
   }
 
   const entries: Array<{ dateText: string; udgiftTil: string; amountOre: MoneyOre }> = [];
@@ -424,5 +435,5 @@ export const buildOevrigeKravModel = (rows: OevrigeKravRow[]): OevrigeKravModel 
     entries.push({ dateText, udgiftTil, amountOre: row.amountOre });
   }
 
-  return { entries, totalFoerForligOre: parsed.totalOre, totalOre: parsed.totalOre };
+  return { beregnes, skjul, entries, totalFoerForligOre: parsed.totalOre, totalOre: parsed.totalOre };
 };

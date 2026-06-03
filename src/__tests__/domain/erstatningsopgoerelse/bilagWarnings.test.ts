@@ -52,37 +52,37 @@ describe('resolveBilagWarning', () => {
   });
 
   describe('bilagsnumreSvieSmerteDokumentation', () => {
-    it('ingen advarsel når beregnesSvieSmerteGodtgoerelse er Ja', () => {
-      const values = makeValues({ beregnesSvieSmerteGodtgoerelse: 'Ja' });
+    it('ingen advarsel når kravPaaSvieSmerteGodtgoerelse er Ja', () => {
+      const values = makeValues({ kravPaaSvieSmerteGodtgoerelse: 'Ja' });
       expect(resolveBilagWarning(values, 'bilagsnumreSvieSmerteDokumentation', '3')).toBeNull();
     });
 
-    it('advarsel når beregnesSvieSmerteGodtgoerelse ikke er Ja', () => {
-      const values = makeValues({ beregnesSvieSmerteGodtgoerelse: 'Nej' });
+    it('advarsel når kravPaaSvieSmerteGodtgoerelse ikke er Ja', () => {
+      const values = makeValues({ kravPaaSvieSmerteGodtgoerelse: 'Nej' });
       expect(resolveBilagWarning(values, 'bilagsnumreSvieSmerteDokumentation', '3')).not.toBeNull();
     });
   });
 
   describe('bilagsnumreBeregningsgrundlagTaf', () => {
-    it('ingen advarsel når beregnesTabtArbejdsfortjeneste er Ja', () => {
-      const values = makeValues({ beregnesTabtArbejdsfortjeneste: 'Ja' });
+    it('ingen advarsel når kravPaaTabtArbejdsfortjeneste er Ja', () => {
+      const values = makeValues({ kravPaaTabtArbejdsfortjeneste: 'Ja' });
       expect(resolveBilagWarning(values, 'bilagsnumreBeregningsgrundlagTaf', '4')).toBeNull();
     });
 
-    it('advarsel når beregnesTabtArbejdsfortjeneste ikke er Ja', () => {
-      const values = makeValues({ beregnesTabtArbejdsfortjeneste: 'Nej' });
+    it('advarsel når kravPaaTabtArbejdsfortjeneste ikke er Ja', () => {
+      const values = makeValues({ kravPaaTabtArbejdsfortjeneste: 'Nej' });
       expect(resolveBilagWarning(values, 'bilagsnumreBeregningsgrundlagTaf', '4')).not.toBeNull();
     });
   });
 
   describe('bilagsnumreLoenISygeperioden', () => {
-    it('advarsel når beregnesTabtArbejdsfortjeneste ikke er Ja', () => {
-      const values = makeValues({ beregnesTabtArbejdsfortjeneste: 'Nej' });
+    it('advarsel når kravPaaTabtArbejdsfortjeneste ikke er Ja', () => {
+      const values = makeValues({ kravPaaTabtArbejdsfortjeneste: 'Nej' });
       expect(resolveBilagWarning(values, 'bilagsnumreLoenISygeperioden', '5')).not.toBeNull();
     });
 
     it('advarsel når TAF beregnes men ingen lønoplysninger', () => {
-      const values = makeValues({ beregnesTabtArbejdsfortjeneste: 'Ja' });
+      const values = makeValues({ kravPaaTabtArbejdsfortjeneste: 'Ja' });
       // Standardinitialværdier har et ansættelsesforhold uden lønoplysninger
       expect(resolveBilagWarning(values, 'bilagsnumreLoenISygeperioden', '5')).not.toBeNull();
     });
@@ -107,7 +107,7 @@ describe('resolveBilagWarning', () => {
         },
       ];
       const values = makeValues({
-        beregnesTabtArbejdsfortjeneste: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         loenindkomstAnsaettelsesforhold: base.loenindkomstAnsaettelsesforhold,
       });
       expect(resolveBilagWarning(values, 'bilagsnumreLoenISygeperioden', '5')).toBeNull();
@@ -115,19 +115,19 @@ describe('resolveBilagWarning', () => {
   });
 
   describe('bilagsnumreOffentligeYdelser', () => {
-    it('advarsel når beregnesTabtArbejdsfortjeneste ikke er Ja', () => {
-      const values = makeValues({ beregnesTabtArbejdsfortjeneste: 'Nej' });
+    it('advarsel når kravPaaTabtArbejdsfortjeneste ikke er Ja', () => {
+      const values = makeValues({ kravPaaTabtArbejdsfortjeneste: 'Nej' });
       expect(resolveBilagWarning(values, 'bilagsnumreOffentligeYdelser', '6')).not.toBeNull();
     });
 
     it('advarsel når TAF beregnes men ingen offentlige ydelser', () => {
-      const values = makeValues({ beregnesTabtArbejdsfortjeneste: 'Ja', offentligeYdelserRows: [] });
+      const values = makeValues({ kravPaaTabtArbejdsfortjeneste: 'Ja', offentligeYdelserRows: [] });
       expect(resolveBilagWarning(values, 'bilagsnumreOffentligeYdelser', '6')).not.toBeNull();
     });
 
     it('advarsel når TAF beregnes men offentlige ydelser kun har tomme rækker', () => {
       const values = makeValues({
-        beregnesTabtArbejdsfortjeneste: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         offentligeYdelserRows: [
           { id: 'row_1', fraDato: '', tilDato: '', ydelse: undefined, tillaeg: undefined, ydelsestype: '' },
         ],
@@ -150,6 +150,18 @@ describe('resolveBilagWarning', () => {
         ],
       });
       expect(resolveBilagWarning(values, 'bilagsnumreOevrigeErstatningskrav', '5')).toBeNull();
+    });
+
+    it('advarsel når kravPaaOevrigeErstatningskrav ikke er Ja (trods udfyldt krav)', () => {
+      for (const valg of ['Nej', 'Skjul'] as const) {
+        const values = makeValues({
+          kravPaaOevrigeErstatningskrav: valg,
+          oevrigeKravPerioder: [
+            { id: 'row_1', dato: undefined, udgiftTil: 'Proteser', beloeb: undefined },
+          ],
+        });
+        expect(resolveBilagWarning(values, 'bilagsnumreOevrigeErstatningskrav', '5')).not.toBeNull();
+      }
     });
   });
 

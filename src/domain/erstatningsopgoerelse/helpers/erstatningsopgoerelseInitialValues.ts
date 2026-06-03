@@ -118,7 +118,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   differencekravDato: undefined,
 
   // Svie/smerte godtgørelse
-  beregnesSvieSmerteGodtgoerelse: 'Ja',
+  kravPaaSvieSmerteGodtgoerelse: 'Ja',
   svieSmerteHelbredsstatus: undefined,
   tidligereSsMax: 'Nej',
   svieSmertePerioder: ensureSvieRows(undefined),
@@ -128,7 +128,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   svieSmerteAktuelPeriode: undefined,
 
   // Tabt arbejdsfortjeneste
-  beregnesTabtArbejdsfortjeneste: 'Ja',
+  kravPaaTabtArbejdsfortjeneste: 'Ja',
   tafArbejdsstatus: undefined,
   tafPerioder: ensureTafRows(undefined),
   ferieperioder: ensureTafFerieRows(undefined),
@@ -137,6 +137,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   tidligereModtagetTaf: undefined,
 
   // Øvrige erstatningskrav
+  kravPaaOevrigeErstatningskrav: 'Ja',
   oevrigeKravPerioder: ensureOevrigeKravRows(undefined),
 
   // Offentlige ydelser

@@ -220,6 +220,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     safeAddWrappedText(tekst);
   }
 
+  // 'Skjul' udelader emnet HELT fra PDF'en (ingen overskrift, intet "Ingen").
+  // 'Nej' (beregnes === false uden skjul) viser fortsat overskrift + "Ingen".
+  if (!model.svieSmerte.skjul) {
   renderSectionHeader('Svie- og smertegodtgørelse');
   assertModelInvariant(
     model.svieSmerte.harPerioder === (model.svieSmerte.periodeLinjer.length > 0),
@@ -378,7 +381,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     safeAddLeftRightText(lineLeft, beloebDisplay, rightMaxWidth, { rightFontStyle: 'bold' });
     }
   }
+  }
 
+  // 'Skjul' udelader emnet HELT fra PDF'en (ingen overskrift, intet "Ingen").
+  if (!model.tabtArbejdsfortjeneste.skjul) {
   renderSectionHeader('Tabt arbejdsfortjeneste');
   const tafPerioderLines = model.tabtArbejdsfortjeneste.tafPerioderLinjer;
   const hasTafPerioder = model.tabtArbejdsfortjeneste.harTafPerioder;
@@ -832,6 +838,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     }
     }
   }
+  }
 
   const kravEntries = model.oevrigeKrav.entries;
   const kravRightMaxWidth = rightMaxWidth;
@@ -850,9 +857,12 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     });
   };
 
+  // 'Skjul' udelader emnet HELT fra PDF'en (ingen overskrift, intet "Ingen").
+  // 'Nej' (beregnes === false uden skjul) viser fortsat overskrift + "Ingen" (uden forbehold-intro).
+  if (!model.oevrigeKrav.skjul) {
   if (kravEntries.length === 0) {
     renderSectionHeader('Øvrige krav');
-    if (oevrigeKravIntroLinjer.length > 0) {
+    if (model.oevrigeKrav.beregnes && oevrigeKravIntroLinjer.length > 0) {
       renderOevrigeKravIntro(false);
     } else {
       safeAddWrappedText('Ingen');
@@ -889,6 +899,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     }
   }
   writeBilagReferenceLinje(bilag.oevrigeErstatningskrav);
+  }
   renderSectionHeader('Samlet erstatningskrav');
 
   const periodeFraKort = model.periode?.fra ? formatDateShort(model.periode.fra) : '';
@@ -901,9 +912,16 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   writer.addSectionSpacer();
 
   const summaryRightMaxWidth = rightMaxWidth;
-  safeAddLeftRightText('Svie- og smertegodtgørelse', formatMoneyOreWithKr(model.samlet.svieSmerteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
-  safeAddLeftRightText('Tabt arbejdsfortjeneste', formatMoneyOreWithKr(model.samlet.tabtArbejdsfortjenesteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
-  safeAddLeftRightText('Øvrige krav', formatMoneyOreWithKr(model.samlet.oevrigeKravOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
+  // 'Skjul' fjerner også emnets linje fra det samlede krav (beløbet er 0 og emnet skal ikke optræde).
+  if (!model.svieSmerte.skjul) {
+    safeAddLeftRightText('Svie- og smertegodtgørelse', formatMoneyOreWithKr(model.samlet.svieSmerteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
+  }
+  if (!model.tabtArbejdsfortjeneste.skjul) {
+    safeAddLeftRightText('Tabt arbejdsfortjeneste', formatMoneyOreWithKr(model.samlet.tabtArbejdsfortjenesteOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
+  }
+  if (!model.oevrigeKrav.skjul) {
+    safeAddLeftRightText('Øvrige krav', formatMoneyOreWithKr(model.samlet.oevrigeKravOre), summaryRightMaxWidth, { rightFontStyle: 'normal' });
+  }
   safeAddLeftRightText('Erstatningskrav i alt', formatMoneyOreWithKr(model.samlet.totalOre), summaryRightMaxWidth, {
     leftFontStyle: 'bold',
     rightFontStyle: 'bold',

@@ -27,7 +27,7 @@ describe('buildEODebugPageViewModel', () => {
 
   const createViewWithOffentligeYdelserUdvikling = (): EoDebugViewReady => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
     const pdfModel = {
       tabtArbejdsfortjeneste: {
         offentligeYdelserUdvikling: {

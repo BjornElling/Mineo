@@ -21,6 +21,7 @@ import {
   beregningsmetodeEnum,
   helbredsstatusEnum,
   jaNejEnum,
+  jaNejSkjulEnum,
   krlSatstabelEnum,
   loenPaaHelligdageEnum,
   loenperiodeEnum,
@@ -128,7 +129,10 @@ const aesAfgoerelserSchema = z.object({
 }).strict();
 
 const svieSmerteSchema = z.object({
-  beregnesSvieSmerteGodtgoerelse: jaNejEnum.default('Ja'),
+  // Breaking rename fra `beregnesSvieSmerteGodtgoerelse` (JaNej-toggle) til tre-tilstands-valg.
+  // Gamle .eo-filer mister bevidst den tidligere værdi (strippes som ukendt felt) og loades
+  // med default 'Ja' — jf. brugerbeslutning og schema-evolution.md §3.1a (bevidst tab af gammel værdi).
+  kravPaaSvieSmerteGodtgoerelse: jaNejSkjulEnum.default('Ja'),
   svieSmerteHelbredsstatus: z.preprocess(normalizeEmptyToUndefined, helbredsstatusEnum.optional()),
   tidligereSsMax: jaNejEnum.default('Nej'),
   svieSmertePerioder: z.array(svieSmertePeriodeRowSchema).default([]),
@@ -139,7 +143,9 @@ const svieSmerteSchema = z.object({
 }).strict();
 
 const tafSchema = z.object({
-  beregnesTabtArbejdsfortjeneste: jaNejEnum.default('Ja'),
+  // Breaking rename fra `beregnesTabtArbejdsfortjeneste` (JaNej-toggle) til tre-tilstands-valg.
+  // Se note ved kravPaaSvieSmerteGodtgoerelse: gammel værdi tabes bevidst, default 'Ja'.
+  kravPaaTabtArbejdsfortjeneste: jaNejSkjulEnum.default('Ja'),
   tafArbejdsstatus: z.preprocess(normalizeEmptyToUndefined, arbejdsstatusEnum.optional()),
   tafPerioder: z.array(tafPeriodeRowSchema).default([]),
   ferieperioder: z.array(ferieperiodeRowSchema).default([]),
@@ -210,6 +216,10 @@ const erstatningsopgoerelseBaseSchema = z.object({
   forligAnsvarsgradProcent: percentageDecimal,
   forligAnsvarsgradBroek: optionalString,
   forligDato: optionalIsoDateString,
+  // Tre-tilstands-valg magen til kravPaaSvieSmerteGodtgoerelse/kravPaaTabtArbejdsfortjeneste.
+  // 'Ja' = krav medregnes og vises; 'Nej' = medregnes ikke, vises som "Ingen" i PDF;
+  // 'Skjul' = medregnes ikke og udelades helt fra erstatningsopgørelse-PDF'en.
+  kravPaaOevrigeErstatningskrav: jaNejSkjulEnum.default('Ja'),
   oevrigeKravPerioder: z.array(oevrigeKravRowSchema).default([]),
   offentligeYdelserRows: z.array(offentligeYdelserRowSchema).default([]),
   loenudviklingPaaGrundlagAf: optionalString,

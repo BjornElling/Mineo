@@ -28,9 +28,9 @@ describe('createErstatningsopgoerelseInitialValues – schema', () => {
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
 describe('createErstatningsopgoerelseInitialValues – defaults', () => {
-  it('beregnesTabtArbejdsfortjeneste er "Ja"', () => {
+  it('kravPaaTabtArbejdsfortjeneste er "Ja"', () => {
     const values = createErstatningsopgoerelseInitialValues();
-    expect(values.beregnesTabtArbejdsfortjeneste).toBe('Ja');
+    expect(values.kravPaaTabtArbejdsfortjeneste).toBe('Ja');
   });
 
   it('beregnesUdFra er "Beregningsperiode"', () => {
@@ -38,9 +38,9 @@ describe('createErstatningsopgoerelseInitialValues – defaults', () => {
     expect(values.beregnesUdFra).toBe('Beregningsperiode');
   });
 
-  it('beregnesSvieSmerteGodtgoerelse er "Ja"', () => {
+  it('kravPaaSvieSmerteGodtgoerelse er "Ja"', () => {
     const values = createErstatningsopgoerelseInitialValues();
-    expect(values.beregnesSvieSmerteGodtgoerelse).toBe('Ja');
+    expect(values.kravPaaSvieSmerteGodtgoerelse).toBe('Ja');
   });
 
   it('revideretOpgoerelse er "Nej"', () => {
@@ -123,7 +123,7 @@ describe('createErstatningsopgoerelseInitialValues – settings-integration', ()
     const v1 = createErstatningsopgoerelseInitialValues(settings);
     const v2 = createErstatningsopgoerelseInitialValues(settings);
     // Strukturen (antal rækker, felter) skal være identisk
-    expect(v1.beregnesTabtArbejdsfortjeneste).toBe(v2.beregnesTabtArbejdsfortjeneste);
+    expect(v1.kravPaaTabtArbejdsfortjeneste).toBe(v2.kravPaaTabtArbejdsfortjeneste);
     expect(v1.loenindkomstAnsaettelsesforhold.length).toBe(v2.loenindkomstAnsaettelsesforhold.length);
     expect(v1.svieSmertePerioder.length).toBe(v2.svieSmertePerioder.length);
     expect(v1.tafPerioder.length).toBe(v2.tafPerioder.length);

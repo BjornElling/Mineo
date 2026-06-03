@@ -878,7 +878,7 @@ export const buildEODebugSvieSmerteRows = (
   const satserAarDisplay = (() => {
     if (satserAarMangler) return 'Fejl (Indtastet sygeperiode men ikke år for sats)';
     if (shouldShowSatsYearSuggestionWarning && opgoerelsePlusOneMonthYear !== undefined) {
-      return `Svie/smerte satsen for ${opgoerelsePlusOneMonthYear} kan anvendes.`;
+      return `Svie/smerte-satsen for ${opgoerelsePlusOneMonthYear} kan anvendes.`;
     }
     return satserAarResolved.displayValue;
   })();
@@ -890,7 +890,7 @@ export const buildEODebugSvieSmerteRows = (
 
   rows.push({
     id: 'sviesmerte.satserAar',
-    label: 'Hvilket års svie/smerte satser lægges til grund?',
+    label: 'Hvilket års svie/smerte-satser lægges til grund?',
     displayValue: satserAarDisplay,
     status: satserAarStatus,
     message:
@@ -925,7 +925,7 @@ export const buildEODebugSvieSmerteRows = (
 
   rows.push({
     id: 'sviesmerte.delvisSygemeldingSats',
-    label: 'Svie/smerte sats ved delvis sygemelding',
+    label: 'Svie/smerte-sats ved delvis sygemelding',
     displayValue: delvisSygemeldingSatsDisplay,
     status: delvisSygemeldingSatsStatus,
   });
@@ -984,7 +984,7 @@ export const buildEODebugSvieSmerteRows = (
     const tidligereTotalValue = formatCurrency(amountValueToNumber(values.svieSmerteTidligereTotal));
     rows.push({
       id: 'sviesmerte.tidligereTotal',
-      label: 'Svie/smerte krav i tidligere erstatningsopgørelser',
+      label: 'Svie/smerte-krav i tidligere erstatningsopgørelser',
       ...resolveDebugDisplay({ value: tidligereTotalValue, errors: errors.svieSmerteTidligereTotal, emptyState: 'ok' }),
     });
   }
@@ -1273,7 +1273,7 @@ export const buildEODebugSvieSmerteRows = (
 
   rows.push({
     id: 'sviesmerte.antalDage',
-    label: 'Antal svie/smerte dage i erstatningsperioden',
+    label: 'Antal svie/smerte-dage i erstatningsperioden',
     displayValue: antalDageResult.displayValue,
     status: antalDageResult.status,
     dependsOn: [
@@ -1325,7 +1325,7 @@ export const buildEODebugSvieSmerteRows = (
   })();
 
   const svieSmerteOphoerSkyldes = (() => {
-    if (values.beregnesSvieSmerteGodtgoerelse === 'Nej') {
+    if (values.kravPaaSvieSmerteGodtgoerelse !== 'Ja') {
       return { displayValue: 'Ingen krav i perioden', status: 'ok' as DebugStatus };
     }
 
@@ -1366,7 +1366,7 @@ export const buildEODebugSvieSmerteRows = (
 
   rows.push({
     id: 'sviesmerte.ophoerSkyldes',
-    label: 'Svie/smerte ophør skyldes',
+    label: 'Svie/smerte-ophør skyldes',
     displayValue: svieSmerteOphoerSkyldes.displayValue,
     status: svieSmerteOphoerSkyldes.status,
   });
@@ -3482,7 +3482,7 @@ export const buildEODebugBilagsnumreRows = (
   const entries: BilagEntry[] = [
     { id: 'bilagsnumre.menAfgoerelse', fieldName: 'bilagsnumreMenAfgoerelse', label: 'Ménafgørelse', value: values.bilagsnumreMenAfgoerelse },
     { id: 'bilagsnumre.eetAfgoerelser', fieldName: 'bilagsnumreEetAfgoerelser', label: 'EET-afgørelser', value: values.bilagsnumreEetAfgoerelser },
-    { id: 'bilagsnumre.svieSmerteDokumentation', fieldName: 'bilagsnumreSvieSmerteDokumentation', label: 'Svie/smerte dokumentation', value: values.bilagsnumreSvieSmerteDokumentation },
+    { id: 'bilagsnumre.svieSmerteDokumentation', fieldName: 'bilagsnumreSvieSmerteDokumentation', label: 'Svie/smerte-dokumentation', value: values.bilagsnumreSvieSmerteDokumentation },
     { id: 'bilagsnumre.beregningsgrundlagTaf', fieldName: 'bilagsnumreBeregningsgrundlagTaf', label: 'Beregningsgrundlag for TAF', value: values.bilagsnumreBeregningsgrundlagTaf },
     { id: 'bilagsnumre.loenISygeperioden', fieldName: 'bilagsnumreLoenISygeperioden', label: 'Løn i sygeperioden', value: values.bilagsnumreLoenISygeperioden },
     { id: 'bilagsnumre.offentligeYdelser', fieldName: 'bilagsnumreOffentligeYdelser', label: 'Offentlige ydelser', value: values.bilagsnumreOffentligeYdelser },

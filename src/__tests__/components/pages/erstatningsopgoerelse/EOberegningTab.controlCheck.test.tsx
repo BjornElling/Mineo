@@ -353,7 +353,7 @@ describe('EOberegningTab kontroltjek', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.revideretOpgoerelse = 'Ja';
     eoValues.eoNummer = '1';
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
     eoValues.tafPerioder = [
       { id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2025-01-01'), loseFeriedage: 0 },
     ];
@@ -438,7 +438,7 @@ describe('EOberegningTab kontroltjek', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2023-05-24');
     eoValues.vedroererPeriodeTil = toISODateString('2025-12-21');
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Ja';
     eoValues.tidligereSsMax = 'Nej';
     eoValues.varigeMenAfgorelse = 'Ja';
     eoValues.verserendeKlageMen = 'Nej';
@@ -473,7 +473,7 @@ describe('EOberegningTab kontroltjek', () => {
 
   it('viser kun "Fejl" i svie/smerte-oversigten når perioden har fejl', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Ja';
     eoValues.svieSmertePerioder = [
       { id: 'ss-1', fra: toISODateString('2024-01-01'), til: toISODateString('2025-01-01'), tilstand: 'sygemeldt' },
     ];
@@ -515,16 +515,16 @@ describe('EOberegningTab kontroltjek', () => {
 
   it('viser svie/smerte sats-år-advarslen med indhold i fejl og advarsler', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Ja';
 
     collectAllDebugRowsMock.mockReturnValue({
       errors: [],
       warnings: [{
         id: 'sviesmerte.satserAar',
-        label: 'Hvilket års svie/smerte satser lægges til grund?',
-        displayValue: 'Svie/smerte satsen for 2026 kan anvendes.',
+        label: 'Hvilket års svie/smerte-satser lægges til grund?',
+        displayValue: 'Svie/smerte-satsen for 2026 kan anvendes.',
         status: 'warning',
-        message: 'Svie/smerte satsen for 2026 kan anvendes.',
+        message: 'Svie/smerte-satsen for 2026 kan anvendes.',
         summaryDisplay: 'messageOnly',
         navigation: {
           kind: 'erstatningsopgoerelse-tab',
@@ -547,7 +547,7 @@ describe('EOberegningTab kontroltjek', () => {
       setEOValues: baseSetEoValues,
     });
 
-    expect(screen.getByText('Svie/smerte satsen for 2026 kan anvendes.')).toBeInTheDocument();
+    expect(screen.getByText('Svie/smerte-satsen for 2026 kan anvendes.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Svie/smerte godtgørelse' })).toBeInTheDocument();
   });
 

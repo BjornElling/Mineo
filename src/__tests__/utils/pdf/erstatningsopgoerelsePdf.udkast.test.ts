@@ -90,8 +90,8 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
 
   const createBaseEo = () => {
     const values = createErstatningsopgoerelseInitialValues();
-    values.beregnesSvieSmerteGodtgoerelse = 'Nej';
-    values.beregnesTabtArbejdsfortjeneste = 'Nej';
+    values.kravPaaSvieSmerteGodtgoerelse = 'Nej';
+    values.kravPaaTabtArbejdsfortjeneste = 'Nej';
     return values;
   };
 

@@ -115,7 +115,7 @@ describe('buildEODebugModel — kilde-bounds (sources)', () => {
       ...base(),
       vedroererPeriodeFra: toISODateString('2024-01-26') as never,
       vedroererPeriodeTil: toISODateString('2025-11-02') as never,
-      beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
+      kravPaaSvieSmerteGodtgoerelse: 'Ja' as const,
       svieSmertePerioder: [
         { id: 'ss-1', fra: toISODateString('2024-01-26'), til: toISODateString('2024-10-20'), tilstand: 'sygemeldt' },
         { id: 'ss-2', fra: toISODateString('2025-08-12'), til: toISODateString('2025-09-22'), tilstand: 'sygemeldt' },

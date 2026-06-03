@@ -1725,7 +1725,7 @@ const LoenindkomstTab = React.memo(({
         const headerText = af.navnPaaArbejdssted
           ? `${baseHeaderText} (${af.navnPaaArbejdssted})`
           : baseHeaderText;
-        const showSygeferiegodtgoerelseSection = getCheckedJaNej(eoValues.beregnesTabtArbejdsfortjeneste) && af.ansatPaaSkadestidspunktet;
+        const showSygeferiegodtgoerelseSection = eoValues.kravPaaTabtArbejdsfortjeneste === 'Ja' && af.ansatPaaSkadestidspunktet;
         const sfggRow = eoValues.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === af.id);
         const sfggPolicy = af.overenskomstId
           ? getOverenskomstSfggPolicy(af.overenskomstId)

@@ -401,8 +401,8 @@ export const buildEODebugSammentaellingModel = (args: {
 
   const beregningsenhed = computeTafBeregningsenhed(values);
   const isBeregningsperiode = values.beregnesUdFra === 'Beregningsperiode';
-  const isTafEnabled = values.beregnesTabtArbejdsfortjeneste === 'Ja';
-  const isSvieSmerteEnabled = values.beregnesSvieSmerteGodtgoerelse === 'Ja';
+  const isTafEnabled = values.kravPaaTabtArbejdsfortjeneste === 'Ja';
+  const isSvieSmerteEnabled = values.kravPaaSvieSmerteGodtgoerelse === 'Ja';
 
   const beregningsRange = toIsoRange(values.tafBeregningsperiodeFra, values.tafBeregningsperiodeTil);
   const erstatningsRange = toIsoRange(values.vedroererPeriodeFra, values.vedroererPeriodeTil);

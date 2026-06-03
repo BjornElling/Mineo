@@ -176,7 +176,7 @@ function validateForligAnsvarsgrad(values: ErstatningsopgoerelseValues): Validat
  */
 function validateSvieSmerte(values: ErstatningsopgoerelseValues): ValidationError[] {
   const errors: ValidationError[] = [];
-  const beregnes = values.beregnesSvieSmerteGodtgoerelse === 'Ja';
+  const beregnes = values.kravPaaSvieSmerteGodtgoerelse === 'Ja';
   if (!beregnes) return errors;
 
   const periodeSynlig = values.tidligereSsMax === 'Nej';
@@ -324,7 +324,7 @@ function validateTAF(
   options?: ErstatningsopgoerelseValidationOptions
 ): ValidationError[] {
   const errors: ValidationError[] = [];
-  const beregnes = values.beregnesTabtArbejdsfortjeneste === 'Ja';
+  const beregnes = values.kravPaaTabtArbejdsfortjeneste === 'Ja';
   if (!beregnes) return errors;
 
   const tafPerioder = values.tafPerioder ?? [];

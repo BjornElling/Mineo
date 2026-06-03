@@ -20,7 +20,7 @@ describe('collectAllDebugRows integration', () => {
 
     const row = result.warnings.find((entry) => entry.id === 'sviesmerte.satserAar');
     expect(row).toBeDefined();
-    expect(row?.message).toBe('Svie/smerte satsen for 2026 kan anvendes.');
+    expect(row?.message).toBe('Svie/smerte-satsen for 2026 kan anvendes.');
     expect(row?.summaryDisplay).toBe('messageOnly');
   });
 

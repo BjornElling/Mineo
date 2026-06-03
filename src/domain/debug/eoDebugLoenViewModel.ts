@@ -158,7 +158,7 @@ export function buildLoenDebugSections(timeline: LoenTimeline): readonly LoenDeb
     });
     sections.push({
       id: 'svieSmerte.summary',
-      header: 'Svie/smerte oversigt',
+      header: 'Svie/smerte-oversigt',
       table: buildSvieSmerteSummary(timeline),
     });
   }

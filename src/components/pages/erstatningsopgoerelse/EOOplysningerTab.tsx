@@ -49,10 +49,12 @@ import { usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSe
 import {
   type ErstatningsopgoerelseValues,
   type EOAngivetLoenLoenudvikling,
+  type JaNejSkjul,
   arbejdsstatusEnum,
   afsluttesMedEnum,
   beregningsmetodeEnum,
   helbredsstatusEnum,
+  jaNejSkjulEnum,
   krlSatstabelEnum,
   loenudviklingBeregningsgrundlagEnum,
   loenudviklingStatistikModelEnum,
@@ -115,6 +117,14 @@ type LoentrinFinderResult = Readonly<{
   diff: number;
 }>;
 const LOENGRUPPER = [0, 1, 2, 3, 4] as const;
+// Tre-tilstands-valg for emner (svie/smerte, tabt arbejdsfortjeneste).
+// 'Ja' = beregnes og vises; 'Nej' = beregnes ikke, vises som "Ingen" i PDF;
+// 'Skjul' = beregnes ikke og udelades helt fra erstatningsopgørelse-PDF'en.
+const KRAV_JA_NEJ_SKJUL_OPTIONS = [
+  { value: 'Ja', label: 'Ja' },
+  { value: 'Nej', label: 'Nej' },
+  { value: 'Skjul', label: 'Skjul' },
+] as const;
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 const PERIODE_INFO_TOOLTIP =
   'Indsæt alle perioder. Tidligere indtastede perioder skal ikke slettes ved senere opgørelse.';
@@ -182,6 +192,22 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         // Immediate-commit widget: send fieldPath, ellers gætter undo-origin via focus-trackeren,
         // som peger på det forrige (tekst)felt — derfor lander undo-fokus forkert (fejl B).
         setValues((prev) => ({ ...prev, [fieldName]: event.target.value ? 'Ja' : 'Nej' }), { fieldPath: String(fieldName) });
+      },
+    [setValues]
+  );
+
+  type JaNejSkjulFieldName = {
+    [K in keyof ErstatningsopgoerelseValues]-?: ErstatningsopgoerelseValues[K] extends JaNejSkjul ? K : never
+  }[keyof ErstatningsopgoerelseValues];
+
+  // Immediate-commit radio for tre-tilstands-emnevalg (Ja/Nej/Skjul). Sender fieldPath af samme
+  // undo-origin-grund som handleToggleChange.
+  const handleJaNejSkjulChange = React.useCallback(
+    (fieldName: JaNejSkjulFieldName): CommitHandler<string | undefined> =>
+      (event: CommitEvent<string | undefined>) => {
+        const parsed = jaNejSkjulEnum.safeParse(event.target.value);
+        if (!parsed.success) return;
+        setValues((prev) => ({ ...prev, [fieldName]: parsed.data }), { fieldPath: String(fieldName) });
       },
     [setValues]
   );
@@ -1492,22 +1518,24 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         </Box>
       </ContentBox>
 
-      {/* Sektion 4: Svie/smerte godtgørelse */}
+      {/* Sektion 4: Svie- og smertegodtgørelse */}
       <ContentBox className="content-box" data-section-id="sviesmerte">
-        <Typography className="section-header">Svie/smerte godtgørelse</Typography>
+        <Typography className="section-header">Svie- og smertegodtgørelse</Typography>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Beregnes der svie/smerte godtgørelse i opgørelsen</Typography>
+          <Typography className="row--text">Er der krav på svie- og smertegodtgørelse i erstatningsperioden</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch
-              name="beregnesSvieSmerteGodtgoerelse"
-              checked={getChecked(values.beregnesSvieSmerteGodtgoerelse)}
-              onCommit={handleToggleChange('beregnesSvieSmerteGodtgoerelse')}
+            <StyledRadioButton
+              name="kravPaaSvieSmerteGodtgoerelse"
+              value={values.kravPaaSvieSmerteGodtgoerelse}
+              onCommit={handleJaNejSkjulChange('kravPaaSvieSmerteGodtgoerelse')}
+              row={true}
+              options={[...KRAV_JA_NEJ_SKJUL_OPTIONS]}
             />
           </Box>
         </Box>
 
-        {getChecked(values.beregnesSvieSmerteGodtgoerelse) && (
+        {values.kravPaaSvieSmerteGodtgoerelse === 'Ja' && (
           <>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Tidligere beregnet S/S til max.</Typography>
@@ -1542,7 +1570,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 />
 
                 <Box className="row--label-right-hover">
-                  <Typography className="row--text">Hvilket års svie/smerte satser lægges til grund?</Typography>
+                  <Typography className="row--text">Hvilket års svie/smerte-satser lægges til grund?</Typography>
                   <Box className="row--label-right-hover__content">
                     <StyledYearField
                       name="svieSmerteSatserAar"
@@ -1558,7 +1586,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">
-                    Svie/smerte sats ved delvis sygemelding:
+                    Svie/smerte-sats ved delvis sygemelding:
                     <InfoTooltipIcon title={DELVIS_SYGEMELDING_SATS_INFO_TOOLTIP} />
                   </Typography>
                   <Box className="row--label-right-hover__content">
@@ -1580,11 +1608,11 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   </Box>
                 </Box>
 
-                <Typography className="row--subheading">Tidligere svie/smerte godtgørelse</Typography>
+                <Typography className="row--subheading">Tidligere svie- og smertegodtgørelse</Typography>
 
                 {!erFoersteOpgoerelse && (
                   <Box className="row--label-right-hover">
-                    <Typography className="row--text">Svie/smerte krav i tidligere erstatningsopgørelser:</Typography>
+                    <Typography className="row--text">Svie/smerte-krav i tidligere erstatningsopgørelser:</Typography>
                     <Box className="row--label-right-hover__content">
                       <StyledAmountField
                         name="svieSmerteTidligereTotal"
@@ -1620,17 +1648,19 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         <Typography className="section-header">Tabt arbejdsfortjeneste</Typography>
 
         <Box className="row--label-right-hover">
-          <Typography className="row--text">Beregnes der tabt arbejdsfortjeneste i opgørelsen</Typography>
+          <Typography className="row--text">Er der krav på tabt arbejdsfortjeneste i erstatningsperioden</Typography>
           <Box className="row--label-right-hover__content">
-            <StyledToggleSwitch
-              name="beregnesTabtArbejdsfortjeneste"
-              checked={getChecked(values.beregnesTabtArbejdsfortjeneste)}
-              onCommit={handleToggleChange('beregnesTabtArbejdsfortjeneste')}
+            <StyledRadioButton
+              name="kravPaaTabtArbejdsfortjeneste"
+              value={values.kravPaaTabtArbejdsfortjeneste}
+              onCommit={handleJaNejSkjulChange('kravPaaTabtArbejdsfortjeneste')}
+              row={true}
+              options={[...KRAV_JA_NEJ_SKJUL_OPTIONS]}
             />
           </Box>
         </Box>
 
-        {getChecked(values.beregnesTabtArbejdsfortjeneste) && (
+        {values.kravPaaTabtArbejdsfortjeneste === 'Ja' && (
           <>
             <Typography className="row--subheading">
               Periode:
@@ -1691,7 +1721,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       </ContentBox>
 
       {/* Sektion 5: Indtægt før skaden */}
-      {getChecked(values.beregnesTabtArbejdsfortjeneste) && (
+      {values.kravPaaTabtArbejdsfortjeneste === 'Ja' && (
         <ContentBox className="content-box" data-section-id="taf-beregningsgrundlag">
         <Typography className="section-header">Indtægt før skaden</Typography>
 
@@ -2555,20 +2585,35 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       <ContentBox className="content-box" data-section-id="oevrige-krav">
         <Typography className="section-header">Øvrige erstatningskrav</Typography>
 
-        <OevrigeKravTable
-          rows={oevrigeKrav.draftRows}
-          committedById={oevrigeKrav.committedById}
-          onFieldChange={oevrigeKrav.onFieldChange}
-          onRowBlur={oevrigeKrav.onRowBlur}
-          onRowsReorder={oevrigeKrav.reorderRows}
-          minDate={oevrigeKravMinDate}
-          maxDate={dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato.max}
-          specialRangeErrors={{
-            minBoundKind: skadedatoMinRule.minBoundKind,
-            minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
-          }}
-          saveOrderPath="erstatningsopgoerelse.oevrigeKravPerioder"
-        />
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Er der øvrige krav i erstatningsperioden</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledRadioButton
+              name="kravPaaOevrigeErstatningskrav"
+              value={values.kravPaaOevrigeErstatningskrav}
+              onCommit={handleJaNejSkjulChange('kravPaaOevrigeErstatningskrav')}
+              row={true}
+              options={[...KRAV_JA_NEJ_SKJUL_OPTIONS]}
+            />
+          </Box>
+        </Box>
+
+        {values.kravPaaOevrigeErstatningskrav === 'Ja' && (
+          <OevrigeKravTable
+            rows={oevrigeKrav.draftRows}
+            committedById={oevrigeKrav.committedById}
+            onFieldChange={oevrigeKrav.onFieldChange}
+            onRowBlur={oevrigeKrav.onRowBlur}
+            onRowsReorder={oevrigeKrav.reorderRows}
+            minDate={oevrigeKravMinDate}
+            maxDate={dateRanges_erstatningsopgoerelse.tabelOevrigeKravDato.max}
+            specialRangeErrors={{
+              minBoundKind: skadedatoMinRule.minBoundKind,
+              minBoundReferenceISO: skadedatoMinRule.minBoundReferenceISO,
+            }}
+            saveOrderPath="erstatningsopgoerelse.oevrigeKravPerioder"
+          />
+        )}
       </ContentBox>
 
       {/* Sektion 8: Eventuelle særlige kommentarer */}
@@ -2636,7 +2681,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
             </Box>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">Svie/smerte dokumentation</Typography>
+              <Typography className="row--text">Svie/smerte-dokumentation</Typography>
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">Bilagsnr.</Typography>

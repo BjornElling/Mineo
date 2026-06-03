@@ -181,8 +181,10 @@ export const buildEODebugPageViewModel = (
   appSettings: AppSettings
 ): EODebugPageViewModel => {
   const { erstatningsopgoerelseValues, rowsBySection, regulationSections } = view;
-  const viserSvieSmerte = erstatningsopgoerelseValues.beregnesSvieSmerteGodtgoerelse !== 'Nej';
-  const viserTabtArbejdsfortjeneste = erstatningsopgoerelseValues.beregnesTabtArbejdsfortjeneste !== 'Nej';
+  // 'Nej' og 'Skjul' har begge ingen beregning — debug viser kun emnet ved 'Ja'.
+  const viserSvieSmerte = erstatningsopgoerelseValues.kravPaaSvieSmerteGodtgoerelse === 'Ja';
+  const viserTabtArbejdsfortjeneste = erstatningsopgoerelseValues.kravPaaTabtArbejdsfortjeneste === 'Ja';
+  const viserOevrigeKrav = erstatningsopgoerelseValues.kravPaaOevrigeErstatningskrav === 'Ja';
   const skjulerUdvidedeSvieSmerteRows = erstatningsopgoerelseValues.tidligereSsMax === 'Ja';
   const viserMidlertidigtEet = erstatningsopgoerelseValues.midlertidigtEETAfgorelse === 'Ja';
   const viserEndeligtEet = erstatningsopgoerelseValues.endeligtEETAfgorelse === 'Ja';
@@ -320,7 +322,7 @@ export const buildEODebugPageViewModel = (
     orphanSfggSections,
     orphanRegulationSections,
     employmentSections,
-    oevrigeKravRows: rowsBySection.get('oevrige-krav') ?? [],
+    oevrigeKravRows: viserOevrigeKrav ? (rowsBySection.get('oevrige-krav') ?? []) : [],
     saerligeKommentarerRows: rowsBySection.get('saerlige-kommentarer') ?? [],
     bilagsnumreRows: rowsBySection.get('bilagsnumre') ?? [],
   };

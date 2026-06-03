@@ -1,6 +1,8 @@
 export {
   jaNejEnum,
   type JaNej,
+  jaNejSkjulEnum,
+  type JaNejSkjul,
   skadestypeEnum,
   type Skadestype,
   helbredsstatusEnum,

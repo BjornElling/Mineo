@@ -48,7 +48,7 @@ describe('Erstatningsopgoerelse svie/smerte sats-aar integration', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText('Svie/smerte satsen for 2026 kan anvendes.')).toBeInTheDocument();
+      expect(screen.getByText('Svie/smerte-satsen for 2026 kan anvendes.')).toBeInTheDocument();
     });
     expect(screen.getByRole('tab', { name: 'Beregning', selected: true })).toBeInTheDocument();
   }, ASYNC_TEST_TIMEOUT_MS);

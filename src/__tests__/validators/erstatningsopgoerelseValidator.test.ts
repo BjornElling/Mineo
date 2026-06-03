@@ -247,7 +247,7 @@ describe('SFGG validering', () => {
 
   it('fanger referenceperiode der ikke ligger før første TAF-periode', () => {
     const values = makeValues({
-      beregnesTabtArbejdsfortjeneste: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
       loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-05-31') },
@@ -274,7 +274,7 @@ describe('SFGG validering', () => {
     // sfggSatsvalg er udfyldt med stale værdier fra et tidligere beregningskilde-valg.
     // Validatoren skal gate på beregningskilden og ignorere disse skjulte felter.
     const values = makeValues({
-      beregnesTabtArbejdsfortjeneste: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
       loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-05-31') },
@@ -476,9 +476,9 @@ describe('standalone regler (vedroererPeriode)', () => {
 // =============================================================================
 
 describe('svie/smerte — ekstra valideringscases', () => {
-  it('springer validering over når beregnesSvieSmerteGodtgoerelse = Nej', () => {
+  it('springer validering over når kravPaaSvieSmerteGodtgoerelse = Nej', () => {
     const values = makeValues({
-      beregnesSvieSmerteGodtgoerelse: 'Nej',
+      kravPaaSvieSmerteGodtgoerelse: 'Nej',
       svieSmertePerioder: [
         { id: '1', fra: iso('2024-01-10'), til: iso('2024-01-01'), tilstand: 'sygemeldt' },
       ],
@@ -489,7 +489,7 @@ describe('svie/smerte — ekstra valideringscases', () => {
 
   it('springer validering over når tidligereSsMax = Ja', () => {
     const values = makeValues({
-      beregnesSvieSmerteGodtgoerelse: 'Ja',
+      kravPaaSvieSmerteGodtgoerelse: 'Ja',
       tidligereSsMax: 'Ja',
       svieSmertePerioder: [
         { id: '1', fra: undefined as unknown as string, til: undefined as unknown as string, tilstand: undefined as unknown as string },
@@ -661,7 +661,7 @@ describe('validateBeregnesUdFra', () => {
 
   it('ingen fejl ved udfyldt dagsløn (TAF slået fra)', () => {
     const values = makeValues({
-      beregnesTabtArbejdsfortjeneste: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
       beregnesUdFra: 'Angivet dagsløn',
       dagsloenenUdgoer: asAmount(500),
     });
@@ -791,7 +791,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
 
   it('accepterer ASL-årslønsmaksimum som gyldig statistikmodel', () => {
     const values = makeValues({
-      beregnesTabtArbejdsfortjeneste: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmount(30000),
       eoAngivetLoenLoenudvikling: {
@@ -936,7 +936,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
 
   it('ingen fejl ved grundlag=Ingen (springes over)', () => {
     const values = makeValues({
-      beregnesTabtArbejdsfortjeneste: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
       eoAngivetLoenLoenudvikling: {
         ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
         loenudviklingBeregningsgrundlag: 'Ingen',
@@ -976,7 +976,7 @@ describe('øvrige krav — ekstra valideringscases', () => {
 
 describe('samlet validering', () => {
   it('er valid med default-værdier når TAF er slået fra', () => {
-    const values = makeValues({ beregnesTabtArbejdsfortjeneste: 'Nej' });
+    const values = makeValues({ kravPaaTabtArbejdsfortjeneste: 'Nej' });
     expect(isValid(values)).toBe(true);
   });
 
@@ -987,7 +987,7 @@ describe('samlet validering', () => {
 
   it('er valid med komplet svie/smerte (TAF slået fra)', () => {
     const values = makeValues({
-      beregnesTabtArbejdsfortjeneste: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
       svieSmertePerioder: [
         { id: '1', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: 'sygemeldt' },
       ],

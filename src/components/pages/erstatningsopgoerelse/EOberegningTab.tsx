@@ -696,8 +696,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     [setEOValues]
   );
 
-  const beregnesSvieSmerte = eoValues.beregnesSvieSmerteGodtgoerelse === 'Ja';
-  const beregnesTabtArbejdsfortjeneste = eoValues.beregnesTabtArbejdsfortjeneste === 'Ja';
+  const beregnesSvieSmerte = eoValues.kravPaaSvieSmerteGodtgoerelse === 'Ja';
+  const beregnesTabtArbejdsfortjeneste = eoValues.kravPaaTabtArbejdsfortjeneste === 'Ja';
 
   const svieSmerteRow = relevantRows.find((row) => row.id === 'sviesmerte.beregnetPeriode');
   const svieSmerteLines = React.useMemo(() => {

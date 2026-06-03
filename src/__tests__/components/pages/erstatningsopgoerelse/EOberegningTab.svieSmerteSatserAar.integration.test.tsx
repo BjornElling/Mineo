@@ -44,7 +44,7 @@ describe('EOberegningTab svie/smerte sats-aar integration', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
-      expect(screen.getByText('Svie/smerte satsen for 2026 kan anvendes.')).toBeInTheDocument();
+      expect(screen.getByText('Svie/smerte-satsen for 2026 kan anvendes.')).toBeInTheDocument();
     });
   }, ASYNC_TEST_TIMEOUT_MS);
 });

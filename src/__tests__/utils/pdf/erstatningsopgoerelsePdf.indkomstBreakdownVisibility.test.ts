@@ -321,7 +321,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser kun "Ingen" i TAF-sektionen når tabt arbejdsfortjeneste er fravalgt trods stale felter', () => {
     const { stamdata, eo } = buildBaseInput();
-    eo.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eo.kravPaaTabtArbejdsfortjeneste = 'Nej';
     eo.tafArbejdsstatus = 'Førtidspension';
     eo.differencekravDato = iso('2024-02-01');
 
@@ -338,7 +338,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser kun "Ingen" i svie/smerte-sektionen når tidligere S/S max er valgt trods stale felter', () => {
     const { stamdata, eo } = buildBaseInput();
-    eo.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eo.kravPaaSvieSmerteGodtgoerelse = 'Ja';
     eo.tidligereSsMax = 'Ja';
     eo.svieSmerteHelbredsstatus = 'Sygemeldt';
     eo.svieSmerteSatserAar = 2026;

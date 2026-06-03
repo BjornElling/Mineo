@@ -230,10 +230,10 @@ describe('eoPdfModel', () => {
     expect(model.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre).toBe(0);
   });
 
-  it('nulstiller tabt arbejdsfortjeneste i PDF-model når beregnesTabtArbejdsfortjeneste er Nej trods stale TAF-data', () => {
+  it('nulstiller tabt arbejdsfortjeneste i PDF-model når kravPaaTabtArbejdsfortjeneste er Nej trods stale TAF-data', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
-      beregnesTabtArbejdsfortjeneste: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
       maanedsloenenUdgoer: asAmountValue(39099),
       vedroererPeriodeFra: iso('2024-01-01'),
       vedroererPeriodeTil: iso('2024-01-31'),
@@ -275,11 +275,91 @@ describe('eoPdfModel', () => {
     expect(model.samlet.tabtArbejdsfortjenesteOre).toBe(0);
   });
 
+  it('sætter skjul-flag på tabt arbejdsfortjeneste og svie/smerte afhængigt af krav-valget', () => {
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
+
+    // 'Skjul' => beregnes:false OG skjul:true (emnet udelades helt fra PDF'en).
+    const skjulModel = buildPdfModel(
+      stamdata,
+      makeValues({
+        kravPaaTabtArbejdsfortjeneste: 'Skjul',
+        kravPaaSvieSmerteGodtgoerelse: 'Skjul',
+        kravPaaOevrigeErstatningskrav: 'Skjul',
+      }),
+      { dagsDatoISO: iso('2026-02-10') }
+    );
+    expect(skjulModel.tabtArbejdsfortjeneste.beregnes).toBe(false);
+    expect(skjulModel.tabtArbejdsfortjeneste.skjul).toBe(true);
+    expect(skjulModel.svieSmerte.beregnes).toBe(false);
+    expect(skjulModel.svieSmerte.skjul).toBe(true);
+    expect(skjulModel.oevrigeKrav.beregnes).toBe(false);
+    expect(skjulModel.oevrigeKrav.skjul).toBe(true);
+
+    // 'Nej' => beregnes:false men skjul:false (emnet vises som "Ingen").
+    const nejModel = buildPdfModel(
+      stamdata,
+      makeValues({
+        kravPaaTabtArbejdsfortjeneste: 'Nej',
+        kravPaaSvieSmerteGodtgoerelse: 'Nej',
+        kravPaaOevrigeErstatningskrav: 'Nej',
+      }),
+      { dagsDatoISO: iso('2026-02-10') }
+    );
+    expect(nejModel.tabtArbejdsfortjeneste.beregnes).toBe(false);
+    expect(nejModel.tabtArbejdsfortjeneste.skjul).toBe(false);
+    expect(nejModel.svieSmerte.beregnes).toBe(false);
+    expect(nejModel.svieSmerte.skjul).toBe(false);
+    expect(nejModel.oevrigeKrav.beregnes).toBe(false);
+    expect(nejModel.oevrigeKrav.skjul).toBe(false);
+
+    // 'Ja' => skjul:false uanset beregnes.
+    const jaModel = buildPdfModel(
+      stamdata,
+      makeValues({
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaOevrigeErstatningskrav: 'Ja',
+      }),
+      { dagsDatoISO: iso('2026-02-10') }
+    );
+    expect(jaModel.tabtArbejdsfortjeneste.skjul).toBe(false);
+    expect(jaModel.svieSmerte.skjul).toBe(false);
+    expect(jaModel.oevrigeKrav.skjul).toBe(false);
+    expect(jaModel.oevrigeKrav.beregnes).toBe(true);
+  });
+
+  it('nulstiller øvrige krav når kravPaaOevrigeErstatningskrav ikke er Ja, trods udfyldte rækker', () => {
+    const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
+    const rows = [
+      { id: 'krav-1', dato: iso('2024-01-15'), udgiftTil: 'Medicin', beloeb: asAmountValue(1000) },
+    ];
+
+    const jaModel = buildPdfModel(
+      stamdata,
+      makeValues({ kravPaaOevrigeErstatningskrav: 'Ja', oevrigeKravPerioder: rows }),
+      { dagsDatoISO: iso('2026-02-10') }
+    );
+    expect(jaModel.oevrigeKrav.entries.length).toBe(1);
+    expect(jaModel.oevrigeKrav.totalOre).toBe(100000);
+    expect(jaModel.samlet.oevrigeKravOre).toBe(100000);
+
+    for (const valg of ['Nej', 'Skjul'] as const) {
+      const model = buildPdfModel(
+        stamdata,
+        makeValues({ kravPaaOevrigeErstatningskrav: valg, oevrigeKravPerioder: rows }),
+        { dagsDatoISO: iso('2026-02-10') }
+      );
+      expect(model.oevrigeKrav.entries).toEqual([]);
+      expect(model.oevrigeKrav.totalOre).toBe(0);
+      expect(model.samlet.oevrigeKravOre).toBe(0);
+    }
+  });
+
   it('treats missing TAF-period income as 0 kr. for angivet månedsløn', () => {
     const eoValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(48705.13),
-      beregnesTabtArbejdsfortjeneste: 'Ja',
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
       tafPerioder: [
         { id: 'taf-1', fra: iso('2021-06-01'), til: iso('2021-08-15'), loseFeriedage: undefined },
       ],
@@ -304,7 +384,7 @@ describe('eoPdfModel', () => {
     const baseValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(48705.13),
-      beregnesTabtArbejdsfortjeneste: 'Ja',
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
       tafPerioder: [
         { id: 'taf-1', fra: iso('2021-06-01'), til: iso('2021-08-15'), loseFeriedage: undefined },
       ],
@@ -338,7 +418,7 @@ describe('eoPdfModel', () => {
     const baseValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(48705.13),
-      beregnesTabtArbejdsfortjeneste: 'Ja',
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
       tafPerioder: [
         { id: 'taf-1', fra: iso('2021-06-01'), til: iso('2021-08-15'), loseFeriedage: undefined },
       ],
@@ -395,7 +475,7 @@ describe('eoPdfModel', () => {
 
   it('markerer svie/smerte som fravalgt i PDF-model når tidligereSsMax er Ja trods stale periodefelter', () => {
     const eoValues = makeValues({
-      beregnesSvieSmerteGodtgoerelse: 'Ja',
+      kravPaaSvieSmerteGodtgoerelse: 'Ja',
       tidligereSsMax: 'Ja',
       vedroererPeriodeFra: iso('2024-01-01'),
       vedroererPeriodeTil: iso('2024-01-31'),
@@ -436,7 +516,7 @@ describe('eoPdfModel', () => {
     const baseValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(48705.13),
-      beregnesTabtArbejdsfortjeneste: 'Ja',
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
       tafPerioder: [
         { id: 'taf-1', fra: iso('2021-06-01'), til: iso('2021-08-15'), loseFeriedage: undefined },
       ],
@@ -471,7 +551,7 @@ describe('eoPdfModel', () => {
     const baseValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(48705.13),
-      beregnesTabtArbejdsfortjeneste: 'Ja',
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
       tafPerioder: [
         { id: 'taf-1', fra: iso('2021-06-01'), til: iso('2021-08-15'), loseFeriedage: undefined },
       ],
@@ -508,7 +588,7 @@ describe('eoPdfModel', () => {
     const baseValues = makeValues({
       beregnesUdFra: 'Angivet månedsløn',
       maanedsloenenUdgoer: asAmountValue(48705.13),
-      beregnesTabtArbejdsfortjeneste: 'Ja',
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
       tafPerioder: [
         { id: 'taf-1', fra: iso('2021-06-01'), til: iso('2021-08-15'), loseFeriedage: undefined },
       ],

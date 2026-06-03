@@ -114,6 +114,12 @@ export type ForligModel =
 
 export type SvieSmerteModel = Readonly<{
   beregnes: boolean;
+  /**
+   * Når `true` skal emnet udelades HELT fra erstatningsopgørelse-PDF'en (ingen overskrift,
+   * intet "Ingen"). Modsat `beregnes: false` (Nej), der stadig viser overskrift + "Ingen".
+   * `skjul` medfører altid `beregnes: false`.
+   */
+  skjul: boolean;
   statusLinjer: readonly string[];
   opgjortFremTilPeriodeTil: boolean;
   periodeHeading: string;
@@ -146,6 +152,13 @@ export type SvieSmerteModel = Readonly<{
 
 export type TabtArbejdsfortjenesteModel = Readonly<{
   beregnes: boolean;
+  /**
+   * Når `true` skal emnet udelades HELT fra erstatningsopgørelse-PDF'en (ingen overskrift,
+   * intet "Ingen"). Modsat `beregnes: false` (Nej), der stadig viser overskrift + "Ingen".
+   * `skjul` medfører altid `beregnes: false`. Bemærk: den separate "TAF fordelt på år"-PDF
+   * påvirkes ikke af `skjul` og viser fortsat "Ingen".
+   */
+  skjul: boolean;
   statusLinjer: readonly string[];
   eetLinjer: readonly string[];
   differencekravLinje: string | null;
@@ -263,6 +276,13 @@ export type TafIndtaegterModel = Readonly<{
 }>;
 
 export type OevrigeKravModel = Readonly<{
+  beregnes: boolean;
+  /**
+   * Når `true` skal emnet udelades HELT fra erstatningsopgørelse-PDF'en (ingen overskrift,
+   * intet "Ingen"). Modsat `beregnes: false` (Nej), der stadig viser overskrift + "Ingen".
+   * `skjul` medfører altid `beregnes: false`.
+   */
+  skjul: boolean;
   entries: readonly { dateText: string; udgiftTil: string; amountOre: MoneyOre }[];
   totalFoerForligOre: MoneyOre;
   totalOre: MoneyOre;

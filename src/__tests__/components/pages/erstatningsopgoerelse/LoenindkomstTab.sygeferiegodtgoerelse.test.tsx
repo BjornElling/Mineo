@@ -175,7 +175,7 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
       harOverenskomst: false,
       overenskomstId: undefined,
     };
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
     eoValues.loenindkomstAnsaettelsesforhold = [ansaettelsesforhold];
     eoValues.sfggAnsaettelsesforhold = [
       {

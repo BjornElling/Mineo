@@ -3,6 +3,13 @@ import { z } from 'zod';
 export const jaNejEnum = z.enum(['Ja', 'Nej']);
 export type JaNej = z.infer<typeof jaNejEnum>;
 
+// Tre-tilstands-valg for emner der enten beregnes (Ja), oplyses som "Ingen" (Nej)
+// eller udelades helt fra erstatningsopgørelse-PDF'en (Skjul).
+// 'Nej' og 'Skjul' har identisk beregningsadfærd (intet beregnes); forskellen er rent
+// præsentationsmæssig: kun 'Skjul' fjerner emnets overskrift og indhold fra PDF'en.
+export const jaNejSkjulEnum = z.enum(['Ja', 'Nej', 'Skjul']);
+export type JaNejSkjul = z.infer<typeof jaNejSkjulEnum>;
+
 export const skadestypeEnum = z.enum(['Arbejdsulykke', 'Erhvervssygdom']);
 export type Skadestype = z.infer<typeof skadestypeEnum>;
 

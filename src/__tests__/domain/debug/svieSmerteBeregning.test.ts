@@ -23,13 +23,13 @@ const buildCanonicalReadyValues = (values: ErstatningsopgoerelseValues): Erstatn
   const hasSvieSmertePerioder = (values.svieSmertePerioder ?? []).some((periode) => periode.fra || periode.til || periode.tilstand);
   return {
     ...values,
-    beregnesTabtArbejdsfortjeneste: 'Nej',
-    beregnesSvieSmerteGodtgoerelse:
-      values.beregnesSvieSmerteGodtgoerelse === 'Nej'
+    kravPaaTabtArbejdsfortjeneste: 'Nej',
+    kravPaaSvieSmerteGodtgoerelse:
+      values.kravPaaSvieSmerteGodtgoerelse === 'Nej'
         ? 'Nej'
         : hasSvieSmertePerioder
           ? 'Ja'
-          : values.beregnesSvieSmerteGodtgoerelse,
+          : values.kravPaaSvieSmerteGodtgoerelse,
     svieSmerteHelbredsstatus:
       values.svieSmerteHelbredsstatus
       ?? (hasSvieSmertePerioder ? 'Sygemeldt' : values.svieSmerteHelbredsstatus),
@@ -141,7 +141,7 @@ describe('Svie/smerte beregning', () => {
     it('viser "Ingen krav i perioden" med ok når beregning er Nej', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
-          beregnesSvieSmerteGodtgoerelse: 'Nej',
+          kravPaaSvieSmerteGodtgoerelse: 'Nej',
           tidligereSsMax: 'Ja',
         })
       );
@@ -152,7 +152,7 @@ describe('Svie/smerte beregning', () => {
     it('viser "Tidligere beregnet til max" når tidligereSsMax er Ja', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
-          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
           tidligereSsMax: 'Ja',
         })
       );
@@ -163,7 +163,7 @@ describe('Svie/smerte beregning', () => {
     it('viser "Erstatningsperiodens ophør (dato)" når sidste svie/smerte-dato er lig vedrørerPeriodeTil', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
-          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
           tidligereSsMax: 'Nej',
           vedroererPeriodeTil: iso('2024-03-31'),
           svieSmertePerioder: [{ id: '1', fra: iso('2024-03-01'), til: iso('2024-03-31'), tilstand: 'sygemeldt' }],
@@ -176,7 +176,7 @@ describe('Svie/smerte beregning', () => {
     it('viser "Erstatningsperiodens ophør (dato)" når sidste svie/smerte-dato er efter vedrørerPeriodeTil', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
-          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
           tidligereSsMax: 'Nej',
           vedroererPeriodeTil: iso('2024-06-15'),
           svieSmertePerioder: [{ id: '1', fra: iso('2024-06-01'), til: iso('2024-08-31'), tilstand: 'sygemeldt' }],
@@ -189,7 +189,7 @@ describe('Svie/smerte beregning', () => {
     it('viser "Ménafgørelse" når mén-dato er dagen efter sidste svie/smerte-dato', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
-          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
           tidligereSsMax: 'Nej',
           varigeMenAfgorelse: 'Ja',
           verserendeKlageMen: 'Nej',
@@ -205,7 +205,7 @@ describe('Svie/smerte beregning', () => {
     it('viser "Raskmeldt" når helbredsforhold er Raskmeldt', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
-          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
           tidligereSsMax: 'Nej',
           svieSmerteHelbredsstatus: 'Raskmeldt',
           vedroererPeriodeTil: iso('2024-12-31'),
@@ -219,7 +219,7 @@ describe('Svie/smerte beregning', () => {
     it('viser "Nået max i denne periode" når beregnet svie/smerte er begrænset af max', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
-          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
           tidligereSsMax: 'Nej',
           svieSmerteHelbredsstatus: 'Sygemeldt',
           svieSmerteSatserAar: 2026,
@@ -238,7 +238,7 @@ describe('Svie/smerte beregning', () => {
     it('prioriterer "Nået max i denne periode" før "Raskmeldt"', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
-          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
           tidligereSsMax: 'Nej',
           svieSmerteHelbredsstatus: 'Raskmeldt',
           svieSmerteSatserAar: 2026,
@@ -257,7 +257,7 @@ describe('Svie/smerte beregning', () => {
     it('viser warning med "Ikke rejst svie/smerte-krav for hele perioden" i fallback', () => {
       const row = getSvieSmerteOphoerRow(
         makeValues({
-          beregnesSvieSmerteGodtgoerelse: 'Ja',
+          kravPaaSvieSmerteGodtgoerelse: 'Ja',
           tidligereSsMax: 'Nej',
           svieSmerteHelbredsstatus: 'Sygemeldt',
           vedroererPeriodeTil: iso('2024-12-31'),
@@ -281,8 +281,8 @@ describe('Svie/smerte beregning', () => {
       );
 
       expect(row?.status).toBe('warning');
-      expect(row?.displayValue).toBe('Svie/smerte satsen for 2026 kan anvendes.');
-      expect(row?.message).toBe('Svie/smerte satsen for 2026 kan anvendes.');
+      expect(row?.displayValue).toBe('Svie/smerte-satsen for 2026 kan anvendes.');
+      expect(row?.message).toBe('Svie/smerte-satsen for 2026 kan anvendes.');
       expect(row?.summaryDisplay).toBe('messageOnly');
     });
 

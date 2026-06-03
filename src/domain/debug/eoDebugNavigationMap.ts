@@ -171,7 +171,7 @@ export const getNavigationTargetFromRowId = (rowId: string): NavigationTarget =>
       tabId: 'eo_oplysninger',
       sectionId: 'sviesmerte',
       tabName: 'EO oplysninger',
-      sectionTitle: 'Svie/smerte godtgørelse',
+      sectionTitle: 'Svie- og smertegodtgørelse',
     };
   }
 

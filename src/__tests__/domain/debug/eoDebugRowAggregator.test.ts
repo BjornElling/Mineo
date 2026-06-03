@@ -141,7 +141,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...createErstatningsopgoerelseInitialValues(), beregnesSvieSmerteGodtgoerelse: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), kravPaaSvieSmerteGodtgoerelse: 'Nej' as const };
     const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
@@ -167,7 +167,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...createErstatningsopgoerelseInitialValues(), beregnesTabtArbejdsfortjeneste: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), kravPaaTabtArbejdsfortjeneste: 'Nej' as const };
     const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
@@ -519,7 +519,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...createErstatningsopgoerelseInitialValues(), beregnesTabtArbejdsfortjeneste: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), kravPaaTabtArbejdsfortjeneste: 'Nej' as const };
 
     expect(() =>
       collectAllDebugRows(
@@ -544,7 +544,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const eoValues = { ...createErstatningsopgoerelseInitialValues(), beregnesTabtArbejdsfortjeneste: 'Nej' as const };
+    const eoValues = { ...createErstatningsopgoerelseInitialValues(), kravPaaTabtArbejdsfortjeneste: 'Nej' as const };
 
     expect(() =>
       collectAllDebugRows(

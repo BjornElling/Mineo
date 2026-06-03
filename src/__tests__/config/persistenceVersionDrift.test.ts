@@ -29,7 +29,12 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // Opdateret 2026-06-03: fjernet allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden og
 // allowReguleringMedUdloebMedMaaneder fra erstatningsopgoerelse-sektionen (rullet tilbage til
 // device-lokale app-settings). PERSISTED_DATA_VERSION bumpet til 2.0 (bevidst breaking schema-ændring).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-b99316b8';
+// Opdateret 2026-06-03: breaking rename af beregnesSvieSmerteGodtgoerelse -> kravPaaSvieSmerteGodtgoerelse og
+// beregnesTabtArbejdsfortjeneste -> kravPaaTabtArbejdsfortjeneste, samt udvidet enum til Ja/Nej/Skjul.
+// PERSISTED_DATA_VERSION bumpet til 3.0 (bevidst breaking schema-ændring; gamle værdier tabes, default 'Ja').
+// Opdateret 2026-06-03: nyt felt kravPaaOevrigeErstatningskrav (Ja/Nej/Skjul) på erstatningsopgoerelse-sektionen,
+// magen til de to ovenstående. PERSISTED_DATA_VERSION bumpet til 3.1 (reel persisted schema-ændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-c9d3a060';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

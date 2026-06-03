@@ -317,7 +317,7 @@ export const computeEoSnapshot = (args: Readonly<{
     const tafNetto = computeTafNettoBeregning(effectiveEoValues, parsedStamdata.data, {
       tafRanges,
     });
-    const oevrigeKrav = buildOevrigeKravModel(effectiveEoValues.oevrigeKravPerioder ?? []);
+    const oevrigeKrav = buildOevrigeKravModel(effectiveEoValues);
     const totals = buildEoComputedTotals({
       svieSmerte,
       tafNetto,

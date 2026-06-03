@@ -53,8 +53,8 @@ describe('EOberegningTab PDF-afslutning', () => {
     collectAllDebugRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
 
     eoValuesFromForm = createErstatningsopgoerelseInitialValues();
-    eoValuesFromForm.beregnesSvieSmerteGodtgoerelse = 'Nej';
-    eoValuesFromForm.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eoValuesFromForm.kravPaaSvieSmerteGodtgoerelse = 'Nej';
+    eoValuesFromForm.kravPaaTabtArbejdsfortjeneste = 'Nej';
     eoValuesFromForm.erstatningsopgoerelseAfsluttesMed = 'Underskrift-linje';
     eoValuesFromForm.differencekravDato = toISODateString('2026-01-15');
     eoSnapshot = computeEoSnapshot({

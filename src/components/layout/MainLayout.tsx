@@ -295,7 +295,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
                 <Box component="ul" sx={{ margin: 0, paddingLeft: 2 }}>
                   {pendingPreflight.issues.slice(0, 12).map((issue) => (
                     <li key={`${issue.path}-${issue.reason}`}>
-                      <Typography variant="body2">{issue.path}: {issue.reason}</Typography>
+                      <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{issue.path}: {issue.reason}</Typography>
                     </li>
                   ))}
                   {pendingPreflight.issues.length > 12 && (

@@ -22,15 +22,15 @@ export function resolveBilagWarning(values: ErstatningsopgoerelseValues, fieldNa
         ? 'Der er angivet bilagsnummer for EET-afgørelser, men angivet at der ikke er truffet afgørelse'
         : null;
     case 'bilagsnumreSvieSmerteDokumentation':
-      return values.beregnesSvieSmerteGodtgoerelse !== 'Ja'
+      return values.kravPaaSvieSmerteGodtgoerelse !== 'Ja'
         ? 'Der er angivet bilagsnummer for svie/smerte dokumentation, men angivet at svie/smerte ikke beregnes'
         : null;
     case 'bilagsnumreBeregningsgrundlagTaf':
-      return values.beregnesTabtArbejdsfortjeneste !== 'Ja'
+      return values.kravPaaTabtArbejdsfortjeneste !== 'Ja'
         ? 'Der er angivet bilagsnummer for Beregningsgrundlag for TAF, men angivet at tabt arbejdsfortjeneste ikke beregnes'
         : null;
     case 'bilagsnumreLoenISygeperioden': {
-      if (values.beregnesTabtArbejdsfortjeneste !== 'Ja') {
+      if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja') {
         return 'Der er angivet bilagsnummer for Løn i sygeperioden, men angivet at tabt arbejdsfortjeneste ikke beregnes';
       }
       const harLoenoplysninger = values.loenindkomstAnsaettelsesforhold.some(
@@ -41,7 +41,7 @@ export function resolveBilagWarning(values: ErstatningsopgoerelseValues, fieldNa
         : 'Der er angivet bilagsnummer for Løn i sygeperioden, men der er ikke indtastet lønoplysninger';
     }
     case 'bilagsnumreOffentligeYdelser': {
-      if (values.beregnesTabtArbejdsfortjeneste !== 'Ja') {
+      if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja') {
         return 'Der er angivet bilagsnummer for Offentlige ydelser, men angivet at tabt arbejdsfortjeneste ikke beregnes';
       }
       const harUdfyldteYdelser = values.offentligeYdelserRows.some(
@@ -52,6 +52,9 @@ export function resolveBilagWarning(values: ErstatningsopgoerelseValues, fieldNa
         : 'Der er angivet bilagsnummer for offentlige ydelser, men der er ikke indtastet offentlige ydelser';
     }
     case 'bilagsnumreOevrigeErstatningskrav': {
+      if (values.kravPaaOevrigeErstatningskrav !== 'Ja') {
+        return 'Der er angivet bilagsnummer for øvrige erstatningskrav, men angivet at øvrige krav ikke beregnes';
+      }
       // Øvrige erstatningskrav er ikke TAF-afhængige; kun faktisk udfyldte krav styrer advarslen.
       const harOevrigeKrav = values.oevrigeKravPerioder.some((row) => !isOevrigeKravRowEmpty(row));
       return harOevrigeKrav

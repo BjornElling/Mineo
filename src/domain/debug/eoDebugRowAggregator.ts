@@ -190,11 +190,14 @@ const isRowRelevantForEoValues = (
   values: ErstatningsopgoerelseValues
 ): boolean => {
   // Domæne-relevansregler:
-  // En række er irrelevant, når den tilsvarende funktion er eksplicit slået fra.
-  if (values.beregnesSvieSmerteGodtgoerelse === 'Nej' && row.id.startsWith('sviesmerte.')) {
+  // En række er irrelevant, når den tilsvarende funktion ikke beregnes ('Nej' eller 'Skjul').
+  if (values.kravPaaSvieSmerteGodtgoerelse !== 'Ja' && row.id.startsWith('sviesmerte.')) {
     return false;
   }
-  if (values.beregnesTabtArbejdsfortjeneste === 'Nej') {
+  if (values.kravPaaOevrigeErstatningskrav !== 'Ja' && row.id.startsWith('oevrigekrav.')) {
+    return false;
+  }
+  if (values.kravPaaTabtArbejdsfortjeneste !== 'Ja') {
     // NOTE:
     // loenindkomst.* filtreres sammen med TAF, da lønindkomst
     // udelukkende anvendes til Tabt Arbejdsfortjeneste.

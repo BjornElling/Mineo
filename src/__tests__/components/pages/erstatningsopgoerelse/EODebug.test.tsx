@@ -79,6 +79,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
@@ -118,6 +120,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
@@ -273,6 +277,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
@@ -314,6 +320,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
@@ -387,6 +395,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
@@ -425,6 +435,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
       },
@@ -453,6 +465,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
       },
@@ -493,6 +507,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
       },
@@ -533,6 +549,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
       },
@@ -573,6 +591,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
       },
@@ -612,6 +632,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
       },
@@ -643,6 +665,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
       },
@@ -674,8 +698,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        beregnesSvieSmerteGodtgoerelse: 'Nej',
-        beregnesTabtArbejdsfortjeneste: 'Ja',
+        kravPaaSvieSmerteGodtgoerelse: 'Nej',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
       },
@@ -683,8 +707,8 @@ describe('EODebug', () => {
         ['sviesmerte', [
           {
             id: 'sviesmerte.satserAar',
-            label: 'Hvilket års svie/smerte satser lægges til grund?',
-            displayValue: 'Svie/smerte satsen for 2026 kan anvendes.',
+            label: 'Hvilket års svie/smerte-satser lægges til grund?',
+            displayValue: 'Svie/smerte-satsen for 2026 kan anvendes.',
             status: 'warning',
           },
         ]],
@@ -695,8 +719,8 @@ describe('EODebug', () => {
     renderComponent({ revision: 'rev-1' } as never);
 
     expect(screen.queryByText('Svie og smerte')).not.toBeInTheDocument();
-    expect(screen.queryByText('Hvilket års svie/smerte satser lægges til grund?')).not.toBeInTheDocument();
-    expect(screen.queryByText('Svie/smerte satsen for 2026 kan anvendes.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hvilket års svie/smerte-satser lægges til grund?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Svie/smerte-satsen for 2026 kan anvendes.')).not.toBeInTheDocument();
   });
 
   it('skjuler resten af svie/smerte-indholdet når tidligere S/S er beregnet til max', () => {
@@ -708,9 +732,9 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        beregnesSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
         tidligereSsMax: 'Ja',
-        beregnesTabtArbejdsfortjeneste: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
       },
@@ -724,7 +748,7 @@ describe('EODebug', () => {
           },
           {
             id: 'sviesmerte.satserAar',
-            label: 'Hvilket års svie/smerte satser lægges til grund?',
+            label: 'Hvilket års svie/smerte-satser lægges til grund?',
             displayValue: '2026',
             status: 'ok',
           },
@@ -744,7 +768,7 @@ describe('EODebug', () => {
     expect(screen.getByText('Svie og smerte')).toBeInTheDocument();
     expect(screen.getByText('Tidligere beregnet S/S til max.')).toBeInTheDocument();
     expect(screen.getByText('Ja')).toBeInTheDocument();
-    expect(screen.queryByText('Hvilket års svie/smerte satser lægges til grund?')).not.toBeInTheDocument();
+    expect(screen.queryByText('Hvilket års svie/smerte-satser lægges til grund?')).not.toBeInTheDocument();
     expect(screen.queryByText('2026')).not.toBeInTheDocument();
     expect(screen.queryByText('Beregnet svie/smerte')).not.toBeInTheDocument();
     expect(screen.queryByText('96.000,00 kr.')).not.toBeInTheDocument();
@@ -759,8 +783,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        beregnesSvieSmerteGodtgoerelse: 'Ja',
-        beregnesTabtArbejdsfortjeneste: 'Nej',
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Nej',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
@@ -838,6 +862,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
       },
@@ -871,6 +897,8 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
+        kravPaaSvieSmerteGodtgoerelse: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [
@@ -922,7 +950,7 @@ describe('EODebug', () => {
       },
       stamdataValues: {},
       erstatningsopgoerelseValues: {
-        beregnesTabtArbejdsfortjeneste: 'Ja',
+        kravPaaTabtArbejdsfortjeneste: 'Ja',
         midlertidigtEETAfgorelse: 'Nej',
         endeligtEETAfgorelse: 'Nej',
         loenindkomstAnsaettelsesforhold: [

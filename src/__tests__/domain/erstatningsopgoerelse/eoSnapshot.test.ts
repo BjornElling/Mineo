@@ -214,8 +214,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2023-05-24');
     eoValues.vedroererPeriodeTil = toISODateString('2025-12-21');
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Nej';
     eoValues.tidligereSsMax = 'Nej';
     eoValues.varigeMenAfgorelse = 'Ja';
     eoValues.verserendeKlageMen = 'Nej';
@@ -251,8 +251,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2023-05-24');
     eoValues.vedroererPeriodeTil = toISODateString('2024-06-01');
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Nej';
     eoValues.tidligereSsMax = 'Nej';
     eoValues.varigeMenAfgorelse = 'Ja';
     eoValues.verserendeKlageMen = 'Nej';
@@ -280,8 +280,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2023-05-24');
     eoValues.vedroererPeriodeTil = toISODateString('2024-03-01');
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Nej';
     eoValues.tidligereSsMax = 'Nej';
     eoValues.varigeMenAfgorelse = 'Ja';
     eoValues.verserendeKlageMen = 'Nej';
@@ -401,8 +401,8 @@ describe('computeEoSnapshot', () => {
 
   it('normaliserer tom tidligere modtaget TAF til 0 i totals', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Nej';
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Nej';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Nej';
 
     const snapshot = computeEoSnapshot({
       revision: 'base-ok',
@@ -416,8 +416,8 @@ describe('computeEoSnapshot', () => {
 
   it('pdfModel i snapshot er konsistent med totals (parity)', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Nej';
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Nej';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Nej';
     eoValues.oevrigeKravPerioder = [
       {
         id: 'krav-1',
@@ -488,7 +488,7 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2023-05-24');
     eoValues.vedroererPeriodeTil = toISODateString('2025-12-21');
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
     eoValues.beregnesUdFra = 'Beregningsperiode';
     eoValues.tafBeregningsperiodeFra = toISODateString('2023-01-01');
     eoValues.tafBeregningsperiodeTil = toISODateString('2023-12-31');
@@ -516,7 +516,7 @@ describe('computeEoSnapshot', () => {
         ],
       }),
     ];
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Ja';
     eoValues.tidligereSsMax = 'Nej';
     eoValues.varigeMenAfgorelse = 'Ja';
     eoValues.verserendeKlageMen = 'Nej';
@@ -545,8 +545,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2024-01-26');
     eoValues.vedroererPeriodeTil = toISODateString('2025-11-02');
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Ja';
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Ja';
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Ja';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
     eoValues.tidligereSsMax = 'Nej';
     eoValues.svieSmerteHelbredsstatus = 'Raskmeldt';
     eoValues.svieSmerteSatserAar = 2025;
@@ -616,8 +616,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
     eoValues.vedroererPeriodeTil = toISODateString('2024-01-31');
-    eoValues.beregnesSvieSmerteGodtgoerelse = 'Nej';
-    eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
+    eoValues.kravPaaSvieSmerteGodtgoerelse = 'Nej';
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Nej';
     eoValues.oevrigeKravPerioder = [
       {
         id: 'krav-1',

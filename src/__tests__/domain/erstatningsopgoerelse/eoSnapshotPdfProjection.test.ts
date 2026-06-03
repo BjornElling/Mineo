@@ -19,8 +19,8 @@ const buildBaseSnapshot = () => {
   const eoValues = createErstatningsopgoerelseInitialValues();
   eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
   eoValues.vedroererPeriodeTil = toISODateString('2024-01-31');
-  eoValues.beregnesSvieSmerteGodtgoerelse = 'Nej';
-  eoValues.beregnesTabtArbejdsfortjeneste = 'Nej';
+  eoValues.kravPaaSvieSmerteGodtgoerelse = 'Nej';
+  eoValues.kravPaaTabtArbejdsfortjeneste = 'Nej';
   eoValues.oevrigeKravPerioder = [
     {
       id: 'krav-1',

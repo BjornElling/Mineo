@@ -20,7 +20,7 @@ const createValidBase = () => {
     ...initial,
     beregnesUdFra: 'Angivet månedsløn' as const,
     maanedsloenenUdgoer: asAmountValue(30000),
-    beregnesTabtArbejdsfortjeneste: 'Ja' as const,
+    kravPaaTabtArbejdsfortjeneste: 'Ja' as const,
     vedroererPeriodeFra: iso('2024-01-01'),
     vedroererPeriodeTil: iso('2024-12-31'),
     loenindkomstAnsaettelsesforhold: [

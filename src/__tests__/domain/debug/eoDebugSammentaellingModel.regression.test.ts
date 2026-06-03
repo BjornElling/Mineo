@@ -66,7 +66,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
       vedroererPeriodeFra: toISODateString('2024-03-01'),
       vedroererPeriodeTil: toISODateString('2024-03-10'),
       beregnesUdFra: 'Angivet dagsløn' as const,
-      beregnesTabtArbejdsfortjeneste: 'Ja' as const,
+      kravPaaTabtArbejdsfortjeneste: 'Ja' as const,
       tafPerioder: [
         {
           id: 'taf-1',
@@ -117,7 +117,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
       vedroererPeriodeFra: toISODateString('2024-01-01'),
       vedroererPeriodeTil: toISODateString('2024-01-10'),
       beregnesUdFra: 'Angivet månedsløn' as const,
-      beregnesTabtArbejdsfortjeneste: 'Ja' as const,
+      kravPaaTabtArbejdsfortjeneste: 'Ja' as const,
       endeligtEETAfgorelse: 'Ja' as const,
       verserendeKlageEet: 'Nej' as const,
       endeligEETVirkningsdato: toISODateString('2024-01-06'),
@@ -202,12 +202,12 @@ describe('buildEODebugSammentaellingModel regression', () => {
     expect(sammentaelling.beregningsperiodeIndtaegter).toHaveLength(0);
   });
 
-  it('medregner ikke TAF i sammentælling når beregnesTabtArbejdsfortjeneste er Nej', () => {
+  it('medregner ikke TAF i sammentælling når kravPaaTabtArbejdsfortjeneste er Nej', () => {
     const values = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2025-08-01'),
       vedroererPeriodeTil: toISODateString('2026-01-31'),
-      beregnesTabtArbejdsfortjeneste: 'Nej' as const,
+      kravPaaTabtArbejdsfortjeneste: 'Nej' as const,
       tafPerioder: [
         {
           id: 'taf-1',
@@ -332,7 +332,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2024-01-26'),
       vedroererPeriodeTil: toISODateString('2025-11-02'),
-      beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
+      kravPaaSvieSmerteGodtgoerelse: 'Ja' as const,
       svieSmerteHelbredsstatus: 'Raskmeldt' as const,
       svieSmerteSatserAar: 2025,
       svieSmerteDelvisSygemeldingSats: 'fuld' as const,
@@ -387,8 +387,8 @@ describe('buildEODebugSammentaellingModel regression', () => {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2024-01-26'),
       vedroererPeriodeTil: toISODateString('2025-11-02'),
-      beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
-      beregnesTabtArbejdsfortjeneste: 'Nej' as const,
+      kravPaaSvieSmerteGodtgoerelse: 'Ja' as const,
+      kravPaaTabtArbejdsfortjeneste: 'Nej' as const,
       tidligereSsMax: 'Nej' as const,
       svieSmerteHelbredsstatus: 'Raskmeldt' as const,
       svieSmerteSatserAar: 2025,
@@ -451,8 +451,8 @@ describe('buildEODebugSammentaellingModel regression', () => {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2023-05-24'),
       vedroererPeriodeTil: toISODateString('2025-12-21'),
-      beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
-      beregnesTabtArbejdsfortjeneste: 'Nej' as const,
+      kravPaaSvieSmerteGodtgoerelse: 'Ja' as const,
+      kravPaaTabtArbejdsfortjeneste: 'Nej' as const,
       tidligereSsMax: 'Nej' as const,
       varigeMenAfgorelse: 'Ja' as const,
       verserendeKlageMen: 'Nej' as const,
@@ -502,7 +502,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2024-01-01'),
       vedroererPeriodeTil: toISODateString('2024-01-31'),
-      beregnesSvieSmerteGodtgoerelse: 'Ja' as const,
+      kravPaaSvieSmerteGodtgoerelse: 'Ja' as const,
       svieSmerteHelbredsstatus: 'Sygemeldt' as const,
       svieSmertePerioder: [
         {
@@ -539,7 +539,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
       vedroererPeriodeFra: toISODateString('2024-02-26'),
       vedroererPeriodeTil: toISODateString('2024-03-05'),
       beregnesUdFra: 'Angivet månedsløn' as const,
-      beregnesTabtArbejdsfortjeneste: 'Ja' as const,
+      kravPaaTabtArbejdsfortjeneste: 'Ja' as const,
       tafPerioder: [
         {
           id: 'taf-1',

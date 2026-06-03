@@ -116,7 +116,7 @@ const buildZeroOutput = (values: DeepReadonly<ErstatningsopgoerelseValues>): Svi
 export const computeSvieSmerteEngine = (input: SvieSmerteEngineInputSnapshot): SvieSmerteEngineOutput => {
   const values = input.erstatningsopgoerelse;
 
-  const periodeSynlig = values.beregnesSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej';
+  const periodeSynlig = values.kravPaaSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej';
 
   // filterValidSvieSmertePerioder returnerer null ved overlap/ufuldstændige rækker/ugyldige datoer.
   // I disse tilfælde er perioderne ikke brugbare til beregning — vi behandler det som ingen perioder.

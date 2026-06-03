@@ -139,7 +139,7 @@ describe('buildTafPerYearResult', () => {
     const eoValues = makeValues({
       vedroererPeriodeFra: iso('2024-01-01'),
       vedroererPeriodeTil: iso('2024-12-31'),
-      beregnesTabtArbejdsfortjeneste: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2024-01-01') });
     const snapshotData = buildSnapshotData(stamdata, eoValues, { dagsDatoISO });
