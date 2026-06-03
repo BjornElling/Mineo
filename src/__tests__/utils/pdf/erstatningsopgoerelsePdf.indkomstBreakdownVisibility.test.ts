@@ -501,7 +501,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
     const loenudviklingBlock = getTextsBetween(
       texts,
-      'Indkomst, hvis skaden ikke var indtrådt',
+      'Forventet indkomst',
       'Indtægter i erstatningsperioden'
     );
 
@@ -612,7 +612,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const texts = collectTextStrings(MockJsPDF.lastInstance);
     const loenudviklingBlock = getTextsBetween(
       texts,
-      'Indkomst, hvis skaden ikke var indtrådt',
+      'Forventet indkomst',
       'Indtægter i erstatningsperioden'
     );
 

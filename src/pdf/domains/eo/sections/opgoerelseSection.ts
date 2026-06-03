@@ -427,7 +427,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       safeAddWrappedText(line);
     }
 
-    renderSubheader('Indkomst på skadestidspunktet');
+    renderSubheader('Beregningsgrundlag');
     const indkomst = model.tabtArbejdsfortjeneste.indkomstSkadestidspunkt;
 
     if (model.tabtArbejdsfortjeneste.skalKomprimereIndkomstBeregning && indkomst) {
@@ -672,7 +672,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         const tillaeg = entry.loenudviklingLabel === 'Ingen'
           ? ''
           : ' tillagt efterfølgende lønstigninger';
-        return `${entry.ansaettelsesforholdNavn}, ${datoFragment}${tillaeg}`;
+        return `${entry.ansaettelsesforholdNavn} ${datoFragment}${tillaeg}`;
       });
       const sammensat = fragmenter.length === 1
         ? fragmenter[0]
@@ -691,13 +691,13 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     };
     const indkomstHvisSkadeIkkeIndtraadtBeskrivelse = resolveIndkomstBeregningsText();
     if (harOffentligeYdelserUdvikling) {
-      renderSubheader('Indkomst, hvis skaden ikke var indtrådt');
+      renderSubheader('Forventet indkomst');
       for (const line of indkomstHvisSkadeIkkeIndtraadtBeskrivelse.split('\n')) {
         safeAddWrappedText(line);
       }
     } else {
       renderSubheaderWithWrappedText(
-        'Indkomst, hvis skaden ikke var indtrådt',
+        'Forventet indkomst',
         indkomstHvisSkadeIkkeIndtraadtBeskrivelse
       );
     }
