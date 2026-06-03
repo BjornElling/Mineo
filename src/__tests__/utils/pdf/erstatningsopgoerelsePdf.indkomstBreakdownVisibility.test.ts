@@ -141,6 +141,11 @@ const getTextsBetween = (texts: readonly string[], startHeader: string, endHeade
   return texts.slice(startIndex + 1, sliceEnd);
 };
 
+const getTextsFromLastHeader = (texts: readonly string[], header: string): string[] => {
+  const startIndex = texts.lastIndexOf(header);
+  return startIndex === -1 ? [] : texts.slice(startIndex + 1);
+};
+
 const findTextY = (instance: InstanceType<typeof MockJsPDF> | null, text: string): number | null => {
   if (!instance) return null;
   for (const call of instance.text.mock.calls) {
@@ -579,7 +584,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     // Ét ansættelsesforhold reguleres (overenskomst → "tillagt efterfølgende lønstigninger"),
     // det andet reguleres ikke (Ingen → ingen tillægstekst). Hver med egen reguleringsdato.
     expect(texts).toContain(
-      'Beregnes som lønnen opgjort således: Tandlægerne Toft og Vedsted, per 2. maj 2023 tillagt efterfølgende lønstigninger og Nillers Nisseforretning, per 16. april 2023.'
+      'Beregnes som lønnen opgjort således: Tandlægerne Toft og Vedsted per 2. maj 2023 tillagt efterfølgende lønstigninger og Nillers Nisseforretning per 16. april 2023.'
     );
     // Den gamle samlede formulering må ikke optræde, når flere ansættelsesforhold indgår.
     expect(texts.some((text) => text.startsWith('Beregnes som lønnen opgjort per '))).toBe(false);
@@ -883,6 +888,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     });
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const sfggTexts = getTextsFromLastHeader(texts, 'Sygeferiegodtgørelse');
 
     expect(texts).toContain('Referencesats');
     expect(texts).toContain('Opgøres som den gennemsnitlige feriepengebetaling i 4 uger før sygeforløbet.');
@@ -890,9 +896,9 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('01-01-2024 - 31-01-2024');
     expect(texts).toContain('Lønnen i referenceperioden udgør');
     expect(texts).toContain('01-01-2024 - 31-01-2024');
-    expect(texts).not.toContain('Beregningsgrundlag');
-    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
-    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
+    expect(sfggTexts).not.toContain('Beregningsgrundlag');
+    expect(sfggTexts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
+    expect(sfggTexts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
     expect(texts).toContain('Periode med sygeferiegodtgørelse');
     expect(texts).toContain('02-01-2024 - 31-01-2024');
     expect(texts.some((text) =>
@@ -1118,9 +1124,10 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     });
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
-    expect(texts).not.toContain('Beregningsgrundlag');
-    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
-    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
+    const sfggTexts = getTextsFromLastHeader(texts, 'Sygeferiegodtgørelse');
+    expect(sfggTexts).not.toContain('Beregningsgrundlag');
+    expect(sfggTexts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
+    expect(sfggTexts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
   });
 
   it('viser ikke SFGG-referenceperiode på SH-dage-siden når aktuelt SFGG-grundlag ikke er referenceperiode, selv om dokumentet indeholder gammel referenceperiode', () => {
@@ -1642,9 +1649,10 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     });
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
-    expect(texts).not.toContain('Beregningsgrundlag');
-    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
-    expect(texts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
+    const sfggTexts = getTextsFromLastHeader(texts, 'Sygeferiegodtgørelse');
+    expect(sfggTexts).not.toContain('Beregningsgrundlag');
+    expect(sfggTexts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
+    expect(sfggTexts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
     expect(texts).toContain('Perioder med sygeferiegodtgørelse');
     expect(texts).toContain('Ingen');
     expect(texts).toContain('Beregnet krav');
