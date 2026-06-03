@@ -152,8 +152,8 @@ export const buildSvieSmerteModel = (
 
   const periodeHeading =
     engine.constrainedPeriods.length > 1
-      ? 'Sygeperioder, hvor der beregnes svie- og smertegodtgørelse'
-      : 'Sygeperiode, hvor der beregnes svie- og smertegodtgørelse';
+      ? 'Sygeperioder med svie- og smertegodtgørelse'
+      : 'Sygeperiode med svie- og smertegodtgørelse';
 
   return {
     beregnes,

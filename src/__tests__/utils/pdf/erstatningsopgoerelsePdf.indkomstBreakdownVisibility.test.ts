@@ -335,7 +335,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     expect(tafBlock).toContain('Ingen');
     expect(tafBlock).not.toContain('Den 1. februar 2024 var skadelidte på førtidspension og således fortsat uarbejdsdygtig.');
-    expect(tafBlock).not.toContain('Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste');
+    expect(tafBlock).not.toContain('Erstatningsperiode med tabt arbejdsfortjeneste');
     expect(tafBlock).not.toContain('01-01-2024 - 31-01-2024');
   });
 
@@ -357,7 +357,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     expect(svieBlock).toContain('Ingen');
     expect(svieBlock).not.toContain('Den 1. februar 2024 var skadelidte fortsat sygemeldt.');
-    expect(svieBlock).not.toContain('Sygeperiode, hvor der beregnes svie- og smertegodtgørelse');
+    expect(svieBlock).not.toContain('Sygeperiode med svie- og smertegodtgørelse');
     expect(svieBlock).not.toContain('01-01-2024 - 31-01-2024');
   });
 

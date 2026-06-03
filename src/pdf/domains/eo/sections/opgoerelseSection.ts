@@ -416,8 +416,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     });
 
     const tafPeriodeHeader = model.tabtArbejdsfortjeneste.tafPerioderLinjer.length > 1
-      ? 'Erstatningsperioder, hvor der beregnes tabt arbejdsfortjeneste'
-      : 'Erstatningsperiode, hvor der beregnes tabt arbejdsfortjeneste';
+      ? 'Erstatningsperioder med tabt arbejdsfortjeneste'
+      : 'Erstatningsperiode med tabt arbejdsfortjeneste';
     renderSubheader(tafPeriodeHeader);
 
     if (!hasTafPerioder) {
