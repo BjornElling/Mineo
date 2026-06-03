@@ -80,6 +80,8 @@ const createPdfGate = (canDownload: boolean, reason: string | null, fallbackReas
     });
 };
 
+const EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP = 'Opgørelse kan ikke hentes, når der er fejl ovenfor';
+
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
 const DEVTOOLS_REPORTABLE_INVARIANT_IDS = new Set([
@@ -234,7 +236,7 @@ const getCustomDebugRowMessage = (
   }
 
   if (row.label === 'Valgt regulering' && message === 'Lønudvikling beregnes ud fra mangler') {
-    return 'Der mangler at blive angivet lønregulering, evt. \'Ingen\'';
+    return 'Angivelse af lønudvikling mangler';
   }
 
   if (row.label === 'Valgt regulering' && message === 'Overenskomst er ikke valgt') {
@@ -1132,7 +1134,11 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
             )}
             {!canDownloadSnapshotEoPdf && (
               <Tooltip
-                title={eoPdfDisabledReason ?? 'EO-PDF kan ikke genereres for den aktuelle sag.'}
+                title={
+                  hasBlockingDebugErrors
+                    ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP
+                    : eoPdfDisabledReason ?? 'EO-PDF kan ikke genereres for den aktuelle sag.'
+                }
                 arrow
                 placement="top"
               >

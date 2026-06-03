@@ -906,7 +906,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
     expect(hasError(values, 'Grundløn skal være større end 0')).toBe(true);
   });
 
-  it('fanger uens startdato for regulering på tværs af ansættelsesforhold', () => {
+  it('tillader særskilt startdato for regulering pr. ansættelsesforhold', () => {
     const values = makeValues({
       beregnesUdFra: 'Beregningsperiode',
       tafBeregningsperiodeFra: iso('2023-01-01'),
@@ -931,7 +931,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
       ],
     });
 
-    expect(hasError(values, 'Startdato for regulering skal være ens')).toBe(true);
+    expect(hasError(values, 'Startdato for regulering skal være ens')).toBe(false);
   });
 
   it('ingen fejl ved grundlag=Ingen (springes over)', () => {

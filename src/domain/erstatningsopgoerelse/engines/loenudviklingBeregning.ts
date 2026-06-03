@@ -361,11 +361,6 @@ const resolveReguleringsStrategi = (
     values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn';
 
   assertUniform(active, (af) => af.loenudviklingBeregningsgrundlag ?? '', 'beregningsgrundlag');
-  assertUniform(
-    active,
-    (af) => (isISODateString(af.saerligFraDatoRegulering) ? af.saerligFraDatoRegulering : ''),
-    'saerlig fra dato regulering'
-  );
   const basis = active[0].loenudviklingBeregningsgrundlag;
   if (!basis) {
     throw new Error('Loenudviklingsstrategi er ikke valgt');
@@ -1522,4 +1517,3 @@ const resolveDagsloenBase = (
   if (indkomstSkadestidspunkt.dagsloen.status !== 'ok') return null;
   return fromOre(indkomstSkadestidspunkt.dagsloen.value);
 };
-

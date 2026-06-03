@@ -118,7 +118,7 @@ describe('EOberegningTab PDF-afslutning', () => {
     expect(submittedEo.differencekravDato).toBe(toISODateString('2026-01-15'));
   });
 
-  it('blokerer PDF-download når Beregning-fanen har brugerfejl', async () => {
+  it('blokerer PDF-download med generel tooltip når Beregning-fanen har brugerfejl', async () => {
     collectAllDebugRowsMock.mockReturnValue({
       errors: [{
         id: 'forlig.dato',
@@ -153,6 +153,12 @@ describe('EOberegningTab PDF-afslutning', () => {
           </FormPersistenceProvider>
         </AppSettingsProvider>
       </MemoryRouter>
+    );
+
+    const hentOpgoerelseDownloadBox = screen.getAllByTestId('DownloadIcon')[0]?.closest('div');
+    expect(hentOpgoerelseDownloadBox).toHaveAttribute(
+      'aria-label',
+      'Opgørelse kan ikke hentes, når der er fejl ovenfor'
     );
 
     fireEvent.click(screen.getAllByTestId('DownloadIcon')[0]);

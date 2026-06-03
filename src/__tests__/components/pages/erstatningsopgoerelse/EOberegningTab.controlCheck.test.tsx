@@ -178,7 +178,7 @@ describe('EOberegningTab kontroltjek', () => {
     });
 
     expect(screen.getByText('Fejl og advarsler')).toBeInTheDocument();
-    expect(screen.getByText("Der mangler at blive angivet lønregulering, evt. 'Ingen'")).toBeInTheDocument();
+    expect(screen.getByText('Angivelse af lønudvikling mangler')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Lønindkomst' })).toBeInTheDocument();
     expect(screen.queryByText('Send fejloplysninger')).not.toBeInTheDocument();
     expect(screen.queryByText('Systemfejl')).not.toBeInTheDocument();

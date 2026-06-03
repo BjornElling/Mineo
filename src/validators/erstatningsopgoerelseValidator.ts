@@ -749,27 +749,6 @@ function validateLoenudviklingsKravForAktivKilde(
     return errors;
   }
 
-  const aktiveLoenudviklingsRaekker = loenudviklingsKilde
-    .map((af, index) => ({ af, index }))
-    .filter((entry) => entry.af.loenudviklingBeregningsgrundlag && entry.af.loenudviklingBeregningsgrundlag !== 'Ingen');
-  const uniqueSaerligFraDatoRegulering = new Set(
-    aktiveLoenudviklingsRaekker.map((entry) =>
-      isISODateString(entry.af.saerligFraDatoRegulering) ? entry.af.saerligFraDatoRegulering : ''
-    )
-  );
-  if (uniqueSaerligFraDatoRegulering.size > 1) {
-    for (const entry of aktiveLoenudviklingsRaekker) {
-      const path = values.beregnesUdFra === 'Beregningsperiode'
-        ? `loenindkomstAnsaettelsesforhold[${entry.index}].saerligFraDatoRegulering`
-        : 'eoAngivetLoenLoenudvikling.saerligFraDatoRegulering';
-      errors.push({
-        path,
-        message: 'Startdato for regulering skal være ens på tværs af ansættelsesforhold',
-        severity: 'error',
-      });
-    }
-  }
-
   loenudviklingsKilde.forEach((af, index) => {
     const path = (field: string): string =>
       values.beregnesUdFra === 'Beregningsperiode'
