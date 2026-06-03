@@ -35,7 +35,7 @@ describe('sygedagpengeInsertRows', () => {
     });
   });
 
-  it('opretter offentlige ydelsesrækker som udtryk med sygedagpenge og kun kommunalt ATP-bidrag', () => {
+  it('opretter offentlige ydelsesrækker som udtryk med sygedagpenge, kommunalt ATP-bidrag og obligatorisk pension', () => {
     const rows = buildSygedagpengeRowsForRange(toISODateString('2025-01-06'), toISODateString('2025-01-10'));
 
     expect(rows).toHaveLength(1);
@@ -49,11 +49,24 @@ describe('sygedagpengeInsertRows', () => {
       expression: '5*973',
       value: 4865,
     });
+    // Tillæg = kommunalt ATP (53*2) + obligatorisk pension for ugen.
+    // OP (1,8 pct. i 2025) på grundlag af sygedagpenge minus eget ATP: round(0,018*(4865-53)) = 87.
     expect(rows[0]?.tillaeg).toEqual({
       kind: 'expression',
-      expression: '53*2',
-      value: 106,
+      expression: '53*2+87',
+      value: 193,
     });
+  });
+
+  it('genererer altid unikke row-id på tværs af alle satssegmenter (ingen duplikat-id ved indsættelse)', () => {
+    // En lang periode der splittes i flere satssegmenter → flere rækker. Hver skal have unikt id,
+    // ellers kolliderer de ved indsættelse i tabellen (React duplicate-key + datakorruption).
+    const rows = buildSygedagpengeRowsForRange(toISODateString('2008-01-01'), toISODateString('2025-12-31'));
+    expect(rows.length).toBeGreaterThan(1);
+    const ids = rows.map((row) => row.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    // Id'erne er random (ikke seed-baserede) → indeholder aldrig '_empty_'-segmentet.
+    expect(ids.every((id) => !id.includes('_empty_'))).toBe(true);
   });
 
   it('afrunder ATP pr. kalenderuge og ikke pr. arbejdsdag', () => {

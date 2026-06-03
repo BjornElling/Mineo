@@ -40,4 +40,37 @@ describe('reconcileRowIdsByPosition', () => {
     const result = reconcileRowIdsByPosition({ incoming, current: [], getRowId, withRowId });
     expect(result.map((r) => r.id)).toEqual(['a', 'b']);
   });
+
+  // Regressionsværn (2026-06-03, duplicate-key-fejl ved sygedagpenge-indsættelse):
+  // Når incoming er længere end current (fx rækker indsat før den efterfølgende tomme),
+  // må positionel id-grafting ALDRIG flytte et current-id ind på en position, hvor det
+  // kolliderer med et incoming-id der allerede står på en SENERE position. Det gav to rækker
+  // med samme id (offentlig_ydelse_empty_N) → React duplicate-key + datakorruption.
+  it('grafter ALDRIG et id ind så det kolliderer med et incoming-id senere i listen', () => {
+    // current: én udfyldt + efterfølgende tom (seed 3).
+    const current: Row[] = [
+      { id: 'filled_A', v: 'a' },
+      { id: 'offentlig_ydelse_empty_3', v: undefined },
+    ];
+    // incoming: to nye rækker indsat før den efterfølgende tomme, som beholder sit id.
+    const incoming: Row[] = [
+      { id: 'filled_A', v: 'a' },
+      { id: 'syg_1', v: 'ny' },
+      { id: 'offentlig_ydelse_empty_3', v: undefined },
+    ];
+    const result = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
+    const ids = result.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length); // ingen duplikater
+    // Den nyindsatte række beholder sin egen identitet (bliver ikke grafted til den tommes id).
+    expect(ids).toEqual(['filled_A', 'syg_1', 'offentlig_ydelse_empty_3']);
+  });
+
+  it('bevarer unikke id når current-rækker indbyrdes bytter id-position', () => {
+    // Begge positioner grafter (current[i] ≠ incoming[i]); resultatet skal stadig være unikt.
+    const current: Row[] = [{ id: 'A' }, { id: 'X' }];
+    const incoming: Row[] = [{ id: 'X' }, { id: 'fresh' }];
+    const result = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
+    const ids = result.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
 });

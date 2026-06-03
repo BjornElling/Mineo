@@ -68,4 +68,25 @@ describe('insertOffentligeYdelserRowsBeforeTrailingEmpty', () => {
     expect(result).toEqual(existingRows);
     expect(result).not.toBe(existingRows);
   });
+
+  // Uniqueness-invariant: indsættelse må aldrig kunne danne to rækker med samme id (datakorruption).
+  // Helperen flytter kun rækker rundt — den genererer ikke id'er — så hvis input er unikt, er output unikt.
+  it('bevarer id-unikhed for enhver kombination af eksisterende og indsatte rækker', () => {
+    const existingRows = [
+      makeRow('filled-1', { ydelsestype: 'dagpenge' }),
+      makeRow('filled-2', { ydelsestype: 'sygedagpenge' }),
+      makeRow('offentlig_ydelse_empty_3'),
+      makeRow('offentlig_ydelse_empty_4'),
+    ];
+    const insertedRows = [
+      makeRow('syg-1', { ydelsestype: 'sygedagpenge' }),
+      makeRow('syg-2', { ydelsestype: 'sygedagpenge' }),
+      makeRow('syg-3', { ydelsestype: 'sygedagpenge' }),
+    ];
+    const result = insertOffentligeYdelserRowsBeforeTrailingEmpty(existingRows, insertedRows);
+    const ids = result.map((row) => row.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    // De indsatte rækker lander før de trailing tomme, og alle rækker er bevaret.
+    expect(result.length).toBe(existingRows.length + insertedRows.length);
+  });
 });

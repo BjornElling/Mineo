@@ -120,6 +120,14 @@ export const sortGridRows = <TRow>(params: Readonly<{
  * Identitet bindes positionelt: indgående række `i` arver `current[i]`'s id hvis den findes.
  * Det matcher den visuelle rækkeorden (ikke-tomme rækker først, derefter den efterfølgende tomme),
  * så "den første række" forbliver det samme DOM-element uanset om den er udfyldt eller tom.
+ *
+ * Uniqueness-invariant (kritisk): grafting må ALDRIG introducere et duplikeret id. Når `incoming`
+ * er længere end `current` (fx rækker indsat før den efterfølgende tomme), kan et current-id på
+ * position `i` ellers blive grafted ind oven på en incoming-række, mens det SAMME id stadig står
+ * uændret på en senere incoming-position — to rækker får da samme id. Det gav React duplicate-key
+ * og — værre — datakorruption, fordi to logisk forskellige rækker kollapsede til samme identitet.
+ * Derfor springes en graft over, hvis mål-id'et allerede er taget af en anden række i resultatet.
+ * Den række der ikke kunne arve et id, beholder blot sit eget (allerede unikke) incoming-id.
  */
 export const reconcileRowIdsByPosition = <TRow>(params: Readonly<{
   incoming: readonly TRow[];
@@ -128,11 +136,30 @@ export const reconcileRowIdsByPosition = <TRow>(params: Readonly<{
   withRowId: (row: TRow, id: string) => TRow;
 }>): TRow[] => {
   const { incoming, current, getRowId, withRowId } = params;
+
+  // Id'er der forbliver uændrede (ingen graft sker på deres position) er "låst" på forhånd:
+  // en graft må aldrig kollidere med et af dem. Et incoming-id er låst, hvis der ikke findes en
+  // current-række på samme position med et afvigende id (dvs. positionen grafter ikke).
+  const lockedIds = new Set<string>();
+  for (let index = 0; index < incoming.length; index += 1) {
+    const incomingId = getRowId(incoming[index]);
+    const currentRow = current[index];
+    const grafts = Boolean(currentRow) && getRowId(currentRow) !== incomingId;
+    if (!grafts) lockedIds.add(incomingId);
+  }
+
+  // Id'er der allerede er udstedt i resultatet (inkl. faktisk udførte grafts) — værn mod at
+  // to grafts vælger samme current-id, eller at en graft kolliderer med et låst id.
+  const usedIds = new Set<string>(lockedIds);
+
   return incoming.map((row, index) => {
     const currentRow = current[index];
     if (!currentRow) return row;
     const currentId = getRowId(currentRow);
     if (currentId === getRowId(row)) return row;
+    // Spring graften over, hvis mål-id'et ville duplikere et eksisterende id i resultatet.
+    if (usedIds.has(currentId)) return row;
+    usedIds.add(currentId);
     return withRowId(row, currentId);
   });
 };

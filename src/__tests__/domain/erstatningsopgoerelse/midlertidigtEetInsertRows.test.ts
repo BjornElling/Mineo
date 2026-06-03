@@ -85,6 +85,19 @@ describe('buildMidlertidigtEetAfgoerelseGroupsFromComputation', () => {
     );
   });
 
+  it('genererer unikke row-id på tværs af alle afgørelser og perioder (ingen duplikat ved indsættelse)', () => {
+    const eetValues = makeValues();
+    const { groups } = computeGroups(eetValues);
+    const rows = groups.flatMap((g) => g.rows);
+
+    expect(rows.length).toBeGreaterThan(0);
+    const ids = rows.map((row) => row.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    // Random-id'er (createRowId) → aldrig '_empty_'-segmentet, så de kan ikke kollidere med
+    // tabellens deterministiske tom-række-id'er.
+    expect(ids.every((id) => !id.includes('_empty_'))).toBe(true);
+  });
+
   it('indsætter periodetotalbeløbet uændret og ikke som et afledt dagsbeløb', () => {
     const eetValues = makeValues();
     const { computation, groups } = computeGroups(eetValues);
