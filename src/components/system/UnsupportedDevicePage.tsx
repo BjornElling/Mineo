@@ -28,7 +28,11 @@ const UnsupportedDevicePage = () => {
     document.head.appendChild(meta);
 
     return () => {
-      html.dataset.mineoTheme = originalTheme ?? '';
+      if (originalTheme === undefined) {
+        html.removeAttribute('data-mineo-theme');
+      } else {
+        html.dataset.mineoTheme = originalTheme;
+      }
       html.style.backgroundColor = originalHtmlBg;
       meta.remove();
     };
@@ -41,19 +45,16 @@ const UnsupportedDevicePage = () => {
         inset: 0,
         backgroundColor: '#f8f9fa',
         color: 'rgba(0, 0, 0, 0.87)',
-        fontFamily: 'Arial, Helvetica, sans-serif',
-        fontSize: '14px',
-        lineHeight: 1.4,
+        fontFamily: 'Montserrat, sans-serif',
+        fontSize: '12px',
+        lineHeight: 1.5,
         overflowY: 'auto',
-        WebkitOverflowScrolling: 'touch',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
       <div
         style={{
           minHeight: '100dvh',
-          display: 'flex',
-          flexDirection: 'column',
           boxSizing: 'border-box',
           padding: '24px 16px',
         }}
@@ -63,17 +64,15 @@ const UnsupportedDevicePage = () => {
             maxWidth: '1200px',
             margin: '0 auto',
             width: '100%',
-            display: 'flex',
-            flexDirection: 'column',
           }}
         >
           <h1
             style={{
               color: 'rgba(0, 0, 0, 0.87)',
-              fontSize: '28px',
+              fontSize: '20px',
               fontWeight: 500,
               lineHeight: 1.4,
-              margin: '0 0 24px',
+              margin: '0 0 16px',
               padding: 0,
             }}
           >
@@ -86,19 +85,20 @@ const UnsupportedDevicePage = () => {
               maxWidth: '1200px',
               backgroundColor: '#ffffff',
               border: '1px solid rgba(0, 0, 0, 0.08)',
-              borderRadius: '20px',
+              borderRadius: '10px',
               boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-              padding: '24px 16px',
+              padding: '16px 12px',
+              margin: '16px 0',
               boxSizing: 'border-box',
             }}
           >
             <p
               style={{
                 color: 'rgba(0, 0, 0, 0.87)',
-                fontSize: '16px',
+                fontSize: '15px',
                 fontWeight: 500,
-                lineHeight: 1.4,
-                margin: '0 0 16px',
+                lineHeight: 1.5,
+                margin: '0 0 8px',
                 padding: 0,
               }}
             >
@@ -108,28 +108,28 @@ const UnsupportedDevicePage = () => {
             <div
               style={{
                 color: 'rgba(0, 0, 0, 0.87)',
-                fontSize: '14px',
+                fontSize: '12px',
                 fontWeight: 400,
-                lineHeight: 1.4,
+                lineHeight: 1.5,
               }}
             >
-              <p style={{ marginTop: 0 }}>
+              <p style={{ margin: '0 0 8px' }}>
                 Mineo er et komplekst program, der beregner erstatning
                 i arbejdsskadesager.
               </p>
 
-              <p style={{ marginTop: '16px' }}>
+              <p style={{ margin: '0 0 8px' }}>
                 Programmet laver omfattende beregninger i baggrunden, og
                 er afhængig af inputs i tabeller samt muligheden for at
                 gemme filer hos brugeren.
               </p>
 
-              <p style={{ marginTop: '16px' }}>
+              <p style={{ margin: '0 0 8px' }}>
                 Derfor understøtter det ikke mobiltelefoner eller tablets og
                 kan kun anvendes på en almindelig computer.
               </p>
 
-              <p style={{ marginTop: '16px' }}>
+              <p style={{ margin: 0 }}>
                 Aktuel version: {VERSION}
               </p>
             </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import UnsupportedDevicePage from '../../components/system/UnsupportedDevicePage';
 import { suppressPwaInstallPrompt } from '../../utils/pwaInstallPrompt';
 
 const UNSUPPORTED_MAX_SCREEN_WIDTH_PX = 1366;
@@ -52,6 +53,24 @@ const loadDesktopStyles = async (): Promise<void> => {
   ]);
 };
 
+const loadUnsupportedDeviceStyles = async (): Promise<void> => {
+  try {
+    await Promise.all([
+      import('@fontsource/montserrat/latin-400.css'),
+      import('@fontsource/montserrat/latin-500.css'),
+    ]);
+
+    if (typeof document === 'undefined' || !document.fonts) return;
+
+    await Promise.all([
+      document.fonts.load('400 12px Montserrat'),
+      document.fonts.load('500 20px Montserrat'),
+    ]);
+  } catch {
+    // Fontindlæsning må ikke blokere hard-stop-siden; browserens fallback-font er acceptabel.
+  }
+};
+
 export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Promise<void> => {
   const rootElement = document.getElementById('root');
   if (!rootElement) {
@@ -69,7 +88,7 @@ export const bootstrapClientApp = async (options: ClientAppBootstrapOptions): Pr
   }
 
   if (unsupportedDevice) {
-    const { default: UnsupportedDevicePage } = await import('../../components/system/UnsupportedDevicePage');
+    await loadUnsupportedDeviceStyles();
     root.render(
       <React.StrictMode>
         <UnsupportedDevicePage />
