@@ -159,7 +159,7 @@ const resolveUdkastStempelValue = (value: unknown): boolean => value === 'Ja';
  * stamdata fra PdfCommonOptions bruges ikke — brevhoved-data hentes fra model.brevhoved.
  */
 interface ErstatningsopgoerelsePdfOptions extends PdfCommonOptions {
-  erstatningsopgoerelseAfsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje';
+  erstatningsopgoerelseAfsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje' | 'Ingen';
   visUdkastStempel?: boolean;
   document: EoModel;
   midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];

@@ -36,7 +36,9 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // magen til de to ovenstående. PERSISTED_DATA_VERSION bumpet til 3.1 (reel persisted schema-ændring).
 // Opdateret 2026-06-03: nyt felt offentligeYdelserKommentarer (optionalString) på erstatningsopgoerelse-sektionen
 // — kommentarfelt på Offentlige ydelser-siden. PERSISTED_DATA_VERSION bumpet til 3.2 (reel persisted schema-ændring).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-b8f0fe5d';
+// Opdateret 2026-06-03: afsluttesMedEnum udvidet med 'Ingen' (udelader godkendelses-afsnittet fra EO-PDF'en).
+// PERSISTED_DATA_VERSION bumpet til 3.3 (reel persisted schema-ændring; enum-værdimængde ændret).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-e46b9b04';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

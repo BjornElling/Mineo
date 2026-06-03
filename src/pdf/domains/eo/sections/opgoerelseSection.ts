@@ -21,7 +21,7 @@ type OpgorelseSectionContext = Readonly<{
   stamdataValues: StamdataValues;
   lineHeight: number;
   doubleLineHeight: number;
-  afsluttesMed: 'Bekræftet godkendt' | 'Underskrift-linje';
+  afsluttesMed: 'Bekræftet godkendt' | 'Underskrift-linje' | 'Ingen';
   NBSP: string;
   rightColumnWidth: number;
   renderSectionHeader: (text: string, nextLineHeight?: number) => void;
@@ -981,6 +981,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
   if (saerligeKommentarer) {
     renderSectionHeader('Særlige bemærkninger');
     safeAddWrappedText(saerligeKommentarer);
+  }
+  // 'Ingen' udelader hele godkendelses-afsnittet fra opgørelsen.
+  if (afsluttesMed === 'Ingen') {
+    return;
   }
   renderSectionHeader('Godkendelse');
   if (afsluttesMed === 'Bekræftet godkendt') {

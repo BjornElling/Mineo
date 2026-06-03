@@ -37,7 +37,7 @@ export type Arbejdsstatus = z.infer<typeof arbejdsstatusEnum>;
 export const beregningsmetodeEnum = z.enum(['Beregningsperiode', 'Angivet månedsløn', 'Angivet dagsløn']);
 export type Beregningsmetode = z.infer<typeof beregningsmetodeEnum>;
 
-export const afsluttesMedEnum = z.enum(['Bekræftet godkendt', 'Underskrift-linje']);
+export const afsluttesMedEnum = z.enum(['Bekræftet godkendt', 'Underskrift-linje', 'Ingen']);
 export type AfsluttesMed = z.infer<typeof afsluttesMedEnum>;
 
 export const loenperiodeEnum = z.enum(['maaned', 'uge', 'dag']);
