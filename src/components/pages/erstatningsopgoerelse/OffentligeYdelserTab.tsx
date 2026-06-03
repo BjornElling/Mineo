@@ -10,7 +10,10 @@ import StyledDateField from '../../inputs/StyledDateField';
 import StyledTextField from '../../inputs/StyledTextField';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
 import InlineActionButton from '../../inputs/InlineActionButton';
-import { buildSygedagpengeRowsForRange } from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
+import {
+  buildSygedagpengeRowsForRange,
+  SygedagpengeCoverageError,
+} from '../../../domain/erstatningsopgoerelse/helpers/sygedagpengeInsertRows';
 import { insertOffentligeYdelserRowsBeforeTrailingEmpty } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserRowInsertion';
 import { dateRanges_offentligeYdelser } from '../../../config/dateRanges';
 import { isISODateString, type ISODateString } from '../../../types/branded';
@@ -129,6 +132,12 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
       try {
         return buildSygedagpengeRowsForRange(sygedagpengeFraDato, sygedagpengeTilDato);
       } catch (error) {
+        if (error instanceof SygedagpengeCoverageError) {
+          // Manglende satsdækning er en forventet brugerfejl: vis beskeden direkte,
+          // indfør ingen rækker, og rapportér det IKKE som en intern systemfejl.
+          setSygedagpengeInsertError(error.message);
+          return null;
+        }
         const normalizedError = asError(error);
         reportSystemIssue({
           code: 'offentlige_ydelser:sygedagpenge_insert_failed',
@@ -143,7 +152,15 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
       }
     })();
     if (generatedRows === null) return;
-    if (generatedRows.length === 0) return;
+    if (generatedRows.length === 0) {
+      // Defensivt: en fuldt dækket periode bør altid give mindst én række. Hvis ikke,
+      // har brugeren valgt et interval uden sygedagpenge-arbejdsdage (fx kun weekend) —
+      // sig det tydeligt frem for at fejle tavst.
+      setSygedagpengeInsertError(
+        'Den valgte periode indeholder ingen sygedagpenge-dage, så der blev ikke indsat nogen rækker.'
+      );
+      return;
+    }
 
     setSygedagpengeInsertError(null);
     suppressSygedagpengeFieldCommitRef.current = true;
