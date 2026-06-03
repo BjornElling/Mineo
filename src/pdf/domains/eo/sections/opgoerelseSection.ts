@@ -707,20 +707,24 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
     if (loenudvikling) {
       writer.addSectionSpacer();
+      // Renderer kun selve segmentlinjerne for én indkomstkilde. Delsummer ("I alt" per
+      // ansættelsesforhold / ydelse) udelades bevidst — Forventet indkomst har præcis ÉN
+      // samlet "I alt"-linje til sidst (se nedenfor), uanset antallet af indkomstkilder.
+      // Returnerer antallet af viste segmenter, så den samlede total kun vises når der
+      // reelt er noget at summere (>1 segment på tværs af kilder).
       const renderLoenudviklingSegments = (
         segments: readonly LoenudviklingSegment[],
         total: Calculable<MoneyOre>,
-        forceTotalLine: boolean,
-        labels: Readonly<{ unitMaaned: string; unitDag: string; total: string }>,
-        options?: Readonly<{ suppressTotalLine?: boolean; sourceKind?: 'loen' | 'offentligYdelse' }>
-      ) => {
+        sourceKind: 'loen' | 'offentligYdelse',
+        labels: Readonly<{ unitMaaned: string; unitDag: string }>
+      ): number => {
         if (total.status !== 'ok') {
           safeAddWrappedText(
-            options?.sourceKind === 'offentligYdelse'
+            sourceKind === 'offentligYdelse'
               ? 'Offentlige ydelser kan ikke beregnes for den valgte opsætning.'
               : 'Lønudvikling kan ikke beregnes for den valgte opsætning.'
           );
-          return;
+          return 0;
         }
         const segmentsForDisplay = mergeLoenudviklingSegments(segments);
         for (const segment of segmentsForDisplay) {
@@ -743,56 +747,52 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           const rightText = formatMoneyOreWithKr(segment.amountOre);
           safeAddLeftRightText(leftText, rightText, rightMaxWidth, { rightFontStyle: 'normal' });
         }
-        if (!options?.suppressTotalLine && (segmentsForDisplay.length > 1 || forceTotalLine) && total.status === 'ok') {
-          safeAddLeftRightText(
-            labels.total,
-            formatMoneyOreWithKr(total.value),
-            rightMaxWidth,
-            { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
-          );
-        }
+        return segmentsForDisplay.length;
       };
 
+      let visteSegmenter = 0;
       const harPerAnsaettelse = loenudvikling.perAnsaettelse.length > 1;
       if (harPerAnsaettelse) {
         for (const entry of loenudvikling.perAnsaettelse) {
           writer.writeUnderlinedSubheader(entry.ansaettelsesforholdNavn);
-          renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, false, {
+          visteSegmenter += renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, 'loen', {
             unitMaaned: '',
             unitDag: '',
-            total: 'I alt',
           });
         }
-        if (loenudvikling.loenudviklingTotal.status === 'ok') {
-          writer.addSectionSpacer();
-          safeAddLeftRightText(
-            'I alt',
-            formatMoneyOreWithKr(loenudvikling.loenudviklingTotal.value),
-            rightMaxWidth,
-            { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
-          );
-        }
       } else {
-        renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, false, {
+        visteSegmenter += renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, 'loen', {
           unitMaaned: '',
           unitDag: '',
-          total: 'I alt',
         });
       }
       for (const entry of offentligeYdelserUdvikling?.entries ?? []) {
         writer.addSectionSpacer();
         writer.writeUnderlinedSubheader(entry.label);
-        renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.total, true, {
+        visteSegmenter += renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.total, 'offentligYdelse', {
           unitMaaned: 'ydelse',
           unitDag: 'ydelse',
-          total: `I alt ${entry.label}`,
-        }, { sourceKind: 'offentligYdelse' });
+        });
       }
-      if (offentligeYdelserUdvikling && offentligeYdelserUdvikling.total.status === 'ok') {
+
+      // Én fast samlet "I alt"-linje til sidst, der summerer løn + offentlige ydelser.
+      // Vises kun når der er mere end ét segment at summere; ved præcis ét segment er
+      // totalen identisk med segmentlinjen og linjen ville være redundant. Hvis en
+      // tilstedeværende kilde ikke kan beregnes, udelades totalen helt (en delsum ville
+      // være vildledende) — fejlteksten er allerede vist ud for den pågældende kilde.
+      const harYdelser = Boolean(offentligeYdelserUdvikling && offentligeYdelserUdvikling.entries.length > 0);
+      const loenOk = loenudvikling.loenudviklingTotal.status === 'ok';
+      const ydelserOk = !harYdelser || offentligeYdelserUdvikling!.total.status === 'ok';
+      const samletForventetIndkomstOre =
+        loenOk && ydelserOk
+          ? (loenudvikling.loenudviklingTotal.status === 'ok' ? loenudvikling.loenudviklingTotal.value : 0) +
+            (harYdelser && offentligeYdelserUdvikling!.total.status === 'ok' ? offentligeYdelserUdvikling!.total.value : 0)
+          : null;
+      if (visteSegmenter > 1 && samletForventetIndkomstOre !== null) {
         writer.addSectionSpacer();
         safeAddLeftRightText(
-          'Samlet offentlige ydelser (hypotetisk)',
-          formatMoneyOreWithKr(offentligeYdelserUdvikling.total.value),
+          'I alt',
+          formatMoneyOreWithKr(samletForventetIndkomstOre),
           rightMaxWidth,
           { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
         );

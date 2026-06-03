@@ -443,7 +443,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(krForekomsterFoerLigmed).toBe(1);
   });
 
-  it('viser ikke ansættelsesforhold-subtotal når et ansættelsesforhold kun har én lønudviklingslinje', () => {
+  it('viser kun én samlet "I alt" i forventet indkomst — ingen subtotal per ansættelsesforhold', () => {
     const { stamdata, eo } = buildBaseInput();
     stamdata.skadedato = iso('2023-07-01');
     eo.vedroererPeriodeFra = iso('2023-07-01');
@@ -508,7 +508,12 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const nillersHeaderIndex = loenudviklingBlock.indexOf('Nillers Nisseforretning');
     expect(nillersHeaderIndex).toBeGreaterThanOrEqual(0);
 
-    expect(loenudviklingBlock.filter((text) => text === 'I alt').length).toBe(2);
+    // Begge ansættelsesforholds linjer står uden egen subtotal; der er præcis ÉN
+    // samlet "I alt"-linje til sidst i forventet indkomst.
+    expect(loenudviklingBlock.filter((text) => text === 'I alt').length).toBe(1);
+    // "I alt"-linjen kommer efter begge ansættelsesforhold.
+    const totalIndex = loenudviklingBlock.lastIndexOf('I alt');
+    expect(totalIndex).toBeGreaterThan(nillersHeaderIndex);
   });
 
   it('opgør forventet indkomst per ansættelsesforhold når flere indgår i TAF-grundlaget med forskellige reguleringsgrundlag', () => {
@@ -580,7 +585,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts.some((text) => text.startsWith('Beregnes som lønnen opgjort per '))).toBe(false);
   });
 
-  it('formaterer hypotetiske offentlige ydelser med ydelses-subtotaler i indkomst uden skade', () => {
+  it('formaterer hypotetiske offentlige ydelser med én samlet total i indkomst uden skade', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.vedroererPeriodeFra = iso('2024-12-01');
     eo.vedroererPeriodeTil = iso('2025-01-31');
@@ -622,11 +627,11 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(loenudviklingBlock).toContain('Sygedagpenge');
     expect(loenudviklingBlock.some((text) => text.includes('ydelse pr. arbejdsdag'))).toBe(false);
     expect(loenudviklingBlock.some((text) => text.includes('ydelse pr. måned'))).toBe(false);
-    expect(loenudviklingBlock).toContain('I alt Dagpenge');
-    expect(loenudviklingBlock).toContain('I alt Sygedagpenge');
-    expect(loenudviklingBlock).toContain('Samlet offentlige ydelser (hypotetisk)');
-    expect(loenudviklingBlock.filter((text) => /^I alt \d/.test(text))).toHaveLength(0);
-    expect(loenudviklingBlock.filter((text) => text === 'I alt')).toHaveLength(0);
+    // Forventet indkomst har præcis ÉN samlet "I alt"-linje til sidst — ingen per-kilde delsummer.
+    expect(loenudviklingBlock.some((text) => text.startsWith('I alt Dagpenge'))).toBe(false);
+    expect(loenudviklingBlock.some((text) => text.startsWith('I alt Sygedagpenge'))).toBe(false);
+    expect(loenudviklingBlock).not.toContain('Samlet offentlige ydelser (hypotetisk)');
+    expect(loenudviklingBlock.filter((text) => text === 'I alt')).toHaveLength(1);
   });
 
   it('formaterer bilaget for regulering af offentlige ydelser med periode, skadelidte og segmenttotaler', () => {
