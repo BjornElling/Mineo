@@ -121,7 +121,6 @@
     "src/__tests__/utils/pdf/erstatningsopgoerelse/sections/offentligeYdelserSection.test.ts",
     "src/__tests__/utils/pdf/erstatningsopgoerelse/sections/reguleringSection.test.ts",
     "src/__tests__/utils/pdf/erstatningsopgoerelse/sections/shDageSection.test.ts",
-    "src/__tests__/utils/pdf/erstatningsopgoerelsePdf.indkomstBreakdownVisibility.test.ts",
     "src/__tests__/utils/pdf/erstatningsopgoerelsePdf.periodFilter.test.ts",
     "src/__tests__/utils/pdf/erstatningsopgoerelsePdf.udkast.test.ts",
     "src/__tests__/utils/pdf/pdfBrevhoved.test.ts",

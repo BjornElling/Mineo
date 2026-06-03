@@ -3,6 +3,8 @@ import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapsho
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import type { StamdataValues } from '../../../schemas/formSchemas';
+import type { SelectedElements } from '../../../pdf/domains/eo/types';
 import { formatCurrencyFromOre } from '../../../pdf/shared/pdfFormatUtils';
 import { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM } from '../../../pdf/infrastructure/pdfConfig';
 
@@ -42,7 +44,7 @@ const MockJsPDF = vi.hoisted(() =>
 );
 
 const { autoTableMock } = vi.hoisted(() => ({
-  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number; body?: Array<Array<{ content: string }>> }) => {
     doc.lastAutoTable = { finalY: (options.startY ?? 0) + 20 };
   }),
 }));
@@ -56,10 +58,11 @@ vi.mock('jspdf', () => ({ default: MockJsPDF }));
 const iso = (value: string) => toISODateString(value);
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
-const selected = {
+const selected: SelectedElements = {
   opgoerelse: true,
   loenindkomst: false,
   offentligeYdelser: false,
+  midlertidigEet: false,
   shDage: false,
   regulering: false,
   okSatser: false,
@@ -69,7 +72,7 @@ const selected = {
 let generateErstatningsopgoerelsePdf: typeof import('../../../pdf/domains/eo/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
 
 const buildProjectedDocument = (
-  stamdata: typeof STAMDATA_INITIAL_VALUES,
+  stamdata: StamdataValues,
   eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>
 ) => {
   const snapshot = computeEoSnapshot({
@@ -86,7 +89,7 @@ const buildProjectedDocument = (
 };
 
 const renderPdf = (
-  stamdata: typeof STAMDATA_INITIAL_VALUES,
+  stamdata: StamdataValues,
   eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>
 ) => {
   generateErstatningsopgoerelsePdf(stamdata, eo, selected, {
@@ -96,7 +99,7 @@ const renderPdf = (
 };
 
 const renderPdfWithSelected = (
-  stamdata: typeof STAMDATA_INITIAL_VALUES,
+  stamdata: StamdataValues,
   eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>,
   selectedElements: typeof selected
 ) => {
@@ -106,7 +109,7 @@ const renderPdfWithSelected = (
   });
 };
 
-const collectTextStrings = (instance: MockJsPDF | null): string[] => {
+const collectTextStrings = (instance: InstanceType<typeof MockJsPDF> | null): string[] => {
   if (!instance) return [];
   const values: string[] = [];
   for (const call of instance.text.mock.calls) {
@@ -138,7 +141,7 @@ const getTextsBetween = (texts: readonly string[], startHeader: string, endHeade
   return texts.slice(startIndex + 1, sliceEnd);
 };
 
-const findTextY = (instance: MockJsPDF | null, text: string): number | null => {
+const findTextY = (instance: InstanceType<typeof MockJsPDF> | null, text: string): number | null => {
   if (!instance) return null;
   for (const call of instance.text.mock.calls) {
     const [firstArg, , y] = call;
@@ -157,7 +160,7 @@ const createEmployment = (overrides: Record<string, unknown> = {}) => ({
 });
 
 const buildBaseInput = () => {
-  const stamdata = {
+  const stamdata: StamdataValues = {
     ...structuredClone(STAMDATA_INITIAL_VALUES),
     skadestype: 'Arbejdsulykke' as const,
     skadedato: iso('2024-01-01'),
@@ -1329,13 +1332,8 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     }];
 
     generateErstatningsopgoerelsePdf(stamdata, renderValues, {
-      opgoerelse: true,
-      loenindkomst: false,
-      offentligeYdelser: false,
-      shDage: false,
+      ...selected,
       regulering: true,
-      okSatser: false,
-      sygeferiegodtgoerelse: false,
     }, {
       visUdkastStempel: false,
       document,
