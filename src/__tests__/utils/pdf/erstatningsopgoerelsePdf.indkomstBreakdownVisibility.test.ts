@@ -508,6 +508,75 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(loenudviklingBlock.filter((text) => text === 'I alt').length).toBe(2);
   });
 
+  it('opgør forventet indkomst per ansættelsesforhold når flere indgår i TAF-grundlaget med forskellige reguleringsgrundlag', () => {
+    const { stamdata, eo } = buildBaseInput();
+    stamdata.skadedato = iso('2023-07-01');
+    eo.vedroererPeriodeFra = iso('2023-07-01');
+    eo.vedroererPeriodeTil = iso('2025-12-21');
+    eo.tafBeregningsperiodeFra = iso('2023-07-01');
+    eo.tafBeregningsperiodeTil = iso('2023-07-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2023-07-01'), til: iso('2025-12-21'), loseFeriedage: undefined }];
+    eo.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-1',
+        navnPaaArbejdssted: 'Tandlægerne Toft og Vedsted',
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        overenskomstId: 'bygge-anlaeg',
+        feriePct: 12.5,
+        loenPaaHelligdage: 'Almindelig løn',
+        // Eksplicit reguleringsdato, der adskiller sig fra det andet ansættelsesforhold.
+        saerligFraDatoRegulering: iso('2023-05-02'),
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'af-1-row-1',
+            col0_maaned: '7',
+            col1_maaned: '2023',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmountValue(31829.38),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+      createEmployment({
+        id: 'af-2',
+        navnPaaArbejdssted: 'Nillers Nisseforretning',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        saerligFraDatoRegulering: iso('2023-04-16'),
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'af-2-row-1',
+            col0_maaned: '7',
+            col1_maaned: '2023',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: '',
+            col1_dag: '',
+            col2: asAmountValue(32642.83),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+    ];
+
+    renderPdf(stamdata, eo);
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+
+    // Ét ansættelsesforhold reguleres (overenskomst → "tillagt efterfølgende lønstigninger"),
+    // det andet reguleres ikke (Ingen → ingen tillægstekst). Hver med egen reguleringsdato.
+    expect(texts).toContain(
+      'Beregnes som lønnen opgjort således: Tandlægerne Toft og Vedsted, per 2. maj 2023 tillagt efterfølgende lønstigninger og Nillers Nisseforretning, per 16. april 2023.'
+    );
+    // Den gamle samlede formulering må ikke optræde, når flere ansættelsesforhold indgår.
+    expect(texts.some((text) => text.startsWith('Beregnes som lønnen opgjort per '))).toBe(false);
+  });
+
   it('formaterer hypotetiske offentlige ydelser med ydelses-subtotaler i indkomst uden skade', () => {
     const { stamdata, eo } = buildBaseInput();
     eo.vedroererPeriodeFra = iso('2024-12-01');

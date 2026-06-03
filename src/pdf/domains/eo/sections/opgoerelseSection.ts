@@ -633,10 +633,59 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const offentligeYdelserBaseText = offentligeYdelserUdvikling?.reguleringsBaseIso
       ? ` per ${formatDateLong(offentligeYdelserUdvikling.reguleringsBaseIso)}`
       : '';
+    // Når flere ansættelsesforhold indgår i TAF-beregningsgrundlaget, kan de hver
+    // især have forskellig reguleringsdato og forskelligt reguleringsgrundlag (fx
+    // ét på overenskomst og ét uden regulering). I så fald opgøres løn-referencedatoen
+    // per ansættelsesforhold i stedet for via én samlet aktiv kilde.
+    const resolveLoenDatoFragment = (
+      anvendtReguleringsdato: ISODateString | undefined,
+      brugFremTilFormulering: boolean
+    ): string => {
+      if (anvendtReguleringsdato && anvendtReguleringsdato !== skadedatoIso) {
+        const formatted = formatDateLong(anvendtReguleringsdato);
+        if (formatted) {
+          return brugFremTilFormulering ? `frem til ${formatted}` : `per ${formatted}`;
+        }
+      }
+      return 'på skadedatoen';
+    };
+    const resolvePerAnsaettelseLoenTekst = (): string | undefined => {
+      // Kun relevant når flere ansættelsesforhold faktisk indgår i beregningsgrundlaget.
+      if (!loenudvikling || loenudvikling.perAnsaettelse.length <= 1) return undefined;
+      const ansaettelserById = new Map(
+        eoValues.loenindkomstAnsaettelsesforhold.map((af) => [af.id, af] as const)
+      );
+      const fragmenter = loenudvikling.perAnsaettelse.map((entry) => {
+        const af = ansaettelserById.get(entry.ansaettelsesforholdId);
+        const anvendtReguleringsdato = af
+          ? resolveAnvendtReguleringsdato(stamdataValues, eoValues, af)
+          : undefined;
+        const brugFremTilFormulering =
+          eoValues.beregnesUdFra === 'Beregningsperiode'
+          && !af?.saerligFraDatoRegulering
+          && Boolean(
+            af
+            && eoValues.tafBeregningsperiodeTil
+            && anvendtReguleringsdato === eoValues.tafBeregningsperiodeTil
+          );
+        const datoFragment = resolveLoenDatoFragment(anvendtReguleringsdato, brugFremTilFormulering);
+        const tillaeg = entry.loenudviklingLabel === 'Ingen'
+          ? ''
+          : ' tillagt efterfølgende lønstigninger';
+        return `${entry.ansaettelsesforholdNavn}, ${datoFragment}${tillaeg}`;
+      });
+      const sammensat = fragmenter.length === 1
+        ? fragmenter[0]
+        : `${fragmenter.slice(0, -1).join(', ')} og ${fragmenter[fragmenter.length - 1]}`;
+      return `Beregnes som lønnen opgjort således: ${sammensat}.`;
+    };
     const resolveIndkomstBeregningsText = (): string => {
-      const loenTekst = loenudvikling?.loenudviklingLabel === 'Ingen' || !loenudvikling
-        ? `Opgøres på baggrund af ${loenSkadedatoText}.`
-        : `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger.`;
+      const perAnsaettelseTekst = resolvePerAnsaettelseLoenTekst();
+      const loenTekst = perAnsaettelseTekst ?? (
+        loenudvikling?.loenudviklingLabel === 'Ingen' || !loenudvikling
+          ? `Opgøres på baggrund af ${loenSkadedatoText}.`
+          : `Beregnes som ${loenSkadedatoText} tillagt efterfølgende lønstigninger.`
+      );
       if (!harOffentligeYdelserUdvikling) return loenTekst;
       return `${loenTekst}\nOffentlige ydelser beregnes${offentligeYdelserBaseText} ${offentligeYdelserReguleringText}.`;
     };
