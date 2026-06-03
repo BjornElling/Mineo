@@ -54,7 +54,7 @@ describe('MainLayout (PWA concurrency)', () => {
         expectedCount: 10,
         loadedCount: 9,
         failedCount: 1,
-        issues: [{ path: 'satser', reason: 'Sektionen findes ikke i denne version og blev ikke indlæst' }],
+        issues: [{ kind: 'sectionDropped', path: 'satser', reason: 'Sektionen findes ikke i denne version og blev ikke indlæst' }],
       },
     } satisfies LoadFileResult);
 

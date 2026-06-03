@@ -25,6 +25,7 @@ const buildRow = (patch: Partial<AslAfgoerelseRow>): AslAfgoerelseRow => ({
   kapPct: undefined,
   afgoerelseType: undefined,
   tidlKapDato: undefined,
+  fsTilbageholdtEet: 'Nej',
   ...patch,
 });
 

@@ -5,6 +5,10 @@ import {
   registerTableSaveOrder,
 } from '../../utils/tableSaveOrderRegistry';
 import type { SaveSnapshot } from '../../utils/fileSaveTypes';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 
 describe('tableSaveOrderRegistry', () => {
   afterEach(() => {
@@ -25,6 +29,7 @@ describe('tableSaveOrderRegistry', () => {
       forsoergertab: undefined,
       erhvervsevnetab: undefined,
       erstatningsopgoerelse: {
+        ...createErstatningsopgoerelseInitialValues(),
         offentligeYdelserRows: [
           { id: 'a', ydelse: { kind: 'number', value: 1 } },
           { id: 'b', ydelse: { kind: 'number', value: 2 } },
@@ -40,7 +45,7 @@ describe('tableSaveOrderRegistry', () => {
   });
 
   it('reordner nested table-paths uden at røre andre rows', () => {
-    registerTableSaveOrder('erstatningsopgoerelse.ansaettelsesforhold.1.indtaegtsoplysningerTableData', ['r2', 'r1']);
+    registerTableSaveOrder('erstatningsopgoerelse.loenindkomstAnsaettelsesforhold.1.indtaegtsoplysningerTableData', ['r2', 'r1']);
 
     const snapshot: SaveSnapshot = {
       stamdata: undefined,
@@ -52,12 +57,15 @@ describe('tableSaveOrderRegistry', () => {
       forsoergertab: undefined,
       erhvervsevnetab: undefined,
       erstatningsopgoerelse: {
-        ansaettelsesforhold: [
+        ...createErstatningsopgoerelseInitialValues(),
+        loenindkomstAnsaettelsesforhold: [
           {
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             id: 'af1',
             indtaegtsoplysningerTableData: [{ id: 'x1' }, { id: 'x2' }],
           },
           {
+            ...createDefaultLoenindkomstAnsaettelsesforhold(),
             id: 'af2',
             indtaegtsoplysningerTableData: [{ id: 'r1' }, { id: 'r2' }],
           },
@@ -66,9 +74,9 @@ describe('tableSaveOrderRegistry', () => {
     };
 
     const result = applyRegisteredTableSaveOrder(snapshot);
-    const ansaettelsesforhold = (result.erstatningsopgoerelse as {
-      ansaettelsesforhold: Array<{ indtaegtsoplysningerTableData: Array<{ id: string }> }>;
-    }).ansaettelsesforhold;
+    const ansaettelsesforhold = result.erstatningsopgoerelse?.loenindkomstAnsaettelsesforhold;
+    expect(ansaettelsesforhold).toBeDefined();
+    if (!ansaettelsesforhold) return;
 
     expect(ansaettelsesforhold[0]?.indtaegtsoplysningerTableData.map((row) => row.id)).toEqual(['x1', 'x2']);
     expect(ansaettelsesforhold[1]?.indtaegtsoplysningerTableData.map((row) => row.id)).toEqual(['r2', 'r1']);

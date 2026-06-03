@@ -201,7 +201,7 @@ describe('FormPersistenceContext – normalFlow', () => {
         skadestype: undefined,
         skadedato: undefined,
       }, {
-        undoOrigin: { pageId: 'stamdata', fieldPath: 'skadelidte', focusToken: null },
+        undoOrigin: { route: '/stamdata', tabKey: null, sectionKey: 'stamdata', fieldPath: 'skadelidte', focusToken: null },
       });
     });
 

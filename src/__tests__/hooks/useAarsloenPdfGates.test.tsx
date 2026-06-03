@@ -17,7 +17,7 @@ vi.mock('../../utils/logger', () => ({
 // ─── PDF service mock ─────────────────────────────────────────────────────────
 
 const { downloadAarsloenPdfMock, downloadSHDagePdfMock } = vi.hoisted(() => ({
-  downloadAarsloenPdfMock: vi.fn(async () => ({ success: true as const })),
+  downloadAarsloenPdfMock: vi.fn(async (): Promise<{ success: true } | { success: false; error: string }> => ({ success: true })),
   downloadSHDagePdfMock: vi.fn(async () => ({ success: true as const })),
 }));
 
@@ -49,7 +49,7 @@ const makeBaseProps = (overrides: Partial<Parameters<typeof useAarsloenPdfGates>
   periodeData: null,
   shDageAntal: null,
   beregnetAarsloen: 0,
-  beregningsData: { metode: 'ingen' as const, erEtAar: false },
+  beregningsData: { metode: 'ingen' as const, erEtAar: false as const },
   harFatalBeregningsFejl: false,
   tabelRef: React.createRef<StandardLoenTableHandle | null>(),
   persistedStamdata: null,

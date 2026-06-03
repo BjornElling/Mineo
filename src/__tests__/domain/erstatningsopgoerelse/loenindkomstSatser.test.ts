@@ -271,7 +271,7 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
         loenPaaHelligdage: 'Almindelig løn' as const,
         storeBededagPct: undefined,
         loenudviklingManuelTableData: [
-          { dato: toISODateString('2024-01-01'), feriepenge: 12.5, shSoSats: 6.9, fritvalg: 0, agPension: 10 },
+          { id: 'manuel-1', dato: toISODateString('2024-01-01'), feriepenge: 12.5, shSoSats: 6.9, fritvalg: 0, agPension: 10 },
         ],
       },
       skadedato: undefined,
@@ -301,10 +301,10 @@ describe('buildLoenindkomstRateSegments — Store Bededag', () => {
         feriePct: 15,
         pensionPct: 10,
         loenudviklingManuelTableData: [
-          { dato: toISODateString('2025-02-28'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 10.00 },
-          { dato: toISODateString('2025-03-01'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 10.00 },
-          { dato: toISODateString('2025-05-01'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 12.00 },
-          { dato: toISODateString('2026-03-01'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 12.00 },
+          { id: 'manuel-1', dato: toISODateString('2025-02-28'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 10.00 },
+          { id: 'manuel-2', dato: toISODateString('2025-03-01'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 10.00 },
+          { id: 'manuel-3', dato: toISODateString('2025-05-01'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 12.00 },
+          { id: 'manuel-4', dato: toISODateString('2026-03-01'), feriepenge: 15.00, shSoSats: undefined, fritvalg: undefined, agPension: 12.00 },
         ],
       },
       skadedato: undefined,

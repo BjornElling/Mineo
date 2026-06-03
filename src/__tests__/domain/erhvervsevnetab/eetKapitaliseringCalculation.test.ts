@@ -19,6 +19,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           aslAfgoerelser: [
             {
               id: 'a',
+              fsTilbageholdtEet: 'Nej',
               afgoerelsesDato: toISODateString('2025-07-01'),
               virkningsDato: toISODateString('2025-07-01'),
               eetPct: 50,
@@ -74,6 +75,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: undefined,
             virkningsDato: undefined,
             eetPct: undefined,
@@ -107,6 +109,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-07-01'),
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
@@ -133,6 +136,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-07-01'),
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
@@ -164,6 +168,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-07-01'),
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
@@ -195,6 +200,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-07-01'),
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
@@ -227,6 +233,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: undefined,
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
@@ -254,6 +261,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-07-01'),
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
@@ -285,6 +293,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2026-01-01'),
             virkningsDato: toISODateString('2026-01-01'),
             eetPct: 50,
@@ -315,6 +324,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-01-15'),
             virkningsDato: toISODateString('2024-01-15'),
             eetPct: 25,
@@ -347,6 +357,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2026-01-15'),
             virkningsDato: toISODateString('2026-01-15'),
             eetPct: 15,
@@ -381,6 +392,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-07-01'),
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
@@ -409,6 +421,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-07-01'),
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
@@ -437,6 +450,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-07-01'),
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
@@ -464,6 +478,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2008-01-15'),
             virkningsDato: toISODateString('2008-01-15'),
             eetPct: 50,
@@ -495,6 +510,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2008-01-15'),
             virkningsDato: toISODateString('2008-01-15'),
             eetPct: 50,
@@ -524,6 +540,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2004-01-15'),
             virkningsDato: toISODateString('2004-01-15'),
             eetPct: 50,
@@ -554,6 +571,7 @@ describe('computeEetKapitaliseringCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'c',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-07-01'),
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,
@@ -564,6 +582,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
           {
             id: 'a',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-06-01'),
             virkningsDato: toISODateString('2025-06-01'),
             eetPct: 50,
@@ -574,6 +593,7 @@ describe('computeEetKapitaliseringCalculation', () => {
           },
           {
             id: 'b',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-07-01'),
             virkningsDato: toISODateString('2025-07-01'),
             eetPct: 50,

@@ -20,7 +20,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -61,7 +61,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -103,7 +103,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -145,7 +145,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -170,7 +170,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -197,7 +197,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -226,7 +226,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -255,7 +255,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -286,7 +286,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -324,7 +324,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -358,7 +358,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -399,7 +399,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -436,7 +436,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -479,7 +479,7 @@ describe('eoDebugIntegrity', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso('2024-01-01'),
         },
         erstatningsopgoerelseValues: {

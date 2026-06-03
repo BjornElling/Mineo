@@ -105,7 +105,6 @@ describe('parseStoredSettings', () => {
 
 describe('resolveAppSettings', () => {
   it('ugyldig settings → falder tilbage til defaults', () => {
-    // @ts-expect-error – bevidst ugyldig settings
     const result = resolveAppSettings({ invalid: true });
     expect(result).toEqual(DEFAULT_APP_SETTINGS);
   });
@@ -124,6 +123,7 @@ describe('mergeAppSettings', () => {
   it('merger nested brevhovedIndstillinger uden at nulstille øvrige flags', () => {
     const result = mergeAppSettings(DEFAULT_APP_SETTINGS, {
       brevhovedIndstillinger: {
+        ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger,
         regulering: true,
       },
     });

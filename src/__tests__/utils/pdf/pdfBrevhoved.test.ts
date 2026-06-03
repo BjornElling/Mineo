@@ -36,6 +36,7 @@ describe('getVisBrevhoved', () => {
     const settings: AppSettings = {
       ...DEFAULT_APP_SETTINGS,
       brevhovedIndstillinger: {
+        ...DEFAULT_APP_SETTINGS.brevhovedIndstillinger,
         erstatningsopgoerelse: true,
         shDage: false,
         renteberegning: true,

@@ -14,8 +14,8 @@ const emptyRow = (id: string): StandardLoenTableRow => ({
   col1_maaned: '',
   col0_uge: '',
   col1_uge: '',
-  col0_dag: '',
-  col1_dag: '',
+  col0_dag: undefined,
+  col1_dag: undefined,
   col2: undefined,
   col3: undefined,
   col4: undefined,
@@ -36,8 +36,8 @@ const ugeRow = (id: string, fra: string, til: string): StandardLoenTableRow => (
 
 const dagRow = (id: string, fra: string, til: string): StandardLoenTableRow => ({
   ...emptyRow(id),
-  col0_dag: fra,
-  col1_dag: til,
+  col0_dag: toISODateString(fra),
+  col1_dag: toISODateString(til),
 });
 
 // ─── beregnFejlmeddelelser ────────────────────────────────────────────────
@@ -172,7 +172,7 @@ describe('harTabelValideringsFejl', () => {
   });
 
   it('komplet dagrække → false', () => {
-    expect(harTabelValideringsFejl([dagRow('r1', '01-01-2024', '31-01-2024')], 'dag')).toBe(false);
+    expect(harTabelValideringsFejl([dagRow('r1', '2024-01-01', '2024-01-31')], 'dag')).toBe(false);
   });
 
   it('delvis månedsrække (kun startdato) → true (partial period error)', () => {
@@ -212,7 +212,7 @@ describe('harTabelData', () => {
   });
 
   it('komplet dagrække → true', () => {
-    expect(harTabelData([dagRow('r1', '01-01-2024', '31-01-2024')], 'dag')).toBe(true);
+    expect(harTabelData([dagRow('r1', '2024-01-01', '2024-01-31')], 'dag')).toBe(true);
   });
 
   it('lønperiode mismatch: månedsdata med dag-lønperiode → false', () => {

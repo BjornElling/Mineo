@@ -142,7 +142,7 @@ describe('svie/smerte validering', () => {
   it('fanger delvist udfyldt periode-række', () => {
     const values = makeValues({
       svieSmertePerioder: [
-        { id: '1', fra: iso('2024-01-01'), til: undefined as unknown as string, tilstand: 'sygemeldt' },
+        { id: '1', fra: iso('2024-01-01'), til: undefined, tilstand: 'sygemeldt' },
       ],
     });
     expect(hasError(values, 'Til-dato mangler')).toBe(true);
@@ -151,12 +151,12 @@ describe('svie/smerte validering', () => {
   it('fanger manglende delvis sygemelding sats', () => {
     const values = makeValues({
       svieSmertePerioder: [
-        { id: '1', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: 'delvisSygemeldt' },
+        { id: '1', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: 'delvist-sygemeldt' },
       ],
       vedroererPeriodeFra: iso('2024-01-01'),
       vedroererPeriodeTil: iso('2024-01-31'),
       svieSmerteSatserAar: 2024,
-      svieSmerteDelvisSygemeldingSats: undefined as unknown as string,
+      svieSmerteDelvisSygemeldingSats: undefined,
     });
     expect(hasError(values, 'delvis sygemelding')).toBe(true);
   });
@@ -170,7 +170,7 @@ describe('TAF validering', () => {
   it('fanger delvist udfyldt TAF-periode', () => {
     const values = makeValues({
       tafPerioder: [
-        { id: '1', fra: iso('2024-01-01'), til: undefined as unknown as string },
+        { id: '1', fra: iso('2024-01-01'), til: undefined },
       ],
     });
     expect(hasError(values, 'Til-dato mangler')).toBe(true);
@@ -409,8 +409,8 @@ describe('TAF lønudviklingskrav for aktiv kilde', () => {
               col1_maaned: '',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmount(1000),
               col3: undefined,
               col4: undefined,
@@ -492,7 +492,7 @@ describe('svie/smerte — ekstra valideringscases', () => {
       kravPaaSvieSmerteGodtgoerelse: 'Ja',
       tidligereSsMax: 'Ja',
       svieSmertePerioder: [
-        { id: '1', fra: undefined as unknown as string, til: undefined as unknown as string, tilstand: undefined as unknown as string },
+        { id: '1', fra: undefined, til: undefined, tilstand: undefined },
       ],
     });
     // Perioden er ufuldstændig — men validering springes over ved tidligereSsMax=Ja
@@ -502,7 +502,7 @@ describe('svie/smerte — ekstra valideringscases', () => {
   it('fanger manglende fra-dato i svie/smerte-række', () => {
     const values = makeValues({
       svieSmertePerioder: [
-        { id: '1', fra: undefined as unknown as string, til: iso('2024-01-10'), tilstand: 'sygemeldt' },
+        { id: '1', fra: undefined, til: iso('2024-01-10'), tilstand: 'sygemeldt' },
       ],
     });
     expect(hasError(values, 'Fra-dato mangler')).toBe(true);
@@ -511,7 +511,7 @@ describe('svie/smerte — ekstra valideringscases', () => {
   it('fanger manglende tilstand i svie/smerte-række', () => {
     const values = makeValues({
       svieSmertePerioder: [
-        { id: '1', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: undefined as unknown as string },
+        { id: '1', fra: iso('2024-01-01'), til: iso('2024-01-10'), tilstand: undefined },
       ],
     });
     expect(hasError(values, 'Tilstand mangler')).toBe(true);
@@ -639,7 +639,7 @@ describe('TAF — fanger manglende fra-dato alene', () => {
   it('fanger manglende fra-dato med til-dato til stede', () => {
     const values = makeValues({
       tafPerioder: [
-        { id: '1', fra: undefined as unknown as string, til: iso('2024-01-31') },
+        { id: '1', fra: undefined, til: iso('2024-01-31') },
       ],
     });
     expect(hasError(values, 'Fra-dato mangler')).toBe(true);
@@ -783,7 +783,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
       eoAngivetLoenLoenudvikling: {
         ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
         loenudviklingBeregningsgrundlag: 'Statistik',
-        loenudviklingStatistikModel: '',
+        loenudviklingStatistikModel: undefined,
       },
     });
     expect(hasError(values, 'Statistisk beregningsmodel skal vælges')).toBe(true);

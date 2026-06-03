@@ -36,11 +36,11 @@ describe('computeForsoergertabCalculation', () => {
 
   it('kræver køn og slår korrekt op i kønsafhængige tabeller før 1. marts 2015', () => {
     const commonInput = {
-      skadedato: toISODateString('2008-01-10') as const,
-      skadelidteFodselsdato: toISODateString('1980-01-01') as const,
-      efterladteFodselsdato: toISODateString('1973-01-01') as const,
-      beregningsdato: toISODateString('2014-02-15') as const,
-      virkningsdato: toISODateString('2013-01-01') as const,
+      skadedato: toISODateString('2008-01-10'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      efterladteFodselsdato: toISODateString('1973-01-01'),
+      beregningsdato: toISODateString('2014-02-15'),
+      virkningsdato: toISODateString('2013-01-01'),
       tilkendtForPeriodeAar: 10,
       aslAarsloen: asAmount(400000),
       ealAarsloen: asAmount(400000),

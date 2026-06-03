@@ -98,8 +98,8 @@ describe('resolveBilagWarning', () => {
           col1_maaned: '',
           col0_uge: '',
           col1_uge: '',
-          col0_dag: '',
-          col1_dag: '',
+          col0_dag: undefined,
+          col1_dag: undefined,
           col2: { kind: 'number', value: 35000 },
           col3: undefined,
           col4: undefined,
@@ -129,7 +129,7 @@ describe('resolveBilagWarning', () => {
       const values = makeValues({
         kravPaaTabtArbejdsfortjeneste: 'Ja',
         offentligeYdelserRows: [
-          { id: 'row_1', fraDato: '', tilDato: '', ydelse: undefined, tillaeg: undefined, ydelsestype: '' },
+          { id: 'row_1', fraDato: undefined, tilDato: undefined, ydelse: undefined, tillaeg: undefined, ydelsestype: '' },
         ],
       });
       expect(resolveBilagWarning(values, 'bilagsnumreOffentligeYdelser', '6')).not.toBeNull();

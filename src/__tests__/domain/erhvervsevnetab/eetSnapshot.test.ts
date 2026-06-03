@@ -23,7 +23,8 @@ const createValues = (): ErhvervsevnetabComposedValues => ({
       kapDato: toISODateString('2026-03-01'),
       kapPct: 10,
       afgoerelseType: 'Endelig',
-      tidlKapDato: '',
+      tidlKapDato: undefined,
+      fsTilbageholdtEet: 'Nej',
     },
   ],
 });

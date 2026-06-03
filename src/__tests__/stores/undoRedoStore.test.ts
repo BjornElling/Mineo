@@ -53,9 +53,9 @@ describe('undoRedoStore', () => {
   });
 
   it('undo returnerer pre-commit snapshot og redo returnerer post-commit snapshot', () => {
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
     undoRedoStore.getState().capture(origin);
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, {});
 
     const undoFrame = applyPlan(undoRedoStore.getState().planUndo());
     expect(undoFrame?.sections.satser).toEqual({ aargang: 2025 });
@@ -66,11 +66,11 @@ describe('undoRedoStore', () => {
   });
 
   it('bevarer transition-origin gennem undo over redo', () => {
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
     undoRedoStore.getState().capture(origin);
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, {});
     undoRedoStore.getState().capture(otherOrigin);
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2023 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2023 }, {});
 
     const firstUndoFrame = applyPlan(undoRedoStore.getState().planUndo());
     expect(firstUndoFrame?.origin).toEqual(otherOrigin);
@@ -87,9 +87,9 @@ describe('undoRedoStore', () => {
   });
 
   it('rydder redo-grenen ved ny capture', () => {
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
     undoRedoStore.getState().capture(origin);
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, {});
     applyPlan(undoRedoStore.getState().planUndo());
 
     undoRedoStore.getState().capture(origin);
@@ -105,9 +105,9 @@ describe('undoRedoStore', () => {
   });
 
   it('flytter et enkelt undo-element til redo-stakken ved commit', () => {
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
     undoRedoStore.getState().capture(origin);
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, {});
 
     const undoFrame = applyPlan(undoRedoStore.getState().planUndo());
 
@@ -117,9 +117,9 @@ describe('undoRedoStore', () => {
   });
 
   it('afviser commit hvis stakken er ændret efter planlægning', () => {
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
     undoRedoStore.getState().capture(origin);
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, {});
 
     const plan = undoRedoStore.getState().planUndo();
     undoRedoStore.getState().capture(otherOrigin);
@@ -132,9 +132,9 @@ describe('undoRedoStore', () => {
   });
 
   it('undo efter præcis én capture returnerer det fangede snapshot', () => {
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
     undoRedoStore.getState().capture(origin);
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, {});
 
     const undoFrame = applyPlan(undoRedoStore.getState().planUndo());
 
@@ -142,7 +142,7 @@ describe('undoRedoStore', () => {
   });
 
   it('clear rydder tilgængelighed og nulstiller frame-sekvensen', () => {
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
     undoRedoStore.getState().capture(origin);
     undoRedoStore.getState().clear();
 
@@ -155,7 +155,7 @@ describe('undoRedoStore', () => {
 
   it('begrænser past-stakken til 50 snapshots', () => {
     for (let index = 0; index < __UNDO_REDO_MAX_HISTORY_STEPS + 5; index += 1) {
-      formPersistenceStore.getState().commitSection('satser', { aargang: 2000 + index }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+      formPersistenceStore.getState().commitSection('satser', { aargang: 2000 + index }, {});
       undoRedoStore.getState().capture(origin);
     }
 
@@ -166,10 +166,10 @@ describe('undoRedoStore', () => {
 
   it('future-stakken vokser ikke over det praktiske maksimum fra undo-flowet', () => {
     for (let index = 0; index < __UNDO_REDO_MAX_HISTORY_STEPS; index += 1) {
-      formPersistenceStore.getState().commitSection('satser', { aargang: 2000 + index }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+      formPersistenceStore.getState().commitSection('satser', { aargang: 2000 + index }, {});
       undoRedoStore.getState().capture(origin);
     }
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2100 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2100 }, {});
 
     for (let index = 0; index < __UNDO_REDO_MAX_HISTORY_STEPS; index += 1) {
       applyPlan(undoRedoStore.getState().planUndo());

@@ -10,7 +10,10 @@ describe('buildTheme', () => {
 
   it('giver dark-aware fallback for MUI typography-farve', () => {
     const theme = buildTheme('dark');
+    const typography = theme.typography as typeof theme.typography & {
+      allVariants?: { color?: string };
+    };
 
-    expect(theme.typography.allVariants?.color).toContain('rgba(255, 255, 255, 0.87)');
+    expect(typography.allVariants?.color).toContain('rgba(255, 255, 255, 0.87)');
   });
 });

@@ -24,6 +24,12 @@ describe('eoSnapshotToBeregningView', () => {
           samletTafKravOre: 1125,
         }),
       ],
+      data: null,
+      debugSnapshot: null,
+      input: {
+        stamdata: null,
+        erstatningsopgoerelse: null,
+      },
     } as const;
 
     const view = eoSnapshotToBeregningView(snapshot);

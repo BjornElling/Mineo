@@ -149,7 +149,7 @@ describe('tableKeyboardNavigation dropdown-celle integration', () => {
     });
     Object.defineProperty(belowFirst, 'getClientRects', {
       configurable: true,
-      value: () => [{ x: 10, y: 340, width: 100, height: 20, top: 340, left: 10, right: 110, bottom: 360, toJSON: () => ({}) }] as DOMRectList,
+      value: () => [{ x: 10, y: 340, width: 100, height: 20, top: 340, left: 10, right: 110, bottom: 360, toJSON: () => ({}) }] as unknown as DOMRectList,
     });
     Object.defineProperty(belowLast, 'getBoundingClientRect', {
       configurable: true,
@@ -157,7 +157,7 @@ describe('tableKeyboardNavigation dropdown-celle integration', () => {
     });
     Object.defineProperty(belowLast, 'getClientRects', {
       configurable: true,
-      value: () => [{ x: 220, y: 340, width: 100, height: 20, top: 340, left: 220, right: 320, bottom: 360, toJSON: () => ({}) }] as DOMRectList,
+      value: () => [{ x: 220, y: 340, width: 100, height: 20, top: 340, left: 220, right: 320, bottom: 360, toJSON: () => ({}) }] as unknown as DOMRectList,
     });
     Object.defineProperty(belowRow, 'getBoundingClientRect', {
       configurable: true,

@@ -3,8 +3,18 @@ import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerel
 import { STAMDATA_INITIAL_VALUES } from '../../../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../../../types/branded';
 
+type ReguleringSectionContext = Parameters<typeof renderReguleringSection>[0];
+type MutableReguleringSectionContext = {
+  -readonly [K in keyof ReguleringSectionContext]: ReguleringSectionContext[K];
+};
+type AutoTableTestOptions = {
+  startY?: number;
+  body?: Array<Array<{ content: string }>>;
+  didParseCell?: (data: { cell: { styles: { halign?: string; cellPadding?: unknown } } }) => void;
+};
+
 const { autoTableMock } = vi.hoisted(() => ({
-  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+  autoTableMock: vi.fn((doc: Record<string, unknown>, options: AutoTableTestOptions) => {
     doc.lastAutoTable = { finalY: (options.startY ?? 0) + 20 };
   }),
 }));
@@ -14,6 +24,7 @@ vi.mock('jspdf-autotable', () => ({
 }));
 
 const iso = (value: string) => toISODateString(value);
+type Ansaettelsesforhold = ReturnType<typeof createDefaultLoenindkomstAnsaettelsesforhold>;
 
 const createMockPdfDoc = () => ({
   internal: { pageSize: { width: 210, height: 297 } },
@@ -32,40 +43,42 @@ const makeContext = (
   let y = 0;
   const doc = createMockPdfDoc();
 
+  const ctx = {
+    eoValues,
+    stamdataValues,
+    lineHeight: 4,
+    modelLoenudviklingPerAnsaettelse: [],
+    startEoBilagPage,
+    renderSubheader,
+    safeAddWrappedText,
+    writeLabelValueLine,
+    resolveValgtReguleringDisplay: vi.fn(() => 'Ingen'),
+    resolveAnvendtReguleringsdato: vi.fn(() => undefined),
+    parseOptionalIsoDate: vi.fn((v: string | undefined) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? iso(v) : undefined)),
+    resolveLoenSkadedatoText: vi.fn(
+      ({ skadedato }: { subject: 'lønnen'; anvendtReguleringsdato: unknown; skadedato: unknown }) =>
+        skadedato ? `lønnen på skadestidspunktet (${String(skadedato)})` : 'lønnen'
+    ),
+    resolveTafDateBounds: vi.fn(() => null),
+    buildReguleringsvaerdierTableData: vi.fn(() => null),
+    buildReguleringIndexRows: vi.fn(() => []),
+    resolveStatistikModelIdFromLabel: vi.fn(() => undefined),
+    writer: {
+      addSectionSpacer: vi.fn(),
+      addSpacer: vi.fn(),
+      setY: vi.fn((nextY: number) => { y = nextY; }),
+      getY: vi.fn(() => y),
+      getDoc: vi.fn(() => doc),
+      writeUnderlinedSubheader: vi.fn(),
+    },
+  } as unknown as MutableReguleringSectionContext;
+
   return {
     startEoBilagPage,
     renderSubheader,
     safeAddWrappedText,
     writeLabelValueLine,
-    ctx: {
-      eoValues,
-      stamdataValues,
-      lineHeight: 4,
-      modelLoenudviklingPerAnsaettelse: [] as const,
-      startEoBilagPage,
-      renderSubheader,
-      safeAddWrappedText,
-      writeLabelValueLine,
-      resolveValgtReguleringDisplay: vi.fn(() => 'Ingen'),
-      resolveAnvendtReguleringsdato: vi.fn(() => undefined),
-      parseOptionalIsoDate: vi.fn((v: string | undefined) => (v && /^\d{4}-\d{2}-\d{2}$/.test(v) ? iso(v) : undefined)),
-      resolveLoenSkadedatoText: vi.fn(
-        ({ skadedato }: { subject: 'lønnen'; anvendtReguleringsdato: unknown; skadedato: unknown }) =>
-          skadedato ? `lønnen på skadestidspunktet (${String(skadedato)})` : 'lønnen'
-      ),
-      resolveTafDateBounds: vi.fn(() => null),
-      buildReguleringsvaerdierTableData: vi.fn(() => null),
-      buildReguleringIndexRows: vi.fn(() => []),
-      resolveStatistikModelIdFromLabel: vi.fn(() => undefined),
-      writer: {
-        addSectionSpacer: vi.fn(),
-        addSpacer: vi.fn(),
-        setY: vi.fn((nextY: number) => { y = nextY; }),
-        getY: vi.fn(() => y),
-        getDoc: vi.fn(() => doc),
-        writeUnderlinedSubheader: vi.fn(),
-      },
-    },
+    ctx,
   };
 };
 
@@ -241,12 +254,12 @@ describe('renderReguleringSection – KRL satstabel-note', () => {
 });
 
 describe('renderReguleringSection – statistik-noter', () => {
-  const makeAnsaettelsesforhold = (grundlag: string) => ({
+  const makeAnsaettelsesforhold = (grundlag: 'Statistik'): Ansaettelsesforhold => ({
     ...createDefaultLoenindkomstAnsaettelsesforhold(),
     id: 'af-stat',
     navnPaaArbejdssted: 'Statistik-sted',
-    loenudviklingBeregningsgrundlag: grundlag as never,
-    loenudviklingStatistikModel: grundlag === 'Statistik' ? 'ILON12-label' : undefined,
+    loenudviklingBeregningsgrundlag: grundlag,
+    loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
   });
 
   it('viser ILON12-note når resolveStatistikModelIdFromLabel returnerer "ILON12"', () => {
@@ -277,7 +290,7 @@ describe('renderReguleringSection – statistik-noter', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.beregnesUdFra = 'Beregningsperiode';
     const af = makeAnsaettelsesforhold('Statistik');
-    af.loenudviklingStatistikModel = 'ASL-2024';
+    af.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
     eoValues.loenindkomstAnsaettelsesforhold = [af];
     const { safeAddWrappedText, ctx } = makeContext(eoValues);
     // resolveStatistikModelIdFromLabel returnerer undefined → kode tjekker label.startsWith('ASL-')
@@ -433,7 +446,7 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
     renderReguleringSection(ctx);
 
     const firstCall = autoTableMock.mock.calls[0]?.[1];
-    const headerRow = firstCall?.body[0];
+    const headerRow = firstCall?.body?.[0];
 
     expect(headerRow).toBeDefined();
     expect(headerRow).toHaveLength(5);
@@ -483,7 +496,10 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
       [6, 8],
     ]);
     for (const [columnIndex, expectedRightInset] of expectedInsets) {
-      const data = {
+      const data: Parameters<NonNullable<AutoTableTestOptions['didParseCell']>>[0] & {
+        row: { index: number };
+        column: { index: number };
+      } = {
         row: { index: 1 },
         column: { index: columnIndex },
         cell: { styles: { halign: 'center' } },
@@ -498,7 +514,10 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
       });
     }
 
-    const nonPercentageData = {
+    const nonPercentageData: Parameters<NonNullable<AutoTableTestOptions['didParseCell']>>[0] & {
+      row: { index: number };
+      column: { index: number };
+    } = {
       row: { index: 1 },
       column: { index: 1 },
       cell: { styles: { halign: 'center' } },
@@ -507,7 +526,10 @@ describe('renderReguleringSection – reguleringsværdier tabelkolonner', () => 
     expect(nonPercentageData.cell.styles.halign).toBe('center');
     expect(nonPercentageData.cell.styles.cellPadding).toBeUndefined();
 
-    const headerData = {
+    const headerData: Parameters<NonNullable<AutoTableTestOptions['didParseCell']>>[0] & {
+      row: { index: number };
+      column: { index: number };
+    } = {
       row: { index: 0 },
       column: { index: 2 },
       cell: { styles: { halign: 'center' } },

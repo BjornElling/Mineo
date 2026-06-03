@@ -93,6 +93,7 @@ describe('EOberegningTab kontroltjek', () => {
         stamdata: baseStamdataValues,
         erstatningsopgoerelse: baseEoValues,
       },
+      debugSnapshot: null,
     };
 
     renderTab({
@@ -158,6 +159,7 @@ describe('EOberegningTab kontroltjek', () => {
         severity: 'error',
         source: 'system' as const,
         message: 'TAF fordelt på år kan ikke genereres, fordi lønudvikling ikke kunne beregnes autoritativt.',
+        blocksAuthoritativeComputation: true,
         blocksOutputs: ['taf_per_year_pdf'],
       }],
       data: null,
@@ -165,6 +167,7 @@ describe('EOberegningTab kontroltjek', () => {
         stamdata: baseStamdataValues,
         erstatningsopgoerelse: baseEoValues,
       },
+      debugSnapshot: null,
     };
 
     renderTab({
@@ -245,7 +248,7 @@ describe('EOberegningTab kontroltjek', () => {
     });
 
     const Wrapper = () => {
-      const [activeTab, setActiveTab] = React.useState<'beregning' | 'loenindkomst'>('beregning');
+      const [activeTab, setActiveTab] = React.useState<React.ComponentProps<typeof EOberegningTab>['activeTab']>('beregning');
       return (
         <EOberegningTab
           activeTab={activeTab}
@@ -601,6 +604,7 @@ describe('EOberegningTab kontroltjek', () => {
         severity: 'error',
         source: 'system' as const,
         message: 'TAF fordelt på år kan ikke afstemmes inden for 1 kr.',
+        blocksAuthoritativeComputation: true,
         blocksOutputs: ['taf_per_year_pdf'],
       }],
       data: null,
@@ -608,6 +612,7 @@ describe('EOberegningTab kontroltjek', () => {
         stamdata: baseStamdataValues,
         erstatningsopgoerelse: baseEoValues,
       },
+      debugSnapshot: null,
     };
 
     renderTab({

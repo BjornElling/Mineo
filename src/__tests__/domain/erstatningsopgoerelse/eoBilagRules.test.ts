@@ -41,8 +41,8 @@ describe('getEoBilagAvailability', () => {
         col1_maaned: '2024',
         col0_uge: '',
         col1_uge: '',
-        col0_dag: '',
-        col1_dag: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
         col2: { kind: 'number', value: 1000 },
         col3: undefined,
         col4: undefined,
@@ -66,8 +66,8 @@ describe('getEoBilagAvailability', () => {
         col1_maaned: '2024',
         col0_uge: '',
         col1_uge: '',
-        col0_dag: '',
-        col1_dag: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
         col2: { kind: 'number', value: 1000 },
         col3: undefined,
         col4: undefined,
@@ -102,7 +102,7 @@ describe('getEoBilagAvailability', () => {
     const result = getEoBilagAvailability({
       eoValues: makeValues({
         offentligeYdelserRows: [
-          { id: 'row-1', fraDato: toISODateString('2024-01-01'), tilDato: '', ydelse: undefined, tillaeg: undefined, ydelsestype: '' },
+          { id: 'row-1', fraDato: toISODateString('2024-01-01'), tilDato: undefined, ydelse: undefined, tillaeg: undefined, ydelsestype: '' },
         ],
       }),
     });
@@ -222,8 +222,8 @@ describe('getEoBilagAvailability', () => {
         col1_maaned: '2024',
         col0_uge: '',
         col1_uge: '',
-        col0_dag: '',
-        col1_dag: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
         col2: { kind: 'number', value: 1000 },
         col3: undefined,
         col4: undefined,
@@ -340,7 +340,7 @@ describe('hasMidlertidigtEetYdelsestype', () => {
   it('returnerer true når en offentlig ydelse har ydelsestypen Midlertidigt EET uden krav til beløb eller periode', () => {
     const values = makeValues({
       offentligeYdelserRows: [
-        { id: 'row-1', fraDato: '', tilDato: '', ydelse: undefined, tillaeg: undefined, ydelsestype: 'midlertidigt_eet' },
+        { id: 'row-1', fraDato: undefined, tilDato: undefined, ydelse: undefined, tillaeg: undefined, ydelsestype: 'midlertidigt_eet' },
       ],
     });
 

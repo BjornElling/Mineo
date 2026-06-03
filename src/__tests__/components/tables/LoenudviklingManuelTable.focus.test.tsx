@@ -8,7 +8,7 @@ const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 const makeRow = (id: string, overrides: Partial<LoenudviklingManuelRow> = {}): LoenudviklingManuelRow => ({
   id,
-  dato: '',
+  dato: undefined,
   grundloen: undefined,
   feriepenge: undefined,
   shSoSats: undefined,

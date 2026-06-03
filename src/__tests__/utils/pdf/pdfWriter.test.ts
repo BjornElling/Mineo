@@ -16,12 +16,14 @@ class MockJsPDF {
   setProperties = vi.fn();
   getNumberOfPages = vi.fn(() => 1);
   setPage = vi.fn();
-  splitTextToSize = vi.fn((text: string) => [text]);
+  splitTextToSize = vi.fn((text: string, _maxWidth?: number) => [text]);
   getTextWidth = vi.fn((text: string) => text.length * 2); // 2mm per tegn
   save = vi.fn();
 }
 
 vi.mock('jspdf', () => ({ default: MockJsPDF }));
+
+const getMockDoc = (writer: { getDoc: () => unknown }): MockJsPDF => writer.getDoc() as MockJsPDF;
 
 // ─── Layout-fallback (eksisterende) ──────────────────────────────────────────
 
@@ -55,20 +57,21 @@ describe('pdfWriter layout fallback', () => {
 
     writer.writeLeftRightText('Venstre', '123,45 kr.');
 
-    const renderedRightTextCall = writer.getDoc().text.mock.calls.find(
+    const textMock = getMockDoc(writer).text;
+    const renderedRightTextCall = textMock.mock.calls.find(
       (call: unknown[]) => call[0] === '123,45 kr.'
     );
 
     expect(renderedRightTextCall).toBeDefined();
-    expect(writer.getDoc().text.mock.calls.some((call: unknown[]) => call[0] === '123,45\u00A0kr.')).toBe(false);
+    expect(textMock.mock.calls.some((call: unknown[]) => call[0] === '123,45\u00A0kr.')).toBe(false);
   });
 
   it('placerer højreteksten på nederste venstrelinje og wrapper venstreteksten inden kolonnerne mødes', async () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
     const writer = createStandardPdfWriter();
-    const doc = writer.getDoc();
+    const doc = getMockDoc(writer);
 
-    doc.splitTextToSize.mockImplementation((text: string, maxWidth: number) => {
+    doc.splitTextToSize.mockImplementation((text: string, maxWidth = Number.POSITIVE_INFINITY) => {
       const words = text.split(' ');
       const lines: string[] = [];
       let current = '';
@@ -94,7 +97,7 @@ describe('pdfWriter layout fallback', () => {
     const renderedTexts = doc.text.mock.calls.map((call: unknown[]) => call[0]);
     const rightCall = doc.text.mock.calls.find((call: unknown[]) => call[0] === '184,45 kr./arbejdsdag');
 
-    expect(renderedTexts.filter((value) => typeof value === 'string' && value !== '184,45 kr./arbejdsdag').length).toBeGreaterThan(1);
+    expect(renderedTexts.filter((value: unknown) => typeof value === 'string' && value !== '184,45 kr./arbejdsdag').length).toBeGreaterThan(1);
     expect(rightCall).toBeDefined();
     const leftLineCalls = doc.text.mock.calls.filter(
       (call: unknown[]) => typeof call[0] === 'string' && call[0] !== '184,45 kr./arbejdsdag'
@@ -106,7 +109,7 @@ describe('pdfWriter layout fallback', () => {
     const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
     const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
     const writer = createStandardPdfWriter();
-    const doc = writer.getDoc();
+    const doc = getMockDoc(writer);
 
     doc.getTextWidth.mockImplementation((text: string) => text.length * 2);
 

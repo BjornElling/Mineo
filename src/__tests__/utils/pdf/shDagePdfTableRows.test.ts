@@ -8,13 +8,13 @@ describe('buildSHDageTableRows', () => {
     const { body, totalRowIndex, totalValueColumnIndex } = buildSHDageTableRows([
       {
         dato: createDate(2024, 0, 1),
-        ugedag: 'mandag',
+        ugedag: 'Mandag',
         helligdagNavn: 'Nytårsdag',
         erHverdag: true,
       },
       {
         dato: createDate(2024, 2, 28),
-        ugedag: 'torsdag',
+        ugedag: 'Torsdag',
         helligdagNavn: 'Skærtorsdag',
         erHverdag: true,
       },
@@ -23,7 +23,7 @@ describe('buildSHDageTableRows', () => {
     expect(totalRowIndex).toBe(3);
     expect(totalValueColumnIndex).toBe(3);
 
-    const totalRow = body[totalRowIndex!];
+    const totalRow = body[totalRowIndex!] as Array<{ content?: string; colSpan?: number }>;
     expect(totalRow).toHaveLength(4);
 
     const labelCell = totalRow[0];
@@ -53,7 +53,7 @@ describe('buildSHDageTableRows', () => {
     const { body, totalRowIndex } = buildSHDageTableRows([
       {
         dato: createDate(2024, 0, 1),
-        ugedag: 'mandag',
+        ugedag: 'Mandag',
         helligdagNavn: 'Nytårsdag',
         erHverdag: true,
       },

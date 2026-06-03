@@ -7,8 +7,8 @@ const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value }
 
 const baseRow: OffentligeYdelserRow = {
   id: 'row-1',
-  fraDato: '',
-  tilDato: '',
+  fraDato: undefined,
+  tilDato: undefined,
   ydelse: undefined,
   tillaeg: undefined,
   ydelsestype: '',

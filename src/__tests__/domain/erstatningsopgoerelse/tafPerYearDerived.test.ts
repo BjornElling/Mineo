@@ -20,6 +20,9 @@ const iso = (value: string) => toISODateString(value);
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
+const tafRangesFromValues = (values: ErstatningsopgoerelseValues) =>
+  values.tafPerioder.flatMap((row) => row.fra && row.til ? [{ fra: row.fra, til: row.til }] : []);
+
 const makeValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues => {
   const base = structuredClone(createErstatningsopgoerelseInitialValues());
   return {
@@ -45,6 +48,14 @@ const EMPTY_SFGG_RESULT = {
   perYear: [],
   firstExcludedDate: null,
 } as const;
+
+const emptyOffentligeYdelserUdvikling = (beregningsenhed = TAF_BEREGNES_SOM.ARBEJDSDAGE) => ({
+  reguleringsLabel: '',
+  reguleringsBaseIso: undefined,
+  beregningsenhed,
+  entries: [],
+  total: { status: 'ok' as const, value: 0 },
+});
 
 const buildSnapshotData = (
   stamdata: StamdataValues,
@@ -1005,6 +1016,7 @@ describe('buildTafPerYearResult', () => {
       tidligereModtagetTaf: { status: 'ok', value: 0 },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
       tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 15000000 } },
+      offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
 
@@ -1016,7 +1028,7 @@ describe('buildTafPerYearResult', () => {
       offentligeYdelserRows: [],
     });
 
-    const outcome = buildTafPerYearBuildOutcome(source, eoValues, { tafRanges: eoValues.tafPerioder });
+    const outcome = buildTafPerYearBuildOutcome(source, eoValues, { tafRanges: tafRangesFromValues(eoValues) });
     expect(outcome.kind).toBe('ok');
     if (outcome.kind !== 'ok') return;
     expect(outcome.result.years).toHaveLength(1);
@@ -1203,6 +1215,7 @@ describe('buildTafPerYearResult', () => {
       tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
       tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
+      offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
     const eoValues = makeValues({
@@ -1210,7 +1223,7 @@ describe('buildTafPerYearResult', () => {
         { id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-12-31'), loseFeriedage: undefined },
       ],
     });
-    const outcome = buildTafPerYearBuildOutcome(source, eoValues, { tafRanges: eoValues.tafPerioder });
+    const outcome = buildTafPerYearBuildOutcome(source, eoValues, { tafRanges: tafRangesFromValues(eoValues) });
     expect(outcome.kind).not.toBe('ok');
   });
 
@@ -1241,6 +1254,7 @@ describe('buildTafPerYearResult', () => {
       tidligereModtagetTaf: { status: 'not_calculable', reason: 'test' },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
       tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
+      offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
     const eoValues = makeValues({
@@ -1252,7 +1266,7 @@ describe('buildTafPerYearResult', () => {
       ],
     });
     // Alle segmenter springes over (tafArbejdsdageSet er null) → alle år har 0 segmenter
-    const outcome = buildTafPerYearBuildOutcome(source, eoValues, { tafRanges: eoValues.tafPerioder });
+    const outcome = buildTafPerYearBuildOutcome(source, eoValues, { tafRanges: tafRangesFromValues(eoValues) });
     expect(outcome.kind).toBe('ok');
     if (outcome.kind !== 'ok') return;
     const result = outcome.result;
@@ -1325,6 +1339,7 @@ describe('buildTafPerYearResult', () => {
       tidligereModtagetTaf: { status: 'ok', value: 100 },
       sygeferiegodtgoerelse: EMPTY_SFGG_RESULT,
       tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'ok', value: 0 } },
+      offentligeYdelserUdvikling: emptyOffentligeYdelserUdvikling(),
       forligFactor: null,
     };
     // TAF-periode: kun lørdag-søndag 6-7 januar 2024 → buildTafArbejdsdageSet returnerer tom mængde
@@ -1337,7 +1352,7 @@ describe('buildTafPerYearResult', () => {
         { ...createDefaultLoenindkomstAnsaettelsesforhold(), loenudviklingBeregningsgrundlag: 'Ingen' },
       ],
     });
-    const outcome = buildTafPerYearBuildOutcome(source, eoValues, { tafRanges: eoValues.tafPerioder });
+    const outcome = buildTafPerYearBuildOutcome(source, eoValues, { tafRanges: tafRangesFromValues(eoValues) });
     expect(outcome.kind).toBe('ok');
     if (outcome.kind !== 'ok') return;
     const result = outcome.result;
@@ -1423,3 +1438,4 @@ describe('buildTafPerYearResult', () => {
     expect(totalPaidOre).toBe(30000);
   });
 });
+

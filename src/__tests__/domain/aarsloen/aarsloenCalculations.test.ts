@@ -1,10 +1,19 @@
 import type { ISODateString } from '../../../types/branded';
+import type { AarsloenBeregningResult, AarsloenBeregningResultBeregnet } from '../../../types/calculation';
 import type { PeriodeResult } from '../../../utils/periodeBeregning';
 import { beregnMetode, beregnOmregnetAarsloen } from '../../../domain/aarsloen/aarsloenCalculations';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
 const iso = (s: string): ISODateString => s as ISODateString;
+
+const expectBeregnet = (result: AarsloenBeregningResult): AarsloenBeregningResultBeregnet => {
+  expect(result.metode).not.toBe('ingen');
+  if (result.metode === 'ingen') {
+    throw new Error('Forventede beregnet årsløn-resultat i testen.');
+  }
+  return result;
+};
 
 /**
  * Bygger et PeriodeResult med et datoSet der kun indeholder hverdage (mandag-fredag).
@@ -108,7 +117,7 @@ describe('beregnOmregnetAarsloen — Metode C (maaned)', () => {
     });
     expect(result.metode).toBe('C');
     expect(result.erEtAar).toBe(true);
-    expect(result.omregnetAarsloen).toBe(360000); // 360000 / 12 * 12
+    expect(expectBeregnet(result).omregnetAarsloen).toBe(360000); // 360000 / 12 * 12
   });
 
   it('6 måneder → omregnetAarsloen = beregnetAarsloen * 2', () => {
@@ -124,7 +133,7 @@ describe('beregnOmregnetAarsloen — Metode C (maaned)', () => {
       beregnetAarsloen: 180000,
     });
     expect(result.metode).toBe('C');
-    expect(result.omregnetAarsloen).toBe(360000);
+    expect(expectBeregnet(result).omregnetAarsloen).toBe(360000);
   });
 
   it('0 måneder → omregnetAarsloen = 0 (undgår division med nul)', () => {
@@ -139,7 +148,7 @@ describe('beregnOmregnetAarsloen — Metode C (maaned)', () => {
       loenPaaHelligdage: 'Almindelig løn',
       beregnetAarsloen: 100000,
     });
-    expect(result.omregnetAarsloen).toBe(0);
+    expect(expectBeregnet(result).omregnetAarsloen).toBe(0);
   });
 
   it('1 måned → omregnetAarsloen = beregnetAarsloen * 12', () => {
@@ -154,7 +163,7 @@ describe('beregnOmregnetAarsloen — Metode C (maaned)', () => {
       loenPaaHelligdage: 'Almindelig løn',
       beregnetAarsloen: 30000,
     });
-    expect(result.omregnetAarsloen).toBe(360000);
+    expect(expectBeregnet(result).omregnetAarsloen).toBe(360000);
   });
 
   it('erEtAar = false for < 12 måneder', () => {
@@ -191,7 +200,7 @@ describe('beregnOmregnetAarsloen — Metode C (uge)', () => {
     expect(result.metode).toBe('C');
     // 100000 / 26 * 52.14
     const expected = (100000 / 26) * 52.14;
-    expect(result.omregnetAarsloen).toBeCloseTo(expected, 2);
+    expect(expectBeregnet(result).omregnetAarsloen).toBeCloseTo(expected, 2);
   });
 
   it('0 uger → omregnetAarsloen = 0', () => {
@@ -206,7 +215,7 @@ describe('beregnOmregnetAarsloen — Metode C (uge)', () => {
       loenPaaHelligdage: 'Almindelig løn',
       beregnetAarsloen: 100000,
     });
-    expect(result.omregnetAarsloen).toBe(0);
+    expect(expectBeregnet(result).omregnetAarsloen).toBe(0);
   });
 
   it('erEtAar = false for ugeløn (altid)', () => {
@@ -282,7 +291,7 @@ describe('beregnOmregnetAarsloen — Metode A', () => {
       loenPaaHelligdage: 'Ingen',
       beregnetAarsloen: 100000,
     });
-    expect(resultNull.omregnetAarsloen).toBe(resultZero.omregnetAarsloen);
+    expect(expectBeregnet(resultNull).omregnetAarsloen).toBe(expectBeregnet(resultZero).omregnetAarsloen);
   });
 
   it('Metode A: fuld løn under ferie → feriedage trækkes IKKE fra arbejdsdageIPeriode', () => {
@@ -309,7 +318,7 @@ describe('beregnOmregnetAarsloen — Metode A', () => {
       beregnetAarsloen: 100000,
     });
     // Samme resultat fordi ferie ikke trækkes fra ved fuld løn
-    expect(resultMedFerie.omregnetAarsloen).toBe(resultUdenFerie.omregnetAarsloen);
+    expect(expectBeregnet(resultMedFerie).omregnetAarsloen).toBe(expectBeregnet(resultUdenFerie).omregnetAarsloen);
   });
 
   it('Metode A: ikke fuld løn → feriedage trækkes fra arbejdsdageIPeriode', () => {
@@ -335,7 +344,7 @@ describe('beregnOmregnetAarsloen — Metode A', () => {
       beregnetAarsloen: 100000,
     });
     // Med 5 feriedage fratrukket har vi færre dage i perioden → højere omregnet årsløn
-    expect(resultMedFerie.omregnetAarsloen).toBeGreaterThan(resultUdenFerie.omregnetAarsloen);
+    expect(expectBeregnet(resultMedFerie).omregnetAarsloen).toBeGreaterThan(expectBeregnet(resultUdenFerie).omregnetAarsloen);
   });
 
   it('Metode A: 0 arbejdsdageIPeriode → omregnetAarsloen = 0', () => {
@@ -351,7 +360,7 @@ describe('beregnOmregnetAarsloen — Metode A', () => {
       loenPaaHelligdage: 'Ingen',
       beregnetAarsloen: 100000,
     });
-    expect(result.omregnetAarsloen).toBe(0);
+    expect(expectBeregnet(result).omregnetAarsloen).toBe(0);
   });
 
   it('Metode A: ret til 6. ferieuge → feriedagePaaAar = 30', () => {
@@ -377,8 +386,8 @@ describe('beregnOmregnetAarsloen — Metode A', () => {
       beregnetAarsloen: 100000,
     });
     // Med 6. ferieuge er feriedagePaaAar = 30 (vs. 25) → arbejdsdagePaaAar er lavere
-    expect(resultMed6uge.feriedagePaaAar).toBe(30);
-    expect(resultUden6uge.feriedagePaaAar).toBe(25);
+    expect(expectBeregnet(resultMed6uge).feriedagePaaAar).toBe(30);
+    expect(expectBeregnet(resultUden6uge).feriedagePaaAar).toBe(25);
   });
 });
 
@@ -426,7 +435,7 @@ describe('beregnOmregnetAarsloen — Metode B', () => {
       loenPaaHelligdage: 'Almindelig løn',
       beregnetAarsloen: 100000,
     });
-    expect(resultMedSH.omregnetAarsloen).toBe(resultUdenSH.omregnetAarsloen);
+    expect(expectBeregnet(resultMedSH).omregnetAarsloen).toBe(expectBeregnet(resultUdenSH).omregnetAarsloen);
   });
 });
 
@@ -466,9 +475,9 @@ describe('beregnOmregnetAarsloen — Metode C (dag)', () => {
     });
     // hverdageIPeriodeResultat = hverdageIPeriode (50) fordi fuldLoenUnderFerie
     // hverdagePaaAar = STANDARD_HVERDAGE_PAA_AAR = 261
-    expect(result.omregnetAarsloen).toBeGreaterThan(0);
+    expect(expectBeregnet(result).omregnetAarsloen).toBeGreaterThan(0);
     const expected = (100000 / 50) * 261;
-    expect(result.omregnetAarsloen).toBeCloseTo(expected, 1);
+    expect(expectBeregnet(result).omregnetAarsloen).toBeCloseTo(expected, 1);
   });
 });
 
@@ -491,7 +500,7 @@ describe('beregnOmregnetAarsloen — edge cases', () => {
       loenPaaHelligdage: 'Ingen',
       beregnetAarsloen: 100000,
     });
-    expect(result.omregnetAarsloen).toBe(0);
+    expect(expectBeregnet(result).omregnetAarsloen).toBe(0);
     expect(result.metode).toBe('A');
   });
 
@@ -511,9 +520,9 @@ describe('beregnOmregnetAarsloen — edge cases', () => {
     });
     // Math.trunc(NaN) er NaN, men Number.isFinite(NaN) er false → feriedageFraInput = 0
     expect(result.metode).toBe('A');
-    expect(result.feriedageFraInput).toBe(0);
+    expect(expectBeregnet(result).feriedageFraInput).toBe(0);
     // omregnetAarsloen er positiv (feriedage = 0, ingen fradrag)
-    expect(result.omregnetAarsloen).toBeGreaterThan(0);
+    expect(expectBeregnet(result).omregnetAarsloen).toBeGreaterThan(0);
   });
 
   it('negativ beregnetAarsloen → omregnetAarsloen er negativ (ingen clamping i denne funktion)', () => {
@@ -531,8 +540,8 @@ describe('beregnOmregnetAarsloen — edge cases', () => {
     });
     expect(result.metode).toBe('C');
     // Ingen clamping: omregnetAarsloen = (-50000 / 6) * 12 = -100000
-    expect(result.omregnetAarsloen).toBeLessThan(0);
-    expect(result.omregnetAarsloen).toBeCloseTo(-100000, 2);
+    expect(expectBeregnet(result).omregnetAarsloen).toBeLessThan(0);
+    expect(expectBeregnet(result).omregnetAarsloen).toBeCloseTo(-100000, 2);
   });
 });
 

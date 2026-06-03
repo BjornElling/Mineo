@@ -6,7 +6,7 @@ const {
 } = vi.hoisted(() => ({
   buildRegulationTimelineMock: vi.fn(() => ({ ansaettelser: [] })),
   buildRegulationDebugSectionsMock: vi.fn(() => []),
-  executeEODebugBuilderEntriesBySectionMock: vi.fn(() => new Map()),
+  executeEODebugBuilderEntriesBySectionMock: vi.fn((..._args: unknown[]) => new Map()),
 }));
 
 vi.mock('../../../domain/debug/eoDebugBuilderRegistry', () => ({
@@ -36,6 +36,8 @@ vi.mock('../../../domain/debug/eoDebugRegulationViewModel', () => ({
 }));
 
 import { eoSnapshotToDebugView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView';
+import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 import { toISODateString } from '../../../types/branded';
 
@@ -99,7 +101,7 @@ describe('eoSnapshotToDebugView', () => {
         stamdata: {},
         erstatningsopgoerelse: {},
       },
-    } as never;
+    } as unknown as EODebugSnapshot;
 
     const staleInputValues = {
       journalnr: 'STALE',
@@ -119,7 +121,7 @@ describe('eoSnapshotToDebugView', () => {
           stamdata: staleInputValues,
           erstatningsopgoerelse: { stale: true },
         },
-      } as never,
+      } as unknown as EoSnapshot,
       appSettings: DEFAULT_APP_SETTINGS,
       loenindkomstManuelReguleringInputErrors: {},
     });
@@ -175,7 +177,7 @@ describe('eoSnapshotToDebugView', () => {
           stamdata: null,
           erstatningsopgoerelse: null,
         },
-      } as never,
+      } as unknown as EoSnapshot,
       appSettings: DEFAULT_APP_SETTINGS,
       loenindkomstManuelReguleringInputErrors: {},
     });

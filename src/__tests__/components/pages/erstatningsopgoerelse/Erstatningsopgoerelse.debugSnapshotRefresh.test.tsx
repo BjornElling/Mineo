@@ -91,8 +91,8 @@ describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
         advokat: '',
         sagsbehandler: '',
         skadelidte: 'Før tab-entry',
-        skadestype: '',
-        skadedato: '',
+        skadestype: undefined,
+        skadedato: undefined,
       });
     });
     expect(computeEoSnapshotMock).toHaveBeenCalledTimes(0);
@@ -108,8 +108,8 @@ describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
         advokat: '',
         sagsbehandler: '',
         skadelidte: 'Mens Beregning er aktiv',
-        skadestype: '',
-        skadedato: '',
+        skadestype: undefined,
+        skadedato: undefined,
       });
     });
     await waitFor(() => {
@@ -125,8 +125,8 @@ describe('Erstatningsopgoerelse debug snapshot-refresh', () => {
         advokat: '',
         sagsbehandler: '',
         skadelidte: 'Mens Debug tabel er aktiv',
-        skadestype: '',
-        skadedato: '',
+        skadestype: undefined,
+        skadedato: undefined,
       });
     });
     await waitFor(() => {

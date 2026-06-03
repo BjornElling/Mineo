@@ -71,7 +71,7 @@ describe('LoenindkomstTab hidden state cleanup', () => {
     const initial = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       loenudviklingBeregningsgrundlag: 'Statistik' as const,
-      loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+      loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)' as const,
       loenudviklingKRLSatstabel: 'KRL-2024' as never,
       loenudviklingManuelNavn: 'DA-tillægstrin',
       loenudviklingManuelTableData: [{ id: 'row-1', dato: toISODateString('2024-01-01'), grundloen: { kind: 'number' as const, value: 50000 }, feriepenge: undefined, shSoSats: undefined, fritvalg: undefined, agPension: undefined }],

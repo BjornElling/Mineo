@@ -290,6 +290,7 @@ describe('fileSave', () => {
             kapitalisering: true,
             eetEfterEal: true,
             proformaKapitalisering: true,
+    merErstatningPensionsalder: false,
             visUdvidetSpecifikation: false,
             visUdvidetSpecifikationLoebendeYdelserBilag: false,
           },

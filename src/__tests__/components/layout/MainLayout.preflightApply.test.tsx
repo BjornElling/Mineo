@@ -22,8 +22,8 @@ const stampStamdata = (skadelidte: string) => ({
   advokat: '',
   sagsbehandler: '',
   skadelidte,
-  skadestype: '',
-  skadedato: '',
+  skadestype: undefined,
+  skadedato: undefined,
 });
 
 describe('MainLayout (preflight apply)', () => {
@@ -38,7 +38,7 @@ describe('MainLayout (preflight apply)', () => {
         expectedCount: 10,
         loadedCount: 9,
         failedCount: 1,
-        issues: [{ path: 'satser', reason: 'Sektionen kunne ikke indlæses (Forkert format) og blev ikke indlæst' }],
+        issues: [{ kind: 'sectionDropped', path: 'satser', reason: 'Sektionen kunne ikke indlæses (Forkert format) og blev ikke indlæst' }],
       },
     } satisfies LoadFileResult);
 

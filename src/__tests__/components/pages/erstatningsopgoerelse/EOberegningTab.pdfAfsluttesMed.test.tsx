@@ -9,18 +9,24 @@ import { createErstatningsopgoerelseInitialValues } from '../../../../domain/ers
 import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import type { BeregningErrorSummary } from '../../../../domain/debug/eoDebugRowAggregator';
 import { toISODateString } from '../../../../types/branded';
+
+type DownloadErstatningsopgoerelsePdf = typeof import('../../../../pdf/infrastructure/pdfService')['downloadErstatningsopgoerelsePdf'];
+type DownloadTafFordeltPaaAarPdf = typeof import('../../../../pdf/infrastructure/pdfService')['downloadTafFordeltPaaAarPdf'];
 
 const { downloadErstatningsopgoerelsePdfMock, downloadTafFordeltPaaAarPdfMock } = vi.hoisted(() => {
   return {
-    downloadErstatningsopgoerelsePdfMock: vi.fn(async () => ({ success: true as const })),
-    downloadTafFordeltPaaAarPdfMock: vi.fn(async () => ({ success: true as const })),
+    downloadErstatningsopgoerelsePdfMock: vi.fn<DownloadErstatningsopgoerelsePdf>(async () => ({ success: true as const })),
+    downloadTafFordeltPaaAarPdfMock: vi.fn<DownloadTafFordeltPaaAarPdf>(async () => ({ success: true as const })),
   };
 });
 
 const { collectAllDebugRowsMock } = vi.hoisted(() => ({
-  collectAllDebugRowsMock: vi.fn(() => ({ errors: [], warnings: [], allRows: [], relevantRows: [] })),
+  collectAllDebugRowsMock: vi.fn((): BeregningErrorSummary => ({ errors: [], warnings: [], allRows: [], relevantRows: [] })),
 }));
+
+const emptyDebugRows = (): BeregningErrorSummary => ({ errors: [], warnings: [], allRows: [], relevantRows: [] });
 
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useFieldErrorsBySourceForSection: () => ({}),
@@ -50,7 +56,7 @@ describe('EOberegningTab PDF-afslutning', () => {
     downloadErstatningsopgoerelsePdfMock.mockResolvedValue({ success: true });
     downloadTafFordeltPaaAarPdfMock.mockResolvedValue({ success: true });
     collectAllDebugRowsMock.mockReset();
-    collectAllDebugRowsMock.mockReturnValue({ errors: [], warnings: [], allRows: [], relevantRows: [] });
+    collectAllDebugRowsMock.mockReturnValue(emptyDebugRows());
 
     eoValuesFromForm = createErstatningsopgoerelseInitialValues();
     eoValuesFromForm.kravPaaSvieSmerteGodtgoerelse = 'Nej';
@@ -123,8 +129,10 @@ describe('EOberegningTab PDF-afslutning', () => {
       errors: [{
         id: 'forlig.dato',
         label: 'Evt. dato for forlig',
+        displayValue: 'Fejl',
         status: 'error',
         message: 'Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk',
+        summaryDisplay: 'default',
         navigation: {
           kind: 'erstatningsopgoerelse-tab',
           tabId: 'eo_oplysninger',

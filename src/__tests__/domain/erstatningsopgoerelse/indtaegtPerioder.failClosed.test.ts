@@ -126,7 +126,7 @@ describe('buildIncomeForRanges fail-closed', () => {
         col0_uge: '',
         col1_uge: '',
         col0_dag: toISODateString('2024-01-01'),
-        col1_dag: '',
+        col1_dag: undefined,
         col2: asAmount(500),
         col3: undefined,
         col4: undefined,
@@ -307,7 +307,7 @@ describe('buildIncomeForRanges fail-closed', () => {
       {
         id: 'oy-missing-til',
         fraDato: toISODateString('2024-01-01'),
-        tilDato: '',
+        tilDato: undefined,
         ydelse: asAmount(100),
         tillaeg: undefined,
         ydelsestype: 'sygedagpenge',

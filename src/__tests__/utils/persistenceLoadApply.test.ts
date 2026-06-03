@@ -4,7 +4,6 @@ import type { StorageKey } from '../../config/storageManifest';
 import { executePersistenceLoadApply } from '../../utils/persistenceLoadApply';
 import { formPersistenceStore } from '../../stores/formPersistenceStore';
 import { undoRedoStore, type HistoryFrameOrigin } from '../../stores/undoRedoStore';
-import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { toISODateString } from '../../types/branded';
 
 const saveFileHandleToIndexedDBMock = vi.fn();
@@ -116,6 +115,7 @@ describe('executePersistenceLoadApply', () => {
     });
 
     expect(result.status).toBe('applied-with-metadata-error');
+    if (result.status !== 'applied-with-metadata-error') return;
     expect(result.message).toContain('Sagen blev indlæst');
     expect(replaceAllPersistedData).toHaveBeenCalledTimes(1);
   });
@@ -128,7 +128,7 @@ describe('executePersistenceLoadApply', () => {
       fieldPath: 'aargang',
       focusToken: null,
     };
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
     undoRedoStore.getState().capture(origin);
 
     await executePersistenceLoadApply({

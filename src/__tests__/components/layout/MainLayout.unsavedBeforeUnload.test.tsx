@@ -6,9 +6,11 @@ import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import type { SaveFileResult } from '../../../types/fileOperations';
-import { getStorageKey, type StorageKey } from '../../../config/storageManifest';
+import { getStorageKey } from '../../../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
+import type { PersistedSectionsSnapshot } from '../../../config/persistenceRegistry';
+import type { StamdataValues } from '../../../schemas/formSchemas';
 
 vi.mock('../../../utils/fileLoad', () => ({
   loadFromFile: vi.fn(),
@@ -61,13 +63,13 @@ import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from '../../
 import { getGridCoreForTable } from '../../../components/tables/gridCore/gridCoreRegistry';
 import { clearTableInputError, setTableInputError } from '../../../utils/tableInputErrorRegistry';
 
-const stampStamdata = (skadelidte: string) => ({
+const stampStamdata = (skadelidte: string): StamdataValues => ({
   journalnr: '',
   advokat: '',
   sagsbehandler: '',
   skadelidte,
-  skadestype: '',
-  skadedato: '',
+  skadestype: undefined,
+  skadedato: undefined,
 });
 
 const persistedWrapper = (data: unknown) => ({
@@ -79,14 +81,14 @@ const persistedWrapper = (data: unknown) => ({
 const getBeforeUnloadHandler = (
   addEventListenerSpy: ReturnType<typeof vi.spyOn>
 ): ((event: BeforeUnloadEvent) => void) | undefined => {
-  const call = addEventListenerSpy.mock.calls.find((args) => args[0] === 'beforeunload');
+  const call = addEventListenerSpy.mock.calls.find((args: unknown[]) => args[0] === 'beforeunload');
   return call?.[1] as ((event: BeforeUnloadEvent) => void) | undefined;
 };
 
 const getLastBeforeUnloadHandler = (
   addEventListenerSpy: ReturnType<typeof vi.spyOn>
 ): ((event: BeforeUnloadEvent) => void) | undefined => {
-  const calls = addEventListenerSpy.mock.calls.filter((args) => args[0] === 'beforeunload');
+  const calls = addEventListenerSpy.mock.calls.filter((args: unknown[]) => args[0] === 'beforeunload');
   const lastCall = calls[calls.length - 1];
   return lastCall?.[1] as ((event: BeforeUnloadEvent) => void) | undefined;
 };
@@ -98,15 +100,15 @@ const isBeforeUnloadHandlerRegistered = (
   const lastHandler = getLastBeforeUnloadHandler(addEventListenerSpy);
   if (!lastHandler) return false;
   const addCount = addEventListenerSpy.mock.calls.filter(
-    (args) => args[0] === 'beforeunload' && args[1] === lastHandler
+    (args: unknown[]) => args[0] === 'beforeunload' && args[1] === lastHandler
   ).length;
   const removeCount = removeEventListenerSpy.mock.calls.filter(
-    (args) => args[0] === 'beforeunload' && args[1] === lastHandler
+    (args: unknown[]) => args[0] === 'beforeunload' && args[1] === lastHandler
   ).length;
   return addCount > removeCount;
 };
 
-const createSnapshot = (stamdataSkadelidte: string): Record<StorageKey, unknown | undefined> => ({
+const createSnapshot = (stamdataSkadelidte: string): PersistedSectionsSnapshot => ({
   stamdata: stampStamdata(stamdataSkadelidte),
   aarsloen: undefined,
   satser: undefined,

@@ -90,7 +90,7 @@ describe('useFormFieldErrors', () => {
   });
 
   it('returnerer tomt objekt når ingen fejl eksisterer', () => {
-    const captured: { value: Record<string, FormFieldError> } = { value: { placeholder: { message: 'x', severity: 'error' } } };
+    const captured: { value: Record<string, FormFieldError> } = { value: { placeholder: { message: 'x', severity: 'error', source: 'input' } } };
     const Comp = () => {
       captured.value = useFormFieldErrors('satser' as StorageKey);
       return null;

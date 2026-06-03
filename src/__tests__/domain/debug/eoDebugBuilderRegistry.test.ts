@@ -7,6 +7,7 @@ import {
 } from '../../../domain/debug/eoDebugBuilderRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 
 const makeRow = (id: string, status: DebugRowModel['status']): DebugRowModel => ({
   id,
@@ -21,6 +22,7 @@ const ctx: EODebugExecutionContext = {
   eoValues: createErstatningsopgoerelseInitialValues(),
   eoErrors: {},
   loenindkomstManuelReguleringInputErrors: {},
+  appSettings: DEFAULT_APP_SETTINGS,
 };
 
 describe('executeEODebugBuilderEntries', () => {

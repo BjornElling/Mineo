@@ -4,10 +4,11 @@ import { act, render, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
-import type { StorageKey } from '../../config/storageManifest';
 import { getStorageKey } from '../../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import type { PersistedData } from '../../types/persistence';
+import type { PersistedSectionsSnapshot } from '../../config/persistenceRegistry';
+import type { StamdataValues } from '../../schemas/formSchemas';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import {
@@ -17,16 +18,16 @@ import {
   usePersistedSectionSelector,
 } from '../../hooks/useFormPersistenceSelectors';
 
-const stampStamdata = (skadelidte: string) => ({
+const stampStamdata = (skadelidte: string): StamdataValues => ({
   journalnr: '',
   advokat: '',
   sagsbehandler: '',
   skadelidte,
-  skadestype: '',
-  skadedato: '',
+  skadestype: undefined,
+  skadedato: undefined,
 });
 
-const emptySnapshot = (): Record<StorageKey, unknown | undefined> => ({
+const emptySnapshot = (): PersistedSectionsSnapshot => ({
   stamdata: undefined,
   satser: undefined,
   aarsloen: undefined,

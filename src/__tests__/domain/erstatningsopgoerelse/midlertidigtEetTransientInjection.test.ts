@@ -1,6 +1,8 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErhvervsevnetabComposedValues } from '../../../schemas/formSchemas';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
+import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
+import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -47,6 +49,8 @@ const stamdata = {
 };
 
 const eetValues: ErhvervsevnetabComposedValues = {
+  ...ERHVERVSEVNETAB_INITIAL_VALUES,
+  ...FAELLES_AARSLOEN_INITIAL_VALUES,
   beregningsdato: iso('2024-12-31'),
   koen: undefined,
   aslAfgoerelser: [
@@ -55,10 +59,10 @@ const eetValues: ErhvervsevnetabComposedValues = {
       afgoerelsesDato: toISODateString('2024-02-01'),
       virkningsDato: toISODateString('2024-01-01'),
       eetPct: 20,
-      kapDato: '',
+      kapDato: undefined,
       kapPct: undefined,
       afgoerelseType: 'Midlertidig',
-      tidlKapDato: '',
+      tidlKapDato: undefined,
       fsTilbageholdtEet: 'Nej',
     },
   ],
@@ -68,6 +72,7 @@ const eetValues: ErhvervsevnetabComposedValues = {
     kapitalisering: true,
     eetEfterEal: true,
     proformaKapitalisering: true,
+    merErstatningPensionsalder: false,
     visUdvidetSpecifikation: false,
     visUdvidetSpecifikationLoebendeYdelserBilag: false,
   },

@@ -45,7 +45,10 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
     getRectsSpy.mockRestore();
   });
 
-  const renderTab = (onRowsChange: ReturnType<typeof vi.fn> = vi.fn()) => {
+  const renderTab = (
+    onRowsChange: React.ComponentProps<typeof OffentligeYdelserTab>['onRowsChange'] =
+      vi.fn<React.ComponentProps<typeof OffentligeYdelserTab>['onRowsChange']>()
+  ) => {
     render(
       <MemoryRouter>
         <AppSettingsProvider>
@@ -58,7 +61,7 @@ describe('OffentligeYdelserTab keyboard navigation', () => {
               onRowsChange={onRowsChange}
               kommentarer={undefined}
               midlertidigtEetFraEetSiden="Nej"
-              setEOValues={vi.fn()}
+              setEOValues={vi.fn<React.ComponentProps<typeof OffentligeYdelserTab>['setEOValues']>()}
             />
           </Container>
         </AppSettingsProvider>

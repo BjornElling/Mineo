@@ -189,11 +189,11 @@ const projectCanonicalFromPdfModel = (
       pdfModel.tabtArbejdsfortjeneste.loenudvikling?.loenudviklingTotal.status === 'ok'
         ? pdfModel.tabtArbejdsfortjeneste.loenudvikling.loenudviklingTotal.value
         : null,
-    loenudviklingSegmenter: pdfModel.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [],
+    loenudviklingSegmenter: [...(pdfModel.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [])],
     perAnsaettelse: (pdfModel.tabtArbejdsfortjeneste.loenudvikling?.perAnsaettelse ?? []).map((entry) => ({
       ansaettelsesforholdId: entry.ansaettelsesforholdId,
       loenudviklingTotalFoerForligOre: entry.loenudviklingTotal.status === 'ok' ? entry.loenudviklingTotal.value : null,
-      loenudviklingSegmenter: entry.beregnedeSegmenter,
+      loenudviklingSegmenter: [...entry.beregnedeSegmenter],
     })),
   },
 });

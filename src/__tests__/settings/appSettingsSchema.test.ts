@@ -162,7 +162,6 @@ describe('resolveDefaultOverenskomstFilter', () => {
   });
 
   it('ugyldig settings → falder tilbage til DEFAULT_APP_SETTINGS', () => {
-    // @ts-expect-error – bevidst ugyldig settings
     const filter = resolveDefaultOverenskomstFilter(resolveAppSettings({ invalid: true }));
     // Default = ALLE → undefined
     expect(filter.loenmodtager).toBeUndefined();

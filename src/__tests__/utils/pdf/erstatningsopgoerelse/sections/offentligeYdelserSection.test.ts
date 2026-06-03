@@ -12,7 +12,7 @@ import {
 import { toISODateString } from '../../../../../types/branded';
 
 const { autoTableMock } = vi.hoisted(() => ({
-  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number; columnStyles?: Record<number, { cellWidth: number }> }) => {
     doc.lastAutoTable = { finalY: (options.startY ?? 0) + 10 };
   }),
 }));
@@ -36,7 +36,6 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
     renderSubheader: vi.fn(),
     ctx: {
       eoValues,
-      lineHeight: 4,
       startEoBilagPage: vi.fn(),
       renderSubheader: vi.fn(),
       shouldIncludeOffentligYdelseRowInEoBilag: vi.fn(() => true),
@@ -48,7 +47,7 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => { y = nextY; }),
         getY: vi.fn(() => y),
-        getDoc: vi.fn(() => doc),
+        getDoc: vi.fn(() => doc as never),
       },
       ...override,
     },
@@ -202,7 +201,6 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
 
     renderOffentligeYdelserSection({
       eoValues,
-      lineHeight: 4,
       startEoBilagPage: vi.fn(),
       renderSubheader: vi.fn(),
       shouldIncludeOffentligYdelseRowInEoBilag: vi.fn(() => true),
@@ -216,7 +214,7 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
           y = nextY;
         }),
         getY: vi.fn(() => y),
-        getDoc: vi.fn(() => doc),
+        getDoc: vi.fn(() => doc as never),
       },
     });
 

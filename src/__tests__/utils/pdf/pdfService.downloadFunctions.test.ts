@@ -230,6 +230,8 @@ describe('downloadRentePdf', () => {
       beloeb: 5000,
       actualInterestDate: '01-06-2024',
       beregningsdato: toISODateString('2024-01-01'),
+      periods: [],
+      latestReferenceRateDate: null,
       settings,
       persistedStamdata: null,
     });
@@ -243,6 +245,8 @@ describe('downloadRentePdf', () => {
       beloeb: 0,
       actualInterestDate: '01-01-2024',
       beregningsdato: toISODateString('2024-01-01'),
+      periods: [],
+      latestReferenceRateDate: null,
       settings,
       persistedStamdata: null,
     });
@@ -390,6 +394,7 @@ describe('EET PDF downloads', () => {
       kapitalisering: false,
       eetEfterEal: false,
       proformaKapitalisering: false,
+    merErstatningPensionsalder: false,
       visUdvidetSpecifikationLoebendeYdelserBilag: false,
     } as const;
 
@@ -483,13 +488,14 @@ describe('downloadErstatningsopgoerelsePdf', () => {
 
   it('videresender midlertidigt EET-grupper til generatoren', async () => {
     const midlertidigtEetGroups = [{
-      afgoerelsesdato: toISODateString('2024-01-01') as never,
+      afgoerelsesdato: toISODateString('2024-01-01'),
       rows: [{
         id: 'oy-1',
         fraDato: toISODateString('2024-01-01'),
         tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'midlertidigt_eet',
       }],
+      perioder: [],
     }];
 
     await downloadErstatningsopgoerelsePdf({
@@ -570,7 +576,7 @@ describe('downloadVarigeMenPdf', () => {
     const result = await downloadVarigeMenPdf({
       fodselsdato: undefined,
       skadedato: undefined,
-      mengrad: undefined,
+      mengrad: 0,
       beregningsdato: undefined,
       beregningsResultat: {} as never,
       settings,
@@ -585,7 +591,7 @@ describe('downloadVarigeMenPdf', () => {
     const result = await downloadVarigeMenPdf({
       fodselsdato: undefined,
       skadedato: undefined,
-      mengrad: undefined,
+      mengrad: 0,
       beregningsdato: undefined,
       beregningsResultat: {} as never,
       settings,

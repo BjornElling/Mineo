@@ -67,7 +67,7 @@ const makeInput = (): {
     advokat: '',
     sagsbehandler: '',
     skadelidte: '',
-    skadestype: '',
+    skadestype: undefined,
     skadedato: iso('2024-01-01'),
   } as StamdataValues,
 });
@@ -592,7 +592,7 @@ describe('buildRegulationTimeline — offentlig løn-path (KL)', () => {
       advokat: '',
       sagsbehandler: '',
       skadelidte: '',
-      skadestype: '',
+      skadestype: undefined,
       skadedato: iso('2024-01-01'),
     } as StamdataValues,
   });

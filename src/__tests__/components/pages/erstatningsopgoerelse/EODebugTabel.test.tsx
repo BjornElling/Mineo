@@ -59,6 +59,7 @@ const makeSammentaelling = (patch: Partial<SammentaellingModel>): Sammentaelling
     taf: baseControl,
     svieSmerteSygedage: baseControl,
     svieSmerteDelvise: baseControl,
+    sfgg: baseControl,
     beregningsperiodeIndtaegter: [],
     tafIndtaegter: [],
   };
@@ -70,12 +71,14 @@ const makeSnapshot = (model: EODebugModel, revision = 'rev-1'): EODebugSnapshot 
     basis: [],
     beregningsperiode: [],
     taf: [],
+    sfgg: [],
   };
 
   return {
     revision,
     createdAt: '2026-03-05T00:00:00.000Z',
     model,
+    debugDays: [],
     sammentaelling: makeSammentaelling({}),
     sammentaellingTables: emptyTables,
     sammentaellingRows: [],

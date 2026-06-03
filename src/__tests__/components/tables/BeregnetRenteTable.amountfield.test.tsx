@@ -51,6 +51,8 @@ describe('BeregnetRenteTable amount commit wiring', () => {
         onDownloadSpecifikation={vi.fn(async () => undefined)}
         onError={() => undefined}
         beregningsdatoHasError={false}
+        referenceRates={[]}
+        surchargeRates={[]}
       />
     );
 

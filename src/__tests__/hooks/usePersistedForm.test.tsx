@@ -64,9 +64,7 @@ describe('usePersistedForm', () => {
     const firstResetForm = captured.resetForm;
 
     act(() => {
-      formPersistenceStore.getState().commitSection('stamdata', { journalnr: 'Opdateret' }, {
-        schemaFingerprint: PERSISTED_DATA_VERSION,
-      });
+      formPersistenceStore.getState().commitSection('stamdata', { journalnr: 'Opdateret' }, {});
     });
 
     rerender(
@@ -413,9 +411,7 @@ describe('usePersistedForm', () => {
     const rendered = renderWithProviders(<Capture />);
 
     act(() => {
-      formPersistenceStore.getState().commitSection('faellesAarsloen', committedFaellesAarsloen, {
-        schemaFingerprint: PERSISTED_DATA_VERSION,
-      });
+      formPersistenceStore.getState().commitSection('faellesAarsloen', committedFaellesAarsloen, {});
     });
 
     expect(captured.values?.aslAarsloen).toEqual({ kind: 'number', value: 512000 });

@@ -10,8 +10,8 @@ const baseRow = (): StandardLoenTableRow => ({
   col1_maaned: '',
   col0_uge: '',
   col1_uge: '',
-  col0_dag: '',
-  col1_dag: '',
+  col0_dag: undefined,
+  col1_dag: undefined,
   col2: undefined,
   col3: undefined,
   col4: undefined,
@@ -30,10 +30,16 @@ const ugeRow = (fraUge: string, tilUge: string): StandardLoenTableRow => ({
   col1_uge: tilUge,
 });
 
+const dagInput = (value: string): StandardLoenTableRow['col0_dag'] => {
+  if (value === '') return undefined;
+  // Enkelte tests simulerer legacy/ugyldige runtime-værdier for at sikre, at parseren selv fail-closer.
+  return value as NonNullable<StandardLoenTableRow['col0_dag']>;
+};
+
 const dagRow = (fraDato: string, tilDato: string): StandardLoenTableRow => ({
   ...baseRow(),
-  col0_dag: fraDato,
-  col1_dag: tilDato,
+  col0_dag: dagInput(fraDato),
+  col1_dag: dagInput(tilDato),
 });
 
 // Hjælper: sammenlign to Date-objekter som UTC-datoer

@@ -72,6 +72,7 @@ describe('EO snapshot PDF projections', () => {
           severity: 'warning',
           source: 'validation' as const,
           message: 'Kun advarsel',
+          blocksAuthoritativeComputation: false,
         },
       ],
     });
@@ -106,6 +107,7 @@ describe('EO snapshot PDF projections', () => {
           severity: 'warning',
           source: 'validation' as const,
           message: 'Kun advarsel',
+          blocksAuthoritativeComputation: false,
         },
       ],
       data: snapshot.data && {

@@ -2,8 +2,13 @@
 
 import { PDF_CONTENT_WIDTH_MM } from '../../../pdf/infrastructure/pdfConfig';
 
+type AutoTableOptions = {
+  startY?: number;
+  columnStyles?: Record<number, { cellWidth: number }>;
+};
+
 const { autoTableMock } = vi.hoisted(() => ({
-  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+  autoTableMock: vi.fn((doc: Record<string, unknown>, options: AutoTableOptions) => {
     doc.lastAutoTable = { finalY: (options.startY ?? 0) + 10 };
   }),
 }));

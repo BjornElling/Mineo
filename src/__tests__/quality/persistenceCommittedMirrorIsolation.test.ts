@@ -26,6 +26,7 @@ const collectBindingIdentifiers = (name: ts.BindingName): string[] => {
 
   const result: string[] = [];
   for (const element of name.elements) {
+    if (ts.isOmittedExpression(element)) continue;
     if (element.dotDotDotToken) continue;
     result.push(...collectBindingIdentifiers(element.name));
   }

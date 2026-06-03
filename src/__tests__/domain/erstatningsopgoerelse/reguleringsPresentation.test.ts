@@ -307,7 +307,7 @@ describe('reguleringsPresentation', () => {
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'Overenskomst';
     af.overenskomstId = 'bygge-anlaeg';
-    af.loenPaaHelligdage = 'SH/SO udbetales';
+    af.loenPaaHelligdage = 'SH-udbetaling';
     af.feriePct = 15;
 
     const table = buildReguleringsvaerdierTableData({
@@ -405,11 +405,12 @@ describe('reguleringsPresentation', () => {
       {
         ansaettelsesforholdId: af.id,
         sfggBeregningskilde,
+        sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggReferenceperiodeFra: undefined,
         sfggReferenceperiodeTil: undefined,
         sfggReferenceperiodeFravaersdageUdenLoen: 0,
         sfggSatsvalg: 'Faglaert-Koebenhavn',
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: asAmountValue(0),
       },
     ];
 
@@ -540,7 +541,7 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingManuelTableData = [
       {
         id: 'm1',
-        dato: '',
+        dato: undefined,
         grundloen: asAmountValue(25174),
         feriepenge: 15.00,
         shSoSats: undefined,
@@ -589,7 +590,7 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingManuelTableData = [
       {
         id: 'm1',
-        dato: '',
+        dato: undefined,
         grundloen: asAmountValue(177.56),
         feriepenge: undefined,
         shSoSats: undefined,
@@ -637,7 +638,7 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingManuelTableData = [
       {
         id: 'm1',
-        dato: '',
+        dato: undefined,
         grundloen: asAmountValue(177.56),
         feriepenge: undefined,
         shSoSats: undefined,
@@ -685,7 +686,7 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingManuelTableData = [
       {
         id: 'm1',
-        dato: '',
+        dato: undefined,
         grundloen: asAmountValue(138.15),
         feriepenge: undefined,
         shSoSats: 12.90,
@@ -723,7 +724,7 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingManuelTableData = [
       {
         id: 'm1',
-        dato: '',
+        dato: undefined,
         grundloen: asAmountValue(100),
         feriepenge: undefined,
         shSoSats: undefined,
@@ -779,7 +780,7 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingManuelTableData = [
       {
         id: 'm1',
-        dato: '',
+        dato: undefined,
         grundloen: asAmountValue(28811.5),
         feriepenge: 15.00,
         shSoSats: undefined,
@@ -826,7 +827,7 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingManuelTableData = [
       {
         id: 'm1',
-        dato: '',
+        dato: undefined,
         grundloen: asAmountValue(100),
         feriepenge: undefined,
         shSoSats: undefined,
@@ -864,7 +865,7 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingManuelTableData = [
       {
         id: 'm1',
-        dato: '',
+        dato: undefined,
         grundloen: asAmountValue(100),
         feriepenge: undefined,
         shSoSats: 10.00,
@@ -911,7 +912,7 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingManuelTableData = [
       {
         id: 'm1',
-        dato: '',
+        dato: undefined,
         grundloen: asAmountValue(25174),
         feriepenge: 15.00,
         shSoSats: undefined,
@@ -983,7 +984,7 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingManuelTableData = [
       {
         id: 'm1',
-        dato: '',
+        dato: undefined,
         grundloen: asAmountValue(100),
         feriepenge: undefined,
         shSoSats: undefined,
@@ -1031,7 +1032,8 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
     af.loenudviklingManuelTableData = [
       {
-        dato: '',
+        id: 'manuel-1',
+        dato: undefined,
         grundloen: asAmountValue(141.24),
         feriepenge: undefined,
         shSoSats: undefined,
@@ -1039,6 +1041,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-2',
         dato: toISODateString('2020-04-01'),
         grundloen: asAmountValue(141.78),
         feriepenge: undefined,
@@ -1047,6 +1050,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-3',
         dato: toISODateString('2020-10-01'),
         grundloen: asAmountValue(142.85),
         feriepenge: undefined,
@@ -1055,6 +1059,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-4',
         dato: toISODateString('2021-04-01'),
         grundloen: asAmountValue(144.28),
         feriepenge: undefined,
@@ -1063,6 +1068,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-5',
         dato: toISODateString('2021-10-01'),
         grundloen: asAmountValue(145.69),
         feriepenge: undefined,
@@ -1071,6 +1077,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-6',
         dato: toISODateString('2022-04-01'),
         grundloen: asAmountValue(145.69),
         feriepenge: undefined,
@@ -1104,7 +1111,8 @@ describe('reguleringsPresentation', () => {
     af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
     af.loenudviklingManuelTableData = [
       {
-        dato: '',
+        id: 'manuel-7',
+        dato: undefined,
         grundloen: asAmountValue(141.2411),
         feriepenge: undefined,
         shSoSats: undefined,
@@ -1112,6 +1120,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-8',
         dato: toISODateString('2020-04-01'),
         grundloen: asAmountValue(141.7798),
         feriepenge: undefined,
@@ -1120,6 +1129,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-9',
         dato: toISODateString('2020-10-01'),
         grundloen: asAmountValue(142.8511),
         feriepenge: undefined,
@@ -1128,6 +1138,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-10',
         dato: toISODateString('2021-04-01'),
         grundloen: asAmountValue(144.2796),
         feriepenge: undefined,
@@ -1136,6 +1147,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-11',
         dato: toISODateString('2021-10-01'),
         grundloen: asAmountValue(145.6933),
         feriepenge: undefined,
@@ -1144,6 +1156,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-12',
         dato: toISODateString('2022-04-01'),
         grundloen: asAmountValue(145.6933),
         feriepenge: undefined,
@@ -1152,6 +1165,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-13',
         dato: toISODateString('2022-10-01'),
         grundloen: asAmountValue(149.4018),
         feriepenge: undefined,
@@ -1160,6 +1174,7 @@ describe('reguleringsPresentation', () => {
         agPension: undefined,
       },
       {
+        id: 'manuel-14',
         dato: toISODateString('2023-01-01'),
         grundloen: asAmountValue(149.4018),
         feriepenge: undefined,

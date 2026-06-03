@@ -4,6 +4,7 @@ import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { createRenteberegningInitialValues } from '../../domain/renteberegning/renteberegningInitialValues';
+import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
@@ -51,14 +52,13 @@ const createValidSections = (): PersistedSectionMap => ({
   },
   erstatningsopgoerelse: createErstatningsopgoerelseInitialValues(),
   erhvervsevnetab: {
-    beregningsdato: undefined,
-    aslAfgoerelser: [],
-    ealEetPct: undefined,
+    ...ERHVERVSEVNETAB_INITIAL_VALUES,
     eetDifferencekravBilagSelection: {
       loebendeYdelser: true,
       kapitalisering: true,
       eetEfterEal: true,
       proformaKapitalisering: true,
+      merErstatningPensionsalder: false,
       visUdvidetSpecifikation: false,
       visUdvidetSpecifikationLoebendeYdelserBilag: false,
     },
@@ -109,7 +109,7 @@ describe('formPersistenceStore public API', () => {
     store.getState().clearAll(VALID_META);
     const before = store.getState();
 
-    store.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    store.getState().commitSection('satser', { aargang: 2025 }, {});
     const after = store.getState();
 
     expect(after.sectionRevisions.satser).toBe(before.sectionRevisions.satser + 1);

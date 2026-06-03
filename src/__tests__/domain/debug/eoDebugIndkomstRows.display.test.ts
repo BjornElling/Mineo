@@ -49,7 +49,7 @@ describe('buildEODebugIndkomstRows display', () => {
       {
         ...af.loenudviklingManuelTableData[0],
         dato: toISODateString('2024-01-01'),
-        grundloen: 100,
+        grundloen: amount(100),
         feriepenge: undefined,
         shSoSats: undefined,
         fritvalg: undefined,
@@ -75,7 +75,7 @@ describe('buildEODebugIndkomstRows display', () => {
       {
         ...af.loenudviklingManuelTableData[0],
         dato: toISODateString('2024-01-01'),
-        grundloen: 100,
+        grundloen: amount(100),
         feriepenge: undefined,
         shSoSats: undefined,
         fritvalg: undefined,

@@ -76,6 +76,7 @@ describe('generateDifferencekravPdf', () => {
         kapitalisering: false,
         eetEfterEal: false,
         proformaKapitalisering: false,
+    merErstatningPensionsalder: false,
         visUdvidetSpecifikationLoebendeYdelserBilag: false,
       },
     });
@@ -138,6 +139,7 @@ describe('generateDifferencekravPdf', () => {
         kapitalisering: false,
         eetEfterEal: false,
         proformaKapitalisering: true,
+    merErstatningPensionsalder: false,
         visUdvidetSpecifikationLoebendeYdelserBilag: false,
       },
     });

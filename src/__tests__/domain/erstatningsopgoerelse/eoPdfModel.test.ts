@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import { toISODateString } from '../../../types/branded';
+import { toDanishDateString, toISODateString } from '../../../types/branded';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { LoenudviklingModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
@@ -123,7 +123,7 @@ const buildPdfModel = (
   if (!snapshot.data) {
     const firstInvariant = snapshot.invariants[0];
     const message = snapshot.failClosedReason === 'runtime_exception'
-      ? firstInvariant?.evidence[0] ?? firstInvariant?.message ?? 'Snapshot fejlede uden invariant-besked'
+      ? firstInvariant?.evidence?.[0] ?? firstInvariant?.message ?? 'Snapshot fejlede uden invariant-besked'
       : firstInvariant?.message ?? 'Snapshot fejlede uden invariant-besked';
     throw new Error(message);
   }
@@ -960,7 +960,7 @@ describe('eoPdfModel', () => {
           feriePct: undefined,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
+            { id: 'm1', dato: undefined, grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
           ],
         },
       ],
@@ -1039,8 +1039,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(1000),
               col3: undefined,
               col4: undefined,
@@ -1297,7 +1297,7 @@ describe('eoPdfModel', () => {
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
+            { id: 'm1', dato: undefined, grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
             { id: 'm2', dato: toISODateString('2024-07-01'), grundloen: asAmountValue(110), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
           ],
         },
@@ -1341,7 +1341,7 @@ describe('eoPdfModel', () => {
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
+            { id: 'm1', dato: undefined, grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
             { id: 'm2', dato: toISODateString('2024-01-31'), grundloen: asAmountValue(110), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
           ],
         },
@@ -1382,7 +1382,7 @@ describe('eoPdfModel', () => {
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
+            { id: 'm1', dato: undefined, grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
             { id: 'm2', dato: toISODateString('2024-01-02'), grundloen: asAmountValue(110), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
           ],
         },
@@ -1423,7 +1423,7 @@ describe('eoPdfModel', () => {
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
+            { id: 'm1', dato: undefined, grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
             { id: 'm2', dato: toISODateString('2024-01-01'), grundloen: asAmountValue(110), feriepenge: 12.5, shSoSats: 5, fritvalg: 2, agPension: 8 },
           ],
         },
@@ -1462,7 +1462,7 @@ describe('eoPdfModel', () => {
           feriePct: 12.5,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(30000), feriepenge: 12.5, shSoSats: 0, fritvalg: 0, agPension: 10 },
+            { id: 'm1', dato: undefined, grundloen: asAmountValue(30000), feriepenge: 12.5, shSoSats: 0, fritvalg: 0, agPension: 10 },
             { id: 'm2', dato: toISODateString('2025-01-01'), grundloen: asAmountValue(31000), feriepenge: 15.0, shSoSats: 0, fritvalg: 0, agPension: 10 },
           ],
         },
@@ -1501,7 +1501,7 @@ describe('eoPdfModel', () => {
           feriePct: 15,
           loenudviklingManuelNavn: 'Manuel test',
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(30000), feriepenge: undefined, shSoSats: 0, fritvalg: 0, agPension: 10 },
+            { id: 'm1', dato: undefined, grundloen: asAmountValue(30000), feriepenge: undefined, shSoSats: 0, fritvalg: 0, agPension: 10 },
             { id: 'm2', dato: toISODateString('2025-01-01'), grundloen: asAmountValue(31000), feriepenge: undefined, shSoSats: 0, fritvalg: 0, agPension: 10 },
           ],
         },
@@ -1547,8 +1547,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2023',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -1568,8 +1568,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2023',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(8000),
               col3: undefined,
               col4: undefined,
@@ -1625,8 +1625,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2023',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -1646,8 +1646,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2023',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(8000),
               col3: undefined,
               col4: undefined,
@@ -1700,8 +1700,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2023',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -1721,8 +1721,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2023',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(8000),
               col3: undefined,
               col4: undefined,
@@ -2092,8 +2092,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2021',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -2146,8 +2146,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2021',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -2199,8 +2199,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2021',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -2349,8 +2349,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2024',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -2362,8 +2362,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2024',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -2371,7 +2371,7 @@ describe('eoPdfModel', () => {
             },
           ],
           loenudviklingManuelTableData: [
-            { id: 'm1', dato: '', grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: undefined, fritvalg: undefined, agPension: 8 },
+            { id: 'm1', dato: undefined, grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: undefined, fritvalg: undefined, agPension: 8 },
             { id: 'm2', dato: toISODateString('2024-02-01'), grundloen: asAmountValue(100), feriepenge: 12.5, shSoSats: undefined, fritvalg: undefined, agPension: 10 },
           ],
         },
@@ -2422,8 +2422,8 @@ describe('eoPdfModel', () => {
                 col1_maaned: '2024',
                 col0_uge: '',
                 col1_uge: '',
-                col0_dag: '',
-                col1_dag: '',
+                col0_dag: undefined,
+                col1_dag: undefined,
                 col2: asAmountValue(10000),
                 col3: undefined,
                 col4: undefined,
@@ -2435,8 +2435,8 @@ describe('eoPdfModel', () => {
                 col1_maaned: '2024',
                 col0_uge: '',
                 col1_uge: '',
-                col0_dag: '',
-                col1_dag: '',
+                col0_dag: undefined,
+                col1_dag: undefined,
                 col2: asAmountValue(10000),
                 col3: undefined,
                 col4: undefined,
@@ -2491,8 +2491,8 @@ describe('eoPdfModel', () => {
                 col1_maaned: '2023',
                 col0_uge: '',
                 col1_uge: '',
-                col0_dag: '',
-                col1_dag: '',
+                col0_dag: undefined,
+                col1_dag: undefined,
                 col2: asAmountValue(20000),
                 col3: undefined,
                 col4: undefined,
@@ -2521,7 +2521,7 @@ describe('eoPdfModel', () => {
     const baseAf = {
       ...createDefaultLoenindkomstAnsaettelsesforhold(),
       loenudviklingBeregningsgrundlag: 'Statistik' as const,
-      loenudviklingStatistikModel: 'ILON12 (Danmarks Statistik)',
+      loenudviklingStatistikModel: loenudviklingStatistikModelEnum.enum['ILON12 (Danmarks Statistik)'],
       indtaegtsoplysningerTableData: [
         {
           id: 'r1',
@@ -2529,8 +2529,8 @@ describe('eoPdfModel', () => {
           col1_maaned: '2000',
           col0_uge: '',
           col1_uge: '',
-          col0_dag: '',
-          col1_dag: '',
+          col0_dag: undefined,
+          col1_dag: undefined,
           col2: asAmountValue(10000),
           col3: undefined,
           col4: undefined,
@@ -2598,8 +2598,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2023',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -2802,8 +2802,8 @@ describe('eoPdfModel', () => {
               col1_maaned: '2023',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(30000),
               col3: undefined,
               col4: undefined,
@@ -2839,7 +2839,7 @@ describe('eoPdfModel', () => {
           loenudviklingManuelTableData: [
             {
               id: 'm1',
-              dato: '',
+              dato: undefined,
               grundloen: asAmountValue(25174),
               feriepenge: 15.00,
               shSoSats: undefined,
@@ -2895,7 +2895,7 @@ describe('eoPdfModel', () => {
           loenudviklingManuelTableData: [
             {
               id: 'm1',
-              dato: '',
+              dato: undefined,
               grundloen: asAmountValue(177.56),
               feriepenge: undefined,
               shSoSats: undefined,
@@ -2996,8 +2996,8 @@ describe('eoPdfModel', () => {
       id: 'KTO (kommuner)',
       navn: 'KTO (kommuner)',
       vaerdier: [
-        { fraDato: toISODateString('2001-10-01'), reguleringsPct: -100 },
-        { fraDato: toISODateString('2001-04-01'), reguleringsPct: 0 },
+        { fraDato: toDanishDateString('01-10-2001'), reguleringsPct: -100 },
+        { fraDato: toDanishDateString('01-04-2001'), reguleringsPct: 0 },
       ],
     });
     try {
@@ -3025,7 +3025,7 @@ describe('eoPdfModel', () => {
 
   it('fejler fail-closed ved ugyldig overenskomst-satsdata (privat)', () => {
     const spy = vi.spyOn(overenskomstRatesData, 'getEffektiveSatserForDato').mockReturnValue({
-      fraDato: toISODateString('2011-03-01'),
+      fraDato: toDanishDateString('01-03-2011'),
       grundloen: 0,
       shSoSats: 0.069,
       fritvalg: null,
@@ -3098,3 +3098,4 @@ describe('eoPdfModel', () => {
     }
   });
 });
+

@@ -27,8 +27,8 @@ const createEmptyRow = (): StandardLoenTableRow => ({
   col1_maaned: '',
   col0_uge: '',
   col1_uge: '',
-  col0_dag: '',
-  col1_dag: '',
+  col0_dag: undefined,
+  col1_dag: undefined,
   col2: undefined,
   col3: undefined,
   col4: undefined,
@@ -43,7 +43,7 @@ describe('calculateLoenindkomstRowDerived', () => {
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       shSoPct: 0,
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
+        { id: 'base', dato: undefined, grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
         { id: 'step', dato: toISODateString('2024-01-15'), grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 10, fritvalg: undefined, agPension: undefined },
       ],
     };
@@ -113,7 +113,7 @@ describe('calculateLoenindkomstRowDerived', () => {
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       shSoPct: 0,
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
+        { id: 'base', dato: undefined, grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
         { id: 'step', dato: toISODateString('2024-01-15'), grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 10, fritvalg: undefined, agPension: undefined },
       ],
     };
@@ -146,7 +146,7 @@ describe('calculateLoenindkomstRowDerived', () => {
       loenudviklingBeregningsgrundlag: 'Manuelt angivet' as const,
       shSoPct: 0,
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '', grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
+        { id: 'base', dato: undefined, grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
         { id: 'step', dato: toISODateString('2024-01-10'), grundloen: asAmountValue(0), feriepenge: undefined, shSoSats: 10, fritvalg: undefined, agPension: undefined },
       ],
     };
@@ -160,8 +160,8 @@ describe('calculateLoenindkomstRowDerived', () => {
       ...createBaseContext(),
       beregnesUdFra: 'Angivet dagsløn' as const,
       loenindkomstAnsaettelsesforhold: [ansaettelsesforhold],
-      ferieperioder: [{ id: 'ferie-1', fra: toISODateString('2024-01-11') as const, til: toISODateString('2024-01-11') as const }],
-      fravaerPerioder: [{ id: 'fravaer-1', fra: toISODateString('2024-01-12') as const, til: toISODateString('2024-01-12') as const }],
+      ferieperioder: [{ id: 'ferie-1', fra: toISODateString('2024-01-11'), til: toISODateString('2024-01-11') }],
+      fravaerPerioder: [{ id: 'fravaer-1', fra: toISODateString('2024-01-12'), til: toISODateString('2024-01-12') }],
     };
 
     const result = calculateLoenindkomstRowDerived({

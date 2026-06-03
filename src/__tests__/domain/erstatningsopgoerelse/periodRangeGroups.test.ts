@@ -98,7 +98,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
     it('med TAF-periode og ingen beregningsperiode → én "TAF-periode"-gruppe', () => {
       const eoValues = makeEoValues({
         eoNummer: undefined,
-        beregnesUdFra: 'TAF',
+        beregnesUdFra: 'Angivet månedsløn',
         tafBeregningsperiodeFra: undefined,
         tafBeregningsperiodeTil: undefined,
         vedroererPeriodeFra: iso('2022-01-01'),
@@ -171,7 +171,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
     it('TAF-gruppe tilføjes stadig for anden opgørelse', () => {
       const eoValues = makeEoValues({
         eoNummer: '2',
-        beregnesUdFra: 'TAF',
+        beregnesUdFra: 'Angivet månedsløn',
         vedroererPeriodeFra: iso('2022-01-01'),
         vedroererPeriodeTil: iso('2024-12-31'),
         tafPerioder: [
@@ -207,7 +207,7 @@ describe('buildPeriodRangeGroups – Perioden', () => {
     it('selv for første opgørelse: ingen "Beregningsperiode"-gruppe når beregnesUdFra = "TAF"', () => {
       const eoValues = makeEoValues({
         eoNummer: undefined,
-        beregnesUdFra: 'TAF',
+        beregnesUdFra: 'Angivet månedsløn',
         tafBeregningsperiodeFra: iso('2023-01-01'),
         tafBeregningsperiodeTil: iso('2023-12-31'),
         tafPerioder: [],

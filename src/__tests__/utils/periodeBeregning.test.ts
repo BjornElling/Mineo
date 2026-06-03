@@ -12,15 +12,15 @@ import {
 import type { ISODateString } from '../../types/branded';
 import { toISODateString } from '../../types/branded';
 
-const formatIso = (date: Date): string => {
+const formatIso = (date: Date): ISODateString => {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, '0');
   const day = String(date.getUTCDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return toISODateString(`${year}-${month}-${day}`);
 };
 
-const buildIsoSet = (start: Date, end: Date): Set<string> => {
-  const set = new Set<string>();
+const buildIsoSet = (start: Date, end: Date): Set<ISODateString> => {
+  const set = new Set<ISODateString>();
   const current = new Date(start.getTime());
   while (current <= end) {
     set.add(formatIso(current));

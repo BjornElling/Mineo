@@ -33,6 +33,7 @@ describe('EetDifferencekravTab', () => {
               kapitalisering: false,
               eetEfterEal: false,
               proformaKapitalisering: false,
+    merErstatningPensionsalder: false,
               visUdvidetSpecifikationLoebendeYdelserBilag: false,
             },
           } as never}

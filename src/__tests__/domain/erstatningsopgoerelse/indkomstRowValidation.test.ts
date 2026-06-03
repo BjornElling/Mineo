@@ -27,8 +27,8 @@ const baseAarsloenRow = (id: string): StandardLoenTableRow => ({
   col1_maaned: '',
   col0_uge: '',
   col1_uge: '',
-  col0_dag: '',
-  col1_dag: '',
+  col0_dag: undefined,
+  col1_dag: undefined,
   col2: undefined,
   col3: undefined,
   col4: undefined,
@@ -47,7 +47,7 @@ const ugeRow = (id: string, fra: string, til: string): StandardLoenTableRow => (
   col1_uge: til,
 });
 
-const dagRow = (id: string, fra: string, til: string): StandardLoenTableRow => ({
+const dagRow = (id: string, fra: ISODateString, til: ISODateString): StandardLoenTableRow => ({
   ...baseAarsloenRow(id),
   col0_dag: fra,
   col1_dag: til,
@@ -191,7 +191,7 @@ describe('buildStandardLoenCellErrors', () => {
     });
 
     it('fejl for ugyldigt datoformat', () => {
-      const errors = buildStandardLoenCellErrors([dagRow('r1', '01-01-2024', toISODateString('2024-01-31'))], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', invalidIso('01-01-2024'), toISODateString('2024-01-31'))], 'dag');
       expect(errors['r1:col0_dag']).toBe(true);
     });
 
@@ -207,7 +207,7 @@ describe('buildStandardLoenCellErrors', () => {
     });
 
     it('fejl for ugyldig dato (31. februar)', () => {
-      const errors = buildStandardLoenCellErrors([dagRow('r1', '31-02-2024', '28-02-2024')], 'dag');
+      const errors = buildStandardLoenCellErrors([dagRow('r1', invalidIso('31-02-2024'), invalidIso('28-02-2024'))], 'dag');
       expect(errors['r1:col0_dag']).toBe(true);
     });
   });
@@ -242,7 +242,7 @@ describe('buildOffentligeYdelserCellErrors', () => {
 
   it('fejl for ugyldigt tilDato-format', () => {
     const errors = buildOffentligeYdelserCellErrors([
-      offentligRow('r1', { tilDato: 'ikke-en-dato' }),
+      offentligRow('r1', { tilDato: invalidIso('ikke-en-dato') }),
     ]);
     expect(errors['r1:tilDato']).toBe(true);
   });

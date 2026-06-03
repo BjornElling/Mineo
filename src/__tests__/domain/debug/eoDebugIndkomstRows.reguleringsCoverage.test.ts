@@ -4,9 +4,11 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 
 const iso = (value: string) => toISODateString(value);
+const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
 const cloneInitialValues = () => ({
   ...createErstatningsopgoerelseInitialValues(),
@@ -51,7 +53,7 @@ describe('buildEODebugIndkomstRows regulering details', () => {
       {
         ...af.loenudviklingManuelTableData[0],
         dato: toISODateString('2024-01-01'),
-        grundloen: 100,
+        grundloen: amount(100),
         feriepenge: undefined,
         shSoSats: undefined,
         fritvalg: undefined,
@@ -82,7 +84,7 @@ describe('buildEODebugIndkomstRows regulering details', () => {
       {
         ...af.loenudviklingManuelTableData[0],
         dato: toISODateString('2024-01-02'),
-        grundloen: 100,
+        grundloen: amount(100),
         feriepenge: undefined,
         shSoSats: undefined,
         fritvalg: undefined,
@@ -159,7 +161,7 @@ describe('buildEODebugIndkomstRows regulering details', () => {
       {
         ...af.loenudviklingManuelTableData[0],
         dato: toISODateString('2024-01-01'),
-        grundloen: 100,
+        grundloen: amount(100),
         feriepenge: undefined,
         shSoSats: undefined,
         fritvalg: undefined,

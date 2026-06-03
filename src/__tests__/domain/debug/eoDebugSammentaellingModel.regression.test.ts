@@ -15,11 +15,15 @@ import {
 } from '../../../domain/debug/eoDebugSammentaelling';
 import type { FieldErrorsForSection } from '../../../types/fieldErrors';
 import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
+import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { toISODateString } from '../../../types/branded';
+
+const amount = (value: number): AmountValue => ({ kind: 'number', value });
 
 describe('buildEODebugSammentaellingModel regression', () => {
   it('beregner stadig TAF-arbejdsdage når beregningsenhed er måneder', () => {
-    const values = {
+    const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2025-08-01'),
       vedroererPeriodeTil: toISODateString('2026-01-31'),
@@ -61,7 +65,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
   });
 
   it('tæller TAF-dage uden ansættelsesforhold også når TAF beregnes som arbejdsdage', () => {
-    const values = {
+    const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2024-03-01'),
       vedroererPeriodeTil: toISODateString('2024-03-10'),
@@ -83,8 +87,8 @@ describe('buildEODebugSammentaellingModel regression', () => {
           id: 'ydelse-1',
           fraDato: toISODateString('2024-03-01'),
           tilDato: toISODateString('2024-03-10'),
-          ydelse: 1000,
-          tillaeg: 0,
+          ydelse: amount(1000),
+          tillaeg: amount(0),
           ydelsestype: 'sygedagpenge',
         },
       ],
@@ -112,7 +116,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
   });
 
   it('tæller ikke Endeligt EET-dagen som TAF-dag uden ansættelsesforhold', () => {
-    const values = {
+    const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2024-01-01'),
       vedroererPeriodeTil: toISODateString('2024-01-10'),
@@ -153,7 +157,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
   });
 
   it('tæller ikke arbejdsdage i beregningsperiode når beregningsgrundlag er Angivet månedsløn', () => {
-    const values = {
+    const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2025-08-01'),
       vedroererPeriodeTil: toISODateString('2026-01-31'),
@@ -165,8 +169,8 @@ describe('buildEODebugSammentaellingModel regression', () => {
           id: 'ydelse-1',
           fraDato: toISODateString('2025-09-01'),
           tilDato: toISODateString('2025-09-30'),
-          ydelse: 1000,
-          tillaeg: 0,
+          ydelse: amount(1000),
+          tillaeg: amount(0),
           ydelsestype: 'dagpenge',
         },
       ],
@@ -203,7 +207,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
   });
 
   it('medregner ikke TAF i sammentælling når kravPaaTabtArbejdsfortjeneste er Nej', () => {
-    const values = {
+    const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2025-08-01'),
       vedroererPeriodeTil: toISODateString('2026-01-31'),
@@ -241,7 +245,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
   });
 
   it('viser offentlige ydelser som hypotetisk positivt TAF-led i sammentællingen', () => {
-    const values = {
+    const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2025-01-01'),
       vedroererPeriodeTil: toISODateString('2025-01-31'),
@@ -328,7 +332,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
   });
 
   it('logger ikke parseAmount string-advarsel ved svie/smerte-optælling', () => {
-    const values = {
+    const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2024-01-26'),
       vedroererPeriodeTil: toISODateString('2025-11-02'),
@@ -383,7 +387,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
   });
 
   it('viser svie/smerte-dage i tabellen når debug-tabellen kun drives af svie/smerte-perioder', () => {
-    const values = {
+    const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2024-01-26'),
       vedroererPeriodeTil: toISODateString('2025-11-02'),
@@ -447,7 +451,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
   });
 
   it('viser clampede svie/smerte-dage i sammentælling i stedet for range-fejl', () => {
-    const values = {
+    const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2023-05-24'),
       vedroererPeriodeTil: toISODateString('2025-12-21'),
@@ -498,7 +502,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
   });
 
   it('viser ikke beregnede svie/smerte-tal uden autoritativt engine-output', () => {
-    const values = {
+    const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2024-01-01'),
       vedroererPeriodeTil: toISODateString('2024-01-31'),
@@ -534,7 +538,7 @@ describe('buildEODebugSammentaellingModel regression', () => {
   });
 
   it('afstemmer TAF-loen med debug-tabellen når en dagrække krydser overenskomstregulering med almindelig løn på helligdage', () => {
-    const values = {
+    const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),
       vedroererPeriodeFra: toISODateString('2024-02-26'),
       vedroererPeriodeTil: toISODateString('2024-03-05'),

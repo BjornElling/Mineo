@@ -36,9 +36,9 @@ describe('fileLoad decrypt failure', () => {
     selectFileMock.mockResolvedValueOnce(file);
     readFileMock.mockResolvedValueOnce('not-json');
 
-    await expect(loadFromFile()).rejects.toMatchObject<CalculationError>({
+    await expect(loadFromFile()).rejects.toMatchObject({
       code: 'FILE_LOAD_FAILED',
       name: 'CalculationError',
-    });
+    } satisfies Partial<CalculationError>);
   });
 });

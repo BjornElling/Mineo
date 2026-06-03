@@ -167,6 +167,7 @@ describe('EET PDF empty states', () => {
         kapitalisering: true,
         eetEfterEal: false,
         proformaKapitalisering: false,
+    merErstatningPensionsalder: false,
         visUdvidetSpecifikationLoebendeYdelserBilag: false,
       },
     });
@@ -235,6 +236,7 @@ describe('EET PDF empty states', () => {
         kapitalisering: false,
         eetEfterEal: false,
         proformaKapitalisering: true,
+    merErstatningPensionsalder: false,
         visUdvidetSpecifikationLoebendeYdelserBilag: false,
       },
     });
@@ -318,6 +320,7 @@ describe('EET PDF empty states', () => {
         kapitalisering: false,
         eetEfterEal: false,
         proformaKapitalisering: false,
+    merErstatningPensionsalder: false,
         visUdvidetSpecifikationLoebendeYdelserBilag: false,
       },
     });
@@ -405,6 +408,7 @@ describe('EET PDF empty states', () => {
         kapitalisering: false,
         eetEfterEal: false,
         proformaKapitalisering: false,
+    merErstatningPensionsalder: false,
         visUdvidetSpecifikationLoebendeYdelserBilag: true,
       },
     });

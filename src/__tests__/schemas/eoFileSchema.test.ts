@@ -78,6 +78,7 @@ describe('eoFileDataSchema', () => {
           kapitalisering: true,
           eetEfterEal: true,
           proformaKapitalisering: false,
+    merErstatningPensionsalder: false,
           visUdvidetSpecifikation: false,
           visUdvidetSpecifikationLoebendeYdelserBilag: false,
         },

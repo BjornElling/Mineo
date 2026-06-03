@@ -3,8 +3,8 @@ import { insertOffentligeYdelserRowsBeforeTrailingEmpty } from '../../../domain/
 
 const makeRow = (id: string, overrides: Partial<OffentligeYdelserRow> = {}): OffentligeYdelserRow => ({
   id,
-  fraDato: '',
-  tilDato: '',
+  fraDato: undefined,
+  tilDato: undefined,
   ydelse: undefined,
   tillaeg: undefined,
   ydelsestype: '',

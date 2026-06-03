@@ -72,6 +72,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     regulering: false,
     okSatser: false,
     sygeferiegodtgoerelse: false,
+    midlertidigEet: false,
   };
 
   beforeEach(() => {
@@ -86,7 +87,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     ({ generateErstatningsopgoerelsePdf } = await import('../../../pdf/domains/eo/erstatningsopgoerelsePdf'));
   }, 20000);
 
-  const createBaseStamdata = () => structuredClone(STAMDATA_INITIAL_VALUES);
+  const createBaseStamdata = (): StamdataValues => structuredClone(STAMDATA_INITIAL_VALUES);
 
   const createBaseEo = () => {
     const values = createErstatningsopgoerelseInitialValues();

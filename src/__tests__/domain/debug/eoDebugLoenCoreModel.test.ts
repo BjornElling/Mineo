@@ -83,7 +83,7 @@ describe('buildLoenTimeline - Phase 5.2 (rettet)', () => {
   it('udelader grundloenspakke uden EO-periode', () => {
     const debugDays = [makeDebugDay(toISODateString('2024-01-02'), true)];
     const result = buildLoenTimeline(
-      makeInput(debugDays, { vedroererPeriodeFra: '', vedroererPeriodeTil: '' })
+      makeInput(debugDays, { vedroererPeriodeFra: undefined, vedroererPeriodeTil: undefined })
     );
     expect(result.loenDays.length).toBe(0);
   });

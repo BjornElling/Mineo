@@ -131,7 +131,7 @@ describe('undo/redo-fokus for blur-commit-felter og radio', () => {
       formPersistenceStore.getState().commitSection(
         'erstatningsopgoerelse',
         { ...eoInitialValues, forligDato: toISODateString('2024-03-15') },
-        { schemaFingerprint: PERSISTED_DATA_VERSION }
+        {}
       );
     });
 
@@ -149,7 +149,7 @@ describe('undo/redo-fokus for blur-commit-felter og radio', () => {
       formPersistenceStore.getState().commitSection(
         'erstatningsopgoerelse',
         { ...eoInitialValues, svieSmerteDelvisSygemeldingSats: 'fuld' },
-        { schemaFingerprint: PERSISTED_DATA_VERSION }
+        {}
       );
     });
 

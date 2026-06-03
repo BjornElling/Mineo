@@ -12,20 +12,44 @@ import {
 import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
 import { toISODateString } from '../../../types/branded';
 
-const createRow = (overrides: Partial<StandardLoenTableRow> = {}): StandardLoenTableRow => ({
-  id: 'row-1',
-  col0_maaned: '',
-  col1_maaned: '',
-  col0_uge: '',
-  col1_uge: '',
-  col0_dag: '',
-  col1_dag: '',
-  col2: 0,
-  col3: 0,
-  col4: 0,
-  col5: 0,
-  ...overrides,
-});
+type StandardLoenTestRowOverrides = Omit<Partial<StandardLoenTableRow>, 'col0_dag' | 'col1_dag' | 'col2' | 'col3' | 'col4' | 'col5'> & {
+  col0_dag?: string;
+  col1_dag?: string;
+  col2?: number | StandardLoenTableRow['col2'];
+  col3?: number | StandardLoenTableRow['col3'];
+  col4?: number | StandardLoenTableRow['col4'];
+  col5?: number | StandardLoenTableRow['col5'];
+};
+
+const asAmountValue = (
+  value: number | StandardLoenTableRow['col2'] | undefined
+): StandardLoenTableRow['col2'] => {
+  if (typeof value === 'number') return { kind: 'number', value };
+  return value;
+};
+
+const asTableIsoDate = (value: string | undefined): StandardLoenTableRow['col0_dag'] => {
+  if (!value) return undefined;
+  return toISODateString(value);
+};
+
+const createRow = (overrides: StandardLoenTestRowOverrides = {}): StandardLoenTableRow => {
+  const { col0_dag, col1_dag, col2, col3, col4, col5, ...rest } = overrides;
+  return {
+    id: 'row-1',
+    col0_maaned: '',
+    col1_maaned: '',
+    col0_uge: '',
+    col1_uge: '',
+    ...rest,
+    col0_dag: asTableIsoDate(col0_dag),
+    col1_dag: asTableIsoDate(col1_dag),
+    col2: asAmountValue(col2 ?? 0),
+    col3: asAmountValue(col3 ?? 0),
+    col4: asAmountValue(col4 ?? 0),
+    col5: asAmountValue(col5 ?? 0),
+  };
+};
 
 describe('calculateStandardLoenRowDerived — Store Bededag', () => {
   it('storeBededagPct indgår i fpFvShSo-grundlaget (beregnes af løn inkl. ikke-pens.giv.)', () => {
@@ -433,8 +457,8 @@ describe('isStandardLoenRowEffectivelyEmpty', () => {
       col1_maaned: '',
       col0_uge: '',
       col1_uge: '',
-      col0_dag: '',
-      col1_dag: '',
+      col0_dag: undefined,
+      col1_dag: undefined,
       col2: undefined,
       col3: undefined,
       col4: undefined,
@@ -495,7 +519,7 @@ describe('hasCompletePeriodForLoenperiode', () => {
   });
 
   it('dag: kun til-felt sat → false', () => {
-    const row = createRow({ col0_dag: '', col1_dag: toISODateString('2024-01-31') });
+    const row = createRow({ col0_dag: undefined, col1_dag: toISODateString('2024-01-31') });
     expect(hasCompletePeriodForLoenperiode(row, 'dag')).toBe(false);
   });
 });

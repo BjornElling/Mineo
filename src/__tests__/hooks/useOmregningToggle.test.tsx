@@ -160,7 +160,7 @@ describe('useOmregningToggle', () => {
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => null),
+          getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
         }}
@@ -194,7 +194,7 @@ describe('useOmregningToggle', () => {
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => null),
+          getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError,
           flashError,
         }}
@@ -228,7 +228,7 @@ describe('useOmregningToggle', () => {
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => null),
+          getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
         }}
@@ -244,7 +244,7 @@ describe('useOmregningToggle', () => {
     expect(onEnabledChange).not.toHaveBeenCalled();
   });
 
-  it('blokerer enable når getValidationSummary returnerer null (ingen firstErrorCell)', async () => {
+  it('blokerer enable når getValidationSummary ikke har firstErrorCell', async () => {
     const shake = vi.fn();
     const showMissingEntryError = vi.fn();
     const flashError = vi.fn();
@@ -263,7 +263,7 @@ describe('useOmregningToggle', () => {
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => null),
+          getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError,
           flashError,
         }}
@@ -298,7 +298,7 @@ describe('useOmregningToggle', () => {
         onEnabledChange={onEnabledChange}
         tableRefMock={{
           getErrors: vi.fn(),
-          getValidationSummary: vi.fn(() => null),
+          getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
         }}

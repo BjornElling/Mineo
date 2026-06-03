@@ -6,6 +6,7 @@ import { AARSLOEN_INITIAL_VALUES } from '../../../domain/aarsloen/aarsloenInitia
 import type { StandardLoenTableValidationSummary, TableError } from '../../../types/table';
 import type { StandardLoenTableHandle } from '../../../types/handles';
 import { toISODateString } from '../../../types/branded';
+import type { AarsloenValues } from '../../../schemas/formSchemas/sections/aarsloenSchemas';
 
 const {
   stateRef,
@@ -13,7 +14,7 @@ const {
   tableHandleSpies,
 } = vi.hoisted(() => ({
   stateRef: {
-    values: null as unknown as typeof AARSLOEN_INITIAL_VALUES,
+    values: null as unknown as AarsloenValues,
   },
   summaryRef: {
     current: {

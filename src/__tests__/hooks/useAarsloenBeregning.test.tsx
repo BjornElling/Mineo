@@ -57,8 +57,8 @@ const makeValues = (patch: Partial<AarsloenValues> = {}): AarsloenValues => ({
       col1_maaned: '2024',
       col0_uge: '',
       col1_uge: '',
-      col0_dag: '',
-      col1_dag: '',
+      col0_dag: undefined,
+      col1_dag: undefined,
       col2: undefined,
       col3: undefined,
       col4: undefined,
@@ -79,12 +79,27 @@ describe('useAarsloenBeregning (wire-up/control-flow)', () => {
     mockedSafeCompute.mockImplementation((fn) => ({ success: true, value: fn() }));
     mockedHarTabelData.mockReturnValue(true);
     mockedBeregnMaanedPeriode.mockReturnValue({
-      antalEnheder: 1,
-      periodeDage: 31,
+      periodeTekst: 'januar 2024',
+      totalEnheder: 1,
+      unikkeEnheder: 1,
+      enhedNavn: 'måned',
       datoSet: new Set([toISODateString('2024-01-01')]),
+      perioder: [{ start: new Date(Date.UTC(2024, 0, 1)), end: new Date(Date.UTC(2024, 0, 31)) }],
     });
     mockedBeregnSHDageForDatoSet.mockReturnValue(2);
-    mockedBeregnOmregnetAarsloen.mockReturnValue({ metode: 'periode', erEtAar: false });
+    mockedBeregnOmregnetAarsloen.mockReturnValue({
+      metode: 'A',
+      erEtAar: false,
+      hverdageIPeriode: 23,
+      feriedageFraInput: 0,
+      arbejdsdageIPeriode: 23,
+      feriedagePaaAar: 25,
+      arbejdsdagePaaAar: 236,
+      hverdagePaaAar: 261,
+      omregnetAarsloen: 0,
+      antalEnheder: 1,
+      antalHeleKalendermaaneder: 1,
+    });
   });
 
   it('beregner ikke SH-dage når omregning er deaktiveret', () => {

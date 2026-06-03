@@ -116,6 +116,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
       skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
       differencekravDato: undefined,
       verserendeKlageEet: false,
     };
@@ -135,7 +136,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
       ferieperioder: [
         { id: 'f1', fra: iso('2024-01-05'), til: iso('2024-01-10') },
       ],
-      tidligereModtagetTaf: { value: 1234, expression: '1234' },
+      tidligereModtagetTaf: { kind: 'expression' as const, value: 1234, expression: '1234' },
     };
 
     const context = {
@@ -143,6 +144,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
       skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
       differencekravDato: undefined,
       verserendeKlageEet: false,
     };
@@ -174,6 +176,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
       skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
       differencekravDato: undefined,
       verserendeKlageEet: false,
     };
@@ -201,6 +204,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
       skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
       differencekravDato: undefined,
       verserendeKlageEet: false,
     };
@@ -228,6 +232,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
       skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
       differencekravDato: undefined,
       verserendeKlageEet: false,
     };
@@ -254,6 +259,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
       skadelidteFodselsdato: undefined,
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
       differencekravDato: undefined,
       verserendeKlageEet: false,
     };
@@ -285,6 +291,7 @@ describe('buildEODebugTaftRows overlap parity', () => {
       skadelidteFodselsdato: iso('1950-01-01'),
       erErhvervssygdom: false,
       endeligEETBeregnetDato: undefined,
+      midlertidigEETBeregnetDato: undefined,
       differencekravDato: undefined,
       verserendeKlageEet: false,
     };

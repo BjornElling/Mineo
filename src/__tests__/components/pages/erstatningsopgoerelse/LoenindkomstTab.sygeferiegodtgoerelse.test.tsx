@@ -7,6 +7,7 @@ import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
 } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import type { ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 
 const mockStamdata = {
   skadedato: toISODateString('2024-01-01'),
@@ -36,7 +37,7 @@ vi.mock('../../../../contexts/useAppSettings', () => ({
 describe('LoenindkomstTab sygeferiegodtgørelse', () => {
   const renderLoenindkomstTab = (
     eoValues = createErstatningsopgoerelseInitialValues(),
-    overrides?: Readonly<{ onAnsaettelsesforholdChange?: ReturnType<typeof vi.fn> }>
+    overrides?: Readonly<{ onAnsaettelsesforholdChange?: React.ComponentProps<typeof LoenindkomstTab>['onAnsaettelsesforholdChange'] }>
   ) => render(
     <MemoryRouter>
       <LoenindkomstTab
@@ -47,8 +48,11 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
         ferieperioder={eoValues.ferieperioder}
         fravaerPerioder={eoValues.fravaerPerioder}
         eoValues={eoValues}
-        setEOValues={vi.fn()}
-        onAnsaettelsesforholdChange={overrides?.onAnsaettelsesforholdChange ?? vi.fn()}
+        setEOValues={vi.fn<React.ComponentProps<typeof LoenindkomstTab>['setEOValues']>()}
+        onAnsaettelsesforholdChange={
+          overrides?.onAnsaettelsesforholdChange ?? vi.fn<React.ComponentProps<typeof LoenindkomstTab>['onAnsaettelsesforholdChange']>()
+        }
+        onNavigateToTabtArbejdsfortjeneste={vi.fn()}
       />
     </MemoryRouter>
   );
@@ -125,7 +129,7 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
 
     await waitFor(() => expect(onAnsaettelsesforholdChange).toHaveBeenCalled());
 
-    const updater = onAnsaettelsesforholdChange.mock.calls[0]?.[0] as ((current: typeof eoValues.loenindkomstAnsaettelsesforhold) => typeof eoValues.loenindkomstAnsaettelsesforhold);
+    const updater = onAnsaettelsesforholdChange.mock.calls[0]?.[0] as ((current: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']) => ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold']);
     const next = updater(eoValues.loenindkomstAnsaettelsesforhold);
 
     expect(next[0]?.pensionPct).toBeCloseTo(10.15, 10);
@@ -188,7 +192,7 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
         sfggManuelBeloebIHenholdTil: undefined,
         sfggManuelFoerstEfterSygeloen: 'Nej',
         sfggSatsvalg: undefined,
-        sfggAlleredeBetaltBeloeb: '0,00',
+        sfggAlleredeBetaltBeloeb: { kind: 'number', value: 0 },
       },
     ];
 

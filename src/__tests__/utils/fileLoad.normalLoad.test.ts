@@ -77,6 +77,8 @@ describe('fileLoad – normalLoadFlow', () => {
     if (!result.success) return;
     expect(result.filename).toBe('sag.eo');
     expect(result.source).toBe('manual');
+    expect(result.snapshot).toBeDefined();
+    if (!result.snapshot) return;
     expect(result.snapshot.stamdata).toBeDefined();
   });
 

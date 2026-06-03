@@ -54,7 +54,7 @@ describe('amountExpressionSchema', () => {
   it('normaliserer stadig til 2 decimaler når parseAmountInput fejler internt', () => {
     const parseSpy = vi.spyOn(expressionAmountModule, 'parseAmountInput').mockReturnValue({
       ok: false,
-      error: 'forced test failure',
+      error: { kind: 'number', message: 'forced test failure' },
     });
 
     const parsed = amountNumberSchema.parse({

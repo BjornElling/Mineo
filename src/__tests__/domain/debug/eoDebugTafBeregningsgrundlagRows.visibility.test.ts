@@ -18,7 +18,7 @@ const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value }
 describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
   it('hides beregningsperiode-only rows when beregnes ud fra is not Beregningsperiode', () => {
     const values = makeValues({
-      beregnesUdFra: 'Angivet årsløn',
+      beregnesUdFra: 'Angivet månedsløn',
     });
 
     const rows = buildEODebugTafBeregningsgrundlagRows(values, {}, STAMDATA_INITIAL_VALUES);
@@ -62,8 +62,8 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
               col1_maaned: '2024',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,
@@ -120,8 +120,8 @@ describe('buildEODebugTafBeregningsgrundlagRows visibility', () => {
               col1_maaned: '2025',
               col0_uge: '',
               col1_uge: '',
-              col0_dag: '',
-              col1_dag: '',
+              col0_dag: undefined,
+              col1_dag: undefined,
               col2: asAmountValue(10000),
               col3: undefined,
               col4: undefined,

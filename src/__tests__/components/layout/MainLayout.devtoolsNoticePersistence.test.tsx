@@ -6,11 +6,13 @@ import { AppSettingsProvider } from '../../../contexts/AppSettingsContext';
 import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
 import type { DevtoolsIssue, DevtoolsIssueSnapshot } from '../../../utils/devtoolsMonitor';
 
+type DevtoolsIssueListener = (snapshot: DevtoolsIssueSnapshot, issue: DevtoolsIssue) => void;
+
 const devtoolsMocks = vi.hoisted(() => ({
   getDevtoolsIssueSnapshot: vi.fn(),
   setDevtoolsRoute: vi.fn(),
   startDevtoolsMonitor: vi.fn(() => vi.fn()),
-  subscribeDevtoolsIssues: vi.fn(() => vi.fn()),
+  subscribeDevtoolsIssues: vi.fn((_listener: DevtoolsIssueListener) => vi.fn()),
 }));
 
 vi.mock('../../../utils/devtoolsMonitor', async (importOriginal) => {

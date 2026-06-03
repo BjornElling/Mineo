@@ -252,7 +252,7 @@ describe('useUndoRedo', () => {
     expect(controls?.canRedo).toBe(false);
 
     act(() => {
-      formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+      formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
       undoRedoStore.getState().capture(origin);
     });
 
@@ -268,9 +268,9 @@ describe('useUndoRedo', () => {
   });
 
   it('muterer ikke undo/redo-stakke eller form-store hvis storage-restore fejler', () => {
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
     undoRedoStore.getState().capture(origin);
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, {});
 
     const originalSessionStorage = window.sessionStorage;
     const throwingSessionStorage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = {
@@ -339,9 +339,9 @@ describe('useUndoRedo', () => {
       value: scrollIntoViewMock,
     });
 
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2025 }, {});
     undoRedoStore.getState().capture(origin);
-    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+    formPersistenceStore.getState().commitSection('satser', { aargang: 2024 }, {});
 
     render(
       <MemoryRouter initialEntries={['/current']}>
@@ -387,11 +387,11 @@ describe('useUndoRedo', () => {
     act(() => {
       formPersistenceStore.getState().commitSection('stamdata', {
         skadelidteFodselsdato: toISODateString('1980-01-01') as ISODateString,
-      }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+      }, {});
       undoRedoStore.getState().capture(stamdataOrigin);
       formPersistenceStore.getState().commitSection('stamdata', {
         skadelidteFodselsdato: toISODateString('1981-01-01') as ISODateString,
-      }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+      }, {});
       controls?.undo();
     });
 
@@ -435,20 +435,20 @@ describe('useUndoRedo', () => {
       undoRedoStore.getState().capture(createStamdataOrigin('journalnr'));
       formPersistenceStore.getState().commitSection('stamdata', {
         journalnr: 'SAG-1',
-      }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+      }, {});
 
       undoRedoStore.getState().capture(createStamdataOrigin('skadelidte'));
       formPersistenceStore.getState().commitSection('stamdata', {
         journalnr: 'SAG-1',
         skadelidte: 'Test Person',
-      }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+      }, {});
 
       undoRedoStore.getState().capture(createStamdataOrigin('skadelidteFodselsdato'));
       formPersistenceStore.getState().commitSection('stamdata', {
         journalnr: 'SAG-1',
         skadelidte: 'Test Person',
         skadelidteFodselsdato: toISODateString('1980-01-01') as ISODateString,
-      }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+      }, {});
     });
 
     act(() => {
@@ -611,7 +611,7 @@ describe('useUndoRedo', () => {
       undoRedoStore.getState().capture(createStamdataOrigin('journalnr'));
       formPersistenceStore.getState().commitSection('stamdata', {
         journalnr: 'SAG-1',
-      }, { schemaFingerprint: PERSISTED_DATA_VERSION });
+      }, {});
     });
 
     act(() => {

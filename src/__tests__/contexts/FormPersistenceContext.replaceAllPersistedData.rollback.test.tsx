@@ -3,17 +3,18 @@ import { act, render, waitFor } from '@testing-library/react';
 import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { FormPersistenceProvider } from '../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
-import type { StorageKey } from '../../config/storageManifest';
+import type { PersistedSectionsSnapshot } from '../../config/persistenceRegistry';
+import type { StamdataValues } from '../../schemas/formSchemas';
 
 const LOENINDKOMST_FIELD_KEY = 'af-1:loenindkomst';
 
-const stampStamdata = (skadelidte: string) => ({
+const stampStamdata = (skadelidte: string): StamdataValues => ({
   journalnr: '',
   advokat: '',
   sagsbehandler: '',
   skadelidte,
-  skadestype: '',
-  skadedato: '',
+  skadestype: undefined,
+  skadedato: undefined,
 });
 
 const stampSatser = (aargang: number) => ({
@@ -26,7 +27,7 @@ const persistedWrapper = (data: unknown) => ({
   data,
 });
 
-const emptySnapshot = (): Record<StorageKey, unknown | undefined> => ({
+const emptySnapshot = (): PersistedSectionsSnapshot => ({
   stamdata: undefined,
   satser: undefined,
   aarsloen: undefined,

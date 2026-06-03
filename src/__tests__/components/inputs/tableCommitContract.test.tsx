@@ -74,7 +74,7 @@ type ConfigPreserveCase = Readonly<{
 
 type ClickOutsideCommitCase = Readonly<{
   label: string;
-  initialValue: string;
+  initialValue: TestCommitValue;
   typedDraft: string;
   expectedCommitted: TestCommitValue;
   renderManagedInput: (props: Readonly<{ value: TestCommitValue; onBlur: (value: TestCommitValue) => void }>) => React.JSX.Element;
@@ -96,6 +96,7 @@ type DeleteClearCase = Readonly<{
 }>;
 
 const iso = (value: string): ISODateString => toISODateString(value);
+const asStringInputValue = (value: TestCommitValue): string => (typeof value === 'string' ? value : '');
 const asDateInputValue = (value: TestCommitValue): ISODateString | undefined => (isISODateString(value) ? value : undefined);
 
 const NOOP_CASES: readonly NoopCase[] = [
@@ -488,7 +489,7 @@ const CLICK_OUTSIDE_COMMIT_CASES: readonly ClickOutsideCommitCase[] = [
     renderManagedInput: ({ value, onBlur }) => (
       <TableIntegerInput
         gridCell={gridCell}
-        value={value}
+        value={asStringInputValue(value)}
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -514,7 +515,7 @@ const CLICK_OUTSIDE_COMMIT_CASES: readonly ClickOutsideCommitCase[] = [
     renderManagedInput: ({ value, onBlur }) => (
       <TableWeekInput
         gridCell={gridCell}
-        value={value}
+        value={asStringInputValue(value)}
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -527,7 +528,7 @@ const CLICK_OUTSIDE_COMMIT_CASES: readonly ClickOutsideCommitCase[] = [
     renderManagedInput: ({ value, onBlur }) => (
       <TableYearInput
         gridCell={gridCell}
-        value={value}
+        value={asStringInputValue(value)}
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -553,7 +554,7 @@ const CLICK_OUTSIDE_COMMIT_CASES: readonly ClickOutsideCommitCase[] = [
     renderManagedInput: ({ value, onBlur }) => (
       <TableTextInput
         gridCell={gridCell}
-        value={value}
+        value={asStringInputValue(value)}
         onBlur={(e) => onBlur(e.target.value)}
       />
     ),
@@ -565,7 +566,7 @@ const ESCAPE_CANCEL_CASES: readonly EscapeCancelCase[] = [
     label: 'integer',
     initialValue: '42',
     typedDraft: '99',
-    renderManagedInput: ({ value, onBlur }) => <TableIntegerInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+    renderManagedInput: ({ value, onBlur }) => <TableIntegerInput gridCell={gridCell} value={asStringInputValue(value)} onBlur={(e) => onBlur(e.target.value)} />,
   },
   {
     label: 'percent',
@@ -578,13 +579,13 @@ const ESCAPE_CANCEL_CASES: readonly EscapeCancelCase[] = [
     label: 'week',
     initialValue: '01/2025',
     typedDraft: '2/2025',
-    renderManagedInput: ({ value, onBlur }) => <TableWeekInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+    renderManagedInput: ({ value, onBlur }) => <TableWeekInput gridCell={gridCell} value={asStringInputValue(value)} onBlur={(e) => onBlur(e.target.value)} />,
   },
   {
     label: 'year',
     initialValue: '2025',
     typedDraft: '2026',
-    renderManagedInput: ({ value, onBlur }) => <TableYearInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+    renderManagedInput: ({ value, onBlur }) => <TableYearInput gridCell={gridCell} value={asStringInputValue(value)} onBlur={(e) => onBlur(e.target.value)} />,
   },
   {
     label: 'date',
@@ -600,7 +601,7 @@ const DELETE_CLEAR_CASES: readonly DeleteClearCase[] = [
     label: 'integer',
     initialValue: '42',
     expectedCommitted: '',
-    renderManagedInput: ({ value, onBlur }) => <TableIntegerInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+    renderManagedInput: ({ value, onBlur }) => <TableIntegerInput gridCell={gridCell} value={asStringInputValue(value)} onBlur={(e) => onBlur(e.target.value)} />,
   },
   {
     label: 'percent',
@@ -612,13 +613,13 @@ const DELETE_CLEAR_CASES: readonly DeleteClearCase[] = [
     label: 'week',
     initialValue: '01/2025',
     expectedCommitted: '',
-    renderManagedInput: ({ value, onBlur }) => <TableWeekInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+    renderManagedInput: ({ value, onBlur }) => <TableWeekInput gridCell={gridCell} value={asStringInputValue(value)} onBlur={(e) => onBlur(e.target.value)} />,
   },
   {
     label: 'year',
     initialValue: '2025',
     expectedCommitted: '',
-    renderManagedInput: ({ value, onBlur }) => <TableYearInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+    renderManagedInput: ({ value, onBlur }) => <TableYearInput gridCell={gridCell} value={asStringInputValue(value)} onBlur={(e) => onBlur(e.target.value)} />,
   },
   {
     label: 'date',
@@ -1299,7 +1300,7 @@ describe('table commit-kontrakt', () => {
 
   it('week-input tillader redigering foran ugyldig /2022 efter genåbning', async () => {
     const user = userEvent.setup();
-    const onBlur = vi.fn<(value: string) => void>();
+    const onBlur = vi.fn<(value: TestCommitValue) => void>();
     const setEditingCellRef = { current: null as React.Dispatch<React.SetStateAction<GridCellCoord | null>> | null };
 
     const Wrapper = () => {
@@ -1350,7 +1351,7 @@ describe('table commit-kontrakt', () => {
 
   it('integer med enforceRange=false committer out-of-range værdi men markerer fejl', async () => {
     const user = userEvent.setup();
-    const onBlur = vi.fn<(value: string) => void>();
+    const onBlur = vi.fn<(value: TestCommitValue) => void>();
 
     const Wrapper = () => {
       const [value, setValue] = React.useState('4');
@@ -1391,7 +1392,7 @@ describe('table commit-kontrakt', () => {
 
   it('integer uden maxValue afleder ikke maxDigits fra minValue', async () => {
     const user = userEvent.setup();
-    const onBlur = vi.fn<(value: string) => void>();
+    const onBlur = vi.fn<(value: TestCommitValue) => void>();
 
     const Wrapper = () => {
       const [value, setValue] = React.useState('100');
@@ -1589,7 +1590,7 @@ describe('table commit-kontrakt', () => {
 
   it.each(ESCAPE_CANCEL_CASES)('Escape annullerer $label-edit uden commit', async (inputCase) => {
     const user = userEvent.setup();
-    const onBlur = vi.fn<(value: string) => void>();
+    const onBlur = vi.fn<(value: TestCommitValue) => void>();
 
     const Wrapper = () => {
       const [value, setValue] = React.useState<TestCommitValue>(inputCase.initialValue);
@@ -1625,12 +1626,12 @@ describe('table commit-kontrakt', () => {
     await user.keyboard('{Escape}');
 
     expect(onBlur).not.toHaveBeenCalled();
-    expect(input).toHaveValue(inputCase.expectedDisplayAfterCancel ?? inputCase.initialValue);
+    expect(input).toHaveValue(inputCase.expectedDisplayAfterCancel ?? asStringInputValue(inputCase.initialValue));
   }, TEST_TIMEOUT_MS);
 
   it.each(DELETE_CLEAR_CASES)('Delete på fokuseret $label-celle uden edit rydder og committer straks', async (inputCase) => {
     const user = userEvent.setup();
-    const onBlur = vi.fn<(value: string) => void>();
+    const onBlur = vi.fn<(value: TestCommitValue) => void>();
 
     const Wrapper = () => {
       const [value, setValue] = React.useState(inputCase.initialValue);

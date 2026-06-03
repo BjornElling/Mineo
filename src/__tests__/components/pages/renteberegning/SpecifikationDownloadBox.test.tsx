@@ -2,8 +2,9 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import SpecifikationDownloadBox from '../../../../components/pages/renteberegning/SpecifikationDownloadBox';
 import { Box } from '@mui/material';
+import type { ContentBoxFrameProps } from '../../../../components/layout/ContentBoxFrame';
 
-const MockContentBox = ({ children, className }: { children: React.ReactNode; className?: string }) => (
+const MockContentBox = ({ children, className }: ContentBoxFrameProps) => (
   <Box className={className}>{children}</Box>
 );
 

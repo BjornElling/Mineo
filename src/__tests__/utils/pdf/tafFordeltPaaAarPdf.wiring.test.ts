@@ -61,6 +61,7 @@ const FAKE_RESULT: TafPerYearResult = {
           til: toISODateString('2024-12-31') as any,
           kind: 'arbejdsdage',
           quantity: 250,
+          sourceLabel: 'Timeløn',
           unitAmountOre: 200000 as MoneyOre,
           deltaPct: 0,
           amountOre: 50000000 as MoneyOre,

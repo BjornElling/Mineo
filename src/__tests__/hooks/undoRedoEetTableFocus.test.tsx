@@ -141,8 +141,8 @@ describe('undo/redo-fokus i EET-tabellen', () => {
       undoRedoStore.getState().capture(makeOrigin(`${rowId}:0`));
       formPersistenceStore.getState().commitSection(
         'erhvervsevnetab',
-        { ...ERHVERVSEVNETAB_INITIAL_VALUES, aslAfgoerelser: [{ id: rowId, afgoerelsesDato: coerceToISODateString(toISODateString('2024-03-15')) }] },
-        { schemaFingerprint: PERSISTED_DATA_VERSION }
+        { ...ERHVERVSEVNETAB_INITIAL_VALUES, aslAfgoerelser: [{ id: rowId, afgoerelsesDato: coerceToISODateString(toISODateString('2024-03-15')), fsTilbageholdtEet: 'Nej' }] },
+        {}
       );
     });
     await flushRestoreLoop();
@@ -156,9 +156,9 @@ describe('undo/redo-fokus i EET-tabellen', () => {
         'erhvervsevnetab',
         {
           ...ERHVERVSEVNETAB_INITIAL_VALUES,
-          aslAfgoerelser: [{ id: rowId, afgoerelsesDato: coerceToISODateString(toISODateString('2024-03-15')), virkningsDato: coerceToISODateString(toISODateString('2024-03-20')) }],
+          aslAfgoerelser: [{ id: rowId, afgoerelsesDato: coerceToISODateString(toISODateString('2024-03-15')), virkningsDato: coerceToISODateString(toISODateString('2024-03-20')), fsTilbageholdtEet: 'Nej' }],
         },
-        { schemaFingerprint: PERSISTED_DATA_VERSION }
+        {}
       );
     });
     await flushRestoreLoop();

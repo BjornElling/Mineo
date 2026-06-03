@@ -197,7 +197,7 @@ describe('buildOffentligeYdelserDebugRows', () => {
     const rows = [
       {
         id: 'row-1',
-        fraDato: '',
+        fraDato: undefined,
         tilDato: toISODateString('2024-01-31'),
         ydelsestype: 'dagpenge',
         ydelse: amount(1200),

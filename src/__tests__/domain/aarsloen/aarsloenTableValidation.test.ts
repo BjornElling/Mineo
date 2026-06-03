@@ -203,8 +203,8 @@ describe('buildStandardLoenPeriodOrderCellErrorMessages', () => {
 
   it('ignorerer rækker med ufuldstændige perioder (kan ikke være i forkert rækkefølge)', () => {
     const rows = [
-      row('r1', { col0_dag: toISODateString('2024-01-31'), col1_dag: '' }),
-      row('r2', { col0_dag: '', col1_dag: toISODateString('2024-01-01') }),
+      row('r1', { col0_dag: toISODateString('2024-01-31'), col1_dag: undefined }),
+      row('r2', { col0_dag: undefined, col1_dag: toISODateString('2024-01-01') }),
     ];
     expect(buildStandardLoenPeriodOrderCellErrorMessages(rows, 'dag')).toEqual({});
   });

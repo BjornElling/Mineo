@@ -95,7 +95,7 @@ const STRING_NOOP_CASES: readonly StringNoopCase[] = [
   {
     label: 'percent',
     value: '12,50',
-    renderInput: (value, onBlur) => <TablePercentInput gridCell={gridCell} value={value} onBlur={(e) => onBlur(e.target.value)} />,
+    renderInput: (value, onBlur) => <TablePercentInput gridCell={gridCell} value={Number(value.replace(',', '.'))} onBlur={(e) => onBlur(String(e.target.value ?? ''))} />,
   },
   {
     label: 'week',

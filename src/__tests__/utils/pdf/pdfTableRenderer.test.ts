@@ -3,6 +3,8 @@
 import { PDF_CONTENT_WIDTH_MM, TABLE_STYLES } from '../../../pdf/infrastructure/pdfConfig';
 import { createPdfDistributedColumnStyles, createPdfTableCell, createPdfTableSummedTotalRow } from '../../../pdf/shared/pdfTableRenderer';
 
+type PdfTableTestCell = { content?: string; colSpan?: number; styles?: { cellPadding?: number } };
+
 describe('createPdfDistributedColumnStyles', () => {
   it('fordeler fuld tabelbredde ligeligt når ingen kolonner er låst', () => {
     const styles = createPdfDistributedColumnStyles(5);
@@ -66,7 +68,7 @@ describe('createPdfTableSummedTotalRow', () => {
     expect(result?.valueCellColumnIndex).toBe(1);
     expect(result?.valueCellColSpan).toBe(3);
 
-    const row = result?.row as Array<{ content?: string; colSpan?: number }>;
+    const row = result?.row as PdfTableTestCell[];
     expect(row).toHaveLength(2);
     expect(row[0]?.content).toBe('I alt');
     expect(row[1]?.content).toBe('30 kr.');
@@ -85,7 +87,7 @@ describe('createPdfTableSummedTotalRow', () => {
     expect(result?.valueCellColumnIndex).toBe(1);
     expect(result?.valueCellColSpan).toBe(1);
 
-    const row = result?.row as Array<{ content?: string; colSpan?: number }>;
+    const row = result?.row as PdfTableTestCell[];
     expect(row).toHaveLength(2);
     expect(row[1]?.colSpan).toBe(1);
   });
@@ -102,7 +104,7 @@ describe('createPdfTableSummedTotalRow', () => {
     expect(result?.valueCellColumnIndex).toBe(3);
     expect(result?.valueCellColSpan).toBe(1);
 
-    const row = result?.row as Array<{ content?: string; colSpan?: number }>;
+    const row = result?.row as PdfTableTestCell[];
     expect(row).toHaveLength(4);
     expect(row[0]?.content).toBe('I alt');
     expect(row[1]?.content).toBe('');

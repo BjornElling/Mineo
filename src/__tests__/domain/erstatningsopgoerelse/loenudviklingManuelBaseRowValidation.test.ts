@@ -3,7 +3,7 @@ import type { LoenudviklingManuelRow } from '../../../schemas/formSchemas';
 
 const makeBaseRow = (overrides: Partial<LoenudviklingManuelRow> = {}): LoenudviklingManuelRow => ({
   id: 'row-1',
-  dato: '',
+  dato: undefined,
   grundloen: undefined,
   feriepenge: undefined,
   shSoSats: undefined,

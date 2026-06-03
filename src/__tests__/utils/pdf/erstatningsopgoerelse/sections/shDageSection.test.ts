@@ -4,7 +4,7 @@ import { toISODateString, isISODateString } from '../../../../../types/branded';
 import type { IsoRange } from '../../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 
 const { autoTableMock } = vi.hoisted(() => ({
-  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number; body?: unknown[][] }) => {
     doc.lastAutoTable = { finalY: (options.startY ?? 0) + 20 };
   }),
 }));
@@ -42,7 +42,6 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
       tafRanges: tafRangesFromEoValues(eoValues),
       sfggReferenceperiodeRanges: [],
       harSfggReferenceperiodeMedShFradrag: false,
-      lineHeight: 4,
       startEoBilagPage,
       renderSubheader,
       safeAddWrappedText,
@@ -51,9 +50,9 @@ const makeContext = (eoValues: ReturnType<typeof createErstatningsopgoerelseInit
         addSpacer: vi.fn(),
         setY: vi.fn((nextY: number) => { y = nextY; }),
         getY: vi.fn(() => y),
-        getDoc: vi.fn(() => doc),
+        getDoc: vi.fn(() => doc as never),
       },
-    },
+    } satisfies Parameters<typeof renderShDageSection>[0],
   };
 };
 

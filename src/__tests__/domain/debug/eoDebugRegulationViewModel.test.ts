@@ -74,7 +74,9 @@ describe('buildRegulationDebugSections', () => {
         },
         taf: {
           harTafPerioder: true,
-          tafIndtaegterOre: 0,
+          offentligeYdelserUdviklingOre: null,
+        sygeferiegodtgoerelseOre: 0,
+        tafIndtaegterOre: 0,
           tidligereModtagetTafOre: 0,
         },
         periodiseringer: {
@@ -175,16 +177,16 @@ describe('buildRegulationDebugSections', () => {
         svieSmerte: { maxApplied: false },
         taf: {
           harTafPerioder: true,
-          tafIndtaegterOre: 0,
+          offentligeYdelserUdviklingOre: null,
+        sygeferiegodtgoerelseOre: 0,
+        tafIndtaegterOre: 0,
           tidligereModtagetTafOre: 0,
         },
         periodiseringer: {
           tafPerioder: [
             {
-              id: 'taf-1',
               fra: iso('2020-04-01'),
               til: iso('2026-02-26'),
-              loseFeriedage: undefined,
             },
           ],
         },
@@ -281,7 +283,7 @@ describe('buildRegulationDebugSections', () => {
     eoValues.tafBeregningsperiodeTil = iso('2023-05-24');
     eoValues.tafPerioder = [
       {
-        id: 'taf-1',
+        id: 'taf-fallback',
         fra: iso('2023-07-01'),
         til: iso('2025-12-21'),
         loseFeriedage: undefined,
@@ -416,7 +418,7 @@ describe('buildRegulationDebugSections', () => {
     eoValues.tafBeregningsperiodeTil = iso('2020-01-01');
     eoValues.tafPerioder = [
       {
-        id: 'taf-1',
+        id: 'taf-manuel',
         fra: iso('2020-04-01'),
         til: iso('2022-09-30'),
         loseFeriedage: undefined,
@@ -430,7 +432,8 @@ describe('buildRegulationDebugSections', () => {
         loenudviklingBeregningsgrundlag: 'Manuelt angivet',
         loenudviklingManuelTableData: [
           {
-            dato: '',
+            id: 'manuel-1',
+            dato: undefined,
             grundloen: asAmountValue(141.2411),
             feriepenge: undefined,
             shSoSats: undefined,
@@ -438,6 +441,7 @@ describe('buildRegulationDebugSections', () => {
             agPension: undefined,
           },
           {
+            id: 'manuel-2',
             dato: toISODateString('2020-04-01'),
             grundloen: asAmountValue(141.7798),
             feriepenge: undefined,
@@ -446,6 +450,7 @@ describe('buildRegulationDebugSections', () => {
             agPension: undefined,
           },
           {
+            id: 'manuel-3',
             dato: toISODateString('2020-10-01'),
             grundloen: asAmountValue(142.8511),
             feriepenge: undefined,
@@ -454,6 +459,7 @@ describe('buildRegulationDebugSections', () => {
             agPension: undefined,
           },
           {
+            id: 'manuel-4',
             dato: toISODateString('2021-04-01'),
             grundloen: asAmountValue(144.2796),
             feriepenge: undefined,
@@ -462,6 +468,7 @@ describe('buildRegulationDebugSections', () => {
             agPension: undefined,
           },
           {
+            id: 'manuel-5',
             dato: toISODateString('2021-10-01'),
             grundloen: asAmountValue(145.6933),
             feriepenge: undefined,
@@ -470,6 +477,7 @@ describe('buildRegulationDebugSections', () => {
             agPension: undefined,
           },
           {
+            id: 'manuel-6',
             dato: toISODateString('2022-04-01'),
             grundloen: asAmountValue(145.6933),
             feriepenge: undefined,
@@ -592,16 +600,16 @@ describe('buildRegulationDebugSections', () => {
         svieSmerte: { maxApplied: false },
         taf: {
           harTafPerioder: true,
-          tafIndtaegterOre: 0,
+          offentligeYdelserUdviklingOre: null,
+        sygeferiegodtgoerelseOre: 0,
+        tafIndtaegterOre: 0,
           tidligereModtagetTafOre: 0,
         },
         periodiseringer: {
           tafPerioder: [
             {
-              id: 'taf-1',
               fra: iso('2020-04-01'),
               til: iso('2022-09-30'),
-              loseFeriedage: undefined,
             },
           ],
         },
@@ -697,7 +705,8 @@ describe('buildRegulationDebugSections', () => {
         feriePct: 16.95,
         loenudviklingManuelTableData: [
           {
-            dato: '',
+            id: 'manuel-7',
+            dato: undefined,
             grundloen: asAmountValue(115.2),
             feriepenge: undefined,
             shSoSats: 1.00,
@@ -705,6 +714,7 @@ describe('buildRegulationDebugSections', () => {
             agPension: 8.15,
           },
           {
+            id: 'manuel-8',
             dato: toISODateString('2024-03-01'),
             grundloen: asAmountValue(142.65),
             feriepenge: undefined,
@@ -713,6 +723,7 @@ describe('buildRegulationDebugSections', () => {
             agPension: 10.15,
           },
           {
+            id: 'manuel-9',
             dato: toISODateString('2025-05-01'),
             grundloen: asAmountValue(146.4),
             feriepenge: undefined,
@@ -796,16 +807,16 @@ describe('buildRegulationDebugSections', () => {
         svieSmerte: { maxApplied: false },
         taf: {
           harTafPerioder: true,
-          tafIndtaegterOre: 0,
+          offentligeYdelserUdviklingOre: null,
+        sygeferiegodtgoerelseOre: 0,
+        tafIndtaegterOre: 0,
           tidligereModtagetTafOre: 0,
         },
         periodiseringer: {
           tafPerioder: [
             {
-              id: 'taf-1',
               fra: iso('2024-01-26'),
               til: iso('2025-05-31'),
-              loseFeriedage: undefined,
             },
           ],
         },
@@ -865,7 +876,8 @@ describe('buildRegulationDebugSections', () => {
         saerligFraDatoRegulering: iso('2024-01-26'),
         loenudviklingManuelTableData: [
           {
-            dato: '',
+            id: 'manuel-10',
+            dato: undefined,
             grundloen: asAmountValue(138.15),
             feriepenge: undefined,
             shSoSats: 12.90,
@@ -873,6 +885,7 @@ describe('buildRegulationDebugSections', () => {
             agPension: 10.15,
           },
           {
+            id: 'manuel-11',
             dato: toISODateString('2024-03-01'),
             grundloen: asAmountValue(142.65),
             feriepenge: undefined,
@@ -898,7 +911,7 @@ describe('buildRegulationDebugSections', () => {
             kildeLabel: 'Manuelt angivet',
             kildeVaerdi: 'Manuelt angivet',
             referenceIso: iso('2024-01-26'),
-            referenceLabel: 'Manuelt angivet',
+            referenceLabel: undefined,
             referenceValue: 0,
             entries: [
               {
@@ -943,16 +956,16 @@ describe('buildRegulationDebugSections', () => {
         svieSmerte: { maxApplied: false },
         taf: {
           harTafPerioder: true,
-          tafIndtaegterOre: 0,
+          offentligeYdelserUdviklingOre: null,
+        sygeferiegodtgoerelseOre: 0,
+        tafIndtaegterOre: 0,
           tidligereModtagetTafOre: 0,
         },
         periodiseringer: {
           tafPerioder: [
             {
-              id: 'taf-1',
               fra: iso('2024-02-01'),
               til: iso('2025-02-01'),
-              loseFeriedage: undefined,
             },
           ],
         },

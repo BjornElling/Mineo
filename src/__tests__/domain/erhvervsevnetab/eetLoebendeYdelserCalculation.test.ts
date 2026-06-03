@@ -12,7 +12,7 @@ import {
   toAfgoerelseTypeLabel,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { isAslAfgoerelseRowEmpty, isAslAfgoerelseRowPersistenceEmpty } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 
 const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
@@ -30,17 +30,17 @@ const testRow = (
 const computeTestRows = (
   rows: readonly AslAfgoerelseRow[],
   options: Partial<{
-    beregningsdato: string;
+    beregningsdato: ISODateString;
     aslAarsloen: number;
-    skadedato: string;
-    skadelidteFodselsdato: string;
+    skadedato: ISODateString;
+    skadelidteFodselsdato: ISODateString;
   }> = {}
 ) => computeEetLoebendeYdelser({
   erhvervsevnetab: {
     ...ERHVERVSEVNETAB_INITIAL_VALUES,
     beregningsdato: options.beregningsdato ?? toISODateString('2025-12-31'),
     aslAarsloen: asAmount(options.aslAarsloen ?? 401000),
-    aslAfgoerelser: rows,
+    aslAfgoerelser: [...rows],
   },
   skadedato: options.skadedato ?? toISODateString('2019-04-01'),
   skadelidteFodselsdato: options.skadelidteFodselsdato ?? toISODateString('1980-01-01'),
@@ -76,6 +76,7 @@ describe('computeEetLoebendeYdelser', () => {
       const result = computeTestRows([
         testRow({
           id: 'a1',
+          fsTilbageholdtEet: 'Nej',
           afgoerelsesDato: toISODateString('2023-01-01'),
           virkningsDato: toISODateString('2023-01-01'),
           eetPct: 25,
@@ -105,6 +106,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2023-01-01'),
             virkningsDato: toISODateString('2023-01-01'),
             eetPct: 25,
@@ -112,10 +114,10 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-03-15'),
             virkningsDato: toISODateString('2024-02-01'),
             eetPct: 40,
@@ -123,7 +125,6 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
         ],
       },
@@ -155,6 +156,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2023-01-01'),
             virkningsDato: toISODateString('2023-01-01'),
             eetPct: 25,
@@ -162,10 +164,10 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-03-15'),
             virkningsDato: toISODateString('2024-04-01'),
             eetPct: 40,
@@ -173,7 +175,6 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
         ],
       },
@@ -194,6 +195,7 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2023-01-01'),
         virkningsDato: toISODateString('2023-01-01'),
         eetPct: 25,
@@ -201,6 +203,7 @@ describe('computeEetLoebendeYdelser', () => {
       }),
       testRow({
         id: 'a2',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-03-15'),
         virkningsDato: toISODateString('2024-05-01'),
         eetPct: 40,
@@ -221,14 +224,15 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2023-01-01'),
         virkningsDato: toISODateString('2023-01-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
-        fsTilbageholdtEet: 'Nej',
       }),
       testRow({
         id: 'a2',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-03-15'),
         virkningsDato: toISODateString('2024-02-01'),
         eetPct: 25,
@@ -251,14 +255,15 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2023-01-01'),
         virkningsDato: toISODateString('2023-01-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
-        fsTilbageholdtEet: 'Nej',
       }),
       testRow({
         id: 'a2',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-03-15'),
         virkningsDato: toISODateString('2024-02-01'),
         eetPct: 40,
@@ -280,8 +285,7 @@ describe('computeEetLoebendeYdelser', () => {
   it('bruger faktisk virkningsdato ved identisk procent når forgængeren har FS tilbageholdt EET', () => {
     const result = computeTestRows([
       testRow({
-        id: 'a1',
-        afgoerelsesDato: toISODateString('2023-01-01'),
+        id: 'a1',        afgoerelsesDato: toISODateString('2023-01-01'),
         virkningsDato: toISODateString('2023-01-01'),
         eetPct: 40,
         afgoerelseType: 'Midlertidig',
@@ -289,6 +293,7 @@ describe('computeEetLoebendeYdelser', () => {
       }),
       testRow({
         id: 'a2',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-03-15'),
         virkningsDato: toISODateString('2024-02-01'),
         eetPct: 40,
@@ -309,6 +314,7 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-01-01'),
         virkningsDato: toISODateString('2024-01-01'),
         eetPct: 25,
@@ -316,6 +322,7 @@ describe('computeEetLoebendeYdelser', () => {
       }),
       testRow({
         id: 'a2',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2025-01-15'),
         virkningsDato: toISODateString('2024-11-01'),
         eetPct: 40,
@@ -341,6 +348,7 @@ describe('computeEetLoebendeYdelser', () => {
     const partial = computeTestRows([
       testRow({
         id: 'a1',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-01-01'),
         virkningsDato: toISODateString('2024-01-01'),
         eetPct: 25,
@@ -348,6 +356,7 @@ describe('computeEetLoebendeYdelser', () => {
       }),
       testRow({
         id: 'a2',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-03-15'),
         virkningsDato: toISODateString('2024-03-10'),
         eetPct: 40,
@@ -357,6 +366,7 @@ describe('computeEetLoebendeYdelser', () => {
     const full = computeTestRows([
       testRow({
         id: 'a1',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-01-01'),
         virkningsDato: toISODateString('2024-01-01'),
         eetPct: 25,
@@ -364,6 +374,7 @@ describe('computeEetLoebendeYdelser', () => {
       }),
       testRow({
         id: 'a2',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-03-31'),
         virkningsDato: toISODateString('2024-03-01'),
         eetPct: 40,
@@ -387,6 +398,7 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-03-01'),
         virkningsDato: toISODateString('2024-01-01'),
         eetPct: 25,
@@ -394,6 +406,7 @@ describe('computeEetLoebendeYdelser', () => {
       }),
       testRow({
         id: 'a2',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-03-01'),
         virkningsDato: toISODateString('2024-02-01'),
         eetPct: 40,
@@ -417,6 +430,7 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2023-01-01'),
         virkningsDato: toISODateString('2023-01-01'),
         eetPct: 25,
@@ -424,6 +438,7 @@ describe('computeEetLoebendeYdelser', () => {
       }),
       testRow({
         id: 'c',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-04-10'),
         virkningsDato: toISODateString('2024-03-01'),
         eetPct: 30,
@@ -431,6 +446,7 @@ describe('computeEetLoebendeYdelser', () => {
       }),
       testRow({
         id: 'b',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-04-15'),
         virkningsDato: toISODateString('2024-03-01'),
         eetPct: 35,
@@ -455,14 +471,14 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2023-01-01'),
         virkningsDato: toISODateString('2023-01-01'),
         eetPct: 25,
         afgoerelseType: 'Midlertidig',
       }),
       testRow({
-        id: 'c',
-        afgoerelsesDato: toISODateString('2024-04-10'),
+        id: 'c',        afgoerelsesDato: toISODateString('2024-04-10'),
         virkningsDato: toISODateString('2024-03-01'),
         eetPct: 50,
         afgoerelseType: 'Midlertidig',
@@ -470,6 +486,7 @@ describe('computeEetLoebendeYdelser', () => {
       }),
       testRow({
         id: 'b',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-04-15'),
         virkningsDato: toISODateString('2024-03-01'),
         eetPct: 35,
@@ -491,6 +508,7 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-01-01'),
         virkningsDato: toISODateString('2024-01-01'),
         eetPct: 40,
@@ -500,6 +518,7 @@ describe('computeEetLoebendeYdelser', () => {
       }),
       testRow({
         id: 'a2',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-03-15'),
         virkningsDato: toISODateString('2024-03-01'),
         eetPct: 50,
@@ -525,6 +544,7 @@ describe('computeEetLoebendeYdelser', () => {
     const result = computeTestRows([
       testRow({
         id: 'a1',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-01-01'),
         virkningsDato: toISODateString('2024-01-01'),
         eetPct: 30,
@@ -532,6 +552,7 @@ describe('computeEetLoebendeYdelser', () => {
       }),
       testRow({
         id: 'a2',
+        fsTilbageholdtEet: 'Nej',
         afgoerelsesDato: toISODateString('2024-03-15'),
         virkningsDato: toISODateString('2024-03-01'),
         eetPct: 50,
@@ -559,8 +580,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
-            id: 'a1',
-            afgoerelsesDato: toISODateString('2023-01-01'),
+            id: 'a1',            afgoerelsesDato: toISODateString('2023-01-01'),
             virkningsDato: toISODateString('2023-01-01'),
             eetPct: 25,
             kapDato: undefined,
@@ -571,6 +591,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-03-15'),
             virkningsDato: toISODateString('2024-02-01'),
             eetPct: 40,
@@ -578,7 +599,6 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
         ],
       },
@@ -600,8 +620,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [
           {
-            id: 'a1',
-            afgoerelsesDato: toISODateString('2023-01-01'),
+            id: 'a1',            afgoerelsesDato: toISODateString('2023-01-01'),
             virkningsDato: toISODateString('2023-01-01'),
             eetPct: 40,
             kapDato: undefined,
@@ -612,6 +631,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-03-15'),
             virkningsDato: toISODateString('2024-02-01'),
             eetPct: 25,
@@ -619,7 +639,6 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
         ],
       },
@@ -641,8 +660,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAarsloen: asAmount(500000),
         aslAfgoerelser: [
           {
-            id: 'a1',
-            afgoerelsesDato: toISODateString('2019-10-01'),
+            id: 'a1',            afgoerelsesDato: toISODateString('2019-10-01'),
             virkningsDato: toISODateString('2019-02-01'),
             eetPct: 55,
             kapDato: undefined,
@@ -653,6 +671,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2021-02-15'),
             virkningsDato: toISODateString('2021-02-01'),
             eetPct: 65,
@@ -660,7 +679,6 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Endelig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
         ],
       },
@@ -686,6 +704,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-01-01'),
             virkningsDato: toISODateString('2024-01-01'),
             eetPct: 40,
@@ -693,10 +712,10 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-03-15'),
             virkningsDato: toISODateString('2024-03-01'),
             eetPct: 50,
@@ -704,7 +723,6 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: 20,
             afgoerelseType: 'Delvist endelig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
         ],
       },
@@ -734,6 +752,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-01-01'),
             virkningsDato: toISODateString('2024-01-01'),
             eetPct: 25,
@@ -741,10 +760,10 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-06-01'),
             virkningsDato: toISODateString('2023-11-01'),
             eetPct: 40,
@@ -752,7 +771,6 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
         ],
       },
@@ -786,6 +804,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2023-01-01'),
             virkningsDato: toISODateString('2023-01-01'),
             eetPct: 25,
@@ -793,10 +812,10 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
           {
             id: 'c',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-04-10'),
             virkningsDato: toISODateString('2024-03-01'),
             eetPct: 50,
@@ -804,10 +823,10 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
           {
             id: 'b',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-04-15'),
             virkningsDato: toISODateString('2024-03-01'),
             eetPct: 35,
@@ -815,7 +834,6 @@ describe('computeEetLoebendeYdelser', () => {
             kapPct: undefined,
             afgoerelseType: 'Midlertidig',
             tidlKapDato: undefined,
-            fsTilbageholdtEet: 'Nej',
           },
         ],
       },
@@ -847,6 +865,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2023-07-01'),
             virkningsDato: toISODateString('2023-02-01'),
             eetPct: 45,
@@ -857,6 +876,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-11-01'),
             virkningsDato: toISODateString('2025-10-01'),
             eetPct: 75,
@@ -911,6 +931,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-11-01'),
             virkningsDato: toISODateString('2025-10-01'),
             eetPct: 40,
@@ -938,6 +959,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-11-01'),
             virkningsDato: toISODateString('2025-10-01'),
             eetPct: 40,
@@ -965,6 +987,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-08-01'),
             virkningsDato: toISODateString('2025-08-01'),
             eetPct: 55,
@@ -998,6 +1021,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2026-01-15'),
             virkningsDato: toISODateString('2026-01-15'),
             eetPct: 15,
@@ -1026,6 +1050,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-11-01'),
             virkningsDato: toISODateString('2025-10-01'),
             eetPct: 75,
@@ -1065,6 +1090,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2023-07-01'),
             virkningsDato: toISODateString('2023-02-01'),
             eetPct: 60,
@@ -1075,6 +1101,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2025-11-01'),
             virkningsDato: toISODateString('2025-10-01'),
             eetPct: 75,
@@ -1118,6 +1145,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-01-01'),
             virkningsDato: toISODateString('2024-01-01'),
             eetPct: 60,
@@ -1128,6 +1156,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-06-01'),
             virkningsDato: toISODateString('2024-06-01'),
             eetPct: 45,
@@ -1154,6 +1183,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2027-01-01'),
             virkningsDato: toISODateString('2027-01-01'),
             eetPct: 40,
@@ -1181,6 +1211,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-06-01'),
             virkningsDato: toISODateString('2022-03-01'),
             eetPct: 40,
@@ -1222,6 +1253,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2026-01-01'),
             virkningsDato: toISODateString('2026-01-01'),
             eetPct: 40,
@@ -1257,6 +1289,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2026-01-01'),
             virkningsDato: toISODateString('2026-01-01'),
             eetPct: 40,
@@ -1292,6 +1325,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-01-01'),
             virkningsDato: toISODateString('2024-01-01'),
             eetPct: 40,
@@ -1323,6 +1357,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2026-01-15'),
             virkningsDato: toISODateString('2026-01-15'),
             eetPct: 15,
@@ -1363,6 +1398,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2019-06-01'),
             virkningsDato: toISODateString('2019-06-01'),
             eetPct: 60,
@@ -1396,6 +1432,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-05-01'),
             virkningsDato: toISODateString('2024-01-01'),
             eetPct: 50,
@@ -1406,6 +1443,7 @@ describe('computeEetLoebendeYdelser', () => {
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-05-01'),
             virkningsDato: toISODateString('2024-07-01'),
             eetPct: 30,
@@ -1436,6 +1474,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2021-08-01'),
             virkningsDato: toISODateString('2020-01-01'),
             eetPct: 60,
@@ -1470,6 +1509,7 @@ describe('computeEetLoebendeYdelser', () => {
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [{
           id: 'a1',
+          fsTilbageholdtEet: 'Nej',
           afgoerelsesDato: toISODateString('2019-06-01'),
           virkningsDato: toISODateString('2019-06-01'),
           eetPct: 40,
@@ -1517,6 +1557,7 @@ describe('warn-asl-aarsloen-is-max', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2023-07-01'),
             virkningsDato: toISODateString('2023-02-01'),
             eetPct: 20,
@@ -1546,6 +1587,7 @@ describe('warn-asl-aarsloen-is-max', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2023-07-01'),
             virkningsDato: toISODateString('2023-02-01'),
             eetPct: 20,
@@ -1568,6 +1610,7 @@ describe('isAslAfgoerelseRowEmpty', () => {
   it('behandler FS tilbageholdt EET som beregningsneutral tom-række-værdi', () => {
     expect(isAslAfgoerelseRowEmpty({
       id: 'empty-nej',
+      fsTilbageholdtEet: 'Nej',
       afgoerelsesDato: undefined,
       virkningsDato: undefined,
       eetPct: undefined,
@@ -1575,12 +1618,10 @@ describe('isAslAfgoerelseRowEmpty', () => {
       kapPct: undefined,
       afgoerelseType: undefined,
       tidlKapDato: undefined,
-      fsTilbageholdtEet: 'Nej',
     })).toBe(true);
 
     expect(isAslAfgoerelseRowEmpty({
-      id: 'empty-ja',
-      afgoerelsesDato: undefined,
+      id: 'empty-ja',      afgoerelsesDato: undefined,
       virkningsDato: undefined,
       eetPct: undefined,
       kapDato: undefined,
@@ -1594,6 +1635,7 @@ describe('isAslAfgoerelseRowEmpty', () => {
   it('behandler FS tilbageholdt EET som brugerindtastning i persistens-tomhedsreglen', () => {
     expect(isAslAfgoerelseRowPersistenceEmpty({
       id: 'empty-nej',
+      fsTilbageholdtEet: 'Nej',
       afgoerelsesDato: undefined,
       virkningsDato: undefined,
       eetPct: undefined,
@@ -1601,12 +1643,10 @@ describe('isAslAfgoerelseRowEmpty', () => {
       kapPct: undefined,
       afgoerelseType: undefined,
       tidlKapDato: undefined,
-      fsTilbageholdtEet: 'Nej',
     })).toBe(true);
 
     expect(isAslAfgoerelseRowPersistenceEmpty({
-      id: 'empty-ja',
-      afgoerelsesDato: undefined,
+      id: 'empty-ja',      afgoerelsesDato: undefined,
       virkningsDato: undefined,
       eetPct: undefined,
       kapDato: undefined,

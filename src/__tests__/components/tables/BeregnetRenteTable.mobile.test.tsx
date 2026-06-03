@@ -40,9 +40,9 @@ const baseProps = {
   onDownloadSpecifikation: vi.fn(async () => undefined),
   onError: () => undefined,
   beregningsdatoHasError: false,
-  referenceRates: [] as const,
-  surchargeRates: [] as const,
-} as const;
+  referenceRates: [],
+  surchargeRates: [],
+};
 
 describe('BeregnetRenteTable mobilkolonner', () => {
   it('renderer mobilkolonner (belob, renterFra, beregnetRente) når isMobile=true', () => {

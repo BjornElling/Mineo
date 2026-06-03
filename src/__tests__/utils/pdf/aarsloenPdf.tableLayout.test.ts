@@ -5,8 +5,14 @@ import { PDF_CONTENT_WIDTH_MM } from '../../../pdf/infrastructure/pdfConfig';
 const AARSLOEN_PDF_ATP_HEADER = 'ATP mv.\nu. tillæg';
 const AARSLOEN_PDF_IKKE_PENS_HEADER = 'Ikke-pens.\ngiv. løn';
 
+type AutoTableOptions = {
+  startY?: number;
+  body?: Array<Array<{ content?: string; colSpan?: number }>>;
+  columnStyles?: Record<number, { cellWidth: number }>;
+};
+
 const { autoTableMock } = vi.hoisted(() => ({
-  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+  autoTableMock: vi.fn((doc: Record<string, unknown>, options: AutoTableOptions) => {
     doc.lastAutoTable = { finalY: (options.startY ?? 0) + 10 };
   }),
 }));
@@ -87,8 +93,8 @@ describe('aarsloenPdf', () => {
           col1_maaned: '2024',
           col0_uge: '',
           col1_uge: '',
-          col0_dag: '',
-          col1_dag: '',
+          col0_dag: undefined,
+          col1_dag: undefined,
           col2: { kind: 'number', value: 11111 },
           col3: { kind: 'number', value: 1111 },
           col4: { kind: 'number', value: 111 },
@@ -100,8 +106,8 @@ describe('aarsloenPdf', () => {
           col1_maaned: '2024',
           col0_uge: '',
           col1_uge: '',
-          col0_dag: '',
-          col1_dag: '',
+          col0_dag: undefined,
+          col1_dag: undefined,
           col2: { kind: 'number', value: 12000 },
           col3: undefined,
           col4: undefined,
@@ -155,8 +161,8 @@ describe('aarsloenPdf', () => {
           col1_maaned: '2024',
           col0_uge: '',
           col1_uge: '',
-          col0_dag: '',
-          col1_dag: '',
+          col0_dag: undefined,
+          col1_dag: undefined,
           col2: { kind: 'number', value: 11111 },
           col3: { kind: 'number', value: 1111 },
           col4: { kind: 'number', value: 1234567.89 },
@@ -168,8 +174,8 @@ describe('aarsloenPdf', () => {
           col1_maaned: '2024',
           col0_uge: '',
           col1_uge: '',
-          col0_dag: '',
-          col1_dag: '',
+          col0_dag: undefined,
+          col1_dag: undefined,
           col2: { kind: 'number', value: 12000 },
           col3: undefined,
           col4: undefined,

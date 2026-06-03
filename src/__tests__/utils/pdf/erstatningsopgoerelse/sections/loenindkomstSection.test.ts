@@ -4,8 +4,11 @@ import { toISODateString } from '../../../../../types/branded';
 import { renderLoenindkomstSection } from '../../../../../pdf/domains/eo/sections/loenindkomstSection';
 import type { SelectedElements } from '../../../../../pdf/domains/eo/types';
 
+type LoenSectionContext = Parameters<typeof renderLoenindkomstSection>[0];
+type IncludeLoenRowParams = Parameters<LoenSectionContext['shouldIncludeLoenRowInEoBilag']>[0];
+
 const { autoTableMock } = vi.hoisted(() => ({
-  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number }) => {
+  autoTableMock: vi.fn((doc: Record<string, unknown>, options: { startY?: number; body?: unknown[][]; columnStyles?: Record<number, { cellWidth: number }> }) => {
     doc.lastAutoTable = { finalY: (options.startY ?? 0) + 10 };
   }),
 }));
@@ -29,11 +32,12 @@ const selectedElements: SelectedElements = {
   regulering: false,
   okSatser: false,
   sygeferiegodtgoerelse: false,
+  midlertidigEet: false,
 };
 
 const createEmployment = () => createDefaultLoenindkomstAnsaettelsesforhold();
 
-const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
+const makeContext = (includeRangeFromDates: ReadonlySet<ReturnType<typeof toISODateString>>) => {
   const eoValues = createErstatningsopgoerelseInitialValues();
   eoValues.beregnesUdFra = 'Beregningsperiode';
   eoValues.eoNummer = '1';
@@ -60,8 +64,8 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
           col1_maaned: '2022',
           col0_uge: '',
           col1_uge: '',
-          col0_dag: '',
-          col1_dag: '',
+          col0_dag: undefined,
+          col1_dag: undefined,
           col2: { kind: 'number', value: 1000 },
           col3: undefined,
           col4: undefined,
@@ -76,39 +80,39 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
   const renderSubheader = vi.fn();
   const startEoBilagPage = vi.fn();
 
+  const ctx: Parameters<typeof renderLoenindkomstSection>[0] = {
+    selectedElements,
+    eoValues,
+    startEoBilagPage,
+    renderSubheader,
+    safeAddWrappedText: vi.fn(),
+    writeLabelValueLine: vi.fn(),
+    formatDateLong: vi.fn(() => ''),
+    formatPctFromInput: vi.fn(() => ''),
+    isZeroPct: vi.fn(() => true),
+    getLoenindkomstTableHeaders: vi.fn(() => getStandardLoenTableHeaders('dag')),
+    resolvePeriodColumns: vi.fn((): readonly [string, string] => ['01-10-2022', '31-10-2022']),
+    hasNonZeroLoenAmount: vi.fn((value) => Boolean(value && value.kind === 'number' && value.value !== 0)),
+    shouldIncludeLoenRowInEoBilag: vi.fn(({ ranges }: IncludeLoenRowParams) => {
+      return ranges.some((range) => includeRangeFromDates.has(range.fra));
+    }),
+    eoBilagIndkomstYdelserMode: 'Perioden',
+    eoBilagIndkomstYdelserRanges: [],
+    writer: {
+      addSectionSpacer: vi.fn(),
+      addSpacer: vi.fn(),
+      setY: vi.fn((nextY: number) => {
+        y = nextY;
+      }),
+      getY: vi.fn(() => y),
+      getDoc: vi.fn(() => doc as never),
+    },
+  };
+
   return {
     renderSubheader,
     startEoBilagPage,
-    ctx: {
-      selectedElements,
-      eoValues,
-      lineHeight: 4,
-      startEoBilagPage,
-      renderSubheader,
-      safeAddWrappedText: vi.fn(),
-      writeLabelValueLine: vi.fn(),
-      formatDateLong: vi.fn(() => ''),
-      resolveOverenskomstDisplay: vi.fn(() => ''),
-      formatPctFromInput: vi.fn(() => ''),
-      isZeroPct: vi.fn(() => true),
-      getLoenindkomstTableHeaders: vi.fn(() => getStandardLoenTableHeaders('dag')),
-      resolvePeriodColumns: vi.fn(() => ['01-10-2022', '31-10-2022'] as const),
-      hasNonZeroLoenAmount: vi.fn((value) => Boolean(value && value.kind === 'number' && value.value !== 0)),
-      shouldIncludeLoenRowInEoBilag: vi.fn(({ ranges }) => {
-        return ranges.some((range) => includeRangeFromDates.has(range.fra));
-      }),
-      eoBilagIndkomstYdelserMode: 'Perioden' as const,
-      eoBilagIndkomstYdelserRanges: [],
-      writer: {
-        addSectionSpacer: vi.fn(),
-        addSpacer: vi.fn(),
-        setY: vi.fn((nextY: number) => {
-          y = nextY;
-        }),
-        getY: vi.fn(() => y),
-        getDoc: vi.fn(() => doc),
-      },
-    },
+    ctx,
   };
 };
 
@@ -117,9 +121,8 @@ const makeContext = (includeRangeFromDates: ReadonlySet<string>) => {
 describe('renderLoenindkomstSection – gate', () => {
   it('returnerer tidligt uden at kalde startEoBilagPage når loenindkomst=false', () => {
     const { ctx, startEoBilagPage } = makeContext(new Set([toISODateString('2022-10-01')]));
-    ctx.selectedElements = { ...selectedElements, loenindkomst: false };
 
-    renderLoenindkomstSection(ctx);
+    renderLoenindkomstSection({ ...ctx, selectedElements: { ...selectedElements, loenindkomst: false } });
 
     expect(startEoBilagPage).not.toHaveBeenCalled();
   });
@@ -151,9 +154,8 @@ describe('renderLoenindkomstSection opsigelseslinje', () => {
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansatPaaSkadestidspunktet = true;
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].ansaettelsesforholdOphoert = true;
     ctx.eoValues.loenindkomstAnsaettelsesforhold[0].sidsteArbejdsdag = iso('2024-04-30');
-    ctx.formatDateLong = vi.fn(() => '30. april 2024');
 
-    renderLoenindkomstSection(ctx);
+    renderLoenindkomstSection({ ...ctx, formatDateLong: vi.fn(() => '30. april 2024') });
 
     expect(ctx.safeAddWrappedText).toHaveBeenCalledWith(
       'Skadelidte er opsagt fra stillingen med sidste arbejdsdag 30. april 2024.'
@@ -226,14 +228,15 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
         },
       ],
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '', grundloen: { kind: 'number', value: 0 }, feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
+        { id: 'base', dato: undefined, grundloen: { kind: 'number', value: 0 }, feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
         { id: 'step', dato: toISODateString('2024-01-15'), grundloen: { kind: 'number', value: 0 }, feriepenge: undefined, shSoSats: 10, fritvalg: undefined, agPension: undefined },
       ],
     };
-    ctx.getLoenindkomstTableHeaders = vi.fn(() => getStandardLoenTableHeaders('dag'));
-    ctx.resolvePeriodColumns = vi.fn(() => ['01-01-2024', '31-01-2024'] as const);
-
-    renderLoenindkomstSection(ctx);
+    renderLoenindkomstSection({
+      ...ctx,
+      getLoenindkomstTableHeaders: vi.fn(() => getStandardLoenTableHeaders('dag')),
+      resolvePeriodColumns: vi.fn((): readonly [string, string] => ['01-01-2024', '31-01-2024']),
+    });
 
     expect(autoTableMock).toHaveBeenCalled();
     const firstCall = autoTableMock.mock.calls[0]?.[1];
@@ -269,14 +272,15 @@ describe('renderLoenindkomstSection periode-underoverskrifter', () => {
         },
       ],
       loenudviklingManuelTableData: [
-        { id: 'base', dato: '', grundloen: { kind: 'number', value: 0 }, feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
+        { id: 'base', dato: undefined, grundloen: { kind: 'number', value: 0 }, feriepenge: undefined, shSoSats: 0, fritvalg: undefined, agPension: undefined },
         { id: 'step', dato: toISODateString('2024-01-10'), grundloen: { kind: 'number', value: 0 }, feriepenge: undefined, shSoSats: 10, fritvalg: undefined, agPension: undefined },
       ],
     };
-    ctx.getLoenindkomstTableHeaders = vi.fn(() => getStandardLoenTableHeaders('dag'));
-    ctx.resolvePeriodColumns = vi.fn(() => ['08-01-2024', '12-01-2024'] as const);
-
-    renderLoenindkomstSection(ctx);
+    renderLoenindkomstSection({
+      ...ctx,
+      getLoenindkomstTableHeaders: vi.fn(() => getStandardLoenTableHeaders('dag')),
+      resolvePeriodColumns: vi.fn((): readonly [string, string] => ['08-01-2024', '12-01-2024']),
+    });
 
     expect(autoTableMock).toHaveBeenCalled();
     const firstCall = autoTableMock.mock.calls[0]?.[1];

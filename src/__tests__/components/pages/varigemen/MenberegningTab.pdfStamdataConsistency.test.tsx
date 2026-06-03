@@ -10,7 +10,7 @@ const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mock
     journalnr: 'J-2026-001',
     advokat: 'Test Advokat',
     sagsbehandler: 'Test Sagsbehandler',
-    skadestype: 'Arbejdsulykke',
+    skadestype: 'Arbejdsulykke' as const,
     skadedato: '2025-01-01' as ISODateString,
     skadelidteFodselsdato: '1980-01-01' as ISODateString,
   },

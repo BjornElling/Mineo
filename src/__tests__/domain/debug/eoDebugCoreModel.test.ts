@@ -19,7 +19,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -41,7 +41,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso('2024-01-01'),
         },
         erstatningsopgoerelseValues: {
@@ -64,7 +64,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -91,7 +91,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -126,7 +126,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -154,7 +154,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -180,7 +180,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -212,7 +212,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -255,7 +255,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -303,7 +303,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -346,7 +346,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -395,7 +395,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -440,7 +440,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -469,7 +469,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {
@@ -497,7 +497,7 @@ describe('eoDebugCoreModel', () => {
           advokat: '',
           sagsbehandler: '',
           skadelidte: '',
-          skadestype: '',
+          skadestype: undefined,
           skadedato: iso(''),
         },
         erstatningsopgoerelseValues: {

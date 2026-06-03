@@ -20,6 +20,7 @@ describe('computeEetDifferencekravCalculation', () => {
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2024-01-01'),
             virkningsDato: toISODateString('2024-01-01'),
             eetPct: 60,
@@ -54,6 +55,7 @@ describe('computeEetDifferencekravCalculation', () => {
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2019-06-01'),
             virkningsDato: toISODateString('2019-06-01'),
             eetPct: 60,
@@ -103,6 +105,7 @@ describe('computeEetDifferencekravCalculation', () => {
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2021-10-01'),
             virkningsDato: toISODateString('2020-01-01'),
             eetPct: 60,
@@ -143,6 +146,7 @@ describe('computeEetDifferencekravCalculation', () => {
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2021-10-01'),
             virkningsDato: toISODateString('2020-01-01'),
             eetPct: 60,
@@ -177,6 +181,7 @@ describe('computeEetDifferencekravCalculation', () => {
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2021-10-01'),
             virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
@@ -215,6 +220,7 @@ describe('computeEetDifferencekravCalculation', () => {
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2021-10-01'),
             virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
@@ -258,6 +264,7 @@ describe('computeEetDifferencekravCalculation', () => {
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2021-10-01'),
             virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
@@ -285,6 +292,7 @@ describe('computeEetDifferencekravCalculation', () => {
           aslAarsloen: asAmount(401000),
           aslAfgoerelser: [{
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2021-10-01'),
             virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
@@ -315,6 +323,7 @@ describe('computeEetDifferencekravCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2021-10-01'),
             virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
@@ -325,6 +334,7 @@ describe('computeEetDifferencekravCalculation', () => {
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2022-02-01'),
             virkningsDato: toISODateString('2022-02-01'),
             eetPct: 80,
@@ -357,6 +367,7 @@ describe('computeEetDifferencekravCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2022-02-01'),
             virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
@@ -389,6 +400,7 @@ describe('computeEetDifferencekravCalculation', () => {
         aslAfgoerelser: [
           {
             id: 'a1',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2021-10-01'),
             virkningsDato: toISODateString('2021-10-01'),
             eetPct: 60,
@@ -399,6 +411,7 @@ describe('computeEetDifferencekravCalculation', () => {
           },
           {
             id: 'a2',
+            fsTilbageholdtEet: 'Nej',
             afgoerelsesDato: toISODateString('2021-11-01'),
             virkningsDato: undefined,
             eetPct: 80,
@@ -430,6 +443,7 @@ describe('computeEetDifferencekravCalculation', () => {
         aslAarsloen: asAmount(339000),
         aslAfgoerelser: [{
           id: 'a1',
+          fsTilbageholdtEet: 'Nej',
           afgoerelsesDato: toISODateString('2026-01-15'),
           virkningsDato: toISODateString('2026-01-15'),
           eetPct: 15,
@@ -460,6 +474,7 @@ describe('computeEetDifferencekravCalculation', () => {
         aslAarsloen: asAmount(339000),
         aslAfgoerelser: [{
           id: 'a1',
+          fsTilbageholdtEet: 'Nej',
           afgoerelsesDato: toISODateString('2026-01-15'),
           virkningsDato: toISODateString('2026-01-15'),
           eetPct: 15,
@@ -492,6 +507,7 @@ describe('computeEetDifferencekravCalculation', () => {
         aslAarsloen: asAmount(339000),
         aslAfgoerelser: [{
           id: 'a1',
+          fsTilbageholdtEet: 'Nej',
           afgoerelsesDato: undefined,
           virkningsDato: undefined,
           eetPct: undefined,
@@ -520,6 +536,7 @@ describe('computeEetDifferencekravCalculation', () => {
         ealEetPct: 0,
         aslAfgoerelser: [{
           id: 'a1',
+          fsTilbageholdtEet: 'Nej',
           afgoerelsesDato: toISODateString('2026-01-15'),
           virkningsDato: toISODateString('2026-01-15'),
           eetPct: 15,
@@ -548,6 +565,7 @@ describe('computeEetDifferencekravCalculation', () => {
         aslAarsloen: asAmount(632000),
         aslAfgoerelser: [{
           id: 'a1',
+          fsTilbageholdtEet: 'Nej',
           afgoerelsesDato: toISODateString('2025-01-01'),
           virkningsDato: toISODateString('2025-01-01'),
           eetPct: 50,
@@ -577,6 +595,7 @@ describe('computeEetDifferencekravCalculation', () => {
         aslAarsloen: asAmount(401000),
         aslAfgoerelser: [{
           id: 'a1',
+          fsTilbageholdtEet: 'Nej',
           afgoerelsesDato: toISODateString('2024-01-01'),
           virkningsDato: toISODateString('2024-01-01'),
           eetPct: 60,
@@ -617,6 +636,7 @@ describe('computeEetDifferencekravCalculation', () => {
           aslAfgoerelser: [
             {
               id: 'midl',
+              fsTilbageholdtEet: 'Nej',
               afgoerelsesDato: toISODateString('2019-10-01'),
               virkningsDato: toISODateString('2019-02-01'),
               eetPct: 55,
@@ -627,6 +647,7 @@ describe('computeEetDifferencekravCalculation', () => {
             },
             {
               id: 'endelig',
+              fsTilbageholdtEet: 'Nej',
               afgoerelsesDato: toISODateString('2019-12-01'),
               virkningsDato: toISODateString('2019-09-01'),
               eetPct: 65,
@@ -694,6 +715,7 @@ describe('computeEetDifferencekravCalculation', () => {
           aslAfgoerelser: [
             {
               id: 'midl',
+              fsTilbageholdtEet: 'Nej',
               afgoerelsesDato: toISODateString('2019-02-01'),
               virkningsDato: toISODateString('2019-02-01'),
               eetPct: 55,
@@ -704,6 +726,7 @@ describe('computeEetDifferencekravCalculation', () => {
             },
             {
               id: 'endelig',
+              fsTilbageholdtEet: 'Nej',
               afgoerelsesDato: toISODateString('2019-08-15'),
               virkningsDato: toISODateString('2019-10-01'),
               eetPct: 65,
@@ -747,6 +770,7 @@ describe('computeEetDifferencekravCalculation', () => {
           aslAfgoerelser: [
             {
               id: 'endelig',
+              fsTilbageholdtEet: 'Nej',
               afgoerelsesDato: toISODateString('2019-12-01'),
               virkningsDato: toISODateString('2019-09-01'),
               eetPct: 65,
@@ -757,6 +781,7 @@ describe('computeEetDifferencekravCalculation', () => {
             },
             {
               id: 'midl',
+              fsTilbageholdtEet: 'Nej',
               afgoerelsesDato: toISODateString('2020-08-01'),
               virkningsDato: toISODateString('2019-06-01'),
               eetPct: 55,
@@ -794,6 +819,7 @@ describe('computeEetDifferencekravCalculation', () => {
             aslAfgoerelser: [
               {
                 id: 'midl',
+                fsTilbageholdtEet: 'Nej',
                 afgoerelsesDato: toISODateString('2010-10-01'),
                 virkningsDato: toISODateString('2010-02-01'),
                 eetPct: 55,
@@ -804,6 +830,7 @@ describe('computeEetDifferencekravCalculation', () => {
               },
               {
                 id: 'endelig',
+                fsTilbageholdtEet: 'Nej',
                 afgoerelsesDato: toISODateString('2010-12-01'),
                 virkningsDato: toISODateString('2010-09-01'),
                 eetPct: 65,
