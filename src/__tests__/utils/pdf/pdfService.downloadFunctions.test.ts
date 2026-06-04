@@ -645,6 +645,24 @@ describe('downloadTafOpreguleretPaaAarPdf', () => {
       expect.objectContaining({ document: projectedDocument })
     );
   });
+
+  it('returnerer success=false og rapporterer systemfejl ved generator-fejl (fail-closed)', async () => {
+    mockGenerateTafOpreguleretPaaAarPdf.mockImplementationOnce(() => { throw new Error('TAF-opreg fejl'); });
+    const result = await downloadTafOpreguleretPaaAarPdf({
+      stamdataValues: stamdata,
+      eoValues,
+      selectedElements: {} as never,
+      settings,
+      snapshot: eoSnapshot,
+    });
+    expect(result.success).toBe(false);
+    expect(mockReportSystemIssue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        area: 'pdf',
+        context: 'pdfService.downloadTafOpreguleretPaaAarPdf',
+      })
+    );
+  });
 });
 
 // ─── downloadVarigeMenPdf ─────────────────────────────────────────────────────

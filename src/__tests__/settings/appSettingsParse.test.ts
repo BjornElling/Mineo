@@ -101,6 +101,26 @@ describe('parseStoredSettings', () => {
     expect(result.showEODebugMenu).toBe(true);
     expect(result.defaultStartsideErStamdata).toBe(false);
   });
+
+  it('gamle gemte settings uden regulerings-felterne loader med defaults (bagudkompatibel injicering)', () => {
+    // Simulerer en localStorage-blob gemt før reguleringsindstillingerne blev (gen)indført
+    // som device-lokale appSettings. De manglende felter må udfyldes af defaults — ikke
+    // bryde parse — så øvrige gemte præferencer bevares.
+    const { allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden, allowReguleringMedUdloebMedMaaneder, ...legacy } =
+      DEFAULT_APP_SETTINGS;
+    void allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
+    void allowReguleringMedUdloebMedMaaneder;
+
+    const result = parseStoredSettings({ ...legacy, themeMode: 'dark' });
+
+    expect(result.themeMode).toBe('dark');
+    expect(result.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden).toBe(
+      DEFAULT_APP_SETTINGS.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden
+    );
+    expect(result.allowReguleringMedUdloebMedMaaneder).toBe(
+      DEFAULT_APP_SETTINGS.allowReguleringMedUdloebMedMaaneder
+    );
+  });
 });
 
 describe('resolveAppSettings', () => {
@@ -202,5 +222,18 @@ describe('loadInitialSettings', () => {
     const result = loadInitialSettings();
 
     expect(result.themeMode).toBe('dark');
+  });
+
+  it('regulerings-felterne round-tripper gennem localStorage', () => {
+    writeLocalStorage(LOCAL_STORAGE_KEY, JSON.stringify({
+      ...DEFAULT_APP_SETTINGS,
+      allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true,
+      allowReguleringMedUdloebMedMaaneder: 11,
+    }));
+
+    const result = loadInitialSettings();
+
+    expect(result.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden).toBe(true);
+    expect(result.allowReguleringMedUdloebMedMaaneder).toBe(11);
   });
 });

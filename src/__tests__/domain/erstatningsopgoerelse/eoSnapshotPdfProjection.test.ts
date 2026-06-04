@@ -8,7 +8,11 @@ vi.mock('../../../utils/logger', () => ({
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
 import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
-import { buildControlMismatchInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
+import { eoSnapshotToTafPerYearOpreguleretPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretPdfDocument';
+import {
+  buildControlMismatchInvariant,
+  buildTafPerYearOpreguleretManglendeReguleringssatsInvariant,
+} from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
@@ -132,5 +136,37 @@ describe('EO snapshot PDF projections', () => {
     if (projection.kind !== 'ok') return;
     expect(projection.document.presentation).toBeNull();
     expect(projection.document.model.tabtArbejdsfortjeneste.harTafPerioder).toBe(false);
+  });
+
+  it('tillader TAF-opreguleret-PDF og forwarder begge engine-resultater', () => {
+    const snapshot = buildBaseSnapshot();
+    const projection = eoSnapshotToTafPerYearOpreguleretPdfDocument(snapshot);
+
+    expect(projection.kind).toBe('ok');
+    if (projection.kind !== 'ok') return;
+    expect(projection.document.presentation).toBe(snapshot.data?.engines.tafPerYear ?? null);
+    expect(projection.document.opreguleret).toBe(snapshot.data?.engines.tafPerYearOpreguleret ?? null);
+  });
+
+  it('manglende-reguleringssats-invariant blokerer KUN taf_per_year_opreguleret_pdf, ikke eo_pdf/taf_per_year_pdf', () => {
+    const snapshot = buildBaseSnapshot();
+    const invariant = buildTafPerYearOpreguleretManglendeReguleringssatsInvariant([2000, 2001]);
+    const withInvariant = {
+      ...snapshot,
+      status: 'error' as const,
+      invariants: [...snapshot.invariants, invariant],
+    };
+
+    // Den opregulerede PDF blokeres med invariantens besked.
+    const opreguleret = eoSnapshotToTafPerYearOpreguleretPdfDocument(withInvariant);
+    expect(opreguleret.kind).toBe('blocked');
+    if (opreguleret.kind === 'blocked') {
+      expect(opreguleret.invariants).toContain(invariant);
+      expect(opreguleret.message).toContain('2000');
+    }
+
+    // De øvrige targets påvirkes IKKE af denne invariant.
+    expect(eoSnapshotToEoPdfDocument(withInvariant).kind).toBe('ok');
+    expect(eoSnapshotToTafPerYearPdfDocument(withInvariant).kind).toBe('ok');
   });
 });

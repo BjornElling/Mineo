@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-06-02
+**Senest verificeret mod kode:** 2026-06-04
 
 ---
 
@@ -25,6 +25,7 @@ Alle visninger er projektioner af snapshot:
 - `eoSnapshotToDebugView`
 - `eoSnapshotToEoPdfDocument`
 - `eoSnapshotToTafPerYearPdfDocument`
+- `eoSnapshotToTafPerYearOpreguleretPdfDocument` (projektion for beregningsformen "TAF opreguleret til beregningsår"; forwarder både per-år-resultatet og det opregulerede resultat uden ny domæneberegning)
 
 For projektionsfelter, der fødes videre til debug/PDF uden ny domæneberegning, er feltsemantikken bindende.
 Dette gælder blandt andet `sygeferiegodtgoerelse.perAnsaettelsesforhold[].sfggVisningsperiode`, som normativt er
@@ -192,9 +193,23 @@ Snapshot beregnes stadig på de clampede værdier og `data` er tilgængeligt.
 
 ### 3.2 `blocksOutputs`
 
-Invariants kan blokere specifikke outputs uden at stoppe beregningen:
-- Kontroluoverensstemmelse blokerer: `['eo_pdf', 'taf_per_year_pdf']`
-- TAF per år-afstemningsfejl over 100 øre blokerer: `['taf_per_year_pdf']`
+Projektions-targets (`EoProjectionTarget` i `eoSnapshotInvariants.ts`) er:
+`'beregning' | 'debug' | 'eo_pdf' | 'taf_per_year_pdf' | 'taf_per_year_opreguleret_pdf'`.
+Det opregulerede target dækker beregningsformen "TAF opreguleret til beregningsår", der bygger
+oven på per-år-resultatet.
+
+Invariants kan blokere specifikke outputs uden at stoppe beregningen. Den bindende regel er, at
+en blokering af per-år-grundlaget også blokerer den opregulerede afledning, og at en
+opregulerings-specifik fejl kun blokerer den opregulerede PDF:
+- Kontroluoverensstemmelse blokerer: `['eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf']`
+- TAF per år-afstemningsfejl over 100 øre blokerer: `['taf_per_year_pdf', 'taf_per_year_opreguleret_pdf']`
+- TAF per år utilgængelig (manglende lønudvikling/TAF-indtægter) blokerer:
+  `['taf_per_year_pdf', 'taf_per_year_opreguleret_pdf']`
+- Manglende reguleringssats for opregulering
+  (`taf_per_year_opreguleret:manglende_reguleringssats`, bygget af
+  `buildTafPerYearOpreguleretManglendeReguleringssatsInvariant`) blokerer **kun**:
+  `['taf_per_year_opreguleret_pdf']` — den påvirker ikke EO-PDF eller den ikke-opregulerede
+  TAF-per-år-PDF.
 
 ### 3.3 Engine-throws er forbudt som primær fejlmåde
 

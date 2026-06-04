@@ -386,6 +386,44 @@ describe('computeForsoergertabAslYdelser', () => {
   });
 });
 
+describe('computeForsoergertabAslYdelser — de-regulering af løbende ydelser før skadeår', () => {
+  // De løbende ydelser opreguleres direkte (idx[år] / idx[skadeår]) og IKKE via
+  // opreguleringsmotorens "kun frem i tid"-clamp, netop fordi et ydelsesår kan
+  // ligge FØR skadeåret. I så fald er faktoren < 1 (de-regulering). Denne test
+  // låser at de-reguleringen bevares og ikke clampes til 1.
+  it('anvender faktor < 1 for et løbende-ydelses-år der ligger før skadeåret', () => {
+    const benyttetAarsloen = 450000; // < aarsloenAslMax[skadeår], så benyttes uændret
+    const skadesaar = 2023;
+    const ydelsesAar = 2021; // før skadeår
+    const result = computeForsoergertabAslYdelser({
+      skadedato: toISODateString('2023-06-01'),
+      beregningsdato: toISODateString('2024-06-01'),
+      virkningsdato: toISODateString('2021-01-01'),
+      efterladteFodselsdato: toISODateString('1976-01-01'),
+      koen: undefined,
+      tilkendtForPeriodeAar: 10,
+      aslAarsloen: asAmount(benyttetAarsloen),
+    });
+
+    expect(result.computation).not.toBeNull();
+    const ydelser = result.computation!.lobendeYdelser;
+    const raekke2021 = ydelser.find((r) => r.fraDato.startsWith('2021'));
+    expect(raekke2021).toBeDefined();
+
+    // De-reguleret månedlig ydelse: 30 % af benyttet årsløn skaleret med idx[2021]/idx[2023] (< 1).
+    const deRegFaktor = aarsloenAslMax[ydelsesAar]! / aarsloenAslMax[skadesaar]!;
+    expect(deRegFaktor).toBeLessThan(1);
+    const ceilNearest12 = (v: number) => Math.ceil(v / 12) * 12;
+    const forventetMaanedlig = ceilNearest12(0.3 * benyttetAarsloen * deRegFaktor) / 12;
+    expect(raekke2021!.maanedligYdelse).toBe(forventetMaanedlig);
+
+    // Skadeårets række bruger den u-regulerede grundydelse — bekræfter at 2021-rækken er lavere.
+    const raekke2023 = ydelser.find((r) => r.fraDato.startsWith('2023'));
+    expect(raekke2023).toBeDefined();
+    expect(raekke2021!.maanedligYdelse).toBeLessThan(raekke2023!.maanedligYdelse);
+  });
+});
+
 describe('computeForsoergertabCalculation — minimumssats', () => {
   it('forhøjer EAL-krav til minimumssats når beregnet forsørgertab er under minimumsbeløbet', () => {
     // Med ealAarsloen=100000 og kapitaliseringsfaktor ~3 bliver eetBeregnet langt under

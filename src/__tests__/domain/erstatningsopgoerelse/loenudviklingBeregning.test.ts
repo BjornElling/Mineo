@@ -212,6 +212,36 @@ describe('buildLoenudviklingModel', () => {
     expect(segment2024?.deltaPct).toBe(0);
   });
 
+  it('fejl-lukker (kaster) når ASL-basisindeks mangler for reguleringsdatoens år', () => {
+    // Reguleringsdato i 2004 ligger før ASL-tabellens første år (2005). Den gamle
+    // adfærd faldt tavst tilbage til første tilgængelige ASL-år; efter delegering til
+    // opreguleringsmotoren fail-closes motoren nu med en synlig fejl frem for en
+    // tavs "ingen regulering".
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2004-06-01');
+    values.tafPerioder = [{
+      id: 'taf-2005',
+      fra: iso('2005-01-01'),
+      til: iso('2005-01-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Statistik',
+      loenudviklingStatistikModel: 'ASL-årslønsmaksimum',
+    };
+
+    expect(() => buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2004-06-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2005-01-01'), til: iso('2005-01-31') }] }
+    )).toThrow(/ASL basisindeks/);
+  });
+
   it('returnerer 0 kr. når arbejdsdage-sporet ikke har TAF-arbejdsdage', () => {
     const values = setupAngivetDagsloen();
     values.tafPerioder = [{

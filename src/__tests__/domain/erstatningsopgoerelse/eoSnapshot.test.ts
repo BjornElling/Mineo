@@ -612,6 +612,49 @@ describe('computeEoSnapshot', () => {
     ]);
   });
 
+  it('tre-tilstands-valg: Nej og Skjul giver identiske beregnede totaler (kun præsentation adskiller)', () => {
+    // Verificerer eo-snapshot-kontraktens beregningsadfærd: 'Nej' og 'Skjul' beregner begge INTET.
+    // Forskellen er rent præsentationsmæssig (Skjul udelader emnet fra PDF). Samme rækker er til stede
+    // i begge varianter; kun det tre-tilstands felt skifter mellem Nej og Skjul.
+    const buildValues = (valg: 'Nej' | 'Skjul') => {
+      const eoValues = createErstatningsopgoerelseInitialValues();
+      eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
+      eoValues.vedroererPeriodeTil = toISODateString('2024-01-31');
+      eoValues.kravPaaSvieSmerteGodtgoerelse = valg;
+      eoValues.kravPaaTabtArbejdsfortjeneste = valg;
+      eoValues.kravPaaOevrigeErstatningskrav = valg;
+      eoValues.oevrigeKravPerioder = [
+        {
+          id: 'krav-1',
+          dato: toISODateString('2024-01-15'),
+          udgiftTil: 'Transport',
+          beloeb: { kind: 'number', value: 1200 },
+        },
+      ];
+      return eoValues;
+    };
+
+    const nejSnapshot = computeEoSnapshot({
+      revision: 'tre-tilstand-nej',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues: buildValues('Nej'),
+    });
+    const skjulSnapshot = computeEoSnapshot({
+      revision: 'tre-tilstand-skjul',
+      stamdataValues: STAMDATA_INITIAL_VALUES,
+      eoValues: buildValues('Skjul'),
+    });
+
+    expect(nejSnapshot.status).toBe('ok');
+    expect(skjulSnapshot.status).toBe('ok');
+    // Beregnede totaler er identiske mellem Nej og Skjul — ingen beregningsforskel.
+    expect(skjulSnapshot.data?.totals).toEqual(nejSnapshot.data?.totals);
+    expect(skjulSnapshot.data?.canonicalOutput.totals).toEqual(nejSnapshot.data?.canonicalOutput.totals);
+    // Begge ekskluderer øvrige-krav-rækken fra summen (kravPaa... ≠ 'Ja' ⇒ intet beregnes).
+    expect(nejSnapshot.data?.totals.oevrigeKravOre).toBe(0);
+    expect(nejSnapshot.data?.totals.samletTotalOre).toBe(0);
+  });
+
   it('bygger et ok-snapshot for en simpel sag uden TAF med verificerede totals og EO-dokument', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');

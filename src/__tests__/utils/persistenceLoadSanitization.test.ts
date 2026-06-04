@@ -76,4 +76,66 @@ describe('persistenceLoadSanitization', () => {
     expect(result.unknownPaths).toContainEqual(['sfggAlleSygeperioderErTafPerioder']);
     expect(erstatningsopgoerelseSchema.safeParse(result.sanitized).success).toBe(true);
   });
+
+  // Regression for de bevidste breaking schema-ændringer 2026-06-03 (PERSISTED_DATA_VERSION 1.9 → 3.3):
+  // - rename: beregnesSvieSmerteGodtgoerelse → kravPaaSvieSmerteGodtgoerelse (jaNej → jaNejSkjul)
+  // - rename: beregnesTabtArbejdsfortjeneste → kravPaaTabtArbejdsfortjeneste (jaNej → jaNejSkjul)
+  // - fjernet: allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden + allowReguleringMedUdloebMedMaaneder
+  //   (flyttet til device-lokale appSettings)
+  // Kontrakt: schema-evolution.md §3.1a — gammel værdi tabes bevidst (ingen migrator),
+  // de gamle feltnavne strippes som ukendte, og de nye tre-tilstands-felter loades med default 'Ja'.
+  it('strippper omdøbte og fjernede EO-felter fra 2026-06-03-bumpet og loader nye felter med default', () => {
+    const init = createErstatningsopgoerelseInitialValues() as Record<string, unknown>;
+    // Simulér en ældre .eo-fil: de nye feltnavne findes ikke endnu, men de gamle gør.
+    delete init.kravPaaSvieSmerteGodtgoerelse;
+    delete init.kravPaaTabtArbejdsfortjeneste;
+    delete init.kravPaaOevrigeErstatningskrav;
+    delete init.offentligeYdelserKommentarer;
+    const legacyPayload = {
+      ...init,
+      beregnesSvieSmerteGodtgoerelse: 'Nej',
+      beregnesTabtArbejdsfortjeneste: 'Nej',
+      allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true,
+      allowReguleringMedUdloebMedMaaneder: false,
+    };
+
+    const result = stripUnknownFieldsBySchema(erstatningsopgoerelseSchema, legacyPayload);
+
+    expect(result.unknownPaths).toContainEqual(['beregnesSvieSmerteGodtgoerelse']);
+    expect(result.unknownPaths).toContainEqual(['beregnesTabtArbejdsfortjeneste']);
+    expect(result.unknownPaths).toContainEqual(['allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden']);
+    expect(result.unknownPaths).toContainEqual(['allowReguleringMedUdloebMedMaaneder']);
+
+    const parsed = erstatningsopgoerelseSchema.safeParse(result.sanitized);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    // Bevidst tab: den gamle 'Nej'-værdi videreføres IKKE; de nye felter får schema-default 'Ja'.
+    expect(parsed.data.kravPaaSvieSmerteGodtgoerelse).toBe('Ja');
+    expect(parsed.data.kravPaaTabtArbejdsfortjeneste).toBe('Ja');
+    expect(parsed.data.kravPaaOevrigeErstatningskrav).toBe('Ja');
+    expect(parsed.data.offentligeYdelserKommentarer).toBeUndefined();
+  });
+
+  // En fremtids-/nutidsfil med de nye tre-tilstands-værdier skal kunne loades uændret,
+  // inkl. 'Skjul'-værdien der blev introduceret i samme bump (jaNejSkjulEnum).
+  it('bevarer nye tre-tilstands-værdier (inkl. Skjul) ved load uden at stripe dem', () => {
+    const payload = {
+      ...createErstatningsopgoerelseInitialValues(),
+      kravPaaSvieSmerteGodtgoerelse: 'Skjul',
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
+      kravPaaOevrigeErstatningskrav: 'Skjul',
+      erstatningsopgoerelseAfsluttesMed: 'Ingen',
+    };
+
+    const result = stripUnknownFieldsBySchema(erstatningsopgoerelseSchema, payload);
+
+    expect(result.unknownPaths).toHaveLength(0);
+    const parsed = erstatningsopgoerelseSchema.safeParse(result.sanitized);
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.kravPaaSvieSmerteGodtgoerelse).toBe('Skjul');
+    expect(parsed.data.kravPaaTabtArbejdsfortjeneste).toBe('Nej');
+    expect(parsed.data.kravPaaOevrigeErstatningskrav).toBe('Skjul');
+    expect(parsed.data.erstatningsopgoerelseAfsluttesMed).toBe('Ingen');
+  });
 });

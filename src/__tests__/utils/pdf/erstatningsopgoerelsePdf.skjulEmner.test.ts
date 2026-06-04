@@ -75,7 +75,11 @@ describe('erstatningsopgoerelsePdf — Skjul udelader emner', () => {
     return values;
   };
 
-  const render = (stamdata: StamdataValues, eo: ErstatningsopgoerelseValues): string[] => {
+  const render = (
+    stamdata: StamdataValues,
+    eo: ErstatningsopgoerelseValues,
+    afsluttesMed?: 'Bekræftet godkendt' | 'Underskrift-linje' | 'Ingen'
+  ): string[] => {
     const snapshot = computeEoSnapshot({
       revision: 'pdf-skjul-test',
       stamdataValues: stamdata,
@@ -89,6 +93,7 @@ describe('erstatningsopgoerelsePdf — Skjul udelader emner', () => {
     generateErstatningsopgoerelsePdf(stamdata, eo, selected, {
       visUdkastStempel: false,
       document,
+      ...(afsluttesMed ? { erstatningsopgoerelseAfsluttesMed: afsluttesMed } : {}),
     });
     return (MockJsPDF.lastInstance?.text.mock.calls ?? []).map((call) => String(call[0]));
   };
@@ -129,5 +134,21 @@ describe('erstatningsopgoerelsePdf — Skjul udelader emner', () => {
     expect(texts).toContain('Samlet erstatningskrav');
     expect(texts).not.toContain('Øvrige krav');
     expect(texts).toContain('Erstatningskrav i alt');
+  });
+
+  it('udelader Godkendelse-afsnittet når afsluttesMed === "Ingen", men beholder det ved Underskrift-linje', () => {
+    const stamdata = structuredClone(STAMDATA_INITIAL_VALUES);
+    const eo = buildEo('Nej', 'Nej', 'Nej');
+
+    const underskriftTexts = render(stamdata, eo, 'Underskrift-linje');
+    expect(underskriftTexts).toContain('Godkendelse');
+
+    const bekraeftetTexts = render(stamdata, eo, 'Bekræftet godkendt');
+    expect(bekraeftetTexts).toContain('Godkendelse');
+
+    const ingenTexts = render(stamdata, eo, 'Ingen');
+    // "Ingen"-stien afsluttes ved det samlede krav og udelader hele godkendelses-afsnittet.
+    expect(ingenTexts).toContain('Erstatningskrav i alt');
+    expect(ingenTexts).not.toContain('Godkendelse');
   });
 });

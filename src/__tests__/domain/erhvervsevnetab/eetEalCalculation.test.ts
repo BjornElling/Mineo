@@ -309,6 +309,73 @@ describe('computeEetEalCalculation', () => {
   });
 });
 
+describe('computeEetEalCalculation — delegering til opreguleringsmotor (akkumuleret reguleringssats)', () => {
+  // Den tidligere inline-løkke (faktor *= 1 + sats/100 over [skadeår+1, beregningsår])
+  // blev erstattet af opregulerMedAkkumuleretReguleringssats. Disse tests låser
+  // (a) at den anvendte reguleringsprocent er numerisk identisk med det eksplicitte
+  // akkumulerede produkt, og (b) at et hul i reguleringssatsen fail-closer.
+  const baseInput = (overrides: { reguleringssats?: typeof reguleringssats } = {}) => ({
+    erhvervsevnetab: {
+      ...ERHVERVSEVNETAB_INITIAL_VALUES,
+      beregningsdato: iso('2026-02-27'),
+      aslAarsloen: asAmount(489000),
+      ealAarsloen: undefined,
+      ealEetPct: 75,
+      aslAfgoerelser: [],
+    },
+    skadedato: iso('2019-06-01'),
+    skadelidteFodselsdato: iso('1966-01-08'),
+    reguleringssats: overrides.reguleringssats ?? reguleringssats,
+    erhvervsevnetabEalMax,
+    aarsloenAslMax,
+  });
+
+  it('anvender en reguleringsfaktor der er tal-identisk med det eksplicitte akkumulerede produkt', () => {
+    const result = computeEetEalCalculation(baseInput());
+    expect(result.computation).not.toBeNull();
+
+    // Eksplicit reproduktion af den gamle inline-formel: produkt over [skadeår+1, beregningsår].
+    let forventetFaktor = 1;
+    for (let year = 2020; year <= 2026; year += 1) {
+      forventetFaktor *= 1 + reguleringssats[year]! / 100;
+    }
+    const forventetPctRounded4 = Number(((forventetFaktor - 1) * 100).toFixed(4));
+    expect(result.computation?.reguleringsPctRounded4).toBe(forventetPctRounded4);
+    // Sanity: matcher den i forvejen verificerede værdi fra hovedtesten.
+    expect(result.computation?.reguleringsPctRounded4).toBe(22.8178);
+  });
+
+  it('fail-closer (computation null + reguleringssats-missing) når en mellemliggende reguleringssats mangler', () => {
+    const medHul: typeof reguleringssats = { ...reguleringssats };
+    delete (medHul as Record<number, number>)[2022];
+
+    const result = computeEetEalCalculation(baseInput({ reguleringssats: medHul }));
+    expect(result.computation).toBeNull();
+    expect(
+      result.issues.some(
+        (issue) => issue.severity === 'error' && issue.id === 'reguleringssats-missing' && issue.message.includes('2022')
+      )
+    ).toBe(true);
+  });
+
+  it('fail-closer også når kun startårets (skadeårets) reguleringssats mangler — motorens dækningskrav', () => {
+    // Motoren kræver dækning for startåret selv om det ikke multipliceres ind i faktoren.
+    // Den gamle inline-løkke flaggede IKKE skadeåret; dette er en bevidst udvidelse af
+    // fail-closed (synlig feltfejl frem for tavs sti). I praksis dækker reguleringssats
+    // 2005-2026 sammenhængende, så scenariet er kun nåbart ved et kunstigt hul.
+    const medHul: typeof reguleringssats = { ...reguleringssats };
+    delete (medHul as Record<number, number>)[2019]; // skadeår = 2019
+
+    const result = computeEetEalCalculation(baseInput({ reguleringssats: medHul }));
+    expect(result.computation).toBeNull();
+    expect(
+      result.issues.some(
+        (issue) => issue.severity === 'error' && issue.id === 'reguleringssats-missing' && issue.message.includes('2019')
+      )
+    ).toBe(true);
+  });
+});
+
 describe('formatPercentTrimmedFromRounded4', () => {
   it('trimmer efterfølgende nuller efter afrunding til 4 decimaler', () => {
     expect(formatPercentTrimmedFromRounded4(22.8178)).toBe('22,8178');

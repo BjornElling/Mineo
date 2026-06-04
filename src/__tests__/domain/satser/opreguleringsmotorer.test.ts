@@ -30,6 +30,16 @@ describe('opreguleringsmotorer', () => {
       expect(res.manglendeAar).toEqual([1999]);
       expect(res.faktor).toBe(1);
     });
+
+    it('fail-closer på ikke-heltallige år (NaN/decimaltal) uden at slå indeks op', () => {
+      const nan = opregulerMedAslAarsloensmaksimum({ kildeAar: Number.NaN, maalAar: 2026 });
+      expect(nan.faktor).toBe(1);
+      expect(nan.manglendeAar).toEqual([Number.NaN]);
+
+      const decimal = opregulerMedAslAarsloensmaksimum({ kildeAar: 2022.5, maalAar: 2026 });
+      expect(decimal.faktor).toBe(1);
+      expect(decimal.manglendeAar).toEqual([2022.5]);
+    });
   });
 
   describe('opregulerMedAkkumuleretReguleringssats', () => {
@@ -89,6 +99,16 @@ describe('opreguleringsmotorer', () => {
       );
       expect(withStart.manglendeAar).toEqual([]);
       expect(withStart.faktor).toBeCloseTo(1.03 * 1.04, 12);
+    });
+
+    it('fail-closer på ikke-heltallige år (NaN/decimaltal) uden at iterere satser', () => {
+      const nan = opregulerMedAkkumuleretReguleringssats({ kildeAar: 2022, maalAar: Number.NaN });
+      expect(nan.faktor).toBe(1);
+      expect(nan.manglendeAar).toEqual([Number.NaN]);
+
+      const decimal = opregulerMedAkkumuleretReguleringssats({ kildeAar: 2022.5, maalAar: 2026 });
+      expect(decimal.faktor).toBe(1);
+      expect(decimal.manglendeAar).toEqual([2022.5]);
     });
 
     it('matcher offentlige ydelsers akkumulerede regulering (index-100-metoden)', () => {
