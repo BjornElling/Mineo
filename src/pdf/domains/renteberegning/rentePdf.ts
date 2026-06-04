@@ -139,6 +139,12 @@ const addSpecificationTable = (
     underlinedCellPositions: totalRowIndex === null || totalRow === null
       ? []
       : [{ rowIndex: totalRowIndex, columnIndex: totalRow.valueCellColumnIndex }],
+    // Word matcher PDF'ens højrejustering af rentedage/rentesats (insettet nedenfor
+    // er rent visuelt og udelades bevidst i Word).
+    dataRowColumnHalign: {
+      [COLUMN_INDEX_RENTEDAGE]: 'right',
+      [COLUMN_INDEX_RENTESATS]: 'right',
+    },
     didParseCell: (data) => {
       const isDataRow = data.row.index >= 1 && data.row.index <= periods.length;
       if (!isDataRow) return;

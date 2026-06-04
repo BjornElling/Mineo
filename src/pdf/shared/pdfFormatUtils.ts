@@ -1,42 +1,26 @@
 import { formatCurrency, formatAsAmount, formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { roundByMethod } from '../../utils/rounding';
 import { round4 } from '../../utils/roundingShortcuts';
+import { resolveDocumentFileName, sanitizeFilenamePart } from '../../document/documentFileName';
 
 const NBSP = '\u00A0';
 
-const replaceControlChars = (value: string): string => {
-  let out = '';
-  for (let i = 0; i < value.length; i += 1) {
-    const ch = value[i];
-    const code = ch.charCodeAt(0);
-    out += code <= 31 ? '_' : ch;
-  }
-  return out;
-};
-
-export const sanitizeFilenamePart = (value: string): string => {
-  return replaceControlChars(value)
-    .replace(/[<>:"/\\|?*]/g, '_')
-    .replace(/\s+/g, ' ')
-    .trim();
-};
+// `sanitizeFilenamePart` er format-agnostisk og bor i den kanoniske dokument-filnavnsregel
+// (`src/document/documentFileName.ts`). Re-eksporteres her, så de eksisterende PDF-call-sites
+// kan importere den fra samme sted som `resolvePdfFileName` uden at kende til document-laget.
+export { sanitizeFilenamePart };
 
 /**
- * Kanonisk filnavnsregel for PDF-downloads.
+ * Bygger et PDF-filnavn via den fælles dokument-filnavnsregel (`resolveDocumentFileName`).
  *
- * Resultat:
- * - `{journalnr} - {baseTitle}.pdf` når journalnr er udfyldt
- * - `{baseTitle}.pdf` når journalnr er tomt
- * - ` (udkast)` indsættes lige før `.pdf` når `isDraft=true`
- *
- * Både `journalnr` og `baseTitle` saniteres altid for Windows-ulovlige tegn:
- * `< > : " / \ | ? *` samt kontroltegn.
+ * PDF-generatorerne kender altid kun PDF-endelsen, fordi de bygger filnavnet før det
+ * aktive output-format kendes. Den faktiske endelse afgøres ved download: PDF beholder
+ * `.pdf`, mens Word-writeren mapper til `.docx` ud fra det aktive dokument-format. Reglen
+ * (journalnr-præfiks, ` (udkast)`, sanitering) er fælles for begge formater — kun endelsen
+ * adskiller sig (jf. `document-format-contract.md` §4.4).
  */
 export const resolvePdfFileName = (baseTitle: string, isDraft: boolean, journalnr?: string): string => {
-  const safeJournalnr = typeof journalnr === 'string' ? sanitizeFilenamePart(journalnr.trim()) : '';
-  const prefix = safeJournalnr !== '' ? `${safeJournalnr} - ` : '';
-  const safeTitle = sanitizeFilenamePart(baseTitle);
-  return `${prefix}${safeTitle}${isDraft ? ' (udkast)' : ''}.pdf`;
+  return resolveDocumentFileName(baseTitle, isDraft, 'pdf', journalnr);
 };
 
 export const formatMaanederTrimmed = (value: number): string => {

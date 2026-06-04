@@ -334,10 +334,17 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
 
     const doc = writer.getDoc() as jsPDF;
     const startY = writer.getY();
+    // Word matcher PDF'ens højrejustering af de reguleringskolonner, hooket
+    // højrejusterer (insettet nedenfor er rent visuelt og udelades i Word).
+    const dataRowColumnHalign: Record<number, 'right'> = {};
+    for (const columnIndex of rightAlignedColumnInsets.keys()) {
+      dataRowColumnHalign[columnIndex] = 'right';
+    }
     const finalY = renderPdfTable({
       doc,
       startY,
       body: tableRows,
+      dataRowColumnHalign,
       didParseCell: (data) => {
         const isDataRow = data.row.index >= 1;
         const rightInset = rightAlignedColumnInsets.get(data.column.index);

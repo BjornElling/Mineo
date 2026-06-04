@@ -23,7 +23,7 @@ import {
 import { roundByMethod } from '../../../utils/rounding';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
-import PdfDownloadButton from '../../inputs/PdfDownloadButton';
+import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
 import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
@@ -131,7 +131,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download specifikation</Typography>
               <Box className="row--label-right-hover__content">
-                <PdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
+                <DocumentDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
               </Box>
             </Box>
           </ContentBox>

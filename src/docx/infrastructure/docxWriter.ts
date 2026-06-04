@@ -26,7 +26,12 @@ import { VERSION } from '../../config/version';
 import { getDocumentFooterBrand } from '../../document/documentBrand';
 import { registerPendingDocumentDownload } from '../../document/documentGenerationContext';
 import { triggerDocumentDownload } from '../../document/downloadArtifact';
-import { createDocxTableBridgeDocument } from './docxTableBridge';
+import {
+  createDocxTableBridgeDocument,
+  type DocxCellAlign,
+  type DocxColumnAlignments,
+} from './docxTableBridge';
+import { createUdkastWatermarkParagraph } from './docxWatermark';
 
 const DOCX_FONT = 'Calibri';
 const PAGE_WIDTH_DXA = 11906;
@@ -124,12 +129,24 @@ const resolveCellSpan = (cell: unknown): number => {
   return typeof colSpan === 'number' && Number.isInteger(colSpan) && colSpan > 1 ? colSpan : 1;
 };
 
-const resolveCellAlignment = (cell: unknown): (typeof AlignmentType)[keyof typeof AlignmentType] => {
-  if (typeof cell !== 'object' || cell === null || !('styles' in cell)) return AlignmentType.LEFT;
-  const styles = (cell as Readonly<{ styles?: Readonly<{ halign?: unknown }> }>).styles;
-  if (styles?.halign === 'right') return AlignmentType.RIGHT;
-  if (styles?.halign === 'center') return AlignmentType.CENTER;
+const halignToAlignment = (
+  halign: DocxCellAlign | undefined
+): (typeof AlignmentType)[keyof typeof AlignmentType] => {
+  if (halign === 'right') return AlignmentType.RIGHT;
+  if (halign === 'center') return AlignmentType.CENTER;
   return AlignmentType.LEFT;
+};
+
+// Cellens egen halign vinder; ellers falder vi tilbage til kolonnens justering.
+// Returnerer `undefined` når cellen ikke selv angiver halign, så kalderen kan
+// indsætte kolonne-fallback for data-rækker (jf. DocxColumnAlignments).
+const resolveCellHalign = (cell: unknown): DocxCellAlign | undefined => {
+  if (typeof cell !== 'object' || cell === null || !('styles' in cell)) return undefined;
+  const styles = (cell as Readonly<{ styles?: Readonly<{ halign?: unknown }> }>).styles;
+  if (styles?.halign === 'right') return 'right';
+  if (styles?.halign === 'center') return 'center';
+  if (styles?.halign === 'left') return 'left';
+  return undefined;
 };
 
 const resolveCellBold = (cell: unknown, isHeaderRow: boolean): boolean => {
@@ -139,29 +156,45 @@ const resolveCellBold = (cell: unknown, isHeaderRow: boolean): boolean => {
   return styles?.fontStyle === 'bold';
 };
 
-const createDocxTable = (body: readonly unknown[], hasHeaderRow: boolean): Table => {
+const createDocxTable = (
+  body: readonly unknown[],
+  hasHeaderRow: boolean,
+  columnAlignments?: DocxColumnAlignments
+): Table => {
   const rows = body.map((rawRow, rowIndex) => {
     const cells = Array.isArray(rawRow) ? rawRow : [rawRow];
+    const isHeaderRow = hasHeaderRow && rowIndex === 0;
+    // Kolonneindex følger med colSpan, så kolonne-justering rammer rigtigt
+    // også når en celle spænder over flere kolonner.
+    let columnIndex = 0;
     return new TableRow({
-      tableHeader: hasHeaderRow && rowIndex === 0 ? true : undefined,
-      children: cells.map((cell) => new TableCell({
-        columnSpan: resolveCellSpan(cell),
-        shading: hasHeaderRow && rowIndex === 0 ? { fill: 'E9EEF5' } : undefined,
-        margins: {
-          top: TABLE_CELL_MARGIN_DXA,
-          bottom: TABLE_CELL_MARGIN_DXA,
-          left: TABLE_CELL_MARGIN_DXA,
-          right: TABLE_CELL_MARGIN_DXA,
-        },
-        children: [
-          paragraph(resolveCellText(cell), {
-            bold: resolveCellBold(cell, hasHeaderRow && rowIndex === 0),
-            alignment: resolveCellAlignment(cell),
-            size: 18,
-            spacingAfter: 0,
-          }),
-        ],
-      })),
+      tableHeader: isHeaderRow ? true : undefined,
+      children: cells.map((cell) => {
+        const colSpan = resolveCellSpan(cell);
+        // Headerrækker bærer selv deres justering; kun data-rækker får
+        // kolonne-fallback (jf. DocxColumnAlignments).
+        const columnFallback = isHeaderRow ? undefined : columnAlignments?.[columnIndex];
+        const halign = resolveCellHalign(cell) ?? columnFallback;
+        columnIndex += colSpan;
+        return new TableCell({
+          columnSpan: colSpan,
+          shading: isHeaderRow ? { fill: 'E9EEF5' } : undefined,
+          margins: {
+            top: TABLE_CELL_MARGIN_DXA,
+            bottom: TABLE_CELL_MARGIN_DXA,
+            left: TABLE_CELL_MARGIN_DXA,
+            right: TABLE_CELL_MARGIN_DXA,
+          },
+          children: [
+            paragraph(resolveCellText(cell), {
+              bold: resolveCellBold(cell, isHeaderRow),
+              alignment: halignToAlignment(halign),
+              size: 18,
+              spacingAfter: 0,
+            }),
+          ],
+        });
+      }),
     });
   });
 
@@ -206,6 +239,38 @@ const createLeftRightTable = (
   borders: TableBorders.NONE,
 });
 
+const createSignatureTable = (
+  dateLine: string,
+  sigLine: string,
+  skadelidteNavn: string
+): Table => {
+  const cell = (children: Paragraph[]): TableCell => new TableCell({
+    width: { size: 50, type: WidthType.PERCENTAGE },
+    borders: { top: emptyBorder, bottom: emptyBorder, left: emptyBorder, right: emptyBorder },
+    children,
+  });
+
+  return new Table({
+    rows: [
+      new TableRow({
+        children: [
+          cell([paragraph(dateLine, { spacingAfter: 0 })]),
+          cell([paragraph(sigLine, { spacingAfter: 0 })]),
+        ],
+      }),
+      new TableRow({
+        children: [
+          cell([paragraph('Dato', { spacingAfter: 0 })]),
+          cell([paragraph(skadelidteNavn, { spacingAfter: 0 })]),
+        ],
+      }),
+    ],
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    layout: TableLayoutType.AUTOFIT,
+    borders: TableBorders.NONE,
+  });
+};
+
 const buildBrevhovedParagraphs = (data: BrevhovedData): Paragraph[] => {
   const lines = [
     data.journalnr ? `Journalnr.: ${data.journalnr}` : null,
@@ -225,8 +290,8 @@ export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean 
   const blocks: FileChild[] = [];
   let properties: CoreProperties = {};
   let filename = 'dokument.docx';
-  const bridgeDoc = createDocxTableBridgeDocument((body, hasHeaderRow) => {
-    blocks.push(createDocxTable(body, hasHeaderRow));
+  const bridgeDoc = createDocxTableBridgeDocument((body, hasHeaderRow, columnAlignments) => {
+    blocks.push(createDocxTable(body, hasHeaderRow, columnAlignments));
     blocks.push(paragraph('', { spacingAfter: 160 }));
   });
 
@@ -247,16 +312,7 @@ export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean 
     });
 
     const header = params?.visUdkastStempel
-      ? new Header({
-        children: [
-          paragraph('UDKAST', {
-            alignment: AlignmentType.CENTER,
-            bold: true,
-            size: 72,
-            spacingAfter: 0,
-          }),
-        ],
-      })
+      ? new Header({ children: [createUdkastWatermarkParagraph()] })
       : undefined;
 
     const documentOptions: IPropertiesOptions = {
@@ -356,10 +412,9 @@ export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean 
       blocks.push(paragraph(text, { underline: true, size: 23, spacingBefore: 160, spacingAfter: 80 }));
     },
     writeSignatureBlock: (dateLine, sigLine, _dateX, _sigX, skadelidteNavn) => {
-      blocks.push(createDocxTable([
-        [dateLine, sigLine],
-        ['Dato', skadelidteNavn],
-      ], false));
+      // Kantfri signaturblok, så Word matcher PDF'ens linjefri opstilling
+      // (createDocxTable ville ellers tegne synlige cellekanter).
+      blocks.push(createSignatureTable(dateLine, sigLine, skadelidteNavn));
     },
     writeBrevhoved: (brevhovedData) => {
       blocks.push(...buildBrevhovedParagraphs(brevhovedData));

@@ -12,7 +12,7 @@ import {
 import { createJsPdfAdapter } from '../infrastructure/jsPdfAdapter';
 import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from './pdfTextUtils';
 import { DEFAULT_NUMERIC_TOLERANCE } from '../../utils/numberComparison';
-import { isDocxTableBridgeDocument } from '../../docx/infrastructure/docxTableBridge';
+import { isDocxTableBridgeDocument, type DocxColumnAlignments } from '../../docx/infrastructure/docxTableBridge';
 
 export const TABLE_FONT_SIZE = 8;
 export const EO_TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
@@ -663,6 +663,40 @@ export const createPdfDistributedColumnStyles = (
   });
 };
 
+// Udleder kolonne→justering for data-rækker, som Word-broen kan anvende, så
+// .docx-tabeller matcher PDF'ens justering. PDF'en udleder selv justering fra
+// `columnStyles` og `didParseCell`; broen kan kun se cellernes egen halign, så
+// vi samler kolonne-niveauet (og evt. hook-override) her. `dataRowColumnHalign`
+// vinder over `columnStyles`, fordi PDF-hooks kører efter kolonne-styles.
+const resolveDocxColumnAlignments = (
+  columnStyles: PdfTableColumnStyles | undefined,
+  dataRowColumnHalign: Readonly<Record<number, PdfCellAlign>> | undefined
+): DocxColumnAlignments | undefined => {
+  const alignments: Record<number, PdfCellAlign> = {};
+
+  if (columnStyles) {
+    for (const [rawIndex, style] of Object.entries(columnStyles)) {
+      const index = Number(rawIndex);
+      if (!Number.isInteger(index)) continue;
+      const halign = (style as PdfColumnStyle | undefined)?.halign;
+      if (halign === 'left' || halign === 'center' || halign === 'right') {
+        alignments[index] = halign;
+      }
+    }
+  }
+
+  if (dataRowColumnHalign) {
+    for (const [rawIndex, halign] of Object.entries(dataRowColumnHalign)) {
+      const index = Number(rawIndex);
+      if (Number.isInteger(index)) {
+        alignments[index] = halign;
+      }
+    }
+  }
+
+  return Object.keys(alignments).length > 0 ? alignments : undefined;
+};
+
 export const renderPdfTable = (params: Readonly<{
   doc: jsPDF;
   startY: number;
@@ -677,6 +711,11 @@ export const renderPdfTable = (params: Readonly<{
   estimatedRowHeight?: number;
   didParseCell?: (data: CellHookData) => void;
   didDrawCell?: NonNullable<Parameters<typeof autoTable>[1]>['didDrawCell'];
+  // Justering pr. kolonne for data-rækker, som ikke fremgår af de enkelte celler
+  // (typisk en `didParseCell`-hook der højrejusterer en talkolonne). Bruges KUN
+  // til at give Word samme justering som PDF — PDF'en får sin justering fra
+  // `columnStyles`/`didParseCell` som hidtil. Cellens egen `halign` vinder altid.
+  dataRowColumnHalign?: Readonly<Record<number, PdfCellAlign>>;
 }>): number => {
   const {
     doc,
@@ -690,13 +729,14 @@ export const renderPdfTable = (params: Readonly<{
     estimatedRowHeight = 8,
     didParseCell,
     didDrawCell,
+    dataRowColumnHalign,
   } = params;
 
   if (isDocxTableBridgeDocument(doc)) {
     if (body.length === 0) {
       throw new Error('renderPdfTable kaldt med tom body — tabellen skulle være undertrykt eller have en eksplicit tom-tilstandsrække i kalderen.');
     }
-    doc.addDocxTableFromPdfRows(body, hasHeaderRow);
+    doc.addDocxTableFromPdfRows(body, hasHeaderRow, resolveDocxColumnAlignments(columnStyles, dataRowColumnHalign));
     return startY;
   }
 

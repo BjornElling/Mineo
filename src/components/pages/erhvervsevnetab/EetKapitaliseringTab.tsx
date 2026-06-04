@@ -18,7 +18,7 @@ import {
 import { downloadKapitaliseringPdf } from '../../../pdf/infrastructure/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
-import PdfDownloadButton from '../../inputs/PdfDownloadButton';
+import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
 import { formatFaktor, formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
@@ -67,7 +67,7 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot
           <Box className="row--label-right-hover">
             <Typography className="row--text">Download specifikation</Typography>
             <Box className="row--label-right-hover__content">
-              <PdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
+              <DocumentDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
             </Box>
           </Box>
         </ContentBox>

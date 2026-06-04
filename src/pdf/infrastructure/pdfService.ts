@@ -291,6 +291,13 @@ const createPdfDownloadFailure = async (
   return { success: false, error: userError };
 };
 
+// Tilpasser en PDF-formuleret fejltekst til det aktive download-format (jf.
+// document-format-contract.md §5: brugervendt signal skal nævne det aktive format).
+// Forudsætning: alle fejltekster der sendes hertil bruger "PDF" UDELUKKENDE som
+// format-reference (fx "…-PDF"). Erstatningen er global og case-sensitiv; den må
+// derfor ikke bruges på tekster hvor "PDF" optræder i en betydning der ikke skal
+// følge formatet. formatLabel er altid 'PDF' (identitets-erstatning) eller 'Word'
+// (intet "PDF"-substring), så erstatningen er idempotent og kan ikke selv-matche.
 const buildDocumentFailureMessage = (settings: AppSettings, pdfMessage: string): string => {
   const formatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
   return pdfMessage.replace(/PDF/g, formatLabel);
@@ -486,7 +493,7 @@ export const downloadErstatningsopgoerelsePdf = async (params: Readonly<{
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
   const eoPdfDocument = eoSnapshotToEoPdfDocument(snapshot);
   if (eoPdfDocument.kind === 'blocked') {
-    return { success: false, error: eoPdfDocument.message };
+    return { success: false, error: buildDocumentFailureMessage(settings, eoPdfDocument.message) };
   }
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadErstatningsopgoerelsePdf');
   if (preflightFailure) return preflightFailure;
@@ -521,7 +528,7 @@ export const downloadTafFordeltPaaAarPdf = async (params: Readonly<{
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
   const tafPdfDocument = eoSnapshotToTafPerYearPdfDocument(snapshot);
   if (tafPdfDocument.kind === 'blocked') {
-    return { success: false, error: tafPdfDocument.message };
+    return { success: false, error: buildDocumentFailureMessage(settings, tafPdfDocument.message) };
   }
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadTafFordeltPaaAarPdf');
   if (preflightFailure) return preflightFailure;
@@ -556,7 +563,7 @@ export const downloadTafOpreguleretPaaAarPdf = async (params: Readonly<{
   const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
   const tafOpreguleretPdfDocument = eoSnapshotToTafPerYearOpreguleretPdfDocument(snapshot);
   if (tafOpreguleretPdfDocument.kind === 'blocked') {
-    return { success: false, error: tafOpreguleretPdfDocument.message };
+    return { success: false, error: buildDocumentFailureMessage(settings, tafOpreguleretPdfDocument.message) };
   }
   const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadTafOpreguleretPaaAarPdf');
   if (preflightFailure) return preflightFailure;

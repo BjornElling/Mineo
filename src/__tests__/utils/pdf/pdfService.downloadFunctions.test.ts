@@ -484,6 +484,25 @@ describe('downloadErstatningsopgoerelsePdf', () => {
     expect(mockGenerateErstatningsopgoerelsePdf).not.toHaveBeenCalled();
   });
 
+  it('tilpasser blokeret-besked til det aktive format (Word) så signalet matcher downloaden', async () => {
+    mockEoSnapshotToEoPdfDocument.mockReturnValue({
+      kind: 'blocked',
+      message: 'EO-PDF kan ikke genereres for den aktuelle sag.',
+      invariants: [],
+    });
+
+    const result = await downloadErstatningsopgoerelsePdf({
+      stamdataValues: stamdata,
+      eoValues,
+      selectedElements: {} as never,
+      settings: { ...DEFAULT_APP_SETTINGS, documentDownloadFormat: 'word' },
+      snapshot: eoSnapshot,
+    });
+
+    expect(result).toEqual({ success: false, error: 'EO-Word kan ikke genereres for den aktuelle sag.' });
+    expect(mockGenerateErstatningsopgoerelsePdf).not.toHaveBeenCalled();
+  });
+
   it('sender projekteret EO-dokument videre til generatoren når snapshot er gyldigt', async () => {
     const projectedDocument = { titel: 'Testdokument' };
     mockEoSnapshotToEoPdfDocument.mockReturnValue({

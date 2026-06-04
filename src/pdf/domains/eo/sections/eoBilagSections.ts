@@ -478,10 +478,17 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
         ...tableData.rows.map((row) => row.map((cell) => createPdfTableCell(cell, { halign: 'center' }))),
       ];
       const startY = writer.getY();
+      // Word matcher PDF'ens højrejustering af talkolonnerne (alle kolonner ≥ 1).
+      // Insettet nedenfor er rent visuelt og udelades bevidst i Word.
+      const dataRowColumnHalign: Record<number, 'right'> = {};
+      for (let columnIndex = 1; columnIndex < tableData.columns.length; columnIndex += 1) {
+        dataRowColumnHalign[columnIndex] = 'right';
+      }
       const finalY = renderPdfTable({
         doc: writer.getDoc() as jsPDF,
         startY,
         body: tableRows,
+        dataRowColumnHalign,
         didParseCell: (data) => {
           const isDataRow = data.row.index >= 1;
           const isNumericColumn = data.column.index >= 1;

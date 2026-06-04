@@ -10,7 +10,7 @@ type Props = Readonly<{
   disabled?: boolean;
 }>;
 
-const PdfDownloadButton = ({ onClick, shake = false, disabled = false }: Props) => {
+const DocumentDownloadButton = ({ onClick, shake = false, disabled = false }: Props) => {
   const { settings } = useAppSettings();
   const tooltip = `Download som ${getDocumentFormatLabel(settings.documentDownloadFormat)}`;
 
@@ -42,6 +42,6 @@ const PdfDownloadButton = ({ onClick, shake = false, disabled = false }: Props) 
   );
 };
 
-PdfDownloadButton.displayName = 'PdfDownloadButton';
+DocumentDownloadButton.displayName = 'DocumentDownloadButton';
 
-export default PdfDownloadButton;
+export default DocumentDownloadButton;

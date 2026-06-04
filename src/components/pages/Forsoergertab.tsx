@@ -16,7 +16,7 @@ import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/fae
 import { FORSOERGERTAB_INITIAL_VALUES } from '../../domain/forsoergertab/forsoergertabInitialValues';
 import { isoToDanish } from '../../types/branded';
 import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } from '../../utils/formatUtils';
-import PdfDownloadButton from '../inputs/PdfDownloadButton';
+import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
 import AarsloenAmountFieldRow from '../inputs/AarsloenAmountFieldRow';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { downloadForsoergertabPdf } from '../../pdf/infrastructure/pdfService';
@@ -134,7 +134,7 @@ const Forsoergertab = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--text">Download specifikation</Typography>
           <Box className="row--label-right-hover__content">
-            <PdfDownloadButton onClick={handlePdfDownload} disabled={!snapshot.pdfGate.canDownload} />
+            <DocumentDownloadButton onClick={handlePdfDownload} disabled={!snapshot.pdfGate.canDownload} />
           </Box>
         </Box>
       </ContentBox>

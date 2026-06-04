@@ -10,7 +10,7 @@ import {
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { downloadEfterEalPdf } from '../../../pdf/infrastructure/pdfService';
 import EetIssuesBox from './EetIssuesBox';
-import PdfDownloadButton from '../../inputs/PdfDownloadButton';
+import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
@@ -69,7 +69,7 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => 
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download specifikation</Typography>
               <Box className="row--label-right-hover__content">
-                <PdfDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
+                <DocumentDownloadButton onClick={handlePdfDownload} shake={downloadShake} />
               </Box>
             </Box>
           </ContentBox>
