@@ -17,6 +17,7 @@ import type { CommitHandler } from '../../types/fieldEvents';
 import ContentBox from '../layout/ContentBox';
 import RenteberegningTab from './renteberegning/RenteberegningTab';
 import RentesatserTab from './renteberegning/RentesatserTab';
+import { getDocumentFormatLabel } from '../../document/documentFormat';
 
 /**
  * Tab-nøgler for navigation mellem Rentesatser og Beregning
@@ -31,6 +32,7 @@ const TAB_KEYS = {
 const Renteberegning = React.memo(() => {
   const persistedStamdata = usePersistedSectionSelector('stamdata');
   const { settings } = useAppSettings();
+  const documentFormatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
   const initialValues = React.useMemo(() => createRenteberegningInitialValues(), []);
   const { activeTab, setActiveTab, isAllowedTab } = usePersistedActiveTab<TabKey>({
     pageId: 'renteberegning',
@@ -82,8 +84,8 @@ const Renteberegning = React.memo(() => {
       const actualInterestDateDanish = isoToDanish(pdfContext.actualInterestDate);
       const beregningsdatoDanish = isoToDanish(pdfContext.beregningsdato);
       if (!actualInterestDateDanish || !beregningsdatoDanish) {
-        setPdfErrorMessage('Kunne ikke generere rente-PDF.');
-        handleError('Ugyldige datoer for PDF-generering', 'Renteberegning.PDFGeneration');
+        setPdfErrorMessage(`Kunne ikke generere rente som ${documentFormatLabel}.`);
+        handleError('Ugyldige datoer for dokument-generering', 'Renteberegning.DocumentGeneration');
         return;
       }
       const result = await downloadRentePdf({
@@ -98,7 +100,7 @@ const Renteberegning = React.memo(() => {
       });
       setPdfErrorMessage(result.success ? null : result.error);
     },
-    [persistedStamdata, handleError, settings, values.kommentarer]
+    [documentFormatLabel, persistedStamdata, handleError, settings, values.kommentarer]
   );
 
   const handleDownloadOversigt = React.useCallback(

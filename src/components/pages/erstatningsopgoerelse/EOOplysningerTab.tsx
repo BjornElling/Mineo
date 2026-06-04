@@ -118,8 +118,8 @@ type LoentrinFinderResult = Readonly<{
 }>;
 const LOENGRUPPER = [0, 1, 2, 3, 4] as const;
 // Tre-tilstands-valg for emner (svie/smerte, tabt arbejdsfortjeneste).
-// 'Ja' = beregnes og vises; 'Nej' = beregnes ikke, vises som "Ingen" i PDF;
-// 'Skjul' = beregnes ikke og udelades helt fra erstatningsopgørelse-PDF'en.
+// 'Ja' = beregnes og vises; 'Nej' = beregnes ikke, vises som "Ingen" i dokumentet;
+// 'Skjul' = beregnes ikke og udelades helt fra erstatningsopgørelsen.
 const KRAV_JA_NEJ_SKJUL_OPTIONS = [
   { value: 'Ja', label: 'Ja' },
   { value: 'Nej', label: 'Nej' },

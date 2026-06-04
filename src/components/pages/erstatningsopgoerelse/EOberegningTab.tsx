@@ -398,7 +398,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
     if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
     if (eoSnapshot.status === 'fail_closed') {
-      return eoSnapshot.invariants[0]?.message ?? 'EO-PDF kan ikke genereres for den aktuelle sag.';
+      return eoSnapshot.invariants[0]?.message ?? 'Opgørelsen kan ikke hentes for den aktuelle sag.';
     }
     if (authoritativeBlockingInvariants.length > 0) {
       return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller.';
@@ -447,7 +447,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     () => createPdfGate(
       eoPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors,
       eoPdfDisabledReason,
-      'EO-PDF kan ikke genereres for den aktuelle sag.'
+      'Opgørelsen kan ikke hentes for den aktuelle sag.'
     ),
     [eoPdfDisabledReason, eoPdfProjection, hasBlockingDebugErrors]
   );
@@ -1183,7 +1183,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
                 title={
                   hasBlockingDebugErrors
                     ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP
-                    : eoPdfDisabledReason ?? 'EO-PDF kan ikke genereres for den aktuelle sag.'
+                    : eoPdfDisabledReason ?? 'Opgørelsen kan ikke hentes for den aktuelle sag.'
                 }
                 arrow
                 placement="top"

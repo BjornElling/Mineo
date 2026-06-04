@@ -8,6 +8,7 @@ import {
   APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS,
   APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS,
 } from '../../settings/appSettingsSchema';
+import { DOCUMENT_DOWNLOAD_FORMAT_OPTIONS } from '../../document/documentFormat';
 import { parseStoredSettings, resolveAppSettings } from '../../settings/appSettingsParse';
 import {
   afsluttesMedEnum,
@@ -49,6 +50,7 @@ describe('DEFAULT_APP_SETTINGS', () => {
     expect(DEFAULT_APP_SETTINGS.brevhovedIndstillinger).toBeDefined();
     expect(DEFAULT_APP_SETTINGS.defaultVisBilagsnumre).toBe(false);
     expect(DEFAULT_APP_SETTINGS.defaultStartsideErStamdata).toBe(false);
+    expect(DEFAULT_APP_SETTINGS.documentDownloadFormat).toBe('pdf');
   });
 
   it('defaultOverenskomstLoenmodtager = "ALLE"', () => {
@@ -117,6 +119,14 @@ describe('appSettingsSchema', () => {
     expect(appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, allowReguleringMedUdloebMedMaaneder: 13 }).success).toBe(false);
     expect(appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, allowReguleringMedUdloebMedMaaneder: -1 }).success).toBe(false);
   });
+
+  it('accepterer kun de kanoniske dokument-download-formater', () => {
+    for (const option of DOCUMENT_DOWNLOAD_FORMAT_OPTIONS) {
+      expect(appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, documentDownloadFormat: option }).success).toBe(true);
+    }
+    expect(appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, documentDownloadFormat: '' }).success).toBe(false);
+    expect(appSettingsSchema.safeParse({ ...DEFAULT_APP_SETTINGS, documentDownloadFormat: 'doc' }).success).toBe(false);
+  });
 });
 
 describe('parseStoredSettings', () => {
@@ -131,6 +141,15 @@ describe('parseStoredSettings', () => {
     expect(settings.themeMode).toBe('dark');
     expect(settings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden).toBe(true);
     expect(settings.allowReguleringMedUdloebMedMaaneder).toBe(9);
+  });
+
+  it('bevarer gemt dokument-download-format', () => {
+    const settings = parseStoredSettings({
+      ...DEFAULT_APP_SETTINGS,
+      documentDownloadFormat: 'word',
+    });
+
+    expect(settings.documentDownloadFormat).toBe('word');
   });
 });
 

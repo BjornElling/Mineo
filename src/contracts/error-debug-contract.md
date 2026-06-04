@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (runtime-only)
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-05-30
+**Senest verificeret mod kode:** 2026-06-04
 
 Dette dokument beskriver den **normative** model for felt-fejl (errors) og debug-visning i Mineo.
 
@@ -198,17 +198,19 @@ devtools-/bug-report-flow. `EOberegningTab` må højst vise en neutral inline-r�
 
 ## 8. Runtime-fejlbehandling i EO-scope
 
-### 8.1 PDF-download-fejl og download-gating
+### 8.1 Dokument-download-fejl og download-gating
 
-**Download-gating:** Den autoritative definition findes i `src/contracts/pdf-contract.md` §2.
+**Download-gating:** Den autoritative definition findes i `src/contracts/pdf-contract.md` §2 og
+formatvalget findes i `src/contracts/document-format-contract.md`.
 
 EO-specifik præcisering:
 - I EO er det typisk `collectAllDebugRows`, der eksponerer de blokerende feltfejl til brugerfladen.
 - `EOBeregningTab` er den centrale visning, hvor disse blokeringer aggregeres og vises.
 - EO-specifikke snapshot-invariants og outputblokeringer må gerne give yderligere forklaring i UI, men de må ikke redefinere de tværgående gate-kriterier.
 
-**PDF-download-fejl:** Kan PDF’en alligevel ikke genereres (runtime-undtagelse i
-jsPDF-laget), er det en systemteknisk fejl — ikke en brugerrettelig valideringsfejl.
+**Dokument-download-fejl:** Kan dokumentet alligevel ikke genereres (runtime-undtagelse i
+PDF- eller Word-laget), er det en systemteknisk fejl — ikke en brugerrettelig valideringsfejl.
+Fejlen routes via `reportSystemIssue(...)` med området `document`.
 
 Korrekt håndtering:
 - Ingen dialog (`ConfirmationDialog`) vises til brugeren
@@ -216,7 +218,7 @@ Korrekt håndtering:
 - Fejlen logges via `console.error` til devtools-monitor-flowet
 - `DevtoolsIssueNotice` håndterer fejlrapporteringsflowet for udviklere
 
-Rationale: Alle forhold der burde forhindre PDF-download bør have været fanget af
+Rationale: Alle forhold der burde forhindre dokument-download bør have været fanget af
 validator/invariants der inaktiverede download-knappen. Sker der alligevel en runtime-fejl
 under download, er det et systemteknisk problem der ikke kan løses af brugeren — og
 brugeren skal ikke præsenteres for en fejlrapporteringsknap som del af sit normale arbejde.

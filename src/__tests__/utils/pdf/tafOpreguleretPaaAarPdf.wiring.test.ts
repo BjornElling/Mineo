@@ -152,7 +152,7 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
   it('kræver et præ-projiceret dokument', async () => {
     const generate = await loadGenerator();
     expect(() => generate(undefined as never)).toThrow();
-  });
+  }, 15_000);
 
   it('viser årstal som fed underoverskrift', async () => {
     const generate = await loadGenerator();

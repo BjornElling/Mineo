@@ -4,6 +4,10 @@ import {
   loenPaaHelligdageEnum,
   svieSmerteDelvisSygemeldingSatsEnum,
 } from '../schemas/formSchemas';
+import {
+  documentDownloadFormatSchema,
+  type DocumentDownloadFormat,
+} from '../document/documentFormat';
 
 /**
  * Programindstillinger (app settings) – IKKE en del af `.eo`-persistence.
@@ -64,6 +68,7 @@ export type AppSettingsAfsluttesMedOption = (typeof APP_SETTINGS_AFSLUTTES_MED_O
 export type AppSettingsLoenPaaHelligdageOption = (typeof APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS)[number];
 export type AppSettingsSvieSmerteDelvisSygemeldingSatsOption =
   (typeof APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS)[number];
+export type AppSettingsDocumentDownloadFormatOption = DocumentDownloadFormat;
 
 export const appSettingsSchema = z
   .object({
@@ -86,6 +91,7 @@ export const appSettingsSchema = z
     allowReguleringMedUdloebMedMaaneder: z.number().int().min(0).max(12),
     // Fil-placering (IndexedDB handle ID - validering sker runtime, ikke i schema)
     defaultDirectoryHandleId: z.string().optional(),
+    documentDownloadFormat: documentDownloadFormatSchema,
     // Brevhoved-indstillinger for PDF-dokumenter
     brevhovedIndstillinger: brevhovedIndstillingerSchema,
   })
@@ -113,6 +119,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   allowReguleringMedUdloebMedMaaneder: 6,
   // Fil-placering (undefined = brug desktop som fallback)
   defaultDirectoryHandleId: undefined,
+  documentDownloadFormat: 'pdf',
   // Brevhoved-indstillinger
   brevhovedIndstillinger: DEFAULT_BREVHOVED_INDSTILLINGER,
 };

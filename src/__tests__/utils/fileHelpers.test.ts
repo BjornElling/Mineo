@@ -32,6 +32,7 @@ const baseSettings: AppSettings = {
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,
   allowReguleringMedUdloebMedMaaneder: 6,
   defaultDirectoryHandleId: 'dir-1',
+  documentDownloadFormat: 'pdf',
   brevhovedIndstillinger: {
     erstatningsopgoerelse: true,
     shDage: false,

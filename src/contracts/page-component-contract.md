@@ -3,7 +3,7 @@
 **Version:** 0.2
 **Status:** Gældende arkitektur (normativ)
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-06-02
+**Senest verificeret mod kode:** 2026-06-04
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -355,7 +355,7 @@ Undtagelser kan accepteres i globale infrastrukturlag som `MainLayout`, hvor com
 
 En side må eje page-lokale hjælpeflows som:
 
-- PDF-download
+- dokument-download
 - debug-view
 - lokale modal-dialoger
 - sideinterne søge-/hjælpeværktøjer
@@ -365,6 +365,10 @@ Sådanne flows skal dog fortsat respektere:
 - committed-state grænser
 - central fejlrapportering, når persisted data påvirkes
 - eksisterende fælles utilities, hvor de findes
+
+Downloadflows der kan hente både PDF og Word, skal følge `document-format-contract.md`.
+Hvis en knap eller ikonhandling henter det aktive dokumentformat, skal brugeren kunne se
+formatet i tekst, tooltip eller aria-label.
 
 ### 11.2 Fælles komponenter før lokal speciallogik
 

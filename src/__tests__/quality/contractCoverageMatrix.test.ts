@@ -73,6 +73,15 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     ],
   },
   {
+    contractPath: 'src/contracts/document-format-contract.md',
+    requiredTestPaths: [
+      'src/__tests__/settings/appSettingsSchema.test.ts',
+      'src/__tests__/document/documentFileName.test.ts',
+      'src/__tests__/docx/docxWriter.test.ts',
+      'src/__tests__/utils/pdf/pdfService.downloadFunctions.test.ts',
+    ],
+  },
+  {
     contractPath: 'src/contracts/pdf-contract.md',
     requiredTestPaths: [
       'src/__tests__/quality/pdfDownloadCommittedStateGuard.test.ts',

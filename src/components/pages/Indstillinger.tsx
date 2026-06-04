@@ -15,11 +15,13 @@ import {
   APP_SETTINGS_AFSLUTTES_MED_OPTIONS,
   APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS,
   APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS,
+  type AppSettingsDocumentDownloadFormatOption,
   type AppSettingsAfsluttesMedOption,
   type AppSettingsLoenPaaHelligdageOption,
   type AppSettingsSvieSmerteDelvisSygemeldingSatsOption,
   type BrevhovedIndstillinger,
 } from '../../settings/appSettingsSchema';
+import { DOCUMENT_DOWNLOAD_FORMAT_OPTIONS, isDocumentDownloadFormat } from '../../document/documentFormat';
 
 type BrevhovedOption = Readonly<{
   key: keyof BrevhovedIndstillinger;
@@ -64,6 +66,11 @@ const svieSmerteDelvisSygemeldingSatsOptions = APP_SETTINGS_SVIE_SMERTE_DELVIS_S
 } satisfies { value: AppSettingsSvieSmerteDelvisSygemeldingSatsOption; label: string }));
 
 const udloebMaanederOptions = Array.from({ length: 13 }, (_, index) => index);
+
+const documentDownloadFormatLabels: Readonly<Record<AppSettingsDocumentDownloadFormatOption, string>> = {
+  pdf: 'PDF',
+  word: 'Word',
+};
 
 const BrevhovedCheckboxRow = React.memo((props: {
   items: readonly BrevhovedOption[];
@@ -281,6 +288,28 @@ const Indstillinger = React.memo(() => {
                 </Tooltip>
               )}
             </Box>
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Download-format for dokumenter</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledDropdown
+              allowEmpty={false}
+              value={settings.documentDownloadFormat}
+              onChange={(e: StyledDropdownChangeEvent<string>) => {
+                if (isDocumentDownloadFormat(e.target.value)) {
+                  updateSettings({ documentDownloadFormat: e.target.value });
+                }
+              }}
+              width={120}
+            >
+              {DOCUMENT_DOWNLOAD_FORMAT_OPTIONS.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {documentDownloadFormatLabels[option]}
+                </MenuItem>
+              ))}
+            </StyledDropdown>
           </Box>
         </Box>
 

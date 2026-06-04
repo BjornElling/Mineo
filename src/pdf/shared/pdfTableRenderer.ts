@@ -12,6 +12,7 @@ import {
 import { createJsPdfAdapter } from '../infrastructure/jsPdfAdapter';
 import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from './pdfTextUtils';
 import { DEFAULT_NUMERIC_TOLERANCE } from '../../utils/numberComparison';
+import { isDocxTableBridgeDocument } from '../../docx/infrastructure/docxTableBridge';
 
 export const TABLE_FONT_SIZE = 8;
 export const EO_TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
@@ -690,6 +691,14 @@ export const renderPdfTable = (params: Readonly<{
     didParseCell,
     didDrawCell,
   } = params;
+
+  if (isDocxTableBridgeDocument(doc)) {
+    if (body.length === 0) {
+      throw new Error('renderPdfTable kaldt med tom body — tabellen skulle være undertrykt eller have en eksplicit tom-tilstandsrække i kalderen.');
+    }
+    doc.addDocxTableFromPdfRows(body, hasHeaderRow);
+    return startY;
+  }
 
   // Fail-closed: en tom tabel-body er altid en fejl i kalderen (en sektion der skulle
   // have været undertrykt eller fået en eksplicit "Ingen ..."-række før kaldet). At

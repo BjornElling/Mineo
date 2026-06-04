@@ -23,6 +23,7 @@ import { VERSION } from '../../config/version';
 import type { ISODateString } from '../../types/branded';
 
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../../utils/formatUtils';
+import { getDocumentCreatorBrand, getDocumentFooterBrand, setDocumentBrand } from '../../document/documentBrand';
 const FOOTER_IMAGE_WIDTH_MM = 5.2;
 const FOOTER_BASE_CANVAS_WIDTH_PX = 20;
 const FOOTER_RENDER_SCALE = 6;
@@ -97,15 +98,12 @@ export const resolvePdfSectionEndY = (
  * Standardbuildet er Mineo.dk; minprocesrente-standalone-buildet sætter
  * brandet til minprocesrente.dk ved bootstrap.
  */
-let footerBrand = 'Mineo.dk';
-let creatorBrand = 'mineo.dk';
 export const setPdfFooterBrand = (brand: string): void => {
-  footerBrand = brand;
-  creatorBrand = brand.toLowerCase();
+  setDocumentBrand(brand);
 };
 
 /** `creator`-metadata til setProperties(); følger samme brand som footeren. */
-export const getPdfCreatorBrand = (): string => creatorBrand;
+export const getPdfCreatorBrand = (): string => getDocumentCreatorBrand();
 
 /**
  * Tilføj footer med versionsnummer på alle sider
@@ -114,7 +112,7 @@ export const addFooter = (doc: PdfDocumentAdapter): void => {
   const pageHeight = doc.getPageHeight();
   const pageWidth = doc.getPageWidth();
   const totalPages = doc.getNumberOfPages();
-  const footerText = `${footerBrand} // ${VERSION}`;
+  const footerText = `${getDocumentFooterBrand()} // ${VERSION}`;
   const footerImage = getFooterImageData(footerText);
 
   for (let i = 1; i <= totalPages; i++) {

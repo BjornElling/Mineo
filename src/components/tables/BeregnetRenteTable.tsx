@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Box, IconButton, TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
+import { Box, IconButton, TableBody, TableCell, TableHead, TableRow, Tooltip, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import type { RateEntry } from '../../data/interestRates';
 import TableAmountInput from '../inputs/table/TableAmountInput';
@@ -21,6 +21,8 @@ import { amountValueToDraftString, amountValueToNumber } from '../../utils/expre
 import { dateRanges_renteberegning } from '../../config/dateRanges';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
+import { useAppSettings } from '../../contexts/useAppSettings';
+import { getDocumentFormatLabel } from '../../document/documentFormat';
 
 export type RentePdfContext = NonNullable<RentekravRowResult['pdfContext']>;
 
@@ -93,6 +95,8 @@ const BeregnetRenteRow = React.memo(
     isMobile,
     onRowStateChange,
   }: BeregnetRenteRowProps) => {
+    const { settings } = useAppSettings();
+    const formatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
     const [renterFraHasError, setRenterFraHasError] = React.useState(false);
     const standardMaxDate = dateRanges_renteberegning.renteTil.max;
 
@@ -217,21 +221,23 @@ const BeregnetRenteRow = React.memo(
           <TableCell>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {showDownloadButton ? (
-                <IconButton
-                  onClick={() => onDownloadSpecifikation(pdfContext)}
-                  aria-label={`Download PDF-specifikation for række ${rowIndex + 1}`}
-                  size="small"
-                  sx={(theme) => ({
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '6px',
-                    '&:hover': {
-                      backgroundColor: theme.palette.action.hover,
-                    },
-                  })}
-                >
-                  <Download sx={{ fontSize: '24px', color: 'primary.main' }} />
-                </IconButton>
+                <Tooltip title={`Download som ${formatLabel}`}>
+                  <IconButton
+                    onClick={() => onDownloadSpecifikation(pdfContext)}
+                    aria-label={`Download ${formatLabel}-specifikation for række ${rowIndex + 1}`}
+                    size="small"
+                    sx={(theme) => ({
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      '&:hover': {
+                        backgroundColor: theme.palette.action.hover,
+                      },
+                    })}
+                  >
+                    <Download sx={{ fontSize: '24px', color: 'primary.main' }} />
+                  </IconButton>
+                </Tooltip>
               ) : (
                 <Typography className="row--text" sx={{ color: 'var(--color-text-secondary)' }}>
                   -

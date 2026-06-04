@@ -3,12 +3,13 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Gælder for:** Alle Mineo PDF-downloads og PDF-generering.
-**Senest verificeret mod kode:** 2026-06-02
+**Senest verificeret mod kode:** 2026-06-04
 
 Denne kontrakt fastlægger tværgående regler for PDF-output. Domænespecifikke snapshot-kontrakter må gerne specificere egne projektioner, men de må ikke afvige fra reglerne her.
 
 Visuel struktur, teksttyper, tabeller og spacing reguleres normativt af `pdf-layout-contract.md`.
 `pdf-contract.md` regulerer data-, gate- og guard-regler for PDF-output.
+Formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`.
 
 ---
 

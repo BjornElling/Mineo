@@ -570,7 +570,7 @@ const Aarsloen = React.memo(() => {
 
       {downloadErrorMessage && (
         <ContentBox className="content-box">
-          <Typography className="section-header">PDF-fejl</Typography>
+          <Typography className="section-header">Dokument-fejl</Typography>
           <Typography className="row--text" sx={{ color: 'error.main' }}>
             {downloadErrorMessage}
           </Typography>

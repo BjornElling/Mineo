@@ -658,7 +658,7 @@ describe('downloadTafOpreguleretPaaAarPdf', () => {
     expect(result.success).toBe(false);
     expect(mockReportSystemIssue).toHaveBeenCalledWith(
       expect.objectContaining({
-        area: 'pdf',
+        area: 'document',
         context: 'pdfService.downloadTafOpreguleretPaaAarPdf',
       })
     );
@@ -754,12 +754,12 @@ describe('downloadAarsloenPdf', () => {
 
     expect(result).toEqual({
       success: false,
-      error: 'Udviklingsserveren svarer ikke længere. Genstart `npm run dev` og prøv PDF-download igen.',
+      error: 'Udviklingsserveren svarer ikke længere. Genstart `npm run dev` og prøv dokument-download igen.',
     });
     expect(mockReportSystemIssue).toHaveBeenCalledWith(
       expect.objectContaining({
-        code: 'pdf:dev_server_unavailable',
-        area: 'pdf',
+        code: 'document:dev_server_unavailable',
+        area: 'document',
         context: 'pdfService.downloadAarsloenPdf',
         diagnostics: expect.objectContaining({
           check: 'post_failure',

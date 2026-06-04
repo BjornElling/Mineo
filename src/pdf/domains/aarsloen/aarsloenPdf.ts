@@ -5,10 +5,8 @@
  */
 
 import type { CellDef, RowInput } from 'jspdf-autotable';
-import type jsPDF from 'jspdf';
-import { addSectionHeading, resolvePdfSectionEndY, resolvePdfTableStartYAfterSectionHeading, type BrevhovedData } from '../../shared/pdfHelpers';
+import { resolvePdfSectionEndY, type BrevhovedData } from '../../shared/pdfHelpers';
 import { createStandardPdfWriter, type PdfWriter } from '../../infrastructure/pdfWriter';
-import { createJsPdfAdapter } from '../../infrastructure/jsPdfAdapter';
 import {
   cellCenter,
   cellRight,
@@ -144,15 +142,15 @@ const addSatserSection = (
  * Tilføj indtægtsoplysninger-tabel
  */
 const addIndtaegtsoplysningerTable = (
-  doc: jsPDF,
+  writer: PdfWriter,
   tableData: readonly StandardLoenTableRow[],
   loenperiode: Loenperiode,
   satser: StandardLoenSatserInput,
-  beregnetAarsloen: number,
-  currentY: number
+  beregnetAarsloen: number
 ): number => {
-  const headingY = addSectionHeading(createJsPdfAdapter(doc), 'Indtægtsoplysninger', currentY);
-  const tableStartY = resolvePdfTableStartYAfterSectionHeading(headingY);
+  writer.writeBoldSubheader('Indtægtsoplysninger');
+  const doc = writer.getDoc();
+  const tableStartY = writer.getY();
 
   // Filtrer rækker - behold kun rækker hvor MINDST én input-celle er udfyldt
   const filteredData = tableData.filter(row => {
@@ -274,7 +272,7 @@ const addIndtaegtsoplysningerTable = (
     },
   });
 
-  return resolvePdfSectionEndY(finalY, currentY);
+  return resolvePdfSectionEndY(finalY, tableStartY);
 };
 
 /**
@@ -572,7 +570,6 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
 
   const writer = createStandardPdfWriter();
   writer.setDisplayMode('fullheight');
-  const doc = writer.getDoc();
 
   // Dokumentets metadata
   writer.setProperties({
@@ -601,12 +598,11 @@ export const generateAarsloenPdf = (params: GenerateAarsloenPdfParams): void => 
 
   // Tilføj indtægtsoplysninger-tabel (inkl. "I alt"-linje)
   writer.setY(addIndtaegtsoplysningerTable(
-    doc,
+    writer,
     tableData,
     loenperiode,
     satser,
-    beregnetAarsloen,
-    writer.getY()
+    beregnetAarsloen
   ));
 
   // Betinget: Beregningsprincipper og beregning (kun hvis omregning er aktiveret)

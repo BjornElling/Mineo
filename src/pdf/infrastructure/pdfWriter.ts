@@ -19,6 +19,7 @@ import type { PdfDocumentAdapter } from './pdfDocumentAdapter';
 import { renderBrevhoved } from './pdfBrevhovedRenderer';
 import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from '../shared/pdfTextUtils';
 import { formatRoundedCanonical } from '../../utils/rounding';
+import { getActiveDocumentDownloadFormat, getActiveDocumentWriterFactory } from '../../document/documentGenerationContext';
 
 const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
   if (doc.getTextWidth(text) <= maxWidth) return text;
@@ -993,6 +994,13 @@ export const createStandardPdfWriter = (params?: Readonly<{
 }>): PdfWriter => {
   const visUdkastStempel = params?.visUdkastStempel ?? false;
   const onLayoutFallback = params?.onLayoutFallback ?? (() => {});
+  if (getActiveDocumentDownloadFormat() === 'word') {
+    const createWriter = getActiveDocumentWriterFactory();
+    if (!createWriter) {
+      throw new Error('Word-generering kræver en præindlæst Word-writer.');
+    }
+    return createWriter({ visUdkastStempel });
+  }
   return createPdfWriter({
     lineHeight: PDF_BASE_LINE_HEIGHT_MM,
     visUdkastStempel,

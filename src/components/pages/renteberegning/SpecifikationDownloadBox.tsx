@@ -2,6 +2,8 @@ import React from 'react';
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import type { ContentBoxComponent } from '../../layout/ContentBoxFrame';
+import { useAppSettings } from '../../../contexts/useAppSettings';
+import { getDocumentFormatLabel } from '../../../document/documentFormat';
 
 interface SpecifikationDownloadBoxProps {
   onDownloadAll: () => Promise<void>;
@@ -18,6 +20,9 @@ const SpecifikationDownloadBox = React.memo(({
   disabled = false,
   ContentBoxComponent,
 }: SpecifikationDownloadBoxProps) => {
+  const { settings } = useAppSettings();
+  const formatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
+
   return (
     <ContentBoxComponent className="content-box">
       <Typography className="section-header">Download specifikationer</Typography>
@@ -37,7 +42,7 @@ const SpecifikationDownloadBox = React.memo(({
           onClick={() => { void onDownloadAll(); }}
           sx={{ fontSize: '13px', '& .MuiButton-startIcon svg': { fontSize: '16px' } }}
         >
-          Download alle som PDF
+          Download alle som {formatLabel}
         </Button>
       </Box>
     </ContentBoxComponent>

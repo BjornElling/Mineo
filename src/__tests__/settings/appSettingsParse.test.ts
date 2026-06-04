@@ -106,10 +106,16 @@ describe('parseStoredSettings', () => {
     // Simulerer en localStorage-blob gemt før reguleringsindstillingerne blev (gen)indført
     // som device-lokale appSettings. De manglende felter må udfyldes af defaults — ikke
     // bryde parse — så øvrige gemte præferencer bevares.
-    const { allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden, allowReguleringMedUdloebMedMaaneder, ...legacy } =
+    const {
+      allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden,
+      allowReguleringMedUdloebMedMaaneder,
+      documentDownloadFormat,
+      ...legacy
+    } =
       DEFAULT_APP_SETTINGS;
     void allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
     void allowReguleringMedUdloebMedMaaneder;
+    void documentDownloadFormat;
 
     const result = parseStoredSettings({ ...legacy, themeMode: 'dark' });
 
@@ -120,6 +126,7 @@ describe('parseStoredSettings', () => {
     expect(result.allowReguleringMedUdloebMedMaaneder).toBe(
       DEFAULT_APP_SETTINGS.allowReguleringMedUdloebMedMaaneder
     );
+    expect(result.documentDownloadFormat).toBe(DEFAULT_APP_SETTINGS.documentDownloadFormat);
   });
 });
 

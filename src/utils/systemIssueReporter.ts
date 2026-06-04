@@ -7,6 +7,7 @@ export type SystemIssueArea =
   | 'debug'
   | 'react'
   | 'calculation'
+  | 'document'
   | 'pdf'
   | 'persistence'
   | 'file'

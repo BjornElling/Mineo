@@ -36,6 +36,10 @@ export default defineConfig({
             return 'vendor-jspdf-autotable';
           }
 
+          if (id.includes('/docx/')) {
+            return 'vendor-docx';
+          }
+
           if (id.includes('/html2canvas/')) {
             return 'vendor-html2canvas';
           }

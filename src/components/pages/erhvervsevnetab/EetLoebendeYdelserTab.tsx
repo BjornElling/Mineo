@@ -29,6 +29,7 @@ import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
+import { getDocumentFormatLabel } from '../../../document/documentFormat';
 
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;
@@ -63,6 +64,7 @@ const YDELSER_TABLE_COLUMNS: readonly StandardDisplayTableColumn[] = [
 
 const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
   const { settings } = useAppSettings();
+  const documentFormatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
   const showExtendedSpecification = values.eetDifferencekravBilagSelection.visUdvidetSpecifikation;
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
   const issues = snapshot.issues;
@@ -116,7 +118,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
             </Box>
 
             <Box className="row--label-right-hover">
-              <Typography className="row--text">Medtag udvidet specifikation i PDF</Typography>
+              <Typography className="row--text">Medtag udvidet specifikation i {documentFormatLabel}</Typography>
               <Box className="row--label-right-hover__content">
                 <StyledToggleSwitch
                   name="visUdvidetSpecifikation"
