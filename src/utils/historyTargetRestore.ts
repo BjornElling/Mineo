@@ -1,6 +1,7 @@
 import { type HistoryFrame } from '../stores/undoRedoStore';
 import { resolveActiveFieldError } from '../types/fieldErrors';
 import { restoreDraftHistoryTarget, type DraftHistoryRestoreState } from './draftHistoryRegistry';
+import { scrollTargetIntoView } from './scrollTargetIntoView';
 
 const attrSelector = (attr: string, value: string): string => `[${attr}=${JSON.stringify(value)}]`;
 
@@ -62,12 +63,11 @@ const markRestoreFocus = (target: HTMLElement): void => {
 };
 
 const focusRestoredField = (target: HTMLElement): boolean => {
-  const section = target.closest('[data-section-id]');
-  if (section instanceof HTMLElement) {
-    section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } else {
-    target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
+  // Scroll kun hvis det redigerede felt ikke allerede er synligt; ellers centrér det i vinduet
+  // (samme adfærd som tab-navigation). Tidligere blev hele sektionen scrollet til toppen, hvilket
+  // gav et uønsket spring helt op selv når feltet allerede var synligt. Vi scroller FØR focus, så
+  // den efterfølgende `focus({ preventScroll: true })` ikke konkurrerer med scroll-animationen.
+  scrollTargetIntoView(target);
   try {
     target.focus({ preventScroll: true });
   } catch {

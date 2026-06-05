@@ -7,6 +7,7 @@ import {
   formatExpressionErrorMessage,
 } from '../../utils/expressionAmount';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
+import { MAX_AMOUNT_RAW_LENGTH } from '../../utils/amountInputUtils';
 
 const parse = (input: string, overrides?: Partial<Parameters<typeof parseAmountInput>[1]>) =>
   parseAmountInput(input, {
@@ -221,12 +222,34 @@ describe('parseAmountInput', () => {
     expect(result.error.message).toBe('Beløb er for stort');
   });
 
-  it('rejects input exceeding max raw length', () => {
+  it('rejects input exceeding max raw length with a specific length message', () => {
     const result = parse('1+23', { maxRawLength: 3 });
     expect(result.ok).toBe(false);
     if (result.ok) return;
     expect(result.error.kind).toBe('number');
-    expect(result.error.message).toBe('Ugyldigt beløb');
+    expect(result.error.message).toBe('Det indtastede må højst være 3 tegn langt');
+  });
+
+  it('accepts a long multi-term expression within the real amount raw-length limit', () => {
+    // Regression: feltets faktiske loft (MAX_AMOUNT_RAW_LENGTH) skal rumme 10-15 led
+    // i formatet "xxxxx,xx + yyyyy,yy - zzzz,zz". Tidligere loft (64) afviste disse
+    // gyldige udtryk med en generisk fejl (rød ring + "Ugyldigt beløb").
+    const terms = Array.from({ length: 12 }, (_unused, i) => {
+      const integer = 10000 + i * 111;
+      const decimal = ((i * 7) % 100).toString().padStart(2, '0');
+      return `${integer},${decimal}`;
+    });
+    const expression = terms.reduce(
+      (acc, term, i) => (i === 0 ? term : `${acc} ${i % 2 === 0 ? '+' : '-'} ${term}`),
+      ''
+    );
+    expect(expression.length).toBeGreaterThan(64);
+    expect(expression.length).toBeLessThanOrEqual(MAX_AMOUNT_RAW_LENGTH);
+
+    const result = parse(expression, { maxRawLength: MAX_AMOUNT_RAW_LENGTH });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.value?.kind).toBe('expression');
   });
 
   it('rejects decimal operands with more than 15 digits', () => {

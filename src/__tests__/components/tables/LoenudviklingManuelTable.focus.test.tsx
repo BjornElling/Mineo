@@ -85,6 +85,32 @@ describe('LoenudviklingManuelTable fokus-gendannelse', () => {
     expect(pensionInput).toHaveValue('9,00 %');
   });
 
+  it('viser placeholder "0 %" for ikke-udfyldte base-procentfelter, men 0,00 % for eksplicit nul', () => {
+    render(
+      <LoenudviklingManuelTable
+        tableData={[
+          // fritvalg er undefined (ikke udfyldt); shSoSats er eksplicit 0.
+          makeRow('base-row', { feriepenge: 12.5, shSoSats: 0, fritvalg: undefined, agPension: 8.15 }),
+          makeRow('row-a'),
+        ]}
+        baseDateDisplay="02-05-2017"
+        readOnlyBaseRowPercentFields={true}
+      />
+    );
+
+    const rows = getDataRows();
+    const baseRowCells = within(rows[0]!).getAllByRole('cell');
+    const shSoInput = within(baseRowCells[3]!).getByRole('textbox');
+    const fritvalgInput = within(baseRowCells[4]!).getByRole('textbox');
+
+    // Ikke-udfyldt felt: tom værdi, men placeholder vises i stedet for et tomt felt.
+    expect(fritvalgInput).toHaveValue('');
+    expect(fritvalgInput).toHaveAttribute('placeholder', '0 %');
+
+    // Eksplicit nul må ikke kollapse til placeholder.
+    expect(shSoInput).toHaveValue('0,00 %');
+  });
+
   it('viser tooltip på read-only dato og read-only procentsatser', async () => {
     const user = userEvent.setup();
 

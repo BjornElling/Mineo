@@ -400,7 +400,13 @@ export const parseAmountInput = (draft: string, options: AmountParseOptions): Am
     return { ok: true, value: undefined, isExpression: false };
   }
   if (options.maxRawLength !== undefined && trimmed.length > options.maxRawLength) {
-    return { ok: false, error: { kind: 'number', message: 'Ugyldigt beløb' } };
+    return {
+      ok: false,
+      error: {
+        kind: 'number',
+        message: `Det indtastede må højst være ${options.maxRawLength} tegn langt`,
+      },
+    };
   }
 
   const isExpression = hasExpressionOperators(trimmed);

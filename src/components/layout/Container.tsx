@@ -3,6 +3,7 @@ import { Box, type SxProps, type Theme } from '@mui/material';
 import { ScrollContainerProvider } from '../../contexts/ScrollContainerContext';
 import ScrollToTopButton from '../ui/ScrollToTopButton';
 import { CONTAINER_FOCUSABLE_SELECTOR, CONTAINER_ROW_SELECTOR } from '../tables/gridCore/tableFocusHelpers';
+import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 
 /**
  * Container komponent til content-område
@@ -59,7 +60,6 @@ interface ContainerProps {
 }
 
 const NON_TEXT_EDITING_INPUT_TYPES = new Set(['checkbox', 'radio', 'range', 'button', 'submit', 'reset', 'file', 'color']);
-const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
 const normalizeRadioGroupTabStops = (elements: FocusableElement[]): FocusableElement[] => {
   const radioGroupMembers = new Map<string, HTMLInputElement[]>();
@@ -337,35 +337,9 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
         element.focus();
       }
 
-      const container = containerRef.current;
-      if (container) {
-        const containerRect = container.getBoundingClientRect();
-        const elementRect = element.getBoundingClientRect();
-        const viewportPadding = 24;
-        let nextScrollTop = container.scrollTop;
-        let nextScrollLeft = container.scrollLeft;
-        const maxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
-        const maxScrollLeft = Math.max(0, container.scrollWidth - container.clientWidth);
-
-        const elementIsOutsideVerticalViewport = elementRect.top < containerRect.top || elementRect.bottom > containerRect.bottom;
-        if (elementIsOutsideVerticalViewport) {
-          const elementCenterY = elementRect.top - containerRect.top + elementRect.height / 2;
-          const desiredScrollTop = container.scrollTop + elementCenterY - container.clientHeight / 2;
-          nextScrollTop = clamp(desiredScrollTop, 0, maxScrollTop);
-        }
-
-        // Horisontal adfærd forbliver kant-baseret; kun vertikal adfærd centreres.
-        if (elementRect.left < containerRect.left + viewportPadding) {
-          nextScrollLeft += elementRect.left - (containerRect.left + viewportPadding);
-        } else if (elementRect.right > containerRect.right - viewportPadding) {
-          nextScrollLeft += elementRect.right - (containerRect.right - viewportPadding);
-        }
-        nextScrollLeft = clamp(nextScrollLeft, 0, maxScrollLeft);
-
-        if (nextScrollTop !== container.scrollTop || nextScrollLeft !== container.scrollLeft) {
-          container.scrollTo({ top: nextScrollTop, left: nextScrollLeft, behavior: 'smooth' });
-        }
-      }
+      // Scroll-adfærden (centrér lodret kun hvis uden for vinduet, kant-baseret vandret) ejes
+      // af scrollTargetIntoView, så tab-navigation, undo/redo og interne links opfører sig ens.
+      scrollTargetIntoView(element);
 
       // Neutralisér selection deferred (requestAnimationFrame) for at sikre,
       // at vi kører EFTER eventuelle komponenter der sætter selection ved fokus.

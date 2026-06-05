@@ -44,6 +44,7 @@ import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
 import { generateAnsaettelsesforholdId, generateLoenudviklingRowId, initialLoenudviklingManuelRow } from '../../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
+import { scrollTargetIntoView } from '../../../utils/scrollTargetIntoView';
 import type { StandardLoenTableValidationSummary } from '../../../types/table';
 import { UI_STORAGE_KEYS } from '../../../config/storageManifest';
 import {
@@ -1493,8 +1494,11 @@ const LoenindkomstTab = React.memo(({
     if (!scrollTargetId) return;
     const id = scrollTargetId;
     const handle = window.requestAnimationFrame(() => {
-      const el = document.querySelector(`[data-mineo-row-id="${id}"]`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const el = document.querySelector<HTMLElement>(`[data-mineo-row-id="${id}"]`);
+      // Efter en eksplicit flyt op/ned: centrér altid den flyttede række (force), så brugeren får
+      // tydelig bekræftelse på flytningen — på linje med den tidligere block:'center'-adfærd. Selve
+      // scroll-mekanikken ejes af den samlede scroll-helper.
+      scrollTargetIntoView(el, { force: true });
       setScrollTargetId(null);
     });
     return () => window.cancelAnimationFrame(handle);

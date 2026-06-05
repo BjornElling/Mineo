@@ -1,6 +1,10 @@
 export const DEFAULT_AMOUNT_PLACEHOLDER = '0,00';
 export const DEFAULT_AMOUNT_PRECISION = 2;
-export const MAX_AMOUNT_RAW_LENGTH = 64;
+// Gælder hele det rå input — også flerleddede udtryk (fx "12345,67 + 89012,34 - …").
+// 64 var dimensioneret til ét enkelt beløb og afviste gyldige udtryk med ~6+ led
+// (10-15 led løber let op i 100-200 tegn). 512 rummer rigeligt mange led og holder
+// stadig et loft mod patologisk input.
+export const MAX_AMOUNT_RAW_LENGTH = 512;
 export const MAX_AMOUNT_INTEGER_DIGITS = 20;
 
 export const containsAnyDigit = (input: string): boolean => {

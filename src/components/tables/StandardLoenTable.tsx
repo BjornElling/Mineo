@@ -20,6 +20,7 @@ import type {
 import type { StandardLoenTableHandle } from '../../types/handles';
 import { initialRow, generateRowId } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import { createEmptyRowId } from '../../utils/rowId';
+import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 import {
   calculateStandardLoenRowDerived,
   isStandardLoenRowEffectivelyEmpty,
@@ -545,7 +546,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           if (!Number.isFinite(colIdx)) return;
           const el = cellRefsByCellKeyRef.current[`${cell.rowId}:${colIdx}`];
           if (!el) return;
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Valideringsfejl peger brugeren på et konkret problem; centrér altid cellen.
+          scrollTargetIntoView(el, { force: true });
         },
         flashError: (error) => {
           const colKey = error.colKey;
@@ -554,7 +556,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           const el = cellRefsByCellKeyRef.current[`${error.rowId}:${colIdx}`];
           if (!el) return;
           setErrorCell({ rowId: error.rowId, colIdx });
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          scrollTargetIntoView(el, { force: true });
           window.setTimeout(() => setErrorCell(null), 2000);
         },
       }),

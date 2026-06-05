@@ -5,6 +5,14 @@ import { setActiveTabForPage } from '../hooks/usePersistedActiveTab';
 import { focusElementWithoutScroll, waitForAnimationFrame } from './commitFlush';
 import { getFirstBlockingTableInputErrorTarget, type BlockingTableInputErrorTarget } from './tableInputErrorRegistry';
 import { isRecord } from './typeGuards';
+import { scrollTargetIntoView } from './scrollTargetIntoView';
+import { resolveActiveFieldError, type FieldErrorBySource } from '../types/fieldErrors';
+import { EO_ANGIVET_LOEN_ID } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+
+// Tabel-input-fejl i EO rapporteres som dynamiske felt-fejl med dette suffix (se LoenindkomstTab/
+// EOOplysningerTab). De persisterer i field-errors-store og overlever fane-skift, så de skal kunne
+// rutes til den rigtige fane uden at elementet er monteret.
+const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
 export type BlockingFieldErrorTarget = Readonly<{
   kind: 'field';
@@ -54,7 +62,8 @@ const findFirstVisibleErrorElement = (message?: string): HTMLElement | null => {
 
 const focusAndScrollToErrorElement = (element: HTMLElement): void => {
   focusElementWithoutScroll(element);
-  element.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+  // Spring til den blokerende fejl: centrér altid, så brugeren ledes direkte til problemet.
+  scrollTargetIntoView(element, { force: true });
 };
 
 const getRouteForBlockingError = (target: BlockingInputErrorTarget, currentPathname: string): string => {
@@ -73,6 +82,16 @@ const prepareTabForBlockingError = (target: BlockingInputErrorTarget): void => {
   if (target.kind === 'table-input') return;
 
   if (target.pageKey === 'erstatningsopgoerelse') {
+    // Dynamiske tabel-input-fejl (suffix ':loenindkomst'): "angivet løn"-tabellen hører til
+    // EO-oplysninger; alle øvrige (per ansættelsesforhold) hører til lønindkomst-fanen.
+    if (target.fieldName.endsWith(EO_LOENINDKOMST_INPUT_ERROR_SUFFIX)) {
+      if (target.fieldName === `${EO_ANGIVET_LOEN_ID}${EO_LOENINDKOMST_INPUT_ERROR_SUFFIX}`) {
+        setActiveTabForPage('erstatningsopgoerelse', 'eo_oplysninger');
+      } else {
+        setActiveTabForPage('erstatningsopgoerelse', 'loenindkomst');
+      }
+      return;
+    }
     if (target.fieldName.startsWith('loenindkomstAnsaettelsesforhold')) {
       setActiveTabForPage('erstatningsopgoerelse', 'loenindkomst');
       return;
@@ -115,15 +134,13 @@ export const getFirstBlockingInputErrorTarget = (
       const fieldSources = errorsBySource[fieldName];
       if (!isRecord(fieldSources)) continue;
 
-      for (const entry of Object.values(fieldSources)) {
-        if (
-          isRecord(entry) &&
-          entry.severity === 'error' &&
-          typeof entry.message === 'string' &&
-          entry.blocksSave !== false
-        ) {
-          return { kind: 'field', pageKey, fieldName, message: entry.message };
-        }
+      // Et felt kan have flere samtidige fejl-kilder (input/rule/schema). Kun den AKTIVE fejl
+      // (per resolveActiveFieldError) afspejler hvad UI'et faktisk viser. Tidligere returnerede
+      // vi den første rå kilde der lignede en blokering — også en overskygget/inaktiv kilde —
+      // hvilket kunne sende save til en fane uden synlig fejl. Brug derfor resolveren.
+      const active = resolveActiveFieldError(fieldSources as FieldErrorBySource);
+      if (active && active.severity === 'error' && active.blocksSave !== false) {
+        return { kind: 'field', pageKey, fieldName, message: active.message };
       }
     }
   }
@@ -140,9 +157,58 @@ export const focusFirstVisibleBlockingInputError = async (
     return true;
   }
   const element = findFirstVisibleErrorElement(target?.message);
-  if (!element) return false;
-  focusAndScrollToErrorElement(element);
-  return true;
+  if (element) {
+    focusAndScrollToErrorElement(element);
+    return true;
+  }
+
+  // Mineos grid-tabel-celler bruger IKKE MUI's `.Mui-error`, så de fanges ikke af
+  // FOCUSABLE_ERROR_SELECTOR. Når den blokerende fejl stammer fra en tabelcelle (fx en dynamisk
+  // ':loenindkomst'-felt-fejl), genregistrerer cellen sig i tableInputErrorRegistry, så snart dens
+  // fane er monteret. Efter fane-skift kan vi derfor finde og scrolle til selve cellen her.
+  const tableTarget = getFirstBlockingTableInputErrorTarget();
+  if (tableTarget?.element?.isConnected && isVisible(tableTarget.element)) {
+    focusAndScrollToErrorElement(tableTarget.element);
+    return true;
+  }
+
+  return false;
+};
+
+/**
+ * Er der en BLOKERENDE fejl allerede synlig på den fane brugeren står på? I så fald bliver vi
+ * på fanen og fokuserer/scroller til den (eller scroller slet ikke, hvis den er i vinduet).
+ *
+ * "Synlig nu" har forrang frem for den sidekrydsende scanning, så Gem med en synlig fejlbehæftet
+ * celle aldrig hopper til en helt anden fane.
+ *
+ * VIGTIGT: Vi må kun short-circuite på elementer der faktisk BLOKERER save — ikke en hvilken som
+ * helst `.Mui-error` (UI-fejl på committede værdier har `blocksSave:false` og bærer ofte `.Mui-error`).
+ * Pålidelige blokerende signaler på nuværende fane:
+ *   1) Tabelcelle-fejl-registret (registreres kun for aktive, blokerende save-fejl mens cellen er monteret).
+ *   2) Det sidekrydsende blokerende felt-mål, HVIS dets element tilfældigvis er synligt på denne fane.
+ */
+const focusVisibleBlockingErrorOnCurrentTab = async (
+  target: BlockingInputErrorTarget | null
+): Promise<boolean> => {
+  await waitForAnimationFrame();
+
+  const tableTarget = getFirstBlockingTableInputErrorTarget();
+  if (tableTarget?.element?.isConnected && isVisible(tableTarget.element)) {
+    focusAndScrollToErrorElement(tableTarget.element);
+    return true;
+  }
+
+  // Et felt-mål er pr. definition blokerende; hvis det er synligt på den aktuelle fane, så bliv.
+  if (target?.kind === 'field') {
+    const element = findFirstVisibleErrorElement(target.message);
+    if (element) {
+      focusAndScrollToErrorElement(element);
+      return true;
+    }
+  }
+
+  return false;
 };
 
 export const navigateToBlockingInputError = async (
@@ -150,6 +216,12 @@ export const navigateToBlockingInputError = async (
   currentPathname: string,
   navigate: NavigateFunction
 ): Promise<void> => {
+  // Forrang: en blokerende fejl der allerede er synlig på den aktuelle fane. Dette undgår at
+  // Gem hopper væk fra en fejlbehæftet celle, brugeren allerede kan se.
+  if (await focusVisibleBlockingErrorOnCurrentTab(target)) {
+    return;
+  }
+
   if (target && await focusFirstVisibleBlockingInputError(target)) {
     return;
   }

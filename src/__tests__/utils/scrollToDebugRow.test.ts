@@ -31,12 +31,14 @@ describe('scrollToDebugRow', () => {
     vi.restoreAllMocks();
   });
 
+  // Uden for en Mineo-scroll-container (som i disse jsdom-tests) falder scrollTargetIntoView
+  // tilbage til native scrollIntoView med block:'nearest' — dvs. "scroll kun hvis nødvendigt".
   it('scrolls to matching row id for suffix-based debug id', () => {
     document.body.innerHTML = '<div data-mineo-row-id="row-1"></div>';
 
     scrollToDebugRow('sviesmerte.periode.row-1.fra');
 
-    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
   });
 
   it('supports loenindkomst row ids without trailing suffix', () => {
@@ -44,7 +46,7 @@ describe('scrollToDebugRow', () => {
 
     scrollToDebugRow('loenindkomst.af-1');
 
-    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
   });
 
   it('uses non-animated scroll when reduced motion is preferred', () => {
@@ -53,7 +55,7 @@ describe('scrollToDebugRow', () => {
 
     scrollToDebugRow('taf.periode.row-rm');
 
-    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' });
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'auto', block: 'nearest' });
   });
 
   it('calls onFailure when row cannot be found within retry budget', () => {

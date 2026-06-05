@@ -205,6 +205,7 @@ const ReadOnlyPercentCell = React.memo(
     value,
     errorMessage,
     infoTooltipText,
+    placeholder,
     inputRef,
     sx,
   }: {
@@ -212,6 +213,7 @@ const ReadOnlyPercentCell = React.memo(
     value: number | undefined;
     errorMessage?: string;
     infoTooltipText?: string;
+    placeholder?: string;
     inputRef?: React.Ref<HTMLInputElement>;
     sx?: SxProps<Theme>;
   }) => {
@@ -268,7 +270,7 @@ const ReadOnlyPercentCell = React.memo(
               'data-mineo-grid-locked': 'true',
               'aria-describedby': showError ? a11yErrorId : undefined,
             }}
-            placeholder=""
+            placeholder={placeholder ?? ''}
             sx={{
               width: '100%',
               height: '100%',
@@ -615,6 +617,7 @@ const LoenudviklingManuelTable = React.memo(
                       value={row.feriepenge}
                       errorMessage={baseRowPercentErrors?.feriepenge}
                       infoTooltipText="Værdien angives ovenfor"
+                      placeholder="0 %"
                     />
                   ) : (
                     <TablePercentInput
@@ -634,6 +637,7 @@ const LoenudviklingManuelTable = React.memo(
                       value={row.shSoSats}
                       errorMessage={baseRowPercentErrors?.shSoSats}
                       infoTooltipText="Værdien angives ovenfor"
+                      placeholder="0 %"
                     />
                   ) : (
                     <TablePercentInput
@@ -653,6 +657,7 @@ const LoenudviklingManuelTable = React.memo(
                       value={row.fritvalg}
                       errorMessage={baseRowPercentErrors?.fritvalg}
                       infoTooltipText="Værdien angives ovenfor"
+                      placeholder="0 %"
                     />
                   ) : (
                     <TablePercentInput
@@ -672,6 +677,7 @@ const LoenudviklingManuelTable = React.memo(
                       value={row.agPension}
                       errorMessage={baseRowPercentErrors?.agPension}
                       infoTooltipText="Værdien angives ovenfor"
+                      placeholder="0 %"
                     />
                   ) : (
                     <TablePercentInput

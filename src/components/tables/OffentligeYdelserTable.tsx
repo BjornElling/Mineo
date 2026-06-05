@@ -6,6 +6,7 @@ import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 import { dateRanges_offentligeYdelser } from '../../config/dateRanges';
 import { initialOffentligYdelseRow, generateOffentligYdelseRowId } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import { createEmptyRowId } from '../../utils/rowId';
+import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 import type { OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
@@ -379,7 +380,8 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
           if (!Number.isFinite(colIdx)) return;
           const el = cellRefsByCellKeyRef.current[`${cell.rowId}:${colIdx}`];
           if (!el) return;
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Valideringsfejl peger brugeren på et konkret problem; centrér altid cellen.
+          scrollTargetIntoView(el, { force: true });
         },
       }),
       [getValidationResult, resolveColIdxFromKey]

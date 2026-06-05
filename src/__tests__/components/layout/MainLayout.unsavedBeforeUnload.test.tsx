@@ -357,11 +357,13 @@ describe('MainLayout (unsaved beforeunload)', () => {
     const getClientRectsSpy = vi
       .spyOn(HTMLElement.prototype, 'getClientRects')
       .mockReturnValue([{ width: 100, height: 20 } as DOMRect] as unknown as DOMRectList);
+    // Scroll-adfærden ejes nu af scrollTargetIntoView (enheds-testet separat). Her er kontrakten,
+    // at det blokerende, synlige felt på den aktuelle fane FOKUSERES uden at Gem hopper væk —
+    // derfor stubbes scroll-API'erne blot til no-ops, og vi asserter på fokus.
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
-    const scrollIntoViewMock = vi.fn();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
-      value: scrollIntoViewMock,
+      value: vi.fn(),
     });
 
     const Probe = () => {
@@ -409,8 +411,6 @@ describe('MainLayout (unsaved beforeunload)', () => {
       expect(saveToFileMock).not.toHaveBeenCalled();
       expect(document.activeElement).toBe(screen.getByRole('textbox'));
     });
-
-    expect(scrollIntoViewMock).toHaveBeenCalled();
 
     getClientRectsSpy.mockRestore();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {

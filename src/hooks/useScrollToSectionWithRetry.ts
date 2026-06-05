@@ -1,5 +1,7 @@
 import React from 'react';
 
+import { scrollTargetIntoView } from '../utils/scrollTargetIntoView';
+
 export const useScrollToSectionWithRetry = (): ((sectionId: string) => void) => {
   const pendingScrollRafRef = React.useRef<number | null>(null);
 
@@ -19,7 +21,8 @@ export const useScrollToSectionWithRetry = (): ((sectionId: string) => void) => 
       const tick = () => {
         const target = document.querySelector<HTMLElement>(`[data-section-id="${sectionId}"]`);
         if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Samme scroll-regel som tab/undo: scroll kun hvis sektionen ikke allerede er synlig.
+          scrollTargetIntoView(target);
           pendingScrollRafRef.current = null;
           return;
         }
