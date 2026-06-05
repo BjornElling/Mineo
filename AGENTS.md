@@ -143,17 +143,21 @@ Filnavngivning · filplacering · forældet indhold (kommentarer/config/kode der
 Verificér: krav-korrekthed · Zod↔TS-alignment · ingen usikker typing · ingen utilsigtede sideeffekter/datatab · arkitektonisk konsistens med kontrakter.
 
 ### Hvornår køres hvilke tjek
-Tjekkene har forskellig dækning og forskellig pris. Kør dem hvor de giver mening — ikke alle efter hver mikro-ændring, men aldrig færre end situationen kræver. Fejler et tjek og kan rettes deterministisk: ret det før handoff. Ellers stop og spørg.
+Tjekkene har forskellig dækning og pris. Vælg det smalleste tjek der realistisk kan fange fejl i den ændring, du netop har lavet; udvid først når risikofladen kræver det. Kør ikke hele gates rutinemæssigt efter mikro-ændringer, doc-only ændringer eller ren flytning uden adfærdsændring. Fejler et relevant tjek og kan det rettes deterministisk: ret det før handoff. Ellers stop og spørg.
+
+**Grundregel:** Ingen tjek er nødvendige for rene ændringer i dokumentation/procesregler, medmindre ændringen berører scripts, config, genereret output eller en kontrakt der skal verificeres mod kode. For kodeændringer køres tjek efter en sammenhængende delændring, ikke efter hver enkelt hunk.
 
 | Tjek | Kommando | Hvornår |
 |------|----------|---------|
-| **Typecheck (kildekode)** | `npm run typecheck` | Efter **hver** ændring af `.ts/.tsx` i `src/` (uden for `__tests__`). Den billigste fangst af type-fejl; vent ikke til sidst. |
-| **Typecheck (tests)** | `npm run typecheck:test` | Når du har **oprettet, ændret eller flyttet en testfil**, eller ændret en type/signatur som tests bruger. Tests bruger en separat `tsconfig.test.json`, så `typecheck` alene fanger ikke type-fejl i testkode. |
-| **Lint** | `npm run lint` | Før handoff af en sammenhængende arbejdsenhed, og altid før commit. Kører med `--max-warnings 0` — også advarsler skal være væk (ubrugte imports, dupe-keys, restricted imports osv.). |
-| **Tests** | `npm run test` (eller målrettet `npx vitest run <sti>`) | Kør **målrettet** de berørte testfiler løbende, mens du arbejder i et område. Kør **hele** suiten før handoff/commit af enhver ændring der rører beregning, validering, persistence, save/load eller delt infrastruktur — og når du har ændret adfærd nogen test kan afhænge af. Ved rene doc-/kommentar-ændringer kan fuld suite springes over. |
-| **Build** | `npm run build` | Kun når en ændring kan påvirke bundling/entry/config (Vite-config, app-entry, dynamiske imports, asset-stier, dependency-ændringer) — ikke rutinemæssigt efter domæne-/UI-ændringer der allerede er dækket af typecheck + tests. |
+| **Typecheck (kildekode)** | `npm run typecheck` | Efter en sammenhængende ændring af `.ts/.tsx` i `src/` uden for `__tests__`, når ændringen påvirker typer, imports/exports, props, schemas, hooks, state, domænefunktioner eller delt infrastruktur. Kan springes over ved ren tekst-/kommentarændring, CSS-only ændring, eller mekanisk flytning hvor imports allerede er verificeret af et smallere relevant tjek. |
+| **Typecheck (tests)** | `npm run typecheck:test` | Når en testfil er oprettet, ændret eller flyttet, eller når produktionskode har ændret en type/signatur som tests bruger. Tests bruger en separat `tsconfig.test.json`, så `typecheck` alene er ikke nok for testkode. |
+| **Lint** | `npm run lint` | Før handoff når der er ændret kode, scripts, config eller tests på en måde der kan give lint-fejl. Kan springes over ved rene dokumentations-, kommentar- eller kontrakttekstændringer. Altid før commit. |
+| **Tests** | `npm run test` eller målrettet `npx vitest run <sti>` | Kør målrettede tests for berørte moduler, når adfærd, validering, state-flow, persistence, beregning, parsing, formattering eller schema-regler er ændret. Kør fuld suite før handoff/commit når ændringen rører beregning, validering, save/load, persistence, delt state/infrastruktur, eller når flere områder kan være indirekte påvirket. Kan springes over ved ren refaktor uden adfærdsændring, hvis typecheck/lint dækker risikoen bedre. |
+| **Build** | `npm run build` | Kun når en ændring kan påvirke bundling, app-entry, Vite/build-config, dynamiske imports, asset-stier, dependency-opsætning eller generering af distributable output. Ikke rutinemæssigt efter domæne-/UI-ændringer der allerede er dækket af typecheck og relevante tests. |
 
-**Rækkefølge før commit (sammenhængende arbejdsenhed er færdig):** `typecheck` → `typecheck:test` (hvis testfiler er rørt) → `lint` → fuld `test`. Alt skal være grønt, før du committer. Husk at en kode-rettelse, der ændrer adfærd, også kræver at du opdaterer eller tilføjer de tests, der hævder den adfærd (jf. [Tests](#tests)).
+**Før handoff:** Rapportér præcist hvilke tjek der er kørt, og hvilke der bevidst er sprunget over med kort begrundelse. For doc-only/procesændringer er det acceptabelt at skrive, at ingen tjek er kørt, fordi ingen kode er ændret.
+
+**Rækkefølge før commit:** `typecheck` (hvis kildekode er rørt) → `typecheck:test` (hvis tests eller testbrugte typer er rørt) → `lint` → relevant testniveau, som fuld `test` når tabellen kræver det. Alt relevant skal være grønt, før du committer. Husk at en kode-rettelse, der ændrer adfærd, også kræver at du opdaterer eller tilføjer de tests, der hævder den adfærd (jf. [Tests](#tests)).
 
 ## Holdning
 Udfordr usikre arkitekturantagelser. Optimér for deterministisk adfærd, tillid og klarhed over hastighed. Foretræk eksplicit, auditerbar kode over smarte genveje; undgå skjult state og implicit adfærd. Anvend fail-closed på usikre/ugyldige kritiske data — gæt ikke i stilhed.

@@ -136,7 +136,15 @@ const mutableUserEvent = userEvent as typeof userEvent & {
 };
 
 mutableUserEvent.setup = ((...args: Parameters<typeof originalUserEventSetup>) => {
-  const api = originalUserEventSetup(...args);
+  // Pointer-events check er en user-event diagnose, ikke app-adfærd. Den er dyr i MUI-træer,
+  // så test-defaulten slår den fra; tests kan stadig vælge en anden værdi eksplicit.
+  //
+  // delay: null fjerner user-events default inter-keystroke-ventetid (real-timer setTimeout
+  // mellem hvert simuleret tastetryk). Ingen test her hænger på reel keystroke-timing
+  // (ingen input-debounce; rAF/timeout-baseret fokus flushes stadig via act), så defaulten
+  // er null for fart. Tests kan stadig sætte en eksplicit delay via options.
+  const options = args[0] ?? {};
+  const api = originalUserEventSetup({ pointerEventsCheck: 0, delay: null, ...options });
   const mutableApi = api as typeof api & {
     paste: (targetOrClipboardData?: Element | DataTransfer | string, clipboardData?: DataTransfer | string) => Promise<void>;
   };

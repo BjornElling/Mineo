@@ -418,23 +418,23 @@ describe('sumMaanedsbroekForInterval', () => {
   it('matcher den tidligere "Σ 1/dage-i-måned"-formel efter 2-decimal-afrunding', () => {
     const daysInMonth = (year: number, month: number): number =>
       new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const prefixStart = d(iso('2018-01-01'));
+    const prefixEnd = d(iso('2023-04-08'));
+    const dayWeights: number[] = [0];
+    for (let cur = new Date(prefixStart.getTime()); cur <= prefixEnd; cur.setUTCDate(cur.getUTCDate() + 1)) {
+      dayWeights.push(dayWeights[dayWeights.length - 1]! + 1 / daysInMonth(cur.getUTCFullYear(), cur.getUTCMonth() + 1));
+    }
     const inlineSum = (fra: ISODateString, til: ISODateString): number => {
-      let total = 0;
-      let cur = d(fra);
-      const end = d(til);
-      while (cur <= end) {
-        total += 1 / daysInMonth(cur.getUTCFullYear(), cur.getUTCMonth() + 1);
-        const next = new Date(cur.getTime());
-        next.setUTCDate(next.getUTCDate() + 1);
-        cur = next;
-      }
-      return total;
+      const fraIndex = Math.round((d(fra).getTime() - prefixStart.getTime()) / 86_400_000);
+      const tilIndexInclusive = Math.round((d(til).getTime() - prefixStart.getTime()) / 86_400_000);
+      return dayWeights[tilIndexInclusive + 1]! - dayWeights[fraIndex]!;
     };
     const round2 = (x: number): number => {
       const v = x * 100;
       return (Math.sign(v) * Math.round(Math.abs(v))) / 100;
     };
     const start = d(iso('2018-01-01'));
+    const mismatches: Array<{ fra: ISODateString; til: ISODateString; actual: number; expected: number }> = [];
     for (let offset = 0; offset < 800; offset += 11) {
       for (let len = 0; len < 1100; len += 29) {
         const fraDate = new Date(start.getTime());
@@ -443,9 +443,14 @@ describe('sumMaanedsbroekForInterval', () => {
         tilDate.setUTCDate(tilDate.getUTCDate() + len);
         const fra = toISODateString(fraDate.toISOString().slice(0, 10));
         const til = toISODateString(tilDate.toISOString().slice(0, 10));
-        expect(round2(sumMaanedsbroekForInterval(fra, til))).toBe(round2(inlineSum(fra, til)));
+        const actual = round2(sumMaanedsbroekForInterval(fra, til));
+        const expected = round2(inlineSum(fra, til));
+        if (actual !== expected) {
+          mismatches.push({ fra, til, actual, expected });
+        }
       }
     }
+    expect(mismatches).toEqual([]);
   });
 
   it('enkelt dag → 1/dage-i-måned (skudårsfølsom)', () => {

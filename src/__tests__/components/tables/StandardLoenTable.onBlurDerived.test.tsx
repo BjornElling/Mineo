@@ -34,6 +34,22 @@ const computeDerived = (amounts: { col2: number; col3: number; col4: number; col
   };
 };
 
+const setupUser = () => userEvent.setup({ pointerEventsCheck: 0 });
+
+const setDraftValue = (input: HTMLElement, value: string) => {
+  fireEvent.change(input, { target: { value } });
+};
+
+const openInputEditing = async (user: ReturnType<typeof userEvent.setup>, input: HTMLElement, startKey = '1') => {
+  await user.click(input);
+  if (input.hasAttribute('readonly')) {
+    await user.keyboard(startKey);
+  }
+  await waitFor(() => {
+    expect(input).not.toHaveAttribute('readonly');
+  });
+};
+
 const getFirstDataRowCells = (): HTMLElement[] => {
   const rows = screen.getAllByRole('row');
   const firstDataRow = rows[1];
@@ -106,7 +122,7 @@ describe('StandardLoenTable', () => {
     { colIdx: 4, colKey: 'col4', nextValue: '250' },
     { colIdx: 5, colKey: 'col5', nextValue: '500' },
   ] as const)('updates derived cells only on blur (%s)', async ({ colIdx, colKey, nextValue }) => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     const onTableDataChange = vi.fn();
     const baseAmounts = { col2: 1000, col3: 500, col4: 200, col5: 300 };
@@ -136,8 +152,8 @@ describe('StandardLoenTable', () => {
     const targetCell = cellsBefore[colIdx];
     const input = within(targetCell).getByRole('textbox');
 
-    await user.click(input);
-    await user.keyboard(nextValue);
+    await openInputEditing(user, input, nextValue[0] ?? '1');
+    setDraftValue(input, nextValue);
 
     expect(onTableDataChange).not.toHaveBeenCalled();
     expect(getDerivedTexts()).toEqual(initial);
@@ -157,7 +173,7 @@ describe('StandardLoenTable', () => {
   }, TEST_TIMEOUT_MS);
 
   it('restores focus to same cell position when last value is cleared in a retained row (min 2 rows)', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onTableDataChange = vi.fn();
 
     render(
@@ -180,8 +196,8 @@ describe('StandardLoenTable', () => {
     const firstRowCells = getFirstDataRowCells();
     const input = within(firstRowCells[2]).getByRole('textbox');
 
-    await user.dblClick(input);
-    await user.clear(input);
+    await openInputEditing(user, input);
+    setDraftValue(input, '');
     fireEvent.blur(input);
 
     await waitFor(() => {
@@ -232,7 +248,7 @@ describe('StandardLoenTable', () => {
   }, TEST_TIMEOUT_MS);
 
   it('removes a fully cleared middle row and normalizes back to trailing empty rows only', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onTableDataChange = vi.fn();
 
     render(
@@ -269,8 +285,8 @@ describe('StandardLoenTable', () => {
 
     const clearCell = async (cellIndex: number) => {
       const input = getMiddleRowTextbox(cellIndex);
-      await user.dblClick(input);
-      await user.clear(input);
+      await openInputEditing(user, input);
+      setDraftValue(input, '');
       await act(async () => {
         fireEvent.blur(input);
       });

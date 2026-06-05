@@ -16,12 +16,12 @@ const focusInAct = async (element: HTMLElement) => {
   });
 };
 
+const setupUser = () => userEvent.setup({ pointerEventsCheck: 0 });
+
 describe('tableKeyboardNavigation loose table', () => {
   const TEST_TIMEOUT_MS = 15000;
 
   it('wraps ArrowLeft/ArrowRight within the same row in loose table', async () => {
-    const user = userEvent.setup();
-
     render(
       <StandardLooseTable>
         <tbody>
@@ -41,17 +41,15 @@ describe('tableKeyboardNavigation loose table', () => {
     );
 
     const [left, , right] = screen.getAllByRole('textbox');
-    await user.click(left);
-    await user.keyboard('{ArrowLeft}');
+    await focusInAct(left);
+    await keyDownInAct(left, 'ArrowLeft');
     expect(document.activeElement).toBe(right);
 
-    await user.keyboard('{ArrowRight}');
+    await keyDownInAct(right, 'ArrowRight');
     expect(document.activeElement).toBe(left);
   }, TEST_TIMEOUT_MS);
 
   it('skips locked cells on ArrowRight/ArrowLeft', async () => {
-    const user = userEvent.setup();
-
     render(
       <StandardLooseTable>
         <tbody>
@@ -71,16 +69,16 @@ describe('tableKeyboardNavigation loose table', () => {
     );
 
     const [left, , right] = screen.getAllByRole('textbox');
-    await user.click(left);
-    await user.keyboard('{ArrowRight}');
+    await focusInAct(left);
+    await keyDownInAct(left, 'ArrowRight');
     expect(document.activeElement).toBe(right);
 
-    await user.keyboard('{ArrowLeft}');
+    await keyDownInAct(right, 'ArrowLeft');
     expect(document.activeElement).toBe(left);
   }, TEST_TIMEOUT_MS);
 
   it('Enter og Shift+Enter flytter vertikalt og committer edit først', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
     const onTopBlur = vi.fn<(value: string) => void>();
     const onBottomBlur = vi.fn<(value: string) => void>();
 
@@ -142,8 +140,6 @@ describe('tableKeyboardNavigation loose table', () => {
   }, TEST_TIMEOUT_MS);
 
   it('Tab-sekvens forankrer startcelle for Enter/Shift+Enter (også på tværs af rækker)', async () => {
-    const user = userEvent.setup();
-
     render(
       <StandardLooseTable>
         <tbody>
@@ -175,26 +171,24 @@ describe('tableKeyboardNavigation loose table', () => {
 
     const [a1, b1, c1, a2, , c2] = screen.getAllByRole('textbox');
 
-    await user.click(a1);
-    await user.keyboard('{Tab}');
+    await focusInAct(a1);
+    await keyDownInAct(a1, 'Tab');
     await focusInAct(b1);
-    await user.keyboard('{Tab}');
+    await keyDownInAct(b1, 'Tab');
     await focusInAct(c1);
     expect(document.activeElement).toBe(c1);
-    await user.keyboard('{Enter}');
+    await keyDownInAct(c1, 'Enter');
     expect(document.activeElement).toBe(a2);
 
-    await user.click(c2);
+    await focusInAct(c2);
     // Intentional: use keydown-only Tab to set table anchor without relying on JSDOM focus traversal.
     await keyDownInAct(c2, 'Tab');
     await focusInAct(a1);
-    await user.keyboard('{Shift>}{Enter}{/Shift}');
+    await keyDownInAct(a1, 'Enter', { shiftKey: true });
     expect(document.activeElement).toBe(c1);
   }, TEST_TIMEOUT_MS);
 
   it('bevarer Tab-anker ved ArrowLeft/ArrowRight i edit mode', async () => {
-    const user = userEvent.setup();
-
     render(
       <StandardLooseTable>
         <tbody>
@@ -220,21 +214,19 @@ describe('tableKeyboardNavigation loose table', () => {
 
     const [a1, b1, a2] = screen.getAllByRole('textbox');
 
-    await user.click(a1);
+    await focusInAct(a1);
     await keyDownInAct(a1, 'Tab');
     await focusInAct(b1);
 
     // Open editor via keyboard to avoid pointer-down, which intentionally clears the Tab-anchor.
     await keyDownInAct(b1, '5');
-    await user.keyboard('{ArrowRight}');
-    await user.keyboard('{Enter}');
+    await keyDownInAct(b1, 'ArrowRight');
+    await keyDownInAct(b1, 'Enter');
 
     expect(document.activeElement).toBe(a2);
   }, TEST_TIMEOUT_MS);
 
   it('Escape i edit mode bevarer fokus i aktiv celle og nulstiller Tab-anker', async () => {
-    const user = userEvent.setup();
-
     render(
       <StandardLooseTable>
         <tbody>
@@ -260,25 +252,23 @@ describe('tableKeyboardNavigation loose table', () => {
 
     const [a1, b1, a2, b2] = screen.getAllByRole('textbox');
 
-    await user.click(a1);
+    await focusInAct(a1);
     await keyDownInAct(a1, 'Tab');
     await focusInAct(b1);
 
     // Open editor from keyboard without pointer-down (which would clear anchor).
     await keyDownInAct(b1, '9');
-    await user.keyboard('{Escape}');
+    await keyDownInAct(b1, 'Escape');
     expect(document.activeElement).toBe(b1);
 
     // Anchor must be cleared by Escape; Enter now navigates from current cell (b1 -> b2),
     // not from original tab-anchor (a1 -> a2).
-    await user.keyboard('{Enter}');
+    await keyDownInAct(b1, 'Enter');
     expect(document.activeElement).toBe(b2);
     expect(document.activeElement).not.toBe(a2);
   }, TEST_TIMEOUT_MS);
 
   it('Enter-navigation nulstiller Tab-anker efter første hop', async () => {
-    const user = userEvent.setup();
-
     render(
       <StandardLooseTable>
         <tbody>
@@ -304,21 +294,21 @@ describe('tableKeyboardNavigation loose table', () => {
 
     const [a1, b1, a2] = screen.getAllByRole('textbox');
 
-    await user.click(a1);
+    await focusInAct(a1);
     await keyDownInAct(a1, 'Tab');
     await focusInAct(b1);
 
     // First Enter uses tab-anchor (a1 -> a2).
-    await user.keyboard('{Enter}');
+    await keyDownInAct(b1, 'Enter');
     expect(document.activeElement).toBe(a2);
 
     // Second Enter must navigate from current cell if anchor was reset (a2 -> a1 via wrap).
-    await user.keyboard('{Enter}');
+    await keyDownInAct(a2, 'Enter');
     expect(document.activeElement).toBe(a1);
   }, TEST_TIMEOUT_MS);
 
   it('single click åbner ikke editor, når cellen kun er husket men ikke fysisk fokuseret', async () => {
-    const user = userEvent.setup();
+    const user = setupUser();
 
     render(
       <div>

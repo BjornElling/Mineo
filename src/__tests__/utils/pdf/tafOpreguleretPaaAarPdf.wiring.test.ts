@@ -145,65 +145,49 @@ const lastInstance = () => MockJsPDF.instances.at(-1);
 const textsOf = (instance = lastInstance()) => (instance?.recorded ?? []).map((entry) => entry.text);
 
 describe('tafOpreguleretPaaAarPdf wiring', () => {
+  let generate: Awaited<ReturnType<typeof loadGenerator>>;
+
+  beforeAll(async () => {
+    generate = await loadGenerator();
+  });
+
   beforeEach(() => {
     MockJsPDF.instances = [];
   });
 
   it('kræver et præ-projiceret dokument', async () => {
-    const generate = await loadGenerator();
     expect(() => generate(undefined as never)).toThrow();
   }, 15_000);
 
-  it('viser årstal som fed underoverskrift', async () => {
-    const generate = await loadGenerator();
+  it('renderer opreguleret TAF-dokumentets hovedindhold og metadata', () => {
     generate({ document: FAKE_DOCUMENT });
     const recorded = lastInstance()?.recorded ?? [];
+    const texts = recorded.map((e) => e.text);
+    const normalized = texts.map((t) => t.replace(/\s/g, ' '));
+
     expect(recorded.some((e) => e.text === '2024' && e.style === 'bold')).toBe(true);
     expect(recorded.some((e) => e.text === '2025' && e.style === 'bold')).toBe(true);
-  });
-
-  it('viser per-år underafsnit som understregede underoverskrifter', async () => {
-    const generate = await loadGenerator();
-    generate({ document: FAKE_DOCUMENT });
-    const recorded = lastInstance()?.recorded ?? [];
     for (const heading of ['Forventet indkomst', 'Indtægter i erstatningsperioden', 'Beregnet krav', 'Opreguleret til beregningsåret']) {
       expect(recorded.some((e) => e.text === heading && e.underlined)).toBe(true);
     }
-  });
-
-  it('viser fuld udregningslinje under "Beregnet krav" pr. år', async () => {
-    const generate = await loadGenerator();
-    generate({ document: FAKE_DOCUMENT });
-    const recorded = lastInstance()?.recorded ?? [];
     // 500.000,00 - 125.000,00 kr. =
     expect(recorded.some((e) => e.text.includes('500.000,00 - 125.000,00') && e.text.includes('kr.') && e.text.trim().endsWith('='))).toBe(true);
     // Beregnet-krav-beløbet skal IKKE være fed (kun den efterfølgende opregulerings-linje).
     const beregnetKravBeloeb = recorded.find((e) => e.text.replace(/\s/g, ' ') === '375.000,00 kr.');
     expect(beregnetKravBeloeb?.style).toBe('normal');
-  });
-
-  it('viser opregulerings-linje med beregningsåret (beløb i fed)', async () => {
-    const generate = await loadGenerator();
-    generate({ document: FAKE_DOCUMENT });
-    const recorded = lastInstance()?.recorded ?? [];
-    const texts = recorded.map((e) => e.text);
     expect(texts.some((t) => t.startsWith('Opreguleret til 2026'))).toBe(true);
     expect(texts).toContain('Samlet TAF opreguleret til 2026');
     // Opregulerings-beløbet er fed.
     const opreguleretBeloeb = recorded.find((e) => e.text.replace(/\s/g, ' ') === '393.750,00 kr.');
     expect(opreguleretBeloeb?.style).toBe('bold');
-  });
-
-  it('viser samlet opreguleret beløb', async () => {
-    const generate = await loadGenerator();
-    generate({ document: FAKE_DOCUMENT });
     // Beløbslinjen bruger non-breaking space før "kr."; sammenlign mellemrumsuafhængigt.
-    const normalized = textsOf().map((t) => t.replace(/\s/g, ' '));
     expect(normalized).toContain('778.125,00 kr.');
+    // Ingen bilag-side-titler (de starter en ny side via addPage + writeTitle)
+    expect(texts).not.toContain('Sygeferiegodtgørelse');
+    expect(lastInstance()?.save).toHaveBeenCalledWith('TAF opreguleret til beregningsår.pdf');
   });
 
-  it('viser "Ingen" når der ikke er TAF-perioder', async () => {
-    const generate = await loadGenerator();
+  it('viser "Ingen" når der ikke er TAF-perioder', () => {
     generate({
       document: {
         model: {
@@ -225,21 +209,7 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
     expect(texts.filter((t) => t === 'Ingen')).toHaveLength(2);
   });
 
-  it('udelader bilag når selectedElements ikke gives', async () => {
-    const generate = await loadGenerator();
-    generate({ document: FAKE_DOCUMENT });
-    // Ingen bilag-side-titler (de starter en ny side via addPage + writeTitle)
-    expect(textsOf()).not.toContain('Sygeferiegodtgørelse');
-  });
-
-  it('gemmer PDF med korrekt filnavn', async () => {
-    const generate = await loadGenerator();
-    generate({ document: FAKE_DOCUMENT });
-    expect(lastInstance()?.save).toHaveBeenCalledWith('TAF opreguleret til beregningsår.pdf');
-  });
-
-  it('forlig-faktor pakker beregnet-krav-udregningen ind', async () => {
-    const generate = await loadGenerator();
+  it('forlig-faktor pakker beregnet-krav-udregningen ind', () => {
     generate({
       document: {
         model: {

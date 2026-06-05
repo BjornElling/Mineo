@@ -24,13 +24,14 @@ const buildSHDageSetForIsoRangeReference = (
   const fraDato = parseISODate(fra);
   const tilDato = parseISODate(til);
   if (!fraDato || !tilDato || fraDato > tilDato) return new Set<ISODateString>();
-  const datoSet = new Set<ISODateString>();
-  let current = new Date(fraDato);
-  while (current <= tilDato) {
-    datoSet.add(formatToISO(current));
-    current = addDays(current, 1);
+  const shDage = new Set<ISODateString>();
+  for (let year = fraDato.getUTCFullYear(); year <= tilDato.getUTCFullYear(); year += 1) {
+    for (const helligdag of beregnHelligdage(year)) {
+      if (helligdag < fraDato || helligdag > tilDato || !erHverdagUtc(helligdag)) continue;
+      shDage.add(formatToISO(helligdag));
+    }
   }
-  return buildSHDageSetForDatoSet(datoSet);
+  return shDage;
 };
 
 describe('shDageBeregning', () => {

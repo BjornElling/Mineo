@@ -181,6 +181,9 @@ describe('TableDropdown GridCore integration', () => {
 
     const trigger = screen.getByRole('combobox');
     await user.click(trigger);
+    // Klikket åbner menuen, hvis onEntered-transition planlægger et rAF-fokus på en MenuItem.
+    // Flush det inde i act, så ButtonBase-fokus-opdateringen ikke sker uden for act (act-warning).
+    await waitForMenuTransition();
     trigger.focus();
     await user.paste('Beta');
 
