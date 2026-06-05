@@ -181,6 +181,7 @@ const Renteberegning = React.memo(() => {
           onDownloadOversigt={handleDownloadOversigt}
           oversigtErrorMessage={oversigtErrorMessage}
           showOversigtBox
+          documentDownloadFormat={settings.documentDownloadFormat}
         />
       )}
     </Box>

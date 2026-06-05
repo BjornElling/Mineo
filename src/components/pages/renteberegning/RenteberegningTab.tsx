@@ -17,6 +17,7 @@ import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/ren
 import { dateRanges_renteberegning } from '../../../config/dateRanges';
 import SpecifikationDownloadBox from './SpecifikationDownloadBox';
 import type { RenteOversigtRow } from '../../../pdf/domains/renteberegning/renteOversigtPdf';
+import type { DocumentDownloadFormat } from '../../../document/documentFormat';
 
 interface TechnicalAssumptionsListProps {
   items: readonly string[];
@@ -55,6 +56,7 @@ export interface RenteberegningTabProps {
   onDownloadOversigt?: (rows: readonly RenteOversigtRow[], beregningsdato: ISODateString) => Promise<void>;
   oversigtErrorMessage?: string | null;
   showOversigtBox?: boolean;
+  documentDownloadFormat: DocumentDownloadFormat;
 }
 
 const RenteberegningTab = React.memo(({
@@ -79,6 +81,7 @@ const RenteberegningTab = React.memo(({
   onDownloadOversigt,
   oversigtErrorMessage = null,
   showOversigtBox = false,
+  documentDownloadFormat,
 }: RenteberegningTabProps) => {
   const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
@@ -209,6 +212,7 @@ const RenteberegningTab = React.memo(({
             surchargeRates={surchargeRates}
             saveOrderPath="renteberegning.rentekravRows"
             isMobile={isMobile}
+            documentDownloadFormat={documentDownloadFormat}
             onPdfContextsChange={handlePdfContextsChange}
           />
         </Box>
@@ -256,6 +260,7 @@ const RenteberegningTab = React.memo(({
           isLoading={downloadAllIsLoading}
           disabled={downloadAllDisabled}
           ContentBoxComponent={ContentBoxComponent}
+          documentDownloadFormat={documentDownloadFormat}
         />
       )}
 

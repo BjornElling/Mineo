@@ -2,8 +2,7 @@ import React from 'react';
 import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import type { ContentBoxComponent } from '../../layout/ContentBoxFrame';
-import { useAppSettings } from '../../../contexts/useAppSettings';
-import { getDocumentFormatLabel } from '../../../document/documentFormat';
+import { getDocumentFormatLabel, type DocumentDownloadFormat } from '../../../document/documentFormat';
 
 interface SpecifikationDownloadBoxProps {
   onDownloadAll: () => Promise<void>;
@@ -11,6 +10,7 @@ interface SpecifikationDownloadBoxProps {
   isLoading: boolean;
   disabled?: boolean;
   ContentBoxComponent: ContentBoxComponent;
+  documentDownloadFormat: DocumentDownloadFormat;
 }
 
 const SpecifikationDownloadBox = React.memo(({
@@ -19,9 +19,9 @@ const SpecifikationDownloadBox = React.memo(({
   isLoading,
   disabled = false,
   ContentBoxComponent,
+  documentDownloadFormat,
 }: SpecifikationDownloadBoxProps) => {
-  const { settings } = useAppSettings();
-  const formatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
+  const formatLabel = getDocumentFormatLabel(documentDownloadFormat);
 
   return (
     <ContentBoxComponent className="content-box">

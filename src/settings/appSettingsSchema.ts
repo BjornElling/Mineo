@@ -5,6 +5,7 @@ import {
   svieSmerteDelvisSygemeldingSatsEnum,
 } from '../schemas/formSchemas';
 import {
+  DEFAULT_DOCUMENT_DOWNLOAD_FORMAT,
   documentDownloadFormatSchema,
   type DocumentDownloadFormat,
 } from '../document/documentFormat';
@@ -119,7 +120,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   allowReguleringMedUdloebMedMaaneder: 6,
   // Fil-placering (undefined = brug desktop som fallback)
   defaultDirectoryHandleId: undefined,
-  documentDownloadFormat: 'pdf',
+  documentDownloadFormat: DEFAULT_DOCUMENT_DOWNLOAD_FORMAT,
   // Brevhoved-indstillinger
   brevhovedIndstillinger: DEFAULT_BREVHOVED_INDSTILLINGER,
 };

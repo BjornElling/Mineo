@@ -2,16 +2,11 @@ import { render, screen } from '@testing-library/react';
 import BeregnetRenteTable from '../../../components/tables/BeregnetRenteTable';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';
 import type { RentekravRow } from '../../../schemas/formSchemas';
+import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
 
 vi.mock('../../../contexts/useFormPersistence', () => ({
   useFormPersistence: () => ({
     getPersistedData: () => undefined,
-  }),
-}));
-
-vi.mock('../../../contexts/useAppSettings', () => ({
-  useAppSettings: () => ({
-    settings: {},
   }),
 }));
 
@@ -42,6 +37,7 @@ const baseProps = {
   beregningsdatoHasError: false,
   referenceRates: [],
   surchargeRates: [],
+  documentDownloadFormat: DEFAULT_DOCUMENT_DOWNLOAD_FORMAT,
 };
 
 describe('BeregnetRenteTable mobilkolonner', () => {

@@ -13,6 +13,7 @@ import type { RenteOversigtRow } from '../../../pdf/domains/renteberegning/rente
 import type { CommitHandler } from '../../../types/fieldEvents';
 import RenteberegningTab from '../renteberegning/RenteberegningTab';
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
+import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
 
 const ignoreStandaloneForwardedError = (): void => {
   // MinProcesrente viser PDF-fejl lokalt og har ingen overliggende Mineo-fejlkanal.
@@ -203,6 +204,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         onDownloadOversigt={handleDownloadOversigt}
         oversigtErrorMessage={oversigtErrorMessage}
         showOversigtBox
+        documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
     </Box>
   );

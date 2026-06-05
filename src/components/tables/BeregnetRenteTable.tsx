@@ -21,8 +21,7 @@ import { amountValueToDraftString, amountValueToNumber } from '../../utils/expre
 import { dateRanges_renteberegning } from '../../config/dateRanges';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
-import { useAppSettings } from '../../contexts/useAppSettings';
-import { getDocumentFormatLabel } from '../../document/documentFormat';
+import { getDocumentFormatLabel, type DocumentDownloadFormat } from '../../document/documentFormat';
 
 export type RentePdfContext = NonNullable<RentekravRowResult['pdfContext']>;
 
@@ -60,6 +59,7 @@ export type BeregnetRenteTableProps = Readonly<{
   saveOrderPath?: TableSaveOrderPath;
   onRowsReorder?: (orderedIds: readonly string[]) => void;
   isMobile?: boolean;
+  documentDownloadFormat: DocumentDownloadFormat;
   onPdfContextsChange?: (contexts: RentekravPdfContextMap, anyRowHasError: boolean) => void;
 }>;
 
@@ -76,6 +76,7 @@ type BeregnetRenteRowProps = Readonly<{
   referenceRates: ReadonlyArray<RateEntry>;
   surchargeRates: ReadonlyArray<RateEntry>;
   isMobile: boolean;
+  documentDownloadFormat: DocumentDownloadFormat;
   onRowStateChange: (rowId: string, pdfContext: RentePdfContext | null, hasError: boolean) => void;
 }>;
 
@@ -93,10 +94,10 @@ const BeregnetRenteRow = React.memo(
     referenceRates,
     surchargeRates,
     isMobile,
+    documentDownloadFormat,
     onRowStateChange,
   }: BeregnetRenteRowProps) => {
-    const { settings } = useAppSettings();
-    const formatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
+    const formatLabel = getDocumentFormatLabel(documentDownloadFormat);
     const [renterFraHasError, setRenterFraHasError] = React.useState(false);
     const standardMaxDate = dateRanges_renteberegning.renteTil.max;
 
@@ -270,6 +271,7 @@ const BeregnetRenteTable = React.memo(
     saveOrderPath,
     onRowsReorder,
     isMobile = false,
+    documentDownloadFormat,
     onPdfContextsChange,
   }: BeregnetRenteTableProps) => {
     // rowId → { pdfContext, hasError } — opdateres løbende af BeregnetRenteRow via onRowStateChange
@@ -427,6 +429,7 @@ const BeregnetRenteTable = React.memo(
                 referenceRates={referenceRates}
                 surchargeRates={surchargeRates}
                 isMobile={isMobile}
+                documentDownloadFormat={documentDownloadFormat}
                 onRowStateChange={handleRowStateChange}
               />
             );

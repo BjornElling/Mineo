@@ -3,14 +3,7 @@ import userEvent from '@testing-library/user-event';
 import SpecifikationDownloadBox from '../../../../components/pages/renteberegning/SpecifikationDownloadBox';
 import { Box } from '@mui/material';
 import type { ContentBoxFrameProps } from '../../../../components/layout/ContentBoxFrame';
-import { DEFAULT_APP_SETTINGS } from '../../../../settings/appSettingsSchema';
-
-vi.mock('../../../../contexts/useAppSettings', () => ({
-  useAppSettings: () => ({
-    settings: DEFAULT_APP_SETTINGS,
-    updateSettings: vi.fn(),
-  }),
-}));
+import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../../document/documentFormat';
 
 const MockContentBox = ({ children, className }: ContentBoxFrameProps) => (
   <Box className={className}>{children}</Box>
@@ -24,6 +17,7 @@ describe('SpecifikationDownloadBox', () => {
         errorMessage={null}
         isLoading={false}
         ContentBoxComponent={MockContentBox}
+        documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
     );
 
@@ -40,6 +34,7 @@ describe('SpecifikationDownloadBox', () => {
         errorMessage={null}
         isLoading={false}
         ContentBoxComponent={MockContentBox}
+        documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
     );
 
@@ -55,6 +50,7 @@ describe('SpecifikationDownloadBox', () => {
         errorMessage="Kunne ikke generere PDF"
         isLoading={false}
         ContentBoxComponent={MockContentBox}
+        documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
     );
 
@@ -68,6 +64,7 @@ describe('SpecifikationDownloadBox', () => {
         errorMessage={null}
         isLoading={true}
         ContentBoxComponent={MockContentBox}
+        documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
     );
 
@@ -82,6 +79,7 @@ describe('SpecifikationDownloadBox', () => {
         isLoading={false}
         disabled={true}
         ContentBoxComponent={MockContentBox}
+        documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
     );
 

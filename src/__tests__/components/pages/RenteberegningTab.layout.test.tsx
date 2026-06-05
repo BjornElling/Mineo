@@ -23,6 +23,7 @@ vi.mock('../../../components/tables/BeregnetRenteTable', () => ({
 
 import RenteberegningTab from '../../../components/pages/renteberegning/RenteberegningTab';
 import { toISODateString } from '../../../types/branded';
+import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
 
 const TestContentBox = ({ children }: { children?: React.ReactNode }) => <div>{children}</div>;
 
@@ -45,6 +46,7 @@ describe('RenteberegningTab', () => {
         referenceRates={[]}
         surchargeRates={[]}
         ContentBoxComponent={TestContentBox}
+        documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
     );
 
@@ -71,6 +73,7 @@ describe('RenteberegningTab', () => {
         referenceRates={[]}
         surchargeRates={[]}
         ContentBoxComponent={TestContentBox}
+        documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
     );
 
