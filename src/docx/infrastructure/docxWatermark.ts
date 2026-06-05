@@ -1,5 +1,32 @@
 import { ImportedXmlComponent, Paragraph, type ParagraphChild } from 'docx';
 
+// `ImportedXmlComponent.fromXmlString` parser fragmentet med xml-js og pakker
+// resultatet i et rod-element UDEN navn (xml-js' dokument-rod har ingen `name`).
+// docx serialiserer derfor wrapperen som <undefined>…</undefined>, hvilket er
+// ugyldig WordprocessingML — Word afviser/reparerer filen (LibreOffice er mere
+// tolerant). Vi henter derfor det reelle (navngivne) barn ud af wrapperen, så
+// fragmentet indsættes direkte som fx <w:r>…</w:r> uden <undefined>-wrapper.
+//
+// `.rootKey`/`.root` er interne docx-felter; værn-testen i docxWriter.test.ts
+// fanger det, hvis fremtidige docx-versioner ændrer denne struktur.
+const importXmlFragmentChild = (xml: string): ParagraphChild => {
+  const wrapper = ImportedXmlComponent.fromXmlString(xml) as unknown as {
+    rootKey?: string;
+    root?: readonly unknown[];
+  };
+  const child = wrapper.root?.[0];
+  // Forventet tilfælde: navnløs wrapper med præcis ét navngivet barn (vores <w:r>).
+  if (wrapper.rootKey === undefined && wrapper.root?.length === 1 && child) {
+    return child as ParagraphChild;
+  }
+  // Hvis docx en dag returnerer et korrekt navngivet rod-element, bruger vi det
+  // direkte (fail-open mod en fremtidig API-rettelse), men aldrig en undefined-rod.
+  if (wrapper.rootKey !== undefined) {
+    return wrapper as unknown as ParagraphChild;
+  }
+  throw new Error('CRITICAL: VML-vandmærkets XML kunne ikke importeres uden undefined-wrapper');
+};
+
 // Diagonalt "UDKAST"-vandmærke til Word-dokumenter.
 //
 // `docx` har ingen indbygget vandmærke-API, så vi bygger det som rå VML inde i et
@@ -74,5 +101,5 @@ const buildWatermarkPictXml = (text: string): string => {
  */
 export const createUdkastWatermarkParagraph = (text = 'UDKAST'): Paragraph =>
   new Paragraph({
-    children: [ImportedXmlComponent.fromXmlString(buildWatermarkPictXml(text)) as unknown as ParagraphChild],
+    children: [importXmlFragmentChild(buildWatermarkPictXml(text))],
   });

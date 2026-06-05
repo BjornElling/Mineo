@@ -3,8 +3,9 @@ import {
   BorderStyle,
   Document,
   Footer,
+  FrameAnchorType,
+  FrameWrap,
   Header,
-  HeadingLevel,
   Packer,
   PageBreak,
   Paragraph,
@@ -14,14 +15,17 @@ import {
   TableLayoutType,
   TableRow,
   TextRun,
+  VerticalAlignTable,
   WidthType,
   type FileChild,
+  type IFrameOptions,
   type IPropertiesOptions,
   type ParagraphChild,
 } from 'docx';
 import type { PdfWriter } from '../../pdf/infrastructure/pdfWriter';
 import type { BrevhovedData } from '../../pdf/shared/pdfHelpers';
-import { TODAY } from '../../config/dateRanges';
+import { formatIsoDateLong } from '../../utils/dateFormatting';
+import { roundByMethod } from '../../utils/rounding';
 import { VERSION } from '../../config/version';
 import { getDocumentFooterBrand } from '../../document/documentBrand';
 import { registerPendingDocumentDownload } from '../../document/documentGenerationContext';
@@ -32,13 +36,18 @@ import {
   type DocxColumnAlignments,
 } from './docxTableBridge';
 import { createUdkastWatermarkParagraph } from './docxWatermark';
+import { DOCX_STYLE, buildDocxStyles, type DocxStyleId } from './docxStyles';
 
-const DOCX_FONT = 'Calibri';
+// Aktiverer Words "anden første side" (titlePage), så første side har sit eget
+// header-/topområde. Sættes når dokumentet faktisk har et brevhoved.
+
 const PAGE_WIDTH_DXA = 11906;
 const PAGE_HEIGHT_DXA = 16838;
 const PAGE_MARGIN_DXA = 1440;
 const CONTENT_WIDTH_DXA = PAGE_WIDTH_DXA - PAGE_MARGIN_DXA * 2;
 const TABLE_CELL_MARGIN_DXA = 90;
+const dxaFromCentimeters = (centimeters: number): number =>
+  roundByMethod((centimeters / 2.54) * 1440, 0, 'halfAwayFromZero');
 
 type TextStyle = 'normal' | 'bold';
 
@@ -48,6 +57,9 @@ type CoreProperties = Readonly<{
   author?: string;
   creator?: string;
 }>;
+
+const LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA = dxaFromCentimeters(12.5);
+const LEFT_RIGHT_TABLE_RIGHT_WIDTH_DXA = CONTENT_WIDTH_DXA - LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA;
 
 const emptyBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } as const;
 const tableBorders = {
@@ -66,16 +78,22 @@ const splitLines = (text: string): string[] => {
   return lines.length > 0 ? lines : [''];
 };
 
+// Bygger et afsnit, der ENTYDIGT styres af en navngiven typografi (jf. docxStyles).
+// Font, størrelse og spacing kommer FRA typografien — aldrig inline her. De eneste
+// per-instans-egenskaber er strukturelle eller konkrete tekstfremhævninger:
+//   - `alignment`: kun nødvendigt for kolonne-/celle-justering i tabeller, hvor den
+//     samme typografi bruges på celler med forskellig justering.
+//   - `frame`:     fikseret tekstrude (brevhovedet).
+//   - `pageBreakBefore`: sideskift.
+//   - `bold`:      brødtekst med Normal-typografi, men fed tekst.
+// Bemærk: runs sætter IKKE font/size — de arver fra afsnittets typografi.
 const paragraph = (
   text: string,
   options?: Readonly<{
+    style?: DocxStyleId;
     bold?: boolean;
-    underline?: boolean;
-    size?: number;
-    heading?: (typeof HeadingLevel)[keyof typeof HeadingLevel];
     alignment?: (typeof AlignmentType)[keyof typeof AlignmentType];
-    spacingAfter?: number;
-    spacingBefore?: number;
+    frame?: IFrameOptions;
   }>
 ): Paragraph => {
   const children: ParagraphChild[] = splitLines(text).flatMap((line, index) => {
@@ -83,36 +101,30 @@ const paragraph = (
     if (index > 0) {
       runs.push(new TextRun({ break: 1 }));
     }
-    runs.push(new TextRun({
-      text: line,
-      bold: options?.bold,
-      underline: options?.underline ? {} : undefined,
-      size: options?.size ?? 22,
-      font: DOCX_FONT,
-    }));
+    runs.push(new TextRun({ text: line, bold: options?.bold }));
     return runs;
   });
 
   return new Paragraph({
     children,
-    heading: options?.heading,
+    style: options?.style ?? DOCX_STYLE.normal,
     alignment: options?.alignment,
-    spacing: {
-      before: options?.spacingBefore ?? 0,
-      after: options?.spacingAfter ?? 120,
-    },
+    frame: options?.frame,
   });
 };
 
+// Én linje: normal tekst efterfulgt af fremhævet (fed) tekst. Afsnittet bruger
+// Normal-typografien; `bold` her er indholds-bestemt karakter-fremhævning af
+// anden del (ikke vilkårlig formatering), så font/størrelse arves fra typografien.
 const mixedParagraph = (
   normalPart: string,
   boldPart: string,
 ): Paragraph => new Paragraph({
+  style: DOCX_STYLE.normal,
   children: [
-    new TextRun({ text: normalizeText(normalPart), font: DOCX_FONT, size: 22 }),
-    new TextRun({ text: normalizeText(boldPart), font: DOCX_FONT, size: 22, bold: true }),
+    new TextRun({ text: normalizeText(normalPart) }),
+    new TextRun({ text: normalizeText(boldPart), bold: true }),
   ],
-  spacing: { after: 120 },
 });
 
 const resolveCellText = (cell: unknown): string => {
@@ -187,10 +199,9 @@ const createDocxTable = (
           },
           children: [
             paragraph(resolveCellText(cell), {
+              style: DOCX_STYLE.tableCell,
               bold: resolveCellBold(cell, isHeaderRow),
               alignment: halignToAlignment(halign),
-              size: 18,
-              spacingAfter: 0,
             }),
           ],
         });
@@ -218,24 +229,29 @@ const createLeftRightTable = (
     new TableRow({
       children: [
         new TableCell({
-          width: { size: 70, type: WidthType.PERCENTAGE },
+          width: { size: LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA, type: WidthType.DXA },
+          verticalAlign: VerticalAlignTable.BOTTOM,
           borders: { top: emptyBorder, bottom: emptyBorder, left: emptyBorder, right: emptyBorder },
-          children: [paragraph(leftText, { bold: options?.leftFontStyle === 'bold', spacingAfter: 0 })],
+          children: [paragraph(leftText, {
+            style: DOCX_STYLE.noSpacing,
+            bold: options?.leftFontStyle === 'bold',
+          })],
         }),
         new TableCell({
-          width: { size: 30, type: WidthType.PERCENTAGE },
+          width: { size: LEFT_RIGHT_TABLE_RIGHT_WIDTH_DXA, type: WidthType.DXA },
+          verticalAlign: VerticalAlignTable.BOTTOM,
           borders: { top: emptyBorder, bottom: emptyBorder, left: emptyBorder, right: emptyBorder },
           children: [paragraph(rightText, {
+            style: DOCX_STYLE.noSpacing,
             bold: options?.rightFontStyle !== 'normal',
             alignment: AlignmentType.RIGHT,
-            spacingAfter: 0,
           })],
         }),
       ],
     }),
   ],
-  width: { size: 100, type: WidthType.PERCENTAGE },
-  layout: TableLayoutType.AUTOFIT,
+  width: { size: CONTENT_WIDTH_DXA, type: WidthType.DXA },
+  layout: TableLayoutType.FIXED,
   borders: TableBorders.NONE,
 });
 
@@ -254,14 +270,14 @@ const createSignatureTable = (
     rows: [
       new TableRow({
         children: [
-          cell([paragraph(dateLine, { spacingAfter: 0 })]),
-          cell([paragraph(sigLine, { spacingAfter: 0 })]),
+          cell([paragraph(dateLine, { style: DOCX_STYLE.noSpacing })]),
+          cell([paragraph(sigLine, { style: DOCX_STYLE.noSpacing })]),
         ],
       }),
       new TableRow({
         children: [
-          cell([paragraph('Dato', { spacingAfter: 0 })]),
-          cell([paragraph(skadelidteNavn, { spacingAfter: 0 })]),
+          cell([paragraph('Dato', { style: DOCX_STYLE.noSpacing })]),
+          cell([paragraph(skadelidteNavn, { style: DOCX_STYLE.noSpacing })]),
         ],
       }),
     ],
@@ -271,48 +287,131 @@ const createSignatureTable = (
   });
 };
 
-const buildBrevhovedParagraphs = (data: BrevhovedData): Paragraph[] => {
-  const lines = [
-    data.journalnr ? `Journalnr.: ${data.journalnr}` : null,
-    data.advokat ? `Advokat: ${data.advokat}` : null,
-    data.sagsbehandler ? `Sagsbehandler: ${data.sagsbehandler}` : null,
-    `Dato: ${data.dagsDatoISO || TODAY}`,
-  ].filter((line): line is string => Boolean(line));
+// Bredde og placering af den fikserede brevhoved-tekstrude. Ruden er forankret
+// til SIDEN (FrameAnchorType.PAGE), så den bliver liggende øverst til højre uanset
+// hvad der sker med den øvrige tekst i dokumentet. Højre kant af ruden flugter med
+// højre tekstmargin (PAGE_WIDTH - margin - bredde), og toppen sidder ved topmargin.
+const BREVHOVED_FRAME_WIDTH_DXA = dxaFromCentimeters(4);
+const BREVHOVED_FRAME_HEIGHT_DXA = dxaFromCentimeters(1);
+const BREVHOVED_FRAME_X_DXA = PAGE_WIDTH_DXA - PAGE_MARGIN_DXA - BREVHOVED_FRAME_WIDTH_DXA;
+const BREVHOVED_FRAME_Y_DXA = PAGE_MARGIN_DXA;
 
-  return lines.map((line) => paragraph(line, {
-    alignment: AlignmentType.RIGHT,
-    size: 18,
-    spacingAfter: 20,
-  }));
+// Indhold matcher PDF-brevhovedet (renderBrevhoved): "J.nr. <nr> <advokat>/<sagsbehandler>"
+// på linje 1 og den lange danske dato på linje 2.
+const buildBrevhovedLines = (data: BrevhovedData): string[] => {
+  const journalnr = typeof data.journalnr === 'string' ? data.journalnr.trim() : '';
+  const advokat = typeof data.advokat === 'string' ? data.advokat.trim() : '';
+  const sagsbehandler = typeof data.sagsbehandler === 'string' ? data.sagsbehandler.trim() : '';
+  const datoText = formatIsoDateLong(data.dagsDatoISO);
+
+  const lines: string[] = [];
+  if (journalnr !== '') {
+    const roleSuffix = advokat && sagsbehandler
+      ? ` ${advokat}/${sagsbehandler}`
+      : advokat
+        ? ` ${advokat}`
+        : sagsbehandler
+          ? ` ${sagsbehandler}`
+          : '';
+    lines.push(`J.nr. ${journalnr}${roleSuffix}`);
+  }
+  if (datoText !== '') {
+    lines.push(datoText);
+  }
+  return lines;
 };
+
+const buildBrevhovedParagraphs = (data: BrevhovedData): Paragraph[] => {
+  const lines = buildBrevhovedLines(data);
+  if (lines.length === 0) return [];
+
+  // Hele brevhovedet samles i ÉT afsnit med eksplicitte linjeskift, så det udgør
+  // én sammenhængende tekstrude. Kun det afsnit, der bærer frame-egenskaben,
+  // forankres; derfor må linjerne ikke splittes ud i flere afsnit.
+  const frame: IFrameOptions = {
+    type: 'absolute',
+    position: { x: BREVHOVED_FRAME_X_DXA, y: BREVHOVED_FRAME_Y_DXA },
+    width: BREVHOVED_FRAME_WIDTH_DXA,
+    height: BREVHOVED_FRAME_HEIGHT_DXA,
+    anchor: { horizontal: FrameAnchorType.PAGE, vertical: FrameAnchorType.PAGE },
+    wrap: FrameWrap.NONE,
+    anchorLock: true,
+  };
+
+  return [
+    paragraph(lines.join('\n'), {
+      style: DOCX_STYLE.header,
+      alignment: AlignmentType.RIGHT,
+      frame,
+    }),
+  ];
+};
+
+// Førstesidens sidehoved gøres højere ved at fylde det med nogle få tomme afsnit.
+// Det er bevidst en omtrentlig ekstra højde (ikke en eksakt cm-værdi). Headeren
+// er kun på første side (jf. titlePage), så de øvrige sider er upåvirkede.
+const FIRST_PAGE_HEADER_PADDING_PARAGRAPHS = 5;
+
+const buildFirstPageHeaderChildren = (
+  visUdkastStempel: boolean
+): Paragraph[] => {
+  const children: Paragraph[] = [];
+  for (let i = 0; i < FIRST_PAGE_HEADER_PADDING_PARAGRAPHS; i += 1) {
+    children.push(paragraph('', { style: DOCX_STYLE.normal }));
+  }
+  if (visUdkastStempel) {
+    children.push(createUdkastWatermarkParagraph());
+  }
+  return children;
+};
+
+// Tomt afstands-afsnit mellem blokke (sektion/tabel).
+const spacerParagraph = (): Paragraph => paragraph('', { style: DOCX_STYLE.noSpacing });
 
 export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean }>): PdfWriter => {
   const blocks: FileChild[] = [];
   let properties: CoreProperties = {};
   let filename = 'dokument.docx';
+  // Sættes når dokumentet får et brevhoved. Aktiverer "anden første side", så
+  // første side får et højere top-/headerområde end de øvrige sider.
+  let hasBrevhoved = false;
   const bridgeDoc = createDocxTableBridgeDocument((body, hasHeaderRow, columnAlignments) => {
     blocks.push(createDocxTable(body, hasHeaderRow, columnAlignments));
-    blocks.push(paragraph('', { spacingAfter: 160 }));
+    blocks.push(spacerParagraph());
   });
 
   const addParagraph = (text: string, bold = false): void => {
     if (text.trim() === '') return;
-    blocks.push(paragraph(text, { bold }));
+    blocks.push(paragraph(text, { style: DOCX_STYLE.normal, bold }));
   };
 
   const build = async (): Promise<Blob> => {
     const footer = new Footer({
       children: [
         paragraph(`${getDocumentFooterBrand()} // ${VERSION}`, {
+          style: DOCX_STYLE.footer,
           alignment: AlignmentType.RIGHT,
-          size: 16,
-          spacingAfter: 0,
         }),
       ],
     });
 
-    const header = params?.visUdkastStempel
+    // Med "anden første side" (titlePage) gælder default-headeren kun side 2+.
+    // Første side får sin egen, HØJERE first-header: nogle få tomme afsnit fylder
+    // headerområdet ud, så det bliver højere på første side. Vandmærket lægges i
+    // begge headere, så det også er på side 1. Hver header-slot SKAL have sin egen
+    // Header/paragraph-instans (docx-komponenter må ikke deles mellem slots).
+    const visUdkastStempel = params?.visUdkastStempel ?? false;
+    const defaultHeader = visUdkastStempel
       ? new Header({ children: [createUdkastWatermarkParagraph()] })
+      : undefined;
+    const firstHeader = hasBrevhoved
+      ? new Header({ children: buildFirstPageHeaderChildren(visUdkastStempel) })
+      : undefined;
+    const headers = defaultHeader || firstHeader
+      ? {
+          ...(defaultHeader ? { default: defaultHeader } : {}),
+          ...(firstHeader ? { first: firstHeader } : {}),
+        }
       : undefined;
 
     const documentOptions: IPropertiesOptions = {
@@ -322,9 +421,11 @@ export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean 
       description: properties.subject,
       sections: [
         {
-          headers: header ? { default: header } : undefined,
+          headers,
           footers: { default: footer },
           properties: {
+            // "Anden første side": første side har sit eget (højere) sidehoved.
+            titlePage: hasBrevhoved,
             page: {
               size: { width: PAGE_WIDTH_DXA, height: PAGE_HEIGHT_DXA },
               margin: {
@@ -338,14 +439,9 @@ export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean 
           children: blocks.length > 0 ? blocks : [paragraph('')],
         },
       ],
-      styles: {
-        default: {
-          document: {
-            run: { font: DOCX_FONT, size: 22 },
-            paragraph: { spacing: { after: 120 } },
-          },
-        },
-      },
+      // Al formatering kommer fra det centrale typografi-modul (docxStyles).
+      // Generatoren sætter ikke inline font/størrelse/spacing nogen steder.
+      styles: buildDocxStyles(),
     };
 
     return await Packer.toBlob(new Document(documentOptions));
@@ -367,10 +463,10 @@ export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean 
     getY: () => 0,
     setY: () => {},
     addSpacer: () => {
-      blocks.push(paragraph('', { spacingAfter: 160 }));
+      blocks.push(spacerParagraph());
     },
     addSectionSpacer: () => {
-      blocks.push(paragraph('', { spacingAfter: 160 }));
+      blocks.push(spacerParagraph());
     },
     advanceY: () => {},
     writeWrappedText: (text) => addParagraph(text),
@@ -383,23 +479,23 @@ export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean 
       blocks.push(createLeftRightTable(leftText, rightText, options));
     },
     writeSectionHeader: (text) => {
-      blocks.push(paragraph(text, { heading: HeadingLevel.HEADING_1, bold: true, size: 28, spacingBefore: 240 }));
+      blocks.push(paragraph(text, { style: DOCX_STYLE.sectionHeader }));
     },
     writeTitle: (text) => {
-      blocks.push(paragraph(text, { heading: HeadingLevel.TITLE, bold: true, size: 32, spacingAfter: 260 }));
+      blocks.push(paragraph(text, { style: DOCX_STYLE.title }));
     },
     writeBoldSubheader: (text) => {
-      blocks.push(paragraph(text, { bold: true, size: 23, spacingBefore: 160, spacingAfter: 80 }));
+      blocks.push(paragraph(text, { style: DOCX_STYLE.subheaderBold }));
     },
     writeBoldSubheaderIfContent: ({ text, hasContent, renderContent }) => {
       if (!hasContent) return false;
-      blocks.push(paragraph(text, { bold: true, size: 23, spacingBefore: 160, spacingAfter: 80 }));
+      blocks.push(paragraph(text, { style: DOCX_STYLE.subheaderBold }));
       renderContent();
       return true;
     },
     writeBoldSubheaderWithWrappedText: (subheaderText, bodyText) => {
       if (bodyText.trim() === '') return;
-      blocks.push(paragraph(subheaderText, { bold: true, size: 23, spacingBefore: 160, spacingAfter: 80 }));
+      blocks.push(paragraph(subheaderText, { style: DOCX_STYLE.subheaderBold }));
       addParagraph(bodyText);
     },
     writeAtomicTableChunks: ({ rows, renderHeader, renderRow }) => {
@@ -409,7 +505,7 @@ export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean 
       }
     },
     writeUnderlinedSubheader: (text) => {
-      blocks.push(paragraph(text, { underline: true, size: 23, spacingBefore: 160, spacingAfter: 80 }));
+      blocks.push(paragraph(text, { style: DOCX_STYLE.subheaderUnderlined }));
     },
     writeSignatureBlock: (dateLine, sigLine, _dateX, _sigX, skadelidteNavn) => {
       // Kantfri signaturblok, så Word matcher PDF'ens linjefri opstilling
@@ -417,7 +513,11 @@ export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean 
       blocks.push(createSignatureTable(dateLine, sigLine, skadelidteNavn));
     },
     writeBrevhoved: (brevhovedData) => {
-      blocks.push(...buildBrevhovedParagraphs(brevhovedData));
+      const brevhovedParagraphs = buildBrevhovedParagraphs(brevhovedData);
+      if (brevhovedParagraphs.length > 0) {
+        hasBrevhoved = true;
+      }
+      blocks.push(...brevhovedParagraphs);
     },
     addUdkastWatermark: () => {},
     getTextWidth: (text) => text.length * 2,

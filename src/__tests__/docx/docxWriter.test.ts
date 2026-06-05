@@ -1,6 +1,7 @@
 import JSZip from 'jszip';
 import { withDocumentGenerationContext } from '../../document/documentGenerationContext';
 import { createDocxWriter } from '../../docx/infrastructure/docxWriter';
+import { toISODateString } from '../../types/branded';
 import {
   renderPdfTable,
   createPdfTableHeaderCell,
@@ -167,6 +168,7 @@ describe('createDocxWriter', () => {
 
     const zip = await JSZip.loadAsync(capture.getBlob()!);
     const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+    const stylesXml = (await zip.file('word/styles.xml')?.async('string')) ?? '';
 
     // Alt celleindhold er bevaret (ingen tabt data).
     expect(documentXml).toContain('Periode');
@@ -178,9 +180,17 @@ describe('createDocxWriter', () => {
     // Tabel-struktur er til stede, og colSpan er oversat til gridSpan=2.
     expect(documentXml).toContain('<w:tbl>');
     expect(documentXml).toContain('w:gridSpan w:val="2"');
-    // Højre-justering og fed skrift fra cellestyles.
     expect(documentXml).toContain('w:jc w:val="right"');
+
+    // Cellerne refererer Words indbyggede Table Paragraph-typografi.
+    // Fed header/total er tekstfremhævning, ikke en separat Mineo-typografi.
+    expect(documentXml).toContain('w:pStyle w:val="TableParagraph"');
+    // Ingen inline font/størrelse i selve dokumentet.
+    expect(documentXml).not.toContain('<w:rFonts');
+    expect(documentXml).not.toMatch(/<w:sz\b/);
     expect(documentXml).toContain('<w:b/>');
+    expect(stylesXml).toContain('w:styleId="TableParagraph"');
+    expect(stylesXml).not.toMatch(/w:styleId="Mineo/);
   });
 
   it('fejler tabel-broen fail-closed ved tom body', () => {
@@ -213,6 +223,13 @@ describe('createDocxWriter', () => {
     expect(headerXml).toContain('_x0000_t136');
     expect(headerXml).toContain('rotation:315');
     expect(headerXml).toMatch(/string="UDKAST"/);
+    // Værn: ImportedXmlComponent.fromXmlString pakker fragmentet i et navnløst
+    // rod-element, der ellers serialiseres som <undefined>…</undefined> — ugyldig
+    // WordprocessingML, som Word afviser/reparerer. Wrapperen skal være fjernet,
+    // så <w:pict> ligger direkte i <w:r> i <w:p>.
+    expect(headerXml).not.toContain('<undefined>');
+    expect(headerXml).not.toContain('</undefined>');
+    expect(headerXml).toMatch(/<w:p>\s*<w:r>\s*<w:pict>/);
     // Vandmærket må ikke trække eksterne ressourcer ind (100 % lokalt).
     expect(headerXml).not.toMatch(/https?:\/\/(?!schemas\.openxmlformats\.org|schemas\.microsoft\.com|www\.w3\.org|urn:)/i);
   });
@@ -293,6 +310,148 @@ describe('createDocxWriter', () => {
     expect(documentXml).toContain('tal-1');
     // Kolonne 1's data-celler skal være højrejusteret i Word.
     expect(documentXml).toContain('w:jc w:val="right"');
+  });
+
+  // KONTRAKT: Al tekst skal styres af navngivne afsnitstypografier. Almindelig
+  // fed brødtekst er ikke en separat typografi; den er Normal med fed tekst-run.
+  it('styrer tekst via navngivne afsnitstypografier uden separat fed brødtekst-typografi', async () => {
+    const capture = captureDownload();
+
+    await withDocumentGenerationContext('word', () => {
+      const writer = createDocxWriter();
+      writer.writeTitle('Min titel');
+      writer.writeSectionHeader('Sektion');
+      writer.writeBoldSubheader('Underoverskrift');
+      writer.writeUnderlinedSubheader('Understreget');
+      writer.writeWrappedText('Brødtekst');
+      writer.writeBoldWrappedText('Fed brødtekst');
+      writer.save('Typografier.pdf');
+    });
+
+    capture.restore();
+
+    const zip = await JSZip.loadAsync(capture.getBlob()!);
+    const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+    const stylesXml = (await zip.file('word/styles.xml')?.async('string')) ?? '';
+
+    // Hver indholdstype refererer sin navngivne typografi.
+    expect(documentXml).toContain('w:pStyle w:val="Title"');
+    expect(documentXml).toContain('w:pStyle w:val="Heading1"');
+    expect(documentXml).toContain('w:pStyle w:val="Heading2"');
+    expect(documentXml).toContain('w:pStyle w:val="Heading3"');
+    expect(documentXml).toContain('w:pStyle w:val="Normal"');
+    expect(documentXml).not.toContain('w:pStyle w:val="MineoBroedtekstFed"');
+
+    // Ingen inline font/størrelse/understregning/spacing i selve dokumentet.
+    // Fed brødtekst må have <w:b/> på run'et, men stadig med Normal som pStyle.
+    expect(documentXml).not.toContain('<w:rFonts');
+    expect(documentXml).not.toMatch(/<w:sz\b/);
+    expect(documentXml).toContain('<w:b/>');
+    expect(documentXml).not.toContain('<w:u ');
+    expect(documentXml).not.toMatch(/<w:spacing\b/);
+
+    // Udseendet bor i styles.xml (basisfont + de navngivne typografier).
+    expect(stylesXml).toContain('w:styleId="Normal"');
+    expect(stylesXml).toContain('w:styleId="Title"');
+    expect(stylesXml).toContain('w:styleId="Heading1"');
+    expect(stylesXml).not.toMatch(/w:styleId="Mineo/);
+    expect(stylesXml).toContain('Calibri');
+  });
+
+  // Brevhovedet skal matche PDF-formatet ("J.nr. <nr> <advokat>/<sagsbehandler>" +
+  // lang dansk dato) OG ligge i en side-forankret tekstrude øverst til højre, så
+  // placeringen er fikseret uanset det øvrige indhold.
+  it('renderer brevhovedet i PDF-format i en side-forankret tekstrude', async () => {
+    const capture = captureDownload();
+
+    await withDocumentGenerationContext('word', () => {
+      const writer = createDocxWriter();
+      writer.writeBrevhoved({
+        journalnr: '24-0024',
+        advokat: 'BEL',
+        sagsbehandler: 'cgf',
+        dagsDatoISO: toISODateString('2026-04-18'),
+      });
+      writer.save('Brevhoved.pdf');
+    });
+
+    capture.restore();
+
+    const zip = await JSZip.loadAsync(capture.getBlob()!);
+    const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+    const stylesXml = (await zip.file('word/styles.xml')?.async('string')) ?? '';
+
+    // Indhold i det nye PDF-matchende format.
+    expect(documentXml).toContain('J.nr. 24-0024 BEL/cgf');
+    expect(documentXml).toContain('18. april 2026');
+    // Det gamle "Journalnr.:/Advokat:/Sagsbehandler:/Dato:"-format må ikke optræde.
+    expect(documentXml).not.toContain('Journalnr.:');
+    expect(documentXml).not.toContain('Sagsbehandler:');
+
+    // Tekstruden er forankret til SIDEN (ikke til teksten), så den ikke flytter sig.
+    expect(documentXml).toContain('<w:framePr');
+    expect(documentXml).toMatch(/w:framePr[^>]*w:hAnchor="page"/);
+    expect(documentXml).toMatch(/w:framePr[^>]*w:vAnchor="page"/);
+    // 4 cm bred, mindst 1 cm høj og fortsat højrejusteret mod tekstfeltets højrekant.
+    expect(documentXml).toMatch(/w:framePr[^>]*w:w="2268"/);
+    expect(documentXml).toMatch(/w:framePr[^>]*w:h="567"/);
+    expect(documentXml).toMatch(/w:framePr[^>]*w:x="8198"/);
+    expect(stylesXml).toMatch(/w:styleId="Header"[\s\S]*?<w:sz w:val="20"/);
+
+    // "Anden første side" er aktiv (titlePg), og første side har sin egen
+    // first-header (som gøres højere af tomme afsnit).
+    expect(documentXml).toContain('<w:titlePg');
+    expect(documentXml).toMatch(/<w:headerReference w:type="first"/);
+  });
+
+  // Brevhovedet aktiverer Words "anden første side". Første side får sin egen,
+  // højere first-header (fyldt med tomme afsnit). Da default-headeren kun gælder
+  // side 2+, skal vandmærket også ligge i first-headeren, så side 1 beholder det.
+  it('lægger vandmærket i både default- og first-header ved brevhoved + udkast', async () => {
+    const capture = captureDownload();
+
+    await withDocumentGenerationContext('word', () => {
+      const writer = createDocxWriter({ visUdkastStempel: true });
+      writer.writeBrevhoved({
+        journalnr: '24-0024',
+        advokat: 'BEL',
+        sagsbehandler: 'cgf',
+        dagsDatoISO: toISODateString('2026-04-18'),
+      });
+      writer.writeWrappedText('Brødtekst');
+      writer.save('BrevhovedUdkast.pdf');
+    });
+
+    capture.restore();
+
+    const zip = await JSZip.loadAsync(capture.getBlob()!);
+    const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+
+    // To distinkte header-filer (default + first), begge med VML-vandmærket.
+    const headerFiles = Object.keys(zip.files).filter((name) => /word\/header\d+\.xml$/.test(name));
+    expect(headerFiles.length).toBeGreaterThanOrEqual(2);
+    let watermarkHeaders = 0;
+    let paddedHeader: string | null = null;
+    for (const headerFile of headerFiles) {
+      const headerXml = (await zip.file(headerFile)?.async('string')) ?? '';
+      if (headerXml.includes('_x0000_t136') && /string="UDKAST"/.test(headerXml)) {
+        watermarkHeaders += 1;
+      }
+      // First-headeren er fyldt ud med tomme afsnit for at gøre den højere.
+      if ((headerXml.match(/<w:p\b/g) ?? []).length >= 5) {
+        paddedHeader = headerXml;
+      }
+      // Wrapperen fra forrige fix må stadig ikke optræde.
+      expect(headerXml).not.toContain('<undefined>');
+    }
+    expect(watermarkHeaders).toBeGreaterThanOrEqual(2);
+    // Den højere first-header findes (mindst 5 afsnit som højde-fyld).
+    expect(paddedHeader).not.toBeNull();
+
+    // Sektionen refererer både default- og first-header, og titlePg er sat.
+    expect(documentXml).toContain('<w:titlePg');
+    expect(documentXml).toMatch(/<w:headerReference w:type="first"/);
+    expect(documentXml).toMatch(/<w:headerReference w:type="default"/);
   });
 
   it('lader cellens egen halign vinde over kolonne-justering', async () => {
