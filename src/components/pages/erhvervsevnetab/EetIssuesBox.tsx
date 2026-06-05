@@ -6,6 +6,7 @@ import ContentBox from '../../layout/ContentBox';
 import { useScrollToSectionWithRetry } from '../../../hooks/useScrollToSectionWithRetry';
 import type { EetIssue } from '../../../domain/erhvervsevnetab/eetTypes';
 import { type EetTabNavigation, resolveEetIssueNavigation } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { APP_ROUTES } from '../../../config/pageNavigation';
 
 type Props = Readonly<{
   issues: readonly EetIssue[];
@@ -18,7 +19,7 @@ const EetIssuesBox = ({ issues, onGoToEetOplysninger }: Props) => {
 
   const handleNavigate = React.useCallback(
     (navigation: EetTabNavigation) => {
-      if (navigation.route === '/erhvervsevnetab') {
+      if (navigation.route === APP_ROUTES.erhvervsevnetab) {
         onGoToEetOplysninger();
         scrollToSectionWithRetry(navigation.sectionId);
         return;

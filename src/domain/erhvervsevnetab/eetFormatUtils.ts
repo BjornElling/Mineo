@@ -1,10 +1,11 @@
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
+import { APP_ROUTES } from '../../config/pageNavigation';
 import type { EetIssue } from './eetTypes';
 
 export type EetTabNavigation = Readonly<{
   pageName: string;
   sectionName: string;
-  route: '/stamdata' | '/erhvervsevnetab';
+  route: typeof APP_ROUTES.stamdata | typeof APP_ROUTES.erhvervsevnetab;
   sectionId: string;
 }>;
 
@@ -31,28 +32,28 @@ export const NAVIGATION_SORT_ORDER: Record<string, number> = {
 const NAV_STAMDATA_SKADELIDTE: EetTabNavigation = {
   pageName: 'Stamdata',
   sectionName: 'Skadelidte',
-  route: '/stamdata',
+  route: APP_ROUTES.stamdata,
   sectionId: 'stamdata-skadelidte',
 };
 
 const NAV_EET_GRUNDLAEGGENDE: EetTabNavigation = {
   pageName: 'EET oplysninger',
   sectionName: 'Grundlæggende oplysninger',
-  route: '/erhvervsevnetab',
+  route: APP_ROUTES.erhvervsevnetab,
   sectionId: 'eet-oplysninger-grundlaeggende',
 };
 
 const NAV_EET_ASL: EetTabNavigation = {
   pageName: 'EET oplysninger',
   sectionName: 'Arbejdsskadesikringsloven',
-  route: '/erhvervsevnetab',
+  route: APP_ROUTES.erhvervsevnetab,
   sectionId: 'eet-oplysninger-asl',
 };
 
 const NAV_EET_EAL: EetTabNavigation = {
   pageName: 'EET oplysninger',
   sectionName: 'Erstatningsansvarsloven',
-  route: '/erhvervsevnetab',
+  route: APP_ROUTES.erhvervsevnetab,
   sectionId: 'eet-oplysninger-eal',
 };
 

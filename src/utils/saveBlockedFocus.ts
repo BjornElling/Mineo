@@ -8,6 +8,7 @@ import { isRecord } from './typeGuards';
 import { scrollTargetIntoView } from './scrollTargetIntoView';
 import { resolveActiveFieldError, type FieldErrorBySource } from '../types/fieldErrors';
 import { EO_ANGIVET_LOEN_ID } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
+import { APP_ROUTES, getRouteForPageKey, PAGE_DEFAULT_TAB } from '../config/pageNavigation';
 
 // Tabel-input-fejl i EO rapporteres som dynamiske felt-fejl med dette suffix (se LoenindkomstTab/
 // EOOplysningerTab). De persisterer i field-errors-store og overlever fane-skift, så de skal kunne
@@ -69,13 +70,13 @@ const focusAndScrollToErrorElement = (element: HTMLElement): void => {
 const getRouteForBlockingError = (target: BlockingInputErrorTarget, currentPathname: string): string => {
   if (target.kind === 'table-input') return currentPathname;
 
+  // faellesAarsloen er en delt sektion uden egen route; den vises under forsørgertab eller
+  // erhvervsevnetab afhængigt af hvor brugeren står. Derfor afgøres route'en af kontekst her.
   if (target.pageKey === 'faellesAarsloen') {
-    if (currentPathname === '/forsoergertab') return '/forsoergertab';
-    return '/erhvervsevnetab';
+    return currentPathname === APP_ROUTES.forsoergertab ? APP_ROUTES.forsoergertab : APP_ROUTES.erhvervsevnetab;
   }
 
-  if (target.pageKey === 'satser') return '/satser';
-  return `/${target.pageKey}`;
+  return getRouteForPageKey(target.pageKey) ?? currentPathname;
 };
 
 const prepareTabForBlockingError = (target: BlockingInputErrorTarget): void => {
@@ -104,22 +105,22 @@ const prepareTabForBlockingError = (target: BlockingInputErrorTarget): void => {
       setActiveTabForPage('erstatningsopgoerelse', 'offentlige_ydelser');
       return;
     }
-    setActiveTabForPage('erstatningsopgoerelse', 'eo_oplysninger');
+    setActiveTabForPage('erstatningsopgoerelse', PAGE_DEFAULT_TAB.erstatningsopgoerelse);
     return;
   }
 
   if (target.pageKey === 'erhvervsevnetab' || target.pageKey === 'faellesAarsloen') {
-    setActiveTabForPage('erhvervsevnetab', 'eet-oplysninger');
+    setActiveTabForPage('erhvervsevnetab', PAGE_DEFAULT_TAB.erhvervsevnetab);
     return;
   }
 
   if (target.pageKey === 'renteberegning') {
-    setActiveTabForPage('renteberegning', 'calculation');
+    setActiveTabForPage('renteberegning', PAGE_DEFAULT_TAB.renteberegning);
     return;
   }
 
   if (target.pageKey === 'varigemen') {
-    setActiveTabForPage('varigemen', 'menberegning');
+    setActiveTabForPage('varigemen', PAGE_DEFAULT_TAB.varigemen);
   }
 };
 

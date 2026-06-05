@@ -118,6 +118,27 @@ describe('navigateToBlockingInputError — synlig fejl på nuværende fane har f
 
     expect(navigate).toHaveBeenCalledWith('/erhvervsevnetab');
   });
+
+  it('ruter faellesAarsloen til forsørgertab når brugeren står der (delt sektion, kontekst-route)', async () => {
+    const target = { kind: 'field' as const, pageKey: 'faellesAarsloen' as const, fieldName: 'aarsloenMax', message: 'Mangler' };
+    const navigate = vi.fn();
+
+    await navigateToBlockingInputError(target, '/forsoergertab', navigate as never);
+    await flushRaf();
+
+    // Allerede på forsørgertab → ingen navigation (route === currentPathname).
+    expect(navigate).not.toHaveBeenCalled();
+  });
+
+  it('ruter faellesAarsloen til erhvervsevnetab fra enhver anden side', async () => {
+    const target = { kind: 'field' as const, pageKey: 'faellesAarsloen' as const, fieldName: 'aarsloenMax', message: 'Mangler' };
+    const navigate = vi.fn();
+
+    await navigateToBlockingInputError(target, '/stamdata', navigate as never);
+    await flushRaf();
+
+    expect(navigate).toHaveBeenCalledWith('/erhvervsevnetab');
+  });
 });
 
 describe('navigateToBlockingInputError — fane-routing for EO tabel-input-fejl', () => {

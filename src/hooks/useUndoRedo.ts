@@ -5,8 +5,7 @@ import { type HistoryFrame, type HistoryTransitionPlan, undoRedoStore } from '..
 import { atomicWritePersistenceSections } from '../utils/persistenceSnapshotStorage';
 import { scheduleHistoryTargetRestore } from '../utils/historyTargetRestore';
 import { setActiveTabForPage } from './usePersistedActiveTab';
-
-const routeToPageId = (route: string): string => route.replace(/^\/+/, '') || 'stamdata';
+import { routeToPageId } from '../config/pageNavigation';
 
 const restorePlannedTransition = (plan: HistoryTransitionPlan | null): HistoryFrame | null => {
   if (!plan) return null;
