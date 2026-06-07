@@ -18,6 +18,11 @@ const runGit = (args) => {
 
 const escapeEnvValue = (value) => JSON.stringify(value);
 
+const formatCommitYearMonth = (commitIsoDate) => {
+  const match = commitIsoDate.match(/^(\d{4})-(\d{2})-/);
+  return match ? `${match[1]}.${match[2]}` : undefined;
+};
+
 const resolveBuildInfo = () => {
   const isGitRepo = runGit(['rev-parse', '--is-inside-work-tree']) === 'true';
   const commit = isGitRepo ? runGit(['rev-parse', 'HEAD']) : undefined;
@@ -31,15 +36,20 @@ const resolveBuildInfo = () => {
     };
   }
 
-  const commitDate = runGit(['log', '-1', '--format=%cd', '--date=format:%Y.%m']);
+  // `%cI` bruger commitens gemte timezone og er derfor stabil på tværs af lokale
+  // maskiner og GitHub Actions. `--date=format` ville afhænge af runnerens timezone.
+  const commitDate = formatCommitYearMonth(runGit(['log', '-1', '--format=%cI']));
   const commitCount = runGit(['rev-list', '--count', 'HEAD']);
-  const commitShort = runGit(['rev-parse', '--short=6', 'HEAD']);
+  // `git rev-parse --short=6` returnerer en MINIMUM-længde: git forlænger til den
+  // korteste unikke prefiks, så i et stort repo kan resultatet blive 7+ tegn og
+  // bryde `hash6`-formatet. Slice derfor altid eksakt 6 tegn fra det fulde hash.
+  const commitShort = commit.slice(0, 6);
 
-  if (!commitDate || !commitCount || !commitShort) {
+  if (!commitDate || !commitCount) {
     return {
       version: FALLBACK_VERSION,
       commit,
-      commitShort: commit.slice(0, 6),
+      commitShort,
       builtAt: new Date().toISOString(),
     };
   }

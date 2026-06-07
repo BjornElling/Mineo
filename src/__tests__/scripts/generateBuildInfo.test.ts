@@ -37,10 +37,14 @@ describe('generate-build-info', () => {
     execFileSync('node', ['scripts/generate-build-info.mjs'], { encoding: 'utf8' });
 
     const env = parseEnvFile(readFileSync(ENV_FILE, 'utf8'));
-    const commitDate = readGit(['log', '-1', '--format=%cd', '--date=format:%Y.%m']);
+    const commitIsoDate = readGit(['log', '-1', '--format=%cI']);
+    const commitDate = commitIsoDate.slice(0, 7).replace('-', '.');
     const commitCount = readGit(['rev-list', '--count', 'HEAD']);
     const commit = readGit(['rev-parse', 'HEAD']);
-    const commitShort = readGit(['rev-parse', '--short=6', 'HEAD']);
+    // Scriptet sliceer eksakt 6 tegn fra det fulde hash (ikke `--short=6`, der kan
+    // give 7+ tegn i et stort repo). Spejl den udregning her, så testen håndhæver
+    // det deterministiske hash6-format.
+    const commitShort = commit.slice(0, 6);
 
     expect(env.VITE_APP_VERSION).toBe(`${commitDate}.${commitCount}.${commitShort}`);
     expect(env.VITE_APP_VERSION).toMatch(/^\d{4}\.\d{2}\.\d+\.[0-9a-f]{6}$/);
