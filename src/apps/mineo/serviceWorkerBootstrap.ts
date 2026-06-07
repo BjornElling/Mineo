@@ -1,4 +1,4 @@
-import { VERSION } from '../../config/version';
+import { VERSION } from '../../config/buildInfo';
 
 const SW_UPDATE_CHECK_TIMEOUT_MS = 5000;
 const SW_PERIODIC_UPDATE_CHECK_MS = 60 * 60 * 1000;

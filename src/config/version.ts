@@ -1,13 +1,4 @@
 /**
- * Version Configuration (autogenereret)
- *
- * Redigér IKKE filen manuelt.
- * Format: YYYY.MM.BUILD
- */
-
-export const VERSION = '2026.06.736';
-
-/**
  * Filformat version - ændres kun hvis datastrukturen ændres.
  * Bruges til at validere kompatibilitet mellem forskellige versioner af programmet.
  */

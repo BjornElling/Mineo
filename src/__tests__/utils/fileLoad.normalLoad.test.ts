@@ -3,7 +3,8 @@ import { webcrypto } from 'node:crypto';
 import { loadFromFile, loadFromFileHandle } from '../../utils/fileLoad';
 import { encryptToString } from '../../utils/encryption';
 import { countFilledFields } from '../../utils/dataCollection';
-import { FILE_FORMAT_VERSION, VERSION } from '../../config/version';
+import { VERSION } from '../../config/buildInfo';
+import { FILE_FORMAT_VERSION } from '../../config/version';
 import { toISODateString } from '../../types/branded';
 
 const readFromFileHandleMock = vi.fn();

@@ -97,6 +97,6 @@ Bjørn Elling
 
 ---
 
-**Version**: 2026.06.736
+**Version**: Genereres ved build som `år.måned.commitnummer.hash6`
 
 **Status**: Under udvikling

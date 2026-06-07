@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { VERSION } from '../../config/version';
+import { VERSION } from '../../config/buildInfo';
 
 /**
  * NOTE (bevidst undtagelse):

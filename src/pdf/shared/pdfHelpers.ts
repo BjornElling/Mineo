@@ -19,7 +19,7 @@ import {
   SECTION_SPACER,
 } from '../infrastructure/pdfConfig';
 import type { PdfDocumentAdapter } from '../infrastructure/pdfDocumentAdapter';
-import { VERSION } from '../../config/version';
+import { VERSION } from '../../config/buildInfo';
 import type { ISODateString } from '../../types/branded';
 
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../../utils/formatUtils';

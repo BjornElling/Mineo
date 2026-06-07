@@ -15,7 +15,7 @@ import { getTodayLocalISO } from './dateUtils';
 import { formatISOToDanish, formatUtcTimestampSeconds } from './dateFormatting';
 import { logError } from './logger';
 import { isSystemIssueLogData } from './systemIssueReporter';
-import { VERSION } from '../config/version';
+import { BUILD_INFO, VERSION } from '../config/buildInfo';
 
 export interface BugReportContext {
   source?: string;
@@ -65,18 +65,9 @@ const isPreparedBugReport = (value: unknown): value is PreparedBugReport => {
   );
 };
 
-const getVersion = (): string => import.meta.env.VITE_APP_VERSION || VERSION;
+const getVersion = (): string => VERSION;
 
-const getCommitHash = (): string => {
-  const candidates = [
-    import.meta.env.VITE_APP_COMMIT_HASH,
-    import.meta.env.VITE_GIT_COMMIT,
-    import.meta.env.VITE_COMMIT_HASH,
-    import.meta.env.VITE_BUILD_HASH,
-  ];
-  const resolved = candidates.find((value) => typeof value === 'string' && value.trim() !== '');
-  return resolved?.trim() ?? 'ukendt';
-};
+const getCommitHash = (): string => BUILD_INFO.commit;
 
 const parseBooleanFlag = (value: unknown): boolean => {
   if (typeof value !== 'string') return false;

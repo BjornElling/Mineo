@@ -1,4 +1,5 @@
-import { VERSION, FILE_FORMAT_VERSION } from '../config/version';
+import { VERSION } from '../config/buildInfo';
+import { FILE_FORMAT_VERSION } from '../config/version';
 import { hasRealData, countFilledFields } from './dataCollection';
 import { encryptToString } from './encryption';
 import { generateFilename, downloadFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
@@ -432,4 +433,3 @@ export const saveToFile = async (
     throw new Error(`Kunne ikke gemme fil: ${err.message}`);
   }
 };
-

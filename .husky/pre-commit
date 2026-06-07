@@ -9,9 +9,3 @@ npm run check:mojibake
 
 # Stop commit hvis Git og filsystem er uenige om filnavns-casing
 npm run check:filename-case
-
-# Generér ny versionsfil
-node scripts/generate-version.js
-
-# Tilføj filerne igen til commit
-git add src/config/version.ts README.md

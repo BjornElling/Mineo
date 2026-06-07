@@ -12,6 +12,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Node from .nvmrc
         uses: actions/setup-node@v6
@@ -21,6 +23,9 @@ jobs:
 
       - name: Install dependencies (strict)
         run: npm ci
+
+      - name: Generate build info
+        run: npm run generate:build-info
 
       - name: Typecheck
         run: npm run typecheck
@@ -39,6 +44,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Node from .nvmrc
         uses: actions/setup-node@v6
@@ -48,6 +55,9 @@ jobs:
 
       - name: Install dependencies (strict)
         run: npm ci
+
+      - name: Generate build info
+        run: npm run generate:build-info
 
       - name: Build all app variants
         run: npm run build:all

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { VERSION } from '../../config/version';
+import { VERSION } from '../../config/buildInfo';
 import { requestPwaInstall } from '../../utils/pwaInstallPrompt';
 import ContentBox from '../layout/ContentBox';
 import LicenseModal from '../ui/LicenseModal';

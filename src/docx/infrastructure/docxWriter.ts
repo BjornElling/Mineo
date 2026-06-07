@@ -26,7 +26,7 @@ import type { PdfWriter } from '../../pdf/infrastructure/pdfWriter';
 import type { BrevhovedData } from '../../pdf/shared/pdfHelpers';
 import { formatIsoDateLong } from '../../utils/dateFormatting';
 import { roundByMethod } from '../../utils/rounding';
-import { VERSION } from '../../config/version';
+import { VERSION } from '../../config/buildInfo';
 import { getDocumentFooterBrand } from '../../document/documentBrand';
 import { registerPendingDocumentDownload } from '../../document/documentGenerationContext';
 import { triggerDocumentDownload } from '../../document/downloadArtifact';
