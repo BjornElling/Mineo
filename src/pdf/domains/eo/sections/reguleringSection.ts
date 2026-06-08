@@ -261,7 +261,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     }
     const dato = parseOptionalIsoDate(ansaettelsesforhold.anciennitetstillaegDato);
     if (!dato) return 'Indtastning mangler';
-    const datoDisplay = dato.split('-').reverse().join('-');
+    const datoDisplay = isoToDanish(dato) ?? dato;
 
     const grundloenAngivetPer = getGrundloenAngivetPerForOverenskomst(
       ansaettelsesforhold.overenskomstId,

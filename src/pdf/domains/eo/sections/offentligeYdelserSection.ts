@@ -76,8 +76,8 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
       const samletValue = ydelseValue + ydelse2Value;
       const samletDisplay = row.ydelse !== undefined || row.tillaeg !== undefined ? formatAsAmount(samletValue, 2) : '';
       const rowValues = [
-        row.fraDato?.trim() ?? '',
-        row.tilDato?.trim() ?? '',
+        formatISOToDanish(row.fraDato) || row.fraDato?.trim() || '',
+        formatISOToDanish(row.tilDato) || row.tilDato?.trim() || '',
         amountValueToDisplayString(row.ydelse, 2),
         amountValueToDisplayString(row.tillaeg, 2),
         samletDisplay,
