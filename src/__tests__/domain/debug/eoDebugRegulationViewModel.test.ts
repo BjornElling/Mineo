@@ -228,7 +228,7 @@ describe('buildRegulationDebugSections', () => {
     expect(sections).toHaveLength(1);
     expect(sections[0]?.tables).toHaveLength(2);
     expect(sections[0]?.tables?.[0]?.rows.length).toBeGreaterThan(0);
-    expect(sections[0]?.tables?.[0]?.rows[0]?.cells).toEqual(['01-01-2020', '-', '-', '-', '0 %', '-']);
+    expect(sections[0]?.tables?.[0]?.rows[0]?.cells).toEqual(['01-01-2020', '-', '-', '0 %', '-']);
     expect(sections[0]?.tables?.[1]?.rows.length).toBeGreaterThan(0);
   });
 
