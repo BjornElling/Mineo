@@ -293,8 +293,13 @@ describe('eoSharedUtils', () => {
   });
 
   describe('hasPctSourceOrInput', () => {
-    it('er true når overenskomstsats findes (også 0)', () => {
-      expect(hasPctSourceOrInput(0, undefined)).toBe(true);
+    it('er true når overenskomstsats er større end 0', () => {
+      expect(hasPctSourceOrInput(0.01, undefined)).toBe(true);
+      expect(hasPctSourceOrInput(0.129, undefined)).toBe(true);
+    });
+
+    it('er false når overenskomstsats er 0 — 0 fra overenskomst er "ingen sats" ligesom undefined', () => {
+      expect(hasPctSourceOrInput(0, undefined)).toBe(false);
     });
 
     it('er true når input pct er ikke-nul og sats mangler', () => {
@@ -304,6 +309,10 @@ describe('eoSharedUtils', () => {
     it('er false når sats mangler og input pct er 0/undefined', () => {
       expect(hasPctSourceOrInput(undefined, 0)).toBe(false);
       expect(hasPctSourceOrInput(undefined, undefined)).toBe(false);
+    });
+
+    it('er false når sats er null og input er 0', () => {
+      expect(hasPctSourceOrInput(null, 0)).toBe(false);
     });
   });
 

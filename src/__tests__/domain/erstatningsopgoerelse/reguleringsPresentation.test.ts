@@ -150,12 +150,37 @@ describe('reguleringsPresentation', () => {
     expect(table).not.toBeNull();
     expect(table?.rows.length).toBeGreaterThan(0);
     // Referencerækken: placeholder for datoen før første overenskomstdækning.
-    // Kolonnerne bestemmes af laasesmedeoverenskomstens satser (Timeløn, SH/SO, Fritvalg, AG pens. bidrag).
+    // Kolonnerne bestemmes af laasesmedeoverenskomstens satser (Timeløn, Fritvalg, Store Bededag, AG pens. bidrag).
+    // SH/SO vises ikke fordi laasesmedeoverenskomsten har shSoSats = 0 i alle perioder.
     // Hvis overenskomstdata ændres, skal denne forventning opdateres.
-    expect(table?.rows[0]).toEqual(['01-01-2020', '-', '-', '-', '0 %', '-']);
+    expect(table?.rows[0]).toEqual(['01-01-2020', '-', '-', '0 %', '-']);
     expect(table?.rows.some((row) => row[0] === '01-01-2024')).toBe(true);
     // 01-03-2024 er fortsat første egentlige overenskomstsatsdato i testdata.
     expect(table?.rows.some((row) => row[0] === '01-03-2024')).toBe(true);
+  });
+
+  it('skjuler Fritvalg-kolonne for overenskomst hvor fritvalg er 0 i alle perioder', () => {
+    // Regression: bygningsoverenskomsten har fritvalg: 0 (base default) i alle perioder.
+    // Kolonnen skal ikke vises.
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Overenskomst';
+    af.overenskomstId = 'bygningsoverenskomsten';
+    af.loenPaaHelligdage = 'SH-udbetaling';
+    af.feriePct = 12.5;
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2023-01-01'),
+      tafFra: iso('2023-01-01'),
+      tafTil: iso('2023-12-31'),
+      tafBeregningsenhed: 'Timer',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.columns).not.toContain('Fritvalg');
+    expect(table?.columns).toContain('SH/SO');
+    expect(table?.columns).toContain('AG pens. bidrag');
   });
 
   it('viser indtastede satser på reference-række før første private overenskomstdækning', () => {
@@ -529,7 +554,99 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
-    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'Fritvalg', 'Store Bededag', 'AG pens. bidrag']);
+    // SH/SO og Fritvalg er undefined på alle rækker → kolonnerne vises ikke
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'Store Bededag', 'AG pens. bidrag']);
+  });
+
+  it('skjuler manuel Fritvalg-kolonne når alle rækker har fritvalg = 0', () => {
+    // Regression: fritvalg = 0 betragtes som "ingen sats" ligesom undefined — kolonnen vises ikke
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.loenPaaHelligdage = 'SH-udbetaling';
+    af.feriePct = 12.5;
+    af.loenudviklingManuelTableData = [
+      {
+        id: 'm1',
+        dato: undefined,
+        grundloen: asAmountValue(133.40),
+        feriepenge: undefined,
+        shSoSats: 12.9,
+        fritvalg: 0,
+        agPension: 8.15,
+      },
+      {
+        id: 'm2',
+        dato: toISODateString('2023-03-01'),
+        grundloen: asAmountValue(137.90),
+        feriepenge: undefined,
+        shSoSats: 12.9,
+        fritvalg: 0,
+        agPension: 8.15,
+      },
+      {
+        id: 'm3',
+        dato: toISODateString('2023-06-01'),
+        grundloen: asAmountValue(137.90),
+        feriepenge: undefined,
+        shSoSats: 12.9,
+        fritvalg: 0,
+        agPension: 10.15,
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2023-01-01'),
+      tafFra: iso('2023-01-01'),
+      tafTil: iso('2023-12-31'),
+      tafBeregningsenhed: 'Arbejdsdage',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.columns).not.toContain('Fritvalg');
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'SH/SO', 'AG pens. bidrag']);
+  });
+
+  it('skjuler manuel SH/SO-kolonne når alle rækker har shSoSats = undefined, men viser Fritvalg-kolonne når mindst én række har fritvalg > 0', () => {
+    const values = cloneInitialValues();
+    const af = values.loenindkomstAnsaettelsesforhold[0];
+    af.loenudviklingBeregningsgrundlag = 'Manuelt angivet';
+    af.loenPaaHelligdage = 'SH-udbetaling';
+    af.feriePct = 12.5;
+    af.loenudviklingManuelTableData = [
+      {
+        id: 'm1',
+        dato: undefined,
+        grundloen: asAmountValue(133.40),
+        feriepenge: undefined,
+        shSoSats: undefined,
+        fritvalg: 0,
+        agPension: 8.15,
+      },
+      {
+        id: 'm2',
+        dato: toISODateString('2023-06-01'),
+        grundloen: asAmountValue(137.90),
+        feriepenge: undefined,
+        shSoSats: undefined,
+        fritvalg: 5,
+        agPension: 10.15,
+      },
+    ];
+
+    const table = buildReguleringsvaerdierTableData({
+      ansaettelsesforhold: af,
+      anvendtReguleringsdato: iso('2023-01-01'),
+      tafFra: iso('2023-01-01'),
+      tafTil: iso('2023-12-31'),
+      tafBeregningsenhed: 'Arbejdsdage',
+    });
+
+    expect(table).not.toBeNull();
+    expect(table?.columns).not.toContain('SH/SO');
+    expect(table?.columns).toContain('Fritvalg');
+    expect(table?.columns).toEqual(['Fra-dato', 'Timeløn', 'Feriepenge', 'Fritvalg', 'AG pens. bidrag']);
   });
 
   it('indsætter Store Bededag som separat række 01-01-2024 i manuel reguleringsværdier-tabel', () => {
@@ -578,7 +695,8 @@ describe('reguleringsPresentation', () => {
 
     expect(table).not.toBeNull();
     expect(table?.columns).toContain('Store Bededag');
-    expect(table?.rows.some((row) => row[0] === '01-01-2024' && row[5] === '0,45 %')).toBe(true);
+    // SH/SO er undefined → kolonne vises ikke; Store Bededag er nu index 4 (Fra-dato, Timeløn, Feriepenge, Fritvalg, Store Bededag, AG pens. bidrag)
+    expect(table?.rows.some((row) => row[0] === '01-01-2024' && row[4] === '0,45 %')).toBe(true);
   });
 
   it('viser Store Bededag i manuelle reguleringsværdier når TAF starter efter 01-01-2024 men reguleringsdatoen ligger før', () => {
@@ -618,12 +736,11 @@ describe('reguleringsPresentation', () => {
 
     expect(table).not.toBeNull();
     expect(table?.columns).toContain('Store Bededag');
+    // SH/SO og Fritvalg er undefined på alle rækker → kolonner vises ikke
     expect(table?.rows.find((row) => row[0] === '31-12-2023')).toEqual([
       '31-12-2023',
       '177,56',
       '16,95 %',
-      '-',
-      '-',
       '0 %',
       '14,37 %',
     ]);
@@ -760,12 +877,12 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
+    // SH/SO og Fritvalg er undefined på alle rækker → kolonner vises ikke
+    // loenPaaHelligdage defaulter til 'Almindelig løn' → Store Bededag-kolonne vises
     expect(table?.rows.find((row) => row[0] === '31-12-2023')).toEqual([
       '31-12-2023',
       '125,00',
       '16,95 %',
-      '-',
-      '-',
       '0 %',
       '12,00 %',
     ]);
@@ -892,12 +1009,12 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table).not.toBeNull();
+    // Fritvalg er undefined på alle rækker → kolonne vises ikke
     expect(table?.rows.find((row) => row[0] === '15-02-2024')).toEqual([
       '15-02-2024',
       '200,00',
       '16,95 %',
       '20,00 %',
-      '-',
       '0,45 %',
       '20,00 %',
     ]);

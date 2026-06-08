@@ -80,7 +80,9 @@ export const hasPctSourceOrInput = (
   overenskomstPctDecimal: number | null | undefined,
   inputPct: number | undefined
 ): boolean => {
-  if (typeof overenskomstPctDecimal === 'number' && Number.isFinite(overenskomstPctDecimal)) return true;
+  // 0 fra overenskomst (fx fritvalg: 0) betyder "ingen sats" og vises ikke som kolonne,
+  // på samme måde som 0 i bruger-input.
+  if (typeof overenskomstPctDecimal === 'number' && Number.isFinite(overenskomstPctDecimal) && Math.abs(overenskomstPctDecimal) > 0) return true;
   return typeof inputPct === 'number' && Number.isFinite(inputPct) && Math.abs(inputPct) > 0;
 };
 

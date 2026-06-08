@@ -764,18 +764,32 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       }
     }
 
+    // Vis kun kolonner der har mindst én ikke-nul-/ikke-undefined-værdi på tværs af alle rækker.
+    // Manuel input behandles anderledes end overenskomstsatser: 0 og undefined betyder begge "ingen sats".
+    // hasAnyPctSourceOrInput bruges ikke her, da den accepterer 0 som en reel overenskomstsats.
+    const allManualSatser = normalizedRows.map((entry) => entry.row);
+    const hasPositivePct = (getValue: (row: typeof allManualSatser[number]) => number | undefined, fallbackPct: number | undefined): boolean => {
+      const hasFallback = typeof fallbackPct === 'number' && Number.isFinite(fallbackPct) && fallbackPct > 0;
+      return hasFallback || allManualSatser.some((row) => {
+        const v = getValue(row);
+        return typeof v === 'number' && Number.isFinite(v) && v > 0;
+      });
+    };
+    const hasFeriepenge = showFeriePctColumn || allManualSatser.some((row) => typeof row.feriepenge === 'number' && row.feriepenge > 0);
+    const hasShSo = hasPositivePct((row) => row.shSoSats, ansaettelsesforhold.shSoPct);
+    const hasFritvalg = hasPositivePct((row) => row.fritvalg, ansaettelsesforhold.fritvalgPct);
+    const hasAgPension = hasPositivePct((row) => row.agPension, ansaettelsesforhold.pensionPct);
+
     const rows = normalizedRows.map(({ iso, row }) => {
       const cells: string[] = [
         formatDateShort(iso),
         amountValueToDisplayString(row.grundloen, 2) || '-',
       ];
-      cells.push(
-        mergeFeriepengeDisplay(showFeriePctColumn ? feriePctDisplay : undefined, formatPercentCellFromRaw(row.feriepenge)),
-        formatPercentCellFromRaw(row.shSoSats),
-        formatPercentCellFromRaw(row.fritvalg),
-        ...(hasStoreBededagPct ? [formatPctFromInput(resolveAutoStoreBededagPct(ansaettelsesforhold, iso))] : []),
-        formatPercentCellFromRaw(row.agPension)
-      );
+      if (hasFeriepenge) cells.push(mergeFeriepengeDisplay(showFeriePctColumn ? feriePctDisplay : undefined, formatPercentCellFromRaw(row.feriepenge)));
+      if (hasShSo) cells.push(formatPercentCellFromRaw(row.shSoSats));
+      if (hasFritvalg) cells.push(formatPercentCellFromRaw(row.fritvalg));
+      if (hasStoreBededagPct) cells.push(formatPctFromInput(resolveAutoStoreBededagPct(ansaettelsesforhold, iso)));
+      if (hasAgPension) cells.push(formatPercentCellFromRaw(row.agPension));
       return cells;
     });
     return {
@@ -786,11 +800,11 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
           loenudviklingBeregningsgrundlag: grundlag,
           overenskomstId: undefined,
         }),
-        'Feriepenge',
-        'SH/SO',
-        'Fritvalg',
+        ...(hasFeriepenge ? ['Feriepenge'] : []),
+        ...(hasShSo ? ['SH/SO'] : []),
+        ...(hasFritvalg ? ['Fritvalg'] : []),
         ...(hasStoreBededagPct ? ['Store Bededag'] : []),
-        REGULERINGSVAERDIER_PENSION_HEADER,
+        ...(hasAgPension ? [REGULERINGSVAERDIER_PENSION_HEADER] : []),
       ],
       rows: mergeConsecutiveValueRows(rows, {
         preserveFirstColumnValues: buildPreservedDateLabels(anvendtReguleringsdato),
