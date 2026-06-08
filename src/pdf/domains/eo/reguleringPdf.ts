@@ -210,9 +210,9 @@ const buildOverenskomstTable = (
       interval.tilDato,
       applyAlmindeligLoenPaaShDageRegel
     );
-    const hasShSo = tillaegsSatser.some((sats) => sats.shSoSats !== null);
-    const hasFritvalg = tillaegsSatser.some((sats) => sats.fritvalg !== null);
-    const hasAgPension = tillaegsSatser.some((sats) => sats.agPension !== null);
+    const hasShSo = tillaegsSatser.some((sats) => sats.shSoSats !== null && sats.shSoSats > 0);
+    const hasFritvalg = tillaegsSatser.some((sats) => sats.fritvalg !== null && sats.fritvalg > 0);
+    const hasAgPension = tillaegsSatser.some((sats) => sats.agPension !== null && sats.agPension > 0);
 
     const columns: TableColumn[] = [
       { header: 'Fra-dato' },
@@ -256,15 +256,15 @@ const buildOverenskomstTable = (
 
   const allSatser = getOverenskomst(ref.baseId)?.satser ?? satser;
 
-  const hasGrundloen = allSatser.some((sats) => sats.grundloen !== null);
-  const hasShSo = allSatser.some((sats) => sats.shSoSats !== null);
-  const hasFritvalg = allSatser.some((sats) => sats.fritvalg !== null);
-  const hasAgPension = allSatser.some((sats) => sats.agPension !== null);
-  const hasSfgg = allSatser.some((sats) => sats.sfgg !== null);
-  const hasSfggFaglKbh = allSatser.some((sats) => sats.sfggFaglKbh !== null);
-  const hasSfggFaglProv = allSatser.some((sats) => sats.sfggFaglProv !== null);
-  const hasSfggUfaglKbh = allSatser.some((sats) => sats.sfggUfaglKbh !== null);
-  const hasSfggUfaglProv = allSatser.some((sats) => sats.sfggUfaglProv !== null);
+  const hasGrundloen = allSatser.some((sats) => sats.grundloen !== null && sats.grundloen > 0);
+  const hasShSo = allSatser.some((sats) => sats.shSoSats !== null && sats.shSoSats > 0);
+  const hasFritvalg = allSatser.some((sats) => sats.fritvalg !== null && sats.fritvalg > 0);
+  const hasAgPension = allSatser.some((sats) => sats.agPension !== null && sats.agPension > 0);
+  const hasSfgg = allSatser.some((sats) => sats.sfgg !== null && sats.sfgg > 0);
+  const hasSfggFaglKbh = allSatser.some((sats) => sats.sfggFaglKbh !== null && sats.sfggFaglKbh > 0);
+  const hasSfggFaglProv = allSatser.some((sats) => sats.sfggFaglProv !== null && sats.sfggFaglProv > 0);
+  const hasSfggUfaglKbh = allSatser.some((sats) => sats.sfggUfaglKbh !== null && sats.sfggUfaglKbh > 0);
+  const hasSfggUfaglProv = allSatser.some((sats) => sats.sfggUfaglProv !== null && sats.sfggUfaglProv > 0);
 
   const columns: TableColumn[] = [
     { header: 'Fra-dato' },
