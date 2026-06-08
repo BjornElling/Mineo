@@ -93,6 +93,7 @@ import {
   resolveSfggReferenceperiodeDayCount,
   resolveSfggReferenceperiodeMaxDate,
 } from '../../../domain/erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
+import { shouldRequireSygeferiegodtgoerelseInput } from '../../../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import {
   buildStandardLoenZeroArbejdsdageCellErrorMessages,
   type AarsloenZeroArbejdsdageValidationInput,
@@ -1729,7 +1730,7 @@ const LoenindkomstTab = React.memo(({
         const headerText = af.navnPaaArbejdssted
           ? `${baseHeaderText} (${af.navnPaaArbejdssted})`
           : baseHeaderText;
-        const showSygeferiegodtgoerelseSection = eoValues.kravPaaTabtArbejdsfortjeneste === 'Ja' && af.ansatPaaSkadestidspunktet;
+        const showSygeferiegodtgoerelseSection = shouldRequireSygeferiegodtgoerelseInput(eoValues, af);
         const sfggRow = eoValues.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === af.id);
         const sfggPolicy = af.overenskomstId
           ? getOverenskomstSfggPolicy(af.overenskomstId)

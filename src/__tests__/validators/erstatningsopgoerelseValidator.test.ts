@@ -252,6 +252,13 @@ describe('TAF validering', () => {
 describe('SFGG validering', () => {
   it('fanger manglende valg af beregningsgrundlag for SFGG', () => {
     const values = makeValues({
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      },
       loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       sfggAnsaettelsesforhold: [],
     });
@@ -259,8 +266,29 @@ describe('SFGG validering', () => {
     expect(hasError(values, 'Beregningsgrundlag for SFGG ikke valgt')).toBe(true);
   });
 
+  it('kræver ikke beregningsgrundlag for SFGG når TAF ikke beregnes', () => {
+    const values = makeValues({
+      kravPaaTabtArbejdsfortjeneste: 'Nej',
+      loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', ansatPaaSkadestidspunktet: true, harOverenskomst: false, pensionPct: 0 }],
+      sfggAnsaettelsesforhold: [],
+    });
+
+    expect(hasError(values, 'Beregningsgrundlag for SFGG ikke valgt')).toBe(false);
+  });
+
+  it('kræver ikke beregningsgrundlag for SFGG når ansættelsesforholdet ikke var aktivt på skadestidspunktet', () => {
+    const values = makeValues({
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', ansatPaaSkadestidspunktet: false, harOverenskomst: false, pensionPct: 0 }],
+      sfggAnsaettelsesforhold: [],
+    });
+
+    expect(hasError(values, 'Beregningsgrundlag for SFGG ikke valgt')).toBe(false);
+  });
+
   it('tillader eksplicit valg af Ingen uden fejl', () => {
     const values = makeValues({
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
       loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       sfggAnsaettelsesforhold: [{
         ansaettelsesforholdId: 'af-1',
@@ -281,7 +309,13 @@ describe('SFGG validering', () => {
 
   it('fanger referenceperiode der ikke ligger før første TAF-periode', () => {
     const values = makeValues({
-      kravPaaTabtArbejdsfortjeneste: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      },
       loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-05-31') },
@@ -308,7 +342,13 @@ describe('SFGG validering', () => {
     // sfggSatsvalg er udfyldt med stale værdier fra et tidligere beregningskilde-valg.
     // Validatoren skal gate på beregningskilden og ignorere disse skjulte felter.
     const values = makeValues({
-      kravPaaTabtArbejdsfortjeneste: 'Nej',
+      kravPaaTabtArbejdsfortjeneste: 'Ja',
+      beregnesUdFra: 'Angivet månedsløn',
+      maanedsloenenUdgoer: asAmount(30000),
+      eoAngivetLoenLoenudvikling: {
+        ...createErstatningsopgoerelseInitialValues().eoAngivetLoenLoenudvikling,
+        loenudviklingBeregningsgrundlag: 'Ingen',
+      },
       loenindkomstAnsaettelsesforhold: [{ ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', harOverenskomst: false, pensionPct: 0 }],
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-05-01'), til: iso('2024-05-31') },

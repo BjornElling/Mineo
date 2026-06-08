@@ -73,6 +73,32 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
     expect(screen.getByText('Satser på skadedatoen (01-01-2024)')).toBeInTheDocument();
   });
 
+  it('viser kun SFGG-valget for ansættelsesforhold hvor skadelidte var ansat på skadestidspunktet', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-aktiv',
+        navnPaaArbejdssted: 'Aktivt arbejde',
+        ansatPaaSkadestidspunktet: true,
+      },
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-ikke-aktiv',
+        navnPaaArbejdssted: 'Tidligere arbejde',
+        ansatPaaSkadestidspunktet: false,
+      },
+    ];
+
+    renderLoenindkomstTab(eoValues);
+
+    expect(screen.getByText('Sygeferiegodtgørelse beregnes ud fra')).toBeInTheDocument();
+    expect(screen.getByText('Ansættelsesforhold 2 (Tidligere arbejde)').closest('.content-box')).not.toHaveTextContent(
+      'Sygeferiegodtgørelse beregnes ud fra'
+    );
+  });
+
   it('viser satser på anmeldelsesdatoen når anvendt reguleringsdato er skadedato ved erhvervssygdom', () => {
     mockStamdata.skadedato = toISODateString('2024-01-01');
     mockStamdata.skadestype = 'Erhvervssygdom';

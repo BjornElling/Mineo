@@ -29,6 +29,7 @@ import { getAngivetLoenOpreguleresFraDato, resolveAktivEllerFoersteLoenudvikling
 import { isAslStatistikModel, resolveStatistikModelId } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveAnvendtReguleringsdato } from '../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { hasIndtastetLoenoplysninger } from '../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
+import { shouldRequireSygeferiegodtgoerelseInput } from '../domain/erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import {
   getFirstIndtastedeTafFraDato,
   resolveSfggReferenceperiodeDayCount,
@@ -503,6 +504,8 @@ function validateSygeferiegodtgoerelse(values: ErstatningsopgoerelseValues): Val
   const errors: ValidationError[] = [];
 
   (values.loenindkomstAnsaettelsesforhold ?? []).forEach((employment) => {
+    if (!shouldRequireSygeferiegodtgoerelseInput(values, employment)) return;
+
     const index = (values.sfggAnsaettelsesforhold ?? []).findIndex((entry) => entry.ansaettelsesforholdId === employment.id);
     const row = index >= 0 ? values.sfggAnsaettelsesforhold[index] : undefined;
     const errorPathPrefix = index >= 0
