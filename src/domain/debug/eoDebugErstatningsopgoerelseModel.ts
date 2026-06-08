@@ -52,6 +52,7 @@ import {
   parseSfggExplanatoryLine,
   resolveSfggFoerstEfterSygeloen,
 } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseTexts';
+import { shouldRequireSygeferiegodtgoerelseInput } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
@@ -2982,6 +2983,8 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
   const seksMaanedersWarnings = new Set<string>();
 
   for (const employment of values.loenindkomstAnsaettelsesforhold ?? []) {
+    if (!shouldRequireSygeferiegodtgoerelseInput(values, employment)) continue;
+
     const row = values.sfggAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
     const result = sfgg?.perAnsaettelsesforhold.find((entry) => entry.ansaettelsesforholdId === employment.id);
     const kilde = row?.sfggBeregningskilde;

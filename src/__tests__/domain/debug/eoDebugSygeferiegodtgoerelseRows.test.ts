@@ -96,6 +96,34 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     ]);
   });
 
+  it('udelader SFGG-fejlrækker for ansættelsesforhold hvor skadelidte ikke var ansat på skadestidspunktet', () => {
+    const values = createValues();
+    values.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    values.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-ikke-aktiv-1',
+        navnPaaArbejdssted: 'Tidligere arbejde 1',
+        ansatPaaSkadestidspunktet: false,
+      },
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-ikke-aktiv-2',
+        navnPaaArbejdssted: 'Tidligere arbejde 2',
+        ansatPaaSkadestidspunktet: false,
+      },
+    ];
+    values.sfggAnsaettelsesforhold = [];
+
+    const rows = buildRows(values, {
+      journalnr: undefined,
+      skadestype: 'Arbejdsulykke',
+      skadedato: toISODateString('2024-01-01'),
+    });
+
+    expect(rows.filter((row) => row.id.startsWith('sfgg.beregningskilde.'))).toEqual([]);
+  });
+
   it('viser bemærkning og fejl på sfggSatsvalg ved differentieret direkte SFGG-sats', () => {
     const values = createValues();
     values.tafBeregningsperiodeFra = toISODateString('2014-06-01');
