@@ -245,7 +245,7 @@
 
 /* Opt-in hover-effekt for disabled checkbox-/label-par. */
 .disabled-hover-checkbox-group .MuiFormControlLabel-label.Mui-disabled {
-  color: var(--color-text-disabled);
+  color: var(--mineo-color-label-disabled);
   opacity: 1;
   transition: color 0.15s ease;
 }
@@ -257,7 +257,7 @@
 }
 
 .disabled-hover-checkbox-group .mineo-disabled-hover-target:hover .MuiFormControlLabel-label.Mui-disabled {
-  color: var(--color-text-disabled-hover);
+  color: var(--mineo-color-label-disabled-hover);
 }
 
 .disabled-hover-checkbox-group .mineo-disabled-hover-target:hover .MuiCheckbox-root.Mui-disabled {

@@ -536,7 +536,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
       borderWidth: '1px',
     },
     '& input::placeholder': {
-      color: 'var(--color-input-placeholder)',
+      color: 'var(--mineo-color-placeholder)',
       opacity: 1,
     },
   };
@@ -849,7 +849,7 @@ const StyledDropdownInner = <TValue extends StyledDropdownValue>(
                 sx={optionSxMerged}
                 onMouseEnter={() => setHighlightedIndex(index)}
               >
-                {opt.kind === 'empty' ? <em style={{ color: 'var(--color-input-placeholder)' }}>{placeholder}</em> : opt.children}
+                {opt.kind === 'empty' ? <em style={{ color: 'var(--mineo-color-placeholder)' }}>{placeholder}</em> : opt.children}
               </MenuItem>
             );
           })}

@@ -494,7 +494,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                       whiteSpace: 'nowrap',
                       fontSize: '13px',
                       fontFamily: '"Montserrat", sans-serif',
-                      color: 'var(--color-grid-derived-text)',
+                      color: 'var(--mineo-color-grid-derived)',
                     }}
                   >
                     {derived?.periodiseringLabel ?? ''}
@@ -511,7 +511,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                       fontSize: '13px',
                       fontFamily: '"Montserrat", sans-serif',
                       fontFeatureSettings: '"tnum"',
-                      color: 'var(--color-grid-derived-text)',
+                      color: 'var(--mineo-color-grid-derived)',
                     }}
                   >
                     {derived?.antalDageDisplay ?? ''}
@@ -528,7 +528,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                       fontSize: '13px',
                       fontFamily: '"Montserrat", sans-serif',
                       fontFeatureSettings: '"tnum"',
-                      color: 'var(--color-grid-derived-text)',
+                      color: 'var(--mineo-color-grid-derived)',
                     }}
                   >
                     {derived?.ydelsePerDagDisplay ?? ''}

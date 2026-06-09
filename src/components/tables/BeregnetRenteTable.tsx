@@ -203,7 +203,7 @@ const BeregnetRenteRow = React.memo(
         {!isMobile && (
           <TableCell align="center" sx={{ paddingTop: 0, paddingBottom: 0 }}>
             <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Typography className="row--text" sx={{ color: 'var(--color-text-secondary)', textAlign: 'center' }}>
+              <Typography className="row--text" sx={{ color: 'var(--mineo-color-grid-derived)', textAlign: 'center' }}>
                 {actualInterestDateDanish || '-'}
               </Typography>
             </Box>
@@ -212,7 +212,7 @@ const BeregnetRenteRow = React.memo(
 
         <TableCell align="right" sx={{ paddingTop: 0, paddingBottom: 0, ...(isMobile && { paddingRight: '10px' }) }}>
           <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-            <Typography className="row--text" sx={{ color: 'var(--color-text-secondary)', textAlign: 'right' }}>
+            <Typography className="row--text" sx={{ color: 'var(--mineo-color-grid-derived)', textAlign: 'right' }}>
               {calculatedInterest !== null ? `${formatAsAmount(calculatedInterest, 2)} kr.` : '-'}
             </Typography>
           </Box>
@@ -240,7 +240,7 @@ const BeregnetRenteRow = React.memo(
                   </IconButton>
                 </Tooltip>
               ) : (
-                <Typography className="row--text" sx={{ color: 'var(--color-text-secondary)' }}>
+                <Typography className="row--text" sx={{ color: 'var(--mineo-color-grid-derived)' }}>
                   -
                 </Typography>
               )}

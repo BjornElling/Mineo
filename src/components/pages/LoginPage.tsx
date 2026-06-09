@@ -108,7 +108,7 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
               fontSize: '20px',
               fontWeight: 600,
               letterSpacing: '-0.2px',
-              color: 'var(--color-text-secondary)',
+              color: 'var(--mineo-color-text-secondary)',
               fontFamily: 'Montserrat, sans-serif',
             }}
           >
@@ -135,7 +135,7 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
             margin: 0,
             textAlign: 'center',
             fontSize: '13px',
-            color: 'var(--color-text-secondary)',
+            color: 'var(--mineo-color-text-secondary)',
             fontFamily: 'Montserrat, sans-serif',
             lineHeight: 1.6,
           }}
@@ -172,7 +172,7 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
                 style={{
                   fontSize: '13px',
                   fontWeight: 600,
-                  color: 'var(--color-text-secondary)',
+                  color: 'var(--mineo-color-text-secondary)',
                   letterSpacing: '0.3px',
                   textTransform: 'uppercase',
                   fontFamily: 'Montserrat, sans-serif',

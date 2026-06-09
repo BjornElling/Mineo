@@ -388,7 +388,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         onKeyDown?.(e);
     }, [activation, allowDecimals, allowNegative, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
 
-    const percentAdornmentColor = draft.trim() === '' ? 'var(--color-input-placeholder)' : 'inherit';
+    const percentAdornmentColor = draft.trim() === '' ? 'var(--mineo-color-placeholder)' : 'inherit';
     const endAdornment = (
       <InputAdornment
         position="end"

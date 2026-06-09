@@ -32,10 +32,22 @@
   /*
     Debug typography coloring (font-style markers)
     - Default: OFF (normal program colors)
-    - ON: red/green/blue markers to visually verify typography classes
+    - ON: distinkte markørfarver pr. fælles tekstnorm, så al tekst visuelt
+      kan verificeres til at bruge en standardiseret, fælles formatering.
+      Tekst uden markørfarve bruger en norm der endnu ikke er dækket.
 
-    Controlled via `document.documentElement.dataset.mineoFontStyleColors`
-    set by `src/contexts/AppSettingsContext.tsx`.
+    Hver markør er en `--mineo-color-*`-wrapper der i OFF-tilstand peger på
+    den rigtige programfarve (i `layout.css`), og i ON-tilstand erstattes af
+    en markørfarve. Wrapperne defineres KUN her — aldrig i `layout.css` —
+    så de ikke kolliderer med temablokkene (`[data-mineo-theme='dark']`),
+    der har samme specificitet og indlæses efter denne fil.
+
+    Markørlegende (ON):
+      blå        section-header        rød          row--text
+      grøn       row--subheading       deeppink     MUI Typography / felttekst
+      lilla      grid-tabel-tekst      orange       placeholder
+      teal       deaktiveret felttekst brun         deaktiveret label
+      goldenrod  afledt tabelværdi     cyan         sekundær tekst
   */
   --mineo-color-section-header: var(--color-text-primary);
   --mineo-color-row-text: var(--color-text-primary);
@@ -49,6 +61,23 @@
 
   /* Grid table text (debug marker) */
   --mineo-color-grid-table-text: var(--color-text-primary);
+
+  /* Placeholder-tekst (felter, adornments, dropdown-placeholder) */
+  --mineo-color-placeholder: var(--color-input-placeholder);
+
+  /* Deaktiveret/låst felttekst (samme markør for begge varianter) */
+  --mineo-color-input-disabled: var(--color-input-disabled-text);
+  --mineo-color-input-disabled-locked: var(--color-input-disabled-locked-text);
+
+  /* Deaktiverede/passive labels (samme markør for normal + hover) */
+  --mineo-color-label-disabled: var(--color-text-disabled);
+  --mineo-color-label-disabled-hover: var(--color-text-disabled-hover);
+
+  /* Afledte/nedtonede tabelværdier */
+  --mineo-color-grid-derived: var(--color-grid-derived-text);
+
+  /* Sekundær brød-/hjælpetekst */
+  --mineo-color-text-secondary: var(--color-text-secondary);
 }
 
 :root[data-mineo-font-style-colors='on'] {
@@ -58,6 +87,13 @@
   --mineo-color-mui-typography-default: #ff1493;
   --mineo-color-input-text: var(--mineo-color-mui-typography-default);
   --mineo-color-grid-table-text: #9370db; /* Medium Purple */
+  --mineo-color-placeholder: #ff8c00; /* Orange */
+  --mineo-color-input-disabled: #00897b; /* Teal */
+  --mineo-color-input-disabled-locked: #00897b; /* Teal (samme norm) */
+  --mineo-color-label-disabled: #6d4c41; /* Brun */
+  --mineo-color-label-disabled-hover: #6d4c41; /* Brun (samme norm) */
+  --mineo-color-grid-derived: #b8860b; /* Dark Goldenrod */
+  --mineo-color-text-secondary: #00acc1; /* Cyan */
 }
 
 /* ==================== Global neutralisering af MUI Typography ==================== */
@@ -120,7 +156,7 @@
   font-family: var(--font-family-base);
   font-size: var(--font-size-text);
   font-weight: var(--font-weight-regular);
-  color: var(--color-text-secondary);
+  color: var(--mineo-color-text-secondary);
   line-height: var(--line-height-base);
 }
 
@@ -169,7 +205,7 @@
   font-family: var(--font-family-base);
   font-size: var(--font-size-text);
   font-weight: var(--font-weight-regular);
-  color: var(--color-text-secondary);
+  color: var(--mineo-color-text-secondary);
   line-height: var(--line-height-base);
   text-transform: none;
 }
@@ -190,7 +226,7 @@
   font-family: var(--font-family-base);
   font-size: var(--font-size-text);
   font-weight: var(--font-weight-regular);
-  color: var(--color-text-secondary);
+  color: var(--mineo-color-text-secondary);
   text-transform: none;
   transition:
     background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1),
@@ -222,7 +258,7 @@
 /* ==================== Navigation tabs ==================== */
 .MuiTab-root.tab-item,
 .tab-item {
-  color: var(--color-text-secondary);
+  color: var(--mineo-color-text-secondary);
   text-transform: none;
   font-weight: var(--font-weight-bold);
   transition: color 0.2s ease, opacity 0.2s ease;
@@ -270,7 +306,7 @@
 
 /* ==================== Hjælpeklasser ==================== */
 .MuiTypography-root.text-muted {
-  color: var(--color-text-secondary);
+  color: var(--mineo-color-text-secondary);
 }
 
 .MuiTypography-root.text-primary {

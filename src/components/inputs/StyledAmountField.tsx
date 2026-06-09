@@ -454,7 +454,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
                 bottom: 2,
                 fontSize: 8,
                 fontWeight: 700,
-                color: 'var(--color-input-placeholder)',
+                color: 'var(--mineo-color-placeholder)',
                 pointerEvents: 'none',
               }}
             >

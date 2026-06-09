@@ -379,16 +379,16 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
                 '&.Mui-disabled .MuiInputBase-input': {
                   cursor: 'default',
                   color: useLockedDisabledAppearance
-                    ? 'var(--color-input-disabled-locked-text, var(--color-input-disabled-text))'
-                    : 'var(--color-input-disabled-text)',
+                    ? 'var(--mineo-color-input-disabled-locked, var(--mineo-color-input-disabled))'
+                    : 'var(--mineo-color-input-disabled)',
                   WebkitTextFillColor: useLockedDisabledAppearance
-                    ? 'var(--color-input-disabled-locked-text, var(--color-input-disabled-text))'
-                    : 'var(--color-input-disabled-text)',
+                    ? 'var(--mineo-color-input-disabled-locked, var(--mineo-color-input-disabled))'
+                    : 'var(--mineo-color-input-disabled)',
                 },
                 '&.Mui-disabled .MuiInputAdornment-root': {
                   color: useLockedDisabledAppearance
-                    ? 'var(--color-input-disabled-locked-text, var(--color-input-disabled-text))'
-                    : 'var(--color-input-disabled-text)',
+                    ? 'var(--mineo-color-input-disabled-locked, var(--mineo-color-input-disabled))'
+                    : 'var(--mineo-color-input-disabled)',
                 },
                 '&.Mui-error fieldset': {
                   borderColor: 'var(--color-input-border-error)',
@@ -403,7 +403,7 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
                 },
               },
               '& .MuiInputBase-input::placeholder': {
-                color: 'var(--color-input-placeholder)',
+                color: 'var(--mineo-color-placeholder)',
                 opacity: 1,
               },
               '& .MuiOutlinedInput-root.Mui-focused .MuiInputBase-input:not([readonly])::placeholder': {

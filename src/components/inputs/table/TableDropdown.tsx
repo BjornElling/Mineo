@@ -531,7 +531,7 @@ const TableDropdown = React.memo(
             >
               {allowEmpty ? (
                 <MenuItem value="">
-                  <em style={{ color: 'var(--color-input-placeholder)' }}>{placeholder}</em>
+                  <em style={{ color: 'var(--mineo-color-placeholder)' }}>{placeholder}</em>
                 </MenuItem>
               ) : null}
               {options.map((opt) => {
