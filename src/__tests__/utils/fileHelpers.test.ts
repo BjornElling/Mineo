@@ -27,6 +27,7 @@ const baseSettings: AppSettings = {
   defaultOverenskomstLoenmodtager: 'ALLE',
   defaultOverenskomstArbejdsgiver: 'ALLE',
   defaultSvieSmerteDelvisSygemeldingSats: 'halv',
+  defaultLoenIndtastesSom: 'maaned',
   defaultIndsaetUdkastStempel: true,
   defaultVisBilagsnumre: false,
   allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: false,

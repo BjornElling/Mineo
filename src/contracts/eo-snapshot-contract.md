@@ -427,3 +427,35 @@ EET-issues eller EET-importprojektion skal vurderes mod begge kontrakter.
 - Invarianten "ingen manuelle midlertidigt_eet-rækker når toggle er TRUE" håndhæves både
   i UI'et (popup ved aktivering hvis der findes manuelle rækker) og defensivt i beregningen
   (filter i `buildEoValuesWithTransientMidlertidigtEet`).
+
+## 14. Neutralisering af irrelevante (skjulte) input
+
+Efter den transiente EET-injection (§13) neutraliseres irrelevante input i `effectiveEoValues`
+via `neutralizeIrrelevantEoInputs` (`helpers/eoInputRelevance.ts`), før engines, debug-snapshot,
+presentation-model og PDF-model bygges. Afsnittet er normativt.
+
+**Princip:** Et felt eller en række er *relevant*, hvis den er synlig i UI'en, fordi den
+indgår i den konkrete opgørelse. Synlighed defineres af relevans-predikaterne i
+`eoInputRelevance.ts`, som er den **eneste** autoritative kilde og deles med UI'ens
+conditional rendering — "skjult i UI" og "ignoreret i beregning" må ikke kunne divergere.
+Irrelevante inputs neutraliseres til deres tomme værdi (`undefined` / `[]`), så ingen motor
+kan læse en forældet skjult værdi (fail-closed). Committed form-state mutateres ikke;
+`snapshot.input.erstatningsopgoerelse` bevarer den oprindelige værdi (som §13).
+
+**Aktuelle relevans-regler:**
+- `svieSmerteTidligereTotal` er kun relevant fra og med 2. opgørelse. Ved første opgørelse er
+  feltet skjult og neutraliseres, så et evt. indtastet beløb ikke fradrages svie/smerte-loftet.
+- Svie/smerte-periodeinput (`svieSmertePerioder`, `svieSmerteSatserAar`, `svieSmerteAktuelPeriode`)
+  neutraliseres når sektionen ikke er aktiv (`kravPaaSvieSmerteGodtgoerelse !== 'Ja'`) eller
+  "tidligere beregnet S/S til max" er slået til.
+- TAF- og ferieperioder (`tafPerioder`, `ferieperioder`) og øvrige-krav-rækker
+  (`oevrigeKravPerioder`) neutraliseres når den respektive sektion ikke er aktiv.
+- Kun rækker med faktisk indhold blankes; tomme placeholder-rækker bevares (de påvirker
+  ikke beregning).
+
+**Bevidst undtagelse — komprimering ved EO 2+:** Når
+`komprimerBeregningEfterFoersteOpgoerelse === 'Ja'` fra og med 2. opgørelse, skjules
+løn-/beregningsgrundlags-felterne (`beregnesUdFra`, beregningsperiode, fravær, angivet løn,
+lønindkomst, lønudvikling, anciennitet) i UI'en, men de forbliver **aktive** input: tabt
+arbejdsfortjeneste genberegnes fra dem. Disse felter neutraliseres derfor ikke. Mode-gating
+af det aktive løn-felt (afhængigt af `beregnesUdFra`) ejes fortsat af indkomst-motoren.

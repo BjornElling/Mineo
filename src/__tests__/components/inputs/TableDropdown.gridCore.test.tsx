@@ -184,7 +184,11 @@ describe('TableDropdown GridCore integration', () => {
     // Klikket åbner menuen, hvis onEntered-transition planlægger et rAF-fokus på en MenuItem.
     // Flush det inde i act, så ButtonBase-fokus-opdateringen ikke sker uden for act (act-warning).
     await waitForMenuTransition();
-    trigger.focus();
+    // Menuen er åben her, så fokus-flytningen til triggeren opdaterer den åbne MenuItems
+    // ButtonBase-fokus-state. Pak det i act, så opdateringen ikke sker uden for act (act-warning).
+    act(() => {
+      trigger.focus();
+    });
     await user.paste('Beta');
 
     expect(onChange).toHaveBeenCalledWith({ target: { value: 'b' } });

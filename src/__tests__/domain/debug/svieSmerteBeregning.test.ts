@@ -531,12 +531,16 @@ describe('Svie/smerte beregning', () => {
     });
   });
 
+  // "Tidligere opgjort" forudsætter en tidligere erstatningsopgørelse, så disse scenarier
+  // sætter eoNummer: '2'. Ved første opgørelse er feltet skjult og neutraliseres bevidst
+  // (jf. eoInputRelevance.ts), så et "tidligere"-beløb ikke kan reducere kravet.
   describe('Tidligere opgjorte krav', () => {
     it('reducerer restplads med tidligere opgjort uden forlig', () => {
       // Max: 96.000 kr.
       // Tidligere opgjort: 70.000 kr. → restplads: 26.000 kr.
       // Råbeløb: 120 sygedage × 250 kr. = 30.000 kr. → begrænset til 26.000 kr.
       const values = makeValues({
+        eoNummer: '2',
         tidligereSsMax: 'Nej',
         svieSmertePerioder: [
           { id: '1', fra: iso('2024-01-01'), til: iso('2024-04-28'), tilstand: 'sygemeldt' },
@@ -556,6 +560,7 @@ describe('Svie/smerte beregning', () => {
       // Tidligere opgjort: 30.000 kr. → restplads: 18.000 kr.
       // Råbeløb: 100 sygedage × 125 kr. = 12.500 kr. (under restplads)
       const values = makeValues({
+        eoNummer: '2',
         forligAnsvarsgradProcent: 50,
         tidligereSsMax: 'Nej',
         svieSmertePerioder: [
@@ -575,6 +580,7 @@ describe('Svie/smerte beregning', () => {
       // Max: 96.000 kr.
       // Tidligere opgjort: 100.000 kr. → restplads: 0 kr.
       const values = makeValues({
+        eoNummer: '2',
         tidligereSsMax: 'Nej',
         svieSmertePerioder: [
           { id: '1', fra: iso('2024-01-01'), til: iso('2024-04-09'), tilstand: 'sygemeldt' },
@@ -593,6 +599,7 @@ describe('Svie/smerte beregning', () => {
       // Max: 96.000 kr.
       // Tidligere opgjort: 96.000 kr. → restplads: 0 kr.
       const values = makeValues({
+        eoNummer: '2',
         tidligereSsMax: 'Nej',
         svieSmertePerioder: [
           { id: '1', fra: iso('2024-01-01'), til: iso('2024-04-09'), tilstand: 'sygemeldt' },
@@ -675,6 +682,7 @@ describe('Svie/smerte beregning', () => {
       // Allerede modtaget: 10.000 kr.
       // Endeligt: 26.000 - 10.000 = 16.000 kr.
       const values = makeValues({
+        eoNummer: '2',
         tidligereSsMax: 'Nej',
         svieSmertePerioder: [
           { id: '1', fra: iso('2024-01-01'), til: iso('2024-04-28'), tilstand: 'sygemeldt' },
@@ -696,6 +704,7 @@ describe('Svie/smerte beregning', () => {
       // Allerede modtaget: 10.000 kr.
       // Endeligt: 18.000 - 10.000 = 8.000 kr.
       const values = makeValues({
+        eoNummer: '2',
         forligAnsvarsgradProcent: 50,
         tidligereSsMax: 'Nej',
         svieSmertePerioder: [
@@ -719,6 +728,7 @@ describe('Svie/smerte beregning', () => {
       // Allerede modtaget: 5.000 kr.
       // Endeligt: 12.428,57 - 5.000 = 7.428,57 kr.
       const values = makeValues({
+        eoNummer: '2',
         forligAnsvarsgradBroek: '2/7',
         tidligereSsMax: 'Nej',
         svieSmertePerioder: [
@@ -741,6 +751,7 @@ describe('Svie/smerte beregning', () => {
       // Allerede modtaget: 3.000 kr.
       // Endeligt: max(0, 2.000 - 3.000) = 0 kr.
       const values = makeValues({
+        eoNummer: '2',
         forligAnsvarsgradBroek: '1/3',
         tidligereSsMax: 'Nej',
         svieSmertePerioder: [
@@ -763,6 +774,7 @@ describe('Svie/smerte beregning', () => {
       // Allerede modtaget: 4.000 kr.
       // Endeligt: 4.000 - 4.000 = 0 kr.
       const values = makeValues({
+        eoNummer: '2',
         forligAnsvarsgradProcent: 25,
         tidligereSsMax: 'Nej',
         svieSmertePerioder: [
@@ -785,6 +797,7 @@ describe('Svie/smerte beregning', () => {
       // Allerede modtaget: 0 kr.
       // Endeligt: 1 kr.
       const values = makeValues({
+        eoNummer: '2',
         tidligereSsMax: 'Nej',
         svieSmertePerioder: [
           { id: '1', fra: iso('2024-01-01'), til: iso('2024-04-09'), tilstand: 'sygemeldt' },

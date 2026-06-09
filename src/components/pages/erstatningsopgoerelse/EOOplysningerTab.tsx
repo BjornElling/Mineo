@@ -68,6 +68,7 @@ import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsop
 import { EO_ANGIVET_LOEN_ID } from '../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
+import { erSvieSmerteTidligereTotalRelevant } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import {
   hasExactDisplayedAmountMatch,
   normalizeOptionalFreeText,
@@ -1610,7 +1611,9 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
                 <Typography className="row--subheading">Tidligere svie- og smertegodtgørelse</Typography>
 
-                {!erFoersteOpgoerelse && (
+                {/* Synlighed deler samme predikat som beregningens neutralisering,
+                    så feltet aldrig kan være skjult i UI'en men aktivt i beregningen. */}
+                {erSvieSmerteTidligereTotalRelevant(values) && (
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Svie/smerte-krav i tidligere erstatningsopgørelser:</Typography>
                     <Box className="row--label-right-hover__content">

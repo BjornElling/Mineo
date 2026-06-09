@@ -10,6 +10,7 @@ import {
   buildEoValuesWithTransientMidlertidigtEet,
   buildMidlertidigtEetSourceResult,
 } from '../helpers/midlertidigtEetTransientInjection';
+import { neutralizeIrrelevantEoInputs } from '../helpers/eoInputRelevance';
 import { buildOevrigeKravModel, buildSvieSmerteModel, buildTabtArbejdsfortjenesteModel } from './eoPresentationSectionBuilders';
 import { buildEoPdfPresentation, buildErstatningsopgoerelsePdfModelFromComputed, type EoPdfPresentation } from './eoPresentationModel';
 import type { MoneyOre } from './eoPresentationModel';
@@ -222,7 +223,13 @@ export const computeEoSnapshot = (args: Readonly<{
     : { groups: [], issues: [] };
   const midlertidigtEetGroups = midlertidigtEetSourceResult.groups;
   const midlertidigtEetSourceInvariants = buildMidlertidigtEetSourceInvariants(midlertidigtEetSourceResult.issues);
-  const effectiveEoValues = buildEoValuesWithTransientMidlertidigtEet(parsedEo.data, midlertidigtEetGroups);
+  // Neutralisér irrelevante (skjulte) input, så ingen motor kan se en forældet skjult værdi.
+  // Den transiente midlertidigt-EET-injection sker først; neutraliseringen rører ikke
+  // offentligeYdelserRows. Se eoInputRelevance.ts for relevans-reglerne og den bevidste
+  // komprimerings-undtagelse. Committed input bevares uændret i snapshot.input.
+  const effectiveEoValues = neutralizeIrrelevantEoInputs(
+    buildEoValuesWithTransientMidlertidigtEet(parsedEo.data, midlertidigtEetGroups)
+  );
 
   if (isAngivetLoenHiddenStateInvalid(parsedEo.data)) {
     reportSystemIssue({
