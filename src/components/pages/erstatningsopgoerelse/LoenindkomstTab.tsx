@@ -273,7 +273,7 @@ const createBlankAnsaettelsesforhold = (settings: AppSettings): Ansaettelsesforh
     shSoPct: undefined,
     storeBededagPct: undefined,
     pensionPct: undefined,
-    loenperiode: LOENPERIODE.MAANED,
+    loenperiode: safeSettings.defaultLoenIndtastesSom,
     fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
     loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
 

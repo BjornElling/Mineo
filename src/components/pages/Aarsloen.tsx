@@ -28,7 +28,7 @@ import {
   shouldShowAarsloenShDageFields,
   shouldWarnAarsloenFeriePct,
 } from '../../domain/policies';
-import { AARSLOEN_INITIAL_VALUES } from '../../domain/aarsloen/aarsloenInitialValues';
+import { createAarsloenInitialValues } from '../../domain/aarsloen/aarsloenInitialValues';
 import type { z } from 'zod';
 import type {
   StandardLoenTableValidationSummary,
@@ -49,16 +49,23 @@ type AarsloenValues = z.infer<typeof aarsloenSchema>;
  * Beregner årsløn baseret på satser og indtægtsoplysninger
  */
 const Aarsloen = React.memo(() => {
+  const { settings } = useAppSettings();
+
+  // Initial values baseret på settings (bruges kun ved oprettelse af NY sag)
+  const initialValues = React.useMemo(
+    () => createAarsloenInitialValues(settings),
+    [settings]
+  );
+
   // Persisted state for satser og beregning (med Zod-schema validering)
   const { values, setValues } = usePersistedForm(
     aarsloenSchema,
     'aarsloen',
-    AARSLOEN_INITIAL_VALUES
+    initialValues
   );
 
   // Destrukturér værdier for nem adgang
   const persistedStamdata = usePersistedSectionSelector('stamdata');
-  const { settings } = useAppSettings();
 
   const {
     feriePct, fritvalgPct, shSoPct, storeBededagPct, pensionPct, loenperiode, tableData,

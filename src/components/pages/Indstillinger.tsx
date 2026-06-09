@@ -13,10 +13,12 @@ import { saveDefaultDirectoryHandle, deleteDefaultDirectoryHandle, getDirectoryD
 import { logWarning } from '../../utils/logger';
 import {
   APP_SETTINGS_AFSLUTTES_MED_OPTIONS,
+  APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS,
   APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS,
   APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS,
   type AppSettingsDocumentDownloadFormatOption,
   type AppSettingsAfsluttesMedOption,
+  type AppSettingsLoenIndtastesSomOption,
   type AppSettingsLoenPaaHelligdageOption,
   type AppSettingsSvieSmerteDelvisSygemeldingSatsOption,
   type BrevhovedIndstillinger,
@@ -53,6 +55,21 @@ const isLoenPaaHelligdageOption = (value: string): value is AppSettingsLoenPaaHe
 const isAfsluttesMedOption = (value: string): value is AppSettingsAfsluttesMedOption => {
   return (APP_SETTINGS_AFSLUTTES_MED_OPTIONS as readonly string[]).includes(value);
 };
+
+const isLoenIndtastesSomOption = (value: string | undefined): value is AppSettingsLoenIndtastesSomOption => {
+  return typeof value === 'string' && (APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS as readonly string[]).includes(value);
+};
+
+const loenIndtastesSomLabels: Readonly<Record<AppSettingsLoenIndtastesSomOption, string>> = {
+  maaned: 'Måned',
+  uge: 'Uge',
+  dag: 'Dato',
+};
+
+const loenIndtastesSomOptions = APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS.map((value) => ({
+  value,
+  label: loenIndtastesSomLabels[value],
+} satisfies { value: AppSettingsLoenIndtastesSomOption; label: string }));
 
 const isSvieSmerteDelvisSygemeldingSatsOption = (
   value: string | undefined
@@ -344,6 +361,23 @@ const Indstillinger = React.memo(() => {
         <Box className="row--label-right-hover">
           <Typography className="row--subheading-underlined">Tabt arbejdsfortjeneste</Typography>
           <Box className="row--label-right-hover__content" />
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Løn indtastes som:</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledRadioButton
+              value={settings.defaultLoenIndtastesSom}
+              onCommit={(event) => {
+                const next = event.target.value;
+                if (isLoenIndtastesSomOption(next)) {
+                  updateSettings({ defaultLoenIndtastesSom: next });
+                }
+              }}
+              row={true}
+              options={loenIndtastesSomOptions.map((option) => ({ ...option }))}
+            />
+          </Box>
         </Box>
 
         <Box className="row--label-right-hover">

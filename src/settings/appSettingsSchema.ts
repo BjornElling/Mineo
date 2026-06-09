@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   afsluttesMedEnum,
   loenPaaHelligdageEnum,
+  loenperiodeEnum,
   svieSmerteDelvisSygemeldingSatsEnum,
 } from '../schemas/formSchemas';
 import {
@@ -63,10 +64,12 @@ export const DEFAULT_BREVHOVED_INDSTILLINGER: BrevhovedIndstillinger = {
 // sandhed; en ny enum-værdi dukker automatisk op her. Jf. app-settings.md.
 export const APP_SETTINGS_AFSLUTTES_MED_OPTIONS = afsluttesMedEnum.options;
 export const APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS = loenPaaHelligdageEnum.options;
+export const APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS = loenperiodeEnum.options;
 export const APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS = svieSmerteDelvisSygemeldingSatsEnum.options;
 
 export type AppSettingsAfsluttesMedOption = (typeof APP_SETTINGS_AFSLUTTES_MED_OPTIONS)[number];
 export type AppSettingsLoenPaaHelligdageOption = (typeof APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS)[number];
+export type AppSettingsLoenIndtastesSomOption = (typeof APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS)[number];
 export type AppSettingsSvieSmerteDelvisSygemeldingSatsOption =
   (typeof APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS)[number];
 export type AppSettingsDocumentDownloadFormatOption = DocumentDownloadFormat;
@@ -81,6 +84,7 @@ export const appSettingsSchema = z
     showStamdataTestTab: z.boolean(),
     erstatningsopgoerelseAfsluttesMed: z.enum(APP_SETTINGS_AFSLUTTES_MED_OPTIONS),
     // Standardværdier for nye ansættelsesforhold
+    defaultLoenIndtastesSom: z.enum(APP_SETTINGS_LOEN_INDTASTES_SOM_OPTIONS),
     defaultFuldLoenUnderFerie: z.boolean(),
     defaultLoenPaaHelligdage: z.enum(APP_SETTINGS_LOEN_PAA_HELLIGDAGE_OPTIONS),
     defaultOverenskomstLoenmodtager: z.string(),
@@ -109,6 +113,7 @@ export const DEFAULT_APP_SETTINGS: AppSettings = {
   showStamdataTestTab: false,
   erstatningsopgoerelseAfsluttesMed: 'Bekræftet godkendt',
   // Standardværdier for nye ansættelsesforhold
+  defaultLoenIndtastesSom: 'maaned',
   defaultFuldLoenUnderFerie: true,
   defaultLoenPaaHelligdage: 'Almindelig løn',
   defaultOverenskomstLoenmodtager: 'ALLE',

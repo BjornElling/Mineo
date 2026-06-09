@@ -1,5 +1,4 @@
 import type { PersistedSectionMap } from '../../../config/persistenceRegistry';
-import { LOENPERIODE } from '../../../types/loen';
 import { ensureSvieRows } from '../tables/svieSmerteTableModel';
 import { ensureTafRows } from '../tables/tafTableModel';
 import { ensureFravaerRows, ensureTafFerieRows } from '../tables/ferieTableModel';
@@ -53,7 +52,7 @@ export const createDefaultLoenindkomstAnsaettelsesforhold = (
   shSoPct: undefined,
   storeBededagPct: undefined,
   pensionPct: undefined,
-  loenperiode: LOENPERIODE.MAANED,
+  loenperiode: safeSettings.defaultLoenIndtastesSom,
   indtaegtsoplysningerTableData: [],
   fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
   loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
