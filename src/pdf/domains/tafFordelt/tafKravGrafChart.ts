@@ -38,7 +38,8 @@ const COLOR_SKADE = '#9B2F2F';
 const MONTHS_DA = ['jan.', 'feb.', 'mar.', 'apr.', 'maj', 'jun.', 'jul.', 'aug.', 'sep.', 'okt.', 'nov.', 'dec.'] as const;
 
 export type TafKravGrafChartOptions = Readonly<{
-  // Antal måneder i glidende gennemsnit. 1 (eller mindre) = ingen udglatning (faktiske tal).
+  // Antal måneder i glidende gennemsnit (kantbevidst: udglatter kun inden for
+  // sammenhængende aktive strækninger). 1 (eller mindre) = ingen udglatning.
   smoothingWindow?: number;
 }>;
 
@@ -46,8 +47,9 @@ type Point = Readonly<{ x: number; y: number }>;
 
 type WindowSamples = Readonly<{
   window: TafKravGrafTimeWindow;
-  // Pr. interval (≈ kalendermåned): x-midtpunkt + beløb pr. serie i samme rækkefølge som document.series.
-  midX: readonly number[];
+  // Pr. kolonne (kalendermåned-midtpunkt + evt. start/slut-ankre), sorteret efter x:
+  // x-position + beløb pr. serie i samme rækkefølge som document.series.
+  sampleX: readonly number[];
   leftX: number;
   rightX: number;
   valuesBySeries: readonly (readonly number[])[];
@@ -175,17 +177,63 @@ const sumSeriesInRange = (series: TafKravGrafSeries, fra: ISODateString, til: IS
     .filter((segment) => segment.fra <= til && segment.til >= fra)
     .reduce((sum, segment) => sum + segment.amountOre, 0);
 
-const movingAverage = (values: readonly number[], window: number): number[] => {
-  if (window <= 1 || values.length === 0) return [...values];
-  const radius = Math.floor(window / 2);
-  return values.map((_, index) => {
-    const from = Math.max(0, index - radius);
-    const to = Math.min(values.length, index + radius + 1);
-    let sum = 0;
-    for (let i = from; i < to; i += 1) sum += values[i];
-    return sum / (to - from);
-  });
+// Kantbevidst glidende gennemsnit: udglatter kun inden for hver sammenhængende
+// aktive strækning (måneder med beløb > 0). Nul-måneder før en series start og
+// efter dens ophør trækkes aldrig ind i gennemsnittet, så et nyt beløb ikke
+// "smitter" visuelt bagud før sin faktiske startdato (eller frem efter ophør).
+const smoothWithinActiveRuns = (values: readonly number[], window: number): number[] => {
+  const radius = window <= 1 ? 0 : Math.floor(window / 2);
+  const result = values.map(() => 0);
+  let runStart = 0;
+  while (runStart < values.length) {
+    if (values[runStart] <= 0) {
+      runStart += 1;
+      continue;
+    }
+    let runEnd = runStart;
+    while (runEnd + 1 < values.length && values[runEnd + 1] > 0) runEnd += 1;
+    for (let i = runStart; i <= runEnd; i += 1) {
+      const from = Math.max(runStart, i - radius);
+      const to = Math.min(runEnd, i + radius);
+      let sum = 0;
+      for (let j = from; j <= to; j += 1) sum += values[j];
+      result[i] = sum / (to - from + 1);
+    }
+    runStart = runEnd + 1;
+  }
+  return result;
 };
+
+// Tidligste segment-start / seneste segment-slut blandt seriens segmenter, der
+// overlapper en given måned. Bruges til at forankre start/slut-ankre på den
+// faktiske grænsedato frem for måneds-midtpunktet.
+const firstSegmentStartInMonth = (
+  series: TafKravGrafSeries,
+  month: TafKravGrafTimeWindow
+): ISODateString | null => {
+  let earliest: ISODateString | null = null;
+  for (const segment of series.segments) {
+    if (segment.fra <= month.til && segment.til >= month.fra) {
+      if (earliest === null || segment.fra < earliest) earliest = segment.fra;
+    }
+  }
+  return earliest;
+};
+
+const lastSegmentEndInMonth = (
+  series: TafKravGrafSeries,
+  month: TafKravGrafTimeWindow
+): ISODateString | null => {
+  let latest: ISODateString | null = null;
+  for (const segment of series.segments) {
+    if (segment.fra <= month.til && segment.til >= month.fra) {
+      if (latest === null || segment.til > latest) latest = segment.til;
+    }
+  }
+  return latest;
+};
+
+type SampleColumn = { x: number; values: number[] };
 
 const buildWindowSamples = (
   document: TafKravGrafDocument,
@@ -195,22 +243,82 @@ const buildWindowSamples = (
 ): WindowSamples[] =>
   layout.map((entry) => {
     const months = splitWindowByMonths(entry.window);
-    const midX = months.map((month) => {
+    const monthMidX = months.map((month) => {
       const x1 = mapDate(month.fra);
       const x2 = mapDate(month.til);
       return x1 !== null && x2 !== null ? (x1 + x2) / 2 : entry.x;
     });
-    const valuesBySeries = document.series.map((series) => {
+    const smoothedBySeries = document.series.map((series) => {
       const raw = months.map((month) => sumSeriesInRange(series, month.fra, month.til));
-      return movingAverage(raw, smoothingWindow);
+      return smoothWithinActiveRuns(raw, smoothingWindow);
     });
-    return { window: entry.window, midX, leftX: entry.x, rightX: entry.x + entry.width, valuesBySeries };
+
+    // Find hvilken måned en given dato falder i (til at vælge de øvrige seriers
+    // niveau i en anker-kolonne).
+    const monthIndexContaining = (iso: ISODateString): number => {
+      const index = months.findIndex((month) => iso >= month.fra && iso <= month.til);
+      return index >= 0 ? index : 0;
+    };
+
+    // Start-/slut-ankre: hvor en serie går inaktiv→aktiv (eller aktiv→inaktiv)
+    // inde i vinduet, forankres et nul-punkt på den faktiske grænsedato. Den
+    // monotone kurve letter så blødt op fra (eller ned til) den dato i stedet for
+    // at smitte ind i nabomånederne. Grupperes pr. dato, så flere serier kan dele
+    // samme anker-kolonne.
+    const anchorByIso = new Map<ISODateString, { x: number; monthIndex: number; zeroed: Set<number> }>();
+    const addAnchor = (iso: ISODateString | null, seriesIndex: number): void => {
+      if (!iso) return;
+      const x = mapDate(iso);
+      if (x === null) return;
+      const existing = anchorByIso.get(iso);
+      if (existing) {
+        existing.zeroed.add(seriesIndex);
+        return;
+      }
+      anchorByIso.set(iso, { x, monthIndex: monthIndexContaining(iso), zeroed: new Set([seriesIndex]) });
+    };
+    smoothedBySeries.forEach((values, seriesIndex) => {
+      for (let i = 1; i < values.length; i += 1) {
+        const active = values[i] > 0;
+        const prevActive = values[i - 1] > 0;
+        if (active && !prevActive) {
+          // Tilkomst inde i vinduet: forankr på seriens faktiske segment-start.
+          addAnchor(firstSegmentStartInMonth(document.series[seriesIndex], months[i]), seriesIndex);
+        } else if (!active && prevActive) {
+          // Ophør inde i vinduet: forankr på dagen efter seriens seneste segment-slut.
+          const end = lastSegmentEndInMonth(document.series[seriesIndex], months[i - 1]);
+          addAnchor(end ? getDayAfterIso(end) : null, seriesIndex);
+        }
+      }
+    });
+
+    const columns: SampleColumn[] = months.map((_, j) => ({
+      x: monthMidX[j],
+      values: smoothedBySeries.map((values) => values[j]),
+    }));
+    for (const { x, monthIndex, zeroed } of anchorByIso.values()) {
+      columns.push({
+        x,
+        values: smoothedBySeries.map((values, seriesIndex) =>
+          zeroed.has(seriesIndex) ? 0 : values[monthIndex]
+        ),
+      });
+    }
+    columns.sort((a, b) => a.x - b.x);
+
+    return {
+      window: entry.window,
+      sampleX: columns.map((column) => column.x),
+      leftX: entry.x,
+      rightX: entry.x + entry.width,
+      valuesBySeries: document.series.map((_, seriesIndex) => columns.map((column) => column.values[seriesIndex])),
+    };
   });
 
 const maxStackedTotalOre = (samples: readonly WindowSamples[]): number => {
   let max = 0;
   for (const sample of samples) {
-    const count = sample.midX.length;
+    const count = sample.sampleX.length;
     for (let i = 0; i < count; i += 1) {
       let total = 0;
       for (const values of sample.valuesBySeries) total += values[i] ?? 0;
@@ -295,7 +403,7 @@ const buildSeriesPoints = (
   upToSeriesIndex: number,
   yForAmount: (amount: number) => number
 ): Point[] => {
-  const count = sample.midX.length;
+  const count = sample.sampleX.length;
   if (count === 0) return [];
   const cumulativeAt = (i: number): number => {
     let total = 0;
@@ -306,7 +414,7 @@ const buildSeriesPoints = (
   // Forankr ved vinduets venstre kant, så fyldet dækker hele vinduet.
   points.push({ x: sample.leftX, y: yForAmount(cumulativeAt(0)) });
   for (let i = 0; i < count; i += 1) {
-    points.push({ x: sample.midX[i], y: yForAmount(cumulativeAt(i)) });
+    points.push({ x: sample.sampleX[i], y: yForAmount(cumulativeAt(i)) });
   }
   points.push({ x: sample.rightX, y: yForAmount(cumulativeAt(count - 1)) });
   return points;
@@ -320,7 +428,7 @@ const drawStackedBands = (
 ): void => {
   const baselineY = yForAmount(0);
   for (const sample of samples) {
-    if (sample.midX.length === 0) continue;
+    if (sample.sampleX.length === 0) continue;
     for (let seriesIndex = 0; seriesIndex < document.series.length; seriesIndex += 1) {
       const upper = buildSeriesPoints(sample, seriesIndex, yForAmount);
       const lower = seriesIndex === 0

@@ -1,4 +1,8 @@
 import { eoSnapshotToTafKravGrafDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
+import {
+  buildIncomeCalculationContext,
+  buildIncomeForRanges,
+} from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { EoSnapshot, EoSnapshotComputedData } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
@@ -211,6 +215,61 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
       { fra: iso('2022-01-01'), til: iso('2022-12-31') },
       { fra: iso('2024-01-01'), til: iso('2024-12-31') },
     ]);
+  });
+
+  it('bygger bro over en hel kalendermåned uden arbejdsdage (arbejdsdags-grundlag) i stedet for et falsk dyk', () => {
+    const ctxMock = vi.mocked(buildIncomeCalculationContext);
+    const incomeMock = vi.mocked(buildIncomeForRanges);
+    const originalCtx = ctxMock.getMockImplementation();
+    const originalIncome = incomeMock.getMockImplementation();
+
+    // Arbejdsdage i alle måneder af 2024 undtagen juli — juli efterligner en hel
+    // måned dækket af ferie/fravær (0 arbejdsdage → divisor 0 → springes normalt over).
+    const arbejdsdageSet = new Set(
+      Array.from({ length: 12 }, (_, monthIndex) => monthIndex + 1)
+        .filter((month) => month !== 7)
+        .map((month) => iso(`2024-${String(month).padStart(2, '0')}-15`))
+    );
+    ctxMock.mockImplementation(() => ({
+      boundsFra: iso('2024-01-01'),
+      boundsTil: iso('2024-12-31'),
+      arbejdsdageSet,
+      shDaysForYdelser: new Set(),
+      loenErrorRowIdsByEmploymentId: new Map(),
+    }));
+    incomeMock.mockImplementation((_values, ranges) => {
+      const range = ranges[0];
+      if (!range || !range.fra.startsWith('2024')) return { employers: [], benefits: [] };
+      return {
+        employers: [{ id: 'a', index: 0, name: 'Arbejdsgiver A', amount: 22_000, breakdown: {} as never }],
+        benefits: [],
+      };
+    });
+
+    const snapshot = buildSnapshot();
+    const taf = snapshot.data!.pdfModel.tabtArbejdsfortjeneste as {
+      tafBeregningsenhed: unknown;
+      indkomstSkadestidspunkt: { periodeTilBeregning?: unknown };
+    };
+    taf.tafBeregningsenhed = TAF_BEREGNES_SOM.ARBEJDSDAGE;
+    taf.indkomstSkadestidspunkt.periodeTilBeregning = undefined;
+
+    const projection = eoSnapshotToTafKravGrafDocument(snapshot);
+
+    // Gendan default-mocks før assertions, så intet lækker til øvrige tests.
+    if (originalCtx) ctxMock.mockImplementation(originalCtx);
+    if (originalIncome) incomeMock.mockImplementation(originalIncome);
+
+    expect(projection.kind).toBe('ok');
+    if (projection.kind !== 'ok') throw new Error(projection.message);
+    expect(projection.document.unit).toBe('arbejdsdag');
+
+    const loenSegments = projection.document.series.find((entry) => entry.label === 'Arbejdsgiver A')?.segments ?? [];
+    const juni = loenSegments.find((segment) => segment.fra === iso('2024-06-01'));
+    const juli = loenSegments.find((segment) => segment.fra === iso('2024-07-01'));
+    expect(juni).toBeDefined();
+    // Juli mangler arbejdsdage, men broen holder juni-dagslønnen hen over måneden.
+    expect(juli).toEqual({ fra: iso('2024-07-01'), til: iso('2024-07-31'), amountOre: juni!.amountOre });
   });
 
   it('tegner faktiske indkomstsegmenter helt frem til TAF-periodens sidste indtastede ydelse', () => {

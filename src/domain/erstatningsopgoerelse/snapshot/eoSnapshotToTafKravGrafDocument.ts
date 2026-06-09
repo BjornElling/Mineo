@@ -192,6 +192,48 @@ const resolveUnitDivisor = (
   return beregnArbejdsdageOgMaaneder(range.fra, range.til, new Set(), new Set()).maaneder;
 };
 
+// Bygger bro over kalendermåneder der kun mangler et segment, fordi de IKKE har
+// nogen arbejdsdage (hele måneden er ferie/SH/fravær). Dagslønnen er en rate pr.
+// arbejdsdag og er per definition uændret af en sådan måned, så et hul ville være
+// et falsk visuelt dyk. Den foregående måneds rate holdes hen over hullet.
+//
+// Kun for arbejdsdags-grundlaget: månedsløn har aldrig nul-divisor. Et ægte
+// indkomsthul (måned MED arbejdsdage, men uden ansættelse) har arbejdsdage > 0 og
+// bygges der bevidst IKKE bro over — det er et reelt dyk. Broen begrænses til ét
+// tidsvindue ad gangen, så akse-brud aldrig overskrides.
+const bridgeZeroWorkdayMonths = (
+  series: TafKravGrafSeries,
+  timeWindows: readonly TafKravGrafTimeWindow[],
+  workdaysInRange: (range: TafKravGrafTimeWindow) => number
+): TafKravGrafSeries => {
+  const segmentInMonth = (month: TafKravGrafTimeWindow): TafKravGrafSeriesSegment | undefined =>
+    series.segments.find((segment) => segment.fra <= month.til && segment.til >= month.fra);
+
+  const bridged: TafKravGrafSeriesSegment[] = [];
+  for (const window of timeWindows) {
+    const months = splitRangeByCalendarMonths(window);
+    const lastCoveredIndex = months.reduce((acc, month, index) => (segmentInMonth(month) ? index : acc), -1);
+    if (lastCoveredIndex < 0) continue;
+    let lastAmountOre: MoneyOre | null = null;
+    for (let index = 0; index <= lastCoveredIndex; index += 1) {
+      const existing = segmentInMonth(months[index]);
+      if (existing) {
+        lastAmountOre = existing.amountOre;
+        continue;
+      }
+      // Indre måned uden segment: byg kun bro hvis den mangler pga. nul arbejdsdage.
+      if (lastAmountOre === null) continue;
+      if (workdaysInRange(months[index]) > 0) continue;
+      bridged.push({ fra: months[index].fra, til: months[index].til, amountOre: lastAmountOre });
+    }
+  }
+  if (bridged.length === 0) return series;
+  return {
+    ...series,
+    segments: [...series.segments, ...bridged].sort((a, b) => (a.fra < b.fra ? -1 : a.fra > b.fra ? 1 : 0)),
+  };
+};
+
 // Sorteringsrang afgør seriernes rækkefølge (og dermed farve + stak-lagdeling):
 // ét ansættelsesforhold pr. serie (efter employer.index), derefter offentlige ydelser.
 const BENEFIT_RANK_BASE = 1_000_000;
@@ -296,12 +338,19 @@ export const eoSnapshotToTafKravGrafDocument = (
   }
   const series = [...seriesByLabel.entries()]
     .sort(([, a], [, b]) => a.rank - b.rank)
-    .map(([label, accumulator], index): TafKravGrafSeries => ({
-      id: seriesIdFromLabel(label),
-      label,
-      color: SERIES_COLORS[index % SERIES_COLORS.length],
-      segments: accumulator.segments,
-    }));
+    .map(([label, accumulator], index): TafKravGrafSeries => {
+      const base: TafKravGrafSeries = {
+        id: seriesIdFromLabel(label),
+        label,
+        color: SERIES_COLORS[index % SERIES_COLORS.length],
+        segments: accumulator.segments,
+      };
+      // Kun arbejdsdags-grundlaget kan få nul-arbejdsdags-huller (månedsløn har
+      // altid positiv divisor); månedsløns-grafen er derved urørt af ferie/SH.
+      return unit === 'arbejdsdag'
+        ? bridgeZeroWorkdayMonths(base, timeWindows, (range) => countArbejsdageInRange(range, incomeContext))
+        : base;
+    });
 
   if (series.length === 0) {
     return { kind: 'blocked', message: 'Visuel graf over indtægtsniveau kan ikke genereres, fordi der ikke er indkomstsegmenter i TAF-perioden.', invariants: [] };
