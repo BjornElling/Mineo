@@ -289,4 +289,39 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
       amountOre: 19_000_00,
     });
   });
+
+  const buildSnapshotUdenAarsfordeling = (harTafPerioder: boolean): EoSnapshot => {
+    const snapshot = buildSnapshot();
+    return {
+      ...snapshot,
+      data: {
+        ...snapshot.data,
+        engines: {
+          ...snapshot.data?.engines,
+          tafPerYear: null,
+          tafNetto: { harTafPerioder },
+        },
+      } as EoSnapshotComputedData,
+    };
+  };
+
+  it('forklarer at der ikke beregnes TAF når der ikke er TAF-perioder', () => {
+    const projection = eoSnapshotToTafKravGrafDocument(buildSnapshotUdenAarsfordeling(false));
+
+    expect(projection.kind).toBe('blocked');
+    if (projection.kind !== 'blocked') throw new Error('forventede blocked');
+    expect(projection.message).toBe(
+      'Visuel graf over indtægtsniveau kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.'
+    );
+  });
+
+  it('beholder den generiske årsfordelings-besked når der er TAF-perioder men ingen fordeling', () => {
+    const projection = eoSnapshotToTafKravGrafDocument(buildSnapshotUdenAarsfordeling(true));
+
+    expect(projection.kind).toBe('blocked');
+    if (projection.kind !== 'blocked') throw new Error('forventede blocked');
+    expect(projection.message).toBe(
+      'Visuel graf over indtægtsniveau kan ikke genereres, fordi TAF ikke kan fordeles på år.'
+    );
+  });
 });

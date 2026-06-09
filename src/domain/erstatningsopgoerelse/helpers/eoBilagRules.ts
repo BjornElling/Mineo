@@ -97,6 +97,9 @@ export type EoBilagAvailabilityMap = Readonly<Record<EoBilagDynamicSelectionKey,
 const EO_BILAG_PERIOD_FILTER_REASON =
   'Bilag er sat til Perioden, men der findes ingen TAF-perioder at filtrere efter.';
 
+const EO_BILAG_INGEN_TAF_KRAV_REASON =
+  'Der er ikke krav på tabt arbejdsfortjeneste i erstatningsperioden. Skift bilag til "Alle" for at medtage oplysningerne.';
+
 export const shouldRenderEoIndkomstOgYdelserBilag = (
   eoValues: ErstatningsopgoerelseValues,
   mode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar
@@ -195,6 +198,23 @@ export const getEoBilagAvailability = (params: Readonly<{
 }>): EoBilagAvailabilityMap => {
   const { eoValues, skadedatoISO } = params;
   const eoBilagMode = eoValues.eoBilagLoenindkomstOgOffentligeYdelserIndgaar ?? 'Perioden';
+
+  // Uden TAF-krav findes der ingen erstatningsperiode at filtrere bilag efter, og alle disse
+  // bilag dokumenterer alene TAF-beregningen. Når bilag samtidig er sat til "Perioden", er der
+  // derfor intet relevant at vise — så alle dynamiske valg deaktiveres. Bevidst kun for "Perioden":
+  // "Alle" medtager oplysningerne uafhængigt af perioden, jf. brugervalgt afgrænsning.
+  if (eoBilagMode === 'Perioden' && eoValues.kravPaaTabtArbejdsfortjeneste !== 'Ja') {
+    const disabled: EoBilagAvailabilityState = { enabled: false, disabledReason: EO_BILAG_INGEN_TAF_KRAV_REASON };
+    return {
+      loenindkomst: disabled,
+      offentligeYdelser: disabled,
+      midlertidigEet: disabled,
+      regulering: disabled,
+      shDage: disabled,
+      sygeferiegodtgoerelse: disabled,
+    };
+  }
+
   const eoBilagRanges = buildEoBilagIndkomstYdelserRanges(eoValues, eoBilagMode);
   const eoBilagRangeGroups = buildPeriodRangeGroups(eoValues, eoBilagMode, eoBilagRanges);
   const kanViseIndkomstOgYdelserBilag = shouldRenderEoIndkomstOgYdelserBilag(eoValues, eoBilagMode);

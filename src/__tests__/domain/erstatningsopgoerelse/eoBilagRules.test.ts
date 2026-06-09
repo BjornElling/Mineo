@@ -334,6 +334,76 @@ describe('getEoBilagAvailability', () => {
 
     expect(result.sygeferiegodtgoerelse.enabled).toBe(true);
   });
+
+  it.each(['Nej', 'Skjul'] as const)(
+    'deaktiverer alle dynamiske bilag i Perioden når kravPaaTabtArbejdsfortjeneste er %s',
+    (kravPaaTabtArbejdsfortjeneste) => {
+      const employment = createDefaultLoenindkomstAnsaettelsesforhold();
+      employment.indtaegtsoplysningerTableData = [
+        {
+          id: 'row-1',
+          col0_maaned: '1',
+          col1_maaned: '2024',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: undefined,
+          col1_dag: undefined,
+          col2: { kind: 'number', value: 1000 },
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        },
+      ];
+
+      const result = getEoBilagAvailability({
+        eoValues: makeValues({
+          kravPaaTabtArbejdsfortjeneste,
+          eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Perioden',
+          // Datagrundlag der ellers ville aktivere de enkelte bilag — skal ignoreres uden TAF-krav.
+          beregnesUdFra: 'Angivet dagsløn',
+          midlertidigtEetFraEetSiden: 'Ja',
+          tafPerioder: [{ id: 'taf-1', fra: toISODateString('2024-02-01'), til: toISODateString('2024-02-29'), loseFeriedage: 0 }],
+          loenindkomstAnsaettelsesforhold: [employment],
+          offentligeYdelserRows: [
+            { id: 'row-2', fraDato: toISODateString('2024-02-01'), tilDato: toISODateString('2024-02-29'), ydelse: { kind: 'number', value: 1000 }, tillaeg: undefined, ydelsestype: 'dagpenge' },
+          ],
+          sfggAnsaettelsesforhold: [
+            {
+              ansaettelsesforholdId: 'af-1',
+              sfggBeregningskilde: 'Ferieloven',
+              sfggReferenceperiodeFra: undefined,
+              sfggReferenceperiodeTil: undefined,
+              sfggReferenceperiodeFravaersdageUdenLoen: undefined,
+              sfggManuelDagssats: undefined,
+              sfggManuelBeloebIHenholdTil: undefined,
+              sfggManuelFoerstEfterSygeloen: 'Nej',
+              sfggSatsvalg: undefined,
+              sfggAlleredeBetaltBeloeb: undefined,
+            },
+          ],
+        }),
+      });
+
+      const forventetAarsag = 'Der er ikke krav på tabt arbejdsfortjeneste i erstatningsperioden. Skift bilag til "Alle" for at medtage oplysningerne.';
+      for (const key of ['loenindkomst', 'offentligeYdelser', 'midlertidigEet', 'regulering', 'shDage', 'sygeferiegodtgoerelse'] as const) {
+        expect(result[key].enabled).toBe(false);
+        expect(result[key].disabledReason).toBe(forventetAarsag);
+      }
+    }
+  );
+
+  it('rører ikke bilag i Alle selvom der ikke er krav på tabt arbejdsfortjeneste', () => {
+    const result = getEoBilagAvailability({
+      eoValues: makeValues({
+        kravPaaTabtArbejdsfortjeneste: 'Nej',
+        eoBilagLoenindkomstOgOffentligeYdelserIndgaar: 'Alle',
+        midlertidigtEetFraEetSiden: 'Ja',
+      }),
+    });
+
+    // I "Alle" gælder den TAF-krav-baserede afgrænsning ikke; midlertidig EET følger sin egen betingelse.
+    expect(result.midlertidigEet.enabled).toBe(true);
+  });
 });
 
 describe('hasMidlertidigtEetYdelsestype', () => {
