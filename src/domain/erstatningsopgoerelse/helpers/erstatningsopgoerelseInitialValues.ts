@@ -137,7 +137,7 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   tidligereModtagetTaf: undefined,
 
   // Øvrige erstatningskrav
-  kravPaaOevrigeErstatningskrav: 'Ja',
+  kravPaaOevrigeErstatningskrav: 'Skjul',
   oevrigeKravPerioder: ensureOevrigeKravRows(undefined),
 
   // Offentlige ydelser

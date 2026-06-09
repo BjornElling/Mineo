@@ -294,7 +294,7 @@ const createSignatureTable = (
 // til SIDEN (FrameAnchorType.PAGE), så den bliver liggende øverst til højre uanset
 // hvad der sker med den øvrige tekst i dokumentet. Højre kant af ruden flugter med
 // højre tekstmargin (PAGE_WIDTH - margin - bredde), og toppen sidder ved topmargin.
-const BREVHOVED_FRAME_WIDTH_DXA = dxaFromCentimeters(4);
+const BREVHOVED_FRAME_WIDTH_DXA = dxaFromCentimeters(7);
 const BREVHOVED_FRAME_HEIGHT_DXA = dxaFromCentimeters(1);
 const BREVHOVED_FRAME_X_DXA = PAGE_WIDTH_DXA - PAGE_MARGIN_DXA - BREVHOVED_FRAME_WIDTH_DXA;
 const BREVHOVED_FRAME_Y_DXA = PAGE_MARGIN_DXA;
@@ -386,6 +386,10 @@ export const createDocxWriter = (params?: Readonly<{
   orientation?: 'portrait' | 'landscape';
 }>): PdfWriter => {
   const blocks: FileChild[] = [];
+  // Brevhovedets afsnit holdes adskilt fra de øvrige blokke og flettes først ind
+  // ved build (efter første ordinære blok), så Words åbne-caret ikke lander inde
+  // i den side-forankrede tekstrude. Se composeChildren.
+  let brevhovedParagraphs: Paragraph[] = [];
   let properties: CoreProperties = {};
   let filename = 'dokument.docx';
   const orientation = params?.orientation ?? 'portrait';
@@ -404,6 +408,22 @@ export const createDocxWriter = (params?: Readonly<{
   const addParagraph = (text: string, bold = false): void => {
     if (text.trim() === '') return;
     blocks.push(paragraph(text, { style: DOCX_STYLE.normal, bold }));
+  };
+
+  // Fletter brevhovedet ind i dokumentets blokke. Brevhovedet lægges EFTER første
+  // ordinære blok, så Words åbne-caret lander i den første rigtige tekstlinje
+  // (typisk titlen) frem for inde i den side-forankrede tekstrude. Brevhovedet er
+  // forankret til SIDEN (FrameAnchorType.PAGE), så dets plads i tekstflowet er
+  // visuelt ligegyldig — det skal blot blive liggende på side 1, hvilket det gør
+  // som blok nr. 2.
+  const composeChildren = (): FileChild[] => {
+    if (brevhovedParagraphs.length === 0) {
+      return blocks.length > 0 ? blocks : [paragraph('')];
+    }
+    if (blocks.length === 0) {
+      return [...brevhovedParagraphs];
+    }
+    return [blocks[0], ...brevhovedParagraphs, ...blocks.slice(1)];
   };
 
   const build = async (): Promise<Blob> => {
@@ -461,7 +481,7 @@ export const createDocxWriter = (params?: Readonly<{
               },
             },
           },
-          children: blocks.length > 0 ? blocks : [paragraph('')],
+          children: composeChildren(),
         },
       ],
       // Al formatering kommer fra det centrale typografi-modul (docxStyles).
@@ -538,11 +558,10 @@ export const createDocxWriter = (params?: Readonly<{
       blocks.push(createSignatureTable(dateLine, sigLine, skadelidteNavn));
     },
     writeBrevhoved: (brevhovedData) => {
-      const brevhovedParagraphs = buildBrevhovedParagraphs(brevhovedData);
+      brevhovedParagraphs = buildBrevhovedParagraphs(brevhovedData);
       if (brevhovedParagraphs.length > 0) {
         hasBrevhoved = true;
       }
-      blocks.push(...brevhovedParagraphs);
     },
     addUdkastWatermark: () => {},
     addImageDataUrl: (dataUrl, _x, _y, width, height) => {

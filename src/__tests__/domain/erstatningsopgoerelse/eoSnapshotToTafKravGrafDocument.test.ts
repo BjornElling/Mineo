@@ -178,10 +178,10 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     if (projection.kind !== 'ok') throw new Error(projection.message);
 
     expect(projection.document.series.map((entry) => entry.label)).toEqual([
-      'Arbejdsgiver A',
+      'Løn (Arbejdsgiver A)',
       'Sygedagpenge',
     ]);
-    const loenSegments = projection.document.series.find((entry) => entry.label === 'Arbejdsgiver A')?.segments ?? [];
+    const loenSegments = projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments ?? [];
     expect(loenSegments.at(0)).toEqual({ fra: iso('2022-01-01'), til: iso('2022-01-31'), amountOre: 30_000_00 });
     expect(loenSegments).toContainEqual({
       fra: iso('2024-01-01'),
@@ -264,7 +264,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     if (projection.kind !== 'ok') throw new Error(projection.message);
     expect(projection.document.unit).toBe('arbejdsdag');
 
-    const loenSegments = projection.document.series.find((entry) => entry.label === 'Arbejdsgiver A')?.segments ?? [];
+    const loenSegments = projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments ?? [];
     const juni = loenSegments.find((segment) => segment.fra === iso('2024-06-01'));
     const juli = loenSegments.find((segment) => segment.fra === iso('2024-07-01'));
     expect(juni).toBeDefined();
@@ -278,7 +278,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     expect(projection.kind).toBe('ok');
     if (projection.kind !== 'ok') throw new Error(projection.message);
 
-    expect(projection.document.series.find((entry) => entry.label === 'Arbejdsgiver A')?.segments).toContainEqual({
+    expect(projection.document.series.find((entry) => entry.label === 'Løn (Arbejdsgiver A)')?.segments).toContainEqual({
       fra: iso('2020-01-01'),
       til: iso('2020-01-31'),
       amountOre: 36_000_00,

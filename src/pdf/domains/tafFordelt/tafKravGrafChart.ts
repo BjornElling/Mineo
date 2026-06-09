@@ -261,21 +261,30 @@ const buildWindowSamples = (
     };
 
     // Start-/slut-ankre: hvor en serie går inaktiv→aktiv (eller aktiv→inaktiv)
-    // inde i vinduet, forankres et nul-punkt på den faktiske grænsedato. Den
-    // monotone kurve letter så blødt op fra (eller ned til) den dato i stedet for
-    // at smitte ind i nabomånederne. Grupperes pr. dato, så flere serier kan dele
-    // samme anker-kolonne.
-    const anchorByIso = new Map<ISODateString, { x: number; monthIndex: number; zeroed: Set<number> }>();
-    const addAnchor = (iso: ISODateString | null, seriesIndex: number): void => {
-      if (!iso) return;
-      const x = mapDate(iso);
-      if (x === null) return;
+    // inde i vinduet, skal overgangen være et lodret spring på den faktiske
+    // grænsedato — ikke en blød opletning/nedtoning, der visuelt smitter ind i
+    // nabomånederne. Det opnås ved at lægge BÅDE et nul-punkt og et aktiv-værdi-
+    // punkt på samme x (grænsedatoen): tilkomst får nul→værdi (lodret op), ophør
+    // får værdi→nul (lodret ned). Den almindelige bløde kurve mellem fortløbende
+    // måneder er urørt. Grupperes pr. dato, så flere serier kan dele samme anker.
+    // `starts`/`ends` afbilder serie-index → den aktive måneds index (kilden til
+    // aktiv-værdien).
+    type AnchorEntry = {
+      x: number;
+      monthIndex: number;
+      starts: Map<number, number>;
+      ends: Map<number, number>;
+    };
+    const anchorByIso = new Map<ISODateString, AnchorEntry>();
+    const ensureAnchor = (iso: ISODateString | null): AnchorEntry | null => {
+      if (!iso) return null;
       const existing = anchorByIso.get(iso);
-      if (existing) {
-        existing.zeroed.add(seriesIndex);
-        return;
-      }
-      anchorByIso.set(iso, { x, monthIndex: monthIndexContaining(iso), zeroed: new Set([seriesIndex]) });
+      if (existing) return existing;
+      const x = mapDate(iso);
+      if (x === null) return null;
+      const entry: AnchorEntry = { x, monthIndex: monthIndexContaining(iso), starts: new Map(), ends: new Map() };
+      anchorByIso.set(iso, entry);
+      return entry;
     };
     smoothedBySeries.forEach((values, seriesIndex) => {
       for (let i = 1; i < values.length; i += 1) {
@@ -283,11 +292,11 @@ const buildWindowSamples = (
         const prevActive = values[i - 1] > 0;
         if (active && !prevActive) {
           // Tilkomst inde i vinduet: forankr på seriens faktiske segment-start.
-          addAnchor(firstSegmentStartInMonth(document.series[seriesIndex], months[i]), seriesIndex);
+          ensureAnchor(firstSegmentStartInMonth(document.series[seriesIndex], months[i]))?.starts.set(seriesIndex, i);
         } else if (!active && prevActive) {
           // Ophør inde i vinduet: forankr på dagen efter seriens seneste segment-slut.
           const end = lastSegmentEndInMonth(document.series[seriesIndex], months[i - 1]);
-          addAnchor(end ? getDayAfterIso(end) : null, seriesIndex);
+          ensureAnchor(end ? getDayAfterIso(end) : null)?.ends.set(seriesIndex, i - 1);
         }
       }
     });
@@ -296,13 +305,41 @@ const buildWindowSamples = (
       x: monthMidX[j],
       values: smoothedBySeries.map((values) => values[j]),
     }));
-    for (const { x, monthIndex, zeroed } of anchorByIso.values()) {
+    // Kolonnerne pushes i den rækkefølge de skal optræde fra venstre mod højre;
+    // en stabil sortering (ES2019+) bevarer rækkefølgen for ens x, så aktiv-side
+    // og nul-side lander på den rigtige side af springet.
+    for (const { x, monthIndex, starts, ends } of anchorByIso.values()) {
+      // Aktiv-side for ophør: lægges FØR nul-kolonnen → lodret fald.
+      if (ends.size > 0) {
+        columns.push({
+          x,
+          values: smoothedBySeries.map((values, seriesIndex) => {
+            const endMonth = ends.get(seriesIndex);
+            if (endMonth !== undefined) return values[endMonth];
+            if (starts.has(seriesIndex)) return 0;
+            return values[monthIndex];
+          }),
+        });
+      }
+      // Nul-kolonne på selve grænsedatoen: alle skiftende serier er 0.
       columns.push({
         x,
         values: smoothedBySeries.map((values, seriesIndex) =>
-          zeroed.has(seriesIndex) ? 0 : values[monthIndex]
+          starts.has(seriesIndex) || ends.has(seriesIndex) ? 0 : values[monthIndex]
         ),
       });
+      // Aktiv-side for tilkomst: lægges EFTER nul-kolonnen → lodret stigning.
+      if (starts.size > 0) {
+        columns.push({
+          x,
+          values: smoothedBySeries.map((values, seriesIndex) => {
+            const startMonth = starts.get(seriesIndex);
+            if (startMonth !== undefined) return values[startMonth];
+            if (ends.has(seriesIndex)) return 0;
+            return values[monthIndex];
+          }),
+        });
+      }
     }
     columns.sort((a, b) => a.x - b.x);
 

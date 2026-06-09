@@ -306,7 +306,7 @@ export const eoSnapshotToTafKravGrafDocument = (
       );
       // Hvert ansættelsesforhold er sin egen serie (ingen sammenlægning af lønindkomst).
       for (const employer of income.employers) {
-        const label = resolveArbejdsstedDisplayName(employer.name, employer.index);
+        const label = `Løn (${resolveArbejdsstedDisplayName(employer.name, employer.index)})`;
         for (const segment of clampSegmentToWindows({
           fra: sampleRange.fra,
           til: sampleRange.til,

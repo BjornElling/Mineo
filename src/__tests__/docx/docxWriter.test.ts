@@ -392,10 +392,10 @@ describe('createDocxWriter', () => {
     expect(documentXml).toContain('<w:framePr');
     expect(documentXml).toMatch(/w:framePr[^>]*w:hAnchor="page"/);
     expect(documentXml).toMatch(/w:framePr[^>]*w:vAnchor="page"/);
-    // 4 cm bred, mindst 1 cm høj og fortsat højrejusteret mod tekstfeltets højrekant.
-    expect(documentXml).toMatch(/w:framePr[^>]*w:w="2268"/);
+    // 7 cm bred, mindst 1 cm høj og fortsat højrejusteret mod tekstfeltets højrekant.
+    expect(documentXml).toMatch(/w:framePr[^>]*w:w="3969"/);
     expect(documentXml).toMatch(/w:framePr[^>]*w:h="567"/);
-    expect(documentXml).toMatch(/w:framePr[^>]*w:x="8198"/);
+    expect(documentXml).toMatch(/w:framePr[^>]*w:x="6497"/);
     expect(stylesXml).toMatch(/w:styleId="Header"[\s\S]*?<w:sz w:val="20"/);
 
     // "Anden første side" er aktiv (titlePg), og første side har sin egen

@@ -128,6 +128,10 @@ const MATH_ROUND_ALLOWLIST = new Set([
   // Canvas/PDF dimension: pixelbredde/-højde (ikke finansielt)
   'pdf/shared/pdfHelpers.ts',
   'pdf/infrastructure/pdfWriter.ts',
+  // Graf-rendering: akse-skridt (nice-ceil magnitude), heltals-tickantal og
+  // glidende-gennemsnits-radius — ren talgeometri, ikke finansielt output
+  // (de viste beløbs-ticks afrundes via roundByMethod).
+  'pdf/domains/tafFordelt/tafKravGrafChart.ts',
 ]);
 
 /**
