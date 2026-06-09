@@ -20,6 +20,7 @@ import type { StamdataValues } from '../../../schemas/formSchemas';
 import {
   downloadErstatningsopgoerelsePdf,
   downloadTafFordeltPaaAarPdf,
+  downloadTafKravGrafPdf,
   downloadTafOpreguleretPaaAarPdf,
 } from '../../../pdf/infrastructure/pdfService';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
@@ -27,6 +28,7 @@ import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse
 import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
 import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
 import { eoSnapshotToTafPerYearOpreguleretPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretPdfDocument';
+import { eoSnapshotToTafKravGrafDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
 import { safeCompute } from '../../../utils/safeComputation';
@@ -334,6 +336,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     () => (eoSnapshot ? eoSnapshotToTafPerYearOpreguleretPdfDocument(eoSnapshot) : null),
     [eoSnapshot]
   );
+  const tafKravGrafPdfProjection = React.useMemo(
+    () => (eoSnapshot ? eoSnapshotToTafKravGrafDocument(eoSnapshot) : null),
+    [eoSnapshot]
+  );
   const eoPdfBlockingInvariants = React.useMemo(
     () => (eoPdfProjection?.kind === 'blocked' ? eoPdfProjection.invariants : []),
     [eoPdfProjection]
@@ -443,6 +449,23 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     return null;
   }, [authoritativeBlockingInvariants, eoSnapshot, tafOpreguleretPdfProjection, firstBlockingDebugErrorMessage]);
 
+  const tafKravGrafPdfDisabledReason = React.useMemo(() => {
+    if (firstBlockingDebugErrorMessage) {
+      return firstBlockingDebugErrorMessage;
+    }
+    if (!eoSnapshot) return 'Download ikke mulig, før der er bygget et gyldigt snapshot';
+    if (eoSnapshot.status === 'fail_closed') {
+      return eoSnapshot.invariants[0]?.message ?? 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag.';
+    }
+    if (authoritativeBlockingInvariants.length > 0) {
+      return authoritativeBlockingInvariants[0]?.message ?? 'EO-beregningen er blokeret af snapshot-kontroller.';
+    }
+    if (tafKravGrafPdfProjection?.kind === 'blocked') {
+      return tafKravGrafPdfProjection.message;
+    }
+    return null;
+  }, [authoritativeBlockingInvariants, eoSnapshot, tafKravGrafPdfProjection, firstBlockingDebugErrorMessage]);
+
   const eoPdfGate = React.useMemo(
     () => createPdfGate(
       eoPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors,
@@ -467,9 +490,18 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     ),
     [hasBlockingDebugErrors, tafOpreguleretPdfDisabledReason, tafOpreguleretPdfProjection]
   );
+  const tafKravGrafPdfGate = React.useMemo(
+    () => createPdfGate(
+      tafKravGrafPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors,
+      tafKravGrafPdfDisabledReason,
+      'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag.'
+    ),
+    [hasBlockingDebugErrors, tafKravGrafPdfDisabledReason, tafKravGrafPdfProjection]
+  );
   const canDownloadSnapshotEoPdf = eoPdfGate.canDownload;
   const canDownloadSnapshotTafPdf = tafPdfGate.canDownload;
   const canDownloadSnapshotTafOpreguleretPdf = tafOpreguleretPdfGate.canDownload;
+  const canDownloadSnapshotTafKravGrafPdf = tafKravGrafPdfGate.canDownload;
 
   const reportableSystemInvariants = React.useMemo(() => {
     return [
@@ -477,11 +509,12 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
       ...eoPdfBlockingInvariants,
       ...(tafPdfProjection?.kind === 'blocked' ? tafPdfProjection.invariants : []),
       ...(tafOpreguleretPdfProjection?.kind === 'blocked' ? tafOpreguleretPdfProjection.invariants : []),
+      ...(tafKravGrafPdfProjection?.kind === 'blocked' ? tafKravGrafPdfProjection.invariants : []),
     ].filter((invariant, index, array) =>
       isDevtoolsReportableInvariant(invariant)
       && array.findIndex((candidate) => candidate.id === invariant.id && candidate.message === invariant.message) === index
     );
-  }, [authoritativeBlockingInvariants, eoPdfBlockingInvariants, tafPdfProjection, tafOpreguleretPdfProjection]);
+  }, [authoritativeBlockingInvariants, eoPdfBlockingInvariants, tafPdfProjection, tafOpreguleretPdfProjection, tafKravGrafPdfProjection]);
 
   const reportedSystemInvariantKeysRef = React.useRef<Set<string>>(new Set());
   const [pdfDownloadErrorMessage, setPdfDownloadErrorMessage] = React.useState<string | null>(null);
@@ -845,6 +878,21 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     });
     setPdfDownloadErrorMessage(result.success ? null : result.error);
   }, [canDownloadSnapshotTafOpreguleretPdf, eoSnapshot, stamdataValues, eoValues, selectedElements, settings, midlertidigtEetGroups]);
+
+  const handleDownloadTafKravGrafPdf = React.useCallback(async () => {
+    if (!canDownloadSnapshotTafKravGrafPdf) {
+      setPdfDownloadErrorMessage(null);
+      return;
+    }
+    if (!eoSnapshot) return;
+
+    const result = await downloadTafKravGrafPdf({
+      eoValues,
+      settings,
+      snapshot: eoSnapshot,
+    });
+    setPdfDownloadErrorMessage(result.success ? null : result.error);
+  }, [canDownloadSnapshotTafKravGrafPdf, eoSnapshot, eoValues, settings]);
 
   const getCustomSummaryText = React.useCallback((row: (typeof errors)[number]): string | null => {
     return getCustomDebugRowMessage(row);
@@ -1387,6 +1435,70 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
             {!canDownloadSnapshotTafOpreguleretPdf && (
               <Tooltip
                 title={tafOpreguleretPdfDisabledReason ?? 'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag.'}
+                arrow
+                placement="top"
+              >
+                <Box
+                  tabIndex={-1}
+                  sx={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'default',
+                  }}
+                >
+                  <Download
+                    sx={{
+                      fontSize: '24px',
+                      color: 'text.disabled',
+                    }}
+                  />
+                </Box>
+              </Tooltip>
+            )}
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">
+            Visuel graf over indtægtsniveau
+          </Typography>
+          <Box className="row--label-right-hover__content">
+            {canDownloadSnapshotTafKravGrafPdf && (
+              <Box
+                onClick={handleDownloadTafKravGrafPdf}
+                tabIndex={-1}
+                sx={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s',
+                  '&:hover': {
+                    backgroundColor: 'var(--color-icon-action-hover)',
+                  },
+                  '&:active': {
+                    backgroundColor: 'var(--color-icon-action-active)',
+                  },
+                }}
+              >
+                <Download
+                  sx={{
+                    fontSize: '24px',
+                    color: 'primary.main',
+                  }}
+                />
+              </Box>
+            )}
+            {!canDownloadSnapshotTafKravGrafPdf && (
+              <Tooltip
+                title={tafKravGrafPdfDisabledReason ?? 'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag.'}
                 arrow
                 placement="top"
               >

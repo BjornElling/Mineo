@@ -6,7 +6,9 @@ import {
   FrameAnchorType,
   FrameWrap,
   Header,
+  ImageRun,
   Packer,
+  PageOrientation,
   PageBreak,
   Paragraph,
   Table,
@@ -45,6 +47,7 @@ const PAGE_WIDTH_DXA = 11906;
 const PAGE_HEIGHT_DXA = 16838;
 const PAGE_MARGIN_DXA = 1440;
 const CONTENT_WIDTH_DXA = PAGE_WIDTH_DXA - PAGE_MARGIN_DXA * 2;
+const LANDSCAPE_CONTENT_WIDTH_DXA = PAGE_HEIGHT_DXA - PAGE_MARGIN_DXA * 2;
 const TABLE_CELL_MARGIN_DXA = 90;
 const dxaFromCentimeters = (centimeters: number): number =>
   roundByMethod((centimeters / 2.54) * 1440, 0, 'halfAwayFromZero');
@@ -368,10 +371,28 @@ const buildFirstPageHeaderChildren = (
 // Tomt afstands-afsnit mellem blokke (sektion/tabel).
 const spacerParagraph = (): Paragraph => paragraph('', { style: DOCX_STYLE.noSpacing });
 
-export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean }>): PdfWriter => {
+const uint8ArrayFromDataUrl = (dataUrl: string): Uint8Array => {
+  const base64 = dataUrl.split(',')[1] ?? '';
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+};
+
+export const createDocxWriter = (params?: Readonly<{
+  visUdkastStempel?: boolean;
+  orientation?: 'portrait' | 'landscape';
+}>): PdfWriter => {
   const blocks: FileChild[] = [];
   let properties: CoreProperties = {};
   let filename = 'dokument.docx';
+  const orientation = params?.orientation ?? 'portrait';
+  const isLandscape = orientation === 'landscape';
+  const pageWidthDxa = isLandscape ? PAGE_HEIGHT_DXA : PAGE_WIDTH_DXA;
+  const pageHeightDxa = isLandscape ? PAGE_WIDTH_DXA : PAGE_HEIGHT_DXA;
+  const contentWidthDxa = isLandscape ? LANDSCAPE_CONTENT_WIDTH_DXA : CONTENT_WIDTH_DXA;
   // Sættes når dokumentet får et brevhoved. Aktiverer "anden første side", så
   // første side får et højere top-/headerområde end de øvrige sider.
   let hasBrevhoved = false;
@@ -427,7 +448,11 @@ export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean 
             // "Anden første side": første side har sit eget (højere) sidehoved.
             titlePage: hasBrevhoved,
             page: {
-              size: { width: PAGE_WIDTH_DXA, height: PAGE_HEIGHT_DXA },
+              size: {
+                width: pageWidthDxa,
+                height: pageHeightDxa,
+                orientation: isLandscape ? PageOrientation.LANDSCAPE : PageOrientation.PORTRAIT,
+              },
               margin: {
                 top: PAGE_MARGIN_DXA,
                 right: PAGE_MARGIN_DXA,
@@ -520,9 +545,25 @@ export const createDocxWriter = (params?: Readonly<{ visUdkastStempel?: boolean 
       blocks.push(...brevhovedParagraphs);
     },
     addUdkastWatermark: () => {},
+    addImageDataUrl: (dataUrl, _x, _y, width, height) => {
+      const pxWidth = Math.max(1, roundByMethod((width / 25.4) * 96, 0, 'halfAwayFromZero'));
+      const pxHeight = Math.max(1, roundByMethod((height / 25.4) * 96, 0, 'halfAwayFromZero'));
+      blocks.push(new Paragraph({
+        children: [
+          new ImageRun({
+            data: uint8ArrayFromDataUrl(dataUrl),
+            transformation: {
+              width: pxWidth,
+              height: pxHeight,
+            },
+            type: 'png',
+          }),
+        ],
+      }));
+    },
     getTextWidth: (text) => text.length * 2,
     fitTextToWidth: (text) => text,
-    getPageWidth: () => CONTENT_WIDTH_DXA,
+    getPageWidth: () => contentWidthDxa,
     addPage: () => {
       blocks.push(new Paragraph({ children: [new PageBreak()] }));
     },

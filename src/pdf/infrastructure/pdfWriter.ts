@@ -18,7 +18,7 @@ import { createJsPdfAdapter } from './jsPdfAdapter';
 import type { PdfDocumentAdapter } from './pdfDocumentAdapter';
 import { renderBrevhoved } from './pdfBrevhovedRenderer';
 import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from '../shared/pdfTextUtils';
-import { formatRoundedCanonical } from '../../utils/rounding';
+import { formatRoundedCanonical, roundByMethod } from '../../utils/rounding';
 import { getActiveDocumentDownloadFormat, getActiveDocumentWriterFactory } from '../../document/documentGenerationContext';
 
 const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
@@ -50,8 +50,9 @@ const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): st
   }
 
   const canvas = document.createElement('canvas');
-  canvas.width = Math.max(400, Math.round(pageWidth));
-  canvas.height = Math.max(560, Math.round(pageHeight));
+  const pixelScale = 4;
+  canvas.width = roundByMethod(Math.max(1, pageWidth * pixelScale), 0, 'halfAwayFromZero');
+  canvas.height = roundByMethod(Math.max(1, pageHeight * pixelScale), 0, 'halfAwayFromZero');
   const ctx = canvas.getContext('2d');
   if (!ctx) {
     udkastWatermarkCache.set(cacheKey, null);
@@ -61,8 +62,10 @@ const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): st
   // Transparent billede med kun vandmærke-tekst, så indhold forbliver markerbart og uden uigennemsigtige overlejringer.
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.translate(canvas.width / 2, canvas.height / 2);
-  ctx.rotate((-45 * Math.PI) / 180);
-  const fontSize = Math.round(Math.min(canvas.width, canvas.height) * 0.20);
+  const isLandscape = pageWidth > pageHeight;
+  const angle = isLandscape ? -28 : -45;
+  ctx.rotate((angle * Math.PI) / 180);
+  const fontSize = roundByMethod(Math.min(canvas.width, canvas.height) * 0.28, 0, 'halfAwayFromZero');
   ctx.font = `700 ${fontSize}px Arial, sans-serif`;
   ctx.fillStyle = 'rgba(225,225,225,0.42)';
   ctx.textAlign = 'center';
@@ -88,12 +91,13 @@ const addUdkastWatermark = (adapter: PdfDocumentAdapter): void => {
 
   // Fallback hvis canvas ikke er tilgængelig ved runtime.
   const text = 'UDKAST';
-  const centerX = pageWidth / 2 + 18;
-  const centerY = pageHeight / 2 - 80;
+  const isLandscape = pageWidth > pageHeight;
+  const centerX = pageWidth / 2;
+  const centerY = pageHeight / 2;
   adapter.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
-  adapter.setFontSize(130);
+  adapter.setFontSize(roundByMethod(Math.min(pageWidth, pageHeight) * 0.42, 0, 'halfAwayFromZero'));
   adapter.setTextColor(235, 235, 235);
-  adapter.text(text, centerX, centerY, { align: 'center', angle: -45 });
+  adapter.text(text, centerX, centerY, { align: 'center', angle: isLandscape ? -28 : -45 });
   adapter.setTextColor(0, 0, 0);
   adapter.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   adapter.setFontSize(FONT_SIZES.normal);
@@ -179,10 +183,11 @@ const createPdfCursor = (params: Readonly<{
   lineHeight: number;
   visUdkastStempel: boolean;
   onLayoutFallback: (params: Readonly<{ message: string; label: string }>) => void;
+  orientation: 'portrait' | 'landscape';
 }>): PdfCursor => {
-  const { lineHeight, visUdkastStempel, onLayoutFallback } = params;
+  const { lineHeight, visUdkastStempel, onLayoutFallback, orientation } = params;
   const doc = new jsPDF({
-    orientation: 'portrait',
+    orientation,
     unit: 'mm',
     format: 'a4',
   });
@@ -689,6 +694,7 @@ export type PdfWriter = {
   writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
   writeBrevhoved: (brevhovedData: BrevhovedData) => void;
   addUdkastWatermark: () => void;
+  addImageDataUrl: (dataUrl: string, x: number, y: number, width: number, height: number) => void;
   getTextWidth: (text: string) => number;
   fitTextToWidth: (text: string, maxWidth: number) => string;
   getPageWidth: () => number;
@@ -705,9 +711,10 @@ export const createPdfWriter = (params: Readonly<{
   lineHeight: number;
   visUdkastStempel: boolean;
   onLayoutFallback: (params: Readonly<{ message: string; label: string }>) => void;
+  orientation?: 'portrait' | 'landscape';
 }>): PdfWriter => {
-  const { lineHeight, visUdkastStempel, onLayoutFallback } = params;
-  const cursor = createPdfCursor({ lineHeight, visUdkastStempel, onLayoutFallback });
+  const { lineHeight, visUdkastStempel, onLayoutFallback, orientation = 'portrait' } = params;
+  const cursor = createPdfCursor({ lineHeight, visUdkastStempel, onLayoutFallback, orientation });
   let previousBlockWasSectionHeader = false;
   // Bruges kun til spacing-logik: positiv manuel Y-flytning må ikke akkumulere før første content-blok på siden.
   let hasRenderedContent = false;
@@ -974,6 +981,13 @@ export const createPdfWriter = (params: Readonly<{
     },
     writeBrevhoved: cursor.writeBrevhoved,
     addUdkastWatermark: cursor.addUdkastWatermark,
+    addImageDataUrl: (dataUrl, x, y, width, height) => {
+      const doc = cursor.getDoc();
+      doc.addImage(dataUrl, 'PNG', x, y, width, height, undefined, 'FAST');
+      previousBlockWasSectionHeader = false;
+      hasRenderedContent = true;
+      explicitSpacingSinceLastContent = 0;
+    },
     getTextWidth: cursor.getTextWidth,
     fitTextToWidth: cursor.fitTextToWidth,
     getPageWidth: () => MARGINS.left + cursor.getFullWidth() + MARGINS.right,
@@ -990,20 +1004,23 @@ export const createPdfWriter = (params: Readonly<{
 
 export const createStandardPdfWriter = (params?: Readonly<{
   visUdkastStempel?: boolean;
+  orientation?: 'portrait' | 'landscape';
   onLayoutFallback?: (params: Readonly<{ message: string; label: string }>) => void;
 }>): PdfWriter => {
   const visUdkastStempel = params?.visUdkastStempel ?? false;
+  const orientation = params?.orientation ?? 'portrait';
   const onLayoutFallback = params?.onLayoutFallback ?? (() => {});
   if (getActiveDocumentDownloadFormat() === 'word') {
     const createWriter = getActiveDocumentWriterFactory();
     if (!createWriter) {
       throw new Error('Word-generering kræver en præindlæst Word-writer.');
     }
-    return createWriter({ visUdkastStempel });
+    return createWriter({ visUdkastStempel, orientation });
   }
   return createPdfWriter({
     lineHeight: PDF_BASE_LINE_HEIGHT_MM,
     visUdkastStempel,
     onLayoutFallback,
+    orientation,
   });
 };

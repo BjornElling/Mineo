@@ -10,6 +10,7 @@ type PdfModuleMap = {
   erstatningsopgoerelse: typeof import('../domains/eo/erstatningsopgoerelsePdf');
   tafFordeltPaaAar: typeof import('../domains/tafFordelt/tafFordeltPaaAarPdf');
   tafOpreguleretPaaAar: typeof import('../domains/tafFordelt/tafOpreguleretPaaAarPdf');
+  tafKravGraf: typeof import('../domains/tafFordelt/tafKravGrafPdf');
   varigeMen: typeof import('../domains/varigemen/varigeMenPdf');
   loebendeYdelser: typeof import('../domains/loebendeYdelser/loebendeYdelserPdf');
   kapitalisering: typeof import('../domains/kapitalisering/kapitaliseringPdf');
@@ -31,6 +32,7 @@ const moduleLoaders: { [K in keyof PdfModuleMap]: () => Promise<PdfModuleMap[K]>
   erstatningsopgoerelse: () => import('../domains/eo/erstatningsopgoerelsePdf'),
   tafFordeltPaaAar: () => import('../domains/tafFordelt/tafFordeltPaaAarPdf'),
   tafOpreguleretPaaAar: () => import('../domains/tafFordelt/tafOpreguleretPaaAarPdf'),
+  tafKravGraf: () => import('../domains/tafFordelt/tafKravGrafPdf'),
   varigeMen: () => import('../domains/varigemen/varigeMenPdf'),
   loebendeYdelser: () => import('../domains/loebendeYdelser/loebendeYdelserPdf'),
   kapitalisering: () => import('../domains/kapitalisering/kapitaliseringPdf'),
@@ -63,6 +65,7 @@ export const loadKRLPdfModule = () => loadModule('krl');
 export const loadErstatningsopgoerelsePdfModule = () => loadModule('erstatningsopgoerelse');
 export const loadTafFordeltPaaAarPdfModule = () => loadModule('tafFordeltPaaAar');
 export const loadTafOpreguleretPaaAarPdfModule = () => loadModule('tafOpreguleretPaaAar');
+export const loadTafKravGrafPdfModule = () => loadModule('tafKravGraf');
 export const loadVarigeMenPdfModule = () => loadModule('varigeMen');
 export const loadLoebendeYdelserPdfModule = () => loadModule('loebendeYdelser');
 export const loadKapitaliseringPdfModule = () => loadModule('kapitalisering');

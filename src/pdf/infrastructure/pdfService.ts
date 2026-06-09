@@ -25,6 +25,7 @@ import {
   loadSHDagePdfModule,
   loadSatserPdfModule,
   loadTafFordeltPaaAarPdfModule,
+  loadTafKravGrafPdfModule,
   loadTafOpreguleretPaaAarPdfModule,
   loadVarigeMenPdfModule,
   loadForsoergertabPdfModule,
@@ -41,6 +42,7 @@ import type { EoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoS
 import { eoSnapshotToEoPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
 import { eoSnapshotToTafPerYearPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
 import { eoSnapshotToTafPerYearOpreguleretPdfDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretPdfDocument';
+import { eoSnapshotToTafKravGrafDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { logWarning } from '../../utils/logger';
 import { asError } from '../../utils/typeGuards';
@@ -585,6 +587,38 @@ export const downloadTafOpreguleretPaaAarPdf = async (params: Readonly<{
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere TAF opreguleret til beregningsår-PDF'),
       'pdfService.downloadTafOpreguleretPaaAarPdf',
+      error
+    );
+  }
+};
+
+export const downloadTafKravGrafPdf = async (params: Readonly<{
+  eoValues: ErstatningsopgoerelseValues;
+  settings: AppSettings;
+  snapshot: EoSnapshot;
+}>): Promise<PdfDownloadResult> => {
+  const { settings, snapshot } = params;
+  const visBrevhoved = getVisBrevhoved(settings, 'erstatningsopgoerelse');
+  const tafKravGrafDocument = eoSnapshotToTafKravGrafDocument(snapshot);
+  if (tafKravGrafDocument.kind === 'blocked') {
+    return { success: false, error: buildDocumentFailureMessage(settings, tafKravGrafDocument.message) };
+  }
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadTafKravGrafPdf');
+  if (preflightFailure) return preflightFailure;
+
+  try {
+    const { generateTafKravGrafPdf } = await loadTafKravGrafPdfModule();
+    return await runSelectedDocumentFormat(settings, () => {
+      generateTafKravGrafPdf({
+        visBrevhoved,
+        visUdkastStempel: params.eoValues.indsaetUdkastStempel === 'Ja',
+        document: tafKravGrafDocument.document,
+      });
+    });
+  } catch (error) {
+    return await createPdfDownloadFailure(
+      buildDocumentFailureMessage(settings, 'Kunne ikke generere Visuel graf over indtægtsniveau-PDF'),
+      'pdfService.downloadTafKravGrafPdf',
       error
     );
   }

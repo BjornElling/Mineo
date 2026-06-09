@@ -4,7 +4,7 @@ import type { PdfWriter } from '../pdf/infrastructure/pdfWriter';
 type DocumentGenerationContext = Readonly<{
   format: DocumentDownloadFormat;
   pendingDownloads: Promise<void>[];
-  createWriter?: (params?: Readonly<{ visUdkastStempel?: boolean }>) => PdfWriter;
+  createWriter?: (params?: Readonly<{ visUdkastStempel?: boolean; orientation?: 'portrait' | 'landscape' }>) => PdfWriter;
 }>;
 
 let activeContext: DocumentGenerationContext | null = null;
@@ -12,7 +12,7 @@ let activeContext: DocumentGenerationContext | null = null;
 export const getActiveDocumentDownloadFormat = (): DocumentDownloadFormat => activeContext?.format ?? 'pdf';
 
 export const getActiveDocumentWriterFactory = ():
-  | ((params?: Readonly<{ visUdkastStempel?: boolean }>) => PdfWriter)
+  | ((params?: Readonly<{ visUdkastStempel?: boolean; orientation?: 'portrait' | 'landscape' }>) => PdfWriter)
   | undefined => activeContext?.createWriter;
 
 export const registerPendingDocumentDownload = (pendingDownload: Promise<void>): void => {
@@ -23,7 +23,7 @@ export const withDocumentGenerationContext = async <T>(
   format: DocumentDownloadFormat,
   run: () => T | Promise<T>,
   options?: Readonly<{
-    createWriter?: (params?: Readonly<{ visUdkastStempel?: boolean }>) => PdfWriter;
+    createWriter?: (params?: Readonly<{ visUdkastStempel?: boolean; orientation?: 'portrait' | 'landscape' }>) => PdfWriter;
   }>
 ): Promise<T> => {
   const previousContext = activeContext;
