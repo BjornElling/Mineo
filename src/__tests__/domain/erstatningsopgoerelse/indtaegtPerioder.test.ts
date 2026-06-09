@@ -12,6 +12,7 @@ import {
   buildTafRanges,
   buildBeregningsperiodeRange,
   buildIncomeCalculationContext,
+  resolveArbejdsstedDisplayName,
 } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { mergeIsoDateRanges } from '../../../domain/erstatningsopgoerelse/engines/periodMerging';
 import {
@@ -31,6 +32,22 @@ const makeEo = (overrides: Partial<ErstatningsopgoerelseValues> = {}): Erstatnin
 });
 
 // ─── buildBeregningsperiodeRange ──────────────────────────────────────────────
+
+describe('resolveArbejdsstedDisplayName', () => {
+  it('bruger det indtastede arbejdsstednavn når det findes', () => {
+    expect(resolveArbejdsstedDisplayName('Netto', 0)).toBe('Netto');
+  });
+
+  it('trimmer indtastet navn', () => {
+    expect(resolveArbejdsstedDisplayName('  Føtex  ', 2)).toBe('Føtex');
+  });
+
+  it('falder tilbage til "Arbejdssted N" (1-indekseret) ved manglende navn', () => {
+    expect(resolveArbejdsstedDisplayName(undefined, 0)).toBe('Arbejdssted 1');
+    expect(resolveArbejdsstedDisplayName('', 1)).toBe('Arbejdssted 2');
+    expect(resolveArbejdsstedDisplayName('   ', 2)).toBe('Arbejdssted 3');
+  });
+});
 
 describe('buildBeregningsperiodeRange', () => {
   it('returnerer undefined når tafBeregningsperiodeFra mangler', () => {

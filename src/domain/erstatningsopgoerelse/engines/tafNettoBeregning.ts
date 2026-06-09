@@ -3,6 +3,7 @@ import { amountValueToNumber } from '../../../utils/expressionAmount';
 import {
   buildBeregningsperiodeRange,
   buildIncomeForRanges,
+  resolveArbejdsstedDisplayName,
   roundIncomeBenefitAmountKroner,
   type IncomePeriodResult,
   type IsoRange,
@@ -48,7 +49,7 @@ export const buildSfggLoenudviklingMap = (
     employment.id,
     {
       ansaettelsesforholdId: employment.id,
-      ansaettelsesforholdNavn: (employment.navnPaaArbejdssted?.trim() ?? '') || `Arbejdssted ${index + 1}`,
+      ansaettelsesforholdNavn: resolveArbejdsstedDisplayName(employment.navnPaaArbejdssted, index),
       loenudviklingLabel: loenudvikling.loenudviklingLabel,
       loenudviklingTotal: loenudvikling.loenudviklingTotal,
       beregnedeSegmenter: sharedSegments,

@@ -4,6 +4,7 @@ import type { RegulationDebugSection } from './eoDebugRegulationViewModel';
 import type { DebugRowModel } from './eoDebugTypes';
 import type { EoDebugViewReady } from '../erstatningsopgoerelse/snapshot/eoSnapshotToDebugView';
 import { buildOffentligeYdelserReguleringTableData } from '../erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
+import { resolveArbejdsstedDisplayName } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 
 export type EODebugDisplayTable = Readonly<{
@@ -222,7 +223,7 @@ export const buildEODebugPageViewModel = (
   const employmentNamesById = new Map(
     (erstatningsopgoerelseValues.loenindkomstAnsaettelsesforhold ?? []).map((af, index) => [
       af.id,
-      (af.navnPaaArbejdssted ?? '').trim() || `Arbejdssted ${index + 1}`,
+      resolveArbejdsstedDisplayName(af.navnPaaArbejdssted, index),
     ] as const)
   );
 

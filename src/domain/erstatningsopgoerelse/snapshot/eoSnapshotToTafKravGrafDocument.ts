@@ -16,6 +16,7 @@ import {
   buildIncomeCalculationContext,
   buildIncomeForRanges,
   type IncomeCalculationContext,
+  resolveArbejdsstedDisplayName,
   roundIncomeBenefitAmountKroner,
 } from '../helpers/indtaegtPerioder';
 import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
@@ -191,15 +192,25 @@ const resolveUnitDivisor = (
   return beregnArbejdsdageOgMaaneder(range.fra, range.til, new Set(), new Set()).maaneder;
 };
 
+// Sorteringsrang afgør seriernes rækkefølge (og dermed farve + stak-lagdeling):
+// ét ansættelsesforhold pr. serie (efter employer.index), derefter offentlige ydelser.
+const BENEFIT_RANK_BASE = 1_000_000;
+
+type SeriesAccumulator = { segments: TafKravGrafSeriesSegment[]; rank: number };
+
 const appendIncomeSegment = (
-  segmentsByLabel: Map<string, TafKravGrafSeriesSegment[]>,
+  seriesByLabel: Map<string, SeriesAccumulator>,
   label: string,
+  rank: number,
   segment: TafKravGrafSeriesSegment
 ): void => {
   if (segment.amountOre <= 0) return;
-  const entries = segmentsByLabel.get(label) ?? [];
-  entries.push(segment);
-  segmentsByLabel.set(label, entries);
+  const existing = seriesByLabel.get(label);
+  if (existing) {
+    existing.segments.push(segment);
+    return;
+  }
+  seriesByLabel.set(label, { segments: [segment], rank });
 };
 
 export const eoSnapshotToTafKravGrafDocument = (
@@ -238,7 +249,8 @@ export const eoSnapshotToTafKravGrafDocument = (
   const sourceRanges = beregningsperiode ? [beregningsperiode, ...tafRanges] : tafRanges;
   const incomeContext = buildIncomeCalculationContext(snapshot.input.erstatningsopgoerelse, sourceRanges);
   const useWholeKronerForMidlertidigtEet = snapshot.input.erstatningsopgoerelse.midlertidigtEetFraEetSiden === 'Ja';
-  const segmentsByLabel = new Map<string, TafKravGrafSeriesSegment[]>([['Lønindkomst', []]]);
+  const seriesByLabel = new Map<string, SeriesAccumulator>();
+  const benefitRankByLabel = new Map<string, number>();
 
   for (const sourceRange of sourceRanges) {
     for (const sampleRange of splitRangeByCalendarMonths(sourceRange)) {
@@ -250,13 +262,16 @@ export const eoSnapshotToTafKravGrafDocument = (
         incomeContext,
         snapshot.input.stamdata.skadedato
       );
-      const loenKroner = income.employers.reduce((sum, employer) => sum + employer.amount, 0);
-      for (const segment of clampSegmentToWindows({
-        fra: sampleRange.fra,
-        til: sampleRange.til,
-        amountOre: roundOre((loenKroner * 100) / divisor),
-      }, timeWindows)) {
-        appendIncomeSegment(segmentsByLabel, 'Lønindkomst', segment);
+      // Hvert ansættelsesforhold er sin egen serie (ingen sammenlægning af lønindkomst).
+      for (const employer of income.employers) {
+        const label = resolveArbejdsstedDisplayName(employer.name, employer.index);
+        for (const segment of clampSegmentToWindows({
+          fra: sampleRange.fra,
+          til: sampleRange.til,
+          amountOre: roundOre((employer.amount * 100) / divisor),
+        }, timeWindows)) {
+          appendIncomeSegment(seriesByLabel, label, employer.index, segment);
+        }
       }
       for (const benefit of income.benefits) {
         const benefitKroner = roundIncomeBenefitAmountKroner(
@@ -264,24 +279,29 @@ export const eoSnapshotToTafKravGrafDocument = (
           benefit.amount,
           useWholeKronerForMidlertidigtEet
         );
+        let benefitRank = benefitRankByLabel.get(benefit.label);
+        if (benefitRank === undefined) {
+          benefitRank = BENEFIT_RANK_BASE + benefitRankByLabel.size;
+          benefitRankByLabel.set(benefit.label, benefitRank);
+        }
         for (const segment of clampSegmentToWindows({
           fra: sampleRange.fra,
           til: sampleRange.til,
           amountOre: roundOre((benefitKroner * 100) / divisor),
         }, timeWindows)) {
-          appendIncomeSegment(segmentsByLabel, benefit.label, segment);
+          appendIncomeSegment(seriesByLabel, benefit.label, benefitRank, segment);
         }
       }
     }
   }
-  const series = [...segmentsByLabel.entries()]
-    .map(([label, segments], index): TafKravGrafSeries => ({
+  const series = [...seriesByLabel.entries()]
+    .sort(([, a], [, b]) => a.rank - b.rank)
+    .map(([label, accumulator], index): TafKravGrafSeries => ({
       id: seriesIdFromLabel(label),
       label,
       color: SERIES_COLORS[index % SERIES_COLORS.length],
-      segments,
-    }))
-    .filter((entry) => entry.segments.length > 0);
+      segments: accumulator.segments,
+    }));
 
   if (series.length === 0) {
     return { kind: 'blocked', message: 'Visuel graf over indtægtsniveau kan ikke genereres, fordi der ikke er indkomstsegmenter i TAF-perioden.', invariants: [] };

@@ -167,17 +167,17 @@ const buildLongSnapshot = (): EoSnapshot => {
 };
 
 describe('eoSnapshotToTafKravGrafDocument', () => {
-  it('samler lønindkomst til én serie og beholder offentlige ydelser som egen serie', () => {
+  it('viser hvert ansættelsesforhold som egen serie og beholder offentlige ydelser som egen serie', () => {
     const projection = eoSnapshotToTafKravGrafDocument(buildSnapshot());
 
     expect(projection.kind).toBe('ok');
     if (projection.kind !== 'ok') throw new Error(projection.message);
 
     expect(projection.document.series.map((entry) => entry.label)).toEqual([
-      'Lønindkomst',
+      'Arbejdsgiver A',
       'Sygedagpenge',
     ]);
-    const loenSegments = projection.document.series.find((entry) => entry.label === 'Lønindkomst')?.segments ?? [];
+    const loenSegments = projection.document.series.find((entry) => entry.label === 'Arbejdsgiver A')?.segments ?? [];
     expect(loenSegments.at(0)).toEqual({ fra: iso('2022-01-01'), til: iso('2022-01-31'), amountOre: 30_000_00 });
     expect(loenSegments).toContainEqual({
       fra: iso('2024-01-01'),
@@ -219,7 +219,7 @@ describe('eoSnapshotToTafKravGrafDocument', () => {
     expect(projection.kind).toBe('ok');
     if (projection.kind !== 'ok') throw new Error(projection.message);
 
-    expect(projection.document.series.find((entry) => entry.label === 'Lønindkomst')?.segments).toContainEqual({
+    expect(projection.document.series.find((entry) => entry.label === 'Arbejdsgiver A')?.segments).toContainEqual({
       fra: iso('2020-01-01'),
       til: iso('2020-01-31'),
       amountOre: 36_000_00,

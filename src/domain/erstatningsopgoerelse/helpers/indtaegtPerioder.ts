@@ -62,6 +62,14 @@ export type IncomePeriodResult = Readonly<{
   benefits: readonly IncomeBenefitAmount[];
 }>;
 
+/**
+ * Kanonisk visningsnavn for et ansættelsesforhold: det indtastede arbejdsstednavn,
+ * eller fallback "Arbejdssted N" (1-indekseret) når der ikke er indtastet et navn.
+ * `navn` må gerne være utrimmet eller allerede trimmet — funktionen er idempotent.
+ */
+export const resolveArbejdsstedDisplayName = (navn: string | undefined, index: number): string =>
+  (navn ?? '').trim() || `Arbejdssted ${index + 1}`;
+
 export type IncomeCalculationContext = Readonly<{
   boundsFra: ISODateString;
   boundsTil: ISODateString;

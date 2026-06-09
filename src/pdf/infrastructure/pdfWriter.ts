@@ -698,6 +698,9 @@ export type PdfWriter = {
   getTextWidth: (text: string) => number;
   fitTextToWidth: (text: string, maxWidth: number) => string;
   getPageWidth: () => number;
+  // Indholdsbredde i millimeter — enheds-entydig på tværs af PDF og Word (getPageWidth
+  // returnerer mm for PDF men twips for Word, så den må ikke bruges til billed-sizing).
+  getContentWidthMm: () => number;
   addPage: () => void;
   addFooter: () => void;
   save: (filename: string) => void;
@@ -991,6 +994,7 @@ export const createPdfWriter = (params: Readonly<{
     getTextWidth: cursor.getTextWidth,
     fitTextToWidth: cursor.fitTextToWidth,
     getPageWidth: () => MARGINS.left + cursor.getFullWidth() + MARGINS.right,
+    getContentWidthMm: () => cursor.getFullWidth(),
     addPage: () => {
       cursor.addPage();
       previousBlockWasSectionHeader = false;

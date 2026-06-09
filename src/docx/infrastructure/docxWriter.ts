@@ -564,6 +564,7 @@ export const createDocxWriter = (params?: Readonly<{
     getTextWidth: (text) => text.length * 2,
     fitTextToWidth: (text) => text,
     getPageWidth: () => contentWidthDxa,
+    getContentWidthMm: () => (contentWidthDxa / 1440) * 25.4,
     addPage: () => {
       blocks.push(new Paragraph({ children: [new PageBreak()] }));
     },
