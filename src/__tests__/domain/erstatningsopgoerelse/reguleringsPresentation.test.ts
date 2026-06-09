@@ -174,7 +174,10 @@ describe('reguleringsPresentation', () => {
       anvendtReguleringsdato: iso('2023-01-01'),
       tafFra: iso('2023-01-01'),
       tafTil: iso('2023-12-31'),
-      tafBeregningsenhed: 'Timer',
+      // TAF opgøres aldrig i timer; enheden er enten Måneder eller Arbejdsdage. En timelønnet
+      // overenskomst som bygningsoverenskomsten opgøres pr. arbejdsdag (timelønsudviklingen
+      // driver reguleringsprocenten), så enheden her er 'Arbejdsdage'.
+      tafBeregningsenhed: 'Arbejdsdage',
     });
 
     expect(table).not.toBeNull();
