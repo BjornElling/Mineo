@@ -136,6 +136,11 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   tidligereModtagetTaf: undefined,
 
   // Øvrige erstatningskrav
+  // Bevidst designbeslutning: nye sager starter med øvrige krav skjult ('Skjul'),
+  // til forskel fra svie/smerte og TAF, der defaulter til 'Ja'. Lad ikke dette
+  // "rette tilbage" til 'Ja' for at matche de andre krav — det er tilsigtet.
+  // (Schema-defaulten 'Ja' i erstatningsopgoerelseSchemas.ts gælder kun sanering
+  // af ældre persisterede sager, hvor feltet mangler, og er en separat beslutning.)
   kravPaaOevrigeErstatningskrav: 'Skjul',
   oevrigeKravPerioder: ensureOevrigeKravRows(undefined),
 

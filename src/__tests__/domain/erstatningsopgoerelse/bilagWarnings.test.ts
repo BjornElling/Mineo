@@ -145,6 +145,7 @@ describe('resolveBilagWarning', () => {
 
     it('ingen advarsel når mindst ét øvrigt krav er udfyldt', () => {
       const values = makeValues({
+        kravPaaOevrigeErstatningskrav: 'Ja',
         oevrigeKravPerioder: [
           { id: 'row_1', dato: undefined, udgiftTil: 'Proteser', beloeb: undefined },
         ],

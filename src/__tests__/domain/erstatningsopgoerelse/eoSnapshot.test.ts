@@ -418,6 +418,8 @@ describe('computeEoSnapshot', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.kravPaaSvieSmerteGodtgoerelse = 'Nej';
     eoValues.kravPaaTabtArbejdsfortjeneste = 'Nej';
+    // Øvrige krav defaulter til 'Skjul' for nye sager; aktivér eksplicit her.
+    eoValues.kravPaaOevrigeErstatningskrav = 'Ja';
     eoValues.oevrigeKravPerioder = [
       {
         id: 'krav-1',
@@ -661,6 +663,8 @@ describe('computeEoSnapshot', () => {
     eoValues.vedroererPeriodeTil = toISODateString('2024-01-31');
     eoValues.kravPaaSvieSmerteGodtgoerelse = 'Nej';
     eoValues.kravPaaTabtArbejdsfortjeneste = 'Nej';
+    // Øvrige krav defaulter til 'Skjul' for nye sager; aktivér eksplicit her.
+    eoValues.kravPaaOevrigeErstatningskrav = 'Ja';
     eoValues.oevrigeKravPerioder = [
       {
         id: 'krav-1',

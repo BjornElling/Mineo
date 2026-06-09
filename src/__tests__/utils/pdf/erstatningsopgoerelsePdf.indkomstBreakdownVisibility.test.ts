@@ -695,6 +695,9 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser forbeholdstekst i "Øvrige krav" ved kontanthjælp i indtægter i erstatningsperioden', () => {
     const { stamdata, eo } = buildBaseInput();
+    // Øvrige krav defaulter til 'Skjul'; forbeholdsteksten hører til øvrige-krav-afsnittet
+    // og kræver derfor at emnet er aktivt ('Ja').
+    eo.kravPaaOevrigeErstatningskrav = 'Ja';
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
@@ -1749,6 +1752,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser begge ydelser adskilt med "og" i forbeholdsteksten', () => {
     const { stamdata, eo } = buildBaseInput();
+    eo.kravPaaOevrigeErstatningskrav = 'Ja';
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
@@ -1778,6 +1782,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser både forbeholdstekst og brugerindtastede øvrige krav', () => {
     const { stamdata, eo } = buildBaseInput();
+    eo.kravPaaOevrigeErstatningskrav = 'Ja';
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
@@ -1817,6 +1822,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser klage-reguleringslinje i "Øvrige krav" ved midlertidig EET med verserende klage', () => {
     const { stamdata, eo } = buildBaseInput();
+    eo.kravPaaOevrigeErstatningskrav = 'Ja';
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',
@@ -1847,6 +1853,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('viser klage-reguleringslinje i "Øvrige krav" også uden ydelsesforbehold', () => {
     const { stamdata, eo } = buildBaseInput();
+    eo.kravPaaOevrigeErstatningskrav = 'Ja';
     eo.endeligtEETAfgorelse = 'Ja';
     eo.endeligEETVirkningsdato = iso('2024-03-01');
     eo.verserendeKlageEet = 'Ja';
@@ -1860,6 +1867,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
   it('placerer klage-reguleringslinje mellem ydelsesforbehold og øvrige krav med én linjeafstand', () => {
     const { stamdata, eo } = buildBaseInput();
+    eo.kravPaaOevrigeErstatningskrav = 'Ja';
     eo.offentligeYdelserRows = [
       {
         id: 'oy-1',

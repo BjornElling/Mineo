@@ -499,6 +499,7 @@ describe('eoPdfModel', () => {
 
   it('summerer øvrige krav i øre', () => {
     const eoValues = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [
         { id: '1', dato: iso('2024-02-01'), udgiftTil: 'Test', beloeb: asAmountValue(1234.5) },
         { id: '2', dato: iso('2024-03-01'), udgiftTil: 'Test 2', beloeb: asAmountValue(10) },
@@ -618,6 +619,7 @@ describe('eoPdfModel', () => {
 
   it('anvender forligsgrad på øvrige krav i PDF-model', () => {
     const baseValues = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [
         { id: '1', dato: iso('2024-02-01'), udgiftTil: 'Test', beloeb: asAmountValue(1234.5) },
         { id: '2', dato: iso('2024-03-01'), udgiftTil: 'Test 2', beloeb: asAmountValue(10) },
@@ -679,6 +681,7 @@ describe('eoPdfModel', () => {
 
   it('normaliserer beløb med flere end 2 decimaler via schema før øre-konvertering', () => {
     const eoValues = makeValues({
+      kravPaaOevrigeErstatningskrav: 'Ja',
       oevrigeKravPerioder: [
         { id: '1', dato: iso('2024-02-01'), udgiftTil: 'Test', beloeb: asAmountValue(1.005) },
       ],

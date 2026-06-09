@@ -57,6 +57,7 @@ const scenarios: readonly Scenario[] = [
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-02-01'), til: iso('2024-04-30'), loseFeriedage: 0 },
       ],
+      kravPaaOevrigeErstatningskrav: 'Ja' as const,
       oevrigeKravPerioder: [
         { id: 'ok-1', dato: iso('2024-03-01'), udgiftTil: 'Test', beloeb: asAmountValue(1234.5) },
       ],
@@ -120,6 +121,7 @@ const scenarios: readonly Scenario[] = [
       tafPerioder: [
         { id: 'taf-1', fra: iso('2024-02-01'), til: iso('2024-04-30'), loseFeriedage: 0 },
       ],
+      kravPaaOevrigeErstatningskrav: 'Ja' as const,
       oevrigeKravPerioder: [
         { id: 'ok-1', dato: iso('2024-03-01'), udgiftTil: 'Test', beloeb: asAmountValue(1234.5) },
       ],

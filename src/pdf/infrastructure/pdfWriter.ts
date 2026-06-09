@@ -37,6 +37,11 @@ const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
 // UDKAST WATERMARK
 // ============================================================================
 
+// Programmet tegner kun UDKAST-stemplet på stående A4-sider, så rotationen er fast -45°.
+const UDKAST_WATERMARK_ANGLE_DEG = -45;
+// Stemplet placeres ½ cm til højre for sidens midte.
+const UDKAST_WATERMARK_OFFSET_X_MM = 5;
+
 const udkastWatermarkCache = new Map<string, string | null>();
 
 const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): string | null => {
@@ -61,10 +66,8 @@ const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): st
 
   // Transparent billede med kun vandmærke-tekst, så indhold forbliver markerbart og uden uigennemsigtige overlejringer.
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.translate(canvas.width / 2, canvas.height / 2);
-  const isLandscape = pageWidth > pageHeight;
-  const angle = isLandscape ? -28 : -45;
-  ctx.rotate((angle * Math.PI) / 180);
+  ctx.translate(canvas.width / 2 + UDKAST_WATERMARK_OFFSET_X_MM * pixelScale, canvas.height / 2);
+  ctx.rotate((UDKAST_WATERMARK_ANGLE_DEG * Math.PI) / 180);
   const fontSize = roundByMethod(Math.min(canvas.width, canvas.height) * 0.28, 0, 'halfAwayFromZero');
   ctx.font = `700 ${fontSize}px Arial, sans-serif`;
   ctx.fillStyle = 'rgba(225,225,225,0.42)';
@@ -91,13 +94,12 @@ const addUdkastWatermark = (adapter: PdfDocumentAdapter): void => {
 
   // Fallback hvis canvas ikke er tilgængelig ved runtime.
   const text = 'UDKAST';
-  const isLandscape = pageWidth > pageHeight;
-  const centerX = pageWidth / 2;
+  const centerX = pageWidth / 2 + UDKAST_WATERMARK_OFFSET_X_MM;
   const centerY = pageHeight / 2;
   adapter.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.bold);
   adapter.setFontSize(roundByMethod(Math.min(pageWidth, pageHeight) * 0.42, 0, 'halfAwayFromZero'));
   adapter.setTextColor(235, 235, 235);
-  adapter.text(text, centerX, centerY, { align: 'center', angle: isLandscape ? -28 : -45 });
+  adapter.text(text, centerX, centerY, { align: 'center', angle: UDKAST_WATERMARK_ANGLE_DEG });
   adapter.setTextColor(0, 0, 0);
   adapter.setFont(PDF_FONT_FAMILY, PDF_FONT_STYLES.normal);
   adapter.setFontSize(FONT_SIZES.normal);
