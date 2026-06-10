@@ -69,16 +69,7 @@ npm run import:loen     # importér offentlige løndata (KL/RLTN) fra Excel
 - Offentlige løndata (KL/RLTN) via `npm run import:loen`
 - KRL-reguleringssatser i `src/data/KRLrates.ts`
 - Kapitaliseringsbekendtgørelser i `src/data/kapitalisering/kapitaliseringsbekendtgørelser.ts`
-- **Sygedagpengesatser og obligatorisk pension (OP) i `src/data/sygedagpengeRates.ts` — opdatér ÅRLIGT**
-
-> **Husk hvert år:** Den maksimale sygedagpengesats (`sygedagpengeRates`) og OP-procentsatsen
-> (`sygedagpengeObligatoriskPensionSatser`) ændres hvert dagpenge-satsår (typisk første mandag i januar).
-> Tilføj de nye rækker, så `sygedagpengeRates` dækker det kommende år. ATP-satsen (`sygedagpengeAtpPrincipper`)
-> ændres kun sjældent og fortsætter med den seneste sats, indtil den justeres.
->
-> Funktionen "Indsæt maksimal sygedagpengesats for perioden" fejler bevidst med en klar besked til brugeren,
-> hvis den valgte periode ikke er fuldt dækket af både sygedagpengesats og OP-sats — så manglende årlig
-> opdatering opdages straks i stedet for at give tavst forkerte beløb.
+- Sygedagpengesatser og obligatorisk pension (OP) i `src/data/sygedagpengeRates.ts`
 
 ## Hjælpefiler til opdateringer
 
@@ -96,7 +87,5 @@ Bjørn Elling
 - Mail: bel@fho.dk
 
 ---
-
-**Version**: Genereres ved build som `år.måned.commitnummer.hash6`
 
 **Status**: Under udvikling
