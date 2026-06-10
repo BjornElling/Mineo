@@ -243,6 +243,36 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     return countFilledFields(formPersistenceStore.getState().sections as PersistedCache) > 0;
   }, []);
 
+  // ASYMMETRISK coalescing af undo-captures for ÉT felt-commit, så det giver præcis ÉN frame.
+  //
+  // Et felt-commit kan røre BÅDE `sections` (persistData) og `invalidDrafts` (writeInvalidDraft): fx
+  // committer useDraftField/immediate-Delete altid onCommit (setValues) EFTERFULGT af clearInvalidDraft.
+  // - persistData (value-commit) fanger ALTID sin egen frame (to forskellige value-commits = to frames;
+  //   fx to radio-klik på samme felt skal kunne undo'es hver for sig).
+  // - Den EFTERFØLGENDE writeInvalidDraft (commit-invalid/clear) på SAMME fieldPath i samme synkrone flow
+  //   rider på value-commit'ets frame (coalesces). Men hvis value-commit'et var en no-op (committed værdi
+  //   uændret → ingen frame), fanger writeInvalidDraft sin EGEN frame — ellers ville en rydning helt uden
+  //   sektionsændring slet ikke blive fanget, og undo ville springe den over og gendanne den gamle ugyldige
+  //   værdi (rapporteret bug).
+  // Markøren sættes af persistData og forbruges (ryddes) af det parrede writeInvalidDraft i samme flow;
+  // microtask-reset er en backstop for ikke-parrede value-commits (radio/toggle/dropdown uden invalidDraft).
+  const pendingValueCommitFieldPathRef = React.useRef<string | null>(null);
+  const markValueCommitCaptured = React.useCallback((fieldPath: string | null): void => {
+    pendingValueCommitFieldPathRef.current = fieldPath;
+    queueMicrotask(() => {
+      pendingValueCommitFieldPathRef.current = null;
+    });
+  }, []);
+  // Returnerer true hvis dette invalidDraft-capture skal SPRINGES OVER (rider på et value-commits frame
+  // fra samme flow). Forbruger (rydder) markøren ved match, så den ikke fejlagtigt coalescer en senere handling.
+  const consumeValueCommitCoalesce = React.useCallback((fieldPath: string | null): boolean => {
+    if (pendingValueCommitFieldPathRef.current !== null && pendingValueCommitFieldPathRef.current === fieldPath) {
+      pendingValueCommitFieldPathRef.current = null;
+      return true;
+    }
+    return false;
+  }, []);
+
   /**
    * Gem data i sessionStorage med versionering
    *
@@ -310,7 +340,10 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       try {
         writeSessionStorageValue(storageKey, JSON.stringify(persistedData));
         if (options?.undoOrigin) {
+          // Value-commit fanger ALTID sin egen frame; markér den, så en parret invalidDraft-clear i samme
+          // flow rider på den i stedet for at fange en ekstra.
           undoRedoStore.getState().capture(options.undoOrigin);
+          markValueCommitCaptured(options.undoOrigin.fieldPath);
         }
         formPersistenceStore.getState().commitSection(pageKey, postSerializeValidated.data as PersistedSectionMap[K], {
           lastCommittedAt: Date.now(),
@@ -333,7 +366,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern fejl.`, 'error');
       return false;
     }
-  }, [emitUserNotice, logPersistSaveDebug]);
+  }, [markValueCommitCaptured, emitUserNotice, logPersistSaveDebug]);
 
   /**
    * Beregn næste invalidDrafts-cache fra nuværende store + én feltændring (uden at mutere store).
@@ -357,9 +390,10 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
    * Skriv/ryd ét felts committede rå draft (`invalidDrafts`). Atomisk på tværs af store +
    * sessionStorage med rollback, efter samme fail-closed-mønster som persistData.
    *
-   * `undoOrigin` (kun ved fejlende commit) opretter en undo/redo-frame, så et nyt ugyldigt input
-   * kan undo'es. Ved rydning (vellykket commit) sendes ingen undoOrigin — rydningen rider på det
-   * samtidige sektion-commits frame.
+   * `undoOrigin` opretter en undo/redo-frame, så både et nyt ugyldigt input OG en rydning af det kan
+   * undo'es. Captures coalesces pr. synkront commit-flow (asymmetrisk markør, se ovenfor), så et felt-commit
+   * der både rører sektionen og rydder draften kun giver ÉN frame — og en rydning hvis sektion-commit
+   * er en no-op stadig får sin egen frame (ellers ville undo springe rydningen over).
    */
   const writeInvalidDraft = React.useCallback(
     (pageKey: StorageKey, fieldPath: string, draft: string | null, options?: { undoOrigin?: HistoryFrameOrigin }): boolean => {
@@ -367,6 +401,9 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         const currentForField = getInvalidDraftForFieldSnapshot(pageKey, fieldPath);
         const normalizedDraft = draft === null || draft === '' ? null : draft;
         if ((currentForField ?? null) === normalizedDraft) {
+          // No-op (fx en valid-commits parrede clear hvor feltet ingen rå draft havde). Forbrug en evt.
+          // matchende value-commit-markør, så den ikke dingler og fejlagtigt coalescer en senere handling.
+          if (options?.undoOrigin) consumeValueCommitCoalesce(options.undoOrigin.fieldPath);
           return true;
         }
 
@@ -378,7 +415,10 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         try {
           writeInvalidDraftsToStorage(nextCache);
           if (options?.undoOrigin) {
-            undoRedoStore.getState().capture(options.undoOrigin);
+            // Rid på et parret value-commits frame fra samme flow (coalesce); ellers fang vores egen.
+            if (!consumeValueCommitCoalesce(options.undoOrigin.fieldPath)) {
+              undoRedoStore.getState().capture(options.undoOrigin);
+            }
           }
           formPersistenceStore.getState().setInvalidDraft(pageKey, fieldPath, normalizedDraft);
         } catch (error) {
@@ -395,7 +435,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         return false;
       }
     },
-    [computeNextInvalidDrafts, emitUserNotice]
+    [consumeValueCommitCoalesce, computeNextInvalidDrafts, emitUserNotice]
   );
 
   const commitInvalidDraft = React.useCallback(
@@ -406,8 +446,8 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
   );
 
   const clearInvalidDraft = React.useCallback(
-    (pageKey: StorageKey, fieldPath: string): boolean => {
-      return writeInvalidDraft(pageKey, fieldPath, null);
+    (pageKey: StorageKey, fieldPath: string, options?: { undoOrigin?: HistoryFrameOrigin }): boolean => {
+      return writeInvalidDraft(pageKey, fieldPath, null, options);
     },
     [writeInvalidDraft]
   );

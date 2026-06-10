@@ -136,8 +136,12 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
   );
 
   const clearInvalidDraftForField = React.useCallback(() => {
-    clearInvalidDraft(pageKey, fieldName);
-  }, [clearInvalidDraft, fieldName, pageKey]);
+    // Send undoOrigin med: en rydning af et felts rå draft skal kunne undo'es. captureUndoFrameCoalesced
+    // sikrer at det ikke giver en ekstra frame, når rydningen sker sammen med et sektion-commit.
+    clearInvalidDraft(pageKey, fieldName, {
+      undoOrigin: createFieldErrorUndoOrigin(pageKey, fieldName, location.pathname),
+    });
+  }, [clearInvalidDraft, fieldName, location.pathname, pageKey]);
 
   const reportError = React.useCallback(
     (error: ReportableFieldError | undefined) => {

@@ -8,6 +8,7 @@ import { copyWholeValueFromReadOnlyField, readClipboardText } from '../../utils/
 import type { TableInputErrorInfo, TableInputErrorKind } from '../../utils/tableInputContracts';
 import type { CommittedPayload } from '../../types/parserSpec';
 import { useAuthoritativeSnapshotEpochSelector } from '../useFormPersistenceSelectors';
+import { isRestoreFocusInProgress } from '../../utils/historyTargetRestore';
 import { useCellInvalidDraftChannel } from './useCellInvalidDraftChannel';
 import type { TableInputAdapter } from './tableInputAdapter';
 
@@ -300,6 +301,10 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
 
   const commitAndEmitBlur = React.useCallback(
     (rawDraft: string): boolean => {
+      // Undertryk commit udløst af en undo/redo-fokus-flytning (jf. useDraftField): cellen blur'er
+      // programmatisk når restore flytter fokus, og må ikke committe en forældet draft. Returnér true
+      // (behandl som no-op), så kalderen ikke tror committen fejlede; draften resyncs via epoch-effekten.
+      if (isRestoreFocusInProgress()) return true;
       pendingDraftCommitRef.current = false;
       setTouched(true);
       const current = latest.current;

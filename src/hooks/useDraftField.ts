@@ -4,6 +4,7 @@ import type {
   DraftParseErrorKind,
 } from '../types/fieldEvents';
 import { useAuthoritativeSnapshotEpochSelector } from './useFormPersistenceSelectors';
+import { isRestoreFocusInProgress } from '../utils/historyTargetRestore';
 
 export type {
   DraftParse,
@@ -196,6 +197,11 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
 
   const commitFromDraft = React.useCallback(
     (rawDraft: string) => {
+      // Undertryk commit udløst af en undo/redo-fokus-flytning: når restore flytter fokus til mål-feltet,
+      // blur'er det forrige felt SYNKRONT og ville her committe en forældet draft (fra før epoch-resync) →
+      // det ville rydde den netop-gendannede invalidDraft og fange en spuriøs frame. Draften resyncs
+      // korrekt af den autoritative epoch-effekt; her gør vi ingenting.
+      if (isRestoreFocusInProgress()) return;
       setTouched(true);
       pendingCommitRef.current = null;
       const draftForCommit = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(rawDraft);

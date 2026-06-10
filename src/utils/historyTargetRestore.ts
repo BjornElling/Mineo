@@ -5,6 +5,15 @@ const attrSelector = (attr: string, value: string): string => `[${attr}=${JSON.s
 
 const HISTORY_TARGET_RESTORE_MAX_ATTEMPTS = 15;
 
+// Sat mens undo/redo flytter fokus programmatisk (focusRestoredField). Mens det er sat, må felt-/celle-
+// blur IKKE committe: blur'et skyldes fokus-flytningen, ikke en brugerredigering, og draften kan endnu
+// være forældet (resync er ikke nødvendigvis flushet). Aflæses via isRestoreFocusInProgress().
+let restoreFocusInProgress = false;
+
+/** Er en programmatisk undo/redo-fokus-flytning i gang? Commit-stier bruger dette til at undertrykke
+ *  blur-commit af et felt, der mister fokus pga. restore (ville committe en forældet draft). */
+export const isRestoreFocusInProgress = (): boolean => restoreFocusInProgress;
+
 const isRestoreTargetVisible = (element: HTMLElement): boolean => {
   if (!element.isConnected) return false;
   if (element.hasAttribute('hidden')) return false;
@@ -66,10 +75,19 @@ const focusRestoredField = (target: HTMLElement): boolean => {
   // gav et uønsket spring helt op selv når feltet allerede var synligt. Vi scroller FØR focus, så
   // den efterfølgende `focus({ preventScroll: true })` ikke konkurrerer med scroll-animationen.
   scrollTargetIntoView(target);
+  // Undertryk commit mens vi flytter fokus programmatisk: target.focus() udløser SYNKRONT et blur på
+  // det tidligere fokuserede felt. Det felts blur-commit ville ellers committe en FORÆLDET draft (fra
+  // før epoch-resync nåede at opdatere den) → den netop-gendannede invalidDraft ryddes, og en spuriøs
+  // frame fanges der nulstiller redo-stakken. Flaget aflæses af useDraftField/useTableInputCore-commit.
+  restoreFocusInProgress = true;
   try {
-    target.focus({ preventScroll: true });
-  } catch {
-    target.focus();
+    try {
+      target.focus({ preventScroll: true });
+    } catch {
+      target.focus();
+    }
+  } finally {
+    restoreFocusInProgress = false;
   }
 
   const activeElement = document.activeElement;

@@ -40,9 +40,10 @@ export type FormPersistenceContextValue = {
   clearFieldErrors: (pageKey: StorageKey) => void;
   clearAllFieldErrors: () => void;
   // `invalidDrafts`-recovery-kanal (committed rå draft, jf. form-contract.md §2.4 / persistence-contract.md §11).
-  // commitInvalidDraft skrives ved fejlende commit (undoOrigin opretter en undo-frame); clearInvalidDraft ved vellykket commit.
+  // commitInvalidDraft skrives ved fejlende commit; clearInvalidDraft ved rydning. Begge tager undoOrigin
+  // (opretter en undo-frame, coalesced pr. commit-flow), så både ugyldigt input OG rydning kan undo'es.
   commitInvalidDraft: (pageKey: StorageKey, fieldPath: string, rawDraft: string, options?: { undoOrigin?: HistoryFrameOrigin }) => boolean;
-  clearInvalidDraft: (pageKey: StorageKey, fieldPath: string) => boolean;
+  clearInvalidDraft: (pageKey: StorageKey, fieldPath: string, options?: { undoOrigin?: HistoryFrameOrigin }) => boolean;
   getInvalidDraft: (pageKey: StorageKey, fieldPath: string) => string | undefined;
   getInvalidDraftsForSection: (pageKey: StorageKey) => Record<string, string>;
   getSectionRevision: (pageKey: StorageKey) => number;

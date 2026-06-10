@@ -156,4 +156,45 @@ describe('undo/redo-kæde med to ugyldige felter', () => {
     // Slutpunkt: begge felter tilbage til deres ugyldige værdier.
     expect(drafts()).toEqual({ skadedato: '30-02-1981', skadelidteFodselsdato: '31-04-1990' });
   });
+
+  it('to ugyldige felter ryddet → undo fortryder ét clear ad gangen (gendanner ikke det forkerte felt, tømmer ikke begge)', async () => {
+    // Brugerens rapporterede scenarie: begge felter ugyldige, ryd dem ét ad gangen, undo. Hver undo skal
+    // fortryde præcis ÉT clear (det sidste først) — IKKE gendanne det forkerte felt og IKKE rydde begge.
+    const user = userEvent.setup();
+    renderHarness();
+
+    await user.click(foedselInput());
+    await user.type(foedselInput(), '12');
+    await user.tab();
+    await user.click(skadeInput());
+    await user.type(skadeInput(), '12');
+    await user.tab();
+    expect(drafts()).toEqual({ skadelidteFodselsdato: '12', skadedato: '12' });
+
+    // Ryd Fødselsdato, så Skadedato — via immediate-Delete med editoren LUKKET (programmatisk fokus,
+    // som save-routing efterlader feltet; et klik på et allerede-fokuseret felt ville åbne editoren og
+    // ændre Delete-semantikken — derfor fokuserer vi programmatisk).
+    await act(async () => { foedselInput().focus(); });
+    await user.keyboard('{Delete}');
+    expect(drafts()).toEqual({ skadedato: '12' });
+    await act(async () => { skadeInput().focus(); });
+    await user.keyboard('{Delete}');
+    expect(drafts()).toEqual({});
+
+    // Undo 1: fortryd Skadedato-clear → KUN skadedato gendannes (Fødselsdato forbliver tom).
+    await act(async () => { controls!.undo(); await flushRaf(); });
+    expect(drafts()).toEqual({ skadedato: '12' });
+
+    // Undo 2: fortryd Fødselsdato-clear → begge til stede.
+    await act(async () => { controls!.undo(); await flushRaf(); });
+    expect(drafts()).toEqual({ skadelidteFodselsdato: '12', skadedato: '12' });
+
+    // Undo 3: fortryd Skadedato-indtastning → kun Fødselsdato.
+    await act(async () => { controls!.undo(); await flushRaf(); });
+    expect(drafts()).toEqual({ skadelidteFodselsdato: '12' });
+
+    // Undo 4: fortryd Fødselsdato-indtastning → tomt.
+    await act(async () => { controls!.undo(); await flushRaf(); });
+    expect(drafts()).toEqual({});
+  });
 });
