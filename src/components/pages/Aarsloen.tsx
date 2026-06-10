@@ -267,6 +267,10 @@ const Aarsloen = React.memo(() => {
 
   // Afledt boolean til betinget rendering
   const canShowOmregning = omregningAktiveret && periodeData !== null;
+  // Når omregning er aktiveret springes mellemregningen (med dens download-knap) over hvis
+  // perioden er præcis ét år (erEtAar). Vis i så fald download-knappen ved sammentællingen i
+  // stedet, så beregningen altid kan downloades — også ved nøjagtig 12 måneder.
+  const visDownloadVedSammentaelling = !omregningAktiveret || beregningsData.erEtAar;
   const shouldShowFerieFields = React.useMemo(
     () => shouldShowAarsloenFerieFields(values),
     [values]
@@ -597,7 +601,7 @@ const Aarsloen = React.memo(() => {
           <Typography className="row--text">Sammentælling af løn fra tabellen:</Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Typography className="row--text">{harFatalBeregningsFejl ? '—' : `${formatCurrency(beregnetAarsloen)} kr.`}</Typography>
-            {!omregningAktiveret && aarsloenPdfDownloadButton}
+            {visDownloadVedSammentaelling && aarsloenPdfDownloadButton}
           </Box>
         </Box>
 
