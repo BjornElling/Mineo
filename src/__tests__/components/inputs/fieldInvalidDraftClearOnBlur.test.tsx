@@ -103,6 +103,28 @@ describe('felt med ugyldig rå draft — clear/edit rydder invalidDrafts ved blu
     expect(input).toHaveValue('');
   });
 
+  it('rydder invalidDrafts STRAKS ved immediate-Delete (editor lukket) — uden at vente på blur', async () => {
+    // Anden clear-sti: Delete på et fokuseret, IKKE-redigerende felt committer straks (immediate-commit-
+    // undtagelsen). Den sti omgår useDraftField-commit-wrapperen og glemte at rydde invalidDrafts → feltet
+    // stod tomt mens det stale invalidDrafts-entry overlevede (inkonsistent state der fodrede undo/redo).
+    const user = userEvent.setup();
+    renderHarness();
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+
+    await user.click(input);
+    await user.type(input, '30-02-1980');
+    await user.tab();
+    expect(invalidDraftFor('skadelidteFodselsdato')).toBe('30-02-1980');
+
+    // Enkelt-klik fokuserer (editor lukket), Delete committer/rydder straks.
+    await user.click(input);
+    await user.keyboard('{Delete}');
+
+    // EFTER FIX: invalidDrafts er ryddet STRAKS — ikke først ved et efterfølgende blur.
+    expect(invalidDraftFor('skadelidteFodselsdato')).toBeUndefined();
+    expect(input).toHaveValue('');
+  });
+
   it('erstatter (ikke gendanner) den gamle ugyldige værdi når feltet rettes til en gyldig dato', async () => {
     const user = userEvent.setup();
     renderHarness();

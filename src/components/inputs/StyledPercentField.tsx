@@ -341,6 +341,8 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
             if (result.ok) {
               onCommit?.(createCommitEvent(result.value));
             }
+            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
+            clearInvalidDraft?.();
             setDraft('');
             return;
           }
@@ -372,7 +374,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
           });
         }
         onKeyDown?.(e);
-    }, [activation, allowDecimals, allowNegative, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
+    }, [activation, allowDecimals, allowNegative, clearInvalidDraft, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
 
     const percentAdornmentColor = draft.trim() === '' ? 'var(--mineo-color-placeholder)' : 'inherit';
     const endAdornment = (

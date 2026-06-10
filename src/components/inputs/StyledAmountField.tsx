@@ -325,6 +325,8 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
             e.preventDefault();
             e.stopPropagation();
             onCommit?.(createCommitEvent(undefined));
+            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
+            clearInvalidDraft?.();
             setDraft('');
             return;
           }
@@ -348,7 +350,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         }
         onKeyDown?.(e);
       },
-      [activation, allowDecimals, allowNegative, onCommit, onKeyDown, onKeyDownBase, setDraft]
+      [activation, allowDecimals, allowNegative, clearInvalidDraft, onCommit, onKeyDown, onKeyDownBase, setDraft]
     );
 
     const displayDraft = activation.isEditorOpen ? draft : localHasError ? draft : formatAmount(value);

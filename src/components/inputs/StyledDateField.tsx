@@ -373,6 +373,10 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
             if (result.ok) {
               onCommit?.(createCommitEvent(result.value));
             }
+            // Delete tømmer feltet → ryd også en evt. ikke-committbar rå draft. Ellers overlever det
+            // stale invalidDrafts-entry (feltet re-syncer til den gamle ugyldige værdi, og Gem blokeres).
+            // Denne immediate-commit-sti omgår useDraftField-wrapperen, der ellers rydder draften.
+            clearInvalidDraft?.();
             setDraft('');
             return;
           }
@@ -396,7 +400,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         }
         onKeyDown?.(e);
       },
-      [activation, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseDate, setDraft, touched]
+      [activation, clearInvalidDraft, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseDate, setDraft, touched]
     );
 
     const handlePaste = React.useCallback(

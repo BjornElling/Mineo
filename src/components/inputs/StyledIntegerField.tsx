@@ -331,6 +331,8 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
             if (result.ok) {
               onCommit?.(createCommitEvent(result.value));
             }
+            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
+            clearInvalidDraft?.();
             setDraft('');
             return;
           }
@@ -358,7 +360,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         }
         onKeyDown?.(e);
       },
-      [activation, allowNegative, effectiveMaxDigits, maxValue, onCommit, onKeyDown, onKeyDownBase, parseInteger, setDraft]
+      [activation, allowNegative, clearInvalidDraft, effectiveMaxDigits, maxValue, onCommit, onKeyDown, onKeyDownBase, parseInteger, setDraft]
     );
 
     const handlePaste = React.useCallback(

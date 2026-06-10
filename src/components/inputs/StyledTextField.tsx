@@ -243,6 +243,8 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
               if (result.ok) {
                 onCommit?.(createCommitEvent(result.value));
               }
+              // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
+              clearInvalidDraft?.();
               setDraftBase('');
               return;
             }
@@ -275,6 +277,8 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
             if (result.ok) {
               onCommit?.(createCommitEvent(result.value));
             }
+            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
+            clearInvalidDraft?.();
             setDraftBase('');
             return;
           }
@@ -294,7 +298,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
         }
         onKeyDown?.(e);
       },
-      [inputActivation, multiline, onCommit, onKeyDown, onKeyDownBase, parseString, setDraftBase, textAreaActivation]
+      [clearInvalidDraft, inputActivation, multiline, onCommit, onKeyDown, onKeyDownBase, parseString, setDraftBase, textAreaActivation]
     );
 
     React.useEffect(() => {

@@ -250,6 +250,8 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
             if (result.ok) {
               onCommit?.(createCommitEvent(result.value));
             }
+            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
+            clearInvalidDraft?.();
             setDraft('');
             return;
           }
@@ -272,7 +274,7 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
         }
         onKeyDown?.(e);
       },
-      [activation, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseWeek, setDraft, touched]
+      [activation, clearInvalidDraft, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseWeek, setDraft, touched]
     );
 
     const handlePaste = React.useCallback(

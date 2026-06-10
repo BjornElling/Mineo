@@ -258,6 +258,10 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
             if (result.ok) {
               onCommit?.(createCommitEvent(result.value));
             }
+            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
+            // Vigtigt her: årstal-feltet er ofte "påkrævet" (parse('') er !ok), så uden denne rydning
+            // ville den gamle ugyldige værdi overleve clear.
+            clearInvalidDraft?.();
             setDraft('');
             return;
           }
@@ -280,7 +284,7 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
         }
         onKeyDownProp?.(e);
       },
-      [activation, onCommit, onKeyDown, onKeyDownProp, parseYear, setDraft]
+      [activation, clearInvalidDraft, onCommit, onKeyDown, onKeyDownProp, parseYear, setDraft]
     );
 
     const handlePaste = React.useCallback(

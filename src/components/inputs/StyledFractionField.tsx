@@ -218,6 +218,8 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
             if (result.ok) {
               onCommit?.(createCommitEvent(result.value));
             }
+            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
+            clearInvalidDraft?.();
             setDraft('');
             return;
           }
@@ -240,7 +242,7 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
         }
         onKeyDown?.(e);
       },
-      [activation, allowNegative, maxDigits, onCommit, onKeyDown, onKeyDownBase, parseFraction, setDraft]
+      [activation, allowNegative, clearInvalidDraft, maxDigits, onCommit, onKeyDown, onKeyDownBase, parseFraction, setDraft]
     );
 
     const handlePaste = React.useCallback(

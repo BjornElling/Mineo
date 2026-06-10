@@ -71,3 +71,61 @@ describe('felt-blur "unchanged"-guard inkluderer committedInvalidDraft', () => {
     expect(extractUnchangedStatements(compliant)[0]).toContain('committedInvalidDraft');
   });
 });
+
+/**
+ * Find alle immediate-commit Delete/Backspace-clear-blokke (editor lukket) og returnér hver bloks tekst
+ * fra Backspace/Delete-checket til det afsluttende `return;`. Disse blokke committer feltet straks ved
+ * Delete og SKAL også rydde et evt. invalidDrafts-entry (de omgår useDraftField-commit-wrapperen).
+ */
+const extractImmediateDeleteBlocks = (source: string): string[] => {
+  const blocks: string[] = [];
+  const marker = "e.key === 'Backspace' || e.key === 'Delete'";
+  let from = 0;
+  for (;;) {
+    const start = source.indexOf(marker, from);
+    if (start === -1) break;
+    const end = source.indexOf('return;', start);
+    const block = source.slice(start, end === -1 ? source.length : end + 'return;'.length);
+    blocks.push(block);
+    from = end === -1 ? source.length : end + 'return;'.length;
+  }
+  return blocks;
+};
+
+describe('immediate-Delete-clear rydder invalidDrafts', () => {
+  it('scanner faktisk immediate-Delete-blokke (ikke vacuous)', () => {
+    const total = boundFieldFiles.reduce((n, f) => n + extractImmediateDeleteBlocks(readFileSync(f, 'utf8')).length, 0);
+    // Per 2026-06: hvert af de 8 felter har mindst én immediate-Delete-blok (Text har to).
+    expect(total).toBeGreaterThanOrEqual(8);
+  });
+
+  it.each(boundFieldFiles.map((f) => [f.split(/[\\/]/).pop()!, f] as const))(
+    '%s: hver immediate-Delete-blok rydder invalidDrafts (clearInvalidDraft)',
+    (_name, file) => {
+      const blocks = extractImmediateDeleteBlocks(readFileSync(file, 'utf8'));
+      expect(blocks.length).toBeGreaterThan(0);
+      for (const block of blocks) {
+        // En immediate-commit-clear-blok kendes på at den committer (onCommit) og tømmer draften (setDraft).
+        const isCommitClear = block.includes('onCommit') && /setDraft(Base)?\(''\)/.test(block);
+        if (!isCommitClear) continue;
+        expect(block).toContain('clearInvalidDraft');
+      }
+    }
+  );
+
+  it('selv-test: scanneren fanger en immediate-Delete-blok uden clearInvalidDraft', () => {
+    const violating = `
+      if (e.key === 'Backspace' || e.key === 'Delete') {
+        e.preventDefault();
+        const result = parseX('', { mode: 'commit' });
+        if (result.ok) { onCommit?.(createCommitEvent(result.value)); }
+        setDraft('');
+        return;
+      }
+    `;
+    const [block] = extractImmediateDeleteBlocks(violating);
+    expect(block).toBeDefined();
+    expect(block.includes('onCommit') && /setDraft(Base)?\(''\)/.test(block)).toBe(true);
+    expect(block).not.toContain('clearInvalidDraft');
+  });
+});
