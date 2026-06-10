@@ -4,6 +4,8 @@ import {
   formatUtcDateShort,
   formatUtcDateLong,
   formatISOToDanish,
+  formatCopenhagenTimestampSeconds,
+  formatCopenhagenISODate,
 } from '../../utils/dateFormatting';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -38,6 +40,58 @@ describe('formatISOToDanish', () => {
     const r1 = formatISOToDanish(iso('2024-06-15'));
     const r2 = formatISOToDanish(iso('2024-06-15'));
     expect(r1).toBe(r2);
+  });
+});
+
+// ─── formatCopenhagenTimestampSeconds ──────────────────────────────────────
+// Fejlrapportens tidsstempler SKAL vises i dansk tidszone (Europe/Copenhagen),
+// ikke UTC. Testene fikserer et kendt UTC-instant og verificerer det danske
+// vægur — uafhængigt af maskinens egen tidszone.
+
+describe('formatCopenhagenTimestampSeconds', () => {
+  it('sommertid (CEST = UTC+2): 12:00Z → 14:00 dansk', () => {
+    const instant = new Date('2026-06-10T12:00:00Z');
+    expect(formatCopenhagenTimestampSeconds(instant)).toBe('2026-06-10 14:00:00');
+  });
+
+  it('vintertid (CET = UTC+1): 12:00Z → 13:00 dansk', () => {
+    const instant = new Date('2026-01-15T12:00:00Z');
+    expect(formatCopenhagenTimestampSeconds(instant)).toBe('2026-01-15 13:00:00');
+  });
+
+  it('midnat dansk tid vises som 00:00:00 (ikke 24)', () => {
+    // 22:00Z i sommertid = 00:00 næste dag i dansk tid.
+    const instant = new Date('2026-06-09T22:00:00Z');
+    expect(formatCopenhagenTimestampSeconds(instant)).toBe('2026-06-10 00:00:00');
+  });
+
+  it('UTC-dag og dansk dag kan afvige nær midnat', () => {
+    // 23:30Z = 01:30 næste dag i dansk sommertid → dato ruller frem.
+    const instant = new Date('2026-06-09T23:30:00Z');
+    expect(formatCopenhagenTimestampSeconds(instant)).toBe('2026-06-10 01:30:00');
+  });
+
+  it('kaster på ugyldig Date', () => {
+    expect(() => formatCopenhagenTimestampSeconds(new Date('ugyldig'))).toThrow();
+  });
+});
+
+// ─── formatCopenhagenISODate ───────────────────────────────────────────────
+
+describe('formatCopenhagenISODate', () => {
+  it('returnerer dansk kalenderdag (ikke UTC-dag) nær midnat', () => {
+    // 23:30Z 9. juni = 10. juni i dansk sommertid.
+    const instant = new Date('2026-06-09T23:30:00Z');
+    expect(formatCopenhagenISODate(instant)).toBe('2026-06-10');
+  });
+
+  it('vintertid: 23:30Z 15. jan = 16. jan dansk', () => {
+    const instant = new Date('2026-01-15T23:30:00Z');
+    expect(formatCopenhagenISODate(instant)).toBe('2026-01-16');
+  });
+
+  it('kaster på ugyldig Date', () => {
+    expect(() => formatCopenhagenISODate(new Date('ugyldig'))).toThrow();
   });
 });
 

@@ -12,6 +12,8 @@ import type { DateInterval } from '../types/calculation';
 import type { ISODateString } from '../types/branded';
 import { createDate, toISODateString } from '../types/branded';
 
+import { formatCopenhagenISODate } from './dateFormatting';
+
 export { createDate } from '../types/branded';
 export { parseDanishDate } from '../types/branded';
 export { formatDanishDate, formatToISO } from './dateFormatting';
@@ -28,6 +30,17 @@ export const getTodayLocalISO = (): ISODateString => {
   const month = String(now.getMonth() + 1).padStart(2, '0');
   const day = String(now.getDate()).padStart(2, '0');
   return toISODateString(`${year}-${month}-${day}`);
+};
+
+/**
+ * Dags dato i dansk tidszone (Europe/Copenhagen) som ISODateString.
+ *
+ * Bruges af fejlrapport-flowet (filnavne, email-emne), så datoen altid
+ * afspejler den danske kalenderdag — uafhængigt af brugerens maskine-tidszone
+ * og konsistent med rapportens danske tidsstempler.
+ */
+export const getTodayCopenhagenISO = (): ISODateString => {
+  return formatCopenhagenISODate(new Date());
 };
 
 export const isLeapYear = (year: number): boolean => {

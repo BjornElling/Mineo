@@ -297,3 +297,27 @@ Undtagelse:
   vises som systemfejl-rækker i `EOberegningTab` og logges til devtools-monitor-flowet, fordi de
   repræsenterer interne beregningsinkonsistenser der skal kunne indrapporteres. `BugReportButton`
   må fortsat kun vises i `DevtoolsIssueNotice`.
+
+### 8.5 Tidsstempler og tidszone (normativ)
+
+Tidsstempler i fejl-/debug-flowet har **to lag** med hver sit tidszone-ansvar:
+
+**Lagring (kanonisk instant):**
+- Logs og system-issue-payloads lagrer tidspunktet som UTC ISO 8601 via `getTimestamp()`
+  (`new Date().toISOString()`). Dette er det kanoniske, entydige instant og MÅ IKKE laves
+  om til lokal tid ved lagring. (Felt `timestamp` i §8.4 er netop dette UTC-instant.)
+
+**Præsentation (dansk tidszone):**
+- ALT tids-output der vises til brugeren eller sendes videre til udvikleren SKAL formateres
+  i dansk tidszone (Europe/Copenhagen) — ikke UTC og ikke en antagelse om maskinens lokale zone.
+- Klokkeslæt formateres via `formatCopenhagenTimestampSeconds(date)` (`dateFormatting.ts`).
+- Dato-kun output (filnavne, email-emne) formateres via `getTodayCopenhagenISO()` /
+  `formatCopenhagenISODate(date)`.
+- Dette omfatter mindst: fejlrapportens header-dato og per-fejl-tidsstempler, indlejrede
+  ISO-tidsstempler i payloads (jf. `stringifyReportData`), `DevtoolsIssueNotice`-visningen samt
+  download-filnavne og skærmprint-filnavne i rapport-/content-box-flowet.
+
+Rationale: Programmet bruges udelukkende af danske brugere i Danmark (én tidszone: Europe/Copenhagen).
+Udvikleren skal kunne sammenholde et indrapporteret tidspunkt direkte med brugerens danske klokkeslæt.
+At konvertere ét sted — på formaterings-grænsen, hvor rapporten samler UTC-tidsstempler fra lagringen —
+holder hele det udvikler-/brugersynlige output i samme zone uden at gøre lagringen flertydig.

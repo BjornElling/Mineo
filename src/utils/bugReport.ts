@@ -11,8 +11,8 @@
 
 import { getRecentLogEntries } from './logStorage';
 import type { LogEntry } from './logStorage';
-import { getTodayLocalISO } from './dateUtils';
-import { formatISOToDanish, formatUtcTimestampSeconds } from './dateFormatting';
+import { getTodayCopenhagenISO } from './dateUtils';
+import { formatISOToDanish, formatCopenhagenTimestampSeconds } from './dateFormatting';
 import { logError } from './logger';
 import { isSystemIssueLogData } from './systemIssueReporter';
 import { BUILD_INFO, VERSION } from '../config/buildInfo';
@@ -153,7 +153,7 @@ const stringifyReportData = (value: unknown): string => {
     if (typeof val === 'symbol') return '[Symbol]';
     if (typeof val === 'function') return '[Function]';
     if (typeof val === 'string' && ISO_UTC_TIMESTAMP_RE.test(val)) {
-      return formatUtcTimestampSeconds(new Date(val));
+      return formatCopenhagenTimestampSeconds(new Date(val));
     }
     if (val instanceof Error) {
       return { name: val.name, message: val.message, stack: val.stack };
@@ -180,7 +180,7 @@ const stringifyReportData = (value: unknown): string => {
  * @returns {string} Formateret tekst
  */
 const formatLogEntry = (entry: LogEntry): string => {
-  const timestamp = formatUtcTimestampSeconds(new Date(entry.timestamp));
+  const timestamp = formatCopenhagenTimestampSeconds(new Date(entry.timestamp));
   const level = entry.level.toUpperCase();
   const context = entry.context || 'unknown';
 
@@ -231,7 +231,7 @@ export const generateBugReport = async (
   const commitHash = getCommitHash();
   const activeTestFlags = getActiveTestInjectionsAndFeatureFlags();
   const browserInfo = getBrowserInfo();
-  const dato = formatUtcTimestampSeconds(new Date());
+  const dato = formatCopenhagenTimestampSeconds(new Date());
 
   // Hent seneste log entries fra IndexedDB
   const logEntries = await getRecentLogEntries(maxEntries);
@@ -241,7 +241,7 @@ export const generateBugReport = async (
   let report = '=== Mineo Fejlrapport ===\n';
   report += `Version: ${version}\n`;
   report += `Commit/hash: ${commitHash}\n`;
-  report += `Dato: ${dato}\n`;
+  report += `Dato: ${dato} (dansk tid)\n`;
   report += `Browser: ${browserInfo}\n`;
   report += `Aktive test-injektioner/feature flags: ${activeTestFlags.length > 0 ? activeTestFlags.join(', ') : 'Ingen'}\n`;
   report += '\n';
@@ -352,7 +352,7 @@ const ensureEncodedBodyWithinLimit = (
 const buildMailtoPayload = (report: string, options?: { subjectPrefix?: string }) => {
   try {
     const version = report.match(/Version: (.+)/)?.[1] || 'ukendt';
-    const dato = formatISOToDanish(getTodayLocalISO());
+    const dato = formatISOToDanish(getTodayCopenhagenISO());
 
     const subjectPrefix = options?.subjectPrefix ?? 'Mineo Fejlrapport';
     const subject = `${subjectPrefix} - v${version} - ${dato}`;
@@ -445,7 +445,7 @@ export const prepareBugReport = async (options?: {
 
   // Kopiér til clipboard (fallback)
   const version = getVersion();
-  const dato = getTodayLocalISO();
+  const dato = getTodayCopenhagenISO();
 
   return {
     report,
@@ -473,13 +473,13 @@ export const prepareContentBoxReport = async (options: {
   const commitHash = getCommitHash();
   const activeTestFlags = getActiveTestInjectionsAndFeatureFlags();
   const browserInfo = getBrowserInfo();
-  const dato = formatUtcTimestampSeconds(new Date());
+  const dato = formatCopenhagenTimestampSeconds(new Date());
   const message = (options.message ?? '').trim();
 
   let report = '=== Mineo Rapport ===\n';
   report += `Version: ${version}\n`;
   report += `Commit/hash: ${commitHash}\n`;
-  report += `Dato: ${dato}\n`;
+  report += `Dato: ${dato} (dansk tid)\n`;
   report += `Browser: ${browserInfo}\n`;
   report += `Aktive test-injektioner/feature flags: ${activeTestFlags.length > 0 ? activeTestFlags.join(', ') : 'Ingen'}\n`;
   report += '\n';
@@ -503,7 +503,7 @@ export const prepareContentBoxReport = async (options: {
 
   const mailto = buildMailtoPayload(report, { subjectPrefix: 'Mineo Rapport' });
 
-  const datoIso = getTodayLocalISO();
+  const datoIso = getTodayCopenhagenISO();
   return {
     report,
     email: {
@@ -543,7 +543,7 @@ export async function downloadBugReport(
   const report = isPreparedBugReport(arg) ? arg.report : arg?.report ?? (await generateBugReport(50));
   const filename =
     (isPreparedBugReport(arg) ? arg.download.filename : arg?.filename) ??
-    `Mineo-fejlrapport-v${getVersion()}-${getTodayLocalISO()}.txt`;
+    `Mineo-fejlrapport-v${getVersion()}-${getTodayCopenhagenISO()}.txt`;
 
   // Opret blob og download
   const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
