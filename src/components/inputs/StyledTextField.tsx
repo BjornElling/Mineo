@@ -413,7 +413,8 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
           // Symmetrisk med textarea-grenen: ignorér hook'ens programmatiske re-fokus.
           if (inputActivation.shouldIgnoreBlur()) return;
           onBlurBase(e);
-          const unchanged = draft === value;
+          // Aldrig "unchanged" mens en ikke-committbar rå draft lever (jf. textarea-grenen ovenfor).
+          const unchanged = draft === value && committedInvalidDraft === undefined;
           debugStyledTextField('blur', {
             id,
             name,

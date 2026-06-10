@@ -313,7 +313,9 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
         onFocus={handleFocus}
         onBlur={(e) => {
           onBlurBase(e);
-          const unchanged = draft === formatYear(value);
+          // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
+          // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
+          const unchanged = draft === formatYear(value) && committedInvalidDraft === undefined;
           if (!skipNextBlurCommitRef.current && !unchanged) {
             commit();
           }

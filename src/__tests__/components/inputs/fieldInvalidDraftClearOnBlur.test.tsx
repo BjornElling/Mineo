@@ -15,6 +15,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import StyledDateField from '../../../components/inputs/StyledDateField';
 import StyledFractionField from '../../../components/inputs/StyledFractionField';
+import StyledYearField from '../../../components/inputs/StyledYearField';
 import { usePersistedForm } from '../../../hooks/usePersistedForm';
 import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
 import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
@@ -184,6 +185,70 @@ describe('brøk-felt med ugyldig rå draft — clear rydder invalidDrafts (samme
     await user.tab();
 
     expect(eoInvalidDraftFor('forligAnsvarsgradBroek')).toBeUndefined();
+    expect(input).toHaveValue('');
+  });
+});
+
+// Den oprindeligt rapporterede regression i denne runde: årstal-feltet ("Hvilket års svie/smerte-satser
+// lægges til grund?"). StyledYearField var en yderligere felt-komponent med samme `unchanged`-guard.
+const YearPage = () => {
+  const form = usePersistedForm(erstatningsopgoerelseSchema, 'erstatningsopgoerelse', eoInitialValues);
+  const report = useFormFieldErrorReporter('erstatningsopgoerelse', 'svieSmerteSatserAar', {
+    severity: 'error',
+    source: 'input',
+  });
+  return (
+    <StyledYearField
+      name="svieSmerteSatserAar"
+      value={form.values.svieSmerteSatserAar}
+      minYear={2000}
+      maxYear={2025}
+      onFieldError={report}
+      onCommit={(e) =>
+        form.setValues((prev) => ({ ...prev, svieSmerteSatserAar: e.target.value }), {
+          fieldPath: 'svieSmerteSatserAar',
+        })
+      }
+    />
+  );
+};
+
+describe('årstal-felt med ugyldig rå draft — clear rydder invalidDrafts (rapporteret regression)', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    formPersistenceStore.setState({
+      sections: { ...formPersistenceStore.getState().sections, erstatningsopgoerelse: null },
+      meta: { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+    });
+    formPersistenceStore.getState().clearAllFieldErrors();
+  });
+
+  it('rydder invalidDrafts når et ugyldigt årstal ("123") tømmes og blur\'es', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/erstatningsopgoerelse']}>
+        <AppSettingsProvider>
+          <RoutePathnameProvider>
+            <FormPersistenceProvider>
+              <YearPage />
+            </FormPersistenceProvider>
+          </RoutePathnameProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
+    );
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    await user.click(input);
+    await user.type(input, '123');
+    await user.tab();
+    expect(eoInvalidDraftFor('svieSmerteSatserAar')).toBe('123');
+
+    await user.click(input);
+    await user.keyboard('{Control>}a{/Control}{Delete}');
+    expect(input).toHaveValue('');
+    await user.tab();
+
+    expect(eoInvalidDraftFor('svieSmerteSatserAar')).toBeUndefined();
     expect(input).toHaveValue('');
   });
 });
