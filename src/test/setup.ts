@@ -9,6 +9,7 @@
 import * as matchers from '@testing-library/jest-dom/matchers';
 import { cleanup, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createRequire } from 'node:module';
 
 // Udvid den globale expect med jest-dom matchers
 // Typesafe cast af globalThis.expect
@@ -16,6 +17,81 @@ const globalExpect = (globalThis as unknown as { expect: { extend: (m: object) =
 if (globalExpect?.extend) {
   globalExpect.extend(matchers);
 }
+
+/**
+ * Global test guard: ingen rigtige PDF-/Word-filer på disk under test.
+ *
+ * Baggrund (det konkrete problem dette løser): jsPDF's Node-build implementerer
+ * `doc.save(filnavn)` som `require('fs').writeFileSync(filnavn, buffer)` mod
+ * den aktuelle arbejdsmappe (projektroden). Når en test når et reelt
+ * `writer.save()` uden at have mocket `jspdf`, lander der derfor en ægte
+ * PDF i projektroden. Det er sket gentagne gange og er uacceptabelt:
+ * tests må aldrig skrive dokument-artefakter til disk.
+ *
+ * Værnet patcher `node:fs`-skrivefunktionerne (samme singleton-modul som
+ * jsPDF's `require('fs')`) så ethvert forsøg på at skrive en `.pdf`/`.docx`
+ * fejler hårdt med en forklarende fejl — uanset hvilken nuværende eller
+ * fremtidig test der udløser det. Alle andre fs-skrivninger (fx
+ * `.env.build-info.local`) går uændret igennem.
+ *
+ * Den naive form (kun mocke `jspdf` i hver enkelt test) er bevidst fravalgt:
+ * den dækker ikke nye tests og kan brydes lydløst. Et globalt fail-closed
+ * værn er det robuste valg.
+ */
+const isForbiddenDocumentArtifactPath = (target: unknown): boolean => {
+  const asString =
+    typeof target === 'string'
+      ? target
+      : target instanceof URL
+        ? target.pathname
+        : Buffer.isBuffer(target)
+          ? target.toString('utf8')
+          : null;
+  if (asString === null) return false;
+  return /\.(pdf|docx)$/i.test(asString);
+};
+
+const buildForbiddenWriteError = (target: unknown): Error =>
+  new Error(
+    `Test forsøgte at skrive en dokument-artefakt til disk (${String(target)}). ` +
+      'Dette er forbudt under test — PDF/Word må aldrig skrives til filsystemet. ' +
+      'Mock jspdf (vi.mock("jspdf", ...)) eller dokument-writeren i testen, ' +
+      'eller assertér på de genererede bytes i hukommelsen.',
+  );
+
+// Vi patcher det muterbare CommonJS `fs`-modul — det er nøjagtigt samme objekt
+// som jsPDF's Node-build henter med `require('fs')`, og dets metoder er
+// skrivbare (modsat ESM-namespace-eksporterne fra `import 'node:fs'`, der er
+// read-only getters og ikke kan redefineres).
+const fsModule = createRequire(import.meta.url)('node:fs') as {
+  writeFileSync: (...args: unknown[]) => unknown;
+  writeFile: (...args: unknown[]) => unknown;
+};
+
+const originalWriteFileSync = fsModule.writeFileSync.bind(fsModule);
+const originalWriteFile = fsModule.writeFile.bind(fsModule);
+
+fsModule.writeFileSync = (...args: unknown[]): unknown => {
+  if (isForbiddenDocumentArtifactPath(args[0])) {
+    throw buildForbiddenWriteError(args[0]);
+  }
+  return originalWriteFileSync(...args);
+};
+
+fsModule.writeFile = (...args: unknown[]): unknown => {
+  if (isForbiddenDocumentArtifactPath(args[0])) {
+    // jsPDF's promise-/callback-sti: rapportér fejlen via callback hvis der er
+    // en, ellers kast synkront. Begge stier forhindrer disk-skrivning.
+    const maybeCallback = args[args.length - 1];
+    const error = buildForbiddenWriteError(args[0]);
+    if (typeof maybeCallback === 'function') {
+      (maybeCallback as (err: Error) => void)(error);
+      return undefined;
+    }
+    throw error;
+  }
+  return originalWriteFile(...args);
+};
 
 /**
  * Global test guard:

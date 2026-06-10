@@ -35,7 +35,7 @@ export type FormPersistenceContextValue = {
     pageKey: K,
     fieldName: string,
     source: FieldErrorSource,
-    error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean; invalidDraft?: string } | null
+    error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean } | null
   ) => void;
   clearFieldErrors: (pageKey: StorageKey) => void;
   clearAllFieldErrors: () => void;

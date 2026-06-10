@@ -146,7 +146,7 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
           ? '__clear__'
           : typeof error === 'string'
             ? `__msg__:${severity}:${source}:true:${error}`
-            : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}:${error.invalidDraft ?? ''}`;
+            : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}`;
       debugFieldErrorReporter('report', {
         pageKey,
         fieldName,
@@ -174,7 +174,6 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
         message: error.message,
         severity,
         blocksSave: error.blocksSave !== false,
-        invalidDraft: error.blocksSave !== false ? error.invalidDraft : undefined,
       });
     },
     [fieldName, pageKey, setFieldError, severity, source]
@@ -233,7 +232,7 @@ export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
         ? '__clear__'
         : typeof error === 'string'
           ? `__msg__:${severity}:${source}:true:${error}`
-          : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}:${error.invalidDraft ?? ''}`;
+          : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}`;
 
     if (lastReportedByFieldRef.current[fieldName] === nextKey) {
       debugFieldErrorReporter('report-dynamic-skip-duplicate', {
@@ -271,7 +270,6 @@ export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
       message: error.message,
       severity,
       blocksSave: error.blocksSave !== false,
-      invalidDraft: error.blocksSave !== false ? error.invalidDraft : undefined,
     });
   }, [pageKey, setFieldError, severity, source]);
 };

@@ -31,13 +31,13 @@
 >
 > **Afvigelser fra planteksten (sådan blev det faktisk bygget):**
 > - `invalidDrafts` er en **store-slice parallel til `fieldErrors`** i `formPersistenceStore` (med `invalidDraftRevisions`), IKKE en sektion i `persistenceRegistry`. Derfor: eget Zod-schema (`src/schemas/invalidDraftsSchema.ts`), **egen dedikeret sessionStorage-nøgle** (`getInvalidDraftsStorageKey` i `storageManifest.ts`, serialisering i `src/utils/invalidDraftsStorage.ts`) — ikke per-sektion-vejen — og **automatisk .eo-eksklusion** (ikke en sektion → indgår aldrig i save-snapshot; ingen ændring i `fileSave.ts`/`fileLoad.ts`). Schemaet tæller ikke i `computeSchemaFingerprint` → **ingen `PERSISTED_DATA_VERSION`-bump**.
-> - `useDraftField`-restore for almindelige felter sker nu via **autoritativ-snapshot-epoch force-resync** (en epoch-ændring resyncer draften selv ved read-only-fokus) — dette erstatter det tidligere `draftHistoryRegistry`-push. `draftHistoryRegistry` er derfor stadig **i live-brug af tabel-celler** (`useTableInputHistoryRestore`) og kan først slettes efter Fase 3.
+> - `useDraftField`-restore for almindelige felter **og** `useTableInputCore`-restore for grid-celler sker nu via **autoritativ-snapshot-epoch force-resync** (en epoch-ændring resyncer draften selv ved fokus) — dette erstatter det tidligere `draftHistoryRegistry`-push. `draftHistoryRegistry` og `useTableInputHistoryRestore` er derfor **slettet** (jf. Fase 6).
 > - `data-mineo-field-path` er tilføjet på felt-input **ved siden af** det eksisterende `data-mineo-undo-field-path` (samme værdi for almindelige felter; de tjener hver sit subsystem).
 > - Kanalen til felterne: `useFormFieldErrorReporter` bærer nu `pageKey`/`fieldName`/`commitInvalidDraft`/`clearInvalidDraft`, og felterne læser reaktivt via `useFieldInvalidDraftChannel(reporter)` (context-fri store-selector → sikker uden provider).
 >
-> **Udestående (Fase 3 + 6):** Tabel-celler skriver endnu til det gamle `tableInputErrorRegistry` (bevaret som **fallback** i save-gaten → ingen regression; tabeller virker som før). Migrering af grid-celler til `invalidDrafts` (fuldt kvalificeret routbar fieldPath + `data-mineo-field-path` + `prepareTabForBlockingError`-prefiks; fjern den syntetiske `${af.id}:loenindkomst`-aggregat) og sletning af `draftHistoryRegistry`/`captureInvalidDraftIfNew`/`tableInputErrorRegistry`/`useTableInputSaveError` mangler. Den faste 30-frame-`waitForAnimationFrame`-heuristik i `navigateToBlockingInputError` er **ikke** ændret endnu (afventer celle-mount-delen i Fase 3).
+> **Fase 3 + 6 — afsluttet:** Tabel-celler er migreret til `invalidDrafts` (fuldt kvalificeret routbar fieldPath via `cellInvalidDraftScopes` + `data-mineo-field-path` + celle-fane-routing i `prepareTabForBlockingError`). `draftHistoryRegistry`, `captureInvalidDraftIfNew`, `tableInputErrorRegistry`, `useTableInputSaveError` og `useTableInputHistoryRestore` er **slettet**. Den syntetiske `${af.id}:loenindkomst`-aggregat er bevidst **bevaret** (fodrer PDF/debug-output-gaten; jf. afvigelses-noten øverst). Den faste 30-frame-`waitForAnimationFrame`-løkke i `navigateToBlockingInputError` er erstattet af en vent-på-mount mod `data-mineo-field-path`, hvor hvert forsøg afsluttes straks ved fund.
 >
-> **Afløser** [bevar-ugyldig-tabel-vaerdi-ved-navigation.md](bevar-ugyldig-tabel-vaerdi-ved-navigation.md): den plan byggede et ekstra lag oven på det runtime-parallelle system for at få tabelceller til at overleve navigation. Denne plan fjerner i stedet det parallelle system, så bevarelse (også for tabeller) sker gratis. Den gamle plan udføres ikke.
+> **Afløser** `bevar-ugyldig-tabel-vaerdi-ved-navigation.md` (slettet 2026-06-10 — alle dens mål er dækket af denne implementering): den plan byggede et ekstra lag oven på det runtime-parallelle system for at få tabelceller til at overleve navigation. Denne plan fjernede i stedet det parallelle system, så bevarelse (også for tabeller) sker gratis. Den gamle plan blev aldrig udført.
 
 ## Kontekst
 
@@ -120,15 +120,15 @@ Schema/type-autoritet kræver kontrakt før kode ([AGENTS.md](../../AGENTS.md): 
 - Reducér [useDraftField.ts](../../src/hooks/useDraftField.ts) til **én** ekstern kilde: `committedInvalidDraft ?? format(value)`. Fjern `initialInvalidDraft`-seed, `restoreFromHistory`'s error-gren, registry-registreringen og `valueAtInvalidDraftPreserveRef`-grenen.
 - Bevar no-live-preview: `invalidDrafts` skrives **kun** ved commit (blur/enter), aldrig i `onChange`.
 
-### Fase 3 — Tabel-input ⬜ UDESTÅR
+### Fase 3 — Tabel-input ✅ GENNEMFØRT
 
 - [useTableInputCore.ts](../../src/hooks/tableInput/useTableInputCore.ts): cellers ugyldige rå draft skrives til `invalidDrafts` keyet på stabil `rowId+colKey` (rowId er nu deterministisk, jf. row-id-fixes). Detektion bliver state-afledt.
 - Fjern `tableInputErrorRegistry` og `useTableInputSaveError`. Den planlagte grid-celle-workaround bortfalder.
 - **Implementeringsnote:** Cellen mangler i dag en (pageKey, fuldt-kvalificeret fieldPath)-binding. Den skal trådes ned gennem grid-tabellerne (4 stk.) → `Table*Input` (7 stk.) → `useTableInputCore`, fx via en celle-kanal magen til `useFieldInvalidDraftChannel` (reaktiv læsning + `commitInvalidDraft`/`clearInvalidDraft`). `useTableInputCore`'s save-error-state-maskine (`saveErrorActive`/`setLocalError` + `useTableInputSaveError`) erstattes af kanalen, og `useTableInputHistoryRestore`'s registry-push erstattes af reaktiv `committedInvalidDraft` (samme mønster som almindelige felter). EET-tabellens dropdowns (`StyledDropdown`) bærer allerede `rowId:colIndex` som undo-identitet.
 
-### Fase 4 — Save-gate + routing 🟡 DELVIST (almindelige felter ✅; celle-lokalisering + 30-frame-heuristik afventer Fase 3)
+### Fase 4 — Save-gate + routing ✅ GENNEMFØRT
 
-> **Status:** `getFirstBlockingInputErrorTarget` læser nu `invalidDrafts` **og** resterende blokerende `fieldErrors` (jf. korrektionen i status-blokken). `data-mineo-field-path`-lookup er tilføjet i `focusFirstVisibleBlockingInputError` + `focusVisibleBlockingErrorOnCurrentTab` og bruges for almindelige felter. Tabel-registry-fallback (`getFirstBlockingTableInputErrorTarget`) er **bevaret** indtil Fase 3. Den faste 30-frame-løkke i `navigateToBlockingInputError` er **ikke** ændret endnu.
+> **Status:** `getFirstBlockingInputErrorTarget` læser nu `invalidDrafts` **og** resterende blokerende `fieldErrors` (jf. korrektionen i status-blokken), med `invalidDrafts` tjekket FØRST (fuldt kvalificeret celle-fieldPath får forrang for routing/scroll). `data-mineo-field-path`-lookup bruges i `focusFirstVisibleBlockingInputError` + `focusVisibleBlockingErrorOnCurrentTab` for både almindelige felter og grid-celler. Det tidligere tabel-registry (`getFirstBlockingTableInputErrorTarget`) er **fjernet**. Den faste 30-frame-løkke i `navigateToBlockingInputError` er erstattet af vent-på-mount mod `data-mineo-field-path` (hvert forsøg afsluttes straks ved fund).
 
 - [useFileSaveLoad.ts](../../src/hooks/useFileSaveLoad.ts): `getFirstBlockingInputErrorTarget` ([saveBlockedFocus.ts:127-150](../../src/utils/saveBlockedFocus.ts#L127-L150)) læser `invalidDrafts`-sektionen (state-afledt) i stedet for fejlcache + tabel-registry. Selve blokeringen er uændret brugeradfærd.
 - **Erstat tabel-registrets celle-lokalisering.** Grid-celler bruger ikke `.Mui-error` og fanges ikke af `FOCUSABLE_ERROR_SELECTOR`; i dag lokaliseres de af `getFirstBlockingTableInputErrorTarget()` ([saveBlockedFocus.ts:166-174](../../src/utils/saveBlockedFocus.ts#L166-L174)). Når registret slettes, skal cellen i stedet findes via en stabil `data-mineo-field-path`-attribut på celle-inputtet og en `[data-mineo-field-path="…"]`-DOM-lookup. Dette gælder begge steder registret bruges i dag: `getFirstBlockingInputErrorTarget` (fallback) og `focusVisibleBlockingErrorOnCurrentTab` ("synlig fejl på nuværende fane har forrang", [saveBlockedFocus.ts:192-213](../../src/utils/saveBlockedFocus.ts#L192-L213)).
@@ -140,11 +140,11 @@ Schema/type-autoritet kræver kontrakt før kode ([AGENTS.md](../../AGENTS.md): 
 - Rød kant + tooltip for **parse-fejl** afledes af `invalidDrafts` (felt har entry → vis fejl). Range/rule/schema-fejl forbliver i `fieldErrors` (uændret).
 - **Implementeringsnote:** `useDraftField` gen-udleder fejlbeskeden ved at parse den rå streng (`parse(normalize(committedInvalidDraft))`), så kun råstrengen persisteres. Fejlen vises kun når draften aktuelt VISER den ugyldige streng (skjules mens brugeren taster en ny værdi) — erstatter det gamle `clearErrorOnDraftChange`.
 
-### Fase 6 — Oprydning ⬜ UDESTÅR (kan først efter Fase 3)
+### Fase 6 — Oprydning ✅ GENNEMFØRT
 
-- Slet død kode: `draftHistoryRegistry`, `captureInvalidDraftIfNew`, `tableInputErrorRegistry`, `useTableInputSaveError` og de tilhørende grene i `useDraftField`/`useTableInputCore`.
-- Ingen dinglende referencer til de slettede moduler (fanges af typecheck + lint).
-- **Note:** `useDraftField`'s registry-gren er allerede fjernet; `initialInvalidDraft`-seed, `restoreFromHistory`-error-gren og `valueAtInvalidDraftPreserveRef` er allerede væk. `draftHistoryRegistry` selv kan dog først slettes, når tabel-cellerne (Fase 3) ikke længere bruger det via `useTableInputHistoryRestore`. Samme gælder registry-fallback i `saveBlockedFocus.getFirstBlockingInputErrorTarget` + `focusFirstVisibleBlockingInputError`.
+- Slettet død kode: `draftHistoryRegistry`, `captureInvalidDraftIfNew`, `tableInputErrorRegistry`, `useTableInputSaveError`, `useTableInputHistoryRestore` og de tilhørende grene i `useDraftField`/`useTableInputCore`.
+- Ingen dinglende referencer til de slettede moduler (verificeret af typecheck + lint). De eneste tilbageværende omtaler er historisk-kontekst-kommentarer ("erstatter det tidligere `draftHistoryRegistry`-push") i `useDraftField.ts`/`useTableInputCore.ts`, bevidst bevaret som regressions-værn.
+- `initialInvalidDraft`-seed, `restoreFromHistory`-error-gren og `valueAtInvalidDraftPreserveRef` i `useDraftField` er fjernet. Registry-fallbacket i `saveBlockedFocus` er fjernet; lokalisering sker nu via `data-mineo-field-path`.
 
 ## Testdækning
 
@@ -194,13 +194,13 @@ Princip (jf. [AGENTS.md](../../AGENTS.md): stående ansvar for testdækning; men
 
 **Slettes:** `draftHistoryRegistry`, `captureInvalidDraftIfNew`, `tableInputErrorRegistry`, `useTableInputSaveError`, `initialInvalidDraft`-seed + `restoreFromHistory` error-gren + `valueAtInvalidDraftPreserveRef` i `useDraftField`, den planlagte grid-celle-workaround.
 
-> **Status:** Allerede slettet — `initialInvalidDraft`-seed, `restoreFromHistory`-error-gren, `valueAtInvalidDraftPreserveRef` og registry-grenen i `useDraftField`. **Endnu IKKE slettet** (live-brugt af tabel-celler, venter på Fase 3): `draftHistoryRegistry`, `tableInputErrorRegistry`, `useTableInputSaveError`. `captureInvalidDraftIfNew` lever stadig i `useFormFieldErrors` (fyrer ikke længere for almindelige felter; kan bruges af tabel-dynamiske reportere indtil Fase 3).
+> **Status:** Alt ovenstående er slettet — `initialInvalidDraft`-seed, `restoreFromHistory`-error-gren, `valueAtInvalidDraftPreserveRef` og registry-grenen i `useDraftField`, samt modulerne `draftHistoryRegistry`, `tableInputErrorRegistry`, `useTableInputSaveError`, `useTableInputHistoryRestore` og `captureInvalidDraftIfNew`. Verificeret med typecheck + lint: ingen dinglende referencer.
 
 **Består (fodret af ren state):** Gem-blokeringen, `navigateToBlockingInputError`, `resolveActiveFieldError`, `fieldErrors`-storen til schema/rule/range-fejl, rød kant + tooltip (afledt af `invalidDrafts` for parse-fejl).
 
 ## Dækning af den afløste plan
 
-[bevar-ugyldig-tabel-vaerdi-ved-navigation.md](bevar-ugyldig-tabel-vaerdi-ved-navigation.md) løste tre symptomer for ugyldige tabelceller. Verificeret mod [saveBlockedFocus.ts](../../src/utils/saveBlockedFocus.ts):
+Den afløste plan (`bevar-ugyldig-tabel-vaerdi-ved-navigation.md`, slettet 2026-06-10) løste tre symptomer for ugyldige tabelceller. Verificeret mod [saveBlockedFocus.ts](../../src/utils/saveBlockedFocus.ts):
 
 | Gammelt mål | Opnås | Hvordan |
 |-------------|-------|---------|

@@ -280,7 +280,7 @@ describe('useFormFieldErrorReporter', () => {
     expect(setFieldError).not.toHaveBeenCalled();
   });
 
-  it('gemmer invalidDraft på fieldError men opretter IKKE et undo-skridt (undo-capture ejes nu af commitInvalidDraft-kanalen)', async () => {
+  it('rapporterer en blokerende fejl uden at oprette et undo-skridt (undo-capture ejes nu af commitInvalidDraft-kanalen)', async () => {
     const setFieldError = vi.fn();
     const ctx = makeCtx({ setFieldError });
 
@@ -299,14 +299,14 @@ describe('useFormFieldErrorReporter', () => {
     );
 
     await act(async () => {
-      reportError({ message: 'Ugyldigt input', blocksSave: true, invalidDraft: 'abc' });
+      reportError({ message: 'Ugyldigt input', blocksSave: true });
     });
 
     expect(setFieldError).toHaveBeenCalledWith(
       'stamdata',
       'journalnr',
       'input',
-      { message: 'Ugyldigt input', severity: 'error', blocksSave: true, invalidDraft: 'abc' }
+      { message: 'Ugyldigt input', severity: 'error', blocksSave: true }
     );
     // Reporteren capturer ikke længere undo-frames; den ikke-committbare rå draft (og dens undo-frame)
     // ejes af invalidDrafts-kanalen via FormPersistenceContext.commitInvalidDraft.

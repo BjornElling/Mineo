@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (runtime-only)
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-06-04
+**Senest verificeret mod kode:** 2026-06-10
 
 Dette dokument beskriver den **normative** model for felt-fejl (errors) og debug-visning i Mineo.
 

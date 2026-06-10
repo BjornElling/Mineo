@@ -3,7 +3,7 @@
 **Version:** 0.1
 **Status:** Gældende arkitektur
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-05-31
+**Senest verificeret mod kode:** 2026-06-10
 **Formål:** At fastlægge ufravigelige regler for form-arkitektur, state-håndtering og validering i Mineo.
 
 ---

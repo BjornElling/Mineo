@@ -16,13 +16,6 @@ export type FormFieldError = {
    * Udeladt/`true` betyder, at fejlen repræsenterer ikke-committbart, ugyldigt input og blokerer save.
    */
   blocksSave?: boolean;
-  /**
-   * Runtime-only draft, der fejlede commit-validering.
-   *
-   * Bruges til at genskabe det præcise ugyldige input efter route-/tab-navigation, når save er blokeret.
-   * Må aldrig persisteres til `.eo` eller bruges til beregning.
-   */
-  invalidDraft?: string;
 };
 
 export type ReportableFieldError =
@@ -30,7 +23,6 @@ export type ReportableFieldError =
   | Readonly<{
       message: string;
       blocksSave?: boolean;
-      invalidDraft?: string;
     }>;
 
 /**
@@ -90,7 +82,6 @@ export const normalizeFieldError = (error: FormFieldError): FormFieldError | nul
     severity: error.severity,
     source: error.source,
     blocksSave: error.blocksSave !== false,
-    invalidDraft: typeof error.invalidDraft === 'string' ? error.invalidDraft : undefined,
   };
 };
 
