@@ -67,7 +67,7 @@ UI må aldrig erstatte manglende autoritativ beregning med fallback-tal.
 ## 5. Lagdeling
 
 - Section-lokale, rene afledninger placeres i det relevante domæne under `src/domain/<domaene>/`.
-- Beregningsmotorer placeres kanonisk under `src/domain/<domaene>/engines/`, når de er selvstændige engines.
+- Beregningsmotorer placeres i domænelaget. Det store EO-domæne samler sine mange engines i en `src/domain/erstatningsopgoerelse/engines/`-undermappe; de øvrige (mindre) domæner placerer deres engine flat i domæneroden (fx `renteberegningEngine.ts`, `varigeMenEngine.ts`, `forsoergertabCalculation.ts`). Afgørende er domæne-placeringen og adskillelsen fra selectors/UI — ikke en obligatorisk `engines/`-undermappe i hvert domæne.
 - Tværgående/økonomiske beregninger implementeres som dedikerede engines i domænelag, ikke i selectors/UI.
 - Selectors må kun vælge/forme allerede beregnede outputs til visning.
 

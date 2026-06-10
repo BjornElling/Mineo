@@ -23,7 +23,7 @@ Planen følger **afhængighedsorden nedefra og op** — det fundamentale først,
 
 ## Status
 
-⬜ **Planen er nulstillet.** Ingen punkter er gennemgået i denne omgang. Alle punkter står som **⬜ Ikke startet**. Arbejdet påbegyndes forfra ved punkt 1.1 efter afhængighedsorden indefra og ud (jf. proceduren nederst).
+✅ **Gruppe 1 (Kontrakter & arkitektur) er færdig** (2026-06-10). Punkterne 1.1–1.7 er gennemgået, fund rettet, og kontraktlandskabet konsolideret: `pdf-contract` + `pdf-layout-contract` er flettet til `document-output-contract` (kanal-neutral data/gate/guards + komposition/writer-API for både PDF og Word), `pdf-architecture.md` omdøbt+udvidet til `document-output-architecture.md`, felt-identitets-API'et har fået normativt hjem i `mineo-field-pattern.md`, `LoginPage` klassificeret i page-component-kontrakten, og `contract-topology.json` + coverage-matrix-test + AGENTS.md synkroniseret (18 → 17 tværgående kontrakter). Næste ikke-startede punkt er **2.1**.
 
 **Test-baseline ved start:** Fuld suite grøn — **5020 tests / 421 filer** (seneste kørsel 2026-06-10). Pre-eksisterende `act(...)`-warning i `TableDropdown.gridCore.test.tsx` er kendt og ikke en fejl (testen passerer). Hvert punkt skal efterlade suiten mindst lige så grøn.
 
@@ -39,13 +39,13 @@ Følgende ændringer er **allerede committet** af brugeren (behandlet som tilsig
 | Punkt | Navn | Status | Fil |
 |---|---|---|---|
 | **1 — Kontrakter & arkitektur (kortlægning af fundamentet)** | | | |
-| 1.1 | Topologi-maskineri: `contract-topology.json`, `contract-template.md`, `contract-topology-procedure.md` + `contractCoverageMatrix.test.ts` — indbyrdes konsistens og fuld dækning af alle 27 kontraktfiler | ⬜ Ikke startet | _1.1-kontrakt-topologi.md_ |
-| 1.2 | Tværgående kontrakter A (state/persistence/form): domain-boundary, form, persistence, schema-evolution, mineo-field-pattern, app-settings | ⬜ Ikke startet | _1.2-tvaergaaende-kontrakter-a.md_ |
-| 1.3 | Tværgående kontrakter B (dato/beløb/periodisering/historik): date, amount, periodisering, undo-redo, snapshot | ⬜ Ikke startet | _1.3-tvaergaaende-kontrakter-b.md_ |
-| 1.4 | Tværgående kontrakter C (output/fejl/keyboard/shell/auth): error-debug, keyboard-navigation, document-format, pdf, pdf-layout, auth-gate, app-shell | ⬜ Ikke startet | _1.4-tvaergaaende-kontrakter-c.md_ |
-| 1.5 | Domæne-kontrakter (8): eo-snapshot, eet-snapshot, forsoergertab-snapshot, aarsloen, renteberegning, varigemen, satser, indskudte-loentillaeg | ⬜ Ikke startet | _1.5-domaene-kontrakter.md_ |
-| 1.6 | Page-component-kontrakten + 7 arkitektur-docs (auth-gate, calculation, date-interval-performance, debug-builder, eo-clamping-pipeline, pdf, undo-redo) | ⬜ Ikke startet | _1.6-page-component-og-arkitektur-docs.md_ |
-| 1.7 | Helhedsvurdering af kontraktlandskabet og de arkitektoniske grundprincipper | ⬜ Ikke startet | _1.7-helhedsvurdering-kontraktlandskab.md_ |
+| 1.1 | Topologi-maskineri: `contract-topology.json`, `contract-template.md`, `contract-topology-procedure.md` + `contractCoverageMatrix.test.ts` — indbyrdes konsistens og fuld dækning af alle 27 kontraktfiler | ✅ Gennemgået | [1.1-kontrakt-topologi.md](1.1-kontrakt-topologi.md) |
+| 1.2 | Tværgående kontrakter A (state/persistence/form): domain-boundary, form, persistence, schema-evolution, mineo-field-pattern, app-settings | ✅ Gennemgået | [1.2-tvaergaaende-kontrakter-a.md](1.2-tvaergaaende-kontrakter-a.md) |
+| 1.3 | Tværgående kontrakter B (dato/beløb/periodisering/historik): date, amount, periodisering, undo-redo, snapshot | ✅ Gennemgået | [1.3-tvaergaaende-kontrakter-b.md](1.3-tvaergaaende-kontrakter-b.md) |
+| 1.4 | Tværgående kontrakter C (output/fejl/keyboard/shell/auth): error-debug, keyboard-navigation, document-format, document-output (flettet fra pdf + pdf-layout), auth-gate, app-shell | ✅ Gennemgået | [1.4-tvaergaaende-kontrakter-c.md](1.4-tvaergaaende-kontrakter-c.md) |
+| 1.5 | Domæne-kontrakter (8): eo-snapshot, eet-snapshot, forsoergertab-snapshot, aarsloen, renteberegning, varigemen, satser, indskudte-loentillaeg | ✅ Gennemgået | [1.5-domaene-kontrakter.md](1.5-domaene-kontrakter.md) |
+| 1.6 | Page-component-kontrakten + 7 arkitektur-docs (auth-gate, calculation, date-interval-performance, debug-builder, eo-clamping-pipeline, document-output [omdøbt fra pdf], undo-redo) | ✅ Gennemgået | [1.6-page-component-og-arkitektur-docs.md](1.6-page-component-og-arkitektur-docs.md) |
+| 1.7 | Helhedsvurdering af kontraktlandskabet og de arkitektoniske grundprincipper | ✅ Gennemgået | [1.7-helhedsvurdering-kontraktlandskab.md](1.7-helhedsvurdering-kontraktlandskab.md) |
 | **2 — Persistence** | | | |
 | 2.1 | Persistence-arkitektur: `src/stores/` (formPersistenceStore, undoRedoStore, formPersistenceReadModel), persistenceRegistry, storageManifest + `src/types/` (persistence, fieldErrors, persistenceInvariants) | ⬜ Ikke startet | _2.1-persistence-arkitektur.md_ |
 | 2.2 | Undo/redo-store og fokus-restore (undoRedoStore, undoFocusTracker, historyTargetRestore, saveBlockedFocus) | ⬜ Ikke startet | _2.2-undo-redo-store-og-fokus-restore.md_ |

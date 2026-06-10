@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt. Underordner ikke andre kontrakter og er ikke underordnet `page-component-contract.md` (login-gaten ligger uden for sidekomponent-laget; den wrappes om hele `App` i app-shell-laget, før sider monteres). Berører ikke beregnings-, form- eller persistence-concerns og overlapper derfor ikke de øvrige tværgående kontrakter.
-**Senest verificeret mod kode:** 2026-06-02
+**Senest verificeret mod kode:** 2026-06-10
 
 ## 1. Scope
 

@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-05-30
+**Senest verificeret mod kode:** 2026-06-10
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -42,9 +42,11 @@ Konsekvens:
 - **Miljøafhængige defaults** er kun tilladt for rene visuelle UI-præferencer. De må ikke bruges til sags-, PDF- eller beregningsrelevante settings.
 
 ## Teknisk implementering
-- Programindstillinger persisteres i **`localStorage`** under en dedikeret nøgle: `mineo_app_settings_v1`
+- Programindstillinger persisteres i **`localStorage`** under en dedikeret nøgle: `mineo_app_settings_v1` (`LOCAL_STORAGE_KEY` i `src/settings/appSettingsStorage.ts`)
 - Skema og defaults: `src/settings/appSettingsSchema.ts`
-- Læs/skriv + sideeffekter (fx CSS toggles): `src/contexts/AppSettingsContext.tsx`
+- Tolerant parsing/merge mod defaults: `src/settings/appSettingsParse.ts` (`parseStoredSettings`, `mergeAppSettings`, `loadInitialSettings`)
+- localStorage-I/O (fail-safe): `src/settings/appSettingsStorage.ts` (`readLocalStorage`/`writeLocalStorage`)
+- Context, runtime-state og sideeffekter (fx CSS toggles): `src/contexts/AppSettingsContext.tsx`
 
 `.eo` persistence opererer på sessionStorage keys fra manifestet:
 - Manifest: `src/config/storageManifest.ts`

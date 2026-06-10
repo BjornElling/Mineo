@@ -182,15 +182,7 @@ Gem påvirker ikke undo/redo. Save er persistence af allerede committed state og
 
 ## 12. Debug
 
-Undo/redo har opt-in debug logging via `src/utils/undoRedoDebug.ts`.
-
-Logging er kun aktiv, når browserkonsollen sætter:
-
-```javascript
-window.__MINEO_UNDO_LOG__ = true
-```
-
-Når aktivt, bruger logging `console.debug` med `[UNDO/REDO]`-prefix. Normal drift er console-silent.
+Undo/redo har ikke noget dedikeret debug-loggingslag. Normal drift er console-tavs efter konsol-politikken i `AGENTS.md`. Fejl i restore-flowet rapporteres via den centrale systemfejlrapportering (jf. `error-debug-contract.md`), ikke via ad hoc undo-specifik logging.
 
 ## 13. Vigtige filer
 

@@ -52,7 +52,7 @@ En væsentlig del af arbejdet er reviews. Ved hvert review skal du overveje at u
 ## Sprogpolitik (ét ensartet princip)
 Sproget skal være ensartet overalt efter disse regler — afvigelser rettes, hver gang du støder på dem:
 - **Brugervendt tekst:** dansk (jf. ovenfor).
-- **Kontrakter** (`src/contracts/*.md`): dansk uden undtagelse. (`date-contract.md` og `mineo-field-pattern.md` skal oversættes til dansk.)
+- **Kontrakter** (`src/contracts/*.md`): dansk uden undtagelse.
 - **Kodekommentarer, JSDoc og øvrige docs (`docs/`):** dansk prosa. Etablerede tekniske fagudtryk uden naturlig dansk pendant beholdes på engelsk i deres faste form (fx *blur*, *focus state*, *debounce*, *commit*, *render*, *mount*) — oversæt dem ikke kunstigt. Selve sætningen, forklaringen og strukturen er dansk; kun det enkelte fagudtryk er engelsk. Skriv ikke hele engelske kommentar- eller dokumentafsnit.
 - Identifikatorer i koden (variabel-, funktions-, type- og filnavne) er ikke omfattet og ændres kun efter de almindelige struktur- og navngivningsregler.
 
@@ -123,7 +123,7 @@ Følg de kontrakter der er klassificeret som bindende i `src/contracts/contract-
 
 **Du ejer kontrakterne og enhver anden autoritativ beskrivelse.** Du er ikke bundet af deres nuværende tilstand — din opgave er at holde dem opdateret til det bedst mulige slutprodukt og derefter implementere på baggrund af den opdaterede kontrakt, ikke den gamle. Læs relevante kontrakter før du implementerer inden for deres scope. Kontrakter er bindende, **så længe de tjener det bedst mulige slutprodukt** — står en kontrakt i vejen for en reel forbedring eller er ude af sync med en sundere arkitektur, forbedrer du selve kontrakten frem for blindt at følge den. En kontraktændring er en arkitekturbeslutning: berører den ikke UI/UX eller beregningslogik, træffer du den selv; ellers forelægges den. Kode der afviger fra en gældende kontrakt uden at kontrakten er opdateret, er en arkitekturfejl. Ved tilføjelse/fjernelse/omdøbning/omklassificering af en kontrakt: følg `docs/architecture/contract-topology-procedure.md` og opdatér topologien i samme ændring.
 
-**Kontrakthierarki ved overlap:** (1) mest specifikke domænekontrakt vinder for sit emne; (2) tværgående kontrakter (`domain-boundary`, `form`, `persistence`, `schema-evolution`, `keyboard-navigation`, `error-debug`, `pdf`, `pdf-layout`, `periodisering`, `date`, `mineo-field-pattern`, `amount`, `undo-redo`, `app-settings`) begrænser øvrige; (3) `page-component-contract.md` underordnet de tværgående; (4) domænekontrakter underordnet relevante generelle, undtagen hvor de definerer domænespecifikke regler de generelle bevidst overlader; (5) `docs/architecture/*.md` informativt medmindre en kontrakt eksplicit ophøjer en regel derfra.
+**Kontrakthierarki ved overlap:** (1) mest specifikke domænekontrakt vinder for sit emne; (2) tværgående kontrakter (`domain-boundary`, `form`, `persistence`, `schema-evolution`, `keyboard-navigation`, `error-debug`, `document-format`, `document-output`, `periodisering`, `date`, `mineo-field-pattern`, `amount`, `undo-redo`, `app-settings`, `snapshot`, `auth-gate`, `app-shell`) begrænser øvrige; (3) `page-component-contract.md` underordnet de tværgående; (4) domænekontrakter underordnet relevante generelle, undtagen hvor de definerer domænespecifikke regler de generelle bevidst overlader; (5) `docs/architecture/*.md` informativt medmindre en kontrakt eksplicit ophøjer en regel derfra.
 
 **Prioritet ved konflikt:** `src/contracts/*.md` > `AGENTS.md`.
 

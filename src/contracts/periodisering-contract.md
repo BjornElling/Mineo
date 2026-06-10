@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md` og relevante domænekontrakter.  
-**Senest verificeret mod kode:** 2026-05-30  
+**Senest verificeret mod kode:** 2026-06-10  
 
 Dette dokument fastlægger den bindende taksonomi for periodisering, dagtælling og fradragsregler i Mineo.
 
@@ -70,7 +70,7 @@ For lønindkomst i EO gælder følgende bindende regel:
 - Hvis TAF beregnes som `Arbejdsdage`, periodiseres løn på arbejdsdage.
 
 Denne regel gælder for samtlige ansættelsesforhold i samme EO-beregning.
-Valget foretages centralt via `computeTafBeregningsenhed(...)` og må ikke genfortolkes lokalt i enkelte callsites.
+Valget foretages centralt via `computeTafBeregningsenhed(...)` (`src/domain/erstatningsopgoerelse/helpers/tafBeregningsenhed.ts`) og må ikke genfortolkes lokalt i enkelte callsites.
 
 Ved lønperiodisering:
 

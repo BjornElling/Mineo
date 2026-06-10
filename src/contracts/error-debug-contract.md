@@ -199,7 +199,7 @@ devtools-/bug-report-flow. `EOberegningTab` må højst vise en neutral inline-r�
 
 ### 8.1 Dokument-download-fejl og download-gating
 
-**Download-gating:** Den autoritative definition findes i `src/contracts/pdf-contract.md` §2 og
+**Download-gating:** Den autoritative definition findes i `src/contracts/document-output-contract.md` afsnit A (A2) og
 formatvalget findes i `src/contracts/document-format-contract.md`.
 
 EO-specifik præcisering:

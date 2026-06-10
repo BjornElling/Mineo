@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
 **Prioritet:** Underordnet `form-contract.md` for draft/commit-semantik; overordnet arkitekturdokumenter ved konflikt.  
-**Senest verificeret mod kode:** 2026-05-31
+**Senest verificeret mod kode:** 2026-06-10
 
 Denne kontrakt samler de numeriske regler, som tidligere var spredt mellem form- og beregningsdokumentation.
 
@@ -53,7 +53,9 @@ Ad hoc-afrunding i featurekomponenter er arkitektonisk fejl.
 
 Standard for beløb er 2 decimaler med `half away from zero`, medmindre en mere specifik domænekontrakt definerer en anden regel.
 
-Indlæste beløb skal normaliseres til samme committed semantik som almindelig commit. Load må ikke sende uafrundede beløb videre til beregningslaget.
+Indlæste beløb skal normaliseres til samme committed semantik som almindelig commit. Load må ikke sende uafrundede beløb videre til beregningslaget. Den kanoniske normalisering (`normalizeAmountToTwoDecimals` i `src/schemas/amountExpressionSchema.ts`) anvendes både ved commit (`amountNumberSchema`/`amountExpressionSchema`) og ved coercion af persisteret input (`coerceToAmountValue`), så de to veje ikke kan drive fra hinanden.
+
+Bemærk: `.refine(Number.isFinite, …)` på `value` er load-bearing, fordi den ligger **efter** `normalizeAmountToTwoDecimals`-transformen, som kan videreføre et ikke-endeligt input uændret. Den må ikke fjernes som "død" (Zod 4's `z.number()` afviser ganske vist Infinity/NaN ved input, men ikke efter en transform).
 
 ---
 

@@ -3,7 +3,7 @@
 **Status:** Minimal domænekontrakt (normativ)  
 **Type:** Domænekontrakt  
 **Prioritet:** Underordnet `form-contract.md`, `domain-boundary-contract.md`, `date-contract.md` og `amount-contract.md`.  
-**Senest verificeret mod kode:** 2026-05-31
+**Senest verificeret mod kode:** 2026-06-10
 
 ---
 

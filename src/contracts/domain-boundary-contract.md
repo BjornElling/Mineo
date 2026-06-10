@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående; constrainer `page-component-contract.md`.
-**Senest verificeret mod kode:** 2026-05-31
+**Senest verificeret mod kode:** 2026-06-10
 
 Dette dokument fastlægger bindende grænser mellem persisted sektioner, sideejerskab og tværdomæne-afhængigheder.
 
@@ -195,13 +195,15 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 
 ## 11. Aktuelle domænekontrakter
 
-Minimale domænekontrakter supplerer denne fil:
+Minimale domænekontrakter supplerer denne fil. Den autoritative liste ejes af `domainContracts` i `contract-topology.json`; nedenstående skal holdes i sync med den:
 
+- `eo-snapshot-contract.md`
 - `eet-snapshot-contract.md`
 - `forsoergertab-snapshot-contract.md`
 - `aarsloen-contract.md`
 - `renteberegning-contract.md`
 - `varigemen-contract.md`
 - `satser-contract.md`
+- `indskudte-loentillaeg-contract.md`
 
 Nye beregnings- eller PDF-producerende domæner skal have mindst en tilsvarende kort kontrakt, før de betragtes som dækket af kontraktlandskabet.

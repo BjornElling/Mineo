@@ -82,7 +82,7 @@ const getUdkastWatermarkPngDataUrl = (pageWidth: number, pageHeight: number): st
 
 // Vandmærket går via PdfDocumentAdapter, ikke direkte mod jsPDF: al brug af
 // jsPDF (inkl. internal.pageSize) skal være isoleret i jsPdfAdapter.ts. Sidemål
-// slås op per-kald via adapteren, fordi pageSize er mutable (jf. pdf-architecture §4).
+// slås op per-kald via adapteren, fordi pageSize er mutable (jf. document-output-architecture §4).
 const addUdkastWatermark = (adapter: PdfDocumentAdapter): void => {
   const pageWidth = adapter.getPageWidth();
   const pageHeight = adapter.getPageHeight();

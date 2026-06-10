@@ -17,9 +17,9 @@ Denne kontrakt fastlægger reglerne for valg mellem PDF- og Word-downloads.
 
 ## 2. Indstilling
 
-1. Formatet styres af den device-lokale app-indstilling `documentDownloadFormat`.
-2. Gyldige værdier er kun `pdf` og `word`.
-3. Default er `pdf`.
+1. Formatet styres af den device-lokale app-indstilling `documentDownloadFormat`. Selve indstillingen (schema, persistens, default) ejes af `app-settings.md`; denne kontrakt ejer kun routing-konsekvenserne af værdien.
+2. Gyldige værdier er kun `pdf` og `word`. Værdimængden defineres af `documentDownloadFormatSchema` i `src/document/documentFormat.ts`.
+3. Default er `pdf` (`DEFAULT_DOCUMENT_DOWNLOAD_FORMAT`).
 4. Indstillingen må aldrig gemmes i `.eo`, fordi den ikke er sagsdata.
 
 ## 3. Routing
@@ -28,6 +28,7 @@ Denne kontrakt fastlægger reglerne for valg mellem PDF- og Word-downloads.
 2. Formatvalget sker først efter, at download-gaten har godkendt dokumentet.
 3. Word må aldrig bruge egne beregninger, Word-formler eller feltkoder til tal.
 4. Runtime-fejl under dokumentgenerering routes via `error-debug-contract.md` som systemfejl med området `document`.
+5. Format-routingen ejes af `runSelectedDocumentFormat(...)` (`src/pdf/infrastructure/pdfService.ts`), der vælger writer-fabrik og kører generatoren inde i `withDocumentGenerationContext(...)` (`src/document/documentGenerationContext.ts`). Generatorerne er format-agnostiske: de skriver mod `PdfWriter`-grænsefladen, og den aktive kontekst afgør, om `createStandardPdfWriter` eller `createDocxWriter` (`src/docx/infrastructure/docxWriter.ts`) instantieres. Generatorer må aldrig forgrene på formatet selv.
 
 ## 4. Output
 

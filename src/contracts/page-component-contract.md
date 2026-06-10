@@ -3,7 +3,7 @@
 **Version:** 0.2
 **Status:** Gældende arkitektur (normativ)
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-06-04
+**Senest verificeret mod kode:** 2026-06-10
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -88,6 +88,23 @@ Aktuelle eksempler:
 - `UnsupportedDevicePage` — hard-stop ved uunderstøttet enhed (renderet af `apps/shared/bootstrapClientApp.tsx`)
 
 Disse komponenter bor **ikke** i `src/components/pages/`. `pages/`-mappen er reserveret til kategori 2.1–2.3. Hjælpe-/systemruter placeres i `src/components/system/` (route-monterede) eller renderes direkte fra app-shellen (`apps/shared/bootstrapClientApp.tsx`, hard-stop).
+
+### 2.5 Auth-gate-renderede komponenter
+
+Komponenter, der renderes af `AuthGate` som et gate foran hele app-roden — ikke via routing og ikke som device-hard-stop fra app-shellen.
+
+Aktuelt eksempel:
+
+- `LoginPage` — renderes af `AuthGate`, når brugeren ikke er låst op; app-træet (med `MainLayout` og routede sider) monteres først efter unlock.
+
+Denne kategori falder uden for §1-niveauerne: `LoginPage` er hverken routet fra `App.tsx` (§1 app-/route-niveau) eller et device-hard-stop renderet af `bootstrapClientApp.tsx` (§2.4). Den sidder mellem app-entry/-shell (§3.1) og routing (§3.2): app-entryen vælger `AuthGate` som app-rod, og gaten beslutter at vise `LoginPage` i stedet for app-træet.
+
+Placering og regler:
+
+- `LoginPage` ligger aktuelt i `src/components/pages/` (`src/components/pages/LoginPage.tsx`) og importeres af `src/auth/AuthGate.tsx`. Det er strengt taget ikke en fagside i §2.1-forstand; placeringen i `pages/` er en grænse­tilfælde, der med fordel kunne flyttes til et auth-nært modul (`src/auth/` eller `src/components/system/`). Dette noteres som et tilfældighedsfund, ikke et krav, der løses i denne doc-ændring.
+- De tværgående kontrakter gælder, hvor de er relevante: navngivne form-felter følger `form-contract.md` / `mineo-field-pattern.md`, og auth-mekanikken styres af `auth-gate-contract.md`, som er det normative hjem for selve gaten (styrke, persistens, placering).
+- Regler for persisted fagsider gælder **ikke**: `LoginPage` ejer ikke sagsdata, åbner ikke `usePersistedForm` for et fagdomæne og indgår ikke i undo/redo eller `.eo`-save/load.
+- Page-header-reglen (§4.3) og layout-byggestenene (§10) gælder ikke som krav; auth-gaten må have sit eget UX, jf. `auth-gate-contract.md`.
 
 Regler for persisted fagsider gælder ikke automatisk for de øvrige kategorier.
 Kontrakten skal derfor altid være eksplicit om, hvilke regler der gælder for hvilke sidetyper.

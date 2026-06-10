@@ -14,8 +14,7 @@
     "src/contracts/keyboard-navigation.md",
     "src/contracts/error-debug-contract.md",
     "src/contracts/document-format-contract.md",
-    "src/contracts/pdf-contract.md",
-    "src/contracts/pdf-layout-contract.md",
+    "src/contracts/document-output-contract.md",
     "src/contracts/periodisering-contract.md",
     "src/contracts/date-contract.md",
     "src/contracts/mineo-field-pattern.md",
@@ -35,8 +34,7 @@
       "src/contracts/keyboard-navigation.md",
       "src/contracts/error-debug-contract.md",
       "src/contracts/document-format-contract.md",
-      "src/contracts/pdf-contract.md",
-      "src/contracts/pdf-layout-contract.md",
+      "src/contracts/document-output-contract.md",
       "src/contracts/periodisering-contract.md",
       "src/contracts/date-contract.md",
       "src/contracts/mineo-field-pattern.md",
@@ -65,8 +63,8 @@
     "docs/architecture/calculation-architecture.md",
     "docs/architecture/date-interval-performance-architecture.md",
     "docs/architecture/debug-builder-architecture.md",
+    "docs/architecture/document-output-architecture.md",
     "docs/architecture/eo-clamping-pipeline-architecture.md",
-    "docs/architecture/pdf-architecture.md",
     "docs/architecture/undo-redo-architecture.md"
   ]
 }

@@ -1,11 +1,11 @@
-# Mineo Field Pattern (intern standard)
+# Mineo felt-mønster (intern standard)
 
 Dette dokument fastlægger det **påkrævede interne mønster** for Mineos custom form-felter (Styled*Fields og tabel-inputs).
 
 **Status:** Gældende arkitektur (normativt supplement)  
 **Type:** Tværgående komponent-/adapterkontrakt  
 **Prioritet:** Supplement til `form-contract.md`; ejer komponent-/adaptermønstret (lag A/B/C), ikke draft/commit-semantikken.  
-**Senest verificeret mod kode:** 2026-05-30
+**Senest verificeret mod kode:** 2026-06-10
 
 Det er et supplement til den normative Form Contract:
 - `src/contracts/form-contract.md`
@@ -185,6 +185,18 @@ Regler for instant-commit-kontroller:
 - Hvis et imperativt handle eksponeres (fx `shake()`), SKAL dets semantik dokumenteres, og det MÅ IKKE mutere committed form-state.
 
 Dette er tilladte afvigelser, men de SKAL forblive eksplicitte og konsistente.
+
+## Felt-identitets-API (normativt hjem)
+
+Dette afsnit er det **normative hjem** for felt-identitets-API'et. Reglerne her er en bindende del af felt-mønstret; `undo-redo-contract.md` §4A er forbrugeren, der forklarer *hvorfor* identiteten er en forudsætning for korrekt fokus-restore.
+
+Felt-identitet er trust-kritisk: lander fokus efter undo på det forkerte felt, fremstår programmet upålideligt. Reglerne er:
+
+1. **Hvert commit SKAL sende `fieldPath`.** Den der committer en ændring til `formPersistenceStore`, SKAL sende ændringens identitet med (`setValues(..., { fieldPath })`). Uden den falder `createUndoOrigin` (`usePersistedForm`) tilbage på focus-trackeren, som ved blur peger på det *næste* fokuserede felt — og undo lander så fokus forkert. For tabelceller er identiteten `rowId:colIndex`. Værn-test: `src/__tests__/quality/immediateCommitWidgetUndoName.test.ts` og regressionstesten `src/__tests__/hooks/undoRedoBlurCommitFocus.test.tsx`.
+2. **Persisterede felter SKAL bære `name`-prop.** Både immediate-commit-widgets (toggle/dropdown/radio) og blur-commit-felter (dato/beløb/tekst/percent/year/integer/week/fraction) SKAL have en `name`-prop lig feltnøglen. UI-baserne projicerer den til `data-mineo-undo-field-path` på det fokuserbare DOM-element (jf. `StyledTextFieldBase.tsx`: `'data-mineo-undo-field-path': … ?? name`), så fokus-restore kan finde målet. For celle-dropdowns SKAL identiteten sidde på den fokuserbare combobox-trigger, ikke på et skjult native `<input>`.
+3. **Transiente felter deltager ikke.** Felter, der kun skriver til lokal React-state og aldrig committer til persisteret state (fx løntrin-finder, sygedagpenge-indsæt), bærer hverken `name` eller `fieldPath` og indgår ikke i undo/redo.
+
+Dette er forudsætningen for korrekt undo/redo-fokus-restore. Reglerne er kode-håndhævet af ovennævnte guard-tests.
 
 ## Skjulte domæneregler (SKAL være eksplicitte)
 

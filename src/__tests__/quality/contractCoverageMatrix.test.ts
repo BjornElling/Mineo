@@ -83,15 +83,10 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     ],
   },
   {
-    contractPath: 'src/contracts/pdf-contract.md',
+    contractPath: 'src/contracts/document-output-contract.md',
     requiredTestPaths: [
       'src/__tests__/quality/pdfDownloadCommittedStateGuard.test.ts',
       'src/__tests__/utils/pdf/pdfService.downloadFunctions.test.ts',
-    ],
-  },
-  {
-    contractPath: 'src/contracts/pdf-layout-contract.md',
-    requiredTestPaths: [
       'src/__tests__/quality/pdfPseudoTableGuard.test.ts',
       'src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts',
       'src/__tests__/utils/pdf/pdfWriter.test.ts',
@@ -313,20 +308,15 @@ describe('contract linkage matrix', () => {
       ...topology.domainContracts,
       ...Object.keys(topology.subordinateContracts),
     ]);
-    const classifiedBaseContracts = new Set([
-      ...topology.crossCuttingContracts,
-      ...topology.domainContracts,
-      ...Object.keys(topology.subordinateContracts),
-    ]);
 
     for (const contractPath of topologyContracts) {
       expect(matrixContracts.has(contractPath), `Mangler dækningsmatrix-entry for ${contractPath}`).toBe(true);
     }
 
     for (const [contractPath, parentContracts] of Object.entries(topology.subordinateContracts)) {
-      expect(classifiedBaseContracts.has(contractPath), `Underordnet kontrakt er ikke selv klassificeret: ${contractPath}`).toBe(true);
+      expect(topologyContracts.has(contractPath), `Underordnet kontrakt er ikke selv klassificeret: ${contractPath}`).toBe(true);
       for (const parentContract of parentContracts) {
-        expect(classifiedBaseContracts.has(parentContract), `Underordnet reference er ikke klassificeret: ${parentContract}`).toBe(true);
+        expect(topologyContracts.has(parentContract), `Underordnet reference er ikke klassificeret: ${parentContract}`).toBe(true);
       }
     }
 

@@ -1,16 +1,17 @@
-# PDF-arkitektur i Mineo
+# Dokument-output-arkitektur i Mineo
 
 > **Status:** Arkitekturforklarende reference, ikke selvstændig kontrakt.
 >
-> **Formål:** Denne fil beskriver arkitekturen bag Mineos PDF-generatorer. Den forklarer lag, filstruktur og rationale.
+> **Formål:** Denne fil beskriver arkitekturen bag Mineos dokument-output. Mineo kan downloade det samme dokument i **to kanaler** — PDF (jsPDF) og Word (.docx) — bygget af de samme generatorer via det samme writer-API. Filen forklarer lag, filstruktur, dobbeltkanal-mekanikken og rationale.
 
-> **Normativ afgrænsning:** Denne fil er arkitekturforklarende. De bindende regler for PDF ligger i `src/contracts/pdf-contract.md` og `src/contracts/pdf-layout-contract.md`.
+> **Normativ afgrænsning:** Denne fil er arkitekturforklarende. De bindende regler for dokument-output (begge kanaler) ligger i `src/contracts/document-output-contract.md`. Selve formatvalget mellem PDF og Word reguleres af `src/contracts/document-format-contract.md`.
 
 ---
 
 ## Indholdsfortegnelse
 
 1. [Overblik og lagdeling](#1-overblik-og-lagdeling)
+1a. [Dobbeltkanal: PDF og Word](#1a-dobbeltkanal-pdf-og-word)
 2. [Filstruktur](#2-filstruktur)
 3. [Konfigurationslaget – `pdfConfig.ts`](#3-konfigurationslaget--pdfconfigts)
 4. [Adapterlaget – `pdfDocumentAdapter.ts` og `jsPdfAdapter.ts`](#4-adapterlaget--pdfdocumentadapterts-og-jspdfadapterts)
@@ -52,9 +53,52 @@ PDF-systemet er opdelt i fire lag, fra lavniveau til brugerniveau:
 
 **Kerneprincipper (forklarende):**
 
-- **jsPDF-isolation:** se `pdf-layout-contract.md`.
+- **jsPDF-isolation:** se `document-output-contract.md` afsnit B.
 - **Konfiguration ét sted:** `pdfConfig.ts` ejer aktuelle numeriske layoutværdier. Dette dokument må ikke kopiere tal som autoritativ sandhed.
-- **Writer er primær API:** se `pdf-layout-contract.md` for de bindende writer-/helper-regler.
+- **Writer er primær API:** se `document-output-contract.md` afsnit B for de bindende writer-/helper-regler.
+
+---
+
+## 1a. Dobbeltkanal: PDF og Word
+
+Mineo genererer ikke to forskellige sæt dokumenter. Det genererer **ét** dokument gennem **ét** sæt generatorer og vælger først til sidst, om resultatet bliver PDF eller Word. Dette er hele rationalet bag dobbeltkanal-designet: generatorerne forbliver kanal-uagtige, og Word kommer "gratis" med, fordi Word-writeren opfylder den samme grænseflade som PDF-writeren.
+
+### Den fælles grænseflade: `PdfWriter`
+
+`PdfWriter` (`src/pdf/infrastructure/pdfWriter.ts`) er den fælles kontrakt for al dokument-komposition (`writeTitle`, `writeSectionHeader`, `writeBoldSubheader`, `writeWrappedText`, `writeLeftRightText`, `renderPdfTable`-integration via `getDoc()`, brevhoved, footer, spacing osv.). Navnet er historisk; grænsefladen er i dag **kanal-neutral**.
+
+To fabrikker opfylder `PdfWriter`:
+
+| Fabrik | Fil | Kanal | Underliggende motor |
+|--------|-----|-------|---------------------|
+| `createStandardPdfWriter` | `src/pdf/infrastructure/pdfWriter.ts` | PDF | jsPDF |
+| `createDocxWriter` | `src/docx/infrastructure/docxWriter.ts` | Word | `docx` (OOXML) |
+
+### Routing via `documentGenerationContext`
+
+Generatorerne kalder altid `createStandardPdfWriter()`. Den routing-beslutning, der vælger kanal, ligger i denne fabrik og i den globale generations-kontekst:
+
+- `src/document/documentGenerationContext.ts` holder den aktive kontekst med `format` (`'pdf'` | `'word'`), en `createWriter`-fabrik og en liste af `pendingDownloads`.
+- `withDocumentGenerationContext(format, run, { createWriter })` sætter konteksten omkring et download-kald og venter på alle registrerede `pendingDownloads`, før den rydder konteksten igen.
+- I `createStandardPdfWriter()`: er den aktive `format === 'word'`, returneres `getActiveDocumentWriterFactory()`-resultatet (Word-writeren); ellers bygges en jsPDF-writer. Mangler Word-writer-fabrikken i konteksten, kastes en eksplicit fejl — Word-generering kræver en præindlæst Word-writer.
+
+Konsekvens: der findes **intet** `DocumentWriter`-interface og ingen Word-specifikke generatorer. `createDocxWriter` opfylder `PdfWriter`-typen direkte, og selve formatvalget routes gennem den globale kontekst, mens generatorerne i `src/pdf/domains/` står urørte.
+
+### Word-writerens oversættelse
+
+`createDocxWriter` oversætter de samme writer-kald til Words afsnitsmodel:
+
+- **Navngivne typografier:** Al Word-tekst arver en navngiven Word-typografi (Normal, Title, Heading1, fed/understreget underoverskrift osv.) defineret i `src/docx/infrastructure/docxStyles.ts` via `DOCX_STYLE`. `docxWriter.ts` sætter **aldrig** inline font/størrelse/spacing på afsnit eller runs; de eneste per-instans-egenskaber er strukturelle (alignment i tabelceller, frame til brevhovedet, `pageBreakBefore`) eller indholds-bestemt fed tekst. Det betyder, at Word-dokumentets udseende kan justeres centralt ét sted (eller i Words egne typografi-definitioner).
+- **Tabeller:** `getDoc()` returnerer en bridge (`src/docx/infrastructure/docxTableBridge.ts`), så `renderPdfTable()`-kald fanges og omsættes til docx-tabeller i stedet for jsPDF-autotable.
+- **Cursor-/Y-styring er no-op:** `getY`/`setY`/`advanceY`/`ensureSpace`/`addFooter` er tomme i Word-writeren, fordi Word selv håndterer sideflow og footer (footer sættes på sektionen ved build). `addSpacer`/`addSectionSpacer` indsætter et tomt afstands-afsnit.
+- **Vandmærke (UDKAST) og brevhoved-paritet:** Word-output har samme UDKAST-vandmærke og samme brevhoved-indhold som PDF. Vandmærket bygges af `src/docx/infrastructure/docxWatermark.ts` (diagonalt VML-fragment; se note nedenfor). Brevhovedet (`writeBrevhoved`) bygger samme linjer som PDF-brevhovedet — "J.nr. \<nr\> \<advokat\>/\<sagsbehandler\>" plus den lange danske dato — i en side-forankret tekstrude øverst til højre, og aktiverer Words "anden første side" (titlePage), så første side får et højere topområde.
+- **Download:** `save()` bygger dokumentet asynkront (`Packer.toBlob`), trigger download via `triggerDocumentDownload`, og registrerer det afventende load i konteksten via `registerPendingDocumentDownload`, så `withDocumentGenerationContext` kan vente på det.
+
+> **docx ImportedXmlComponent-note:** `ImportedXmlComponent.fromXmlString` pakker et XML-fragment i en navnløs rod, som docx serialiserer som `<undefined>…</undefined>` — ugyldig WordprocessingML, som Word afviser. `docxWatermark.ts` pakker derfor det reelle navngivne barn ud (`.root[0]`), så fragmentet indsættes direkte. En værn-test i `docxWriter.test.ts` fanger, hvis fremtidige docx-versioner ændrer denne struktur.
+
+### Test
+
+Word-kanalen testes via `src/__tests__/docx/` (bl.a. `docxWriter.test.ts` og per-generator Word-tests under `src/__tests__/docx/generators/` via en `renderWordDocument`-harness). PDF-kanalen testes via `src/__tests__/utils/pdf/` og quality-guards. De kanal-neutrale data-/gate-regler dækkes af de gate- og service-tests, der er koblet i `contractCoverageMatrix.test.ts`.
 
 ---
 
@@ -97,13 +141,19 @@ src/pdf/
     ├── eet/eetPdfUtils.ts
     ├── differencekrav/differencekravPdf.ts
     ├── forsoergertab/forsoergertabPdf.ts
-    └── tafFordelt/tafFordeltPaaAarPdf.ts
+    └── tafFordelt/
+        ├── tafFordeltPaaAarPdf.ts       # TAF fordelt på kalenderår
+        ├── tafOpreguleretPaaAarPdf.ts   # TAF opreguleret til beregningsåret
+        ├── tafKravGrafPdf.ts            # Graf over TAF-krav pr. år
+        └── tafKravGrafChart.ts          # Chart-byggesten til kravgrafen
 
 src/domain/erstatningsopgoerelse/
 ├── snapshot/                     # Snapshot- og projection-lag til EO/TAF-PDF'er
 │   ├── eoSnapshot.ts
 │   ├── eoSnapshotToEoPdfDocument.ts
 │   ├── eoSnapshotToTafPerYearPdfDocument.ts
+│   ├── eoSnapshotToTafPerYearOpreguleretPdfDocument.ts
+│   ├── eoSnapshotToTafKravGrafDocument.ts
 │   └── eoPresentationModel.ts    # Præsentationsmodel forbrugt af projektionen
 ├── shared/
 │   ├── eoTypes.ts                # EO-model-typer (tidligere eoPdfModelTypes)
@@ -185,7 +235,7 @@ const writer = createStandardPdfWriter({
 });
 ```
 
-Kaldsmønstre for writer-API'er er bindende i `pdf-layout-contract.md`; dette afsnit forklarer kun writerens rolle.
+Kaldsmønstre for writer-API'er er bindende i `document-output-contract.md` afsnit B; dette afsnit forklarer kun writerens rolle.
 
 ### Vigtige `PdfWriter`-metoder
 
@@ -200,7 +250,7 @@ writer.writeBrevhoved(brevhovedData);
 // Indhold
 writer.writeTitle(text);             // 16 pt bold, øverst i indholdsblokken
 writer.writeBoldSubheader(text, nextLineHeight);  // sikrer plads til efterfølgende indhold
-// Konkrete spacing-invariants ejes af pdf-layout-contract.md og writer-tests.
+// Konkrete spacing-invariants ejes af document-output-contract.md afsnit B og writer-tests.
 // (fx første underoverskrift direkte under en sektionsoverskrift).
 writer.writeWrappedText(text);       // brødtekst, linjebrydes automatisk
 writer.writeSectionHeader(text, nextLineHeight);  // markerer sektionsskift
@@ -619,7 +669,7 @@ export const loadMinNyPdfModule = () => loadModule('minNyPdf');
 
 Aktuelle skrifttyper, farver, mål og spacingtal ejes af `pdfConfig.ts`, `pdfWriter.ts` og de relevante renderer-moduler. Denne arkitekturfil må ikke være kilde til konkrete millimetermål, RGB-værdier eller fontstørrelser.
 
-Den bindende visuelle kontrakt er `src/contracts/pdf-layout-contract.md`.
+Den bindende visuelle kontrakt er `src/contracts/document-output-contract.md` afsnit B.
 
 ---
 
@@ -637,6 +687,8 @@ PDF-laget skal modtage autoritative beløb/projektioner og formatere dem med can
 |----------------------------|--------------------------------|--------------------------------------------------|---------------------|-------------------|
 | Erstatningsopgørelse       | `erstatningsopgoerelsePdf.ts`  | Hoved-PDF med TAF, svie/smerte, øvrige krav      | Ja (`eoSnapshotToEoPdfDocument`) | Ja  |
 | TAF fordelt på år          | `tafFordeltPaaAarPdf.ts`       | TAF-beregning brudt ned per kalenderår           | Ja (`eoSnapshotToTafPerYearPdfDocument`) | Ja |
+| TAF opreguleret til beregningsår | `tafOpreguleretPaaAarPdf.ts` | Per-år TAF opreguleret til beregningsåret    | Ja (`eoSnapshotToTafPerYearOpreguleretPdfDocument`) | Ja |
+| TAF kravgraf               | `tafKravGrafPdf.ts`            | Graf over TAF-krav pr. år                        | Ja (`eoSnapshotToTafKravGrafDocument`) | Ja |
 | Arbejdsskadesatser         | `satserPdf.ts`                 | Årsspecifikke satser (EAL, ASL, diverse)         | Nej                 | Ja               |
 | Procesrente                | `rentePdf.ts`                  | Halvårlige renteperioder med referencerenter     | Nej                 | Ja               |
 | Renteoversigt (samlet)     | `renteOversigtPdf.ts`          | Samlet oversigt over alle renteberegninger       | Nej                 | Ja               |
@@ -653,7 +705,7 @@ PDF-laget skal modtage autoritative beløb/projektioner og formatere dem med can
 
 ### Pseudo-tabeller
 
-Reglen om pseudo-tabeller ejes af `pdf-layout-contract.md`. Dette overblik nævner kun, at simple label/værdi-opstillinger normalt bør være writer-baseret tekstlayout, ikke egentlige tabeller.
+Reglen om pseudo-tabeller ejes af `document-output-contract.md` afsnit B. Dette overblik nævner kun, at simple label/værdi-opstillinger normalt bør være writer-baseret tekstlayout, ikke egentlige tabeller.
 
 ### Filnavngivning og journalnr
 
@@ -677,8 +729,8 @@ Dette mønster er **ikke påkrævet** for simple generatorer, men bør anvendes,
 
 ### Anbefalet audit-plan for layout-standardisering
 
-For layout-audit følges `src/contracts/pdf-layout-contract.md` §10-§12. Auditsekvensen skal kun ejes ét sted; dette arkitekturdokument dublerer den ikke.
-Se `src/contracts/pdf-layout-contract.md` §11 for den kanoniske audit-rækkefølge.
+For layout-audit følges `src/contracts/document-output-contract.md` afsnit B (B10-B11). Auditsekvensen skal kun ejes ét sted; dette arkitekturdokument dublerer den ikke.
+Se `src/contracts/document-output-contract.md` B11 for den kanoniske audit-rækkefølge.
 
 Auditten skal fortsat kontrollere headerløse 2-kolonne-layouts, understregede labels med lokal spacing og writer-tests for regler der gøres centrale.
 

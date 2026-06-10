@@ -743,7 +743,7 @@ export const renderPdfTable = (params: Readonly<{
   // Fail-closed: en tom tabel-body er altid en fejl i kalderen (en sektion der skulle
   // have været undertrykt eller fået en eksplicit "Ingen ..."-række før kaldet). At
   // rendere en blank tabel i et tillidskritisk dokument ville skjule fejlen. Kast hellere,
-  // så download-stien router fejlen via reportSystemIssue (jf. pdf-contract §5).
+  // så download-stien router fejlen via reportSystemIssue (jf. document-output-contract A5).
   if (body.length === 0) {
     throw new Error('renderPdfTable kaldt med tom body — tabellen skulle være undertrykt eller have en eksplicit tom-tilstandsrække i kalderen.');
   }

@@ -5,7 +5,7 @@
 **Prioritet:** Underordnet `form-contract.md` og `persistence-contract.md`; overordnet `docs/architecture/undo-redo-architecture.md`.  
 **Senest verificeret mod kode:** 2026-06-10
 
-Denne kontrakt fastlægger de trust-kritiske grænser for global undo/redo. Arkitekturdokumentet må forklare implementationen, men må ikke eje afvigende regler.
+Denne kontrakt fastlægger de trust-kritiske grænser for global undo/redo (history-stak `MAX_HISTORY_STEPS = 50` pr. retning, jf. `src/stores/undoRedoStore.ts`). Arkitekturdokumentet må forklare implementationen, men må ikke eje afvigende regler.
 
 ---
 
@@ -70,6 +70,20 @@ Restore skal:
 Hvis restore fejler, må navigation og fokus-restore ikke ske.
 
 Restore sker før navigation. Det korte mellemrender-vindue er accepteret; komponenter og beregninger må derfor ikke have side-effects ved render/mount.
+
+---
+
+## 4A. Felt-identitet (forudsætning for korrekt fokus-restore)
+
+> **Normativt hjem:** Selve felt-identitets-API'et (`fieldPath`, `name`-prop og dens projektion til `data-mineo-undo-field-path`) ejes normativt af `mineo-field-pattern.md` (afsnittet "Felt-identitets-API"). Undo/redo er **forbrugeren**: denne kontrakt fastlægger, at felt-identiteten er en bindende forudsætning for fokus-restore, men de underliggende regler for, hvordan felter bærer identitet, hører hjemme i felt-mønstret. Reglerne gentages her for læsbarhed; ved tvivl gælder felt-mønstret.
+
+Fokus-restore i §4 trin 5 er kun korrekt, hvis hvert commit bærer den ændrede værdis identitet. Dette er en trust-kritisk invariant, ikke en bekvemmelighed: lander fokus efter undo på det forkerte felt, fremstår programmet upålideligt. Reglerne er:
+
+1. **Hvert commit skal sende `fieldPath`.** Den der committer en ændring til `formPersistenceStore`, skal sende ændringens identitet med (`setValues(..., { fieldPath })`). Uden den falder `createUndoOrigin` (`usePersistedForm`) tilbage på focus-trackeren, som ved blur peger på det *næste* fokuserede felt — og undo lander så fokus forkert. For tabelceller er identiteten `rowId:colIndex`.
+2. **Persisterede felter skal bære `name`-prop.** Både immediate-commit-widgets (toggle/dropdown/radio) og blur-commit-felter (dato/beløb/tekst/percent/year/integer/week/fraction) skal have en `name`-prop lig feltnøglen. Den projiceres til `data-mineo-undo-field-path` på det fokuserbare DOM-element, så fokus-restore kan finde målet. For celle-dropdowns skal identiteten sidde på den fokuserbare combobox-trigger, ikke på et skjult native `<input>`.
+3. **Transiente felter deltager ikke.** Felter der kun skriver til lokal React-state og aldrig committer til persisteret state (fx løntrin-finder, sygedagpenge-indsæt), bærer hverken `name` eller `fieldPath` og indgår ikke i undo/redo.
+
+Disse regler håndhæves af `src/__tests__/quality/immediateCommitWidgetUndoName.test.ts` (felt mangler `name`) og regressionstesten `src/__tests__/hooks/undoRedoBlurCommitFocus.test.tsx`. Den underliggende felt-API ejes af `form-contract.md` og `mineo-field-pattern.md`; denne kontrakt fastlægger, at felt-identiteten er en bindende forudsætning for fokus-restore.
 
 ---
 

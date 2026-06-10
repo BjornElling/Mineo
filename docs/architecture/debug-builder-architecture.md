@@ -124,6 +124,7 @@ type EODebugExecutionContext = {
   loenindkomstManuelReguleringInputErrors: Readonly<Record<string, true>>;
   appSettings: AppSettings;
   canonicalOutput?: EoCanonicalOutput;
+  pdfModel?: EoModel;
 };
 ```
 
@@ -380,7 +381,7 @@ Builders producerer rå debug-rækker. Hver consumer laver sin relevante post-pr
 
 - regulerings-debug ligger uden for builder-registryet og er ikke en `DebugRowModel`-sektion
 - `eoDebugPageViewModel.ts` parser ansættelsesforhold-id via regex på row-ids — det er en skjult string-kontrakt uden typesikring
-- dokumentets påstand i afsnit 15 om, at registry er det eneste sted der skal opdateres, er ikke korrekt (se afsnit 15)
+- registry er single source of truth for selve builder-rækkerne, men ikke for hele EO-debug-visningen (regulerings-sektioner, viewmodel-sammensætning og navigation ligger udenfor); en ny builder-sektion kræver derfor typisk ændringer flere steder (jf. §14–§15)
 
 ---
 

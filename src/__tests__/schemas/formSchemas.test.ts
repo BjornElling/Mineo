@@ -778,6 +778,43 @@ describe('forsoergertabSchema', () => {
 // ─── aarsloenSchema round-trip ────────────────────────────────────────────────
 
 describe('aarsloenSchema (round-trip)', () => {
+  it('udfylder defaults ved load af ældre .eo der mangler de påkrævede felter', () => {
+    // Forward/backward-tolerant load: en gammel fil uden disse felter må ikke fejle hele
+    // sektionen, men loades med de faste fallback-værdier (= det en ny, tom sag starter med).
+    const result = aarsloenSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.loenperiode).toBe('maaned');
+      expect(result.data.tableData).toEqual([]);
+      expect(result.data.omregningTilFuldtAar).toBe(false);
+      expect(result.data.fuldLoenUnderFerie).toBe(true);
+      expect(result.data.retTilSjetteFerieuge).toBe(true);
+      expect(result.data.loenPaaHelligdage).toBe('Almindelig løn');
+      // De allerede-optionale procent-/feriedage-felter forbliver undefined.
+      expect(result.data.feriePct).toBeUndefined();
+      expect(result.data.antalFeriedage).toBeUndefined();
+    }
+  });
+
+  it('bevarer eksplicitte værdier frem for defaults', () => {
+    const result = aarsloenSchema.safeParse({
+      loenperiode: 'uge',
+      omregningTilFuldtAar: true,
+      fuldLoenUnderFerie: false,
+      retTilSjetteFerieuge: false,
+      loenPaaHelligdage: 'Ingen',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.loenperiode).toBe('uge');
+      expect(result.data.omregningTilFuldtAar).toBe(true);
+      expect(result.data.fuldLoenUnderFerie).toBe(false);
+      expect(result.data.retTilSjetteFerieuge).toBe(false);
+      expect(result.data.loenPaaHelligdage).toBe('Ingen');
+      expect(result.data.tableData).toEqual([]);
+    }
+  });
+
   it('accepterer minimalt gyldigt objekt', () => {
     const result = aarsloenSchema.safeParse({
       loenperiode: 'maaned',

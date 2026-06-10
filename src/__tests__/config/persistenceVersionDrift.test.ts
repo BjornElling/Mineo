@@ -38,7 +38,11 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // — kommentarfelt på Offentlige ydelser-siden. PERSISTED_DATA_VERSION bumpet til 3.2 (reel persisted schema-ændring).
 // Opdateret 2026-06-03: afsluttesMedEnum udvidet med 'Ingen' (udelader godkendelses-afsnittet fra EO-PDF'en).
 // PERSISTED_DATA_VERSION bumpet til 3.3 (reel persisted schema-ændring; enum-værdimængde ændret).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-e46b9b04';
+// Opdateret 2026-06-10: defaults tilføjet på aarsloen-sektionens påkrævede felter (loenperiode='maaned',
+// tableData=[], omregningTilFuldtAar=false, fuldLoenUnderFerie=true, retTilSjetteFerieuge=true,
+// loenPaaHelligdage='Almindelig løn') for forward/backward-tolerant load. Felterne bliver input-optional
+// → fingerprint ændret. PERSISTED_DATA_VERSION bumpet til 3.4 (reel persisted schema-/parse-semantikændring).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-4c30e25e';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

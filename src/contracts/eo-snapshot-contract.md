@@ -7,7 +7,7 @@
 invariant-klassificering, snapshot-livscyklus og projektionsgarantier i EO-domænet.
 
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (herunder `form-contract.md`, `domain-boundary-contract.md`, `persistence-contract.md` og `snapshot-contract.md`), som alle går forud ved konflikt.
-**Senest verificeret mod kode:** 2026-06-04
+**Senest verificeret mod kode:** 2026-06-10
 
 ---
 
@@ -292,7 +292,7 @@ Der er ingen semantisk forskel på "0" og "tomt" for dette felt.
 ## 8. Fejlrapportering og PDF-output
 
 1. `BugReportButton` i EO-scope styres normativt af `src/contracts/error-debug-contract.md`.
-2. PDF-download-gating, toggle-guards og semantisk fravalg styres normativt af `src/contracts/pdf-contract.md`.
+2. PDF-download-gating, toggle-guards og semantisk fravalg styres normativt af `src/contracts/document-output-contract.md` (afsnit A).
 
 ---
 

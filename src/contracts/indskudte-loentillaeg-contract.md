@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Domænekontrakt
 **Prioritet:** Domænespecifik kontrakt for de udefra-indskudte lønregulerings-tillæg. Underordnet de relevante tværgående kontrakter (`amount-contract.md` for procent-/talbehandling, `date-contract.md` for datoer). Definerer den domænespecifikke regel om, *hvilke* tillæg der indskydes og med *hvilke satser/datoer* — en regel de generelle kontrakter bevidst overlader til domænet.
-**Senest verificeret mod kode:** 2026-06-02
+**Senest verificeret mod kode:** 2026-06-10
 
 ## 1. Scope
 

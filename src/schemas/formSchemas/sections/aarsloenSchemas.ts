@@ -27,18 +27,28 @@ export const standardLoenTableRowSchema = z.object({
 export type StandardLoenTableRow = z.infer<typeof standardLoenTableRowSchema>;
 
 export const aarsloenSchema = z.object({
+  // Procent- og feriedage-felterne er allerede optional (tom/undefined er lovlig) og
+  // behøver derfor ingen default for at en ældre .eo uden dem kan loades.
   feriePct: percentageDecimal,
   fritvalgPct: percentageDecimal,
   shSoPct: percentageDecimal,
   storeBededagPct: percentageDecimal,
   pensionPct: percentageDecimal,
-  loenperiode: loenperiodeEnum,
-  tableData: z.array(standardLoenTableRowSchema),
-  omregningTilFuldtAar: z.boolean(),
-  fuldLoenUnderFerie: z.boolean(),
-  retTilSjetteFerieuge: z.boolean(),
+  // Defaults nedenfor gør load forward/backward-tolerant: en ældre .eo der mangler et af
+  // disse påkrævede felter fejler ikke længere hele sektionen, men loades med en fast
+  // fallback-værdi. Værdierne matcher det, en ny, tom sag starter med.
+  //
+  // loenperiode: fast 'maaned' som load-fallback. NYE sager sætter feltet settings-styret via
+  // createAarsloenInitialValues(defaultLoenIndtastesSom); schema-defaulten rammer KUN load af en
+  // fil hvor feltet helt mangler. Bevidst ikke settings-styret her: persistence-contract forbyder
+  // at injicere device-lokale app-settings under load.
+  loenperiode: loenperiodeEnum.default('maaned'),
+  tableData: z.array(standardLoenTableRowSchema).default([]),
+  omregningTilFuldtAar: z.boolean().default(false),
+  fuldLoenUnderFerie: z.boolean().default(true),
+  retTilSjetteFerieuge: z.boolean().default(true),
   antalFeriedage: dayCount,
-  loenPaaHelligdage: loenPaaHelligdageEnum,
+  loenPaaHelligdage: loenPaaHelligdageEnum.default('Almindelig løn'),
 }).strict();
 
 export type AarsloenValues = z.infer<typeof aarsloenSchema>;
