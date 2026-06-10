@@ -285,7 +285,9 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
         onFocus={handleFocus}
         onBlur={(e) => {
           onBlurBase(e);
-          const unchanged = draft === formatFraction(value);
+          // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
+          // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
+          const unchanged = draft === formatFraction(value) && committedInvalidDraft === undefined;
           if (!skipNextBlurCommitRef.current && !unchanged) {
             commit();
           }

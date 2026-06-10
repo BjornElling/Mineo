@@ -440,7 +440,11 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         onFocus={handleFocus}
         onBlur={(e) => {
           onBlurBase(e);
-          const unchanged = draft === formatISODateAsDanish(value);
+          // Aldrig "unchanged" mens en ikke-committbar rå draft (committedInvalidDraft) lever: ellers
+          // springes blur-commit'et over når draften matcher den committede værdi (fx ryddet til tom),
+          // så det stale invalidDrafts-entry aldrig ryddes → feltet re-syncer til den gamle ugyldige
+          // værdi og Gem blokeres fortsat. En clear/edit af et ugyldigt felt SKAL kunne committe.
+          const unchanged = draft === formatISODateAsDanish(value) && committedInvalidDraft === undefined;
           debugStyledDateField('blur', {
             unchanged,
             skipNextBlurCommit: skipNextBlurCommitRef.current,

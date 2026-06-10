@@ -395,7 +395,9 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         onFocus={handleFocus}
         onBlur={(e) => {
           onBlurBase(e);
-          const unchanged = draft === formatInteger(value);
+          // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
+          // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
+          const unchanged = draft === formatInteger(value) && committedInvalidDraft === undefined;
           if (!skipNextBlurCommitRef.current && !unchanged) {
             commit();
           }

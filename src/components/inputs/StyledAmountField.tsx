@@ -402,7 +402,11 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         onFocus={handleFocus}
         onBlur={(e) => {
           onBlurBase(e);
-          const unchanged = value?.kind === 'expression' ? draft === amountValueToDraftString(value, resolvedPrecision) : draft === formatAmount(value);
+          // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
+          // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
+          const unchanged =
+            committedInvalidDraft === undefined &&
+            (value?.kind === 'expression' ? draft === amountValueToDraftString(value, resolvedPrecision) : draft === formatAmount(value));
           const shouldForceCommit = draft === '' && value === undefined && hadErrorOnEditStartRef.current;
           if (!skipNextBlurCommitRef.current && (!unchanged || shouldForceCommit)) {
             commit();

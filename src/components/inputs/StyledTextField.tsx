@@ -348,7 +348,9 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
             // (caret-etablering ved editor-åbning): ingen commit, ingen lukning.
             if (textAreaActivation.shouldIgnoreBlur()) return;
             onBlurBase(e);
-            const unchanged = draft === value;
+            // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
+            // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
+            const unchanged = draft === value && committedInvalidDraft === undefined;
             debugStyledTextField('blur', {
               id,
               name,

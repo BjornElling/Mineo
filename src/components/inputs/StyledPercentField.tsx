@@ -421,7 +421,9 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         onBlur={(e) => {
           onBlurBase(e);
 
-          const unchanged = draft === formatPercent(value);
+          // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
+          // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
+          const unchanged = draft === formatPercent(value) && committedInvalidDraft === undefined;
 
           // Commit når draft faktisk afviger fra committed value.
           // Dette må ikke afhænge af activation.isEditorOpen, ellers får vi "satser committer aldrig" bugs.
