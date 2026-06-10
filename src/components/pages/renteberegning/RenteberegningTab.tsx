@@ -6,6 +6,8 @@ import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import StyledTextField from '../../inputs/StyledTextField';
 import BeregnetRenteTable from '../../tables/BeregnetRenteTable';
+import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
+import { CELL_TABLE_IDS } from '../../../config/cellInvalidDraftScopes';
 import type { RentekravPdfContextMap } from '../../tables/BeregnetRenteTable';
 import type { ContentBoxComponent } from '../../layout/ContentBoxFrame';
 import type { RentekravRow } from '../../../schemas/formSchemas';
@@ -198,6 +200,7 @@ const RenteberegningTab = React.memo(({
           </Box>
         )}
         <Box sx={{ width: '100%', overflowX: { xs: 'hidden', sm: 'auto' }, overflowY: 'hidden' }}>
+          <CellInvalidDraftScopeProvider pageKey="renteberegning" tableId={CELL_TABLE_IDS.renteBeregnet}>
           <BeregnetRenteTable
             rows={rentekravRows}
             onFieldChange={onRentekravChange}
@@ -215,6 +218,7 @@ const RenteberegningTab = React.memo(({
             documentDownloadFormat={documentDownloadFormat}
             onPdfContextsChange={handlePdfContextsChange}
           />
+          </CellInvalidDraftScopeProvider>
         </Box>
         {renderOversigtRow && (
           <>

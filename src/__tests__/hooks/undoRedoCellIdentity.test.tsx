@@ -21,7 +21,6 @@ import type { ISODateString } from '../../types/branded';
 import { erstatningsopgoerelseSchema, type TafPeriodeRow } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
-import { __resetDraftHistoryRegistryForTests } from '../../utils/draftHistoryRegistry';
 import { toISODateString } from '../../types/branded';
 
 type TafDraftRow = { id: string; fra: string; til: string };
@@ -103,7 +102,6 @@ describe('undo/redo celle-identitet (repro)', () => {
   beforeEach(() => {
     __resetUndoRedoStoreForTests();
     __resetUndoFocusTrackerForTests();
-    __resetDraftHistoryRegistryForTests();
     formPersistenceStore.setState({
       sections: { ...formPersistenceStore.getState().sections, erstatningsopgoerelse: null },
       meta: { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },

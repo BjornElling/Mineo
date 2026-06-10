@@ -10,6 +10,7 @@ import { getIntegerRangeErrorMessage } from '../../utils/integerRange';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { normalizeIntegerPaste } from '../../utils/inputPasteNormalization';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 
 export type StyledIntegerFieldValueChangeEvent = CommitEvent<number | undefined>;
 export type StyledIntegerFieldDraftChangeEvent = DraftChangeEvent;
@@ -219,17 +220,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
       [allowNegative, effectiveMaxDigits, enforceRange, maxValue, minValue]
     );
 
-    const initialInvalidDraft = React.useMemo(() => {
-      const currentError = onFieldError?.getCurrentError?.();
-      if (
-        currentError?.severity === 'error' &&
-        currentError.blocksSave !== false &&
-        typeof currentError.invalidDraft === 'string'
-      ) {
-        return { draft: currentError.invalidDraft, message: currentError.message };
-      }
-      return undefined;
-    }, [onFieldError]);
+    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
 
     const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
       useDraftField<number | undefined>({
@@ -239,11 +230,12 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         normalizeDraftOnCommit: trimToNumericEdgesPreserveLeadingMinus,
         onCommit: (nextValue) => {
           onCommit?.(createCommitEvent(nextValue));
+          clearInvalidDraft?.();
         },
+        onCommitInvalid,
+        committedInvalidDraft,
         inputElementRef,
-        clearErrorOnDraftChange: true,
         commitOnBlur: false,
-        initialInvalidDraft,
       });
 
     const [rangeErrorMessage, setRangeErrorMessage] = React.useState<string>('');
@@ -261,7 +253,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
       setRangeErrorMessage(getRangeErrorMessage(value));
     }, [enforceRange, getRangeErrorMessage, hasConfigError, value]);
 
-    const visibleLocalError = touched ? error : undefined;
+    const visibleLocalError = error;
     const shouldShowRangeError = !enforceRange && touched && rangeErrorMessage.trim() !== '';
     const resolvedHasError = hasConfigError || externalHasError || Boolean(visibleLocalError?.message) || shouldShowRangeError;
     const resolvedErrorMessage =
@@ -278,19 +270,16 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
       onErrorChange(resolvedHasError);
     }, [onErrorChange, resolvedHasError]);
 
-    // Underret forælderen om lokal fejltilstand (producer-owned rapportering)
+    // Parse-fejl persisteres i invalidDrafts via useDraftField. Kun den blocksSave:false
+    // range-fejl (committet, men uden for UI-range) rapporteres til fieldErrors-storen.
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
-      if (visibleLocalError?.message) {
-        onFieldError({ message: visibleLocalError.message, blocksSave: true, invalidDraft: draft });
-        return;
-      }
       if (shouldShowRangeError) {
         onFieldError({ message: rangeErrorMessage, blocksSave: false });
         return;
       }
       onFieldError(undefined);
-    }, [draft, onFieldError, rangeErrorMessage, shouldShowRangeError, visibleLocalError?.message]);
+    }, [onFieldError, rangeErrorMessage, shouldShowRangeError]);
 
     const skipNextBlurCommitRef = React.useRef(false);
 

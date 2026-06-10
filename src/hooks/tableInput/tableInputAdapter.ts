@@ -41,16 +41,6 @@ export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint ex
    */
   preserveInvalidDraft?: boolean;
   /**
-   * Styrer, om en succesfuldt committet draft med visual-only valideringsfejl
-   * (fx en tilladt, men uden-for-interval dato) forbliver synlig efter
-   * committed-value-resync.
-   *
-   * Default: true. Sæt til false, når den committede display-værdi er den kanoniske
-   * UI-repræsentation, og draft-formen ikke bør bevares alene, fordi feltet
-   * har en visuel valideringsfejl.
-   */
-  preserveVisualErrorDraft?: boolean;
-  /**
    * Rydder lokal input-/save-error-state, så snart brugeren redigerer draften.
    *
    * Default: false. Brug til afgrænsede inputs, hvor tastning forventes at være et
@@ -73,9 +63,12 @@ export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint ex
   useSaveError?: boolean;
   /**
    * Returnerer en visual-only fejlbesked for en allerede-committet model-værdi,
-   * uden at re-parse display-strengen. Implementér dette på adaptere, der kan
-   * producere en visualErrorMessage fra parse(), så committedVisualError kan
-   * udledes direkte fra modellen i stedet for at gen-invoke parse().
+   * uden at re-parse display-strengen.
+   *
+   * PÅKRÆVET sammen med `parse().visualErrorMessage`: `useTableInputCore` reconciler den lokale
+   * visual-fejl mod den committede værdi via denne funktion, så snart cellen ikke redigeres. En
+   * adapter der returnerer `visualErrorMessage` UDEN `getCommittedVisualError` ville få sin visual-
+   * fejl ryddet straks ved editor-luk. Implementér derfor altid begge (eller ingen af dem).
    *
    * Udelad (eller returnér '') når den committede værdi ikke bærer nogen visuel fejl.
    */

@@ -24,6 +24,7 @@ type AllowedInputAttributes = Pick<
   'data-testid'?: string;
   'data-mineo-undo-focus-token'?: string;
   'data-mineo-undo-field-path'?: string;
+  'data-mineo-field-path'?: string;
 };
 
 export type StyledTextFieldBaseInputType = 'text' | 'search' | 'tel' | 'url' | 'email' | 'password';
@@ -210,6 +211,8 @@ const StyledTextFieldBase = React.forwardRef<HTMLDivElement, StyledTextFieldBase
       'aria-describedby': describedBy,
       'data-mineo-undo-focus-token': undoFocusToken,
       'data-mineo-undo-field-path': htmlInputAttributes?.['data-mineo-undo-field-path'] ?? name,
+      // Stabil felt-sti til save-gate-lokalisering af det blokerende felt (invalidDrafts/fieldErrors).
+      'data-mineo-field-path': htmlInputAttributes?.['data-mineo-field-path'] ?? name,
       onFocus: handleFocus,
       onBlur: handleBlur,
       onKeyDown: handleKeyDown,

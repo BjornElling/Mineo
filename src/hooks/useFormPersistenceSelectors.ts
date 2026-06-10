@@ -8,6 +8,8 @@ import {
   getCommittedChangeCounterSnapshot,
   getFieldErrorRevisionSnapshot,
   getFieldErrorsBySourceSnapshot,
+  getInvalidDraftForFieldSnapshot,
+  getInvalidDraftsForSectionSnapshot,
   getPersistenceHydratedSnapshot,
   getPersistedSectionSnapshot,
   getResolvedFieldErrorsSnapshot,
@@ -20,6 +22,8 @@ export {
   getCommittedChangeCounterSnapshot,
   getFieldErrorRevisionSnapshot,
   getFieldErrorsBySourceSnapshot,
+  getInvalidDraftForFieldSnapshot,
+  getInvalidDraftsForSectionSnapshot,
   getPersistenceHydratedSnapshot,
   getPersistedSectionSnapshot,
   getResolvedFieldErrorsSnapshot,
@@ -68,6 +72,32 @@ export const useFieldErrorRevisionSelector = (pageKey: StorageKey): number => {
     () => getFieldErrorRevisionSnapshot(pageKey),
     () => getFieldErrorRevisionSnapshot(pageKey)
   );
+};
+
+export const useInvalidDraftsForSectionSelector = (pageKey: StorageKey): Record<string, string> => {
+  return React.useSyncExternalStore(
+    subscribeToFormPersistenceStore,
+    () => getInvalidDraftsForSectionSnapshot(pageKey),
+    () => getInvalidDraftsForSectionSnapshot(pageKey)
+  );
+};
+
+/**
+ * Reaktiv læsning af ét felts committede rå draft (`invalidDrafts`).
+ *
+ * Tager bevidst `undefined`-binding (pageKey/fieldPath), så generiske input-komponenter kan kalde
+ * hooken ubetinget, også når de bruges uden for en persisteret form (returnerer da altid `undefined`).
+ * Storen er en modul-singleton, så ingen context kræves — hooken er sikker uden for FormPersistenceProvider.
+ */
+export const useInvalidDraftForFieldSelector = (
+  pageKey: StorageKey | undefined,
+  fieldPath: string | undefined
+): string | undefined => {
+  const getSnapshot = (): string | undefined =>
+    pageKey !== undefined && fieldPath !== undefined
+      ? getInvalidDraftForFieldSnapshot(pageKey, fieldPath)
+      : undefined;
+  return React.useSyncExternalStore(subscribeToFormPersistenceStore, getSnapshot, getSnapshot);
 };
 
 export const useAuthoritativeSnapshotEpochSelector = (): number => {

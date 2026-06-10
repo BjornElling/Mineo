@@ -302,6 +302,8 @@ describe('formPersistenceStore public API', () => {
       snapshot.sectionRevisions,
       snapshot.fieldErrors,
       snapshot.fieldErrorRevisions,
+      snapshot.invalidDrafts,
+      snapshot.invalidDraftRevisions,
       snapshot.meta,
       snapshot.meta.lastCommittedAt ?? 0
     );

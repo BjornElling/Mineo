@@ -17,6 +17,7 @@ import {
 } from '../../utils/percentInputUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 import { assignRef } from '../../utils/refUtils';
 
 export type StyledPercentFieldValueChangeEvent = CommitEvent<number | undefined>;
@@ -260,19 +261,9 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       ]
     );
 
-    const initialInvalidDraft = React.useMemo(() => {
-      const currentError = onFieldError?.getCurrentError?.();
-      if (
-        currentError?.severity === 'error' &&
-        currentError.blocksSave !== false &&
-        typeof currentError.invalidDraft === 'string'
-      ) {
-        return { draft: currentError.invalidDraft, message: currentError.message };
-      }
-      return undefined;
-    }, [onFieldError]);
+    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
 
-    const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
+    const { draft, setDraft, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
       useDraftField<number | undefined>({
         value,
         format: formatPercent,
@@ -281,28 +272,23 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         onCommit: (nextValue) => {
           lastCommittedDisplayRef.current = { value: nextValue, decimals: pendingCommitDecimalsRef.current };
           onCommit?.(createCommitEvent(nextValue));
+          clearInvalidDraft?.();
         },
+        onCommitInvalid,
+        committedInvalidDraft,
         inputElementRef,
-        clearErrorOnDraftChange: true,
         commitOnBlur: false,
-        initialInvalidDraft,
       });
 
 
-    const visibleLocalError = touched ? error : undefined;
+    // Parse-fejl persisteres i invalidDrafts via useDraftField og vises afledt herfra.
+    const visibleLocalError = error;
     const resolvedHasError = hasConfigError || externalHasError || Boolean(visibleLocalError?.message);
     const resolvedErrorMessage = hasConfigError
       ? resolvedConfigErrorMessage
       : externalHasError
         ? externalHelperText
         : visibleLocalError?.message ?? '';
-
-    // Underret forælderen om fejltilstand
-    React.useEffect(() => {
-      if (typeof onFieldError === 'function') {
-        onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);
-      }
-    }, [draft, visibleLocalError?.message, onFieldError]);
 
     const skipNextBlurCommitRef = React.useRef(false);
 

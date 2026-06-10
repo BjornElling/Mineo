@@ -35,6 +35,18 @@ export const getFieldErrorRevisionSnapshot = (pageKey: StorageKey): number => {
   return formPersistenceStore.getState().fieldErrorRevisions[pageKey] ?? 0;
 };
 
+export const getInvalidDraftsForSectionSnapshot = (pageKey: StorageKey): Record<string, string> => {
+  return formPersistenceStore.getState().invalidDrafts[pageKey];
+};
+
+export const getInvalidDraftForFieldSnapshot = (pageKey: StorageKey, fieldPath: string): string | undefined => {
+  return formPersistenceStore.getState().invalidDrafts[pageKey][fieldPath];
+};
+
+export const getInvalidDraftRevisionSnapshot = (pageKey: StorageKey): number => {
+  return formPersistenceStore.getState().invalidDraftRevisions[pageKey] ?? 0;
+};
+
 export const getResolvedFieldErrorsSnapshot = <K extends StorageKey>(
   pageKey: K
 ): Partial<Record<Extract<keyof PersistedSectionMap[K], string>, FormFieldError>> => {

@@ -24,9 +24,10 @@ App-settings er ikke omfattet; se `app-settings.md`.
 
 ## 2. Kun schema-valideret brugerinput
 
-1. Persistens må kun indeholde schema-valideret brugerinput.
+1. Persistens af **sagsdata** (`.eo` + de versionerede sektioner i `persistenceRegistry`) må kun indeholde schema-valideret brugerinput.
 2. Runtime-fejl, debug-state, UI-state og derived outputs må ikke persisteres som sagsdata.
 3. Samme Zod-schemas skal beskytte både save og load.
+4. Den persisterede `invalidDrafts`-recovery-kanal (§11) er en bevidst undtagelse fra punkt 1: den lagres i `sessionStorage` for at overleve `F5`, men er **ikke** sagsdata, indgår aldrig i `.eo` og er fuldt Zod-dækket af sit eget schema.
 
 ---
 
@@ -177,3 +178,20 @@ Load består af to faser:
 Hvis fase 1 fejler, er load ikke anvendt, og eksisterende state skal være uændret.
 
 Hvis fase 2 fejler efter succesfuld fase 1, må fejlen ikke præsenteres som om sagsdata ikke blev indlæst. UI skal vise en separat dansk advarsel om, at sagen er indlæst, men efterfølgende filmetadata eller direkte "Gem"-kobling muligvis ikke er synkroniseret.
+
+---
+
+## 11. `invalidDrafts` — committed rå draft (recovery-kanal)
+
+`invalidDrafts` persisterer det input, der blev forsøgt committet, men ikke kunne parses (jf. `form-contract.md` §2.4). Det er en separat store-slice ved siden af `fieldErrors`, ikke en sektion i `persistenceRegistry`.
+
+Form: `invalidDrafts[pageKey][fieldPath] = råstreng (ikke-tom)`.
+
+Regler:
+
+1. **Eget schema.** `invalidDrafts` er fuldt Zod-dækket af sit eget schema. Da det ikke er en `persistenceRegistry`-sektion, indgår det ikke i `computeSchemaFingerprint`/`PERSISTED_DATA_VERSION` og kræver ikke versionsbump ved struktur-ændring i sektionsschemas.
+2. **Egen `sessionStorage`-nøgle.** Hele cachen lagres under én dedikeret, namespace-aware nøgle ejet af `storageManifest.ts`. Den overlever `F5`. Ved korrupt/ugyldig/versions-uoverensstemmende værdi ryddes nøglen fail-closed (recovery-state er ikke-kritisk og må droppes sikkert).
+3. **`.eo`-eksklusion.** `invalidDrafts` skrives aldrig til `.eo` og læses aldrig derfra. Da Gem blokeres ved enhver `invalidDrafts`-entry, vil cachen per definition være tom på gemme-tidspunktet.
+4. **Skrive/rydde-vej.** Et fejlende felt-commit skriver/opdaterer feltets entry; et vellykket commit rydder det. Hver skrivning er atomisk (store + `sessionStorage`) med rollback efter samme fail-closed-regler som `persistData` (§8 punkt 5). Et nyt entry kan oprette en undo/redo-frame; et entry der ryddes som del af et samtidigt sektion-commit rider på sektion-commitets frame (ingen separat frame).
+5. **Undo/redo.** `invalidDrafts` indgår i hver history-frame og gendannes atomisk ved restore (jf. `undo-redo-contract.md` §6).
+6. **Autoritativ replace.** Reset, load og `clearAll` rydder `invalidDrafts` atomisk sammen med sektioner og `fieldErrors`, så der ikke efterlades ghost-drafts.

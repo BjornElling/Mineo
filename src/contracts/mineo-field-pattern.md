@@ -160,11 +160,13 @@ Tabel-inputs er UI-specialiserede, men SKAL bevare de samme principper:
   i adapteren.
 - Rendering, styling, ikoner/indikatorer og komponent-specifikke DOM-timing-udvidelser forbliver i
   `Table*Input`-komponenten.
-- `useTableInputCore` ejer `useTableInputHistoryRestore`, resync af committed værdi,
-  fysisk-focus-beskyttelse, registrering i `draftHistoryRegistry`, no-op-detektion, save-error-
-  gating og GridCore-editor-handle-wiring.
+- `useTableInputCore` ejer resync af committed værdi (autoritativ snapshot-epoch + committed value),
+  fysisk-focus-beskyttelse, `invalidDrafts`-recovery-kanalen (via `useCellInvalidDraftChannel`),
+  no-op-detektion og GridCore-editor-handle-wiring. En ikke-committbar rå draft persisteres til den
+  fælles `invalidDrafts`-store-slice (jf. `persistence-contract.md` §11) og driver både fejlvisning og
+  save-blokering; der findes intet separat draft-/save-error-registry for tabelceller længere.
 - De enkelte `Table*Input`-komponenter må ikke hver især implementere deres egne uafhængige
-  `restoreFromHistory`-, pending-history-resync-, no-op-fingerprint- eller editor-handle-pipelines.
+  resync-, no-op-fingerprint- eller editor-handle-pipelines.
 
 ## Instant-commit-kontroller (eksplicitte undtagelser)
 

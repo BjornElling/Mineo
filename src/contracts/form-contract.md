@@ -55,6 +55,7 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 - Parsing må **kun** ske ved commit
 - Committed state må **aldrig** indeholde invalide værdier
 - Draft state må **aldrig** anvendes direkte i beregninger
+- En tredje, eksplicit tier — **committed rå draft** — håndterer det input, der blev forsøgt committet, men ikke kunne parses (jf. §2.4). Den er en separat, string-typet recovery-kanal (`invalidDrafts`), ikke committed domænestate, og indgår derfor aldrig i beregning eller `.eo`.
 - Synlighed/rendering må **ikke** i sig selv rydde allerede committet brugerinput i persisted sagsfelter
 - Hvis et persisted sagsfelt eller en persisted række skjules, skal den committede værdi fortsat kunne overleve `F5`, `.eo`-save og `.eo`-load
 - Skjulte committed værdier må kun neutraliseres ved, at validering og beregning eksplicit gater på de aktive domæneregler; de må ikke neutraliseres ved skjult state-clearing
@@ -66,6 +67,22 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 - Schema-defaults må dermed anvendes ved oprettelse af nye runtime-værdier, men må ikke injiceres i `.eo` load for at skjule manglende nyere felter, jf. `persistence-contract.md`.
 - En eksisterende committed sektion må aldrig overskrives med `initialValues` pga. navigation, rerender, settings-ændring eller lokal resync.
 - Funktionelle form-commits via `usePersistedForm().setValues` må returnere en fuld sektion eller et subset-patch. Subset-patches skal materialiseres oven på seneste committed schema-værdi og derefter gennem den normale schema-validerede persistence-vej.
+
+### 2.4 Committed rå draft (`invalidDrafts`)
+
+Når et commit-forsøg ikke kan parses (ikke-committbart format, fx `"12.x.20"` i et datofelt), beholdes den committede værdi uændret (sidst gyldige eller `undefined`), og den rå streng skrives til en separat persisteret recovery-kanal:
+
+```
+invalidDrafts[pageKey][fieldPath] = råstreng (ikke-tom)
+```
+
+Regler:
+
+- `invalidDrafts` er **ikke** committed domænestate. Den er string-typet og indgår aldrig i beregning.
+- Den flyder ad den normale committed-tier-vej: store → `sessionStorage` → undo/redo-snapshot. Den overlever derfor `F5` og kan undo/redo'es som alt andet committed input.
+- Den ekskluderes fra `.eo` (se `persistence-contract.md`). Da Gem blokeres ved enhver `invalidDrafts`-entry, kan en gemt fil per definition aldrig indeholde et entry.
+- Et vellykket commit på feltet rydder dets `invalidDrafts`-entry; et fejlende commit skriver/opdaterer det. Skrivning sker **kun** ved commit (blur/Enter), aldrig i `onChange` (no-live-preview).
+- Feltets rød kant + tooltip for parse-fejl er en **afledt** visning af `invalidDrafts` (jf. `error-debug-contract.md`). Range/rule/schema-fejl forbliver i `fieldErrors`.
 
 ---
 
@@ -199,7 +216,7 @@ Rationale:
   state findes og er gyldig.
 - Dette skel skal bevares ved fremtidige refactors for at undgå regression i save-flowet.
 
-`blocksSave` og `invalidDraft` er normativt defineret i `error-debug-contract.md`. Save-gating følger `blocksSave`/commitbarhed, ikke `severity` alene.
+`blocksSave` er normativt defineret i `error-debug-contract.md`. Save-gating følger commitbarhed, ikke `severity` alene. Konkret blokeres Gem af: (1) enhver `invalidDrafts`-entry (ikke-committbart input, jf. §2.4), og (2) enhver blokerende `fieldErrors`-entry med `severity:'error'` og `blocksSave!==false` (typisk `rule`/`schema`-fejl). Range/bounds-fejl (`blocksSave:false`) blokerer aldrig.
 
 ---
 
@@ -303,12 +320,12 @@ Tre kanoniske mekanismer implementerer draft/committed-separationen. De løser d
 |------|-------------|-----------|
 | `useDraftField` | Enkelt almindeligt felt (string → parsed value) | Individuelle Styled* text/number/date-felter uden grid-editor. Håndterer parse-on-blur, focus snapshot, cancel (Escape), error state per felt. |
 | `useRowDrafts` | Array af rækker (draft rows ↔ committed rows) | Dynamiske tabelrækker. Håndterer add/remove/commit row og resync via `resyncToken`. Validering hører til Table*Input eller tabelspecifik committed validering, ikke hookets tastetryks-hot path. |
-| `useTableInputCore` + tabel-input-adapter | Enkelt grid-cellefelt | Table*Input-komponenter, hvor GridCore ejer editoråbning, `commitCurrent`, `clearAndCommit`, key-startet edit og cellenavigation. Kernen ejer history-restore/resync via `useTableInputHistoryRestore`, no-op fingerprinting, save-error gating og editor-handle wiring, så dette ikke duplikeres per inputtype. |
+| `useTableInputCore` + tabel-input-adapter | Enkelt grid-cellefelt | Table*Input-komponenter, hvor GridCore ejer editoråbning, `commitCurrent`, `clearAndCommit`, key-startet edit og cellenavigation. Kernen ejer committed-resync (autoritativ snapshot-epoch + committed value), `invalidDrafts`-recovery-kanalen (via `useCellInvalidDraftChannel`), no-op fingerprinting og editor-handle wiring, så dette ikke duplikeres per inputtype. |
 
 **Hvornår bruges hvad:**
 - Er inputtet et almindeligt enkeltfelt uden GridCore? → `useDraftField`
 - Er inputtet en dynamisk tabel med rækker der kan tilføjes/fjernes? → `useRowDrafts`
-- Er inputtet en GridCore-tabelcelle? → Table*Input skal bruge `useTableInputCore` med en type-specifik adapter. Parser/formatter/fingerprint-regler hører til adapteren; history-restore, committed-resync og GridCore editor-handle wiring hører til kernen.
+- Er inputtet en GridCore-tabelcelle? → Table*Input skal bruge `useTableInputCore` med en type-specifik adapter. Parser/formatter/fingerprint-regler hører til adapteren; committed-resync, `invalidDrafts`-recovery-kanalen og GridCore editor-handle wiring hører til kernen.
 - Disse mekanismer må ikke overlappe for det samme ansvar på samme stykke data.
 
 ---

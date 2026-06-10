@@ -13,11 +13,18 @@ import type { PersistedData } from '../types/persistence';
 import { sanitizePersistedValueForSchema } from './persistenceLoadSanitization';
 import { readSessionStorageValue } from './safeSessionStorage';
 import { migratePersistedSectionValue } from './persistenceMigrations';
+import { getInvalidDraftsStorageKey } from '../config/storageManifest';
+import {
+  createEmptyInvalidDraftsCacheForStorage as createEmptySectionsInvalidDrafts,
+  readInvalidDraftsFromStorage,
+} from './invalidDraftsStorage';
+import type { InvalidDraftsCache } from '../stores/formPersistenceStore';
 
 export type SessionHydrationNotice = { message: string; type: 'warning' | 'error' };
 
 type SessionHydrationPlan = {
   sections: HydratedPersistedSectionsSnapshot;
+  invalidDrafts: InvalidDraftsCache;
   keysToRemove: string[];
   notice: SessionHydrationNotice | null;
 };
@@ -118,6 +125,7 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
     } catch {
       return {
         sections,
+        invalidDrafts: createEmptySectionsInvalidDrafts(),
         keysToRemove: [],
         notice: createStorageReadFailedNotice(),
       };
@@ -161,8 +169,14 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
     summary.strippedUnknownFieldCount += stripped.unknownPaths.length;
   }
 
+  const invalidDraftsResult = readInvalidDraftsFromStorage();
+  if (invalidDraftsResult.shouldRemove) {
+    keysToRemove.push(getInvalidDraftsStorageKey());
+  }
+
   return {
     sections,
+    invalidDrafts: invalidDraftsResult.cache,
     keysToRemove,
     notice: createHydrationNotice(summary),
   };

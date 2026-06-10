@@ -19,9 +19,6 @@ import { satserSchema } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { SATSER_INITIAL_VALUES } from '../../domain/satser/satserInitialValues';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
-import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
-import type { StorageKey } from '../../config/storageManifest';
-import { __resetDraftHistoryRegistryForTests } from '../../utils/draftHistoryRegistry';
 import { toISODateString } from '../../types/branded';
 
 const VALID_META = { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION };
@@ -231,14 +228,12 @@ describe('useUndoRedo', () => {
     formPersistenceStore.getState().clearAllFieldErrors();
     __resetUndoRedoStoreForTests();
     __resetUndoFocusTrackerForTests();
-    __resetDraftHistoryRegistryForTests();
     installUndoFocusTracker();
     controls = null;
   });
 
   afterEach(() => {
     __resetUndoFocusTrackerForTests();
-    __resetDraftHistoryRegistryForTests();
   });
 
   it('opdaterer undo/redo-tilgængelighed via store-subscription', () => {
@@ -506,7 +501,7 @@ describe('useUndoRedo', () => {
     });
   });
 
-  it('redo gendanner invalid draft når fejlen er produceret via reportError', () => {
+  it('redo gendanner committed rå draft (invalidDrafts) efter undo', () => {
     const rafCallbacks: FrameRequestCallback[] = [];
     const requestAnimationFrameSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       rafCallbacks.push(callback);
@@ -518,36 +513,13 @@ describe('useUndoRedo', () => {
       value: vi.fn(),
     });
 
-    let reportError!: ReturnType<typeof useFormFieldErrorReporter>;
-    const ReporterControls = () => {
-      reportError = useFormFieldErrorReporter('stamdata' as StorageKey, 'skadelidteFodselsdato' as never);
-      controls = useUndoRedo();
-      return (
-        <Routes>
-          <Route path="/satser" element={<div>Satser</div>} />
-          <Route path="/stamdata" element={<Stamdata />} />
-        </Routes>
-      );
-    };
+    renderStamdataUndoHarness();
 
-    render(
-      <MemoryRouter initialEntries={['/stamdata']}>
-        <AppSettingsProvider>
-          <FormPersistenceProvider>
-            <ReporterControls />
-          </FormPersistenceProvider>
-        </AppSettingsProvider>
-      </MemoryRouter>
-    );
-
-    // Et undo-bærende felt skal være "senest fokuseret" så reportError kan fange origin korrekt.
-    const target = getUndoField('skadelidteFodselsdato');
+    // Et fejlende commit: snapshot pre-state, skriv den rå draft til invalidDrafts (som useDraftField.onCommitInvalid).
+    // Stamdata mountes først efter undo navigerer til '/stamdata' (origin.route), så feltet aflæses bagefter.
     act(() => {
-      target.focus();
-    });
-
-    act(() => {
-      reportError({ message: 'Ugyldig dato', blocksSave: true, invalidDraft: '32-13-1980' });
+      undoRedoStore.getState().capture(createStamdataOrigin('skadelidteFodselsdato'));
+      formPersistenceStore.getState().setInvalidDraft('stamdata', 'skadelidteFodselsdato', '32-13-1980');
     });
 
     act(() => {
@@ -569,7 +541,7 @@ describe('useUndoRedo', () => {
     });
   });
 
-  it('bevarer invalid draft-fejl gennem undo af efterfølgende Stamdata-commits', () => {
+  it('bevarer committed rå draft (invalidDrafts) gennem undo af efterfølgende Stamdata-commits', () => {
     const rafCallbacks: FrameRequestCallback[] = [];
     const requestAnimationFrameSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       rafCallbacks.push(callback);
@@ -581,30 +553,11 @@ describe('useUndoRedo', () => {
       value: vi.fn(),
     });
 
-    let reportError!: ReturnType<typeof useFormFieldErrorReporter>;
-    const ReporterControls = () => {
-      reportError = useFormFieldErrorReporter('stamdata' as StorageKey, 'skadelidteFodselsdato' as never);
-      controls = useUndoRedo();
-      return (
-        <Routes>
-          <Route path="/stamdata" element={<Stamdata />} />
-        </Routes>
-      );
-    };
-
-    render(
-      <MemoryRouter initialEntries={['/stamdata']}>
-        <AppSettingsProvider>
-          <FormPersistenceProvider>
-            <ReporterControls />
-          </FormPersistenceProvider>
-        </AppSettingsProvider>
-      </MemoryRouter>
-    );
+    renderStamdataUndoHarness();
 
     act(() => {
-      getUndoField('skadelidteFodselsdato').focus();
-      reportError({ message: 'Ugyldig dato', blocksSave: true, invalidDraft: '12-' });
+      undoRedoStore.getState().capture(createStamdataOrigin('skadelidteFodselsdato'));
+      formPersistenceStore.getState().setInvalidDraft('stamdata', 'skadelidteFodselsdato', '12-');
     });
 
     act(() => {
@@ -618,7 +571,7 @@ describe('useUndoRedo', () => {
       controls?.undo();
     });
     flushAnimationFrames(rafCallbacks);
-    expect(formPersistenceStore.getState().fieldErrors.stamdata.skadelidteFodselsdato?.input?.invalidDraft).toBe('12-');
+    expect(formPersistenceStore.getState().invalidDrafts.stamdata.skadelidteFodselsdato).toBe('12-');
 
     act(() => {
       controls?.undo();
@@ -639,7 +592,7 @@ describe('useUndoRedo', () => {
     });
   });
 
-  it('gendanner ugyldig dato via fieldPath selv når focusToken peger på næste felt', () => {
+  it('gendanner committed rå draft via fieldPath selv når focusToken peger på næste felt', () => {
     const rafCallbacks: FrameRequestCallback[] = [];
     const requestAnimationFrameSpy = vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
       rafCallbacks.push(callback);
@@ -658,12 +611,7 @@ describe('useUndoRedo', () => {
         ...createStamdataOrigin('skadelidteFodselsdato'),
         focusToken: 'wrong-focused-field-token',
       });
-      formPersistenceStore.getState().setFieldError('stamdata', 'skadelidteFodselsdato', 'input', {
-        message: 'Ugyldig dato',
-        severity: 'error',
-        blocksSave: true,
-        invalidDraft: '32-13-1980',
-      });
+      formPersistenceStore.getState().setInvalidDraft('stamdata', 'skadelidteFodselsdato', '32-13-1980');
     });
 
     act(() => {

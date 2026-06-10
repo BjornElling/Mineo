@@ -10,6 +10,7 @@ import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { normalizeYearPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitHandler, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 
 export type StyledYearFieldProps = {
   value: number | undefined;
@@ -182,19 +183,9 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       [allowEmpty, maxYear, minYear, twoDigitYearPolicy]
     );
 
-    const initialInvalidDraft = React.useMemo(() => {
-      const currentError = onFieldError?.getCurrentError?.();
-      if (
-        currentError?.severity === 'error' &&
-        currentError.blocksSave !== false &&
-        typeof currentError.invalidDraft === 'string'
-      ) {
-        return { draft: currentError.invalidDraft, message: currentError.message };
-      }
-      return undefined;
-    }, [onFieldError]);
+    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
 
-    const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown, commit } = useDraftField<
+    const { draft, setDraft, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown, commit } = useDraftField<
       number | undefined
     >({
       value,
@@ -203,16 +194,18 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       normalizeDraftOnCommit: trimToAlphanumericEdges,
       onCommit: (nextValue) => {
         onCommit?.(createCommitEvent(nextValue));
+        clearInvalidDraft?.();
       },
+      onCommitInvalid,
+      committedInvalidDraft,
       inputElementRef,
-      clearErrorOnDraftChange: true,
       // Feltet ejer blur-commit eksplicit, så vi kan undlade touched/commit ved uændret blur
       // og koordinere Enter/Escape-suppression med 2-trins editor-aktivering.
       commitOnBlur: false,
-      initialInvalidDraft,
     });
 
-    const visibleLocalError = touched ? error : undefined;
+    // Parse-fejl persisteres i invalidDrafts via useDraftField og vises afledt herfra.
+    const visibleLocalError = error;
     const resolvedErrorMessage = externalError?.message ?? visibleLocalError?.message ?? '';
     const resolvedHasError = Boolean(externalError?.message) || Boolean(visibleLocalError?.message);
 
@@ -220,12 +213,6 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       if (!onErrorChange) return;
       onErrorChange(resolvedHasError);
     }, [onErrorChange, resolvedHasError]);
-
-    // Underret forælderen om lokal fejltilstand (producer-owned rapportering)
-    React.useEffect(() => {
-      if (typeof onFieldError !== 'function') return;
-      onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);
-    }, [draft, onFieldError, visibleLocalError?.message]);
 
     const skipNextBlurCommitRef = React.useRef(false);
 

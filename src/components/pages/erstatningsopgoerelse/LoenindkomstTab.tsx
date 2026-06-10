@@ -20,6 +20,8 @@ import type { CommitEvent, CommitHandler } from '../../../types/fieldEvents';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import StandardLoenTable, { type StandardLoenTableSatser } from '../../tables/StandardLoenTable';
 import LoenudviklingManuelTable from '../../tables/LoenudviklingManuelTable';
+import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
+import { CELL_TABLE_IDS } from '../../../config/cellInvalidDraftScopes';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import FloatingActionButton from '../../ui/FloatingActionButton';
 import ContentBox from '../../layout/ContentBox';
@@ -2133,6 +2135,7 @@ const LoenindkomstTab = React.memo(({
               </Box>
             </Box>
 
+            <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoStandardLoen} rowScope={af.id}>
             <StandardLoenTable
               loenperiode={af.loenperiode}
               satser={satserByAfId.get(af.id)!}
@@ -2144,6 +2147,7 @@ const LoenindkomstTab = React.memo(({
               saveOrderPath={`erstatningsopgoerelse.ansaettelsesforhold.${index}.indtaegtsoplysningerTableData`}
               calculateDerivedRow={derivedCalculatorByAfId.get(af.id)}
             />
+            </CellInvalidDraftScopeProvider>
 
             {beregnesUdFra === 'Beregningsperiode' ? (
               <>
@@ -2336,6 +2340,7 @@ const LoenindkomstTab = React.memo(({
                           />
                         </Box>
                       </Box>
+                      <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoLoenudvikling} rowScope={af.id}>
                       <LoenudviklingManuelTable
                         tableData={af.loenudviklingManuelTableData}
                         onTableDataChange={handleLoenudviklingManuelTableChange(af.id)}
@@ -2347,6 +2352,7 @@ const LoenindkomstTab = React.memo(({
                         readOnlyBaseRowPercentFields={true}
                         useSmallFont={true}
                       />
+                      </CellInvalidDraftScopeProvider>
                     </>
                   );
                 })()}

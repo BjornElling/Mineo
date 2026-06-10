@@ -19,7 +19,6 @@ import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { aarsloenSchema } from '../../schemas/formSchemas';
 import { AARSLOEN_INITIAL_VALUES } from '../../domain/aarsloen/aarsloenInitialValues';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
-import { __resetDraftHistoryRegistryForTests } from '../../utils/draftHistoryRegistry';
 
 type Controls = ReturnType<typeof useUndoRedo>;
 let controls: Controls | null = null;
@@ -89,7 +88,6 @@ describe('undo/redo for toggles uden for tabeller', () => {
     });
     __resetUndoRedoStoreForTests();
     __resetUndoFocusTrackerForTests();
-    __resetDraftHistoryRegistryForTests();
     formPersistenceStore.setState({
       sections: { ...formPersistenceStore.getState().sections, aarsloen: null },
       meta: { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },

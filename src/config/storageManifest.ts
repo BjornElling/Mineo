@@ -56,6 +56,13 @@ const UI_STORAGE_KEY_SUFFIXES = {
 
 const ACTIVE_TAB_SUFFIX_PREFIX = 'ui_activeTab_';
 
+/**
+ * Dedikeret nøgle til `invalidDrafts`-recovery-kanalen (committed rå draft).
+ * Ikke en sektions-nøgle: hele cachen lagres under denne ene nøgle, så ikke-committbart
+ * input overlever F5 (jf. persistence-contract.md §11).
+ */
+const INVALID_DRAFTS_SUFFIX = 'invalidDrafts';
+
 const buildKeyMap = <T extends Record<string, string>>(suffixes: T): { readonly [K in keyof T]: string } => {
   const descriptors = {} as { [K in keyof T]: PropertyDescriptor };
   for (const name of Object.keys(suffixes) as (keyof T)[]) {
@@ -76,6 +83,11 @@ export const STORAGE_KEYS = buildKeyMap(STORAGE_KEY_SUFFIXES);
 export const UI_STORAGE_KEYS = buildKeyMap(UI_STORAGE_KEY_SUFFIXES);
 
 export const createActiveTabStorageKey = (pageId: string): string => ns(`${ACTIVE_TAB_SUFFIX_PREFIX}${pageId}`);
+
+/**
+ * SessionStorage-nøgle til `invalidDrafts`-recovery-kanalen. Namespace-aware og dovent resolveret.
+ */
+export const getInvalidDraftsStorageKey = (): string => ns(INVALID_DRAFTS_SUFFIX);
 
 /**
  * Type-safe storage key type
@@ -109,5 +121,6 @@ export const isValidStorageKey = (key: string): boolean => {
   const uiKeys = Object.values(UI_STORAGE_KEYS) as string[];
   return domainKeys.includes(key)
     || uiKeys.includes(key)
+    || key === ns(INVALID_DRAFTS_SUFFIX)
     || key.startsWith(ns(ACTIVE_TAB_SUFFIX_PREFIX));
 };

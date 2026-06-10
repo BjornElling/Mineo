@@ -1,6 +1,4 @@
 import { type HistoryFrame } from '../stores/undoRedoStore';
-import { resolveActiveFieldError } from '../types/fieldErrors';
-import { restoreDraftHistoryTarget, type DraftHistoryRestoreState } from './draftHistoryRegistry';
 import { scrollTargetIntoView } from './scrollTargetIntoView';
 
 const attrSelector = (attr: string, value: string): string => `[${attr}=${JSON.stringify(value)}]`;
@@ -82,31 +80,6 @@ const focusRestoredField = (target: HTMLElement): boolean => {
   return focused;
 };
 
-const resolveDraftRestoreState = (frame: HistoryFrame): DraftHistoryRestoreState => {
-  const fieldPath = frame.origin.fieldPath;
-  if (fieldPath) {
-    const bySource = frame.fieldErrors[frame.origin.sectionKey]?.[fieldPath];
-    const activeError = bySource ? resolveActiveFieldError(bySource) : undefined;
-    if (
-      activeError?.severity === 'error' &&
-      activeError.blocksSave !== false &&
-      typeof activeError.invalidDraft === 'string'
-    ) {
-      return {
-        kind: 'error',
-        draft: activeError.invalidDraft,
-        error: {
-          kind: 'invalid',
-          message: activeError.message,
-          invalidDraft: activeError.invalidDraft,
-        },
-      };
-    }
-  }
-
-  return { kind: 'committed' };
-};
-
 const isFocusableUserTarget = (element: HTMLElement): boolean => {
   return element.matches('input, textarea, select, button, [tabindex]:not([tabindex="-1"]), [contenteditable="true"]');
 };
@@ -119,15 +92,18 @@ const isSameFocusScope = (activeElement: HTMLElement, originalActiveElement: Ele
   return false;
 };
 
+/**
+ * Efter en undo/redo-restore: re-targetér fokus til det felt/celle, hvis ændring framet kom fra.
+ *
+ * Selve værdi-/draft-gendannelsen sker via det restored store-snapshot (sektioner + `invalidDrafts`)
+ * plus den autoritative epoch-resync i `useDraftField`/`useTableInputCore` — IKKE her. Denne funktion
+ * flytter kun fokus (og scroller) hen til det rette element, når det er mountet på den restored fane.
+ */
 export const scheduleHistoryTargetRestore = (frame: HistoryFrame): void => {
   if (!frame.origin.fieldPath && !frame.origin.focusToken) return;
 
-  const state = resolveDraftRestoreState(frame);
   const originalActiveElement = document.activeElement;
 
-  // Draft-restore skal være en one-shot: at kalde restoreFromHistory flere gange for samme
-  // frame ville genanvende suppressNextBlurCommit og overskrive eventuelle brugerredigeringer mellem ticks.
-  let draftRestored = false;
   let attempts = 0;
   const tick = () => {
     const target = findRestoredField(frame);
@@ -143,12 +119,6 @@ export const scheduleHistoryTargetRestore = (frame: HistoryFrame): void => {
     }
 
     if (target) {
-      if (!draftRestored) {
-        draftRestored = restoreDraftHistoryTarget(
-          { focusToken: frame.origin.focusToken, fieldPath: frame.origin.fieldPath },
-          state
-        );
-      }
       const focused = focusRestoredField(target);
       if (focused) return;
     }

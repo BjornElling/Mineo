@@ -53,7 +53,6 @@ Hvor `FormFieldError` mindst indeholder:
 - `severity: 'error' | 'warning'`
 - `source: 'input' | 'schema' | 'rule'`
 - `blocksSave?: boolean`
-- `invalidDraft?: string`
 
 `blocksSave` er en commitbarhedsregel, ikke en severity-regel:
 
@@ -61,10 +60,10 @@ Hvor `FormFieldError` mindst indeholder:
 - `false` skal sættes eksplicit for bounds/range-fejl, hvor committed state allerede er canonical og schema-valid
 - `severity: 'error'` kan derfor være ikke-save-blokerende
 
-`invalidDraft` er runtime-only og bruges til at genskabe en ikke-committable draft-fejl, fx ved undo/redo. Feltet må aldrig persisteres, bruges til beregning eller indgå i `.eo`.
+**Ikke-committbart input hører ikke til her.** Et commit-forsøg, der ikke kan parses (ugyldigt format), er **ikke** en runtime-only `fieldError`. Den rå streng skrives i stedet til den persisterede recovery-kanal `invalidDrafts` (jf. `form-contract.md` §2.4 og `persistence-contract.md`). Feltets rød kant + tooltip for parse-fejl er en **afledt** visning af, at feltet har en `invalidDrafts`-entry; selve fejlbeskeden gen-udledes lokalt ved at parse den rå streng. `fieldErrors` bærer derfor kun `input`-fejl, der er `blocksSave:false` (fx range/bounds på en allerede committet værdi), samt `schema`/`rule`-fejl.
 
 **Invariants (normative):**
-- Errors er **runtime-only** og må aldrig persisteres.
+- `fieldErrors` er **runtime-only** og må aldrig persisteres. (`invalidDrafts` er en separat persisteret kanal og hører under `persistence-contract.md`, ikke her.)
 - En `message` må aldrig være tom/whitespace efter normalisering.
 - Debug må aldrig “gætte” fejl – den må kun læse modellen.
 - UI må aldrig være timing-afhængig: “hvad vises” skal komme fra en deterministisk resolver.

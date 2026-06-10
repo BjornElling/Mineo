@@ -7,6 +7,8 @@ import StyledToggleSwitch from '../inputs/StyledToggleSwitch';
 import StyledIntegerField from '../inputs/StyledIntegerField';
 import StyledDropdown from '../inputs/StyledDropdown';
 import StandardLoenTable from '../tables/StandardLoenTable';
+import { CellInvalidDraftScopeProvider } from '../../contexts/CellInvalidDraftScopeContext';
+import { CELL_TABLE_IDS } from '../../config/cellInvalidDraftScopes';
 import ContentBox from '../layout/ContentBox';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
@@ -424,22 +426,24 @@ const Aarsloen = React.memo(() => {
       <ContentBox className="content-box">
         <Typography className="section-header">Indtægtsoplysninger</Typography>
 
-        <StandardLoenTable
-          ref={tabelRef}
-          loenperiode={loenperiode}
-          satser={{
-            ferie: feriePct,
-            fritvalg: fritvalgPct,
-            shSo: shSoPct,
-            bededag: storeBededagPct,
-            pension: pensionPct
-          }}
-          tableData={tableData}
-          onTableDataChange={handleTableDataChange}
-          onValidationChange={handleValidationChange}
-          useSmallFont={true}
-          saveOrderPath="aarsloen.tableData"
-        />
+        <CellInvalidDraftScopeProvider pageKey="aarsloen" tableId={CELL_TABLE_IDS.aarsloenStandardLoen}>
+          <StandardLoenTable
+            ref={tabelRef}
+            loenperiode={loenperiode}
+            satser={{
+              ferie: feriePct,
+              fritvalg: fritvalgPct,
+              shSo: shSoPct,
+              bededag: storeBededagPct,
+              pension: pensionPct
+            }}
+            tableData={tableData}
+            onTableDataChange={handleTableDataChange}
+            onValidationChange={handleValidationChange}
+            useSmallFont={true}
+            saveOrderPath="aarsloen.tableData"
+          />
+        </CellInvalidDraftScopeProvider>
       </ContentBox>
 
       {/* Container 3: Beregningsprincipper */}

@@ -32,6 +32,7 @@ import {
   type DraftChangeHandler,
 } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 
 export type StyledAmountFieldValueChangeEvent = CommitEvent<AmountValue | undefined>;
 export type StyledAmountFieldDraftChangeEvent = DraftChangeEvent;
@@ -201,43 +202,32 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       [allowDecimals, allowNegative, maxValue, minValue, resolvedPrecision]
     );
 
-    const initialInvalidDraft = React.useMemo(() => {
-      const currentError = onFieldError?.getCurrentError?.();
-      if (
-        currentError?.severity === 'error' &&
-        currentError.blocksSave !== false &&
-        typeof currentError.invalidDraft === 'string'
-      ) {
-        return { draft: currentError.invalidDraft, message: currentError.message };
-      }
-      return undefined;
-    }, [onFieldError]);
+    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
 
-    const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit, commitDraft } =
+    const { draft, setDraft, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit, commitDraft } =
       useDraftField<AmountValue | undefined>({
         value,
         format: formatAmount,
         parse: parseAmount,
         onCommit: (nextValue) => {
           onCommit?.(createCommitEvent(nextValue));
+          clearInvalidDraft?.();
         },
+        onCommitInvalid,
+        committedInvalidDraft,
         inputElementRef,
-        clearErrorOnDraftChange: true,
         clearTouchedOnEmptyDraft: true,
         commitOnBlur: false,
-        initialInvalidDraft,
       });
 
-    const visibleLocalError = touched ? error : undefined;
+    const visibleLocalError = error;
     const localHasError = Boolean(visibleLocalError?.message);
     const resolvedHasError = externalHasError || localHasError;
     const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
 
-    // Underret forælderen om lokal fejltilstand (producer-owned rapportering)
-    React.useEffect(() => {
-      if (typeof onFieldError !== 'function') return;
-      onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);
-    }, [draft, onFieldError, visibleLocalError?.message]);
+    // Parse-fejl (ikke-committbart beløb) persisteres i invalidDrafts via useDraftField.onCommitInvalid
+    // og vises afledt herfra. Beløbsfeltet har ingen separat blocksSave:false range-fejl, så det
+    // rapporterer ikke til fieldErrors-storen.
 
     const skipNextBlurCommitRef = React.useRef(false);
     const hadErrorOnEditStartRef = React.useRef(false);

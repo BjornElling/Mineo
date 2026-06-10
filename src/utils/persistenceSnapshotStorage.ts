@@ -1,8 +1,8 @@
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
 import { PERSISTED_SECTION_KEYS, persistenceSchemas } from '../config/persistenceRegistry';
-import { getStorageKey } from '../config/storageManifest';
+import { getInvalidDraftsStorageKey, getStorageKey } from '../config/storageManifest';
 import type { PersistedData } from '../types/persistence';
-import type { FormPersistenceSections } from '../stores/formPersistenceStore';
+import type { FormPersistenceSections, InvalidDraftsCache } from '../stores/formPersistenceStore';
 import { nullToUndefinedDeep } from './nullToUndefinedDeep';
 import { serializeFormValues } from './serialization';
 import {
@@ -10,6 +10,7 @@ import {
   removeSessionStorageValue,
   writeSessionStorageValue,
 } from './safeSessionStorage';
+import { serializeInvalidDraftsCache } from './invalidDraftsStorage';
 import { formatZodIssues } from './zodIssueFormatting';
 
 type SessionStorageBackup = Map<string, string | null>;
@@ -79,14 +80,20 @@ const buildPersistenceSectionWrites = (sections: FormPersistenceSections): {
 
 export const atomicWritePersistenceSections = (
   sections: FormPersistenceSections,
-  commit: () => void
+  commit: () => void,
+  invalidDrafts?: InvalidDraftsCache
 ): void => {
   // Caller-ejet rollback-state (store-felter, undo/redo-historik, notices) skal gendannes
   // af callback-ejeren. Denne hjælper garanterer kun sessionStorage-rollback.
   const { toWrite, toRemove } = buildPersistenceSectionWrites(sections);
+  const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
   let backup: SessionStorageBackup;
   try {
     backup = createSessionStorageBackup();
+    if (invalidDrafts !== undefined) {
+      // Inkludér invalidDrafts-nøglen i backup, så restore er atomisk på tværs af sektioner + recovery-kanal.
+      backup.set(invalidDraftsStorageKey, readSessionStorageValue(invalidDraftsStorageKey));
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ukendt fejl';
     throw new Error(`Browserens midlertidige lager kunne ikke aflæses; snapshot-skrivning blev annulleret. ${message}`);
@@ -98,6 +105,15 @@ export const atomicWritePersistenceSections = (
     }
     for (const { storageKey, value } of toWrite) {
       writeSessionStorageValue(storageKey, value);
+    }
+    if (invalidDrafts !== undefined) {
+      const serialized = serializeInvalidDraftsCache(invalidDrafts);
+      const hasEntries = PERSISTED_SECTION_KEYS.some((pageKey) => Object.keys(invalidDrafts[pageKey]).length > 0);
+      if (hasEntries) {
+        writeSessionStorageValue(invalidDraftsStorageKey, serialized);
+      } else {
+        removeSessionStorageValue(invalidDraftsStorageKey);
+      }
     }
     commit();
   } catch (error) {

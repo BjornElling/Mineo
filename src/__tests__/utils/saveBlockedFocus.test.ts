@@ -5,7 +5,7 @@ import {
   getFirstBlockingInputErrorTarget,
   navigateToBlockingInputError,
 } from '../../utils/saveBlockedFocus';
-import { setTableInputError, clearTableInputError } from '../../utils/tableInputErrorRegistry';
+import { CELL_TABLE_IDS, buildCellInvalidDraftFieldPath } from '../../config/cellInvalidDraftScopes';
 
 vi.mock('../../hooks/usePersistedActiveTab', () => ({
   setActiveTabForPage: vi.fn(),
@@ -61,6 +61,16 @@ describe('getFirstBlockingInputErrorTarget — aktiv fejl-resolution', () => {
 
     expect(getFirstBlockingInputErrorTarget(snapshot as never)).toBeNull();
   });
+
+  it('returnerer en invalidDrafts-entry (ikke-committbart input) før fieldErrors og bruger fieldPath direkte', () => {
+    const cellFieldPath = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoOffentligeYdelser, '', 'row1:0');
+    const errorsSnapshot = () => ({});
+    const invalidDraftsSnapshot = (pageKey: string) =>
+      pageKey === 'erstatningsopgoerelse' ? { [cellFieldPath]: '12.x.2020' } : {};
+
+    const target = getFirstBlockingInputErrorTarget(errorsSnapshot as never, invalidDraftsSnapshot);
+    expect(target).toEqual({ kind: 'field', pageKey: 'erstatningsopgoerelse', fieldName: cellFieldPath, message: '' });
+  });
 });
 
 describe('navigateToBlockingInputError — synlig fejl på nuværende fane har forrang', () => {
@@ -81,7 +91,6 @@ describe('navigateToBlockingInputError — synlig fejl på nuværende fane har f
   });
 
   afterEach(() => {
-    clearTableInputError('cell-1');
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
       value: originalScrollIntoView,
@@ -90,14 +99,14 @@ describe('navigateToBlockingInputError — synlig fejl på nuværende fane har f
     document.body.innerHTML = '';
   });
 
-  it('fokuserer en synlig tabelcelle-fejl på nuværende fane i stedet for at navigere til et felt-mål på en anden side', async () => {
-    // Synlig, blokerende tabelcelle på den aktuelle fane.
+  it('fokuserer en synlig blokerende celle på nuværende fane via data-mineo-field-path i stedet for at navigere', async () => {
+    const cellFieldPath = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoOffentligeYdelser, '', 'row1:2');
+    // Synlig, blokerende grid-celle på den aktuelle fane (bærer data-mineo-field-path).
     const cell = document.createElement('input');
+    cell.setAttribute('data-mineo-field-path', cellFieldPath);
     document.body.appendChild(cell);
-    setTableInputError('cell-1', { message: 'Ugyldig værdi', getElement: () => cell });
 
-    // Felt-mål peger på en ANDEN side (erhvervsevnetab) — det må IKKE vinde, når cellen er synlig.
-    const target = { kind: 'field' as const, pageKey: 'erhvervsevnetab' as const, fieldName: 'foo', message: 'Andet' };
+    const target = { kind: 'field' as const, pageKey: 'erstatningsopgoerelse' as const, fieldName: cellFieldPath, message: '' };
     const navigate = vi.fn();
 
     await navigateToBlockingInputError(target, '/stamdata', navigate as never);
@@ -109,7 +118,7 @@ describe('navigateToBlockingInputError — synlig fejl på nuværende fane har f
   });
 
   it('navigerer til felt-målets side når ingen blokerende fejl er synlig på nuværende fane', async () => {
-    // Ingen tabel-registret-fejl, og intet .Mui-error i DOM → ingen synlig fejl på nuværende fane.
+    // Intet element med matchende data-mineo-field-path, og intet .Mui-error i DOM → ingen synlig fejl.
     const target = { kind: 'field' as const, pageKey: 'erhvervsevnetab' as const, fieldName: 'foo', message: 'Andet' };
     const navigate = vi.fn();
 
@@ -141,7 +150,7 @@ describe('navigateToBlockingInputError — synlig fejl på nuværende fane har f
   });
 });
 
-describe('navigateToBlockingInputError — fane-routing for EO tabel-input-fejl', () => {
+describe('navigateToBlockingInputError — fane-routing', () => {
   const setActiveTabMock = vi.mocked(setActiveTabForPage);
 
   beforeEach(() => {
@@ -153,8 +162,57 @@ describe('navigateToBlockingInputError — fane-routing for EO tabel-input-fejl'
     document.body.innerHTML = '';
   });
 
-  it('ruter en :loenindkomst-tabelfejl (pr. ansættelsesforhold) til lønindkomst-fanen', async () => {
-    // Bruger står på stamdata; lønindkomst-tabellen (anden fane) har en blokerende, dynamisk fejl.
+  it('ruter en celle-invalidDraft fieldPath til den korrekte fane via tableId-præfikset (offentlige ydelser)', async () => {
+    const cellFieldPath = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoOffentligeYdelser, '', 'row1:0');
+    const target = {
+      kind: 'field' as const,
+      pageKey: 'erstatningsopgoerelse' as const,
+      fieldName: cellFieldPath,
+      message: '',
+    };
+    const navigate = vi.fn();
+
+    await navigateToBlockingInputError(target, '/stamdata', navigate as never);
+    await flushRaf();
+
+    expect(navigate).toHaveBeenCalledWith('/erstatningsopgoerelse');
+    expect(setActiveTabMock).toHaveBeenCalledWith('erstatningsopgoerelse', 'offentlige_ydelser');
+  });
+
+  it('ruter en lønindkomst-celle (standardløn pr. ansættelsesforhold) til lønindkomst-fanen', async () => {
+    const cellFieldPath = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoStandardLoen, 'af-123', 'row1:2');
+    const target = {
+      kind: 'field' as const,
+      pageKey: 'erstatningsopgoerelse' as const,
+      fieldName: cellFieldPath,
+      message: '',
+    };
+    const navigate = vi.fn();
+
+    await navigateToBlockingInputError(target, '/stamdata', navigate as never);
+    await flushRaf();
+
+    expect(setActiveTabMock).toHaveBeenCalledWith('erstatningsopgoerelse', 'loenindkomst');
+  });
+
+  it('ruter en "angivet løn"-lønudviklingscelle til EO-oplysninger-fanen', async () => {
+    const cellFieldPath = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoAngivetLoenudvikling, '', 'loenudvikling1:1');
+    const target = {
+      kind: 'field' as const,
+      pageKey: 'erstatningsopgoerelse' as const,
+      fieldName: cellFieldPath,
+      message: '',
+    };
+    const navigate = vi.fn();
+
+    await navigateToBlockingInputError(target, '/stamdata', navigate as never);
+    await flushRaf();
+
+    expect(setActiveTabMock).toHaveBeenCalledWith('erstatningsopgoerelse', 'eo_oplysninger');
+  });
+
+  it('ruter den syntetiske :loenindkomst-aggregatfejl (pr. ansættelsesforhold) til lønindkomst-fanen', async () => {
+    // Aggregatet bevares for PDF/debug-gaten; routing-fallback til lønindkomst-fanen er stadig gyldig.
     const target = {
       kind: 'field' as const,
       pageKey: 'erstatningsopgoerelse' as const,
@@ -170,7 +228,7 @@ describe('navigateToBlockingInputError — fane-routing for EO tabel-input-fejl'
     expect(setActiveTabMock).toHaveBeenCalledWith('erstatningsopgoerelse', 'loenindkomst');
   });
 
-  it('ruter "angivet løn"-tabelfejlen til EO-oplysninger-fanen', async () => {
+  it('ruter "angivet løn"-aggregatfejlen til EO-oplysninger-fanen', async () => {
     const target = {
       kind: 'field' as const,
       pageKey: 'erstatningsopgoerelse' as const,
@@ -184,10 +242,9 @@ describe('navigateToBlockingInputError — fane-routing for EO tabel-input-fejl'
 
     expect(setActiveTabMock).toHaveBeenCalledWith('erstatningsopgoerelse', 'eo_oplysninger');
   });
-
 });
 
-describe('focusFirstVisibleBlockingInputError — fallback til tabel-registret', () => {
+describe('focusFirstVisibleBlockingInputError — grid-celle via data-mineo-field-path', () => {
   let getClientRectsSpy: ReturnType<typeof vi.spyOn>;
   const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
 
@@ -203,7 +260,6 @@ describe('focusFirstVisibleBlockingInputError — fallback til tabel-registret',
   });
 
   afterEach(() => {
-    clearTableInputError('loen-cell');
     getClientRectsSpy.mockRestore();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
@@ -212,18 +268,19 @@ describe('focusFirstVisibleBlockingInputError — fallback til tabel-registret',
     document.body.innerHTML = '';
   });
 
-  it('fokuserer en grid-celle via tabel-registret når felt-målets message ikke matcher et .Mui-error-element', async () => {
-    // Mineos grid-celler bærer IKKE .Mui-error, så findFirstVisibleErrorElement finder dem ikke.
-    // Den blokerende fejl er et 'field'-mål (dynamisk ':loenindkomst'), men cellen ligger i registret.
+  it('fokuserer en grid-celle via data-mineo-field-path (cellen bærer IKKE .Mui-error)', async () => {
+    // Mineos grid-celler bærer ikke .Mui-error, så findFirstVisibleErrorElement finder dem ikke;
+    // de lokaliseres via deres stabile data-mineo-field-path (= den fuldt kvalificerede fieldPath).
+    const cellFieldPath = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoStandardLoen, 'af-123', 'row1:2');
     const cell = document.createElement('input');
+    cell.setAttribute('data-mineo-field-path', cellFieldPath);
     document.body.appendChild(cell);
-    setTableInputError('loen-cell', { message: 'Indtastning mangler', getElement: () => cell });
 
     const target = {
       kind: 'field' as const,
       pageKey: 'erstatningsopgoerelse' as const,
-      fieldName: 'af-123:loenindkomst',
-      message: 'Ugyldig manuel regulering',
+      fieldName: cellFieldPath,
+      message: '',
     };
 
     const focused = await focusFirstVisibleBlockingInputError(target);

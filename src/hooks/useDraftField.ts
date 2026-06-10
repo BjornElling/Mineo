@@ -1,10 +1,9 @@
 import * as React from 'react';
-import { isInteractiveDevLoggingEnabled } from '../utils/debugRuntime';
-import { registerDraftHistoryController, type DraftHistoryRestoreState } from '../utils/draftHistoryRegistry';
 import type {
   DraftParse,
   DraftParseErrorKind,
 } from '../types/fieldEvents';
+import { useAuthoritativeSnapshotEpochSelector } from './useFormPersistenceSelectors';
 
 export type {
   DraftParse,
@@ -25,41 +24,43 @@ export type UseDraftFieldConfig<TModel> = {
   value: TModel;
 
   /**
-   * Skal være deterministisk og stabil for semantisk ækvivalente værdier.
-   *
-   * Hooken bruger `format(value)`-snapshots til at detektere parent-opdateringer efter et commit; hvis `format`
-   * kan variere på tværs af renders for den samme værdi (fx locale-/tidszoneafhængigt output), bliver
-   * draft-resync-adfærden uforudsigelig.
-   *
-   * Praktisk krav:
-   * - `format` bør være feltets kanoniske committed-repræsentation (det brugeren bør se efter commit).
-   * - `format` må ikke kollapse distinkte committed-værdier inden for feltets semantik, ellers kan parent-
-   *   opdateringer blive overset (fordi resync-detektion er streng-baseret).
+   * Skal være deterministisk og stabil for semantisk ækvivalente værdier (feltets kanoniske
+   * committed-repræsentation).
    */
   format: (value: TModel) => string;
   parse: DraftParse<TModel>;
   normalizeDraftOnCommit?: (draft: string) => string;
+
+  /** Kaldes ved vellykket commit. */
   onCommit: (nextValue: TModel) => void;
 
   /**
-   * Valgfri ref til det egentlige input-/textarea-DOM-element, som denne hook styrer.
+   * Kaldes ved fejlende (ikke-committbart) commit med den rå draft.
    *
-   * Mineo-invariant: draft MÅ IKKE overskrives af parent-drevet resync, mens kontrollen
-   * er fysisk fokuseret i DOM'en. Reacts focus state kan lagge under hurtig tab-navigation.
+   * Når sat (bundet felt) ejer kalderen persisteringen af den rå draft i `invalidDrafts` og leverer
+   * den tilbage via `committedInvalidDraft`. Når den ikke er sat (ubundet felt, fx i settings),
+   * holder hooken selv en lokal fallback, så den ugyldige draft ikke silent-rolles-tilbage ved blur.
+   */
+  onCommitInvalid?: (rawDraft: string) => void;
+
+  /**
+   * Den persisterede committede rå draft for feltet (fra `invalidDrafts`-storen). Er feltets
+   * autoritative "ikke-committbare" tilstand for bundne felter; driver resync + fejlvisning.
+   */
+  committedInvalidDraft?: string;
+
+  /**
+   * Valgfri ref til input-/textarea-DOM-elementet. Mineo-invariant: draft MÅ IKKE overskrives af
+   * ekstern resync, mens kontrollen er fysisk fokuseret (Reacts focus state kan lagge ved hurtig
+   * tab-navigation).
    */
   inputElementRef?: React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>;
 
   commitOnBlur?: boolean;
   commitOnEnter?: boolean;
 
-  clearErrorOnDraftChange?: boolean;
-  initialInvalidDraft?: Readonly<{
-    draft: string;
-    message: string;
-  }>;
   /**
    * UX-politik: når draften bliver tom, behandl det som "ingen valideringstilstand".
-   * Dette rydder lokal error + touched uden at committe eller parse.
    */
   clearTouchedOnEmptyDraft?: boolean;
 };
@@ -69,24 +70,20 @@ export type UseDraftFieldResult = {
   setDraft: (nextDraft: string) => void;
   isFocused: boolean;
 
-  /**
-   * Semantik: "er der forsøgt et commit?" (ikke "har brugeren interageret?").
-   * Bruges til at gate, hvornår parse-fejl skal vises.
-   */
+  /** "Er der forsøgt et commit?" (ikke "har brugeren interageret?"). */
   touched: boolean;
+
+  /**
+   * Display-klar parse-fejl for feltets aktuelle ikke-committbare tilstand. Er kun sat, når feltet
+   * har en effektiv committed rå draft OG draften aktuelt viser den (dvs. ikke mens brugeren taster
+   * en ny værdi). Beskeden gen-udledes ved at parse den rå draft (single source of truth: råstrengen).
+   */
   error: DraftFieldError | undefined;
 
   onFocus: () => void;
   onBlur: (_e?: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
 
-  /**
-   * Imperativt commit-forsøg på den nuværende draft.
-   *
-   * Bemærk: dette anvender ikke blur-suppression. Hvis du kalder `commit()` fra en event, der også kan
-   * udløse en `onBlur` (fx museklik udenfor), så stol på hookens egen `onBlur`/`onKeyDown`-wiring eller
-   * håndtér suppression eksternt.
-   */
   commit: () => void;
   commitDraft: (nextDraft: string) => void;
   cancel: () => void;
@@ -99,276 +96,159 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     parse,
     normalizeDraftOnCommit,
     onCommit,
+    onCommitInvalid,
+    committedInvalidDraft,
     inputElementRef,
     commitOnBlur = true,
     commitOnEnter = true,
-    clearErrorOnDraftChange = true,
     clearTouchedOnEmptyDraft = false,
   } = config;
 
-  /**
-   * Interne state-invarianter (Mineo):
-   * - Consumere skal bruge `setDraft` (ikke `setDraftState`), så blur-suppression + pending-resync-bogføring forbliver korrekt.
-   * - Efter Escape-cancel eller Enter-commit kan en blur følge i samme interaktion; suppression skal være one-shot og
-   *   gælder det umiddelbart efterfølgende blur-udløste commit-forsøg.
-   * - Post-commit-resync bytter bevidst enkelhed for determinisme. Refaktorér ikke, medmindre alle scenarier er forstået.
-   */
-  const [isFocused, setIsFocused] = React.useState(false);
-  const [touched, setTouched] = React.useState(() => config.initialInvalidDraft !== undefined);
-  const [error, setError] = React.useState<DraftFieldError | undefined>(() =>
-    config.initialInvalidDraft
-      ? { kind: 'invalid', message: config.initialInvalidDraft.message, invalidDraft: config.initialInvalidDraft.draft }
-      : undefined
-  );
-  const [draft, setDraftState] = React.useState<string>(() => config.initialInvalidDraft?.draft ?? format(value));
+  // Lokal fallback for ubundne felter (uden `onCommitInvalid`-kanal): bevarer den ugyldige draft
+  // efter blur, så den ikke silent-rolles tilbage. Bundne felter bruger `committedInvalidDraft`.
+  const isBound = onCommitInvalid !== undefined;
+  const [localInvalidDraft, setLocalInvalidDraft] = React.useState<string | null>(null);
+  const effectiveInvalidDraft = isBound ? committedInvalidDraft : (localInvalidDraft ?? undefined);
 
-  const committedValueRef = React.useRef(value);
-  React.useLayoutEffect(() => {
-    committedValueRef.current = value;
-  }, [value]);
+  const formattedValue = format(value);
+  const externalSource = effectiveInvalidDraft ?? formattedValue;
+
+  const [isFocused, setIsFocused] = React.useState(false);
+  const [touched, setTouched] = React.useState(() => effectiveInvalidDraft !== undefined);
+  const [draft, setDraftState] = React.useState<string>(externalSource);
+
   const isFocusedRef = React.useRef(isFocused);
   React.useLayoutEffect(() => {
     isFocusedRef.current = isFocused;
   }, [isFocused]);
 
-  // Snapshot af feltets state ved fokus-start (før redigering).
-  // Bruges til at sikre, at Escape gendanner præcis den "eksisterende værdi", brugeren begyndte at redigere,
-  // selv når den værdi aktuelt er ugyldig (dvs. ikke repræsenterbar af den committede model).
-  const focusSnapshotRef = React.useRef<{
-    draft: string;
-    touched: boolean;
-    error: DraftFieldError | undefined;
-  } | null>(null);
+  // Snapshot af draften ved fokus-start, så Escape gendanner præcis det brugeren begyndte at redigere.
+  const focusSnapshotRef = React.useRef<string | null>(null);
 
-  // Efter Escape-cancel eller Enter-commit kan en blur følge i samme interaktion.
-  // Invariant: cancel må aldrig føre til commit, og Enter må ikke dobbelt-committe via blur.
-  //
-  // Politik: suppression er one-shot for det næste blur-commit og ryddes enten:
-  // - når den forbruges af `onBlur`, eller
-  // - når brugeren ændrer draften igen (ny interaktion).
+  // Efter Escape-cancel eller Enter-commit kan en blur følge i samme interaktion. Suppression er
+  // one-shot for det næste blur-commit.
   const suppressNextBlurCommitRef = React.useRef(false);
-  const pendingValueResyncRef = React.useRef<
-    | { active: false }
-    | {
-        active: true;
-        formattedValueAtCommit: string;
-        draftAfterLocalFormat: string;
-        userEditedSinceCommit: boolean;
-      }
-  >({ active: false });
-  const pendingHistoryValueResyncRef = React.useRef(false);
-  // Sporer `value`-proppen på det tidspunkt, vi senest bevarede en ugyldig draft pga. touched+error.
-  // Når `value` ændres eksternt (fx InsertTodayDateButton), forbigås guarden.
-  const valueAtInvalidDraftPreserveRef = React.useRef<TModel>(value);
 
-  const restoreFromHistory = React.useCallback((state: DraftHistoryRestoreState) => {
-    const committedAtCallTime = committedValueRef.current;
-    const formattedAtCallTime = format(committedAtCallTime);
+  // Post-commit-guard mod silent-rollback: efter et vellykket commit står draften optimistisk på den
+  // committede repræsentation, mens `value`-proppen endnu ikke har indhentet (parent-rerender lagger).
+  // Indtil `format(value)` faktisk ændrer sig fra værdien-ved-commit, må resync IKKE trække draften
+  // tilbage til den stale committede værdi. (Bevarer den gamle pendingValueResync-determinisme.)
+  const pendingCommitRef = React.useRef<{ formattedValueAtCommit: string; target: string } | null>(null);
 
-    pendingValueResyncRef.current = { active: false };
-    // Gate suppression på fokus: undo/redo-restore bør kun nå hertil, efter MainLayout
-    // har tilladt en committed-state-restore. Hvis et fokuseret felt alligevel modtager restore,
-    // undgå stiltiende at tilsidesætte blur-commit-semantikken.
-    if (!isFocusedRef.current) {
-      suppressNextBlurCommitRef.current = true;
-    }
-    if (state.kind === 'error') {
-      pendingHistoryValueResyncRef.current = false;
-      setDraftState(state.draft);
-      setTouched(true);
-      setError(state.error);
-      return;
-    }
-
-    pendingHistoryValueResyncRef.current = true;
-    setDraftState(formattedAtCallTime);
-    setTouched(false);
-    setError(undefined);
-  }, [format]);
-
-  React.useEffect(() => {
-    const element = inputElementRef?.current;
-    if (!element) return undefined;
-    const focusToken = element.getAttribute('data-mineo-undo-focus-token');
-    const fieldPath = element.getAttribute('data-mineo-undo-field-path');
-    return registerDraftHistoryController(
-      { focusToken, fieldPath },
-      { restoreFromHistory }
-    );
-  }, [inputElementRef, restoreFromHistory]);
-
-  const debugDepsRef = React.useRef<{ error: typeof error; format: typeof format; isFocused: boolean; touched: boolean; value: TModel } | null>(null);
-  React.useEffect(() => {
-    if (isInteractiveDevLoggingEnabled) {
-      const prev = debugDepsRef.current;
-      if (prev !== null) {
-        const changed: string[] = [];
-        if (prev.error !== error) changed.push(`error (${JSON.stringify(prev.error)} → ${JSON.stringify(error)})`);
-        if (prev.format !== format) changed.push('format (fn reference changed)');
-        if (prev.isFocused !== isFocused) changed.push(`isFocused (${prev.isFocused} → ${isFocused})`);
-        if (prev.touched !== touched) changed.push(`touched (${prev.touched} → ${touched})`);
-        if (prev.value !== value) changed.push(`value (${JSON.stringify(prev.value)} → ${JSON.stringify(value)})`);
-        if (changed.length > 0) {
-          console.debug('[useDraftField] resync-effect triggered. Changed deps:', changed.join(', '));
-        }
-      }
-      debugDepsRef.current = { error, format, isFocused, touched, value };
-    }
-
-    const formatted = format(value);
+  const hasPhysicalFocus = React.useCallback((): boolean => {
     const el = inputElementRef?.current ?? null;
     const active = typeof document !== 'undefined' ? document.activeElement : null;
-    const hasPhysicalFocus =
+    return (
       el !== null &&
       active !== null &&
-      (active === el || (el instanceof HTMLElement && active instanceof Node && el.contains(active)));
-    const isEffectivelyFocused = isFocused || hasPhysicalFocus;
+      (active === el || (el instanceof HTMLElement && active instanceof Node && el.contains(active)))
+    );
+  }, [inputElementRef]);
 
-    // Ekstern value-opdatering, mens feltet holder en ugyldig draft (fx InsertTodayDateButton):
-    // ryd error-state, så resync nedenfor kan synce til den nye værdi.
-    if (touched && error !== undefined && value !== valueAtInvalidDraftPreserveRef.current) {
-      setTouched(false);
-      setError(undefined);
-      valueAtInvalidDraftPreserveRef.current = value;
-      setDraftState(formatted);
-      return;
+  // Autoritativ snapshot-epoch (bumpes ved load/reset/migration/undo-redo-restore). En ændring her er
+  // et autoritativt replace-event, der pr. undo-redo-kontrakten aldrig sker midt i en åben editor —
+  // derfor SKAL draften resyncs selv hvis feltet aktuelt har (read-only) DOM-fokus. Det erstatter det
+  // tidligere eksplicitte draftHistoryRegistry-push, som overskrev fokus-guarden ved restore.
+  const authoritativeEpoch = useAuthoritativeSnapshotEpochSelector();
+  const lastAuthoritativeEpochRef = React.useRef(authoritativeEpoch);
+
+  // Resync: når feltet ikke er aktivt redigeret, følger draften den eksterne kilde
+  // (`committedInvalidDraft ?? format(value)`). Dette dækker committed value-ændringer, F5-rehydrering
+  // og undo/redo-restore — alt sammen via den normale store→prop-vej, uden et separat draft-transportlag.
+  React.useEffect(() => {
+    const pending = pendingCommitRef.current;
+    if (pending) {
+      // Vent på at `value`-proppen indhenter commit'et før vi resyncer (undgå silent-rollback til stale værdi).
+      if (formattedValue === pending.formattedValueAtCommit) return;
+      pendingCommitRef.current = null;
     }
+    const isAuthoritativeReplace = authoritativeEpoch !== lastAuthoritativeEpochRef.current;
+    lastAuthoritativeEpochRef.current = authoritativeEpoch;
+    if (!isAuthoritativeReplace && (isFocused || hasPhysicalFocus())) return;
+    setDraftState((prev) => (prev === externalSource ? prev : externalSource));
+  }, [authoritativeEpoch, externalSource, formattedValue, hasPhysicalFocus, isFocused]);
 
-    setDraftState((prev) => {
-      const pending = pendingValueResyncRef.current;
-
-      if (pendingHistoryValueResyncRef.current) {
-        return prev === formatted ? prev : formatted;
-      }
-
-      if (pending.active) {
-        // Mens vi venter på post-commit-`value`-opdateringen, synk aldrig draft fra `value`
-        // (undgår flicker og overskrivning af den lokale post-commit-formattering).
-        const valueHasUpdatedSinceCommit = formatted !== pending.formattedValueAtCommit;
-        if (!valueHasUpdatedSinceCommit) {
-          if (formatted === pending.draftAfterLocalFormat) pendingValueResyncRef.current = { active: false };
-          return prev;
-        }
-
-        pendingValueResyncRef.current = { active: false };
-
-        if (pending.userEditedSinceCommit) {
-          return prev;
-        }
-
-        // Synk kun mens fokuseret, hvis brugeren ikke har tastet, siden vi lokalt formatterede efter commit.
-        if (isEffectivelyFocused && prev !== pending.draftAfterLocalFormat) {
-          return prev;
-        }
-
-        return prev === formatted ? prev : formatted;
-      }
-
-      if (isEffectivelyFocused) return prev;
-      // Hvis det seneste commit-forsøg fejlede, bevar brugerens ugyldige draft selv mens ufokuseret.
-      // Dette forhindrer "silent rollback" til den senest committede værdi ved blur.
-      if (touched && error !== undefined) {
-        valueAtInvalidDraftPreserveRef.current = value;
-        return prev;
-      }
-
-      return prev === formatted ? prev : formatted;
-    });
-  }, [error, format, inputElementRef, isFocused, touched, value]);
+  // Fejlvisning afledes af råstrengen: kun når draften aktuelt VISER den effektive ugyldige draft
+  // (ikke mens brugeren taster en ny værdi). Beskeden gen-udledes ved at parse den normaliserede råstreng.
+  const error = React.useMemo<DraftFieldError | undefined>(() => {
+    if (effectiveInvalidDraft === undefined) return undefined;
+    if (draft !== effectiveInvalidDraft) return undefined;
+    const normalized = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(effectiveInvalidDraft);
+    const result = parse(normalized, { mode: 'commit' });
+    if (result.ok) return undefined;
+    if (result.kind === 'invalid') {
+      return { kind: 'invalid', message: result.message, invalidDraft: effectiveInvalidDraft };
+    }
+    return { kind: result.kind, message: result.message, invalidDraft: effectiveInvalidDraft };
+  }, [draft, effectiveInvalidDraft, normalizeDraftOnCommit, parse]);
 
   const setDraft = React.useCallback(
     (nextDraft: string) => {
-      pendingHistoryValueResyncRef.current = false;
-      setDraftState(nextDraft);
-
       suppressNextBlurCommitRef.current = false;
-      const pending = pendingValueResyncRef.current;
-      if (pending.active) {
-        pendingValueResyncRef.current = { ...pending, userEditedSinceCommit: true };
-      }
-
-      if (clearErrorOnDraftChange) {
-        setError(undefined);
-      }
+      pendingCommitRef.current = null;
+      setDraftState(nextDraft);
       if (clearTouchedOnEmptyDraft && nextDraft === '') {
-        setError(undefined);
         setTouched(false);
       }
     },
-    [clearErrorOnDraftChange, clearTouchedOnEmptyDraft]
+    [clearTouchedOnEmptyDraft]
+  );
+
+  const commitFromDraft = React.useCallback(
+    (rawDraft: string) => {
+      setTouched(true);
+      pendingCommitRef.current = null;
+      const draftForCommit = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(rawDraft);
+      const result = parse(draftForCommit, { mode: 'commit' });
+
+      if (result.ok) {
+        // Vellykket commit: ryd evt. lokal ugyldig draft og synk optimistisk til committed repræsentation.
+        // Bundne felter rydder `invalidDrafts` via kalderens onCommit-wrapper (efter sektion-commit).
+        if (!isBound) setLocalInvalidDraft(null);
+        const target = format(result.value);
+        pendingCommitRef.current = { formattedValueAtCommit: formattedValue, target };
+        setDraftState(target);
+        onCommit(result.value);
+        return;
+      }
+
+      // Ikke-committbart: bevar committed værdi; persistér/bevar den RÅ draft (det brugeren ser),
+      // så fejlvisningen (draft === effektiv ugyldig draft) holder, og restore gendanner det viste input.
+      if (result.kind === 'invalid' || result.message !== undefined) {
+        if (isBound) {
+          onCommitInvalid?.(rawDraft);
+        } else {
+          setLocalInvalidDraft(rawDraft);
+        }
+        setDraftState(rawDraft);
+        return;
+      }
+
+      // partial/empty uden besked: ingen fejl-tilstand, ingen commit (fx tom draft uden krav).
+      if (!isBound) setLocalInvalidDraft(null);
+    },
+    [format, formattedValue, isBound, normalizeDraftOnCommit, onCommit, onCommitInvalid, parse]
+  );
+
+  const commit = React.useCallback(() => {
+    commitFromDraft(draft);
+  }, [commitFromDraft, draft]);
+
+  const commitDraft = React.useCallback(
+    (nextDraft: string) => {
+      suppressNextBlurCommitRef.current = true;
+      setDraftState(nextDraft);
+      commitFromDraft(nextDraft);
+    },
+    [commitFromDraft]
   );
 
   const cancel = React.useCallback(() => {
-    pendingHistoryValueResyncRef.current = false;
     const snapshot = focusSnapshotRef.current;
-    if (snapshot) {
-      setDraftState(snapshot.draft);
-      setTouched(snapshot.touched);
-      setError(snapshot.error);
-    } else {
-      const formatted = format(committedValueRef.current);
-      setDraftState(formatted);
-      setError(undefined);
-      setTouched(false);
-    }
+    pendingCommitRef.current = null;
+    setDraftState(snapshot ?? externalSource);
     suppressNextBlurCommitRef.current = true;
-    pendingValueResyncRef.current = { active: false };
-  }, [format]);
-
-  const commitFromDraft = React.useCallback((rawDraft: string, source: 'blur' | 'enter' | 'imperative') => {
-    pendingHistoryValueResyncRef.current = false;
-    setTouched(true);
-
-    const draftForCommit = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(rawDraft);
-    const result = parse(draftForCommit, { mode: 'commit' });
-
-    if (result.ok) {
-      const formattedValueAtCommit = format(value);
-      onCommit(result.value);
-      const formatted = format(result.value);
-      pendingValueResyncRef.current = {
-        active: true,
-        formattedValueAtCommit,
-        draftAfterLocalFormat: formatted,
-        userEditedSinceCommit: false,
-      };
-      setDraftState(formatted);
-      setError(undefined);
-      return;
-    }
-
-    if (result.kind === 'invalid') {
-      setError({ kind: result.kind, message: result.message, invalidDraft: draftForCommit });
-      return;
-    }
-
-    // Kontrakt-guard:
-    // I commit-mode bør ikke-committbare værdier overflades deterministisk.
-    // Hvis et felt returnerer `partial/empty` uden en message ved commit, vil det fremstå som en "silent failure".
-    if (isInteractiveDevLoggingEnabled && result.message === undefined) {
-      throw new Error(
-        `useDraftField.parse(commit) returned kind='${result.kind}' without message (commit source: ${source})`
-      );
-    }
-
-    if (result.message === undefined) {
-      setError(undefined);
-      return;
-    }
-
-    setError({ kind: result.kind, message: result.message, invalidDraft: draftForCommit });
-  }, [format, normalizeDraftOnCommit, onCommit, parse, value]);
-
-  const commit = React.useCallback(() => {
-    commitFromDraft(draft, 'imperative');
-  }, [commitFromDraft, draft]);
-
-  const commitDraft = React.useCallback((nextDraft: string) => {
-    suppressNextBlurCommitRef.current = true;
-    pendingValueResyncRef.current = { active: false };
-    setDraftState(nextDraft);
-    commitFromDraft(nextDraft, 'imperative');
-  }, [commitFromDraft]);
+  }, [externalSource]);
 
   const shouldBubbleEnterForNavigation = React.useCallback((target: EventTarget | null): boolean => {
     if (!(target instanceof HTMLElement)) return false;
@@ -377,43 +257,47 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
 
   const onFocus = React.useCallback(() => {
     setIsFocused(true);
-    focusSnapshotRef.current = { draft, touched, error };
-  }, [draft, error, touched]);
+    focusSnapshotRef.current = draft;
+  }, [draft]);
 
-  const onBlur = React.useCallback((_e?: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setIsFocused(false);
-    focusSnapshotRef.current = null;
+  const onBlur = React.useCallback(
+    (_e?: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      setIsFocused(false);
+      focusSnapshotRef.current = null;
 
-    if (suppressNextBlurCommitRef.current) {
-      suppressNextBlurCommitRef.current = false;
-      return;
-    }
-    if (commitOnBlur) {
-      commitFromDraft(draft, 'blur');
-    }
-  }, [commitFromDraft, commitOnBlur, draft]);
-
-  const onKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      e.stopPropagation();
-      suppressNextBlurCommitRef.current = true;
-      cancel();
-      return;
-    }
-
-    if (e.key === 'Enter' && commitOnEnter) {
-      e.preventDefault();
-      // VIGTIGT:
-      // Enter skal bubble for Container-/tabel-ejet traversal.
-      // Uden for de kontekster (fx dialogs/overlays), håndtér lokalt.
-      if (!shouldBubbleEnterForNavigation(e.target)) {
-        e.stopPropagation();
+      if (suppressNextBlurCommitRef.current) {
+        suppressNextBlurCommitRef.current = false;
+        return;
       }
-      suppressNextBlurCommitRef.current = true;
-      commitFromDraft(draft, 'enter');
-    }
-  }, [cancel, commitFromDraft, commitOnEnter, draft, shouldBubbleEnterForNavigation]);
+      if (commitOnBlur) {
+        commitFromDraft(draft);
+      }
+    },
+    [commitFromDraft, commitOnBlur, draft]
+  );
+
+  const onKeyDown = React.useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        suppressNextBlurCommitRef.current = true;
+        cancel();
+        return;
+      }
+
+      if (e.key === 'Enter' && commitOnEnter) {
+        e.preventDefault();
+        // Enter skal bubble for Container-/tabel-ejet traversal; uden for de kontekster håndtér lokalt.
+        if (!shouldBubbleEnterForNavigation(e.target)) {
+          e.stopPropagation();
+        }
+        suppressNextBlurCommitRef.current = true;
+        commitFromDraft(draft);
+      }
+    },
+    [cancel, commitFromDraft, commitOnEnter, draft, shouldBubbleEnterForNavigation]
+  );
 
   return {
     draft,

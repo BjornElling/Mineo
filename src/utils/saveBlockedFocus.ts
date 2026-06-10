@@ -3,28 +3,28 @@ import { persistenceSchemas } from '../config/persistenceRegistry';
 import type { StorageKey } from '../config/storageManifest';
 import { setActiveTabForPage } from '../hooks/usePersistedActiveTab';
 import { focusElementWithoutScroll, waitForAnimationFrame } from './commitFlush';
-import { getFirstBlockingTableInputErrorTarget, type BlockingTableInputErrorTarget } from './tableInputErrorRegistry';
 import { isRecord } from './typeGuards';
 import { scrollTargetIntoView } from './scrollTargetIntoView';
 import { resolveActiveFieldError, type FieldErrorBySource } from '../types/fieldErrors';
 import { EO_ANGIVET_LOEN_ID } from '../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
-import { APP_ROUTES, getRouteForPageKey, PAGE_DEFAULT_TAB } from '../config/pageNavigation';
+import { APP_ROUTES, getRouteForPageKey, routeToPageId, PAGE_DEFAULT_TAB } from '../config/pageNavigation';
+import { resolveTabForCellFieldPath } from '../config/cellInvalidDraftScopes';
 
-// Tabel-input-fejl i EO rapporteres som dynamiske felt-fejl med dette suffix (se LoenindkomstTab/
-// EOOplysningerTab). De persisterer i field-errors-store og overlever fane-skift, så de skal kunne
-// rutes til den rigtige fane uden at elementet er monteret.
+// Tabel-input-fejl i EO rapporteres (stadig) som en syntetisk dynamisk felt-fejl med dette suffix
+// (se LoenindkomstTab/EOOplysningerTab). Den lever ud over de per-celle `invalidDrafts` og fodrer
+// PDF/debug-gaten; den bevares som routing-fallback, men per-celle `invalidDrafts` (med fuldt
+// kvalificeret fieldPath + `data-mineo-field-path`) har forrang for præcis scroll-til-celle.
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
-export type BlockingFieldErrorTarget = Readonly<{
+export type BlockingInputErrorTarget = Readonly<{
   kind: 'field';
   pageKey: StorageKey;
   fieldName: string;
   message: string;
 }>;
 
-export type BlockingInputErrorTarget = BlockingFieldErrorTarget | BlockingTableInputErrorTarget;
-
 type FieldErrorsSnapshotGetter = (pageKey: StorageKey) => unknown;
+type InvalidDraftsSnapshotGetter = (pageKey: StorageKey) => Record<string, string>;
 
 const FOCUSABLE_ERROR_SELECTOR = [
   '.Mui-error input:not([disabled]):not([type="hidden"]):not([type="button"])',
@@ -61,6 +61,20 @@ const findFirstVisibleErrorElement = (message?: string): HTMLElement | null => {
   return visibleCandidates.find((candidate) => getDescribedByText(candidate).includes(message)) ?? null;
 };
 
+/**
+ * Lokalisér det blokerende felt via dets stabile `data-mineo-field-path` (sat på både almindelige
+ * felter og grid-celle-inputs). Mere robust end `.Mui-error`-besked-søgning, og virker for grid-celler
+ * der ikke bruger MUI's error-styling.
+ */
+const findVisibleFieldByFieldPath = (fieldPath: string): HTMLElement | null => {
+  const scrollContainer = document.querySelector<HTMLElement>('[data-mineo-scroll-container="true"]');
+  const root: ParentNode = scrollContainer ?? document;
+  const candidates = Array.from(
+    root.querySelectorAll<HTMLElement>(`[data-mineo-field-path=${JSON.stringify(fieldPath)}]`)
+  );
+  return candidates.find(isVisible) ?? null;
+};
+
 const focusAndScrollToErrorElement = (element: HTMLElement): void => {
   focusElementWithoutScroll(element);
   // Spring til den blokerende fejl: centrér altid, så brugeren ledes direkte til problemet.
@@ -68,8 +82,6 @@ const focusAndScrollToErrorElement = (element: HTMLElement): void => {
 };
 
 const getRouteForBlockingError = (target: BlockingInputErrorTarget, currentPathname: string): string => {
-  if (target.kind === 'table-input') return currentPathname;
-
   // faellesAarsloen er en delt sektion uden egen route; den vises under forsørgertab eller
   // erhvervsevnetab afhængigt af hvor brugeren står. Derfor afgøres route'en af kontekst her.
   if (target.pageKey === 'faellesAarsloen') {
@@ -80,10 +92,18 @@ const getRouteForBlockingError = (target: BlockingInputErrorTarget, currentPathn
 };
 
 const prepareTabForBlockingError = (target: BlockingInputErrorTarget): void => {
-  if (target.kind === 'table-input') return;
+  // 1) Per-celle `invalidDrafts`: fieldPath'ens tableId-præfiks bærer mål-fanen (jf. cellInvalidDraftScopes).
+  const cellTab = resolveTabForCellFieldPath(target.fieldName);
+  if (cellTab !== undefined) {
+    const route = getRouteForPageKey(target.pageKey);
+    if (route !== null) {
+      setActiveTabForPage(routeToPageId(route), cellTab);
+    }
+    return;
+  }
 
   if (target.pageKey === 'erstatningsopgoerelse') {
-    // Dynamiske tabel-input-fejl (suffix ':loenindkomst'): "angivet løn"-tabellen hører til
+    // Syntetiske tabel-input-fejl (suffix ':loenindkomst'): "angivet løn"-tabellen hører til
     // EO-oplysninger; alle øvrige (per ansættelsesforhold) hører til lønindkomst-fanen.
     if (target.fieldName.endsWith(EO_LOENINDKOMST_INPUT_ERROR_SUFFIX)) {
       if (target.fieldName === `${EO_ANGIVET_LOEN_ID}${EO_LOENINDKOMST_INPUT_ERROR_SUFFIX}`) {
@@ -125,9 +145,23 @@ const prepareTabForBlockingError = (target: BlockingInputErrorTarget): void => {
 };
 
 export const getFirstBlockingInputErrorTarget = (
-  getErrorsBySourceSnapshot: FieldErrorsSnapshotGetter
+  getErrorsBySourceSnapshot: FieldErrorsSnapshotGetter,
+  getInvalidDraftsSnapshot?: InvalidDraftsSnapshotGetter
 ): BlockingInputErrorTarget | null => {
   for (const pageKey of Object.keys(persistenceSchemas) as StorageKey[]) {
+    // 1) Ikke-committbart input (`invalidDrafts`) blokerer altid Gem. fieldPath bruges direkte til
+    //    både fane-routing og DOM-lokalisering (data-mineo-field-path). Almindelige felter OG grid-celler.
+    if (getInvalidDraftsSnapshot) {
+      const drafts = getInvalidDraftsSnapshot(pageKey);
+      const firstFieldPath = Object.keys(drafts)[0];
+      if (firstFieldPath !== undefined) {
+        return { kind: 'field', pageKey, fieldName: firstFieldPath, message: '' };
+      }
+    }
+
+    // 2) Blokerende fieldErrors (typisk `rule`/`schema`, samt `blocksSave`-true input der ikke er
+    //    parse-fejl, fx den syntetiske EO `:loenindkomst`-aggregat). Range/bounds-fejl
+    //    (`blocksSave:false`) blokerer ikke.
     const errorsBySource = getErrorsBySourceSnapshot(pageKey);
     if (!isRecord(errorsBySource)) continue;
 
@@ -136,9 +170,7 @@ export const getFirstBlockingInputErrorTarget = (
       if (!isRecord(fieldSources)) continue;
 
       // Et felt kan have flere samtidige fejl-kilder (input/rule/schema). Kun den AKTIVE fejl
-      // (per resolveActiveFieldError) afspejler hvad UI'et faktisk viser. Tidligere returnerede
-      // vi den første rå kilde der lignede en blokering — også en overskygget/inaktiv kilde —
-      // hvilket kunne sende save til en fane uden synlig fejl. Brug derfor resolveren.
+      // (per resolveActiveFieldError) afspejler hvad UI'et faktisk viser.
       const active = resolveActiveFieldError(fieldSources as FieldErrorBySource);
       if (active && active.severity === 'error' && active.blocksSave !== false) {
         return { kind: 'field', pageKey, fieldName, message: active.message };
@@ -146,30 +178,23 @@ export const getFirstBlockingInputErrorTarget = (
     }
   }
 
-  return getFirstBlockingTableInputErrorTarget();
+  return null;
 };
 
 export const focusFirstVisibleBlockingInputError = async (
   target?: BlockingInputErrorTarget | null
 ): Promise<boolean> => {
   await waitForAnimationFrame();
-  if (target?.kind === 'table-input' && target.element?.isConnected) {
-    focusAndScrollToErrorElement(target.element);
-    return true;
+  if (target) {
+    const byPath = findVisibleFieldByFieldPath(target.fieldName);
+    if (byPath) {
+      focusAndScrollToErrorElement(byPath);
+      return true;
+    }
   }
-  const element = findFirstVisibleErrorElement(target?.message);
+  const element = findFirstVisibleErrorElement(target?.message || undefined);
   if (element) {
     focusAndScrollToErrorElement(element);
-    return true;
-  }
-
-  // Mineos grid-tabel-celler bruger IKKE MUI's `.Mui-error`, så de fanges ikke af
-  // FOCUSABLE_ERROR_SELECTOR. Når den blokerende fejl stammer fra en tabelcelle (fx en dynamisk
-  // ':loenindkomst'-felt-fejl), genregistrerer cellen sig i tableInputErrorRegistry, så snart dens
-  // fane er monteret. Efter fane-skift kan vi derfor finde og scrolle til selve cellen her.
-  const tableTarget = getFirstBlockingTableInputErrorTarget();
-  if (tableTarget?.element?.isConnected && isVisible(tableTarget.element)) {
-    focusAndScrollToErrorElement(tableTarget.element);
     return true;
   }
 
@@ -183,34 +208,37 @@ export const focusFirstVisibleBlockingInputError = async (
  * "Synlig nu" har forrang frem for den sidekrydsende scanning, så Gem med en synlig fejlbehæftet
  * celle aldrig hopper til en helt anden fane.
  *
- * VIGTIGT: Vi må kun short-circuite på elementer der faktisk BLOKERER save — ikke en hvilken som
- * helst `.Mui-error` (UI-fejl på committede værdier har `blocksSave:false` og bærer ofte `.Mui-error`).
- * Pålidelige blokerende signaler på nuværende fane:
- *   1) Tabelcelle-fejl-registret (registreres kun for aktive, blokerende save-fejl mens cellen er monteret).
- *   2) Det sidekrydsende blokerende felt-mål, HVIS dets element tilfældigvis er synligt på denne fane.
+ * Et felt-/celle-mål er pr. definition blokerende; hvis dets `data-mineo-field-path` er synligt på
+ * den aktuelle fane, bliver vi der. (Almindelige `.Mui-error`-felter med en blokerende besked dækkes
+ * af den efterfølgende besked-søgning.)
  */
 const focusVisibleBlockingErrorOnCurrentTab = async (
   target: BlockingInputErrorTarget | null
 ): Promise<boolean> => {
   await waitForAnimationFrame();
 
-  const tableTarget = getFirstBlockingTableInputErrorTarget();
-  if (tableTarget?.element?.isConnected && isVisible(tableTarget.element)) {
-    focusAndScrollToErrorElement(tableTarget.element);
-    return true;
-  }
-
-  // Et felt-mål er pr. definition blokerende; hvis det er synligt på den aktuelle fane, så bliv.
-  if (target?.kind === 'field') {
-    const element = findFirstVisibleErrorElement(target.message);
-    if (element) {
-      focusAndScrollToErrorElement(element);
+  if (target) {
+    const byPath = findVisibleFieldByFieldPath(target.fieldName);
+    if (byPath) {
+      focusAndScrollToErrorElement(byPath);
       return true;
+    }
+    if (target.message) {
+      const element = findFirstVisibleErrorElement(target.message);
+      if (element) {
+        focusAndScrollToErrorElement(element);
+        return true;
+      }
     }
   }
 
   return false;
 };
+
+// Maks. antal animation-frame-forsøg på at vente på, at den blokerende celle/felt mountes efter
+// et fane-skift (vent-på-mount mod `data-mineo-field-path`). Erstatter den tidligere ubetingede
+// faste 30-frame-løkke: hvert forsøg returnerer straks, så snart målet er fundet.
+const NAVIGATE_BLOCKING_ERROR_MAX_FRAMES = 30;
 
 export const navigateToBlockingInputError = async (
   target: BlockingInputErrorTarget | null,
@@ -235,7 +263,9 @@ export const navigateToBlockingInputError = async (
     navigate(route);
   }
 
-  for (let attempt = 0; attempt < 30; attempt += 1) {
+  // Vent-på-mount: efter fane-/side-skift mountes cellen/feltet typisk først et par frames senere.
+  // Hvert forsøg afsluttes straks ved fund (via `data-mineo-field-path`).
+  for (let attempt = 0; attempt < NAVIGATE_BLOCKING_ERROR_MAX_FRAMES; attempt += 1) {
     if (await focusFirstVisibleBlockingInputError(target)) {
       return;
     }

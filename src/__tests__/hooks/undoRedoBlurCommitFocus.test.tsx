@@ -25,7 +25,6 @@ import { PERSISTED_DATA_VERSION } from '../../config/persistenceVersion';
 import { erstatningsopgoerelseSchema } from '../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
-import { __resetDraftHistoryRegistryForTests } from '../../utils/draftHistoryRegistry';
 import { toISODateString } from '../../types/branded';
 
 type Controls = ReturnType<typeof useUndoRedo>;
@@ -112,7 +111,6 @@ describe('undo/redo-fokus for blur-commit-felter og radio', () => {
     });
     __resetUndoRedoStoreForTests();
     __resetUndoFocusTrackerForTests();
-    __resetDraftHistoryRegistryForTests();
     formPersistenceStore.setState({
       sections: { ...formPersistenceStore.getState().sections, erstatningsopgoerelse: null },
       meta: { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },

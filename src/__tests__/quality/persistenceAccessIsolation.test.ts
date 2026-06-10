@@ -25,8 +25,13 @@ const ALLOWED_FORM_PERSISTENCE_CONTEXT_IMPORTS = new Set([
   'src/contexts/FormPersistenceContext.shared.ts',
   'src/contexts/useFormPersistence.ts',
   'src/__tests__/hooks/useFormFieldErrors.test.tsx',
+  'src/__tests__/components/inputs/tableCellInvalidDraft.test.tsx',
   'src/hooks/useFileSaveLoad.ts',
   'src/utils/persistenceLoadApply.ts',
+  // Celle-invalidDrafts-kanalen er persistence-infrastruktur (parallel til useFormPersistence): den
+  // læser FormPersistenceContext direkte for at kunne degradere context-frit til ubunden adfærd uden
+  // at kaste, når en tabel rendres uden provider (tests). Audited undtagelse, ikke et præcedens.
+  'src/hooks/tableInput/useCellInvalidDraftChannel.ts',
 ]);
 const ALLOWED_FORM_PERSISTENCE_STORE_IMPORTS = new Set([
   'src/contexts/FormPersistenceContext.tsx',
@@ -38,6 +43,10 @@ const ALLOWED_FORM_PERSISTENCE_STORE_IMPORTS = new Set([
   'src/hooks/useMidlertidigtEetInsertSource.ts',
   'src/stores/undoRedoStore.ts',
   'src/utils/persistenceSnapshotStorage.ts',
+  // Type-only import af InvalidDraftsCache (slice-typen bor i storen, ligesom FieldErrorCache).
+  // invalidDrafts-recovery-kanalens persistens-/hydrerings-utils er persistence-infrastruktur.
+  'src/utils/invalidDraftsStorage.ts',
+  'src/utils/persistenceSessionHydration.ts',
 ]);
 
 describe('persistenceAccessIsolation', () => {

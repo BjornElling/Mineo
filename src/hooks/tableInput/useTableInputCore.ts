@@ -1,7 +1,5 @@
 import * as React from 'react';
 
-import { useTableInputHistoryRestore } from '../useTableInputHistoryRestore';
-import { useTableInputSaveError } from '../useTableInputSaveError';
 import { useGridCellEditing, useGridCellFocus, useGridCoreApi } from '../../components/tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../components/tables/gridCore/gridCoreTypes';
 import { gridCellKey } from '../../components/tables/gridCore/gridCoreUtils';
@@ -9,6 +7,8 @@ import { assignRef } from '../../utils/refUtils';
 import { copyWholeValueFromReadOnlyField, readClipboardText } from '../../utils/clipboardUtils';
 import type { TableInputErrorInfo, TableInputErrorKind } from '../../utils/tableInputContracts';
 import type { CommittedPayload } from '../../types/parserSpec';
+import { useAuthoritativeSnapshotEpochSelector } from '../useFormPersistenceSelectors';
+import { useCellInvalidDraftChannel } from './useCellInvalidDraftChannel';
 import type { TableInputAdapter } from './tableInputAdapter';
 
 export type TableInputChangeEvent<TValue> = Readonly<{ target: Readonly<{ value: TValue }> }>;
@@ -42,6 +42,12 @@ export type UseTableInputCoreResult = Readonly<{
   inputRefCallback: (el: HTMLInputElement | null) => void;
   undoFocusToken: string;
   gridCellKey: string;
+  /**
+   * Fuldt kvalificeret `fieldPath` for cellen (`invalidDrafts`-recovery-kanalen), eller `undefined`
+   * når cellen er ubunden (uden scope/provider — fx isolerede tabel-tests). Sættes som
+   * `data-mineo-field-path` på inputtet, så save-gaten kan lokalisere den blokerende celle.
+   */
+  invalidDraftFieldPath: string | undefined;
   a11yInputId: string;
   htmlInputName: string;
   a11yErrorId: string;
@@ -54,9 +60,6 @@ export type UseTableInputCoreResult = Readonly<{
   handleCopy: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   handleDoubleClick: () => void;
 }>;
-
-const noopErrorInfo: TableInputErrorInfo = { hasError: false, kind: 'none' };
-type LocalErrorKind = 'none' | 'input' | 'visual';
 
 export const useTableInputCore = <TModel, TCanonical extends string, TFingerprint extends string>({
   adapter,
@@ -74,133 +77,161 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   const isEditing = useGridCellEditing(gridCell);
   const isReadOnly = locked || !isEditing;
 
-  const [draft, setDraft] = React.useState<string>(() => adapter.format(value));
+  const resolvedGridCellKey = gridCellKey(gridCell);
+
+  // `invalidDrafts`-kanal: bundet når cellen er inde i en CellInvalidDraftScopeProvider OG en
+  // FormPersistenceProvider. Ellers ubunden (lokal fallback). Kun adaptere med `useSaveError`
+  // persisterer en ikke-committbar draft (og blokerer dermed Gem) — øvrige holder den lokalt.
+  const channel = useCellInvalidDraftChannel(resolvedGridCellKey);
+  // Destrukturér de stabile kanal-callbacks (useCallback i kanal-hooken) — selve channel-objektet
+  // er en ny reference pr. render, så commit/clear-helpers nedenfor må IKKE afhænge af det (ellers
+  // re-registreres grid-editoren ved hvert render).
+  const {
+    fieldPath: channelFieldPath,
+    committedInvalidDraft: channelCommittedInvalidDraft,
+    onCommitInvalid: channelCommitInvalid,
+    clearInvalidDraft: channelClearInvalid,
+  } = channel;
+  const useChannel = channelFieldPath !== undefined && (adapter.useSaveError ?? false);
+
+  // Lokal fallback for ubundne celler (eller adaptere uden `useSaveError`): bevarer den ugyldige draft,
+  // så den ikke silent-rolles tilbage. Bundne `useSaveError`-celler bruger `channelCommittedInvalidDraft`.
+  const [localInvalidDraft, setLocalInvalidDraft] = React.useState<string | null>(null);
+  const effectiveInvalidDraft = useChannel ? channelCommittedInvalidDraft : (localInvalidDraft ?? undefined);
+
+  const committedDisplayValue = adapter.format(value);
+  const externalSource = effectiveInvalidDraft ?? committedDisplayValue;
+
+  const [draft, setDraft] = React.useState<string>(() => externalSource);
   const [isFocused, setIsFocused] = React.useState(false);
-  const [touched, setTouched] = React.useState(false);
-  const [hasError, setHasError] = React.useState(false);
-  const [errorMessage, setErrorMessage] = React.useState('');
-  const [saveErrorActive, setSaveErrorActive] = React.useState(false);
+  const [touched, setTouched] = React.useState(() => effectiveInvalidDraft !== undefined);
+  const [localVisualError, setLocalVisualError] = React.useState('');
   const [keyInitiatedEdit, setKeyInitiatedEdit] = React.useState(false);
 
   const inputElRef = React.useRef<HTMLInputElement | null>(null);
   const draftRef = React.useRef<string>(draft);
-  const hasErrorRef = React.useRef(false);
   const pendingDraftCommitRef = React.useRef(false);
-  const localErrorKindRef = React.useRef<LocalErrorKind>('none');
+  // Post-commit-guard mod silent-rollback/flicker: efter et vellykket commit der ÆNDRER værdien står
+  // draften optimistisk på den committede repræsentation, mens `value`-proppen (og evt. invalidDraft-
+  // rydning) endnu ikke har indhentet. Resync MÅ ikke trække draften tilbage til den stale committede
+  // display, før `committedDisplayValue` faktisk ændrer sig fra værdien-ved-commit. (Samme determinisme
+  // som useDraftField.pendingCommitRef; nødvendig fordi native-blur-vejen lukker editoren i en
+  // queueMicrotask, så `isEditing`-guarden ikke længere dækker vinduet.)
+  const pendingCommitRef = React.useRef<{ formattedValueAtCommit: string; target: string } | null>(null);
   const originalValueOnEditStartRef = React.useRef<string>('');
   const keyInitiatedEditRef = React.useRef(false);
   const wasEditingRef = React.useRef(false);
+  const effectiveInvalidDraftRef = React.useRef<string | undefined>(effectiveInvalidDraft);
   const latestCommittedPayloadRef = React.useRef<CommittedPayload<TModel, TCanonical, TFingerprint>>(
     adapter.toCommittedPayload(value)
   );
-  const latest = React.useRef({
-    adapter,
-    locked,
-    onBlur,
-    onChange,
-    onErrorChange,
-  });
+  const latest = React.useRef({ adapter, locked, onBlur, onChange, onErrorChange });
 
   const undoFocusToken = React.useId();
   const a11yInputId = React.useId();
   const a11yErrorId = `${a11yInputId}-error`;
-  const resolvedGridCellKey = gridCellKey(gridCell);
-  const committedDisplayValue = adapter.format(value);
-  const committedVisualError = React.useMemo(() => {
-    if (!touched || saveErrorActive) return '';
-    return adapter.getCommittedVisualError?.(value)?.trim() ?? '';
-  }, [adapter, saveErrorActive, touched, value]);
 
-  const setLocalError = React.useCallback((message: string) => {
-    hasErrorRef.current = true;
-    setHasError(true);
-    setErrorMessage(message);
-    localErrorKindRef.current = 'input';
-    setSaveErrorActive(true);
-    latest.current.onErrorChange?.({ hasError: true, kind: 'input' });
+  React.useLayoutEffect(() => {
+    latest.current = { adapter, locked, onBlur, onChange, onErrorChange };
+  }, [adapter, locked, onBlur, onChange, onErrorChange]);
+
+  React.useLayoutEffect(() => {
+    effectiveInvalidDraftRef.current = effectiveInvalidDraft;
+  }, [effectiveInvalidDraft]);
+
+  React.useEffect(() => {
+    draftRef.current = draft;
+  }, [draft]);
+
+  const writeInvalidDraft = React.useCallback(
+    (rawDraft: string) => {
+      if (useChannel) channelCommitInvalid?.(rawDraft);
+      else setLocalInvalidDraft(rawDraft);
+    },
+    [channelCommitInvalid, useChannel]
+  );
+
+  const clearInvalidDraftEntry = React.useCallback(() => {
+    if (useChannel) channelClearInvalid?.();
+    else setLocalInvalidDraft(null);
+  }, [channelClearInvalid, useChannel]);
+
+  const hasPhysicalFocus = React.useCallback((): boolean => {
+    const el = inputElRef.current;
+    const active = typeof document !== 'undefined' ? document.activeElement : null;
+    return (
+      el !== null &&
+      active !== null &&
+      (active === el || (active instanceof Node && el.contains(active)))
+    );
   }, []);
 
-  const clearLocalError = React.useCallback((nextErrorInfo: TableInputErrorInfo = noopErrorInfo) => {
-    hasErrorRef.current = false;
-    setHasError(false);
-    setErrorMessage('');
-    localErrorKindRef.current = 'none';
-    setSaveErrorActive(false);
-    latest.current.onErrorChange?.(nextErrorInfo);
-  }, []);
+  // Autoritativ snapshot-epoch (bumpes ved load/reset/migration/undo-redo-restore). En ændring her er
+  // et autoritativt replace-event, der pr. undo-redo-kontrakten aldrig sker midt i en åben editor —
+  // derfor SKAL draften resyncs selv hvis cellen aktuelt har fokus. Erstatter det tidligere
+  // draftHistoryRegistry-push for tabelceller.
+  const authoritativeEpoch = useAuthoritativeSnapshotEpochSelector();
+  const lastAuthoritativeEpochRef = React.useRef(authoritativeEpoch);
 
-  const setVisualError = React.useCallback((message: string) => {
-    hasErrorRef.current = true;
-    setHasError(true);
-    setErrorMessage(message);
-    localErrorKindRef.current = 'visual';
-    setSaveErrorActive(false);
-    latest.current.onErrorChange?.({ hasError: true, kind: 'visual' });
-  }, []);
+  // Resync: når cellen ikke er aktivt redigeret, følger draften den eksterne kilde
+  // (`committedInvalidDraft ?? format(value)`). Dækker committed value-ændringer (afledte kolonner,
+  // andre cellers commit), F5-rehydrering og undo/redo-restore — alt via den normale store→prop-vej.
+  React.useEffect(() => {
+    const isAuthoritativeReplace = authoritativeEpoch !== lastAuthoritativeEpochRef.current;
+    lastAuthoritativeEpochRef.current = authoritativeEpoch;
+    if (!isAuthoritativeReplace) {
+      const pending = pendingCommitRef.current;
+      if (pending) {
+        // Vent på at `value`-proppen indhenter commit'et, før vi resyncer (undgå silent-rollback til stale værdi).
+        if (committedDisplayValue === pending.formattedValueAtCommit) return;
+        pendingCommitRef.current = null;
+      }
+      if (isEditing) return;
+      if (hasPhysicalFocus()) return;
+      if (pendingDraftCommitRef.current) return;
+    } else {
+      pendingCommitRef.current = null;
+    }
+    setDraft((prev) => (prev === externalSource ? prev : externalSource));
+    draftRef.current = externalSource;
+    if (isAuthoritativeReplace) {
+      setTouched(effectiveInvalidDraft !== undefined);
+      keyInitiatedEditRef.current = false;
+      setKeyInitiatedEdit(false);
+    } else if (effectiveInvalidDraft !== undefined) {
+      // En ny committed rå draft dukkede op via store (fx en sideløbende commit) — vis fejlen.
+      setTouched(true);
+    }
+  }, [authoritativeEpoch, committedDisplayValue, externalSource, effectiveInvalidDraft, hasPhysicalFocus, isEditing]);
 
   const resetEditingState = React.useCallback(() => {
     keyInitiatedEditRef.current = false;
     setKeyInitiatedEdit(false);
   }, []);
 
-  const { clearPendingHistoryResync } = useTableInputHistoryRestore<TModel>({
-    value,
-    formatCommittedValue: adapter.format,
-    inputElementRef: inputElRef,
-    isEditing,
-    preserveDraft: Boolean(
-      pendingDraftCommitRef.current ||
-      (adapter.preserveInvalidDraft ?? true) &&
-      (saveErrorActive || ((adapter.preserveVisualErrorDraft ?? true) && committedVisualError !== ''))
-    ),
-    draftRef,
-    setDraft,
-    focusToken: undoFocusToken,
-    fieldPath: resolvedGridCellKey,
-    resetEditingState,
-    onRestoreError: (state) => {
-      setTouched(true);
-      setLocalError(state.error.message ?? '');
-    },
-    onRestoreCommitted: () => {
-      setTouched(false);
-      clearLocalError();
-    },
-  });
+  // Committed visual-only fejl (fx en tilladt, men uden-for-interval værdi) udledes af den committede
+  // model. Undertrykkes mens en ikke-committbar rå draft er aktiv (input-fejlen har forrang).
+  const committedVisualError = React.useMemo(() => {
+    if (!touched || effectiveInvalidDraft !== undefined) return '';
+    return adapter.getCommittedVisualError?.(value)?.trim() ?? '';
+  }, [adapter, effectiveInvalidDraft, touched, value]);
 
+  // Reconciler local visual-fejl mod den committede værdi når cellen ikke redigeres: når feltet er
+  // idle, gen-udledes fejlen direkte fra modellen (getCommittedVisualError), så en stale visual-fejl
+  // ryddes når den committede værdi ikke længere er uden for interval. (Mens der redigeres bevares
+  // den lokale visual-fejl, så onErrorChange kan signalere den straks ved commit, før `value` indhenter.)
   React.useLayoutEffect(() => {
-    latest.current = {
-      adapter,
-      locked,
-      onBlur,
-      onChange,
-      onErrorChange,
-    };
-  }, [adapter, locked, onBlur, onChange, onErrorChange]);
-
-  React.useLayoutEffect(() => {
-    const previousFingerprint = latestCommittedPayloadRef.current.fingerprint;
-    const nextPayload = adapter.toCommittedPayload(value);
-    latestCommittedPayloadRef.current = nextPayload;
-    if (!isEditing && hasErrorRef.current && localErrorKindRef.current === 'visual') {
-      const nextVisualError = adapter.getCommittedVisualError?.(nextPayload.model)?.trim() ?? '';
-      clearLocalError(nextVisualError !== '' ? { hasError: true, kind: 'visual' } : noopErrorInfo);
-      return;
+    latestCommittedPayloadRef.current = adapter.toCommittedPayload(value);
+    if (!isEditing && localVisualError !== '') {
+      const nextVisualError = adapter.getCommittedVisualError?.(value)?.trim() ?? '';
+      if (nextVisualError !== localVisualError) {
+        setLocalVisualError(nextVisualError);
+      }
     }
-    if (!isEditing && previousFingerprint !== nextPayload.fingerprint && hasErrorRef.current && saveErrorActive) {
-      clearLocalError();
-      setTouched(false);
-    }
-  }, [adapter, clearLocalError, isEditing, saveErrorActive, value]);
+  }, [adapter, isEditing, localVisualError, value]);
 
-  React.useEffect(() => {
-    draftRef.current = draft;
-  }, [draft]);
-
-  React.useEffect(() => {
-    latest.current.onErrorChange?.(noopErrorInfo);
-  }, []);
-
+  // Edit-start: når brugeren åbner editoren (ikke tast-initieret), seed draften fra committed værdi —
+  // medmindre der er en bevaret ikke-committbar rå draft, som brugeren skal kunne rette.
   React.useLayoutEffect(() => {
     const wasEditing = wasEditingRef.current;
     wasEditingRef.current = isEditing;
@@ -210,7 +241,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     }
     if (wasEditing) return;
     if (!keyInitiatedEditRef.current) {
-      if ((adapter.preserveInvalidDraft ?? true) && hasErrorRef.current) {
+      if ((adapter.preserveInvalidDraft ?? true) && effectiveInvalidDraftRef.current !== undefined) {
         originalValueOnEditStartRef.current = draftRef.current;
         return;
       }
@@ -221,6 +252,52 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     }
   }, [adapter, isEditing, resetEditingState, value]);
 
+  // Display-afledning af fejl-tilstanden.
+  const inputErrorMessage = React.useMemo(() => {
+    if (effectiveInvalidDraft === undefined) return '';
+    // Fejlen vises kun mens draften aktuelt VISER den ikke-committbare rå draft (ikke mens brugeren
+    // taster en ny korrektion). Beskeden gen-udledes ved at re-parse råstrengen (single source of truth).
+    if (draft !== effectiveInvalidDraft) return '';
+    const parsed = adapter.parse(effectiveInvalidDraft);
+    return parsed.ok ? '' : parsed.errorMessage;
+  }, [adapter, draft, effectiveInvalidDraft]);
+
+  const hasInputError = inputErrorMessage !== '';
+  const hasCommittedVisualError = committedVisualError !== '';
+
+  // To visual-fejl-notioner (bevidst adskilt, jf. den tidligere imperative onErrorChange + display-gating):
+  // - `visualErrorActive` (ugated): signalet til kalderen/aggregatet. Sandt straks efter et commit med
+  //   visualErrorMessage — også før `value`-proppen har indhentet. Reconciles mod committed værdi af
+  //   layout-effekten, så snart cellen ikke redigeres.
+  // - `hasLocalVisualError` (gated): DISPLAY-tilstanden. En lokal visual-fejl undertrykkes, når adapteren
+  //   kan udlede committed visual-fejl OG den committede værdi ikke længere har én (fx efter at en
+  //   bounds-konfiguration er løsnet, mens editoren stadig står åben pga. et noop-commit).
+  const visualErrorActive = localVisualError !== '' || hasCommittedVisualError;
+  const hasLocalVisualError =
+    localVisualError !== '' && (adapter.getCommittedVisualError === undefined || hasCommittedVisualError);
+
+  const errorKind: TableInputErrorKind = hasInputError
+    ? 'input'
+    : hasLocalVisualError || hasCommittedVisualError
+      ? 'visual'
+      : 'none';
+  const effectiveHasError = hasInputError || hasLocalVisualError || hasCommittedVisualError;
+
+  // Underret kalderen (feature-tabellen) deterministisk om fejl-tilstanden, så aggregater
+  // (fx EO `:loenindkomst`) og PDF/debug-gates forbliver i sync. Bruger den ugatede visual-notion, så
+  // signalet ikke lagger bag `value`-proppen ved commit. (Erstatter de tidligere imperative
+  // onErrorChange-kald i setLocalError/clearLocalError/setVisualError.)
+  const reportedHasError = hasInputError || visualErrorActive;
+  const reportedKind: TableInputErrorKind = hasInputError ? 'input' : visualErrorActive ? 'visual' : 'none';
+  const lastReportedErrorInfoRef = React.useRef<TableInputErrorInfo | null>(null);
+  React.useEffect(() => {
+    const next: TableInputErrorInfo = { hasError: reportedHasError, kind: reportedKind };
+    const prev = lastReportedErrorInfoRef.current;
+    if (prev !== null && prev.hasError === next.hasError && prev.kind === next.kind) return;
+    lastReportedErrorInfoRef.current = next;
+    latest.current.onErrorChange?.(next);
+  }, [reportedHasError, reportedKind]);
+
   const commitAndEmitBlur = React.useCallback(
     (rawDraft: string): boolean => {
       pendingDraftCommitRef.current = false;
@@ -228,23 +305,43 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       const current = latest.current;
       const parsed = current.adapter.parse(rawDraft);
       if (!parsed.ok) {
-        setLocalError(parsed.errorMessage);
+        // Ikke-committbar: bevar committed værdi; persistér/bevar den RÅ draft, så fejlvisningen
+        // (draft === effektiv ugyldig draft) holder, og restore gendanner det viste input.
+        pendingCommitRef.current = null;
+        writeInvalidDraft(rawDraft);
+        setLocalVisualError('');
+        draftRef.current = rawDraft;
+        setDraft(rawDraft);
         return false;
       }
 
+      // Committbar: ryd evt. ikke-committbar rå draft.
+      clearInvalidDraftEntry();
       const nextPayload = current.adapter.toCommittedPayload(parsed.value);
       const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
       if (parsed.visualErrorMessage !== undefined && parsed.visualErrorMessage.trim() !== '') {
-        setVisualError(parsed.visualErrorMessage);
+        setLocalVisualError(parsed.visualErrorMessage);
       } else {
-        clearLocalError();
+        setLocalVisualError('');
       }
-      if (isNoop) return true;
+      if (isNoop) {
+        pendingCommitRef.current = null;
+        return true;
+      }
 
+      // Synk optimistisk til den committede repræsentation og hold resync tilbage, indtil `value`
+      // (og evt. invalidDraft-rydning) har indhentet — undgår flicker til den stale committede display.
+      const formattedValueAtCommit = current.adapter.format(latestCommittedPayloadRef.current.model);
+      const target = current.adapter.format(parsed.value);
+      draftRef.current = target;
+      setDraft(target);
+      // Kun nødvendigt når display'et faktisk ændrer sig; ellers ingen flicker-risiko (og guarden ville
+      // ikke kunne afmeldes, fordi committedDisplayValue aldrig divergerer fra formattedValueAtCommit).
+      pendingCommitRef.current = target !== formattedValueAtCommit ? { formattedValueAtCommit, target } : null;
       current.onBlur?.({ target: { value: nextPayload.model } });
       return true;
     },
-    [clearLocalError, setLocalError, setVisualError]
+    [clearInvalidDraftEntry, writeInvalidDraft]
   );
 
   const handleChange = React.useCallback(
@@ -252,19 +349,18 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       if (isReadOnly) return;
       const rawDraft = e.target.value ?? '';
       const nextDraft = latest.current.adapter.normalizeDraftChange?.(rawDraft) ?? rawDraft;
-      clearPendingHistoryResync();
-      if (latest.current.adapter.clearErrorOnChange) {
-        clearLocalError();
-      }
       if (latest.current.adapter.clearTouchedOnEmptyDraft && nextDraft === '') {
         setTouched(false);
       }
+      // Mens brugeren taster, divergerer draft fra den ikke-committbare rå draft → input-fejlen
+      // skjules automatisk (afledt). Selve `invalidDrafts`-entryet ryddes først ved (gyldigt) commit.
+      pendingCommitRef.current = null;
       draftRef.current = nextDraft;
       pendingDraftCommitRef.current = true;
       setDraft(nextDraft);
       latest.current.onChange?.({ target: { value: nextDraft } });
     },
-    [clearLocalError, clearPendingHistoryResync, isReadOnly]
+    [isReadOnly]
   );
 
   const handleFocus = React.useCallback(() => {
@@ -289,11 +385,11 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
   );
 
   const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (latest.current.adapter.filterKeyDown?.(e, { isEditing, hasError })) {
+    if (latest.current.adapter.filterKeyDown?.(e, { isEditing, hasError: hasInputError })) {
       e.preventDefault();
       e.stopPropagation();
     }
-  }, [hasError, isEditing]);
+  }, [hasInputError, isEditing]);
 
   const handlePaste = React.useCallback(
     (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -311,7 +407,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       });
       if (applied === null) return;
 
-      clearPendingHistoryResync();
+      pendingCommitRef.current = null;
       draftRef.current = applied.draft;
       pendingDraftCommitRef.current = true;
       setDraft(applied.draft);
@@ -334,21 +430,20 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         });
       }
     },
-    [clearPendingHistoryResync, commitAndEmitBlur, isEditing]
+    [commitAndEmitBlur, isEditing]
   );
 
   const handleCopy = React.useCallback(
     (e: React.ClipboardEvent<HTMLInputElement>) => {
+      const showsDraft = isEditing || (touched && (hasInputError || hasLocalVisualError));
       copyWholeValueFromReadOnlyField(e, {
         isReadOnly,
-        value: isEditing || (touched && hasErrorRef.current && localErrorKindRef.current !== 'none')
-          ? draft
-          : adapter.toClipboardString?.(value) ?? adapter.format(value),
+        value: showsDraft ? draft : adapter.toClipboardString?.(value) ?? adapter.format(value),
         selectionStart: e.currentTarget.selectionStart,
         selectionEnd: e.currentTarget.selectionEnd,
       });
     },
-    [adapter, draft, isEditing, isReadOnly, touched, value]
+    [adapter, draft, hasInputError, hasLocalVisualError, isEditing, isReadOnly, touched, value]
   );
 
   const handleDoubleClick = React.useCallback(() => {
@@ -391,10 +486,17 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         if (latest.current.locked) return;
         resetEditingState();
         pendingDraftCommitRef.current = false;
+        pendingCommitRef.current = null;
         setTouched(false);
-        clearLocalError();
-        draftRef.current = originalValueOnEditStartRef.current;
-        setDraft(originalValueOnEditStartRef.current);
+        // Escape/cancel forkaster det igangværende (evt. ikke-committbare) input og vender tilbage til
+        // den sidst committede værdi — inkl. rydning af en bevaret rå draft, så fejl-UI'et forsvinder.
+        clearInvalidDraftEntry();
+        setLocalVisualError('');
+        const committedValue =
+          latest.current.adapter.toDraftString?.(latestCommittedPayloadRef.current.model) ??
+          latest.current.adapter.format(latestCommittedPayloadRef.current.model);
+        draftRef.current = committedValue;
+        setDraft(committedValue);
         gridApi.closeEditing();
       },
       prepareEditFromKey: (key: string) => {
@@ -407,9 +509,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         keyInitiatedEditRef.current = true;
         setKeyInitiatedEdit(true);
         setTouched(false);
-        if (latest.current.adapter.clearErrorOnChange) {
-          clearLocalError();
-        }
+        pendingCommitRef.current = null;
         draftRef.current = key;
         pendingDraftCommitRef.current = true;
         setDraft(key);
@@ -437,7 +537,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         requestAnimationFrame(() => inputElRef.current?.select());
       },
     };
-  }, [clearLocalError, commitAndEmitBlur, gridApi, resetEditingState]);
+  }, [clearInvalidDraftEntry, commitAndEmitBlur, gridApi, resetEditingState]);
 
   React.useEffect(() => {
     gridApi.registerEditor(gridCell, editorHandle);
@@ -450,26 +550,23 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editorHandle, gridApi, resolvedGridCellKey]);
 
-  useTableInputSaveError({
-    key: a11yErrorId,
-    active: Boolean(adapter.useSaveError && saveErrorActive),
-    message: errorMessage,
-    inputRef: inputElRef,
-  });
-
   const externalErrorText = (externalErrorMessage ?? '').trim();
-  const hasInputError = hasErrorRef.current && localErrorKindRef.current === 'input';
-  const hasCommittedVisualError = committedVisualError !== '';
-  const hasLocalVisualError =
-    hasErrorRef.current &&
-    localErrorKindRef.current === 'visual' &&
-    (adapter.getCommittedVisualError === undefined || hasCommittedVisualError);
-  const displayErrorMessage = hasInputError ? errorMessage : hasCommittedVisualError ? committedVisualError : hasLocalVisualError ? errorMessage : externalErrorText;
   const hasExternalError = externalErrorText !== '';
-  const effectiveHasError = hasInputError || hasLocalVisualError || hasCommittedVisualError;
-  const errorKind: TableInputErrorKind = hasInputError ? 'input' : hasLocalVisualError || hasCommittedVisualError ? 'visual' : 'none';
+  const displayErrorMessage = hasInputError
+    ? inputErrorMessage
+    : hasCommittedVisualError
+      ? committedVisualError
+      : hasLocalVisualError
+        ? localVisualError
+        : externalErrorText;
   const showError = (effectiveHasError || hasExternalError) && !isFocused && (touched || !isEditing);
-  const renderedValue = isEditing || (touched && (hasInputError || hasLocalVisualError)) ? draft : committedDisplayValue;
+  const renderedValue = isEditing
+    ? draft
+    : effectiveInvalidDraft !== undefined
+      ? draft
+      : touched && hasLocalVisualError
+        ? draft
+        : committedDisplayValue;
 
   const inputRefCallback = React.useCallback(
     (el: HTMLInputElement | null) => {
@@ -496,6 +593,7 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
     inputRefCallback,
     undoFocusToken,
     gridCellKey: resolvedGridCellKey,
+    invalidDraftFieldPath: channelFieldPath,
     a11yInputId,
     htmlInputName: resolvedGridCellKey,
     a11yErrorId,

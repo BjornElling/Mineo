@@ -325,6 +325,40 @@ describe('useTableInputCore', () => {
     expect(result.current.hasError).toBe(false);
   });
 
+  it('flicker ikke til den stale committede display efter et commit, mens value-proppen lagger (post-commit-guard)', () => {
+    // Adapter hvor format() transformerer (så typed råstreng ≠ committed display); det er præcis det
+    // tilfælde hvor en for-tidlig resync ville vise den GAMLE committede display et øjeblik.
+    const formattingAdapter: TableInputAdapter<string, string, ReturnType<typeof makeStringFingerprintFromCanonical>> = {
+      ...createAdapter(),
+      format: (value) => (value === '' ? '' : `f:${value}`),
+      parse: (draft) => ({ ok: true, value: draft.startsWith('f:') ? draft.slice(2) : draft }),
+    };
+    const gridState = { editingCell: gridCell as GridCellCoord | null };
+    const { result, rerender } = renderHook(
+      ({ value }) => useTableInputCore({ adapter: formattingAdapter, gridCell, value }),
+      { initialProps: { value: '' }, wrapper: createMutableGridWrapper(gridState) }
+    );
+
+    act(() => {
+      result.current.handleChange({ target: { value: 'abc' } } as React.ChangeEvent<HTMLInputElement>);
+    });
+    act(() => {
+      result.current.handleBlur({ currentTarget: { value: 'abc' } } as React.FocusEvent<HTMLInputElement>);
+    });
+    // Editoren lukker (native-blur-vej), men value-proppen er endnu IKKE indhentet (= stadig '').
+    act(() => {
+      gridState.editingCell = null;
+    });
+    rerender({ value: '' });
+
+    // Draften står på den committede display af den NYE værdi — IKKE den stale gamle display ('').
+    expect(result.current.draft).toBe('f:abc');
+
+    // Når value-proppen indhenter, forbliver draften konsistent (ingen efterfølgende rollback).
+    rerender({ value: 'abc' });
+    expect(result.current.draft).toBe('f:abc');
+  });
+
   it('overskriver ikke draft når committed value ændres udefra mens editoren er åben', () => {
     const { result, rerender } = renderHook(
       ({ value }) =>

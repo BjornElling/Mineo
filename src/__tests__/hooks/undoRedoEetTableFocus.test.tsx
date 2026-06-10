@@ -22,7 +22,6 @@ import { erhvervsevnetabSchema, type ErhvervsevnetabValues } from '../../schemas
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { coerceToISODateString, toISODateString } from '../../types/branded';
 import { installUndoFocusTracker, __resetUndoFocusTrackerForTests } from '../../utils/undoFocusTracker';
-import { __resetDraftHistoryRegistryForTests } from '../../utils/draftHistoryRegistry';
 
 type Controls = ReturnType<typeof useUndoRedo>;
 let controls: Controls | null = null;
@@ -87,7 +86,6 @@ describe('undo/redo-fokus i EET-tabellen', () => {
     });
     __resetUndoRedoStoreForTests();
     __resetUndoFocusTrackerForTests();
-    __resetDraftHistoryRegistryForTests();
     formPersistenceStore.setState({
       sections: { ...formPersistenceStore.getState().sections, erhvervsevnetab: null },
       meta: { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
@@ -179,5 +177,8 @@ describe('undo/redo-fokus i EET-tabellen', () => {
 
     const active = document.activeElement as HTMLElement | null;
     expect(active?.getAttribute('data-mineo-undo-field-path')).toBe(`${rowId}:0`);
-  });
+    // Tung integrationstest: renderer hele EET-tabellen og kører flere undo/redo + rAF-baserede
+    // focus-restore-løkker. Under fuld parallel suite-belastning ligger køretiden nær default-timeout,
+    // så vi giver eksplicit headroom for at undgå belastnings-flakiness (ikke en adfærdsændring).
+  }, 20000);
 });

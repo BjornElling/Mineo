@@ -35,15 +35,26 @@ export type SectionRevisionMap = {
 export type FieldErrorCache = { [K in keyof FormPersistenceSections]: FieldErrorsForSection<K> };
 export type FieldErrorRevisionMap = { [K in keyof FormPersistenceSections]: number };
 
+/**
+ * `invalidDrafts`-recovery-kanal (committed rå draft, jf. persistence-contract.md §11).
+ * Pr. sektion en map fra fieldPath til ikke-tom råstreng. Separat slice ved siden af fieldErrors;
+ * IKKE en persisteret sektion (indgår ikke i sectionRevisions/schemaFingerprint).
+ */
+export type InvalidDraftsForSection = Record<string, string>;
+export type InvalidDraftsCache = { [K in keyof FormPersistenceSections]: InvalidDraftsForSection };
+export type InvalidDraftRevisionMap = { [K in keyof FormPersistenceSections]: number };
+
 export type FormPersistenceStoreState = {
   sections: FormPersistenceSections;
   sectionRevisions: SectionRevisionMap;
   fieldErrors: FieldErrorCache;
   fieldErrorRevisions: FieldErrorRevisionMap;
+  invalidDrafts: InvalidDraftsCache;
+  invalidDraftRevisions: InvalidDraftRevisionMap;
   committedChangeCounter: number;
   authoritativeSnapshotEpoch: number;
   meta: FormPersistenceMeta;
-  hydrate: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
+  hydrate: (next: FormPersistenceSections, meta: FormPersistenceMeta, invalidDrafts?: InvalidDraftsCache) => void;
   commitSection: <K extends keyof FormPersistenceSections>(key: K, next: FormPersistenceSections[K] | null, metaPatch?: SectionMetaPatch) => void;
   clearSection: <K extends keyof FormPersistenceSections>(key: K, metaPatch?: SectionMetaPatch) => void;
   // NOTE: replaceSections bevarer eksisterende field-errors.
@@ -63,9 +74,19 @@ export type FormPersistenceStoreState = {
     sectionRevisions: SectionRevisionMap,
     fieldErrors: FieldErrorCache,
     fieldErrorRevisions: FieldErrorRevisionMap,
+    invalidDrafts: InvalidDraftsCache,
+    invalidDraftRevisions: InvalidDraftRevisionMap,
     meta: FormPersistenceMeta,
     committedAt: number
   ) => void;
+  setInvalidDraft: <K extends keyof FormPersistenceSections>(
+    key: K,
+    fieldPath: string,
+    draft: string | null
+  ) => void;
+  clearInvalidDraftsForSection: <K extends keyof FormPersistenceSections>(key: K) => void;
+  clearAllInvalidDrafts: () => void;
+  restoreInvalidDrafts: (invalidDrafts: InvalidDraftsCache, invalidDraftRevisions: InvalidDraftRevisionMap) => void;
   setFieldError: <K extends keyof FormPersistenceSections>(
     key: K,
     fieldName: string,
@@ -106,6 +127,30 @@ const createInitialFieldErrorRevisions = (): FieldErrorRevisionMap =>
     acc[key] = 0;
     return acc;
   }, {} as FieldErrorRevisionMap);
+
+const createEmptyInvalidDraftsCache = (): InvalidDraftsCache =>
+  SECTION_KEYS.reduce((acc, key) => {
+    acc[key] = {};
+    return acc;
+  }, {} as InvalidDraftsCache);
+
+const createInitialInvalidDraftRevisions = (): InvalidDraftRevisionMap =>
+  SECTION_KEYS.reduce((acc, key) => {
+    acc[key] = 0;
+    return acc;
+  }, {} as InvalidDraftRevisionMap);
+
+const assertInvalidDraftsKeyCoverage = (next: InvalidDraftsCache): void => {
+  const keys = Object.keys(next).sort();
+  if (keys.length !== REQUIRED_SECTION_KEYS.length) {
+    throw new Error('formPersistenceStore: invalid-drafts key coverage mismatch');
+  }
+  for (let i = 0; i < REQUIRED_SECTION_KEYS.length; i += 1) {
+    if (keys[i] !== REQUIRED_SECTION_KEYS[i]) {
+      throw new Error('formPersistenceStore: invalid-drafts key coverage mismatch');
+    }
+  }
+};
 
 const assertKeyCoverage = (next: FormPersistenceSections): void => {
   const keys = Object.keys(next).sort();
@@ -196,6 +241,20 @@ const incrementAllFieldErrorRevisions = (revisions: FieldErrorRevisionMap): Fiel
   });
   return next;
 };
+const incrementInvalidDraftRevision = <K extends keyof FormPersistenceSections>(
+  revisions: InvalidDraftRevisionMap,
+  key: K
+): InvalidDraftRevisionMap => ({
+  ...revisions,
+  [key]: (revisions[key] ?? 0) + 1,
+});
+const incrementAllInvalidDraftRevisions = (revisions: InvalidDraftRevisionMap): InvalidDraftRevisionMap => {
+  const next = { ...revisions };
+  (Object.keys(next) as Array<keyof InvalidDraftRevisionMap>).forEach((key) => {
+    next[key] = (revisions[key] ?? 0) + 1;
+  });
+  return next;
+};
 
 type FieldErrorUpdateResult =
   | { kind: 'noop' }
@@ -250,18 +309,24 @@ const createFormPersistenceStore = () =>
     sectionRevisions: createInitialSectionRevisions(),
     fieldErrors: createEmptyFieldErrorCache(),
     fieldErrorRevisions: createInitialFieldErrorRevisions(),
+    invalidDrafts: createEmptyInvalidDraftsCache(),
+    invalidDraftRevisions: createInitialInvalidDraftRevisions(),
     committedChangeCounter: 0,
     authoritativeSnapshotEpoch: 0,
     meta: { hydrated: false, schemaFingerprint: PERSISTED_DATA_VERSION },
-    hydrate: (next, meta) => {
+    hydrate: (next, meta, invalidDrafts) => {
       assertKeyCoverage(next);
       assertMetaFingerprintMatch(meta);
       assertAllSectionsValid(next);
+      const nextInvalidDrafts = invalidDrafts ?? createEmptyInvalidDraftsCache();
+      assertInvalidDraftsKeyCoverage(nextInvalidDrafts);
       set((state) => ({
         sections: { ...next },
         sectionRevisions: state.sectionRevisions,
         fieldErrors: state.fieldErrors,
         fieldErrorRevisions: state.fieldErrorRevisions,
+        invalidDrafts: { ...nextInvalidDrafts },
+        invalidDraftRevisions: incrementAllInvalidDraftRevisions(state.invalidDraftRevisions),
         committedChangeCounter: state.committedChangeCounter,
         // Hydration fra persisteret storage er autoritativ for form-consumers.
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
@@ -316,6 +381,8 @@ const createFormPersistenceStore = () =>
         sectionRevisions: incrementAllSectionRevisions(state.sectionRevisions),
         fieldErrors: createEmptyFieldErrorCache(),
         fieldErrorRevisions: incrementAllFieldErrorRevisions(state.fieldErrorRevisions),
+        invalidDrafts: createEmptyInvalidDraftsCache(),
+        invalidDraftRevisions: incrementAllInvalidDraftRevisions(state.invalidDraftRevisions),
         committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
@@ -328,6 +395,8 @@ const createFormPersistenceStore = () =>
         sectionRevisions: incrementAllSectionRevisions(state.sectionRevisions),
         fieldErrors: createEmptyFieldErrorCache(),
         fieldErrorRevisions: incrementAllFieldErrorRevisions(state.fieldErrorRevisions),
+        invalidDrafts: createEmptyInvalidDraftsCache(),
+        invalidDraftRevisions: incrementAllInvalidDraftRevisions(state.invalidDraftRevisions),
         committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
@@ -349,18 +418,21 @@ const createFormPersistenceStore = () =>
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
       }));
     },
-    restoreHistoryFrame: (next, sectionRevisions, fieldErrors, fieldErrorRevisions, meta, committedAt) => {
+    restoreHistoryFrame: (next, sectionRevisions, fieldErrors, fieldErrorRevisions, invalidDrafts, invalidDraftRevisions, meta, committedAt) => {
       assertKeyCoverage(next);
       assertMetaFingerprintMatch(meta);
       assertAllSectionsValid(next);
       assertFieldErrorKeyCoverage(fieldErrors);
       assertFieldErrorRevisionKeyCoverage(fieldErrorRevisions);
+      assertInvalidDraftsKeyCoverage(invalidDrafts);
       // committedAt leveres af caller udenfor updater'en — undgår ikke-deterministisk Date.now() i setState.
       set((state) => ({
         sections: { ...next },
         sectionRevisions: { ...sectionRevisions },
         fieldErrors: { ...fieldErrors },
         fieldErrorRevisions: { ...fieldErrorRevisions },
+        invalidDrafts: { ...invalidDrafts },
+        invalidDraftRevisions: { ...invalidDraftRevisions },
         committedChangeCounter: state.committedChangeCounter + 1,
         authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch + 1,
         meta: { ...meta, hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: committedAt },
@@ -433,6 +505,51 @@ const createFormPersistenceStore = () =>
       set({
         fieldErrors: { ...fieldErrors },
         fieldErrorRevisions: { ...fieldErrorRevisions },
+      });
+    },
+    setInvalidDraft: (key, fieldPath, draft) => {
+      set((state) => {
+        const prevForPage = state.invalidDrafts[key];
+        const trimmedExists = typeof draft === 'string' && draft !== '';
+        const existing = prevForPage[fieldPath];
+
+        if (!trimmedExists) {
+          if (existing === undefined) return state;
+          const nextForPage = { ...prevForPage };
+          delete nextForPage[fieldPath];
+          return {
+            invalidDrafts: { ...state.invalidDrafts, [key]: nextForPage },
+            invalidDraftRevisions: incrementInvalidDraftRevision(state.invalidDraftRevisions, key),
+          };
+        }
+
+        if (existing === draft) return state;
+        return {
+          invalidDrafts: { ...state.invalidDrafts, [key]: { ...prevForPage, [fieldPath]: draft } },
+          invalidDraftRevisions: incrementInvalidDraftRevision(state.invalidDraftRevisions, key),
+        };
+      });
+    },
+    clearInvalidDraftsForSection: (key) => {
+      set((state) => {
+        if (Object.keys(state.invalidDrafts[key]).length === 0) return state;
+        return {
+          invalidDrafts: { ...state.invalidDrafts, [key]: {} },
+          invalidDraftRevisions: incrementInvalidDraftRevision(state.invalidDraftRevisions, key),
+        };
+      });
+    },
+    clearAllInvalidDrafts: () => {
+      set((state) => ({
+        invalidDrafts: createEmptyInvalidDraftsCache(),
+        invalidDraftRevisions: incrementAllInvalidDraftRevisions(state.invalidDraftRevisions),
+      }));
+    },
+    restoreInvalidDrafts: (invalidDrafts, invalidDraftRevisions) => {
+      assertInvalidDraftsKeyCoverage(invalidDrafts);
+      set({
+        invalidDrafts: { ...invalidDrafts },
+        invalidDraftRevisions: { ...invalidDraftRevisions },
       });
     },
     __setSectionUnsafe: (key, next) => {

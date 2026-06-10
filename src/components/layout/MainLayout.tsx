@@ -19,6 +19,7 @@ import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 import {
   getFieldErrorsBySourceSnapshot,
+  getInvalidDraftsForSectionSnapshot,
   useAuthoritativeSnapshotEpochSelector,
   useCombinedSectionRevisionSelector,
 } from '../../hooks/useFormPersistenceSelectors';
@@ -139,7 +140,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     // Bevidst designvalg:
     // Gem blokeres kun af ikke-committable fejl. UI-fejl på allerede committede værdier
     // (fx dato/tal uden for bounds) skal fortsat vises med rød markering, men må gemmes.
-    return getFirstBlockingInputErrorTarget(getFieldErrorsBySourceSnapshot);
+    return getFirstBlockingInputErrorTarget(getFieldErrorsBySourceSnapshot, getInvalidDraftsForSectionSnapshot);
   }, []);
 
   const {

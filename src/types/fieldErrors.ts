@@ -33,8 +33,20 @@ export type ReportableFieldError =
       invalidDraft?: string;
     }>;
 
+/**
+ * Producer-ejet feltfejl-reporter.
+ *
+ * Bærer desuden bindingen til `invalidDrafts`-recovery-kanalen (jf. form-contract.md §2.4):
+ * `pageKey`/`fieldName` lader et input-felt reaktivt læse sin egen committede rå draft via en
+ * store-selector, og `commitInvalidDraft`/`clearInvalidDraft` skriver/rydder den ved commit.
+ * Range/bounds-fejl (`blocksSave:false`) rapporteres fortsat som feltfejl via selve reporter-kaldet.
+ */
 export type FieldErrorReporter = ((error: ReportableFieldError | undefined) => void) & {
   getCurrentError?: () => FormFieldError | undefined;
+  pageKey?: StorageKey;
+  fieldName?: string;
+  commitInvalidDraft?: (rawDraft: string) => void;
+  clearInvalidDraft?: () => void;
 };
 
 export const getReportableFieldErrorMessage = (

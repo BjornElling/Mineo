@@ -21,7 +21,7 @@ import { PERSISTED_SECTION_KEYS, persistenceSchemas, type PersistedSectionMap } 
 import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
-import { formPersistenceStore, type FieldErrorCache, type FieldErrorRevisionMap, type FormPersistenceMeta, type SectionRevisionMap } from '../stores/formPersistenceStore';
+import { formPersistenceStore, type FieldErrorCache, type FieldErrorRevisionMap, type FormPersistenceMeta, type InvalidDraftRevisionMap, type InvalidDraftsCache, type SectionRevisionMap } from '../stores/formPersistenceStore';
 import { undoRedoStore, type HistoryFrameOrigin } from '../stores/undoRedoStore';
 import { buildSessionStorageHydrationPlan } from '../utils/persistenceSessionHydration';
 import {
@@ -30,8 +30,14 @@ import {
   writeSessionStorageValue,
 } from '../utils/safeSessionStorage';
 import {
+  getInvalidDraftsStorageKey,
+} from '../config/storageManifest';
+import { writeInvalidDraftsToStorage } from '../utils/invalidDraftsStorage';
+import {
   getFieldErrorRevisionSnapshot,
   getFieldErrorsBySourceSnapshot,
+  getInvalidDraftForFieldSnapshot,
+  getInvalidDraftsForSectionSnapshot,
   getPersistedSectionSnapshot,
   getResolvedFieldErrorsSnapshot,
   getSectionRevisionSnapshot,
@@ -77,6 +83,8 @@ type StoreRollbackSnapshot = {
   sectionRevisions: SectionRevisionMap;
   fieldErrors: FieldErrorCache;
   fieldErrorRevisions: FieldErrorRevisionMap;
+  invalidDrafts: InvalidDraftsCache;
+  invalidDraftRevisions: InvalidDraftRevisionMap;
   committedChangeCounter: number;
   authoritativeSnapshotEpoch: number;
   meta: FormPersistenceMeta;
@@ -91,6 +99,8 @@ const captureStoreRollbackSnapshot = (): StoreRollbackSnapshot => {
     sectionRevisions: state.sectionRevisions,
     fieldErrors: state.fieldErrors,
     fieldErrorRevisions: state.fieldErrorRevisions,
+    invalidDrafts: state.invalidDrafts,
+    invalidDraftRevisions: state.invalidDraftRevisions,
     committedChangeCounter: state.committedChangeCounter,
     authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
     meta: state.meta,
@@ -123,6 +133,7 @@ const restoreStoreRollbackSnapshot = (snapshot: StoreRollbackSnapshot): void => 
     snapshot.meta
   );
   formPersistenceStore.getState().restoreFieldErrors(snapshot.fieldErrors, snapshot.fieldErrorRevisions);
+  formPersistenceStore.getState().restoreInvalidDrafts(snapshot.invalidDrafts, snapshot.invalidDraftRevisions);
   clearResolvedFieldErrorsCache();
 };
 
@@ -174,7 +185,8 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     }
     formPersistenceStore.getState().hydrate(
       nextCache,
-      { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION }
+      { hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION },
+      plan.invalidDrafts
     );
     clearResolvedFieldErrorsCache();
     return {
@@ -323,12 +335,99 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     }
   }, [emitUserNotice, logPersistSaveDebug]);
 
+  /**
+   * Beregn næste invalidDrafts-cache fra nuværende store + én feltændring (uden at mutere store).
+   * Bruges til at skrive sessionStorage FØR store-commit, så skrivning er atomisk med rollback.
+   */
+  const computeNextInvalidDrafts = React.useCallback(
+    (pageKey: StorageKey, fieldPath: string, draft: string | null): InvalidDraftsCache => {
+      const current = formPersistenceStore.getState().invalidDrafts;
+      const section = { ...current[pageKey] };
+      if (draft === null || draft === '') {
+        delete section[fieldPath];
+      } else {
+        section[fieldPath] = draft;
+      }
+      return { ...current, [pageKey]: section };
+    },
+    []
+  );
+
+  /**
+   * Skriv/ryd ét felts committede rå draft (`invalidDrafts`). Atomisk på tværs af store +
+   * sessionStorage med rollback, efter samme fail-closed-mønster som persistData.
+   *
+   * `undoOrigin` (kun ved fejlende commit) opretter en undo/redo-frame, så et nyt ugyldigt input
+   * kan undo'es. Ved rydning (vellykket commit) sendes ingen undoOrigin — rydningen rider på det
+   * samtidige sektion-commits frame.
+   */
+  const writeInvalidDraft = React.useCallback(
+    (pageKey: StorageKey, fieldPath: string, draft: string | null, options?: { undoOrigin?: HistoryFrameOrigin }): boolean => {
+      try {
+        const currentForField = getInvalidDraftForFieldSnapshot(pageKey, fieldPath);
+        const normalizedDraft = draft === null || draft === '' ? null : draft;
+        if ((currentForField ?? null) === normalizedDraft) {
+          return true;
+        }
+
+        const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
+        const previousStorageValue = readSessionStorageValue(invalidDraftsStorageKey);
+        const rollbackSnapshot = captureStoreRollbackSnapshot();
+        const undoRollbackSnapshot = captureUndoRedoRollbackSnapshot();
+        const nextCache = computeNextInvalidDrafts(pageKey, fieldPath, normalizedDraft);
+        try {
+          writeInvalidDraftsToStorage(nextCache);
+          if (options?.undoOrigin) {
+            undoRedoStore.getState().capture(options.undoOrigin);
+          }
+          formPersistenceStore.getState().setInvalidDraft(pageKey, fieldPath, normalizedDraft);
+        } catch (error) {
+          const rollbackFailures: Error[] = [];
+          attemptRollbackStep(rollbackFailures, () => restoreStorageValue(invalidDraftsStorageKey, previousStorageValue));
+          attemptRollbackStep(rollbackFailures, () => restoreStoreRollbackSnapshot(rollbackSnapshot));
+          attemptRollbackStep(rollbackFailures, () => restoreUndoRedoRollbackSnapshot(undoRollbackSnapshot));
+          throw createRollbackError('writeInvalidDraft', error, rollbackFailures);
+        }
+        return true;
+      } catch (error) {
+        console.error(`[Persistence] Fejl ved skrivning af invalid draft for '${pageKey}.${fieldPath}':`, error);
+        emitUserNotice(`Kunne ikke gemme det aktuelle input for '${pageKey}' pga. en intern fejl.`, 'error');
+        return false;
+      }
+    },
+    [computeNextInvalidDrafts, emitUserNotice]
+  );
+
+  const commitInvalidDraft = React.useCallback(
+    (pageKey: StorageKey, fieldPath: string, rawDraft: string, options?: { undoOrigin?: HistoryFrameOrigin }): boolean => {
+      return writeInvalidDraft(pageKey, fieldPath, rawDraft, options);
+    },
+    [writeInvalidDraft]
+  );
+
+  const clearInvalidDraft = React.useCallback(
+    (pageKey: StorageKey, fieldPath: string): boolean => {
+      return writeInvalidDraft(pageKey, fieldPath, null);
+    },
+    [writeInvalidDraft]
+  );
+
+  const getInvalidDraft = React.useCallback((pageKey: StorageKey, fieldPath: string): string | undefined => {
+    return getInvalidDraftForFieldSnapshot(pageKey, fieldPath);
+  }, []);
+
+  const getInvalidDraftsForSection = React.useCallback((pageKey: StorageKey): Record<string, string> => {
+    return getInvalidDraftsForSectionSnapshot(pageKey);
+  }, []);
+
   const replaceAllPersistedData = React.useCallback<ReplaceAllPersistedData>((snapshot) => {
     const prevStoreState = formPersistenceStore.getState();
     const prevSections = prevStoreState.sections as PersistedCache;
     const prevSectionRevisions = prevStoreState.sectionRevisions;
     const prevFieldErrors = prevStoreState.fieldErrors;
     const prevFieldErrorRevisions = prevStoreState.fieldErrorRevisions;
+    const prevInvalidDrafts = prevStoreState.invalidDrafts;
+    const prevInvalidDraftRevisions = prevStoreState.invalidDraftRevisions;
     const prevAuthoritativeSnapshotEpoch = prevStoreState.authoritativeSnapshotEpoch;
     const prevMeta = prevStoreState.meta;
     for (const key of PERSISTED_SECTION_KEYS) {
@@ -337,9 +436,11 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       }
     }
 
-    // Backup og erstatning sker kun for domæne-keys — UI-state (filnavn, sidebar, overlay)
-    // er uafhængig af sags-data og skal ikke berøres ved fil-load.
-    const keysToReplace = PERSISTED_SECTION_KEYS.map(getStorageKey);
+    // Backup og erstatning sker kun for domæne-keys + invalidDrafts-recovery-nøglen — UI-state
+    // (filnavn, sidebar, overlay) er uafhængig af sags-data og skal ikke berøres ved fil-load.
+    // En indlæst .eo har per definition ingen invalidDrafts, så nøglen ryddes.
+    const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
+    const keysToReplace = [...PERSISTED_SECTION_KEYS.map(getStorageKey), invalidDraftsStorageKey];
     const backup = new Map<string, string | null>();
     for (const key of keysToReplace) {
       backup.set(key, readSessionStorageValue(key));
@@ -409,6 +510,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
           prevMeta
         );
         formPersistenceStore.getState().restoreFieldErrors(prevFieldErrors, prevFieldErrorRevisions);
+        formPersistenceStore.getState().restoreInvalidDrafts(prevInvalidDrafts, prevInvalidDraftRevisions);
         clearResolvedFieldErrorsCache();
       });
       const message = createRollbackError('replaceAllPersistedData', error, rollbackFailures).message;
@@ -421,22 +523,28 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
    */
   const clearPageData = React.useCallback((pageKey: StorageKey) => {
     const storageKey = getStorageKey(pageKey);
+    const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
     let previousStorageValue: string | null = null;
+    let previousInvalidDraftsStorageValue: string | null = null;
     let rollbackSnapshot: StoreRollbackSnapshot | null = null;
     try {
       previousStorageValue = readSessionStorageValue(storageKey);
+      previousInvalidDraftsStorageValue = readSessionStorageValue(invalidDraftsStorageKey);
       rollbackSnapshot = captureStoreRollbackSnapshot();
       removeSessionStorageValue(storageKey);
       formPersistenceStore.getState().clearSection(pageKey, {
         lastCommittedAt: Date.now(),
       });
       formPersistenceStore.getState().clearFieldErrorsForSection(pageKey);
+      formPersistenceStore.getState().clearInvalidDraftsForSection(pageKey);
+      writeInvalidDraftsToStorage(formPersistenceStore.getState().invalidDrafts);
       clearResolvedFieldErrorsCache();
     } catch (error) {
       if (rollbackSnapshot) {
         const snapshot = rollbackSnapshot;
         const rollbackFailures: Error[] = [];
         attemptRollbackStep(rollbackFailures, () => restoreStorageValue(storageKey, previousStorageValue));
+        attemptRollbackStep(rollbackFailures, () => restoreStorageValue(invalidDraftsStorageKey, previousInvalidDraftsStorageValue));
         attemptRollbackStep(rollbackFailures, () => restoreStoreRollbackSnapshot(snapshot));
       }
       emitUserNotice(`Kunne ikke slette data for '${pageKey}'. Ingen data blev ændret.`, 'error');
@@ -453,8 +561,8 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     const backup = new Map<string, string | null>();
     let rollbackSnapshot: StoreRollbackSnapshot | null = null;
     try {
-      // Kun domæne-data keys — UI-state (filnavn, sidebar, overlay) bevares bevidst.
-      const domainKeys = PERSISTED_SECTION_KEYS.map(getStorageKey);
+      // Kun domæne-data keys + invalidDrafts-recovery-nøglen — UI-state (filnavn, sidebar, overlay) bevares bevidst.
+      const domainKeys = [...PERSISTED_SECTION_KEYS.map(getStorageKey), getInvalidDraftsStorageKey()];
       for (const key of domainKeys) {
         backup.set(key, readSessionStorageValue(key));
       }
@@ -535,6 +643,10 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       setFieldError,
       clearFieldErrors,
       clearAllFieldErrors,
+      commitInvalidDraft,
+      clearInvalidDraft,
+      getInvalidDraft,
+      getInvalidDraftsForSection,
       getSectionRevision,
       getFieldErrorRevision,
       replaceAllPersistedData,
@@ -553,6 +665,10 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       setFieldError,
       clearFieldErrors,
       clearAllFieldErrors,
+      commitInvalidDraft,
+      clearInvalidDraft,
+      getInvalidDraft,
+      getInvalidDraftsForSection,
       getSectionRevision,
       getFieldErrorRevision,
       replaceAllPersistedData,

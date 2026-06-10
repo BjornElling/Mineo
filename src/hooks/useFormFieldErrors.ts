@@ -14,10 +14,11 @@ import type {
 } from '../types/fieldErrors';
 import {
   useFieldErrorsBySourceSelector,
+  useInvalidDraftForFieldSelector,
   useResolvedFieldErrorsSelector,
 } from './useFormPersistenceSelectors';
 import { isInteractiveDevLoggingEnabled } from '../utils/debugRuntime';
-import { undoRedoStore, type HistoryFrameOrigin } from '../stores/undoRedoStore';
+import type { HistoryFrameOrigin } from '../stores/undoRedoStore';
 import { readLastUndoFocus } from '../utils/undoFocusTracker';
 import { readOptionalSessionStorageValue } from '../utils/safeSessionStorage';
 
@@ -99,38 +100,6 @@ const createFieldErrorUndoOrigin = (
   };
 };
 
-const shouldCaptureInvalidDraftError = (error: ReportableFieldError | undefined): error is Readonly<{
-  message: string;
-  blocksSave?: boolean;
-  invalidDraft: string;
-}> =>
-  typeof error === 'object' &&
-  error !== null &&
-  error.message.trim() !== '' &&
-  error.blocksSave !== false &&
-  typeof error.invalidDraft === 'string';
-
-const isSameStoredInvalidDraftError = (
-  current: FormFieldError | undefined,
-  error: Readonly<{ message: string; blocksSave?: boolean; invalidDraft: string }>
-): boolean =>
-  current?.severity === 'error' &&
-  current.blocksSave !== false &&
-  current.message === error.message.trim() &&
-  current.invalidDraft === error.invalidDraft;
-
-const captureInvalidDraftIfNew = (
-  pageKey: StorageKey,
-  fieldName: string,
-  error: ReportableFieldError | undefined,
-  current: FormFieldError | undefined,
-  route: string
-): void => {
-  if (!shouldCaptureInvalidDraftError(error)) return;
-  if (isSameStoredInvalidDraftError(current, error)) return;
-  undoRedoStore.getState().capture(createFieldErrorUndoOrigin(pageKey, fieldName, route));
-};
-
 /**
  * Producer-ejet feltfejl-reporter.
  *
@@ -151,11 +120,24 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
   fieldName: FieldName<K>,
   options?: ReporterOptions
 ): FieldErrorReporter => {
-  const { getFieldError, setFieldError } = useFormPersistence();
+  const { getFieldError, setFieldError, commitInvalidDraft, clearInvalidDraft } = useFormPersistence();
   const location = useLocation();
 
   const severity = options?.severity ?? 'error';
   const source = options?.source ?? 'input';
+
+  const commitInvalidDraftForField = React.useCallback(
+    (rawDraft: string) => {
+      commitInvalidDraft(pageKey, fieldName, rawDraft, {
+        undoOrigin: createFieldErrorUndoOrigin(pageKey, fieldName, location.pathname),
+      });
+    },
+    [commitInvalidDraft, fieldName, location.pathname, pageKey]
+  );
+
+  const clearInvalidDraftForField = React.useCallback(() => {
+    clearInvalidDraft(pageKey, fieldName);
+  }, [clearInvalidDraft, fieldName, pageKey]);
 
   const reportError = React.useCallback(
     (error: ReportableFieldError | undefined) => {
@@ -177,7 +159,6 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
       // - Produceren (typisk en input-komponent) ejer fejlen for dette felt og SKAL rydde den
       //   ved at kalde reporteren med `undefined`, så snart feltet bliver gyldigt igen.
       // - Form-laget må rydde alle feltfejl ved autoritativ state-erstatning (reset/load).
-      captureInvalidDraftIfNew(pageKey, fieldName, error, getFieldError(pageKey, fieldName), location.pathname);
 
       if (error === undefined || (typeof error === 'string' && error.trim() === '') || (typeof error !== 'string' && error.message.trim() === '')) {
         setFieldError(pageKey, fieldName, source, null);
@@ -196,22 +177,49 @@ export const useFormFieldErrorReporter = <K extends StorageKey>(
         invalidDraft: error.blocksSave !== false ? error.invalidDraft : undefined,
       });
     },
-    [fieldName, getFieldError, location.pathname, pageKey, setFieldError, severity, source]
+    [fieldName, pageKey, setFieldError, severity, source]
   );
 
-  return Object.defineProperty(reportError, 'getCurrentError', {
-    configurable: true,
-    enumerable: true,
-    value: () => getFieldError(pageKey, fieldName),
+  return Object.defineProperties(reportError, {
+    getCurrentError: { configurable: true, enumerable: true, value: () => getFieldError(pageKey, fieldName) },
+    pageKey: { configurable: true, enumerable: true, value: pageKey },
+    fieldName: { configurable: true, enumerable: true, value: fieldName },
+    commitInvalidDraft: { configurable: true, enumerable: true, value: commitInvalidDraftForField },
+    clearInvalidDraft: { configurable: true, enumerable: true, value: clearInvalidDraftForField },
   }) as FieldErrorReporter;
+};
+
+/**
+ * Felt-side binding til `invalidDrafts`-recovery-kanalen.
+ *
+ * Generiske input-komponenter kalder denne hook ubetinget med deres (valgfri) reporter. Returnerer:
+ * - `committedInvalidDraft`: reaktiv læsning af feltets committede rå draft (via store-selector,
+ *   context-fri, så hooken er sikker også uden for FormPersistenceProvider — returnerer da `undefined`),
+ * - `onCommitInvalid`/`clearInvalidDraft`: skrive/rydde-kanal (kun til stede når feltet har en binding).
+ *
+ * Når der ingen binding er (ubundet felt), er kanalerne `undefined`, og `useDraftField` falder tilbage
+ * til lokal draft-bevarelse.
+ */
+export const useFieldInvalidDraftChannel = (
+  reporter: FieldErrorReporter | undefined
+): Readonly<{
+  committedInvalidDraft: string | undefined;
+  onCommitInvalid: ((rawDraft: string) => void) | undefined;
+  clearInvalidDraft: (() => void) | undefined;
+}> => {
+  const committedInvalidDraft = useInvalidDraftForFieldSelector(reporter?.pageKey, reporter?.fieldName);
+  return {
+    committedInvalidDraft,
+    onCommitInvalid: reporter?.commitInvalidDraft,
+    clearInvalidDraft: reporter?.clearInvalidDraft,
+  };
 };
 
 export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
   pageKey: K,
   options?: ReporterOptions
 ): ((fieldName: DynamicFieldName<K>, error: ReportableFieldError | undefined) => void) => {
-  const { getFieldError, setFieldError } = useFormPersistence();
-  const location = useLocation();
+  const { setFieldError } = useFormPersistence();
 
   const severity = options?.severity ?? 'error';
   const source = options?.source ?? 'input';
@@ -245,8 +253,6 @@ export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
     });
     lastReportedByFieldRef.current[fieldName] = nextKey;
 
-    captureInvalidDraftIfNew(pageKey, fieldName, error, getFieldError(pageKey, fieldName), location.pathname);
-
     if (
       error === undefined
       || (typeof error === 'string' && error.trim() === '')
@@ -267,5 +273,5 @@ export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
       blocksSave: error.blocksSave !== false,
       invalidDraft: error.blocksSave !== false ? error.invalidDraft : undefined,
     });
-  }, [getFieldError, location.pathname, pageKey, setFieldError, severity, source]);
+  }, [pageKey, setFieldError, severity, source]);
 };

@@ -2,6 +2,8 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { z } from 'zod';
 import OffentligeYdelserTable from '../../tables/OffentligeYdelserTable';
+import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
+import { CELL_TABLE_IDS } from '../../../config/cellInvalidDraftScopes';
 import ContentBox from '../../layout/ContentBox';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
@@ -288,13 +290,15 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
           Ydelser fra offentlige myndigheder, herunder midlertidigt erhvervsevnetab.
         </Typography>
 
-        <OffentligeYdelserTable
-          tableData={rows}
-          derivedByRowId={derivedByRowId}
-          onTableDataChange={onRowsChange}
-          saveOrderPath="erstatningsopgoerelse.offentligeYdelserRows"
-          disableMidlertidigtEetOption={isMidlertidigtEetFraEetSiden}
-        />
+        <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoOffentligeYdelser}>
+          <OffentligeYdelserTable
+            tableData={rows}
+            derivedByRowId={derivedByRowId}
+            onTableDataChange={onRowsChange}
+            saveOrderPath="erstatningsopgoerelse.offentligeYdelserRows"
+            disableMidlertidigtEetOption={isMidlertidigtEetFraEetSiden}
+          />
+        </CellInvalidDraftScopeProvider>
       </ContentBox>
 
       <ContentBox className="content-box">

@@ -5,6 +5,8 @@ import {
   type FieldErrorRevisionMap,
   type FormPersistenceMeta,
   type FormPersistenceSections,
+  type InvalidDraftRevisionMap,
+  type InvalidDraftsCache,
   type SectionRevisionMap,
 } from './formPersistenceStore';
 const MAX_HISTORY_STEPS = 50;
@@ -25,6 +27,8 @@ export type HistoryFrame = {
   authoritativeSnapshotEpoch: number;
   fieldErrors: FieldErrorCache;
   fieldErrorRevisions: FieldErrorRevisionMap;
+  invalidDrafts: InvalidDraftsCache;
+  invalidDraftRevisions: InvalidDraftRevisionMap;
   meta: FormPersistenceMeta;
   origin: HistoryFrameOrigin;
 };
@@ -62,6 +66,8 @@ const createFrame = (origin: HistoryFrameOrigin, sequence: number): HistoryFrame
     authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
     fieldErrors: cloneSnapshot(state.fieldErrors),
     fieldErrorRevisions: cloneSnapshot(state.fieldErrorRevisions),
+    invalidDrafts: cloneSnapshot(state.invalidDrafts),
+    invalidDraftRevisions: cloneSnapshot(state.invalidDraftRevisions),
     meta: cloneSnapshot(state.meta),
     origin,
   };

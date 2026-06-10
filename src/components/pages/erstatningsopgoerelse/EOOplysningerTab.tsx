@@ -29,6 +29,8 @@ import FerieperiodeTable from '../../tables/FerieperiodeTable';
 import BeregningsperiodeFerieTable from '../../tables/BeregningsperiodeFerieTable';
 import OevrigeKravTable from '../../tables/OevrigeKravTable';
 import LoenudviklingManuelTable from '../../tables/LoenudviklingManuelTable';
+import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
+import { CELL_TABLE_IDS } from '../../../config/cellInvalidDraftScopes';
 import useSvieSmerteRows from '../../tables/useSvieSmerteRows';
 import useTafRows from '../../tables/useTafRows';
 import useFerieRows from '../../tables/useFerieRows';
@@ -1555,6 +1557,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   Periode:
                   <InfoTooltipIcon title={PERIODE_INFO_TOOLTIP} />
                 </Typography>
+                <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoSvieSmerte}>
                 <SvieSmerteTable
                   rows={svie.draftRows}
                   committedById={svie.committedById}
@@ -1569,6 +1572,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   onRowsReorder={svie.reorderRows}
                   saveOrderPath="erstatningsopgoerelse.svieSmertePerioder"
                 />
+                </CellInvalidDraftScopeProvider>
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Hvilket års svie/smerte-satser lægges til grund?</Typography>
@@ -1669,6 +1673,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               Periode:
               <InfoTooltipIcon title={PERIODE_INFO_TOOLTIP} />
             </Typography>
+            <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoTafPeriode}>
             <TAFPeriodeTable
               rows={taf.draftRows}
               committedById={taf.committedById}
@@ -1687,8 +1692,10 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               verserendeKlageEet={verserendeKlageEet}
               saveOrderPath="erstatningsopgoerelse.tafPerioder"
             />
+            </CellInvalidDraftScopeProvider>
 
             <Typography className="row--subheading">Evt. ferie i perioden:</Typography>
+            <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoFerieperiode}>
             <FerieperiodeTable
               rows={ferie.draftRows}
               committedById={ferie.committedById}
@@ -1703,6 +1710,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               verserendeKlageEet={verserendeKlageEet}
               saveOrderPath="erstatningsopgoerelse.ferieperioder"
             />
+            </CellInvalidDraftScopeProvider>
 
             <Typography className="row--subheading">Øvrigt</Typography>
 
@@ -1798,6 +1806,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                 </Box>
 
                 <Typography className="row--subheading">Ferie i beregningsperioden:</Typography>
+                <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoBeregningsperiodeFerie}>
                 <BeregningsperiodeFerieTable
                   rows={fravaer.draftRows}
                   committedById={fravaer.committedById}
@@ -1809,6 +1818,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                   beregningsperiodeTil={values.tafBeregningsperiodeTil}
                   saveOrderPath="erstatningsopgoerelse.fravaerPerioder"
                 />
+                </CellInvalidDraftScopeProvider>
 
                 <Box className="row--label-right-hover">
                   <Typography className="row--text">Uspecificerede ferie-/feriefridage</Typography>
@@ -2239,6 +2249,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                         />
                       </Box>
                     </Box>
+                    <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoAngivetLoenudvikling}>
                     <LoenudviklingManuelTable
                       tableData={eoLoenudvikling.loenudviklingManuelTableData}
                       onTableDataChange={handleLoenudviklingManuelTableChange}
@@ -2247,6 +2258,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? 'Skadedato er ikke udfyldt' : undefined}
                       useSmallFont={true}
                     />
+                    </CellInvalidDraftScopeProvider>
                   </Box>
                 ) : null}
 
@@ -2602,6 +2614,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         </Box>
 
         {values.kravPaaOevrigeErstatningskrav === 'Ja' && (
+          <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoOevrigeKrav}>
           <OevrigeKravTable
             rows={oevrigeKrav.draftRows}
             committedById={oevrigeKrav.committedById}
@@ -2616,6 +2629,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
             }}
             saveOrderPath="erstatningsopgoerelse.oevrigeKravPerioder"
           />
+          </CellInvalidDraftScopeProvider>
         )}
       </ContentBox>
 

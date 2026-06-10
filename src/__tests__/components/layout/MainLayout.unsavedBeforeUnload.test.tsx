@@ -61,7 +61,7 @@ import { loadFromFile, loadFromFileHandle } from '../../../utils/fileLoad';
 import { saveToFile } from '../../../utils/fileSave';
 import { deleteFileHandleFromIndexedDB, saveFileHandleToIndexedDB } from '../../../utils/fileHandleStorage';
 import { getGridCoreForTable } from '../../../components/tables/gridCore/gridCoreRegistry';
-import { clearTableInputError, setTableInputError } from '../../../utils/tableInputErrorRegistry';
+import { CELL_TABLE_IDS, buildCellInvalidDraftFieldPath } from '../../../config/cellInvalidDraftScopes';
 
 const stampStamdata = (skadelidte: string): StamdataValues => ({
   journalnr: '',
@@ -422,8 +422,9 @@ describe('MainLayout (unsaved beforeunload)', () => {
   it('blocks save when a table input has an uncommittable local input error', async () => {
     const saveToFileMock = vi.mocked(saveToFile);
     let ctx: ReturnType<typeof useFormPersistence> | null = null;
+    const cellFieldPath = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoOffentligeYdelser, '', 'row1:0');
     const input = document.createElement('input');
-    input.setAttribute('data-mineo-test-temp', 'true');
+    input.setAttribute('data-mineo-field-path', cellFieldPath);
     document.body.appendChild(input);
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
@@ -458,10 +459,8 @@ describe('MainLayout (unsaved beforeunload)', () => {
 
     act(() => {
       ctx!.persistData('stamdata', stampStamdata('GemBlokeresAfTabelInput'));
-      setTableInputError('test-table-date', {
-        message: 'Ugyldig dato',
-        getElement: () => input,
-      });
+      // En grid-celles ikke-committbare rå draft blokerer nu Gem via invalidDrafts (ikke et registry).
+      ctx!.commitInvalidDraft('erstatningsopgoerelse', cellFieldPath, '12.x.2020');
     });
 
     await act(async () => {
@@ -471,7 +470,9 @@ describe('MainLayout (unsaved beforeunload)', () => {
     await screen.findByText('Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.');
     expect(saveToFileMock).not.toHaveBeenCalled();
 
-    clearTableInputError('test-table-date');
+    act(() => {
+      ctx!.clearInvalidDraft('erstatningsopgoerelse', cellFieldPath);
+    });
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
       value: originalScrollIntoView,

@@ -9,6 +9,7 @@ import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 
 const debugStyledTextField = (event: string, details: Record<string, unknown>): void => {
   if (!isInteractiveDevLoggingEnabled) return;
@@ -157,17 +158,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       [validateOnCommit]
     );
 
-    const initialInvalidDraft = React.useMemo(() => {
-      const currentError = onFieldError?.getCurrentError?.();
-      if (
-        currentError?.severity === 'error' &&
-        currentError.blocksSave !== false &&
-        typeof currentError.invalidDraft === 'string'
-      ) {
-        return { draft: currentError.invalidDraft, message: currentError.message };
-      }
-      return undefined;
-    }, [onFieldError]);
+    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
 
     const {
       draft,
@@ -184,27 +175,20 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       parse: parseString,
       onCommit: (nextValue) => {
         onCommit?.(createCommitEvent(nextValue));
+        clearInvalidDraft?.();
       },
+      onCommitInvalid,
+      committedInvalidDraft,
       inputElementRef: elementRefForHook as React.RefObject<HTMLInputElement | HTMLTextAreaElement | null>,
       normalizeDraftOnCommit: trimWhitespaceEdges,
-      clearErrorOnDraftChange: validateOnCommit !== undefined,
       commitOnBlur: false,
-      initialInvalidDraft,
     });
 
-    const visibleLocalError = touched ? error : undefined;
+    // Parse-/commit-fejl persisteres i invalidDrafts via useDraftField og vises afledt herfra.
+    // Feltet har ingen separat blocksSave:false-fejl og rapporterer derfor ikke til fieldErrors-storen.
+    const visibleLocalError = error;
     const resolvedHasError = externalHasError || Boolean(visibleLocalError?.message);
     const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
-
-    // Underret forælderen om lokal fejltilstand (producer-owned rapportering)
-    React.useEffect(() => {
-      if (typeof onFieldError !== 'function') return;
-      if (visibleLocalError?.message) {
-        onFieldError({ message: visibleLocalError.message, blocksSave: true, invalidDraft: draft });
-        return;
-      }
-      onFieldError(undefined);
-    }, [draft, onFieldError, visibleLocalError?.message]);
 
     const skipNextBlurCommitRef = React.useRef(false);
 

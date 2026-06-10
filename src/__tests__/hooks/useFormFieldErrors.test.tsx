@@ -32,6 +32,10 @@ const makeCtx = (overrides: Partial<FormPersistenceContextValue> = {}): FormPers
   setFieldError: vi.fn(),
   clearFieldErrors: vi.fn(),
   clearAllFieldErrors: vi.fn(),
+  commitInvalidDraft: vi.fn(() => true),
+  clearInvalidDraft: vi.fn(() => true),
+  getInvalidDraft: vi.fn(() => undefined),
+  getInvalidDraftsForSection: vi.fn(() => ({})),
   getSectionRevision: vi.fn(() => 0),
   getFieldErrorRevision: vi.fn(() => 0),
   replaceAllPersistedData: vi.fn(),
@@ -276,7 +280,7 @@ describe('useFormFieldErrorReporter', () => {
     expect(setFieldError).not.toHaveBeenCalled();
   });
 
-  it('gemmer invalidDraft og opretter et undo-skridt for ikke-committable inputfejl', async () => {
+  it('gemmer invalidDraft på fieldError men opretter IKKE et undo-skridt (undo-capture ejes nu af commitInvalidDraft-kanalen)', async () => {
     const setFieldError = vi.fn();
     const ctx = makeCtx({ setFieldError });
 
@@ -304,7 +308,8 @@ describe('useFormFieldErrorReporter', () => {
       'input',
       { message: 'Ugyldigt input', severity: 'error', blocksSave: true, invalidDraft: 'abc' }
     );
-    expect(undoRedoStore.getState().past).toHaveLength(1);
-    expect(undoRedoStore.getState().past[0].origin.fieldPath).toBe('journalnr');
+    // Reporteren capturer ikke længere undo-frames; den ikke-committbare rå draft (og dens undo-frame)
+    // ejes af invalidDrafts-kanalen via FormPersistenceContext.commitInvalidDraft.
+    expect(undoRedoStore.getState().past).toHaveLength(0);
   });
 });

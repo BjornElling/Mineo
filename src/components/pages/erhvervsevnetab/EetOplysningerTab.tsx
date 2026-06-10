@@ -6,6 +6,8 @@ import StyledDropdown from '../../inputs/StyledDropdown';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
 import ContentBox from '../../layout/ContentBox';
 import EetAslAfgoerelserTable from '../../tables/EetAslAfgoerelserTable';
+import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
+import { CELL_TABLE_IDS } from '../../../config/cellInvalidDraftScopes';
 import { dateRanges_erhvervsevnetab } from '../../../config/dateRanges';
 import {
   koenEnum,
@@ -178,15 +180,17 @@ const EetOplysningerTab = ({
           Afgørelser
         </Typography>
 
-        <EetAslAfgoerelserTable
-          tableData={values.aslAfgoerelser}
-          skadedato={coerceToISODateString(skadedato)}
-          skadedatoMin={skadedatoMin}
-          beregningsdato={coerceToISODateString(values.beregningsdato)}
-          skadelidteFodselsdato={coerceToISODateString(values.skadelidteFodselsdato)}
-          onTableDataChange={handleAslAfgoerelserChange}
-          saveOrderPath="erhvervsevnetab.aslAfgoerelser"
-        />
+        <CellInvalidDraftScopeProvider pageKey="erhvervsevnetab" tableId={CELL_TABLE_IDS.eetAslAfgoerelser}>
+          <EetAslAfgoerelserTable
+            tableData={values.aslAfgoerelser}
+            skadedato={coerceToISODateString(skadedato)}
+            skadedatoMin={skadedatoMin}
+            beregningsdato={coerceToISODateString(values.beregningsdato)}
+            skadelidteFodselsdato={coerceToISODateString(values.skadelidteFodselsdato)}
+            onTableDataChange={handleAslAfgoerelserChange}
+            saveOrderPath="erhvervsevnetab.aslAfgoerelser"
+          />
+        </CellInvalidDraftScopeProvider>
       </ContentBox>
 
       <ContentBox className="content-box" data-section-id="eet-oplysninger-eal">

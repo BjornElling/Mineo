@@ -16,11 +16,18 @@ const mockStamdata = {
 
 vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useDynamicFormFieldErrorReporter: () => vi.fn(),
+  useFieldInvalidDraftChannel: () => ({
+    committedInvalidDraft: undefined,
+    onCommitInvalid: undefined,
+    clearInvalidDraft: undefined,
+  }),
 }));
 
 vi.mock('../../../../hooks/useFormPersistenceSelectors', () => ({
   usePersistedSectionSelector: () => mockStamdata,
   getPersistedSectionSnapshot: vi.fn(),
+  useInvalidDraftForFieldSelector: () => undefined,
+  useAuthoritativeSnapshotEpochSelector: () => 0,
 }));
 
 vi.mock('../../../../contexts/useAppSettings', () => ({

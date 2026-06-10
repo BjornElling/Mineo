@@ -10,6 +10,7 @@ import { DEFAULT_FRACTION_MAX_DIGITS, getFractionMaxLength, INTEGER_FRACTION_FOR
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import { normalizeFractionPaste } from '../../utils/inputPasteNormalization';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 
 export type StyledFractionFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledFractionFieldDraftChangeEvent = DraftChangeEvent;
@@ -145,19 +146,9 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
       [allowNegative, allowZeroNumerator, canonicalizeOnCommit, configErrorMessage, maxDigits, requireIntegerFraction]
     );
 
-    const initialInvalidDraft = React.useMemo(() => {
-      const currentError = onFieldError?.getCurrentError?.();
-      if (
-        currentError?.severity === 'error' &&
-        currentError.blocksSave !== false &&
-        typeof currentError.invalidDraft === 'string'
-      ) {
-        return { draft: currentError.invalidDraft, message: currentError.message };
-      }
-      return undefined;
-    }, [onFieldError]);
+    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
 
-    const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
+    const { draft, setDraft, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
       useDraftField<string | undefined>({
         value,
         format: formatFraction,
@@ -165,22 +156,18 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
         normalizeDraftOnCommit: trimToAlphanumericEdges,
         onCommit: (nextValue) => {
           onCommit?.(createCommitEvent(nextValue));
+          clearInvalidDraft?.();
         },
+        onCommitInvalid,
+        committedInvalidDraft,
         inputElementRef,
-        clearErrorOnDraftChange: true,
         commitOnBlur: false,
-        initialInvalidDraft,
       });
 
-    const visibleLocalError = touched ? error : undefined;
+    // Parse-fejl persisteres i invalidDrafts via useDraftField og vises afledt herfra.
+    const visibleLocalError = error;
     const resolvedHasError = externalHasError || Boolean(visibleLocalError?.message);
     const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
-
-    // Underret forælderen om lokal fejltilstand (producer-owned rapportering)
-    React.useEffect(() => {
-      if (typeof onFieldError !== 'function') return;
-      onFieldError(visibleLocalError?.message ? { message: visibleLocalError.message, blocksSave: true, invalidDraft: draft } : undefined);
-    }, [draft, onFieldError, visibleLocalError?.message]);
 
     const skipNextBlurCommitRef = React.useRef(false);
 

@@ -11,7 +11,7 @@ Denne kontrakt fastlægger de trust-kritiske grænser for global undo/redo. Arki
 
 ## 1. Scope
 
-Undo/redo omfatter kun Mineos committed, schema-validerede sagsinput og runtime-only feltfejl, der hører til den committed tilstand.
+Undo/redo omfatter Mineos committed, schema-validerede sagsinput, den persisterede `invalidDrafts`-recovery-kanal (committed rå draft, jf. `form-contract.md` §2.4) og runtime-only feltfejl, der hører til den committed tilstand.
 
 Undo/redo omfatter ikke:
 
@@ -87,7 +87,7 @@ Save påvirker ikke history-stakken.
 
 Undo/redo må gendanne runtime-only feltfejl som del af history-framet.
 
-`invalidDraft` og `blocksSave` ejes normativt af `error-debug-contract.md`; undo/redo må kun bruge dem til at genskabe brugerens sidste fejltilstand efter restore. De må aldrig persisteres i `.eo`.
+Den persisterede `invalidDrafts`-kanal (committed rå draft) indgår i history-framet på linje med committed sektioner: capture snapshotter den, og restore gendanner den atomisk sammen med sektioner og `sessionStorage`. Det er denne mekanisme — ikke et separat draft-transportlag — der genskaber brugerens sidste ikke-committbare input efter undo/redo. `invalidDrafts` ejes normativt af `form-contract.md` §2.4 / `persistence-contract.md` og må aldrig persisteres i `.eo`.
 
 ---
 

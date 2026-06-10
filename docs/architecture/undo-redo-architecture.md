@@ -133,23 +133,20 @@ Ved undo/redo:
 5. Aktiv fane sættes med `setActiveTabForPage(...)`, hvis frame har `tabKey`.
 6. React Router navigerer til frame-route.
 7. En `requestAnimationFrame`-retry-løkke finder det synlige target via `data-mineo-undo-field-path` eller `data-mineo-undo-focus-token`.
-8. Draft-restore forsøges via `draftHistoryRegistry`.
-9. Feltets sektion scrolles til start, og feltet fokuseres med `preventScroll: true`.
+8. Feltets sektion scrolles til start, og feltet fokuseres med `preventScroll: true`.
 
 Retry-løkken findes, fordi route- og tab-skift kan betyde, at target-feltet først findes i DOM efter efterfølgende renders.
 
-## 8. Draft-restore
+## 8. Draft-restore (ikke-committbar rå draft)
 
-Undo/redo gendanner committed state. For felter med en gemt blocking invalid draft-fejl gendannes også draft-fejlen, så brugeren kan lande tilbage på samme fejltilstand.
+Undo/redo gendanner committed state. For felter/celler med en gemt ikke-committbar rå draft gendannes også draften, så brugeren lander tilbage på samme fejltilstand.
 
-Mekanismen er:
-- `useDraftField` og table-inputs registrerer controllere i `src/utils/draftHistoryRegistry.ts`.
-- Controlleren registreres på `focusToken` og `fieldPath`.
-- `useUndoRedo` udleder restore-state fra frame-fieldErrors.
-- Hvis field error er blocking og har `invalidDraft`, kaldes controlleren med `{ kind: 'error' }`.
-- Ellers kaldes controlleren med `{ kind: 'committed' }`.
+Dette sker UDEN et separat draft-restore-registry: den ikke-committbare rå draft lever i den persisterede `invalidDrafts`-store-slice (jf. `persistence-contract.md` §11), som indgår i hver history-frame og gendannes atomisk af `restoreHistoryFrame`. Mekanismen er:
+- Hver history-frame snapshotter `invalidDrafts` (+ `invalidDraftRevisions`) sammen med sections/fieldErrors.
+- `restoreHistoryFrame` gendanner `invalidDrafts` og bumper `authoritativeSnapshotEpoch`.
+- `useDraftField` (almindelige felter) og `useTableInputCore` (grid-celler) resyncer deres viste draft fra `committedInvalidDraft ?? format(value)` ved epoch-skift — også når feltet aktuelt har fokus (et autoritativt replace sker pr. kontrakt aldrig midt i en åben editor).
 
-Draft-restore er one-shot pr. restore-loop, så gentagne `requestAnimationFrame` ticks ikke overskriver brugerinput, hvis brugeren når at interagere mellem ticks.
+`historyTargetRestore` udfører kun fokus-/scroll-re-targeting til det rette element (via `data-mineo-undo-field-path`/`data-mineo-undo-focus-token`); den rører ikke draft-værdier.
 
 ## 9. Authoritative Resync
 
@@ -167,7 +164,7 @@ Fordi capture sker før commit, indeholder undo-framet tilstanden før tabelnorm
 - En ny udfyldt række fjernes igen ved undo, fordi snapshot kun havde den tomme trailing-række.
 - En slettet/tømt række genskabes ved undo, fordi snapshot havde rækken med indhold.
 
-Tabelceller bærer `data-mineo-undo-focus-token` og `data-mineo-undo-field-path`, så restore kan finde og fokusere cellen efter navigation. Ved restore slås tabelceller først op via `fieldPath`; `focusToken` er kun fallback for almindelige felter. Tabel-inputs registrerer også draft-restore-controllere, så local draft/error-state ryddes sammen med committed restore.
+Tabelceller bærer `data-mineo-undo-focus-token` og `data-mineo-undo-field-path` (= `rowId:colIndex`), så restore kan finde og fokusere cellen efter navigation. Ved restore slås tabelceller først op via `fieldPath`; `focusToken` er kun fallback for almindelige felter. Selve draft-/fejl-gendannelsen sker via det restored `invalidDrafts`-snapshot + epoch-resync (§8), ikke via et celle-lokalt registry.
 
 **Identitet skal sidde på det fokuserbare element.** For celle-dropdowns (`TableDropdown`) er det fokuserbare element combobox-triggeren — IKKE et skjult native `<input>`. `data-mineo-undo-field-path` (= `rowId:colIndex`) sættes derfor på triggeren: i loose-varianten via `StyledDropdown`s `name`-prop, i grid-varianten via `SelectDisplayProps`. Ellers fokuserer restore et element der ikke tegner fokus-ringen.
 
@@ -200,13 +197,14 @@ Når aktivt, bruger logging `console.debug` med `[UNDO/REDO]`-prefix. Normal dri
 | Fil | Ansvar |
 |---|---|
 | `src/stores/undoRedoStore.ts` | In-memory history stack og stack-transitioner |
-| `src/hooks/useUndoRedo.ts` | Restore, navigation, draft-restore og fokus |
+| `src/hooks/useUndoRedo.ts` | Restore, navigation og fokus-re-targeting |
 | `src/hooks/usePersistedForm.ts` | Opretter undo-origin ved felt-commits |
-| `src/hooks/useFormFieldErrors.ts` | Capturer invalid draft-fejl til history |
+| `src/contexts/FormPersistenceContext.tsx` | `commitInvalidDraft`/`clearInvalidDraft` (opretter undo-frame ved ny ikke-committbar rå draft) |
+| `src/hooks/useFormPersistenceSelectors.ts` | Reaktiv læsning af `committedInvalidDraft` pr. felt/celle |
 | `src/hooks/usePersistedActiveTab.ts` | Sætter target-fane ved restore |
 | `src/components/layout/MainLayout.tsx` | Installerer focus tracker og globale keyboard shortcuts |
 | `src/utils/undoFocusTracker.ts` | Sporer senest fokuserede undo-bærende felt |
-| `src/utils/draftHistoryRegistry.ts` | Registrerer draft-restore controllers |
+| `src/utils/historyTargetRestore.ts` | Fokus-/scroll-re-targeting efter restore (rører ikke draft-værdier) |
 | `src/utils/persistenceLoadApply.ts` | Rydder history efter filindlæsning |
 | `src/components/inputs/StyledTextFieldBase.tsx` | Bærer undo-attributter (`data-mineo-undo-field-path` fra `name`, `data-mineo-undo-focus-token`) for almindelige blur-commit-felter |
 | `src/components/inputs/table/Table*Input.tsx` | Bærer undo-attributter for grid-celler |

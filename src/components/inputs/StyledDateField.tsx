@@ -15,6 +15,7 @@ import { normalizeDatePaste } from '../../utils/inputPasteNormalization';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
+import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
 import { parseDateDraftForCommit } from '../../utils/dateDraftCommit';
 
@@ -167,17 +168,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       return { ok: true, value: parsed.iso };
     }, []);
 
-    const initialInvalidDraft = React.useMemo(() => {
-      const currentError = onFieldError?.getCurrentError?.();
-      if (
-        currentError?.severity === 'error' &&
-        currentError.blocksSave !== false &&
-        typeof currentError.invalidDraft === 'string'
-      ) {
-        return { draft: currentError.invalidDraft, message: currentError.message };
-      }
-      return undefined;
-    }, [onFieldError]);
+    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
 
     const {
       draft,
@@ -195,11 +186,12 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       normalizeDraftOnCommit: normalizeDateDraftOnCommit,
       onCommit: (nextValue) => {
         onCommit?.(createCommitEvent(nextValue));
+        clearInvalidDraft?.();
       },
+      onCommitInvalid,
+      committedInvalidDraft,
       inputElementRef,
-      clearErrorOnDraftChange: true,
       commitOnBlur: false,
-      initialInvalidDraft,
     });
 
     const skipNextBlurCommitRef = React.useRef(false);
@@ -276,7 +268,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       );
     }, [effectiveMaxDate, effectiveMinDate, resolvedSpecialRangeErrors, validateRange, value]);
 
-    const visibleLocalError = touched ? error : undefined;
+    const visibleLocalError = error;
     const shouldShowRangeError =
       (effectiveMinDate !== undefined || effectiveMaxDate !== undefined) &&
       value !== undefined &&
@@ -328,32 +320,24 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     ]);
 
     // Underret forælderen om fejltilstand
-    const onFieldErrorDepsRef = React.useRef<{ visibleLocalErrorMsg: string | undefined; visibleRangeErrorMessage: string; onFieldError: typeof onFieldError } | null>(null);
+    const onFieldErrorDepsRef = React.useRef<{ visibleRangeErrorMessage: string; onFieldError: typeof onFieldError } | null>(null);
     React.useEffect(() => {
       if (isInteractiveDevLoggingEnabled) {
         const prev = onFieldErrorDepsRef.current;
         if (prev !== null) {
           const changed: string[] = [];
-          if (prev.visibleLocalErrorMsg !== visibleLocalError?.message) changed.push(`visibleLocalError.message (${prev.visibleLocalErrorMsg} → ${visibleLocalError?.message})`);
           if (prev.visibleRangeErrorMessage !== visibleRangeErrorMessage) changed.push(`visibleRangeErrorMessage (${prev.visibleRangeErrorMessage} → ${visibleRangeErrorMessage})`);
           if (prev.onFieldError !== onFieldError) changed.push('onFieldError (fn reference changed — POSSIBLE LOOP SOURCE)');
           if (changed.length > 0) {
             console.debug('[StyledDateField] onFieldError-effect triggered. Changed deps:', changed.join(', '));
           }
         }
-        onFieldErrorDepsRef.current = { visibleLocalErrorMsg: visibleLocalError?.message, visibleRangeErrorMessage, onFieldError };
+        onFieldErrorDepsRef.current = { visibleRangeErrorMessage, onFieldError };
       }
 
+      // Parse-fejl (ikke-committbar dato) persisteres i invalidDrafts via useDraftField.onCommitInvalid.
+      // Kun den blocksSave:false range-fejl (committet, men uden for interval) rapporteres til fieldErrors.
       if (typeof onFieldError === 'function') {
-        if (visibleLocalError?.message) {
-          debugStyledDateField('report-field-error', {
-            type: 'local',
-            message: visibleLocalError.message,
-            blocksSave: true,
-          });
-          onFieldError({ message: visibleLocalError.message, blocksSave: true, invalidDraft: draft });
-          return;
-        }
         if (visibleRangeErrorMessage) {
           debugStyledDateField('report-field-error', {
             type: 'range',
@@ -366,7 +350,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         debugStyledDateField('report-field-error', { type: 'clear' });
         onFieldError(undefined);
       }
-    }, [draft, visibleLocalError?.message, visibleRangeErrorMessage, onFieldError]);
+    }, [visibleRangeErrorMessage, onFieldError]);
 
     const handleFocus = React.useCallback(
       (e: React.FocusEvent<HTMLInputElement>) => {
