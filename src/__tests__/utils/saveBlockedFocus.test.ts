@@ -151,11 +151,16 @@ describe('navigateToBlockingInputError — synlig fejl på nuværende fane har f
 });
 
 describe('navigateToBlockingInputError — fane-routing', () => {
-  const setActiveTabMock = vi.mocked(setActiveTabForPage);
+  // Hent mocken på run-time (i beforeEach/assertions), IKKE som en collection-tidspunkt-capture.
+  // En `const ... = vi.mocked(...)` i describe-kroppen evalueres under test-collection, hvor
+  // modul-mock-applikationen sjældent kan race på tværs af filer ved kold parallel-collection og
+  // efterlade en u-mocket binding (gav flaky "mockClear is not a function"). På run-time er mocken
+  // altid anvendt.
+  const setActiveTabMock = () => vi.mocked(setActiveTabForPage);
 
   beforeEach(() => {
     document.body.innerHTML = '';
-    setActiveTabMock.mockClear();
+    setActiveTabMock().mockClear();
   });
 
   afterEach(() => {
@@ -176,7 +181,7 @@ describe('navigateToBlockingInputError — fane-routing', () => {
     await flushRaf();
 
     expect(navigate).toHaveBeenCalledWith('/erstatningsopgoerelse');
-    expect(setActiveTabMock).toHaveBeenCalledWith('erstatningsopgoerelse', 'offentlige_ydelser');
+    expect(setActiveTabMock()).toHaveBeenCalledWith('erstatningsopgoerelse', 'offentlige_ydelser');
   });
 
   it('ruter en lønindkomst-celle (standardløn pr. ansættelsesforhold) til lønindkomst-fanen', async () => {
@@ -192,7 +197,7 @@ describe('navigateToBlockingInputError — fane-routing', () => {
     await navigateToBlockingInputError(target, '/stamdata', navigate as never);
     await flushRaf();
 
-    expect(setActiveTabMock).toHaveBeenCalledWith('erstatningsopgoerelse', 'loenindkomst');
+    expect(setActiveTabMock()).toHaveBeenCalledWith('erstatningsopgoerelse', 'loenindkomst');
   });
 
   it('ruter en "angivet løn"-lønudviklingscelle til EO-oplysninger-fanen', async () => {
@@ -208,7 +213,7 @@ describe('navigateToBlockingInputError — fane-routing', () => {
     await navigateToBlockingInputError(target, '/stamdata', navigate as never);
     await flushRaf();
 
-    expect(setActiveTabMock).toHaveBeenCalledWith('erstatningsopgoerelse', 'eo_oplysninger');
+    expect(setActiveTabMock()).toHaveBeenCalledWith('erstatningsopgoerelse', 'eo_oplysninger');
   });
 
   it('ruter den syntetiske :loenindkomst-aggregatfejl (pr. ansættelsesforhold) til lønindkomst-fanen', async () => {
@@ -225,7 +230,7 @@ describe('navigateToBlockingInputError — fane-routing', () => {
     await flushRaf();
 
     expect(navigate).toHaveBeenCalledWith('/erstatningsopgoerelse');
-    expect(setActiveTabMock).toHaveBeenCalledWith('erstatningsopgoerelse', 'loenindkomst');
+    expect(setActiveTabMock()).toHaveBeenCalledWith('erstatningsopgoerelse', 'loenindkomst');
   });
 
   it('ruter "angivet løn"-aggregatfejlen til EO-oplysninger-fanen', async () => {
@@ -240,7 +245,7 @@ describe('navigateToBlockingInputError — fane-routing', () => {
     await navigateToBlockingInputError(target, '/stamdata', navigate as never);
     await flushRaf();
 
-    expect(setActiveTabMock).toHaveBeenCalledWith('erstatningsopgoerelse', 'eo_oplysninger');
+    expect(setActiveTabMock()).toHaveBeenCalledWith('erstatningsopgoerelse', 'eo_oplysninger');
   });
 });
 
