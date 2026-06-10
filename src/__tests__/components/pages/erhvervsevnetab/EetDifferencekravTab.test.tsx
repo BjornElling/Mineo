@@ -11,7 +11,7 @@ vi.mock('../../../../contexts/useAppSettings', () => ({
 }));
 
 vi.mock('../../../../pdf/infrastructure/pdfService', () => ({
-  downloadDifferencekravPdf: vi.fn(),
+  downloadDifferencekravDokument: vi.fn(),
 }));
 
 vi.mock('../../../../hooks/useShakeFlag', () => ({

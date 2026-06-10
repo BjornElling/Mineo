@@ -12,8 +12,8 @@ import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapsh
 import type { BeregningErrorSummary } from '../../../../domain/debug/eoDebugRowAggregator';
 import { toISODateString } from '../../../../types/branded';
 
-type DownloadErstatningsopgoerelsePdf = typeof import('../../../../pdf/infrastructure/pdfService')['downloadErstatningsopgoerelsePdf'];
-type DownloadTafFordeltPaaAarPdf = typeof import('../../../../pdf/infrastructure/pdfService')['downloadTafFordeltPaaAarPdf'];
+type DownloadErstatningsopgoerelsePdf = typeof import('../../../../pdf/infrastructure/pdfService')['downloadErstatningsopgoerelseDokument'];
+type DownloadTafFordeltPaaAarPdf = typeof import('../../../../pdf/infrastructure/pdfService')['downloadTafFordeltPaaAarDokument'];
 
 const { downloadErstatningsopgoerelsePdfMock, downloadTafFordeltPaaAarPdfMock } = vi.hoisted(() => {
   return {
@@ -42,8 +42,8 @@ vi.mock('../../../../utils/scrollToSection', () => ({
 }));
 
 vi.mock('../../../../pdf/infrastructure/pdfService', () => ({
-  downloadErstatningsopgoerelsePdf: downloadErstatningsopgoerelsePdfMock,
-  downloadTafFordeltPaaAarPdf: downloadTafFordeltPaaAarPdfMock,
+  downloadErstatningsopgoerelseDokument: downloadErstatningsopgoerelsePdfMock,
+  downloadTafFordeltPaaAarDokument: downloadTafFordeltPaaAarPdfMock,
 }));
 
 describe('EOberegningTab PDF-afslutning', () => {

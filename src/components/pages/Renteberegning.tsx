@@ -11,7 +11,7 @@ import useRentekravRows from '../tables/useRentekravRows';
 import { createRenteberegningInitialValues } from '../../domain/renteberegning/renteberegningInitialValues';
 import type { RentePdfContext } from '../tables/BeregnetRenteTable';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import { downloadRentePdf, downloadRenteOversigtPdf } from '../../pdf/infrastructure/pdfService';
+import { downloadRenteDokument, downloadRenteOversigtDokument } from '../../pdf/infrastructure/pdfService';
 import type { RenteOversigtRow } from '../../pdf/domains/renteberegning/renteOversigtPdf';
 import type { CommitHandler } from '../../types/fieldEvents';
 import ContentBox from '../layout/ContentBox';
@@ -88,7 +88,7 @@ const Renteberegning = React.memo(() => {
         handleError('Ugyldige datoer for dokument-generering', 'Renteberegning.DocumentGeneration');
         return;
       }
-      const result = await downloadRentePdf({
+      const result = await downloadRenteDokument({
         beloeb: pdfContext.beloeb,
         actualInterestDate: actualInterestDateDanish,
         beregningsdato: beregningsdatoDanish,
@@ -105,7 +105,7 @@ const Renteberegning = React.memo(() => {
 
   const handleDownloadOversigt = React.useCallback(
     async (rows: readonly RenteOversigtRow[], beregningsdato: ISODateString) => {
-      const result = await downloadRenteOversigtPdf({
+      const result = await downloadRenteOversigtDokument({
         beregningsdato,
         rows,
         kommentarer: values.kommentarer,

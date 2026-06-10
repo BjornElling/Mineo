@@ -18,7 +18,7 @@ import { harTabelValideringsFejl } from '../domain/aarsloen/aarsloenValidationPo
 import { hasAtLeastOneValidRow } from '../domain/aarsloen/standardLoenRowCalculations';
 import type { PersistedSectionMap } from '../config/persistenceRegistry';
 import type { AppSettings } from '../settings/appSettingsSchema';
-import { downloadAarsloenPdf, downloadSHDagePdf } from '../pdf/infrastructure/pdfService';
+import { downloadAarsloenDokument, downloadSHDageDokument } from '../pdf/infrastructure/pdfService';
 import { allowPdfDownload, blockPdfDownload, type PdfDownloadGateResult } from '../pdf/pdfGateTypes';
 
 // ============================================================================
@@ -208,7 +208,7 @@ export const useAarsloenPdfGates = ({
       return;
     }
 
-    const result = await downloadAarsloenPdf({
+    const result = await downloadAarsloenDokument({
       input: {
         satser: {
           feriePct,
@@ -269,7 +269,7 @@ export const useAarsloenPdfGates = ({
     // Konverter perioder til format som PDF-generatoren forventer
     const perioder = periodeData.perioder || [];
 
-    const result = await downloadSHDagePdf({
+    const result = await downloadSHDageDokument({
       perioder,
       settings,
       persistedStamdata,

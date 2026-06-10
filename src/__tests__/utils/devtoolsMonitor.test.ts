@@ -164,7 +164,7 @@ describe('devtoolsMonitor', () => {
     reporter.reportSystemIssue({
       code: 'pdf:dev_server_unavailable',
       area: 'pdf',
-      context: 'pdfService.downloadRentePdf',
+      context: 'pdfService.downloadRenteDokument',
       userMessage: 'Udviklingsserveren svarer ikke længere.',
     });
 

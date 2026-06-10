@@ -15,7 +15,7 @@ import {
   buildKapitaliseringGrundydelseLabel,
   buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
-import { downloadKapitaliseringPdf } from '../../../pdf/infrastructure/pdfService';
+import { downloadKapitaliseringDokument } from '../../../pdf/infrastructure/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
@@ -45,7 +45,7 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot
       triggerDownloadShake();
       return;
     }
-    await downloadKapitaliseringPdf({
+    await downloadKapitaliseringDokument({
       computation,
       koen: values.koen ?? undefined,
       settings,

@@ -18,10 +18,10 @@ import StyledDropdown, { type StyledDropdownChangeEvent } from '../../inputs/Sty
 import { toReadableSummaryMessage } from '../../../domain/erstatningsopgoerelse/helpers/readableSummaryMessage';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 import {
-  downloadErstatningsopgoerelsePdf,
-  downloadTafFordeltPaaAarPdf,
-  downloadTafKravGrafPdf,
-  downloadTafOpreguleretPaaAarPdf,
+  downloadErstatningsopgoerelseDokument,
+  downloadTafFordeltPaaAarDokument,
+  downloadTafKravGrafDokument,
+  downloadTafOpreguleretPaaAarDokument,
 } from '../../../pdf/infrastructure/pdfService';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToBeregningView';
@@ -834,7 +834,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
     if (!eoSnapshot) return;
 
-    const result = await downloadErstatningsopgoerelsePdf({
+    const result = await downloadErstatningsopgoerelseDokument({
       stamdataValues,
       eoValues,
       selectedElements,
@@ -852,7 +852,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
     if (!eoSnapshot) return;
 
-    const result = await downloadTafFordeltPaaAarPdf({
+    const result = await downloadTafFordeltPaaAarDokument({
       stamdataValues,
       eoValues,
       settings,
@@ -868,7 +868,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
     if (!eoSnapshot) return;
 
-    const result = await downloadTafOpreguleretPaaAarPdf({
+    const result = await downloadTafOpreguleretPaaAarDokument({
       stamdataValues,
       eoValues,
       selectedElements,
@@ -886,7 +886,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     }
     if (!eoSnapshot) return;
 
-    const result = await downloadTafKravGrafPdf({
+    const result = await downloadTafKravGrafDokument({
       eoValues,
       settings,
       snapshot: eoSnapshot,

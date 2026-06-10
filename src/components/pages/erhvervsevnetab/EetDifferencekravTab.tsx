@@ -22,7 +22,7 @@ import {
   buildKapitaliseringGrundydelseLabel,
   buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
-import { downloadDifferencekravPdf } from '../../../pdf/infrastructure/pdfService';
+import { downloadDifferencekravDokument } from '../../../pdf/infrastructure/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
@@ -380,7 +380,7 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
       triggerDownloadShake();
       return;
     }
-    await downloadDifferencekravPdf({
+    await downloadDifferencekravDokument({
       computation,
       koen: values.koen ?? undefined,
       bilagSelection,

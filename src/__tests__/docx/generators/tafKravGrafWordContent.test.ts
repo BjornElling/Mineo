@@ -1,0 +1,43 @@
+/// <reference types="vitest/globals" />
+import { renderWordDocument } from './wordContentHarness';
+
+// Word-indholdstest for "Visuel graf over indtægtsniveau": grafen tegnes på et
+// HTML-canvas, som jsdom ikke understøtter. Diagrammet er et SEPARAT,
+// format-agnostisk modul (tafKravGrafChart) der testes for sig; her mocker vi
+// PNG-rendereren til et 1x1-billede, så vi i stedet kan verificere DET, der er
+// Word-generatorens ansvar: at dokumentet får titlen (core-properties) og at
+// grafen faktisk indlejres som et billede i .docx-pakken (word/media).
+const PNG_1X1 =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
+
+vi.mock('../../../pdf/domains/tafFordelt/tafKravGrafChart', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../pdf/domains/tafFordelt/tafKravGrafChart')>();
+  return { ...actual, renderTafKravGrafChartPng: () => PNG_1X1 };
+});
+
+const FAKE_DOCUMENT = {
+  model: { titel: 'Visuel graf over indtægtsniveau', brevhoved: null },
+  unit: 'maaned',
+  series: [],
+  timeWindows: [],
+  beregningsperiode: null,
+  skadeMarker: null,
+} as never;
+
+describe('tafKravGraf → Word-indhold', () => {
+  it('indlejrer grafen som billede og sætter dokumenttitlen i .docx', async () => {
+    const { generateTafKravGrafPdf } = await import('../../../pdf/domains/tafFordelt/tafKravGrafPdf');
+
+    const { filename, zip } = await renderWordDocument(() => {
+      generateTafKravGrafPdf({ document: FAKE_DOCUMENT, visBrevhoved: false });
+    });
+
+    expect(filename).toMatch(/\.docx$/);
+    // Titlen sættes som core-property (writeTitle kaldes ikke for grafen).
+    const coreXml = (await zip.file('docProps/core.xml')?.async('string')) ?? '';
+    expect(coreXml).toContain('Visuel graf over indtægtsniveau');
+    // Grafen skal være indlejret som et billede i pakken.
+    const mediaFiles = Object.keys(zip.files).filter((name) => /^word\/media\//.test(name));
+    expect(mediaFiles.length).toBeGreaterThan(0);
+  });
+});

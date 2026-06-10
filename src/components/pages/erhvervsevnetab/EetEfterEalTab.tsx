@@ -8,7 +8,7 @@ import {
   buildAldersreduktionFormelTekst,
   formatPercentTrimmedFromRounded4,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-import { downloadEfterEalPdf } from '../../../pdf/infrastructure/pdfService';
+import { downloadEfterEalDokument } from '../../../pdf/infrastructure/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
@@ -36,7 +36,7 @@ const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => 
       triggerDownloadShake();
       return;
     }
-    await downloadEfterEalPdf({
+    await downloadEfterEalDokument({
       computation,
       settings,
       persistedStamdata: stamdata,

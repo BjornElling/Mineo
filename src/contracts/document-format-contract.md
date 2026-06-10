@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Gælder for:** Alle dokument-downloads i Mineo-hovedappen.
-**Senest verificeret mod kode:** 2026-06-04
+**Senest verificeret mod kode:** 2026-06-10
 
 Denne kontrakt fastlægger reglerne for valg mellem PDF- og Word-downloads.
 

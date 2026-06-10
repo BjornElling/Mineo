@@ -6,7 +6,7 @@ import type { CommitEvent } from '../../../types/fieldEvents';
 import StandardDisplayTable, { type StandardDisplayTableColumn, type StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues, StamdataValues } from '../../../schemas/formSchemas';
 import { useAppSettings } from '../../../contexts/useAppSettings';
-import { downloadLoebendeYdelserPdf } from '../../../pdf/infrastructure/pdfService';
+import { downloadLoebendeYdelserDokument } from '../../../pdf/infrastructure/pdfService';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import {
@@ -90,7 +90,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
       triggerDownloadShake();
       return;
     }
-    await downloadLoebendeYdelserPdf({
+    await downloadLoebendeYdelserDokument({
       computation,
       visUdvidetSpecifikation: showExtendedSpecification,
       settings,

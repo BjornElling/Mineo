@@ -358,7 +358,7 @@ const resolveReguleringInterval = (interval: ReguleringInterval) => {
   return { fraDato, tilDato };
 };
 
-export const downloadSatserPdf = async (params: Readonly<{
+export const downloadSatserDokument = async (params: Readonly<{
   year: number;
   satser: SatserData;
   settings: AppSettings;
@@ -366,7 +366,7 @@ export const downloadSatserPdf = async (params: Readonly<{
 }>): Promise<PdfDownloadResult> => {
   const { year, satser, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'satser', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadSatserPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadSatserDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -375,11 +375,11 @@ export const downloadSatserPdf = async (params: Readonly<{
       generateSatserPdf(year, satser, common);
     });
   } catch (error) {
-    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere satser-PDF'), 'pdfService.downloadSatserPdf', error);
+    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere satser-PDF'), 'pdfService.downloadSatserDokument', error);
   }
 };
 
-export const downloadRentePdf = async (params: Readonly<{
+export const downloadRenteDokument = async (params: Readonly<{
   beloeb: number;
   actualInterestDate: string;
   beregningsdato: string;
@@ -400,7 +400,7 @@ export const downloadRentePdf = async (params: Readonly<{
     persistedStamdata,
   } = params;
   const common = buildCommonPdfContext(settings, 'renteberegning', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadRentePdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadRenteDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -413,11 +413,11 @@ export const downloadRentePdf = async (params: Readonly<{
       });
     });
   } catch (error) {
-    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere rente-PDF'), 'pdfService.downloadRentePdf', error);
+    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere rente-PDF'), 'pdfService.downloadRenteDokument', error);
   }
 };
 
-export const downloadRenteOversigtPdf = async (params: Readonly<{
+export const downloadRenteOversigtDokument = async (params: Readonly<{
   beregningsdato: ISODateString;
   rows: ReadonlyArray<RenteOversigtRow>;
   kommentarer?: string;
@@ -426,7 +426,7 @@ export const downloadRenteOversigtPdf = async (params: Readonly<{
 }>): Promise<PdfDownloadResult> => {
   const { beregningsdato, rows, kommentarer, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'renteberegning', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadRenteOversigtPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadRenteOversigtDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -435,18 +435,18 @@ export const downloadRenteOversigtPdf = async (params: Readonly<{
       generateRenteOversigtPdf(beregningsdato, rows, { ...common, kommentarer });
     });
   } catch (error) {
-    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere rente-oversigt-PDF'), 'pdfService.downloadRenteOversigtPdf', error);
+    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere rente-oversigt-PDF'), 'pdfService.downloadRenteOversigtDokument', error);
   }
 };
 
-export const downloadReguleringPdf = async (params: Readonly<{
+export const downloadReguleringDokument = async (params: Readonly<{
   input: ReguleringPdfInput;
   settings: AppSettings;
   persistedStamdata: unknown;
 }>): Promise<PdfDownloadResult> => {
   const { input, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'regulering', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadReguleringPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadReguleringDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -459,18 +459,18 @@ export const downloadReguleringPdf = async (params: Readonly<{
       });
     });
   } catch (error) {
-    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere regulering-PDF'), 'pdfService.downloadReguleringPdf', error);
+    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere regulering-PDF'), 'pdfService.downloadReguleringDokument', error);
   }
 };
 
-export const downloadKrlPdf = async (params: Readonly<{
+export const downloadKrlDokument = async (params: Readonly<{
   settings: AppSettings;
   persistedStamdata: unknown;
 }>): Promise<PdfDownloadResult> => {
   const { settings, persistedStamdata } = params;
   // Bevidst UX: KRL bruger samme brevhoved-indstilling som regulering (ingen separat KRL-toggle).
   const common = buildCommonPdfContext(settings, 'regulering', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadKrlPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadKrlDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -479,11 +479,11 @@ export const downloadKrlPdf = async (params: Readonly<{
       generateKRLPdf(common);
     });
   } catch (error) {
-    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere KRL-PDF'), 'pdfService.downloadKrlPdf', error);
+    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere KRL-PDF'), 'pdfService.downloadKrlDokument', error);
   }
 };
 
-export const downloadErstatningsopgoerelsePdf = async (params: Readonly<{
+export const downloadErstatningsopgoerelseDokument = async (params: Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   selectedElements: SelectedElements;
@@ -497,7 +497,7 @@ export const downloadErstatningsopgoerelsePdf = async (params: Readonly<{
   if (eoPdfDocument.kind === 'blocked') {
     return { success: false, error: buildDocumentFailureMessage(settings, eoPdfDocument.message) };
   }
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadErstatningsopgoerelsePdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadErstatningsopgoerelseDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -514,13 +514,13 @@ export const downloadErstatningsopgoerelsePdf = async (params: Readonly<{
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere erstatningsopgørelse-PDF'),
-      'pdfService.downloadErstatningsopgoerelsePdf',
+      'pdfService.downloadErstatningsopgoerelseDokument',
       error
     );
   }
 };
 
-export const downloadTafFordeltPaaAarPdf = async (params: Readonly<{
+export const downloadTafFordeltPaaAarDokument = async (params: Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   settings: AppSettings;
@@ -532,7 +532,7 @@ export const downloadTafFordeltPaaAarPdf = async (params: Readonly<{
   if (tafPdfDocument.kind === 'blocked') {
     return { success: false, error: buildDocumentFailureMessage(settings, tafPdfDocument.message) };
   }
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadTafFordeltPaaAarPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadTafFordeltPaaAarDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -547,13 +547,13 @@ export const downloadTafFordeltPaaAarPdf = async (params: Readonly<{
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere TAF fordelt på år-PDF'),
-      'pdfService.downloadTafFordeltPaaAarPdf',
+      'pdfService.downloadTafFordeltPaaAarDokument',
       error
     );
   }
 };
 
-export const downloadTafOpreguleretPaaAarPdf = async (params: Readonly<{
+export const downloadTafOpreguleretPaaAarDokument = async (params: Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   selectedElements: SelectedElements;
@@ -567,7 +567,7 @@ export const downloadTafOpreguleretPaaAarPdf = async (params: Readonly<{
   if (tafOpreguleretPdfDocument.kind === 'blocked') {
     return { success: false, error: buildDocumentFailureMessage(settings, tafOpreguleretPdfDocument.message) };
   }
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadTafOpreguleretPaaAarPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadTafOpreguleretPaaAarDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -586,13 +586,13 @@ export const downloadTafOpreguleretPaaAarPdf = async (params: Readonly<{
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere TAF opreguleret til beregningsår-PDF'),
-      'pdfService.downloadTafOpreguleretPaaAarPdf',
+      'pdfService.downloadTafOpreguleretPaaAarDokument',
       error
     );
   }
 };
 
-export const downloadTafKravGrafPdf = async (params: Readonly<{
+export const downloadTafKravGrafDokument = async (params: Readonly<{
   eoValues: ErstatningsopgoerelseValues;
   settings: AppSettings;
   snapshot: EoSnapshot;
@@ -603,7 +603,7 @@ export const downloadTafKravGrafPdf = async (params: Readonly<{
   if (tafKravGrafDocument.kind === 'blocked') {
     return { success: false, error: buildDocumentFailureMessage(settings, tafKravGrafDocument.message) };
   }
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadTafKravGrafPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadTafKravGrafDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -618,13 +618,13 @@ export const downloadTafKravGrafPdf = async (params: Readonly<{
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere Visuel graf over indtægtsniveau-PDF'),
-      'pdfService.downloadTafKravGrafPdf',
+      'pdfService.downloadTafKravGrafDokument',
       error
     );
   }
 };
 
-export const downloadVarigeMenPdf = async (params: Readonly<{
+export const downloadVarigeMenDokument = async (params: Readonly<{
   fodselsdato: ISODateString | undefined;
   skadedato: ISODateString | undefined;
   mengrad: number;
@@ -643,7 +643,7 @@ export const downloadVarigeMenPdf = async (params: Readonly<{
     persistedStamdata,
   } = params;
   const common = buildCommonPdfContext(settings, 'varigeMen', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadVarigeMenPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadVarigeMenDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -663,13 +663,13 @@ export const downloadVarigeMenPdf = async (params: Readonly<{
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere ménberegning-PDF'),
-      'pdfService.downloadVarigeMenPdf',
+      'pdfService.downloadVarigeMenDokument',
       error
     );
   }
 };
 
-export const downloadAarsloenPdf = async (params: Readonly<{
+export const downloadAarsloenDokument = async (params: Readonly<{
   input: AarsloenPdfInput;
   settings: AppSettings;
   persistedStamdata: unknown;
@@ -683,7 +683,7 @@ export const downloadAarsloenPdf = async (params: Readonly<{
         sagsbehandler: common.stamdata.sagsbehandler,
       }
     : null;
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadAarsloenPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadAarsloenDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -696,18 +696,18 @@ export const downloadAarsloenPdf = async (params: Readonly<{
       });
     });
   } catch (error) {
-    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere årsløn-PDF'), 'pdfService.downloadAarsloenPdf', error);
+    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere årsløn-PDF'), 'pdfService.downloadAarsloenDokument', error);
   }
 };
 
-export const downloadSHDagePdf = async (params: Readonly<{
+export const downloadSHDageDokument = async (params: Readonly<{
   perioder: readonly SHDagePeriod[];
   settings: AppSettings;
   persistedStamdata: unknown;
 }>): Promise<PdfDownloadResult> => {
   const { perioder, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'shDage', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadSHDagePdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadSHDageDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -716,11 +716,11 @@ export const downloadSHDagePdf = async (params: Readonly<{
       generateSHDagePdf(perioder, common);
     });
   } catch (error) {
-    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere SH-dage-PDF'), 'pdfService.downloadSHDagePdf', error);
+    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere SH-dage-PDF'), 'pdfService.downloadSHDageDokument', error);
   }
 };
 
-export const downloadKapitaliseringPdf = async (params: Readonly<{
+export const downloadKapitaliseringDokument = async (params: Readonly<{
   computation: EetKapitaliseringComputation;
   koen?: string;
   settings: AppSettings;
@@ -728,7 +728,7 @@ export const downloadKapitaliseringPdf = async (params: Readonly<{
 }>): Promise<PdfDownloadResult> => {
   const { computation, koen, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadKapitaliseringPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadKapitaliseringDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -744,20 +744,20 @@ export const downloadKapitaliseringPdf = async (params: Readonly<{
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere kapitalisering-PDF'),
-      'pdfService.downloadKapitaliseringPdf',
+      'pdfService.downloadKapitaliseringDokument',
       error
     );
   }
 };
 
-export const downloadEfterEalPdf = async (params: Readonly<{
+export const downloadEfterEalDokument = async (params: Readonly<{
   computation: EetEalComputation;
   settings: AppSettings;
   persistedStamdata: unknown;
 }>): Promise<PdfDownloadResult> => {
   const { computation, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadEfterEalPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadEfterEalDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -772,13 +772,13 @@ export const downloadEfterEalPdf = async (params: Readonly<{
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere EET efter EAL-PDF'),
-      'pdfService.downloadEfterEalPdf',
+      'pdfService.downloadEfterEalDokument',
       error
     );
   }
 };
 
-export const downloadDifferencekravPdf = async (params: Readonly<{
+export const downloadDifferencekravDokument = async (params: Readonly<{
   computation: EetDifferencekravComputation;
   koen?: string;
   bilagSelection: BilagSelection;
@@ -787,7 +787,7 @@ export const downloadDifferencekravPdf = async (params: Readonly<{
 }>): Promise<PdfDownloadResult> => {
   const { computation, koen, bilagSelection, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadDifferencekravPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadDifferencekravDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -804,13 +804,13 @@ export const downloadDifferencekravPdf = async (params: Readonly<{
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere differencekrav-PDF'),
-      'pdfService.downloadDifferencekravPdf',
+      'pdfService.downloadDifferencekravDokument',
       error
     );
   }
 };
 
-export const downloadLoebendeYdelserPdf = async (params: Readonly<{
+export const downloadLoebendeYdelserDokument = async (params: Readonly<{
   computation: EetLoebendeComputation;
   visUdvidetSpecifikation: boolean;
   settings: AppSettings;
@@ -818,7 +818,7 @@ export const downloadLoebendeYdelserPdf = async (params: Readonly<{
 }>): Promise<PdfDownloadResult> => {
   const { computation, visUdvidetSpecifikation, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'erhvervsevnetab', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadLoebendeYdelserPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadLoebendeYdelserDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -834,20 +834,20 @@ export const downloadLoebendeYdelserPdf = async (params: Readonly<{
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere løbende ydelser-PDF'),
-      'pdfService.downloadLoebendeYdelserPdf',
+      'pdfService.downloadLoebendeYdelserDokument',
       error
     );
   }
 };
 
-export const downloadForsoergertabPdf = async (params: Readonly<{
+export const downloadForsoergertabDokument = async (params: Readonly<{
   pdfParams: Omit<GenerateForsoergertabPdfParams, 'visBrevhoved' | 'stamdata'>;
   settings: AppSettings;
   persistedStamdata: unknown;
 }>): Promise<PdfDownloadResult> => {
   const { pdfParams, settings, persistedStamdata } = params;
   const common = buildCommonPdfContext(settings, 'forsoergertab', persistedStamdata);
-  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadForsoergertabPdf');
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadForsoergertabDokument');
   if (preflightFailure) return preflightFailure;
 
   try {
@@ -862,7 +862,7 @@ export const downloadForsoergertabPdf = async (params: Readonly<{
   } catch (error) {
     return await createPdfDownloadFailure(
       buildDocumentFailureMessage(settings, 'Kunne ikke generere forsørgertab-PDF'),
-      'pdfService.downloadForsoergertabPdf',
+      'pdfService.downloadForsoergertabDokument',
       error
     );
   }

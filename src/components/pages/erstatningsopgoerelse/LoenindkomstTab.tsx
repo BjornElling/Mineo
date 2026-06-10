@@ -69,7 +69,7 @@ import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../
 import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
-import { downloadKrlPdf, downloadReguleringPdf, type ReguleringPdfInput } from '../../../pdf/infrastructure/pdfService';
+import { downloadKrlDokument, downloadReguleringDokument, type ReguleringPdfInput } from '../../../pdf/infrastructure/pdfService';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -1509,7 +1509,7 @@ const LoenindkomstTab = React.memo(({
 
   const handleDownloadReguleringPdf = React.useCallback(
     async (input: ReguleringPdfInput) => {
-      await downloadReguleringPdf({
+      await downloadReguleringDokument({
         input,
         settings,
         persistedStamdata: getPersistedSectionSnapshot('stamdata'),
@@ -1520,7 +1520,7 @@ const LoenindkomstTab = React.memo(({
 
   const handleDownloadKRLPdf = React.useCallback(
     async () => {
-      await downloadKrlPdf({
+      await downloadKrlDokument({
         settings,
         persistedStamdata: getPersistedSectionSnapshot('stamdata'),
       });

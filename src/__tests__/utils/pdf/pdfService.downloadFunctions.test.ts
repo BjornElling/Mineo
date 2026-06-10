@@ -129,21 +129,21 @@ vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOp
 
 import { toISODateString } from '../../../types/branded';
 import {
-  downloadSatserPdf,
-  downloadRentePdf,
-  downloadReguleringPdf,
-  downloadKrlPdf,
-  downloadLoebendeYdelserPdf,
-  downloadKapitaliseringPdf,
-  downloadEfterEalPdf,
-  downloadDifferencekravPdf,
-  downloadErstatningsopgoerelsePdf,
-  downloadTafFordeltPaaAarPdf,
-  downloadTafKravGrafPdf,
-  downloadTafOpreguleretPaaAarPdf,
-  downloadVarigeMenPdf,
-  downloadAarsloenPdf,
-  downloadSHDagePdf,
+  downloadSatserDokument,
+  downloadRenteDokument,
+  downloadReguleringDokument,
+  downloadKrlDokument,
+  downloadLoebendeYdelserDokument,
+  downloadKapitaliseringDokument,
+  downloadEfterEalDokument,
+  downloadDifferencekravDokument,
+  downloadErstatningsopgoerelseDokument,
+  downloadTafFordeltPaaAarDokument,
+  downloadTafKravGrafDokument,
+  downloadTafOpreguleretPaaAarDokument,
+  downloadVarigeMenDokument,
+  downloadAarsloenDokument,
+  downloadSHDageDokument,
   resetPdfServiceDevServerStateForTests,
 } from '../../../pdf/infrastructure/pdfService';
 
@@ -237,11 +237,11 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-// ─── downloadSatserPdf ────────────────────────────────────────────────────────
+// ─── downloadSatserDokument ────────────────────────────────────────────────────────
 
-describe('downloadSatserPdf', () => {
+describe('downloadSatserDokument', () => {
   it('returnerer success=true og kalder generator', async () => {
-    const result = await downloadSatserPdf({
+    const result = await downloadSatserDokument({
       year: 2024,
       satser: {} as never,
       settings,
@@ -253,7 +253,7 @@ describe('downloadSatserPdf', () => {
 
   it('returnerer success=false og error-string når generator kaster', async () => {
     mockGenerateSatserPdf.mockImplementationOnce(() => { throw new Error('PDF-fejl'); });
-    const result = await downloadSatserPdf({
+    const result = await downloadSatserDokument({
       year: 2024,
       satser: {} as never,
       settings,
@@ -266,11 +266,11 @@ describe('downloadSatserPdf', () => {
   });
 });
 
-// ─── downloadRentePdf ─────────────────────────────────────────────────────────
+// ─── downloadRenteDokument ─────────────────────────────────────────────────────────
 
-describe('downloadRentePdf', () => {
+describe('downloadRenteDokument', () => {
   it('returnerer success=true og kalder generator', async () => {
-    const result = await downloadRentePdf({
+    const result = await downloadRenteDokument({
       beloeb: 5000,
       actualInterestDate: '01-06-2024',
       beregningsdato: toISODateString('2024-01-01'),
@@ -285,7 +285,7 @@ describe('downloadRentePdf', () => {
 
   it('returnerer success=false ved generator-fejl', async () => {
     mockGenerateRentePdf.mockImplementationOnce(() => { throw new Error('Fejl'); });
-    const result = await downloadRentePdf({
+    const result = await downloadRenteDokument({
       beloeb: 0,
       actualInterestDate: '01-01-2024',
       beregningsdato: toISODateString('2024-01-01'),
@@ -299,13 +299,13 @@ describe('downloadRentePdf', () => {
 });
 
 
-// ─── downloadReguleringPdf ────────────────────────────────────────────────────
+// ─── downloadReguleringDokument ────────────────────────────────────────────────────
 
-describe('downloadReguleringPdf', () => {
+describe('downloadReguleringDokument', () => {
   const validInterval = { fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-12-31') };
 
   it('returnerer success=true og kalder generator', async () => {
-    const result = await downloadReguleringPdf({
+    const result = await downloadReguleringDokument({
       input: {
         overenskomstLabel: 'Test',
         loenudviklingBasis: 'Overenskomst',
@@ -322,7 +322,7 @@ describe('downloadReguleringPdf', () => {
   });
 
   it('returnerer success=false ved ugyldigt interval', async () => {
-    const result = await downloadReguleringPdf({
+    const result = await downloadReguleringDokument({
       input: {
         overenskomstLabel: 'Test',
         loenudviklingBasis: 'Overenskomst',
@@ -338,11 +338,11 @@ describe('downloadReguleringPdf', () => {
   });
 });
 
-// ─── downloadKrlPdf ───────────────────────────────────────────────────────────
+// ─── downloadKrlDokument ───────────────────────────────────────────────────────────
 
-describe('downloadKrlPdf', () => {
+describe('downloadKrlDokument', () => {
   it('returnerer success=true og kalder generator', async () => {
-    const result = await downloadKrlPdf({ settings, persistedStamdata: null });
+    const result = await downloadKrlDokument({ settings, persistedStamdata: null });
     expect(result.success).toBe(true);
     expect(mockGenerateKRLPdf).toHaveBeenCalled();
   });
@@ -355,7 +355,7 @@ describe('downloadKrlPdf', () => {
         regulering: true,
       },
     };
-    const result = await downloadKrlPdf({ settings: settingsWithReguleringBrevhoved, persistedStamdata: stamdata });
+    const result = await downloadKrlDokument({ settings: settingsWithReguleringBrevhoved, persistedStamdata: stamdata });
     expect(result.success).toBe(true);
 
     const lastCall = mockGenerateKRLPdf.mock.calls.at(-1);
@@ -364,7 +364,7 @@ describe('downloadKrlPdf', () => {
 
   it('returnerer success=false ved generator-fejl', async () => {
     mockGenerateKRLPdf.mockImplementationOnce(() => { throw new Error('KRL fejl'); });
-    const result = await downloadKrlPdf({ settings, persistedStamdata: null });
+    const result = await downloadKrlDokument({ settings, persistedStamdata: null });
     expect(result.success).toBe(false);
   });
 });
@@ -375,7 +375,7 @@ describe('EET PDF downloads', () => {
   it('videresender løbende-yddelser computation uændret til generatoren', async () => {
     const computation = { beregningsdato: toISODateString('2026-01-14'), afgoerelser: [] } as never;
 
-    const result = await downloadLoebendeYdelserPdf({
+    const result = await downloadLoebendeYdelserDokument({
       computation,
       visUdvidetSpecifikation: true,
       settings,
@@ -394,7 +394,7 @@ describe('EET PDF downloads', () => {
   it('videresender kapitalisering-computation uændret til generatoren', async () => {
     const computation = { afgoerelser: [] } as never;
 
-    const result = await downloadKapitaliseringPdf({
+    const result = await downloadKapitaliseringDokument({
       computation,
       koen: 'Mand',
       settings,
@@ -413,7 +413,7 @@ describe('EET PDF downloads', () => {
   it('videresender EET efter EAL-computation uændret til generatoren', async () => {
     const computation = { beregningsdato: toISODateString('2026-01-15'), ealKrav: 123 } as never;
 
-    const result = await downloadEfterEalPdf({
+    const result = await downloadEfterEalDokument({
       computation,
       settings,
       persistedStamdata: stamdata,
@@ -442,7 +442,7 @@ describe('EET PDF downloads', () => {
       visUdvidetSpecifikationLoebendeYdelserBilag: false,
     } as const;
 
-    const result = await downloadDifferencekravPdf({
+    const result = await downloadDifferencekravDokument({
       computation,
       koen: 'Mand',
       bilagSelection,
@@ -460,11 +460,11 @@ describe('EET PDF downloads', () => {
   });
 });
 
-// ─── downloadErstatningsopgoerelsePdf ────────────────────────────────────────
+// ─── downloadErstatningsopgoerelseDokument ────────────────────────────────────────
 
-describe('downloadErstatningsopgoerelsePdf', () => {
+describe('downloadErstatningsopgoerelseDokument', () => {
   it('returnerer success=true ved gyldigt payload', async () => {
-    const result = await downloadErstatningsopgoerelsePdf({
+    const result = await downloadErstatningsopgoerelseDokument({
       stamdataValues: stamdata,
       eoValues,
       selectedElements: {} as never,
@@ -477,7 +477,7 @@ describe('downloadErstatningsopgoerelsePdf', () => {
 
   it('returnerer success=false ved generator-fejl', async () => {
     mockGenerateErstatningsopgoerelsePdf.mockImplementationOnce(() => { throw new Error('EO fejl'); });
-    const result = await downloadErstatningsopgoerelsePdf({
+    const result = await downloadErstatningsopgoerelseDokument({
       stamdataValues: stamdata,
       eoValues,
       selectedElements: {} as never,
@@ -494,7 +494,7 @@ describe('downloadErstatningsopgoerelsePdf', () => {
       invariants: [],
     });
 
-    const result = await downloadErstatningsopgoerelsePdf({
+    const result = await downloadErstatningsopgoerelseDokument({
       stamdataValues: stamdata,
       eoValues,
       selectedElements: {} as never,
@@ -513,7 +513,7 @@ describe('downloadErstatningsopgoerelsePdf', () => {
       invariants: [],
     });
 
-    const result = await downloadErstatningsopgoerelsePdf({
+    const result = await downloadErstatningsopgoerelseDokument({
       stamdataValues: stamdata,
       eoValues,
       selectedElements: {} as never,
@@ -532,7 +532,7 @@ describe('downloadErstatningsopgoerelsePdf', () => {
       document: projectedDocument,
     });
 
-    const result = await downloadErstatningsopgoerelsePdf({
+    const result = await downloadErstatningsopgoerelseDokument({
       stamdataValues: stamdata,
       eoValues,
       selectedElements: {} as never,
@@ -561,7 +561,7 @@ describe('downloadErstatningsopgoerelsePdf', () => {
       perioder: [],
     }];
 
-    await downloadErstatningsopgoerelsePdf({
+    await downloadErstatningsopgoerelseDokument({
       stamdataValues: stamdata,
       eoValues,
       selectedElements: {} as never,
@@ -579,11 +579,11 @@ describe('downloadErstatningsopgoerelsePdf', () => {
   });
 });
 
-// ─── downloadTafFordeltPaaAarPdf ──────────────────────────────────────────────
+// ─── downloadTafFordeltPaaAarDokument ──────────────────────────────────────────────
 
-describe('downloadTafFordeltPaaAarPdf', () => {
+describe('downloadTafFordeltPaaAarDokument', () => {
   it('returnerer success=true ved gyldigt payload', async () => {
-    const result = await downloadTafFordeltPaaAarPdf({
+    const result = await downloadTafFordeltPaaAarDokument({
       stamdataValues: stamdata,
       eoValues,
       settings,
@@ -600,7 +600,7 @@ describe('downloadTafFordeltPaaAarPdf', () => {
       invariants: [],
     });
 
-    const result = await downloadTafFordeltPaaAarPdf({
+    const result = await downloadTafFordeltPaaAarDokument({
       stamdataValues: stamdata,
       eoValues,
       settings,
@@ -618,7 +618,7 @@ describe('downloadTafFordeltPaaAarPdf', () => {
       document: projectedDocument,
     });
 
-    const result = await downloadTafFordeltPaaAarPdf({
+    const result = await downloadTafFordeltPaaAarDokument({
       stamdataValues: stamdata,
       eoValues,
       settings,
@@ -632,11 +632,11 @@ describe('downloadTafFordeltPaaAarPdf', () => {
   });
 });
 
-// ─── downloadTafKravGrafPdf ──────────────────────────────────────────────────
+// ─── downloadTafKravGrafDokument ──────────────────────────────────────────────────
 
-describe('downloadTafKravGrafPdf', () => {
+describe('downloadTafKravGrafDokument', () => {
   it('returnerer success=true ved gyldigt payload', async () => {
-    const result = await downloadTafKravGrafPdf({
+    const result = await downloadTafKravGrafDokument({
       eoValues,
       settings,
       snapshot: eoSnapshot,
@@ -652,7 +652,7 @@ describe('downloadTafKravGrafPdf', () => {
       invariants: [],
     });
 
-    const result = await downloadTafKravGrafPdf({
+    const result = await downloadTafKravGrafDokument({
       eoValues,
       settings,
       snapshot: eoSnapshot,
@@ -669,7 +669,7 @@ describe('downloadTafKravGrafPdf', () => {
       document: projectedDocument,
     });
 
-    const result = await downloadTafKravGrafPdf({
+    const result = await downloadTafKravGrafDokument({
       eoValues,
       settings,
       snapshot: eoSnapshot,
@@ -682,11 +682,11 @@ describe('downloadTafKravGrafPdf', () => {
   });
 });
 
-// ─── downloadTafOpreguleretPaaAarPdf ──────────────────────────────────────────
+// ─── downloadTafOpreguleretPaaAarDokument ──────────────────────────────────────────
 
-describe('downloadTafOpreguleretPaaAarPdf', () => {
+describe('downloadTafOpreguleretPaaAarDokument', () => {
   it('returnerer success=true ved gyldigt payload', async () => {
-    const result = await downloadTafOpreguleretPaaAarPdf({
+    const result = await downloadTafOpreguleretPaaAarDokument({
       stamdataValues: stamdata,
       eoValues,
       selectedElements: {} as never,
@@ -704,7 +704,7 @@ describe('downloadTafOpreguleretPaaAarPdf', () => {
       invariants: [],
     });
 
-    const result = await downloadTafOpreguleretPaaAarPdf({
+    const result = await downloadTafOpreguleretPaaAarDokument({
       stamdataValues: stamdata,
       eoValues,
       selectedElements: {} as never,
@@ -723,7 +723,7 @@ describe('downloadTafOpreguleretPaaAarPdf', () => {
       document: projectedDocument,
     });
 
-    const result = await downloadTafOpreguleretPaaAarPdf({
+    const result = await downloadTafOpreguleretPaaAarDokument({
       stamdataValues: stamdata,
       eoValues,
       selectedElements: {} as never,
@@ -739,7 +739,7 @@ describe('downloadTafOpreguleretPaaAarPdf', () => {
 
   it('returnerer success=false og rapporterer systemfejl ved generator-fejl (fail-closed)', async () => {
     mockGenerateTafOpreguleretPaaAarPdf.mockImplementationOnce(() => { throw new Error('TAF-opreg fejl'); });
-    const result = await downloadTafOpreguleretPaaAarPdf({
+    const result = await downloadTafOpreguleretPaaAarDokument({
       stamdataValues: stamdata,
       eoValues,
       selectedElements: {} as never,
@@ -750,17 +750,17 @@ describe('downloadTafOpreguleretPaaAarPdf', () => {
     expect(mockReportSystemIssue).toHaveBeenCalledWith(
       expect.objectContaining({
         area: 'document',
-        context: 'pdfService.downloadTafOpreguleretPaaAarPdf',
+        context: 'pdfService.downloadTafOpreguleretPaaAarDokument',
       })
     );
   });
 });
 
-// ─── downloadVarigeMenPdf ─────────────────────────────────────────────────────
+// ─── downloadVarigeMenDokument ─────────────────────────────────────────────────────
 
-describe('downloadVarigeMenPdf', () => {
+describe('downloadVarigeMenDokument', () => {
   it('returnerer success=true og kalder generator', async () => {
-    const result = await downloadVarigeMenPdf({
+    const result = await downloadVarigeMenDokument({
       fodselsdato: undefined,
       skadedato: undefined,
       mengrad: 0,
@@ -775,7 +775,7 @@ describe('downloadVarigeMenPdf', () => {
 
   it('returnerer success=false ved generator-fejl', async () => {
     mockGenerateVarigeMenPdf.mockImplementationOnce(() => { throw new Error('VM fejl'); });
-    const result = await downloadVarigeMenPdf({
+    const result = await downloadVarigeMenDokument({
       fodselsdato: undefined,
       skadedato: undefined,
       mengrad: 0,
@@ -788,11 +788,11 @@ describe('downloadVarigeMenPdf', () => {
   });
 });
 
-// ─── downloadAarsloenPdf ──────────────────────────────────────────────────────
+// ─── downloadAarsloenDokument ──────────────────────────────────────────────────────
 
-describe('downloadAarsloenPdf', () => {
+describe('downloadAarsloenDokument', () => {
   it('returnerer success=true og kalder generator', async () => {
-    const result = await downloadAarsloenPdf({
+    const result = await downloadAarsloenDokument({
       input: {} as never,
       settings,
       persistedStamdata: null,
@@ -803,7 +803,7 @@ describe('downloadAarsloenPdf', () => {
 
   it('returnerer success=false ved generator-fejl', async () => {
     mockGenerateAarsloenPdf.mockImplementationOnce(() => { throw new Error('ASL fejl'); });
-    const result = await downloadAarsloenPdf({
+    const result = await downloadAarsloenDokument({
       input: {} as never,
       settings,
       persistedStamdata: null,
@@ -817,7 +817,7 @@ describe('downloadAarsloenPdf', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    const result = await downloadAarsloenPdf({
+    const result = await downloadAarsloenDokument({
       input: {} as never,
       settings,
       persistedStamdata: null,
@@ -837,7 +837,7 @@ describe('downloadAarsloenPdf', () => {
       new TypeError('Failed to fetch dynamically imported module')
     );
 
-    const result = await downloadAarsloenPdf({
+    const result = await downloadAarsloenDokument({
       input: {} as never,
       settings,
       persistedStamdata: null,
@@ -851,7 +851,7 @@ describe('downloadAarsloenPdf', () => {
       expect.objectContaining({
         code: 'document:dev_server_unavailable',
         area: 'document',
-        context: 'pdfService.downloadAarsloenPdf',
+        context: 'pdfService.downloadAarsloenDokument',
         diagnostics: expect.objectContaining({
           check: 'post_failure',
         }),
@@ -859,7 +859,7 @@ describe('downloadAarsloenPdf', () => {
     );
     expect(mockLoadAarsloenPdfModule).toHaveBeenCalledTimes(1);
 
-    const secondResult = await downloadAarsloenPdf({
+    const secondResult = await downloadAarsloenDokument({
       input: {} as never,
       settings,
       persistedStamdata: null,
@@ -871,11 +871,11 @@ describe('downloadAarsloenPdf', () => {
   });
 });
 
-// ─── downloadSHDagePdf ────────────────────────────────────────────────────────
+// ─── downloadSHDageDokument ────────────────────────────────────────────────────────
 
-describe('downloadSHDagePdf', () => {
+describe('downloadSHDageDokument', () => {
   it('returnerer success=true og kalder generator', async () => {
-    const result = await downloadSHDagePdf({
+    const result = await downloadSHDageDokument({
       perioder: [],
       settings,
       persistedStamdata: null,
@@ -886,7 +886,7 @@ describe('downloadSHDagePdf', () => {
 
   it('returnerer success=false ved generator-fejl', async () => {
     mockGenerateSHDagePdf.mockImplementationOnce(() => { throw new Error('SH fejl'); });
-    const result = await downloadSHDagePdf({
+    const result = await downloadSHDageDokument({
       perioder: [],
       settings,
       persistedStamdata: null,

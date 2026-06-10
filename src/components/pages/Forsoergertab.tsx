@@ -19,7 +19,7 @@ import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } 
 import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
 import AarsloenAmountFieldRow from '../inputs/AarsloenAmountFieldRow';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import { downloadForsoergertabPdf } from '../../pdf/infrastructure/pdfService';
+import { downloadForsoergertabDokument } from '../../pdf/infrastructure/pdfService';
 import { buildAldersreduktionFormelTekst } from '../../domain/erhvervsevnetab/eetAldersreduktionFormel';
 import StandardLooseTable from '../tables/StandardLooseTable';
 import { computeForsoergertabSnapshot } from '../../domain/forsoergertab/forsoergertabSnapshot';
@@ -93,7 +93,7 @@ const Forsoergertab = React.memo(() => {
   const foersoergertabForhoejtetTilMin = snapshot.calculation.foersoergertabForhoejtetTilMin;
 
   const handlePdfDownload = React.useCallback(async () => {
-    await downloadForsoergertabPdf({
+    await downloadForsoergertabDokument({
       pdfParams: snapshot.pdfProjection,
       settings,
       persistedStamdata: stamdata,

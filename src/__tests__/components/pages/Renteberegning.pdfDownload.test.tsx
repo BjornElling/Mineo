@@ -6,7 +6,7 @@ const { mockDownloadRentePdf } = vi.hoisted(() => ({
 }));
 
 vi.mock('../../../pdf/infrastructure/pdfService', () => ({
-  downloadRentePdf: mockDownloadRentePdf,
+  downloadRenteDokument: mockDownloadRentePdf,
 }));
 
 vi.mock('../../../hooks/usePersistedActiveTab', () => ({

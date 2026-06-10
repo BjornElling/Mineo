@@ -22,8 +22,8 @@ const { downloadAarsloenPdfMock, downloadSHDagePdfMock } = vi.hoisted(() => ({
 }));
 
 vi.mock('../../pdf/infrastructure/pdfService', () => ({
-  downloadAarsloenPdf: downloadAarsloenPdfMock,
-  downloadSHDagePdf: downloadSHDagePdfMock,
+  downloadAarsloenDokument: downloadAarsloenPdfMock,
+  downloadSHDageDokument: downloadSHDagePdfMock,
 }));
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

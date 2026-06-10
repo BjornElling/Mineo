@@ -23,7 +23,7 @@ import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
-import { downloadVarigeMenPdf } from '../../../pdf/infrastructure/pdfService';
+import { downloadVarigeMenDokument } from '../../../pdf/infrastructure/pdfService';
 import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { resolveStamdataDatoLabel } from '../../../domain/policies/stamdataCalculations';
 
@@ -176,7 +176,7 @@ const aldersreduktionsBeloeb = beregningsResultat?.aldersreduktionBeloeb ?? 0;
       return;
     }
 
-    const result = await downloadVarigeMenPdf({
+    const result = await downloadVarigeMenDokument({
       fodselsdato: coerceToISODateString(stamValues.skadelidteFodselsdato),
       skadedato: coerceToISODateString(stamValues.skadedato),
       mengrad,

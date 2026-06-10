@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import StyledYearField from '../inputs/StyledYearField';
 import { getSatserForYear, satserAngivAarYearBounds } from '../../data/lovbestemteRates';
-import { downloadSatserPdf } from '../../pdf/infrastructure/pdfService';
+import { downloadSatserDokument } from '../../pdf/infrastructure/pdfService';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { satserSchema } from '../../schemas/formSchemas';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
@@ -155,7 +155,7 @@ const Satser = React.memo(() => {
   // Håndter download af PDF
   const handleDownloadPdf = React.useCallback(async () => {
     if (satser && gyldigtAar) {
-      await downloadSatserPdf({
+      await downloadSatserDokument({
         year: gyldigtAar,
         satser,
         settings,

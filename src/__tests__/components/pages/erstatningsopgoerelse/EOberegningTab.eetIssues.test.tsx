@@ -44,8 +44,8 @@ const { downloadErstatningsopgoerelsePdfMock, downloadTafFordeltPaaAarPdfMock } 
 }));
 
 vi.mock('../../../../pdf/infrastructure/pdfService', () => ({
-  downloadErstatningsopgoerelsePdf: downloadErstatningsopgoerelsePdfMock,
-  downloadTafFordeltPaaAarPdf: downloadTafFordeltPaaAarPdfMock,
+  downloadErstatningsopgoerelseDokument: downloadErstatningsopgoerelsePdfMock,
+  downloadTafFordeltPaaAarDokument: downloadTafFordeltPaaAarPdfMock,
 }));
 
 const { eoSnapshotToEoPdfDocumentMock, eoSnapshotToTafPerYearPdfDocumentMock } = vi.hoisted(() => ({
