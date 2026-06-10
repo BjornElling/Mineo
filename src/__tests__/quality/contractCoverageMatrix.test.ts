@@ -69,6 +69,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     contractPath: 'src/contracts/keyboard-navigation.md',
     requiredTestPaths: [
       'src/__tests__/components/layout/Container.test.tsx',
+      'src/__tests__/components/layout/Container.checklistGaps.test.tsx',
       'src/__tests__/components/tables/tableKeyboardNavigation.looseNavigation.test.tsx',
     ],
   },
@@ -167,12 +168,6 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/stores/undoRedoStore.test.ts',
       'src/__tests__/components/layout/MainLayout.undoRedoEditorGuard.test.tsx',
-    ],
-  },
-  {
-    contractPath: 'docs/testing/keyboard-navigation-test-checklist.md',
-    requiredTestPaths: [
-      'src/__tests__/components/layout/Container.test.tsx',
     ],
   },
   {
@@ -337,7 +332,6 @@ describe('contract linkage matrix', () => {
 
     const nonTopologyMatrixEntries = new Set([
       'src/contracts/contract-topology.json',
-      'docs/testing/keyboard-navigation-test-checklist.md',
     ]);
     for (const contractPath of matrixContracts) {
       if (nonTopologyMatrixEntries.has(contractPath)) continue;

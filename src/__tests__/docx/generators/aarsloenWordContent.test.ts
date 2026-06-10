@@ -95,7 +95,7 @@ describe('aarsloen → Word-indhold', () => {
         fuldLoenUnderFerie: true,
         retTilSjetteFerieuge: false,
         antalFeriedage: undefined,
-        loenPaaHelligdage: 'Fuld løn',
+        loenPaaHelligdage: 'Almindelig løn',
         shDageAntal: null,
         beregningsData: {
           metode: 'C',

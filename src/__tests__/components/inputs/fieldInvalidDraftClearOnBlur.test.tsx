@@ -125,6 +125,27 @@ describe('felt med ugyldig rå draft — clear/edit rydder invalidDrafts ved blu
     expect(input).toHaveValue('');
   });
 
+  it('skriver IKKE til invalidDrafts mens der tastes (no-live-preview) — først ved commit (blur)', async () => {
+    // Fase 2-invariant: invalidDrafts er en COMMITTED rå draft, ikke en live-preview. Tastning (onChange)
+    // må aldrig røre store'en; kun blur/Enter committer. Uden dette værn kunne en fremtidig refaktor
+    // utilsigtet flytte skrivningen til onChange og genintroducere det flygtige parallelle system.
+    const user = userEvent.setup();
+    renderHarness();
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+
+    await user.click(input);
+    await user.type(input, '30-02-1980');
+
+    // Midt i tastningen (før blur): råstrengen ER i feltet, men IKKE i den persisterede store.
+    expect(input).toHaveValue('30-02-1980');
+    expect(invalidDraftFor('skadelidteFodselsdato')).toBeUndefined();
+
+    // Først commit (blur) persisterer den.
+    await user.tab();
+    expect(invalidDraftFor('skadelidteFodselsdato')).toBe('30-02-1980');
+  });
+
   it('erstatter (ikke gendanner) den gamle ugyldige værdi når feltet rettes til en gyldig dato', async () => {
     const user = userEvent.setup();
     renderHarness();
@@ -208,6 +229,40 @@ describe('brøk-felt med ugyldig rå draft — clear rydder invalidDrafts (samme
 
     expect(eoInvalidDraftFor('forligAnsvarsgradBroek')).toBeUndefined();
     expect(input).toHaveValue('');
+  });
+
+  it('skjuler den afledte parse-fejl mens brugeren taster en ny værdi (draft ≠ committedInvalidDraft)', async () => {
+    // Fase 5, punkt 8: fejlen (rød kant + tooltip, eksponeret via aria-describedby) afledes af
+    // invalidDrafts, men vises KUN når draften aktuelt VISER den ugyldige streng. Så snart brugeren
+    // begynder at taste en ny værdi, skjules fejlen — erstatter det gamle clearErrorOnDraftChange.
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/erstatningsopgoerelse']}>
+        <AppSettingsProvider>
+          <RoutePathnameProvider>
+            <FormPersistenceProvider>
+              <FractionPage />
+            </FormPersistenceProvider>
+          </RoutePathnameProvider>
+        </AppSettingsProvider>
+      </MemoryRouter>
+    );
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+
+    // Commit en ufuldstændig brøk → persisteret invalidDraft + afledt fejl vist (draft === committedInvalidDraft).
+    await user.click(input);
+    await user.type(input, '5/');
+    await user.tab();
+    expect(eoInvalidDraftFor('forligAnsvarsgradBroek')).toBe('5/');
+    expect(input.getAttribute('aria-describedby')).toBeTruthy();
+
+    // Begynd at taste en ny værdi: draften afviger nu fra den persisterede ugyldige streng → fejlen skjules.
+    // (Råstrengen i store'en er uændret — no-live-preview; kun den AFLEDTE visning forsvinder.)
+    await user.click(input);
+    await user.type(input, '3');
+    expect(input.getAttribute('aria-describedby')).toBeNull();
+    expect(eoInvalidDraftFor('forligAnsvarsgradBroek')).toBe('5/');
   });
 });
 

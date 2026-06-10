@@ -1,3 +1,4 @@
+import * as React from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 
@@ -132,6 +133,75 @@ describe('useDraftField', () => {
     rerender({ value: 'efter' });
     expect(result.current.draft).toBe('efter');
     expect(onCommit).toHaveBeenCalledTimes(1);
+  });
+
+  it('overskriver IKKE draften ved ekstern value-ændring mens feltet er fokuseret (React-fokus)', () => {
+    // Fase 2-invariant (physical-focus-beskyttelse): mens brugeren aktivt redigerer, må en ekstern
+    // committed value-ændring (fx fra en samtidig store-opdatering) ikke trække draften væk under
+    // fingrene på brugeren — det ville give flicker/silent-rollback. Resync sker først når fokus slippes.
+    const onCommit = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ value }) =>
+        useDraftField({
+          value,
+          format: (v) => v,
+          parse: parseTrimmedString,
+          onCommit,
+        }),
+      { initialProps: { value: 'før' } }
+    );
+
+    act(() => {
+      result.current.onFocus();
+      result.current.setDraft('redigerer');
+    });
+
+    // Ekstern committed value skifter mens feltet er fokuseret.
+    rerender({ value: 'efter' });
+
+    // Draften bevares uændret — brugerens redigering vinder, ingen overskrivning, intet commit.
+    expect(result.current.draft).toBe('redigerer');
+    expect(onCommit).not.toHaveBeenCalled();
+  });
+
+  it('beskytter draften ved fysisk DOM-fokus (inputElementRef) selv uden React-isFocused — værn mod focus-lag', () => {
+    // Ved hurtig tab-navigation kan React-fokus-state lagge bag DOM'ens activeElement. hasPhysicalFocus
+    // (document.activeElement mod inputElementRef) er det robuste værn, der hindrer resync af et felt der
+    // reelt har fokus, selv før onFocus-state'n er sat. Her sættes draften UDEN at kalde onFocus.
+    const el = document.createElement('input');
+    document.body.appendChild(el);
+    el.focus();
+    const inputElementRef = { current: el } as React.RefObject<HTMLInputElement>;
+
+    try {
+      const onCommit = vi.fn();
+      const { result, rerender } = renderHook(
+        ({ value }) =>
+          useDraftField({
+            value,
+            format: (v) => v,
+            parse: parseTrimmedString,
+            onCommit,
+            inputElementRef,
+          }),
+        { initialProps: { value: 'før' } }
+      );
+
+      act(() => {
+        // Ingen onFocus() — kun fysisk DOM-fokus (el er document.activeElement).
+        result.current.setDraft('redigerer');
+      });
+
+      rerender({ value: 'efter' });
+      expect(result.current.draft).toBe('redigerer');
+
+      // Når den fysiske fokus slippes, følger draften igen den eksterne kilde ved næste resync.
+      el.blur();
+      rerender({ value: 'endelig' });
+      expect(result.current.draft).toBe('endelig');
+    } finally {
+      document.body.removeChild(el);
+    }
   });
 
   it('commitDraft suppress’er efterfølgende blur-commit', () => {

@@ -4,7 +4,7 @@
 **Type:** Tværgående kontrakt
 **Gælder for:** Hele Mineo applikationen
 **Implementeret i:** `src/components/layout/Container.tsx`
-**Senest verificeret mod kode:** 2026-05-25
+**Senest verificeret mod kode:** 2026-06-10
 
 ---
 
@@ -186,7 +186,7 @@ Container keyboard-navigation testes på to niveauer:
 
 ### 1. Automatiske tests (Vitest)
 
-**Placering:** `src/__tests__/components/layout/Container.test.tsx`
+**Placering:** `src/__tests__/components/layout/Container.test.tsx` og `src/__tests__/components/layout/Container.checklistGaps.test.tsx`
 
 **Dækker:**
 - Tab flytter fokus fremad (ingen selection)
@@ -201,16 +201,22 @@ Container keyboard-navigation testes på to niveauer:
 - ArrowLeft/ArrowRight på radiobutton flytter aktiv selection og fokus med wrap i radiogruppen
 - inline action buttons, radiogruppe som ét tabstop, scroll til felt uden for viewport og popup-undtagelser
 - Cirkulær navigation fungerer
+- Disabled-felter springes over i Tab-/Shift+Tab-rækkefølgen (Container.checklistGaps)
+- Container intercepter IKKE museklik; klik giver fokus til det klikkede felt (Container.checklistGaps)
+- Den rigtige `StyledDropdown` (readOnly combobox) indgår i Tab-rækkefølgen og åbner på Enter/første klik uden at Container kaprer (Container.checklistGaps)
+- `StyledDateField`/`StyledTextField` får fokus uden selection (Container.checklistGaps)
 
-### 2. Manuel test-tjekliste
+### 2. Residual manuel/visuel kontrol
 
-**Placering:** `docs/testing/keyboard-navigation-test-checklist.md`
+De automatiske tests dækker al observerbar navigations-adfærd. Tilbage som ren visuel
+inspektion (kan ikke verificeres i JSDOM) står kun:
 
-**Dækker:**
-- Real-world formularer (Erstatningsopgørelse, Stamdata, etc.)
-- Alle felt-typer (text, number, date, dropdown, etc.)
-- Edge cases (tomme felter, readOnly, disabled)
-- Visuel inspektion (ingen blå markering ved Tab)
+- Finkornet visuel inspektion af "ingen blå markering" pr. felt-type ved Tab (StyledTextField,
+  StyledDropdown, StyledDateField, StyledPercentField, StyledIntegerField, StyledAmountField).
+- Fokus-ring-æstetik (klar og tydelig) samt platform-/browser-specifik caret-placering.
+
+Dette udføres ad hoc ved ændringer i `Container.tsx` eller `Styled*`-komponenter; der findes
+ikke længere en separat checklist-fil (adfærden er migreret til de automatiske tests ovenfor).
 
 ---
 
@@ -249,5 +255,5 @@ Den normative tværgående invariant er uændret: keyboard traversal må aldrig 
 
 - `src/components/layout/Container.tsx` – Implementation
 - `src/__tests__/components/layout/Container.test.tsx` – Automatiske tests
-- `docs/testing/keyboard-navigation-test-checklist.md` – Manuel QA-procedure
+- `src/__tests__/components/layout/Container.checklistGaps.test.tsx` – Automatiske tests (disabled-skip, museklik, StyledDropdown, dato/tekst-selection)
 - `AGENTS.md` – kontrakthierarki og no-live-preview regler

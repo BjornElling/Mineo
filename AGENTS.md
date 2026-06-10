@@ -119,7 +119,7 @@ Normal drift er console-tavs. `console.error`: reelle fejl (datatab, brudte inva
 - Mobil/tablet-specifik styling må kun findes i `UnsupportedDevicePage.tsx`. Ingen global responsiv adfærd (`@media`) i delte/globale styles.
 
 ## Normative kontrakter
-Følg de kontrakter der er klassificeret som bindende i `src/contracts/contract-topology.json`. Bredt relevante: `form-contract.md`, `domain-boundary-contract.md`, `page-component-contract.md`, `keyboard-navigation.md` (+ QA: `docs/testing/keyboard-navigation-test-checklist.md`).
+Følg de kontrakter der er klassificeret som bindende i `src/contracts/contract-topology.json`. Bredt relevante: `form-contract.md`, `domain-boundary-contract.md`, `page-component-contract.md`, `keyboard-navigation.md`.
 
 **Du ejer kontrakterne og enhver anden autoritativ beskrivelse.** Du er ikke bundet af deres nuværende tilstand — din opgave er at holde dem opdateret til det bedst mulige slutprodukt og derefter implementere på baggrund af den opdaterede kontrakt, ikke den gamle. Læs relevante kontrakter før du implementerer inden for deres scope. Kontrakter er bindende, **så længe de tjener det bedst mulige slutprodukt** — står en kontrakt i vejen for en reel forbedring eller er ude af sync med en sundere arkitektur, forbedrer du selve kontrakten frem for blindt at følge den. En kontraktændring er en arkitekturbeslutning: berører den ikke UI/UX eller beregningslogik, træffer du den selv; ellers forelægges den. Kode der afviger fra en gældende kontrakt uden at kontrakten er opdateret, er en arkitekturfejl. Ved tilføjelse/fjernelse/omdøbning/omklassificering af en kontrakt: følg `docs/architecture/contract-topology-procedure.md` og opdatér topologien i samme ændring.
 
