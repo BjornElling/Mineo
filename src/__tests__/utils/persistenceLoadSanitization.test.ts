@@ -2,8 +2,19 @@ import { stripUnknownFieldsBySchema } from '../../utils/persistenceLoadSanitizat
 import { erstatningsopgoerelseSchema, stamdataSchema } from '../../schemas/formSchemas';
 import { z } from 'zod';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { PERSISTED_SECTION_KEYS, persistenceSchemas } from '../../config/persistenceRegistry';
 
 describe('persistenceLoadSanitization', () => {
+  // Guard mod Zod-opgradering: hvis unwrapSchema lydløst no-op'er på en ny `.def`-pipe-struktur, ville
+  // ukendte felter IKKE blive strippet (jf. ADVARSEL i persistenceLoadSanitization.ts). Denne test fanger
+  // det for HVER persisteret sektion ved at kræve at en probe-nøgle altid rapporteres som ukendt.
+  it.each([...PERSISTED_SECTION_KEYS])('unwrapSchema når frem til ZodObject for sektionen %s', (pageKey) => {
+    const result = stripUnknownFieldsBySchema(persistenceSchemas[pageKey], {
+      __mineoUnknownProbe__: 'x',
+    });
+    expect(result.unknownPaths).toContainEqual(['__mineoUnknownProbe__']);
+  });
+
   it('stripper ukendte felter og rapporterer deres stier', () => {
     const result = stripUnknownFieldsBySchema(stamdataSchema, {
       journalnr: 'J-1',

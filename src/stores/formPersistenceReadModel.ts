@@ -11,6 +11,7 @@ const resolvedFieldErrorsCache = new Map<
   StorageKey,
   {
     bySource: FieldErrorsForSection<StorageKey>;
+    revision: number;
     resolved: Partial<Record<string, FormFieldError>>;
   }
 >();
@@ -43,16 +44,16 @@ export const getInvalidDraftForFieldSnapshot = (pageKey: StorageKey, fieldPath: 
   return formPersistenceStore.getState().invalidDrafts[pageKey][fieldPath];
 };
 
-export const getInvalidDraftRevisionSnapshot = (pageKey: StorageKey): number => {
-  return formPersistenceStore.getState().invalidDraftRevisions[pageKey] ?? 0;
-};
-
 export const getResolvedFieldErrorsSnapshot = <K extends StorageKey>(
   pageKey: K
 ): Partial<Record<Extract<keyof PersistedSectionMap[K], string>, FormFieldError>> => {
   const bySource = getFieldErrorsBySourceSnapshot(pageKey);
+  const revision = getFieldErrorRevisionSnapshot(pageKey);
   const cached = resolvedFieldErrorsCache.get(pageKey);
-  if (cached && cached.bySource === bySource) {
+  // Cachen invalideres på BÅDE reference-identitet OG revision: revisionen er en backstop, så en
+  // glemt clearResolvedFieldErrorsCache() ved restore ikke kan servere stale resolved errors, selv
+  // hvis bySource-referencen tilfældigt skulle genbruges.
+  if (cached && cached.bySource === bySource && cached.revision === revision) {
     return cached.resolved as Partial<Record<Extract<keyof PersistedSectionMap[K], string>, FormFieldError>>;
   }
 
@@ -68,6 +69,7 @@ export const getResolvedFieldErrorsSnapshot = <K extends StorageKey>(
 
   resolvedFieldErrorsCache.set(pageKey, {
     bySource: bySource as FieldErrorsForSection<StorageKey>,
+    revision,
     resolved: resolved as Partial<Record<string, FormFieldError>>,
   });
   return resolved;

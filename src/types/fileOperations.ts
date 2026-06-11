@@ -38,13 +38,6 @@ export interface SaveFileResult {
   verified?: boolean;
   /** Advarsel fra verifikation (hvis nogen) */
   warning?: string;
-  /** Detaljer om verifikation */
-  verificationDetails?: {
-    expected?: number;
-    actual?: number;
-    difference?: number;
-    missingSections?: string[];
-  };
 }
 
 /**

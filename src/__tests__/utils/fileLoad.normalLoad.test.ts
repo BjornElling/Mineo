@@ -171,7 +171,9 @@ describe('fileLoad – normalLoadFlow', () => {
     }));
   });
 
-  it('returnerer preflight-advarsel og stripper ukendte felter i kendt sektion', async () => {
+  it('stripper ukendte felter i kendt sektion og loader stille (ingen preflight ved harmløs oprydning)', async () => {
+    // Et ukendt felt i en kendt sektion er harmløs forward/backward-kompatibilitet: feltet strippes,
+    // resten loades, og der vises INGEN preflight-advarsel (brugervalg 2026-06-11, jf. persistence-contract §5).
     const content = await encryptLoadContainer({
       stamdata: {
         journalnr: 'J-001',
@@ -191,10 +193,8 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(result.success).toBe(true);
     if (!result.success) return;
     expect((result.snapshot?.stamdata as Record<string, unknown>)?.uventetFelt).toBeUndefined();
-    expect(result.preflightWarning?.issues).toContainEqual(expect.objectContaining({
-      kind: 'strippedUnknownField',
-      path: 'stamdata.uventetFelt',
-    }));
+    // Det strippede felt er en informationel oprydning, ikke en fejl: ingen preflight-advarsel.
+    expect(result.preflightWarning).toBeUndefined();
   });
 
   it('rapporterer faellesPersondata som ukendt sektion uden at migrere data', async () => {

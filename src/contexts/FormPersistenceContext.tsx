@@ -21,8 +21,15 @@ import { PERSISTED_SECTION_KEYS, persistenceSchemas, type PersistedSectionMap } 
 import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
-import { formPersistenceStore, type FieldErrorCache, type FieldErrorRevisionMap, type FormPersistenceMeta, type InvalidDraftRevisionMap, type InvalidDraftsCache, type SectionRevisionMap } from '../stores/formPersistenceStore';
+import { formPersistenceStore, type InvalidDraftsCache } from '../stores/formPersistenceStore';
 import { undoRedoStore, type HistoryFrameOrigin } from '../stores/undoRedoStore';
+import {
+  captureStoreRollbackSnapshot,
+  captureUndoRedoRollbackSnapshot,
+  restoreStoreRollbackSnapshot,
+  restoreUndoRedoRollbackSnapshot,
+  type StoreRollbackSnapshot,
+} from '../utils/persistenceStoreRollback';
 import { buildSessionStorageHydrationPlan } from '../utils/persistenceSessionHydration';
 import {
   readSessionStorageValue,
@@ -63,8 +70,6 @@ const getFieldCount = (value: unknown): number => {
   return typeof value === 'object' && value !== null ? Object.keys(value).length : 0;
 };
 
-const PERSISTENCE_DEBUG_MIN_INTERVAL_MS = 1000;
-
 type PersistedCache = { [K in StorageKey]: PersistedSectionMap[K] | null };
 
 const createEmptyPersistedCache = (): PersistedCache => {
@@ -76,65 +81,6 @@ const createEmptyPersistedCache = (): PersistedCache => {
 
 const assignCacheValue = <K extends StorageKey>(target: PersistedCache, key: K, value: PersistedSectionMap[K] | null): void => {
   target[key] = value;
-};
-
-type StoreRollbackSnapshot = {
-  sections: PersistedCache;
-  sectionRevisions: SectionRevisionMap;
-  fieldErrors: FieldErrorCache;
-  fieldErrorRevisions: FieldErrorRevisionMap;
-  invalidDrafts: InvalidDraftsCache;
-  invalidDraftRevisions: InvalidDraftRevisionMap;
-  committedChangeCounter: number;
-  authoritativeSnapshotEpoch: number;
-  meta: FormPersistenceMeta;
-};
-
-type UndoRedoRollbackSnapshot = Pick<ReturnType<typeof undoRedoStore.getState>, 'past' | 'future' | 'frameSequence'>;
-
-const captureStoreRollbackSnapshot = (): StoreRollbackSnapshot => {
-  const state = formPersistenceStore.getState();
-  return {
-    sections: state.sections as PersistedCache,
-    sectionRevisions: state.sectionRevisions,
-    fieldErrors: state.fieldErrors,
-    fieldErrorRevisions: state.fieldErrorRevisions,
-    invalidDrafts: state.invalidDrafts,
-    invalidDraftRevisions: state.invalidDraftRevisions,
-    committedChangeCounter: state.committedChangeCounter,
-    authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
-    meta: state.meta,
-  };
-};
-
-const captureUndoRedoRollbackSnapshot = (): UndoRedoRollbackSnapshot => {
-  const state = undoRedoStore.getState();
-  return {
-    past: structuredClone(state.past),
-    future: structuredClone(state.future),
-    frameSequence: state.frameSequence,
-  };
-};
-
-const restoreUndoRedoRollbackSnapshot = (snapshot: UndoRedoRollbackSnapshot): void => {
-  undoRedoStore.setState({
-    past: snapshot.past,
-    future: snapshot.future,
-    frameSequence: snapshot.frameSequence,
-  });
-};
-
-const restoreStoreRollbackSnapshot = (snapshot: StoreRollbackSnapshot): void => {
-  formPersistenceStore.getState().rollbackSections(
-    snapshot.sections,
-    snapshot.sectionRevisions,
-    snapshot.committedChangeCounter,
-    snapshot.authoritativeSnapshotEpoch,
-    snapshot.meta
-  );
-  formPersistenceStore.getState().restoreFieldErrors(snapshot.fieldErrors, snapshot.fieldErrorRevisions);
-  formPersistenceStore.getState().restoreInvalidDrafts(snapshot.invalidDrafts, snapshot.invalidDraftRevisions);
-  clearResolvedFieldErrorsCache();
 };
 
 const restoreStorageValue = (storageKey: string, value: string | null): void => {
@@ -170,9 +116,6 @@ const createRollbackError = (operation: string, originalError: unknown, rollback
  * Provider komponent der wrapper hele applikationen
  */
 export const FormPersistenceProvider = ({ children }: { children: React.ReactNode }) => {
-  const debugSaveStateRef = React.useRef<Map<string, { lastLogAt: number; lastFieldCount: number }>>(
-    new Map()
-  );
   const [initOnce] = React.useState<{
     initialSections: PersistedCache;
     keysToRemove: string[];
@@ -216,20 +159,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
 
   const emitUserNotice = React.useCallback((message: string, type: 'warning' | 'error' = 'warning') => {
     setNoticeState((prev) => ({ epoch: prev.epoch + 1, notice: { message, type } }));
-  }, []);
-  const logPersistSaveDebug = React.useCallback((storageKey: string, fieldCount: number) => {
-    if (!import.meta.env.DEV) return;
-
-    const now = Date.now();
-    const existing = debugSaveStateRef.current.get(storageKey);
-    const entry = existing ?? { lastLogAt: 0, lastFieldCount: fieldCount };
-    entry.lastFieldCount = fieldCount;
-
-    if (now - entry.lastLogAt >= PERSISTENCE_DEBUG_MIN_INTERVAL_MS) {
-      entry.lastLogAt = now;
-    }
-
-    debugSaveStateRef.current.set(storageKey, entry);
   }, []);
 
   /**
@@ -355,7 +284,6 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
         attemptRollbackStep(rollbackFailures, () => restoreUndoRedoRollbackSnapshot(undoRollbackSnapshot));
         throw createRollbackError('persistData', error, rollbackFailures);
       }
-      logPersistSaveDebug(storageKey, getFieldCount(data));
       return true;
     } catch (error) {
       console.error(`[Persistence] Fejl ved gemning af data for '${pageKey}':`, {
@@ -366,7 +294,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern fejl.`, 'error');
       return false;
     }
-  }, [markValueCommitCaptured, emitUserNotice, logPersistSaveDebug]);
+  }, [markValueCommitCaptured, emitUserNotice]);
 
   /**
    * Beregn næste invalidDrafts-cache fra nuværende store + én feltændring (uden at mutere store).
@@ -649,7 +577,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     pageKey: K,
     fieldName: string,
     source: FieldErrorSource,
-    error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean; invalidDraft?: string } | null
+    error: { message: string; severity: FieldErrorSeverity; blocksSave?: boolean } | null
   ) => {
     formPersistenceStore.getState().setFieldError(pageKey, fieldName, source, error);
   }, []);

@@ -134,9 +134,10 @@ export const downloadFile = (content: string, filename: string, mimeType = 'appl
     document.body.appendChild(a);
     a.click();
 
-    // Cleanup
+    // Cleanup. `a.remove()` er en no-op hvis noden allerede er fjernet (fx ved en re-render),
+    // modsat removeChild der ville kaste.
     setTimeout(() => {
-      document.body.removeChild(a);
+      a.remove();
       URL.revokeObjectURL(url);
     }, 100);
 

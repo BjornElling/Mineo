@@ -398,12 +398,6 @@ export const saveToFile = async (
       ...((fallbackWarning || verification?.warning)
         ? {
             warning: [fallbackWarning, verification.message].filter(Boolean).join('\n\n'),
-            verificationDetails: {
-              expected: verification.expected,
-              actual: verification.actual,
-              difference: verification.difference,
-              missingSections: verification.missingSections,
-            },
           }
         : {}),
     };

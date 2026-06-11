@@ -28,9 +28,11 @@ const normalizeDecryptedContainer = (decrypted: unknown): EoFileContainerLoad =>
     throw new Error('Ugyldig fil-struktur (ikke et objekt)');
   }
 
+  // Versionsfeltet tjekkes eksplicit FØR Zod-parse, så en forkert/manglende/ikke-streng version giver
+  // en klar dansk versionsfejl (kontrakt §7) frem for den generiske "ugyldig .eo-struktur".
   const rawVersion = decrypted.version;
-  if (typeof rawVersion === 'string' && rawVersion !== FILE_FORMAT_VERSION) {
-    throw new Error(`Ugyldig filversion. Forventet format ${FILE_FORMAT_VERSION}.`);
+  if (typeof rawVersion !== 'string' || rawVersion !== FILE_FORMAT_VERSION) {
+    throw new Error(`Ugyldig eller manglende filversion. Forventet format ${FILE_FORMAT_VERSION}.`);
   }
 
   const parsed = eoFileContainerLoadSchema.safeParse(decrypted);
@@ -154,6 +156,27 @@ const processDecryptedContainer = (args: {
     throw new Error('Filen indeholder ingen data der kan indlæses i denne version');
   }
 
+  // Skel mellem ÆGTE fejl (data der IKKE kunne indlæses) og harmløse, forventede felt-oprydninger.
+  // - Ægte fejl: en hel sektion droppet (validerer ikke) eller en ukendt sektion fra en nyere version.
+  // - Informationelt: enkeltfelter strippet pga. forward/backward-kompatibilitet, eller migrerede felter.
+  // Kun ægte fejl udløser preflight-dialogen og tæller som "Fejlede"; harmløs oprydning loader stille
+  // (brugervalg 2026-06-11, jf. persistence-contract.md §5). Den informationelle del logges til diagnose.
+  const genuineFailures = loadIssues.filter(
+    (issue) => issue.kind === 'sectionDropped' || issue.kind === 'unknownSection'
+  );
+  const informationalIssues = loadIssues.filter(
+    (issue) => issue.kind === 'strippedUnknownField' || issue.kind === 'migratedField'
+  );
+  if (informationalIssues.length > 0) {
+    logWarning('Felter ryddet/migreret ved load (forventet ved versionsforskel, ikke en fejl)', {
+      context: 'processDecryptedContainer',
+      data: {
+        count: informationalIssues.length,
+        paths: informationalIssues.map((issue) => issue.path).slice(0, 30),
+      },
+    });
+  }
+
   return {
     success: true,
     source,
@@ -165,12 +188,12 @@ const processDecryptedContainer = (args: {
     sections: sectionsPresent.length,
     version: fileVersion,
     snapshot,
-    preflightWarning: loadIssues.length > 0
+    preflightWarning: genuineFailures.length > 0
       ? {
         expectedCount: expectedFieldCount,
         loadedCount: loadedFieldCount,
-        failedCount: loadIssues.length,
-        issues: loadIssues,
+        failedCount: genuineFailures.length,
+        issues: genuineFailures,
       }
       : undefined,
   };

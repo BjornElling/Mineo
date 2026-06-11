@@ -286,18 +286,23 @@ describe('useUndoRedo', () => {
       </MemoryRouter>
     );
 
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     try {
+      // undo() fanger fejlen fail-closed (ingen uncaught exception i keydown-handleren) og ruller
+      // BÅDE sessionStorage, form-store og undo/redo-historik tilbage; tilstanden er uændret.
       expect(() => {
         act(() => {
           controls?.undo();
         });
-      }).toThrow('Kunne ikke skrive persistence-snapshot atomisk');
+      }).not.toThrow();
 
+      expect(consoleErrorSpy).toHaveBeenCalled();
       expect(undoRedoStore.getState().past).toHaveLength(1);
       expect(undoRedoStore.getState().future).toHaveLength(0);
       expect(formPersistenceStore.getState().sections.satser).toEqual({ aargang: 2024 });
       expect(screen.getByText('Current')).toBeInTheDocument();
     } finally {
+      consoleErrorSpy.mockRestore();
       Object.defineProperty(window, 'sessionStorage', {
         configurable: true,
         value: originalSessionStorage,

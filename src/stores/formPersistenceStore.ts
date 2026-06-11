@@ -22,6 +22,8 @@ export type FormPersistenceSections = {
 
 export type FormPersistenceMeta = {
   hydrated: boolean;
+  // Version-tag (PERSISTED_DATA_VERSION), IKKE et beregnet schema-fingerprint trods navnet.
+  // Bruges som version-guard ved hydrate/replace/rollback (se assertMetaFingerprintMatch).
   schemaFingerprint: string;
   lastCommittedAt?: number;
 };
@@ -58,7 +60,8 @@ export type FormPersistenceStoreState = {
   commitSection: <K extends keyof FormPersistenceSections>(key: K, next: FormPersistenceSections[K] | null, metaPatch?: SectionMetaPatch) => void;
   clearSection: <K extends keyof FormPersistenceSections>(key: K, metaPatch?: SectionMetaPatch) => void;
   // NOTE: replaceSections bevarer eksisterende field-errors.
-  // Brug replaceSectionsAndClearFieldErrors til load/replace-flows, der skal rydde fejl atomisk.
+  // Brug replaceSectionsAndClearFieldErrors til load/replace-flows, der skal rydde fejl atomisk
+  // (rydder både fieldErrors OG invalidDrafts atomisk sammen med sektionerne).
   replaceSections: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
   replaceSectionsAndClearFieldErrors: (next: FormPersistenceSections, meta: FormPersistenceMeta) => void;
   clearAll: (meta: FormPersistenceMeta) => void;
@@ -140,57 +143,39 @@ const createInitialInvalidDraftRevisions = (): InvalidDraftRevisionMap =>
     return acc;
   }, {} as InvalidDraftRevisionMap);
 
-const assertInvalidDraftsKeyCoverage = (next: InvalidDraftsCache): void => {
+// Alle slices (sections, fieldErrors, fieldErrorRevisions, invalidDrafts) er nøglet på det fulde
+// sæt af sektions-keys. Én generisk coverage-assert undgår drift mellem fire næsten-identiske kopier.
+const assertSectionKeyCoverage = (next: Record<string, unknown>, label: string): void => {
   const keys = Object.keys(next).sort();
   if (keys.length !== REQUIRED_SECTION_KEYS.length) {
-    throw new Error('formPersistenceStore: invalid-drafts key coverage mismatch');
+    throw new Error(`formPersistenceStore: ${label} key coverage mismatch`);
   }
   for (let i = 0; i < REQUIRED_SECTION_KEYS.length; i += 1) {
     if (keys[i] !== REQUIRED_SECTION_KEYS[i]) {
-      throw new Error('formPersistenceStore: invalid-drafts key coverage mismatch');
+      throw new Error(`formPersistenceStore: ${label} key coverage mismatch`);
     }
   }
 };
 
-const assertKeyCoverage = (next: FormPersistenceSections): void => {
-  const keys = Object.keys(next).sort();
-  if (keys.length !== REQUIRED_SECTION_KEYS.length) {
-    throw new Error('formPersistenceStore: section key coverage mismatch');
-  }
-  for (let i = 0; i < REQUIRED_SECTION_KEYS.length; i += 1) {
-    if (keys[i] !== REQUIRED_SECTION_KEYS[i]) {
-      throw new Error('formPersistenceStore: section key coverage mismatch');
-    }
-  }
-};
+const assertInvalidDraftsKeyCoverage = (next: InvalidDraftsCache): void =>
+  assertSectionKeyCoverage(next, 'invalid-drafts');
 
+const assertKeyCoverage = (next: FormPersistenceSections): void =>
+  assertSectionKeyCoverage(next, 'section');
+
+const assertFieldErrorKeyCoverage = (next: FieldErrorCache): void =>
+  assertSectionKeyCoverage(next, 'field-error');
+
+const assertFieldErrorRevisionKeyCoverage = (next: FieldErrorRevisionMap): void =>
+  assertSectionKeyCoverage(next, 'field-error revision');
+
+// `meta.schemaFingerprint` holder bevidst version-stregen PERSISTED_DATA_VERSION (ikke et beregnet
+// schema-fingerprint, jf. computeSchemaFingerprint i schemaFingerprint.ts, som kun er en test-tids
+// drift-gate). Det er en version-guard mod at anvende en snapshot fra en anden sagsinput-version.
+// Skift IKKE denne assert til at sammenligne mod et beregnet fingerprint — det ville bryde hydrering.
 const assertMetaFingerprintMatch = (meta: FormPersistenceMeta): void => {
   if (meta.schemaFingerprint !== PERSISTED_DATA_VERSION) {
     throw new Error('formPersistenceStore: schemaFingerprint mismatch');
-  }
-};
-
-const assertFieldErrorKeyCoverage = (next: FieldErrorCache): void => {
-  const keys = Object.keys(next).sort();
-  if (keys.length !== REQUIRED_SECTION_KEYS.length) {
-    throw new Error('formPersistenceStore: field-error key coverage mismatch');
-  }
-  for (let i = 0; i < REQUIRED_SECTION_KEYS.length; i += 1) {
-    if (keys[i] !== REQUIRED_SECTION_KEYS[i]) {
-      throw new Error('formPersistenceStore: field-error key coverage mismatch');
-    }
-  }
-};
-
-const assertFieldErrorRevisionKeyCoverage = (next: FieldErrorRevisionMap): void => {
-  const keys = Object.keys(next).sort();
-  if (keys.length !== REQUIRED_SECTION_KEYS.length) {
-    throw new Error('formPersistenceStore: field-error revision key coverage mismatch');
-  }
-  for (let i = 0; i < REQUIRED_SECTION_KEYS.length; i += 1) {
-    if (keys[i] !== REQUIRED_SECTION_KEYS[i]) {
-      throw new Error('formPersistenceStore: field-error revision key coverage mismatch');
-    }
   }
 };
 
@@ -322,8 +307,11 @@ const createFormPersistenceStore = () =>
       set((state) => ({
         sections: { ...next },
         sectionRevisions: state.sectionRevisions,
-        fieldErrors: state.fieldErrors,
-        fieldErrorRevisions: state.fieldErrorRevisions,
+        // Hydration er en autoritativ initialization/replacement: runtime-feltfejl ryddes atomisk
+        // sammen med apply (persistence-contract §6.3), så et evt. ikke-tomt store (re-hydrering,
+        // test-genbrug) ikke efterlader ghost-fejl fra før hydreringen.
+        fieldErrors: createEmptyFieldErrorCache(),
+        fieldErrorRevisions: incrementAllFieldErrorRevisions(state.fieldErrorRevisions),
         invalidDrafts: { ...nextInvalidDrafts },
         invalidDraftRevisions: incrementAllInvalidDraftRevisions(state.invalidDraftRevisions),
         committedChangeCounter: state.committedChangeCounter,

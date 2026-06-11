@@ -324,6 +324,19 @@ describe('formPersistenceStore public API', () => {
     expect(store.getState().authoritativeSnapshotEpoch).toBe(beforeEpoch + 1);
   });
 
+  it('hydrate rydder eksisterende fieldErrors atomisk (autoritativ replace, kontrakt §6.3)', () => {
+    const store = __createTestStore();
+    // Et ikke-tomt store (re-hydrering/test-genbrug) må ikke efterlade ghost-fejl efter hydrate.
+    store.getState().setFieldError('stamdata', 'skadelidte', 'input', { message: 'Gammel fejl', severity: 'error' });
+    expect(Object.keys(store.getState().fieldErrors.stamdata)).toHaveLength(1);
+    const beforeRevision = store.getState().fieldErrorRevisions.stamdata;
+
+    store.getState().hydrate(createValidSections(), { hydrated: false, schemaFingerprint: PERSISTED_DATA_VERSION });
+
+    expect(store.getState().fieldErrors.stamdata).toEqual({});
+    expect(store.getState().fieldErrorRevisions.stamdata).toBe(beforeRevision + 1);
+  });
+
   it('__setSectionUnsafe allows mutation in test environment', () => {
     const store = __createTestStore();
     const satser = { aargang: 2025 };

@@ -106,9 +106,11 @@ export const compareData = (expected: unknown, actual: unknown, path = 'root', d
 
   // Objekter
   if (isRecord(expected) && isRecord(actual)) {
-    // Ignorer metadata og sortér nøgler for stabil sammenligning
-    const expectedKeys = Object.keys(expected).filter(k => !k.startsWith('_')).sort();
-    const actualKeys = Object.keys(actual).filter(k => !k.startsWith('_')).sort();
+    // Ignorér KUN top-niveau metadata-nøgler (`_metadata` m.fl.); på dybere niveauer skal alle felter
+    // sammenlignes, så et brugerinput-felt med `_`-præfiks ikke usynligt kan tabes i verifikationen.
+    const includeKey = (k: string): boolean => depth > 0 || !k.startsWith('_');
+    const expectedKeys = Object.keys(expected).filter(includeKey).sort();
+    const actualKeys = Object.keys(actual).filter(includeKey).sort();
 
     // Tjek for manglende nøgler
     for (const key of expectedKeys) {
@@ -143,8 +145,7 @@ export const compareData = (expected: unknown, actual: unknown, path = 'root', d
  *
  * Læser filen tilbage efter gem og validerer:
  * - At filen kan dekrypteres
- * - At data fra sessionStorage matcher data i filen (felt-for-felt)
- * - At fieldCount matcher forventet værdi
+ * - At data fra sessionStorage matcher data i filen (felt-for-felt via compareData)
  * - At kritiske sektioner findes
  */
 export const verifyAfterSave = async (
@@ -260,7 +261,6 @@ export const verifyAfterSave = async (
         verified: true,
         warning: true,
         message: `ADVARSEL: Manglende sektioner: ${missingSections.join(', ')}`,
-        missingSections,
       };
     }
 

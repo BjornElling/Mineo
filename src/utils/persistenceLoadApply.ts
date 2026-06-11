@@ -22,6 +22,8 @@ const buildAuthoritativeLoadSnapshot = (
   };
 
   return PERSISTED_SECTION_KEYS.reduce((acc, key) => {
+    // Cast er kun sikkert fordi replaceAllPersistedData re-validerer hver sektion med Zod før apply
+    // (denne funktion validerer ikke selv). Snapshot-værdierne er allerede pre-valideret af fileLoad.
     assignSnapshotValue(acc, key, partialSnapshot[key] as PersistedSectionsSnapshot[typeof key]);
     return acc;
   }, {} as PersistedSectionsSnapshot);
@@ -61,10 +63,9 @@ export const executePersistenceLoadApply = async (args: {
 
     if (result.requestId) {
       await markPendingPwaFileOpenRequestHandled(result.requestId);
-      return { status: 'applied' };
+    } else {
+      await clearPendingPwaFileOpenRequest();
     }
-
-    await clearPendingPwaFileOpenRequest();
     return { status: 'applied' };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ukendt fejl';

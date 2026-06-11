@@ -14,10 +14,7 @@ import { sanitizePersistedValueForSchema } from './persistenceLoadSanitization';
 import { readSessionStorageValue } from './safeSessionStorage';
 import { migratePersistedSectionValue } from './persistenceMigrations';
 import { getInvalidDraftsStorageKey } from '../config/storageManifest';
-import {
-  createEmptyInvalidDraftsCacheForStorage as createEmptySectionsInvalidDrafts,
-  readInvalidDraftsFromStorage,
-} from './invalidDraftsStorage';
+import { readInvalidDraftsFromStorage } from './invalidDraftsStorage';
 import type { InvalidDraftsCache } from '../stores/formPersistenceStore';
 
 export type SessionHydrationNotice = { message: string; type: 'warning' | 'error' };
@@ -44,7 +41,9 @@ const isPersistedData = (value: unknown): value is PersistedData => {
     && typeof obj.timestamp === 'number'
     && 'data' in obj
     && typeof obj.data === 'object'
-    && obj.data !== null;
+    && obj.data !== null
+    // En persisteret sektion er altid et objekt; et array er korrupt og må ikke passere som "data".
+    && !Array.isArray(obj.data);
 };
 
 const createEmptySectionsSnapshot = (): HydratedPersistedSectionsSnapshot => {
@@ -116,6 +115,7 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
     incompatibleSections: [],
     strippedUnknownFieldCount: 0,
   };
+  let storageReadFailed = false;
 
   for (const pageKey of PERSISTED_SECTION_KEYS) {
     const storageKey = getStorageKey(pageKey);
@@ -123,12 +123,10 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
     try {
       stored = readSessionStorageValue(storageKey);
     } catch {
-      return {
-        sections,
-        invalidDrafts: createEmptySectionsInvalidDrafts(),
-        keysToRemove: [],
-        notice: createStorageReadFailedNotice(),
-      };
+      // En læsefejl på én nøgle må ikke kassere cleanup for allerede gennemgåede nøgler eller
+      // afbryde de resterende sektioner. Markér fejlen (fail-closed) og fortsæt.
+      storageReadFailed = true;
+      continue;
     }
     if (!stored) continue;
 
@@ -174,10 +172,14 @@ export const buildSessionStorageHydrationPlan = (): SessionHydrationPlan => {
     keysToRemove.push(getInvalidDraftsStorageKey());
   }
 
+  // En storage-læsefejl er den alvorligste tilstand og vinder over den almindelige oprydnings-notice;
+  // de allerede indsamlede keysToRemove bevares som efterfølgende cleanup (persistence-contract §8.7).
+  const notice = storageReadFailed ? createStorageReadFailedNotice() : createHydrationNotice(summary);
+
   return {
     sections,
     invalidDrafts: invalidDraftsResult.cache,
     keysToRemove,
-    notice: createHydrationNotice(summary),
+    notice,
   };
 };

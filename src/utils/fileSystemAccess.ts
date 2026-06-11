@@ -1,4 +1,5 @@
 import { logWarning, logError, sanitizeFilenameForLog } from './logger';
+import { asError } from './typeGuards';
 
 /**
  * Tjekker om File System Access API er tilgængelig i browseren
@@ -44,12 +45,13 @@ export const openFileWithPicker = async (
 
     return { file, handle: fileHandle };
 
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    const err = asError(error);
+    if (err.name === 'AbortError') {
       return null;
     }
-    logError('Fejl ved fil-åbning:', error);
-    throw new Error(`Kunne ikke åbne fil: ${error.message}`);
+    logError('Fejl ved fil-åbning:', err);
+    throw new Error(`Kunne ikke åbne fil: ${err.message}`);
   }
 };
 
@@ -94,12 +96,13 @@ export const saveFileWithPicker = async (
 
     return fileHandle;
 
-  } catch (error: any) {
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    const err = asError(error);
+    if (err.name === 'AbortError') {
       return null;
     }
-    logError('Fejl ved fil-gemning:', error);
-    throw new Error(`Kunne ikke vælge fil-placering: ${error.message}`);
+    logError('Fejl ved fil-gemning:', err);
+    throw new Error(`Kunne ikke vælge fil-placering: ${err.message}`);
   }
 };
 
@@ -127,9 +130,10 @@ export const writeToFileHandle = async (fileHandle: FileSystemFileHandle, conten
     // Luk filen
     await writable.close();
 
-  } catch (error: any) {
-    logError('Fejl ved skrivning til fil:', error);
-    throw new Error(`Kunne ikke skrive fil: ${error.message}`);
+  } catch (error: unknown) {
+    const err = asError(error);
+    logError('Fejl ved skrivning til fil:', err);
+    throw new Error(`Kunne ikke skrive fil: ${err.message}`);
   }
 };
 
@@ -143,8 +147,9 @@ export const readFromFileHandle = async (fileHandle: FileSystemFileHandle): Prom
 
     return content;
 
-  } catch (error: any) {
-    logError('Fejl ved læsning fra fil:', error);
-    throw new Error(`Kunne ikke læse fil: ${error.message}`);
+  } catch (error: unknown) {
+    const err = asError(error);
+    logError('Fejl ved læsning fra fil:', err);
+    throw new Error(`Kunne ikke læse fil: ${err.message}`);
   }
 };

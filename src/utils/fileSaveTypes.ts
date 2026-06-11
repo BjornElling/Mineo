@@ -27,10 +27,6 @@ export type VerificationResult = {
   verified?: boolean;
   warning?: boolean;
   message?: string;
-  expected?: number;
-  actual?: number;
-  difference?: number;
-  missingSections?: string[];
   error?: string;
   details?: string;
   differences?: string[];

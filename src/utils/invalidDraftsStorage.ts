@@ -32,7 +32,10 @@ export const createEmptyInvalidDraftsCacheForStorage = (): InvalidDraftsCache =>
 const isEnvelope = (value: unknown): value is InvalidDraftsEnvelope => {
   if (!value || typeof value !== 'object') return false;
   const obj = value as Record<string, unknown>;
-  return typeof obj.version === 'string' && typeof obj.data === 'object' && obj.data !== null;
+  return typeof obj.version === 'string'
+    && typeof obj.data === 'object'
+    && obj.data !== null
+    && !Array.isArray(obj.data);
 };
 
 const hasAnyEntry = (cache: InvalidDraftsCache): boolean => {

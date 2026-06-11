@@ -75,18 +75,20 @@ describe('useFormFieldErrors', () => {
       return null;
     };
 
+    // Fejl sættes EFTER mount: provideren hydrerer ved mount og rydder fieldErrors atomisk (kontrakt §6.3),
+    // og i den rigtige app sættes feltfejl først under brugerinteraktion inde i provideren.
+    render(
+      <FormPersistenceProvider>
+        <Comp />
+      </FormPersistenceProvider>
+    );
+
     act(() => {
       formPersistenceStore.getState().setFieldError('stamdata', 'journalnr', 'input', {
         message: 'Mangler journalnummer',
         severity: 'error',
       });
     });
-
-    render(
-      <FormPersistenceProvider>
-        <Comp />
-      </FormPersistenceProvider>
-    );
 
     expect(captured.value).toEqual({
       journalnr: { message: 'Mangler journalnummer', severity: 'error', source: 'input', blocksSave: true },
@@ -122,18 +124,19 @@ describe('useFieldErrorsBySourceForSection', () => {
       return null;
     };
 
+    // Fejl sættes EFTER mount (provideren rydder fieldErrors ved hydrate, kontrakt §6.3).
+    render(
+      <FormPersistenceProvider>
+        <Comp />
+      </FormPersistenceProvider>
+    );
+
     act(() => {
       formPersistenceStore.getState().setFieldError('aarsloen', 'tableData', 'input', {
         message: 'Fejl i tabel',
         severity: 'error',
       });
     });
-
-    render(
-      <FormPersistenceProvider>
-        <Comp />
-      </FormPersistenceProvider>
-    );
 
     expect(captured.value).toEqual({
       tableData: {

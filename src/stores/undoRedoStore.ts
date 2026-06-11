@@ -24,7 +24,6 @@ export type HistoryFrame = {
   timestamp: number;
   sections: FormPersistenceSections;
   sectionRevisions: SectionRevisionMap;
-  authoritativeSnapshotEpoch: number;
   fieldErrors: FieldErrorCache;
   fieldErrorRevisions: FieldErrorRevisionMap;
   invalidDrafts: InvalidDraftsCache;
@@ -63,7 +62,6 @@ const createFrame = (origin: HistoryFrameOrigin, sequence: number): HistoryFrame
     timestamp: Date.now(),
     sections: cloneSnapshot(state.sections),
     sectionRevisions: cloneSnapshot(state.sectionRevisions),
-    authoritativeSnapshotEpoch: state.authoritativeSnapshotEpoch,
     fieldErrors: cloneSnapshot(state.fieldErrors),
     fieldErrorRevisions: cloneSnapshot(state.fieldErrorRevisions),
     invalidDrafts: cloneSnapshot(state.invalidDrafts),
@@ -155,6 +153,9 @@ export const undoRedoStore = createStore<UndoRedoStoreState>((set, get) => ({
     return committed;
   },
   clear: () => {
+    // Nulstilling af frameSequence er sikker selv om den ellers er monotont stigende: clear tømmer
+    // past/future, så en evt. stale plan afvises af stak-medlemskabs-tjekket i canCommitPlannedTransition
+    // (past.at(-1)?.id === plan.target.id fejler på tom stak) uafhængigt af frameSequence-værdien.
     set({ past: [], future: [], frameSequence: 0 });
   },
 }));
