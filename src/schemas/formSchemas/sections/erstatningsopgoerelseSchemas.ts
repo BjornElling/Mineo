@@ -225,7 +225,10 @@ const erstatningsopgoerelseBaseSchema = z.object({
   offentligeYdelserKommentarer: optionalString,
   loenudviklingPaaGrundlagAf: optionalString,
   saerligeKommentarer: optionalString,
-  eoBilagSelection: eoBilagSelectionSchema.default({ opgoerelse: true, loenindkomst: true, offentligeYdelser: true, midlertidigEet: true, shDage: false, regulering: true, okSatser: true, sygeferiegodtgoerelse: false }),
+  // Zod 4 .default() returnerer output-værdien direkte (re-parser den ikke), så defaulten skal være
+  // det fulde objekt. Vi udleder det fra schemaets egne felt-defaults via parse({}) i stedet for at
+  // gentage en håndskrevet litteral, der ellers kunne drive ud af sync med felt-defaultsene.
+  eoBilagSelection: eoBilagSelectionSchema.default(() => eoBilagSelectionSchema.parse({})),
   eoBilagLoenindkomstOgOffentligeYdelserIndgaar: eoBilagLoenindkomstOgOffentligeYdelserIndgaarSchema.default('Perioden'),
 }).strict();
 
@@ -326,11 +329,9 @@ export const eoAngivetLoenLoenudviklingSchema = z.object({
 
 export type EOAngivetLoenLoenudvikling = z.infer<typeof eoAngivetLoenLoenudviklingSchema>;
 
-const createDefaultEoAngivetLoenLoenudvikling = (): EOAngivetLoenLoenudvikling =>
-  eoAngivetLoenLoenudviklingSchema.parse({});
-
 const eoAngivetLoenSchema = z.object({
-  eoAngivetLoenLoenudvikling: eoAngivetLoenLoenudviklingSchema.default(createDefaultEoAngivetLoenLoenudvikling),
+  // Som eoBilagSelection: udled hele default-objektet fra underschemaets egne felt-defaults via parse({}).
+  eoAngivetLoenLoenudvikling: eoAngivetLoenLoenudviklingSchema.default(() => eoAngivetLoenLoenudviklingSchema.parse({})),
 }).strict();
 
 export const erstatningsopgoerelseSchema = z.object({

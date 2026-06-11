@@ -12,11 +12,9 @@ export const normalizeEmptyToUndefined = (value: unknown): unknown => {
   return value;
 };
 
-export const validateISODateFormat = (val: string): boolean => isISODateString(val);
-
 export const isoDateString = z.string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'Skal være ISO-format: åååå-mm-dd')
-  .refine(validateISODateFormat, 'Ikke en gyldig dato')
+  .refine(isISODateString, 'Ikke en gyldig dato')
   .transform(val => val as ISODateString);
 
 export const optionalIsoDateString = z.preprocess(normalizeEmptyToUndefined, isoDateString.optional());

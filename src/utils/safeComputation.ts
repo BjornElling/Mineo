@@ -16,11 +16,11 @@
  *   'Aarsloen.periodeBeregning'
  * );
  *
- * if (isOk(result)) {
- *   setPeriodeData(result.value);
- * } else {
+ * if (isErr(result)) {
  *   // Vis fejlbesked til bruger
  *   setError(getUserMessage(result.error));
+ * } else {
+ *   setPeriodeData(result.value);
  * }
  * ```
  */

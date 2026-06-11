@@ -6,17 +6,17 @@
  *
  * Hvorfor IKKE unwrap()?
  * - unwrap() ville returnere T | null, hvilket tillader silent failures
- * - Alle steder skal i stedet bruge isOk() og håndtere fejl eksplicit
+ * - Alle steder skal i stedet bruge isErr() (eller tjekke result.success) og håndtere fejl eksplicit
  * - Dette sikrer at fejl ALDRIG ignoreres
  *
  * Eksempel:
  * ```typescript
  * const result = safeCompute(() => beregnAarsloen(data), 'AarsloenBeregning');
  *
- * if (isOk(result)) {
- *   console.log('Success:', result.value);
- * } else {
+ * if (isErr(result)) {
  *   console.error('Error:', result.error);
+ * } else {
+ *   console.log('Success:', result.value);
  * }
  * ```
  */

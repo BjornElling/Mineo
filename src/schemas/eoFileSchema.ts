@@ -42,15 +42,21 @@ export const eoFileDataLoadSchema = z.preprocess(nullToUndefinedDeep, z.looseObj
 
 
 /**
+ * Container-metadata. Identisk for save- og load-schemaerne: kun `data`-permissiviteten
+ * adskiller dem (se `eoFileContainerLoadSchema`).
+ */
+const eoFileMetadataSchema = z.object({
+  exportDate: z.string(),
+  appVersion: z.string(),
+  fieldCount: z.number().int().nonnegative(),
+});
+
+/**
  * Fuld dekrypteret `.eo`-container.
  */
 export const eoFileContainerSchema = z.object({
   version: z.literal(FILE_FORMAT_VERSION),
-  _metadata: z.object({
-    exportDate: z.string(),
-    appVersion: z.string(),
-    fieldCount: z.number().int().nonnegative(),
-  }),
+  _metadata: eoFileMetadataSchema,
   data: eoFileDataSchema,
 }).strict();
 
@@ -68,11 +74,7 @@ export type EoFileContainer = z.infer<typeof eoFileContainerSchema>;
  */
 export const eoFileContainerLoadSchema = z.object({
   version: z.literal(FILE_FORMAT_VERSION),
-  _metadata: z.object({
-    exportDate: z.string(),
-    appVersion: z.string(),
-    fieldCount: z.number().int().nonnegative(),
-  }),
+  _metadata: eoFileMetadataSchema,
   data: eoFileDataLoadSchema,
 }).strict();
 

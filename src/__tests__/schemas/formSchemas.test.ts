@@ -147,6 +147,39 @@ describe('erstatningsopgoerelseSchema', () => {
     }
   });
 
+  it('materialiserer fulde objekt-defaults når eoBilagSelection og eoAngivetLoenLoenudvikling helt mangler', () => {
+    // Zod 4 .default() returnerer default-værdien direkte uden at re-parse den. Defaulten på disse
+    // to objekt-felter udledes derfor via underschemaets egne parse({})-defaults — IKKE en tom .default({}),
+    // som ville give et tomt objekt og dermed stiltiende tabe alle underfelter ved load af en fil der
+    // mangler feltet. Denne test fanger den regression.
+    const {
+      eoBilagSelection: _omitBilag,
+      eoAngivetLoenLoenudvikling: _omitAngivetLoen,
+      ...withoutDefaultedObjects
+    } = createErstatningsopgoerelseInitialValues();
+
+    const result = erstatningsopgoerelseSchema.safeParse(withoutDefaultedObjects);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // Alle 8 bilag-flag skal være til stede med deres felt-defaults.
+      expect(result.data.eoBilagSelection).toEqual({
+        opgoerelse: true,
+        loenindkomst: true,
+        offentligeYdelser: true,
+        midlertidigEet: true,
+        shDage: false,
+        regulering: true,
+        okSatser: true,
+        sygeferiegodtgoerelse: false,
+      });
+      // Underschemaet skal være fuldt udfyldt (ikke et tomt objekt).
+      expect(result.data.eoAngivetLoenLoenudvikling.anciennitetstillaegSatsAngivesPer).toBe('Måned');
+      expect(result.data.eoAngivetLoenLoenudvikling.harAnciennitetstillaegEfterSkadedatoen).toBe(false);
+      expect(result.data.eoAngivetLoenLoenudvikling.loenudviklingManuelTableData).toEqual([]);
+      expect(result.data.eoAngivetLoenLoenudvikling.overenskomstFilter).toEqual({});
+    }
+  });
+
   it('afviser bogstav-input i offentlige løntrin med dansk heltalsbesked', () => {
     const values = createErstatningsopgoerelseInitialValues();
     const result = erstatningsopgoerelseSchema.safeParse({
