@@ -195,7 +195,11 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
 
     await user.keyboard('{Enter}');
 
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    // findByRole (act-bevidst waitFor) frem for getByRole: MUI Selects menu åbner med en
+    // Grow-transition, hvis efterslæbende fokus/transition-opdatering på InputBase ellers lander
+    // uden for et act()-vindue ("update ... not wrapped in act"). waitFor flusher den inde i sit
+    // eget vindue, hvor opdateringen ikke udløser advarslen.
+    expect(await screen.findByRole('listbox')).toBeInTheDocument();
     expect(document.activeElement).toBe(combobox);
     expect(document.activeElement).not.toBe(after);
   });
@@ -209,7 +213,8 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
 
     await user.click(combobox);
 
-    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    // Se kommentar ovenfor: act-bevidst findByRole flusher Grow-transitionens efterslæb.
+    expect(await screen.findByRole('listbox')).toBeInTheDocument();
   });
 
   // --- Afsnit 7: StyledDateField fr fokus uden selection --------------------

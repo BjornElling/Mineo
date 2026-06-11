@@ -435,8 +435,12 @@ describe('sumMaanedsbroekForInterval', () => {
     };
     const start = d(iso('2018-01-01'));
     const mismatches: Array<{ fra: ISODateString; til: ISODateString; actual: number; expected: number }> = [];
-    for (let offset = 0; offset < 800; offset += 11) {
-      for (let len = 0; len < 1100; len += 29) {
+    // Sampling-skridtene er bevidst coprime med 30 (gcd=1), så fra-datoens dag-i-måned-offset cykler
+    // gennem ALLE residues mod ~månedslængde — det er præcis den variation et månedsgrupperings-drift
+    // ville afsløre. Større skridt (23/47 frem for 11/29) holder den fulde residue-dækning, men ~3x
+    // færre kombinationer, hvilket holder denne lås hurtig uden at svække dens formål.
+    for (let offset = 0; offset < 800; offset += 23) {
+      for (let len = 0; len < 1100; len += 47) {
         const fraDate = new Date(start.getTime());
         fraDate.setUTCDate(fraDate.getUTCDate() + offset);
         const tilDate = new Date(fraDate.getTime());

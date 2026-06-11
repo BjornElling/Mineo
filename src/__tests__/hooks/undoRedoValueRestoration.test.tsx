@@ -252,13 +252,15 @@ describe('undo/redo værdi-restore — dropdown', () => {
 
     expect(screen.getByTestId('dropdown-val')).toHaveTextContent(LOEN_PAA_HELLIGDAGE.ALMINDELIG);
 
+    // userEvent håndterer selv act() internt (via dom-testing-librarys async/event-wrappers).
+    // At pakke user.click() ind i et yderligere eksplicit act() er et anti-mønster: userEvents
+    // asyncWrapper sætter bevidst IS_REACT_ACT_ENVIRONMENT=false under sit async-arbejde, men
+    // fordi det her ville køre inde i en ydre act() (actQueue ≠ null), advarer React
+    // "not configured to support act(...)" på hver MUI Select-opdatering i det vindue. Kald derfor
+    // userEvent direkte og uindpakket.
     const combobox = screen.getByRole('combobox');
-    await act(async () => {
-      await user.click(combobox);
-    });
-    await act(async () => {
-      await user.click(screen.getByRole('option', { name: 'Ingen' }));
-    });
+    await user.click(combobox);
+    await user.click(screen.getByRole('option', { name: 'Ingen' }));
     expect(screen.getByTestId('dropdown-val')).toHaveTextContent(LOEN_PAA_HELLIGDAGE.INGEN);
 
     await doUndo();

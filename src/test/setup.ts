@@ -137,6 +137,49 @@ Object.defineProperty(window, 'localStorage', {
   value: forbiddenLocalStorage,
 });
 
+/**
+ * Test-fart: jsdom's requestAnimationFrame fyrer callbacks med ~16 ms forsinkelse (efterligner 60 fps).
+ * Det er irrelevant for tests — vi venter aldrig på reel frame-timing, kun på at en frame passerer.
+ * Flere kode-stier venter sekventielt på mange frames (fx save-blokeret-fokus' vent-på-mount-løkke på
+ * op til 30 frames), hvilket akkumulerer hundredvis af millisekunder ren ventetid pr. test uden at teste
+ * noget. Vi erstatter rAF med en near-immediate macrotask (setTimeout 0): samme macrotask-semantik og
+ * rækkefølge som før (så act()/effekt-flushing er upåvirket), blot uden den kunstige 16 ms-forsinkelse.
+ *
+ * BEMÆRK: stadig en macrotask (ikke microtask), så selv-planlæggende rAF-animationsløkker (scrollWithRetry,
+ * historyTargetRestore m.fl.) ikke kan sulte event-loopet eller udtømme deres retry-budget før React
+ * committer. Vi bruger MessageChannel (samme mekanisme som Reacts egen scheduler) frem for setTimeout(0):
+ * det er en ægte macrotask uden timer-subsystemets ~1 ms-clamp og pr.-turn-overhead, hvilket reducerer
+ * akkumuleret ventetid markant i frame-tunge stier. Fake timers (vi.useFakeTimers) overtager bindingen.
+ */
+{
+  const rafCallbacks = new Map<number, FrameRequestCallback>();
+  let rafHandle = 0;
+  const pending: number[] = [];
+  const channel = new MessageChannel();
+  channel.port1.onmessage = () => {
+    const handle = pending.shift();
+    if (handle === undefined) return;
+    const callback = rafCallbacks.get(handle);
+    if (!callback || !rafCallbacks.delete(handle)) return;
+    callback(performance.now());
+  };
+  const fastRaf = (callback: FrameRequestCallback): number => {
+    rafHandle += 1;
+    const handle = rafHandle;
+    rafCallbacks.set(handle, callback);
+    pending.push(handle);
+    channel.port2.postMessage(null);
+    return handle;
+  };
+  const fastCancelRaf = (handle: number): void => {
+    rafCallbacks.delete(handle);
+  };
+  Object.defineProperty(globalThis, 'requestAnimationFrame', { configurable: true, writable: true, value: fastRaf });
+  Object.defineProperty(globalThis, 'cancelAnimationFrame', { configurable: true, writable: true, value: fastCancelRaf });
+  Object.defineProperty(window, 'requestAnimationFrame', { configurable: true, writable: true, value: fastRaf });
+  Object.defineProperty(window, 'cancelAnimationFrame', { configurable: true, writable: true, value: fastCancelRaf });
+}
+
 if (!HTMLElement.prototype.scrollTo) {
   HTMLElement.prototype.scrollTo = function scrollTo(options?: number | ScrollToOptions, y?: number): void {
     if (typeof options === 'number') {
