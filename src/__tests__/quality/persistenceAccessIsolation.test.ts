@@ -47,6 +47,10 @@ const ALLOWED_FORM_PERSISTENCE_STORE_IMPORTS = new Set([
   // invalidDrafts-recovery-kanalens persistens-/hydrerings-utils er persistence-infrastruktur.
   'src/utils/invalidDraftsStorage.ts',
   'src/utils/persistenceSessionHydration.ts',
+  // Fælles capture/restore af committed-tier runtime-state (formPersistenceStore + undoRedoStore).
+  // Persistence-infrastruktur delt af alle atomiske skrive-/restore-flows (persist, invalid-draft,
+  // autoritativ replace OG undo/redo-restore), så de deler præcis samme fail-closed rollback-semantik.
+  'src/utils/persistenceStoreRollback.ts',
 ]);
 
 describe('persistenceAccessIsolation', () => {

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import Container from '../../../components/layout/Container';
 import StyledDropdown from '../../../components/inputs/StyledDropdown';
@@ -41,6 +41,25 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
   const waitForSelectionClear = async () => {
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => resolve());
+    });
+  };
+
+  /**
+   * Flush StyledDropdowns Grow-transitions efterslæb inde i et act()-vindue.
+   *
+   * Problemet: MUI's Popover åbner via en Grow-transition, hvis afsluttende `onEntered`-callback
+   * fyrer på en efterfølgende macrotask (setTimeout, ~0 ms i JSDOM hvor `transitionDuration="auto"`
+   * giver duration 0). `findByRole('listbox')` resolver allerede når listboxen mountes — dvs. ved
+   * transitionens START — så den efterslæbende state-opdatering kan lande EFTER testens act-vindue
+   * under tung parallel CI-belastning, hvor event-loopet er optaget ("update ... not wrapped in act").
+   * Ved at vente på en efterfølgende macrotask inde i act() trækkes den allerede planlagte
+   * transition-timer (FIFO før vores egen) ind i et act-vindue, så advarslen ikke kan opstå.
+   */
+  const flushPopoverTransition = async () => {
+    await act(async () => {
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 0);
+      });
     });
   };
 
@@ -195,11 +214,10 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
 
     await user.keyboard('{Enter}');
 
-    // findByRole (act-bevidst waitFor) frem for getByRole: MUI Selects menu åbner med en
-    // Grow-transition, hvis efterslæbende fokus/transition-opdatering på InputBase ellers lander
-    // uden for et act()-vindue ("update ... not wrapped in act"). waitFor flusher den inde i sit
-    // eget vindue, hvor opdateringen ikke udløser advarslen.
     expect(await screen.findByRole('listbox')).toBeInTheDocument();
+    // Flush Grow-transitionens efterslæb inde i act (se flushPopoverTransition): findByRole resolver
+    // ved transitionens start, så onEntered-opdateringen skal trækkes ind i et act-vindue.
+    await flushPopoverTransition();
     expect(document.activeElement).toBe(combobox);
     expect(document.activeElement).not.toBe(after);
   });
@@ -213,8 +231,9 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
 
     await user.click(combobox);
 
-    // Se kommentar ovenfor: act-bevidst findByRole flusher Grow-transitionens efterslæb.
     expect(await screen.findByRole('listbox')).toBeInTheDocument();
+    // Flush Grow-transitionens efterslæb inde i act (se flushPopoverTransition).
+    await flushPopoverTransition();
   });
 
   // --- Afsnit 7: StyledDateField fr fokus uden selection --------------------

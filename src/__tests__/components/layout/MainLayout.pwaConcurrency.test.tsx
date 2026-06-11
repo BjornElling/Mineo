@@ -196,8 +196,14 @@ describe('MainLayout (PWA concurrency)', () => {
         window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
       });
 
+      // Vent på at FØRSTE forsøg er fuldt fejlet (fejlen logget), ikke kun at loadFromFileHandle er
+      // kaldt. `isPwaLoadInProgressRef` nulstilles først i load-promisens `.finally`, EFTER rejection
+      // er behandlet (console.error). Dispatch'es det andet event før da, ser in-flight-guarden
+      // load'et som stadig i gang og dropper retry'et → flaky fejl under parallel CI-belastning.
+      // Fejl-loggen er den observerbare markør for at guarden er (ved at blive) nulstillet.
       await waitFor(() => {
         expect(loadFromFileHandleMock).toHaveBeenCalledTimes(1);
+        expect(consoleErrorSpy).toHaveBeenCalledWith('Hent (PWA) fejlede:', expect.any(Error));
       });
       expect(screen.getByTestId('pathname')).toHaveTextContent('/open');
 
@@ -208,7 +214,6 @@ describe('MainLayout (PWA concurrency)', () => {
       await waitFor(() => {
         expect(loadFromFileHandleMock).toHaveBeenCalledTimes(2);
       });
-      expect(consoleErrorSpy).toHaveBeenCalledWith('Hent (PWA) fejlede:', expect.any(Error));
     } finally {
       consoleErrorSpy.mockRestore();
     }
