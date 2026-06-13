@@ -40,6 +40,33 @@ describe('opreguleringsmotorer', () => {
       expect(decimal.faktor).toBe(1);
       expect(decimal.manglendeAar).toEqual([2022.5]);
     });
+
+    it('dedup’er manglendeAar når begge endepunkter er det samme ikke-heltal (fx NaN)', () => {
+      // NaN === NaN er false, men dedup'en (Array.includes / SameValueZero) skal sikre
+      // at to ens NaN-endepunkter kun rapporteres én gang.
+      const nan = opregulerMedAslAarsloensmaksimum({ kildeAar: Number.NaN, maalAar: Number.NaN });
+      expect(nan.manglendeAar).toEqual([Number.NaN]);
+
+      const decimal = opregulerMedAslAarsloensmaksimum({ kildeAar: 2022.5, maalAar: 2022.5 });
+      expect(decimal.manglendeAar).toEqual([2022.5]);
+    });
+
+    it('kræver KUN dækning for de to endepunktsår — ikke mellemliggende år (ratio-metode)', () => {
+      // Asymmetri vs. metode 2: ASL-indeks er et rent forhold idx[målår]/idx[kildeår],
+      // så et hul i et mellemliggende år må ikke fail-close. Map uden 2024/2025.
+      const res = opregulerMedAslAarsloensmaksimum(
+        { kildeAar: 2022, maalAar: 2026 },
+        { 2022: 100, 2026: 116 }
+      );
+      expect(res.manglendeAar).toEqual([]);
+      expect(res.faktor).toBeCloseTo(116 / 100, 12);
+    });
+
+    it('bruger aarsloenAslMax som default-indeks når intet map gives', () => {
+      const withDefault = opregulerMedAslAarsloensmaksimum({ kildeAar: 2022, maalAar: 2026 });
+      const withExplicit = opregulerMedAslAarsloensmaksimum({ kildeAar: 2022, maalAar: 2026 }, aarsloenAslMax);
+      expect(withDefault).toEqual(withExplicit);
+    });
   });
 
   describe('opregulerMedAkkumuleretReguleringssats', () => {
@@ -120,6 +147,41 @@ describe('opreguleringsmotorer', () => {
       const forventetDeltaPct = (index / 100 - 1) * 100;
       const res = opregulerMedAkkumuleretReguleringssats({ kildeAar: baseYear, maalAar: segmentYear });
       expect(res.deltaPct).toBeCloseTo(forventetDeltaPct, 10);
+    });
+
+    it('kræver dækning for HELE det bagudvendte interval, selv om resultatet er faktor 1', () => {
+      // For målår < kildeår returneres faktor 1, men dækningen er en selvstændig
+      // invariant: et hul i [målår..kildeår] skal stadig fail-close (synlig feltfejl).
+      const res = opregulerMedAkkumuleretReguleringssats(
+        { kildeAar: 2024, maalAar: 2022 },
+        { 2022: 1, 2024: 3 } // 2023 mangler
+      );
+      expect(res.manglendeAar).toEqual([2023]);
+      expect(res.faktor).toBe(1);
+    });
+
+    it('dedup’er manglendeAar når begge endepunkter er det samme ikke-heltal (fx NaN)', () => {
+      const nan = opregulerMedAkkumuleretReguleringssats({ kildeAar: Number.NaN, maalAar: Number.NaN });
+      expect(nan.manglendeAar).toEqual([Number.NaN]);
+    });
+
+    it('bruger reguleringssats som default-satser når intet map gives', () => {
+      const withDefault = opregulerMedAkkumuleretReguleringssats({ kildeAar: 2021, maalAar: 2025 });
+      const withExplicit = opregulerMedAkkumuleretReguleringssats({ kildeAar: 2021, maalAar: 2025 }, reguleringssats);
+      expect(withDefault).toEqual(withExplicit);
+    });
+  });
+
+  describe('fail-closed-konsistens på tværs af de to motorer', () => {
+    it('manglendeAar er aldrig tom for et 0-beløbs-gyldigt, men data-manglende interval (begge metoder)', () => {
+      // 2000 findes hverken i aarsloenAslMax eller reguleringssats.
+      const asl = opregulerMedAslAarsloensmaksimum({ kildeAar: 2000, maalAar: 2026 });
+      const akk = opregulerMedAkkumuleretReguleringssats({ kildeAar: 2000, maalAar: 2026 });
+      expect(asl.manglendeAar.length).toBeGreaterThan(0);
+      expect(akk.manglendeAar.length).toBeGreaterThan(0);
+      // Begge fail-closer til faktor 1 (ikke-pålidelig — kalderen skal afvise).
+      expect(asl.faktor).toBe(1);
+      expect(akk.faktor).toBe(1);
     });
   });
 });

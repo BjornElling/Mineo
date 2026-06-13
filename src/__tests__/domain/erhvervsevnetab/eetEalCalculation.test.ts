@@ -385,6 +385,65 @@ describe('formatPercentTrimmedFromRounded4', () => {
   });
 });
 
+describe('computeEetEalCalculation — aldersreduktionsprocent (invarianter)', () => {
+  // Aldersreduktionsformlen: 0 ved alder <= 29, (alder - 29) ved 30-54,
+  // (alder - 29) + (alder - 54) x 2 ved alder > 54, cappet til 70 %.
+  // Vi sætter skadeår = beregningsår for at fjerne regulering og isolere procenten.
+  const aldersreduktionPctVedAlder = (alderVedSkade: number): number | undefined => {
+    // Fødselsdato 02-01 og skadedato 03-01 samme dag/måned-orden sikrer at alderen
+    // er præcis (alder = skadeår - fødselsår) fordi fødselsdagen er passeret.
+    const skadedato = iso('2026-03-01');
+    const fodselsaar = 2026 - alderVedSkade;
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2026-06-01'),
+        aslAarsloen: undefined,
+        ealAarsloen: asAmount(500000),
+        ealEetPct: 100,
+        aslAfgoerelser: [],
+      },
+      skadedato,
+      skadelidteFodselsdato: iso(`${fodselsaar}-02-01`),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+    });
+    return result.computation?.aldersreduktionPct;
+  };
+
+  it('giver 0 % ved alder 29 og derunder', () => {
+    expect(aldersreduktionPctVedAlder(20)).toBe(0);
+    expect(aldersreduktionPctVedAlder(29)).toBe(0);
+  });
+
+  it('giver (alder - 29) i intervallet 30-54 år', () => {
+    expect(aldersreduktionPctVedAlder(30)).toBe(1);
+    expect(aldersreduktionPctVedAlder(40)).toBe(11);
+    expect(aldersreduktionPctVedAlder(54)).toBe(25);
+  });
+
+  it('lægger 2 % pr. år over 54 oveni grundreduktionen', () => {
+    expect(aldersreduktionPctVedAlder(55)).toBe(28); // (55-29) + (55-54)*2 = 26 + 2
+    expect(aldersreduktionPctVedAlder(60)).toBe(43); // (60-29) + (60-54)*2 = 31 + 12
+  });
+
+  it('capper reduktionen til 70 % fra og med alder 69', () => {
+    expect(aldersreduktionPctVedAlder(69)).toBe(70); // (69-29) + (69-54)*2 = 40 + 30
+    expect(aldersreduktionPctVedAlder(70)).toBe(70); // ville være 73 uden cap
+    expect(aldersreduktionPctVedAlder(80)).toBe(70);
+  });
+
+  it('holder den beregnede procent identisk med visningsformlens cap-intention', () => {
+    // Visningsformlen markerer "(max 70 %)" netop når den ucappede procent ville overstige 70.
+    // Her bekræftes at den beregnede procent aldrig overstiger den markering.
+    for (let alder = 55; alder <= 90; alder += 1) {
+      const beregnet = aldersreduktionPctVedAlder(alder);
+      expect(beregnet).toBeLessThanOrEqual(70);
+    }
+  });
+});
+
 describe('buildAldersreduktionFormelTekst', () => {
   it('viser den cappede alder når alderen er over 69 år', () => {
     expect(buildAldersreduktionFormelTekst(72)).toBe('(72 - 29) + (72 - 54) x 2 (max 70 %) =');

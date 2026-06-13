@@ -55,8 +55,20 @@ export type EetEalCalculationResult = Readonly<{
   computation: EetEalComputation | null;
 }>;
 
+/**
+ * EAL-beregningen læser kun fem felter fra erhvervsevnetab-sektionen. Vi udstiller derfor
+ * en smal input-type (i stedet for hele `ErhvervsevnetabComposedValues`), så kaldere som
+ * forsørgertab ikke tvinges til at konstruere dødvægts-felter (bilagvalg, toggles, køn) blot
+ * for at tilfredsstille typen. `ErhvervsevnetabComposedValues` er strukturelt tildelbar til
+ * denne Pick, så eksisterende kaldere der sender det fulde objekt er uændrede.
+ */
+export type EetEalInputValues = Pick<
+  ErhvervsevnetabComposedValues,
+  'beregningsdato' | 'aslAarsloen' | 'ealAarsloen' | 'ealEetPct' | 'aslAfgoerelser'
+>;
+
 type Input = Readonly<{
-  erhvervsevnetab: ErhvervsevnetabComposedValues;
+  erhvervsevnetab: EetEalInputValues;
   skadedato: ISODateString | undefined;
   skadelidteFodselsdato: ISODateString | undefined;
   reguleringssats: YearlyRate;
@@ -159,7 +171,7 @@ const resolveEetPctFromAslRows = (
 };
 
 const resolveEetPct = (
-  values: ErhvervsevnetabComposedValues
+  values: EetEalInputValues
 ): { resolved: EetEalResolvedEetPct | null; issues: EetIssue[] } => {
   const issues: EetIssue[] = [];
 
@@ -184,7 +196,7 @@ const resolveEetPct = (
   return { resolved: fallback.resolved, issues };
 };
 
-const resolveAarsloen = (values: ErhvervsevnetabComposedValues): { value: number | null; source: 'eal' | 'asl' | null } => {
+const resolveAarsloen = (values: EetEalInputValues): { value: number | null; source: 'eal' | 'asl' | null } => {
   const ealAarsloen = amountValueToNumber(values.ealAarsloen);
   if (typeof ealAarsloen === 'number' && Number.isFinite(ealAarsloen) && ealAarsloen > 0) {
     return { value: ealAarsloen, source: 'eal' };

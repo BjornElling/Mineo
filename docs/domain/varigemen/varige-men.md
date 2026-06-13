@@ -96,16 +96,17 @@ Der er ingen fejlmeddelelser — manglende input giver stiltiende `null`.
 ### Indgangspunkter
 
 ```typescript
-// Direkte beregning
+// Kanonisk indgang (snapshot-baseret engine). UI (MenberegningTab) og PDF deler
+// dette ene entry, jf. varigemen-contract §1/§2.
+computeVarigeMenEngine(input: VarigeMenEngineInputSnapshot): VarigeMenEngineOutput
+
+// Underliggende beregningsfunktion (kaldes kun af engine-laget)
 beregnVarigeMenGodtgoerelseWithRates(
   values: VarigeMenValues,
   skadestidspunktRaw: ISODateString | undefined,
   rates: YearlyRate,
   fodselsdatoFromStamdata: ISODateString | undefined
 ): VarigeMenBeregningResult | null
-
-// Engine-wrapper (snapshot-baseret)
-computeVarigeMenEngine(input: VarigeMenEngineInputSnapshot): VarigeMenEngineOutput
 ```
 
 ### Nøgletyper
@@ -128,6 +129,8 @@ VarigeMenBeregningResult = {
   satsPerMengrad: number;         // varigeMenPrGrad[beregningsår]
   aldersreduktionPct: number;     // 0–40
   grundbeloebUdenReduktion: number; // sats × méngrad (før aldersfradrag)
+  aldersreduktionBeloeb: number;  // grundbeloebUdenReduktion − beregnetGodtgoerelse (afstemt mod oprunding); 0 uden reduktion
+  beregningsaar: number;          // året fra beregningsdato (satsen er slået op for dette år)
   alderVedSkade: number;          // hele opnåede år
 }
 ```
@@ -149,10 +152,10 @@ Begge komponenter capper ved alder 69: `min(30, ...)` og `min(10, ...)`. Alder o
 ### Afrunding
 
 ```typescript
-const roundMenAmount = (value: number): number => Math.ceil(value);
+const roundMenAmount = (value: number): number => roundByMethod(value, 0, 'ceil');
 ```
 
-`Math.ceil` er eneste afrundingsfunktion i dette modul — der bruges hverken `roundByMethod` fra `src/utils/rounding.ts` eller nogen anden helper.
+Afrunding sker via den kanoniske `roundByMethod` fra `src/utils/rounding.ts` med 0 decimaler og metoden `'ceil'` — altså altid op til nærmeste hele krone. Modulet indfører ingen ad hoc-afrunding.
 
 ### Satsnøgle
 
@@ -178,8 +181,9 @@ Satserne injiceres i engine-inputtet (`rates: YearlyRate`) og passes videre til 
 |---|---|
 | `VarigeMenValues` | `src/schemas/formSchemas` |
 | `YearlyRate` | `src/data/lovbestemteRates` |
-| `coerceToDanishDateString`, `coerceToISODateString`, `parseISODate`, `ISODateString` | `src/types/branded` |
-| `parseDanishDate` | `src/utils/dateUtils` |
+| `coerceToISODateString`, `parseISODate`, `ISODateString` | `src/types/branded` |
+| `calculateUtcAgeInWholeYears` | `src/utils/dateUtils` |
+| `roundByMethod` | `src/utils/rounding` |
 
 ### Tests
 

@@ -91,4 +91,31 @@ describe('beregnArbejdsdageOgMaaneder', () => {
     );
     expect(result.arbejdsdage).toBe(5);
   });
+
+  it('omvendt interval (fra > til) → 0 arbejdsdage og 0 måneder (ingen NaN)', () => {
+    // iterateDatesInclusive itererer ikke ved fra > til, og optaelMaanederPraecis returnerer
+    // null → maaneder falder tilbage til 0. Resultatet skal være endeligt, ikke NaN.
+    const result = beregnArbejdsdageOgMaaneder(
+      iso('2024-01-31'),
+      iso('2024-01-01'),
+      new Set(),
+      new Set()
+    );
+    expect(result.arbejdsdage).toBe(0);
+    expect(result.maaneder).toBe(0);
+    expect(Number.isNaN(result.maaneder)).toBe(false);
+  });
+
+  it('SH-/ferie-dag uden for intervallet påvirker ikke tællingen', () => {
+    // SH/ferie-sættene må kun reducere dage der faktisk ligger i intervallet.
+    const sh = new Set([iso('2023-12-25')]);
+    const ferie = new Set([iso('2024-02-01')]);
+    const result = beregnArbejdsdageOgMaaneder(
+      iso('2024-01-08'),
+      iso('2024-01-12'),
+      sh,
+      ferie
+    );
+    expect(result.arbejdsdage).toBe(5);
+  });
 });

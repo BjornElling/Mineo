@@ -80,15 +80,15 @@ export type ForsoergertabPdfProjection = Readonly<{
     virkningsdato: ISODateString | undefined;
     tilkendtForPeriodeAar: number | undefined;
   }>;
-  result: ReturnType<typeof computeForsoergertabCalculation>['result'];
-  ealComputation: ReturnType<typeof computeForsoergertabCalculation>['ealComputation'];
-  aslComputation: ReturnType<typeof computeForsoergertabCalculation>['aslComputation'];
+  result: ForsoergertabCalculationResult['result'];
+  ealComputation: ForsoergertabCalculationResult['ealComputation'];
+  aslComputation: ForsoergertabCalculationResult['aslComputation'];
   foersoergertabEalMinSats: number | null;
   foersoergertabForhoejtetTilMin: boolean;
 }>;
 
 export type ForsoergertabSnapshot = Readonly<{
-  calculation: ReturnType<typeof computeForsoergertabCalculation>;
+  calculation: ForsoergertabCalculationResult;
   visKoenValg: boolean;
   inputBounds: Readonly<{
     skadedatoMin: ISODateString;
@@ -115,7 +115,7 @@ export type ForsoergertabSnapshot = Readonly<{
 }>;
 
 const getIssueMessage = (
-  issues: ReturnType<typeof computeForsoergertabCalculation>['issues'],
+  issues: ForsoergertabCalculationResult['issues'],
   ids: readonly string[]
 ): string | undefined => {
   const message = issues.find((issue) => ids.includes(issue.id))?.message;
@@ -123,7 +123,7 @@ const getIssueMessage = (
 };
 
 const hasIssue = (
-  issues: ReturnType<typeof computeForsoergertabCalculation>['issues'],
+  issues: ForsoergertabCalculationResult['issues'],
   ids: readonly string[]
 ): boolean => {
   return issues.some((issue) => ids.includes(issue.id));

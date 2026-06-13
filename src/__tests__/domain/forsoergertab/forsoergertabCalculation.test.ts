@@ -546,3 +546,37 @@ describe('computeForsoergertabAslYdelser — inputvalidering (fail-closed græns
     });
   });
 });
+
+describe('computeForsoergertabAslYdelser — fail-closed på manglende mellemår-årslønsmaksimum', () => {
+  // De løbende ydelser opreguleres pr. kalenderår mellem virknings- og beregningsår med
+  // idx[år]/idx[skadeår]. Mangler ASL-maksimum for et MELLEMLIGGENDE år (hverken skade- eller
+  // beregningsår), skal beregningen fejle lukket FØR opreguleringsdivisionen rammer det manglende
+  // år — ikke kaste en runtime-invariant. Dette låser dækningstjekket i pre-valideringsloopen.
+  it('rapporterer manglende ASL-maksimum for et mellemliggende løbende-ydelses-år', () => {
+    const original = aarsloenAslMax[2024];
+    // Sæt 2024 ugyldig: skadeår 2023 og beregningsår 2025 har stadig dækning, men 2024 ligger
+    // imellem virknings- (2023) og beregningsår (2025), så det skal fanges af mellemår-loopen.
+    aarsloenAslMax[2024] = 0;
+
+    try {
+      const result = computeForsoergertabAslYdelser({
+        skadedato: toISODateString('2023-06-01'),
+        beregningsdato: toISODateString('2025-06-01'),
+        virkningsdato: toISODateString('2023-01-01'),
+        efterladteFodselsdato: toISODateString('1976-01-01'),
+        koen: undefined,
+        tilkendtForPeriodeAar: 10,
+        aslAarsloen: asAmount(450000),
+      });
+
+      expect(result.computation).toBeNull();
+      expect(result.issues).toContainEqual({
+        id: 'aarsloen-max-missing-beregningsaar',
+        severity: 'error',
+        message: 'Årslønsmaksimum mangler for år 2024.',
+      });
+    } finally {
+      aarsloenAslMax[2024] = original;
+    }
+  });
+});

@@ -4,6 +4,7 @@ import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatISOToDanish } from '../../utils/dateFormatting';
+import { isoYear } from '../../utils/isoDateHelpers';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import {
   ASL_MAX_AARSLOEN_2003,
@@ -28,7 +29,7 @@ import {
 } from './eetKapitaliseringOpslag';
 import { ceil0, round0, round2, round3, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import { resolveAslReguleringRateForKapAar } from './eetReguleringRater';
-import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
+import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2015_03_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 
 export type EetKapitaliseringAfgoerelseComputation = Readonly<{
   rowId: string;
@@ -355,7 +356,7 @@ export const computeEetKapitaliseringCalculation = (
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  const skadesaar = Number.parseInt(skadedato.slice(0, 4), 10);
+  const skadesaar = isoYear(skadedato);
   const maxAarsloenISkadesaar = aarsloenAslMax[skadesaar];
   if (!Number.isFinite(maxAarsloenISkadesaar) || maxAarsloenISkadesaar <= 0) {
     issues.push(toIssue('aarsloen-max-missing', `Maksimum årsløn mangler for år ${skadesaar}.`));
@@ -372,7 +373,7 @@ export const computeEetKapitaliseringCalculation = (
     : round0(benyttetAarsloen * (ASL_MAX_AARSLOEN_2024 / maxAarsloenISkadesaar));
   const erstatningsniveau = from2011 ? 0.83 : 0.8;
   const amFaktor = from2011 ? 0.92 : 1;
-  const needsKoen = resolvedRows.some((row) => row.kapDato !== null && row.kapDato < '2015-03-01');
+  const needsKoen = resolvedRows.some((row) => row.kapDato !== null && row.kapDato < SKAERING_2015_03_01);
   if (needsKoen && !values.koen) {
     issues.push(toIssue('missing-koen', 'Ved kapitalisering før 1. marts 2015 skal køn angives.'));
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
@@ -572,7 +573,7 @@ export const computeEetKapitaliseringCalculation = (
       }
     }
 
-    const kapitaliseringsaar = Number.parseInt(effectiveKapDato.slice(0, 4), 10);
+    const kapitaliseringsaar = isoYear(effectiveKapDato);
     const aarsydelseBreakdown = resolveKapitaliseringAarsydelseBreakdown(
       {
         grundloen,

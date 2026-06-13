@@ -20,30 +20,13 @@ type Input = Readonly<{
 
 export const computeForsoergertabEalKrav = (input: Input): ForsoergertabEalKravResult => {
   const eetResult = computeEetEalCalculation({
+    // EAL-beregningen aftager kun de fem felter, den faktisk læser (EetEalInputValues).
+    // Beslutningsnote: skadelidteFodselsdato sendes via toplevel-parameteren (ikke via
+    // erhvervsevnetab), hvilket er intentionelt — aldersreduktionen beregnes korrekt herfra.
     erhvervsevnetab: {
       beregningsdato: input.beregningsdato,
-      skadelidteFodselsdato: undefined,
-      // Beslutningsnote: koen sendes ikke ind via erhvervsevnetab-blokken, fordi tabelvalget i EET-EAL
-      // for forsørgertab ikke er kønsafhængigt. skadelidteFodselsdato sendes via toplevel-parameteren
-      // (ikke via erhvervsevnetab.skadelidteFodselsdato), hvilket er intentionelt — aldersreduktionen
-      // beregnes korrekt herfra.
-      koen: undefined,
       aslAfgoerelser: [],
       ealEetPct: 30,
-      eetDifferencekravBilagSelection: {
-        loebendeYdelser: false,
-        kapitalisering: false,
-        eetEfterEal: false,
-        proformaKapitalisering: false,
-        merErstatningPensionsalder: false,
-        visUdvidetSpecifikation: false,
-        visUdvidetSpecifikationLoebendeYdelserBilag: false,
-      },
-      // Forsørgertab bruger kun EAL-beregningen, ikke differencekravet; feltet er irrelevant her,
-      // men kræves af typen. Default-værdien holdes.
-      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: true,
-      // Som ovenfor: irrelevant for EAL-beregningen, men kræves af typen. Default-værdien holdes.
-      indregnMerErstatningVedForhoejetPensionsalder: true,
       aslAarsloen: input.aslAarsloen,
       ealAarsloen: input.ealAarsloen,
     },

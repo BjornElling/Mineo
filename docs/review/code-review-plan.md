@@ -64,15 +64,15 @@ Følgende ændringer er **allerede committet** af brugeren (behandlet som tilsig
 | 3.4 | Section-schemas C: forsoergertab, renteberegning, varigeMen + eoFileSchema (container/save/load, preflight, forward/backward-tolerance) | ✅ Gennemgået | [3.4-section-schemas-c-og-eofile.md](3.4-section-schemas-c-og-eofile.md) |
 | 3.5 | Schema-fingerprint, persistenceRegistry-alignment og save-order-registry (tableSaveOrderRegistry, useRegisterTableSaveOrder) | ✅ Gennemgået | [3.5-schema-fingerprint-og-save-order-registry.md](3.5-schema-fingerprint-og-save-order-registry.md) |
 | **4 — Domænelogik (beregningskernen)** | | | |
-| 4.0 | Opreguleringsmotorer (fundament): `opregulerMedAslAarsloensmaksimum`, `opregulerMedAkkumuleretReguleringssats` (fail-closed `manglendeAar`) | ⬜ Ikke startet | _4.0-opreguleringsmotorer-fundament.md_ |
-| 4.1 | Stamdata, satser og policies (stamdataCalculations, satserCalculations, aarsloenPolicy) | ⬜ Ikke startet | _4.1-stamdata-satser-policies.md_ |
-| 4.2 | Årsløn: aarsloen + aslEalAarsloen (beregning, validering, periodevisning) | ⬜ Ikke startet | _4.2-aarsloen.md_ |
-| 4.3 | EET: EAL, ASL-afgørelser, skæringsdatoer, aldersreduktionsformel, differencekrav, typer | ⬜ Ikke startet | _4.3-eet-kerne-asl-eal-differencekrav.md_ |
-| 4.4 | EET: kapitalisering (calc/opslag/presentation), løbende ydelser, mer-erstatning ved forhøjet pensionsalder, regulering-rater, snapshot | ⬜ Ikke startet | _4.4-eet-kapitalisering-loebende-mer-regulering.md_ |
-| 4.5 | Forsørgertab: beregning, ASL-ydelser, EAL-krav, snapshot | ⬜ Ikke startet | _4.5-forsoergertab.md_ |
-| 4.6 | Varige Mén: motor og beregninger | ⬜ Ikke startet | _4.6-varige-men.md_ |
-| 4.7 | Renteberegning: motor, procesrente, principper, validering, tabelmodel | ⬜ Ikke startet | _4.7-renteberegning.md_ |
-| 4.8 | EO-engines I: periodiseringsmotor, period-merging/overlap/range-groups, beregningsperiode-TAF-overlap, ferie, arbejdsdage/måneder | ⬜ Ikke startet | _4.8-eo-engines-i-periodisering.md_ |
+| 4.0 | Opreguleringsmotorer (fundament): `opregulerMedAslAarsloensmaksimum`, `opregulerMedAkkumuleretReguleringssats` (fail-closed `manglendeAar`) | ✅ Gennemgået | [4.0-opreguleringsmotorer-fundament.md](4.0-opreguleringsmotorer-fundament.md) |
+| 4.1 | Stamdata, satser og policies (stamdataCalculations, satserCalculations, aarsloenPolicy) | ✅ Gennemgået | [4.1-stamdata-satser-policies.md](4.1-stamdata-satser-policies.md) |
+| 4.2 | Årsløn: aarsloen + aslEalAarsloen (beregning, validering, periodevisning) | ✅ Gennemgået | [4.2-aarsloen.md](4.2-aarsloen.md) |
+| 4.3 | EET: EAL, ASL-afgørelser, skæringsdatoer, aldersreduktionsformel, differencekrav, typer | ✅ Gennemgået | [4.3-eet-kerne-asl-eal-differencekrav.md](4.3-eet-kerne-asl-eal-differencekrav.md) |
+| 4.4 | EET: kapitalisering (calc/opslag/presentation), løbende ydelser, mer-erstatning ved forhøjet pensionsalder, regulering-rater, snapshot | ✅ Gennemgået | [4.4-eet-kapitalisering-loebende-mer-regulering.md](4.4-eet-kapitalisering-loebende-mer-regulering.md) |
+| 4.5 | Forsørgertab: beregning, ASL-ydelser, EAL-krav, snapshot | ✅ Gennemgået | [4.5-forsoergertab.md](4.5-forsoergertab.md) |
+| 4.6 | Varige Mén: motor og beregninger | ✅ Gennemgået | [4.6-varige-men.md](4.6-varige-men.md) |
+| 4.7 | Renteberegning: motor, procesrente, principper, validering, tabelmodel | ✅ Gennemgået | [4.7-renteberegning.md](4.7-renteberegning.md) |
+| 4.8 | EO-engines I: periodiseringsmotor, period-merging/overlap/range-groups, beregningsperiode-TAF-overlap, ferie, arbejdsdage/måneder | ✅ Gennemgået | [4.8-eo-engines-i-periodisering.md](4.8-eo-engines-i-periodisering.md) |
 | 4.9 | EO-engines II: TAF (calculations, engine, netto, per-year, per-year-opreguleret, day-sets, beregningsenhed), forligsgrad, svie/smerte, sygeferiegodtgørelse | ⬜ Ikke startet | _4.9-eo-engines-ii-taf-forligsgrad-svie-smerte.md_ |
 | 4.10 | EO-engines III: løn-/ydelsesudvikling og regulering (loenudvikling, offentligeYdelserUdvikling, reguleringCoverage/FormulaUtils/Presentation, overenskomstReguleringShared, indkomstSkadestidspunkt) | ⬜ Ikke startet | _4.10-eo-engines-iii-loenudvikling-regulering.md_ |
 | 4.11 | EO: helpers, initial values, row-derived, tabel-modeller, indtaegtPerioder, sygedagpengeInsertRows, midlertidigtEet-injektion | ⬜ Ikke startet | _4.11-eo-helpers-initial-values-tabeller.md_ |

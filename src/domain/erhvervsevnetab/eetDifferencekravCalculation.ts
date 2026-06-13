@@ -16,7 +16,7 @@ import { getDagenFoerFolkepensionsdato } from '../../data/folkepensionAlderRates
 import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { formatISOToDanish } from '../../utils/dateFormatting';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
-import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+import { getDayBeforeIso, isoYear } from '../../utils/isoDateHelpers';
 import { parseCommittedPercent } from './eetAslAfgoerelser';
 import {
   calculateAgeYearsMonths,
@@ -29,7 +29,7 @@ import {
   resolveSaerfaktor,
 } from './eetKapitaliseringOpslag';
 import { ceil0, ceilNearest12, round0, round2, round3 } from '../../utils/roundingShortcuts';
-import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
+import { SKAERING_2007_07_01, SKAERING_2011_01_01, SKAERING_2011_06_16, SKAERING_2015_03_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { computeEetLoebendeYdelser } from './eetLoebendeYdelserCalculation';
 import { computeEetEalCalculation } from './eetEalCalculation';
 import {
@@ -292,7 +292,7 @@ const computeProformaKapitalisering = (
 ): EetDifferencekravProformaKapitalisering | null => {
   const { loebendeEetPct, beregningsdato, skadedato, fodselsdato } = args;
 
-  if (!args.koen && beregningsdato < '2015-03-01') {
+  if (!args.koen && beregningsdato < SKAERING_2015_03_01) {
     issues.push(toIssue('missing-koen', 'Ved beregning før 1. marts 2015 skal køn angives.'));
     return null;
   }
@@ -405,7 +405,7 @@ const computeProformaKapitalisering = (
     }
   }
 
-  const kapitaliseringsaar = Number.parseInt(beregningsdato.slice(0, 4), 10);
+  const kapitaliseringsaar = isoYear(beregningsdato);
   const aarsydelseBreakdown = resolveKapitaliseringAarsydelseBreakdown(
     {
       grundloen: args.grundloen,
@@ -469,7 +469,7 @@ const computeResterendeLoebendeYdelser = (
   });
   if (tilbageraevendeMaaneder === null || tilbageraevendeMaaneder <= 0) return null;
 
-  const beregningsaar = Number.parseInt(args.beregningsdato.slice(0, 4), 10);
+  const beregningsaar = isoYear(args.beregningsdato);
   const grundydelse = round2(
     args.grundloen * (args.loebendeEetPct / 100) * args.erstatningsniveau * args.amFaktor
   );

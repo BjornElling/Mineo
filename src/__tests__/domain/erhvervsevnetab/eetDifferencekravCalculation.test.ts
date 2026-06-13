@@ -858,3 +858,106 @@ describe('computeEetDifferencekravCalculation', () => {
     });
   });
 });
+
+describe('computeEetDifferencekravCalculation — fradrag 4 (mer-erstatning ved forhøjet pensionsalder)', () => {
+  // Skade 01-01-2012 (post-2011: 83 %, 8 % AM-bidrag), kapitaliseret 25 % den 01-06-2014.
+  // Beregningsdato 01-06-2017 → kun 67→68-forhøjelsen (29-12-2015) kvalificerer
+  // (2020- og 2025-forhøjelserne ligger efter beregningsdatoen).
+  // EAL-krav er stort nok til at differencekravet ikke clampes til 0.
+  const build = (toggle: boolean) =>
+    computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2017-06-01'),
+        aslAarsloen: asAmount(401000),
+        ealAarsloen: asAmount(600000),
+        ealEetPct: 50,
+        koen: 'Mand',
+        aslAfgoerelser: [
+          {
+            id: 'a1',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2014-06-01'),
+            virkningsDato: toISODateString('2014-06-01'),
+            eetPct: 25,
+            kapDato: toISODateString('2014-06-01'),
+            kapPct: 25,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadedato: toISODateString('2012-01-01'),
+      skadelidteFodselsdato: toISODateString('1974-02-28'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: toggle,
+    });
+
+  it('trækker præcis samletMerErstatning fra differencekravet når toggle er slået til', () => {
+    const on = build(true);
+    const off = build(false);
+
+    expect(on.hasBlockingErrors).toBe(false);
+    expect(off.hasBlockingErrors).toBe(false);
+    expect(on.computation).not.toBeNull();
+    expect(off.computation).not.toBeNull();
+
+    // Kun 67→68-forhøjelsen (29-12-2015) kvalificerer på beregningsdato 2017.
+    const mer = on.computation!.merErstatningPensionsalder;
+    expect(mer).not.toBeNull();
+    expect(mer!.events).toHaveLength(1);
+    expect(mer!.events[0]!.forhoejelsesdato).toBe(toISODateString('2015-12-29'));
+    expect(mer!.samletMerErstatning).toBeGreaterThan(0);
+
+    // Invariant: differencekravet er ikke clampet til 0 i nogen af tilstandene,
+    // så differencen mellem de to skal være præcis den samlede mer-erstatning.
+    expect(on.computation!.differencekrav).toBeGreaterThan(0);
+    expect(off.computation!.differencekrav).toBeGreaterThan(0);
+    expect(off.computation!.differencekrav - on.computation!.differencekrav).toBe(
+      mer!.samletMerErstatning
+    );
+  });
+
+  it('toggle slået fra: ingen mer-erstatning beregnes og intet fradrag 4 anvendes', () => {
+    const off = build(false);
+    expect(off.computation?.merErstatningPensionsalder).toBeNull();
+  });
+
+  it('fail-closed (tom-liste-gren): ingen forhøjelse kvalificerer → fradrag 4 udeladt, computation forbliver gyldig', () => {
+    // Kapitaliseret 01-06-2014, men beregningsdato 01-06-2015 ligger FØR 67→68-forhøjelsen
+    // (29-12-2015). Ingen forhøjelse kvalificerer → merErstatningPensionsalder skal være null
+    // (ikke et stille 0-fradrag på en tom liste), og differencekravet beregnes uændret.
+    const noEvent = computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2015-06-01'),
+        aslAarsloen: asAmount(401000),
+        ealAarsloen: asAmount(600000),
+        ealEetPct: 50,
+        koen: 'Mand',
+        aslAfgoerelser: [
+          {
+            id: 'a1',
+            fsTilbageholdtEet: 'Nej',
+            afgoerelsesDato: toISODateString('2014-06-01'),
+            virkningsDato: toISODateString('2014-06-01'),
+            eetPct: 25,
+            kapDato: toISODateString('2014-06-01'),
+            kapPct: 25,
+            afgoerelseType: 'Endelig',
+            tidlKapDato: undefined,
+          },
+        ],
+      },
+      skadedato: toISODateString('2012-01-01'),
+      skadelidteFodselsdato: toISODateString('1974-02-28'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: true,
+    });
+
+    expect(noEvent.hasBlockingErrors).toBe(false);
+    expect(noEvent.computation).not.toBeNull();
+    expect(noEvent.computation!.merErstatningPensionsalder).toBeNull();
+    expect(noEvent.computation!.differencekrav).toBeGreaterThan(0);
+  });
+});

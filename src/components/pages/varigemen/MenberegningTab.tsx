@@ -14,7 +14,8 @@ import {
   type StamdataValues,
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString, parseISODate, toISODateString } from '../../../types/branded';
-import { beregnVarigeMenGodtgoerelseWithRates, resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
+import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
+import { computeVarigeMenEngine } from '../../../domain/varigemen/varigeMenEngine';
 import type { SetFieldValue, SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import { useNavigate } from 'react-router-dom';
 import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/lovbestemteRates';
@@ -119,12 +120,15 @@ const beregningsResultat = React.useMemo(() => {
   const skadedatoISO = coerceToISODateString(stamValues.skadedato);
   if (!skadedatoISO) return undefined;
 
-  const resultat = beregnVarigeMenGodtgoerelseWithRates(
-    values,
-    skadedatoISO,
-    varigeMenPrGrad,
-    coerceToISODateString(stamValues.skadelidteFodselsdato)
-  );
+  // Beregning sker udelukkende via den autoritative engine (varigemen-contract §1/§2),
+  // så UI og PDF deler præcis samme beregningsvej. Engine-laget er et rent gennemløb
+  // til beregningsfunktionen — outputtet er identisk med et direkte kald.
+  const { result: resultat } = computeVarigeMenEngine({
+    varigemen: values,
+    skadestidspunkt: skadedatoISO,
+    rates: varigeMenPrGrad,
+    fodselsdato: coerceToISODateString(stamValues.skadelidteFodselsdato) ?? undefined,
+  });
   if (!resultat) return undefined;
 
   return resultat;

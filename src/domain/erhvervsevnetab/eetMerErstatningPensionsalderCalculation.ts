@@ -6,6 +6,7 @@ import { addMonths } from '../../utils/dateUtils';
 import { forhoejetPensionsalderEvents } from '../../data/kapitalisering/forhoejetPensionsalderEvents';
 import { getKapitaliseringsTabelData } from '../../data/kapitalisering/kapitaliseringsTabeller';
 import { formatISOToDanish } from '../../utils/dateFormatting';
+import { isoYear } from '../../utils/isoDateHelpers';
 import { round0, round2, round3 } from '../../utils/roundingShortcuts';
 import { SKAERING_2007_07_01 } from './eetSkaeringsdatoer';
 import {
@@ -293,7 +294,7 @@ export const computeMerErstatningPensionsalder = (
       if (!forhoejelsesDate) continue;
       const satsDato = dateToISO(addMonths(forhoejelsesDate, 1));
       if (!satsDato) continue;
-      const satsAar = Number.parseInt(satsDato.slice(0, 4), 10);
+      const satsAar = isoYear(satsDato);
 
       const erstatningsniveau = kap.erstatningsniveauPct / 100;
       const amFaktor = (100 - kap.amBidragPct) / 100;

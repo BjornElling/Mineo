@@ -2,6 +2,7 @@ import type { ISODateString } from '../../../types/branded';
 import {
   normalizeEoBilagIndkomstYdelserMode,
   buildPeriodRangeGroups,
+  splitIsoRangeByCalendarYearsInclusive,
   EO_BILAG_MODE_ALLE,
   EO_BILAG_MODE_PERIODEN,
   type IsoRange,
@@ -279,6 +280,63 @@ describe('buildPeriodRangeGroups – Perioden', () => {
         expect(Array.isArray(group.ranges)).toBe(true);
       }
     });
+  });
+});
+
+// ─── splitIsoRangeByCalendarYearsInclusive ────────────────────────────────────
+
+describe('splitIsoRangeByCalendarYearsInclusive', () => {
+  it('interval inden for ét kalenderår → ét segment med uændrede grænser', () => {
+    const segments = splitIsoRangeByCalendarYearsInclusive(iso('2023-03-15'), iso('2023-09-20'));
+    expect(segments).toEqual([
+      { fra: iso('2023-03-15'), til: iso('2023-09-20'), year: 2023 },
+    ]);
+  });
+
+  it('interval på én dag → ét segment', () => {
+    const segments = splitIsoRangeByCalendarYearsInclusive(iso('2024-06-15'), iso('2024-06-15'));
+    expect(segments).toEqual([
+      { fra: iso('2024-06-15'), til: iso('2024-06-15'), year: 2024 },
+    ]);
+  });
+
+  it('interval over to kalenderår → split ved årsskifte med klampede grænser', () => {
+    const segments = splitIsoRangeByCalendarYearsInclusive(iso('2023-11-01'), iso('2024-02-29'));
+    expect(segments).toEqual([
+      { fra: iso('2023-11-01'), til: iso('2023-12-31'), year: 2023 },
+      { fra: iso('2024-01-01'), til: iso('2024-02-29'), year: 2024 },
+    ]);
+  });
+
+  it('interval over tre kalenderår → mellemste segment dækker hele året', () => {
+    const segments = splitIsoRangeByCalendarYearsInclusive(iso('2022-06-01'), iso('2024-04-10'));
+    expect(segments).toEqual([
+      { fra: iso('2022-06-01'), til: iso('2022-12-31'), year: 2022 },
+      { fra: iso('2023-01-01'), til: iso('2023-12-31'), year: 2023 },
+      { fra: iso('2024-01-01'), til: iso('2024-04-10'), year: 2024 },
+    ]);
+  });
+
+  it('segmenterne er sammenhængende og dækker hele intervallet uden huller eller overlap', () => {
+    const fra = iso('2020-08-20');
+    const til = iso('2023-05-09');
+    const segments = splitIsoRangeByCalendarYearsInclusive(fra, til);
+    // Første segment starter på fra; sidste slutter på til.
+    expect(segments[0]!.fra).toBe(fra);
+    expect(segments[segments.length - 1]!.til).toBe(til);
+    // Hvert segment fortsætter dagen efter det forrige (ingen huller, intet overlap).
+    for (let i = 1; i < segments.length; i += 1) {
+      const prevTil = segments[i - 1]!.til;
+      const curFra = segments[i]!.fra;
+      // Forrige slutter på 12-31, nuværende starter på 01-01 i næste år.
+      expect(prevTil.endsWith('-12-31')).toBe(true);
+      expect(curFra.endsWith('-01-01')).toBe(true);
+      expect(Number.parseInt(curFra.slice(0, 4), 10)).toBe(Number.parseInt(prevTil.slice(0, 4), 10) + 1);
+    }
+  });
+
+  it('kaster ved omvendt interval (fra > til) — fail-closed', () => {
+    expect(() => splitIsoRangeByCalendarYearsInclusive(iso('2024-12-31'), iso('2024-01-01'))).toThrow();
   });
 });
 

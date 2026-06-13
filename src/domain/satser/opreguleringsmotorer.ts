@@ -67,6 +67,18 @@ const pushMissingYear = (years: number[], year: number): void => {
 };
 
 /**
+ * Bygger `manglendeAar` for ikke-heltallige år-input uden at slå indeks/sats op.
+ * Dedup'er via `pushMissingYear`, så fx to ens NaN-endepunkter kun rapporteres
+ * én gang (NaN === NaN er false, så et rå filter ville give [NaN, NaN]).
+ */
+const nonIntegerYears = (kildeAar: number, maalAar: number): number[] => {
+  const manglendeAar: number[] = [];
+  if (!Number.isInteger(kildeAar)) pushMissingYear(manglendeAar, kildeAar);
+  if (!Number.isInteger(maalAar)) pushMissingYear(manglendeAar, maalAar);
+  return manglendeAar;
+};
+
+/**
  * Metode 1 — ASL-årslønsmaksimum-indeks.
  *
  * Faktor = idx[målår] / idx[kildeår] (idx = `aarsloenAslMax`).
@@ -78,7 +90,7 @@ export const opregulerMedAslAarsloensmaksimum = (
 ): OpreguleringResultat => {
   const { kildeAar, maalAar } = input;
   if (!Number.isInteger(kildeAar) || !Number.isInteger(maalAar)) {
-    return { faktor: 1, deltaPct: 0, manglendeAar: [kildeAar, maalAar].filter((n) => !Number.isInteger(n)) };
+    return { faktor: 1, deltaPct: 0, manglendeAar: nonIntegerYears(kildeAar, maalAar) };
   }
   const kildeIndeks = indeks[kildeAar];
   const maalIndeks = indeks[maalAar];
@@ -105,7 +117,7 @@ export const opregulerMedAkkumuleretReguleringssats = (
 ): OpreguleringResultat => {
   const { kildeAar, maalAar } = input;
   if (!Number.isInteger(kildeAar) || !Number.isInteger(maalAar)) {
-    return { faktor: 1, deltaPct: 0, manglendeAar: [kildeAar, maalAar].filter((n) => !Number.isInteger(n)) };
+    return { faktor: 1, deltaPct: 0, manglendeAar: nonIntegerYears(kildeAar, maalAar) };
   }
   const manglendeAar: number[] = [];
   // Datadækningen er en selvstændig invariant: startår, slutår og alle mellemår

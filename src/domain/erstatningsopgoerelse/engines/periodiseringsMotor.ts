@@ -52,6 +52,10 @@ export type KalenderugeArbejdsdage = Readonly<{
   arbejdsdage: number;
 }>;
 
+// Summerer overlap-dage additivt pr. range. Kalderen SKAL levere indbyrdes disjunkte ranges
+// (merget via mergeIsoDateRanges) — to overlappende ranges ville ellers dobbelttælle delte dage
+// og overskyde brøken overlapDays/totalDays. Modsat tæller arbejdsdags-sporet nedenfor via
+// isDateInRanges (boolean medlemskab pr. dag) og er dermed iboende immun mod range-overlap.
 const countOverlapCalendarDays = (interval: DateInterval, ranges: readonly IsoRange[]): number => {
   if (ranges.length === 0) return 0;
   let total = 0;

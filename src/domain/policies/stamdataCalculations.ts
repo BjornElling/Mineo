@@ -25,6 +25,9 @@ export const hasStamdataAny = (stamdata: StamdataValues | null): boolean => {
     (typeof stamdata.sagsbehandler === 'string' && stamdata.sagsbehandler.trim().length > 0) ||
     (typeof stamdata.skadelidte === 'string' && stamdata.skadelidte.trim().length > 0) ||
     stamdata.skadestype !== undefined ||
-    stamdata.skadedato !== undefined
+    stamdata.skadedato !== undefined ||
+    // skadelidteFodselsdato er et selvstændigt brugerfelt i stamdataSchema; udelades
+    // det her, rapporteres en sektion hvor KUN fødselsdatoen er udfyldt fejlagtigt som tom.
+    stamdata.skadelidteFodselsdato !== undefined
   );
 };

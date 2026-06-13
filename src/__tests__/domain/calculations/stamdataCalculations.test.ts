@@ -14,6 +14,7 @@ const stamdata = (patch: Partial<StamdataValues> = {}): StamdataValues => ({
   advokat: undefined,
   sagsbehandler: undefined,
   skadelidte: undefined,
+  skadelidteFodselsdato: undefined,
   skadestype: undefined,
   skadedato: undefined,
   ...patch,
@@ -80,6 +81,10 @@ describe('hasStamdataAny', () => {
 
   it('skadedato sat → true', () => {
     expect(hasStamdataAny(stamdata({ skadedato: iso('2024-01-01') }))).toBe(true);
+  });
+
+  it('kun skadelidteFodselsdato sat → true', () => {
+    expect(hasStamdataAny(stamdata({ skadelidteFodselsdato: iso('1980-05-12') }))).toBe(true);
   });
 
   it('kun whitespace journalnr + whitespace advokat → false', () => {
