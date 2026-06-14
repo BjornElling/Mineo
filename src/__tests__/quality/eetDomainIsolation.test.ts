@@ -84,11 +84,26 @@ describe('eetDomainIsolation', () => {
     expect(pdfSource).toContain('values.endeligtEETAfgorelse');
   });
 
-  it('forbyder at Erhvervsevnetab-siden læser EO/EET-data fra erstatningsopgoerelse-persistence', () => {
+  it('begrænser Erhvervsevnetab-sidens erstatningsopgoerelse-adgang til den delte forligs-slice', () => {
+    // domain-boundary-contract.md §10 (Delt forligsgrad mellem EO og differencekrav): forligs-
+    // ansvarsgrad/-dato bor i EO-sektionen, men er en delt kilde Erhvervsevnetab må binde. Råt
+    // snapshot-opslag af EO-beregnet output er fortsat forbudt — kun den schema-bundne forligs-slice
+    // er tilladt, og siden må kun læse de tre forligs-felter (ikke øvrige EO-felter).
     const source = fs.readFileSync(ERHVERVSEVNETAB_PAGE_PATH, 'utf8');
 
+    // Råt snapshot-/section-opslag (ville hente hele EO's committed/beregnede state) er stadig forbudt.
     expect(source).not.toMatch(/getPersistedData\(\s*['"`]erstatningsopgoerelse['"`]\s*\)/);
     expect(source).not.toMatch(/usePersistedSection\(\s*['"`]erstatningsopgoerelse['"`]\s*\)/);
-    expect(source).not.toMatch(/usePersistedForm\(\s*erstatningsopgoerelseSchema\s*,\s*['"`]erstatningsopgoerelse['"`]/);
+
+    // Kun de tre autoriserede forligs-felter må læses fra den delte EO-binding.
+    const ALLOWED_EO_FIELDS = new Set(['forligAnsvarsgradProcent', 'forligAnsvarsgradBroek', 'forligDato']);
+    const accessedFields = Array.from(
+      source.matchAll(/erstatningsopgoerelseValues\.(\w+)/g),
+      (match) => match[1]
+    );
+    const unauthorizedFields = Array.from(new Set(accessedFields)).filter(
+      (field) => !ALLOWED_EO_FIELDS.has(field)
+    );
+    expect(unauthorizedFields).toEqual([]);
   });
 });

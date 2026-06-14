@@ -37,14 +37,18 @@ const PAGE_BOUNDARY_RULES: readonly PageBoundaryRule[] = [
     allowedSections: ['aarsloen', 'stamdata'],
   },
   {
+    // Læse-/skriveadgang til erstatningsopgoerelse er autoriseret af domain-boundary-contract.md §10
+    // (Delt forligsgrad mellem EO og differencekrav): forligs-ansvarsgrad/-dato bor i EO-sektionen,
+    // men er en delt kilde der må redigeres fra Erhvervsevnetab-siden/differencekrav-fanen.
     label: 'Erhvervsevnetab',
     rootRelativePath: 'components/pages/Erhvervsevnetab.tsx',
-    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata'],
+    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata', 'erstatningsopgoerelse'],
   },
   {
+    // Se §10-undtagelsen ovenfor — differencekrav-fanen skriver forligs-felterne til EO-sektionen.
     label: 'Erhvervsevnetab tabs',
     rootRelativePath: 'components/pages/erhvervsevnetab',
-    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata'],
+    allowedSections: ['erhvervsevnetab', 'faellesAarsloen', 'stamdata', 'erstatningsopgoerelse'],
   },
   {
     // Read-only adgang til erhvervsevnetab og faellesAarsloen er autoriseret af

@@ -178,7 +178,24 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 
 ---
 
-## 10. Håndhævelse
+## 10. Delt forligsgrad mellem EO og differencekrav
+
+1. Felterne `forligAnsvarsgradProcent`, `forligAnsvarsgradBroek` og `forligDato` bor i
+   `erstatningsopgoerelse`-sektionen, men er som eksplicit undtagelse **delt kilde** med
+   `Erhvervsevnetab -> Differencekrav`-fanen.
+2. `Erhvervsevnetab`-siden (og dens differencekrav-fane) må derfor både **læse og skrive**
+   `erstatningsopgoerelse`-sektionen — men kun for disse tre forligs-felter. Bindingen sker via
+   samme globale store-slice, så ændringer slår igennem begge steder.
+3. Undtagelsen er bevidst bidirektionel (til forskel fra §9, der er read-only): forligsgraden
+   redigeres ligeværdigt fra begge faner. Settings-afledte initialværdier på `Erhvervsevnetab`-siden
+   skal matche EO-sidens egne, så et commit herfra ikke materialiserer afvigende EO-defaults.
+4. Undtagelsen giver **ikke** adgang til øvrige EO-felter eller EO-beregnet output. Råt
+   snapshot-opslag (`getPersistedData`/`usePersistedSection`) af `erstatningsopgoerelse` fra
+   `Erhvervsevnetab`-laget er fortsat forbudt; kun den schema-bundne forligs-slice er tilladt.
+
+---
+
+## 11. Håndhævelse
 
 1. Nye hooks, viewmodels og pipelines må ikke hente persisted data fra andre fagsider end egen side plus de sags-globale sektioner, de er autoriseret til.
 2. Reviews skal afvise skjulte afhængigheder mellem fagsiders committed state.
@@ -193,7 +210,7 @@ Tværside-afhængigheder må kun etableres ved kontraktændring i denne fil.
 
 ---
 
-## 11. Aktuelle domænekontrakter
+## 12. Aktuelle domænekontrakter
 
 Minimale domænekontrakter supplerer denne fil. Den autoritative liste ejes af `domainContracts` i `contract-topology.json`; nedenstående skal holdes i sync med den:
 
