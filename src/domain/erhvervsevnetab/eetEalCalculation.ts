@@ -277,6 +277,19 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
 
   const skadesaar = Number.parseInt(skadedato.slice(0, 4), 10);
   const beregningsaar = Number.parseInt(beregningsdato.slice(0, 4), 10);
+
+  // Datoorden-værn: beregningsdato bør aldrig ligge før skadedato. Sker det (typisk tastefejl),
+  // giver opreguleringskæden faktor 1 (ingen opregulering) — et tvivlsomt, uopreguleret krav.
+  // ISO-datoer (YYYY-MM-DD) kan sammenlignes leksikografisk = kronologisk. Ikke-blokerende advarsel.
+  if (beregningsdato < skadedato) {
+    issues.push(
+      toWarning(
+        'warn-beregningsdato-foer-skadedato',
+        'Beregningsdatoen ligger før skadedatoen. Kravet opreguleres ikke — kontrollér datoerne.'
+      )
+    );
+  }
+
   const ealRegulering = computeEalReguleringsfaktorFromYearlyChain(skadesaar, beregningsaar, input.reguleringssats);
   const reguleringsaar = ealRegulering.reguleringsaar;
   const manglendeReguleringsaar = ealRegulering.manglendeAar;

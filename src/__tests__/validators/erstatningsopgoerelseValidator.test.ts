@@ -214,7 +214,11 @@ describe('TAF validering', () => {
     }));
   });
 
-  it('fanger manglende reguleringssats for TAF-opreguleringens startår på TAF-perioden', () => {
+  // Satsdækning for "TAF opreguleret til beregningsåret" valideres IKKE i den rå-values-validator.
+  // Den hører hjemme i compute-laget (buildTafPerYearOpreguleretBuildOutcome), der er eneste
+  // sandhed for hvilke år der reelt opreguleres (kun år med nettobeløb ≠ 0) og som fail-closer
+  // via en invariant der KUN blokerer TAF-opreguleret-PDF'en. Jf. 4.12-review.
+  it('emitterer IKKE en pre-compute satsdæknings-fejl for TAF-opreguleringens startår', () => {
     const values = makeValues({
       tafPerioder: [
         { id: 'taf-1', fra: iso('2004-01-01'), til: iso('2004-01-31') },
@@ -224,14 +228,12 @@ describe('TAF validering', () => {
 
     const result = erstatningsopgoerelseValidator.validateParsed(values);
 
-    expect(result.errors).toContainEqual(expect.objectContaining({
-      path: 'tafPerioder[0].fra',
-      message: expect.stringContaining('mangler reguleringssats for 2004'),
-      severity: 'error',
-    }));
+    expect(result.errors.some((error) =>
+      error.message.includes('TAF opreguleret til beregningsåret kan ikke beregnes')
+    )).toBe(false);
   });
 
-  it('fanger manglende reguleringssats for TAF-opreguleringens slutår på opgørelsesdatoen', () => {
+  it('emitterer IKKE en pre-compute satsdæknings-fejl for TAF-opreguleringens slutår', () => {
     const values = makeValues({
       tafPerioder: [
         { id: 'taf-1', fra: iso('2026-01-01'), til: iso('2026-01-31') },
@@ -241,11 +243,9 @@ describe('TAF validering', () => {
 
     const result = erstatningsopgoerelseValidator.validateParsed(values);
 
-    expect(result.errors).toContainEqual(expect.objectContaining({
-      path: 'opgørelseLavetDen',
-      message: expect.stringContaining('mangler reguleringssats for 2027'),
-      severity: 'error',
-    }));
+    expect(result.errors.some((error) =>
+      error.message.includes('TAF opreguleret til beregningsåret kan ikke beregnes')
+    )).toBe(false);
   });
 });
 

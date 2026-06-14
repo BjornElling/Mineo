@@ -51,7 +51,6 @@ import {
   opregulerMedAkkumuleretReguleringssats,
   opregulerMedAslAarsloensmaksimum,
 } from '../domain/satser/opreguleringsmotorer';
-import { TODAY } from '../config/dateRanges';
 
 export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
 
@@ -366,75 +365,21 @@ function validateTAF(
   errors.push(...validateLoenudviklingKonsistens(values));
   errors.push(...validateLoenudviklingsKravForAktivKilde(values, options));
   errors.push(...validateOffentligeYdelserReguleringssatser(values, options));
-  errors.push(...validateTafOpreguleretReguleringssatser(values, options));
+  // BEMÆRK: Satsdækning for "TAF opreguleret til beregningsåret" valideres IKKE her.
+  // Den hører hjemme i compute-laget (buildTafPerYearOpreguleretBuildOutcome), som er
+  // den eneste sandhed for hvilke år der reelt skal opreguleres: kun kalenderår med et
+  // nettobeløb ≠ 0 (0-beløbs-år springes over). En pre-compute validator på rå
+  // række-intervaller kan ikke kende de afledte per-år-beløb og ville derfor over-
+  // rapportere (falsk-positiv blokerende feltfejl på et 0-beløbs-år). Manglende
+  // reguleringssats fanges fail-closed af compute-invarianten
+  // buildTafPerYearOpreguleretManglendeReguleringssatsInvariant, der korrekt KUN
+  // blokerer TAF-opreguleret-PDF'en (ikke hele EO-beregningen). Jf. 4.12-review.
 
   return errors;
 }
 
 const formatMissingYears = (years: readonly number[]): string =>
   years.length === 1 ? `${years[0]}` : years.join(', ');
-
-function validateTafOpreguleretReguleringssatser(
-  values: ErstatningsopgoerelseValues,
-  options?: ErstatningsopgoerelseValidationOptions
-): ValidationError[] {
-  const tafRanges = buildTafRanges(values, { skadedatoISO: options?.skadedatoISO });
-  if (tafRanges.length === 0) return [];
-
-  const beregningsDatoIso = values.opgørelseLavetDen ?? TODAY;
-  const beregningsAar = Number.parseInt(beregningsDatoIso.slice(0, 4), 10);
-  if (!Number.isInteger(beregningsAar)) return [];
-
-  const errors: ValidationError[] = [];
-  const manglendeSlutAar = new Set<number>();
-  const manglendeAarByTafRowIndex = new Map<number, Set<number>>();
-
-  const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO: options?.skadedatoISO });
-  for (let index = 0; index < (values.tafPerioder ?? []).length; index += 1) {
-    const row = values.tafPerioder[index];
-    const range = clampTafRow(row, tafBounds);
-    if (!range) continue;
-    const rowStartYear = Number.parseInt(range.fra.slice(0, 4), 10);
-    const rowEndYear = Number.parseInt(range.til.slice(0, 4), 10);
-    if (!Number.isInteger(rowStartYear) || !Number.isInteger(rowEndYear)) continue;
-
-    for (let sourceYear = rowStartYear; sourceYear <= rowEndYear; sourceYear += 1) {
-      const { manglendeAar } = opregulerMedAkkumuleretReguleringssats(
-        { kildeAar: sourceYear, maalAar: beregningsAar },
-        reguleringssats
-      );
-      for (const aar of manglendeAar) {
-        if (aar === beregningsAar) {
-          manglendeSlutAar.add(aar);
-        } else {
-          const existing = manglendeAarByTafRowIndex.get(index) ?? new Set<number>();
-          existing.add(aar);
-          manglendeAarByTafRowIndex.set(index, existing);
-        }
-      }
-    }
-  }
-
-  for (const [index, years] of manglendeAarByTafRowIndex.entries()) {
-    const sortedYears = [...years].sort((a, b) => a - b);
-    errors.push({
-      path: `tafPerioder[${index}].fra`,
-      message: `TAF opreguleret til beregningsåret kan ikke beregnes, fordi der mangler reguleringssats for ${formatMissingYears(sortedYears)}.`,
-      severity: 'error',
-    });
-  }
-
-  if (manglendeSlutAar.size > 0) {
-    const sortedYears = [...manglendeSlutAar].sort((a, b) => a - b);
-    errors.push({
-      path: 'opgørelseLavetDen',
-      message: `TAF opreguleret til beregningsåret kan ikke beregnes, fordi der mangler reguleringssats for ${formatMissingYears(sortedYears)}.`,
-      severity: 'error',
-    });
-  }
-
-  return errors;
-}
 
 function validateOffentligeYdelserReguleringssatser(
   values: ErstatningsopgoerelseValues,

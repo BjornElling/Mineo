@@ -7,6 +7,7 @@ import {
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { EoCanonicalOutputSchema } from '../../../domain/erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
@@ -54,7 +55,7 @@ describe('eoCanonicalOutput', () => {
     };
 
     // dagsDatoISO er kun PDF-metadata; canonical output er dato-uafhængig.
-    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: iso('2026-02-27') });
+    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues: withSfggIngenForEmployments(eoValues), dagsDatoISO: iso('2026-02-27') });
     const pdfModel = snapshot.data!.pdfModel;
     const canonical = snapshot.data!.canonicalOutput;
 
@@ -117,7 +118,7 @@ describe('eoCanonicalOutput', () => {
     };
 
     // dagsDatoISO er kun PDF-metadata; canonical output er dato-uafhængig.
-    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: iso('2026-02-27') });
+    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues: withSfggIngenForEmployments(eoValues), dagsDatoISO: iso('2026-02-27') });
     const pdfModel = snapshot.data!.pdfModel;
     const canonical = snapshot.data!.canonicalOutput;
 
@@ -167,7 +168,7 @@ describe('eoCanonicalOutput', () => {
       skadedato: iso('2024-01-01'),
     };
 
-    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues });
+    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues: withSfggIngenForEmployments(eoValues) });
     const canonical = snapshot.data!.canonicalOutput;
     expect(canonical.totals.svieSmerteOre).toBe(0);
   });

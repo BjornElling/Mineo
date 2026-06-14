@@ -1,5 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import { DEFAULT_FRACTION_MAX_DIGITS, parseFractionString } from '../../../utils/fraction';
+import { formatPercent } from '../../../utils/formatUtils';
 
 export type Forligsgrad = Readonly<{
   factor: number;
@@ -13,7 +14,8 @@ export const parseForligsgrad = (
   if (typeof procentValue === 'number' && Number.isFinite(procentValue) && procentValue > 0 && procentValue <= 100) {
     return {
       factor: procentValue / 100,
-      label: `${procentValue}%`,
+      // Kanonisk dansk procentformat (komma-decimal + mellemrum): 12,5 → "12,5 %", 50 → "50 %".
+      label: formatPercent(procentValue),
     };
   }
 

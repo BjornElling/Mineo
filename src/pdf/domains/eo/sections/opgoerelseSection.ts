@@ -258,9 +258,9 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     const maxDisplayWithKr = renderMoneyWithKrTrimmed(model.svieSmerte.satserMax);
     const perDagDisplayWithKrFoerForlig = renderMoneyWithKrTrimmed(model.svieSmerte.satserPerDagFoerForlig);
     const maxDisplayWithKrFoerForlig = renderMoneyWithKrTrimmed(model.svieSmerte.satserMaxFoerForlig);
-    const forligSatsLabel = model.svieSmerte.forligLabel
-      ? model.svieSmerte.forligLabel.replace('%', ' %')
-      : null;
+    // forligLabel er allerede på kanonisk dansk format (procent: "12,5 %"; brøk: "1/3"),
+    // så ingen efterbehandling af mellemrum/separator er nødvendig her.
+    const forligSatsLabel = model.svieSmerte.forligLabel;
     const hasSygedage = model.svieSmerte.sygedage > 0;
     const hasDelviseSygedage = model.svieSmerte.delviseSygedage > 0;
     const visForligMedFuldeSatser =

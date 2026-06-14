@@ -46,6 +46,54 @@ describe('computeEetEalCalculation', () => {
     expect(result.computation?.ealKrav).toBe(3422850);
   });
 
+  it('advarer (ikke-blokerende) når beregningsdato ligger før skadedato', () => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        // Beregningsdato FØR skadedato (ulogisk datokombination, typisk tastefejl).
+        beregningsdato: iso('2018-01-01'),
+        aslAarsloen: asAmount(489000),
+        ealAarsloen: undefined,
+        ealEetPct: 75,
+        aslAfgoerelser: [],
+      },
+      skadedato: iso('2019-06-01'),
+      skadelidteFodselsdato: iso('1966-01-08'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+    });
+
+    const warning = result.issues.find((issue) => issue.id === 'warn-beregningsdato-foer-skadedato');
+    expect(warning).toBeDefined();
+    expect(warning?.severity).toBe('warning');
+    // Advarslen er ikke-blokerende: beregningen producerer stadig et (uopreguleret) krav.
+    expect(result.computation).not.toBeNull();
+    // Beregningsår < skadesår → ingen reguleringsår → faktor 1 (uopreguleret).
+    expect(result.computation?.reguleringsaar).toEqual([]);
+    expect(result.computation?.reguleretAarsloen).toBe(489000);
+  });
+
+  it('ingen datoorden-advarsel når beregningsdato er lig skadedato', () => {
+    const result = computeEetEalCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: iso('2019-06-01'),
+        aslAarsloen: asAmount(489000),
+        ealAarsloen: undefined,
+        ealEetPct: 75,
+        aslAfgoerelser: [],
+      },
+      skadedato: iso('2019-06-01'),
+      skadelidteFodselsdato: iso('1966-01-08'),
+      reguleringssats,
+      erhvervsevnetabEalMax,
+      aarsloenAslMax,
+    });
+
+    expect(result.issues.some((issue) => issue.id === 'warn-beregningsdato-foer-skadedato')).toBe(false);
+  });
+
   it('vælger EET % fra seneste afgørelse med tie-break på virkningsdato og endelig prioritet', () => {
     const result = computeEetEalCalculation({
       erhvervsevnetab: {

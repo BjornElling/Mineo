@@ -11,6 +11,7 @@ import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snap
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { toISODateString } from '../../../../types/branded';
+import { withSfggIngenForEmployments } from '../../../utils/sfggTestSupport';
 
 const { collectAllDebugRowsMock } = vi.hoisted(() => ({
   collectAllDebugRowsMock: vi.fn(),
@@ -555,20 +556,21 @@ describe('EOberegningTab kontroltjek', () => {
   });
 
   it('viser clampet TAF-periode i beregningsoversigten når snapshotten er autoritativt beregnet', () => {
-    const eoValues = createErstatningsopgoerelseInitialValues();
-    eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
-    eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
-    eoValues.tafBeregningsperiodeFra = toISODateString('2023-01-01');
-    eoValues.tafBeregningsperiodeTil = toISODateString('2023-12-31');
-    eoValues.differencekravDato = toISODateString('2024-07-01');
-    eoValues.loenindkomstAnsaettelsesforhold = [
+    const eoValuesRaw = createErstatningsopgoerelseInitialValues();
+    eoValuesRaw.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eoValuesRaw.vedroererPeriodeTil = toISODateString('2024-12-31');
+    eoValuesRaw.tafBeregningsperiodeFra = toISODateString('2023-01-01');
+    eoValuesRaw.tafBeregningsperiodeTil = toISODateString('2023-12-31');
+    eoValuesRaw.differencekravDato = toISODateString('2024-07-01');
+    eoValuesRaw.loenindkomstAnsaettelsesforhold = [
       createEmployment({
         loenudviklingBeregningsgrundlag: 'Ingen',
       }),
     ];
-    eoValues.tafPerioder = [
+    eoValuesRaw.tafPerioder = [
       { id: 'r1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-07-15'), loseFeriedage: 0 },
     ];
+    const eoValues = withSfggIngenForEmployments(eoValuesRaw);
 
     const snapshot = computeEoSnapshot({
       revision: 'rev-clamped-taf',

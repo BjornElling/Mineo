@@ -24,10 +24,6 @@ export type EoInvariant = Readonly<{
 }>;
 
 const VALIDATION_BLOCKED_OUTPUTS: readonly EoProjectionTarget[] = ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'];
-const SFGG_VALIDATION_PATH_PREFIXES = ['sfggAnsaettelsesforhold', 'sfggSygeperioderFoer2015'] as const;
-
-const isSfggValidationError = (error: ValidationError): boolean =>
-  SFGG_VALIDATION_PATH_PREFIXES.some((prefix) => error.path === prefix || error.path.startsWith(`${prefix}[`) || error.path.startsWith(`${prefix}.`));
 
 const buildValidationInvariantId = (error: ValidationError, index: number): string => {
   const path = error.path ?? `${index}`;
@@ -51,8 +47,8 @@ export const buildValidationInvariants = (errors: readonly ValidationError[]): r
     source: 'validation' as const,
     message: error.message,
     evidence: error.path ? [error.path] : undefined,
-    blocksAuthoritativeComputation: error.severity !== 'warning' && !isSfggValidationError(error),
-    blocksOutputs: error.severity === 'warning' || isSfggValidationError(error) ? [] : VALIDATION_BLOCKED_OUTPUTS,
+    blocksAuthoritativeComputation: error.severity !== 'warning',
+    blocksOutputs: error.severity === 'warning' ? [] : VALIDATION_BLOCKED_OUTPUTS,
   }));
 };
 

@@ -10,13 +10,14 @@ import {
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../pdf/domains/eo/sections/offentligeYdelserSection';
 import { toISODateString } from '../../../types/branded';
+import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
 
 const createValidEoBase = () => {
   const initial = createErstatningsopgoerelseInitialValues();
-  return {
+  return withSfggIngenForEmployments({
     ...initial,
     beregnesUdFra: 'Angivet månedsløn' as const,
     maanedsloenenUdgoer: asAmountValue(30000),
@@ -38,7 +39,7 @@ const createValidEoBase = () => {
       loenudviklingBeregningsgrundlag: 'Ingen' as const,
     },
     offentligeYdelserRows: [],
-  };
+  });
 };
 
 const stamdata = {

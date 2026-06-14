@@ -1602,7 +1602,12 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
     expect(rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
   });
 
-  it('gør dagssats-fejlen afhængig af satsvalg ved differentieret direkte overenskomstsats', () => {
+  it('viser satsvalg-fejlen som blokerende rod-årsag ved differentieret direkte overenskomstsats uden satsvalg', () => {
+    // Manglende satsvalg for en differentieret direkte overenskomstsats er nu en blokerende
+    // valideringsfejl ("Satsvalg mangler"), så den autoritative beregning standses (snapshot.data
+    // = null). EO-debug viser derfor satsvalg-fejlrækken (den handlingsanvisende rod-årsag), mens
+    // den tidligere afledte "Dagssats kunne ikke fastsættes"-række ikke længere produceres — den
+    // forudsatte et beregnet SFGG-resultat, som blokeringen forhindrer. Jf. SFGG-fail-closed (4.13).
     const values = createValues();
     values.eoNummer = '2';
     values.beregnesUdFra = 'Angivet dagsløn';
@@ -1648,15 +1653,10 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
           status: 'error',
           message: 'Intet valgt',
         }),
-        expect.objectContaining({
-          id: `sfgg.dagssats.${values.loenindkomstAnsaettelsesforhold[0].id}`,
-          label: 'Dagssats',
-          status: 'error',
-          message: 'Dagssats kunne ikke fastsættes for den valgte overenskomst i TAF-perioden',
-          dependsOn: [{ kind: 'id', id: `sfgg.satsvalg.${values.loenindkomstAnsaettelsesforhold[0].id}` }],
-        }),
       ])
     );
+    // Den afledte dagssats-række produceres ikke længere (beregningen er blokeret før SFGG-motoren).
+    expect(rows.find((row) => row.id === `sfgg.dagssats.${values.loenindkomstAnsaettelsesforhold[0].id}`)).toBeUndefined();
   });
 
   it('fejler ikke hele SFGG-debug når lønudviklingsmodellen mangler beregningsgrundlag', () => {

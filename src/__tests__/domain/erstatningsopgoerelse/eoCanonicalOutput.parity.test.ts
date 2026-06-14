@@ -10,6 +10,7 @@ import type { EoCanonicalOutput } from '../../../domain/erstatningsopgoerelse/sn
 import { buildTafRanges } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
+import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 const iso = (value: string) => toISODateString(value);
@@ -209,7 +210,7 @@ describe('eoCanonicalOutput parity matrix', () => {
     };
 
     // dagsDatoISO er kun PDF-metadata; canonical output er dato-uafhængig.
-    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: iso('2026-02-27') });
+    const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues: withSfggIngenForEmployments(eoValues), dagsDatoISO: iso('2026-02-27') });
     const pdfModel = snapshot.data!.pdfModel;
     const canonical = snapshot.data!.canonicalOutput;
     const projected = projectCanonicalFromPdfModel(eoValues, pdfModel);

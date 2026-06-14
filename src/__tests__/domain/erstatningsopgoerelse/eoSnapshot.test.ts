@@ -146,6 +146,20 @@ describe('computeEoSnapshot', () => {
     eoValues.tafPerioder = [
       { id: 'r1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-07-15'), loseFeriedage: 0 },
     ];
+    // SFGG-beregningskilde vælges ('Ingen'), så en incidentel SFGG-"ikke valgt"-fejl ikke blokerer
+    // download (SFGG-fejl er nu fail-closed/blokerende). Testen handler om TAF-clamping, ikke SFGG.
+    eoValues.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: eoValues.loenindkomstAnsaettelsesforhold[0].id,
+      sfggBeregningskilde: 'Ingen',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
 
     const snapshot = computeEoSnapshot({
       revision: 'taf-bounds',
@@ -576,7 +590,10 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.debugSnapshot!.sammentaelling.svieSmerteDelvise.tabelValue).toBe(41);
   });
 
-  it('SFGG-valideringsfejl registreres uden at blokere autoritativ snapshot-data', () => {
+  it('SFGG-valideringsfejl blokerer autoritativ snapshot-data som andre obligatoriske felter', () => {
+    // SFGG-inputfejl behandles fail-closed på linje med øvrige validator-fejl (severity 'error'):
+    // blocksAuthoritativeComputation: true → data: null, og download af EO/TAF-PDF blokeres.
+    // debugSnapshot er fortsat tilgængeligt (bygges i validerings-fejl-stien).
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.vedroererPeriodeFra = toISODateString('2024-01-01');
     eoValues.vedroererPeriodeTil = toISODateString('2024-12-31');
@@ -593,23 +610,20 @@ describe('computeEoSnapshot', () => {
     eoValues.sfggAnsaettelsesforhold = [];
 
     const snapshot = computeEoSnapshot({
-      revision: 'sfgg-nonblocking-validation',
+      revision: 'sfgg-blocking-validation',
       stamdataValues: STAMDATA_INITIAL_VALUES,
       eoValues,
     });
 
     expect(snapshot.status).toBe('error');
-    expect(snapshot.data).not.toBeNull();
+    expect(snapshot.data).toBeNull();
     expect(snapshot.debugSnapshot).not.toBeNull();
     const sfggInvariant = snapshot.invariants.find((invariant) => invariant.message === 'Beregningsgrundlag for SFGG ikke valgt');
     expect(sfggInvariant).toEqual(expect.objectContaining({
       source: 'validation',
-      blocksAuthoritativeComputation: false,
-      blocksOutputs: [],
+      blocksAuthoritativeComputation: true,
+      blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'],
     }));
-    expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([
-      { fra: toISODateString('2024-01-01'), til: toISODateString('2024-06-30') },
-    ]);
   });
 
   it('tre-tilstands-valg: Nej og Skjul giver identiske beregnede totaler (kun præsentation adskiller)', () => {

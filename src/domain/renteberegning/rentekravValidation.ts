@@ -8,6 +8,7 @@
 import type { ISODateString } from '../../types/branded';
 import { isISODateString, parseISODate, dateToISO } from '../../types/branded';
 import type { Result } from '../../types/result';
+import { addMonths } from '../../utils/dateUtils';
 import { MIN_INTEREST_DATE, MIN_SURCHARGE_DATE } from '../../data/interestRates';
 
 // ============================================================================
@@ -101,7 +102,7 @@ export function calculateInterestDate(
   }
 
   // Beregn ny dato baseret på enhed
-  const resultDate = new Date(kravetDate.getTime());
+  let resultDate = new Date(kravetDate.getTime());
 
   switch (enhed) {
     case 'dage': {
@@ -115,11 +116,11 @@ export function calculateInterestDate(
     }
 
     case 'maaneder': {
-      // Normativt dokumenteret nuværende adfærd: månedstillæg følger JavaScripts
-      // UTC-month rollover semantik. 31-01 + 1 måned bliver derfor 02-03 i skudår,
-      // ikke klippet til sidste dag i februar. En egentlig "clip til månedsslut"
-      // kræver en eksplicit domæneafgørelse.
-      resultDate.setUTCMonth(resultDate.getUTCMonth() + tillaegstid);
+      // Månedstillæg bruger den kanoniske addMonths (dateUtils), der clamper til
+      // sidste dag i mål-måneden. "1 måned efter 31. januar" bliver derfor udgangen
+      // af februar (28/29-02), ikke begyndelsen af marts. Dette er ÉN sandhed for
+      // "læg X måneder til en dato" på tværs af kodebasen (ingen rå setUTCMonth-rollover).
+      resultDate = addMonths(resultDate, tillaegstid);
       break;
     }
 

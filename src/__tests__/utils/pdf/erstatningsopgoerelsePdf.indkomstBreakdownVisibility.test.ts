@@ -7,6 +7,7 @@ import type { StamdataValues } from '../../../schemas/formSchemas';
 import type { SelectedElements } from '../../../pdf/domains/eo/types';
 import { formatCurrencyFromOre } from '../../../pdf/shared/pdfFormatUtils';
 import { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM } from '../../../pdf/infrastructure/pdfConfig';
+import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 
 // Minimum Y-afstand mellem to teksters baselines når der skal være mindst én tom linje imellem:
 // linje + trailing + linje. Bruges til at håndhæve læsbarheds-luft mellem forbeholdstekst og krav.
@@ -78,7 +79,7 @@ const buildProjectedDocument = (
   const snapshot = computeEoSnapshot({
     revision: 'test-erstatningsopgoerelsePdf.indkomstBreakdownVisibility',
     stamdataValues: stamdata,
-    eoValues: eo,
+    eoValues: withSfggIngenForEmployments(eo),
   });
 
   if (!snapshot.data) {
@@ -92,7 +93,7 @@ const renderPdf = (
   stamdata: StamdataValues,
   eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>
 ) => {
-  generateErstatningsopgoerelsePdf(stamdata, eo, selected, {
+  generateErstatningsopgoerelsePdf(stamdata, withSfggIngenForEmployments(eo), selected, {
     visUdkastStempel: false,
     document: buildProjectedDocument(stamdata, eo),
   });
@@ -103,7 +104,7 @@ const renderPdfWithSelected = (
   eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>,
   selectedElements: typeof selected
 ) => {
-  generateErstatningsopgoerelsePdf(stamdata, eo, selectedElements, {
+  generateErstatningsopgoerelsePdf(stamdata, withSfggIngenForEmployments(eo), selectedElements, {
     visUdkastStempel: false,
     document: buildProjectedDocument(stamdata, eo),
   });
@@ -870,8 +871,9 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       sfggManuelDagssats: undefined,
       sfggManuelBeloebIHenholdTil: undefined,
       sfggManuelFoerstEfterSygeloen: 'Nej',
-      sfggReferenceperiodeFra: iso('2024-01-01'),
-      sfggReferenceperiodeTil: iso('2024-01-31'),
+      // Referenceperioden skal ligge FØR første TAF-periode (validator-regel); TAF starter 2024-01-01.
+      sfggReferenceperiodeFra: iso('2023-12-01'),
+      sfggReferenceperiodeTil: iso('2023-12-31'),
       sfggReferenceperiodeFravaersdageUdenLoen: 0,
       sfggSatsvalg: undefined,
       sfggAlleredeBetaltBeloeb: undefined,
@@ -896,9 +898,9 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(texts).toContain('Referencesats');
     expect(texts).toContain('Opgøres som den gennemsnitlige feriepengebetaling i 4 uger før sygeforløbet.');
     expect(texts).toContain('Referenceperiode');
-    expect(texts).toContain('01-01-2024 - 31-01-2024');
+    expect(texts).toContain('01-12-2023 - 31-12-2023');
     expect(texts).toContain('Lønnen i referenceperioden udgør');
-    expect(texts).toContain('01-01-2024 - 31-01-2024');
+    expect(texts).toContain('01-12-2023 - 31-12-2023');
     expect(sfggTexts).not.toContain('Beregningsgrundlag');
     expect(sfggTexts).not.toContain('Der beregnes sygeferiegodtgørelse i perioden');
     expect(sfggTexts).not.toContain('Der beregnes sygeferiegodtgørelse i TAF-perioden');
@@ -991,8 +993,10 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       sfggManuelDagssats: undefined,
       sfggManuelBeloebIHenholdTil: undefined,
       sfggManuelFoerstEfterSygeloen: 'Nej',
-      sfggReferenceperiodeFra: iso('2024-01-01'),
-      sfggReferenceperiodeTil: iso('2024-01-31'),
+      // Referenceperioden skal ligge FØR første TAF-periode (validator-regel); TAF starter 2024-01-01.
+      // December 2023 har ligesom januar 31 kalenderdage, så dag-optællingen er uændret.
+      sfggReferenceperiodeFra: iso('2023-12-01'),
+      sfggReferenceperiodeTil: iso('2023-12-31'),
       sfggReferenceperiodeFravaersdageUdenLoen: 1,
       sfggSatsvalg: undefined,
       sfggAlleredeBetaltBeloeb: undefined,
@@ -1212,8 +1216,9 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       indtaegtsoplysningerTableData: [
         {
           id: 'row-1',
-          col0_maaned: '1',
-          col1_maaned: '2024',
+          // Referenceperioden (og dermed referenceindkomsten) ligger før første TAF-periode (Dec 2023).
+          col0_maaned: '12',
+          col1_maaned: '2023',
           col0_uge: '',
           col1_uge: '',
           col0_dag: undefined,
@@ -1231,8 +1236,9 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       sfggManuelDagssats: undefined,
       sfggManuelBeloebIHenholdTil: undefined,
       sfggManuelFoerstEfterSygeloen: 'Nej',
-      sfggReferenceperiodeFra: iso('2024-01-01'),
-      sfggReferenceperiodeTil: iso('2024-01-31'),
+      // Referenceperioden skal ligge FØR første TAF-periode (validator-regel); TAF starter 2024-01-01.
+      sfggReferenceperiodeFra: iso('2023-12-01'),
+      sfggReferenceperiodeTil: iso('2023-12-31'),
       sfggReferenceperiodeFravaersdageUdenLoen: 0,
       sfggSatsvalg: undefined,
       sfggAlleredeBetaltBeloeb: undefined,

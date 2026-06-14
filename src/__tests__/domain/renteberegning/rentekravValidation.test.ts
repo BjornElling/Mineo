@@ -61,10 +61,18 @@ describe('calculateInterestDate', () => {
       if (result.success) expect(result.value).toBe('2024-02-01');
     });
 
-    it('2024-01-31 + 1 måned følger dokumenteret UTC-month rollover = 2024-03-02', () => {
+    it('2024-01-31 + 1 måned clamper til månedsslut (skudår) = 2024-02-29', () => {
+      // Kanonisk addMonths-semantik: "1 måned efter 31. januar" = udgangen af februar,
+      // ikke begyndelsen af marts (ingen rå setUTCMonth-rollover).
       const result = calculateInterestDate({ kravetDato: iso('2024-01-31'), tillaegstid: 1, enhed: 'maaneder' });
       expect(result.success).toBe(true);
-      if (result.success) expect(result.value).toBe('2024-03-02');
+      if (result.success) expect(result.value).toBe('2024-02-29');
+    });
+
+    it('2025-01-31 + 1 måned clamper til månedsslut (ikke-skudår) = 2025-02-28', () => {
+      const result = calculateInterestDate({ kravetDato: iso('2025-01-31'), tillaegstid: 1, enhed: 'maaneder' });
+      expect(result.success).toBe(true);
+      if (result.success) expect(result.value).toBe('2025-02-28');
     });
   });
 

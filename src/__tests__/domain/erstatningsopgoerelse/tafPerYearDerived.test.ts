@@ -15,6 +15,7 @@ import {
 } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { splitIsoRangeByCalendarYearsInclusive } from '../../../domain/erstatningsopgoerelse/engines/periodRangeGroups';
+import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 
 const iso = (value: string) => toISODateString(value);
 
@@ -62,7 +63,7 @@ const buildSnapshotData = (
   eoValues: ErstatningsopgoerelseValues,
   opts: Readonly<{ dagsDatoISO: ReturnType<typeof iso> }> = { dagsDatoISO }
 ): EoSnapshotComputedData => {
-  const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: opts.dagsDatoISO });
+  const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues: withSfggIngenForEmployments(eoValues), dagsDatoISO: opts.dagsDatoISO });
   if (!snapshot.data) {
     const message = snapshot.invariants[0]?.message ?? 'Snapshot fejlede';
     throw new Error(message);

@@ -12,6 +12,7 @@ import {
 } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 import { toISODateString } from '../../../types/branded';
 import { formatCurrency } from '../../../utils/formatUtils';
+import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 
 const iso = (value: string) => toISODateString(value);
 const amount = (value: number): AmountValue => ({ kind: 'number', value });
@@ -46,7 +47,7 @@ describe('eoDebug canonical parity', () => {
       skadestype: 'Arbejdsulykke' as const,
       skadedato: iso('2024-01-01'),
     };
-    const canonical = computeEoSnapshot({ revision: 'test', stamdataValues, eoValues }).data!.canonicalOutput;
+    const canonical = computeEoSnapshot({ revision: 'test', stamdataValues, eoValues: withSfggIngenForEmployments(eoValues) }).data!.canonicalOutput;
 
     const rows = buildEODebugSvieSmerteRows(
       eoValues,
@@ -89,7 +90,7 @@ describe('eoDebug canonical parity', () => {
       skadestype: 'Arbejdsulykke' as const,
       skadedato: iso('2024-01-01'),
     };
-    const canonical = computeEoSnapshot({ revision: 'test', stamdataValues, eoValues }).data!.canonicalOutput;
+    const canonical = computeEoSnapshot({ revision: 'test', stamdataValues, eoValues: withSfggIngenForEmployments(eoValues) }).data!.canonicalOutput;
 
     const rows = buildEODebugTaftRows(
       eoValues,

@@ -1,10 +1,10 @@
 import { parseForligsgrad } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 
 describe('parseForligsgrad', () => {
-  it('returnerer korrekt factor/label for procentværdier', () => {
-    expect(parseForligsgrad({ forligAnsvarsgradProcent: 1, forligAnsvarsgradBroek: '' })).toEqual({ factor: 0.01, label: '1%' });
-    expect(parseForligsgrad({ forligAnsvarsgradProcent: 50, forligAnsvarsgradBroek: '' })).toEqual({ factor: 0.5, label: '50%' });
-    expect(parseForligsgrad({ forligAnsvarsgradProcent: 100, forligAnsvarsgradBroek: '' })).toEqual({ factor: 1, label: '100%' });
+  it('returnerer korrekt factor/label for procentværdier (kanonisk dansk format)', () => {
+    expect(parseForligsgrad({ forligAnsvarsgradProcent: 1, forligAnsvarsgradBroek: '' })).toEqual({ factor: 0.01, label: '1 %' });
+    expect(parseForligsgrad({ forligAnsvarsgradProcent: 50, forligAnsvarsgradBroek: '' })).toEqual({ factor: 0.5, label: '50 %' });
+    expect(parseForligsgrad({ forligAnsvarsgradProcent: 100, forligAnsvarsgradBroek: '' })).toEqual({ factor: 1, label: '100 %' });
   });
 
   it('returnerer null for ugyldige procentværdier', () => {
@@ -34,18 +34,16 @@ describe('parseForligsgrad', () => {
   });
 
   it('prioriterer procent når både procent og brøk er sat', () => {
-    expect(parseForligsgrad({ forligAnsvarsgradProcent: 25, forligAnsvarsgradBroek: '1/3' })).toEqual({ factor: 0.25, label: '25%' });
+    expect(parseForligsgrad({ forligAnsvarsgradProcent: 25, forligAnsvarsgradBroek: '1/3' })).toEqual({ factor: 0.25, label: '25 %' });
   });
 
-  // Lås nuværende label-format for decimal-procent. forligLabel er brugervendt (vises i
+  // Lås label-format for decimal-procent. forligLabel er brugervendt (vises i
   // svie/smerte-PDF-suffix og EO-debug), og decimaler tillades af StyledPercentField.
-  // BEMÆRK (4.9-fund, ⏸ afventer godkendelse): label bruger JS-talstring med punktum og
-  // intet mellemrum ("12.5%"), ikke dansk konvention via formatPercent ("12,5 %").
-  // Denne test dokumenterer den nuværende adfærd, så et bevidst valg kan træffes.
-  it('label for decimal-procent bruger pt. punktum og intet mellemrum (ikke dansk format)', () => {
+  // Label bruger den kanoniske formatPercent → dansk konvention (komma-decimal + mellemrum).
+  it('label for decimal-procent bruger kanonisk dansk format ("12,5 %")', () => {
     expect(parseForligsgrad({ forligAnsvarsgradProcent: 12.5, forligAnsvarsgradBroek: '' })).toEqual({
       factor: 0.125,
-      label: '12.5%',
+      label: '12,5 %',
     });
   });
 });

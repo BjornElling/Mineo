@@ -5,7 +5,10 @@
 **Gælder for:** Alle dokument-downloads i Mineo-hovedappen.
 **Senest verificeret mod kode:** 2026-06-10
 
-Denne kontrakt fastlægger reglerne for valg mellem PDF- og Word-downloads.
+Denne kontrakt fastlægger reglerne for valg mellem PDF- og Word-downloads. Den er
+**kanal-vælgeren** der ligger *over* `document-output-contract.md`: denne kontrakt bestemmer
+*hvilken* kanal (PDF/Word) der vælges, mens `document-output-contract.md` ejer den kanal-neutrale
+data/gate/komposition og writer-API'et, begge kanaler deler.
 
 ---
 

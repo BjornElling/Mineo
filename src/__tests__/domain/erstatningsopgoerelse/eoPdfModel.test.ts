@@ -8,6 +8,7 @@ import { ensureMoneyOre, resolveLoenudviklingRows } from '../../../domain/erstat
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/shared/eoTypes';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
+import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 import * as statistikRatesData from '../../../data/statistiskeRates';
 import * as krlRatesData from '../../../data/krlRates';
 import * as overenskomstRatesData from '../../../data/overenskomstRates';
@@ -119,7 +120,7 @@ const buildPdfModel = (
   eoValues: ErstatningsopgoerelseValues,
   options: Readonly<{ dagsDatoISO: ReturnType<typeof iso> }>
 ): EoModel => {
-  const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues, dagsDatoISO: options.dagsDatoISO });
+  const snapshot = computeEoSnapshot({ revision: 'test', stamdataValues: stamdata, eoValues: withSfggIngenForEmployments(eoValues), dagsDatoISO: options.dagsDatoISO });
   if (!snapshot.data) {
     const firstInvariant = snapshot.invariants[0];
     const message = snapshot.failClosedReason === 'runtime_exception'
@@ -539,7 +540,7 @@ describe('eoPdfModel', () => {
     const forligModel = buildPdfModel(stamdata, withForlig, { dagsDatoISO: iso('2026-02-10') });
 
     expect(forligModel.forlig.erIndgaaet).toBe(true);
-    expect(forligModel.forlig.label).toBe('50%');
+    expect(forligModel.forlig.label).toBe('50 %');
     expect(forligModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteFoerForligOre).toBe(
       baseModel.tabtArbejdsfortjeneste.tabtArbejdsfortjenesteOre
     );
