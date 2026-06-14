@@ -48,6 +48,8 @@ import {
   PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL,
 } from '../kapitalisering/kapitaliseringPdf';
 import { renderEfterEalBody } from '../eet/eetEfterEalPdf';
+import { buildBeregnetDifferencekravLabel } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
+import { buildForligIndgaaetSaetning } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 
 export const buildDifferencekravPdfFilename = (journalnr?: string): string =>
   resolvePdfFileName('Differencekrav (EET)', false, journalnr);
@@ -459,8 +461,17 @@ const renderDifferencekravPage = (
   // Differencekrav
   writer.writeBoldSubheader('Differencekrav');
 
+  if (computation.forligLabel !== null) {
+    writer.writeWrappedText(
+      buildForligIndgaaetSaetning(
+        computation.forligLabel,
+        computation.forligDato ? formatIsoDateLong(computation.forligDato) : null
+      )
+    );
+  }
+
   writer.writeLeftRightText(
-    'Beregnet differencekrav',
+    buildBeregnetDifferencekravLabel(computation.forligLabel, formatKr(computation.differencekravFoerForlig)),
     formatKr(computation.differencekrav),
     { rightFontStyle: 'bold' as const }
   );

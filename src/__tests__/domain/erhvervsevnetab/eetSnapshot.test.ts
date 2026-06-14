@@ -144,6 +144,60 @@ describe('computeEetSnapshot', () => {
     expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
   });
 
+  it('anvender et gyldigt forlig på differencekravet uden at blokere', () => {
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: createStamdata(),
+      fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
+      forlig: {
+        values: { forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '2/3' },
+        dato: toISODateString('2024-05-17'),
+        hasInvalidDraft: false,
+      },
+    });
+
+    expect(snapshot.differencekrav.hasBlockingErrors).toBe(false);
+    // Faktoren (og datoen) flyder igennem snapshot → beregning (selve reduktions-matematikken er
+    // dækket i eetDifferencekravCalculation-testen på et ikke-nul scenarie).
+    const c = snapshot.differencekrav.computation!;
+    expect(c.forligLabel).toBe('2/3');
+    expect(c.forligFactor).toBe(2 / 3);
+    expect(c.forligDato).toBe(toISODateString('2024-05-17'));
+    expect(c.differencekrav).toBe(Math.max(0, Math.round(c.differencekravFoerForlig * (2 / 3))));
+  });
+
+  it('blokerer hele differencekrav-outputtet når både procent og brøk er udfyldt', () => {
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: createStamdata(),
+      fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
+      forlig: {
+        values: { forligAnsvarsgradProcent: 50, forligAnsvarsgradBroek: '1/3' },
+        hasInvalidDraft: false,
+      },
+    });
+
+    expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+    expect(snapshot.differencekrav.issues.some((issue) => issue.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
+    // Øvrige faner berøres ikke af forligs-fejlen.
+    expect(snapshot.efterEal.hasBlockingErrors).toBe(false);
+  });
+
+  it('blokerer differencekrav-outputtet når et forligs-felt har et ikke-committbart rå draft', () => {
+    const snapshot = computeEetSnapshot({
+      values: createValues(),
+      stamdata: createStamdata(),
+      fieldErrors: { stamdata: {}, erhvervsevnetab: {}, faellesAarsloen: {} },
+      forlig: {
+        values: { forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: undefined },
+        hasInvalidDraft: true,
+      },
+    });
+
+    expect(snapshot.differencekrav.hasBlockingErrors).toBe(true);
+    expect(snapshot.differencekrav.issues.some((issue) => issue.id === 'forlig-ansvarsgrad-invalid')).toBe(true);
+  });
+
   it('failer lukket med snapshot-issue hvis en EET-beregner kaster runtimefejl', () => {
     const spy = vi.spyOn(eetLoebendeYdelserCalculation, 'computeEetLoebendeYdelser').mockImplementation(() => {
       throw new Error('Injected EET failure');

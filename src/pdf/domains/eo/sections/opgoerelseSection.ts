@@ -7,6 +7,7 @@ import {
 import { round4 as roundToFourDecimals } from '../../../../utils/roundingShortcuts';
 import { resolveOevrigeKravIntroLinjer } from '../../../../domain/erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { resolveBilagWarning } from '../../../../domain/erstatningsopgoerelse/helpers/bilagWarnings';
+import { buildForligIndgaaetSaetning } from '../../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 import type { Calculable, LoenudviklingSegment, MoneyOre, EoModel } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
@@ -211,10 +212,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
   if (model.forlig.erIndgaaet) {
     renderSectionHeader('Erstatningsniveau');
-    const forligDatoTekst = model.forlig.dato ? `den ${formatDateLong(model.forlig.dato)}` : null;
-    const tekst = forligDatoTekst
-      ? `Der er ${forligDatoTekst} indgået forlig i sagen på betaling af ${model.forlig.label}.`
-      : `Der er indgået forlig i sagen på betaling af ${model.forlig.label}.`;
+    const tekst = buildForligIndgaaetSaetning(
+      model.forlig.label,
+      model.forlig.dato ? formatDateLong(model.forlig.dato) : null
+    );
     safeAddWrappedText(tekst);
   }
 

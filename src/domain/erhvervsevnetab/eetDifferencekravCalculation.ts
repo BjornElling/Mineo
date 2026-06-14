@@ -1,4 +1,5 @@
 import type { ErhvervsevnetabComposedValues } from '../../schemas/formSchemas';
+import type { Forligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { EetIssue } from './eetTypes';
 import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString } from '../../types/branded';
@@ -131,6 +132,17 @@ export type EetDifferencekravComputation = Readonly<{
   // Fradrag 4: mer-erstatning ved forhøjet folkepensionsalder. null når toggle er fra,
   // eller ingen forhøjelse kvalificerer.
   merErstatningPensionsalder: MerErstatningPensionsalderComputation | null;
+  // Differencekrav før forlig om ansvarsgrad anvendes (det fulde, ureducerede krav).
+  differencekravFoerForlig: number;
+  // Forlig om ansvarsgrad: faktor (< 1) og label ("2/3"/"50 %") når et gyldigt forlig under 100 %
+  // er angivet. Ved intet forlig / 100 % er begge null, og differencekrav === differencekravFoerForlig.
+  forligFactor: number | null;
+  forligLabel: string | null;
+  // Forligsdato (delt kilde med EO). Bruges kun til prosa-sætningen "Der er [den dato] indgået
+  // forlig …". null når der ikke reduceres eller ingen dato er angivet.
+  forligDato: ISODateString | null;
+  // Endeligt differencekrav efter forlig om ansvarsgrad (= differencekravFoerForlig × forligFactor,
+  // eller differencekravFoerForlig når der ikke reduceres).
   differencekrav: number;
   afgoerelser: readonly EetDifferencekravLoebendeAfgoerelse[];
   kapitaliseringerAfgoerelser: readonly EetDifferencekravKapitaliseretAfgoerelse[];
@@ -158,6 +170,12 @@ type Input = Readonly<{
   // Beregnings-valgmulighed fra differencekrav-fanen (sagsdata). Når true fratrækkes
   // mer-erstatning ved forhøjet folkepensionsalder (fradrag 4) i differencekravet.
   indregnMerErstatningVedForhoejetPensionsalder: boolean;
+  // Forlig om ansvarsgrad (delt kilde med EO-fanen). Når et gyldigt forlig under 100 % er angivet,
+  // reduceres det endelige differencekrav med faktoren. `null`/udeladt = intet forlig / 100 % =
+  // ingen reduktion. Ugyldigt forlig håndteres som blokerende fejl i eetSnapshot (ikke her).
+  forlig?: Forligsgrad;
+  // Forligsdato (delt kilde med EO) — kun til prosa-sætningen. Udeladt/undefined = ingen dato.
+  forligDato?: ISODateString;
 }>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -963,8 +981,8 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
     }
   }
 
-  // ─── Endeligt differencekrav ──────────────────────────────────────────────
-  const differencekrav = Math.max(
+  // ─── Differencekrav før forlig ────────────────────────────────────────────
+  const differencekravFoerForlig = Math.max(
     0,
     round0(
       ealKrav
@@ -974,6 +992,18 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       - (merErstatningPensionsalder?.samletMerErstatning ?? 0)
     )
   );
+
+  // ─── Forlig om ansvarsgrad ────────────────────────────────────────────────
+  // Reducér kun ved et gyldigt forlig under 100 % (factor < 1). Ved intet forlig eller 100 %
+  // forbliver differencekravet uændret, og label vises uden parentes. Ugyldigt forlig blokerer
+  // hele beregningen i eetSnapshot, så det når aldrig hertil.
+  const reducerer = input.forlig !== null && input.forlig !== undefined && input.forlig.factor < 1;
+  const forligFactor = reducerer ? input.forlig!.factor : null;
+  const forligLabel = reducerer ? input.forlig!.label : null;
+  const forligDato = reducerer ? (input.forligDato ?? null) : null;
+  const differencekrav = forligFactor !== null
+    ? Math.max(0, round0(differencekravFoerForlig * forligFactor))
+    : differencekravFoerForlig;
 
   return {
     issues: finalIssues,
@@ -990,6 +1020,10 @@ export const computeEetDifferencekravCalculation = (input: Input): EetDifference
       proformaKapitalisering,
       resterendeLoebendeYdelser,
       merErstatningPensionsalder,
+      differencekravFoerForlig,
+      forligFactor,
+      forligLabel,
+      forligDato,
       differencekrav,
       afgoerelser: loebendeAfgoerelser,
       kapitaliseringerAfgoerelser: kapAfgoerelser,

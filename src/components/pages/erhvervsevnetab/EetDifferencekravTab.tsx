@@ -3,8 +3,17 @@ import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
 import StyledCheckbox from '../../inputs/StyledCheckbox';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
+import StyledPercentField from '../../inputs/StyledPercentField';
+import StyledFractionField from '../../inputs/StyledFractionField';
+import StyledDateField from '../../inputs/StyledDateField';
 import type { CommitEvent } from '../../../types/fieldEvents';
-import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues, StamdataValues } from '../../../schemas/formSchemas';
+import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues, ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import { coerceToISODateString, type ISODateString } from '../../../types/branded';
+import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse } from '../../../config/dateRanges';
+import type { ReportableFieldError } from '../../../types/fieldErrors';
+import { useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
+import { buildBeregnetDifferencekravLabel } from '../../../domain/erhvervsevnetab/eetDifferencekravPresentation';
+import { buildForligIndgaaetSaetning } from '../../../domain/erstatningsopgoerelse/engines/forligsgrad';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
@@ -33,9 +42,14 @@ import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
 
+type ForligValues = Pick<ErstatningsopgoerelseValues, 'forligAnsvarsgradProcent' | 'forligAnsvarsgradBroek' | 'forligDato'>;
+
 type Props = Readonly<{
   values: ErhvervsevnetabComposedValues;
   setValues: SetValuesUpdater<ErhvervsevnetabValues>;
+  // Forlig om ansvarsgrad er delt kilde med EO-fanen (felterne bor i erstatningsopgoerelse-sektionen).
+  forligValues: ForligValues;
+  setForligValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
   onGoToEetOplysninger: () => void;
   stamdata: StamdataValues | null;
   snapshot: EetSnapshot['differencekrav'];
@@ -354,7 +368,7 @@ const EetMerErstatningPensionsalderBox = ({ computation, koen }: MerErstatningBo
   </ContentBox>
 );
 
-const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
+const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
   const { settings } = useAppSettings();
   const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
   const issues = snapshot.issues;
@@ -430,6 +444,84 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
     [setValues]
   );
 
+  // ─── Forlig om ansvarsgrad (delt kilde med EO-fanen) ──────────────────────
+  // Felterne skriver til erstatningsopgoerelse-sektionen, så ændringer her slår igennem på EO-fanen
+  // og omvendt. Fejlrapportering bindes til samme (sektion, felt), så ugyldige rå drafts persisteres
+  // i den fælles invalidDrafts-kanal og indgår i Gem-spærringen.
+  const reportForligAnsvarsgradProcentInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'forligAnsvarsgradProcent', {
+    severity: 'error',
+    source: 'input',
+  });
+  const reportForligAnsvarsgradBroekInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'forligAnsvarsgradBroek', {
+    severity: 'error',
+    source: 'input',
+  });
+
+  const handleForligProcentCommit = React.useCallback(
+    (event: CommitEvent<number | undefined>) => {
+      setForligValues((prev) => ({ ...prev, forligAnsvarsgradProcent: event.target.value }), {
+        fieldPath: 'forligAnsvarsgradProcent',
+      });
+    },
+    [setForligValues]
+  );
+
+  const handleForligBroekCommit = React.useCallback(
+    (event: CommitEvent<string | undefined>) => {
+      const raw = event.target.value;
+      const trimmed = typeof raw === 'string' ? raw.trim() : '';
+      setForligValues((prev) => ({ ...prev, forligAnsvarsgradBroek: trimmed === '' ? undefined : trimmed }), {
+        fieldPath: 'forligAnsvarsgradBroek',
+      });
+    },
+    [setForligValues]
+  );
+
+  // "Begge udfyldt"-reglen — spejler EOOplysningerTab. Driver rød ring + tooltip på begge felter.
+  const forligFejl = React.useMemo(() => {
+    const harProcent =
+      forligValues.forligAnsvarsgradProcent !== undefined && forligValues.forligAnsvarsgradProcent !== null;
+    const harBroek =
+      typeof forligValues.forligAnsvarsgradBroek === 'string' && forligValues.forligAnsvarsgradBroek.trim() !== '';
+    const beggeUdfyldt = harProcent && harBroek;
+    return {
+      harFejl: beggeUdfyldt,
+      fejlbesked: beggeUdfyldt ? 'Kan ikke udfylde både procent og brøk' : '',
+    };
+  }, [forligValues.forligAnsvarsgradProcent, forligValues.forligAnsvarsgradBroek]);
+
+  // Forligsdato (delt kilde med EO). Samme dato-grænser som EOOplysningerTab, så rød ring/tooltip
+  // for ugyldige datoer er identisk på tværs af fanerne.
+  const skadedatoISO = stamdata?.skadedato;
+  const erErhvervssygdom = (stamdata?.skadestype ?? '') === 'Erhvervssygdom';
+  const forligDatoMinRule = React.useMemo(
+    () =>
+      computeSkadedatoMinRule({
+        skadedatoISO,
+        erErhvervssygdom,
+        fallbackMin: dateRanges_erstatningsopgoerelse.forligDato.fallbackMin,
+      }),
+    [erErhvervssygdom, skadedatoISO]
+  );
+  const reportForligDatoInputError = useFormFieldErrorReporter('erstatningsopgoerelse', 'forligDato', {
+    severity: 'error',
+    source: 'input',
+  });
+  const reportForligDatoInputErrorSafe = React.useCallback(
+    (errorMsg: ReportableFieldError | undefined) => {
+      const hasValue = typeof forligValues.forligDato === 'string' && forligValues.forligDato.trim() !== '';
+      reportForligDatoInputError(hasValue ? errorMsg : undefined);
+    },
+    [forligValues.forligDato, reportForligDatoInputError]
+  );
+  const handleForligDatoCommit = React.useCallback(
+    (event: CommitEvent<ISODateString | undefined>) => {
+      const nextValue = coerceToISODateString(event.target.value ?? undefined);
+      setForligValues((prev) => ({ ...prev, forligDato: nextValue }), { fieldPath: 'forligDato' });
+    },
+    [setForligValues]
+  );
+
   return (
     <Box>
       <EetIssuesBox
@@ -459,40 +551,36 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
           <Box className="row--label-right-hover">
             <Typography className="row--text">Bilag, der indsættes</Typography>
             <Box className="row--label-right-hover__content">
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+              <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                <StyledCheckbox
+                  checked={bilagSelection.loebendeYdelser}
+                  onCommit={createBilagCommitHandler('loebendeYdelser')}
+                  label="Løbende ydelser"
+                />
+                <StyledCheckbox
+                  checked={bilagSelection.kapitalisering}
+                  onCommit={createBilagCommitHandler('kapitalisering')}
+                  label="Kapitalisering"
+                />
+                <StyledCheckbox
+                  checked={bilagSelection.eetEfterEal}
+                  onCommit={createBilagCommitHandler('eetEfterEal')}
+                  label="EET efter EAL"
+                />
+                {computation.proformaKapitalisering && (
                   <StyledCheckbox
-                    checked={bilagSelection.loebendeYdelser}
-                    onCommit={createBilagCommitHandler('loebendeYdelser')}
-                    label="Løbende ydelser"
+                    checked={bilagSelection.proformaKapitalisering}
+                    onCommit={createBilagCommitHandler('proformaKapitalisering')}
+                    label="Proformakap. af rest-EET"
                   />
+                )}
+                {computation.merErstatningPensionsalder && (
                   <StyledCheckbox
-                    checked={bilagSelection.kapitalisering}
-                    onCommit={createBilagCommitHandler('kapitalisering')}
-                    label="Kapitalisering"
+                    checked={bilagSelection.merErstatningPensionsalder}
+                    onCommit={createBilagCommitHandler('merErstatningPensionsalder')}
+                    label="Mer-erstatning forhøjet folkepension"
                   />
-                </Box>
-                <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
-                  <StyledCheckbox
-                    checked={bilagSelection.eetEfterEal}
-                    onCommit={createBilagCommitHandler('eetEfterEal')}
-                    label="EET efter EAL"
-                  />
-                  {computation.proformaKapitalisering && (
-                    <StyledCheckbox
-                      checked={bilagSelection.proformaKapitalisering}
-                      onCommit={createBilagCommitHandler('proformaKapitalisering')}
-                      label="Proformakap. af rest-EET"
-                    />
-                  )}
-                  {computation.merErstatningPensionsalder && (
-                    <StyledCheckbox
-                      checked={bilagSelection.merErstatningPensionsalder}
-                      onCommit={createBilagCommitHandler('merErstatningPensionsalder')}
-                      label="Mer-erstatning forhøjet folkepension"
-                    />
-                  )}
-                </Box>
+                )}
               </Box>
             </Box>
           </Box>
@@ -537,6 +625,53 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
               name="indregnMerErstatningVedForhoejetPensionsalder"
               checked={values.indregnMerErstatningVedForhoejetPensionsalder}
               onCommit={handleMerErstatningPensionsalderCommit}
+            />
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Forlig om ansvarsgrad</Typography>
+          <Box className="row--label-right-hover__content">
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography className="row--text">Procent</Typography>
+              <StyledPercentField
+                name="forligAnsvarsgradProcent"
+                width={100}
+                value={forligValues.forligAnsvarsgradProcent}
+                onCommit={handleForligProcentCommit}
+                onFieldError={reportForligAnsvarsgradProcentInputError}
+                useDefaultPercentRange
+                error={forligFejl.harFejl}
+                helperText={forligFejl.fejlbesked}
+              />
+              <Typography className="row--text">eller brøk</Typography>
+              <StyledFractionField
+                name="forligAnsvarsgradBroek"
+                width={120}
+                value={forligValues.forligAnsvarsgradBroek}
+                onCommit={handleForligBroekCommit}
+                onFieldError={reportForligAnsvarsgradBroekInputError}
+                error={forligFejl.harFejl}
+                helperText={forligFejl.fejlbesked}
+              />
+            </Box>
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Evt. dato for forlig</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledDateField
+              name="forligDato"
+              value={forligValues.forligDato}
+              onCommit={handleForligDatoCommit}
+              onFieldError={reportForligDatoInputErrorSafe}
+              minDate={forligDatoMinRule.minDate}
+              maxDate={dateRanges_erstatningsopgoerelse.forligDato.max}
+              specialRangeErrors={{
+                minBoundKind: forligDatoMinRule.minBoundKind,
+                minBoundReferenceISO: forligDatoMinRule.minBoundReferenceISO,
+              }}
             />
           </Box>
         </Box>
@@ -707,8 +842,18 @@ const EetDifferencekravTab = ({ values, setValues, onGoToEetOplysninger, stamdat
 
           {/* Differencekrav */}
           <Typography className="row--subheading" sx={{ mt: 2 }}>Differencekrav</Typography>
+          {computation.forligLabel !== null && (
+            <HoverRow
+              text={buildForligIndgaaetSaetning(
+                computation.forligLabel,
+                computation.forligDato ? formatIsoDateLong(computation.forligDato) : null
+              )}
+            />
+          )}
           <Box className="row--label-right-hover">
-            <Typography className="row--text">Beregnet differencekrav</Typography>
+            <Typography className="row--text">
+              {buildBeregnetDifferencekravLabel(computation.forligLabel, formatKr(computation.differencekravFoerForlig))}
+            </Typography>
             <Box className="row--label-right-hover__content">
               <Typography className="row--text text-bold">{formatKr(computation.differencekrav)}</Typography>
             </Box>

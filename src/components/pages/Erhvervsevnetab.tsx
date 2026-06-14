@@ -2,15 +2,21 @@ import React from 'react';
 import { Box, Tabs, Tab, Typography } from '@mui/material';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
-import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
+import {
+  usePersistedSectionSelector,
+  useInvalidDraftForFieldSelector,
+} from '../../hooks/useFormPersistenceSelectors';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import {
   erhvervsevnetabSchema,
   faellesAarsloenSchema,
+  erstatningsopgoerelseSchema,
   type ErhvervsevnetabComposedValues,
 } from '../../schemas/formSchemas';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
+import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { useAppSettings } from '../../contexts/useAppSettings';
 import {
   collectEetAslAfgoerelseValidationIssues,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
@@ -58,6 +64,38 @@ const ErhvervsevnetabPage = React.memo(() => {
     FAELLES_AARSLOEN_INITIAL_VALUES
   );
   const stamdata = usePersistedSectionSelector('stamdata');
+
+  // Forlig om ansvarsgrad er delt kilde mellem EO- og differencekrav-fanen: felterne bor i
+  // erstatningsopgoerelse-sektionen, men kan redigeres herfra. Vi binder den samme sektion (samme
+  // globale store-slice) så ændringer slår igennem begge steder. Settings-afledte initialværdier
+  // matcher EO-sidens egne, så et commit herfra materialiserer ikke afvigende EO-defaults.
+  const { settings } = useAppSettings();
+  const erstatningsopgoerelseInitialValues = React.useMemo(
+    () => createErstatningsopgoerelseInitialValues(settings),
+    [settings]
+  );
+  const { values: erstatningsopgoerelseValues, setValues: setErstatningsopgoerelseValues } = usePersistedForm(
+    erstatningsopgoerelseSchema,
+    'erstatningsopgoerelse',
+    erstatningsopgoerelseInitialValues
+  );
+  // Ikke-committbare rå drafts i forligs-felterne (committede værdier er altid schema-gyldige).
+  const forligProcentInvalidDraft = useInvalidDraftForFieldSelector('erstatningsopgoerelse', 'forligAnsvarsgradProcent');
+  const forligBroekInvalidDraft = useInvalidDraftForFieldSelector('erstatningsopgoerelse', 'forligAnsvarsgradBroek');
+  const forligValues = React.useMemo(
+    () => ({
+      forligAnsvarsgradProcent: erstatningsopgoerelseValues.forligAnsvarsgradProcent,
+      forligAnsvarsgradBroek: erstatningsopgoerelseValues.forligAnsvarsgradBroek,
+      forligDato: erstatningsopgoerelseValues.forligDato,
+    }),
+    [
+      erstatningsopgoerelseValues.forligAnsvarsgradProcent,
+      erstatningsopgoerelseValues.forligAnsvarsgradBroek,
+      erstatningsopgoerelseValues.forligDato,
+    ]
+  );
+  const forligHasInvalidDraft =
+    forligProcentInvalidDraft !== undefined || forligBroekInvalidDraft !== undefined;
   const reportAslAfgoerelserRuleError = useFormFieldErrorReporter('erhvervsevnetab', 'aslAfgoerelser', {
     severity: 'error',
     source: 'rule',
@@ -82,11 +120,18 @@ const ErhvervsevnetabPage = React.memo(() => {
           erhvervsevnetab: eetFieldErrors,
           faellesAarsloen: faellesAarsloenFieldErrors,
         },
+        forlig: {
+          values: forligValues,
+          dato: forligValues.forligDato,
+          hasInvalidDraft: forligHasInvalidDraft,
+        },
       }),
     [
       composedValues,
       eetFieldErrors,
       faellesAarsloenFieldErrors,
+      forligHasInvalidDraft,
+      forligValues,
       stamdata,
       stamdataFieldErrors,
     ]
@@ -200,6 +245,8 @@ const ErhvervsevnetabPage = React.memo(() => {
         <EetDifferencekravTab
           values={composedValues}
           setValues={setValues}
+          forligValues={forligValues}
+          setForligValues={setErstatningsopgoerelseValues}
           onGoToEetOplysninger={() => setActiveTab(TAB_KEYS.EET_OPLYSNINGER)}
           stamdata={stamdata}
           snapshot={eetSnapshot.differencekrav}

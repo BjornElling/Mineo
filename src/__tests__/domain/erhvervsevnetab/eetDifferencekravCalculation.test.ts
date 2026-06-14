@@ -961,3 +961,89 @@ describe('computeEetDifferencekravCalculation — fradrag 4 (mer-erstatning ved 
     expect(noEvent.computation!.differencekrav).toBeGreaterThan(0);
   });
 });
+
+describe('computeEetDifferencekravCalculation — forlig om ansvarsgrad', () => {
+  // Genbruger scenarie 1 (≤ 2 år til folkepension), hvor differencekravet uden forlig er 638.230 kr.
+  const buildMedForlig = (
+    forlig: { factor: number; label: string } | null | undefined,
+    forligDato?: ReturnType<typeof toISODateString>,
+  ) =>
+    computeEetDifferencekravCalculation({
+      erhvervsevnetab: {
+        ...ERHVERVSEVNETAB_INITIAL_VALUES,
+        beregningsdato: toISODateString('2022-04-01'),
+        aslAarsloen: asAmount(401000),
+        aslAfgoerelser: [{
+          id: 'a1',
+          fsTilbageholdtEet: 'Nej',
+          afgoerelsesDato: toISODateString('2019-06-01'),
+          virkningsDato: toISODateString('2019-06-01'),
+          eetPct: 60,
+          kapDato: undefined,
+          kapPct: undefined,
+          afgoerelseType: 'Endelig',
+          tidlKapDato: undefined,
+        }],
+      },
+      skadedato: toISODateString('2019-04-01'),
+      skadelidteFodselsdato: toISODateString('1955-07-01'),
+      endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft: false,
+      indregnMerErstatningVedForhoejetPensionsalder: false,
+      forlig,
+      forligDato,
+    });
+
+  it('reducerer det endelige differencekrav med en brøk-faktor og bevarer det fulde krav', () => {
+    const result = buildMedForlig({ factor: 2 / 3, label: '2/3' });
+    const c = result.computation!;
+    expect(c.differencekravFoerForlig).toBe(638230);
+    expect(c.forligFactor).toBe(2 / 3);
+    expect(c.forligLabel).toBe('2/3');
+    expect(c.forligDato).toBeNull();
+    // round0(638230 × 2/3) = round0(425486,67) = 425487
+    expect(c.differencekrav).toBe(425487);
+  });
+
+  it('viderefører forligsdatoen til computation når der reduceres', () => {
+    const c = buildMedForlig({ factor: 2 / 3, label: '2/3' }, toISODateString('2024-05-17')).computation!;
+    expect(c.forligDato).toBe(toISODateString('2024-05-17'));
+  });
+
+  it('viderefører ikke forligsdatoen når der ikke reduceres (100 %)', () => {
+    const c = buildMedForlig({ factor: 1, label: '100 %' }, toISODateString('2024-05-17')).computation!;
+    expect(c.forligLabel).toBeNull();
+    expect(c.forligDato).toBeNull();
+  });
+
+  it('reducerer med en procent-faktor', () => {
+    const result = buildMedForlig({ factor: 0.5, label: '50 %' });
+    const c = result.computation!;
+    expect(c.differencekravFoerForlig).toBe(638230);
+    expect(c.forligFactor).toBe(0.5);
+    expect(c.forligLabel).toBe('50 %');
+    expect(c.differencekrav).toBe(319115);
+  });
+
+  it('anvender ingen reduktion når forlig er null (intet forlig)', () => {
+    const c = buildMedForlig(null).computation!;
+    expect(c.differencekravFoerForlig).toBe(638230);
+    expect(c.forligFactor).toBeNull();
+    expect(c.forligLabel).toBeNull();
+    expect(c.differencekrav).toBe(638230);
+  });
+
+  it('anvender ingen reduktion når forlig udelades helt (bagudkompatibel)', () => {
+    const c = buildMedForlig(undefined).computation!;
+    expect(c.forligFactor).toBeNull();
+    expect(c.forligLabel).toBeNull();
+    expect(c.differencekrav).toBe(c.differencekravFoerForlig);
+  });
+
+  it('anvender ingen reduktion og ingen parentes-label ved 100 % (factor = 1)', () => {
+    const c = buildMedForlig({ factor: 1, label: '100 %' }).computation!;
+    expect(c.differencekravFoerForlig).toBe(638230);
+    expect(c.forligFactor).toBeNull();
+    expect(c.forligLabel).toBeNull();
+    expect(c.differencekrav).toBe(638230);
+  });
+});

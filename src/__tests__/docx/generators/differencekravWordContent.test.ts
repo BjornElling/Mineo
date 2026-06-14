@@ -21,6 +21,9 @@ describe('differencekrav → Word-indhold', () => {
           fradragKapitaliseretEet: 0,
           proformaKapitalisering: null,
           proformaBeloeb: 0,
+          differencekravFoerForlig: 100000,
+          forligFactor: null,
+          forligLabel: null,
           differencekrav: 100000,
           afgoerelser: [{
             afgoerelsesdato: toISODateString('2020-01-01'),

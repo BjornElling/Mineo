@@ -56,6 +56,9 @@ describe('generateDifferencekravPdf', () => {
         fradragKapitaliseretEet: 0,
         proformaKapitalisering: null,
         proformaBeloeb: 0,
+        differencekravFoerForlig: 100000,
+        forligFactor: null,
+        forligLabel: null,
         differencekrav: 100000,
         afgoerelser: [{
           afgoerelsesdato: toISODateString('2020-01-01'),
@@ -127,6 +130,9 @@ describe('generateDifferencekravPdf', () => {
           faktorMaanedsAfhaengig: true,
         },
         proformaBeloeb: 1846642,
+        differencekravFoerForlig: 100000,
+        forligFactor: null,
+        forligLabel: null,
         differencekrav: 100000,
         afgoerelser: [],
         kapitaliseringerAfgoerelser: [],
@@ -160,5 +166,48 @@ describe('generateDifferencekravPdf', () => {
     expect(renderedText).not.toContain(
       'Grundydelse i 2003-niveau opreguleret til 2024-niveau (+ 65,7 %): 111.444,90 kr. × 1,657 ='
     );
+  });
+
+  it('viser forlig-reduceret differencekrav-label med fuldt krav i parentes', async () => {
+    const { generateDifferencekravPdf } = await import('../../../pdf/domains/differencekrav/differencekravPdf');
+
+    generateDifferencekravPdf({
+      computation: {
+        beregningsdato: toISODateString('2026-03-17'),
+        skadedato: toISODateString('2011-06-16'),
+        dagFoerBeregningsdato: toISODateString('2026-03-16'),
+        ealKrav: 100000,
+        ealEetPct: 15,
+        fradragLoebendeYdelser: 0,
+        fradragKapitaliseretEet: 0,
+        proformaKapitalisering: null,
+        proformaBeloeb: 0,
+        differencekravFoerForlig: 1095121,
+        forligFactor: 2 / 3,
+        forligLabel: '2/3',
+        differencekrav: 730081,
+        afgoerelser: [],
+        kapitaliseringerAfgoerelser: [],
+        loebendeComputation: null,
+        kapComputation: null,
+        ealComputation: null,
+      } as never,
+      bilagSelection: {
+        loebendeYdelser: false,
+        kapitalisering: false,
+        eetEfterEal: false,
+        proformaKapitalisering: false,
+        merErstatningPensionsalder: false,
+        visUdvidetSpecifikationLoebendeYdelserBilag: false,
+      },
+    });
+
+    const instance = MockJsPDF.instances.at(-1);
+    const renderedText = (instance?.text.mock.calls ?? []).map((call) =>
+      String(call[0]).replace(new RegExp(String.fromCharCode(160), 'g'), ' ')
+    );
+    expect(renderedText).toContain('Beregnet differencekrav (2/3 af 1.095.121 kr.)');
+    expect(renderedText).toContain('730.081 kr.');
+    expect(renderedText).not.toContain('Beregnet differencekrav');
   });
 });

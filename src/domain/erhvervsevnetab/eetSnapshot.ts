@@ -3,7 +3,12 @@ import type {
   FaellesAarsloenValues,
   StamdataValues,
 } from '../../schemas/formSchemas';
+import {
+  evaluateForligsgrad,
+  type ForligAnsvarsgradInput,
+} from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { FormFieldError } from '../../types/fieldErrors';
+import type { ISODateString } from '../../types/branded';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import {
   aarsloenAslMax,
@@ -27,10 +32,23 @@ type EetFieldErrors = Readonly<{
   faellesAarsloen: Partial<Record<keyof FaellesAarsloenValues, FieldErrorMessage>>;
 }>;
 
+// Forlig om ansvarsgrad er delt kilde med EO-fanen (felterne bor i erstatningsopgoerelse-sektionen).
+// `hasInvalidDraft` afspejler en ikke-committbar rå draft i et af forligs-felterne (læst fra
+// invalidDrafts-storen på siden) — committede værdier er altid schema-gyldige, så et "ugyldigt
+// input" kan kun observeres via denne kanal og via evaluateForligsgrad ("begge udfyldt"/brøk > 1).
+export type EetForligInput = Readonly<{
+  values: ForligAnsvarsgradInput;
+  // Forligsdato (delt kilde med EO) — kun til prosa-sætningen i specifikationen. Udeladt = ingen dato.
+  dato?: ISODateString;
+  hasInvalidDraft: boolean;
+}>;
+
 export type EetSnapshotInput = Readonly<{
   values: ErhvervsevnetabComposedValues;
   stamdata: StamdataValues | null;
   fieldErrors: EetFieldErrors;
+  // Udeladt = intet forlig (bagudkompatibelt for eksisterende kald/tests).
+  forlig?: EetForligInput;
 }>;
 
 type EetTabProjection<TComputation> = Readonly<{
@@ -165,7 +183,32 @@ const buildEfterEalProjection = (input: EetSnapshotInput): EetSnapshot['efterEal
   };
 };
 
+// Forlig om ansvarsgrad-fejl (delt kilde med EO-fanen). Et ugyldigt forlig — "begge udfyldt",
+// en brøk over 1, eller et ikke-committbart rå draft — skal blokere hele differencekrav-outputtet.
+const resolveForligBlocking = (forlig: EetForligInput | undefined): Readonly<{
+  forligFactor: Parameters<typeof computeEetDifferencekravCalculation>[0]['forlig'];
+  issue: EetIssue | null;
+}> => {
+  if (!forlig) return { forligFactor: null, issue: null };
+  const evaluation = evaluateForligsgrad(forlig.values);
+  if (forlig.hasInvalidDraft) {
+    return {
+      forligFactor: null,
+      issue: { id: 'forlig-ansvarsgrad-invalid', severity: 'error', message: 'Forlig om ansvarsgrad indeholder en ugyldig værdi.' },
+    };
+  }
+  if (evaluation.status === 'invalid') {
+    return {
+      forligFactor: null,
+      issue: { id: 'forlig-ansvarsgrad-invalid', severity: 'error', message: `Forlig om ansvarsgrad: ${evaluation.message}.` },
+    };
+  }
+  return { forligFactor: evaluation.status === 'valid' ? evaluation.forlig : null, issue: null };
+};
+
 const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['differencekrav'] => {
+  const forligBlocking = resolveForligBlocking(input.forlig);
+
   const calculationResult = computeEetDifferencekravCalculation({
     erhvervsevnetab: input.values,
     skadedato: input.stamdata?.skadedato,
@@ -174,6 +217,8 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
       input.values.endeligEetGoerMidlertidigEndeligMedTilbagevirkendeKraft,
     indregnMerErstatningVedForhoejetPensionsalder:
       input.values.indregnMerErstatningVedForhoejetPensionsalder,
+    forlig: forligBlocking.forligFactor,
+    forligDato: input.forlig?.dato,
   });
 
   const fieldIssues = createFieldIssues(input.fieldErrors, [
@@ -184,7 +229,11 @@ const buildDifferencekravProjection = (input: EetSnapshotInput): EetSnapshot['di
     { id: 'field-skadedato', message: input.fieldErrors.stamdata.skadedato?.message },
   ]);
 
-  const issues = sortAndDedupeIssues([...calculationResult.issues, ...fieldIssues]);
+  const issues = sortAndDedupeIssues([
+    ...calculationResult.issues,
+    ...fieldIssues,
+    ...(forligBlocking.issue ? [forligBlocking.issue] : []),
+  ]);
   // calculationResult.hasBlockingErrors indgår her fordi eetDifferencekravCalculation har en
   // EAL-afhængighed der kan blokere beregningen (og sætte computation = null) uden at
   // producere et issue med severity 'error' — blocking opdages da ikke af issues.some() alene.
