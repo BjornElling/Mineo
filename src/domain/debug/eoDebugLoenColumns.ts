@@ -259,7 +259,6 @@ export const buildLoenindkomstColumns = (args: {
   erstatningsFra: ISODateString | undefined;
   erstatningsTil: ISODateString | undefined;
   tafDates: ReadonlySet<ISODateString>;
-  shDays: ReadonlySet<ISODateString>;
   isWorkdayByIndex: readonly boolean[];
   isWithinBeregningsByIndex: readonly boolean[];
   tableFra: ISODateString;
@@ -275,7 +274,6 @@ export const buildLoenindkomstColumns = (args: {
     erstatningsFra,
     erstatningsTil,
     tafDates,
-    shDays: _shDays,
     isWorkdayByIndex,
     isWithinBeregningsByIndex,
     tableFra,
@@ -424,14 +422,6 @@ export const buildLoenindkomstColumns = (args: {
       if (!hasAny) continue;
 
       const periodiseringsdage = allocationDates.length;
-      if (periodiseringsdage <= 0) {
-        issues.push({
-          severity: 'warning',
-          area: 'lønindkomst',
-          message: `Lønindkomst${suffix}: Ingen periodiseringsdage i en lønperiode – beløb kan ikke fordeles og vil mangle i debug tabellen.`,
-        });
-        continue;
-      }
 
       for (const col of includeKeys) {
         expectedTotalsByKey.set(col.key, (expectedTotalsByKey.get(col.key) ?? 0) + amounts[col.key]);

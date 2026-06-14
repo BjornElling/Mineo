@@ -1,4 +1,4 @@
-import type { StandardLoenTableRow } from '../../../schemas/formSchemas';
+import type { LoenudviklingManuelRow, OffentligeYdelserRow, StandardLoenTableRow } from '../../../schemas/formSchemas';
 import { createRowId } from '../../../utils/rowId';
 
 /**
@@ -51,8 +51,12 @@ export const generateLoenudviklingRowId = (): string => {
 
 /**
  * Initial tom offentlig ydelse række
+ *
+ * VIGTIGT: `id` sættes af caller, så her bruges en tom string. Den eksplicitte type
+ * binder feltsættet til schemaet, så en schema-ændring fail-closed giver en typefejl her
+ * frem for stille at efterlade rækken uden et nyt/omdøbt felt.
  */
-export const initialOffentligYdelseRow = {
+export const initialOffentligYdelseRow: Omit<OffentligeYdelserRow, 'id'> & { id: '' } = {
   id: '',
   fraDato: undefined,
   tilDato: undefined,
@@ -63,8 +67,11 @@ export const initialOffentligYdelseRow = {
 
 /**
  * Initial tom lønudvikling (manuel) række
+ *
+ * VIGTIGT: `id` sættes af caller, så her bruges en tom string. Den eksplicitte type
+ * binder feltsættet til schemaet, jf. `initialOffentligYdelseRow`.
  */
-export const initialLoenudviklingManuelRow = {
+export const initialLoenudviklingManuelRow: Omit<LoenudviklingManuelRow, 'id'> & { id: '' } = {
   id: '',
   dato: undefined,
   grundloen: undefined,

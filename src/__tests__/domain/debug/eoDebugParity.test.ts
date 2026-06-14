@@ -146,4 +146,49 @@ describe('findFirstDebugTableParityDiff', () => {
     // Ingen diff fordi værdierne er ens
     expect(result).toBeNull();
   });
+
+  it('producerer deterministiske hash-værdier på tværs af to uafhængige diff-kørsler', () => {
+    // Værn mod, at hash-funktionen utilsigtet bliver ikke-deterministisk
+    // (fx hvis fnv1a32-seed eller padding senere ændres til noget tids-/RNG-afhængigt).
+    const buildPair = () => {
+      const a = makeModel([makeCol('c', 'H', ['forventet-værdi'])], 1);
+      const b = makeModel([makeCol('c', 'H', ['faktisk-værdi'])], 1);
+      return findFirstDebugTableParityDiff(a, b);
+    };
+    const first = buildPair();
+    const second = buildPair();
+    expect(first).not.toBeNull();
+    expect(second).not.toBeNull();
+    expect(first!.expectedHash).toBe(second!.expectedHash);
+    expect(first!.actualHash).toBe(second!.actualHash);
+    // 8-hex FNV-1a-format (ingen tids-/RNG-komponent).
+    expect(first!.expectedHash).toMatch(/^[0-9a-f]{8}$/);
+  });
+
+  // ── Ikke-vacuous: diff må ikke kollapse forskellige værdier til samme hash ──
+
+  it('giver forskellige hash for forskellige værdier (ingen vacuous lighed via hash-kollision)', () => {
+    // Parity rapporterer hashes, men SAMMENLIGNER på rå skalarer. Denne test sikrer
+    // desuden, at de rapporterede hashes faktisk adskiller de to forskellige værdier,
+    // så et diff aldrig fremstår som "ens hash" når værdierne reelt afviger.
+    const a = makeModel([makeCol('c', 'H', ['100,00'])], 1);
+    const b = makeModel([makeCol('c', 'H', ['100,01'])], 1);
+    const diff = findFirstDebugTableParityDiff(a, b);
+    expect(diff).not.toBeNull();
+    expect(diff!.expectedHash).not.toBe(diff!.actualHash);
+  });
+
+  it('opdager talværdi-afvigelse selv når displaytekst er numerisk ens-lignende', () => {
+    // En reel divergens-detektion: number 100 vs string "100" må fanges
+    // (toCsvScalar normaliserer begge til "100", så de er bevidst ens her —
+    //  testen dokumenterer at scalar-normalisering er den valgte sammenligningsregel).
+    const a = makeModel([makeCol('c', 'H', [100])], 1);
+    const b = makeModel([makeCol('c', 'H', ['100'])], 1);
+    expect(findFirstDebugTableParityDiff(a, b)).toBeNull();
+
+    // Men 100 vs 101 SKAL give diff.
+    const c = makeModel([makeCol('c', 'H', [100])], 1);
+    const d = makeModel([makeCol('c', 'H', [101])], 1);
+    expect(findFirstDebugTableParityDiff(c, d)).not.toBeNull();
+  });
 });

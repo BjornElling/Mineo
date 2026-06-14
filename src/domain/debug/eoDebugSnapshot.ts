@@ -27,7 +27,6 @@ import type { EODebugModel } from './eoDebugModel';
  */
 export type EODebugSnapshot = Readonly<{
   revision: string;
-  createdAt: string;
   model: EODebugModel;
   debugDays: readonly DebugDay[];
   sammentaelling: SammentaellingModel;
@@ -93,7 +92,6 @@ export const buildEODebugSnapshot = (args: {
 
   return {
     revision,
-    createdAt: new Date().toISOString(),
     model,
     debugDays,
     sammentaelling,

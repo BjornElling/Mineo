@@ -10,7 +10,7 @@ import { buildBeregningsperiodeRange, buildIncomeForRanges, type IncomePeriodRes
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
 import { beregnArbejdsdageOgMaaneder } from './arbejdsdageMaaneder';
 import { createDate } from '../../../utils/dateUtils';
-import { getDayBeforeIso, getDayAfterIso, endOfYearIso } from '../../../utils/isoDateHelpers';
+import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import {
   getEffektiveSatserForDato,
@@ -55,6 +55,7 @@ import {
 } from './overenskomstReguleringShared';
 import { computeFormulaValue } from './reguleringFormulaUtils';
 import { resolveOverenskomstEffectiveStartIso } from './reguleringCoverage';
+import { splitIsoRangeByCalendarYearsInclusive } from './periodRangeGroups';
 
 // =============================================================================
 // INVARIANT-NOTE: Alle throw new Error() i denne fil er defensive invarianter.
@@ -1450,23 +1451,12 @@ export const buildLoenudviklingModel = (
   };
 };
 
-const buildAslReguleringsSegments = (ranges: readonly IsoRange[]): ReadonlyArray<IsoRange & { year: number }> => {
-  const segments: Array<IsoRange & { year: number }> = [];
-  for (const range of ranges) {
-    let currentStart = range.fra;
-    while (currentStart <= range.til) {
-      const year = Number(currentStart.slice(0, 4));
-      if (!Number.isFinite(year)) break;
-      const yearEnd = endOfYearIso(year);
-      const segmentEnd = range.til < yearEnd ? range.til : yearEnd;
-      segments.push({ fra: currentStart, til: segmentEnd, year });
-      const nextStartDate = getDayAfterIso(segmentEnd);
-      if (nextStartDate <= currentStart) break;
-      currentStart = nextStartDate;
-    }
-  }
-  return segments;
-};
+// Kalenderårs-opdeling delegeres til den kanoniske periodiserings-helper, så ASL-sporet
+// ikke vedligeholder en parallel dag-/års-løkke (jf. periodisering-contract §7 og
+// offentligeYdelserUdviklingBeregning.ts, der splitter med samme helper). Helperen er
+// fail-closed på omvendt interval/ugyldigt år frem for den tidligere stille break-sti.
+const buildAslReguleringsSegments = (ranges: readonly IsoRange[]): ReadonlyArray<IsoRange & { year: number }> =>
+  ranges.flatMap((range) => [...splitIsoRangeByCalendarYearsInclusive(range.fra, range.til)]);
 
 const resolveAnvendtReguleringsdato = (
   eoValues: ErstatningsopgoerelseValues,

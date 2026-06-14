@@ -249,6 +249,95 @@ describe('TAF validering', () => {
   });
 });
 
+// =============================================================================
+// REGULERING AF OFFENTLIGE YDELSER — SATSDÆKNING (fail-closed)
+// =============================================================================
+
+describe('regulering af offentlige ydelser — satsdækning', () => {
+  const makeRegulerValues = (patch: Partial<ErstatningsopgoerelseValues>): ErstatningsopgoerelseValues =>
+    makeValues({
+      beregnesUdFra: 'Beregningsperiode',
+      regulerOffentligeYdelser: 'Ja',
+      loenindkomstAnsaettelsesforhold: [],
+      ...patch,
+    });
+
+  it('fanger TAF-slutår efter reguleringssatsens dækning (2026)', () => {
+    const values = makeRegulerValues({
+      tafBeregningsperiodeFra: iso('2027-01-01'),
+      tafBeregningsperiodeTil: iso('2027-12-31'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2027-01-01'), til: iso('2027-12-31') },
+      ],
+      offentligeYdelserRows: [{
+        id: 'ydelse-1',
+        fraDato: toISODateString('2027-01-01'),
+        tilDato: toISODateString('2027-12-31'),
+        ydelse: asAmount(1000),
+        tillaeg: undefined,
+        ydelsestype: 'dagpenge',
+      }],
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values);
+
+    expect(result.errors).toContainEqual(expect.objectContaining({
+      path: 'regulerOffentligeYdelser',
+      message: expect.stringContaining('kan ikke beregnes efter 2026'),
+      severity: 'error',
+    }));
+  });
+
+  it('giver ingen reguleringssats-fejl når både base- og slutår er inden for dækningen', () => {
+    const values = makeRegulerValues({
+      tafBeregningsperiodeFra: iso('2024-01-01'),
+      tafBeregningsperiodeTil: iso('2024-12-31'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2024-01-01'), til: iso('2024-12-31') },
+      ],
+      offentligeYdelserRows: [{
+        id: 'ydelse-1',
+        fraDato: toISODateString('2024-01-01'),
+        tilDato: toISODateString('2024-12-31'),
+        ydelse: asAmount(1000),
+        tillaeg: undefined,
+        ydelsestype: 'dagpenge',
+      }],
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values);
+
+    expect(
+      result.errors.some((e) => e.path === 'regulerOffentligeYdelser' && e.message.includes('reguleringssats'))
+    ).toBe(false);
+  });
+
+  it('springer reguleringssats-validering over når regulering er slået fra', () => {
+    const values = makeRegulerValues({
+      regulerOffentligeYdelser: 'Nej',
+      tafBeregningsperiodeFra: iso('2027-01-01'),
+      tafBeregningsperiodeTil: iso('2027-12-31'),
+      tafPerioder: [
+        { id: 'taf-1', fra: iso('2027-01-01'), til: iso('2027-12-31') },
+      ],
+      offentligeYdelserRows: [{
+        id: 'ydelse-1',
+        fraDato: toISODateString('2027-01-01'),
+        tilDato: toISODateString('2027-12-31'),
+        ydelse: asAmount(1000),
+        tillaeg: undefined,
+        ydelsestype: 'dagpenge',
+      }],
+    });
+
+    const result = erstatningsopgoerelseValidator.validateParsed(values);
+
+    expect(
+      result.errors.some((e) => e.path === 'regulerOffentligeYdelser')
+    ).toBe(false);
+  });
+});
+
 describe('SFGG validering', () => {
   it('fanger manglende valg af beregningsgrundlag for SFGG', () => {
     const values = makeValues({

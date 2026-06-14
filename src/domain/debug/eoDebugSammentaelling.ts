@@ -40,7 +40,6 @@ export type SammentaellingControl = Readonly<{
   tabelValue: number | null;
   loseFeriedage: number;
   oevrigeFravaersdage: number;
-  feriedageCount?: number | null;
   ferieDageCount?: number | null;
   dateredeFerieDageCount?: number | null;
   loseFerieDageCount?: number | null;
@@ -420,7 +419,6 @@ export const buildEODebugSammentaellingModel = (args: {
   const beregningsFerieDageCount = beregningsFerieDates.size;
   const beregningsLoseFerieDageCount = Math.max(0, beregningsFerieDageCount - beregningsDateredeFerieDageCount);
   const beregningsShDageCount = beregningsShDates.size;
-  const beregningsFeriedageCount = beregningsFerieDates.size + beregningsShDates.size;
 
   const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO: args.taftContext.skadedatoISO });
   const tafFerieDates = (() => {
@@ -469,7 +467,6 @@ export const buildEODebugSammentaellingModel = (args: {
   const tafFerieDageCount = tafFerieDates.size;
   const tafLoseFerieDageCount = Math.max(0, tafFerieDageCount - tafDateredeFerieDageCount);
   const tafShDageCount = tafShDates.size;
-  const tafFeriedageCount = tafFerieDates.size + tafShDates.size;
 
   const beregningsArbejdsdage = isBeregningsperiode
     ? countArbejdsdageInRange(model, beregningsRange)
@@ -684,7 +681,6 @@ export const buildEODebugSammentaellingModel = (args: {
       tabelValue: beregningsTabelValueForControl,
       loseFeriedage: beregningsLoseFeriedage,
       oevrigeFravaersdage: beregningsOevrigeFravaersdage,
-      feriedageCount: isBeregningsperiode ? beregningsFeriedageCount : 0,
       ferieDageCount: isBeregningsperiode ? beregningsFerieDageCount : 0,
       dateredeFerieDageCount: isBeregningsperiode ? beregningsDateredeFerieDageCount : 0,
       loseFerieDageCount: isBeregningsperiode ? beregningsLoseFerieDageCount : 0,
@@ -697,7 +693,6 @@ export const buildEODebugSammentaellingModel = (args: {
       tabelValue: tafTabelValueForControl,
       loseFeriedage: tafLoseFeriedageForControl,
       oevrigeFravaersdage: 0,
-      feriedageCount: isTafEnabled ? tafFeriedageCount : 0,
       ferieDageCount: isTafEnabled ? tafFerieDageCount : 0,
       dateredeFerieDageCount: isTafEnabled ? tafDateredeFerieDageCount : 0,
       loseFerieDageCount: isTafEnabled ? tafLoseFerieDageCount : 0,

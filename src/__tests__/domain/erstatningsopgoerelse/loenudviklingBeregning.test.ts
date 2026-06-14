@@ -242,6 +242,43 @@ describe('buildLoenudviklingModel', () => {
     )).toThrow(/ASL basisindeks/);
   });
 
+  it('splitter ASL-sporets segmenter på kalenderårs-grænser (delegering til splitIsoRangeByCalendarYearsInclusive)', () => {
+    // Værn mod regression efter at den lokale while-løkke i buildAslReguleringsSegments
+    // blev erstattet af den kanoniske splitIsoRangeByCalendarYearsInclusive. Et TAF-interval
+    // der spænder over tre kalenderår skal give præcis ét segment pr. år med fra-datoer
+    // 1. januar for de indre/sidste år (og det faktiske TAF-start for første år).
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2020-06-01');
+    values.tafPerioder = [{
+      id: 'taf-3-aar',
+      fra: iso('2020-06-15'),
+      til: iso('2022-08-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'Statistik',
+      loenudviklingStatistikModel: 'ASL-årslønsmaksimum',
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2020-06-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2020-06-15'), til: iso('2022-08-31') }] }
+    );
+
+    const boundaries = model.beregnedeSegmenter.map((segment) => ({ fra: segment.fra, til: segment.til }));
+    expect(boundaries).toEqual([
+      { fra: iso('2020-06-15'), til: iso('2020-12-31') },
+      { fra: iso('2021-01-01'), til: iso('2021-12-31') },
+      { fra: iso('2022-01-01'), til: iso('2022-08-31') },
+    ]);
+  });
+
   it('returnerer 0 kr. når arbejdsdage-sporet ikke har TAF-arbejdsdage', () => {
     const values = setupAngivetDagsloen();
     values.tafPerioder = [{

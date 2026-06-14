@@ -7,6 +7,11 @@ import {
   initialOffentligYdelseRow,
   initialLoenudviklingManuelRow,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
+import {
+  loenudviklingManuelRowSchema,
+  offentligeYdelserRowSchema,
+  standardLoenTableRowSchema,
+} from '../../../schemas/formSchemas';
 
 // ─── initialRow ───────────────────────────────────────────────────────────────
 
@@ -29,6 +34,11 @@ describe('initialRow', () => {
     expect(initialRow.col3).toBeUndefined();
     expect(initialRow.col4).toBeUndefined();
     expect(initialRow.col5).toBeUndefined();
+  });
+
+  it('er schema-gyldig når caller har sat et id (drift-værn mod schema-ændringer)', () => {
+    const result = standardLoenTableRowSchema.safeParse({ ...initialRow, id: generateRowId() });
+    expect(result.success).toBe(true);
   });
 });
 
@@ -124,6 +134,14 @@ describe('initialOffentligYdelseRow', () => {
   it('ydelsestype er tom streng', () => {
     expect(initialOffentligYdelseRow.ydelsestype).toBe('');
   });
+
+  it('er schema-gyldig når caller har sat et id (drift-værn mod schema-ændringer)', () => {
+    const result = offentligeYdelserRowSchema.safeParse({
+      ...initialOffentligYdelseRow,
+      id: generateOffentligYdelseRowId(),
+    });
+    expect(result.success).toBe(true);
+  });
 });
 
 // ─── initialLoenudviklingManuelRow ────────────────────────────────────────────
@@ -143,5 +161,13 @@ describe('initialLoenudviklingManuelRow', () => {
     expect(initialLoenudviklingManuelRow.shSoSats).toBeUndefined();
     expect(initialLoenudviklingManuelRow.fritvalg).toBeUndefined();
     expect(initialLoenudviklingManuelRow.agPension).toBeUndefined();
+  });
+
+  it('er schema-gyldig når caller har sat et id (drift-værn mod schema-ændringer)', () => {
+    const result = loenudviklingManuelRowSchema.safeParse({
+      ...initialLoenudviklingManuelRow,
+      id: generateLoenudviklingRowId(),
+    });
+    expect(result.success).toBe(true);
   });
 });

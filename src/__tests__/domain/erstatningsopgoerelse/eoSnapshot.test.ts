@@ -443,12 +443,11 @@ describe('computeEoSnapshot', () => {
     expect(pdfModel.samlet.oevrigeKravOre).toBe(totals.oevrigeKravOre);
   });
 
-  it('runtime_exception: fail_closed bevarer debugSnapshot hvis det nåede at blive bygget', () => {
-    // debugSnapshot sættes i try-blokken før engines kører — catch-blokken returnerer det.
-    // Vi kan ikke let trigge et runtime-throw fra udenfor; vi tester i stedet at catch-stien
-    // er dækket ved at bekræfte snapshot-strukturen ved normal fail_closed.
-    // Stien verificeres via schema_guard-testen (debugSnapshot er null der) plus
-    // ved at bekræfte at catch-blokken returnerer failClosedReason: 'runtime_exception'.
+  it('schema_guard: fail_closed har debugSnapshot null (parsing nåede aldrig try-blokken)', () => {
+    // Bekræfter fail_closed-strukturen for schema_guard-stien: parsingen fejler, try-blokken
+    // (hvor debugSnapshot ellers bygges) nås aldrig, så debugSnapshot er null.
+    // runtime_exception-stien (debugSnapshot bygges delvist, men nulstilles fail-closed) er
+    // dækket i eoSnapshot.runtimeException.test.ts, hvor en engine tvinges til at kaste.
     const snapshot = computeEoSnapshot({
       revision: 'schema-fail-2',
       stamdataValues: {},
@@ -456,7 +455,6 @@ describe('computeEoSnapshot', () => {
     });
     expect(snapshot.status).toBe('fail_closed');
     expect(snapshot.failClosedReason).toBe('schema_guard');
-    // schema_guard: debugSnapshot er null fordi parsingen fejlede, aldrig nåede try-blokken
     expect(snapshot.debugSnapshot).toBeNull();
   });
 

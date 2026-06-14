@@ -68,7 +68,6 @@ const hasStoreBededagSatserAfvigelse = (
 };
 
 const hasFeriePctAfvigelse = (
-  _fuldLoenUnderFerie: Ansaettelsesforhold['fuldLoenUnderFerie'],
   inputValue: number | undefined
 ): boolean => {
   if (inputValue === undefined) return false;
@@ -97,7 +96,7 @@ const resolveSatserErrorField = (
   af: Ansaettelsesforhold,
   anvendtReguleringsdato: ISODateString | undefined
 ): string | null => {
-  if (hasFeriePctAfvigelse(af.fuldLoenUnderFerie, af.feriePct)) {
+  if (hasFeriePctAfvigelse(af.feriePct)) {
     return 'Feriegodtgørelse/-tillæg';
   }
   if (hasOverenskomstSatsAfvigelse(af, 'fritvalgPct', af.fritvalgPct, anvendtReguleringsdato)) {

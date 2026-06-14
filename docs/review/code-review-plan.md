@@ -73,12 +73,12 @@ Følgende ændringer er **allerede committet** af brugeren (behandlet som tilsig
 | 4.6 | Varige Mén: motor og beregninger | ✅ Gennemgået | [4.6-varige-men.md](4.6-varige-men.md) |
 | 4.7 | Renteberegning: motor, procesrente, principper, validering, tabelmodel | ✅ Gennemgået | [4.7-renteberegning.md](4.7-renteberegning.md) |
 | 4.8 | EO-engines I: periodiseringsmotor, period-merging/overlap/range-groups, beregningsperiode-TAF-overlap, ferie, arbejdsdage/måneder | ✅ Gennemgået | [4.8-eo-engines-i-periodisering.md](4.8-eo-engines-i-periodisering.md) |
-| 4.9 | EO-engines II: TAF (calculations, engine, netto, per-year, per-year-opreguleret, day-sets, beregningsenhed), forligsgrad, svie/smerte, sygeferiegodtgørelse | ⬜ Ikke startet | _4.9-eo-engines-ii-taf-forligsgrad-svie-smerte.md_ |
-| 4.10 | EO-engines III: løn-/ydelsesudvikling og regulering (loenudvikling, offentligeYdelserUdvikling, reguleringCoverage/FormulaUtils/Presentation, overenskomstReguleringShared, indkomstSkadestidspunkt) | ⬜ Ikke startet | _4.10-eo-engines-iii-loenudvikling-regulering.md_ |
-| 4.11 | EO: helpers, initial values, row-derived, tabel-modeller, indtaegtPerioder, sygedagpengeInsertRows, midlertidigtEet-injektion | ⬜ Ikke startet | _4.11-eo-helpers-initial-values-tabeller.md_ |
-| 4.12 | EO: validation-lag og `erstatningsopgoerelseValidator` (incl. reguleringssats-dækningsvalidering) | ⬜ Ikke startet | _4.12-eo-validation-lag.md_ |
-| 4.13 | EO: snapshot, presentation-model, canonical output, invarianter + snapshot→pdf/beregning/debug-projektioner | ⬜ Ikke startet | _4.13-eo-snapshot-presentation-canonical.md_ |
-| 4.14 | EO-debug: view-models (core/loen/indkomst/regulation), parity, severity, integrity, navigation, csv, builder-registry | ⬜ Ikke startet | _4.14-eo-debug-viewmodels-parity-severity-navigation.md_ |
+| 4.9 | EO-engines II: TAF (calculations, engine, netto, per-year, per-year-opreguleret, day-sets, beregningsenhed), forligsgrad, svie/smerte, sygeferiegodtgørelse | ✅ Gennemgået | [4.9-eo-engines-ii-taf-forligsgrad-svie-smerte.md](4.9-eo-engines-ii-taf-forligsgrad-svie-smerte.md) |
+| 4.10 | EO-engines III: løn-/ydelsesudvikling og regulering (loenudvikling, offentligeYdelserUdvikling, reguleringCoverage/FormulaUtils/Presentation, overenskomstReguleringShared, indkomstSkadestidspunkt) | ✅ Gennemgået | [4.10-eo-engines-iii-loenudvikling-regulering.md](4.10-eo-engines-iii-loenudvikling-regulering.md) |
+| 4.11 | EO: helpers, initial values, row-derived, tabel-modeller, indtaegtPerioder, sygedagpengeInsertRows, midlertidigtEet-injektion | ✅ Gennemgået | [4.11-eo-helpers-initial-values-tabeller.md](4.11-eo-helpers-initial-values-tabeller.md) |
+| 4.12 | EO: validation-lag og `erstatningsopgoerelseValidator` (incl. reguleringssats-dækningsvalidering) | ✅ Gennemgået | [4.12-eo-validation-lag.md](4.12-eo-validation-lag.md) |
+| 4.13 | EO: snapshot, presentation-model, canonical output, invarianter + snapshot→pdf/beregning/debug-projektioner | ✅ Gennemgået | [4.13-eo-snapshot-presentation-canonical.md](4.13-eo-snapshot-presentation-canonical.md) |
+| 4.14 | EO-debug: view-models (core/loen/indkomst/regulation), parity, severity, integrity, navigation, csv, builder-registry | ✅ Gennemgået | [4.14-eo-debug-viewmodels-parity-severity-navigation.md](4.14-eo-debug-viewmodels-parity-severity-navigation.md) |
 | **5 — Hjælpefunktioner** | | | |
 | 5.1 | Datohåndtering kerne: isoDate, dateCommit, dateUtils, dateFormatting, isoDateHelpers, dateDraftNormalization/-Commit, date/index | ⬜ Ikke startet | _5.1-datohaandtering-kerne.md_ |
 | 5.2 | Datohåndtering validering: dateInputValidation, dateRangeErrorMessages, dateOrderValidation, utcDayMath, periodeBeregning (kanonisk dag-iteration) | ⬜ Ikke startet | _5.2-datohaandtering-validering.md_ |

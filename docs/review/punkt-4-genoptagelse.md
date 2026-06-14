@@ -47,14 +47,14 @@
 | 4.6 | Varige Mén | ✅ | `docs/review/4.6-varige-men.md` |
 | 4.7 | Renteberegning | ✅ | `docs/review/4.7-renteberegning.md` |
 | 4.8 | EO-engines I: periodisering | ✅ | `docs/review/4.8-eo-engines-i-periodisering.md` |
-| **4.9** | **EO-engines II: TAF/forligsgrad/svie-smerte/sygeferiegodtgørelse** | ⬜ **NÆSTE** | _ikke skrevet_ |
-| 4.10 | EO-engines III: loenudvikling/regulering | ⬜ | _ikke skrevet_ |
-| 4.11 | EO helpers/initial-values/row-derived/tabel-modeller/indtaegtPerioder/sygedagpengeInsertRows/midlertidigtEet | ⬜ | _ikke skrevet_ |
-| 4.12 | EO validation-lag + erstatningsopgoerelseValidator | ⬜ | _ikke skrevet_ |
-| 4.13 | EO snapshot/presentation-model/canonical/invarianter/projektioner | ⬜ | _ikke skrevet_ |
-| 4.14 | EO-debug view-models/parity/severity/integrity/navigation/csv/builder-registry | ⬜ | _ikke skrevet_ |
+| 4.9 | EO-engines II: TAF/forligsgrad/svie-smerte/sygeferiegodtgørelse | ✅ | `docs/review/4.9-eo-engines-ii-taf-forligsgrad-svie-smerte.md` |
+| 4.10 | EO-engines III: loenudvikling/regulering | ✅ | `docs/review/4.10-eo-engines-iii-loenudvikling-regulering.md` |
+| 4.11 | EO helpers/initial-values/row-derived/tabel-modeller/indtaegtPerioder/sygedagpengeInsertRows/midlertidigtEet | ✅ | `docs/review/4.11-eo-helpers-initial-values-tabeller.md` |
+| 4.12 | EO validation-lag + erstatningsopgoerelseValidator | ✅ | `docs/review/4.12-eo-validation-lag.md` |
+| 4.13 | EO snapshot/presentation-model/canonical/invarianter/projektioner | ✅ | `docs/review/4.13-eo-snapshot-presentation-canonical.md` |
+| 4.14 | EO-debug view-models/parity/severity/integrity/navigation/csv/builder-registry | ✅ | `docs/review/4.14-eo-debug-viewmodels-parity-severity-navigation.md` |
 
-**Næste skridt ved genoptagelse:** Start subagent på **4.9** (sekventielt). Fortsæt sekventielt 4.10 → 4.11 → 4.12 → 4.13 → 4.14. Marker hver ✅ i `code-review-plan.md` efter færdiggørelse. Til sidst: kør den konsoliderede godkendelsesrunde (afsnit 4) til brugeren.
+**Status:** ✅ **Hele punkt 4 (4.0–4.14) er færdig** (2026-06-14). Næste i planen er **gruppe 5 (Hjælpefunktioner)**, punkt 5.1. Den konsoliderede godkendelsesrunde (afsnit 4) er forelagt brugeren.
 
 **Vigtigt for 4.9+:** 4.8 rørte kun `periodiseringsMotor.ts` (comment-only) + 2 testfiler — ingen signatur-/adfærdsændringer. Periodiserings-motoren er konsolideret og et sikkert fundament.
 
@@ -72,7 +72,18 @@ Disse er IKKE rettet. De ændrer tal/UX og kræver brugerens beslutning. Præsen
 2. **(4.3 — validerings-/UX-spørgsmål) `computeEetEalCalculation` validerer ikke `beregningsdato >= skadedato`.** Ved beregningsdato før skadedato gives faktor 1 (ingen regulering) uden advarsel. Crasher ikke; korrekt for gyldige input. Spørgsmål: skal en advarsel/validering tilføjes?
 3. **(4.5 — lav, defensiv) Silent fallthrough ved manglende `foersoergertabEalMin`** i `forsoergertabEalKrav.ts`. Uopnåelig i praksis (`getSatserCompleteYearBounds()` inkluderer min-satsen), så ingen aktuel regression. Kan evt. hærdes output-neutralt til eksplicit fail-closed. Lav prioritet.
 
-Ingen øvrige godkendelsespunkter fra 4.0/4.1/4.2/4.4/4.6/4.8 (de var alle output-neutrale).
+4. **(4.9 — brugervendt output) `forligLabel` for decimal-procent bruger ikke dansk talformat.** `forligAnsvarsgradProcent` tillader decimaler. Labelen bygges som `${procentValue}%` (JS-talstreng).
+   - Før: forlig på `12,5` → svie/smerte-PDF-suffix `" (forlig på 12.5%)"`; heltal `50` → `" (forlig på 50%)"`.
+   - Efter (ensretning mod kanonisk `formatPercent`): `12,5` → `" (forlig på 12,5 %)"`; `50` → `" (forlig på 50 %)"`. Mindre indgribende alt.: kun punktum→komma, bevar kompakt `12,5%`.
+   - **Brugeren skal vælge format** (og evt. om feltet overhovedet skal tillade decimaler — krydsref 8.3).
+5. **(4.12 — latent dobbelt-sandhed i TAF-opreguleret satsdæknings-gate)** `validateTafOpreguleretReguleringssatser` kræver satsdækning for *hvert* kalenderår i hver TAF-rækkes interval, mens beregningslaget springer år med `yearTafOre === 0` over. Samme motor, forskelligt år-sæt.
+   - Manifesterer **ikke** i dag (reguleringssats sammenhængende 2005–2026), men kan i teorien give en falsk-positiv blokerende feltfejl ("mangler reguleringssats for ÅÅÅÅ") på et 0-beløbs-år.
+   - Fix ville ensrette år-sættet (compute-side springer 0-år; gate bør gøre det samme). Ændrer hvilke fejl brugeren *kan* udløse → forelægges.
+6. **(4.13 — SFGG-valideringsfejl er fuldt ikke-blokerende uden kontraktdækning)** En SFGG-inputfejl (severity 'error') giver status 'error' *med data* og blokerer **ingen download** (`blocksAuthoritativeComputation: false`, `blocksOutputs: []`).
+   - Før: bruger med manglende SFGG-dato kan downloade EO-/TAF-PDF med SFGG-beregning på ufuldstændigt input.
+   - Spørgsmål: skal SFGG-fejl blokere download som andre obligatoriske felter, eller er de bevidst kun rådgivende? Påvirker hvornår download-knappen er aktiv.
+
+Ingen øvrige godkendelsespunkter fra 4.0/4.1/4.2/4.4/4.6/4.8/4.10/4.11/4.14 (de var alle output-neutrale).
 
 ---
 

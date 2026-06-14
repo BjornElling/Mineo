@@ -76,7 +76,6 @@ const makeSnapshot = (model: EODebugModel, revision = 'rev-1'): EODebugSnapshot 
 
   return {
     revision,
-    createdAt: '2026-03-05T00:00:00.000Z',
     model,
     debugDays: [],
     sammentaelling: makeSammentaelling({}),

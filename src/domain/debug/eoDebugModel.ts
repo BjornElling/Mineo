@@ -633,7 +633,6 @@ export const buildEODebugModel = (
     erstatningsFra,
     erstatningsTil,
     tafDates,
-    shDays,
     isWorkdayByIndex,
     isWithinBeregningsByIndex,
     tableFra,

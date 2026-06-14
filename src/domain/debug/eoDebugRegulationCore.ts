@@ -816,8 +816,10 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
 
       const dates = new Set<ISODateString>();
       for (const sats of satser) {
-        const iso = toISODateString(sats.fraDato.split('-').reverse().join('-'));
-        if (iso >= eoRange.fra && iso <= eoRange.til) {
+        // Brug den guardede danske→ISO-parser (som de øvrige fraDato-konverteringer her),
+        // så en malformet sats-dato giver et spring frem for at kaste i debug-pipelinen.
+        const iso = parseDanishToIso(sats.fraDato);
+        if (iso && iso >= eoRange.fra && iso <= eoRange.til) {
           dates.add(iso);
         }
       }

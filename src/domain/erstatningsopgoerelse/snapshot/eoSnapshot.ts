@@ -454,6 +454,8 @@ export const computeEoSnapshot = (args: Readonly<{
       error: normalizedError,
       diagnostics: {
         errorName: normalizedError.name,
+        // Diagnostisk: var en (delvist bygget) debug-snapshot tilgængelig, da exception ramte?
+        // Selve snapshot-resultatet sætter debugSnapshot til null i fail_closed-stien (se nedenfor).
         debugSnapshotAvailable: debugSnapshot !== null,
       },
     });
@@ -471,7 +473,12 @@ export const computeEoSnapshot = (args: Readonly<{
         blocksOutputs: ['beregning', 'debug', 'eo_pdf', 'taf_per_year_pdf', 'taf_per_year_opreguleret_pdf'] as const,
       }],
       data: null,
-      debugSnapshot,
+      // Kontrakt eo-snapshot-contract.md §2.4: i fail_closed-stien (uventet runtime-exception)
+      // er debugSnapshot null. En delvist bygget debug-snapshot fra en kørsel der efterfølgende
+      // kastede, må ikke surfaces som om den var et gyldigt beregningsgrundlag — også selvom
+      // eoSnapshotToDebugView allerede router fail_closed til en blokeret tilstand uafhængigt af
+      // debugSnapshot. Fail-closed = ingen semi-autoritativ debug-visning.
+      debugSnapshot: null,
       input: {
         stamdata: parsedStamdata.data,
         erstatningsopgoerelse: parsedEo.data,

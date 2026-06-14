@@ -1439,3 +1439,78 @@ describe('buildTafPerYearResult', () => {
   });
 });
 
+// ─── buildTafPerYearBuildOutcome: not_applicable-grene (fail-closed) ──────────
+// Disse grene returnerer 'not_applicable' frem for et misvisende delvist resultat,
+// når det autoritative beregningsgrundlag mangler. De låses her direkte (uden snapshot),
+// så en senere refaktor ikke tavst kan ændre dem til et 'ok'-resultat med nul/tomme år.
+describe('buildTafPerYearBuildOutcome not_applicable-grene', () => {
+  const okMoney = (value: number) => ({ status: 'ok' as const, value });
+
+  const baseSource = (patch: Partial<TafPerYearSource>): TafPerYearSource => ({
+    stamdataValues: makeStamdata({}),
+    loenudvikling: {
+      loenudviklingLabel: '',
+      loenudviklingTotal: okMoney(10_000_00),
+      beregnedeSegmenter: [
+        {
+          fra: iso('2024-01-01'),
+          til: iso('2024-01-31'),
+          kind: 'maaneder',
+          maanedsloenOre: 30_000_00,
+          dagsloenOre: 0,
+          deltaPct: 0,
+        },
+      ],
+      perAnsaettelse: [],
+    } as unknown as TafPerYearSource['loenudvikling'],
+    offentligeYdelserUdvikling: null,
+    tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: okMoney(0) } as unknown as TafPerYearSource['tafIndtaegter'],
+    tidligereModtagetTaf: { status: 'not_calculable', reason: 'Ikke angivet' },
+    sygeferiegodtgoerelse: { totalOre: 0, perAnsaettelsesforhold: [], perYear: [], firstExcludedDate: null } as unknown as TafPerYearSource['sygeferiegodtgoerelse'],
+    tabtArbejdsfortjenesteOre: 10_000_00 as never,
+    tafBeregningsenhed: TAF_BEREGNES_SOM.MAANEDER,
+    forligFactor: null,
+    ...patch,
+  });
+
+  const eoValues = makeValues({});
+  const options = { tafRanges: [{ fra: iso('2024-01-01'), til: iso('2024-01-31') }] };
+
+  it('missing_loenudvikling når loenudvikling er null', () => {
+    const outcome = buildTafPerYearBuildOutcome(baseSource({ loenudvikling: null }), eoValues, options);
+    expect(outcome.kind).toBe('not_applicable');
+    if (outcome.kind !== 'not_applicable') return;
+    expect(outcome.reason).toBe('missing_loenudvikling');
+  });
+
+  it('missing_loenudvikling når loenudviklingTotal ikke er ok', () => {
+    const source = baseSource({});
+    const outcome = buildTafPerYearBuildOutcome(
+      {
+        ...source,
+        loenudvikling: { ...source.loenudvikling, loenudviklingTotal: { status: 'not_calculable', reason: 'mangler' } } as unknown as TafPerYearSource['loenudvikling'],
+      },
+      eoValues,
+      options
+    );
+    expect(outcome.kind).toBe('not_applicable');
+    if (outcome.kind !== 'not_applicable') return;
+    expect(outcome.reason).toBe('missing_loenudvikling');
+  });
+
+  it('missing_taf_indtaegter når tafIndtaegter.total ikke er ok', () => {
+    const source = baseSource({});
+    const outcome = buildTafPerYearBuildOutcome(
+      {
+        ...source,
+        tafIndtaegter: { entries: [], oevrigeKravForbeholdYdelsestyper: [], total: { status: 'not_calculable', reason: 'mangler' } } as unknown as TafPerYearSource['tafIndtaegter'],
+      },
+      eoValues,
+      options
+    );
+    expect(outcome.kind).toBe('not_applicable');
+    if (outcome.kind !== 'not_applicable') return;
+    expect(outcome.reason).toBe('missing_taf_indtaegter');
+  });
+});
+
