@@ -1,38 +1,5 @@
 import type { AmountValue } from '../schemas/amountExpressionSchema';
 
-/**
- * Parser procent-streng til decimal.
- *
- * Accepterer både normaliserede og dansk-formaterede talstrenge:
- * - "12,5%" -> 0.125
- * - "1.234,56 %" -> 12.3456
- */
-export const parsePercentToDecimal = (pct: string | number | undefined): number => {
-  if (pct === undefined) return 0;
-  if (typeof pct === 'number') return Number.isFinite(pct) ? pct / 100 : 0;
-  if (!pct) return 0;
-  const withoutPercent = pct.replaceAll('%', '').replace(/\s+/g, '').trim();
-  if (!withoutPercent) return 0;
-
-  const commaIdx = withoutPercent.lastIndexOf(',');
-  const dotIdx = withoutPercent.lastIndexOf('.');
-
-  let normalized = withoutPercent;
-  if (commaIdx >= 0 && dotIdx >= 0) {
-    // Brug sidste separator som decimaltegn; fjern den anden som tusindtalsseparator.
-    if (commaIdx > dotIdx) {
-      normalized = withoutPercent.replaceAll('.', '').replace(',', '.');
-    } else {
-      normalized = withoutPercent.replaceAll(',', '');
-    }
-  } else if (commaIdx >= 0) {
-    normalized = withoutPercent.replace(',', '.');
-  }
-
-  const num = Number.parseFloat(normalized);
-  return Number.isNaN(num) ? 0 : num / 100;
-};
-
 export const parseDanishNumberString = (value: string): number | undefined => {
   const trimmed = value.trim();
   if (trimmed === '') return undefined;
@@ -42,11 +9,30 @@ export const parseDanishNumberString = (value: string): number | undefined => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
+/**
+ * Kanonisk parsing af et procent-felt til PROCENTPOINT (fx "12,5 %" -> 12.5).
+ *
+ * Én fælles locale-politik (dansk): komma er decimaltegn, punktum er tusindtalsseparator.
+ * Et tal med punktum som decimaltegn ("12.5") afvises derfor (-> undefined), så samme
+ * input aldrig kan give forskellige resultater afhængigt af kaldssted. Tal-input
+ * returneres uændret. Tom/ugyldig -> undefined.
+ */
 export const parsePercentPointString = (value: string | number | undefined): number | undefined => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : undefined;
   if (typeof value !== 'string') return undefined;
   const withoutPercent = value.replace('%', '').trim();
   return parseDanishNumberString(withoutPercent);
+};
+
+/**
+ * Parser et procent-felt til DECIMAL (fx "12,5 %" -> 0.125).
+ *
+ * Tynd projektion af {@link parsePercentPointString} (pct-point / 100), så hele
+ * programmet deler ÉN locale-politik for procent-parsing. Ugyldigt/tomt -> 0.
+ */
+export const parsePercentToDecimal = (pct: string | number | undefined): number => {
+  const pctPoint = parsePercentPointString(pct);
+  return pctPoint === undefined ? 0 : pctPoint / 100;
 };
 
 /**
@@ -57,7 +43,7 @@ export const parseAmount = (val: number | AmountValue | undefined): number => {
   if (typeof val === 'number') return Number.isFinite(val) ? val : 0;
   if (typeof val === 'object' && val !== null && 'kind' in val) {
     const value = val.value;
-    return Number.isFinite(value) ? value : 0;
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
   }
   return 0;
 };

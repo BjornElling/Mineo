@@ -1,4 +1,4 @@
-import { parsePercentToDecimal, parseAmount } from '../../utils/numberParsing';
+import { parsePercentToDecimal, parsePercentPointString, parseAmount } from '../../utils/numberParsing';
 
 describe('parsePercentToDecimal', () => {
   it('parses Danish-formatted percent with thousand separators', () => {
@@ -33,9 +33,15 @@ describe('parsePercentToDecimal', () => {
     expect(parsePercentToDecimal(Infinity)).toBe(0);
   });
 
-  it('"12.5" (punkt som decimal) → 0.125', () => {
-    // Kun komma, ingen punkt-separator → punkt er decimal
-    expect(parsePercentToDecimal('12.5')).toBeCloseTo(0.125, 10);
+  it('"12.5" (punkt som decimaltegn) → 0 (dansk locale: punkt er IKKE decimaltegn)', () => {
+    // Konsolideret locale-politik: komma er decimaltegn, punktum er tusindtalsseparator.
+    // "12.5" har ikke punktum efterfulgt af præcis 3 cifre → ugyldigt → 0.
+    // (Tidligere tolererede denne ene parser punkt-decimal; nu er reglen ens overalt.)
+    expect(parsePercentToDecimal('12.5')).toBe(0);
+  });
+
+  it('"12.500" → 125 (punktum som tusindtalsseparator, dansk locale)', () => {
+    expect(parsePercentToDecimal('12.500')).toBeCloseTo(125, 10);
   });
 
   it('"100" → 1.0', () => {
@@ -48,6 +54,39 @@ describe('parsePercentToDecimal', () => {
 
   it('whitespace trimmes', () => {
     expect(parsePercentToDecimal('  12 %  ')).toBeCloseTo(0.12, 10);
+  });
+});
+
+describe('parsePercentPointString (kanonisk pct-point-parser)', () => {
+  it('dansk komma-decimal → pct-point', () => {
+    expect(parsePercentPointString('12,5')).toBe(12.5);
+    expect(parsePercentPointString('12,5 %')).toBe(12.5);
+  });
+
+  it('tusindtalsseparator (punktum) → pct-point', () => {
+    expect(parsePercentPointString('1.234,56')).toBeCloseTo(1234.56, 10);
+  });
+
+  it('punkt som decimaltegn afvises (dansk locale) → undefined', () => {
+    expect(parsePercentPointString('12.5')).toBeUndefined();
+  });
+
+  it('tal-input returneres uændret', () => {
+    expect(parsePercentPointString(15)).toBe(15);
+    expect(parsePercentPointString(NaN)).toBeUndefined();
+  });
+
+  it('tom/undefined → undefined', () => {
+    expect(parsePercentPointString('')).toBeUndefined();
+    expect(parsePercentPointString('   ')).toBeUndefined();
+    expect(parsePercentPointString(undefined)).toBeUndefined();
+  });
+
+  it('ingen float-artefakt: heltals-pct er eksakt (modsat /100*100-round-trip)', () => {
+    // parsePercentToDecimal('15')*100 gav tidligere 15.000000000000002; den kanoniske
+    // pct-point-parser returnerer eksakt 15.
+    expect(parsePercentPointString('15')).toBe(15);
+    expect(parsePercentToDecimal('15')).toBeCloseTo(0.15, 12);
   });
 });
 

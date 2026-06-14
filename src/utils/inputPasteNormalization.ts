@@ -75,6 +75,14 @@ const extractDigitRun = (text: string): string => {
   return text.slice(firstDigitIndex, end);
 };
 
+/**
+ * Vælger det længste cifferpræfiks hvis værdi ikke overskrider `maxValue`.
+ *
+ * `maxValue` er pr. konvention en positiv ØVRE grænse, og denne helper er en draft-
+ * pre-filter — ikke den endelige range-validering. For negative pastes (`isNegative`)
+ * er enhver værdi ≤ en positiv maxValue, så hele cifferløbet beholdes; den nedre
+ * grænse (minValue) ejes bevidst af feltets `enforceRange`/parse-lag, ikke her.
+ */
 const takeLongestNumericPrefixWithinMaxValue = (
   digits: string,
   maxValue: number | undefined,

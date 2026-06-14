@@ -19,6 +19,12 @@ export type PercentParseResult =
 export const getPercentPrecision = (allowDecimals: boolean): 0 | 2 =>
   allowDecimals ? DEFAULT_PERCENT_DECIMAL_PRECISION : 0;
 
+/**
+ * Formaterer en procent-værdi til visning i et procent-INPUTFELT (commit-værdi → tekst).
+ * Bruger fast præcision (0 eller 2 decimaler) afhængigt af `allowDecimals`, så feltet
+ * viser samme antal decimaler det accepterer. Adskiller sig bevidst fra
+ * `formatUtils.formatPercent`, der trimmer trailing-nuller til fri prosa-visning.
+ */
 export const formatPercentDisplay = (
   value: number | undefined,
   allowDecimals: boolean

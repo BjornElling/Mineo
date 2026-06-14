@@ -7,7 +7,6 @@ import {
   buildSHDageSetForDatoSet,
   buildSHDageSetForIsoRange,
   erHverdagUtc,
-  erSHDag,
 } from '../../../domain/dates/shDageBeregning';
 import { createDate, addDays, formatToISO } from '../../../utils/dateUtils';
 import { parseISODate, type ISODateString } from '../../../types/branded';
@@ -292,9 +291,9 @@ describe('buildSHDageSetForIsoRange', () => {
   });
 });
 
-// ─── erHverdagUtc / erSHDag ───────────────────────────────────────────────────
+// ─── erHverdagUtc ─────────────────────────────────────────────────────────────
 
-describe('erHverdagUtc / erSHDag', () => {
+describe('erHverdagUtc', () => {
   it('mandag-fredag → hverdag', () => {
     // 01-01-2024 = mandag, 05-01-2024 = fredag
     expect(erHverdagUtc(createDate(2024, 0, 1))).toBe(true);
@@ -306,11 +305,42 @@ describe('erHverdagUtc / erSHDag', () => {
     expect(erHverdagUtc(createDate(2024, 0, 6))).toBe(false);
     expect(erHverdagUtc(createDate(2024, 0, 7))).toBe(false);
   });
+});
 
-  it('erSHDag er identisk med erHverdagUtc', () => {
-    for (let day = 1; day <= 7; day += 1) {
-      const d = createDate(2024, 0, day);
-      expect(erSHDag(d)).toBe(erHverdagUtc(d));
-    }
+// ─── Påskedag-facit (absolut korrekthed, ikke kun intern konsistens) ───────────
+
+describe('beregnHelligdageMedNavn — påskedag mod kendt facit', () => {
+  // Kendte gregorianske påskedage. Verificerer Meeus/Jones/Butcher-computus mod
+  // en uafhængig facit, så testen beviser absolut korrekthed (ikke kun at to
+  // implementeringer er enige med hinanden).
+  const kendtePaaskedage: ReadonlyArray<readonly [number, string]> = [
+    [2020, '2020-04-12'],
+    [2021, '2021-04-04'],
+    [2022, '2022-04-17'],
+    [2023, '2023-04-09'],
+    [2024, '2024-03-31'],
+    [2025, '2025-04-20'],
+    [2026, '2026-04-05'],
+    [2027, '2027-03-28'],
+    [2030, '2030-04-21'],
+    [2000, '2000-04-23'],
+  ];
+
+  it.each(kendtePaaskedage)('påskedag %i = %s', (year, isoDato) => {
+    const paaske = beregnHelligdageMedNavn(year).find((h) => h.navn === 'Påskedag');
+    expect(paaske).toBeDefined();
+    expect(formatToISO(paaske!.date)).toBe(isoDato);
+  });
+
+  it('påske-afledte navne har korrekt offset fra påskedag', () => {
+    const year = 2025;
+    const map = new Map(beregnHelligdageMedNavn(year).map((h) => [h.navn, h.date]));
+    const paaske = map.get('Påskedag')!;
+    expect(formatToISO(map.get('Skærtorsdag')!)).toBe(formatToISO(addDays(paaske, -3)));
+    expect(formatToISO(map.get('Langfredag')!)).toBe(formatToISO(addDays(paaske, -2)));
+    expect(formatToISO(map.get('Anden påskedag')!)).toBe(formatToISO(addDays(paaske, 1)));
+    expect(formatToISO(map.get('Kristi himmelfartsdag')!)).toBe(formatToISO(addDays(paaske, 39)));
+    expect(formatToISO(map.get('Pinsedag')!)).toBe(formatToISO(addDays(paaske, 49)));
+    expect(formatToISO(map.get('Anden pinsedag')!)).toBe(formatToISO(addDays(paaske, 50)));
   });
 });

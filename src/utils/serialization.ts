@@ -4,6 +4,13 @@
  * Runtime invariant:
  * - `undefined` serialiseres som `null` (JSON-kompatibelt)
  * - øvrige JSON-venlige primitive typer beholdes
+ *
+ * Forudsætter PLAIN JSON-data (primitiver, arrays og almindelige objekter). Send
+ * IKKE `Date`, `Map`, `Set` eller klasse-instanser hertil: et `Date` ville fx blive
+ * til `{}` (ingen egne enumererbare nøgler) — tavst datatab. Invarianten holdes
+ * opstrøms, fordi alle persisterede sektioner går gennem Zod-schemas med branded
+ * ISO-`string`-datoer (ikke `Date`-objekter) før serialisering. Samme forbud som
+ * søster-helperen `nullToUndefinedDeep`.
  */
 
 const serializeValue = (value: unknown): unknown => {

@@ -255,6 +255,13 @@ export const beregnUgePeriode = (tableData: StandardLoenTableRow[]): PeriodeResu
       const tilData = parseWeekString(ugeTil);
 
       if (fraData && tilData) {
+        // Fail-closed mod omvendt interval (fra-uge efter til-uge): uden denne guard
+        // ville uger-Set'et akkumulere inkonsistent (tomme/forkerte løkker) mens
+        // datoSet'et stille blev tomt — to ud-af-sync afledte resultater. Spring rækken over.
+        if (fraData.start > tilData.end) {
+          return;
+        }
+
         // Tilføj periode
         perioder.push({ start: fraData.start, end: tilData.end });
 

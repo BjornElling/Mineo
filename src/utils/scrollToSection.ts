@@ -39,7 +39,7 @@ export const scrollToSection = (
   scrollWithRetry({
     maxRetries,
     findTarget: () => document.querySelector<HTMLElement>(`[data-section-id="${sectionId}"]`),
-    behavior: 'smooth',
+    // behavior udelades bevidst: scrollTargetIntoView afleder den fra prefers-reduced-motion.
     onSuccess,
     onFailure: (reason) => {
       if (process.env.NODE_ENV === 'development') {

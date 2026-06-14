@@ -59,16 +59,11 @@ export const scrollToDebugRow = (
   }
 
   const { maxRetries = 150, onSuccess, onFailure } = options;
-  const prefersReducedMotion =
-    typeof window !== 'undefined' &&
-    typeof window.matchMedia === 'function' &&
-    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const behavior: ScrollBehavior = prefersReducedMotion ? 'auto' : 'smooth';
 
   scrollWithRetry({
     maxRetries,
     findTarget: () => findElementByMineoRowId(anchorId),
-    behavior,
+    // behavior udelades bevidst: scrollTargetIntoView afleder den fra prefers-reduced-motion.
     onSuccess,
     onFailure,
     failureMessage: `Could not find data-mineo-row-id="${anchorId}" for debugRowId="${debugRowId}"`,

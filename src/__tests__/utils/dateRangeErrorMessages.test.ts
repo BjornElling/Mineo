@@ -5,6 +5,19 @@ import { resolveDateRangeErrorMessage } from '../../utils/dateRangeErrorMessages
 const iso = (value: string) => toISODateString(value);
 
 describe('resolveDateRangeErrorMessage', () => {
+  it('umuligt interval (min>max) → forklarende besked med begge grænser, forrang over alt', () => {
+    const message = resolveDateRangeErrorMessage({
+      iso: iso('2024-06-15'),
+      minDate: iso('2024-12-31'),
+      maxDate: iso('2024-01-01'),
+      // Selv med special-kontekst der ellers ville give en anden besked:
+      special: { minBoundKind: 'skadedato', fraTilRole: 'til' },
+    });
+    expect(message).toContain('ingen gyldig dato');
+    expect(message).toContain('31-12-2024');
+    expect(message).toContain('01-01-2024');
+  });
+
   it('prioritizes skadedato message over fra/til message when minBoundKind=skadedato', () => {
     const message = resolveDateRangeErrorMessage({
       iso: iso('2023-05-02'),

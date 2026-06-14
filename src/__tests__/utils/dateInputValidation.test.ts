@@ -1,8 +1,6 @@
-import { toISODateString } from '../../types/branded';
 import {
   isValidDate,
   interpretYear,
-  validateDateRange,
 } from '../../utils/dateInputValidation';
 
 // ─── isValidDate ──────────────────────────────────────────────────────────
@@ -91,44 +89,12 @@ describe('interpretYear', () => {
   it('3-cifret år → null (ugyldigt)', () => {
     expect(interpretYear('202')).toBeNull();
   });
-});
 
-// ─── validateDateRange ────────────────────────────────────────────────────
-
-describe('validateDateRange', () => {
-  it('dato indenfor range → true', () => {
-    expect(validateDateRange('15-06-2024', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
-  });
-
-  it('dato = minDate → true', () => {
-    expect(validateDateRange('01-01-2024', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
-  });
-
-  it('dato = maxDate → true', () => {
-    expect(validateDateRange('31-12-2024', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
-  });
-
-  it('dato < minDate → fejlstreng', () => {
-    const result = validateDateRange('31-12-2023', toISODateString('2024-01-01'), toISODateString('2024-12-31'));
-    expect(result).not.toBe(true);
-    expect(typeof result).toBe('string');
-  });
-
-  it('dato > maxDate → fejlstreng', () => {
-    const result = validateDateRange('01-01-2025', toISODateString('2024-01-01'), toISODateString('2024-12-31'));
-    expect(result).not.toBe(true);
-    expect(typeof result).toBe('string');
-  });
-
-  it('tom dato → true (ingen validering af tomme felter)', () => {
-    expect(validateDateRange('', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
-  });
-
-  it('for kort dato → true (ingen validering)', () => {
-    expect(validateDateRange('15-06', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
-  });
-
-  it('ugyldig dato der ikke kan parses → true (graceful håndtering)', () => {
-    expect(validateDateRange('abc-def-ghij', toISODateString('2024-01-01'), toISODateString('2024-12-31'))).toBe(true);
+  it('ikke-numerisk input → null (fail-closed, ikke NaN)', () => {
+    // Værn mod NaN-lækage: parseInt("ab") = NaN, og uden guard ville fx
+    // 2-cifret-grenen returnere 2000 + NaN = NaN i strid med number|null.
+    expect(interpretYear('ab')).toBeNull();
+    expect(interpretYear('x')).toBeNull();
+    expect(interpretYear('abcd')).toBeNull();
   });
 });

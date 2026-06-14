@@ -1,5 +1,6 @@
 import type { ISODateString } from '../../types/branded';
-import { dateToISO, parseISODate } from '../../types/branded';
+import { parseISODate } from '../../types/branded';
+import { formatToISO } from '../../utils/dateUtils';
 import { mergeDateRanges, mergeIsoDateRanges } from '../erstatningsopgoerelse/engines/periodMerging';
 import { beregnHelligdageMedNavn } from './shDageBeregning';
 
@@ -65,8 +66,10 @@ export const findNamedHolidaysInDateRanges = (
   for (const range of mergedRanges) {
     const rangeRows = findNamedHolidaysBetweenDates(range.fra, range.til);
     for (const row of rangeRows) {
-      const iso = dateToISO(row.date);
-      if (!iso || seen.has(iso)) {
+      // formatToISO er fail-closed (kaster på ugyldig dato); datoerne kommer fra
+      // beregnHelligdageMedNavn/createDate og er altid gyldige, så dedup på ISO-nøgle er sikker.
+      const iso = formatToISO(row.date);
+      if (seen.has(iso)) {
         continue;
       }
       seen.add(iso);
@@ -97,8 +100,10 @@ export const findNamedHolidaysInIsoRanges = (
 
     const rangeRows = findNamedHolidaysBetweenDates(start, end);
     for (const row of rangeRows) {
-      const iso = dateToISO(row.date);
-      if (!iso || seen.has(iso)) {
+      // formatToISO er fail-closed (kaster på ugyldig dato); datoerne kommer fra
+      // beregnHelligdageMedNavn/createDate og er altid gyldige, så dedup på ISO-nøgle er sikker.
+      const iso = formatToISO(row.date);
+      if (seen.has(iso)) {
         continue;
       }
       seen.add(iso);

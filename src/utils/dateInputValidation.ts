@@ -4,10 +4,7 @@
  * Funktioner til format-validering og inputnær interval-tjek.
  */
 
-import { danishToISO, isISODateString } from '../types/branded';
 import { getTodayLocalISO, isLeapYear } from './dateUtils';
-import type { ISODateString } from '../types/branded';
-import { validateISODateRange } from './isoDateHelpers';
 
 /**
  * Validerer om en dato er gyldig (eksisterer i kalenderen)
@@ -37,6 +34,9 @@ export const isValidDate = (day: number, month: number, year: number): boolean =
 export const interpretYear = (yearStr: string): number | null => {
   const currentYear = Number(getTodayLocalISO().slice(0, 4));
   const yearNum = parseInt(yearStr, 10);
+  // Fail-closed: ikke-numerisk input (fx "ab") giver NaN fra parseInt; uden denne
+  // guard ville 2000+NaN/1900+NaN returnere NaN og dermed bryde number|null-kontrakten.
+  if (!Number.isFinite(yearNum)) return null;
 
   if (yearStr.length === 1) {
     return 2000 + yearNum;
@@ -55,29 +55,4 @@ export const interpretYear = (yearStr: string): number | null => {
   }
 
   return null;
-};
-
-/**
- * Validerer om dato er inden for et interval
- *
- * Denne funktion kaldes KUN på komplette, sanerede datoer (dd-mm-åååå)
- * fra StyledDateField's handleBlur, så der er ingen behov for at tjekke
- * om datoen er under indtastning.
- *
- * @param {string} dateStr - Dato i dansk format (dd-mm-åååå)
- * @param {string} minDate - Min-dato i ISO-format (åååå-mm-dd)
- * @param {string} maxDate - Max-dato i ISO-format (åååå-mm-dd)
- * @returns {true|string} True hvis OK, ellers fejlbesked
- */
-export const validateDateRange = (dateStr: string, minDate: string, maxDate: string): true | string => {
-  if (!dateStr || dateStr.length < 10) return true;
-
-  const isoDate = danishToISO(dateStr);
-  if (!isoDate) return true;
-
-  const normalizedMin = isISODateString(minDate) ? (minDate as ISODateString) : undefined;
-  const normalizedMax = isISODateString(maxDate) ? (maxDate as ISODateString) : undefined;
-
-  const result = validateISODateRange(isoDate, normalizedMin, normalizedMax);
-  return result.isValid ? true : result.errorMessage;
 };

@@ -53,4 +53,19 @@ describe('isoDateToDate', () => {
     expect(result.getUTCMonth()).toBe(2); // marts = 2
     expect(result.getUTCDate()).toBe(31);
   });
+
+  // Trust-kritisk fail-closed-invariant: en værdi der hævder at være ISODateString,
+  // men ikke er en gyldig kalenderdato, må aldrig stille give en forkert Date.
+  it('ikke-eksisterende dato (2024-13-40) → kaster', () => {
+    expect(() => isoDateToDate(iso('2024-13-40'))).toThrow();
+  });
+
+  it('29-02 i ikke-skudår (2023-02-29) → kaster', () => {
+    expect(() => isoDateToDate(iso('2023-02-29'))).toThrow();
+  });
+
+  it('ikke-ISO-formateret streng → kaster', () => {
+    expect(() => isoDateToDate(iso('ikke-en-dato'))).toThrow();
+    expect(() => isoDateToDate(iso('15-06-2024'))).toThrow();
+  });
 });

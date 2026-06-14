@@ -192,6 +192,16 @@ export const validateISODateRange = (
   const normalizedMin = isISODateString(minDate) ? minDate : undefined;
   const normalizedMax = isISODateString(maxDate) ? maxDate : undefined;
 
+  // Umuligt interval: når tidligst tilladte ligger efter senest tilladte findes der
+  // ingen gyldig dato. Forklar dette eksplicit med begge grænser frem for et
+  // selvmodsigende "mellem X og Y" (jf. AGENTS.md §Validering og fejl-UI).
+  if (normalizedMin && normalizedMax && normalizedMin > normalizedMax) {
+    return {
+      isValid: false,
+      errorMessage: `Der findes ingen gyldig dato her: tidligst tilladte (${formatISOToDanish(normalizedMin)}) ligger efter senest tilladte (${formatISOToDanish(normalizedMax)}).`,
+    };
+  }
+
   if (normalizedMin && normalizedMax && (isoDate < normalizedMin || isoDate > normalizedMax)) {
     return {
       isValid: false,

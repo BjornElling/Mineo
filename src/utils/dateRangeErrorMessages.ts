@@ -42,6 +42,13 @@ export const resolveDateRangeErrorMessage = (args: {
 }): string => {
   const { iso, minDate, maxDate, special } = args;
 
+  // Umuligt interval (tidligst tilladte efter senest tilladte) har forrang over alle
+  // andre beskeder: når ingen dato er mulig, er den vigtigste oplysning netop dét,
+  // med begge grænser (jf. AGENTS.md §Validering og fejl-UI).
+  if (minDate && maxDate && minDate > maxDate) {
+    return `Der findes ingen gyldig dato her: tidligst tilladte (${formatISOForTooltip(minDate)}) ligger efter senest tilladte (${formatISOForTooltip(maxDate)}).`;
+  }
+
   // Bound-kind-beskeder skal have forrang over parrede Fra/Til-beskeder for at undgå misvisende output.
   // Eksempel: når den effektive min er "Skadedato", er den korrekte besked om Skadedato, ikke "Til < Fra".
   if (maxDate && maxDate === TODAY && iso > maxDate) {

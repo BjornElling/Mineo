@@ -1,6 +1,6 @@
 import type { ISODateString } from '../types/branded';
 import { coerceToISODateString } from '../types/branded';
-import { interpretYear } from './dateInputValidation';
+import { interpretYear, isValidDate } from './dateInputValidation';
 import { normalizeDateDraftSeparators } from './dateDraftNormalization';
 import { shouldClearField } from './inputValidation';
 
@@ -84,8 +84,9 @@ export const parseDateDraftForCommit = (
   if (resolvedYear === 'partial') return { ok: false, kind: 'partial', message: INVALID_DATE_MESSAGE };
   if (resolvedYear === null) return invalidDate(options.mode);
 
-  const maxDay = new Date(Date.UTC(resolvedYear, monthNum, 0)).getUTCDate();
-  if (dayNum > maxDay) return invalidDate(options.mode);
+  // Kanonisk dag-i-måned-validering (skudår mv.) — én sand kilde i isValidDate,
+  // frem for ad hoc Date.UTC(...,0)-konstruktion her.
+  if (!isValidDate(dayNum, monthNum, resolvedYear)) return invalidDate(options.mode);
 
   const danish = `${String(dayNum).padStart(2, '0')}-${String(monthNum).padStart(2, '0')}-${String(resolvedYear)}`;
   const iso = coerceToISODateString(danish);

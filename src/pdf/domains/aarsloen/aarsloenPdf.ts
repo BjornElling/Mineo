@@ -94,7 +94,7 @@ const isEmptyOrZero = (value: unknown): boolean => {
   return false;
 };
 
-// Bruger parsePercentToDecimal (kanonisk parsing af dansk/engelsk procentformat) × 100 → formatPercent.
+// Bruger parsePercentToDecimal (kanonisk parsing af dansk procentformat, komma som decimaltegn) × 100 → formatPercent.
 // Undgår den fejlbehæftede manuelle .→, fjern-tusindtalsseparator-logik.
 const formatPdfPercent = (pct: string | number | undefined): string => {
   if (pct === null || pct === undefined || pct === '') return '';

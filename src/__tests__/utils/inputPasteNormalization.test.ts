@@ -22,6 +22,14 @@ describe('inputPasteNormalization', () => {
     expect(normalizeIntegerPaste('abc - 1712cd', { maxDigits: 4, allowNegative: true })).toBe('-1712');
   });
 
+  it('maxValue capper kun positiv magnitude; negative pastes beholder hele løbet (nedre grænse ejes af feltet)', () => {
+    // Dokumenteret semantik: en negativ værdi er altid ≤ en positiv maxValue, så
+    // maxValue afkorter ikke negative pastes — feltets enforceRange clamper den nedre grænse.
+    expect(normalizeIntegerPaste('- 9999', { allowNegative: true, maxValue: 100 })).toBe('-9999');
+    // Positiv paste afkortes derimod til længste præfiks ≤ maxValue.
+    expect(normalizeIntegerPaste('9999', { maxValue: 100 })).toBe('99');
+  });
+
   it('normalizes amount paste to the first number token with comma decimals', () => {
     expect(normalizeAmountPaste('adffergregs//sgd1712,56//')).toBe('1712,56');
     expect(normalizeAmountPaste('abc12,')).toBe('12,');

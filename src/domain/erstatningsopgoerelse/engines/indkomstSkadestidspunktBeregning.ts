@@ -2,7 +2,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 import { isISODateString } from '../../../types/branded';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { formatAsAmount, formatAsAmountTrimmed, formatPercent, isSingularCount } from '../../../utils/formatUtils';
-import { parsePercentToDecimal } from '../../../utils/numberParsing';
+import { parsePercentPointString } from '../../../utils/numberParsing';
 import { roundByMethod } from '../../../utils/rounding';
 import { calculateStandardLoenDerivedFromAmounts } from '../../aarsloen/standardLoenRowCalculations';
 import { buildIncomeForRanges, type IncomePeriodResult } from '../helpers/indtaegtPerioder';
@@ -18,9 +18,11 @@ import { formatISOToDanish as formatDateShort } from '../../../utils/dateFormatt
 
 const notCalculable = <T>(reason: string): Calculable<T> => ({ status: 'not_calculable', reason });
 const notCalculableMoney = (reason: string): Calculable<MoneyOre> => notCalculable<MoneyOre>(reason);
+// Pct-point-parsing via den kanoniske parser (dansk locale, ingen lossy /100*100-round-trip).
+// Bevarer den oprindelige fallback: tom/undefined -> undefined; ikke-parsbar streng -> 0.
 const parsePctPoint = (value: string | number | undefined): number | undefined => {
   if (typeof value === 'number' && Number.isFinite(value)) return value;
-  if (typeof value === 'string' && value.trim() !== '') return parsePercentToDecimal(value) * 100;
+  if (typeof value === 'string' && value.trim() !== '') return parsePercentPointString(value) ?? 0;
   return undefined;
 };
 

@@ -286,7 +286,7 @@ resolveTafConstraintBounds(values): TafConstraintBounds
 
 | Import | Kilde |
 |---|---|
-| `beregnHelligdage` | `src/utils/shDageBeregning.ts` |
+| `beregnHelligdage` | `src/domain/dates/shDageBeregning.ts` |
 | `mergeIsoDateRanges` | `src/domain/erstatningsopgoerelse/engines/periodMerging.ts` |
 | `buildIncomeForRanges`, `buildIncomeCalculationContext` | `src/domain/erstatningsopgoerelse/indtaegtPerioder.ts` |
 | `buildIndkomstSkadestidspunkt` | `src/domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning.ts` |

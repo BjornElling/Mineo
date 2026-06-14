@@ -3,7 +3,11 @@ import { scrollTargetIntoView } from './scrollTargetIntoView';
 export type ScrollWithRetryOptions = Readonly<{
   maxRetries: number;
   findTarget: () => HTMLElement | null;
-  behavior: ScrollBehavior;
+  /**
+   * Override scroll-animationen. Udelades normalt: scrollTargetIntoView afleder den
+   * da fra prefers-reduced-motion, så alle scroll-stier respekterer indstillingen ens.
+   */
+  behavior?: ScrollBehavior;
   onSuccess?: () => void;
   onFailure?: (reason: string) => void;
   failureMessage: string;

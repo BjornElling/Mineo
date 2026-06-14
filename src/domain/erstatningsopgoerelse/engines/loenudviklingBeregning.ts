@@ -4,7 +4,7 @@ import { dateToISO, isoToDanish, isISODateString } from '../../../types/branded'
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { opregulerMedAslAarsloensmaksimum } from '../../satser/opreguleringsmotorer';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { parsePercentToDecimal } from '../../../utils/numberParsing';
+import { parsePercentPointString } from '../../../utils/numberParsing';
 import { roundByMethod } from '../../../utils/rounding';
 import { buildBeregningsperiodeRange, buildIncomeForRanges, type IncomePeriodResult, type IsoRange } from '../helpers/indtaegtPerioder';
 import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
@@ -154,10 +154,9 @@ type KonsolideretLoenudvikling =
     tafRanges: readonly IsoRange[];
   }>;
 
-const parseManualPercentToPct = (value: string | number | undefined): number => {
-  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
-  return parsePercentToDecimal(value) * 100;
-};
+// Pct-point-parsing via den kanoniske parser (dansk locale, ingen lossy /100*100-round-trip).
+const parseManualPercentToPct = (value: string | number | undefined): number =>
+  parsePercentPointString(value) ?? 0;
 
 /**
  * Manuel ferieprocent i PDF-sporet returneres i pct-point-konvention
@@ -165,7 +164,7 @@ const parseManualPercentToPct = (value: string | number | undefined): number => 
  */
 const resolveManualFeriePctPct = (rowFeriepenge: string | number | undefined, defaultFeriePct: number | undefined): number => {
   if (typeof rowFeriepenge === 'number' && Number.isFinite(rowFeriepenge)) return rowFeriepenge;
-  if (typeof rowFeriepenge === 'string' && rowFeriepenge.trim() !== '') return parsePercentToDecimal(rowFeriepenge) * 100;
+  if (typeof rowFeriepenge === 'string' && rowFeriepenge.trim() !== '') return parsePercentPointString(rowFeriepenge) ?? 0;
   return defaultFeriePct ?? 0;
 };
 

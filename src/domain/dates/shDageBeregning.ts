@@ -30,41 +30,23 @@ const beregnPaaskedag = (year: number): Date => {
   return createDate(year, month - 1, day);
 };
 
-/**
- * Beregner alle danske helligdage for et givet år
- */
-export const beregnHelligdage = (year: number): Date[] => {
-  const paaske = beregnPaaskedag(year);
-
-  const helligdage = [
-    createDate(year, 0, 1),                  // Nytårsdag
-    addDays(paaske, -3),                     // Skærtorsdag
-    addDays(paaske, -2),                     // Langfredag
-    paaske,                                  // Påskedag
-    addDays(paaske, 1),                      // Anden påskedag
-    addDays(paaske, 39),                     // Kristi himmelfartsdag
-    addDays(paaske, 49),                     // Pinsedag
-    addDays(paaske, 50),                     // Anden pinsedag
-    createDate(year, 11, 25),                // Juledag
-    createDate(year, 11, 26),                // Anden juledag
-  ];
-
-  // Store bededag (fjerde fredag efter påske - kun til og med 2023)
-  if (year <= 2023) {
-    helligdage.push(addDays(paaske, 26));
-  }
-
-  return helligdage;
-};
-
 export interface NavngivetHelligdag {
   date: Date;
   navn: string;
 }
 
 /**
+ * Sidste år hvor Store bededag indgår i helligdagssættet.
+ * Store bededag blev afskaffet som helligdag i Danmark fra og med 2024.
+ */
+const SIDSTE_AAR_MED_STORE_BEDEDAG = 2023;
+
+/**
  * Beregner alle danske helligdage for et givet år, med deres navne.
  * Bruges i PDF-rendereren til at vise helligdagsnavne.
+ *
+ * Dette er den eneste sande kilde til helligdagssættet; `beregnHelligdage`
+ * udleder sine datoer herfra, så regler/offsets aldrig kan drive fra hinanden.
  */
 export const beregnHelligdageMedNavn = (year: number): NavngivetHelligdag[] => {
   const paaske = beregnPaaskedag(year);
@@ -82,12 +64,20 @@ export const beregnHelligdageMedNavn = (year: number): NavngivetHelligdag[] => {
     { date: createDate(year, 11, 26), navn: 'Anden juledag' },
   ];
 
-  if (year <= 2023) {
+  // Store bededag (fjerde fredag efter påske) — kun til og med 2023, jf. afskaffelsen.
+  if (year <= SIDSTE_AAR_MED_STORE_BEDEDAG) {
     helligdage.push({ date: addDays(paaske, 26), navn: 'Store bededag' });
   }
 
   return helligdage;
 };
+
+/**
+ * Beregner alle danske helligdage for et givet år (uden navne).
+ * Tynd projektion af {@link beregnHelligdageMedNavn} for at undgå dobbelt kilde.
+ */
+export const beregnHelligdage = (year: number): Date[] =>
+  beregnHelligdageMedNavn(year).map((h) => h.date);
 
 /**
  * Tjekker om en dato er en hverdag (mandag-fredag)
@@ -96,8 +86,6 @@ export const erHverdagUtc = (date: Date): boolean => {
   const dayOfWeek = date.getUTCDay();
   return dayOfWeek >= 1 && dayOfWeek <= 5; // Mandag=1 til Fredag=5
 };
-
-export const erSHDag = (date: Date): boolean => erHverdagUtc(date);
 
 export const buildSHDageSetForDatoSet = (
   datoSet: ReadonlySet<ISODateString>
@@ -122,7 +110,7 @@ export const buildSHDageSetForDatoSet = (
   for (let year = minDato.getUTCFullYear(); year <= maxDato.getUTCFullYear(); year += 1) {
     for (const helligdag of beregnHelligdage(year)) {
       const helligdagStr = formatToISO(helligdag);
-      if (datoSet.has(helligdagStr) && erSHDag(helligdag)) {
+      if (datoSet.has(helligdagStr) && erHverdagUtc(helligdag)) {
         shDageSet.add(helligdagStr);
       }
     }
@@ -160,7 +148,7 @@ export const buildSHDageSetForIsoRange = (
 
   for (let year = fraYear; year <= tilYear; year += 1) {
     for (const helligdag of beregnHelligdage(year)) {
-      if (!erSHDag(helligdag)) continue;
+      if (!erHverdagUtc(helligdag)) continue;
       const helligdagStr = formatToISO(helligdag);
       if (helligdagStr >= fra && helligdagStr <= til) {
         shDageSet.add(helligdagStr);
