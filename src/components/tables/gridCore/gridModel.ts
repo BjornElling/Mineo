@@ -99,9 +99,16 @@ export const sortGridRows = <TRow>(params: Readonly<{
       if (secondaryCmp !== 0) return secondaryCmp * secondaryDirSign;
     }
 
-    const aIdx = insertionIndexByRowId.get(getRowId(a)) ?? 0;
-    const bIdx = insertionIndexByRowId.get(getRowId(b)) ?? 0;
-    return aIdx - bIdx;
+    // insertionIndexByRowId er bygget fra de samme `rows`, så et lookup-miss kan kun ske ved et
+    // brud på getRowId-determinismekontrakten. Fald tilbage på `rows.length` (sorterer manglende
+    // sidst, deterministisk) i stedet for 0, der ville kollapse distinkte rækker til samme nøgle
+    // og gøre comparatoren ustabil.
+    const aIdx = insertionIndexByRowId.get(getRowId(a));
+    const bIdx = insertionIndexByRowId.get(getRowId(b));
+    if (import.meta.env.DEV && (aIdx === undefined || bIdx === undefined)) {
+      throw new Error('sortGridRows: getRowId returnerede en ukendt id under sortering (ikke-deterministisk getRowId)');
+    }
+    return (aIdx ?? rows.length) - (bIdx ?? rows.length);
   });
 
   return [...sorted, ...emptyRows];

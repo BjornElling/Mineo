@@ -51,7 +51,10 @@ const useFerieRows = ({ values, setValues, resyncToken, fieldName = 'ferieperiod
     resyncToken,
   });
 
-  const committedRowsEnsured = React.useMemo(() => ensureRows(values[fieldName]), [ensureRows, fieldName, values]);
+  // Afhæng kun af den relevante slice (ikke hele values-objektet), så ensureRows ikke kører igen
+  // ved enhver committed ændring andetsteds i EO-formen — på linje med de øvrige row-hooks.
+  const fieldRows = values[fieldName];
+  const committedRowsEnsured = React.useMemo(() => ensureRows(fieldRows), [ensureRows, fieldRows]);
   const committedById = React.useMemo(() => new Map(committedRowsEnsured.map((row) => [row.id, row] as const)), [committedRowsEnsured]);
 
   return { ...ferieRows, committedRowsEnsured, committedById };

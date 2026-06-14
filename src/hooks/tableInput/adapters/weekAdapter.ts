@@ -112,6 +112,5 @@ export const createWeekTableInputAdapter = (
   },
   normalizeDraftChange: (draft) => draft.slice(0, MAX_WEEK_DRAFT_LENGTH),
   preserveInvalidDraft: true,
-  clearErrorOnChange: true,
   useSaveError: true,
 });

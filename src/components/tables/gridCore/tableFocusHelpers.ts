@@ -59,3 +59,19 @@ export const focusTableElement = (el: HTMLElement): void => {
     el.focus();
   }
 };
+
+/**
+ * Augmenteret native keyboard-event-flag: sættes af tabel-navigationen ved en vertikal kant-exit
+ * (top/bund) og læses af `Container`, så Container overtager fortsat navigation uden for tabellen.
+ *
+ * Producent og konsument SKAL dele denne ene definition (i stedet for hver sin inline-`as`-cast),
+ * så et navneskift fanges af typecheck i begge ender.
+ */
+type TableBoundaryExitFlag = { mineoTableBoundaryExit?: boolean };
+
+export const markTableBoundaryExit = (nativeEvent: Event): void => {
+  (nativeEvent as Event & TableBoundaryExitFlag).mineoTableBoundaryExit = true;
+};
+
+export const hasTableBoundaryExit = (nativeEvent: Event): boolean =>
+  (nativeEvent as Event & TableBoundaryExitFlag).mineoTableBoundaryExit === true;

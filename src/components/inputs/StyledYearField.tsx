@@ -255,7 +255,9 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
             // Parse og commit direkte (synkront) som table-felter gør
             const normalized = trimToAlphanumericEdges('');
             const result = parseYear(normalized, { mode: 'commit' });
-            if (result.ok) {
+            // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
+            // (jf. StyledDateField/StyledAmountField).
+            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
               onCommit?.(createCommitEvent(result.value));
             }
             // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
@@ -284,7 +286,7 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
         }
         onKeyDownProp?.(e);
       },
-      [activation, clearInvalidDraft, onCommit, onKeyDown, onKeyDownProp, parseYear, setDraft]
+      [activation, clearInvalidDraft, committedInvalidDraft, onCommit, onKeyDown, onKeyDownProp, parseYear, setDraft, value]
     );
 
     const handlePaste = React.useCallback(

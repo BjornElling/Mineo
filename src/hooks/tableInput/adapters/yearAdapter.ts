@@ -94,6 +94,5 @@ export const createYearTableInputAdapter = (
   },
   normalizeDraftChange: (draft) => draft.slice(0, MAX_YEAR_DRAFT_LENGTH),
   preserveInvalidDraft: true,
-  clearErrorOnChange: true,
   useSaveError: true,
 });

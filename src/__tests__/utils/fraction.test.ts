@@ -1,14 +1,9 @@
-import { isFractionDraftAllowed, parseFractionString, sanitizePastedFraction } from '../../utils/fraction';
+import { isFractionDraftAllowed, parseFractionString } from '../../utils/fraction';
 
 describe('fraction utils', () => {
   it('tillader kun tal, komma og brøkstreg i draft', () => {
     expect(isFractionDraftAllowed('123,45/678,9')).toBe(true);
     expect(isFractionDraftAllowed('123.45/678,9')).toBe(false);
-  });
-
-  it('renser punktummer ud af pasted brøk', () => {
-    expect(sanitizePastedFraction('1.234,5/6.789,0')).toBe('1234,5/6789,0');
-    expect(sanitizePastedFraction('1.25/3.5')).toBe('');
   });
 
   it('parser kun komma som decimaltegn', () => {

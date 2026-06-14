@@ -6,7 +6,7 @@ import TableAmountInput from '../inputs/table/TableAmountInput';
 import TableDateInput from '../inputs/table/TableDateInput';
 import TablePercentInput from '../inputs/table/TablePercentInput';
 import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
-import { assignRef } from '../inputs/table/assignRef';
+import { assignRef } from '../../utils/refUtils';
 import { useGridCoreApi } from './useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from './gridCore/gridCoreTypes';
 import { gridCellKey } from './gridCore/gridCoreUtils';
@@ -19,7 +19,6 @@ import {
   evaluateRowCommit,
   type RowRemovalFocusPlan,
 } from './gridCore/tableRowFocus';
-import { coerceToISODateString } from '../../types/branded';
 import { initialLoenudviklingManuelRow, generateLoenudviklingRowId } from '../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import { createEmptyRowId } from '../../utils/rowId';
 import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
@@ -33,6 +32,12 @@ export type LoenudviklingManuelTableProps = Readonly<{
   onTableDataChange?: (data: LoenudviklingManuelRow[], origin?: { fieldPath?: string }) => void;
   onInputErrorChange?: (hasError: boolean) => void;
   baseDateDisplay: string;
+  /**
+   * Basisdatoen som ISO (allerede afledt af forælderen). Bruges som sorteringsnøgle, så tabellen
+   * ikke selv skal parse display-strengen tilbage til ISO (form-contract §5.1: tabeller må ikke
+   * kende ISO-formater / parse datoer).
+   */
+  baseDateISO?: string;
   baseDateErrorMessage?: string;
   baseDateInfoTooltipText?: string;
   baseRowPercentErrors?: Partial<Record<'feriepenge' | 'shSoSats' | 'fritvalg' | 'agPension', string>>;
@@ -319,6 +324,7 @@ const LoenudviklingManuelTable = React.memo(
     onTableDataChange,
     onInputErrorChange,
     baseDateDisplay,
+    baseDateISO,
     baseDateErrorMessage,
     baseDateInfoTooltipText,
     baseRowPercentErrors,
@@ -505,8 +511,8 @@ const LoenudviklingManuelTable = React.memo(
       {
         colId: 'dato',
         getSortValue: (row: LoenudviklingManuelRow) => {
-          // baseDateDisplay er en display-streng-prop, ikke ISO; konvertér før sortering.
-          if (row.id === baseRowId) return coerceToISODateString(baseDateDisplay) ?? '';
+          // Basisrækken sorteres efter den forud-afledte ISO fra forælderen (ikke display-strengen).
+          if (row.id === baseRowId) return baseDateISO ?? '';
           return row.dato ?? '';
         },
       },
@@ -515,7 +521,7 @@ const LoenudviklingManuelTable = React.memo(
       { colId: 'shSoSats', getSortValue: (row: LoenudviklingManuelRow) => parsePercentForSort(row.shSoSats) },
       { colId: 'fritvalg', getSortValue: (row: LoenudviklingManuelRow) => parsePercentForSort(row.fritvalg) },
       { colId: 'agPension', getSortValue: (row: LoenudviklingManuelRow) => parsePercentForSort(row.agPension) },
-    ], [baseDateDisplay, baseRowId]);
+    ], [baseDateISO, baseRowId]);
 
     const { sortedRows: visibleRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
       rows: internalTableData,

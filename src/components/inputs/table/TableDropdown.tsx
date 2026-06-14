@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Divider, MenuItem, Select, Tooltip, type SelectChangeEvent } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { assignRef } from './assignRef';
+import { assignRef } from '../../../utils/refUtils';
 import { copyTextToClipboard, readClipboardText } from '../../../utils/clipboardUtils';
 import { useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';

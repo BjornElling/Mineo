@@ -647,13 +647,13 @@ const LoenindkomstTab = React.memo(({
     (af: Ansaettelsesforhold) => {
       const iso = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
       if (!iso) {
-        return { display: '', errorMessage: 'Skadedato er ikke udfyldt' };
+        return { display: '', iso: undefined, errorMessage: 'Skadedato er ikke udfyldt' };
       }
       const parsed = parseISODate(iso);
       if (!parsed) {
-        return { display: '', errorMessage: 'Skadedato er ikke udfyldt' };
+        return { display: '', iso: undefined, errorMessage: 'Skadedato er ikke udfyldt' };
       }
-      return { display: formatDanishDate(parsed), errorMessage: undefined };
+      return { display: formatDanishDate(parsed), iso, errorMessage: undefined };
     },
     [getAnvendtReguleringsdatoForAnsaettelsesforhold]
   );
@@ -2346,6 +2346,7 @@ const LoenindkomstTab = React.memo(({
                         onTableDataChange={handleLoenudviklingManuelTableChange(af.id)}
                         onInputErrorChange={handleManuelReguleringInputErrorChange(af.id)}
                         baseDateDisplay={loenudviklingBaseDate.display}
+                        baseDateISO={loenudviklingBaseDate.iso}
                         baseDateErrorMessage={loenudviklingBaseDate.display === '' ? loenudviklingBaseDate.errorMessage : undefined}
                         baseDateInfoTooltipText={baseDateTooltipText}
                         baseRowPercentErrors={manualBaseRowErrorsByAfId[af.id]}

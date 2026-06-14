@@ -102,11 +102,8 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       [inputRef]
     );
 
-    const normalizedMinDate = minDate;
-    const normalizedMaxDate = maxDate;
-
-    const effectiveMinDate = normalizedMinDate;
-    const effectiveMaxDate = normalizedMaxDate;
+    const effectiveMinDate = minDate;
+    const effectiveMaxDate = maxDate;
     const specialFraTilRole = specialRangeErrors?.fraTilRole;
     const specialMinBoundKind = specialRangeErrors?.minBoundKind;
     const specialMinBoundReferenceISO = specialRangeErrors?.minBoundReferenceISO;
@@ -370,7 +367,10 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
             // Parse og commit direkte (synkront) som table-felter gør
             const normalized = normalizeDateDraftOnCommit('');
             const result = parseDate(normalized, { mode: 'commit' });
-            if (result.ok) {
+            // Commit kun hvis rydningen faktisk ændrer noget (committed værdi eller en rå
+            // ikke-committbar draft). Et ubetinget commit(undefined) på et allerede tomt felt
+            // ville skrive en identisk værdi til storen og give en overflødig undo-frame.
+            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
               onCommit?.(createCommitEvent(result.value));
             }
             // Delete tømmer feltet → ryd også en evt. ikke-committbar rå draft. Ellers overlever det
@@ -400,7 +400,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         }
         onKeyDown?.(e);
       },
-      [activation, clearInvalidDraft, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseDate, setDraft, touched]
+      [activation, clearInvalidDraft, committedInvalidDraft, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseDate, setDraft, touched, value]
     );
 
     const handlePaste = React.useCallback(

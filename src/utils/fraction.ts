@@ -80,40 +80,6 @@ export const isFractionDraftAllowed = (
   return buildDraftPattern(maxDigits, allowNegative).test(value);
 };
 
-const hasValidGroupingDots = (token: string): boolean => {
-  const signless = token.startsWith('-') ? token.slice(1) : token;
-  // `signless` er allerede fortegnsfri; `integerPart` kan derfor ikke indeholde '-'.
-  const [integerPart] = signless.split(',') as [string, string?];
-  const groups = integerPart.split('.');
-  if (groups.length === 1) return true;
-  return groups.slice(1).every((group) => /^\d{3}$/.test(group));
-};
-
-const containsUnsupportedDotDecimal = (token: string): boolean => {
-  if (!token.includes('.')) return false;
-  if (!hasValidGroupingDots(token)) return true;
-  if (!token.includes(',')) return false;
-
-  const signless = token.startsWith('-') ? token.slice(1) : token;
-  return signless.lastIndexOf('.') > signless.lastIndexOf(',');
-};
-
-export const sanitizePastedFraction = (text: string, options: Readonly<{ allowNegative?: boolean }> = {}): string => {
-  const allowNegative = options.allowNegative === true;
-  const compact = text.replace(/\s+/g, '');
-  // Draft-normalisering er bevidst ikke en fuld brøk-validator.
-  // Den fjerner kun tegn vi ikke vil have i draften og failer lukket på kendt farlige punktum-decimaler.
-  const tokens = compact.split('/').filter((token) => token !== '');
-  if (tokens.some(containsUnsupportedDotDecimal)) {
-    return '';
-  }
-
-  const withoutDots = compact.replace(/\./g, '');
-  const allowedPattern = allowNegative ? /[0-9,/-]/g : /[0-9,/]/g;
-  const allowed = withoutDots.match(allowedPattern) ?? [];
-  return allowed.join('');
-};
-
 export const parseFractionString = (
   raw: string,
   options: FractionParseOptions = {}

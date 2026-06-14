@@ -324,7 +324,12 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
           if (e.key === 'Backspace' || e.key === 'Delete') {
             e.preventDefault();
             e.stopPropagation();
-            onCommit?.(createCommitEvent(undefined));
+            // Commit kun hvis der faktisk er noget at rydde (committed værdi eller en rå
+            // ikke-committbar draft). Et ubetinget commit(undefined) på et allerede tomt felt
+            // ville skrive en identisk værdi til storen og producere en overflødig undo-frame.
+            if (value !== undefined || committedInvalidDraft !== undefined) {
+              onCommit?.(createCommitEvent(undefined));
+            }
             // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
             clearInvalidDraft?.();
             setDraft('');
@@ -350,7 +355,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         }
         onKeyDown?.(e);
       },
-      [activation, allowDecimals, allowNegative, clearInvalidDraft, onCommit, onKeyDown, onKeyDownBase, setDraft]
+      [activation, allowDecimals, allowNegative, clearInvalidDraft, committedInvalidDraft, onCommit, onKeyDown, onKeyDownBase, setDraft, value]
     );
 
     const displayDraft = activation.isEditorOpen ? draft : localHasError ? draft : formatAmount(value);

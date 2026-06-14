@@ -155,6 +155,47 @@ describe('useRowDrafts', () => {
     expect(result.current.draftRows.map((row) => row.id)).toEqual(['r1', 'r2', 'empty']);
   });
 
+  it('removeRow med ikke-eksisterende id er en no-op og bevarer ucommitted drafts', () => {
+    const store: { committed: CommittedRow[] | undefined } = {
+      committed: [{ id: 'r1', name: 'a' }, { id: 'r2', name: 'b' }],
+    };
+    const { result } = renderHook(() =>
+      useRowDrafts<DraftRow, CommittedRow, 'name'>(makeConfig(store, 1))
+    );
+
+    act(() => {
+      result.current.onFieldChange('r2', 'name')('local-draft');
+    });
+
+    act(() => {
+      // Fjern et id der ikke findes: ingen ændring → ingen resync → draften må ikke tabes.
+      result.current.removeRow('does-not-exist');
+    });
+
+    expect(store.committed?.map((row) => row.id)).toEqual(['r1', 'r2']);
+    expect(result.current.draftRows.find((row) => row.id === 'r2')?.name).toBe('local-draft');
+  });
+
+  it('reorderRows med uændret rækkefølge er en no-op og bevarer ucommitted drafts', () => {
+    const store: { committed: CommittedRow[] | undefined } = {
+      committed: [{ id: 'r1', name: 'a' }, { id: 'r2', name: 'b' }],
+    };
+    const { result } = renderHook(() =>
+      useRowDrafts<DraftRow, CommittedRow, 'name'>(makeConfig(store, 1))
+    );
+
+    act(() => {
+      result.current.onFieldChange('r2', 'name')('local-draft');
+    });
+
+    act(() => {
+      result.current.reorderRows(['r1', 'r2']);
+    });
+
+    expect(store.committed?.map((row) => row.id)).toEqual(['r1', 'r2']);
+    expect(result.current.draftRows.find((row) => row.id === 'r2')?.name).toBe('local-draft');
+  });
+
   it('removeRow fjerner valgt række og resyncer øvrige drafts fra committed', () => {
     const store: { committed: CommittedRow[] | undefined } = {
       committed: [{ id: 'r1', name: 'a-committed' }, { id: 'r2', name: 'b' }, { id: 'empty' }],

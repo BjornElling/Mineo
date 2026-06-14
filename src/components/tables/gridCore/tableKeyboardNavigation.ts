@@ -6,6 +6,7 @@ import {
   CONTAINER_ROW_SELECTOR,
   focusTableElement,
   isTableElementVisible,
+  markTableBoundaryExit,
   TABLE_FOCUSABLE_SELECTOR,
 } from './tableFocusHelpers';
 import type { GridCellCoord } from './gridCoreTypes';
@@ -319,6 +320,51 @@ const findInRow = (gridRow: ReadonlyArray<ReadonlyArray<HTMLElement>>, preferred
   return null;
 };
 
+// En celle er valgbar som navigationsmål, hvis dens editor ikke er låst. Låste (skrivebeskyttede)
+// celler springes over ved BÅDE horisontal og vertikal navigation (brugervalg 2026-06-14), så
+// piletaster aldrig lander på en celle, brugeren ikke kan redigere.
+const isColumnUnlockedInRow = (
+  grid: TableGrid,
+  rowIndex: number,
+  colIndex: number,
+  core: ReturnType<typeof getGridCoreForTable>
+): boolean => {
+  if (!core) return true;
+  const rowId = grid.rowIds[rowIndex];
+  if (!rowId) return true;
+  return core.getEditor({ rowId, colIndex })?.getIsLocked() !== true;
+};
+
+// Lock-aware variant af findInRow til VERTIKAL navigation: finder en fokuserbar, ikke-låst celle i
+// rækken (foretrukken kolonne først, derefter nærmeste til højre/venstre) og returnerer både
+// elementet og dets faktiske kolonne, så fokus-plan/-recovery registrerer den rigtige celle.
+const findSelectableInRow = (
+  grid: TableGrid,
+  rowIndex: number,
+  preferredColIndex: number,
+  subIndex: number,
+  core: ReturnType<typeof getGridCoreForTable>
+): Readonly<{ target: HTMLElement; colIndex: number }> | null => {
+  const gridRow = grid.cellFocusables[rowIndex] ?? [];
+  const tryCol = (colIndex: number): Readonly<{ target: HTMLElement; colIndex: number }> | null => {
+    const el = pickFromCell(gridRow[colIndex] ?? [], subIndex);
+    if (!el) return null;
+    if (!isColumnUnlockedInRow(grid, rowIndex, colIndex, core)) return null;
+    return { target: el, colIndex };
+  };
+  const direct = tryCol(preferredColIndex);
+  if (direct) return direct;
+  for (let colIndex = preferredColIndex + 1; colIndex < gridRow.length; colIndex += 1) {
+    const candidate = tryCol(colIndex);
+    if (candidate) return candidate;
+  }
+  for (let colIndex = preferredColIndex - 1; colIndex >= 0; colIndex -= 1) {
+    const candidate = tryCol(colIndex);
+    if (candidate) return candidate;
+  }
+  return null;
+};
+
 const resolveAnchorLocator = (grid: TableGrid, anchor: TabAnchor, fallback: CellLocator): CellLocator => {
   const rowCount = grid.cellFocusables.length;
   if (rowCount === 0) return fallback;
@@ -336,17 +382,32 @@ const resolveAnchorLocator = (grid: TableGrid, anchor: TabAnchor, fallback: Cell
   return { ...anchor, rowIndex: clampedRowIndex, ...(rowId ? { rowId } : {}) };
 };
 
+// Find næste vertikale navigationsmål i `deltaRows`-retning, idet rækker uden en valgbar (ikke-låst,
+// fokuserbar) celle springes over. `allowWrap=true` (Enter) cirkulerer rundt; `allowWrap=false`
+// (piletaster) stopper ved kanten, så kalderen kan udføre edge-exit til Container.
 const pickVerticalTarget = (
   grid: TableGrid,
   base: CellLocator,
-  deltaRows: number
-): Readonly<{ nextRowIndex: number; nextRowId: string | null; target: HTMLElement | null }> => {
+  deltaRows: number,
+  core: ReturnType<typeof getGridCoreForTable>,
+  allowWrap: boolean
+): Readonly<{ nextRowIndex: number; nextRowId: string | null; colIndex: number; target: HTMLElement }> | null => {
   const rowCount = grid.cellFocusables.length;
-  if (rowCount === 0) return { nextRowIndex: base.rowIndex, nextRowId: null, target: null };
-  const nextRowIndex = (base.rowIndex + deltaRows + rowCount) % rowCount;
-  const nextRow = grid.cellFocusables[nextRowIndex] ?? [];
-  const target = findInRow(nextRow, base.colIndex, base.subIndex);
-  return { nextRowIndex, nextRowId: grid.rowIds[nextRowIndex] ?? null, target };
+  if (rowCount === 0) return null;
+  for (let step = 1; step <= rowCount; step += 1) {
+    let rowIndex = base.rowIndex + deltaRows * step;
+    if (allowWrap) {
+      rowIndex = ((rowIndex % rowCount) + rowCount) % rowCount;
+      if (rowIndex === base.rowIndex) break;
+    } else if (rowIndex < 0 || rowIndex >= rowCount) {
+      break;
+    }
+    const found = findSelectableInRow(grid, rowIndex, base.colIndex, base.subIndex, core);
+    if (found) {
+      return { nextRowIndex: rowIndex, nextRowId: grid.rowIds[rowIndex] ?? null, colIndex: found.colIndex, target: found.target };
+    }
+  }
+  return null;
 };
 
 const pickHorizontalTarget = (
@@ -495,12 +556,12 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     return;
   }
 
-  if (isPrintableKey && !isEditing && activeEditableCell && !isLocked) {
+  if (isPrintableKey && !isEditing && activeCell && activeEditableCell && !isLocked) {
     const accepted = activeEditableCell.prepareEditFromKey(e.key);
     if (!accepted) return;
     e.preventDefault();
     e.stopPropagation();
-    core?.openEditing(activeCell!, 'key');
+    core?.openEditing(activeCell, 'key');
     return;
   }
 
@@ -525,28 +586,29 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     e.preventDefault();
     e.stopPropagation();
     const deltaRows = e.shiftKey ? -1 : 1;
-    const { nextRowIndex, nextRowId, target } = pickVerticalTarget(grid, base, deltaRows);
-    const targetLocator = { rowIndex: nextRowIndex, colIndex: base.colIndex, subIndex: base.subIndex, ...(nextRowId ? { rowId: nextRowId } : {}) };
+    // Enter fuldfører tab-anker-navigation og skal altid nulstille ankeret.
+    tabAnchorByTable.delete(table);
+    const result = pickVerticalTarget(grid, base, deltaRows, core, true);
+    if (!result) return; // ingen valgbar (ikke-låst) celle nogen steder → no-op
+    const targetLocator = { rowIndex: result.nextRowIndex, colIndex: result.colIndex, subIndex: base.subIndex, ...(result.nextRowId ? { rowId: result.nextRowId } : {}) };
     const targetCell = toCellCoord(targetLocator);
     if (core && activeCell && targetCell) {
       core.requestFocusPlan({ from: activeCell, to: targetCell, reason: 'enter' });
     }
-    if (target) focusTableElement(target);
+    focusTableElement(result.target);
     scheduleFocusRecovery(table, targetLocator);
-    // Enter fuldfører tab-anker-navigation og skal altid nulstille ankeret.
-    tabAnchorByTable.delete(table);
     return;
   }
 
   if (key === 'ArrowUp' || key === 'ArrowDown') {
-    const rowCount = grid.cellFocusables.length;
-    const atTopEdge = key === 'ArrowUp' && activePos.rowIndex === 0;
-    const atBottomEdge = key === 'ArrowDown' && activePos.rowIndex === Math.max(0, rowCount - 1);
+    const deltaRows = key === 'ArrowUp' ? -1 : 1;
+    // Søg uden wrap efter næste række med en valgbar (ikke-låst) celle. Findes ingen — enten fordi
+    // vi er ved tabellens kant, eller fordi de resterende rækker i retningen kun har låste celler —
+    // frigives eventet, så Container fortsætter navigation uden for tabellen.
+    const result = pickVerticalTarget(grid, activePos, deltaRows, core, false);
 
-    // Frigiv kant-piletaster, så Container kan fortsætte navigation uden for tabellen.
-    if (atTopEdge || atBottomEdge) {
-      const nativeEvent = e.nativeEvent as unknown as { mineoTableBoundaryExit?: boolean };
-      nativeEvent.mineoTableBoundaryExit = true;
+    if (!result) {
+      markTableBoundaryExit(e.nativeEvent);
       e.preventDefault();
       tabAnchorByTable.delete(table);
       if (activeFocusable) {
@@ -561,14 +623,12 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     tabAnchorByTable.delete(table);
     e.preventDefault();
     e.stopPropagation();
-    const deltaRows = key === 'ArrowUp' ? -1 : 1;
-    const { nextRowIndex, nextRowId, target } = pickVerticalTarget(grid, activePos, deltaRows);
-    const targetLocator = { rowIndex: nextRowIndex, colIndex: activePos.colIndex, subIndex: activePos.subIndex, ...(nextRowId ? { rowId: nextRowId } : {}) };
+    const targetLocator = { rowIndex: result.nextRowIndex, colIndex: result.colIndex, subIndex: activePos.subIndex, ...(result.nextRowId ? { rowId: result.nextRowId } : {}) };
     const targetCell = toCellCoord(targetLocator);
     if (core && activeCell && targetCell) {
       core.requestFocusPlan({ from: activeCell, to: targetCell, reason: 'arrow' });
     }
-    if (target) focusTableElement(target);
+    focusTableElement(result.target);
     scheduleFocusRecovery(table, targetLocator);
     return;
   }
@@ -594,7 +654,9 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     if (core && activeCell && nextCell) {
       core.requestFocusPlan({ from: activeCell, to: nextCell, reason: 'arrow' });
     }
-    next.target.focus();
+    // Brug focusTableElement (preventScroll) som alle øvrige nav-grene, så horisontal navigation
+    // ikke giver scroll-hop (jf. keyboard-navigation.md). En rå `.focus()` ville scrolle.
+    focusTableElement(next.target);
     scheduleFocusRecovery(table, next.locator);
     return;
   }

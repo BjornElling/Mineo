@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, type SxProps, type Theme } from '@mui/material';
 import { ScrollContainerProvider } from '../../contexts/ScrollContainerContext';
 import ScrollToTopButton from '../ui/ScrollToTopButton';
-import { CONTAINER_FOCUSABLE_SELECTOR, CONTAINER_ROW_SELECTOR } from '../tables/gridCore/tableFocusHelpers';
+import { CONTAINER_FOCUSABLE_SELECTOR, CONTAINER_ROW_SELECTOR, hasTableBoundaryExit } from '../tables/gridCore/tableFocusHelpers';
 import { scrollTargetIntoView } from '../../utils/scrollTargetIntoView';
 
 /**
@@ -275,7 +275,7 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
     if (targetNode && !containerRef.current.contains(targetNode)) return;
 
     // IME/composition og kommandoer på OS-/browser-niveau må ikke forstyrres.
-    const native = e.nativeEvent as unknown as { isComposing?: boolean; mineoTableBoundaryExit?: boolean };
+    const native = e.nativeEvent as unknown as { isComposing?: boolean };
     if (native.isComposing === true) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
 
@@ -379,7 +379,7 @@ const Container = React.memo(({ children, scrollSx, contentSx }: ContainerProps)
 
     const moveByArrow = (direction: ArrowDirection) => {
       if (!activeFocusable) return;
-      const allowTableBoundaryExit = native.mineoTableBoundaryExit === true;
+      const allowTableBoundaryExit = hasTableBoundaryExit(e.nativeEvent);
       if (isInTableNavigation(activeFocusable) && !allowTableBoundaryExit) return;
 
       // Bevar eksisterende praksis i åbne widgets (dropdown/menu/date osv.)

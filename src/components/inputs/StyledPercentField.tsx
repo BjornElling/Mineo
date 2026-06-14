@@ -338,7 +338,9 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
             // Parse og commit direkte (synkront) som table-felter gør
             const normalized = prefixZeroBeforeLeadingComma(trimToNumericEdgesPreserveLeadingMinus(''));
             const result = parsePercent(normalized, { mode: 'commit' });
-            if (result.ok) {
+            // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame ved
+            // clear af et allerede tomt felt (jf. StyledDateField/StyledAmountField).
+            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
               onCommit?.(createCommitEvent(result.value));
             }
             // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
@@ -374,7 +376,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
           });
         }
         onKeyDown?.(e);
-    }, [activation, allowDecimals, allowNegative, clearInvalidDraft, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
+    }, [activation, allowDecimals, allowNegative, clearInvalidDraft, committedInvalidDraft, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
 
     const percentAdornmentColor = draft.trim() === '' ? 'var(--mineo-color-placeholder)' : 'inherit';
     const endAdornment = (

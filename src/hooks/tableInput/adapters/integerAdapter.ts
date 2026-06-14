@@ -82,6 +82,5 @@ export const createIntegerTableInputAdapter = (
     return e.defaultPrevented;
   },
   preserveInvalidDraft: true,
-  clearErrorOnChange: true,
   useSaveError: true,
 });

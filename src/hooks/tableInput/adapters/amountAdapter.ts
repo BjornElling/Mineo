@@ -105,7 +105,6 @@ export const createAmountTableInputAdapter = (
   },
   normalizeDraftChange: sanitizePastedAmount,
   preserveInvalidDraft: true,
-  clearErrorOnChange: true,
   clearTouchedOnEmptyDraft: true,
   useSaveError: true,
 });

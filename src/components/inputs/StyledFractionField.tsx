@@ -6,7 +6,7 @@ import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivati
 import { filterFractionKeyDown } from './inputKeyFilters';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
-import { DEFAULT_FRACTION_MAX_DIGITS, getFractionMaxLength, INTEGER_FRACTION_FORMAT_MESSAGE, parseFractionString, sanitizePastedFraction } from '../../utils/fraction';
+import { DEFAULT_FRACTION_MAX_DIGITS, getFractionMaxLength, INTEGER_FRACTION_FORMAT_MESSAGE, parseFractionString } from '../../utils/fraction';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import { normalizeFractionPaste } from '../../utils/inputPasteNormalization';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
@@ -177,12 +177,10 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
       onDraftChange?.(createDraftChangeEvent(nextDraft));
     }, [onDraftChange, setDraft]);
 
-    const handleDraftChange = React.useCallback(
-      (nextDraft: string) => {
-        applyDraft(sanitizePastedFraction(nextDraft, { allowNegative }));
-      },
-      [allowNegative, applyDraft]
-    );
+    // Tastet input må ikke canonicaliseres mens der skrives (jf. form-contract §3.1 / mineo-field-pattern
+    // Lag C). Draften strømmer urørt; tegnspærringen sker i `filterFractionKeyDown` (keydown) og
+    // paste normaliseres i sin egen sti via `normalizeFractionPaste`.
+    const handleDraftChange = applyDraft;
 
     const getDraftForKey = React.useCallback((key: string): string | null => {
       if (/^[0-9/,]$/.test(key)) return key;
@@ -215,7 +213,9 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
             // Parse og commit direkte (synkront) som table-felter gør
             const normalized = trimToAlphanumericEdges('');
             const result = parseFraction(normalized, { mode: 'commit' });
-            if (result.ok) {
+            // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
+            // (jf. StyledDateField/StyledAmountField).
+            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
               onCommit?.(createCommitEvent(result.value));
             }
             // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
@@ -242,7 +242,7 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
         }
         onKeyDown?.(e);
       },
-      [activation, allowNegative, clearInvalidDraft, maxDigits, onCommit, onKeyDown, onKeyDownBase, parseFraction, setDraft]
+      [activation, allowNegative, clearInvalidDraft, committedInvalidDraft, maxDigits, onCommit, onKeyDown, onKeyDownBase, parseFraction, setDraft, value]
     );
 
     const handlePaste = React.useCallback(

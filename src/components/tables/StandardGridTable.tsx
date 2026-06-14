@@ -7,7 +7,7 @@ import { GridCoreProvider } from './gridCore/gridCoreContext';
 import { handleTableBlurCapture, handleTableClickCapture, handleTableDoubleClickCapture, handleTableFocusCapture, handleTableKeyDownCapture, handleTablePointerDownCapture } from './gridCore/tableKeyboardNavigation';
 import type { GridSortDirection, GridSortRole } from './gridCore/gridModel';
 import { SortIcon } from './SortIcon';
-import { assignRef } from '../inputs/table/assignRef';
+import { assignRef } from '../../utils/refUtils';
 import { useGridCoreController } from './useGridCoreController';
 
 const BASE_CONTAINER_SX: SxProps<Theme> = {

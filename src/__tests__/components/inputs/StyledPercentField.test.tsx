@@ -80,6 +80,20 @@ describe('StyledPercentField', () => {
     );
   });
 
+  it('formaterer en eksternt sat værdi deterministisk med 2 decimaler (undo/redo/load uden commit)', () => {
+    // En værdi der sættes via prop (undo/redo-restore, .eo-load) — uden at et commit kørte i
+    // dette felt — SKAL formatere med feltets default-decimaler, ikke afhænge af tidligere
+    // commit-historik. Værner mod, at det ref-baserede decimal-minde lækker på tværs af værdier.
+    const { rerender } = render(<StyledPercentField value={12.5} useDefaultPercentRange />);
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    expect(input).toHaveValue('12,5');
+
+    // Ny ekstern værdi (fx efter undo) skal også formatere deterministisk efter værdien alene —
+    // det tidligere ref-baserede decimal-minde må ikke lække over på den nye værdi.
+    rerender(<StyledPercentField value={7.25} useDefaultPercentRange />);
+    expect(input).toHaveValue('7,25');
+  });
+
   it('normalizes pasted text to the longest prefix under 100', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();

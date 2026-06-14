@@ -147,7 +147,10 @@ const TableDateInput = React.memo(
       locked,
       onChange,
       onBlur,
-      onErrorChange,
+      // onErrorChange bevidst IKKE videregivet til kernen: dato-inputtet har en config-fejl-kilde
+      // (ugyldige bounds), der lever uden for kernen, så komponenten er ENESTE reporter på denne
+      // kanal (jf. effekten nedenfor). Ellers ville både kernen og komponenten skrive til samme
+      // onErrorChange og kunne afgive modstridende rapporter til aggregat-/PDF-gates.
       inputRef,
     });
 
@@ -160,17 +163,21 @@ const TableDateInput = React.memo(
       onRegisterSanitize?.(sanitizeValue);
     }, [onRegisterSanitize, sanitizeValue]);
 
-    const lastReportedConfigErrorRef = React.useRef(false);
+    // Eneste reporter på onErrorChange-kanalen: rapportér unionen af config-fejl (uden for kernen)
+    // og kernens input/visual-fejl, deduplikeret så aggregat-/PDF-gates kun ser reelle ændringer.
+    const lastReportedErrorRef = React.useRef<TableInputErrorInfo | null>(null);
     React.useEffect(() => {
       if (!onErrorChange) return;
-      const hasConfigError = configErrorMessage !== '';
-      if (lastReportedConfigErrorRef.current === hasConfigError) return;
-      lastReportedConfigErrorRef.current = hasConfigError;
-      if (hasConfigError) {
-        onErrorChange({ hasError: true, kind: 'config' });
-        return;
-      }
-      onErrorChange(core.hasError ? { hasError: true, kind: core.errorKind } : { hasError: false, kind: 'none' });
+      const next: TableInputErrorInfo =
+        configErrorMessage !== ''
+          ? { hasError: true, kind: 'config' }
+          : core.hasError
+            ? { hasError: true, kind: core.errorKind }
+            : { hasError: false, kind: 'none' };
+      const prev = lastReportedErrorRef.current;
+      if (prev !== null && prev.hasError === next.hasError && prev.kind === next.kind) return;
+      lastReportedErrorRef.current = next;
+      onErrorChange(next);
     }, [configErrorMessage, core.errorKind, core.hasError, onErrorChange]);
 
     const externalErrorText = (externalErrorMessage ?? '').trim();

@@ -240,7 +240,9 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
               // Parse og commit direkte (synkront) som table-felter gør
               const normalized = trimWhitespaceEdges('');
               const result = parseString(normalized, { mode: 'commit' });
-              if (result.ok) {
+              // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
+              // (jf. StyledDateField/StyledAmountField).
+              if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
                 onCommit?.(createCommitEvent(result.value));
               }
               // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
@@ -274,7 +276,9 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
             // Parse og commit direkte (synkront) som table-felter gør
             const normalized = trimWhitespaceEdges('');
             const result = parseString(normalized, { mode: 'commit' });
-            if (result.ok) {
+            // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
+            // (jf. StyledDateField/StyledAmountField).
+            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
               onCommit?.(createCommitEvent(result.value));
             }
             // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
@@ -298,7 +302,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
         }
         onKeyDown?.(e);
       },
-      [clearInvalidDraft, inputActivation, multiline, onCommit, onKeyDown, onKeyDownBase, parseString, setDraftBase, textAreaActivation]
+      [clearInvalidDraft, committedInvalidDraft, inputActivation, multiline, onCommit, onKeyDown, onKeyDownBase, parseString, setDraftBase, textAreaActivation, value]
     );
 
     React.useEffect(() => {

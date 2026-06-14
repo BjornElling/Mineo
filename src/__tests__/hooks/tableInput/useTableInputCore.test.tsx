@@ -216,7 +216,7 @@ describe('useTableInputCore', () => {
     const { result } = renderHook(
       () =>
         useTableInputCore({
-          adapter: { ...createAdapter(), clearErrorOnChange: true },
+          adapter: createAdapter(),
           gridCell,
           value: '',
           onErrorChange,
@@ -573,7 +573,6 @@ describe('useTableInputCore', () => {
           adapter: {
             ...createAdapter(),
             isValidStartKey: (key) => /^[0-9]$/.test(key),
-            clearErrorOnChange: true,
           },
           gridCell,
           value: '42',

@@ -6,7 +6,6 @@ import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTabl
 import { useTableSort } from './useTableSort';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
 import type { SvieSmertePeriodeRow, Tilstand } from '../../schemas/formSchemas';
-import { tilstandEnum } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import { computeRowDateBounds } from '../../domain/erstatningsopgoerelse/helpers/rowDateBounds';
@@ -126,12 +125,9 @@ const SvieSmerteTable = React.memo(
             const tilMinDate = bounds.til.min;
             const tilMaxDate = bounds.til.max;
 
-            const tilstandValue: Tilstand | undefined = (() => {
-              const trimmed = row.tilstand.trim();
-              if (trimmed === '') return undefined;
-              const parsed = tilstandEnum.safeParse(trimmed);
-              return parsed.success ? parsed.data : undefined;
-            })();
+            // Læs den committede, allerede typede tilstand (svieSmerteTableModel parser draften
+            // ved commit). Tabellen må ikke selv Zod-parse domæneværdier (form-contract §5.1).
+            const tilstandValue: Tilstand | undefined = committed?.tilstand;
 
             // Generer konkrete årsager til afgrænsning
             const fraNoValidRangeCause = (() => {

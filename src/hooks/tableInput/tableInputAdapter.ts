@@ -41,13 +41,6 @@ export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint ex
    */
   preserveInvalidDraft?: boolean;
   /**
-   * Rydder lokal input-/save-error-state, så snart brugeren redigerer draften.
-   *
-   * Default: false. Brug til afgrænsede inputs, hvor tastning forventes at være et
-   * nyt korrektionsforsøg. Den validerer eller committer ikke under onChange.
-   */
-  clearErrorOnChange?: boolean;
-  /**
    * Rydder touched-state, når brugeren redigerer draften til en tom streng.
    *
    * Default: false. Brug til inputs, hvis tomme draft midlertidigt skal fjerne

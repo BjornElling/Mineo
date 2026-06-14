@@ -89,7 +89,12 @@ export type GridCoreController = GridCorePublicAPI &
     getFocusedCell: () => GridCellCoord | null;
     setFocusedCell: (cell: GridCellCoord | null) => void;
     getEditingCell: () => GridCellCoord | null;
-    setEditingCell: (cell: GridCellCoord | null) => void;
+    /**
+     * Rå setter for redigerende celle. `options.synchronously` flusher store-notifikationen
+     * synkront (via flushSync), så editor-open er observerbar i samme tick — bruges af
+     * `openEditing`. Udelad for normal async-notifikation (fx editor-close).
+     */
+    setEditingCell: (cell: GridCellCoord | null, options?: Readonly<{ synchronously?: boolean }>) => void;
     executeFocusPlan: () => void;
     clearFocusPlan: () => void;
     getPendingFocusPlan: () => FocusPlan | null;

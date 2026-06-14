@@ -247,7 +247,9 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
             // Parse og commit direkte (synkront) som table-felter gør
             const normalized = trimToAlphanumericEdges('');
             const result = parseWeek(normalized, { mode: 'commit' });
-            if (result.ok) {
+            // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
+            // (jf. StyledDateField/StyledAmountField).
+            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
               onCommit?.(createCommitEvent(result.value));
             }
             // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
@@ -274,7 +276,7 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
         }
         onKeyDown?.(e);
       },
-      [activation, clearInvalidDraft, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseWeek, setDraft, touched]
+      [activation, clearInvalidDraft, committedInvalidDraft, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseWeek, setDraft, touched, value]
     );
 
     const handlePaste = React.useCallback(

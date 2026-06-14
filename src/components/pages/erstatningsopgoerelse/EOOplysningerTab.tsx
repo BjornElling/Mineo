@@ -989,12 +989,16 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
         ? values.angivetDagsloenOpreguleresFraDato
         : undefined;
 
-  const loenudviklingBaseDateDisplay = React.useMemo(() => {
+  const loenudviklingBaseDateISO = React.useMemo(() => {
     const baseIso = aktivAngivetLoenOpreguleresFraDato || skadedatoISO;
-    const parsed = baseIso ? parseISODate(baseIso) : null;
+    return baseIso && parseISODate(baseIso) ? baseIso : undefined;
+  }, [aktivAngivetLoenOpreguleresFraDato, skadedatoISO]);
+
+  const loenudviklingBaseDateDisplay = React.useMemo(() => {
+    const parsed = loenudviklingBaseDateISO ? parseISODate(loenudviklingBaseDateISO) : null;
     if (!parsed) return '';
     return formatDanishDate(parsed);
-  }, [aktivAngivetLoenOpreguleresFraDato, skadedatoISO]);
+  }, [loenudviklingBaseDateISO]);
 
   const shouldShowReguleringsDatoInterval = React.useMemo(() => {
     return loenudviklingBasis === 'Overenskomst'
@@ -2255,6 +2259,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
                       onTableDataChange={handleLoenudviklingManuelTableChange}
                       onInputErrorChange={handleLoenudviklingManuelInputErrorChange}
                       baseDateDisplay={loenudviklingBaseDateDisplay}
+                      baseDateISO={loenudviklingBaseDateISO}
                       baseDateErrorMessage={loenudviklingBaseDateDisplay === '' ? 'Skadedato er ikke udfyldt' : undefined}
                       useSmallFont={true}
                     />

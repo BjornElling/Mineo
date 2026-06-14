@@ -211,6 +211,13 @@ const StyledTextAreaBase = React.forwardRef<HTMLDivElement, StyledTextAreaBasePr
               htmlInput: {
                 ...htmlTextAreaAttributes,
                 'aria-describedby': describedBy,
+                // Felt-identitet til undo/redo-fokus-restore og save-gate-lokalisering — samme
+                // projektion som StyledTextFieldBase (fra rå `name`, ikke auto-id'et), så
+                // multiline-felter (kommentarfelter) kan findes af historyTargetRestore efter
+                // undo/redo. Transiente felter uden name deltager ikke (jf. mineo-field-pattern
+                // §felt-identitet regel 3).
+                'data-mineo-undo-field-path': name,
+                'data-mineo-field-path': name,
                 onFocus: handleFocus,
                 onBlur: handleBlur,
                 onKeyDown: handleKeyDown,

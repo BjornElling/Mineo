@@ -75,6 +75,5 @@ export const createPercentTableInputAdapter = (
     return e.defaultPrevented;
   },
   preserveInvalidDraft: true,
-  clearErrorOnChange: true,
   useSaveError: true,
 });

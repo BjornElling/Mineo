@@ -89,6 +89,5 @@ export const createDateTableInputAdapter = (
     return e.defaultPrevented;
   },
   preserveInvalidDraft: true,
-  clearErrorOnChange: true,
   useSaveError: true,
 });

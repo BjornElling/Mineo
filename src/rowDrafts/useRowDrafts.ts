@@ -248,6 +248,11 @@ export const useRowDrafts = <
   const commitAll = React.useCallback((): boolean => {
     const drafts = draftRowsRef.current;
     let didChange = false;
+    // Bær commit-origin fra sidst-redigerede celle, så et samlet commit (fx ved tab-væk der
+    // committer flere dirty rækker) får fieldPath = `rowId:colIndex` til undo-fokus i stedet for
+    // at falde tilbage på focus-trackeren (jf. mineo-field-pattern §felt-identitet regel 1).
+    const lastEdited = lastEditedRef.current;
+    const origin = lastEdited ? resolveCommitOrigin(lastEdited.rowId) : undefined;
     configRef.current.setCommitted((prevRows) => {
       const cfg = configRef.current;
       const base = getEnsuredCommitted(prevRows, cfg);
@@ -256,12 +261,12 @@ export const useRowDrafts = <
       const next = cfg.ensureRows(committed);
       didChange = !committedRowsEqual(base, next);
       return didChange ? next : prevRows;
-    });
+    }, origin);
     if (!didChange) return false;
 
     bumpInternalResyncToken();
     return true;
-  }, []);
+  }, [resolveCommitOrigin]);
 
   const onRowBlur = React.useCallback(
     (rowId: RowId) => {
@@ -286,24 +291,32 @@ export const useRowDrafts = <
 
   const removeRow = React.useCallback(
     (rowId: RowId) => {
+      // Bump kun resync-token ved reel ændring. En no-op (fjern ikke-eksisterende id) må ikke
+      // resette draften og dermed tabe ucommitted draft i andre rækker (jf. form-contract §6.3).
+      let didChange = false;
       configRef.current.setCommitted((prevRows) => {
         const cfg = configRef.current;
         const base = getEnsuredCommitted(prevRows, cfg);
-        const next = base.filter((row) => row.id !== rowId);
-        return cfg.ensureRows(next);
+        const next = cfg.ensureRows(base.filter((row) => row.id !== rowId));
+        didChange = !committedRowsEqual(base, next);
+        return didChange ? next : prevRows;
       });
-      bumpInternalResyncToken();
+      if (didChange) bumpInternalResyncToken();
     },
     []
   );
 
   const reorderRows = React.useCallback((orderedIds: readonly RowId[]) => {
+    // Bump kun ved reel ændring — en no-op-reorder (samme rækkefølge) må ikke resette drafts.
+    let didChange = false;
     configRef.current.setCommitted((prevRows) => {
       const cfg = configRef.current;
       const base = getEnsuredCommitted(prevRows, cfg);
-      return cfg.ensureRows(reorderRowsByIds(base, orderedIds));
+      const next = cfg.ensureRows(reorderRowsByIds(base, orderedIds));
+      didChange = !committedRowsEqual(base, next);
+      return didChange ? next : prevRows;
     });
-    bumpInternalResyncToken();
+    if (didChange) bumpInternalResyncToken();
   }, []);
 
   return {

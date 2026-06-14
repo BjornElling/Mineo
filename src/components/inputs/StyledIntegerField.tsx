@@ -331,8 +331,11 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
             if (result.ok) {
               onCommit?.(createCommitEvent(result.value));
             }
-            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
+            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField)
+            // og den UI-only range-fejl, så en tidligere out-of-range-værdis røde markering
+            // ikke hænger ved efter rydningen (denne sti går uden om handleDraftChange).
             clearInvalidDraft?.();
+            setRangeErrorMessage('');
             setDraft('');
             return;
           }
