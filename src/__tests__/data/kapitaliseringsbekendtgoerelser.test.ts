@@ -4,57 +4,13 @@ import {
   kapitaliseringsbekendtgoerelser,
   eetKapitaliseringsDatoMaxFraBekendtgoerelser,
 } from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
-import { dateToISO, parseISODate, toISODateString } from '../../types/branded';
-import { addDays } from '../../utils/dateUtils';
+import { resolveKapitaliseringsbekendtgoerelseId } from '../../domain/erhvervsevnetab/eetKapitaliseringOpslag';
+import { toISODateString } from '../../types/branded';
 
-const resolveIdForDatoer = (
-  skadedato: string,
-  kapitaliseringsdato: string
-): string | undefined => {
-  const skadesinterval = kapitaliseringsbekendtgoerelser
-    .filter((interval) => interval.skadedatoFra <= skadedato)
-    .reduce((latest, current) =>
-      current.skadedatoFra > latest.skadedatoFra ? current : latest
-    );
-
-  const kandidat = skadesinterval.kapitaliseringer
-    .filter((entry) => entry.kapitaliseringsdatoFra <= kapitaliseringsdato)
-    .reduce<(typeof skadesinterval.kapitaliseringer)[number] | undefined>((latestEntry, current) => {
-      if (latestEntry === undefined) {
-        return current;
-      }
-
-      return current.kapitaliseringsdatoFra > latestEntry.kapitaliseringsdatoFra
-        ? current
-        : latestEntry;
-    }, undefined);
-
-  if (kandidat === undefined) {
-    return undefined;
-  }
-
-  const sortedKapitaliseringer = [...skadesinterval.kapitaliseringer].sort((a, b) =>
-    a.kapitaliseringsdatoFra.localeCompare(b.kapitaliseringsdatoFra)
-  );
-  const kandidatIndex = sortedKapitaliseringer.findIndex(
-    (entry) =>
-      entry.kapitaliseringsdatoFra === kandidat.kapitaliseringsdatoFra &&
-      entry.id === kandidat.id
-  );
-  if (kandidatIndex < 0) {
-    return undefined;
-  }
-
-  const nextEntry = sortedKapitaliseringer[kandidatIndex + 1];
-  const nextDate = nextEntry ? parseISODate(nextEntry.kapitaliseringsdatoFra) : null;
-  const gyldigTil = nextDate
-    ? dateToISO(addDays(nextDate, -1))
-    : `${kandidat.kapitaliseringsdatoFra.slice(0, 4)}-12-31`;
-  if (!gyldigTil) {
-    return undefined;
-  }
-  return kapitaliseringsdato <= gyldigTil ? kandidat.id : undefined;
-};
+// Test mod den kanoniske produktions-resolver (ikke en lokal kopi), så testen ikke
+// kan divergere fra den faktiske opslagslogik.
+const resolveIdForDatoer = (skadedato: string, kapitaliseringsdato: string): string | null =>
+  resolveKapitaliseringsbekendtgoerelseId(toISODateString(skadedato), toISODateString(kapitaliseringsdato));
 
 type LokalTabelMeta = {
   filnavn: string;
@@ -121,6 +77,14 @@ describe('kapitaliseringsbekendtgørelser', () => {
     expect(resolveIdForDatoer(toISODateString('2011-01-01'), toISODateString('2024-07-01'))).toBe('9376/2024');
     expect(resolveIdForDatoer(toISODateString('2021-01-01'), toISODateString('2024-06-30'))).toBe('9820/2023');
     expect(resolveIdForDatoer(toISODateString('2021-01-01'), toISODateString('2024-07-01'))).toBe('9376/2024');
+  });
+
+  it('fail-closed: skadedato før første interval (1978-04-01) → null', () => {
+    expect(resolveIdForDatoer(toISODateString('1978-03-31'), toISODateString('2024-01-01'))).toBeNull();
+  });
+
+  it('fail-closed: kapitaliseringsdato før enhver kapitalisering i intervallet → null', () => {
+    expect(resolveIdForDatoer(toISODateString('2011-01-01'), toISODateString('1990-01-01'))).toBeNull();
   });
 
   it('har fuld 1:1 dækning mellem oversigtens IDer og lokale kapitaliseringstabelfiler', () => {

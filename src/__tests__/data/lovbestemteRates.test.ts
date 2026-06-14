@@ -14,6 +14,8 @@ import {
   aarsloenAslMinFra20240701,
   reguleringsprocentErhvervsevnetabFoer2024,
   reguleringsprocentErhvervsevnetabFra2024,
+  ASL_MAX_AARSLOEN_2024,
+  aarsloenAslMax,
 } from '../../data/lovbestemteRates';
 import { eetKapitaliseringsDatoMaxFraBekendtgoerelser } from '../../data/kapitalisering/kapitaliseringsbekendtgoerelser';
 import type { YearlyRate } from '../../data/lovbestemteRates';
@@ -75,6 +77,12 @@ describe('getYearBoundsForCompleteCoverage', () => {
       { 2021: 4, 2022: 5, 2023: 6 },
     ]);
     expect(result).toEqual({ minYear: 2021, maxYear: 2022 });
+  });
+
+  it('ét enkelt tomt dict → null (ikke {Infinity, -Infinity})', () => {
+    // Loopet løber ikke for et enkelt element; uden fail-closed-værnet ville
+    // Math.min/max(...[]) give uendelige bounds i stedet for null.
+    expect(getYearBoundsForCompleteCoverage([{}])).toBeNull();
   });
 });
 
@@ -304,6 +312,12 @@ describe('varigeMenPrGradYearBounds', () => {
     expect(varigeMenPrGradYearBounds).toHaveProperty('minYear');
     expect(varigeMenPrGradYearBounds).toHaveProperty('maxYear');
     expect(varigeMenPrGradYearBounds.minYear).toBeLessThanOrEqual(varigeMenPrGradYearBounds.maxYear);
+  });
+});
+
+describe('ASL_MAX_AARSLOEN_2024 invariant', () => {
+  it('er udledt af aarsloenAslMax[2024] (én sandhedskilde, ingen drift)', () => {
+    expect(ASL_MAX_AARSLOEN_2024).toBe(aarsloenAslMax[2024]);
   });
 });
 

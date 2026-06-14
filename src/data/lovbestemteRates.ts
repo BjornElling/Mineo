@@ -66,6 +66,10 @@ export const getYearBoundsForCompleteCoverage = (
   }
 
   const years = Array.from(intersection);
+  // Værn mod et enkelt tomt dict (ingen heltalsår): loop-betingelsen ovenfor kører
+  // ikke for dicts.length === 1, så uden dette ville Math.min/max(...[]) returnere
+  // {Infinity, -Infinity} i stedet for at fejle fail-closed.
+  if (years.length === 0) return null;
   return { minYear: Math.min(...years), maxYear: Math.max(...years) };
 };
 
@@ -223,8 +227,11 @@ export const vejledendeUdtalelseEet: YearlyRate = {
 
 // ===== ARBEJDSSKADESIKRINGSLOVEN =====
 
+// Maks. årsløn pr. 1/1-2003 (§ 24). 2003 indgår ikke i aarsloenAslMax-tabellen
+// (den starter 2005), så denne sats er en selvstændig konstant.
 export const ASL_MAX_AARSLOEN_2003 = 367000;
-export const ASL_MAX_AARSLOEN_2024 = 608000;
+// ASL_MAX_AARSLOEN_2024 udledes af aarsloenAslMax[2024] længere nede i filen for at
+// undgå dobbelt sandhedskilde for samme sats (§ 24-maksimum for 2024).
 
 // Godtgørelse for varige mén (§ 18, stk. 3, 3. pkt.)
 export const varigeMenPrGrad: YearlyRate = {
@@ -316,6 +323,16 @@ export const aarsloenAslMax: YearlyRate = {
   2006: 396000,
   2005: 387000,
 };
+
+// Maks. årsløn pr. 1/1-2024 (§ 24). Udledt af aarsloenAslMax[2024] for at holde én
+// sandhedskilde; fail-closed hvis 2024 nogensinde fjernes fra tabellen.
+export const ASL_MAX_AARSLOEN_2024: number = (() => {
+  const value = aarsloenAslMax[2024];
+  if (value === undefined) {
+    throw new Error('CRITICAL: aarsloenAslMax mangler 2024 (kræves af ASL_MAX_AARSLOEN_2024)');
+  }
+  return value;
+})();
 
 // Minimum årsløn (§ 24, stk. 10)
 // OBS: 2024 bevidst udeladt!

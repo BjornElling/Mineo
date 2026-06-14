@@ -129,7 +129,9 @@ const indeksFromTable = (
  * Alle statistiske lønudviklingsmodeller med deres indeksværdier
  */
 export const statistiskLoenudvikling: ReadonlyArray<StatistiskLoenudvikling> = [
-  // ILON12 - Implicit lønindeks
+  // ILON12 - Implicit lønindeks.
+  // OBS: ILON12 er ophørt efter 2025K4 (sidste offentliggjorte kvartal). Indekset
+  // opdateres derfor ikke yderligere — der kommer ingen nye kvartaler efter 2025K4.
   {
     meta: {
       id:           toStatistiskLoenudviklingId('ILON12'),
@@ -138,7 +140,7 @@ export const statistiskLoenudvikling: ReadonlyArray<StatistiskLoenudvikling> = [
     },
     indeksvaerdier: indeksFromTable([
       // kvartal    │ indeksværdi
-      ['2025K3',        164.7 ],
+      ['2025K4',        165.2 ],
       ['2025K1',        161.5 ],
       ['2024K1',        156.1 ],
       ['2023K1',        150.8 ],
@@ -172,7 +174,7 @@ export const statistiskLoenudvikling: ReadonlyArray<StatistiskLoenudvikling> = [
     },
     indeksvaerdier: indeksFromTable([
       // kvartal    │ indeksværdi
-      ['2025K3',        127.9 ],
+      ['2026K1',        129.3 ],
       ['2025K1',        125.4 ],
       ['2024K1',        119.6 ],
       ['2023K1',        115.7 ],

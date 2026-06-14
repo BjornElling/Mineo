@@ -5,8 +5,6 @@ import {
   sygedagpengeRates,
   SYGEDAGPENGE_INSERT_MAX_DATE,
   SYGEDAGPENGE_INSERT_MIN_DATE,
-  SYGEDAGPENGE_OP_MAX_DATE,
-  SYGEDAGPENGE_OP_MIN_DATE,
   type DatedSygedagpengeRate,
 } from '../../../data/sygedagpengeRates';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
@@ -150,14 +148,11 @@ export class SygedagpengeCoverageError extends Error {
  * Bekræfter at HELE [fraDato, tilDato] er dækket af definerede satser, og kaster en
  * `SygedagpengeCoverageError` med klar brugerbesked hvis bare én dag mangler dækning.
  *
- * Dækningskravet er eksplicit todelt (jf. beslutning: kræv både sats OG OP):
- * - Sygedagpengesats + ATP: hele perioden skal ligge i [INSERT_MIN, INSERT_MAX].
- * - Obligatorisk pension: den del af perioden der ligger fra og med OP-ordningens
- *   ikrafttræden (6. januar 2020) skal ligge inden for OP-satsernes dækning.
- *   Perioden før da kræver ingen OP-dækning (ordningen fandtes ikke; OP = 0).
- *
- * Begge tabeller er pr. konstruktion kontinuerte (ingen interne huller), hvilket
- * `sygedagpengeInsertRows.test.ts` håndhæver, så dækning kan afgøres ud fra grænserne.
+ * Hver satsrække samler sygedagpengesats, ATP og OP-procent for satsåret, så
+ * satsdækning medfører altid ATP- og OP-dækning. Det er derfor tilstrækkeligt at
+ * kontrollere, at hele perioden ligger i [INSERT_MIN, INSERT_MAX]. Tabellen er pr.
+ * konstruktion kontinuert (ingen interne huller), hvilket `sygedagpengeRates.test.ts`
+ * håndhæver, så dækning kan afgøres ud fra grænserne.
  */
 export const assertSygedagpengeRangeFullyCovered = (
   fraDato: ISODateString,
@@ -170,19 +165,6 @@ export const assertSygedagpengeRangeFullyCovered = (
         `Den valgte periode (${formatISOToDanish(fraDato)} til ${formatISOToDanish(tilDato)}) ` +
         'rækker uden for dette interval. Opdatér sygedagpengesatserne i koden, eller vælg en kortere periode.'
     );
-  }
-
-  // OP kræves kun for den del af perioden der ligger fra og med ordningens ikrafttræden.
-  const opRelevantTil = tilDato;
-  if (opRelevantTil >= SYGEDAGPENGE_OP_MIN_DATE) {
-    const opRelevantFra = maxISO(fraDato, SYGEDAGPENGE_OP_MIN_DATE);
-    if (opRelevantFra > SYGEDAGPENGE_OP_MAX_DATE || opRelevantTil > SYGEDAGPENGE_OP_MAX_DATE) {
-      throw new SygedagpengeCoverageError(
-        `Der er kun fastsat satser for obligatorisk pension til og med ${formatISOToDanish(SYGEDAGPENGE_OP_MAX_DATE)}. ` +
-          `Den valgte periode rækker frem til ${formatISOToDanish(tilDato)}. ` +
-          'Opdatér OP-satserne i koden, eller vælg en kortere periode.'
-      );
-    }
   }
 };
 

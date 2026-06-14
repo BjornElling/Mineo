@@ -2,14 +2,10 @@ import {
   resolveEgetAtpBidragPrKalenderuge,
   resolveKommunaltAtpBidragPrKalenderuge,
   resolveObligatoriskPensionProcent,
-  sygedagpengeObligatoriskPensionSatser,
-  SYGEDAGPENGE_ATP_MAX_DATE,
-  SYGEDAGPENGE_ATP_MIN_DATE,
   SYGEDAGPENGE_INSERT_MAX_DATE,
   SYGEDAGPENGE_INSERT_MIN_DATE,
   SYGEDAGPENGE_RATE_MAX_DATE,
   SYGEDAGPENGE_RATE_MIN_DATE,
-  sygedagpengeAtpPrincipper,
   sygedagpengeRates,
 } from '../../../data/sygedagpengeRates';
 import { toISODateString } from '../../../types/branded';
@@ -169,15 +165,16 @@ describe('sygedagpengeInsertRows', () => {
     }
   });
 
-  it('eksponerer ATP-principperne for fuld kalenderuge i den samlede sygedagpenge-datakilde', () => {
-    expect(sygedagpengeAtpPrincipper).toEqual([
-      { fraDato: toISODateString('2005-01-03'), tilDato: toISODateString('2008-01-06'), egetAtpPrKalenderuge: 38, kommunaltAtpPrKalenderuge: 76 },
-      { fraDato: toISODateString('2008-01-07'), tilDato: toISODateString('2020-01-05'), egetAtpPrKalenderuge: 44, kommunaltAtpPrKalenderuge: 88 },
-      { fraDato: toISODateString('2020-01-06'), tilDato: toISODateString('2023-12-31'), egetAtpPrKalenderuge: 48, kommunaltAtpPrKalenderuge: 96 },
-      { fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2027-01-03'), egetAtpPrKalenderuge: 53, kommunaltAtpPrKalenderuge: 106 },
-    ]);
-    expect(resolveEgetAtpBidragPrKalenderuge(sygedagpengeRates[20]!)).toBe(53);
-    expect(resolveKommunaltAtpBidragPrKalenderuge(sygedagpengeRates[20]!)).toBe(106);
+  it('bærer det ugentlige ATP-bidrag som kolonner på hvert satsår', () => {
+    const atpForFraDato = (fraDato: string): readonly [number, number] => {
+      const rate = sygedagpengeRates.find((r) => r.fraDato === toISODateString(fraDato))!;
+      return [resolveEgetAtpBidragPrKalenderuge(rate), resolveKommunaltAtpBidragPrKalenderuge(rate)];
+    };
+    // De fire historiske ATP-niveauer skal stå korrekt på de respektive satsår.
+    expect(atpForFraDato('2005-01-03')).toEqual([38, 76]);
+    expect(atpForFraDato('2008-01-07')).toEqual([44, 88]);
+    expect(atpForFraDato('2020-01-06')).toEqual([48, 96]);
+    expect(atpForFraDato('2026-01-05')).toEqual([53, 106]);
   });
 
   it('tillægger ikke obligatorisk pension før ordningen trådte i kraft (6. januar 2020)', () => {
@@ -204,43 +201,6 @@ describe('sygedagpengeInsertRows', () => {
     expect(resolveObligatoriskPensionProcent(rate2020)).toBe(0.3);
   });
 
-  it('OP-grænserne følger dagpenge-satsåret, så hvert rate-segment ligger inden for præcis én OP-periode', () => {
-    // Hvis grænserne ikke aligner, ville resolveObligatoriskPensionProcent kaste for et segment der
-    // krydser en OP-grænse. Vi verificerer derfor at alle rate-segmenter (fra 2020) resolver uden fejl.
-    for (const rate of sygedagpengeRates) {
-      if (rate.tilDato < sygedagpengeObligatoriskPensionSatser[0]!.fraDato) continue;
-      expect(() => resolveObligatoriskPensionProcent(rate)).not.toThrow();
-    }
-  });
-
-  it('alle ATP- og OP-grænser falder på en satsårs-grænse i sygedagpengeRates (de tre tabeller siler ikke fra hinanden)', () => {
-    // De tre datakilder (sats / ATP / OP) ændrer sig i hver sin takt, men deler dagpenge-satsårets
-    // uge-grænser. Denne test håndhæver at hver ATP- og OP-grænse er en faktisk satsårs-start/-slut i
-    // sygedagpengeRates, så en fremtidig redaktør straks fanges hvis en dato skrives forkert.
-    // OP-grænser uden for rate-tabellens dækning (2027-2030, hvor satserne endnu ikke kendes) er
-    // bevidst undtaget — det er netop derfor OP er en selvstændig tabel.
-    const satsaarStart = new Set(sygedagpengeRates.map((rate) => rate.fraDato));
-    const satsaarSlut = new Set(sygedagpengeRates.map((rate) => rate.tilDato));
-
-    for (const princip of sygedagpengeAtpPrincipper) {
-      if (princip.fraDato >= SYGEDAGPENGE_RATE_MIN_DATE && princip.fraDato <= SYGEDAGPENGE_RATE_MAX_DATE) {
-        expect(satsaarStart.has(princip.fraDato)).toBe(true);
-      }
-      if (princip.tilDato >= SYGEDAGPENGE_RATE_MIN_DATE && princip.tilDato <= SYGEDAGPENGE_RATE_MAX_DATE) {
-        expect(satsaarSlut.has(princip.tilDato)).toBe(true);
-      }
-    }
-
-    for (const sats of sygedagpengeObligatoriskPensionSatser) {
-      if (sats.fraDato >= SYGEDAGPENGE_RATE_MIN_DATE && sats.fraDato <= SYGEDAGPENGE_RATE_MAX_DATE) {
-        expect(satsaarStart.has(sats.fraDato)).toBe(true);
-      }
-      if (sats.tilDato >= SYGEDAGPENGE_RATE_MIN_DATE && sats.tilDato <= SYGEDAGPENGE_RATE_MAX_DATE) {
-        expect(satsaarSlut.has(sats.tilDato)).toBe(true);
-      }
-    }
-  });
-
   it('medregner SH-dage før 2. juli 2012 men ikke fra og med 2. juli 2012', () => {
     const rowsFoerCutoff = buildSygedagpengeRowsForRange(toISODateString('2012-05-28'), toISODateString('2012-05-28'));
     const rowsEfterCutoff = buildSygedagpengeRowsForRange(toISODateString('2013-05-20'), toISODateString('2013-05-20'));
@@ -256,8 +216,6 @@ describe('sygedagpengeInsertRows', () => {
   it('eksponerer dynamiske min/max-datoer fra første og sidste satsrække', () => {
     expect(SYGEDAGPENGE_RATE_MIN_DATE).toBe(toISODateString('2005-01-03'));
     expect(SYGEDAGPENGE_RATE_MAX_DATE).toBe(toISODateString('2027-01-03'));
-    expect(SYGEDAGPENGE_ATP_MIN_DATE).toBe(toISODateString('2005-01-03'));
-    expect(SYGEDAGPENGE_ATP_MAX_DATE).toBe(toISODateString('2027-01-03'));
     expect(SYGEDAGPENGE_INSERT_MIN_DATE).toBe(toISODateString('2005-01-03'));
     expect(SYGEDAGPENGE_INSERT_MAX_DATE).toBe(toISODateString('2027-01-03'));
   });
