@@ -1021,7 +1021,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
 
     expect(result.errors).toContainEqual(expect.objectContaining({
       path: 'tafBeregningsperiodeTil',
-      message: expect.stringContaining('Lønregulering kan ikke beregnes efter 30-06-2026'),
+      message: expect.stringContaining('Lønregulering kan ikke beregnes efter 30-09-2026'),
       severity: 'error',
     }));
   });
