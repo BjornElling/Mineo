@@ -5,7 +5,7 @@ import { yearHas53Weeks } from '../../../utils/dateUtils';
 import { filterWeekKeyDown } from '../../../components/inputs/inputKeyFilters';
 import { normalizeWeekPaste } from '../../../utils/inputPasteNormalization';
 import { normalizeTableDraftOnCommit } from '../../../utils/tableInputContracts';
-import type { TableInputAdapter } from '../tableInputAdapter';
+import { spliceDraftPaste, type TableInputAdapter } from '../tableInputAdapter';
 import type { TableYearPolicy } from './yearAdapter';
 
 const MAX_WEEK_DRAFT_LENGTH = 8;
@@ -99,10 +99,7 @@ export const createWeekTableInputAdapter = (
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 
-    const start = typeof context.selectionStart === 'number' ? context.selectionStart : context.currentDraft.length;
-    const end = typeof context.selectionEnd === 'number' ? context.selectionEnd : start;
-    const draft = context.currentDraft.slice(0, start) + normalized + context.currentDraft.slice(end);
-    return { draft, caretPosition: start + normalized.length };
+    return spliceDraftPaste(context, normalized);
   },
   filterKeyDown: (e, context) => {
     if (!context.isEditing) return false;

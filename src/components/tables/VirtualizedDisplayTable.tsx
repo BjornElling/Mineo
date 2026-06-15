@@ -295,6 +295,46 @@ const VirtualizedDisplayTable = React.memo(
       </thead>
     ), [headerCellBaseStyle, headerSeparatorBackground, resolvedHeaderRows, stickyHeader, stickyHeaderTop]);
 
+    const renderBody = React.useCallback(() => (
+      <tbody>
+        {topSpacerHeight > 0 ? (
+          <tr style={{ height: topSpacerHeight }}>
+            <td style={{ padding: 0, border: 'none' }} colSpan={columns.length} />
+          </tr>
+        ) : null}
+
+        {Array.from({ length: Math.max(0, endIndex - startIndex + 1) }, (_, offset) => {
+          const rowIndex = startIndex + offset;
+          const isEven = rowIndex % 2 === 1;
+          const backgroundColor = isEven ? 'var(--color-table-row-odd)' : 'var(--color-table-row-even)';
+          return (
+            <tr key={getRowKey(rowIndex)} style={{ height: rowHeight, backgroundColor }}>
+              {columns.map((col, colIdx) => (
+                <td
+                  key={col.id ?? colIdx}
+                  data-mineo-column-id={col.id}
+                  style={{
+                    ...cellBaseStyle,
+                    width: col.width,
+                    textAlign: col.align ?? 'center',
+                    borderLeft: col.borderLeft ? '2px solid var(--color-table-border)' : undefined,
+                  }}
+                >
+                  {renderCell(rowIndex, colIdx)}
+                </td>
+              ))}
+            </tr>
+          );
+        })}
+
+        {bottomSpacerHeight > 0 ? (
+          <tr style={{ height: bottomSpacerHeight }}>
+            <td style={{ padding: 0, border: 'none' }} colSpan={columns.length} />
+          </tr>
+        ) : null}
+      </tbody>
+    ), [bottomSpacerHeight, cellBaseStyle, columns, endIndex, getRowKey, renderCell, rowHeight, startIndex, topSpacerHeight]);
+
     if (scrollMode === 'ancestor') {
       return (
         <Box sx={{ width: 'fit-content', ...containerSx }}>
@@ -311,43 +351,7 @@ const VirtualizedDisplayTable = React.memo(
           >
             {renderHeader()}
 
-            <tbody>
-              {topSpacerHeight > 0 ? (
-                <tr style={{ height: topSpacerHeight }}>
-                  <td style={{ padding: 0, border: 'none' }} colSpan={columns.length} />
-                </tr>
-              ) : null}
-
-              {Array.from({ length: Math.max(0, endIndex - startIndex + 1) }, (_, offset) => {
-                const rowIndex = startIndex + offset;
-                const isEven = rowIndex % 2 === 1;
-                const backgroundColor = isEven ? 'var(--color-table-row-odd)' : 'var(--color-table-row-even)';
-                return (
-                  <tr key={getRowKey(rowIndex)} style={{ height: rowHeight, backgroundColor }}>
-                    {columns.map((col, colIdx) => (
-                      <td
-                        key={col.id ?? colIdx}
-                        data-mineo-column-id={col.id}
-                        style={{
-                          ...cellBaseStyle,
-                          width: col.width,
-                          textAlign: col.align ?? 'center',
-                          borderLeft: col.borderLeft ? '2px solid var(--color-table-border)' : undefined,
-                        }}
-                      >
-                        {renderCell(rowIndex, colIdx)}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-
-              {bottomSpacerHeight > 0 ? (
-                <tr style={{ height: bottomSpacerHeight }}>
-                  <td style={{ padding: 0, border: 'none' }} colSpan={columns.length} />
-                </tr>
-              ) : null}
-            </tbody>
+            {renderBody()}
           </table>
         </Box>
       );
@@ -375,43 +379,7 @@ const VirtualizedDisplayTable = React.memo(
           }}
         >
           <table style={{ ...tableStyle, border: 'none', borderRadius: 0, width: 'fit-content', tableLayout: 'fixed' }}>
-            <tbody>
-              {topSpacerHeight > 0 ? (
-                <tr style={{ height: topSpacerHeight }}>
-                  <td style={{ padding: 0, border: 'none' }} colSpan={columns.length} />
-                </tr>
-              ) : null}
-
-              {Array.from({ length: Math.max(0, endIndex - startIndex + 1) }, (_, offset) => {
-                const rowIndex = startIndex + offset;
-                const isEven = rowIndex % 2 === 1;
-                const backgroundColor = isEven ? 'var(--color-table-row-odd)' : 'var(--color-table-row-even)';
-                return (
-                  <tr key={getRowKey(rowIndex)} style={{ height: rowHeight, backgroundColor }}>
-                    {columns.map((col, colIdx) => (
-                      <td
-                        key={col.id ?? colIdx}
-                        data-mineo-column-id={col.id}
-                        style={{
-                          ...cellBaseStyle,
-                          width: col.width,
-                          textAlign: col.align ?? 'center',
-                          borderLeft: col.borderLeft ? '2px solid var(--color-table-border)' : undefined,
-                        }}
-                      >
-                        {renderCell(rowIndex, colIdx)}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-
-              {bottomSpacerHeight > 0 ? (
-                <tr style={{ height: bottomSpacerHeight }}>
-                  <td style={{ padding: 0, border: 'none' }} colSpan={columns.length} />
-                </tr>
-              ) : null}
-            </tbody>
+            {renderBody()}
           </table>
         </Box>
       </Box>

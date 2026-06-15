@@ -1,6 +1,6 @@
 import * as React from 'react';
-import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
-import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
+import type { UseSliceRowDraftsResult } from '../../rowDrafts/useSliceRowDrafts';
+import { useSliceRowDrafts } from '../../rowDrafts/useSliceRowDrafts';
 import type { ErstatningsopgoerelseValues, TafPeriodeRow } from '../../schemas/formSchemas';
 import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
 import { isTafRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
@@ -20,23 +20,18 @@ export type UseTafRowsArgs = Readonly<{
   resyncToken: unknown;
 }>;
 
-export type UseTafRowsResult = UseRowDraftsResult<TafDraftRow, 'fra' | 'til' | 'loseFeriedage'> &
+export type UseTafRowsResult = UseSliceRowDraftsResult<TafDraftRow, TafPeriodeRow, 'fra' | 'til' | 'loseFeriedage'> &
   Readonly<{
-    committedRowsEnsured: readonly TafPeriodeRow[];
-    committedById: ReadonlyMap<string, TafPeriodeRow>;
     overlappingIds: ReadonlySet<string>;
   }>;
 
 const useTafRows = ({ values, setValues, resyncToken }: UseTafRowsArgs): UseTafRowsResult => {
-  const tafRows = useRowDrafts<TafDraftRow, TafPeriodeRow, 'fra' | 'til' | 'loseFeriedage'>({
-    getCommitted: () => values.tafPerioder,
-    setCommitted: (updater, origin) => {
-      setValues((prev) => {
-        const nextRows = updater(prev.tafPerioder);
-        if (!nextRows) return prev;
-        return { ...prev, tafPerioder: nextRows };
-      }, origin);
-    },
+  const tafRows = useSliceRowDrafts<ErstatningsopgoerelseValues, TafDraftRow, TafPeriodeRow, 'fra' | 'til' | 'loseFeriedage'>({
+    values,
+    setValues,
+    resyncToken,
+    getSlice: (v) => v.tafPerioder,
+    setSlice: (v, rows) => ({ ...v, tafPerioder: rows }),
     toDraft: committedToTafDraftRows,
     toCommittedRow: (draft) => tafDraftToCommittedRow(draft),
     isRowEmpty: isTafRowEmpty,
@@ -45,17 +40,13 @@ const useTafRows = ({ values, setValues, resyncToken }: UseTafRowsArgs): UseTafR
     createEmptyCommittedRow: createEmptyTafCommittedRow,
     // colIndex matcher TAFPeriodeTable: fra=0, til=1, loseFeriedage=2
     fieldColIndex: { fra: 0, til: 1, loseFeriedage: 2 },
-    resyncToken,
   });
 
-  const committedRowsEnsured = React.useMemo(() => ensureTafRows(values.tafPerioder), [values.tafPerioder]);
-  const committedById = React.useMemo(() => new Map(committedRowsEnsured.map((row) => [row.id, row] as const)), [committedRowsEnsured]);
-
   const overlappingIds = React.useMemo(() => {
-    return detectOverlappingPeriods(committedRowsEnsured);
-  }, [committedRowsEnsured]);
+    return detectOverlappingPeriods(tafRows.committedRowsEnsured);
+  }, [tafRows.committedRowsEnsured]);
 
-  return { ...tafRows, committedRowsEnsured, committedById, overlappingIds };
+  return { ...tafRows, overlappingIds };
 };
 
 export default useTafRows;

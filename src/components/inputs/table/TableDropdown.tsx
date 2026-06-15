@@ -336,6 +336,8 @@ const TableDropdown = React.memo(
           return trigger instanceof HTMLElement ? trigger : host;
         },
         getIsLocked: () => readOnly,
+        // Instant-commit-kontrol: et menuvalg committer straks via onChange, så der er aldrig en
+        // pending draft at committe ved navigation. true = "intet uafsluttet commit blokerer".
         commitCurrent: () => true,
         clearAndCommit: () => {
           if (readOnly || !allowEmpty) return;

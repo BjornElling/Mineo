@@ -1,6 +1,6 @@
 import * as React from 'react';
-import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
-import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
+import type { UseSliceRowDraftsResult } from '../../rowDrafts/useSliceRowDrafts';
+import { useSliceRowDrafts } from '../../rowDrafts/useSliceRowDrafts';
 import type { ErstatningsopgoerelseValues, SvieSmertePeriodeRow } from '../../schemas/formSchemas';
 import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
 import { calculateKalenderdageInclusive } from '../../domain/erstatningsopgoerelse/engines/tafCalculations';
@@ -15,10 +15,8 @@ export type UseSvieSmerteRowsArgs = Readonly<{
   resyncToken: unknown;
 }>;
 
-export type UseSvieSmerteRowsResult = UseRowDraftsResult<SvieSmerteDraftRow, 'fra' | 'til' | 'tilstand'> &
+export type UseSvieSmerteRowsResult = UseSliceRowDraftsResult<SvieSmerteDraftRow, SvieSmertePeriodeRow, 'fra' | 'til' | 'tilstand'> &
   Readonly<{
-    committedRowsEnsured: readonly SvieSmertePeriodeRow[];
-    committedById: ReadonlyMap<string, SvieSmertePeriodeRow>;
     derivedById: Record<string, SvieSmerteDerived>;
     overlappingIds: ReadonlySet<string>;
   }>;
@@ -39,15 +37,12 @@ const deriveSvieSmerteById = (rows: readonly SvieSmertePeriodeRow[] | undefined)
 };
 
 const useSvieSmerteRows = ({ values, setValues, resyncToken }: UseSvieSmerteRowsArgs): UseSvieSmerteRowsResult => {
-  const svieRows = useRowDrafts<SvieSmerteDraftRow, SvieSmertePeriodeRow, 'fra' | 'til' | 'tilstand'>({
-    getCommitted: () => values.svieSmertePerioder,
-    setCommitted: (updater, origin) => {
-      setValues((prev) => {
-        const nextRows = updater(prev.svieSmertePerioder);
-        if (!nextRows) return prev;
-        return { ...prev, svieSmertePerioder: nextRows };
-      }, origin);
-    },
+  const svieRows = useSliceRowDrafts<ErstatningsopgoerelseValues, SvieSmerteDraftRow, SvieSmertePeriodeRow, 'fra' | 'til' | 'tilstand'>({
+    values,
+    setValues,
+    resyncToken,
+    getSlice: (v) => v.svieSmertePerioder,
+    setSlice: (v, rows) => ({ ...v, svieSmertePerioder: rows }),
     toDraft: committedToSvieDraftRows,
     toCommittedRow: (draft) => svieDraftToCommittedRow(draft),
     isRowEmpty: isSvieSmerteRowEmpty,
@@ -56,18 +51,9 @@ const useSvieSmerteRows = ({ values, setValues, resyncToken }: UseSvieSmerteRows
     createEmptyCommittedRow: createEmptySvieCommittedRow,
     // colIndex matcher SvieSmerteTable: fra=0, til=1, tilstand=3 (colIndex 2 er ikke-redigerbar)
     fieldColIndex: { fra: 0, til: 1, tilstand: 3 },
-    resyncToken,
   });
 
-  const committedRowsEnsured = React.useMemo(
-    () => ensureSvieRows(values.svieSmertePerioder),
-    [values.svieSmertePerioder]
-  );
-
-  const committedById = React.useMemo(
-    () => new Map(committedRowsEnsured.map((row) => [row.id, row] as const)),
-    [committedRowsEnsured]
-  );
+  const { committedRowsEnsured } = svieRows;
 
   const derivedById = React.useMemo(() => deriveSvieSmerteById(committedRowsEnsured), [committedRowsEnsured]);
 
@@ -81,8 +67,6 @@ const useSvieSmerteRows = ({ values, setValues, resyncToken }: UseSvieSmerteRows
 
   return {
     ...svieRows,
-    committedRowsEnsured,
-    committedById,
     derivedById,
     overlappingIds,
   };

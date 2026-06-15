@@ -9,7 +9,7 @@ import {
 import { filterPercentKeyDown } from '../../../components/inputs/inputKeyFilters';
 import { normalizeTableNumericDraftOnCommit } from '../../../utils/tableInputContracts';
 import { makePercentFingerprintFromCanonical, type CommittedPayload, type PercentFingerprint } from '../../../types/parserSpec';
-import type { TableInputAdapter } from '../tableInputAdapter';
+import { spliceDraftPaste, type TableInputAdapter } from '../tableInputAdapter';
 
 export type TablePercentInputModel = number | undefined;
 
@@ -61,10 +61,7 @@ export const createPercentTableInputAdapter = (
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 
-    const start = typeof context.selectionStart === 'number' ? context.selectionStart : context.currentDraft.length;
-    const end = typeof context.selectionEnd === 'number' ? context.selectionEnd : start;
-    const draft = context.currentDraft.slice(0, start) + normalized + context.currentDraft.slice(end);
-    return { draft, caretPosition: start + normalized.length };
+    return spliceDraftPaste(context, normalized);
   },
   filterKeyDown: (e, context) => {
     if (!context.isEditing) return false;

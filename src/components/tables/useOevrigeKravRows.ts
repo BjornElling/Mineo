@@ -1,6 +1,5 @@
-import * as React from 'react';
-import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
-import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
+import type { UseSliceRowDraftsResult } from '../../rowDrafts/useSliceRowDrafts';
+import { useSliceRowDrafts } from '../../rowDrafts/useSliceRowDrafts';
 import type { ErstatningsopgoerelseValues, OevrigeKravRow } from '../../schemas/formSchemas';
 import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
 import { isOevrigeKravRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
@@ -19,22 +18,15 @@ export type UseOevrigeKravRowsArgs = Readonly<{
   resyncToken: unknown;
 }>;
 
-export type UseOevrigeKravRowsResult = UseRowDraftsResult<OevrigeKravDraftRow, 'dato' | 'udgiftTil' | 'beloeb'> &
-  Readonly<{
-    committedRowsEnsured: readonly OevrigeKravRow[];
-    committedById: ReadonlyMap<string, OevrigeKravRow>;
-  }>;
+export type UseOevrigeKravRowsResult = UseSliceRowDraftsResult<OevrigeKravDraftRow, OevrigeKravRow, 'dato' | 'udgiftTil' | 'beloeb'>;
 
 const useOevrigeKravRows = ({ values, setValues, resyncToken }: UseOevrigeKravRowsArgs): UseOevrigeKravRowsResult => {
-  const rows = useRowDrafts<OevrigeKravDraftRow, OevrigeKravRow, 'dato' | 'udgiftTil' | 'beloeb'>({
-    getCommitted: () => values.oevrigeKravPerioder,
-    setCommitted: (updater, origin) => {
-      setValues((prev) => {
-        const nextRows = updater(prev.oevrigeKravPerioder);
-        if (!nextRows) return prev;
-        return { ...prev, oevrigeKravPerioder: nextRows };
-      }, origin);
-    },
+  return useSliceRowDrafts<ErstatningsopgoerelseValues, OevrigeKravDraftRow, OevrigeKravRow, 'dato' | 'udgiftTil' | 'beloeb'>({
+    values,
+    setValues,
+    resyncToken,
+    getSlice: (v) => v.oevrigeKravPerioder,
+    setSlice: (v, rows) => ({ ...v, oevrigeKravPerioder: rows }),
     toDraft: committedToOevrigeKravDraftRows,
     toCommittedRow: (draft, prev) => oevrigeKravDraftToCommittedRow(draft, prev),
     isRowEmpty: isOevrigeKravRowEmpty,
@@ -43,16 +35,7 @@ const useOevrigeKravRows = ({ values, setValues, resyncToken }: UseOevrigeKravRo
     createEmptyCommittedRow: createEmptyOevrigeKravCommittedRow,
     // colIndex matcher OevrigeKravTable: dato=0, udgiftTil=1, beloeb=2
     fieldColIndex: { dato: 0, udgiftTil: 1, beloeb: 2 },
-    resyncToken,
   });
-
-  const committedRowsEnsured = React.useMemo(
-    () => ensureOevrigeKravRows(values.oevrigeKravPerioder),
-    [values.oevrigeKravPerioder]
-  );
-  const committedById = React.useMemo(() => new Map(committedRowsEnsured.map((row) => [row.id, row] as const)), [committedRowsEnsured]);
-
-  return { ...rows, committedRowsEnsured, committedById };
 };
 
 export default useOevrigeKravRows;

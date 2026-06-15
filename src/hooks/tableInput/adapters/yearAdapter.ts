@@ -4,7 +4,7 @@ import { interpretYear } from '../../../utils/dateInputValidation';
 import { filterYearKeyDown } from '../../../components/inputs/inputKeyFilters';
 import { normalizeYearPaste } from '../../../utils/inputPasteNormalization';
 import { normalizeTableDraftOnCommit } from '../../../utils/tableInputContracts';
-import type { TableInputAdapter } from '../tableInputAdapter';
+import { spliceDraftPaste, type TableInputAdapter } from '../tableInputAdapter';
 
 const MAX_YEAR_DRAFT_LENGTH = 6; // 4 cifre + tolerance for whitespace før commit-normalisering.
 
@@ -82,10 +82,7 @@ export const createYearTableInputAdapter = (
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 
-    const start = typeof context.selectionStart === 'number' ? context.selectionStart : context.currentDraft.length;
-    const end = typeof context.selectionEnd === 'number' ? context.selectionEnd : start;
-    const draft = context.currentDraft.slice(0, start) + normalized + context.currentDraft.slice(end);
-    return { draft, caretPosition: start + normalized.length };
+    return spliceDraftPaste(context, normalized);
   },
   filterKeyDown: (e, context) => {
     if (!context.isEditing) return false;

@@ -6,7 +6,7 @@ import { validateISODateRange } from '../../../utils/isoDateHelpers';
 import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../../../utils/dateRangeErrorMessages';
 import { filterDateLikeKeyDown } from '../../../components/inputs/inputKeyFilters';
 import { parseDateDraftForCommit } from '../../../utils/dateDraftCommit';
-import type { TableInputAdapter } from '../tableInputAdapter';
+import { spliceDraftPaste, type TableInputAdapter } from '../tableInputAdapter';
 import type { TableYearPolicy } from './yearAdapter';
 
 export type TableDateInputModel = ISODateString | undefined;
@@ -77,10 +77,7 @@ export const createDateTableInputAdapter = (
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 
-    const start = typeof context.selectionStart === 'number' ? context.selectionStart : context.currentDraft.length;
-    const end = typeof context.selectionEnd === 'number' ? context.selectionEnd : start;
-    const draft = context.currentDraft.slice(0, start) + normalized + context.currentDraft.slice(end);
-    return { draft, caretPosition: start + normalized.length };
+    return spliceDraftPaste(context, normalized);
   },
   filterKeyDown: (e, context) => {
     if (!context.isEditing) return false;

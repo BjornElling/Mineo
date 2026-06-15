@@ -1,6 +1,5 @@
-import * as React from 'react';
-import type { UseRowDraftsResult } from '../../rowDrafts/useRowDrafts';
-import { useRowDrafts } from '../../rowDrafts/useRowDrafts';
+import type { UseSliceRowDraftsResult } from '../../rowDrafts/useSliceRowDrafts';
+import { useSliceRowDrafts } from '../../rowDrafts/useSliceRowDrafts';
 import type { ErstatningsopgoerelseValues, FerieperiodeRow } from '../../schemas/formSchemas';
 import { type SetValuesUpdater } from '../../hooks/usePersistedForm';
 import { isFerieRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
@@ -22,24 +21,17 @@ export type UseFerieRowsArgs = Readonly<{
   fieldName?: 'ferieperioder' | 'sfggSygeperioderFoer2015';
 }>;
 
-export type UseFerieRowsResult = UseRowDraftsResult<FerieDraftRow, 'fra' | 'til'> &
-  Readonly<{
-    committedRowsEnsured: readonly FerieperiodeRow[];
-    committedById: ReadonlyMap<string, FerieperiodeRow>;
-  }>;
+export type UseFerieRowsResult = UseSliceRowDraftsResult<FerieDraftRow, FerieperiodeRow, 'fra' | 'til'>;
 
 const useFerieRows = ({ values, setValues, resyncToken, fieldName = 'ferieperioder' }: UseFerieRowsArgs): UseFerieRowsResult => {
   const ensureRows = fieldName === 'sfggSygeperioderFoer2015' ? ensureSfggSygeperioderRows : ensureTafFerieRows;
   const createId = fieldName === 'sfggSygeperioderFoer2015' ? createSfggSygeperiodeRowId : createTafFerieRowId;
-  const ferieRows = useRowDrafts<FerieDraftRow, FerieperiodeRow, 'fra' | 'til'>({
-    getCommitted: () => values[fieldName],
-    setCommitted: (updater, origin) => {
-      setValues((prev) => {
-        const nextRows = updater(prev[fieldName]);
-        if (!nextRows) return prev;
-        return { ...prev, [fieldName]: nextRows };
-      }, origin);
-    },
+  return useSliceRowDrafts<ErstatningsopgoerelseValues, FerieDraftRow, FerieperiodeRow, 'fra' | 'til'>({
+    values,
+    setValues,
+    resyncToken,
+    getSlice: (v) => v[fieldName],
+    setSlice: (v, rows) => ({ ...v, [fieldName]: rows }),
     toDraft: committedToFerieDraftRows,
     toCommittedRow: (draft) => ferieDraftToCommittedRow(draft),
     isRowEmpty: isFerieRowEmpty,
@@ -48,16 +40,7 @@ const useFerieRows = ({ values, setValues, resyncToken, fieldName = 'ferieperiod
     createEmptyCommittedRow: createEmptyFerieCommittedRow,
     // colIndex matcher Ferie-/BeregningsperiodeFerieTable: fra=0, til=1
     fieldColIndex: { fra: 0, til: 1 },
-    resyncToken,
   });
-
-  // Afhæng kun af den relevante slice (ikke hele values-objektet), så ensureRows ikke kører igen
-  // ved enhver committed ændring andetsteds i EO-formen — på linje med de øvrige row-hooks.
-  const fieldRows = values[fieldName];
-  const committedRowsEnsured = React.useMemo(() => ensureRows(fieldRows), [ensureRows, fieldRows]);
-  const committedById = React.useMemo(() => new Map(committedRowsEnsured.map((row) => [row.id, row] as const)), [committedRowsEnsured]);
-
-  return { ...ferieRows, committedRowsEnsured, committedById };
 };
 
 export default useFerieRows;

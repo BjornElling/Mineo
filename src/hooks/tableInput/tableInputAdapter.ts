@@ -11,6 +11,33 @@ export type TableInputPasteResult = Readonly<{
   caretPosition?: number;
 }> | null;
 
+export type TableInputPasteContext = Readonly<{
+  currentDraft: string;
+  isEditing: boolean;
+  selectionStart: number | null;
+  selectionEnd: number | null;
+}>;
+
+/**
+ * Indsætter normaliseret paste-tekst ved markørens position (eller erstatter en markeret
+ * selektion) i et tabel-inputs aktive draft, og returnerer den nye draft + caret-position.
+ *
+ * Splice-aritmetikken var tidligere kopieret verbatim i alle paste-adaptere (amount/date/
+ * integer/percent/week/year). Per-adapter afviger kun i `normalizeXxxPaste` og eventuelle
+ * efter-splice-guards (fx amounts unary-minus-afvisning), som bliver i den enkelte adapter.
+ */
+export const spliceDraftPaste = (
+  context: TableInputPasteContext,
+  normalized: string
+): { draft: string; caretPosition: number } => {
+  const start = typeof context.selectionStart === 'number' ? context.selectionStart : context.currentDraft.length;
+  const end = typeof context.selectionEnd === 'number' ? context.selectionEnd : start;
+  return {
+    draft: context.currentDraft.slice(0, start) + normalized + context.currentDraft.slice(end),
+    caretPosition: start + normalized.length,
+  };
+};
+
 export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint extends string> = Readonly<{
   format: (value: TModel) => string;
   toDraftString?: (value: TModel) => string;
@@ -19,15 +46,7 @@ export type TableInputAdapter<TModel, TCanonical extends string, TFingerprint ex
   toCommittedPayload: (value: TModel) => CommittedPayload<TModel, TCanonical, TFingerprint>;
   isValidStartKey: (key: string) => boolean;
   /** Udelad, når inputtet skal ignorere paste-events og bevare browserens/standardhåndteringen urørt. */
-  applyPaste?: (
-    raw: string,
-    context: Readonly<{
-      currentDraft: string;
-      isEditing: boolean;
-      selectionStart: number | null;
-      selectionEnd: number | null;
-    }>
-  ) => TableInputPasteResult;
+  applyPaste?: (raw: string, context: TableInputPasteContext) => TableInputPasteResult;
   filterKeyDown?: (
     e: React.KeyboardEvent<HTMLInputElement>,
     context: Readonly<{ isEditing: boolean; hasError: boolean }>

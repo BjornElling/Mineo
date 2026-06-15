@@ -15,7 +15,7 @@ import {
 } from '../../../utils/expressionAmount';
 import { formatRoundedCanonical } from '../../../utils/rounding';
 import { makeAmountFingerprintFromCanonical, type AmountFingerprint, type CommittedPayload } from '../../../types/parserSpec';
-import type { TableInputAdapter } from '../tableInputAdapter';
+import { spliceDraftPaste, type TableInputAdapter } from '../tableInputAdapter';
 
 export type TableAmountInputValue = AmountValue | undefined;
 
@@ -92,11 +92,9 @@ export const createAmountTableInputAdapter = (
     if (normalized === '') return null;
     if (!context.isEditing) return { draft: normalized };
 
-    const start = typeof context.selectionStart === 'number' ? context.selectionStart : context.currentDraft.length;
-    const end = typeof context.selectionEnd === 'number' ? context.selectionEnd : start;
-    const draft = context.currentDraft.slice(0, start) + normalized + context.currentDraft.slice(end);
-    if (!config.canBeNegative && containsUnaryMinusToken(draft)) return null;
-    return { draft, caretPosition: start + normalized.length };
+    const spliced = spliceDraftPaste(context, normalized);
+    if (!config.canBeNegative && containsUnaryMinusToken(spliced.draft)) return null;
+    return spliced;
   },
   filterKeyDown: (e, context) => {
     if (!context.isEditing) return false;

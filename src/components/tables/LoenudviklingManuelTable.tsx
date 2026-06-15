@@ -89,125 +89,17 @@ const parsePercentForSort = (raw: number | undefined): number | undefined => {
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : undefined;
 };
 
-const ReadOnlyDateCell = React.memo(
+/**
+ * Skrivebeskyttet, fokuserbar grid-celle (basisrækkens dato- og procent-felter). Cellen er
+ * registreret i grid-core som låst editor, så keyboard-navigation springer den over, men den
+ * deltager stadig i fokus-rækkefølge og fejl-tooltip. Kalderen leverer den færdigformaterede
+ * `displayValue` og justeringen, så date- og percent-varianten deler præcis samme implementering.
+ */
+const ReadOnlyLockedCell = React.memo(
   ({
     gridCell,
-    value,
-    errorMessage,
-    infoTooltipText,
-    inputRef,
-    sx,
-  }: {
-    gridCell: GridCellCoord;
-    value: string;
-    errorMessage?: string;
-    infoTooltipText?: string;
-    inputRef?: React.Ref<HTMLInputElement>;
-    sx?: SxProps<Theme>;
-  }) => {
-    const grid = useGridCoreApi();
-    const inputElRef = React.useRef<HTMLInputElement | null>(null);
-
-    const showError = Boolean(errorMessage && errorMessage.trim() !== '');
-    const tooltipText = showError ? (errorMessage ?? '') : (infoTooltipText ?? '');
-
-    const editorHandle = React.useMemo<GridCellEditorHandle>(() => {
-      return {
-        getElement: () => inputElRef.current,
-        getIsLocked: () => true,
-        commitCurrent: () => {
-          // Locked: no-op
-          return true;
-        },
-        clearAndCommit: () => {
-          // Locked: no-op
-        },
-        cancelEdit: () => {
-          grid.closeEditing();
-        },
-        prepareEditFromKey: () => false,
-        selectAll: () => {
-          // no-op
-        },
-      };
-    }, [grid]);
-
-    React.useEffect(() => {
-      grid.registerEditor(gridCell, editorHandle);
-      return () => {
-        grid.unregisterEditor(gridCell);
-      };
-    }, [editorHandle, grid, gridCell]);
-
-    const a11yErrorId = React.useId();
-    const a11yInputId = React.useId();
-    const htmlInputName = gridCellKey(gridCell);
-
-    return (
-      <Tooltip title={tooltipText} arrow placement="top" disableHoverListener={tooltipText.trim() === ''}>
-        <span style={{ display: 'block', width: '100%', height: '100%' }}>
-          <InputBase
-            inputRef={(el) => {
-              inputElRef.current = el;
-              assignRef(inputRef, el);
-            }}
-            value={value}
-            readOnly
-            inputProps={{
-              id: a11yInputId,
-              name: htmlInputName,
-              readOnly: true,
-              inputMode: 'text',
-              'data-mineo-grid-locked': 'true',
-              'aria-describedby': showError ? a11yErrorId : undefined,
-            }}
-            placeholder=""
-            sx={{
-              width: '100%',
-              height: '100%',
-              font: 'inherit',
-              fontSize: 'inherit',
-              fontFamily: 'inherit',
-              lineHeight: 'inherit',
-              color: 'inherit',
-              fontFeatureSettings: '"tnum"',
-              paddingLeft: '8px',
-              paddingRight: '8px',
-              borderRadius: '4px',
-              border: '1px solid',
-              borderColor: showError ? 'var(--color-input-border-error)' : 'transparent',
-              '&:focus-within': {
-                borderColor: 'var(--color-input-border-focus)',
-              },
-              '& .MuiInputBase-input': {
-                font: 'inherit',
-                fontSize: 'inherit',
-                lineHeight: 'inherit',
-                color: 'var(--mineo-color-grid-derived)',
-                textAlign: 'center',
-                cursor: 'default',
-                caretColor: 'transparent',
-              },
-              ...sx,
-            }}
-          />
-          {showError ? (
-            <span id={a11yErrorId} style={visuallyHiddenStyle}>
-              {errorMessage}
-            </span>
-          ) : null}
-        </span>
-      </Tooltip>
-    );
-  }
-);
-
-ReadOnlyDateCell.displayName = 'ReadOnlyDateCell';
-
-const ReadOnlyPercentCell = React.memo(
-  ({
-    gridCell,
-    value,
+    displayValue,
+    align,
     errorMessage,
     infoTooltipText,
     placeholder,
@@ -215,7 +107,8 @@ const ReadOnlyPercentCell = React.memo(
     sx,
   }: {
     gridCell: GridCellCoord;
-    value: number | undefined;
+    displayValue: string;
+    align: 'center' | 'right';
     errorMessage?: string;
     infoTooltipText?: string;
     placeholder?: string;
@@ -232,6 +125,7 @@ const ReadOnlyPercentCell = React.memo(
       return {
         getElement: () => inputElRef.current,
         getIsLocked: () => true,
+        // Locked: intet at committe, men handle-kontrakten kræver true (= "ingen pending commit").
         commitCurrent: () => true,
         clearAndCommit: () => {
           // Locked: no-op
@@ -265,7 +159,7 @@ const ReadOnlyPercentCell = React.memo(
               inputElRef.current = el;
               assignRef(inputRef, el);
             }}
-            value={formatPercentDisplay(value, true) ? `${formatPercentDisplay(value, true)} %` : ''}
+            value={displayValue}
             readOnly
             inputProps={{
               id: a11yInputId,
@@ -298,7 +192,7 @@ const ReadOnlyPercentCell = React.memo(
                 fontSize: 'inherit',
                 lineHeight: 'inherit',
                 color: 'var(--mineo-color-grid-derived)',
-                textAlign: 'right',
+                textAlign: align,
                 cursor: 'default',
                 caretColor: 'transparent',
               },
@@ -316,7 +210,12 @@ const ReadOnlyPercentCell = React.memo(
   }
 );
 
-ReadOnlyPercentCell.displayName = 'ReadOnlyPercentCell';
+ReadOnlyLockedCell.displayName = 'ReadOnlyLockedCell';
+
+const formatLockedPercentDisplay = (value: number | undefined): string => {
+  const display = formatPercentDisplay(value, true);
+  return display ? `${display} %` : '';
+};
 
 const LoenudviklingManuelTable = React.memo(
   ({
@@ -591,9 +490,10 @@ const LoenudviklingManuelTable = React.memo(
               <tr key={row.id} data-mineo-row-id={row.id} style={getStandardGridBodyRowStyle(rowIndex)}>
                 <td style={getStandardGridCellStyle({ align: 'center' })}>
                   {isBaseRow ? (
-                    <ReadOnlyDateCell
+                    <ReadOnlyLockedCell
                       gridCell={{ rowId: row.id, colIndex: 0 }}
-                      value={baseDateDisplay}
+                      displayValue={baseDateDisplay}
+                      align="center"
                       errorMessage={baseDateErrorMessage}
                       infoTooltipText={baseDateInfoTooltipText}
                     />
@@ -618,9 +518,10 @@ const LoenudviklingManuelTable = React.memo(
 
                 <td style={getStandardGridCellStyle({ align: 'right' })}>
                   {isBaseRow && readOnlyBaseRowPercentFields ? (
-                    <ReadOnlyPercentCell
+                    <ReadOnlyLockedCell
                       gridCell={{ rowId: row.id, colIndex: 2 }}
-                      value={row.feriepenge}
+                      displayValue={formatLockedPercentDisplay(row.feriepenge)}
+                      align="right"
                       errorMessage={baseRowPercentErrors?.feriepenge}
                       infoTooltipText="Værdien angives ovenfor"
                       placeholder="0 %"
@@ -638,9 +539,10 @@ const LoenudviklingManuelTable = React.memo(
 
                 <td style={getStandardGridCellStyle({ align: 'right' })}>
                   {isBaseRow && readOnlyBaseRowPercentFields ? (
-                    <ReadOnlyPercentCell
+                    <ReadOnlyLockedCell
                       gridCell={{ rowId: row.id, colIndex: 3 }}
-                      value={row.shSoSats}
+                      displayValue={formatLockedPercentDisplay(row.shSoSats)}
+                      align="right"
                       errorMessage={baseRowPercentErrors?.shSoSats}
                       infoTooltipText="Værdien angives ovenfor"
                       placeholder="0 %"
@@ -658,9 +560,10 @@ const LoenudviklingManuelTable = React.memo(
 
                 <td style={getStandardGridCellStyle({ align: 'right' })}>
                   {isBaseRow && readOnlyBaseRowPercentFields ? (
-                    <ReadOnlyPercentCell
+                    <ReadOnlyLockedCell
                       gridCell={{ rowId: row.id, colIndex: 4 }}
-                      value={row.fritvalg}
+                      displayValue={formatLockedPercentDisplay(row.fritvalg)}
+                      align="right"
                       errorMessage={baseRowPercentErrors?.fritvalg}
                       infoTooltipText="Værdien angives ovenfor"
                       placeholder="0 %"
@@ -678,9 +581,10 @@ const LoenudviklingManuelTable = React.memo(
 
                 <td style={getStandardGridCellStyle({ align: 'right' })}>
                   {isBaseRow && readOnlyBaseRowPercentFields ? (
-                    <ReadOnlyPercentCell
+                    <ReadOnlyLockedCell
                       gridCell={{ rowId: row.id, colIndex: 5 }}
-                      value={row.agPension}
+                      displayValue={formatLockedPercentDisplay(row.agPension)}
+                      align="right"
                       errorMessage={baseRowPercentErrors?.agPension}
                       infoTooltipText="Værdien angives ovenfor"
                       placeholder="0 %"
