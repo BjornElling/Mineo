@@ -25,7 +25,8 @@ import {
 } from '../../domain/erstatningsopgoerelse/validation/offentligeYdelserTableValidation';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { normalizeGridRows, reconcileRowIdsByPosition } from './gridCore/gridModel';
+import { normalizeGridRows } from './gridCore/gridModel';
+import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
 import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
@@ -99,47 +100,11 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       []
     );
 
-    const lastPersistedFingerprintRef = React.useRef<string | null>(null);
-    const pendingPersistRef = React.useRef<{ rows: OffentligeYdelserRow[]; fieldPath?: string } | null>(null);
-    const committedRowsRef = React.useRef<OffentligeYdelserRow[]>([]);
-    const committedRowIdsRef = React.useRef<Set<string>>(new Set());
     const tableRef = React.useRef<HTMLTableElement | null>(null);
     const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
     const visibleRowIdsRef = React.useRef<readonly string[]>([]);
-    const syncCommittedRowIds = React.useCallback((rows: OffentligeYdelserRow[]) => {
-      committedRowIdsRef.current = new Set(rows.map((row) => row.id));
-    }, []);
-
-    const getValidationResult = React.useCallback(() => {
-      const validRowIds = new Set(committedRowsRef.current.map((row) => row.id));
-      const filteredCellErrorsByCellKey = Object.fromEntries(
-        Object.entries(cellErrorsByCellKeyRef.current).filter(([cellKey]) => {
-          const parsed = parseOffentligeYdelserCellKey(cellKey);
-          return parsed ? validRowIds.has(parsed.rowId) : false;
-        })
-      ) as Record<string, true>;
-      return getOffentligeYdelserTableValidation({
-        rows: committedRowsRef.current,
-        cellErrorsByCellKey: filteredCellErrorsByCellKey,
-      });
-    }, []);
-
-    const notifyValidationChange = React.useCallback(() => {
-      if (!onValidationChange) return;
-      onValidationChange(getValidationResult().summary);
-    }, [getValidationResult, onValidationChange]);
-
-    const persistTableData = React.useCallback(
-      (internalData: OffentligeYdelserRow[], fieldPath?: string) => {
-        if (!onTableDataChange) return;
-        committedRowsRef.current = internalData;
-        syncCommittedRowIds(internalData);
-        lastPersistedFingerprintRef.current = fingerprintTableData(internalData);
-        onTableDataChange(internalData, fieldPath ? { fieldPath } : undefined);
-        notifyValidationChange();
-      },
-      [notifyValidationChange, onTableDataChange, syncCommittedRowIds]
-    );
+    const committedRowIdsRef = React.useRef<Set<string>>(new Set());
+    const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
 
     // Determinisme-kontrakt (se normalizeGridRows): id'et udledes af seed'et, ikke en RNG,
     // så StrictMode-dobbeltinvokering af setState-updateren ikke giver divergerende id'er.
@@ -154,37 +119,48 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       [createEmptyRow]
     );
 
-    const initialTableData = React.useMemo(
-      () => (tableData.length > 0 ? normalizeRows(tableData) : normalizeRows(defaultTableData)),
-      [defaultTableData, normalizeRows, tableData]
-    );
-    const [internalTableData, setInternalTableData] = React.useState<OffentligeYdelserRow[]>(initialTableData);
-
-    React.useEffect(() => {
-      const fingerprint = fingerprintTableData(initialTableData);
-      if (lastPersistedFingerprintRef.current === fingerprint) {
-        return;
-      }
-      lastPersistedFingerprintRef.current = fingerprint;
-      // Bevar rækkernes DOM-identitet positionelt ved resync (fx undo der tømmer en række),
-      // så en celles undo-fokus-mål (rowId:colIndex) ikke peger på et element der ikke længere
-      // findes. Se reconcileRowIdsByPosition.
-      const reconciled = reconcileRowIdsByPosition({
-        incoming: initialTableData,
-        current: committedRowsRef.current,
+    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist } =
+      useGridRowPersistenceCore<OffentligeYdelserRow>({
+        tableData: tableData.length > 0 ? tableData : defaultTableData,
+        onTableDataChange,
+        normalizeRows,
+        isRowEmpty,
         getRowId: (row) => row.id,
         withRowId: (row, id) => ({ ...row, id }),
+        fingerprint: fingerprintTableData,
       });
-      committedRowsRef.current = reconciled;
-      syncCommittedRowIds(reconciled);
-      setInternalTableData(reconciled);
-      notifyValidationChange();
-    }, [initialTableData, notifyValidationChange, syncCommittedRowIds]);
 
-    const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
+    React.useEffect(() => {
+      committedRowIdsRef.current = new Set(internalTableData.map((row) => row.id));
+    }, [internalTableData]);
+
+    const getValidationResult = React.useCallback(() => {
+      const validRowIds = new Set(internalTableData.map((row) => row.id));
+      const filteredCellErrorsByCellKey = Object.fromEntries(
+        Object.entries(cellErrorsByCellKeyRef.current).filter(([cellKey]) => {
+          const parsed = parseOffentligeYdelserCellKey(cellKey);
+          return parsed ? validRowIds.has(parsed.rowId) : false;
+        })
+      ) as Record<string, true>;
+      return getOffentligeYdelserTableValidation({
+        rows: internalTableData,
+        cellErrorsByCellKey: filteredCellErrorsByCellKey,
+      });
+    }, [internalTableData]);
+
+    const notifyValidationChange = React.useCallback(() => {
+      if (!onValidationChange) return;
+      onValidationChange(getValidationResult().summary);
+    }, [getValidationResult, onValidationChange]);
+
+    // Notificér validering når den committede rækkeliste ændrer sig (commit, reorder, resync).
+    React.useEffect(() => {
+      notifyValidationChange();
+    }, [notifyValidationChange]);
 
     // Bevidst tabel-lokal commit-model: rækker styres med manuel ordning/fokus-evaluering
-    // her, mens hvert Table*Input stadig ejer draft-state indtil commit.
+    // her, mens hvert Table*Input stadig ejer draft-state indtil commit. Strip/reconcile/flush
+    // ejes af useGridRowPersistenceCore.
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<OffentligeYdelserRow>, colIndex: number) => {
         setInternalTableData((prev) => {
@@ -199,7 +175,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
             visibleRowIds: visibleRowIdsRef.current,
             isRowEmpty,
             getRowId: (row) => row.id,
-            getFingerprint: fingerprintTableData,
+            getFingerprint: getStrippedFingerprint,
             lastPersistedFingerprint: lastPersistedFingerprintRef.current,
           });
           if (commitEval.focusPlan) {
@@ -210,20 +186,13 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
           // Persistér kun når det normaliserede resultat afviger fra det, vi sidst har fortalt forælderen.
           if (commitEval.shouldPersist) {
             // Tag commit'et med den redigerede celles identitet, så undo/redo lander fokus korrekt.
-            pendingPersistRef.current = { rows: normalized, fieldPath: `${rowId}:${colIndex}` };
+            queuePersist(normalized, `${rowId}:${colIndex}`);
           }
           return normalized;
         });
       },
-      [normalizeRows]
+      [getStrippedFingerprint, lastPersistedFingerprintRef, normalizeRows, queuePersist, setInternalTableData]
     );
-
-    React.useEffect(() => {
-      if (pendingPersistRef.current === null) return;
-      const dataToPersist = pendingPersistRef.current;
-      pendingPersistRef.current = null;
-      persistTableData(dataToPersist.rows, dataToPersist.fieldPath);
-    }, [persistTableData, internalTableData]);
 
     const handleErrorChange = React.useCallback(
       (rowId: string, colKey: OffentligeYdelserTableColumnKey) => (errorInfo: TableInputErrorInfo) => {
@@ -281,15 +250,12 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
     ], [derivedByRowId, isYdelsestypeKey]);
 
     const reorderRows = React.useCallback((nextRows: OffentligeYdelserRow[]) => {
-      const nextFingerprint = fingerprintTableData(nextRows);
-      if (nextFingerprint !== lastPersistedFingerprintRef.current) {
+      if (getStrippedFingerprint(nextRows) !== lastPersistedFingerprintRef.current) {
         // Reorder er ikke en celle-redigering; fieldPath udelades (falder tilbage til focus-tracker).
-        pendingPersistRef.current = { rows: nextRows };
+        queuePersist(nextRows);
       }
-      committedRowsRef.current = nextRows;
-      syncCommittedRowIds(nextRows);
       setInternalTableData(nextRows);
-    }, [syncCommittedRowIds]);
+    }, [getStrippedFingerprint, lastPersistedFingerprintRef, queuePersist, setInternalTableData]);
 
     const { sortedRows: visibleRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
       rows: internalTableData,
@@ -350,8 +316,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
 
     React.useEffect(() => {
       if (!externalCellError) return;
-      const rows = committedRowsRef.current;
-      const row = rows.find((item) => item.id === externalCellError.rowId);
+      const row = internalTableData.find((item) => item.id === externalCellError.rowId);
       if (!row) {
         setExternalCellError(null);
         return;
@@ -363,7 +328,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       if (!isEmpty || hasInputError) {
         setExternalCellError(null);
       }
-    }, [externalCellError]);
+    }, [externalCellError, internalTableData]);
 
     React.useImperativeHandle(
       ref,

@@ -37,6 +37,7 @@ import { getStandardLoenTableHeaderNodes } from '../../domain/aarsloen/standardL
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows } from './gridCore/gridModel';
+import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
 import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
@@ -98,16 +99,6 @@ const buildCellKey = (rowId: string, colKey: StandardLoenTableColumnKey): string
   return `${rowId}:${resolveColIdxFromKey(colKey)}`;
 };
 
-type TableRowsState = {
-  draft: StandardLoenTableRow[];
-  committed: StandardLoenTableRow[];
-};
-
-type PendingPersist = Readonly<{
-  data: StandardLoenTableRow[];
-  fieldPath?: string;
-}>;
-
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
   ({ loenperiode, satser, tableData, onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false, saveOrderPath, calculateDerivedRow }, ref) => {
     const defaultTableData = React.useMemo<StandardLoenTableRow[]>(() => {
@@ -117,20 +108,9 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       ];
     }, []);
 
-    const lastPersistedFingerprintRef = React.useRef<string | null>(null);
-    const pendingPersistRef = React.useRef<PendingPersist | null>(null);
     const tableRef = React.useRef<HTMLTableElement | null>(null);
     const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
     const visibleRowIdsRef = React.useRef<readonly string[]>([]);
-
-    const persistTableData = React.useCallback(
-      (internalData: StandardLoenTableRow[], options?: Readonly<{ fieldPath?: string }>) => {
-        if (!onTableDataChange) return;
-        lastPersistedFingerprintRef.current = fingerprintTableData(internalData);
-        onTableDataChange(internalData, options);
-      },
-      [onTableDataChange]
-    );
 
     const isRowEmpty = React.useCallback(
       (row: StandardLoenTableRow): boolean => isStandardLoenRowEffectivelyEmpty(row, loenperiode),
@@ -150,69 +130,32 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       [createEmptyRow, isRowEmpty]
     );
 
-    const [rowsState, setRowsState] = React.useState<TableRowsState>(() => {
-      const managed = tableData && tableData.length > 0 ? manageRows(tableData) : manageRows(defaultTableData);
-      return { draft: managed, committed: managed };
-    });
+    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist } =
+      useGridRowPersistenceCore<StandardLoenTableRow>({
+        tableData: tableData && tableData.length > 0 ? tableData : defaultTableData,
+        onTableDataChange,
+        normalizeRows: manageRows,
+        isRowEmpty,
+        getRowId: (row) => row.id,
+        withRowId: (row, id) => ({ ...row, id }),
+        fingerprint: fingerprintTableData,
+      });
 
-    // KRITISK: Brug rowsState.draft direkte i stedet for at destructure
-    // Dette sikrer at persist-effekten altid ser den nyeste state
-    const committedTableData = rowsState.committed;
-
-    React.useEffect(() => {
-      if (tableData && tableData.length > 0) {
-        const managedData = manageRows(tableData);
-        const managedFingerprint = fingerprintTableData(managedData);
-        if (lastPersistedFingerprintRef.current === managedFingerprint) return;
-        // Opdater ref når vi synkroniserer fra prop (fx sessionStorage load)
-        lastPersistedFingerprintRef.current = managedFingerprint;
-        setRowsState({ draft: managedData, committed: managedData });
-        return;
-      }
-      if (tableData && tableData.length === 0) {
-        const managed = manageRows(defaultTableData);
-        setRowsState({ draft: managed, committed: managed });
-      }
-    }, [defaultTableData, manageRows, tableData]);
+    const committedTableData = internalTableData;
 
     // Bevidst: ændring af loenperiode committer alle draft-edits og re-evaluerer rækkers tomhed
     // mod de nyligt aktive periode-kolonner, så forældede skjulte periodeværdier ikke kan holde rækker i live.
     React.useEffect(() => {
-      setRowsState((current) => {
-        const managed = manageRows(current.draft);
-        return { draft: managed, committed: managed };
-      });
-    }, [loenperiode, manageRows]);
-
-    const queuePersist = React.useCallback((dataToPersist: StandardLoenTableRow[], options?: Readonly<{ fieldPath?: string }>) => {
-      pendingPersistRef.current = { data: dataToPersist, fieldPath: options?.fieldPath };
-    }, []);
+      setInternalTableData((current) => manageRows(current));
+    }, [loenperiode, manageRows, setInternalTableData]);
 
     const reorderRows = React.useCallback((nextRows: StandardLoenTableRow[]) => {
       const managed = manageRows(nextRows);
-      const managedFingerprint = fingerprintTableData(managed);
-      const committedFingerprint = fingerprintTableData(rowsState.committed);
-      if (managedFingerprint === committedFingerprint) return;
-      queuePersist(managed);
-      setRowsState({ draft: managed, committed: managed });
-    }, [manageRows, queuePersist, rowsState.committed]);
-
-    React.useEffect(() => {
-      if (!pendingPersistRef.current) return;
-
-      // KRITISK: Match via fingerprint i stedet for reference-equality
-      // fordi React kan returnere ny reference selvom data er det samme
-      const pending = pendingPersistRef.current;
-      const pendingFingerprint = fingerprintTableData(pending.data);
-      const draftFingerprint = fingerprintTableData(rowsState.draft);
-
-      if (pendingFingerprint !== draftFingerprint) return;
-
-      // Bevidst konvergens: efterfølgende tomme rækker produceret af tabel-normaliseringen
-      // persisteres på samme måde som i andre dynamiske tabeller.
-      persistTableData(rowsState.draft, { fieldPath: pending.fieldPath });
-      pendingPersistRef.current = null;
-    }, [rowsState.draft, persistTableData]);
+      if (getStrippedFingerprint(managed) !== lastPersistedFingerprintRef.current) {
+        queuePersist(managed);
+      }
+      setInternalTableData(managed);
+    }, [getStrippedFingerprint, lastPersistedFingerprintRef, manageRows, queuePersist, setInternalTableData]);
 
     const setCellValue = React.useCallback(
       (row: StandardLoenTableRow, colKey: StandardLoenTableColumnKey, value: StandardLoenTableRow[StandardLoenTableColumnKey]): StandardLoenTableRow => {
@@ -260,28 +203,24 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     const handleFieldBlur = React.useCallback(
       (rowId: string, colKey: StandardLoenTableColumnKey, value: StandardLoenTableRow[StandardLoenTableColumnKey]) => {
-        setRowsState((prev) => {
-          const updated = updateCellValueInTable(prev.draft, rowId, colKey, value);
+        setInternalTableData((prev) => {
+          const updated = updateCellValueInTable(prev, rowId, colKey, value);
           const managed = manageRows(updated);
 
-          // Bevidst Mineo-kontrakt: tabel-edits forbliver i draft mens man typer.
-          // Afledte værdier og downstream-beregninger må kun opdatere fra committede rækker ved blur.
-          // KRITISK: Sammenlign mod prev.committed (ikke prev.draft)
-          // handleFieldBlur er en commit-handler - baseline skal ALTID være committed
-          const managedFingerprint = fingerprintTableData(managed);
-          const committedFingerprint = fingerprintTableData(prev.committed);
-          if (managedFingerprint === committedFingerprint) return prev;
+          // Commit-handler: hvis blur ikke ændrede noget (managed === nuværende committed state),
+          // skip setState/fokus-plan/persist helt.
+          if (fingerprintTableData(managed) === fingerprintTableData(prev)) return prev;
 
           const commitEval = evaluateRowCommit({
             table: tableRef.current,
-            prevRows: prev.draft,
+            prevRows: prev,
             nextRows: managed,
             rowId,
             colIndex: resolveColIdxFromKey(colKey),
             visibleRowIds: visibleRowIdsRef.current,
             isRowEmpty,
             getRowId: (row) => row.id,
-            getFingerprint: fingerprintTableData,
+            getFingerprint: getStrippedFingerprint,
             lastPersistedFingerprint: lastPersistedFingerprintRef.current,
           });
 
@@ -291,12 +230,12 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           }
 
           if (commitEval.shouldPersist) {
-            queuePersist(managed, { fieldPath: `${rowId}:${resolveColIdxFromKey(colKey)}` });
+            queuePersist(managed, `${rowId}:${resolveColIdxFromKey(colKey)}`);
           }
-          return { draft: managed, committed: managed };
+          return managed;
         });
       },
-      [isRowEmpty, manageRows, queuePersist, updateCellValueInTable]
+      [getStrippedFingerprint, isRowEmpty, lastPersistedFingerprintRef, manageRows, queuePersist, setInternalTableData, updateCellValueInTable]
     );
 
     const committedById = React.useMemo(() => new Map(committedTableData.map((row) => [row.id, row])), [committedTableData]);
@@ -305,7 +244,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     const cellErrorsByCellKeyRef = React.useRef<Set<string>>(new Set());
 
     React.useEffect(() => {
-      const validRowIds = new Set(rowsState.draft.map((row) => row.id));
+      const validRowIds = new Set(internalTableData.map((row) => row.id));
       const current = cellErrorsByCellKeyRef.current;
       for (const cellKey of current) {
         const separatorIdx = cellKey.indexOf(':');
@@ -315,7 +254,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           current.delete(cellKey);
         }
       }
-    }, [rowsState.draft]);
+    }, [internalTableData]);
 
     // KRITISK INVARIANT: Table*Input-komponenter SKAL kalde handleErrorChange deterministisk
     // ved alle transitions mellem {ingen fejl ↔ fejl} og {fejl A ↔ fejl B}.
@@ -445,7 +384,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     ], [calculateRow, loenperiode, parseSortableInteger, parseSortableWeekKey, resolveCommittedRow]);
 
     const { sortedRows: visibleRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
-      rows: rowsState.draft,
+      rows: internalTableData,
       getRowId: (row) => row.id,
       isRowEmpty,
       columns: sortColumns,

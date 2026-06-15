@@ -12,7 +12,8 @@ import type { GridCellCoord, GridCellEditorHandle } from './gridCore/gridCoreTyp
 import { gridCellKey } from './gridCore/gridCoreUtils';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
-import { normalizeGridRows, reconcileRowIdsByPosition } from './gridCore/gridModel';
+import { normalizeGridRows } from './gridCore/gridModel';
+import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
 import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
@@ -242,7 +243,6 @@ const LoenudviklingManuelTable = React.memo(
       []
     );
 
-    const pendingPersistRef = React.useRef<{ rows: LoenudviklingManuelRow[]; fieldPath?: string } | null>(null);
     const tableRef = React.useRef<HTMLTableElement | null>(null);
     const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
     const visibleRowIdsRef = React.useRef<readonly string[]>([]);
@@ -266,55 +266,20 @@ const LoenudviklingManuelTable = React.memo(
       [createEmptyRow]
     );
 
-    const initialInternalTableData = React.useMemo(
-      () => (tableData.length > 0 ? normalizeRows(tableData) : normalizeRows(defaultTableData)),
-      [defaultTableData, normalizeRows, tableData]
-    );
-
-    const lastPersistedFingerprintRef = React.useRef<string | null>(
-      fingerprintTableData(initialInternalTableData)
-    );
-
-    const persistTableData = React.useCallback(
-      (internalData: LoenudviklingManuelRow[], fieldPath?: string) => {
-        if (!onTableDataChange) return;
-        lastPersistedFingerprintRef.current = fingerprintTableData(internalData);
-        onTableDataChange(internalData, fieldPath ? { fieldPath } : undefined);
-      },
-      [onTableDataChange]
-    );
-
-    const [internalTableData, setInternalTableData] = React.useState<LoenudviklingManuelRow[]>(
-      () => initialInternalTableData
-    );
-
-    React.useEffect(() => {
-      // Bevar rækkernes DOM-identitet positionelt ved resync (fx undo der tømmer en række),
-      // så en celles undo-fokus-mål (rowId:colIndex) ikke peger på et element der ikke længere
-      // findes. Se reconcileRowIdsByPosition.
-      const reconcileWithCurrent = (incoming: LoenudviklingManuelRow[]) =>
-        setInternalTableData((current) =>
-          reconcileRowIdsByPosition({
-            incoming,
-            current,
-            getRowId: (row) => row.id,
-            withRowId: (row, id) => ({ ...row, id }),
-          })
-        );
-      if (tableData.length > 0) {
-        const normalizedData = normalizeRows(tableData);
-        const fingerprint = fingerprintTableData(normalizedData);
-        if (lastPersistedFingerprintRef.current === fingerprint) {
-          return;
-        }
-        lastPersistedFingerprintRef.current = fingerprint;
-        reconcileWithCurrent(normalizedData);
-        return;
-      }
-      const normalizedDefault = normalizeRows(defaultTableData);
-      lastPersistedFingerprintRef.current = fingerprintTableData(normalizedDefault);
-      reconcileWithCurrent(normalizedDefault);
-    }, [defaultTableData, normalizeRows, tableData]);
+    // keepLeadingRows=1: basisrækken (indeks 0) strippes aldrig — den er en strukturel anker-række,
+    // og hvis en tom basisrække blev fjernet fra det persisterede, ville rows[0] på næste load være
+    // en tail-række og blive fejltolket som basis.
+    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist } =
+      useGridRowPersistenceCore<LoenudviklingManuelRow>({
+        tableData: tableData.length > 0 ? tableData : defaultTableData,
+        onTableDataChange,
+        normalizeRows,
+        isRowEmpty,
+        getRowId: (row) => row.id,
+        withRowId: (row, id) => ({ ...row, id }),
+        fingerprint: fingerprintTableData,
+        keepLeadingRows: 1,
+      });
 
     const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
     const lastInputErrorStateRef = React.useRef<boolean | null>(null);
@@ -362,7 +327,7 @@ const LoenudviklingManuelTable = React.memo(
             visibleRowIds: visibleRowIdsRef.current,
             isRowEmpty,
             getRowId: (row) => row.id,
-            getFingerprint: fingerprintTableData,
+            getFingerprint: getStrippedFingerprint,
             lastPersistedFingerprint: lastPersistedFingerprintRef.current,
           });
           if (commitEval.focusPlan) {
@@ -372,20 +337,13 @@ const LoenudviklingManuelTable = React.memo(
 
           if (commitEval.shouldPersist) {
             // Tag commit'et med den redigerede celles identitet, så undo/redo lander fokus korrekt.
-            pendingPersistRef.current = { rows: normalized, fieldPath: `${rowId}:${colIndex}` };
+            queuePersist(normalized, `${rowId}:${colIndex}`);
           }
           return normalized;
         });
       },
-      [normalizeRows]
+      [getStrippedFingerprint, lastPersistedFingerprintRef, normalizeRows, queuePersist, setInternalTableData]
     );
-
-    React.useEffect(() => {
-      if (pendingPersistRef.current === null) return;
-      const dataToPersist = pendingPersistRef.current;
-      pendingPersistRef.current = null;
-      persistTableData(dataToPersist.rows, dataToPersist.fieldPath);
-    }, [persistTableData, internalTableData]);
 
     const handleErrorChange = React.useCallback(
       (rowId: string, colKey: string) => (errorInfo: TableInputErrorInfo) => {
@@ -432,10 +390,9 @@ const LoenudviklingManuelTable = React.memo(
       isRowEmpty: isRowEmptyForSort,
       columns: sortColumns,
       onSortedRowsChange: (nextRows) => {
-        const nextFingerprint = fingerprintTableData(nextRows);
-        if (nextFingerprint !== lastPersistedFingerprintRef.current) {
+        if (getStrippedFingerprint(nextRows) !== lastPersistedFingerprintRef.current) {
           // Sortering er ikke en celle-redigering; fieldPath udelades.
-          pendingPersistRef.current = { rows: nextRows };
+          queuePersist(nextRows);
         }
         setInternalTableData(nextRows);
       },

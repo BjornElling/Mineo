@@ -299,10 +299,14 @@ describe('StandardLoenTable', () => {
 
     await waitFor(() => {
       const bodyRows = screen.getAllByRole('row').slice(1);
+      // Visningen normaliserer fortsat tilbage til min. 2 rækker (den udfyldte + en efterfølgende tom).
       expect(bodyRows).toHaveLength(2);
       expect(onTableDataChange).toHaveBeenCalled();
+      // Persistering inkluderer kun bruger-indtastede (non-empty) rækker — den syntetiske tomme
+      // række gemmes ikke (jf. save/load-kontrakten; konvergeret med de øvrige grid-tabeller).
       const latestCall = onTableDataChange.mock.calls.at(-1)?.[0] as StandardLoenTableRow[] | undefined;
-      expect(latestCall).toHaveLength(2);
+      expect(latestCall).toHaveLength(1);
+      expect(latestCall?.[0]?.id).toBe('row-a');
       expect(latestCall?.some((row) => row.id === 'row-b')).toBe(false);
     });
   }, TEST_TIMEOUT_MS);

@@ -18,7 +18,8 @@ import {
   isAslAfgoerelseRowPersistenceEmpty,
 } from '../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { createEmptyRowId } from '../../utils/rowId';
-import { normalizeGridRows, reconcileRowIdsByPosition } from './gridCore/gridModel';
+import { normalizeGridRows } from './gridCore/gridModel';
+import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
@@ -113,66 +114,20 @@ const EetAslAfgoerelserTable = React.memo(
       []
     );
 
-    const lastPersistedFingerprintRef = React.useRef<string | null>(null);
-    const pendingPersistRef = React.useRef<{
-      rows: AslAfgoerelseRow[];
-      fingerprint: string;
-      fieldPath?: string;
-    } | null>(null);
-    const initialTableData = React.useMemo(
-      () => (tableData.length > 0 ? normalizeRows(tableData) : normalizeRows(defaultTableData)),
-      [defaultTableData, normalizeRows, tableData]
-    );
-    const [internalTableData, setInternalTableData] = React.useState<AslAfgoerelseRow[]>(initialTableData);
-
-    React.useEffect(() => {
-      const fingerprint = fingerprintTableData(initialTableData);
-      if (lastPersistedFingerprintRef.current === fingerprint) return;
-      pendingPersistRef.current = null;
-      lastPersistedFingerprintRef.current = fingerprint;
-      // Bevar rækkernes DOM-identitet positionelt, så en celle (rowId:colIndex) ikke skifter id
-      // når committed-state resynkroniseres (fx undo der tømmer en række). Ellers ville undo-fokus
-      // ramme et element der ikke længere findes. Fingerprint ovenfor er id-uafhængigt (TABLE_FINGERPRINT_KEYS
-      // medtager id, men reconcile bevarer netop de id'er der allerede var i brug på samme position).
-      setInternalTableData((current) =>
-        reconcileRowIdsByPosition({
-          incoming: initialTableData,
-          current,
-          getRowId: (row) => row.id,
-          withRowId: (row, id) => ({ ...row, id }),
-        })
-      );
-    }, [initialTableData]);
-
-    const persistTableData = React.useCallback(
-      (rows: AslAfgoerelseRow[], fieldPath?: string) => {
-        if (!onTableDataChange) return;
-        lastPersistedFingerprintRef.current = fingerprintTableData(rows);
-        onTableDataChange(rows, fieldPath ? { fieldPath } : undefined);
-      },
-      [onTableDataChange]
-    );
-
-    const queuePersist = React.useCallback((rows: AslAfgoerelseRow[], fingerprint: string, fieldPath?: string) => {
-      pendingPersistRef.current = { rows, fingerprint, fieldPath };
-    }, []);
-
-    React.useEffect(() => {
-      if (!pendingPersistRef.current) return;
-      const pendingPersist = pendingPersistRef.current;
-      const currentFingerprint = fingerprintTableData(
-        internalTableData.filter((row) => !isAslAfgoerelseRowPersistenceEmpty(row))
-      );
-      if (pendingPersist.fingerprint !== currentFingerprint) {
-        pendingPersistRef.current = null;
-        return;
-      }
-      persistTableData(pendingPersist.rows, pendingPersist.fieldPath);
-      pendingPersistRef.current = null;
-    }, [internalTableData, persistTableData]);
+    const { internalTableData, setInternalTableData, lastPersistedFingerprintRef, getStrippedFingerprint, queuePersist } =
+      useGridRowPersistenceCore<AslAfgoerelseRow>({
+        tableData: tableData.length > 0 ? tableData : defaultTableData,
+        onTableDataChange,
+        normalizeRows,
+        isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
+        getRowId: (row) => row.id,
+        withRowId: (row, id) => ({ ...row, id }),
+        fingerprint: fingerprintTableData,
+      });
 
     // Bevidst tabel-lokal commit-model: denne domæne-tabel har faste rækker/celler og ingen
     // row-draft-isolation, så hvert Table*Input ejer sin draft og committer en partiel række her.
+    // Loose-substrat (MUI Table) uden grid-fokus-plan; kernen håndterer strip/reconcile/flush.
     const commitRowUpdate = React.useCallback(
       (rowId: string, updates: Partial<AslAfgoerelseRow>) => {
         // updates er altid en enkelt-felt-patch (én celle pr. commit). Felt → colIndex
@@ -183,15 +138,13 @@ const EetAslAfgoerelserTable = React.memo(
         setInternalTableData((prev) => {
           const updated = prev.map((row) => (row.id === rowId ? { ...row, ...updates } : row));
           const normalized = normalizeRows(updated);
-          const toSave = normalized.filter((row) => !isAslAfgoerelseRowPersistenceEmpty(row));
-          const nextFingerprint = fingerprintTableData(toSave);
-          if (nextFingerprint !== lastPersistedFingerprintRef.current) {
-            queuePersist(toSave, nextFingerprint, fieldPath);
+          if (getStrippedFingerprint(normalized) !== lastPersistedFingerprintRef.current) {
+            queuePersist(normalized, fieldPath);
           }
           return normalized;
         });
       },
-      [normalizeRows, queuePersist]
+      [getStrippedFingerprint, lastPersistedFingerprintRef, normalizeRows, queuePersist, setInternalTableData]
     );
 
     const validationMessageByCell = React.useMemo(() => {
@@ -221,10 +174,8 @@ const EetAslAfgoerelserTable = React.memo(
       isRowEmpty: isAslAfgoerelseRowPersistenceEmpty,
       columns: sortColumns,
       onSortedRowsChange: (nextRows) => {
-        const toSave = nextRows.filter((row) => !isAslAfgoerelseRowPersistenceEmpty(row));
-        const nextFingerprint = fingerprintTableData(toSave);
-        if (nextFingerprint !== lastPersistedFingerprintRef.current) {
-          queuePersist(toSave, nextFingerprint);
+        if (getStrippedFingerprint(nextRows) !== lastPersistedFingerprintRef.current) {
+          queuePersist(nextRows);
         }
         setInternalTableData(nextRows);
       },
