@@ -96,6 +96,41 @@ describe('StyledDropdown', () => {
     expect(screen.getByRole('button', { name: 'Næste felt' })).toHaveFocus();
   });
 
+  it('Escape lukker popover uden at ændre værdi eller udsende valg', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    const Wrapper = () => {
+      const [value, setValue] = React.useState<DemoValue>('A');
+      return (
+        <StyledDropdown<DemoValue>
+          allowEmpty={false}
+          value={value}
+          onChange={(e) => {
+            onChange(e.target.value);
+            setValue(e.target.value);
+          }}
+          placeholder="Vælg"
+        >
+          <MenuOption value="A">Alfa</MenuOption>
+          <MenuOption value="B">Beta</MenuOption>
+        </StyledDropdown>
+      );
+    };
+    render(<Wrapper />);
+
+    const input = screen.getByRole('combobox') as HTMLInputElement;
+    await user.click(input);
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    // Naviger til en anden option for at bevise at Escape forkaster den uden at committe.
+    await user.keyboard('{ArrowDown}');
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+    expect(input.value).toBe('Alfa');
+  });
+
   it('Arrow navigation skipper divider', async () => {
     const user = userEvent.setup();
     render(<ControlledDropdown />);

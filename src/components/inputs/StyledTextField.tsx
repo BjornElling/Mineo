@@ -192,14 +192,6 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
 
     const skipNextBlurCommitRef = React.useRef(false);
 
-    const handleFocus = React.useCallback(
-      (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        onFocusBase();
-        onFocus?.(e);
-      },
-      [onFocus, onFocusBase]
-    );
-
     const handleDraftChange = React.useCallback(
       (nextDraft: string) => {
         skipNextBlurCommitRef.current = false;
@@ -228,6 +220,24 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
       onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
       editableElementRef: textAreaElementRef,
     });
+
+    const handleFocus = React.useCallback(
+      (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        // Ignorér det focus-event der stammer fra hook'ens programmatiske re-fokus
+        // (caret-etablering ved editor-åbning, jf. useTwoStageInputActivation). Det må
+        // IKKE gen-tage useDraftField's focus-snapshot: gør det det, fanger snapshot'et
+        // den allerede-indtastede første-karakter (åbning via 'key'-vejen sætter draften
+        // FØR re-fokus), og Escape-cancel gendanner så "a" i stedet for den committede
+        // værdi. Symmetrisk med onBlur-grenens shouldIgnoreBlur-guard.
+        const isProgrammaticRefocus = multiline
+          ? textAreaActivation.shouldIgnoreBlur()
+          : inputActivation.shouldIgnoreBlur();
+        if (isProgrammaticRefocus) return;
+        onFocusBase();
+        onFocus?.(e);
+      },
+      [inputActivation, multiline, onFocus, onFocusBase, textAreaActivation]
+    );
 
     const handleKeyDown = React.useCallback(
       (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
