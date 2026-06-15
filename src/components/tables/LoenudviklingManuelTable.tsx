@@ -25,6 +25,8 @@ import type { LoenudviklingManuelRow } from '../../schemas/formSchemas';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatPercentDisplay } from '../../utils/percentDraftCore';
+import { DEFAULT_PERCENT_PLACEHOLDER } from '../../utils/percentInputUtils';
+import { INPUT_UNIT_SUFFIX, appendInputUnitSuffix, withInputUnitPlaceholderSuffix } from '../../utils/inputUnit';
 import { visuallyHiddenStyle } from '../shared/visuallyHiddenStyle';
 
 export type LoenudviklingManuelTableProps = Readonly<{
@@ -212,10 +214,12 @@ const ReadOnlyLockedCell = React.memo(
 
 ReadOnlyLockedCell.displayName = 'ReadOnlyLockedCell';
 
-const formatLockedPercentDisplay = (value: number | undefined): string => {
-  const display = formatPercentDisplay(value, true);
-  return display ? `${display} %` : '';
-};
+// Read-only spejl af en procentcelle: samme enheds-suffiks som de redigerbare felter (utils/inputUnit).
+const formatLockedPercentDisplay = (value: number | undefined): string =>
+  appendInputUnitSuffix(formatPercentDisplay(value, true), INPUT_UNIT_SUFFIX.percent);
+
+// Placeholder for en tom låst procentcelle — matcher procentfelternes idle-placeholder ("0 %").
+const LOCKED_PERCENT_PLACEHOLDER = withInputUnitPlaceholderSuffix(DEFAULT_PERCENT_PLACEHOLDER, INPUT_UNIT_SUFFIX.percent);
 
 const LoenudviklingManuelTable = React.memo(
   ({
@@ -524,7 +528,7 @@ const LoenudviklingManuelTable = React.memo(
                       align="right"
                       errorMessage={baseRowPercentErrors?.feriepenge}
                       infoTooltipText="Værdien angives ovenfor"
-                      placeholder="0 %"
+                      placeholder={LOCKED_PERCENT_PLACEHOLDER}
                     />
                   ) : (
                     <TablePercentInput
@@ -545,7 +549,7 @@ const LoenudviklingManuelTable = React.memo(
                       align="right"
                       errorMessage={baseRowPercentErrors?.shSoSats}
                       infoTooltipText="Værdien angives ovenfor"
-                      placeholder="0 %"
+                      placeholder={LOCKED_PERCENT_PLACEHOLDER}
                     />
                   ) : (
                     <TablePercentInput
@@ -566,7 +570,7 @@ const LoenudviklingManuelTable = React.memo(
                       align="right"
                       errorMessage={baseRowPercentErrors?.fritvalg}
                       infoTooltipText="Værdien angives ovenfor"
-                      placeholder="0 %"
+                      placeholder={LOCKED_PERCENT_PLACEHOLDER}
                     />
                   ) : (
                     <TablePercentInput
@@ -587,7 +591,7 @@ const LoenudviklingManuelTable = React.memo(
                       align="right"
                       errorMessage={baseRowPercentErrors?.agPension}
                       infoTooltipText="Værdien angives ovenfor"
-                      placeholder="0 %"
+                      placeholder={LOCKED_PERCENT_PLACEHOLDER}
                     />
                   ) : (
                     <TablePercentInput

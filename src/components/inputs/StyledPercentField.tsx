@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { InputAdornment } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
@@ -13,8 +12,9 @@ import {
   DEFAULT_PERCENT_PLACEHOLDER,
   DEFAULT_PERCENT_PASTE_MAX,
   DEFAULT_PERCENT_TYPING_MAX_INTEGER_DIGITS,
-  stripTrailingPercentPlaceholder,
 } from '../../utils/percentInputUtils';
+import { INPUT_UNIT_SUFFIX } from '../../utils/inputUnit';
+import InputUnitAdornment from './InputUnitAdornment';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
 import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
@@ -378,21 +378,11 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         onKeyDown?.(e);
     }, [activation, allowDecimals, allowNegative, clearInvalidDraft, committedInvalidDraft, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
 
-    const percentAdornmentColor = draft.trim() === '' ? 'var(--mineo-color-placeholder)' : 'inherit';
-    const endAdornment = (
-      <InputAdornment
-        position="end"
-        sx={{
-          marginLeft: 0,
-          pointerEvents: 'none',
-          color: percentAdornmentColor,
-          font: 'inherit',
-          '& span': { font: 'inherit' },
-        }}
-      >
-        <span style={{ whiteSpace: 'pre' }}> %</span>
-      </InputAdornment>
-    );
+    // Enheden ("%") rendres som adornment uden for input-værdien (jf. InputUnitAdornment): synlig i
+    // hvile, skjult mens feltet redigeres eller viser en rå parse-fejl, dæmpet når feltet er tomt.
+    // Skjules under indtastning (valgt UX), så markør/værdi er upåvirket — som beløbs- og tabelfelter.
+    const localHasError = Boolean(visibleLocalError?.message);
+    const showUnit = !activation.isEditorOpen && !localHasError;
 
     const handlePaste = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -446,13 +436,15 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         onMouseDown={activation.handleMouseDown}
         onClick={activation.handleClick}
         onPaste={handlePaste}
-        placeholder={stripTrailingPercentPlaceholder(placeholder)}
+        placeholder={placeholder}
         width={width}
         disabled={disabled || hasConfigError}
         disabledAppearance={disabledAppearance}
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
-        endAdornment={endAdornment}
+        endAdornment={
+          <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} hidden={!showUnit} muted={draft.trim() === ''} />
+        }
         htmlInputAttributes={{
           inputMode: allowDecimals ? 'decimal' : 'numeric',
           maxLength,

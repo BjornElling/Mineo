@@ -2,7 +2,9 @@ import * as React from 'react';
 import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
-import { DEFAULT_PERCENT_PLACEHOLDER, withPercentPlaceholderSuffix } from '../../../utils/percentInputUtils';
+import { DEFAULT_PERCENT_PLACEHOLDER } from '../../../utils/percentInputUtils';
+import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
+import InputUnitAdornment from '../InputUnitAdornment';
 import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
 import { useGridCoreApi } from '../../tables/useGridCore';
@@ -98,16 +100,6 @@ const TablePercentInput = React.memo(
       inputRef,
     });
 
-    const resolvedPlaceholder = React.useMemo(() => withPercentPlaceholderSuffix(placeholder), [placeholder]);
-    const showDraftWhenError = !core.isEditing && core.touched && core.hasError;
-    const readOnlyDisplayValue =
-      showDraftWhenError || core.committedDisplayValue === ''
-        ? showDraftWhenError
-          ? core.draft
-          : ''
-        : `${core.committedDisplayValue} %`;
-    const renderedValue = core.isEditing ? core.draft : readOnlyDisplayValue;
-
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>
         <Tooltip title={core.showError ? core.errorMessage : ''} arrow placement="top">
@@ -115,7 +107,7 @@ const TablePercentInput = React.memo(
             <InputBase
               inputRef={core.inputRefCallback}
               autoComplete="off"
-              value={renderedValue}
+              value={core.renderedValue}
               readOnly={core.isReadOnly}
               onChange={core.handleChange}
               onFocus={core.handleFocus}
@@ -123,7 +115,14 @@ const TablePercentInput = React.memo(
               onKeyDown={core.handleKeyDown}
               onPaste={core.handlePaste}
               onCopy={core.handleCopy}
-              placeholder={core.cellFocused && !core.isReadOnly ? '' : resolvedPlaceholder}
+              endAdornment={
+                <InputUnitAdornment
+                  unitSuffix={INPUT_UNIT_SUFFIX.percent}
+                  hidden={core.isEditing || core.hasError}
+                  muted={core.renderedValue === ''}
+                />
+              }
+              placeholder={core.cellFocused && !core.isReadOnly ? '' : placeholder}
               inputProps={{
                 id: core.a11yInputId,
                 name: core.htmlInputName,

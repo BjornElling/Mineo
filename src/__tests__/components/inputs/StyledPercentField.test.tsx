@@ -25,6 +25,25 @@ describe('StyledPercentField', () => {
     expect(input.readOnly).toBe(false);
   });
 
+  it('viser enheden i hvile og skjuler den under indtastning', async () => {
+    const user = userEvent.setup();
+    render(<StyledPercentField value={12.5} useDefaultPercentRange />);
+
+    const input = screen.getByRole('textbox') as HTMLInputElement;
+    const adornment = screen.getByText('%').closest('.MuiInputAdornment-root') as HTMLElement;
+
+    // I hvile: enheden er synlig, og input-værdien er rent tallet (enheden er ikke en del af værdien).
+    expect(window.getComputedStyle(adornment).visibility).toBe('visible');
+    expect(input).toHaveValue('12,5');
+
+    // Under indtastning: enheden skjules (men pladsen bevares), så feltet ikke hopper.
+    const inputRoot = input.closest('.MuiOutlinedInput-root') as HTMLElement;
+    await user.click(inputRoot);
+    await user.click(inputRoot);
+    expect(input.readOnly).toBe(false);
+    expect(window.getComputedStyle(adornment).visibility).toBe('hidden');
+  });
+
   it('blokerer typing over 100 selv når maxValue er højere', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn();

@@ -9,6 +9,7 @@ import {
 import { filterPercentKeyDown } from '../../../components/inputs/inputKeyFilters';
 import { normalizeTableNumericDraftOnCommit } from '../../../utils/tableInputContracts';
 import { makePercentFingerprintFromCanonical, type CommittedPayload, type PercentFingerprint } from '../../../types/parserSpec';
+import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
 import { spliceDraftPaste, type TableInputAdapter } from '../tableInputAdapter';
 
 export type TablePercentInputModel = number | undefined;
@@ -38,7 +39,7 @@ export const createPercentTableInputAdapter = (
   format: (value) => formatPercentDisplay(value, config.allowDecimals),
   toClipboardString: (value) => {
     const display = formatPercentDisplay(value, config.allowDecimals);
-    return display === '' ? '' : `${display} %`;
+    return display === '' ? '' : `${display}${INPUT_UNIT_SUFFIX.percent}`;
   },
   parse: (draft) => {
     const normalized = normalizeTableNumericDraftOnCommit(draft);

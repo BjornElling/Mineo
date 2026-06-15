@@ -138,7 +138,7 @@ const BeregnetRenteRow = React.memo(
               onFieldChange(row.id, 'belob')(amountValueToDraftString(e.target.value, 2));
               onRowBlur(row.id);
             }}
-            placeholder={isMobile ? '0,00' : '0,00 kr.'}
+            placeholder="0,00"
             canBeNegative={false}
             sx={isMobile
               ? { width: '100%', paddingLeft: '4px', paddingRight: '4px' }

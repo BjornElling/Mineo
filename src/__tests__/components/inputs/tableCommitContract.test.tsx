@@ -305,7 +305,8 @@ const CANONICAL_PLACEHOLDER_CASES: readonly PlaceholderCase[] = [
   },
   {
     label: 'percent',
-    expectedPlaceholder: '0 %',
+    // Enheden ("%") rendres nu som adornment uden for input-værdien; placeholder-attributten er basis.
+    expectedPlaceholder: '0',
     renderInput: () => <TablePercentInput gridCell={gridCell} value={undefined} />,
   },
   {
@@ -572,7 +573,8 @@ const ESCAPE_CANCEL_CASES: readonly EscapeCancelCase[] = [
     label: 'percent',
     initialValue: 12.5,
     typedDraft: '33',
-    expectedDisplayAfterCancel: '12,50 %',
+    // Enheden ("%") rendres nu som adornment uden for input-værdien; input.value er kun tallet.
+    expectedDisplayAfterCancel: '12,50',
     renderManagedInput: ({ value, onBlur }) => <TablePercentInput gridCell={gridCell} value={typeof value === 'number' ? value : undefined} onBlur={(e) => onBlur(e.target.value)} />,
   },
   {

@@ -52,7 +52,8 @@ describe('BeregnetRenteTable amount commit wiring', () => {
       />
     );
 
-    const amountInput = screen.getByPlaceholderText('0,00 kr.');
+    // Enheden ("kr.") rendres nu som adornment uden for input-værdien; placeholder-attributten er basis.
+    const amountInput = screen.getByPlaceholderText('0,00');
     await user.click(amountInput);
     await user.keyboard('{Delete}');
 

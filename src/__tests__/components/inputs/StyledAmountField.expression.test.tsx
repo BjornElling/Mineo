@@ -39,6 +39,22 @@ const openEditor = async (user: ReturnType<typeof userEvent.setup>, input: HTMLE
 describe('StyledAmountField expression behavior', () => {
   const TEST_TIMEOUT_MS = 15000;
 
+  it('viser kr.-enheden i hvile og skjuler den under indtastning', async () => {
+    const user = userEvent.setup();
+    const onCommit = vi.fn<OnCommit>();
+    const input = renderField({ kind: 'number', value: 12500 }, onCommit);
+
+    const adornment = screen.getByText('kr.').closest('.MuiInputAdornment-root') as HTMLElement;
+
+    // I hvile: enheden er synlig, men er ikke en del af input-værdien.
+    expect(window.getComputedStyle(adornment).visibility).toBe('visible');
+    expect(input).toHaveValue('12.500,00');
+
+    // Under indtastning: enheden skjules (pladsen bevares).
+    await openEditor(user, input);
+    expect(window.getComputedStyle(adornment).visibility).toBe('hidden');
+  }, TEST_TIMEOUT_MS);
+
   it('preserves expression errors across blur and focus', async () => {
     const user = userEvent.setup();
     const onCommit = vi.fn<OnCommit>();

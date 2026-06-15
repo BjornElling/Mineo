@@ -2029,7 +2029,7 @@ const LoenindkomstTab = React.memo(({
                     name={`${af.id}:feriePct`}
                     value={af.feriePct}
                     onCommit={handleFeriePctCommit(af.id)}
-                    placeholder="0 %"
+                    placeholder="0"
                     useDefaultPercentRange
                     error={Boolean(satsErrors[af.id]?.feriePct)}
                     helperText={satsErrors[af.id]?.feriePct}
@@ -2042,7 +2042,7 @@ const LoenindkomstTab = React.memo(({
                     name={`${af.id}:fritvalgPct`}
                     value={af.fritvalgPct}
                     onCommit={handleValidatedSatsCommit(af.id, 'fritvalgPct')}
-                    placeholder="0 %"
+                    placeholder="0"
                     useDefaultPercentRange
                     disabled={fritvalgLocked}
                     disabledAppearance={fritvalgLocked ? 'locked' : 'default'}
@@ -2059,7 +2059,7 @@ const LoenindkomstTab = React.memo(({
                     name={`${af.id}:shSoPct`}
                     value={af.shSoPct}
                     onCommit={handleValidatedSatsCommit(af.id, 'shSoPct')}
-                    placeholder="0 %"
+                    placeholder="0"
                     useDefaultPercentRange
                     disabled={shSoLocked}
                     disabledAppearance={shSoLocked ? 'locked' : 'default'}
@@ -2087,7 +2087,7 @@ const LoenindkomstTab = React.memo(({
                   <StyledPercentField
                     value={af.storeBededagPct}
                     onCommit={undefined}
-                    placeholder="0 %"
+                    placeholder="0"
                     useDefaultPercentRange
                     disabled
                     disabledAppearance="locked"
@@ -2104,7 +2104,7 @@ const LoenindkomstTab = React.memo(({
                     name={`${af.id}:pensionPct`}
                     value={af.pensionPct}
                     onCommit={handleValidatedSatsCommit(af.id, 'pensionPct')}
-                    placeholder="0 %"
+                    placeholder="0"
                     useDefaultPercentRange
                     disabled={pensionLocked}
                     disabledAppearance={pensionLocked ? 'locked' : 'default'}

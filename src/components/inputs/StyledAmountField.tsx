@@ -14,6 +14,8 @@ import {
 } from '../../utils/amountInputUtils';
 import { readClipboardText } from '../../utils/clipboardUtils';
 import { formatAsAmount } from '../../utils/formatUtils';
+import { INPUT_UNIT_SUFFIX } from '../../utils/inputUnit';
+import InputUnitAdornment from './InputUnitAdornment';
 import { normalizeAmountPaste } from '../../utils/inputPasteNormalization';
 import type { AmountValue } from '../../schemas/amountExpressionSchema';
 import {
@@ -359,6 +361,9 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     );
 
     const displayDraft = activation.isEditorOpen ? draft : localHasError ? draft : formatAmount(value);
+    // Enheden ("kr.") rendres som adornment uden for input-værdien (jf. InputUnitAdornment): synlig i
+    // hvile, skjult mens feltet redigeres eller viser en rå parse-fejl, dæmpet når feltet er tomt.
+    const showUnit = !activation.isEditorOpen && !localHasError;
 
     const handlePaste = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -446,22 +451,29 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
           ...sx,
         }}
         endAdornment={
-          value?.kind === 'expression' ? (
-            <span
-              className="mineo-expression-indicator"
-              style={{
-                position: 'absolute',
-                right: 2,
-                bottom: 2,
-                fontSize: 8,
-                fontWeight: 700,
-                color: 'var(--mineo-color-placeholder)',
-                pointerEvents: 'none',
-              }}
-            >
-              fx
-            </span>
-          ) : undefined
+          <>
+            <InputUnitAdornment
+              unitSuffix={INPUT_UNIT_SUFFIX.currency}
+              hidden={!showUnit}
+              muted={value === undefined}
+            />
+            {value?.kind === 'expression' ? (
+              <span
+                className="mineo-expression-indicator"
+                style={{
+                  position: 'absolute',
+                  right: 2,
+                  bottom: 2,
+                  fontSize: 8,
+                  fontWeight: 700,
+                  color: 'var(--mineo-color-placeholder)',
+                  pointerEvents: 'none',
+                }}
+              >
+                fx
+              </span>
+            ) : null}
+          </>
         }
       />
     );

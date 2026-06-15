@@ -28,7 +28,6 @@ export type UseTableInputCoreOptions<TModel, TCanonical extends string, TFingerp
 
 export type UseTableInputCoreResult = Readonly<{
   draft: string;
-  committedDisplayValue: string;
   renderedValue: string;
   isFocused: boolean;
   touched: boolean;
@@ -583,7 +582,6 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
 
   return {
     draft,
-    committedDisplayValue,
     renderedValue,
     isFocused,
     touched,

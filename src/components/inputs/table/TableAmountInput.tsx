@@ -3,6 +3,8 @@ import { Box, InputBase, Tooltip } from '@mui/material';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 import { DEFAULT_AMOUNT_PLACEHOLDER } from '../../../utils/amountInputUtils';
+import { INPUT_UNIT_SUFFIX } from '../../../utils/inputUnit';
+import InputUnitAdornment from '../InputUnitAdornment';
 import type { TableInputErrorInfo } from '../../../utils/tableInputContracts';
 import type { GridCellCoord } from '../../tables/gridCore/gridCoreTypes';
 import { useGridCoreApi } from '../../tables/useGridCore';
@@ -117,6 +119,13 @@ const TableAmountInput = React.memo(
               onPaste={core.handlePaste}
               onCopy={core.handleCopy}
               onDoubleClick={handleDoubleClick}
+              endAdornment={
+                <InputUnitAdornment
+                  unitSuffix={INPUT_UNIT_SUFFIX.currency}
+                  hidden={core.isEditing || core.hasError}
+                  muted={core.renderedValue === ''}
+                />
+              }
               placeholder={core.cellFocused && !core.isReadOnly ? '' : placeholder}
               inputProps={{
                 id: core.a11yInputId,

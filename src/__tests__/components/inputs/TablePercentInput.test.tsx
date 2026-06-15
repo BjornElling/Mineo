@@ -79,7 +79,7 @@ describe('TablePercentInput', () => {
     await user.tab();
 
     expect(onBlur).toHaveBeenCalledWith(150.25);
-    expect(input).toHaveValue('150,25 %');
+    expect(input).toHaveValue('150,25');
   });
 
   it('tillader indtastning over maxValue under typing', async () => {
@@ -159,7 +159,7 @@ describe('TablePercentInput', () => {
     await user.paste('adffergregs//sgd1712,56//');
 
     expect(onBlur).toHaveBeenCalledWith(17);
-    expect(input).toHaveValue('17,00 %');
+    expect(input).toHaveValue('17,00');
   });
 
   it('normalizes pasted text against explicit maxValue while not editing', async () => {
@@ -197,7 +197,7 @@ describe('TablePercentInput', () => {
     await user.paste('adffergregs//sgd1712,56//');
 
     expect(onBlur).toHaveBeenCalledWith(171);
-    expect(input).toHaveValue('171,00 %');
+    expect(input).toHaveValue('171,00');
   });
 
   it('normalizes pasted text without upper paste cap when default range is disabled', async () => {
@@ -234,6 +234,6 @@ describe('TablePercentInput', () => {
     await user.paste('adffergregs//sgd1712,56//');
 
     expect(onBlur).toHaveBeenCalledWith(1712);
-    expect(input).toHaveValue('1.712,00 %');
+    expect(input).toHaveValue('1.712,00');
   });
 });

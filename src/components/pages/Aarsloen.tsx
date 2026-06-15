@@ -336,7 +336,7 @@ const Aarsloen = React.memo(() => {
                 name="feriePct"
                 value={feriePct}
                 onCommit={fieldHandlers.feriePct}
-                placeholder="0 %"
+                placeholder="0"
                 useDefaultPercentRange
                 sx={{ width: '100px' }}
               />
@@ -347,7 +347,7 @@ const Aarsloen = React.memo(() => {
                 name="fritvalgPct"
                 value={fritvalgPct}
                 onCommit={fieldHandlers.fritvalgPct}
-                placeholder="0 %"
+                placeholder="0"
                 useDefaultPercentRange
                 sx={{ width: '100px' }}
               />
@@ -360,7 +360,7 @@ const Aarsloen = React.memo(() => {
                 name="shSoPct"
                 value={shSoPct}
                 onCommit={fieldHandlers.shSoPct}
-                placeholder="0 %"
+                placeholder="0"
                 useDefaultPercentRange
                 sx={{ width: '100px' }}
               />
@@ -385,7 +385,7 @@ const Aarsloen = React.memo(() => {
                 name="storeBededagPct"
                 value={storeBededagPct}
                 onCommit={fieldHandlers.storeBededagPct}
-                placeholder="0 %"
+                placeholder="0"
                 useDefaultPercentRange
                 sx={{ width: '100px' }}
               />
@@ -398,7 +398,7 @@ const Aarsloen = React.memo(() => {
                 name="pensionPct"
                 value={pensionPct}
                 onCommit={fieldHandlers.pensionPct}
-                placeholder="0 %"
+                placeholder="0"
                 useDefaultPercentRange
                 sx={{ width: '100px' }}
               />
