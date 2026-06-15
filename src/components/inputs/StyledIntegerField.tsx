@@ -1,16 +1,14 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
-import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
-import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
+import { type DraftParse } from '../../hooks/useDraftField';
+import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { filterIntegerKeyDown } from './inputKeyFilters';
 import { trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import { getIntegerRangeErrorMessage } from '../../utils/integerRange';
-import { readClipboardText } from '../../utils/clipboardUtils';
 import { normalizeIntegerPaste } from '../../utils/inputPasteNormalization';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
-import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 
 export type StyledIntegerFieldValueChangeEvent = CommitEvent<number | undefined>;
 export type StyledIntegerFieldDraftChangeEvent = DraftChangeEvent;
@@ -99,8 +97,6 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
     },
     ref
   ) => {
-    const inputElementRef = React.useRef<HTMLInputElement>(null);
-
     const signConfigErrorMessage = React.useMemo(() => {
       if (typeof minValue === 'number' && minValue < 0 && !allowNegative) {
         return 'Ugyldig konfiguration: minValue er negativ, men allowNegative=false';
@@ -220,25 +216,53 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
       [allowNegative, effectiveMaxDigits, enforceRange, maxValue, minValue]
     );
 
-    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
-
-    const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
-      useDraftField<number | undefined>({
-        value,
-        format: formatInteger,
-        parse: parseInteger,
-        normalizeDraftOnCommit: trimToNumericEdgesPreserveLeadingMinus,
-        onCommit: (nextValue) => {
-          onCommit?.(createCommitEvent(nextValue));
-          clearInvalidDraft?.();
-        },
-        onCommitInvalid,
-        committedInvalidDraft,
-        inputElementRef,
-        commitOnBlur: false,
-      });
-
     const [rangeErrorMessage, setRangeErrorMessage] = React.useState<string>('');
+    const resetRangeError = React.useCallback(() => setRangeErrorMessage(''), []);
+
+    const getDraftForKey = React.useCallback((key: string): string | null => {
+      if (/^[0-9]$/.test(key)) return key;
+      return null;
+    }, []);
+
+    const keyFilter = React.useCallback(
+      (e: React.KeyboardEvent<HTMLInputElement>) =>
+        filterIntegerKeyDown(e, { maxDigits: effectiveMaxDigits, maxValue, allowNegative }),
+      [allowNegative, effectiveMaxDigits, maxValue]
+    );
+
+    const {
+      draft,
+      isEditorOpen,
+      error,
+      touched,
+      inputElementRef,
+      handleDraftChange,
+      handleFocus,
+      handleKeyDown,
+      handlePaste,
+      handleBlur,
+      handleMouseDown,
+      handleClick,
+    } = useStyledFieldAdapter<number | undefined>({
+      value,
+      format: formatInteger,
+      parse: parseInteger,
+      normalizeDraftOnCommit: trimToNumericEdgesPreserveLeadingMinus,
+      getDraftForKey,
+      normalizePasteText: (text) => normalizeIntegerPaste(text, { maxDigits: effectiveMaxDigits, maxValue, allowNegative }),
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
+      onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
+      onFieldError,
+      onFocus,
+      onBlur,
+      onKeyDown,
+      disabled,
+      blocked: hasConfigError,
+      keyFilter,
+      // En tidligere out-of-range-værdis røde markering må ikke hænge ved efter en draft-ændring/clear.
+      onDraftChangeSideEffect: resetRangeError,
+      onClearSideEffect: resetRangeError,
+    });
 
     React.useEffect(() => {
       if (hasConfigError || enforceRange) {
@@ -270,7 +294,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
       onErrorChange(resolvedHasError);
     }, [onErrorChange, resolvedHasError]);
 
-    // Parse-fejl persisteres i invalidDrafts via useDraftField. Kun den blocksSave:false
+    // Parse-fejl persisteres i invalidDrafts via useStyledFieldAdapter. Kun den blocksSave:false
     // range-fejl (committet, men uden for UI-range) rapporteres til fieldErrors-storen.
     React.useEffect(() => {
       if (typeof onFieldError !== 'function') return;
@@ -281,115 +305,6 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
       onFieldError(undefined);
     }, [onFieldError, rangeErrorMessage, shouldShowRangeError]);
 
-    const skipNextBlurCommitRef = React.useRef(false);
-
-    const handleDraftChange = React.useCallback(
-      (nextDraft: string) => {
-        skipNextBlurCommitRef.current = false;
-        setRangeErrorMessage('');
-        setDraft(nextDraft);
-        onDraftChange?.(createDraftChangeEvent(nextDraft));
-      },
-      [onDraftChange, setDraft]
-    );
-
-    const getDraftForKey = React.useCallback((key: string): string | null => {
-      if (/^[0-9]$/.test(key)) return key;
-      return null;
-    }, []);
-
-    const activation = useTwoStageInputActivation<HTMLElement>({
-      disabled: Boolean(disabled || hasConfigError),
-      getDraftForKey,
-      normalizePasteText: (text) =>
-        normalizeIntegerPaste(text, {
-          maxDigits: effectiveMaxDigits,
-          maxValue,
-          allowNegative,
-        }),
-      onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
-    });
-
-    const handleFocus = React.useCallback(
-      (e: React.FocusEvent<HTMLInputElement>) => {
-        onFocusBase();
-        onFocus?.(e);
-      },
-      [onFocus, onFocusBase]
-    );
-
-    const handleKeyDown = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          if (e.key === 'Backspace' || e.key === 'Delete') {
-            e.preventDefault();
-            e.stopPropagation();
-            // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
-            // Parse og commit direkte (synkront) som table-felter gør
-            const normalized = trimToNumericEdgesPreserveLeadingMinus('');
-            const result = parseInteger(normalized, { mode: 'commit' });
-            if (result.ok) {
-              onCommit?.(createCommitEvent(result.value));
-            }
-            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField)
-            // og den UI-only range-fejl, så en tidligere out-of-range-værdis røde markering
-            // ikke hænger ved efter rydningen (denne sti går uden om handleDraftChange).
-            clearInvalidDraft?.();
-            setRangeErrorMessage('');
-            setDraft('');
-            return;
-          }
-          activation.handleKeyDown(e);
-          if (e.defaultPrevented) return;
-          onKeyDown?.(e);
-          return;
-        }
-
-        onKeyDownBase(e);
-        if (e.defaultPrevented && e.key === 'Enter') {
-          skipNextBlurCommitRef.current = true;
-        }
-        if (e.defaultPrevented && e.key === 'Escape') {
-          activation.closeEditor();
-          return;
-        }
-
-        if (!e.defaultPrevented) {
-          filterIntegerKeyDown(e, {
-            maxDigits: effectiveMaxDigits,
-            maxValue,
-            allowNegative,
-          });
-        }
-        onKeyDown?.(e);
-      },
-      [activation, allowNegative, clearInvalidDraft, effectiveMaxDigits, maxValue, onCommit, onKeyDown, onKeyDownBase, parseInteger, setDraft]
-    );
-
-    const handlePaste = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          activation.handlePaste(e);
-          return;
-        }
-
-        const normalized = normalizeIntegerPaste(readClipboardText(e), {
-          maxDigits: effectiveMaxDigits,
-          maxValue,
-          allowNegative,
-        });
-        e.preventDefault();
-        e.stopPropagation();
-        if (normalized === '') return;
-
-        const input = inputElementRef.current;
-        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
-        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-        handleDraftChange(draft.slice(0, start) + normalized + draft.slice(end));
-      },
-      [activation, allowNegative, draft, effectiveMaxDigits, handleDraftChange, maxValue]
-    );
-
     return (
       <StyledTextFieldBase
         ref={ref}
@@ -398,18 +313,7 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         onDraftChange={handleDraftChange}
         inputRef={inputElementRef}
         onFocus={handleFocus}
-        onBlur={(e) => {
-          onBlurBase(e);
-          // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
-          // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
-          const unchanged = draft === formatInteger(value) && committedInvalidDraft === undefined;
-          if (!skipNextBlurCommitRef.current && !unchanged) {
-            commit();
-          }
-          if (activation.isEditorOpen) activation.closeEditor();
-          skipNextBlurCommitRef.current = false;
-          onBlur?.(e);
-        }}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         width={width}
@@ -419,16 +323,16 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
         htmlInputAttributes={{
           inputMode: 'numeric',
           maxLength,
-          readOnly: !activation.isEditorOpen,
+          readOnly: !isEditorOpen,
         }}
-        onMouseDown={activation.handleMouseDown}
-        onClick={activation.handleClick}
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
         onPaste={handlePaste}
         sx={{
           '& .MuiInputBase-input': {
             textAlign: 'center',
-            caretColor: activation.isEditorOpen ? 'auto' : 'transparent',
-            cursor: activation.isEditorOpen ? 'text' : 'pointer',
+            caretColor: isEditorOpen ? 'auto' : 'transparent',
+            cursor: isEditorOpen ? 'text' : 'pointer',
           },
           ...sx,
         }}

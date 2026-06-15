@@ -1,17 +1,15 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
-import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
-import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
+import { type DraftParse } from '../../hooks/useDraftField';
+import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { interpretYear } from '../../utils/dateInputValidation';
 import { yearHas53Weeks } from '../../utils/dateUtils';
 import { filterWeekKeyDown } from './inputKeyFilters';
-import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { normalizeWeekPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
-import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 
 export type StyledWeekFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledWeekFieldDraftChangeEvent = DraftChangeEvent;
@@ -88,8 +86,6 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
     },
     ref
   ) => {
-    const inputElementRef = React.useRef<HTMLInputElement>(null);
-
     const parseWeek: DraftParse<string | undefined> = React.useCallback(
       (draft, { mode }) => {
         const trimmed = draft.trim();
@@ -181,123 +177,45 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
       [maxYear, minYear, twoDigitYearPolicy]
     );
 
-    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
-
-    const { draft, setDraft, touched, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
-      useDraftField<string | undefined>({
-        value,
-        format: formatWeek,
-        parse: parseWeek,
-        normalizeDraftOnCommit: trimToAlphanumericEdges,
-        onCommit: (nextValue) => {
-          onCommit?.(createCommitEvent(nextValue));
-          clearInvalidDraft?.();
-        },
-        onCommitInvalid,
-        committedInvalidDraft,
-        inputElementRef,
-        // Feltet ejer blur-commit eksplicit, så vi kan undlade touched/commit ved uændret blur
-        // og koordinere Enter/Escape-suppression med 2-trins editor-aktivering.
-        commitOnBlur: false,
-      });
-
-    // Parse-fejl persisteres i invalidDrafts via useDraftField og vises afledt herfra.
-    const visibleLocalError = error;
-    const resolvedHasError = externalHasError || Boolean(visibleLocalError?.message);
-    const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
-
-    const skipNextBlurCommitRef = React.useRef(false);
-
-    const handleDraftChange = React.useCallback(
-      (nextDraft: string) => {
-        skipNextBlurCommitRef.current = false;
-        setDraft(nextDraft);
-        onDraftChange?.(createDraftChangeEvent(nextDraft));
-      },
-      [onDraftChange, setDraft]
-    );
-
     const getDraftForKey = React.useCallback((key: string): string | null => {
       if (/^[0-9]$/.test(key)) return key;
       return null;
     }, []);
 
-    const activation = useTwoStageInputActivation<HTMLElement>({
-      disabled: Boolean(disabled),
+    const {
+      draft,
+      isEditorOpen,
+      error,
+      inputElementRef,
+      handleDraftChange,
+      handleFocus,
+      handleKeyDown,
+      handlePaste,
+      handleBlur,
+      handleMouseDown,
+      handleClick,
+    } = useStyledFieldAdapter<string | undefined>({
+      value,
+      format: formatWeek,
+      parse: parseWeek,
+      normalizeDraftOnCommit: trimToAlphanumericEdges,
       getDraftForKey,
       normalizePasteText: normalizeWeekPaste,
-      onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
+      onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
+      onFieldError,
+      onFocus,
+      onBlur,
+      onKeyDown,
+      disabled,
+      keyFilter: filterWeekKeyDown,
+      gateKeyFilterOnInvalidTouched: true,
     });
 
-    const handleFocus = React.useCallback(
-      (e: React.FocusEvent<HTMLInputElement>) => {
-        onFocusBase();
-        onFocus?.(e);
-      },
-      [onFocus, onFocusBase]
-    );
-
-    const handleKeyDown = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          if (e.key === 'Backspace' || e.key === 'Delete') {
-            e.preventDefault();
-            e.stopPropagation();
-            // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
-            // Parse og commit direkte (synkront) som table-felter gør
-            const normalized = trimToAlphanumericEdges('');
-            const result = parseWeek(normalized, { mode: 'commit' });
-            // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
-            // (jf. StyledDateField/StyledAmountField).
-            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
-              onCommit?.(createCommitEvent(result.value));
-            }
-            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
-            clearInvalidDraft?.();
-            setDraft('');
-            return;
-          }
-          activation.handleKeyDown(e);
-          if (e.defaultPrevented) return;
-          onKeyDown?.(e);
-          return;
-        }
-
-        onKeyDownBase(e);
-        if (e.defaultPrevented && e.key === 'Enter') {
-          skipNextBlurCommitRef.current = true;
-        }
-        if (e.defaultPrevented && e.key === 'Escape') {
-          activation.closeEditor();
-          return;
-        }
-        if (!e.defaultPrevented && !(touched && error?.kind === 'invalid')) {
-          filterWeekKeyDown(e);
-        }
-        onKeyDown?.(e);
-      },
-      [activation, clearInvalidDraft, committedInvalidDraft, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseWeek, setDraft, touched, value]
-    );
-
-    const handlePaste = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          activation.handlePaste(e);
-          return;
-        }
-
-        const normalized = normalizeWeekPaste(readClipboardText(e));
-        e.preventDefault();
-        e.stopPropagation();
-        if (normalized === '') return;
-
-        const input = inputElementRef.current;
-        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
-        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-        handleDraftChange(draft.slice(0, start) + normalized + draft.slice(end));
-      },
-      [activation, draft, handleDraftChange]
-    );
+    // Parse-fejl persisteres i invalidDrafts via useStyledFieldAdapter og vises afledt herfra.
+    const visibleLocalError = error;
+    const resolvedHasError = externalHasError || Boolean(visibleLocalError?.message);
+    const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
 
     return (
       <StyledTextFieldBase
@@ -307,33 +225,22 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
         onDraftChange={handleDraftChange}
         inputRef={inputElementRef}
         onFocus={handleFocus}
-        onBlur={(e) => {
-          onBlurBase(e);
-          // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
-          // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
-          const unchanged = draft === formatWeek(value) && committedInvalidDraft === undefined;
-          if (!skipNextBlurCommitRef.current && !unchanged) {
-            commit();
-          }
-          if (activation.isEditorOpen) activation.closeEditor();
-          skipNextBlurCommitRef.current = false;
-          onBlur?.(e);
-        }}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        onMouseDown={activation.handleMouseDown}
-        onClick={activation.handleClick}
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
         onPaste={handlePaste}
         placeholder={placeholder}
         width={width}
         disabled={disabled}
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
-        htmlInputAttributes={{ inputMode: 'numeric', maxLength: MAX_WEEK_DRAFT_LENGTH, readOnly: !activation.isEditorOpen }}
+        htmlInputAttributes={{ inputMode: 'numeric', maxLength: MAX_WEEK_DRAFT_LENGTH, readOnly: !isEditorOpen }}
         sx={{
           '& .MuiInputBase-input': {
             textAlign: 'center',
-            caretColor: activation.isEditorOpen ? 'auto' : 'transparent',
-            cursor: activation.isEditorOpen ? 'text' : 'pointer',
+            caretColor: isEditorOpen ? 'auto' : 'transparent',
+            cursor: isEditorOpen ? 'text' : 'pointer',
           },
           ...sx,
         }}

@@ -1,16 +1,14 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
-import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
-import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
+import { type DraftParse } from '../../hooks/useDraftField';
+import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { filterFractionKeyDown } from './inputKeyFilters';
-import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { DEFAULT_FRACTION_MAX_DIGITS, getFractionMaxLength, INTEGER_FRACTION_FORMAT_MESSAGE, parseFractionString } from '../../utils/fraction';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import { normalizeFractionPaste } from '../../utils/inputPasteNormalization';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
-import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 
 export type StyledFractionFieldValueChangeEvent = CommitEvent<string | undefined>;
 export type StyledFractionFieldDraftChangeEvent = DraftChangeEvent;
@@ -86,8 +84,6 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
     },
     ref
   ) => {
-    const inputElementRef = React.useRef<HTMLInputElement>(null);
-
     const configErrorMessage = React.useMemo(() => {
       if (!Number.isFinite(maxDigits)) return 'Ugyldig konfiguration: maxDigits skal være et tal';
       if (!Number.isInteger(maxDigits)) return 'Ugyldig konfiguration: maxDigits skal være et heltal';
@@ -146,136 +142,54 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
       [allowNegative, allowZeroNumerator, canonicalizeOnCommit, configErrorMessage, maxDigits, requireIntegerFraction]
     );
 
-    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
-
-    const { draft, setDraft, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
-      useDraftField<string | undefined>({
-        value,
-        format: formatFraction,
-        parse: parseFraction,
-        normalizeDraftOnCommit: trimToAlphanumericEdges,
-        onCommit: (nextValue) => {
-          onCommit?.(createCommitEvent(nextValue));
-          clearInvalidDraft?.();
-        },
-        onCommitInvalid,
-        committedInvalidDraft,
-        inputElementRef,
-        commitOnBlur: false,
-      });
-
-    // Parse-fejl persisteres i invalidDrafts via useDraftField og vises afledt herfra.
-    const visibleLocalError = error;
-    const resolvedHasError = externalHasError || Boolean(visibleLocalError?.message);
-    const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
-
-    const skipNextBlurCommitRef = React.useRef(false);
-
-    const applyDraft = React.useCallback((nextDraft: string) => {
-      skipNextBlurCommitRef.current = false;
-      setDraft(nextDraft);
-      onDraftChange?.(createDraftChangeEvent(nextDraft));
-    }, [onDraftChange, setDraft]);
-
-    // Tastet input må ikke canonicaliseres mens der skrives (jf. form-contract §3.1 / mineo-field-pattern
-    // Lag C). Draften strømmer urørt; tegnspærringen sker i `filterFractionKeyDown` (keydown) og
-    // paste normaliseres i sin egen sti via `normalizeFractionPaste`.
-    const handleDraftChange = applyDraft;
-
     const getDraftForKey = React.useCallback((key: string): string | null => {
       if (/^[0-9/,]$/.test(key)) return key;
       if (allowNegative && key === '-') return key;
       return null;
     }, [allowNegative]);
 
-    const activation = useTwoStageInputActivation<HTMLElement>({
-      disabled: Boolean(disabled),
+    const keyFilter = React.useCallback(
+      (e: React.KeyboardEvent<HTMLInputElement>) => filterFractionKeyDown(e, { maxDigits, allowNegative }),
+      [allowNegative, maxDigits]
+    );
+
+    const {
+      draft,
+      isEditorOpen,
+      error,
+      inputElementRef,
+      handleDraftChange,
+      handleFocus,
+      handleKeyDown,
+      handlePaste,
+      handleBlur,
+      handleMouseDown,
+      handleClick,
+    } = useStyledFieldAdapter<string | undefined>({
+      value,
+      format: formatFraction,
+      parse: parseFraction,
+      normalizeDraftOnCommit: trimToAlphanumericEdges,
       getDraftForKey,
       normalizePasteText: normalizeFractionPaste,
-      onReplaceDraft: (nextDraft) => applyDraft(nextDraft),
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
+      onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
+      onFieldError,
+      onFocus,
+      onBlur,
+      onKeyDown,
+      disabled,
+      // Tastet input må ikke canonicaliseres mens der skrives (jf. form-contract §3.1 / mineo-field-pattern
+      // Lag C): ingen `transformDraftOnChange`. Tegnspærringen sker i `keyFilter` (keydown) og paste
+      // normaliseres via `normalizePasteText`.
+      keyFilter,
+      setPasteCaret: true,
     });
 
-    const handleFocus = React.useCallback(
-      (e: React.FocusEvent<HTMLInputElement>) => {
-        onFocusBase();
-        onFocus?.(e);
-      },
-      [onFocus, onFocusBase]
-    );
-
-    const handleKeyDown = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          if (e.key === 'Backspace' || e.key === 'Delete') {
-            e.preventDefault();
-            e.stopPropagation();
-            // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
-            // Parse og commit direkte (synkront) som table-felter gør
-            const normalized = trimToAlphanumericEdges('');
-            const result = parseFraction(normalized, { mode: 'commit' });
-            // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
-            // (jf. StyledDateField/StyledAmountField).
-            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
-              onCommit?.(createCommitEvent(result.value));
-            }
-            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
-            clearInvalidDraft?.();
-            setDraft('');
-            return;
-          }
-          activation.handleKeyDown(e);
-          if (e.defaultPrevented) return;
-          onKeyDown?.(e);
-          return;
-        }
-
-        onKeyDownBase(e);
-        if (e.defaultPrevented && e.key === 'Enter') {
-          skipNextBlurCommitRef.current = true;
-        }
-        if (e.defaultPrevented && e.key === 'Escape') {
-          activation.closeEditor();
-          return;
-        }
-        if (!e.defaultPrevented) {
-          filterFractionKeyDown(e, { maxDigits, allowNegative });
-        }
-        onKeyDown?.(e);
-      },
-      [activation, allowNegative, clearInvalidDraft, committedInvalidDraft, maxDigits, onCommit, onKeyDown, onKeyDownBase, parseFraction, setDraft, value]
-    );
-
-    const handlePaste = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          activation.handlePaste(e);
-          return;
-        }
-
-        const normalized = normalizeFractionPaste(readClipboardText(e));
-        e.preventDefault();
-        e.stopPropagation();
-        if (normalized === '') return;
-
-        const input = inputElementRef.current;
-        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
-        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-        const nextDraft = draft.slice(0, start) + normalized + draft.slice(end);
-        applyDraft(nextDraft);
-
-        const nextCaret = start + normalized.length;
-        requestAnimationFrame(() => {
-          const el = inputElementRef.current;
-          if (!el) return;
-          try {
-            el.setSelectionRange(nextCaret, nextCaret);
-          } catch {
-            // no-op
-          }
-        });
-      },
-      [activation, applyDraft, draft]
-    );
+    // Parse-fejl persisteres i invalidDrafts via useStyledFieldAdapter og vises afledt herfra.
+    const visibleLocalError = error;
+    const resolvedHasError = externalHasError || Boolean(visibleLocalError?.message);
+    const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
 
     return (
       <StyledTextFieldBase
@@ -285,21 +199,10 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
         onDraftChange={handleDraftChange}
         inputRef={inputElementRef}
         onFocus={handleFocus}
-        onBlur={(e) => {
-          onBlurBase(e);
-          // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
-          // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
-          const unchanged = draft === formatFraction(value) && committedInvalidDraft === undefined;
-          if (!skipNextBlurCommitRef.current && !unchanged) {
-            commit();
-          }
-          if (activation.isEditorOpen) activation.closeEditor();
-          skipNextBlurCommitRef.current = false;
-          onBlur?.(e);
-        }}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        onMouseDown={activation.handleMouseDown}
-        onClick={activation.handleClick}
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
         onPaste={handlePaste}
         placeholder={placeholder}
         width={width}
@@ -309,14 +212,14 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
         htmlInputAttributes={{
           inputMode: 'decimal',
           maxLength: getFractionMaxLength(maxDigits, allowNegative),
-          readOnly: !activation.isEditorOpen,
+          readOnly: !isEditorOpen,
         }}
         sx={{
           '& .MuiInputBase-input': {
             textAlign: 'center',
             fontVariantNumeric: 'tabular-nums',
-            caretColor: activation.isEditorOpen ? 'auto' : 'transparent',
-            cursor: activation.isEditorOpen ? 'text' : 'pointer',
+            caretColor: isEditorOpen ? 'auto' : 'transparent',
+            cursor: isEditorOpen ? 'text' : 'pointer',
           },
           ...sx,
         }}

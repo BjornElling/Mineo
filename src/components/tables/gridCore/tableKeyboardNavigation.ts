@@ -27,9 +27,16 @@ import {
 // ikke fra den celle der aktuelt har fokus ved Enter-tryk.
 type TabAnchor = CellLocator;
 
+// Modul-lokal gestus-/navigations-state. BEMÆRK: ingen af disse spejler controller-state — de er
+// rene UI-gestus-/traversals-data, der ikke har nogen pendant i `GridCoreController`:
+// - `tabAnchorByTable`: "first-Tab-wins"-ankeret for Enter-vertikal-navigation.
+// - `pendingRecoveryByTable`: transient RAF-fokus-recovery efter en nav-flytning.
+// - `clickEditableCellByTable`: hvilken celle der er "armet" til to-trins-klik-redigering.
+// - `pointerDownFocusedCellByTable`: pointerdown→click-bogføring for to-trins-klik.
+// Den fokuserede celle ejes derimod af ÉN autoritet: `core.setFocusedCell`, sat fra
+// `handleTableFocusCapture` når fysisk DOM-fokus lander (læses via `core.getFocusedCell()`).
 const tabAnchorByTable = new WeakMap<HTMLTableElement, TabAnchor>();
 const pendingRecoveryByTable = new WeakMap<HTMLTableElement, Readonly<{ desired: CellLocator }>>();
-const physicalFocusByTable = new WeakMap<HTMLTableElement, Readonly<{ cell: GridCellCoord }>>();
 const clickEditableCellByTable = new WeakMap<HTMLTableElement, GridCellCoord>();
 const pointerDownFocusedCellByTable = new WeakMap<HTMLTableElement, GridCellCoord>();
 
@@ -263,7 +270,10 @@ export const handleTableFocusCapture = (e: React.FocusEvent<HTMLTableElement>) =
   const cell = toCellCoord(locator);
   if (!cell) return;
 
-  physicalFocusByTable.set(table, { cell });
+  // Eneste skrive-sti for den logiske fokuserede celle: fysisk DOM-fokus landede → spejl det i controlleren.
+  // Navigations-grenene flytter fysisk fokus imperativt (focusTableElement) og lader denne capture
+  // opdatere controller-state; de udsteder IKKE en fokus-plan for ren navigation (planen er forbeholdt
+  // udskudt fokus hen over editor-luk, jf. Delete-grenen + closeEditing→executeFocusPlan).
   core.setFocusedCell(cell);
 };
 
@@ -366,10 +376,6 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     const result = pickVerticalTarget(grid, base, deltaRows, core, true);
     if (!result) return; // ingen valgbar (ikke-låst) celle nogen steder → no-op
     const targetLocator = { rowIndex: result.nextRowIndex, colIndex: result.colIndex, subIndex: base.subIndex, ...(result.nextRowId ? { rowId: result.nextRowId } : {}) };
-    const targetCell = toCellCoord(targetLocator);
-    if (core && activeCell && targetCell) {
-      core.requestFocusPlan({ from: activeCell, to: targetCell, reason: 'enter' });
-    }
     focusTableElement(result.target);
     scheduleFocusRecovery(table, targetLocator);
     return;
@@ -399,10 +405,6 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     e.preventDefault();
     e.stopPropagation();
     const targetLocator = { rowIndex: result.nextRowIndex, colIndex: result.colIndex, subIndex: activePos.subIndex, ...(result.nextRowId ? { rowId: result.nextRowId } : {}) };
-    const targetCell = toCellCoord(targetLocator);
-    if (core && activeCell && targetCell) {
-      core.requestFocusPlan({ from: activeCell, to: targetCell, reason: 'arrow' });
-    }
     focusTableElement(result.target);
     scheduleFocusRecovery(table, targetLocator);
     return;
@@ -425,10 +427,6 @@ export const handleTableKeyDownCapture = (e: React.KeyboardEvent<HTMLTableElemen
     const next = pickHorizontalTarget(grid, activePos, direction, core);
     if (!next?.target) return;
 
-    const nextCell = toCellCoord(next.locator);
-    if (core && activeCell && nextCell) {
-      core.requestFocusPlan({ from: activeCell, to: nextCell, reason: 'arrow' });
-    }
     // Brug focusTableElement (preventScroll) som alle øvrige nav-grene, så horisontal navigation
     // ikke giver scroll-hop (jf. keyboard-navigation.md). En rå `.focus()` ville scrolle.
     focusTableElement(next.target);
@@ -460,7 +458,10 @@ export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableEle
   const cell = toCellCoord(locator);
   if (!cell) return;
 
-  const activeCell = physicalFocusByTable.get(table)?.cell ?? null;
+  // Læs den fokuserede celle fra den eneste autoritet (controlleren). Den blur-nulstillede
+  // `clickEditableCellByTable`-gate nedenfor sikrer, at en stale (uden-for-tabel) fokuseret celle
+  // ikke fejlagtigt armerer to-trins-redigering.
+  const activeCell = core.getFocusedCell();
   const clickEditableCell = clickEditableCellByTable.get(table) ?? null;
   const editing = core.getEditingCell();
   // `immediateEditing` (data-attribut) er touch-aktiveringen for grid-CELLER (tabel-inputs).
@@ -540,7 +541,6 @@ export const handleTableBlurCapture = (e: React.FocusEvent<HTMLTableElement>) =>
 
   const related = e.relatedTarget;
   if (related instanceof Node && table.contains(related)) return;
-  physicalFocusByTable.delete(table);
   clickEditableCellByTable.delete(table);
   pointerDownFocusedCellByTable.delete(table);
   tabAnchorByTable.delete(table);

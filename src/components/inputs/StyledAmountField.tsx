@@ -1,8 +1,8 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
-import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
-import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
+import { type DraftFieldError, type DraftParse } from '../../hooks/useDraftField';
+import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { containsUnaryMinusToken, filterAmountExpressionKeyDown } from './inputKeyFilters';
 import { stripAmountGroupingSeparators } from '../../utils/draftNormalization';
 import {
@@ -12,7 +12,6 @@ import {
   MAX_AMOUNT_RAW_LENGTH,
   sanitizePastedAmount,
 } from '../../utils/amountInputUtils';
-import { readClipboardText } from '../../utils/clipboardUtils';
 import { formatAsAmount } from '../../utils/formatUtils';
 import { INPUT_UNIT_SUFFIX } from '../../utils/inputUnit';
 import InputUnitAdornment from './InputUnitAdornment';
@@ -25,6 +24,7 @@ import {
   isExpressionErrorMessage,
   parseAmountInput,
 } from '../../utils/expressionAmount';
+import type { TwoStageStartSource } from '../../hooks/useTwoStageInputActivation';
 import {
   createCommitEvent,
   createDraftChangeEvent,
@@ -34,7 +34,6 @@ import {
   type DraftChangeHandler,
 } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
-import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 
 export type StyledAmountFieldValueChangeEvent = CommitEvent<AmountValue | undefined>;
 export type StyledAmountFieldDraftChangeEvent = DraftChangeEvent;
@@ -111,8 +110,6 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     },
     ref
   ) => {
-    const inputElementRef = React.useRef<HTMLInputElement>(null);
-
     const roundingConfigError = React.useMemo(() => {
       if (precision === undefined) return '';
       if (!Number.isFinite(precision)) return 'Ugyldig konfiguration: precision skal være et tal';
@@ -204,47 +201,8 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       [allowDecimals, allowNegative, maxValue, minValue, resolvedPrecision]
     );
 
-    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
-
-    const { draft, setDraft, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit, commitDraft } =
-      useDraftField<AmountValue | undefined>({
-        value,
-        format: formatAmount,
-        parse: parseAmount,
-        onCommit: (nextValue) => {
-          onCommit?.(createCommitEvent(nextValue));
-          clearInvalidDraft?.();
-        },
-        onCommitInvalid,
-        committedInvalidDraft,
-        inputElementRef,
-        clearTouchedOnEmptyDraft: true,
-        commitOnBlur: false,
-      });
-
-    const visibleLocalError = error;
-    const localHasError = Boolean(visibleLocalError?.message);
-    const resolvedHasError = externalHasError || localHasError;
-    const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
-
-    // Parse-fejl (ikke-committbart beløb) persisteres i invalidDrafts via useDraftField.onCommitInvalid
-    // og vises afledt herfra. Beløbsfeltet har ingen separat blocksSave:false range-fejl, så det
-    // rapporterer ikke til fieldErrors-storen.
-
-    const skipNextBlurCommitRef = React.useRef(false);
     const hadErrorOnEditStartRef = React.useRef(false);
     const pendingClickCaretRef = React.useRef<number | null>(null);
-
-    const handleDraftChange = React.useCallback(
-      (nextDraft: string) => {
-        const cleanedDraft = sanitizePastedAmount(nextDraft);
-        // UX policy: tomt draft betyder "ingen valideringstilstand".
-        skipNextBlurCommitRef.current = false;
-        setDraft(cleanedDraft);
-        onDraftChange?.(createDraftChangeEvent(cleanedDraft));
-      },
-      [onDraftChange, setDraft]
-    );
 
     const getDraftForKey = React.useCallback((key: string): string | null => {
       const mapped = key === '.' ? '.' : key;
@@ -258,40 +216,109 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
       return null;
     }, [allowDecimals, allowNegative]);
 
-    const activation = useTwoStageInputActivation<HTMLElement>({
-      disabled: Boolean(disabled),
-      getDraftForKey,
-      normalizePasteText: (text) => normalizeAmountPaste(text, { allowNegative }),
-      onReplaceDraft: (nextDraft) => {
-        if (!allowNegative && containsUnaryMinusToken(nextDraft)) return;
-        handleDraftChange(nextDraft);
-      },
-      onStartEditing: (source) => {
-        hadErrorOnEditStartRef.current = Boolean(visibleLocalError?.message);
+    const keyFilter = React.useCallback(
+      (e: React.KeyboardEvent<HTMLInputElement>) => filterAmountExpressionKeyDown(e, { allowNegative, allowDecimals }),
+      [allowDecimals, allowNegative]
+    );
+
+    const rejectDraft = React.useCallback(
+      (nextDraft: string) => !allowNegative && containsUnaryMinusToken(nextDraft),
+      [allowNegative]
+    );
+
+    const onStartEditing = React.useCallback(
+      (
+        source: TwoStageStartSource,
+        helpers: Readonly<{ draft: string; error: DraftFieldError | undefined; inputElement: HTMLInputElement | null; setDraft: (draft: string) => void }>
+      ) => {
+        const { draft: currentDraft, error: currentError, inputElement, setDraft: applyDraft } = helpers;
+        hadErrorOnEditStartRef.current = Boolean(currentError?.message);
         if (source !== 'click') return;
-        if (isExpressionErrorMessage(visibleLocalError?.message)) {
+        if (isExpressionErrorMessage(currentError?.message)) {
           pendingClickCaretRef.current = null;
           return;
         }
         if (value?.kind === 'expression') {
           const nextDraft = amountValueToDraftString(value, resolvedPrecision);
-          if (nextDraft !== draft) handleDraftChange(nextDraft);
+          if (nextDraft !== currentDraft) applyDraft(nextDraft);
           pendingClickCaretRef.current = null;
           return;
         }
-        const selectionStart = inputElementRef.current?.selectionStart;
-        const cleanedDraft = stripAmountGroupingSeparators(draft);
+        const selectionStart = inputElement?.selectionStart;
+        const cleanedDraft = stripAmountGroupingSeparators(currentDraft);
         if (typeof selectionStart === 'number') {
-          pendingClickCaretRef.current = mapCaretFromGroupedAmount(draft, selectionStart);
+          pendingClickCaretRef.current = mapCaretFromGroupedAmount(currentDraft, selectionStart);
         }
-        if (cleanedDraft !== draft) {
-          handleDraftChange(cleanedDraft);
+        if (cleanedDraft !== currentDraft) {
+          applyDraft(cleanedDraft);
         }
       },
+      [resolvedPrecision, value]
+    );
+
+    const shouldCommitOnBlur = React.useCallback(
+      (ctx: Readonly<{ draft: string; value: AmountValue | undefined; committedInvalidDraft: string | undefined }>) => {
+        const unchanged =
+          ctx.committedInvalidDraft === undefined &&
+          (ctx.value?.kind === 'expression'
+            ? ctx.draft === amountValueToDraftString(ctx.value, resolvedPrecision)
+            : ctx.draft === formatAmount(ctx.value));
+        const shouldForceCommit = ctx.draft === '' && ctx.value === undefined && hadErrorOnEditStartRef.current;
+        return !unchanged || shouldForceCommit;
+      },
+      [formatAmount, resolvedPrecision]
+    );
+
+    const {
+      draft,
+      isEditorOpen,
+      error,
+      inputElementRef,
+      handleDraftChange,
+      handleFocus,
+      handleKeyDown,
+      handlePaste,
+      handleBlur,
+      handleMouseDown,
+      handleClick,
+    } = useStyledFieldAdapter<AmountValue | undefined>({
+      value,
+      format: formatAmount,
+      parse: parseAmount,
+      getDraftForKey,
+      normalizePasteText: (text) => normalizeAmountPaste(text, { allowNegative }),
+      onStartEditing,
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
+      onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
+      onFieldError,
+      onFocus,
+      // Beløbsfeltet nulstiller "havde-fejl-ved-edit-start" efter hvert blur (drev for force-commit).
+      onBlur: (e) => {
+        hadErrorOnEditStartRef.current = false;
+        onBlur?.(e);
+      },
+      onKeyDown,
+      disabled,
+      clearTouchedOnEmptyDraft: true,
+      // Tastet/indsat draft canonicaliseres (fjern grupperings-separatorer mv.).
+      transformDraftOnChange: sanitizePastedAmount,
+      rejectDraft,
+      keyFilter,
+      shouldCommitOnBlur,
+      setPasteCaret: true,
+      commitOnClosedPaste: true,
     });
 
+    const visibleLocalError = error;
+    const localHasError = Boolean(visibleLocalError?.message);
+    const resolvedHasError = externalHasError || localHasError;
+    const resolvedErrorMessage = externalHasError ? externalHelperText : visibleLocalError?.message ?? '';
+
+    // Parse-fejl (ikke-committbart beløb) persisteres i invalidDrafts via kanalen og vises afledt herfra.
+    // Beløbsfeltet har ingen separat blocksSave:false range-fejl, så det rapporterer ikke til fieldErrors-storen.
+
     React.useEffect(() => {
-      if (!activation.isEditorOpen) {
+      if (!isEditorOpen) {
         pendingClickCaretRef.current = null;
         return;
       }
@@ -310,98 +337,11 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
           // no-op
         }
       });
-    }, [activation.isEditorOpen, draft]);
+    }, [draft, inputElementRef, isEditorOpen]);
 
-    const handleFocus = React.useCallback(
-      (e: React.FocusEvent<HTMLInputElement>) => {
-        onFocusBase();
-        onFocus?.(e);
-      },
-      [onFocus, onFocusBase]
-    );
-
-    const handleKeyDown = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          if (e.key === 'Backspace' || e.key === 'Delete') {
-            e.preventDefault();
-            e.stopPropagation();
-            // Commit kun hvis der faktisk er noget at rydde (committed værdi eller en rå
-            // ikke-committbar draft). Et ubetinget commit(undefined) på et allerede tomt felt
-            // ville skrive en identisk værdi til storen og producere en overflødig undo-frame.
-            if (value !== undefined || committedInvalidDraft !== undefined) {
-              onCommit?.(createCommitEvent(undefined));
-            }
-            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
-            clearInvalidDraft?.();
-            setDraft('');
-            return;
-          }
-          activation.handleKeyDown(e);
-          if (e.defaultPrevented) return;
-          onKeyDown?.(e);
-          return;
-        }
-
-        onKeyDownBase(e);
-        if (e.defaultPrevented && e.key === 'Enter') {
-          skipNextBlurCommitRef.current = true;
-        }
-        if (e.defaultPrevented && e.key === 'Escape') {
-          activation.closeEditor();
-          return;
-        }
-
-        if (!e.defaultPrevented) {
-          filterAmountExpressionKeyDown(e, { allowNegative, allowDecimals });
-        }
-        onKeyDown?.(e);
-      },
-      [activation, allowDecimals, allowNegative, clearInvalidDraft, committedInvalidDraft, onCommit, onKeyDown, onKeyDownBase, setDraft, value]
-    );
-
-    const displayDraft = activation.isEditorOpen ? draft : localHasError ? draft : formatAmount(value);
+    const displayDraft = isEditorOpen ? draft : localHasError ? draft : formatAmount(value);
     // Enheden ("kr.") rendres som adornment uden for input-værdien (jf. InputUnitAdornment): altid
     // synlig — også under indtastning — og dæmpet når der intet er vist (placeholder-tilstand).
-
-    const handlePaste = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        const raw = readClipboardText(e);
-        const normalized = normalizeAmountPaste(raw, { allowNegative });
-
-        if (!activation.isEditorOpen) {
-          e.preventDefault();
-          e.stopPropagation();
-          if (normalized === '') return;
-          skipNextBlurCommitRef.current = true;
-          commitDraft(normalized);
-          return;
-        }
-
-        e.preventDefault();
-        e.stopPropagation();
-        if (normalized === '') return;
-
-        const input = inputElementRef.current;
-        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
-        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-        const nextDraft = draft.slice(0, start) + normalized + draft.slice(end);
-        if (!allowNegative && containsUnaryMinusToken(nextDraft)) return;
-        handleDraftChange(nextDraft);
-
-        const nextCaret = start + normalized.length;
-        requestAnimationFrame(() => {
-          const el = inputElementRef.current;
-          if (!el) return;
-          try {
-            el.setSelectionRange(nextCaret, nextCaret);
-          } catch {
-            // no-op
-          }
-        });
-      },
-      [activation.isEditorOpen, allowNegative, commitDraft, draft, handleDraftChange]
-    );
 
     return (
       <StyledTextFieldBase
@@ -411,41 +351,26 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         onDraftChange={handleDraftChange}
         inputRef={inputElementRef}
         onFocus={handleFocus}
-        onBlur={(e) => {
-          onBlurBase(e);
-          // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
-          // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
-          const unchanged =
-            committedInvalidDraft === undefined &&
-            (value?.kind === 'expression' ? draft === amountValueToDraftString(value, resolvedPrecision) : draft === formatAmount(value));
-          const shouldForceCommit = draft === '' && value === undefined && hadErrorOnEditStartRef.current;
-          if (!skipNextBlurCommitRef.current && (!unchanged || shouldForceCommit)) {
-            commit();
-          }
-          if (activation.isEditorOpen) activation.closeEditor();
-          skipNextBlurCommitRef.current = false;
-          hadErrorOnEditStartRef.current = false;
-          onBlur?.(e);
-        }}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         placeholder={resolvedPlaceholder}
         width={width}
         disabled={disabled}
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
-        onMouseDown={activation.handleMouseDown}
-        onClick={activation.handleClick}
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
         onPaste={handlePaste}
         htmlInputAttributes={{
           inputMode: allowDecimals ? 'decimal' : 'numeric',
-          readOnly: !activation.isEditorOpen,
+          readOnly: !isEditorOpen,
         }}
         sx={{
           '& .MuiInputBase-input': {
             textAlign: 'right',
             fontVariantNumeric: 'tabular-nums',
-            caretColor: activation.isEditorOpen ? 'auto' : 'transparent',
-            cursor: activation.isEditorOpen ? 'text' : 'pointer',
+            caretColor: isEditorOpen ? 'auto' : 'transparent',
+            cursor: isEditorOpen ? 'text' : 'pointer',
           },
           ...sx,
         }}

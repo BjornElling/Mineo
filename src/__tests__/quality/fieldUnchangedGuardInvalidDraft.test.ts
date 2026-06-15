@@ -1,18 +1,33 @@
 // Værn mod regression af "clear/edit af ugyldigt felt strander invalidDrafts".
 //
-// De bundne Styled*-felter har en blur-commit-kortslutning `const unchanged = draft === format(value)`,
-// der springer commit'et over når draften matcher den committede værdi. Hvis den IKKE også kræver
-// `committedInvalidDraft === undefined`, vil en clear (eller edit til en værdi der matcher committed)
-// af et felt med en ikke-committbar rå draft springe commit'et over → invalidDrafts-entryet ryddes
-// aldrig → feltet re-syncer til den gamle ugyldige værdi, og Gem forbliver blokeret.
+// De bundne Styled*-felter committer på blur, men kortslutter commit'et når draften matcher den
+// committede værdi (`unchanged`). Hvis den kortslutning IKKE også kræver `committedInvalidDraft === undefined`,
+// vil en clear (eller edit til en værdi der matcher committed) af et felt med en ikke-committbar rå draft
+// springe commit'et over → invalidDrafts-entryet ryddes aldrig → feltet re-syncer til den gamle ugyldige
+// værdi, og Gem forbliver blokeret. Tilsvarende SKAL den øjeblikkelige Backspace/Delete-clear-sti rydde
+// invalidDrafts, da den omgår den normale commit-wrapper.
 //
-// Denne guard scanner dynamisk alle bundne felt-komponenter (dem der bruger invalidDraft-kanalen) og
-// fejler hvis en `const unchanged =`-kortslutning mangler `committedInvalidDraft`. En selv-test beviser
-// at scanneren faktisk fanger en overtrædelse (vacuous-pass-værn).
+// Siden 2026-06 ejes denne commit-/clear-lim af den delte `useStyledFieldAdapter`-hook for de syv
+// numeriske blur-commit-felter (Amount/Date/Integer/Percent/Fraction/Week/Year). `StyledTextField`
+// (fri tekst + textarea) ejer fortsat sin egen lim. Denne guard scanner derfor BÅDE hook'en og de
+// bespoke felt-filer, kræver at de migrerede felter faktisk delegerer til hook'en, og har selv-tests
+// der beviser at scanneren fanger en overtrædelse (vacuous-pass-værn).
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 const INPUTS_DIR = join(process.cwd(), 'src', 'components', 'inputs');
+const ADAPTER_HOOK = join(process.cwd(), 'src', 'hooks', 'useStyledFieldAdapter.ts');
+
+/** Felter der delegerer commit-/clear-limen til den delte hook (må ikke have egen divergerende blur-sti). */
+const HOOK_DELEGATING_FIELDS = [
+  'StyledAmountField',
+  'StyledDateField',
+  'StyledIntegerField',
+  'StyledPercentField',
+  'StyledFractionField',
+  'StyledWeekField',
+  'StyledYearField',
+] as const;
 
 /** Find alle `const unchanged = …;`-statements i en kilde (multi-line understøttet). */
 const extractUnchangedStatements = (source: string): string[] => {
@@ -29,7 +44,32 @@ const extractUnchangedStatements = (source: string): string[] => {
   return statements;
 };
 
-const boundFieldFiles = readdirSync(INPUTS_DIR)
+/**
+ * Find alle immediate-commit Delete/Backspace-clear-blokke (editor lukket) og returnér hver bloks tekst
+ * fra Backspace/Delete-checket til det afsluttende `return;`. Disse blokke committer feltet straks ved
+ * Delete og SKAL også rydde et evt. invalidDrafts-entry (de omgår den normale commit-wrapper).
+ */
+const extractImmediateDeleteBlocks = (source: string): string[] => {
+  const blocks: string[] = [];
+  const marker = "e.key === 'Backspace' || e.key === 'Delete'";
+  let from = 0;
+  for (;;) {
+    const start = source.indexOf(marker, from);
+    if (start === -1) break;
+    const end = source.indexOf('return;', start);
+    const block = source.slice(start, end === -1 ? source.length : end + 'return;'.length);
+    blocks.push(block);
+    from = end === -1 ? source.length : end + 'return;'.length;
+  }
+  return blocks;
+};
+
+/** En immediate-commit-clear-blok kendes på at den committer og tømmer draften. */
+const isCommitClearBlock = (block: string): boolean =>
+  (block.includes('onCommit') || block.includes('commitValue')) && /setDraft(Base)?\(''\)/.test(block);
+
+// Bespoke felt-filer der fortsat ejer deres egen commit-/clear-lim (i praksis StyledTextField).
+const bespokeFieldFiles = readdirSync(INPUTS_DIR)
   .filter((entry) => entry.endsWith('.tsx'))
   .map((entry) => join(INPUTS_DIR, entry))
   .filter((file) => {
@@ -37,14 +77,24 @@ const boundFieldFiles = readdirSync(INPUTS_DIR)
     return src.includes('useFieldInvalidDraftChannel') && src.includes('const unchanged =');
   });
 
-describe('felt-blur "unchanged"-guard inkluderer committedInvalidDraft', () => {
-  it('scanner faktisk et meningsfuldt antal bundne felt-komponenter (ikke vacuous)', () => {
-    // Per 2026-06: 8 komponenter (Amount/Date/Fraction/Integer/Percent/Text/Week/Year). Hvis globben
-    // pludselig finder langt færre, er scanneren brudt og guarden ville passere tomt.
-    expect(boundFieldFiles.length).toBeGreaterThanOrEqual(8);
+// Alle kilder der ejer en blur-commit-/immediate-clear-sti: den delte hook + de bespoke felter.
+const commitOwningSources = [ADAPTER_HOOK, ...bespokeFieldFiles];
+
+describe('blur-commit kortslutning inkluderer committedInvalidDraft', () => {
+  it('den delte hooks default-commit-betingelse refererer committedInvalidDraft', () => {
+    const src = readFileSync(ADAPTER_HOOK, 'utf8');
+    const marker = 'const defaultShouldCommit =';
+    const start = src.indexOf(marker);
+    expect(start).toBeGreaterThanOrEqual(0);
+    const statement = src.slice(start, src.indexOf(';', start) + 1);
+    expect(statement).toContain('committedInvalidDraft');
   });
 
-  it.each(boundFieldFiles.map((f) => [f.split(/[\\/]/).pop()!, f] as const))(
+  it('scanner faktisk mindst ét bespoke felt (StyledTextField) — ikke vacuous', () => {
+    expect(bespokeFieldFiles.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it.each(bespokeFieldFiles.map((f) => [f.split(/[\\/]/).pop()!, f] as const))(
     '%s: hver "unchanged"-kortslutning kræver committedInvalidDraft === undefined',
     (_name, file) => {
       const statements = extractUnchangedStatements(readFileSync(file, 'utf8'));
@@ -72,42 +122,30 @@ describe('felt-blur "unchanged"-guard inkluderer committedInvalidDraft', () => {
   });
 });
 
-/**
- * Find alle immediate-commit Delete/Backspace-clear-blokke (editor lukket) og returnér hver bloks tekst
- * fra Backspace/Delete-checket til det afsluttende `return;`. Disse blokke committer feltet straks ved
- * Delete og SKAL også rydde et evt. invalidDrafts-entry (de omgår useDraftField-commit-wrapperen).
- */
-const extractImmediateDeleteBlocks = (source: string): string[] => {
-  const blocks: string[] = [];
-  const marker = "e.key === 'Backspace' || e.key === 'Delete'";
-  let from = 0;
-  for (;;) {
-    const start = source.indexOf(marker, from);
-    if (start === -1) break;
-    const end = source.indexOf('return;', start);
-    const block = source.slice(start, end === -1 ? source.length : end + 'return;'.length);
-    blocks.push(block);
-    from = end === -1 ? source.length : end + 'return;'.length;
-  }
-  return blocks;
-};
+describe('migrerede felter delegerer commit-limen til useStyledFieldAdapter', () => {
+  it.each(HOOK_DELEGATING_FIELDS)('%s bruger useStyledFieldAdapter og har ingen egen blur-sti', (name) => {
+    const src = readFileSync(join(INPUTS_DIR, `${name}.tsx`), 'utf8');
+    expect(src).toContain('useStyledFieldAdapter');
+    // Må ikke genindføre en lokal commit-/clear-lim, der kunne divergere fra hook'en.
+    expect(src).not.toContain('useFieldInvalidDraftChannel');
+    expect(src).not.toContain("e.key === 'Backspace' || e.key === 'Delete'");
+  });
+});
 
 describe('immediate-Delete-clear rydder invalidDrafts', () => {
   it('scanner faktisk immediate-Delete-blokke (ikke vacuous)', () => {
-    const total = boundFieldFiles.reduce((n, f) => n + extractImmediateDeleteBlocks(readFileSync(f, 'utf8')).length, 0);
-    // Per 2026-06: hvert af de 8 felter har mindst én immediate-Delete-blok (Text har to).
-    expect(total).toBeGreaterThanOrEqual(8);
+    const total = commitOwningSources.reduce((n, f) => n + extractImmediateDeleteBlocks(readFileSync(f, 'utf8')).length, 0);
+    // Hook'en har én delt immediate-Delete-blok; StyledTextField har to (input + textarea).
+    expect(total).toBeGreaterThanOrEqual(3);
   });
 
-  it.each(boundFieldFiles.map((f) => [f.split(/[\\/]/).pop()!, f] as const))(
-    '%s: hver immediate-Delete-blok rydder invalidDrafts (clearInvalidDraft)',
+  it.each(commitOwningSources.map((f) => [f.split(/[\\/]/).pop()!, f] as const))(
+    '%s: hver immediate-Delete-commit-blok rydder invalidDrafts (clearInvalidDraft)',
     (_name, file) => {
       const blocks = extractImmediateDeleteBlocks(readFileSync(file, 'utf8'));
       expect(blocks.length).toBeGreaterThan(0);
       for (const block of blocks) {
-        // En immediate-commit-clear-blok kendes på at den committer (onCommit) og tømmer draften (setDraft).
-        const isCommitClear = block.includes('onCommit') && /setDraft(Base)?\(''\)/.test(block);
-        if (!isCommitClear) continue;
+        if (!isCommitClearBlock(block)) continue;
         expect(block).toContain('clearInvalidDraft');
       }
     }
@@ -125,7 +163,7 @@ describe('immediate-Delete-clear rydder invalidDrafts', () => {
     `;
     const [block] = extractImmediateDeleteBlocks(violating);
     expect(block).toBeDefined();
-    expect(block.includes('onCommit') && /setDraft(Base)?\(''\)/.test(block)).toBe(true);
+    expect(isCommitClearBlock(block)).toBe(true);
     expect(block).not.toContain('clearInvalidDraft');
   });
 });

@@ -2,15 +2,13 @@ import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import { interpretYear } from '../../utils/dateInputValidation';
 import StyledTextFieldBase from './StyledTextFieldBase';
-import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
-import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
+import { type DraftParse } from '../../hooks/useDraftField';
+import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { filterYearKeyDown } from './inputKeyFilters';
-import { readClipboardText } from '../../utils/clipboardUtils';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
 import { normalizeYearPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitHandler, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
-import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 
 export type StyledYearFieldProps = {
   value: number | undefined;
@@ -103,8 +101,6 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
     },
     ref
   ) => {
-    const inputElementRef = React.useRef<HTMLInputElement>(null);
-
     const parseYear: DraftParse<number | undefined> = React.useCallback(
       (draft, { mode }) => {
         const trimmed = draft.trim();
@@ -183,28 +179,41 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       [allowEmpty, maxYear, minYear, twoDigitYearPolicy]
     );
 
-    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
+    const getDraftForKey = React.useCallback((key: string): string | null => {
+      if (/^[0-9]$/.test(key)) return key;
+      return null;
+    }, []);
 
-    const { draft, setDraft, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown, commit } = useDraftField<
-      number | undefined
-    >({
+    const {
+      draft,
+      isEditorOpen,
+      error,
+      inputElementRef,
+      handleDraftChange,
+      handleFocus,
+      handleKeyDown,
+      handlePaste,
+      handleBlur,
+      handleMouseDown,
+      handleClick,
+    } = useStyledFieldAdapter<number | undefined>({
       value,
       format: formatYear,
       parse: parseYear,
       normalizeDraftOnCommit: trimToAlphanumericEdges,
-      onCommit: (nextValue) => {
-        onCommit?.(createCommitEvent(nextValue));
-        clearInvalidDraft?.();
-      },
-      onCommitInvalid,
-      committedInvalidDraft,
-      inputElementRef,
-      // Feltet ejer blur-commit eksplicit, så vi kan undlade touched/commit ved uændret blur
-      // og koordinere Enter/Escape-suppression med 2-trins editor-aktivering.
-      commitOnBlur: false,
+      getDraftForKey,
+      normalizePasteText: normalizeYearPaste,
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
+      onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
+      onFieldError,
+      onFocus,
+      onBlur,
+      onKeyDown: onKeyDownProp,
+      disabled,
+      keyFilter: filterYearKeyDown,
     });
 
-    // Parse-fejl persisteres i invalidDrafts via useDraftField og vises afledt herfra.
+    // Parse-fejl persisteres i invalidDrafts via useStyledFieldAdapter og vises afledt herfra.
     const visibleLocalError = error;
     const resolvedErrorMessage = externalError?.message ?? visibleLocalError?.message ?? '';
     const resolvedHasError = Boolean(externalError?.message) || Boolean(visibleLocalError?.message);
@@ -214,101 +223,6 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
       onErrorChange(resolvedHasError);
     }, [onErrorChange, resolvedHasError]);
 
-    const skipNextBlurCommitRef = React.useRef(false);
-
-    const handleDraftChange = React.useCallback(
-      (nextDraft: string) => {
-        skipNextBlurCommitRef.current = false;
-        setDraft(nextDraft);
-        onDraftChange?.(createDraftChangeEvent(nextDraft));
-      },
-      [onDraftChange, setDraft]
-    );
-
-    const getDraftForKey = React.useCallback((key: string): string | null => {
-      if (/^[0-9]$/.test(key)) return key;
-      return null;
-    }, []);
-
-    const activation = useTwoStageInputActivation<HTMLElement>({
-      disabled: Boolean(disabled),
-      getDraftForKey,
-      normalizePasteText: normalizeYearPaste,
-      onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
-    });
-
-    const handleFocus = React.useCallback(
-      (e: React.FocusEvent<HTMLInputElement>) => {
-        onFocusBase();
-        onFocus?.(e);
-      },
-      [onFocus, onFocusBase]
-    );
-
-    const handleKeyDown = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          if (e.key === 'Backspace' || e.key === 'Delete') {
-            e.preventDefault();
-            e.stopPropagation();
-            // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
-            // Parse og commit direkte (synkront) som table-felter gør
-            const normalized = trimToAlphanumericEdges('');
-            const result = parseYear(normalized, { mode: 'commit' });
-            // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
-            // (jf. StyledDateField/StyledAmountField).
-            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
-              onCommit?.(createCommitEvent(result.value));
-            }
-            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
-            // Vigtigt her: årstal-feltet er ofte "påkrævet" (parse('') er !ok), så uden denne rydning
-            // ville den gamle ugyldige værdi overleve clear.
-            clearInvalidDraft?.();
-            setDraft('');
-            return;
-          }
-          activation.handleKeyDown(e);
-          if (e.defaultPrevented) return;
-          onKeyDownProp?.(e);
-          return;
-        }
-
-        onKeyDown(e);
-        if (e.defaultPrevented && e.key === 'Enter') {
-          skipNextBlurCommitRef.current = true;
-        }
-        if (e.defaultPrevented && e.key === 'Escape') {
-          activation.closeEditor();
-          return;
-        }
-        if (!e.defaultPrevented) {
-          filterYearKeyDown(e);
-        }
-        onKeyDownProp?.(e);
-      },
-      [activation, clearInvalidDraft, committedInvalidDraft, onCommit, onKeyDown, onKeyDownProp, parseYear, setDraft, value]
-    );
-
-    const handlePaste = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          activation.handlePaste(e);
-          return;
-        }
-
-        const normalized = normalizeYearPaste(readClipboardText(e));
-        e.preventDefault();
-        e.stopPropagation();
-        if (normalized === '') return;
-
-        const input = inputElementRef.current;
-        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
-        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-        handleDraftChange(draft.slice(0, start) + normalized + draft.slice(end));
-      },
-      [activation, draft, handleDraftChange]
-    );
-
     return (
       <StyledTextFieldBase
         ref={ref}
@@ -317,33 +231,22 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
         onDraftChange={handleDraftChange}
         inputRef={inputElementRef}
         onFocus={handleFocus}
-        onBlur={(e) => {
-          onBlurBase(e);
-          // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
-          // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
-          const unchanged = draft === formatYear(value) && committedInvalidDraft === undefined;
-          if (!skipNextBlurCommitRef.current && !unchanged) {
-            commit();
-          }
-          if (activation.isEditorOpen) activation.closeEditor();
-          skipNextBlurCommitRef.current = false;
-          onBlur?.(e);
-        }}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        onMouseDown={activation.handleMouseDown}
-        onClick={activation.handleClick}
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
         onPaste={handlePaste}
         placeholder={placeholder}
         width={width}
         disabled={disabled}
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
-        htmlInputAttributes={{ maxLength: MAX_YEAR_DRAFT_LENGTH, inputMode: 'numeric', readOnly: !activation.isEditorOpen }}
+        htmlInputAttributes={{ maxLength: MAX_YEAR_DRAFT_LENGTH, inputMode: 'numeric', readOnly: !isEditorOpen }}
         sx={{
           '& input': {
             textAlign: 'center',
-            caretColor: activation.isEditorOpen ? 'auto' : 'transparent',
-            cursor: activation.isEditorOpen ? 'text' : 'pointer',
+            caretColor: isEditorOpen ? 'auto' : 'transparent',
+            cursor: isEditorOpen ? 'text' : 'pointer',
           },
           ...sx,
         }}

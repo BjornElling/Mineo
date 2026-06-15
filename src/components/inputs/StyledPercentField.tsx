@@ -1,10 +1,9 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
-import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
-import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
+import { type DraftParse } from '../../hooks/useDraftField';
+import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { filterPercentKeyDown } from './inputKeyFilters';
-import { readClipboardText } from '../../utils/clipboardUtils';
 import { prefixZeroBeforeLeadingComma, trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
 import { normalizePercentPaste } from '../../utils/inputPasteNormalization';
 import { formatPercentDraft, parsePercentDraftForCommit } from '../../utils/percentDraftCore';
@@ -17,7 +16,6 @@ import { INPUT_UNIT_SUFFIX } from '../../utils/inputUnit';
 import InputUnitAdornment from './InputUnitAdornment';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
-import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 import { assignRef } from '../../utils/refUtils';
 
 export type StyledPercentFieldValueChangeEvent = CommitEvent<number | undefined>;
@@ -104,15 +102,6 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
     },
     ref
   ) => {
-    const inputElementRef = React.useRef<HTMLInputElement>(null);
-    const assignInputRef = React.useCallback(
-      (node: HTMLInputElement | null) => {
-        inputElementRef.current = node;
-        assignRef(inputRef, node);
-      },
-      [inputRef]
-    );
-
     const configErrorMessage = React.useMemo(() => {
       if (!useDefaultPercentRange && minValue === undefined && maxValue === undefined) {
         return 'Ugyldig konfiguration: angiv minValue/maxValue eller useDefaultPercentRange';
@@ -261,46 +250,6 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       ]
     );
 
-    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
-
-    const { draft, setDraft, error, onFocus: onFocusBase, onBlur: onBlurBase, onKeyDown: onKeyDownBase, commit } =
-      useDraftField<number | undefined>({
-        value,
-        format: formatPercent,
-        parse: parsePercent,
-        normalizeDraftOnCommit: (draft) => prefixZeroBeforeLeadingComma(trimToNumericEdgesPreserveLeadingMinus(draft)),
-        onCommit: (nextValue) => {
-          lastCommittedDisplayRef.current = { value: nextValue, decimals: pendingCommitDecimalsRef.current };
-          onCommit?.(createCommitEvent(nextValue));
-          clearInvalidDraft?.();
-        },
-        onCommitInvalid,
-        committedInvalidDraft,
-        inputElementRef,
-        commitOnBlur: false,
-      });
-
-
-    // Parse-fejl persisteres i invalidDrafts via useDraftField og vises afledt herfra.
-    const visibleLocalError = error;
-    const resolvedHasError = hasConfigError || externalHasError || Boolean(visibleLocalError?.message);
-    const resolvedErrorMessage = hasConfigError
-      ? resolvedConfigErrorMessage
-      : externalHasError
-        ? externalHelperText
-        : visibleLocalError?.message ?? '';
-
-    const skipNextBlurCommitRef = React.useRef(false);
-
-    const handleDraftChange = React.useCallback(
-      (nextDraft: string) => {
-        skipNextBlurCommitRef.current = false;
-        setDraft(nextDraft);
-        onDraftChange?.(createDraftChangeEvent(nextDraft));
-      },
-      [onDraftChange, setDraft]
-    );
-
     const getDraftForKey = React.useCallback(
       (key: string): string | null => {
         const mapped = key === '.' ? ',' : key;
@@ -314,89 +263,68 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
       [allowDecimals]
     );
 
-    const activation = useTwoStageInputActivation<HTMLElement>({
-      disabled: Boolean(disabled || hasConfigError),
+    const keyFilter = React.useCallback(
+      (e: React.KeyboardEvent<HTMLInputElement>) =>
+        filterPercentKeyDown(e, {
+          allowNegative,
+          maxIntegerDigits: DEFAULT_PERCENT_TYPING_MAX_INTEGER_DIGITS,
+          maxIntegerPart: DEFAULT_PERCENT_PASTE_MAX,
+          allowDecimals,
+          maxValue: DEFAULT_PERCENT_PASTE_MAX,
+        }),
+      [allowDecimals, allowNegative]
+    );
+
+    const {
+      draft,
+      isEditorOpen,
+      error,
+      inputElementRef,
+      handleDraftChange,
+      handleFocus,
+      handleKeyDown,
+      handlePaste,
+      handleBlur,
+      handleMouseDown,
+      handleClick,
+    } = useStyledFieldAdapter<number | undefined>({
+      value,
+      format: formatPercent,
+      parse: parsePercent,
+      normalizeDraftOnCommit: (draft) => prefixZeroBeforeLeadingComma(trimToNumericEdgesPreserveLeadingMinus(draft)),
       getDraftForKey,
       normalizePasteText: (text) => normalizePercentPaste(text, { maxValue: DEFAULT_PERCENT_PASTE_MAX }),
-      onReplaceDraft: (nextDraft) => handleDraftChange(nextDraft),
+      onCommit: (nextValue) => {
+        lastCommittedDisplayRef.current = { value: nextValue, decimals: pendingCommitDecimalsRef.current };
+        onCommit?.(createCommitEvent(nextValue));
+      },
+      onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
+      onFieldError,
+      onFocus,
+      onBlur,
+      onKeyDown,
+      disabled,
+      blocked: hasConfigError,
+      keyFilter,
+      escapeRevertsToFormatted: true,
     });
 
-    const handleFocus = React.useCallback(
-      (e: React.FocusEvent<HTMLInputElement>) => {
-        onFocusBase();
-        onFocus?.(e);
+    const assignInputRef = React.useCallback(
+      (node: HTMLInputElement | null) => {
+        inputElementRef.current = node;
+        assignRef(inputRef, node);
       },
-      [onFocus, onFocusBase]
+      [inputElementRef, inputRef]
     );
 
-    const handleKeyDown = React.useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          if (e.key === 'Backspace' || e.key === 'Delete') {
-            e.preventDefault();
-            e.stopPropagation();
-            // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
-            // Parse og commit direkte (synkront) som table-felter gør
-            const normalized = prefixZeroBeforeLeadingComma(trimToNumericEdgesPreserveLeadingMinus(''));
-            const result = parsePercent(normalized, { mode: 'commit' });
-            // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame ved
-            // clear af et allerede tomt felt (jf. StyledDateField/StyledAmountField).
-            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
-              onCommit?.(createCommitEvent(result.value));
-            }
-            // Delete tømmer feltet → ryd evt. ikke-committbar rå draft (jf. StyledDateField).
-            clearInvalidDraft?.();
-            setDraft('');
-            return;
-          }
-          activation.handleKeyDown(e);
-          if (e.defaultPrevented) return;
-          onKeyDown?.(e);
-          return;
-        }
-
-        onKeyDownBase(e);
-        if (e.defaultPrevented && e.key === 'Enter') {
-          skipNextBlurCommitRef.current = true;
-        }
-        if (e.defaultPrevented && e.key === 'Escape') {
-          // Revert draft til committed value og luk editor uden commit.
-          handleDraftChange(formatPercent(value));
-          skipNextBlurCommitRef.current = true; // ekstra sikkerhed: blur efter close må ikke committe
-          activation.closeEditor();
-          return;
-        }
-
-        if (!e.defaultPrevented) {
-          filterPercentKeyDown(e, {
-            allowNegative,
-            maxIntegerDigits: DEFAULT_PERCENT_TYPING_MAX_INTEGER_DIGITS,
-            maxIntegerPart: DEFAULT_PERCENT_PASTE_MAX,
-            allowDecimals,
-            maxValue: DEFAULT_PERCENT_PASTE_MAX,
-          });
-        }
-        onKeyDown?.(e);
-    }, [activation, allowDecimals, allowNegative, clearInvalidDraft, committedInvalidDraft, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
-
-    const handlePaste = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          activation.handlePaste(e);
-          return;
-        }
-
-        const normalized = normalizePercentPaste(readClipboardText(e), { maxValue: DEFAULT_PERCENT_PASTE_MAX });
-        e.preventDefault();
-        e.stopPropagation();
-        if (normalized === '') return;
-
-        const input = inputElementRef.current;
-        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
-        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-        handleDraftChange(draft.slice(0, start) + normalized + draft.slice(end));
-      },
-      [activation, draft, handleDraftChange]
-    );
+    // Parse-fejl persisteres i invalidDrafts via useStyledFieldAdapter og vises afledt herfra.
+    const visibleLocalError = error;
+    const resolvedHasError = hasConfigError || externalHasError || Boolean(visibleLocalError?.message);
+    const resolvedErrorMessage = hasConfigError
+      ? resolvedConfigErrorMessage
+      : externalHasError
+        ? externalHelperText
+        : visibleLocalError?.message ?? '';
 
     return (
       <StyledTextFieldBase
@@ -406,29 +334,10 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         onDraftChange={handleDraftChange}
         inputRef={assignInputRef}
         onFocus={handleFocus}
-        onBlur={(e) => {
-          onBlurBase(e);
-
-          // Aldrig "unchanged" mens en ikke-committbar rå draft lever — ellers ryddes invalidDrafts ikke
-          // ved clear/edit af et ugyldigt felt, og feltet re-syncer til den gamle ugyldige værdi (jf. StyledDateField).
-          const unchanged = draft === formatPercent(value) && committedInvalidDraft === undefined;
-
-          // Commit når draft faktisk afviger fra committed value.
-          // Dette må ikke afhænge af activation.isEditorOpen, ellers får vi "satser committer aldrig" bugs.
-          if (!skipNextBlurCommitRef.current && !unchanged) {
-            commit();
-          }
-
-          // Luk editor hvis den var åben.
-          if (activation.isEditorOpen) activation.closeEditor();
-
-          // Reset flags altid på blur.
-          skipNextBlurCommitRef.current = false;
-          onBlur?.(e);
-        }}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        onMouseDown={activation.handleMouseDown}
-        onClick={activation.handleClick}
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
         onPaste={handlePaste}
         placeholder={placeholder}
         width={width}
@@ -442,14 +351,14 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         htmlInputAttributes={{
           inputMode: allowDecimals ? 'decimal' : 'numeric',
           maxLength,
-          readOnly: !activation.isEditorOpen,
+          readOnly: !isEditorOpen,
         }}
         sx={{
           '& .MuiInputBase-input': {
             textAlign: 'right',
             fontVariantNumeric: 'tabular-nums',
-            caretColor: activation.isEditorOpen ? 'auto' : 'transparent',
-            cursor: activation.isEditorOpen ? 'text' : 'pointer',
+            caretColor: isEditorOpen ? 'auto' : 'transparent',
+            cursor: isEditorOpen ? 'text' : 'pointer',
           },
           ...sx,
         }}

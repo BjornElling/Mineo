@@ -1,21 +1,19 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
-import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
-import { useTwoStageInputActivation } from '../../hooks/useTwoStageInputActivation';
+import { type DraftParse } from '../../hooks/useDraftField';
+import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import type { ISODateString } from '../../types/branded';
 import { isISODateString, isoToDanish } from '../../types/branded';
 import { validateISODateRange } from '../../utils/isoDateHelpers';
 import { resolveDateRangeErrorMessage, type DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import { filterDateLikeKeyDown } from './inputKeyFilters';
-import { readClipboardText } from '../../utils/clipboardUtils';
 import { normalizeDateDraftOnCommit } from '../../utils/dateDraftNormalization';
 import { INSERT_TODAY_DATE_EVENT } from '../../utils/insertTodayDate';
 import { normalizeDatePaste } from '../../utils/inputPasteNormalization';
 import { assignRef } from '../../utils/refUtils';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
-import { useFieldInvalidDraftChannel } from '../../hooks/useFormFieldErrors';
 import { isInteractiveDevLoggingEnabled } from '../../utils/debugRuntime';
 import { parseDateDraftForCommit } from '../../utils/dateDraftCommit';
 
@@ -93,15 +91,6 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
     },
     ref
   ) => {
-    const inputElementRef = React.useRef<HTMLInputElement>(null);
-    const assignInputRef = React.useCallback(
-      (node: HTMLInputElement | null) => {
-        inputElementRef.current = node;
-        assignRef(inputRef, node);
-      },
-      [inputRef]
-    );
-
     const effectiveMinDate = minDate;
     const effectiveMaxDate = maxDate;
     const specialFraTilRole = specialRangeErrors?.fraTilRole;
@@ -165,49 +154,61 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       return { ok: true, value: parsed.iso };
     }, []);
 
-    const { committedInvalidDraft, onCommitInvalid, clearInvalidDraft } = useFieldInvalidDraftChannel(onFieldError);
+    const resetRangeError = React.useCallback(() => setRangeErrorMessage(''), []);
+
+    const getDraftForKey = React.useCallback((key: string): string | null => {
+      if (/^[0-9]$/.test(key)) return key;
+      return null;
+    }, []);
 
     const {
       draft,
-      setDraft: setDraftBase,
+      isEditorOpen,
       touched,
       error,
-      onFocus: onFocusBase,
-      onBlur: onBlurBase,
-      onKeyDown: onKeyDownBase,
-      commit,
-    } = useDraftField<ISODateString | undefined>({
+      inputElementRef,
+      handleDraftChange,
+      handleFocus,
+      handleKeyDown,
+      handlePaste,
+      handleBlur,
+      handleMouseDown,
+      handleClick,
+    } = useStyledFieldAdapter<ISODateString | undefined>({
       value,
       format: formatISODateAsDanish,
       parse: parseDate,
       normalizeDraftOnCommit: normalizeDateDraftOnCommit,
-      onCommit: (nextValue) => {
-        onCommit?.(createCommitEvent(nextValue));
-        clearInvalidDraft?.();
-      },
-      onCommitInvalid,
-      committedInvalidDraft,
-      inputElementRef,
-      commitOnBlur: false,
+      getDraftForKey,
+      normalizePasteText: normalizeDatePaste,
+      singleStageClick,
+      onCommit: (nextValue) => onCommit?.(createCommitEvent(nextValue)),
+      onDraftChange: (nextDraft) => onDraftChange?.(createDraftChangeEvent(nextDraft)),
+      onFieldError,
+      onFocus,
+      onBlur,
+      onKeyDown,
+      disabled,
+      keyFilter: filterDateLikeKeyDown,
+      gateKeyFilterOnInvalidTouched: true,
+      onDraftChangeSideEffect: resetRangeError,
+      onClearSideEffect: resetRangeError,
+      setPasteCaret: true,
     });
 
-    const skipNextBlurCommitRef = React.useRef(false);
-
-    const setDraft = React.useCallback(
-      (nextDraft: string) => {
-        skipNextBlurCommitRef.current = false;
-        setRangeErrorMessage('');
-        setDraftBase(nextDraft);
-        onDraftChange?.(createDraftChangeEvent(nextDraft));
+    const assignInputRef = React.useCallback(
+      (node: HTMLInputElement | null) => {
+        inputElementRef.current = node;
+        assignRef(inputRef, node);
       },
-      [onDraftChange, setDraftBase]
+      [inputElementRef, inputRef]
     );
 
     const handleInsertTodayDateEvent = React.useCallback((event: Event) => {
       const detail = event instanceof CustomEvent ? event.detail : undefined;
       if (!isISODateString(detail)) return;
-      setDraft(formatISODateAsDanish(detail));
-    }, [setDraft]);
+      handleDraftChange(formatISODateAsDanish(detail));
+    }, [handleDraftChange]);
 
     React.useEffect(() => {
       const input = inputElementRef.current;
@@ -216,20 +217,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       return () => {
         input.removeEventListener(INSERT_TODAY_DATE_EVENT, handleInsertTodayDateEvent);
       };
-    }, [handleInsertTodayDateEvent]);
-
-    const getDraftForKey = React.useCallback((key: string): string | null => {
-      if (/^[0-9]$/.test(key)) return key;
-      return null;
-    }, []);
-
-    const activation = useTwoStageInputActivation<HTMLElement>({
-      disabled: Boolean(disabled),
-      singleStageClick,
-      getDraftForKey,
-      normalizePasteText: normalizeDatePaste,
-      onReplaceDraft: (nextDraft) => setDraft(nextDraft),
-    });
+    }, [handleInsertTodayDateEvent, inputElementRef]);
 
     // Range-validering er et separat anliggende fra parsing:
     // - Parsing afgør om vi kan committe en ISO-dato.
@@ -298,7 +286,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         resolvedErrorMessage,
         minDate: effectiveMinDate,
         maxDate: effectiveMaxDate,
-        editorOpen: activation.isEditorOpen,
+        editorOpen: isEditorOpen,
       });
     }, [
       value,
@@ -313,7 +301,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       resolvedErrorMessage,
       effectiveMinDate,
       effectiveMaxDate,
-      activation.isEditorOpen,
+      isEditorOpen,
     ]);
 
     // Underret forælderen om fejltilstand
@@ -332,7 +320,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
         onFieldErrorDepsRef.current = { visibleRangeErrorMessage, onFieldError };
       }
 
-      // Parse-fejl (ikke-committbar dato) persisteres i invalidDrafts via useDraftField.onCommitInvalid.
+      // Parse-fejl (ikke-committbar dato) persisteres i invalidDrafts via useStyledFieldAdapter-kanalen.
       // Kun den blocksSave:false range-fejl (committet, men uden for interval) rapporteres til fieldErrors.
       if (typeof onFieldError === 'function') {
         if (visibleRangeErrorMessage) {
@@ -349,138 +337,30 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       }
     }, [visibleRangeErrorMessage, onFieldError]);
 
-    const handleFocus = React.useCallback(
-      (e: React.FocusEvent<HTMLInputElement>) => {
-        onFocusBase();
-        onFocus?.(e);
-      },
-      [onFocus, onFocusBase]
-    );
-
-    const handleKeyDown = React.useCallback(
-      (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          if (e.key === 'Backspace' || e.key === 'Delete') {
-            e.preventDefault();
-            e.stopPropagation();
-            // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
-            // Parse og commit direkte (synkront) som table-felter gør
-            const normalized = normalizeDateDraftOnCommit('');
-            const result = parseDate(normalized, { mode: 'commit' });
-            // Commit kun hvis rydningen faktisk ændrer noget (committed værdi eller en rå
-            // ikke-committbar draft). Et ubetinget commit(undefined) på et allerede tomt felt
-            // ville skrive en identisk værdi til storen og give en overflødig undo-frame.
-            if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
-              onCommit?.(createCommitEvent(result.value));
-            }
-            // Delete tømmer feltet → ryd også en evt. ikke-committbar rå draft. Ellers overlever det
-            // stale invalidDrafts-entry (feltet re-syncer til den gamle ugyldige værdi, og Gem blokeres).
-            // Denne immediate-commit-sti omgår useDraftField-wrapperen, der ellers rydder draften.
-            clearInvalidDraft?.();
-            setDraft('');
-            return;
-          }
-          activation.handleKeyDown(e);
-          if (e.defaultPrevented) return;
-          onKeyDown?.(e);
-          return;
-        }
-
-        onKeyDownBase(e);
-        if (e.defaultPrevented && e.key === 'Enter') {
-          skipNextBlurCommitRef.current = true;
-        }
-        if (e.defaultPrevented && e.key === 'Escape') {
-          activation.closeEditor();
-          return;
-        }
-
-        if (!e.defaultPrevented && !(touched && error?.kind === 'invalid')) {
-          filterDateLikeKeyDown(e);
-        }
-        onKeyDown?.(e);
-      },
-      [activation, clearInvalidDraft, committedInvalidDraft, error?.kind, onCommit, onKeyDown, onKeyDownBase, parseDate, setDraft, touched, value]
-    );
-
-    const handlePaste = React.useCallback(
-      (e: React.ClipboardEvent<HTMLInputElement>) => {
-        if (!activation.isEditorOpen) {
-          activation.handlePaste(e);
-          return;
-        }
-
-        const normalized = normalizeDatePaste(readClipboardText(e));
-        e.preventDefault();
-        e.stopPropagation();
-        if (normalized === '') return;
-
-        const input = inputElementRef.current;
-        const start = typeof input?.selectionStart === 'number' ? input.selectionStart : draft.length;
-        const end = typeof input?.selectionEnd === 'number' ? input.selectionEnd : start;
-        setDraft(draft.slice(0, start) + normalized + draft.slice(end));
-
-        const nextCaret = start + normalized.length;
-        requestAnimationFrame(() => {
-          const el = inputElementRef.current;
-          if (!el) return;
-          try {
-            el.setSelectionRange(nextCaret, nextCaret);
-          } catch {
-            // no-op
-          }
-        });
-      },
-      [activation, draft, setDraft]
-    );
-
     return (
       <StyledTextFieldBase
         ref={ref}
         name={name}
         draft={draft}
-        onDraftChange={setDraft}
+        onDraftChange={handleDraftChange}
         inputRef={assignInputRef}
         onFocus={handleFocus}
-        onBlur={(e) => {
-          onBlurBase(e);
-          // Aldrig "unchanged" mens en ikke-committbar rå draft (committedInvalidDraft) lever: ellers
-          // springes blur-commit'et over når draften matcher den committede værdi (fx ryddet til tom),
-          // så det stale invalidDrafts-entry aldrig ryddes → feltet re-syncer til den gamle ugyldige
-          // værdi og Gem blokeres fortsat. En clear/edit af et ugyldigt felt SKAL kunne committe.
-          const unchanged = draft === formatISODateAsDanish(value) && committedInvalidDraft === undefined;
-          debugStyledDateField('blur', {
-            unchanged,
-            skipNextBlurCommit: skipNextBlurCommitRef.current,
-            draft,
-            value,
-          });
-          if (!skipNextBlurCommitRef.current && !unchanged) {
-            debugStyledDateField('commit-from-blur', {
-              draft,
-              value,
-            });
-            commit();
-          }
-          if (activation.isEditorOpen) activation.closeEditor();
-          skipNextBlurCommitRef.current = false;
-          onBlur?.(e);
-        }}
+        onBlur={handleBlur}
         onKeyDown={handleKeyDown}
-        onMouseDown={activation.handleMouseDown}
-        onClick={activation.handleClick}
+        onMouseDown={handleMouseDown}
+        onClick={handleClick}
         onPaste={handlePaste}
         placeholder={placeholder}
         width={width}
         disabled={disabled}
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
-        htmlInputAttributes={{ inputMode: 'numeric', maxLength: MAX_DRAFT_LENGTH, readOnly: !activation.isEditorOpen }}
+        htmlInputAttributes={{ inputMode: 'numeric', maxLength: MAX_DRAFT_LENGTH, readOnly: !isEditorOpen }}
         sx={{
           '& .MuiInputBase-input': {
             textAlign: 'center',
-            caretColor: activation.isEditorOpen ? 'auto' : 'transparent',
-            cursor: activation.isEditorOpen ? 'text' : 'pointer',
+            caretColor: isEditorOpen ? 'auto' : 'transparent',
+            cursor: isEditorOpen ? 'text' : 'pointer',
           },
           ...sx,
         }}
