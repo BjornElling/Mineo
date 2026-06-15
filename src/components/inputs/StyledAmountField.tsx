@@ -361,9 +361,8 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     );
 
     const displayDraft = activation.isEditorOpen ? draft : localHasError ? draft : formatAmount(value);
-    // Enheden ("kr.") rendres som adornment uden for input-værdien (jf. InputUnitAdornment): synlig i
-    // hvile, skjult mens feltet redigeres eller viser en rå parse-fejl, dæmpet når feltet er tomt.
-    const showUnit = !activation.isEditorOpen && !localHasError;
+    // Enheden ("kr.") rendres som adornment uden for input-værdien (jf. InputUnitAdornment): altid
+    // synlig — også under indtastning — og dæmpet når der intet er vist (placeholder-tilstand).
 
     const handlePaste = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -452,11 +451,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
         }}
         endAdornment={
           <>
-            <InputUnitAdornment
-              unitSuffix={INPUT_UNIT_SUFFIX.currency}
-              hidden={!showUnit}
-              muted={value === undefined}
-            />
+            <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.currency} muted={displayDraft.trim() === ''} />
             {value?.kind === 'expression' ? (
               <span
                 className="mineo-expression-indicator"

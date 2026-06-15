@@ -103,6 +103,20 @@ const TableAmountInput = React.memo(
       coreHandleDoubleClick();
     }, [coreHandleDoubleClick]);
 
+    // Klik uden for selve <input> (på enheds-adornment eller cellens padding) skal fokusere inputtet,
+    // så grid-aktiveringen åbner editoren — ligesom et klik direkte på inputtet. Uden dette ville et
+    // klik på "kr."-adornmentet ramme InputBase-roden (en div) og aldrig fokusere cellen.
+    const inputElRef = core.inputElRef;
+    const handleFieldMouseDown = React.useCallback(
+      (e: React.MouseEvent) => {
+        if (locked) return;
+        if (e.target === inputElRef.current) return;
+        e.preventDefault();
+        inputElRef.current?.focus();
+      },
+      [inputElRef, locked]
+    );
+
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>
         <Tooltip title={core.showError ? core.errorMessage : ''} arrow placement="top">
@@ -119,12 +133,9 @@ const TableAmountInput = React.memo(
               onPaste={core.handlePaste}
               onCopy={core.handleCopy}
               onDoubleClick={handleDoubleClick}
+              onMouseDown={handleFieldMouseDown}
               endAdornment={
-                <InputUnitAdornment
-                  unitSuffix={INPUT_UNIT_SUFFIX.currency}
-                  hidden={core.isEditing || core.hasError}
-                  muted={core.renderedValue === ''}
-                />
+                <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.currency} muted={core.renderedValue === ''} />
               }
               placeholder={core.cellFocused && !core.isReadOnly ? '' : placeholder}
               inputProps={{
@@ -145,6 +156,8 @@ const TableAmountInput = React.memo(
                   tableKind: gridApi.tableKind,
                   locked,
                 }),
+                // Pegefinger over hele feltet (inkl. enheds-adornment) når det ikke redigeres.
+                cursor: core.isEditing ? 'text' : 'pointer',
                 ...(core.cellFocused ? { outline: 'none' } : {}),
                 '& .MuiInputBase-input': {
                   ...getTableInputElementStyles({

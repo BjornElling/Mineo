@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { GridCoreProvider } from '../../../components/tables/gridCore/gridCoreContext';
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
@@ -71,6 +71,20 @@ const setup = (
 
 describe('TableAmountInput expression behavior', () => {
   const TEST_TIMEOUT_MS = 15000;
+
+  it('klik på kr.-enheden fokuserer cellens input (åbner via grid-aktivering)', async () => {
+    const { input, setEditingCell } = setup({ kind: 'number', value: 12500 });
+    setEditingCell(null);
+
+    expect(input).not.toHaveFocus();
+
+    // Enheds-adornmentet har pointer-events: none, så et rigtigt klik passerer igennem til feltet;
+    // feltets onMouseDown fokuserer da cellens input, så grid-aktiveringen kan åbne editoren.
+    const adornment = screen.getByText('kr.');
+    fireEvent.mouseDown(adornment);
+
+    expect(input).toHaveFocus();
+  }, TEST_TIMEOUT_MS);
 
   it('preserves expression errors across blur, focus, and re-edit', async () => {
     const user = userEvent.setup();

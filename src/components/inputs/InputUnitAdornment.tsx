@@ -6,27 +6,25 @@ import { InputAdornment } from '@mui/material';
  * tabelfelter. Enheden er rent visuel og ligger uden for selve `input.value`, så markør, kopiering
  * og feltbredde er upåvirkede.
  *
- * Adornmentet er altid monteret (pladsen reserveres, så feltet ikke hopper), men dets tekst skjules
- * under indtastning via `hidden` (valgt UX: enhed i hvile, skjult under indtastning). Når feltet er
- * tomt, dæmpes farven til placeholder-niveau, så enheden ikke fremstår som indtastet indhold.
+ * Enheden vises altid — også mens feltet redigeres — så feltets udtryk er roligt og forudsigeligt.
+ * Når feltet er tomt, dæmpes farven til placeholder-niveau, så enheden ikke fremstår som indtastet
+ * indhold. `pointerEvents: none` lader klik passere igennem til feltet, så hele feltet (inkl. enheden)
+ * åbner editoren.
  *
  * `unitSuffix` indeholder det ledende mellemrum (fx " kr." / " %") — referér `INPUT_UNIT_SUFFIX`.
  */
 export type InputUnitAdornmentProps = Readonly<{
   unitSuffix: string;
-  /** Skjul enheds-teksten (men behold den reserverede plads) — typisk mens feltet redigeres. */
-  hidden: boolean;
   /** Dæmp farven til placeholder-niveau — typisk når feltet er tomt. */
   muted: boolean;
 }>;
 
-const InputUnitAdornment = ({ unitSuffix, hidden, muted }: InputUnitAdornmentProps) => (
+const InputUnitAdornment = ({ unitSuffix, muted }: InputUnitAdornmentProps) => (
   <InputAdornment
     position="end"
     sx={{
       marginLeft: 0,
       pointerEvents: 'none',
-      visibility: hidden ? 'hidden' : 'visible',
       color: muted ? 'var(--mineo-color-placeholder)' : 'inherit',
       font: 'inherit',
       '& span': { font: 'inherit' },

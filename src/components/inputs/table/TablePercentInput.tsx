@@ -100,6 +100,19 @@ const TablePercentInput = React.memo(
       inputRef,
     });
 
+    // Klik uden for selve <input> (på enheds-adornment eller cellens padding) skal fokusere inputtet,
+    // så grid-aktiveringen åbner editoren — ligesom et klik direkte på inputtet.
+    const inputElRef = core.inputElRef;
+    const handleFieldMouseDown = React.useCallback(
+      (e: React.MouseEvent) => {
+        if (locked) return;
+        if (e.target === inputElRef.current) return;
+        e.preventDefault();
+        inputElRef.current?.focus();
+      },
+      [inputElRef, locked]
+    );
+
     return (
       <Box sx={{ position: 'relative', width: '100%', height: '100%', ...sx }}>
         <Tooltip title={core.showError ? core.errorMessage : ''} arrow placement="top">
@@ -115,12 +128,9 @@ const TablePercentInput = React.memo(
               onKeyDown={core.handleKeyDown}
               onPaste={core.handlePaste}
               onCopy={core.handleCopy}
+              onMouseDown={handleFieldMouseDown}
               endAdornment={
-                <InputUnitAdornment
-                  unitSuffix={INPUT_UNIT_SUFFIX.percent}
-                  hidden={core.isEditing || core.hasError}
-                  muted={core.renderedValue === ''}
-                />
+                <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={core.renderedValue === ''} />
               }
               placeholder={core.cellFocused && !core.isReadOnly ? '' : placeholder}
               inputProps={{
@@ -141,6 +151,8 @@ const TablePercentInput = React.memo(
                   tableKind: gridApi.tableKind,
                   locked,
                 }),
+                // Pegefinger over hele feltet (inkl. enheds-adornment) når det ikke redigeres.
+                cursor: core.isEditing ? 'text' : 'pointer',
                 ...(core.cellFocused ? { outline: 'none' } : {}),
                 '& .MuiInputBase-input': {
                   ...getTableInputElementStyles({

@@ -378,12 +378,6 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         onKeyDown?.(e);
     }, [activation, allowDecimals, allowNegative, clearInvalidDraft, committedInvalidDraft, formatPercent, handleDraftChange, onCommit, onKeyDown, onKeyDownBase, parsePercent, setDraft, value]);
 
-    // Enheden ("%") rendres som adornment uden for input-værdien (jf. InputUnitAdornment): synlig i
-    // hvile, skjult mens feltet redigeres eller viser en rå parse-fejl, dæmpet når feltet er tomt.
-    // Skjules under indtastning (valgt UX), så markør/værdi er upåvirket — som beløbs- og tabelfelter.
-    const localHasError = Boolean(visibleLocalError?.message);
-    const showUnit = !activation.isEditorOpen && !localHasError;
-
     const handlePaste = React.useCallback(
       (e: React.ClipboardEvent<HTMLInputElement>) => {
         if (!activation.isEditorOpen) {
@@ -443,7 +437,7 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
         error={resolvedHasError}
         helperText={resolvedErrorMessage}
         endAdornment={
-          <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} hidden={!showUnit} muted={draft.trim() === ''} />
+          <InputUnitAdornment unitSuffix={INPUT_UNIT_SUFFIX.percent} muted={draft.trim() === ''} />
         }
         htmlInputAttributes={{
           inputMode: allowDecimals ? 'decimal' : 'numeric',

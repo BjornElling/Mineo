@@ -25,7 +25,7 @@ describe('StyledPercentField', () => {
     expect(input.readOnly).toBe(false);
   });
 
-  it('viser enheden i hvile og skjuler den under indtastning', async () => {
+  it('viser enheden både i hvile og under indtastning, uden for input-værdien', async () => {
     const user = userEvent.setup();
     render(<StyledPercentField value={12.5} useDefaultPercentRange />);
 
@@ -36,12 +36,13 @@ describe('StyledPercentField', () => {
     expect(window.getComputedStyle(adornment).visibility).toBe('visible');
     expect(input).toHaveValue('12,5');
 
-    // Under indtastning: enheden skjules (men pladsen bevares), så feltet ikke hopper.
+    // Under indtastning: enheden forbliver synlig, og værdien er stadig kun tallet.
     const inputRoot = input.closest('.MuiOutlinedInput-root') as HTMLElement;
     await user.click(inputRoot);
     await user.click(inputRoot);
     expect(input.readOnly).toBe(false);
-    expect(window.getComputedStyle(adornment).visibility).toBe('hidden');
+    expect(window.getComputedStyle(adornment).visibility).toBe('visible');
+    expect(input).toHaveValue('12,5');
   });
 
   it('blokerer typing over 100 selv når maxValue er højere', async () => {
