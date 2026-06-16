@@ -54,7 +54,13 @@ type CellHarness = {
   rerender: () => void;
 };
 
-const renderCell = (gridCell: GridCellCoord, value: string, rowScope = ''): CellHarness => {
+const renderCell = (
+  gridCell: GridCellCoord,
+  value: string,
+  rowScope = '',
+  onBlur?: (e: { target: { value: string } }) => void,
+  adapter: TableInputAdapter<string, string, ReturnType<typeof makeStringFingerprintFromCanonical>> = createDateLikeAdapter()
+): CellHarness => {
   const state: { editingCell: GridCellCoord | null } = { editingCell: null };
   let handle: GridCellEditorHandle | null = null;
 
@@ -85,7 +91,7 @@ const renderCell = (gridCell: GridCellCoord, value: string, rowScope = ''): Cell
   );
 
   const { result, rerender } = renderHook(
-    () => useTableInputCore({ adapter: createDateLikeAdapter(), gridCell, value }),
+    () => useTableInputCore({ adapter, gridCell, value, onBlur }),
     { wrapper }
   );
 
@@ -253,6 +259,78 @@ describe('tabelcelle undo/redo af ugyldige indtastninger (ende-til-ende)', () =>
     expect(drafts()[fp]).toBe('12');
     undo();
     expect(drafts()[fp]).toBeUndefined();
+  });
+
+  it('rettelse ugyldig→gyldig: value-commit (onBlur) kører FØR invalid-draft-clear (coalesce-rækkefølge)', () => {
+    // Regression: useTableInputCore committede tidligere clearInvalidDraft FØR onBlur. FormPersistenceContexts
+    // asymmetriske coalescing kræver omvendt rækkefølge (value-commit sætter markøren, den parrede clear rider
+    // på den) for at give ÉN undo-frame i stedet for to. Vi beviser rækkefølgen ved at lade onBlur observere,
+    // at den ugyldige draft STADIG er til stede når value-commit'et fyrer (clear er endnu ikke kørt).
+    let draftPresentAtValueCommit: boolean | null = null;
+    const fp = pathFor('row1:2');
+    const onBlur = () => {
+      draftPresentAtValueCommit = drafts()[fp] !== undefined;
+    };
+    const h = renderCell({ rowId: 'row1', colIndex: 2 }, '', '', onBlur);
+
+    typeAndCommit(h, '12'); // ugyldig → skriver invalid draft
+    expect(drafts()[fp]).toBe('12');
+
+    typeAndCommit(h, '01-01-2020'); // gyldig → value-commit (onBlur) EFTERFULGT af clear
+    expect(draftPresentAtValueCommit).toBe(true); // value-commit kørte før clear
+    expect(drafts()[fp]).toBeUndefined(); // clear kørte (efter value-commit)
+  });
+
+  it('DEV-guard: adapter med visualErrorMessage uden getCommittedVisualError logger fejl (parret invariant)', () => {
+    // En adapter der kan returnere en committbar-men-visuel-fejl (out-of-range), men IKKE implementerer
+    // getCommittedVisualError, ville få den visuelle fejl ryddet ved editor-luk. Guarden i useTableInputCore
+    // skal fange parrings-bruddet i DEV. (Selv-test af guarden, jf. guard-self-test-princippet.)
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      // Violating adapter: parse af "99" er committbar men markeret som visuel fejl; ingen getCommittedVisualError.
+      const violating: TableInputAdapter<string, string, ReturnType<typeof makeStringFingerprintFromCanonical>> = {
+        format: (v) => v,
+        parse: (draft) => {
+          const t = draft.trim();
+          if (t === '') return { ok: true, value: '' };
+          return { ok: true, value: t, visualErrorMessage: 'Uden for interval' };
+        },
+        toCommittedPayload: (v) => ({ model: v, canonical: v, fingerprint: makeStringFingerprintFromCanonical(v) }),
+        isValidStartKey: (key) => key.length === 1,
+      };
+      const h = renderCell({ rowId: 'row9', colIndex: 4 }, '', '', undefined, violating);
+      typeAndCommit(h, '99');
+      expect(consoleError).toHaveBeenCalledWith(
+        expect.stringContaining('getCommittedVisualError')
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it('DEV-guard: parret adapter (visualErrorMessage + getCommittedVisualError) logger IKKE', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      const paired: TableInputAdapter<string, string, ReturnType<typeof makeStringFingerprintFromCanonical>> = {
+        format: (v) => v,
+        parse: (draft) => {
+          const t = draft.trim();
+          if (t === '') return { ok: true, value: '' };
+          return { ok: true, value: t, visualErrorMessage: 'Uden for interval' };
+        },
+        toCommittedPayload: (v) => ({ model: v, canonical: v, fingerprint: makeStringFingerprintFromCanonical(v) }),
+        getCommittedVisualError: (v) => (v === '' ? '' : 'Uden for interval'),
+        isValidStartKey: (key) => key.length === 1,
+      };
+      const h = renderCell({ rowId: 'row9', colIndex: 5 }, '', '', undefined, paired);
+      typeAndCommit(h, '99');
+      const guardCalls = consoleError.mock.calls.filter((args) =>
+        typeof args[0] === 'string' && args[0].includes('getCommittedVisualError')
+      );
+      expect(guardCalls).toEqual([]);
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it('Escape (cancelEdit) på en committet ugyldig draft er undo-bar', () => {

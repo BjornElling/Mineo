@@ -378,13 +378,15 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
 
   const updateBilag = React.useCallback(
     (key: keyof typeof bilagSelection, checked: boolean) => {
+      // fieldPath = bilag-nøglen (matcher checkboxens name) → undo/redo lander fokus på den rette checkbox
+      // (jf. mineo-field-pattern.md). Samme konvention som visUdvidetSpecifikation...-toggle nedenfor.
       setValues((prev) => ({
         ...prev,
         eetDifferencekravBilagSelection: {
           ...prev.eetDifferencekravBilagSelection,
           [key]: checked,
         },
-      }));
+      }), { fieldPath: key });
     },
     [setValues]
   );
@@ -553,22 +555,26 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
             <Box className="row--label-right-hover__content">
               <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                 <StyledCheckbox
+                  name="loebendeYdelser"
                   checked={bilagSelection.loebendeYdelser}
                   onCommit={createBilagCommitHandler('loebendeYdelser')}
                   label="Løbende ydelser"
                 />
                 <StyledCheckbox
+                  name="kapitalisering"
                   checked={bilagSelection.kapitalisering}
                   onCommit={createBilagCommitHandler('kapitalisering')}
                   label="Kapitalisering"
                 />
                 <StyledCheckbox
+                  name="eetEfterEal"
                   checked={bilagSelection.eetEfterEal}
                   onCommit={createBilagCommitHandler('eetEfterEal')}
                   label="EET efter EAL"
                 />
                 {computation.proformaKapitalisering && (
                   <StyledCheckbox
+                    name="proformaKapitalisering"
                     checked={bilagSelection.proformaKapitalisering}
                     onCommit={createBilagCommitHandler('proformaKapitalisering')}
                     label="Proformakap. af rest-EET"
@@ -576,6 +582,7 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
                 )}
                 {computation.merErstatningPensionsalder && (
                   <StyledCheckbox
+                    name="merErstatningPensionsalder"
                     checked={bilagSelection.merErstatningPensionsalder}
                     onCommit={createBilagCommitHandler('merErstatningPensionsalder')}
                     label="Mer-erstatning forhøjet folkepension"

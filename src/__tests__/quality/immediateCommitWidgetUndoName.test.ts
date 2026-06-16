@@ -26,7 +26,7 @@ import { join } from 'node:path';
 
 const PAGES_DIR = join(process.cwd(), 'src', 'components', 'pages');
 
-const IMMEDIATE_COMMIT_WIDGETS = ['StyledToggleSwitch', 'StyledDropdown', 'StyledRadioButton'] as const;
+const IMMEDIATE_COMMIT_WIDGETS = ['StyledToggleSwitch', 'StyledDropdown', 'StyledRadioButton', 'StyledCheckbox'] as const;
 const BLUR_COMMIT_FIELDS = [
   'StyledDateField',
   'StyledAmountField',
@@ -115,7 +115,7 @@ describe('sags-input-felter bærer name for undo/redo-fokus', () => {
     return offenders;
   };
 
-  it('alle immediate-commit widgets (toggle/dropdown/radio) i sags-sider har name', () => {
+  it('alle immediate-commit widgets (toggle/dropdown/radio/checkbox) i sags-sider har name', () => {
     const offenders = collectOffenders(IMMEDIATE_COMMIT_WIDGETS, false);
     expect(offenders, `Immediate-commit widgets uden name-prop (bryder undo/redo-fokus):\n${offenders.join('\n')}`).toEqual([]);
   });
@@ -127,6 +127,6 @@ describe('sags-input-felter bærer name for undo/redo-fokus', () => {
 
   it('dækker alle Styled-input-typer der kan committe til persisteret state', () => {
     // Vagt mod at en ny Styled-input-type tilføjes uden at blive omfattet af værnet.
-    expect(ALL_WIDGETS.length).toBe(11);
+    expect(ALL_WIDGETS.length).toBe(12);
   });
 });

@@ -43,7 +43,10 @@ export const useGridCoreController = (options: UseGridCoreControllerOptions = {}
       if (!handle || handle.getIsLocked()) return;
       const element = handle.getElement();
       if (element && element.isConnected) {
-        element.focus();
+        // preventScroll: navigations-grenene har allerede positioneret cellen via focusTableElement
+        // (preventScroll). En rå .focus() her ville scrolle cellen i syne igen og give et scroll-hop
+        // (jf. keyboard-navigation.md "ingen scroll-hop"). Denne RAF skal kun bekræfte DOM-fokus.
+        element.focus({ preventScroll: true });
       }
     });
   }, []);

@@ -319,17 +319,30 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
         return false;
       }
 
-      // Committbar: ryd evt. ikke-committbar rå draft.
-      clearInvalidDraftEntry();
+      // Committbar.
       const nextPayload = current.adapter.toCommittedPayload(parsed.value);
       const isNoop = nextPayload.fingerprint === latestCommittedPayloadRef.current.fingerprint;
       if (parsed.visualErrorMessage !== undefined && parsed.visualErrorMessage.trim() !== '') {
+        // Parret invariant (jf. tableInputAdapter.ts): en adapter der kan returnere visualErrorMessage SKAL
+        // også implementere getCommittedVisualError. Ellers rydder idle-reconcile-effekten den lokale
+        // visual-fejl med det samme ved editor-luk (getCommittedVisualError?.() ?? '' → ''), så fejlen
+        // forsvinder uberettiget. Fail-closed DEV-guard så en ny adapter ikke kan bryde parringen i stilhed.
+        if (import.meta.env.DEV && current.adapter.getCommittedVisualError === undefined) {
+          console.error(
+            '[useTableInputCore] Adapter returnerer visualErrorMessage fra parse() uden at implementere ' +
+              'getCommittedVisualError. Den visuelle fejl ryddes da ved editor-luk. Implementér parret getCommittedVisualError.'
+          );
+        }
         setLocalVisualError(parsed.visualErrorMessage);
       } else {
         setLocalVisualError('');
       }
       if (isNoop) {
         pendingCommitRef.current = null;
+        // Værdi-commit er en no-op (committed værdi uændret) → intet onBlur/value-commit. Ryd alligevel en
+        // evt. tilbageværende ugyldig rå draft; den fanger sin egen undo-frame (jf. FormPersistenceContext
+        // asymmetrisk coalescing: en clear uden parret value-commit skal fanges, ellers springer undo den over).
+        clearInvalidDraftEntry();
         return true;
       }
 
@@ -342,7 +355,13 @@ export const useTableInputCore = <TModel, TCanonical extends string, TFingerprin
       // Kun nødvendigt når display'et faktisk ændrer sig; ellers ingen flicker-risiko (og guarden ville
       // ikke kunne afmeldes, fordi committedDisplayValue aldrig divergerer fra formattedValueAtCommit).
       pendingCommitRef.current = target !== formattedValueAtCommit ? { formattedValueAtCommit, target } : null;
+      // Rækkefølge er kontrakt-kritisk: value-commit (onBlur→setValues→persistData) FØRST, DEREFTER clear af
+      // den ugyldige rå draft. FormPersistenceContexts asymmetriske coalescing markerer fieldPath ved
+      // value-commit, og den parrede clearInvalidDraft rider på samme frame. Modsat rækkefølge (clear først)
+      // ville give TO undo-frames ved en rettelse fra ugyldigt→gyldigt input (undo skulle trykkes to gange).
+      // Spejler useDraftfield/felt-stien og kontrakt-noten i FormPersistenceContext ("onCommit EFTERFULGT af clear").
       current.onBlur?.({ target: { value: nextPayload.model } });
+      clearInvalidDraftEntry();
       return true;
     },
     [clearInvalidDraftEntry, writeInvalidDraft]

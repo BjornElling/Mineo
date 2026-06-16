@@ -15,11 +15,16 @@ export const GRID_UX_SPEC = {
     /**
      * Global model: alle Mineos grid-tabeller deler den samme keyboard-semantik.
      *
-     * - Tab / Shift+Tab: horisontal traversering (row-major) inden for tabellen; wrapper/cykler.
-     * - Enter / Shift+Enter: vertikal traversering inden for tabellen; wrapper/cykler.
+     * - Enter / Shift+Enter: vertikal traversering inden for tabellen (Excel-lignende; wrapper/cykler).
+     * - ArrowUp/ArrowDown: vertikal flytning inden for tabellen; frigives ved top-/bundkant så Container
+     *   kan fortsætte navigation uden for tabellen.
+     * - ArrowLeft/ArrowRight: horisontal flytning i samme række med wrap ved rækkekanter.
+     * - Tab / Shift+Tab: ejes IKKE af grid-kernen. Den naturlige fokus-rækkefølge (Container-niveau) bærer
+     *   Tab på tværs af tabel-celler OG videre ud af tabellen til de øvrige felter — fokus er bevidst IKKE
+     *   trapped. Grid-kernen aflæser kun den startcelle (anchor), Enter-vertikal-navigation tager udgangspunkt i.
      *
-     * Fokus er trapped: Tab/Shift+Tab MÅ IKKE forlade tabellen. Udgang sker eksplicit via pointer-klik udenfor
-     * (eller programmatiske fokus-ændringer).
+     * (Tidligere blev Tab trappet og brugt til horisontal traversering; "ny samlet tabel-navigation"
+     * konsoliderede Tab til Container-niveau for et ensartet flow på tværs af tabeller og felter.)
      */
     traversalModel: 'excel-like' as const,
 
