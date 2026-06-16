@@ -70,8 +70,16 @@ export const useCellInvalidDraftChannel = (gridCellKey: string): CellInvalidDraf
 
   const clearInvalidDraft = React.useCallback(() => {
     if (scope === null || persistence === null || fieldPath === undefined) return;
-    persistence.clearInvalidDraft(scope.pageKey, fieldPath);
-  }, [scope, persistence, fieldPath]);
+    // Send undoOrigin med (symmetrisk med onCommitInvalid ovenfor OG med de almindelige felters
+    // clearInvalidDraftForField): en rydning af cellens rå draft SKAL kunne undo'es. Uden den fangede
+    // rydningen ingen undo-frame, og undo sprang den over og hoppede tilbage til FØR det ugyldige input
+    // (rapporteret bug: en ryddet ugyldig dato-celle kunne ikke gendannes). Captures coalesces pr.
+    // synkront commit-flow i FormPersistenceContext, så et celle-commit der både committer en værdi og
+    // rydder draften kun giver de(n) rigtige frame(s).
+    persistence.clearInvalidDraft(scope.pageKey, fieldPath, {
+      undoOrigin: buildCellUndoOrigin(scope.pageKey, gridCellKey),
+    });
+  }, [scope, persistence, fieldPath, gridCellKey]);
 
   return {
     fieldPath: bound ? fieldPath : undefined,

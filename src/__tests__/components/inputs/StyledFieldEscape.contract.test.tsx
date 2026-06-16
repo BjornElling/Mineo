@@ -10,7 +10,7 @@ import StyledYearField from '../../../components/inputs/StyledYearField';
 import StyledWeekField from '../../../components/inputs/StyledWeekField';
 import StyledFractionField from '../../../components/inputs/StyledFractionField';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 
 /**
  * Escape-kontrakt for ALLE almindelige (ikke-tabel) styled-felter.
@@ -44,7 +44,7 @@ type EscapeFieldCase = Readonly<{
 const FIELD_CASES: readonly EscapeFieldCase[] = [
   {
     label: 'text',
-    renderManaged: (onCommit) => <ManagedField<string> initial="foo" render={(value, commit) => <StyledTextField value={value} onCommit={(e) => commit(e.value)} />} onCommit={onCommit} />,
+    renderManaged: (onCommit) => <ManagedField<string> initial="foo" render={(value, commit) => <StyledTextField value={value} onCommit={(e) => commit(e.target.value)} />} onCommit={onCommit} />,
     typed: 'bar',
   },
   {
@@ -52,7 +52,7 @@ const FIELD_CASES: readonly EscapeFieldCase[] = [
     renderManaged: (onCommit) => (
       <ManagedField<AmountValue | undefined>
         initial={{ kind: 'number', value: 12.5 }}
-        render={(value, commit) => <StyledAmountField value={value} onCommit={(e) => commit(e.value)} />}
+        render={(value, commit) => <StyledAmountField value={value} onCommit={(e) => commit(e.target.value)} />}
         onCommit={onCommit}
       />
     ),
@@ -61,9 +61,9 @@ const FIELD_CASES: readonly EscapeFieldCase[] = [
   {
     label: 'date',
     renderManaged: (onCommit) => (
-      <ManagedField
+      <ManagedField<ISODateString | undefined>
         initial={toISODateString('2025-01-01')}
-        render={(value, commit) => <StyledDateField value={value} onCommit={(e) => commit(e.value)} />}
+        render={(value, commit) => <StyledDateField value={value} onCommit={(e) => commit(e.target.value)} />}
         onCommit={onCommit}
       />
     ),
@@ -74,7 +74,7 @@ const FIELD_CASES: readonly EscapeFieldCase[] = [
     renderManaged: (onCommit) => (
       <ManagedField<number | undefined>
         initial={12.5}
-        render={(value, commit) => <StyledPercentField value={value} useDefaultPercentRange onCommit={(e) => commit(e.value)} />}
+        render={(value, commit) => <StyledPercentField value={value} useDefaultPercentRange onCommit={(e) => commit(e.target.value)} />}
         onCommit={onCommit}
       />
     ),
@@ -85,7 +85,7 @@ const FIELD_CASES: readonly EscapeFieldCase[] = [
     renderManaged: (onCommit) => (
       <ManagedField<number | undefined>
         initial={42}
-        render={(value, commit) => <StyledIntegerField value={value} onCommit={(e) => commit(e.value)} />}
+        render={(value, commit) => <StyledIntegerField value={value} onCommit={(e) => commit(e.target.value)} />}
         onCommit={onCommit}
       />
     ),
@@ -96,7 +96,7 @@ const FIELD_CASES: readonly EscapeFieldCase[] = [
     renderManaged: (onCommit) => (
       <ManagedField<number | undefined>
         initial={2025}
-        render={(value, commit) => <StyledYearField value={value} onCommit={(e) => commit(e.value)} />}
+        render={(value, commit) => <StyledYearField value={value} onCommit={(e) => commit(e.target.value)} />}
         onCommit={onCommit}
       />
     ),
@@ -107,7 +107,7 @@ const FIELD_CASES: readonly EscapeFieldCase[] = [
     renderManaged: (onCommit) => (
       <ManagedField<string | undefined>
         initial="01/2025"
-        render={(value, commit) => <StyledWeekField value={value} onCommit={(e) => commit(e.value)} />}
+        render={(value, commit) => <StyledWeekField value={value} onCommit={(e) => commit(e.target.value)} />}
         onCommit={onCommit}
       />
     ),
@@ -118,7 +118,7 @@ const FIELD_CASES: readonly EscapeFieldCase[] = [
     renderManaged: (onCommit) => (
       <ManagedField<string | undefined>
         initial="50"
-        render={(value, commit) => <StyledFractionField value={value} onCommit={(e) => commit(e.value)} />}
+        render={(value, commit) => <StyledFractionField value={value} onCommit={(e) => commit(e.target.value)} />}
         onCommit={onCommit}
       />
     ),

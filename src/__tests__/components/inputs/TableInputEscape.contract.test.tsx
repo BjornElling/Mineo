@@ -12,7 +12,7 @@ import TableDateInput from '../../../components/inputs/table/TableDateInput';
 import TableWeekInput from '../../../components/inputs/table/TableWeekInput';
 import TableYearInput from '../../../components/inputs/table/TableYearInput';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import { toISODateString } from '../../../types/branded';
+import { toISODateString, type ISODateString } from '../../../types/branded';
 
 /**
  * Escape-kontrakt for ALLE redigerbare tabel-input-felter, kørt i BEGGE grid-varianter
@@ -91,7 +91,7 @@ const FIELD_CASES: readonly TableEscapeCase[] = [
     label: 'date',
     typed: '15062025',
     renderManaged: (onCommit) => (
-      <ManagedCell initial={toISODateString('2025-01-01')} onCommit={onCommit} render={(value, commit) => (
+      <ManagedCell<ISODateString | undefined> initial={toISODateString('2025-01-01')} onCommit={onCommit} render={(value, commit) => (
         <TableDateInput gridCell={gridCell} value={value} onBlur={(e) => commit(e.target.value)} />
       )} />
     ),
