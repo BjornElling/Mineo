@@ -40,10 +40,11 @@ const resolveBuildInfo = () => {
   // maskiner og GitHub Actions. `--date=format` ville afhænge af runnerens timezone.
   const commitDate = formatCommitYearMonth(runGit(['log', '-1', '--format=%cI']));
   const commitCount = runGit(['rev-list', '--count', 'HEAD']);
-  // `git rev-parse --short=6` returnerer en MINIMUM-længde: git forlænger til den
-  // korteste unikke prefiks, så i et stort repo kan resultatet blive 7+ tegn og
-  // bryde `hash6`-formatet. Slice derfor altid eksakt 6 tegn fra det fulde hash.
-  const commitShort = commit.slice(0, 6);
+  // `git rev-parse --short=7` returnerer en MINIMUM-længde: git forlænger til den
+  // korteste unikke prefiks, så i et stort repo kan resultatet blive 8+ tegn og
+  // bryde `hash7`-formatet. Slice derfor altid eksakt 7 tegn fra det fulde hash.
+  // 7 tegn matcher den korte hash, som GitHub og VS Code viser.
+  const commitShort = commit.slice(0, 7);
 
   if (!commitDate || !commitCount) {
     return {

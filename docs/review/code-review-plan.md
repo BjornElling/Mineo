@@ -1,340 +1,217 @@
 # Review- og refaktoreringsplan — Mineo
 
-> **Formål:** Gennemarbejde hele Mineos kodebase systematisk, **rette alle fund undervejs**, og efterlade en kodebase bygget på ensartede, velstrukturerede principper med en klar rød tråd. Planen er ikke kun et review — den er en arbejdsplan for at hæve hele programmet til den ønskede arkitektur- og kvalitetsstandard (jf. `AGENTS.md`, som er den autoritative kilde til roller, mandat og constraints).
+> Arbejdsværktøj for det systematiske review af hele Mineos kodebase. Hvert punkt **retter fundene** undervejs og bringer koden på linje med kontrakterne. `AGENTS.md` er den autoritative kilde til roller, mandat og constraints.
 
-> **Programmets karakter (jf. `AGENTS.md`):** Mineo er en trust-kritisk, 100 % client-side erstatningsberegner. Forkerte beregninger, datatab eller uforudsigelig adfærd er uacceptabelt. Feature-fladen er **låst** — der kommer ingen nye beregningstyper. Reviewet skal derfor favorisere **forenkling og konsolidering** af det eksisterende frem for udvidelsespunkter til hypotetiske features. Stack: TypeScript (strict) · React 19 · Vite 7 · MUI 7 · Zustand 5 · Zod 4 · jsPDF + `docx`.
+## Faste principper (gælder hvert punkt — må ikke glemmes)
 
-## Arbejdsprincip: indefra og ud
+- **Trust-kritisk, 100 % client-side.** Forkerte beregninger, datatab eller uforudsigelig adfærd er uacceptabelt.
+- **Feature-fladen er låst.** Ingen nye beregningstyper. Favorisér **forenkling og konsolidering** frem for hypotetiske extension points.
+- **Fail-closed.** Manglende reguleringssatser/år/tabeller skal fejle eksplicit — aldrig et stille gæt (jf. `manglendeAar`).
+- **Én sandhedskilde.** Zod-schemas er eneste kilde til runtime-validering og afledte typer. Ingen dobbelt-sandhed for dato/rente/sats. Beregningslag og dækningsvalidering skal kalde *samme* motor.
+- **Ingen live preview.** Beregn/validér/vis aldrig afledt feedback fra `onChange`-draft. Commit på `onBlur` (forms) / `onPersist` (table). Eneste immediate-commit-undtagelser: delete/backspace på ikke-redigerende celle, valg af dropdown-menupunkt, toggle/radio-aktivering.
+- **Runtime data-integritet.** Committed input må ikke forsvinde/nulstilles/muteres pga. navigation, re-render, tab-skift eller sync.
+- **Save/load (.eo).** Atomisk load (medmindre bruger accepterer delvis i preflight); forward/backward-tolerant; streng round-trip for brugerinput; afledte værdier genberegnes efter load.
+- **Tal-identitet ved delegering.** Når lokal logik omlægges til en fælles motor, *bevis* tal-identitet med ækvivalens-test — ikke "ser rigtigt ud".
+- **Sprogpolitik:** dansk uden undtagelse.
+- **Godkendelse:** UI/UX- og beregningslogik-ændringer forelægges; resten gennemføres direkte. Resten af punktet kan færdiggøres mens et fund afventer.
 
-Planen følger **afhængighedsorden nedefra og op** — det fundamentale først, det konkrete sidst. Hvert hovedpunkt **færdiggøres og rettes fuldt ud**, før det næste påbegyndes, så senere lag altid bygger på et allerede konsolideret fundament:
+**Dobbeltkanal dokument-output:** PDF (jsPDF) og Word (`.docx`) kører gennem *samme* format-agnostiske generatorer mod `PdfWriter`-grænsefladen (`createDocxWriter` routes via `documentGenerationContext`). Gruppe 10 dækker begge kanaler + paritet.
 
-1. **Kortlæg fundamentet** — kontrakter og arkitektur-dokumentation (gruppe 1). Her fastlægges de principper, resten håndhæves imod. Fejl rettes i kontrakterne selv, hvis de står i vejen for det bedste slutprodukt.
-2. **De bærende lag** — persistence (2), schemas (3), domænelogik (4), hjælpefunktioner (5), data (6). Programmets korrekthed afgøres her.
-3. **De konkrete udmøntninger** — UI-inputs & grid (7), pages (8), hooks (9), dokument-output PDF+Word (10), config & settings (11) og app-shell & multi-app (12).
-4. **Verifikation og helhed** — testkvalitet (13) og tværgående oprydning (14).
-
-**Disciplin:** Et hovedpunkt regnes først som færdigt, når (a) alle fund er rettet eller eksplicit forelagt/parkeret med begrundelse, og (b) relevante tests er kørt grønt. UI/UX- og beregningslogik-ændringer forelægges til godkendelse undervejs (jf. `AGENTS.md`), men resten af punktet kan færdiggøres i mellemtiden.
-
-**To tværgående realiteter planen håndhæver eksplicit, fordi de tidligere blev overset:**
-- **Dokument-output er dobbeltkanal.** Programmet genererer både PDF (jsPDF) og Word (`.docx`). Begge kanaler kører gennem **samme format-agnostiske generatorer**, der skriver mod den fælles `PdfWriter`-grænseflade; `createDocxWriter` opfylder samme type og routes via en global generations-kontekst (`documentGenerationContext`). Gruppe 10 dækker **begge** kanaler og deres paritet — ikke kun PDF.
-- **Multi-app.** Kodebasen leverer to apps: Mineo (fuld) og standalone MinProcesrente. De deler bootstrap og storage-infrastruktur, men er namespace-isolerede. Gruppe 12 dækker isolationen eksplicit.
+**Multi-app:** Mineo (fuld) + standalone MinProcesrente deler bootstrap/storage, men er namespace-isolerede. Gruppe 12 dækker isolationen.
 
 ---
 
-## Status
+## Status og fremdrift
 
-✅ **Gruppe 1 (Kontrakter & arkitektur) er færdig** (2026-06-10). Punkterne 1.1–1.7 er gennemgået, fund rettet, og kontraktlandskabet konsolideret: `pdf-contract` + `pdf-layout-contract` er flettet til `document-output-contract` (kanal-neutral data/gate/guards + komposition/writer-API for både PDF og Word), `pdf-architecture.md` omdøbt+udvidet til `document-output-architecture.md`, felt-identitets-API'et har fået normativt hjem i `mineo-field-pattern.md`, `LoginPage` klassificeret i page-component-kontrakten, og `contract-topology.json` + coverage-matrix-test + AGENTS.md synkroniseret (18 → 17 tværgående kontrakter).
+Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **Næste ikke-startede punkt: 8.1.**
 
-✅ **Gruppe 2 (Persistence) er færdig** (2026-06-11). Punkterne 2.1–2.6 er gennemgået og fund rettet: hydrate rydder nu fieldErrors atomisk (§6.3); resolved-error-cache selvinvaliderer på revision; undo/redo-restore ruller nu BÅDE store + historik fail-closed tilbage ved fejl (delt `persistenceStoreRollback.ts`); `undo`/`redo` hærdet mod uncaught exceptions; død debug-/verifikations-/API-overflade fjernet; preflight skelner nu ægte fejl fra harmløs feltoprydning og loader stille (brugergodkendt); session-hydration kasserer ikke længere cleanup ved storage-læsefejl; korrupt-data-guards (arrays) + klar `.eo`-versionsfejl; `any` elimineret i fs-access. Nye tests: invalidDrafts-schema, Zod-unwrap-strip-guard pr. sektion, hydrate-rydder-fejl. **Bevidst ikke implementeret:** `.eo`-dataversion + migrator-dispatch (hypotetisk extension point, jf. §Konvergens — anbefaling dokumenteret i 2.5). **Pre-eksisterende fejl rapporteret:** `MainLayout.pwaConcurrency`-test fejler på ren main (ikke forårsaget af dette arbejde; henvist til 9.3/12).
+**Færdige grupper** (fund rettet + tests grønne; detaljer i de enkelte `docs/review/[punkt]-*.md`):
 
-✅ **Gruppe 3 (Schemas) er færdig** (2026-06-11). Punkterne 3.1–3.5 er gennemgået og fund rettet: fjernet overflødig `validateISODateFormat`-wrapper (inlinet `isISODateString`); rettet forældede `isOk()`-JSDoc-referencer i `result.ts`/`safeComputation.ts`; elimineret dual source of truth i `eoBilagSelection`-default og fjernet overflødig `createDefaultEoAngivetLoenLoenudvikling`-helper (begge omlagt til `parse({})`-udledte defaults — format-neutralt, fingerprint uændret, intet versionsbump); ny regressionstest mod Zod-4 `.default()`-footgun; delt `eoFileMetadataSchema` på tværs af save/load-containere. Verificeret: load-/strip-pipeline håndterer `.strict().superRefine()`-schemas korrekt; key-alignment registry↔manifest↔eoFile er fuldt type-håndhævet (drift umuligt uden typecheck-fejl). **Krydsref:** dobbelt-registrerings-edge-case i `tableSaveOrderRegistry` → 7.3; `branded.ts` dato-kerne placering → 5.1. Næste ikke-startede punkt er **4.0**.
+- ✅ **Gruppe 1 — Kontrakter & arkitektur** (2026-06-10). Kontraktlandskab konsolideret: `pdf-contract`+`pdf-layout-contract` → `document-output-contract`; `pdf-architecture.md` → `document-output-architecture.md`; felt-identitets-API i `mineo-field-pattern.md`; 18 → 17 tværgående kontrakter.
+- ✅ **Gruppe 2 — Persistence** (2026-06-11). Atomisk fieldErrors-clear; selvinvaliderende error-cache; undo/redo-restore ruller store+historik fail-closed tilbage; død debug-overflade fjernet; korrupt-data-guards. **Bevidst ikke gjort:** `.eo`-dataversion + migrator-dispatch (hypotetisk extension point — anbefaling i 2.5).
+- ✅ **Gruppe 3 — Schemas** (2026-06-11). Fjernet `validateISODateFormat`-wrapper; defaults udledt af `parse({})` (format-neutralt); delt `eoFileMetadataSchema`; key-alignment registry↔manifest↔eoFile fuldt type-håndhævet.
+- ✅ **Gruppe 4 — Domænelogik** (4.0–4.14). Opreguleringsmotorer som fundament; EO-engines (periodisering, TAF, regulering), EET, forsørgertab, varige mén, renteberegning, snapshot/canonical, debug-viewmodels.
+- ✅ **Gruppe 5 — Hjælpefunktioner** (2026-06-14). Én sand dato-parse-kilde; SH-helligdagssæt konsolideret; percent-parsing samlet til én dansk locale-politik (brugergodkendt); forklarende min>max-datofejlbesked.
+- ✅ **Gruppe 6 — Data** (2026-06-14). Fail-closed guards i year-bounds/§24-max/kapitalisering; `sygedagpengeRates.ts` konsolideret til én satstabel (sats+ATP+OP). **Åbent godkendelsespunkt lukket:** sygedagpenge tre-leds-model bekræftet.
+- ✅ **Gruppe 7 — UI-inputs & grid** (2026-06-16). Felt-identitets-hul i StyledCheckbox/EetDifferencekrav lukket; dobbelt-undo-frame rettet; grid-scroll-hop rettet; `gridUxSpec` Tab-kontrakt synket med ny navigation.
 
-✅ **Gruppe 5 (Hjælpefunktioner) er færdig** (2026-06-14). Punkterne 5.1–5.5 er gennemgået og fund rettet. **Datohåndtering:** `isoDateToDate` omlagt til tynd wrapper over `parseISODate` (én sand parse-kilde); dag-i-måned-validering konsolideret til `isValidDate` (fjernet ad hoc `Date.UTC`); ubrugte barrels `utils/date/index.ts` + `utils/number/index.ts` slettet; død `validateDateRange` fjernet; `interpretYear` og `beregnUgePeriode` hærdet fail-closed; 3.1-flaget om `branded.ts`-dato-kerne-placering lukket (bevidst ikke flyttet — tæt koblet brand+parser, ~250 importsteder, ingen reel gevinst). **SH-dage:** dobbelt kilde til helligdagssættet fjernet (`beregnHelligdage` projicerer nu `beregnHelligdageMedNavn`); navngiven konstant for Store bededag-grænse; misvisende `erSHDag`-alias fjernet; påskedag-facit-test tilføjet. **Talbehandling:** percent-parsing konsolideret til én dansk locale-politik (`parsePercentPointString` kanonisk) + lossy `/100*100`-round-trips fjernet. **Øvrige utils:** scroll-`prefers-reduced-motion` konsolideret til ét sted (rettet `scrollToSection`s tilsidesættelse); nye tests for `clipboardUtils`/`schemaRowEmpty`; dokumenteret latente faldgruber (serialisering af Date/Map/Set, id-nøgle-invariant). **Brugergodkendt 2026-06-14:** (a) percent-parsing samlet til dansk regel; (b) forklarende min>max-datofejlbesked implementeret (jf. AGENTS.md §Validering og fejl-UI); (c) Store bededag udeladt fra 2024 uanset skadesår bekræftet. **Adfærds-neutralitet:** fuld suite uændret efter percent-konsolideringen (ingen snapshot-/beregningsændringer). Næste ikke-startede punkt er **6.1**.
+**Test-baseline:** 5020 (2026-06-10) → 5172/429 (g.5) → 5185/430 (g.6) → **5310 tests / 445 filer grøn** (2026-06-16). Hvert punkt skal efterlade suiten mindst lige så grøn. Kendt (ikke fejl): `act(...)`-warning i `TableDropdown.gridCore.test.tsx`.
 
-✅ **Gruppe 6 (Data) er færdig** (2026-06-14). Punkterne 6.1–6.4 er gennemgået og fund rettet. **Reelle rettelser (alle værdi-neutrale):** fail-closed guard i `getYearBoundsForCompleteCoverage` (ét tomt dict → null i stedet for {Infinity,-Infinity}); elimineret dobbelt sandhedskilde for §24-maksimum 2024 (`ASL_MAX_AARSLOEN_2024` udledes nu af `aarsloenAslMax[2024]` med fail-closed guard, beviseligt 608000→608000); `kapitaliseringsbekendtgoerelser.test` kalder nu den kanoniske produktions-resolver (slettet ~50 liniers divergerende kopi med latent tom-array-crash). **Ny testdækning:** dedikeret `sygedagpengeRates.test.ts` (kontinuitet for sats/ATP/OP-segmenter, fail-closed OP-resolver); fail-closed grænse-tests for kapitaliserings-resolveren; invariant- og guard-tests i `lovbestemteRates.test.ts`. **Tre subagent-flag verificeret som false alarms og afvist:** OP-tabel "rækker ud over rater → kast" (forward-provisioneret data, ingen kast-sti); `getOffentligLoenTabelForDato` "dødkode" (i aktiv brug i to Tab-komponenter); forhøjet-pensionsalder "feature ikke-funktionel" (resolveren er "nyeste på/før dato", præcis som datafilen dokumenterer). **Bevidst ikke gjort:** flytning af `kapitaliseringOriginalPdf/` (~44 MB bevidst kilde-provenans, ikke bundlet); `toLoengruppe`-validator (spekulativ, jf. §Konvergens); import-script unit-tests (accepteret gap → 13.x). **Åbent godkendelsespunkt LUKKET (6.2):** Brugeren har bekræftet sygedagpenge-tre-leds-modellen (sats/ATP/OP) og satstallene. `sygedagpengeRates.ts` konsolideret til ÉN samlet satstabel (sats+ATP+OP som kolonner pr. satsår; de separate ATP-/OP-tabeller fjernet, ATP var dobbeltkilde); ATP-leddet rettet til at videreføres fremad (fejler kun hvis ingen ATP-sats); OP inline (0 før 6-1-2020), nu kun kendt til 2027 (forud-indtastede 2028-2030 fjernet efter brugervalg). Brugervendt insert-gating (disabled knap + rød ring + tooltip + runtime fail-safe) uændret; alt beviseligt værdi-neutralt (fuld suite uændret). Næste ikke-startede punkt er **7.1**.
+### Statustabel
 
-✅ **Gruppe 7 (UI-inputs & grid) er færdig** (2026-06-16, frisk gennemgang efter at navigationen blev omskrevet i "ny samlet tabel-navigation" + adornment-/`useStyledFieldAdapter`-konsolideringen). Punkterne 7.1–7.4 gennemgået på ny og fund rettet. **7.1 StyledField:** sidste felt-identitets-hul lukket — `StyledCheckbox` projicerer nu `data-mineo-undo-field-path` og `EetDifferencekrav`-bilag-checkboxene committer med `name`+`fieldPath` (undo/redo-fokus-restore virker nu for ALLE persisterede committende widgets); værns-test udvidet 11→12. **7.2 Table-inputs:** dobbelt-undo-frame ved ugyldig→gyldig-rettelse rettet (value-commit FØR invalid-draft-clear, så `FormPersistenceContext`s asymmetriske coalescing binder dem til ÉN frame; regressionstest); fail-closed DEV-guard + selv-test for den parrede `visualErrorMessage`/`getCommittedVisualError`-invariant. **7.3 Grid:** scroll-hop-regression i `scheduleCellFocus` rettet (preventScroll); `gridUxSpec` Tab-kontrakt bragt i sync med den omskrevne navigation (Tab ejes nu af Container, ikke trapped). De to subagent-Kritisk-flag (blur-microtask-re-entry, Delete-synkron-executeFocusPlan) verificeret som ikke-fejl og parkeret med begrundelse. **7.4 Tabel-komponenter:** `InterestRatesTable` unikke React-keys; subagentens H1 (periodeskift-datatab) verificeret som ikke-fejl (resync holder fingerprint i sync; skjult-værdi-drop er dokumenteret tilsigtet). **Krydsref:** insert-today-`fieldPath` → 8.3; celle-fejl-sporing-konvergens (3 grid-tabeller) → 14.2; inline dato-bounds §5.1 (5 tabeller) → gruppe 8. Ingen UI/UX- eller beregningsændringer; ingen åbne godkendelsespunkter. Næste ikke-startede punkt er **8.1**.
+| Punkt | Navn | Status |
+|---|---|---|
+| **1 — Kontrakter & arkitektur** | | ✅ |
+| 1.1–1.7 | Topologi-maskineri, tværgående/domæne/page-kontrakter, arkitektur-docs, helhedsvurdering | ✅ (filer `1.1`–`1.7`) |
+| **2 — Persistence** | | ✅ |
+| 2.1–2.6 | Arkitektur, undo/redo+fokus, FormPersistenceContext, load/apply/hydration, schema-evolution, fil-I/O | ✅ (filer `2.1`–`2.6`) |
+| **3 — Schemas** | | ✅ |
+| 3.1–3.5 | Fundament, section-schemas A/B/C+eoFile, fingerprint+save-order-registry | ✅ (filer `3.1`–`3.5`) |
+| **4 — Domænelogik** | | ✅ |
+| 4.0–4.14 | Opreguleringsmotorer, stamdata/satser, årsløn, EET, forsørgertab, varige mén, rente, EO-engines, snapshot, debug | ✅ (filer `4.0`–`4.14`) |
+| **5 — Hjælpefunktioner** | | ✅ |
+| 5.1–5.5 | Dato-kerne/-validering, SH-dage, talbehandling, øvrige utils+typer | ✅ (filer `5.1`–`5.5`) |
+| **6 — Data** | | ✅ |
+| 6.1–6.4 | Renter/rater, folkepension/sygedagpenge/overenskomst, offentlig løn, kapitalisering | ✅ (filer `6.1`–`6.4`) |
+| **7 — UI-inputs & grid** | | ✅ |
+| 7.1–7.4 | StyledField-familien, table-inputs+adaptere, grid-infrastruktur, tabel-komponenter | ✅ (filer `7.1`–`7.4`) |
+| **8 — Pages** | | |
+| 8.1 | Stamdata (+DebugTab), Årsløn, Satser, Mineo (forside), Indstillinger, LoginPage | ⬜ |
+| 8.2 | Erhvervsevnetab + tab-underkomponenter (Oplysninger, EfterEal, Kapitalisering, LoebendeYdelser, Differencekrav, IssuesBox) | ⬜ |
+| 8.3 | Erstatningsopgørelse-tabs (Loenindkomst, OffentligeYdelser, EOberegning, EOOplysninger) — de to største komponenter | ⬜ |
+| 8.4 | EO-debug-komponenter (EODebug, Tabel, EmploymentSections, LoenSections, RegulationSections, GroupedRows, Rows) | ⬜ |
+| 8.5 | Forsørgertab, Varige Mén, Renteberegning, MinProcesrente-calculator | ⬜ |
+| 8.6 | Layout & UI-skal: MainLayout, StandaloneCalculatorLayout, SideMenu, Container, ContentBox(Frame), ui/, errors/, system/, reports/, common/, shared/ | ⬜ |
+| **9 — Hooks** | | |
+| 9.1 | Form-/draft-hooks: usePersistedForm, useDraftField, useFormFieldErrors, useTwoStageInputActivation, selectors, rowDrafts | ⬜ |
+| 9.2 | Undo/redo- og persisterings-hooks: useUndoRedo, usePersistedActiveTab, useUnsavedChangesGuard, useScrollToSectionWithRetry, useShakeFlag | ⬜ |
+| 9.3 | Fil-/PWA-/devtools-hooks: useFileSaveLoad (krydsref 2.6), usePwaLaunchQueue, useDevtoolsMonitoring | ⬜ |
+| 9.4 | Domæne-hooks: useAarsloenBeregning, useAslAarsloenRuleReporter, useAarsloenPdfGates, useOmregningToggle, useMidlertidigtEetInsertSource | ⬜ |
+| **10 — Dokument-output (PDF + Word)** | | |
+| 10.1 | Orkestrering & format-routing: `src/document/*`, pdfService, `runSelectedDocumentFormat`, `createStandardPdfWriter`, standaloneRentePdfService | ⬜ |
+| 10.2 | PDF-infrastruktur: jsPdfAdapter, pdfWriter, pdfLoader, pdfConfig, pdfBrevhovedRenderer, pdfDocumentAdapter | ⬜ |
+| 10.3 | Word/docx-infrastruktur: docxWriter, docxStyles, docxWatermark, docxTableBridge — `PdfWriter`-paritet | ⬜ |
+| 10.4 | Output-shared (begge kanaler): pdfTableRenderer, pdfHelpers, pdfFormatUtils, pdfTextUtils, pdfBrevhoved, pdfOptions | ⬜ |
+| 10.5 | Generatorer I (EO-familien): eo (+sections), reguleringPdf, differencekrav, eet, kapitalisering, loebendeYdelser | ⬜ |
+| 10.6 | Generatorer II: aarsloen, shDage, satser, varigemen, forsoergertab, renteberegning (+oversigt), tafFordelt (+opreguleret +kravGraf +chart), krl | ⬜ |
+| 10.7 | Word-paritet & duplikerings-afvikling: `src/__tests__/docx/` + `wordContentHarness`; afvikl evt. legacy/dublerede PDF-stier | ⬜ |
+| **11 — Config & settings** | | |
+| 11.1 | Config A: persistenceVersion, dateRanges, version, buildInfo, pageNavigation, scrollToTopConfig, cellInvalidDraftScopes | ⬜ |
+| 11.2 | Config B: regulatoryRates, indskudteLoentillaeg (krydsref 6.2), appTheme, tableTheme | ⬜ |
+| 11.3 | Settings & auth: appSettings (schema/parse/storage), AppSettingsContext, AuthGate, auth, authConfig | ⬜ |
+| **12 — App-shell & multi-app** | | |
+| 12.1 | App-entry & bootstrap: main.tsx, App.tsx, bootstrapClientApp, serviceWorkerBootstrap, capability-gate, UnsupportedDevicePage | ⬜ |
+| 12.2 | Standalone MinProcesrente: MinProcesrenteApp, minprocesrenteMain, StandaloneErrorBoundary, namespace-isolation | ⬜ |
+| **13 — Testkvalitet** | | |
+| 13.1 | Domæneberegninger (årsløn, EET, forsørgertab, varige mén, renteberegning, opreguleringsmotorer) | ⬜ |
+| 13.2 | EO-motor, EO-snapshot, EO-debug | ⬜ |
+| 13.3 | Persistence, schema-evolution, fil-round-trip, invalidDrafts-recovery | ⬜ |
+| 13.4 | Quality-/contract-guard-tests, dokument-output (PDF+Word-paritet), grid/keyboard, integration | ⬜ |
+| **14 — Tværgående helhed** | | |
+| 14.1 | Kontrakt-alignment: `src/contracts/` vs. implementering + topology-coverage-matrix | ⬜ |
+| 14.2 | Tværgående: duplikering, inkonsistente mønstre, dødkode, fil-placering | ⬜ |
 
-**Test-baseline ved start:** Fuld suite grøn — **5020 tests / 421 filer** (seneste kørsel 2026-06-10). Efter gruppe 5: **5172 tests / 429 filer** grøn (2026-06-14). Efter gruppe 6: **5185 tests / 430 filer** grøn (2026-06-14). Efter gruppe 7 (frisk runde): **5310 tests / 445 filer** grøn (2026-06-16). Pre-eksisterende `act(...)`-warning i `TableDropdown.gridCore.test.tsx` er kendt og ikke en fejl (testen passerer). Hvert punkt skal efterlade suiten mindst lige så grøn.
+---
 
-### Åbne godkendelsespunkter overført fra tidligere review-arbejde
+## Åbne godkendelsespunkter (allerede committet — skal gen-forelægges og lukkes når reviewet rammer punktet)
 
-Følgende ændringer er **allerede committet** af brugeren (behandlet som tilsigtede), men rører beregningslogik eller brugervendt output og blev tidligere forelagt uden endelig bekræftelse. De skal **gen-forelægges og lukkes**, når reviewet når det relevante punkt — ikke glemmes:
+2. **PDF/Word "TAF opreguleret til beregningsår"** → **10.6.** Nyt download-dokument; bekræft indhold/metode/afrunding.
+3. **EO-output tre-tilstand (Ja/Nej/Skjul) + afslutningsvalg** → **10.5.** "Skjul" fjerner emnet helt (også fra samlet krav); "Nej" beholder overskrift + "Ingen" + 0 kr.; "Ingen" som afslutningsvalg udelader "Godkendelse"-afsnit; "én samlet I alt"; kommentarfelt i offentlige-ydelser-bilaget.
+4. **Indstillinger-siden "Beregningsteknisk"-boks** → **11.3.** Toggle + dropdown for to device-lokale regulerings-flag flyttet fra EO-schema til `appSettings`.
 
-1. ~~**Obligatorisk pension (OP) i sygedagpenge-tillæg** → genbesøges i **6.2**.~~ **LUKKET 2026-06-14:** brugeren har bekræftet hele tre-leds-modellen (sats/ATP/OP). `sygedagpengeRates.ts` konsolideret til én samlet satstabel (sats+ATP+OP som kolonner pr. satsår); ATP videreføres fremad; OP inline (0 før 6-1-2020). Brugervendt insert-gating (disabled knap + rød ring + tooltip) uændret. Beviseligt værdi-neutral.
-2. **PDF/Word "TAF opreguleret til beregningsår"** → genbesøges i **10.6**. Nyt download-dokument; bekræft indhold/metode/afrunding.
-3. **EO-output tre-tilstand (Ja/Nej/Skjul) og afslutningsvalg** → genbesøges i **10.5**. "Skjul" fjerner emnet helt (også fra samlet krav); "Nej" beholder overskrift + "Ingen" + 0 kr.; "Ingen" som afslutningsvalg udelader "Godkendelse"-afsnittet; "én samlet I alt" i forventet indkomst; kommentarfelt i offentlige-ydelser-bilaget.
-4. **Indstillinger-siden: "Beregningsteknisk"-boks** → genbesøges i **11.3**. Toggle + dropdown for to device-lokale regulerings-flag flyttet fra EO-schema til `appSettings`.
+(Punkt 1, sygedagpenge-OP, blev lukket i 6.2.)
 
-| Punkt | Navn | Status | Fil |
-|---|---|---|---|
-| **1 — Kontrakter & arkitektur (kortlægning af fundamentet)** | | | |
-| 1.1 | Topologi-maskineri: `contract-topology.json`, `contract-template.md`, `contract-topology-procedure.md` + `contractCoverageMatrix.test.ts` — indbyrdes konsistens og fuld dækning af alle 27 kontraktfiler | ✅ Gennemgået | [1.1-kontrakt-topologi.md](1.1-kontrakt-topologi.md) |
-| 1.2 | Tværgående kontrakter A (state/persistence/form): domain-boundary, form, persistence, schema-evolution, mineo-field-pattern, app-settings | ✅ Gennemgået | [1.2-tvaergaaende-kontrakter-a.md](1.2-tvaergaaende-kontrakter-a.md) |
-| 1.3 | Tværgående kontrakter B (dato/beløb/periodisering/historik): date, amount, periodisering, undo-redo, snapshot | ✅ Gennemgået | [1.3-tvaergaaende-kontrakter-b.md](1.3-tvaergaaende-kontrakter-b.md) |
-| 1.4 | Tværgående kontrakter C (output/fejl/keyboard/shell/auth): error-debug, keyboard-navigation, document-format, document-output (flettet fra pdf + pdf-layout), auth-gate, app-shell | ✅ Gennemgået | [1.4-tvaergaaende-kontrakter-c.md](1.4-tvaergaaende-kontrakter-c.md) |
-| 1.5 | Domæne-kontrakter (8): eo-snapshot, eet-snapshot, forsoergertab-snapshot, aarsloen, renteberegning, varigemen, satser, indskudte-loentillaeg | ✅ Gennemgået | [1.5-domaene-kontrakter.md](1.5-domaene-kontrakter.md) |
-| 1.6 | Page-component-kontrakten + 7 arkitektur-docs (auth-gate, calculation, date-interval-performance, debug-builder, eo-clamping-pipeline, document-output [omdøbt fra pdf], undo-redo) | ✅ Gennemgået | [1.6-page-component-og-arkitektur-docs.md](1.6-page-component-og-arkitektur-docs.md) |
-| 1.7 | Helhedsvurdering af kontraktlandskabet og de arkitektoniske grundprincipper | ✅ Gennemgået | [1.7-helhedsvurdering-kontraktlandskab.md](1.7-helhedsvurdering-kontraktlandskab.md) |
-| **2 — Persistence** | | | |
-| 2.1 | Persistence-arkitektur: `src/stores/` (formPersistenceStore, undoRedoStore, formPersistenceReadModel), persistenceRegistry, storageManifest + `src/types/` (persistence, fieldErrors, persistenceInvariants) | ✅ Gennemgået | [2.1-persistence-arkitektur.md](2.1-persistence-arkitektur.md) |
-| 2.2 | Undo/redo-store og fokus-restore (undoRedoStore, undoFocusTracker, historyTargetRestore, saveBlockedFocus) | ✅ Gennemgået | [2.2-undo-redo-store-og-fokus-restore.md](2.2-undo-redo-store-og-fokus-restore.md) |
-| 2.3 | FormPersistenceContext (public/internal/shared), useFormPersistence, selectors + øvrige contexts (Route, Scroll, CellInvalidDraftScope) | ✅ Gennemgået | [2.3-formpersistencecontext.md](2.3-formpersistencecontext.md) |
-| 2.4 | Load/apply/sanitering/session-hydration/snapshot-storage + invalidDrafts-recovery (persistenceLoadApply, -Sanitization, -SessionHydration, -SnapshotStorage, invalidDraftsStorage, commitFlush) | ✅ Gennemgået | [2.4-persistence-load-apply-sanitering-hydration.md](2.4-persistence-load-apply-sanitering-hydration.md) |
-| 2.5 | Schema-evolution, migrations og versionering (persistenceVersion, schemaFingerprint, fnv1a32, persistenceMigrations, migratePersistedSectionValue) | ✅ Gennemgået | [2.5-schema-evolution-migrations-versionering.md](2.5-schema-evolution-migrations-versionering.md) |
-| 2.6 | Fil-I/O: fileSave(+internals/types), fileLoad, encryption, fileSystemAccess, fileHandleStorage, fileHelpers, filePersistenceMetadata, `src/types/fileOperations` | ✅ Gennemgået | [2.6-fil-io-encryption-fs-access.md](2.6-fil-io-encryption-fs-access.md) |
-| **3 — Schemas** | | | |
-| 3.1 | Schema-fundament: formSchemas-entry, baseSchemas, enumSchemas, amountExpressionSchema, invalidDraftsSchema + `src/types/` (branded, parserSpec, validation, result) | ✅ Gennemgået | [3.1-schema-fundament.md](3.1-schema-fundament.md) |
-| 3.2 | Section-schemas A: stamdata, satser, aarsloen, faellesAarsloen | ✅ Gennemgået | [3.2-section-schemas-a.md](3.2-section-schemas-a.md) |
-| 3.3 | Section-schemas B: erstatningsopgoerelse (største), erhvervsevnetab | ✅ Gennemgået | [3.3-section-schemas-b.md](3.3-section-schemas-b.md) |
-| 3.4 | Section-schemas C: forsoergertab, renteberegning, varigeMen + eoFileSchema (container/save/load, preflight, forward/backward-tolerance) | ✅ Gennemgået | [3.4-section-schemas-c-og-eofile.md](3.4-section-schemas-c-og-eofile.md) |
-| 3.5 | Schema-fingerprint, persistenceRegistry-alignment og save-order-registry (tableSaveOrderRegistry, useRegisterTableSaveOrder) | ✅ Gennemgået | [3.5-schema-fingerprint-og-save-order-registry.md](3.5-schema-fingerprint-og-save-order-registry.md) |
-| **4 — Domænelogik (beregningskernen)** | | | |
-| 4.0 | Opreguleringsmotorer (fundament): `opregulerMedAslAarsloensmaksimum`, `opregulerMedAkkumuleretReguleringssats` (fail-closed `manglendeAar`) | ✅ Gennemgået | [4.0-opreguleringsmotorer-fundament.md](4.0-opreguleringsmotorer-fundament.md) |
-| 4.1 | Stamdata, satser og policies (stamdataCalculations, satserCalculations, aarsloenPolicy) | ✅ Gennemgået | [4.1-stamdata-satser-policies.md](4.1-stamdata-satser-policies.md) |
-| 4.2 | Årsløn: aarsloen + aslEalAarsloen (beregning, validering, periodevisning) | ✅ Gennemgået | [4.2-aarsloen.md](4.2-aarsloen.md) |
-| 4.3 | EET: EAL, ASL-afgørelser, skæringsdatoer, aldersreduktionsformel, differencekrav, typer | ✅ Gennemgået | [4.3-eet-kerne-asl-eal-differencekrav.md](4.3-eet-kerne-asl-eal-differencekrav.md) |
-| 4.4 | EET: kapitalisering (calc/opslag/presentation), løbende ydelser, mer-erstatning ved forhøjet pensionsalder, regulering-rater, snapshot | ✅ Gennemgået | [4.4-eet-kapitalisering-loebende-mer-regulering.md](4.4-eet-kapitalisering-loebende-mer-regulering.md) |
-| 4.5 | Forsørgertab: beregning, ASL-ydelser, EAL-krav, snapshot | ✅ Gennemgået | [4.5-forsoergertab.md](4.5-forsoergertab.md) |
-| 4.6 | Varige Mén: motor og beregninger | ✅ Gennemgået | [4.6-varige-men.md](4.6-varige-men.md) |
-| 4.7 | Renteberegning: motor, procesrente, principper, validering, tabelmodel | ✅ Gennemgået | [4.7-renteberegning.md](4.7-renteberegning.md) |
-| 4.8 | EO-engines I: periodiseringsmotor, period-merging/overlap/range-groups, beregningsperiode-TAF-overlap, ferie, arbejdsdage/måneder | ✅ Gennemgået | [4.8-eo-engines-i-periodisering.md](4.8-eo-engines-i-periodisering.md) |
-| 4.9 | EO-engines II: TAF (calculations, engine, netto, per-year, per-year-opreguleret, day-sets, beregningsenhed), forligsgrad, svie/smerte, sygeferiegodtgørelse | ✅ Gennemgået | [4.9-eo-engines-ii-taf-forligsgrad-svie-smerte.md](4.9-eo-engines-ii-taf-forligsgrad-svie-smerte.md) |
-| 4.10 | EO-engines III: løn-/ydelsesudvikling og regulering (loenudvikling, offentligeYdelserUdvikling, reguleringCoverage/FormulaUtils/Presentation, overenskomstReguleringShared, indkomstSkadestidspunkt) | ✅ Gennemgået | [4.10-eo-engines-iii-loenudvikling-regulering.md](4.10-eo-engines-iii-loenudvikling-regulering.md) |
-| 4.11 | EO: helpers, initial values, row-derived, tabel-modeller, indtaegtPerioder, sygedagpengeInsertRows, midlertidigtEet-injektion | ✅ Gennemgået | [4.11-eo-helpers-initial-values-tabeller.md](4.11-eo-helpers-initial-values-tabeller.md) |
-| 4.12 | EO: validation-lag og `erstatningsopgoerelseValidator` (incl. reguleringssats-dækningsvalidering) | ✅ Gennemgået | [4.12-eo-validation-lag.md](4.12-eo-validation-lag.md) |
-| 4.13 | EO: snapshot, presentation-model, canonical output, invarianter + snapshot→pdf/beregning/debug-projektioner | ✅ Gennemgået | [4.13-eo-snapshot-presentation-canonical.md](4.13-eo-snapshot-presentation-canonical.md) |
-| 4.14 | EO-debug: view-models (core/loen/indkomst/regulation), parity, severity, integrity, navigation, csv, builder-registry | ✅ Gennemgået | [4.14-eo-debug-viewmodels-parity-severity-navigation.md](4.14-eo-debug-viewmodels-parity-severity-navigation.md) |
-| **5 — Hjælpefunktioner** | | | |
-| 5.1 | Datohåndtering kerne: isoDate, dateCommit, dateUtils, dateFormatting, isoDateHelpers, dateDraftNormalization/-Commit, date/index | ✅ Gennemgået | [5.1-datohaandtering-kerne.md](5.1-datohaandtering-kerne.md) |
-| 5.2 | Datohåndtering validering: dateInputValidation, dateRangeErrorMessages, dateOrderValidation, utcDayMath, periodeBeregning (kanonisk dag-iteration) | ✅ Gennemgået | [5.2-datohaandtering-validering.md](5.2-datohaandtering-validering.md) |
-| 5.3 | SH-dage: beregning og oversigt (shDageBeregning, shDageOversigt) | ✅ Gennemgået | [5.3-sh-dage.md](5.3-sh-dage.md) |
-| 5.4 | Talbehandling: numberParsing, numberComparison, rounding(+shortcuts), amount-/percentInputUtils, percentDraftCore, expressionAmount, fraction, safeComputation, integerRange, formatUtils | ✅ Gennemgået | [5.4-talbehandling.md](5.4-talbehandling.md) |
-| 5.5 | Øvrige utils + foundational typer: serialization, typeGuards, zodTypeGuards, nullToUndefinedDeep, zodIssueFormatting, validationFlagMap, tableRows, schemaRowEmpty, tableValidationCommon, rowId, input/clipboard, scroll-helpers, `src/types/` (deepReadonly, calculation, loen, table) | ✅ Gennemgået | [5.5-oevrige-utils.md](5.5-oevrige-utils.md) |
-| **6 — Data** | | | |
-| 6.1 | Renter og lovbestemte/statistiske rater: interestRates, lovbestemteRates, statistiskeRates, regulatoryRates | ✅ Gennemgået | [6.1-renter-lovbestemte-statistiske-rater.md](6.1-renter-lovbestemte-statistiske-rater.md) |
-| 6.2 | Folkepension, sygedagpenge (+OP), overenskomst, KRL, ydelsestyper, retsinfo-links, indskudteLoentillaeg | ✅ Gennemgået | [6.2-folkepension-sygedagpenge-overenskomst-krl-ydelsestyper-retsinfo.md](6.2-folkepension-sygedagpenge-overenskomst-krl-ydelsestyper-retsinfo.md) |
-| 6.3 | Offentlig løn: KL- og RLTN-satser, lookup, typer, import-script | ✅ Gennemgået | [6.3-offentlig-loen.md](6.3-offentlig-loen.md) |
-| 6.4 | Kapitalisering: bekendtgørelses-tabeller, kapitaliseringsbekendtgoerelser, forhoejetPensionsalderEvents, table-registry | ✅ Gennemgået | [6.4-kapitalisering-bekendtgoerelser-pensionsalder.md](6.4-kapitalisering-bekendtgoerelser-pensionsalder.md) |
-| **7 — UI-inputs & grid** | | | |
-| 7.1 | StyledField-familien: base, amount, date, integer, percent, fraction, week, year, text(area), dropdown, checkbox, radio, toggle + inputKeyFilters + input-knapper | ✅ Gennemgået | [7.1-styledfield-familien.md](7.1-styledfield-familien.md) |
-| 7.2 | Table-inputs og adaptere (inputs/table + hooks/tableInput/adapters), rowDrafts, cell-invalid-draft-channel | ✅ Gennemgået | [7.2-table-inputs-og-adaptere.md](7.2-table-inputs-og-adaptere.md) |
-| 7.3 | Grid-infrastruktur: gridCore (registry, context, navigation, focus, model, ux-spec, styles, utils) + grid-controller-hooks | ✅ Gennemgået | [7.3-grid-infrastruktur.md](7.3-grid-infrastruktur.md) |
-| 7.4 | Tabel-komponenter: standard (display/grid/loose/virtualized) + domæne-tabeller + per-tabel row-hooks | ✅ Gennemgået | [7.4-tabel-komponenter.md](7.4-tabel-komponenter.md) |
-| **8 — Pages** | | | |
-| 8.1 | Page-komponenter: Stamdata (+StamdataDebugTab), Årsløn, Satser, Mineo (forside), Indstillinger, LoginPage | ⬜ Ikke startet | _8.1-page-komponenter-stamdata-aarsloen-satser-mineo-indstillinger.md_ |
-| 8.2 | Page-komponenter: Erhvervsevnetab og tab-underkomponenter (Oplysninger, EfterEal, Kapitalisering, LoebendeYdelser, Differencekrav, IssuesBox) | ⬜ Ikke startet | _8.2-page-komponenter-erhvervsevnetab.md_ |
-| 8.3 | Page-komponenter: Erstatningsopgørelse-tabs (Loenindkomst, OffentligeYdelser, EOberegning, EOOplysninger) — de to største komponenter i programmet | ⬜ Ikke startet | _8.3-page-komponenter-erstatningsopgoerelse.md_ |
-| 8.4 | Page-komponenter: EO-debug-komponenter (EODebug, Tabel, EmploymentSections, LoenSections, RegulationSections, GroupedRows, Rows) | ⬜ Ikke startet | _8.4-page-komponenter-eo-debug.md_ |
-| 8.5 | Page-komponenter: Forsørgertab, Varige Mén, Renteberegning, MinProcesrente-calculator | ⬜ Ikke startet | _8.5-page-komponenter-forsoergertab-varigemen-renteberegning-minprocesrente.md_ |
-| 8.6 | Layout & UI-skal: MainLayout, StandaloneCalculatorLayout, SideMenu, Container, ContentBox(Frame), ui/, errors/, system/, reports/, common/, shared/ | ⬜ Ikke startet | _8.6-layout-ui-skal.md_ |
-| **9 — Hooks** | | | |
-| 9.1 | Form-/draft-hooks: usePersistedForm, useDraftField, useFormFieldErrors, useTwoStageInputActivation, useFormPersistenceSelectors/usePersistedSectionSelector, rowDrafts | ⬜ Ikke startet | _9.1-form-draft-hooks.md_ |
-| 9.2 | Undo/redo- og persisterings-hooks: useUndoRedo, usePersistedActiveTab, useUnsavedChangesGuard, useScrollToSectionWithRetry, useShakeFlag | ⬜ Ikke startet | _9.2-undo-redo-persisterings-hooks.md_ |
-| 9.3 | Fil-/PWA-/devtools-hooks: useFileSaveLoad (krydsref. 2.6), usePwaLaunchQueue, useDevtoolsMonitoring | ⬜ Ikke startet | _9.3-fil-pwa-guard-hooks.md_ |
-| 9.4 | Domæne-hooks: useAarsloenBeregning, useAslAarsloenRuleReporter, useAarsloenPdfGates, useOmregningToggle, useMidlertidigtEetInsertSource | ⬜ Ikke startet | _9.4-domaene-hooks.md_ |
-| **10 — Dokument-output (PDF + Word)** | | | |
-| 10.1 | Dokument-orkestrering & format-routing: `src/document/*` (documentGenerationContext, documentFormat, documentFileName, documentBrand, downloadArtifact), pdfService, `runSelectedDocumentFormat`, `createStandardPdfWriter`, standaloneRentePdfService | ⬜ Ikke startet | _10.1-dokument-orkestrering-format-routing.md_ |
-| 10.2 | PDF-infrastruktur: jsPdfAdapter, pdfWriter, pdfLoader, pdfConfig, pdfBrevhovedRenderer, pdfDocumentAdapter | ⬜ Ikke startet | _10.2-pdf-infrastruktur.md_ |
-| 10.3 | Word/docx-infrastruktur: docxWriter, docxStyles, docxWatermark, docxTableBridge — opfyldelse af `PdfWriter`-kontrakten, navngivne styles, vandmærke/brevhoved-paritet | ⬜ Ikke startet | _10.3-docx-infrastruktur.md_ |
-| 10.4 | Output-shared (bruges af begge kanaler): pdfTableRenderer, pdfHelpers, pdfFormatUtils, pdfTextUtils, pdfBrevhoved, pdfOptions | ⬜ Ikke startet | _10.4-output-shared.md_ |
-| 10.5 | Generatorer I (EO-familien): eo (erstatningsopgoerelsePdf + sections), reguleringPdf, differencekrav, eet, kapitalisering, loebendeYdelser | ⬜ Ikke startet | _10.5-generatorer-i-eo-eet.md_ |
-| 10.6 | Generatorer II: aarsloen, shDage, satser, varigemen, forsoergertab, renteberegning (+oversigt), tafFordelt (+opreguleret +kravGraf +chart), krl | ⬜ Ikke startet | _10.6-generatorer-ii.md_ |
-| 10.7 | Word-output-paritet & duplikerings-afvikling: `src/__tests__/docx/` + `wordContentHarness`; verificér evt. legacy/dublerede PDF-stier (fx `src/domain/erstatningsopgoerelse/pdf/` vs. `src/pdf/`) og afvikl dem | ⬜ Ikke startet | _10.7-word-paritet-og-konsolidering.md_ |
-| **11 — Config & settings** | | | |
-| 11.1 | Config A: persistenceVersion, dateRanges, version, buildInfo, pageNavigation, scrollToTopConfig, cellInvalidDraftScopes (persistenceRegistry/storageManifest krydsref. 2.1) | ⬜ Ikke startet | _11.1-config-a.md_ |
-| 11.2 | Config B: regulatoryRates, indskudteLoentillaeg (krydsref. 6.2), appTheme, tableTheme | ⬜ Ikke startet | _11.2-config-b-rates-theme.md_ |
-| 11.3 | Settings & auth: appSettings (schema/parse/storage), AppSettingsContext, AuthGate, auth, authConfig | ⬜ Ikke startet | _11.3-settings-auth.md_ |
-| **12 — App-shell & multi-app** | | | |
-| 12.1 | App-entry & bootstrap: main.tsx, App.tsx, apps/shared/bootstrapClientApp, apps/mineo/serviceWorkerBootstrap, desktop-only capability-gate, UnsupportedDevicePage | ⬜ Ikke startet | _12.1-app-entry-bootstrap.md_ |
-| 12.2 | Standalone MinProcesrente-app: MinProcesrenteApp, minprocesrenteMain, StandaloneErrorBoundary, standaloneStorageNamespace, namespace-isolation | ⬜ Ikke startet | _12.2-standalone-minprocesrente.md_ |
-| **13 — Testkvalitet** | | | |
-| 13.1 | Testkvalitet: domæneberegninger (årsløn, EET, forsørgertab, varige mén, renteberegning, opreguleringsmotorer) | ⬜ Ikke startet | _13.1-testkvalitet-domaeneberegninger.md_ |
-| 13.2 | Testkvalitet: EO-motor, EO-snapshot og EO-debug | ⬜ Ikke startet | _13.2-testkvalitet-eo-motor-snapshot-debug.md_ |
-| 13.3 | Testkvalitet: persistence, schema-evolution, fil-round-trip og invalidDrafts-recovery | ⬜ Ikke startet | _13.3-testkvalitet-persistence-schema-evolution-roundtrip.md_ |
-| 13.4 | Testkvalitet: quality-/contract-guard-tests, dokument-output (PDF+Word-paritet), grid/keyboard og integrationsdækning | ⬜ Ikke startet | _13.4-testkvalitet-guards-og-integration.md_ |
-| **14 — Tværgående helhed** | | | |
-| 14.1 | Kontrakt-alignment: `src/contracts/` vs. faktisk implementering (efter alle rettelser) + topology-coverage-matrix verificeret | ⬜ Ikke startet | _14.1-kontrakt-alignment.md_ |
-| 14.2 | Tværgående: duplikering, inkonsistente mønstre, dødkode og fil-placering på tværs af hele kodebasen | ⬜ Ikke startet | _14.2-tvaergaaende-duplikering-doedkode.md_ |
+---
+
+## Udskudte fund — skal udbedres ved det angivne punkt
+
+Fund fra færdige grupper 1–7 som bevidst er parkeret til et senere punkt. **Læs den relevante blok ved start af hvert punkt nedenfor**, så de ikke glemmes. Kilde = review-doc fundet stammer fra.
+
+### Gruppe 8 (pages)
+- **8.1** — LoginPage-klassifikation: tag stilling til `page-component-contract.md` §2.4 (dokumenteret undtagelse eller filplaceringsrettelse for `LoginPage.tsx`). *(Kilde 1.6/1.7)*
+- **8.2** — `EetOplysningerTab.tsx`: 3 inline `'2015-03-01'`-literaler → konvergér mod central `SKAERING_2015_03_01`/delt skæringsdato-kilde. UI-arbejde. *(Kilde 4.3; se også 14.2)*
+- **8.3** — `forligAnsvarsgradProcent`: overvej `allowDecimals={false}` på StyledPercentField (decimal-procent-formatering). *(Kilde 4.9)*
+- **8.3** — `insert-today`-`fieldPath`: følg op på felt-identitet for insert-today-knappen. *(Kilde 7)*
+- **Gruppe 8 (tabel-pages)** — inline dato-bounds (§5.1) gentaget i 5 tabeller — konsolidér ved relevante pages. *(Kilde 7)*
+
+### Gruppe 9 (hooks)
+- **9.3** — PWA-handle permission-tjek i `loadFromFileHandle` (H2): bedre fejl-UX ved revoked PWA-handle. *(Kilde 2.6)*
+- **9.3 / 12** — Pre-eksisterende fejlende test `MainLayout.pwaConcurrency.test.tsx` ("keeps the same pending PWA request available for retry…") fejler på ren `main`: `loadFromFileHandleMock` kaldes 2× i stedet for 1×. Undersøg. *(Kilde 2.6)*
+- **9.4** — Manglende unit-tests for `historyTargetRestore.ts` (`isRestoreTargetVisible`, rAF-retry-løkke, `isSameFocusScope`-afbrydelse). *(Kilde 2.3)*
+
+### Gruppe 10 (dokument-output)
+- **10.1** — `documentGenerationContext.ts` ikke eksporteret fra `src/document/index.ts`-barrel (forbrugere importerer dybt). Ret import-overfladen. *(Kilde 1.4)*
+- **10.1** — Verificér `pdfService.ts` `downloadVarigeMenDokument` som datadækning. *(Kilde 4.6)*
+- **10.6** — Verificér `src/pdf/domains/varigemen/varigeMenPdf.ts` (+`index.ts`) som datadækning. *(Kilde 4.6)*
+
+### Gruppe 13 (testkvalitet)
+- **13.1** — Genbesøg equivalens-/delegations-tests for opreguleringsmotorerne (4.0) — de afhængige motorer (4.2/4.3/4.4/4.5/4.9/4.10) hviler på det lås-testede fundament. *(Kilde 4.0)*
+- **13.x** — Import-script `scripts/import-offentlig-loen.mjs` uden unit-tests (accepteret gap). *(Kilde 6.3)*
+
+### Gruppe 14 (tværgående helhed)
+- **14.1** — Mulig kontrakt-konsolidering: `mineo-field-pattern.md` vs. `form-contract.md` (absorbér som sektion eller skærp snittet); `schema-evolution.md` generel skabelon vs. EO-specifik tjekliste (evt. split). *(Kilde 1.2)*
+- **14.2** — Dødkode `periodiserBeloebForMaaneder` + `periodiserBeloebForArbejdsdage` (`periodiseringsMotor.ts`): bekræftet ubrugt i produktion. Slet begge + test-dækning OG fjern fra `periodisering-contract.md` §1A. *(Kilde 4.8/4.10)*
+- **14.2** — Dødkode `computeTafEngine` (`tafBeregningsEngine.ts`): ingen produktions-callsites (kun test + arkitektur-doc). Afvikl + opdatér doc. *(Kilde 4.9)*
+- **14.2** — `findSfggSixMonthWarningEmploymentIds` (`sygeferiegodtgoerelse.ts`): eksporteret, kun tests. Verificér om advarslen mangler konsument før fjernelse. *(Kilde 4.9)*
+- **14.2** — Celle-fejl-sporing-konvergens i 3 grid-tabeller (committed-gate-filter for periodeskift-datatab, M3/H2) → dedikeret, test-bevogtet ekstraktion. *(Kilde 7.4)*
+- **14.2** — Konkurrerende percent-parsere: `parsePercentToDecimal` vs. `parseDanishNumberString`/`parsePercentPointString` (uensartet locale-håndtering). *(Kilde 5.4/4.10)*
+- **14.2** — Inline `'2015-03-01'` i `forsoergertabConstants.ts` (`PRE_2015_CUTOFF`) + `EetOplysningerTab.tsx` → central `SKAERING_2015_03_01`. *(Kilde 4.3)*
+- **14.2** — Inline års-udtræk `eetEalCalculation.ts:278–279` (`Number.parseInt(x.slice(0,4),10)`) → `isoYear`. *(Kilde 4.3)*
+- **14.2** — Flyt `aarsloenRowInterval.ts` fra `erstatningsopgoerelse/helpers/` → `aarsloen/` (koordinér pga. parallelt EO-arbejde). *(Kilde 4.2)*
+- **14.2** — Pass-through re-eksporter: `formatOverenskomstAmount`/`formatOverenskomstPercent` i `reguleringFormulaUtils.ts` (fra `eoSharedUtils.ts`); `formatPercentTrimmedFromRounded4` cross-modul re-export. *(Kilde 4.10/4.4)*
+- **14.2** — `ValidationErrorMap`: test-only type uden produktionsforbrugere → oprydning. *(Kilde 3.1)*
 
 ---
 
 ## Reviewinstruktion
 
-### Formål
-
 Hvert punkt gennemgår den relevante del af Mineo, **retter fundene**, og kontrollerer fire dimensioner:
 
-1. **Kodekvalitet og korrekthed** — Er koden fri for fejl, der kan producere forkerte beregninger, datatab eller inkonsistent tilstand?
-2. **Struktur og arkitektur** — Følger koden de etablerede kontrakter og mønstre? Er grænser mellem lag klare og konsistente? Er der én rød tråd, eller løses samme problem på flere måder?
-3. **Robusthed over for inputkombinationer** — Crasher eller fejler programmet ved manglende, ugyldige eller usædvanlige kombinationer af brugerinput?
-4. **Konvergens** — Er dette punkt bragt på linje med de principper, der blev fastlagt i de tidligere (mere fundamentale) punkter?
-
-Punktet afsluttes med rettelser gennemført og tests kørt. Fund der berører UI/UX eller beregningslogik forelægges til godkendelse, jf. `AGENTS.md`.
-
----
+1. **Kodekvalitet og korrekthed** — fri for fejl der kan give forkerte beregninger, datatab eller inkonsistent tilstand?
+2. **Struktur og arkitektur** — følger koden kontrakterne? Klare laggrænser? Én rød tråd, eller samme problem løst flere måder?
+3. **Robusthed** — crasher/fejler ved manglende, ugyldige eller usædvanlige inputkombinationer?
+4. **Konvergens** — bragt på linje med principperne fra de tidligere (mere fundamentale) punkter?
 
 ### Hvad arbejdet skal afdække og rette
 
-#### Korrekthed og determinisme
-- Beregninger der afhænger af render-timing, sideeffekter, implicit typecasting, locale, tidszoner eller floating-point-afrunding.
-- Invarianter der ikke er håndhævet af typer, Zod-schemas eller tests.
-- Stier der kan producere inkonsistente afledte værdier eller partielle state-opdateringer.
-- Numerisk logik der afviger fra projektets kanoniske helpers for afrunding, formatering og valuta. Konvergér mod én kanonisk løsning.
-- **Fail-closed:** Usikre/ugyldige kritiske data må aldrig give et stille gæt. Verificér at manglende reguleringssatser, manglende kapitaliseringstabeller, manglende år o.l. fejler eksplicit (jf. `manglendeAar` i opreguleringsmotorerne).
+- **Korrekthed/determinisme:** afhængighed af render-timing, sideeffekter, implicit cast, locale, tidszoner, floating-point. Uhåndhævede invarianter. Inkonsistente afledte værdier / partielle state-opdateringer. Afvigelser fra kanoniske helpers (afrunding/format/valuta). Fail-closed-stier der reelt fejler (ikke maskeret af nul-år-skip eller tom-liste-gren).
+- **Crash/inputrobusthed:** tomme felter, `undefined`/`null`/`NaN`/0/negative/fremtidige datoer/datoer udenfor lovlige intervaller. Felter gyldige hver for sig men ugyldige sammen (dato A efter dato B). Manglende guards før beregning / ved load. Array-ops der antager ≥1 element. Division med 0.
+- **Arkitektur/grænser:** brud på `src/contracts/*.md` + `AGENTS.md`. Overcoupling (UI med beregningslogik; beregning der importerer UI). Uklar ejerskab. Duplikerede sandheder.
+- **Type-sikkerhed:** Zod↔TS-mismatches ("type lies"). Usikre `as`/`!`/`any`/implicit narrowing. Persisteret input fuldt Zod-dækket.
+- **Tests:** manglende dækning af beregning/validering/round-trip/edge cases. Tests der tester implementeringsdetaljer frem for invarianter; flakiness; over-mocking. Mindst ét top-level `describe(...)` pr. fil.
+- **Kompleksitet:** unødvendig indirektion, dødkode, ubrugte exports, for store/overlappende filer. Bemærk særligt `LoenindkomstTab.tsx` (~133 KB) og `EOOplysningerTab.tsx` (~124 KB) — kandidater til opdeling i gruppe 8.
 
-#### Crashrisici og inputrobusthed
-- Edge cases: tomme felter, `undefined`, `null`, `NaN`, 0, negative tal, fremtidige datoer, datoer udenfor lovlige intervaller.
-- Kombinationer af felter der er gyldige hver for sig, men ugyldige sammen (fx dato A efter dato B).
-- Manglende guards ved grænser: brugerinput der ikke valideres før beregning, persistence-data der ikke saniteres ved load.
-- Array-operationer der antager mindst ét element. Division med 0.
-
-#### Arkitektur og grænser
-- Brud på `src/contracts/*.md` og `AGENTS.md`.
-- Overcoupling: UI der indeholder beregningslogik; beregningslogik der importerer UI.
-- Uklar ejerskab på tværs af moduler.
-- Duplikerede sandheder (samme logik to steder, to sources of truth for samme dato eller rente).
-- **Form-kerneregel — ingen live preview:** Beregn/validér/vis aldrig afledt feedback fra `onChange`-draft. Commit sker på `onBlur` (forms) og `onPersist` (table-grænse). Kun de tre dokumenterede immediate-commit-undtagelser (delete/backspace på ikke-redigerende celle, valg af dropdown-menupunkt, toggle/radio-aktivering).
-- **Runtime data-integritet:** Committed brugerinput må ikke forsvinde, nulstilles eller muteres implicit pga. navigation, re-renders, tab-skift eller intern sync.
-
-#### Type-sikkerhed
-- Zod ↔ TypeScript-mismatches ("type lies"). Zod-schemas er **eneste** sandhedskilde for runtime-validering og afledte typer.
-- Usikre assertions (`as`, `!`), `any`, implicit narrowing.
-- Manglende validering ved domænegrænser. Persisteret brugerinput skal være fuldt dækket af Zod og må ikke kunne eksistere uden for schema-dækning.
-
-#### Save/load (.eo) — trust-kritisk
-- Stille datatab er uacceptabelt. Save inkluderer alt brugerindtastet input og kun schema-valideret brugerinput; afledte værdier genberegnes efter load.
-- Load er atomisk medmindre brugeren eksplicit accepterer delvis load i preflight.
-- Forward/backward-tolerant load: ukendte/fjernede felter må ikke fejle hele loadet; nye manglende felter må ikke blokere eller advare.
-- Streng save→load round-trip for brugerinput ved vellykket fejlfrit load.
-
-#### Tests
-- Manglende dækning af beregninger, validering, save/load round-trip og edge cases.
-- Tests der tester implementeringsdetaljer frem for invarianter. Flakiness og over-mocking.
-- Mindst ét top-level `describe('<modul-eller-funktion>')` pr. testfil; ingen flade top-level `it(...)`-filer.
-
-#### Kompleksitet og vedligeholdbarhed
-- Unødvendig indirektion og accidental complexity.
-- Duplikeret logik, dødkode og ubrugte exports.
-- Filer der er for store eller har for mange ansvarsområder (split), eller overlapper i ansvar (konsolidér). **Bemærk særligt:** `LoenindkomstTab.tsx` (~133 KB) og `EOOplysningerTab.tsx` (~124 KB) er ekstremt store og er kandidater til opdeling — vurderes i gruppe 8.
-
----
-
-### Særlig instruktion til arbejde oven på allerede committet kode
-
-Dele af kodebasen er ændret efter forrige review-runde (bl.a. den samlede opreguleringsmotor, ny "TAF opreguleret til beregningsår"-beregningsform, tre-tilstands-valg Ja/Nej/Skjul, per-ansættelsesforhold lønudviklingsregulering, sygedagpenge-OP, dokument-output i Word). Når et punkt rører kode, hvor en delegering eller motor er indført, skal reviewet **ikke** bare læse koden, men aktivt verificere:
-
-- **Tal-identitet ved delegering:** Når en beregning er omlagt til at kalde en fælles motor (fx EET-EAL, forsørgertab, lønudvikling og TAF-opregulering der alle skal kalde `opreguleringsmotorer.ts`), bevis at outputtet er tal-identisk med det, lokal-logikken producerede — ikke bare "ser rigtigt ud". Ingen dobbelt-sandhed: dækningsvalidering og beregningslag skal kalde samme motor.
-- **Fail-closed-konsistens:** Verificér at alle nye fail-closed-stier (manglende satser/år/tabeller) reelt fejler og ikke kan maskeres af et nul-år-skip eller en tom-liste-gren.
-- **Adfærds-neutralitet ved perf-/refaktor-løft:** Ændringer der hævder at være neutrale (fx period-iteration, skjul-model på compute-siden) skal have en ækvivalens-test.
-
-De fire **åbne godkendelsespunkter** øverst i Status lukkes, når reviewet rammer 6.2, 10.5, 10.6 og 11.3.
-
----
-
-### Særlig instruktion til gruppe 1 — kontrakter og arkitektur-dokumentation
-
-Punkterne 1.1–1.7 arbejder ikke med almindelig kode, men med de normative dokumenter i `src/contracts/*.md` (incl. den maskinlæsbare `contract-topology.json`) og de informative `docs/architecture/*.md`. Disse dokumenter er fundamentet, resten håndhæves imod. Derfor kortlægges de **først** — og med bredere optik end den øvrige kode.
-
-**Topologien er autoritativ for rækkefølgen.** `contract-topology.json` klassificerer kontrakterne i fire lag (`domain-specific-contract` → `cross-cutting-contract` → `page-component-contract` → `architecture-document`) med en eksplicit prioritetsorden. Gruppe 1 følger denne klassifikation frem for alfabetisk batching. **Faktisk indhold pr. 2026-06-10 (verificeret mod topology-JSON):**
-
-- **18 tværgående (cross-cutting) kontrakter:** domain-boundary, form, persistence, schema-evolution, keyboard-navigation, error-debug, document-format, pdf, pdf-layout, periodisering, date, mineo-field-pattern, amount, undo-redo, app-settings, **snapshot** (bemærk: topology klassificerer `snapshot-contract.md` som tværgående, ikke domæne), auth-gate, app-shell.
-- **8 domæne-kontrakter:** eo-snapshot, eet-snapshot, forsoergertab-snapshot, aarsloen, renteberegning, varigemen, satser, indskudte-loentillaeg.
-- **1 page-component-kontrakt** (subordinat til 16 af de tværgående, jf. `subordinateContracts`).
-- **7 informative arkitektur-docs:** auth-gate, calculation, date-interval-performance, debug-builder, eo-clamping-pipeline, pdf, undo-redo. Plus authoring-artefakterne `contract-template.md` og `docs/architecture/contract-topology-procedure.md`.
-
-Gruppe 1's underpunkter mapper:
-- **1.1** etablerer selve topologi-maskineriet: er `contract-topology.json`, `contract-template.md`, `contract-topology-procedure.md` og `contractCoverageMatrix.test.ts` indbyrdes konsistente, og dækker de faktisk **alle** kontraktfiler i `src/contracts/`? (Coverage-matrix-testen skal fejle, hvis en kontraktfil hverken er klassificeret eller eksplicit undtaget.)
-- **1.2–1.4** dækker de 18 tværgående kontrakter, tematisk grupperet (state/persistence/form · dato/beløb/periodisering/historik · output/fejl/keyboard/shell/auth).
-- **1.5** dækker de 8 domæne-kontrakter.
-- **1.6** dækker page-component-kontrakten plus de 7 arkitektur-docs.
-- **1.7** er helhedsvurderingen.
-
-For hvert kontraktdokument besvares to dimensioner:
-
-**Dimension A — Korrekthed og fyldestgørelse (intern konsistens):**
-- Er kontraktens regler entydige, modsigelsesfri og operationaliserbare?
-- Mangler der dækning af kendte cases (edge cases, fejlhåndtering, tværgående scenarier)?
-- Er implementeringen drevet ud over kontraktens dækning (kontrakten "halter bagud")?
-- Er kontrakten stadig sand i forhold til den nuværende kode (kontraktdrift)?
-- Er ansvar og ejerskab klart afgrænset mod tilstødende kontrakter? Overlap eller huller?
-- Er terminologien konsistent på tværs af kontrakter (samme begreb = samme ord)?
-- **Sprogpolitik:** Kontrakter skal være på dansk uden undtagelse (jf. `AGENTS.md`). Kontroller at `date-contract.md` og `mineo-field-pattern.md` er oversat til dansk; ret hvis ikke.
-
-**Dimension B — Arkitektonisk kritik (de bagvedliggende valg):**
-- Er de grundprincipper kontrakten hviler på de rigtige? Ville Mineo være bedre bygget på andre principper?
-- Er ansvarsfordelingen mellem lag (app-shell · UI · hooks · domæne · persistence · dokument-output) optimal, eller ligger grænser forkert?
-- Er der kontrakter der bør slås sammen, splittes, omfordeles eller afskaffes? (Fx: bør `pdf-contract` + `pdf-layout-contract` + `document-format-contract` konsolideres til én dokument-output-kontrakt, nu hvor PDF og Word deler generatorer?)
-- Mangler der kontrakter for områder der i dag styres af konvention (fx multi-app-isolation — er den dækket godt nok af `app-shell-contract`?).
-- Er der invarianter der håndhæves runtime, men burde løftes ind i typer/schemas — eller omvendt?
-- Er kontrakten på det rigtige abstraktionsniveau? For abstrakt = svag styring; for konkret = bremser udvikling.
-
-Output for gruppe 1 skal — udover det normale fund-format — indeholde en sektion **"Arkitektoniske grundprincipper"**, der eksplicit tager stilling til, om kontraktens fundament er sundt, og hvis ikke, hvilke alternative principper der ville give et bedre system. Forslag skal være konkrete, begrundede og knyttet til faktiske smertepunkter.
-
-**Kontrakter er kun bindende, så længe de understøtter det bedste slutprodukt** (jf. `AGENTS.md`). Hvis en kontrakt står i vejen, forbedres/optimeres kontrakten — i samme commit som topology-JSON og coverage-matrix-test opdateres (jf. `contract-topology-procedure.md`). Kontraktændringer behandles som arkitekturbeslutninger: berører de ikke UI/UX eller beregningslogik, gennemføres de direkte; ellers forelægges de.
-
-Punkt 1.7 er en helhedsvurdering, der bygger på fundene fra 1.1–1.6 og adresserer kontraktlandskabet samlet — herunder strukturelle huller, om hierarkiet `src/contracts/*.md > AGENTS.md > CLAUDE.md` er fornuftigt, og om kontrakternes samlede dækning matcher Mineos faktiske kompleksitet (multi-app-arkitektur + dobbeltkanal dokument-output).
-
----
-
-### Format for hvert enkelt punkt
-
-Hvert punkt dokumenteres i en separat fil i `docs/review/`, navngivet efter punktnummeret, fx `2.1-persistence-arkitektur.md`. Filen følger dette format:
+### Dokumentationsformat (én fil pr. punkt, `docs/review/[punkt]-[navn].md`)
 
 ```
-# Punkt: [punktnummer] [navn]
-
+# Punkt: [nummer] [navn]
 **Dato:** ÅÅÅÅ-MM-DD
-**Filer gennemgået:** [liste]
-**Filer ikke gennemgået:** [hvis relevant]
+**Filer gennemgået:** [liste]   **Filer ikke gennemgået:** [hvis relevant]
 **Tests kørt:** [kommando + resultat]
 
 ## Fund og rettelser
-
-[Nummereret liste. For hvert fund: severity, lokation, problem, risiko, og HANDLING:
- - ✅ Rettet — kort beskrivelse af ændringen
- - ⏸ Afventer godkendelse — UI/UX eller beregningslogik; beskriv forslag og konsekvens
- - ⏭ Ikke rettet — begrundelse]
+[Nummereret. Pr. fund: severity, lokation, problem, risiko, HANDLING:
+ ✅ Rettet — beskrivelse | ⏸ Afventer godkendelse — forslag+konsekvens | ⏭ Ikke rettet — begrundelse]
 
 ## Tilfældighedsfund
-
-[Alt bemærket undervejs der falder udenfor punktets primære scope, med samme handlingsmarkering]
+[Alt udenfor punktets scope, samme handlingsmarkering. Peger fundet på et senere punkt → tilføj det også til "Udskudte fund" i denne plan.]
 
 ## Sammenfatning
-
-[2–5 bullets: vigtigste rettelser, åbne godkendelsespunkter, og om punktet er konvergeret med fundamentet]
+[2–5 bullets: vigtigste rettelser, åbne godkendelsespunkter, konvergens.]
 ```
 
-Severity-skala:
-- **Kritisk** — Kan producere forkerte beregninger, datatab eller bryde invarianter.
-- **Høj** — Arkitekturfejl, type-usikkerhed eller manglende validering med reel risiko.
-- **Medium** — Kompleksitet, duplikering eller manglende tests der hæmmer vedligeholdelse.
-- **Lav** — Inkonsistens, mindre forbedringer eller oprydning.
+**Severity:** Kritisk (forkerte beregninger/datatab/brudte invarianter) · Høj (arkitekturfejl/type-usikkerhed/manglende validering med reel risiko) · Medium (kompleksitet/duplikering/manglende tests) · Lav (inkonsistens/oprydning).
 
 ---
 
-### Rækkefølgerationale
+## Proces
 
-Arbejdet følger afhængighedsorden nedefra og op. Hvert lag færdiggøres og rettes, før det næste bygges ovenpå:
+1. Vælg næste **ikke-startede** punkt (følg rækkefølgen).
+2. **Læs blokken for punktet i "Udskudte fund" ovenfor.**
+3. Gennemgå punktets filer + direkte afhængigheder; markér hvad der er/ikke er gennemgået. Uddelegér gerne brede gennemgange til subagents.
+4. Ret fundene (kode direkte; UI/UX + beregningslogik forelægges). Nye fund der hører til et senere punkt → tilføj til "Udskudte fund".
+5. Kør tests efter kvalitetsgaten i `AGENTS.md` (smalleste tjek der fanger fejl; udvid efter risikoflade). Rapportér ærligt.
+6. Dokumentér i `docs/review/[punkt]-[navn].md`; opdatér statustabel til ✅ og fjern de afsluttede poster fra "Udskudte fund".
 
-| Gruppe | Indhold | Begrundelse |
-|---|---|---|
-| **1 — Kontrakter & arkitektur** | `src/contracts/*` (+ topology) og `docs/architecture/*` | Normative og styrer alt øvrigt. Forkerte eller ufuldstændige kontrakter ville få resten til at håndhæve fejlbehæftede regler. Kortlægges og forbedres først. |
-| **2 — Persistence** | Stores, contexts, load/apply, schema-evolution, fil-I/O | Alt andet afhænger af, at data gemmes og loades korrekt. |
-| **3 — Schemas** | Alle Zod-schemas + foundational typer | Schemas definerer grænsefladen til persistence og beregning. |
-| **4 — Domænelogik** | Alle beregninger (kernen) | Hjertet i systemet — bringes i orden før UI. Opreguleringsmotoren (4.0) er fundament for de øvrige. |
-| **5 — Hjælpefunktioner** | Dato, tal, serialisering, tabel-helpers | Fundamentale utilities brugt af al domænelogik. |
-| **6 — Data** | Ratetabeller og opslag | Statiske data der er forudsætning for korrekte beregninger. |
-| **7 — UI-inputs & grid** | Input-komponenter og grid-infrastruktur | Grænsefladen mod beregningslagene. |
-| **8 — Pages** | Sider og layout | Sammensætning af input og præsentation. |
-| **9 — Hooks** | Custom React hooks | Lim mellem UI og domæne. |
-| **10 — Dokument-output (PDF + Word)** | `src/document/`, `src/pdf/`, `src/docx/` | Separat outputkanal; afhænger af domænedata. Dobbeltkanal (PDF+Word) gennem fælles generatorer; inkluderer Word-paritet og evt. afvikling af PDF-duplikering. |
-| **11 — Config & settings** | Konfiguration, settings, auth | Rammeværk og applikationsopsætning. |
-| **12 — App-shell & multi-app** | Entry points, bootstrap, standalone-app | Sammenbindingen af det hele; multi-app-isolation. |
-| **13 — Testkvalitet** | Tests for ovenstående | Verificerer, at de foregående punkter er testsikrede. |
-| **14 — Tværgående helhed** | Kontrakt-alignment og duplikering | Endelig helhedsvurdering, når alle dele er bragt i orden. |
+Et punkt behøver ikke dække hver fil i en mappe — scope = en sammenhængende arbejdsenhed. Filer der hører til et andet punkt krydsrefereres.
 
----
+**Statusværdier:** ⬜ Ikke startet · 🟡 I gang (åbne fund/godkendelser) · ✅ Gennemgået (rettet/parkeret, tests grønne, dokumenteret).
 
-## Procesbeskrivelse
+### Rækkefølgerationale (nedefra og op)
 
-1. Vælg næste **ikke-startede** punkt (følg rækkefølgen — fundamentet før udmøntningerne).
-2. Gennemgå punktets filer og deres direkte afhængigheder. Marker eksplicit, hvad der er gennemgået, og hvad der ikke er. **Overvej at uddelegere brede gennemgange til subagents** (jf. `AGENTS.md` §Reviews og subagents) — er du i tvivl, så gør det; det holder hovedtråden ren.
-3. **Ret fundene:** koderelaterede rettelser gennemføres direkte; UI/UX- og beregningslogik-fund forelægges til godkendelse.
-4. Kør relevante tests efter kvalitetsgaten i `AGENTS.md` (vælg det smalleste tjek der realistisk fanger fejl i ændringen; udvid efter risikoflade) og rapportér resultatet ærligt.
-5. Dokumentér i `docs/review/[punkt]-[navn].md` efter formatet ovenfor.
-6. Opdater statustabellen til ✅ Gennemgået med link til filen.
-7. Gå først videre til næste punkt, når dette er færdigt (rettet + testet, eller åbne punkter eksplicit parkeret).
-
-Et punkt behøver ikke dække hver eneste fil i en mappe — scope er det, der giver mening som en sammenhængende arbejdsenhed. Filer der naturligt hører til et tidligere/senere punkt krydsrefereres frem for at blive dækket to gange.
-
-### Statusværdier
-- ⬜ **Ikke startet**
-- 🟡 **I gang** — påbegyndt; har åbne fund eller godkendelsespunkter
-- ✅ **Gennemgået** — alle fund rettet eller eksplicit parkeret, tests grønne, dokumenteret
-
----
-
-## Afslutning
-
-Planen er nulstillet. Ingen punkter er gennemgået endnu; arbejdet påbegyndes forfra ved punkt 1.1 efter afhængighedsorden indefra og ud. Hvert punkt færdiggøres (rettet + testet, eller åbne punkter eksplicit parkeret), dokumenteres i sin egen `docs/review/[punkt]-[navn].md`-fil, og statustabellen opdateres til ✅ Gennemgået, før det næste påbegyndes. Når alle 14 grupper er færdige, er kontraktlandskabet, beregningskernen, persistence, UI, dokument-output (PDF+Word) og multi-app-skallen bragt i en ensartet, testsikret, fail-closed tilstand med én rød tråd.
+| Gruppe | Begrundelse |
+|---|---|
+| 1 Kontrakter | Normative; styrer alt øvrigt. |
+| 2 Persistence | Alt afhænger af korrekt gem/load. |
+| 3 Schemas | Grænseflade til persistence + beregning. |
+| 4 Domænelogik | Systemets hjerte; opreguleringsmotor (4.0) er fundament. |
+| 5 Hjælpefunktioner | Utilities brugt af al domænelogik. |
+| 6 Data | Statiske data forudsætning for korrekte beregninger. |
+| 7 UI-inputs & grid | Grænseflade mod beregningslagene. |
+| 8 Pages | Sammensætning af input + præsentation. |
+| 9 Hooks | Lim mellem UI og domæne. |
+| 10 Dokument-output | Outputkanal (PDF+Word) over domænedata. |
+| 11 Config & settings | Rammeværk og opsætning. |
+| 12 App-shell & multi-app | Sammenbinding + multi-app-isolation. |
+| 13 Testkvalitet | Verificerer de foregående punkter. |
+| 14 Tværgående helhed | Endelig kontrakt-alignment + duplikering. |

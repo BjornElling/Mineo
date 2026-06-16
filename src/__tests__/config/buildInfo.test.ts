@@ -5,18 +5,18 @@ describe('BUILD_INFO', () => {
   });
 
   it('bruger build-env når den findes', async () => {
-    vi.stubEnv('VITE_APP_VERSION', '2026.06.736.a1b2c3');
+    vi.stubEnv('VITE_APP_VERSION', '2026.06.736.a1b2c3d');
     vi.stubEnv('VITE_APP_COMMIT_HASH', 'a1b2c3d4e5f678901234567890abcdef12345678');
-    vi.stubEnv('VITE_APP_COMMIT_SHORT', 'a1b2c3');
+    vi.stubEnv('VITE_APP_COMMIT_SHORT', 'a1b2c3d');
     vi.stubEnv('VITE_APP_BUILT_AT', '2026-06-07T10:11:12.000Z');
 
     const { BUILD_INFO, VERSION } = await import('../../config/buildInfo');
 
-    expect(VERSION).toBe('2026.06.736.a1b2c3');
+    expect(VERSION).toBe('2026.06.736.a1b2c3d');
     expect(BUILD_INFO).toEqual({
-      version: '2026.06.736.a1b2c3',
+      version: '2026.06.736.a1b2c3d',
       commit: 'a1b2c3d4e5f678901234567890abcdef12345678',
-      commitShort: 'a1b2c3',
+      commitShort: 'a1b2c3d',
       builtAt: '2026-06-07T10:11:12.000Z',
     });
   });
