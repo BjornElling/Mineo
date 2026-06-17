@@ -54,6 +54,10 @@ export const useOmregningToggle = ({
               colKey: summary.firstErrorCell.colKey,
             });
           }
+        } else {
+          // Ingen konkret fejlcelle (typisk en helt tom tabel uden påbegyndt periode): peg brugeren
+          // på første periodecelle, så aktivering uden gyldig periode ikke kun bliver en stum rystelse.
+          tabelRef.current?.showNeedsPeriodHint();
         }
 
         // Ingen state-ændring

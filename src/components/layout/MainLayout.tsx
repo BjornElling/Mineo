@@ -10,8 +10,7 @@ import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import {
-  commitActiveGridEditors,
-  restoreFocusIfPossible,
+  prepareForCriticalDataReplacement,
   isOpenTextEditorElement,
   hasOpenGridEditor,
 } from '../../utils/commitFlush';
@@ -97,19 +96,14 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       return;
     }
 
-    const activeElement = document.activeElement;
-    if (isOpenTextEditorElement(activeElement)) {
-      setOverlay({
-        message: 'Kan ikke skifte side: afslut eller ret det aktive felt først.',
-        type: 'warning',
-      });
-      return;
-    }
-
+    // Sideskift er en kritisk handling på linje med save/load: brug den fælles commit-flush-guard,
+    // så et igangværende felt-commit (åben tekst-editor, åben grid-celle ELLER et blur-deferred
+    // commit) garanteret er afsluttet før navigation unmounter den gamle side. Tidligere blurrede
+    // navigation ikke det aktive felt og ventede ikke på commit-flush, hvilket kunne tabe et netop
+    // indtastet felt ved sideskift (jf. runtime data-integritet).
     try {
-      const gridCommitResult = commitActiveGridEditors();
-      if (gridCommitResult.failedCount > 0) {
-        restoreFocusIfPossible(gridCommitResult.firstFailedElement);
+      const guard = await prepareForCriticalDataReplacement();
+      if (!guard.ok) {
         setOverlay({
           message: 'Kan ikke skifte side: afslut eller ret det aktive felt først.',
           type: 'warning',

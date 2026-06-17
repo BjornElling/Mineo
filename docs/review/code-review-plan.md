@@ -23,7 +23,7 @@
 
 ## Status og fremdrift
 
-Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **Næste ikke-startede punkt: 9.1.**
+Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **Næste ikke-startede punkt: 10.1.**
 
 **Færdige grupper** (fund rettet + tests grønne; detaljer i de enkelte `docs/review/[punkt]-*.md`):
 
@@ -34,9 +34,10 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 - ✅ **Gruppe 5 — Hjælpefunktioner** (2026-06-14). Én sand dato-parse-kilde; SH-helligdagssæt konsolideret; percent-parsing samlet til én dansk locale-politik (brugergodkendt); forklarende min>max-datofejlbesked.
 - ✅ **Gruppe 6 — Data** (2026-06-14). Fail-closed guards i year-bounds/§24-max/kapitalisering; `sygedagpengeRates.ts` konsolideret til én satstabel (sats+ATP+OP). **Åbent godkendelsespunkt lukket:** sygedagpenge tre-leds-model bekræftet.
 - ✅ **Gruppe 7 — UI-inputs & grid** (2026-06-16). Felt-identitets-hul i StyledCheckbox/EetDifferencekrav lukket; dobbelt-undo-frame rettet; grid-scroll-hop rettet; `gridUxSpec` Tab-kontrakt synket med ny navigation.
+- ✅ **Gruppe 9 — Hooks** (9.1–9.4, 2026-06-17). Fire udskudte fund lukket: revoked PWA-handle får nu handlingsanvisende dansk fejl (permission-gate + DOMException-mapping, brugergodkendt); den pre-eksisterende `pwaConcurrency`-flake root-caused (auto-retry-timer↔event-race) + rettet via delt `lastAttemptedRequestIdRef`; navigations-commit-flush bragt på linje med save/load (`prepareForCriticalDataReplacement`); manglende `historyTargetRestore`-tests skrevet. Brugergodkendt: ASL maks-validering fail-closed ved manglende sats; omregning-toggle vejledning via kanonisk celle-hint. Konvergens: `useScrollToSectionWithRetry` konsolideret onto `scrollWithRetry` (+ delt cancel); dynamisk fejl-reporter-cache lækker ikke. **Parkeret (14.2):** ubrugt `replaceValues`-export; `StyledToggleSwitch` imperativ shake.
 - ✅ **Gruppe 8 — Pages** (8.1–8.6, 2026-06-16). LoginPage flyttet til `src/auth/`; Satser nedtoner satser ved ugyldigt år (brugergodkendt); to debug-indstillinger (test-fane + font-style-farvemarkering) DEV-gated UI+adfærd (brugergodkendt). Delt forligs-validering (`useForligAnsvarsgradValidation` + `forligAnsvarsgradRules`) håndhæves nu ens fra både Erstatningsopgørelse og Erhvervsevnetab→Differencekrav (brugergodkendt korrekthedsfix). Insert-today `fieldPath`-bug rettet; kanonisk `useShakeFlag` (to inline timer-leaks fjernet); kanonisk `formatKr`/`dateRanges_varigemen`; MenberegningTab flyttet til central fejl-model; `SKAERING_2015_03_01`/`SKAERING_2024_01_01` konsolideret; dødkode fjernet (`EODebugLoenSections`+`eoDebugLoenViewModel`, `ComputationErrorAlert`, dead `isUserFeedbackRef`); Overlay auto-close timer-fix. **De to største komponenter dekomponeret:** `LoenindkomstTab` 3079→2204 og `EOOplysningerTab` 2748→2017 linjer (ren strukturel, adfærdsbevarende; nye `loenindkomst/`+`eoOplysninger/`-mapper).
 
-**Test-baseline:** 5020 (2026-06-10) → 5172/429 (g.5) → 5185/430 (g.6) → 5310/445 (g.7) → **5318 tests / 446 filer grøn** (2026-06-16, g.8). Hvert punkt skal efterlade suiten mindst lige så grøn. Kendt (ikke fejl): `act(...)`-warning i `TableDropdown.gridCore.test.tsx`; pre-eksisterende flake `MainLayout.pwaConcurrency.test.tsx` (timeout under fuld-suite-load, består isoleret — se Gruppe 9-udskudt fund).
+**Test-baseline:** 5020 (2026-06-10) → 5172/429 (g.5) → 5185/430 (g.6) → 5310/445 (g.7) → 5318/446 (g.8) → **5328 tests / 449 filer grøn** (2026-06-17, g.9). Hvert punkt skal efterlade suiten mindst lige så grøn. Kendt (ikke fejl): `act(...)`-warning i `TableDropdown.gridCore.test.tsx`. (Den pre-eksisterende `MainLayout.pwaConcurrency.test.tsx`-flake blev root-caused og rettet i 9.3.)
 
 ### Statustabel
 
@@ -63,11 +64,11 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 | 8.4 | EO-debug-komponenter (EODebug, Tabel, EmploymentSections, LoenSections, RegulationSections, GroupedRows, Rows) | ✅ (fil `8.4-eo-debug-komponenter`) |
 | 8.5 | Forsørgertab, Varige Mén, Renteberegning, MinProcesrente-calculator | ✅ (fil `8.5-forsoergertab-varigemen-renteberegning-minprocesrente`) |
 | 8.6 | Layout & UI-skal: MainLayout, StandaloneCalculatorLayout, SideMenu, Container, ContentBox(Frame), ui/, errors/, system/, reports/, common/, shared/ | ✅ (fil `8.6-layout-ui-skal`) |
-| **9 — Hooks** | | |
-| 9.1 | Form-/draft-hooks: usePersistedForm, useDraftField, useFormFieldErrors, useTwoStageInputActivation, selectors, rowDrafts | ⬜ |
-| 9.2 | Undo/redo- og persisterings-hooks: useUndoRedo, usePersistedActiveTab, useUnsavedChangesGuard, useScrollToSectionWithRetry, useShakeFlag | ⬜ |
-| 9.3 | Fil-/PWA-/devtools-hooks: useFileSaveLoad (krydsref 2.6), usePwaLaunchQueue, useDevtoolsMonitoring | ⬜ |
-| 9.4 | Domæne-hooks: useAarsloenBeregning, useAslAarsloenRuleReporter, useAarsloenPdfGates, useOmregningToggle, useMidlertidigtEetInsertSource | ⬜ |
+| **9 — Hooks** | | ✅ |
+| 9.1 | Form-/draft-hooks: usePersistedForm, useDraftField, useFormFieldErrors, useTwoStageInputActivation, selectors, rowDrafts | ✅ (fil `9.1-9.4-hooks`) |
+| 9.2 | Undo/redo- og persisterings-hooks: useUndoRedo, usePersistedActiveTab, useUnsavedChangesGuard, useScrollToSectionWithRetry, useShakeFlag | ✅ (fil `9.1-9.4-hooks`) |
+| 9.3 | Fil-/PWA-/devtools-hooks: useFileSaveLoad (krydsref 2.6), usePwaLaunchQueue, useDevtoolsMonitoring | ✅ (fil `9.1-9.4-hooks`) |
+| 9.4 | Domæne-hooks: useAarsloenBeregning, useAslAarsloenRuleReporter, useAarsloenPdfGates, useOmregningToggle, useMidlertidigtEetInsertSource | ✅ (fil `9.1-9.4-hooks`) |
 | **10 — Dokument-output (PDF + Word)** | | |
 | 10.1 | Orkestrering & format-routing: `src/document/*`, pdfService, `runSelectedDocumentFormat`, `createStandardPdfWriter`, standaloneRentePdfService | ⬜ |
 | 10.2 | PDF-infrastruktur: jsPdfAdapter, pdfWriter, pdfLoader, pdfConfig, pdfBrevhovedRenderer, pdfDocumentAdapter | ⬜ |
@@ -108,12 +109,6 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 
 Fund fra færdige grupper 1–7 som bevidst er parkeret til et senere punkt. **Læs den relevante blok ved start af hvert punkt nedenfor**, så de ikke glemmes. Kilde = review-doc fundet stammer fra.
 
-### Gruppe 9 (hooks)
-- **9.3** — PWA-handle permission-tjek i `loadFromFileHandle` (H2): bedre fejl-UX ved revoked PWA-handle. *(Kilde 2.6)*
-- **9.3 / 12** — Pre-eksisterende fejlende test `MainLayout.pwaConcurrency.test.tsx` ("keeps the same pending PWA request available for retry…") fejler på ren `main`: `loadFromFileHandleMock` kaldes 2× i stedet for 1×. Bekræftet i 8.6: består isoleret (3/3), fejler kun under fuld-suite-load (timeout) — ikke en regression. Undersøg. *(Kilde 2.6/8.6)*
-- **9.3 / 14.2** — Navigations-commit-flush i `MainLayout.handlePageChange` er lavere end save/load-commit-flush (ingen blur + ingen `waitForCommitFlush()`-await). Aktuelt sikkert for Mineos 2-trins-inputs (lukkede editorer har ingen pending draft; åbne editorer blokeres), men afviger fra den kanoniske critical-action-guard. Overvej fælles guard + regressionstest for et blur-deferred commit-felt ved navigation. *(Kilde 8.6)*
-- **9.4** — Manglende unit-tests for `historyTargetRestore.ts` (`isRestoreTargetVisible`, rAF-retry-løkke, `isSameFocusScope`-afbrydelse). *(Kilde 2.3)*
-
 ### Gruppe 10 (dokument-output)
 - **10.1** — `documentGenerationContext.ts` ikke eksporteret fra `src/document/index.ts`-barrel (forbrugere importerer dybt). Ret import-overfladen. *(Kilde 1.4)*
 - **10.1** — Verificér `pdfService.ts` `downloadVarigeMenDokument` som datadækning. *(Kilde 4.6)*
@@ -147,6 +142,8 @@ Fund fra færdige grupper 1–7 som bevidst er parkeret til et senere punkt. **L
 - **14.2** — Flyt `aarsloenRowInterval.ts` fra `erstatningsopgoerelse/helpers/` → `aarsloen/` (koordinér pga. parallelt EO-arbejde). *(Kilde 4.2)*
 - **14.2** — Pass-through re-eksporter: `formatOverenskomstAmount`/`formatOverenskomstPercent` i `reguleringFormulaUtils.ts` (fra `eoSharedUtils.ts`); `formatPercentTrimmedFromRounded4` cross-modul re-export. *(Kilde 4.10/4.4)*
 - **14.2** — `ValidationErrorMap`: test-only type uden produktionsforbrugere → oprydning. *(Kilde 3.1)*
+- **14.2** — `usePersistedForm.replaceValues`: ubrugt public hook-export (kun hook + tests). Latent bug: `persistData` returnerer `true` ved no-op, så `replaceValues` bumper `formVersion` (→ row-draft-resync) selv ved idempotent replace. Fjern den ubrugte export ELLER giv `persistData` et separat "didChange"-signal hvis den genindføres. *(Kilde 9.1)*
+- **14.2** — `StyledToggleSwitch` imperativ shake (ref + setTimeout) vs. den kanoniske deklarative `useShakeFlag`: to mønstre for samme animation. Konsolidér på sigt. *(Kilde 9.2)*
 
 ---
 

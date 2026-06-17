@@ -9,6 +9,53 @@ export const isFileSystemAccessSupported = (): boolean => {
 };
 
 /**
+ * Kastet når en gemt fil-handle (typisk fra en PWA-fil-åbning efter app-genstart) ikke længere
+ * har læse-tilladelse — eller filen er flyttet/slettet. Bærer en handlingsanvisende dansk besked,
+ * så indlæsningslaget kan vise den direkte i stedet for en kryptisk DOMException.
+ */
+export class FileHandleAccessError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = 'FileHandleAccessError';
+  }
+}
+
+type FileSystemPermissionDescriptor = { mode?: 'read' | 'readwrite' };
+type FileSystemHandleWithPermissions = FileSystemFileHandle & {
+  queryPermission?: (descriptor?: FileSystemPermissionDescriptor) => Promise<PermissionState>;
+  requestPermission?: (descriptor?: FileSystemPermissionDescriptor) => Promise<PermissionState>;
+};
+
+/**
+ * Sikrer læse-tilladelse til en gemt fil-handle, før der læses fra den.
+ *
+ * Når en handle er persisteret (IndexedDB) og hentes frem efter en app-genstart, kan brugerens
+ * read-permission være udløbet/trukket tilbage. Uden dette tjek kaster `getFile()` en rå
+ * `NotAllowedError`, som ville nå brugeren som teknisk engelsk tekst. Vi forsøger derfor at
+ * gen-anmode om tilladelse (kun muligt i en user-gesture) og fejler ellers fail-closed med en
+ * dansk besked. `queryPermission`/`requestPermission` er endnu ikke i alle TS DOM-libs, så de
+ * tilgås via feature-detection frem for en usikker cast.
+ */
+export const ensureFileHandleReadPermission = async (fileHandle: FileSystemFileHandle): Promise<void> => {
+  const handle = fileHandle as FileSystemHandleWithPermissions;
+  if (typeof handle.queryPermission !== 'function') {
+    // Ældre browser uden Permissions-API på handles: lad getFile() selv fejle (mappes i kalderen).
+    return;
+  }
+
+  let state = await handle.queryPermission({ mode: 'read' });
+  if (state === 'granted') return;
+
+  if (typeof handle.requestPermission === 'function') {
+    state = await handle.requestPermission({ mode: 'read' });
+  }
+
+  if (state !== 'granted') {
+    throw new FileHandleAccessError('Adgang til filen er ikke længere tilladt. Vælg filen igen via Hent.');
+  }
+};
+
+/**
  * StartIn type - kan være directory handle eller well-known directory
  */
 type StartInOption = FileSystemDirectoryHandle | 'desktop' | 'documents' | 'downloads';

@@ -9,6 +9,8 @@ import { FILE_FORMAT_VERSION, MAX_FILE_SIZE } from '../config/version';
 import { STORAGE_KEYS, type StorageKey } from '../config/storageManifest';
 import { persistenceSchemas } from '../config/persistenceRegistry';
 import {
+  ensureFileHandleReadPermission,
+  FileHandleAccessError,
   isFileSystemAccessSupported,
   openFileWithPicker,
   readFromFileHandle,
@@ -293,6 +295,10 @@ export const loadFromFileHandle = async (
 ): Promise<LoadFileResult> => {
 
   try {
+    // Tjek/gen-anmod om læse-tilladelse, før vi læser fra en (muligvis gammel, persisteret) handle.
+    // Ellers ville en revoked PWA-handle kaste en rå NotAllowedError → kryptisk teknisk fejl til brugeren.
+    await ensureFileHandleReadPermission(fileHandle);
+
     const file = await fileHandle.getFile();
 
     if (!file.name.toLowerCase().endsWith('.eo')) {
@@ -329,6 +335,21 @@ export const loadFromFileHandle = async (
   } catch (error: unknown) {
     if (error instanceof CalculationError && error.code === 'FILE_LOAD_FAILED') {
       throw error;
+    }
+
+    // Revoked/manglende tilladelse eller flyttet/slettet fil: vis en handlingsanvisende dansk besked
+    // i stedet for en rå DOMException. Ingen sagsdata røres (vi fejler før apply).
+    if (error instanceof FileHandleAccessError) {
+      logWarning('Hent (handle) afvist pga. manglende fil-tilladelse', { context: 'loadFromFileHandle.permission' });
+      throw error;
+    }
+    if (error instanceof DOMException && (error.name === 'NotAllowedError' || error.name === 'SecurityError')) {
+      logWarning('Hent (handle) afvist af browseren', { context: 'loadFromFileHandle.permission', data: { name: error.name } });
+      throw new FileHandleAccessError('Adgang til filen er ikke længere tilladt. Vælg filen igen via Hent.', { cause: error });
+    }
+    if (error instanceof DOMException && error.name === 'NotFoundError') {
+      logWarning('Hent (handle) fejlede: filen blev ikke fundet', { context: 'loadFromFileHandle.notFound' });
+      throw new FileHandleAccessError('Filen blev ikke fundet — den er måske flyttet eller slettet. Vælg filen igen via Hent.', { cause: error });
     }
 
     const message = error instanceof Error ? error.message : 'Ukendt fejl';

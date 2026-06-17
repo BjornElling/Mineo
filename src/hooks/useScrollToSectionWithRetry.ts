@@ -1,42 +1,36 @@
 import React from 'react';
 
-import { scrollTargetIntoView } from '../utils/scrollTargetIntoView';
+import { scrollWithRetry, type CancelScrollWithRetry } from '../utils/scrollWithRetry';
 
+const SECTION_SCROLL_MAX_RETRIES = 60;
+
+/**
+ * Springer til en sektion (`[data-section-id]`) når den dukker op i DOM'en. Bygger på det
+ * kanoniske `scrollWithRetry`-lag, så sektion-spring, interne links og debug-rækker deler
+ * præcis samme "vent-til-mål-findes-så-scroll"-regel (én sandhedskilde for adfærd).
+ *
+ * Et igangværende retry-loop annulleres både ved nyt kald og ved unmount, så pollingen ikke
+ * lever videre mod en DOM uden målet efter at komponenten er væk.
+ */
 export const useScrollToSectionWithRetry = (): ((sectionId: string) => void) => {
-  const pendingScrollRafRef = React.useRef<number | null>(null);
+  const cancelPendingScrollRef = React.useRef<CancelScrollWithRetry | null>(null);
 
-  const clearPendingScroll = React.useCallback(() => {
-    if (pendingScrollRafRef.current !== null) {
-      cancelAnimationFrame(pendingScrollRafRef.current);
-      pendingScrollRafRef.current = null;
-    }
+  const cancelPendingScroll = React.useCallback(() => {
+    cancelPendingScrollRef.current?.();
+    cancelPendingScrollRef.current = null;
   }, []);
+
+  React.useEffect(() => cancelPendingScroll, [cancelPendingScroll]);
 
   return React.useCallback(
     (sectionId: string) => {
-      clearPendingScroll();
-      let attempts = 0;
-      const maxAttempts = 60;
-
-      const tick = () => {
-        const target = document.querySelector<HTMLElement>(`[data-section-id="${sectionId}"]`);
-        if (target) {
-          // Samme scroll-regel som tab/undo: scroll kun hvis sektionen ikke allerede er synlig.
-          scrollTargetIntoView(target);
-          pendingScrollRafRef.current = null;
-          return;
-        }
-
-        attempts += 1;
-        if (attempts < maxAttempts) {
-          pendingScrollRafRef.current = requestAnimationFrame(tick);
-        } else {
-          pendingScrollRafRef.current = null;
-        }
-      };
-
-      pendingScrollRafRef.current = requestAnimationFrame(tick);
+      cancelPendingScroll();
+      cancelPendingScrollRef.current = scrollWithRetry({
+        maxRetries: SECTION_SCROLL_MAX_RETRIES,
+        findTarget: () => document.querySelector<HTMLElement>(`[data-section-id="${sectionId}"]`),
+        failureMessage: `Sektionen '${sectionId}' dukkede ikke op i DOM'en inden for ${SECTION_SCROLL_MAX_RETRIES} forsøg.`,
+      });
     },
-    [clearPendingScroll]
+    [cancelPendingScroll]
   );
 };

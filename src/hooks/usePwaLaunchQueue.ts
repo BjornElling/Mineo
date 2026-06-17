@@ -28,6 +28,13 @@ export const usePwaLaunchQueue = ({
 }: UsePwaLaunchQueueArgs): void => {
   const isPwaLoadInProgressRef = React.useRef<boolean>(false);
   const activePwaRequestIdRef = React.useRef<string | null>(null);
+  // Sidste request-id vi faktisk har FORSØGT at loade (succes eller fejl). Auto-retry-timeren
+  // bruger den til kun at fyre for endnu-ikke-forsøgte requests (dens egentlige formål: at fange
+  // en request der dukkede op før event-listeneren var klar ved opstart). Et eksplicit nyt event
+  // (bruger-retry) går uden om timeren og gennem event-handleren, så den slags retry virker stadig.
+  // Uden denne deling kunne timeren auto-genforsøge en netop fejlet load samtidig med et event-retry
+  // → dobbelt-load af samme request (flaky test + reel race, jf. review 9.3 UF-2).
+  const lastAttemptedRequestIdRef = React.useRef<string | null>(null);
 
   const processNextPwaFileOpenRequest = React.useCallback(() => {
     if (isPwaLoadInProgressRef.current) return;
@@ -39,6 +46,7 @@ export const usePwaLaunchQueue = ({
     if (activePwaRequestIdRef.current === request.id) return;
 
     activePwaRequestIdRef.current = request.id;
+    lastAttemptedRequestIdRef.current = request.id;
     isPwaLoadInProgressRef.current = true;
 
     void handleHentFromPwaRequest(request)
@@ -84,7 +92,6 @@ export const usePwaLaunchQueue = ({
     if (pendingLoadResultOpen || pendingOverwriteApplyOpen) return;
 
     const startedAt = Date.now();
-    let lastAutoRetriedRequestId: string | null = null;
     let timeoutId: number | null = null;
     let cancelled = false;
 
@@ -92,8 +99,9 @@ export const usePwaLaunchQueue = ({
       if (cancelled) return;
       if (pendingLoadResultOpen || pendingOverwriteApplyOpen) return;
       const request = getPendingPwaFileOpenRequest();
-      if (request && request.id !== lastAutoRetriedRequestId) {
-        lastAutoRetriedRequestId = request.id;
+      // Auto-retry kun for en request vi ikke allerede har forsøgt. En fejlet load genforsøges
+      // ikke automatisk — den venter på et nyt event (bruger-retry).
+      if (request && request.id !== lastAttemptedRequestIdRef.current) {
         processNextPwaFileOpenRequest();
       }
 

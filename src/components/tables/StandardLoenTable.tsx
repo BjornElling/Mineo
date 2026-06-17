@@ -29,6 +29,7 @@ import {
 } from '../../domain/aarsloen/standardLoenRowCalculations';
 import {
   buildStandardLoenPeriodOrderCellErrorMessages,
+  getStandardLoenPeriodKeys,
   getStandardLoenTableValidation,
   isStandardLoenTableValueEffectivelyEmptyForValidation,
 } from '../../domain/aarsloen/standardLoenTableValidation';
@@ -498,8 +499,23 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
           scrollTargetIntoView(el, { force: true });
           window.setTimeout(() => setErrorCell(null), 2000);
         },
+        showNeedsPeriodHint: () => {
+          // Ingen konkret fejlcelle (typisk en helt tom tabel): peg på første periodecelle med samme
+          // "Indtastning mangler"-visning som øvrige manglende felter, så omregning-aktivering uden
+          // gyldig periode giver en konkret pegepind frem for en stum rystelse.
+          const firstRow = committedTableData[0];
+          if (!firstRow) return;
+          const [periodStartKey] = getStandardLoenPeriodKeys(loenperiode);
+          if (!isVisibleColKey(periodStartKey)) return;
+          setExternalCellError({ rowId: firstRow.id, colKey: periodStartKey, message: 'Indtastning mangler' });
+          const colIdx = resolveColIdxFromKey(periodStartKey);
+          if (!Number.isFinite(colIdx)) return;
+          const el = cellRefsByCellKeyRef.current[`${firstRow.id}:${colIdx}`];
+          if (!el) return;
+          scrollTargetIntoView(el, { force: true });
+        },
       }),
-      [getValidationResult, isVisibleColKey]
+      [committedTableData, getValidationResult, isVisibleColKey, loenperiode]
     );
 
     const headers = React.useMemo(() => getStandardLoenTableHeaderNodes(loenperiode), [loenperiode]);

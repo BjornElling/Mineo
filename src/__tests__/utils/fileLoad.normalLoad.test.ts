@@ -9,11 +9,17 @@ import { toISODateString } from '../../types/branded';
 
 const readFromFileHandleMock = vi.fn();
 
-vi.mock('../../utils/fileSystemAccess', async () => ({
-  isFileSystemAccessSupported: () => false,
-  openFileWithPicker: vi.fn(),
-  readFromFileHandle: (...args: unknown[]) => readFromFileHandleMock(...args),
-}));
+vi.mock('../../utils/fileSystemAccess', async (importOriginal) => {
+  // Bevar de ægte exports (bl.a. FileHandleAccessError + ensureFileHandleReadPermission, som
+  // loadFromFileHandle nu bruger) og override kun det, testen styrer.
+  const actual = await importOriginal<typeof import('../../utils/fileSystemAccess')>();
+  return {
+    ...actual,
+    isFileSystemAccessSupported: () => false,
+    openFileWithPicker: vi.fn(),
+    readFromFileHandle: (...args: unknown[]) => readFromFileHandleMock(...args),
+  };
+});
 const selectFileMock = vi.fn();
 const readFileMock = vi.fn();
 

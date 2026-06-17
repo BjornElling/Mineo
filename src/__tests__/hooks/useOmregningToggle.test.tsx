@@ -83,6 +83,7 @@ describe('useOmregningToggle', () => {
           getValidationSummary: vi.fn(() => summary),
           showMissingEntryError,
           flashError,
+          showNeedsPeriodHint: vi.fn(),
         }}
         toggleRefMock={{ shake }}
       />
@@ -126,6 +127,7 @@ describe('useOmregningToggle', () => {
           getValidationSummary: vi.fn(() => summary),
           showMissingEntryError: vi.fn(),
           flashError,
+          showNeedsPeriodHint: vi.fn(),
         }}
         toggleRefMock={{ shake }}
       />
@@ -163,6 +165,7 @@ describe('useOmregningToggle', () => {
           getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
+          showNeedsPeriodHint: vi.fn(),
         }}
         toggleRefMock={{ shake: vi.fn() }}
       />
@@ -197,6 +200,7 @@ describe('useOmregningToggle', () => {
           getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError,
           flashError,
+          showNeedsPeriodHint: vi.fn(),
         }}
         toggleRefMock={{ shake }}
       />
@@ -231,6 +235,7 @@ describe('useOmregningToggle', () => {
           getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
+          showNeedsPeriodHint: vi.fn(),
         }}
         toggleRefMock={{ shake }}
       />
@@ -244,10 +249,11 @@ describe('useOmregningToggle', () => {
     expect(onEnabledChange).not.toHaveBeenCalled();
   });
 
-  it('blokerer enable når getValidationSummary ikke har firstErrorCell', async () => {
+  it('blokerer enable og peger på periodecelle når getValidationSummary ikke har firstErrorCell', async () => {
     const shake = vi.fn();
     const showMissingEntryError = vi.fn();
     const flashError = vi.fn();
+    const showNeedsPeriodHint = vi.fn();
     const onEnabledChange = vi.fn();
 
     render(
@@ -266,6 +272,7 @@ describe('useOmregningToggle', () => {
           getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError,
           flashError,
+          showNeedsPeriodHint,
         }}
         toggleRefMock={{ shake }}
       />
@@ -275,8 +282,9 @@ describe('useOmregningToggle', () => {
       lastHandleToggle?.({ target: { value: true } } as CommitEvent<boolean>);
     });
 
-    // Ryster men kalder hverken showMissingEntryError eller flashError
+    // Ryster + peger på første periodecelle (ingen konkret fejlcelle); ingen direkte celle-fejl.
     expect(shake).toHaveBeenCalled();
+    expect(showNeedsPeriodHint).toHaveBeenCalled();
     expect(showMissingEntryError).not.toHaveBeenCalled();
     expect(flashError).not.toHaveBeenCalled();
     expect(onEnabledChange).not.toHaveBeenCalled();
@@ -301,6 +309,7 @@ describe('useOmregningToggle', () => {
           getValidationSummary: vi.fn(() => ({ rowIssues: [], hasErrors: false, hasWarnings: false })),
           showMissingEntryError: vi.fn(),
           flashError: vi.fn(),
+          showNeedsPeriodHint: vi.fn(),
         }}
         toggleRefMock={{ shake: vi.fn() }}
       />
@@ -321,6 +330,7 @@ describe('useOmregningToggle', () => {
       getValidationSummary: vi.fn(),
       showMissingEntryError: vi.fn(),
       flashError: vi.fn(),
+      showNeedsPeriodHint: vi.fn(),
     };
 
     const toggleRefMock: StyledToggleSwitchHandle = { shake: vi.fn() };
@@ -372,6 +382,7 @@ describe('useOmregningToggle', () => {
       getValidationSummary: vi.fn(),
       showMissingEntryError: vi.fn(),
       flashError: vi.fn(),
+      showNeedsPeriodHint: vi.fn(),
     };
 
     const toggleRefMock: StyledToggleSwitchHandle = { shake: vi.fn() };
@@ -427,6 +438,7 @@ describe('useOmregningToggle', () => {
       getValidationSummary: vi.fn(),
       showMissingEntryError: vi.fn(),
       flashError: vi.fn(),
+      showNeedsPeriodHint: vi.fn(),
     };
 
     const toggleRefMock: StyledToggleSwitchHandle = { shake: vi.fn() };

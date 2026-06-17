@@ -238,7 +238,12 @@ export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
           ? `__msg__:${severity}:${source}:true:${error}`
           : `__msg__:${severity}:${source}:${error.blocksSave !== false ? 'true' : 'false'}:${error.message}`;
 
-    if (lastReportedByFieldRef.current[fieldName] === nextKey) {
+    // En manglende cache-entry betyder "intet rapporteret / allerede ryddet" — behandl den derfor
+    // identisk med '__clear__', så gentagne rydninger dedup'es uden at vi skal beholde en entry pr.
+    // ryddet felt. Dynamiske felter (fx tabel-celler med entity-id'er) ville ellers lække entries
+    // for rækker brugeren har fjernet, gennem hele sessionen.
+    const previousKey = lastReportedByFieldRef.current[fieldName] ?? '__clear__';
+    if (previousKey === nextKey) {
       debugFieldErrorReporter('report-dynamic-skip-duplicate', {
         pageKey,
         fieldName,
@@ -254,7 +259,11 @@ export const useDynamicFormFieldErrorReporter = <K extends StorageKey>(
       nextKey,
       error,
     });
-    lastReportedByFieldRef.current[fieldName] = nextKey;
+    if (nextKey === '__clear__') {
+      delete lastReportedByFieldRef.current[fieldName];
+    } else {
+      lastReportedByFieldRef.current[fieldName] = nextKey;
+    }
 
     if (
       error === undefined

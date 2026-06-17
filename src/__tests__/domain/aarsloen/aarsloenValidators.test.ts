@@ -7,9 +7,10 @@ import { toISODateString } from '../../../types/branded';
 /**
  * Unit-test for ASL/EAL-årsløn-validatorerne.
  *
- * Begge validatorer er fail-open på malformet/ufuldstændigt input (returnerer
- * undefined = "ingen fejl at vise"), men fail-closed på faktiske regelbrud. Den
- * sondring testes eksplicit, da den tidligere kun var indirekte dækket.
+ * Validatorerne er fail-open på endnu-ikke-udfyldt input (manglende årsløn/skadedato →
+ * undefined = "ingen fejl at vise"), men fail-closed på faktiske regelbrud OG på en manglende
+ * maks-sats for skadesåret: et skadesår uden offentliggjort sats kan ikke valideres, og
+ * årslønnen må derfor ikke stiltiende slippe igennem (jf. fail-closed-princippet).
  */
 
 describe('validateAslAarsloenDivisibleBy1000', () => {
@@ -48,9 +49,15 @@ describe('validateAslAarsloenBySkadesaarMax', () => {
     expect(validateAslAarsloenBySkadesaarMax(360000, undefined)).toBeUndefined();
   });
 
-  it('skadesår uden registreret maks → ingen fejl (fail-open)', () => {
-    // 2099 findes ikke i aarsloenAslMax.
-    expect(validateAslAarsloenBySkadesaarMax(360000, toISODateString('2099-01-01'))).toBeUndefined();
+  it('skadesår uden registreret maks → fail-closed fejl med dækningsgrænserne', () => {
+    // 2099 findes ikke i aarsloenAslMax → satsen kan ikke slås op, og årslønnen må ikke
+    // stiltiende accepteres.
+    const msg = validateAslAarsloenBySkadesaarMax(360000, toISODateString('2099-01-01'));
+    expect(msg).toBeDefined();
+    expect(msg).toContain('2099');
+    // Beskeden oplyser de konkrete dækkede år (kanonisk min–max fra satstabellen).
+    expect(msg).toContain('2005');
+    expect(msg).toContain('2026');
   });
 
   it('årsløn på præcis maks → ingen fejl (grænsen er inklusiv)', () => {

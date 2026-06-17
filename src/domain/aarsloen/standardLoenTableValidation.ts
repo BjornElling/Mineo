@@ -35,6 +35,11 @@ const PERIOD_KEYS: Record<Loenperiode, readonly [StandardLoenTableColumnKey, Sta
   dag: ['col0_dag', 'col1_dag'],
 };
 
+/** Periodens start-/slut-kolonnenøgler for den valgte lønperiode (kanonisk kilde: PERIOD_KEYS). */
+export const getStandardLoenPeriodKeys = (
+  loenperiode: Loenperiode
+): readonly [StandardLoenTableColumnKey, StandardLoenTableColumnKey] => PERIOD_KEYS[loenperiode];
+
 export const buildStandardLoenPeriodOrderCellErrorMessages = (
   rows: readonly StandardLoenTableRow[],
   loenperiode: Loenperiode

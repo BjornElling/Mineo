@@ -150,6 +150,7 @@ vi.mock('../../../components/tables/StandardLoenTable', () => ({
       getValidationSummary: () => summaryRef.current,
       showMissingEntryError: vi.fn(),
       flashError: vi.fn(),
+      showNeedsPeriodHint: vi.fn(),
     }), []);
 
     React.useEffect(() => {

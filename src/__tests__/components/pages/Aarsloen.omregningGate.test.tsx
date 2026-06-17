@@ -26,6 +26,7 @@ const {
   tableHandleSpies: {
     showMissingEntryError: vi.fn(),
     flashError: vi.fn(),
+    showNeedsPeriodHint: vi.fn(),
   },
 }));
 
@@ -154,6 +155,7 @@ vi.mock('../../../components/tables/StandardLoenTable', () => ({
       getValidationSummary: () => summaryRef.current,
       showMissingEntryError: tableHandleSpies.showMissingEntryError,
       flashError: tableHandleSpies.flashError,
+      showNeedsPeriodHint: tableHandleSpies.showNeedsPeriodHint,
     }), []);
 
     React.useEffect(() => {
@@ -181,6 +183,7 @@ describe('Aarsloen omregning gate UI', () => {
     };
     tableHandleSpies.showMissingEntryError.mockReset();
     tableHandleSpies.flashError.mockReset();
+    tableHandleSpies.showNeedsPeriodHint.mockReset();
   });
 
   it('holder toggle-visning og indhold under toggle synkroniseret med samme gate', async () => {

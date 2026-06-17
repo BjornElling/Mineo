@@ -56,6 +56,33 @@ describe('scrollWithRetry', () => {
     expect(onFailure).not.toHaveBeenCalled();
   });
 
+  it('stopper retry-loopet når den returnerede cancel-funktion kaldes', () => {
+    // En manuel rAF-kø, så vi kan annullere mellem to frames i stedet for at køre synkront.
+    const queue: FrameRequestCallback[] = [];
+    globalThis.requestAnimationFrame = vi.fn((cb: FrameRequestCallback) => {
+      queue.push(cb);
+      return queue.length;
+    }) as unknown as typeof requestAnimationFrame;
+    const runNextFrame = () => {
+      const callbacks = queue.splice(0);
+      for (const cb of callbacks) cb(0);
+    };
+
+    const findTarget = vi.fn(() => null);
+    const onFailure = vi.fn();
+
+    const cancel = scrollWithRetry({ maxRetries: 10, findTarget, onFailure, failureMessage: 'fejl' });
+
+    runNextFrame(); // første tick: intet mål → planlægger næste frame
+    expect(findTarget).toHaveBeenCalledTimes(1);
+
+    cancel();
+    runNextFrame(); // den annullerede callback må ikke køre findTarget igen
+
+    expect(findTarget).toHaveBeenCalledTimes(1);
+    expect(onFailure).not.toHaveBeenCalled();
+  });
+
   it('kalder onFailure når målet aldrig findes inden maxRetries', () => {
     const onSuccess = vi.fn();
     const onFailure = vi.fn();
