@@ -2,7 +2,7 @@
 
 **Status:** Informativ
 **Sidst opdateret:** 2026-06-02
-**Scope:** Login-gate i klienten (`src/auth/*`, `src/components/pages/LoginPage.tsx`)
+**Scope:** Login-gate i klienten (`src/auth/*`, inkl. `src/auth/LoginPage.tsx`)
 
 > De **bindende** regler for auth-gaten ejes af `src/contracts/auth-gate-contract.md`. Dette dokument er forklarende (trusselsmodel, afgrænsninger, migrations-triggere) og må ikke modsige kontrakten.
 

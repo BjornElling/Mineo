@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   Box,
-  Button,
   IconButton,
   Tooltip,
   Typography,
@@ -9,7 +8,6 @@ import {
 } from '@mui/material';
 import Download from '@mui/icons-material/Download';
 import SearchIcon from '@mui/icons-material/Search';
-import CloseIcon from '@mui/icons-material/Close';
 import StyledTextField from '../../inputs/StyledTextField';
 import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
@@ -36,9 +34,12 @@ import useTafRows from '../../tables/useTafRows';
 import useFerieRows from '../../tables/useFerieRows';
 import useFravaerRows from '../../tables/useFravaerRows';
 import useOevrigeKravRows from '../../tables/useOevrigeKravRows';
-import type { CommitEvent, CommitHandler } from '../../../types/fieldEvents';
-import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
+import { type ReportableFieldError } from '../../../types/fieldErrors';
 import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
+import { useEoFieldCommitHandlers } from './eoOplysninger/useEoFieldCommitHandlers';
+import { useEoLoenudviklingHandlers } from './eoOplysninger/useEoLoenudviklingHandlers';
+import { useEoLoentrinFinder } from './eoOplysninger/useEoLoentrinFinder';
+import EoLoentrinFinderOverlay from './eoOplysninger/EoLoentrinFinderOverlay';
 import {
   CURRENT_YEAR,
   MIN_SVIESMERTE_YEAR,
@@ -47,47 +48,36 @@ import {
 } from '../../../config/dateRanges';
 import { resolveMidlertidigEetDatoHvisAktiv } from '../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { useDynamicFormFieldErrorReporter, useFormFieldErrorReporter } from '../../../hooks/useFormFieldErrors';
+import { useForligAnsvarsgradValidation } from '../../../hooks/useForligAnsvarsgradValidation';
 import { usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
 import {
   type ErstatningsopgoerelseValues,
   type EOAngivetLoenLoenudvikling,
-  type JaNejSkjul,
   arbejdsstatusEnum,
   afsluttesMedEnum,
   beregningsmetodeEnum,
   helbredsstatusEnum,
-  jaNejSkjulEnum,
   krlSatstabelEnum,
-  loenudviklingBeregningsgrundlagEnum,
-  loenudviklingStatistikModelEnum,
   offentligLoenTypeEnum,
 } from '../../../schemas/formSchemas';
-import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../types/branded';
-import { coerceToISODateString, parseISODate } from '../../../types/branded';
+import { parseISODate } from '../../../types/branded';
 import { isoDateToDate } from '../../../domain/dates/isoDate';
 import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsopgoerelse/engines/ferieCalculations';
-import { EO_ANGIVET_LOEN_ID } from '../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
 import { erSvieSmerteTidligereTotalRelevant } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
-import {
-  hasExactDisplayedAmountMatch,
-  normalizeOptionalFreeText,
-} from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import {
   getAlleArbejdsgiverOrg,
   getAlleLoenmodtagerOrg,
-  getOffentligOverenskomstTypeById,
   getOverenskomsterByOrg,
   getOverenskomstMetaById,
   getReguleringsDatoIntervalForOverenskomst,
   isOffentligOverenskomstId,
 } from '../../../data/overenskomstRates';
-import { getOffentligLoenTabelForDato } from '../../../data/offentligLoenLookup';
 import {
   ASL_AARSLOENSMAKSIMUM_MODEL_LABEL,
   getReguleringsDatoIntervalForStatistikModel,
@@ -95,31 +85,10 @@ import {
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/krlRates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { downloadKrlDokument, downloadReguleringDokument, type ReguleringPdfInput } from '../../../pdf/infrastructure/pdfService';
-import { formatCurrency } from '../../../utils/formatUtils';
 
 type JaNej = 'Ja' | 'Nej';
 
-type StringLikeKeys = {
-  [K in keyof ErstatningsopgoerelseValues]-?: ErstatningsopgoerelseValues[K] extends string | undefined ? K : never;
-}[keyof ErstatningsopgoerelseValues];
-
-type NumberLikeKeys = {
-  [K in keyof ErstatningsopgoerelseValues]-?: ErstatningsopgoerelseValues[K] extends number | undefined ? K : never;
-}[keyof ErstatningsopgoerelseValues];
-
-type AmountLikeKeys = {
-  [K in keyof ErstatningsopgoerelseValues]-?: ErstatningsopgoerelseValues[K] extends AmountValue | undefined ? K : never;
-}[keyof ErstatningsopgoerelseValues];
-
 type ReguleringsDatoInterval = Readonly<{ fraDato: string; tilDato: string }>;
-type LoentrinFinderErrors = Readonly<{ beloeb?: string; dato?: string }>;
-type LoentrinFinderResult = Readonly<{
-  loentrin: number | '55+';
-  gruppe: 0 | 1 | 2 | 3 | 4;
-  beloeb: number;
-  diff: number;
-}>;
-const LOENGRUPPER = [0, 1, 2, 3, 4] as const;
 // Tre-tilstands-valg for emner (svie/smerte, tabt arbejdsfortjeneste).
 // 'Ja' = beregnes og vises; 'Nej' = beregnes ikke, vises som "Ingen" i dokumentet;
 // 'Skjul' = beregnes ikke og udelades helt fra erstatningsopgørelsen.
@@ -128,13 +97,10 @@ const KRAV_JA_NEJ_SKJUL_OPTIONS = [
   { value: 'Nej', label: 'Nej' },
   { value: 'Skjul', label: 'Skjul' },
 ] as const;
-const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 const PERIODE_INFO_TOOLTIP =
   'Indsæt alle perioder. Tidligere indtastede perioder skal ikke slettes ved senere opgørelse.';
 const DELVIS_SYGEMELDING_SATS_INFO_TOOLTIP =
   'Juridisk omtvistet, men nyere\nretspraksis hælder mod fuld sats';
-
-const parseLoentrinSortValue = (loentrin: number | '55+'): number => (loentrin === '55+' ? 56 : loentrin);
 
 const hasNonEmptyDateValue = (value: ISODateString | string | undefined | null): boolean => {
   if (value === undefined || value === null) return false;
@@ -179,100 +145,22 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     }).minDate;
   }, [skadedatoISO, skadestypeFromStamdata]);
 
-  type ToggleFieldName = {
-    [K in keyof ErstatningsopgoerelseValues]-?: ErstatningsopgoerelseValues[K] extends JaNej ? K : never
-  }[keyof ErstatningsopgoerelseValues];
-
   const getChecked = React.useCallback((val: JaNej): boolean => val === 'Ja', []);
   const ensureEoLoenPaaHelligdage = React.useCallback(
     (value: EOAngivetLoenLoenudvikling['loenPaaHelligdage']) => value ?? settings.defaultLoenPaaHelligdage,
     [settings.defaultLoenPaaHelligdage]
   );
 
-  const handleToggleChange = React.useCallback(
-    (fieldName: ToggleFieldName): CommitHandler<boolean> =>
-      (event: CommitEvent<boolean>) => {
-        // Immediate-commit widget: send fieldPath, ellers gætter undo-origin via focus-trackeren,
-        // som peger på det forrige (tekst)felt — derfor lander undo-fokus forkert (fejl B).
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value ? 'Ja' : 'Nej' }), { fieldPath: String(fieldName) });
-      },
-    [setValues]
-  );
-
-  type JaNejSkjulFieldName = {
-    [K in keyof ErstatningsopgoerelseValues]-?: ErstatningsopgoerelseValues[K] extends JaNejSkjul ? K : never
-  }[keyof ErstatningsopgoerelseValues];
-
-  // Immediate-commit radio for tre-tilstands-emnevalg (Ja/Nej/Skjul). Sender fieldPath af samme
-  // undo-origin-grund som handleToggleChange.
-  const handleJaNejSkjulChange = React.useCallback(
-    (fieldName: JaNejSkjulFieldName): CommitHandler<string | undefined> =>
-      (event: CommitEvent<string | undefined>) => {
-        const parsed = jaNejSkjulEnum.safeParse(event.target.value);
-        if (!parsed.success) return;
-        setValues((prev) => ({ ...prev, [fieldName]: parsed.data }), { fieldPath: String(fieldName) });
-      },
-    [setValues]
-  );
-
-  /**
-   * Handler til onBlur for string-felter (StyledTextField)
-   * Trimmer og normaliserer til undefined hvis tom
-   */
-  const handleStringBlur = React.useCallback(
-    <K extends StringLikeKeys>(fieldName: K) =>
-      (event: CommitEvent<string | undefined>) => {
-        const raw = event.target.value;
-        const asString = typeof raw === 'string' ? raw : raw == null ? '' : String(raw);
-        const trimmed = asString.trim();
-        const nextValue = trimmed || undefined;
-        setValues((prev) => ({ ...prev, [fieldName]: nextValue }), { fieldPath: String(fieldName) });
-      },
-    [setValues]
-  );
-
-  /**
-   * Handler til onBlur for integer-felter (StyledIntegerField)
-   * Komponenten parser allerede til number | undefined
-   */
-  const handleIntegerBlur = React.useCallback(
-    <K extends NumberLikeKeys>(fieldName: K) =>
-      (event: CommitEvent<number | undefined>) => {
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
-      },
-    [setValues]
-  );
-
-  /**
-   * Handler til onBlur for amount/percent/year-felter
-   * Komponenten parser allerede til number | undefined
-   */
-  const handleNumberBlur = React.useCallback(
-    <K extends NumberLikeKeys>(fieldName: K) =>
-      (event: CommitEvent<number | undefined>) => {
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
-      },
-    [setValues]
-  );
-
-  /**
-   * Handler til onBlur for amount-felter (expression-aware)
-   */
-  const handleAmountBlur = React.useCallback(
-    <K extends AmountLikeKeys>(fieldName: K) =>
-      (event: CommitEvent<AmountValue | undefined>) => {
-        setValues((prev) => ({ ...prev, [fieldName]: event.target.value }), { fieldPath: String(fieldName) });
-      },
-    [setValues]
-  );
-
-  const commitField = React.useCallback(
-    <K extends keyof ErstatningsopgoerelseValues>(fieldName: K) =>
-      (event: CommitEvent<ErstatningsopgoerelseValues[K]>) => {
-        setFieldValue(fieldName, event.target.value);
-      },
-    [setFieldValue]
-  );
+  const {
+    handleToggleChange,
+    handleJaNejSkjulChange,
+    handleStringBlur,
+    handleIntegerBlur,
+    handleNumberBlur,
+    handleAmountBlur,
+    commitField,
+    handleIsoDateBlur,
+  } = useEoFieldCommitHandlers({ setValues, setFieldValue });
 
   const handleHelbredsfoholdChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
     const parsed = helbredsstatusEnum.safeParse(event.target.value);
@@ -310,21 +198,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
   const visLoenudviklingFraEO =
     values.beregnesUdFra === 'Angivet månedsløn' || values.beregnesUdFra === 'Angivet dagsløn';
   const eoLoenudvikling = values.eoAngivetLoenLoenudvikling;
-  const [loentrinFinderOpen, setLoentrinFinderOpen] = React.useState(false);
-  const [loentrinFinderAnsaettelse, setLoentrinFinderAnsaettelse] = React.useState<'Månedsløn' | 'Timeløn'>('Månedsløn');
-  const [loentrinFinderBeloeb, setLoentrinFinderBeloeb] = React.useState<EOAngivetLoenLoenudvikling['offentligLoenEkstraGrundloen']>(undefined);
-  const [loentrinFinderDato, setLoentrinFinderDato] = React.useState<ISODateString | undefined>(undefined);
-  const [loentrinFinderErrors, setLoentrinFinderErrors] = React.useState<LoentrinFinderErrors>({});
-  const [loentrinFinderAmountFieldError, setLoentrinFinderAmountFieldError] = React.useState<string | undefined>(undefined);
-  const [loentrinFinderDateFieldError, setLoentrinFinderDateFieldError] = React.useState<string | undefined>(undefined);
-  const [loentrinFinderResults, setLoentrinFinderResults] = React.useState<ReadonlyArray<LoentrinFinderResult>>([]);
-  const [loentrinFinderButtonShake, setLoentrinFinderButtonShake] = React.useState(false);
-  const loentrinFinderDialogRef = React.useRef<HTMLDivElement>(null);
-  const loentrinFinderAnsaettelseRef = React.useRef<HTMLDivElement>(null);
-  const loentrinFinderBeloebRef = React.useRef<HTMLDivElement>(null);
-  const loentrinFinderDatoRef = React.useRef<HTMLDivElement>(null);
-  const loentrinFinderBeregnRef = React.useRef<HTMLButtonElement>(null);
-  const loentrinFinderHeadingId = React.useId();
 
   const updateEoLoenudvikling = React.useCallback(
     (updater: (prev: EOAngivetLoenLoenudvikling) => EOAngivetLoenLoenudvikling, origin?: { fieldPath?: string }) => {
@@ -333,410 +206,27 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     [setValues]
   );
 
-  const resetLoentrinFinderState = React.useCallback(() => {
-    setLoentrinFinderBeloeb(undefined);
-    setLoentrinFinderDato(undefined);
-    setLoentrinFinderErrors({});
-    setLoentrinFinderAmountFieldError(undefined);
-    setLoentrinFinderDateFieldError(undefined);
-    setLoentrinFinderResults([]);
-    setLoentrinFinderButtonShake(false);
-  }, []);
+  // Page-lokal, transient løntrin-finder (skriver aldrig til persisteret sagsdata).
+  const loentrinFinder = useEoLoentrinFinder(eoLoenudvikling.overenskomstId, eoLoenudvikling.offentligLoenType);
+  const { openLoentrinFinder } = loentrinFinder;
 
-  const openLoentrinFinder = React.useCallback(() => {
-    resetLoentrinFinderState();
-    setLoentrinFinderAnsaettelse(eoLoenudvikling.offentligLoenType ?? 'Månedsløn');
-    setLoentrinFinderOpen(true);
-  }, [eoLoenudvikling.offentligLoenType, resetLoentrinFinderState]);
-
-  const closeLoentrinFinder = React.useCallback(() => {
-    setLoentrinFinderOpen(false);
-    resetLoentrinFinderState();
-  }, [resetLoentrinFinderState]);
-
-  const triggerLoentrinFinderButtonError = React.useCallback(() => {
-    setLoentrinFinderButtonShake(true);
-    setTimeout(() => setLoentrinFinderButtonShake(false), 500);
-  }, []);
-
-  const validateLoentrinFinderInput = React.useCallback((): {
-    errors: LoentrinFinderErrors;
-    beloebNumber: number | undefined;
-  } => {
-    const errors: { beloeb?: string; dato?: string } = {};
-    const beloebNumber = amountValueToNumber(loentrinFinderBeloeb);
-
-    if (loentrinFinderAmountFieldError) {
-      errors.beloeb = loentrinFinderAmountFieldError;
-    } else if (beloebNumber === undefined) {
-      errors.beloeb = 'Beløb skal udfyldes';
-    } else if (beloebNumber <= 0) {
-      errors.beloeb = 'Beløb skal være større end 0';
-    }
-
-    if (loentrinFinderDateFieldError) {
-      errors.dato = loentrinFinderDateFieldError;
-    } else if (!loentrinFinderDato) {
-      errors.dato = 'Dato skal udfyldes';
-    }
-
-    return { errors, beloebNumber };
-  }, [
-    loentrinFinderAmountFieldError,
-    loentrinFinderBeloeb,
-    loentrinFinderDateFieldError,
-    loentrinFinderDato,
-  ]);
-
-  const handleLoentrinFinderCalculate = React.useCallback(() => {
-    const overenskomstId = eoLoenudvikling.overenskomstId ?? '';
-    const offentligOverenskomstType = getOffentligOverenskomstTypeById(overenskomstId);
-    const overenskomstLabel = getOverenskomstMetaById(overenskomstId)?.navn ?? overenskomstId;
-
-    if (!offentligOverenskomstType) {
-      setLoentrinFinderErrors({ dato: 'Offentlig overenskomst er ikke valgt' });
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const validation = validateLoentrinFinderInput();
-    const hasInputErrors = Boolean(validation.errors.beloeb) || Boolean(validation.errors.dato);
-    if (hasInputErrors || validation.beloebNumber === undefined || !loentrinFinderDato) {
-      setLoentrinFinderErrors(validation.errors);
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const parsedDate = parseISODate(loentrinFinderDato);
-    if (!parsedDate) {
-      setLoentrinFinderErrors((prev) => ({ ...prev, dato: 'Dato skal udfyldes' }));
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const danishDate = formatDanishDate(parsedDate);
-    const loenTabel = getOffentligLoenTabelForDato(offentligOverenskomstType, danishDate);
-    if (!loenTabel) {
-      setLoentrinFinderErrors((prev) => ({
-        ...prev,
-        dato: `Der findes ingen satser for ${overenskomstLabel} på den valgte dato`,
-      }));
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const results: LoentrinFinderResult[] = [];
-    for (const entry of loenTabel.entries) {
-      for (const gruppe of LOENGRUPPER) {
-        const beloeb =
-          loentrinFinderAnsaettelse === 'Timeløn'
-            ? entry.timeLoen[gruppe]
-            : entry.maanedsLoen[gruppe];
-        results.push({
-          loentrin: entry.loentrin,
-          gruppe,
-          beloeb,
-          diff: Math.abs(beloeb - validation.beloebNumber),
-        });
-      }
-    }
-
-    results.sort((a, b) => {
-      if (a.diff !== b.diff) return a.diff - b.diff;
-      const trinDiff = parseLoentrinSortValue(a.loentrin) - parseLoentrinSortValue(b.loentrin);
-      if (trinDiff !== 0) return trinDiff;
-      return a.gruppe - b.gruppe;
-    });
-
-    setLoentrinFinderErrors({});
-    setLoentrinFinderResults(results.slice(0, 5));
-  }, [
-    eoLoenudvikling.overenskomstId,
-    loentrinFinderAnsaettelse,
-    loentrinFinderDato,
-    triggerLoentrinFinderButtonError,
-    validateLoentrinFinderInput,
-  ]);
-
-  const loentrinFinderInputAmountNumber = React.useMemo(
-    () => amountValueToNumber(loentrinFinderBeloeb),
-    [loentrinFinderBeloeb]
-  );
-
-  React.useEffect(() => {
-    if (!loentrinFinderOpen) return;
-    const input = loentrinFinderAnsaettelseRef.current?.querySelector<HTMLInputElement>('input');
-    input?.focus();
-  }, [loentrinFinderOpen]);
-
-  const getLoentrinFinderTabOrder = React.useCallback((): HTMLElement[] => {
-    const ansaettelseInput = loentrinFinderAnsaettelseRef.current?.querySelector<HTMLInputElement>('input') ?? null;
-    const beloebInput = loentrinFinderBeloebRef.current?.querySelector<HTMLInputElement>('input') ?? null;
-    const datoInput = loentrinFinderDatoRef.current?.querySelector<HTMLInputElement>('input') ?? null;
-    const beregnButton = loentrinFinderBeregnRef.current;
-    const orderedElements: Array<HTMLElement | null> = [ansaettelseInput, beloebInput, datoInput, beregnButton];
-    return orderedElements.filter((item): item is HTMLElement => item !== null);
-  }, []);
-
-  React.useEffect(() => {
-    if (!loentrinFinderOpen) return;
-
-    const handleDocumentKeyDown = (event: KeyboardEvent) => {
-      const dialog = loentrinFinderDialogRef.current;
-      const activeElement = document.activeElement as HTMLElement | null;
-      const isInsideOverlay = Boolean(dialog && activeElement && dialog.contains(activeElement));
-
-      if (!isInsideOverlay) return;
-
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        event.stopPropagation();
-        closeLoentrinFinder();
-        return;
-      }
-
-      if (event.key === 'Enter') {
-        const isDropdownCombobox = activeElement?.getAttribute('role') === 'combobox';
-        if (isDropdownCombobox) {
-          // StyledDropdown håndterer Enter selv (åbn/vælg). Undlad at overskrive den adfærd.
-          return;
-        }
-
-        const isOpenTextEditor =
-          activeElement instanceof HTMLInputElement &&
-          !activeElement.readOnly;
-        if (isOpenTextEditor) {
-          // Overlay-regel: Enter i åben editor skal afslutte redigering (commit/close via blur),
-          // men fokus skal blive i samme felt.
-          const input = activeElement;
-          event.preventDefault();
-          event.stopPropagation();
-          input.blur();
-          requestAnimationFrame(() => {
-            if (!loentrinFinderOpen) return;
-            input.focus();
-          });
-          return;
-        }
-
-        event.preventDefault();
-        event.stopPropagation();
-
-        if (activeElement === loentrinFinderBeregnRef.current) {
-          handleLoentrinFinderCalculate();
-        }
-        return;
-      }
-
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-        const tabOrder = getLoentrinFinderTabOrder();
-        if (tabOrder.length === 0) {
-          event.preventDefault();
-          event.stopPropagation();
-          return;
-        }
-
-        const isDropdownCombobox = activeElement?.getAttribute('role') === 'combobox';
-        const isDropdownExpanded = activeElement?.getAttribute('aria-expanded') === 'true';
-        if (isDropdownCombobox && isDropdownExpanded) {
-          // Når dropdown-menuen er åben, skal pil-op/pil-ned navigere i menuen.
-          return;
-        }
-
-        if (activeElement instanceof HTMLInputElement && !activeElement.readOnly) {
-          // Når editor er åben, skal piletaster ikke kapres af overlay-navigationen.
-          return;
-        }
-
-        const activeIndex = tabOrder.findIndex((element) => element === activeElement);
-        event.preventDefault();
-        event.stopPropagation();
-
-        const step = event.key === 'ArrowDown' ? 1 : -1;
-        if (activeIndex === -1) {
-          tabOrder[0].focus();
-          return;
-        }
-
-        const nextIndex = (activeIndex + step + tabOrder.length) % tabOrder.length;
-        tabOrder[nextIndex].focus();
-        return;
-      }
-
-      if (event.key !== 'Tab') return;
-
-      const tabOrder = getLoentrinFinderTabOrder();
-      if (tabOrder.length === 0) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-
-      const first = tabOrder[0];
-      const last = tabOrder[tabOrder.length - 1];
-      const active = document.activeElement as HTMLElement | null;
-      const activeIndex = tabOrder.findIndex((element) => element === active);
-
-      // Bevidst hardcodet tab-sekvens:
-      // Ansættelse -> Beløb -> Dato -> Beregn.
-      // Vi tvinger denne rækkefølge, fordi generisk focus-trap-adfærd viste sig ustabil med StyledDropdowns popover-fokus
-      // og forårsagede focus leaks til den underliggende side. Denne eksplicitte sekvens er bevidst og auditeret UX-adfærd.
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (event.shiftKey) {
-        if (activeIndex === -1 || active === first) {
-          last.focus();
-          return;
-        }
-        tabOrder[activeIndex - 1].focus();
-        return;
-      }
-
-      if (activeIndex === -1 || active === last) {
-        first.focus();
-        return;
-      }
-      tabOrder[activeIndex + 1].focus();
-    };
-
-    document.addEventListener('keydown', handleDocumentKeyDown, true);
-    return () => {
-      document.removeEventListener('keydown', handleDocumentKeyDown, true);
-    };
-  }, [closeLoentrinFinder, getLoentrinFinderTabOrder, handleLoentrinFinderCalculate, loentrinFinderOpen]);
-
-  const handleLoenudviklingBeregningsgrundlagChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
-    const parsed = loenudviklingBeregningsgrundlagEnum.safeParse(event.target.value);
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      loenudviklingBeregningsgrundlag: parsed.success ? parsed.data : undefined,
-    }), { fieldPath: 'loenudviklingBeregningsgrundlag' });
-  }, [updateEoLoenudvikling]);
-
-  const handleLoenudviklingStatistikModelChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
-    const parsed = loenudviklingStatistikModelEnum.safeParse(event.target.value);
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      loenudviklingStatistikModel: parsed.success ? parsed.data : undefined,
-    }), { fieldPath: 'loenudviklingStatistikModel' });
-  }, [updateEoLoenudvikling]);
-
-  const handleLoenudviklingKRLSatstabelChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
-    const parsed = krlSatstabelEnum.safeParse(event.target.value);
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      loenudviklingKRLSatstabel: parsed.success ? parsed.data : undefined,
-    }), { fieldPath: 'loenudviklingKRLSatstabel' });
-  }, [updateEoLoenudvikling]);
-
-  const handleEoOverenskomstFilterChange = React.useCallback(
-    (filterType: 'loenmodtager' | 'arbejdsgiver', value: string | undefined) => {
-      updateEoLoenudvikling((prev) => ({
-        ...prev,
-        overenskomstFilter: {
-          ...prev.overenskomstFilter,
-          [filterType]: value,
-        },
-      }), { fieldPath: `overenskomstFilter.${filterType}` });
-    },
-    [updateEoLoenudvikling]
-  );
-
-  const handleEoOverenskomstChange = React.useCallback(
-    (event: StyledDropdownChangeEvent<string | undefined>) => {
-      const nextOverenskomstId = normalizeOptionalFreeText(event.target.value);
-      updateEoLoenudvikling((prev) => ({
-        ...prev,
-        overenskomstId: nextOverenskomstId,
-        loenudviklingBeregningsgrundlag: 'Overenskomst',
-        offentligLoenType:
-          nextOverenskomstId && isOffentligOverenskomstId(nextOverenskomstId)
-            ? (prev.offentligLoenType ?? 'Månedsløn')
-            : prev.offentligLoenType,
-      }), { fieldPath: 'overenskomstId' });
-    },
-    [updateEoLoenudvikling]
-  );
-
-  const handleOffentligLoenTypeChange = React.useCallback((event: StyledDropdownChangeEvent<string | undefined>) => {
-    const parsed = offentligLoenTypeEnum.safeParse(event.target.value);
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      offentligLoenType: parsed.success ? parsed.data : prev.offentligLoenType,
-    }), { fieldPath: 'offentligLoenType' });
-  }, [updateEoLoenudvikling]);
-
-  const handleOffentligLoenTrinCommit = React.useCallback((event: CommitEvent<number | undefined>) => {
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      offentligLoenTrin: event.target.value,
-    }), { fieldPath: 'offentligLoenTrin' });
-  }, [updateEoLoenudvikling]);
-
-  const handleOffentligLoenGruppeCommit = React.useCallback((event: CommitEvent<number | undefined>) => {
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      offentligLoenGruppe: event.target.value,
-    }), { fieldPath: 'offentligLoenGruppe' });
-  }, [updateEoLoenudvikling]);
-
-  const handleOffentligLoenEkstraGrundloenCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['offentligLoenEkstraGrundloen']>) => {
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      offentligLoenEkstraGrundloen: event.target.value,
-    }), { fieldPath: 'offentligLoenEkstraGrundloen' });
-  }, [updateEoLoenudvikling]);
-
-  const handleEoAnciennitetstillaegToggleCommit = React.useCallback((event: CommitEvent<boolean>) => {
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      harAnciennitetstillaegEfterSkadedatoen: event.target.value,
-    }), { fieldPath: 'harAnciennitetstillaegEfterSkadedatoen' });
-  }, [updateEoLoenudvikling]);
-
-  const handleEoAnciennitetstillaegDatoCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegDato']>) => {
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      anciennitetstillaegDato: event.target.value,
-    }), { fieldPath: 'anciennitetstillaegDato' });
-  }, [updateEoLoenudvikling]);
-
-  const handleEoAnciennitetstillaegSatsCommit = React.useCallback((event: CommitEvent<EOAngivetLoenLoenudvikling['anciennitetstillaegSats']>) => {
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      anciennitetstillaegSats: event.target.value,
-    }), { fieldPath: 'anciennitetstillaegSats' });
-  }, [updateEoLoenudvikling]);
-
-  const handleLoenudviklingManuelNavnCommit = React.useCallback((event: CommitEvent<string | undefined>) => {
-    const trimmed = (event.target.value ?? '').trim();
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      loenudviklingManuelNavn: trimmed,
-    }), { fieldPath: 'loenudviklingManuelNavn' });
-  }, [updateEoLoenudvikling]);
-
-  const handleLoenudviklingManuelTableChange = React.useCallback((
-    tableData: EOAngivetLoenLoenudvikling['loenudviklingManuelTableData'],
-    origin?: { fieldPath?: string }
-  ) => {
-    updateEoLoenudvikling((prev) => ({
-      ...prev,
-      loenudviklingManuelTableData: tableData,
-    }), origin);
-  }, [updateEoLoenudvikling]);
-
-  const handleLoenudviklingManuelInputErrorChange = React.useCallback((hasError: boolean) => {
-    reportDynamicFieldError(
-      `${EO_ANGIVET_LOEN_ID}${EO_LOENINDKOMST_INPUT_ERROR_SUFFIX}`,
-      hasError ? 'Ugyldig manuel regulering' : undefined
-    );
-  }, [reportDynamicFieldError]);
+  const {
+    handleLoenudviklingBeregningsgrundlagChange,
+    handleLoenudviklingStatistikModelChange,
+    handleLoenudviklingKRLSatstabelChange,
+    handleEoOverenskomstFilterChange,
+    handleEoOverenskomstChange,
+    handleOffentligLoenTypeChange,
+    handleOffentligLoenTrinCommit,
+    handleOffentligLoenGruppeCommit,
+    handleOffentligLoenEkstraGrundloenCommit,
+    handleEoAnciennitetstillaegToggleCommit,
+    handleEoAnciennitetstillaegDatoCommit,
+    handleEoAnciennitetstillaegSatsCommit,
+    handleLoenudviklingManuelNavnCommit,
+    handleLoenudviklingManuelTableChange,
+    handleLoenudviklingManuelInputErrorChange,
+  } = useEoLoenudviklingHandlers({ updateEoLoenudvikling, reportDynamicFieldError });
 
   const alleLoenmodtagerOrg = React.useMemo(() => getAlleLoenmodtagerOrg(), []);
   const alleArbejdsgiverOrg = React.useMemo(() => getAlleArbejdsgiverOrg(), []);
@@ -747,42 +237,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       eoLoenudvikling.overenskomstFilter?.arbejdsgiver
     );
   }, [eoLoenudvikling.overenskomstFilter?.arbejdsgiver, eoLoenudvikling.overenskomstFilter?.loenmodtager]);
-  const loentrinFinderOverenskomstLabel = React.useMemo(() => {
-    const id = eoLoenudvikling.overenskomstId?.trim();
-    if (!id) return 'Ingen overenskomst valgt';
-    const meta = getOverenskomstMetaById(id);
-    return meta?.navn ?? id;
-  }, [eoLoenudvikling.overenskomstId]);
-
-  type IsoDateFieldName =
-    | 'vedroererPeriodeFra'
-    | 'vedroererPeriodeTil'
-    | 'opgørelseLavetDen'
-    | 'forligDato'
-    | 'menAfgoerelseDato'
-    | 'midlertidigEETAfgoerelseDato'
-    | 'midlertidigEETVirkningsdato'
-    | 'endeligEETAfgoerelseDato'
-    | 'endeligEETVirkningsdato'
-    | 'differencekravDato'
-    | 'sidsteDagAnsaettelsesforhold'
-    | 'tafBeregningsperiodeFra'
-    | 'tafBeregningsperiodeTil'
-    | 'angivetMaanedsloenOpreguleresFraDato'
-    | 'angivetDagsloenOpreguleresFraDato';
-
-  const handleIsoDateBlur = React.useCallback(
-    (fieldName: IsoDateFieldName) =>
-      (event: CommitEvent<ISODateString | undefined>) => {
-        const nextValue = coerceToISODateString(event.target.value ?? undefined);
-        setValues((prev) => {
-          const next: ErstatningsopgoerelseValues = { ...prev };
-          next[fieldName] = nextValue;
-          return next;
-        }, { fieldPath: String(fieldName) });
-      },
-    [setValues]
-  );
 
   // Validering håndteres via:
   // - Lag 1: Input-lokal validering (onBlur i komponenter)
@@ -791,16 +245,14 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
 
   // Dato-input håndteres direkte af StyledDateField (intern draft-state + commit på blur)
 
-  // Cross-field validering: Forlig ansvarsgrad (procent vs. brøk)
-  const forligFejl = React.useMemo(() => {
-    const harProcent = values.forligAnsvarsgradProcent !== undefined && values.forligAnsvarsgradProcent !== null;
-    const harBroek = values.forligAnsvarsgradBroek !== undefined && values.forligAnsvarsgradBroek !== null && values.forligAnsvarsgradBroek.trim() !== '';
-    const beggeUdfyldt = harProcent && harBroek;
-    return {
-      harFejl: beggeUdfyldt,
-      fejlbesked: beggeUdfyldt ? 'Kan ikke udfylde både procent og brøk' : '',
-    };
-  }, [values.forligAnsvarsgradProcent, values.forligAnsvarsgradBroek]);
+  // Cross-field validering: Forlig om ansvarsgrad (delt kilde med Erhvervsevnetab -> Differencekrav).
+  // Den fælles hook rapporterer de to blokerende regler (begge udfyldt / dato uden ansvarsgrad) til den
+  // centrale fejl-model og returnerer den visuelle "begge udfyldt"-fejl til procent/brøk-felterne.
+  const forligFejl = useForligAnsvarsgradValidation({
+    forligAnsvarsgradProcent: values.forligAnsvarsgradProcent,
+    forligAnsvarsgradBroek: values.forligAnsvarsgradBroek,
+    forligDato: values.forligDato,
+  });
 
   // Fejlrapportering til debug/diagnostik (kun runtime).
   // Disse rapporteres bevidst til den centrale field-error-model, så EODebug kan afspejle aktuelle ugyldige inputs
@@ -871,19 +323,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     source: 'input',
   });
 
-  const reportForligAnsvarsgradProcentRuleError = useFormFieldErrorReporter(
-    'erstatningsopgoerelse',
-    'forligAnsvarsgradProcent',
-    { severity: 'error', source: 'rule' }
-  );
-  const reportForligAnsvarsgradBroekRuleError = useFormFieldErrorReporter('erstatningsopgoerelse', 'forligAnsvarsgradBroek', {
-    severity: 'error',
-    source: 'rule',
-  });
-  const reportForligDatoRuleError = useFormFieldErrorReporter('erstatningsopgoerelse', 'forligDato', {
-    severity: 'error',
-    source: 'rule',
-  });
   const reportForligDatoInputErrorSafe = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
     if (!hasNonEmptyDateValue(values.forligDato)) {
       reportForligDatoInputError(undefined);
@@ -891,33 +330,6 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     }
     reportForligDatoInputError(errorMsg);
   }, [reportForligDatoInputError, values.forligDato]);
-  React.useEffect(() => {
-    const msg = forligFejl.harFejl ? forligFejl.fejlbesked : undefined;
-    reportForligAnsvarsgradProcentRuleError(msg);
-    reportForligAnsvarsgradBroekRuleError(msg);
-  }, [
-    forligFejl.fejlbesked,
-    forligFejl.harFejl,
-    reportForligAnsvarsgradBroekRuleError,
-    reportForligAnsvarsgradProcentRuleError,
-  ]);
-  React.useEffect(() => {
-    const hasForligDato = typeof values.forligDato === 'string' && values.forligDato.trim() !== '';
-    const hasProcent = typeof values.forligAnsvarsgradProcent === 'number' && Number.isFinite(values.forligAnsvarsgradProcent);
-    const hasBroek = typeof values.forligAnsvarsgradBroek === 'string' && values.forligAnsvarsgradBroek.trim() !== '';
-
-    if (!hasForligDato || hasProcent || hasBroek) {
-      reportForligDatoRuleError(undefined);
-      return;
-    }
-
-    reportForligDatoRuleError('Dato for forlig kræver, at ansvarsgrad angives som procent eller brøk');
-  }, [
-    reportForligDatoRuleError,
-    values.forligAnsvarsgradBroek,
-    values.forligAnsvarsgradProcent,
-    values.forligDato,
-  ]);
 
   const svie = useSvieSmerteRows({ values, setValues, resyncToken: formVersion });
   const taf = useTafRows({ values, setValues, resyncToken: formVersion });
@@ -1189,7 +601,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               />
               <InsertTodayDateButton
                 onCommit={(today) => {
-                  setValues((prev) => ({ ...prev, opgørelseLavetDen: today }));
+                  setValues((prev) => ({ ...prev, opgørelseLavetDen: today }), { fieldPath: 'opgørelseLavetDen' });
                 }}
                 focusRef={opgoerelseLavetDenInputRef}
               />
@@ -2411,195 +1823,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       </ContentBox>
       )}
 
-      {loentrinFinderOpen ? (
-        <>
-          <Box
-            onClick={closeLoentrinFinder}
-            sx={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              backgroundColor: 'var(--color-shadow)',
-              zIndex: (theme) => theme.zIndex.modal - 1,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          />
-          <Box
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={loentrinFinderHeadingId}
-            ref={loentrinFinderDialogRef}
-            sx={{
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: '90%',
-              maxWidth: '700px',
-              maxHeight: '85vh',
-              backgroundColor: 'var(--color-background-white)',
-              borderRadius: '20px',
-              boxShadow: '0 8px 32px var(--color-shadow)',
-              border: '1px solid var(--color-border)',
-              zIndex: (theme) => theme.zIndex.modal,
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '24px 32px',
-                borderBottom: '1px solid var(--color-border)',
-              }}
-            >
-              <Typography id={loentrinFinderHeadingId} variant="h5" sx={{ fontWeight: 500, color: 'text.primary' }}>
-                Find løntrin
-              </Typography>
-              <IconButton
-                onClick={closeLoentrinFinder}
-                aria-label="Luk"
-                tabIndex={-1}
-                sx={{
-                  color: 'text.secondary',
-                  '&:hover': {
-                    backgroundColor: 'var(--color-hover)',
-                  },
-                }}
-              >
-                <CloseIcon />
-              </IconButton>
-            </Box>
-
-            <Box sx={{ flex: 1, overflow: 'auto', padding: '24px 32px' }}>
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">Overenskomst</Typography>
-                <Box className="row--label-right-hover__content">
-                  <Typography className="row--text">{loentrinFinderOverenskomstLabel}</Typography>
-                </Box>
-              </Box>
-
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">Ansættelse</Typography>
-                <Box className="row--label-right-hover__content">
-                  <StyledDropdown
-                    ref={loentrinFinderAnsaettelseRef}
-                    width={180}
-                    value={loentrinFinderAnsaettelse}
-                    allowEmpty={false}
-                    onChange={(event: StyledDropdownChangeEvent<string>) => {
-                      const parsed = offentligLoenTypeEnum.safeParse(event.target.value ?? 'Månedsløn');
-                      const nextValue: 'Månedsløn' | 'Timeløn' = parsed.success ? parsed.data : 'Månedsløn';
-                      setLoentrinFinderAnsaettelse(nextValue);
-                    }}
-                  >
-                    <MenuItem value="Månedsløn">Månedsløn</MenuItem>
-                    <MenuItem value="Timeløn">Timeløn</MenuItem>
-                  </StyledDropdown>
-                </Box>
-              </Box>
-
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">{loentrinFinderAnsaettelse}</Typography>
-                <Box className="row--label-right-hover__content">
-                  <StyledAmountField
-                    ref={loentrinFinderBeloebRef}
-                    width={180}
-                    value={loentrinFinderBeloeb}
-                    allowNegative={false}
-                    onCommit={(event) => {
-                      setLoentrinFinderBeloeb(event.target.value);
-                      setLoentrinFinderErrors((prev) => ({ ...prev, beloeb: undefined }));
-                    }}
-                    onFieldError={(errorMsg) => setLoentrinFinderAmountFieldError(getReportableFieldErrorMessage(errorMsg))}
-                    error={Boolean(loentrinFinderErrors.beloeb)}
-                    helperText={loentrinFinderErrors.beloeb ?? ''}
-                  />
-                </Box>
-              </Box>
-
-              <Box className="row--label-right-hover">
-                <Typography className="row--text">Dato</Typography>
-                <Box className="row--label-right-hover__content">
-                  <StyledDateField
-                    ref={loentrinFinderDatoRef}
-                    value={loentrinFinderDato}
-                    onCommit={(event) => {
-                      setLoentrinFinderDato(event.target.value);
-                      setLoentrinFinderErrors((prev) => ({ ...prev, dato: undefined }));
-                    }}
-                    onFieldError={(errorMsg) => setLoentrinFinderDateFieldError(getReportableFieldErrorMessage(errorMsg))}
-                    error={Boolean(loentrinFinderErrors.dato)}
-                    helperText={loentrinFinderErrors.dato ?? ''}
-                  />
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 1 }}>
-                <Button
-                  ref={loentrinFinderBeregnRef}
-                  variant="contained"
-                  onClick={handleLoentrinFinderCalculate}
-                  sx={{
-                    borderRadius: '10px',
-                    px: 3,
-                    py: 1,
-                    animation: loentrinFinderButtonShake ? 'shake 0.5s ease' : 'none',
-                    '@keyframes shake': {
-                      '0%, 100%': { transform: 'translateX(0)' },
-                      '25%': { transform: 'translateX(-4px)' },
-                      '75%': { transform: 'translateX(4px)' },
-                    },
-                  }}
-                >
-                  Beregn
-                </Button>
-              </Box>
-
-              {loentrinFinderResults.length > 0 ? (
-                <Box sx={{ mt: 2 }}>
-                  <Typography className="row--text" sx={{ mb: 1 }}>
-                    Nærmeste lønsatser
-                  </Typography>
-                  {loentrinFinderResults.map((result) => {
-                    const isExactMatch = loentrinFinderInputAmountNumber === undefined
-                      ? false
-                      : hasExactDisplayedAmountMatch(loentrinFinderInputAmountNumber, result.beloeb);
-                    return (
-                      <Box
-                        key={`${String(result.loentrin)}-${result.gruppe}`}
-                        sx={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          padding: '8px 10px',
-                          borderRadius: '8px',
-                          backgroundColor: 'var(--color-active-bg)',
-                          mb: 0.75,
-                        }}
-                      >
-                        <Typography className={`row--text${isExactMatch ? ' text-bold' : ''}`}>
-                          {`Løntrin ${String(result.loentrin)}, gruppe ${result.gruppe}`}
-                        </Typography>
-                        <Typography className={`row--text${isExactMatch ? ' text-bold' : ''}`}>
-                          {`${formatCurrency(result.beloeb)} kr.`}
-                        </Typography>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              ) : null}
-            </Box>
-          </Box>
-        </>
-      ) : null}
+      <EoLoentrinFinderOverlay loentrinFinder={loentrinFinder} />
 
       {/* Sektion 7: Øvrige erstatningskrav */}
       <ContentBox className="content-box" data-section-id="oevrige-krav">

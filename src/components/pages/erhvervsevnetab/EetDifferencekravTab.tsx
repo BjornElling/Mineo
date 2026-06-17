@@ -36,7 +36,8 @@ import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import InfoTooltipIcon from '../../common/InfoTooltipIcon';
-import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
+import { useShakeFlag } from '../../../hooks/useShakeFlag';
+import { useForligAnsvarsgradValidation } from '../../../hooks/useForligAnsvarsgradValidation';
 import { formatFaktor, formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
@@ -370,7 +371,7 @@ const EetMerErstatningPensionsalderBox = ({ computation, koen }: MerErstatningBo
 
 const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
   const { settings } = useAppSettings();
-  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
+  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useShakeFlag();
   const issues = snapshot.issues;
   const hasBlockingErrors = snapshot.hasBlockingErrors;
   const computation = snapshot.computation;
@@ -470,27 +471,25 @@ const EetDifferencekravTab = ({ values, setValues, forligValues, setForligValues
 
   const handleForligBroekCommit = React.useCallback(
     (event: CommitEvent<string | undefined>) => {
-      const raw = event.target.value;
-      const trimmed = typeof raw === 'string' ? raw.trim() : '';
-      setForligValues((prev) => ({ ...prev, forligAnsvarsgradBroek: trimmed === '' ? undefined : trimmed }), {
+      // StyledFractionField trimmer allerede draft ved commit (normalizeDraftOnCommit) og mapper tom streng
+      // til undefined i parseren, så committed-værdien er kanonisk. Ingen ekstra trim nødvendig (jf. EO-fanen,
+      // der committer den rå commit-værdi direkte).
+      setForligValues((prev) => ({ ...prev, forligAnsvarsgradBroek: event.target.value }), {
         fieldPath: 'forligAnsvarsgradBroek',
       });
     },
     [setForligValues]
   );
 
-  // "Begge udfyldt"-reglen — spejler EOOplysningerTab. Driver rød ring + tooltip på begge felter.
-  const forligFejl = React.useMemo(() => {
-    const harProcent =
-      forligValues.forligAnsvarsgradProcent !== undefined && forligValues.forligAnsvarsgradProcent !== null;
-    const harBroek =
-      typeof forligValues.forligAnsvarsgradBroek === 'string' && forligValues.forligAnsvarsgradBroek.trim() !== '';
-    const beggeUdfyldt = harProcent && harBroek;
-    return {
-      harFejl: beggeUdfyldt,
-      fejlbesked: beggeUdfyldt ? 'Kan ikke udfylde både procent og brøk' : '',
-    };
-  }, [forligValues.forligAnsvarsgradProcent, forligValues.forligAnsvarsgradBroek]);
+  // Forligs-validering via den fælles hook (samme enhed som EOOplysningerTab, jf. domain-boundary-contract.md §10).
+  // Den rapporterer de to blokerende regler (begge udfyldt / dato uden ansvarsgrad) til den centrale
+  // fejl-model under pageKey `erstatningsopgoerelse`, så Gem nu også blokeres fra denne fane, og returnerer
+  // den visuelle "begge udfyldt"-fejl (rød ring + tooltip på procent/brøk-felterne).
+  const forligFejl = useForligAnsvarsgradValidation({
+    forligAnsvarsgradProcent: forligValues.forligAnsvarsgradProcent,
+    forligAnsvarsgradBroek: forligValues.forligAnsvarsgradBroek,
+    forligDato: forligValues.forligDato,
+  });
 
   // Forligsdato (delt kilde med EO). Samme dato-grænser som EOOplysningerTab, så rød ring/tooltip
   // for ugyldige datoer er identisk på tværs af fanerne.

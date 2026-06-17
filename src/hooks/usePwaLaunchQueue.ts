@@ -17,7 +17,6 @@ type UsePwaLaunchQueueArgs = {
   pendingOverwriteApplyOpen: boolean;
   handleHentFromPwaRequest: (request: PwaFileOpenRequest) => Promise<unknown>;
   showOverlay: (overlay: { message: string; type: 'success' | 'error' | 'warning' | 'info' }) => void;
-  markUserFeedback: () => void;
 };
 
 export const usePwaLaunchQueue = ({
@@ -26,7 +25,6 @@ export const usePwaLaunchQueue = ({
   pendingOverwriteApplyOpen,
   handleHentFromPwaRequest,
   showOverlay,
-  markUserFeedback,
 }: UsePwaLaunchQueueArgs): void => {
   const isPwaLoadInProgressRef = React.useRef<boolean>(false);
   const activePwaRequestIdRef = React.useRef<string | null>(null);
@@ -63,7 +61,6 @@ export const usePwaLaunchQueue = ({
               data: { errorMessage: asError(error).message },
             });
           });
-          markUserFeedback();
           showOverlay({ message: 'Ny fil blev forsøgt åbnet – prøv igen når du er færdig', type: 'warning' });
         }
         return;
@@ -75,7 +72,7 @@ export const usePwaLaunchQueue = ({
     return () => {
       window.removeEventListener(Mineo_PWA_FILE_OPEN_EVENT, handler);
     };
-  }, [markUserFeedback, pendingLoadResultOpen, pendingOverwriteApplyOpen, processNextPwaFileOpenRequest, showOverlay]);
+  }, [pendingLoadResultOpen, pendingOverwriteApplyOpen, processNextPwaFileOpenRequest, showOverlay]);
 
   React.useEffect(() => {
     if (pendingLoadResultOpen || pendingOverwriteApplyOpen) return;

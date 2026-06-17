@@ -4,6 +4,15 @@ import { MemoryRouter } from 'react-router-dom';
 import EetDifferencekravTab from '../../../../components/pages/erhvervsevnetab/EetDifferencekravTab';
 import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
 import { toISODateString, type ISODateString } from '../../../../types/branded';
+import { formPersistenceStore } from '../../../../stores/formPersistenceStore';
+import { undoRedoStore } from '../../../../stores/undoRedoStore';
+import { clearResolvedFieldErrorsCache } from '../../../../hooks/useFormPersistenceSelectors';
+import { getResolvedFieldErrorsSnapshot } from '../../../../stores/formPersistenceReadModel';
+import { PERSISTED_DATA_VERSION } from '../../../../config/persistenceVersion';
+import {
+  FORLIG_BEGGE_UDFYLDT_FEJL,
+  FORLIG_DATO_KRAEVER_ANSVARSGRAD_FEJL,
+} from '../../../../domain/erstatningsopgoerelse/validation/forligAnsvarsgradRules';
 
 vi.mock('../../../../contexts/useAppSettings', () => ({
   useAppSettings: () => ({
@@ -16,7 +25,7 @@ vi.mock('../../../../pdf/infrastructure/pdfService', () => ({
 }));
 
 vi.mock('../../../../hooks/useShakeFlag', () => ({
-  useEetShakeFlag: () => ({
+  useShakeFlag: () => ({
     shake: false,
     triggerShake: vi.fn(),
   }),
@@ -192,5 +201,94 @@ describe('EetDifferencekravTab', () => {
     expect(screen.getByText('Forlig om ansvarsgrad')).toBeInTheDocument();
     // Differencekrav-resultatet er undertrykt.
     expect(screen.queryByText(/Beregnet differencekrav/)).not.toBeInTheDocument();
+  });
+});
+
+// Korrekthedsinvariant (Group B): Differencekrav-fanen rapporterer nu de samme blokerende forligs-regler
+// til den centrale fejl-model under pageKey `erstatningsopgoerelse` som EOOplysningerTab — så Gem blokeres
+// også fra denne fane.
+describe('EetDifferencekravTab forligs-håndhævelse (delt central fejl-model)', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    clearResolvedFieldErrorsCache();
+    formPersistenceStore.getState().clearAll({
+      hydrated: true,
+      schemaFingerprint: PERSISTED_DATA_VERSION,
+      lastCommittedAt: Date.now(),
+    });
+    formPersistenceStore.getState().clearAllFieldErrors();
+    undoRedoStore.getState().clear();
+  });
+
+  const ruleError = (field: 'forligAnsvarsgradProcent' | 'forligAnsvarsgradBroek' | 'forligDato') => {
+    clearResolvedFieldErrorsCache();
+    return getResolvedFieldErrorsSnapshot('erstatningsopgoerelse')[field];
+  };
+
+  const renderWithForlig = (forligValues: {
+    forligAnsvarsgradProcent: number | undefined;
+    forligAnsvarsgradBroek: string | undefined;
+    forligDato: ISODateString | undefined;
+  }) =>
+    render(
+      <MemoryRouter>
+        <FormPersistenceProvider>
+          <EetDifferencekravTab
+            values={{
+              koen: 'Kvinde',
+              eetDifferencekravBilagSelection: {
+                loebendeYdelser: false,
+                kapitalisering: false,
+                eetEfterEal: false,
+                proformaKapitalisering: false,
+                merErstatningPensionsalder: false,
+                visUdvidetSpecifikationLoebendeYdelserBilag: false,
+              },
+            } as never}
+            setValues={vi.fn()}
+            forligValues={forligValues}
+            setForligValues={vi.fn()}
+            onGoToEetOplysninger={vi.fn()}
+            stamdata={null}
+            snapshot={{ issues: [], hasBlockingErrors: true, computation: null } as never}
+          />
+        </FormPersistenceProvider>
+      </MemoryRouter>
+    );
+
+  it('rapporterer "begge udfyldt"-reglen til procent og brøk', () => {
+    renderWithForlig({ forligAnsvarsgradProcent: 50, forligAnsvarsgradBroek: '1/3', forligDato: undefined });
+
+    expect(ruleError('forligAnsvarsgradProcent')).toMatchObject({
+      message: FORLIG_BEGGE_UDFYLDT_FEJL,
+      severity: 'error',
+      source: 'rule',
+      blocksSave: true,
+    });
+    expect(ruleError('forligAnsvarsgradBroek')).toMatchObject({
+      message: FORLIG_BEGGE_UDFYLDT_FEJL,
+      severity: 'error',
+      source: 'rule',
+      blocksSave: true,
+    });
+  });
+
+  it('rapporterer dato-reglen når forligDato er sat uden ansvarsgrad', () => {
+    renderWithForlig({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: undefined, forligDato: toISODateString('2024-05-17') });
+
+    expect(ruleError('forligDato')).toMatchObject({
+      message: FORLIG_DATO_KRAEVER_ANSVARSGRAD_FEJL,
+      severity: 'error',
+      source: 'rule',
+      blocksSave: true,
+    });
+  });
+
+  it('rapporterer ingen blokerende forligs-fejl ved et gyldigt forlig', () => {
+    renderWithForlig({ forligAnsvarsgradProcent: undefined, forligAnsvarsgradBroek: '2/3', forligDato: toISODateString('2024-05-17') });
+
+    expect(ruleError('forligAnsvarsgradProcent')).toBeUndefined();
+    expect(ruleError('forligAnsvarsgradBroek')).toBeUndefined();
+    expect(ruleError('forligDato')).toBeUndefined();
   });
 });

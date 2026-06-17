@@ -19,7 +19,10 @@ const SKADESTYPER = skadestypeEnum.options;
 
 const Stamdata = React.memo(() => {
   const { settings } = useAppSettings();
-  const showTestTab = settings.showStamdataTestTab;
+  // Test-fanen er DEV-only: indstillingen kan kun slås til i udviklingsmiljøet, og
+  // selve visningen er gated på import.meta.env.DEV, så en localStorage-værdi gemt
+  // under en dev-session aldrig aktiverer fanen i en produktions-build.
+  const showTestTab = import.meta.env.DEV && settings.showStamdataTestTab;
   const [activeTab, setActiveTab] = React.useState<'stamdata' | 'test'>('stamdata');
 
   // Hvis test-tab slås fra mens den er aktiv, skift tilbage til stamdata

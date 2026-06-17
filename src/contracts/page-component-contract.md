@@ -101,7 +101,7 @@ Denne kategori falder uden for §1-niveauerne: `LoginPage` er hverken routet fra
 
 Placering og regler:
 
-- `LoginPage` ligger aktuelt i `src/components/pages/` (`src/components/pages/LoginPage.tsx`) og importeres af `src/auth/AuthGate.tsx`. Det er strengt taget ikke en fagside i §2.1-forstand; placeringen i `pages/` er en grænse­tilfælde, der med fordel kunne flyttes til et auth-nært modul (`src/auth/` eller `src/components/system/`). Dette noteres som et tilfældighedsfund, ikke et krav, der løses i denne doc-ændring.
+- `LoginPage` ligger i auth-modulet (`src/auth/LoginPage.tsx`) og importeres af `src/auth/AuthGate.tsx`. Det er ikke en fagside i §2.1-forstand, og den hører derfor hjemme tæt på gaten i `src/auth/` frem for i `src/components/pages/` (som er reserveret til kategori 2.1–2.3).
 - De tværgående kontrakter gælder, hvor de er relevante: navngivne form-felter følger `form-contract.md` / `mineo-field-pattern.md`, og auth-mekanikken styres af `auth-gate-contract.md`, som er det normative hjem for selve gaten (styrke, persistens, placering).
 - Regler for persisted fagsider gælder **ikke**: `LoginPage` ejer ikke sagsdata, åbner ikke `usePersistedForm` for et fagdomæne og indgår ikke i undo/redo eller `.eo`-save/load.
 - Page-header-reglen (§4.3) og layout-byggestenene (§10) gælder ikke som krav; auth-gaten må have sit eget UX, jf. `auth-gate-contract.md`.

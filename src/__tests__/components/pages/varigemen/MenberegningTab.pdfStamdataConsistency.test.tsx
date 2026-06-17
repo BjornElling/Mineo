@@ -1,6 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
+import { FormPersistenceProvider } from '../../../../contexts/FormPersistenceContext';
 import type { ISODateString } from '../../../../types/branded';
 
 const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mockStamValues } = vi.hoisted(() => ({
@@ -56,19 +57,21 @@ describe('MenberegningTab', () => {
 
     render(
       <MemoryRouter>
-        <MenberegningTab
-          values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
-          setValues={vi.fn()}
-          setFieldValue={setFieldValue}
-          stamdata={{
-            journalnr: mockStamValues.journalnr,
-            advokat: mockStamValues.advokat,
-            sagsbehandler: mockStamValues.sagsbehandler,
-            skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
-            skadedato: mockStamValues.skadedato,
-            skadestype: mockStamValues.skadestype,
-          }}
-        />
+        <FormPersistenceProvider>
+          <MenberegningTab
+            values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
+            setValues={vi.fn()}
+            setFieldValue={setFieldValue}
+            stamdata={{
+              journalnr: mockStamValues.journalnr,
+              advokat: mockStamValues.advokat,
+              sagsbehandler: mockStamValues.sagsbehandler,
+              skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
+              skadedato: mockStamValues.skadedato,
+              skadestype: mockStamValues.skadestype,
+            }}
+          />
+        </FormPersistenceProvider>
       </MemoryRouter>
     );
 
@@ -92,19 +95,21 @@ describe('MenberegningTab', () => {
   it('renderer stamdata- og resultatrækker som hover-rækker', () => {
     render(
       <MemoryRouter>
-        <MenberegningTab
-          values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
-          setValues={vi.fn()}
-          setFieldValue={setFieldValue}
-          stamdata={{
-            journalnr: mockStamValues.journalnr,
-            advokat: mockStamValues.advokat,
-            sagsbehandler: mockStamValues.sagsbehandler,
-            skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
-            skadedato: mockStamValues.skadedato,
-            skadestype: mockStamValues.skadestype,
-          }}
-        />
+        <FormPersistenceProvider>
+          <MenberegningTab
+            values={{ mengrad: 10, beregningsdato: toISODateString('2026-01-01') }}
+            setValues={vi.fn()}
+            setFieldValue={setFieldValue}
+            stamdata={{
+              journalnr: mockStamValues.journalnr,
+              advokat: mockStamValues.advokat,
+              sagsbehandler: mockStamValues.sagsbehandler,
+              skadelidteFodselsdato: mockStamValues.skadelidteFodselsdato,
+              skadedato: mockStamValues.skadedato,
+              skadestype: mockStamValues.skadestype,
+            }}
+          />
+        </FormPersistenceProvider>
       </MemoryRouter>
     );
 

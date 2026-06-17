@@ -163,6 +163,18 @@ export type DebugRowId =
   | 'midlertidigtEetKonsistens.ydelerUdenAfgorelse'
   | 'midlertidigtEetKonsistens.afgorelseUdenYdelser';
 
+// Kanoniske id-prefikser for SFGG-rækker bygget efter sygeferiegodtgørelses-tabellen.
+// Predikaterne ligger her sammen med byggeren der emitterer id'erne, så ingen
+// render-komponent gen-koder `sfgg.eftertabel.`-grammatikken parallelt.
+const SFGG_EFTERTABEL_ID_PREFIX = 'sfgg.eftertabel.';
+const SFGG_EFTERTABEL_BEREGNET_ID_PREFIX = 'sfgg.eftertabel.beregnet.';
+
+/** Sand for SFGG-rækker der hører efter selve sygeferiegodtgørelses-tabellen. */
+export const isSfggPostTableRowId = (id: string): boolean => id.startsWith(SFGG_EFTERTABEL_ID_PREFIX);
+
+/** Sand for den beregnede SFGG-totalrække (vises med fed skrift). */
+export const isSfggComputedTotalRowId = (id: string): boolean => id.startsWith(SFGG_EFTERTABEL_BEREGNET_ID_PREFIX);
+
 type ErstatningsopgoerelseValues = PersistedSectionMap['erstatningsopgoerelse'];
 type ErstatningsopgoerelseFieldName = Extract<keyof ErstatningsopgoerelseValues, string>;
 type ErstatningsopgoerelseFieldErrorsBySource = Partial<Record<ErstatningsopgoerelseFieldName, FieldErrorBySource>>;

@@ -36,9 +36,12 @@ export const AppSettingsProvider = ({ children }: { children: React.ReactNode })
   }, [settings]);
 
   React.useEffect(() => {
-    // Tværgående UI-debug-kontrol (CSS-niveau).
-    // Når `fontStyleColorDebug=false`, bruger appen normale typografi-farver.
-    document.documentElement.dataset.mineoFontStyleColors = settings.fontStyleColorDebug ? 'on' : 'off';
+    // Tværgående UI-debug-kontrol (CSS-niveau). DEV-only: font-style-farverne er kun
+    // tilgængelige i udviklingsmiljøet. Adfærden gates på import.meta.env.DEV, så en
+    // værdi gemt i localStorage under en dev-session aldrig aktiverer farverne i en
+    // produktions-build. Når slået fra, bruger appen normale typografi-farver.
+    const enabled = import.meta.env.DEV && settings.fontStyleColorDebug;
+    document.documentElement.dataset.mineoFontStyleColors = enabled ? 'on' : 'off';
   }, [settings.fontStyleColorDebug]);
 
   React.useEffect(() => {

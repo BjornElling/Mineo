@@ -11,7 +11,7 @@ import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../hooks/useFormFieldErrors';
 import { useAslAarsloenRuleReporter } from '../../hooks/useAslAarsloenRuleReporter';
-import { faellesAarsloenSchema, forsoergertabSchema, koenEnum } from '../../schemas/formSchemas';
+import { faellesAarsloenSchema, forsoergertabSchema, type Koen } from '../../schemas/formSchemas';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
 import { FORSOERGERTAB_INITIAL_VALUES } from '../../domain/forsoergertab/forsoergertabInitialValues';
 import { isoToDanish } from '../../types/branded';
@@ -165,20 +165,19 @@ const Forsoergertab = React.memo(() => {
           <Box className="row--label-right-hover">
             <Typography className="row--text">Køn</Typography>
             <Box className="row--label-right-hover__content">
-              <StyledDropdown
+              <StyledDropdown<Koen>
                 name="koen"
                 value={values.koen}
-                onChange={(event) => {
-                  const parsed = koenEnum.safeParse(event.target.value);
-                  setFieldValue('koen', parsed.success ? parsed.data : undefined);
-                }}
+                // Dropdownen er typet til Koen og udsender kun de kendte MenuItem-værdier
+                // (eller undefined ved rydning), så vi committer direkte uden re-validering.
+                onChange={(event) => setFieldValue('koen', event.target.value)}
                 placeholder="Vælg køn"
                 width={130}
                 error={snapshot.fieldUi.koen.hasError}
                 helperText={snapshot.fieldUi.koen.helperText}
               >
-                <MenuItem value="Mand">Mand</MenuItem>
-                <MenuItem value="Kvinde">Kvinde</MenuItem>
+                <MenuItem value={'Mand' satisfies Koen}>Mand</MenuItem>
+                <MenuItem value={'Kvinde' satisfies Koen}>Kvinde</MenuItem>
               </StyledDropdown>
             </Box>
           </Box>

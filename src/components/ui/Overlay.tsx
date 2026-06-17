@@ -40,6 +40,14 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
 
   const duration = getDuration();
 
+  // `onClose` holdes i en ref, så auto-close-effekten kun afhænger af `duration`.
+  // Ellers ville en ny inline-`onClose` fra forælderen ved hver re-render genstarte
+  // nedtællingen, så et 3 s success-overlay kunne hænge fast (rapporteret problem).
+  const onCloseRef = React.useRef(onClose);
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   React.useEffect(() => {
     // Hvis duration er null (error-type), luk ikke automatisk
     if (duration === null) {
@@ -52,14 +60,14 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
 
     const closeTimer = setTimeout(() => {
       setVisible(false);
-      if (onClose) onClose();
+      onCloseRef.current?.();
     }, duration);
 
     return () => {
       clearTimeout(fadeTimer);
       clearTimeout(closeTimer);
     };
-  }, [duration, onClose]);
+  }, [duration]);
 
   if (!visible) {
     return null;
@@ -118,7 +126,7 @@ const Overlay = React.memo(({ message, type = 'success', onClose }: OverlayProps
         setFadeOut(true);
         setTimeout(() => {
           setVisible(false);
-          if (onClose) onClose();
+          onCloseRef.current?.();
         }, 300);
       } : undefined}
       title={type === 'error' ? 'Klik for at lukke' : undefined}

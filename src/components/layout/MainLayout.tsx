@@ -74,11 +74,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     clearLastUndoFocus();
   }, [location.pathname]);
 
-  // Prioritering: Track om nuværende overlay er user-feedback (højere prioritet end system errors)
-  const isUserFeedbackRef = React.useRef<boolean>(false);
-  const markUserFeedback = React.useCallback(() => {
-    isUserFeedbackRef.current = true;
-  }, []);
   const showOverlay = React.useCallback((overlayData: OverlayData) => {
     setOverlay(overlayData);
   }, []);
@@ -92,7 +87,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
 
   const activePage = location.pathname.substring(1) || 'stamdata';
   const {
-    hasUnsavedChanges: _hasUnsavedChanges,
     combinedSectionRevisionRef,
     markSaved,
     allowExitWithoutWarning,
@@ -105,7 +99,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
 
     const activeElement = document.activeElement;
     if (isOpenTextEditorElement(activeElement)) {
-      isUserFeedbackRef.current = true;
       setOverlay({
         message: 'Kan ikke skifte side: afslut eller ret det aktive felt først.',
         type: 'warning',
@@ -117,7 +110,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       const gridCommitResult = commitActiveGridEditors();
       if (gridCommitResult.failedCount > 0) {
         restoreFocusIfPossible(gridCommitResult.firstFailedElement);
-        isUserFeedbackRef.current = true;
         setOverlay({
           message: 'Kan ikke skifte side: afslut eller ret det aktive felt først.',
           type: 'warning',
@@ -128,7 +120,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
       navigate(`/${pageId}`);
     } catch (error) {
       console.warn('Sideskift blev afbrudt, fordi aktivt felt ikke kunne afsluttes.', error);
-      isUserFeedbackRef.current = true;
       setOverlay({
         message: 'Kan ikke skifte side: afslut eller ret det aktive felt først.',
         type: 'warning',
@@ -169,7 +160,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     hasAnyData,
     allowExitWithoutWarning,
     showOverlay,
-    markUserFeedback,
   });
 
   usePwaLaunchQueue({
@@ -178,13 +168,14 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     pendingOverwriteApplyOpen: pendingOverwriteApply !== null,
     handleHentFromPwaRequest,
     showOverlay,
-    markUserFeedback,
   });
 
-  // Persistence-notices (fx versionsmismatch og korrupt storage)
+  // Persistence-notices (fx versionsmismatch og korrupt storage).
+  // `lastNoticeEpoch` er den monotone trigger; provideren bumper epoch og notice-objektet
+  // i samme setState (se FormPersistenceContext.emitUserNotice), så notice-identitet er stabil
+  // pr. epoch og kan ikke ændre sig uafhængigt af epoch. Begge i deps er derfor sikkert.
   React.useEffect(() => {
     if (!lastNotice) return;
-    isUserFeedbackRef.current = true;
     setOverlay({ message: lastNotice.message, type: lastNotice.type });
   }, [lastNoticeEpoch, lastNotice]);
 
@@ -201,10 +192,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
           typeof overlayData.message === 'string' &&
           isOverlayType((overlayData as { type?: unknown }).type)
         ) {
-          if (overlayData.isUserFeedback) {
-            isUserFeedbackRef.current = true;
-          }
-
           setOverlay({
             message: overlayData.message,
             type: (overlayData as { type: OverlayData['type'] }).type,
@@ -350,7 +337,6 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
           type={overlay.type}
           onClose={() => {
             setOverlay(null);
-            isUserFeedbackRef.current = false;
           }}
         />
       )}

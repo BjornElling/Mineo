@@ -18,6 +18,7 @@ import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import type { StandardLoenRateSegment, StandardLoenSatserInput } from '../../aarsloen/standardLoenRowCalculations';
 import { getDayBeforeIso } from '../../../utils/isoDateHelpers';
 import { round2 } from '../../../utils/roundingShortcuts';
+import { generateLoenudviklingRowId, initialLoenudviklingManuelRow } from './eoRowInitialValues';
 
 export type OverenskomstSatsField = 'fritvalgPct' | 'shSoPct' | 'pensionPct';
 
@@ -289,4 +290,45 @@ export const buildLoenindkomstRateSegments = (args: Readonly<{
       },
     };
   });
+};
+
+const formatManualBaseRowPercent = (value: number | undefined): number | undefined => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  return value;
+};
+
+/**
+ * Synkroniserer de auto-udledte satser (ferie/SH-SO/fritvalg/pension) ind i den manuelle
+ * lønudviklings-baserække, så base-rækken altid afspejler ansættelsesforholdets satser.
+ *
+ * Domænelogik (ikke præsentation): flyttet fra LoenindkomstTab, så den kan genbruges og
+ * testes uafhængigt af UI-laget.
+ */
+export const syncManualBaseRowSatser = (af: LoenindkomstAnsaettelsesforhold): LoenindkomstAnsaettelsesforhold => {
+  if (af.loenudviklingBeregningsgrundlag !== 'Manuelt angivet') return af;
+
+  const currentRows = af.loenudviklingManuelTableData ?? [];
+  const currentBaseRow = currentRows[0]
+    ?? { ...initialLoenudviklingManuelRow, id: generateLoenudviklingRowId() };
+
+  const nextBaseRow = {
+    ...currentBaseRow,
+    feriepenge: formatManualBaseRowPercent(af.feriePct),
+    shSoSats: formatManualBaseRowPercent(af.shSoPct),
+    fritvalg: formatManualBaseRowPercent(af.fritvalgPct),
+    agPension: formatManualBaseRowPercent(af.pensionPct),
+  };
+
+  const hasBaseRowChanged =
+    currentBaseRow.feriepenge !== nextBaseRow.feriepenge ||
+    currentBaseRow.shSoSats !== nextBaseRow.shSoSats ||
+    currentBaseRow.fritvalg !== nextBaseRow.fritvalg ||
+    currentBaseRow.agPension !== nextBaseRow.agPension;
+
+  if (!hasBaseRowChanged && currentRows.length > 0) return af;
+
+  return {
+    ...af,
+    loenudviklingManuelTableData: [nextBaseRow, ...currentRows.slice(1)],
+  };
 };

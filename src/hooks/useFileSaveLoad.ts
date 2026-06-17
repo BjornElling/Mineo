@@ -61,7 +61,6 @@ type UseFileSaveLoadArgs = {
   hasAnyData: () => boolean;
   allowExitWithoutWarning: () => void;
   showOverlay: (overlay: OverlayData) => void;
-  markUserFeedback: () => void;
 };
 
 type UseFileSaveLoadResult = {
@@ -144,7 +143,6 @@ export const useFileSaveLoad = ({
   hasAnyData,
   allowExitWithoutWarning,
   showOverlay,
-  markUserFeedback,
 }: UseFileSaveLoadArgs): UseFileSaveLoadResult => {
   const [pendingLoadResult, setPendingLoadResult] = React.useState<PendingLoadApply | null>(null);
   const [pendingOverwriteApply, setPendingOverwriteApply] = React.useState<PendingOverwriteApply | null>(null);
@@ -167,7 +165,6 @@ export const useFileSaveLoad = ({
     }
 
     const applyResult = await applyLoadedSnapshot(result);
-    markUserFeedback();
     showOverlay(applyResult.status === 'applied-with-metadata-error'
       ? { message: applyResult.message, type: 'warning' }
       : overlayData);
@@ -175,7 +172,7 @@ export const useFileSaveLoad = ({
       navigate('/stamdata', { replace: true });
     }
     return 'applied';
-  }, [applyLoadedSnapshot, hasAnyData, markUserFeedback, navigate, showOverlay]);
+  }, [applyLoadedSnapshot, hasAnyData, navigate, showOverlay]);
 
   const handleGem = React.useCallback(async () => {
     const focusTargetBeforeSave = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -187,7 +184,6 @@ export const useFileSaveLoad = ({
         if (commitFlush.ok) {
           void navigateToBlockingInputError(blockingInputError, currentPathname, navigate);
         }
-        markUserFeedback();
         showOverlay({
           message: 'Kan ikke gemme: Der er ugyldige felter. Ret felter med rød markering, og prøv igen.',
           type: 'warning',
@@ -212,7 +208,6 @@ export const useFileSaveLoad = ({
       if (result.success) {
         restoreFocusIfPossible(focusTargetBeforeSave);
         markSaved(snapshotRevision);
-        markUserFeedback();
         showOverlay({
           message: result.warning ? `Gemt med advarsel\n\n${result.warning}` : 'Gemt',
           type: result.warning ? 'warning' : 'success',
@@ -224,7 +219,6 @@ export const useFileSaveLoad = ({
       if (!(error instanceof SaveValidationError)) {
         console.error('Gem fejlede:', error);
       }
-      markUserFeedback();
       showOverlay(overlay);
     }
   }, [
@@ -233,7 +227,6 @@ export const useFileSaveLoad = ({
     getFirstBlockingInputError,
     getPersistedData,
     markSaved,
-    markUserFeedback,
     navigate,
     settings,
     showOverlay,
@@ -242,7 +235,6 @@ export const useFileSaveLoad = ({
   const handleHent = React.useCallback(async () => {
     const loadGuard = await prepareForCriticalDataReplacement();
     if (!loadGuard.ok) {
-      markUserFeedback();
       showOverlay({
         message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
         type: 'warning',
@@ -275,18 +267,16 @@ export const useFileSaveLoad = ({
       if (!resolved.expected) {
         console.error('Hent fejlede:', error);
       }
-      markUserFeedback();
       showOverlay({
         message: resolved.message,
         type: 'error',
       });
     }
-  }, [markUserFeedback, requestApplyLoadedSnapshot, settings, showOverlay]);
+  }, [requestApplyLoadedSnapshot, settings, showOverlay]);
 
   const handleHentFromPwaRequest = React.useCallback(async (request: PwaFileOpenRequest): Promise<PwaLoadOutcome> => {
     const loadGuard = await prepareForCriticalDataReplacement();
     if (!loadGuard.ok) {
-      markUserFeedback();
       showOverlay({
         message: LOAD_BLOCKED_BY_ACTIVE_EDITOR_MESSAGE,
         type: 'warning',
@@ -328,14 +318,13 @@ export const useFileSaveLoad = ({
       if (!resolved.expected) {
         console.error('Hent (PWA) fejlede:', error);
       }
-      markUserFeedback();
       showOverlay({
         message: resolved.message,
         type: 'error',
       });
       return 'error';
     }
-  }, [markUserFeedback, requestApplyLoadedSnapshot, showOverlay]);
+  }, [requestApplyLoadedSnapshot, showOverlay]);
 
   const handleLoadDespiteIssues = React.useCallback(async () => {
     const pending = pendingLoadResult;
@@ -351,13 +340,12 @@ export const useFileSaveLoad = ({
       );
     } catch (error) {
       console.error('Hent (trods fejl) fejlede:', error);
-      markUserFeedback();
       showOverlay({
         message: asError(error).message || 'Kunne ikke hente fil',
         type: 'error',
       });
     }
-  }, [markUserFeedback, pendingLoadResult, requestApplyLoadedSnapshot, showOverlay]);
+  }, [pendingLoadResult, requestApplyLoadedSnapshot, showOverlay]);
 
   const handleConfirmOverwriteApply = React.useCallback(async () => {
     const pending = pendingOverwriteApply;
@@ -366,7 +354,6 @@ export const useFileSaveLoad = ({
 
     try {
       const applyResult = await applyLoadedSnapshot(pending.result);
-      markUserFeedback();
       showOverlay(applyResult.status === 'applied-with-metadata-error'
         ? { message: applyResult.message, type: 'warning' }
         : pending.overlay);
@@ -375,13 +362,12 @@ export const useFileSaveLoad = ({
       }
     } catch (error) {
       console.error('Overskriv og hent fejlede:', error);
-      markUserFeedback();
       showOverlay({
         message: asError(error).message || 'Kunne ikke hente fil',
         type: 'error',
       });
     }
-  }, [applyLoadedSnapshot, markUserFeedback, navigate, pendingOverwriteApply, showOverlay]);
+  }, [applyLoadedSnapshot, navigate, pendingOverwriteApply, showOverlay]);
 
   const handleSletAlt = React.useCallback(async () => {
     const focusTargetBeforeDeleteAll = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -402,20 +388,18 @@ export const useFileSaveLoad = ({
       writeOptionalSessionStorageValue(UI_STORAGE_KEYS.pendingOverlay, JSON.stringify({
         message: 'Alt data slettet',
         type: 'info',
-        isUserFeedback: true,
       }));
       allowExitWithoutWarning();
       window.location.href = '/stamdata';
     } catch (error) {
       restoreFocusIfPossible(focusTargetBeforeDeleteAll);
       console.error('Slet alt fejlede:', error);
-      markUserFeedback();
       showOverlay({
         message: 'Kunne ikke slette data',
         type: 'error',
       });
     }
-  }, [allowExitWithoutWarning, clearAllData, markUserFeedback, showOverlay]);
+  }, [allowExitWithoutWarning, clearAllData, showOverlay]);
 
   const pendingPreflight = pendingLoadResult?.result.preflightWarning;
   const pendingPreflightBugReportError = React.useMemo(() => {

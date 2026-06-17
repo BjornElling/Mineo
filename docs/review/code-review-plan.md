@@ -23,7 +23,7 @@
 
 ## Status og fremdrift
 
-Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **Næste ikke-startede punkt: 8.1.**
+Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **Næste ikke-startede punkt: 9.1.**
 
 **Færdige grupper** (fund rettet + tests grønne; detaljer i de enkelte `docs/review/[punkt]-*.md`):
 
@@ -34,8 +34,9 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 - ✅ **Gruppe 5 — Hjælpefunktioner** (2026-06-14). Én sand dato-parse-kilde; SH-helligdagssæt konsolideret; percent-parsing samlet til én dansk locale-politik (brugergodkendt); forklarende min>max-datofejlbesked.
 - ✅ **Gruppe 6 — Data** (2026-06-14). Fail-closed guards i year-bounds/§24-max/kapitalisering; `sygedagpengeRates.ts` konsolideret til én satstabel (sats+ATP+OP). **Åbent godkendelsespunkt lukket:** sygedagpenge tre-leds-model bekræftet.
 - ✅ **Gruppe 7 — UI-inputs & grid** (2026-06-16). Felt-identitets-hul i StyledCheckbox/EetDifferencekrav lukket; dobbelt-undo-frame rettet; grid-scroll-hop rettet; `gridUxSpec` Tab-kontrakt synket med ny navigation.
+- ✅ **Gruppe 8 — Pages** (8.1–8.6, 2026-06-16). LoginPage flyttet til `src/auth/`; Satser nedtoner satser ved ugyldigt år (brugergodkendt); to debug-indstillinger (test-fane + font-style-farvemarkering) DEV-gated UI+adfærd (brugergodkendt). Delt forligs-validering (`useForligAnsvarsgradValidation` + `forligAnsvarsgradRules`) håndhæves nu ens fra både Erstatningsopgørelse og Erhvervsevnetab→Differencekrav (brugergodkendt korrekthedsfix). Insert-today `fieldPath`-bug rettet; kanonisk `useShakeFlag` (to inline timer-leaks fjernet); kanonisk `formatKr`/`dateRanges_varigemen`; MenberegningTab flyttet til central fejl-model; `SKAERING_2015_03_01`/`SKAERING_2024_01_01` konsolideret; dødkode fjernet (`EODebugLoenSections`+`eoDebugLoenViewModel`, `ComputationErrorAlert`, dead `isUserFeedbackRef`); Overlay auto-close timer-fix. **De to største komponenter dekomponeret:** `LoenindkomstTab` 3079→2204 og `EOOplysningerTab` 2748→2017 linjer (ren strukturel, adfærdsbevarende; nye `loenindkomst/`+`eoOplysninger/`-mapper).
 
-**Test-baseline:** 5020 (2026-06-10) → 5172/429 (g.5) → 5185/430 (g.6) → **5310 tests / 445 filer grøn** (2026-06-16). Hvert punkt skal efterlade suiten mindst lige så grøn. Kendt (ikke fejl): `act(...)`-warning i `TableDropdown.gridCore.test.tsx`.
+**Test-baseline:** 5020 (2026-06-10) → 5172/429 (g.5) → 5185/430 (g.6) → 5310/445 (g.7) → **5318 tests / 446 filer grøn** (2026-06-16, g.8). Hvert punkt skal efterlade suiten mindst lige så grøn. Kendt (ikke fejl): `act(...)`-warning i `TableDropdown.gridCore.test.tsx`; pre-eksisterende flake `MainLayout.pwaConcurrency.test.tsx` (timeout under fuld-suite-load, består isoleret — se Gruppe 9-udskudt fund).
 
 ### Statustabel
 
@@ -55,13 +56,13 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 | 6.1–6.4 | Renter/rater, folkepension/sygedagpenge/overenskomst, offentlig løn, kapitalisering | ✅ (filer `6.1`–`6.4`) |
 | **7 — UI-inputs & grid** | | ✅ |
 | 7.1–7.4 | StyledField-familien, table-inputs+adaptere, grid-infrastruktur, tabel-komponenter | ✅ (filer `7.1`–`7.4`) |
-| **8 — Pages** | | |
-| 8.1 | Stamdata (+DebugTab), Årsløn, Satser, Mineo (forside), Indstillinger, LoginPage | ⬜ |
-| 8.2 | Erhvervsevnetab + tab-underkomponenter (Oplysninger, EfterEal, Kapitalisering, LoebendeYdelser, Differencekrav, IssuesBox) | ⬜ |
-| 8.3 | Erstatningsopgørelse-tabs (Loenindkomst, OffentligeYdelser, EOberegning, EOOplysninger) — de to største komponenter | ⬜ |
-| 8.4 | EO-debug-komponenter (EODebug, Tabel, EmploymentSections, LoenSections, RegulationSections, GroupedRows, Rows) | ⬜ |
-| 8.5 | Forsørgertab, Varige Mén, Renteberegning, MinProcesrente-calculator | ⬜ |
-| 8.6 | Layout & UI-skal: MainLayout, StandaloneCalculatorLayout, SideMenu, Container, ContentBox(Frame), ui/, errors/, system/, reports/, common/, shared/ | ⬜ |
+| **8 — Pages** | | ✅ |
+| 8.1 | Stamdata (+DebugTab), Årsløn, Satser, Mineo (forside), Indstillinger, LoginPage | ✅ (fil `8.1-pages-stamdata-aarsloen-satser-mineo-indstillinger-loginpage`) |
+| 8.2 | Erhvervsevnetab + tab-underkomponenter (Oplysninger, EfterEal, Kapitalisering, LoebendeYdelser, Differencekrav, IssuesBox) | ✅ (fil `8.2-erhvervsevnetab`) |
+| 8.3 | Erstatningsopgørelse-tabs (Loenindkomst, OffentligeYdelser, EOberegning, EOOplysninger) — de to største komponenter | ✅ (fil `8.3-erstatningsopgoerelse-tabs`) |
+| 8.4 | EO-debug-komponenter (EODebug, Tabel, EmploymentSections, LoenSections, RegulationSections, GroupedRows, Rows) | ✅ (fil `8.4-eo-debug-komponenter`) |
+| 8.5 | Forsørgertab, Varige Mén, Renteberegning, MinProcesrente-calculator | ✅ (fil `8.5-forsoergertab-varigemen-renteberegning-minprocesrente`) |
+| 8.6 | Layout & UI-skal: MainLayout, StandaloneCalculatorLayout, SideMenu, Container, ContentBox(Frame), ui/, errors/, system/, reports/, common/, shared/ | ✅ (fil `8.6-layout-ui-skal`) |
 | **9 — Hooks** | | |
 | 9.1 | Form-/draft-hooks: usePersistedForm, useDraftField, useFormFieldErrors, useTwoStageInputActivation, selectors, rowDrafts | ⬜ |
 | 9.2 | Undo/redo- og persisterings-hooks: useUndoRedo, usePersistedActiveTab, useUnsavedChangesGuard, useScrollToSectionWithRetry, useShakeFlag | ⬜ |
@@ -107,16 +108,10 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 
 Fund fra færdige grupper 1–7 som bevidst er parkeret til et senere punkt. **Læs den relevante blok ved start af hvert punkt nedenfor**, så de ikke glemmes. Kilde = review-doc fundet stammer fra.
 
-### Gruppe 8 (pages)
-- **8.1** — LoginPage-klassifikation: tag stilling til `page-component-contract.md` §2.4 (dokumenteret undtagelse eller filplaceringsrettelse for `LoginPage.tsx`). *(Kilde 1.6/1.7)*
-- **8.2** — `EetOplysningerTab.tsx`: 3 inline `'2015-03-01'`-literaler → konvergér mod central `SKAERING_2015_03_01`/delt skæringsdato-kilde. UI-arbejde. *(Kilde 4.3; se også 14.2)*
-- **8.3** — `forligAnsvarsgradProcent`: overvej `allowDecimals={false}` på StyledPercentField (decimal-procent-formatering). *(Kilde 4.9)*
-- **8.3** — `insert-today`-`fieldPath`: følg op på felt-identitet for insert-today-knappen. *(Kilde 7)*
-- **Gruppe 8 (tabel-pages)** — inline dato-bounds (§5.1) gentaget i 5 tabeller — konsolidér ved relevante pages. *(Kilde 7)*
-
 ### Gruppe 9 (hooks)
 - **9.3** — PWA-handle permission-tjek i `loadFromFileHandle` (H2): bedre fejl-UX ved revoked PWA-handle. *(Kilde 2.6)*
-- **9.3 / 12** — Pre-eksisterende fejlende test `MainLayout.pwaConcurrency.test.tsx` ("keeps the same pending PWA request available for retry…") fejler på ren `main`: `loadFromFileHandleMock` kaldes 2× i stedet for 1×. Undersøg. *(Kilde 2.6)*
+- **9.3 / 12** — Pre-eksisterende fejlende test `MainLayout.pwaConcurrency.test.tsx` ("keeps the same pending PWA request available for retry…") fejler på ren `main`: `loadFromFileHandleMock` kaldes 2× i stedet for 1×. Bekræftet i 8.6: består isoleret (3/3), fejler kun under fuld-suite-load (timeout) — ikke en regression. Undersøg. *(Kilde 2.6/8.6)*
+- **9.3 / 14.2** — Navigations-commit-flush i `MainLayout.handlePageChange` er lavere end save/load-commit-flush (ingen blur + ingen `waitForCommitFlush()`-await). Aktuelt sikkert for Mineos 2-trins-inputs (lukkede editorer har ingen pending draft; åbne editorer blokeres), men afviger fra den kanoniske critical-action-guard. Overvej fælles guard + regressionstest for et blur-deferred commit-felt ved navigation. *(Kilde 8.6)*
 - **9.4** — Manglende unit-tests for `historyTargetRestore.ts` (`isRestoreTargetVisible`, rAF-retry-løkke, `isSameFocusScope`-afbrydelse). *(Kilde 2.3)*
 
 ### Gruppe 10 (dokument-output)
@@ -124,18 +119,30 @@ Fund fra færdige grupper 1–7 som bevidst er parkeret til et senere punkt. **L
 - **10.1** — Verificér `pdfService.ts` `downloadVarigeMenDokument` som datadækning. *(Kilde 4.6)*
 - **10.6** — Verificér `src/pdf/domains/varigemen/varigeMenPdf.ts` (+`index.ts`) som datadækning. *(Kilde 4.6)*
 
+### Gruppe 12 (app-shell & multi-app)
+- **12.2** — Verificér at standalone MinProcesrente og Mineos hovedside ikke deler `sessionStorage`/persistence-namespace: begge bruger `pageKey: 'renteberegning'` + samme schema/hook. Bekræft app-scoped storage-isolation (ellers indfør namespace). *(Kilde 8.5)*
+- **12.2** — `MinProcesrenteCalculatorPage` har omfattende lokal `@media`-styling. Standalone-appen er bevidst mobil-tilladt (egen entry), modsat Mineos desktop-only-gate. Bekræft undtagelsen eksplicit (kommentar/kontrakt-note), så desktop-only-reglen ikke fremstår brudt. *(Kilde 8.5)*
+
 ### Gruppe 13 (testkvalitet)
 - **13.1** — Genbesøg equivalens-/delegations-tests for opreguleringsmotorerne (4.0) — de afhængige motorer (4.2/4.3/4.4/4.5/4.9/4.10) hviler på det lås-testede fundament. *(Kilde 4.0)*
 - **13.x** — Import-script `scripts/import-offentlig-loen.mjs` uden unit-tests (accepteret gap). *(Kilde 6.3)*
 
 ### Gruppe 14 (tværgående helhed)
 - **14.1** — Mulig kontrakt-konsolidering: `mineo-field-pattern.md` vs. `form-contract.md` (absorbér som sektion eller skærp snittet); `schema-evolution.md` generel skabelon vs. EO-specifik tjekliste (evt. split). *(Kilde 1.2)*
+- **14.1** — `page-component-contract.md` §6.5 (hold-mounted for draft-capable tabs) håndhæves ikke konsistent: flere fagsider (Erhvervsevnetab, Varige Mén, Renteberegning) mounter draft-capable tabs betinget. Beslut: håndhæv §6.5 ensartet ELLER opdatér kontrakten til at afspejle den faktiske commit-flush-baserede arkitektur. *(Kilde 8.5)*
+- **14.2** — Løntrin-finder-overlay findes som to side-lokale kopier (`erstatningsopgoerelse/loenindkomst/` + `eoOplysninger/`) efter 8.3-dekompositionen; kandidat til delt komponent+hook. *(Kilde 8.3)*
+- **14.2** — Skipede kort-/sektion-ekstraktioner i de to dekomponerede EO-tabs (`AnsaettelsesforholdCard`, EO-sektionskomponenter) — mulige hvis prop-/handler-kobling først reduceres via en samlet per-ansættelsesforhold view-model. *(Kilde 8.3)*
+- **14.2** — `EODebugTabel.resolveEmploymentHeaderTitle`: debug-tabellens fallback-label "Ansættelsessted N" vs. den kanoniske `resolveArbejdsstedDisplayName` ("Arbejdssted N"). Synlig (DEV) tekst-uoverensstemmelse mellem to debug-visninger — afventer godkendelse af label-tekst. *(Kilde 8.4)*
+- **14.2** — `EODebugEmploymentSections`: regulerings-rækkers dedup/ordering/suppression + "(først fra …)"-strip er label-matchet i render-laget; flyt til viewmodel keyed på stabile row-id'er (risiko for utilsigtet visuel reordering → planlagt, ikke ad hoc). *(Kilde 8.4)*
+- **14.2** — `EetDifferencekravTab` `koen`-feltfejl rapporteres ikke til central fejl-model (kun visuel); afviger fra øvrige felters mønster. UI/UX-beslutning (afventer godkendelse). *(Kilde 8.2)*
+- **14.2** — `EetLoebendeYdelserTab`: flyt show-rest-flag-afledningen (2024-niveauskift) fra UI til en præsentations-helper i domænet (konstanten `SKAERING_2024_01_01` er allerede konsolideret). *(Kilde 8.2)*
+- **14.2** — `RenteberegningTab` download-gate (`pdfContexts`/`anyRowHasError`) afledes via en child→parent-callback-bro fra `BeregnetRenteTable` snarere end direkte fra committed input på parent-niveau; verificér mod renteberegning-contract §2.4 i en samlet rente-tabel-gennemgang. *(Kilde 8.5)*
 - **14.2** — Dødkode `periodiserBeloebForMaaneder` + `periodiserBeloebForArbejdsdage` (`periodiseringsMotor.ts`): bekræftet ubrugt i produktion. Slet begge + test-dækning OG fjern fra `periodisering-contract.md` §1A. *(Kilde 4.8/4.10)*
 - **14.2** — Dødkode `computeTafEngine` (`tafBeregningsEngine.ts`): ingen produktions-callsites (kun test + arkitektur-doc). Afvikl + opdatér doc. *(Kilde 4.9)*
 - **14.2** — `findSfggSixMonthWarningEmploymentIds` (`sygeferiegodtgoerelse.ts`): eksporteret, kun tests. Verificér om advarslen mangler konsument før fjernelse. *(Kilde 4.9)*
 - **14.2** — Celle-fejl-sporing-konvergens i 3 grid-tabeller (committed-gate-filter for periodeskift-datatab, M3/H2) → dedikeret, test-bevogtet ekstraktion. *(Kilde 7.4)*
 - **14.2** — Konkurrerende percent-parsere: `parsePercentToDecimal` vs. `parseDanishNumberString`/`parsePercentPointString` (uensartet locale-håndtering). *(Kilde 5.4/4.10)*
-- **14.2** — Inline `'2015-03-01'` i `forsoergertabConstants.ts` (`PRE_2015_CUTOFF`) + `EetOplysningerTab.tsx` → central `SKAERING_2015_03_01`. *(Kilde 4.3)*
+- **14.2** — Inline `'2015-03-01'` i `forsoergertabConstants.ts` (`PRE_2015_CUTOFF`) → central `SKAERING_2015_03_01`. (`EetOplysningerTab.tsx`-delen blev løst i 8.2.) *(Kilde 4.3)*
 - **14.2** — Inline års-udtræk `eetEalCalculation.ts:278–279` (`Number.parseInt(x.slice(0,4),10)`) → `isoYear`. *(Kilde 4.3)*
 - **14.2** — Flyt `aarsloenRowInterval.ts` fra `erstatningsopgoerelse/helpers/` → `aarsloen/` (koordinér pga. parallelt EO-arbejde). *(Kilde 4.2)*
 - **14.2** — Pass-through re-eksporter: `formatOverenskomstAmount`/`formatOverenskomstPercent` i `reguleringFormulaUtils.ts` (fra `eoSharedUtils.ts`); `formatPercentTrimmedFromRounded4` cross-modul re-export. *(Kilde 4.10/4.4)*

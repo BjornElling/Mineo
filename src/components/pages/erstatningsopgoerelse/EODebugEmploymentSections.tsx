@@ -1,15 +1,14 @@
 import * as React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import type { DebugRowModel, DebugStatus } from '../../../domain/debug/eoDebugTypes';
+import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegulationViewModel';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
-import { Check, ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
+import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 import { getRegulationTableColumns } from './regulationTableColumns';
 import { renderRegulationTableCellContent } from './regulationTableCellContent';
-
-const LABEL_WIDTH = '320px';
+import { DEBUG_ROW_LABEL_WIDTH as LABEL_WIDTH, getDisplayValueSx, getStatusIcon } from './eoDebugRowRendering';
 
 type EmploymentDebugSection = Readonly<{
   id: string;
@@ -39,22 +38,6 @@ type EmploymentRegulationDisplayRow =
       label: string;
       parts: readonly DebugRowModel[];
     }>;
-
-const getStatusIcon = (status: DebugStatus): React.ReactElement => {
-  switch (status) {
-    case 'error':
-      return <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />;
-    case 'warning':
-      return <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />;
-    case 'ok':
-      return <Check sx={{ color: 'var(--color-status-success)', fontSize: 20 }} />;
-  }
-};
-
-const getDisplayValueSx = (displayValue: string) => ({
-  whiteSpace: 'pre-line' as const,
-  textAlign: displayValue.includes('\n') ? 'right' as const : 'inherit',
-});
 
 const renderRows = (rows: readonly DebugRowModel[]) => rows.map((row) => (
   <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
@@ -199,15 +182,12 @@ const UnderlinedHoverRow = ({ text }: Readonly<{ text: string }>) => (
   </Box>
 );
 
-const isSfggPostTableRow = (row: DebugRowModel): boolean => row.id.startsWith('sfgg.eftertabel.');
-const isSfggComputedTotalRow = (row: DebugRowModel): boolean => row.id.startsWith('sfgg.eftertabel.beregnet.');
-
 const renderSfggRow = (row: DebugRowModel) => (
   <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
     <Typography className="row--text">{row.label}</Typography>
     <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
       <Typography
-        className={`row--text${isSfggComputedTotalRow(row) ? ' text-bold' : ''}`}
+        className={`row--text${isSfggComputedTotalRowId(row.id) ? ' text-bold' : ''}`}
         sx={getDisplayValueSx(row.displayValue)}
       >
         {row.displayValue}
@@ -240,8 +220,8 @@ const EODebugEmploymentSections = React.memo<{
             const sfggTables = section.sfggTables ?? [];
             const sfggFooterTables = sfggTables.filter((table) => table.id.startsWith('sfgg.aarsfordeling.'));
             const sfggPrimaryTables = sfggTables.filter((table) => !table.id.startsWith('sfgg.aarsfordeling.'));
-            const sfggPostTableRows = sfggRows.filter(isSfggPostTableRow);
-            const sfggPrimaryRows = sfggRows.filter((row) => !isSfggPostTableRow(row));
+            const sfggPostTableRows = sfggRows.filter((row) => isSfggPostTableRowId(row.id));
+            const sfggPrimaryRows = sfggRows.filter((row) => !isSfggPostTableRowId(row.id));
 
             return (
               <>

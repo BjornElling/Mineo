@@ -2,7 +2,7 @@ import React from 'react';
 
 const SHAKE_DURATION_MS = 500;
 
-export const useEetShakeFlag = (): Readonly<{
+export const useShakeFlag = (): Readonly<{
   shake: boolean;
   triggerShake: () => void;
 }> => {

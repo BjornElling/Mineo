@@ -6,9 +6,11 @@ import {
   dateRanges_stamdata,
   dateRanges_erstatningsopgoerelse,
   dateRanges_offentligeYdelser,
+  dateRanges_varigemen,
   computeSkadedatoMinRule,
 } from '../../config/dateRanges';
 import { toISODateString } from '../../types/branded';
+import { varigeMenPrGradYearBounds } from '../../data/lovbestemteRates';
 
 const iso = (s: string) => toISODateString(s);
 
@@ -135,6 +137,29 @@ describe('dateRanges_offentligeYdelser', () => {
   it('afgrænser til-dato til tidligste fælles slutdato for sygedagpenge og ATP', () => {
     expect(dateRanges_offentligeYdelser.tilDato.fallbackMin).toBe(toISODateString('2005-01-03'));
     expect(dateRanges_offentligeYdelser.tilDato.max).toBe(toISODateString('2027-01-03'));
+  });
+});
+
+// ─── dateRanges_varigemen ────────────────────────────────────────────────────
+
+describe('dateRanges_varigemen', () => {
+  it('beregningsdato er static type', () => {
+    expect(dateRanges_varigemen.beregningsdato.type).toBe('static');
+  });
+
+  it('beregningsdato min/max er byte-identiske med den tidligere inline-afledning fra varigeMenPrGradYearBounds', () => {
+    // Den oprindelige inline-form i MenberegningTab byggede grænserne direkte fra
+    // year-bounds. Den centrale dateRanges-entry skal producere præcis samme strenge.
+    expect(dateRanges_varigemen.beregningsdato.min).toBe(
+      toISODateString(`${varigeMenPrGradYearBounds.minYear}-01-01`)
+    );
+    expect(dateRanges_varigemen.beregningsdato.max).toBe(
+      toISODateString(`${varigeMenPrGradYearBounds.maxYear}-12-31`)
+    );
+  });
+
+  it('beregningsdato har placeholder', () => {
+    expect(dateRanges_varigemen.beregningsdato.placeholder).toBeTruthy();
   });
 });
 

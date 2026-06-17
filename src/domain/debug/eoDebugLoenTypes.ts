@@ -104,3 +104,20 @@ export const WAGE_COLUMNS: ReadonlyArray<Readonly<{ key: DebugTabelWageColumnKey
   { key: 'pension', header: 'Pension' },
   { key: 'samlet', header: 'Samlet løn' },
 ];
+
+// Kanoniske predikater/parsere for kolonne-id-grammatikken produceret af `debugTabelColumnId`.
+// Ligger her, så ingen callsite hand-roller `offentlig:`/`:wage:`/`loen:<index>:`-mønstrene parallelt.
+
+/** Sand for beløbskolonner: offentlige ydelser (`offentlig:…`) og løn-wage-kolonner (`…:wage:…`). */
+export const isAmountColumnId = (id: string): boolean => id.startsWith('offentlig:') || id.includes(':wage:');
+
+/**
+ * Udleder ansættelsesforhold-indekset fra en `loen:<index>:…`-kolonne-id
+ * (`taf_regulering` eller `wage:<key>`). Returnerer null for andre kolonne-id'er.
+ */
+export const parseEmploymentIndexFromColumnId = (columnId: string): number | null => {
+  const match = columnId.match(/^loen:(\d+):(taf_regulering|wage:[^:]+)$/);
+  if (!match) return null;
+  const parsed = Number.parseInt(match[1] ?? '', 10);
+  return Number.isFinite(parsed) ? parsed : null;
+};

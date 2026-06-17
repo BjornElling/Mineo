@@ -19,7 +19,7 @@ import { downloadKapitaliseringDokument } from '../../../pdf/infrastructure/pdfS
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
-import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
+import { useShakeFlag } from '../../../hooks/useShakeFlag';
 import { formatFaktor, formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
@@ -34,7 +34,7 @@ type Props = Readonly<{
 
 const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot }: Props) => {
   const { settings } = useAppSettings();
-  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
+  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useShakeFlag();
   const issues = snapshot.issues;
   const hasBlockingErrors = snapshot.hasBlockingErrors;
   const computation = snapshot.computation;
@@ -222,7 +222,8 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot
                   <Box className="row--label-right-hover">
                     <Typography className="row--text">Køn</Typography>
                     <Box className="row--label-right-hover__content">
-                      <Typography className="row--text">{values.koen}</Typography>
+                      {/* koenOpdelt forudsætter at køn er sat; ?? '' undgår at vise teksten "undefined" hvis typen er løs. */}
+                      <Typography className="row--text">{values.koen ?? ''}</Typography>
                     </Box>
                   </Box>
                 )}
@@ -249,5 +250,7 @@ const EetKapitaliseringTab = ({ values, onGoToEetOplysninger, stamdata, snapshot
     </Box>
   );
 };
+
+EetKapitaliseringTab.displayName = 'EetKapitaliseringTab';
 
 export default EetKapitaliseringTab;

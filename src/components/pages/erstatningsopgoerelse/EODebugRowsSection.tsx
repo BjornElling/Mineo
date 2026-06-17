@@ -1,29 +1,11 @@
 import * as React from 'react';
 import { Box, Typography } from '@mui/material';
-import { Check, ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
-import type { DebugRowModel, DebugStatus } from '../../../domain/debug/eoDebugTypes';
+import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import type { EODebugDisplayTable } from '../../../domain/debug/eoDebugPageViewModel';
-
-const LABEL_WIDTH = '320px';
-
-const getStatusIcon = (status: DebugStatus): React.ReactElement => {
-  switch (status) {
-    case 'error':
-      return <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />;
-    case 'warning':
-      return <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />;
-    case 'ok':
-      return <Check sx={{ color: 'var(--color-status-success)', fontSize: 20 }} />;
-  }
-};
-
-const getDisplayValueSx = (displayValue: string) => ({
-  whiteSpace: 'pre-line' as const,
-  textAlign: displayValue.includes('\n') ? 'right' as const : 'inherit',
-});
+import { DEBUG_ROW_LABEL_WIDTH, getDisplayValueSx, getStatusIcon } from './eoDebugRowRendering';
 
 const EODebugRowsSection = React.memo<{
   title: string;
@@ -42,7 +24,7 @@ const EODebugRowsSection = React.memo<{
       <Typography className="section-header">{title}</Typography>
 
       {rows.map((row) => (
-        <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+        <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': DEBUG_ROW_LABEL_WIDTH }}>
           <Typography className="row--text">{row.label}</Typography>
           <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
             <Typography className="row--text" sx={getDisplayValueSx(row.displayValue)}>{row.displayValue}</Typography>

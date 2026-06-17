@@ -16,17 +16,20 @@ import {
 import { SATSER_INITIAL_VALUES } from '../../domain/satser/satserInitialValues';
 import ContentBox from '../layout/ContentBox';
 import InfoTooltipIcon from '../common/InfoTooltipIcon';
-import { formatAsAmount, formatPercent } from '../../utils/formatUtils';
+import { formatAsAmount, formatKr, formatPercent } from '../../utils/formatUtils';
 import type { RetsinfoLink } from '../../data/retsinfoLinks';
 
 /**
- * Formaterer beløb til dansk format
+ * Formaterer et enkelt kronebeløb til dansk format via den kanoniske `formatKr`.
+ * Null/undefined giver tom streng, så `DataRow` skjuler rækken.
  */
-const formatKroner = (value: number | null | undefined): string => {
-  if (value === null || value === undefined) return '';
-  return `${formatAsAmount(value, 0)} kr.`;
-};
+const formatKroner = (value: number | null | undefined): string =>
+  value === null || value === undefined ? '' : formatKr(value, 0);
 
+/**
+ * Side-lokal komposition: to kronebeløb adskilt af "/". Bruger den kanoniske
+ * `formatAsAmount` til talformatet og sætter selv den fælles "kr."-enhed til sidst.
+ */
 const formatKronerPair = (
   first: number | null | undefined,
   second: number | null | undefined
@@ -36,11 +39,12 @@ const formatKronerPair = (
 };
 
 /**
- * Formaterer beløb per enhed til dansk format
+ * Side-lokal komposition: kronebeløb pr. enhed (fx "kr./sygedag"). Bygger på den
+ * kanoniske `formatKr` og tilføjer enhedssuffikset.
  */
 const formatKronerPerEnhed = (value: number | null | undefined, enhed: string): string => {
   if (value === null || value === undefined) return '';
-  return `${formatAsAmount(value, 0)} kr./${enhed}`;
+  return `${formatKr(value, 0)}/${enhed}`;
 };
 
 const formatOptionalPercent = (value: number | null | undefined): string => {
@@ -149,20 +153,26 @@ const Satser = React.memo(() => {
   );
   const canDownload = pdfGate.canDownload;
 
-  const gyldigtAar = effectiveYear ?? MAX_SATSER_YEAR;
-  const satser = React.useMemo(() => getSatserForYear(gyldigtAar), [gyldigtAar]);
+  // Vis kun satser for et gyldigt, valgt år. Er året ugyldigt/uden for interval
+  // (feltet viser rød fejl), nedtones rate-sektionerne i stedet for at vise
+  // satser for et tilfældigt fallback-år (tidligere MAX_SATSER_YEAR), som ville
+  // være vildledende for brugeren.
+  const satser = React.useMemo(
+    () => (effectiveYear !== undefined ? getSatserForYear(effectiveYear) : null),
+    [effectiveYear]
+  );
 
   // Håndter download af PDF
   const handleDownloadPdf = React.useCallback(async () => {
-    if (satser && gyldigtAar) {
+    if (satser && effectiveYear !== undefined) {
       await downloadSatserDokument({
-        year: gyldigtAar,
+        year: effectiveYear,
         satser,
         settings,
         persistedStamdata,
       });
     }
-  }, [satser, gyldigtAar, persistedStamdata, settings]);
+  }, [satser, effectiveYear, persistedStamdata, settings]);
 
   const renderReferenceValue = React.useCallback((links: readonly RetsinfoLink[]) => {
     if (links.length === 0) return '';
@@ -193,8 +203,10 @@ const Satser = React.memo(() => {
 
   return (
     <Box>
-      {/* Side-header */}
-      <Typography className="page-title">Arbejdsskadesatser {gyldigtAar}</Typography>
+      {/* Side-header — årstal vises kun for et gyldigt valgt år */}
+      <Typography className="page-title">
+        {effectiveYear !== undefined ? `Arbejdsskadesatser ${effectiveYear}` : 'Arbejdsskadesatser'}
+      </Typography>
 
       {/* Årstal sektion */}
       <ContentBox className="content-box">
@@ -251,6 +263,19 @@ const Satser = React.memo(() => {
         </Box>
       </ContentBox>
 
+      {/* Rate-sektioner vises kun for et gyldigt valgt år. Ellers nedtones området
+          med en kort vejledning, så der ikke vises satser for et tilfældigt fallback-år. */}
+      {satser === null ? (
+        <ContentBox className="content-box">
+          <Typography
+            className="row--text"
+            sx={{ fontStyle: 'italic', color: 'text.secondary' }}
+          >
+            Vælg et gyldigt år for at se satserne.
+          </Typography>
+        </ContentBox>
+      ) : (
+        <>
       {/* Erstatningsansvarsloven sektion */}
       <ContentBox className="content-box">
         <Typography className="section-header">Erstatningsansvarsloven</Typography>
@@ -394,6 +419,8 @@ const Satser = React.memo(() => {
           value={satser ? renderReferenceValue(satser.referencer.reguleringssatsReferenceLinks) : ''}
         />
       </ContentBox>
+        </>
+      )}
     </Box>
   );
 });

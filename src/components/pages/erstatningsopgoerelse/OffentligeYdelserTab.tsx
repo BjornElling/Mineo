@@ -60,6 +60,9 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
   const sygedagpengeFraInputRef = React.useRef<HTMLInputElement | null>(null);
   const shouldFocusSygedagpengeFraRef = React.useRef(false);
   const suppressSygedagpengeFieldCommitRef = React.useRef(false);
+  // Sættes når mount-effekten har læst sessionStorage ind i de to hjælpe-datoer. Spærrer write-effekten
+  // mod at skrive den netop indlæste værdi tilbage i samme runde (undgår hydration round-trip-skrivning).
+  const helpersHydratedRef = React.useRef(false);
   const [sygedagpengeFraDato, setSygedagpengeFraDato] = React.useState<ISODateString | undefined>(undefined);
   const [sygedagpengeTilDato, setSygedagpengeTilDato] = React.useState<ISODateString | undefined>(undefined);
   const [sygedagpengeFraError, setSygedagpengeFraError] = React.useState<string | undefined>(undefined);
@@ -92,9 +95,13 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
     const persistedState = readHelpersSessionState();
     setSygedagpengeFraDato((persistedState.sygedagpengeFraDato as ISODateString | undefined) ?? undefined);
     setSygedagpengeTilDato((persistedState.sygedagpengeTilDato as ISODateString | undefined) ?? undefined);
+    helpersHydratedRef.current = true;
   }, [readHelpersSessionState]);
 
   React.useEffect(() => {
+    // Spring den initiale hydration round-trip over: skriv først tilbage efter mount-effekten har læst
+    // den persisterede værdi ind, så vi ikke skriver den netop indlæste værdi tilbage uændret.
+    if (!helpersHydratedRef.current) return;
     writeHelpersSessionState({
       sygedagpengeFraDato,
       sygedagpengeTilDato,

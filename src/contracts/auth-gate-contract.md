@@ -11,7 +11,7 @@ Login-gaten i klienten:
 - `src/auth/auth.ts` (hash, verifikation, localStorage-flag)
 - `src/auth/authConfig.ts` (storage-nøgle/-værdi, delte adgangskode-hashes, beslutningsnote)
 - `src/auth/AuthGate.tsx` (gate-komponent der vælger `App` eller `LoginPage`)
-- `src/components/pages/LoginPage.tsx` (adgangskode-formular)
+- `src/auth/LoginPage.tsx` (adgangskode-formular)
 
 Den informative uddybning (trusselsmodel, migrations-triggere) ligger i `docs/architecture/auth-gate-architecture.md`. Dette dokument ejer de bindende regler; arkitektur-doc'en er forklarende og må ikke modsige dem.
 

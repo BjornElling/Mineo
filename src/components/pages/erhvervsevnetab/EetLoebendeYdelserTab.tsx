@@ -24,8 +24,9 @@ import { roundByMethod } from '../../../utils/rounding';
 import EetIssuesBox from './EetIssuesBox';
 import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
-import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
+import { useShakeFlag } from '../../../hooks/useShakeFlag';
 import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
+import { SKAERING_2024_01_01 } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoer';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
@@ -66,7 +67,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
   const { settings } = useAppSettings();
   const documentFormatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
   const showExtendedSpecification = values.eetDifferencekravBilagSelection.visUdvidetSpecifikation;
-  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
+  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useShakeFlag();
   const issues = snapshot.issues;
   const hasBlockingErrors = snapshot.hasBlockingErrors;
   const computation = snapshot.computation;
@@ -345,11 +346,11 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
               const hasRestSection = afgoerelse.harRestSektion && hasKapitaliseringsdato;
               const kapitaliseringFra2024 =
                 afgoerelse.kapitaliseringsdato !== null &&
-                afgoerelse.kapitaliseringsdato >= '2024-01-01';
+                afgoerelse.kapitaliseringsdato >= SKAERING_2024_01_01;
               const hasRestAfterKapBefore2024 = Boolean(
                 hasRestSection &&
                 afgoerelse.kapitaliseringsdato &&
-                afgoerelse.kapitaliseringsdato < '2024-01-01'
+                afgoerelse.kapitaliseringsdato < SKAERING_2024_01_01
               );
               const showRest2003 = hasRestSection && (!show2024ConversionBlock || !kapitaliseringFra2024);
               const showRest2024 = show2024ConversionBlock && hasRestSection && kapitaliseringFra2024;

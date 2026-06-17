@@ -126,7 +126,7 @@ const Aarsloen = React.memo(() => {
   // PDF gates og download handlers
   const {
     canDownloadPdf,
-    canDownloadSHDagePdf: _canDownloadSHDagePdf,
+    canDownloadSHDagePdf,
     handleAarsloenPdfDownload,
     handleSHDagePdfDownload,
     downloadShake,
@@ -549,7 +549,7 @@ const Aarsloen = React.memo(() => {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">{shDageAntal ?? 0}</Typography>
-                  {(shDageAntal ?? 0) > 0 && (
+                  {canDownloadSHDagePdf && (
                     renderPdfDownloadIcon({
                       onClick: handleSHDagePdfDownload,
                     })

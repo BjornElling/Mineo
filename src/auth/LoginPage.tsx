@@ -1,5 +1,5 @@
 import React from 'react';
-import { setAuthenticated, verifySharedPassword } from '../../auth/auth';
+import { setAuthenticated, verifySharedPassword } from './auth';
 
 const LOGIN_ERROR_ID = 'login-error';
 

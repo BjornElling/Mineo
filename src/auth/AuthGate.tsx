@@ -1,6 +1,6 @@
 import React from 'react';
 import App from '../App';
-import LoginPage from '../components/pages/LoginPage';
+import LoginPage from './LoginPage';
 import { isAuthenticated } from './auth';
 
 /**

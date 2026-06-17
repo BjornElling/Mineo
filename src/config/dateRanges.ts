@@ -1,4 +1,4 @@
-import { endOfYearIso, isoYear, maxISO } from '../utils/isoDateHelpers';
+import { endOfYearIso, isoYear, maxISO, startOfYearIso } from '../utils/isoDateHelpers';
 /**
  * Central konfiguration af dato-afgrænsninger for Mineo
  *
@@ -9,7 +9,7 @@ import { endOfYearIso, isoYear, maxISO } from '../utils/isoDateHelpers';
 import type { ISODateString } from '../types/branded';
 import { toISODateString } from '../types/branded';
 import { getTodayLocalISO } from '../utils/dateUtils';
-import { svieSmerteMaxYearBounds, eetYearBounds, foersoergertabYearBounds } from '../data/lovbestemteRates';
+import { svieSmerteMaxYearBounds, eetYearBounds, foersoergertabYearBounds, varigeMenPrGradYearBounds } from '../data/lovbestemteRates';
 import { MIN_INTEREST_DATE } from '../data/interestRates';
 import { SYGEDAGPENGE_INSERT_MAX_DATE, SYGEDAGPENGE_INSERT_MIN_DATE } from '../data/sygedagpengeRates';
 
@@ -518,6 +518,30 @@ export const dateRanges_renteberegning: DateRanges_Renteberegning = {
     max: DATE_PLUS_5_YEARS_END,
     placeholder: 'dd-mm-åååå',
     notes: 'Fra tidligste referencesats-dato til 31. december 5 år frem fra aktuelt år'
+  },
+};
+
+// ============================================================================
+// VARIGE MÉN-SIDEN
+// ============================================================================
+
+/**
+ * Dato-intervaller for Varige mén-siden
+ */
+export interface DateRanges_VarigeMen {
+  readonly beregningsdato: StaticDateRange;
+}
+
+export const dateRanges_varigemen: DateRanges_VarigeMen = {
+  // Beregningsdato for méngodtgørelse — afgrænset af det år-interval, der har
+  // varige-mén-sats-dækning (varigeMenPrGradYearBounds). Statisk, fordi grænserne
+  // kun afhænger af satsdatasættet og ikke af andet brugerinput.
+  beregningsdato: {
+    type: 'static',
+    min: startOfYearIso(varigeMenPrGradYearBounds.minYear),
+    max: endOfYearIso(varigeMenPrGradYearBounds.maxYear),
+    placeholder: 'dd-mm-åååå',
+    notes: 'Fra 1. januar i tidligste år med méngrad-sats til 31. december i seneste år med méngrad-sats.',
   },
 };
 

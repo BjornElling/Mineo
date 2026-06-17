@@ -11,7 +11,7 @@ import {
 import { downloadEfterEalDokument } from '../../../pdf/infrastructure/pdfService';
 import EetIssuesBox from './EetIssuesBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
-import { useEetShakeFlag } from '../../../hooks/useShakeFlag';
+import { useShakeFlag } from '../../../hooks/useShakeFlag';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
 
@@ -26,7 +26,7 @@ const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4
 
 const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => {
   const { settings } = useAppSettings();
-  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useEetShakeFlag();
+  const { shake: downloadShake, triggerShake: triggerDownloadShake } = useShakeFlag();
   const issues = snapshot.issues;
   const hasBlockingErrors = snapshot.hasBlockingErrors;
   const computation = snapshot.computation;

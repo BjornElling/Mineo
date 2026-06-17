@@ -13,28 +13,20 @@ import {
   type VarigeMenValues,
   type StamdataValues,
 } from '../../../schemas/formSchemas';
-import { coerceToISODateString, parseISODate, toISODateString } from '../../../types/branded';
+import { coerceToISODateString, parseISODate } from '../../../types/branded';
 import { resolveMenSatsForBeregningsdato } from '../../../domain/varigemen/varigeMenCalculations';
 import { computeVarigeMenEngine } from '../../../domain/varigemen/varigeMenEngine';
 import type { SetFieldValue, SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import { useNavigate } from 'react-router-dom';
-import { varigeMenPrGrad, varigeMenPrGradYearBounds } from '../../../data/lovbestemteRates';
+import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
+import { dateRanges_varigemen } from '../../../config/dateRanges';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
-import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../types/fieldErrors';
 import { downloadVarigeMenDokument } from '../../../pdf/infrastructure/pdfService';
-import { useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
+import { useFormFieldErrorReporter, useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { resolveStamdataDatoLabel } from '../../../domain/policies/stamdataCalculations';
-
-const VARIGE_MEN_BEREGNINGSDATO_MIN = toISODateString(
-  `${varigeMenPrGradYearBounds.minYear}-01-01`
-);
-
-const VARIGE_MEN_BEREGNINGSDATO_MAX = toISODateString(
-  `${varigeMenPrGradYearBounds.maxYear}-12-31`
-);
 
 type MenberegningStamdataView = Pick<
   StamdataValues,
@@ -57,20 +49,24 @@ const MenberegningTab = ({ values, setValues, setFieldValue, stamdata }: {
   const [downloadShake, setDownloadShake] = React.useState(false);
   const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
 
-
-
 // --- Feltvalidering ---
-const [mengradError, setMengradError] = React.useState<string | undefined>(undefined);
-const [beregningsdatoError, setBeregningsdatoError] = React.useState<string | undefined>(undefined);
+// Persisterede felters fejl føres gennem den centrale fejl-infrastruktur (jf.
+// page-component-contract §8.1), ikke parallel lokal useState. Producenten (input-feltet)
+// ejer fejlen via reporteren; sidens gating læser den opløste fejl via useFormFieldErrors.
+const varigeMenFieldErrors = useFormFieldErrors('varigemen');
+const reportMengradError = useFormFieldErrorReporter('varigemen', 'mengrad', {
+  severity: 'error',
+  source: 'input',
+});
+const reportBeregningsdatoError = useFormFieldErrorReporter('varigemen', 'beregningsdato', {
+  severity: 'error',
+  source: 'input',
+});
 const mengradInputRef = React.useRef<HTMLInputElement>(null);
 const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
-const handleMengradError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
-  setMengradError(getReportableFieldErrorMessage(errorMsg));
-}, []);
-const handleBeregningsdatoError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
-  setBeregningsdatoError(getReportableFieldErrorMessage(errorMsg));
-}, []);
+const mengradError = varigeMenFieldErrors.mengrad?.message;
+const beregningsdatoError = varigeMenFieldErrors.beregningsdato?.message;
 const fodselsdatoError = stamdataFieldErrors.skadelidteFodselsdato?.message;
 
 // Tjek om der er fejl - kun baseret på felt-errors fra onBlur
@@ -133,10 +129,6 @@ const beregningsResultat = React.useMemo(() => {
 
   return resultat;
 }, [values, stamValues.skadelidteFodselsdato, stamValues.skadedato, beregningsFejl, manglendeFelter]);
-
-// Aldersreduktionsbeløbet kommer fra den autoritative beregning (afstemt mod den
-// oprundede slutgodtgørelse), så de viste linjer går op og UI matcher PDF.
-const aldersreduktionsBeloeb = beregningsResultat?.aldersreduktionBeloeb ?? 0;
 
   // PDF download handler
   const handlePdfDownload = React.useCallback(async () => {
@@ -215,7 +207,7 @@ const aldersreduktionsBeloeb = beregningsResultat?.aldersreduktionBeloeb ?? 0;
           <Typography
             component="button"
             type="button"
-            className={stamValues.skadelidteFodselsdato ? 'row--text icon-text-link' : 'row--text icon-text-link'}
+            className="row--text icon-text-link"
             onClick={() => navigate('/stamdata')}
             sx={{
               cursor: 'pointer',
@@ -312,8 +304,8 @@ const aldersreduktionsBeloeb = beregningsResultat?.aldersreduktionBeloeb ?? 0;
             maxValue={100}
             useDefaultPercentRange={false}
             placeholder="0"
-            // Fanger valideringsfejl fra feltet
-            onFieldError={handleMengradError}
+            // Fanger valideringsfejl fra feltet og rapporterer til den centrale fejlmodel
+            onFieldError={reportMengradError}
             inputRef={mengradInputRef}
           />
         </Box>
@@ -326,9 +318,9 @@ const aldersreduktionsBeloeb = beregningsResultat?.aldersreduktionBeloeb ?? 0;
             name="beregningsdato"
             value={values.beregningsdato || undefined}
             onCommit={(event) => setFieldValue('beregningsdato', event.target.value)}
-            minDate={VARIGE_MEN_BEREGNINGSDATO_MIN}
-            maxDate={VARIGE_MEN_BEREGNINGSDATO_MAX}
-            onFieldError={handleBeregningsdatoError}
+            minDate={dateRanges_varigemen.beregningsdato.min}
+            maxDate={dateRanges_varigemen.beregningsdato.max}
+            onFieldError={reportBeregningsdatoError}
             inputRef={beregningsdatoInputRef}
           />
           <InsertTodayDateButton
@@ -403,7 +395,7 @@ const aldersreduktionsBeloeb = beregningsResultat?.aldersreduktionBeloeb ?? 0;
             style={{ justifyContent: 'flex-end' }}
           >
             <Typography className="row--text">
-              {`- ${formatAsAmount(aldersreduktionsBeloeb, 2)} kr.`}
+              {`- ${formatAsAmount(beregningsResultat.aldersreduktionBeloeb, 2)} kr.`}
             </Typography>
           </Box>
         </Box>

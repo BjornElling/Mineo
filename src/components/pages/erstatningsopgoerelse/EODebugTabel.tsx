@@ -9,7 +9,7 @@ import { formatCurrency } from '../../../utils/formatUtils';
 import type { ISODateString } from '../../../types/branded';
 import { isoToDanish } from '../../../types/branded';
 import { downloadFile } from '../../../utils/fileHelpers';
-import { parseDanishNumberString } from '../../../utils/numberParsing';
+import { isAmountColumnId, parseEmploymentIndexFromColumnId } from '../../../domain/debug/eoDebugLoenTypes';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import VirtualizedDisplayTable from '../../tables/VirtualizedDisplayTable';
@@ -18,19 +18,10 @@ import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
 
 const ROW_HEIGHT = 28;
 
-const isAmountColumnId = (id: string): boolean => id.startsWith('offentlig:') || id.includes(':wage:');
-
 const resolveEmploymentHeaderTitle = (snapshot: EODebugSnapshot, employmentIndex: number): string => {
   const employment = snapshot.eoValues.loenindkomstAnsaettelsesforhold?.[employmentIndex];
   const arbejdsstedNavn = employment?.navnPaaArbejdssted?.trim() ?? '';
   return arbejdsstedNavn !== '' ? arbejdsstedNavn : `Ansættelsessted ${employmentIndex + 1}`;
-};
-
-const parseEmploymentIndexFromColumnId = (columnId: string): number | null => {
-  const match = columnId.match(/^loen:(\d+):(taf_regulering|wage:[^:]+)$/);
-  if (!match) return null;
-  const parsed = Number.parseInt(match[1] ?? '', 10);
-  return Number.isFinite(parsed) ? parsed : null;
 };
 
 type EODebugTabelProps = {
@@ -226,13 +217,12 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, isActive = false }: EOD
   const stickyHeaderTop = React.useMemo(() => -Number.parseFloat(theme.spacing(3)) - 2, [theme]);
   const canDownloadDebugTable = Boolean(model?.tableFra && model?.tableTil);
 
-  const formatCsvAmountCell = React.useCallback((value: unknown): string => {
-    const scalar = toCsvScalar(value);
-    const trimmed = scalar.trim();
-    if (trimmed === '') return '';
-    const parsed = parseDanishNumberString(trimmed);
-    if (parsed === undefined) return scalar;
-    return formatCurrency(parsed);
+  // Format\u00e9r en bel\u00f8bscelle til CSV fra den r\u00e5 numeriske model-v\u00e6rdi via den kanoniske
+  // formatCurrency. Spejler model-kolonnens displayformat (0 \u2192 tom celle), s\u00e5 CSV-output
+  // er identisk med tabellen uden at parse den allerede formaterede displaystreng.
+  const formatCsvAmountCell = React.useCallback((rawValue: number | undefined): string => {
+    if (rawValue === undefined || rawValue === 0) return '';
+    return formatCurrency(rawValue);
   }, []);
 
   const handleDownloadDebugTable = React.useCallback(() => {
@@ -244,9 +234,11 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, isActive = false }: EOD
 
     for (let rowIndex = 0; rowIndex < model.rowCount; rowIndex += 1) {
       const cells = model.columns.map((column) => {
-        const cellValue = column.getCell(rowIndex);
-        const scalar = isAmountColumnId(column.id) ? formatCsvAmountCell(cellValue) : toCsvScalar(cellValue);
-        return escapeCsvCell(scalar);
+        if (isAmountColumnId(column.id)) {
+          const rawValues = model.columnRawValues.get(column.id);
+          return escapeCsvCell(formatCsvAmountCell(rawValues?.[rowIndex]));
+        }
+        return escapeCsvCell(toCsvScalar(column.getCell(rowIndex)));
       });
       lines.push(cells.join(CSV_DELIMITER));
     }
@@ -357,7 +349,9 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, isActive = false }: EOD
       </ContentBox>
 
       <Box>
-        {!snapshot ? null : model?.rowCount === 0 ? (
+        {/* snapshot.model er non-optional på EODebugSnapshot; efter !snapshot-guarden
+            er modellen derfor garanteret til stede, så ingen non-null-assertion er nødvendig. */}
+        {!snapshot ? null : snapshot.model.rowCount === 0 ? (
           <Alert severity="info" sx={{ borderRadius: '10px' }}>
             <AlertTitle sx={{ fontWeight: 500 }}>Kan ikke oprette debug-tabel</AlertTitle>
             <Typography variant="body2" sx={{ mb: 1 }}>
@@ -382,10 +376,10 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, isActive = false }: EOD
           <VirtualizedDisplayTable
             columns={tableColumns}
             headerRows={tableHeaderRows}
-            rowCount={model!.rowCount}
+            rowCount={snapshot.model.rowCount}
             rowHeight={ROW_HEIGHT}
             height={0}
-            getRowKey={model!.getRowKey}
+            getRowKey={snapshot.model.getRowKey}
             renderCell={renderCell}
             useSmallFont
             scrollMode="ancestor"

@@ -15,6 +15,7 @@ import {
   type ErhvervsevnetabValues,
 } from '../../../schemas/formSchemas';
 import { coerceToISODateString } from '../../../types/branded';
+import { SKAERING_2015_03_01 } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoer';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import type { CommitHandler } from '../../../types/fieldEvents';
 import {
@@ -61,17 +62,17 @@ const EetOplysningerTab = ({
   const visKoenValg = React.useMemo(() => {
     const iso = coerceToISODateString(skadedato);
     if (!iso) return false;
-    return iso < '2015-03-01';
+    return iso < SKAERING_2015_03_01;
   }, [skadedato]);
   const hasKapDatoFoer2015 = React.useMemo(() => {
     return values.aslAfgoerelser.some((row) => {
       const kapDato = coerceToISODateString(row.kapDato);
-      return kapDato !== undefined && kapDato < '2015-03-01';
+      return kapDato !== undefined && kapDato < SKAERING_2015_03_01;
     });
   }, [values.aslAfgoerelser]);
   const hasBeregningsdatoFoer2015 = React.useMemo(() => {
     const beregningsdato = coerceToISODateString(values.beregningsdato);
-    return beregningsdato !== undefined && beregningsdato < '2015-03-01';
+    return beregningsdato !== undefined && beregningsdato < SKAERING_2015_03_01;
   }, [values.beregningsdato]);
   const visKoenFelt = visKoenValg || hasKapDatoFoer2015 || hasBeregningsdatoFoer2015;
 

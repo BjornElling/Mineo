@@ -60,7 +60,6 @@ type HarnessHandles = {
   api: HookApi | null;
   markSaved: ReturnType<typeof vi.fn<(revision: number) => void>>;
   showOverlay: ReturnType<typeof vi.fn<(overlay: OverlayData) => void>>;
-  markUserFeedback: ReturnType<typeof vi.fn<() => void>>;
   replaceAllPersistedData: ReturnType<typeof vi.fn<(snapshot: unknown) => void>>;
   clearAllData: ReturnType<typeof vi.fn<() => void>>;
   navigate: ReturnType<typeof vi.fn<(to: string, opts?: unknown) => void>>;
@@ -83,7 +82,6 @@ const renderHook = (
     api: null,
     markSaved: vi.fn<(revision: number) => void>(),
     showOverlay: vi.fn<(overlay: OverlayData) => void>(),
-    markUserFeedback: vi.fn<() => void>(),
     replaceAllPersistedData: vi.fn<(snapshot: unknown) => void>(),
     clearAllData: vi.fn<() => void>(),
     navigate: vi.fn<(to: string, opts?: unknown) => void>(),
@@ -104,7 +102,6 @@ const renderHook = (
       hasAnyData: overrides.hasAnyData ?? (() => false),
       allowExitWithoutWarning: vi.fn(),
       showOverlay: handles.showOverlay,
-      markUserFeedback: handles.markUserFeedback,
     });
     return null;
   };

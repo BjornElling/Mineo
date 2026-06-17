@@ -19,7 +19,13 @@ import { markDevtoolsTestScenario } from '../../utils/devtoolsMonitor';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 
 /**
- * Debug-tab til afprøvning af styled-komponenter og devtools (kun synlig i dev-mode).
+ * Debug-tab til afprøvning af styled-komponenter og devtools.
+ *
+ * Synlighed kræver både udviklingsmiljø (import.meta.env.DEV) og at indstillingen
+ * "Vis test-fane på Stamdata-tab" er slået til. Indstillingen kan kun ændres i
+ * udviklingsmiljøet, og Stamdata-siden gater visningen på import.meta.env.DEV, så
+ * en localStorage-værdi gemt under en dev-session aldrig viser fanen i en
+ * produktions-build.
  */
 const StamdataDebugTab = React.memo(() => {
   // Lokale state-værdier til test af komponenterne

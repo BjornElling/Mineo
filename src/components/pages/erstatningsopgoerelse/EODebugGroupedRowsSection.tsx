@@ -1,12 +1,11 @@
 import * as React from 'react';
 import { Box, Typography } from '@mui/material';
-import { Check, ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
 import ContentBox from '../../layout/ContentBox';
-import type { DebugRowModel, DebugStatus } from '../../../domain/debug/eoDebugTypes';
+import type { DebugRowModel } from '../../../domain/debug/eoDebugTypes';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
-
-const LABEL_WIDTH = '320px';
+import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
+import { DEBUG_ROW_LABEL_WIDTH, getDisplayValueSx, getStatusIcon } from './eoDebugRowRendering';
 
 type GroupedRowsSection = Readonly<{
   id: string;
@@ -23,31 +22,12 @@ type GroupedRowsSection = Readonly<{
   }>[];
 }>;
 
-const getStatusIcon = (status: DebugStatus): React.ReactElement => {
-  switch (status) {
-    case 'error':
-      return <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />;
-    case 'warning':
-      return <WarningAmber sx={{ color: 'var(--color-status-warning)', fontSize: 20 }} />;
-    case 'ok':
-      return <Check sx={{ color: 'var(--color-status-success)', fontSize: 20 }} />;
-  }
-};
-
-const getDisplayValueSx = (displayValue: string) => ({
-  whiteSpace: 'pre-line' as const,
-  textAlign: displayValue.includes('\n') ? 'right' as const : 'inherit',
-});
-
-const isSfggPostTableRow = (row: DebugRowModel): boolean => row.id.startsWith('sfgg.eftertabel.');
-const isSfggComputedTotalRow = (row: DebugRowModel): boolean => row.id.startsWith('sfgg.eftertabel.beregnet.');
-
 const renderDebugRow = (row: DebugRowModel) => (
-  <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
+  <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': DEBUG_ROW_LABEL_WIDTH }}>
     <Typography className="row--text">{row.label}</Typography>
     <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
       <Typography
-        className={`row--text${isSfggComputedTotalRow(row) ? ' text-bold' : ''}`}
+        className={`row--text${isSfggComputedTotalRowId(row.id) ? ' text-bold' : ''}`}
         sx={getDisplayValueSx(row.displayValue)}
       >
         {row.displayValue}
@@ -61,7 +41,11 @@ const EODebugGroupedRowsSection = React.memo<{
   title: string;
   sections: readonly GroupedRowsSection[];
 }>(({ title, sections }) => {
-  const visibleSections = sections.filter((section) => section.rows.length > 0);
+  // Behold en sektion når den har rækker ELLER tabeller — samme gating som EODebugRowsSection,
+  // så sektioner der kun består af tabeller (uden rækker) ikke fejlagtigt skjules.
+  const visibleSections = sections.filter(
+    (section) => section.rows.length > 0 || (section.tables?.length ?? 0) > 0
+  );
   if (visibleSections.length === 0) {
     return null;
   }
@@ -73,45 +57,45 @@ const EODebugGroupedRowsSection = React.memo<{
       {visibleSections.map((section) => (
         <React.Fragment key={section.id}>
           {(() => {
-            const sfggPostTableRows = section.rows.filter(isSfggPostTableRow);
+            const sfggPostTableRows = section.rows.filter((row) => isSfggPostTableRowId(row.id));
 
             return (
               <>
-          <Box className="row--label-right-hover">
-            <Typography className="row--subheading-underlined" sx={{ pl: 2 }}>
-              {section.title}
-            </Typography>
-            <Box className="row--label-right-hover__content" />
-          </Box>
+                <Box className="row--label-right-hover">
+                  <Typography className="row--subheading-underlined" sx={{ pl: 2 }}>
+                    {section.title}
+                  </Typography>
+                  <Box className="row--label-right-hover__content" />
+                </Box>
 
-          {section.rows.filter((row) => !isSfggPostTableRow(row)).map(renderDebugRow)}
+                {section.rows.filter((row) => !isSfggPostTableRowId(row.id)).map(renderDebugRow)}
 
-          {(section.tables ?? []).map((table) => (
-            <React.Fragment key={table.id}>
-              <StandardDisplayTable
-                useSmallFont
-                columns={table.columns.map((header) => ({
-                  header,
-                  align: header === 'Fra-dato' || header === 'Til-dato' ? 'center' as const : 'right' as const,
-                }))}
-                rows={table.rows.map((row): StandardDisplayTableRow => ({
-                  key: row.id,
-                  cells: row.cells.map((cell, index) => {
-                    const isTotalRow = row.cells[0] === 'I alt';
-                    const isLastCell = index === row.cells.length - 1;
-                    return isTotalRow && isLastCell
-                      ? <Box key={`${row.id}-${index}`} component="span" sx={{ fontWeight: 700 }}>{cell}</Box>
-                      : cell;
-                  }),
-                }))}
-                tableSx={{
-                  tableLayout: 'fixed',
-                }}
-              />
-            </React.Fragment>
-          ))}
+                {(section.tables ?? []).map((table) => (
+                  <React.Fragment key={table.id}>
+                    <StandardDisplayTable
+                      useSmallFont
+                      columns={table.columns.map((header) => ({
+                        header,
+                        align: header === 'Fra-dato' || header === 'Til-dato' ? 'center' as const : 'right' as const,
+                      }))}
+                      rows={table.rows.map((row): StandardDisplayTableRow => ({
+                        key: row.id,
+                        cells: row.cells.map((cell, index) => {
+                          const isTotalRow = row.cells[0] === 'I alt';
+                          const isLastCell = index === row.cells.length - 1;
+                          return isTotalRow && isLastCell
+                            ? <Box key={`${row.id}-${index}`} component="span" sx={{ fontWeight: 700 }}>{cell}</Box>
+                            : cell;
+                        }),
+                      }))}
+                      tableSx={{
+                        tableLayout: 'fixed',
+                      }}
+                    />
+                  </React.Fragment>
+                ))}
 
-          {sfggPostTableRows.map(renderDebugRow)}
+                {sfggPostTableRows.map(renderDebugRow)}
               </>
             );
           })()}
