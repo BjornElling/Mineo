@@ -15,14 +15,15 @@ import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable'
 import VirtualizedDisplayTable from '../../tables/VirtualizedDisplayTable';
 import type { VirtualizedDisplayTableHeaderRow } from '../../tables/VirtualizedDisplayTable';
 import type { EODebugSnapshot } from '../../../domain/debug/eoDebugSnapshot';
+import { resolveArbejdsstedDisplayName } from '../../../domain/erstatningsopgoerelse/helpers/indtaegtPerioder';
 
 const ROW_HEIGHT = 28;
 
-const resolveEmploymentHeaderTitle = (snapshot: EODebugSnapshot, employmentIndex: number): string => {
-  const employment = snapshot.eoValues.loenindkomstAnsaettelsesforhold?.[employmentIndex];
-  const arbejdsstedNavn = employment?.navnPaaArbejdssted?.trim() ?? '';
-  return arbejdsstedNavn !== '' ? arbejdsstedNavn : `Ansættelsessted ${employmentIndex + 1}`;
-};
+const resolveEmploymentHeaderTitle = (snapshot: EODebugSnapshot, employmentIndex: number): string =>
+  resolveArbejdsstedDisplayName(
+    snapshot.eoValues.loenindkomstAnsaettelsesforhold?.[employmentIndex]?.navnPaaArbejdssted,
+    employmentIndex
+  );
 
 type EODebugTabelProps = {
   debugSnapshot?: EODebugSnapshot | null;

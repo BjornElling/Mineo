@@ -8,7 +8,12 @@ import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable'
 import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/debug/eoDebugErstatningsopgoerelseModel';
 import { getRegulationTableColumns } from './regulationTableColumns';
 import { renderRegulationTableCellContent } from './regulationTableCellContent';
-import { DEBUG_ROW_LABEL_WIDTH as LABEL_WIDTH, getDisplayValueSx, getStatusIcon } from './eoDebugRowRendering';
+import {
+  DEBUG_REGULATION_ROW_LABEL_WIDTH,
+  DEBUG_ROW_LABEL_WIDTH as LABEL_WIDTH,
+  getDisplayValueSx,
+  getStatusIcon,
+} from './eoDebugRowRendering';
 
 type EmploymentDebugSection = Readonly<{
   id: string;
@@ -50,7 +55,7 @@ const renderRows = (rows: readonly DebugRowModel[]) => rows.map((row) => (
 ));
 
 const renderRegulationRows = (rows: NonNullable<RegulationDebugSection['rows']>) => rows.map((row) => (
-  <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': '250px' }}>
+  <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': DEBUG_REGULATION_ROW_LABEL_WIDTH }}>
     <Typography className="row--text">{row.label}</Typography>
     <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
       <Typography className="row--text" sx={getDisplayValueSx(typeof row.value === 'string' ? row.value : row.value.displayValue)}>

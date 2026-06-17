@@ -3,7 +3,8 @@ import { Box, Typography } from '@mui/material';
 
 /**
  * Overlay-komponent til at vise midlertidige beskeder.
- * Vises øverst til højre og forsvinder automatisk efter 3 sekunder.
+ * Vises øverst til højre. Auto-close-varigheden afhænger af typen:
+ * success 3 s, info 4 s, warning 5 s. Error auto-lukker aldrig (kræver klik).
  *
  * @param {Object} props
  * @param {string} props.message - Besked der skal vises

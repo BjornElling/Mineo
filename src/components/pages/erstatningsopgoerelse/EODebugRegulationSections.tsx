@@ -14,8 +14,7 @@ import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable'
 import ContentBox from '../../layout/ContentBox';
 import { getRegulationTableColumns } from './regulationTableColumns';
 import { renderRegulationTableCellContent } from './regulationTableCellContent';
-
-const LABEL_WIDTH = '250px';
+import { DEBUG_REGULATION_ROW_LABEL_WIDTH as LABEL_WIDTH } from './eoDebugRowRendering';
 
 /**
  * Render regulation sections (summary, timeline, store bededag)

@@ -52,6 +52,13 @@ const EetOplysningerTab = ({
     severity: 'error',
     source: 'input',
   });
+  // Køn-reglen (køn påkrævet ved beregning/kapitalisering før 1. marts 2015) rapporteres til den
+  // centrale fejl-model, så Gem blokeres på linje med Erstatningsopgørelse og forlig-reglerne. Tidligere
+  // viste fejlen kun en lokal rød ring og blokerede ikke save — samme inkonsistens som forlig-fixet rettede.
+  const reportKoenRuleError = useFormFieldErrorReporter('erhvervsevnetab', 'koen', {
+    severity: 'error',
+    source: 'rule',
+  });
 
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
 
@@ -105,6 +112,12 @@ const EetOplysningerTab = ({
     }
     return undefined;
   }, [hasBeregningsdatoFoer2015, hasKapDatoFoer2015, values.koen]);
+
+  // Samme committed-værdier driver både den lokale røde ring (helperText nedenfor) og den centrale
+  // save-gating. Reporteren rydder selv sin fejl, når reglen ikke længere er overtrådt (koenError === undefined).
+  React.useEffect(() => {
+    reportKoenRuleError(koenError);
+  }, [koenError, reportKoenRuleError]);
 
   const handleAslAfgoerelserChange = React.useCallback(
     (rows: ErhvervsevnetabValues['aslAfgoerelser'], origin?: { fieldPath?: string }) => {

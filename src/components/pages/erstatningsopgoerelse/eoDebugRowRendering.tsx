@@ -15,6 +15,15 @@ import type { DebugStatus } from '../../../domain/debug/eoDebugTypes';
 /** Fælles label-bredde for debug-label/værdi-rækker. */
 export const DEBUG_ROW_LABEL_WIDTH = '320px';
 
+/**
+ * Smallere label-bredde for regulerings-rækker. Bevidst afvigelse fra
+ * `DEBUG_ROW_LABEL_WIDTH`: regulerings-labels er kortere, så en smallere
+ * kolonne giver et tættere layout. Centraliseret her, fordi den ellers var
+ * defineret to steder (EODebugRegulationSections + regulerings-grenen i
+ * EODebugEmploymentSections) og kunne drifte.
+ */
+export const DEBUG_REGULATION_ROW_LABEL_WIDTH = '250px';
+
 /** Statusikon for en debug-række ud fra dens max-severity. */
 export const getStatusIcon = (status: DebugStatus): React.ReactElement => {
   switch (status) {
