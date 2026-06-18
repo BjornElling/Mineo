@@ -32,21 +32,19 @@ type OffentligeYdelserSectionContext = Readonly<{
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
   writeBoldSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
-  writer: Pick<DocumentWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc'>;
+  writer: Pick<DocumentWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc' | 'writeUnderlinedSubheader'>;
 }>;
 
 type RenderOffentligeYdelserRowsPageContext = Readonly<{
   rows: readonly OffentligeYdelserRow[];
   visYdelsestypeSubheader?: boolean;
-  renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
-  writer: Pick<DocumentWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc'>;
+  writer: Pick<DocumentWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc' | 'writeUnderlinedSubheader'>;
 }>;
 
 export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRowsPageContext): void => {
   const {
     rows,
     visYdelsestypeSubheader = true,
-    renderSubheader,
     writer,
   } = ctx;
   if (rows.length === 0) return;
@@ -98,8 +96,8 @@ export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRows
   const doc = writer.getDoc();
   const columnStyles = createDocumentDistributedColumnStyles(OFFENTLIGE_YDELSER_PDF_HEADERS.length);
 
-  for (const [index, label] of groupOrder.entries()) {
-    if (visYdelsestypeSubheader) renderSubheader(label, undefined, { addTopSpacing: index > 0 });
+  for (const label of groupOrder) {
+    if (visYdelsestypeSubheader) writer.writeUnderlinedSubheader(label);
     const startY = writer.getY();
     const tableRows = buildTableRows(grouped.get(label) ?? []);
     const finalY = renderDocumentTable({
@@ -162,7 +160,6 @@ export const renderOffentligeYdelserSection = (ctx: OffentligeYdelserSectionCont
     }
     renderOffentligeYdelserRowsPage({
       rows: entry.rows,
-      renderSubheader,
       writer,
     });
   }

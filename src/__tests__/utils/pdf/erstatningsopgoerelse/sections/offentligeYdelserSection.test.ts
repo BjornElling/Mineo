@@ -48,6 +48,7 @@ const makeCtx = (override: Partial<Parameters<typeof renderOffentligeYdelserSect
         setY: vi.fn((nextY: number) => { y = nextY; }),
         getY: vi.fn(() => y),
         getDoc: vi.fn(() => doc as never),
+        writeUnderlinedSubheader: vi.fn(),
       },
       ...override,
     },
@@ -104,10 +105,10 @@ describe('renderOffentligeYdelserSection – startEoBilagPage', () => {
 // ─── Gruppering per ydelsestype ───────────────────────────────────────────────
 
 describe('renderOffentligeYdelserSection – gruppering per ydelsestype', () => {
-  it('kalder renderSubheader for hvert unikt ydelsestype-label', () => {
+  it('kalder writeUnderlinedSubheader for hvert unikt ydelsestype-label', () => {
     const { ctx } = makeCtx();
-    const renderSubheader = vi.fn();
-    ctx.renderSubheader = renderSubheader;
+    const writeUnderlinedSubheader = vi.fn();
+    ctx.writer.writeUnderlinedSubheader = writeUnderlinedSubheader;
     ctx.eoValues.offentligeYdelserRows = [
       { id: 'r1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
       { id: 'r2', fraDato: toISODateString('2024-02-01'), tilDato: toISODateString('2024-02-29'), ydelsestype: 'dagpenge', ydelse: { kind: 'number', value: 300 }, tillaeg: undefined },
@@ -115,14 +116,14 @@ describe('renderOffentligeYdelserSection – gruppering per ydelsestype', () => 
 
     renderOffentligeYdelserSection(ctx);
 
-    // To unikke ydelsestyper → to subheader-kald
-    expect(renderSubheader).toHaveBeenCalledTimes(2);
+    // To unikke ydelsestyper → to understregede underoverskrifts-kald
+    expect(writeUnderlinedSubheader).toHaveBeenCalledTimes(2);
   });
 
-  it('kalder renderSubheader kun én gang for samme ydelsestype i to rækker', () => {
+  it('kalder writeUnderlinedSubheader kun én gang for samme ydelsestype i to rækker', () => {
     const { ctx } = makeCtx();
-    const renderSubheader = vi.fn();
-    ctx.renderSubheader = renderSubheader;
+    const writeUnderlinedSubheader = vi.fn();
+    ctx.writer.writeUnderlinedSubheader = writeUnderlinedSubheader;
     ctx.eoValues.offentligeYdelserRows = [
       { id: 'r1', fraDato: toISODateString('2024-01-01'), tilDato: toISODateString('2024-01-31'), ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 500 }, tillaeg: undefined },
       { id: 'r2', fraDato: toISODateString('2024-02-01'), tilDato: toISODateString('2024-02-29'), ydelsestype: 'sygedagpenge', ydelse: { kind: 'number', value: 400 }, tillaeg: undefined },
@@ -130,8 +131,8 @@ describe('renderOffentligeYdelserSection – gruppering per ydelsestype', () => 
 
     renderOffentligeYdelserSection(ctx);
 
-    // Én ydelsestype → ét subheader-kald
-    expect(renderSubheader).toHaveBeenCalledTimes(1);
+    // Én ydelsestype → ét understreget underoverskrifts-kald
+    expect(writeUnderlinedSubheader).toHaveBeenCalledTimes(1);
   });
 });
 
@@ -215,6 +216,7 @@ describe('renderOffentligeYdelserSection tabelbredde', () => {
         }),
         getY: vi.fn(() => y),
         getDoc: vi.fn(() => doc as never),
+        writeUnderlinedSubheader: vi.fn(),
       },
     });
 

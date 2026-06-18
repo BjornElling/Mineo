@@ -476,7 +476,10 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     }
 
     if (loenudvikling) {
-      writer.addSectionSpacer();
+      // Ingen addSectionSpacer her: det første der følger er enten en underoverskrift
+      // (fx ansættelsesforholdets navn "Huberts Humlegård"), som selv bærer sin øvre
+      // afstand, eller segmentlinjerne direkte under "Forventet indkomst". En spacer
+      // ville i Word give en ekstra tom linje oven på underoverskriftens egen før-afstand.
       // Renderer kun selve segmentlinjerne for én indkomstkilde. Delsummer ("I alt" per
       // ansættelsesforhold / ydelse) udelades bevidst — Forventet indkomst har præcis ÉN
       // samlet "I alt"-linje til sidst (se nedenfor), uanset antallet af indkomstkilder.
@@ -521,15 +524,26 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       };
 
       let visteSegmenter = 0;
+      // Antal indtægtskilder der faktisk har vist segmentlinjer (hvert ansættelsesforhold
+      // og hver offentlig ydelse tæller som én kilde). Styrer om der skal være en tom linje
+      // før "I alt": den vises kun ved mere end én kilde, så en enkelt kilde (fx kun
+      // "Dagpenge", selv med flere segmenter) ikke får en overflødig tom linje før totalen.
+      let visteKilder = 0;
+      const tælKilde = (visteSegmenterFraKilde: number): number => {
+        if (visteSegmenterFraKilde > 0) {
+          visteKilder += 1;
+        }
+        return visteSegmenterFraKilde;
+      };
       const harPerAnsaettelse = loenudvikling.perAnsaettelse.length > 1;
       const harOffentligeYdelserEntries = (offentligeYdelserUdvikling?.entries.length ?? 0) > 0;
       if (harPerAnsaettelse) {
         for (const entry of loenudvikling.perAnsaettelse) {
           writer.writeUnderlinedSubheader(entry.ansaettelsesforholdNavn);
-          visteSegmenter += renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, 'loen', {
+          visteSegmenter += tælKilde(renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, 'loen', {
             unitMaaned: '',
             unitDag: '',
-          });
+          }));
         }
       } else {
         // Når der indgår flere indtægtskilder (her: ét ansættelsesforhold + offentlige ydelser),
@@ -543,20 +557,20 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             writer.writeUnderlinedSubheader(loenKildeNavn);
           }
         }
-        visteSegmenter += renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, 'loen', {
+        visteSegmenter += tælKilde(renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, 'loen', {
           unitMaaned: '',
           unitDag: '',
-        });
+        }));
       }
       for (const entry of offentligeYdelserUdvikling?.entries ?? []) {
         // Ingen manuel addSectionSpacer her: underoverskriften (fx "Dagpenge") har selv den
         // kanoniske top-afstand (kontrakt B5.1/B6). I Word ville en spacer-paragraf ellers
         // lægge sig oven i overskrifts-typografiens before-spacing og give en tom linje.
         writer.writeUnderlinedSubheader(entry.label);
-        visteSegmenter += renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.total, 'offentligYdelse', {
+        visteSegmenter += tælKilde(renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.total, 'offentligYdelse', {
           unitMaaned: '',
           unitDag: '',
-        });
+        }));
       }
 
       // Én fast samlet "I alt"-linje til sidst, der summerer løn + offentlige ydelser.
@@ -573,7 +587,11 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
             (harYdelser && offentligeYdelserUdvikling!.total.status === 'ok' ? offentligeYdelserUdvikling!.total.value : 0)
           : null;
       if (visteSegmenter > 1 && samletForventetIndkomstOre !== null) {
-        writer.addSectionSpacer();
+        // Tom linje før "I alt" kun ved mere end én indtægtskilde. Med en enkelt kilde
+        // (fx kun "Dagpenge") står totalen tæt på sine segmentlinjer uden ekstra luft.
+        if (visteKilder > 1) {
+          writer.addSectionSpacer();
+        }
         safeAddLeftRightText(
           'I alt',
           formatMoneyOreWithKr(samletForventetIndkomstOre),

@@ -447,8 +447,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         writeLabelValueLine('Anciennitetstillæg', anciennitetValueDisplay);
       }
     }
-    writer.addSectionSpacer();
-    safeAddWrappedText('Reguleringsværdier:');
+    writer.writeUnderlinedSubheader('Reguleringsværdier:');
 
     const reguleringsvaerdierTableData =
       coverageBounds
@@ -462,8 +461,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         : null;
     renderReguleringsvaerdierTable(reguleringsvaerdierTableData);
 
-    writer.addSectionSpacer();
-    safeAddWrappedText('Beregnet regulering:');
+    writer.writeUnderlinedSubheader('Beregnet regulering:');
 
     const reguleringTableRows = buildReguleringIndexRows({
       segments: perAnsaettelseSegments,

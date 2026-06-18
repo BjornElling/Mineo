@@ -258,9 +258,26 @@ const createLeftRightTable = (
   // summeringsstregen — der tegnes som højre cellens topkant — i samme bredde og position
   // som hidtil, lige over beløbet, og ikke som en lang streg tværs over en bred højrekolonne.
   const estimatedLeftWidthDxa = Math.ceil(leftText.length * LEFT_RIGHT_AVG_GLYPH_DXA);
+  // Højre kolonne skal mindst kunne rumme sin egen tekst på én linje. Når venstrelabelen
+  // er lang (fx "Skadelidte var faglært og ansat i København, og satsen udgør") og højre-
+  // teksten ikke-triviel (fx "217,20 kr./arbejdsdag"), ville en ren venstre-prioritering
+  // klemme højre kolonne så smal, at beløbsteksten ombrydes. Vi reserverer derfor højre
+  // kolonne mindst dens estimerede tekstbredde (samme konservative glyf-heuristik som
+  // venstre) og giver venstre resten — dog aldrig under halvdelen af det hidtidige
+  // venstre-maksimum, så et ekstremt langt højrefelt ikke omvendt udsulter venstre.
+  // Estimatet bruges KUN til layout (kolonnefordeling), aldrig til indhold/tal.
+  const estimatedRightWidthDxa = Math.ceil(rightText.length * LEFT_RIGHT_AVG_GLYPH_DXA);
+  const minLeftWidthDxa = Math.floor(LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA / 2);
   const leftWidthDxa = showSumLine
     ? LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA
-    : Math.min(LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA, estimatedLeftWidthDxa);
+    : Math.max(
+        minLeftWidthDxa,
+        Math.min(
+          LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA,
+          estimatedLeftWidthDxa,
+          CONTENT_WIDTH_DXA - estimatedRightWidthDxa
+        )
+      );
   const rightWidthDxa = CONTENT_WIDTH_DXA - leftWidthDxa;
   return new Table({
     rows: [
