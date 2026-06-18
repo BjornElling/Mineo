@@ -852,7 +852,10 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     beregnesSvieSmerte &&
     (eoValues.svieSmertePerioder ?? []).some((row) => row.fra || row.til || row.tilstand) &&
     svieSmerteLines.length > 0;
-  const svieSmerteSummaryLines = harSvieSmertePerioder ? svieSmerteLines : ['Nej'];
+  // 'Skjul' har samme beregningsadfærd som 'Nej', men udelades helt fra opgørelses-PDF'en.
+  // Markér det i oversigten, så det er tydeligt at emnet er fravalgt fra dokumentet (ikke kun 0 kr.).
+  const svieSmerteFravalgtTekst = eoValues.kravPaaSvieSmerteGodtgoerelse === 'Skjul' ? 'Nej (skjult)' : 'Nej';
+  const svieSmerteSummaryLines = harSvieSmertePerioder ? svieSmerteLines : [svieSmerteFravalgtTekst];
   const svieSmerteSummaryLabel = harSvieSmertePerioder && svieSmerteLines.length > 1
     ? 'Svie/smerte-perioder'
     : 'Svie/smerte-periode';
@@ -881,7 +884,8 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     (eoValues.tafPerioder ?? []).some((row) => row.fra || row.til || typeof row.loseFeriedage === 'number') &&
     tafPerioderLabels.length > 0;
   const tafPerioderLines = tafPerioderLabels;
-  const tafSummaryLines = harTafPerioder ? tafPerioderLines : ['Nej'];
+  const tafFravalgtTekst = eoValues.kravPaaTabtArbejdsfortjeneste === 'Skjul' ? 'Nej (skjult)' : 'Nej';
+  const tafSummaryLines = harTafPerioder ? tafPerioderLines : [tafFravalgtTekst];
   const tafSummaryLabel = harTafPerioder && tafPerioderLines.length > 1 ? 'TAF-perioder' : 'TAF-periode';
 
   const erErhvervssygdom = stamdataValues?.skadestype === 'Erhvervssygdom';

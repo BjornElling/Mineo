@@ -1,5 +1,3 @@
-import type { FileChild } from 'docx';
-
 const DOCX_TABLE_BRIDGE = Symbol('mineo.docxTableBridge');
 
 export type DocxCellAlign = 'left' | 'center' | 'right';
@@ -46,5 +44,3 @@ export const isDocxTableBridgeDocument = (value: unknown): value is DocxTableBri
     && typeof (value as Partial<DocxTableBridgeTarget>).addDocxTableFromPdfRows === 'function'
   );
 };
-
-export type DocxBlock = FileChild;

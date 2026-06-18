@@ -17,6 +17,17 @@ import { asError } from '../../utils/typeGuards';
 const PDF_DOWNLOAD_SUCCESS: PdfDownloadResult = { success: true };
 const PDF_DOWNLOAD_ERROR_MESSAGE = 'Kunne ikke generere rente-PDF';
 
+// MinProcesrente er en namespace-isoleret standalone-app (jf. isolations-guarden i
+// minprocesrenteStandaloneIsolation-testen): den må IKKE importere hovedappens centrale
+// fejlrapportering/app-settings m.m. Runtime-fejl under en (allerede gated) download logges
+// derfor lokalt med console.error (reel fejl, jf. console-politikken) og returneres som et
+// fejl-result. Den brugervendte result.error-tekst er uændret.
+const reportStandaloneRenteDownloadFailure = (error: unknown): PdfDownloadResult => {
+  const normalizedError = asError(error);
+  console.error(PDF_DOWNLOAD_ERROR_MESSAGE, normalizedError);
+  return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
+};
+
 export const downloadStandaloneRentePdf = async (params: Readonly<{
   beloeb: number;
   actualInterestDate: string;
@@ -43,9 +54,7 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
     });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
-    const normalizedError = asError(error);
-    console.error(PDF_DOWNLOAD_ERROR_MESSAGE, normalizedError);
-    return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
+    return reportStandaloneRenteDownloadFailure(error);
   }
 };
 
@@ -68,9 +77,7 @@ export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
     });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
-    const normalizedError = asError(error);
-    console.error(PDF_DOWNLOAD_ERROR_MESSAGE, normalizedError);
-    return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
+    return reportStandaloneRenteDownloadFailure(error);
   }
 };
 
@@ -139,8 +146,6 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
 
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
-    const normalizedError = asError(error);
-    console.error(PDF_DOWNLOAD_ERROR_MESSAGE, normalizedError);
-    return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
+    return reportStandaloneRenteDownloadFailure(error);
   }
 };

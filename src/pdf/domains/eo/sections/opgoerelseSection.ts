@@ -458,10 +458,11 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       formatDateLong,
     });
     if (harOffentligeYdelserUdvikling) {
+      // Skriv hele beskrivelsen i ét kald; writeren wrapper selv (også på indlejrede \n),
+      // så de to sætninger sidder som ét afsnit med normal linjeafstand (B5.2), ens med resten
+      // af dokumentet — i stedet for ekstra mellem-linje-spacing fra per-linje-kald.
       renderSubheader('Forventet indkomst');
-      for (const line of indkomstHvisSkadeIkkeIndtraadtBeskrivelse.split('\n')) {
-        safeAddWrappedText(line);
-      }
+      safeAddWrappedText(indkomstHvisSkadeIkkeIndtraadtBeskrivelse);
     } else {
       renderSubheaderWithWrappedText(
         'Forventet indkomst',
@@ -704,7 +705,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
     if (kravEntries.length > 1) {
       writer.addSectionSpacer();
-      writer.addSectionSpacer();
       safeAddLeftRightText('I alt', formatMoneyOreWithKr(model.oevrigeKrav.totalFoerForligOre), kravRightMaxWidth, { rightFontStyle: 'bold', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 });
     }
 
@@ -758,7 +758,6 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som har bekræftet, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevante oplysninger, som skadelidte er bekendt med.');
   } else {
     safeAddWrappedText('Opgørelsen er gennemgået af skadelidte, som ved sin underskrift nedenfor bekræfter, at oplysningerne er korrekte og retvisende, samt at erstatningskravene er opgjort i overensstemmelse med samtlige relevante oplysninger, som skadelidte er bekendt med.');
-    writer.addSectionSpacer();
     writer.addSectionSpacer();
     const skadelidteNavn = (stamdataValues.skadelidte ?? '').trim() || '*skadelidtes navn*';
     const dateX = MARGINS.left;

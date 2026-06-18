@@ -90,6 +90,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/quality/pdfPseudoTableGuard.test.ts',
       'src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts',
       'src/__tests__/utils/pdf/pdfWriter.test.ts',
+      // Word-kanalens paritet mod det fælles writer-API (Afsnit B + §5):
+      'src/__tests__/docx/docxWriter.test.ts',
     ],
   },
   {

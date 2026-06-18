@@ -23,7 +23,7 @@
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
 import { ensureNonBreakingKr } from '../../shared/pdfTextUtils';
 import { type BrevhovedData } from '../../shared/pdfHelpers';
-import { PDF_BASE_LINE_HEIGHT_MM } from '../../infrastructure/pdfConfig';
+import { PDF_BASE_LINE_HEIGHT_MM, PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../infrastructure/pdfConfig';
 import { logWarning } from '../../../utils/logger';
 import { formatIsoDateLong as formatDateLong, formatISOToDanish as formatDateShort } from '../../../utils/dateFormatting';
 import {
@@ -48,9 +48,9 @@ import {
 } from '../../domains/eo/sections/tafBeregningsgrundlagSection';
 import type { TafPerYearOpreguleretPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretPdfDocument';
 
-const NBSP = ' ';
+const NBSP = '\u00A0';
 const FILE_BASE_NAME = 'TAF opreguleret til beregningsår';
-const TAF_RIGHT_COLUMN_WIDTH = 33.125;
+const TAF_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 
 // NOTE: Årsbeløb må være negative; PDF viser de beregnede værdier direkte.
 
@@ -114,8 +114,16 @@ export const generateTafOpreguleretPaaAarPdf = (
   };
   const renderMoneyWithKr = (value: Calculable<MoneyOre>): string =>
     value.status === 'ok' ? `${formatCurrencyFromOre(value.value)}${NBSP}kr.` : '—';
-  const renderMoneyWithKrOrError = (value: Calculable<MoneyOre>): string =>
-    value.status === 'ok' ? `${formatCurrencyFromOre(value.value)}${NBSP}kr.` : `Fejl (${value.reason})`;
+  // Beregningsgrundlag-lønnen er gated fail-closed i snapshot-projektionen
+  // (tafBeregningsgrundlagAngivetLoenMangler) — den er altid 'ok', når vi når hertil.
+  // Skulle den mod forventning ikke være det, kaster vi (systemfejl routes via A5) frem for
+  // at udskrive en teknisk fejlkode i et tillidskritisk dokument.
+  const renderMoneyWithKrOrError = (value: Calculable<MoneyOre>): string => {
+    if (value.status !== 'ok') {
+      throw new Error(`Beregningsgrundlag-løn ikke beregnelig ved dokument-rendering: ${value.reason}`);
+    }
+    return `${formatCurrencyFromOre(value.value)}${NBSP}kr.`;
+  };
 
   // Udkast-stempel på første side
   writer.addUdkastWatermark();
@@ -241,10 +249,10 @@ export const generateTafOpreguleretPaaAarPdf = (
       resolveLoenSkadedatoText,
       formatDateLong,
     });
+    // Ét sammenhængende afsnit med normal linjeafstand (writeren wrapper selv, også på \n),
+    // ens med EO-opgørelsens "Forventet indkomst" (B5.2).
     writer.writeBoldSubheader('Forventet indkomst');
-    for (const line of introTekst.split('\n')) {
-      writer.writeWrappedText(line);
-    }
+    writer.writeWrappedText(introTekst);
     if (model.tabtArbejdsfortjeneste.ferieFravaerLinje) {
       writer.writeWrappedText(model.tabtArbejdsfortjeneste.ferieFravaerLinje);
     }

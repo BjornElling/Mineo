@@ -479,6 +479,178 @@ describe('pdfWriter fitTextToWidth', () => {
   });
 });
 
+// ─── writeBoldSubheaderWithWrappedText ───────────────────────────────────────
+
+describe('pdfWriter writeBoldSubheaderWithWrappedText', () => {
+  it('skriver underoverskrift og brødtekst når der er indhold', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const doc = getMockDoc(writer);
+
+    writer.writeBoldSubheaderWithWrappedText('Underoverskrift', 'Et afsnit med indhold');
+
+    const renderedTexts = doc.text.mock.calls.map((call: unknown[]) => call[0]);
+    expect(renderedTexts).toContain('Underoverskrift');
+    expect(renderedTexts).toContain('Et afsnit med indhold');
+    // Underoverskriften skal skrives med fed font.
+    expect(doc.setFont).toHaveBeenCalledWith('helvetica', 'bold');
+  });
+
+  it('undertrykker underoverskriften helt når brødteksten er tom', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const doc = getMockDoc(writer);
+    const before = writer.getY();
+
+    writer.writeBoldSubheaderWithWrappedText('Underoverskrift', '   ');
+
+    // Hverken underoverskrift eller brødtekst må skrives, og Y må ikke flytte sig.
+    const renderedTexts = doc.text.mock.calls.map((call: unknown[]) => call[0]);
+    expect(renderedTexts).not.toContain('Underoverskrift');
+    expect(writer.getY()).toBe(before);
+  });
+
+  it('holder underoverskrift og brødtekst samlet ved sideskift', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createStandardPdfWriter();
+
+    const nearBottomY = 270;
+    writer.setY(nearBottomY);
+    writer.writeBoldSubheaderWithWrappedText('Underoverskrift', 'Et afsnit der ikke kan stå alene nederst');
+
+    // Blokken skal være flyttet til ny side i stedet for at splitte underoverskrift fra brødtekst.
+    expect(writer.getY()).toBeLessThan(nearBottomY);
+  });
+});
+
+// ─── writeBoldSubheaderIfContent ──────────────────────────────────────────────
+
+describe('pdfWriter writeBoldSubheaderIfContent', () => {
+  it('renderer underoverskrift og indhold og returnerer true når hasContent=true', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const doc = getMockDoc(writer);
+    const renderContent = vi.fn(() => {
+      writer.writeWrappedText('Indhold');
+    });
+
+    const result = writer.writeBoldSubheaderIfContent({
+      text: 'Underoverskrift',
+      hasContent: true,
+      renderContent,
+    });
+
+    expect(result).toBe(true);
+    expect(renderContent).toHaveBeenCalledTimes(1);
+    expect(doc.text.mock.calls.map((call: unknown[]) => call[0])).toContain('Underoverskrift');
+  });
+
+  it('undertrykker underoverskriften og returnerer false når hasContent=false', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const doc = getMockDoc(writer);
+    const before = writer.getY();
+    const renderContent = vi.fn();
+
+    const result = writer.writeBoldSubheaderIfContent({
+      text: 'Underoverskrift',
+      hasContent: false,
+      renderContent,
+    });
+
+    expect(result).toBe(false);
+    expect(renderContent).not.toHaveBeenCalled();
+    expect(doc.text.mock.calls.map((call: unknown[]) => call[0])).not.toContain('Underoverskrift');
+    expect(writer.getY()).toBe(before);
+  });
+});
+
+// ─── writeSignatureBlock ──────────────────────────────────────────────────────
+
+describe('pdfWriter writeSignatureBlock', () => {
+  it('skriver signaturlinje og Dato/navn-label', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const doc = getMockDoc(writer);
+
+    writer.writeSignatureBlock('______', '______', 20, 120, 'Anne Skadelidt');
+
+    const renderedTexts = doc.text.mock.calls.map((call: unknown[]) => call[0]);
+    expect(renderedTexts).toContain('Dato');
+    expect(renderedTexts).toContain('Anne Skadelidt');
+  });
+
+  it('holder underskriftsblokken samlet og splitter den ikke på tværs af et sideskift nær bunden', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
+    const writer = createStandardPdfWriter();
+
+    // Y vælges så signaturlinjen alene ville få plads (gammel adfærd), men hele 2-linjers
+    // blokken ikke kan være på siden. Med atomisk reservation flyttes BEGGE linjer til ny side.
+    const nearBottomY = 272;
+    writer.setY(nearBottomY);
+    writer.writeSignatureBlock('______', '______', 20, 120, 'Anne Skadelidt');
+
+    const doc = getMockDoc(writer);
+    // Baseline-Y for signaturlinjen (dateLine) og for "Dato"-labelen.
+    const sigLineY = doc.text.mock.calls.find((call: unknown[]) => call[1] === 20)?.[2] as number;
+    const labelY = doc.text.mock.calls.find((call: unknown[]) => call[0] === 'Dato')?.[2] as number;
+
+    expect(sigLineY).toBeDefined();
+    expect(labelY).toBeDefined();
+    // Blokken må ikke være splittet: begge linjer ligger på samme side, så labelen er præcis
+    // én linjehøjde under signaturlinjen (intet sideskift-reset imellem dem).
+    expect(labelY - sigLineY).toBeCloseTo(PDF_BASE_LINE_HEIGHT_MM, 6);
+    // Og blokken er reelt flyttet væk fra bunden (ned på ny side), ikke skrevet hvor den startede.
+    expect(sigLineY).toBeLessThan(nearBottomY);
+  });
+});
+
+// ─── writeAtomicTableChunks ───────────────────────────────────────────────────
+
+describe('pdfWriter writeAtomicTableChunks', () => {
+  it('holder header og første række samlet ved sideskift', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const renderHeader = vi.fn();
+    const renderRow = vi.fn();
+
+    const nearBottomY = 270;
+    writer.setY(nearBottomY);
+    writer.writeAtomicTableChunks({
+      rows: [{ id: 1 }, { id: 2 }, { id: 3 }],
+      renderHeader,
+      renderRow,
+      headerHeight: 6,
+      estimateRowHeight: 6,
+    });
+
+    // Header + alle rækker renderes, og blokken er flyttet til ny side (header/første række
+    // kunne ikke være på den nuværende side nær bunden).
+    expect(renderHeader).toHaveBeenCalledTimes(1);
+    expect(renderRow).toHaveBeenCalledTimes(3);
+    expect(writer.getY()).toBeLessThan(nearBottomY);
+  });
+
+  it('renderer kun header når der ingen rækker er', async () => {
+    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createStandardPdfWriter();
+    const renderHeader = vi.fn();
+    const renderRow = vi.fn();
+
+    writer.writeAtomicTableChunks({
+      rows: [],
+      renderHeader,
+      renderRow,
+      headerHeight: 6,
+      estimateRowHeight: 6,
+    });
+
+    expect(renderHeader).toHaveBeenCalledTimes(1);
+    expect(renderRow).not.toHaveBeenCalled();
+  });
+});
+
 // ─── visUdkastStempel ────────────────────────────────────────────────────────
 
 describe('pdfWriter visUdkastStempel', () => {

@@ -627,8 +627,11 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       'Indtægter i erstatningsperioden'
     );
 
-    expect(loenudviklingBlock).toContain('Opgøres på baggrund af lønnen opgjort frem til 31. december 2024.');
-    expect(loenudviklingBlock).toContain('Offentlige ydelser beregnes per 31. december 2024 med statslig regulering per 1. januar.');
+    // "Forventet indkomst"-beskrivelsen skrives som ét sammenhængende afsnit (begge sætninger
+    // i samme writer-kald, adskilt af \n), så vi tjekker på den samlede blok-tekst.
+    const loenudviklingText = loenudviklingBlock.join('\n');
+    expect(loenudviklingText).toContain('Opgøres på baggrund af lønnen opgjort frem til 31. december 2024.');
+    expect(loenudviklingText).toContain('Offentlige ydelser beregnes per 31. december 2024 med statslig regulering per 1. januar.');
     expect(loenudviklingBlock).toContain('Dagpenge');
     expect(loenudviklingBlock).toContain('Sygedagpenge');
     expect(loenudviklingBlock.some((text) => text.includes('ydelse pr. arbejdsdag'))).toBe(false);

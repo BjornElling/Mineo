@@ -433,8 +433,9 @@ Kontrakten er koblet i `contractCoverageMatrix.test.ts` til:
 - `src/__tests__/quality/pdfPseudoTableGuard.test.ts`
 - `src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts`
 - `src/__tests__/utils/pdf/pdfWriter.test.ts`
+- `src/__tests__/docx/docxWriter.test.ts` (Word-kanalens paritet mod det fælles writer-API)
 
-Word-kanalen er desuden testdækket via `src/__tests__/docx/` (bl.a. `docxWriter.test.ts`) og knyttes formatvalgsmæssigt til `document-format-contract.md`.
+Word-kanalens indholds-paritet pr. generator er desuden dækket af `src/__tests__/docx/generators/*WordContent.test.ts` (én pr. dokument-generator, kørt gennem den rigtige generator via `wordContentHarness.ts`). Disse verificerer, at samme tekst og tal når `.docx`'en som PDF'en, og knyttes formatvalgsmæssigt til `document-format-contract.md`.
 
 ## 4. Enforcement
 

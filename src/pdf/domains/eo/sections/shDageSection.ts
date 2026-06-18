@@ -17,13 +17,7 @@ import { buildBeregningsperiodeRange } from '../../../../domain/erstatningsopgoe
 import type { IsoRange } from '../../../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
 import { mergeIsoDateRanges } from '../../../../domain/erstatningsopgoerelse/engines/periodMerging';
-
-type SHDageTableRow = Readonly<{
-  ugedag: string;
-  datoDisplay: string;
-  helligdagNavn: string;
-  erSHDag: boolean;
-}>;
+import type { SHDageTableRow } from '../types';
 
 type SHDageSectionContext = Readonly<{
   eoValues: ErstatningsopgoerelseValues;

@@ -15,7 +15,9 @@ import { DEFAULT_NUMERIC_TOLERANCE } from '../../utils/numberComparison';
 import { isDocxTableBridgeDocument, type DocxColumnAlignments } from '../../docx/infrastructure/docxTableBridge';
 
 export const TABLE_FONT_SIZE = 8;
-export const EO_TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
+// Generisk celle-padding for alle Mineo-tabeller (= TABLE_STYLES.cellPadding).
+// Modul-lokal: ingen ekstern importør, så ikke eksporteret.
+const TABLE_CELL_PADDING = TABLE_STYLES.cellPadding;
 
 type PdfAutoTableDoc = jsPDF & {
   lastAutoTable?: {
@@ -40,7 +42,7 @@ type PdfMeasuredDoc = jsPDF & Readonly<{
   getFont?: () => Readonly<{ fontName: string; fontStyle: string }>;
   getFontSize?: () => number;
 }>;
-export type PdfSummedTotalRow = Readonly<{
+type PdfSummedTotalRow = Readonly<{
   row: RowInput;
   valueCellColumnIndex: number;
   valueCellColSpan: number;
@@ -174,7 +176,7 @@ const resolveHorizontalCellPadding = (styles?: PdfTableCellStyles): number => {
     return left + right;
   }
 
-  return EO_TABLE_CELL_PADDING * 2;
+  return TABLE_CELL_PADDING * 2;
 };
 
 const isPdfTableCell = (value: unknown): value is PdfTableCell => {
@@ -515,7 +517,7 @@ const buildPdfTotalRow = (
           fontStyle: 'bold',
           // ColSpan-celler kan ellers arve højre-padding fra startkolonnen i spændet.
           // Det kan rykke totalbeløbet ind, når startkolonnen har custom inset.
-          cellPadding: EO_TABLE_CELL_PADDING,
+          cellPadding: TABLE_CELL_PADDING,
         },
       });
       index += valueCellColSpan - 1;
@@ -775,7 +777,7 @@ export const renderPdfTable = (params: Readonly<{
     styles: {
       font: PDF_FONT_FAMILY,
       fontSize: TABLE_FONT_SIZE,
-      cellPadding: EO_TABLE_CELL_PADDING,
+      cellPadding: TABLE_CELL_PADDING,
       textColor: COLORS.text,
     },
     columnStyles: resolvedColumnStyles,
@@ -803,9 +805,9 @@ export const renderPdfTable = (params: Readonly<{
     },
     didDrawCell: (data) => {
       if (underlinedCellSet.has(`${data.row.index}:${data.column.index}`)) {
-        const availableWidth = Math.max(0, data.cell.width - (EO_TABLE_CELL_PADDING * 2));
+        const availableWidth = Math.max(0, data.cell.width - (TABLE_CELL_PADDING * 2));
         const lineWidth = Math.min(PDF_TABLE_TOTAL_VALUE_LINE_WIDTH_MM, availableWidth);
-        const lineEnd = data.cell.x + data.cell.width - EO_TABLE_CELL_PADDING;
+        const lineEnd = data.cell.x + data.cell.width - TABLE_CELL_PADDING;
         const lineStart = lineEnd - lineWidth;
         doc.setLineWidth(PDF_TABLE_TOTAL_VALUE_LINE_WIDTH_PT);
         doc.setDrawColor(...COLORS.black);

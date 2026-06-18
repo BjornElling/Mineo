@@ -202,15 +202,12 @@ const addProformaKapitaliseringSection = (
 const addMerErstatningEvent = (
   writer: ReturnType<typeof createStandardPdfWriter>,
   event: MerErstatningPensionsalderEvent,
-  koen: string | undefined,
-  isFirst: boolean
+  koen: string | undefined
 ): void => {
   const rowOpts = { rightFontStyle: 'normal' as const };
 
-  if (!isFirst) {
-    writer.addSpacer(4);
-  }
-
+  // Manuel topafstand over underoverskriften er fjernet (document-output B6): writerens centrale
+  // subheader-topspacing styrer afstanden mellem mer-erstatning-events.
   writer.writeUnderlinedSubheader(
     `Forhøjelse pr. ${formatIsoDateLong(event.forhoejelsesdato)} (${event.gammelAlderLabel} → ${event.nyAlderLabel})`
   );
@@ -296,8 +293,8 @@ const addMerErstatningPensionsalderSection = (
   writer.addPage();
   writer.writeSectionHeader('Mer-erstatning ved forhøjet folkepensionsalder');
 
-  computation.events.forEach((event, index) => {
-    addMerErstatningEvent(writer, event, koen, index === 0);
+  computation.events.forEach((event) => {
+    addMerErstatningEvent(writer, event, koen);
   });
 };
 

@@ -9,6 +9,7 @@
  */
 
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
+import { PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../infrastructure/pdfConfig';
 import { ensureNonBreakingKr } from '../../shared/pdfTextUtils';
 import { type BrevhovedData } from '../../shared/pdfHelpers';
 import { logWarning } from '../../../utils/logger';
@@ -26,7 +27,7 @@ import type { TafPerYearPdfDocument } from '../../../domain/erstatningsopgoerels
 
 const NBSP = '\u00A0';
 const FILE_BASE_NAME = 'Tabt arbejdsfortjeneste fordelt på år';
-const TAF_RIGHT_COLUMN_WIDTH = 33.125;
+const TAF_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 
 // NOTE: Årsbeløb må være negative; PDF viser de beregnede værdier direkte.
 

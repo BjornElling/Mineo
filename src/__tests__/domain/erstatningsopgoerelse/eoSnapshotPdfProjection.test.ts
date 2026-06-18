@@ -128,24 +128,39 @@ describe('EO snapshot PDF projections', () => {
     expect(projection.document.presentation).toBe(FAKE_TAF_PER_YEAR_RESULT);
   });
 
-  it('tillader TAF-per-år-PDF uden TAF-perioder og giver null-praesentation', () => {
+  it('blokerer TAF-per-år-PDF når der ikke beregnes TAF i erstatningsperioden', () => {
     const snapshot = buildBaseSnapshot();
     const projection = eoSnapshotToTafPerYearPdfDocument(snapshot);
 
-    expect(projection.kind).toBe('ok');
-    if (projection.kind !== 'ok') return;
-    expect(projection.document.presentation).toBeNull();
-    expect(projection.document.model.tabtArbejdsfortjeneste.harTafPerioder).toBe(false);
+    expect(projection.kind).toBe('blocked');
+    if (projection.kind !== 'blocked') return;
+    expect(projection.message).toContain('der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden');
   });
 
-  it('tillader TAF-opreguleret-PDF og forwarder begge engine-resultater', () => {
+  it('blokerer TAF-opreguleret-PDF når der ikke beregnes TAF i erstatningsperioden', () => {
     const snapshot = buildBaseSnapshot();
     const projection = eoSnapshotToTafPerYearOpreguleretPdfDocument(snapshot);
 
+    expect(projection.kind).toBe('blocked');
+    if (projection.kind !== 'blocked') return;
+    expect(projection.message).toContain('der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden');
+  });
+
+  it('tillader TAF-opreguleret-PDF og forwarder begge engine-resultater når der er TAF', () => {
+    const snapshot = buildBaseSnapshot();
+    const withTaf = {
+      ...snapshot,
+      data: snapshot.data && {
+        ...snapshot.data,
+        engines: { ...snapshot.data.engines, tafPerYear: FAKE_TAF_PER_YEAR_RESULT },
+      },
+    };
+    const projection = eoSnapshotToTafPerYearOpreguleretPdfDocument(withTaf);
+
     expect(projection.kind).toBe('ok');
     if (projection.kind !== 'ok') return;
-    expect(projection.document.presentation).toBe(snapshot.data?.engines.tafPerYear ?? null);
-    expect(projection.document.opreguleret).toBe(snapshot.data?.engines.tafPerYearOpreguleret ?? null);
+    expect(projection.document.presentation).toBe(FAKE_TAF_PER_YEAR_RESULT);
+    expect(projection.document.opreguleret).toBe(withTaf.data?.engines.tafPerYearOpreguleret ?? null);
   });
 
   it('manglende-reguleringssats-invariant blokerer KUN taf_per_year_opreguleret_pdf, ikke eo_pdf/taf_per_year_pdf', () => {
@@ -155,6 +170,11 @@ describe('EO snapshot PDF projections', () => {
       ...snapshot,
       status: 'error' as const,
       invariants: [...snapshot.invariants, invariant],
+      // Injicér TAF, så testen isolerer invariant-blokeringen og ikke rammer no-TAF-gaten.
+      data: snapshot.data && {
+        ...snapshot.data,
+        engines: { ...snapshot.data.engines, tafPerYear: FAKE_TAF_PER_YEAR_RESULT },
+      },
     };
 
     // Den opregulerede PDF blokeres med invariantens besked.

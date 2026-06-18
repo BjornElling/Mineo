@@ -12,6 +12,7 @@ import { buildPeriodRangeGroups, normalizeEoBilagIndkomstYdelserMode, type IsoRa
 import { createPdfDistributedColumnStyles, renderPdfTable } from '../../../shared/pdfTableRenderer';
 import { getStandardLoenHeaderIndex, STANDARD_LOEN_FPFVSHSO_LABEL, STANDARD_LOEN_PENSION_LABEL, STANDARD_LOEN_SAMLET_LABEL } from '../../../../domain/aarsloen/standardLoenTableColumns';
 import { calculateLoenindkomstRowDerived } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstRowDerived';
+import type { PdfWriter } from '../../../infrastructure/pdfWriter';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 type LoenSectionContext = Readonly<{
@@ -36,13 +37,7 @@ type LoenSectionContext = Readonly<{
   }>) => boolean;
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
-  writer: Readonly<{
-    addSectionSpacer: () => void;
-    addSpacer: (height: number) => void;
-    setY: (y: number) => void;
-    getY: () => number;
-    getDoc: () => unknown;
-  }>;
+  writer: Pick<PdfWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc'>;
 }>;
 
 export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {

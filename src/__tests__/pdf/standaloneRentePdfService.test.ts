@@ -108,6 +108,8 @@ describe('downloadStandaloneRentePdf', () => {
     });
 
     expect(result).toEqual({ success: false, error: 'Kunne ikke generere rente-PDF' });
+    // Standalone-appen er namespace-isoleret og må ikke bruge hovedappens systemIssueReporter;
+    // fejl logges lokalt med console.error (jf. minprocesrenteStandaloneIsolation-guard).
     expect(consoleErrorSpy).toHaveBeenCalledWith('Kunne ikke generere rente-PDF', expect.any(Error));
   });
 });
@@ -172,6 +174,7 @@ describe('downloadAllStandaloneRentePdf', () => {
     expect(result.success).toBe(false);
     expect(mockWriteRentePdfContent).not.toHaveBeenCalled();
     expect(mockWriter.save).not.toHaveBeenCalled();
+    // Lokal console.error (ikke central systemIssueReporter) pga. standalone-isolation.
     expect(consoleErrorSpy).toHaveBeenCalledWith('Kunne ikke generere rente-PDF', expect.any(Error));
   });
 });

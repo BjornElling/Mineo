@@ -36,6 +36,12 @@ export const withDocumentGenerationContext = async <T>(
 
   try {
     const result = await run();
+    // Ikke-indlysende invariant: denne `await` er korrekthedskritisk for Word-stien.
+    // Word-writeren færdiggør sit .docx asynkront via en registreret pending download
+    // (registerPendingDocumentDownload). Uden denne await ville en fejl under den asynkrone
+    // færdiggørelse ikke nå frem til kalderens catch (pdfService.runSelectedDocumentFormat),
+    // og en mislykket Word-download ville stille returnere success med et tomt/korrupt dokument.
+    // Fjern ikke denne await i en refaktor.
     await Promise.all(context.pendingDownloads);
     return result;
   } finally {

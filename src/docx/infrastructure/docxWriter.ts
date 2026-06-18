@@ -65,6 +65,10 @@ const LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA = dxaFromCentimeters(12.5);
 const LEFT_RIGHT_TABLE_RIGHT_WIDTH_DXA = CONTENT_WIDTH_DXA - LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA;
 
 const emptyBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } as const;
+// Summeringsstreg over højre kolonne (I alt-/sum-linjer). Matcher PDF'ens tynde,
+// sorte streg (doc.setLineWidth(0.2)) så tæt docx-modellen tillader: en enkelt
+// sort topkant på højre celle. `size` er i ottendedele af et point (4 ≈ 0,5 pt).
+const sumLineTopBorder = { style: BorderStyle.SINGLE, size: 4, color: '000000' } as const;
 const tableBorders = {
   top: { style: BorderStyle.SINGLE, size: 1, color: 'D9D9D9' },
   bottom: { style: BorderStyle.SINGLE, size: 1, color: 'D9D9D9' },
@@ -226,37 +230,50 @@ const createLeftRightTable = (
   options?: Readonly<{
     leftFontStyle?: TextStyle;
     rightFontStyle?: TextStyle;
+    // Når sat (truthy) tegnes en summeringsstreg over højre kolonne — paritet med
+    // PDF'ens `lineAboveRightWidth` på I alt-/sum-linjer. Den konkrete bredde/offset
+    // fra PDF'en er irrelevant i Word, hvor stregen er en celle-topkant; her tæller
+    // kun, OM stregen skal vises.
+    lineAboveRightWidth?: number;
   }>
-): Table => new Table({
-  rows: [
-    new TableRow({
-      children: [
-        new TableCell({
-          width: { size: LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA, type: WidthType.DXA },
-          verticalAlign: VerticalAlignTable.BOTTOM,
-          borders: { top: emptyBorder, bottom: emptyBorder, left: emptyBorder, right: emptyBorder },
-          children: [paragraph(leftText, {
-            style: DOCX_STYLE.noSpacing,
-            bold: options?.leftFontStyle === 'bold',
-          })],
-        }),
-        new TableCell({
-          width: { size: LEFT_RIGHT_TABLE_RIGHT_WIDTH_DXA, type: WidthType.DXA },
-          verticalAlign: VerticalAlignTable.BOTTOM,
-          borders: { top: emptyBorder, bottom: emptyBorder, left: emptyBorder, right: emptyBorder },
-          children: [paragraph(rightText, {
-            style: DOCX_STYLE.noSpacing,
-            bold: options?.rightFontStyle !== 'normal',
-            alignment: AlignmentType.RIGHT,
-          })],
-        }),
-      ],
-    }),
-  ],
-  width: { size: CONTENT_WIDTH_DXA, type: WidthType.DXA },
-  layout: TableLayoutType.FIXED,
-  borders: TableBorders.NONE,
-});
+): Table => {
+  const showSumLine = Boolean(options?.lineAboveRightWidth);
+  return new Table({
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA, type: WidthType.DXA },
+            verticalAlign: VerticalAlignTable.BOTTOM,
+            borders: { top: emptyBorder, bottom: emptyBorder, left: emptyBorder, right: emptyBorder },
+            children: [paragraph(leftText, {
+              style: DOCX_STYLE.noSpacing,
+              bold: options?.leftFontStyle === 'bold',
+            })],
+          }),
+          new TableCell({
+            width: { size: LEFT_RIGHT_TABLE_RIGHT_WIDTH_DXA, type: WidthType.DXA },
+            verticalAlign: VerticalAlignTable.BOTTOM,
+            borders: {
+              top: showSumLine ? sumLineTopBorder : emptyBorder,
+              bottom: emptyBorder,
+              left: emptyBorder,
+              right: emptyBorder,
+            },
+            children: [paragraph(rightText, {
+              style: DOCX_STYLE.noSpacing,
+              bold: options?.rightFontStyle !== 'normal',
+              alignment: AlignmentType.RIGHT,
+            })],
+          }),
+        ],
+      }),
+    ],
+    width: { size: CONTENT_WIDTH_DXA, type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
+    borders: TableBorders.NONE,
+  });
+};
 
 const createSignatureTable = (
   dateLine: string,
@@ -516,12 +533,22 @@ export const createDocxWriter = (params?: Readonly<{
     advanceY: () => {},
     writeWrappedText: (text) => addParagraph(text),
     writeBoldWrappedText: (text) => addParagraph(text, true),
+    // I PDF'en dropper writeWrappedTextContinued kun den afsluttende spacing for
+    // bevidst at fortsætte samme logiske blok. I Word håndterer afsnitsmodellen selv
+    // sideflow og spacing (kontrakt §5), så her er den blot et almindeligt afsnit.
     writeWrappedTextContinued: (text) => addParagraph(text),
     writeNormalThenBoldLine: (normalPart, boldPart) => {
       blocks.push(mixedParagraph(normalPart, boldPart));
     },
     writeLeftRightText: (leftText, rightText, options) => {
-      blocks.push(createLeftRightTable(leftText, rightText, options));
+      // Paritet med PDF: når `lineAboveRightWidth` er sat (I alt-/sum-linjer),
+      // tegner PDF-writeren en summeringsstreg over højrekolonnen. Vi videregiver
+      // flaget, så Word viser samme streg som en topkant på højre celle.
+      blocks.push(createLeftRightTable(leftText, rightText, {
+        leftFontStyle: options?.leftFontStyle,
+        rightFontStyle: options?.rightFontStyle,
+        lineAboveRightWidth: options?.lineAboveRightWidth,
+      }));
     },
     writeSectionHeader: (text) => {
       blocks.push(paragraph(text, { style: DOCX_STYLE.sectionHeader }));
@@ -580,6 +607,11 @@ export const createDocxWriter = (params?: Readonly<{
         ],
       }));
     },
+    // Bevidst IKKE-metrisk heuristik: returnerer en grov proportional værdi
+    // (tegn × 2), ikke en faktisk tekstbredde. Word ombryder og justerer selv,
+    // så Word-writeren har ingen brug for reelle målinger. Værdien må derfor
+    // ALDRIG drive indholdsbeslutninger. Dens eneste PDF-forbruger,
+    // minRightColumnWidth, ignoreres også af Word-writeren (jf. writeLeftRightText).
     getTextWidth: (text) => text.length * 2,
     fitTextToWidth: (text) => text,
     getPageWidth: () => contentWidthDxa,

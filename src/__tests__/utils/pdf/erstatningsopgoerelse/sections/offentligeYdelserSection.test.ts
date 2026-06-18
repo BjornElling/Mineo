@@ -412,7 +412,7 @@ describe('renderMidlertidigtEetSection TAF-clamping', () => {
           y = nextY;
         }),
         getY: vi.fn(() => y),
-        getDoc: vi.fn(() => doc),
+        getDoc: vi.fn(() => doc as never),
       },
     });
 

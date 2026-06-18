@@ -479,6 +479,51 @@ describe('createDocxWriter', () => {
     expect(documentXml).toContain('w:jc w:val="right"');
     expect(documentXml).not.toContain('w:jc w:val="center"');
   });
+
+  // Paritet med PDF: writeLeftRightText med `lineAboveRightWidth` tegner en
+  // summeringsstreg over højrekolonnen på I alt-/sum-linjer. I Word vises den som
+  // en sort topkant på højre celle. Uden flaget må stregen IKKE optræde.
+  it('tegner en summeringsstreg over højre celle når lineAboveRightWidth er sat', async () => {
+    const capture = captureDownload();
+
+    await withDocumentGenerationContext('word', () => {
+      const writer = createDocxWriter();
+      // Almindelig linje uden sum-streg.
+      writer.writeLeftRightText('Delbeløb', '1.000 kr.');
+      // Sum-linje med summeringsstreg (lineAboveRightWidth sat).
+      writer.writeLeftRightText('I alt', '1.000 kr.', { lineAboveRightWidth: 30 });
+      writer.save('Sumlinje.pdf');
+    });
+
+    capture.restore();
+
+    const zip = await JSZip.loadAsync(capture.getBlob()!);
+    const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+
+    expect(documentXml).toContain('I alt');
+    // Præcis ÉN sort topkant (size 4 / color 000000) — kun fra sum-linjen.
+    const sumBorders = documentXml.match(/<w:top w:val="single"[^>]*w:color="000000"/g) ?? [];
+    expect(sumBorders.length).toBe(1);
+  });
+
+  // Negativ kontrol: uden lineAboveRightWidth tegnes ingen summeringsstreg.
+  it('tegner ingen summeringsstreg når lineAboveRightWidth ikke er sat', async () => {
+    const capture = captureDownload();
+
+    await withDocumentGenerationContext('word', () => {
+      const writer = createDocxWriter();
+      writer.writeLeftRightText('Delbeløb', '1.000 kr.');
+      writer.save('UdenSumlinje.pdf');
+    });
+
+    capture.restore();
+
+    const zip = await JSZip.loadAsync(capture.getBlob()!);
+    const documentXml = (await zip.file('word/document.xml')?.async('string')) ?? '';
+
+    expect(documentXml).toContain('Delbeløb');
+    expect(documentXml).not.toMatch(/<w:top w:val="single"[^>]*w:color="000000"/);
+  });
 });
 
 describe('createDocxWriter fejlpropagering', () => {

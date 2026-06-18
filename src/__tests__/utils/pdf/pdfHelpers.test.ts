@@ -1,6 +1,12 @@
 /// <reference types="vitest/globals" />
 
-import { ensurePdfPageSpace, addFooter, clearFooterImageCacheForTests } from '../../../pdf/shared/pdfHelpers';
+import {
+  ensurePdfPageSpace,
+  addFooter,
+  clearFooterImageCacheForTests,
+  formatAmount,
+  formatPercent,
+} from '../../../pdf/shared/pdfHelpers';
 import { MARGINS } from '../../../pdf/infrastructure/pdfConfig';
 import { createMockPdfDocumentAdapter } from './mockPdfDocumentAdapter';
 
@@ -45,6 +51,44 @@ describe('ensurePdfPageSpace', () => {
     const result = ensurePdfPageSpace(doc, 228, 50);
     expect(doc.addPage).toHaveBeenCalledTimes(1);
     expect(result).toBe(MARGINS.top);
+  });
+});
+
+describe('formatAmount', () => {
+  // Låser NUVÆRENDE adfærd. Bemærk den bevidste divergens fra den kanoniske
+  // formatAsAmount: for finite produktionsværdier er output identisk, men for
+  // null/undefined/ikke-finite returnerer denne wrapper '0,00' (kanonisk: '').
+  // Produktionsdata er altid finite, så fallbacken rammes ikke i praksis.
+  it('formaterer finite beløb i dansk format med to decimaler', () => {
+    expect(formatAmount(1234.5)).toBe('1.234,50');
+    expect(formatAmount(0)).toBe('0,00');
+    expect(formatAmount(-1000)).toBe('-1.000,00');
+  });
+
+  it('returnerer 0,00-fallback for null/undefined/ikke-finite (bevidst divergens)', () => {
+    expect(formatAmount(null)).toBe('0,00');
+    expect(formatAmount(undefined)).toBe('0,00');
+    expect(formatAmount(Number.NaN)).toBe('0,00');
+    expect(formatAmount(Number.POSITIVE_INFINITY)).toBe('0,00');
+    expect(formatAmount(Number.NEGATIVE_INFINITY)).toBe('0,00');
+  });
+});
+
+describe('formatPercent', () => {
+  // Låser NUVÆRENDE adfærd. Samme divergens-note som formatAmount: '0,00 %'-fallback
+  // for ugyldige input mod kanonisk ''. Finite værdier følger den kanoniske
+  // procent-formattering (trailing .00/.0 fjernes).
+  it('formaterer finite procenttal i dansk format', () => {
+    expect(formatPercent(10)).toBe('10 %');
+    expect(formatPercent(12.5)).toBe('12,5 %');
+    expect(formatPercent(0)).toBe('0 %');
+  });
+
+  it('returnerer 0,00 %-fallback for null/undefined/ikke-finite (bevidst divergens)', () => {
+    expect(formatPercent(null)).toBe('0,00 %');
+    expect(formatPercent(undefined)).toBe('0,00 %');
+    expect(formatPercent(Number.NaN)).toBe('0,00 %');
+    expect(formatPercent(Number.POSITIVE_INFINITY)).toBe('0,00 %');
   });
 });
 

@@ -16,6 +16,7 @@ import { OFFENTLIGE_YDELSER_PDF_HEADERS } from '../../../../domain/erstatningsop
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { formatISOToDanish } from '../../../../utils/dateFormatting';
 import { formatMaaneder4, formatReguleringPct, formatKr } from '../../../shared/pdfFormatUtils';
+import type { PdfWriter } from '../../../infrastructure/pdfWriter';
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 
@@ -32,26 +33,14 @@ type OffentligeYdelserSectionContext = Readonly<{
   eoBilagIndkomstYdelserMode: EoBilagLoenindkomstOgOffentligeYdelserIndgaar;
   eoBilagIndkomstYdelserRanges: readonly IsoRange[];
   writeBoldSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
-  writer: Readonly<{
-    addSectionSpacer: () => void;
-    addSpacer: (height: number) => void;
-    setY: (y: number) => void;
-    getY: () => number;
-    getDoc: () => unknown;
-  }>;
+  writer: Pick<PdfWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc'>;
 }>;
 
 type RenderOffentligeYdelserRowsPageContext = Readonly<{
   rows: readonly OffentligeYdelserRow[];
   visYdelsestypeSubheader?: boolean;
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
-  writer: Readonly<{
-    addSectionSpacer: () => void;
-    addSpacer: (height: number) => void;
-    setY: (y: number) => void;
-    getY: () => number;
-    getDoc: () => unknown;
-  }>;
+  writer: Pick<PdfWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc'>;
 }>;
 
 export const renderOffentligeYdelserRowsPage = (ctx: RenderOffentligeYdelserRowsPageContext): void => {
@@ -194,13 +183,7 @@ type MidlertidigtEetSectionContext = Readonly<{
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   formatAfgoerelsesdato: (date: ISODateString) => string | undefined;
   tafRanges: readonly IsoRange[];
-  writer: Readonly<{
-    addSectionSpacer: () => void;
-    addSpacer: (height: number) => void;
-    setY: (y: number) => void;
-    getY: () => number;
-    getDoc: () => unknown;
-  }>;
+  writer: Pick<PdfWriter, 'addSectionSpacer' | 'addSpacer' | 'setY' | 'getY' | 'getDoc'>;
 }>;
 
 type ClampedMidlertidigtEetRow = MidlertidigtEetAfgoerelseGroup['perioder'][number];

@@ -174,7 +174,6 @@ type PdfCursor = Readonly<{
   fitTextToWidth: (text: string, maxWidth: number) => string;
   getFullWidth: () => number;
   addPage: () => void;
-  getPageContentHeight: () => number;
   getRemainingSpace: () => number;
   renderAtomicBlock: (estimatedHeight: number, render: () => void) => void;
   addFooter: () => void;
@@ -199,7 +198,6 @@ const createPdfCursor = (params: Readonly<{
   const pageHeight = adapter.getPageHeight();
   const contentBottom = pageHeight - MARGINS.bottom;
   const fullWidth = adapter.getPageWidth() - MARGINS.left - MARGINS.right;
-  const pageContentHeight = contentBottom - MARGINS.top;
   let y = MARGINS.top;
   let activeFont: { fontName: string; fontStyle: string } = { fontName: PDF_FONT_FAMILY, fontStyle: PDF_FONT_STYLES.normal };
   let activeFontSize = FONT_SIZES.normal;
@@ -511,7 +509,9 @@ const createPdfCursor = (params: Readonly<{
     const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
     let dateCenterX = dateX;
     let sigCenterX = sigX;
-    ensureSpace(resolvedLineHeight);
+    // Keep-together for underskriftsblokken: reservér begge linjer (signaturlinje + "Dato"/navn-label)
+    // atomisk, så et sideskift ikke kan splitte labelen fra dens linje.
+    ensureSpace(2 * resolvedLineHeight);
     withTextStyle({
       fontStyle: 'normal',
       fontSize,
@@ -523,7 +523,6 @@ const createPdfCursor = (params: Readonly<{
       },
     });
     y += resolvedLineHeight;
-    ensureSpace(resolvedLineHeight);
     withTextStyle({
       fontStyle: 'normal',
       fontSize,
@@ -619,7 +618,6 @@ const createPdfCursor = (params: Readonly<{
     fitTextToWidth: (text: string, maxWidth: number) => fitTextToWidth(doc, text, maxWidth),
     getFullWidth: () => fullWidth,
     addPage,
-    getPageContentHeight: () => pageContentHeight,
     getRemainingSpace: () => Math.max(0, contentBottom - y),
     renderAtomicBlock: (estimatedHeight: number, render: () => void) => {
       ensureSpace(estimatedHeight);

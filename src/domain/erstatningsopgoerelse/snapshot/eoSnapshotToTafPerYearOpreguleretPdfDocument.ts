@@ -6,6 +6,7 @@ import {
   buildBlockingMessageForOutput,
   getBlockingInvariantsForOutput,
 } from './eoSnapshotInvariants';
+import { tafBeregningsgrundlagAngivetLoenMangler } from './eoSnapshotToTafPerYearPdfDocument';
 import type { EoModel } from '../shared/eoTypes';
 
 export type TafPerYearOpreguleretPdfDocument = Readonly<{
@@ -45,13 +46,33 @@ export const eoSnapshotToTafPerYearOpreguleretPdfDocument = (
     };
   }
 
+  // Bloker download når der ikke er TAF fordelt på år — på linje med "Visuel graf over
+  // indtægtsniveau" og "TAF-krav fordelt på kalenderår".
+  const presentation = snapshot.data.engines.tafPerYear;
+  if (!presentation || presentation.years.length === 0) {
+    const message = snapshot.data.engines.tafNetto.harTafPerioder
+      ? 'TAF opreguleret til beregningsåret kan ikke genereres, fordi TAF ikke kan fordeles på år.'
+      : 'TAF opreguleret til beregningsåret kan ikke genereres, fordi der ikke beregnes tabt arbejdsfortjeneste i erstatningsperioden.';
+    return { kind: 'blocked', message, invariants: [] };
+  }
+
+  if (tafBeregningsgrundlagAngivetLoenMangler(snapshot.data.pdfModel)) {
+    // Fail-closed: ingen teknisk "Fejl (...)"-tekst i et tillidskritisk dokument (A2/A5).
+    return {
+      kind: 'blocked',
+      message:
+        'Beregningsgrundlaget for tabt arbejdsfortjeneste mangler den angivne måneds-/dagsløn. Udfyld lønnen, før dokumentet kan dannes.',
+      invariants: [],
+    };
+  }
+
   // pdfModel og engine-resultater er bygget og caches i computeEoSnapshot —
   // konsistens mod totals er garanteret af snapshot-pipelinen.
   return {
     kind: 'ok',
     document: {
       model: snapshot.data.pdfModel,
-      presentation: snapshot.data.engines.tafPerYear,
+      presentation,
       opreguleret: snapshot.data.engines.tafPerYearOpreguleret,
     },
   };

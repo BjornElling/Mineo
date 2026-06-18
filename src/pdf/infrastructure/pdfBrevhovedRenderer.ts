@@ -43,5 +43,10 @@ export const renderBrevhoved = (doc: PdfDocumentAdapter, data: BrevhovedData): n
 
   doc.text(resolvedDatoText, rightX, currentY, { align: 'right' });
 
-  return MARGINS.top;
+  // Indholdet starter ved MARGINS.top, som er dimensioneret (40 mm) til at ligge under
+  // brevhovedets nederste linje. Math.max gør udledningen defensiv: skulle brevhovedet
+  // vokse, så dets bund kommer under MARGINS.top, skubbes content-start ned i stedet for
+  // at overlappe. For nuværende 1-2-linjers brevhoved er currentY + linjehøjde < MARGINS.top,
+  // så resultatet er uændret MARGINS.top.
+  return Math.max(MARGINS.top, currentY + PDF_BREVHOVED_LINE_HEIGHT);
 };

@@ -14,6 +14,7 @@ import type jsPDF from 'jspdf';
 import type { RowInput } from 'jspdf-autotable';
 import { resolvePdfSectionEndY } from '../../../shared/pdfHelpers';
 import { createStandardPdfWriter } from '../../../infrastructure/pdfWriter';
+import { PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../../infrastructure/pdfConfig';
 import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { capitalizeFirstCharDa, formatPercent as formatPercentUtil, formatAsAmount } from '../../../../utils/formatUtils';
@@ -72,8 +73,9 @@ import {
 
 type StandardPdfWriter = ReturnType<typeof createStandardPdfWriter>;
 
-const NBSP = ' ';
-const EO_RIGHT_COLUMN_WIDTH = 33.125;
+// Non-breaking space, s\u00E5 bel\u00F8b og "kr." aldrig brydes over to linjer.
+const NBSP = '\u00A0';
+const EO_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 
 type EoBilagLoenindkomstOgOffentligeYdelserIndgaar = ErstatningsopgoerelseValues['eoBilagLoenindkomstOgOffentligeYdelserIndgaar'];
 

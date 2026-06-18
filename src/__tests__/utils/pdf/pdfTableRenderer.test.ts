@@ -1,7 +1,12 @@
 /// <reference types="vitest/globals" />
 
 import { PDF_CONTENT_WIDTH_MM, TABLE_STYLES } from '../../../pdf/infrastructure/pdfConfig';
-import { createPdfDistributedColumnStyles, createPdfTableCell, createPdfTableSummedTotalRow } from '../../../pdf/shared/pdfTableRenderer';
+import {
+  createPdfDistributedColumnStyles,
+  createPdfTableCell,
+  createPdfTableFormattedTotalRow,
+  createPdfTableSummedTotalRow,
+} from '../../../pdf/shared/pdfTableRenderer';
 
 type PdfTableTestCell = { content?: string; colSpan?: number; styles?: { cellPadding?: number } };
 
@@ -146,6 +151,87 @@ describe('createPdfTableSummedTotalRow', () => {
     });
 
     expect(result?.formattedValue).toBe('30\u00A0kr.');
+  });
+});
+
+describe('buildPdfTotalRow (via createPdfTableFormattedTotalRow) — invariant-guards', () => {
+  // De fem fail-closed guards i buildPdfTotalRow må aldrig producere en stille
+  // forkert total-række i et tillidskritisk dokument; de skal kaste.
+
+  it('afviser ugyldigt kolonneantal (<= 1 eller ikke-heltal)', () => {
+    expect(() =>
+      createPdfTableFormattedTotalRow('I alt', '30', { columnCount: 1, valueColumnIndex: 0 })
+    ).toThrow(/Ugyldigt kolonneantal/i);
+
+    expect(() =>
+      createPdfTableFormattedTotalRow('I alt', '30', { columnCount: 2.5, valueColumnIndex: 1 })
+    ).toThrow(/Ugyldigt kolonneantal/i);
+  });
+
+  it('afviser label-kolonneindex uden for [0, columnCount)', () => {
+    expect(() =>
+      createPdfTableFormattedTotalRow('I alt', '30', {
+        columnCount: 4,
+        valueColumnIndex: 3,
+        labelColumnIndex: -1,
+      })
+    ).toThrow(/Ugyldigt label-kolonneindex/i);
+
+    expect(() =>
+      createPdfTableFormattedTotalRow('I alt', '30', {
+        columnCount: 4,
+        valueColumnIndex: 3,
+        labelColumnIndex: 4,
+      })
+    ).toThrow(/Ugyldigt label-kolonneindex/i);
+  });
+
+  it('afviser værdi-kolonneindex uden for [0, columnCount)', () => {
+    expect(() =>
+      createPdfTableFormattedTotalRow('I alt', '30', { columnCount: 4, valueColumnIndex: 4 })
+    ).toThrow(/Ugyldigt værdi-kolonneindex/i);
+
+    expect(() =>
+      createPdfTableFormattedTotalRow('I alt', '30', { columnCount: 4, valueColumnIndex: -1 })
+    ).toThrow(/Ugyldigt værdi-kolonneindex/i);
+  });
+
+  it('afviser ugyldigt værdi-colSpan (<= 0 eller ikke-heltal)', () => {
+    expect(() =>
+      createPdfTableFormattedTotalRow('I alt', '30', {
+        columnCount: 4,
+        valueColumnIndex: 1,
+        valueColSpan: 0,
+      })
+    ).toThrow(/Ugyldigt værdi-colSpan/i);
+  });
+
+  it('afviser når værdi-cellen rækker ud over tabellens kolonner', () => {
+    expect(() =>
+      createPdfTableFormattedTotalRow('I alt', '30', {
+        columnCount: 4,
+        valueColumnIndex: 3,
+        valueColSpan: 2,
+      })
+    ).toThrow(/rækker ud over tabellens kolonner/i);
+  });
+
+  it('afviser når label-kolonnen ikke ligger til venstre for værdi-kolonnen', () => {
+    expect(() =>
+      createPdfTableFormattedTotalRow('I alt', '30', {
+        columnCount: 4,
+        valueColumnIndex: 1,
+        labelColumnIndex: 1,
+      })
+    ).toThrow(/til venstre for værdi-kolonnen/i);
+
+    expect(() =>
+      createPdfTableFormattedTotalRow('I alt', '30', {
+        columnCount: 4,
+        valueColumnIndex: 1,
+        labelColumnIndex: 2,
+      })
+    ).toThrow(/til venstre for værdi-kolonnen/i);
   });
 });
 

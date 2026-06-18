@@ -93,7 +93,9 @@ const niceCeil = (value: number): number => {
 const TARGET_TICK_INTERVALS = 5;
 const Y_AXIS_HEADROOM = 1.02;
 
-const buildNiceMoneyTicks = (maxStackedOre: MoneyOre): readonly MoneyOre[] => {
+// Input er den rå (evt. ikke-heltallige) øre-sum til akseskalering; tick-værdierne afrundes og
+// brandes som MoneyOre internt, så inputtet behøver ikke selv være branded.
+const buildNiceMoneyTicks = (maxStackedOre: number): readonly MoneyOre[] => {
   const maxKr = Math.max(1, (maxStackedOre / 100) * Y_AXIS_HEADROOM);
   const stepKr = Math.max(1, niceCeil(maxKr / TARGET_TICK_INTERVALS));
   const tickCount = Math.max(1, Math.ceil(maxKr / stepKr));
@@ -660,7 +662,7 @@ export const renderTafKravGrafChartPng = (
   const mapDate = buildXMapper(layout);
   const samples = buildWindowSamples(document, layout, mapDate, smoothingWindow);
 
-  const maxTotal = maxStackedTotalOre(samples) as MoneyOre;
+  const maxTotal = maxStackedTotalOre(samples);
   const ticks = buildNiceMoneyTicks(maxTotal);
   const maxTick = ticks.at(-1) ?? (maxTotal || 1);
   const yForAmount = (amount: number): number =>

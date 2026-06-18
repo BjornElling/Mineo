@@ -4,7 +4,7 @@
  * Genererer PDF-dokument med komplet erstatningsopgørelse
  */
 
-import { PDF_BASE_LINE_HEIGHT_MM } from '../../infrastructure/pdfConfig';
+import { PDF_BASE_LINE_HEIGHT_MM, PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../infrastructure/pdfConfig';
 import { type BrevhovedData } from '../../shared/pdfHelpers';
 import type { PdfCommonOptions } from '../../shared/pdfOptions';
 import { createStandardPdfWriter } from '../../infrastructure/pdfWriter';
@@ -35,7 +35,7 @@ import { renderEoBilagSections } from './sections/eoBilagSections';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 
 const NBSP = '\u00A0';
-const EO_RIGHT_COLUMN_WIDTH = 33.125;
+const EO_RIGHT_COLUMN_WIDTH = PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM;
 
 const renderMoney = (value: Calculable<MoneyOre>): string => {
   return value.status === 'ok' ? formatCurrencyFromOre(value.value) : '—';

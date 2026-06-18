@@ -1,0 +1,112 @@
+/// <reference types="vitest/globals" />
+
+import { toISODateString } from '../../../types/branded';
+
+// Wiring-test for forsørgertab-PDF'en: verificerer at de betingede sider (EAL/ASL)
+// kun bygges når den tilhørende delberegning er sat, så et manglende delgrundlag
+// ikke fremtvinger en tom side eller en sektion uden indhold i et tillidskritisk dokument.
+class MockJsPDF {
+  static instances: MockJsPDF[] = [];
+  internal = { pageSize: { width: 210, height: 297 } };
+  text = vi.fn();
+  private currentFontName = 'helvetica';
+  private currentFontStyle = 'normal';
+  constructor() {
+    MockJsPDF.instances.push(this);
+  }
+  setFont = vi.fn((name: string, style: string) => {
+    this.currentFontName = name;
+    this.currentFontStyle = style;
+  });
+  getFont = vi.fn(() => ({ fontName: this.currentFontName, fontStyle: this.currentFontStyle }));
+  setFontSize = vi.fn();
+  setTextColor = vi.fn();
+  setDisplayMode = vi.fn();
+  setProperties = vi.fn();
+  splitTextToSize = vi.fn((t: string) => [t]);
+  getTextWidth = vi.fn((t: string) => t.length);
+  getNumberOfPages = vi.fn(() => 1);
+  setPage = vi.fn();
+  line = vi.fn();
+  setLineWidth = vi.fn();
+  addPage = vi.fn();
+  save = vi.fn();
+}
+
+vi.mock('jspdf', () => ({ default: MockJsPDF }));
+
+const BASE_GRUNDLAEGGENDE = {
+  beregningsdato: toISODateString('2026-03-17'),
+  skadelidteFodselsdato: toISODateString('1980-01-01'),
+  efterladteFodselsdato: undefined,
+  koen: undefined,
+  visKoenValg: false,
+  aslAarsloen: undefined,
+  ealAarsloen: undefined,
+  virkningsdato: undefined,
+  tilkendtForPeriodeAar: undefined,
+};
+
+// Generatoren importeres dynamisk inde i testene, så jspdf-mocken (med MockJsPDF)
+// er fuldt initialiseret før modulgrafen indlæses. Eksplicit timeout, fordi den
+// første dynamiske import af modulgrafen kan være tung under parallel kørsel.
+const importGenerator = () => import('../../../pdf/domains/forsoergertab/forsoergertabPdf');
+
+const renderedTextOf = (instance: MockJsPDF | undefined): unknown[] =>
+  (instance?.text.mock.calls ?? []).map((call) => call[0]);
+
+describe('forsoergertabPdf wiring', () => {
+  beforeEach(() => {
+    MockJsPDF.instances = [];
+  });
+
+  it(
+    'bygger hverken EAL- eller ASL-side når begge delberegninger er null',
+    async () => {
+      const { generateForsoergertabPdf } = await importGenerator();
+
+      generateForsoergertabPdf({
+        grundlaeggende: BASE_GRUNDLAEGGENDE,
+        result: null,
+        ealComputation: null,
+        aslComputation: null,
+        foersoergertabEalMinSats: null,
+        foersoergertabForhoejtetTilMin: false,
+        visBrevhoved: false,
+      });
+
+      const instance = MockJsPDF.instances.at(-1);
+      const text = renderedTextOf(instance);
+
+      expect(text).toContain('Forsørgertab');
+      expect(text).not.toContain('EAL-krav');
+      expect(text).not.toContain('ASL-ydelser');
+      // Ingen ekstra sider når begge delberegninger mangler.
+      expect(instance?.addPage).not.toHaveBeenCalled();
+    },
+    20000
+  );
+
+  it(
+    'gemmer en PDF med korrekt filendelse',
+    async () => {
+      const { generateForsoergertabPdf } = await importGenerator();
+
+      generateForsoergertabPdf({
+        grundlaeggende: BASE_GRUNDLAEGGENDE,
+        result: null,
+        ealComputation: null,
+        aslComputation: null,
+        foersoergertabEalMinSats: null,
+        foersoergertabForhoejtetTilMin: false,
+        visBrevhoved: false,
+      });
+
+      const instance = MockJsPDF.instances.at(-1);
+      expect(instance?.save).toHaveBeenCalledTimes(1);
+      const savedName = instance?.save.mock.calls.at(0)?.[0] as string | undefined;
+      expect(savedName).toMatch(/\.pdf$/);
+    },
+    20000
+  );
+});

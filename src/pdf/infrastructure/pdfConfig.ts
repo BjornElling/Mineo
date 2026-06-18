@@ -54,6 +54,9 @@ export const TABLE_STYLES = {
 // Fælles detail-konstanter for ensartet PDF-udtryk
 export const PDF_MUTED_TEXT_COLOR: PdfColor = COLORS.muted;
 export const PDF_TABLE_NARROW_COLUMN_WIDTH = 25;
+// Fælles minimumsbredde for højrekolonnen i beløbsopstillinger (label/værdi-linjer + sum-streger)
+// på tværs af EO-opgørelse, EO-bilag og TAF-dokumenterne, så beløbskolonnen flugter ens.
+export const PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM = 33.125;
 export const PDF_TABLE_TOTAL_VALUE_LINE_WIDTH_MM = 22;
 export const PDF_TABLE_TOTAL_VALUE_LINE_WIDTH_PT = 0.2;
 export const PDF_FINAL_Y_FALLBACK_HEIGHT = 50;

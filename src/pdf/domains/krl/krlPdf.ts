@@ -121,18 +121,18 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
   );
 
   if (bodyRows.length === 0) {
+    // Tom-fallback: 1 label-celle + én tom celle pr. satstabel, udledt af krlSatstabeller
+    // så rækken altid flugter med headeren — også hvis antallet af tabeller ændres.
     bodyRows.push([
       createPdfTableCell('Ingen satser tilgængelige.', { halign: 'center' }),
-      createPdfTableCell('', { halign: 'center' }),
-      createPdfTableCell('', { halign: 'center' }),
-      createPdfTableCell('', { halign: 'center' }),
-      createPdfTableCell('', { halign: 'center' }),
+      ...krlSatstabeller.map(() => createPdfTableCell('', { halign: 'center' })),
     ]);
   }
 
-  // Beregn lige kolonnebredder
+  // Beregn lige kolonnebredder ud fra det faktiske antal kolonner (Fra-dato + én pr. satstabel)
+  const columnCount = 1 + krlSatstabeller.length;
   const tableWidth = PDF_CONTENT_WIDTH_MM;
-  const colWidth = tableWidth / 5;
+  const colWidth = tableWidth / columnCount;
   const tableRows: RowInput[] = [headerRow, ...bodyRows];
 
   const finalY = renderPdfTable({
@@ -140,7 +140,7 @@ export const generateKRLPdf = (params: KRLPdfParams): void => {
     startY: writer.getY(),
     body: tableRows,
     tableWidth,
-    columnStyles: createPdfFixedColumnStyles(5, colWidth, 'center'),
+    columnStyles: createPdfFixedColumnStyles(columnCount, colWidth, 'center'),
     didParseCell: (data) => {
       data.cell.styles.halign = 'center';
     },

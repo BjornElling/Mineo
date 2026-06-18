@@ -58,26 +58,15 @@ export const buildAarsloenPdfFilename = (journalnr?: string): string => {
 };
 
 /**
- * Formaterer beløb til dansk format med tusindtalsseparator
- * Bevarer præcis formatering som indtastet
+ * Formaterer beløb til dansk format med tusindtalsseparator.
+ * Kalderne sender enten en AmountValue (tabelceller) eller et beregnet tal; aldrig en rå streng.
  */
-const formatDanishAmount = (amount: unknown): string => {
-  if (amount === null || amount === undefined || amount === '') return '';
-
-  if (typeof amount === 'object' && amount !== null && 'kind' in amount) {
-    return amountValueToDisplayString(amount as AmountValue, 2);
-  }
-
-  // Hvis amount allerede er en streng (fra input), returner som den er
-  if (typeof amount === 'string') {
-    return amount;
-  }
-
+const formatDanishAmount = (amount: AmountValue | number | null | undefined): string => {
+  if (amount === null || amount === undefined) return '';
   if (typeof amount === 'number') {
     return formatAsAmount(amount, 2);
   }
-
-  return '';
+  return amountValueToDisplayString(amount, 2);
 };
 
 const isEmptyOrZero = (value: unknown): boolean => {

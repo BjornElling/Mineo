@@ -172,6 +172,135 @@ describe('renderPdfTable adaptive column widths', () => {
     expect(totalWidth).toBeCloseTo(PDF_CONTENT_WIDTH_MM, 6);
   });
 
+  it('lader colSpan-celler IKKE drive minimumsbredden (bevidst invariant)', async () => {
+    // En total-/colSpan-celle med meget lang tekst må ikke tvinge ekstra bredde
+    // på tværs af flere kolonner. Med kun smalle 1:1-celler i øvrigt skal de
+    // distribuerede bredder forblive den statiske ligelige fordeling.
+    const { createPdfDistributedColumnStyles, createPdfTableCell, createPdfTableHeaderCell, renderPdfTable } =
+      await import('../../../pdf/shared/pdfTableRenderer');
+
+    const doc = new MockJsPDF();
+    const initialWidth = PDF_CONTENT_WIDTH_MM / 4;
+
+    renderPdfTable({
+      doc: doc as never,
+      startY: 40,
+      body: [
+        [
+          createPdfTableHeaderCell('A'),
+          createPdfTableHeaderCell('B'),
+          createPdfTableHeaderCell('C'),
+          createPdfTableHeaderCell('D'),
+        ],
+        [
+          createPdfTableCell('x'),
+          createPdfTableCell('x'),
+          createPdfTableCell('x'),
+          createPdfTableCell('x'),
+        ],
+        // Lang colSpan-celle der ville sprænge en kolonne, hvis colSpan drev bredden.
+        [
+          {
+            content: 'En meget lang totaltekst der spænder over alle fire kolonner og ellers ville kræve enorm bredde',
+            colSpan: 4,
+            styles: { halign: 'right' as const },
+          },
+        ],
+      ],
+      columnStyles: createPdfDistributedColumnStyles(4),
+    });
+
+    const call = autoTableMock.mock.calls[0]?.[1];
+    const styles = call?.columnStyles as Record<number, { cellWidth: number }>;
+
+    // Ingen 1:1-celle er bred nok til at skabe deficit → bredderne forbliver uændrede,
+    // hvilket beviser at colSpan-cellen ikke drev minimumsbredden.
+    expect(styles[0]?.cellWidth).toBeCloseTo(initialWidth, 6);
+    expect(styles[1]?.cellWidth).toBeCloseTo(initialWidth, 6);
+    expect(styles[2]?.cellWidth).toBeCloseTo(initialWidth, 6);
+    expect(styles[3]?.cellWidth).toBeCloseTo(initialWidth, 6);
+  });
+
+  it('bevarer fuld tabelbredde efter residual-omfordeling af distribuerede kolonner', async () => {
+    // Når deficit/donor-passet efterlader et lille residual (fx pga. afrunding),
+    // skal residual-grenen lægge resten på en distribueret kolonne, så summen
+    // præcist rammer tabelbredden igen — ingen kolonne ender under sit krav.
+    const { createPdfDistributedColumnStyles, createPdfTableCell, createPdfTableHeaderCell, renderPdfTable } =
+      await import('../../../pdf/shared/pdfTableRenderer');
+
+    const doc = new MockJsPDF();
+
+    renderPdfTable({
+      doc: doc as never,
+      startY: 40,
+      body: [
+        [
+          createPdfTableHeaderCell('Periode'),
+          createPdfTableHeaderCell('Grundlag'),
+          createPdfTableHeaderCell('Beløb'),
+          createPdfTableHeaderCell('Notat'),
+        ],
+        [
+          createPdfTableCell('Jan'),
+          createPdfTableCell('Kort'),
+          createPdfTableCell('9.999.999,99 kr. ekstra tillæg her', { halign: 'right' }),
+          createPdfTableCell('Ok'),
+        ],
+      ],
+      columnStyles: createPdfDistributedColumnStyles(4),
+    });
+
+    const call = autoTableMock.mock.calls[0]?.[1];
+    const styles = call?.columnStyles as Record<number, { cellWidth: number }>;
+    const totalWidth = Object.values(styles).reduce((sum, style) => sum + style.cellWidth, 0);
+
+    // Invariant: summen af alle kolonnebredder = tabelbredden (residual fuldt fordelt).
+    expect(totalWidth).toBeCloseTo(PDF_CONTENT_WIDTH_MM, 6);
+    // Hver kolonne har en positiv bredde (ingen kolonne tvunget under nul/krav).
+    for (const style of Object.values(styles)) {
+      expect(style.cellWidth).toBeGreaterThan(0);
+    }
+  });
+
+  it('falder fail-closed tilbage til de originale styles når omfordeling ikke kan dække deficit', async () => {
+    // Alle distribuerede kolonner kræver mere end deres ligelige andel (totalt
+    // deficit > total surplus). Da er der ingen donor at trække fra, og funktionen
+    // skal returnere de uændrede styles frem for at gætte en ny fordeling.
+    const { createPdfDistributedColumnStyles, createPdfTableCell, createPdfTableHeaderCell, renderPdfTable } =
+      await import('../../../pdf/shared/pdfTableRenderer');
+
+    const doc = new MockJsPDF();
+    const initialWidth = PDF_CONTENT_WIDTH_MM / 4;
+
+    renderPdfTable({
+      doc: doc as never,
+      startY: 40,
+      body: [
+        [
+          createPdfTableHeaderCell('Lang overskrift A der fylder hele kolonnen helt ud'),
+          createPdfTableHeaderCell('Lang overskrift B der fylder hele kolonnen helt ud'),
+          createPdfTableHeaderCell('Lang overskrift C der fylder hele kolonnen helt ud'),
+          createPdfTableHeaderCell('Lang overskrift D der fylder hele kolonnen helt ud'),
+        ],
+        [
+          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
+          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
+          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
+          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
+        ],
+      ],
+      columnStyles: createPdfDistributedColumnStyles(4),
+    });
+
+    const call = autoTableMock.mock.calls[0]?.[1];
+    const styles = call?.columnStyles as Record<number, { cellWidth: number }>;
+
+    expect(styles[0]?.cellWidth).toBeCloseTo(initialWidth, 6);
+    expect(styles[1]?.cellWidth).toBeCloseTo(initialWidth, 6);
+    expect(styles[2]?.cellWidth).toBeCloseTo(initialWidth, 6);
+    expect(styles[3]?.cellWidth).toBeCloseTo(initialWidth, 6);
+  });
+
   it('fejler fail-closed når body er tom i stedet for at rendere en blank tabel', async () => {
     const { renderPdfTable } = await import('../../../pdf/shared/pdfTableRenderer');
 

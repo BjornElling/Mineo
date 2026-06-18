@@ -23,7 +23,7 @@
 
 ## Status og fremdrift
 
-Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **Næste ikke-startede punkt: 10.1.**
+Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **Næste ikke-startede punkt: 11.1.**
 
 **Færdige grupper** (fund rettet + tests grønne; detaljer i de enkelte `docs/review/[punkt]-*.md`):
 
@@ -37,7 +37,7 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 - ✅ **Gruppe 9 — Hooks** (9.1–9.4, 2026-06-17). Fire udskudte fund lukket: revoked PWA-handle får nu handlingsanvisende dansk fejl (permission-gate + DOMException-mapping, brugergodkendt); den pre-eksisterende `pwaConcurrency`-flake root-caused (auto-retry-timer↔event-race) + rettet via delt `lastAttemptedRequestIdRef`; navigations-commit-flush bragt på linje med save/load (`prepareForCriticalDataReplacement`); manglende `historyTargetRestore`-tests skrevet. Brugergodkendt: ASL maks-validering fail-closed ved manglende sats; omregning-toggle vejledning via kanonisk celle-hint. Konvergens: `useScrollToSectionWithRetry` konsolideret onto `scrollWithRetry` (+ delt cancel); dynamisk fejl-reporter-cache lækker ikke. **Parkeret (14.2):** ubrugt `replaceValues`-export; `StyledToggleSwitch` imperativ shake.
 - ✅ **Gruppe 8 — Pages** (8.1–8.6, 2026-06-16). LoginPage flyttet til `src/auth/`; Satser nedtoner satser ved ugyldigt år (brugergodkendt); to debug-indstillinger (test-fane + font-style-farvemarkering) DEV-gated UI+adfærd (brugergodkendt). Delt forligs-validering (`useForligAnsvarsgradValidation` + `forligAnsvarsgradRules`) håndhæves nu ens fra både Erstatningsopgørelse og Erhvervsevnetab→Differencekrav (brugergodkendt korrekthedsfix). Insert-today `fieldPath`-bug rettet; kanonisk `useShakeFlag` (to inline timer-leaks fjernet); kanonisk `formatKr`/`dateRanges_varigemen`; MenberegningTab flyttet til central fejl-model; `SKAERING_2015_03_01`/`SKAERING_2024_01_01` konsolideret; dødkode fjernet (`EODebugLoenSections`+`eoDebugLoenViewModel`, `ComputationErrorAlert`, dead `isUserFeedbackRef`); Overlay auto-close timer-fix. **De to største komponenter dekomponeret:** `LoenindkomstTab` 3079→2204 og `EOOplysningerTab` 2748→2017 linjer (ren strukturel, adfærdsbevarende; nye `loenindkomst/`+`eoOplysninger/`-mapper).
 
-**Test-baseline:** 5020 (2026-06-10) → 5172/429 (g.5) → 5185/430 (g.6) → 5310/445 (g.7) → 5318/446 (g.8) → **5328 tests / 449 filer grøn** (2026-06-17, g.9). Hvert punkt skal efterlade suiten mindst lige så grøn. Kendt (ikke fejl): `act(...)`-warning i `TableDropdown.gridCore.test.tsx`. (Den pre-eksisterende `MainLayout.pwaConcurrency.test.tsx`-flake blev root-caused og rettet i 9.3.)
+**Test-baseline:** 5020 (2026-06-10) → 5172/429 (g.5) → 5185/430 (g.6) → 5310/445 (g.7) → 5318/446 (g.8) → 5328/449 (g.9) → **5354 tests / 450 filer grøn** (2026-06-17, g.10). Hvert punkt skal efterlade suiten mindst lige så grøn. Kendt (ikke fejl): `act(...)`-warning i `TableDropdown.gridCore.test.tsx`. (Den pre-eksisterende `MainLayout.pwaConcurrency.test.tsx`-flake blev root-caused og rettet i 9.3.)
 
 ### Statustabel
 
@@ -70,13 +70,13 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 | 9.3 | Fil-/PWA-/devtools-hooks: useFileSaveLoad (krydsref 2.6), usePwaLaunchQueue, useDevtoolsMonitoring | ✅ (fil `9.1-9.4-hooks`) |
 | 9.4 | Domæne-hooks: useAarsloenBeregning, useAslAarsloenRuleReporter, useAarsloenPdfGates, useOmregningToggle, useMidlertidigtEetInsertSource | ✅ (fil `9.1-9.4-hooks`) |
 | **10 — Dokument-output (PDF + Word)** | | |
-| 10.1 | Orkestrering & format-routing: `src/document/*`, pdfService, `runSelectedDocumentFormat`, `createStandardPdfWriter`, standaloneRentePdfService | ⬜ |
-| 10.2 | PDF-infrastruktur: jsPdfAdapter, pdfWriter, pdfLoader, pdfConfig, pdfBrevhovedRenderer, pdfDocumentAdapter | ⬜ |
-| 10.3 | Word/docx-infrastruktur: docxWriter, docxStyles, docxWatermark, docxTableBridge — `PdfWriter`-paritet | ⬜ |
-| 10.4 | Output-shared (begge kanaler): pdfTableRenderer, pdfHelpers, pdfFormatUtils, pdfTextUtils, pdfBrevhoved, pdfOptions | ⬜ |
-| 10.5 | Generatorer I (EO-familien): eo (+sections), reguleringPdf, differencekrav, eet, kapitalisering, loebendeYdelser | ⬜ |
-| 10.6 | Generatorer II: aarsloen, shDage, satser, varigemen, forsoergertab, renteberegning (+oversigt), tafFordelt (+opreguleret +kravGraf +chart), krl | ⬜ |
-| 10.7 | Word-paritet & duplikerings-afvikling: `src/__tests__/docx/` + `wordContentHarness`; afvikl evt. legacy/dublerede PDF-stier | ⬜ |
+| 10.1 | Orkestrering & format-routing: `src/document/*`, pdfService, `runSelectedDocumentFormat`, `createStandardPdfWriter`, standaloneRentePdfService | ✅ (fil `10.1-orkestrering-format-routing`) |
+| 10.2 | PDF-infrastruktur: jsPdfAdapter, pdfWriter, pdfLoader, pdfConfig, pdfBrevhovedRenderer, pdfDocumentAdapter | ✅ (fil `10.2-pdf-infrastruktur`) |
+| 10.3 | Word/docx-infrastruktur: docxWriter, docxStyles, docxWatermark, docxTableBridge — `PdfWriter`-paritet | ✅ (fil `10.3-word-docx-infrastruktur`) |
+| 10.4 | Output-shared (begge kanaler): pdfTableRenderer, pdfHelpers, pdfFormatUtils, pdfTextUtils, pdfBrevhoved, pdfOptions | ✅ (fil `10.4-output-shared`) |
+| 10.5 | Generatorer I (EO-familien): eo (+sections), reguleringPdf, differencekrav, eet, kapitalisering, loebendeYdelser | ✅ (fil `10.5-generatorer-eo-familien`) |
+| 10.6 | Generatorer II: aarsloen, shDage, satser, varigemen, forsoergertab, renteberegning (+oversigt), tafFordelt (+opreguleret +kravGraf +chart), krl | ✅ (fil `10.6-generatorer-ii`) |
+| 10.7 | Word-paritet & duplikerings-afvikling: `src/__tests__/docx/` + `wordContentHarness`; afvikl evt. legacy/dublerede PDF-stier | ✅ (fil `10.7-word-paritet-duplikering`) |
 | **11 — Config & settings** | | |
 | 11.1 | Config A: persistenceVersion, dateRanges, version, buildInfo, pageNavigation, scrollToTopConfig, cellInvalidDraftScopes | ⬜ |
 | 11.2 | Config B: regulatoryRates, indskudteLoentillaeg (krydsref 6.2), appTheme, tableTheme | ⬜ |
@@ -97,8 +97,8 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 
 ## Åbne godkendelsespunkter (allerede committet — skal gen-forelægges og lukkes når reviewet rammer punktet)
 
-2. **PDF/Word "TAF opreguleret til beregningsår"** → **10.6.** Nyt download-dokument; bekræft indhold/metode/afrunding.
-3. **EO-output tre-tilstand (Ja/Nej/Skjul) + afslutningsvalg** → **10.5.** "Skjul" fjerner emnet helt (også fra samlet krav); "Nej" beholder overskrift + "Ingen" + 0 kr.; "Ingen" som afslutningsvalg udelader "Godkendelse"-afsnit; "én samlet I alt"; kommentarfelt i offentlige-ydelser-bilaget.
+2. **PDF/Word "TAF opreguleret til beregningsår"** → **10.6.** Nyt download-dokument; bekræft indhold/metode/afrunding. *(Reviewet i 10.6 — indhold/metode/afrunding dokumenteret; afventer brugerbekræftelse af indholdet. ✅ Brugergodkendt + rettet: `Fejl (reason)` kan ikke længere udskrives — snapshot-projektionen blokerer download fail-closed når den angivne måneds-/dagsløn mangler (`tafBeregningsgrundlagAngivetLoenMangler`), og generatoren kaster i stedet for at udskrive en teknisk kode.)*
+3. **EO-output tre-tilstand (Ja/Nej/Skjul) + afslutningsvalg** → **10.5.** "Skjul" fjerner emnet helt (også fra samlet krav); "Nej" beholder overskrift + "Ingen" + 0 kr.; "Ingen" som afslutningsvalg udelader "Godkendelse"-afsnit; "én samlet I alt"; kommentarfelt i offentlige-ydelser-bilaget. *(Reviewet i 10.5 — A3/A4-guards (`skjul`/`beregnes`) bekræftet håndhævet i kode; afventer brugerbekræftelse af indholdet.)*
 4. **Indstillinger-siden "Beregningsteknisk"-boks** → **11.3.** Toggle + dropdown for to device-lokale regulerings-flag flyttet fra EO-schema til `appSettings`.
 
 (Punkt 1, sygedagpenge-OP, blev lukket i 6.2.)
@@ -109,17 +109,16 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 
 Fund fra færdige grupper 1–7 som bevidst er parkeret til et senere punkt. **Læs den relevante blok ved start af hvert punkt nedenfor**, så de ikke glemmes. Kilde = review-doc fundet stammer fra.
 
-### Gruppe 10 (dokument-output)
-- **10.1** — `documentGenerationContext.ts` ikke eksporteret fra `src/document/index.ts`-barrel (forbrugere importerer dybt). Ret import-overfladen. *(Kilde 1.4)*
-- **10.1** — Verificér `pdfService.ts` `downloadVarigeMenDokument` som datadækning. *(Kilde 4.6)*
-- **10.6** — Verificér `src/pdf/domains/varigemen/varigeMenPdf.ts` (+`index.ts`) som datadækning. *(Kilde 4.6)*
-
 ### Gruppe 12 (app-shell & multi-app)
 - **12.2** — Verificér at standalone MinProcesrente og Mineos hovedside ikke deler `sessionStorage`/persistence-namespace: begge bruger `pageKey: 'renteberegning'` + samme schema/hook. Bekræft app-scoped storage-isolation (ellers indfør namespace). *(Kilde 8.5)*
 - **12.2** — `MinProcesrenteCalculatorPage` har omfattende lokal `@media`-styling. Standalone-appen er bevidst mobil-tilladt (egen entry), modsat Mineos desktop-only-gate. Bekræft undtagelsen eksplicit (kommentar/kontrakt-note), så desktop-only-reglen ikke fremstår brudt. *(Kilde 8.5)*
 
 ### Gruppe 13 (testkvalitet)
 - **13.1** — Genbesøg equivalens-/delegations-tests for opreguleringsmotorerne (4.0) — de afhængige motorer (4.2/4.3/4.4/4.5/4.9/4.10) hviler på det lås-testede fundament. *(Kilde 4.0)*
+- **13.4** — Word-paritetstestenes `as never`-fixtures bør bygges fra de rigtige snapshot/projektion-helpers (eller `satisfies`-typed builders), så feltdrift fanges af TypeScript. *(Kilde 10.7)*
+- **13.4** — Styrk indholds-assertions i tynde Word-paritetstests (forsørgertab/EET-efterEAL/kapitalisering/løbende) med konkrete beløb + mellemregningslinje på en udfyldt sti. *(Kilde 10.7)*
+- **13.4** — Supplerende EO-paritetsfixture med flere sektioner slået til (`loenindkomst`/`offentligeYdelser`/`shDage`/`regulering`), så de Word-dækkes via generator-paritet. *(Kilde 10.7)*
+- **13.4** — `tafKravGrafChart.ts` rene tegne-/sampling-helpers (`niceCeil`, `buildNiceMoneyTicks`, `smoothWithinActiveRuns`, `buildWindowLayout`) er udækkede (modul-private; kræver afvejning ift. test-only-eksport). *(Kilde 10.6)*
 - **13.x** — Import-script `scripts/import-offentlig-loen.mjs` uden unit-tests (accepteret gap). *(Kilde 6.3)*
 
 ### Gruppe 14 (tværgående helhed)
@@ -144,6 +143,7 @@ Fund fra færdige grupper 1–7 som bevidst er parkeret til et senere punkt. **L
 - **14.2** — `ValidationErrorMap`: test-only type uden produktionsforbrugere → oprydning. *(Kilde 3.1)*
 - **14.2** — `usePersistedForm.replaceValues`: ubrugt public hook-export (kun hook + tests). Latent bug: `persistData` returnerer `true` ved no-op, så `replaceValues` bumper `formVersion` (→ row-draft-resync) selv ved idempotent replace. Fjern den ubrugte export ELLER giv `persistData` et separat "didChange"-signal hvis den genindføres. *(Kilde 9.1)*
 - **14.2** — `StyledToggleSwitch` imperativ shake (ref + setTimeout) vs. den kanoniske deklarative `useShakeFlag`: to mønstre for samme animation. Konsolidér på sigt. *(Kilde 9.2)*
+- **14.2** — Kanal-lækage: `PdfWriter.getDoc(): jsPDF` eksponerer den rå jsPDF-instans på den dobbeltkanal-grænseflade, så Word-writeren må returnere en attrap via `as never`-cast (F2). Lukker man `getDoc` af writer-API'et (kun tabel-callbacks/lavniveau-tegning bør have rå adgang), forsvinder `as never`-casten i Word-laget. Stor arkitektonisk ændring der rører ~14 generatorers callsites — planlagt, ikke ad hoc. *(Kilde 10.2)*
 
 ---
 

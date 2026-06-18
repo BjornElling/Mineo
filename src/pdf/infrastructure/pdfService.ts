@@ -305,6 +305,12 @@ const buildDocumentFailureMessage = (settings: AppSettings, pdfMessage: string):
   return pdfMessage.replace(/PDF/g, formatLabel);
 };
 
+// Ikke-indlysende invariant: Word-stien returnerer kun success, fordi
+// withDocumentGenerationContext internt afventer `Promise.all(pendingDownloads)`, før den
+// returnerer. Word-writeren samler sit endelige .docx asynkront via en pending download, så en
+// fejl undervejs forplanter sig kun hertil (og bobler op i catch-stien) så længe den await
+// bevares. Fjernes `await Promise.all(...)` i documentGenerationContext.ts ved en refaktor, vil
+// Word-fejl returnere success i stilhed og producere et tomt/korrupt dokument uden fejlrapport.
 const runSelectedDocumentFormat = async (
   settings: AppSettings,
   generate: () => void
