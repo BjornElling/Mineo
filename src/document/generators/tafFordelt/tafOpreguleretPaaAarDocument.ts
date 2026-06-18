@@ -249,10 +249,13 @@ export const generateTafOpreguleretPaaAarDocument = (
       resolveLoenSkadedatoText,
       formatDateLong,
     });
-    // Ét sammenhængende afsnit med normal linjeafstand (writeren wrapper selv, også på \n),
-    // ens med EO-opgørelsens "Forventet indkomst" (B5.2).
+    // Løn- og offentlige-ydelser-sætningerne (adskilt af \n) skrives som separate afsnit,
+    // så de får samme normale afsnits-linjeafstand (B5.2) som ferie-/fravær-linjen nedenfor —
+    // ens med EO-opgørelsens "Forventet indkomst".
     writer.writeBoldSubheader('Forventet indkomst');
-    writer.writeWrappedText(introTekst);
+    for (const afsnit of introTekst.split('\n')) {
+      writer.writeWrappedText(afsnit);
+    }
     if (model.tabtArbejdsfortjeneste.ferieFravaerLinje) {
       writer.writeWrappedText(model.tabtArbejdsfortjeneste.ferieFravaerLinje);
     }

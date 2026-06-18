@@ -632,13 +632,16 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       'Indtægter i erstatningsperioden'
     );
 
-    // "Forventet indkomst"-beskrivelsen skrives som ét sammenhængende afsnit (begge sætninger
-    // i samme writer-kald, adskilt af \n), så vi tjekker på den samlede blok-tekst.
-    const loenudviklingText = loenudviklingBlock.join('\n');
-    expect(loenudviklingText).toContain('Opgøres på baggrund af lønnen opgjort frem til 31. december 2024.');
-    expect(loenudviklingText).toContain('Offentlige ydelser beregnes per 31. december 2024 med statslig regulering per 1. januar.');
+    // "Forventet indkomst"-beskrivelsen skrives som TO selvstændige afsnit (løn-sætning og
+    // offentlige-ydelser-sætning hver sit writer-kald), så de får normal afsnits-linjeafstand
+    // ens med ferie-/fravær-linjen. Hver sætning er derfor sin egen tekst-streng i blokken.
+    expect(loenudviklingBlock).toContain('Opgøres på baggrund af lønnen opgjort frem til 31. december 2024.');
+    expect(loenudviklingBlock).toContain('Offentlige ydelser beregnes per 31. december 2024 med statslig regulering per 1. januar.');
     expect(loenudviklingBlock).toContain('Dagpenge');
     expect(loenudviklingBlock).toContain('Sygedagpenge');
+    // Her har løn-kilden ingen segmentlinjer (kun beskrivende tekst), så den får ingen
+    // navn-underoverskrift — en overskrift uden efterfølgende indhold ville være forkert (B4).
+    expect(loenudviklingBlock).not.toContain('AAB');
     expect(loenudviklingBlock.some((text) => text.includes('ydelse pr. arbejdsdag'))).toBe(false);
     expect(loenudviklingBlock.some((text) => text.includes('ydelse pr. måned'))).toBe(false);
     // Forventet indkomst har præcis ÉN samlet "I alt"-linje til sidst — ingen per-kilde delsummer.
@@ -689,14 +692,18 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(bilagBlock).toContain('31-12-2024');
     expect(bilagBlock).toContain('Periode');
     expect(bilagBlock).toContain('01-12-2024 - 31-01-2025');
-    expect(bilagBlock).toContain('Skadelidte');
-    expect(bilagBlock).toContain('Testi Testesen');
+    // Skadelidtes navn udelades bevidst i regulerings-bilaget (fremgår af brevhovedet).
+    expect(bilagBlock).not.toContain('Skadelidte');
+    expect(bilagBlock).not.toContain('Testi Testesen');
     expect(bilagBlock).toContain('Dagpenge');
     expect(bilagBlock).toContain('Sygedagpenge');
     expect(bilagBlock.some((text) => text.includes('regulering fra'))).toBe(false);
-    expect(bilagBlock).toContain('I alt Dagpenge');
-    expect(bilagBlock).toContain('I alt Sygedagpenge');
-    expect(bilagBlock).toContain('Samlet offentlige ydelser (hypotetisk)');
+    // Samme I alt-princip som EO-opgørelsen: ingen per-ydelse delsummer, kun ÉN samlet
+    // "I alt"-linje til sidst (her vises den, da der er mere end ét segment at summere).
+    expect(bilagBlock.some((text) => text.startsWith('I alt Dagpenge'))).toBe(false);
+    expect(bilagBlock.some((text) => text.startsWith('I alt Sygedagpenge'))).toBe(false);
+    expect(bilagBlock).not.toContain('Samlet offentlige ydelser (hypotetisk)');
+    expect(bilagBlock).toContain('I alt');
     expect(bilagBlock).toContain(
       'Offentlige ydelser fremskrives årligt per 1. januar med tilpasningsprocenten + 2 %, svarende til den almene statslige regulering af offentlige ydelser.'
     );

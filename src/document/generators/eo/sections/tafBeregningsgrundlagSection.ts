@@ -155,12 +155,11 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
           { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
         );
       }
-      writer.addSectionSpacer();
     }
     if (indkomst.offentligeYdelser.length > 0) {
-      if (indkomst.arbejdssteder.length === 0) {
-        writer.addSectionSpacer();
-      }
+      // Underoverskriften "Offentlige ydelser" har selv den kanoniske top-afstand (B5.1/B6) —
+      // den adskiller fra det foregående arbejdssted-/I alt-afsnit. En manuel spacer ville
+      // give en tom linje før overskriften i Word (Heading-typografiens before-spacing oveni).
       writer.ensureSpace(lineHeight * 2);
       writer.writeUnderlinedSubheader('Offentlige ydelser');
       for (const ydelse of indkomst.offentligeYdelser) {

@@ -117,7 +117,11 @@ export const addLoebendeAfgoerelseSection = (
   writer.writeLeftRightText('Løbende ydelse ophører', formatISOToDanish(afgoerelse.ophoerDato), rowOpts);
   writer.writeLeftRightText('Ophør skyldes', toOphoerAarsagLabel(afgoerelse.ophoerAarsag), rowOpts);
 
-  writer.addSectionSpacer();
+  // Ingen manuel addSectionSpacer her: underoverskriften "Beregnede ydelser" har selv den
+  // kanoniske top-afstand (kontrakt B5.1/B6). I PDF absorberer writeBoldSubheader en evt.
+  // forudgående spacer, så resultatet var korrekt; men i Word ville en spacer-paragraf
+  // lægge sig oven i Heading2-typografiens before-spacing og give en synlig tom linje før
+  // underoverskriften på hver afgørelses-side. Lad subheaderens centrale afstand stå alene.
 
   // Beregnede ydelser
   const hasRowsBefore2024 = afgoerelse.perioder.some((r) => r.satsAar <= 2023);

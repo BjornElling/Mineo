@@ -459,10 +459,8 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     if (model.periodeDisplay) {
       writeLabelValueLine('Periode', model.periodeDisplay);
     }
-    const skadelidteNavn = (stamdataValues.skadelidte ?? '').trim();
-    if (skadelidteNavn) {
-      writeLabelValueLine('Skadelidte', skadelidteNavn);
-    }
+    // Skadelidtes navn udelades bevidst her: det fremgår allerede af dokumentets brevhoved,
+    // så en separat "Skadelidte"-linje i regulerings-bilaget er overflødig.
     writer.addSectionSpacer();
     safeAddWrappedText('Reguleringsværdier:');
     let tableData: ReturnType<typeof buildOffentligeYdelserReguleringTableData> = null;
@@ -510,8 +508,16 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     } else {
       safeAddWrappedText('Ingen regulering i den relevante periode.');
     }
+    // Samme I alt-princip som EO-opgørelsens "Forventet indkomst": ingen per-ydelse
+    // delsummer ("I alt Dagpenge"), kun ÉN samlet "I alt"-linje til sidst der summerer alle
+    // offentlige ydelser. Linjen vises kun når der er mere end ét segment at summere — ved
+    // præcis ét segment er totalen identisk med segmentlinjen, og en I alt-linje ville være
+    // redundant. Kan totalen ikke beregnes (en ydelse mangler grundlag), udelades den helt;
+    // fejlteksten vises i forvejen ud for den pågældende ydelse.
+    let visteYdelseSegmenter = 0;
     for (const entry of offentligeYdelserUdvikling.entries) {
-      writer.addSectionSpacer();
+      // Underoverskriften (fx "Dagpenge") har selv den kanoniske top-afstand (B5.1/B6);
+      // en manuel spacer ville give en tom linje før overskriften i Word.
       writer.writeUnderlinedSubheader(entry.label);
       for (const segment of entry.beregnedeSegmenter) {
         const fraDisplay = formatDateShort(segment.fra) ?? segment.fra;
@@ -521,22 +527,13 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
           ? `${fraDisplay} - ${tilDisplay}: ${formatCountWithUnit(segment.arbejdsdage, 'arbejdsdag', 'arbejdsdage')} á ${formatCurrencyFromOre(segment.dagsloenOre)}${NBSP}kr.${deltaText} =`
           : `${fraDisplay} - ${tilDisplay}: ${formatMaanederTrimmed(segment.maaneder)} ${isSingularCount(segment.maaneder) ? 'måned' : 'måneder'} á ${formatCurrencyFromOre(segment.maanedsloenOre)}${NBSP}kr.${deltaText} =`;
         safeAddLeftRightText(leftText, formatMoneyOreWithKr(segment.amountOre), standardRightMaxWidth, { rightFontStyle: 'normal' });
-      }
-      if (entry.total.status === 'ok') {
-        safeAddLeftRightText(
-          `I alt ${entry.label}`,
-          formatMoneyOreWithKr(entry.total.value),
-          standardRightMaxWidth,
-          { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }
-        );
-      } else {
-        safeAddLeftRightText(`I alt ${entry.label}`, '—', standardRightMaxWidth, { rightFontStyle: 'normal' });
+        visteYdelseSegmenter += 1;
       }
     }
-    if (offentligeYdelserUdvikling.total.status === 'ok') {
+    if (visteYdelseSegmenter > 1 && offentligeYdelserUdvikling.total.status === 'ok') {
       writer.addSectionSpacer();
       safeAddLeftRightText(
-        'Samlet offentlige ydelser (hypotetisk)',
+        'I alt',
         formatMoneyOreWithKr(offentligeYdelserUdvikling.total.value),
         standardRightMaxWidth,
         { rightFontStyle: 'normal', lineAboveRightWidth: EO_RIGHT_COLUMN_WIDTH, lineAboveRightOffset: 4 }

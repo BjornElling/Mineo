@@ -76,7 +76,7 @@ const addGrundlaeggendeSection = (
     (data.aslAarsloen !== undefined || data.virkningsdato !== undefined || data.tilkendtForPeriodeAar !== undefined);
 
   if (hasAslIndhold) {
-    writer.addSectionSpacer();
+    // Underoverskriften self-spacer (B5.1/B6); en manuel spacer ville give tom linje i Word.
     writer.writeBoldSubheader('ASL-ydelse');
     if (data.aslAarsloen !== undefined) {
       writer.writeLeftRightText('Skadelidtes årsløn (efter ASL)', formatKr(data.aslAarsloen), {
@@ -96,7 +96,7 @@ const addGrundlaeggendeSection = (
   }
 
   if (visEal && data.ealAarsloen !== undefined) {
-    writer.addSectionSpacer();
+    // Underoverskriften self-spacer (B5.1/B6); en manuel spacer ville give tom linje i Word.
     writer.writeBoldSubheader('EAL-ydelse');
     writer.writeLeftRightText('Skadelidtes årsløn (efter EAL)', formatKr(data.ealAarsloen), {
       rightFontStyle: 'normal',
@@ -105,7 +105,7 @@ const addGrundlaeggendeSection = (
 };
 
 const addBeregnedResultatSection = (writer: DocumentWriter, result: ForsoergertabCalculation): void => {
-  writer.addSectionSpacer();
+  // Underoverskriften self-spacer (B5.1/B6); en manuel spacer ville give tom linje i Word.
   writer.writeBoldSubheader('Beregnet forsørgertab');
 
   writer.writeLeftRightText('EAL-krav', formatKr(result.ealKrav), { rightFontStyle: 'normal' });

@@ -458,11 +458,13 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       formatDateLong,
     });
     if (harOffentligeYdelserUdvikling) {
-      // Skriv hele beskrivelsen i ét kald; writeren wrapper selv (også på indlejrede \n),
-      // så de to sætninger sidder som ét afsnit med normal linjeafstand (B5.2), ens med resten
-      // af dokumentet — i stedet for ekstra mellem-linje-spacing fra per-linje-kald.
+      // Løn- og offentlige-ydelser-sætningerne er to selvstændige afsnit (adskilt af \n i
+      // introteksten). De skrives som separate writer-kald, så de får samme normale
+      // afsnits-linjeafstand (B5.2) som ferie-/fravær-linjen nedenfor og resten af dokumentet.
       renderSubheader('Forventet indkomst');
-      safeAddWrappedText(indkomstHvisSkadeIkkeIndtraadtBeskrivelse);
+      for (const afsnit of indkomstHvisSkadeIkkeIndtraadtBeskrivelse.split('\n')) {
+        safeAddWrappedText(afsnit);
+      }
     } else {
       renderSubheaderWithWrappedText(
         'Forventet indkomst',
@@ -520,6 +522,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
 
       let visteSegmenter = 0;
       const harPerAnsaettelse = loenudvikling.perAnsaettelse.length > 1;
+      const harOffentligeYdelserEntries = (offentligeYdelserUdvikling?.entries.length ?? 0) > 0;
       if (harPerAnsaettelse) {
         for (const entry of loenudvikling.perAnsaettelse) {
           writer.writeUnderlinedSubheader(entry.ansaettelsesforholdNavn);
@@ -529,17 +532,30 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
           });
         }
       } else {
+        // Når der indgår flere indtægtskilder (her: ét ansættelsesforhold + offentlige ydelser),
+        // får løn-kilden også en underoverskrift med ansættelsesforholdets navn — symmetrisk med
+        // ydelses-overskrifterne (fx "Dagpenge"). Kun når løn-kilden faktisk har segmentlinjer at
+        // vise (ellers ville overskriften stå uden meningsbærende indhold, jf. B4); og er løn den
+        // eneste kilde, udelades overskriften helt.
+        if (harOffentligeYdelserEntries && loenudvikling.beregnedeSegmenter.length > 0) {
+          const loenKildeNavn = loenudvikling.perAnsaettelse[0]?.ansaettelsesforholdNavn;
+          if (loenKildeNavn) {
+            writer.writeUnderlinedSubheader(loenKildeNavn);
+          }
+        }
         visteSegmenter += renderLoenudviklingSegments(loenudvikling.beregnedeSegmenter, loenudvikling.loenudviklingTotal, 'loen', {
           unitMaaned: '',
           unitDag: '',
         });
       }
       for (const entry of offentligeYdelserUdvikling?.entries ?? []) {
-        writer.addSectionSpacer();
+        // Ingen manuel addSectionSpacer her: underoverskriften (fx "Dagpenge") har selv den
+        // kanoniske top-afstand (kontrakt B5.1/B6). I Word ville en spacer-paragraf ellers
+        // lægge sig oven i overskrifts-typografiens before-spacing og give en tom linje.
         writer.writeUnderlinedSubheader(entry.label);
         visteSegmenter += renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.total, 'offentligYdelse', {
-          unitMaaned: 'ydelse',
-          unitDag: 'ydelse',
+          unitMaaned: '',
+          unitDag: '',
         });
       }
 
@@ -622,10 +638,15 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
     ) {
       renderSubheader('Beregnet krav');
 
-      const positiveLed = [formatCurrencyFromOre(loenudviklingTotal.value)];
-      if (offentligeYdelserUdviklingTotal && offentligeYdelserUdviklingTotal.value !== 0) {
-        positiveLed.push(formatCurrencyFromOre(offentligeYdelserUdviklingTotal.value));
-      }
+      // Forventet indkomst indgår i krav-formlen som ÉN sammentalt værdi (løn + offentlige
+      // ydelser) — svarende til "I alt"-linjen under Forventet indkomst — ikke som separate
+      // kilde-led. Selve resultatet er uændret; kun udtrykkets venstreside vises samlet.
+      const forventetIndkomstOre =
+        loenudviklingTotal.value +
+        (offentligeYdelserUdviklingTotal && offentligeYdelserUdviklingTotal.status === 'ok'
+          ? offentligeYdelserUdviklingTotal.value
+          : 0);
+      const positiveLed = [formatCurrencyFromOre(forventetIndkomstOre)];
       const sygeferiegodtgoerelseOre = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre;
       const harValgtSygeferiegodtgoerelse = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.perAnsaettelsesforhold.length > 0;
       const samledeIndtaegterIErstatningsperiodenOre =
