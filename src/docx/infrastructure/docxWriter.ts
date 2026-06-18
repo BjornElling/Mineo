@@ -61,8 +61,13 @@ type CoreProperties = Readonly<{
   creator?: string;
 }>;
 
+// Maksimal venstre-kolonnebredde for venstre/højre-oplysningslinjer. Venstre kolonne får
+// aldrig mere end dette, men kan reservere mindre når teksten er kort (se createLeftRightTable).
 const LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA = dxaFromCentimeters(12.5);
-const LEFT_RIGHT_TABLE_RIGHT_WIDTH_DXA = CONTENT_WIDTH_DXA - LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA;
+// Konservativ gennemsnits-glyfbredde i DXA ved brødtekststørrelsen (BODY_SIZE = 22 halv-point
+// = 11 pt; 1 pt = 20 DXA). ~120 DXA/tegn ≈ 6 pt/tegn er bevidst lidt rundhåndet, så et kort
+// venstrelabel ikke ved et uheld underestimeres og ombrydes. Bruges KUN til kolonnefordeling.
+const LEFT_RIGHT_AVG_GLYPH_DXA = 120;
 
 const emptyBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' } as const;
 // Summeringsstreg over højre kolonne (I alt-/sum-linjer). Matcher PDF'ens tynde,
@@ -238,22 +243,47 @@ const createLeftRightTable = (
   }>
 ): Table => {
   const showSumLine = Boolean(options?.lineAboveRightWidth);
+  // Venstre kolonne reserverer kun den plads, dens tekst faktisk har brug for — op til det
+  // hidtidige maksimum (12,5 cm). Korte venstrelabels (fx "Overenskomst") frigiver dermed
+  // resten til højre kolonne, så lang højretekst (fx "Bygge-/anlægsoverenskomsten") ikke
+  // ombrydes unødigt. Lange venstrelabels får stadig fuld bredde. Det spejler PDF-kanalen,
+  // hvor venstrebredden = sidebredde − målt højrebredde.
+  //
+  // Word kan ikke måle tekst præcist (jf. getTextWidth-heuristikken), så bredden estimeres
+  // ud fra tegnantal × en konservativ gennemsnits-glyfbredde i DXA ved brødtekststørrelsen.
+  // Estimatet bruges KUN til at vælge kolonnefordeling (layout), aldrig til indhold/tal; et
+  // for lavt estimat lader blot Word ombryde venstreteksten, et for højt giver blot lidt
+  // ekstra venstreplads — begge er visuelt acceptable og kan ikke tabe data.
+  // På sum-/I alt-linjer (showSumLine) bevares den faste venstrebredde: så ligger
+  // summeringsstregen — der tegnes som højre cellens topkant — i samme bredde og position
+  // som hidtil, lige over beløbet, og ikke som en lang streg tværs over en bred højrekolonne.
+  const estimatedLeftWidthDxa = Math.ceil(leftText.length * LEFT_RIGHT_AVG_GLYPH_DXA);
+  const leftWidthDxa = showSumLine
+    ? LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA
+    : Math.min(LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA, estimatedLeftWidthDxa);
+  const rightWidthDxa = CONTENT_WIDTH_DXA - leftWidthDxa;
   return new Table({
     rows: [
       new TableRow({
         children: [
           new TableCell({
-            width: { size: LEFT_RIGHT_TABLE_LEFT_WIDTH_DXA, type: WidthType.DXA },
-            verticalAlign: VerticalAlignTable.BOTTOM,
+            width: { size: leftWidthDxa, type: WidthType.DXA },
+            // Top-stillet: når højreteksten ombrydes til flere linjer, står venstrelabelen
+            // på niveau med den ØVERSTE højre-linje (ikke den nederste). Højre celle er også
+            // top-stillet, så begge kolonners første linje flugter.
+            verticalAlign: VerticalAlignTable.TOP,
             borders: { top: emptyBorder, bottom: emptyBorder, left: emptyBorder, right: emptyBorder },
+            // Normal-typografi (ikke noSpacing): venstre/højre-oplysningslinjer skal arve
+            // Normals afsnits- og linjeafstand, så de står med samme luft som brødtekst.
+            // Kun de bevidste afvigelser (fed / højrejustering) sættes per instans.
             children: [paragraph(leftText, {
-              style: DOCX_STYLE.noSpacing,
+              style: DOCX_STYLE.normal,
               bold: options?.leftFontStyle === 'bold',
             })],
           }),
           new TableCell({
-            width: { size: LEFT_RIGHT_TABLE_RIGHT_WIDTH_DXA, type: WidthType.DXA },
-            verticalAlign: VerticalAlignTable.BOTTOM,
+            width: { size: rightWidthDxa, type: WidthType.DXA },
+            verticalAlign: VerticalAlignTable.TOP,
             borders: {
               top: showSumLine ? sumLineTopBorder : emptyBorder,
               bottom: emptyBorder,
@@ -261,7 +291,7 @@ const createLeftRightTable = (
               right: emptyBorder,
             },
             children: [paragraph(rightText, {
-              style: DOCX_STYLE.noSpacing,
+              style: DOCX_STYLE.normal,
               bold: options?.rightFontStyle !== 'normal',
               alignment: AlignmentType.RIGHT,
             })],
@@ -270,6 +300,9 @@ const createLeftRightTable = (
       }),
     ],
     width: { size: CONTENT_WIDTH_DXA, type: WidthType.DXA },
+    // Eksplicit grid, så Word's faste layout bruger præcis den beregnede venstre/højre-fordeling
+    // (ellers udfylder docx tblGrid med placeholder-bredder).
+    columnWidths: [leftWidthDxa, rightWidthDxa],
     layout: TableLayoutType.FIXED,
     borders: TableBorders.NONE,
   });
@@ -417,9 +450,20 @@ export const createDocxWriter = (params?: Readonly<{
   // Sættes når dokumentet får et brevhoved. Aktiverer "anden første side", så
   // første side får et højere top-/headerområde end de øvrige sider.
   let hasBrevhoved = false;
+  // Tomme afstands-afsnit (spacers) registreres her, så `composeChildren` kan kollapse to
+  // eller flere efterfølgende spacers til ÉN. I PDF afsættes tabel-slutafstanden via
+  // resolveDocumentSectionEndY (no-op i Word), så Word-tabel-broen lægger sin egen trailing
+  // spacer; en efterfølgende addSectionSpacer i generatoren ville derfor give to tomme linjer
+  // under tabellen. Kollaps holder det på én tom linje — ren Word-side, uden PDF-effekt.
+  const spacerBlocks = new WeakSet<FileChild>();
+  const pushSpacer = (): void => {
+    const spacer = spacerParagraph();
+    spacerBlocks.add(spacer);
+    blocks.push(spacer);
+  };
   const bridgeDoc = createDocumentTableBridgeDocument((body, hasHeaderRow, columnAlignments) => {
     blocks.push(createDocxTable(body, hasHeaderRow, columnAlignments));
-    blocks.push(spacerParagraph());
+    pushSpacer();
   });
 
   const addParagraph = (text: string, bold = false): void => {
@@ -433,14 +477,28 @@ export const createDocxWriter = (params?: Readonly<{
   // forankret til SIDEN (FrameAnchorType.PAGE), så dets plads i tekstflowet er
   // visuelt ligegyldig — det skal blot blive liggende på side 1, hvilket det gør
   // som blok nr. 2.
-  const composeChildren = (): FileChild[] => {
-    if (brevhovedParagraphs.length === 0) {
-      return blocks.length > 0 ? blocks : [paragraph('')];
+  // Kollaps på hinanden følgende afstands-afsnit til ét, så fx en tabels trailing spacer plus
+  // en generators efterfølgende addSectionSpacer kun giver én tom linje (jf. spacerBlocks).
+  const collapseConsecutiveSpacers = (input: readonly FileChild[]): FileChild[] => {
+    const out: FileChild[] = [];
+    for (const block of input) {
+      if (spacerBlocks.has(block) && out.length > 0 && spacerBlocks.has(out[out.length - 1]!)) {
+        continue;
+      }
+      out.push(block);
     }
-    if (blocks.length === 0) {
+    return out;
+  };
+
+  const composeChildren = (): FileChild[] => {
+    const collapsed = collapseConsecutiveSpacers(blocks);
+    if (brevhovedParagraphs.length === 0) {
+      return collapsed.length > 0 ? collapsed : [paragraph('')];
+    }
+    if (collapsed.length === 0) {
       return [...brevhovedParagraphs];
     }
-    return [blocks[0], ...brevhovedParagraphs, ...blocks.slice(1)];
+    return [collapsed[0], ...brevhovedParagraphs, ...collapsed.slice(1)];
   };
 
   const build = async (): Promise<Blob> => {
@@ -525,10 +583,10 @@ export const createDocxWriter = (params?: Readonly<{
     getY: () => 0,
     setY: () => {},
     addSpacer: () => {
-      blocks.push(spacerParagraph());
+      pushSpacer();
     },
     addSectionSpacer: () => {
-      blocks.push(spacerParagraph());
+      pushSpacer();
     },
     advanceY: () => {},
     writeWrappedText: (text) => addParagraph(text),

@@ -128,6 +128,8 @@ const MATH_ROUND_ALLOWLIST = new Set([
   // Canvas/PDF dimension: pixelbredde/-højde (ikke finansielt)
   'pdf/pdfRenderHelpers.ts',
   'pdf/infrastructure/pdfWriter.ts',
+  // Word-tabel layout: estimeret kolonnebredde i DXA (Math.ceil), ikke finansielt
+  'docx/infrastructure/docxWriter.ts',
   // Graf-rendering: akse-skridt (nice-ceil magnitude), heltals-tickantal og
   // glidende-gennemsnits-radius — ren talgeometri, ikke finansielt output
   // (de viste beløbs-ticks afrundes via roundByMethod).

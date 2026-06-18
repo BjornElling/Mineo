@@ -242,6 +242,11 @@ describe('createDocxWriter', () => {
     expect(headerXml).toContain('_x0000_t136');
     expect(headerXml).toContain('rotation:315');
     expect(headerXml).toMatch(/string="UDKAST"/);
+    // Words native vandmærke-udseende: halvgennemsigtig sølvgrå (fillcolor="silver" +
+    // <v:fill opacity=".5"/>) og o:allowincell="f" — ufordrejet og pænt i Word.
+    expect(headerXml).toContain('fillcolor="silver"');
+    expect(headerXml).toContain('<v:fill opacity=".5"/>');
+    expect(headerXml).toContain('o:allowincell="f"');
     // Værn: ImportedXmlComponent.fromXmlString pakker fragmentet i et navnløst
     // rod-element, der ellers serialiseres som <undefined>…</undefined> — ugyldig
     // WordprocessingML, som Word afviser/reparerer. Wrapperen skal være fjernet,

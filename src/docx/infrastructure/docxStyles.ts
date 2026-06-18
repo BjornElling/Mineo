@@ -91,7 +91,9 @@ export const buildDocxStyles = (): IStylesOptions => ({
       quickFormat: true,
       run: { bold: true, size: 28 },
       // Outline-niveau 0 = Overskrift 1 (giver korrekt navigation/dispositionsvisning i Word).
-      paragraph: { outlineLevel: 0, spacing: { before: 480, after: 240, ...MIN_LINE_SPACING } },
+      // keepNext ("Hold sammen med næste") holder overskriften på samme side som det
+      // efterfølgende indhold, så en overskrift aldrig står alene nederst på en side.
+      paragraph: { outlineLevel: 0, keepNext: true, spacing: { before: 480, after: 240, ...MIN_LINE_SPACING } },
     },
     {
       id: DOCX_STYLE.subheaderBold,
@@ -100,7 +102,7 @@ export const buildDocxStyles = (): IStylesOptions => ({
       next: DOCX_STYLE.normal,
       quickFormat: true,
       run: { font: DOCX_FONT, size: BODY_SIZE, bold: true },
-      paragraph: { outlineLevel: 1, spacing: { before: 240, after: 120, ...MIN_LINE_SPACING } },
+      paragraph: { outlineLevel: 1, keepNext: true, spacing: { before: 240, after: 120, ...MIN_LINE_SPACING } },
     },
     {
       id: DOCX_STYLE.subheaderUnderlined,
@@ -109,7 +111,7 @@ export const buildDocxStyles = (): IStylesOptions => ({
       next: DOCX_STYLE.normal,
       quickFormat: true,
       run: { font: DOCX_FONT, size: BODY_SIZE, underline: {} },
-      paragraph: { outlineLevel: 2, spacing: { before: 240, after: 120, ...MIN_LINE_SPACING } },
+      paragraph: { outlineLevel: 2, keepNext: true, spacing: { before: 240, after: 120, ...MIN_LINE_SPACING } },
     },
     {
       id: DOCX_STYLE.tableCell,
