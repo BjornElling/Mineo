@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Gælder for:** Alle dokument-downloads i Mineo-hovedappen.
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-06-18
 
 Denne kontrakt fastlægger reglerne for valg mellem PDF- og Word-downloads. Den er
 **kanal-vælgeren** der ligger *over* `document-output-contract.md`: denne kontrakt bestemmer
@@ -31,7 +31,7 @@ data/gate/komposition og writer-API'et, begge kanaler deler.
 2. Formatvalget sker først efter, at download-gaten har godkendt dokumentet.
 3. Word må aldrig bruge egne beregninger, Word-formler eller feltkoder til tal.
 4. Runtime-fejl under dokumentgenerering routes via `error-debug-contract.md` som systemfejl med området `document`.
-5. Format-routingen ejes af `runSelectedDocumentFormat(...)` (`src/pdf/infrastructure/pdfService.ts`), der vælger writer-fabrik og kører generatoren inde i `withDocumentGenerationContext(...)` (`src/document/documentGenerationContext.ts`). Generatorerne er format-agnostiske: de skriver mod `PdfWriter`-grænsefladen, og den aktive kontekst afgør, om `createStandardPdfWriter` eller `createDocxWriter` (`src/docx/infrastructure/docxWriter.ts`) instantieres. Generatorer må aldrig forgrene på formatet selv.
+5. Format-routingen ejes af `runSelectedDocumentFormat(...)` (`src/document/service/documentService.ts`), der injicerer den valgte writer-fabrik (`createPdfChannelWriter` fra `src/pdf/infrastructure/pdfWriter.ts` for `'pdf'`, `createDocxWriter` fra `src/docx/infrastructure/docxWriter.ts` for `'word'`) og kører generatoren inde i `withDocumentGenerationContext(...)` (`src/document/documentGenerationContext.ts`). Generatorerne er format-agnostiske: de skriver mod `DocumentWriter`-grænsefladen via den kanal-agnostiske router `createStandardPdfWriter` (`src/document/writer/documentWriterRouter.ts`), der delegerer til den fabrik, konteksten har injiceret. Routeren importerer aldrig en kanal statisk, og generatorer må aldrig forgrene på formatet selv.
 
 ## 4. Output
 

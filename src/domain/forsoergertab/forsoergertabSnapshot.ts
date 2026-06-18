@@ -13,7 +13,7 @@ import { PRE_2015_CUTOFF } from './forsoergertabConstants';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { asError } from '../../utils/typeGuards';
 import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
-import { allowPdfDownload, blockPdfDownload, type PdfDownloadGateResult, type PdfDownloadGateReason } from '../../pdf/pdfGateTypes';
+import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult, type DocumentDownloadGateReason } from '../../document/layout/documentGateTypes';
 
 type FieldErrorMessage = Pick<FormFieldError, 'message'> | undefined;
 
@@ -110,7 +110,7 @@ export type ForsoergertabSnapshot = Readonly<{
   canShowEal: boolean;
   canShowAsl: boolean;
   canShowResult: boolean;
-  pdfGate: PdfDownloadGateResult;
+  pdfGate: DocumentDownloadGateResult;
   pdfProjection: ForsoergertabPdfProjection;
 }>;
 
@@ -136,7 +136,7 @@ const resolveHelperText = (
   return fieldError?.message ?? helperIssue ?? '';
 };
 
-const createDownloadBlockingReason = (code: string, message: string): PdfDownloadGateReason => ({
+const createDownloadBlockingReason = (code: string, message: string): DocumentDownloadGateReason => ({
   code: `forsoergertab:${code}`,
   message,
 });
@@ -300,7 +300,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
     fieldUi.skadedato.hasError ||
     fieldUi.skadelidteFodselsdato.hasError;
   const pdfGate = (() => {
-    const reasons: PdfDownloadGateReason[] = [];
+    const reasons: DocumentDownloadGateReason[] = [];
     if (!canShowEal && !canShowAsl) {
       reasons.push(createDownloadBlockingReason('no-pdf-projection', 'Der er ikke beregnet en PDF-klar EAL- eller ASL-del.'));
     }
@@ -308,11 +308,11 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
       reasons.push(createDownloadBlockingReason('blocking-input-error', 'Et eller flere nødvendige felter har blokerende fejl.'));
     }
     if (reasons.length === 0) {
-      return allowPdfDownload();
+      return allowDocumentDownload();
     }
     const [firstReason, ...additionalReasons] = reasons;
     return {
-      ...blockPdfDownload(firstReason),
+      ...blockDocumentDownload(firstReason),
       reasons: [firstReason, ...additionalReasons],
     };
   })();

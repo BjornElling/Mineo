@@ -13,7 +13,7 @@ vi.mock('../../../utils/logger', () => ({
   getTimestamp: vi.fn(() => '2024-01-01T00:00:00.000Z'),
 }));
 
-// ─── Mocks til loadXxxPdfModule-funktionerne ──────────────────────────────────
+// ─── Mocks til loadXxxDocumentModule-funktionerne ──────────────────────────────────
 
 const {
   mockReportSystemIssue,
@@ -47,10 +47,10 @@ const {
   mockGenerateVarigeMenPdf,
   mockGenerateAarsloenPdf,
   mockGenerateSHDagePdf,
-  mockEoSnapshotToEoPdfDocument,
-  mockEoSnapshotToTafPerYearPdfDocument,
+  mockEoSnapshotToEoDocument,
+  mockEoSnapshotToTafPerYearDocument,
   mockEoSnapshotToTafKravGrafDocument,
-  mockEoSnapshotToTafPerYearOpreguleretPdfDocument,
+  mockEoSnapshotToTafPerYearOpreguleretDocument,
 } = vi.hoisted(() => ({
   mockReportSystemIssue: vi.fn(),
   mockLoadSatserPdfModule: vi.fn(),
@@ -83,48 +83,48 @@ const {
   mockGenerateVarigeMenPdf: vi.fn(),
   mockGenerateAarsloenPdf: vi.fn(),
   mockGenerateSHDagePdf: vi.fn(),
-  mockEoSnapshotToEoPdfDocument: vi.fn(),
-  mockEoSnapshotToTafPerYearPdfDocument: vi.fn(),
+  mockEoSnapshotToEoDocument: vi.fn(),
+  mockEoSnapshotToTafPerYearDocument: vi.fn(),
   mockEoSnapshotToTafKravGrafDocument: vi.fn(),
-  mockEoSnapshotToTafPerYearOpreguleretPdfDocument: vi.fn(),
+  mockEoSnapshotToTafPerYearOpreguleretDocument: vi.fn(),
 }));
 
 vi.mock('../../../utils/systemIssueReporter', () => ({
   reportSystemIssue: mockReportSystemIssue,
 }));
 
-vi.mock('../../../pdf/infrastructure/pdfLoader', () => ({
-  loadSatserPdfModule: mockLoadSatserPdfModule,
-  loadRentePdfModule: mockLoadRentePdfModule,
-  loadReguleringPdfModule: mockLoadReguleringPdfModule,
-  loadKRLPdfModule: mockLoadKRLPdfModule,
-  loadLoebendeYdelserPdfModule: mockLoadLoebendeYdelserPdfModule,
-  loadKapitaliseringPdfModule: mockLoadKapitaliseringPdfModule,
-  loadEfterEalPdfModule: mockLoadEfterEalPdfModule,
-  loadDifferencekravPdfModule: mockLoadDifferencekravPdfModule,
-  loadErstatningsopgoerelsePdfModule: mockLoadErstatningsopgoerelsePdfModule,
-  loadTafFordeltPaaAarPdfModule: mockLoadTafFordeltPaaAarPdfModule,
-  loadTafKravGrafPdfModule: mockLoadTafKravGrafPdfModule,
-  loadTafOpreguleretPaaAarPdfModule: mockLoadTafOpreguleretPaaAarPdfModule,
-  loadVarigeMenPdfModule: mockLoadVarigeMenPdfModule,
-  loadAarsloenPdfModule: mockLoadAarsloenPdfModule,
-  loadSHDagePdfModule: mockLoadSHDagePdfModule,
+vi.mock('../../../document/service/documentLoader', () => ({
+  loadSatserDocumentModule: mockLoadSatserPdfModule,
+  loadRenteDocumentModule: mockLoadRentePdfModule,
+  loadReguleringDocumentModule: mockLoadReguleringPdfModule,
+  loadKRLDocumentModule: mockLoadKRLPdfModule,
+  loadLoebendeYdelserDocumentModule: mockLoadLoebendeYdelserPdfModule,
+  loadKapitaliseringDocumentModule: mockLoadKapitaliseringPdfModule,
+  loadEfterEalDocumentModule: mockLoadEfterEalPdfModule,
+  loadDifferencekravDocumentModule: mockLoadDifferencekravPdfModule,
+  loadErstatningsopgoerelseDocumentModule: mockLoadErstatningsopgoerelsePdfModule,
+  loadTafFordeltPaaAarDocumentModule: mockLoadTafFordeltPaaAarPdfModule,
+  loadTafKravGrafDocumentModule: mockLoadTafKravGrafPdfModule,
+  loadTafOpreguleretPaaAarDocumentModule: mockLoadTafOpreguleretPaaAarPdfModule,
+  loadVarigeMenDocumentModule: mockLoadVarigeMenPdfModule,
+  loadAarsloenDocumentModule: mockLoadAarsloenPdfModule,
+  loadSHDageDocumentModule: mockLoadSHDagePdfModule,
 }));
 
-vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument', () => ({
-  eoSnapshotToEoPdfDocument: mockEoSnapshotToEoPdfDocument,
+vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument', () => ({
+  eoSnapshotToEoDocument: mockEoSnapshotToEoDocument,
 }));
 
-vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument', () => ({
-  eoSnapshotToTafPerYearPdfDocument: mockEoSnapshotToTafPerYearPdfDocument,
+vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument', () => ({
+  eoSnapshotToTafPerYearDocument: mockEoSnapshotToTafPerYearDocument,
 }));
 
 vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument', () => ({
   eoSnapshotToTafKravGrafDocument: mockEoSnapshotToTafKravGrafDocument,
 }));
 
-vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretPdfDocument', () => ({
-  eoSnapshotToTafPerYearOpreguleretPdfDocument: mockEoSnapshotToTafPerYearOpreguleretPdfDocument,
+vi.mock('../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument', () => ({
+  eoSnapshotToTafPerYearOpreguleretDocument: mockEoSnapshotToTafPerYearOpreguleretDocument,
 }));
 
 import { toISODateString } from '../../../types/branded';
@@ -145,7 +145,7 @@ import {
   downloadAarsloenDokument,
   downloadSHDageDokument,
   resetPdfServiceDevServerStateForTests,
-} from '../../../pdf/infrastructure/pdfService';
+} from '../../../document/service/documentService';
 
 // ─── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -187,38 +187,38 @@ beforeEach(() => {
   mockGenerateVarigeMenPdf.mockReset();
   mockGenerateAarsloenPdf.mockReset();
   mockGenerateSHDagePdf.mockReset();
-  mockEoSnapshotToEoPdfDocument.mockReset();
-  mockEoSnapshotToTafPerYearPdfDocument.mockReset();
+  mockEoSnapshotToEoDocument.mockReset();
+  mockEoSnapshotToTafPerYearDocument.mockReset();
   mockEoSnapshotToTafKravGrafDocument.mockReset();
-  mockEoSnapshotToTafPerYearOpreguleretPdfDocument.mockReset();
-  mockLoadSatserPdfModule.mockImplementation(async () => ({ generateSatserPdf: mockGenerateSatserPdf }));
-  mockLoadRentePdfModule.mockImplementation(async () => ({ generateRentePdf: mockGenerateRentePdf }));
-  mockLoadReguleringPdfModule.mockImplementation(async () => ({ generateReguleringPdf: mockGenerateReguleringPdf }));
-  mockLoadKRLPdfModule.mockImplementation(async () => ({ generateKRLPdf: mockGenerateKRLPdf }));
-  mockLoadLoebendeYdelserPdfModule.mockImplementation(async () => ({ generateLoebendeYdelserPdf: mockGenerateLoebendeYdelserPdf }));
-  mockLoadKapitaliseringPdfModule.mockImplementation(async () => ({ generateKapitaliseringPdf: mockGenerateKapitaliseringPdf }));
-  mockLoadEfterEalPdfModule.mockImplementation(async () => ({ generateEfterEalPdf: mockGenerateEfterEalPdf }));
-  mockLoadDifferencekravPdfModule.mockImplementation(async () => ({ generateDifferencekravPdf: mockGenerateDifferencekravPdf }));
+  mockEoSnapshotToTafPerYearOpreguleretDocument.mockReset();
+  mockLoadSatserPdfModule.mockImplementation(async () => ({ generateSatserDocument: mockGenerateSatserPdf }));
+  mockLoadRentePdfModule.mockImplementation(async () => ({ generateRenteDocument: mockGenerateRentePdf }));
+  mockLoadReguleringPdfModule.mockImplementation(async () => ({ generateReguleringDocument: mockGenerateReguleringPdf }));
+  mockLoadKRLPdfModule.mockImplementation(async () => ({ generateKRLDocument: mockGenerateKRLPdf }));
+  mockLoadLoebendeYdelserPdfModule.mockImplementation(async () => ({ generateLoebendeYdelserDocument: mockGenerateLoebendeYdelserPdf }));
+  mockLoadKapitaliseringPdfModule.mockImplementation(async () => ({ generateKapitaliseringDocument: mockGenerateKapitaliseringPdf }));
+  mockLoadEfterEalPdfModule.mockImplementation(async () => ({ generateEfterEalDocument: mockGenerateEfterEalPdf }));
+  mockLoadDifferencekravPdfModule.mockImplementation(async () => ({ generateDifferencekravDocument: mockGenerateDifferencekravPdf }));
   mockLoadErstatningsopgoerelsePdfModule.mockImplementation(async () => ({
-    generateErstatningsopgoerelsePdf: mockGenerateErstatningsopgoerelsePdf,
+    generateErstatningsopgoerelseDocument: mockGenerateErstatningsopgoerelsePdf,
   }));
   mockLoadTafFordeltPaaAarPdfModule.mockImplementation(async () => ({
-    generateTafFordeltPaaAarPdf: mockGenerateTafFordeltPaaAarPdf,
+    generateTafFordeltPaaAarDocument: mockGenerateTafFordeltPaaAarPdf,
   }));
   mockLoadTafKravGrafPdfModule.mockImplementation(async () => ({
-    generateTafKravGrafPdf: mockGenerateTafKravGrafPdf,
+    generateTafKravGrafDocument: mockGenerateTafKravGrafPdf,
   }));
   mockLoadTafOpreguleretPaaAarPdfModule.mockImplementation(async () => ({
-    generateTafOpreguleretPaaAarPdf: mockGenerateTafOpreguleretPaaAarPdf,
+    generateTafOpreguleretPaaAarDocument: mockGenerateTafOpreguleretPaaAarPdf,
   }));
-  mockLoadVarigeMenPdfModule.mockImplementation(async () => ({ generateVarigeMenPdf: mockGenerateVarigeMenPdf }));
-  mockLoadAarsloenPdfModule.mockImplementation(async () => ({ generateAarsloenPdf: mockGenerateAarsloenPdf }));
-  mockLoadSHDagePdfModule.mockImplementation(async () => ({ generateSHDagePdf: mockGenerateSHDagePdf }));
-  mockEoSnapshotToEoPdfDocument.mockReturnValue({
+  mockLoadVarigeMenPdfModule.mockImplementation(async () => ({ generateVarigeMenDocument: mockGenerateVarigeMenPdf }));
+  mockLoadAarsloenPdfModule.mockImplementation(async () => ({ generateAarsloenDocument: mockGenerateAarsloenPdf }));
+  mockLoadSHDagePdfModule.mockImplementation(async () => ({ generateSHDageDocument: mockGenerateSHDagePdf }));
+  mockEoSnapshotToEoDocument.mockReturnValue({
     kind: 'ok',
     document: { titel: 'EO dokument' },
   });
-  mockEoSnapshotToTafPerYearPdfDocument.mockReturnValue({
+  mockEoSnapshotToTafPerYearDocument.mockReturnValue({
     kind: 'ok',
     document: { model: { titel: 'TAF dokument' }, presentation: null },
   });
@@ -226,7 +226,7 @@ beforeEach(() => {
     kind: 'ok',
     document: { model: { titel: 'TAF graf dokument' }, unit: 'maaned', series: [], timeWindows: [], beregningsperiode: null, skadeMarker: null },
   });
-  mockEoSnapshotToTafPerYearOpreguleretPdfDocument.mockReturnValue({
+  mockEoSnapshotToTafPerYearOpreguleretDocument.mockReturnValue({
     kind: 'ok',
     document: { model: { titel: 'TAF opreguleret dokument' }, presentation: null, opreguleret: null },
   });
@@ -488,7 +488,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
   });
 
   it('returnerer success=false når det givne snapshot blokerer EO-PDF', async () => {
-    mockEoSnapshotToEoPdfDocument.mockReturnValue({
+    mockEoSnapshotToEoDocument.mockReturnValue({
       kind: 'blocked',
       message: 'EO-PDF er blokeret af snapshot-kontroller.',
       invariants: [],
@@ -507,7 +507,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
   });
 
   it('tilpasser blokeret-besked til det aktive format (Word) så signalet matcher downloaden', async () => {
-    mockEoSnapshotToEoPdfDocument.mockReturnValue({
+    mockEoSnapshotToEoDocument.mockReturnValue({
       kind: 'blocked',
       message: 'EO-PDF kan ikke genereres for den aktuelle sag.',
       invariants: [],
@@ -527,7 +527,7 @@ describe('downloadErstatningsopgoerelseDokument', () => {
 
   it('sender projekteret EO-dokument videre til generatoren når snapshot er gyldigt', async () => {
     const projectedDocument = { titel: 'Testdokument' };
-    mockEoSnapshotToEoPdfDocument.mockReturnValue({
+    mockEoSnapshotToEoDocument.mockReturnValue({
       kind: 'ok',
       document: projectedDocument,
     });
@@ -594,7 +594,7 @@ describe('downloadTafFordeltPaaAarDokument', () => {
   });
 
   it('returnerer success=false når det givne snapshot blokerer TAF-PDF', async () => {
-    mockEoSnapshotToTafPerYearPdfDocument.mockReturnValue({
+    mockEoSnapshotToTafPerYearDocument.mockReturnValue({
       kind: 'blocked',
       message: 'TAF fordelt på år er blokeret af snapshot-kontroller.',
       invariants: [],
@@ -613,7 +613,7 @@ describe('downloadTafFordeltPaaAarDokument', () => {
 
   it('sender projekteret TAF-dokument videre til generatoren når snapshot er gyldigt', async () => {
     const projectedDocument = { model: { titel: 'TAF' }, presentation: null };
-    mockEoSnapshotToTafPerYearPdfDocument.mockReturnValue({
+    mockEoSnapshotToTafPerYearDocument.mockReturnValue({
       kind: 'ok',
       document: projectedDocument,
     });
@@ -698,7 +698,7 @@ describe('downloadTafOpreguleretPaaAarDokument', () => {
   });
 
   it('returnerer success=false når det givne snapshot blokerer den opregulerede TAF-PDF', async () => {
-    mockEoSnapshotToTafPerYearOpreguleretPdfDocument.mockReturnValue({
+    mockEoSnapshotToTafPerYearOpreguleretDocument.mockReturnValue({
       kind: 'blocked',
       message: 'TAF opreguleret til beregningsåret er blokeret af snapshot-kontroller.',
       invariants: [],
@@ -718,7 +718,7 @@ describe('downloadTafOpreguleretPaaAarDokument', () => {
 
   it('sender projekteret opreguleret TAF-dokument videre til generatoren når snapshot er gyldigt', async () => {
     const projectedDocument = { model: { titel: 'TAF opreguleret' }, presentation: null, opreguleret: null };
-    mockEoSnapshotToTafPerYearOpreguleretPdfDocument.mockReturnValue({
+    mockEoSnapshotToTafPerYearOpreguleretDocument.mockReturnValue({
       kind: 'ok',
       document: projectedDocument,
     });

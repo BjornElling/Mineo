@@ -84,7 +84,7 @@ import {
 } from '../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/krlRates';
 import { useAppSettings } from '../../../contexts/useAppSettings';
-import { downloadKrlDokument, downloadReguleringDokument, type ReguleringPdfInput } from '../../../pdf/infrastructure/pdfService';
+import { downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../document/service/documentService';
 
 type JaNej = 'Ja' | 'Nej';
 
@@ -437,7 +437,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
     reguleringsDatoIntervalData ? `${reguleringsDatoIntervalData.fraDato} - ${reguleringsDatoIntervalData.tilDato}` : '';
 
   const handleDownloadReguleringPdf = React.useCallback(
-    async (input: ReguleringPdfInput) => {
+    async (input: ReguleringDocumentInput) => {
       await downloadReguleringDokument({
         input,
         settings,

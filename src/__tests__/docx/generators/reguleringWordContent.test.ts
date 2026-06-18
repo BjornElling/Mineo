@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateReguleringPdf } from '../../../pdf/domains/eo/reguleringPdf';
+import { generateReguleringDocument } from '../../../document/generators/eo/reguleringDocument';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 import type { DanishDateString } from '../../../types/branded';
 
@@ -19,7 +19,7 @@ describe('regulering → Word-indhold', () => {
 
   it('skriver titel, model-label og ASL-tabel til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateReguleringPdf({
+      generateReguleringDocument({
         overenskomstLabel: '',
         loenudviklingBasis: 'Statistik',
         overenskomstId: undefined,
@@ -43,7 +43,7 @@ describe('regulering → Word-indhold', () => {
 
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
     const { documentXml } = await renderWordDocument(() => {
-      generateReguleringPdf({
+      generateReguleringDocument({
         overenskomstLabel: '',
         loenudviklingBasis: 'Statistik',
         overenskomstId: undefined,

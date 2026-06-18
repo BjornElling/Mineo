@@ -3,7 +3,7 @@ import { Box, Typography } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import StyledYearField from '../inputs/StyledYearField';
 import { getSatserForYear, satserAngivAarYearBounds } from '../../data/lovbestemteRates';
-import { downloadSatserDokument } from '../../pdf/infrastructure/pdfService';
+import { downloadSatserDokument } from '../../document/service/documentService';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { satserSchema } from '../../schemas/formSchemas';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';

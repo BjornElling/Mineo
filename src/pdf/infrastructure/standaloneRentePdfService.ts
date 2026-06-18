@@ -1,20 +1,20 @@
 import type { ProcessInterestPeriod } from '../../domain/renteberegning/procesrenteCalculator';
-import type { RenteOversigtRow } from '../domains/renteberegning/renteOversigtPdf';
+import type { RenteOversigtRow } from '../../document/generators/renteberegning/renteOversigtDocument';
 import type { ISODateString } from '../../types/branded';
-import type { PdfDownloadResult } from './pdfService';
+import type { DocumentDownloadResult } from '../../document/service/documentService';
 import {
-  buildRentePdfBaseTitle,
-  buildRentePdfFilename,
-  generateRentePdf,
-  writeRentePdfContent,
-} from '../domains/renteberegning/rentePdf';
-import { generateRenteOversigtPdf } from '../domains/renteberegning/renteOversigtPdf';
-import { createStandardPdfWriter } from './pdfWriter';
+  buildRenteDocumentBaseTitle,
+  buildRenteDocumentFilename,
+  generateRenteDocument,
+  writeRenteDocumentContent,
+} from '../../document/generators/renteberegning/renteDocument';
+import { generateRenteOversigtDocument } from '../../document/generators/renteberegning/renteOversigtDocument';
+import { createPdfChannelWriter } from './pdfWriter';
 import { parseDanishDate } from '../../utils/dateUtils';
-import { getPdfCreatorBrand } from '../shared/pdfHelpers';
+import { getDocumentCreatorBrand } from '../../document/layout/documentLayoutHelpers';
 import { asError } from '../../utils/typeGuards';
 
-const PDF_DOWNLOAD_SUCCESS: PdfDownloadResult = { success: true };
+const PDF_DOWNLOAD_SUCCESS: DocumentDownloadResult = { success: true };
 const PDF_DOWNLOAD_ERROR_MESSAGE = 'Kunne ikke generere rente-PDF';
 
 // MinProcesrente er en namespace-isoleret standalone-app (jf. isolations-guarden i
@@ -22,7 +22,7 @@ const PDF_DOWNLOAD_ERROR_MESSAGE = 'Kunne ikke generere rente-PDF';
 // fejlrapportering/app-settings m.m. Runtime-fejl under en (allerede gated) download logges
 // derfor lokalt med console.error (reel fejl, jf. console-politikken) og returneres som et
 // fejl-result. Den brugervendte result.error-tekst er uændret.
-const reportStandaloneRenteDownloadFailure = (error: unknown): PdfDownloadResult => {
+const reportStandaloneRenteDownloadFailure = (error: unknown): DocumentDownloadResult => {
   const normalizedError = asError(error);
   console.error(PDF_DOWNLOAD_ERROR_MESSAGE, normalizedError);
   return { success: false, error: PDF_DOWNLOAD_ERROR_MESSAGE };
@@ -35,7 +35,7 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
   periods: ReadonlyArray<ProcessInterestPeriod>;
   latestReferenceRateDate: string | null;
   kommentarer?: string;
-}>): Promise<PdfDownloadResult> => {
+}>): Promise<DocumentDownloadResult> => {
   const {
     beloeb,
     actualInterestDate,
@@ -46,7 +46,7 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
   } = params;
 
   try {
-    generateRentePdf(beloeb, actualInterestDate, beregningsdato, periods, {
+    generateRenteDocument(beloeb, actualInterestDate, beregningsdato, periods, {
       visBrevhoved: false,
       stamdata: null,
       kommentarer,
@@ -62,7 +62,7 @@ export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
   beregningsdato: ISODateString;
   rows: ReadonlyArray<RenteOversigtRow>;
   kommentarer?: string;
-}>): Promise<PdfDownloadResult> => {
+}>): Promise<DocumentDownloadResult> => {
   const { beregningsdato, rows, kommentarer } = params;
 
   if (rows.length === 0) {
@@ -70,7 +70,7 @@ export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
   }
 
   try {
-    generateRenteOversigtPdf(beregningsdato, rows, {
+    generateRenteOversigtDocument(beregningsdato, rows, {
       visBrevhoved: false,
       stamdata: null,
       kommentarer,
@@ -92,7 +92,7 @@ export type RentePdfRowParams = Readonly<{
 export const downloadAllStandaloneRentePdf = async (params: Readonly<{
   rows: ReadonlyArray<RentePdfRowParams>;
   kommentarer?: string;
-}>): Promise<PdfDownloadResult> => {
+}>): Promise<DocumentDownloadResult> => {
   const { rows, kommentarer } = params;
 
   if (rows.length === 0) {
@@ -100,13 +100,13 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
   }
 
   try {
-    const writer = createStandardPdfWriter();
+    const writer = createPdfChannelWriter();
     writer.setDisplayMode('fullheight');
     writer.setProperties({
       title: 'Procesrente',
       subject: 'Erstatningsberegning',
       author: 'Mineo',
-      creator: getPdfCreatorBrand(),
+      creator: getDocumentCreatorBrand(),
     });
 
     for (let i = 0; i < rows.length; i++) {
@@ -124,7 +124,7 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
         throw new Error('Ingen perioder fundet for renteberegning');
       }
 
-      writeRentePdfContent(writer, row.beloeb, startDate, endDate, row.periods, {
+      writeRenteDocumentContent(writer, row.beloeb, startDate, endDate, row.periods, {
         visBrevhoved: false,
         stamdata: null,
         kommentarer,
@@ -138,10 +138,10 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
     const firstStart = parseDanishDate(firstRow.actualInterestDate);
     const firstEnd = parseDanishDate(firstRow.beregningsdato);
     const baseTitle = firstStart && firstEnd
-      ? buildRentePdfBaseTitle(firstRow.beloeb, firstStart, firstEnd)
+      ? buildRenteDocumentBaseTitle(firstRow.beloeb, firstStart, firstEnd)
       : 'Procesrente-specifikationer';
     const suffix = rows.length > 1 ? ` +${rows.length - 1}` : '';
-    const filename = buildRentePdfFilename(`${baseTitle}${suffix}`);
+    const filename = buildRenteDocumentFilename(`${baseTitle}${suffix}`);
     writer.save(filename);
 
     return PDF_DOWNLOAD_SUCCESS;

@@ -24,7 +24,7 @@ import { useAppSettings } from '../../../contexts/useAppSettings';
 import { calculateUtcAgeInWholeYears } from '../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
-import { downloadVarigeMenDokument } from '../../../pdf/infrastructure/pdfService';
+import { downloadVarigeMenDokument } from '../../../document/service/documentService';
 import { useFormFieldErrorReporter, useFormFieldErrors } from '../../../hooks/useFormFieldErrors';
 import { resolveStamdataDatoLabel } from '../../../domain/policies/stamdataCalculations';
 

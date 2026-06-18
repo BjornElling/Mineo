@@ -20,7 +20,7 @@ vi.mock('../../../../contexts/useAppSettings', () => ({
   }),
 }));
 
-vi.mock('../../../../pdf/infrastructure/pdfService', () => ({
+vi.mock('../../../../document/service/documentService', () => ({
   downloadDifferencekravDokument: vi.fn(),
 }));
 

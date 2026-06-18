@@ -1,18 +1,18 @@
 /// <reference types="vitest/globals" />
 
-import { PDF_CONTENT_WIDTH_MM, TABLE_STYLES } from '../../../pdf/infrastructure/pdfConfig';
+import { PDF_CONTENT_WIDTH_MM, TABLE_STYLES } from '../../../document/layout/pdfConfig';
 import {
-  createPdfDistributedColumnStyles,
-  createPdfTableCell,
-  createPdfTableFormattedTotalRow,
-  createPdfTableSummedTotalRow,
-} from '../../../pdf/shared/pdfTableRenderer';
+  createDocumentDistributedColumnStyles,
+  createDocumentTableCell,
+  createDocumentTableFormattedTotalRow,
+  createDocumentTableSummedTotalRow,
+} from '../../../document/layout/documentTableRenderer';
 
 type PdfTableTestCell = { content?: string; colSpan?: number; styles?: { cellPadding?: number } };
 
-describe('createPdfDistributedColumnStyles', () => {
+describe('createDocumentDistributedColumnStyles', () => {
   it('fordeler fuld tabelbredde ligeligt når ingen kolonner er låst', () => {
-    const styles = createPdfDistributedColumnStyles(5);
+    const styles = createDocumentDistributedColumnStyles(5);
 
     expect(Object.keys(styles)).toHaveLength(5);
     expect(styles[0]?.cellWidth).toBeCloseTo(PDF_CONTENT_WIDTH_MM / 5, 6);
@@ -20,7 +20,7 @@ describe('createPdfDistributedColumnStyles', () => {
   });
 
   it('fordeler restbredden mellem ulåste kolonner når enkelte kolonner er låst', () => {
-    const styles = createPdfDistributedColumnStyles(4, {
+    const styles = createDocumentDistributedColumnStyles(4, {
       fixedColumns: {
         1: 25,
         3: { cellWidth: 35, halign: 'right' },
@@ -38,7 +38,7 @@ describe('createPdfDistributedColumnStyles', () => {
 
   it('afviser manuelle bredder der overstiger den samlede tabelbredde', () => {
     expect(() =>
-      createPdfDistributedColumnStyles(3, {
+      createDocumentDistributedColumnStyles(3, {
         fixedColumns: {
           0: 100,
           1: 80,
@@ -49,7 +49,7 @@ describe('createPdfDistributedColumnStyles', () => {
 
   it('afviser når alle kolonner er låst uden at udfylde den samlede bredde præcist', () => {
     expect(() =>
-      createPdfDistributedColumnStyles(3, {
+      createDocumentDistributedColumnStyles(3, {
         fixedColumns: {
           0: 40,
           1: 40,
@@ -60,9 +60,9 @@ describe('createPdfDistributedColumnStyles', () => {
   });
 });
 
-describe('createPdfTableSummedTotalRow', () => {
+describe('createDocumentTableSummedTotalRow', () => {
   it('udvider totalbeløbet mod venstre for at give maksimal plads', () => {
-    const result = createPdfTableSummedTotalRow('I alt', [10, 20], {
+    const result = createDocumentTableSummedTotalRow('I alt', [10, 20], {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
@@ -82,7 +82,7 @@ describe('createPdfTableSummedTotalRow', () => {
   });
 
   it('bevarer 2-kolonne-tabeller uden at forsøge ekstra sammenfletning', () => {
-    const result = createPdfTableSummedTotalRow('I alt', [1, 2], {
+    const result = createDocumentTableSummedTotalRow('I alt', [1, 2], {
       columnCount: 2,
       valueColumnIndex: 1,
       formatValue: (total) => String(total),
@@ -98,7 +98,7 @@ describe('createPdfTableSummedTotalRow', () => {
   });
 
   it('kan fastholde totalværdien i den angivne værdikolonne', () => {
-    const result = createPdfTableSummedTotalRow('I alt', [1, 2], {
+    const result = createDocumentTableSummedTotalRow('I alt', [1, 2], {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => String(total),
@@ -120,7 +120,7 @@ describe('createPdfTableSummedTotalRow', () => {
   });
 
   it('bevarer kr.-suffix når den summerede kolonne viser kr.', () => {
-    const result = createPdfTableSummedTotalRow('I alt', [10, 20], {
+    const result = createDocumentTableSummedTotalRow('I alt', [10, 20], {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
@@ -131,7 +131,7 @@ describe('createPdfTableSummedTotalRow', () => {
   });
 
   it('fjerner kr.-suffix når den summerede kolonne ikke viser kr.', () => {
-    const result = createPdfTableSummedTotalRow('I alt', [10, 20], {
+    const result = createDocumentTableSummedTotalRow('I alt', [10, 20], {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
@@ -142,7 +142,7 @@ describe('createPdfTableSummedTotalRow', () => {
   });
 
   it('bevarer ikke-brydende mellemrum for ikke-højrejusteret totalværdi med kr.-suffix', () => {
-    const result = createPdfTableSummedTotalRow('I alt', [10, 20], {
+    const result = createDocumentTableSummedTotalRow('I alt', [10, 20], {
       columnCount: 4,
       valueColumnIndex: 3,
       formatValue: (total) => `${total} kr.`,
@@ -154,23 +154,23 @@ describe('createPdfTableSummedTotalRow', () => {
   });
 });
 
-describe('buildPdfTotalRow (via createPdfTableFormattedTotalRow) — invariant-guards', () => {
+describe('buildPdfTotalRow (via createDocumentTableFormattedTotalRow) — invariant-guards', () => {
   // De fem fail-closed guards i buildPdfTotalRow må aldrig producere en stille
   // forkert total-række i et tillidskritisk dokument; de skal kaste.
 
   it('afviser ugyldigt kolonneantal (<= 1 eller ikke-heltal)', () => {
     expect(() =>
-      createPdfTableFormattedTotalRow('I alt', '30', { columnCount: 1, valueColumnIndex: 0 })
+      createDocumentTableFormattedTotalRow('I alt', '30', { columnCount: 1, valueColumnIndex: 0 })
     ).toThrow(/Ugyldigt kolonneantal/i);
 
     expect(() =>
-      createPdfTableFormattedTotalRow('I alt', '30', { columnCount: 2.5, valueColumnIndex: 1 })
+      createDocumentTableFormattedTotalRow('I alt', '30', { columnCount: 2.5, valueColumnIndex: 1 })
     ).toThrow(/Ugyldigt kolonneantal/i);
   });
 
   it('afviser label-kolonneindex uden for [0, columnCount)', () => {
     expect(() =>
-      createPdfTableFormattedTotalRow('I alt', '30', {
+      createDocumentTableFormattedTotalRow('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 3,
         labelColumnIndex: -1,
@@ -178,7 +178,7 @@ describe('buildPdfTotalRow (via createPdfTableFormattedTotalRow) — invariant-g
     ).toThrow(/Ugyldigt label-kolonneindex/i);
 
     expect(() =>
-      createPdfTableFormattedTotalRow('I alt', '30', {
+      createDocumentTableFormattedTotalRow('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 3,
         labelColumnIndex: 4,
@@ -188,17 +188,17 @@ describe('buildPdfTotalRow (via createPdfTableFormattedTotalRow) — invariant-g
 
   it('afviser værdi-kolonneindex uden for [0, columnCount)', () => {
     expect(() =>
-      createPdfTableFormattedTotalRow('I alt', '30', { columnCount: 4, valueColumnIndex: 4 })
+      createDocumentTableFormattedTotalRow('I alt', '30', { columnCount: 4, valueColumnIndex: 4 })
     ).toThrow(/Ugyldigt værdi-kolonneindex/i);
 
     expect(() =>
-      createPdfTableFormattedTotalRow('I alt', '30', { columnCount: 4, valueColumnIndex: -1 })
+      createDocumentTableFormattedTotalRow('I alt', '30', { columnCount: 4, valueColumnIndex: -1 })
     ).toThrow(/Ugyldigt værdi-kolonneindex/i);
   });
 
   it('afviser ugyldigt værdi-colSpan (<= 0 eller ikke-heltal)', () => {
     expect(() =>
-      createPdfTableFormattedTotalRow('I alt', '30', {
+      createDocumentTableFormattedTotalRow('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 1,
         valueColSpan: 0,
@@ -208,7 +208,7 @@ describe('buildPdfTotalRow (via createPdfTableFormattedTotalRow) — invariant-g
 
   it('afviser når værdi-cellen rækker ud over tabellens kolonner', () => {
     expect(() =>
-      createPdfTableFormattedTotalRow('I alt', '30', {
+      createDocumentTableFormattedTotalRow('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 3,
         valueColSpan: 2,
@@ -218,7 +218,7 @@ describe('buildPdfTotalRow (via createPdfTableFormattedTotalRow) — invariant-g
 
   it('afviser når label-kolonnen ikke ligger til venstre for værdi-kolonnen', () => {
     expect(() =>
-      createPdfTableFormattedTotalRow('I alt', '30', {
+      createDocumentTableFormattedTotalRow('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 1,
         labelColumnIndex: 1,
@@ -226,7 +226,7 @@ describe('buildPdfTotalRow (via createPdfTableFormattedTotalRow) — invariant-g
     ).toThrow(/til venstre for værdi-kolonnen/i);
 
     expect(() =>
-      createPdfTableFormattedTotalRow('I alt', '30', {
+      createDocumentTableFormattedTotalRow('I alt', '30', {
         columnCount: 4,
         valueColumnIndex: 1,
         labelColumnIndex: 2,
@@ -235,15 +235,15 @@ describe('buildPdfTotalRow (via createPdfTableFormattedTotalRow) — invariant-g
   });
 });
 
-describe('createPdfTableCell', () => {
+describe('createDocumentTableCell', () => {
   it('normaliserer højrejusteret kr.-tekst til almindeligt mellemrum', () => {
-    const cell = createPdfTableCell('123,45\u00A0kr.', { halign: 'right' });
+    const cell = createDocumentTableCell('123,45\u00A0kr.', { halign: 'right' });
 
     expect(cell.content).toBe('123,45 kr.');
   });
 
   it('bevarer ikke-brydende mellemrum i ikke-højrejusterede celler', () => {
-    const cell = createPdfTableCell('123,45\u00A0kr.', { halign: 'center' });
+    const cell = createDocumentTableCell('123,45\u00A0kr.', { halign: 'center' });
 
     expect(cell.content).toBe('123,45\u00A0kr.');
   });

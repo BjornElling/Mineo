@@ -8,7 +8,7 @@ import {
   buildMidlertidigtEetPdfGroupsForTafRanges,
   renderMidlertidigtEetSection,
   renderOffentligeYdelserSection,
-} from '../../../../../pdf/domains/eo/sections/offentligeYdelserSection';
+} from '../../../../../document/generators/eo/sections/offentligeYdelserSection';
 import { toISODateString } from '../../../../../types/branded';
 
 const { autoTableMock } = vi.hoisted(() => ({

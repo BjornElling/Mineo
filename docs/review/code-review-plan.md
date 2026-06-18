@@ -15,7 +15,7 @@
 - **Sprogpolitik:** dansk uden undtagelse.
 - **Godkendelse:** UI/UX- og beregningslogik-ændringer forelægges; resten gennemføres direkte. Resten af punktet kan færdiggøres mens et fund afventer.
 
-**Dobbeltkanal dokument-output:** PDF (jsPDF) og Word (`.docx`) kører gennem *samme* format-agnostiske generatorer mod `PdfWriter`-grænsefladen (`createDocxWriter` routes via `documentGenerationContext`). Gruppe 10 dækker begge kanaler + paritet.
+**Dobbeltkanal dokument-output:** PDF (jsPDF) og Word (`.docx`) kører gennem *samme* format-agnostiske generatorer mod `DocumentWriter`-grænsefladen (`createDocxWriter` routes via `documentGenerationContext`). Gruppe 10 dækker begge kanaler + paritet.
 
 **Multi-app:** Mineo (fuld) + standalone MinProcesrente deler bootstrap/storage, men er namespace-isolerede. Gruppe 12 dækker isolationen.
 
@@ -143,7 +143,6 @@ Fund fra færdige grupper 1–7 som bevidst er parkeret til et senere punkt. **L
 - **14.2** — `ValidationErrorMap`: test-only type uden produktionsforbrugere → oprydning. *(Kilde 3.1)*
 - **14.2** — `usePersistedForm.replaceValues`: ubrugt public hook-export (kun hook + tests). Latent bug: `persistData` returnerer `true` ved no-op, så `replaceValues` bumper `formVersion` (→ row-draft-resync) selv ved idempotent replace. Fjern den ubrugte export ELLER giv `persistData` et separat "didChange"-signal hvis den genindføres. *(Kilde 9.1)*
 - **14.2** — `StyledToggleSwitch` imperativ shake (ref + setTimeout) vs. den kanoniske deklarative `useShakeFlag`: to mønstre for samme animation. Konsolidér på sigt. *(Kilde 9.2)*
-- **14.2** — Kanal-lækage: `PdfWriter.getDoc(): jsPDF` eksponerer den rå jsPDF-instans på den dobbeltkanal-grænseflade, så Word-writeren må returnere en attrap via `as never`-cast (F2). Lukker man `getDoc` af writer-API'et (kun tabel-callbacks/lavniveau-tegning bør have rå adgang), forsvinder `as never`-casten i Word-laget. Stor arkitektonisk ændring der rører ~14 generatorers callsites — planlagt, ikke ad hoc. *(Kilde 10.2)*
 
 ---
 

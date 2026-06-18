@@ -2,11 +2,12 @@
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
+import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
-import { FONT_SIZES, PDF_BASE_LINE_HEIGHT_MM } from '../../../pdf/infrastructure/pdfConfig';
+import { FONT_SIZES, PDF_BASE_LINE_HEIGHT_MM } from '../../../document/layout/pdfConfig';
 import { toISODateString } from '../../../types/branded';
+import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
 
 const mockInstances: MockJsPDF[] = [];
 
@@ -62,7 +63,11 @@ vi.mock('../../../utils/logger', () => ({
 }));
 
 describe('erstatningsopgoerelsePdf udkaststempel', () => {
-  let generateErstatningsopgoerelsePdf: typeof import('../../../pdf/domains/eo/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
+  beforeEach(async () => {
+    await registerPdfWriterFallbackForTest();
+  });
+
+  let generateErstatningsopgoerelseDocument: typeof import('../../../document/generators/eo/erstatningsopgoerelseDocument').generateErstatningsopgoerelseDocument;
 
   const selected = {
     opgoerelse: true,
@@ -84,7 +89,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   });
 
   beforeAll(async () => {
-    ({ generateErstatningsopgoerelsePdf } = await import('../../../pdf/domains/eo/erstatningsopgoerelsePdf'));
+    ({ generateErstatningsopgoerelseDocument } = await import('../../../document/generators/eo/erstatningsopgoerelseDocument'));
   }, 20000);
 
   const createBaseStamdata = (): StamdataValues => structuredClone(STAMDATA_INITIAL_VALUES);
@@ -102,7 +107,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       stamdataValues: stamdata,
       eoValues: eo,
     });
-    const projection = eoSnapshotToEoPdfDocument(snapshot);
+    const projection = eoSnapshotToEoDocument(snapshot);
     if (projection.kind === 'blocked') {
       throw new Error(projection.message);
     }
@@ -120,7 +125,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   it('adds draft watermark when visUdkastStempel=true', () => {
     const baseStamdata = createBaseStamdata();
     const baseEo = createBaseEo();
-    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, {
+    generateErstatningsopgoerelseDocument(baseStamdata, baseEo, selected, {
       visUdkastStempel: true,
       document: buildProjectedDocument(baseStamdata, baseEo),
     });
@@ -136,7 +141,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       ...baseStamdata,
       journalnr: '1234',
     };
-    generateErstatningsopgoerelsePdf(stamdataWithJournal, baseEo, selected, {
+    generateErstatningsopgoerelseDocument(stamdataWithJournal, baseEo, selected, {
       visUdkastStempel: true,
       document: buildProjectedDocument(stamdataWithJournal, baseEo),
     });
@@ -147,7 +152,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
   it('does not add draft watermark when visUdkastStempel=false', () => {
     const baseStamdata = createBaseStamdata();
     const baseEo = createBaseEo();
-    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, {
+    generateErstatningsopgoerelseDocument(baseStamdata, baseEo, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, baseEo),
     });
@@ -168,7 +173,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
     baseStamdata.skadestype = 'Arbejdsulykke';
     baseStamdata.skadedato = toISODateString('2025-04-03');
 
-    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, {
+    generateErstatningsopgoerelseDocument(baseStamdata, baseEo, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, baseEo),
     });
@@ -193,7 +198,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       sygeferiegodtgoerelse: true,
     };
 
-    expect(() => generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selectedWithUnsupported, {
+    expect(() => generateErstatningsopgoerelseDocument(baseStamdata, baseEo, selectedWithUnsupported, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, baseEo),
     }))
@@ -215,7 +220,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return [text];
     };
 
-    generateErstatningsopgoerelsePdf(baseStamdata, eoWithLongComment, selected, {
+    generateErstatningsopgoerelseDocument(baseStamdata, eoWithLongComment, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, eoWithLongComment),
     });
@@ -236,7 +241,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return [text];
     };
 
-    generateErstatningsopgoerelsePdf(baseStamdata, eoWithVeryLongComment, selected, {
+    generateErstatningsopgoerelseDocument(baseStamdata, eoWithVeryLongComment, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, eoWithVeryLongComment),
     });
@@ -257,7 +262,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return text.length;
     };
 
-    generateErstatningsopgoerelsePdf(baseStamdata, baseEo, selected, {
+    generateErstatningsopgoerelseDocument(baseStamdata, baseEo, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, baseEo),
     });
@@ -319,7 +324,7 @@ describe('erstatningsopgoerelsePdf udkaststempel', () => {
       return [text];
     };
 
-    generateErstatningsopgoerelsePdf(baseStamdata, eoWithLongSignaturIntro, selected, {
+    generateErstatningsopgoerelseDocument(baseStamdata, eoWithLongSignaturIntro, selected, {
       visUdkastStempel: false,
       document: buildProjectedDocument(baseStamdata, eoWithLongSignaturIntro),
     });

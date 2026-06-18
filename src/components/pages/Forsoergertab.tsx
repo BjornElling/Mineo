@@ -19,7 +19,7 @@ import { formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatKr } 
 import DocumentDownloadButton from '../inputs/DocumentDownloadButton';
 import AarsloenAmountFieldRow from '../inputs/AarsloenAmountFieldRow';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import { downloadForsoergertabDokument } from '../../pdf/infrastructure/pdfService';
+import { downloadForsoergertabDokument } from '../../document/service/documentService';
 import { buildAldersreduktionFormelTekst } from '../../domain/erhvervsevnetab/eetAldersreduktionFormel';
 import StandardLooseTable from '../tables/StandardLooseTable';
 import { computeForsoergertabSnapshot } from '../../domain/forsoergertab/forsoergertabSnapshot';

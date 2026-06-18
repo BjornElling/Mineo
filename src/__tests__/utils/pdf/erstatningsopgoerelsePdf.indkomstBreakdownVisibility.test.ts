@@ -4,10 +4,11 @@ import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitia
 import { toISODateString } from '../../../types/branded';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { StamdataValues } from '../../../schemas/formSchemas';
-import type { SelectedElements } from '../../../pdf/domains/eo/types';
-import { formatCurrencyFromOre } from '../../../pdf/shared/pdfFormatUtils';
-import { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM } from '../../../pdf/infrastructure/pdfConfig';
+import type { SelectedElements } from '../../../document/generators/eo/types';
+import { formatCurrencyFromOre } from '../../../document/layout/documentFormatUtils';
+import { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM } from '../../../document/layout/pdfConfig';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
+import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
 
 // Minimum Y-afstand mellem to teksters baselines når der skal være mindst én tom linje imellem:
 // linje + trailing + linje. Bruges til at håndhæve læsbarheds-luft mellem forbeholdstekst og krav.
@@ -70,7 +71,7 @@ const selected: SelectedElements = {
   sygeferiegodtgoerelse: false,
 };
 
-let generateErstatningsopgoerelsePdf: typeof import('../../../pdf/domains/eo/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
+let generateErstatningsopgoerelseDocument: typeof import('../../../document/generators/eo/erstatningsopgoerelseDocument').generateErstatningsopgoerelseDocument;
 
 const buildProjectedDocument = (
   stamdata: StamdataValues,
@@ -93,7 +94,7 @@ const renderPdf = (
   stamdata: StamdataValues,
   eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>
 ) => {
-  generateErstatningsopgoerelsePdf(stamdata, withSfggIngenForEmployments(eo), selected, {
+  generateErstatningsopgoerelseDocument(stamdata, withSfggIngenForEmployments(eo), selected, {
     visUdkastStempel: false,
     document: buildProjectedDocument(stamdata, eo),
   });
@@ -104,7 +105,7 @@ const renderPdfWithSelected = (
   eo: ReturnType<typeof createErstatningsopgoerelseInitialValues>,
   selectedElements: typeof selected
 ) => {
-  generateErstatningsopgoerelsePdf(stamdata, withSfggIngenForEmployments(eo), selectedElements, {
+  generateErstatningsopgoerelseDocument(stamdata, withSfggIngenForEmployments(eo), selectedElements, {
     visUdkastStempel: false,
     document: buildProjectedDocument(stamdata, eo),
   });
@@ -207,9 +208,13 @@ const buildBaseInput = () => {
 };
 
 describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
+  beforeEach(async () => {
+    await registerPdfWriterFallbackForTest();
+  });
+
   beforeAll(async () => {
-    const pdfModule = await import('../../../pdf/domains/eo/erstatningsopgoerelsePdf');
-    generateErstatningsopgoerelsePdf = pdfModule.generateErstatningsopgoerelsePdf;
+    const pdfModule = await import('../../../document/generators/eo/erstatningsopgoerelseDocument');
+    generateErstatningsopgoerelseDocument = pdfModule.generateErstatningsopgoerelseDocument;
   }, 30000);
 
   it('viser ferieoplysning under indkomst uden skade for daterede og løse feriedage i TAF-perioden', () => {
@@ -887,7 +892,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     renderValues.beregnesUdFra = 'Angivet dagsløn';
     renderValues.dagsloenenUdgoer = asAmountValue(1500);
 
-    generateErstatningsopgoerelsePdf(stamdata, renderValues, {
+    generateErstatningsopgoerelseDocument(stamdata, renderValues, {
       ...selected,
       sygeferiegodtgoerelse: true,
     }, {
@@ -1009,7 +1014,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const renderValues = structuredClone(eo);
     renderValues.beregnesUdFra = 'Angivet månedsløn';
 
-    generateErstatningsopgoerelsePdf(stamdata, renderValues, {
+    generateErstatningsopgoerelseDocument(stamdata, renderValues, {
       ...selected,
       sygeferiegodtgoerelse: true,
     }, {
@@ -1194,7 +1199,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       sfggAlleredeBetaltBeloeb: asAmountValue(1234.56),
     }];
 
-    generateErstatningsopgoerelsePdf(stamdata, renderValues, {
+    generateErstatningsopgoerelseDocument(stamdata, renderValues, {
       ...selected,
       shDage: true,
     }, {
@@ -1355,7 +1360,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
       sfggAlleredeBetaltBeloeb: undefined,
     }];
 
-    generateErstatningsopgoerelsePdf(stamdata, renderValues, {
+    generateErstatningsopgoerelseDocument(stamdata, renderValues, {
       ...selected,
       regulering: true,
     }, {

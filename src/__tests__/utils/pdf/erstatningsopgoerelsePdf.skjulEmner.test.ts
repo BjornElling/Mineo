@@ -2,9 +2,10 @@
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
+import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues, JaNejSkjul } from '../../../schemas/formSchemas';
+import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
 
 class MockJsPDF {
   static lastInstance: MockJsPDF | null = null;
@@ -42,7 +43,11 @@ vi.mock('../../../utils/logger', () => ({
 }));
 
 describe('erstatningsopgoerelsePdf — Skjul udelader emner', () => {
-  let generateErstatningsopgoerelsePdf: typeof import('../../../pdf/domains/eo/erstatningsopgoerelsePdf').generateErstatningsopgoerelsePdf;
+  beforeEach(async () => {
+    await registerPdfWriterFallbackForTest();
+  });
+
+  let generateErstatningsopgoerelseDocument: typeof import('../../../document/generators/eo/erstatningsopgoerelseDocument').generateErstatningsopgoerelseDocument;
 
   const selected = {
     opgoerelse: true,
@@ -56,7 +61,7 @@ describe('erstatningsopgoerelsePdf — Skjul udelader emner', () => {
   };
 
   beforeAll(async () => {
-    ({ generateErstatningsopgoerelsePdf } = await import('../../../pdf/domains/eo/erstatningsopgoerelsePdf'));
+    ({ generateErstatningsopgoerelseDocument } = await import('../../../document/generators/eo/erstatningsopgoerelseDocument'));
   }, 20000);
 
   beforeEach(() => {
@@ -85,12 +90,12 @@ describe('erstatningsopgoerelsePdf — Skjul udelader emner', () => {
       stamdataValues: stamdata,
       eoValues: eo,
     });
-    const projection = eoSnapshotToEoPdfDocument(snapshot);
+    const projection = eoSnapshotToEoDocument(snapshot);
     if (projection.kind === 'blocked') {
       throw new Error(projection.message);
     }
     const document: EoModel = projection.document;
-    generateErstatningsopgoerelsePdf(stamdata, eo, selected, {
+    generateErstatningsopgoerelseDocument(stamdata, eo, selected, {
       visUdkastStempel: false,
       document,
       ...(afsluttesMed ? { erstatningsopgoerelseAfsluttesMed: afsluttesMed } : {}),

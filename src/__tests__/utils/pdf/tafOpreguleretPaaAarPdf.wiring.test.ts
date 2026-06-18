@@ -3,8 +3,9 @@
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
 import type { TafPerYearOpreguleretResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
 import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
-import type { TafPerYearOpreguleretPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretPdfDocument';
+import type { TafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 import { toISODateString } from '../../../types/branded';
+import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
 
 type Style = 'normal' | 'bold';
 
@@ -130,21 +131,25 @@ const FAKE_OPREGULERET: TafPerYearOpreguleretResult = {
   sumOpreguleretOre: 77812500 as MoneyOre,
 };
 
-const FAKE_DOCUMENT: TafPerYearOpreguleretPdfDocument = {
+const FAKE_DOCUMENT: TafPerYearOpreguleretDocument = {
   model: FAKE_MODEL as never,
   presentation: FAKE_PRESENTATION,
   opreguleret: FAKE_OPREGULERET,
 };
 
 const loadGenerator = async () => {
-  const mod = await import('../../../pdf/domains/tafFordelt/tafOpreguleretPaaAarPdf');
-  return mod.generateTafOpreguleretPaaAarPdf;
+  const mod = await import('../../../document/generators/tafFordelt/tafOpreguleretPaaAarDocument');
+  return mod.generateTafOpreguleretPaaAarDocument;
 };
 
 const lastInstance = () => MockJsPDF.instances.at(-1);
 const textsOf = (instance = lastInstance()) => (instance?.recorded ?? []).map((entry) => entry.text);
 
 describe('tafOpreguleretPaaAarPdf wiring', () => {
+  beforeEach(async () => {
+    await registerPdfWriterFallbackForTest();
+  });
+
   let generate: Awaited<ReturnType<typeof loadGenerator>>;
 
   beforeAll(async () => {

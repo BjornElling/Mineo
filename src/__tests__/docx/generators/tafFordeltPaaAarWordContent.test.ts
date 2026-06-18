@@ -1,8 +1,8 @@
 /// <reference types="vitest/globals" />
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
 import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
-import type { TafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
-import { generateTafFordeltPaaAarPdf } from '../../../pdf/domains/tafFordelt/tafFordeltPaaAarPdf';
+import type { TafPerYearDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
+import { generateTafFordeltPaaAarDocument } from '../../../document/generators/tafFordelt/tafFordeltPaaAarDocument';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -56,7 +56,7 @@ const FAKE_RESULT: TafPerYearResult = {
   samletTafKravOre: 37500000 as MoneyOre,
 };
 
-const FAKE_DOCUMENT: TafPerYearPdfDocument = {
+const FAKE_DOCUMENT: TafPerYearDocument = {
   model: FAKE_MODEL as never,
   presentation: FAKE_RESULT,
 };
@@ -64,7 +64,7 @@ const FAKE_DOCUMENT: TafPerYearPdfDocument = {
 describe('tafFordeltPaaAar → Word-indhold', () => {
   it('skriver årsfordeling, fradragslinjer og total til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateTafFordeltPaaAarPdf({ document: FAKE_DOCUMENT });
+      generateTafFordeltPaaAarDocument({ document: FAKE_DOCUMENT });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -79,7 +79,7 @@ describe('tafFordeltPaaAar → Word-indhold', () => {
 
   it('giver udkast-suffix i filnavnet når visUdkastStempel=true', async () => {
     const { filename } = await renderWordDocument(() => {
-      generateTafFordeltPaaAarPdf({ document: FAKE_DOCUMENT, visUdkastStempel: true });
+      generateTafFordeltPaaAarDocument({ document: FAKE_DOCUMENT, visUdkastStempel: true });
     });
 
     expect(filename).toMatch(/ \(udkast\)\.docx$/);

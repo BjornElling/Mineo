@@ -1,6 +1,7 @@
 /// <reference types="vitest/globals" />
 
-import { PDF_CONTENT_WIDTH_MM } from '../../../pdf/infrastructure/pdfConfig';
+import { PDF_CONTENT_WIDTH_MM } from '../../../document/layout/pdfConfig';
+import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
 
 const AARSLOEN_PDF_ATP_HEADER = 'ATP mv.\nu. tillæg';
 const AARSLOEN_PDF_IKKE_PENS_HEADER = 'Ikke-pens.\ngiv. løn';
@@ -66,10 +67,14 @@ vi.mock('jspdf-autotable', () => ({
 }));
 
 describe('aarsloenPdf', () => {
-  let generateAarsloenPdf: typeof import('../../../pdf/domains/aarsloen/aarsloenPdf')['generateAarsloenPdf'];
+  beforeEach(async () => {
+    await registerPdfWriterFallbackForTest();
+  });
+
+  let generateAarsloenDocument: typeof import('../../../document/generators/aarsloen/aarsloenDocument')['generateAarsloenDocument'];
 
   beforeAll(async () => {
-    ({ generateAarsloenPdf } = await import('../../../pdf/domains/aarsloen/aarsloenPdf'));
+    ({ generateAarsloenDocument } = await import('../../../document/generators/aarsloen/aarsloenDocument'));
   });
 
   beforeEach(() => {
@@ -78,7 +83,7 @@ describe('aarsloenPdf', () => {
   });
 
   it('fordeler indtægtsoplysningstabellen over fuld bredde uden ekstra skjult kolonne', () => {
-    generateAarsloenPdf({
+    generateAarsloenDocument({
       satser: {
         feriePct: 12.5,
         fritvalgPct: 2,
@@ -146,7 +151,7 @@ describe('aarsloenPdf', () => {
   }, 15000);
 
   it('bevarer manuel headerombrydning ved store beløb uden at miste fuld tabelbredde', () => {
-    generateAarsloenPdf({
+    generateAarsloenDocument({
       satser: {
         feriePct: 12.5,
         fritvalgPct: 2,

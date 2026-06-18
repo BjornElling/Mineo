@@ -5,7 +5,7 @@ const { mockDownloadRentePdf } = vi.hoisted(() => ({
   mockDownloadRentePdf: vi.fn(),
 }));
 
-vi.mock('../../../pdf/infrastructure/pdfService', () => ({
+vi.mock('../../../document/service/documentService', () => ({
   downloadRenteDokument: mockDownloadRentePdf,
 }));
 

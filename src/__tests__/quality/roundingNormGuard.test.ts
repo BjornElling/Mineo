@@ -8,7 +8,7 @@
  * Kanonisk hierarki:
  *   Beregning:   roundByMethod(v, n, method)       — utils/rounding.ts
  *   Beløb UI:    formatAsAmount() / formatCurrency() — utils/formatUtils.ts
- *   Beløb PDF:   formatCurrencyFromOre() m.fl.      — pdf/shared/pdfFormatUtils.ts
+ *   Beløb PDF:   formatCurrencyFromOre() m.fl.      — document/layout/documentFormatUtils.ts
  *   Procent:     formatPercent()                    — utils/formatUtils.ts
  *
  * Forbudte mønstre og deres kanoniske erstatning:
@@ -124,14 +124,14 @@ const MATH_ROUND_ALLOWLIST = new Set([
   // formatUtils: Math.abs og Math.trunc til sign-håndtering — aldrig selvstændig runding
   'utils/formatUtils.ts',
   // pdfFormatUtils: Math.abs på allerede-afrundet tal til fortegnsfjernelse
-  'pdf/shared/pdfFormatUtils.ts',
+  'document/layout/documentFormatUtils.ts',
   // Canvas/PDF dimension: pixelbredde/-højde (ikke finansielt)
-  'pdf/shared/pdfHelpers.ts',
+  'pdf/pdfRenderHelpers.ts',
   'pdf/infrastructure/pdfWriter.ts',
   // Graf-rendering: akse-skridt (nice-ceil magnitude), heltals-tickantal og
   // glidende-gennemsnits-radius — ren talgeometri, ikke finansielt output
   // (de viste beløbs-ticks afrundes via roundByMethod).
-  'pdf/domains/tafFordelt/tafKravGrafChart.ts',
+  'document/generators/tafFordelt/tafKravGrafChart.ts',
 ]);
 
 /**
@@ -169,7 +169,7 @@ const TO_FIXED_ALLOWLIST = new Set([
 const TO_LOCALE_STRING_ALLOWLIST = new Set([
   // Kanoniske implementations
   'utils/formatUtils.ts',
-  'pdf/shared/pdfFormatUtils.ts',
+  'document/layout/documentFormatUtils.ts',
   // Logging og teknisk fejlrapport — ikke brugersynligt finansielt tal
   'utils/bugReport.ts',
   'utils/logger.ts',
@@ -279,7 +279,7 @@ describe('Afrundingsnorm-guard', () => {
         'utils/isoDateHelpers.ts', // new Date(start.getTime()) — kopi, ikke parsing
         // Renteberegning — bruger Date.UTC til månedsafgrænsning
         'domain/renteberegning/procesrenteCalculator.ts',
-        'pdf/domains/renteberegning/rentePdf.ts',
+        'document/generators/renteberegning/rentePdf.ts',
         // Måned-slutdag-beregning via Date.UTC(y, m, 0) — kanonisk trick
         'config/dateRanges.ts',
         'components/inputs/StyledDateField.tsx',
@@ -294,7 +294,7 @@ describe('Afrundingsnorm-guard', () => {
         'domain/debug/eoDebugCoreModel.ts',
         'domain/debug/eoDebugRegulationCore.ts',
         'domain/dates/shDageBeregning.ts',
-        'pdf/domains/aarsloen/shDagePdf.ts',
+        'document/generators/aarsloen/shDagePdf.ts',
         // Logging/rapport — timestamp, ikke dato-aritmetik
         'utils/devtoolsMonitor.ts',
         'utils/bugReport.ts',

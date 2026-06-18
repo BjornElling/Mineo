@@ -22,12 +22,12 @@ import {
   downloadTafFordeltPaaAarDokument,
   downloadTafKravGrafDokument,
   downloadTafOpreguleretPaaAarDokument,
-} from '../../../pdf/infrastructure/pdfService';
+} from '../../../document/service/documentService';
 import type { EoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToBeregningView } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToBeregningView';
-import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
-import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
-import { eoSnapshotToTafPerYearOpreguleretPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretPdfDocument';
+import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
+import { eoSnapshotToTafPerYearDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
+import { eoSnapshotToTafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 import { eoSnapshotToTafKravGrafDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
 import type { EoInvariant } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotInvariants';
 import { reportSystemIssue } from '../../../utils/systemIssueReporter';
@@ -39,7 +39,7 @@ import {
   getEoBilagAvailability,
   type EoBilagDynamicSelectionKey,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoBilagRules';
-import { allowPdfDownload, blockPdfDownload, type PdfDownloadGateResult } from '../../../pdf/pdfGateTypes';
+import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult } from '../../../document/layout/documentGateTypes';
 
 type TabKey = 'eo_oplysninger' | 'loenindkomst' | 'offentlige_ydelser' | 'beregning' | 'debug' | 'debug_tabel';
 
@@ -74,10 +74,10 @@ type DebugRowsMemoResult = Readonly<{
   debugAggregationErrorMessage: string | null;
 }>;
 
-const createPdfGate = (canDownload: boolean, reason: string | null, fallbackReason: string): PdfDownloadGateResult => {
+const createPdfGate = (canDownload: boolean, reason: string | null, fallbackReason: string): DocumentDownloadGateResult => {
   return canDownload
-    ? allowPdfDownload()
-    : blockPdfDownload({
+    ? allowDocumentDownload()
+    : blockDocumentDownload({
       code: 'erstatningsopgoerelse:pdf-blocked',
       message: reason ?? fallbackReason,
     });
@@ -399,15 +399,15 @@ const EOberegningTab = React.memo<EOberegningTabProps>((
     return { ...result.value, debugAggregationErrorMessage: null };
   }, [isActive, stamdataValues, stamdataErrors, eoValues, eoErrors, manuelReguleringInputErrors, settings, beregningView]);
   const eoPdfProjection = React.useMemo(
-    () => (eoSnapshot ? eoSnapshotToEoPdfDocument(eoSnapshot) : null),
+    () => (eoSnapshot ? eoSnapshotToEoDocument(eoSnapshot) : null),
     [eoSnapshot]
   );
   const tafPdfProjection = React.useMemo(
-    () => (eoSnapshot ? eoSnapshotToTafPerYearPdfDocument(eoSnapshot) : null),
+    () => (eoSnapshot ? eoSnapshotToTafPerYearDocument(eoSnapshot) : null),
     [eoSnapshot]
   );
   const tafOpreguleretPdfProjection = React.useMemo(
-    () => (eoSnapshot ? eoSnapshotToTafPerYearOpreguleretPdfDocument(eoSnapshot) : null),
+    () => (eoSnapshot ? eoSnapshotToTafPerYearOpreguleretDocument(eoSnapshot) : null),
     [eoSnapshot]
   );
   const tafKravGrafPdfProjection = React.useMemo(

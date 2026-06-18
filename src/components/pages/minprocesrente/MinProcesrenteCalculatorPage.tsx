@@ -9,7 +9,7 @@ import { createRenteberegningInitialValues } from '../../../domain/renteberegnin
 import type { RentePdfContext, RentekravPdfContextMap } from '../../tables/BeregnetRenteTable';
 import ContentBoxFrame from '../../layout/ContentBoxFrame';
 import { downloadStandaloneRentePdf, downloadAllStandaloneRentePdf, downloadStandaloneRenteOversigtPdf } from '../../../pdf/infrastructure/standaloneRentePdfService';
-import type { RenteOversigtRow } from '../../../pdf/domains/renteberegning/renteOversigtPdf';
+import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import type { CommitHandler } from '../../../types/fieldEvents';
 import RenteberegningTab from '../renteberegning/RenteberegningTab';
 import { referenceRates, surchargeRates } from '../../../data/interestRates';

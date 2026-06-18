@@ -65,7 +65,7 @@ export type EoSnapshotComputedData = Readonly<{
   canonicalOutput: EoCanonicalOutput;
   midlertidigtEetGroups: readonly MidlertidigtEetAfgoerelseGroup[];
   /** Færdigbygget PDF-dokumentmodel. Caches i snapshot for at undgå dobbeltkald
-   *  fra eoSnapshotToEoPdfDocument og eoSnapshotToTafPerYearPdfDocument. */
+   *  fra eoSnapshotToEoDocument og eoSnapshotToTafPerYearDocument. */
   pdfModel: EoModel;
 }>;
 

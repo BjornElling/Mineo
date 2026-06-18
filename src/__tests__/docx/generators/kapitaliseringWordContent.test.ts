@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateKapitaliseringPdf } from '../../../pdf/domains/kapitalisering/kapitaliseringPdf';
+import { generateKapitaliseringDocument } from '../../../document/generators/kapitalisering/kapitaliseringDocument';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
 // Word-indholdstest for kapitalisering (EET): kører den RIGTIGE generator gennem
@@ -8,7 +8,7 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 describe('kapitalisering → Word-indhold', () => {
   it('skriver titel og empty-state-besked når der ingen afgørelser er', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateKapitaliseringPdf({
+      generateKapitaliseringDocument({
         computation: { afgoerelser: [] } as never,
         visBrevhoved: false,
       });

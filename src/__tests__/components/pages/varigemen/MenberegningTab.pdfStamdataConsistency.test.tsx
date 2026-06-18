@@ -17,7 +17,7 @@ const { mockDownloadVarigeMenPdf, mockBeregnVarigeMenGodtgoerelseWithRates, mock
   },
 }));
 
-vi.mock('../../../../pdf/infrastructure/pdfService', () => ({
+vi.mock('../../../../document/service/documentService', () => ({
   downloadVarigeMenDokument: mockDownloadVarigeMenPdf,
 }));
 

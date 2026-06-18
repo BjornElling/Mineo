@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateSHDagePdf } from '../../../pdf/domains/aarsloen/shDagePdf';
+import { generateSHDageDocument } from '../../../document/generators/aarsloen/shDageDocument';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
 // Word-indholdstest for SH-dage-dokumentet: kører den RIGTIGE generator gennem
@@ -12,7 +12,7 @@ describe('shDage → Word-indhold', () => {
     ];
 
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateSHDagePdf(perioder, { visBrevhoved: false });
+      generateSHDageDocument(perioder, { visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -37,7 +37,7 @@ describe('shDage → Word-indhold', () => {
     ];
 
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateSHDagePdf(perioder, { visBrevhoved: false });
+      generateSHDageDocument(perioder, { visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);

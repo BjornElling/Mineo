@@ -14,7 +14,7 @@ import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedSectionSelector } from '../../hooks/useFormPersistenceSelectors';
 import { useAarsloenBeregning } from '../../hooks/useAarsloenBeregning';
 import { useOmregningToggle } from '../../hooks/useOmregningToggle';
-import { useAarsloenPdfGates } from '../../hooks/useAarsloenPdfGates';
+import { useAarsloenDocumentGates } from '../../hooks/useAarsloenDocumentGates';
 import { useAppSettings } from '../../contexts/useAppSettings';
 import { formatCountWithUnit, formatCurrency } from '../../utils/formatUtils';
 import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../utils/periodeBeregning';
@@ -125,13 +125,13 @@ const Aarsloen = React.memo(() => {
 
   // PDF gates og download handlers
   const {
-    canDownloadPdf,
-    canDownloadSHDagePdf,
-    handleAarsloenPdfDownload,
-    handleSHDagePdfDownload,
+    canDownloadDocument,
+    canDownloadSHDageDocument,
+    handleAarsloenDocumentDownload,
+    handleSHDageDocumentDownload,
     downloadShake,
     downloadErrorMessage,
-  } = useAarsloenPdfGates({
+  } = useAarsloenDocumentGates({
     values,
     omregningAktiveret,
     periodeData,
@@ -293,9 +293,9 @@ const Aarsloen = React.memo(() => {
     [beregningsData, loenperiode, periodeData, tableData]
   );
 
-  const aarsloenPdfDownloadButton = canDownloadPdf ? (
+  const aarsloenPdfDownloadButton = canDownloadDocument ? (
     renderPdfDownloadIcon({
-      onClick: handleAarsloenPdfDownload,
+      onClick: handleAarsloenDocumentDownload,
       shake: downloadShake,
     })
   ) : null;
@@ -549,9 +549,9 @@ const Aarsloen = React.memo(() => {
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Typography className="row--text">{shDageAntal ?? 0}</Typography>
-                  {canDownloadSHDagePdf && (
+                  {canDownloadSHDageDocument && (
                     renderPdfDownloadIcon({
-                      onClick: handleSHDagePdfDownload,
+                      onClick: handleSHDageDocumentDownload,
                     })
                   )}
                 </Box>

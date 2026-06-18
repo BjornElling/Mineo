@@ -1,8 +1,8 @@
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { getStandardLoenTableHeaders } from '../../../../../domain/aarsloen/standardLoenTableColumns';
 import { toISODateString } from '../../../../../types/branded';
-import { renderLoenindkomstSection } from '../../../../../pdf/domains/eo/sections/loenindkomstSection';
-import type { SelectedElements } from '../../../../../pdf/domains/eo/types';
+import { renderLoenindkomstSection } from '../../../../../document/generators/eo/sections/loenindkomstSection';
+import type { SelectedElements } from '../../../../../document/generators/eo/types';
 
 type LoenSectionContext = Parameters<typeof renderLoenindkomstSection>[0];
 type IncludeLoenRowParams = Parameters<LoenSectionContext['shouldIncludeLoenRowInEoBilag']>[0];

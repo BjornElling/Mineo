@@ -67,12 +67,12 @@ vi.mock('../../../hooks/useAarsloenBeregning', () => ({
   }),
 }));
 
-vi.mock('../../../hooks/useAarsloenPdfGates', () => ({
-  useAarsloenPdfGates: () => ({
-    canDownloadPdf: true,
-    canDownloadSHDagePdf: false,
-    handleAarsloenPdfDownload: handleAarsloenPdfDownloadSpy,
-    handleSHDagePdfDownload: vi.fn(),
+vi.mock('../../../hooks/useAarsloenDocumentGates', () => ({
+  useAarsloenDocumentGates: () => ({
+    canDownloadDocument: true,
+    canDownloadSHDageDocument: false,
+    handleAarsloenDocumentDownload: handleAarsloenPdfDownloadSpy,
+    handleSHDageDocumentDownload: vi.fn(),
     downloadShake: false,
   }),
 }));

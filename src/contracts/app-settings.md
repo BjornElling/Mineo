@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (normativ)  
 **Type:** Tværgående kontrakt  
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-06-18
 
 ## Formål
 Mineo har enkelte **programindstillinger**, som er **device-lokale** (bundet til brugerens computer/browser), og som **ikke** er en del af sagen.
@@ -28,7 +28,7 @@ Konsekvens:
 ## Kontrakter (normative, ikke-forklarende)
 - **AppSettings må aldrig være skjult sagsdata.** Defaults til ny sagsdata må kun materialiseres ved oprettelse af ny sag eller ny brugerhandling, ikke under load for at gøre en gammel sag komplet.
 - **EO-data er altid fuldt udfyldt** (ingen implicitte defaults ved load/merge).
-- **Dokumentlaget læser aldrig AppSettingsContext/localStorage direkte**. `documentDownloadFormat`, `brevhovedIndstillinger` og andre dokumentpræferencer skal mappes ved service-/callsite-grænsen. Den nuværende kobling er dog dybere end ren callsite-parameterisering: `src/pdf/shared/pdfBrevhoved.ts` type-binder direkte til `AppSettings` (`PdfType = keyof AppSettings['brevhovedIndstillinger']`, `getVisBrevhoved(settings: AppSettings)`), og `pdfService.ts` tager hele `AppSettings`-typen som parameter i en række download-wrappers. Dette er erkendt teknisk gæld. Slutretning (re-evaluering ved næste dokument-audit): map dokumentindstillinger til selvstændige options-DTO'er, så hverken `shared/`- eller `infrastructure/`-laget importerer `AppSettings`-typen.
+- **Dokumentlaget læser aldrig AppSettingsContext/localStorage direkte**. `documentDownloadFormat`, `brevhovedIndstillinger` og andre dokumentpræferencer skal mappes ved service-/callsite-grænsen. Den nuværende kobling er dog dybere end ren callsite-parameterisering: `src/document/layout/documentBrevhoved.ts` type-binder direkte til `AppSettings` (`DocumentBrevhovedType = keyof AppSettings['brevhovedIndstillinger']`, `getVisBrevhoved(settings: AppSettings)`), og `documentService.ts` (`src/document/service/documentService.ts`) tager hele `AppSettings`-typen som parameter i en række download-wrappers. Dette er erkendt teknisk gæld. Slutretning (re-evaluering ved næste dokument-audit): map dokumentindstillinger til selvstændige options-DTO'er, så hverken `src/document/layout/`- eller service-laget importerer `AppSettings`-typen.
 - **Beregnings-/regel-toggles** må ikke ændre beregning, validering, gating eller audit for en eksisterende sag som skjult device-lokal tilstand. Slutretningen er schema-valideret sagsdata eller eksplicit brugerobserverbar runtime-beslutning.
 - **KRL satstabeller har ingen separat brevhoved-toggle**:
   KRL skal altid arve `regulering`-indstillingen 1-til-1 for visning af brevhoved.

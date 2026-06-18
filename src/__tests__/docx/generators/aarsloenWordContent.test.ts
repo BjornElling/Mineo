@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateAarsloenPdf } from '../../../pdf/domains/aarsloen/aarsloenPdf';
+import { generateAarsloenDocument } from '../../../document/generators/aarsloen/aarsloenDocument';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
 // Word-indholdstest for årslønsberegningen: kører den RIGTIGE generator gennem
@@ -8,7 +8,7 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 describe('aarsloen → Word-indhold', () => {
   it('skriver titel, satser og indtægtstabel til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateAarsloenPdf({
+      generateAarsloenDocument({
         satser: {
           feriePct: 12.5,
           fritvalgPct: 2,
@@ -69,7 +69,7 @@ describe('aarsloen → Word-indhold', () => {
 
   it('inkluderer beregningsafsnit ved omregning til fuldt år (metode C)', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateAarsloenPdf({
+      generateAarsloenDocument({
         satser: {
           feriePct: 12.5,
         },

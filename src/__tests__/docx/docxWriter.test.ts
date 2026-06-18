@@ -3,12 +3,12 @@ import { withDocumentGenerationContext } from '../../document/documentGeneration
 import { createDocxWriter } from '../../docx/infrastructure/docxWriter';
 import { toISODateString } from '../../types/branded';
 import {
-  renderPdfTable,
-  createPdfTableHeaderCell,
-  createPdfTableCell,
-  createPdfDistributedColumnStyles,
-} from '../../pdf/shared/pdfTableRenderer';
-import type jsPDF from 'jspdf';
+  renderDocumentTable,
+  createDocumentTableHeaderCell,
+  createDocumentTableCell,
+  createDocumentDistributedColumnStyles,
+} from '../../document/layout/documentTableRenderer';
+import { isDocumentTableBridgeDocument } from '../../document/layout/documentTableBridge';
 
 const originalCreateObjectUrl = URL.createObjectURL;
 const originalRevokeObjectUrl = URL.revokeObjectURL;
@@ -60,6 +60,25 @@ describe('createDocxWriter', () => {
     URL.createObjectURL = originalCreateObjectUrl;
     URL.revokeObjectURL = originalRevokeObjectUrl;
     document.body.innerHTML = '';
+  });
+
+  // Kanal-renhed (lukker review-fund F2): Word-writerens getDoc() returnerer
+  // tabel-broen — IKKE en jsPDF-instans. Den fælles DocumentWriter-grænseflade
+  // eksponerer getDoc() med den honest union (jsPDF | DocumentTableBridgeDocument),
+  // så Word-writeren ikke længere behøver en `as never`-attrap, og et direkte
+  // jsPDF-only kald på et bro-doc fanges på compile-tid. Denne test bevogter
+  // runtime-siden: broen er identificerbar via isDocumentTableBridgeDocument og
+  // bærer ingen jsPDF-only API'er.
+  it('getDoc() returnerer tabel-broen (ikke en jsPDF) på Word-kanalen', async () => {
+    await withDocumentGenerationContext('word', () => {
+      const writer = createDocxWriter();
+      const doc = writer.getDoc();
+      expect(isDocumentTableBridgeDocument(doc)).toBe(true);
+      // Broen har ingen jsPDF-only tegne-API'er — et utilsigtet direkte kald ville
+      // ellers kaste på Word-stien (det var præcis F2-lækagen).
+      expect((doc as Record<string, unknown>).setLineWidth).toBeUndefined();
+      expect((doc as Record<string, unknown>).addImage).toBeUndefined();
+    });
   });
 
   it('producerer en ægte docx-zip med titel, tekst, tabel og docx-filnavn', async () => {
@@ -141,19 +160,19 @@ describe('createDocxWriter', () => {
 
     await withDocumentGenerationContext('word', () => {
       const writer = createDocxWriter();
-      const doc = writer.getDoc() as jsPDF;
-      renderPdfTable({
+      const doc = writer.getDoc();
+      renderDocumentTable({
         doc,
         startY: 0,
         hasHeaderRow: true,
         body: [
           [
-            createPdfTableHeaderCell('Periode', 'left'),
-            createPdfTableHeaderCell('Beløb', 'right'),
+            createDocumentTableHeaderCell('Periode', 'left'),
+            createDocumentTableHeaderCell('Beløb', 'right'),
           ],
           [
-            createPdfTableCell('Januar', { halign: 'left' }),
-            createPdfTableCell('1.000 kr.', { halign: 'right' }),
+            createDocumentTableCell('Januar', { halign: 'left' }),
+            createDocumentTableCell('1.000 kr.', { halign: 'right' }),
           ],
           // Total-række med colSpan over begge kolonner.
           [
@@ -196,8 +215,8 @@ describe('createDocxWriter', () => {
   it('fejler tabel-broen fail-closed ved tom body', () => {
     withDocumentGenerationContext('word', () => {
       const writer = createDocxWriter();
-      const doc = writer.getDoc() as jsPDF;
-      expect(() => renderPdfTable({ doc, startY: 0, body: [], hasHeaderRow: true })).toThrow(/tom body/);
+      const doc = writer.getDoc();
+      expect(() => renderDocumentTable({ doc, startY: 0, body: [], hasHeaderRow: true })).toThrow(/tom body/);
     });
   });
 
@@ -286,14 +305,14 @@ describe('createDocxWriter', () => {
 
     await withDocumentGenerationContext('word', () => {
       const writer = createDocxWriter();
-      const doc = writer.getDoc() as jsPDF;
-      renderPdfTable({
+      const doc = writer.getDoc();
+      renderDocumentTable({
         doc,
         startY: 0,
         hasHeaderRow: true,
         // Cellerne har INGEN egen halign — justeringen skal komme fra kolonnen.
         body: [
-          [createPdfTableHeaderCell('A', 'left'), createPdfTableHeaderCell('B', 'left')],
+          [createDocumentTableHeaderCell('A', 'left'), createDocumentTableHeaderCell('B', 'left')],
           ['venstre', 'tal-1'],
           ['venstre', 'tal-2'],
         ],
@@ -459,14 +478,14 @@ describe('createDocxWriter', () => {
 
     await withDocumentGenerationContext('word', () => {
       const writer = createDocxWriter();
-      const doc = writer.getDoc() as jsPDF;
-      renderPdfTable({
+      const doc = writer.getDoc();
+      renderDocumentTable({
         doc,
         startY: 0,
         hasHeaderRow: false,
         // defaultHalign='center' på alle kolonner, men cellen siger eksplicit 'right'.
-        columnStyles: createPdfDistributedColumnStyles(1, { defaultHalign: 'center' }),
-        body: [[createPdfTableCell('eksplicit-højre', { halign: 'right' })]],
+        columnStyles: createDocumentDistributedColumnStyles(1, { defaultHalign: 'center' }),
+        body: [[createDocumentTableCell('eksplicit-højre', { halign: 'right' })]],
       });
       writer.save('Praecedens.pdf');
     });

@@ -4,17 +4,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const SRC_ROOT = path.resolve(__dirname, '../../');
-const VARIGE_MEN_PDF_PATH = path.resolve(SRC_ROOT, 'pdf/domains/varigemen/varigeMenPdf.ts');
-const SATSER_PDF_PATH = path.resolve(SRC_ROOT, 'pdf/domains/satser/satserPdf.ts');
-const RENTE_PDF_PATH = path.resolve(SRC_ROOT, 'pdf/domains/renteberegning/rentePdf.ts');
-const AARSLOEN_PDF_PATH = path.resolve(SRC_ROOT, 'pdf/domains/aarsloen/aarsloenPdf.ts');
-const SH_DAGE_PDF_PATH = path.resolve(SRC_ROOT, 'pdf/domains/aarsloen/shDagePdf.ts');
+const VARIGE_MEN_PDF_PATH = path.resolve(SRC_ROOT, 'document/generators/varigemen/varigeMenDocument.ts');
+const SATSER_PDF_PATH = path.resolve(SRC_ROOT, 'document/generators/satser/satserDocument.ts');
+const RENTE_PDF_PATH = path.resolve(SRC_ROOT, 'document/generators/renteberegning/renteDocument.ts');
+const AARSLOEN_PDF_PATH = path.resolve(SRC_ROOT, 'document/generators/aarsloen/aarsloenDocument.ts');
+const SH_DAGE_PDF_PATH = path.resolve(SRC_ROOT, 'document/generators/aarsloen/shDageDocument.ts');
 
 describe('PDF pseudo-table guard', () => {
   it('forbyder tabelrenderer i varige mén PDF for almindelige oplysningslinjer', () => {
     const source = fs.readFileSync(VARIGE_MEN_PDF_PATH, 'utf8');
 
-    expect(source).not.toContain('renderPdfTable(');
+    expect(source).not.toContain('renderDocumentTable(');
   });
 
   it('forbyder SECTION_SPACER som generel sektionsafstand i writer-baseret varige mén PDF', () => {
@@ -26,7 +26,7 @@ describe('PDF pseudo-table guard', () => {
   it('forbyder tabelrenderer i satser PDF for almindelige oplysningslinjer', () => {
     const source = fs.readFileSync(SATSER_PDF_PATH, 'utf8');
 
-    expect(source).not.toContain('renderPdfTable(');
+    expect(source).not.toContain('renderDocumentTable(');
   });
 
   it('forbyder lokal multiline-håndtering og SECTION_SPACER i writer-baseret satser PDF', () => {

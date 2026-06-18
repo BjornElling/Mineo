@@ -8,7 +8,7 @@ import {
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../pdf/domains/eo/sections/offentligeYdelserSection';
+import { buildMidlertidigtEetPdfGroupsForTafRanges } from '../../../document/generators/eo/sections/offentligeYdelserSection';
 import { toISODateString } from '../../../types/branded';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 

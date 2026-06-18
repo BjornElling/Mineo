@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateVarigeMenPdf } from '../../../pdf/domains/varigemen/varigeMenPdf';
+import { generateVarigeMenDocument } from '../../../document/generators/varigemen/varigeMenDocument';
 import { beregnVarigeMenGodtgoerelseWithRates } from '../../../domain/varigemen/varigeMenCalculations';
 import { varigeMenPrGrad } from '../../../data/lovbestemteRates';
 import { toISODateString } from '../../../types/branded';
@@ -26,7 +26,7 @@ describe('varigeMen → Word-indhold', () => {
     expect(beregningsResultat).not.toBeNull();
 
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateVarigeMenPdf({
+      generateVarigeMenDocument({
         fodselsdato,
         skadedato,
         mengrad,
@@ -51,7 +51,7 @@ describe('varigeMen → Word-indhold', () => {
     expect(beregningsResultat).not.toBeNull();
 
     const { documentXml } = await renderWordDocument(() => {
-      generateVarigeMenPdf({
+      generateVarigeMenDocument({
         fodselsdato,
         skadedato,
         mengrad,

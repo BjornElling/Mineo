@@ -1,8 +1,8 @@
 /// <reference types="vitest/globals" />
 import {
-  generateRenteOversigtPdf,
+  generateRenteOversigtDocument,
   type RenteOversigtRow,
-} from '../../../pdf/domains/renteberegning/renteOversigtPdf';
+} from '../../../document/generators/renteberegning/renteOversigtDocument';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -16,7 +16,7 @@ const makeRow = (overrides?: Partial<RenteOversigtRow>): RenteOversigtRow => ({
 describe('renteOversigt → Word-indhold', () => {
   it('skriver titel, beregningsdato-linje og tabel-headere til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateRenteOversigtPdf(toISODateString('2024-02-01'), [
+      generateRenteOversigtDocument(toISODateString('2024-02-01'), [
         makeRow(),
         makeRow({ beloeb: 5000, renterFra: toISODateString('2023-06-01'), beregnetRente: 412.5 }),
       ]);
@@ -33,7 +33,7 @@ describe('renteOversigt → Word-indhold', () => {
 
   it('skriver beregningsprincipper til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateRenteOversigtPdf(toISODateString('2024-02-01'), [makeRow()]);
+      generateRenteOversigtDocument(toISODateString('2024-02-01'), [makeRow()]);
     });
     const text = xmlToPlainText(documentXml);
 

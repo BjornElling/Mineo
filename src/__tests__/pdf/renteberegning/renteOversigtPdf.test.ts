@@ -1,5 +1,5 @@
-import { writeRenteOversigtPdfContent, buildRenteOversigtPdfFilename, type RenteOversigtRow } from '../../../pdf/domains/renteberegning/renteOversigtPdf';
-import { createStandardPdfWriter } from '../../../pdf/infrastructure/pdfWriter';
+import { writeRenteOversigtDocumentContent, buildRenteOversigtDocumentFilename, type RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
+import { createPdfChannelWriter } from '../../../pdf/infrastructure/pdfWriter';
 import { toISODateString } from '../../../types/branded';
 
 const makeRow = (overrides?: Partial<RenteOversigtRow>): RenteOversigtRow => ({
@@ -9,18 +9,18 @@ const makeRow = (overrides?: Partial<RenteOversigtRow>): RenteOversigtRow => ({
   ...overrides,
 });
 
-describe('writeRenteOversigtPdfContent', () => {
+describe('writeRenteOversigtDocumentContent', () => {
   it('kaster når der ingen rækker er', () => {
-    const writer = createStandardPdfWriter();
+    const writer = createPdfChannelWriter();
     expect(() => {
-      writeRenteOversigtPdfContent(writer, toISODateString('2024-02-01'), []);
+      writeRenteOversigtDocumentContent(writer, toISODateString('2024-02-01'), []);
     }).toThrow('Ingen renteberegninger fundet for oversigt');
   });
 
   it('skriver indhold uden undtagelse for gyldige rækker', () => {
-    const writer = createStandardPdfWriter();
+    const writer = createPdfChannelWriter();
     expect(() => {
-      writeRenteOversigtPdfContent(writer, toISODateString('2024-02-01'), [
+      writeRenteOversigtDocumentContent(writer, toISODateString('2024-02-01'), [
         makeRow(),
         makeRow({ beloeb: 5000, renterFra: toISODateString('2023-06-01'), beregnetRente: 412.5 }),
       ]);
@@ -28,9 +28,9 @@ describe('writeRenteOversigtPdfContent', () => {
   });
 
   it('skriver indhold med kommentarer og brevhoved uden undtagelse', () => {
-    const writer = createStandardPdfWriter();
+    const writer = createPdfChannelWriter();
     expect(() => {
-      writeRenteOversigtPdfContent(writer, toISODateString('2024-02-01'), [makeRow()], {
+      writeRenteOversigtDocumentContent(writer, toISODateString('2024-02-01'), [makeRow()], {
         visBrevhoved: true,
         stamdata: { journalnr: '12345', advokat: 'Adv. Test', sagsbehandler: 'Sb. Test' },
         kommentarer: 'En kommentar til oversigten',
@@ -39,19 +39,19 @@ describe('writeRenteOversigtPdfContent', () => {
   });
 
   it('kalder ikke addFooter eller save — det er kalderens ansvar', () => {
-    const writer = createStandardPdfWriter();
+    const writer = createPdfChannelWriter();
     const saveSpy = vi.spyOn(writer, 'save');
     const addFooterSpy = vi.spyOn(writer, 'addFooter');
 
-    writeRenteOversigtPdfContent(writer, toISODateString('2024-02-01'), [makeRow()]);
+    writeRenteOversigtDocumentContent(writer, toISODateString('2024-02-01'), [makeRow()]);
 
     expect(saveSpy).not.toHaveBeenCalled();
     expect(addFooterSpy).not.toHaveBeenCalled();
   });
 });
 
-describe('buildRenteOversigtPdfFilename', () => {
+describe('buildRenteOversigtDocumentFilename', () => {
   it('indeholder titlen', () => {
-    expect(buildRenteOversigtPdfFilename()).toContain('Procesrente');
+    expect(buildRenteOversigtDocumentFilename()).toContain('Procesrente');
   });
 });

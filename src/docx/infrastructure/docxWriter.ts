@@ -24,8 +24,8 @@ import {
   type IPropertiesOptions,
   type ParagraphChild,
 } from 'docx';
-import type { PdfWriter } from '../../pdf/infrastructure/pdfWriter';
-import type { BrevhovedData } from '../../pdf/shared/pdfHelpers';
+import type { DocumentWriter } from '../../document/writer/documentWriter';
+import type { BrevhovedData } from '../../document/layout/documentLayoutHelpers';
 import { formatIsoDateLong } from '../../utils/dateFormatting';
 import { roundByMethod } from '../../utils/rounding';
 import { VERSION } from '../../config/buildInfo';
@@ -33,10 +33,10 @@ import { getDocumentFooterBrand } from '../../document/documentBrand';
 import { registerPendingDocumentDownload } from '../../document/documentGenerationContext';
 import { triggerDocumentDownload } from '../../document/downloadArtifact';
 import {
-  createDocxTableBridgeDocument,
-  type DocxCellAlign,
-  type DocxColumnAlignments,
-} from './docxTableBridge';
+  createDocumentTableBridgeDocument,
+  type DocumentTableCellAlign,
+  type DocumentTableColumnAlignments,
+} from '../../document/layout/documentTableBridge';
 import { createUdkastWatermarkParagraph } from './docxWatermark';
 import { DOCX_STYLE, buildDocxStyles, type DocxStyleId } from './docxStyles';
 
@@ -149,7 +149,7 @@ const resolveCellSpan = (cell: unknown): number => {
 };
 
 const halignToAlignment = (
-  halign: DocxCellAlign | undefined
+  halign: DocumentTableCellAlign | undefined
 ): (typeof AlignmentType)[keyof typeof AlignmentType] => {
   if (halign === 'right') return AlignmentType.RIGHT;
   if (halign === 'center') return AlignmentType.CENTER;
@@ -158,8 +158,8 @@ const halignToAlignment = (
 
 // Cellens egen halign vinder; ellers falder vi tilbage til kolonnens justering.
 // Returnerer `undefined` når cellen ikke selv angiver halign, så kalderen kan
-// indsætte kolonne-fallback for data-rækker (jf. DocxColumnAlignments).
-const resolveCellHalign = (cell: unknown): DocxCellAlign | undefined => {
+// indsætte kolonne-fallback for data-rækker (jf. DocumentTableColumnAlignments).
+const resolveCellHalign = (cell: unknown): DocumentTableCellAlign | undefined => {
   if (typeof cell !== 'object' || cell === null || !('styles' in cell)) return undefined;
   const styles = (cell as Readonly<{ styles?: Readonly<{ halign?: unknown }> }>).styles;
   if (styles?.halign === 'right') return 'right';
@@ -178,7 +178,7 @@ const resolveCellBold = (cell: unknown, isHeaderRow: boolean): boolean => {
 const createDocxTable = (
   body: readonly unknown[],
   hasHeaderRow: boolean,
-  columnAlignments?: DocxColumnAlignments
+  columnAlignments?: DocumentTableColumnAlignments
 ): Table => {
   const rows = body.map((rawRow, rowIndex) => {
     const cells = Array.isArray(rawRow) ? rawRow : [rawRow];
@@ -191,7 +191,7 @@ const createDocxTable = (
       children: cells.map((cell) => {
         const colSpan = resolveCellSpan(cell);
         // Headerrækker bærer selv deres justering; kun data-rækker får
-        // kolonne-fallback (jf. DocxColumnAlignments).
+        // kolonne-fallback (jf. DocumentTableColumnAlignments).
         const columnFallback = isHeaderRow ? undefined : columnAlignments?.[columnIndex];
         const halign = resolveCellHalign(cell) ?? columnFallback;
         columnIndex += colSpan;
@@ -401,7 +401,7 @@ const uint8ArrayFromDataUrl = (dataUrl: string): Uint8Array => {
 export const createDocxWriter = (params?: Readonly<{
   visUdkastStempel?: boolean;
   orientation?: 'portrait' | 'landscape';
-}>): PdfWriter => {
+}>): DocumentWriter => {
   const blocks: FileChild[] = [];
   // Brevhovedets afsnit holdes adskilt fra de øvrige blokke og flettes først ind
   // ved build (efter første ordinære blok), så Words åbne-caret ikke lander inde
@@ -417,7 +417,7 @@ export const createDocxWriter = (params?: Readonly<{
   // Sættes når dokumentet får et brevhoved. Aktiverer "anden første side", så
   // første side får et højere top-/headerområde end de øvrige sider.
   let hasBrevhoved = false;
-  const bridgeDoc = createDocxTableBridgeDocument((body, hasHeaderRow, columnAlignments) => {
+  const bridgeDoc = createDocumentTableBridgeDocument((body, hasHeaderRow, columnAlignments) => {
     blocks.push(createDocxTable(body, hasHeaderRow, columnAlignments));
     blocks.push(spacerParagraph());
   });
@@ -520,7 +520,7 @@ export const createDocxWriter = (params?: Readonly<{
       };
     },
     setNormalTextStyle: () => {},
-    getDoc: () => bridgeDoc as never,
+    getDoc: () => bridgeDoc,
     ensureSpace: () => {},
     getY: () => 0,
     setY: () => {},

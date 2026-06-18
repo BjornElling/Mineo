@@ -1,5 +1,5 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
-import { allowPdfDownload, blockPdfDownload, type PdfDownloadGateResult } from '../../pdf/pdfGateTypes';
+import { allowDocumentDownload, blockDocumentDownload, type DocumentDownloadGateResult } from '../../document/layout/documentGateTypes';
 
 export type SatserValues = PersistedSectionMap['satser'];
 
@@ -35,10 +35,10 @@ export const resolveSatserPdfGate = (
   satser: SatserValues | null,
   minYear: number,
   maxYear: number
-): PdfDownloadGateResult => {
+): DocumentDownloadGateResult => {
   const errorMessage = resolveSatserAargangErrorMessage(satser, minYear, maxYear);
-  if (!errorMessage) return allowPdfDownload();
-  return blockPdfDownload({ code: 'satser:invalid-aargang', message: errorMessage });
+  if (!errorMessage) return allowDocumentDownload();
+  return blockDocumentDownload({ code: 'satser:invalid-aargang', message: errorMessage });
 };
 
 export const hasSatserAny = (satser: SatserValues | null): boolean => {

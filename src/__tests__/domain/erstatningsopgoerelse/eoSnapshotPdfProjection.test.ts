@@ -6,9 +6,9 @@ vi.mock('../../../utils/logger', () => ({
 }));
 
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
-import { eoSnapshotToTafPerYearPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument';
-import { eoSnapshotToTafPerYearOpreguleretPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretPdfDocument';
+import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
+import { eoSnapshotToTafPerYearDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument';
+import { eoSnapshotToTafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
 import {
   buildControlMismatchInvariant,
   buildTafPerYearOpreguleretManglendeReguleringssatsInvariant,
@@ -65,7 +65,7 @@ const FAKE_TAF_PER_YEAR_RESULT: TafPerYearResult = {
 describe('EO snapshot PDF projections', () => {
   it('tillader EO-PDF ved warning-status uden eo_pdf-blokering', () => {
     const snapshot = buildBaseSnapshot();
-    const projection = eoSnapshotToEoPdfDocument({
+    const projection = eoSnapshotToEoDocument({
       ...snapshot,
       status: 'warning',
       invariants: [
@@ -86,7 +86,7 @@ describe('EO snapshot PDF projections', () => {
 
   it('blokerer EO-PDF ved eo_pdf-blokerende invariant', () => {
     const snapshot = buildBaseSnapshot();
-    const projection = eoSnapshotToEoPdfDocument({
+    const projection = eoSnapshotToEoDocument({
       ...snapshot,
       status: 'error',
       invariants: [buildControlMismatchInvariant(['Mismatch'])],
@@ -101,7 +101,7 @@ describe('EO snapshot PDF projections', () => {
 
   it('tillader TAF-per-år-PDF ved warning-status uden output-blokering', () => {
     const snapshot = buildBaseSnapshot();
-    const projection = eoSnapshotToTafPerYearPdfDocument({
+    const projection = eoSnapshotToTafPerYearDocument({
       ...snapshot,
       status: 'warning',
       invariants: [
@@ -130,7 +130,7 @@ describe('EO snapshot PDF projections', () => {
 
   it('blokerer TAF-per-år-PDF når der ikke beregnes TAF i erstatningsperioden', () => {
     const snapshot = buildBaseSnapshot();
-    const projection = eoSnapshotToTafPerYearPdfDocument(snapshot);
+    const projection = eoSnapshotToTafPerYearDocument(snapshot);
 
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') return;
@@ -139,7 +139,7 @@ describe('EO snapshot PDF projections', () => {
 
   it('blokerer TAF-opreguleret-PDF når der ikke beregnes TAF i erstatningsperioden', () => {
     const snapshot = buildBaseSnapshot();
-    const projection = eoSnapshotToTafPerYearOpreguleretPdfDocument(snapshot);
+    const projection = eoSnapshotToTafPerYearOpreguleretDocument(snapshot);
 
     expect(projection.kind).toBe('blocked');
     if (projection.kind !== 'blocked') return;
@@ -155,7 +155,7 @@ describe('EO snapshot PDF projections', () => {
         engines: { ...snapshot.data.engines, tafPerYear: FAKE_TAF_PER_YEAR_RESULT },
       },
     };
-    const projection = eoSnapshotToTafPerYearOpreguleretPdfDocument(withTaf);
+    const projection = eoSnapshotToTafPerYearOpreguleretDocument(withTaf);
 
     expect(projection.kind).toBe('ok');
     if (projection.kind !== 'ok') return;
@@ -178,7 +178,7 @@ describe('EO snapshot PDF projections', () => {
     };
 
     // Den opregulerede PDF blokeres med invariantens besked.
-    const opreguleret = eoSnapshotToTafPerYearOpreguleretPdfDocument(withInvariant);
+    const opreguleret = eoSnapshotToTafPerYearOpreguleretDocument(withInvariant);
     expect(opreguleret.kind).toBe('blocked');
     if (opreguleret.kind === 'blocked') {
       expect(opreguleret.invariants).toContain(invariant);
@@ -186,7 +186,7 @@ describe('EO snapshot PDF projections', () => {
     }
 
     // De øvrige targets påvirkes IKKE af denne invariant.
-    expect(eoSnapshotToEoPdfDocument(withInvariant).kind).toBe('ok');
-    expect(eoSnapshotToTafPerYearPdfDocument(withInvariant).kind).toBe('ok');
+    expect(eoSnapshotToEoDocument(withInvariant).kind).toBe('ok');
+    expect(eoSnapshotToTafPerYearDocument(withInvariant).kind).toBe('ok');
   });
 });

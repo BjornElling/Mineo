@@ -1,27 +1,15 @@
 /**
  * jsPDF Concrete Adapter
  *
- * Eneste sted i kodebasen der må bruge jsPDF.internal.pageSize direkte.
- * Alle helpers og generatorer modtager PdfDocumentAdapter — ikke jsPDF.
- *
- * NOTE: jsPDF eksponerer sidebredde/-højde via internal.pageSize.
- * Dette er bevidst isoleret her for at forhindre internal-coupling
- * i at lække ud i resten af systemet. Hvis jsPDF introducerer et
- * offentligt API (f.eks. getWidth()/getHeight()), kan dette rettes ét sted.
+ * Konkret jsPDF-implementering af PdfDocumentAdapter. Alle helpers og generatorer
+ * modtager PdfDocumentAdapter — ikke jsPDF. Sidegeometrien (internal.pageSize)
+ * læses via det fælles isolationspunkt `getJsPdfPageSize` i dokument-kernen.
  */
 
 import jsPDF from 'jspdf';
 import type { PdfDocumentAdapter, PdfImageCompression, PdfImageFormat, PdfTextOptions } from './pdfDocumentAdapter';
-import type { PdfFontFamily, PdfFontStyle } from './pdfConfig';
-
-const getPageSize = (doc: jsPDF): { width: number; height: number } => {
-  // NOTE: Bevidst brug af internal API — se modulkommentar
-  const pageSize = doc.internal?.pageSize;
-  if (!pageSize || typeof pageSize.width !== 'number' || typeof pageSize.height !== 'number') {
-    throw new Error('jsPDF internal.pageSize er ikke tilgængeligt eller har ugyldig struktur — mulig version-inkompatibilitet');
-  }
-  return pageSize;
-};
+import type { PdfFontFamily, PdfFontStyle } from '../../document/layout/pdfConfig';
+import { getJsPdfPageSize as getPageSize } from '../../document/layout/jsPdfGeometry';
 
 export const createJsPdfAdapter = (doc: jsPDF): PdfDocumentAdapter => {
   // Defensiv check ved oprettelse: fejler hårdt ved version-inkompatibilitet

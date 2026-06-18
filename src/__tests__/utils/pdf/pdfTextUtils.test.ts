@@ -1,29 +1,29 @@
 /// <reference types="vitest/globals" />
 
-import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from '../../../pdf/shared/pdfTextUtils';
+import { normalizeRightAlignedTextForDocument, normalizeTextForDocument } from '../../../document/layout/pdfTextUtils';
 
 describe('pdfTextUtils', () => {
-  describe('normalizeTextForPdf', () => {
+  describe('normalizeTextForDocument', () => {
     it('normaliserer PDF-usikre Unicode-tegn til ASCII-fallbacks', () => {
       expect(
-        normalizeTextForPdf('Kapitaliseret pga. ≤ 2 år til folkepension? “Nej” • test … >=?')
+        normalizeTextForDocument('Kapitaliseret pga. ≤ 2 år til folkepension? “Nej” • test … >=?')
       ).toBe('Kapitaliseret pga. <= 2 år til folkepension? "Nej" - test ... >=?');
     });
 
     it('normaliserer pile og sammenligningsoperatorer brugt i PDF-kode', () => {
-      expect(normalizeTextForPdf('A → B, C ← D, E ↔ F, x ≥ y, x ≠ y, x ≈ y')).toBe(
+      expect(normalizeTextForDocument('A → B, C ← D, E ↔ F, x ≥ y, x ≠ y, x ≈ y')).toBe(
         'A -> B, C <- D, E <-> F, x >= y, x != y, x ~= y'
       );
     });
 
     it('bevarer ikke-brydende mellemrum mellem tal og kr.', () => {
-      expect(normalizeTextForPdf('123,45 kr.')).toBe('123,45\u00A0kr.');
+      expect(normalizeTextForDocument('123,45 kr.')).toBe('123,45\u00A0kr.');
     });
   });
 
-  describe('normalizeRightAlignedTextForPdf', () => {
+  describe('normalizeRightAlignedTextForDocument', () => {
     it('fjerner ikke-brydende mellemrum efter fælles normalisering', () => {
-      expect(normalizeRightAlignedTextForPdf('123,45 kr. ≤')).toBe('123,45 kr. <=');
+      expect(normalizeRightAlignedTextForDocument('123,45 kr. ≤')).toBe('123,45 kr. <=');
     });
   });
 });

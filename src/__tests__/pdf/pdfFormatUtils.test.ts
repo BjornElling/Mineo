@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { formatReguleringFactorText, formatReguleringPct } from '../../pdf/shared/pdfFormatUtils';
+import { formatReguleringFactorText, formatReguleringPct } from '../../document/layout/documentFormatUtils';
 
 describe('pdfFormatUtils', () => {
   describe('formatReguleringFactorText', () => {

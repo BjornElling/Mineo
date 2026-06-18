@@ -8,18 +8,14 @@
  */
 
 import jsPDF from 'jspdf';
-import { FONT_SIZES, MARGINS, PDF_BASE_LINE_HEIGHT_MM, PDF_FONT_FAMILY, PDF_FONT_STYLES, PDF_LINE_BOTTOM_SPACING_MM, PDF_SECTION_HEADER_BOTTOM_SPACING_MM, PDF_SECTION_HEADER_TOP_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM, PDF_SUBHEADER_TOP_SPACING_MM, PDF_TITLE_BOTTOM_SPACING_MM } from './pdfConfig';
-import {
-  addFooter,
-  applyNormalTextStyle,
-  type BrevhovedData,
-} from '../shared/pdfHelpers';
+import { FONT_SIZES, MARGINS, PDF_BASE_LINE_HEIGHT_MM, PDF_FONT_FAMILY, PDF_FONT_STYLES, PDF_LINE_BOTTOM_SPACING_MM, PDF_SECTION_HEADER_BOTTOM_SPACING_MM, PDF_SECTION_HEADER_TOP_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM, PDF_SUBHEADER_TOP_SPACING_MM, PDF_TITLE_BOTTOM_SPACING_MM } from '../../document/layout/pdfConfig';
+import { addFooter, applyNormalTextStyle } from '../pdfRenderHelpers';
+import type { BrevhovedData } from '../../document/layout/documentLayoutHelpers';
 import { createJsPdfAdapter } from './jsPdfAdapter';
 import type { PdfDocumentAdapter } from './pdfDocumentAdapter';
 import { renderBrevhoved } from './pdfBrevhovedRenderer';
-import { normalizeRightAlignedTextForPdf, normalizeTextForPdf } from '../shared/pdfTextUtils';
+import { normalizeRightAlignedTextForDocument, normalizeTextForDocument } from '../../document/layout/pdfTextUtils';
 import { formatRoundedCanonical, roundByMethod } from '../../utils/rounding';
-import { getActiveDocumentDownloadFormat, getActiveDocumentWriterFactory } from '../../document/documentGenerationContext';
 
 const fitTextToWidth = (doc: jsPDF, text: string, maxWidth: number): string => {
   if (doc.getTextWidth(text) <= maxWidth) return text;
@@ -217,7 +213,7 @@ const createPdfCursor = (params: Readonly<{
   };
 
   const splitWrappedLines = (text: string, maxWidth: number): string[] => {
-    return doc.splitTextToSize(normalizeTextForPdf(text), maxWidth) as string[];
+    return doc.splitTextToSize(normalizeTextForDocument(text), maxWidth) as string[];
   };
 
   const splitWrappedLinesWithStyle = (
@@ -377,7 +373,7 @@ const createPdfCursor = (params: Readonly<{
     const leftFontStyle = options?.leftFontStyle ?? 'normal';
     const rightFontStyle = options?.rightFontStyle ?? 'bold';
     const fontSize = options?.fontSize ?? FONT_SIZES.normal;
-    const normalizedRightText = normalizeRightAlignedTextForPdf(rightText);
+    const normalizedRightText = normalizeRightAlignedTextForDocument(rightText);
     const maxRightDrawableWidth = Math.max(10, pageWidth - x - rightPadding - 5);
     const actualRightWidth = (() => {
       let measured = 0;
@@ -408,7 +404,7 @@ const createPdfCursor = (params: Readonly<{
       ? Math.max(30, pageWidth - x - rightPadding - 5)
       : Math.max(30, pageWidth - x - rightPadding - rightWidth - columnGap);
     const leftLines = options?.leftNoWrap
-      ? [normalizeTextForPdf(leftText)]
+      ? [normalizeTextForDocument(leftText)]
       : splitWrappedLinesWithStyle(leftText, leftMaxWidth, { fontStyle: leftFontStyle, fontSize });
     const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
 
@@ -488,7 +484,7 @@ const createPdfCursor = (params: Readonly<{
   };
 
   const writeUnderlinedSubheader = (text: string, x: number) => {
-    const normalized = normalizeTextForPdf(text).replace(/\n/g, ' ');
+    const normalized = normalizeTextForDocument(text).replace(/\n/g, ' ');
     const fontSize = FONT_SIZES.normal;
     const resolvedLineHeight = resolveLineHeightForFontSize(fontSize);
     withTextStyle({
@@ -563,15 +559,15 @@ const createPdfCursor = (params: Readonly<{
       fontStyle: 'normal',
       fontSize,
       fn: () => {
-        normalWidth = doc.getTextWidth(normalizeTextForPdf(normalPart));
-        doc.text(normalizeTextForPdf(normalPart), MARGINS.left, y);
+        normalWidth = doc.getTextWidth(normalizeTextForDocument(normalPart));
+        doc.text(normalizeTextForDocument(normalPart), MARGINS.left, y);
       },
     });
     withTextStyle({
       fontStyle: 'bold',
       fontSize,
       fn: () => {
-        doc.text(normalizeTextForPdf(boldPart), MARGINS.left + normalWidth, y);
+        doc.text(normalizeTextForDocument(boldPart), MARGINS.left + normalWidth, y);
       },
     });
     y += resolvedLineHeight + PDF_LINE_BOTTOM_SPACING_MM;
@@ -629,82 +625,12 @@ const createPdfCursor = (params: Readonly<{
 };
 
 // ============================================================================
-// PDF WRITER TYPE
+// DOKUMENT-WRITER-TYPE
 // ============================================================================
 
-export type PdfWriter = {
-  setDisplayMode: (mode: string) => void;
-  setProperties: (props: Parameters<jsPDF['setProperties']>[0]) => void;
-  setNormalTextStyle: () => void;
-  getDoc: () => jsPDF;
-  ensureSpace: (height: number) => void;
-  getY: () => number;
-  setY: (nextY: number) => void;
-  addSpacer: (height: number) => void;
-  addSectionSpacer: () => void;
-  advanceY: (delta: number) => void;
-  writeWrappedText: (text: string) => void;
-  writeBoldWrappedText: (text: string) => void;
-  writeWrappedTextContinued: (text: string, maxWidth?: number, x?: number) => void;
-  writeNormalThenBoldLine: (normalPart: string, boldPart: string) => void;
-  /**
-   * Kanonisk valg til alle linjer med venstre/højre-kolonne.
-   * Venstretekst wrapper altid til næste linje ved pladsmangel — ingen trunkering.
-   */
-  writeLeftRightText: (
-    leftText: string,
-    rightText: string,
-    options?: Readonly<{
-      leftFontStyle?: 'normal' | 'bold';
-      rightFontStyle?: 'normal' | 'bold';
-      lineAboveRightWidth?: number;
-      lineAboveRightOffset?: number;
-      leftNoWrap?: boolean;
-      minRightColumnWidth?: number;
-    }>
-  ) => void;
-  writeSectionHeader: (text: string, nextLineHeight?: number) => void;
-  writeTitle: (
-    text: string,
-    options?: Readonly<{
-      trailingSpacing?: number;
-    }>
-  ) => void;
-  writeBoldSubheader: (
-    text: string,
-    nextLineHeight?: number,
-    options?: Readonly<{ addTopSpacing?: boolean }>
-  ) => void;
-  writeBoldSubheaderIfContent: (params: Readonly<{
-    text: string;
-    nextLineHeight?: number;
-    hasContent: boolean;
-    renderContent: () => void;
-    options?: Readonly<{ addTopSpacing?: boolean }>;
-  }>) => boolean;
-  writeBoldSubheaderWithWrappedText: (subheaderText: string, bodyText: string) => void;
-  writeAtomicTableChunks: <T>(params: Readonly<{
-    rows: readonly T[];
-    renderHeader: () => void;
-    renderRow: (row: T) => void;
-    estimateRowHeight: number;
-    headerHeight: number;
-  }>) => void;
-  writeUnderlinedSubheader: (text: string, x?: number) => void;
-  writeSignatureBlock: (dateLine: string, sigLine: string, dateX: number, sigX: number, skadelidteNavn: string) => void;
-  writeBrevhoved: (brevhovedData: BrevhovedData) => void;
-  addUdkastWatermark: () => void;
-  addImageDataUrl: (dataUrl: string, x: number, y: number, width: number, height: number) => void;
-  getTextWidth: (text: string) => number;
-  fitTextToWidth: (text: string, maxWidth: number) => string;
-  getPageWidth: () => number;
-  // Indholdsbredde i millimeter — enheds-entydig på tværs af PDF og Word (getPageWidth
-  // returnerer mm for PDF men twips for Word, så den må ikke bruges til billed-sizing).
-  getContentWidthMm: () => number;
-  addPage: () => void;
-  addFooter: () => void;
-  save: (filename: string) => void;
-};
+// PDF-kanalens writer (createPdfWriter/createPdfChannelWriter) opfylder den fælles,
+// format-agnostiske DocumentWriter-grænseflade defineret i dokument-kernen.
+import type { DocumentWriter } from '../../document/writer/documentWriter';
 
 // ============================================================================
 // PDF WRITER (public – wrapper cursor med operationer på højere niveau)
@@ -715,7 +641,7 @@ export const createPdfWriter = (params: Readonly<{
   visUdkastStempel: boolean;
   onLayoutFallback: (params: Readonly<{ message: string; label: string }>) => void;
   orientation?: 'portrait' | 'landscape';
-}>): PdfWriter => {
+}>): DocumentWriter => {
   const { lineHeight, visUdkastStempel, onLayoutFallback, orientation = 'portrait' } = params;
   const cursor = createPdfCursor({ lineHeight, visUdkastStempel, onLayoutFallback, orientation });
   let previousBlockWasSectionHeader = false;
@@ -1006,25 +932,22 @@ export const createPdfWriter = (params: Readonly<{
   };
 };
 
-export const createStandardPdfWriter = (params?: Readonly<{
+/**
+ * PDF-kanalens writer-fabrik. Udfylder PDF-specifikke defaults (lineHeight,
+ * onLayoutFallback) og bygger altid en jsPDF-writer. Injiceres i
+ * `documentGenerationContext` af download-stien for format 'pdf'. Formatvalget
+ * (PDF vs. Word) ejes af den kanal-agnostiske router `createStandardPdfWriter`
+ * i `document/writer/documentWriterRouter.ts`.
+ */
+export const createPdfChannelWriter = (params?: Readonly<{
   visUdkastStempel?: boolean;
   orientation?: 'portrait' | 'landscape';
   onLayoutFallback?: (params: Readonly<{ message: string; label: string }>) => void;
-}>): PdfWriter => {
-  const visUdkastStempel = params?.visUdkastStempel ?? false;
-  const orientation = params?.orientation ?? 'portrait';
-  const onLayoutFallback = params?.onLayoutFallback ?? (() => {});
-  if (getActiveDocumentDownloadFormat() === 'word') {
-    const createWriter = getActiveDocumentWriterFactory();
-    if (!createWriter) {
-      throw new Error('Word-generering kræver en præindlæst Word-writer.');
-    }
-    return createWriter({ visUdkastStempel, orientation });
-  }
+}>): DocumentWriter => {
   return createPdfWriter({
     lineHeight: PDF_BASE_LINE_HEIGHT_MM,
-    visUdkastStempel,
-    onLayoutFallback,
-    orientation,
+    visUdkastStempel: params?.visUdkastStempel ?? false,
+    onLayoutFallback: params?.onLayoutFallback ?? (() => {}),
+    orientation: params?.orientation ?? 'portrait',
   });
 };

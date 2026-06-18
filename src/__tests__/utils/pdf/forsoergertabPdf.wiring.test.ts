@@ -1,6 +1,7 @@
 /// <reference types="vitest/globals" />
 
 import { toISODateString } from '../../../types/branded';
+import { registerPdfWriterFallbackForTest } from './registerPdfWriterFallback';
 
 // Wiring-test for forsørgertab-PDF'en: verificerer at de betingede sider (EAL/ASL)
 // kun bygges når den tilhørende delberegning er sat, så et manglende delgrundlag
@@ -50,12 +51,16 @@ const BASE_GRUNDLAEGGENDE = {
 // Generatoren importeres dynamisk inde i testene, så jspdf-mocken (med MockJsPDF)
 // er fuldt initialiseret før modulgrafen indlæses. Eksplicit timeout, fordi den
 // første dynamiske import af modulgrafen kan være tung under parallel kørsel.
-const importGenerator = () => import('../../../pdf/domains/forsoergertab/forsoergertabPdf');
+const importGenerator = () => import('../../../document/generators/forsoergertab/forsoergertabDocument');
 
 const renderedTextOf = (instance: MockJsPDF | undefined): unknown[] =>
   (instance?.text.mock.calls ?? []).map((call) => call[0]);
 
 describe('forsoergertabPdf wiring', () => {
+  beforeEach(async () => {
+    await registerPdfWriterFallbackForTest();
+  });
+
   beforeEach(() => {
     MockJsPDF.instances = [];
   });
@@ -63,9 +68,9 @@ describe('forsoergertabPdf wiring', () => {
   it(
     'bygger hverken EAL- eller ASL-side når begge delberegninger er null',
     async () => {
-      const { generateForsoergertabPdf } = await importGenerator();
+      const { generateForsoergertabDocument } = await importGenerator();
 
-      generateForsoergertabPdf({
+      generateForsoergertabDocument({
         grundlaeggende: BASE_GRUNDLAEGGENDE,
         result: null,
         ealComputation: null,
@@ -90,9 +95,9 @@ describe('forsoergertabPdf wiring', () => {
   it(
     'gemmer en PDF med korrekt filendelse',
     async () => {
-      const { generateForsoergertabPdf } = await importGenerator();
+      const { generateForsoergertabDocument } = await importGenerator();
 
-      generateForsoergertabPdf({
+      generateForsoergertabDocument({
         grundlaeggende: BASE_GRUNDLAEGGENDE,
         result: null,
         ealComputation: null,

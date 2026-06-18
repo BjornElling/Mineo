@@ -6,7 +6,7 @@ import type { CommitEvent } from '../../../types/fieldEvents';
 import StandardDisplayTable, { type StandardDisplayTableColumn, type StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import type { ErhvervsevnetabComposedValues, ErhvervsevnetabValues, StamdataValues } from '../../../schemas/formSchemas';
 import { useAppSettings } from '../../../contexts/useAppSettings';
-import { downloadLoebendeYdelserDokument } from '../../../pdf/infrastructure/pdfService';
+import { downloadLoebendeYdelserDokument } from '../../../document/service/documentService';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import {

@@ -13,7 +13,7 @@
  * Vi spejler IKKE jsPDF's fulde API — det ville genindføre coupling.
  */
 
-import type { PdfFontFamily, PdfFontStyle } from './pdfConfig';
+import type { PdfFontFamily, PdfFontStyle } from '../../document/layout/pdfConfig';
 
 export type PdfTextAlign = 'left' | 'right' | 'center';
 

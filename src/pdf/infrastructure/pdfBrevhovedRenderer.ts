@@ -5,9 +5,9 @@ import {
   PDF_BREVHOVED_START_Y,
   PDF_FONT_FAMILY,
   PDF_FONT_STYLES,
-} from './pdfConfig';
+} from '../../document/layout/pdfConfig';
 import type { PdfDocumentAdapter } from './pdfDocumentAdapter';
-import type { BrevhovedData } from '../shared/pdfHelpers';
+import type { BrevhovedData } from '../../document/layout/documentLayoutHelpers';
 import { formatIsoDateLong } from '../../utils/dateFormatting';
 
 export const renderBrevhoved = (doc: PdfDocumentAdapter, data: BrevhovedData): number => {

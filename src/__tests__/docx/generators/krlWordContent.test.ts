@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateKRLPdf } from '../../../pdf/domains/krl/krlPdf';
+import { generateKRLDocument } from '../../../document/generators/krl/krlDocument';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
 // Word-indholdstest for KRL-satstabeller: kører den rigtige generator gennem
@@ -7,7 +7,7 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 describe('krl → Word-indhold', () => {
   it('skriver titel og kilde til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateKRLPdf({ visBrevhoved: false });
+      generateKRLDocument({ visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -20,7 +20,7 @@ describe('krl → Word-indhold', () => {
 
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
     const { documentXml } = await renderWordDocument(() => {
-      generateKRLPdf({
+      generateKRLDocument({
         visBrevhoved: true,
         stamdata: { journalnr: '5566', advokat: 'AB', sagsbehandler: 'CD' } as never,
       });

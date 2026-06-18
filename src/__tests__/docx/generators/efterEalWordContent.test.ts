@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateEfterEalPdf } from '../../../pdf/domains/eet/eetEfterEalPdf';
+import { generateEfterEalDocument } from '../../../document/generators/eet/eetEfterEalDocument';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -9,7 +9,7 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 describe('efterEal → Word-indhold', () => {
   it('skriver titel og beregningssektioner til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateEfterEalPdf({
+      generateEfterEalDocument({
         computation: {
           beregningsdato: toISODateString('2026-03-17'),
           skadedato: toISODateString('2020-01-01'),

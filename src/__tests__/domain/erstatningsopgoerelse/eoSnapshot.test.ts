@@ -1,6 +1,6 @@
 
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
+import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
@@ -710,7 +710,7 @@ describe('computeEoSnapshot', () => {
     expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([]);
     expect(snapshot.data?.engines.tafPerYear).toBeNull();
 
-    const pdfProjection = eoSnapshotToEoPdfDocument(snapshot);
+    const pdfProjection = eoSnapshotToEoDocument(snapshot);
     expect(pdfProjection.kind).toBe('ok');
     if (pdfProjection.kind !== 'ok') return;
 

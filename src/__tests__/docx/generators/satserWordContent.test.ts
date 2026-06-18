@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateSatserPdf } from '../../../pdf/domains/satser/satserPdf';
+import { generateSatserDocument } from '../../../document/generators/satser/satserDocument';
 import { getSatserForYear } from '../../../data/lovbestemteRates';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -9,7 +9,7 @@ describe('satser → Word-indhold', () => {
   it('skriver titel og lovafsnit til .docx', async () => {
     const year = 2024;
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateSatserPdf(year, getSatserForYear(year), { visBrevhoved: false });
+      generateSatserDocument(year, getSatserForYear(year), { visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -23,7 +23,7 @@ describe('satser → Word-indhold', () => {
   it('inkluderer brevhoved-journalnr når brevhoved er slået til', async () => {
     const year = 2024;
     const { documentXml } = await renderWordDocument(() => {
-      generateSatserPdf(year, getSatserForYear(year), {
+      generateSatserDocument(year, getSatserForYear(year), {
         visBrevhoved: true,
         stamdata: { journalnr: '9988', advokat: 'AB', sagsbehandler: 'CD' } as never,
       });

@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { PDF_CONTENT_WIDTH_MM } from '../../../pdf/infrastructure/pdfConfig';
+import { PDF_CONTENT_WIDTH_MM } from '../../../document/layout/pdfConfig';
 
 type AutoTableOptions = {
   startY?: number;
@@ -50,36 +50,36 @@ class MockJsPDF {
   });
 }
 
-describe('renderPdfTable adaptive column widths', () => {
+describe('renderDocumentTable adaptive column widths', () => {
   beforeEach(() => {
     autoTableMock.mockClear();
   });
 
   it('omfordeler distribuerede kolonner når et beløb ellers ville blive ombrudt', async () => {
-    const { createPdfDistributedColumnStyles, createPdfTableCell, createPdfTableHeaderCell, renderPdfTable } =
-      await import('../../../pdf/shared/pdfTableRenderer');
+    const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
+      await import('../../../document/layout/documentTableRenderer');
 
     const doc = new MockJsPDF();
     const initialWidth = PDF_CONTENT_WIDTH_MM / 4;
 
-    renderPdfTable({
+    renderDocumentTable({
       doc: doc as never,
       startY: 40,
       body: [
         [
-          createPdfTableHeaderCell('Periode'),
-          createPdfTableHeaderCell('Grundlag'),
-          createPdfTableHeaderCell('Beløb'),
-          createPdfTableHeaderCell('Notat'),
+          createDocumentTableHeaderCell('Periode'),
+          createDocumentTableHeaderCell('Grundlag'),
+          createDocumentTableHeaderCell('Beløb'),
+          createDocumentTableHeaderCell('Notat'),
         ],
         [
-          createPdfTableCell('Jan'),
-          createPdfTableCell('Kort'),
-          createPdfTableCell('1.234.567,89 kr. tillæg', { halign: 'right' }),
-          createPdfTableCell('Ok'),
+          createDocumentTableCell('Jan'),
+          createDocumentTableCell('Kort'),
+          createDocumentTableCell('1.234.567,89 kr. tillæg', { halign: 'right' }),
+          createDocumentTableCell('Ok'),
         ],
       ],
-      columnStyles: createPdfDistributedColumnStyles(4),
+      columnStyles: createDocumentDistributedColumnStyles(4),
     });
 
     const call = autoTableMock.mock.calls[0]?.[1];
@@ -93,30 +93,30 @@ describe('renderPdfTable adaptive column widths', () => {
   });
 
   it('lader bredderne være uændrede når omfordeling ikke kan ske uden nye ombrydninger', async () => {
-    const { createPdfDistributedColumnStyles, createPdfTableCell, createPdfTableHeaderCell, renderPdfTable } =
-      await import('../../../pdf/shared/pdfTableRenderer');
+    const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
+      await import('../../../document/layout/documentTableRenderer');
 
     const doc = new MockJsPDF();
     const initialWidth = PDF_CONTENT_WIDTH_MM / 4;
 
-    renderPdfTable({
+    renderDocumentTable({
       doc: doc as never,
       startY: 40,
       body: [
         [
-          createPdfTableHeaderCell('Kolonne A med lang tekst'),
-          createPdfTableHeaderCell('Kolonne B med lang tekst'),
-          createPdfTableHeaderCell('Kolonne C med lang tekst'),
-          createPdfTableHeaderCell('Kolonne D med lang tekst'),
+          createDocumentTableHeaderCell('Kolonne A med lang tekst'),
+          createDocumentTableHeaderCell('Kolonne B med lang tekst'),
+          createDocumentTableHeaderCell('Kolonne C med lang tekst'),
+          createDocumentTableHeaderCell('Kolonne D med lang tekst'),
         ],
         [
-          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
-          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
-          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
-          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
+          createDocumentTableCell('1.234.567,89 kr.', { halign: 'right' }),
+          createDocumentTableCell('1.234.567,89 kr.', { halign: 'right' }),
+          createDocumentTableCell('1.234.567,89 kr.', { halign: 'right' }),
+          createDocumentTableCell('1.234.567,89 kr.', { halign: 'right' }),
         ],
       ],
-      columnStyles: createPdfDistributedColumnStyles(4),
+      columnStyles: createDocumentDistributedColumnStyles(4),
     });
 
     const call = autoTableMock.mock.calls[0]?.[1];
@@ -131,30 +131,30 @@ describe('renderPdfTable adaptive column widths', () => {
   });
 
   it('bevarer eksplicit låste kolonner mens frie kolonner omfordeles', async () => {
-    const { createPdfDistributedColumnStyles, createPdfTableCell, createPdfTableHeaderCell, renderPdfTable } =
-      await import('../../../pdf/shared/pdfTableRenderer');
+    const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
+      await import('../../../document/layout/documentTableRenderer');
 
     const doc = new MockJsPDF();
     const initialDistributedWidth = (PDF_CONTENT_WIDTH_MM - 25) / 3;
 
-    renderPdfTable({
+    renderDocumentTable({
       doc: doc as never,
       startY: 40,
       body: [
         [
-          createPdfTableHeaderCell('Periode'),
-          createPdfTableHeaderCell('Grundlag'),
-          createPdfTableHeaderCell('Beløb'),
-          createPdfTableHeaderCell('SH'),
+          createDocumentTableHeaderCell('Periode'),
+          createDocumentTableHeaderCell('Grundlag'),
+          createDocumentTableHeaderCell('Beløb'),
+          createDocumentTableHeaderCell('SH'),
         ],
         [
-          createPdfTableCell('Jan'),
-          createPdfTableCell('Kort'),
-          createPdfTableCell('1.234.567,89 kr. tillæg', { halign: 'right' }),
-          createPdfTableCell('x', { halign: 'center' }),
+          createDocumentTableCell('Jan'),
+          createDocumentTableCell('Kort'),
+          createDocumentTableCell('1.234.567,89 kr. tillæg', { halign: 'right' }),
+          createDocumentTableCell('x', { halign: 'center' }),
         ],
       ],
-      columnStyles: createPdfDistributedColumnStyles(4, {
+      columnStyles: createDocumentDistributedColumnStyles(4, {
         fixedColumns: {
           3: 25,
         },
@@ -176,27 +176,27 @@ describe('renderPdfTable adaptive column widths', () => {
     // En total-/colSpan-celle med meget lang tekst må ikke tvinge ekstra bredde
     // på tværs af flere kolonner. Med kun smalle 1:1-celler i øvrigt skal de
     // distribuerede bredder forblive den statiske ligelige fordeling.
-    const { createPdfDistributedColumnStyles, createPdfTableCell, createPdfTableHeaderCell, renderPdfTable } =
-      await import('../../../pdf/shared/pdfTableRenderer');
+    const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
+      await import('../../../document/layout/documentTableRenderer');
 
     const doc = new MockJsPDF();
     const initialWidth = PDF_CONTENT_WIDTH_MM / 4;
 
-    renderPdfTable({
+    renderDocumentTable({
       doc: doc as never,
       startY: 40,
       body: [
         [
-          createPdfTableHeaderCell('A'),
-          createPdfTableHeaderCell('B'),
-          createPdfTableHeaderCell('C'),
-          createPdfTableHeaderCell('D'),
+          createDocumentTableHeaderCell('A'),
+          createDocumentTableHeaderCell('B'),
+          createDocumentTableHeaderCell('C'),
+          createDocumentTableHeaderCell('D'),
         ],
         [
-          createPdfTableCell('x'),
-          createPdfTableCell('x'),
-          createPdfTableCell('x'),
-          createPdfTableCell('x'),
+          createDocumentTableCell('x'),
+          createDocumentTableCell('x'),
+          createDocumentTableCell('x'),
+          createDocumentTableCell('x'),
         ],
         // Lang colSpan-celle der ville sprænge en kolonne, hvis colSpan drev bredden.
         [
@@ -207,7 +207,7 @@ describe('renderPdfTable adaptive column widths', () => {
           },
         ],
       ],
-      columnStyles: createPdfDistributedColumnStyles(4),
+      columnStyles: createDocumentDistributedColumnStyles(4),
     });
 
     const call = autoTableMock.mock.calls[0]?.[1];
@@ -225,29 +225,29 @@ describe('renderPdfTable adaptive column widths', () => {
     // Når deficit/donor-passet efterlader et lille residual (fx pga. afrunding),
     // skal residual-grenen lægge resten på en distribueret kolonne, så summen
     // præcist rammer tabelbredden igen — ingen kolonne ender under sit krav.
-    const { createPdfDistributedColumnStyles, createPdfTableCell, createPdfTableHeaderCell, renderPdfTable } =
-      await import('../../../pdf/shared/pdfTableRenderer');
+    const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
+      await import('../../../document/layout/documentTableRenderer');
 
     const doc = new MockJsPDF();
 
-    renderPdfTable({
+    renderDocumentTable({
       doc: doc as never,
       startY: 40,
       body: [
         [
-          createPdfTableHeaderCell('Periode'),
-          createPdfTableHeaderCell('Grundlag'),
-          createPdfTableHeaderCell('Beløb'),
-          createPdfTableHeaderCell('Notat'),
+          createDocumentTableHeaderCell('Periode'),
+          createDocumentTableHeaderCell('Grundlag'),
+          createDocumentTableHeaderCell('Beløb'),
+          createDocumentTableHeaderCell('Notat'),
         ],
         [
-          createPdfTableCell('Jan'),
-          createPdfTableCell('Kort'),
-          createPdfTableCell('9.999.999,99 kr. ekstra tillæg her', { halign: 'right' }),
-          createPdfTableCell('Ok'),
+          createDocumentTableCell('Jan'),
+          createDocumentTableCell('Kort'),
+          createDocumentTableCell('9.999.999,99 kr. ekstra tillæg her', { halign: 'right' }),
+          createDocumentTableCell('Ok'),
         ],
       ],
-      columnStyles: createPdfDistributedColumnStyles(4),
+      columnStyles: createDocumentDistributedColumnStyles(4),
     });
 
     const call = autoTableMock.mock.calls[0]?.[1];
@@ -266,30 +266,30 @@ describe('renderPdfTable adaptive column widths', () => {
     // Alle distribuerede kolonner kræver mere end deres ligelige andel (totalt
     // deficit > total surplus). Da er der ingen donor at trække fra, og funktionen
     // skal returnere de uændrede styles frem for at gætte en ny fordeling.
-    const { createPdfDistributedColumnStyles, createPdfTableCell, createPdfTableHeaderCell, renderPdfTable } =
-      await import('../../../pdf/shared/pdfTableRenderer');
+    const { createDocumentDistributedColumnStyles, createDocumentTableCell, createDocumentTableHeaderCell, renderDocumentTable } =
+      await import('../../../document/layout/documentTableRenderer');
 
     const doc = new MockJsPDF();
     const initialWidth = PDF_CONTENT_WIDTH_MM / 4;
 
-    renderPdfTable({
+    renderDocumentTable({
       doc: doc as never,
       startY: 40,
       body: [
         [
-          createPdfTableHeaderCell('Lang overskrift A der fylder hele kolonnen helt ud'),
-          createPdfTableHeaderCell('Lang overskrift B der fylder hele kolonnen helt ud'),
-          createPdfTableHeaderCell('Lang overskrift C der fylder hele kolonnen helt ud'),
-          createPdfTableHeaderCell('Lang overskrift D der fylder hele kolonnen helt ud'),
+          createDocumentTableHeaderCell('Lang overskrift A der fylder hele kolonnen helt ud'),
+          createDocumentTableHeaderCell('Lang overskrift B der fylder hele kolonnen helt ud'),
+          createDocumentTableHeaderCell('Lang overskrift C der fylder hele kolonnen helt ud'),
+          createDocumentTableHeaderCell('Lang overskrift D der fylder hele kolonnen helt ud'),
         ],
         [
-          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
-          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
-          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
-          createPdfTableCell('1.234.567,89 kr.', { halign: 'right' }),
+          createDocumentTableCell('1.234.567,89 kr.', { halign: 'right' }),
+          createDocumentTableCell('1.234.567,89 kr.', { halign: 'right' }),
+          createDocumentTableCell('1.234.567,89 kr.', { halign: 'right' }),
+          createDocumentTableCell('1.234.567,89 kr.', { halign: 'right' }),
         ],
       ],
-      columnStyles: createPdfDistributedColumnStyles(4),
+      columnStyles: createDocumentDistributedColumnStyles(4),
     });
 
     const call = autoTableMock.mock.calls[0]?.[1];
@@ -302,12 +302,12 @@ describe('renderPdfTable adaptive column widths', () => {
   });
 
   it('fejler fail-closed når body er tom i stedet for at rendere en blank tabel', async () => {
-    const { renderPdfTable } = await import('../../../pdf/shared/pdfTableRenderer');
+    const { renderDocumentTable } = await import('../../../document/layout/documentTableRenderer');
 
     const doc = new MockJsPDF();
 
     expect(() =>
-      renderPdfTable({
+      renderDocumentTable({
         doc: doc as never,
         startY: 40,
         body: [],

@@ -8,7 +8,7 @@ import {
   buildAldersreduktionFormelTekst,
   formatPercentTrimmedFromRounded4,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-import { downloadEfterEalDokument } from '../../../pdf/infrastructure/pdfService';
+import { downloadEfterEalDokument } from '../../../document/service/documentService';
 import EetIssuesBox from './EetIssuesBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import { useShakeFlag } from '../../../hooks/useShakeFlag';

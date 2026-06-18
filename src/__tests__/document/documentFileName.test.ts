@@ -1,5 +1,5 @@
 import { resolveDocumentFileName } from '../../document/documentFileName';
-import { resolvePdfFileName } from '../../pdf/shared/pdfFormatUtils';
+import { resolveDocumentArtifactFileName } from '../../document/layout/documentFormatUtils';
 
 describe('resolveDocumentFileName', () => {
   it('bruger PDF- og Word-endelser med samme journalnr- og udkast-regel', () => {
@@ -13,17 +13,17 @@ describe('resolveDocumentFileName', () => {
     );
   });
 
-  // Konvergens-værn: resolvePdfFileName må ikke have sin egen filnavnsregel — den er en tynd
+  // Konvergens-værn: resolveDocumentArtifactFileName må ikke have sin egen filnavnsregel — den er en tynd
   // wrapper om den fælles regel med format='pdf'. Holder kontrakt §4.4 (fælles regel, kun
   // endelsen adskiller) sand i koden og forhindrer at de to implementeringer driver fra hinanden.
-  it('resolvePdfFileName er identisk med den fælles regel for pdf-format', () => {
+  it('resolveDocumentArtifactFileName er identisk med den fælles regel for pdf-format', () => {
     const cases: ReadonlyArray<{ title: string; draft: boolean; journalnr?: string }> = [
       { title: 'Testtitel', draft: true, journalnr: '1234' },
       { title: 'Testtitel', draft: false },
       { title: 'A<B>:C"D/E\\F|G?H*I', draft: false, journalnr: 'J:12/34' },
     ];
     for (const { title, draft, journalnr } of cases) {
-      expect(resolvePdfFileName(title, draft, journalnr)).toBe(
+      expect(resolveDocumentArtifactFileName(title, draft, journalnr)).toBe(
         resolveDocumentFileName(title, draft, 'pdf', journalnr)
       );
     }

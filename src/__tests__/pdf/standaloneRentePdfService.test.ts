@@ -26,15 +26,15 @@ const {
   };
 });
 
-vi.mock('../../pdf/domains/renteberegning/rentePdf', () => ({
-  generateRentePdf: mockGenerateRentePdf,
-  writeRentePdfContent: mockWriteRentePdfContent,
-  buildRentePdfBaseTitle: mockBuildRentePdfBaseTitle,
-  buildRentePdfFilename: mockBuildRentePdfFilename,
+vi.mock('../../document/generators/renteberegning/renteDocument', () => ({
+  generateRenteDocument: mockGenerateRentePdf,
+  writeRenteDocumentContent: mockWriteRentePdfContent,
+  buildRenteDocumentBaseTitle: mockBuildRentePdfBaseTitle,
+  buildRenteDocumentFilename: mockBuildRentePdfFilename,
 }));
 
 vi.mock('../../pdf/infrastructure/pdfWriter', () => ({
-  createStandardPdfWriter: mockCreateStandardPdfWriter,
+  createPdfChannelWriter: mockCreateStandardPdfWriter,
 }));
 
 import { downloadAllStandaloneRentePdf, downloadStandaloneRentePdf } from '../../pdf/infrastructure/standaloneRentePdfService';

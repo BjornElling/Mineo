@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateLoebendeYdelserPdf } from '../../../pdf/domains/loebendeYdelser/loebendeYdelserPdf';
+import { generateLoebendeYdelserDocument } from '../../../document/generators/loebendeYdelser/loebendeYdelserDocument';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -25,7 +25,7 @@ describe('loebendeYdelser → Word-indhold', () => {
 
   it('skriver titel til .docx (basis-sti uden udvidet specifikation)', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateLoebendeYdelserPdf({ computation, visUdvidetSpecifikation: false, visBrevhoved: false });
+      generateLoebendeYdelserDocument({ computation, visUdvidetSpecifikation: false, visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);
@@ -35,7 +35,7 @@ describe('loebendeYdelser → Word-indhold', () => {
 
   it('inkluderer udvidet specifikation når visUdvidetSpecifikation=true', async () => {
     const { documentXml } = await renderWordDocument(() => {
-      generateLoebendeYdelserPdf({ computation, visUdvidetSpecifikation: true, visBrevhoved: false });
+      generateLoebendeYdelserDocument({ computation, visUdvidetSpecifikation: true, visBrevhoved: false });
     });
 
     const text = xmlToPlainText(documentXml);

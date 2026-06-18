@@ -127,7 +127,7 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
     requiredTestPaths: [
       'src/__tests__/domain/aarsloen/aarsloenCalculations.test.ts',
       'src/__tests__/domain/aarsloen/aarsloenValidationPolicies.test.ts',
-      'src/__tests__/hooks/useAarsloenPdfGates.test.tsx',
+      'src/__tests__/hooks/useAarsloenDocumentGates.test.tsx',
     ],
   },
   {

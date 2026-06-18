@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateForsoergertabPdf } from '../../../pdf/domains/forsoergertab/forsoergertabPdf';
+import { generateForsoergertabDocument } from '../../../document/generators/forsoergertab/forsoergertabDocument';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -9,7 +9,7 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 describe('forsoergertab → Word-indhold', () => {
   it('skriver titel og grundlæggende oplysninger til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateForsoergertabPdf({
+      generateForsoergertabDocument({
         grundlaeggende: {
           beregningsdato: toISODateString('2026-03-17'),
           skadelidteFodselsdato: toISODateString('1980-01-01'),

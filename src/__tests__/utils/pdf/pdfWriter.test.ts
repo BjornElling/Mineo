@@ -29,9 +29,9 @@ const getMockDoc = (writer: { getDoc: () => unknown }): MockJsPDF => writer.getD
 
 describe('pdfWriter layout fallback', () => {
   it('kalder onLayoutFallback når højre kolonne ikke kan være på linjen', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
     const onLayoutFallback = vi.fn();
-    const writer = createStandardPdfWriter({ onLayoutFallback });
+    const writer = createPdfChannelWriter({ onLayoutFallback });
 
     writer.writeLeftRightText('Venstre', 'X'.repeat(1000));
 
@@ -42,9 +42,9 @@ describe('pdfWriter layout fallback', () => {
   });
 
   it('kalder ikke onLayoutFallback når højre kolonne kan være på linjen', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
     const onLayoutFallback = vi.fn();
-    const writer = createStandardPdfWriter({ onLayoutFallback });
+    const writer = createPdfChannelWriter({ onLayoutFallback });
 
     writer.writeLeftRightText('Venstre', '123,45 kr.');
 
@@ -52,8 +52,8 @@ describe('pdfWriter layout fallback', () => {
   });
 
   it('normaliserer højrejusteret kr.-tekst til almindeligt mellemrum før rendering', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
 
     writer.writeLeftRightText('Venstre', '123,45 kr.');
 
@@ -67,8 +67,8 @@ describe('pdfWriter layout fallback', () => {
   });
 
   it('placerer højreteksten på nederste venstrelinje og wrapper venstreteksten inden kolonnerne mødes', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const doc = getMockDoc(writer);
 
     doc.splitTextToSize.mockImplementation((text: string, maxWidth = Number.POSITIVE_INFINITY) => {
@@ -106,9 +106,9 @@ describe('pdfWriter layout fallback', () => {
   });
 
   it('håndterer eksplicitte linjeskift i højrekolonnen centralt uden lokal generator-logik', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
     const doc = getMockDoc(writer);
 
     doc.getTextWidth.mockImplementation((text: string) => text.length * 2);
@@ -133,46 +133,46 @@ describe('pdfWriter layout fallback', () => {
 
 describe('pdfWriter cursor', () => {
   it('getY returnerer en positiv startværdi (MARGINS.top)', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     expect(writer.getY()).toBeGreaterThan(0);
   });
 
   it('setY opdaterer Y-positionen', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     writer.setY(100);
     expect(writer.getY()).toBe(100);
   });
 
   it('advanceY øger Y-positionen med delta', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const before = writer.getY();
     writer.advanceY(10);
     expect(writer.getY()).toBe(before + 10);
   });
 
   it('addSpacer øger Y-positionen', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const before = writer.getY();
     writer.addSpacer(5);
     expect(writer.getY()).toBeGreaterThan(before);
   });
 
   it('addSpacer med height=0 ændrer ikke Y-positionen', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const before = writer.getY();
     writer.addSpacer(0);
     expect(writer.getY()).toBe(before);
   });
 
   it('addSectionSpacer øger Y-positionen med writerens standard-sektionsafstand', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
     const before = writer.getY();
     writer.addSectionSpacer();
     expect(writer.getY()).toBe(before + PDF_BASE_LINE_HEIGHT_MM);
@@ -183,16 +183,16 @@ describe('pdfWriter cursor', () => {
 
 describe('pdfWriter writeWrappedText', () => {
   it('øger Y-positionen efter at have skrevet tekst', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const before = writer.getY();
     writer.writeWrappedText('Hej verden');
     expect(writer.getY()).toBeGreaterThan(before);
   });
 
   it('writeBoldWrappedText skriver teksten med fed font uden lokal generator-styring', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const doc = writer.getDoc();
 
     writer.writeBoldWrappedText('Vigtig advarsel');
@@ -207,8 +207,8 @@ describe('pdfWriter writeWrappedText', () => {
 
 describe('pdfWriter ensureSpace', () => {
   it('tilføjer ny side når der ikke er nok plads', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     // Flyt Y tæt på bunden (297mm - margin ~20mm = ~277mm)
     writer.setY(270);
     // Kræv mere plads end hvad der er tilbage
@@ -218,8 +218,8 @@ describe('pdfWriter ensureSpace', () => {
   });
 
   it('tilføjer ikke ny side når der er tilstrækkelig plads', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const startY = writer.getY(); // MARGINS.top (~10mm)
     writer.ensureSpace(5);
     expect(writer.getY()).toBe(startY); // Y uændret
@@ -230,8 +230,8 @@ describe('pdfWriter ensureSpace', () => {
 
 describe('pdfWriter addPage', () => {
   it('nulstiller Y til MARGINS.top efter addPage', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     writer.setY(200);
     writer.addPage();
     expect(writer.getY()).toBeLessThan(50);
@@ -242,8 +242,8 @@ describe('pdfWriter addPage', () => {
 
 describe('pdfWriter getPageWidth', () => {
   it('returnerer en positiv bredde for A4', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     expect(writer.getPageWidth()).toBeGreaterThan(0);
   });
 });
@@ -252,9 +252,9 @@ describe('pdfWriter getPageWidth', () => {
 
 describe('pdfWriter headers', () => {
   it('writeTitle øger Y-positionen', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM, PDF_TITLE_BOTTOM_SPACING_MM, FONT_SIZES } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_TITLE_BOTTOM_SPACING_MM, FONT_SIZES } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
     const before = writer.getY();
     writer.writeTitle('Min titel');
     expect(writer.getY() - before).toBeCloseTo(
@@ -264,9 +264,9 @@ describe('pdfWriter headers', () => {
   });
 
   it('writeTitle kan undertrykke standard-bundafstand for dokumenter med særskilt followup-layout', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM, FONT_SIZES } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, FONT_SIZES } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
 
     writer.setY(100);
     writer.writeTitle('Min titel', { trailingSpacing: 0 });
@@ -276,17 +276,17 @@ describe('pdfWriter headers', () => {
   });
 
   it('writeSectionHeader øger Y-positionen', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const before = writer.getY();
     writer.writeSectionHeader('Sektion', 5);
     expect(writer.getY()).toBeGreaterThan(before);
   });
 
   it('holder sektionsoverskrift sammen med efterfølgende underoverskrift ved sideskift', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
 
     const nearBottomY = 260;
     writer.setY(nearBottomY);
@@ -296,22 +296,22 @@ describe('pdfWriter headers', () => {
   });
 
   it('writeBoldSubheader øger Y-positionen', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const before = writer.getY();
     writer.writeBoldSubheader('Underoverskrift');
     expect(writer.getY()).toBeGreaterThan(before);
   });
 
   it('modregner eksisterende afstand når writeBoldSubheader følger efter setY-fremryk større end subheader-topafstand', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
     const {
       PDF_BASE_LINE_HEIGHT_MM,
       PDF_LINE_BOTTOM_SPACING_MM,
       PDF_SUBHEADER_BOTTOM_SPACING_MM,
       PDF_SUBHEADER_TOP_SPACING_MM,
-    } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
 
     // Opbyg et scenarie hvor den *nye* eksplicitte fremryk via setY (målt fra cursor efter
     // sidste content-blok) klart overstiger subheader-topafstanden. Under den betingelse
@@ -331,9 +331,9 @@ describe('pdfWriter headers', () => {
   });
 
   it('tilføjer ikke ekstra topafstand når writeBoldSubheader følger direkte efter writeSectionHeader', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
 
     writer.setY(100);
     writer.writeSectionHeader('Sektion', 5);
@@ -349,9 +349,9 @@ describe('pdfWriter headers', () => {
   });
 
   it('holder sektionsoverskrift sammen med underoverskrift, når underoverskriften selv skal holdes sammen med næste tekstlinje', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
 
     const nearBottomY = 255;
     writer.setY(nearBottomY);
@@ -361,9 +361,9 @@ describe('pdfWriter headers', () => {
   });
 
   it('holder underoverskrift sammen med næste underoverskrift, når den næste også skal holdes sammen med første tekstlinje', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
 
     const nearBottomY = 260;
     writer.setY(nearBottomY);
@@ -377,8 +377,8 @@ describe('pdfWriter headers', () => {
 
 describe('pdfWriter writeUnderlinedSubheader', () => {
   it('øger Y-positionen og kalder doc.line', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const before = writer.getY();
     writer.writeUnderlinedSubheader('Dato');
     expect(writer.getY()).toBeGreaterThan(before);
@@ -387,9 +387,9 @@ describe('pdfWriter writeUnderlinedSubheader', () => {
   });
 
   it('kollapser eksisterende manuel linjeafstand så der samlet kun er én linje over label', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
     writer.setY(100);
 
     writer.addSpacer(5);
@@ -403,9 +403,9 @@ describe('pdfWriter writeUnderlinedSubheader', () => {
   });
 
   it('kollapser flere manuelle spacere så der samlet kun er én linje over label', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
     writer.setY(100);
 
     writer.addSpacer(5);
@@ -418,9 +418,9 @@ describe('pdfWriter writeUnderlinedSubheader', () => {
   });
 
   it('tilføjer ikke ekstra topafstand når writeUnderlinedSubheader følger direkte efter writeSectionHeader', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM, PDF_LINE_BOTTOM_SPACING_MM, PDF_SUBHEADER_BOTTOM_SPACING_MM } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
 
     writer.setY(100);
     writer.writeSectionHeader('Sektion', 5);
@@ -434,8 +434,8 @@ describe('pdfWriter writeUnderlinedSubheader', () => {
   });
 
   it('holder underlinjet label sammen med næste linje ved sideskift', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
 
     // Tæt på bunden så label + næste linje ikke kan være på siden.
     const nearBottomY = 266;
@@ -447,8 +447,8 @@ describe('pdfWriter writeUnderlinedSubheader', () => {
   });
 
   it('holder underlinjet label sammen med næste underoverskrift, når den næste også skal holdes sammen med første tekstlinje', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
 
     const nearBottomY = 270;
     writer.setY(nearBottomY);
@@ -462,16 +462,16 @@ describe('pdfWriter writeUnderlinedSubheader', () => {
 
 describe('pdfWriter fitTextToWidth', () => {
   it('returnerer tekst uændret hvis den passer indenfor maxWidth', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     // MockJsPDF: getTextWidth = text.length * 2; "abc" = 6mm, maxWidth=100
     const result = writer.fitTextToWidth('abc', 100);
     expect(result).toBe('abc');
   });
 
   it('trunkerer med ASCII-ellipsis for PDF-sikker rendering', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
 
     const result = writer.fitTextToWidth('abcdef', 8);
 
@@ -483,8 +483,8 @@ describe('pdfWriter fitTextToWidth', () => {
 
 describe('pdfWriter writeBoldSubheaderWithWrappedText', () => {
   it('skriver underoverskrift og brødtekst når der er indhold', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const doc = getMockDoc(writer);
 
     writer.writeBoldSubheaderWithWrappedText('Underoverskrift', 'Et afsnit med indhold');
@@ -497,8 +497,8 @@ describe('pdfWriter writeBoldSubheaderWithWrappedText', () => {
   });
 
   it('undertrykker underoverskriften helt når brødteksten er tom', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const doc = getMockDoc(writer);
     const before = writer.getY();
 
@@ -511,8 +511,8 @@ describe('pdfWriter writeBoldSubheaderWithWrappedText', () => {
   });
 
   it('holder underoverskrift og brødtekst samlet ved sideskift', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
 
     const nearBottomY = 270;
     writer.setY(nearBottomY);
@@ -527,8 +527,8 @@ describe('pdfWriter writeBoldSubheaderWithWrappedText', () => {
 
 describe('pdfWriter writeBoldSubheaderIfContent', () => {
   it('renderer underoverskrift og indhold og returnerer true når hasContent=true', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const doc = getMockDoc(writer);
     const renderContent = vi.fn(() => {
       writer.writeWrappedText('Indhold');
@@ -546,8 +546,8 @@ describe('pdfWriter writeBoldSubheaderIfContent', () => {
   });
 
   it('undertrykker underoverskriften og returnerer false når hasContent=false', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const doc = getMockDoc(writer);
     const before = writer.getY();
     const renderContent = vi.fn();
@@ -569,8 +569,8 @@ describe('pdfWriter writeBoldSubheaderIfContent', () => {
 
 describe('pdfWriter writeSignatureBlock', () => {
   it('skriver signaturlinje og Dato/navn-label', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const doc = getMockDoc(writer);
 
     writer.writeSignatureBlock('______', '______', 20, 120, 'Anne Skadelidt');
@@ -581,9 +581,9 @@ describe('pdfWriter writeSignatureBlock', () => {
   });
 
   it('holder underskriftsblokken samlet og splitter den ikke på tværs af et sideskift nær bunden', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../pdf/infrastructure/pdfConfig');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const { PDF_BASE_LINE_HEIGHT_MM } = await import('../../../document/layout/pdfConfig');
+    const writer = createPdfChannelWriter();
 
     // Y vælges så signaturlinjen alene ville få plads (gammel adfærd), men hele 2-linjers
     // blokken ikke kan være på siden. Med atomisk reservation flyttes BEGGE linjer til ny side.
@@ -610,8 +610,8 @@ describe('pdfWriter writeSignatureBlock', () => {
 
 describe('pdfWriter writeAtomicTableChunks', () => {
   it('holder header og første række samlet ved sideskift', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const renderHeader = vi.fn();
     const renderRow = vi.fn();
 
@@ -633,8 +633,8 @@ describe('pdfWriter writeAtomicTableChunks', () => {
   });
 
   it('renderer kun header når der ingen rækker er', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter();
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter();
     const renderHeader = vi.fn();
     const renderRow = vi.fn();
 
@@ -654,9 +654,9 @@ describe('pdfWriter writeAtomicTableChunks', () => {
 // ─── visUdkastStempel ────────────────────────────────────────────────────────
 
 describe('pdfWriter visUdkastStempel', () => {
-  it('createStandardPdfWriter med visUdkastStempel=false laver ikke watermark på opstart', async () => {
-    const { createStandardPdfWriter } = await import('../../../pdf/infrastructure/pdfWriter');
-    const writer = createStandardPdfWriter({ visUdkastStempel: false });
+  it('createPdfChannelWriter med visUdkastStempel=false laver ikke watermark på opstart', async () => {
+    const { createPdfChannelWriter } = await import('../../../pdf/infrastructure/pdfWriter');
+    const writer = createPdfChannelWriter({ visUdkastStempel: false });
     // addImage bruges til watermark - hvis false: ingen kald
     expect(writer.getDoc().addImage).not.toHaveBeenCalled();
   });

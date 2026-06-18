@@ -10,8 +10,8 @@ import { renderWordDocument } from './wordContentHarness';
 const PNG_1X1 =
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
-vi.mock('../../../pdf/domains/tafFordelt/tafKravGrafChart', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('../../../pdf/domains/tafFordelt/tafKravGrafChart')>();
+vi.mock('../../../document/generators/tafFordelt/tafKravGrafChart', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../document/generators/tafFordelt/tafKravGrafChart')>();
   return { ...actual, renderTafKravGrafChartPng: () => PNG_1X1 };
 });
 
@@ -26,10 +26,10 @@ const FAKE_DOCUMENT = {
 
 describe('tafKravGraf → Word-indhold', () => {
   it('indlejrer grafen som billede og sætter dokumenttitlen i .docx', async () => {
-    const { generateTafKravGrafPdf } = await import('../../../pdf/domains/tafFordelt/tafKravGrafPdf');
+    const { generateTafKravGrafDocument } = await import('../../../document/generators/tafFordelt/tafKravGrafDocument');
 
     const { filename, zip } = await renderWordDocument(() => {
-      generateTafKravGrafPdf({ document: FAKE_DOCUMENT, visBrevhoved: false });
+      generateTafKravGrafDocument({ document: FAKE_DOCUMENT, visBrevhoved: false });
     });
 
     expect(filename).toMatch(/\.docx$/);

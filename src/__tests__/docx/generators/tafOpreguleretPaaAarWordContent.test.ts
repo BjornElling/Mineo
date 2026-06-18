@@ -2,8 +2,8 @@
 import type { TafPerYearResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearDerived';
 import type { TafPerYearOpreguleretResult } from '../../../domain/erstatningsopgoerelse/engines/tafPerYearOpreguleretDerived';
 import type { MoneyOre } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
-import type { TafPerYearOpreguleretPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretPdfDocument';
-import { generateTafOpreguleretPaaAarPdf } from '../../../pdf/domains/tafFordelt/tafOpreguleretPaaAarPdf';
+import type { TafPerYearOpreguleretDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearOpreguleretDocument';
+import { generateTafOpreguleretPaaAarDocument } from '../../../document/generators/tafFordelt/tafOpreguleretPaaAarDocument';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -77,7 +77,7 @@ const FAKE_OPREGULERET: TafPerYearOpreguleretResult = {
   sumOpreguleretOre: 77812500 as MoneyOre,
 };
 
-const FAKE_DOCUMENT: TafPerYearOpreguleretPdfDocument = {
+const FAKE_DOCUMENT: TafPerYearOpreguleretDocument = {
   model: FAKE_MODEL as never,
   presentation: FAKE_PRESENTATION,
   opreguleret: FAKE_OPREGULERET,
@@ -86,7 +86,7 @@ const FAKE_DOCUMENT: TafPerYearOpreguleretPdfDocument = {
 describe('tafOpreguleretPaaAar → Word-indhold', () => {
   it('skriver opregulerings-indhold og samlet total til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateTafOpreguleretPaaAarPdf({ document: FAKE_DOCUMENT });
+      generateTafOpreguleretPaaAarDocument({ document: FAKE_DOCUMENT });
     });
 
     const text = xmlToPlainText(documentXml);

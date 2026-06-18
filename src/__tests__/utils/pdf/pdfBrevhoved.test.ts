@@ -1,6 +1,6 @@
 /// <reference types="vitest/globals" />
 
-import { getVisBrevhoved } from '../../../pdf/shared/pdfBrevhoved';
+import { getVisBrevhoved } from '../../../document/layout/documentBrevhoved';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../../settings/appSettingsSchema';
 
 describe('getVisBrevhoved', () => {

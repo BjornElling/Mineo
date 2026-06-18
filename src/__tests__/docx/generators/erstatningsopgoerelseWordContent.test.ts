@@ -2,10 +2,10 @@
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { eoSnapshotToEoPdfDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument';
+import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
-import { generateErstatningsopgoerelsePdf } from '../../../pdf/domains/eo/erstatningsopgoerelsePdf';
+import { generateErstatningsopgoerelseDocument } from '../../../document/generators/eo/erstatningsopgoerelseDocument';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -22,7 +22,7 @@ const selected = {
 
 const buildProjectedDocument = (stamdata: StamdataValues, eo: ErstatningsopgoerelseValues): EoModel => {
   const snapshot = computeEoSnapshot({ revision: 'docx-eo-test', stamdataValues: stamdata, eoValues: eo });
-  const projection = eoSnapshotToEoPdfDocument(snapshot);
+  const projection = eoSnapshotToEoDocument(snapshot);
   if (projection.kind === 'blocked') {
     throw new Error(projection.message);
   }
@@ -47,7 +47,7 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     stamdata.skadelidte = 'Kim Thinggaard Plehn Larsen';
 
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateErstatningsopgoerelsePdf(stamdata, eo, selected, {
+      generateErstatningsopgoerelseDocument(stamdata, eo, selected, {
         visUdkastStempel: false,
         document: buildProjectedDocument(stamdata, eo),
       });
@@ -64,7 +64,7 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     const eo = baseEo();
 
     const { filename, zip } = await renderWordDocument(() => {
-      generateErstatningsopgoerelsePdf(stamdata, eo, selected, {
+      generateErstatningsopgoerelseDocument(stamdata, eo, selected, {
         visUdkastStempel: true,
         document: buildProjectedDocument(stamdata, eo),
       });
@@ -82,7 +82,7 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     const eo = baseEo();
 
     const { filename, zip } = await renderWordDocument(() => {
-      generateErstatningsopgoerelsePdf(stamdata, eo, selected, {
+      generateErstatningsopgoerelseDocument(stamdata, eo, selected, {
         visUdkastStempel: false,
         document: buildProjectedDocument(stamdata, eo),
       });

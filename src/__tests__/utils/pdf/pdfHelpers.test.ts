@@ -4,10 +4,12 @@ import {
   ensurePdfPageSpace,
   addFooter,
   clearFooterImageCacheForTests,
+} from '../../../pdf/pdfRenderHelpers';
+import {
   formatAmount,
   formatPercent,
-} from '../../../pdf/shared/pdfHelpers';
-import { MARGINS } from '../../../pdf/infrastructure/pdfConfig';
+} from '../../../document/layout/documentLayoutHelpers';
+import { MARGINS } from '../../../document/layout/pdfConfig';
 import { createMockPdfDocumentAdapter } from './mockPdfDocumentAdapter';
 
 /**

@@ -61,7 +61,7 @@ import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../
 import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
-import { downloadKrlDokument, downloadReguleringDokument, type ReguleringPdfInput } from '../../../pdf/infrastructure/pdfService';
+import { downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../document/service/documentService';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -1079,7 +1079,7 @@ const LoenindkomstTab = React.memo(({
   }, [scrollTargetId, loenindkomstAnsaettelsesforhold]);
 
   const handleDownloadReguleringPdf = React.useCallback(
-    async (input: ReguleringPdfInput) => {
+    async (input: ReguleringDocumentInput) => {
       await downloadReguleringDokument({
         input,
         settings,

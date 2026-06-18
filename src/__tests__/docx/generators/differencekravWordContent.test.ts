@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import { generateDifferencekravPdf } from '../../../pdf/domains/differencekrav/differencekravPdf';
+import { generateDifferencekravDocument } from '../../../document/generators/differencekrav/differencekravDocument';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -10,7 +10,7 @@ import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 describe('differencekrav → Word-indhold', () => {
   it('skriver titel og midlertidig-afgørelse-indhold til .docx', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
-      generateDifferencekravPdf({
+      generateDifferencekravDocument({
         computation: {
           beregningsdato: toISODateString('2026-03-17'),
           skadedato: toISODateString('2011-06-16'),

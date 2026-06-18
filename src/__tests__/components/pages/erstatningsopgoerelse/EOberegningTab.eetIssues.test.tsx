@@ -43,22 +43,22 @@ const { downloadErstatningsopgoerelsePdfMock, downloadTafFordeltPaaAarPdfMock } 
   downloadTafFordeltPaaAarPdfMock: vi.fn(async () => ({ success: true as const })),
 }));
 
-vi.mock('../../../../pdf/infrastructure/pdfService', () => ({
+vi.mock('../../../../document/service/documentService', () => ({
   downloadErstatningsopgoerelseDokument: downloadErstatningsopgoerelsePdfMock,
   downloadTafFordeltPaaAarDokument: downloadTafFordeltPaaAarPdfMock,
 }));
 
-const { eoSnapshotToEoPdfDocumentMock, eoSnapshotToTafPerYearPdfDocumentMock } = vi.hoisted(() => ({
-  eoSnapshotToEoPdfDocumentMock: vi.fn(),
-  eoSnapshotToTafPerYearPdfDocumentMock: vi.fn(),
+const { eoSnapshotToEoDocumentMock, eoSnapshotToTafPerYearDocumentMock } = vi.hoisted(() => ({
+  eoSnapshotToEoDocumentMock: vi.fn(),
+  eoSnapshotToTafPerYearDocumentMock: vi.fn(),
 }));
 
-vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoPdfDocument', () => ({
-  eoSnapshotToEoPdfDocument: eoSnapshotToEoPdfDocumentMock,
+vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument', () => ({
+  eoSnapshotToEoDocument: eoSnapshotToEoDocumentMock,
 }));
 
-vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearPdfDocument', () => ({
-  eoSnapshotToTafPerYearPdfDocument: eoSnapshotToTafPerYearPdfDocumentMock,
+vi.mock('../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafPerYearDocument', () => ({
+  eoSnapshotToTafPerYearDocument: eoSnapshotToTafPerYearDocumentMock,
 }));
 
 const renderTab = (params: Readonly<{
@@ -120,10 +120,10 @@ describe('EOberegningTab EET-issues', () => {
     navigateMock.mockReset();
     downloadErstatningsopgoerelsePdfMock.mockClear();
     downloadTafFordeltPaaAarPdfMock.mockClear();
-    eoSnapshotToEoPdfDocumentMock.mockReset();
-    eoSnapshotToTafPerYearPdfDocumentMock.mockReset();
-    eoSnapshotToEoPdfDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
-    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
+    eoSnapshotToEoDocumentMock.mockReset();
+    eoSnapshotToTafPerYearDocumentMock.mockReset();
+    eoSnapshotToEoDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
+    eoSnapshotToTafPerYearDocumentMock.mockReturnValue({ kind: 'blocked', message: '', invariants: [] });
   });
 
   it('viser EET-fejl fra snapshot-invarianter når togglen er aktiv', () => {
@@ -158,8 +158,8 @@ describe('EOberegningTab EET-issues', () => {
   });
 
   it('blokerer download af EO- og TAF-PDF når der er en EET-fejl, selv hvis PDF-projektionerne er ok', async () => {
-    eoSnapshotToEoPdfDocumentMock.mockReturnValue({ kind: 'ok', document: {} as never });
-    eoSnapshotToTafPerYearPdfDocumentMock.mockReturnValue({ kind: 'ok', document: {} as never });
+    eoSnapshotToEoDocumentMock.mockReturnValue({ kind: 'ok', document: {} as never });
+    eoSnapshotToTafPerYearDocumentMock.mockReturnValue({ kind: 'ok', document: {} as never });
 
     renderTab({ invariants: [makeEetInvariant('error')] });
 

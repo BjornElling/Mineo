@@ -1,9 +1,9 @@
-import { generateRentePdf } from '../../../pdf/domains/renteberegning/rentePdf';
+import { generateRenteDocument } from '../../../document/generators/renteberegning/renteDocument';
 
-describe('generateRentePdf', () => {
+describe('generateRenteDocument', () => {
   it('kaster når perioder mangler', () => {
     expect(() => {
-      generateRentePdf(1000, '01-01-2024', '31-01-2024', []);
+      generateRenteDocument(1000, '01-01-2024', '31-01-2024', []);
     }).toThrow('Ingen perioder fundet for renteberegning');
   });
 });

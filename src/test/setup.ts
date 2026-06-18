@@ -10,6 +10,7 @@ import * as matchers from '@testing-library/jest-dom/matchers';
 import { cleanup, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createRequire } from 'node:module';
+import { setFallbackDocumentWriterFactory } from '../document/documentGenerationContext';
 
 // Udvid den globale expect med jest-dom matchers
 // Typesafe cast af globalThis.expect
@@ -320,5 +321,9 @@ mutableUserEvent.setup = ((...args: Parameters<typeof originalUserEventSetup>) =
  */
 (globalThis as { afterEach?: (fn: () => void) => void }).afterEach?.(() => {
   (globalThis as { vi?: { useRealTimers: () => void } }).vi?.useRealTimers();
+  // Nulstil writer-fallbacken mellem tests, så en fil der har registreret PDF-kanalens
+  // fabrik (mod sin egen jsPDF-mock) ikke lækker en stale fabrik ind i en senere fil med
+  // en anden mock. Hver generator-direkte test registrerer selv fallbacken i beforeAll.
+  setFallbackDocumentWriterFactory(null);
   cleanup();
 });

@@ -1,5 +1,5 @@
-import { writeRentePdfContent, generateRentePdf } from '../../../pdf/domains/renteberegning/rentePdf';
-import { createStandardPdfWriter } from '../../../pdf/infrastructure/pdfWriter';
+import { writeRenteDocumentContent, generateRenteDocument } from '../../../document/generators/renteberegning/renteDocument';
+import { createPdfChannelWriter } from '../../../pdf/infrastructure/pdfWriter';
 import type { ProcessInterestPeriod } from '../../../domain/renteberegning/procesrenteCalculator';
 import { toISODateString } from '../../../types/branded';
 
@@ -15,42 +15,42 @@ const makePeriod = (overrides?: Partial<ProcessInterestPeriod>): ProcessInterest
   ...overrides,
 });
 
-describe('writeRentePdfContent', () => {
-  it('kan kaldes to gange på samme PdfWriter uden undtagelse', () => {
-    const writer = createStandardPdfWriter();
+describe('writeRenteDocumentContent', () => {
+  it('kan kaldes to gange på samme DocumentWriter uden undtagelse', () => {
+    const writer = createPdfChannelWriter();
     const periods = [makePeriod()];
     const startDate = new Date(toISODateString('2024-01-01'));
     const endDate = new Date(toISODateString('2024-06-30'));
 
     expect(() => {
-      writeRentePdfContent(writer, 1000, startDate, endDate, periods, {});
+      writeRenteDocumentContent(writer, 1000, startDate, endDate, periods, {});
       writer.addPage();
-      writeRentePdfContent(writer, 2000, startDate, endDate, periods, {});
+      writeRenteDocumentContent(writer, 2000, startDate, endDate, periods, {});
     }).not.toThrow();
   });
 
   it('kalder ikke addFooter — det er kalderens ansvar', () => {
-    const writer = createStandardPdfWriter();
+    const writer = createPdfChannelWriter();
     const saveSpy = vi.spyOn(writer, 'save');
     const addFooterSpy = vi.spyOn(writer, 'addFooter');
 
-    writeRentePdfContent(writer, 1000, new Date(toISODateString('2024-01-01')), new Date(toISODateString('2024-06-30')), [makePeriod()], {});
+    writeRenteDocumentContent(writer, 1000, new Date(toISODateString('2024-01-01')), new Date(toISODateString('2024-06-30')), [makePeriod()], {});
 
     expect(saveSpy).not.toHaveBeenCalled();
     expect(addFooterSpy).not.toHaveBeenCalled();
   });
 });
 
-describe('generateRentePdf', () => {
+describe('generateRenteDocument', () => {
   it('kaster når perioder mangler', () => {
     expect(() => {
-      generateRentePdf(1000, '01-01-2024', '31-01-2024', []);
+      generateRenteDocument(1000, '01-01-2024', '31-01-2024', []);
     }).toThrow('Ingen perioder fundet for renteberegning');
   });
 
   it('kaster ved ugyldige datoer', () => {
     expect(() => {
-      generateRentePdf(1000, 'ikke-en-dato', '31-01-2024', [makePeriod()]);
+      generateRenteDocument(1000, 'ikke-en-dato', '31-01-2024', [makePeriod()]);
     }).toThrow('Ugyldige datoer for renteberegning');
   });
 });

@@ -1,7 +1,7 @@
 /// <reference types="vitest/globals" />
 
 import { createDate } from '../../../utils/dateUtils';
-import { buildSHDageTableRows } from '../../../pdf/domains/aarsloen/shDagePdf';
+import { buildSHDageTableRows } from '../../../document/generators/aarsloen/shDageDocument';
 
 describe('buildSHDageTableRows', () => {
   it('placerer totalen i SH-dag-kolonnen', () => {

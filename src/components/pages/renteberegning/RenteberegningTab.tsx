@@ -18,7 +18,7 @@ import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvent
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import { dateRanges_renteberegning } from '../../../config/dateRanges';
 import SpecifikationDownloadBox from './SpecifikationDownloadBox';
-import type { RenteOversigtRow } from '../../../pdf/domains/renteberegning/renteOversigtPdf';
+import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
 import type { DocumentDownloadFormat } from '../../../document/documentFormat';
 
 interface TechnicalAssumptionsListProps {
