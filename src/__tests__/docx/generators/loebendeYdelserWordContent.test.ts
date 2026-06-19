@@ -1,5 +1,6 @@
 /// <reference types="vitest/globals" />
 import { generateLoebendeYdelserDocument } from '../../../document/generators/loebendeYdelser/loebendeYdelserDocument';
+import type { EetLoebendeComputation } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -21,7 +22,7 @@ describe('loebendeYdelser → Word-indhold', () => {
     amBidragPct: 8,
     reguleringFoer2024Pct: 0,
     afgoerelser: [],
-  } as never;
+  } satisfies EetLoebendeComputation;
 
   it('skriver titel til .docx (basis-sti uden udvidet specifikation)', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
@@ -41,5 +42,9 @@ describe('loebendeYdelser → Word-indhold', () => {
     const text = xmlToPlainText(documentXml);
     expect(text).toContain('Udvidet specifikation');
     expect(text).toContain('ASL årsløn');
+    // Konkret beløb på den udfyldte sti: den anvendte ASL-årsløn (400.000) og grundlønnen
+    // (320.000) skal nå .docx'en — ikke bare label-overskrifterne.
+    expect(text).toContain('400.000 kr.');
+    expect(text).toContain('320.000 kr.');
   });
 });

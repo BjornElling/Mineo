@@ -1,7 +1,12 @@
 /// <reference types="vitest/globals" />
 import { generateForsoergertabDocument } from '../../../document/generators/forsoergertab/forsoergertabDocument';
+import { computeForsoergertabCalculation } from '../../../domain/forsoergertab/forsoergertabCalculation';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
+import { formatKr } from '../../../utils/formatUtils';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
+
+const asAmount = (value: number): AmountValue => ({ kind: 'number', value });
 
 // Word-indholdstest for forsørgertab: kører den RIGTIGE generator gennem
 // Word-backenden med grundlæggende oplysninger (uden EAL/ASL-delberegninger)
@@ -35,5 +40,57 @@ describe('forsoergertab → Word-indhold', () => {
     expect(text).toContain('Forsørgertab');
     expect(text).toContain('Grundlæggende oplysninger');
     expect(text).toContain('Beregningsdato');
+  });
+
+  it('skriver beregnede beløb og EAL-mellemregning på en fuldt udfyldt sti', async () => {
+    // Fixturen bygges fra den RIGTIGE domæneberegning (ikke et hånd-cast objekt), så
+    // feltdrift fanges og de assertede beløb er ægte beregnede værdier. Samme input som
+    // forsoergertabCalculation.test.ts' hovedcase (giver ikke-null asl/eal-computation).
+    const calc = computeForsoergertabCalculation({
+      skadedato: toISODateString('2020-05-01'),
+      skadelidteFodselsdato: toISODateString('1980-01-01'),
+      efterladteFodselsdato: toISODateString('1973-01-01'),
+      beregningsdato: toISODateString('2026-03-19'),
+      virkningsdato: toISODateString('2025-01-01'),
+      koen: 'Kvinde',
+      tilkendtForPeriodeAar: 10,
+      aslAarsloen: asAmount(450000),
+      ealAarsloen: asAmount(450000),
+    });
+    expect(calc.result).not.toBeNull();
+    expect(calc.aslComputation).not.toBeNull();
+    expect(calc.ealComputation).not.toBeNull();
+
+    const { documentXml } = await renderWordDocument(() => {
+      generateForsoergertabDocument({
+        grundlaeggende: {
+          beregningsdato: toISODateString('2026-03-19'),
+          skadelidteFodselsdato: toISODateString('1980-01-01'),
+          efterladteFodselsdato: toISODateString('1973-01-01'),
+          koen: 'Kvinde',
+          visKoenValg: true,
+          aslAarsloen: 450000,
+          ealAarsloen: 450000,
+          virkningsdato: toISODateString('2025-01-01'),
+          tilkendtForPeriodeAar: 10,
+        },
+        result: calc.result,
+        ealComputation: calc.ealComputation,
+        aslComputation: calc.aslComputation,
+        foersoergertabEalMinSats: calc.foersoergertabEalMinSats,
+        foersoergertabForhoejtetTilMin: calc.foersoergertabForhoejtetTilMin,
+        visBrevhoved: false,
+      });
+    });
+
+    const text = xmlToPlainText(documentXml);
+    expect(text).toContain('Beregnet forsørgertab');
+    expect(text).toContain('EAL-krav');
+    // Konkrete beregnede beløb skal nå .docx'en (bundet til den faktiske beregning,
+    // ikke hardcodede tal): forsørgertabserstatningen (nettokrav) og EAL-kravet.
+    expect(text).toContain(formatKr(calc.result!.nettokrav));
+    expect(text).toContain(formatKr(calc.result!.ealKrav));
+    // EAL-mellemregningen (reguleret årsløn x faktor x 30 %) skal være til stede.
+    expect(text).toContain(`x ${calc.ealComputation!.kapitaliseringsfaktor} x 30 %`);
   });
 });

@@ -15,17 +15,32 @@ describe('eoFileDataSchema', () => {
     expect(result.success).toBe(true);
   });
 
-  it('null → success (nullToUndefinedDeep konverterer)', () => {
+  it('null → fejler (nullToUndefinedDeep gør null til undefined, og objekt-schemaet kræver et objekt)', () => {
+    // `nullToUndefinedDeep(null)` returnerer `undefined`; det indre `z.object(...).strict()`
+    // er ikke optional, så `undefined` afvises. Tidligere asserterede testen kun at resultatet
+    // var en boolean (altid sandt) — en false-green der ikke fangede nogen adfærd.
     const result = eoFileDataSchema.safeParse(null);
-    // null preprocesses til tomt objekt via nullToUndefinedDeep
-    // Faktisk: null er ikke et objekt → schema fejl
-    // Verificer bare at det ikke kaster
-    expect(typeof result.success).toBe('boolean');
+    expect(result.success).toBe(false);
   });
 
   it('ukendt sektion → fejler (strict schema)', () => {
     const result = eoFileDataSchema.safeParse({ ukendt_sektion: {} });
     expect(result.success).toBe(false);
+  });
+
+  it('afledt/ukendt felt INDE i en sektion → fejler (derived-not-persisted, fail-closed)', () => {
+    // Kontrakt: en `.eo`-fil må kun indeholde schema-defineret brugerinput — aldrig afledte
+    // værdier (genberegnes efter load). Save-schemaet er strict også PR. SEKTION, så et felt
+    // der ligner et afledt resultat (her `derivedTotalOre`) afvises med `unrecognized_keys`
+    // frem for at blive gemt. Det er den strukturelle garanti mod stille persistering af
+    // afledt state, hvis et sådant felt nogensinde skulle smutte ind i committed state.
+    const result = eoFileDataSchema.safeParse({
+      stamdata: { journalnr: 'J-1', derivedTotalOre: 999 },
+    });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.code === 'unrecognized_keys')).toBe(true);
+    }
   });
 
   it('null-værdier i felter konverteres til undefined via preprocessor', () => {

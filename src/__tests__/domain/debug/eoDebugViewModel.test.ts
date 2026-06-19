@@ -330,11 +330,13 @@ describe('eoDebugViewModel', () => {
       const weekendCell = viewModel.getCell(0, 'base:weekend');
       const hverdagCell = viewModel.getCell(2, 'base:weekend');
 
+      expect(typeof weekendCell).toBe('object');
       if (typeof weekendCell === 'object') {
         expect(weekendCell.rawValue).toBe(true);
         expect(weekendCell.displayValue).toBe('Ja');
       }
 
+      expect(typeof hverdagCell).toBe('object');
       if (typeof hverdagCell === 'object') {
         expect(hverdagCell.rawValue).toBe(false);
         expect(hverdagCell.displayValue).toBe('-');
@@ -364,6 +366,7 @@ describe('eoDebugViewModel', () => {
 
       const shCell = viewModel.getCell(0, 'base:sh_day');
 
+      expect(typeof shCell).toBe('object');
       if (typeof shCell === 'object') {
         expect(shCell.rawValue).toBe(true);
         expect(shCell.displayValue).toBe('Ja');
@@ -394,10 +397,12 @@ describe('eoDebugViewModel', () => {
       const helligdagCell = viewModel.getCell(0, 'base:arbejdsdag');
       const arbejdsdagCell = viewModel.getCell(1, 'base:arbejdsdag');
 
+      expect(typeof helligdagCell).toBe('object');
       if (typeof helligdagCell === 'object') {
         expect(helligdagCell.rawValue).toBe(false);
       }
 
+      expect(typeof arbejdsdagCell).toBe('object');
       if (typeof arbejdsdagCell === 'object') {
         expect(arbejdsdagCell.rawValue).toBe(true);
       }
@@ -434,11 +439,13 @@ describe('eoDebugViewModel', () => {
       const ingenCell = viewModel.getCell(0, 'base:ss_day');
       const fuldCell = viewModel.getCell(1, 'base:ss_day');
 
+      expect(typeof ingenCell).toBe('object');
       if (typeof ingenCell === 'object') {
         expect(ingenCell.rawValue).toBe('Ingen');
         expect(ingenCell.displayValue).toBe('Ingen');
       }
 
+      expect(typeof fuldCell).toBe('object');
       if (typeof fuldCell === 'object') {
         expect(fuldCell.rawValue).toBe('Fuld');
         expect(fuldCell.displayValue).toBe('Fuld');
@@ -476,11 +483,13 @@ describe('eoDebugViewModel', () => {
       const inactivCell = viewModel.getCell(0, 'taf:taf-1');
       const activCell = viewModel.getCell(1, 'taf:taf-1');
 
+      expect(typeof inactivCell).toBe('object');
       if (typeof inactivCell === 'object') {
         expect(inactivCell.rawValue).toBe(false);
         expect(inactivCell.displayValue).toBe('-');
       }
 
+      expect(typeof activCell).toBe('object');
       if (typeof activCell === 'object') {
         expect(activCell.rawValue).toBe(true);
         expect(activCell.displayValue).toBe('Ja');

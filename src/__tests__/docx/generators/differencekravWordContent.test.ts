@@ -1,5 +1,6 @@
 /// <reference types="vitest/globals" />
 import { generateDifferencekravDocument } from '../../../document/generators/differencekrav/differencekravDocument';
+import type { EetDifferencekravComputation } from '../../../domain/erhvervsevnetab/eetDifferencekravCalculation';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -15,30 +16,35 @@ describe('differencekrav → Word-indhold', () => {
           beregningsdato: toISODateString('2026-03-17'),
           skadedato: toISODateString('2011-06-16'),
           dagFoerBeregningsdato: toISODateString('2026-03-16'),
+          fradragGaelderForFoer2011: false,
           ealKrav: 100000,
           ealEetPct: 15,
           fradragLoebendeYdelser: 0,
           fradragKapitaliseretEet: 0,
           proformaKapitalisering: null,
-          proformaBeloeb: 0,
+          resterendeLoebendeYdelser: null,
+          merErstatningPensionsalder: null,
           differencekravFoerForlig: 100000,
           forligFactor: null,
           forligLabel: null,
+          forligDato: null,
           differencekrav: 100000,
           afgoerelser: [{
+            rowId: 'afg-1',
             afgoerelsesdato: toISODateString('2020-01-01'),
             virkningsdato: toISODateString('2020-02-01'),
             afgoerelseType: 'Midlertidig',
             eetPct: 15,
+            fradragesTil: toISODateString('2020-02-01'),
             beloeb: 0,
             fradragForetages: false,
-            fradragesTil: null,
+            tilbagevirkendeKraftFradrag: null,
           }],
           kapitaliseringerAfgoerelser: [],
           loebendeComputation: null,
           kapComputation: null,
           ealComputation: null,
-        } as never,
+        } satisfies EetDifferencekravComputation,
         bilagSelection: {
           loebendeYdelser: false,
           kapitalisering: false,
@@ -55,5 +61,7 @@ describe('differencekrav → Word-indhold', () => {
     expect(text).toContain('Differencekrav (EET)');
     expect(text).toContain('Midlertidig afgørelse');
     expect(text).toContain('Skaden er indtrådt den 16. juni 2011 eller senere.');
+    // Konkret beløb på en udfyldt sti: det beregnede differencekrav skal nå .docx'en.
+    expect(text).toContain('100.000 kr.');
   });
 });

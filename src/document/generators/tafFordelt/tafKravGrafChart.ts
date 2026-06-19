@@ -740,3 +740,14 @@ export const renderTafKravGrafChartPng = (
 
   return canvas.toDataURL('image/png');
 };
+
+// Test-only eksport af de rene tegne-/sampling-helpers. De er modul-private i produktion
+// (kaldes kun internt af `renderTafKravGrafChartPng`), men kan ikke nås via PNG-rendereren
+// i test, fordi jsdom ikke har et canvas-API. Da de er rene og deterministiske, eksponeres
+// de smalt her til direkte unit-test (jf. review 13.4 / udskudt fund fra 10.6).
+export const __tafKravGrafChartTestables = {
+  niceCeil,
+  buildNiceMoneyTicks,
+  smoothWithinActiveRuns,
+  buildWindowLayout,
+};

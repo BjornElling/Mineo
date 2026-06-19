@@ -1,5 +1,6 @@
 /// <reference types="vitest/globals" />
 import { generateEfterEalDocument } from '../../../document/generators/eet/eetEfterEalDocument';
+import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
 
@@ -33,7 +34,7 @@ describe('efterEal → Word-indhold', () => {
           aldersreduktionPct: 5,
           aldersreduktionBeloeb: 112500,
           ealKrav: 2137500,
-        } as never,
+        } satisfies EetEalComputation,
         visBrevhoved: false,
       });
     });
@@ -43,5 +44,12 @@ describe('efterEal → Word-indhold', () => {
     expect(text).toContain('EET efter EAL');
     expect(text).toContain('Erhvervsevnetab');
     expect(text).toContain('Beregnet EAL-krav');
+    // Konkrete beløb på en udfyldt sti: den opregulerede årsløn, mellemregningen
+    // (reguleret årsløn x 10 x EET-pct.) og det beregnede erhvervsevnetab skal nå .docx'en.
+    // Fanger skjult tab af tal-tunge linjer i Word (ikke bare overskrifter/labels).
+    expect(text).toContain('450.000 kr.'); // reguleretAarsloen
+    expect(text).toContain('450.000 kr. x 10 x'); // mellemregningslinje
+    expect(text).toContain('2.250.000 kr.'); // eetBeregnet
+    expect(text).toContain('2.137.500 kr.'); // ealKrav (slutbeløb)
   });
 });

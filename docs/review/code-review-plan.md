@@ -23,7 +23,7 @@
 
 ## Status og fremdrift
 
-Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **Næste ikke-startede punkt: 13.1.**
+Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **Næste ikke-startede punkt: 14.1.**
 
 **Færdige grupper** (fund rettet + tests grønne; detaljer i de enkelte `docs/review/[punkt]-*.md`):
 
@@ -38,7 +38,9 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 - ✅ **Gruppe 12 — App-shell & multi-app** (12.1–12.2, 2026-06-19). Verifikationspunkt: app-shell-laget overholder alle 7 normative regler i `app-shell-contract.md` (kontrakt re-verificeret mod kode, dato opdateret). Påstået kritisk SW-reload-fejl undersøgt og afvist — adfærden er kontraktens bevidste konservative valg (styret af `controllerExistedAtLoad`, ikke `{once:true}`); tilføjet forklarende kommentar + regressionstest mod fremtidig fejllæsning. Begge udskudte 12.2-fund lukket: namespace-isolation (mineo_* vs. minprocesrente_*) bekræftet korrekt + testdækket (ingen ændring); standalone-`@media`-undtagelsen nu eksplicit begrundet i callsite-kommentar + `app-shell-contract.md` §5.3 + præciserende parentes i `AGENTS.md`. **Nyt udskudt fund (14.2):** pass-through `setDocumentFooterBrand`.
 - ✅ **Gruppe 8 — Pages** (8.1–8.6, 2026-06-16). LoginPage flyttet til `src/auth/`; Satser nedtoner satser ved ugyldigt år (brugergodkendt); to debug-indstillinger (test-fane + font-style-farvemarkering) DEV-gated UI+adfærd (brugergodkendt). Delt forligs-validering (`useForligAnsvarsgradValidation` + `forligAnsvarsgradRules`) håndhæves nu ens fra både Erstatningsopgørelse og Erhvervsevnetab→Differencekrav (brugergodkendt korrekthedsfix). Insert-today `fieldPath`-bug rettet; kanonisk `useShakeFlag` (to inline timer-leaks fjernet); kanonisk `formatKr`/`dateRanges_varigemen`; MenberegningTab flyttet til central fejl-model; `SKAERING_2015_03_01`/`SKAERING_2024_01_01` konsolideret; dødkode fjernet (`EODebugLoenSections`+`eoDebugLoenViewModel`, `ComputationErrorAlert`, dead `isUserFeedbackRef`); Overlay auto-close timer-fix. **De to største komponenter dekomponeret:** `LoenindkomstTab` 3079→2204 og `EOOplysningerTab` 2748→2017 linjer (ren strukturel, adfærdsbevarende; nye `loenindkomst/`+`eoOplysninger/`-mapper).
 
-**Test-baseline:** 5020 (2026-06-10) → 5172/429 (g.5) → 5185/430 (g.6) → 5310/445 (g.7) → 5318/446 (g.8) → 5328/449 (g.9) → 5354/450 (2026-06-17, g.10). G.11 (11.1–11.3) tilføjede ingen nye tests (kun en adfærdsbevarende type-konsolidering + dokumentation), så baseline var uændret. G.12 (12.1–12.2) tilføjede én regressionstest (SW-reload-disciplin) → **5355 tests / 450 filer grøn**. Hvert punkt skal efterlade suiten mindst lige så grøn. Kendt (ikke fejl): `act(...)`-warning i `TableDropdown.gridCore.test.tsx`. (Den pre-eksisterende `MainLayout.pwaConcurrency.test.tsx`-flake blev root-caused og rettet i 9.3.)
+- ✅ **Gruppe 13 — Testkvalitet** (13.1–13.4, 2026-06-19). Verifikation af de foregående punkters testkvalitet + lukning af alle udskudte gruppe-13-fund. **13.1:** opregulerings-delegations-coverage gennemgået for alle seks callsites (solid); forsørgertabs `opreguleringsfaktor` låst mod motorens faktiske output (delegations-identitet). **13.2:** canonical-outputtets fail-closed throw-path låst (drift-guard på `.strict()`/`.int()`); JSON-round-trip-determinisme for canonical output; ni falsk-grønne `if (typeof cell === 'object')`-guards i debug-viewmodel-testen rettet; Skjul-fjernelse (H1) + totals-clamp (H2) verificeret allerede dækket på dokument-/pdfModel-laget. **13.3:** derived-not-persisted asserteret (afledt felt i sektion afvises fail-closed); forward-tolerance "gammel fil mangler nyere felt → ingen advarsel"; falsk-grøn `null → success`-test rettet; streng round-trip + atomisk apply/rollback verificeret dækket. **13.4 (fire udskudte fund lukket):** fem computation-model-fixtures TypeScript-låst med `satisfies` (afslørede + rettede reel drift i differencekrav-fixturen); konkrete beløb + mellemregninger i fem generatorers Word-tests; multi-sektions-EO-Word-fixture (Lønindkomst + SH-dage); `tafKravGrafChart`-helpers dækket (15 tests via smal test-only-eksport). **Residualer til 14.2:** resterende partial-fixture `as never`-casts (lav drift-risiko); fuldt afstemmende Word-multi-sektions-fixture for offentligeYdelser/regulering.
+
+**Test-baseline:** 5020 (2026-06-10) → 5172/429 (g.5) → 5185/430 (g.6) → 5310/445 (g.7) → 5318/446 (g.8) → 5328/449 (g.9) → 5354/450 (2026-06-17, g.10). G.11 (11.1–11.3) tilføjede ingen nye tests (kun en adfærdsbevarende type-konsolidering + dokumentation), så baseline var uændret. G.12 (12.1–12.2) tilføjede én regressionstest (SW-reload-disciplin) → 5355 tests / 450 filer grøn. G.13 (13.1–13.4) tilføjede 24 nye tests + 1 ny testfil (`tafKravGrafChart.helpers.test.ts`) → **5384 tests / 452 filer grøn** (bekræftet ved fuld suite). Hvert punkt skal efterlade suiten mindst lige så grøn. Kendt (ikke fejl): `act(...)`-warning i `TableDropdown.gridCore.test.tsx`. (Den pre-eksisterende `MainLayout.pwaConcurrency.test.tsx`-flake blev root-caused og rettet i 9.3.)
 
 ### Statustabel
 
@@ -85,11 +87,11 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 | **12 — App-shell & multi-app** | | ✅ |
 | 12.1 | App-entry & bootstrap: main.tsx, App.tsx, bootstrapClientApp, serviceWorkerBootstrap, capability-gate, UnsupportedDevicePage | ✅ (fil `12.1-12.2-app-shell-multi-app`) |
 | 12.2 | Standalone MinProcesrente: MinProcesrenteApp, minprocesrenteMain, StandaloneErrorBoundary, namespace-isolation | ✅ (fil `12.1-12.2-app-shell-multi-app`) |
-| **13 — Testkvalitet** | | |
-| 13.1 | Domæneberegninger (årsløn, EET, forsørgertab, varige mén, renteberegning, opreguleringsmotorer) | ⬜ |
-| 13.2 | EO-motor, EO-snapshot, EO-debug | ⬜ |
-| 13.3 | Persistence, schema-evolution, fil-round-trip, invalidDrafts-recovery | ⬜ |
-| 13.4 | Quality-/contract-guard-tests, dokument-output (PDF+Word-paritet), grid/keyboard, integration | ⬜ |
+| **13 — Testkvalitet** | | ✅ |
+| 13.1 | Domæneberegninger (årsløn, EET, forsørgertab, varige mén, renteberegning, opreguleringsmotorer) | ✅ (fil `13.1-testkvalitet-domaeneberegninger`) |
+| 13.2 | EO-motor, EO-snapshot, EO-debug | ✅ (fil `13.2-testkvalitet-eo-motor-snapshot-debug`) |
+| 13.3 | Persistence, schema-evolution, fil-round-trip, invalidDrafts-recovery | ✅ (fil `13.3-testkvalitet-persistence-schema-roundtrip`) |
+| 13.4 | Quality-/contract-guard-tests, dokument-output (PDF+Word-paritet), grid/keyboard, integration | ✅ (fil `13.4-testkvalitet-quality-dokument-output-grid`) |
 | **14 — Tværgående helhed** | | |
 | 14.1 | Kontrakt-alignment: `src/contracts/` vs. implementering + topology-coverage-matrix | ⬜ |
 | 14.2 | Tværgående: duplikering, inkonsistente mønstre, dødkode, fil-placering | ⬜ |
@@ -110,15 +112,13 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 
 Fund fra færdige grupper 1–7 som bevidst er parkeret til et senere punkt. **Læs den relevante blok ved start af hvert punkt nedenfor**, så de ikke glemmes. Kilde = review-doc fundet stammer fra.
 
-### Gruppe 13 (testkvalitet)
-- **13.1** — Genbesøg equivalens-/delegations-tests for opreguleringsmotorerne (4.0) — de afhængige motorer (4.2/4.3/4.4/4.5/4.9/4.10) hviler på det lås-testede fundament. *(Kilde 4.0)*
-- **13.4** — Word-paritetstestenes `as never`-fixtures bør bygges fra de rigtige snapshot/projektion-helpers (eller `satisfies`-typed builders), så feltdrift fanges af TypeScript. *(Kilde 10.7)*
-- **13.4** — Styrk indholds-assertions i tynde Word-paritetstests (forsørgertab/EET-efterEAL/kapitalisering/løbende) med konkrete beløb + mellemregningslinje på en udfyldt sti. *(Kilde 10.7)*
-- **13.4** — Supplerende EO-paritetsfixture med flere sektioner slået til (`loenindkomst`/`offentligeYdelser`/`shDage`/`regulering`), så de Word-dækkes via generator-paritet. *(Kilde 10.7)*
-- **13.4** — `tafKravGrafChart.ts` rene tegne-/sampling-helpers (`niceCeil`, `buildNiceMoneyTicks`, `smoothWithinActiveRuns`, `buildWindowLayout`) er udækkede (modul-private; kræver afvejning ift. test-only-eksport). *(Kilde 10.6)*
-- **13.x** — Import-script `scripts/import-offentlig-loen.mjs` uden unit-tests (accepteret gap). *(Kilde 6.3)*
+### Gruppe 13 (testkvalitet) — ✅ lukket (2026-06-19)
+Alle gruppe-13-fund er lukket i 13.1–13.4 (se de respektive review-docs). Tilbagestående accepteret gap (uændret):
+- **13.x** — Import-script `scripts/import-offentlig-loen.mjs` uden unit-tests (accepteret gap; engangs-dataimport, ikke produktions-runtime). *(Kilde 6.3)*
 
 ### Gruppe 14 (tværgående helhed)
+- **14.2** — Resterende `as never`-fixtures i Word-tests er partielle (brevhoved-stamdata, partial-branch-inputs, `FAKE_MODEL`) — ikke fulde computation-modeller, så lav drift-risiko. Kandidat til typede partial-builders (`satisfies Partial<…>`). *(Kilde 13.4)*
+- **14.2** — Fuldt afstemmende Word-multi-sektions-fixture for `offentligeYdelser`/`regulering`: kræver en EO-beregning der passerer projektionens kontrol-gate (`eoSnapshotToEoDocument` blokerer ved indkomst-uoverensstemmelse). De to sektioner er fortsat PDF/`pdfModel`-dækket. *(Kilde 13.4)*
 - **14.1** — Mulig kontrakt-konsolidering: `mineo-field-pattern.md` vs. `form-contract.md` (absorbér som sektion eller skærp snittet); `schema-evolution.md` generel skabelon vs. EO-specifik tjekliste (evt. split). *(Kilde 1.2)*
 - **14.1** — `page-component-contract.md` §6.5 (hold-mounted for draft-capable tabs) håndhæves ikke konsistent: flere fagsider (Erhvervsevnetab, Varige Mén, Renteberegning) mounter draft-capable tabs betinget. Beslut: håndhæv §6.5 ensartet ELLER opdatér kontrakten til at afspejle den faktiske commit-flush-baserede arkitektur. *(Kilde 8.5)*
 - **14.2** — Løntrin-finder-overlay findes som to side-lokale kopier (`erstatningsopgoerelse/loenindkomst/` + `eoOplysninger/`) efter 8.3-dekompositionen; kandidat til delt komponent+hook. *(Kilde 8.3)*

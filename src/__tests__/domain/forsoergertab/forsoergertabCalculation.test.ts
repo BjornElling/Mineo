@@ -1,6 +1,7 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { computeForsoergertabCalculation } from '../../../domain/forsoergertab/forsoergertabCalculation';
 import { computeForsoergertabAslYdelser } from '../../../domain/forsoergertab/forsoergertabAslYdelser';
+import { opregulerMedAslAarsloensmaksimum } from '../../../domain/satser/opreguleringsmotorer';
 import { aarsloenAslMax } from '../../../data/lovbestemteRates';
 import { round2 } from '../../../utils/roundingShortcuts';
 import { toISODateString } from '../../../types/branded';
@@ -32,6 +33,12 @@ describe('computeForsoergertabCalculation', () => {
     expect(computation.aarsloenMaxBeregningsaar).toBe(aarsloenAslMax[2026]);
     expect(computation.opreguleringsfaktor).toBe(expectedOpreguleringsfaktor);
     expect(computation.opreguleretAarligYdelse).toBe(expectedOpreguleretAarligYdelse);
+    // Delegerings-identitet: faktoren skal være tal-identisk med den fælles motors
+    // output (ikke kun den manuelt reproducerede formel). Låser at callsite og motor
+    // ikke kan drive fra hinanden — fx hvis motorens clamp/afrunding ændres.
+    expect(computation.opreguleringsfaktor).toBe(
+      opregulerMedAslAarsloensmaksimum({ kildeAar: 2020, maalAar: 2026 }).faktor
+    );
   });
 
   it('kræver køn og slår korrekt op i kønsafhængige tabeller før 1. marts 2015', () => {

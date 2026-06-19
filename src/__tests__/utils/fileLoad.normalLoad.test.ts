@@ -203,6 +203,28 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(result.preflightWarning).toBeUndefined();
   });
 
+  it('loader en gammel fil der mangler nyere schema-felter uden at blokere eller advare (forward-tolerance)', async () => {
+    // Invariant (persistence-contract §5 / AGENTS.md save/load): nye schema-felter der mangler i en
+    // ældre `.eo`-fil må ALDRIG blokere load eller udløse en preflight-advarsel. En gammel fil med kun
+    // et delvist udfyldt stamdata (resten af de nyere felter helt fraværende) skal loade rent.
+    const content = await encryptLoadContainer({
+      stamdata: {
+        journalnr: 'J-GAMMEL',
+        skadelidte: 'Gammel Sag',
+      },
+    });
+    const file = new File([content], 'gammel.eo', { type: 'application/octet-stream' });
+    selectFileMock.mockResolvedValueOnce(file);
+    readFileMock.mockResolvedValueOnce(content);
+
+    const result = await loadFromFile();
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect((result.snapshot?.stamdata as Record<string, unknown>)?.journalnr).toBe('J-GAMMEL');
+    // Ingen advarsel: manglende nyere felter er ikke en fejl eller et delvist load.
+    expect(result.preflightWarning).toBeUndefined();
+  });
+
   it('rapporterer faellesPersondata som ukendt sektion uden at migrere data', async () => {
     const content = await encryptLoadContainer({
       stamdata: {

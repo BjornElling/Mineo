@@ -1,13 +1,20 @@
 /// <reference types="vitest/globals" />
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import {
+  createDefaultLoenindkomstAnsaettelsesforhold,
+  createErstatningsopgoerelseInitialValues,
+} from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
 import type { EoModel } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
+import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { generateErstatningsopgoerelseDocument } from '../../../document/generators/eo/erstatningsopgoerelseDocument';
+import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
 import { toISODateString } from '../../../types/branded';
 import { renderWordDocument, xmlToPlainText } from './wordContentHarness';
+
+const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
 const selected = {
   opgoerelse: true,
@@ -93,5 +100,75 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     const headerXmls = await Promise.all(headerFiles.map((name) => zip.file(name)!.async('string')));
     const hasWatermark = headerXmls.some((xml) => /string="UDKAST"/.test(xml));
     expect(hasWatermark).toBe(false);
+  });
+
+  // Supplerende multi-sektions-fixture (jf. udskudt fund fra 10.7): den oprindelige EO-paritetstest
+  // kørte kun med `opgoerelse: true`, så bilag-sektionerne (Lønindkomst, SH-dage) var IKKE Word-dækket
+  // via generator-paritet. Her aktiveres de med reelt datagrundlag, så et skjult indholdstab i en
+  // bilag-sektion under Word fanges.
+  it('skriver bilag-sektionerne (Lønindkomst, SH-dage) til .docx', async () => {
+    const stamdata: StamdataValues = {
+      ...structuredClone(STAMDATA_INITIAL_VALUES),
+      skadestype: 'Arbejdsulykke',
+      skadedato: toISODateString('2024-01-01'),
+    };
+    const eo = createErstatningsopgoerelseInitialValues();
+    eo.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    // Angivet månedsløn driver TAF; indkomst-tabellen (indkomst uden skade) driver
+    // lønindkomst-bilaget. De afstemmes ikke mod hinanden, så projektionens kontrol-
+    // invariant (indkomst-uoverensstemmelse) blokerer ikke.
+    eo.beregnesUdFra = 'Angivet månedsløn';
+    eo.maanedsloenenUdgoer = asAmountValue(40000);
+    eo.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Ingen';
+    eo.vedroererPeriodeFra = toISODateString('2024-01-01');
+    eo.vedroererPeriodeTil = toISODateString('2024-01-31');
+    eo.tafBeregningsperiodeFra = toISODateString('2024-01-01');
+    eo.tafBeregningsperiodeTil = toISODateString('2024-01-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: toISODateString('2024-01-01'), til: toISODateString('2024-01-31'), loseFeriedage: undefined }];
+    eo.loenindkomstAnsaettelsesforhold = [
+      {
+        ...createDefaultLoenindkomstAnsaettelsesforhold(),
+        id: 'af-1',
+        navnPaaArbejdssted: 'AAB',
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'row-1',
+            col0_maaned: '1',
+            col1_maaned: '2024',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: undefined,
+            col1_dag: undefined,
+            col2: asAmountValue(10000),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      },
+    ];
+    const preparedEo = withSfggIngenForEmployments(eo);
+    const multiSelected = {
+      opgoerelse: true,
+      loenindkomst: true,
+      offentligeYdelser: false,
+      shDage: true,
+      regulering: false,
+      okSatser: false,
+      sygeferiegodtgoerelse: false,
+      midlertidigEet: false,
+    };
+
+    const { documentXml } = await renderWordDocument(() => {
+      generateErstatningsopgoerelseDocument(stamdata, preparedEo, multiSelected, {
+        visUdkastStempel: false,
+        document: buildProjectedDocument(stamdata, preparedEo),
+      });
+    });
+
+    const text = xmlToPlainText(documentXml);
+    expect(text).toContain('Lønindkomst');
+    expect(text).toContain('SH-dage');
   });
 });
