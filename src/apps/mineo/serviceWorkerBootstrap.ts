@@ -85,6 +85,14 @@ const registerServiceWorker = async (): Promise<void> => {
   };
 
   try {
+    // `hasTriggeredReload` ejer éngangs-garantien, og `controllerExistedAtLoad` afgør om en
+    // `controllerchange` overhovedet er en reel opdatering. `{ once: true }` er derfor kun en
+    // ekstra oprydning: i et dokument der havde en controller ved load reloader den FØRSTE
+    // controllerchange (og dokumentet erstattes), så listeneren behøver ikke leve videre. I et
+    // første-install-dokument (ingen controller ved load) blokerer `controllerExistedAtLoad`
+    // bevidst reload — også for senere aktiveringer i samme dokument — så et fjernet/forbrugt
+    // listener ændrer ikke adfærd. Opdateringen tages i brug ved næste åbning, hvor en
+    // controller findes ved load.
     navigator.serviceWorker.addEventListener('controllerchange', reloadForActivatedUpdate, { once: true });
 
     const registration = await navigator.serviceWorker.register(serviceWorkerUrl, {

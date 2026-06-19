@@ -92,6 +92,31 @@ describe('serviceWorkerBootstrap reload-disciplin', () => {
     expect(reloadSpy).not.toHaveBeenCalled();
   });
 
+  it('reloader ALDRIG i et første-install-dokument, heller ikke ved en senere controllerchange', async () => {
+    // Bevidst konservativ adfærd: et dokument der loadede uden controller (første install)
+    // auto-reloader aldrig — heller ikke hvis en ny version aktiveres senere i samme dokument.
+    // `controllerExistedAtLoad` (ikke `{once:true}`-listeneren) er den gate der styrer dette;
+    // opdateringen tages i brug ved næste åbning. Denne test værner mod, at gaten fjernes ved
+    // en fejlagtig "fix", fordi den fremstår overflødig.
+    const registration = buildRegistration();
+    const { container, fireControllerChange } = buildServiceWorkerContainer({
+      controller: null,
+      registration,
+    });
+    Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: container });
+
+    const { ensureLatestServiceWorkerBeforeRender } = await import(
+      '../../../apps/mineo/serviceWorkerBootstrap'
+    );
+    await ensureLatestServiceWorkerBeforeRender();
+
+    // Første-install-claim fyrer controllerchange, og senere aktiverer en ny version også:
+    fireControllerChange();
+    fireControllerChange();
+
+    expect(reloadSpy).not.toHaveBeenCalled();
+  });
+
   it('reloader netop én gang ved en reel opdatering (controller fandtes ved load)', async () => {
     const registration = buildRegistration();
     const existingController = { state: 'activated' } as unknown as ServiceWorker;

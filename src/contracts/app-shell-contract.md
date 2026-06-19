@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Selvstændig tværgående kontrakt for det øverste runtime-lag (app-entry, bootstrap, multi-app-isolation). Ligger *over* sidekomponent-laget: `page-component-contract.md §3.1` er underordnet denne kontrakt for alt der angår app-entry, device-gate-placering og shell-ansvar. Berører ikke beregnings-, form- eller persistence-*indhold* og overlapper derfor ikke de øvrige tværgående kontrakter — men den ejer den *namespace-isolation*, der holder to app-varianters persistence adskilt (jf. `persistence-contract.md`).
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-06-19
 
 ## 1. Scope
 
@@ -51,3 +51,5 @@ Den informative uddybning af device-gatens motivation ligger i `AGENTS.md` ("Des
 1. **Standalone har ingen diagnose-rapportering.** `StandaloneErrorBoundary` rapporterer ikke til `systemIssueReporter` (kun `console.error`). Det er en **bevidst** konsekvens af isolationskravet (regel 3): standalone-laget må ikke importere Mineos diagnoseflow. Risiko: standalone-fejl er ikke synlige i Mineos diagnostik. Re-evaluering hvis standalone-beregneren får et selvstændigt, isoleret diagnose-behov.
 
 2. **`enforceUnsupportedDeviceGate: false` for standalone.** Bevidst fravalg, fordi procesrenteberegneren skal kunne bruges på mobil/tablet (med egen mobil-scroll-håndtering). Re-evaluering hvis standalone en dag skal være desktop-only.
+
+3. **Standalone har variant-lokal `@media`-styling.** `AGENTS.md` ("Desktop-only gate") begrænser mobil/tablet-styling til `UnsupportedDevicePage.tsx`, fordi Mineo er desktop-only. Standalone MinProcesrente er en bevidst mobil-tilladt variant (jf. undtagelse 2) og har derfor `@media`-responsiv styling i sine **egne** filer: `src/components/pages/minprocesrente/MinProcesrenteCalculatorPage.tsx` (sx-lokal) og `src/apps/minprocesrente/minprocesrente.css` (kun importeret af standalone-buildet). Denne styling er variant-lokal — ikke delt/global — og rammer aldrig Mineos desktop-only-flade. Risiko: ingen for Mineo; reglen i `AGENTS.md` gælder fortsat for det desktop-only hovedbuild. Re-evaluering hvis standalone gøres desktop-only, eller hvis nogen mobil-styling flyttes til delte/globale styles.

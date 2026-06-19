@@ -105,6 +105,12 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   return (
     <Box
       sx={{
+        // BEVIDST UNDTAGELSE fra desktop-only-stylingreglen (AGENTS.md "Desktop-only gate":
+        // mobil/tablet-styling hører normalt kun til UnsupportedDevicePage.tsx). Standalone
+        // MinProcesrente er bevidst mobil-tilladt (egen entry, `enforceUnsupportedDeviceGate:
+        // false`), så denne @media-styling er variant-lokal og kun aktiv i standalone-buildet —
+        // den rammer aldrig Mineos desktop-only-flade. Jf. app-shell-contract.md §5.
+        // Re-evaluering hvis standalone en dag gøres desktop-only.
         // Kun desktop-neutrale regler her — alle mobile overrides i @media (max-width: 599px)
         '& .content-box': {
           width: '100%',

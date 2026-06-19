@@ -23,7 +23,7 @@
 
 ## Status og fremdrift
 
-Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **Næste ikke-startede punkt: 12.1.**
+Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **Næste ikke-startede punkt: 13.1.**
 
 **Færdige grupper** (fund rettet + tests grønne; detaljer i de enkelte `docs/review/[punkt]-*.md`):
 
@@ -35,9 +35,10 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 - ✅ **Gruppe 6 — Data** (2026-06-14). Fail-closed guards i year-bounds/§24-max/kapitalisering; `sygedagpengeRates.ts` konsolideret til én satstabel (sats+ATP+OP). **Åbent godkendelsespunkt lukket:** sygedagpenge tre-leds-model bekræftet.
 - ✅ **Gruppe 7 — UI-inputs & grid** (2026-06-16). Felt-identitets-hul i StyledCheckbox/EetDifferencekrav lukket; dobbelt-undo-frame rettet; grid-scroll-hop rettet; `gridUxSpec` Tab-kontrakt synket med ny navigation.
 - ✅ **Gruppe 9 — Hooks** (9.1–9.4, 2026-06-17). Fire udskudte fund lukket: revoked PWA-handle får nu handlingsanvisende dansk fejl (permission-gate + DOMException-mapping, brugergodkendt); den pre-eksisterende `pwaConcurrency`-flake root-caused (auto-retry-timer↔event-race) + rettet via delt `lastAttemptedRequestIdRef`; navigations-commit-flush bragt på linje med save/load (`prepareForCriticalDataReplacement`); manglende `historyTargetRestore`-tests skrevet. Brugergodkendt: ASL maks-validering fail-closed ved manglende sats; omregning-toggle vejledning via kanonisk celle-hint. Konvergens: `useScrollToSectionWithRetry` konsolideret onto `scrollWithRetry` (+ delt cancel); dynamisk fejl-reporter-cache lækker ikke. **Parkeret (14.2):** ubrugt `replaceValues`-export; `StyledToggleSwitch` imperativ shake.
+- ✅ **Gruppe 12 — App-shell & multi-app** (12.1–12.2, 2026-06-19). Verifikationspunkt: app-shell-laget overholder alle 7 normative regler i `app-shell-contract.md` (kontrakt re-verificeret mod kode, dato opdateret). Påstået kritisk SW-reload-fejl undersøgt og afvist — adfærden er kontraktens bevidste konservative valg (styret af `controllerExistedAtLoad`, ikke `{once:true}`); tilføjet forklarende kommentar + regressionstest mod fremtidig fejllæsning. Begge udskudte 12.2-fund lukket: namespace-isolation (mineo_* vs. minprocesrente_*) bekræftet korrekt + testdækket (ingen ændring); standalone-`@media`-undtagelsen nu eksplicit begrundet i callsite-kommentar + `app-shell-contract.md` §5.3 + præciserende parentes i `AGENTS.md`. **Nyt udskudt fund (14.2):** pass-through `setDocumentFooterBrand`.
 - ✅ **Gruppe 8 — Pages** (8.1–8.6, 2026-06-16). LoginPage flyttet til `src/auth/`; Satser nedtoner satser ved ugyldigt år (brugergodkendt); to debug-indstillinger (test-fane + font-style-farvemarkering) DEV-gated UI+adfærd (brugergodkendt). Delt forligs-validering (`useForligAnsvarsgradValidation` + `forligAnsvarsgradRules`) håndhæves nu ens fra både Erstatningsopgørelse og Erhvervsevnetab→Differencekrav (brugergodkendt korrekthedsfix). Insert-today `fieldPath`-bug rettet; kanonisk `useShakeFlag` (to inline timer-leaks fjernet); kanonisk `formatKr`/`dateRanges_varigemen`; MenberegningTab flyttet til central fejl-model; `SKAERING_2015_03_01`/`SKAERING_2024_01_01` konsolideret; dødkode fjernet (`EODebugLoenSections`+`eoDebugLoenViewModel`, `ComputationErrorAlert`, dead `isUserFeedbackRef`); Overlay auto-close timer-fix. **De to største komponenter dekomponeret:** `LoenindkomstTab` 3079→2204 og `EOOplysningerTab` 2748→2017 linjer (ren strukturel, adfærdsbevarende; nye `loenindkomst/`+`eoOplysninger/`-mapper).
 
-**Test-baseline:** 5020 (2026-06-10) → 5172/429 (g.5) → 5185/430 (g.6) → 5310/445 (g.7) → 5318/446 (g.8) → 5328/449 (g.9) → **5354 tests / 450 filer grøn** (2026-06-17, g.10). G.11 (11.1–11.3) tilføjede ingen nye tests (kun en adfærdsbevarende type-konsolidering + dokumentation), så baseline er uændret og fortsat grøn. Hvert punkt skal efterlade suiten mindst lige så grøn. Kendt (ikke fejl): `act(...)`-warning i `TableDropdown.gridCore.test.tsx`. (Den pre-eksisterende `MainLayout.pwaConcurrency.test.tsx`-flake blev root-caused og rettet i 9.3.)
+**Test-baseline:** 5020 (2026-06-10) → 5172/429 (g.5) → 5185/430 (g.6) → 5310/445 (g.7) → 5318/446 (g.8) → 5328/449 (g.9) → 5354/450 (2026-06-17, g.10). G.11 (11.1–11.3) tilføjede ingen nye tests (kun en adfærdsbevarende type-konsolidering + dokumentation), så baseline var uændret. G.12 (12.1–12.2) tilføjede én regressionstest (SW-reload-disciplin) → **5355 tests / 450 filer grøn**. Hvert punkt skal efterlade suiten mindst lige så grøn. Kendt (ikke fejl): `act(...)`-warning i `TableDropdown.gridCore.test.tsx`. (Den pre-eksisterende `MainLayout.pwaConcurrency.test.tsx`-flake blev root-caused og rettet i 9.3.)
 
 ### Statustabel
 
@@ -81,9 +82,9 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 | 11.1 | Config A: persistenceVersion, dateRanges, version, buildInfo, pageNavigation, scrollToTopConfig, cellInvalidDraftScopes | ✅ (fil `11.1-config-a`) |
 | 11.2 | Config B: regulatoryRates, indskudteLoentillaeg (krydsref 6.2), appTheme, tableTheme | ✅ (fil `11.2-config-b`) |
 | 11.3 | Settings & auth: appSettings (schema/parse/storage), AppSettingsContext, AuthGate, auth, authConfig | ✅ (fil `11.3-settings-auth`) |
-| **12 — App-shell & multi-app** | | |
-| 12.1 | App-entry & bootstrap: main.tsx, App.tsx, bootstrapClientApp, serviceWorkerBootstrap, capability-gate, UnsupportedDevicePage | ⬜ |
-| 12.2 | Standalone MinProcesrente: MinProcesrenteApp, minprocesrenteMain, StandaloneErrorBoundary, namespace-isolation | ⬜ |
+| **12 — App-shell & multi-app** | | ✅ |
+| 12.1 | App-entry & bootstrap: main.tsx, App.tsx, bootstrapClientApp, serviceWorkerBootstrap, capability-gate, UnsupportedDevicePage | ✅ (fil `12.1-12.2-app-shell-multi-app`) |
+| 12.2 | Standalone MinProcesrente: MinProcesrenteApp, minprocesrenteMain, StandaloneErrorBoundary, namespace-isolation | ✅ (fil `12.1-12.2-app-shell-multi-app`) |
 | **13 — Testkvalitet** | | |
 | 13.1 | Domæneberegninger (årsløn, EET, forsørgertab, varige mén, renteberegning, opreguleringsmotorer) | ⬜ |
 | 13.2 | EO-motor, EO-snapshot, EO-debug | ⬜ |
@@ -108,10 +109,6 @@ Arbejdet følger afhængighedsorden nedefra og op (se rationale-tabel sidst). **
 ## Udskudte fund — skal udbedres ved det angivne punkt
 
 Fund fra færdige grupper 1–7 som bevidst er parkeret til et senere punkt. **Læs den relevante blok ved start af hvert punkt nedenfor**, så de ikke glemmes. Kilde = review-doc fundet stammer fra.
-
-### Gruppe 12 (app-shell & multi-app)
-- **12.2** — Verificér at standalone MinProcesrente og Mineos hovedside ikke deler `sessionStorage`/persistence-namespace: begge bruger `pageKey: 'renteberegning'` + samme schema/hook. Bekræft app-scoped storage-isolation (ellers indfør namespace). *(Kilde 8.5)*
-- **12.2** — `MinProcesrenteCalculatorPage` har omfattende lokal `@media`-styling. Standalone-appen er bevidst mobil-tilladt (egen entry), modsat Mineos desktop-only-gate. Bekræft undtagelsen eksplicit (kommentar/kontrakt-note), så desktop-only-reglen ikke fremstår brudt. *(Kilde 8.5)*
 
 ### Gruppe 13 (testkvalitet)
 - **13.1** — Genbesøg equivalens-/delegations-tests for opreguleringsmotorerne (4.0) — de afhængige motorer (4.2/4.3/4.4/4.5/4.9/4.10) hviler på det lås-testede fundament. *(Kilde 4.0)*
@@ -141,6 +138,7 @@ Fund fra færdige grupper 1–7 som bevidst er parkeret til et senere punkt. **L
 - **14.2** — Flyt `aarsloenRowInterval.ts` fra `erstatningsopgoerelse/helpers/` → `aarsloen/` (koordinér pga. parallelt EO-arbejde). *(Kilde 4.2)*
 - **14.2** — Pass-through re-eksporter: `formatOverenskomstAmount`/`formatOverenskomstPercent` i `reguleringFormulaUtils.ts` (fra `eoSharedUtils.ts`); `formatPercentTrimmedFromRounded4` cross-modul re-export. *(Kilde 4.10/4.4)*
 - **14.2** — `ValidationErrorMap`: test-only type uden produktionsforbrugere → oprydning. *(Kilde 3.1)*
+- **14.2** — Pass-through `setDocumentFooterBrand` (`document/layout/documentLayoutHelpers.ts:46`): wrapper blot `setDocumentBrand` fra `documentBrand.ts`; navnet siger "Footer" men sætter både footer- og creator-brand. `minprocesrenteMain.tsx` kunne kalde `setDocumentBrand` direkte. Saml med de øvrige pass-through re-eksporter. *(Kilde 12.2)*
 - **14.2** — `usePersistedForm.replaceValues`: ubrugt public hook-export (kun hook + tests). Latent bug: `persistData` returnerer `true` ved no-op, så `replaceValues` bumper `formVersion` (→ row-draft-resync) selv ved idempotent replace. Fjern den ubrugte export ELLER giv `persistData` et separat "didChange"-signal hvis den genindføres. *(Kilde 9.1)*
 - **14.2** — `StyledToggleSwitch` imperativ shake (ref + setTimeout) vs. den kanoniske deklarative `useShakeFlag`: to mønstre for samme animation. Konsolidér på sigt. *(Kilde 9.2)*
 
