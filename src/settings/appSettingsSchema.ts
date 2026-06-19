@@ -74,9 +74,17 @@ export type AppSettingsSvieSmerteDelvisSygemeldingSatsOption =
   (typeof APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS)[number];
 export type AppSettingsDocumentDownloadFormatOption = DocumentDownloadFormat;
 
+/**
+ * Kanonisk kilde for app-temaets tilstandsværdier. Zod-enum'et er sandhedskilden;
+ * `AppThemeMode` udledes herfra, så tema-byggeren (`src/config/appTheme.ts`) ikke
+ * vedligeholder en parallel `'light' | 'dark'`-union der kan drifte fra schemaet.
+ */
+export const themeModeEnum = z.enum(['light', 'dark']);
+export type AppThemeMode = z.infer<typeof themeModeEnum>;
+
 export const appSettingsSchema = z
   .object({
-    themeMode: z.enum(['light', 'dark']),
+    themeMode: themeModeEnum,
     defaultStartsideErStamdata: z.boolean(),
     showContentBoxReportButton: z.boolean(),
     showEODebugMenu: z.boolean(),
@@ -92,6 +100,11 @@ export const appSettingsSchema = z
     defaultSvieSmerteDelvisSygemeldingSats: z.enum(APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS),
     defaultIndsaetUdkastStempel: z.boolean(),
     defaultVisBilagsnumre: z.boolean(),
+    // Beregningstekniske regel-toggles. Bevidst device-lokale (brugergodkendt 2026-06-19):
+    // de ændrer IKKE de producerede tal, kun validerings-severity for overenskomst-/regulerings-
+    // dækning (warning vs. error). Dokumenteret undtagelse fra app-settings.md §"Beregnings-/regel-
+    // toggles"; eneste produktions-callsite er buildEODebugIndkomstRows. Skal flyttes til .eo-sagsdata
+    // hvis to brugere skal se ens validering på samme sag, eller hvis et valg begynder at ændre tal.
     allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: z.boolean(),
     allowReguleringMedUdloebMedMaaneder: z.number().int().min(0).max(12),
     // Fil-placering (IndexedDB handle ID - validering sker runtime, ikke i schema)
