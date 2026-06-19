@@ -157,6 +157,28 @@ const findTextY = (instance: InstanceType<typeof MockJsPDF> | null, text: string
   return null;
 };
 
+// Tekst-kald i rækkefølge med deres Y-baseline. Bruges til region-afgrænset Y-opslag,
+// så en gentaget label (fx "I alt", der optræder flere steder i opgørelsen) kan måles
+// netop i det afsnit man undersøger, frem for ved sit første globale forekomst.
+const collectTextEntries = (
+  instance: InstanceType<typeof MockJsPDF> | null
+): readonly Readonly<{ text: string; y: number }>[] => {
+  if (!instance) return [];
+  const entries: { text: string; y: number }[] = [];
+  for (const call of instance.text.mock.calls) {
+    const [firstArg, , y] = call;
+    if (typeof y !== 'number') continue;
+    if (typeof firstArg === 'string') {
+      entries.push({ text: firstArg, y });
+    } else if (Array.isArray(firstArg)) {
+      for (const item of firstArg) {
+        if (typeof item === 'string') entries.push({ text: item, y });
+      }
+    }
+  }
+  return entries;
+};
+
 const EET_KLAGE_REGULERINGSLINJE =
   'Hvis der som følge af den verserende klagesag over erhvervsevnetab sker ændringer i ydelse eller virkningstidspunkt, vil kravet blive reguleret tilsvarende.';
 
@@ -649,9 +671,79 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(loenudviklingBlock.some((text) => text.startsWith('I alt Sygedagpenge'))).toBe(false);
     expect(loenudviklingBlock).not.toContain('Samlet offentlige ydelser (hypotetisk)');
     expect(loenudviklingBlock.filter((text) => text === 'I alt')).toHaveLength(1);
+
+    // Med MERE end én indtægtskilde (dagpenge + sygedagpenge) er der en tom linje før
+    // "I alt": gabet fra sidste segmentlinje til totalen er mindst én tom linje.
+    const entries = collectTextEntries(MockJsPDF.lastInstance);
+    const forventetStart = entries.findIndex((e) => e.text === 'Forventet indkomst');
+    const indtaegterStart = entries.findIndex((e) => e.text === 'Indtægter i erstatningsperioden');
+    const regionEnd = indtaegterStart === -1 ? entries.length : indtaegterStart;
+    const totalEntryIndex = entries.findIndex((e, i) => i > forventetStart && i < regionEnd && e.text === 'I alt');
+    const sidsteSegmentY = entries[totalEntryIndex - 1]?.y;
+    const totalY = entries[totalEntryIndex]?.y;
+    expect(typeof sidsteSegmentY).toBe('number');
+    expect(typeof totalY).toBe('number');
+    expect((totalY as number) - (sidsteSegmentY as number)).toBeGreaterThanOrEqual(MIN_AFSTAND_MED_TOM_LINJE - 0.001);
   });
 
-  it('formaterer bilaget for regulering af offentlige ydelser med periode, skadelidte og segmenttotaler', () => {
+  it('udelader tom linje før "I alt" i forventet indkomst når kun én indtægtskilde indgår', () => {
+    const { stamdata, eo } = buildBaseInput();
+    // Én indtægtskilde (ét ansættelsesforhold) reguleret via overenskomst over flere år,
+    // så lønudviklingen splittes i flere segmenter (regulering per 1. januar) og en samlet
+    // "I alt"-linje fortsat vises — men uden tom linje før, da der kun er én kilde.
+    stamdata.skadedato = iso('2023-07-01');
+    eo.vedroererPeriodeFra = iso('2023-07-01');
+    eo.vedroererPeriodeTil = iso('2025-12-31');
+    eo.tafBeregningsperiodeFra = iso('2023-07-01');
+    eo.tafBeregningsperiodeTil = iso('2023-07-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2023-07-01'), til: iso('2025-12-31'), loseFeriedage: undefined }];
+    eo.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-1',
+        navnPaaArbejdssted: 'Tandlægerne Toft og Vedsted',
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        overenskomstId: 'bygge-anlaeg',
+        feriePct: 12.5,
+        loenPaaHelligdage: 'Almindelig løn',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'af-1-row-1',
+            col0_maaned: '7',
+            col1_maaned: '2023',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: undefined,
+            col1_dag: undefined,
+            col2: asAmountValue(31829.38),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+    ];
+
+    renderPdf(stamdata, eo);
+
+    const texts = collectTextStrings(MockJsPDF.lastInstance);
+    const loenudviklingBlock = getTextsBetween(texts, 'Forventet indkomst', 'Indtægter i erstatningsperioden');
+    // Flere segmenter (regulering per 1. januar) → "I alt" vises stadig.
+    expect(loenudviklingBlock.filter((text) => text === 'I alt')).toHaveLength(1);
+
+    const entries = collectTextEntries(MockJsPDF.lastInstance);
+    const forventetStart = entries.findIndex((e) => e.text === 'Forventet indkomst');
+    const indtaegterStart = entries.findIndex((e) => e.text === 'Indtægter i erstatningsperioden');
+    const regionEnd = indtaegterStart === -1 ? entries.length : indtaegterStart;
+    const totalEntryIndex = entries.findIndex((e, i) => i > forventetStart && i < regionEnd && e.text === 'I alt');
+    const sidsteSegmentY = entries[totalEntryIndex - 1]?.y;
+    const totalY = entries[totalEntryIndex]?.y;
+    expect(typeof sidsteSegmentY).toBe('number');
+    expect(typeof totalY).toBe('number');
+    // Ingen tom linje før totalen: gabet er præcis én linje (mindre end en tom-linje-afstand).
+    expect((totalY as number) - (sidsteSegmentY as number)).toBeLessThan(MIN_AFSTAND_MED_TOM_LINJE - 0.001);
+  });
+
+  it('viser kun reguleringsværdier og princip-tekst i bilaget for regulering af offentlige ydelser — ikke selve ydelses-udregningen', () => {
     const { stamdata, eo } = buildBaseInput();
     stamdata.skadelidte = 'Testi Testesen';
     eo.vedroererPeriodeFra = iso('2024-12-01');
@@ -686,27 +778,32 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
 
     const texts = collectTextStrings(MockJsPDF.lastInstance);
     const bilagStartIndex = texts.indexOf('Regulering af offentlige ydelser');
-    const bilagBlock = bilagStartIndex === -1 ? [] : texts.slice(bilagStartIndex + 1);
+    const closingText =
+      'Offentlige ydelser fremskrives årligt per 1. januar med tilpasningsprocenten + 2 %, svarende til den almene statslige regulering af offentlige ydelser.';
+    // Afgræns bilag-blokken til netop denne side: princip-teksten er sidens sidste linje,
+    // så vi slicer til og med den (ellers ville efterfølgende bilag-sider lække ind og
+    // forstyrre `not.toContain`-tjekkene nedenfor).
+    const closingIndex = texts.indexOf(closingText, bilagStartIndex + 1);
+    const bilagBlock =
+      bilagStartIndex === -1 || closingIndex === -1
+        ? []
+        : texts.slice(bilagStartIndex + 1, closingIndex + 1);
 
     expect(bilagBlock).toContain('Regulering foretages med afsæt i værdier den');
     expect(bilagBlock).toContain('31-12-2024');
     expect(bilagBlock).toContain('Periode');
     expect(bilagBlock).toContain('01-12-2024 - 31-01-2025');
+    expect(bilagBlock).toContain('Reguleringsværdier:');
     // Skadelidtes navn udelades bevidst i regulerings-bilaget (fremgår af brevhovedet).
     expect(bilagBlock).not.toContain('Skadelidte');
     expect(bilagBlock).not.toContain('Testi Testesen');
-    expect(bilagBlock).toContain('Dagpenge');
-    expect(bilagBlock).toContain('Sygedagpenge');
-    expect(bilagBlock.some((text) => text.includes('regulering fra'))).toBe(false);
-    // Samme I alt-princip som EO-opgørelsen: ingen per-ydelse delsummer, kun ÉN samlet
-    // "I alt"-linje til sidst (her vises den, da der er mere end ét segment at summere).
-    expect(bilagBlock.some((text) => text.startsWith('I alt Dagpenge'))).toBe(false);
-    expect(bilagBlock.some((text) => text.startsWith('I alt Sygedagpenge'))).toBe(false);
-    expect(bilagBlock).not.toContain('Samlet offentlige ydelser (hypotetisk)');
-    expect(bilagBlock).toContain('I alt');
-    expect(bilagBlock).toContain(
-      'Offentlige ydelser fremskrives årligt per 1. januar med tilpasningsprocenten + 2 %, svarende til den almene statslige regulering af offentlige ydelser.'
-    );
+    // Selve udregningen af de regulerede ydelser vises IKKE her — kun reguleringsværdierne
+    // og princip-teksten. Per-ydelse underoverskrifter ("Dagpenge"/"Sygedagpenge"),
+    // segmentlinjer og "I alt"-totalen fremgår alene på selve erstatningsopgørelsen.
+    expect(bilagBlock).not.toContain('Dagpenge');
+    expect(bilagBlock).not.toContain('Sygedagpenge');
+    expect(bilagBlock).not.toContain('I alt');
+    expect(bilagBlock).toContain(closingText);
   });
 
   it('viser forbeholdstekst i "Øvrige krav" ved kontanthjælp i indtægter i erstatningsperioden', () => {
