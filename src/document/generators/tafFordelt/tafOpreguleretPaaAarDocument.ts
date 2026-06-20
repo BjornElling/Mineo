@@ -331,8 +331,10 @@ export const generateTafOpreguleretPaaAarDocument = (
     const opreguleretEntry = opreguleretByYear.get(yearEntry.year);
     if (opreguleretEntry) {
       writer.writeUnderlinedSubheader('Opreguleret til beregningsåret');
-      const factorText = formatReguleringFactorText(opreguleretEntry.deltaPct);
-      const opreguleretLeftText = `Opreguleret til ${beregningsAar}${factorText} =`;
+      // factorText har formen " x (100 % + 16,08 %)"; her ønskes "-værdi (100 % + 16,08 %)"
+      // uden multiplikations-tegnet, så " x " strippes for netop denne linje.
+      const factorText = formatReguleringFactorText(opreguleretEntry.deltaPct).replace(/^ x /, ' ');
+      const opreguleretLeftText = `Opreguleret til ${beregningsAar}-værdi${factorText} =`;
       const opreguleretRightText = ensureNonBreakingKr(formatMoneyOreWithKr(opreguleretEntry.yearTafOpreguleretOre));
       safeAddLeftRightText(opreguleretLeftText, opreguleretRightText, rightMaxWidth, { rightFontStyle: 'bold' });
     }

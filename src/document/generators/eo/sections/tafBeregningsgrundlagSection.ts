@@ -189,6 +189,12 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
         addends.push(formatCurrencyFromOre(indkomst.offentligeYdelserTotalOre));
       }
       if (udskydMellemregningVedBeregningsperiode) {
+        // Linjeafstand mellem arbejdssted-"I alt:" og mellemregningen ("I perioden var
+        // der N måneder."). Når der er offentlige ydelser, har dét afsnit allerede tilføjet
+        // en spacer (ovenfor), så her tilføjes kun en, når der ikke var offentlige ydelser.
+        if (indkomst.offentligeYdelser.length === 0) {
+          writer.addSectionSpacer();
+        }
         if (indkomst.beregningsgrundlagMellemregningLabel && indkomst.beregningsgrundlagMellemregningResultat) {
           safeAddLeftRightText(
             indkomst.beregningsgrundlagMellemregningLabel,
