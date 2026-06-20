@@ -10,7 +10,12 @@ describe('Overlay', () => {
   });
 
   afterEach(() => {
-    vi.runOnlyPendingTimers();
+    // act-wrap: en stadig-kørende interval-callback (Wrapper'ens re-render-tick) kan ellers
+    // fyre en setState uden for act, når de resterende timers drænes ("update to Wrapper not
+    // wrapped in act").
+    act(() => {
+      vi.runOnlyPendingTimers();
+    });
     vi.useRealTimers();
   });
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import OffentligeYdelserTable from '../../../components/tables/OffentligeYdelserTable';
 import type { OffentligeYdelserRow } from '../../../schemas/formSchemas';
@@ -128,7 +128,10 @@ describe('GRID_UX_SPEC (compile-bound guards)', () => {
     const rows = getDataRows();
     const firstYdelse = within(within(rows[0]!).getAllByRole('cell')[2]!).getByRole('textbox') as HTMLInputElement;
     const secondYdelse = within(within(rows[1]!).getAllByRole('cell')[2]!).getByRole('textbox') as HTMLInputElement;
-    firstYdelse.focus();
+    // act-wrap: et bart .focus() lander grid-/input-fokusstateopdateringer uden for act.
+    await act(async () => {
+      firstYdelse.focus();
+    });
     await user.keyboard('{Enter}');
     await waitFor(() => {
       expect(document.activeElement).toBe(secondYdelse);

@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { StandardGridTable } from '../../../components/tables/StandardGridTable';
 import { useGridCoreApi } from '../../../components/tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../../components/tables/gridCore/gridCoreTypes';
@@ -53,34 +53,49 @@ const Harness = () => (
   </StandardGridTable>
 );
 
+// act-wrap af focus/keyDown: grid-fokus-autoriteten opdaterer React-state via en
+// rAF-planlagt focus-capture. Bare .focus()/fireEvent uden act ville lande den
+// opdatering uden for act ("update to StandardGridTable not wrapped in act").
+const focusInAct = async (element: HTMLElement) => {
+  await act(async () => {
+    element.focus();
+  });
+};
+
+const keyDownInAct = async (element: HTMLElement, key: string) => {
+  await act(async () => {
+    fireEvent.keyDown(element, { key });
+  });
+};
+
 describe('tableKeyboardNavigation: vertikal navigation springer låste celler over', () => {
-  it('ArrowDown springer den låste mellemrække over og lander på næste valgbare række', () => {
+  it('ArrowDown springer den låste mellemrække over og lander på næste valgbare række', async () => {
     render(<Harness />);
     const row0 = screen.getByTestId('row0') as HTMLInputElement;
     const row2 = screen.getByTestId('row2') as HTMLInputElement;
 
-    row0.focus();
-    fireEvent.keyDown(row0, { key: 'ArrowDown' });
+    await focusInAct(row0);
+    await keyDownInAct(row0, 'ArrowDown');
     expect(document.activeElement).toBe(row2);
   });
 
-  it('ArrowUp springer den låste mellemrække over og lander på forrige valgbare række', () => {
+  it('ArrowUp springer den låste mellemrække over og lander på forrige valgbare række', async () => {
     render(<Harness />);
     const row0 = screen.getByTestId('row0') as HTMLInputElement;
     const row2 = screen.getByTestId('row2') as HTMLInputElement;
 
-    row2.focus();
-    fireEvent.keyDown(row2, { key: 'ArrowUp' });
+    await focusInAct(row2);
+    await keyDownInAct(row2, 'ArrowUp');
     expect(document.activeElement).toBe(row0);
   });
 
-  it('Enter springer den låste mellemrække over', () => {
+  it('Enter springer den låste mellemrække over', async () => {
     render(<Harness />);
     const row0 = screen.getByTestId('row0') as HTMLInputElement;
     const row2 = screen.getByTestId('row2') as HTMLInputElement;
 
-    row0.focus();
-    fireEvent.keyDown(row0, { key: 'Enter' });
+    await focusInAct(row0);
+    await keyDownInAct(row0, 'Enter');
     expect(document.activeElement).toBe(row2);
   });
 });

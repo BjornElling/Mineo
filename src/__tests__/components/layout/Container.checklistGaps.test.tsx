@@ -209,7 +209,11 @@ describe('Container keyboard navigation — tjekliste-huller', () => {
     const combobox = screen.getByRole('combobox');
     const after = screen.getByTestId('after') as HTMLInputElement;
 
-    combobox.focus();
+    // act-wrap: StyledDropdowns InputBase opdaterer focus-state ved focus; et bart .focus()
+    // ville lande den state-opdatering uden for act ("update to ForwardRef(InputBase) not wrapped").
+    await act(async () => {
+      combobox.focus();
+    });
     expect(screen.queryByRole('listbox')).toBeNull();
 
     await user.keyboard('{Enter}');
