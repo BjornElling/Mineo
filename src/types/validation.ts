@@ -45,16 +45,6 @@ export interface ValidationResult {
 }
 
 /**
- * Normalized error map til hurtig UI-lookup
- *
- * Key: field path
- * Value: array af errors for det felt
- */
-export type ValidationErrorMap = {
-  [path: string]: ValidationError[];
-};
-
-/**
  * Generisk form validator-interface
  */
 export interface FormValidator<TValues> {

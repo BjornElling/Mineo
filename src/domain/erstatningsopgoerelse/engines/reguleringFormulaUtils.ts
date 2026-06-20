@@ -4,10 +4,6 @@ import { isWithinTolerance } from '../../../utils/numberComparison';
 import {
   formatPercentFixed2,
 } from '../helpers/eoSharedUtils';
-export {
-  formatOverenskomstAmount,
-  formatOverenskomstPercent,
-} from '../helpers/eoSharedUtils';
 
 export type FormulaComponents = Readonly<{
   /**

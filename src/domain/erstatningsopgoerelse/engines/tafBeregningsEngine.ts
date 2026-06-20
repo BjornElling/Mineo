@@ -2,29 +2,11 @@ import type { ErstatningsopgoerelseValues, FerieperiodeRow, TafPeriodeRow } from
 import type { ISODateString } from '../../../types/branded';
 import type { DeepReadonly } from '../../../types/deepReadonly';
 import { isISODateString } from '../../../types/branded';
-import { computeTafBeregningsenhed, TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
-import { calculateTafAntalMaaneder, calculateTafArbejdsdageBreakdown } from './tafCalculations';
+import { TAF_BEREGNES_SOM, type TafBeregningsenhed } from '../helpers/tafBeregningsenhed';
+import { calculateTafArbejdsdageBreakdown } from './tafCalculations';
 import { mergeIsoDateRanges } from './periodMerging';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, type TafConstraintBounds } from '../validation/tafPeriodConstraints';
-import { roundByMethod } from '../../../utils/rounding';
 import { buildTafArbejdsdageSetFromRows } from './tafDaySets';
-
-export type TafEngineInputSnapshot = DeepReadonly<{
-  erstatningsopgoerelse: ErstatningsopgoerelseValues;
-  tafPerioder: ReadonlyArray<TafPeriodeRow>;
-  ferieperioder: ReadonlyArray<FerieperiodeRow>;
-  skadedatoISO?: ISODateString;
-}>;
-
-export type TafEngineRowResult = Readonly<{
-  id: string;
-  value: number | null;
-}>;
-
-export type TafEngineOutput = Readonly<{
-  beregningsenhed: TafBeregningsenhed;
-  rows: ReadonlyArray<TafEngineRowResult>;
-}>;
 
 export type TafArbejdsdageAggregationInput = DeepReadonly<{
   erstatningsopgoerelse: ErstatningsopgoerelseValues;
@@ -34,10 +16,6 @@ export type TafArbejdsdageAggregationInput = DeepReadonly<{
   tafRanges?: ReadonlyArray<Readonly<{ fra: ISODateString; til: ISODateString }>>;
   skadedatoISO?: ISODateString;
 }>;
-
-const roundTafValue = (value: number): number => {
-  return roundByMethod(value, 2, 'halfAwayFromZero');
-};
 
 export type MergedTafGroup = Readonly<{
   id: string;
@@ -134,40 +112,6 @@ export const buildMergedTafGroups = (
   });
 
   return [...invalidRows, ...merged];
-};
-
-export const computeTafEngine = (input: TafEngineInputSnapshot): TafEngineOutput => {
-  const { erstatningsopgoerelse, tafPerioder, ferieperioder, skadedatoISO } = input;
-  const beregningsenhed = computeTafBeregningsenhed(erstatningsopgoerelse);
-  const visAntalMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
-  const tafBounds = resolveTafConstraintBounds(erstatningsopgoerelse, { skadedatoISO });
-  const mergedGroups = buildMergedTafGroups(tafPerioder, tafBounds);
-
-  // Aggregation beregnes på merged, kanoniske perioder for at undgå dobbeltoptælling ved overlap.
-  // Dette er den autoritative aggregerede model (i modsætning til per-row visning i `tafRowDerived.ts`).
-  const rows = mergedGroups.map((group) => {
-    const value = visAntalMaaneder
-      ? calculateTafAntalMaaneder(
-        group.fra,
-        group.til,
-        0
-      )
-      : (() => {
-        if (!group.fra || !group.til || !isISODateString(group.fra) || !isISODateString(group.til) || group.fra > group.til) {
-          return null;
-        }
-        return buildTafArbejdsdageSetFromRows(tafPerioder, ferieperioder, {
-          authoritativeRanges: [{ fra: group.fra, til: group.til }],
-        }).size;
-      })();
-    if (value === null) {
-      // Manglende datoer giver null for TAF; dette er et bevidst domænevalg, ikke en fejltilstand.
-      return { id: group.id, value: null };
-    }
-    return { id: group.id, value: roundTafValue(value) };
-  });
-
-  return { beregningsenhed, rows };
 };
 
 /**

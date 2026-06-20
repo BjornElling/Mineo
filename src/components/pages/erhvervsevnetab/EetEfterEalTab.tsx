@@ -4,16 +4,13 @@ import ContentBox from '../../layout/ContentBox';
 import type { StamdataValues } from '../../../schemas/formSchemas';
 import { useAppSettings } from '../../../contexts/useAppSettings';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
-import {
-  buildAldersreduktionFormelTekst,
-  formatPercentTrimmedFromRounded4,
-} from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { downloadEfterEalDokument } from '../../../document/service/documentService';
 import EetIssuesBox from './EetIssuesBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import { useShakeFlag } from '../../../hooks/useShakeFlag';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
-import { formatKr } from '../../../utils/formatUtils';
+import { formatKr, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
 
 type Props = Readonly<{
   onGoToEetOplysninger: () => void;

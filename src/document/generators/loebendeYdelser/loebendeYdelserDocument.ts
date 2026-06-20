@@ -27,7 +27,7 @@ import type {
 import {
   formatPct,
   formatSkadedatoCompact,
-  shouldShowLoebende2024ConversionBlock,
+  resolveLoebendeAfgoerelseRestVisning,
   toAfgoerelseTypeLabel,
   toOphoerAarsagLabel,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
@@ -266,20 +266,12 @@ export const addLoebendeUdvidetSpecifikationPage = (
   );
 
   for (const afgoerelse of computation.afgoerelser) {
-    const show2024Block =
-      computation.grundloenNiveau === '2003' && shouldShowLoebende2024ConversionBlock(afgoerelse);
-    const hasKapitaliseringsdato = afgoerelse.kapitaliseringsdato !== null;
-    const hasRestSection = afgoerelse.harRestSektion && hasKapitaliseringsdato;
-    const kapitaliseringFra2024 =
-      afgoerelse.kapitaliseringsdato !== null &&
-      afgoerelse.kapitaliseringsdato >= '2024-01-01';
-    const hasRestAfterKapBefore2024 = Boolean(
-      hasRestSection &&
-        afgoerelse.kapitaliseringsdato &&
-        afgoerelse.kapitaliseringsdato < '2024-01-01'
-    );
-    const showRest2003 = hasRestSection && (!show2024Block || !kapitaliseringFra2024);
-    const showRest2024 = show2024Block && hasRestSection && kapitaliseringFra2024;
+    const {
+      show2024ConversionBlock: show2024Block,
+      hasRestAfterKapBefore2024,
+      showRest2003,
+      showRest2024,
+    } = resolveLoebendeAfgoerelseRestVisning(afgoerelse, computation.grundloenNiveau);
 
     const eetFaktor = formatEetValue(afgoerelse.eetPct, afgoerelse.priorKapPct);
     const grundydelseFormulaLine1 =

@@ -23,6 +23,7 @@ type Props = Readonly<{
   sfggRow: SfggRow | undefined;
   sfggPolicy: OverenskomstSfggPolicy | undefined;
   showSharedSfggBefore2015: boolean;
+  showSfggSixMonthWarning: boolean;
   sfggSelectedOverenskomstLabel: string;
   canShowSfggOverenskomstDetails: boolean;
   requiresReferenceperiode: boolean;
@@ -51,6 +52,7 @@ const SygeferiegodtgoerelseSection = ({
   sfggRow,
   sfggPolicy,
   showSharedSfggBefore2015,
+  showSfggSixMonthWarning,
   sfggSelectedOverenskomstLabel,
   canShowSfggOverenskomstDetails,
   requiresReferenceperiode,
@@ -67,6 +69,18 @@ const SygeferiegodtgoerelseSection = ({
   return (
     <>
       <Typography className="row--subheading">Sygeferiegodtgørelse</Typography>
+
+      {showSfggSixMonthWarning ? (
+        <Box className="row--label-right-hover">
+          <Box className="row--label-right-hover__content" sx={{ width: '100%', justifyContent: 'flex-start' }}>
+            <Box sx={{ display: 'flex', alignItems: 'baseline', flexWrap: 'wrap' }}>
+              <Typography className="row--text">
+                Bemærk: Sygeferiegodtgørelsen i dette ansættelsesforhold løber mere end 6 måneder efter sidste indkomst. Kontrollér, om perioden er korrekt.
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      ) : null}
 
       {showSharedSfggBefore2015 ? (
         <Box className="row--label-right-hover">

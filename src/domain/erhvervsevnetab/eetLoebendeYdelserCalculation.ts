@@ -18,10 +18,10 @@ import {
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { formatAsAmountTrimmed } from '../../utils/formatUtils';
+import { formatAsAmountTrimmed, formatPercentTrimmedFromRounded4 } from '../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { ceilNearest12, round0, round2, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
-import { SKAERING_2011_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
+import { SKAERING_2011_01_01, SKAERING_2024_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { resolveAslReguleringRateForSatsAar } from './eetReguleringRater';
 import { optaelMaanederPraecis } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { ASL_IDENTICAL_AFGOERELSER_ID, collectIncompleteRowIssues, hasIdenticalAfgoerelser, hasTextValue, isAslAfgoerelseRowEmpty, parseCommittedPercent } from './eetAslAfgoerelser';
@@ -799,10 +799,6 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   };
 };
 
-export const formatPercentTrimmedFromRounded4 = (value: number): string => {
-  return formatAsAmountTrimmed(round4(value), 4);
-};
-
 export const buildLoebendeAarsydelseReguleringSteps = (
   afgoerelse: EetLoebendeAfgoerelseComputation
 ): readonly EetLoebendeAarsydelseReguleringStep[] => {
@@ -837,6 +833,50 @@ export const shouldShowLoebende2024ConversionBlock = (
   afgoerelse: EetLoebendeAfgoerelseComputation
 ): boolean => {
   return afgoerelse.perioder.some((row) => row.satsAar >= 2024);
+};
+
+/**
+ * Afledte visningsflag for én løbende-ydelse-afgørelses rest-/2024-sektioner.
+ *
+ * Kanonisk kilde for hvilke under-afsnit der vises (2003-niveau vs. 2024-niveau, rest-sektion),
+ * så UI-fanen (`EetLoebendeYdelserTab`) og PDF/Word-generatoren (`loebendeYdelserDocument`) ikke
+ * kan drive fra hinanden — samme visningssemantik ét sted, jf. konvergens-/periodiseringsreglerne.
+ */
+export type LoebendeAfgoerelseRestVisning = Readonly<{
+  show2024ConversionBlock: boolean;
+  hasRestSection: boolean;
+  kapitaliseringFra2024: boolean;
+  hasRestAfterKapBefore2024: boolean;
+  showRest2003: boolean;
+  showRest2024: boolean;
+}>;
+
+export const resolveLoebendeAfgoerelseRestVisning = (
+  afgoerelse: EetLoebendeAfgoerelseComputation,
+  grundloenNiveau: EetLoebendeComputation['grundloenNiveau']
+): LoebendeAfgoerelseRestVisning => {
+  const show2024ConversionBlock =
+    grundloenNiveau === '2003' && shouldShowLoebende2024ConversionBlock(afgoerelse);
+  const hasKapitaliseringsdato = afgoerelse.kapitaliseringsdato !== null;
+  const hasRestSection = afgoerelse.harRestSektion && hasKapitaliseringsdato;
+  const kapitaliseringFra2024 =
+    afgoerelse.kapitaliseringsdato !== null &&
+    afgoerelse.kapitaliseringsdato >= SKAERING_2024_01_01;
+  const hasRestAfterKapBefore2024 = Boolean(
+    hasRestSection &&
+    afgoerelse.kapitaliseringsdato &&
+    afgoerelse.kapitaliseringsdato < SKAERING_2024_01_01
+  );
+  const showRest2003 = hasRestSection && (!show2024ConversionBlock || !kapitaliseringFra2024);
+  const showRest2024 = show2024ConversionBlock && hasRestSection && kapitaliseringFra2024;
+  return {
+    show2024ConversionBlock,
+    hasRestSection,
+    kapitaliseringFra2024,
+    hasRestAfterKapBefore2024,
+    showRest2003,
+    showRest2024,
+  };
 };
 
 export const toAfgoerelseTypeLabel = (

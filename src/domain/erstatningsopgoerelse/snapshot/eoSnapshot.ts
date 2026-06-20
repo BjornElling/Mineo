@@ -17,6 +17,7 @@ import type { MoneyOre } from './eoPresentationModel';
 import type { EoModel } from '../shared/eoTypes';
 import { computeSvieSmerteEngine, type SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { computeTafNettoBeregning, type TafNettoBeregningResult } from '../engines/tafNettoBeregning';
+import { findSfggSixMonthWarningEmploymentIds } from '../engines/sygeferiegodtgoerelse';
 import { buildTafPerYearBuildOutcome, buildTafPerYearSourceFromComputed, type TafPerYearResult } from '../engines/tafPerYearDerived';
 import { buildTafPerYearOpreguleretBuildOutcome, type TafPerYearOpreguleretResult } from '../engines/tafPerYearOpreguleretDerived';
 import {
@@ -64,6 +65,10 @@ export type EoSnapshotComputedData = Readonly<{
   presentation: EoPdfPresentation;
   canonicalOutput: EoCanonicalOutput;
   midlertidigtEetGroups: readonly MidlertidigtEetAfgoerelseGroup[];
+  /** Id'er på de ansættelsesforhold, hvor sygeferiegodtgørelsen løber mere end 6
+   *  måneder efter sidste indkomst. Beregnet her som eneste kilde (fra den autoritative
+   *  SFGG-result), så UI'et kun skal surface listen — ikke genberegne SFGG. */
+  sfggSixMonthWarningEmploymentIds: readonly string[];
   /** Færdigbygget PDF-dokumentmodel. Caches i snapshot for at undgå dobbeltkald
    *  fra eoSnapshotToEoDocument og eoSnapshotToTafPerYearDocument. */
   pdfModel: EoModel;
@@ -410,6 +415,10 @@ export const computeEoSnapshot = (args: Readonly<{
       tafRanges: canonicalOutput.periodiseringer.tafPerioder,
       totals,
     });
+    const sfggSixMonthWarningEmploymentIds = findSfggSixMonthWarningEmploymentIds({
+      values: effectiveEoValues,
+      result: tafNetto.sygeferiegodtgoerelse,
+    });
     const data: EoSnapshotComputedData = {
       engines: {
         svieSmerte,
@@ -423,6 +432,7 @@ export const computeEoSnapshot = (args: Readonly<{
       presentation,
       canonicalOutput,
       midlertidigtEetGroups,
+      sfggSixMonthWarningEmploymentIds,
       pdfModel,
     };
 

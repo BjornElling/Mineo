@@ -8,7 +8,7 @@ import {
   type StandardLoenRowDerived,
 } from '../../aarsloen/standardLoenRowCalculations';
 import { buildLoenArbejdsdageSet } from '../engines/periodiseringsMotor';
-import { parseAarsloenRowInterval } from './aarsloenRowInterval';
+import { parseAarsloenRowInterval } from '../../aarsloen/aarsloenRowInterval';
 import { buildLoenindkomstRateSegments } from './loenindkomstSatser';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
 import { iterateDatesInclusive } from '../../../utils/isoDateHelpers';

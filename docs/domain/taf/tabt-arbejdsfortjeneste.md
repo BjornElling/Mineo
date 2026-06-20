@@ -113,7 +113,7 @@ Dagen efter TAF-periodens slut beskrives med en arbejdsstatus-linje der inkluder
 |---|---|
 | `src/domain/erstatningsopgoerelse/tafBeregningsenhed.ts` | Bestemmer beregningsenhed (Måneder/Arbejdsdage); eksporterer `computeTafBeregningsenhed`, `TAF_BEREGNES_SOM`, `TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR` |
 | `src/domain/erstatningsopgoerelse/periodiseringsMotor.ts` | Central periodiseringsmotor; optælling af måneder og arbejdsdage; periodisering af løn og offentlige ydelser |
-| `src/domain/erstatningsopgoerelse/tafBeregningsEngine.ts` | Aggregeret TAF-engine; merger overlappende perioder; eksporterer `computeTafEngine`, `buildMergedTafGroups`, `computeTafArbejdsdageAggregation` |
+| `src/domain/erstatningsopgoerelse/tafBeregningsEngine.ts` | Aggregeret TAF-engine; merger overlappende perioder; eksporterer `buildMergedTafGroups`, `computeTafArbejdsdageAggregation` |
 | `src/domain/erstatningsopgoerelse/tafNettoBeregning.ts` | Netto-TAF-beregning; orkestrerer lønudvikling, TAF-indtægter og tidligere modtaget TAF; eksporterer `computeTafNettoBeregning` |
 | `src/domain/erstatningsopgoerelse/tafPeriodConstraints.ts` | Grænser og clamping for TAF-perioder; `resolveTafConstraintBounds`, `resolveTafFejlgivendeBounds`, `resolveTafEoPeriodeBounds`, `clampTafRange` |
 | `src/domain/erstatningsopgoerelse/tafDaySets.ts` | Datosæt-bygning: ferie, SH, løse feriedage; `buildTafArbejdsdageSetFromRows`, `buildShDageSet`, `buildFerieDageSet`, `placeLoseFeriedage` |
@@ -128,8 +128,8 @@ Dagen efter TAF-periodens slut beskrives med en arbejdsstatus-linje der inkluder
 // Beregningsenhed
 computeTafBeregningsenhed(values: TafBeregningsenhedInput): TafBeregningsenhed
 
-// Aggregeret engine (merged perioder)
-computeTafEngine(input: TafEngineInputSnapshot): TafEngineOutput
+// Aggregeret TAF-arbejdsdage til kontrol/sammentælling (merged perioder)
+computeTafArbejdsdageAggregation(input: TafArbejdsdageAggregationInput): number | null
 
 // Netto-TAF
 computeTafNettoBeregning(
@@ -151,15 +151,12 @@ buildTafPerYearBuildOutcome(
 ```typescript
 TafBeregningsenhed = 'Måneder' | 'Arbejdsdage'
 
-TafEngineInputSnapshot = DeepReadonly<{
+TafArbejdsdageAggregationInput = DeepReadonly<{
   erstatningsopgoerelse: ErstatningsopgoerelseValues;
   tafPerioder: ReadonlyArray<TafPeriodeRow>;
   ferieperioder: ReadonlyArray<FerieperiodeRow>;
-}>
-
-TafEngineOutput = Readonly<{
   beregningsenhed: TafBeregningsenhed;
-  rows: ReadonlyArray<{ id: string; value: number | null }>;
+  tafRanges?: ReadonlyArray<Readonly<{ fra: ISODateString; til: ISODateString }>>;
 }>
 
 TafNettoBeregningResult = Readonly<{
@@ -198,9 +195,10 @@ optaelMaanederAfrundet(args: { fra, til, oevrigeFravaersdage? }): number | null 
 optaelArbejdsdageBreakdown(args: { fra, til, ferieperioder, loseFeriedage, context }): ArbejdsdageBreakdown | null
 optaelArbejdsdage(args): number | null  // returnerer breakdown.tafDage
 
-// Periodisering af beløb
-periodiserBeloebForMaaneder(args: { totalBeloeb, interval, ranges }): number
-periodiserBeloebForArbejdsdage(args: { totalBeloeb, interval, ranges, arbejdsdageSet }): number
+// Lønindkomstens arbejdsdage-sæt (grundlag for lønperiodisering i indtaegtPerioder.ts)
+buildLoenArbejdsdageSet(bounds: IsoRange, ferieperioder): ReadonlySet<ISODateString>
+
+// Periodisering af offentlige ydelsers beløb (kalenderdage/arbejdsdage pr. ydelsestype)
 periodiserBeloebForOffentligYdelse(args: { totalBeloeb, interval, range, periodisering, ydelsestypeKey, shDays }): number
 ```
 

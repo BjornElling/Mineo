@@ -5,9 +5,9 @@ import './standaloneStorageNamespace';
 import React from 'react';
 import MinProcesrenteApp from './MinProcesrenteApp';
 import { bootstrapClientApp } from '../shared/bootstrapClientApp';
-import { setDocumentFooterBrand } from '../../document/layout/documentLayoutHelpers';
+import { setDocumentBrand } from '../../document/documentBrand';
 
-setDocumentFooterBrand('minprocesrente.dk');
+setDocumentBrand('minprocesrente.dk');
 
 void bootstrapClientApp({
   renderApp: () => <MinProcesrenteApp />,

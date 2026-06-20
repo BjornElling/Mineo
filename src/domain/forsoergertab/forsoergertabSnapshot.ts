@@ -9,7 +9,7 @@ import { dateRanges_forsoergertab } from '../../config/dateRanges';
 import type { FormFieldError } from '../../types/fieldErrors';
 import { coerceToISODateString, type ISODateString } from '../../types/branded';
 import { computeForsoergertabCalculation } from './forsoergertabCalculation';
-import { PRE_2015_CUTOFF } from './forsoergertabConstants';
+import { SKAERING_2015_03_01 } from '../erhvervsevnetab/eetSkaeringsdatoer';
 import { reportSystemIssue } from '../../utils/systemIssueReporter';
 import { asError } from '../../utils/typeGuards';
 import type { ForsoergertabCalculationResult } from './forsoergertabTypes';
@@ -174,7 +174,7 @@ export const computeForsoergertabSnapshot = (input: ForsoergertabSnapshotInput):
 
   const visKoenValg = (() => {
     const beregningsdato = coerceToISODateString(values.beregningsdato);
-    return beregningsdato !== undefined && beregningsdato < PRE_2015_CUTOFF;
+    return beregningsdato !== undefined && beregningsdato < SKAERING_2015_03_01;
   })();
 
   const hasEalAarsloenAslMaxIssue = hasIssue(calculation.issues, EAL_AARSLOEN_ASL_MAX_ISSUE_IDS);

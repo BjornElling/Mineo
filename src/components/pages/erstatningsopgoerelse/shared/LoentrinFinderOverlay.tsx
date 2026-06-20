@@ -4,56 +4,93 @@ import CloseIcon from '@mui/icons-material/Close';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../../../inputs/StyledDropdown';
 import StyledAmountField from '../../../inputs/StyledAmountField';
 import StyledDateField from '../../../inputs/StyledDateField';
-import { offentligLoenTypeEnum } from '../../../../schemas/formSchemas';
+import { offentligLoenTypeEnum, type OffentligLoenTypeLabel } from '../../../../schemas/formSchemas';
+import type { AmountValue } from '../../../../schemas/amountExpressionSchema';
+import type { ISODateString } from '../../../../types/branded';
+import type { ReportableFieldError } from '../../../../types/fieldErrors';
 import { formatCurrency } from '../../../../utils/formatUtils';
-import { getReportableFieldErrorMessage } from '../../../../types/fieldErrors';
 import { hasExactDisplayedAmountMatch } from '../../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
-import type { UseEoLoentrinFinderResult } from './useEoLoentrinFinder';
+import type { LoentrinFinderErrors, LoentrinFinderResult } from './loentrinFinderCore';
 
-type Props = Readonly<{
-  loentrinFinder: UseEoLoentrinFinderResult;
+/**
+ * Delt props-kontrakt for løntrin-finder-overlayet. Komponenten er drevet udelukkende af props,
+ * så både loenindkomst- (per-ansættelsesforhold + sessionStorage) og EO-varianten (ét overenskomst-id,
+ * uden sessionStorage) kan dele præcis samme præsentation.
+ *
+ * Bemærk: `onAmountFieldError`/`onDateFieldError` modtages som allerede-indpakkede callbacks, så de
+ * to kaldssteder opfører sig byte-identisk (loenindkomst brugte en navngivet handler, EO en inline
+ * wrapper rundt om getReportableFieldErrorMessage — begge ender her med samme signatur).
+ */
+export type LoentrinFinderOverlayProps = Readonly<{
+  open: boolean;
+  ansaettelse: OffentligLoenTypeLabel;
+  setAnsaettelse: React.Dispatch<React.SetStateAction<OffentligLoenTypeLabel>>;
+  beloeb: AmountValue | undefined;
+  setBeloeb: React.Dispatch<React.SetStateAction<AmountValue | undefined>>;
+  dato: ISODateString | undefined;
+  setDato: React.Dispatch<React.SetStateAction<ISODateString | undefined>>;
+  errors: LoentrinFinderErrors;
+  setErrors: React.Dispatch<React.SetStateAction<LoentrinFinderErrors>>;
+  onAmountFieldError: (errorMsg: ReportableFieldError | undefined) => void;
+  onDateFieldError: (errorMsg: ReportableFieldError | undefined) => void;
+  results: ReadonlyArray<LoentrinFinderResult>;
+  buttonShake: boolean;
+  dialogRef: React.RefObject<HTMLDivElement | null>;
+  // Bevidst beholdt `loentrinFinder`-præfiks på ref-props: quality-værnet
+  // immediateCommitWidgetUndoName scanner JSX-teksten for `ref={loentrinFinder...}` som
+  // markør for transient modal-state (StyledDropdown uden name). Omdøb ikke uden at opdatere værnet.
+  loentrinFinderAnsaettelseRef: React.RefObject<HTMLDivElement | null>;
+  loentrinFinderBeloebRef: React.RefObject<HTMLDivElement | null>;
+  loentrinFinderDatoRef: React.RefObject<HTMLDivElement | null>;
+  beregnRef: React.RefObject<HTMLButtonElement | null>;
+  headingId: string;
+  overenskomstLabel: string;
+  inputAmountNumber: number | undefined;
+  onClose: () => void;
+  onCalculate: () => void;
 }>;
 
 /**
- * Page-lokalt overlay til at finde løntrin ud fra et beløb og en dato (EO-oplysninger).
+ * Page-lokalt overlay til at finde løntrin ud fra et beløb og en dato. Delt mellem loenindkomst-
+ * og EO-oplysninger-fanen.
  *
- * Transient: skriver aldrig til persisteret sagsdata (jf. mineo-field-pattern §3). Den
- * eksplicitte, hardcodede tab-/keyboard-sekvens ejes af useEoLoentrinFinder's keyboard-effekt;
- * dette er bevidst og auditeret UX-adfærd.
+ * Transient: skriver aldrig til persisteret sagsdata (jf. mineo-field-pattern §3). Den eksplicitte,
+ * hardcodede tab-/keyboard-sekvens ejes af den kaldende hooks keyboard-effekt; dette er bevidst og
+ * auditeret UX-adfærd (jf. keyboard-navigation.md "Løntrin-finder").
  */
-const EoLoentrinFinderOverlay = React.memo(({ loentrinFinder }: Props) => {
+const LoentrinFinderOverlay = React.memo((props: LoentrinFinderOverlayProps) => {
   const {
-    loentrinFinderOpen,
-    loentrinFinderAnsaettelse,
-    setLoentrinFinderAnsaettelse,
-    loentrinFinderBeloeb,
-    setLoentrinFinderBeloeb,
-    loentrinFinderDato,
-    setLoentrinFinderDato,
-    loentrinFinderErrors,
-    setLoentrinFinderErrors,
-    setLoentrinFinderAmountFieldError,
-    setLoentrinFinderDateFieldError,
-    loentrinFinderResults,
-    loentrinFinderButtonShake,
-    loentrinFinderDialogRef,
+    open,
+    ansaettelse,
+    setAnsaettelse,
+    beloeb,
+    setBeloeb,
+    dato,
+    setDato,
+    errors,
+    setErrors,
+    onAmountFieldError,
+    onDateFieldError,
+    results,
+    buttonShake,
+    dialogRef,
     loentrinFinderAnsaettelseRef,
     loentrinFinderBeloebRef,
     loentrinFinderDatoRef,
-    loentrinFinderBeregnRef,
-    loentrinFinderHeadingId,
-    loentrinFinderOverenskomstLabel,
-    loentrinFinderInputAmountNumber,
-    closeLoentrinFinder,
-    handleLoentrinFinderCalculate,
-  } = loentrinFinder;
+    beregnRef,
+    headingId,
+    overenskomstLabel,
+    inputAmountNumber,
+    onClose,
+    onCalculate,
+  } = props;
 
-  if (!loentrinFinderOpen) return null;
+  if (!open) return null;
 
   return (
     <>
       <Box
-        onClick={closeLoentrinFinder}
+        onClick={onClose}
         sx={{
           position: 'fixed',
           top: 0,
@@ -70,8 +107,8 @@ const EoLoentrinFinderOverlay = React.memo(({ loentrinFinder }: Props) => {
       <Box
         role="dialog"
         aria-modal="true"
-        aria-labelledby={loentrinFinderHeadingId}
-        ref={loentrinFinderDialogRef}
+        aria-labelledby={headingId}
+        ref={dialogRef}
         sx={{
           position: 'fixed',
           top: '50%',
@@ -99,11 +136,11 @@ const EoLoentrinFinderOverlay = React.memo(({ loentrinFinder }: Props) => {
             borderBottom: '1px solid var(--color-border)',
           }}
         >
-          <Typography id={loentrinFinderHeadingId} variant="h5" sx={{ fontWeight: 500, color: 'text.primary' }}>
+          <Typography id={headingId} variant="h5" sx={{ fontWeight: 500, color: 'text.primary' }}>
             Find løntrin
           </Typography>
           <IconButton
-            onClick={closeLoentrinFinder}
+            onClick={onClose}
             aria-label="Luk"
             tabIndex={-1}
             sx={{
@@ -121,7 +158,7 @@ const EoLoentrinFinderOverlay = React.memo(({ loentrinFinder }: Props) => {
           <Box className="row--label-right-hover">
             <Typography className="row--text">Overenskomst</Typography>
             <Box className="row--label-right-hover__content">
-              <Typography className="row--text">{loentrinFinderOverenskomstLabel}</Typography>
+              <Typography className="row--text">{overenskomstLabel}</Typography>
             </Box>
           </Box>
 
@@ -131,12 +168,12 @@ const EoLoentrinFinderOverlay = React.memo(({ loentrinFinder }: Props) => {
               <StyledDropdown
                 ref={loentrinFinderAnsaettelseRef}
                 width={180}
-                value={loentrinFinderAnsaettelse}
+                value={ansaettelse}
                 allowEmpty={false}
                 onChange={(event: StyledDropdownChangeEvent<string>) => {
                   const parsed = offentligLoenTypeEnum.safeParse(event.target.value ?? 'Månedsløn');
-                  const nextValue: 'Månedsløn' | 'Timeløn' = parsed.success ? parsed.data : 'Månedsløn';
-                  setLoentrinFinderAnsaettelse(nextValue);
+                  const nextValue: OffentligLoenTypeLabel = parsed.success ? parsed.data : 'Månedsløn';
+                  setAnsaettelse(nextValue);
                 }}
               >
                 <MenuItem value="Månedsløn">Månedsløn</MenuItem>
@@ -146,20 +183,20 @@ const EoLoentrinFinderOverlay = React.memo(({ loentrinFinder }: Props) => {
           </Box>
 
           <Box className="row--label-right-hover">
-            <Typography className="row--text">{loentrinFinderAnsaettelse}</Typography>
+            <Typography className="row--text">{ansaettelse}</Typography>
             <Box className="row--label-right-hover__content">
               <StyledAmountField
                 ref={loentrinFinderBeloebRef}
                 width={180}
-                value={loentrinFinderBeloeb}
+                value={beloeb}
                 allowNegative={false}
                 onCommit={(event) => {
-                  setLoentrinFinderBeloeb(event.target.value);
-                  setLoentrinFinderErrors((prev) => ({ ...prev, beloeb: undefined }));
+                  setBeloeb(event.target.value);
+                  setErrors((prev) => ({ ...prev, beloeb: undefined }));
                 }}
-                onFieldError={(errorMsg) => setLoentrinFinderAmountFieldError(getReportableFieldErrorMessage(errorMsg))}
-                error={Boolean(loentrinFinderErrors.beloeb)}
-                helperText={loentrinFinderErrors.beloeb ?? ''}
+                onFieldError={onAmountFieldError}
+                error={Boolean(errors.beloeb)}
+                helperText={errors.beloeb ?? ''}
               />
             </Box>
           </Box>
@@ -169,28 +206,28 @@ const EoLoentrinFinderOverlay = React.memo(({ loentrinFinder }: Props) => {
             <Box className="row--label-right-hover__content">
               <StyledDateField
                 ref={loentrinFinderDatoRef}
-                value={loentrinFinderDato}
+                value={dato}
                 onCommit={(event) => {
-                  setLoentrinFinderDato(event.target.value);
-                  setLoentrinFinderErrors((prev) => ({ ...prev, dato: undefined }));
+                  setDato(event.target.value);
+                  setErrors((prev) => ({ ...prev, dato: undefined }));
                 }}
-                onFieldError={(errorMsg) => setLoentrinFinderDateFieldError(getReportableFieldErrorMessage(errorMsg))}
-                error={Boolean(loentrinFinderErrors.dato)}
-                helperText={loentrinFinderErrors.dato ?? ''}
+                onFieldError={onDateFieldError}
+                error={Boolean(errors.dato)}
+                helperText={errors.dato ?? ''}
               />
             </Box>
           </Box>
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 1 }}>
             <Button
-              ref={loentrinFinderBeregnRef}
+              ref={beregnRef}
               variant="contained"
-              onClick={handleLoentrinFinderCalculate}
+              onClick={onCalculate}
               sx={{
                 borderRadius: '10px',
                 px: 3,
                 py: 1,
-                animation: loentrinFinderButtonShake ? 'shake 0.5s ease' : 'none',
+                animation: buttonShake ? 'shake 0.5s ease' : 'none',
                 '@keyframes shake': {
                   '0%, 100%': { transform: 'translateX(0)' },
                   '25%': { transform: 'translateX(-4px)' },
@@ -202,15 +239,15 @@ const EoLoentrinFinderOverlay = React.memo(({ loentrinFinder }: Props) => {
             </Button>
           </Box>
 
-          {loentrinFinderResults.length > 0 ? (
+          {results.length > 0 ? (
             <Box sx={{ mt: 2 }}>
               <Typography className="row--text" sx={{ mb: 1 }}>
                 Nærmeste lønsatser
               </Typography>
-              {loentrinFinderResults.map((result) => {
-                const isExactMatch = loentrinFinderInputAmountNumber === undefined
+              {results.map((result) => {
+                const isExactMatch = inputAmountNumber === undefined
                   ? false
-                  : hasExactDisplayedAmountMatch(loentrinFinderInputAmountNumber, result.beloeb);
+                  : hasExactDisplayedAmountMatch(inputAmountNumber, result.beloeb);
                 return (
                   <Box
                     key={`${String(result.loentrin)}-${result.gruppe}`}
@@ -241,6 +278,6 @@ const EoLoentrinFinderOverlay = React.memo(({ loentrinFinder }: Props) => {
   );
 });
 
-EoLoentrinFinderOverlay.displayName = 'EoLoentrinFinderOverlay';
+LoentrinFinderOverlay.displayName = 'LoentrinFinderOverlay';
 
-export default EoLoentrinFinderOverlay;
+export default LoentrinFinderOverlay;

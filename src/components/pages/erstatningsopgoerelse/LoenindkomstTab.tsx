@@ -100,7 +100,7 @@ import { updateValidationFlagById } from '../../../utils/validationFlagMap';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import { calculateLoenindkomstRowDerived } from '../../../domain/erstatningsopgoerelse/helpers/loenindkomstRowDerived';
 import { useLoentrinFinder } from './loenindkomst/useLoentrinFinder';
-import LoentrinFinderOverlay from './loenindkomst/LoentrinFinderOverlay';
+import LoentrinFinderOverlay from './shared/LoentrinFinderOverlay';
 import SygeferiegodtgoerelseSection from './loenindkomst/SygeferiegodtgoerelseSection';
 
 type AnsaettelsesforholdList = ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'];
@@ -118,6 +118,9 @@ type Props = {
   setEOValues: SetValuesUpdater<ErstatningsopgoerelseValues>;
   onAnsaettelsesforholdChange: (updater: (prev: AnsaettelsesforholdList) => AnsaettelsesforholdList, origin?: { fieldPath?: string }) => void;
   onNavigateToTabtArbejdsfortjeneste: () => void;
+  /** Id'er på ansættelsesforhold hvor SFGG løber >6 mdr. efter sidste indkomst.
+   *  Beregnet i EO-snapshot (committed-state); tom liste når snapshot.data er null. */
+  sfggSixMonthWarningEmploymentIds: readonly string[];
 };
 
 type Ansaettelsesforhold =
@@ -274,6 +277,7 @@ const LoenindkomstTab = React.memo(({
   setEOValues,
   onAnsaettelsesforholdChange,
   onNavigateToTabtArbejdsfortjeneste,
+  sfggSixMonthWarningEmploymentIds,
 }: Props) => {
   const reportDynamicFieldError = useDynamicFormFieldErrorReporter('erstatningsopgoerelse', { source: 'input' });
   const stamdataValues = usePersistedSectionSelector('stamdata');
@@ -1350,6 +1354,7 @@ const LoenindkomstTab = React.memo(({
         const showSharedSfggBefore2015 = Boolean(
           stamdataValues?.skadedato && stamdataValues.skadedato < '2015-01-01'
         );
+        const showSfggSixMonthWarning = sfggSixMonthWarningEmploymentIds.includes(af.id);
 
         return (
           <ContentBox
@@ -2085,6 +2090,7 @@ const LoenindkomstTab = React.memo(({
               sfggRow={sfggRow}
               sfggPolicy={sfggPolicy}
               showSharedSfggBefore2015={showSharedSfggBefore2015}
+              showSfggSixMonthWarning={showSfggSixMonthWarning}
               sfggSelectedOverenskomstLabel={sfggSelectedOverenskomstLabel}
               canShowSfggOverenskomstDetails={canShowSfggOverenskomstDetails}
               requiresReferenceperiode={requiresReferenceperiode}
@@ -2150,7 +2156,31 @@ const LoenindkomstTab = React.memo(({
         );
       })}
 
-      <LoentrinFinderOverlay loentrinFinder={loentrinFinder} />
+      <LoentrinFinderOverlay
+        open={loentrinFinder.loentrinFinderOpenForAfId !== null}
+        ansaettelse={loentrinFinder.loentrinFinderAnsaettelse}
+        setAnsaettelse={loentrinFinder.setLoentrinFinderAnsaettelse}
+        beloeb={loentrinFinder.loentrinFinderBeloeb}
+        setBeloeb={loentrinFinder.setLoentrinFinderBeloeb}
+        dato={loentrinFinder.loentrinFinderDato}
+        setDato={loentrinFinder.setLoentrinFinderDato}
+        errors={loentrinFinder.loentrinFinderErrors}
+        setErrors={loentrinFinder.setLoentrinFinderErrors}
+        onAmountFieldError={loentrinFinder.handleLoentrinFinderAmountFieldError}
+        onDateFieldError={loentrinFinder.handleLoentrinFinderDateFieldError}
+        results={loentrinFinder.loentrinFinderResults}
+        buttonShake={loentrinFinder.loentrinFinderButtonShake}
+        dialogRef={loentrinFinder.loentrinFinderDialogRef}
+        loentrinFinderAnsaettelseRef={loentrinFinder.loentrinFinderAnsaettelseRef}
+        loentrinFinderBeloebRef={loentrinFinder.loentrinFinderBeloebRef}
+        loentrinFinderDatoRef={loentrinFinder.loentrinFinderDatoRef}
+        beregnRef={loentrinFinder.loentrinFinderBeregnRef}
+        headingId={loentrinFinder.loentrinFinderHeadingId}
+        overenskomstLabel={loentrinFinder.loentrinFinderOverenskomstLabel}
+        inputAmountNumber={loentrinFinder.loentrinFinderInputAmountNumber}
+        onClose={loentrinFinder.closeLoentrinFinder}
+        onCalculate={loentrinFinder.handleLoentrinFinderCalculate}
+      />
 
       {/* Tilføj-dialog */}
       <ConfirmationDialog

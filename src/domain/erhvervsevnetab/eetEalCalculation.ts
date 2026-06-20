@@ -6,6 +6,7 @@ import type { YearlyRate } from '../../data/lovbestemteRates';
 import { calculateUtcAgeInWholeYears } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
+import { isoYear } from '../../utils/isoDateHelpers';
 import { roundByMethod } from '../../utils/rounding';
 import {
   ASL_IDENTICAL_AFGOERELSER_ID,
@@ -275,8 +276,8 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 
-  const skadesaar = Number.parseInt(skadedato.slice(0, 4), 10);
-  const beregningsaar = Number.parseInt(beregningsdato.slice(0, 4), 10);
+  const skadesaar = isoYear(skadedato);
+  const beregningsaar = isoYear(beregningsdato);
 
   // Datoorden-værn: beregningsdato bør aldrig ligge før skadedato. Sker det (typisk tastefejl),
   // giver opreguleringskæden faktor 1 (ingen opregulering) — et tvivlsomt, uopreguleret krav.
@@ -414,5 +415,4 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   };
 };
 
-export { formatPercentTrimmedFromRounded4 } from './eetLoebendeYdelserCalculation';
 export { buildAldersreduktionFormelTekst } from './eetAldersreduktionFormel';

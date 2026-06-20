@@ -3,35 +3,26 @@ import { z } from 'zod';
 import { offentligLoenTypeEnum, type OffentligLoenTypeLabel, type ErstatningsopgoerelseValues } from '../../../../schemas/formSchemas';
 import { optionalAmountValueSchema } from '../../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../../types/branded';
-import { isISODateString, parseISODate } from '../../../../types/branded';
-import { formatDanishDate } from '../../../../utils/dateUtils';
+import { isISODateString } from '../../../../types/branded';
 import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../../types/fieldErrors';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
-import { getOverenskomstMetaById, getOffentligOverenskomstTypeById } from '../../../../data/overenskomstRates';
-import { getOffentligLoenTabelForDato } from '../../../../data/offentligLoenLookup';
 import { useShakeFlag } from '../../../../hooks/useShakeFlag';
 import { UI_STORAGE_KEYS } from '../../../../config/storageManifest';
 import {
   readOptionalSessionStorageValue,
   writeOptionalSessionStorageValue,
 } from '../../../../utils/safeSessionStorage';
+import {
+  calculateLoentrinFinderResults,
+  resolveLoentrinFinderOverenskomstLabel,
+  type LoentrinFinderErrors,
+  type LoentrinFinderResult,
+} from '../shared/loentrinFinderCore';
+
+export type { LoentrinFinderErrors, LoentrinFinderResult } from '../shared/loentrinFinderCore';
 
 type Ansaettelsesforhold =
   ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
-
-export type LoentrinFinderErrors = Readonly<{
-  beloeb?: string;
-  dato?: string;
-}>;
-
-export type LoentrinFinderResult = Readonly<{
-  loentrin: number | '55+';
-  gruppe: 0 | 1 | 2 | 3 | 4;
-  beloeb: number;
-  diff: number;
-}>;
-
-const LOENGRUPPER = [0, 1, 2, 3, 4] as const;
 
 const loentrinFinderSessionEntrySchema = z.object({
   ansaettelse: offentligLoenTypeEnum,
@@ -47,10 +38,6 @@ const loentrinFinderSessionEntrySchema = z.object({
 
 const loentrinFinderSessionStateSchema = z.record(z.string(), loentrinFinderSessionEntrySchema);
 type LoentrinFinderSessionState = z.infer<typeof loentrinFinderSessionStateSchema>;
-
-const parseLoentrinSortValue = (loentrin: number | '55+'): number => {
-  return loentrin === '55+' ? 56 : loentrin;
-};
 
 export type UseLoentrinFinderResult = Readonly<{
   loentrinFinderOpenForAfId: string | null;
@@ -154,12 +141,10 @@ export const useLoentrinFinder = (
     () => loenindkomstAnsaettelsesforhold.find((item) => item.id === loentrinFinderOpenForAfId),
     [loentrinFinderOpenForAfId, loenindkomstAnsaettelsesforhold]
   );
-  const loentrinFinderOverenskomstLabel = React.useMemo(() => {
-    const id = loentrinFinderCurrentAf?.overenskomstId?.trim();
-    if (!id) return 'Ingen overenskomst valgt';
-    const meta = getOverenskomstMetaById(id);
-    return meta?.navn ?? id;
-  }, [loentrinFinderCurrentAf?.overenskomstId]);
+  const loentrinFinderOverenskomstLabel = React.useMemo(
+    () => resolveLoentrinFinderOverenskomstLabel(loentrinFinderCurrentAf?.overenskomstId),
+    [loentrinFinderCurrentAf?.overenskomstId]
+  );
 
   const handleLoentrinFinderAmountFieldError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
     setLoentrinFinderAmountFieldError(getReportableFieldErrorMessage(errorMsg));
@@ -169,108 +154,33 @@ export const useLoentrinFinder = (
     setLoentrinFinderDateFieldError(getReportableFieldErrorMessage(errorMsg));
   }, []);
 
-  const validateLoentrinFinderInput = React.useCallback((): {
-    errors: LoentrinFinderErrors;
-    beloebNumber: number | undefined;
-  } => {
-    const errors: { beloeb?: string; dato?: string } = {};
-    const beloebNumber = amountValueToNumber(loentrinFinderBeloeb);
-
-    if (loentrinFinderAmountFieldError) {
-      errors.beloeb = loentrinFinderAmountFieldError;
-    } else if (beloebNumber === undefined) {
-      errors.beloeb = 'Beløb skal udfyldes';
-    } else if (beloebNumber <= 0) {
-      errors.beloeb = 'Beløb skal være større end 0';
-    }
-
-    if (loentrinFinderDateFieldError) {
-      errors.dato = loentrinFinderDateFieldError;
-    } else if (!loentrinFinderDato) {
-      errors.dato = 'Dato skal udfyldes';
-    }
-
-    return { errors, beloebNumber };
-  }, [
-    loentrinFinderAmountFieldError,
-    loentrinFinderBeloeb,
-    loentrinFinderDateFieldError,
-    loentrinFinderDato,
-  ]);
-
   const handleLoentrinFinderCalculate = React.useCallback(() => {
-    const currentAf = loentrinFinderCurrentAf;
-    const offentligOverenskomstType = getOffentligOverenskomstTypeById(currentAf?.overenskomstId ?? '');
-    const overenskomstLabel = loentrinFinderOverenskomstLabel;
-
-    if (!currentAf || !offentligOverenskomstType) {
-      setLoentrinFinderErrors({ dato: 'Offentlig overenskomst er ikke valgt' });
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const validation = validateLoentrinFinderInput();
-    const hasInputErrors = Boolean(validation.errors.beloeb) || Boolean(validation.errors.dato);
-    if (hasInputErrors || validation.beloebNumber === undefined || !loentrinFinderDato) {
-      setLoentrinFinderErrors(validation.errors);
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const parsedDate = parseISODate(loentrinFinderDato);
-    if (!parsedDate) {
-      setLoentrinFinderErrors((prev) => ({ ...prev, dato: 'Dato skal udfyldes' }));
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const danishDate = formatDanishDate(parsedDate);
-    const loenTabel = getOffentligLoenTabelForDato(offentligOverenskomstType, danishDate);
-    if (!loenTabel) {
-      setLoentrinFinderErrors((prev) => ({
-        ...prev,
-        dato: `Der findes ingen satser for ${overenskomstLabel} på den valgte dato`,
-      }));
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const results: LoentrinFinderResult[] = [];
-    for (const entry of loenTabel.entries) {
-      for (const gruppe of LOENGRUPPER) {
-        const beloeb =
-          loentrinFinderAnsaettelse === 'Timeløn'
-            ? entry.timeLoen[gruppe]
-            : entry.maanedsLoen[gruppe];
-        results.push({
-          loentrin: entry.loentrin,
-          gruppe,
-          beloeb,
-          diff: Math.abs(beloeb - validation.beloebNumber),
-        });
-      }
-    }
-
-    results.sort((a, b) => {
-      if (a.diff !== b.diff) return a.diff - b.diff;
-      const trinDiff = parseLoentrinSortValue(a.loentrin) - parseLoentrinSortValue(b.loentrin);
-      if (trinDiff !== 0) return trinDiff;
-      return a.gruppe - b.gruppe;
+    const outcome = calculateLoentrinFinderResults({
+      overenskomstId: loentrinFinderCurrentAf?.overenskomstId,
+      ansaettelse: loentrinFinderAnsaettelse,
+      beloeb: loentrinFinderBeloeb,
+      dato: loentrinFinderDato,
+      amountFieldError: loentrinFinderAmountFieldError,
+      dateFieldError: loentrinFinderDateFieldError,
     });
 
+    if (!outcome.ok) {
+      setLoentrinFinderErrors(outcome.errors);
+      setLoentrinFinderResults([]);
+      triggerLoentrinFinderButtonError();
+      return;
+    }
+
     setLoentrinFinderErrors({});
-    setLoentrinFinderResults(results.slice(0, 5));
+    setLoentrinFinderResults(outcome.results);
   }, [
-    loentrinFinderCurrentAf,
+    loentrinFinderCurrentAf?.overenskomstId,
     loentrinFinderAnsaettelse,
+    loentrinFinderBeloeb,
     loentrinFinderDato,
-    loentrinFinderOverenskomstLabel,
+    loentrinFinderAmountFieldError,
+    loentrinFinderDateFieldError,
     triggerLoentrinFinderButtonError,
-    validateLoentrinFinderInput,
   ]);
 
   const loentrinFinderInputAmountNumber = React.useMemo(

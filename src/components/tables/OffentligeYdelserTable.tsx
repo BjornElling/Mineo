@@ -103,7 +103,6 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
     const tableRef = React.useRef<HTMLTableElement | null>(null);
     const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
     const visibleRowIdsRef = React.useRef<readonly string[]>([]);
-    const committedRowIdsRef = React.useRef<Set<string>>(new Set());
     const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
 
     // Determinisme-kontrakt (se normalizeGridRows): id'et udledes af seed'et, ikke en RNG,
@@ -129,10 +128,6 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
         withRowId: (row, id) => ({ ...row, id }),
         fingerprint: fingerprintTableData,
       });
-
-    React.useEffect(() => {
-      committedRowIdsRef.current = new Set(internalTableData.map((row) => row.id));
-    }, [internalTableData]);
 
     const getValidationResult = React.useCallback(() => {
       const validRowIds = new Set(internalTableData.map((row) => row.id));
@@ -196,7 +191,11 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
 
     const handleErrorChange = React.useCallback(
       (rowId: string, colKey: OffentligeYdelserTableColumnKey) => (errorInfo: TableInputErrorInfo) => {
-        if (!committedRowIdsRef.current.has(rowId)) return;
+        // Bevidst INGEN committed-row-gate her (jf. konvergens med StandardLoenTable/LoenudviklingManuelTable):
+        // en gate på committedRowIdsRef kunne tabe en reel celle-fejl, hvis inputtet emitterer fejlen før
+        // den committede rækkeliste-effect har opdateret sættet (fx ved indsæt/reconcile) — så Gem ikke
+        // blokeredes som det burde. Oprydning af forældede rækkers fejl sker i stedet deterministisk i
+        // getValidationResult (filtrering på validRowIds), så en fjernet rækkes fejl aldrig overlever.
         const cellKey = buildOffentligeYdelserCellKey(rowId, colKey);
         if (errorInfo.hasError) {
           cellErrorsByCellKeyRef.current[cellKey] = true;

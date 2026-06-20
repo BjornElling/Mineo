@@ -60,7 +60,6 @@ export type BeregnetRenteTableProps = Readonly<{
   onRowsReorder?: (orderedIds: readonly string[]) => void;
   isMobile?: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
-  onPdfContextsChange?: (contexts: RentekravPdfContextMap, anyRowHasError: boolean) => void;
 }>;
 
 type BeregnetRenteRowProps = Readonly<{
@@ -77,7 +76,6 @@ type BeregnetRenteRowProps = Readonly<{
   surchargeRates: ReadonlyArray<RateEntry>;
   isMobile: boolean;
   documentDownloadFormat: DocumentDownloadFormat;
-  onRowStateChange: (rowId: string, pdfContext: RentePdfContext | null, hasError: boolean) => void;
 }>;
 
 const BeregnetRenteRow = React.memo(
@@ -95,7 +93,6 @@ const BeregnetRenteRow = React.memo(
     surchargeRates,
     isMobile,
     documentDownloadFormat,
-    onRowStateChange,
   }: BeregnetRenteRowProps) => {
     const formatLabel = getDocumentFormatLabel(documentDownloadFormat);
     const [renterFraHasError, setRenterFraHasError] = React.useState(false);
@@ -115,15 +112,6 @@ const BeregnetRenteRow = React.memo(
       referenceRates,
       surchargeRates
     );
-
-    const belobHasValue = committedRow.belob !== undefined && amountValueToNumber(committedRow.belob) !== undefined;
-    const renterFraHasValue = committedRow.renterFra !== undefined;
-    const isPartialRow = belobHasValue !== renterFraHasValue;
-
-    const hasRowError = renterFraHasError || isPartialRow;
-    React.useEffect(() => {
-      onRowStateChange(row.id, pdfContext, hasRowError);
-    }, [row.id, pdfContext, hasRowError, onRowStateChange]);
 
     const actualInterestDateDanish = isoToDanish(actualInterestDate ?? undefined) ?? null;
     const showDownloadButton = pdfContext !== null && !renterFraHasError && !beregningsdatoHasError;
@@ -272,54 +260,7 @@ const BeregnetRenteTable = React.memo(
     onRowsReorder,
     isMobile = false,
     documentDownloadFormat,
-    onPdfContextsChange,
   }: BeregnetRenteTableProps) => {
-    // rowId → { pdfContext, hasError } — opdateres løbende af BeregnetRenteRow via onRowStateChange
-    const rowStatesRef = React.useRef<Map<string, { pdfContext: RentePdfContext | null; hasError: boolean }>>(new Map());
-    const onPdfContextsChangeRef = React.useRef(onPdfContextsChange);
-    React.useEffect(() => {
-      onPdfContextsChangeRef.current = onPdfContextsChange;
-    });
-
-    const handleRowStateChange = React.useCallback((
-      rowId: string,
-      pdfContext: RentePdfContext | null,
-      hasError: boolean,
-    ) => {
-      const prev = rowStatesRef.current.get(rowId);
-      if (prev?.pdfContext === pdfContext && prev?.hasError === hasError) return;
-      rowStatesRef.current.set(rowId, { pdfContext, hasError });
-
-      const contexts = new Map<string, RentePdfContext>();
-      let anyRowHasError = false;
-      for (const [id, state] of rowStatesRef.current) {
-        if (state.pdfContext !== null) contexts.set(id, state.pdfContext);
-        if (state.hasError) anyRowHasError = true;
-      }
-      onPdfContextsChangeRef.current?.(contexts, anyRowHasError);
-    }, []);
-
-    // Ryd op i rowStates når rækker fjernes
-    React.useEffect(() => {
-      const currentIds = new Set(rows.map((r) => r.id));
-      let changed = false;
-      for (const id of rowStatesRef.current.keys()) {
-        if (!currentIds.has(id)) {
-          rowStatesRef.current.delete(id);
-          changed = true;
-        }
-      }
-      if (changed) {
-        const contexts = new Map<string, RentePdfContext>();
-        let anyRowHasError = false;
-        for (const [id, state] of rowStatesRef.current) {
-          if (state.pdfContext !== null) contexts.set(id, state.pdfContext);
-          if (state.hasError) anyRowHasError = true;
-        }
-        onPdfContextsChangeRef.current?.(contexts, anyRowHasError);
-      }
-    }, [rows]);
-
     const sortColumns = React.useMemo(() => [
       { colId: 'belob', getSortValue: (row: RentekravDraftRow) => amountValueToNumber(committedById.get(row.id)?.belob) },
       { colId: 'renterFra', getSortValue: (row: RentekravDraftRow) => committedById.get(row.id)?.renterFra },
@@ -430,7 +371,6 @@ const BeregnetRenteTable = React.memo(
                 surchargeRates={surchargeRates}
                 isMobile={isMobile}
                 documentDownloadFormat={documentDownloadFormat}
-                onRowStateChange={handleRowStateChange}
               />
             );
           })}

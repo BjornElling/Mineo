@@ -2,7 +2,7 @@ import type { StandardLoenTableRow, Loenperiode } from '../../schemas/formSchema
 import type { ISODateString } from '../../types/branded';
 import { parseAmount, parsePercentToDecimal } from '../../utils/numberParsing';
 import { roundByMethod } from '../../utils/rounding';
-import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/aarsloenRowInterval';
+import { parseAarsloenRowInterval } from './aarsloenRowInterval';
 import { dateToISO, parseISODate } from '../../types/branded';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { isAmountValueStrict } from '../../utils/tableValidationCommon';

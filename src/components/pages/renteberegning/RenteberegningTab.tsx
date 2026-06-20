@@ -14,6 +14,8 @@ import type { RentekravRow } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
 import type { RentekravDraftRow } from '../../../domain/renteberegning/tableDraftRows';
 import type { RentePdfContext } from '../../tables/BeregnetRenteTable';
+import { computeRentekravRow } from '../../../domain/renteberegning/renteberegningEngine';
+import { isRentekravRowEmpty } from '../../../domain/renteberegning/rowEmpty';
 import { createCommitEvent, type CommitHandler } from '../../../types/fieldEvents';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import { dateRanges_renteberegning } from '../../../config/dateRanges';
@@ -88,16 +90,34 @@ const RenteberegningTab = React.memo(({
   const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
   const [downloadAllIsLoading, setDownloadAllIsLoading] = React.useState(false);
-  const [pdfContexts, setPdfContexts] = React.useState<RentekravPdfContextMap>(new Map());
-  const [anyRowHasError, setAnyRowHasError] = React.useState(false);
 
-  const handlePdfContextsChange = React.useCallback((
-    contexts: RentekravPdfContextMap,
-    rowHasError: boolean,
-  ) => {
-    setPdfContexts(contexts);
-    setAnyRowHasError(rowHasError);
-  }, []);
+  // §2.4 (renteberegning-contract): download-gaten beregnes auditerbart hos parent
+  // DIREKTE fra committed input via den kanoniske computeRentekravRow — IKKE via
+  // en child→parent callback der delvist fyrer fra draft-state. Tomme rækker springes
+  // over; en ikke-tom række uden gyldig pdfContext (fx delvist udfyldt) markerer
+  // anyRowHasError. Draft-kun dato-fejl (renterFraHasError) er bevidst EKSKLUDERET her.
+  const { pdfContexts, anyRowHasError } = React.useMemo<{
+    pdfContexts: RentekravPdfContextMap;
+    anyRowHasError: boolean;
+  }>(() => {
+    const contexts = new Map<string, RentePdfContext>();
+    let rowHasError = false;
+    for (const [rowId, committedRow] of committedRentekravById) {
+      if (isRentekravRowEmpty(committedRow)) continue;
+      const { pdfContext } = computeRentekravRow(
+        committedRow,
+        beregningsdato,
+        referenceRates,
+        surchargeRates,
+      );
+      if (pdfContext !== null) {
+        contexts.set(rowId, pdfContext);
+      } else {
+        rowHasError = true;
+      }
+    }
+    return { pdfContexts: contexts, anyRowHasError: rowHasError };
+  }, [committedRentekravById, beregningsdato, referenceRates, surchargeRates]);
 
   const handleDownloadAll = React.useCallback(async () => {
     if (!onDownloadAllSpecifikationer) return;
@@ -216,7 +236,6 @@ const RenteberegningTab = React.memo(({
             saveOrderPath="renteberegning.rentekravRows"
             isMobile={isMobile}
             documentDownloadFormat={documentDownloadFormat}
-            onPdfContextsChange={handlePdfContextsChange}
           />
           </CellInvalidDraftScopeProvider>
         </Box>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Switch, FormControlLabel } from '@mui/material';
 import { createCommitEvent, type CommitHandler } from '../../types/fieldEvents';
 import type { StyledToggleSwitchHandle } from '../../types/handles';
+import { useShakeFlag } from '../../hooks/useShakeFlag';
 
 type ToggleInputSlotProps = React.InputHTMLAttributes<HTMLInputElement> & {
   'data-mineo-undo-field-path'?: string;
@@ -71,35 +72,14 @@ const StyledToggleSwitch = React.forwardRef<StyledToggleSwitchHandle, StyledTogg
   const resolvedId = id ?? autoId;
   const resolvedName = name ?? resolvedId;
 
-  // State for shake-animation
-  const [isShaking, setIsShaking] = React.useState(false);
+  // Shake-animation via den kanoniske deklarative hook (timeout + cleanup ejes af hooken).
+  const { shake: isShaking, triggerShake } = useShakeFlag();
 
-  // Ref til cleanup af shake-timeout
-  const shakeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
-
-
-  // Cleanup timeout ved unmount
-  React.useEffect(() => {
-    return () => {
-      if (shakeTimeoutRef.current) {
-        clearTimeout(shakeTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Eksponér shake() metode til parent via ref
+  // Eksponér shake() metode til parent via ref (immediate-commit-kontrollers imperative handle,
+  // jf. mineo-field-pattern.md §"Instant-commit-kontroller"). Muterer ikke committed form-state.
   React.useImperativeHandle(ref, () => ({
-    shake: () => {
-      // Idempotent: ignorér hvis animation allerede kører
-      if (isShaking) return;
-
-      setIsShaking(true);
-      shakeTimeoutRef.current = setTimeout(() => {
-        setIsShaking(false);
-        shakeTimeoutRef.current = null;
-      }, 500);
-    }
-  }), [isShaking]);
+    shake: triggerShake,
+  }), [triggerShake]);
 
   /**
    * Én semantisk handling: toggle committed state.

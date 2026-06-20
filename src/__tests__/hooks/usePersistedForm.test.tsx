@@ -172,15 +172,13 @@ describe('usePersistedForm', () => {
     });
   });
 
-  it('bryder kun formVersion ved autoritativ replace og reset', () => {
+  it('bumper kun formVersion ved første hydration og autoritativ reset, ikke ved normale commits', () => {
     const captured: {
-      replaceValues: UsePersistedFormReturn<typeof initialValues>['replaceValues'] | null;
       resetForm: UsePersistedFormReturn<typeof initialValues>['resetForm'] | null;
       setValues: UsePersistedFormReturn<typeof initialValues>['setValues'] | null;
       formVersion: number | null;
       values: typeof initialValues | null;
     } = {
-      replaceValues: null,
       resetForm: null,
       setValues: null,
       formVersion: null,
@@ -189,7 +187,6 @@ describe('usePersistedForm', () => {
 
     const Capture = () => {
       const form = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
-      captured.replaceValues = form.replaceValues;
       captured.resetForm = form.resetForm;
       captured.setValues = form.setValues;
       captured.formVersion = form.formVersion;
@@ -199,7 +196,8 @@ describe('usePersistedForm', () => {
 
     renderWithProviders(<Capture />);
 
-    // Første hydration bumper formVersion til 1
+    // Første hydration (sker i useEffect i FormPersistenceProvider) skal bumpe formVersion,
+    // så draft-state hooks (useRowDrafts) kan resynce fra de persisterede værdier.
     expect(captured.formVersion).toBe(1);
     const baselineFormVersion = captured.formVersion!;
 
@@ -207,70 +205,16 @@ describe('usePersistedForm', () => {
       captured.setValues!((prev) => ({ ...prev, journalnr: 'Normal commit' }));
     });
 
+    // Normale commits bumper ikke formVersion
     expect(captured.formVersion).toBe(baselineFormVersion);
     expect(captured.values).toEqual({ ...committedInitialValues, journalnr: 'Normal commit' });
 
     act(() => {
-      captured.replaceValues!({ ...initialValues, journalnr: 'Erstatning' });
+      captured.resetForm!();
     });
 
     expect(captured.formVersion).toBe(baselineFormVersion + 1);
-    expect(captured.values).toEqual({ ...committedInitialValues, journalnr: 'Erstatning' });
-
-    act(() => {
-      captured.resetForm!();
-    });
-
-    expect(captured.formVersion).toBe(baselineFormVersion + 2);
     expect(captured.values).toEqual(committedInitialValues);
-  });
-
-  it('bryder formVersion ved første hydration og ved efterfølgende authoritative events', () => {
-    const captured: {
-      formVersion: number | null;
-      replaceValues: UsePersistedFormReturn<typeof initialValues>['replaceValues'] | null;
-      resetForm: UsePersistedFormReturn<typeof initialValues>['resetForm'] | null;
-      setValues: UsePersistedFormReturn<typeof initialValues>['setValues'] | null;
-    } = {
-      formVersion: null,
-      replaceValues: null,
-      resetForm: null,
-      setValues: null,
-    };
-
-    const Capture = () => {
-      const form = usePersistedForm(stamdataSchema, 'stamdata', initialValues);
-      captured.formVersion = form.formVersion;
-      captured.replaceValues = form.replaceValues;
-      captured.resetForm = form.resetForm;
-      captured.setValues = form.setValues;
-      return null;
-    };
-
-    renderWithProviders(<Capture />);
-
-    // Første hydration (sker i useEffect i FormPersistenceProvider) skal bumpe formVersion,
-    // så draft-state hooks (useRowDrafts) kan resynce fra de persisterede værdier.
-    expect(captured.formVersion).toBe(1);
-
-    act(() => {
-      captured.setValues!((prev) => ({ ...prev, journalnr: 'Normal commit' }));
-    });
-
-    // Normale commits bumper ikke formVersion
-    expect(captured.formVersion).toBe(1);
-
-    act(() => {
-      captured.replaceValues!({ ...initialValues, journalnr: 'Erstatning' });
-    });
-
-    expect(captured.formVersion).toBe(2);
-
-    act(() => {
-      captured.resetForm!();
-    });
-
-    expect(captured.formVersion).toBe(3);
   });
 
   it('capture kun history for reelle commits efter schema-validering', () => {

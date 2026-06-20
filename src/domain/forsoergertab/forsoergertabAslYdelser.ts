@@ -13,7 +13,7 @@ import { amountValueToNumber } from '../../utils/expressionAmount';
 import { roundByMethod } from '../../utils/rounding';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { endOfYearIso, isoYear, startOfYearIso } from '../../utils/isoDateHelpers';
-import { PRE_2015_CUTOFF } from './forsoergertabConstants';
+import { SKAERING_2015_03_01 } from '../erhvervsevnetab/eetSkaeringsdatoer';
 import { isoDateToDate } from '../dates/isoDate';
 import {
   calculateAgeYearsMonths,
@@ -263,7 +263,7 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
     issues.push(toIssue('beregningsdato-before-virkningsdato', 'Beregningsdato må ikke være før virkningsdato.'));
   }
 
-  const usesKoen = input.beregningsdato !== undefined && input.beregningsdato < PRE_2015_CUTOFF;
+  const usesKoen = input.beregningsdato !== undefined && input.beregningsdato < SKAERING_2015_03_01;
   if (usesKoen && !input.koen) {
     issues.push(toIssue('missing-koen', 'Ved beregning før 1. marts 2015 skal køn angives.'));
   }

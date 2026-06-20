@@ -8,8 +8,11 @@ import {
   computeEetLoebendeYdelser,
   firstOfMonthAfter,
   hasOverlapPeriod,
+  resolveLoebendeAfgoerelseRestVisning,
   shouldShowLoebende2024ConversionBlock,
   toAfgoerelseTypeLabel,
+  type EetLoebendeAfgoerelseComputation,
+  type EetLoebendePeriodeRow,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { isAslAfgoerelseRowEmpty, isAslAfgoerelseRowPersistenceEmpty } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { toISODateString, type ISODateString } from '../../../types/branded';
@@ -1655,5 +1658,84 @@ describe('isAslAfgoerelseRowEmpty', () => {
       tidlKapDato: undefined,
       fsTilbageholdtEet: 'Ja',
     })).toBe(false);
+  });
+});
+
+describe('resolveLoebendeAfgoerelseRestVisning', () => {
+  const periode = (satsAar: number): EetLoebendePeriodeRow => ({
+    fra: toISODateString(`${satsAar}-01-01`),
+    til: toISODateString(`${satsAar}-12-31`),
+    satsAar,
+    maanederPraecis: 12,
+    grundydelseAfrundet: 0,
+    reguleringPct: 0,
+    maanedligYdelse: 0,
+    beregnetEet: 0,
+  });
+
+  const afgoerelse = (
+    patch: Partial<EetLoebendeAfgoerelseComputation> & Pick<EetLoebendeAfgoerelseComputation, 'kapitaliseringsdato' | 'harRestSektion' | 'perioder'>
+  ): EetLoebendeAfgoerelseComputation => ({
+    rowId: 'r1',
+    afgoerelsesdato: toISODateString('2020-01-01'),
+    virkningsdato: toISODateString('2020-01-01'),
+    skaeringsDato: null,
+    harOverlap: false,
+    afgoerelseType: 'Endelig',
+    eetPct: 50,
+    priorKapPct: 0,
+    eetPctFoerAktuelKap: 50,
+    kapPctAktuel: 0,
+    kapPctKumulativ: 0,
+    restEetPct: 50,
+    harKapitalisering: true,
+    tilbagevirkendeKraft: false,
+    ophoerDato: toISODateString('2030-01-01'),
+    ophoerAarsag: 'kapitalisering',
+    grundydelseFuld: 0,
+    grundydelseRest: null,
+    grundydelse2024Fuld: 0,
+    grundydelse2024Rest: null,
+    iAltBeregnetEet: 0,
+    ...patch,
+  });
+
+  it('grundloenNiveau 2024 → ingen 2024-konverteringsblok uanset perioder', () => {
+    const vis = resolveLoebendeAfgoerelseRestVisning(
+      afgoerelse({ kapitaliseringsdato: toISODateString('2025-01-01'), harRestSektion: true, perioder: [periode(2025)] }),
+      '2024'
+    );
+    expect(vis.show2024ConversionBlock).toBe(false);
+  });
+
+  it('2003-niveau med sats-år ≥ 2024 → 2024-konverteringsblok vises', () => {
+    const vis = resolveLoebendeAfgoerelseRestVisning(
+      afgoerelse({ kapitaliseringsdato: toISODateString('2025-01-01'), harRestSektion: true, perioder: [periode(2023), periode(2025)] }),
+      '2003'
+    );
+    expect(vis.show2024ConversionBlock).toBe(true);
+    expect(vis.kapitaliseringFra2024).toBe(true);
+    expect(vis.showRest2024).toBe(true);
+    expect(vis.showRest2003).toBe(false);
+  });
+
+  it('rest-sektion med kapitalisering før 2024-01-01 → rest i 2003-niveau', () => {
+    const vis = resolveLoebendeAfgoerelseRestVisning(
+      afgoerelse({ kapitaliseringsdato: toISODateString('2022-06-01'), harRestSektion: true, perioder: [periode(2023), periode(2025)] }),
+      '2003'
+    );
+    expect(vis.hasRestAfterKapBefore2024).toBe(true);
+    expect(vis.showRest2003).toBe(true);
+    expect(vis.showRest2024).toBe(false);
+  });
+
+  it('uden rest-sektion → ingen rest-visning', () => {
+    const vis = resolveLoebendeAfgoerelseRestVisning(
+      afgoerelse({ kapitaliseringsdato: null, harRestSektion: false, perioder: [periode(2025)] }),
+      '2003'
+    );
+    expect(vis.hasRestSection).toBe(false);
+    expect(vis.showRest2003).toBe(false);
+    expect(vis.showRest2024).toBe(false);
   });
 });

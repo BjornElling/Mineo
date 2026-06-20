@@ -356,6 +356,7 @@ const Erstatningsopgoerelse = React.memo(() => {
               setEOValues={setFormValues}
               onAnsaettelsesforholdChange={handleLoenindkomstAnsaettelsesforholdChange}
               onNavigateToTabtArbejdsfortjeneste={handleNavigateToTabtArbejdsfortjeneste}
+              sfggSixMonthWarningEmploymentIds={eoSnapshot?.data?.sfggSixMonthWarningEmploymentIds ?? []}
             />
           </Box>
         )}

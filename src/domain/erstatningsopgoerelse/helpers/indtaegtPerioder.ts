@@ -21,7 +21,7 @@ import {
 import { getStandardLoenErrorRowIdSet } from '../validation/indkomstRowValidation';
 import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../aarsloen/standardLoenTableValidation';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from './tafBeregningsenhed';
-import { parseAarsloenRowInterval } from './aarsloenRowInterval';
+import { parseAarsloenRowInterval } from '../../aarsloen/aarsloenRowInterval';
 import { buildShDageSetFromIsoRange } from '../engines/tafDaySets';
 import { buildLoenindkomstRateSegments } from './loenindkomstSatser';
 import {
@@ -34,7 +34,7 @@ import { iterateDatesInclusive } from '../../../utils/isoDateHelpers';
 import { roundHeleKroner, roundKroner } from '../shared/eoMoney';
 
 export type { IsoRange } from '../../../utils/isoDateHelpers';
-export { parseAarsloenRowInterval } from './aarsloenRowInterval';
+export { parseAarsloenRowInterval } from '../../aarsloen/aarsloenRowInterval';
 
 export type IncomeEmployerAmount = Readonly<{
   id: string;

@@ -14,7 +14,6 @@ const COMMIT_SENSITIVE_ROOTS = [
 
 const EFFECT_WRITE_PATTERNS = [
   'setValues(',
-  'replaceValues(',
   'setFormValues(',
   'replaceFormValues(',
   'onAnsaettelsesforholdChange(',

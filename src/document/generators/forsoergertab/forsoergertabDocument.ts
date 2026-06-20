@@ -13,11 +13,11 @@ import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtil
 import { cellLeft, cellRight, createDocumentTableHeaderCell, renderDocumentTable } from '../../layout/documentTableRenderer';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { TODAY } from '../../../config/dateRanges';
-import { formatKr, formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit } from '../../../utils/formatUtils';
+import { formatKr, formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
 import { isoToDanish, type ISODateString } from '../../../types/branded';
 import type { ForsoergertabCalculation, ForsoergertabAslComputation } from '../../../domain/forsoergertab/forsoergertabTypes';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-import { buildAldersreduktionFormelTekst, formatPercentTrimmedFromRounded4 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 
 export const buildForsoergertabDocumentFilename = (journalnr?: string): string =>
   resolveDocumentArtifactFileName('Forsørgertab', false, journalnr);

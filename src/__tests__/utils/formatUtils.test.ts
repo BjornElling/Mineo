@@ -3,6 +3,7 @@ import {
   formatCurrency,
   formatAsAmount,
   formatAsAmountTrimmed,
+  formatPercentTrimmedFromRounded4,
   isSingularCount,
   formatCountWithUnit,
 } from '../../utils/formatUtils';
@@ -128,6 +129,15 @@ describe('formatAsAmountTrimmed', () => {
 
   it('returnerer tom streng for ugyldige input', () => {
     expect(formatAsAmountTrimmed(undefined, 4)).toBe('');
+  });
+});
+
+describe('formatPercentTrimmedFromRounded4', () => {
+  it('trimmer efterfølgende nuller efter afrunding til 4 decimaler', () => {
+    expect(formatPercentTrimmedFromRounded4(22.8178)).toBe('22,8178');
+    expect(formatPercentTrimmedFromRounded4(22.8100)).toBe('22,81');
+    expect(formatPercentTrimmedFromRounded4(22.8)).toBe('22,8');
+    expect(formatPercentTrimmedFromRounded4(23)).toBe('23');
   });
 });
 

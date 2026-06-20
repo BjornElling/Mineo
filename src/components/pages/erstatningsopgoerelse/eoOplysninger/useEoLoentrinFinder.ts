@@ -1,26 +1,19 @@
 import React from 'react';
 import type { EOAngivetLoenLoenudvikling } from '../../../../schemas/formSchemas';
 import type { ISODateString } from '../../../../types/branded';
-import { parseISODate } from '../../../../types/branded';
-import { formatDanishDate } from '../../../../utils/dateUtils';
+import { getReportableFieldErrorMessage, type ReportableFieldError } from '../../../../types/fieldErrors';
 import { amountValueToNumber } from '../../../../utils/expressionAmount';
-import { getOverenskomstMetaById, getOffentligOverenskomstTypeById } from '../../../../data/overenskomstRates';
-import { getOffentligLoenTabelForDato } from '../../../../data/offentligLoenLookup';
 import { useShakeFlag } from '../../../../hooks/useShakeFlag';
+import {
+  calculateLoentrinFinderResults,
+  resolveLoentrinFinderOverenskomstLabel,
+  type LoentrinFinderErrors,
+  type LoentrinFinderResult,
+} from '../shared/loentrinFinderCore';
+
+export type { LoentrinFinderErrors, LoentrinFinderResult } from '../shared/loentrinFinderCore';
 
 type LoentrinFinderAnsaettelse = 'Månedsløn' | 'Timeløn';
-
-export type LoentrinFinderErrors = Readonly<{ beloeb?: string; dato?: string }>;
-export type LoentrinFinderResult = Readonly<{
-  loentrin: number | '55+';
-  gruppe: 0 | 1 | 2 | 3 | 4;
-  beloeb: number;
-  diff: number;
-}>;
-
-const LOENGRUPPER = [0, 1, 2, 3, 4] as const;
-
-const parseLoentrinSortValue = (loentrin: number | '55+'): number => (loentrin === '55+' ? 56 : loentrin);
 
 export type UseEoLoentrinFinderResult = Readonly<{
   loentrinFinderOpen: boolean;
@@ -32,8 +25,8 @@ export type UseEoLoentrinFinderResult = Readonly<{
   setLoentrinFinderDato: React.Dispatch<React.SetStateAction<ISODateString | undefined>>;
   loentrinFinderErrors: LoentrinFinderErrors;
   setLoentrinFinderErrors: React.Dispatch<React.SetStateAction<LoentrinFinderErrors>>;
-  setLoentrinFinderAmountFieldError: React.Dispatch<React.SetStateAction<string | undefined>>;
-  setLoentrinFinderDateFieldError: React.Dispatch<React.SetStateAction<string | undefined>>;
+  handleLoentrinFinderAmountFieldError: (errorMsg: ReportableFieldError | undefined) => void;
+  handleLoentrinFinderDateFieldError: (errorMsg: ReportableFieldError | undefined) => void;
   loentrinFinderResults: ReadonlyArray<LoentrinFinderResult>;
   loentrinFinderButtonShake: boolean;
   loentrinFinderDialogRef: React.RefObject<HTMLDivElement | null>;
@@ -101,107 +94,41 @@ export const useEoLoentrinFinder = (
     resetLoentrinFinderState();
   }, [resetLoentrinFinderState]);
 
-  const validateLoentrinFinderInput = React.useCallback((): {
-    errors: LoentrinFinderErrors;
-    beloebNumber: number | undefined;
-  } => {
-    const errors: { beloeb?: string; dato?: string } = {};
-    const beloebNumber = amountValueToNumber(loentrinFinderBeloeb);
+  const handleLoentrinFinderAmountFieldError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
+    setLoentrinFinderAmountFieldError(getReportableFieldErrorMessage(errorMsg));
+  }, []);
 
-    if (loentrinFinderAmountFieldError) {
-      errors.beloeb = loentrinFinderAmountFieldError;
-    } else if (beloebNumber === undefined) {
-      errors.beloeb = 'Beløb skal udfyldes';
-    } else if (beloebNumber <= 0) {
-      errors.beloeb = 'Beløb skal være større end 0';
-    }
-
-    if (loentrinFinderDateFieldError) {
-      errors.dato = loentrinFinderDateFieldError;
-    } else if (!loentrinFinderDato) {
-      errors.dato = 'Dato skal udfyldes';
-    }
-
-    return { errors, beloebNumber };
-  }, [
-    loentrinFinderAmountFieldError,
-    loentrinFinderBeloeb,
-    loentrinFinderDateFieldError,
-    loentrinFinderDato,
-  ]);
+  const handleLoentrinFinderDateFieldError = React.useCallback((errorMsg: ReportableFieldError | undefined) => {
+    setLoentrinFinderDateFieldError(getReportableFieldErrorMessage(errorMsg));
+  }, []);
 
   const handleLoentrinFinderCalculate = React.useCallback(() => {
-    const resolvedOverenskomstId = overenskomstId ?? '';
-    const offentligOverenskomstType = getOffentligOverenskomstTypeById(resolvedOverenskomstId);
-    const overenskomstLabel = getOverenskomstMetaById(resolvedOverenskomstId)?.navn ?? resolvedOverenskomstId;
-
-    if (!offentligOverenskomstType) {
-      setLoentrinFinderErrors({ dato: 'Offentlig overenskomst er ikke valgt' });
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const validation = validateLoentrinFinderInput();
-    const hasInputErrors = Boolean(validation.errors.beloeb) || Boolean(validation.errors.dato);
-    if (hasInputErrors || validation.beloebNumber === undefined || !loentrinFinderDato) {
-      setLoentrinFinderErrors(validation.errors);
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const parsedDate = parseISODate(loentrinFinderDato);
-    if (!parsedDate) {
-      setLoentrinFinderErrors((prev) => ({ ...prev, dato: 'Dato skal udfyldes' }));
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const danishDate = formatDanishDate(parsedDate);
-    const loenTabel = getOffentligLoenTabelForDato(offentligOverenskomstType, danishDate);
-    if (!loenTabel) {
-      setLoentrinFinderErrors((prev) => ({
-        ...prev,
-        dato: `Der findes ingen satser for ${overenskomstLabel} på den valgte dato`,
-      }));
-      setLoentrinFinderResults([]);
-      triggerLoentrinFinderButtonError();
-      return;
-    }
-
-    const results: LoentrinFinderResult[] = [];
-    for (const entry of loenTabel.entries) {
-      for (const gruppe of LOENGRUPPER) {
-        const beloeb =
-          loentrinFinderAnsaettelse === 'Timeløn'
-            ? entry.timeLoen[gruppe]
-            : entry.maanedsLoen[gruppe];
-        results.push({
-          loentrin: entry.loentrin,
-          gruppe,
-          beloeb,
-          diff: Math.abs(beloeb - validation.beloebNumber),
-        });
-      }
-    }
-
-    results.sort((a, b) => {
-      if (a.diff !== b.diff) return a.diff - b.diff;
-      const trinDiff = parseLoentrinSortValue(a.loentrin) - parseLoentrinSortValue(b.loentrin);
-      if (trinDiff !== 0) return trinDiff;
-      return a.gruppe - b.gruppe;
+    const outcome = calculateLoentrinFinderResults({
+      overenskomstId,
+      ansaettelse: loentrinFinderAnsaettelse,
+      beloeb: loentrinFinderBeloeb,
+      dato: loentrinFinderDato,
+      amountFieldError: loentrinFinderAmountFieldError,
+      dateFieldError: loentrinFinderDateFieldError,
     });
 
+    if (!outcome.ok) {
+      setLoentrinFinderErrors(outcome.errors);
+      setLoentrinFinderResults([]);
+      triggerLoentrinFinderButtonError();
+      return;
+    }
+
     setLoentrinFinderErrors({});
-    setLoentrinFinderResults(results.slice(0, 5));
+    setLoentrinFinderResults(outcome.results);
   }, [
     overenskomstId,
     loentrinFinderAnsaettelse,
+    loentrinFinderBeloeb,
     loentrinFinderDato,
+    loentrinFinderAmountFieldError,
+    loentrinFinderDateFieldError,
     triggerLoentrinFinderButtonError,
-    validateLoentrinFinderInput,
   ]);
 
   const loentrinFinderInputAmountNumber = React.useMemo(
@@ -209,12 +136,10 @@ export const useEoLoentrinFinder = (
     [loentrinFinderBeloeb]
   );
 
-  const loentrinFinderOverenskomstLabel = React.useMemo(() => {
-    const id = overenskomstId?.trim();
-    if (!id) return 'Ingen overenskomst valgt';
-    const meta = getOverenskomstMetaById(id);
-    return meta?.navn ?? id;
-  }, [overenskomstId]);
+  const loentrinFinderOverenskomstLabel = React.useMemo(
+    () => resolveLoentrinFinderOverenskomstLabel(overenskomstId),
+    [overenskomstId]
+  );
 
   React.useEffect(() => {
     if (!loentrinFinderOpen) return;
@@ -369,8 +294,8 @@ export const useEoLoentrinFinder = (
     setLoentrinFinderDato,
     loentrinFinderErrors,
     setLoentrinFinderErrors,
-    setLoentrinFinderAmountFieldError,
-    setLoentrinFinderDateFieldError,
+    handleLoentrinFinderAmountFieldError,
+    handleLoentrinFinderDateFieldError,
     loentrinFinderResults,
     loentrinFinderButtonShake,
     loentrinFinderDialogRef,

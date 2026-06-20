@@ -44,7 +44,10 @@ vi.mock('../../../../contexts/useAppSettings', () => ({
 describe('LoenindkomstTab sygeferiegodtgørelse', () => {
   const renderLoenindkomstTab = (
     eoValues = createErstatningsopgoerelseInitialValues(),
-    overrides?: Readonly<{ onAnsaettelsesforholdChange?: React.ComponentProps<typeof LoenindkomstTab>['onAnsaettelsesforholdChange'] }>
+    overrides?: Readonly<{
+      onAnsaettelsesforholdChange?: React.ComponentProps<typeof LoenindkomstTab>['onAnsaettelsesforholdChange'];
+      sfggSixMonthWarningEmploymentIds?: readonly string[];
+    }>
   ) => render(
     <MemoryRouter>
       <LoenindkomstTab
@@ -60,6 +63,7 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
           overrides?.onAnsaettelsesforholdChange ?? vi.fn<React.ComponentProps<typeof LoenindkomstTab>['onAnsaettelsesforholdChange']>()
         }
         onNavigateToTabtArbejdsfortjeneste={vi.fn()}
+        sfggSixMonthWarningEmploymentIds={overrides?.sfggSixMonthWarningEmploymentIds ?? []}
       />
     </MemoryRouter>
   );
@@ -104,6 +108,36 @@ describe('LoenindkomstTab sygeferiegodtgørelse', () => {
     expect(screen.getByText('Ansættelsesforhold 2 (Tidligere arbejde)').closest('.content-box')).not.toHaveTextContent(
       'Sygeferiegodtgørelse beregnes ud fra'
     );
+  });
+
+  const SIX_MONTH_NOTE = 'Bemærk: Sygeferiegodtgørelsen i dette ansættelsesforhold løber mere end 6 måneder efter sidste indkomst. Kontrollér, om perioden er korrekt.';
+
+  it('viser 6-måneders-bemærkningen i SFGG-sektionen når ansættelsesforholdets id er markeret', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    eoValues.loenindkomstAnsaettelsesforhold = [{
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      id: 'af-markeret',
+      ansatPaaSkadestidspunktet: true,
+    }];
+
+    renderLoenindkomstTab(eoValues, { sfggSixMonthWarningEmploymentIds: ['af-markeret'] });
+
+    expect(screen.getByText(SIX_MONTH_NOTE)).toBeInTheDocument();
+  });
+
+  it('viser ikke 6-måneders-bemærkningen når ansættelsesforholdets id ikke er markeret', () => {
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    eoValues.loenindkomstAnsaettelsesforhold = [{
+      ...createDefaultLoenindkomstAnsaettelsesforhold(),
+      id: 'af-markeret',
+      ansatPaaSkadestidspunktet: true,
+    }];
+
+    renderLoenindkomstTab(eoValues, { sfggSixMonthWarningEmploymentIds: [] });
+
+    expect(screen.queryByText(SIX_MONTH_NOTE)).not.toBeInTheDocument();
   });
 
   it('viser satser på anmeldelsesdatoen når anvendt reguleringsdato er skadedato ved erhvervssygdom', () => {

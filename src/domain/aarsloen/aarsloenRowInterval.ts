@@ -1,7 +1,7 @@
-import type { StandardLoenTableRow, Loenperiode } from '../../../schemas/formSchemas';
-import { createDate, parseWeekString } from '../../../utils/dateUtils';
-import type { DateInterval } from '../../../utils/isoDateHelpers';
-import { coerceToISODateString, parseISODate } from '../../../types/branded';
+import type { StandardLoenTableRow, Loenperiode } from '../../schemas/formSchemas';
+import { createDate, parseWeekString } from '../../utils/dateUtils';
+import type { DateInterval } from '../../utils/isoDateHelpers';
+import { coerceToISODateString, parseISODate } from '../../types/branded';
 
 const toUtcDay = (date: Date): Date => {
   return createDate(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());

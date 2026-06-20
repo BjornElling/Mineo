@@ -3,7 +3,7 @@ import type { DeepReadonly } from '../../../types/deepReadonly';
 import { parseISODate } from '../../../types/branded';
 import { isStandardLoenTableValueEffectivelyEmptyForValidation } from '../../aarsloen/standardLoenTableValidation';
 import { type DateInterval } from '../../../utils/isoDateHelpers';
-import { parseAarsloenRowInterval } from './aarsloenRowInterval';
+import { parseAarsloenRowInterval } from '../../aarsloen/aarsloenRowInterval';
 
 export const TAF_BEREGNES_SOM = {
   MAANEDER: 'Måneder',

@@ -1,8 +1,6 @@
 import {
   buildFormulaText,
   computeFormulaValue,
-  formatOverenskomstAmount,
-  formatOverenskomstPercent,
   formatPercentCellFromRaw,
   mergeFeriepengeDisplay,
   parsePercentInput,
@@ -11,6 +9,10 @@ import {
   type FormulaComponents,
   type FormulaVisibility,
 } from '../../../domain/erstatningsopgoerelse/engines/reguleringFormulaUtils';
+import {
+  formatOverenskomstAmount,
+  formatOverenskomstPercent,
+} from '../../../domain/erstatningsopgoerelse/helpers/eoSharedUtils';
 
 describe('computeFormulaValue', () => {
   it('fortolker pct-felter som procentpoint (12 = 12%)', () => {

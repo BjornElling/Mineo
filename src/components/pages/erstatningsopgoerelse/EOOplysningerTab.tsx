@@ -39,7 +39,7 @@ import type { UsePersistedFormReturn } from '../../../hooks/usePersistedForm';
 import { useEoFieldCommitHandlers } from './eoOplysninger/useEoFieldCommitHandlers';
 import { useEoLoenudviklingHandlers } from './eoOplysninger/useEoLoenudviklingHandlers';
 import { useEoLoentrinFinder } from './eoOplysninger/useEoLoentrinFinder';
-import EoLoentrinFinderOverlay from './eoOplysninger/EoLoentrinFinderOverlay';
+import LoentrinFinderOverlay from './shared/LoentrinFinderOverlay';
 import {
   CURRENT_YEAR,
   MIN_SVIESMERTE_YEAR,
@@ -1823,7 +1823,31 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       </ContentBox>
       )}
 
-      <EoLoentrinFinderOverlay loentrinFinder={loentrinFinder} />
+      <LoentrinFinderOverlay
+        open={loentrinFinder.loentrinFinderOpen}
+        ansaettelse={loentrinFinder.loentrinFinderAnsaettelse}
+        setAnsaettelse={loentrinFinder.setLoentrinFinderAnsaettelse}
+        beloeb={loentrinFinder.loentrinFinderBeloeb}
+        setBeloeb={loentrinFinder.setLoentrinFinderBeloeb}
+        dato={loentrinFinder.loentrinFinderDato}
+        setDato={loentrinFinder.setLoentrinFinderDato}
+        errors={loentrinFinder.loentrinFinderErrors}
+        setErrors={loentrinFinder.setLoentrinFinderErrors}
+        onAmountFieldError={loentrinFinder.handleLoentrinFinderAmountFieldError}
+        onDateFieldError={loentrinFinder.handleLoentrinFinderDateFieldError}
+        results={loentrinFinder.loentrinFinderResults}
+        buttonShake={loentrinFinder.loentrinFinderButtonShake}
+        dialogRef={loentrinFinder.loentrinFinderDialogRef}
+        loentrinFinderAnsaettelseRef={loentrinFinder.loentrinFinderAnsaettelseRef}
+        loentrinFinderBeloebRef={loentrinFinder.loentrinFinderBeloebRef}
+        loentrinFinderDatoRef={loentrinFinder.loentrinFinderDatoRef}
+        beregnRef={loentrinFinder.loentrinFinderBeregnRef}
+        headingId={loentrinFinder.loentrinFinderHeadingId}
+        overenskomstLabel={loentrinFinder.loentrinFinderOverenskomstLabel}
+        inputAmountNumber={loentrinFinder.loentrinFinderInputAmountNumber}
+        onClose={loentrinFinder.closeLoentrinFinder}
+        onCalculate={loentrinFinder.handleLoentrinFinderCalculate}
+      />
 
       {/* Sektion 7: Øvrige erstatningskrav */}
       <ContentBox className="content-box" data-section-id="oevrige-krav">

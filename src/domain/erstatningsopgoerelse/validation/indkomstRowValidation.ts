@@ -11,7 +11,7 @@ import {
   buildOffentligeYdelserCellKey,
 } from './offentligeYdelserTableValidation';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
-import { hasAarsloenPeriodOrderError, parseAarsloenRowInterval } from '../helpers/aarsloenRowInterval';
+import { hasAarsloenPeriodOrderError, parseAarsloenRowInterval } from '../../aarsloen/aarsloenRowInterval';
 import { buildLoenArbejdsdageSet } from '../engines/periodiseringsMotor';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../helpers/tafBeregningsenhed';
 import { formatDanishDate } from '../../../utils/dateUtils';

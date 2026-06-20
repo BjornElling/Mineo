@@ -724,4 +724,56 @@ describe('computeEoSnapshot', () => {
     ]);
     expect(pdfProjection.document.samlet.totalOre).toBe(120000);
   });
+
+  it('eksponerer sfggSixMonthWarningEmploymentIds når SFGG løber >6 mdr. efter sidste indkomst', () => {
+    // Sidste indkomst er januar 2024. TAF-perioden (og dermed SFGG-segmenterne) løber i august 2024,
+    // dvs. mere end 6 måneder efter sidste indkomst → ansættelsesforholdet skal markeres.
+    const eoValues = createErstatningsopgoerelseInitialValues();
+    eoValues.tafBeregningsperiodeFra = toISODateString('2024-01-01');
+    eoValues.tafBeregningsperiodeTil = toISODateString('2024-01-31');
+    eoValues.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        loenudviklingBeregningsgrundlag: 'Ingen',
+        indtaegtsoplysningerTableData: [{
+          id: 'loen-jan-2024',
+          col0_maaned: '1',
+          col1_maaned: '2024',
+          col0_uge: '',
+          col1_uge: '',
+          col0_dag: undefined,
+          col1_dag: undefined,
+          col2: { kind: 'number', value: 10000 },
+          col3: undefined,
+          col4: undefined,
+          col5: undefined,
+        }],
+      }),
+    ];
+    eoValues.tafPerioder = [
+      { id: 'r1', fra: toISODateString('2024-08-01'), til: toISODateString('2024-08-31'), loseFeriedage: 0 },
+    ];
+    eoValues.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: eoValues.loenindkomstAnsaettelsesforhold[0].id,
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: { kind: 'number', value: 100 },
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const snapshot = computeEoSnapshot({
+      revision: 'sfgg-six-month-warning',
+      stamdataValues: { ...STAMDATA_INITIAL_VALUES, skadedato: toISODateString('2024-01-01') },
+      eoValues,
+    });
+
+    expect(snapshot.data).not.toBeNull();
+    expect(snapshot.data?.sfggSixMonthWarningEmploymentIds).toEqual([
+      eoValues.loenindkomstAnsaettelsesforhold[0].id,
+    ]);
+  });
 });

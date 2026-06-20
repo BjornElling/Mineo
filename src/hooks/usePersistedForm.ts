@@ -25,7 +25,6 @@ export type CommitOriginOptions = {
 };
 
 export type SetValuesUpdater<T extends object> = (updater: (prev: T) => T | Partial<T>, options?: CommitOriginOptions) => void;
-export type ReplaceValuesSetter<T> = (next: T) => void;
 export type SetFieldValue<T> = <K extends keyof T>(fieldName: K, value: T[K], options?: CommitOriginOptions) => void;
 
 const getCurrentPathname = (): string => {
@@ -56,11 +55,6 @@ export interface UsePersistedFormReturn<T extends object> {
    */
   setValues: SetValuesUpdater<T>;
   setFieldValue: SetFieldValue<T>;
-  /**
-   * Autoritativ erstatning af sektionens committed værdier.
-   * Bruges kun når hele sektionen bevidst skal erstattes.
-   */
-  replaceValues: ReplaceValuesSetter<T>;
   resetForm: () => void;
   /**
    * Ændres kun ved "authoritative" value-replace events (fx reset/load/migration),
@@ -113,12 +107,11 @@ export const usePersistedForm = <K extends StorageKey>(
   pageKey: K,
   initialValues: PersistedSectionMap[K]
 ): UsePersistedFormReturn<PersistedSectionMap[K]> => {
-  const { persistData, clearPageData, clearFieldErrors } = useFormPersistence();
+  const { persistData, clearPageData } = useFormPersistence();
   const routePathname = useRoutePathnameSnapshot();
   const initialValuesRef = React.useRef(initialValues);
   const persistDataRef = React.useRef(persistData);
   const clearPageDataRef = React.useRef(clearPageData);
-  const clearFieldErrorsRef = React.useRef(clearFieldErrors);
   const reportedInvalidSectionKeysRef = React.useRef<Set<string>>(new Set());
   const committedSection = usePersistedSectionSelector(pageKey);
   const authoritativeSnapshotEpoch = useAuthoritativeSnapshotEpochSelector();
@@ -129,8 +122,7 @@ export const usePersistedForm = <K extends StorageKey>(
   React.useEffect(() => {
     persistDataRef.current = persistData;
     clearPageDataRef.current = clearPageData;
-    clearFieldErrorsRef.current = clearFieldErrors;
-  }, [clearFieldErrors, clearPageData, persistData]);
+  }, [clearPageData, persistData]);
 
   const resolvedValues = React.useMemo(() => {
     const materializedInitialValues = schema.parse(initialValues);
@@ -248,16 +240,6 @@ export const usePersistedForm = <K extends StorageKey>(
     [setValues]
   );
 
-  const replaceValues = React.useCallback((next: PersistedSectionMap[K]) => {
-    clearFieldErrorsRef.current(pageKey);
-    // replaceValues må kun bump'e formVersion når den autoritative commit faktisk lykkes.
-    // persistData returnerer derfor et eksplicit succes-signal i stedet for at vi gætter via revisionsdrift.
-    const didPersist = persistDataRef.current(pageKey, next);
-    if (didPersist) {
-      bumpFormVersion();
-    }
-  }, [pageKey]);
-
   /**
    * Nulstiller formular til initialValues OG sletter gemt data fra storage.
    * Dette er en destruktiv operation - data kan ikke gendannes.
@@ -276,7 +258,6 @@ export const usePersistedForm = <K extends StorageKey>(
     values,
     setValues,
     setFieldValue,
-    replaceValues,
     resetForm,
     formVersion,
   };

@@ -10,6 +10,7 @@ import {
   convertAnciennitetSats,
   detectDecimalPlaces,
   formatAmountWithoutTrailingDecimals,
+  formatOverenskomstAmount,
   hasAnyPctSourceOrInput,
   hasPctSourceOrInput,
   numOrZero,
@@ -50,7 +51,6 @@ import { resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
 import {
   buildFormulaText,
   computeFormulaValue,
-  formatOverenskomstAmount,
   formatPercentCellFromRaw,
   mergeFeriepengeDisplay,
   parsePercentInput,

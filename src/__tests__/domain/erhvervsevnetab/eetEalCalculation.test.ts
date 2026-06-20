@@ -4,7 +4,6 @@ import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../../domain/erhvervsevnetab/
 import {
   buildAldersreduktionFormelTekst,
   computeEetEalCalculation,
-  formatPercentTrimmedFromRounded4,
 } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { emptyAslAfgoerelseRowFields } from '../../../domain/erhvervsevnetab/eetAslAfgoerelser';
 import { aarsloenAslMax, erhvervsevnetabEalMax, reguleringssats } from '../../../data/lovbestemteRates';
@@ -421,15 +420,6 @@ describe('computeEetEalCalculation — delegering til opreguleringsmotor (akkumu
         (issue) => issue.severity === 'error' && issue.id === 'reguleringssats-missing' && issue.message.includes('2019')
       )
     ).toBe(true);
-  });
-});
-
-describe('formatPercentTrimmedFromRounded4', () => {
-  it('trimmer efterfølgende nuller efter afrunding til 4 decimaler', () => {
-    expect(formatPercentTrimmedFromRounded4(22.8178)).toBe('22,8178');
-    expect(formatPercentTrimmedFromRounded4(22.8100)).toBe('22,81');
-    expect(formatPercentTrimmedFromRounded4(22.8)).toBe('22,8');
-    expect(formatPercentTrimmedFromRounded4(23)).toBe('23');
   });
 });
 

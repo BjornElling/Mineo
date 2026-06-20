@@ -6,7 +6,7 @@ import type {
   TableError,
 } from '../../types/table';
 import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
-import { hasAarsloenPeriodOrderError } from '../erstatningsopgoerelse/helpers/aarsloenRowInterval';
+import { hasAarsloenPeriodOrderError } from './aarsloenRowInterval';
 import { isAmountValueStrict } from '../../utils/tableValidationCommon';
 
 export type StandardLoenTableCellErrorMap = Readonly<Record<string, true>>;

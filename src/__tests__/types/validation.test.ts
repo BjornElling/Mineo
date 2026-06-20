@@ -1,4 +1,4 @@
-import type { ValidationError, ValidationResult, ValidationErrorMap, FormValidator, FieldPath, ValidationSeverity } from '../../types/validation';
+import type { ValidationError, ValidationResult, FormValidator, FieldPath, ValidationSeverity } from '../../types/validation';
 
 // Note: validation.ts eksporterer kun typer — ingen runtime-funktioner at teste.
 // Disse tests er strukturelle kontrakter der sikrer typernes form.
@@ -53,17 +53,6 @@ describe('ValidationResult', () => {
     };
     expect(result.isValid).toBe(false);
     expect(result.errors).toHaveLength(1);
-  });
-});
-
-describe('ValidationErrorMap', () => {
-  it('nøgle = felt-path, value = array af errors', () => {
-    const errorMap: ValidationErrorMap = {
-      'felt1': [{ path: 'felt1', message: 'Fejl A' }],
-      'felt2': [{ path: 'felt2', message: 'Fejl B' }, { path: 'felt2', message: 'Fejl C' }],
-    };
-    expect(errorMap['felt1']).toHaveLength(1);
-    expect(errorMap['felt2']).toHaveLength(2);
   });
 });
 

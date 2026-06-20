@@ -10,7 +10,6 @@
 import { PDF_FINAL_Y_FALLBACK_HEIGHT, PDF_SECTION_HEADING_GAP, SECTION_SPACER } from './pdfConfig';
 import type { ISODateString } from '../../types/branded';
 import { formatAsAmount, formatPercent as formatPercentUtil } from '../../utils/formatUtils';
-import { setDocumentBrand } from '../documentBrand';
 export { getDocumentCreatorBrand } from '../documentBrand';
 
 /**
@@ -36,15 +35,6 @@ export const resolveDocumentSectionEndY = (
   const spacer = options?.spacer ?? SECTION_SPACER;
   const resolvedY = Number.isFinite(finalY) ? finalY : startY + fallbackHeight;
   return resolvedY + spacer;
-};
-
-/**
- * Dokument-brand: vandmærket/footeren nederst og `creator`-metadata.
- * Standardbuildet er Mineo.dk; minprocesrente-standalone-buildet sætter
- * brandet til minprocesrente.dk ved bootstrap.
- */
-export const setDocumentFooterBrand = (brand: string): void => {
-  setDocumentBrand(brand);
 };
 
 /**

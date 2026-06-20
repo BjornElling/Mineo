@@ -9,11 +9,11 @@ import { type BrevhovedData } from '../../layout/documentLayoutHelpers';
 import { createStandardPdfWriter } from '../../writer';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
-import { formatPercentTrimmedFromRounded4, buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
+import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { TODAY } from '../../../config/dateRanges';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
-import { formatAsAmount } from '../../../utils/formatUtils';
+import { formatAsAmount, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
 import { formatKrEet as formatKr } from './eetDocumentUtils';
 
 const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;

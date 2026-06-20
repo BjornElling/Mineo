@@ -3,7 +3,7 @@
 **Version:** 0.2
 **Status:** Gældende arkitektur (normativ)
 **Prioritet:** Underordnet samtlige tværgående kontrakter jf. `contract-topology.json` (`subordinateContracts`), som alle går forud ved konflikt. App-entry/-shell-laget (§3.1) er specifikt underordnet `app-shell-contract.md`.
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-06-19
 
 Dette dokument er **normativt**.
 Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
@@ -269,16 +269,16 @@ Det er forkert at gøre persisted tab-state til et universelt krav for alle side
 
 Tabs må enten:
 
-- mountes betinget, eller
-- holdes mounted efter første besøg
+- mountes betinget (unmountes når de ikke er aktive), eller
+- holdes mounted efter første besøg (fx via "visited"-sæt + `display:none`).
 
 Normativ beslutningsregel:
 
-- Tabs der indeholder lokal draft-state skal holdes mounted efter første besøg. "Draft-capable" betyder mindst ét felt eller tabelsystem baseret på `useDraftField`, `useRowDrafts`, `useTableInputCore` eller tilsvarende field/table engine.
-- Runtime-fejl i central store er ikke i sig selv grund til hold-mounted. Hvis en runtime-fejl kun overlever ved lokal mounted state, er det et arkitekturproblem og skal flyttes til central model eller snapshot.
-- Tabs der kun viser beregnede resultater eller andre rene visninger, må mountes betinget.
+- **Committed data-integritet og persisterede feltfejl må aldrig afhænge af mount-strategien.** I Mineo er disse garanteret centralt: committed input lever i `formPersistenceStore` (ikke i tab-komponenten), tab-skift blur'er den aktive editor så gyldigt input committes og ikke-committbart input persisteres til `invalidDrafts` (jf. `form-contract.md` §2.4), og feltfejl ejes af den centrale fejl-model (`error-debug-contract.md`). Et draft-capable tab kan derfor mountes betinget uden datatab. "Draft-capable" betyder mindst ét felt eller tabelsystem baseret på `useDraftField`, `useRowDrafts`, `useTableInputCore` eller tilsvarende field/table engine.
+- Mount-strategien er dermed et **frit implementeringsvalg styret af render-omkostning og UX** (fx undgå tung initial render af et stort tab ved at holde det mounted efter første besøg), ikke et korrekthedskrav.
+- **Forbudt:** at lade committed input, en persisteret feltfejl eller en runtime-fejl-tilstand overleve *kun* i lokal mounted state. Hvis noget kun overlever ved hold-mounted, er det et arkitekturproblem og skal flyttes til central store/model/snapshot — ikke maskeres ved at undlade at unmounte.
 
-Valget skal ikke være ad hoc per side.
+Valget skal ikke være ad hoc per side: en sides tabs bør følge ét konsistent mønster (alle betinget, eller alle hold-mounted efter første besøg).
 
 ---
 

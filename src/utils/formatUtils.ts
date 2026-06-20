@@ -5,6 +5,7 @@
  */
 
 import { roundByMethod } from './rounding';
+import { round4 } from './roundingShortcuts';
 import { isWithinTolerance } from './numberComparison';
 
 export const isSingularCount = (value: number): boolean => isWithinTolerance(value, 1);
@@ -76,4 +77,13 @@ export const formatPercent = (num: number | null | undefined): string => {
     .replace(/(\.\d)0$/, '$1')
     .replace('.', ',');
   return `${formatted} %`;
+};
+
+/**
+ * Formaterer et procentpoint-tal med op til 4 decimaler (afrundet halfAwayFromZero) og
+ * trimmede trailing nuller. Tilføjer IKKE selv "%"-suffiks — kalderen styrer enhedsvisningen.
+ * Bruges af EET-aldersreduktion/EAL og forsørgertab til kompakt procentvisning.
+ */
+export const formatPercentTrimmedFromRounded4 = (value: number): string => {
+  return formatAsAmountTrimmed(round4(value), 4);
 };

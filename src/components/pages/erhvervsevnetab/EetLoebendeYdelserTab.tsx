@@ -16,7 +16,7 @@ import {
 import {
   formatPct,
   formatSkadedatoCompact,
-  shouldShowLoebende2024ConversionBlock,
+  resolveLoebendeAfgoerelseRestVisning,
   toAfgoerelseTypeLabel,
   toOphoerAarsagLabel,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
@@ -26,7 +26,6 @@ import HoverRow from './HoverRow';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import { useShakeFlag } from '../../../hooks/useShakeFlag';
 import { formatJaNej } from '../../../domain/erhvervsevnetab/eetFormatUtils';
-import { SKAERING_2024_01_01 } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoer';
 import { type SetValuesUpdater } from '../../../hooks/usePersistedForm';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
 import { formatKr } from '../../../utils/formatUtils';
@@ -339,21 +338,9 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
                 roundByMethod(1 + reguleringFoer2024Pct / 100, 3, 'halfAwayFromZero'),
                 3
               );
-              const show2024ConversionBlock =
-                computation.grundloenNiveau === '2003' && shouldShowLoebende2024ConversionBlock(afgoerelse);
+              const { show2024ConversionBlock, hasRestAfterKapBefore2024, showRest2003, showRest2024 } =
+                resolveLoebendeAfgoerelseRestVisning(afgoerelse, computation.grundloenNiveau);
               const showSplitHeading = show2024ConversionBlock;
-              const hasKapitaliseringsdato = afgoerelse.kapitaliseringsdato !== null;
-              const hasRestSection = afgoerelse.harRestSektion && hasKapitaliseringsdato;
-              const kapitaliseringFra2024 =
-                afgoerelse.kapitaliseringsdato !== null &&
-                afgoerelse.kapitaliseringsdato >= SKAERING_2024_01_01;
-              const hasRestAfterKapBefore2024 = Boolean(
-                hasRestSection &&
-                afgoerelse.kapitaliseringsdato &&
-                afgoerelse.kapitaliseringsdato < SKAERING_2024_01_01
-              );
-              const showRest2003 = hasRestSection && (!show2024ConversionBlock || !kapitaliseringFra2024);
-              const showRest2024 = show2024ConversionBlock && hasRestSection && kapitaliseringFra2024;
               const restEetExpression = `${formatPctTal(afgoerelse.eetPctFoerAktuelKap)} - ${formatPct(
                 afgoerelse.kapPctAktuel
               )} = ${formatPct(afgoerelse.restEetPct)}`;

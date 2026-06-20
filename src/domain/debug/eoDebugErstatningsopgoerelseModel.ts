@@ -59,7 +59,7 @@ import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCano
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import { resolveBilagWarning } from '../erstatningsopgoerelse/helpers/bilagWarnings';
 import { ensureMoneyOre } from '../erstatningsopgoerelse/shared/eoMoney';
-import { parseAarsloenRowInterval } from '../erstatningsopgoerelse/helpers/aarsloenRowInterval';
+import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
 
 /**

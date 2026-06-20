@@ -18,8 +18,8 @@ import { assertNever } from '../../../utils/assertNever';
  * CENTRAL PERIODISERINGSMOTOR (normativ)
  *
  * Denne motor er den fælles kilde til sandhed for:
- * 1) Beløbsperiodisering for måneder
- * 2) Beløbsperiodisering for arbejdsdage
+ * 1) Beløbsperiodisering for offentlige ydelser (kalenderdage/arbejdsdage pr. ydelsestype-regel)
+ * 2) Lønindkomstens arbejdsdage-sæt (grundlag for lønperiodisering i indtaegtPerioder.ts)
  * 3) Optælling af måneder
  * 4) Optælling af arbejdsdage
  *
@@ -27,6 +27,8 @@ import { assertNever } from '../../../utils/assertNever';
  * - Lønindkomst:
  *   - Når TAF beregnes som måneder: periodiseres på kalenderdage (man-søn), inkl. ferie- og SH-dage.
  *   - Når TAF beregnes som arbejdsdage: periodiseres på arbejdsdage (man-fre), ekskl. ferie- og SH-dage.
+ *     Motoren leverer arbejdsdage-sættet via buildLoenArbejdsdageSet; selve overlaps-periodiseringen
+ *     af lønbeløb sker i den kanoniske forbruger indtaegtPerioder.ts.
  *   - Løse ferie-/fraværsdage er ikke del af lønperiodiseringsgrundlaget.
  * - Offentlige ydelser:
  *   - Periodiseres efter den centralt definerede ydelsestype-regel.
@@ -52,29 +54,6 @@ export type KalenderugeArbejdsdage = Readonly<{
   arbejdsdage: number;
 }>;
 
-// Summerer overlap-dage additivt pr. range. Kalderen SKAL levere indbyrdes disjunkte ranges
-// (merget via mergeIsoDateRanges) — to overlappende ranges ville ellers dobbelttælle delte dage
-// og overskyde brøken overlapDays/totalDays. Modsat tæller arbejdsdags-sporet nedenfor via
-// isDateInRanges (boolean medlemskab pr. dag) og er dermed iboende immun mod range-overlap.
-const countOverlapCalendarDays = (interval: DateInterval, ranges: readonly IsoRange[]): number => {
-  if (ranges.length === 0) return 0;
-  let total = 0;
-  for (const range of ranges) {
-    const rangeStart = parseISODate(range.fra);
-    const rangeEnd = parseISODate(range.til);
-    if (!rangeStart || !rangeEnd) continue;
-    const start = interval.start > rangeStart ? interval.start : rangeStart;
-    const end = interval.end < rangeEnd ? interval.end : rangeEnd;
-    if (start > end) continue;
-    const days = countInclusiveUtcDays(start, end);
-    if (days) total += days;
-  }
-  return total;
-};
-
-const isDateInRanges = (iso: ISODateString, ranges: readonly IsoRange[]): boolean =>
-  ranges.some((range) => iso >= range.fra && iso <= range.til);
-
 export const buildLoenArbejdsdageSet = (
   bounds: IsoRange,
   ferieperioder: readonly FerieperiodeRow[]
@@ -96,44 +75,6 @@ export const buildLoenArbejdsdageSet = (
     arbejdsdage.add(isoStr);
   }
   return arbejdsdage;
-};
-
-export const periodiserBeloebForMaaneder = (args: {
-  totalBeloeb: number;
-  interval: DateInterval;
-  ranges: readonly IsoRange[];
-}): number => {
-  const { totalBeloeb, interval, ranges } = args;
-  const totalDays = countInclusiveUtcDays(interval.start, interval.end);
-  if (!totalDays || totalDays <= 0) return 0;
-  const overlapDays = countOverlapCalendarDays(interval, ranges);
-  if (overlapDays <= 0) return 0;
-  return totalBeloeb * (overlapDays / totalDays);
-};
-
-export const periodiserBeloebForArbejdsdage = (args: {
-  totalBeloeb: number;
-  interval: DateInterval;
-  ranges: readonly IsoRange[];
-  arbejdsdageSet: ReadonlySet<ISODateString>;
-}): number => {
-  const { totalBeloeb, interval, ranges, arbejdsdageSet } = args;
-  const totalDays = countInclusiveUtcDays(interval.start, interval.end);
-  if (!totalDays || totalDays <= 0) return 0;
-
-  let totalArbejdsdage = 0;
-  let overlapArbejdsdage = 0;
-  iterateDatesInclusive(interval.start, interval.end, (date) => {
-    const iso = dateToISO(date);
-    if (!iso) return;
-    if (!arbejdsdageSet.has(iso)) return;
-    totalArbejdsdage += 1;
-    if (isDateInRanges(iso, ranges)) {
-      overlapArbejdsdage += 1;
-    }
-  });
-  if (totalArbejdsdage <= 0 || overlapArbejdsdage <= 0) return 0;
-  return totalBeloeb * (overlapArbejdsdage / totalArbejdsdage);
 };
 
 export const isOffentligYdelseDatoMedregnet = (args: {

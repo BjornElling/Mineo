@@ -9,8 +9,6 @@ import {
   optaelArbejdsdageBreakdown,
   optaelMaanederAfrundet,
   optaelMaanederPraecis,
-  periodiserBeloebForArbejdsdage,
-  periodiserBeloebForMaaneder,
   periodiserBeloebForOffentligYdelse,
   periodiserBeloebForOffentligYdelseMedGrundlag,
   sumMaanedsbroekForInterval,
@@ -20,31 +18,6 @@ const iso = (value: string): ISODateString => toISODateString(value);
 const d = (value: string): Date => new Date(`${value}T00:00:00.000Z`);
 
 describe('periodiseringsMotor', () => {
-  it('periodiserBeloebForMaaneder periodiserer proportionalt på kalenderdage', () => {
-    const result = periodiserBeloebForMaaneder({
-      totalBeloeb: 310,
-      interval: { start: d(toISODateString('2024-01-01')), end: d(toISODateString('2024-01-31')) },
-      ranges: [{ fra: iso('2024-01-01'), til: iso('2024-01-10') }],
-    });
-    expect(result).toBe(100);
-  });
-
-  it('periodiserBeloebForArbejdsdage periodiserer proportionalt på arbejdsdage', () => {
-    const arbejdsdageSet = new Set<ISODateString>([
-      iso('2024-01-01'),
-      iso('2024-01-02'),
-      iso('2024-01-04'),
-      iso('2024-01-05'),
-    ]);
-    const result = periodiserBeloebForArbejdsdage({
-      totalBeloeb: 100,
-      interval: { start: d(toISODateString('2024-01-01')), end: d(toISODateString('2024-01-05')) },
-      ranges: [{ fra: iso('2024-01-03'), til: iso('2024-01-05') }],
-      arbejdsdageSet,
-    });
-    expect(result).toBe(50);
-  });
-
   it('periodiserBeloebForOffentligYdelse bruger ydelsesrækkens egen til-dato til sygedagpenge-cutoff', () => {
     const shDays = new Set<ISODateString>([iso('2012-06-05')]);
     const result = periodiserBeloebForOffentligYdelse({
@@ -465,48 +438,5 @@ describe('sumMaanedsbroekForInterval', () => {
 
   it('hele februar i skudår → 1 (alle 29 dage)', () => {
     expect(sumMaanedsbroekForInterval(iso('2024-02-01'), iso('2024-02-29'))).toBeCloseTo(1, 10);
-  });
-});
-
-describe('periodiseringsMotor — division-værn ved degenererede grundlag', () => {
-  it('periodiserBeloebForMaaneder: tomt ranges-sæt → 0 (ingen overlap)', () => {
-    const result = periodiserBeloebForMaaneder({
-      totalBeloeb: 1000,
-      interval: { start: d(iso('2024-01-01')), end: d(iso('2024-01-31')) },
-      ranges: [],
-    });
-    expect(result).toBe(0);
-    expect(Number.isNaN(result)).toBe(false);
-  });
-
-  it('periodiserBeloebForMaaneder: én-dags interval bevarer endeligt resultat (ingen NaN ved totalDays=1)', () => {
-    const result = periodiserBeloebForMaaneder({
-      totalBeloeb: 1000,
-      interval: { start: d(iso('2024-01-15')), end: d(iso('2024-01-15')) },
-      ranges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
-    });
-    // Fuldt overlap på det ene døgn → hele beløbet.
-    expect(result).toBe(1000);
-  });
-
-  it('periodiserBeloebForArbejdsdage: tomt arbejdsdage-sæt → 0 (totalArbejdsdage=0, ingen NaN)', () => {
-    const result = periodiserBeloebForArbejdsdage({
-      totalBeloeb: 1000,
-      interval: { start: d(iso('2024-01-01')), end: d(iso('2024-01-31')) },
-      ranges: [{ fra: iso('2024-01-01'), til: iso('2024-01-10') }],
-      arbejdsdageSet: new Set<ISODateString>(),
-    });
-    expect(result).toBe(0);
-    expect(Number.isNaN(result)).toBe(false);
-  });
-
-  it('periodiserBeloebForArbejdsdage: ingen overlap mellem range og arbejdsdage → 0', () => {
-    const result = periodiserBeloebForArbejdsdage({
-      totalBeloeb: 1000,
-      interval: { start: d(iso('2024-01-01')), end: d(iso('2024-01-31')) },
-      ranges: [{ fra: iso('2024-01-20'), til: iso('2024-01-25') }],
-      arbejdsdageSet: new Set<ISODateString>([iso('2024-01-02'), iso('2024-01-03')]),
-    });
-    expect(result).toBe(0);
   });
 });

@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { coerceToWholeNumberOrUndefined, optionalIsoDateString, normalizeEmptyToUndefined } from '../baseSchemas';
 import { koenEnum } from '../enumSchemas';
-import { PRE_2015_CUTOFF } from '../../../domain/forsoergertab/forsoergertabConstants';
+import { SKAERING_2015_03_01 } from '../../../domain/erhvervsevnetab/eetSkaeringsdatoer';
 
 export const forsoergertabSchema = z.object({
   efterladteFodselsdato: optionalIsoDateString,
@@ -29,7 +29,7 @@ export const forsoergertabSchema = z.object({
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['beregningsdato'], message });
   }
 
-  if (value.beregningsdato !== undefined && value.beregningsdato < PRE_2015_CUTOFF && value.koen === undefined) {
+  if (value.beregningsdato !== undefined && value.beregningsdato < SKAERING_2015_03_01 && value.koen === undefined) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
       path: ['koen'],
