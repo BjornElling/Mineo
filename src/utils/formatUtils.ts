@@ -7,6 +7,7 @@
 import { roundByMethod } from './rounding';
 import { round4 } from './roundingShortcuts';
 import { isWithinTolerance } from './numberComparison';
+import { INPUT_UNIT_SUFFIX, appendInputUnitSuffix } from './inputUnit';
 
 export const isSingularCount = (value: number): boolean => isWithinTolerance(value, 1);
 
@@ -28,8 +29,15 @@ export const formatCurrency = (num: number | undefined | null): string => {
   return formatAsAmount(num, 2);
 };
 
+/**
+ * Kanonisk visning af et beløb som tekst MED enheden "kr." — det read-only-modstykke til det
+ * adornment, redigerbare beløbsfelter viser (jf. `InputUnitAdornment`). Enheden hentes fra det ene
+ * sande sted (`INPUT_UNIT_SUFFIX.currency`), ikke en parallel inline-streng, så alle beløbsvisninger
+ * (PDF, Word og afledte grid-celler) deler præcis samme enhed. Brug denne i afledte/read-only
+ * beløbsceller frem for `formatAsAmount`/`formatCurrency`, der bevidst er enhedsløse.
+ */
 export const formatKr = (value: number, precision: 0 | 2 = 0): string =>
-  `${formatAsAmount(value, precision)} kr.`;
+  appendInputUnitSuffix(formatAsAmount(value, precision), INPUT_UNIT_SUFFIX.currency);
 
 /**
  * Formaterer tal til dansk beløbsformat med valgfri precision.

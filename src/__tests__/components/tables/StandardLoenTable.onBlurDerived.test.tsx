@@ -27,10 +27,11 @@ const computeDerived = (amounts: { col2: number; col3: number; col4: number; col
   const pension = loenPlusLoen2 * (1 + totalPct) * pensionPct;
   const samlet = loenPlusLoen2PlusIkkePensLoen + fpFvShSo + pension + amounts.col5;
 
+  // Afledte beløbsceller viser enheden "kr." (samme kanoniske enhed som redigerbare beløbsfelter).
   return {
-    fpFvShSo: formatNumber(fpFvShSo),
-    pension: formatNumber(pension),
-    samlet: formatNumber(samlet),
+    fpFvShSo: `${formatNumber(fpFvShSo)} kr.`,
+    pension: `${formatNumber(pension)} kr.`,
+    samlet: `${formatNumber(samlet)} kr.`,
   };
 };
 

@@ -7,7 +7,7 @@ import { CELL_TABLE_IDS } from '../../../config/cellInvalidDraftScopes';
 import ContentBox from '../../layout/ContentBox';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
-import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
+import { formatAsAmount, formatKr } from '../../../utils/formatUtils';
 import StyledDateField from '../../inputs/StyledDateField';
 import StyledTextField from '../../inputs/StyledTextField';
 import StyledToggleSwitch from '../../inputs/StyledToggleSwitch';
@@ -128,7 +128,7 @@ const OffentligeYdelserTab = React.memo(({ rows, onRowsChange, kommentarer, midl
       map.set(row.id, {
         periodiseringLabel: derived.periodiseringLabel,
         antalDageDisplay: derived.antalDage !== null ? formatAntalDage(derived.antalDage) : '',
-        ydelsePerDagDisplay: derived.ydelsePerDag !== null ? formatCurrency(derived.ydelsePerDag) : '',
+        ydelsePerDagDisplay: derived.ydelsePerDag !== null ? formatKr(derived.ydelsePerDag, 2) : '',
       });
     }
     return map;

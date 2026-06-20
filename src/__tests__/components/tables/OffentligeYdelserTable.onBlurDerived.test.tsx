@@ -6,7 +6,7 @@ import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ISODateString } from '../../../types/branded';
 import OffentligeYdelserTable from '../../../components/tables/OffentligeYdelserTable';
 import { deriveOffentligeYdelserRow } from '../../../domain/erstatningsopgoerelse/helpers/offentligeYdelserDerived';
-import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
+import { formatAsAmount, formatKr } from '../../../utils/formatUtils';
 
 const asDate = (s: string) => s as ISODateString;
 
@@ -93,7 +93,7 @@ const DerivedHarness = ({ initial, onPersist }: { initial: OffentligeYdelserRow[
       map.set(row.id, {
         periodiseringLabel: derived.periodiseringLabel,
         antalDageDisplay: derived.antalDage !== null ? formatAntalDage(derived.antalDage) : '',
-        ydelsePerDagDisplay: derived.ydelsePerDag !== null ? formatCurrency(derived.ydelsePerDag) : '',
+        ydelsePerDagDisplay: derived.ydelsePerDag !== null ? formatKr(derived.ydelsePerDag, 2) : '',
       });
     }
     return map;
@@ -144,7 +144,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       />
     );
 
-    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00' });
+    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00 kr.' });
 
     const input = getYdelseInput();
     await user.click(input);
@@ -285,7 +285,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
-      expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00' });
+      expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00 kr.' });
     });
   }, TEST_TIMEOUT_MS);
 
@@ -308,7 +308,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       />
     );
 
-    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '5,00' });
+    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '5,00 kr.' });
 
     const input = getTillaegInput();
     await user.click(input);
@@ -343,7 +343,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       />
     );
 
-    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00' });
+    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00 kr.' });
 
     const input = getTilDatoInput();
     await user.click(input);
@@ -375,7 +375,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
       />
     );
 
-    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '100,00' });
+    expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '100,00 kr.' });
   });
 
   it('recomputes ydelse/dag on blur when entering an already-canonical date (no normalization delta)', async () => {
@@ -410,7 +410,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
 
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
-      expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00' });
+      expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00 kr.' });
     });
   }, TEST_TIMEOUT_MS);
 
@@ -454,7 +454,7 @@ describe('OffentligeYdelserTable (Ydelse / dag)', () => {
     await waitFor(() => {
       expect(onPersist).toHaveBeenCalledTimes(1);
       expect(getFraDatoInput()).toHaveValue('01-01-2024');
-      expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00' });
+      expect(getDerivedTexts()).toEqual({ antalDageDisplay: '10', ydelsePerDagDisplay: '10,00 kr.' });
     });
   }, TEST_TIMEOUT_MS);
 });

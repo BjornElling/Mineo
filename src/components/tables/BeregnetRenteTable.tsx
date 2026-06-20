@@ -9,7 +9,7 @@ import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDr
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
 import { RowDeleteButton } from './RowDeleteButton';
 import { useTableSort } from './useTableSort';
-import { formatAsAmount } from '../../utils/formatUtils';
+import { formatKr } from '../../utils/formatUtils';
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import { minISO } from '../../utils/isoDateHelpers';
@@ -206,7 +206,7 @@ const BeregnetRenteRow = React.memo(
         <TableCell align="right" sx={{ paddingTop: 0, paddingBottom: 0, ...(isMobile && { paddingRight: '10px' }) }}>
           <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
             <Typography className="row--text" sx={{ color: 'var(--mineo-color-grid-derived)', textAlign: 'right' }}>
-              {calculatedInterest !== null ? `${formatAsAmount(calculatedInterest, 2)} kr.` : '-'}
+              {calculatedInterest !== null ? formatKr(calculatedInterest, 2) : '-'}
             </Typography>
           </Box>
         </TableCell>

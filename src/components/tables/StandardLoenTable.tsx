@@ -9,7 +9,7 @@ import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 
 import { CURRENT_YEAR, MIN_YEAR, dateRanges_aarsloen } from '../../config/dateRanges';
 import type { StandardLoenTableRow, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
-import { formatAsAmount } from '../../utils/formatUtils';
+import { formatKr } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type {
   StandardLoenTableColumnKey,
@@ -750,7 +750,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       color: calculated.col6 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
                     }}
                   >
-                    {formatAsAmount(calculated.col6)}
+                    {formatKr(calculated.col6, 2)}
                   </td>
                 )}
 
@@ -777,7 +777,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                       color: calculated.col7 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
                     }}
                   >
-                    {formatAsAmount(calculated.col7)}
+                    {formatKr(calculated.col7, 2)}
                   </td>
                 )}
 
@@ -791,7 +791,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                     color: calculated.col8 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
                   }}
                 >
-                  {formatAsAmount(calculated.col8)}
+                  {formatKr(calculated.col8, 2)}
                   {!isRowEmpty(committedRow) && (
                     <RowDeleteButton onDelete={() => handleDeleteRow(row.id)} />
                   )}
