@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, IconButton, Typography } from '@mui/material';
-import { Download } from '@mui/icons-material';
+import { Download, Delete } from '@mui/icons-material';
+import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import type { RateEntry } from '../../../data/interestRates';
 import StyledDateField from '../../inputs/StyledDateField';
 import InsertTodayDateButton from '../../inputs/InsertTodayDateButton';
@@ -60,6 +61,12 @@ export interface RenteberegningTabProps {
   onDownloadOversigt?: (rows: readonly RenteOversigtRow[], beregningsdato: ISODateString) => Promise<void>;
   oversigtErrorMessage?: string | null;
   showOversigtBox?: boolean;
+  /**
+   * Nulstiller alle indtastninger på renteberegning-siden til defaults. Når sat (kun på
+   * desktop-kalderne) vises "Slet alle indtastninger"-rækken under oversigts-download.
+   * Bevidst kun desktop: følger samme synlighed som oversigts-rækken (jf. !isMobile).
+   */
+  onClearAll?: () => void;
   documentDownloadFormat: DocumentDownloadFormat;
 }
 
@@ -85,11 +92,13 @@ const RenteberegningTab = React.memo(({
   onDownloadOversigt,
   oversigtErrorMessage = null,
   showOversigtBox = false,
+  onClearAll,
   documentDownloadFormat,
 }: RenteberegningTabProps) => {
   const [beregningsdatoHasError, setBeregningsdatoHasError] = React.useState(false);
   const beregningsdatoInputRef = React.useRef<HTMLInputElement>(null);
   const [downloadAllIsLoading, setDownloadAllIsLoading] = React.useState(false);
+  const [clearAllDialogOpen, setClearAllDialogOpen] = React.useState(false);
 
   // §2.4 (renteberegning-contract): download-gaten beregnes auditerbart hos parent
   // DIREKTE fra committed input via den kanoniske computeRentekravRow — IKKE via
@@ -163,6 +172,23 @@ const RenteberegningTab = React.memo(({
 
   // Vis kun oversigts-linjen på desktop (kalderen sætter showOversigtBox).
   const renderOversigtRow = showOversigtBox && onDownloadOversigt !== undefined && !isMobile;
+
+  // "Slet alle indtastninger" vises kun på desktop (samme synlighed som oversigts-rækken)
+  // og kun når kalderen leverer en nulstil-handler.
+  const renderClearAllRow = onClearAll !== undefined && !isMobile;
+
+  // Deaktivér slet-knappen når der intet er at slette. Afgøres KUN fra committed state
+  // (jf. form-contract: ingen afledt feedback fra draft): beregningsdato, kommentarer og
+  // alle committed rentekrav-rækker skal være tomme. 'enhed' tæller ikke (jf. isRentekravRowEmpty).
+  const hasAnyCommittedInput = React.useMemo(() => {
+    if (beregningsdato !== undefined) return true;
+    if (kommentarer !== undefined && kommentarer.trim() !== '') return true;
+    for (const committedRow of committedRentekravById.values()) {
+      if (!isRentekravRowEmpty(committedRow)) return true;
+    }
+    return false;
+  }, [beregningsdato, kommentarer, committedRentekravById]);
+  const clearAllDisabled = !hasAnyCommittedInput;
 
   return (
     <Box>
@@ -274,6 +300,34 @@ const RenteberegningTab = React.memo(({
             </Box>
           </>
         )}
+        {renderClearAllRow && (
+          <Box className="row--label-right-hover">
+            <Typography className="row--text">Slet alle indtastninger</Typography>
+            <Box className="row--label-right-hover__content">
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+                <IconButton
+                  onClick={() => setClearAllDialogOpen(true)}
+                  disabled={clearAllDisabled}
+                  aria-label="Slet alle indtastninger"
+                  size="small"
+                  sx={(theme) => ({
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '6px',
+                    '&:hover': {
+                      backgroundColor: theme.palette.action.hover,
+                    },
+                  })}
+                >
+                  {/* Bevidst dæmpet rød (mellem støvet og temaets kraftige error.main) — blødere
+                      signal for en destruktiv, men sjælden handling. Deaktiveret: samme grå som
+                      download-ikonet (action.disabled). */}
+                  <Delete sx={{ fontSize: '24px', color: clearAllDisabled ? 'action.disabled' : '#c25555' }} />
+                </IconButton>
+              </Box>
+            </Box>
+          </Box>
+        )}
       </ContentBoxComponent>
 
       {showDownloadAllBox && (
@@ -306,6 +360,29 @@ const RenteberegningTab = React.memo(({
         <Typography className="section-header">Beregningstekniske forudsætninger</Typography>
         <TechnicalAssumptionsList items={RENTE_CALCULATION_PRINCIPLES} />
       </ContentBoxComponent>
+
+      {renderClearAllRow && (
+        <ConfirmationDialog
+          open={clearAllDialogOpen}
+          title="Slet alle indtastninger"
+          message={(
+            <>
+              Dette sletter alle værdier, du har indtastet på renteberegning-siden. Handlingen kan ikke fortrydes.
+              <br />
+              <br />
+              Bekræft venligst.
+            </>
+          )}
+          confirmText="Ja, slet"
+          cancelText="Annuller"
+          confirmColor="error"
+          onConfirm={() => {
+            onClearAll?.();
+            setClearAllDialogOpen(false);
+          }}
+          onCancel={() => setClearAllDialogOpen(false)}
+        />
+      )}
     </Box>
   );
 });

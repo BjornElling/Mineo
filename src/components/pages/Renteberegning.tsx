@@ -40,7 +40,7 @@ const Renteberegning = React.memo(() => {
     defaultTab: TAB_KEYS.CALCULATION,
   });
 
-  const { values, setValues, setFieldValue, formVersion } = usePersistedForm(
+  const { values, setValues, setFieldValue, resetForm, formVersion } = usePersistedForm(
     renteberegningSchema,
     'renteberegning',
     initialValues
@@ -181,6 +181,7 @@ const Renteberegning = React.memo(() => {
           onDownloadOversigt={handleDownloadOversigt}
           oversigtErrorMessage={oversigtErrorMessage}
           showOversigtBox
+          onClearAll={resetForm}
           documentDownloadFormat={settings.documentDownloadFormat}
         />
       )}

@@ -24,7 +24,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const mobileContentFontSize = '12px';
   const initialValues = React.useMemo(() => createRenteberegningInitialValues(), []);
-  const { values, setValues, setFieldValue, formVersion } = usePersistedForm(
+  const { values, setValues, setFieldValue, resetForm, formVersion } = usePersistedForm(
     renteberegningSchema,
     'renteberegning',
     initialValues
@@ -210,6 +210,7 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
         onDownloadOversigt={handleDownloadOversigt}
         oversigtErrorMessage={oversigtErrorMessage}
         showOversigtBox
+        onClearAll={resetForm}
         documentDownloadFormat={DEFAULT_DOCUMENT_DOWNLOAD_FORMAT}
       />
     </Box>
