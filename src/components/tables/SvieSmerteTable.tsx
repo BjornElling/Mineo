@@ -219,7 +219,6 @@ const SvieSmerteTable = React.memo(
                     value={tilstandValue}
                     options={SVIE_TILSTAND_OPTIONS}
                     appearance="loose"
-                    sx={{ width: 172 }}
                     onChange={(e) => {
                       onFieldChange(row.id, 'tilstand')(e.target.value ?? '');
                       onRowBlur(row.id);
