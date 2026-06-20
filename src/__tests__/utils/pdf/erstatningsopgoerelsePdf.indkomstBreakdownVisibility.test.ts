@@ -931,7 +931,10 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     const tafIndtaegterTotal = model.tabtArbejdsfortjeneste.tafIndtaegter?.total;
     const sygeferiegodtgoerelseOre = model.tabtArbejdsfortjeneste.sygeferiegodtgoerelse.totalOre;
 
-    expect(sygeferiegodtgoerelseOre).toBe(40000);
+    // Bruttokravet er 4 dage x 100 kr = 40000 øre. Fradraget for feriepenge modtaget i
+    // perioden beregnes med de lovbestemte 12,5 % af lønnen (uafhængigt af feriePct), så
+    // nettokravet er 17272 øre.
+    expect(sygeferiegodtgoerelseOre).toBe(17272);
     expect(loenudviklingTotal?.status).toBe('ok');
     expect(tafIndtaegterTotal?.status).toBe('ok');
     if (loenudviklingTotal?.status !== 'ok' || tafIndtaegterTotal?.status !== 'ok') {

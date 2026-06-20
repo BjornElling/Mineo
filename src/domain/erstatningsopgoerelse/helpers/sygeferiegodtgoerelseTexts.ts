@@ -82,6 +82,15 @@ export const resolveSfggDifferentieretSatsLabel = (
   }
 };
 
+/**
+ * Note til beregningsdokumentet, når sygeferiegodtgørelse beregnes som en procentdel
+ * af lønnen (ferielov-/overenskomst-efter-ferielov-sporet), og brugeren har indtastet
+ * en feriepengesats for lønindkomsten, der afviger fra de lovbestemte 12,5 %. Noten
+ * gør det udtrykkeligt, at SFGG uanset den indtastede sats beregnes med 12,5 %.
+ */
+export const buildSfggLovbestemtFeriepengeNote = (): string =>
+  'Satsen udgør 12,5 % af den ferieberettigede løn.';
+
 export const buildSfggAfterEmployerSickPayText = (
   source: Readonly<{ kind: 'manual' | 'overenskomst' }>
 ): string => {

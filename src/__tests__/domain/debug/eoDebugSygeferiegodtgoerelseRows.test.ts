@@ -1362,8 +1362,9 @@ describe('buildEODebugSygeferiegodtgoerelseRows', () => {
 
     const tableRow = rows.find((row) => row.id === `sfgg.tabel.${values.loenindkomstAnsaettelsesforhold[0].id}`);
     expect(tableRow?.displayValue).toContain('Fra-dato | Til-dato | Indeks | Feriepenge-sats | AG-pension | Antal kalenderdage | Samlet');
-    expect(tableRow?.displayValue).toContain('26-02-2024 | 29-02-2024 | 100,36 | 14,63 | + 10 % | 4 | 64,37');
-    expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,46 | 15,38 | + 10 % | 5 | 84,59');
+    // SFGG-satsen beregnes med de lovbestemte 12,5 %, ikke den indtastede feriePct (16,95 %).
+    expect(tableRow?.displayValue).toContain('26-02-2024 | 29-02-2024 | 100,36 | 10,79 | + 10 % | 4 | 47,48');
+    expect(tableRow?.displayValue).toContain('01-03-2024 | 05-03-2024 | 105,46 | 11,34 | + 10 % | 5 | 62,37');
   });
 
   it('viser arbejdsdags-SFGG med kalenderdagsstart efter årsskifte i debug-tabellen når 1. januar ikke er arbejdsdag', () => {

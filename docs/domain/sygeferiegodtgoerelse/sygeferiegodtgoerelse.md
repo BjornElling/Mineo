@@ -41,6 +41,22 @@ Der findes tre hovedmodeller:
 - overenskomstbestemt referencesats
 - manuelt angivet referencesats
 
+#### 2.0. Beregningsteknisk princip: feriepengesatsen for SFGG er altid 12,5 %
+
+Dette er et bærende, ufravigeligt princip for hele SFGG-beregningen.
+
+Når sygeferiegodtgørelse **ikke** udgør en overenskomstbestemt eller en manuelt angivet sats — altså når den i stedet beregnes som en **procentdel af den ferieberettigede løn** — er den anvendte feriepengeprocent **altid 12,5 %**.
+
+Konkret betyder det:
+- Den feriepengesats, brugeren har indtastet for lønindkomsten i ansættelsesforholdet (`feriePct`), bruges **aldrig** til at beregne sygeferiegodtgørelse. Den indtastede sats er ofte overenskomstforhøjet (fx 14,5 %) og dækker tillæg, der ikke indgår i SFGG.
+- De 12,5 % anvendes **begge** steder, hvor feriepenge indgår i SFGG-beregningen:
+  - i selve referencesatsen (jf. afsnit 2.1 og 5), og
+  - i fradraget for feriepenge modtaget i perioden (jf. afsnit 5).
+- Princippet gælder de spor, hvor SFGG beregnes som en procentdel af lønnen: ferielovens model og overenskomstmodellen, når overenskomsten beregnes efter ferieloven (eventuelt med en alternativ referenceperiode).
+- Princippet er **ikke** relevant for direkte overenskomstsatser eller manuelt angivne satser, fordi disse satser ikke afledes som en procentdel af lønnen.
+
+Som dokumentation i selve beregningsdokumentet (PDF/Word) gælder desuden: når brugeren har indtastet en feriepengesats for lønindkomsten, der afviger fra 12,5 %, **og** sygeferiegodtgørelse beregnes som en procentdel af lønnen, skal der fremgå en note om, at sygeferiegodtgørelse beregnes med 12,5 % af den ferieberettigede løn (jf. afsnit 9.2).
+
 #### 2.1. Ferielovens model
 
 Udgangspunktet er en referenceperiode på 4 uger.
@@ -63,6 +79,8 @@ referencesats = (loenPlusLoen2PlusIkkePensLoen i referenceperioden x FP-sats) / 
 
 Kun den almindelige feriepengeprocent (`FP-sats`) indgår i referencesatsen.
 Andre tillæg som fritvalg, SH/SO og Store Bededag indgår ikke i referencesatsen.
+
+`FP-sats` er her **altid de lovbestemte 12,5 %** — se det beregningstekniske princip i afsnit 2.0 nedenfor.
 
 #### 2.2. Relevante dage i referenceperioden
 
@@ -221,6 +239,8 @@ feriepenge modtaget i perioden (+ AG-pension) = sum(dagens fradrag)
 
 Kun den almindelige feriepengeprocent indgår i dette fradrag.
 Fritvalg, SH/SO og Store Bededag indgår ikke.
+
+`FP-sats` i både referencesatsen og dette fradrag er altid de lovbestemte 12,5 % — aldrig den feriepengesats, brugeren har indtastet for lønindkomsten (jf. afsnit 2.0).
 
 Pension må kun beregnes af feriepengebeløbet i fradragslinjen, ikke af den underliggende løn endnu en gang.
 Hvis pensionssatsen ændrer sig i SFGG-perioden, skal hver dag beregnes med den pensionssats, der gælder netop den dag.
@@ -423,6 +443,7 @@ PDF'en skal kunne oplyse:
 - at SFGG ophørte på en bestemt dato på grund af ansættelsesophør
 - at SFGG ophørte på en bestemt dato, fordi 4-månedersgrænsen blev nået
 - at bestemte perioder er undtaget på grund af arbejdsgiverbetalt sygeløn efter overenskomsten
+- at sygeferiegodtgørelse beregnes med 12,5 % af den ferieberettigede løn, når SFGG beregnes som en procentdel af lønnen, og den indtastede feriepengesats for lønindkomsten afviger fra 12,5 % (jf. afsnit 2.0). Noten vises i referencesats-blokken, umiddelbart efter linjen "Opgøres som den gennemsnitlige feriepengebetaling i … før sygeforløbet." og før referenceperioden.
 
 Hvis både sygelønsperioder og senere ansættelsesophør er relevante, skal begge forklaringer vises i denne rækkefølge:
 - først forklaring om ret først efter ophør af sygeløn

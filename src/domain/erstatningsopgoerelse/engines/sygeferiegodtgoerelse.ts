@@ -9,7 +9,6 @@ import type {
 import { TODAY } from '../../../config/dateRanges';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { addDays, addMonths } from '../../../utils/dateUtils';
-import { parsePercentToDecimal } from '../../../utils/numberParsing';
 import { roundByMethod } from '../../../utils/rounding';
 import { calculateStandardLoenRowDerived } from '../../aarsloen/standardLoenRowCalculations';
 import { parseAarsloenRowInterval } from '../helpers/indtaegtPerioder';
@@ -38,6 +37,7 @@ import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValid
 import { countInclusiveUtcDays } from '../../../utils/utcDayMath';
 import {
   buildSfggAfterEmployerSickPayText,
+  buildSfggLovbestemtFeriepengeNote,
   buildSfggNoEligibleDaysReason,
   SFGG_FIRST_TAF_DAY_EXCLUDED_TEXT,
   buildSfggIntroText,
@@ -46,6 +46,23 @@ import {
   resolveSfggReferenceperiodeAuthorityText,
   resolveSfggReferenceperiodeLabel,
 } from '../helpers/sygeferiegodtgoerelseTexts';
+
+/**
+ * Beregningsteknisk princip for sygeferiegodtgørelse (SFGG):
+ *
+ * Når SFGG ikke udgør en overenskomstbestemt eller manuelt angivet sats, men i stedet
+ * beregnes som en procentdel af den ferieberettigede løn (ferielov-sporet og
+ * overenskomst-efter-ferielov-sporet), anvendes ALTID den lovbestemte feriepengesats
+ * på 12,5 %.
+ *
+ * Den feriepengesats, brugeren har indtastet for lønindkomsten i ansættelsesforholdet
+ * (`employment.feriePct`), bruges derfor aldrig til SFGG — hverken til selve
+ * referencesatsen eller til fradraget for feriepenge modtaget i perioden. Den indtastede
+ * sats er typisk overenskomstforhøjet (fx 14,5 %) og dækker tillæg, der ikke indgår i
+ * SFGG; SFGG hviler på ferielovens almindelige feriepengeprocent.
+ */
+export const SFGG_LOVBESTEMT_FERIEPENGE_PCT = 12.5;
+export const SFGG_LOVBESTEMT_FERIEPENGE_DECIMAL = SFGG_LOVBESTEMT_FERIEPENGE_PCT / 100;
 
 export type SfggSourceKind = 'ingen' | 'manuel' | 'ferielov' | 'overenskomst_direkte' | 'overenskomst_ferielov';
 export type SfggSource = Readonly<{ kind: SfggSourceKind; label: string }>;
@@ -156,6 +173,7 @@ export type SygeferiegodtgoerelseAnsaettelsesforholdResult = Readonly<{
   sfggDirectRateLabel: string | null;
   sfggFirstTafDayExcludedText: string | null;
   sfggAfterEmployerSickPayText: string | null;
+  sfggLovbestemtFeriepengeNote: string | null;
   pdfExplanatoryLines: readonly string[];
   segments: readonly SygeferiegodtgoerelseSegment[];
   perYear: readonly Readonly<{
@@ -612,7 +630,8 @@ const calculateSfggFeriepengeMedPensionOreFromLoenKroner = (
   iso: ISODateString
 ): MoneyOre => {
   if (loenPlusLoen2PlusIkkePensLoenKroner <= 0) return ensureMoneyOre(0);
-  const feriepengeKroner = loenPlusLoen2PlusIkkePensLoenKroner * parsePercentToDecimal(employment.feriePct);
+  // SFGG bruger altid den lovbestemte feriepengesats (12,5 %), aldrig employment.feriePct.
+  const feriepengeKroner = loenPlusLoen2PlusIkkePensLoenKroner * SFGG_LOVBESTEMT_FERIEPENGE_DECIMAL;
   const pensionMultiplier = 1 + resolveSfggAgPensionPctDecimalForDate(employment, iso);
   return ensureMoneyOre(toOre(roundKroner(feriepengeKroner * pensionMultiplier)));
 };
@@ -978,7 +997,9 @@ const resolveSfggBaseRate = (
       [{ fra: sfggRow.sfggReferenceperiodeFra, til: sfggRow.sfggReferenceperiodeTil }],
       values.ferieperioder ?? []
     );
-  const feriePctDecimal = parsePercentToDecimal(employment.feriePct);
+  // SFGG-referencesatsen beregnes altid med den lovbestemte feriepengesats (12,5 %),
+  // aldrig med den feriepengesats brugeren har indtastet for lønindkomsten.
+  const feriePctDecimal = SFGG_LOVBESTEMT_FERIEPENGE_DECIMAL;
   const feriepengeKroner = loenPlusLoen2PlusIkkePensLoenKroner * feriePctDecimal;
   if (arbejdsdage <= 0) {
     return {
@@ -1297,6 +1318,20 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
     });
     const sfggAfterEmployerSickPayText = sfggAfterEmployerSickPayProjection.text;
 
+    // Note til beregningsdokumentet: når SFGG beregnes som en procentdel af lønnen
+    // (ferielov-/overenskomst-efter-ferielov-sporet), og brugeren har indtastet en
+    // feriepengesats for lønindkomsten, der afviger fra de lovbestemte 12,5 %, oplyses
+    // det udtrykkeligt, at SFGG uanset den indtastede sats beregnes med 12,5 %.
+    const sfggBeregnesSomProcentAfLoen =
+      sfggSource.kind === 'ferielov' || sfggSource.kind === 'overenskomst_ferielov';
+    const harAfvigendeFeriepengesats =
+      employment.feriePct !== undefined
+      && Math.abs(employment.feriePct - SFGG_LOVBESTEMT_FERIEPENGE_PCT) > 1e-9;
+    const sfggLovbestemtFeriepengeNote =
+      sfggBeregnesSomProcentAfLoen && harAfvigendeFeriepengesats
+        ? buildSfggLovbestemtFeriepengeNote()
+        : null;
+
     const hasEligibleDays = eligibleRanges.some((range) => {
       if (sfggDayBasis === 'kalenderdage') {
         const start = parseISODate(range.fra);
@@ -1325,6 +1360,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
         sfggDirectRateLabel,
         sfggFirstTafDayExcludedText,
         sfggAfterEmployerSickPayText,
+        sfggLovbestemtFeriepengeNote,
         pdfExplanatoryLines,
         segments: [],
         perYear: [],
@@ -1486,6 +1522,7 @@ export const computeSygeferiegodtgoerelse = (args: Readonly<{
       sfggDirectRateLabel,
       sfggFirstTafDayExcludedText,
       sfggAfterEmployerSickPayText,
+      sfggLovbestemtFeriepengeNote,
       pdfExplanatoryLines,
       segments,
       perYear: [...employmentPerYear.entries()]

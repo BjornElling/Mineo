@@ -62,6 +62,7 @@ export type SygeferiegodtgoerelseModel = Readonly<{
     sfggDirectRateLabel: string | null;
     sfggFirstTafDayExcludedText: string | null;
     sfggAfterEmployerSickPayText: string | null;
+    sfggLovbestemtFeriepengeNote: string | null;
     pdfExplanatoryLines: readonly string[];
     perYear: readonly Readonly<{
       year: number;

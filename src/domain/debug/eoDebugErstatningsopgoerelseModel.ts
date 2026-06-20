@@ -3246,6 +3246,15 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       });
     }
 
+    if (result?.sfggLovbestemtFeriepengeNote) {
+      rows.push({
+        id: `sfgg.lovbestemtFeriepengeNote.${employment.id}`,
+        label: 'Note',
+        displayValue: result.sfggLovbestemtFeriepengeNote,
+        status: 'ok',
+      });
+    }
+
     if (result?.segments.length) {
       const antalDageHeader = sfggDayBasis === 'kalenderdage'
         ? 'Antal kalenderdage'

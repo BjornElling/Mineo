@@ -217,6 +217,9 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
     safeAddWrappedText(
       `Opgøres som den gennemsnitlige feriepengebetaling i ${entry.sfggReferenceperiodeLabel} før sygeforløbet.`
     );
+    if (entry.sfggLovbestemtFeriepengeNote) {
+      safeAddWrappedText(entry.sfggLovbestemtFeriepengeNote);
+    }
     writer.addSectionSpacer();
     writeLabelValueLine(
       'Referenceperiode',

@@ -1923,6 +1923,147 @@ describe('computeSygeferiegodtgoerelse', () => {
       })
     );
   });
+
+  it('beregner referencesatsen med 12,5 % og ignorerer en afvigende indtastet feriepengesats', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      // Brugeren har indtastet en overenskomstforhøjet feriepengesats (14,5 %), men
+      // SFGG skal uanset dette beregnes med de lovbestemte 12,5 %.
+      feriePct: 14.5,
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
+        col2: asAmount(10000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+    });
+
+    const entry = result.perAnsaettelsesforhold[0];
+    expect(entry?.sfggReferencesats.status).toBe('ok');
+    // Identisk med resultatet ved feriePct: 12.5 — beviser at den indtastede 14,5 % ikke bruges.
+    expect(entry?.sfggReferencesats.status === 'ok' ? entry.sfggReferencesats.value : null).toBe(5682);
+    expect(entry?.sfggReferencesatsFormula?.feriePctDecimal).toBe(0.125);
+    expect(entry?.sfggReferencesatsFormula?.feriepengeKroner).toBe(1250);
+    // Noten oplyser, at SFGG beregnes med 12,5 %, fordi den indtastede sats afviger.
+    expect(entry?.sfggLovbestemtFeriepengeNote).toBe(
+      'Satsen udgør 12,5 % af den ferieberettigede løn.'
+    );
+  });
+
+  it('beregner fradraget for feriepenge af sygeløn med 12,5 % uanset indtastet feriepengesats', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      feriePct: 14.5,
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
+        col2: asAmount(10000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Manuelt angivet',
+      sfggManuelDagssats: asAmount(100),
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: undefined,
+      sfggReferenceperiodeTil: undefined,
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-01-15'), til: iso('2024-01-15') }],
+    });
+
+    const entry = result.perAnsaettelsesforhold[0];
+    // Identisk med feriePct: 12.5-tilfældet (5682) — den indtastede 14,5 % bruges ikke.
+    expect(entry?.segments[0]?.feriepengeAfSygeloenOre).toBe(5682);
+    expect(entry?.segments[0]?.beregnetSfggoereOre).toBe(4318);
+    // Manuel sats er ikke "beregnet som procentdel af lønnen", så noten vises ikke.
+    expect(entry?.sfggLovbestemtFeriepengeNote).toBeNull();
+  });
+
+  it('viser ikke 12,5 %-noten når den indtastede feriepengesats allerede er 12,5 %', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.eoNummer = '2';
+    values.beregnesUdFra = 'Angivet dagsløn';
+    values.loenindkomstAnsaettelsesforhold = [createEmployment({
+      feriePct: 12.5,
+      indtaegtsoplysningerTableData: [{
+        id: 'loen-jan-2024',
+        col0_maaned: '1',
+        col1_maaned: '2024',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
+        col2: asAmount(10000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+      }],
+    })];
+    values.sfggAnsaettelsesforhold = [{
+      ansaettelsesforholdId: 'af-1',
+      sfggBeregningskilde: 'Ferieloven',
+      sfggManuelDagssats: undefined,
+      sfggManuelBeloebIHenholdTil: undefined,
+      sfggManuelFoerstEfterSygeloen: 'Nej',
+      sfggReferenceperiodeFra: iso('2024-01-01'),
+      sfggReferenceperiodeTil: iso('2024-01-31'),
+      sfggReferenceperiodeFravaersdageUdenLoen: 0,
+      sfggSatsvalg: undefined,
+      sfggAlleredeBetaltBeloeb: undefined,
+    }];
+
+    const result = computeSygeferiegodtgoerelse({
+      values,
+      stamdata: { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-01-01') },
+      tafRanges: [{ fra: iso('2024-02-01'), til: iso('2024-02-01') }],
+    });
+
+    expect(result.perAnsaettelsesforhold[0]?.sfggLovbestemtFeriepengeNote).toBeNull();
+  });
 });
 
 describe('findSfggSixMonthWarningEmploymentIds', () => {
