@@ -10,6 +10,7 @@ import {
 } from '../../document/generators/renteberegning/renteDocument';
 import { generateRenteOversigtDocument } from '../../document/generators/renteberegning/renteOversigtDocument';
 import { createPdfChannelWriter } from './pdfWriter';
+import { withDocumentGenerationContext } from '../../document/documentGenerationContext';
 import { parseDanishDate } from '../../utils/dateUtils';
 import { getDocumentCreatorBrand } from '../../document/layout/documentLayoutHelpers';
 import { asError } from '../../utils/typeGuards';
@@ -46,12 +47,18 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
   } = params;
 
   try {
-    generateRenteDocument(beloeb, actualInterestDate, beregningsdato, periods, {
-      visBrevhoved: false,
-      stamdata: null,
-      kommentarer,
-      latestReferenceRateDate,
-    });
+    // Generatorerne skriver via den kanal-agnostiske router (createStandardPdfWriter),
+    // som kræver en writer-fabrik injiceret i den aktive documentGenerationContext.
+    // Standalone MinProcesrente understøtter kun PDF, så vi injicerer PDF-kanalens fabrik
+    // direkte (jf. runSelectedDocumentFormat i hovedappens documentService).
+    await withDocumentGenerationContext('pdf', () => {
+      generateRenteDocument(beloeb, actualInterestDate, beregningsdato, periods, {
+        visBrevhoved: false,
+        stamdata: null,
+        kommentarer,
+        latestReferenceRateDate,
+      });
+    }, { createWriter: createPdfChannelWriter });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
     return reportStandaloneRenteDownloadFailure(error);
@@ -70,11 +77,14 @@ export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
   }
 
   try {
-    generateRenteOversigtDocument(beregningsdato, rows, {
-      visBrevhoved: false,
-      stamdata: null,
-      kommentarer,
-    });
+    // Se note i downloadStandaloneRentePdf: routeren kræver en injiceret PDF-writer-fabrik.
+    await withDocumentGenerationContext('pdf', () => {
+      generateRenteOversigtDocument(beregningsdato, rows, {
+        visBrevhoved: false,
+        stamdata: null,
+        kommentarer,
+      });
+    }, { createWriter: createPdfChannelWriter });
     return PDF_DOWNLOAD_SUCCESS;
   } catch (error) {
     return reportStandaloneRenteDownloadFailure(error);
