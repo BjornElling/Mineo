@@ -4,6 +4,7 @@ import TableDateInput from '../inputs/table/TableDateInput';
 import TablePercentInput from '../inputs/table/TablePercentInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
+import { RowDeleteButton } from './RowDeleteButton';
 import { dateRanges_erhvervsevnetab } from '../../config/dateRanges';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
 import type { AslAfgoerelseRow, AfgoerelseType, JaNej } from '../../schemas/formSchemas';
@@ -145,6 +146,19 @@ const EetAslAfgoerelserTable = React.memo(
         });
       },
       [getStrippedFingerprint, lastPersistedFingerprintRef, normalizeRows, queuePersist, setInternalTableData]
+    );
+
+    // Slet hele rækken i én undo-handling: filtrér rækken ud, re-normalisér og persistér én gang.
+    const handleDeleteRow = React.useCallback(
+      (rowId: string) => {
+        setInternalTableData((prev) => {
+          const normalized = normalizeRows(prev.filter((row) => row.id !== rowId));
+          if (fingerprintTableData(normalized) === fingerprintTableData(prev)) return prev;
+          queuePersist(normalized);
+          return normalized;
+        });
+      },
+      [normalizeRows, queuePersist, setInternalTableData]
     );
 
     const validationMessageByCell = React.useMemo(() => {
@@ -345,7 +359,7 @@ const EetAslAfgoerelserTable = React.memo(
                     );
                   })()}
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
                   <TableDropdown
                     gridCell={{ rowId: row.id, colIndex: 7 }}
                     value={row.fsTilbageholdtEet ?? 'Nej'}
@@ -355,6 +369,9 @@ const EetAslAfgoerelserTable = React.memo(
                     }
                     options={JA_NEJ_OPTIONS}
                   />
+                  {!isAslAfgoerelseRowPersistenceEmpty(row) && (
+                    <RowDeleteButton onDelete={() => handleDeleteRow(row.id)} />
+                  )}
                 </TableCell>
               </TableRow>
             );

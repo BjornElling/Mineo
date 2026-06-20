@@ -7,6 +7,7 @@ import TableDateInput from '../inputs/table/TableDateInput';
 import TableIntegerInput from '../inputs/table/TableIntegerInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
+import { RowDeleteButton } from './RowDeleteButton';
 import { useTableSort } from './useTableSort';
 import { formatAsAmount } from '../../utils/formatUtils';
 import type { ISODateString } from '../../types/branded';
@@ -50,6 +51,8 @@ export type BeregnetRenteTableProps = Readonly<{
   committedById: ReadonlyMap<string, RentekravRow>;
   onFieldChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
+  /** Sletter hele rækken i én undo-handling (committed removeRow fra row-hooken). */
+  onDeleteRow?: (rowId: string) => void;
   beregningsdato: ISODateString | undefined;
   onDownloadSpecifikation: (pdfContext: RentePdfContext) => Promise<void>;
   onError: (message: string, context: string, error?: unknown) => void;
@@ -68,6 +71,7 @@ type BeregnetRenteRowProps = Readonly<{
   rowIndex: number;
   onFieldChange: (rowId: string, fieldId: 'belob' | 'renterFra' | 'tillaegstid' | 'enhed') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
+  onDeleteRow?: (rowId: string) => void;
   beregningsdato: ISODateString | undefined;
   onDownloadSpecifikation: (pdfContext: RentePdfContext) => Promise<void>;
   onError: (message: string, context: string, error?: unknown) => void;
@@ -85,6 +89,7 @@ const BeregnetRenteRow = React.memo(
     rowIndex,
     onFieldChange,
     onRowBlur,
+    onDeleteRow,
     beregningsdato,
     onDownloadSpecifikation,
     onError: _onError,
@@ -207,7 +212,7 @@ const BeregnetRenteRow = React.memo(
         </TableCell>
 
         {!isMobile && (
-          <TableCell>
+          <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {showDownloadButton ? (
                 <Tooltip title={`Download som ${formatLabel}`}>
@@ -233,6 +238,9 @@ const BeregnetRenteRow = React.memo(
                 </Typography>
               )}
             </Box>
+            {onDeleteRow && !isRentekravRowEmpty(committedRow) && (
+              <RowDeleteButton onDelete={() => onDeleteRow(row.id)} />
+            )}
           </TableCell>
         )}
       </TableRow>
@@ -249,6 +257,7 @@ const BeregnetRenteTable = React.memo(
     rows,
     onFieldChange,
     onRowBlur,
+    onDeleteRow,
     beregningsdato,
     onDownloadSpecifikation,
     committedById,
@@ -363,6 +372,7 @@ const BeregnetRenteTable = React.memo(
                 rowIndex={rowIndex}
                 onFieldChange={onFieldChange}
                 onRowBlur={onRowBlur}
+                onDeleteRow={onDeleteRow}
                 beregningsdato={beregningsdato}
                 onDownloadSpecifikation={onDownloadSpecifikation}
                 onError={onError}

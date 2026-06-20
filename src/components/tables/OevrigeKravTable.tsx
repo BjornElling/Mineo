@@ -4,7 +4,9 @@ import TableAmountInput from '../inputs/table/TableAmountInput';
 import TableDateInput from '../inputs/table/TableDateInput';
 import TableTextInput from '../inputs/table/TableTextInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
+import { RowDeleteButton } from './RowDeleteButton';
 import type { OevrigeKravRow } from '../../schemas/formSchemas';
+import { isOevrigeKravRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import type { OevrigeKravDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
 import type { ISODateString } from '../../types/branded';
 import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages';
@@ -18,6 +20,8 @@ export type OevrigeKravTableProps = Readonly<{
   committedById: ReadonlyMap<string, OevrigeKravRow>;
   onFieldChange: (rowId: string, field: 'dato' | 'udgiftTil' | 'beloeb') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
+  /** Sletter hele rækken i én undo-handling (committed removeRow fra row-hooken). */
+  onDeleteRow?: (rowId: string) => void;
   minDate?: ISODateString | string;
   maxDate?: ISODateString | string;
   specialRangeErrors?: DateRangeSpecialErrors;
@@ -30,7 +34,7 @@ const getRowId = (row: OevrigeKravDraftRow) => row.id;
 const isRowEmpty = (row: OevrigeKravDraftRow) => row.dato.trim() === '' && row.udgiftTil.trim() === '' && row.beloeb.trim() === '';
 
 const OevrigeKravTable = React.memo(
-  ({ rows, committedById, onFieldChange, onRowBlur, minDate, maxDate, specialRangeErrors, noValidRangeCause, saveOrderPath, onRowsReorder }: OevrigeKravTableProps) => {
+  ({ rows, committedById, onFieldChange, onRowBlur, onDeleteRow, minDate, maxDate, specialRangeErrors, noValidRangeCause, saveOrderPath, onRowsReorder }: OevrigeKravTableProps) => {
   const sortColumns = React.useMemo(() => [
     { colId: 'dato', getSortValue: (row: OevrigeKravDraftRow) => committedById.get(row.id)?.dato },
     { colId: 'udgiftTil', getSortValue: (row: OevrigeKravDraftRow) => committedById.get(row.id)?.udgiftTil },
@@ -101,7 +105,7 @@ const OevrigeKravTable = React.memo(
                   }}
                 />
               </TableCell>
-              <TableCell>
+              <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
                 <TableAmountInput
                   gridCell={{ rowId: row.id, colIndex: 2 }}
                   sx={{ width: 130 }}
@@ -112,6 +116,9 @@ const OevrigeKravTable = React.memo(
                   }}
                   canBeNegative={false}
                 />
+                {onDeleteRow && committed && !isOevrigeKravRowEmpty(committed) && (
+                  <RowDeleteButton onDelete={() => onDeleteRow(row.id)} />
+                )}
               </TableCell>
             </TableRow>
           );

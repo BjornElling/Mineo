@@ -24,6 +24,7 @@ import {
   parseOffentligeYdelserCellKey,
 } from '../../domain/erstatningsopgoerelse/validation/offentligeYdelserTableValidation';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
+import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
@@ -187,6 +188,20 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
         });
       },
       [getStrippedFingerprint, lastPersistedFingerprintRef, normalizeRows, queuePersist, setInternalTableData]
+    );
+
+    // Slet hele rækken i én undo-handling: filtrér rækken ud, re-normalisér og persistér én gang.
+    // Ét queuePersist = ét history-frame, så undo genskaber hele rækken og alle dens indtastninger.
+    const handleDeleteRow = React.useCallback(
+      (rowId: string) => {
+        setInternalTableData((prev) => {
+          const normalized = normalizeRows(prev.filter((row) => row.id !== rowId));
+          if (fingerprintTableData(normalized) === fingerprintTableData(prev)) return prev;
+          queuePersist(normalized);
+          return normalized;
+        });
+      },
+      [normalizeRows, queuePersist, setInternalTableData]
     );
 
     const handleErrorChange = React.useCallback(
@@ -484,6 +499,8 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                   <td
                     style={{
                       padding: '4px 8px',
+                      // Reserveret bane til højre for værdien, hvor slet-ikonet vises.
+                      paddingRight: '28px',
                       border: 'none',
                       textAlign: 'right',
                       overflow: 'hidden',
@@ -492,10 +509,14 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
                       fontSize: '13px',
                       fontFamily: '"Montserrat", sans-serif',
                       fontFeatureSettings: '"tnum"',
+                      position: 'relative',
                       color: 'var(--mineo-color-grid-derived)',
                     }}
                   >
                     {derived?.ydelsePerDagDisplay ?? ''}
+                    {!isRowEmpty(row) && (
+                      <RowDeleteButton onDelete={() => handleDeleteRow(row.id)} />
+                    )}
                   </td>
                 </tr>
               );

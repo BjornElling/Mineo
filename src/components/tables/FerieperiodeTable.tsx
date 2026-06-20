@@ -2,6 +2,8 @@ import * as React from 'react';
 import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/material';
 import TableDateInput from '../inputs/table/TableDateInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
+import { RowDeleteButton } from './RowDeleteButton';
+import { isFerieRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
@@ -19,6 +21,8 @@ export type FerieperiodeTableProps = Readonly<{
   feriedageById: Record<string, number | null>;
   onFieldChange: (rowId: string, field: 'fra' | 'til') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
+  /** Sletter hele rækken i én undo-handling (committed removeRow fra row-hooken). */
+  onDeleteRow?: (rowId: string) => void;
   skadedatoISO: ISODateString | undefined;
   endeligEETBeregnetDato: ISODateString | undefined;
   differencekravDato: ISODateString | undefined;
@@ -37,6 +41,7 @@ const FerieperiodeTable = React.memo(
     feriedageById,
     onFieldChange,
     onRowBlur,
+    onDeleteRow,
     skadedatoISO,
     endeligEETBeregnetDato,
     differencekravDato,
@@ -179,10 +184,13 @@ const FerieperiodeTable = React.memo(
                     noValidRangeCause={tilNoValidRangeCause}
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
                   <Typography variant="body1" sx={{ textAlign: 'center', py: 0.5 }}>
                     {antalFeriedage !== null ? antalFeriedage : ''}
                   </Typography>
+                  {onDeleteRow && committed && !isFerieRowEmpty(committed) && (
+                    <RowDeleteButton onDelete={() => onDeleteRow(row.id)} />
+                  )}
                 </TableCell>
               </TableRow>
             );

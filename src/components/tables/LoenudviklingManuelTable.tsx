@@ -11,6 +11,7 @@ import { useGridCoreApi } from './useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from './gridCore/gridCoreTypes';
 import { gridCellKey } from './gridCore/gridCoreUtils';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
+import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
@@ -363,6 +364,22 @@ const LoenudviklingManuelTable = React.memo(
     }, [notifyInputErrorChange]);
 
     const baseRowId = internalTableData[0]?.id ?? null;
+
+    // Slet hele rækken i én undo-handling. Basisrækken (indeks 0) er en strukturel anker-række
+    // og kan aldrig slettes — gaten nedenfor viser derfor heller ikke ikonet på den.
+    const handleDeleteRow = React.useCallback(
+      (rowId: string) => {
+        if (rowId === baseRowId) return;
+        setInternalTableData((prev) => {
+          const normalized = normalizeRows(prev.filter((row) => row.id !== rowId));
+          if (fingerprintTableData(normalized) === fingerprintTableData(prev)) return prev;
+          queuePersist(normalized);
+          return normalized;
+        });
+      },
+      [baseRowId, normalizeRows, queuePersist, setInternalTableData]
+    );
+
     const isRowEmptyForSort = React.useCallback(
       (row: LoenudviklingManuelRow) => (row.id === baseRowId ? false : isRowEmpty(row)),
       [baseRowId]
@@ -540,7 +557,7 @@ const LoenudviklingManuelTable = React.memo(
                   )}
                 </td>
 
-                <td style={getStandardGridCellStyle({ align: 'right' })}>
+                <td style={{ ...getStandardGridCellStyle({ align: 'right' }), position: 'relative', paddingRight: '28px' }}>
                   {isBaseRow && readOnlyBaseRowPercentFields ? (
                     <ReadOnlyLockedCell
                       gridCell={{ rowId: row.id, colIndex: 5 }}
@@ -558,6 +575,9 @@ const LoenudviklingManuelTable = React.memo(
                       onErrorChange={handleErrorChange(row.id, 'agPension')}
                       externalErrorMessage={isBaseRow ? baseRowPercentErrors?.agPension : undefined}
                     />
+                  )}
+                  {!isBaseRow && !isRowEmpty(row) && (
+                    <RowDeleteButton onDelete={() => handleDeleteRow(row.id)} />
                   )}
                 </td>
               </tr>

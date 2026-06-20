@@ -36,6 +36,7 @@ import {
 import { getStandardLoenTableHeaderNodes } from '../../domain/aarsloen/standardLoenTableColumns';
 
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
+import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
@@ -250,6 +251,21 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
         });
       },
       [getStrippedFingerprint, isRowEmpty, lastPersistedFingerprintRef, manageRows, queuePersist, setInternalTableData, updateCellValueInTable]
+    );
+
+    // Slet hele rækken i én undo-handling: filtrér rækken ud, re-normalisér (manageRows fjerner
+    // tomme rækker og genskaber den efterfølgende tomme), og persistér én gang. Ét queuePersist =
+    // ét history-frame, så undo genskaber hele rækken og alle dens indtastninger.
+    const handleDeleteRow = React.useCallback(
+      (rowId: string) => {
+        setInternalTableData((prev) => {
+          const managed = manageRows(prev.filter((row) => row.id !== rowId));
+          if (fingerprintTableData(managed) === fingerprintTableData(prev)) return prev;
+          queuePersist(managed);
+          return managed;
+        });
+      },
+      [manageRows, queuePersist, setInternalTableData]
     );
 
     const committedById = React.useMemo(() => new Map(committedTableData.map((row) => [row.id, row])), [committedTableData]);
@@ -769,10 +785,16 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   style={{
                     ...getStandardGridCellStyle({ align: 'right' }),
                     padding: '4px',
+                    // Reserveret bane til højre for værdien, hvor slet-ikonet vises (dækker ikke "I alt").
+                    paddingRight: '28px',
+                    position: 'relative',
                     color: calculated.col8 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
                   }}
                 >
                   {formatAsAmount(calculated.col8)}
+                  {!isRowEmpty(committedRow) && (
+                    <RowDeleteButton onDelete={() => handleDeleteRow(row.id)} />
+                  )}
                 </td>
               </tr>
             );

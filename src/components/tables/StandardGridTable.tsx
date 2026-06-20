@@ -73,6 +73,12 @@ export const StandardGridTable = React.memo(
               '& tbody tr:last-of-type td:last-of-type .MuiInputBase-root': {
                 borderBottomRightRadius: '16px',
               },
+              // Fælles hover-reveal for slet-række-ikonet (RowDeleteButton). Den svævende
+              // skraldespand er kun synlig og klikbar, mens rækken er hovered.
+              '& tbody tr:hover .mineo-row-delete-slot': {
+                opacity: 1,
+                pointerEvents: 'auto',
+              },
             }}
           >
             <table

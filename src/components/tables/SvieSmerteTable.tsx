@@ -3,6 +3,8 @@ import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/mate
 import TableDateInput from '../inputs/table/TableDateInput';
 import TableDropdown, { type TableDropdownOption } from '../inputs/table/TableDropdown';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
+import { RowDeleteButton } from './RowDeleteButton';
+import { isSvieSmerteRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { useTableSort } from './useTableSort';
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
 import type { SvieSmertePeriodeRow, Tilstand } from '../../schemas/formSchemas';
@@ -30,6 +32,8 @@ export type SvieSmerteTableProps = Readonly<{
   verserendeKlageMen: boolean;
   onFieldChange: (rowId: string, field: 'fra' | 'til' | 'tilstand') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
+  /** Sletter hele rækken i én undo-handling (committed removeRow fra row-hooken). */
+  onDeleteRow?: (rowId: string) => void;
   saveOrderPath?: TableSaveOrderPath;
   onRowsReorder?: (orderedIds: readonly string[]) => void;
 }>;
@@ -47,7 +51,7 @@ const buildAfterVarigeMenErrorMessage = (menAfgoerelseDato: ISODateString): stri
 const getRowId = (row: SvieSmerteDraftRow) => row.id;
 
 const SvieSmerteTable = React.memo(
-  ({ rows, committedById, derivedById, overlappingIds, skadedatoISO, menAfgoerelseDato, erErhvervssygdom, verserendeKlageMen, onFieldChange, onRowBlur, saveOrderPath, onRowsReorder }: SvieSmerteTableProps) => {
+  ({ rows, committedById, derivedById, overlappingIds, skadedatoISO, menAfgoerelseDato, erErhvervssygdom, verserendeKlageMen, onFieldChange, onRowBlur, onDeleteRow, saveOrderPath, onRowsReorder }: SvieSmerteTableProps) => {
     const sortColumns = React.useMemo(() => [
       { colId: 'fra', getSortValue: (row: SvieSmerteDraftRow) => committedById.get(row.id)?.fra },
       { colId: 'til', getSortValue: (row: SvieSmerteDraftRow) => committedById.get(row.id)?.til },
@@ -209,19 +213,22 @@ const SvieSmerteTable = React.memo(
                 <TableCell>
                   <Typography variant="body1">{beregnetVaerdi !== null ? beregnetVaerdi : ''}</Typography>
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
                   <TableDropdown
                     gridCell={{ rowId: row.id, colIndex: 3 }}
                     value={tilstandValue}
                     options={SVIE_TILSTAND_OPTIONS}
                     appearance="loose"
-                    sx={{ width: 200 }}
+                    sx={{ width: 172 }}
                     onChange={(e) => {
                       onFieldChange(row.id, 'tilstand')(e.target.value ?? '');
                       onRowBlur(row.id);
                     }}
                     placeholder="Vælg tilstand"
                   />
+                  {onDeleteRow && committed && !isSvieSmerteRowEmpty(committed) && (
+                    <RowDeleteButton onDelete={() => onDeleteRow(row.id)} />
+                  )}
                 </TableCell>
               </TableRow>
             );

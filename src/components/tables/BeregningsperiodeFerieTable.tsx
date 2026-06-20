@@ -4,8 +4,10 @@ import { TableBody, TableCell, TableHead, TableRow, Typography } from '@mui/mate
 import type { ISODateString } from '../../types/branded';
 import type { FerieperiodeRow } from '../../schemas/formSchemas';
 import { isFraTilDraftRowEmpty as isRowEmpty, type FerieDraftRow } from '../../domain/erstatningsopgoerelse/tables/tableDraftRows';
+import { isFerieRowEmpty } from '../../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import TableDateInput from '../inputs/table/TableDateInput';
 import StandardLooseTable, { StandardLooseHeaderCell } from './StandardLooseTable';
+import { RowDeleteButton } from './RowDeleteButton';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
@@ -16,6 +18,8 @@ export type BeregningsperiodeFerieTableProps = Readonly<{
   feriedageById: Record<string, number | null>;
   onFieldChange: (rowId: string, field: 'fra' | 'til') => (value: string) => void;
   onRowBlur: (rowId: string) => void;
+  /** Sletter hele rækken i én undo-handling (committed removeRow fra row-hooken). */
+  onDeleteRow?: (rowId: string) => void;
   beregningsperiodeFra: ISODateString | undefined;
   beregningsperiodeTil: ISODateString | undefined;
   saveOrderPath?: TableSaveOrderPath;
@@ -33,6 +37,7 @@ const BeregningsperiodeFerieTable = React.memo(
     feriedageById,
     onFieldChange,
     onRowBlur,
+    onDeleteRow,
     beregningsperiodeFra,
     beregningsperiodeTil,
     saveOrderPath,
@@ -165,10 +170,13 @@ const BeregningsperiodeFerieTable = React.memo(
                     externalErrorMessage={tilOutsideBeregningsperiode ? OUTSIDE_BEREGNINGSPERIODE_ERROR_MESSAGE : undefined}
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell sx={{ position: 'relative', paddingRight: '28px' }}>
                   <Typography variant="body1" sx={{ textAlign: 'center', py: 0.5 }}>
                     {antalFeriedage !== null ? antalFeriedage : ''}
                   </Typography>
+                  {onDeleteRow && committed && !isFerieRowEmpty(committed) && (
+                    <RowDeleteButton onDelete={() => onDeleteRow(row.id)} />
+                  )}
                 </TableCell>
               </TableRow>
             );

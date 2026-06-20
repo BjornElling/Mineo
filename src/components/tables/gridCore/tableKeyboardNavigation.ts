@@ -450,6 +450,7 @@ export const handleTablePointerDownCapture = (e: React.PointerEvent<HTMLTableEle
   if (!target) return;
   if (!table.contains(target)) return;
   if (target.closest('[data-mineo-table-dropdown="true"]')) return;
+  if (target.closest('[data-mineo-row-delete="true"]')) return;
 
   const grid = buildGrid(table);
   if (grid.order.length === 0) return;
@@ -494,6 +495,7 @@ export const handleTableClickCapture = (e: React.MouseEvent<HTMLTableElement>) =
   if (!target) return;
   if (!table.contains(target)) return;
   if (target.closest('[data-mineo-table-dropdown="true"]')) return;
+  if (target.closest('[data-mineo-row-delete="true"]')) return;
 
   const core = getGridCoreForTable(table);
   if (!core) return;
@@ -552,6 +554,7 @@ export const handleTableDoubleClickCapture = (e: React.MouseEvent<HTMLTableEleme
   if (!target) return;
   if (!table.contains(target)) return;
   if (target.closest('[data-mineo-table-dropdown="true"]')) return;
+  if (target.closest('[data-mineo-row-delete="true"]')) return;
 
   const core = getGridCoreForTable(table);
   if (!core) return;
