@@ -14,11 +14,18 @@ import { isFerieRowEmpty, isOevrigeKravRowEmpty, isSvieSmerteRowEmpty, isTafRowE
  * hånden inde i hver motor — og de to definitioner kunne divergere.
  *
  * Dette modul er den ENESTE autoritative kilde til "hvilke input er relevante givet de
- * aktuelle valg". `neutralizeIrrelevantEoInputs` blanker irrelevante input, FØR motorerne
- * kører, så ingen motor (nuværende eller fremtidig) kan se en forældet skjult værdi.
- * Fail-closed: glemmer en motor at spejle en synligheds-betingelse, er værdien allerede
- * neutraliseret her. Predikaterne deles med UI'en, så "skjult i UI" og "ignoreret i
- * beregning" ikke kan divergere.
+ * aktuelle valg". Prædikaterne har to roller:
+ *  1. UI'en bruger dem til at vise/skjule felter, så synlighed defineres ét sted (ikke
+ *     spredt som inline `values.x === 'Ja'`-betingelser i sidekomponenterne).
+ *  2. `neutralizeIrrelevantEoInputs` blanker de irrelevante input der FØDER ET TAL, FØR
+ *     motorerne kører, så ingen motor (nuværende eller fremtidig) kan se en forældet skjult
+ *     værdi. Fail-closed: glemmer en motor at spejle en synligheds-betingelse, er værdien
+ *     allerede neutraliseret her.
+ * Fordi UI og beregning læser samme prædikat, kan "skjult i UI" og "ignoreret i beregning"
+ * ikke divergere. Predikater der kun gater rene visnings-/dokumentfelter (datoer, klage,
+ * bilagsnumre) bruges af UI/PDF-laget; de neutraliseres ikke her, fordi de ikke indgår i
+ * noget beregnet tal — neutralisering forbeholdes talfødende input (fail-closed-garantien
+ * gælder netop tallene).
  *
  * BEVIDST UNDTAGELSE — komprimering ved EO 2+: Når
  * `komprimerBeregningEfterFoersteOpgoerelse === 'Ja'` fra og med 2. opgørelse, skjules
@@ -60,6 +67,39 @@ export const erOevrigeKravSektionAktiv = (values: ErstatningsopgoerelseValues): 
   values.kravPaaOevrigeErstatningskrav === 'Ja';
 
 /**
+ * "Tidligere modtaget tabt arbejdsfortjeneste" er relevant. Fradraget anvendes kun, når
+ * TAF-sektionen er aktiv, så feltet er irrelevant uden for sektionen.
+ */
+export const erTidligereModtagetTafRelevant = (values: ErstatningsopgoerelseValues): boolean =>
+  erTabtArbejdsfortjenesteSektionAktiv(values);
+
+/* ----------------------------------------------------------------------------------------
+ * Rene synligheds-prædikater (afgørelsesdatoer, klage, bilagsnumre).
+ * Gater UI-/PDF-felter der ikke indgår i et beregnet tal. De neutraliseres derfor IKKE i
+ * neutralizeIrrelevantEoInputs, men deles med UI'en, så synlighed har ét sandt sted.
+ * ------------------------------------------------------------------------------------- */
+
+/** Varige mén-afgørelse er truffet (gater afgørelsesdato + verserende klage). */
+export const erVarigeMenAfgoerelseAktiv = (values: ErstatningsopgoerelseValues): boolean =>
+  values.varigeMenAfgorelse === 'Ja';
+
+/** Midlertidig EET-afgørelse er truffet (gater afgørelses- og virkningsdato). */
+export const erMidlertidigtEETAfgoerelseAktiv = (values: ErstatningsopgoerelseValues): boolean =>
+  values.midlertidigtEETAfgorelse === 'Ja';
+
+/** Endelig EET-afgørelse er truffet (gater afgørelses- og virkningsdato). */
+export const erEndeligtEETAfgoerelseAktiv = (values: ErstatningsopgoerelseValues): boolean =>
+  values.endeligtEETAfgorelse === 'Ja';
+
+/** Verserende klage over EET-afgørelse er relevant (mindst én EET-afgørelse er truffet). */
+export const erEETKlageRelevant = (values: ErstatningsopgoerelseValues): boolean =>
+  erMidlertidigtEETAfgoerelseAktiv(values) || erEndeligtEETAfgoerelseAktiv(values);
+
+/** Bilagsnumre-felterne vises (brugeren har slået "Vis bilagsnumre" til). */
+export const erBilagsnumreRelevant = (values: ErstatningsopgoerelseValues): boolean =>
+  values.visBilagsnumre === 'Ja';
+
+/**
  * Returnerer en kopi af EO-værdierne, hvor alle input i skjulte/irrelevante felter og
  * rækker er neutraliseret til deres tomme værdi (undefined / []). Committed brugerinput
  * mutateres ikke — kun den effektive beregningskopi.
@@ -91,11 +131,12 @@ export const neutralizeIrrelevantEoInputs = (
     patch.svieSmerteTidligereTotal = undefined;
   }
 
-  // Tabt arbejdsfortjeneste: perioder og ferieperioder (kun sektions-niveau —
-  // beregningsgrundlaget undtages bevidst, jf. komprimerings-undtagelsen ovenfor)
+  // Tabt arbejdsfortjeneste: perioder, ferieperioder og "tidligere modtaget TAF" (kun
+  // sektions-niveau — beregningsgrundlaget undtages bevidst, jf. komprimerings-undtagelsen ovenfor)
   if (!erTabtArbejdsfortjenesteSektionAktiv(values)) {
     if (harIndhold(values.tafPerioder, isTafRowEmpty)) patch.tafPerioder = [];
     if (harIndhold(values.ferieperioder, isFerieRowEmpty)) patch.ferieperioder = [];
+    if (values.tidligereModtagetTaf !== undefined) patch.tidligereModtagetTaf = undefined;
   }
 
   // Øvrige erstatningskrav

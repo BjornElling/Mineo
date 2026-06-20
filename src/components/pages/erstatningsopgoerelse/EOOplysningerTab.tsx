@@ -66,7 +66,18 @@ import { isoDateToDate } from '../../../domain/dates/isoDate';
 import { calculateFerieHverdageMinusSHDage } from '../../../domain/erstatningsopgoerelse/engines/ferieCalculations';
 import { buildBeregningsperiodeTafOverlap, buildTafDerived } from '../../../domain/erstatningsopgoerelse/helpers/tafRowDerived';
 import { erDetteFoersteErstatningsopgoerelse } from '../../../domain/erstatningsopgoerelse/validation/eoNummerValidering';
-import { erSvieSmerteTidligereTotalRelevant } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
+import {
+  erSvieSmerteTidligereTotalRelevant,
+  erSvieSmerteSektionAktiv,
+  erSvieSmertePeriodeInputRelevant,
+  erTabtArbejdsfortjenesteSektionAktiv,
+  erOevrigeKravSektionAktiv,
+  erVarigeMenAfgoerelseAktiv,
+  erMidlertidigtEETAfgoerelseAktiv,
+  erEndeligtEETAfgoerelseAktiv,
+  erEETKlageRelevant,
+  erBilagsnumreRelevant,
+} from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { MONTH_NAMES_DA } from '../../../utils/dateFormatting';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
@@ -757,7 +768,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           </Box>
         </Box>
 
-        {getChecked(values.varigeMenAfgorelse) && (
+        {erVarigeMenAfgoerelseAktiv(values) && (
           <>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Dato for første ménafgørelse</Typography>
@@ -806,7 +817,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           </Box>
         </Box>
 
-        {getChecked(values.midlertidigtEETAfgorelse) && (
+        {erMidlertidigtEETAfgoerelseAktiv(values) && (
           <>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Dato for første midlertidige erhvervsevnetabsafgørelse</Typography>
@@ -861,7 +872,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           </Box>
         </Box>
 
-        {getChecked(values.endeligtEETAfgorelse) && (
+        {erEndeligtEETAfgoerelseAktiv(values) && (
           <>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Dato for endelig erhvervsevnetabsafgørelse</Typography>
@@ -905,7 +916,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           Øvrigt
         </Typography>
 
-        {(getChecked(values.midlertidigtEETAfgorelse) || getChecked(values.endeligtEETAfgorelse)) && (
+        {erEETKlageRelevant(values) && (
           <Box className="row--label-right-hover">
             <Typography className="row--text">Verserende klagesag over EET-afgørelse?</Typography>
             <Box className="row--label-right-hover__content">
@@ -954,7 +965,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           </Box>
         </Box>
 
-        {values.kravPaaSvieSmerteGodtgoerelse === 'Ja' && (
+        {erSvieSmerteSektionAktiv(values) && (
           <>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Tidligere beregnet S/S til max.</Typography>
@@ -967,7 +978,9 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
               </Box>
             </Box>
 
-            {!getChecked(values.tidligereSsMax) && (
+            {/* Periode-input deler præcis beregningens relevans-prædikat (sektion aktiv +
+                ikke "tidligere S/S til max"), så synlighed og neutralisering ikke kan divergere. */}
+            {erSvieSmertePeriodeInputRelevant(values) && (
               <>
                 <Typography className="row--subheading">
                   Periode:
@@ -1083,7 +1096,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           </Box>
         </Box>
 
-        {values.kravPaaTabtArbejdsfortjeneste === 'Ja' && (
+        {erTabtArbejdsfortjenesteSektionAktiv(values) && (
           <>
             <Typography className="row--subheading">
               Periode:
@@ -1148,7 +1161,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
       </ContentBox>
 
       {/* Sektion 5: Indtægt før skaden */}
-      {values.kravPaaTabtArbejdsfortjeneste === 'Ja' && (
+      {erTabtArbejdsfortjenesteSektionAktiv(values) && (
         <ContentBox className="content-box" data-section-id="taf-beregningsgrundlag">
         <Typography className="section-header">Indtægt før skaden</Typography>
 
@@ -1866,7 +1879,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           </Box>
         </Box>
 
-        {values.kravPaaOevrigeErstatningskrav === 'Ja' && (
+        {erOevrigeKravSektionAktiv(values) && (
           <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoOevrigeKrav}>
           <OevrigeKravTable
             rows={oevrigeKrav.draftRows}
@@ -1916,7 +1929,7 @@ const EOOplysningerTab = React.memo(({ form }: { form: ErstatningsopgoerelseForm
           </Box>
         </Box>
 
-        {getChecked(values.visBilagsnumre) && (
+        {erBilagsnumreRelevant(values) && (
           <>
             <Box className="row--label-right-hover">
               <Typography className="row--text">Ménafgørelse</Typography>

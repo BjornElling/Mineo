@@ -25,6 +25,7 @@ import { beregnSHDageForDatoSet } from '../domain/dates/shDageBeregning';
 import { beregnOmregnetAarsloen } from '../domain/aarsloen/aarsloenCalculations';
 import type { AarsloenBeregningResult } from '../types/calculation';
 import { beregnFejlmeddelelser, harTabelData } from '../domain/aarsloen/aarsloenValidationPolicies';
+import { erAarsloenFerieFelterRelevant } from '../domain/policies/aarsloenPolicy';
 
 export type AarsloenBeregningState = {
   // Beregnings-resultater
@@ -179,10 +180,13 @@ export const useAarsloenBeregning = ({
     }
 
     return safeCompute(() => {
-      // Ignorér værdier fra skjulte felter
-      // "Ret til 6. ferieuge" og "Antal feriedage" er kun synlige hvis !fuldLoenUnderFerie
-      const retTilSjetteFerieugeFinal = !fuldLoenUnderFerie ? retTilSjetteFerieuge : false;
-      const antalFeriedageFinal = !fuldLoenUnderFerie ? antalFeriedage : undefined;
+      // Ignorér værdier fra skjulte felter. "Ret til 6. ferieuge" og "Antal feriedage" gates
+      // på PRÆCIS det samme prædikat som UI'en bruger til at vise/skjule dem
+      // (shouldShowAarsloenFerieFields), så "skjult i UI" og "ignoreret i beregning" har ét
+      // sandt sted og ikke kan divergere.
+      const ferieFelterRelevante = erAarsloenFerieFelterRelevant(fuldLoenUnderFerie);
+      const retTilSjetteFerieugeFinal = ferieFelterRelevante ? retTilSjetteFerieuge : false;
+      const antalFeriedageFinal = ferieFelterRelevante ? antalFeriedage : undefined;
 
       return beregnOmregnetAarsloen({
         periodeData,

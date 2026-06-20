@@ -4,6 +4,12 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 import {
   erSvieSmertePeriodeInputRelevant,
   erSvieSmerteTidligereTotalRelevant,
+  erVarigeMenAfgoerelseAktiv,
+  erMidlertidigtEETAfgoerelseAktiv,
+  erEndeligtEETAfgoerelseAktiv,
+  erEETKlageRelevant,
+  erBilagsnumreRelevant,
+  erTidligereModtagetTafRelevant,
   neutralizeIrrelevantEoInputs,
 } from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance';
 import { computeSvieSmerteEngine } from '../../../domain/erstatningsopgoerelse/engines/svieSmerteEngine';
@@ -118,9 +124,54 @@ describe('eoInputRelevance', () => {
       expect(result.loenindkomstAnsaettelsesforhold).toEqual(loenindkomst);
     });
 
+    it('blanker tidligereModtagetTaf når TAF-sektionen ikke er aktiv', () => {
+      const result = neutralizeIrrelevantEoInputs(
+        makeValues({ kravPaaTabtArbejdsfortjeneste: 'Nej', tidligereModtagetTaf: asAmountValue(12_000) })
+      );
+      expect(result.tidligereModtagetTaf).toBeUndefined();
+    });
+
+    it('bevarer tidligereModtagetTaf når TAF-sektionen er aktiv', () => {
+      const tidligere = asAmountValue(12_000);
+      const result = neutralizeIrrelevantEoInputs(
+        makeValues({ kravPaaTabtArbejdsfortjeneste: 'Ja', tidligereModtagetTaf: tidligere })
+      );
+      expect(result.tidligereModtagetTaf).toEqual(tidligere);
+    });
+
     it('returnerer samme objekt-reference når intet skal neutraliseres', () => {
       const values = svieMaxScenario({ eoNummer: '2', svieSmerteTidligereTotal: asAmountValue(10_000) });
       expect(neutralizeIrrelevantEoInputs(values)).toBe(values);
+    });
+  });
+
+  describe('rene synligheds-prædikater', () => {
+    it('erVarigeMenAfgoerelseAktiv følger varigeMenAfgorelse', () => {
+      expect(erVarigeMenAfgoerelseAktiv(makeValues({ varigeMenAfgorelse: 'Ja' }))).toBe(true);
+      expect(erVarigeMenAfgoerelseAktiv(makeValues({ varigeMenAfgorelse: 'Nej' }))).toBe(false);
+    });
+
+    it('erMidlertidigtEETAfgoerelseAktiv / erEndeligtEETAfgoerelseAktiv følger deres toggles', () => {
+      expect(erMidlertidigtEETAfgoerelseAktiv(makeValues({ midlertidigtEETAfgorelse: 'Ja' }))).toBe(true);
+      expect(erMidlertidigtEETAfgoerelseAktiv(makeValues({ midlertidigtEETAfgorelse: 'Nej' }))).toBe(false);
+      expect(erEndeligtEETAfgoerelseAktiv(makeValues({ endeligtEETAfgorelse: 'Ja' }))).toBe(true);
+      expect(erEndeligtEETAfgoerelseAktiv(makeValues({ endeligtEETAfgorelse: 'Nej' }))).toBe(false);
+    });
+
+    it('erEETKlageRelevant er sand når mindst én EET-afgørelse er truffet', () => {
+      expect(erEETKlageRelevant(makeValues({ midlertidigtEETAfgorelse: 'Nej', endeligtEETAfgorelse: 'Nej' }))).toBe(false);
+      expect(erEETKlageRelevant(makeValues({ midlertidigtEETAfgorelse: 'Ja', endeligtEETAfgorelse: 'Nej' }))).toBe(true);
+      expect(erEETKlageRelevant(makeValues({ midlertidigtEETAfgorelse: 'Nej', endeligtEETAfgorelse: 'Ja' }))).toBe(true);
+    });
+
+    it('erBilagsnumreRelevant følger visBilagsnumre', () => {
+      expect(erBilagsnumreRelevant(makeValues({ visBilagsnumre: 'Ja' }))).toBe(true);
+      expect(erBilagsnumreRelevant(makeValues({ visBilagsnumre: 'Nej' }))).toBe(false);
+    });
+
+    it('erTidligereModtagetTafRelevant følger TAF-sektionen', () => {
+      expect(erTidligereModtagetTafRelevant(makeValues({ kravPaaTabtArbejdsfortjeneste: 'Ja' }))).toBe(true);
+      expect(erTidligereModtagetTafRelevant(makeValues({ kravPaaTabtArbejdsfortjeneste: 'Nej' }))).toBe(false);
     });
   });
 

@@ -59,6 +59,7 @@ Kode, der afviger fra denne kontrakt, betragtes som **arkitektonisk fejl**.
 - Synlighed/rendering må **ikke** i sig selv rydde allerede committet brugerinput i persisted sagsfelter
 - Hvis et persisted sagsfelt eller en persisted række skjules, skal den committede værdi fortsat kunne overleve `F5`, `.eo`-save og `.eo`-load
 - Skjulte committed værdier må kun neutraliseres ved, at validering og beregning eksplicit gater på de aktive domæneregler; de må ikke neutraliseres ved skjult state-clearing
+- **Synlighed og beregnings-relevans har ét sandt sted.** Et felts synlighed (vis/skjul) og dets neutralisering i beregningen skal udledes af **samme** relevans-prædikat, så "skjult i UI" og "ignoreret i beregning" ikke kan divergere. Sidekomponenter må ikke gen-introducere inline-synlighedsbetingelser (`values.x === 'Ja' && …`, `getChecked(values.x) && …`) på felter hvis relevans ejes af et prædikat. Kanoniske prædikat-moduler: `domain/erstatningsopgoerelse/helpers/eoInputRelevance.ts` (EO; talfødende skjulte felter neutraliseres fail-closed via `neutralizeIrrelevantEoInputs` før motorerne) og `domain/policies/aarsloenPolicy.ts` (årsløn). Per-række relevans der afhænger af domæne-policy-opslag (fx sygeferiegodtgørelse via `resolveSfggSource`) ejes bevidst af den motor der allerede resolver kilden — den er ét sandt sted i sig selv og spejles ikke i prædikat-modulet.
 
 ### 2.3 `initialValues`-materialisering
 
