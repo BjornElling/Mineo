@@ -7,6 +7,7 @@ import { generateAnsaettelsesforholdId } from './eoRowInitialValues';
 import { resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
 import { resolveAppSettings } from '../../../settings/appSettingsParse';
 import { erstatningsopgoerelseSchema } from '../../../schemas/formSchemas';
+import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 
 const createDefaultAngivetLoenLoenudvikling = (settings: AppSettings): PersistedSectionMap['erstatningsopgoerelse']['eoAngivetLoenLoenudvikling'] => ({
   overenskomstId: undefined,
@@ -52,6 +53,7 @@ export const createDefaultLoenindkomstAnsaettelsesforhold = (
   shSoPct: undefined,
   storeBededagPct: undefined,
   pensionPct: undefined,
+  tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
   loenperiode: safeSettings.defaultLoenIndtastesSom,
   indtaegtsoplysningerTableData: [],
   fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',

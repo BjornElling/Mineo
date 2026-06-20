@@ -269,6 +269,7 @@ export const buildIndkomstSectionStatuses = (
       rows: tableRows,
       loenperiode: af.loenperiode,
       cellErrorsByCellKey: cellErrors,
+      tillaegAngivesSom: af.tillaegAngivesSom,
     });
 
     let tableStatus: DebugStatus = 'ok';

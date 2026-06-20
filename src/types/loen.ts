@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import { loenPaaHelligdageEnum, loenperiodeEnum } from '../schemas/formSchemas';
+import { loenPaaHelligdageEnum, loenperiodeEnum, tillaegAngivesSomEnum } from '../schemas/formSchemas';
 
 export type Loenperiode = z.infer<typeof loenperiodeEnum>;
 
@@ -8,6 +8,13 @@ export const LOENPERIODE = {
   UGE: 'uge' as const,
   DAG: 'dag' as const,
 } satisfies Record<string, Loenperiode>;
+
+export type TillaegAngivesSom = z.infer<typeof tillaegAngivesSomEnum>;
+
+export const TILLAEG_ANGIVES_SOM = {
+  PROCENT: 'procent' as const,
+  BELOEB: 'beloeb' as const,
+} satisfies Record<string, TillaegAngivesSom>;
 
 export type LoenPaaHelligdage = z.infer<typeof loenPaaHelligdageEnum>;
 

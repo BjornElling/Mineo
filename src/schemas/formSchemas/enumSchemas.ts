@@ -43,6 +43,13 @@ export type AfsluttesMed = z.infer<typeof afsluttesMedEnum>;
 export const loenperiodeEnum = z.enum(['maaned', 'uge', 'dag']);
 export type Loenperiode = z.infer<typeof loenperiodeEnum>;
 
+// Hvordan lønindkomst-tillæg angives: 'procent' = brugeren angiver tillægssatser, og
+// programmet beregner tillægsbeløbene; 'beloeb' = brugeren angiver tillægsbeløbene direkte
+// i lønindkomst-tabellen. De to tilstande er ligestillede; kun den aktive tilstands input
+// fodrer beregninger og dokumenter (den fravalgte tilstands input bevares, men ignoreres).
+export const tillaegAngivesSomEnum = z.enum(['procent', 'beloeb']);
+export type TillaegAngivesSom = z.infer<typeof tillaegAngivesSomEnum>;
+
 export const anciennitetSatsPerEnum = z.enum(['Time', 'Måned']);
 export type AnciennitetSatsPer = z.infer<typeof anciennitetSatsPerEnum>;
 

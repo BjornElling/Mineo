@@ -18,6 +18,8 @@ export const initialRow: Omit<StandardLoenTableRow, 'id'> & { id: '' } = {
   col3: undefined,
   col4: undefined,
   col5: undefined,
+  fpFvShSoBeloeb: undefined,
+  pensionBeloeb: undefined,
 };
 
 export const generateRowId = (): string => createRowId('row');

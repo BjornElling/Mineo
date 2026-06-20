@@ -4,7 +4,7 @@
  * Disse funktioner er rene (ingen side effects) og kan testes isoleret.
  */
 
-import type { StandardLoenTableRow, LoenPaaHelligdage, Loenperiode } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow, LoenPaaHelligdage, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../types/loen';
 import { formatPercent } from '../../utils/formatUtils';
 import { hasCompletePeriodForLoenperiode } from './standardLoenRowCalculations';
@@ -20,13 +20,14 @@ import type { StandardLoenTableValidationSummary } from '../../types/table';
  */
 export const harTabelValideringsFejl = (
   tableData: StandardLoenTableRow[],
-  loenperiode: Loenperiode
+  loenperiode: Loenperiode,
+  tillaegAngivesSom: TillaegAngivesSom = 'procent'
 ): boolean => {
   if (!tableData || tableData.length === 0) {
     return false;
   }
 
-  return getStandardLoenTableValidation({ rows: tableData, loenperiode }).summary.hasErrors;
+  return getStandardLoenTableValidation({ rows: tableData, loenperiode, tillaegAngivesSom }).summary.hasErrors;
 };
 
 /**

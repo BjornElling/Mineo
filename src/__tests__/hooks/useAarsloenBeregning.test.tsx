@@ -50,6 +50,7 @@ const makeValues = (patch: Partial<AarsloenValues> = {}): AarsloenValues => ({
   storeBededagPct: undefined,
   pensionPct: undefined,
   loenperiode: LOENPERIODE.MAANED,
+  tillaegAngivesSom: 'procent',
   tableData: [
     {
       id: 'r1',

@@ -16,6 +16,7 @@ describe('aarsloen → Word-indhold', () => {
           pensionPct: 10,
         },
         loenperiode: 'maaned',
+        tillaegAngivesSom: 'procent',
         tableData: [
           {
             id: 'row-1',
@@ -67,6 +68,56 @@ describe('aarsloen → Word-indhold', () => {
     expect(text).toContain('I alt');
   });
 
+  it('Beløb-tilstand: udelader satser-sektionen og viser de indtastede tillægsbeløb', async () => {
+    const { documentXml } = await renderWordDocument(() => {
+      generateAarsloenDocument({
+        satser: {
+          // Satserne er udfyldte, men skal ikke vises eller bruges i Beløb-tilstand.
+          feriePct: 12.5,
+          fritvalgPct: 2,
+          shSoPct: 3,
+          pensionPct: 10,
+        },
+        loenperiode: 'maaned',
+        tillaegAngivesSom: 'beloeb',
+        tableData: [
+          {
+            id: 'row-1',
+            col0_maaned: '5',
+            col1_maaned: '2016',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: undefined,
+            col1_dag: undefined,
+            col2: { kind: 'number', value: 25000 },
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+            fpFvShSoBeloeb: { kind: 'number', value: 4218 },
+            pensionBeloeb: { kind: 'number', value: 2581.92 },
+          },
+        ],
+        beregnetAarsloen: 31799.92,
+        omregningTilFuldtAar: false,
+        periodeData: null,
+        fuldLoenUnderFerie: false,
+        retTilSjetteFerieuge: false,
+        antalFeriedage: undefined,
+        loenPaaHelligdage: 'Ingen',
+        shDageAntal: null,
+        beregningsData: { metode: 'ingen', erEtAar: false } as never,
+      });
+    });
+
+    const text = xmlToPlainText(documentXml);
+    // Satser-blokken er udeladt i Beløb-tilstand.
+    expect(text).not.toContain('Feriegodtgørelse/-tillæg');
+    // De indtastede tillægsbeløb vises i tabellen (dansk formattering).
+    expect(text).toContain('4.218,00');
+    expect(text).toContain('2.581,92');
+    expect(text).toContain('Indtægtsoplysninger');
+  });
+
   it('inkluderer beregningsafsnit ved omregning til fuldt år (metode C)', async () => {
     const { filename, documentXml } = await renderWordDocument(() => {
       generateAarsloenDocument({
@@ -74,6 +125,7 @@ describe('aarsloen → Word-indhold', () => {
           feriePct: 12.5,
         },
         loenperiode: 'maaned',
+        tillaegAngivesSom: 'procent',
         tableData: [
           {
             id: 'row-1',

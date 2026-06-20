@@ -4,7 +4,11 @@ export type StandardLoenTableColumnKey =
   | 'col2'
   | 'col3'
   | 'col4'
-  | 'col5';
+  | 'col5'
+  // Redigerbare tillægsbeløbskolonner i Beløb-tilstand (visningsposition for "FP/FV/SH/SO/St.B."
+  // og "Arb.g. Pension"). I Procent-tilstand er disse positioner beregnede, ikke-redigerbare.
+  | 'fpFvShSoBeloeb'
+  | 'pensionBeloeb';
 
 export type OffentligeYdelserTableColumnKey = 'fraDato' | 'tilDato' | 'ydelse' | 'tillaeg' | 'ydelsestype';
 

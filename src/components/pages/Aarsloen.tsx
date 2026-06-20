@@ -19,7 +19,7 @@ import { useAppSettings } from '../../contexts/useAppSettings';
 import { formatCountWithUnit, formatCurrency } from '../../utils/formatUtils';
 import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../utils/periodeBeregning';
 import { aarsloenSchema } from '../../schemas/formSchemas';
-import { isLoenperiodeValue, isLoenPaaHelligdageValue } from '../../utils/zodTypeGuards';
+import { isLoenperiodeValue, isLoenPaaHelligdageValue, isTillaegAngivesSomValue } from '../../utils/zodTypeGuards';
 import {
   EMPTY_STANDARD_LOEN_TABLE_VALIDATION_SUMMARY,
   resolveAarsloenOmregningGate,
@@ -36,7 +36,7 @@ import type {
   StandardLoenTableValidationSummary,
 } from '../../types/table';
 import type { StandardLoenTableHandle, StyledToggleSwitchHandle } from '../../types/handles';
-import { LOEN_PAA_HELLIGDAGE, LOENPERIODE } from '../../types/loen';
+import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../types/loen';
 import type { StyledPercentFieldValueChangeEvent } from '../inputs/StyledPercentField';
 import type { StyledIntegerFieldValueChangeEvent } from '../inputs/StyledIntegerField';
 import type { StyledDropdownChangeEvent } from '../inputs/StyledDropdown';
@@ -70,7 +70,7 @@ const Aarsloen = React.memo(() => {
   const persistedStamdata = usePersistedSectionSelector('stamdata');
 
   const {
-    feriePct, fritvalgPct, shSoPct, storeBededagPct, pensionPct, loenperiode, tableData,
+    feriePct, fritvalgPct, shSoPct, storeBededagPct, pensionPct, loenperiode, tillaegAngivesSom, tableData,
     fuldLoenUnderFerie, retTilSjetteFerieuge, antalFeriedage, loenPaaHelligdage
   } = values;
 
@@ -245,6 +245,12 @@ const Aarsloen = React.memo(() => {
     setField('loenperiode', value);
   }, [setField]);
 
+  const handleTillaegAngivesSomChange = React.useCallback((e: StyledDropdownChangeEvent) => {
+    const nextValue = e.target.value;
+    if (!isTillaegAngivesSomValue(nextValue)) return;
+    setField('tillaegAngivesSom', nextValue);
+  }, [setField]);
+
   const handleLoenPaaHelligdageChange = React.useCallback((e: StyledDropdownChangeEvent) => {
     const nextValue = e.target.value;
     if (!isLoenPaaHelligdageValue(nextValue)) return;
@@ -319,6 +325,43 @@ const Aarsloen = React.memo(() => {
       <ContentBox className="content-box">
         <Typography className="section-header">Satser</Typography>
 
+        {/* Løn indtastes som + Tillæg angives som placeres øverst, jf. EO-siden.
+            I Beløb-tilstand skjules selve sats-procentfelterne. */}
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Løn indtastes som:</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledRadioButton
+              name="loenperiode"
+              value={loenperiode}
+              onChange={handleLoenperiodeChange}
+              row={true}
+              options={[
+                { value: LOENPERIODE.MAANED, label: 'Måned' },
+                { value: LOENPERIODE.UGE, label: 'Uge' },
+                { value: LOENPERIODE.DAG, label: 'Dato' },
+              ]}
+            />
+          </Box>
+        </Box>
+
+        <Box className="row--label-right-hover">
+          <Typography className="row--text">Tillæg angives som</Typography>
+          <Box className="row--label-right-hover__content">
+            <StyledDropdown
+              name="tillaegAngivesSom"
+              width={185}
+              value={tillaegAngivesSom}
+              onChange={handleTillaegAngivesSomChange}
+              allowEmpty={false}
+            >
+              <MenuItem value={TILLAEG_ANGIVES_SOM.PROCENT}>Procent</MenuItem>
+              <MenuItem value={TILLAEG_ANGIVES_SOM.BELOEB}>Beløb</MenuItem>
+            </StyledDropdown>
+          </Box>
+        </Box>
+
+        {tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB && (
+          <>
         {/* Første række: 3 felter */}
         <Box className="row--label-right-hover">
           <Box
@@ -405,24 +448,8 @@ const Aarsloen = React.memo(() => {
             </Box>
           </Box>
         </Box>
-
-        {/* Lønperiode med radioknapper */}
-        <Box className="row--label-right-hover">
-          <Typography className="row--text">Løn indtastes som:</Typography>
-          <Box className="row--label-right-hover__content">
-            <StyledRadioButton
-              name="loenperiode"
-              value={loenperiode}
-              onChange={handleLoenperiodeChange}
-              row={true}
-              options={[
-                { value: LOENPERIODE.MAANED, label: 'Måned' },
-                { value: LOENPERIODE.UGE, label: 'Uge' },
-                { value: LOENPERIODE.DAG, label: 'Dato' },
-              ]}
-            />
-          </Box>
-        </Box>
+          </>
+        )}
 
       </ContentBox>
 
@@ -434,6 +461,7 @@ const Aarsloen = React.memo(() => {
           <StandardLoenTable
             ref={tabelRef}
             loenperiode={loenperiode}
+            tillaegAngivesSom={tillaegAngivesSom}
             satser={{
               ferie: feriePct,
               fritvalg: fritvalgPct,

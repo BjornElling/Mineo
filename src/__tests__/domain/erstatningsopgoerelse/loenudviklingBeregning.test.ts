@@ -1,7 +1,8 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
-import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues, createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { buildLoenudviklingModel } from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
+import { buildIndkomstSkadestidspunkt } from '../../../domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning';
 import { TAF_BEREGNES_SOM } from '../../../domain/erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { toISODateString } from '../../../types/branded';
@@ -302,5 +303,83 @@ describe('buildLoenudviklingModel', () => {
 
     expect(model.loenudviklingTotal).toEqual({ status: 'ok', value: 0 });
     expect(model.beregnedeSegmenter).toEqual([]);
+  });
+});
+
+describe('buildLoenudviklingModel — Beløb-tilstand (rate-only regulering)', () => {
+  // Verificerer at tillægslaget (her: Store Bededag) neutraliseres i Beløb-tilstand, så deltaPct
+  // bliver ren grundløns-/sats-regulering. Samme opsætning i Procent-tilstand giver Store Bededag-
+  // bidraget (-0,45 % før 2024), jf. testen "beregner negativ manuel Store Bededag-regulering".
+  const buildManualBeregningsperiode = (tillaegAngivesSom: 'procent' | 'beloeb'): ErstatningsopgoerelseValues => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Beregningsperiode';
+    values.tafBeregningsperiodeFra = iso('2023-01-01');
+    values.tafBeregningsperiodeTil = iso('2024-09-30');
+    values.tafPerioder = [{
+      id: 'taf-cross-store-bededag',
+      fra: iso('2023-01-01'),
+      til: iso('2024-09-30'),
+      loseFeriedage: 0,
+    }];
+    const baseAf = createDefaultLoenindkomstAnsaettelsesforhold();
+    values.loenindkomstAnsaettelsesforhold = [{
+      ...baseAf,
+      id: 'af-beloeb',
+      tillaegAngivesSom,
+      // Beløb: sæt satserne til ikke-nul for at bevise, at de IKKE påvirker deltaPct (neutraliseres).
+      // Procent: feriePct=0 så deltaPct alene afspejler Store Bededag-bidraget (-0,45 %).
+      feriePct: tillaegAngivesSom === 'beloeb' ? 12.5 : 0,
+      fritvalgPct: tillaegAngivesSom === 'beloeb' ? 4 : undefined,
+      shSoPct: tillaegAngivesSom === 'beloeb' ? 2.7 : undefined,
+      pensionPct: tillaegAngivesSom === 'beloeb' ? 8.15 : undefined,
+      loenPaaHelligdage: 'Almindelig løn',
+      loenudviklingBeregningsgrundlag: 'Manuelt angivet',
+      loenudviklingManuelTableData: [{
+        id: 'manual-base',
+        dato: toISODateString('2023-01-01'),
+        grundloen: asAmount(1000),
+        feriepenge: 0,
+        shSoSats: 0,
+        fritvalg: 0,
+        agPension: 0,
+      }],
+      indtaegtsoplysningerTableData: [{
+        id: 'r1',
+        col0_maaned: '1',
+        col1_maaned: '2023',
+        col0_uge: '',
+        col1_uge: '',
+        col0_dag: undefined,
+        col1_dag: undefined,
+        col2: asAmount(30000),
+        col3: undefined,
+        col4: undefined,
+        col5: undefined,
+        fpFvShSoBeloeb: asAmount(4000),
+        pensionBeloeb: asAmount(2000),
+      }],
+    }];
+    return values;
+  };
+
+  const deltaForSegment = (values: ErstatningsopgoerelseValues, fra: string): number | undefined => {
+    const stamdata = { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2023-01-01') };
+    const indkomst = buildIndkomstSkadestidspunkt(values, stamdata, TAF_BEREGNES_SOM.MAANEDER);
+    const model = buildLoenudviklingModel(
+      values,
+      stamdata,
+      TAF_BEREGNES_SOM.MAANEDER,
+      indkomst,
+      { tafRanges: [{ fra: iso('2023-01-01'), til: iso('2024-09-30') }] }
+    );
+    return model.beregnedeSegmenter.find((segment) => segment.fra === iso(fra))?.deltaPct;
+  };
+
+  it('neutraliserer Store Bededag i Beløb-tilstand (deltaPct = 0 før 2024)', () => {
+    expect(deltaForSegment(buildManualBeregningsperiode('beloeb'), '2023-01-01')).toBe(0);
+  });
+
+  it('Procent-tilstand bevarer Store Bededag-bidraget (deltaPct = -0,45 før 2024)', () => {
+    expect(deltaForSegment(buildManualBeregningsperiode('procent'), '2023-01-01')).toBe(-0.45);
   });
 });

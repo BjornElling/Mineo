@@ -18,7 +18,7 @@ import {
 import { calculateStandardLoenRowDerived, type StandardLoenSatserInput } from '../../../domain/aarsloen/standardLoenRowCalculations';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
-import type { StandardLoenTableRow, LoenPaaHelligdage, Loenperiode } from '../../../schemas/formSchemas';
+import type { StandardLoenTableRow, LoenPaaHelligdage, Loenperiode, TillaegAngivesSom } from '../../../schemas/formSchemas';
 import type { PeriodeResult } from '../../../utils/periodeBeregning';
 import type { AarsloenBeregningResult } from '../../../types/calculation';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../utils/expressionAmount';
@@ -135,7 +135,8 @@ const addIndtaegtsoplysningerTable = (
   tableData: readonly StandardLoenTableRow[],
   loenperiode: Loenperiode,
   satser: StandardLoenSatserInput,
-  beregnetAarsloen: number
+  beregnetAarsloen: number,
+  tillaegAngivesSom: TillaegAngivesSom
 ): number => {
   writer.writeBoldSubheader('Indtægtsoplysninger');
   const doc = writer.getDoc();
@@ -218,7 +219,7 @@ const addIndtaegtsoplysningerTable = (
       shSoPct: satser?.shSoPct,
       storeBededagPct: satser?.storeBededagPct,
       pensionPct: satser?.pensionPct,
-    });
+    }, { mode: tillaegAngivesSom });
 
     tableRows.push([
       cellCenter(col0Val),
@@ -527,6 +528,7 @@ const addBeregningSection = (
 type GenerateAarsloenDocumentParams = DocumentCommonOptions & Readonly<{
   satser: StandardLoenSatserInput;
   loenperiode: Loenperiode;
+  tillaegAngivesSom: TillaegAngivesSom;
   tableData: readonly StandardLoenTableRow[];
   beregnetAarsloen: number;
   omregningTilFuldtAar: boolean;
@@ -543,6 +545,7 @@ export const generateAarsloenDocument = (params: GenerateAarsloenDocumentParams)
   const {
     satser,
     loenperiode,
+    tillaegAngivesSom,
     tableData,
     beregnetAarsloen,
     omregningTilFuldtAar,
@@ -582,8 +585,11 @@ export const generateAarsloenDocument = (params: GenerateAarsloenDocumentParams)
   // Tilføj titel
   writer.writeTitle('Årslønsberegning');
 
-  // Tilføj satser-sektion (kun hvis der er udfyldte satser)
-  addSatserSection(writer, satser);
+  // Tilføj satser-sektion (kun hvis der er udfyldte satser). I Beløb-tilstand bruges satserne
+  // ikke (tillæg er indtastet som beløb i tabellen), og sektionen udelades.
+  if (tillaegAngivesSom !== 'beloeb') {
+    addSatserSection(writer, satser);
+  }
 
   // Tilføj indtægtsoplysninger-tabel (inkl. "I alt"-linje)
   writer.setY(addIndtaegtsoplysningerTable(
@@ -591,7 +597,8 @@ export const generateAarsloenDocument = (params: GenerateAarsloenDocumentParams)
     tableData,
     loenperiode,
     satser,
-    beregnetAarsloen
+    beregnetAarsloen,
+    tillaegAngivesSom
   ));
 
   // Betinget: Beregningsprincipper og beregning (kun hvis omregning er aktiveret)

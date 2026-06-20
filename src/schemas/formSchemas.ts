@@ -17,6 +17,8 @@ export {
   type AfsluttesMed,
   loenperiodeEnum,
   type Loenperiode,
+  tillaegAngivesSomEnum,
+  type TillaegAngivesSom,
   anciennitetSatsPerEnum,
   type AnciennitetSatsPer,
   loenPaaHelligdageEnum,

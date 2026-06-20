@@ -276,7 +276,7 @@ const collectMinMaxLoenindkomst = (
 
     for (const row of rows) {
       if (errorRowIds.has(row.id)) continue;
-      if (isStandardLoenRowEffectivelyEmpty(row, af.loenperiode)) {
+      if (isStandardLoenRowEffectivelyEmpty(row, af.loenperiode, af.tillaegAngivesSom)) {
         continue;
       }
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
@@ -456,7 +456,7 @@ export const buildEODebugModel = (
     values.varigeMenAfgorelse === 'Ja' && values.verserendeKlageMen === 'Nej' ? values.menAfgoerelseDato : undefined;
 
   const loenErrorRowIdsByIndex = (values.loenindkomstAnsaettelsesforhold ?? []).map((af) =>
-    getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)
+    getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, af.tillaegAngivesSom)
   );
   const offentligeErrorRowIds = getOffentligeYdelserErrorRowIdSet(values.offentligeYdelserRows ?? []);
 

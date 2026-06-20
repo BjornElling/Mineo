@@ -140,6 +140,7 @@ const getWageAmountsForRow = (
     loenperiode,
     allocationDates,
     selectedDates,
+    mode: af.tillaegAngivesSom,
     rateSegments: fra && til
       ? buildLoenindkomstRateSegments({
         ansaettelsesforhold: af,
@@ -173,7 +174,7 @@ const shouldIncludeWageColumn = (
 ): boolean => {
   for (const row of rows) {
     if (errorRowIds.has(row.id)) continue;
-    if (isStandardLoenRowEffectivelyEmpty(row, loenperiode)) continue;
+    if (isStandardLoenRowEffectivelyEmpty(row, loenperiode, af.tillaegAngivesSom)) continue;
     const interval = parseAarsloenRowInterval(row, loenperiode);
     if (!interval) continue;
     const allocationDates = buildAllocationDates(interval, isoIndex, isPeriodiseringsdag);
@@ -388,7 +389,7 @@ export const buildLoenindkomstColumns = (args: {
     const rows = af.indtaegtsoplysningerTableData ?? [];
     for (const row of rows) {
       if (errorRowIds.has(row.id)) continue;
-      if (isStandardLoenRowEffectivelyEmpty(row, af.loenperiode)) continue;
+      if (isStandardLoenRowEffectivelyEmpty(row, af.loenperiode, af.tillaegAngivesSom)) continue;
       const interval = parseAarsloenRowInterval(row, af.loenperiode);
       if (!interval) {
         const amounts = getWageAmountsForRow(af, row, satser, af.loenperiode, []);

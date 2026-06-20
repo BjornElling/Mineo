@@ -43,6 +43,10 @@ export const resolveStandardLoenColumnLabel = (colKey: StandardLoenTableColumnKe
       return stripHeaderLineBreaks(STANDARD_LOEN_COL4_LABEL);
     case 'col5':
       return stripHeaderLineBreaks(STANDARD_LOEN_COL5_LABEL);
+    case 'fpFvShSoBeloeb':
+      return stripHeaderLineBreaks(STANDARD_LOEN_FPFVSHSO_LABEL);
+    case 'pensionBeloeb':
+      return stripHeaderLineBreaks(STANDARD_LOEN_PENSION_LABEL);
     default: {
       const _exhaustive: never = colKey;
       void _exhaustive;

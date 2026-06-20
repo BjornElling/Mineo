@@ -5,6 +5,7 @@ import {
   type ErstatningsopgoerelseValues,
   type LoenPaaHelligdage,
   type Loenperiode,
+  type TillaegAngivesSom,
   type StamdataValues,
 } from '../../schemas/formSchemas';
 import type { AarsloenBeregningResult } from '../../types/calculation';
@@ -90,6 +91,7 @@ export type AarsloenDocumentInput = Readonly<{
     pensionPct: number | undefined;
   }>;
   loenperiode: Loenperiode;
+  tillaegAngivesSom: TillaegAngivesSom;
   tableData: readonly StandardLoenTableRow[];
   beregnetAarsloen: number;
   omregningTilFuldtAar: boolean;

@@ -72,6 +72,7 @@ export const useAarsloenDocumentGates = ({
   const {
     tableData,
     loenperiode,
+    tillaegAngivesSom,
     feriePct,
     fritvalgPct,
     shSoPct,
@@ -125,7 +126,7 @@ export const useAarsloenDocumentGates = ({
     }
 
     // GATE 2: Valideringsfejl i tabel
-    if (harTabelValideringsFejl(tableData, loenperiode)) {
+    if (harTabelValideringsFejl(tableData, loenperiode, tillaegAngivesSom)) {
       return blockDocumentDownload({ code: 'aarsloen:table-validation-error', message: 'Valideringsfejl i tabel' });
     }
 
@@ -137,7 +138,7 @@ export const useAarsloenDocumentGates = ({
         shSoPct,
         storeBededagPct,
         pensionPct,
-      })
+      }, tillaegAngivesSom)
     ) {
       return blockDocumentDownload({ code: 'aarsloen:no-valid-rows', message: 'Ingen gyldige rækker i tabel' });
     }
@@ -158,6 +159,7 @@ export const useAarsloenDocumentGates = ({
   }, [
     tableData,
     loenperiode,
+    tillaegAngivesSom,
     feriePct,
     fritvalgPct,
     shSoPct,
@@ -218,6 +220,7 @@ export const useAarsloenDocumentGates = ({
           pensionPct,
         },
         loenperiode,
+        tillaegAngivesSom,
         tableData,
         beregnetAarsloen,
         omregningTilFuldtAar: omregningAktiveret,
@@ -240,6 +243,7 @@ export const useAarsloenDocumentGates = ({
     storeBededagPct,
     pensionPct,
     loenperiode,
+    tillaegAngivesSom,
     tableData,
     beregnetAarsloen,
     omregningAktiveret,

@@ -42,7 +42,11 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // tableData=[], omregningTilFuldtAar=false, fuldLoenUnderFerie=true, retTilSjetteFerieuge=true,
 // loenPaaHelligdage='Almindelig løn') for forward/backward-tolerant load. Felterne bliver input-optional
 // → fingerprint ændret. PERSISTED_DATA_VERSION bumpet til 3.4 (reel persisted schema-/parse-semantikændring).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-4c30e25e';
+// Opdateret 2026-06-20: nyt felt tillaegAngivesSom ('procent'|'beloeb', default 'procent') på
+// erstatningsopgoerelse-AF og aarsloen-sektionen, samt to nye lønindkomst-rækkefelter
+// (fpFvShSoBeloeb, pensionBeloeb) til Beløb-tilstand. PERSISTED_DATA_VERSION bumpet til 3.5
+// (reel persisted schema-ændring; nye inputfelter).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-6ad968a6';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

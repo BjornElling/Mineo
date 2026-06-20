@@ -19,6 +19,7 @@ const createValidSections = (): PersistedSectionMap => ({
     storeBededagPct: undefined,
     pensionPct: undefined,
     loenperiode: LOENPERIODE.MAANED,
+    tillaegAngivesSom: 'procent',
     tableData: [],
     omregningTilFuldtAar: false,
     fuldLoenUnderFerie: true,

@@ -254,7 +254,7 @@ export const buildIncomeCalculationContext = (
   const shDaysForYdelser = buildShDageSetFromIsoRange(bounds.boundsFra, bounds.boundsTil);
   const ansaettelser = values.loenindkomstAnsaettelsesforhold ?? [];
   const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
-    ansaettelser.map((af) => [af.id, getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)])
+    ansaettelser.map((af) => [af.id, getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, af.tillaegAngivesSom)])
   );
 
   return {
@@ -299,7 +299,7 @@ export const buildIncomeForRanges = (
   const shDaysForYdelser = resolvedContext?.shDaysForYdelser ?? new Set<ISODateString>();
   const loenErrorRowIdsByEmploymentId = resolvedContext?.loenErrorRowIdsByEmploymentId
     ?? new Map<string, ReadonlySet<string>>(
-      ansaettelser.map((af) => [af.id, getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode)])
+      ansaettelser.map((af) => [af.id, getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, af.tillaegAngivesSom)])
     );
   const employers: IncomeEmployerAmount[] = [];
 
@@ -356,6 +356,7 @@ export const buildIncomeForRanges = (
         loenperiode: af.loenperiode,
         allocationDates,
         selectedDates,
+        mode: af.tillaegAngivesSom,
         rateSegments: fra && til
           ? buildLoenindkomstRateSegments({
             ansaettelsesforhold: af,

@@ -24,6 +24,7 @@ import FloatingActionButton from '../../ui/FloatingActionButton';
 import ContentBox from '../../layout/ContentBox';
 import {
   loenPaaHelligdageEnum,
+  tillaegAngivesSomEnum,
   loenudviklingBeregningsgrundlagEnum,
   loenudviklingStatistikModelEnum,
   krlSatstabelEnum,
@@ -33,7 +34,7 @@ import {
   type ErstatningsopgoerelseValues,
 } from '../../../schemas/formSchemas';
 import { DAY_COUNT_MAX } from '../../../schemas/formSchemas/baseSchemas';
-import { LOENPERIODE } from '../../../types/loen';
+import { LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 import type { ISODateString } from '../../../types/branded';
 import { parseISODate } from '../../../types/branded';
 import { formatDanishDate } from '../../../utils/dateUtils';
@@ -234,6 +235,7 @@ const createBlankAnsaettelsesforhold = (settings: AppSettings): Ansaettelsesforh
     shSoPct: undefined,
     storeBededagPct: undefined,
     pensionPct: undefined,
+    tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
     loenperiode: safeSettings.defaultLoenIndtastesSom,
     fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
     loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
@@ -420,6 +422,8 @@ const LoenindkomstTab = React.memo(({
   const validateAllSatserForAnsaettelsesforhold = React.useCallback(
     (af: Ansaettelsesforhold) => {
       const errors: SatsErrorState = {};
+      // Beløb-tilstand bruger ikke satserne; ingen sats-validering (og dermed ingen blokerende fejl).
+      if (af.tillaegAngivesSom === TILLAEG_ANGIVES_SOM.BELOEB) return errors;
       const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
       const kræverFeriePct = beregnesUdFra === 'Beregningsperiode'
         && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []);
@@ -857,6 +861,28 @@ const LoenindkomstTab = React.memo(({
         updateAnsaettelsesforhold(id, (prev) => ({ ...prev, loenperiode: value }), { fieldPath: `${id}:loenperiode` });
       },
     [updateAnsaettelsesforhold]
+  );
+
+  const handleTillaegAngivesSomChange = React.useCallback(
+    (id: string) =>
+      (event: StyledDropdownChangeEvent<string>) => {
+        const parsed = tillaegAngivesSomEnum.safeParse(event.target.value);
+        if (!parsed.success) return;
+        updateAnsaettelsesforhold(id, (prev) => ({ ...prev, tillaegAngivesSom: parsed.data }), { fieldPath: `${id}:tillaegAngivesSom` });
+        // Beløb-tilstand bruger ikke satserne; ryd evt. sats-fejl, så stale røde kanter ikke bliver
+        // hængende. Skifter man tilbage til Procent, revalideres satserne.
+        if (parsed.data === 'beloeb') {
+          setSatsErrors((prev) => {
+            if (!prev[id]) return prev;
+            const { [id]: _removed, ...rest } = prev;
+            return rest;
+          });
+        } else {
+          const ansaettelsesforhold = loenindkomstAnsaettelsesforhold.find((af) => af.id === id);
+          if (ansaettelsesforhold) setSatsErrorsForAnsaettelsesforhold(id, ansaettelsesforhold);
+        }
+      },
+    [updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold, setSatsErrorsForAnsaettelsesforhold]
   );
 
   const handleFuldLoenUnderFerieChange = React.useCallback(
@@ -1586,6 +1612,41 @@ const LoenindkomstTab = React.memo(({
               </Box>
             )}
 
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Løn indtastes som:</Typography>
+              <Box className="row--label-right-hover__content">
+                <StyledRadioButton
+                  name={`${af.id}:loenperiode`}
+                  value={af.loenperiode}
+                  onChange={handleLoenperiodeChange(af.id)}
+                  row={true}
+                  options={[
+                    { value: LOENPERIODE.MAANED, label: 'Måned' },
+                    { value: LOENPERIODE.UGE, label: 'Uge' },
+                    { value: LOENPERIODE.DAG, label: 'Dato' },
+                  ]}
+                />
+              </Box>
+            </Box>
+
+            <Box className="row--label-right-hover">
+              <Typography className="row--text">Tillæg angives som</Typography>
+              <Box className="row--label-right-hover__content">
+                <StyledDropdown
+                  name={`${af.id}:tillaegAngivesSom`}
+                  width={185}
+                  value={af.tillaegAngivesSom}
+                  onChange={handleTillaegAngivesSomChange(af.id)}
+                  allowEmpty={false}
+                >
+                  <MenuItem value={TILLAEG_ANGIVES_SOM.PROCENT}>Procent</MenuItem>
+                  <MenuItem value={TILLAEG_ANGIVES_SOM.BELOEB}>Beløb</MenuItem>
+                </StyledDropdown>
+              </Box>
+            </Box>
+
+            {af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB && (
+              <>
             <Typography className="row--subheading">{satserHeading}</Typography>
 
             {/* Første række: 3 felter */}
@@ -1692,29 +1753,15 @@ const LoenindkomstTab = React.memo(({
                 </Box>
               </Box>
             </Box>
+              </>
+            )}
 
             <Typography className="row--subheading">Indtægtsoplysninger</Typography>
-
-            <Box className="row--label-right-hover">
-              <Typography className="row--text">Løn indtastes som:</Typography>
-              <Box className="row--label-right-hover__content">
-                <StyledRadioButton
-                  name={`${af.id}:loenperiode`}
-                  value={af.loenperiode}
-                  onChange={handleLoenperiodeChange(af.id)}
-                  row={true}
-                  options={[
-                    { value: LOENPERIODE.MAANED, label: 'Måned' },
-                    { value: LOENPERIODE.UGE, label: 'Uge' },
-                    { value: LOENPERIODE.DAG, label: 'Dato' },
-                  ]}
-                />
-              </Box>
-            </Box>
 
             <CellInvalidDraftScopeProvider pageKey="erstatningsopgoerelse" tableId={CELL_TABLE_IDS.eoStandardLoen} rowScope={af.id}>
             <StandardLoenTable
               loenperiode={af.loenperiode}
+              tillaegAngivesSom={af.tillaegAngivesSom}
               satser={satserByAfId.get(af.id)!}
               tableData={af.indtaegtsoplysningerTableData}
               onTableDataChange={tableDataChangeByAfId.get(af.id)}
@@ -1744,7 +1791,11 @@ const LoenindkomstTab = React.memo(({
                   <MenuItem value="Overenskomst">Overenskomst</MenuItem>
                   <MenuItem value="Statistik">Statistik</MenuItem>
                   <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
-                  <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
+                  {/* 'Manuelt angivet' bygger på tillægsprocenter pr. dato og giver ikke mening i
+                      Beløb-tilstand; valget skjules der. Tidligere indtastede manuelle rækker bevares. */}
+                  {af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB && (
+                    <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
+                  )}
                   <MenuItem value="Ingen">Ingen</MenuItem>
                 </StyledDropdown>
               </Box>
@@ -1888,7 +1939,7 @@ const LoenindkomstTab = React.memo(({
               </Box>
             ) : null}
 
-            {loenudviklingBasis === 'Manuelt angivet' ? (
+            {loenudviklingBasis === 'Manuelt angivet' && af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB ? (
               <Box sx={{ mt: 1 }}>
                 {(() => {
                   const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);

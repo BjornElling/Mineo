@@ -1,4 +1,4 @@
-import type { OffentligeYdelserRow, StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode } from '../../../schemas/formSchemas';
+import type { OffentligeYdelserRow, StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, TillaegAngivesSom } from '../../../schemas/formSchemas';
 import { dateToISO, isISODateString } from '../../../types/branded';
 import { parseWeekString } from '../../../utils/dateUtils';
 import { MIN_YEAR, CURRENT_YEAR } from '../../../config/dateRanges';
@@ -115,9 +115,13 @@ export const buildOffentligeYdelserCellErrors = (rows: readonly OffentligeYdelse
   return errors;
 };
 
-export const getStandardLoenErrorRowIdSet = (rows: readonly StandardLoenTableRow[], loenperiode: Loenperiode): ReadonlySet<string> => {
+export const getStandardLoenErrorRowIdSet = (
+  rows: readonly StandardLoenTableRow[],
+  loenperiode: Loenperiode,
+  tillaegAngivesSom: TillaegAngivesSom = 'procent'
+): ReadonlySet<string> => {
   const cellErrors = buildStandardLoenCellErrors(rows, loenperiode);
-  const validation = getStandardLoenTableValidation({ rows, loenperiode, cellErrorsByCellKey: cellErrors });
+  const validation = getStandardLoenTableValidation({ rows, loenperiode, cellErrorsByCellKey: cellErrors, tillaegAngivesSom });
   return new Set(validation.summary.rowIssues.filter((issue) => issue.level === 'error').map((issue) => issue.rowId));
 };
 

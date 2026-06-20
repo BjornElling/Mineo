@@ -91,6 +91,7 @@ describe('aarsloenPdf', () => {
         pensionPct: 10,
       },
       loenperiode: 'maaned',
+      tillaegAngivesSom: 'procent',
       tableData: [
         {
           id: 'row-1',
@@ -159,6 +160,7 @@ describe('aarsloenPdf', () => {
         pensionPct: 10,
       },
       loenperiode: 'maaned',
+      tillaegAngivesSom: 'procent',
       tableData: [
         {
           id: 'row-1',

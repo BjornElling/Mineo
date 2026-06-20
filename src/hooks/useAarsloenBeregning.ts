@@ -58,6 +58,7 @@ export const useAarsloenBeregning = ({
   const {
     tableData,
     loenperiode,
+    tillaegAngivesSom,
     feriePct,
     fritvalgPct,
     shSoPct,
@@ -154,12 +155,12 @@ export const useAarsloenBeregning = ({
           shSoPct,
           storeBededagPct,
           pensionPct,
-        });
+        }, { mode: tillaegAngivesSom });
 
         return acc + roundStandardLoenAmountToTwoDecimals(derived.samlet);
       }, 0);
     }, 'useAarsloenBeregning.aarsloenBeregning');
-  }, [tableData, feriePct, fritvalgPct, shSoPct, storeBededagPct, pensionPct]);
+  }, [tableData, tillaegAngivesSom, feriePct, fritvalgPct, shSoPct, storeBededagPct, pensionPct]);
 
   // Udpak beregnetAarsloen fra Result (fallback til 0 hvis fejl)
   const beregnetAarsloen = React.useMemo((): number => {

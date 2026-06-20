@@ -1,5 +1,5 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
-import { LOEN_PAA_HELLIGDAGE, LOENPERIODE } from '../../types/loen';
+import { LOEN_PAA_HELLIGDAGE, LOENPERIODE, TILLAEG_ANGIVES_SOM } from '../../types/loen';
 import { resolveAppSettings } from '../../settings/appSettingsParse';
 import type { AppSettings } from '../../settings/appSettingsSchema';
 
@@ -10,6 +10,7 @@ export const AARSLOEN_INITIAL_VALUES = {
   storeBededagPct: undefined,
   pensionPct: undefined,
   loenperiode: LOENPERIODE.MAANED,
+  tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
   tableData: [],
   omregningTilFuldtAar: false,
   fuldLoenUnderFerie: true,

@@ -1,6 +1,6 @@
 import type { ErstatningsopgoerelseValues } from '../../../schemas/formSchemas';
 import type { ISODateString } from '../../../types/branded';
-import { LOENPERIODE, LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
+import { LOENPERIODE, LOEN_PAA_HELLIGDAGE, TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 
 export const EO_ANGIVET_LOEN_ID = 'eo-angivet-loen';
 
@@ -87,6 +87,8 @@ export const resolveLoenudviklingKilde = (
     shSoPct: undefined,
     storeBededagPct: undefined,
     pensionPct: undefined,
+    // Angivet løn bruger ikke lønindkomst-tabellen; Beløb-tilstand er irrelevant her.
+    tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
     loenperiode: LOENPERIODE.MAANED,
     fuldLoenUnderFerie: 'Ja',
     // Bevidst ingen fallback; ugyldige værdier skal kaste for at undgå stille propagering.

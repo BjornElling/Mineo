@@ -88,6 +88,7 @@ export const buildIndkomstSkadestidspunkt = (
           beregningsperiodeTil: values.tafBeregningsperiodeTil,
           skadedato: skadedato ?? undefined,
         });
+        const mode = af.tillaegAngivesSom;
         const satser = (() => {
           const baseSatser = {
             feriePct: af.feriePct,
@@ -96,6 +97,9 @@ export const buildIndkomstSkadestidspunkt = (
             storeBededagPct: af.storeBededagPct,
             pensionPct: af.pensionPct,
           };
+          // Beløb-tilstand: satser bruges aldrig (kernen ignorerer dem), og 'Manuelt angivet'
+          // procent-grenen skal ikke kunne køre. Returnér base uændret.
+          if (mode === 'beloeb') return baseSatser;
           if (!anvendtReguleringsdato) return baseSatser;
           if (af.loenudviklingBeregningsgrundlag === 'Manuelt angivet') {
             const manualRows = af.loenudviklingManuelTableData ?? [];
@@ -130,6 +134,10 @@ export const buildIndkomstSkadestidspunkt = (
             loen2: 0,
             ikkePensionsgivende: entry.breakdown.loenPlusLoen2PlusIkkePensLoen - entry.breakdown.loenPlusLoen2,
             atp: entry.breakdown.atp,
+            // I Beløb-tilstand er tillæggene de allerede periodiserede, indtastede beløb;
+            // de genberegnes ikke fra satser (mode='beloeb' læser disse, ikke satserne).
+            fpFvShSoBeloeb: entry.breakdown.fpFvShSo,
+            pensionBeloeb: entry.breakdown.pension,
           },
           {
             feriePct: satser.feriePct,
@@ -137,22 +145,26 @@ export const buildIndkomstSkadestidspunkt = (
             shSoPct: satser.shSoPct,
             storeBededagPct: satser.storeBededagPct,
             pensionPct: satser.pensionPct,
-          }
+          },
+          mode
         );
         const feriePct = parsePctPoint(satser.feriePct);
         const fritvalgPct = parsePctPoint(satser.fritvalgPct);
         const shSoPct = parsePctPoint(satser.shSoPct);
         const storeBededagPct = parsePctPoint(satser.storeBededagPct);
         const pensionPct = parsePctPoint(satser.pensionPct);
+        // Beløb-tilstand: labels må ikke påstå procentsatser, da tillæggene er indtastede beløb.
         const pctParts: string[] = [];
-        if (feriePct && feriePct !== 0) pctParts.push(`Feriepenge (${formatPercent(feriePct)})`);
-        if (fritvalgPct && fritvalgPct !== 0) pctParts.push(`Fritvalg (${formatPercent(fritvalgPct)})`);
-        if (shSoPct && shSoPct !== 0) pctParts.push(`S/H (${formatPercent(shSoPct)})`);
-        if (storeBededagPct && storeBededagPct !== 0) {
-          pctParts.push(`Store Bededag (${formatPercentFixed2(storeBededagPct)})`);
+        if (mode !== 'beloeb') {
+          if (feriePct && feriePct !== 0) pctParts.push(`Feriepenge (${formatPercent(feriePct)})`);
+          if (fritvalgPct && fritvalgPct !== 0) pctParts.push(`Fritvalg (${formatPercent(fritvalgPct)})`);
+          if (shSoPct && shSoPct !== 0) pctParts.push(`S/H (${formatPercent(shSoPct)})`);
+          if (storeBededagPct && storeBededagPct !== 0) {
+            pctParts.push(`Store Bededag (${formatPercentFixed2(storeBededagPct)})`);
+          }
         }
         const fpLabel = pctParts.length > 0 ? pctParts.join(' + ') : 'Feriepenge m.v.';
-        const pensionLabel = pensionPct && pensionPct !== 0
+        const pensionLabel = mode !== 'beloeb' && pensionPct && pensionPct !== 0
           ? `Arbejdsgivers pensionsbidrag (${formatPercent(pensionPct)} af løn + tillæg)`
           : 'Arbejdsgivers pensionsbidrag';
         const navn = entry.name !== '' ? entry.name : ((af.navnPaaArbejdssted ?? '').trim() || 'Arbejdssted');

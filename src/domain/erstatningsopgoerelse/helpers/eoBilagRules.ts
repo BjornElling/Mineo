@@ -115,7 +115,7 @@ const hasLoenindkomstEoBilagData = (
   rangeGroups: readonly PeriodRangeGroup[]
 ): boolean => {
   return (values.loenindkomstAnsaettelsesforhold ?? []).some((af) => {
-    const errorRowIds = getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode);
+    const errorRowIds = getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, af.tillaegAngivesSom);
     return rangeGroups.some((group) =>
       (af.indtaegtsoplysningerTableData ?? []).some((row) => shouldIncludeLoenRowInEoBilag({
         row,

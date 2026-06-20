@@ -1,4 +1,4 @@
-import type { StandardLoenTableRow, Loenperiode } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
 import type {
   StandardLoenTableColumnKey,
   StandardLoenTableFirstErrorCell,
@@ -59,15 +59,21 @@ export const buildStandardLoenPeriodOrderCellErrorMessages = (
   return messages;
 };
 
-const OTHER_KEYS: readonly StandardLoenTableColumnKey[] = ['col2', 'col3', 'col4', 'col5'];
+// Beløbsfelterne (col2-col5) er altid redigerbare; tillægsbeløbskolonnerne tæller kun med i
+// Beløb-tilstand (hvor de er redigerbare i stedet for beregnede).
+const BASE_AMOUNT_KEYS: readonly StandardLoenTableColumnKey[] = ['col2', 'col3', 'col4', 'col5'];
+const BELOEB_AMOUNT_KEYS: readonly StandardLoenTableColumnKey[] = ['fpFvShSoBeloeb', 'pensionBeloeb'];
 
-const hasAnyAmountInput = (row: StandardLoenTableRow): boolean => {
-  return OTHER_KEYS.some((key) => !isStandardLoenTableValueEffectivelyEmptyForValidation(row[key]));
+const getAmountKeys = (mode: TillaegAngivesSom): readonly StandardLoenTableColumnKey[] =>
+  mode === 'beloeb' ? [...BASE_AMOUNT_KEYS, ...BELOEB_AMOUNT_KEYS] : BASE_AMOUNT_KEYS;
+
+const hasAnyAmountInput = (row: StandardLoenTableRow, mode: TillaegAngivesSom): boolean => {
+  return getAmountKeys(mode).some((key) => !isStandardLoenTableValueEffectivelyEmptyForValidation(row[key]));
 };
 
-const getColumnOrder = (loenperiode: Loenperiode): readonly StandardLoenTableColumnKey[] => {
+const getColumnOrder = (loenperiode: Loenperiode, mode: TillaegAngivesSom): readonly StandardLoenTableColumnKey[] => {
   const [startKey, endKey] = PERIOD_KEYS[loenperiode];
-  return [startKey, endKey, ...OTHER_KEYS];
+  return [startKey, endKey, ...getAmountKeys(mode)];
 };
 
 const isStandardLoenTableColumnKey = (value: string): value is StandardLoenTableColumnKey => {
@@ -81,7 +87,9 @@ const isStandardLoenTableColumnKey = (value: string): value is StandardLoenTable
     value === 'col2' ||
     value === 'col3' ||
     value === 'col4' ||
-    value === 'col5'
+    value === 'col5' ||
+    value === 'fpFvShSoBeloeb' ||
+    value === 'pensionBeloeb'
   );
 };
 
@@ -97,6 +105,8 @@ const resolveColumnKeyFromCellKeyPart = (
   if (numeric === 3) return 'col3';
   if (numeric === 4) return 'col4';
   if (numeric === 5) return 'col5';
+  if (numeric === 6) return 'fpFvShSoBeloeb';
+  if (numeric === 7) return 'pensionBeloeb';
   return null;
 };
 
@@ -128,10 +138,12 @@ export const getStandardLoenTableValidation = ({
   rows,
   loenperiode,
   cellErrorsByCellKey = {},
+  tillaegAngivesSom = 'procent',
 }: Readonly<{
   rows: readonly StandardLoenTableRow[];
   loenperiode: Loenperiode;
   cellErrorsByCellKey?: StandardLoenTableCellErrorMap;
+  tillaegAngivesSom?: TillaegAngivesSom;
 }>): StandardLoenTableValidationResult => {
   const rowIssues: StandardLoenTableValidationSummary['rowIssues'] = [];
   const errors: TableError[] = [];
@@ -142,15 +154,15 @@ export const getStandardLoenTableValidation = ({
   let firstErrorCell: StandardLoenTableFirstErrorCell | undefined;
 
   const [periodStartKey, periodEndKey] = PERIOD_KEYS[loenperiode];
-  const relevantKeys = new Set<StandardLoenTableColumnKey>([periodStartKey, periodEndKey, ...OTHER_KEYS]);
-  const columnOrder = getColumnOrder(loenperiode);
+  const relevantKeys = new Set<StandardLoenTableColumnKey>([periodStartKey, periodEndKey, ...getAmountKeys(tillaegAngivesSom)]);
+  const columnOrder = getColumnOrder(loenperiode, tillaegAngivesSom);
 
   for (const row of rows) {
     const startFilled = !isStandardLoenTableValueEffectivelyEmptyForValidation(row[periodStartKey]);
     const endFilled = !isStandardLoenTableValueEffectivelyEmptyForValidation(row[periodEndKey]);
     const periodComplete = startFilled && endFilled;
 
-    const otherFilled = hasAnyAmountInput(row);
+    const otherFilled = hasAnyAmountInput(row, tillaegAngivesSom);
     const hasAnyFilled = startFilled || endFilled || otherFilled;
 
     const rowErrorKeys = cellErrorsByRow.get(row.id) ?? new Set<StandardLoenTableColumnKey>();

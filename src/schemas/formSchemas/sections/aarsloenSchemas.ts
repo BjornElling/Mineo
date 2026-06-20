@@ -6,7 +6,7 @@ import {
   tableAmountCellValue,
   tableIsoDateCellString,
 } from '../baseSchemas';
-import { loenPaaHelligdageEnum, loenperiodeEnum } from '../enumSchemas';
+import { loenPaaHelligdageEnum, loenperiodeEnum, tillaegAngivesSomEnum } from '../enumSchemas';
 
 export const standardLoenTableRowSchema = z.object({
   id: z.string().min(1, 'Række-ID må ikke være tomt'),
@@ -22,6 +22,12 @@ export const standardLoenTableRowSchema = z.object({
   col3: tableAmountCellValue,
   col4: tableAmountCellValue,
   col5: tableAmountCellValue,
+  // Beløb-tilstand (tillaegAngivesSom='beloeb'): brugeren angiver tillægsbeløbene direkte i
+  // stedet for procentsatser. fpFvShSoBeloeb svarer til kolonnen "FP/FV/SH/SO/St.B." og
+  // pensionBeloeb til "Arb.g. Pension". I Procent-tilstand er disse beregnede visningsfelter,
+  // og de to her ignoreres af beregningskernen (læses aldrig → tilstands-isolation).
+  fpFvShSoBeloeb: tableAmountCellValue,
+  pensionBeloeb: tableAmountCellValue,
 }).strict();
 
 export type StandardLoenTableRow = z.infer<typeof standardLoenTableRowSchema>;
@@ -43,6 +49,9 @@ export const aarsloenSchema = z.object({
   // fil hvor feltet helt mangler. Bevidst ikke settings-styret her: persistence-contract forbyder
   // at injicere device-lokale app-settings under load.
   loenperiode: loenperiodeEnum.default('maaned'),
+  // 'procent' = nuværende adfærd (default, passiv load-fallback for ældre .eo); 'beloeb' =
+  // tillægsbeløb angives direkte i tabellen, og sats-blokken skjules.
+  tillaegAngivesSom: tillaegAngivesSomEnum.default('procent'),
   tableData: z.array(standardLoenTableRowSchema).default([]),
   omregningTilFuldtAar: z.boolean().default(false),
   fuldLoenUnderFerie: z.boolean().default(true),

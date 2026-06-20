@@ -66,7 +66,7 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
   const loenErrorRowIdsByEmploymentId = new Map<string, ReadonlySet<string>>(
     (eoValues.loenindkomstAnsaettelsesforhold ?? []).map((af) => [
       af.id,
-      getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode),
+      getStandardLoenErrorRowIdSet(af.indtaegtsoplysningerTableData ?? [], af.loenperiode, af.tillaegAngivesSom),
     ])
   );
 
@@ -197,7 +197,8 @@ export const renderLoenindkomstSection = (ctx: LoenSectionContext): void => {
         writeLabelValueLine('Overenskomst', resolveOverenskomstNameOnlyDisplay(overenskomstId));
         writer.addSectionSpacer();
       }
-      if (selectedElements.okSatser) {
+      // Beløb-tilstand: satserne bruges ikke (tillæg er indtastet som beløb i tabellen) og udelades.
+      if (selectedElements.okSatser && ansaettelsesforhold.tillaegAngivesSom !== 'beloeb') {
         if (!isZeroPct(ansaettelsesforhold.feriePct)) {
           writeLabelValueLine('Feriegodtgørelse/-tillæg:', formatPctFromInput(ansaettelsesforhold.feriePct));
         }

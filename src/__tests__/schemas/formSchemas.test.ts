@@ -17,7 +17,7 @@ import {
   offentligeYdelserRowSchema,
 } from '../../schemas/formSchemas';
 import { tableIsoDateCellString } from '../../schemas/formSchemas/baseSchemas';
-import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { createErstatningsopgoerelseInitialValues, createDefaultLoenindkomstAnsaettelsesforhold } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { ERHVERVSEVNETAB_INITIAL_VALUES } from '../../domain/erhvervsevnetab/erhvervsevnetabInitialValues';
 import { FORSOERGERTAB_INITIAL_VALUES } from '../../domain/forsoergertab/forsoergertabInitialValues';
 import { FAELLES_AARSLOEN_INITIAL_VALUES } from '../../domain/aslEalAarsloen/faellesAarsloenInitialValues';
@@ -69,6 +69,76 @@ describe('aarsloenSchema', () => {
     if (result.success) {
       expect(result.data.tableData[0]?.col0_dag).toBe(toISODateString('2024-01-01'));
       expect(result.data.tableData[0]?.col1_dag).toBe(toISODateString('2024-01-31'));
+    }
+  });
+});
+
+// ─── tillaegAngivesSom (Beløb-tilstand) ──────────────────────────────────────────
+
+describe('tillaegAngivesSom og Beløb-tilstandens rækkefelter', () => {
+  it('aarsloen: en ældre .eo uden tillaegAngivesSom loades med default "procent" (forward/backward-tolerant)', () => {
+    const result = aarsloenSchema.safeParse({
+      loenperiode: 'maaned',
+      tableData: [],
+      antalFeriedage: undefined,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.tillaegAngivesSom).toBe('procent');
+  });
+
+  it('aarsloen: round-trip bevarer både satser, tillaegAngivesSom og de direkte tillægsbeløb', () => {
+    const result = aarsloenSchema.safeParse({
+      feriePct: 12.5,
+      tillaegAngivesSom: 'beloeb',
+      loenperiode: 'maaned',
+      tableData: [{
+        id: 'r1',
+        col0_maaned: '5',
+        col1_maaned: '2016',
+        col2: { kind: 'number', value: 25000 },
+        fpFvShSoBeloeb: { kind: 'number', value: 4218 },
+        pensionBeloeb: { kind: 'number', value: 2581.92 },
+      }],
+      antalFeriedage: undefined,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tillaegAngivesSom).toBe('beloeb');
+      expect(result.data.feriePct).toBe(12.5);
+      expect(result.data.tableData[0]?.fpFvShSoBeloeb).toEqual({ kind: 'number', value: 4218 });
+      expect(result.data.tableData[0]?.pensionBeloeb).toEqual({ kind: 'number', value: 2581.92 });
+    }
+  });
+
+  it('aarsloen: en ældre løntabel-række uden de nye tillægsbeløbsfelter loades uændret', () => {
+    const result = aarsloenSchema.safeParse({
+      loenperiode: 'maaned',
+      tableData: [{ id: 'r1', col0_maaned: '1', col1_maaned: '2024', col2: { kind: 'number', value: 30000 } }],
+      antalFeriedage: undefined,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.tableData[0]?.fpFvShSoBeloeb).toBeUndefined();
+      expect(result.data.tableData[0]?.pensionBeloeb).toBeUndefined();
+    }
+  });
+
+  it('EO: nyt ansættelsesforhold defaulter til tillaegAngivesSom "procent"', () => {
+    const af = createDefaultLoenindkomstAnsaettelsesforhold();
+    expect(af.tillaegAngivesSom).toBe('procent');
+  });
+
+  it('EO: en ældre AF uden tillaegAngivesSom loades med default "procent"', () => {
+    const initial = createErstatningsopgoerelseInitialValues();
+    const af = createDefaultLoenindkomstAnsaettelsesforhold();
+    const { tillaegAngivesSom: _omit, ...afUdenFelt } = af;
+    const parsed = erstatningsopgoerelseSchema.safeParse({
+      ...initial,
+      loenindkomstAnsaettelsesforhold: [afUdenFelt],
+    });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.loenindkomstAnsaettelsesforhold[0]?.tillaegAngivesSom).toBe('procent');
     }
   });
 });

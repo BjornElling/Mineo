@@ -801,7 +801,9 @@ function validateLoenudviklingsKravForAktivKilde(
     }
     if (grundlag === 'Ingen') return;
 
-    const kræverFeriePct = values.beregnesUdFra === 'Beregningsperiode'
+    // Beløb-tilstand bruger ikke satserne (tillæg indtastes som beløb), så feriePct kræves ikke.
+    const kræverFeriePct = af.tillaegAngivesSom !== 'beloeb'
+      && values.beregnesUdFra === 'Beregningsperiode'
       && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []);
 
     if (grundlag === 'Overenskomst') {
@@ -835,7 +837,9 @@ function validateLoenudviklingsKravForAktivKilde(
 
     errors.push(...validateLoenudviklingDataCoverage(values, af, index, path, options));
 
-    if (grundlag === 'Manuelt angivet') {
+    // Beløb-tilstand skjuler 'Manuelt angivet' (procent-baseret); en evt. bevaret manuel-tilstand
+    // valideres derfor ikke her (felterne kan ikke redigeres, og motoren neutraliserer tillægslaget).
+    if (grundlag === 'Manuelt angivet' && af.tillaegAngivesSom !== 'beloeb') {
       if (kræverFeriePct && !Number.isFinite(af.feriePct)) {
         errors.push({ path: path('feriePct'), message: 'Feriegodtgørelse/-tillæg skal udfyldes', severity: 'error' });
       }

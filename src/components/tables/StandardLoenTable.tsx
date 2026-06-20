@@ -8,7 +8,7 @@ import TableDateInput from '../inputs/table/TableDateInput';
 import type { TableInputErrorInfo } from '../../utils/tableInputContracts';
 
 import { CURRENT_YEAR, MIN_YEAR, dateRanges_aarsloen } from '../../config/dateRanges';
-import type { StandardLoenTableRow, Loenperiode } from '../../schemas/formSchemas';
+import type { StandardLoenTableRow, Loenperiode, TillaegAngivesSom } from '../../schemas/formSchemas';
 import { formatAsAmount } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import type {
@@ -60,6 +60,9 @@ export type StandardLoenTableProps = {
   loenperiode: Loenperiode;
   satser: StandardLoenTableSatser;
   tableData: StandardLoenTableRow[];
+  // Beløb-tilstand: kolonnerne "FP/FV/SH/SO/St.B." og "Arb.g. Pension" bliver redigerbare
+  // beløbsfelter i stedet for beregnede visningsfelter. Default 'procent' (nuværende adfærd).
+  tillaegAngivesSom?: TillaegAngivesSom;
   onTableDataChange?: (data: StandardLoenTableRow[], options?: Readonly<{ fieldPath?: string }>) => void;
   onValidationChange?: (summary: StandardLoenTableValidationSummary) => void;
   externalCellErrorMessagesByCellKey?: Readonly<Record<string, string>>;
@@ -82,6 +85,9 @@ const TABLE_FINGERPRINT_KEYS = [
   'col3',
   'col4',
   'col5',
+  // Load-bearing: uden disse persisteres Beløb-tilstandens tillægsbeløb ikke ved commit.
+  'fpFvShSoBeloeb',
+  'pensionBeloeb',
 ] as const satisfies ReadonlyArray<keyof StandardLoenTableRow>;
 
 const fingerprintTableData = (rows: readonly StandardLoenTableRow[]): string => {
@@ -93,6 +99,8 @@ const fingerprintValidationSummary = (summary: StandardLoenTableValidationSummar
 };
 
 const resolveColIdxFromKey = (colKey: StandardLoenTableColumnKey): number => {
+  if (colKey === 'fpFvShSoBeloeb') return 6;
+  if (colKey === 'pensionBeloeb') return 7;
   return colKey.startsWith('col0_') ? 0 : colKey.startsWith('col1_') ? 1 : Number.parseInt(colKey.slice(3), 10);
 };
 
@@ -101,7 +109,8 @@ const buildCellKey = (rowId: string, colKey: StandardLoenTableColumnKey): string
 };
 
 const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, StandardLoenTableProps>(
-  ({ loenperiode, satser, tableData, onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false, saveOrderPath, calculateDerivedRow }, ref) => {
+  ({ loenperiode, satser, tableData, tillaegAngivesSom = 'procent', onTableDataChange, onValidationChange, externalCellErrorMessagesByCellKey = {}, useSmallFont = false, saveOrderPath, calculateDerivedRow }, ref) => {
+    const beloebMode = tillaegAngivesSom === 'beloeb';
     const defaultTableData = React.useMemo<StandardLoenTableRow[]>(() => {
       return [
         { ...initialRow, id: generateRowId() },
@@ -114,8 +123,8 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     const visibleRowIdsRef = React.useRef<readonly string[]>([]);
 
     const isRowEmpty = React.useCallback(
-      (row: StandardLoenTableRow): boolean => isStandardLoenRowEffectivelyEmpty(row, loenperiode),
-      [loenperiode]
+      (row: StandardLoenTableRow): boolean => isStandardLoenRowEffectivelyEmpty(row, loenperiode, tillaegAngivesSom),
+      [loenperiode, tillaegAngivesSom]
     );
 
     // Determinisme-kontrakt (se normalizeGridRows): id'et udledes af seed'et, ikke en RNG,
@@ -181,6 +190,10 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
             return row.col4 === value ? row : { ...row, col4: value as StandardLoenTableRow['col4'] };
           case 'col5':
             return row.col5 === value ? row : { ...row, col5: value as StandardLoenTableRow['col5'] };
+          case 'fpFvShSoBeloeb':
+            return row.fpFvShSoBeloeb === value ? row : { ...row, fpFvShSoBeloeb: value as StandardLoenTableRow['fpFvShSoBeloeb'] };
+          case 'pensionBeloeb':
+            return row.pensionBeloeb === value ? row : { ...row, pensionBeloeb: value as StandardLoenTableRow['pensionBeloeb'] };
           default:
             return row;
         }
@@ -272,14 +285,14 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     const calculateRow = React.useCallback(
       (row: StandardLoenTableRow): { col6: number; col7: number; col8: number } => {
-        const derived = calculateDerivedRow ? calculateDerivedRow(row) : calculateStandardLoenRowDerived(row, getSatserInput());
+        const derived = calculateDerivedRow ? calculateDerivedRow(row) : calculateStandardLoenRowDerived(row, getSatserInput(), { mode: tillaegAngivesSom });
         return {
           col6: derived.fpFvShSo,
           col7: derived.pension,
           col8: roundStandardLoenAmountToTwoDecimals(derived.samlet),
         };
       },
-      [calculateDerivedRow, getSatserInput]
+      [calculateDerivedRow, getSatserInput, tillaegAngivesSom]
     );
 
     const periodOrderCellErrorMessagesByCellKey = React.useMemo(
@@ -306,8 +319,9 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
         rows: committedTableData,
         loenperiode,
         cellErrorsByCellKey: combinedCellErrorsByCellKey,
+        tillaegAngivesSom,
       });
-    }, [committedTableData, externalCellErrorMessagesByCellKey, loenperiode, periodOrderCellErrorMessagesByCellKey]);
+    }, [committedTableData, externalCellErrorMessagesByCellKey, loenperiode, periodOrderCellErrorMessagesByCellKey, tillaegAngivesSom]);
 
     const lastValidationSummaryRef = React.useRef<string | null>(null);
 
@@ -379,10 +393,20 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       { colId: 'col-3', getSortValue: (row: StandardLoenTableRow) => amountValueToNumber(resolveCommittedRow(row).col3) },
       { colId: 'col-4', getSortValue: (row: StandardLoenTableRow) => amountValueToNumber(resolveCommittedRow(row).col4) },
       { colId: 'col-5', getSortValue: (row: StandardLoenTableRow) => amountValueToNumber(resolveCommittedRow(row).col5) },
-      { colId: 'col-6', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col6 },
-      { colId: 'col-7', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col7 },
+      {
+        colId: 'col-6',
+        getSortValue: (row: StandardLoenTableRow) => beloebMode
+          ? amountValueToNumber(resolveCommittedRow(row).fpFvShSoBeloeb)
+          : calculateRow(resolveCommittedRow(row)).col6,
+      },
+      {
+        colId: 'col-7',
+        getSortValue: (row: StandardLoenTableRow) => beloebMode
+          ? amountValueToNumber(resolveCommittedRow(row).pensionBeloeb)
+          : calculateRow(resolveCommittedRow(row)).col7,
+      },
       { colId: 'col-8', getSortValue: (row: StandardLoenTableRow) => calculateRow(resolveCommittedRow(row)).col8 },
-    ], [calculateRow, loenperiode, parseSortableInteger, parseSortableWeekKey, resolveCommittedRow]);
+    ], [beloebMode, calculateRow, loenperiode, parseSortableInteger, parseSortableWeekKey, resolveCommittedRow]);
 
     const { sortedRows: visibleRows, getSortRole, getSortDirection, handleHeaderClick } = useTableSort({
       rows: internalTableData,
@@ -687,25 +711,59 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
                   );
                 })}
 
-                <td
-                  style={{
-                    ...getStandardGridCellStyle({ align: 'right' }),
-                    padding: '4px',
-                    color: calculated.col6 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
-                  }}
-                >
-                  {formatAsAmount(calculated.col6)}
-                </td>
+                {beloebMode ? (
+                  <td
+                    style={getCellStyle(row.id, 6, {
+                      ...getStandardGridCellStyle({ align: 'right' }),
+                    })}
+                  >
+                    <TableAmountInput
+                      gridCell={{ rowId: row.id, colIndex: 6 }}
+                      inputRef={registerCellRef(row.id, 6)}
+                      value={row.fpFvShSoBeloeb}
+                      onBlur={(e) => handleFieldBlur(row.id, 'fpFvShSoBeloeb', e.target.value)}
+                      onErrorChange={(info) => handleErrorChange(row.id, 'fpFvShSoBeloeb', info)}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'fpFvShSoBeloeb')}
+                    />
+                  </td>
+                ) : (
+                  <td
+                    style={{
+                      ...getStandardGridCellStyle({ align: 'right' }),
+                      padding: '4px',
+                      color: calculated.col6 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
+                    }}
+                  >
+                    {formatAsAmount(calculated.col6)}
+                  </td>
+                )}
 
-                <td
-                  style={{
-                    ...getStandardGridCellStyle({ align: 'right' }),
-                    padding: '4px',
-                    color: calculated.col7 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
-                  }}
-                >
-                  {formatAsAmount(calculated.col7)}
-                </td>
+                {beloebMode ? (
+                  <td
+                    style={getCellStyle(row.id, 7, {
+                      ...getStandardGridCellStyle({ align: 'right' }),
+                    })}
+                  >
+                    <TableAmountInput
+                      gridCell={{ rowId: row.id, colIndex: 7 }}
+                      inputRef={registerCellRef(row.id, 7)}
+                      value={row.pensionBeloeb}
+                      onBlur={(e) => handleFieldBlur(row.id, 'pensionBeloeb', e.target.value)}
+                      onErrorChange={(info) => handleErrorChange(row.id, 'pensionBeloeb', info)}
+                      externalErrorMessage={getExternalErrorMessage(row.id, 'pensionBeloeb')}
+                    />
+                  </td>
+                ) : (
+                  <td
+                    style={{
+                      ...getStandardGridCellStyle({ align: 'right' }),
+                      padding: '4px',
+                      color: calculated.col7 === 0 ? 'var(--mineo-color-grid-derived)' : 'inherit',
+                    }}
+                  >
+                    {formatAsAmount(calculated.col7)}
+                  </td>
+                )}
 
                 <td
                   style={{

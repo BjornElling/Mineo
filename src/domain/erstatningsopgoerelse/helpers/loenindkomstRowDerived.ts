@@ -69,6 +69,7 @@ export const calculateLoenindkomstRowDerived = (args: Readonly<{
   skadedato?: ISODateString;
 }>): StandardLoenRowDerived => {
   const { row, ansaettelsesforhold, context, skadedato } = args;
+  const mode = ansaettelsesforhold.tillaegAngivesSom;
   const satser = {
     feriePct: ansaettelsesforhold.feriePct,
     fritvalgPct: ansaettelsesforhold.fritvalgPct,
@@ -89,7 +90,7 @@ export const calculateLoenindkomstRowDerived = (args: Readonly<{
     : [];
 
   if (!interval || rateSegments.length === 0) {
-    return calculateStandardLoenRowDerived(row, satser);
+    return calculateStandardLoenRowDerived(row, satser, { mode });
   }
 
   const allocationDates = buildAllocationDates(row, ansaettelsesforhold, context);
@@ -107,6 +108,7 @@ export const calculateLoenindkomstRowDerived = (args: Readonly<{
     loenperiode: ansaettelsesforhold.loenperiode,
     allocationDates,
     rateSegments,
+    mode,
   });
 
   return {

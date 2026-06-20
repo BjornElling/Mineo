@@ -30,6 +30,7 @@ const createEmployment = (
   storeBededagPct: patch.storeBededagPct,
   pensionPct: patch.pensionPct,
   loenperiode: patch.loenperiode ?? 'maaned',
+  tillaegAngivesSom: patch.tillaegAngivesSom ?? 'procent',
   fuldLoenUnderFerie: patch.fuldLoenUnderFerie ?? 'Nej',
   harAnciennitetstillaegEfterSkadedatoen: patch.harAnciennitetstillaegEfterSkadedatoen ?? false,
   anciennitetstillaegDato: patch.anciennitetstillaegDato,

@@ -32,6 +32,7 @@ import {
   sygeferiegodtgoerelseBeregningskildeEnum,
   sygeferiegodtgoerelseSatsvalgEnum,
   tilstandEnum,
+  tillaegAngivesSomEnum,
   eoBilagLoenindkomstOgOffentligeYdelserIndgaarSchema,
 } from '../enumSchemas';
 // Genbrug af årsløn-row-schemaet er bevidst: EO-lønindkomstrækker deler samme persisted table-kontrakt,
@@ -292,6 +293,10 @@ const loenindkomstAnsaettelsesforholdBaseSchema = z.object({
   shSoPct: percentageDecimal,
   storeBededagPct: percentageDecimal,
   pensionPct: percentageDecimal,
+  // 'procent' = nuværende adfærd (default, passiv load-fallback for ældre .eo); 'beloeb' =
+  // tillægsbeløb angives direkte i lønindkomst-tabellen, sats-blokken og 'Manuelt angivet'
+  // lønudvikling skjules. Defineres her ét sted (sammen med de fire satser den styrer).
+  tillaegAngivesSom: tillaegAngivesSomEnum.default('procent'),
   loenperiode: loenperiodeEnum.default('maaned'),
   indtaegtsoplysningerTableData: z.array(standardLoenTableRowSchema).default([]),
   fuldLoenUnderFerie: jaNejEnum.default('Nej'),
