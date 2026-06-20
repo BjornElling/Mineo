@@ -30,9 +30,9 @@ describe('ydelsestyper registry', () => {
     expect(andetIndex).toBe(uddannelseshjaelpIndex + 1);
   });
 
-  it('alle 14 forventede ydelsestyper er registreret', () => {
+  it('alle 15 forventede ydelsestyper er registreret', () => {
     const expected = [
-      'dagpenge', 'efterloen', 'flextilskud', 'foertidspension', 'kontanthjaelp', 'ledighedsydelse',
+      'dagpenge', 'efterloen', 'feriepenge', 'flextilskud', 'foertidspension', 'kontanthjaelp', 'ledighedsydelse',
       'midlertidigt_eet', 'pension', 'ressourceforloebsydelse', 'revalideringsydelse',
       'sygedagpenge', 'su', 'uddannelseshjaelp', 'andet',
     ];
@@ -48,11 +48,20 @@ describe('ydelsestyper registry', () => {
     expect(uniqueLabels.size).toBe(labels.length);
   });
 
-  it('kun sygedagpenge bruger arbejdsdage-periodisering', () => {
+  it('feriepenge bruger arbejdsdage-periodisering og er placeret efter Efterløn', () => {
+    const config = ydelsestyper.feriepenge;
+    expect(config).toBeDefined();
+    expect(config.label).toBe('Feriepenge');
+    expect(config.periodisering).toBe('arbejdsdage');
+    expect(config.periodiseringLabel).toBe('Arbejdsdage');
+    expect(ydelsestypeKeys.indexOf('feriepenge')).toBe(ydelsestypeKeys.indexOf('efterloen') + 1);
+  });
+
+  it('kun sygedagpenge og feriepenge bruger arbejdsdage-periodisering', () => {
     const arbejdsdageKeys = ydelsestypeKeys.filter(
       (k) => ydelsestyper[k].periodisering === 'arbejdsdage'
     );
-    expect(arbejdsdageKeys).toEqual(['sygedagpenge']);
+    expect(arbejdsdageKeys).toEqual(['feriepenge', 'sygedagpenge']);
   });
 
   it('debugLabel er kun sat for ydelsestyper med lange labels (ledighedsydelse, revalideringsydelse, uddannelseshjaelp)', () => {

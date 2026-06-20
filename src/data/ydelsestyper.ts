@@ -25,6 +25,11 @@ const ydelsestyperLiteral = {
     periodisering: 'kalenderdage',
     periodiseringLabel: 'Kalenderdage',
   },
+  feriepenge: {
+    label: 'Feriepenge',
+    periodisering: 'arbejdsdage',
+    periodiseringLabel: 'Arbejdsdage',
+  },
   flextilskud: {
     label: 'Flextilskud',
     periodisering: 'kalenderdage',
