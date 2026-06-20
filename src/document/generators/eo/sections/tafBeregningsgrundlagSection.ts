@@ -178,10 +178,14 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
           { rightFontStyle: 'normal', lineAboveRightWidth: rightColumnWidth, lineAboveRightOffset: 4 }
         );
       }
-      writer.addSectionSpacer();
     }
 
     if (indkomst.samletBeregningsgrundlagOre !== null) {
+      // Linjeafstand der adskiller komponent-/I alt-afsnittet (arbejdssted + evt. offentlige
+      // ydelser) fra mellemregningen ("I perioden var der N måneder.") og den efterfølgende
+      // månedsløns-/dagsindkomst-linje. Ét samlet sted, uafhængigt af om der var offentlige
+      // ydelser (i Beregningsperiode-tilstand følger der altid en mellemregning her).
+      writer.addSectionSpacer();
       const addends = indkomst.arbejdssteder.map((arbejdssted) =>
         formatCurrencyFromOre(arbejdssted.breakdown.samletOre)
       );
@@ -189,12 +193,6 @@ export const renderTafBeregningsgrundlag = (deps: TafBeregningsgrundlagDeps): vo
         addends.push(formatCurrencyFromOre(indkomst.offentligeYdelserTotalOre));
       }
       if (udskydMellemregningVedBeregningsperiode) {
-        // Linjeafstand mellem arbejdssted-"I alt:" og mellemregningen ("I perioden var
-        // der N måneder."). Når der er offentlige ydelser, har dét afsnit allerede tilføjet
-        // en spacer (ovenfor), så her tilføjes kun en, når der ikke var offentlige ydelser.
-        if (indkomst.offentligeYdelser.length === 0) {
-          writer.addSectionSpacer();
-        }
         if (indkomst.beregningsgrundlagMellemregningLabel && indkomst.beregningsgrundlagMellemregningResultat) {
           safeAddLeftRightText(
             indkomst.beregningsgrundlagMellemregningLabel,

@@ -743,6 +743,60 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect((totalY as number) - (sidsteSegmentY as number)).toBeLessThan(MIN_AFSTAND_MED_TOM_LINJE - 0.001);
   });
 
+  it('indsætter præcis én tom linje mellem "Beregnes som ..."-introteksten og første indkomstsegment', () => {
+    // Samme scenarie som ovenfor: én indtægtskilde reguleret via overenskomst → introteksten
+    // ("Beregnes som ... tillagt efterfølgende lønstigninger.") efterfølges direkte af
+    // segmentlinjer (ingen underoverskrift). Der skal være nøjagtig én tom linje imellem —
+    // hverken nul (som før) eller to.
+    const { stamdata, eo } = buildBaseInput();
+    stamdata.skadedato = iso('2023-07-01');
+    eo.vedroererPeriodeFra = iso('2023-07-01');
+    eo.vedroererPeriodeTil = iso('2025-12-31');
+    eo.tafBeregningsperiodeFra = iso('2023-07-01');
+    eo.tafBeregningsperiodeTil = iso('2023-07-31');
+    eo.tafPerioder = [{ id: 'taf-1', fra: iso('2023-07-01'), til: iso('2025-12-31'), loseFeriedage: undefined }];
+    eo.loenindkomstAnsaettelsesforhold = [
+      createEmployment({
+        id: 'af-1',
+        navnPaaArbejdssted: 'Tandlægerne Toft og Vedsted',
+        loenudviklingBeregningsgrundlag: 'Overenskomst',
+        overenskomstId: 'bygge-anlaeg',
+        feriePct: 12.5,
+        loenPaaHelligdage: 'Almindelig løn',
+        indtaegtsoplysningerTableData: [
+          {
+            id: 'af-1-row-1',
+            col0_maaned: '7',
+            col1_maaned: '2023',
+            col0_uge: '',
+            col1_uge: '',
+            col0_dag: undefined,
+            col1_dag: undefined,
+            col2: asAmountValue(31829.38),
+            col3: undefined,
+            col4: undefined,
+            col5: undefined,
+          },
+        ],
+      }),
+    ];
+
+    renderPdf(stamdata, eo);
+
+    const entries = collectTextEntries(MockJsPDF.lastInstance);
+    const forventetStart = entries.findIndex((e) => e.text === 'Forventet indkomst');
+    expect(forventetStart).toBeGreaterThanOrEqual(0);
+    const introEntry = entries.find((e, i) => i > forventetStart && e.text.startsWith('Beregnes som '));
+    expect(introEntry).toBeDefined();
+    const introIndex = entries.indexOf(introEntry!);
+    const førsteSegment = entries.find((e, i) => i > introIndex && /^\d{2}-\d{2}-\d{4} - /.test(e.text));
+    expect(førsteSegment).toBeDefined();
+    const gap = (førsteSegment!.y) - (introEntry!.y);
+    // Mindst én tom linje (≥ MIN_AFSTAND_MED_TOM_LINJE), men ikke to (< én ekstra linjehøjde oveni).
+    expect(gap).toBeGreaterThanOrEqual(MIN_AFSTAND_MED_TOM_LINJE - 0.001);
+    expect(gap).toBeLessThan(MIN_AFSTAND_MED_TOM_LINJE + PDF_BASE_LINE_HEIGHT_MM - 0.001);
+  });
+
   it('viser kun reguleringsværdier og princip-tekst i bilaget for regulering af offentlige ydelser — ikke selve ydelses-udregningen', () => {
     const { stamdata, eo } = buildBaseInput();
     stamdata.skadelidte = 'Testi Testesen';

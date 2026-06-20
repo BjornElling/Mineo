@@ -475,11 +475,22 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       safeAddWrappedText(model.tabtArbejdsfortjeneste.ferieFravaerLinje);
     }
 
+    // Præcis ÉN linjeafstand efter "Forventet indkomst"-introteksten, uanset hvad der følger.
+    // Spacer'en udskydes: den udløses først af det første egentlige indhold (en segmentlinje
+    // eller en fejltekst), mens en mellemkommende underoverskrift annullerer den — underoverskrifter
+    // bærer selv deres øvre afstand (en manuel spacer oveni ville give dobbelt luft i Word).
+    // Sådan opstår der altid nøjagtig én afstand, og aldrig to.
+    let forventetIndkomstSpacerPending = true;
+    const flushForventetIndkomstSpacer = (): void => {
+      if (!forventetIndkomstSpacerPending) return;
+      forventetIndkomstSpacerPending = false;
+      writer.addSectionSpacer();
+    };
+    const cancelForventetIndkomstSpacer = (): void => {
+      forventetIndkomstSpacerPending = false;
+    };
+
     if (loenudvikling) {
-      // Ingen addSectionSpacer her: det første der følger er enten en underoverskrift
-      // (fx ansættelsesforholdets navn "Huberts Humlegård"), som selv bærer sin øvre
-      // afstand, eller segmentlinjerne direkte under "Forventet indkomst". En spacer
-      // ville i Word give en ekstra tom linje oven på underoverskriftens egen før-afstand.
       // Renderer kun selve segmentlinjerne for én indkomstkilde. Delsummer ("I alt" per
       // ansættelsesforhold / ydelse) udelades bevidst — Forventet indkomst har præcis ÉN
       // samlet "I alt"-linje til sidst (se nedenfor), uanset antallet af indkomstkilder.
@@ -492,6 +503,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         labels: Readonly<{ unitMaaned: string; unitDag: string }>
       ): number => {
         if (total.status !== 'ok') {
+          flushForventetIndkomstSpacer();
           safeAddWrappedText(
             sourceKind === 'offentligYdelse'
               ? 'Offentlige ydelser kan ikke beregnes for den valgte opsætning.'
@@ -501,6 +513,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         }
         const segmentsForDisplay = mergeLoenudviklingSegments(segments);
         for (const segment of segmentsForDisplay) {
+          flushForventetIndkomstSpacer();
           const factorText = formatReguleringFactorText(segment.deltaPct);
           const fraDisplay = formatDateShort(segment.fra);
           const tilDisplay = formatDateShort(segment.til);
@@ -539,6 +552,8 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
       const harOffentligeYdelserEntries = (offentligeYdelserUdvikling?.entries.length ?? 0) > 0;
       if (harPerAnsaettelse) {
         for (const entry of loenudvikling.perAnsaettelse) {
+          // Underoverskrift bærer selv sin øvre afstand → annullér den udskudte spacer.
+          cancelForventetIndkomstSpacer();
           writer.writeUnderlinedSubheader(entry.ansaettelsesforholdNavn);
           visteSegmenter += tælKilde(renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.loenudviklingTotal, 'loen', {
             unitMaaned: '',
@@ -554,6 +569,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         if (harOffentligeYdelserEntries && loenudvikling.beregnedeSegmenter.length > 0) {
           const loenKildeNavn = loenudvikling.perAnsaettelse[0]?.ansaettelsesforholdNavn;
           if (loenKildeNavn) {
+            cancelForventetIndkomstSpacer();
             writer.writeUnderlinedSubheader(loenKildeNavn);
           }
         }
@@ -566,6 +582,7 @@ export const renderOpgorelseSection = (ctx: OpgorelseSectionContext): void => {
         // Ingen manuel addSectionSpacer her: underoverskriften (fx "Dagpenge") har selv den
         // kanoniske top-afstand (kontrakt B5.1/B6). I Word ville en spacer-paragraf ellers
         // lægge sig oven i overskrifts-typografiens before-spacing og give en tom linje.
+        cancelForventetIndkomstSpacer();
         writer.writeUnderlinedSubheader(entry.label);
         visteSegmenter += tælKilde(renderLoenudviklingSegments(entry.beregnedeSegmenter, entry.total, 'offentligYdelse', {
           unitMaaned: '',
