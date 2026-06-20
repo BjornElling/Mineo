@@ -93,6 +93,8 @@ Load, reset, migration og andre hel-sags-replacements rydder undo/redo-stakken e
 
 `replaceAllPersistedData(...)` er den canonical ejer af history-clear for autoritative replacements. Load-utilities må ikke duplikere samme clear som en separat policy.
 
+En per-side nulstilling ("Slet alle indtastninger" → `clearPageData`/`resetForm`) er bevidst IKKE en autoritativ replace: den bevarer undo/redo-stakken, så nulstillingen selv kan fortrydes med undo (jf. JSDoc i `usePersistedForm.resetForm` og regressionstest i `usePersistedForm.test.tsx`).
+
 Save påvirker ikke history-stakken.
 
 ---

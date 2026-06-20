@@ -371,7 +371,7 @@ const RenteberegningTab = React.memo(({
           title="Slet alle indtastninger"
           message={(
             <>
-              Dette sletter alle værdier, du har indtastet på renteberegning-siden. Handlingen kan ikke fortrydes.
+              Dette sletter alle de værdier, du har indtastet. Handlingen kan fortrydes.
               <br />
               <br />
               Bekræft venligst.

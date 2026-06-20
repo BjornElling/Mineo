@@ -6,7 +6,7 @@
 import React from 'react';
 import { act, fireEvent, render } from '@testing-library/react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import StyledToggleSwitch from '../../components/inputs/StyledToggleSwitch';
@@ -57,7 +57,7 @@ const TogglePage = () => {
 };
 
 const Harness = () => {
-  controls = useUndoRedo();
+  controls = useUndoRedo(useNavigate());
   return (
     <Routes>
       <Route path="/aarsloen" element={<TogglePage />} />

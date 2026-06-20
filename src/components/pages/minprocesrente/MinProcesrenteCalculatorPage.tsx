@@ -14,9 +14,15 @@ import type { CommitHandler } from '../../../types/fieldEvents';
 import RenteberegningTab from '../renteberegning/RenteberegningTab';
 import { referenceRates, surchargeRates } from '../../../data/interestRates';
 import { DEFAULT_DOCUMENT_DOWNLOAD_FORMAT } from '../../../document/documentFormat';
+import { useUndoRedoShortcuts } from '../../../hooks/useUndoRedoShortcuts';
 
 const ignoreStandaloneForwardedError = (): void => {
   // MinProcesrente viser PDF-fejl lokalt og har ingen overliggende Mineo-fejlkanal.
+};
+
+const noopUndoRedoNavigate = (): void => {
+  // Standalone MinProcesrente har kun én side og ingen router. Undo/redo-restore
+  // gendanner committed state og fokus, men navigerer ikke (intet at navigere til).
 };
 
 const MinProcesrenteCalculatorPage = React.memo(() => {
@@ -32,6 +38,10 @@ const MinProcesrenteCalculatorPage = React.memo(() => {
   const [pdfErrorMessage, setPdfErrorMessage] = React.useState<string | null>(null);
   const [downloadAllErrorMessage, setDownloadAllErrorMessage] = React.useState<string | null>(null);
   const [oversigtErrorMessage, setOversigtErrorMessage] = React.useState<string | null>(null);
+
+  // Global undo/redo (Ctrl/Cmd+Z, Ctrl/Cmd+Shift+Z, Ctrl/Cmd+Y) + focus-tracker.
+  // Samme delte wiring som Mineos MainLayout; standalone navigerer ikke (én side).
+  useUndoRedoShortcuts(noopUndoRedoNavigate);
 
   const rentekrav = useRentekravRows({ values, setValues, resyncToken: formVersion });
 

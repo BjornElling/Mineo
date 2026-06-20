@@ -8,7 +8,7 @@
 //  2) Afgørelsesdato-cellen (kolonne 0) mistede fokus efter undo.
 import React from 'react';
 import { act, render } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import EetAslAfgoerelserTable from '../../components/tables/EetAslAfgoerelserTable';
@@ -49,7 +49,7 @@ const EetTablePage = () => {
 };
 
 const Harness = () => {
-  controls = useUndoRedo();
+  controls = useUndoRedo(useNavigate());
   return (
     <Routes>
       <Route path="/erhvervsevnetab" element={<EetTablePage />} />

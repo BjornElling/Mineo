@@ -9,11 +9,7 @@ import BugReportButton from '../errors/BugReportButton';
 import DevtoolsIssueNotice from '../errors/DevtoolsIssueNotice';
 import { useFormPersistence } from '../../contexts/useFormPersistence';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import {
-  prepareForCriticalDataReplacement,
-  isOpenTextEditorElement,
-  hasOpenGridEditor,
-} from '../../utils/commitFlush';
+import { prepareForCriticalDataReplacement } from '../../utils/commitFlush';
 import { useUnsavedChangesGuard } from '../../hooks/useUnsavedChangesGuard';
 import { UI_STORAGE_KEYS } from '../../config/storageManifest';
 import {
@@ -30,9 +26,9 @@ import {
 import { useDevtoolsMonitoring } from '../../hooks/useDevtoolsMonitoring';
 import { useFileSaveLoad, type OverlayData } from '../../hooks/useFileSaveLoad';
 import { usePwaLaunchQueue } from '../../hooks/usePwaLaunchQueue';
-import { useUndoRedo } from '../../hooks/useUndoRedo';
+import { useUndoRedoShortcuts } from '../../hooks/useUndoRedoShortcuts';
 import { getFirstBlockingInputErrorTarget } from '../../utils/saveBlockedFocus';
-import { clearLastUndoFocus, installUndoFocusTracker } from '../../utils/undoFocusTracker';
+import { clearLastUndoFocus } from '../../utils/undoFocusTracker';
 
 /**
  * Hovedlayout for applikationen
@@ -61,13 +57,10 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
   } = useFormPersistence();
   const authoritativeSnapshotEpoch = useAuthoritativeSnapshotEpochSelector();
   const combinedSectionRevision = useCombinedSectionRevisionSelector();
-  const { undo, redo } = useUndoRedo();
 
-  // Skal installeres før første commit, så undo-historikken fanger korrekt origin-felt
-  // (commit sker typisk på blur efter fokus allerede er flyttet — se undoFocusTracker.ts).
-  React.useEffect(() => {
-    installUndoFocusTracker();
-  }, []);
+  // Global undo/redo-tastatur + focus-tracker (delt med standalone MinProcesrente).
+  // Mineo er multi-side, så vi injicerer React Routers navigate til restore.
+  useUndoRedoShortcuts(navigate);
 
   React.useEffect(() => {
     clearLastUndoFocus();
@@ -202,50 +195,20 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
     }
   }, []);
 
-  // Globale keyboard shortcuts for gem og history.
+  // Global keyboard shortcut for gem. Undo/redo håndteres af useUndoRedoShortcuts.
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         handleGem();
-        return;
       }
-
-      const key = e.key.toLowerCase();
-      const isUndoShortcut = (e.ctrlKey || e.metaKey) && !e.shiftKey && key === 'z';
-      const isRedoShortcut =
-        ((e.ctrlKey || e.metaKey) && e.shiftKey && key === 'z') || ((e.ctrlKey || e.metaKey) && key === 'y');
-
-      if (!isUndoShortcut && !isRedoShortcut) return;
-
-      const activeEl = document.activeElement;
-      const editorOpen = isOpenTextEditorElement(activeEl);
-      const gridEditorOpen = hasOpenGridEditor();
-
-      // Designvalg: undo/redo er et stille no-op mens en editor er åben (uafsluttet draft
-      // i et felt eller en åben grid-celle-editor). Genvejen stoppes, så browserens egen
-      // tekst-undo ikke ændrer draften, men Mineos history røres ikke.
-      // Se docs/architecture/undo-redo-architecture.md for begrundelse.
-      if (editorOpen || gridEditorOpen) {
-        e.preventDefault();
-        return;
-      }
-
-      if (isUndoShortcut) {
-        e.preventDefault();
-        undo();
-        return;
-      }
-
-      e.preventDefault();
-      redo();
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [handleGem, redo, undo]);
+  }, [handleGem]);
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>

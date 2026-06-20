@@ -242,12 +242,12 @@ export const usePersistedForm = <K extends StorageKey>(
 
   /**
    * Nulstiller formular til initialValues OG sletter gemt data fra storage.
-   * Dette er en destruktiv operation - data kan ikke gendannes.
    *
-   * clearPageData håndterer: sessionStorage-sletning, cache-sync(null),
-   * clearFieldErrorsForSection og runAllDomainCleanups.
-   * Hooken bumper formVersion direkte (ikke via authoritative epoch), fordi reset ikke er
-   * en autoritativ snapshot-replace men en lokal, eksplicit nulstilling af sektionen.
+   * Reset bevarer bevidst undo/redo-stakken og kan derfor fortrydes med undo
+   * (det er ikke en autoritativ snapshot-replace, men en lokal, eksplicit
+   * nulstilling af sektionen — derfor bumpes formVersion direkte, ikke via
+   * authoritative epoch). clearPageData håndterer: sessionStorage-sletning,
+   * cache-sync(null), clearFieldErrorsForSection og runAllDomainCleanups.
    */
   const resetForm = React.useCallback(() => {
     clearPageDataRef.current(pageKey);

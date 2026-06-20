@@ -10,7 +10,7 @@
 // positionelt og rammer derfor cellen korrekt. Denne test fastholder, at Standard løn nu gør det samme.
 import React from 'react';
 import { act, render } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import StandardLoenTable from '../../components/tables/StandardLoenTable';
@@ -49,7 +49,7 @@ const StandardLoenPage = () => {
 };
 
 const Harness = () => {
-  controls = useUndoRedo();
+  controls = useUndoRedo(useNavigate());
   return (
     <Routes>
       <Route path="/aarsloen" element={<StandardLoenPage />} />

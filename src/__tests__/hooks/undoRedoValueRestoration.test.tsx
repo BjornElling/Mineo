@@ -16,7 +16,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import MenuItem from '@mui/material/MenuItem';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import StyledToggleSwitch from '../../components/inputs/StyledToggleSwitch';
@@ -120,7 +120,7 @@ const RadioPage = () => {
 
 const makeHarness = (Page: React.ComponentType, route: string) => {
   const Harness = () => {
-    controls = useUndoRedo();
+    controls = useUndoRedo(useNavigate());
     return (
       <Routes>
         <Route path={route} element={<Page />} />

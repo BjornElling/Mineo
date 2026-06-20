@@ -2207,8 +2207,8 @@ const LoenindkomstTab = React.memo(({
         message={
           <>
             {deleteTargetName !== ''
-              ? `Dette vil slette alle oplysninger i ansættelsesforholdet (${deleteTargetName}). Handlingen kan ikke fortrydes.`
-              : 'Dette vil slette alle oplysninger i dette ansættelsesforhold. Handlingen kan ikke fortrydes.'}
+              ? `Dette vil slette alle oplysninger i ansættelsesforholdet (${deleteTargetName}). Handlingen kan fortrydes.`
+              : 'Dette vil slette alle oplysninger i dette ansættelsesforhold. Handlingen kan fortrydes.'}
             <br />
             <br />
             Bekræft venligst.

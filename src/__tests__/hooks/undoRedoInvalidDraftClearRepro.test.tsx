@@ -7,7 +7,7 @@
 import React from 'react';
 import { act, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { useFormFieldErrorReporter } from '../../hooks/useFormFieldErrors';
@@ -49,7 +49,7 @@ const TwoDatePage = () => {
 };
 
 const Harness = () => {
-  controls = useUndoRedo();
+  controls = useUndoRedo(useNavigate());
   return (
     <Routes>
       <Route path="/stamdata" element={<TwoDatePage />} />

@@ -178,7 +178,15 @@ Filindlæsning rydder undo/redo-stakken efter en succesfuld apply:
 
 `clearAllData` rydder ligeledes undo/redo-stakken.
 
+`clearPageData`/`resetForm` (per-side "Slet alle indtastninger", fx på renteberegning-siden og i standalone MinProcesrente) er bevidst IKKE en autoritativ replace og rydder derfor ikke stakken — en side-nulstilling kan fortrydes med undo (jf. JSDoc i `usePersistedForm.resetForm` og regressionstest i `usePersistedForm.test.tsx`).
+
 Gem påvirker ikke undo/redo. Save er persistence af allerede committed state og må ikke oprette, rydde eller flytte history frames.
+
+## 11A. App-varianter (Mineo og standalone MinProcesrente)
+
+Den globale undo/redo-wiring (restore + focus-tracker + tastatur-genvej) deles af begge app-varianter via `src/hooks/useUndoRedoShortcuts.ts`, så genvejsadfærden er identisk.
+
+`useUndoRedo` er router-agnostisk: den modtager `navigate` som parameter i stedet for at kalde `useNavigate` selv. Mineo (multi-side) injicerer React Routers `navigate`; standalone MinProcesrente har kun én side og ingen router og injicerer en no-op. I standalone gendanner restore derfor committed state og fokus, men navigerer ikke.
 
 ## 12. Debug
 
@@ -189,12 +197,14 @@ Undo/redo har ikke noget dedikeret debug-loggingslag. Normal drift er console-ta
 | Fil | Ansvar |
 |---|---|
 | `src/stores/undoRedoStore.ts` | In-memory history stack og stack-transitioner |
-| `src/hooks/useUndoRedo.ts` | Restore, navigation og fokus-re-targeting |
+| `src/hooks/useUndoRedo.ts` | Restore og fokus-re-targeting; navigation via injiceret `navigate` (router-agnostisk) |
+| `src/hooks/useUndoRedoShortcuts.ts` | Delt wiring: `useUndoRedo` + focus-tracker + tastatur-genvej. Brugt af både MainLayout og standalone MinProcesrente |
 | `src/hooks/usePersistedForm.ts` | Opretter undo-origin ved felt-commits |
 | `src/contexts/FormPersistenceContext.tsx` | `commitInvalidDraft`/`clearInvalidDraft` (opretter undo-frame ved ny ikke-committbar rå draft) |
 | `src/hooks/useFormPersistenceSelectors.ts` | Reaktiv læsning af `committedInvalidDraft` pr. felt/celle |
 | `src/hooks/usePersistedActiveTab.ts` | Sætter target-fane ved restore |
-| `src/components/layout/MainLayout.tsx` | Installerer focus tracker og globale keyboard shortcuts |
+| `src/components/layout/MainLayout.tsx` | Kalder `useUndoRedoShortcuts` (Mineos undo/redo-wiring) og ejer Ctrl+S-genvejen |
+| `src/components/pages/minprocesrente/MinProcesrenteCalculatorPage.tsx` | Kalder `useUndoRedoShortcuts` med no-op navigate (standalone-wiring) |
 | `src/utils/undoFocusTracker.ts` | Sporer senest fokuserede undo-bærende felt |
 | `src/utils/historyTargetRestore.ts` | Fokus-/scroll-re-targeting efter restore (rører ikke draft-værdier) |
 | `src/utils/persistenceLoadApply.ts` | Rydder history efter filindlæsning |

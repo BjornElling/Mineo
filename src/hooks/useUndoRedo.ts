@@ -1,5 +1,4 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import { formPersistenceStore } from '../stores/formPersistenceStore';
 import { type HistoryFrame, type HistoryTransitionPlan, undoRedoStore } from '../stores/undoRedoStore';
 import { atomicWritePersistenceSections } from '../utils/persistenceSnapshotStorage';
@@ -57,8 +56,17 @@ const getUndoRedoAvailabilitySnapshot = (): number => {
   return (state.canUndo() ? 1 : 0) | (state.canRedo() ? 2 : 0);
 };
 
-export const useUndoRedo = () => {
-  const navigate = useNavigate();
+/**
+ * Hvordan en restore navigerer brugeren tilbage til frame'ets oprindelsesside.
+ *
+ * Mineo (multi-side) injicerer React Routers `navigate`; standalone MinProcesrente
+ * har kun én side og ingen router og injicerer en no-op. Hooken er derfor
+ * router-agnostisk — den afhænger ikke selv af en Router-kontekst, så den kan
+ * bruges i begge app-varianter.
+ */
+export type UndoRedoNavigate = (route: string) => void;
+
+export const useUndoRedo = (navigate: UndoRedoNavigate) => {
   const availability = React.useSyncExternalStore(
     undoRedoStore.subscribe,
     getUndoRedoAvailabilitySnapshot,

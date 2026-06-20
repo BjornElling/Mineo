@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { useUndoRedo } from '../../hooks/useUndoRedo';
 import { usePersistedForm } from '../../hooks/usePersistedForm';
 import { usePersistedActiveTab } from '../../hooks/usePersistedActiveTab';
@@ -50,7 +50,7 @@ const createStamdataOrigin = (fieldPath: string): HistoryFrameOrigin => ({
 let controls: UndoRedoControls | null = null;
 
 const Controls = () => {
-  controls = useUndoRedo();
+  controls = useUndoRedo(useNavigate());
   return (
     <Routes>
       <Route path="/current" element={<div>Current</div>} />
@@ -80,7 +80,7 @@ const TargetPage = () => {
 };
 
 const StamdataControls = () => {
-  controls = useUndoRedo();
+  controls = useUndoRedo(useNavigate());
   return (
     <Routes>
       <Route path="/satser" element={<div>Satser</div>} />
@@ -137,7 +137,7 @@ const TableUndoPage = () => {
 };
 
 const TableControls = () => {
-  controls = useUndoRedo();
+  controls = useUndoRedo(useNavigate());
   return (
     <Routes>
       <Route path="/table" element={<TableUndoPage />} />
