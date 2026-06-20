@@ -116,9 +116,10 @@ describe('grid row-id-kontrakt (struktur-guard)', () => {
       join(process.cwd(), 'src', 'components', 'tables', 'gridCore', 'gridModel.ts'),
       'utf8'
     );
-    // Guarden består i at springe en graft over når mål-id'et allerede er taget.
-    expect(/usedIds\.has\(/.test(source)).toBe(true);
-    expect(/lockedIds/.test(source)).toBe(true);
+    // Guarden består i at springe en graft over når mål-id'et enten tilhører en anden
+    // incoming-række (ville stjæle dens identitet) eller allerede er brugt som graft-mål.
+    expect(/incomingIds\.has\(/.test(source)).toBe(true);
+    expect(/usedGraftTargets\.has\(/.test(source)).toBe(true);
   });
 
   // Selv-test: bevis at mønstrene faktisk fanger overtrædelser OG accepterer ren kode (vacuous-pass-værn).

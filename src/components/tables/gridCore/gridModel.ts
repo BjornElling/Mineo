@@ -129,12 +129,20 @@ export const sortGridRows = <TRow>(params: Readonly<{
  * så "den første række" forbliver det samme DOM-element uanset om den er udfyldt eller tom.
  *
  * Uniqueness-invariant (kritisk): grafting må ALDRIG introducere et duplikeret id. Når `incoming`
- * er længere end `current` (fx rækker indsat før den efterfølgende tomme), kan et current-id på
- * position `i` ellers blive grafted ind oven på en incoming-række, mens det SAMME id stadig står
- * uændret på en senere incoming-position — to rækker får da samme id. Det gav React duplicate-key
- * og — værre — datakorruption, fordi to logisk forskellige rækker kollapsede til samme identitet.
- * Derfor springes en graft over, hvis mål-id'et allerede er taget af en anden række i resultatet.
- * Den række der ikke kunne arve et id, beholder blot sit eget (allerede unikke) incoming-id.
+ * er længere end `current` (fx rækker indsat før den efterfølgende tomme, ELLER en undo der
+ * gendanner en slettet række, så `current` er kortere og positionerne forskydes), kunne et tidligere
+ * mønster grafte et current-id ind på position `i`, mens det SAMME id (eller et incoming-id en
+ * SENERE række beholder) endte med at stå to steder — to rækker fik da samme id. Det gav React
+ * duplicate-key og — værre — datakorruption, fordi to logisk forskellige rækker kollapsede til
+ * samme identitet.
+ *
+ * Invarianten håndhæves med én enkel regel: **et graft må kun bruge et current-id, der ikke i
+ * forvejen er et incoming-id.** Hver incoming-række er garanteret unik (id'erne kommer fra committed
+ * data) og "ejer" sit eget id; et graft må derfor aldrig stjæle et id, en anden incoming-række
+ * beholder. Resultatet er bevisligt dup-frit: bevarede incoming-id'er er indbyrdes unikke, og
+ * graftede id'er er hverken incoming-id'er eller genbrugte graft-mål. Den række der ikke kan arve
+ * et current-id, beholder blot sit eget (datasikre) incoming-id — fokus-bevarelse er best-effort og
+ * nedprioriteres bevidst i de sjældne længde-mismatch-tilfælde frem for at risikere en kollision.
  */
 export const reconcileRowIdsByPosition = <TRow>(params: Readonly<{
   incoming: readonly TRow[];
@@ -144,29 +152,21 @@ export const reconcileRowIdsByPosition = <TRow>(params: Readonly<{
 }>): TRow[] => {
   const { incoming, current, getRowId, withRowId } = params;
 
-  // Id'er der forbliver uændrede (ingen graft sker på deres position) er "låst" på forhånd:
-  // en graft må aldrig kollidere med et af dem. Et incoming-id er låst, hvis der ikke findes en
-  // current-række på samme position med et afvigende id (dvs. positionen grafter ikke).
-  const lockedIds = new Set<string>();
-  for (let index = 0; index < incoming.length; index += 1) {
-    const incomingId = getRowId(incoming[index]);
-    const currentRow = current[index];
-    const grafts = Boolean(currentRow) && getRowId(currentRow) !== incomingId;
-    if (!grafts) lockedIds.add(incomingId);
-  }
-
-  // Id'er der allerede er udstedt i resultatet (inkl. faktisk udførte grafts) — værn mod at
-  // to grafts vælger samme current-id, eller at en graft kolliderer med et låst id.
-  const usedIds = new Set<string>(lockedIds);
+  // Hvert incoming-id er reserveret til sin egen række — et graft må aldrig overtage det.
+  const incomingIds = new Set<string>(incoming.map(getRowId));
+  // Værn mod at to positioner grafter samme current-id (kan ikke ske med unikke current-id'er,
+  // men holder invarianten lokal og eksplicit).
+  const usedGraftTargets = new Set<string>();
 
   return incoming.map((row, index) => {
     const currentRow = current[index];
     if (!currentRow) return row;
     const currentId = getRowId(currentRow);
     if (currentId === getRowId(row)) return row;
-    // Spring graften over, hvis mål-id'et ville duplikere et eksisterende id i resultatet.
-    if (usedIds.has(currentId)) return row;
-    usedIds.add(currentId);
+    // Graft kun et current-id der ikke tilhører en anden incoming-række og ikke allerede er grafted.
+    if (incomingIds.has(currentId)) return row;
+    if (usedGraftTargets.has(currentId)) return row;
+    usedGraftTargets.add(currentId);
     return withRowId(row, currentId);
   });
 };

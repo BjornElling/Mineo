@@ -73,4 +73,27 @@ describe('reconcileRowIdsByPosition', () => {
     const ids = result.map((r) => r.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  // Regressionsværn (slet-række + undo, 2026-06-20): efter sletning af en udfyldt række er
+  // `current` kortere end den incoming-liste en undo gendanner, og positionerne forskydes. Et
+  // graft af `current[0]`'s id ('B') ind på incoming[0] ('A') må ALDRIG kollidere med incoming[1]
+  // der stadig hedder 'B' — det gav `Encountered two children with the same key`-fejlen og
+  // datakorruption i lønindkomst-tabellen.
+  it('grafter ikke et current-id der tilhører en senere incoming-række (slet+undo)', () => {
+    const current: Row[] = [
+      { id: 'B', v: 'data-B' },
+      { id: 'row_empty_0', v: undefined },
+    ];
+    const incoming: Row[] = [
+      { id: 'A', v: 'data-A' },
+      { id: 'B', v: 'data-B' },
+      { id: 'row_empty_0', v: undefined },
+    ];
+    const result = reconcileRowIdsByPosition({ incoming, current, getRowId, withRowId });
+    const ids = result.map((r) => r.id);
+    expect(new Set(ids).size).toBe(ids.length); // ingen duplikater
+    // Hver række beholder sin egen committed-identitet (ingen graft stjæler 'B').
+    expect(ids).toEqual(['A', 'B', 'row_empty_0']);
+    expect(result.map((r) => r.v)).toEqual(['data-A', 'data-B', undefined]);
+  });
 });
