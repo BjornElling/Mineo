@@ -34,44 +34,53 @@ export const DEFAULT_ANCIENNITET_FIELDS = {
   anciennitetstillaegSats: undefined,
 };
 
+/**
+ * Opretter et nyt tomt ansættelsesforhold med standardværdier fra settings.
+ *
+ * Validering:
+ * - AppSettings valideres via resolveAppSettings ved grænsefladen til sagsdata
+ * - Ved invalid/manglende settings bruges defaults som fallback
+ * - Dette sikrer at ugyldige device-lokale settings aldrig påvirker sagsdata
+ *
+ * KONTRAKT: Må kun anvendes ved oprettelse af NYE ansættelsesforhold,
+ * aldrig ved load/merge af eksisterende data.
+ */
 export const createDefaultLoenindkomstAnsaettelsesforhold = (
   settings?: AppSettings
-): PersistedSectionMap['erstatningsopgoerelse']['loenindkomstAnsaettelsesforhold'][number] => ({
-  ...(() => {
-    const safeSettings = resolveAppSettings(settings);
-    return {
-  id: generateAnsaettelsesforholdId(),
-  navnPaaArbejdssted: undefined,
-  harOverenskomst: true,
-  overenskomstId: undefined,
-  ansatPaaSkadestidspunktet: true,
-  ansaettelsesforholdOphoert: false,
-  sidsteArbejdsdag: undefined,
-  ...DEFAULT_ANCIENNITET_FIELDS,
-  feriePct: undefined,
-  fritvalgPct: undefined,
-  shSoPct: undefined,
-  storeBededagPct: undefined,
-  pensionPct: undefined,
-  tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
-  loenperiode: safeSettings.defaultLoenIndtastesSom,
-  indtaegtsoplysningerTableData: [],
-  fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
-  loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
-  saerligFraDatoRegulering: undefined,
-  loenudviklingBeregningsgrundlag: undefined,
-  loenudviklingStatistikModel: undefined,
-  loenudviklingKRLSatstabel: undefined,
-  loenudviklingManuelNavn: undefined,
-  loenudviklingManuelTableData: [],
-  offentligLoenType: 'Månedsløn',
-  offentligLoenTrin: undefined,
-  offentligLoenGruppe: undefined,
-  offentligLoenEkstraGrundloen: undefined,
-  overenskomstFilter: resolveDefaultOverenskomstFilter(safeSettings),
-    };
-  })(),
-});
+): PersistedSectionMap['erstatningsopgoerelse']['loenindkomstAnsaettelsesforhold'][number] => {
+  const safeSettings = resolveAppSettings(settings);
+  return {
+    id: generateAnsaettelsesforholdId(),
+    navnPaaArbejdssted: undefined,
+    harOverenskomst: true,
+    overenskomstId: undefined,
+    ansatPaaSkadestidspunktet: true,
+    ansaettelsesforholdOphoert: false,
+    sidsteArbejdsdag: undefined,
+    ...DEFAULT_ANCIENNITET_FIELDS,
+    feriePct: undefined,
+    fritvalgPct: undefined,
+    shSoPct: undefined,
+    storeBededagPct: undefined,
+    pensionPct: undefined,
+    tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
+    loenperiode: safeSettings.defaultLoenIndtastesSom,
+    indtaegtsoplysningerTableData: [],
+    fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
+    loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
+    saerligFraDatoRegulering: undefined,
+    loenudviklingBeregningsgrundlag: undefined,
+    loenudviklingStatistikModel: undefined,
+    loenudviklingKRLSatstabel: undefined,
+    loenudviklingManuelNavn: undefined,
+    loenudviklingManuelTableData: [],
+    offentligLoenType: 'Månedsløn',
+    offentligLoenTrin: undefined,
+    offentligLoenGruppe: undefined,
+    offentligLoenEkstraGrundloen: undefined,
+    overenskomstFilter: resolveDefaultOverenskomstFilter(safeSettings),
+  };
+};
 
 /**
  * Opretter initiale EO-værdier ud fra AppSettings.

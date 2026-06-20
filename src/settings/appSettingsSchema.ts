@@ -163,7 +163,7 @@ export type OverenskomstFilter = Readonly<{
  * - Misbrug ville lade settings-ændringer overskrive brugerens valg i eksisterende sager
  *
  * Godkendte anvendelser:
- * - createBlankAnsaettelsesforhold() – tilføjelse af nyt ansættelsesforhold
+ * - createDefaultLoenindkomstAnsaettelsesforhold() – oprettelse af nyt ansættelsesforhold
  *
  * Normalisering:
  * - 'ALLE' (UI-værdi) → undefined (domæne-værdi)

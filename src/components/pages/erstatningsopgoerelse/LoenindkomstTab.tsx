@@ -40,7 +40,6 @@ import { parseISODate } from '../../../types/branded';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import { isLoenperiodeValue } from '../../../utils/zodTypeGuards';
-import { generateAnsaettelsesforholdId } from '../../../domain/erstatningsopgoerelse/helpers/eoRowInitialValues';
 import { amountValueToNumber } from '../../../utils/expressionAmount';
 import { scrollTargetIntoView } from '../../../utils/scrollTargetIntoView';
 import type { StandardLoenTableValidationSummary } from '../../../types/table';
@@ -61,11 +60,10 @@ import {
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../data/krlRates';
 import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../../hooks/useFormPersistenceSelectors';
 import { useAppSettings } from '../../../contexts/useAppSettings';
-import { appSettingsSchema, DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
 import { downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../document/service/documentService';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { hasIndtastetLoenoplysninger } from '../../../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
-import { DEFAULT_ANCIENNITET_FIELDS } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
+import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
   applyAnsaettelsesforholdToggleCleanup,
   applyLoenudviklingBeregningsgrundlagChange,
@@ -204,57 +202,6 @@ const getOffentligLoenEkstraGrundloenSuffix = (
 ): string => (offentligLoenType === 'Timeløn' ? '/ time' : '/ måned');
 
 const LOCKED_SATS_FIELD_SX = { width: '100px' } as const;
-
-/**
- * Opretter et nyt tomt Ansættelsesforhold med standardværdier fra settings
- *
- * Validering:
- * - AppSettings valideres via safeParse ved grænsefladen til sagsdata
- * - Ved invalid settings bruges DEFAULT_APP_SETTINGS som fallback
- * - Dette sikrer at ugyldige device-lokale settings aldrig påvirker sagsdata
- *
- * @param settings AppSettings med standardværdier
- * @returns Nyt Ansættelsesforhold objekt
- */
-const createBlankAnsaettelsesforhold = (settings: AppSettings): Ansaettelsesforhold => {
-  // Valider settings én gang ved grænsefladen til sagsdata
-  const parsed = appSettingsSchema.safeParse(settings);
-  const safeSettings = parsed.success ? parsed.data : DEFAULT_APP_SETTINGS;
-
-  return {
-    id: generateAnsaettelsesforholdId(),
-    navnPaaArbejdssted: undefined,
-    harOverenskomst: true,
-    overenskomstId: undefined,
-    ansatPaaSkadestidspunktet: true,
-    ansaettelsesforholdOphoert: false,
-    sidsteArbejdsdag: undefined,
-    ...DEFAULT_ANCIENNITET_FIELDS,
-    feriePct: undefined,
-    fritvalgPct: undefined,
-    shSoPct: undefined,
-    storeBededagPct: undefined,
-    pensionPct: undefined,
-    tillaegAngivesSom: TILLAEG_ANGIVES_SOM.PROCENT,
-    loenperiode: safeSettings.defaultLoenIndtastesSom,
-    fuldLoenUnderFerie: safeSettings.defaultFuldLoenUnderFerie ? 'Ja' : 'Nej',
-    loenPaaHelligdage: safeSettings.defaultLoenPaaHelligdage,
-
-    saerligFraDatoRegulering: undefined,
-    indtaegtsoplysningerTableData: [],
-    loenudviklingBeregningsgrundlag: undefined,
-    loenudviklingStatistikModel: undefined,
-    loenudviklingKRLSatstabel: undefined,
-    loenudviklingManuelNavn: '',
-    loenudviklingManuelTableData: [],
-    offentligLoenType: 'Månedsløn',
-    offentligLoenTrin: undefined,
-    offentligLoenGruppe: undefined,
-    offentligLoenEkstraGrundloen: undefined,
-    // Overenskomst-filter: initialiseres fra settings ved oprettelse (centraliseret mapping)
-    overenskomstFilter: resolveDefaultOverenskomstFilter(settings),
-  };
-};
 
 type SatsErrorState = {
   feriePct?: string;
@@ -1046,7 +993,7 @@ const LoenindkomstTab = React.memo(({
   }, []);
 
   const handleAddConfirm = React.useCallback(() => {
-    const newAf = createBlankAnsaettelsesforhold(settings);
+    const newAf = createDefaultLoenindkomstAnsaettelsesforhold(settings);
     onAnsaettelsesforholdChange((prev) => [...prev, newAf]);
 
     setAddDialogOpen(false);
