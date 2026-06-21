@@ -15,6 +15,7 @@ import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
+import { useTableCellErrorTracker } from './gridCore/useTableCellErrorTracker';
 import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
@@ -282,8 +283,17 @@ const LoenudviklingManuelTable = React.memo(
         keepLeadingRows: 1,
       });
 
-    const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
+    const cellErrorTracker = useTableCellErrorTracker();
     const lastInputErrorStateRef = React.useRef<boolean | null>(null);
+
+    // Aktuelle gyldige række-id'er holdes i en ref (opdateres i en layout-effect, så den er current
+    // før notify-effekterne kører), så notifyInputErrorChange kan read-time-filtrere uden at få
+    // internalTableData som dependency og dermed unødigt skifte identitet.
+    const validRowIds = React.useMemo(() => new Set(internalTableData.map((row) => row.id)), [internalTableData]);
+    const validRowIdsRef = React.useRef<ReadonlySet<string>>(validRowIds);
+    React.useLayoutEffect(() => {
+      validRowIdsRef.current = validRowIds;
+    }, [validRowIds]);
 
     const hasExternalBaseRowErrors = React.useMemo(() => {
       return Object.values(baseRowPercentErrors ?? {}).some((errorText) => (errorText ?? '').trim() !== '');
@@ -291,26 +301,17 @@ const LoenudviklingManuelTable = React.memo(
 
     const notifyInputErrorChange = React.useCallback(() => {
       if (!onInputErrorChange) return;
-      const hasError = Object.keys(cellErrorsByCellKeyRef.current).length > 0 || hasExternalBaseRowErrors;
+      const hasError = cellErrorTracker.hasAnyError(validRowIdsRef.current) || hasExternalBaseRowErrors;
       if (lastInputErrorStateRef.current === hasError) return;
       lastInputErrorStateRef.current = hasError;
       onInputErrorChange(hasError);
-    }, [hasExternalBaseRowErrors, onInputErrorChange]);
+    }, [cellErrorTracker, hasExternalBaseRowErrors, onInputErrorChange]);
 
+    // Housekeeping: fjern forældede rækkers celle-fejl, og notificér den afledte fejl-tilstand.
     React.useEffect(() => {
-      const validRowIds = new Set(internalTableData.map((row) => row.id));
-      const current = cellErrorsByCellKeyRef.current;
-
-      for (const cellKey of Object.keys(current)) {
-        const separatorIdx = cellKey.indexOf(':');
-        if (separatorIdx < 0) continue;
-        const rowId = cellKey.slice(0, separatorIdx);
-        if (!validRowIds.has(rowId)) {
-          delete current[cellKey];
-        }
-      }
+      cellErrorTracker.pruneToValidRowIds(validRowIds);
       notifyInputErrorChange();
-    }, [internalTableData, notifyInputErrorChange]);
+    }, [cellErrorTracker, notifyInputErrorChange, validRowIds]);
 
     // Bevidst tabel-lokal commit-model: rækker styres med manuel ordning/fokus-evaluering
     // her, mens hvert Table*Input stadig ejer draft-state indtil commit.
@@ -348,15 +349,11 @@ const LoenudviklingManuelTable = React.memo(
 
     const handleErrorChange = React.useCallback(
       (rowId: string, colKey: string) => (errorInfo: TableInputErrorInfo) => {
-        const cellKey = `${rowId}:${colKey}`;
-        if (errorInfo.hasError) {
-          cellErrorsByCellKeyRef.current[cellKey] = true;
-        } else {
-          delete cellErrorsByCellKeyRef.current[cellKey];
+        if (cellErrorTracker.setCellError(`${rowId}:${colKey}`, errorInfo.hasError)) {
+          notifyInputErrorChange();
         }
-        notifyInputErrorChange();
       },
-      [notifyInputErrorChange]
+      [cellErrorTracker, notifyInputErrorChange]
     );
 
     React.useEffect(() => {

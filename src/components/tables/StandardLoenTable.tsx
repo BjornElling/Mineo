@@ -40,6 +40,7 @@ import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
+import { useTableCellErrorTracker } from './gridCore/useTableCellErrorTracker';
 import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
@@ -271,20 +272,11 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     const committedById = React.useMemo(() => new Map(committedTableData.map((row) => [row.id, row])), [committedTableData]);
     const resolveCommittedRow = React.useCallback((row: StandardLoenTableRow) => committedById.get(row.id) ?? row, [committedById]);
 
-    const cellErrorsByCellKeyRef = React.useRef<Set<string>>(new Set());
+    const cellErrorTracker = useTableCellErrorTracker();
 
     React.useEffect(() => {
-      const validRowIds = new Set(internalTableData.map((row) => row.id));
-      const current = cellErrorsByCellKeyRef.current;
-      for (const cellKey of current) {
-        const separatorIdx = cellKey.indexOf(':');
-        if (separatorIdx < 0) continue;
-        const rowId = cellKey.slice(0, separatorIdx);
-        if (!validRowIds.has(rowId)) {
-          current.delete(cellKey);
-        }
-      }
-    }, [internalTableData]);
+      cellErrorTracker.pruneToValidRowIds(new Set(internalTableData.map((row) => row.id)));
+    }, [cellErrorTracker, internalTableData]);
 
     // KRITISK INVARIANT: Table*Input-komponenter SKAL kalde handleErrorChange deterministisk
     // ved alle transitions mellem {ingen fejl ↔ fejl} og {fejl A ↔ fejl B}.
@@ -316,11 +308,13 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       [committedTableData, loenperiode]
     );
 
-    // cellErrorsByCellKeyRef er bevidst IKKE i deps-arrayet — det er en mutable ref og
-    // læses altid på call-tidspunktet, så resultatet er altid aktuelt uanset hvornår React kalder dette.
+    // Celle-fejl læses via trackerens read-time-filtrering (mod gyldige rækker), så resultatet
+    // altid er aktuelt uanset hvornår React kalder dette — og en fjernet rækkes fejl aldrig
+    // overlever ind i valideringen, selv før prune-effecten er nået at køre.
     const getValidationResult = React.useCallback(() => {
+      const validRowIds = new Set(committedTableData.map((row) => row.id));
       const combinedCellErrorsByCellKey: Record<string, true> = {};
-      for (const cellKey of cellErrorsByCellKeyRef.current) {
+      for (const cellKey of cellErrorTracker.getActiveCellKeys(validRowIds)) {
         combinedCellErrorsByCellKey[cellKey] = true;
       }
       for (const [cellKey, message] of Object.entries(periodOrderCellErrorMessagesByCellKey)) {
@@ -337,7 +331,7 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
         cellErrorsByCellKey: combinedCellErrorsByCellKey,
         tillaegAngivesSom,
       });
-    }, [committedTableData, externalCellErrorMessagesByCellKey, loenperiode, periodOrderCellErrorMessagesByCellKey, tillaegAngivesSom]);
+    }, [cellErrorTracker, committedTableData, externalCellErrorMessagesByCellKey, loenperiode, periodOrderCellErrorMessagesByCellKey, tillaegAngivesSom]);
 
     const lastValidationSummaryRef = React.useRef<string | null>(null);
 
@@ -351,17 +345,10 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
     }, [getValidationResult, onValidationChange]);
 
     const handleErrorChange = React.useCallback((rowId: string, colKey: StandardLoenTableColumnKey, info: TableInputErrorInfo) => {
-      const key = buildCellKey(rowId, colKey);
-      const hadError = cellErrorsByCellKeyRef.current.has(key);
-      if (info.hasError) {
-        if (hadError) return;
-        cellErrorsByCellKeyRef.current.add(key);
-      } else {
-        if (!hadError) return;
-        cellErrorsByCellKeyRef.current.delete(key);
+      if (cellErrorTracker.setCellError(buildCellKey(rowId, colKey), info.hasError)) {
+        notifyValidationChange();
       }
-      notifyValidationChange();
-    }, [notifyValidationChange]);
+    }, [cellErrorTracker, notifyValidationChange]);
 
     React.useEffect(() => {
       notifyValidationChange();
@@ -496,11 +483,11 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
       const value = row[externalCellError.colKey];
       const isEmpty = isStandardLoenTableValueEffectivelyEmptyForValidation(value);
       const cellKey = buildCellKey(externalCellError.rowId, externalCellError.colKey);
-      const hasInputError = cellErrorsByCellKeyRef.current.has(cellKey);
+      const hasInputError = cellErrorTracker.getActiveCellKeys(new Set([externalCellError.rowId])).includes(cellKey);
       if (!isEmpty || hasInputError) {
         setExternalCellError(null);
       }
-    }, [committedTableData, externalCellError, isVisibleColKey]);
+    }, [cellErrorTracker, committedTableData, externalCellError, isVisibleColKey]);
 
     const getCellStyle = (rowId: string, colIdx: number, baseStyle: React.CSSProperties = {}): React.CSSProperties => {
       return {

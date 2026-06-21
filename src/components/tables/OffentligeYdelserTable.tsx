@@ -21,13 +21,13 @@ import {
   buildOffentligeYdelserCellKey,
   getOffentligeYdelserTableValidation,
   isOffentligeYdelserTableValueEffectivelyEmptyForValidation,
-  parseOffentligeYdelserCellKey,
 } from '../../domain/erstatningsopgoerelse/validation/offentligeYdelserTableValidation';
 import { StandardGridHeaderCell, StandardGridTable } from './StandardGridTable';
 import { RowDeleteButton } from './RowDeleteButton';
 import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCore/standardGridStyles';
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
+import { useTableCellErrorTracker } from './gridCore/useTableCellErrorTracker';
 import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
@@ -104,7 +104,7 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
     const tableRef = React.useRef<HTMLTableElement | null>(null);
     const pendingRowFocusPlanRef = React.useRef<RowRemovalFocusPlan | null>(null);
     const visibleRowIdsRef = React.useRef<readonly string[]>([]);
-    const cellErrorsByCellKeyRef = React.useRef<Record<string, true>>({});
+    const cellErrorTracker = useTableCellErrorTracker();
 
     // Determinisme-kontrakt (se normalizeGridRows): id'et udledes af seed'et, ikke en RNG,
     // så StrictMode-dobbeltinvokering af setState-updateren ikke giver divergerende id'er.
@@ -132,17 +132,15 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
 
     const getValidationResult = React.useCallback(() => {
       const validRowIds = new Set(internalTableData.map((row) => row.id));
-      const filteredCellErrorsByCellKey = Object.fromEntries(
-        Object.entries(cellErrorsByCellKeyRef.current).filter(([cellKey]) => {
-          const parsed = parseOffentligeYdelserCellKey(cellKey);
-          return parsed ? validRowIds.has(parsed.rowId) : false;
-        })
-      ) as Record<string, true>;
+      const filteredCellErrorsByCellKey: Record<string, true> = {};
+      for (const cellKey of cellErrorTracker.getActiveCellKeys(validRowIds)) {
+        filteredCellErrorsByCellKey[cellKey] = true;
+      }
       return getOffentligeYdelserTableValidation({
         rows: internalTableData,
         cellErrorsByCellKey: filteredCellErrorsByCellKey,
       });
-    }, [internalTableData]);
+    }, [cellErrorTracker, internalTableData]);
 
     const notifyValidationChange = React.useCallback(() => {
       if (!onValidationChange) return;
@@ -207,19 +205,15 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
     const handleErrorChange = React.useCallback(
       (rowId: string, colKey: OffentligeYdelserTableColumnKey) => (errorInfo: TableInputErrorInfo) => {
         // Bevidst INGEN committed-row-gate her (jf. konvergens med StandardLoenTable/LoenudviklingManuelTable):
-        // en gate på committedRowIdsRef kunne tabe en reel celle-fejl, hvis inputtet emitterer fejlen før
+        // en gate på committede rækker kunne tabe en reel celle-fejl, hvis inputtet emitterer fejlen før
         // den committede rækkeliste-effect har opdateret sættet (fx ved indsæt/reconcile) — så Gem ikke
-        // blokeredes som det burde. Oprydning af forældede rækkers fejl sker i stedet deterministisk i
-        // getValidationResult (filtrering på validRowIds), så en fjernet rækkes fejl aldrig overlever.
-        const cellKey = buildOffentligeYdelserCellKey(rowId, colKey);
-        if (errorInfo.hasError) {
-          cellErrorsByCellKeyRef.current[cellKey] = true;
-        } else {
-          delete cellErrorsByCellKeyRef.current[cellKey];
+        // blokeredes som det burde. Oprydning af forældede rækkers fejl sker i stedet deterministisk via
+        // trackerens read-time-filtrering på validRowIds, så en fjernet rækkes fejl aldrig overlever.
+        if (cellErrorTracker.setCellError(buildOffentligeYdelserCellKey(rowId, colKey), errorInfo.hasError)) {
+          notifyValidationChange();
         }
-        notifyValidationChange();
       },
-      [notifyValidationChange]
+      [cellErrorTracker, notifyValidationChange]
     );
 
     const ydelsestypeOptions = React.useMemo<readonly TableDropdownOption[]>(() => {
@@ -338,11 +332,17 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
       const value = row[externalCellError.colKey];
       const isEmpty = isOffentligeYdelserTableValueEffectivelyEmptyForValidation(value);
       const cellKey = buildOffentligeYdelserCellKey(externalCellError.rowId, externalCellError.colKey);
-      const hasInputError = Boolean(cellErrorsByCellKeyRef.current[cellKey]);
+      const hasInputError = cellErrorTracker.getActiveCellKeys(new Set([externalCellError.rowId])).includes(cellKey);
       if (!isEmpty || hasInputError) {
         setExternalCellError(null);
       }
-    }, [externalCellError, internalTableData]);
+    }, [cellErrorTracker, externalCellError, internalTableData]);
+
+    // Housekeeping: fjern forældede rækkers celle-fejl fra det bagvedliggende sæt. Korrektheden
+    // hviler på trackerens read-time-filtrering (getValidationResult); denne effect holder blot sættet rent.
+    React.useEffect(() => {
+      cellErrorTracker.pruneToValidRowIds(new Set(internalTableData.map((row) => row.id)));
+    }, [cellErrorTracker, internalTableData]);
 
     React.useImperativeHandle(
       ref,
