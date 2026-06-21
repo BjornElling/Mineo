@@ -28,7 +28,8 @@ const hashPassword = async (password: string): Promise<string> => {
     throw new Error('Denne browser understøtter ikke adgangskontrol.');
   }
 
-  const encoded = new TextEncoder().encode(password);
+  // Adgangskoder er case-neutrale: config-hashes skal derfor være beregnet på lowercased plaintext.
+  const encoded = new TextEncoder().encode(password.toLocaleLowerCase('da-DK'));
   const digest = await cryptoObj.subtle.digest('SHA-256', encoded);
   return toHex(new Uint8Array(digest));
 };
@@ -50,5 +51,5 @@ export const setAuthenticated = (): void => {
 
 export const verifySharedPassword = async (password: string): Promise<boolean> => {
   const passwordHash = await hashPassword(password);
-  return SHARED_PASSWORD_HASHES.some((hash) => hexEqual(passwordHash, hash.toLowerCase()));
+  return SHARED_PASSWORD_HASHES.some((entry) => hexEqual(passwordHash, entry.hash.toLowerCase()));
 };

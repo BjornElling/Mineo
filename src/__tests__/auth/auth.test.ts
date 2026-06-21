@@ -29,7 +29,12 @@ vi.mock('../../utils/safeLocalStorage', () => ({
 vi.mock('../../auth/authConfig', () => ({
   AUTH_STORAGE_KEY: 'test:auth:key',
   AUTH_STORAGE_VALUE: 'test:auth:value',
-  SHARED_PASSWORD_HASHES: ['c638833f69bbfb3c267afa0a74434812436b8f08a81fd263c6be6871de4f1265'],
+  SHARED_PASSWORD_HASHES: [
+    {
+      description: 'Test-password',
+      hash: 'c638833f69bbfb3c267afa0a74434812436b8f08a81fd263c6be6871de4f1265',
+    },
+  ],
 }));
 
 const restoreCrypto = (() => {
@@ -52,6 +57,11 @@ describe('auth', () => {
   it('verifies shared password when input is correct', async () => {
     const { verifySharedPassword } = await import('../../auth/auth');
     await expect(verifySharedPassword(TEST_PASSWORD)).resolves.toBe(true);
+  });
+
+  it('verifies shared password case-neutrally', async () => {
+    const { verifySharedPassword } = await import('../../auth/auth');
+    await expect(verifySharedPassword('TEST-PASSWORD')).resolves.toBe(true);
   });
 
   it('rejects shared password when input is incorrect', async () => {
