@@ -188,10 +188,10 @@ const formatDebugIsoRange = (range: Readonly<{ fra: ISODateString; til: ISODateS
 
 const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number | undefined => {
   if (!isoDate) return undefined;
-  const date = isoDateToDate(isoDate);
-  const shifted = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  shifted.setUTCMonth(shifted.getUTCMonth() + 1);
-  return shifted.getUTCFullYear();
+  // Kanonisk addMonths (clamp til månedsslut) — ÉN "læg måneder til dato"-semantik i
+  // hele kodebasen, ingen rå setUTCMonth-rollover. Året er identisk under clamp og
+  // rollover (overløb krydser aldrig en årsgrænse), så dette er rent adfærdsbevarende.
+  return addMonths(isoDateToDate(isoDate), 1).getUTCFullYear();
 };
 
 const resolveFolkepensionsdato = (

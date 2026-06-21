@@ -202,7 +202,16 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 3 · Omfang 2 · Risiko 3** — fjerner drift mellem tre opslag af samme tabel. **Kræver forelæggelse** (rører validerings-/beregnings-input).
 
-### B11. To konkurrerende "læg måneder til dato"-semantikker
+### B11. To konkurrerende "læg måneder til dato"-semantikker — ✅ IMPLEMENTERET (2026-06-21)
+
+> **Status (brugergodkendt forelæggelse).** Domæneafgørelsen er **clamp** (én måned efter 31-01 →
+> udgangen af februar), bekræftet af brugeren. Produktionsstien var allerede ensrettet til den
+> kanoniske `addMonths` i commit `e62d433d` (2026-06-14) — `calculateInterestDate` (`case 'maaneder'`)
+> bruger clamp, ingen rå `setUTCMonth`-rollover tilbage. Det sidste rå `setUTCMonth` i ikke-test-kode
+> (DEV-debug-hjælperen `getYearAfterAddingOneMonth` i `eoDebugErstatningsopgoerelseModel.ts`, der kun
+> udtrækker et *årstal*) er nu også routet gennem `addMonths` — bevisligt adfærdsbevarende, da overløb
+> aldrig krydser en årsgrænse. Der er dermed ÉN "læg måneder til dato"-semantik i hele kodebasen.
+> Fuld suite grøn (5495 tests).
 
 **Nuværende tilstand.** `rentekravValidation.ts:calculateInterestDate` bruger rå `setUTCMonth`-rollover (31-01 + 1 md → 03-03), mens `dateUtils.ts:addMonths` clamper til månedsslut (→ 28-02). To sandheder for samme operation i samme kodebase (4.7, ⏸ afventede domæneafgørelse).
 
@@ -319,7 +328,7 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | B8 ✅ | Tvungne grænser i EO snapshot→presentation | 4 | 4 | 3 | Nej |
 | B9 | Slank EO-debug-laget (33 filer/11k linjer) | 3 | 5 | 2 | Nej |
 | B10 ✅ | Én ASL-maks-opslags-gateway | 3 | 2 | 3 | Ja |
-| B11 | Én kanonisk måned-additions-semantik | 3 | 1 | 3 | Ja |
+| B11 ✅ | Én kanonisk måned-additions-semantik | 3 | 1 | 3 | Ja |
 | B12 ✅ | Systematisér delt UI↔dokument-domænelogik | 3 | 2 | 2 | Nej |
 | C13 ✅ | Én STORAGE_KEYS-kilde + schema-afledte defaults | 2 | 2 | 1 | Nej |
 | C14 🟡 | Samlet settings-katalog | 2 | 3 | 2 | Nej |
@@ -327,7 +336,7 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | C16 | Ensartede rate-resolvere | 2 | 3 | 2 | Nej |
 | C17 | Builder/skabelon-lag for generatorer | 2 | 3 | 3 | Nej |
 
-**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B7 og B9 er de største løft og bør først tages, når den øvrige struktur er på plads. (A1, A2, A3, B8, B12, C13 og C15 er implementeret; A4 og C14 blev verificeret 2026-06-21 og er stort set allerede løst/nedjusteret — A4: concern #2/#3 lukket, #1 stilistisk/parkeret; C14: AppThemeMode-dubletten fikset (reviewpunkt 11), samlet katalog ikke berettiget; A5 blev verificeret og forkastet — se appendiks punkt 5.)
+**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B7 og B9 er de største løft og bør først tages, når den øvrige struktur er på plads. (A1, A2, A3, B6, B8, B10, B11, B12, C13 og C15 er implementeret; A4 og C14 blev verificeret 2026-06-21 og er stort set allerede løst/nedjusteret — A4: concern #2/#3 lukket, #1 stilistisk/parkeret; C14: AppThemeMode-dubletten fikset (reviewpunkt 11), samlet katalog ikke berettiget; A5 blev verificeret og forkastet — se appendiks punkt 5.)
 
 ---
 
