@@ -173,6 +173,23 @@ describe('opreguleringsmotorer', () => {
   });
 
   describe('fail-closed-konsistens på tværs af de to motorer', () => {
+    it('skelner mellem endepunkts-ratio og akkumuleret kæde når et mellemår mangler', () => {
+      const input = { kildeAar: 2022, maalAar: 2024 };
+
+      const asl = opregulerMedAslAarsloensmaksimum(input, {
+        2022: 100,
+        2024: 110,
+      });
+      expect(asl.manglendeAar).toEqual([]);
+      expect(asl.faktor).toBeCloseTo(1.1, 12);
+
+      const akk = opregulerMedAkkumuleretReguleringssats(input, {
+        2022: 0,
+        2024: 4,
+      });
+      expect(akk).toEqual({ faktor: 1, deltaPct: 0, manglendeAar: [2023] });
+    });
+
     it('manglendeAar er aldrig tom for et 0-beløbs-gyldigt, men data-manglende interval (begge metoder)', () => {
       // 2000 findes hverken i aarsloenAslMax eller reguleringssats.
       const asl = opregulerMedAslAarsloensmaksimum({ kildeAar: 2000, maalAar: 2026 });
