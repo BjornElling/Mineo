@@ -1,20 +1,13 @@
-export type IntegerRangeOptions = Readonly<{
-  preferExactForEqualBounds?: boolean;
-}>;
-
 export const getIntegerRangeErrorMessage = (
   parsed: number,
   minValue: number | undefined,
-  maxValue: number | undefined,
-  options: IntegerRangeOptions = {}
+  maxValue: number | undefined
 ): string => {
-  const preferExactForEqualBounds = options.preferExactForEqualBounds === true;
-
   if (typeof minValue === 'number' && parsed < minValue) {
     if (typeof maxValue === 'number') {
-      if (preferExactForEqualBounds && minValue === maxValue) {
-        return `Værdi skal være ${minValue}`;
-      }
+      // Ligheds-tilfælde (min === max): vis den ene tilladte værdi i stedet for "mellem X og X".
+      // Ensartet for både formularfelt og tabelcelle (A2).
+      if (minValue === maxValue) return `Værdi skal være ${minValue}`;
       return `Værdi skal være mellem ${minValue} og ${maxValue}`;
     }
     return `Værdi skal være ${minValue} eller højere`;
@@ -22,9 +15,7 @@ export const getIntegerRangeErrorMessage = (
 
   if (typeof maxValue === 'number' && parsed > maxValue) {
     if (typeof minValue === 'number') {
-      if (preferExactForEqualBounds && minValue === maxValue) {
-        return `Værdi skal være ${maxValue}`;
-      }
+      if (minValue === maxValue) return `Værdi skal være ${maxValue}`;
       return `Værdi skal være mellem ${minValue} og ${maxValue}`;
     }
     return `Værdi skal være ${maxValue} eller lavere`;

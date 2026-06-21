@@ -7,6 +7,7 @@ import { filterIntegerKeyDown } from './inputKeyFilters';
 import { trimToNumericEdgesPreserveLeadingMinus } from '../../utils/draftNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import { getIntegerRangeErrorMessage } from '../../utils/integerRange';
+import { parseIntegerDraftForCommit } from '../../utils/integerDraftCore';
 import { normalizeIntegerPaste } from '../../utils/inputPasteNormalization';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
 
@@ -172,40 +173,26 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
 
     const getRangeErrorMessage = React.useCallback(
       (parsed: number): string => {
-        return getIntegerRangeErrorMessage(parsed, minValue, maxValue, { preferExactForEqualBounds: true });
+        return getIntegerRangeErrorMessage(parsed, minValue, maxValue);
       },
       [maxValue, minValue]
     );
 
     const parseInteger: DraftParse<number | undefined> = React.useCallback(
       (draft, { mode }) => {
-        const trimmed = draft.trim();
-        if (trimmed === '') return { ok: true, value: undefined };
-
-        if (!allowNegative && trimmed.startsWith('-')) {
+        // Format-validering deles med tabel-cellen via den fælles kerne (ensartet ordlyd, A2).
+        const result = parseIntegerDraftForCommit(draft, { allowNegative, maxDigits: effectiveMaxDigits });
+        if (!result.ok) {
           if (mode === 'typing') return { ok: false, kind: 'partial' };
-          return { ok: false, kind: 'invalid', message: 'Negative tal er ikke tilladt' };
+          return { ok: false, kind: 'invalid', message: result.errorMessage };
         }
 
-        const digitsOnly = trimmed.startsWith('-') ? trimmed.slice(1) : trimmed;
-        if (digitsOnly === '' || /[^0-9]/.test(digitsOnly)) {
-          if (mode === 'typing') return { ok: false, kind: 'partial' };
-          return { ok: false, kind: 'invalid', message: 'Ugyldigt heltal' };
-        }
+        const parsed = result.value;
+        if (parsed === undefined) return { ok: true, value: undefined };
 
-        if (digitsOnly.length > effectiveMaxDigits) {
-          if (mode === 'typing') return { ok: false, kind: 'partial' };
-          return { ok: false, kind: 'invalid', message: `Maks ${effectiveMaxDigits} cifre` };
-        }
-
-        const parsed = Number.parseInt(trimmed, 10);
-        if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) {
-          if (mode === 'typing') return { ok: false, kind: 'partial' };
-          return { ok: false, kind: 'invalid', message: 'Ugyldigt heltal' };
-        }
-
+        // Interval-validering er feltspecifik (kan være ikke-blokerende når enforceRange=false) og bliver her.
         if (enforceRange) {
-          const rangeError = getIntegerRangeErrorMessage(parsed, minValue, maxValue, { preferExactForEqualBounds: true });
+          const rangeError = getIntegerRangeErrorMessage(parsed, minValue, maxValue);
           if (rangeError !== '') {
             return { ok: false, kind: 'invalid', message: rangeError };
           }

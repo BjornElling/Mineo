@@ -3,6 +3,7 @@ import { shouldClearField } from '../../../utils/inputValidation';
 import { filterIntegerKeyDown } from '../../../components/inputs/inputKeyFilters';
 import { normalizeIntegerPaste } from '../../../utils/inputPasteNormalization';
 import { getIntegerRangeErrorMessage } from '../../../utils/integerRange';
+import { parseIntegerDraftForCommit } from '../../../utils/integerDraftCore';
 import { normalizeTableDraftOnCommit } from '../../../utils/tableInputContracts';
 import { spliceDraftPaste, type TableInputAdapter } from '../tableInputAdapter';
 
@@ -19,16 +20,17 @@ const parseIntegerOnCommit = (
   draft: string,
   { minValue, maxValue, maxDigits, enforceRange }: TableIntegerAdapterConfig
 ): { ok: true; value: string; visualErrorMessage?: string } | { ok: false; errorMessage: string } => {
-  const trimmed = normalizeTableDraftOnCommit(draft).trim();
-  if (trimmed === '' || shouldClearField(trimmed)) return { ok: true, value: '' };
-  if (/[^0-9]/.test(trimmed)) return { ok: false, errorMessage: 'Ugyldigt format' };
-  if (typeof maxDigits === 'number' && trimmed.length > maxDigits) return { ok: false, errorMessage: `Maks ${maxDigits} cifre` };
+  const normalized = normalizeTableDraftOnCommit(draft);
+  if (normalized.trim() === '' || shouldClearField(normalized)) return { ok: true, value: '' };
 
-  const numValue = Number.parseInt(trimmed, 10);
-  if (!Number.isFinite(numValue)) return { ok: false, errorMessage: 'Ugyldigt format' };
+  // Format-validering deles med formularfeltet via den fælles kerne (ensartet ordlyd, A2).
+  const result = parseIntegerDraftForCommit(normalized, { allowNegative: false, maxDigits });
+  if (!result.ok) return { ok: false, errorMessage: result.errorMessage };
+  const numValue = result.value;
+  if (numValue === undefined) return { ok: true, value: '' };
 
   const canonical = String(numValue);
-  const rangeError = getIntegerRangeErrorMessage(numValue, minValue, maxValue, { preferExactForEqualBounds: false });
+  const rangeError = getIntegerRangeErrorMessage(numValue, minValue, maxValue);
   if (rangeError !== '') {
     if (enforceRange) return { ok: false, errorMessage: rangeError };
     return { ok: true, value: canonical, visualErrorMessage: rangeError };
@@ -56,7 +58,7 @@ export const createIntegerTableInputAdapter = (
     if (value === '') return '';
     const numValue = Number.parseInt(value, 10);
     if (!Number.isFinite(numValue)) return '';
-    const rangeError = getIntegerRangeErrorMessage(numValue, config.minValue, config.maxValue, { preferExactForEqualBounds: false });
+    const rangeError = getIntegerRangeErrorMessage(numValue, config.minValue, config.maxValue);
     return config.enforceRange ? '' : rangeError;
   },
   parse: (draft) => parseIntegerOnCommit(draft, config),

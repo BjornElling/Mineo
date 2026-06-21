@@ -1,11 +1,11 @@
 import * as React from 'react';
 import type { SxProps, Theme } from '@mui/material/styles';
-import { interpretYear } from '../../utils/dateInputValidation';
 import StyledTextFieldBase from './StyledTextFieldBase';
 import { type DraftParse } from '../../hooks/useDraftField';
 import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
 import { filterYearKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
+import { parseYearDraftForCommit } from '../../utils/yearDraftCore';
 import { normalizeYearPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitHandler, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
@@ -103,11 +103,11 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
   ) => {
     const parseYear: DraftParse<number | undefined> = React.useCallback(
       (draft, { mode }) => {
-        const trimmed = draft.trim();
-
         if (draft.length > MAX_YEAR_DRAFT_LENGTH) {
           return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt årstal' };
         }
+
+        const trimmed = draft.trim();
 
         if (trimmed === '') {
           if (allowEmpty) {
@@ -120,61 +120,15 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
           return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt årstal' };
         }
 
-        let year: number | undefined;
-
-        if (trimmed.length === 4) {
-          const parsed = Number.parseInt(trimmed, 10);
-          year = Number.isFinite(parsed) ? parsed : undefined;
-        } else if (trimmed.length === 1 || trimmed.length === 2) {
-          if (mode === 'typing') {
-            return { ok: false, kind: 'partial' };
-          }
-
-          if (twoDigitYearPolicy === 'reject') {
-            return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
-          }
-
-          if (twoDigitYearPolicy === 'assume20xx') {
-            const parsed = Number.parseInt(trimmed, 10);
-            year = Number.isFinite(parsed) ? 2000 + parsed : undefined;
-          } else {
-            // 2-cifrede år accepteres kun ved commit og normaliseres til et 4-cifret år.
-            const interpreted = interpretYear(trimmed);
-            year = interpreted === null ? undefined : interpreted;
-          }
-        } else if (trimmed.length === 3) {
-          if (mode === 'typing') {
-            return { ok: false, kind: 'partial' };
-          }
-          return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
-        } else {
-          return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
+        // 1-3 cifre er endnu ikke et færdigt årstal → vis ingen fejl under typing.
+        if (mode === 'typing' && trimmed.length >= 1 && trimmed.length <= 3) {
+          return { ok: false, kind: 'partial' };
         }
 
-        if (year === undefined) {
-          return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
-        }
-
-        if (typeof minYear === 'number' && year < minYear) {
-          if (typeof maxYear === 'number') {
-            if (minYear === maxYear) {
-              return { ok: false, kind: 'invalid', message: `Årstallet skal være ${minYear}` };
-            }
-            return { ok: false, kind: 'invalid', message: `Årstallet skal være mellem ${minYear} og ${maxYear}` };
-          }
-          return { ok: false, kind: 'invalid', message: `Årstallet skal være ${minYear} eller senere` };
-        }
-        if (typeof maxYear === 'number' && year > maxYear) {
-          if (typeof minYear === 'number') {
-            if (minYear === maxYear) {
-              return { ok: false, kind: 'invalid', message: `Årstallet skal være ${maxYear}` };
-            }
-            return { ok: false, kind: 'invalid', message: `Årstallet skal være mellem ${minYear} og ${maxYear}` };
-          }
-          return { ok: false, kind: 'invalid', message: `Årstallet skal være ${maxYear} eller tidligere` };
-        }
-
-        return { ok: true, value: year };
+        // Selve fortolkningen (2-/4-cifret-politik + interval) deles med tabel-cellen via kernen.
+        const result = parseYearDraftForCommit(trimmed, { minYear, maxYear, twoDigitYearPolicy });
+        if (!result.ok) return { ok: false, kind: 'invalid', message: result.errorMessage };
+        return { ok: true, value: result.value };
       },
       [allowEmpty, maxYear, minYear, twoDigitYearPolicy]
     );

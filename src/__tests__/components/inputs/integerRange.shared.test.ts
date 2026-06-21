@@ -13,7 +13,15 @@ describe('integerRange shared helper', () => {
     expect(getIntegerRangeErrorMessage(11, undefined, 10)).toBe('Værdi skal være 10 eller lavere');
   });
 
-  it('supports exact message when bounds are equal and option enabled', () => {
-    expect(getIntegerRangeErrorMessage(4, 5, 5, { preferExactForEqualBounds: true })).toBe('Værdi skal være 5');
+  it('shows the single allowed value when bounds are equal (below)', () => {
+    expect(getIntegerRangeErrorMessage(4, 5, 5)).toBe('Værdi skal være 5');
+  });
+
+  it('shows the single allowed value when bounds are equal (above)', () => {
+    expect(getIntegerRangeErrorMessage(6, 5, 5)).toBe('Værdi skal være 5');
+  });
+
+  it('shows the between message when bounds differ', () => {
+    expect(getIntegerRangeErrorMessage(1, 2, 9)).toBe('Værdi skal være mellem 2 og 9');
   });
 });

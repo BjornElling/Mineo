@@ -3,10 +3,9 @@ import type { SxProps, Theme } from '@mui/material/styles';
 import StyledTextFieldBase from './StyledTextFieldBase';
 import { type DraftParse } from '../../hooks/useDraftField';
 import { useStyledFieldAdapter } from '../../hooks/useStyledFieldAdapter';
-import { interpretYear } from '../../utils/dateInputValidation';
-import { yearHas53Weeks } from '../../utils/dateUtils';
 import { filterWeekKeyDown } from './inputKeyFilters';
 import { trimToAlphanumericEdges } from '../../utils/draftNormalization';
+import { parseWeekDraftForCommit } from '../../utils/weekDraftCore';
 import { normalizeWeekPaste } from '../../utils/inputPasteNormalization';
 import { createCommitEvent, createDraftChangeEvent, type CommitEvent, type CommitHandler, type DraftChangeEvent, type DraftChangeHandler } from '../../types/fieldEvents';
 import type { FieldErrorReporter } from '../../types/fieldErrors';
@@ -88,91 +87,16 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
   ) => {
     const parseWeek: DraftParse<string | undefined> = React.useCallback(
       (draft, { mode }) => {
-        const trimmed = draft.trim();
-        if (trimmed === '') return { ok: true, value: undefined };
-
-        if (trimmed.length > MAX_WEEK_DRAFT_LENGTH) {
-          return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt format' };
-        }
-
-        const normalized = trimmed.replace(/[ .:-]/g, '/');
-        if (normalized.startsWith('/')) {
-          return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt format' };
-        }
-
-        const [weekRaw = '', yearRaw = '', ...rest] = normalized.split('/');
-        if (rest.length > 0) {
-          return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt format' };
-        }
-
-        if (weekRaw === '' || yearRaw === '') {
-          return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt format' };
-        }
-
-        if (/[^0-9]/.test(weekRaw) || /[^0-9]/.test(yearRaw)) {
-          return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt format' };
-        }
-
-        if (weekRaw.length > 2) {
-          return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt format' };
-        }
-
-        const weekNum = Number.parseInt(weekRaw, 10);
-        if (!Number.isFinite(weekNum) || weekNum < 1) {
-          return { ok: false, kind: 'invalid', message: 'Ugyldig uge' };
-        }
-
-        if (yearRaw.length === 3) {
-          return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt årstal' };
-        }
-
-        let yearNum: number | null = null;
-        if (yearRaw.length === 1 || yearRaw.length === 2) {
-          if (mode === 'typing') return { ok: false, kind: 'partial' };
-
-          if (twoDigitYearPolicy === 'reject') {
-            return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
-          }
-
-          if (twoDigitYearPolicy === 'assume20xx') {
-            const parsed = Number.parseInt(yearRaw, 10);
-            yearNum = Number.isFinite(parsed) ? 2000 + parsed : null;
-          } else {
-            const interpreted = interpretYear(yearRaw);
-            yearNum = interpreted === null ? null : interpreted;
-          }
-        } else if (yearRaw.length === 4) {
-          const parsedYear = Number.parseInt(yearRaw, 10);
-          yearNum = Number.isFinite(parsedYear) ? parsedYear : null;
-        } else {
-          return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt årstal' };
-        }
-
-        if (yearNum === null) {
-          return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
-        }
-
-        if (typeof minYear === 'number' && yearNum < minYear) {
-          if (typeof maxYear === 'number') {
-            return { ok: false, kind: 'invalid', message: `År skal være mellem ${minYear} og ${maxYear}` };
-          }
-          return { ok: false, kind: 'invalid', message: `År skal være ${minYear} eller senere` };
-        }
-        if (typeof maxYear === 'number' && yearNum > maxYear) {
-          if (typeof minYear === 'number') {
-            return { ok: false, kind: 'invalid', message: `År skal være mellem ${minYear} og ${maxYear}` };
-          }
-          return { ok: false, kind: 'invalid', message: `År skal være ${maxYear} eller tidligere` };
-        }
-
-        const maxWeek = yearHas53Weeks(yearNum) ? 53 : 52;
-        if (weekNum > maxWeek) {
-          return { ok: false, kind: 'invalid', message: `Uge skal være mellem 1 og ${maxWeek}` };
-        }
-
-        const week = String(weekNum).padStart(2, '0');
-        const year = String(yearNum);
-        return { ok: true, value: `${week}/${year}` };
+        // Hele uge-/år-fortolkningen deles med tabel-cellen via kernen (ensartet ordlyd, A2).
+        const result = parseWeekDraftForCommit(draft, {
+          minYear,
+          maxYear,
+          twoDigitYearPolicy,
+          maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
+        });
+        if (result.ok) return { ok: true, value: result.value };
+        if (mode === 'typing' && result.partialEligible) return { ok: false, kind: 'partial' };
+        return { ok: false, kind: 'invalid', message: result.errorMessage };
       },
       [maxYear, minYear, twoDigitYearPolicy]
     );

@@ -1,15 +1,15 @@
 import { makeYearFingerprintFromCanonical, type CommittedPayload, type YearFingerprint } from '../../../types/parserSpec';
 import { shouldClearField } from '../../../utils/inputValidation';
-import { interpretYear } from '../../../utils/dateInputValidation';
 import { filterYearKeyDown } from '../../../components/inputs/inputKeyFilters';
 import { normalizeYearPaste } from '../../../utils/inputPasteNormalization';
+import { parseYearDraftForCommit, type TwoDigitYearPolicy } from '../../../utils/yearDraftCore';
 import { normalizeTableDraftOnCommit } from '../../../utils/tableInputContracts';
 import { spliceDraftPaste, type TableInputAdapter } from '../tableInputAdapter';
 
 const MAX_YEAR_DRAFT_LENGTH = 6; // 4 cifre + tolerance for whitespace før commit-normalisering.
 
 export type TableYearInputModel = string;
-export type TableYearPolicy = 'reject' | 'infer' | 'assume20xx';
+export type TableYearPolicy = TwoDigitYearPolicy;
 
 export type TableYearAdapterConfig = Readonly<{
   minYear?: number;
@@ -19,44 +19,15 @@ export type TableYearAdapterConfig = Readonly<{
 
 const parseYearOnCommit = (
   draft: string,
-  { minYear, maxYear, twoDigitYearPolicy }: TableYearAdapterConfig
+  config: TableYearAdapterConfig
 ): { ok: true; value: string } | { ok: false; errorMessage: string } => {
-  const trimmed = normalizeTableDraftOnCommit(draft).trim();
-  if (trimmed === '' || shouldClearField(trimmed)) return { ok: true, value: '' };
-  if (/[^0-9]/.test(trimmed)) return { ok: false, errorMessage: 'Ugyldigt format' };
-  if (trimmed.length === 3) return { ok: false, errorMessage: 'Ugyldigt årstal' };
+  const normalized = normalizeTableDraftOnCommit(draft);
+  if (normalized.trim() === '' || shouldClearField(normalized)) return { ok: true, value: '' };
 
-  let yearStr: string;
-  if (trimmed.length === 1 || trimmed.length === 2) {
-    if (twoDigitYearPolicy === 'reject') return { ok: false, errorMessage: 'Ugyldigt årstal' };
-    if (twoDigitYearPolicy === 'assume20xx') {
-      const parsed = Number.parseInt(trimmed, 10);
-      if (!Number.isFinite(parsed)) return { ok: false, errorMessage: 'Ugyldigt årstal' };
-      yearStr = String(2000 + parsed);
-    } else {
-      const interpreted = interpretYear(trimmed);
-      if (interpreted === null) return { ok: false, errorMessage: 'Ugyldigt årstal' };
-      yearStr = String(interpreted);
-    }
-  } else if (trimmed.length === 4) {
-    yearStr = trimmed;
-  } else {
-    return { ok: false, errorMessage: 'Ugyldigt årstal' };
-  }
-
-  const yearNum = Number.parseInt(yearStr, 10);
-  if (!Number.isFinite(yearNum)) return { ok: false, errorMessage: 'Ugyldigt årstal' };
-
-  if (typeof minYear === 'number' && yearNum < minYear) {
-    if (typeof maxYear === 'number') return { ok: false, errorMessage: `År skal være mellem ${minYear} og ${maxYear}` };
-    return { ok: false, errorMessage: `År skal være ${minYear} eller senere` };
-  }
-  if (typeof maxYear === 'number' && yearNum > maxYear) {
-    if (typeof minYear === 'number') return { ok: false, errorMessage: `År skal være mellem ${minYear} og ${maxYear}` };
-    return { ok: false, errorMessage: `År skal være ${maxYear} eller tidligere` };
-  }
-
-  return { ok: true, value: yearStr };
+  // Fortolkning + interval deles med formularfeltet via den fælles kerne (ensartet ordlyd, A2).
+  const result = parseYearDraftForCommit(normalized, config);
+  if (!result.ok) return { ok: false, errorMessage: result.errorMessage };
+  return { ok: true, value: result.value === undefined ? '' : String(result.value) };
 };
 
 export const toCommittedYearPayload = (

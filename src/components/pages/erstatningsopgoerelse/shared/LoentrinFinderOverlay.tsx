@@ -37,7 +37,7 @@ export type LoentrinFinderOverlayProps = Readonly<{
   buttonShake: boolean;
   dialogRef: React.RefObject<HTMLDivElement | null>;
   // Bevidst beholdt `loentrinFinder`-præfiks på ref-props: quality-værnet
-  // immediateCommitWidgetUndoName scanner JSX-teksten for `ref={loentrinFinder...}` som
+  // fieldIdentityGuard scanner JSX-teksten for `ref={loentrinFinder...}` som
   // markør for transient modal-state (StyledDropdown uden name). Omdøb ikke uden at opdatere værnet.
   loentrinFinderAnsaettelseRef: React.RefObject<HTMLDivElement | null>;
   loentrinFinderBeloebRef: React.RefObject<HTMLDivElement | null>;

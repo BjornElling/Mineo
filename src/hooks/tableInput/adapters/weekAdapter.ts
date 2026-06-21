@@ -1,12 +1,11 @@
 import { makeWeekFingerprintFromCanonical, type CommittedPayload, type WeekFingerprint } from '../../../types/parserSpec';
 import { shouldClearField } from '../../../utils/inputValidation';
-import { interpretYear } from '../../../utils/dateInputValidation';
-import { yearHas53Weeks } from '../../../utils/dateUtils';
 import { filterWeekKeyDown } from '../../../components/inputs/inputKeyFilters';
 import { normalizeWeekPaste } from '../../../utils/inputPasteNormalization';
+import { parseWeekDraftForCommit } from '../../../utils/weekDraftCore';
+import type { TwoDigitYearPolicy } from '../../../utils/yearDraftCore';
 import { normalizeTableDraftOnCommit } from '../../../utils/tableInputContracts';
 import { spliceDraftPaste, type TableInputAdapter } from '../tableInputAdapter';
-import type { TableYearPolicy } from './yearAdapter';
 
 const MAX_WEEK_DRAFT_LENGTH = 8;
 
@@ -15,65 +14,25 @@ export type TableWeekInputModel = string;
 export type TableWeekAdapterConfig = Readonly<{
   minYear?: number;
   maxYear?: number;
-  twoDigitYearPolicy: TableYearPolicy;
+  twoDigitYearPolicy: TwoDigitYearPolicy;
 }>;
 
 const parseWeekOnCommit = (
   draft: string,
   { minYear, maxYear, twoDigitYearPolicy }: TableWeekAdapterConfig
 ): { ok: true; value: string } | { ok: false; errorMessage: string } => {
-  const trimmed = normalizeTableDraftOnCommit(draft).trim();
-  if (trimmed === '' || shouldClearField(trimmed)) return { ok: true, value: '' };
-  if (trimmed.length > MAX_WEEK_DRAFT_LENGTH) return { ok: false, errorMessage: 'Ugyldigt format' };
+  const normalized = normalizeTableDraftOnCommit(draft);
+  if (normalized.trim() === '' || shouldClearField(normalized)) return { ok: true, value: '' };
 
-  const normalized = trimmed.replace(/[ .:-]/g, '/');
-  const parts = normalized.split('/');
-  if (parts.length !== 2) return { ok: false, errorMessage: 'Ugyldigt format' };
-
-  const weekStr = parts[0]?.trim() ?? '';
-  const yearStrRaw = parts[1]?.trim() ?? '';
-  if (weekStr === '' || yearStrRaw === '') return { ok: false, errorMessage: 'Ugyldigt format' };
-  if (/[^0-9]/.test(weekStr) || /[^0-9]/.test(yearStrRaw)) return { ok: false, errorMessage: 'Ugyldigt format' };
-
-  const week = Number.parseInt(weekStr, 10);
-  if (!Number.isFinite(week) || week < 1 || week > 53) return { ok: false, errorMessage: 'Ugyldig uge' };
-
-  let yearStr: string;
-  if (yearStrRaw.length === 1 || yearStrRaw.length === 2) {
-    if (twoDigitYearPolicy === 'reject') return { ok: false, errorMessage: 'Ugyldigt årstal' };
-    if (twoDigitYearPolicy === 'assume20xx') {
-      const parsed = Number.parseInt(yearStrRaw, 10);
-      if (!Number.isFinite(parsed)) return { ok: false, errorMessage: 'Ugyldigt årstal' };
-      yearStr = String(2000 + parsed);
-    } else {
-      const interpreted = interpretYear(yearStrRaw);
-      if (interpreted === null) return { ok: false, errorMessage: 'Ugyldigt årstal' };
-      yearStr = String(interpreted);
-    }
-  } else if (yearStrRaw.length === 4) {
-    yearStr = yearStrRaw;
-  } else {
-    return { ok: false, errorMessage: 'Ugyldigt årstal' };
-  }
-
-  const year = Number.parseInt(yearStr, 10);
-  if (!Number.isFinite(year)) return { ok: false, errorMessage: 'Ugyldigt årstal' };
-
-  if (typeof minYear === 'number' && year < minYear) {
-    if (typeof maxYear === 'number') return { ok: false, errorMessage: `År skal være mellem ${minYear} og ${maxYear}` };
-    return { ok: false, errorMessage: `År skal være ${minYear} eller senere` };
-  }
-  if (typeof maxYear === 'number' && year > maxYear) {
-    if (typeof minYear === 'number') return { ok: false, errorMessage: `År skal være mellem ${minYear} og ${maxYear}` };
-    return { ok: false, errorMessage: `År skal være ${maxYear} eller tidligere` };
-  }
-
-  const maxWeek = yearHas53Weeks(year) ? 53 : 52;
-  if (week > maxWeek) {
-    return { ok: false, errorMessage: `Uge skal være mellem 1 og ${maxWeek}` };
-  }
-
-  return { ok: true, value: `${String(week).padStart(2, '0')}/${yearStr}` };
+  // Uge-/år-fortolkning + interval deles med formularfeltet via den fælles kerne (ensartet ordlyd, A2).
+  const result = parseWeekDraftForCommit(normalized, {
+    minYear,
+    maxYear,
+    twoDigitYearPolicy,
+    maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
+  });
+  if (!result.ok) return { ok: false, errorMessage: result.errorMessage };
+  return { ok: true, value: result.value === undefined ? '' : result.value };
 };
 
 export const toCommittedWeekPayload = (
