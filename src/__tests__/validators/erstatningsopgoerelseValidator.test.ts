@@ -985,7 +985,7 @@ describe('validateLoenudviklingsKravForAktivKilde — Statistik og KRL', () => {
 
     expect(result.errors).toContainEqual(expect.objectContaining({
       path: 'tafBeregningsperiodeTil',
-      message: expect.stringContaining('ASL-årslønsmaksimum mangler for 2004'),
+      message: expect.stringContaining('ASL-maks-sats mangler for 2004'),
       severity: 'error',
     }));
   });

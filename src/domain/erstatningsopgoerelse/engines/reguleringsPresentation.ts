@@ -30,7 +30,7 @@ import { formatISOToDanish, formatIsoDateLong } from '../../../utils/dateFormatt
 import { parseAmount } from '../../../utils/numberParsing';
 import { isEffectivelyZero, isWithinTolerance } from '../../../utils/numberComparison';
 import { roundByMethod } from '../../../utils/rounding';
-import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { resolveAslAarsloensmaksimumForAar } from '../../satser/aslAarsloensmaksimum';
 import {
   assertOffentligReguleringsDatoGyldig,
   getEffektiveSatserForDato,
@@ -830,7 +830,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
       const rows: string[][] = Array.from(years)
         .sort((a, b) => a - b)
         .flatMap((year) => {
-        const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
+        const value = resolveAslAarsloensmaksimumForAar(year);
           return typeof value === 'number' ? [[String(year), formatCurrency(value)]] : [];
         });
       if (rows.length !== years.size) return null;
@@ -1345,7 +1345,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
       if (isAslModel) {
         const regDate = parseIsoDateToUtcDate(anvendtReguleringsdato);
         if (!regDate) return null;
-        const value = aarsloenAslMax[regDate.getUTCFullYear() as keyof typeof aarsloenAslMax];
+        const value = resolveAslAarsloensmaksimumForAar(regDate.getUTCFullYear());
         if (typeof value !== 'number') return null;
         return {
           components: {
@@ -1525,7 +1525,7 @@ export const buildReguleringIndexRows = (params: Readonly<{
         const endYear = end.getUTCFullYear();
         const periodStarts: Array<{ startIso: ISODateString; components: FormulaComponents }> = [];
         for (let year = startYear; year <= endYear; year += 1) {
-          const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
+          const value = resolveAslAarsloensmaksimumForAar(year);
           if (typeof value !== 'number') return [];
           const startIso = parseOptionalIsoDate(`${year}-01-01`);
           if (!startIso) continue;

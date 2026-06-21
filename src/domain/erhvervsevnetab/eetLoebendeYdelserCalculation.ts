@@ -14,9 +14,12 @@ import {
 import {
   ASL_MAX_AARSLOEN_2003,
   ASL_MAX_AARSLOEN_2024,
-  aarsloenAslMax,
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../data/lovbestemteRates';
+import {
+  formatAslAarsloensmaksimumMissing,
+  resolveAslAarsloensmaksimumForAar,
+} from '../satser/aslAarsloensmaksimum';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
@@ -601,9 +604,9 @@ export const computeEetLoebendeYdelser = (input: Input): EetLoebendeCalculationR
   }
 
   const skadesaar = isoYear(skadedato);
-  const maxAarsloenISkadesaar = aarsloenAslMax[skadesaar];
-  if (!Number.isFinite(maxAarsloenISkadesaar) || maxAarsloenISkadesaar <= 0) {
-    issues.push(toIssue('aarsloen-max-missing', `Maksimum årsløn mangler for år ${skadesaar}`));
+  const maxAarsloenISkadesaar = resolveAslAarsloensmaksimumForAar(skadesaar);
+  if (maxAarsloenISkadesaar === undefined) {
+    issues.push(toIssue('aarsloen-max-missing', formatAslAarsloensmaksimumMissing(skadesaar)));
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
 

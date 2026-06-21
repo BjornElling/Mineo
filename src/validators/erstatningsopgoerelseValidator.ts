@@ -51,6 +51,7 @@ import {
   opregulerMedAkkumuleretReguleringssats,
   opregulerMedAslAarsloensmaksimum,
 } from '../domain/satser/opreguleringsmotorer';
+import { formatAslAarsloensmaksimumMissingForYears } from '../domain/satser/aslAarsloensmaksimum';
 
 export const TAF_OVERLAP_ERROR_MESSAGE = 'TAF-perioder overlapper';
 
@@ -932,7 +933,7 @@ const validateLoenudviklingDataCoverage = (
     if (manglendeAar.length > 0) {
       return [{
         path: resolveLoenudviklingCoveragePath(values, af, path),
-        message: `Lønregulering kan ikke beregnes, fordi ASL-årslønsmaksimum mangler for ${formatMissingYears(manglendeAar)}.`,
+        message: `Lønregulering kan ikke beregnes, fordi ${formatAslAarsloensmaksimumMissingForYears(manglendeAar)}`,
         severity: 'error',
       }];
     }

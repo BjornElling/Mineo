@@ -34,6 +34,7 @@
  */
 
 import { aarsloenAslMax, reguleringssats, type YearlyRate } from '../../data/lovbestemteRates';
+import { resolveAslAarsloensmaksimumForAar } from './aslAarsloensmaksimum';
 
 export type OpreguleringResultat = Readonly<{
   /** Multiplikativ opreguleringsfaktor (u-afrundet). 1 = ingen opregulering. */
@@ -50,9 +51,6 @@ export type OpreguleringInput = Readonly<{
   /** Året der opreguleres til. */
   maalAar: number;
 }>;
-
-const isPositiveFinite = (value: number | undefined): value is number =>
-  typeof value === 'number' && Number.isFinite(value) && value > 0;
 
 const NO_OPREGULERING: OpreguleringResultat = { faktor: 1, deltaPct: 0, manglendeAar: [] };
 
@@ -92,12 +90,14 @@ export const opregulerMedAslAarsloensmaksimum = (
   if (!Number.isInteger(kildeAar) || !Number.isInteger(maalAar)) {
     return { faktor: 1, deltaPct: 0, manglendeAar: nonIntegerYears(kildeAar, maalAar) };
   }
-  const kildeIndeks = indeks[kildeAar];
-  const maalIndeks = indeks[maalAar];
+  // Opslaget af selve maks-tabellen går gennem den kanoniske gateway (samme
+  // positiv-finit-semantik som grænse-valideringen); kun ratio-matematikken bor her.
+  const kildeIndeks = resolveAslAarsloensmaksimumForAar(kildeAar, indeks);
+  const maalIndeks = resolveAslAarsloensmaksimumForAar(maalAar, indeks);
   const manglendeAar: number[] = [];
-  if (!isPositiveFinite(kildeIndeks)) pushMissingYear(manglendeAar, kildeAar);
-  if (!isPositiveFinite(maalIndeks)) pushMissingYear(manglendeAar, maalAar);
-  if (manglendeAar.length > 0) {
+  if (kildeIndeks === undefined) pushMissingYear(manglendeAar, kildeAar);
+  if (maalIndeks === undefined) pushMissingYear(manglendeAar, maalAar);
+  if (kildeIndeks === undefined || maalIndeks === undefined) {
     return { faktor: 1, deltaPct: 0, manglendeAar };
   }
   if (maalAar <= kildeAar) return NO_OPREGULERING;

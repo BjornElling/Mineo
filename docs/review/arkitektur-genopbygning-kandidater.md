@@ -180,7 +180,21 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 3 · Omfang 5 · Risiko 2** — stor vedligeholds-/klarhedsgevinst (det fylder uforholdsmæssigt meget), men lav risiko da det er DEV-only. Stort arbejde.
 
-### B10. To opregulerings-motorer + tre ASL-maksimum-opslag uden fælles indgang
+### B10. To opregulerings-motorer + tre ASL-maksimum-opslag uden fælles indgang — ✅ IMPLEMENTERET (2026-06-21)
+
+> **Status (brugergodkendt forelæggelse).** De to motorer er bevidst bevaret (forskellige
+> matematiske problemer). Selve *opslaget* af ASL-årslønsmaksimum-tabellen er nu konsolideret i
+> én gateway, [`resolveAslAarsloensmaksimumForAar`](../../src/domain/satser/aslAarsloensmaksimum.ts)
+> (`domain/satser/aslAarsloensmaksimum.ts`). Den erstatter alle ~10 rå `aarsloenAslMax[år]`-opslag
+> (grænse-validator, opreguleringsmotor metode 1, forsørgertab, EET-kapitalisering/løbende/EAL,
+> regulerings-præsentation, lønudvikling, EO-debug, regulerings-dokument). Efter brugerens valg
+> ("ensret beskeden overalt") ejer gateway'en desuden ÉN brugervendt "mangler"-ordlyd
+> (`ASL-maks-sats mangler for år X (satser findes kun for A–B)`) — de tidligere **fem** afvigende
+> formuleringer er væk. En path-baseret guard
+> ([`aslAarsloensmaksimumSingleSource.test.ts`](../../src/__tests__/quality/aslAarsloensmaksimumSingleSource.test.ts))
+> fejler hvis et rå subscript-opslag genintroduceres. Adfærdsbevarende (opslags-værnet er identisk:
+> positiv-finit-heltal); fuld suite grøn (5495 tests). Bevidst urørt: at *sende hele map'et* videre
+> som injiceret indeks (forsørgertab/EET-snapshot) — det er ikke et enkelt-år-opslag.
 
 **Nuværende tilstand (verificeret).** `opreguleringsmotorer.ts` eksporterer to motorer (`opregulerMedAslAarsloensmaksimum`, `opregulerMedAkkumuleretReguleringssats`); kalderen vælger manuelt den rigtige. ASL-årslønsmaksimum slås desuden op tre steder med to formål blandet sammen: som regulering (motoren) og som grænse-validering (`aarsloenValidators.ts` direkte i tabellen) (4.0/4.2/4.10).
 
@@ -304,7 +318,7 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | B7 | Samlet felt-tilstand (fejl/draft/undo) | 4 | 5 | 5 | Nej |
 | B8 ✅ | Tvungne grænser i EO snapshot→presentation | 4 | 4 | 3 | Nej |
 | B9 | Slank EO-debug-laget (33 filer/11k linjer) | 3 | 5 | 2 | Nej |
-| B10 | Én ASL-maks-opslags-gateway | 3 | 2 | 3 | Ja |
+| B10 ✅ | Én ASL-maks-opslags-gateway | 3 | 2 | 3 | Ja |
 | B11 | Én kanonisk måned-additions-semantik | 3 | 1 | 3 | Ja |
 | B12 ✅ | Systematisér delt UI↔dokument-domænelogik | 3 | 2 | 2 | Nej |
 | C13 ✅ | Én STORAGE_KEYS-kilde + schema-afledte defaults | 2 | 2 | 1 | Nej |

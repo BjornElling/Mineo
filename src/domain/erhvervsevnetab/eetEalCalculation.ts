@@ -18,6 +18,7 @@ import {
 import { round0, round4 } from '../../utils/roundingShortcuts';
 import { SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
 import { opregulerMedAkkumuleretReguleringssats } from '../satser/opreguleringsmotorer';
+import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';
 
 export type EetEalResolvedEetPct = Readonly<{
   value: number;
@@ -328,7 +329,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
   }
 
   const ealAarsloenInput = amountValueToNumber(values.ealAarsloen);
-  const maxAarsloenForSkadesaar = input.aarsloenAslMax[skadesaar];
+  const maxAarsloenForSkadesaar = resolveAslAarsloensmaksimumForAar(skadesaar, input.aarsloenAslMax);
   const maxAarsloenWarningMessage =
     'Skadelidtes fulde årsløn skal indtastes for EAL — ikke maks. årslønnen efter ASL.';
   const isSkadeFraJuli2024EllerSenere = skadedato >= SKAERING_2024_07_01;
@@ -345,7 +346,7 @@ export const computeEetEalCalculation = (input: Input): EetEalCalculationResult 
     );
   }
 
-  if (Number.isFinite(maxAarsloenForSkadesaar)) {
+  if (maxAarsloenForSkadesaar !== undefined) {
     if (
       Number.isFinite(ealAarsloenInput) &&
       ealAarsloenInput !== undefined &&

@@ -2638,7 +2638,7 @@ describe('eoPdfModel', () => {
     });
     const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2000-01-01') });
     expect(() => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') })).toThrow(
-      'ASL-årslønsmaksimum mangler for 2000'
+      'ASL-maks-sats mangler for 2000'
     );
   });
 
@@ -2986,7 +2986,7 @@ describe('eoPdfModel', () => {
       const stamdata = makeStamdata({ skadestype: 'Arbejdsulykke', skadedato: iso('2005-01-01') });
       expectSilencedConsoleErrorThrow(
         () => buildPdfModel(stamdata, eoValues, { dagsDatoISO: iso('2026-02-24') }),
-        'ASL-årslønsmaksimum mangler for 2006'
+        'ASL-maks-sats mangler for 2006'
       );
     } finally {
       aarsloenAslMax[2006] = original2006;

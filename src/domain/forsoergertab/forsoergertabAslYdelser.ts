@@ -1,5 +1,8 @@
-import { aarsloenAslMax } from '../../data/lovbestemteRates';
 import { opregulerMedAslAarsloensmaksimum } from '../satser/opreguleringsmotorer';
+import {
+  formatAslAarsloensmaksimumMissing,
+  resolveAslAarsloensmaksimumForAar,
+} from '../satser/aslAarsloensmaksimum';
 import {
   getKapitaliseringsTabelData,
   type ForsoergertabMatrixRaekke,
@@ -192,8 +195,8 @@ const computeLobendeYdelser = (
       // `opregulerMedAslAarsloensmaksimum`. Beregnes direkte her, fordi løbende
       // ydelser også kan ligge FØR skadeåret (de-regulering med faktor < 1),
       // hvilket motorens "kun frem i tid"-clamp ikke dækker.
-      const aarsloenMaxYear = aarsloenAslMax[year];
-      if (!Number.isFinite(aarsloenMaxYear) || aarsloenMaxYear <= 0) {
+      const aarsloenMaxYear = resolveAslAarsloensmaksimumForAar(year);
+      if (aarsloenMaxYear === undefined) {
         throw new Error(`INVARIANT: aarsloenAslMax mangler for år ${year} — burde være pre-valideret`);
       }
       const opreguleretAarligYdelseForAar = ceilNearest12(FORSOERGERTABSPROCENT * benyttetAarsloen * (aarsloenMaxYear / aarsloenMaxSkadesaar));
@@ -282,20 +285,18 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
 
   const skadesaar = isoYear(input.skadedato);
   const beregningsaar = isoYear(input.beregningsdato);
-  const aarsloenMaxSkadesaar = aarsloenAslMax[skadesaar];
-  const aarsloenMaxBeregningsaar = aarsloenAslMax[beregningsaar];
-  if (!Number.isFinite(aarsloenMaxSkadesaar) || aarsloenMaxSkadesaar <= 0) {
-    issues.push(toIssue('aarsloen-max-missing-skadesaar', `Årslønsmaksimum mangler for år ${skadesaar}.`));
+  const aarsloenMaxSkadesaar = resolveAslAarsloensmaksimumForAar(skadesaar);
+  const aarsloenMaxBeregningsaar = resolveAslAarsloensmaksimumForAar(beregningsaar);
+  if (aarsloenMaxSkadesaar === undefined) {
+    issues.push(toIssue('aarsloen-max-missing-skadesaar', formatAslAarsloensmaksimumMissing(skadesaar)));
   }
-  if (!Number.isFinite(aarsloenMaxBeregningsaar) || aarsloenMaxBeregningsaar <= 0) {
-    issues.push(toIssue('aarsloen-max-missing-beregningsaar', `Årslønsmaksimum mangler for år ${beregningsaar}.`));
+  if (aarsloenMaxBeregningsaar === undefined) {
+    issues.push(toIssue('aarsloen-max-missing-beregningsaar', formatAslAarsloensmaksimumMissing(beregningsaar)));
   }
   if (
     issues.length > 0 ||
-    !Number.isFinite(aarsloenMaxSkadesaar) ||
-    aarsloenMaxSkadesaar <= 0 ||
-    !Number.isFinite(aarsloenMaxBeregningsaar) ||
-    aarsloenMaxBeregningsaar <= 0
+    aarsloenMaxSkadesaar === undefined ||
+    aarsloenMaxBeregningsaar === undefined
   ) {
     return { issues: dedupeIssuesBySeverityAndMessage(issues), computation: null };
   }
@@ -304,9 +305,9 @@ export const computeForsoergertabAslYdelser = (input: Input): ForsoergertabAslRe
 
   for (let yr = virkningsaar; yr < beregningsaar; yr++) {
     if (yr === skadesaar) continue;
-    const aarsloenMaxForYear = aarsloenAslMax[yr];
-    if (!Number.isFinite(aarsloenMaxForYear) || aarsloenMaxForYear <= 0) {
-      issues.push(toIssue('aarsloen-max-missing-beregningsaar', `Årslønsmaksimum mangler for år ${yr}.`));
+    const aarsloenMaxForYear = resolveAslAarsloensmaksimumForAar(yr);
+    if (aarsloenMaxForYear === undefined) {
+      issues.push(toIssue('aarsloen-max-missing-beregningsaar', formatAslAarsloensmaksimumMissing(yr)));
     }
   }
   if (issues.length > 0) {

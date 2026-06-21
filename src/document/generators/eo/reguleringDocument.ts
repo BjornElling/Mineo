@@ -16,7 +16,7 @@ import { renderDocumentTable } from '../../layout/documentTableRenderer';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../../../utils/dateUtils';
 import { roundByMethod } from '../../../utils/rounding';
-import { aarsloenAslMax } from '../../../data/lovbestemteRates';
+import { resolveAslAarsloensmaksimumForAar } from '../../../domain/satser/aslAarsloensmaksimum';
 import { TODAY } from '../../../config/dateRanges';
 import {
   formatAmountWithoutTrailingDecimals,
@@ -311,8 +311,8 @@ const buildStatistikTable = (
 
     const rows: string[][] = [];
     for (let year = start.getUTCFullYear(); year <= end.getUTCFullYear(); year += 1) {
-      const value = aarsloenAslMax[year as keyof typeof aarsloenAslMax];
-      if (typeof value !== 'number') continue;
+      const value = resolveAslAarsloensmaksimumForAar(year);
+      if (value === undefined) continue;
       rows.push([String(year), formatCurrency(value)]);
     }
 

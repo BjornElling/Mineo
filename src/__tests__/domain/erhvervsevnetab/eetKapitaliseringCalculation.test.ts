@@ -38,7 +38,7 @@ describe('computeEetKapitaliseringCalculation', () => {
       expect(result.issues).toContainEqual({
         id: 'aarsloen-max-missing',
         severity: 'error',
-        message: 'Maksimum årsløn mangler for år 2025.',
+        message: 'ASL-maks-sats mangler for år 2025 (satser findes kun for 2005–2026).',
       });
     } finally {
       aarsloenAslMax[2025] = original;

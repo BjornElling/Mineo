@@ -188,7 +188,7 @@ describe('computeForsoergertabAslYdelser', () => {
       expect(result.issues).toContainEqual({
         id: 'aarsloen-max-missing-skadesaar',
         severity: 'error',
-        message: 'Årslønsmaksimum mangler for år 2020.',
+        message: 'ASL-maks-sats mangler for år 2020 (satser findes kun for 2005–2026).',
       });
     } finally {
       aarsloenAslMax[2020] = original;
@@ -580,7 +580,7 @@ describe('computeForsoergertabAslYdelser — fail-closed på manglende mellemår
       expect(result.issues).toContainEqual({
         id: 'aarsloen-max-missing-beregningsaar',
         severity: 'error',
-        message: 'Årslønsmaksimum mangler for år 2024.',
+        message: 'ASL-maks-sats mangler for år 2024 (satser findes kun for 2005–2026).',
       });
     } finally {
       aarsloenAslMax[2024] = original;

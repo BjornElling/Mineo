@@ -1,5 +1,8 @@
 import type { ISODateString } from '../../types/branded';
-import { aarsloenAslMax, getYearBoundsForYearlyRate } from '../../data/lovbestemteRates';
+import {
+  formatAslAarsloensmaksimumMissing,
+  resolveAslAarsloensmaksimumForAar,
+} from '../satser/aslAarsloensmaksimum';
 import { formatAsAmount } from '../../utils/formatUtils';
 
 export const validateAslAarsloenDivisibleBy1000 = (
@@ -20,13 +23,12 @@ export const validateAslAarsloenBySkadesaarMax = (
   const skadesaar = Number.parseInt(skadedatoIso.slice(0, 4), 10);
   if (!Number.isFinite(skadesaar)) return undefined;
 
-  const maxAarsloen = aarsloenAslMax[skadesaar];
-  if (maxAarsloen === undefined || !Number.isFinite(maxAarsloen)) {
+  const maxAarsloen = resolveAslAarsloensmaksimumForAar(skadesaar);
+  if (maxAarsloen === undefined) {
     // Fail-closed: en manglende maks-sats for skadesåret må ikke stiltiende acceptere årslønnen.
     // Det rammer fx en skade i et år uden offentliggjort sats (før 2005 eller et fremtidigt år).
-    const bounds = getYearBoundsForYearlyRate(aarsloenAslMax);
-    const boundsText = bounds ? ` (satser findes kun for ${bounds.minYear}–${bounds.maxYear})` : '';
-    return `Maks-årsløn for skadesåret ${skadesaar} kunne ikke slås op${boundsText}.`;
+    // Kanonisk ordlyd via gateway'en — samme besked som de øvrige faner.
+    return formatAslAarsloensmaksimumMissing(skadesaar);
   }
   if (aarsloen <= maxAarsloen) return undefined;
 
