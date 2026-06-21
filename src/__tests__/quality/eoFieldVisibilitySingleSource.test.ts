@@ -16,10 +16,24 @@ import path from 'node:path';
  */
 
 const SRC_ROOT = path.resolve(__dirname, '../../');
-const EO_OPLYSNINGER_PATH = path.resolve(
+// EO-oplysninger-fanens UI er dekomponeret i sektion-komponenter (jf. A1). Synligheds-gates
+// kan derfor optræde i en hvilken som helst sektion — guarden scanner hele sektion-mappen
+// dynamisk (ingen hardkodet fil-liste), så en ny sektion automatisk dækkes.
+const EO_OPLYSNINGER_SECTIONS_DIR = path.resolve(
   SRC_ROOT,
-  'components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx'
+  'components/pages/erstatningsopgoerelse/eoOplysninger/sections'
 );
+
+const readEoOplysningerSources = (): string => {
+  const files = fs
+    .readdirSync(EO_OPLYSNINGER_SECTIONS_DIR)
+    .filter((name) => name.endsWith('.tsx'))
+    .map((name) => path.join(EO_OPLYSNINGER_SECTIONS_DIR, name));
+  if (files.length === 0) {
+    throw new Error(`Ingen sektion-filer fundet i ${EO_OPLYSNINGER_SECTIONS_DIR}`);
+  }
+  return files.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
+};
 
 // Felter hvis synlighed nu ejes af et relevans-prædikat. Hvert felt mappes til det prædikat
 // der skal bruges i stedet, så fejlmeddelelsen peger på den rigtige løsning.
@@ -54,7 +68,7 @@ const findInlineVisibilityGates = (source: string, field: string): number[] => {
 };
 
 describe('EO felt-synlighed har ét sandt sted (relevans-prædikater)', () => {
-  const source = fs.readFileSync(EO_OPLYSNINGER_PATH, 'utf8');
+  const source = readEoOplysningerSources();
 
   describe('selvtest: detektoren fanger en faktisk overtrædelse', () => {
     it('flagger inline-gates men ikke kontrol-bindinger', () => {
@@ -94,7 +108,7 @@ describe('EO felt-synlighed har ét sandt sted (relevans-prædikater)', () => {
     );
 
     it('importerer og bruger relevans-prædikaterne', () => {
-      expect(source).toContain("from '../../../domain/erstatningsopgoerelse/helpers/eoInputRelevance'");
+      expect(source).toContain("domain/erstatningsopgoerelse/helpers/eoInputRelevance'");
       expect(source).toContain('erSvieSmerteSektionAktiv(values)');
       expect(source).toContain('erTabtArbejdsfortjenesteSektionAktiv(values)');
       expect(source).toContain('erOevrigeKravSektionAktiv(values)');

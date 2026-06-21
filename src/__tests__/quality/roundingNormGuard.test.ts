@@ -304,8 +304,9 @@ describe('Afrundingsnorm-guard', () => {
         'utils/logStorage.ts',
         'utils/fileSave.ts',
         'domain/debug/eoDebugSnapshot.ts',
-        // UI-komponent: validering af datokomponent (år/måned/dag som tal)
-        'components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx',
+        // EO-oplysninger view-model: formatLabelDayAfterIsoDate bruger new Date(dateObj) —
+        // kopi af UTC Date fra isoDateToDate(), ikke string-parsing.
+        'components/pages/erstatningsopgoerelse/eoOplysninger/useEoOplysningerViewModel.ts',
         // Rente-validering
         'domain/renteberegning/rentekravValidation.ts',
         // Periode-iteration: new Date(dateObj) — kopi af UTC Date-objekt, ikke string-parsing

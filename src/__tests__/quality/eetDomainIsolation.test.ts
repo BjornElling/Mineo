@@ -2,7 +2,20 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const SRC_ROOT = path.resolve(process.cwd(), 'src');
-const EO_OPLYSNINGER_TAB_PATH = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/EOOplysningerTab.tsx');
+// EO-oplysninger-fanen er dekomponeret i sektion-komponenter (jf. A1); EET-felternes markup bor nu
+// i sektionerne. Guarden læser hele sektion-mappen, så feltbindingerne fanges uanset hvilken sektion.
+const EO_OPLYSNINGER_SECTIONS_DIR = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/eoOplysninger/sections');
+
+const readEoOplysningerSectionSources = (): string => {
+  const files = fs
+    .readdirSync(EO_OPLYSNINGER_SECTIONS_DIR)
+    .filter((name) => name.endsWith('.tsx'))
+    .map((name) => path.join(EO_OPLYSNINGER_SECTIONS_DIR, name));
+  if (files.length === 0) {
+    throw new Error(`Ingen sektion-filer fundet i ${EO_OPLYSNINGER_SECTIONS_DIR}`);
+  }
+  return files.map((file) => fs.readFileSync(file, 'utf8')).join('\n');
+};
 const EO_DEBUG_PATH = path.resolve(SRC_ROOT, 'components/pages/erstatningsopgoerelse/EODebug.tsx');
 const EO_DEBUG_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/debug/eoDebugPageViewModel.ts');
 const EO_DEBUG_SNAPSHOT_VIEW_PATH = path.resolve(SRC_ROOT, 'domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView.ts');
@@ -58,8 +71,8 @@ describe('eetDomainIsolation', () => {
     expect(violations).toEqual([]);
   });
 
-  it('bevarer aktive EO-EET felter i EOOplysningerTab', () => {
-    const source = fs.readFileSync(EO_OPLYSNINGER_TAB_PATH, 'utf8');
+  it('bevarer aktive EO-EET felter i EO-oplysninger-sektionerne', () => {
+    const source = readEoOplysningerSectionSources();
 
     expect(source).toContain("handleToggleChange('midlertidigtEETAfgorelse')");
     expect(source).toContain("handleToggleChange('endeligtEETAfgorelse')");
