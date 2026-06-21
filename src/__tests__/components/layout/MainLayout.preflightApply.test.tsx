@@ -90,7 +90,7 @@ describe('MainLayout (preflight apply)', () => {
       screen.getByText('Hent').click();
     });
 
-    await screen.findByText('Advarsel før indlæsning');
+    await screen.findByText('Nogle felter blev sat til standardværdier');
 
     await act(async () => {
       screen.getByText('Indlæs trods fejl').click();

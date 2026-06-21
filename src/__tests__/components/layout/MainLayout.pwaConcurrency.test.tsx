@@ -85,7 +85,7 @@ describe('MainLayout (PWA concurrency)', () => {
       window.dispatchEvent(new CustomEvent('mineo:pwa-file-open'));
     });
 
-    await screen.findByText('Advarsel før indlæsning');
+    await screen.findByText('Nogle felter blev sat til standardværdier');
 
     pendingPwaRequest = {
       id: 'pwa-open-2',

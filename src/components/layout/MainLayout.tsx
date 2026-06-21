@@ -223,24 +223,33 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
 
       <ConfirmationDialog
         open={pendingLoadResult !== null}
-        title="Advarsel før indlæsning"
+        title="Nogle felter blev sat til standardværdier"
         message={
           pendingPreflight
             ? (
               <Box>
                 <Typography variant="body2" sx={{ marginBottom: 1 }}>
-                  Filen kan ikke indlæses fuldt ud. Du kan vælge at indlæse de dele der kan indlæses.
+                  De følgende oplysninger er ændret i programmets kode på en måde, så de gemte værdier i filen ikke kunne indlæses. De er i stedet sat til programmets standardværdier. Resten af filen er indlæst som normalt.
                 </Typography>
-                <Typography variant="body2">
-                  Forventet: {pendingPreflight.expectedCount ?? 'ukendt'} · Indlæst: {pendingPreflight.loadedCount} · Fejlede: {pendingPreflight.failedCount ?? 'ukendt'}
+                <Typography variant="body2" sx={{ marginBottom: 1 }}>
+                  Du kan fortsætte og indlæse filen, men gennemgå gerne de berørte felter bagefter.
                 </Typography>
-                <Typography variant="body2" sx={{ marginTop: 1, marginBottom: 0.5 }}>
-                  Hvad fejlede:
+                <Typography variant="body2" color="text.secondary">
+                  Indlæst fra filen: {pendingPreflight.loadedCount}
+                  {pendingPreflight.expectedCount !== undefined ? ` af ${pendingPreflight.expectedCount}` : ''} felter
+                  {pendingPreflight.failedCount !== undefined ? ` · Sat til standardværdi: ${pendingPreflight.failedCount}` : ''}
+                </Typography>
+                <Typography variant="body2" sx={{ marginTop: 1, marginBottom: 0.5, fontWeight: 500 }}>
+                  Berørte felter:
                 </Typography>
                 <Box component="ul" sx={{ margin: 0, paddingLeft: 2 }}>
                   {pendingPreflight.issues.slice(0, 12).map((issue) => (
                     <li key={`${issue.path}-${issue.reason}`}>
-                      <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>{issue.path}: {issue.reason}</Typography>
+                      <Typography variant="body2" sx={{ overflowWrap: 'anywhere' }}>
+                        {/* Strippede felter forklares allerede af den fælles tekst øverst → vis kun navnet.
+                            Droppede/ukendte sektioner har en reelt anden årsag → behold den. */}
+                        {issue.kind === 'strippedUnknownField' ? issue.path : `${issue.path}: ${issue.reason}`}
+                      </Typography>
                     </li>
                   ))}
                   {pendingPreflight.issues.length > 12 && (
@@ -251,7 +260,7 @@ const MainLayout = React.memo(({ children }: MainLayoutProps) => {
                 </Box>
               </Box>
             )
-            : 'Filen kan ikke indlæses fuldt ud.'
+            : 'Nogle af filens felter kunne ikke indlæses og blev sat til standardværdier.'
         }
         cancelText="Stop og gør intet"
         confirmText="Indlæs trods fejl"

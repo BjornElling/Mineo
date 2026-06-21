@@ -1,4 +1,4 @@
-import { countFilledFields } from './dataCollection';
+import { countFilledFields, countMeaningfulFields } from './dataCollection';
 import { decryptFromString, EncryptionError } from './encryption';
 import { selectFile, readFile, type ResolvedDirectory, getStartInValue } from './fileHelpers';
 import {
@@ -67,6 +67,22 @@ const toLoadIssuePath = (sectionKey: StorageKey, path: UnknownPath): string => {
   return detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
 };
 
+/** Slår den rå værdi op ved en strippet sti, så vi kan tælle hvor mange udfyldte felter der gik tabt. */
+const getValueAtPath = (root: unknown, path: UnknownPath): unknown => {
+  let current: unknown = root;
+  for (const segment of path) {
+    if (current === null || current === undefined) return undefined;
+    if (typeof segment === 'number') {
+      if (!Array.isArray(current)) return undefined;
+      current = current[segment];
+    } else {
+      if (!isRecord(current)) return undefined;
+      current = current[segment];
+    }
+  }
+  return current;
+};
+
 /**
  * Indlæser data fra krypteret .eo fil.
  *
@@ -85,7 +101,6 @@ const processDecryptedContainer = (args: {
   const { fileContainer, filename, source, fileHandle, requestId } = args;
   const fileData = fileContainer.data as Record<string, unknown>;
   const { fieldCount: expectedFieldCount } = fileContainer._metadata;
-  const loadIssues: LoadIssue[] = [];
 
   const fileVersion = fileContainer.version;
 
@@ -98,6 +113,14 @@ const processDecryptedContainer = (args: {
     (k) => Object.prototype.hasOwnProperty.call(fileData, k) && (fileData as Record<string, unknown>)[k] !== undefined
   );
 
+  // Felter/sektioner, hvor gemt brugerdata IKKE kunne indlæses og derfor er sat til standardværdier.
+  // Disse rapporteres til brugeren via preflight — stille datatab er uacceptabelt (AGENTS.md save/load,
+  // persistence-contract §6.3 "Rapportér tab eller strip via preflight").
+  const dataLossIssues: LoadIssue[] = [];
+  // Antal udfyldte felter fra filen der gik tabt (strippet, droppet sektion eller ukendt sektion).
+  // Migreringer bevarer data og tæller derfor IKKE som tab.
+  let lostFromFileCount = 0;
+
   const snapshot: Partial<Record<StorageKey, unknown>> = {};
   for (const sectionKey of Object.keys(persistenceSchemas) as StorageKey[]) {
     const rawValue = (fileData as Record<string, unknown>)[sectionKey];
@@ -106,36 +129,37 @@ const processDecryptedContainer = (args: {
     }
 
     const schema = persistenceSchemas[sectionKey];
+    // En migrator flytter/omsætter kendte gamle felter til current struktur. Det er en vellykket
+    // indlæsning (data bevares), ikke et tab — derfor hverken tælles eller vises migreringer i preflight.
     const migrated = migratePersistedSectionValue(sectionKey, rawValue);
-    for (const issue of migrated.issues) {
-      loadIssues.push({
-        kind: 'migratedField',
-        path: issue.path === '(root)' ? sectionKey : `${sectionKey}.${issue.path}`,
-        reason: issue.reason,
-      });
-    }
     const stripped = sanitizePersistedValueForSchema(schema, migrated.value);
-
-    for (const path of stripped.unknownPaths) {
-      loadIssues.push({
-        kind: 'strippedUnknownField',
-        path: toLoadIssuePath(sectionKey, path),
-        reason: 'Feltet findes ikke i denne version og blev ikke indlæst',
-      });
-    }
 
     const parsedSection = schema.safeParse(stripped.sanitized);
     if (parsedSection.success) {
       snapshot[sectionKey] = parsedSection.data;
+      // Strippede felter er gemt brugerdata, som denne version ikke længere kender. Værdien kan ikke
+      // indlæses og feltet får sin standardværdi → rapportér det til brugeren (ikke et stille tab).
+      for (const path of stripped.unknownPaths) {
+        lostFromFileCount += countMeaningfulFields(getValueAtPath(migrated.value, path));
+        dataLossIssues.push({
+          kind: 'strippedUnknownField',
+          path: toLoadIssuePath(sectionKey, path),
+          reason: 'Feltet findes ikke i denne version og blev sat til standardværdien',
+        });
+      }
       continue;
     }
 
+    // Hele sektionen kunne ikke valideres → den indlæses ikke (fail-closed), og alle udfyldte
+    // felter i den går tabt. Vi viser kun sektion-droppet (ikke også de enkelte strippede felter),
+    // så tabs-tallet ikke dobbelttælles.
+    lostFromFileCount += countMeaningfulFields(rawValue);
     const firstIssue = parsedSection.error.issues[0];
     const issuePathSegments = (firstIssue?.path ?? [])
       .filter((segment): segment is string | number => typeof segment === 'string' || typeof segment === 'number');
     const detailPath = formatPathSegments(issuePathSegments);
     const issuePath = detailPath === '(root)' ? sectionKey : `${sectionKey}.${detailPath}`;
-    loadIssues.push({
+    dataLossIssues.push({
       kind: 'sectionDropped',
       path: issuePath,
       reason: `Sektionen kunne ikke indlæses (${firstIssue?.message ?? 'Forkert format'}) og blev ikke indlæst`,
@@ -145,7 +169,8 @@ const processDecryptedContainer = (args: {
   for (const key of Object.keys(fileData as Record<string, unknown>)) {
     if (key.startsWith('_')) continue;
     if (!Object.prototype.hasOwnProperty.call(persistenceSchemas, key)) {
-      loadIssues.push({
+      lostFromFileCount += countMeaningfulFields((fileData as Record<string, unknown>)[key]);
+      dataLossIssues.push({
         kind: 'unknownSection',
         path: key,
         reason: 'Sektionen findes ikke i denne version og blev ikke indlæst',
@@ -158,26 +183,12 @@ const processDecryptedContainer = (args: {
     throw new Error('Filen indeholder ingen data der kan indlæses i denne version');
   }
 
-  // Skel mellem ÆGTE fejl (data der IKKE kunne indlæses) og harmløse, forventede felt-oprydninger.
-  // - Ægte fejl: en hel sektion droppet (validerer ikke) eller en ukendt sektion fra en nyere version.
-  // - Informationelt: enkeltfelter strippet pga. forward/backward-kompatibilitet, eller migrerede felter.
-  // Kun ægte fejl udløser preflight-dialogen og tæller som "Fejlede"; harmløs oprydning loader stille
-  // (brugervalg 2026-06-11, jf. persistence-contract.md §5). Den informationelle del logges til diagnose.
-  const genuineFailures = loadIssues.filter(
-    (issue) => issue.kind === 'sectionDropped' || issue.kind === 'unknownSection'
-  );
-  const informationalIssues = loadIssues.filter(
-    (issue) => issue.kind === 'strippedUnknownField' || issue.kind === 'migratedField'
-  );
-  if (informationalIssues.length > 0) {
-    logWarning('Felter ryddet/migreret ved load (forventet ved versionsforskel, ikke en fejl)', {
-      context: 'processDecryptedContainer',
-      data: {
-        count: informationalIssues.length,
-        paths: informationalIssues.map((issue) => issue.path).slice(0, 30),
-      },
-    });
-  }
+  // Preflight-tallene opgøres KONSISTENT, så regnestykket går op for brugeren:
+  //   indlæst-fra-fil + ikke-indlæst = felter-i-fil.
+  // `loadedFromFileCount` tæller kun felter der faktisk kom fra filen (ikke schema-defaults der
+  // udfylder huller i en gammel fil), ellers ville "indlæst" kunne være ≥ "forventet" trods tab.
+  const notLoadedFromFileCount = Math.min(fileFieldCount, lostFromFileCount);
+  const loadedFromFileCount = Math.max(0, fileFieldCount - notLoadedFromFileCount);
 
   return {
     success: true,
@@ -190,12 +201,12 @@ const processDecryptedContainer = (args: {
     sections: sectionsPresent.length,
     version: fileVersion,
     snapshot,
-    preflightWarning: genuineFailures.length > 0
+    preflightWarning: dataLossIssues.length > 0
       ? {
-        expectedCount: expectedFieldCount,
-        loadedCount: loadedFieldCount,
-        failedCount: genuineFailures.length,
-        issues: genuineFailures,
+        expectedCount: fileFieldCount,
+        loadedCount: loadedFromFileCount,
+        failedCount: notLoadedFromFileCount,
+        issues: dataLossIssues,
       }
       : undefined,
   };

@@ -206,16 +206,18 @@ Typiske fejlsymptomer hvis EO-opdateringer glemmes:
 
 **Konsekvens:** Et nyt `JaNej`-felt med default `'Nej'` øger `fieldCount` med 1 i alle nygemte filer. Ældre filer har ikke dette felt og rapporterer dermed et lavere `expectedCount`. Count-mismatch er ikke alene en fejlklassifikation. Brugervendt alvorlighed skal styres af issue-kategorier, ikke kun af expected/loaded tal.
 
+**Preflight-tallene skal gå op for brugeren:** `indlæst-fra-fil + sat-til-standard = felter-i-fil`. Derfor opgøres `loadedCount`/`failedCount` i preflight **felt-baseret** ud fra hvad der faktisk lå i filen — IKKE som rå `countFilledFields(snapshot)`, der også tæller schema-defaults der udfylder huller i en gammel fil (et tal der ellers kan være ≥ `expectedCount` trods reelt tab). `failedCount` er antallet af udfyldte filfelter der gik tabt (strippet/droppet/ukendt sektion), opgjort via `countMeaningfulFields()`; `loadedCount = expectedCount − failedCount`. Migreringer bevarer data og tæller ikke som tab. (Bemærk: top-level `LoadFileResult.fieldCount` er fortsat `countFilledFields(snapshot)` til success-beskeden — det er et andet, ikke-reconcilierende tal.)
+
 Issue-kategorier (`LoadIssueKind` i `src/types/fileOperations.ts`):
 
-- `strippedUnknownField`: kendt sektion, felt findes ikke i current schema.
-- `sectionDropped`: sektion kunne ikke parses og indlæses ikke.
-- `unknownSection`: sektionen kendes ikke i current registry.
-- `migratedField`: eksplicit migrator har flyttet eller omsat et felt.
+- `strippedUnknownField`: kendt sektion, felt findes ikke i current schema. **Surfaces i preflight** (gemt værdi kunne ikke indlæses → feltet sat til standardværdi).
+- `sectionDropped`: sektion kunne ikke parses og indlæses ikke. **Surfaces i preflight.**
+- `unknownSection`: sektionen kendes ikke i current registry. **Surfaces i preflight.**
+- `migratedField`: eksplicit migrator har flyttet eller omsat et felt. Data bevares → **surfaces ikke** (vellykket indlæsning, ikke et tab) og tæller ikke som fejl.
 
-Felter der manglede og blev udfyldt via schema-default eller optional surfaces **bevidst ikke** som en egen issue-kategori: det er harmløs schema-evolution og rapporteres tavst (jf. neden­for). Tilføj kun en `missingDefaultedField`-kategori, hvis defaulting på et tidspunkt skal være brugervendt synligt.
-
-Preflight bør kun kalde noget "fejl", når faktisk brugerdata ikke indlæses eller ikke kan valideres. Harmløs schema-evolution bør vises neutralt eller udelades.
+**Skel mellem tavs og rapporteret:**
+- Felter der *manglede* i filen og blev udfyldt via schema-default eller optional **rapporteres tavst** — det er harmløs forward-tolerance og må aldrig udløse advarsel (AGENTS.md save/load: "Nye schema-felter der mangler i en ældre fil må aldrig blokere load eller udløse advarsel").
+- Felter der *var i filen* men ikke kunne indlæses (`strippedUnknownField`/`sectionDropped`/`unknownSection`) **rapporteres via preflight**. Stille datatab er uacceptabelt (AGENTS.md save/load; persistence-contract §6.3 "Rapportér tab eller strip via preflight i stedet for at gætte"). Framingen er neutral/pædagogisk ("sat til standardværdier"), ikke en teknisk fejl, og må ikke ende som en `logWarning`/console-advarsel (den udløser DevtoolsIssueNotice — "Teknisk advarsel registreret" — hvilket er forkert kanal for forventet schema-evolution).
 
 ### 3.1a Breaking schema-ændringer
 

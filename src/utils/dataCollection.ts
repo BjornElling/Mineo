@@ -83,6 +83,23 @@ const countFieldsRecursive = (data: unknown, depth: number = 0): number => {
 };
 
 /**
+ * Tæller meningsfulde felter i en vilkårlig værdi — også når værdien selv er en
+ * primitiv (et enkelt blad).
+ *
+ * `countFilledFields()` returnerer 0 for primitiver (den forventer et top-level
+ * objekt med sektioner), så den kan ikke bruges til at tælle ét enkelt strippet
+ * leaf-felt. Denne helper håndterer både et strippet enkeltfelt og et helt
+ * strippet/droppet undertræ, så preflight kan opgøre præcist hvor mange
+ * udfyldte felter der gik tabt.
+ */
+export const countMeaningfulFields = (value: unknown): number => {
+  if (value !== null && typeof value === 'object') {
+    return countFieldsRecursive(value);
+  }
+  return isMeaningfulValue(value) ? 1 : 0;
+};
+
+/**
  * Tæller totalt antal felter med meningsfulde værdier i hele datasættet.
  */
 export const countFilledFields = (data: unknown): number => {

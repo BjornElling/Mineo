@@ -335,7 +335,7 @@ export const useFileSaveLoad = ({
     try {
       await requestApplyLoadedSnapshot(
         pending.result,
-        { message: 'Hentet (med fejl)', type: 'warning' },
+        { message: 'Filen er indlæst — nogle felter blev sat til standardværdier.', type: 'warning' },
         pending.navigateToStamdataAfterApply,
       );
     } catch (error) {

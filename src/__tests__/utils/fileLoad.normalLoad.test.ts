@@ -177,9 +177,10 @@ describe('fileLoad – normalLoadFlow', () => {
     }));
   });
 
-  it('stripper ukendte felter i kendt sektion og loader stille (ingen preflight ved harmløs oprydning)', async () => {
-    // Et ukendt felt i en kendt sektion er harmløs forward/backward-kompatibilitet: feltet strippes,
-    // resten loades, og der vises INGEN preflight-advarsel (brugervalg 2026-06-11, jf. persistence-contract §5).
+  it('stripper ukendt felt i kendt sektion, loader resten og rapporterer tabet via preflight', async () => {
+    // Et felt der findes i filen men ikke i current schema er gemt brugerdata, som ikke kan indlæses.
+    // Feltet strippes (sættes til standardværdi) og resten loades — men tabet rapporteres til brugeren
+    // via preflight. Stille datatab er uacceptabelt (AGENTS.md save/load, persistence-contract §6.3).
     const content = await encryptLoadContainer({
       stamdata: {
         journalnr: 'J-001',
@@ -199,8 +200,19 @@ describe('fileLoad – normalLoadFlow', () => {
     expect(result.success).toBe(true);
     if (!result.success) return;
     expect((result.snapshot?.stamdata as Record<string, unknown>)?.uventetFelt).toBeUndefined();
-    // Det strippede felt er en informationel oprydning, ikke en fejl: ingen preflight-advarsel.
-    expect(result.preflightWarning).toBeUndefined();
+    // Det strippede felt rapporteres som tab via preflight.
+    expect(result.preflightWarning?.issues).toContainEqual(expect.objectContaining({
+      kind: 'strippedUnknownField',
+      path: 'stamdata.uventetFelt',
+    }));
+    // Regnestykket går op: indlæst + sat-til-standard = felter i filen (journalnr, skadelidte, uventetFelt = 3).
+    const warning = result.preflightWarning;
+    expect(warning).toBeDefined();
+    if (!warning) return;
+    expect(warning.expectedCount).toBe(3);
+    expect(warning.failedCount).toBe(1);
+    expect(warning.loadedCount).toBe(2);
+    expect((warning.loadedCount) + (warning.failedCount ?? 0)).toBe(warning.expectedCount);
   });
 
   it('loader en gammel fil der mangler nyere schema-felter uden at blokere eller advare (forward-tolerance)', async () => {
@@ -278,11 +290,15 @@ describe('fileLoad – normalLoadFlow', () => {
     if (!result.success) return;
     expect(result.snapshot?.stamdata).toBeDefined();
     expect(result.snapshot?.renteberegning).toBeUndefined();
-    expect(result.preflightWarning?.failedCount).toBe(result.preflightWarning?.issues.length);
     expect(result.preflightWarning?.issues).toContainEqual(expect.objectContaining({
       kind: 'sectionDropped',
       path: expect.stringMatching(/^renteberegning/),
     }));
+    // Tallene er felt-baserede og går op: indlæst-fra-fil + ikke-indlæst = felter i filen.
+    const warning = result.preflightWarning;
+    expect(warning).toBeDefined();
+    if (!warning) return;
+    expect((warning.loadedCount) + (warning.failedCount ?? 0)).toBe(warning.expectedCount);
   });
 
   it('afviser filer hvor kun ukendte sektioner har indhold', async () => {
