@@ -1,10 +1,7 @@
-import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
-import { PERSISTED_SECTION_KEYS, persistenceSchemas } from '../config/persistenceRegistry';
+import { PERSISTED_SECTION_KEYS } from '../config/persistenceRegistry';
 import { getInvalidDraftsStorageKey, getStorageKey } from '../config/storageManifest';
-import type { PersistedData } from '../types/persistence';
 import type { FormPersistenceSections, InvalidDraftsCache } from '../stores/formPersistenceStore';
-import { nullToUndefinedDeep } from './nullToUndefinedDeep';
-import { serializeFormValues } from './serialization';
+import { buildPersistedSection } from './buildPersistedSection';
 import {
   readSessionStorageValue,
   removeSessionStorageValue,
@@ -51,28 +48,17 @@ const buildPersistenceSectionWrites = (sections: FormPersistenceSections): {
       continue;
     }
 
-    const schema = persistenceSchemas[pageKey];
     // Dette er defensiv pre-save-normalisering af allerede committede store-data,
     // ikke load-sanitization. Ukendte felter skal stadig fejle schema-validering her.
-    const validated = schema.safeParse(nullToUndefinedDeep(raw));
-    if (!validated.success) {
-      const issues = formatZodIssues(validated.error.issues, 2);
+    const built = buildPersistedSection(pageKey, raw, now);
+    if (!built.ok) {
+      const issues = built.error ? formatZodIssues(built.error.issues, 2) : '';
+      if (built.stage === 'post-serialize') {
+        throw new Error(`Kan ikke forberede persistence-snapshot: '${pageKey}' fejler efter serialisering.\n${issues}`);
+      }
       throw new Error(`Kan ikke forberede persistence-snapshot: '${pageKey}' matcher ikke schema.\n${issues}`);
     }
-
-    const persistedSectionData = serializeFormValues(validated.data);
-    const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
-    if (!postSerializeValidated.success) {
-      const issues = formatZodIssues(postSerializeValidated.error.issues, 2);
-      throw new Error(`Kan ikke forberede persistence-snapshot: '${pageKey}' fejler efter serialisering.\n${issues}`);
-    }
-
-    const persistedData: PersistedData = {
-      version: PERSISTED_DATA_VERSION,
-      timestamp: now,
-      data: persistedSectionData,
-    };
-    toWrite.push({ storageKey, value: JSON.stringify(persistedData) });
+    toWrite.push({ storageKey, value: built.serialized });
   }
 
   return { toWrite, toRemove };

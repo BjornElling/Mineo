@@ -4,7 +4,6 @@ import {
   getStorageKey,
 } from '../config/storageManifest';
 import { PERSISTED_DATA_VERSION } from '../config/persistenceVersion';
-import type { PersistedData } from '../types/persistence';
 import {
   type ReplaceAllPersistedData,
 } from './FormPersistenceContext.shared';
@@ -17,8 +16,8 @@ import {
   resolveActiveFieldError,
 } from '../types/fieldErrors';
 import { serializeFormValues } from '../utils/serialization';
-import { PERSISTED_SECTION_KEYS, persistenceSchemas, type PersistedSectionMap } from '../config/persistenceRegistry';
-import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
+import { PERSISTED_SECTION_KEYS, type PersistedSectionMap } from '../config/persistenceRegistry';
+import { buildPersistedSection } from '../utils/buildPersistedSection';
 import { countFilledFields } from '../utils/dataCollection';
 import { setDevtoolsProviderState } from '../utils/devtoolsMonitor';
 import { formPersistenceStore, type InvalidDraftsCache } from '../stores/formPersistenceStore';
@@ -215,34 +214,27 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     try {
       const storageKey = getStorageKey(pageKey);
 
-      // Defensivt runtime-tjek: bør aldrig ske, fordi persistenceSchemas er nøglet på StorageKey,
-      // men beskytter mod hot-reload / delvis modul-state under udvikling.
-      if (!Object.prototype.hasOwnProperty.call(persistenceSchemas, pageKey)) {
-        console.error(`[Persistence] Missing schema for '${pageKey}'. Cannot persist data.`, { pageKey });
-        emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern konfigurationsfejl.`, 'error');
-        return false;
-      }
-
-      const schema = persistenceSchemas[pageKey];
-      const normalized = nullToUndefinedDeep(data);
-      const validated = schema.safeParse(normalized);
-      if (!validated.success) {
-        const issues = formatZodIssues(validated.error.issues, 3);
-        console.error(`[Persistence] Schema mismatch for '${pageKey}':\n${issues}`, {
-          pageKey,
-          issues: validated.error.issues,
-        });
-        emitUserNotice(
-          `Kunne ikke gemme data for '${pageKey}' fordi data ikke matcher schema.\n${issues}`,
-          'error'
-        );
-        return false;
-      }
-
-      const persistedSectionData = serializeFormValues(validated.data);
-      // Trust-kritisk invariant: cachen skal matche repræsentationen efter serialisering (reload-ækvivalent).
-      const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
-      if (!postSerializeValidated.success) {
+      const built = buildPersistedSection(pageKey, data, Date.now());
+      if (!built.ok) {
+        if (built.stage === 'config') {
+          // Bør aldrig ske, fordi persistenceSchemas er nøglet på StorageKey; beskytter mod hot-reload / delvis modul-state.
+          console.error(`[Persistence] Missing schema for '${pageKey}'. Cannot persist data.`, { pageKey });
+          emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern konfigurationsfejl.`, 'error');
+          return false;
+        }
+        if (built.stage === 'schema') {
+          const issues = formatZodIssues(built.error!.issues, 3);
+          console.error(`[Persistence] Schema mismatch for '${pageKey}':\n${issues}`, {
+            pageKey,
+            issues: built.error!.issues,
+          });
+          emitUserNotice(
+            `Kunne ikke gemme data for '${pageKey}' fordi data ikke matcher schema.\n${issues}`,
+            'error'
+          );
+          return false;
+        }
+        // built.stage === 'post-serialize'
         emitUserNotice(`Kunne ikke gemme data for '${pageKey}' pga. en intern serialiseringsfejl.`, 'error');
         return false;
       }
@@ -250,31 +242,25 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       const currentSnapshot = getPersistedSectionSnapshot(pageKey);
       if (currentSnapshot !== null) {
         const currentSerialized = serializeFormValues(currentSnapshot);
-        const nextSerializedFingerprint = JSON.stringify(persistedSectionData);
+        const nextSerializedFingerprint = JSON.stringify(built.persistedData.data);
         const currentSerializedFingerprint = JSON.stringify(currentSerialized);
         if (currentSerializedFingerprint === nextSerializedFingerprint) {
           return true;
         }
       }
 
-      const persistedData: PersistedData = {
-        version: PERSISTED_DATA_VERSION,
-        timestamp: Date.now(),
-        data: persistedSectionData,
-      };
-
       const previousStorageValue = readSessionStorageValue(storageKey);
       const rollbackSnapshot = captureStoreRollbackSnapshot();
       const undoRollbackSnapshot = captureUndoRedoRollbackSnapshot();
       try {
-        writeSessionStorageValue(storageKey, JSON.stringify(persistedData));
+        writeSessionStorageValue(storageKey, built.serialized);
         if (options?.undoOrigin) {
           // Value-commit fanger ALTID sin egen frame; markér den, så en parret invalidDraft-clear i samme
           // flow rider på den i stedet for at fange en ekstra.
           undoRedoStore.getState().capture(options.undoOrigin);
           markValueCommitCaptured(options.undoOrigin.fieldPath);
         }
-        formPersistenceStore.getState().commitSection(pageKey, postSerializeValidated.data as PersistedSectionMap[K], {
+        formPersistenceStore.getState().commitSection(pageKey, built.validatedData, {
           lastCommittedAt: Date.now(),
         });
       } catch (error) {
@@ -422,28 +408,16 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       const raw = snapshot[pageKey];
       if (raw === undefined) continue;
 
-      const schema = persistenceSchemas[pageKey];
-      const normalized = nullToUndefinedDeep(raw);
-      const validated = schema.safeParse(normalized);
-      if (!validated.success) {
-        const issues = formatZodIssues(validated.error.issues, 2);
+      const built = buildPersistedSection(pageKey, raw, now);
+      if (!built.ok) {
+        const issues = built.error ? formatZodIssues(built.error.issues, 2) : '';
+        if (built.stage === 'post-serialize') {
+          throw new Error(`Kan ikke anvende snapshot: '${pageKey}' fejler efter serialisering.\n${issues}`);
+        }
         throw new Error(`Kan ikke anvende snapshot: '${pageKey}' matcher ikke schema.\n${issues}`);
       }
-
-      const persistedSectionData = serializeFormValues(validated.data);
-      // Trust-kritisk invariant: cachen skal matche repræsentationen efter serialisering.
-      const postSerializeValidated = schema.safeParse(nullToUndefinedDeep(persistedSectionData));
-      if (!postSerializeValidated.success) {
-        const issues = formatZodIssues(postSerializeValidated.error.issues, 2);
-        throw new Error(`Kan ikke anvende snapshot: '${pageKey}' fejler efter serialisering.\n${issues}`);
-      }
-      const persistedData: PersistedData = {
-        version: PERSISTED_DATA_VERSION,
-        timestamp: now,
-        data: persistedSectionData,
-      };
-      toWrite.push({ storageKey: getStorageKey(pageKey), value: JSON.stringify(persistedData) });
-      assignCacheValue(nextCache, pageKey, postSerializeValidated.data);
+      toWrite.push({ storageKey: getStorageKey(pageKey), value: built.serialized });
+      assignCacheValue(nextCache, pageKey, built.validatedData);
     }
 
     try {

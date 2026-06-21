@@ -119,7 +119,20 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 ## Klasse B — reel gevinst, men større omfang eller højere risiko
 
-### B6. Persistence: tre næsten-identiske validér→serialisér→re-validér-stier
+### B6. Persistence: tre næsten-identiske validér→serialisér→re-validér-stier — ✅ IMPLEMENTERET (2026-06-21)
+
+> **Status:** Løst. Den trust-kritiske kæde (`nullToUndefinedDeep` → schema-validér → serialiser →
+> re-validér (reload-ækvivalens) → pak i `{ version, timestamp, data }`) er nu samlet i ét primitiv,
+> `buildPersistedSection(pageKey, data, timestamp)` i [`src/utils/buildPersistedSection.ts`](../../src/utils/buildPersistedSection.ts).
+> Alle tre stier kalder det: `persistData` + `replaceAllPersistedData` (`FormPersistenceContext.tsx`) og
+> `buildPersistenceSectionWrites` (`persistenceSnapshotStorage.ts`). Primitivet returnerer et
+> diskrimineret resultat (`ok` + `validatedData`/`persistedData`/`serialized`, eller `stage` +
+> `error`), så et trin aldrig kan afvige mellem stierne. **Kontrol-flowet forbliver bevidst
+> forskelligt** — `persistData` giver notice + returnerer `false` (må aldrig crashe under normal
+> redigering), de to snapshot-stier kaster transaktionelt — men fejl-ordlyden ejes nu af hver caller via
+> `stage`, ikke af duplikeret transform-kode. `timestamp` gives af caller, så loop-stierne stadig
+> stempler alle sektioner med ét fælles `Date.now()`. Behavior-bevarende; fuld suite grøn (5485 tests),
+> ny `buildPersistedSection.test.ts` låser primitivets kontrakt.
 
 **Nuværende tilstand (verificeret).** `persistData()`, `replaceAllPersistedData()` og `buildPersistenceSectionWrites()` bygger hver `{ version, timestamp, data }`-strukturen og kører validér→serialisér med subtilt forskellig fejl-UX (set i `FormPersistenceContext.shared.ts` — flere steder gentager `version: PERSISTED_DATA_VERSION` + `timestamp` + serialisering). På trust-kritiske gem-stier er det netop her, drift er farligst.
 
@@ -287,7 +300,7 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | A2 ✅ | Delt felt-adapter-kerne (StyledField × TableInput) | 4 | 3 | 2 | Nej |
 | A3 ✅ | Delt celle-fejl-sporing i grid | 4 | 2 | 2 | Nej |
 | A4 🟡 | Side-byggeklodser (gate/download/dato-grænser) | 4 | 3 | 3 | Delvis |
-| B6 | Samlet persistence-serialiserings-primitiv | 3 | 3 | 4 | Nej |
+| B6 ✅ | Samlet persistence-serialiserings-primitiv | 3 | 3 | 4 | Nej |
 | B7 | Samlet felt-tilstand (fejl/draft/undo) | 4 | 5 | 5 | Nej |
 | B8 ✅ | Tvungne grænser i EO snapshot→presentation | 4 | 4 | 3 | Nej |
 | B9 | Slank EO-debug-laget (33 filer/11k linjer) | 3 | 5 | 2 | Nej |
