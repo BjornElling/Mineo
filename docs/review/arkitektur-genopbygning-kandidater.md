@@ -33,7 +33,25 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 ## Klasse A — høj værdi, forsvarligt omfang/risiko
 
-### A1. Manglende view-model-lag under fagsiderne (god-class-tabs)
+### A1. Manglende view-model-lag under fagsiderne (god-class-tabs) — ✅ IMPLEMENTERET (2026-06-21)
+
+> **Status:** Begge halvdele af A1 er på plads for alle tre EO-fagsider: (1) **view-model-lag** — ét
+> `useXxxViewModel`-hook pr. fagside der ejer al afledt visningstilstand, lokal UI-state og handlers og
+> returnerer én flad model; (2) **sektion-dekomponering** — den store inline-JSX er splittet i
+> komponenter der forbruger view-modellen via en smal **kontekst** (`useXxxVm()`), ikke via props
+> (ingen prop-boring).
+>
+> | Fagside | Før | Efter | View-model-hook | Sektion-dekomponering |
+> |---|---:|---:|---|---|
+> | `EOOplysningerTab.tsx` | 2059 | **69** | `useEoOplysningerViewModel.ts` | 9 sektion-komponenter (`eoOplysninger/sections/`) + `eoOplysningerContext.ts` |
+> | `LoenindkomstTab.tsx` | 2232 | **207** | `useLoenindkomstViewModel.ts` | `AnsaettelsesforholdCard.tsx` (per-række-kort) + `loenindkomstContext.ts` |
+> | `EOberegningTab.tsx` | 1410 | **568** | `useEoBeregningViewModel.ts` | Allerede tynd; render-helpers (renderDebugRows m.fl.) fungerer som sektion-byggere — ikke yderligere splittet (lav værdi) |
+>
+> Adfærdsbevarende; fuld suite grøn (5485 tests, inkl. ny smoke-test `EOOplysningerTab.sektioner.test.tsx`).
+> Per-række-værdier (`af`, `index`) gives bevidst fortsat som props (varierer pr. iteration), ikke via
+> kontekst. Fire path-baserede quality-guards blev opdateret, da den auditerede kode flyttede med til de
+> nye filer (`roundingNormGuard`, `formContractIsolation`, `eoFieldVisibilitySingleSource`,
+> `eetDomainIsolation` — de to sidste scanner nu sektion-mappen dynamisk).
 
 **Nuværende tilstand (verificeret).** `LoenindkomstTab.tsx` er stadig **2232** linjer og `EOOplysningerTab.tsx` **2059** linjer efter gruppe 8's dekomponering; `EOberegningTab.tsx` er **1410**. Dekomponeringen i gruppe 8 standsede bevidst, fordi kort-/sektion-ekstraktion ville kræve at bore 20–30+ props/handlers ned i børnene (8.3 + 14.2-parkering). De udtrukne `loenindkomst/`- og `eoOplysninger/`-mapper indeholder kun et par hooks og én sektion — selve siderne bærer stadig hele state- og handler-vægten.
 
@@ -225,7 +243,7 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 | # | Kandidat | Gevinst | Omfang | Risiko | Forelæggelse |
 |---|---|:---:|:---:|:---:|:---:|
-| A1 | View-model-lag under fagsiderne | 5 | 5 | 3 | Nej (ren refaktor) |
+| A1 ✅ | View-model-lag under fagsiderne | 5 | 5 | 3 | Nej (ren refaktor) |
 | A2 ✅ | Delt felt-adapter-kerne (StyledField × TableInput) | 4 | 3 | 2 | Nej |
 | A3 ✅ | Delt celle-fejl-sporing i grid | 4 | 2 | 2 | Nej |
 | A4 | Side-byggeklodser (gate/download/dato-grænser) | 4 | 3 | 3 | Delvis |
@@ -242,7 +260,7 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | C16 | Ensartede rate-resolvere | 2 | 3 | 2 | Nej |
 | C17 | Builder/skabelon-lag for generatorer | 2 | 3 | 3 | Nej |
 
-**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B7 og B9 er de største løft og bør først tages, når den øvrige struktur er på plads. (A2, A3, B12, C13 og C15 er nu implementeret; A5 blev verificeret og forkastet — se appendiks punkt 5.)
+**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B7 og B9 er de største løft og bør først tages, når den øvrige struktur er på plads. (A1, A2, A3, B12, C13 og C15 er implementeret; A5 blev verificeret og forkastet — se appendiks punkt 5.)
 
 ---
 
