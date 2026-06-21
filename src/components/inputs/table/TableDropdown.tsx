@@ -5,6 +5,7 @@ import { assignRef } from '../../../utils/refUtils';
 import { copyTextToClipboard, readClipboardText } from '../../../utils/clipboardUtils';
 import { useGridCoreApi } from '../../tables/useGridCore';
 import type { GridCellCoord, GridCellEditorHandle } from '../../tables/gridCore/gridCoreTypes';
+import { gridCellKey } from '../../tables/gridCore/gridCoreUtils';
 import { visuallyHiddenStyle } from '../../shared/visuallyHiddenStyle';
 import StyledDropdown, { type StyledDropdownChangeEvent } from '../StyledDropdown';
 import { getTableInputBorderAppearance, TABLE_INPUT_HEIGHT, TABLE_INPUT_PADDING_Y } from './tableInputStyles';
@@ -353,18 +354,21 @@ const TableDropdown = React.memo(
       };
     }, [allowEmpty, grid, onChange, readOnly]);
 
-    const gridCellKey = gridCell ? `${gridCell.rowId}:${gridCell.colIndex}` : null;
+    // Ét sandt sted for celle-nøgleformatet: den kanoniske `gridCellKey`-util (samme util som
+    // tekst-celle-kernen og editor-registret i useGridCoreController bruger). Lokal null-gren fordi
+    // `gridCell` her er valgfri (util'en kræver en koordinat). Re-derivér IKKE `rowId:colIndex` inline.
+    const resolvedGridCellKey = gridCell ? gridCellKey(gridCell) : null;
     React.useEffect(() => {
       if (!gridCell) return;
       grid.registerEditor(gridCell, editorHandle);
       return () => {
         grid.unregisterEditor(gridCell);
       };
-    // gridCellKey er en stabil streng-repræsentation af gridCell-koordinaterne.
+    // resolvedGridCellKey er en stabil streng-repræsentation af gridCell-koordinaterne.
     // gridCell er intentionelt udeladt fra dep-arrayet for at undgå re-registrering
     // ved inline object literals i caller (ny reference, samme værdier).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editorHandle, grid, gridCellKey]);
+    }, [editorHandle, grid, resolvedGridCellKey]);
 
     return (
       <Tooltip title={showError ? externalErrorText : ''} arrow placement="top">
@@ -389,7 +393,7 @@ const TableDropdown = React.memo(
           {resolvedAppearance === 'loose' ? (
             allowEmpty ? (
               <StyledDropdown
-                name={gridCellKey ?? undefined}
+                name={resolvedGridCellKey ?? undefined}
                 width="100%"
                 value={(value ?? '') === '' ? undefined : value}
                 allowEmpty
@@ -409,7 +413,7 @@ const TableDropdown = React.memo(
               </StyledDropdown>
             ) : (
               <StyledDropdown
-                name={gridCellKey ?? undefined}
+                name={resolvedGridCellKey ?? undefined}
                 width="100%"
                 value={value ?? ''}
                 allowEmpty={false}
@@ -430,7 +434,7 @@ const TableDropdown = React.memo(
           ) : (
             <Select
               id={a11yInputId}
-              name={gridCellKey ?? undefined}
+              name={resolvedGridCellKey ?? undefined}
               open={open}
               value={value ?? ''}
               onChange={handleChange}
@@ -485,12 +489,12 @@ const TableDropdown = React.memo(
                 // ikke på det skjulte native <input>. Ellers fokuserer restore det skjulte
                 // input og ringen vises aldrig.
                 'data-mineo-undo-focus-token': undoFocusToken,
-                'data-mineo-undo-field-path': gridCellKey ?? undefined,
+                'data-mineo-undo-field-path': resolvedGridCellKey ?? undefined,
               } as React.HTMLAttributes<HTMLDivElement>}
               size="small"
               variant="standard"
               inputProps={{
-                name: gridCellKey ?? undefined,
+                name: resolvedGridCellKey ?? undefined,
                 tabIndex: readOnly ? -1 : undefined,
                 'aria-describedby': showError ? a11yErrorId : undefined,
               }}

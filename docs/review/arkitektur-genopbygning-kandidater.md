@@ -6,6 +6,17 @@
 
 > **Vigtig forudsætning (jf. `AGENTS.md`):** Feature-fladen er låst, og programmet favoriserer *forenkling og konsolidering* over udvidelsespunkter til hypotetiske features. Kandidater er derfor vurderet på, om de fjerner *faktisk* duplikering/grænse-smerte i dag — ikke om de gør koden "mere fleksibel" til noget der aldrig kommer. Alt der ville røre beregningslogik eller synlig UI/UX er markeret som **kræver forelæggelse**.
 
+## Sådan holdes dokumentet ajour (løbende)
+
+Dette dokument er en **levende** arbejdsliste. Hver gang en kandidat færdiggøres (helt eller delvist), opdateres dokumentet i **samme** ændring som koden — ikke bagefter. Brug denne ensartede struktur, så status kan ses på ét blik:
+
+1. **Overskriften** får suffikset `— ✅ IMPLEMENTERET (ÅÅÅÅ-MM-DD)` (eller `— 🟡 DELVIST (ÅÅÅÅ-MM-DD)` hvis kun en del er løst).
+2. **Et status-blockquote** indsættes umiddelbart under overskriften — **kort, få linjer**: hvad blev gjort + de centrale nye filer. Ikke en udtømmende redegørelse. Den oprindelige "Nuværende tilstand / Anderledes fra bunden / karakter"-tekst bevares nedenunder som historik (skriv den ikke om).
+3. **Prioritetstabellen** nederst: markér kandidatens `#`-celle med ✅ (eller 🟡) så oversigten matcher.
+4. Er noget kun delvist løst, så beskriv præcist hvad der mangler, og lad kandidaten stå som åben.
+
+Eksempel på formen findes i A3 og A2 nedenfor.
+
 ## Karakterskala
 
 Hvert punkt får tre karakterer (1–5). Bemærk retningen:
@@ -32,7 +43,13 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 5 · Omfang 5 · Risiko 3** — adfærdsbevarende strukturel omlægning; risiko begrænset af eksisterende testdækning, men siderne er store nok til at gøre arbejdet stort. Berører ikke beregning eller synlig UI (forelæggelse ikke nødvendig hvis ren refaktor).
 
-### A2. Ingen delt "persisteret felt"-adapter-kerne (StyledField × TableInput)
+### A2. Ingen delt "persisteret felt"-adapter-kerne (StyledField × TableInput) — ✅ IMPLEMENTERET (2026-06-21)
+
+> **Status:** Løst. Heltal/årstal/uge fik delte commit-parse-kerner (`integerDraftCore.ts`, `yearDraftCore.ts`,
+> `weekDraftCore.ts`) som både form-felt og tabel-adapter nu bygger på (beløb/dato/procent/tekst delte allerede).
+> Felt-identitet samlet i ét værn (`fieldIdentityGuard.test.ts`) der nu også dækker grid-tabelceller. Fejltekster
+> gjort ensartede mellem form og tabel (forelagt + godkendt). `TableDropdown` bruger nu den kanoniske `gridCellKey`-util
+> frem for et inline-nøgleformat. Behavior-bevarende; fuld suite grøn.
 
 **Nuværende tilstand (verificeret).** To parallelle familier løser *samme* concern: 8 styled form-felter (`StyledAmountField`, `StyledDateField`, `StyledPercentField`, `StyledIntegerField`, `StyledFractionField`, `StyledWeekField`, `StyledYearField`, `StyledTextField`) og 8 tabel-inputs (`TableAmountInput`, `TableDateInput`, `TablePercentInput`, …). Hver familie har sit eget parse/format/validate/coalesce + visuel-fejl-invariant. Gruppe 7 indførte `useStyledFieldAdapter` som delt commit-lim for form-siden, men tabel-siden kører sin egen adapter-stak — og review fandt gentagne gange *samme* fejlklasse uafhængigt i hver familie (asymmetrisk coalescing 7.2; manglende felt-identitet `data-mineo-undo-field-path`/`name`/`fieldPath` 7.1).
 
@@ -42,12 +59,9 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 ### A3. Tre parallelle celle-fejl-sporings-implementeringer i grid-tabellerne — ✅ IMPLEMENTERET (2026-06-21)
 
-> **Status:** Løst. Ny delt `useTableCellErrorTracker`-hook (`gridCore/`) ejer transition-bevogtet
-> set-mutation, read-time-filtrering mod gyldige rækker og prune-housekeeping. De tre tabeller delegerer
-> deres tidligere `cellErrorsByCellKeyRef` + manuelle prune-effekter + transition-guards til hooken.
-> Read-time-filtreringen anvendes nu ensartet (også i StandardLoen og Lønudvikling, der før kun prunede),
-> så en fjernet rækkes fejl ikke kan blokere Gem uanset effekt-rækkefølge. Behavior-bevarende; ny unit-test
-> + alle eksisterende tabel-tests grønne.
+> **Status:** Løst. Ny delt `useTableCellErrorTracker`-hook (`gridCore/`) ejer celle-fejl-sporing for de tre
+> tabeller (transition-guard + read-time-filtrering mod gyldige rækker + prune), så en fjernet rækkes fejl ikke
+> kan blokere Gem. Behavior-bevarende; tester grønne.
 
 
 **Nuværende tilstand (verificeret).** De tre redigerbare tabeller sporer celle-fejl på tre forskellige måder: `StandardLoenTable` bruger `Set<string>` + `getValidationResult`; `OffentligeYdelserTable` bruger `Record<string, true>` + lazy-filter på `validRowIds`; `LoenudviklingManuelTable` bruger `Record<string, true>` + en `onInputErrorChange(hasError)`-callback. 14.2 ensartede *gate-adfærden* (fjernede den committed-gate i `OffentligeYdelserTable` der kunne tabe en reel fejl) men efterlod bevidst de tre implementeringer.
@@ -183,8 +197,8 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | # | Kandidat | Gevinst | Omfang | Risiko | Forelæggelse |
 |---|---|:---:|:---:|:---:|:---:|
 | A1 | View-model-lag under fagsiderne | 5 | 5 | 3 | Nej (ren refaktor) |
-| A2 | Delt felt-adapter-kerne (StyledField × TableInput) | 4 | 3 | 2 | Nej |
-| A3 | Delt celle-fejl-sporing i grid | 4 | 2 | 2 | Nej |
+| A2 ✅ | Delt felt-adapter-kerne (StyledField × TableInput) | 4 | 3 | 2 | Nej |
+| A3 ✅ | Delt celle-fejl-sporing i grid | 4 | 2 | 2 | Nej |
 | A4 | Side-byggeklodser (gate/download/dato-grænser) | 4 | 3 | 3 | Delvis |
 | A5 | Fælles TAF-år-sæt for validering + beregning | 4 | 2 | 3 | Ja |
 | B6 | Samlet persistence-serialiserings-primitiv | 3 | 3 | 4 | Nej |
