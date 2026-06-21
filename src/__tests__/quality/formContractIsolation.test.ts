@@ -21,7 +21,7 @@ const EFFECT_WRITE_PATTERNS = [
 
 const ALLOWED_EFFECT_WRITES = new Map<string, readonly string[]>([
   [
-    'src/components/pages/erstatningsopgoerelse/LoenindkomstTab.tsx',
+    'src/components/pages/erstatningsopgoerelse/loenindkomst/useLoenindkomstViewModel.ts',
     ['Decision note: dette er en bevidst kontrakt-undtagelse.'],
   ],
 ]);
