@@ -14,19 +14,22 @@ import { nullToUndefinedDeep } from '../utils/nullToUndefinedDeep';
 /**
  * Rod-datastruktur inde i den dekrypterede `.eo`-fil.
  *
- * BEMÆRK: nøgler matcher `StorageKey` (se `src/config/storageManifest.ts`).
+ * Nøglesæt OG per-sektion-schema udledes fra `persistenceSchemas` (ÉN sandhedskilde,
+ * jf. `StorageKey`), så `.eo`-payloaden aldrig kan drive fra de persisterede sektioner —
+ * en ny/fjernet sektion forplanter sig automatisk hertil. Hver sektion er `.optional()`
+ * (delvis import understøttes), og objektet er `.strict()`.
  */
-const eoFileDataInnerSchema = z.object({
-  stamdata: persistenceSchemas.stamdata.optional(),
-  satser: persistenceSchemas.satser.optional(),
-  aarsloen: persistenceSchemas.aarsloen.optional(),
-  faellesAarsloen: persistenceSchemas.faellesAarsloen.optional(),
-  renteberegning: persistenceSchemas.renteberegning.optional(),
-  varigemen: persistenceSchemas.varigemen.optional(),
-  forsoergertab: persistenceSchemas.forsoergertab.optional(),
-  erstatningsopgoerelse: persistenceSchemas.erstatningsopgoerelse.optional(),
-  erhvervsevnetab: persistenceSchemas.erhvervsevnetab.optional(),
-}).strict();
+type EoFileDataInnerShape = {
+  [K in keyof typeof persistenceSchemas]: z.ZodOptional<(typeof persistenceSchemas)[K]>;
+};
+
+const eoFileDataInnerShape = Object.fromEntries(
+  (Object.keys(persistenceSchemas) as (keyof typeof persistenceSchemas)[]).map(
+    (key) => [key, persistenceSchemas[key].optional()] as const
+  )
+) as EoFileDataInnerShape;
+
+const eoFileDataInnerSchema = z.object(eoFileDataInnerShape).strict();
 
 export const eoFileDataSchema = z.preprocess(nullToUndefinedDeep, eoFileDataInnerSchema);
 

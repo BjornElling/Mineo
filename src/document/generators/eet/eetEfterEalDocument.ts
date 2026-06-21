@@ -13,10 +13,9 @@ import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { TODAY } from '../../../config/dateRanges';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
-import { formatAsAmount, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
+import { formatAsAmount } from '../../../utils/formatUtils';
 import { formatKrEet as formatKr } from './eetDocumentUtils';
-
-const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
+import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 
 export const buildEfterEalDocumentFilename = (journalnr?: string): string =>
   resolveDocumentArtifactFileName('EET efter EAL', false, journalnr);

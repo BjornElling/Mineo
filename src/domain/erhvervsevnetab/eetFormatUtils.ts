@@ -1,4 +1,4 @@
-import { formatAsAmountTrimmed } from '../../utils/formatUtils';
+import { formatAsAmountTrimmed, formatPercentTrimmedFromRounded4 } from '../../utils/formatUtils';
 import { APP_ROUTES } from '../../config/pageNavigation';
 import type { EetIssue } from './eetTypes';
 
@@ -12,6 +12,12 @@ export type EetTabNavigation = Readonly<{
 export const formatJaNej = (value: boolean): string => (value ? 'Ja' : 'Nej');
 
 export const formatFaktor = (value: number): string => formatAsAmountTrimmed(value, 3);
+
+/**
+ * Kanonisk EET-procentformatter (afrundet til 4 decimaler, trailing zeros trimmet, " %"-suffiks).
+ * Ejes af domænelaget og deles af både UI-faner og dokument-generatorer — hold ikke lokale kopier.
+ */
+export const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
 
 export const toFieldIssue = (
   id: string,

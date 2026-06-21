@@ -763,6 +763,21 @@ TAF-fordelt-på-år bruger et tilsvarende mønster via `eoSnapshotToTafPerYearDo
 
 Dette mønster er **ikke påkrævet** for simple generatorer, men bør anvendes, når domænelogikken er kompleks nok til at fortjene selvstændig testning.
 
+### Stående regel: delt UI↔dokument-domænelogik ejes af domænelaget
+
+Enhver afledning — visnings-betingelse, format eller beløbs-/dato-udledning — der konsumeres af
+**både** en UI-fane og en dokument-generator, ejes af domænelaget. Hverken fanen eller generatoren
+må holde sin egen kopi; begge importerer den samme domæne-helper.
+
+Etablerede eksempler: `resolveLoebendeAfgoerelseRestVisning()`, `loentrinFinderCore.ts`,
+`visGrundydelseNiveauSkift()` (2003→2024-niveauskift-betingelsen) og de delte EET-formatere i
+`eetFormatUtils.ts` (`formatPct`, `formatJaNej`, `formatFaktor`). PDF-lagets `eetDocumentUtils.ts`
+re-eksporterer disse under sine etablerede aliasser frem for at gendefinere dem.
+
+Når en ny fælles afledning opdages: flyt den til domænelaget i samme ændring, og rut begge sider
+til den. En lokal kopi i en `*Tab.tsx` *og* en `*Document.ts` er et symptom på, at reglen ikke er
+fulgt.
+
 ---
 
 ## 16. Udeståender

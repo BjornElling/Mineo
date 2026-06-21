@@ -10,7 +10,9 @@ import { formatKr } from '../../layout/documentFormatUtils';
 /** Alias for pdfFormatUtils.formatKr — behold for bagudkompatibilitet med EET-PDF-importsteder. */
 export const formatKrEet = formatKr;
 
-export const formatJaNejEet = (value: boolean): string => (value ? 'Ja' : 'Nej');
+// Ja/Nej-formatering ejes af domænelaget (eetFormatUtils.formatJaNej). Re-eksporteres her under
+// det etablerede EET-PDF-alias for bagudkompatibilitet — ingen lokal kopi.
+export { formatJaNej as formatJaNejEet } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 
 /**
  * Formaterer en kapitaliseringsfaktor med op til 3 decimaler, trailing zeros trimmes.

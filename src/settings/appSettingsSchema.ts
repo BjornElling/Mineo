@@ -10,6 +10,7 @@ import {
   documentDownloadFormatSchema,
   type DocumentDownloadFormat,
 } from '../document/documentFormat';
+import type { DocumentBrevhovedType } from '../document/layout/documentBrevhoved';
 
 /**
  * Programindstillinger (app settings) – IKKE en del af `.eo`-persistence.
@@ -31,7 +32,10 @@ import {
  * Bestemmer hvilke PDF-typer der skal have brevhoved med skadelidtes navn,
  * skadestype, skadedato og sagsnr.
  */
-export const brevhovedIndstillingerSchema = z.object({
+// Compile-time værn: nøglesættet SKAL matche dokument-lagets kanoniske `DocumentBrevhovedType`
+// 1-til-1. `satisfies Record<DocumentBrevhovedType, …>` fejler både ved en ukendt nøgle og ved
+// en manglende type, så de to sider ikke kan drifte (afhængigheds-pil: settings → dokument).
+const brevhovedIndstillingerShape = {
   erstatningsopgoerelse: z.boolean(),
   shDage: z.boolean(),
   renteberegning: z.boolean(),
@@ -42,7 +46,9 @@ export const brevhovedIndstillingerSchema = z.object({
   aarsloensberegning: z.boolean(),
   erhvervsevnetab: z.boolean(),
   forsoergertab: z.boolean(),
-});
+} satisfies Record<DocumentBrevhovedType, z.ZodBoolean>;
+
+export const brevhovedIndstillingerSchema = z.object(brevhovedIndstillingerShape);
 
 export type BrevhovedIndstillinger = z.infer<typeof brevhovedIndstillingerSchema>;
 

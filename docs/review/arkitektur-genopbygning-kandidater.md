@@ -78,13 +78,12 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 4 · Omfang 3 · Risiko 3** — fjerner en hel klasse af gentagne fejl. Download-gate-/grænse-logik er tæt på UX-adfærd, så enkelte dele **kræver forelæggelse**.
 
-### A5. Validering og beregning konstruerer TAF-år-sættet forskelligt
-
-**Nuværende tilstand.** `erstatningsopgoerelseValidator.ts` og `tafPerYearOpreguleretDerived.ts` udleder år-sættet til TAF-opregulering ad to forskellige veje (validatoren: rå clampede række-intervaller; beregningen: springer 0-beløbs-år over) før de rammer *samme* motor (`opregulerMedAkkumuleretReguleringssats`). Det er en dobbelt-sandhed på kontrolflow-niveau, der i dag kun er ufarlig fordi satsdækningen er sammenhængende — en falsk-positiv blokering ("mangler sats for år X") er mulig hvis dækningen bliver hullet (4.12 fund 3, ⏸ afventede godkendelse).
-
-**Anderledes fra bunden.** Validering og beregning skal dele *præcis samme* år-sæt-konstruktion (én funktion der producerer "de år TAF skal opreguleres for"), bevist med ækvivalens-test. Princippet "beregningslag og dækningsvalidering kalder samme motor" (plan-princip) udvides til også at gælde *input-konstruktionen* til motoren.
-
-**Gevinst 4 · Omfang 2 · Risiko 3** — korrektheds-/tillidsgevinst. **Kræver forelæggelse** (berører beregnings-/blokeringsadfærd) + ækvivalens-test.
+> **A5 (Fælles TAF-år-sæt for validering + beregning) blev verificeret og forkastet 2026-06-21
+> — se appendiks punkt 5.** På inspektion svarer "validering" og "beregning" på to forskellige
+> spørgsmål (forskellig `kildeAar` OG `maalAar`), og TAF-opreguleringens dækningstjek har allerede
+> én kilde (beregningens eget output → snapshot-invarianten). Det eneste delte er motoren, som
+> allerede er delt. En ensartning ville give brugeren enten et forkert tal eller en falsk
+> blokering. Punktet er flyttet til appendikset og fjernet fra prioritetstabellen.
 
 ---
 
@@ -138,7 +137,19 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 3 · Omfang 1 · Risiko 3** — lille indgreb, men **kræver forelæggelse** (rentedatoer kan flytte sig omkring månedsskifte).
 
-### B12. Delt UI↔dokument-domænelogik er ikke systematiseret
+### B12. Delt UI↔dokument-domænelogik er ikke systematiseret — ✅ IMPLEMENTERET (2026-06-21)
+
+> **Status:** Løst. Den resterende genuine duplikering ryddet: visnings-betingelsen for
+> 2003→2024-grundydelse-niveauskift samlet i `visGrundydelseNiveauSkift()` (delt af
+> `EetLoebendeYdelserTab` + `loebendeYdelserDocument`), og de identiske EET-formatere samlet i
+> domænets `eetFormatUtils.ts` (`formatPct` flyttet dertil; `eetLoebendeYdelserCalculation` og
+> PDF-lagets `eetDocumentUtils` re-eksporterer nu frem for at gendefinere; `formatJaNejEet` →
+> domænets `formatJaNej`). Mønstret gjort til en **stående regel** i
+> `docs/architecture/document-output-architecture.md` (afsnit 15). Behavior-bevarende; fuld suite
+> grøn. (Bevidst urørt: `formatMaaneder` har to *divergerende* implementeringer (med/uden
+> `roundByMethod`) — en sammensmeltning ville ændre output og kræver forelæggelse; og
+> `ingenLoebendeYdelse` defineres bevidst forskelligt i fane (perioder.length) vs. generator
+> (iAltBeregnetEet) — ikke rørt.)
 
 **Nuværende tilstand.** Den gennemgående lære fra 14.2: logik der bruges af *både* en UI-fane og en dokument-generator blev gentagne gange duplikeret, indtil reviewet samlede den i en domæne-helper — `resolveLoebendeAfgoerelseRestVisning()` (show-rest-flag var dubleret UI↔PDF med inkonsistent skæringsdato, 14.2 §8) og `loentrinFinderCore.ts` + delt overlay (99,8 % dubleret komponent + 100 % dubleret calc, 14.2 §10). Disse blev rettet reaktivt.
 
@@ -150,7 +161,16 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 ## Klasse C — oprydning/konsistens, lavere prioritet
 
-### C13. Schema-key-lister duplikeret tre steder + objekt-defaults som dobbelt-sandhed
+### C13. Schema-key-lister duplikeret tre steder + objekt-defaults som dobbelt-sandhed — ✅ IMPLEMENTERET (2026-06-21)
+
+> **Status:** Løst. `eoFileDataInnerSchema` udledes nu af `persistenceSchemas` (samme nøglesæt +
+> per-sektion-schema, `.optional()`-mappet) frem for en tredje håndskreven nøgleliste — `StorageKey`
+> (manifest) → `persistenceSchemas` (`satisfies`) → `.eo`-schema er nu én afledningskæde. Objekt-
+> defaults afledt af schemaet: `eoBilagSelection`-litteralen i initialValues fjernet (schema-
+> defaulten materialiseres), og `createDefaultAngivetLoenLoenudvikling` bygger nu på
+> `eoAngivetLoenLoenudviklingSchema.parse({})` + kun de 3 bevidste new-data-overstyringer
+> (loenPaaHelligdage/overenskomstFilter settings-afledte, offentligLoenType='Månedsløn').
+> Regressions-lås tilføjet (eksakt forventet form). Behavior-bevarende; fuld suite grøn.
 
 **Nuværende tilstand.** `persistenceRegistry`, `storageManifest` og `eoFileSchema` holder hver sin `StorageKey[]`-liste (compiletime-asserts fanger drift, men tre steder skal vedligeholdes, 3.5). Objekt-defaults blev dobbelt-kodet (`eoBilagSelection`-litteral duplikerede 8 felt-`.default()`'er; lønudviklings-default-helper, 3.3).
 
@@ -166,7 +186,16 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 2 · Omfang 3 · Risiko 2** — konsistensgevinst; må ikke blive et abstraktionslag for sin egen skyld.
 
-### C15. Dokument-laget type-binder til AppSettings
+### C15. Dokument-laget type-binder til AppSettings — ✅ IMPLEMENTERET (2026-06-21)
+
+> **Status:** Løst. Dokument-laget kender ikke længere UI-indstillingstypen: ny smal
+> `DocumentSettings`-DTO (brevhoved-flag + downloadformat) i `documentBrevhoved.ts`, og
+> `documentService` tager den i stedet for hele `AppSettings`. Afhængigheds-pilen vendt:
+> dokument-laget ejer nu det kanoniske `DOCUMENT_BREVHOVED_TYPES`-sæt, og `appSettingsSchema`
+> verificerer sit brevhoved-nøglesæt mod det via `satisfies` (+ runtime selv-test). UI-callsites
+> uændrede (AppSettings opfylder DTO'en strukturelt). Behavior-bevarende; fuld suite grøn.
+> (DTO'en hedder `DocumentSettings` frem for `DocumentBrevhovedOptions`, da den også bærer
+> `documentDownloadFormat` — dokument-lagets fulde behov fra settings.)
 
 **Nuværende tilstand.** `documentBrevhoved.ts` binder direkte til `AppSettings['brevhovedIndstillinger']`, og `documentService.ts` tager hele `AppSettings`-typen (erkendt teknisk gæld, 11.3). Dokument-laget blev ellers udskilt rent i gruppe 10.
 
@@ -200,21 +229,20 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | A2 ✅ | Delt felt-adapter-kerne (StyledField × TableInput) | 4 | 3 | 2 | Nej |
 | A3 ✅ | Delt celle-fejl-sporing i grid | 4 | 2 | 2 | Nej |
 | A4 | Side-byggeklodser (gate/download/dato-grænser) | 4 | 3 | 3 | Delvis |
-| A5 | Fælles TAF-år-sæt for validering + beregning | 4 | 2 | 3 | Ja |
 | B6 | Samlet persistence-serialiserings-primitiv | 3 | 3 | 4 | Nej |
 | B7 | Samlet felt-tilstand (fejl/draft/undo) | 4 | 5 | 5 | Nej |
 | B8 | Tvungne grænser i EO snapshot→presentation | 4 | 4 | 3 | Nej |
 | B9 | Slank EO-debug-laget (33 filer/11k linjer) | 3 | 5 | 2 | Nej |
 | B10 | Én ASL-maks-opslags-gateway | 3 | 2 | 3 | Ja |
 | B11 | Én kanonisk måned-additions-semantik | 3 | 1 | 3 | Ja |
-| B12 | Systematisér delt UI↔dokument-domænelogik | 3 | 2 | 2 | Nej |
-| C13 | Én STORAGE_KEYS-kilde + schema-afledte defaults | 2 | 2 | 1 | Nej |
+| B12 ✅ | Systematisér delt UI↔dokument-domænelogik | 3 | 2 | 2 | Nej |
+| C13 ✅ | Én STORAGE_KEYS-kilde + schema-afledte defaults | 2 | 2 | 1 | Nej |
 | C14 | Samlet settings-katalog | 2 | 3 | 2 | Nej |
-| C15 | Options-DTO mellem AppSettings og dokument-lag | 2 | 2 | 1 | Nej |
+| C15 ✅ | Options-DTO mellem AppSettings og dokument-lag | 2 | 2 | 1 | Nej |
 | C16 | Ensartede rate-resolvere | 2 | 3 | 2 | Nej |
 | C17 | Builder/skabelon-lag for generatorer | 2 | 3 | 3 | Nej |
 
-**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med A5/B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B7 og B9 er de største løft og bør først tages, når den øvrige struktur er på plads.
+**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B7 og B9 er de største løft og bør først tages, når den øvrige struktur er på plads. (A2, A3, B12, C13 og C15 er nu implementeret; A5 blev verificeret og forkastet — se appendiks punkt 5.)
 
 ---
 
@@ -229,3 +257,5 @@ For at udfordre — ikke kun understøtte — review-fundene verificerede jeg fl
 3. **Dedikeret multi-app-kontrakt / DI-baseret namespace-isolation i stedet for import-rækkefølge.** **Nedjusteret.** Isolationen er testdækket og bevidst konservativ (12.2). At indføre et nyt lag her ville være præcis det hypotetiske udvidelsespunkt, feature-låsen taler imod. Den eksisterende side-effekt-import er skør i teorien men dækket i praksis.
 
 4. **Kontrakt-fragmentering (for mange tværgående kontrakter).** **Nedjusteret.** Landskabet er 17 tværgående + 8 domæne + 1 page-component og er allerede konsolideret i gruppe 1 (pdf+pdf-layout → document-output). Balancen er rimelig; ingen yderligere merge gav nettogevinst (to kandidater afvist med begrundelse i 14.1).
+
+5. **"Fælles TAF-år-sæt for validering + beregning" (tidl. A5).** **Forkastet efter verifikation (2026-06-21, brugergodkendt).** Påstanden var, at `erstatningsopgoerelseValidator.ts` og `tafPerYearOpreguleretDerived.ts` konstruerer *samme* TAF-år-sæt forskelligt og bør deles. På inspektion svarer de to på *forskellige* spørgsmål: beregningen opregulerer hvert TAF-år (0-beløbs-år sprunget over) til `beregningsAar`; validatoren tjekker reguleringssats-dækning for **regulering af offentlige ydelser** over et sammenhængende `baseYear`→`maxTafYear`-interval (anden `kildeAar` OG `maalAar`, andet formål). TAF-opreguleringens dækningstjek har desuden allerede **én kilde**: beregningens eget `manglendeAar`-output fødes direkte ind i snapshot-invarianten (`buildTafPerYearOpreguleretManglendeReguleringssatsInvariant`) — ingen separat validator gen-konstruerer det. Det eneste delte er *motoren* (`opregulerMedAkkumuleretReguleringssats`), som allerede er delt. **Brugervendt:** en ensartning har ingen synlig opside og ville indføre enten et stille forkert tal (hvis offentlige-ydelser-valideringen begyndte at springe mellem-år over) eller en falsk "kan ikke beregnes"-blokering (hvis TAF-opreguleret-PDF'en tvinges over på det forkerte interval). Den nuværende adfærd er den korrekte; ingen kode-ændring.

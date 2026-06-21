@@ -1,4 +1,3 @@
-import type { AppSettings } from '../../settings/appSettingsSchema';
 import {
   stamdataSchema,
   type StandardLoenTableRow,
@@ -11,7 +10,7 @@ import {
 import type { AarsloenBeregningResult } from '../../types/calculation';
 import type { PeriodeResult } from '../../utils/periodeBeregning';
 import type { SelectedElements } from '../generators/eo/types';
-import { getVisBrevhoved, type DocumentBrevhovedType } from '../layout/documentBrevhoved';
+import { getVisBrevhoved, type DocumentBrevhovedType, type DocumentSettings } from '../layout/documentBrevhoved';
 import {
   loadAarsloenDocumentModule,
   loadErstatningsopgoerelseDocumentModule,
@@ -301,7 +300,7 @@ const createPdfDownloadFailure = async (
 // derfor ikke bruges på tekster hvor "PDF" optræder i en betydning der ikke skal
 // følge formatet. formatLabel er altid 'PDF' (identitets-erstatning) eller 'Word'
 // (intet "PDF"-substring), så erstatningen er idempotent og kan ikke selv-matche.
-const buildDocumentFailureMessage = (settings: AppSettings, pdfMessage: string): string => {
+const buildDocumentFailureMessage = (settings: DocumentSettings, pdfMessage: string): string => {
   const formatLabel = getDocumentFormatLabel(settings.documentDownloadFormat);
   return pdfMessage.replace(/PDF/g, formatLabel);
 };
@@ -313,7 +312,7 @@ const buildDocumentFailureMessage = (settings: AppSettings, pdfMessage: string):
 // bevares. Fjernes `await Promise.all(...)` i documentGenerationContext.ts ved en refaktor, vil
 // Word-fejl returnere success i stilhed og producere et tomt/korrupt dokument uden fejlrapport.
 const runSelectedDocumentFormat = async (
-  settings: AppSettings,
+  settings: DocumentSettings,
   generate: () => void
 ): Promise<DocumentDownloadResult> => {
   if (settings.documentDownloadFormat === 'word') {
@@ -347,7 +346,7 @@ const resolvePdfStamdata = (persistedStamdata: unknown): PdfStamdataForGenerator
 };
 
 const buildCommonPdfContext = (
-  settings: AppSettings,
+  settings: DocumentSettings,
   pdfType: DocumentBrevhovedType,
   persistedStamdata: unknown
 ): CommonPdfContext => {
@@ -371,7 +370,7 @@ const resolveReguleringInterval = (interval: ReguleringInterval) => {
 export const downloadSatserDokument = async (params: Readonly<{
   year: number;
   satser: SatserData;
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { year, satser, settings, persistedStamdata } = params;
@@ -396,7 +395,7 @@ export const downloadRenteDokument = async (params: Readonly<{
   periods: ReadonlyArray<ProcessInterestPeriod>;
   latestReferenceRateDate: string | null;
   kommentarer?: string;
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const {
@@ -431,7 +430,7 @@ export const downloadRenteOversigtDokument = async (params: Readonly<{
   beregningsdato: ISODateString;
   rows: ReadonlyArray<RenteOversigtRow>;
   kommentarer?: string;
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { beregningsdato, rows, kommentarer, settings, persistedStamdata } = params;
@@ -451,7 +450,7 @@ export const downloadRenteOversigtDokument = async (params: Readonly<{
 
 export const downloadReguleringDokument = async (params: Readonly<{
   input: ReguleringDocumentInput;
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { input, settings, persistedStamdata } = params;
@@ -474,7 +473,7 @@ export const downloadReguleringDokument = async (params: Readonly<{
 };
 
 export const downloadKrlDokument = async (params: Readonly<{
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { settings, persistedStamdata } = params;
@@ -497,7 +496,7 @@ export const downloadErstatningsopgoerelseDokument = async (params: Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   selectedElements: SelectedElements;
-  settings: AppSettings;
+  settings: DocumentSettings;
   snapshot: EoSnapshot;
   midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
 }>): Promise<DocumentDownloadResult> => {
@@ -533,7 +532,7 @@ export const downloadErstatningsopgoerelseDokument = async (params: Readonly<{
 export const downloadTafFordeltPaaAarDokument = async (params: Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
-  settings: AppSettings;
+  settings: DocumentSettings;
   snapshot: EoSnapshot;
 }>): Promise<DocumentDownloadResult> => {
   const { settings, snapshot } = params;
@@ -567,7 +566,7 @@ export const downloadTafOpreguleretPaaAarDokument = async (params: Readonly<{
   stamdataValues: StamdataValues;
   eoValues: ErstatningsopgoerelseValues;
   selectedElements: SelectedElements;
-  settings: AppSettings;
+  settings: DocumentSettings;
   snapshot: EoSnapshot;
   midlertidigtEetGroups?: readonly MidlertidigtEetAfgoerelseGroup[];
 }>): Promise<DocumentDownloadResult> => {
@@ -604,7 +603,7 @@ export const downloadTafOpreguleretPaaAarDokument = async (params: Readonly<{
 
 export const downloadTafKravGrafDokument = async (params: Readonly<{
   eoValues: ErstatningsopgoerelseValues;
-  settings: AppSettings;
+  settings: DocumentSettings;
   snapshot: EoSnapshot;
 }>): Promise<DocumentDownloadResult> => {
   const { settings, snapshot } = params;
@@ -640,7 +639,7 @@ export const downloadVarigeMenDokument = async (params: Readonly<{
   mengrad: number;
   beregningsdato: ISODateString | undefined;
   beregningsResultat: VarigeMenBeregningResult;
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const {
@@ -681,7 +680,7 @@ export const downloadVarigeMenDokument = async (params: Readonly<{
 
 export const downloadAarsloenDokument = async (params: Readonly<{
   input: AarsloenDocumentInput;
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { input, settings, persistedStamdata } = params;
@@ -712,7 +711,7 @@ export const downloadAarsloenDokument = async (params: Readonly<{
 
 export const downloadSHDageDokument = async (params: Readonly<{
   perioder: readonly SHDagePeriod[];
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { perioder, settings, persistedStamdata } = params;
@@ -733,7 +732,7 @@ export const downloadSHDageDokument = async (params: Readonly<{
 export const downloadKapitaliseringDokument = async (params: Readonly<{
   computation: EetKapitaliseringComputation;
   koen?: string;
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { computation, koen, settings, persistedStamdata } = params;
@@ -762,7 +761,7 @@ export const downloadKapitaliseringDokument = async (params: Readonly<{
 
 export const downloadEfterEalDokument = async (params: Readonly<{
   computation: EetEalComputation;
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { computation, settings, persistedStamdata } = params;
@@ -792,7 +791,7 @@ export const downloadDifferencekravDokument = async (params: Readonly<{
   computation: EetDifferencekravComputation;
   koen?: string;
   bilagSelection: BilagSelection;
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { computation, koen, bilagSelection, settings, persistedStamdata } = params;
@@ -823,7 +822,7 @@ export const downloadDifferencekravDokument = async (params: Readonly<{
 export const downloadLoebendeYdelserDokument = async (params: Readonly<{
   computation: EetLoebendeComputation;
   visUdvidetSpecifikation: boolean;
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { computation, visUdvidetSpecifikation, settings, persistedStamdata } = params;
@@ -852,7 +851,7 @@ export const downloadLoebendeYdelserDokument = async (params: Readonly<{
 
 export const downloadForsoergertabDokument = async (params: Readonly<{
   pdfParams: Omit<GenerateForsoergertabDocumentParams, 'visBrevhoved' | 'stamdata'>;
-  settings: AppSettings;
+  settings: DocumentSettings;
   persistedStamdata: unknown;
 }>): Promise<DocumentDownloadResult> => {
   const { pdfParams, settings, persistedStamdata } = params;

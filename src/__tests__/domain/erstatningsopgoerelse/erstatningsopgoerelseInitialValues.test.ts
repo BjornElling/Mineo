@@ -64,6 +64,55 @@ describe('createErstatningsopgoerelseInitialValues – defaults', () => {
   });
 });
 
+// ─── Schema-afledte objekt-defaults (regressions-lås for C13) ─────────────────
+//
+// eoBilagSelection og eoAngivetLoenLoenudvikling udledes nu af schemaets egne felt-defaults
+// i stedet for håndskrevne litteraler. Disse tests låser den nøjagtige forventede form, så
+// derivationen ikke kan ændre den observerbare new-data-adfærd ubemærket.
+
+describe('createErstatningsopgoerelseInitialValues – schema-afledte objekt-defaults', () => {
+  it('eoBilagSelection matcher de kanoniske bilag-defaults', () => {
+    const values = createErstatningsopgoerelseInitialValues(DEFAULT_APP_SETTINGS);
+    expect(values.eoBilagSelection).toEqual({
+      opgoerelse: true,
+      loenindkomst: true,
+      offentligeYdelser: true,
+      midlertidigEet: true,
+      shDage: false,
+      regulering: true,
+      okSatser: true,
+      sygeferiegodtgoerelse: false,
+    });
+  });
+
+  it('eoAngivetLoenLoenudvikling bevarer den eksakte new-data-form (inkl. de 3 bevidste overstyringer)', () => {
+    const values = createErstatningsopgoerelseInitialValues(DEFAULT_APP_SETTINGS);
+    expect(values.eoAngivetLoenLoenudvikling).toEqual({
+      overenskomstId: undefined,
+      harAnciennitetstillaegEfterSkadedatoen: false,
+      anciennitetstillaegDato: undefined,
+      anciennitetstillaegSatsAngivesPer: 'Måned',
+      anciennitetstillaegSats: undefined,
+      feriePct: undefined,
+      // settings-afledt (DEFAULT_APP_SETTINGS.defaultLoenPaaHelligdage):
+      loenPaaHelligdage: DEFAULT_APP_SETTINGS.defaultLoenPaaHelligdage,
+      saerligFraDatoRegulering: undefined,
+      loenudviklingBeregningsgrundlag: undefined,
+      loenudviklingStatistikModel: undefined,
+      loenudviklingKRLSatstabel: undefined,
+      loenudviklingManuelNavn: undefined,
+      loenudviklingManuelTableData: [],
+      // new-data-default (schema-default er bevidst undefined):
+      offentligLoenType: 'Månedsløn',
+      offentligLoenTrin: undefined,
+      offentligLoenGruppe: undefined,
+      offentligLoenEkstraGrundloen: undefined,
+      // settings-afledt:
+      overenskomstFilter: { loenmodtager: undefined, arbejdsgiver: undefined },
+    });
+  });
+});
+
 // ─── Settings-baserede defaults ───────────────────────────────────────────────
 
 describe('createErstatningsopgoerelseInitialValues – settings-integration', () => {

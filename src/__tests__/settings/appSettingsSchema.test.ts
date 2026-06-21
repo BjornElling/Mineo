@@ -9,6 +9,7 @@ import {
   APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS,
 } from '../../settings/appSettingsSchema';
 import { DOCUMENT_DOWNLOAD_FORMAT_OPTIONS } from '../../document/documentFormat';
+import { DOCUMENT_BREVHOVED_TYPES } from '../../document/layout/documentBrevhoved';
 import { parseStoredSettings, resolveAppSettings } from '../../settings/appSettingsParse';
 import {
   afsluttesMedEnum,
@@ -29,6 +30,17 @@ describe('AppSettings option-lister er afledt af de kanoniske enums', () => {
     expect(APP_SETTINGS_SVIE_SMERTE_DELVIS_SYGEMELDING_SATS_OPTIONS).toEqual(
       svieSmerteDelvisSygemeldingSatsEnum.options
     );
+  });
+});
+
+// Selv-test for det compile-time `satisfies`-værn: brevhoved-schemaets nøgler skal matche
+// dokument-lagets kanoniske DocumentBrevhovedType 1-til-1 (afhængigheds-pil: settings → dokument).
+// Beviser at en drift mellem de to sider faktisk ville blive fanget (ikke vacuous).
+describe('brevhovedIndstillinger-nøgler matcher dokument-lagets kanoniske typesæt', () => {
+  it('schema-nøgler === DOCUMENT_BREVHOVED_TYPES (begge veje)', () => {
+    const schemaKeys = Object.keys(brevhovedIndstillingerSchema.shape).sort();
+    const documentTypes = [...DOCUMENT_BREVHOVED_TYPES].sort();
+    expect(schemaKeys).toEqual(documentTypes);
   });
 });
 

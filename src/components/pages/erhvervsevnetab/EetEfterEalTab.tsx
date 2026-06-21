@@ -10,15 +10,14 @@ import EetIssuesBox from './EetIssuesBox';
 import DocumentDownloadButton from '../../inputs/DocumentDownloadButton';
 import { useShakeFlag } from '../../../hooks/useShakeFlag';
 import type { EetSnapshot } from '../../../domain/erhvervsevnetab/eetSnapshot';
-import { formatKr, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
+import { formatKr } from '../../../utils/formatUtils';
+import { formatPct } from '../../../domain/erhvervsevnetab/eetFormatUtils';
 
 type Props = Readonly<{
   onGoToEetOplysninger: () => void;
   stamdata: StamdataValues | null;
   snapshot: EetSnapshot['efterEal'];
 }>;
-
-const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
 
 
 const EetEfterEalTab = ({ onGoToEetOplysninger, stamdata, snapshot }: Props) => {

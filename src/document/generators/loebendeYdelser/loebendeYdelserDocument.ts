@@ -30,6 +30,7 @@ import {
   resolveLoebendeAfgoerelseRestVisning,
   toAfgoerelseTypeLabel,
   toOphoerAarsagLabel,
+  visGrundydelseNiveauSkift,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import { TODAY } from '../../../config/dateRanges';
@@ -124,10 +125,7 @@ export const addLoebendeAfgoerelseSection = (
   // underoverskriften på hver afgørelses-side. Lad subheaderens centrale afstand stå alene.
 
   // Beregnede ydelser
-  const hasRowsBefore2024 = afgoerelse.perioder.some((r) => r.satsAar <= 2023);
-  const hasRowsFrom2024 = afgoerelse.perioder.some((r) => r.satsAar >= 2024);
-  const viserGrundydelseNiveauSkift =
-    computation.grundloenNiveau === '2003' && hasRowsBefore2024 && hasRowsFrom2024;
+  const viserGrundydelseNiveauSkift = visGrundydelseNiveauSkift(afgoerelse, computation.grundloenNiveau);
   const ingenLoebendeYdelse = afgoerelse.iAltBeregnetEet === 0;
 
   writer.writeBoldSubheader('Beregnede ydelser');

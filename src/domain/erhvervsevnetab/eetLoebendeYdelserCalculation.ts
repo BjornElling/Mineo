@@ -18,7 +18,7 @@ import {
   reguleringsprocentErhvervsevnetabFoer2024,
 } from '../../data/lovbestemteRates';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { formatAsAmountTrimmed, formatPercentTrimmedFromRounded4 } from '../../utils/formatUtils';
+import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { dedupeIssuesBySeverityAndMessage } from '../../utils/issueUtils';
 import { ceilNearest12, round0, round2, round4, roundNearest1000 } from '../../utils/roundingShortcuts';
 import { SKAERING_2011_01_01, SKAERING_2024_01_01, SKAERING_2024_07_01 } from './eetSkaeringsdatoer';
@@ -902,6 +902,21 @@ export const toOphoerAarsagLabel = (
   }
 };
 
+/**
+ * Visnings-semantik delt af UI-fanen (EetLoebendeYdelserTab) og dokument-generatoren
+ * (loebendeYdelserDocument): grundydelsen skifter fra 2003- til 2024-niveau midt i en
+ * afgørelse, når grundløns-niveauet er 2003 OG afgørelsen har perioder på begge sider af
+ * 1. januar 2024. Ejes af domænelaget, så fane og generator ikke holder hver sin kopi.
+ */
+export const visGrundydelseNiveauSkift = (
+  afgoerelse: Pick<EetLoebendeAfgoerelseComputation, 'perioder'>,
+  grundloenNiveau: EetLoebendeComputation['grundloenNiveau']
+): boolean => {
+  const hasRowsBefore2024 = afgoerelse.perioder.some((row) => row.satsAar <= 2023);
+  const hasRowsFrom2024 = afgoerelse.perioder.some((row) => row.satsAar >= 2024);
+  return grundloenNiveau === '2003' && hasRowsBefore2024 && hasRowsFrom2024;
+};
+
 export const formatSkadedatoCompact = (iso: ISODateString): string => {
   const [year, month, day] = iso.split('-');
   const d = Number.parseInt(day, 10);
@@ -909,5 +924,7 @@ export const formatSkadedatoCompact = (iso: ISODateString): string => {
   return `${d}/${m}-${year}`;
 };
 
-export const formatPct = (value: number): string => `${formatPercentTrimmedFromRounded4(value)} %`;
+// formatPct ejes nu af eetFormatUtils (ÉN sandhedskilde, delt UI↔dokument). Re-eksporteres her
+// for bagudkompatibilitet med eksisterende importsteder.
+export { formatPct } from './eetFormatUtils';
 

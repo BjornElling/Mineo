@@ -19,6 +19,7 @@ import {
   resolveLoebendeAfgoerelseRestVisning,
   toAfgoerelseTypeLabel,
   toOphoerAarsagLabel,
+  visGrundydelseNiveauSkift,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import { roundByMethod } from '../../../utils/rounding';
 import EetIssuesBox from './EetIssuesBox';
@@ -137,10 +138,7 @@ const EetLoebendeYdelserTab = ({ values, setValues, onGoToEetOplysninger, stamda
           </ContentBox>
 
           {afgoerelser.map((afgoerelse) => {
-            const hasRowsBefore2024 = afgoerelse.perioder.some((row) => row.satsAar <= 2023);
-            const hasRowsFrom2024 = afgoerelse.perioder.some((row) => row.satsAar >= 2024);
-            const viserGrundydelseNiveauSkift =
-              computation.grundloenNiveau === '2003' && hasRowsBefore2024 && hasRowsFrom2024;
+            const viserGrundydelseNiveauSkift = visGrundydelseNiveauSkift(afgoerelse, computation.grundloenNiveau);
             const ingenLoebendeYdelse = afgoerelse.perioder.length === 0;
             return (
               <ContentBox key={afgoerelse.rowId} className="content-box">

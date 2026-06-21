@@ -6,24 +6,19 @@ import { ensureOevrigeKravRows } from '../tables/oevrigeKravTableModel';
 import { generateAnsaettelsesforholdId } from './eoRowInitialValues';
 import { resolveDefaultOverenskomstFilter, type AppSettings } from '../../../settings/appSettingsSchema';
 import { resolveAppSettings } from '../../../settings/appSettingsParse';
-import { erstatningsopgoerelseSchema } from '../../../schemas/formSchemas';
+import { erstatningsopgoerelseSchema, eoAngivetLoenLoenudviklingSchema } from '../../../schemas/formSchemas';
 import { TILLAEG_ANGIVES_SOM } from '../../../types/loen';
 
 const createDefaultAngivetLoenLoenudvikling = (settings: AppSettings): PersistedSectionMap['erstatningsopgoerelse']['eoAngivetLoenLoenudvikling'] => ({
-  overenskomstId: undefined,
-  ...DEFAULT_ANCIENNITET_FIELDS,
-  feriePct: undefined,
+  // Basisfelterne udledes fra schemaets egne felt-defaults (ÉN sandhedskilde) i stedet for en
+  // håndskrevet feltliste, der kunne drive ud af sync. Kun de felter der BEVIDST afviger fra
+  // schema-defaulten ved oprettelse af NY sagsdata overstyres nedenfor:
+  //  - loenPaaHelligdage / overenskomstFilter: settings-afledte (schema-default er undefined / {}).
+  //  - offentligLoenType: 'Månedsløn' er new-data-default; schema-defaulten er bevidst undefined
+  //    af hensyn til load-tolerance for ældre .eo-filer.
+  ...eoAngivetLoenLoenudviklingSchema.parse({}),
   loenPaaHelligdage: settings.defaultLoenPaaHelligdage,
-  saerligFraDatoRegulering: undefined,
-  loenudviklingBeregningsgrundlag: undefined,
-  loenudviklingStatistikModel: undefined,
-  loenudviklingKRLSatstabel: undefined,
-  loenudviklingManuelNavn: undefined,
-  loenudviklingManuelTableData: [],
   offentligLoenType: 'Månedsløn',
-  offentligLoenTrin: undefined,
-  offentligLoenGruppe: undefined,
-  offentligLoenEkstraGrundloen: undefined,
   overenskomstFilter: resolveDefaultOverenskomstFilter(settings),
 });
 
@@ -196,17 +191,8 @@ const createNewEOInitialValuesFromSettings = (settings?: AppSettings): Persisted
   // Bilagsnumre
   visBilagsnumre: safeSettings.defaultVisBilagsnumre ? 'Ja' : 'Nej',
 
-  // EOberegning - bilag
-  eoBilagSelection: {
-    opgoerelse: true,
-    loenindkomst: true,
-    offentligeYdelser: true,
-    midlertidigEet: true,
-    shDage: false,
-    regulering: true,
-    okSatser: true,
-    sygeferiegodtgoerelse: false,
-  },
+  // EOberegning - bilag: udelades bevidst, så schemaets eget felt-default-objekt
+  // (eoBilagSelectionSchema.parse({})) materialiseres — ÉN sandhedskilde for bilag-defaults.
   });
 };
 
