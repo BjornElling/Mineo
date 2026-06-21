@@ -88,7 +88,19 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 4 · Omfang 2 · Risiko 2** — lukker en bekræftet stille-datatab-risiko (fejl der ikke blokerer Gem), lille indgreb.
 
-### A4. Side-laget genimplementerer fejl-gating, download-gate og dato-grænser
+### A4. Side-laget genimplementerer fejl-gating, download-gate og dato-grænser — 🟡 STORT SET LØST / NEDJUSTERET (2026-06-21)
+
+> **Status (verificeret 2026-06-21).** To af de tre concerns var allerede løst af tidligere arbejde,
+> og den tredje viste sig at være stilistisk frem for reel duplikering:
+>
+> | Concern | Faktisk tilstand i dag | Reel duplikering tilbage |
+> |---|---|---|
+> | **Dato-grænser** | Alle faner går gennem `src/config/dateRanges.ts` (`dateRanges_renteberegning`, `_varigemen`, `_forsoergertab`, `_erstatningsopgoerelse` …) | **Nej** — fuldt konsolideret (8.5 m.fl.) |
+> | **Felt-fejl-rapportering** | Alle faner bruger `useFormFieldErrorReporter`/`useFormFieldErrors` + den ene `resolveActiveFieldError()` + `saveBlockedFocus.ts` som eneste jump-to-error-orkestrering | **Nej** — fuldt centraliseret |
+> | **Download-gate** | Alle faner driver gaten fra **committed** state (korrekthed allerede ens). 4 forskellige *strukturer* (inline `useMemo`, snapshot-modul, `useAarsloenDocumentGates`-hook, EO view-model) — men forskellene følger fanens egen datamodel | **Stilistisk** — fælles del (committed) allerede håndhævet; en delt `useDocumentDownloadGate()` ville kun samle den sidste boolean-sammensætning (lav værdi, UX-nær → forelæggelse) |
+>
+> Konklusion: A4 forblev *ikke* et rent lavrisiko-snit som A2/A3. Concern #2 og #3 er lukkede; #1 er
+> nedjusteret til stilistisk og parkeret (lav værdi + forelæggelsespligtig). Ingen kode-ændring foretaget.
 
 **Nuværende tilstand.** Hver fagside (Stamdata, Årsløn, Erstatningsopgørelse, Erhvervsevnetab, Forsørgertab, Varige Mén, Renteberegning) finder sin egen vej gennem: persisterede feltfejls-rapportering, PDF/Word-download-gate, og dato-grænse-opslag. Review fandt samme klasse-fejl flere steder: download-gate drevet fra *draft* i stedet for committed (`RenteberegningTab`, rettet i 14.2 §2.4); dato-grænser bygget uden for `dateRanges.ts` (`MenberegningTab`, rettet i 8.5); forligs-regler der måtte ekstraheres for at håndhæves ens fra to sider (`forligAnsvarsgradRules`, 8.2).
 
@@ -123,7 +135,23 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 4 · Omfang 5 · Risiko 5** — kernen i runtime-data-integriteten; stor gevinst i klarhed, men den højeste regressions-risiko på listen. Bør kun gøres med meget stærk test-baseline først.
 
-### B8. EO-snapshot/canonical/presentation/debug — flere repræsentationer uden tvungne grænser
+### B8. EO-snapshot/canonical/presentation/debug — flere repræsentationer uden tvungne grænser — ✅ IMPLEMENTERET (2026-06-21)
+
+> **Status:** Løst. Grænsen mellem section-præsentation og canonical-totaler er nu *type-tvungen*.
+> `buildErstatningsopgoerelsePdfModelFromComputed` modtager section-modellerne via nye `Omit`-
+> præsentationstyper (`SvieSmerteSectionPresentation`, `TabtArbejdsfortjenesteSectionPresentation`,
+> `OevrigeKravSectionPresentation` i `eoTypes.ts`) der har fjernet de autoritative beløbs-totaler.
+> PDF-modellen *kan derfor kun* få totaler fra `EoComputedTotals` (canonical) — en re-derivation/
+> forwarding af et section-afledt total er nu en **compile-fejl** frem for noget der skal verificeres
+> manuelt (jf. eo-snapshot-contract.md §1). De totaler der tidligere ikke blev forwardet
+> (`svieSmerte.totalOre`, `oevrigeKrav.totalFoerForligOre`, `tabtArbejdsfortjenesteFoerForligOre`)
+> kommer nu også fra canonical. Behavior-bevarende: de tre var enten allerede identiske ad uafhængig
+> vej (svie/øvrige = samme clamp) eller blev aldrig vist (taf-FoerForlig på modellen læses ikke —
+> view-modellen bruger canonical direkte). Builderne, canonical, debug-laget og rendereren er urørte;
+> den eksisterende `eoCanonicalOutput.parity.test.ts` står som runtime-backstop. Fuld suite grøn (5485
+> tests). (Bevidst afgrænset: grænsen forsegles ved *præsentations-assembly* — det punkt hvor en
+> divergens ville lække til output; section-builderne beregner stadig rå totaler, men de forbruges kun
+> af den autoritative `buildEoComputedTotals`, ikke af en parallel præsentations-sti.)
 
 **Nuværende tilstand (verificeret).** Fire lag bygges fra samme `snapshot.data`: `eoCanonicalOutput.ts` (autoritative totaler), `eoPresentationModel.ts` (PDF/Word-visning), debug-laget (33 filer, se B9), og validatoren. Review måtte *manuelt* trace hver presentation-builder for at bevise, at den ikke re-deriverer et total (4.13). Intet arkitektonisk værn forhindrer, at en presentation-builder reaggregerer et beløb og dermed afviger fra canonical uden at validator eller debug fanger det.
 
@@ -196,7 +224,19 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 2 · Omfang 2 · Risiko 1** — ergonomi + fjerner stille-default-drift; drift-værn findes allerede, så lav hastværk.
 
-### C14. Config spredt over fem moduler uden fælles katalog
+### C14. Config spredt over fem moduler uden fælles katalog — 🟡 KERNE LØST / KATALOG IKKE BERETTIGET (2026-06-21)
+
+> **Status (verificeret 2026-06-21).** Den eneste *konkrete* drift-risiko punktet navngav —
+> `AppThemeMode` defineret to steder — er allerede væk (commit `551889b5`, "gennemført reviewpunkt 11"):
+> `themeModeEnum` i [`appSettingsSchema.ts:88`](../../src/settings/appSettingsSchema.ts) er nu eneste
+> kilde, og [`appTheme.ts`](../../src/config/appTheme.ts) re-eksporterer typen via `z.infer` (ingen parallel
+> håndskreven union). Ingen andre Zod↔TS-union-dubletter findes: alle 23 domæne-enums i
+> `enumSchemas.ts` følger `z.infer`-mønstret, og `appSettingsSchema` udleder sine option-lister af
+> enums' `.options`. De fem moduler (`appSettings`, `regulatoryRates`, `indskudteLoentillaeg`,
+> `pdfConfig`, `tableTheme`) ejer hvert et **distinkt** concern med forskellige mutationsmønstre
+> (bruger-mutérbar localStorage vs. kode-drevne regel-/præsentations-konstanter). Et samlet
+> "settings-katalog" oven på det ville være præcis det abstraktionslag-for-sin-egen-skyld som punktet
+> selv advarer imod — **ikke berettiget**. Kerne løst; ingen yderligere kode-ændring.
 
 **Nuværende tilstand.** Indstillinger/konfiguration lever i `appSettings` (device-lokal), `regulatoryRates`/`indskudteLoentillaeg` (regler), `pdfConfig`/`tableTheme` (præsentation) m.fl. — ingen ét sted at placere en ny tværgående setting; én type (`AppThemeMode`) var defineret to steder (11.1–11.3).
 
@@ -246,21 +286,21 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | A1 ✅ | View-model-lag under fagsiderne | 5 | 5 | 3 | Nej (ren refaktor) |
 | A2 ✅ | Delt felt-adapter-kerne (StyledField × TableInput) | 4 | 3 | 2 | Nej |
 | A3 ✅ | Delt celle-fejl-sporing i grid | 4 | 2 | 2 | Nej |
-| A4 | Side-byggeklodser (gate/download/dato-grænser) | 4 | 3 | 3 | Delvis |
+| A4 🟡 | Side-byggeklodser (gate/download/dato-grænser) | 4 | 3 | 3 | Delvis |
 | B6 | Samlet persistence-serialiserings-primitiv | 3 | 3 | 4 | Nej |
 | B7 | Samlet felt-tilstand (fejl/draft/undo) | 4 | 5 | 5 | Nej |
-| B8 | Tvungne grænser i EO snapshot→presentation | 4 | 4 | 3 | Nej |
+| B8 ✅ | Tvungne grænser i EO snapshot→presentation | 4 | 4 | 3 | Nej |
 | B9 | Slank EO-debug-laget (33 filer/11k linjer) | 3 | 5 | 2 | Nej |
 | B10 | Én ASL-maks-opslags-gateway | 3 | 2 | 3 | Ja |
 | B11 | Én kanonisk måned-additions-semantik | 3 | 1 | 3 | Ja |
 | B12 ✅ | Systematisér delt UI↔dokument-domænelogik | 3 | 2 | 2 | Nej |
 | C13 ✅ | Én STORAGE_KEYS-kilde + schema-afledte defaults | 2 | 2 | 1 | Nej |
-| C14 | Samlet settings-katalog | 2 | 3 | 2 | Nej |
+| C14 🟡 | Samlet settings-katalog | 2 | 3 | 2 | Nej |
 | C15 ✅ | Options-DTO mellem AppSettings og dokument-lag | 2 | 2 | 1 | Nej |
 | C16 | Ensartede rate-resolvere | 2 | 3 | 2 | Nej |
 | C17 | Builder/skabelon-lag for generatorer | 2 | 3 | 3 | Nej |
 
-**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B7 og B9 er de største løft og bør først tages, når den øvrige struktur er på plads. (A1, A2, A3, B12, C13 og C15 er implementeret; A5 blev verificeret og forkastet — se appendiks punkt 5.)
+**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B7 og B9 er de største løft og bør først tages, når den øvrige struktur er på plads. (A1, A2, A3, B8, B12, C13 og C15 er implementeret; A4 og C14 blev verificeret 2026-06-21 og er stort set allerede løst/nedjusteret — A4: concern #2/#3 lukket, #1 stilistisk/parkeret; C14: AppThemeMode-dubletten fikset (reviewpunkt 11), samlet katalog ikke berettiget; A5 blev verificeret og forkastet — se appendiks punkt 5.)
 
 ---
 

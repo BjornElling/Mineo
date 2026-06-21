@@ -3,9 +3,9 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schem
 import type {
   EoModel,
   ForligModel,
-  OevrigeKravModel,
-  SvieSmerteModel,
-  TabtArbejdsfortjenesteModel,
+  OevrigeKravSectionPresentation,
+  SvieSmerteSectionPresentation,
+  TabtArbejdsfortjenesteSectionPresentation,
 } from '../shared/eoTypes';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import type { IsoRange } from '../validation/tafPeriodConstraints';
@@ -89,9 +89,12 @@ export const buildEoPdfPresentation = (
 
 export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
   presentation: EoPdfPresentation;
-  svieSmerte: SvieSmerteModel;
-  tabtArbejdsfortjeneste: TabtArbejdsfortjenesteModel;
-  oevrigeKrav: OevrigeKravModel;
+  // Section-inputtet er typebundet til *Presentation-typer uden beløbs-totaler (B8). Det gør det til
+  // en compile-fejl at forwarde et section-afledt total ind i PDF-modellen: alle totaler herunder
+  // SKAL komme fra `totals` (canonical). Se eoTypes.ts (SvieSmerteSectionPresentation m.fl.).
+  svieSmerte: SvieSmerteSectionPresentation;
+  tabtArbejdsfortjeneste: TabtArbejdsfortjenesteSectionPresentation;
+  oevrigeKrav: OevrigeKravSectionPresentation;
   forlig: ForligModel;
   tafRanges: readonly IsoRange[];
   // Single source of truth: PDF-modellen genberegner IKKE EO-totaler. Den læser de
@@ -100,12 +103,19 @@ export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
   // ("Ingen EO-total må beregnes parallelt i UI-komponenter, PDF-writers eller debug-lag").
   totals: EoComputedTotals;
 }>): EoModel => {
+  // Alle section-totaler injiceres fra canonical (`args.totals`) — section-inputtet bærer dem ikke.
+  const svieSmerte = {
+    ...args.svieSmerte,
+    totalOre: args.totals.svieSmerteOre,
+  };
   const tabtArbejdsfortjeneste = {
     ...args.tabtArbejdsfortjeneste,
+    tabtArbejdsfortjenesteFoerForligOre: args.totals.tabtArbejdsfortjenesteFoerForligOre,
     tabtArbejdsfortjenesteOre: args.totals.tabtArbejdsfortjenesteOre,
   };
   const oevrigeKrav = {
     ...args.oevrigeKrav,
+    totalFoerForligOre: args.totals.oevrigeKravFoerForligOre,
     totalOre: args.totals.oevrigeKravOre,
   };
 
@@ -117,7 +127,7 @@ export const buildErstatningsopgoerelsePdfModelFromComputed = (args: Readonly<{
     skadelidteNavn: args.presentation.skadelidteNavn,
     skadestypeLinje: args.presentation.skadestypeLinje,
     brevhoved: args.presentation.brevhoved,
-    svieSmerte: args.svieSmerte,
+    svieSmerte,
     forlig: args.forlig,
     tabtArbejdsfortjeneste,
     oevrigeKrav,
