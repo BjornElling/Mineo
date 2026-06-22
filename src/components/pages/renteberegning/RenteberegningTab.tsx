@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, IconButton, Typography } from '@mui/material';
+import { Box, IconButton, Tooltip, Typography } from '@mui/material';
 import { Download, Delete } from '@mui/icons-material';
 import ConfirmationDialog from '../../ui/ConfirmationDialog';
 import type { RateEntry } from '../../../data/interestRates';
@@ -22,7 +22,7 @@ import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/ren
 import { dateRanges_renteberegning } from '../../../config/dateRanges';
 import SpecifikationDownloadBox from './SpecifikationDownloadBox';
 import type { RenteOversigtRow } from '../../../document/generators/renteberegning/renteOversigtDocument';
-import type { DocumentDownloadFormat } from '../../../document/documentFormat';
+import { DOWNLOAD_DISABLED_TOOLTIP, type DocumentDownloadFormat } from '../../../document/documentFormat';
 
 interface TechnicalAssumptionsListProps {
   items: readonly string[];
@@ -283,22 +283,26 @@ const RenteberegningTab = React.memo(({
               <Typography className="row--text">Download samlet oversigt</Typography>
               <Box className="row--label-right-hover__content">
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
-                  <IconButton
-                    onClick={() => { void handleDownloadOversigt(); }}
-                    disabled={oversigtDownloadDisabled}
-                    aria-label="Download samlet oversigt"
-                    size="small"
-                    sx={(theme) => ({
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '6px',
-                      '&:hover': {
-                        backgroundColor: theme.palette.action.hover,
-                      },
-                    })}
-                  >
-                    <Download sx={{ fontSize: '24px', color: oversigtDownloadDisabled ? 'action.disabled' : 'primary.main' }} />
-                  </IconButton>
+                  <Tooltip title={oversigtDownloadDisabled ? DOWNLOAD_DISABLED_TOOLTIP : ''}>
+                    <span>
+                      <IconButton
+                        onClick={() => { void handleDownloadOversigt(); }}
+                        disabled={oversigtDownloadDisabled}
+                        aria-label="Download samlet oversigt"
+                        size="small"
+                        sx={(theme) => ({
+                          width: '32px',
+                          height: '32px',
+                          borderRadius: '6px',
+                          '&:hover': {
+                            backgroundColor: theme.palette.action.hover,
+                          },
+                        })}
+                      >
+                        <Download sx={{ fontSize: '24px', color: oversigtDownloadDisabled ? 'action.disabled' : 'primary.main' }} />
+                      </IconButton>
+                    </span>
+                  </Tooltip>
                 </Box>
               </Box>
             </Box>

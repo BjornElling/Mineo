@@ -19,3 +19,10 @@ export const getDocumentFormatLabel = (format: DocumentDownloadFormat): 'PDF' | 
       return 'Word';
   }
 };
+
+/**
+ * Kanonisk, kort tooltip for en deaktiveret download-knap. Bruges ÉT sted, så alle download-knapper
+ * der ikke har en mere specifik årsag (fx EO-beregningens detaljerede gate-årsager) viser den samme
+ * besked i stedet for den vildledende "Download som PDF", når knappen åbenlyst er slået fra.
+ */
+export const DOWNLOAD_DISABLED_TOOLTIP = 'Indtastning mangler';

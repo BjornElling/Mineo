@@ -2,17 +2,21 @@ import React from 'react';
 import { IconButton, Tooltip } from '@mui/material';
 import { Download } from '@mui/icons-material';
 import { useAppSettings } from '../../contexts/useAppSettings';
-import { getDocumentFormatLabel } from '../../document/documentFormat';
+import { DOWNLOAD_DISABLED_TOOLTIP, getDocumentFormatLabel } from '../../document/documentFormat';
 
 type Props = Readonly<{
   onClick?: () => void;
   shake?: boolean;
   disabled?: boolean;
+  /** Kort årsag der vises i stedet for "Download som …", når knappen er deaktiveret. */
+  disabledReason?: string;
 }>;
 
-const DocumentDownloadButton = ({ onClick, shake = false, disabled = false }: Props) => {
+const DocumentDownloadButton = ({ onClick, shake = false, disabled = false, disabledReason }: Props) => {
   const { settings } = useAppSettings();
-  const tooltip = `Download som ${getDocumentFormatLabel(settings.documentDownloadFormat)}`;
+  const tooltip = disabled
+    ? disabledReason ?? DOWNLOAD_DISABLED_TOOLTIP
+    : `Download som ${getDocumentFormatLabel(settings.documentDownloadFormat)}`;
 
   return (
     <Tooltip title={tooltip}>

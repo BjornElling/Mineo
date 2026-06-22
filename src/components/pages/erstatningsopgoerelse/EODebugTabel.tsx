@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { Alert, AlertTitle, Box, Typography } from '@mui/material';
+import { Alert, AlertTitle, Box, Tooltip, Typography } from '@mui/material';
 import { Check, Download, ErrorOutlined as ErrorOutline } from '@mui/icons-material';
+import { DOWNLOAD_DISABLED_TOOLTIP } from '../../../document/documentFormat';
 import { useTheme } from '@mui/material/styles';
 import ContentBox from '../../layout/ContentBox';
 import { getSammentaellingControlStatus, type SammentaellingControl, type SammentaellingDisplayRow } from '../../../domain/debug/eoDebugSammentaelling';
@@ -267,29 +268,31 @@ const EODebugTabel = React.memo(({ debugSnapshot = null, isActive = false }: EOD
             <Box className="row--label-right-hover">
               <Typography className="row--text">Download tabel (CSV-format)</Typography>
               <Box className="row--label-right-hover__content" sx={{ mr: '90px' }}>
-                <Box
-                  onClick={canDownloadDebugTable ? handleDownloadDebugTable : undefined}
-                  tabIndex={-1}
-                  sx={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: canDownloadDebugTable ? 'pointer' : 'default',
-                    transition: 'background-color 0.2s',
-                    '&:hover': canDownloadDebugTable ? { backgroundColor: 'var(--color-icon-action-hover)' } : undefined,
-                    '&:active': canDownloadDebugTable ? { backgroundColor: 'var(--color-icon-action-active)' } : undefined,
-                  }}
-                >
-                  <Download
+                <Tooltip title={canDownloadDebugTable ? '' : DOWNLOAD_DISABLED_TOOLTIP}>
+                  <Box
+                    onClick={canDownloadDebugTable ? handleDownloadDebugTable : undefined}
+                    tabIndex={-1}
                     sx={{
-                      fontSize: '24px',
-                      color: canDownloadDebugTable ? 'primary.main' : 'text.disabled',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: canDownloadDebugTable ? 'pointer' : 'default',
+                      transition: 'background-color 0.2s',
+                      '&:hover': canDownloadDebugTable ? { backgroundColor: 'var(--color-icon-action-hover)' } : undefined,
+                      '&:active': canDownloadDebugTable ? { backgroundColor: 'var(--color-icon-action-active)' } : undefined,
                     }}
-                  />
-                </Box>
+                  >
+                    <Download
+                      sx={{
+                        fontSize: '24px',
+                        color: canDownloadDebugTable ? 'primary.main' : 'text.disabled',
+                      }}
+                    />
+                  </Box>
+                </Tooltip>
               </Box>
             </Box>
           </>
