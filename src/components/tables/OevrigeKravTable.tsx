@@ -13,6 +13,7 @@ import type { DateRangeSpecialErrors } from '../../utils/dateRangeErrorMessages'
 import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 export type OevrigeKravTableProps = Readonly<{
@@ -50,6 +51,9 @@ const OevrigeKravTable = React.memo(
   });
   const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
   useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
+  // Ryd en slettet rækkes celle-`invalidDraft`, så den ikke blokerer Gem som spøgelses-mål uden synligt felt.
+  const liveRowIds = React.useMemo(() => new Set(visibleRowIds), [visibleRowIds]);
+  useReconcileInvalidDraftsToLiveRows(liveRowIds);
 
   return (
     <StandardLooseTable

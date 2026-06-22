@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../../schemas/formSchemas';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import type { SetValuesUpdater } from '../../../hooks/usePersistedForm';
@@ -7,6 +7,16 @@ import useSvieSmerteRows from '../../../components/tables/useSvieSmerteRows';
 import SvieSmerteTable from '../../../components/tables/SvieSmerteTable';
 import OffentligeYdelserTable from '../../../components/tables/OffentligeYdelserTable';
 import { toISODateString } from '../../../types/branded';
+import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
+import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraftScopeContext';
+import { formPersistenceStore } from '../../../stores/formPersistenceStore';
+import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
+import { CELL_TABLE_IDS, buildCellInvalidDraftFieldPath } from '../../../config/cellInvalidDraftScopes';
+import { getFirstBlockingInputErrorTarget } from '../../../utils/saveBlockedFocus';
+import {
+  getFieldErrorsBySourceSnapshot,
+  getInvalidDraftsForSectionSnapshot,
+} from '../../../stores/formPersistenceReadModel';
 
 describe('Slet-række (RowDeleteButton-integration)', () => {
   describe('Grid-familie (OffentligeYdelserTable)', () => {
@@ -30,6 +40,35 @@ describe('Slet-række (RowDeleteButton-integration)', () => {
       expect(onTableDataChange).toHaveBeenCalledTimes(1);
       const persistedRows = onTableDataChange.mock.calls[0][0] as OffentligeYdelserRow[];
       expect(persistedRows.some((row) => row.id === 'row1')).toBe(false);
+    });
+
+    it('B7: sletter en rækkes forældreløse celle-invalidDraft, så Gem ikke blokeres af et spøgelses-mål', () => {
+      const gatePageKey = 'erstatningsopgoerelse' as const;
+      const draftPath = buildCellInvalidDraftFieldPath(CELL_TABLE_IDS.eoOffentligeYdelser, '', 'row1:3');
+      const gateTarget = () =>
+        getFirstBlockingInputErrorTarget(getFieldErrorsBySourceSnapshot, getInvalidDraftsForSectionSnapshot);
+
+      sessionStorage.clear();
+      formPersistenceStore.getState().clearAll({ hydrated: true, schemaFingerprint: PERSISTED_DATA_VERSION, lastCommittedAt: 1 });
+
+      const filled: OffentligeYdelserRow = { id: 'row1', ydelsestype: 'andet' };
+      render(
+        <FormPersistenceProvider>
+          <CellInvalidDraftScopeProvider pageKey={gatePageKey} tableId={CELL_TABLE_IDS.eoOffentligeYdelser} rowScope="">
+            <OffentligeYdelserTable tableData={[filled]} onTableDataChange={vi.fn()} />
+          </CellInvalidDraftScopeProvider>
+        </FormPersistenceProvider>
+      );
+
+      // Efter provider-mount (hydrate har ryddet): læg en ikke-committbar rå draft på den udfyldte rækkes celle.
+      act(() => { formPersistenceStore.getState().setInvalidDraft(gatePageKey, draftPath, 'abc'); });
+      expect(gateTarget()?.fieldName).toBe(draftPath); // Gem blokeret af draften
+
+      // Slet rækken: dens id forsvinder fra de renderede rækker → reconcile rydder den forældreløse draft.
+      fireEvent.click(screen.getByLabelText('Slet rækken'));
+
+      expect(formPersistenceStore.getState().invalidDrafts[gatePageKey][draftPath]).toBeUndefined();
+      expect(gateTarget()).toBeNull(); // Gem ikke længere blokeret af et spøgelses-mål
     });
   });
 

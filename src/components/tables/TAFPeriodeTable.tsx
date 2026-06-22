@@ -17,6 +17,7 @@ import { isFraTilDraftRowEmpty as isRowEmpty, type TafDraftRow } from '../../dom
 import { calculateFerieHverdageMinusSHDage } from '../../domain/erstatningsopgoerelse/engines/ferieCalculations';
 import { buildTafCutoffErrorMessage } from '../../domain/erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 
 export type TAFPeriodeTableProps = Readonly<{
@@ -77,7 +78,11 @@ const TAFPeriodeTable = React.memo(
       columns: sortColumns,
       onSortedRowsChange: (nextRows) => onRowsReorder?.(nextRows.map((row) => row.id)),
     });
-    useRegisterTableSaveOrder(saveOrderPath, React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]));
+    const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
+    useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
+    // Ryd en slettet rækkes celle-`invalidDraft`, så den ikke blokerer Gem som spøgelses-mål uden synligt felt.
+    const liveRowIds = React.useMemo(() => new Set(visibleRowIds), [visibleRowIds]);
+    useReconcileInvalidDraftsToLiveRows(liveRowIds);
 
     return (
       <StandardLooseTable

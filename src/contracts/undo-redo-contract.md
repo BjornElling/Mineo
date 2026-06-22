@@ -105,6 +105,8 @@ Undo/redo må gendanne runtime-only feltfejl som del af history-framet.
 
 Den persisterede `invalidDrafts`-kanal (committed rå draft) indgår i history-framet på linje med committed sektioner: capture snapshotter den, og restore gendanner den atomisk sammen med sektioner og `sessionStorage`. Det er denne mekanisme — ikke et separat draft-transportlag — der genskaber brugerens sidste ikke-committbare input efter undo/redo. `invalidDrafts` ejes normativt af `form-contract.md` §2.4 / `persistence-contract.md` og må aldrig persisteres i `.eo`.
 
+Oprydning af en FORÆLDRELØS celle-draft (en slettet rækkes/rowScopes draft, jf. `persistence-contract.md` §11 punkt 7) er housekeeping og fanger **ingen** history-frame: den slettede rækkes egen sletnings-frame bærer allerede draften, så undo af sletningen gendanner både rækken og dens draft. Dette er på linje med §3's regel om, at kun reelle commits opretter frames.
+
 ---
 
 ## 7. Memory-bound

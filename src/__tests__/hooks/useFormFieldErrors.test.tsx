@@ -36,6 +36,7 @@ const makeCtx = (overrides: Partial<FormPersistenceContextValue> = {}): FormPers
   clearInvalidDraft: vi.fn(() => true),
   getInvalidDraft: vi.fn(() => undefined),
   getInvalidDraftsForSection: vi.fn(() => ({})),
+  reconcileInvalidDrafts: vi.fn(() => true),
   getSectionRevision: vi.fn(() => 0),
   getFieldErrorRevision: vi.fn(() => 0),
   replaceAllPersistedData: vi.fn(),

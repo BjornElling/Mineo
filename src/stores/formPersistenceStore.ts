@@ -88,6 +88,13 @@ export type FormPersistenceStoreState = {
     draft: string | null
   ) => void;
   clearInvalidDraftsForSection: <K extends keyof FormPersistenceSections>(key: K) => void;
+  /**
+   * Fjern et udvalg af `invalidDrafts`-nøgler i én sektion atomisk (forældreløse celle-drafts efter
+   * række-/scope-sletning). Bumper kun revisionen ved reel ændring. Fanger BEVIDST ingen undo-frame —
+   * det er housekeeping (jf. useTableCellErrorTracker.pruneToValidRowIds), og en slettet rækkes egen
+   * undo-frame bærer allerede draften, så undo af sletningen gendanner den.
+   */
+  pruneInvalidDraftsForSectionFields: <K extends keyof FormPersistenceSections>(key: K, fieldPaths: readonly string[]) => void;
   clearAllInvalidDrafts: () => void;
   restoreInvalidDrafts: (invalidDrafts: InvalidDraftsCache, invalidDraftRevisions: InvalidDraftRevisionMap) => void;
   setFieldError: <K extends keyof FormPersistenceSections>(
@@ -521,6 +528,24 @@ const createFormPersistenceStore = () =>
         if (Object.keys(state.invalidDrafts[key]).length === 0) return state;
         return {
           invalidDrafts: { ...state.invalidDrafts, [key]: {} },
+          invalidDraftRevisions: incrementInvalidDraftRevision(state.invalidDraftRevisions, key),
+        };
+      });
+    },
+    pruneInvalidDraftsForSectionFields: (key, fieldPaths) => {
+      set((state) => {
+        const prevForPage = state.invalidDrafts[key];
+        let removedAny = false;
+        const nextForPage = { ...prevForPage };
+        for (const fieldPath of fieldPaths) {
+          if (fieldPath in nextForPage) {
+            delete nextForPage[fieldPath];
+            removedAny = true;
+          }
+        }
+        if (!removedAny) return state;
+        return {
+          invalidDrafts: { ...state.invalidDrafts, [key]: nextForPage },
           invalidDraftRevisions: incrementInvalidDraftRevision(state.invalidDraftRevisions, key),
         };
       });

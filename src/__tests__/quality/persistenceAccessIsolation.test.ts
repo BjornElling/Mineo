@@ -32,6 +32,9 @@ const ALLOWED_FORM_PERSISTENCE_CONTEXT_IMPORTS = new Set([
   // læser FormPersistenceContext direkte for at kunne degradere context-frit til ubunden adfærd uden
   // at kaste, når en tabel rendres uden provider (tests). Audited undtagelse, ikke et præcedens.
   'src/hooks/tableInput/useCellInvalidDraftChannel.ts',
+  // Samme infrastruktur-rolle: reconcile af forældreløse celle-`invalidDrafts` mod levende rækker/scopes
+  // (modstykke til useTableCellErrorTracker). Læser context direkte for context-fri no-op uden provider.
+  'src/hooks/tableInput/useReconcileInvalidDraftsToLiveRows.ts',
 ]);
 const ALLOWED_FORM_PERSISTENCE_STORE_IMPORTS = new Set([
   'src/contexts/FormPersistenceContext.tsx',

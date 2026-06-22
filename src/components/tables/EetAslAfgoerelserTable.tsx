@@ -21,6 +21,7 @@ import {
 import { createEmptyRowId } from '../../utils/rowId';
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
+import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import { useTableSort } from './useTableSort';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
@@ -125,6 +126,12 @@ const EetAslAfgoerelserTable = React.memo(
         withRowId: (row, id) => ({ ...row, id }),
         fingerprint: fingerprintTableData,
       });
+
+    // `invalidDrafts`-reconcile mod renderede rækker: en slettet rækkes rå draft må ikke blokere Gem
+    // som spøgelses-mål (denne grid-tabel bruger domæne-validering frem for celle-fejl-trackeren, så
+    // den har ikke en pruneToValidRowIds-effect at læne sig op ad).
+    const liveRowIds = React.useMemo(() => new Set(internalTableData.map((row) => row.id)), [internalTableData]);
+    useReconcileInvalidDraftsToLiveRows(liveRowIds);
 
     // Bevidst tabel-lokal commit-model: denne domæne-tabel har faste rækker/celler og ingen
     // row-draft-isolation, så hvert Table*Input ejer sin draft og committer en partiel række her.

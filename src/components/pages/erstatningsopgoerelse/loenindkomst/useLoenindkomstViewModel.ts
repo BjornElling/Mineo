@@ -29,6 +29,8 @@ import {
 } from '../../../../data/overenskomstRates';
 import { toLoentrin } from '../../../../data/offentligLoenTypes';
 import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../../../hooks/useFormPersistenceSelectors';
+import { useReconcileInvalidDraftScopes } from '../../../../hooks/tableInput';
+import { CELL_TABLE_IDS } from '../../../../config/cellInvalidDraftScopes';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
 import { downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
 import { formatAsAmount } from '../../../../utils/formatUtils';
@@ -132,6 +134,10 @@ export type UseLoenindkomstViewModelParams = Readonly<{
  *
  * Adfærdsbevarende: logikken er flyttet uændret ud af `LoenindkomstTab`.
  */
+// De eneste celle-tabeller der kvalificeres med et ansættelsesforhold-id som rowScope. Modul-konstant
+// (stabil identitet) så scope-reconcile-effekten ikke kører ved hver render.
+const AF_SCOPED_CELL_TABLE_IDS = [CELL_TABLE_IDS.eoStandardLoen, CELL_TABLE_IDS.eoLoenudvikling] as const;
+
 export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams) {
   const {
     loenindkomstAnsaettelsesforhold,
@@ -148,6 +154,17 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const reportDynamicFieldError = useDynamicFormFieldErrorReporter('erstatningsopgoerelse', { source: 'input' });
   const stamdataValues = usePersistedSectionSelector('stamdata');
   const { settings } = useAppSettings();
+
+  // Scope-niveau `invalidDrafts`-reconcile: et SLETTET ansættelsesforholds tabeller er afmonteret, så
+  // deres per-tabel række-reconcile (useReconcileInvalidDraftsToLiveRows) aldrig kan nå deres celle-drafts.
+  // Ryd drafts hvis rowScope (af-id) ikke længere lever, så en slettet AFs ugyldige input ikke blokerer
+  // Gem som et spøgelses-mål uden synligt felt (overlever ellers F5). Kun eo-standardloen + eo-loenudvikling
+  // kvalificeres med et af-id-rowScope. Housekeeping (ingen undo-frame; AFs egen sletnings-frame bærer draften).
+  const liveAfIds = React.useMemo(
+    () => new Set(loenindkomstAnsaettelsesforhold.map((af) => af.id)),
+    [loenindkomstAnsaettelsesforhold]
+  );
+  useReconcileInvalidDraftScopes('erstatningsopgoerelse', AF_SCOPED_CELL_TABLE_IDS, liveAfIds);
 
   const [addDialogOpen, setAddDialogOpen] = React.useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);

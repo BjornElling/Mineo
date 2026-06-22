@@ -76,3 +76,70 @@ export const isCellInvalidDraftFieldPath = (fieldPath: string): boolean => {
   const tableId = extractCellTableId(fieldPath);
   return (Object.values(CELL_TABLE_IDS) as string[]).includes(tableId);
 };
+
+/**
+ * Præfikset for alle celle-`fieldPaths` i ét (tableId, rowScope)-scope — netop det `buildCellInvalidDraftFieldPath`
+ * forankrer hver nøgle med. Resten af nøglen er `${rowId}:${colIndex}` (gridCellKey).
+ */
+const cellInvalidDraftScopePrefix = (tableId: string, rowScope: string): string =>
+  rowScope === '' ? `${tableId}:` : `${tableId}:${rowScope}:`;
+
+/**
+ * Udtræk `rowId` fra en celle-`fieldPath`, GIVET det (tableId, rowScope)-scope nøglen forventes at høre til.
+ * Returnerer `null` hvis nøglen ikke hører til scopet (anden tabel/scope), så kalderen aldrig rører
+ * fremmede scopes' drafts. Da `tableId`/`rowScope` aldrig indeholder `:` (jf. konventionen øverst) og
+ * `rowId` heller ikke gør, er præfiks-stripning + `split(':')[0]` entydig.
+ */
+export const extractCellRowIdForScope = (fieldPath: string, tableId: string, rowScope: string): string | null => {
+  const prefix = cellInvalidDraftScopePrefix(tableId, rowScope);
+  if (!fieldPath.startsWith(prefix)) return null;
+  const rowId = fieldPath.slice(prefix.length).split(':')[0];
+  return rowId === '' ? null : rowId;
+};
+
+/**
+ * Udtræk `rowScope` (segmentet umiddelbart efter `tableId`) fra en celle-`fieldPath` der bruger et
+ * IKKE-tomt rowScope (fx ansættelsesforhold-id). Returnerer `null` hvis nøglen ikke har det forventede
+ * `tableId`-præfiks. Forudsætter at det pågældende `tableId` ALTID kvalificeres med et rowScope
+ * (gælder kun `eo-standardloen` + `eo-loenudvikling`, der kun rendres pr. ansættelsesforhold).
+ */
+export const extractCellRowScope = (fieldPath: string, tableId: string): string | null => {
+  const prefix = `${tableId}:`;
+  if (!fieldPath.startsWith(prefix)) return null;
+  const rowScope = fieldPath.slice(prefix.length).split(':')[0];
+  return rowScope === '' ? null : rowScope;
+};
+
+/**
+ * Er denne celle-`fieldPath` forældreløs ift. de aktuelt RENDEREDE rækker i ét (tableId, rowScope)-scope?
+ * Sandt netop når nøglen hører til scopet, men dens `rowId` ikke længere er en levende (renderet) række.
+ * Bruges af `useReconcileInvalidDraftsToLiveRows` til at rydde en slettet rækkes draft (parallelt til
+ * `useTableCellErrorTracker`s read-time-filtrering mod gyldige rækker). Fremmede scopes' nøgler røres aldrig.
+ */
+export const isCellInvalidDraftRowOrphan = (
+  fieldPath: string,
+  tableId: string,
+  rowScope: string,
+  liveRowIds: ReadonlySet<string>
+): boolean => {
+  const rowId = extractCellRowIdForScope(fieldPath, tableId, rowScope);
+  return rowId !== null && !liveRowIds.has(rowId);
+};
+
+/**
+ * Er denne celle-`fieldPath` forældreløs ift. de aktuelt levende rowScopes (fx ansættelsesforhold)?
+ * Sandt netop når nøglens `tableId` er ét af `tableIds`, og dens rowScope ikke længere lever. Bruges til
+ * at rydde drafts for et SLETTET scope (fx et fjernet ansættelsesforhold, hvis tabeller er afmonteret —
+ * så den per-tabel-baserede række-reconcile aldrig kan nå dem).
+ */
+export const isCellInvalidDraftScopeOrphan = (
+  fieldPath: string,
+  tableIds: readonly string[],
+  liveRowScopes: ReadonlySet<string>
+): boolean => {
+  for (const tableId of tableIds) {
+    const rowScope = extractCellRowScope(fieldPath, tableId);
+    if (rowScope !== null) return !liveRowScopes.has(rowScope);
+  }
+  return false;
+};

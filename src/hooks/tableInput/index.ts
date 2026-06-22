@@ -1,5 +1,6 @@
 export type { TableAdapterParseResult, TableInputAdapter } from './tableInputAdapter';
 export { useTableInputCore, type TableInputChangeEvent, type UseTableInputCoreOptions, type UseTableInputCoreResult } from './useTableInputCore';
+export { useReconcileInvalidDraftsToLiveRows, useReconcileInvalidDraftScopes } from './useReconcileInvalidDraftsToLiveRows';
 export { textTableInputAdapter, toCommittedTextPayload, type TableTextInputModel } from './adapters/textAdapter';
 export {
   createIntegerTableInputAdapter,

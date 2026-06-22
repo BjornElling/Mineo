@@ -140,7 +140,41 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 3 · Omfang 3 · Risiko 4** — trust-kritisk save/load; gevinsten er reel men risikoen kræver grundig round-trip-test før/efter.
 
-### B7. Flere parallelle "felt-tilstand"-kanaler: fieldErrors + invalidDrafts + undo-historik
+### B7. Flere parallelle "felt-tilstand"-kanaler: fieldErrors + invalidDrafts + undo-historik — 🟡 VERIFICERET: STRUKTUR ALLEREDE SAMLET; ÉN RESIDUAL-DATATABSFEJL RETTET (2026-06-22)
+
+> **Status (verificeret + delvist rettet 2026-06-22).** Den store "byg én sammenhængende model"-præmis
+> var **allerede opfyldt** af den senere `invalidDrafts`-Option-C-omlægning (efter review 2.1): `sections`,
+> `fieldErrors` OG `invalidDrafts` er ÉT store (`formPersistenceStore`) — ikke tre stores; `HistoryFrame`
+> snapshotter alle tre (+ revisioner) atomisk, og `restoreHistoryFrame`/`hydrate`/
+> `replaceSectionsAndClearFieldErrors`/`clearAll` gendanner/rydder dem i ÉT `set()`. De to konkrete fejl
+> B7 nævnte som motivation var **allerede rettet i review 2.1 selv**: (1) hydrate rydder nu fieldErrors
+> atomisk; (2) resolved-fejl-cachen invaliderer på BÅDE reference-identitet OG `fieldErrorRevisions`
+> (en glemt `clearResolvedFieldErrorsCache()` kan ikke servere stale fejl). Selve den "anderledes fra
+> bunden"-arkitektur er altså den gældende kontrakt (`undo-redo-contract.md` §1/§3/§4/§6, dateret efter
+> omlægningen). En fuld "merge undoRedoStore ind i formPersistenceStore"-omskrivning ville være
+> abstraktion-for-sin-egen-skyld mod en låst feature-flade, med listens højeste regressionsrisiko og
+> ingen brugervendt opside — **forkastet**.
+>
+> **Den ene genuine residual** (et adversarielt sweep fandt den): en celle-`invalidDraft` blev
+> **forældreløs** ved række-/ansættelsesforhold-sletning. `invalidDrafts` var den ENESTE kanal uden
+> read-time-reconcile mod levende rækker (modsat `fieldErrors`, som `useTableCellErrorTracker` allerede
+> filtrerer). Sletter man en række/AF der bærer en draft, forsvinder kun rækken fra sektionen — draften
+> blev liggende og blokerede Gem som et **spøgelses-mål uden synligt felt** (overlevede F5). Rettet ved at
+> give `invalidDrafts` det manglende modstykke til trackerens filtrering:
+> - Ny delt hook **`useReconcileInvalidDraftsToLiveRows(liveRowIds)`** (`hooks/tableInput/`) — kaldt af
+>   ALLE 10 celle-bærende, sletbare tabeller (3 grid + EET ASL + 6 løse). Rydder en slettet rækkes draft
+>   mod de RENDEREDE rækker (ikke committede — en tom-men-synlig rækkes draft blokerer fortsat; uændret).
+> - **Scope-niveau reconcile** i `useLoenindkomstViewModel` (et slettet AFs tabeller er afmonteret, så
+>   per-tabel-reconcilen kan ikke nå dem) — rydder drafts hvis af-id-rowScope ikke længere lever.
+> - Nyt atomisk primitiv **`reconcileInvalidDrafts(pageKey, isOrphan)`** (context) +
+>   `pruneInvalidDraftsForSectionFields` (store): storage+store-atomisk, fail-closed rollback, **fanger
+>   bevidst ingen undo-frame** (housekeeping — sletningens egen frame bærer draften). fieldPath-scope-
+>   helpers + completeness-guard (`invalidDraftRowReconcileGuard.test.ts`) der fejler hvis en ny
+>   draft-bærende, sletbar tabel mangler reconcile. Adfærdsbevarende på alt andet; fuld suite grøn.
+>
+> Konklusion: B7 forblev — som A4/C14/A5 — *ikke* det store strukturelle løft det så ud til; strukturen
+> var samlet. Punktet efterlades åbent/nedjusteret: den fulde store-merge er forkastet, men datatabs-
+> residualen er lukket.
 
 **Nuværende tilstand.** Et felts tilstand er fordelt over tre uafhængige kanaler: runtime `fieldErrors` (i `formPersistenceStore`), persisteret `invalidDrafts` (egen slice → sessionStorage → undo), og undo/redo-historikken (`undoRedoStore`). Review fandt gentagne "skal-ryddes-sammen"-fejl (hydration ryddede ikke fieldErrors atomisk 2.1; resolved-fejl-cache med implicit invalidering 2.1). invalidDrafts har sit eget recovery-system uden formel integration med undo-stakken.
 
@@ -324,7 +358,7 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | A3 ✅ | Delt celle-fejl-sporing i grid | 4 | 2 | 2 | Nej |
 | A4 🟡 | Side-byggeklodser (gate/download/dato-grænser) | 4 | 3 | 3 | Delvis |
 | B6 ✅ | Samlet persistence-serialiserings-primitiv | 3 | 3 | 4 | Nej |
-| B7 | Samlet felt-tilstand (fejl/draft/undo) | 4 | 5 | 5 | Nej |
+| B7 🟡 | Samlet felt-tilstand (fejl/draft/undo) — struktur allerede samlet; orphan-datatab rettet | 4 | 5 | 5 | Nej |
 | B8 ✅ | Tvungne grænser i EO snapshot→presentation | 4 | 4 | 3 | Nej |
 | B9 | Slank EO-debug-laget (33 filer/11k linjer) | 3 | 5 | 2 | Nej |
 | B10 ✅ | Én ASL-maks-opslags-gateway | 3 | 2 | 3 | Ja |
@@ -336,7 +370,7 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | C16 | Ensartede rate-resolvere | 2 | 3 | 2 | Nej |
 | C17 | Builder/skabelon-lag for generatorer | 2 | 3 | 3 | Nej |
 
-**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B7 og B9 er de største løft og bør først tages, når den øvrige struktur er på plads. (A1, A2, A3, B6, B8, B10, B11, B12, C13 og C15 er implementeret; A4 og C14 blev verificeret 2026-06-21 og er stort set allerede løst/nedjusteret — A4: concern #2/#3 lukket, #1 stilistisk/parkeret; C14: AppThemeMode-dubletten fikset (reviewpunkt 11), samlet katalog ikke berettiget; A5 blev verificeret og forkastet — se appendiks punkt 5.)
+**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B9 er det største resterende løft. (A1, A2, A3, B6, B8, B10, B11, B12, C13 og C15 er implementeret; B7 blev verificeret 2026-06-22 — strukturen var allerede samlet af invalidDrafts-omlægningen (fuld merge forkastet), og den ene residual (forældreløse celle-drafts ved række-/AF-sletning der blokerede Gem) er rettet via read-time-reconcile af invalidDrafts-kanalen; A4 og C14 blev verificeret 2026-06-21 og er stort set allerede løst/nedjusteret — A4: concern #2/#3 lukket, #1 stilistisk/parkeret; C14: AppThemeMode-dubletten fikset (reviewpunkt 11), samlet katalog ikke berettiget; A5 blev verificeret og forkastet — se appendiks punkt 5.)
 
 ---
 

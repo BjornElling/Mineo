@@ -16,6 +16,7 @@ import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCor
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
 import { useTableCellErrorTracker } from './gridCore/useTableCellErrorTracker';
+import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
@@ -294,6 +295,9 @@ const LoenudviklingManuelTable = React.memo(
     React.useLayoutEffect(() => {
       validRowIdsRef.current = validRowIds;
     }, [validRowIds]);
+
+    // `invalidDrafts`-reconcile mod renderede rækker (modstykke til celle-fejl-trackerens read-time-filtrering).
+    useReconcileInvalidDraftsToLiveRows(validRowIds);
 
     const hasExternalBaseRowErrors = React.useMemo(() => {
       return Object.values(baseRowPercentErrors ?? {}).some((errorText) => (errorText ?? '').trim() !== '');

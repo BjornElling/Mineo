@@ -41,6 +41,7 @@ import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCor
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
 import { useTableCellErrorTracker } from './gridCore/useTableCellErrorTracker';
+import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
@@ -274,9 +275,15 @@ const StandardLoenTable = React.memo(React.forwardRef<StandardLoenTableHandle, S
 
     const cellErrorTracker = useTableCellErrorTracker();
 
+    // Renderede rækker (inkl. efterfølgende tom række) — liveness-grundlag for BÅDE celle-fejl-trackeren
+    // og `invalidDrafts`-reconcile, så en slettet rækkes celle-fejl/rå-draft ikke kan overleve i Gem-gaten.
+    const liveRowIds = React.useMemo(() => new Set(internalTableData.map((row) => row.id)), [internalTableData]);
+
     React.useEffect(() => {
-      cellErrorTracker.pruneToValidRowIds(new Set(internalTableData.map((row) => row.id)));
-    }, [cellErrorTracker, internalTableData]);
+      cellErrorTracker.pruneToValidRowIds(liveRowIds);
+    }, [cellErrorTracker, liveRowIds]);
+
+    useReconcileInvalidDraftsToLiveRows(liveRowIds);
 
     // KRITISK INVARIANT: Table*Input-komponenter SKAL kalde handleErrorChange deterministisk
     // ved alle transitions mellem {ingen fejl ↔ fejl} og {fejl A ↔ fejl B}.

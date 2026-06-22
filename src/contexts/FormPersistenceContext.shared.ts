@@ -46,6 +46,11 @@ export type FormPersistenceContextValue = {
   clearInvalidDraft: (pageKey: StorageKey, fieldPath: string, options?: { undoOrigin?: HistoryFrameOrigin }) => boolean;
   getInvalidDraft: (pageKey: StorageKey, fieldPath: string) => string | undefined;
   getInvalidDraftsForSection: (pageKey: StorageKey) => Record<string, string>;
+  // Ryd forældreløse celle-`invalidDrafts` i én sektion atomisk (storage + store, fail-closed rollback).
+  // `isOrphan` afgør pr. fieldPath om nøglen skal fjernes (typisk: hører til et slettet rækkescope og
+  // peger på en række/scope der ikke længere lever). Fanger BEVIDST ingen undo-frame (housekeeping).
+  // Returnerer false ved intern fejl. No-op (returnerer true) når ingen nøgler matcher.
+  reconcileInvalidDrafts: (pageKey: StorageKey, isOrphan: (fieldPath: string) => boolean) => boolean;
   getSectionRevision: (pageKey: StorageKey) => number;
   getFieldErrorRevision: (pageKey: StorageKey) => number;
   replaceAllPersistedData: ReplaceAllPersistedData;

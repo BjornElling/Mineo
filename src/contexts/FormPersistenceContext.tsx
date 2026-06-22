@@ -374,6 +374,48 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
     return getInvalidDraftsForSectionSnapshot(pageKey);
   }, []);
 
+  /**
+   * Ryd forældreløse celle-`invalidDrafts` i én sektion (drafts hvis række/scope er slettet, så ingen
+   * monteret celle længere kan rydde dem — ellers blokerer de Gem som et spøgelses-mål uden synligt felt).
+   *
+   * Atomisk på tværs af store + sessionStorage med samme fail-closed rollback som `writeInvalidDraft`,
+   * men fanger BEVIDST ingen undo-frame: det er housekeeping (parallel til `useTableCellErrorTracker`s
+   * read-time-filtrering), og selve sletningens egen frame bærer allerede draften, så undo gendanner den.
+   */
+  const reconcileInvalidDrafts = React.useCallback(
+    (pageKey: StorageKey, isOrphan: (fieldPath: string) => boolean): boolean => {
+      try {
+        const current = formPersistenceStore.getState().invalidDrafts[pageKey];
+        const orphans = Object.keys(current).filter(isOrphan);
+        if (orphans.length === 0) return true;
+
+        const invalidDraftsStorageKey = getInvalidDraftsStorageKey();
+        const previousStorageValue = readSessionStorageValue(invalidDraftsStorageKey);
+        const rollbackSnapshot = captureStoreRollbackSnapshot();
+        const nextSection = { ...current };
+        for (const fieldPath of orphans) {
+          delete nextSection[fieldPath];
+        }
+        const nextCache = { ...formPersistenceStore.getState().invalidDrafts, [pageKey]: nextSection };
+        try {
+          writeInvalidDraftsToStorage(nextCache);
+          formPersistenceStore.getState().pruneInvalidDraftsForSectionFields(pageKey, orphans);
+        } catch (error) {
+          const rollbackFailures: Error[] = [];
+          attemptRollbackStep(rollbackFailures, () => restoreStorageValue(invalidDraftsStorageKey, previousStorageValue));
+          attemptRollbackStep(rollbackFailures, () => restoreStoreRollbackSnapshot(rollbackSnapshot));
+          throw createRollbackError('reconcileInvalidDrafts', error, rollbackFailures);
+        }
+        return true;
+      } catch (error) {
+        console.error(`[Persistence] Fejl ved oprydning af forældreløse invalid drafts for '${pageKey}':`, error);
+        emitUserNotice(`Kunne ikke rydde forældede input for '${pageKey}' pga. en intern fejl.`, 'error');
+        return false;
+      }
+    },
+    [emitUserNotice]
+  );
+
   const replaceAllPersistedData = React.useCallback<ReplaceAllPersistedData>((snapshot) => {
     const prevStoreState = formPersistenceStore.getState();
     const prevSections = prevStoreState.sections as PersistedCache;
@@ -589,6 +631,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       clearInvalidDraft,
       getInvalidDraft,
       getInvalidDraftsForSection,
+      reconcileInvalidDrafts,
       getSectionRevision,
       getFieldErrorRevision,
       replaceAllPersistedData,
@@ -611,6 +654,7 @@ export const FormPersistenceProvider = ({ children }: { children: React.ReactNod
       clearInvalidDraft,
       getInvalidDraft,
       getInvalidDraftsForSection,
+      reconcileInvalidDrafts,
       getSectionRevision,
       getFieldErrorRevision,
       replaceAllPersistedData,

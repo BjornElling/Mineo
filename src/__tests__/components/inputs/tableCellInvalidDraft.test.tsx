@@ -46,6 +46,7 @@ const makeStoreBackedCtx = (): FormPersistenceContextValue =>
     // imperative context-getters bruges ikke af kanalen; simple stubs er nok.
     getInvalidDraft: vi.fn(() => undefined),
     getInvalidDraftsForSection: vi.fn(() => ({})),
+    reconcileInvalidDrafts: vi.fn(() => true),
     getSectionRevision: vi.fn(() => 0),
     getFieldErrorRevision: vi.fn(() => 0),
     replaceAllPersistedData: vi.fn(),

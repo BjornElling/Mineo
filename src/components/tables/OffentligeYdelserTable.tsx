@@ -28,6 +28,7 @@ import { getStandardGridBodyRowStyle, getStandardGridCellStyle } from './gridCor
 import { normalizeGridRows } from './gridCore/gridModel';
 import { useGridRowPersistenceCore } from './gridCore/useGridRowPersistenceCore';
 import { useTableCellErrorTracker } from './gridCore/useTableCellErrorTracker';
+import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import { useTableSort } from './useTableSort';
 import {
   applyRowRemovalFocusPlan,
@@ -129,6 +130,11 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
         withRowId: (row, id) => ({ ...row, id }),
         fingerprint: fingerprintTableData,
       });
+
+    // Renderede rækker (inkl. efterfølgende tom række) — fælles liveness-grundlag for celle-fejl-trackeren
+    // og `invalidDrafts`-reconcile (en slettet rækkes rå draft må ikke blokere Gem som spøgelses-mål).
+    const liveRowIds = React.useMemo(() => new Set(internalTableData.map((row) => row.id)), [internalTableData]);
+    useReconcileInvalidDraftsToLiveRows(liveRowIds);
 
     const getValidationResult = React.useCallback(() => {
       const validRowIds = new Set(internalTableData.map((row) => row.id));
@@ -341,8 +347,8 @@ const OffentligeYdelserTable = React.memo(React.forwardRef<OffentligeYdelserTabl
     // Housekeeping: fjern forældede rækkers celle-fejl fra det bagvedliggende sæt. Korrektheden
     // hviler på trackerens read-time-filtrering (getValidationResult); denne effect holder blot sættet rent.
     React.useEffect(() => {
-      cellErrorTracker.pruneToValidRowIds(new Set(internalTableData.map((row) => row.id)));
-    }, [cellErrorTracker, internalTableData]);
+      cellErrorTracker.pruneToValidRowIds(liveRowIds);
+    }, [cellErrorTracker, liveRowIds]);
 
     React.useImperativeHandle(
       ref,

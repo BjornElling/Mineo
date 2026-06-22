@@ -21,6 +21,7 @@ import { isRentekravRowEmpty } from '../../domain/renteberegning/rowEmpty';
 import { amountValueToDraftString, amountValueToNumber } from '../../utils/expressionAmount';
 import { dateRanges_renteberegning } from '../../config/dateRanges';
 import { useRegisterTableSaveOrder } from './useRegisterTableSaveOrder';
+import { useReconcileInvalidDraftsToLiveRows } from '../../hooks/tableInput';
 import type { TableSaveOrderPath } from '../../utils/tableSaveOrderRegistry';
 import { getDocumentFormatLabel, type DocumentDownloadFormat } from '../../document/documentFormat';
 
@@ -284,6 +285,9 @@ const BeregnetRenteTable = React.memo(
     });
     const visibleRowIds = React.useMemo(() => sortedRows.map((row) => row.id), [sortedRows]);
     useRegisterTableSaveOrder(saveOrderPath, visibleRowIds);
+    // Ryd en slettet rækkes celle-`invalidDraft`, så den ikke blokerer Gem som spøgelses-mål uden synligt felt.
+    const liveRowIds = React.useMemo(() => new Set(visibleRowIds), [visibleRowIds]);
+    useReconcileInvalidDraftsToLiveRows(liveRowIds);
 
     return (
       <StandardLooseTable
