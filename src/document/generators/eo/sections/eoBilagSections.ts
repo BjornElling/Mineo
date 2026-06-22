@@ -14,11 +14,11 @@ import type { RowInput } from 'jspdf-autotable';
 import { resolveDocumentSectionEndY } from '../../../layout/documentLayoutHelpers';
 import { createStandardPdfWriter } from '../../../writer';
 import { PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../../layout/pdfConfig';
-import type { StandardLoenTableRow, ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../../schemas/formSchemas';
+import type { ErstatningsopgoerelseValues, Loenperiode, StamdataValues } from '../../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { capitalizeFirstCharDa, formatPercent as formatPercentUtil, formatAsAmount } from '../../../../utils/formatUtils';
 import { isEffectivelyZero, isWithinTolerance } from '../../../../utils/numberComparison';
-import { getStandardLoenTableHeaders } from '../../../../domain/aarsloen/standardLoenTableColumns';
+import { getStandardLoenTableHeaders, resolveStandardLoenPeriodColumns } from '../../../../domain/aarsloen/standardLoenTableColumns';
 import {
   createDocumentTableCell,
   createDocumentTableHeaderCell,
@@ -110,16 +110,6 @@ const getLoenindkomstTableHeaders = (loenperiode: Loenperiode): readonly string[
     if (header === 'ATP og anden\nløn u. tillæg') return 'ATP og løn\nu. till./pens.';
     return header;
   });
-};
-
-const resolvePeriodColumns = (row: StandardLoenTableRow, loenperiode: Loenperiode): readonly [string, string] => {
-  if (loenperiode === 'maaned') {
-    return [row.col0_maaned?.trim() ?? '', row.col1_maaned?.trim() ?? ''];
-  }
-  if (loenperiode === 'uge') {
-    return [row.col0_uge?.trim() ?? '', row.col1_uge?.trim() ?? ''];
-  }
-  return [row.col0_dag?.trim() ?? '', row.col1_dag?.trim() ?? ''];
 };
 
 export type RenderEoBilagSectionsContext = Readonly<{
@@ -381,7 +371,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       formatPctFromInput,
       isZeroPct: isEffectivelyZero,
       getLoenindkomstTableHeaders,
-      resolvePeriodColumns,
+      resolvePeriodColumns: resolveStandardLoenPeriodColumns,
       hasNonZeroLoenAmount,
       shouldIncludeLoenRowInEoBilag,
       eoBilagIndkomstYdelserMode,

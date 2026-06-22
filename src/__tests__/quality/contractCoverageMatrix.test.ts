@@ -92,6 +92,8 @@ const COVERAGE_MATRIX: readonly CoverageEntry[] = [
       'src/__tests__/utils/pdf/pdfWriter.test.ts',
       // Word-kanalens paritet mod det fælles writer-API (Afsnit B + §5):
       'src/__tests__/docx/docxWriter.test.ts',
+      // Datoformat-værnet (A7a): rå ISO-dato må aldrig nå et dokument:
+      'src/__tests__/quality/documentDateFormatGuard.test.ts',
     ],
   },
   {

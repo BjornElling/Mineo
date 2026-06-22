@@ -29,6 +29,7 @@ import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtil
 import {
   STANDARD_LOEN_COL2_LABEL,
   STANDARD_LOEN_COL3_LABEL,
+  resolveStandardLoenPeriodColumns,
 } from '../../../domain/aarsloen/standardLoenTableColumns';
 import { resolveAarsloenIndtastetEnhedSummary } from '../../../domain/aarsloen/aarsloenPeriodDisplay';
 import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../../utils/periodeBeregning';
@@ -199,19 +200,9 @@ const addIndtaegtsoplysningerTable = (
   // Beregn satser som decimaler
   // Data-rækker
   for (const row of filteredData) {
-    // Hent periode-værdier baseret på loenperiode
-    let col0Val = '';
-    let col1Val = '';
-    if (loenperiode === 'maaned') {
-      col0Val = row.col0_maaned || '';
-      col1Val = row.col1_maaned || '';
-    } else if (loenperiode === 'uge') {
-      col0Val = row.col0_uge || '';
-      col1Val = row.col1_uge || '';
-    } else if (loenperiode === 'dag') {
-      col0Val = row.col0_dag || '';
-      col1Val = row.col1_dag || '';
-    }
+    // Periode-kolonner (fra/til) via den delte resolver — dag-perioden formateres
+    // til dansk DD-MM-ÅÅÅÅ dér, så ISO-datoer aldrig lækker ud i tabellen.
+    const [col0Val, col1Val] = resolveStandardLoenPeriodColumns(row, loenperiode);
 
     const derived = calculateStandardLoenRowDerived(row, {
       feriePct: satser?.feriePct,

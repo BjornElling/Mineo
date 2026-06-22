@@ -11,6 +11,7 @@ import {
 } from './pdfConfig';
 import { getJsPdfPageSize } from './jsPdfGeometry';
 import { normalizeRightAlignedTextForDocument, normalizeTextForDocument } from './pdfTextUtils';
+import { guardDocumentDateText } from './documentDateGuard';
 import { DEFAULT_NUMERIC_TOLERANCE } from '../../utils/numberComparison';
 import { isDocumentTableBridgeDocument, type DocumentTableColumnAlignments, type DocumentTableBridgeDocument } from './documentTableBridge';
 
@@ -92,6 +93,23 @@ type PdfColumnStylesWithMeta = Record<number, PdfColumnStyle> & Readonly<{
 const normalizePdfTableCellContent = (content: string, halign?: PdfCellAlign): string => {
   return halign === 'right' ? normalizeRightAlignedTextForDocument(content) : content;
 };
+
+// Kanal-neutralt dato-værn for alt tabelindhold: renderDocumentTable er det fælles
+// indgangspunkt for både PDF og Word, så her fanges enhver rå ISO-dato, der ved en
+// fejl er sendt uformateret med i en celle — uanset hvordan cellen er bygget. Se
+// documentDateGuard.ts. Bevarer celle-objektets styles/colSpan og rører kun content.
+const guardRowInputDates = (body: RowInput[]): RowInput[] =>
+  body.map((row) => {
+    if (!Array.isArray(row)) return row;
+    return (row as unknown[]).map((cell) => {
+      if (typeof cell === 'string') return guardDocumentDateText(cell);
+      if (isPdfTableCell(cell) && typeof cell.content === 'string') {
+        const guarded = guardDocumentDateText(cell.content);
+        return guarded === cell.content ? cell : { ...cell, content: guarded };
+      }
+      return cell;
+    }) as RowInput;
+  });
 
 const attachPdfColumnLayoutMeta = (
   styles: Record<number, PdfColumnStyle>,
@@ -725,7 +743,7 @@ export const renderDocumentTable = (params: Readonly<{
   const {
     doc,
     startY,
-    body,
+    body: rawBody,
     columnStyles,
     tableWidth = PDF_CONTENT_WIDTH_MM,
     hasHeaderRow = true,
@@ -736,6 +754,9 @@ export const renderDocumentTable = (params: Readonly<{
     didDrawCell,
     dataRowColumnHalign,
   } = params;
+
+  // Sidste forsvarslinje mod rå ISO-datoer i tabelindhold (begge kanaler).
+  const body = guardRowInputDates(rawBody);
 
   if (isDocumentTableBridgeDocument(doc)) {
     if (body.length === 0) {

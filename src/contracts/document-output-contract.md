@@ -3,7 +3,7 @@
 **Status:** Gældende arkitektur (normativ)
 **Type:** Tværgående kontrakt
 **Prioritet:** Tværgående kontrakt. Begrænser øvrige kontrakter for sit emne (dokument-output). Domænespecifikke snapshot-/projektionskontrakter må specificere egne projektioner, men må ikke svække reglerne her. Underordnet `domain-boundary-contract.md` for domænegrænser; formatvalg mellem PDF og Word reguleres normativt af `document-format-contract.md`. `page-component-contract.md` er underordnet denne kontrakt.
-**Senest verificeret mod kode:** 2026-06-18
+**Senest verificeret mod kode:** 2026-06-22
 
 ## 1. Scope
 
@@ -123,6 +123,27 @@ Domænespecifikke projektioner må supplere denne kontrakt, men må ikke svække
    - Lønudviklings-segmentering: `src/domain/erstatningsopgoerelse/engines/loenudviklingBeregning.ts`.
 4. Ingen ny generator må oprettes uden for `src/document/generators/`.
 5. Writer-grænsefladen hedder nu `DocumentWriter`, og dens `getDoc()` returnerer den honest union `jsPDF | DocumentTableBridgeDocument` (PDF-kanalen returnerer den rå jsPDF-instans, Word-kanalen returnerer tabel-broen). Den tidligere kanal-lækage med `jsPDF` + `as never`-cast er lukket (F2). Kernen i `src/document/` må aldrig statisk importere en kanal: router og service injicerer writer-fabrikkerne via `documentGenerationContext` (jf. afsnit B og `document-format-contract.md`).
+
+## A8. Datoformat i output (kanal-neutralt)
+
+1. Alle brugersynlige datoer i dokument-output SKAL vises i dansk format: enten kort
+   `DD-MM-ÅÅÅÅ` eller langt `d. mmmm åååå`. En rå ISO-dato (`ÅÅÅÅ-MM-DD`) må aldrig nå
+   et brugersynligt dokument — i nogen kanal.
+2. Datoer formateres ved kilden via de kanoniske formattere (`formatDateShort`/`formatDateLong`,
+   dvs. `formatISOToDanish`/`formatIsoDateLong` i `src/utils/dateFormatting.ts`). En generator
+   må aldrig skrive en `ISODateString` eller en uformateret dato-streng direkte til en celle
+   eller en tekstlinje.
+3. Periode-kolonner for standard-løn-tabeller (måned/uge/dag) resolves via den delte
+   `resolveStandardLoenPeriodColumns` (`src/domain/aarsloen/standardLoenTableColumns.ts`),
+   så `dag`-perioden altid formateres til dansk. Generatorer må ikke duplikere denne
+   periode-resolvering lokalt.
+4. **Sidste forsvarslinje (kanal-neutral):** Begge kanalers tekst- og tabel-stier router
+   gennem det centrale dato-værn `guardDocumentDateText` (`src/document/layout/documentDateGuard.ts`).
+   Værnet er IKKE et alternativ til formatering ved kilden; det er et sikkerhedsnet, der
+   fanger en stray ISO-dato (valideret token), logger høj-lydt i udvikling (brudt invariant,
+   jf. console-politik) og deterministisk omformaterer til dansk `DD-MM-ÅÅÅÅ` i produktion,
+   så en utestet lækage-sti aldrig viser brugeren en ISO-dato. Værnet er en ren
+   string→string-ombytning uden `Date`/tidszone (samme kalenderdag).
 
 ---
 
@@ -441,6 +462,7 @@ Kontrakten er koblet i `contractCoverageMatrix.test.ts` til:
 - `src/__tests__/utils/pdf/pdfTableRenderer.layout.test.ts`
 - `src/__tests__/utils/pdf/pdfWriter.test.ts`
 - `src/__tests__/docx/docxWriter.test.ts` (Word-kanalens paritet mod det fælles writer-API)
+- `src/__tests__/quality/documentDateFormatGuard.test.ts` (datoformat-værnet, A7a)
 
 Word-kanalens indholds-paritet pr. generator er desuden dækket af `src/__tests__/docx/generators/*WordContent.test.ts` (én pr. dokument-generator, kørt gennem den rigtige generator via `wordContentHarness.ts`). Disse verificerer, at samme tekst og tal når `.docx`'en som PDF'en, og knyttes formatvalgsmæssigt til `document-format-contract.md`.
 
@@ -453,6 +475,7 @@ Denne kontrakt skal understøttes af:
 3. writer unit-tests for spacing- og sidebrydningsinvariants
 4. quality guards for kendte generator-anti-mønstre
 5. generator-/domænetests for trust-kritiske gates og output-specifikke blokeringer
+6. det kanal-neutrale dato-værn `guardDocumentDateText` (`src/document/layout/documentDateGuard.ts`), kaldt fra både tabel-rendereren og begge kanalers tekst-normalisering (A7a)
 
 Tekstbaserede quality guards er sekundære sikkerhedsnet. De må ikke erstatte egentlige writer- og domænetests.
 

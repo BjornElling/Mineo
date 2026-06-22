@@ -1,7 +1,8 @@
 import * as React from 'react';
-import type { Loenperiode } from '../../schemas/formSchemas';
+import type { Loenperiode, StandardLoenTableRow } from '../../schemas/formSchemas';
 import type { StandardLoenTableColumnKey } from '../../types/table';
 import InfoTooltipIcon from '../../components/common/InfoTooltipIcon';
+import { formatISOToDanish } from '../../utils/dateFormatting';
 
 // Normativt: col2 og col3 er to visuelt adskilte lønfelter med identisk domænebetydning.
 // De må kun adskilles i præsentationen; beregningsmæssigt summeres de blot.
@@ -20,6 +21,30 @@ const PERIOD_HEADERS: Record<Loenperiode, readonly [string, string]> = {
 };
 
 const stripHeaderLineBreaks = (label: string): string => label.replace(/\n/g, '');
+
+/**
+ * Resolver de to periode-kolonner (fra/til) for en standard-løn-række til den tekst,
+ * der vises i dokument-output. Kanonisk og delt mellem alle dokument-generatorer, så
+ * periode-visningen er ens på tværs af kanaler og dokumenttyper.
+ *
+ * - `maaned`: måned-nummer + år (rene tal-strenge).
+ * - `uge`: uge fra/til (rene tal-strenge).
+ * - `dag`: `col0_dag`/`col1_dag` er gemt som ISODateString (ÅÅÅÅ-MM-DD) og SKAL
+ *   formateres til dansk DD-MM-ÅÅÅÅ her. Uden denne formatering lækkede datoen
+ *   tidligere rå ISO ud i lønindkomst-/årsløns-tabellen.
+ */
+export const resolveStandardLoenPeriodColumns = (
+  row: StandardLoenTableRow,
+  loenperiode: Loenperiode
+): readonly [string, string] => {
+  if (loenperiode === 'maaned') {
+    return [row.col0_maaned?.trim() ?? '', row.col1_maaned?.trim() ?? ''];
+  }
+  if (loenperiode === 'uge') {
+    return [row.col0_uge?.trim() ?? '', row.col1_uge?.trim() ?? ''];
+  }
+  return [formatISOToDanish(row.col0_dag), formatISOToDanish(row.col1_dag)];
+};
 
 export const resolveStandardLoenColumnLabel = (colKey: StandardLoenTableColumnKey): string => {
   switch (colKey) {

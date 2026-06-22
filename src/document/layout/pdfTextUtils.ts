@@ -5,6 +5,8 @@
  * Ingen jsPDF-afhængighed — kan importeres frit af sektioner og generatorer.
  */
 
+import { guardDocumentDateText } from './documentDateGuard';
+
 const NBSP = '\u00A0';
 const PDF_ASCII_FALLBACKS: ReadonlyArray<readonly [RegExp, string]> = [
   [/\u2212/g, '-'],   // U+2212 MINUS SIGN
@@ -53,7 +55,7 @@ export const ensureNonBreakingKr = (value: string): string => {
 export const normalizeTextForDocument = (value: string): string => {
   return ensureNonBreakingKr(
     replacePdfUnsafeUnicode(
-      value.replace(/\r\n/g, '\n')
+      guardDocumentDateText(value.replace(/\r\n/g, '\n'))
     )
   );
 };

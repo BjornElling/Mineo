@@ -27,6 +27,7 @@ import {
 import type { DocumentWriter } from '../../document/writer/documentWriter';
 import type { BrevhovedData } from '../../document/layout/documentLayoutHelpers';
 import { formatIsoDateLong } from '../../utils/dateFormatting';
+import { guardDocumentDateText } from '../../document/layout/documentDateGuard';
 import { roundByMethod } from '../../utils/rounding';
 import { VERSION } from '../../config/buildInfo';
 import { getDocumentFooterBrand } from '../../document/documentBrand';
@@ -83,7 +84,10 @@ const tableBorders = {
   insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'D9D9D9' },
 } as const;
 
-const normalizeText = (text: string): string => text.replace(/\u00A0/g, ' ');
+// Dato-v\u00E6rn + NBSP\u2192mellemrum: alt Word-tekstindhold (afsnit, tabelceller,
+// blandede linjer) g\u00E5r gennem denne normalisering, s\u00E5 en r\u00E5 ISO-dato aldrig
+// kan n\u00E5 .docx'en. Se documentDateGuard.ts.
+const normalizeText = (text: string): string => guardDocumentDateText(text).replace(/\u00A0/g, ' ');
 
 const splitLines = (text: string): string[] => {
   const lines = normalizeText(text).split(/\r?\n/);
