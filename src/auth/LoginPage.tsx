@@ -185,6 +185,7 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
                 id="mineo-login-password"
                 name="mineo-login-password"
                 type="password"
+                className="auth-login-input"
                 value={passwordDraft}
                 autoFocus
                 autoComplete="current-password"
@@ -196,27 +197,13 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
                 aria-describedby={errorMessage ? LOGIN_ERROR_ID : undefined}
                 style={{
                   width: '100%',
-                  border: errorMessage
-                    ? '1.5px solid var(--color-input-border-error)'
-                    : '1.5px solid var(--color-input-border)',
                   borderRadius: '10px',
                   padding: '11px 14px',
                   fontSize: '15px',
                   fontFamily: 'Montserrat, sans-serif',
-                  outline: 'none',
                   boxSizing: 'border-box',
                   backgroundColor: 'var(--color-input-bg)',
                   color: 'var(--color-text-primary)',
-                }}
-                onFocus={(e) => {
-                  if (!errorMessage) {
-                    e.target.style.borderColor = 'var(--color-input-border-focus)';
-                  }
-                }}
-                onBlur={(e) => {
-                  if (!errorMessage) {
-                    e.target.style.borderColor = 'var(--color-input-border)';
-                  }
                 }}
               />
 
@@ -237,6 +224,7 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
 
               <button
                 type="submit"
+                className="auth-login-button"
                 disabled={isSubmitting}
                 style={{
                   marginTop: '4px',
