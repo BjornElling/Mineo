@@ -36,7 +36,7 @@ export const SHARED_PASSWORD_HASHES = defineSharedPasswordHashes([
     hash: '324ae39817dc46525ab92dde7a1263e27b218aa14a9eb64cde10948c0a71869e',
   },
   {
-    description: 'KSS personligt password',
+    description: 'KSS personligt password (OBS: kun til mineo, ikke minParadigmesamling eller minDomssamling)',
     hash: '7edb340c0afc7e8d87ddc2dc75266b2f2da603d53d404da4824de6470ef9a912',
   },
 ]);

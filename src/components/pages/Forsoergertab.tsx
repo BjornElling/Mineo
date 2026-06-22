@@ -148,14 +148,22 @@ const Forsoergertab = React.memo(() => {
             {stamdata?.skadelidteFodselsdato && !snapshot.fieldUi.skadelidteFodselsdato.hasError ? (
               <Typography className="row--text">{stamdata?.skadelidteFodselsdato ? isoToDanish(stamdata.skadelidteFodselsdato) : ''}</Typography>
             ) : (
-              <Typography
-                component="button"
-                type="button"
-                className="row--text icon-text-link"
-                onClick={() => navigate('/stamdata')}
-                sx={{ cursor: 'pointer', border: 0, background: 'transparent', p: 0, m: 0, font: 'inherit' }}
-              >
-                {stamdataFieldErrors.skadelidteFodselsdato?.message ?? 'Mangler (angiv i Stamdata)'}
+              <Typography className="row--text" color="text.secondary">
+                {stamdataFieldErrors.skadelidteFodselsdato?.message ?? (
+                  <>
+                    Mangler (angiv i&nbsp; {' '}
+                    <Typography
+                      component="span"
+                      className="icon-text-link"
+                      color="inherit"
+                      onClick={() => navigate('/stamdata')}
+                      sx={{ cursor: 'pointer' }}
+                    >
+                      Stamdata
+                    </Typography>
+                    )
+                  </>
+                )}
               </Typography>
             )}
           </Box>

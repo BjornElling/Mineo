@@ -204,25 +204,25 @@ const beregningsResultat = React.useMemo(() => {
       <Box className="row--label-right-hover">
         <Typography className="row--text">Fødselsdato</Typography>
         <Box className="row--label-right-hover__content" sx={{ justifyContent: 'flex-end' }}>
-          <Typography
-            component="button"
-            type="button"
-            className="row--text icon-text-link"
-            onClick={() => navigate('/stamdata')}
-            sx={{
-              cursor: 'pointer',
-              border: 0,
-              background: 'transparent',
-              p: 0,
-              m: 0,
-              font: 'inherit',
-              color: stamValues.skadelidteFodselsdato && !fodselsdatoError ? 'inherit' : 'text.secondary',
-            }}
-          >
-            {stamValues.skadelidteFodselsdato
-              ? formatIsoDateLong(coerceToISODateString(stamValues.skadelidteFodselsdato) ?? undefined)
-              : 'Mangler (angiv i Stamdata)'}
-          </Typography>
+          {stamValues.skadelidteFodselsdato ? (
+            <Typography className="row--text">
+              {formatIsoDateLong(coerceToISODateString(stamValues.skadelidteFodselsdato) ?? undefined)}
+            </Typography>
+          ) : (
+            <Typography className="row--text" color="text.secondary">
+              Mangler (angiv i&nbsp; {' '}
+              <Typography
+                component="span"
+                className="icon-text-link"
+                color="inherit"
+                onClick={() => navigate('/stamdata')}
+                sx={{ cursor: 'pointer' }}
+              >
+                Stamdata
+              </Typography>
+              )
+            </Typography>
+          )}
         </Box>
       </Box>
 

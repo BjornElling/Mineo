@@ -2,7 +2,7 @@
 
 **Status:** Gældende arkitektur (runtime-only)
 **Type:** Tværgående kontrakt
-**Senest verificeret mod kode:** 2026-06-10
+**Senest verificeret mod kode:** 2026-06-22
 
 Dette dokument beskriver den **normative** model for felt-fejl (errors) og debug-visning i Mineo.
 
@@ -132,6 +132,10 @@ Debug/diagnostik kan læse:
 - Ingen polling for fejl.
 - Ingen “free string” field keys.
 - Ingen “clear all field errors” fra et input for at skjule andre sources.
+
+### 5.3 Fejl-links til andre sider
+
+Når en fejltekst henviser til en anden side, må kun selve sidens brugervendte navn være klikbart. Eksempel: i teksten `Mangler (angiv i Stamdata)` er kun `Stamdata` et link; `Mangler (angiv i ` og `)` er almindelig tekst. Hele fejlteksten må ikke pakkes i ét link eller én klikbar knap.
 
 ---
 
