@@ -79,6 +79,7 @@ export const buildTafDayStatusValues = (args: Readonly<{
   } = args;
 
   const erstatningsRange = validateIsoRange(erstatningsFra, erstatningsTil);
+  const hasErstatningsRange = erstatningsRange != null;
   const isWithinErstatningsByIndex: ReadonlyArray<boolean> = dates.map((iso) =>
     erstatningsRange ? iso >= erstatningsRange.fra && iso <= erstatningsRange.til : false
   );
@@ -86,7 +87,13 @@ export const buildTafDayStatusValues = (args: Readonly<{
   const tafStatus = new Uint8Array(dates.length);
   for (let i = 0; i < dates.length; i += 1) {
     const iso = dates[i];
-    const within = isWithinErstatningsByIndex[i];
+    // EO-perioden (vedroererPeriode) er en *valgfri* stille clamp (jf. eo-snapshot-contract.md §2.1):
+    // når den ikke er angivet, afgrænses TAF-dage alene af de autoritative `tafDates` — præcis
+    // som beregnings-engine'n (computeTafArbejdsdageAggregation/buildTafRanges) gør. Uden dette
+    // fald-tilbage ville tabellen vise 0 TAF-dage mens snapshot beregner et reelt TAF-tal, hvilket
+    // udløser en falsk debug:control_mismatch. `tafDates` er allerede clampet mod EO-perioden, når
+    // den findes, så fald-tilbaget ændrer intet i det tilfælde.
+    const within = hasErstatningsRange ? isWithinErstatningsByIndex[i] : true;
     const isWork = isWorkdayByIndex[i];
 
     if (!within) {
@@ -116,12 +123,21 @@ export const buildTafDayStatusValues = (args: Readonly<{
     tafStatus[i] = isWork ? 1 : 0;
   }
 
-  return dates.map((_iso, rowIndex) => {
-    if (!isWithinErstatningsByIndex[rowIndex] && !isWithinBeregningsByIndex[rowIndex]) return '';
+  return dates.map((iso, rowIndex) => {
     const code = tafStatus[rowIndex];
+    // En dag i TAF-perioden (tafDates), en TAF-dag/endeligt-EET-markør (code !== 0) eller en dag
+    // i beregningsperioden er altid i scope og skal vises — også når der ikke er angivet en
+    // erstatningsperiode. Når EO-perioden findes, gælder `tafDates ⊆ erstatningsRange`, så de
+    // ekstra led medfører `isWithinErstatningsByIndex` og ændrer derfor intet i det tilfælde.
+    const isVisibleScope =
+      isWithinErstatningsByIndex[rowIndex] ||
+      isWithinBeregningsByIndex[rowIndex] ||
+      code !== 0 ||
+      tafDates.has(iso);
+    if (!isVisibleScope) return '';
     if (code === 2) return 'Endeligt EET';
     if (code === 1) return 'Ja';
-    return isWithinErstatningsByIndex[rowIndex] ? '-' : '';
+    return isWithinErstatningsByIndex[rowIndex] || tafDates.has(iso) ? '-' : '';
   });
 };
 

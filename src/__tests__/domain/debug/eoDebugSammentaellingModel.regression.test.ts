@@ -64,6 +64,59 @@ describe('buildEODebugSammentaellingModel regression', () => {
     expect(sammentaelling.taf.tabelDisplay).toBe(sammentaelling.taf.beregnetDisplay);
   });
 
+  it('afstemmer TAF beregnet/tabel når der er TAF-perioder men ingen erstatningsperiode', () => {
+    // Regression: snapshot-engine'n beregner TAF ud fra TAF-perioderne uden at kræve en
+    // erstatningsperiode (vedroererPeriode er kun en valgfri stille clamp). Debug-tabellen må
+    // generere TAF-dage efter præcis samme kriterier — ellers opstår en falsk
+    // debug:control_mismatch ("beregnet=N, tabel=-").
+    const values: ErstatningsopgoerelseValues = {
+      ...createErstatningsopgoerelseInitialValues(),
+      vedroererPeriodeFra: undefined,
+      vedroererPeriodeTil: undefined,
+      beregnesUdFra: 'Beregningsperiode' as const,
+      tafBeregningsperiodeFra: toISODateString('2022-02-01'),
+      tafBeregningsperiodeTil: toISODateString('2022-02-28'),
+      kravPaaTabtArbejdsfortjeneste: 'Ja' as const,
+      tafPerioder: [
+        {
+          id: 'taf-1',
+          fra: toISODateString('2022-03-01'),
+          til: toISODateString('2022-09-09'),
+          loseFeriedage: undefined,
+        },
+        {
+          id: 'taf-2',
+          fra: toISODateString('2022-10-01'),
+          til: toISODateString('2023-04-30'),
+          loseFeriedage: undefined,
+        },
+      ],
+      ferieperioder: [],
+      fravaerPerioder: [],
+    };
+
+    const errors: FieldErrorsForSection<'erstatningsopgoerelse'> = {};
+    const tafRanges = buildTafRanges(values, { skadedatoISO: STAMDATA_INITIAL_VALUES.skadedato });
+    const model = buildEODebugModel(values, { tafRanges });
+    const svieSmerteContext = buildSvieSmerteContext(STAMDATA_INITIAL_VALUES, values);
+    const taftContext = buildTaftContext(STAMDATA_INITIAL_VALUES, values);
+
+    const sammentaelling = buildEODebugSammentaellingModel({
+      values,
+      errors,
+      model,
+      svieSmerteContext,
+      taftContext,
+      tafRanges,
+    });
+
+    expect(sammentaelling.beregningsenhed).toBe(TAF_BEREGNES_SOM.MAANEDER);
+    expect(sammentaelling.taf.beregnetValue).not.toBeNull();
+    expect(sammentaelling.taf.tabelValue).not.toBeNull();
+    expect(sammentaelling.taf.tabelValue).toBe(sammentaelling.taf.beregnetValue);
+    expect(sammentaelling.taf.tabelDisplay).toBe(sammentaelling.taf.beregnetDisplay);
+  });
+
   it('tæller TAF-dage uden ansættelsesforhold også når TAF beregnes som arbejdsdage', () => {
     const values: ErstatningsopgoerelseValues = {
       ...createErstatningsopgoerelseInitialValues(),

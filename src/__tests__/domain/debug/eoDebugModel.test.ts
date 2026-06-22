@@ -36,13 +36,13 @@ describe('buildEODebugModel — tom input (ingen datoer)', () => {
 // ─── Kilde-bounds (sources) ────────────────────────────────────────────────────
 
 describe('buildEODebugModel — kilde-bounds (sources)', () => {
-  it('indeholder altid 5 kilde-entries', () => {
+  it('indeholder altid 6 kilde-entries', () => {
     const model = buildEODebugModel({
       ...base(),
       vedroererPeriodeFra: toISODateString('2024-01-01') as never,
       vedroererPeriodeTil: toISODateString('2024-01-31') as never,
     });
-    expect(model.sources).toHaveLength(5);
+    expect(model.sources).toHaveLength(6);
   });
 
   it('erstatningsperiode bounds er sat korrekt', () => {

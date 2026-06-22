@@ -470,6 +470,25 @@ export const buildEODebugModel = (
     options.svieSmerteConstrainedPeriods
   );
 
+  // Brug clampede tafRanges hvis de er leveret (fra engines — altid præfereret).
+  // Fallback bruger den kanoniske buildTafRanges-sti til standalone/test-brug.
+  // Snapshot-pipelinen skal fortsat levere tafRanges for fuld parity med den konkrete beregning.
+  const resolvedTafRanges: readonly IsoRange[] = options.tafRanges
+    ?? buildTafRanges(values, { skadedatoISO: options.skadedatoISO });
+  // TAF-perioderne skal indgå som datokilde, så tabellen altid dækker præcis de dage,
+  // beregnings-engine'n beregner TAF over. Uden dette kunne en TAF-periode, der ligger uden
+  // for løn-/ydelses-/erstatningsperiode-intervallerne, falde helt uden for tabellen — og så
+  // ville debug-tabellen vise 0 TAF-dage mens snapshot beregner et reelt tal (falsk
+  // debug:control_mismatch). Når en erstatningsperiode findes, er tafRanges allerede clampet
+  // ind i den, så denne kilde udvider intet i det tilfælde.
+  const isTafEnabledForSource = values.kravPaaTabtArbejdsfortjeneste === 'Ja';
+  const tafSourceFra = isTafEnabledForSource
+    ? resolvedTafRanges.reduce<ISODateString | undefined>((acc, r) => minISO(acc, r.fra), undefined)
+    : undefined;
+  const tafSourceTil = isTafEnabledForSource
+    ? resolvedTafRanges.reduce<ISODateString | undefined>((acc, r) => maxISO(acc, r.til), undefined)
+    : undefined;
+
   const sources: DebugTabelDateSource[] = [
     { label: 'Erstatningsperiode', fra: erstatningsFra, til: erstatningsTil },
     {
@@ -480,6 +499,7 @@ export const buildEODebugModel = (
     { label: 'Lønindkomst', fra: loenBounds.min, til: loenBounds.max },
     { label: 'Offentlige ydelser', fra: ydelserBounds.min, til: ydelserBounds.max },
     { label: 'Svie/smerte', fra: svieSmerteBounds.min, til: svieSmerteBounds.max },
+    { label: 'TAF-perioder', fra: tafSourceFra, til: tafSourceTil },
   ];
 
   const combinedMinFra = sources.reduce<ISODateString | undefined>((acc, s) => minISO(acc, s.fra), undefined);
@@ -526,11 +546,6 @@ export const buildEODebugModel = (
   const erMaaneder = beregningsenhed === TAF_BEREGNES_SOM.MAANEDER;
   const shDays = buildShDageSetFromIsoRange(tableFra, tableTil);
   const explicitFerie = buildExplicitFerieSet(values, shDays);
-  // Brug clampede tafRanges hvis de er leveret (fra engines — altid præfereret).
-  // Fallback bruger den kanoniske buildTafRanges-sti til standalone/test-brug.
-  // Snapshot-pipelinen skal fortsat levere tafRanges for fuld parity med den konkrete beregning.
-  const resolvedTafRanges: readonly IsoRange[] = options.tafRanges
-    ?? buildTafRanges(values, { skadedatoISO: options.skadedatoISO });
   const tafDates = buildTafDatesFromRanges(resolvedTafRanges);
 
   const beregningsRange = validateIsoRange(beregningsFra, beregningsTil);
