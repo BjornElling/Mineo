@@ -2,6 +2,10 @@ import * as React from 'react';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 
+const ROW_DELETE_ICON_COLOR = '#a86b6b';
+const ROW_DELETE_ICON_HOVER_COLOR = '#c25555';
+const ROW_DELETE_HOVER_HALO_COLOR = 'rgba(194, 85, 85, 0.10)';
+
 export type RowDeleteButtonProps = Readonly<{
   /** Rydder præcis denne ene række i én undo-handling. Kaldes ved klik på ikonet. */
   onDelete: () => void;
@@ -10,9 +14,8 @@ export type RowDeleteButtonProps = Readonly<{
 }>;
 
 /**
- * Delt slet-række-affordance for grid- og løse tabeller: et nedtonet rødt skraldespand-ikon
- * (samme dæmpede rød som "Slet alle indtastninger" på renteberegning, #c25555), der kun vises
- * ved hover på rækken og ved klik rydder netop den ene række.
+ * Delt slet-række-affordance for grid- og løse tabeller: et nedtonet rødt skraldespand-ikon,
+ * der kun vises ved hover på rækken og først får fuld slet-rød farve ved hover på selve knappen.
  *
  * Synligheds-reglen ligger bevidst i `StandardGridTable`/`StandardLooseTable` (selektoren
  * `tbody tr:hover .mineo-row-delete-slot`), så hover-reveal er ét fælles sted for begge
@@ -71,10 +74,17 @@ export const RowDeleteButton = React.memo(({ onDelete, title = 'Slet rækken' }:
             // i både lyst og mørkt tema.
             bgcolor: 'background.paper',
             boxShadow: 1,
-            '&:hover': { bgcolor: 'background.paper' },
+            '&:hover': { bgcolor: ROW_DELETE_HOVER_HALO_COLOR },
+            '& .MuiSvgIcon-root': {
+              color: ROW_DELETE_ICON_COLOR,
+              transition: 'color 120ms ease-in-out',
+            },
+            '&:hover .MuiSvgIcon-root': {
+              color: ROW_DELETE_ICON_HOVER_COLOR,
+            },
           }}
         >
-          <Delete sx={{ fontSize: '15px', color: '#c25555' }} />
+          <Delete sx={{ fontSize: '15px' }} />
         </IconButton>
       </Tooltip>
     </Box>
