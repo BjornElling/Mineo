@@ -24,6 +24,7 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '
 import { resolveAslAarsloensmaksimumForAar } from '../satser/aslAarsloensmaksimum';
 import { getStatistiskLoenudvikling, getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
 import { getKRLSatstabel, formatKRLSatstabelDisplay, getReguleringsDatoIntervalForKRL, isKRLSatstabelId } from '../../data/krlRates';
+import { getKLSatstabelVaerdier, getReguleringsDatoIntervalForKL } from '../../data/klLoenaftaler';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../utils/numberParsing';
 import { iterateDatesInclusive } from '../../utils/isoDateHelpers';
@@ -376,6 +377,66 @@ const buildKrlEntries = (args: Readonly<{
   return { referenceValue, entries };
 };
 
+const buildKlEntries = (args: Readonly<{
+  af: ErstatningsopgoerelseValues['loenindkomstAnsaettelsesforhold'][number];
+  eoFra: ISODateString;
+  eoTil: ISODateString;
+  referenceIso: ISODateString;
+  shDageSet: ReadonlySet<ISODateString>;
+  ferieDageSet: ReadonlySet<ISODateString>;
+}>): Readonly<{ referenceValue: number; entries: readonly IndeksEntry[] }> | null => {
+  const vaerdier = getKLSatstabelVaerdier();
+  if (vaerdier.length === 0) return null;
+
+  const valuesByIso = vaerdier
+    .map((entry) => {
+      const iso = parseDanishToIso(entry.fraDato);
+      if (!iso) return null;
+      return { iso, value: 100 + entry.reguleringsPct };
+    })
+    .filter((entry): entry is Readonly<{ iso: ISODateString; value: number }> => Boolean(entry))
+    .sort((a, b) => a.iso.localeCompare(b.iso));
+  if (valuesByIso.length === 0) return null;
+
+  const resolveValueAt = (iso: ISODateString): number | null => {
+    const candidate = valuesByIso.filter((entry) => entry.iso <= iso).sort((a, b) => b.iso.localeCompare(a.iso))[0];
+    return candidate?.value ?? null;
+  };
+
+  const referenceValue = resolveValueAt(args.referenceIso);
+  if (referenceValue === null || !Number.isFinite(referenceValue) || referenceValue <= 0) return null;
+
+  // Intentional parity med KRL-path: KL-entries starter ved reference-/reguleringsdatoen,
+  // ikke eoFra. Debug viser dermed basisindekset på reguleringsdatoen, mens tidsenhederne
+  // fortsat afgrænses til EO-perioden via getTidsenhedsvaerdier.
+  const dates = new Set<ISODateString>([args.referenceIso]);
+  for (const entry of valuesByIso) {
+    if (entry.iso >= args.referenceIso && entry.iso <= args.eoTil) dates.add(entry.iso);
+  }
+  const sortedDates = Array.from(dates).sort((a, b) => a.localeCompare(b));
+  const entries = sortedDates.map((iso, index) => {
+    const value = resolveValueAt(iso) ?? referenceValue;
+    const tidsenhed = getTidsenhedsvaerdier(index, sortedDates, args.eoTil, args.shDageSet, args.ferieDageSet);
+    return {
+      effectiveFrom: iso,
+      grundloen: value,
+      feriePct: 0,
+      shSoPct: 0,
+      fritvalgPct: 0,
+      // Bevidst parity med eoPdfLoenudvikling: Statistik/KRL/KL modellerer kun indeksserien.
+      // Store Bededag indgår ikke som særskilt breakpoint i disse strategier.
+      storeBededagPct: 0,
+      pensionPct: 0,
+      packageValue: value,
+      index: (value / referenceValue) * 100,
+      arbejdsdage: tidsenhed.arbejdsdage,
+      maaneder: tidsenhed.maaneder,
+    } satisfies IndeksEntry;
+  });
+
+  return { referenceValue, entries };
+};
+
 /**
  * Beregner samlet lønpakkeværdi for reguleringsindeks i debug-kernen.
  *
@@ -588,7 +649,9 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           ? 'Statistikmodel'
           : grundlag === 'KRL satstabel'
             ? 'KRL satstabel'
-            : 'Navn på reguleringsform';
+            : grundlag === 'KL-lønaftaler'
+              ? 'KL-lønaftaler'
+              : 'Navn på reguleringsform';
     const kildeVaerdi =
       grundlag === 'KRL satstabel'
         ? formatKRLSatstabelDisplay(af.loenudviklingKRLSatstabel ?? '')
@@ -899,7 +962,9 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
           ? buildStatistikEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
           : grundlag === 'KRL satstabel'
             ? buildKrlEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
-            : null;
+            : grundlag === 'KL-lønaftaler'
+              ? buildKlEntries({ af, eoFra: eoRange.fra, eoTil: eoRange.til, referenceIso, shDageSet, ferieDageSet })
+              : null;
     if (!built || built.entries.length === 0) {
       const shouldKeepPlaceholder =
         (grundlag === 'Statistik'
@@ -907,7 +972,9 @@ export function buildRegulationTimeline(input: RegulationCoreInput): RegulationI
         || (grundlag === 'KRL satstabel'
           && af.loenudviklingKRLSatstabel
           && isKRLSatstabelId(af.loenudviklingKRLSatstabel)
-          && isReferenceBeforeIntervalStart(referenceIso, getReguleringsDatoIntervalForKRL(af.loenudviklingKRLSatstabel)));
+          && isReferenceBeforeIntervalStart(referenceIso, getReguleringsDatoIntervalForKRL(af.loenudviklingKRLSatstabel)))
+        || (grundlag === 'KL-lønaftaler'
+          && isReferenceBeforeIntervalStart(referenceIso, getReguleringsDatoIntervalForKL()));
 
       if (shouldKeepPlaceholder) {
         pushPlaceholderAnsaettelse({

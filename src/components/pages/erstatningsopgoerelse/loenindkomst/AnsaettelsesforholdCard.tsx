@@ -41,6 +41,7 @@ import {
   getReguleringsDatoIntervalForStatistikModel,
 } from '../../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
+import { getReguleringsDatoIntervalForKL } from '../../../../data/klLoenaftaler';
 import { isOverenskomstSatsFieldLocked } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import {
   hasSfggSelectedOverenskomst,
@@ -176,6 +177,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     handleMoveDown,
     handleDownloadReguleringPdf,
     handleDownloadKRLPdf,
+    handleDownloadKLPdf,
   } = useLoenindkomstVm();
   const { openLoentrinFinder } = loentrinFinder;
 
@@ -206,7 +208,8 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
   const shouldShowReguleringsDatoInterval =
     loenudviklingBasis === 'Overenskomst' ||
     (loenudviklingBasis === 'Statistik' && Boolean(af.loenudviklingStatistikModel)) ||
-    (loenudviklingBasis === 'KRL satstabel' && Boolean(af.loenudviklingKRLSatstabel));
+    (loenudviklingBasis === 'KRL satstabel' && Boolean(af.loenudviklingKRLSatstabel)) ||
+    loenudviklingBasis === 'KL-lønaftaler';
 
   const reguleringsDatoIntervalData: ReguleringsDatoInterval | undefined = (() => {
     if (!shouldShowReguleringsDatoInterval) return undefined;
@@ -218,6 +221,9 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
     }
     if (loenudviklingBasis === 'KRL satstabel' && af.loenudviklingKRLSatstabel) {
       return getReguleringsDatoIntervalForKRL(af.loenudviklingKRLSatstabel as KRLSatstabelId);
+    }
+    if (loenudviklingBasis === 'KL-lønaftaler') {
+      return getReguleringsDatoIntervalForKL();
     }
     return undefined;
   })();
@@ -687,6 +693,7 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
             <MenuItem value="Overenskomst">Overenskomst</MenuItem>
             <MenuItem value="Statistik">Statistik</MenuItem>
             <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
+            <MenuItem value="KL-lønaftaler">KL-lønaftaler</MenuItem>
             {/* 'Manuelt angivet' bygger på tillægsprocenter pr. dato og giver ikke mening i
                 Beløb-tilstand; valget skjules der. Tidligere indtastede manuelle rækker bevares. */}
             {af.tillaegAngivesSom !== TILLAEG_ANGIVES_SOM.BELOEB && (
@@ -906,6 +913,10 @@ export default function AnsaettelsesforholdCard({ af, index }: Props) {
                           if (!reguleringsDatoIntervalData) return;
                           if (loenudviklingBasis === 'KRL satstabel') {
                             void handleDownloadKRLPdf();
+                            return;
+                          }
+                          if (loenudviklingBasis === 'KL-lønaftaler') {
+                            void handleDownloadKLPdf();
                             return;
                           }
                           if (

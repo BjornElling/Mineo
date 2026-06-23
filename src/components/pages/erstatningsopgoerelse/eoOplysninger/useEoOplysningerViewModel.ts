@@ -43,8 +43,9 @@ import {
 } from '../../../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../../../data/krlRates';
+import { getReguleringsDatoIntervalForKL } from '../../../../data/klLoenaftaler';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
-import { downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
+import { downloadKlDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
 
 type JaNej = 'Ja' | 'Nej';
 
@@ -360,7 +361,8 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
   const shouldShowReguleringsDatoInterval = React.useMemo(() => {
     return loenudviklingBasis === 'Overenskomst'
       || (loenudviklingBasis === 'Statistik' && Boolean(eoLoenudvikling.loenudviklingStatistikModel))
-      || (loenudviklingBasis === 'KRL satstabel' && Boolean(eoLoenudvikling.loenudviklingKRLSatstabel));
+      || (loenudviklingBasis === 'KRL satstabel' && Boolean(eoLoenudvikling.loenudviklingKRLSatstabel))
+      || loenudviklingBasis === 'KL-lønaftaler';
   }, [eoLoenudvikling.loenudviklingKRLSatstabel, eoLoenudvikling.loenudviklingStatistikModel, loenudviklingBasis]);
   const offentligLoenEkstraGrundloenSuffix = eoLoenudvikling.offentligLoenType === 'Timeløn' ? '/ time' : '/ måned';
 
@@ -374,6 +376,9 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     }
     if (loenudviklingBasis === 'KRL satstabel' && eoLoenudvikling.loenudviklingKRLSatstabel) {
       return getReguleringsDatoIntervalForKRL(eoLoenudvikling.loenudviklingKRLSatstabel as KRLSatstabelId);
+    }
+    if (loenudviklingBasis === 'KL-lønaftaler') {
+      return getReguleringsDatoIntervalForKL();
     }
     return undefined;
   }, [eoLoenudvikling.loenudviklingKRLSatstabel, eoLoenudvikling.loenudviklingStatistikModel, eoLoenudvikling.overenskomstId, loenudviklingBasis, shouldShowReguleringsDatoInterval]);
@@ -394,6 +399,13 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
 
   const handleDownloadKRLPdf = React.useCallback(async () => {
     await downloadKrlDokument({
+      settings,
+      persistedStamdata,
+    });
+  }, [persistedStamdata, settings]);
+
+  const handleDownloadKLPdf = React.useCallback(async () => {
+    await downloadKlDokument({
       settings,
       persistedStamdata,
     });
@@ -521,6 +533,7 @@ export function useEoOplysningerViewModel(form: ErstatningsopgoerelseFormApi) {
     angivetLoenOpreguleringLabel,
     handleDownloadReguleringPdf,
     handleDownloadKRLPdf,
+    handleDownloadKLPdf,
 
     // Forlig / ansvarsgrad
     forligFejl,

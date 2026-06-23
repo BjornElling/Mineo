@@ -67,6 +67,7 @@ export default function IndtaegtFoerSkadenSection() {
     reguleringsDatoIntervalData,
     reguleringsDatoIntervalDisplay,
     handleDownloadKRLPdf,
+    handleDownloadKLPdf,
     handleDownloadReguleringPdf,
     showEoAnciennitetstillaegSection,
     handleEoAnciennitetstillaegToggleCommit,
@@ -325,6 +326,7 @@ export default function IndtaegtFoerSkadenSection() {
                       <MenuItem value="Overenskomst">Overenskomst</MenuItem>
                       <MenuItem value="Statistik">Statistik</MenuItem>
                       <MenuItem value="KRL satstabel">KRL satstabel</MenuItem>
+                      <MenuItem value="KL-lønaftaler">KL-lønaftaler</MenuItem>
                       <MenuItem value="Manuelt angivet">Manuelt angivet</MenuItem>
                       <MenuItem value="Ingen">Ingen</MenuItem>
                     </StyledDropdown>
@@ -640,6 +642,10 @@ export default function IndtaegtFoerSkadenSection() {
                                     if (!reguleringsDatoIntervalData) return;
                                     if (loenudviklingBasis === 'KRL satstabel') {
                                       void handleDownloadKRLPdf();
+                                      return;
+                                    }
+                                    if (loenudviklingBasis === 'KL-lønaftaler') {
+                                      void handleDownloadKLPdf();
                                       return;
                                     }
                                     if (loenudviklingBasis !== 'Overenskomst' && loenudviklingBasis !== 'Statistik') {

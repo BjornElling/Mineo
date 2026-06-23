@@ -26,6 +26,7 @@ export const resolveValgtReguleringDisplay = (
     if (!krlId) return '-';
     return formatKRLSatstabelDisplay(krlId);
   }
+  if (grundlag === 'KL-lønaftaler') return 'KL-lønaftaler';
   return 'Ingen';
 };
 

@@ -8,6 +8,7 @@ import { buildSHDageDocumentFilename } from '../../../document/generators/aarslo
 import { buildSatserDocumentFilename } from '../../../document/generators/satser/satserDocument';
 import { buildReguleringDocumentFilename } from '../../../document/generators/eo/reguleringDocument';
 import { buildKRLDocumentFilename } from '../../../document/generators/krl/krlDocument';
+import { buildKLDocumentFilename } from '../../../document/generators/kl/klDocument';
 import { resolveDocumentArtifactFileName } from '../../../document/layout/documentFormatUtils';
 import { toDanishDateString } from '../../../types/branded';
 
@@ -106,6 +107,16 @@ describe('pdf filename builders', () => {
 
     it('prefixer med journalnr når journalnr er udfyldt', () => {
       expect(buildKRLDocumentFilename('1234')).toBe('1234 - KRL Satstabeller.pdf');
+    });
+  });
+
+  describe('buildKLDocumentFilename', () => {
+    it('bygger KL-filnavn via kanonisk helper', () => {
+      expect(buildKLDocumentFilename()).toBe('KL-lønaftaler.pdf');
+    });
+
+    it('prefixer med journalnr når journalnr er udfyldt', () => {
+      expect(buildKLDocumentFilename('1234')).toBe('1234 - KL-lønaftaler.pdf');
     });
   });
 

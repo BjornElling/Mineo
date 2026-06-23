@@ -489,6 +489,9 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'KRL satstabel') {
       writer.addSectionSpacer();
       safeAddWrappedText("KRL's sats-tabeller kan genfindes på https://www.krl.dk/#/sats");
+    } else if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'KL-lønaftaler') {
+      writer.addSectionSpacer();
+      safeAddWrappedText('Regulering foretages på baggrund af de akkumulerede reguleringssatser i de kommunale lønaftaler (KL).');
     } else if (ansaettelsesforhold.loenudviklingBeregningsgrundlag === 'Statistik') {
       const statistikLabel = (ansaettelsesforhold.loenudviklingStatistikModel ?? '').trim();
       const statistikModelId = resolveStatistikModelIdFromLabel(statistikLabel);

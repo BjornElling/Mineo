@@ -15,6 +15,7 @@ import {
   loadAarsloenDocumentModule,
   loadErstatningsopgoerelseDocumentModule,
   loadKRLDocumentModule,
+  loadKLDocumentModule,
   loadLoebendeYdelserDocumentModule,
   loadKapitaliseringDocumentModule,
   loadEfterEalDocumentModule,
@@ -489,6 +490,26 @@ export const downloadKrlDokument = async (params: Readonly<{
     });
   } catch (error) {
     return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere KRL-PDF'), 'pdfService.downloadKrlDokument', error);
+  }
+};
+
+export const downloadKlDokument = async (params: Readonly<{
+  settings: DocumentSettings;
+  persistedStamdata: unknown;
+}>): Promise<DocumentDownloadResult> => {
+  const { settings, persistedStamdata } = params;
+  // Bevidst UX: KL-lønaftaler bruger samme brevhoved-indstilling som regulering (ingen separat toggle).
+  const common = buildCommonPdfContext(settings, 'regulering', persistedStamdata);
+  const preflightFailure = await ensureDevServerAvailableForPdfDownload('pdfService.downloadKlDokument');
+  if (preflightFailure) return preflightFailure;
+
+  try {
+    const { generateKLDocument } = await loadKLDocumentModule();
+    return await runSelectedDocumentFormat(settings, () => {
+      generateKLDocument(common);
+    });
+  } catch (error) {
+    return await createPdfDownloadFailure(buildDocumentFailureMessage(settings, 'Kunne ikke generere KL-PDF'), 'pdfService.downloadKlDokument', error);
   }
 };
 

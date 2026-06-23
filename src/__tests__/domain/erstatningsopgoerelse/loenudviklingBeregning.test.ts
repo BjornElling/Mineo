@@ -131,6 +131,56 @@ describe('buildLoenudviklingModel', () => {
     expectOnlyPositiveArbejdsdagssegmenter(values);
   });
 
+  it('springer over KL-segmenter uden TAF-arbejdsdage', () => {
+    const values = setupAngivetDagsloen();
+    values.tafPerioder = [{
+      id: 'taf-easter',
+      fra: iso('2024-03-29'),
+      til: iso('2024-04-05'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      saerligFraDatoRegulering: iso('2024-03-29'),
+      loenudviklingBeregningsgrundlag: 'KL-lønaftaler',
+    };
+
+    expectOnlyPositiveArbejdsdagssegmenter(values);
+  });
+
+  it('beregner KL-deltaPct som indeksforhold til basisdatoen', () => {
+    const values = createErstatningsopgoerelseInitialValues();
+    values.beregnesUdFra = 'Angivet månedsløn';
+    values.maanedsloenenUdgoer = asAmount(30000);
+    values.angivetMaanedsloenOpreguleresFraDato = iso('2024-04-01');
+    values.tafPerioder = [{
+      id: 'taf-kl',
+      fra: iso('2024-04-01'),
+      til: iso('2026-03-31'),
+      loseFeriedage: 0,
+    }];
+    values.eoAngivetLoenLoenudvikling = {
+      ...values.eoAngivetLoenLoenudvikling,
+      loenudviklingBeregningsgrundlag: 'KL-lønaftaler',
+    };
+
+    const model = buildLoenudviklingModel(
+      values,
+      { ...STAMDATA_INITIAL_VALUES, skadedato: iso('2024-04-01') },
+      TAF_BEREGNES_SOM.MAANEDER,
+      null,
+      { tafRanges: [{ fra: iso('2024-04-01'), til: iso('2026-03-31') }] }
+    );
+
+    // Basisindeks = 01-04-2024 (57,7650). Basissegmentet har deltaPct 0.
+    const baseSegment = model.beregnedeSegmenter.find((segment) => segment.fra === iso('2024-04-01'));
+    expect(baseSegment?.deltaPct).toBe(0);
+
+    // 01-10-2024 (59,8159): ((100+59,8159)/(100+57,7650) − 1) × 100 = 1,30.
+    const segmentOkt2024 = model.beregnedeSegmenter.find((segment) => segment.fra === iso('2024-10-01'));
+    expect(segmentOkt2024?.deltaPct).toBe(1.30);
+  });
+
   it('springer over manuelle reguleringssegmenter uden TAF-arbejdsdage', () => {
     const values = setupAngivetDagsloen();
     values.tafPerioder = [{

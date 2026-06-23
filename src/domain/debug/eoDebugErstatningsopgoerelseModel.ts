@@ -32,6 +32,7 @@ import {
 } from '../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
+import { getReguleringsDatoIntervalForKL } from '../../data/klLoenaftaler';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offentligLoenTypes';
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
@@ -2841,6 +2842,14 @@ export const buildEODebugIndkomstRows = (
         const krlId = ansaettelsesforhold.loenudviklingKRLSatstabel as KRLSatstabelId | undefined;
         if (!krlId) return {} as ReguleringsRange;
         const interval = getReguleringsDatoIntervalForKRL(krlId);
+        if (!interval) return {} as ReguleringsRange;
+        return {
+          min: parseDanishToIsoDebug(interval.fraDato),
+          max: parseDanishToIsoDebug(interval.tilDato),
+        };
+      }
+      if (loenudviklingBasis === 'KL-lønaftaler') {
+        const interval = getReguleringsDatoIntervalForKL();
         if (!interval) return {} as ReguleringsRange;
         return {
           min: parseDanishToIsoDebug(interval.fraDato),

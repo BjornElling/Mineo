@@ -46,7 +46,10 @@ import { persistenceSchemas } from '../../config/persistenceRegistry';
 // erstatningsopgoerelse-AF og aarsloen-sektionen, samt to nye lønindkomst-rækkefelter
 // (fpFvShSoBeloeb, pensionBeloeb) til Beløb-tilstand. PERSISTED_DATA_VERSION bumpet til 3.5
 // (reel persisted schema-ændring; nye inputfelter).
-const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-6ad968a6';
+// Opdateret 2026-06-23: loenudviklingBeregningsgrundlagEnum udvidet med 'KL-lønaftaler' (ny
+// lønudviklings-model). PERSISTED_DATA_VERSION bumpet til 3.6 (reel persisted schema-ændring;
+// enum-værdimængde udvidet).
+const SCHEMA_FINGERPRINT_SNAPSHOT = 'fnv1a-218e48fa';
 
 describe('persistenceVersionDrift', () => {
   it('schema fingerprint matcher snapshot — ved ændring: bump PERSISTED_DATA_VERSION og opdater SCHEMA_FINGERPRINT_SNAPSHOT', () => {

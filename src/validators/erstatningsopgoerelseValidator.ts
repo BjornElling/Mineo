@@ -22,6 +22,7 @@ import { isISODateString, type ISODateString } from '../types/branded';
 import { aarsloenAslMax, getYearBoundsForYearlyRate, reguleringssats, svieSmertePrDag, svieSmerteMax, satserAngivAarYearBounds } from '../data/lovbestemteRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, isKRLSatstabelId } from '../data/krlRates';
+import { getReguleringsDatoIntervalForKL } from '../data/klLoenaftaler';
 import { amountValueToNumber } from '../utils/expressionAmount';
 import { isSvieSmerteRowEmpty, isTafRowEmpty, isOevrigeKravRowEmpty } from '../domain/erstatningsopgoerelse/helpers/rowEmpty';
 import { detectOverlappingPeriods } from '../domain/erstatningsopgoerelse/engines/periodOverlapDetection';
@@ -906,7 +907,7 @@ const validateLoenudviklingDataCoverage = (
   options?: ErstatningsopgoerelseValidationOptions
 ): ValidationError[] => {
   const grundlag = af.loenudviklingBeregningsgrundlag;
-  if (grundlag !== 'Statistik' && grundlag !== 'KRL satstabel') return [];
+  if (grundlag !== 'Statistik' && grundlag !== 'KRL satstabel' && grundlag !== 'KL-lønaftaler') return [];
 
   const anvendtReguleringsdato = resolveAnvendtReguleringsdato({
     beregnesUdFra: values.beregnesUdFra,
@@ -919,9 +920,11 @@ const validateLoenudviklingDataCoverage = (
 
   const coverage = grundlag === 'Statistik'
     ? getReguleringsDatoIntervalForStatistikModel(af.loenudviklingStatistikModel ?? '')
-    : isKRLSatstabelId(af.loenudviklingKRLSatstabel)
-      ? getReguleringsDatoIntervalForKRL(af.loenudviklingKRLSatstabel)
-      : undefined;
+    : grundlag === 'KL-lønaftaler'
+      ? getReguleringsDatoIntervalForKL()
+      : isKRLSatstabelId(af.loenudviklingKRLSatstabel)
+        ? getReguleringsDatoIntervalForKRL(af.loenudviklingKRLSatstabel)
+        : undefined;
   if (grundlag === 'Statistik' && isAslStatistikModel((af.loenudviklingStatistikModel ?? '').trim())) {
     const baseYear = Number.parseInt(anvendtReguleringsdato.slice(0, 4), 10);
     const tafRanges = buildTafRanges(values, { skadedatoISO: options?.skadedatoISO });
@@ -945,7 +948,9 @@ const validateLoenudviklingDataCoverage = (
 
   const sourceLabel = grundlag === 'Statistik'
     ? `statistikmodellen "${af.loenudviklingStatistikModel ?? ''}"`
-    : `KRL-satstabellen "${af.loenudviklingKRLSatstabel ?? ''}"`;
+    : grundlag === 'KL-lønaftaler'
+      ? 'KL-lønaftalerne'
+      : `KRL-satstabellen "${af.loenudviklingKRLSatstabel ?? ''}"`;
   const employmentPrefix = values.beregnesUdFra === 'Beregningsperiode'
     ? `Ansættelsesforhold ${index + 1}: `
     : '';

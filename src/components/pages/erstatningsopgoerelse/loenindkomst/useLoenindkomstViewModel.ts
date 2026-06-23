@@ -32,7 +32,7 @@ import { getPersistedSectionSnapshot, usePersistedSectionSelector } from '../../
 import { useReconcileInvalidDraftScopes } from '../../../../hooks/tableInput';
 import { CELL_TABLE_IDS } from '../../../../config/cellInvalidDraftScopes';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
-import { downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
+import { downloadKlDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
 import { formatAsAmount } from '../../../../utils/formatUtils';
 import { hasIndtastetLoenoplysninger } from '../../../../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
@@ -1009,6 +1009,16 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     [settings]
   );
 
+  const handleDownloadKLPdf = React.useCallback(
+    async () => {
+      await downloadKlDokument({
+        settings,
+        persistedStamdata: getPersistedSectionSnapshot('stamdata'),
+      });
+    },
+    [settings]
+  );
+
   /**
    * Handler til at opdatere filtre for et specifikt Ansættelsesforhold (persisted i sagsdata)
    *
@@ -1196,5 +1206,6 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
     handleMoveDown,
     handleDownloadReguleringPdf,
     handleDownloadKRLPdf,
+    handleDownloadKLPdf,
   };
 }
