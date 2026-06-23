@@ -130,6 +130,39 @@ export const resolveTafDateBounds = (
   return { foerste, sidste };
 };
 
+/**
+ * Kanonisk opslag af de beregnede lønudviklingssegmenter for ét renderet
+ * ansættelsesforhold (kilden kommer fra `resolveLoenudviklingKilde`).
+ *
+ * `perAnsaettelse` er kun udfyldt ved `beregnesUdFra === 'Beregningsperiode'`, hvor
+ * hvert ansættelsesforhold har sit eget reguleringsforløb. Ved angivet løn er
+ * `perAnsaettelse` tom, og hele forløbet ligger i de globale `beregnedeSegmenter`
+ * (kilden er ét syntetisk EO-ansættelsesforhold). Uden global-fallback her ville
+ * "Beregnet regulering"-tabellen mangle for angivet løn, selvom forløbet faktisk
+ * er beregnet og vises korrekt under "Forventet indkomst".
+ *
+ * Følger samme global-fallback-princip som `buildSfggLoenudviklingMap`
+ * (tafNettoBeregning.ts): per-ansættelse når den findes, ellers de delte globale
+ * segmenter for enkelt-kilde-modeller. Ved en reel per-ansættelse-model uden match
+ * (fx et ansættelsesforhold uden indkomst i beregningsperioden) returneres tomt,
+ * så et urelateret forløb ikke fejlagtigt vises.
+ */
+export const resolveLoenudviklingSegmenterForKilde = (
+  params: Readonly<{
+    perAnsaettelse: readonly Readonly<{
+      ansaettelsesforholdId: string;
+      beregnedeSegmenter: readonly LoenudviklingSegment[];
+    }>[];
+    globaleSegmenter: readonly LoenudviklingSegment[];
+    ansaettelsesforholdId: string;
+  }>
+): readonly LoenudviklingSegment[] => {
+  const { perAnsaettelse, globaleSegmenter, ansaettelsesforholdId } = params;
+  const match = perAnsaettelse.find((entry) => entry.ansaettelsesforholdId === ansaettelsesforholdId);
+  if (match) return match.beregnedeSegmenter;
+  return perAnsaettelse.length === 0 ? globaleSegmenter : [];
+};
+
 export const resolveLoenudviklingSegmentBounds = (
   segments: readonly LoenudviklingSegment[]
 ): Readonly<{ foerste: ISODateString; sidste: ISODateString }> | null => {

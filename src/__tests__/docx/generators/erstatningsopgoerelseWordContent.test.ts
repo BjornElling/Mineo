@@ -171,4 +171,54 @@ describe('erstatningsopgørelse → Word-indhold', () => {
     expect(text).toContain('Lønindkomst');
     expect(text).toContain('SH-dage');
   });
+
+  // Regression: ved angivet løn er loenudvikling.perAnsaettelse tom (hele forløbet ligger i de
+  // globale segmenter), så regulering-sektionens per-ansættelse-opslag fandt intet og
+  // "Beregnet regulering"-tabellen blev tom ("Ingen reguleringsrækker i perioden."), selvom
+  // reguleringsforløbet var korrekt beregnet og vist under Forventet indkomst. Reproduceres her
+  // med ASL-årslønsmaksimum (det spor brugeren observerede), men fejlen ramte alle
+  // reguleringsformer under angivet løn.
+  it('genererer Beregnet regulering-tabellen for angivet løn med ASL-årslønsmaksimum', async () => {
+    const stamdata: StamdataValues = {
+      ...structuredClone(STAMDATA_INITIAL_VALUES),
+      skadestype: 'Arbejdsulykke',
+      skadedato: toISODateString('2022-05-31'),
+    };
+    const eo = createErstatningsopgoerelseInitialValues();
+    eo.kravPaaTabtArbejdsfortjeneste = 'Ja';
+    eo.beregnesUdFra = 'Angivet månedsløn';
+    eo.maanedsloenenUdgoer = asAmountValue(41593.87);
+    eo.eoAngivetLoenLoenudvikling.loenudviklingBeregningsgrundlag = 'Statistik';
+    eo.eoAngivetLoenLoenudvikling.loenudviklingStatistikModel = 'ASL-årslønsmaksimum';
+    eo.vedroererPeriodeFra = toISODateString('2022-06-01');
+    eo.vedroererPeriodeTil = toISODateString('2025-06-30');
+    eo.tafBeregningsperiodeFra = toISODateString('2022-06-01');
+    eo.tafBeregningsperiodeTil = toISODateString('2025-06-30');
+    eo.tafPerioder = [{ id: 'taf-1', fra: toISODateString('2022-06-01'), til: toISODateString('2025-06-30'), loseFeriedage: undefined }];
+
+    const preparedEo = withSfggIngenForEmployments(eo);
+    const reguleringSelected = {
+      opgoerelse: true,
+      loenindkomst: false,
+      offentligeYdelser: false,
+      shDage: false,
+      regulering: true,
+      okSatser: false,
+      sygeferiegodtgoerelse: false,
+      midlertidigEet: false,
+    };
+
+    const { documentXml } = await renderWordDocument(() => {
+      generateErstatningsopgoerelseDocument(stamdata, preparedEo, reguleringSelected, {
+        visUdkastStempel: false,
+        document: buildProjectedDocument(stamdata, preparedEo),
+      });
+    });
+
+    const text = xmlToPlainText(documentXml);
+    expect(text).toContain('Beregnet regulering');
+    expect(text).not.toContain('Ingen reguleringsrækker i perioden.');
+    // Lønudviklingen mellem ASL-maks 2022 (570.000) og 2023 (588.000) er +3,16 %.
+    expect(text).toContain('3,16');
+  });
 });

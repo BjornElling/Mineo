@@ -2,8 +2,10 @@ import {
   buildReguleringsvaerdierTableData,
   buildReguleringIndexRows,
   resolveAnvendtReguleringsdato as resolvePdfAnvendtReguleringsdato,
+  resolveLoenudviklingSegmenterForKilde,
   resolveLoenSkadedatoText,
 } from '../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
+import type { LoenudviklingSegment } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import {
   getAngivetLoenOpreguleresFraDato,
   resolveAktivEllerFoersteLoenudviklingKilde,
@@ -45,6 +47,52 @@ describe('reguleringsPresentation', () => {
 
     expect(resolvePdfAnvendtReguleringsdato(stamdata, values, af)).toBe(sharedResult);
   };
+
+  describe('resolveLoenudviklingSegmenterForKilde', () => {
+    const seg = (fra: string, til: string, deltaPct: number): LoenudviklingSegment => ({
+      kind: 'maaneder',
+      fra: iso(fra),
+      til: iso(til),
+      maaneder: 12,
+      maanedsloenOre: 100000,
+      deltaPct,
+      amountOre: 100000,
+    });
+
+    it('falder tilbage til de globale segmenter når perAnsaettelse er tom (angivet løn)', () => {
+      // Regression: ved angivet løn er perAnsaettelse tom, og hele forløbet ligger i de
+      // globale segmenter. Uden denne fallback manglede "Beregnet regulering"-tabellen helt,
+      // selvom forløbet var korrekt beregnet og vist under Forventet indkomst.
+      const globaleSegmenter = [seg('2022-06-01', '2022-12-31', 0), seg('2023-01-01', '2023-12-31', 3.16)];
+      const segments = resolveLoenudviklingSegmenterForKilde({
+        perAnsaettelse: [],
+        globaleSegmenter,
+        ansaettelsesforholdId: 'eo-angivet-loen',
+      });
+      expect(segments).toEqual(globaleSegmenter);
+    });
+
+    it('bruger per-ansættelse-segmenterne når et match findes', () => {
+      const afSegmenter = [seg('2023-01-01', '2023-12-31', 2)];
+      const segments = resolveLoenudviklingSegmenterForKilde({
+        perAnsaettelse: [{ ansaettelsesforholdId: 'af-1', beregnedeSegmenter: afSegmenter }],
+        globaleSegmenter: [seg('2020-01-01', '2020-12-31', 99)],
+        ansaettelsesforholdId: 'af-1',
+      });
+      expect(segments).toEqual(afSegmenter);
+    });
+
+    it('returnerer tomt ved reel per-ansættelse-model uden match (ikke globale segmenter)', () => {
+      // Et ansættelsesforhold uden eget forløb (fx uden indkomst i beregningsperioden) må ikke
+      // arve det samlede globale forløb fra de øvrige ansættelsesforhold.
+      const segments = resolveLoenudviklingSegmenterForKilde({
+        perAnsaettelse: [{ ansaettelsesforholdId: 'af-1', beregnedeSegmenter: [seg('2023-01-01', '2023-12-31', 2)] }],
+        globaleSegmenter: [seg('2023-01-01', '2023-12-31', 2)],
+        ansaettelsesforholdId: 'af-2',
+      });
+      expect(segments).toEqual([]);
+    });
+  });
 
   it('bruger samme reguleringsdato i PDF-adapteren som den kanoniske shared-funktion', () => {
     const values = cloneInitialValues();

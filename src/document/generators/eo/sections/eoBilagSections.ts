@@ -411,6 +411,7 @@ export const renderEoBilagSections = (ctx: RenderEoBilagSectionsContext): void =
       eoValues,
       stamdataValues,
       modelLoenudviklingPerAnsaettelse: model.tabtArbejdsfortjeneste.loenudvikling?.perAnsaettelse ?? [],
+      modelLoenudviklingGlobaleSegmenter: model.tabtArbejdsfortjeneste.loenudvikling?.beregnedeSegmenter ?? [],
       startEoBilagPage,
       renderSubheader,
       safeAddWrappedText: writer.writeWrappedText,

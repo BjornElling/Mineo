@@ -30,6 +30,7 @@ import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../../sc
 import type { LoenudviklingSegment } from '../../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
 import {
   resolveLoenudviklingSegmentBounds,
+  resolveLoenudviklingSegmenterForKilde,
   type ReguleringIndexRow,
   type ReguleringValuesTableData,
 } from '../../../../domain/erstatningsopgoerelse/engines/reguleringsPresentation';
@@ -54,6 +55,9 @@ type ReguleringSectionContext = Readonly<{
     ansaettelsesforholdId: string;
     beregnedeSegmenter: readonly LoenudviklingSegment[];
   }>[];
+  // De globale lønudviklingssegmenter (hele det beregnede forløb). Bruges som
+  // fallback for enkelt-kilde-modeller (angivet løn), hvor perAnsaettelse er tom.
+  modelLoenudviklingGlobaleSegmenter: readonly LoenudviklingSegment[];
   startEoBilagPage: (titleText: string) => void;
   renderSubheader: (text: string, nextLineHeight?: number, options?: Readonly<{ addTopSpacing?: boolean }>) => void;
   safeAddWrappedText: (text: string) => void;
@@ -231,6 +235,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     eoValues,
     stamdataValues,
     modelLoenudviklingPerAnsaettelse,
+    modelLoenudviklingGlobaleSegmenter,
     startEoBilagPage,
     renderSubheader,
     safeAddWrappedText,
@@ -379,9 +384,11 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
   writer.addSectionSpacer();
 
   for (const [index, ansaettelsesforhold] of ansaettelser.entries()) {
-    const perAnsaettelseSegments =
-      modelLoenudviklingPerAnsaettelse.find((entry) => entry.ansaettelsesforholdId === ansaettelsesforhold.id)?.beregnedeSegmenter
-      ?? [];
+    const perAnsaettelseSegments = resolveLoenudviklingSegmenterForKilde({
+      perAnsaettelse: modelLoenudviklingPerAnsaettelse,
+      globaleSegmenter: modelLoenudviklingGlobaleSegmenter,
+      ansaettelsesforholdId: ansaettelsesforhold.id,
+    });
     const coverageBounds = resolveLoenudviklingSegmentBounds(perAnsaettelseSegments) ?? tafBounds;
     const underoverskrift = ansaettelsesforhold.navnPaaArbejdssted?.trim() || `Ansættelsesforhold ${index + 1}`;
     const visUnderoverskrift = ansaettelsesforhold.id !== EO_ANGIVET_LOEN_ID;
