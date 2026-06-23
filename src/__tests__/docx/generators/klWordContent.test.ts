@@ -14,8 +14,12 @@ describe('kl → Word-indhold', () => {
     const text = xmlToPlainText(documentXml);
     expect(filename).toMatch(/\.docx$/);
     expect(text).toContain('KL-lønaftaler');
-    // En kilde-linje med tekst og en akkumuleret indeks-værdi i indeks-form.
-    expect(text).toContain('generelle stigninger');
+    // Kolonneoverskrifter for det 4-kolonners layout.
+    expect(text).toContain('Regulering');
+    expect(text).toContain('Procent');
+    // Reguleringstype, procent og akkumuleret indeks (hver i sin kolonne).
+    expect(text).toContain('Generelle stigninger');
+    expect(text).toContain('1,30%');
     expect(text).toContain('1,124454');
     // KL-dokumentet har bevidst ingen kilde-linje (modsat KRL).
     expect(text).not.toContain('Kilde');

@@ -1,6 +1,7 @@
 import type { RowInput } from 'jspdf-autotable';
 import { resolveDocumentSectionEndY } from '../../../layout/documentLayoutHelpers';
 import {
+  createDocumentDistributedColumnStyles,
   createDocumentTableCell,
   createDocumentTableHeaderCell,
   renderDocumentTable,
@@ -339,10 +340,15 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
     for (const columnIndex of rightAlignedColumnInsets.keys()) {
       dataRowColumnHalign[columnIndex] = 'right';
     }
+    // Fordel pladsen jævnt mellem kolonnerne i stedet for autotables
+    // indholdsbaserede bredder. Den adaptive omfordeling i renderDocumentTable
+    // udvider stadig kolonner, hvis en kolonnes indhold kræver mere plads.
+    const columnStyles = createDocumentDistributedColumnStyles(normalizedTableData.columns.length);
     const finalY = renderDocumentTable({
       doc,
       startY,
       body: tableRows,
+      columnStyles,
       dataRowColumnHalign,
       didParseCell: (data) => {
         const isDataRow = data.row.index >= 1;
@@ -447,7 +453,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         writeLabelValueLine('Anciennitetstillæg', anciennitetValueDisplay);
       }
     }
-    writer.writeUnderlinedSubheader('Reguleringsværdier:');
+    writer.writeUnderlinedSubheader('Reguleringsværdier');
 
     const reguleringsvaerdierTableData =
       coverageBounds
@@ -461,7 +467,7 @@ export const renderReguleringSection = (ctx: ReguleringSectionContext): void => 
         : null;
     renderReguleringsvaerdierTable(reguleringsvaerdierTableData);
 
-    writer.writeUnderlinedSubheader('Beregnet regulering:');
+    writer.writeUnderlinedSubheader('Beregnet regulering');
 
     const reguleringTableRows = buildReguleringIndexRows({
       segments: perAnsaettelseSegments,

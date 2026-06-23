@@ -29,7 +29,10 @@ import { roundByMethod } from '../utils/rounding';
 /** Én linje i KL-lønaftalernes oversigt (kilde til download-dokumentet). */
 export interface KLLoenaftaleRow {
   readonly fraDato: DanishDateString;
-  readonly tekst: string;
+  /** Reguleringens art, fx "Generelle stigninger" eller "Ingen regulering". */
+  readonly regulering: string;
+  /** Reguleringens procentsats som vist, fx "1,30%" — tom streng når der ikke reguleres. */
+  readonly procent: string;
   /** Akkumuleret indeksværdi efter linjen, fx 1,124454. */
   readonly indeks: number;
 }
@@ -53,76 +56,77 @@ const d = (dateStr: string): DanishDateString => toDanishDateString(dateStr);
 // ===== KILDE-DATA (kronologisk, ældste først) =====
 
 /**
- * Samlet rå-tabel: [fraDato, tekst, akkumuleret indeks].
+ * Samlet rå-tabel: [fraDato, regulering, procent, akkumuleret indeks].
  *
- * Teksten er gengivet ordret fra lønaftalerne, men uden den oprindelige
- * nummerering og uden "pr. den <dato>"-halen, da datoen står i sin egen kolonne.
+ * Reguleringens art og procentsats holdes i hver sin kolonne (datoen står i sin egen
+ * kolonne). Nummerering og "pr. den <dato>"-halen fra lønaftalerne er udeladt.
+ * Procenten er tom streng på linjer uden regulering.
  */
-const klLoenaftaleRaekkerData: ReadonlyArray<readonly [fraDato: string, tekst: string, indeks: number]> = [
-  ['01-04-2005', 'Ingen regulering (trinprojektet)',                                       1.124454],
-  ['01-01-2006', '+ generelle stigninger (0,69%)',                                          1.132213],
-  ['01-01-2006', '+ særlig aftalt regulering (0,70%)',                                       1.140138],
-  ['01-10-2006', '+ særlig regulering (1,00%)',                                              1.151539],
-  ['01-04-2007', '+ generelle stigninger (0,80%)',                                          1.160535],
-  ['01-10-2007', '+ særlig regulering (0,41%)',                                              1.165293],
-  ['01-04-2008', '+ generelle stigninger (4,09%)',                                          1.212953],
-  ['01-10-2008', '+ særlig regulering (1,47%)',                                              1.230783],
-  ['01-04-2009', '+ generelle stigninger (0,20%)',                                          1.233114],
-  ['01-10-2009', '+ generelle stigninger (0,68%)',                                          1.241038],
-  ['01-10-2009', '+ særlig regulering (0,48%)',                                              1.246995],
-  ['01-04-2010', '+ generelle stigninger (0,50%)',                                          1.252821],
-  ['01-04-2010', '+ særlig aftalt regulering (-0,32%)',                                      1.248812],
-  ['01-10-2010', 'Ingen regulering',                                                        1.248812],
-  ['01-04-2011', 'Ingen regulering',                                                        1.248812],
-  ['01-01-2012', '+ særlig regulering (-0,08%)',                                             1.247813],
-  ['01-01-2012', '+ generelle stigninger (1,71%)',                                          1.268904],
-  ['01-10-2012', '+ generelle stigninger (0,20%)',                                          1.271371],
-  ['01-10-2012', '+ særlig regulering (-0,05%)',                                             1.270735],
-  ['01-04-2013', '+ generelle stigninger (0,50%)',                                          1.277089],
-  ['01-10-2013', '+ generelle stigninger (0,60%)',                                          1.284713],
-  ['01-10-2013', '+ særlig regulering (-0,48%)',                                             1.278546],
-  ['01-01-2014', '+ generelle stigninger (0,50%)',                                          1.284900],
-  ['01-10-2014', '+ generelle stigninger (0,37%)',                                          1.289602],
-  ['01-10-2014', '+ særlig regulering (0,26%)',                                              1.292955],
-  ['01-04-2015', '+ generelle stigninger (0,96%)',                                          1.305367],
-  ['01-10-2015', '+ generelle stigninger (0,35%)',                                          1.309892],
-  ['01-10-2015', '+ særlig regulering (0,11%)',                                              1.311333],
-  ['01-01-2016', '+ generelle stigninger (0,50%)',                                          1.317798],
-  ['01-10-2016', '+ generelle stigninger (1,00%)',                                          1.330728],
-  ['01-10-2016', '+ særlig regulering (-0,12%)',                                             1.329131],
-  ['01-01-2017', '+ generelle stigninger (1,20%)',                                          1.344646],
-  ['01-10-2017', '+ generelle stigninger (0,80%)',                                          1.354990],
-  ['01-10-2017', '+ særlig regulering (-0,60%)',                                             1.346860],
-  ['01-04-2018', '+ generelle stigninger (1,10%)',                                          1.361675],
-  ['01-10-2018', '+ generelle stigninger (1,30%)',                                          1.379184],
-  ['01-10-2018', '+ særlig regulering (-0,14%)',                                             1.377253],
-  ['01-04-2019', 'Ingen regulering, men grundsatsforhøjelse',                               1.377253],
-  ['01-10-2019', '+ generelle stigninger (1,00%)',                                          1.390722],
-  ['01-10-2019', '+ særlig regulering (0,01%)',                                              1.390861],
-  ['01-01-2020', '+ generelle stigninger (1,60%)',                                          1.412411],
-  ['01-04-2020', '+ generelle stigninger (0,40%)',                                          1.417798],
-  ['01-10-2020', '+ generelle stigninger (0,70%)',                                          1.427226],
-  ['01-10-2020', '+ særlig regulering (0,09%)',                                              1.428511],
-  ['01-04-2021', '+ generelle stigninger (1,00%)',                                          1.442796],
-  ['01-10-2021', '+ generelle stigninger (1,01%)',                                          1.457224],
-  ['01-10-2021', '+ særlig regulering (-0,02%)',                                             1.456933],
-  ['01-04-2022', 'Ingen regulering, men grundsatsforhøjelse',                               1.456933],
-  ['01-10-2022', '+ generelle stigninger (1,90%)',                                          1.484075],
-  ['01-10-2022', '+ særlig regulering (0,67%)',                                              1.494018],
-  ['01-04-2023', '+ generelle stigninger (0,30%)',                                          1.498304],
-  ['01-10-2023', '+ generelle stigninger (0,81%)',                                          1.509875],
-  ['01-10-2023', '+ særlig regulering (0,47%)',                                              1.516971],
-  ['01-04-2024', '+ generelle stigninger (4,00%)',                                          1.577650],
-  ['01-10-2024', '+ særlig regulering (1,30%)',                                              1.598159],
-  ['01-04-2025', 'Ingen regulering, men grundsatsforhøjelse',                               1.598159],
-  ['01-10-2025', '+ generelle stigninger (0,24%)',                                          1.601800],
-  ['01-10-2025', '+ særlig regulering (0,07%)',                                              1.602921],
-  ['01-11-2025', '+ generelle stigninger (0,20%)',                                          1.605955],
-  ['01-11-2025', '+ særlig regulering (0,54%) (sfa. ultimo-forhandlingen)',                  1.614627],
-  ['01-04-2026', '+ generelle stigninger (2,40%), inkl. teknisk korrektion (0,20%)',        1.653378],
-  ['01-10-2026', '+ generelle stigninger (0,70%)',                                          1.664680],
-  ['01-10-2026', '+ særlig regulering (-0,16%)',                                             1.662017],
-  ['01-04-2027', 'Ingen regulering, men grundsatsforhøjelse',                               1.662017],
+const klLoenaftaleRaekkerData: ReadonlyArray<readonly [fraDato: string, regulering: string, procent: string, indeks: number]> = [
+  ['01-04-2005', 'Ingen regulering (trinprojektet)',                       '',         1.124454],
+  ['01-01-2006', 'Generelle stigninger',                                   '0,69%',    1.132213],
+  ['01-01-2006', 'Særlig aftalt regulering',                               '0,70%',    1.140138],
+  ['01-10-2006', 'Særlig regulering',                                      '1,00%',    1.151539],
+  ['01-04-2007', 'Generelle stigninger',                                   '0,80%',    1.160535],
+  ['01-10-2007', 'Særlig regulering',                                      '0,41%',    1.165293],
+  ['01-04-2008', 'Generelle stigninger',                                   '4,09%',    1.212953],
+  ['01-10-2008', 'Særlig regulering',                                      '1,47%',    1.230783],
+  ['01-04-2009', 'Generelle stigninger',                                   '0,20%',    1.233114],
+  ['01-10-2009', 'Generelle stigninger',                                   '0,68%',    1.241038],
+  ['01-10-2009', 'Særlig regulering',                                      '0,48%',    1.246995],
+  ['01-04-2010', 'Generelle stigninger',                                   '0,50%',    1.252821],
+  ['01-04-2010', 'Særlig aftalt regulering',                               '-0,32%',   1.248812],
+  ['01-10-2010', 'Ingen regulering',                                       '',         1.248812],
+  ['01-04-2011', 'Ingen regulering',                                       '',         1.248812],
+  ['01-01-2012', 'Særlig regulering',                                      '-0,08%',   1.247813],
+  ['01-01-2012', 'Generelle stigninger',                                   '1,71%',    1.268904],
+  ['01-10-2012', 'Generelle stigninger',                                   '0,20%',    1.271371],
+  ['01-10-2012', 'Særlig regulering',                                      '-0,05%',   1.270735],
+  ['01-04-2013', 'Generelle stigninger',                                   '0,50%',    1.277089],
+  ['01-10-2013', 'Generelle stigninger',                                   '0,60%',    1.284713],
+  ['01-10-2013', 'Særlig regulering',                                      '-0,48%',   1.278546],
+  ['01-01-2014', 'Generelle stigninger',                                   '0,50%',    1.284900],
+  ['01-10-2014', 'Generelle stigninger',                                   '0,37%',    1.289602],
+  ['01-10-2014', 'Særlig regulering',                                      '0,26%',    1.292955],
+  ['01-04-2015', 'Generelle stigninger',                                   '0,96%',    1.305367],
+  ['01-10-2015', 'Generelle stigninger',                                   '0,35%',    1.309892],
+  ['01-10-2015', 'Særlig regulering',                                      '0,11%',    1.311333],
+  ['01-01-2016', 'Generelle stigninger',                                   '0,50%',    1.317798],
+  ['01-10-2016', 'Generelle stigninger',                                   '1,00%',    1.330728],
+  ['01-10-2016', 'Særlig regulering',                                      '-0,12%',   1.329131],
+  ['01-01-2017', 'Generelle stigninger',                                   '1,20%',    1.344646],
+  ['01-10-2017', 'Generelle stigninger',                                   '0,80%',    1.354990],
+  ['01-10-2017', 'Særlig regulering',                                      '-0,60%',   1.346860],
+  ['01-04-2018', 'Generelle stigninger',                                   '1,10%',    1.361675],
+  ['01-10-2018', 'Generelle stigninger',                                   '1,30%',    1.379184],
+  ['01-10-2018', 'Særlig regulering',                                      '-0,14%',   1.377253],
+  ['01-04-2019', 'Ingen regulering, men grundsatsforhøjelse',              '',         1.377253],
+  ['01-10-2019', 'Generelle stigninger',                                   '1,00%',    1.390722],
+  ['01-10-2019', 'Særlig regulering',                                      '0,01%',    1.390861],
+  ['01-01-2020', 'Generelle stigninger',                                   '1,60%',    1.412411],
+  ['01-04-2020', 'Generelle stigninger',                                   '0,40%',    1.417798],
+  ['01-10-2020', 'Generelle stigninger',                                   '0,70%',    1.427226],
+  ['01-10-2020', 'Særlig regulering',                                      '0,09%',    1.428511],
+  ['01-04-2021', 'Generelle stigninger',                                   '1,00%',    1.442796],
+  ['01-10-2021', 'Generelle stigninger',                                   '1,01%',    1.457224],
+  ['01-10-2021', 'Særlig regulering',                                      '-0,02%',   1.456933],
+  ['01-04-2022', 'Ingen regulering, men grundsatsforhøjelse',              '',         1.456933],
+  ['01-10-2022', 'Generelle stigninger',                                   '1,90%',    1.484075],
+  ['01-10-2022', 'Særlig regulering',                                      '0,67%',    1.494018],
+  ['01-04-2023', 'Generelle stigninger',                                   '0,30%',    1.498304],
+  ['01-10-2023', 'Generelle stigninger',                                   '0,81%',    1.509875],
+  ['01-10-2023', 'Særlig regulering',                                      '0,47%',    1.516971],
+  ['01-04-2024', 'Generelle stigninger',                                   '4,00%',    1.577650],
+  ['01-10-2024', 'Særlig regulering',                                      '1,30%',    1.598159],
+  ['01-04-2025', 'Ingen regulering, men grundsatsforhøjelse',              '',         1.598159],
+  ['01-10-2025', 'Generelle stigninger',                                   '0,24%',    1.601800],
+  ['01-10-2025', 'Særlig regulering',                                      '0,07%',    1.602921],
+  ['01-11-2025', 'Generelle stigninger',                                   '0,20%',    1.605955],
+  ['01-11-2025', 'Særlig regulering (sfa. ultimo-forhandlingen)',          '0,54%',    1.614627],
+  ['01-04-2026', 'Generelle stigninger, inkl. teknisk korrektion (0,20%)', '2,40%',    1.653378],
+  ['01-10-2026', 'Generelle stigninger',                                   '0,70%',    1.664680],
+  ['01-10-2026', 'Særlig regulering',                                      '-0,16%',   1.662017],
+  ['01-04-2027', 'Ingen regulering, men grundsatsforhøjelse',              '',         1.662017],
 ];
 
 /**
@@ -130,7 +134,7 @@ const klLoenaftaleRaekkerData: ReadonlyArray<readonly [fraDato: string, tekst: s
  * Bruges til det dokument brugeren downloader.
  */
 export const klLoenaftaleRaekker: ReadonlyArray<KLLoenaftaleRow> = klLoenaftaleRaekkerData.map(
-  ([fraDato, tekst, indeks]) => ({ fraDato: d(fraDato), tekst, indeks })
+  ([fraDato, regulering, procent, indeks]) => ({ fraDato: d(fraDato), regulering, procent, indeks })
 );
 
 // ===== AFLEDT SATSTABEL (beregning) =====
@@ -171,6 +175,38 @@ const buildKlSatstabelVaerdier = (): ReadonlyArray<KLSatsVaerdi> => {
  * Reguleringsprocenter, fx 65.3378 = 65,3378 %.
  */
 export const klSatstabelVaerdier: ReadonlyArray<KLSatsVaerdi> = buildKlSatstabelVaerdier();
+
+// ===== REGULERINGSPROCENT PR. DATO =====
+
+/** Parser en procentstreng som "1,30%" / "-0,32%" / "" til et tal (i procentpoint). */
+const parseProcentString = (value: string): number => {
+  const trimmed = value.trim();
+  if (trimmed === '') return 0;
+  const parsed = Number.parseFloat(trimmed.replace('%', '').replace(',', '.'));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+/**
+ * Summen af dagens reguleringstrin pr. dato (i procentpoint).
+ * Flere reguleringer på samme dato lægges sammen, fx 1.1.2006: 0,69 % + 0,70 % = 1,39 %.
+ */
+const klReguleringPctByDato: ReadonlyMap<DanishDateString, number> = (() => {
+  const map = new Map<DanishDateString, number>();
+  for (const row of klLoenaftaleRaekker) {
+    map.set(row.fraDato, (map.get(row.fraDato) ?? 0) + parseProcentString(row.procent));
+  }
+  for (const [dato, sum] of map) {
+    map.set(dato, roundByMethod(sum, 2, 'halfAwayFromZero'));
+  }
+  return map;
+})();
+
+/**
+ * Returnerer den summerede reguleringsprocent for en given dato (procentpoint),
+ * eller undefined hvis datoen ikke optræder i KL-lønaftalerne.
+ */
+export const getKLReguleringPctForDato = (fraDato: DanishDateString): number | undefined =>
+  klReguleringPctByDato.get(fraDato);
 
 // ===== OPSLAG =====
 

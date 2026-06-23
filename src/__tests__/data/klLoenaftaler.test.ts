@@ -2,8 +2,10 @@ import {
   klLoenaftaleRaekker,
   klSatstabelVaerdier,
   getKLSatstabelVaerdier,
+  getKLReguleringPctForDato,
   getReguleringsDatoIntervalForKL,
 } from '../../data/klLoenaftaler';
+import { toDanishDateString } from '../../types/branded';
 
 const DANISH_DATE = /^\d{2}-\d{2}-\d{4}$/;
 
@@ -20,16 +22,30 @@ describe('klLoenaftaleRaekker (kilde-rækker til dokument)', () => {
     });
   });
 
-  it('bevarer delkomponenter på samme dato som separate linjer', () => {
+  it('bevarer delkomponenter på samme dato som separate linjer med adskilt procent', () => {
     const denFoersteJanuar2006 = klLoenaftaleRaekker.filter((row) => row.fraDato === '01-01-2006');
     expect(denFoersteJanuar2006).toHaveLength(2);
-    expect(denFoersteJanuar2006[0].tekst).toContain('generelle stigninger');
-    expect(denFoersteJanuar2006[1].tekst).toContain('særlig aftalt regulering');
+    expect(denFoersteJanuar2006[0]).toMatchObject({ regulering: 'Generelle stigninger', procent: '0,69%' });
+    expect(denFoersteJanuar2006[1]).toMatchObject({ regulering: 'Særlig aftalt regulering', procent: '0,70%' });
   });
 
-  it('teksten indeholder ikke "pr. den" (datoen står i egen kolonne)', () => {
+  it('regulering og procent holdes i hver sin kolonne (ingen procent i regulerings-teksten)', () => {
+    const okt2018 = klLoenaftaleRaekker.find((row) => row.fraDato === '01-10-2018' && row.regulering === 'Generelle stigninger');
+    expect(okt2018?.procent).toBe('1,30%');
+    expect(okt2018?.regulering).not.toContain('%');
+  });
+
+  it('linjer uden regulering har tom procent', () => {
     for (const row of klLoenaftaleRaekker) {
-      expect(row.tekst).not.toContain('pr. den');
+      if (row.regulering.startsWith('Ingen regulering')) {
+        expect(row.procent).toBe('');
+      }
+    }
+  });
+
+  it('reguleringsteksten indeholder ikke "pr. den" (datoen står i egen kolonne)', () => {
+    for (const row of klLoenaftaleRaekker) {
+      expect(row.regulering).not.toContain('pr. den');
     }
   });
 
@@ -82,6 +98,30 @@ describe('klSatstabelVaerdier (afledt beregnings-satstabel)', () => {
 
   it('getKLSatstabelVaerdier returnerer den samme tabel', () => {
     expect(getKLSatstabelVaerdier()).toBe(klSatstabelVaerdier);
+  });
+});
+
+describe('getKLReguleringPctForDato (summeret dagsregulering)', () => {
+  const d = (s: string) => toDanishDateString(s);
+
+  it('summerer flere reguleringer på samme dato', () => {
+    // 1.1.2006: 0,69 % + 0,70 %.
+    expect(getKLReguleringPctForDato(d('01-01-2006'))).toBe(1.39);
+    // 1.10.2021: 1,01 % + (-0,02 %).
+    expect(getKLReguleringPctForDato(d('01-10-2021'))).toBe(0.99);
+    // 1.4.2010: 0,50 % + (-0,32 %).
+    expect(getKLReguleringPctForDato(d('01-04-2010'))).toBe(0.18);
+  });
+
+  it('returnerer enkelt regulering uændret', () => {
+    // 1.4.2024 og 1.4.2018 har hver kun én regulering på datoen.
+    expect(getKLReguleringPctForDato(d('01-04-2024'))).toBe(4.0);
+    expect(getKLReguleringPctForDato(d('01-04-2018'))).toBe(1.1);
+  });
+
+  it('giver 0 for rene ikke-regulerende datoer og undefined for ukendte datoer', () => {
+    expect(getKLReguleringPctForDato(d('01-04-2019'))).toBe(0);
+    expect(getKLReguleringPctForDato(d('15-07-2021'))).toBeUndefined();
   });
 });
 

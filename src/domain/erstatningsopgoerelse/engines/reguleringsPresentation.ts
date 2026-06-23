@@ -45,7 +45,7 @@ import {
 import { getOffentligLoenForDato, getOffentligLoenForPeriode } from '../../../data/offentligLoenLookup';
 import { resolveOffentligLoenTypeFromLabel, toLoentrin, type Loengruppe } from '../../../data/offentligLoenTypes';
 import { getKRLSatstabel, isKRLSatstabelId } from '../../../data/krlRates';
-import { getKLSatstabelVaerdier } from '../../../data/klLoenaftaler';
+import { getKLSatstabelVaerdier, getKLReguleringPctForDato } from '../../../data/klLoenaftaler';
 import { getStatistiskLoenudvikling } from '../../../data/statistiskeRates';
 import { STORE_BEDEDAG_START } from '../../../config/indskudteLoentillaeg';
 import { resolveAutoStoreBededagPct } from '../helpers/loenindkomstSatser';
@@ -934,6 +934,10 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const formatKlIndeks = (reguleringsPct: number): string =>
       formatAsAmount((100 + reguleringsPct) / 100, 6);
 
+    // Dagens regulering (summen af datoens reguleringstrin) vises altid med fortegn.
+    const formatKlSignedPct = (value: number): string =>
+      `${value < 0 ? '-' : '+'}${formatAsAmount(Math.abs(value), 2)} %`;
+
     const periodStarts = vaerdier
       .map((v) => {
         const startIso = parseDanishToISO(v.fraDato);
@@ -956,13 +960,16 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const rows: string[][] = finalDates.flatMap((iso) => {
       const period = periodStarts.filter((entry) => entry.startIso <= iso).at(-1);
       if (!period && anvendtReguleringsdato === iso) {
-        return [[formatDateShort(iso), '-']];
+        return [[formatDateShort(iso), '-', '-']];
       }
       if (!period) return [];
-      return [[formatDateShort(iso), formatKlIndeks(period.reguleringsPct)]];
+      const danishDato = isoToDanish(iso);
+      const reguleringPct = danishDato ? getKLReguleringPctForDato(danishDato) : undefined;
+      const reguleringDisplay = reguleringPct === undefined ? '-' : formatKlSignedPct(reguleringPct);
+      return [[formatDateShort(iso), reguleringDisplay, formatKlIndeks(period.reguleringsPct)]];
     });
     return {
-      columns: ['Fra-dato', 'Akkumuleret regulering'],
+      columns: ['Fra-dato', 'Regulering', 'Akkumuleret regulering'],
       rows: mergeConsecutiveValueRows(rows, {
         preserveFirstColumnValues: buildPreservedDateLabels(anvendtReguleringsdato),
       }),

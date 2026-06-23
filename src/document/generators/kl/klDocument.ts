@@ -63,13 +63,15 @@ export const generateKLDocument = (params: KLPdfParams): void => {
 
   const headerRow: RowInput = [
     createDocumentTableHeaderCell('Dato', 'left'),
-    createDocumentTableHeaderCell('Tekst', 'left'),
+    createDocumentTableHeaderCell('Regulering', 'left'),
+    createDocumentTableHeaderCell('Procent', 'right'),
     createDocumentTableHeaderCell('Akkumuleret regulering', 'right'),
   ];
 
   const bodyRows: RowInput[] = klLoenaftaleRaekker.map((row) => [
     createDocumentTableCell(row.fraDato, { halign: 'left' }),
-    createDocumentTableCell(row.tekst, { halign: 'left' }),
+    createDocumentTableCell(row.regulering, { halign: 'left' }),
+    createDocumentTableCell(row.procent, { halign: 'right' }),
     createDocumentTableCell(formatIndeks(row.indeks), { halign: 'right' }),
   ]);
 
@@ -78,13 +80,15 @@ export const generateKLDocument = (params: KLPdfParams): void => {
       createDocumentTableCell('Ingen lønaftaler tilgængelige.', { halign: 'left' }),
       createDocumentTableCell('', { halign: 'left' }),
       createDocumentTableCell('', { halign: 'right' }),
+      createDocumentTableCell('', { halign: 'right' }),
     ]);
   }
 
   const tableWidth = PDF_CONTENT_WIDTH_MM;
-  const datoWidth = 24;
-  const akkumuleretWidth = 40;
-  const tekstWidth = tableWidth - datoWidth - akkumuleretWidth;
+  const datoWidth = 22;
+  const procentWidth = 24;
+  const akkumuleretWidth = 38;
+  const reguleringWidth = tableWidth - datoWidth - procentWidth - akkumuleretWidth;
   const tableRows: RowInput[] = [headerRow, ...bodyRows];
 
   const finalY = renderDocumentTable({
@@ -94,8 +98,9 @@ export const generateKLDocument = (params: KLPdfParams): void => {
     tableWidth,
     columnStyles: {
       0: { cellWidth: datoWidth, halign: 'left' },
-      1: { cellWidth: tekstWidth, halign: 'left' },
-      2: { cellWidth: akkumuleretWidth, halign: 'right' },
+      1: { cellWidth: reguleringWidth, halign: 'left' },
+      2: { cellWidth: procentWidth, halign: 'right' },
+      3: { cellWidth: akkumuleretWidth, halign: 'right' },
     },
   });
 
