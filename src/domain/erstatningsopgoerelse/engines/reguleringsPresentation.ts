@@ -967,7 +967,7 @@ export const buildReguleringsvaerdierTableData = (params: Readonly<{
     const formatKlIndeks = (reguleringsPct: number): string =>
       formatAsAmount((100 + reguleringsPct) / 100, 6);
 
-    // Dagens regulering (summen af datoens reguleringstrin) vises altid med fortegn.
+    // Periodens realiserede regulering (afledt af forholdet mellem akkumulerede indeks) vises altid med fortegn.
     const formatKlSignedPct = (value: number): string =>
       `${value < 0 ? '-' : '+'}${formatAsAmount(Math.abs(value), 2)} %`;
 

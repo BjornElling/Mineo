@@ -143,70 +143,77 @@ const indeksTilReguleringsPct = (indeks: number): number =>
   roundByMethod((indeks - 1) * 100, 4, 'halfAwayFromZero');
 
 /**
- * Bygger den deduplikerede satstabel beregningsmotoren bruger:
- *  - flere reguleringer på samme dato slås sammen til den endelige værdi for datoen,
+ * Deduplikeret kronologisk indeksserie ([dato, akkumuleret indeks], ældste først):
+ *  - flere reguleringer på samme dato slås sammen til datoens endelige indeks
+ *    (sidste linje på datoen vinder),
  *  - rene ikke-regulerende datoer (uændret indeks ift. forrige) udelades,
  *  - basis-indekset (første dato) bevares altid.
  *
- * Resultatet er sorteret nyeste først, som KRL-satstabellen.
+ * Både satstabellen og den periodevise reguleringsprocent afledes fra denne ene
+ * serie, så de to repræsentationer altid er indbyrdes konsistente. Indekset holdes
+ * råt (6 decimaler) her, så periodeforholdet beregnes uden afrundingstab.
  */
-const buildKlSatstabelVaerdier = (): ReadonlyArray<KLSatsVaerdi> => {
+const dedupedIndeksSerie: ReadonlyArray<readonly [DanishDateString, number]> = (() => {
   // Endelig akkumuleret indeks pr. dato (sidste linje på datoen vinder).
   const finalIndeksByDato = new Map<DanishDateString, number>();
   for (const row of klLoenaftaleRaekker) {
     finalIndeksByDato.set(row.fraDato, row.indeks);
   }
 
-  const vaerdier: KLSatsVaerdi[] = [];
+  const serie: Array<readonly [DanishDateString, number]> = [];
   let prevIndeks: number | undefined;
   for (const [dato, indeks] of finalIndeksByDato) {
     // Udelad datoer der ikke ændrer det akkumulerede indeks (men bevar første).
     if (prevIndeks !== undefined && indeks === prevIndeks) continue;
-    vaerdier.push({ fraDato: dato, reguleringsPct: indeksTilReguleringsPct(indeks) });
+    serie.push([dato, indeks] as const);
     prevIndeks = indeks;
   }
-
-  // Nyeste først (Map bevarer indsættelsesrækkefølge = kronologisk).
-  return vaerdier.reverse();
-};
+  return serie;
+})();
 
 /**
- * KL-lønaftalernes satstabel, sorteret nyeste først.
+ * KL-lønaftalernes satstabel, sorteret nyeste først (som KRL-satstabellen).
  * Reguleringsprocenter, fx 65.3378 = 65,3378 %.
  */
-export const klSatstabelVaerdier: ReadonlyArray<KLSatsVaerdi> = buildKlSatstabelVaerdier();
+export const klSatstabelVaerdier: ReadonlyArray<KLSatsVaerdi> = dedupedIndeksSerie
+  .map(([fraDato, indeks]) => ({ fraDato, reguleringsPct: indeksTilReguleringsPct(indeks) }))
+  .reverse();
 
-// ===== REGULERINGSPROCENT PR. DATO =====
-
-/** Parser en procentstreng som "1,30%" / "-0,32%" / "" til et tal (i procentpoint). */
-const parseProcentString = (value: string): number => {
-  const trimmed = value.trim();
-  if (trimmed === '') return 0;
-  const parsed = Number.parseFloat(trimmed.replace('%', '').replace(',', '.'));
-  return Number.isFinite(parsed) ? parsed : 0;
-};
+// ===== PERIODEVIS REGULERINGSPROCENT =====
 
 /**
- * Summen af dagens reguleringstrin pr. dato (i procentpoint).
- * Flere reguleringer på samme dato lægges sammen, fx 1.1.2006: 0,69 % + 0,70 % = 1,39 %.
+ * Den realiserede regulering pr. dato, afledt af forholdet mellem datoens
+ * akkumulerede indeks og den forrige regulerende datos indeks:
+ * (indeks_nu / indeks_forrige − 1) × 100, afrundet til 2 decimaler.
+ *
+ * Dette er den korrekte perioderegulering — ikke en sammenlægning af de nominelle
+ * aftaletrin på datoen. De nominelle trin ganger ikke rent op til det akkumulerede
+ * indeks (fx 1.10.2022: nominelt 1,90 % + 0,67 % = 2,57 %, men det akkumulerede
+ * indeks svarer til +2,55 %), og det akkumulerede indeks er den autoritative kilde.
+ * Ved at aflede procenten fra indeksforholdet er "Regulering"-kolonnen altid
+ * konsistent med "Akkumuleret regulering": kæder man periodernes regulering fra
+ * basis, rammer man indekset igen. Basisdatoen (første linje) har ingen forudgående
+ * periode og udelades derfor.
  */
-const klReguleringPctByDato: ReadonlyMap<DanishDateString, number> = (() => {
+const klPeriodeReguleringPctByDato: ReadonlyMap<DanishDateString, number> = (() => {
   const map = new Map<DanishDateString, number>();
-  for (const row of klLoenaftaleRaekker) {
-    map.set(row.fraDato, (map.get(row.fraDato) ?? 0) + parseProcentString(row.procent));
-  }
-  for (const [dato, sum] of map) {
-    map.set(dato, roundByMethod(sum, 2, 'halfAwayFromZero'));
+  let prevIndeks: number | undefined;
+  for (const [dato, indeks] of dedupedIndeksSerie) {
+    if (prevIndeks !== undefined) {
+      map.set(dato, roundByMethod((indeks / prevIndeks - 1) * 100, 2, 'halfAwayFromZero'));
+    }
+    prevIndeks = indeks;
   }
   return map;
 })();
 
 /**
- * Returnerer den summerede reguleringsprocent for en given dato (procentpoint),
- * eller undefined hvis datoen ikke optræder i KL-lønaftalerne.
+ * Returnerer den realiserede reguleringsprocent for en given dato (procentpoint),
+ * afledt af det akkumulerede indeks. undefined for basisdatoen og for datoer der
+ * ikke er en regulerende dato i KL-lønaftalerne.
  */
 export const getKLReguleringPctForDato = (fraDato: DanishDateString): number | undefined =>
-  klReguleringPctByDato.get(fraDato);
+  klPeriodeReguleringPctByDato.get(fraDato);
 
 // ===== OPSLAG =====
 

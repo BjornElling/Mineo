@@ -465,7 +465,7 @@ describe('reguleringsPresentation', () => {
     expect(row?.slice(1)).toEqual(['131,65', '12,5 %', '0 %', '12,5 %', '0,45 %', '10,5 %']);
   });
 
-  it('viser KL-lønaftaler med dato, dagens regulering (med fortegn) og akkumuleret indeks', () => {
+  it('viser KL-lønaftaler med dato, periodens realiserede regulering (med fortegn) og akkumuleret indeks', () => {
     const values = cloneInitialValues();
     const af = values.loenindkomstAnsaettelsesforhold[0];
     af.loenudviklingBeregningsgrundlag = 'KL-lønaftaler';
@@ -479,9 +479,10 @@ describe('reguleringsPresentation', () => {
     });
 
     expect(table?.columns).toEqual(['Fra-dato', 'Regulering', 'Akkumuleret regulering']);
-    // 01-10-2021: generelle stigninger 1,01 % + særlig regulering -0,02 % = +0,99 %; akkumuleret indeks 1,456933.
+    // 01-10-2021: periodens realiserede regulering afledes af indeksforholdet
+    // 1,456933 / 1,442796 = +0,98 % (ikke den nominelle sum 1,01 % − 0,02 % = 0,99 %).
     const row = table?.rows.find((entry) => entry[0] === '01-10-2021');
-    expect(row).toEqual(['01-10-2021', '+0,99 %', '1,456933']);
+    expect(row).toEqual(['01-10-2021', '+0,98 %', '1,456933']);
   });
 
   it.each([
