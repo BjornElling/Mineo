@@ -48,6 +48,7 @@ const makeContext = (
     stamdataValues,
     lineHeight: 4,
     modelLoenudviklingPerAnsaettelse: [],
+    modelLoenudviklingGlobaleSegmenter: [],
     startEoBilagPage,
     renderSubheader,
     safeAddWrappedText,

@@ -847,7 +847,7 @@ describe('erstatningsopgoerelsePdf indkomst-breakdown synlighed', () => {
     expect(bilagBlock).toContain('31-12-2024');
     expect(bilagBlock).toContain('Periode');
     expect(bilagBlock).toContain('01-12-2024 - 31-01-2025');
-    expect(bilagBlock).toContain('Reguleringsværdier:');
+    expect(bilagBlock).toContain('Reguleringsværdier');
     // Skadelidtes navn udelades bevidst i regulerings-bilaget (fremgår af brevhovedet).
     expect(bilagBlock).not.toContain('Skadelidte');
     expect(bilagBlock).not.toContain('Testi Testesen');
