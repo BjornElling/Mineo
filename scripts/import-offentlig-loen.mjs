@@ -338,6 +338,10 @@ function detectColumns(sheet, filePath) {
   }
 
   // 6) Find løntrin-kolonnen
+  // Håndterer to skrivemåder:
+  //   a) "Løntrin" i én celle (nyere ark)
+  //   b) "Løn-" stablet over "trin" i to lodrette celler (langt de fleste ark) —
+  //      sammenstilles til "løntrin" når cellen nedenunder er "trin".
   const loentrinCandidates = [];
   for (let r = range.s.r; r <= Math.min(gruppeRow, headerMaxRow); r++) {
     for (let c = range.s.c; c <= range.e.c; c++) {
@@ -346,6 +350,13 @@ function detectColumns(sheet, filePath) {
       const val = normalizeText(cell.v);
       if (val.includes('løntrin')) {
         loentrinCandidates.push({ r, c });
+        continue;
+      }
+      if (val === 'løn-') {
+        const below = sheet[xlsxUtils.encode_cell({ r: r + 1, c })];
+        if (below && normalizeText(below.v) === 'trin') {
+          loentrinCandidates.push({ r, c });
+        }
       }
     }
   }
