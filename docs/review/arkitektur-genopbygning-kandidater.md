@@ -206,7 +206,38 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 4 · Omfang 4 · Risiko 3** — lukker en usynlig fejlklasse (PDF viser forkert tal uden at noget fejler). Berører ikke tallene hvis korrekt gjort, men rører den centrale EO-datavej.
 
-### B9. EO-debug-laget: 33 moduler / ~11.000 linjer (inkl. én fil på 3590 linjer)
+### B9. EO-debug-laget: 33 moduler / ~11.000 linjer (inkl. én fil på 3590 linjer) — 🟡 DELVIST (2026-06-23)
+
+> **Status (verificeret + delvist løst 2026-06-23).** Punktets PRÆMIS holdt ikke: laget er **ikke
+> "DEV-only / lav risiko"**. `collectAllDebugRows` (→ `executeAllEODebugBuilders`, dvs. de samme
+> `buildEODebug…Rows`-buildere som EODebug-siden) producerer `error`-rækker, der i
+> `useEoBeregningViewModel` bliver til `hasBlockingDebugErrors` og **blokerer produktions-PDF/Word-
+> download** for alle fire dokumenter ([`useEoBeregningViewModel.ts`](../../src/components/pages/erstatningsopgoerelse/eoBeregning/useEoBeregningViewModel.ts)).
+> Debug er desuden ikke strengt nedstrøms: den kanoniske `eoSnapshot` indlejrer bevidst debug-output
+> (`debugSnapshot`-feltet + control-mismatch-beskeder). Laget er altså trust-kritisk produktions-
+> validering, ikke kun inspektion — **Risiko 2 var forkert** (reelt høj på den load-bearing del).
+>
+> **Gjort (den sikre, klarhedsgivende del):**
+> - Den 3590-linjers `eoDebugErstatningsopgoerelseModel.ts` (projektets største kildefil) er splittet
+>   **adfærdsbevarende** (verbatim move, 0 logik-ændringer) i et delt hjælpe-modul (`eoDebugEoShared.ts`)
+>   + 7 kohæsive per-sektion-builder-filer (`eoDebugEoOverviewRows`, `eoDebugSvieSmerteRows`,
+>   `eoDebugTaftRows`, `eoDebugTafBeregningsgrundlagRows`, `eoDebugIndkomstRows`,
+>   `eoDebugSygeferiegodtgoerelseRows`, `eoDebugOevrigeKravRows`); den oprindelige fil er nu en
+>   8-linjers barrel der re-eksporterer alt (importører urørte). Største fil nu **788** linjer.
+> - Nyt arkitektur-værn [`debugLayerIsolation.test.ts`](../../src/__tests__/quality/debugLayerIsolation.test.ts)
+>   pinner de tre invarianter der gør rollefordelingen forsvarlig: **(A)** domæne→debug-koblingen er
+>   indesluttet til de to navngivne snapshot-bro-filer (`eoSnapshot.ts`, `eoSnapshotToDebugView.ts`) —
+>   ingen engine/validator/helper må importere debug; **(B)** de autoritative totaler
+>   (`eoCanonicalOutput`) er debug-frie (debug fødes aldrig tilbage i det rigtige tal, jf. B8/4.14);
+>   **(C)** builderne er produktions-load-bearing (gater PDF) — så laget ikke fejlagtigt nedlægges som
+>   dødt DEV-only-kode. Med selvtest (anti-vacuous) + anti-rot på allowlisten.
+>
+> **Bevidst IKKE gjort (forkastet/parkeret):** den fulde "data-dreven, tyndere debug-lag"-omskrivning.
+> Mod en låst feature-flade ville det være abstraktion-for-sin-egen-skyld, og — nu hvor præmissen er
+> rettet — en høj-risiko-ændring af en produktions-validerings-/PDF-gate-sti uden brugervendt opside.
+> Den reelle arkitektoniske oprydning (adskil produktions-valideringen fra DEV-inspektionen, så de ikke
+> deler "debug"-lag) er noteret men **kræver forelæggelse** + stærk test-baseline. Fuld debug-suite grøn
+> (457 tests), typecheck + lint (max-warnings 0) grønne.
 
 **Nuværende tilstand (verificeret).** `src/domain/debug/` er 33 filer / ~11.069 linjer; `eoDebugErstatningsopgoerelseModel.ts` alene er **3590 linjer** — den største kildefil i hele projektet. Laget er en DEV-only projektion af snapshot'et til divergens-inspektion. Det er instrueret som "ikke en parallel beregning", men det er ikke arkitektonisk tvunget (4.14).
 
@@ -360,7 +391,7 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | B6 ✅ | Samlet persistence-serialiserings-primitiv | 3 | 3 | 4 | Nej |
 | B7 🟡 | Samlet felt-tilstand (fejl/draft/undo) — struktur allerede samlet; orphan-datatab rettet | 4 | 5 | 5 | Nej |
 | B8 ✅ | Tvungne grænser i EO snapshot→presentation | 4 | 4 | 3 | Nej |
-| B9 | Slank EO-debug-laget (33 filer/11k linjer) | 3 | 5 | 2 | Nej |
+| B9 🟡 | Slank EO-debug-laget (33 filer/11k linjer) — monsterfil splittet + isolations-værn; "DEV-only/risiko 2"-præmis modbevist (reelt trust-kritisk, gater PDF); fuld omskrivning forkastet | 3 | 5 | ~~2~~ → høj (load-bearing del) | Delvis |
 | B10 ✅ | Én ASL-maks-opslags-gateway | 3 | 2 | 3 | Ja |
 | B11 ✅ | Én kanonisk måned-additions-semantik | 3 | 1 | 3 | Ja |
 | B12 ✅ | Systematisér delt UI↔dokument-domænelogik | 3 | 2 | 2 | Nej |
@@ -370,7 +401,7 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | C16 | Ensartede rate-resolvere | 2 | 3 | 2 | Nej |
 | C17 | Builder/skabelon-lag for generatorer | 2 | 3 | 3 | Nej |
 
-**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. B9 er det største resterende løft. (A1, A2, A3, B6, B8, B10, B11, B12, C13 og C15 er implementeret; B7 blev verificeret 2026-06-22 — strukturen var allerede samlet af invalidDrafts-omlægningen (fuld merge forkastet), og den ene residual (forældreløse celle-drafts ved række-/AF-sletning der blokerede Gem) er rettet via read-time-reconcile af invalidDrafts-kanalen; A4 og C14 blev verificeret 2026-06-21 og er stort set allerede løst/nedjusteret — A4: concern #2/#3 lukket, #1 stilistisk/parkeret; C14: AppThemeMode-dubletten fikset (reviewpunkt 11), samlet katalog ikke berettiget; A5 blev verificeret og forkastet — se appendiks punkt 5.)
+**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. (A1, A2, A3, B6, B8, B10, B11, B12, C13 og C15 er implementeret; B9 blev verificeret 2026-06-23 — "DEV-only/lav risiko"-præmissen blev modbevist (laget er trust-kritisk produktions-validering der gater PDF-download), den sikre klarhedsgivende del er gjort (projektets største kildefil splittet adfærdsbevarende 3590→788 linjer + isolations-værn der pinner produktions/DEV-grænsen), og den fulde data-drevne omskrivning er forkastet som høj-risiko/forelæggelses-pligtig mod en låst feature-flade; B7 blev verificeret 2026-06-22 — strukturen var allerede samlet af invalidDrafts-omlægningen (fuld merge forkastet), og den ene residual (forældreløse celle-drafts ved række-/AF-sletning der blokerede Gem) er rettet via read-time-reconcile af invalidDrafts-kanalen; A4 og C14 blev verificeret 2026-06-21 og er stort set allerede løst/nedjusteret — A4: concern #2/#3 lukket, #1 stilistisk/parkeret; C14: AppThemeMode-dubletten fikset (reviewpunkt 11), samlet katalog ikke berettiget; A5 blev verificeret og forkastet — se appendiks punkt 5.)
 
 ---
 
