@@ -7,12 +7,12 @@
  * - Side 3 (betinget): ASL-ydelser
  */
 
-import { resolveDocumentSectionEndY, type BrevhovedData } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter, type DocumentWriter } from '../../writer';
+import { resolveDocumentSectionEndY } from '../../layout/documentLayoutHelpers';
+import type { DocumentWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { cellLeft, cellRight, createDocumentTableHeaderCell, renderDocumentTable } from '../../layout/documentTableRenderer';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { TODAY } from '../../../config/dateRanges';
 import { formatKr, formatAsAmount, formatAsAmountTrimmed, formatCountWithUnit, formatPercentTrimmedFromRounded4 } from '../../../utils/formatUtils';
 import { isoToDanish, type ISODateString } from '../../../types/branded';
 import type { ForsoergertabCalculation, ForsoergertabAslComputation } from '../../../domain/forsoergertab/forsoergertabTypes';
@@ -345,24 +345,10 @@ export const generateForsoergertabDocument = (params: GenerateForsoergertabDocum
     visBrevhoved = false,
   } = params;
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  writer.setProperties({
-    title: 'Forsørgertab',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
+  const writer = initStandardDocumentWriter({ title: 'Forsørgertab' });
 
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   // --- Side 1 ---

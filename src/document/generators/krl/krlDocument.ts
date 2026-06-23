@@ -9,16 +9,14 @@ import type { RowInput } from 'jspdf-autotable';
 import { PDF_CONTENT_WIDTH_MM } from '../../layout/pdfConfig';
 import {
   resolveDocumentSectionEndY,
-  type BrevhovedData,
 } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import {
   createDocumentFixedColumnStyles,
   createDocumentTableCell,
   createDocumentTableHeaderCell,
   renderDocumentTable,
 } from '../../layout/documentTableRenderer';
-import { TODAY } from '../../../config/dateRanges';
 import { krlSatstabeller } from '../../../data/krlRates';
 import { danishToISO, type DanishDateString } from '../../../types/branded';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
@@ -82,25 +80,11 @@ const buildCombinedRows = (): { dates: DanishDateString[]; rows: string[][] } =>
 export const generateKRLDocument = (params: KRLPdfParams): void => {
   const { visBrevhoved = false, stamdata = null } = params;
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
+  const writer = initStandardDocumentWriter({ title: 'KRL Satstabeller' });
   const doc = writer.getDoc();
 
-  writer.setProperties({
-    title: 'KRL Satstabeller',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
-
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   writer.writeTitle('KRL Satstabeller');

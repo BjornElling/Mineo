@@ -11,9 +11,9 @@ import {
 import { findNamedHolidaysInDateRanges } from '../../../domain/dates/shDageOversigt';
 import {
   resolveDocumentSectionEndY,
-  type BrevhovedData,
 } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter, type DocumentWriter } from '../../writer';
+import type { DocumentWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import {
   TABLE_FONT_SIZE,
   createDocumentDistributedColumnStyles,
@@ -24,7 +24,6 @@ import {
 } from '../../layout/documentTableRenderer';
 import { formatDanishDate } from '../../../utils/dateUtils';
 import { formatUtcDateLong, WEEKDAY_NAMES_DA } from '../../../utils/dateFormatting';
-import { TODAY } from '../../../config/dateRanges';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
 import type { CellHookData, RowInput } from 'jspdf-autotable';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
@@ -175,26 +174,11 @@ export const generateSHDageDocument = (
   options: SHDagePdfOptions = {}
 ): void => {
   const { visBrevhoved = false } = options;
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  // Dokumentets metadata
-  writer.setProperties({
-    title: 'SH-dage',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
+  const writer = initStandardDocumentWriter({ title: 'SH-dage' });
 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: options.stamdata?.journalnr,
-      advokat: options.stamdata?.advokat,
-      sagsbehandler: options.stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(options.stamdata));
   }
 
   // Tilføj titel

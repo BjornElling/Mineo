@@ -5,8 +5,8 @@
  * Hver afgørelse renderes på sin egen side.
  */
 
-import { type BrevhovedData } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter } from '../../writer';
+import type { DocumentWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import type {
@@ -21,7 +21,6 @@ import {
   buildKapitaliseringOpreguleringTil2024Expression,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { TODAY } from '../../../config/dateRanges';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatFaktorEet as formatFaktor, formatJaNejEet as formatJaNej, formatKrEet as formatKr } from '../eet/eetDocumentUtils';
 
@@ -37,7 +36,7 @@ export const PDF_UNDER_TO_AAR_TIL_FOLKEPENSION_LABEL =
   'Kapitaliseret pga. < 2 år til folkepension?';
 
 export const addKapitaliseringEmptyState = (
-  writer: ReturnType<typeof createStandardPdfWriter>
+  writer: DocumentWriter
 ): void => {
   writer.writeSectionHeader('Specifikation');
   writer.writeWrappedText('Der er ingen kapitaliserede afgørelser i sagen.');
@@ -48,7 +47,7 @@ export const addKapitaliseringEmptyState = (
 // ============================================================================
 
 export const addKapitaliseringAfgoerelseSection = (
-  writer: ReturnType<typeof createStandardPdfWriter>,
+  writer: DocumentWriter,
   afgoerelse: EetKapitaliseringAfgoerelseComputation,
   koen: string | undefined,
   isFirst: boolean
@@ -206,24 +205,10 @@ export const generateKapitaliseringDocument = (
     visBrevhoved = false,
   } = params;
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  writer.setProperties({
-    title: 'Kapitalisering (EET)',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
+  const writer = initStandardDocumentWriter({ title: 'Kapitalisering (EET)' });
 
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   writer.writeTitle('Kapitalisering (EET)');

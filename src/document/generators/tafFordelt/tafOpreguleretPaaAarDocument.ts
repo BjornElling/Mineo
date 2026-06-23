@@ -20,7 +20,7 @@
  * Eventuel fail-closed / blokering er allerede afgjort før denne generator kaldes.
  */
 
-import { createStandardPdfWriter } from '../../writer';
+import { initStandardDocumentWriter } from '../documentGeneratorSetup';
 import { ensureNonBreakingKr } from '../../layout/pdfTextUtils';
 import { type BrevhovedData } from '../../layout/documentLayoutHelpers';
 import { PDF_BASE_LINE_HEIGHT_MM, PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../layout/pdfConfig';
@@ -74,22 +74,17 @@ export const generateTafOpreguleretPaaAarDocument = (
 
   const titel = 'TAF opreguleret til beregningsår';
 
-  const writer = createStandardPdfWriter({
-    visUdkastStempel,
-    onLayoutFallback: ({ message, label }) => {
-      logWarning('PDF-layout fallback aktiveret', {
-        context: 'pdf.tafOpreguleretPaaAar.layout',
-        data: { message, label },
-      });
-    },
-  });
-  writer.setDisplayMode('fullheight');
-
-  writer.setProperties({
+  const writer = initStandardDocumentWriter({
     title: titel,
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
+    options: {
+      visUdkastStempel,
+      onLayoutFallback: ({ message, label }) => {
+        logWarning('PDF-layout fallback aktiveret', {
+          context: 'pdf.tafOpreguleretPaaAar.layout',
+          data: { message, label },
+        });
+      },
+    },
   });
 
   const lineHeight = PDF_BASE_LINE_HEIGHT_MM;

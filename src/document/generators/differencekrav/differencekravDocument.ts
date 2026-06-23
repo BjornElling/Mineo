@@ -14,8 +14,8 @@
  * for løbende ydelser = beregningsdato − 1 dag i differencekrav).
  */
 
-import { type BrevhovedData } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter } from '../../writer';
+import type { DocumentWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import { formatAsAmountTrimmed } from '../../../utils/formatUtils';
 import type {
@@ -34,7 +34,6 @@ import {
   buildKapitaliseringGrundydelseLabel,
 } from '../../../domain/erhvervsevnetab/eetKapitaliseringPresentation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { TODAY } from '../../../config/dateRanges';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatFaktorEet as formatFaktor, formatJaNejEet as formatJaNej, formatKrEet as formatKr } from '../eet/eetDocumentUtils';
 import {
@@ -61,7 +60,7 @@ const formatMaaneder = (value: number): string => formatAsAmountTrimmed(value, 4
 // ============================================================================
 
 const addProformaKapitaliseringSection = (
-  writer: ReturnType<typeof createStandardPdfWriter>,
+  writer: DocumentWriter,
   pk: EetDifferencekravProformaKapitalisering,
   koen: string | undefined
 ): void => {
@@ -200,7 +199,7 @@ const addProformaKapitaliseringSection = (
 // ============================================================================
 
 const addMerErstatningEvent = (
-  writer: ReturnType<typeof createStandardPdfWriter>,
+  writer: DocumentWriter,
   event: MerErstatningPensionsalderEvent,
   koen: string | undefined
 ): void => {
@@ -286,7 +285,7 @@ const addMerErstatningEvent = (
 };
 
 const addMerErstatningPensionsalderSection = (
-  writer: ReturnType<typeof createStandardPdfWriter>,
+  writer: DocumentWriter,
   computation: MerErstatningPensionsalderComputation,
   koen: string | undefined
 ): void => {
@@ -303,7 +302,7 @@ const addMerErstatningPensionsalderSection = (
 // ============================================================================
 
 const renderDifferencekravPage = (
-  writer: ReturnType<typeof createStandardPdfWriter>,
+  writer: DocumentWriter,
   computation: EetDifferencekravComputation
 ): void => {
   const rowOpts = { rightFontStyle: 'normal' as const };
@@ -505,24 +504,10 @@ export const generateDifferencekravDocument = (
     visBrevhoved = false,
   } = params;
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  writer.setProperties({
-    title: 'Differencekrav (EET)',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
+  const writer = initStandardDocumentWriter({ title: 'Differencekrav (EET)' });
 
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   writer.writeTitle('Differencekrav (EET)');

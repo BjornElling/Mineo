@@ -5,8 +5,9 @@
  */
 
 import type { CellDef, RowInput } from 'jspdf-autotable';
-import { resolveDocumentSectionEndY, type BrevhovedData } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter, type DocumentWriter } from '../../writer';
+import { resolveDocumentSectionEndY } from '../../layout/documentLayoutHelpers';
+import type { DocumentWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import {
   cellCenter,
   cellRight,
@@ -23,7 +24,6 @@ import type { PeriodeResult } from '../../../utils/periodeBeregning';
 import type { AarsloenBeregningResult } from '../../../types/calculation';
 import { amountValueToDisplayString, amountValueToNumber } from '../../../utils/expressionAmount';
 import { parsePercentToDecimal } from '../../../utils/numberParsing';
-import { TODAY } from '../../../config/dateRanges';
 import { formatAsAmount, formatCountWithUnit, formatPercent } from '../../../utils/formatUtils';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import {
@@ -551,26 +551,11 @@ export const generateAarsloenDocument = (params: GenerateAarsloenDocumentParams)
     visBrevhoved = false,
   } = params;
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  // Dokumentets metadata
-  writer.setProperties({
-    title: 'Årslønsberegning',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
+  const writer = initStandardDocumentWriter({ title: 'Årslønsberegning' });
 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   // Tilføj titel

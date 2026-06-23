@@ -9,10 +9,9 @@
 import {
   resolveDocumentSectionEndY,
   formatAmount,
-  getDocumentCreatorBrand,
-  type BrevhovedData,
 } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter, type DocumentWriter } from '../../writer';
+import type { DocumentWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import type { RowInput } from 'jspdf-autotable';
 import {
   createDocumentDistributedColumnStyles,
@@ -22,7 +21,6 @@ import {
   renderDocumentTable,
 } from '../../layout/documentTableRenderer';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
-import { TODAY } from '../../../config/dateRanges';
 import type { DocumentCommonOptions, DocumentStamdata } from '../../layout/documentOptions';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import type { ISODateString } from '../../../types/branded';
@@ -125,13 +123,7 @@ export const writeRenteOversigtDocumentContent = (
   const { visBrevhoved = false, stamdata = null, kommentarer } = options;
 
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   writer.writeTitle(PDF_TITLE);
@@ -152,15 +144,7 @@ export const generateRenteOversigtDocument = (
   rows: ReadonlyArray<RenteOversigtRow>,
   options: RenteOversigtDocumentOptions = {}
 ): void => {
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  writer.setProperties({
-    title: PDF_TITLE,
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: getDocumentCreatorBrand(),
-  });
+  const writer = initStandardDocumentWriter({ title: PDF_TITLE });
 
   writeRenteOversigtDocumentContent(writer, beregningsdato, rows, options);
 

@@ -1,6 +1,6 @@
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { MARGINS } from '../../layout/pdfConfig';
-import { createStandardPdfWriter } from '../../writer';
+import { initStandardDocumentWriter } from '../documentGeneratorSetup';
 import { type BrevhovedData } from '../../layout/documentLayoutHelpers';
 import { logWarning } from '../../../utils/logger';
 import type { TafKravGrafDocument } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToTafKravGrafDocument';
@@ -26,23 +26,18 @@ export const generateTafKravGrafDocument = (options: TafKravGrafPdfOptions): voi
   // svær at aflæse og tilfører ingen værdi (grafen er et visuelt overblik, ikke et tal-bilag).
   // Derfor oprettes writeren med visUdkastStempel: false, og der kaldes ikke addUdkastWatermark().
   // Udkast-indstillingen afspejles fortsat i filnavnet, så en kladde stadig markeres som sådan.
-  const writer = createStandardPdfWriter({
-    visUdkastStempel: false,
-    orientation: 'landscape',
-    onLayoutFallback: ({ message, label }) => {
-      logWarning('PDF-layout fallback aktiveret', {
-        context: 'pdf.tafKravGraf.layout',
-        data: { message, label },
-      });
-    },
-  });
-
-  writer.setDisplayMode('fullheight');
-  writer.setProperties({
+  const writer = initStandardDocumentWriter({
     title: 'Visuel graf over indtægtsniveau',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
+    options: {
+      visUdkastStempel: false,
+      orientation: 'landscape',
+      onLayoutFallback: ({ message, label }) => {
+        logWarning('PDF-layout fallback aktiveret', {
+          context: 'pdf.tafKravGraf.layout',
+          data: { message, label },
+        });
+      },
+    },
   });
 
   if (visBrevhoved && model.brevhoved) {

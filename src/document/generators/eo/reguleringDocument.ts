@@ -9,15 +9,13 @@ import type { RowInput } from 'jspdf-autotable';
 import type { DocumentTableBridgeDocument } from '../../layout/documentTableBridge';
 import {
   resolveDocumentSectionEndY,
-  type BrevhovedData,
 } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import { renderDocumentTable } from '../../layout/documentTableRenderer';
 import { formatAsAmount, formatCurrency } from '../../../utils/formatUtils';
 import { parseDanishDate, formatDanishDate, createDate } from '../../../utils/dateUtils';
 import { roundByMethod } from '../../../utils/rounding';
 import { resolveAslAarsloensmaksimumForAar } from '../../../domain/satser/aslAarsloensmaksimum';
-import { TODAY } from '../../../config/dateRanges';
 import {
   formatAmountWithoutTrailingDecimals,
   isAslStatistikModel,
@@ -372,26 +370,12 @@ export const generateReguleringDocument = (params: ReguleringDocumentParams): vo
     stamdata = null,
   } = params;
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
+  const writer = initStandardDocumentWriter({ title: 'Regulering' });
   const doc = writer.getDoc();
-
-  writer.setProperties({
-    title: 'Regulering',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   writer.writeTitle('Regulering');

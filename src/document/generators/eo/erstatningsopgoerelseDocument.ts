@@ -7,7 +7,7 @@
 import { PDF_BASE_LINE_HEIGHT_MM, PDF_AMOUNT_RIGHT_COLUMN_WIDTH_MM } from '../../layout/pdfConfig';
 import { type BrevhovedData } from '../../layout/documentLayoutHelpers';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { createStandardPdfWriter } from '../../writer';
+import { initStandardDocumentWriter } from '../documentGeneratorSetup';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import type { MidlertidigtEetAfgoerelseGroup } from '../../../domain/erstatningsopgoerelse/helpers/midlertidigtEetInsertRows';
 import { type MoneyOre, type Calculable } from '../../../domain/erstatningsopgoerelse/snapshot/eoPresentationModel';
@@ -107,18 +107,9 @@ export const generateErstatningsopgoerelseDocument = (
     });
   };
 
-  const writer = createStandardPdfWriter({
-    visUdkastStempel,
-    onLayoutFallback: warnLayoutFallback,
-  });
-  writer.setDisplayMode('fullheight');
-
-  // Dokumentets metadata
-  writer.setProperties({
+  const writer = initStandardDocumentWriter({
     title: titel,
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
+    options: { visUdkastStempel, onLayoutFallback: warnLayoutFallback },
   });
 
   const safeAddLeftRightText = (

@@ -12,15 +12,13 @@ import type { RowInput } from 'jspdf-autotable';
 import { PDF_CONTENT_WIDTH_MM } from '../../layout/pdfConfig';
 import {
   resolveDocumentSectionEndY,
-  type BrevhovedData,
 } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import {
   createDocumentTableCell,
   createDocumentTableHeaderCell,
   renderDocumentTable,
 } from '../../layout/documentTableRenderer';
-import { TODAY } from '../../../config/dateRanges';
 import { klLoenaftaleRaekker } from '../../../data/klLoenaftaler';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
@@ -38,25 +36,11 @@ const formatIndeks = (value: number): string => formatAsAmount(value, 6);
 export const generateKLDocument = (params: KLPdfParams): void => {
   const { visBrevhoved = false, stamdata = null } = params;
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
+  const writer = initStandardDocumentWriter({ title: KL_DOCUMENT_TITLE });
   const doc = writer.getDoc();
 
-  writer.setProperties({
-    title: KL_DOCUMENT_TITLE,
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
-
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   writer.writeTitle(KL_DOCUMENT_TITLE);

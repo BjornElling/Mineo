@@ -4,10 +4,9 @@
  * Genererer PDF-dokument med årlige satser for arbejdsskadeområdet
  */
 
-import type { BrevhovedData } from '../../layout/documentLayoutHelpers';
 import { formatPercent } from '../../../utils/formatUtils';
-import { createStandardPdfWriter, type DocumentWriter } from '../../writer';
-import { TODAY } from '../../../config/dateRanges';
+import type { DocumentWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import { formatCurrencyPerUnit, formatKr, resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { getSatserForYear } from '../../../data/lovbestemteRates';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
@@ -52,26 +51,11 @@ export const generateSatserDocument = (
 ): void => {
   const { visBrevhoved = false, stamdata = null } = options;
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  // Dokumentets metadata
-  writer.setProperties({
-    title: `Arbejdsskadesatser ${year}`,
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
+  const writer = initStandardDocumentWriter({ title: `Arbejdsskadesatser ${year}` });
 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   // Tilføj titel

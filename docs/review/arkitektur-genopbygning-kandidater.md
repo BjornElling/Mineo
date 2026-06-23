@@ -362,7 +362,21 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 2 · Omfang 2 · Risiko 1** — renere laggrænse; ingen funktionel effekt.
 
-### C16. Statiske rate-data uden ensartet form
+### C16. Statiske rate-data uden ensartet form — 🟡 VERIFICERET / IKKE BERETTIGET (2026-06-23)
+
+> **Status (verificeret 2026-06-23).** Hvert rate-domæne svarer på et *forskelligt* opslags-
+> spørgsmål (forskellig variations-dimension), og de sammensatte opslag har allerede hver ÉN kanonisk
+> resolver: ASL-årslønsmaksimum (`resolveAslAarsloensmaksimumForAar`, jf. B10), offentlig løn
+> (`getOffentligLoenForDato` / `getOffentligLoenForPeriode` — dato × løntrin × løngruppe), folkepension
+> (`getFolkepensionAlder` — opslagsdato × fødselsdato) og kapitalisering
+> (`resolveKapitaliseringsbekendtgoerelseId` — skadedato × kapitaliseringsdato). Det eneste domæne uden
+> en dedikeret periode-resolver er sygedagpenge — men det har præcis ÉT forbrugende kaldested
+> (`splitSygedagpengeRateSegments`), der itererer for at bygge *klippede* segmenter, ikke et gentaget
+> enkelt-dato-opslag. En `getRatesForPeriode`-helper dér ville splitte en sammenhængende løkke og
+> udtrække et ét-linjes overlap-prædikat brugt ét sted — der er ingen gentaget, fejlbehæftet
+> opslags-kode at fjerne. En generisk, typet resolver pr. dimension (`getRateForAar`/`getRateForDato`)
+> på tværs af alle domæner ville være abstraktion-for-sin-egen-skyld mod en låst feature-flade — præcis
+> det punktets eget forbehold (og `AGENTS.md`) advarer imod. **Ikke berettiget; ingen kode-ændring.**
 
 **Nuværende tilstand.** "Rate" betyder forskellige ting på tværs af datadomæner: årlige søjler (ASL), år-bånd inden for år (folkepension), dato-bestemte bekendtgørelser (kapitalisering), auto-genererede import-tabeller (offentlig løn). Sygedagpenge blev konsolideret til én tabel i gruppe 6, men de øvrige varierer i model (6.1–6.4).
 
@@ -370,7 +384,29 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 **Gevinst 2 · Omfang 3 · Risiko 2** — primært konsistens; lav hastværk givet låst feature-flade.
 
-### C17. Generator-laget: ~17 generatorer uden delt skabelon
+### C17. Generator-laget: ~17 generatorer uden delt skabelon — 🟡 DELVIST (2026-06-23)
+
+> **Status (verificeret + delvist løst 2026-06-23).** Den ensartede del er konsolideret; den risikable
+> del er forkastet.
+>
+> **Gjort (den sikre, drift-fjernende del):** Alle 18 generatorer indledte ens — `createStandardPdfWriter`
+> → `setDisplayMode('fullheight')` → `setProperties({title, subject, author, creator})` — med de samme
+> metadata-konstanter kopieret ind hver gang. Det er samlet i ét primitiv,
+> `initStandardDocumentWriter` ([`src/document/generators/documentGeneratorSetup.ts`](../../src/document/generators/documentGeneratorSetup.ts)),
+> og stamdata-brevhovedet (Pattern A, 14 generatorer) i `buildStamdataBrevhovedData`. Samtidig lukkede
+> det en **latent drift**: `creator` var hardkodet `'mineo.dk'` i 16 generatorer, men slået op via
+> `getDocumentCreatorBrand()` i de 2 rente-dokumenter — et brand-override (standalone MinProcesrente via
+> `setDocumentBrand`) ville have slået igennem på rente-PDF'erne men efterladt et forældet brand på alle
+> øvrige. Nu går feltet ensartet gennem brandet (byte-identisk i standard-appen). Adfærdsbevarende;
+> typecheck + lint grønne, docx (52) + pdf/dokument (376) + EO-projektion/guards (105) tests grønne.
+>
+> **Bevidst IKKE gjort (forkastet):** det fulde builder-/skabelon-lag over selve sektions-renderingen.
+> Den tilbageværende "gentagelse" er hver generator der beskriver *forskelligt* indhold (forskellige
+> tabeller, kolonner, betinget logik) — ikke mekanisk ens boilerplate. EO-sektions-modulerne
+> (`opgoerelseSection.ts` m.fl.) indkoder domænelogik, ikke layout; et skabelon-lag ville tilføje
+> indirektion uden at fjerne reel duplikering og risikere visuelle PDF/Word-regressioner på tværs af
+> alle outputs. (`writeRows` kunne heller ikke deles: divergerende signaturer — streng-array i `satser`
+> vs. objekt-rækker i `varigemen`.)
 
 **Nuværende tilstand.** EO-familien (9 filer) + øvrige (8) gentager hver opsætnings-sekvensen overskrift → tabel → spacing mod `DocumentWriter` (10.5/10.6). Layout-konstanter var duplikeret (konsolideret til `pdfConfig.ts` i 10.5/10.6).
 
@@ -398,10 +434,12 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | C13 ✅ | Én STORAGE_KEYS-kilde + schema-afledte defaults | 2 | 2 | 1 | Nej |
 | C14 🟡 | Samlet settings-katalog | 2 | 3 | 2 | Nej |
 | C15 ✅ | Options-DTO mellem AppSettings og dokument-lag | 2 | 2 | 1 | Nej |
-| C16 | Ensartede rate-resolvere | 2 | 3 | 2 | Nej |
-| C17 | Builder/skabelon-lag for generatorer | 2 | 3 | 3 | Nej |
+| C16 🟡 | Ensartede rate-resolvere — verificeret: hvert domæne har egen variations-dimension; sammensatte opslag har allerede én resolver; generisk resolver ikke berettiget | 2 | 3 | 2 | Nej |
+| C17 🟡 | Builder/skabelon-lag for generatorer — ensartet init-preamble konsolideret (initStandardDocumentWriter) + creator-drift lukket; fuldt skabelon-lag forkastet (regressionsrisiko) | 2 | 3 | 3 | Nej |
 
-**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. (A1, A2, A3, B6, B8, B10, B11, B12, C13 og C15 er implementeret; B9 blev verificeret 2026-06-23 — "DEV-only/lav risiko"-præmissen blev modbevist (laget er trust-kritisk produktions-validering der gater PDF-download), den sikre klarhedsgivende del er gjort (projektets største kildefil splittet adfærdsbevarende 3590→788 linjer + isolations-værn der pinner produktions/DEV-grænsen), og den fulde data-drevne omskrivning er forkastet som høj-risiko/forelæggelses-pligtig mod en låst feature-flade; B7 blev verificeret 2026-06-22 — strukturen var allerede samlet af invalidDrafts-omlægningen (fuld merge forkastet), og den ene residual (forældreløse celle-drafts ved række-/AF-sletning der blokerede Gem) er rettet via read-time-reconcile af invalidDrafts-kanalen; A4 og C14 blev verificeret 2026-06-21 og er stort set allerede løst/nedjusteret — A4: concern #2/#3 lukket, #1 stilistisk/parkeret; C14: AppThemeMode-dubletten fikset (reviewpunkt 11), samlet katalog ikke berettiget; A5 blev verificeret og forkastet — se appendiks punkt 5.)
+**Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. (A1, A2, A3, B6, B8, B10, B11, B12, C13 og C15 er implementeret; B9 blev verificeret 2026-06-23 — "DEV-only/lav risiko"-præmissen blev modbevist (laget er trust-kritisk produktions-validering der gater PDF-download), den sikre klarhedsgivende del er gjort (projektets største kildefil splittet adfærdsbevarende 3590→788 linjer + isolations-værn der pinner produktions/DEV-grænsen), og den fulde data-drevne omskrivning er forkastet som høj-risiko/forelæggelses-pligtig mod en låst feature-flade; B7 blev verificeret 2026-06-22 — strukturen var allerede samlet af invalidDrafts-omlægningen (fuld merge forkastet), og den ene residual (forældreløse celle-drafts ved række-/AF-sletning der blokerede Gem) er rettet via read-time-reconcile af invalidDrafts-kanalen; A4 og C14 blev verificeret 2026-06-21 og er stort set allerede løst/nedjusteret — A4: concern #2/#3 lukket, #1 stilistisk/parkeret; C14: AppThemeMode-dubletten fikset (reviewpunkt 11), samlet katalog ikke berettiget; A5 blev verificeret og forkastet — se appendiks punkt 5. C16 og C17 blev verificeret 2026-06-23 — C16: hvert rate-domæne har sin egen variations-dimension, og de sammensatte opslag har allerede hver én kanonisk resolver, så en generisk resolver er ikke berettiget (ingen kode-ændring); C17: den ensartede init-preamble er konsolideret i `initStandardDocumentWriter` på tværs af alle 18 generatorer og en latent `creator`-brand-drift lukket, mens det fulde skabelon-lag over sektions-renderingen er forkastet som regressionsrisiko mod en låst feature-flade.)
+
+**Status:** Alle kandidater i prioritetstabellen er nu behandlet (implementeret, delvist løst, eller verificeret-og-nedjusteret/forkastet). Ingen åbne, ubehandlede punkter tilbage.
 
 ---
 

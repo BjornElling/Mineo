@@ -5,13 +5,12 @@
  * Al indhold er på én side (ingen tabeller i UI'en).
  */
 
-import { type BrevhovedData } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter } from '../../writer';
+import type { DocumentWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import { formatIsoDateLong, formatISOToDanish } from '../../../utils/dateFormatting';
 import type { EetEalComputation } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import { buildAldersreduktionFormelTekst } from '../../../domain/erhvervsevnetab/eetEalCalculation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { TODAY } from '../../../config/dateRanges';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { formatKrEet as formatKr } from './eetDocumentUtils';
@@ -30,7 +29,7 @@ type GenerateEfterEalPdfParams = DocumentCommonOptions &
   }>;
 
 export const renderEfterEalBody = (
-  writer: ReturnType<typeof createStandardPdfWriter>,
+  writer: DocumentWriter,
   computation: EetEalComputation,
   includeBeregningsdatoHeader = true
 ): void => {
@@ -149,24 +148,10 @@ export const renderEfterEalBody = (
 export const generateEfterEalDocument = (params: GenerateEfterEalPdfParams): void => {
   const { computation, stamdata, visBrevhoved = false } = params;
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  writer.setProperties({
-    title: 'EET efter EAL',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
+  const writer = initStandardDocumentWriter({ title: 'EET efter EAL' });
 
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   writer.writeTitle('EET efter EAL');

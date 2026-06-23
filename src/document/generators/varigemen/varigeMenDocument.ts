@@ -4,13 +4,12 @@
  * Genererer PDF-dokumentation af ménberegning med fødselsdato, skadedato, méngrad og resultat
  */
 
-import type { BrevhovedData } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter, type DocumentWriter } from '../../writer';
+import type { DocumentWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
 import { type VarigeMenBeregningResult } from '../../../domain/varigemen/varigeMenCalculations';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { TODAY } from '../../../config/dateRanges';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 
@@ -128,26 +127,11 @@ export const generateVarigeMenDocument = (params: GenerateVarigeMenPdfParams): v
     visBrevhoved = false,
   } = params;
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  // Dokumentets metadata
-  writer.setProperties({
-    title: 'Ménberegning',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
+  const writer = initStandardDocumentWriter({ title: 'Ménberegning' });
 
   // Tilføj brevhoved hvis aktiveret
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   // Tilføj titel

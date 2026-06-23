@@ -9,9 +9,9 @@
 import type { RowInput } from 'jspdf-autotable';
 import {
   resolveDocumentSectionEndY,
-  type BrevhovedData,
 } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter, type DocumentWriter } from '../../writer';
+import type { DocumentWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import {
   cellRight,
   createDocumentTableCell,
@@ -33,7 +33,6 @@ import {
   visGrundydelseNiveauSkift,
 } from '../../../domain/erhvervsevnetab/eetLoebendeYdelserCalculation';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
-import { TODAY } from '../../../config/dateRanges';
 import { formatAsAmount } from '../../../utils/formatUtils';
 import { resolveDocumentArtifactFileName, formatMaaneder4, formatReguleringPct } from '../../layout/documentFormatUtils';
 import { round4 } from '../../../utils/roundingShortcuts';
@@ -357,24 +356,10 @@ export const generateLoebendeYdelserDocument = (
     visBrevhoved = false,
   } = params;
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  writer.setProperties({
-    title: 'Løbende ydelser (EET)',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: 'mineo.dk',
-  });
+  const writer = initStandardDocumentWriter({ title: 'Løbende ydelser (EET)' });
 
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   writer.writeTitle('Løbende ydelser (EET)');

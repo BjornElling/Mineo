@@ -11,10 +11,9 @@ import {
   resolveDocumentSectionEndY,
   formatAmount,
   formatPercent,
-  getDocumentCreatorBrand,
-  type BrevhovedData
 } from '../../layout/documentLayoutHelpers';
-import { createStandardPdfWriter, type DocumentWriter } from '../../writer';
+import type { DocumentWriter } from '../../writer';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
 import type { RowInput } from 'jspdf-autotable';
 import {
   createDocumentDistributedColumnStyles,
@@ -24,7 +23,6 @@ import {
   renderDocumentTable,
 } from '../../layout/documentTableRenderer';
 import { formatDanishDate, parseDanishDate } from '../../../utils/dateUtils';
-import { TODAY } from '../../../config/dateRanges';
 import type { DocumentCommonOptions, DocumentStamdata } from '../../layout/documentOptions';
 import { RENTE_CALCULATION_PRINCIPLES } from '../../../domain/renteberegning/renteCalculationPrinciples';
 import { resolveDocumentArtifactFileName, sanitizeFilenamePart } from '../../layout/documentFormatUtils';
@@ -210,13 +208,7 @@ export const writeRenteDocumentContent = (
   } = options;
 
   if (visBrevhoved) {
-    const brevhovedData: BrevhovedData = {
-      journalnr: stamdata?.journalnr,
-      advokat: stamdata?.advokat,
-      sagsbehandler: stamdata?.sagsbehandler,
-      dagsDatoISO: TODAY,
-    };
-    writer.writeBrevhoved(brevhovedData);
+    writer.writeBrevhoved(buildStamdataBrevhovedData(stamdata));
   }
 
   writer.writeTitle('Procesrente');
@@ -257,15 +249,7 @@ export const generateRenteDocument = (
     throw new Error('Ugyldige datoer for renteberegning');
   }
 
-  const writer = createStandardPdfWriter();
-  writer.setDisplayMode('fullheight');
-
-  writer.setProperties({
-    title: 'Procesrente',
-    subject: 'Erstatningsberegning',
-    author: 'Mineo',
-    creator: getDocumentCreatorBrand(),
-  });
+  const writer = initStandardDocumentWriter({ title: 'Procesrente' });
 
   writeRenteDocumentContent(writer, amount, startDate, endDate, periods, options);
   writer.addFooter();
