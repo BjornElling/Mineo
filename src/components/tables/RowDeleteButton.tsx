@@ -2,9 +2,9 @@ import * as React from 'react';
 import { Box, IconButton, Tooltip } from '@mui/material';
 import { Delete } from '@mui/icons-material';
 
-const ROW_DELETE_ICON_COLOR = '#a86b6b';
+const ROW_DELETE_ICON_COLOR = '#b88a8a';
 const ROW_DELETE_ICON_HOVER_COLOR = '#c25555';
-const ROW_DELETE_HOVER_HALO_COLOR = 'rgba(194, 85, 85, 0.10)';
+const ROW_DELETE_HOVER_HALO_COLOR = 'rgba(194, 85, 85, 0.16)';
 
 export type RowDeleteButtonProps = Readonly<{
   /** Rydder præcis denne ene række i én undo-handling. Kaldes ved klik på ikonet. */
