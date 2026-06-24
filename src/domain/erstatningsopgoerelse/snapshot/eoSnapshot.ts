@@ -113,14 +113,12 @@ const buildCanonicalOutput = (args: Readonly<{
   tafRanges: ReadonlyArray<{ fra: ISODateString; til: ISODateString }>;
   svieSmerte: SvieSmerteEngineOutput;
   tafNetto: TafNettoBeregningResult;
-  oevrigeKrav: ReturnType<typeof buildOevrigeKravModel>;
   totals: EoSnapshotComputedData['totals'];
 }>): EoCanonicalOutput => {
   return buildEoCanonicalOutputFromComputed({
     tafRanges: args.tafRanges,
     svieSmerte: args.svieSmerte,
     tafNetto: args.tafNetto,
-    oevrige: args.oevrigeKrav,
     totals: args.totals,
   });
 };
@@ -359,7 +357,6 @@ export const computeEoSnapshot = (args: Readonly<{
       tafRanges,
       svieSmerte,
       tafNetto,
-      oevrigeKrav,
       totals,
     });
     debugSnapshot = buildDebugSnapshotForComputed({

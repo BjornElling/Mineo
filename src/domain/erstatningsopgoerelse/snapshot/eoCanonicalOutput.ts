@@ -152,7 +152,6 @@ export const buildEoCanonicalOutputFromComputed = (args: Readonly<{
   tafRanges: ReadonlyArray<{ fra: z.infer<typeof isoDateSchema>; til: z.infer<typeof isoDateSchema> }>;
   svieSmerte: SvieSmerteEngineOutput;
   tafNetto: TafNettoBeregningResult;
-  oevrige: OevrigeKravCanonicalInput;
   totals: EoComputedTotals;
 }>): EoCanonicalOutput => {
   const loenudviklingSegmenter = (args.tafNetto.loenudvikling?.beregnedeSegmenter ?? []).map(toCanonicalSegment);
