@@ -22,8 +22,10 @@ import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySou
 const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number | undefined => {
   if (!isoDate) return undefined;
   // Kanonisk addMonths (clamp til månedsslut) — ÉN "læg måneder til dato"-semantik i
-  // hele kodebasen, ingen rå setUTCMonth-rollover. Året er identisk under clamp og
-  // rollover (overløb krydser aldrig en årsgrænse), så dette er rent adfærdsbevarende.
+  // hele kodebasen, ingen rå setUTCMonth-rollover. Adfærdsbevarende her, fordi vi kun
+  // udtrækker *årstallet*: clamp og rollover er kun forskellige i dag-på-måneden, og den
+  // forskel kan aldrig ændre året. December + 1 måned ruller ganske vist til næste år —
+  // men identisk under begge semantikker — så det udtrukne år er det samme.
   return addMonths(isoDateToDate(isoDate), 1).getUTCFullYear();
 };
 

@@ -127,6 +127,21 @@ describe('felt-identitet: formular-widgets i sags-sider bærer name', () => {
     // Vagt mod at en ny Styled-input-type tilføjes uden at blive omfattet af værnet.
     expect(ALL_FORM_WIDGETS.length).toBe(12);
   });
+
+  it('selv-test: den faktiske scanner fanger et persisteret blur-commit-felt uden name', () => {
+    // Anti-vacuous: kør den RIGTIGE scanner (findOpeningTags + isPersistedCommit + name-tjek)
+    // mod en kendt overtræder og en compliant udgave — ikke kun .toContain på literaler.
+    const violating = '<StyledAmountField onCommit={(v) => setValues((p) => ({ ...p, x: v }))} />';
+    const compliant = '<StyledAmountField name="x" onCommit={(v) => setValues((p) => ({ ...p, x: v }))} />';
+
+    const isOffender = (source: string): boolean =>
+      findOpeningTags(source, 'StyledAmountField').some(
+        (tag) => !TRANSIENT_REFS.some((p) => p.test(tag)) && !/\bname=/.test(tag) && isPersistedCommit(tag),
+      );
+
+    expect(isOffender(violating), 'scanneren burde flagge et persisteret felt uden name').toBe(true);
+    expect(isOffender(compliant), 'scanneren burde acceptere samme felt MED name').toBe(false);
+  });
 });
 
 // ───────────────────────── Tabel-familien (grid-celler) ─────────────────────────

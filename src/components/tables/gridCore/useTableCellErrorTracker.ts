@@ -87,5 +87,11 @@ export const useTableCellErrorTracker = (): TableCellErrorTracker => {
     }
   }, []);
 
-  return { setCellError, getActiveCellKeys, hasAnyError, pruneToValidRowIds };
+  // Stabil container, så de tre tabellers prune/notify-effects (der lister trackeren i deres
+  // dependency-arrays) kun kører når en af de memoiserede funktioner faktisk ændrer sig — ikke
+  // ved hver render. Funktionerne er allerede useCallback-stabile (tomme deps).
+  return React.useMemo(
+    () => ({ setCellError, getActiveCellKeys, hasAnyError, pruneToValidRowIds }),
+    [setCellError, getActiveCellKeys, hasAnyError, pruneToValidRowIds],
+  );
 };

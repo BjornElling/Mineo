@@ -148,6 +148,24 @@ describe('dateUtils', () => {
       expect(formatDanishDate(result)).toBe('30-12-2024');
     });
 
+    it('årsovergang: 15-12-2024 + 1 måned = 15-01-2025', () => {
+      // December + 1 måned ruller til næste år — identisk under clamp og rollover.
+      // Pinner B11-begrundelsen for getYearAfterAddingOneMonth (året er uafhængigt af dag-clamp).
+      const start = parseDanishDate('15-12-2024');
+      expect(start).toBeDefined();
+      const result = addMonths(start!, 1);
+      expect(formatDanishDate(result)).toBe('15-01-2025');
+      expect(result.getUTCFullYear()).toBe(2025);
+    });
+
+    it('årsovergang med clamp: 31-12-2024 + 1 måned = 31-01-2025', () => {
+      const start = parseDanishDate('31-12-2024');
+      expect(start).toBeDefined();
+      const result = addMonths(start!, 1);
+      expect(formatDanishDate(result)).toBe('31-01-2025');
+      expect(result.getUTCFullYear()).toBe(2025);
+    });
+
     it('29-02-2024 + 12 måneder = 28-02-2025', () => {
       const start = parseDanishDate('29-02-2024');
       expect(start).toBeDefined();

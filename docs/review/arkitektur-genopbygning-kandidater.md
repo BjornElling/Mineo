@@ -31,9 +31,57 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 ---
 
+## Kritisk efter-review (2026-06-24)
+
+Et uafhængigt, skeptisk efter-review: kode-review af samtlige implementerede commits + en arkitektur-vurdering holdt mod den **faktiske kode** (ikke mod doc-teksten, som er skrevet af samme indsats den dokumenterer). Formål jf. opgaven: (1) blev de rigtige ændringer lavet, og er de det bedst mulige slutprodukt — kritisk, også over for store breaking-ændringer; (2) egentligt kode-review med rettelse af fund.
+
+### Kode-review: fund og rettelser
+
+Ingen Kritisk/Høj korrektheds-bugs. De implementerede konsolideringer er adfærdsbevarende, og guards (B10 path-guard, C15 `satisfies`, B7 reconcile-guard) er ægte anti-vacuous. Rettet i denne omgang:
+
+- **A3 (Medium) — rettet.** `useTableCellErrorTracker` returnerede et nyt objekt-literal hver render; de tre tabellers prune/notify-effects (der lister trackeren i deps) kørte derved ved *hver* render i stedet for kun ved rækkeliste-ændring. Ikke en korrektheds-bug (funktionerne var `useCallback`-stabile, notify deduper) men den slog dep-arrays ud. Pakket return i `useMemo`.
+- **B8 (Medium) — rettet (test-ærlighed).** `eoCanonicalOutput.parity.test.ts` projicerede de tre B8-berørte totaler FRA `pdfModel` — men efter B8 hentes de selv fra canonical, så sammenligningen blev tautologisk for de felter. Testen guarder fortsat *wiring* (fanger hvis `pdfModel` holder op med at viderebringe canonical) + de strukturelle felter er stadig ægte paritet; kommentaren er rettet til at sige præcist hvad der nu testes.
+- **B11 (Lav, faktuel) — rettet.** Kommentar/doc påstod "overløb krydser aldrig en årsgrænse" — faktuelt forkert (December gør netop det). Korrekt proof (kun årstallet udtrækkes; clamp/rollover-forskellen er kun dag-på-måneden og kan aldrig ændre året) skrevet i kode + doc; December-testcase tilføjet i `dateUtils.test.ts`.
+- **A2 (Lav) — rettet (guard-hærdning).** Felt-identitets-værnets selv-test tjekkede kun string-literaler. Tilføjet en ægte selv-test der kører den *faktiske* scanner (`findOpeningTags` + `isPersistedCommit` + name-tjek) mod en kendt overtræder + compliant udgave (jf. guard-selftest-princippet).
+
+Bevidst IKKE ændret drive-by (dokumenteret som opfølgning):
+- **A1 context/VM-memoisering.** Begge fag-siders kontekst-værdi (og selve VM-hookenes return) er friske objekter hver render. Adfærds-neutralt i dag (ingen forbruger er `React.memo`'et på en måde konteksten slår ud). En forsvarlig rettelse kræver at memoisere hele god-hookens return → risiko for stale closures; hører til A1-opfølgningen, ikke et sikkert drive-by-snit.
+- **A4 download-gate-adoption** og **B9-arkitektur** — forelæggelses-pligtige / høj-risiko, se verdicts + shortlist.
+
+Øvrige Lav-fund (ufarlige test-/ergonomi-noter, ikke rettet): dead `mode:'typing'`/`partialEligible`-grene i Styled-felt-familien (pre-eksisterende mønster); B8 efterlader dead total-beregning i to sektion-byggere; B9 `buildEODebugMidlertidigtEetKonsistensRows` ligger i oevrigeKrav-filen skønt kun indkomst-byggeren bruger den (ingen cyklus); B9 isolations-scanner er relative-import-only (sikkert i dag, intet alias). Test-huller noteret: B7 undo-genskaber-pruned-draft-roundtrip, A3 tabel-integration for celle-fejl-kanalen, C17 `documentGeneratorSetup`-metadata.
+
+### Arkitektur-verdicts — er det det bedst mulige slutprodukt?
+
+| # | Verdict | Vurdering (kode-verificeret) |
+|---|---|---|
+| **A1** | 🟡 ikke-ideelt | `useEoOplysningerViewModel` er en troværdig kompositions-rod (handlere i sub-hooks). Men `useLoenindkomstViewModel` er en **1211-linjers god-hook flyttet bag en kontekst** (Tab-diff: 2067 sletninger / 42 indsættelser = verbatim relokering); begge VM'er **lækker rå store-adgang** (`values/setValues/setFieldValue` returneres direkte, kommenteret "Rå form-state") og **ingen af dem har isolations-tests** — den primære gevinst ved et VM-lag (test af afledning uden React-render) er ikke realiseret. God-class-problemet er delvist *flyttet*, ikke løst. **Status nedjusteret ✅→🟡.** |
+| **B9** | ❌ ufuldstændig på det egentlige problem | Fil-splittet (3590→788) + isolations-værn er fint, men den reelle defekt er urørt: produktions-PDF-gaten drives af `status:'error'`-rækker hvis regler er **inlinet i DEV-display-formateringen** (fx periode-komplethed, TAF-dato/overlap beregnet ved row-format-tid; "error" er bare `status:'error'` på display-rækken). Værnets invariant C er et **string-match på VM-filen** der *dokumenterer* sammenfiltringen ("freeze, don't fix") frem for at fjerne den → enhver reformatering brækker testen, og DEV-formaterings-ændringer kan ændre produktions-gating. |
+| **A4** | 🟡 overstated claim | Dato-grænser + felt-fejl er ægte centraliseret. Men "download-gate korrekthed allerede ens by construction" er overstated: `RenteberegningTab` og `MenberegningTab` håndruller rå-boolean-gates **uden for** det delte `documentGateTypes`-primitiv — committed-reglen er dér håndhævet af en kommentar, ikke af konstruktion. |
+| **B8** | 🟡 smallere end ✅ antyder | Type-seglet er ægte (`Omit`, ingen cast/`any`), men `buildEoComputedTotals` **viderebringer** engine/sektion-totaler (clamp + forlig-skalering), den **re-deriverer dem ikke uafhængigt**. Seglet stopper divergens-ved-tastefejl/parallel-genberegning — ikke divergens-ved-engine-fejl (et forkert engine-tal flyder identisk til begge). Ingen yderligere indsats berettiget (ægte krydsudledning = en anden engine, ikke berettiget mod låst flade). |
+| **C17** | 🟡 ét residual overset | `initStandardDocumentWriter` + creator-brand-fix er korrekt. Men en identisk `writeRows(writer, rows)` er duplikeret verbatim i tre generatorer (`aarsloenDocument`, `varigeMenDocument`, `satserDocument`) — et reelt mikro-byggekloss der hører ved siden af `initStandardDocumentWriter`. |
+| Øvrige | ✅ | A2, A3, A5, B6, B7 (merge-forkastelse + residual-fix), B10, B11, B12, C13, C14, C15, C16 er på bedst-muligt slutprodukt givet den låste feature-flade. Flere forkastelser (A5, B7-merge, C14, C16) er blandt doc'ens bedst-begrundede — genåbn dem ikke. |
+
+### Hvor et større/breaking snit faktisk er værd det (rangordnet)
+
+1. **B9 — træk produktions-blokerings-validering UD af debug-laget** (højest værdi, højest risiko). En ren `eoBlockingValidation(values, fieldErrors, canonical)` der driver gaten, mens debug-laget *renderer* dens output + DEV-inspektion. Fjerner klassen hvor DEV-formaterings-ændringer kan ændre produktions-gating; erstatter det skøre string-match-værn med et adfærds-værn. **Kræver forelæggelse** (PDF-blokerende sti) + 457-test-debug-suiten som golden baseline. ~3-5 dage.
+2. **A1 — gør `useLoenindkomstViewModel` til et ægte VM** (medium værdi, lav risiko). Split god-hooken i en ren `deriveLoenindkomstVm(committed, settings): FlatModel` (testbar uden React) + en tynd state/handler-hook; stop med at returnere `setValues`/refs gennem konteksten; tilføj isolations-tests. ~1-2 dage.
+3. **A4 — migrér de to rå-boolean-download-gates** (`RenteberegningTab` + `MenberegningTab`) til `documentGateTypes`-primitivet, så committed-reglen er konstruktion ikke kommentar. Timer. **UX-nær → kræver forelæggelse.**
+4. **C17 — løft tripleret `writeRows` ind i `documentGeneratorSetup.ts`.** Timer.
+
+Alt øvrigt er på bedst-muligt slutprodukt mod den låste feature-flade; ingen yderligere stor ændring er berettiget.
+
+---
+
 ## Klasse A — høj værdi, forsvarligt omfang/risiko
 
-### A1. Manglende view-model-lag under fagsiderne (god-class-tabs) — ✅ IMPLEMENTERET (2026-06-21)
+### A1. Manglende view-model-lag under fagsiderne (god-class-tabs) — 🟡 DELVIST (nedjusteret 2026-06-24; oprindeligt ✅ 2026-06-21)
+
+> **Efter-review-note (2026-06-24):** Nedjusteret ✅→🟡. Begge halvdele af mekanikken er på plads, men
+> `useLoenindkomstViewModel` er en **1211-linjers god-hook flyttet bag en kontekst** (verbatim
+> relokering), begge VM'er **lækker rå store-adgang** (`values/setValues/setFieldValue`) og **ingen har
+> isolations-tests** — VM-lagets primære gevinst (afledning testbar uden render) er ikke realiseret.
+> God-class-problemet er delvist flyttet, ikke løst. Konkret opfølgning: se "Kritisk efter-review",
+> shortlist punkt 2. Den oprindelige ✅-status-tekst bevares nedenfor som historik.
 
 > **Status:** Begge halvdele af A1 er på plads for alle tre EO-fagsider: (1) **view-model-lag** — ét
 > `useXxxViewModel`-hook pr. fagside der ejer al afledt visningstilstand, lokal UI-state og handlers og
@@ -273,10 +321,14 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 > udgangen af februar), bekræftet af brugeren. Produktionsstien var allerede ensrettet til den
 > kanoniske `addMonths` i commit `e62d433d` (2026-06-14) — `calculateInterestDate` (`case 'maaneder'`)
 > bruger clamp, ingen rå `setUTCMonth`-rollover tilbage. Det sidste rå `setUTCMonth` i ikke-test-kode
-> (DEV-debug-hjælperen `getYearAfterAddingOneMonth` i `eoDebugErstatningsopgoerelseModel.ts`, der kun
-> udtrækker et *årstal*) er nu også routet gennem `addMonths` — bevisligt adfærdsbevarende, da overløb
-> aldrig krydser en årsgrænse. Der er dermed ÉN "læg måneder til dato"-semantik i hele kodebasen.
-> Fuld suite grøn (5495 tests).
+> (DEV-debug-hjælperen `getYearAfterAddingOneMonth`, efter B9-splittet i `eoDebugSvieSmerteRows.ts`, der
+> kun udtrækker et *årstal*) er nu også routet gennem `addMonths` — bevisligt adfærdsbevarende, **fordi
+> kun årstallet udtrækkes**: clamp og rollover er udelukkende forskellige i dag-på-måneden, og den
+> forskel kan aldrig ændre året. (December + 1 måned ruller ganske vist til næste år — men identisk
+> under begge semantikker.) Der er dermed ÉN "læg måneder til dato"-semantik i hele kodebasen.
+> *Rettet 2026-06-24: tidligere formulering ("overløb krydser aldrig en årsgrænse") var faktuelt
+> forkert (December gør netop det) — proof-formuleringen er nu korrekt; in-code-kommentar +
+> December-testcase tilføjet.*
 
 **Nuværende tilstand.** `rentekravValidation.ts:calculateInterestDate` bruger rå `setUTCMonth`-rollover (31-01 + 1 md → 03-03), mens `dateUtils.ts:addMonths` clamper til månedsslut (→ 28-02). To sandheder for samme operation i samme kodebase (4.7, ⏸ afventede domæneafgørelse).
 
@@ -420,14 +472,14 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 
 | # | Kandidat | Gevinst | Omfang | Risiko | Forelæggelse |
 |---|---|:---:|:---:|:---:|:---:|
-| A1 ✅ | View-model-lag under fagsiderne | 5 | 5 | 3 | Nej (ren refaktor) |
+| A1 🟡 | View-model-lag under fagsiderne — mekanik på plads, men `useLoenindkomstViewModel` er en god-hook flyttet bag kontekst (lækker rå store-adgang, ingen isolations-tests); nedjusteret 2026-06-24, se Kritisk efter-review | 5 | 5 | 3 | Nej (ren refaktor) |
 | A2 ✅ | Delt felt-adapter-kerne (StyledField × TableInput) | 4 | 3 | 2 | Nej |
 | A3 ✅ | Delt celle-fejl-sporing i grid | 4 | 2 | 2 | Nej |
-| A4 🟡 | Side-byggeklodser (gate/download/dato-grænser) | 4 | 3 | 3 | Delvis |
+| A4 🟡 | Side-byggeklodser (gate/download/dato-grænser) — NB: 2 sider (`RenteberegningTab`/`MenberegningTab`) håndruller download-gates uden for `documentGateTypes`-primitivet; committed-regel er kommentar ikke konstruktion (se Kritisk efter-review) | 4 | 3 | 3 | Delvis |
 | B6 ✅ | Samlet persistence-serialiserings-primitiv | 3 | 3 | 4 | Nej |
 | B7 🟡 | Samlet felt-tilstand (fejl/draft/undo) — struktur allerede samlet; orphan-datatab rettet | 4 | 5 | 5 | Nej |
-| B8 ✅ | Tvungne grænser i EO snapshot→presentation | 4 | 4 | 3 | Nej |
-| B9 🟡 | Slank EO-debug-laget (33 filer/11k linjer) — monsterfil splittet + isolations-værn; "DEV-only/risiko 2"-præmis modbevist (reelt trust-kritisk, gater PDF); fuld omskrivning forkastet | 3 | 5 | ~~2~~ → høj (load-bearing del) | Delvis |
+| B8 ✅ | Tvungne grænser i EO snapshot→presentation (NB: seglet er forwarding af canonical-totaler, ikke uafhængig krydsudledning — stopper divergens-ved-tastefejl, ikke -ved-engine-fejl; se Kritisk efter-review) | 4 | 4 | 3 | Nej |
+| B9 🟡→❌ | Slank EO-debug-laget (~41 filer/11k linjer) — monsterfil splittet + isolations-værn; "DEV-only/risiko 2"-præmis modbevist (reelt trust-kritisk, gater PDF). **Efter-review: ufuldstændig på det egentlige problem** — produktions-gating-regler er inlinet i DEV-display-formateringen, og værnet *dokumenterer* sammenfiltringen (string-match, "freeze") frem for at fjerne den. Anbefalet: træk `eoBlockingValidation` ud (shortlist #1) | 3 | 5 | ~~2~~ → høj (load-bearing del) | Delvis |
 | B10 ✅ | Én ASL-maks-opslags-gateway | 3 | 2 | 3 | Ja |
 | B11 ✅ | Én kanonisk måned-additions-semantik | 3 | 1 | 3 | Ja |
 | B12 ✅ | Systematisér delt UI↔dokument-domænelogik | 3 | 2 | 2 | Nej |
@@ -435,11 +487,11 @@ Den ideelle kandidat har **høj gevinst, lavt omfang, lav risiko**. Listen er or
 | C14 🟡 | Samlet settings-katalog | 2 | 3 | 2 | Nej |
 | C15 ✅ | Options-DTO mellem AppSettings og dokument-lag | 2 | 2 | 1 | Nej |
 | C16 🟡 | Ensartede rate-resolvere — verificeret: hvert domæne har egen variations-dimension; sammensatte opslag har allerede én resolver; generisk resolver ikke berettiget | 2 | 3 | 2 | Nej |
-| C17 🟡 | Builder/skabelon-lag for generatorer — ensartet init-preamble konsolideret (initStandardDocumentWriter) + creator-drift lukket; fuldt skabelon-lag forkastet (regressionsrisiko) | 2 | 3 | 3 | Nej |
+| C17 🟡 | Builder/skabelon-lag for generatorer — ensartet init-preamble konsolideret (initStandardDocumentWriter) + creator-drift lukket; fuldt skabelon-lag forkastet (regressionsrisiko); residual: tripleret `writeRows` (aarsloen/varigemen/satser) bør løftes ind ved siden af initStandardDocumentWriter (se Kritisk efter-review) | 2 | 3 | 3 | Nej |
 
 **Anbefalet startsekvens:** A3 → A2 → A1 (de tre UI-strukturelle, i stigende omfang), sideløbende med B10/B11 som små, forelæggelses-pligtige korrekthedssnit. (A1, A2, A3, B6, B8, B10, B11, B12, C13 og C15 er implementeret; B9 blev verificeret 2026-06-23 — "DEV-only/lav risiko"-præmissen blev modbevist (laget er trust-kritisk produktions-validering der gater PDF-download), den sikre klarhedsgivende del er gjort (projektets største kildefil splittet adfærdsbevarende 3590→788 linjer + isolations-værn der pinner produktions/DEV-grænsen), og den fulde data-drevne omskrivning er forkastet som høj-risiko/forelæggelses-pligtig mod en låst feature-flade; B7 blev verificeret 2026-06-22 — strukturen var allerede samlet af invalidDrafts-omlægningen (fuld merge forkastet), og den ene residual (forældreløse celle-drafts ved række-/AF-sletning der blokerede Gem) er rettet via read-time-reconcile af invalidDrafts-kanalen; A4 og C14 blev verificeret 2026-06-21 og er stort set allerede løst/nedjusteret — A4: concern #2/#3 lukket, #1 stilistisk/parkeret; C14: AppThemeMode-dubletten fikset (reviewpunkt 11), samlet katalog ikke berettiget; A5 blev verificeret og forkastet — se appendiks punkt 5. C16 og C17 blev verificeret 2026-06-23 — C16: hvert rate-domæne har sin egen variations-dimension, og de sammensatte opslag har allerede hver én kanonisk resolver, så en generisk resolver er ikke berettiget (ingen kode-ændring); C17: den ensartede init-preamble er konsolideret i `initStandardDocumentWriter` på tværs af alle 18 generatorer og en latent `creator`-brand-drift lukket, mens det fulde skabelon-lag over sektions-renderingen er forkastet som regressionsrisiko mod en låst feature-flade.)
 
-**Status:** Alle kandidater i prioritetstabellen er nu behandlet (implementeret, delvist løst, eller verificeret-og-nedjusteret/forkastet). Ingen åbne, ubehandlede punkter tilbage.
+**Status:** Alle kandidater i prioritetstabellen er behandlet (implementeret, delvist løst, eller verificeret-og-nedjusteret/forkastet). Det kritiske efter-review (2026-06-24) rettede de fundne kode-fund og genåbnede fire opfølgnings-punkter som åbne, men ikke-haste: **B9** (træk produktions-validering ud af debug-laget — størst værdi, forelæggelses-pligtig), **A1** (gør `useLoenindkomstViewModel` til et ægte VM), **A4** (migrér 2 download-gates til primitivet — forelæggelses-pligtig) og **C17** (løft tripleret `writeRows`). Se "Kritisk efter-review (2026-06-24)" for detaljer + rangordnet shortlist.
 
 ---
 
