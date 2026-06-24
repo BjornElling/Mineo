@@ -1,10 +1,8 @@
-import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { isNonEmptyString } from './eoDebugCommon';
 import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
-import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { resolveBilagWarning } from '../erstatningsopgoerelse/helpers/bilagWarnings';
@@ -194,51 +192,3 @@ export const buildEODebugBilagsnumreRows = (
   });
 };
 
-export const buildEODebugMidlertidigtEetKonsistensRows = (
-  values: ErstatningsopgoerelseValues,
-  skadedatoISO: ISODateString | undefined
-): DebugRowModel[] => {
-  // Kun relevant hvis afgørelse er 'Ja' og virkningsdato kan bestemmes
-  if (values.midlertidigtEETAfgorelse !== 'Ja') return [];
-
-  const midlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({
-    ...values,
-    skadedatoISO,
-  });
-  if (!midlertidigEETBeregnetDato) return [];
-
-  // Find TAF-slutdato (sidste dag i det sidst registrerede TAF-krav)
-  const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO });
-  let lastTafKravDato: ISODateString | undefined = undefined;
-  for (const periode of values.tafPerioder ?? []) {
-    const valid = getValidTafRange(periode);
-    if (!valid) continue;
-    const clamped = clampTafRange(valid, tafBounds);
-    if (!clamped) continue;
-    if (!lastTafKravDato || clamped.til > lastTafKravDato) lastTafKravDato = clamped.til;
-  }
-
-  if (!lastTafKravDato) return [];
-
-  // TAF-slutdato er efter EET-virkningsdato → der burde være midlertidige EET-ydelser
-  if (lastTafKravDato < midlertidigEETBeregnetDato) return [];
-
-  const harMidlertidigtEetYdelser = (values.offentligeYdelserRows ?? []).some((row) => {
-    if (row.ydelsestype?.trim() !== 'midlertidigt_eet') return false;
-    const ydelseBeloeb = amountValueToNumber(row.ydelse) ?? 0;
-    const tillaegBeloeb = amountValueToNumber(row.tillaeg) ?? 0;
-    return ydelseBeloeb + tillaegBeloeb > 0;
-  });
-
-  if (harMidlertidigtEetYdelser) return [];
-
-  return [
-    {
-      id: 'midlertidigtEetKonsistens.afgorelseUdenYdelser',
-      label: 'Advarsel',
-      displayValue: 'Advarsel (Der er angivet en midlertidig EET-afgørelse men ikke indtastet ydelser)',
-      status: 'warning',
-      summaryDisplay: 'messageOnly',
-    },
-  ];
-};

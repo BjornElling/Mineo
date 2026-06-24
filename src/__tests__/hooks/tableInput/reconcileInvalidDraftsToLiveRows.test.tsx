@@ -14,7 +14,13 @@ import { CellInvalidDraftScopeProvider } from '../../../contexts/CellInvalidDraf
 import { FormPersistenceProvider } from '../../../contexts/FormPersistenceContext';
 import { useFormPersistence } from '../../../contexts/useFormPersistence';
 import { formPersistenceStore } from '../../../stores/formPersistenceStore';
-import { __resetUndoRedoStoreForTests, undoRedoStore } from '../../../stores/undoRedoStore';
+import {
+  __resetUndoRedoStoreForTests,
+  undoRedoStore,
+  type HistoryFrame,
+  type HistoryFrameOrigin,
+  type HistoryTransitionPlan,
+} from '../../../stores/undoRedoStore';
 import { PERSISTED_DATA_VERSION } from '../../../config/persistenceVersion';
 import {
   CELL_TABLE_IDS,
@@ -182,5 +188,63 @@ describe('Gem-gaten: forældreløs draft går fra blokeret til fri', () => {
     expect(drafts()[fpStd]).toBeUndefined();
     expect(drafts()[fpLoen]).toBeUndefined();
     expect(drafts()[fpAlive]).toBe('56'); // levende af urørt
+  });
+});
+
+describe('undo-roundtrip: sletning genskaber en housekeeping-pruned celle-draft', () => {
+  // Reconcile-prunen fanger BEVIDST ingen egen undo-frame (housekeeping) — sletningens egen frame skal
+  // bære draften. Det værn (ingen frame) er dækket ovenfor; her dækkes den anden halvdel: at frame'n
+  // faktisk indeholder `invalidDrafts`, så UNDO af sletningen genskaber den prunede draft og REDO fjerner
+  // den igen. Uden at undo-frames snapshotter invalidDrafts ville draften være tabt efter undo.
+  const origin: HistoryFrameOrigin = {
+    route: '/erstatningsopgoerelse',
+    tabKey: 'eo-oplysninger',
+    sectionKey: PAGE_KEY,
+    fieldPath: null,
+    focusToken: null,
+  };
+
+  const restoreFrameToFormStore = (frame: HistoryFrame): void => {
+    formPersistenceStore.getState().restoreHistoryFrame(
+      frame.sections,
+      frame.sectionRevisions,
+      frame.fieldErrors,
+      frame.fieldErrorRevisions,
+      frame.invalidDrafts,
+      frame.invalidDraftRevisions,
+      frame.meta,
+      frame.timestamp
+    );
+  };
+
+  const applyPlan = (plan: HistoryTransitionPlan | null): HistoryFrame | null => {
+    if (!plan) return null;
+    restoreFrameToFormStore(plan.target);
+    expect(undoRedoStore.getState().commitPlannedTransition(plan)).toBe(true);
+    return plan.target;
+  };
+
+  it('undo gendanner den forældreløse draft, redo fjerner den igen', () => {
+    const fp = buildCellInvalidDraftFieldPath(TABLE_ID, '', 'doomed-row:2');
+    seedDraft(fp, '12');
+
+    // Sletningens egen frame fanges FØR sletning+prune, så den bærer pre-slet-tilstanden (draften til stede).
+    act(() => { undoRedoStore.getState().capture(origin); });
+    const pastAfterCapture = pastLen();
+
+    // Slet rækken → den nu forældreløse draft prunes som housekeeping (egen frame fanges ikke).
+    act(() => { formPersistenceStore.getState().pruneInvalidDraftsForSectionFields(PAGE_KEY, [fp]); });
+    expect(drafts()[fp]).toBeUndefined();
+    expect(pastLen()).toBe(pastAfterCapture); // prune fangede ingen frame
+
+    // UNDO af sletningen → draften tilbage (laget i sletningens frame, ikke i en prune-frame).
+    const undoFrame = applyPlan(undoRedoStore.getState().planUndo());
+    expect(undoFrame?.invalidDrafts[PAGE_KEY]?.[fp]).toBe('12');
+    expect(drafts()[fp]).toBe('12');
+
+    // REDO → draften væk igen (post-slet-tilstanden).
+    const redoFrame = applyPlan(undoRedoStore.getState().planRedo());
+    expect(redoFrame?.invalidDrafts[PAGE_KEY]?.[fp]).toBeUndefined();
+    expect(drafts()[fp]).toBeUndefined();
   });
 });

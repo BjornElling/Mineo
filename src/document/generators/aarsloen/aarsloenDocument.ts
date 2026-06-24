@@ -7,7 +7,7 @@
 import type { CellDef, RowInput } from 'jspdf-autotable';
 import { resolveDocumentSectionEndY } from '../../layout/documentLayoutHelpers';
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter, writeLabelValueRows } from '../documentGeneratorSetup';
 import {
   cellCenter,
   cellRight,
@@ -36,23 +36,6 @@ import { STANDARD_HVERDAGE_PAA_AAR, STANDARD_SH_DAGE_PAA_AAR } from '../../../ut
 
 const NBSP = '\u00A0';
 const AARSLOEN_PDF_ATP_HEADER = 'ATP mv.\nu. tillæg';
-
-const writeRows = (
-  writer: DocumentWriter,
-  rows: ReadonlyArray<
-    Readonly<{
-      label: string;
-      value: string;
-      rightFontStyle?: 'normal' | 'bold';
-    }>
-  >
-): void => {
-  for (const row of rows) {
-    writer.writeLeftRightText(row.label, row.value, {
-      rightFontStyle: row.rightFontStyle ?? 'normal',
-    });
-  }
-};
 
 export const buildAarsloenDocumentFilename = (journalnr?: string): string => {
   return resolveDocumentArtifactFileName('Årslønsberegning', false, journalnr);
@@ -118,7 +101,7 @@ const addSatserSection = (
   }
 
   writer.writeBoldSubheader('Satser');
-  writeRows(
+  writeLabelValueRows(
     writer,
     udfyldteSatser.map((sats) => ({
       label: sats.label,
@@ -341,7 +324,7 @@ const addBeregningsprinciperSection = (
   }
 
   writer.writeBoldSubheader('Beregningsprincipper');
-  writeRows(writer, rows);
+  writeLabelValueRows(writer, rows);
   writer.addSectionSpacer();
 };
 
@@ -507,7 +490,7 @@ const addBeregningSection = (
   }
 
   writer.writeBoldSubheader('Beregning');
-  writeRows(writer, rows);
+  writeLabelValueRows(writer, rows);
 };
 
 

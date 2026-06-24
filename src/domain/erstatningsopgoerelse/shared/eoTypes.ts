@@ -306,3 +306,10 @@ export type TabtArbejdsfortjenesteSectionPresentation = Omit<
   'tabtArbejdsfortjenesteFoerForligOre' | 'tabtArbejdsfortjenesteOre'
 >;
 export type OevrigeKravSectionPresentation = Omit<OevrigeKravModel, 'totalFoerForligOre' | 'totalOre'>;
+
+/**
+ * Hvad `buildOevrigeKravModel` leverer som input til canonical: krav-rækker + pre-forlig-total.
+ * Post-forlig-totalen (`totalOre`) re-deriveres af `buildEoComputedTotals` (forlig-skalering),
+ * så byggeren bærer den ikke. Den var tidligere en ulæst dublet af `totalFoerForligOre` (B8).
+ */
+export type OevrigeKravCanonicalInput = Omit<OevrigeKravModel, 'totalOre'>;

@@ -71,18 +71,34 @@ const collectSourceFiles = (root: string): string[] => {
 const IMPORT_SPECIFIER = /(?:from|import)\s+['"]([^'"]+)['"]/g;
 
 /**
- * Returnerer de import-specifiers i `source`, der (relativt opløst fra `fromDir`) peger ind i
- * `src/domain/debug/`. Tom liste = ingen debug-import.
+ * Tekstuelt sti-segment for debug-laget i et import-specifier. Import-stier skrives altid med
+ * forward-slash uanset OS, så vi matcher mod den form (ikke `path.sep`).
+ */
+const DEBUG_SPECIFIER_SEGMENT = 'domain/debug';
+
+/**
+ * Returnerer de import-specifiers i `source`, der peger ind i `src/domain/debug/`. Tom liste = ingen
+ * debug-import.
+ *
+ * To former dækkes, så værnet ikke bliver blindt hvis projektet senere indfører en path-alias:
+ *  - **relative** specifiers opløses mod `fromDir` og tjekkes mod `DEBUG_ROOT`.
+ *  - **ikke-relative** specifiers (alias som `@/domain/debug/…`, absolut `src/domain/debug/…`, eller
+ *    et bart modul) kan ikke opløses uden alias-config, men ENHVER der indeholder `domain/debug`-
+ *    segmentet peger pr. konstruktion ind i laget og flagges. (I dag bruger projektet ingen aliaser,
+ *    så dette er rent forebyggende — men det er netop dér den tidligere relative-only-scanner var skør.)
  */
 const findDebugImports = (source: string, fromDir: string): string[] => {
   const hits: string[] = [];
   for (const match of source.matchAll(IMPORT_SPECIFIER)) {
     const specifier = match[1];
-    if (!specifier.startsWith('.')) continue; // kun relative imports kan ramme domain/debug
-    const resolved = path.resolve(fromDir, specifier);
-    const rel = path.relative(DEBUG_ROOT, resolved);
-    const pointsIntoDebug = rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
-    if (pointsIntoDebug) hits.push(specifier);
+    if (specifier.startsWith('.')) {
+      const resolved = path.resolve(fromDir, specifier);
+      const rel = path.relative(DEBUG_ROOT, resolved);
+      const pointsIntoDebug = rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+      if (pointsIntoDebug) hits.push(specifier);
+      continue;
+    }
+    if (specifier.includes(DEBUG_SPECIFIER_SEGMENT)) hits.push(specifier);
   }
   return hits;
 };
@@ -128,6 +144,20 @@ describe('debugLayerIsolation', () => {
 
     expect(findDebugImports(offendingSource, fromDir)).toEqual(['../../debug/eoDebugRowAggregator']);
     expect(findDebugImports(cleanSource, fromDir)).toEqual([]);
+  });
+
+  it('selvtest: scanneren fanger også ikke-relative debug-imports (alias/absolut) — ikke kun relative', () => {
+    const fromDir = path.resolve(DOMAIN_ROOT, 'erstatningsopgoerelse/engines');
+    // Disse former findes ikke i projektet i dag (ingen path-aliaser), men værnet skal fange dem
+    // hvis en alias senere indføres — ellers ville koblingen kunne snige sig ind usynligt.
+    expect(findDebugImports("import { x } from '@/domain/debug/eoDebugRowAggregator';", fromDir)).toEqual([
+      '@/domain/debug/eoDebugRowAggregator',
+    ]);
+    expect(findDebugImports("import { x } from 'src/domain/debug/eoDebugRowAggregator';", fromDir)).toEqual([
+      'src/domain/debug/eoDebugRowAggregator',
+    ]);
+    // Ikke-relativt modul uden for debug-laget rører ikke værnet.
+    expect(findDebugImports("import { z } from '@mui/material';", fromDir)).toEqual([]);
   });
 
   it('C: EO-debug-builderne er produktions-load-bearing — de gater PDF-download (ikke kun DEV)', () => {

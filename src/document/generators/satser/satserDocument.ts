@@ -6,7 +6,7 @@
 
 import { formatPercent } from '../../../utils/formatUtils';
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter, writeLabelValueRows } from '../documentGeneratorSetup';
 import { formatCurrencyPerUnit, formatKr, resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 import { getSatserForYear } from '../../../data/lovbestemteRates';
 import type { DocumentCommonOptions } from '../../layout/documentOptions';
@@ -26,16 +26,6 @@ const formatPercentage = (value: number | null | undefined): string => {
 };
 
 export const buildSatserDocumentFilename = (year: number): string => resolveDocumentArtifactFileName(`Arbejdsskadesatser ${year}`, false);
-
-const writeRows = (
-  writer: DocumentWriter,
-  rows: ReadonlyArray<ReadonlyArray<string>>,
-): void => {
-  for (const row of rows) {
-    const [label = '', value = ''] = row;
-    writer.writeLeftRightText(label, value, { rightFontStyle: 'normal' });
-  }
-};
 
 /**
  * Generer og download PDF for arbejdsskadesatser
@@ -303,6 +293,10 @@ const addRowsSection = (
   header: string,
 ): void => {
   writer.writeBoldSubheader(header);
-  writeRows(writer, rows);
+  // Satser holder rækker som [label, value]-par; map til den delte label/value-form.
+  writeLabelValueRows(
+    writer,
+    rows.map(([label = '', value = '']) => ({ label, value })),
+  );
   writer.addSectionSpacer();
 };

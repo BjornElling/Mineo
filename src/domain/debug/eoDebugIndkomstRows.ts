@@ -15,7 +15,61 @@ import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoDebugEoShared';
 import { formatStatusMessage, parseDanishToIsoDebug, getRangeForManualReguleringDebug, calculateElapsedWholeMonthsDebug, buildReguleringsMangelMessage } from './eoDebugEoShared';
-import { buildEODebugMidlertidigtEetKonsistensRows } from './eoDebugOevrigeKravRows';
+import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+
+/**
+ * Konsistens-advarsel: midlertidig EET-afgørelse angivet, men ingen midlertidige EET-ydelser
+ * indtastet i et interval hvor de burde findes. Bygges som en del af offentlige-ydelser-debugrækkerne
+ * (eneste forbruger) og hører derfor sammen med indkomst-byggeren, ikke oevrigeKrav-byggeren.
+ */
+export const buildEODebugMidlertidigtEetKonsistensRows = (
+  values: ErstatningsopgoerelseValues,
+  skadedatoISO: ISODateString | undefined
+): DebugRowModel[] => {
+  // Kun relevant hvis afgørelse er 'Ja' og virkningsdato kan bestemmes
+  if (values.midlertidigtEETAfgorelse !== 'Ja') return [];
+
+  const midlertidigEETBeregnetDato = resolveMidlertidigEetDatoHvisAktiv({
+    ...values,
+    skadedatoISO,
+  });
+  if (!midlertidigEETBeregnetDato) return [];
+
+  // Find TAF-slutdato (sidste dag i det sidst registrerede TAF-krav)
+  const tafBounds = resolveTafConstraintBounds(values, { skadedatoISO });
+  let lastTafKravDato: ISODateString | undefined = undefined;
+  for (const periode of values.tafPerioder ?? []) {
+    const valid = getValidTafRange(periode);
+    if (!valid) continue;
+    const clamped = clampTafRange(valid, tafBounds);
+    if (!clamped) continue;
+    if (!lastTafKravDato || clamped.til > lastTafKravDato) lastTafKravDato = clamped.til;
+  }
+
+  if (!lastTafKravDato) return [];
+
+  // TAF-slutdato er efter EET-virkningsdato → der burde være midlertidige EET-ydelser
+  if (lastTafKravDato < midlertidigEETBeregnetDato) return [];
+
+  const harMidlertidigtEetYdelser = (values.offentligeYdelserRows ?? []).some((row) => {
+    if (row.ydelsestype?.trim() !== 'midlertidigt_eet') return false;
+    const ydelseBeloeb = amountValueToNumber(row.ydelse) ?? 0;
+    const tillaegBeloeb = amountValueToNumber(row.tillaeg) ?? 0;
+    return ydelseBeloeb + tillaegBeloeb > 0;
+  });
+
+  if (harMidlertidigtEetYdelser) return [];
+
+  return [
+    {
+      id: 'midlertidigtEetKonsistens.afgorelseUdenYdelser',
+      label: 'Advarsel',
+      displayValue: 'Advarsel (Der er angivet en midlertidig EET-afgørelse men ikke indtastet ydelser)',
+      status: 'warning',
+      summaryDisplay: 'messageOnly',
+    },
+  ];
+};
 
 const resolveTafBoundaryDatesInSkadetPeriode = (
   values: ErstatningsopgoerelseValues

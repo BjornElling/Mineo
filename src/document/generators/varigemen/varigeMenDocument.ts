@@ -5,7 +5,7 @@
  */
 
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import { buildStamdataBrevhovedData, initStandardDocumentWriter, writeLabelValueRows } from '../documentGeneratorSetup';
 import { formatIsoDateLong } from '../../../utils/dateFormatting';
 import type { ISODateString } from '../../../types/branded';
 import { type VarigeMenBeregningResult } from '../../../domain/varigemen/varigeMenCalculations';
@@ -14,23 +14,6 @@ import { formatAsAmount } from '../../../utils/formatUtils';
 import { resolveDocumentArtifactFileName } from '../../layout/documentFormatUtils';
 
 export const buildVarigeMenDocumentFilename = (journalnr?: string): string => resolveDocumentArtifactFileName('Méngodtgørelse', false, journalnr);
-
-const writeRows = (
-  writer: DocumentWriter,
-  rows: ReadonlyArray<
-    Readonly<{
-      label: string;
-      value: string;
-      rightFontStyle?: 'normal' | 'bold';
-    }>
-  >
-): void => {
-  for (const row of rows) {
-    writer.writeLeftRightText(row.label, row.value, {
-      rightFontStyle: row.rightFontStyle ?? 'normal',
-    });
-  }
-};
 
 /**
  * Tilføj stamdata-sektion
@@ -43,7 +26,7 @@ const addStamdataSection = (
   skadedatoLabel: 'Skadedato' | 'Anmeldelsesdato'
 ): void => {
   writer.writeBoldSubheader('Stamdata');
-  writeRows(writer, [
+  writeLabelValueRows(writer, [
     { label: 'Fødselsdato', value: formatIsoDateLong(fodselsdato) },
     { label: skadedatoLabel, value: formatIsoDateLong(skadedato) },
     { label: 'Alder på skadestidspunkt', value: `${alderVedSkade} år` },
@@ -63,7 +46,7 @@ const addBeregningsgrundlagSection = (
   // Satsen og året kommer fra den autoritative beregning (ikke en re-resolve i PDF-laget),
   // så den viste sats altid matcher den sats beregningen faktisk brugte.
   writer.writeBoldSubheader('Beregningsgrundlag');
-  writeRows(writer, [
+  writeLabelValueRows(writer, [
     { label: 'Méngrad', value: `${mengrad} %` },
     { label: 'Beregningsdato', value: formatIsoDateLong(beregningsdato) },
     {
@@ -85,7 +68,7 @@ const addResultatSection = (
   writer.writeBoldSubheader('Beregnet méngodtgørelse');
   // Reduktionsbeløbet kommer fra beregningen (afstemt mod den oprundede slutgodtgørelse),
   // så grundbeløb − reduktion = godtgørelse går nøjagtigt op.
-  writeRows(writer, [
+  writeLabelValueRows(writer, [
     {
       label: `Grundbeløb: ${mengrad} % mén á ${formatAsAmount(beregningsResultat.satsPerMengrad, 2)} kr.`,
       value: `${formatAsAmount(beregningsResultat.grundbeloebUdenReduktion, 2)} kr.`,

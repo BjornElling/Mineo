@@ -67,3 +67,28 @@ export const buildStamdataBrevhovedData = (
   sagsbehandler: stamdata?.sagsbehandler,
   dagsDatoISO: TODAY,
 });
+
+/** Et label/value-par der skrives som én venstre-højre-tekstlinje. */
+export type DocumentLabelValueRow = Readonly<{
+  label: string;
+  value: string;
+  rightFontStyle?: 'normal' | 'bold';
+}>;
+
+/**
+ * Skriver en liste af label/value-par som venstre-højre-tekstlinjer.
+ *
+ * Konsoliderer den ordret ens række-løkke flere generatorer holdt lokalt
+ * (`aarsloenDocument`, `varigeMenDocument`). Generatorer hvis rækker er string-par
+ * (`satserDocument`) mapper til denne form ved callsite frem for at gentage løkken.
+ */
+export const writeLabelValueRows = (
+  writer: DocumentWriter,
+  rows: ReadonlyArray<DocumentLabelValueRow>
+): void => {
+  for (const row of rows) {
+    writer.writeLeftRightText(row.label, row.value, {
+      rightFontStyle: row.rightFontStyle ?? 'normal',
+    });
+  }
+};

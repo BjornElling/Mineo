@@ -20,6 +20,7 @@ export type {
   OffentligeYdelserUdviklingEntry,
   OffentligeYdelserUdviklingModel,
   OevrigeKravModel,
+  OevrigeKravCanonicalInput,
   EoModel,
   SvieSmerteModel,
   SygeferiegodtgoerelseModel,

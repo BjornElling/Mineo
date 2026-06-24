@@ -7,8 +7,8 @@ import { isTafRowEmpty } from '../helpers/rowEmpty';
 import type { SvieSmerteEngineOutput } from '../engines/svieSmerteEngine';
 import { erDetteFoersteErstatningsopgoerelse } from '../validation/eoNummerValidering';
 import { buildTafArbejdsstatusLinje } from '../tables/tafArbejdsstatusConfig';
-import type { Calculable, MoneyOre, OevrigeKravModel, SvieSmerteModel, TabtArbejdsfortjenesteModel } from '../shared/eoTypes';
-import { asCalculable, clampMoneyOreToZero, ensureMoneyOre } from '../shared/eoMoney';
+import type { Calculable, MoneyOre, OevrigeKravCanonicalInput, SvieSmerteSectionPresentation, TabtArbejdsfortjenesteModel } from '../shared/eoTypes';
+import { asCalculable, ensureMoneyOre } from '../shared/eoMoney';
 import { getDayAfterIso, perioderCoverDate } from '../helpers/eoSharedUtils';
 import { formatISOToDanish as formatDateShort, formatIsoDateLong as formatDateLong } from '../../../utils/dateFormatting';
 import { parseOevrigeKravBeloeb } from '../helpers/oevrigeKravAmountParser';
@@ -58,7 +58,7 @@ const buildTafFerieFravaerLinje = (
 export const buildSvieSmerteModel = (
   values: ErstatningsopgoerelseValues,
   options: Readonly<{ engine: SvieSmerteEngineOutput }>
-): SvieSmerteModel => {
+): SvieSmerteSectionPresentation => {
   const beregnes = values.kravPaaSvieSmerteGodtgoerelse === 'Ja' && values.tidligereSsMax === 'Nej';
   const skjul = values.kravPaaSvieSmerteGodtgoerelse === 'Skjul';
   const statusLinjer: string[] = [];
@@ -179,7 +179,8 @@ export const buildSvieSmerteModel = (
     delviseSygedage: engine.delviseSygedage,
     delvisFaktor: engine.delvisFaktor,
     maxApplied: engine.maxApplied,
-    totalOre: clampMoneyOreToZero(ensureMoneyOre(engine.totalOre)),
+    // totalOre bæres bevidst IKKE her: canonical (`buildEoComputedTotals`) udleder svie/smerte-totalen
+    // fra engine-outputtet, og PDF-modellen injicerer den derfra (B8-grænsen, eo-snapshot-contract.md §1).
   };
 };
 
@@ -415,16 +416,16 @@ export const buildTabtArbejdsfortjenesteModel = (
   };
 };
 
-export const buildOevrigeKravModel = (values: ErstatningsopgoerelseValues): OevrigeKravModel => {
+export const buildOevrigeKravModel = (values: ErstatningsopgoerelseValues): OevrigeKravCanonicalInput => {
   const beregnes = values.kravPaaOevrigeErstatningskrav === 'Ja';
   const skjul = values.kravPaaOevrigeErstatningskrav === 'Skjul';
   if (!beregnes) {
-    return { beregnes, skjul, entries: [], totalFoerForligOre: ensureMoneyOre(0), totalOre: ensureMoneyOre(0) };
+    return { beregnes, skjul, entries: [], totalFoerForligOre: ensureMoneyOre(0) };
   }
 
   const parsed = parseOevrigeKravBeloeb(values.oevrigeKravPerioder ?? []);
   if (!parsed) {
-    return { beregnes, skjul, entries: [], totalFoerForligOre: ensureMoneyOre(0), totalOre: ensureMoneyOre(0) };
+    return { beregnes, skjul, entries: [], totalFoerForligOre: ensureMoneyOre(0) };
   }
 
   const entries: Array<{ dateText: string; udgiftTil: string; amountOre: MoneyOre }> = [];
@@ -435,5 +436,6 @@ export const buildOevrigeKravModel = (values: ErstatningsopgoerelseValues): Oevr
     entries.push({ dateText, udgiftTil, amountOre: row.amountOre });
   }
 
-  return { beregnes, skjul, entries, totalFoerForligOre: parsed.totalOre, totalOre: parsed.totalOre };
+  // Kun pre-forlig-totalen bæres som canonical-input; post-forlig-totalen re-deriveres af canonical.
+  return { beregnes, skjul, entries, totalFoerForligOre: parsed.totalOre };
 };
