@@ -3,7 +3,6 @@ import { isoToDanish } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
 import { buildNoValidDateRangeMessage, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
-import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
 import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
 import { computeRowDateBounds } from '../erstatningsopgoerelse/helpers/rowDateBounds';
 import { getDayBeforeIso, validateISODateRange } from '../../utils/isoDateHelpers';
@@ -11,7 +10,8 @@ import { detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/perio
 import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaanederPraecis } from '../erstatningsopgoerelse/engines/tafCalculations';
-import { buildTafCutoffErrorMessage, clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
+import { evaluateTafPerioder } from '../erstatningsopgoerelse/validation/tafPeriodeValidation';
 import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoDebugEoShared';
@@ -197,50 +197,29 @@ export const buildEODebugTaftRows = (
     return result.isValid ? undefined : result.errorMessage;
   };
 
-  // 1) Periode-rækker fra tabellen
-  const tafOverlappingIds = detectOverlappingPeriods(values.tafPerioder ?? []);
+  // 1) Periode-rækker fra tabellen.
+  // Blokering (komplethed, dato-grænser, cutoff, overlap, rækkefølge) afgøres af den delte,
+  // autoritative TAF-periode-validering — samme funktion som eoBlockingValidation kalder (jf.
+  // B9), så beskederne er identiske. Debug RENDERER kun resultatet.
+  const tafEvaluations = evaluateTafPerioder(perioder, {
+    skadedatoISO: context.skadedatoISO,
+    erErhvervssygdom: context.erErhvervssygdom,
+    differencekravDato: context.differencekravDato,
+    endeligEETBeregnetDato: context.endeligEETBeregnetDato,
+    midlertidigEETBeregnetDato: context.midlertidigEETBeregnetDato,
+    aktivMidlertidigEETBeregnetDato,
+    verserendeKlageEet: context.verserendeKlageEet,
+  });
 
   const ferieperioder = values.ferieperioder ?? [];
 
   perioder.forEach((periode) => {
-    const hasFra = isNonEmptyString(periode.fra);
-    const hasTil = isNonEmptyString(periode.til);
+    const evaluation = tafEvaluations.get(periode.id) ?? { kind: 'ok' as const };
+    // Helt tom række springes over.
+    if (evaluation.kind === 'skip') return;
 
-    // Tjek om begge felter er udfyldt eller begge er tomme
-    const filledCount = [hasFra, hasTil].filter(Boolean).length;
-    const allFilled = filledCount === 2;
-    const noneFilled = filledCount === 0;
-
-    // Spring over rækker hvor intet er udfyldt
-    if (noneFilled) return;
-
-    // Hvis ikke alle felter er udfyldt, vis fejl
-    if (!allFilled) {
-      const displayValue = 'Fejl (Ikke alle felter udfyldt)';
-      rows.push({
-        id: `taf.periode.${periode.id}`,
-        label: periodeLabel,
-        displayValue,
-        status: 'error',
-      });
-      return;
-    }
-
-    // Konverter til dansk format for visning
-    const fraISO = periode.fra;
-    const tilISO = periode.til;
-
-    if (!fraISO || !tilISO) {
-      const displayValue = 'Fejl (Ugyldig dato)';
-      rows.push({
-        id: `taf.periode.${periode.id}`,
-        label: periodeLabel,
-        displayValue,
-        status: 'error',
-      });
-      return;
-    }
-
+    // Visnings-label bruger de clampede datoer (falder tilbage til den rene label, fx for
+    // ufuldstændige rækker uden gyldig clamp — så error-rækkernes label er uændret).
     const clamped = clampedTafById.get(periode.id);
     const displayFra = clamped?.fra;
     const displayTil = clamped?.til;
@@ -249,86 +228,11 @@ export const buildEODebugTaftRows = (
     const periodeRowLabel =
       displayFraDanish && displayTilDanish ? `${periodeLabel} (${displayFraDanish} - ${displayTilDanish})` : periodeLabel;
 
-    const bounds = computeRowDateBounds({
-      skadedatoMinDate: skadedatoMinRule.minDate,
-      rowFra: fraISO,
-      rowTil: tilISO,
-      fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
-      fallbackMax: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMax,
-      tilFallbackMax: TODAY,
-      tilExtraMaxDate: combinedExtraMaxDate,
-      useTilExtraMaxDate: true,
-    });
-
-    const fraNoValidRangeCause = (() => {
-      const parts: string[] = [];
-      if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
-      if (tilISO) parts.push('til-dato i samme række');
-      return parts.length > 0 ? parts.join(', ') : undefined;
-    })();
-
-    const tilNoValidRangeCause = (() => {
-      const parts: string[] = [];
-      if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
-      if (fraISO) parts.push('fra-dato i samme række');
-      parts.push('dags dato');
-      if (context.differencekravDato) parts.push('differencekrav-dato');
-      if (!context.verserendeKlageEet && context.endeligEETBeregnetDato) parts.push('beregnet dato for endeligt EET');
-      if (!context.verserendeKlageEet && aktivMidlertidigEETBeregnetDato) parts.push('beregnet dato for midlertidigt EET');
-      return parts.join(', ');
-    })();
-
-    const fraRangeErrorMessage = validateRowDate({
-      iso: fraISO,
-      minDate: bounds.fra.min,
-      maxDate: bounds.fra.max,
-      noValidRangeCause: fraNoValidRangeCause,
-    });
-    const tilRangeErrorMessage = validateRowDate({
-      iso: tilISO,
-      minDate: bounds.til.min,
-      maxDate: bounds.til.max,
-      noValidRangeCause: tilNoValidRangeCause,
-    });
-    const computedRangeMessages = [fraRangeErrorMessage, tilRangeErrorMessage].filter(
-      (m): m is string => typeof m === 'string' && m.trim() !== ''
-    );
-
-    const hasOverlap = tafOverlappingIds.has(periode.id);
-    const endeligEetCutoff = !context.verserendeKlageEet ? context.endeligEETBeregnetDato : undefined;
-    const midlertidigEetCutoff = !context.verserendeKlageEet ? context.midlertidigEETBeregnetDato : undefined;
-    const fraCutoffError = buildTafCutoffErrorMessage({
-      value: fraISO,
-      differencekravDato: context.differencekravDato,
-      endeligEETDato: endeligEetCutoff,
-      midlertidigEETDato: midlertidigEetCutoff,
-    });
-    const tilCutoffError = buildTafCutoffErrorMessage({
-      value: tilISO,
-      differencekravDato: context.differencekravDato,
-      endeligEETDato: endeligEetCutoff,
-      midlertidigEETDato: midlertidigEetCutoff,
-    });
-    const preferredFieldErrorMessages = [fraCutoffError, tilCutoffError].filter(
-      (message): message is string => typeof message === 'string' && message.trim() !== ''
-    );
-
-    if (hasOverlap || preferredFieldErrorMessages.length > 0 || computedRangeMessages.length > 0) {
-      const fraFoerTilError = fraISO > tilISO
-        ? DATE_ORDER_ERROR_MESSAGE
-        : undefined;
-      const rangeOrCutoffErrorMessage =
-        preferredFieldErrorMessages.length > 0
-          ? preferredFieldErrorMessages.join('; ')
-          : (fraFoerTilError ?? computedRangeMessages.join('; '));
-      const errorMessages =
-        hasOverlap && rangeOrCutoffErrorMessage
-          ? `${rangeOrCutoffErrorMessage}; Der er overlappende perioder`
-          : (rangeOrCutoffErrorMessage || 'Der er overlappende perioder');
+    if (evaluation.kind === 'error') {
       rows.push({
         id: `taf.periode.${periode.id}`,
         label: periodeRowLabel,
-        displayValue: `Fejl (${errorMessages})`,
+        displayValue: `Fejl (${evaluation.message})`,
         status: 'error',
       });
       return;
