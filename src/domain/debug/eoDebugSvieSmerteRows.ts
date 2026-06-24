@@ -3,16 +3,13 @@ import { isoToDanish, dateToISO } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { addMonths } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { buildNoValidDateRangeMessage, isNonEmptyString, resolveDebugDisplay, collectPresentFieldErrors } from './eoDebugCommon';
-import { DATE_ORDER_ERROR_MESSAGE } from '../../utils/dateOrderValidation';
+import { isNonEmptyString, resolveDebugDisplay, collectPresentFieldErrors } from './eoDebugCommon';
 import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
-import { computeRowDateBounds } from '../erstatningsopgoerelse/helpers/rowDateBounds';
-import { getDayBeforeIso, validateISODateRange } from '../../utils/isoDateHelpers';
-import { detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
-import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse } from '../../config/dateRanges';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
+import { evaluateSvieSmertePerioder } from '../erstatningsopgoerelse/validation/svieSmertePeriodeValidation';
 import { mergeDateRanges } from '../erstatningsopgoerelse/engines/periodMerging';
 import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
@@ -48,12 +45,6 @@ export const buildEODebugSvieSmerteRows = (
   // Tjek om periode-tabellen er synlig (kun synlig hvis tidligereSsMax er 'Nej')
   const periodeErSynlig = values.tidligereSsMax === 'Nej';
 
-  const skadedatoMinRule = computeSkadedatoMinRule({
-    skadedatoISO: context.skadedatoISO,
-    erErhvervssygdom: context.erErhvervssygdom,
-    fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
-  });
-
   // 1) Tidligere beregnet S/S til max. (fejl ved tom)
   rows.push({
     id: 'sviesmerte.tidligereSsMax',
@@ -64,9 +55,16 @@ export const buildEODebugSvieSmerteRows = (
   // 2) Periode rows fra tabellen - kun hvis synlig
   const perioder = periodeErSynlig ? (values.svieSmertePerioder ?? []) : [];
   const harPerioder = perioder.length > 0 && perioder.some((p) => p.fra || p.til || p.tilstand);
-  // Ethvert overlap afvises (også samme tilstand) — debug skal matche validator/engine
-  // (svieSmerteEngine returnerer null ved ethvert overlap), jf. periodisering-contract §7.
-  const svieSmerteOverlappingIds = detectOverlappingPeriods(perioder);
+  // Periode-blokering (komplethed, dato-grænser, overlap, rækkefølge) afgøres af den delte,
+  // autoritative validering — samme funktion som eoBlockingValidation kalder, så beskederne er
+  // identiske by construction. Debug RENDERER kun resultatet (jf. B9). Overlap afvises altid
+  // (også samme tilstand), jf. periodisering-contract §7.
+  const periodeEvaluations = evaluateSvieSmertePerioder(perioder, {
+    skadedatoISO: context.skadedatoISO,
+    erErhvervssygdom: context.erErhvervssygdom,
+    menAfgoerelseDatoForTabel: context.menAfgoerelseDatoForTabel,
+    verserendeKlageMen: context.verserendeKlageMen,
+  });
 
   // Samler alle periode-fejl til senere brug
   const periodeFejlBeskeder: string[] = [];
@@ -80,27 +78,10 @@ export const buildEODebugSvieSmerteRows = (
     });
   } else {
     perioder.forEach((periode) => {
-      const hasFra = isNonEmptyString(periode.fra);
-      const hasTil = isNonEmptyString(periode.til);
-      const hasTilstand = isNonEmptyString(periode.tilstand);
+      const evaluation = periodeEvaluations.get(periode.id) ?? { kind: 'ok' as const };
+      // Helt tom række springes over (ingen fejl, ingen visning).
+      if (evaluation.kind === 'skip') return;
 
-      // Tjek om alle tre felter er udfyldt eller alle tre er tomme
-      const filledCount = [hasFra, hasTil, hasTilstand].filter(Boolean).length;
-      const allFilled = filledCount === 3;
-      const noneFilled = filledCount === 0;
-
-      // Spring over rækker hvor intet er udfyldt
-      if (noneFilled) return;
-
-      // Tjek for fejl i felterne
-      //
-      // NOTE (debug parity):
-      // Svie/Smerte-tabellen bruger StyledDateField's lokale range-validation (min/max),
-      // men tabelceller rapporterer ikke disse fejl som producer-owned runtime field errors.
-      // Derfor vil `errors` typisk være tom for disse felter, selv om UI viser en tooltip-fejl.
-      //
-      // For at undgå falske grønne hak i EODebug beregner vi derfor de samme range-fejl her,
-      // baseret på samme bounds som tabellen (computeRowDateBounds + validateISODateRange).
       const fraISO = periode.fra;
       const tilISO = periode.til;
       const periodeLabel = (() => {
@@ -110,69 +91,8 @@ export const buildEODebugSvieSmerteRows = (
         return fraDanishLabel && tilDanishLabel ? `Periode (${fraDanishLabel} - ${tilDanishLabel})` : 'Periode';
       })();
 
-      const bounds = computeRowDateBounds({
-        skadedatoMinDate: skadedatoMinRule.minDate,
-        rowFra: fraISO,
-        rowTil: tilISO,
-        fallbackMin: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMin,
-        fallbackMax: dateRanges_erstatningsopgoerelse.tabelSvieSmerteFra.fallbackMax,
-        tilFallbackMax: dateRanges_erstatningsopgoerelse.tabelSvieSmerteTil.max,
-        tilExtraMaxDate: context.menAfgoerelseDatoForTabel,
-        useTilExtraMaxDate: !context.verserendeKlageMen,
-      });
-
-      const fraNoValidRangeCause = (() => {
-        const parts: string[] = [];
-        if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
-        if (tilISO) parts.push('til-dato i samme række');
-        return parts.length > 0 ? parts.join(', ') : undefined;
-      })();
-
-      const tilNoValidRangeCause = (() => {
-        const parts: string[] = [];
-        if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
-        if (fraISO) parts.push('fra-dato i samme række');
-        parts.push('dags dato');
-        if (!context.verserendeKlageMen && context.menAfgoerelseDatoForTabel) parts.push('dato for ménafgørelse');
-        return parts.join(', ');
-      })();
-
-      const fraRangeErrorMessage = (() => {
-        if (!fraISO) return undefined;
-        if (bounds.fra.min > bounds.fra.max) {
-          return buildNoValidDateRangeMessage({
-            minDate: bounds.fra.min,
-            maxDate: bounds.fra.max,
-            noValidRangeCause: fraNoValidRangeCause,
-          });
-        }
-        const result = validateISODateRange(fraISO, bounds.fra.min, bounds.fra.max);
-        return result.isValid ? undefined : result.errorMessage;
-      })();
-
-      const tilRangeErrorMessage = (() => {
-        if (!tilISO) return undefined;
-        if (bounds.til.min > bounds.til.max) {
-          return buildNoValidDateRangeMessage({
-            minDate: bounds.til.min,
-            maxDate: bounds.til.max,
-            noValidRangeCause: tilNoValidRangeCause,
-          });
-        }
-        const result = validateISODateRange(tilISO, bounds.til.min, bounds.til.max);
-        return result.isValid ? undefined : result.errorMessage;
-      })();
-
-      const computedRangeMessages = [fraRangeErrorMessage, tilRangeErrorMessage].filter(
-        (m): m is string => typeof m === 'string' && m.trim() !== ''
-      );
-
-      const hasOverlap = svieSmerteOverlappingIds.has(periode.id);
-      const harFejl = computedRangeMessages.length > 0 || hasOverlap;
-
-      // Hvis ikke alle felter er udfyldt, vis fejl
-      if (!allFilled) {
-        const displayValue = 'Fejl (Ikke alle felter udfyldt)';
+      if (evaluation.kind === 'error') {
+        const displayValue = `Fejl (${evaluation.message})`;
         periodeFejlBeskeder.push(displayValue);
         rows.push({
           id: `sviesmerte.periode.${periode.id}`,
@@ -183,45 +103,12 @@ export const buildEODebugSvieSmerteRows = (
         return;
       }
 
-      // Hvis der er fejl i felterne, vis fejlmeddelelsen
-      if (harFejl) {
-        const fraFoerTilError = fraISO && tilISO && fraISO > tilISO
-          ? DATE_ORDER_ERROR_MESSAGE
-          : undefined;
-        const allMessages = computedRangeMessages.map((m) => m.trim()).filter((m) => m !== '');
-
-        const errorMessages = hasOverlap ? 'Der er overlappende perioder' : (fraFoerTilError ?? allMessages.join('; '));
-        const displayValue = `Fejl (${errorMessages})`;
-        periodeFejlBeskeder.push(displayValue);
-        rows.push({
-          id: `sviesmerte.periode.${periode.id}`,
-          label: periodeLabel,
-          displayValue,
-          status: 'error',
-        });
-        return;
-      }
-
-      // Beregn antal dage og formater output
-      // Note: periode.fra og periode.til er i ISO-format
-
-      // Tjek at begge datoer er udfyldt
-      if (!fraISO || !tilISO) {
-        const displayValue = 'Fejl (Ugyldig dato)';
-        periodeFejlBeskeder.push(displayValue);
-        rows.push({
-          id: `sviesmerte.periode.${periode.id}`,
-          label: periodeLabel,
-          displayValue,
-          status: 'error',
-        });
-        return;
-      }
-
+      // evaluation.kind === 'ok': formatér visning. try/catch + dato-tjek er rent
+      // display-defensivt (isoToDanish kan i praksis ikke fejle på schema-validerede datoer,
+      // og 'ok' garanterer at begge datoer er udfyldt).
       try {
-        // Konverter til dansk format for visning
-        const fraDanish = isoToDanish(fraISO);
-        const tilDanish = isoToDanish(tilISO);
+        const fraDanish = fraISO ? isoToDanish(fraISO) : undefined;
+        const tilDanish = tilISO ? isoToDanish(tilISO) : undefined;
 
         if (!fraDanish || !tilDanish) {
           const displayValue = 'Fejl (Ugyldig dato)';
