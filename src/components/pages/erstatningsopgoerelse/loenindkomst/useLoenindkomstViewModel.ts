@@ -13,7 +13,6 @@ import {
   type OffentligLoenTypeLabel,
   type ErstatningsopgoerelseValues,
 } from '../../../../schemas/formSchemas';
-import { TILLAEG_ANGIVES_SOM } from '../../../../types/loen';
 import type { ISODateString } from '../../../../types/branded';
 import { parseISODate } from '../../../../types/branded';
 import { formatDanishDate } from '../../../../utils/dateUtils';
@@ -33,7 +32,6 @@ import { useReconcileInvalidDraftScopes } from '../../../../hooks/tableInput';
 import { CELL_TABLE_IDS } from '../../../../config/cellInvalidDraftScopes';
 import { useAppSettings } from '../../../../contexts/useAppSettings';
 import { downloadKlDokument, downloadKrlDokument, downloadReguleringDokument, type ReguleringDocumentInput } from '../../../../document/service/documentService';
-import { formatAsAmount } from '../../../../utils/formatUtils';
 import { hasIndtastetLoenoplysninger } from '../../../../domain/erstatningsopgoerelse/helpers/loenoplysningerInput';
 import { createDefaultLoenindkomstAnsaettelsesforhold } from '../../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import {
@@ -42,8 +40,8 @@ import {
 } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstStateCleanup';
 import {
   applyAutoSatsFields,
-  resolveOverenskomstSatsBindings,
   syncManualBaseRowSatser,
+  type OverenskomstSatsField,
 } from '../../../../domain/erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { getAngivetLoenOpreguleresFraDato } from '../../../../domain/erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import {
@@ -62,6 +60,12 @@ import {
   validateLoenudviklingManualBaseRowSatser,
   type ManualBaseRowCellErrors,
 } from '../../../../domain/erstatningsopgoerelse/validation/loenudviklingManuelBaseRowValidation';
+import {
+  validateFeriePct,
+  validateOverenskomstSats,
+  validateAllSatserForAnsaettelsesforhold as validateAllSatser,
+  type SatsErrorState,
+} from '../../../../domain/erstatningsopgoerelse/validation/loenindkomstSatsValidation';
 import { useDynamicFormFieldErrorReporter } from '../../../../hooks/useFormFieldErrors';
 import { updateValidationFlagById } from '../../../../utils/validationFlagMap';
 import { type SetValuesUpdater } from '../../../../hooks/usePersistedForm';
@@ -74,15 +78,9 @@ type Ansaettelsesforhold = AnsaettelsesforholdList[number];
 const MAX_ANSAETTELSESFORHOLD = 10;
 const EO_LOENINDKOMST_INPUT_ERROR_SUFFIX = ':loenindkomst';
 
-export type SatsErrorState = {
-  feriePct?: string;
-  fritvalgPct?: string;
-  shSoPct?: string;
-  storeBededagPct?: string;
-  pensionPct?: string;
-};
-
-type OverenskomstSatsField = 'fritvalgPct' | 'shSoPct' | 'pensionPct';
+// Sats-valideringen (typer + ren afledning) bor i domænets validation-lag, så den er testbar uden
+// React-render (jf. A1). Re-eksportér typen her for bagudkompatible callsites.
+export type { SatsErrorState };
 
 const updateSfggAnsaettelsesforholdRow = (
   prev: ErstatningsopgoerelseValues,
@@ -229,29 +227,6 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
   const syncedLoenindkomstErrorIdsRef = React.useRef<ReadonlySet<string>>(new Set());
 
 
-  /**
-   * Valider Feriegodtgørelse/-tillæg (min. 12 %)
-   */
-  const validateFeriePct = React.useCallback(
-    (
-      fuldLoenUnderFerie: Ansaettelsesforhold['fuldLoenUnderFerie'],
-      inputValue: number | undefined,
-      kræverFeriePct: boolean
-    ): string | undefined => {
-      if (inputValue === undefined) {
-        return kræverFeriePct ? 'Feriegodtgørelse/-tillæg skal udfyldes' : undefined;
-      }
-      if (inputValue >= 12) return undefined;
-
-      if (fuldLoenUnderFerie === 'Ja') {
-        return 'Løn under ferie beregnes som feriegodtgørelse (12,5 % eller 15 % ved ret til 6. ferieuge)';
-      }
-
-      return 'Feriegodtgørelse udgør typisk 12,5 %, men 15 % ved ret til 6. ferieuge';
-    },
-    []
-  );
-
   const getAnvendtReguleringsdatoForAnsaettelsesforhold = React.useCallback(
     (af: Pick<Ansaettelsesforhold, 'saerligFraDatoRegulering'>): ISODateString | undefined =>
       resolveAnvendtReguleringsdato({
@@ -263,85 +238,15 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
       }),
     [beregnesUdFra, eoValues, tafBeregningsperiodeTil, stamdataValues?.skadedato]
   );
-  const validateSats = React.useCallback(
-    (
-      af: Pick<Ansaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'>,
-      fieldName: OverenskomstSatsField,
-      inputValue: number | undefined,
-      anvendtReguleringsdato: ISODateString | undefined
-    ): string | undefined => {
-      const overenskomstId = af.overenskomstId?.trim();
-      if (!overenskomstId) return undefined;
-      if (!anvendtReguleringsdato) return undefined;
-      const expectedBinding = resolveOverenskomstSatsBindings(af, anvendtReguleringsdato)[fieldName];
-      if (!expectedBinding.locked || expectedBinding.value === undefined) return undefined;
-
-      const overenskomstMeta = getOverenskomstMetaById(overenskomstId);
-      const overenskomstNavn = overenskomstMeta?.navn || 'Overenskomsten';
-
-      const dateObj2 = parseISODate(anvendtReguleringsdato);
-      if (!dateObj2) return undefined;
-
-      const danishDateShort = formatDanishDate(dateObj2);
-
-      const expectedPct = expectedBinding.value;
-      const actualValue = inputValue ?? 0;
-      const diff = Math.abs(actualValue - expectedPct);
-      if (diff > 0.01) {
-        return `${overenskomstNavn}s sats per ${danishDateShort} udgør ${formatAsAmount(expectedPct, 2)} %`;
-      }
-
-      return undefined;
-    },
-    []
-  );
-
-  /**
-   * Valider alle satser for et Ansættelsesforhold
-   */
+  // Tynd React-binding over den rene sats-validering: leverér den anvendte reguleringsdato (afledt af
+  // committed EO/stamdata) + beregningsgrundlaget; selve afledningen bor i validation-laget (jf. A1).
   const validateAllSatserForAnsaettelsesforhold = React.useCallback(
-    (af: Ansaettelsesforhold) => {
-      const errors: SatsErrorState = {};
-      // Beløb-tilstand bruger ikke satserne; ingen sats-validering (og dermed ingen blokerende fejl).
-      if (af.tillaegAngivesSom === TILLAEG_ANGIVES_SOM.BELOEB) return errors;
-      const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(af);
-      const kræverFeriePct = beregnesUdFra === 'Beregningsperiode'
-        && hasIndtastetLoenoplysninger(af.indtaegtsoplysningerTableData ?? []);
-
-      // Valider Feriegodtgørelse/-tillæg
-      const ferieError = validateFeriePct(af.fuldLoenUnderFerie, af.feriePct, kræverFeriePct);
-      if (ferieError) errors.feriePct = ferieError;
-
-      // Valider Fritvalg
-      const fritvalgError = validateSats(
-        af,
-        'fritvalgPct',
-        af.fritvalgPct,
-        anvendtReguleringsdato
-      );
-      if (fritvalgError) errors.fritvalgPct = fritvalgError;
-
-      // Valider SH/SO-sats
-      const shError = validateSats(
-        af,
-        'shSoPct',
-        af.shSoPct,
-        anvendtReguleringsdato
-      );
-      if (shError) errors.shSoPct = shError;
-
-      // Valider Arbejdsgivers pensionsbidrag
-      const pensionError = validateSats(
-        af,
-        'pensionPct',
-        af.pensionPct,
-        anvendtReguleringsdato
-      );
-      if (pensionError) errors.pensionPct = pensionError;
-
-      return errors;
-    },
-    [getAnvendtReguleringsdatoForAnsaettelsesforhold, validateFeriePct, validateSats, beregnesUdFra]
+    (af: Ansaettelsesforhold): SatsErrorState =>
+      validateAllSatser(af, {
+        anvendtReguleringsdato: getAnvendtReguleringsdatoForAnsaettelsesforhold(af),
+        beregnesUdFra,
+      }),
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, beregnesUdFra]
   );
 
   // Valider alle Ansættelsesforhold ved ændringer i datagrundlaget
@@ -689,7 +594,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
           return { ...prev, [id]: rest };
         });
       },
-    [updateAnsaettelsesforhold, validateFeriePct, beregnesUdFra, loenindkomstAnsaettelsesforhold]
+    [updateAnsaettelsesforhold, beregnesUdFra, loenindkomstAnsaettelsesforhold]
   );
 
   /**
@@ -709,7 +614,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
         if (!ansaettelsesforhold) return;
 
         const anvendtReguleringsdato = getAnvendtReguleringsdatoForAnsaettelsesforhold(ansaettelsesforhold);
-        const errorMsg = validateSats(
+        const errorMsg = validateOverenskomstSats(
           ansaettelsesforhold,
           field,
           event.target.value,
@@ -731,7 +636,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
           }
         });
       },
-    [getAnvendtReguleringsdatoForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold, validateSats]
+    [getAnvendtReguleringsdatoForAnsaettelsesforhold, updateAnsaettelsesforhold, loenindkomstAnsaettelsesforhold]
   );
 
   const handleLoenperiodeChange = React.useCallback(
@@ -790,7 +695,7 @@ export function useLoenindkomstViewModel(params: UseLoenindkomstViewModelParams)
           return { ...prev, [id]: rest };
         });
       },
-    [updateAnsaettelsesforhold, validateFeriePct, beregnesUdFra, loenindkomstAnsaettelsesforhold]
+    [updateAnsaettelsesforhold, beregnesUdFra, loenindkomstAnsaettelsesforhold]
   );
 
   const handleLoenPaaHelligdageChange = React.useCallback(

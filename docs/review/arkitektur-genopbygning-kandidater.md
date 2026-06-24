@@ -56,7 +56,7 @@ Bevidst IKKE ændret drive-by (dokumenteret som opfølgning):
 - **B9 isolations-scanner — hærdet.** `debugLayerIsolation.test.ts` fanger nu også ikke-relative debug-imports (alias `@/…`, absolut `src/…`) via tekstuelt `domain/debug`-segment-match. Anti-vacuous selvtest for alias/absolut-former tilføjet.
 - **Test-huller lukket.** B7 undo-genskaber-pruned-draft-roundtrip (`reconcileInvalidDraftsToLiveRows.test.tsx`), A3 tabel-integration for celle-fejl-kanalen (`tableCellErrorIntegration.test.tsx`), C17 `documentGeneratorSetup`-metadata (se ovenfor).
 
-Tilfældighedsfund noteret (ikke rettet, uden for scope): `buildEoCanonicalOutputFromComputed`s `oevrige`-param er ubrugt i kroppen (pre-eksisterende dead param); fjernelse rører canonical-output-byggerens signatur + kalder og er ikke et af de listede fund.
+**Tilfældighedsfund — nu rettet (2026-06-24, tredje omgang):** `buildEoCanonicalOutputFromComputed`s `oevrige`-param var ubrugt i kroppen (pre-eksisterende dead param — kun `buildEoComputedTotals` læser faktisk `oevrige.totalFoerForligOre`). Den døde param er fjernet fra builderen + hele forwarding-kæden gennem `buildCanonicalOutput` (`eoSnapshot.ts`); `OevrigeKravCanonicalInput`-typen bevares (stadig brugt af `buildEoComputedTotals`). Rent adfærdsbevarende (param blev aldrig læst); typecheck + 1179 EO-tests + lint grønne.
 
 ### Arkitektur-verdicts — er det det bedst mulige slutprodukt?
 
@@ -72,7 +72,7 @@ Tilfældighedsfund noteret (ikke rettet, uden for scope): `buildEoCanonicalOutpu
 ### Hvor et større/breaking snit faktisk er værd det (rangordnet)
 
 1. **B9 — træk produktions-blokerings-validering UD af debug-laget** (højest værdi, højest risiko). En ren `eoBlockingValidation(values, fieldErrors, canonical)` der driver gaten, mens debug-laget *renderer* dens output + DEV-inspektion. Fjerner klassen hvor DEV-formaterings-ændringer kan ændre produktions-gating; erstatter det skøre string-match-værn med et adfærds-værn. **Kræver forelæggelse** (PDF-blokerende sti) + 457-test-debug-suiten som golden baseline. ~3-5 dage.
-2. **A1 — gør `useLoenindkomstViewModel` til et ægte VM** (medium værdi, lav risiko). Split god-hooken i en ren `deriveLoenindkomstVm(committed, settings): FlatModel` (testbar uden React) + en tynd state/handler-hook; stop med at returnere `setValues`/refs gennem konteksten; tilføj isolations-tests. ~1-2 dage.
+2. **A1 — gør `useLoenindkomstViewModel` til et ægte VM** (medium værdi, lav risiko). Split god-hooken i en ren `deriveLoenindkomstVm(committed, settings): FlatModel` (testbar uden React) + en tynd state/handler-hook; stop med at returnere `setValues`/refs gennem konteksten; tilføj isolations-tests. ~1-2 dage. **Delvist gjort 2026-06-24:** den rene sats-validering (`validateFeriePct`/`validateOverenskomstSats`/`validateAllSatserForAnsaettelsesforhold` + `SatsErrorState`/`OverenskomstSatsField`-dubletten) er løftet ud af god-hooken til `domain/erstatningsopgoerelse/validation/loenindkomstSatsValidation.ts` — React-fri, dækket af nye isolations-tests (`loenindkomstSatsValidation.test.ts`, 14 cases). Det realiserer A1's primære gevinst (afledning testbar uden render) for sats-laget; hooken kalder nu ind via en tynd binding. Udestående: den fulde `deriveLoenindkomstVm: FlatModel`-udskillelse af de øvrige afledte maps + stop med at eksponere rå `eoValues` gennem konteksten.
 3. **A4 — migrér de to rå-boolean-download-gates** (`RenteberegningTab` + `MenberegningTab`) til `documentGateTypes`-primitivet, så committed-reglen er konstruktion ikke kommentar. Timer. **UX-nær → kræver forelæggelse.**
 4. **C17 — løft tripleret `writeRows` ind i `documentGeneratorSetup.ts`.** ✅ Gjort 2026-06-24 (`writeLabelValueRows`).
 
@@ -90,6 +90,12 @@ Alt øvrigt er på bedst-muligt slutprodukt mod den låste feature-flade; ingen 
 > isolations-tests** — VM-lagets primære gevinst (afledning testbar uden render) er ikke realiseret.
 > God-class-problemet er delvist flyttet, ikke løst. Konkret opfølgning: se "Kritisk efter-review",
 > shortlist punkt 2. Den oprindelige ✅-status-tekst bevares nedenfor som historik.
+>
+> **Fremdrift (2026-06-24):** Første skridt taget på shortlist-punkt 2: den rene sats-validering er
+> løftet ud af `useLoenindkomstViewModel` til `domain/.../validation/loenindkomstSatsValidation.ts`
+> (React-fri) og dækket af nye isolations-tests. A1's primære gevinst (afledning testbar uden render)
+> er dermed realiseret for sats-laget. De øvrige afledte maps + den rå `eoValues`-kontekst-eksponering
+> udestår fortsat.
 
 > **Status:** Begge halvdele af A1 er på plads for alle tre EO-fagsider: (1) **view-model-lag** — ét
 > `useXxxViewModel`-hook pr. fagside der ejer al afledt visningstilstand, lokal UI-state og handlers og
@@ -486,7 +492,7 @@ Alt øvrigt er på bedst-muligt slutprodukt mod den låste feature-flade; ingen 
 
 | # | Kandidat | Gevinst | Omfang | Risiko | Forelæggelse |
 |---|---|:---:|:---:|:---:|:---:|
-| A1 🟡 | View-model-lag under fagsiderne — mekanik på plads, men `useLoenindkomstViewModel` er en god-hook flyttet bag kontekst (lækker rå store-adgang, ingen isolations-tests); nedjusteret 2026-06-24, se Kritisk efter-review | 5 | 5 | 3 | Nej (ren refaktor) |
+| A1 🟡 | View-model-lag under fagsiderne — mekanik på plads, men `useLoenindkomstViewModel` er en god-hook flyttet bag kontekst (lækker rå store-adgang); nedjusteret 2026-06-24. **Delvis fremdrift 2026-06-24:** ren sats-validering udskilt til `loenindkomstSatsValidation.ts` (React-fri + isolations-tests); resten af `deriveLoenindkomstVm` + rå `eoValues`-kontekst udestår | 5 | 5 | 3 | Nej (ren refaktor) |
 | A2 ✅ | Delt felt-adapter-kerne (StyledField × TableInput) | 4 | 3 | 2 | Nej |
 | A3 ✅ | Delt celle-fejl-sporing i grid | 4 | 2 | 2 | Nej |
 | A4 🟡 | Side-byggeklodser (gate/download/dato-grænser) — NB: 2 sider (`RenteberegningTab`/`MenberegningTab`) håndruller download-gates uden for `documentGateTypes`-primitivet; committed-regel er kommentar ikke konstruktion (se Kritisk efter-review) | 4 | 3 | 3 | Delvis |
