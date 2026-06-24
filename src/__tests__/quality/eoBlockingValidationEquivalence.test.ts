@@ -68,10 +68,22 @@ const buildTafValid = (): EoValues => {
   v.tafPerioder = [
     { id: 'taf-1', fra: iso('2024-07-01'), til: iso('2024-08-31'), loseFeriedage: 0 },
   ];
+  // loenPaaHelligdage:'Ingen' gør AF'et satser-rent (ingen Store Bededag-afvigelse), så
+  // periode-/beregningsgrundlag-familierne kan isoleres i ækvivalens-testen.
   v.loenindkomstAnsaettelsesforhold = [
-    { ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', loenudviklingBeregningsgrundlag: 'Ingen', indtaegtsoplysningerTableData: [] },
+    { ...createDefaultLoenindkomstAnsaettelsesforhold(), id: 'af-1', loenPaaHelligdage: 'Ingen', loenudviklingBeregningsgrundlag: 'Ingen', indtaegtsoplysningerTableData: [] },
   ];
   v.eoAngivetLoenLoenudvikling = { ...v.eoAngivetLoenLoenudvikling, loenudviklingBeregningsgrundlag: 'Ingen' };
+  return v;
+};
+
+const buildTafBeregningsperiode = (): EoValues => {
+  const v = buildTafValid();
+  v.beregnesUdFra = 'Beregningsperiode';
+  v.maanedsloenenUdgoer = undefined;
+  v.tafBeregningsperiodeFra = iso('2024-06-01');
+  v.tafBeregningsperiodeTil = iso('2024-06-30');
+  v.tafPerioder = [{ id: 'taf-1', fra: iso('2024-07-01'), til: iso('2024-08-31'), loseFeriedage: 0 }];
   return v;
 };
 
@@ -91,6 +103,13 @@ const CASES: Case[] = [
   { name: 'taf:arbejdsstatusTom', build: () => { const v = buildTafValid(); v.tafArbejdsstatus = undefined; return v; } },
   { name: 'taf:helbredsstatusTom', build: () => { const v = buildTafValid(); v.svieSmerteHelbredsstatus = undefined; return v; } },
   { name: 'svieSmerte:arbejdsstatusTom', build: () => { const v = buildSvieSmerteOnly(); v.tafArbejdsstatus = undefined; return v; } },
+  // Beregningsperiode-baserede sager (afslører hvilke beregningsgrundlag-debug-only gates der
+  // er reachable når projektionen er ok).
+  { name: 'bgr:ingenIndkomst', build: () => { const v = buildTafBeregningsperiode(); return v; } },
+  { name: 'bgr:tafOverlap', build: () => { const v = buildTafBeregningsperiode(); v.tafPerioder = [{ id: 'taf-1', fra: iso('2024-06-15'), til: iso('2024-08-31'), loseFeriedage: 0 }]; return v; } },
+  { name: 'bgr:oevrigeFravaerMissing', build: () => { const v = buildTafBeregningsperiode(); v.oevrigtFravaerUdenLoen = 'Ja'; v.oevrigeFravaersdage = undefined; return v; } },
+  { name: 'bgr:ferieOverlap', build: () => { const v = buildTafBeregningsperiode(); v.fravaerPerioder = [{ id: 'fp-1', fra: iso('2024-06-05'), til: iso('2024-06-10') }, { id: 'fp-2', fra: iso('2024-06-08'), til: iso('2024-06-12') }]; return v; } },
+  { name: 'bgr:ferieUdenforPeriode', build: () => { const v = buildTafBeregningsperiode(); v.fravaerPerioder = [{ id: 'fp-1', fra: iso('2024-05-01'), til: iso('2024-06-10') }]; return v; } },
 ];
 
 const probe = (eoValues: EoValues) => {

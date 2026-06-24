@@ -4,8 +4,12 @@ import { evaluateTafPerioder } from './tafPeriodeValidation';
 import { evaluateFerieperioder } from './ferieperiodeValidation';
 import { buildSvieSmerteContext, buildTaftContext } from './eoPeriodeBlockingContext';
 import { resolveSatserErrorField } from './loenindkomstSatserGate';
+import { computeBeregningsgrundlagBlocking } from './beregningsgrundlagBlockingValidation';
 import { resolveAnvendtReguleringsdato } from '../helpers/eoSharedUtils';
 import { getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers';
+import type { EoBlockingIssue } from './eoBlockingValidationTypes';
+
+export type { EoBlockingIssue } from './eoBlockingValidationTypes';
 
 /**
  * eoBlockingValidation — autoritativ kilde til, om en EO-sag blokerer produktions-PDF-download,
@@ -25,8 +29,6 @@ import { getAngivetLoenOpreguleresFraDato } from '../helpers/angivetLoenHelpers'
 
 type StamdataValues = PersistedSectionMap['stamdata'];
 type EoValues = PersistedSectionMap['erstatningsopgoerelse'];
-
-export type EoBlockingIssue = Readonly<{ id: string; message: string }>;
 
 export const computeEoBlockingValidation = (
   stamdataValues: StamdataValues,
@@ -107,6 +109,9 @@ export const computeEoBlockingValidation = (
         });
       }
     }
+
+    // Beregningsgrundlag (kun beregnesUdFra='Beregningsperiode'): indkomst-i-periode + ferieperioder.
+    issues.push(...computeBeregningsgrundlagBlocking(eoValues));
   }
 
   return issues;
