@@ -135,8 +135,7 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
 
     const [rangeErrorMessage, setRangeErrorMessage] = React.useState<string>('');
 
-    const parseDate: DraftParse<ISODateString | undefined> = React.useCallback((draft, { mode }) => {
-      const typingPartial = (): { ok: false; kind: 'partial'; message?: string } => ({ ok: false, kind: 'partial' });
+    const parseDate: DraftParse<ISODateString | undefined> = React.useCallback((draft) => {
       const commitInvalid = (message: string): { ok: false; kind: 'invalid'; message: string } => ({
         ok: false,
         kind: 'invalid',
@@ -146,11 +145,11 @@ const StyledDateField = React.forwardRef<HTMLDivElement, StyledDateFieldProps>(
       const trimmed = draft.trim();
       if (trimmed === '') return { ok: true, value: undefined };
       if (trimmed.length > MAX_DRAFT_LENGTH) {
-        return mode === 'typing' ? typingPartial() : commitInvalid('Ugyldig dato');
+        return commitInvalid('Ugyldig dato');
       }
 
-      const parsed = parseDateDraftForCommit(trimmed, { mode, twoDigitYearPolicy: 'infer' });
-      if (!parsed.ok) return parsed.kind === 'partial' ? typingPartial() : commitInvalid(parsed.message);
+      const parsed = parseDateDraftForCommit(trimmed, { twoDigitYearPolicy: 'infer' });
+      if (!parsed.ok) return commitInvalid(parsed.message);
       return { ok: true, value: parsed.iso };
     }, []);
 

@@ -95,15 +95,9 @@ const StyledFractionField = React.forwardRef<HTMLDivElement, StyledFractionField
       throw new Error(configErrorMessage);
     }
     const parseFraction: DraftParse<string | undefined> = React.useCallback(
-      (draft, { mode }) => {
+      (draft) => {
         const trimmed = draft.trim();
         if (trimmed === '') return { ok: true, value: undefined };
-
-        if (mode === 'typing') {
-          // Invariant: typing må ikke hævde committable for ufuldstændig, ikke-tom input.
-          // Hold typing-parse bevidst minimal: enhver ikke-tom draft behandles som partial indtil commit.
-          return { ok: false, kind: 'partial' };
-        }
 
         if (configErrorMessage.trim() !== '') {
           return { ok: false, kind: 'invalid', message: configErrorMessage };

@@ -9,7 +9,6 @@ import { isRestoreFocusInProgress } from '../utils/historyTargetRestore';
 export type {
   DraftParse,
   DraftParseErrorKind,
-  DraftParseMode,
   DraftParseResult,
 } from '../types/fieldEvents';
 
@@ -175,7 +174,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
     if (effectiveInvalidDraft === undefined) return undefined;
     if (draft !== effectiveInvalidDraft) return undefined;
     const normalized = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(effectiveInvalidDraft);
-    const result = parse(normalized, { mode: 'commit' });
+    const result = parse(normalized);
     if (result.ok) return undefined;
     if (result.kind === 'invalid') {
       return { kind: 'invalid', message: result.message, invalidDraft: effectiveInvalidDraft };
@@ -205,7 +204,7 @@ export const useDraftField = <TModel>(config: UseDraftFieldConfig<TModel>): UseD
       setTouched(true);
       pendingCommitRef.current = null;
       const draftForCommit = (normalizeDraftOnCommit ?? defaultNormalizeDraftOnCommit)(rawDraft);
-      const result = parse(draftForCommit, { mode: 'commit' });
+      const result = parse(draftForCommit);
 
       if (result.ok) {
         // Vellykket commit: ryd evt. lokal ugyldig draft og synk optimistisk til committed repræsentation.

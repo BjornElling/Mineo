@@ -1,10 +1,7 @@
 import { parseDateDraftForCommit } from '../../utils/dateDraftCommit';
 
 const commit = (draft: string, policy: 'reject' | 'infer' | 'assume20xx' = 'infer') =>
-  parseDateDraftForCommit(draft, { mode: 'commit', twoDigitYearPolicy: policy });
-
-const typing = (draft: string, policy: 'reject' | 'infer' | 'assume20xx' = 'infer') =>
-  parseDateDraftForCommit(draft, { mode: 'typing', twoDigitYearPolicy: policy });
+  parseDateDraftForCommit(draft, { twoDigitYearPolicy: policy });
 
 describe('parseDateDraftForCommit', () => {
   it('tom streng → ok med tom danish og undefined iso', () => {
@@ -77,20 +74,6 @@ describe('parseDateDraftForCommit', () => {
 
     it('infer → intelligent fortolkning', () => {
       expect(commit('15-06-24', 'infer')).toMatchObject({ ok: true, iso: '2024-06-15' });
-    });
-  });
-
-  describe('typing-mode', () => {
-    it('to-cifret år → partial (afventer flere cifre)', () => {
-      expect(typing('15-06-24')).toMatchObject({ ok: false, kind: 'partial' });
-    });
-
-    it('komplet dato → ok også under typing', () => {
-      expect(typing('15-06-2024')).toMatchObject({ ok: true, iso: '2024-06-15' });
-    });
-
-    it('ugyldig dag → partial under typing (ikke invalid)', () => {
-      expect(typing('32-06-2024')).toMatchObject({ ok: false, kind: 'partial' });
     });
   });
 });

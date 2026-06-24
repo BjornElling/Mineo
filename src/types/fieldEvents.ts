@@ -16,8 +16,6 @@ export type DraftChangeHandler = (e: DraftChangeEvent) => void;
 
 export type CommitHandler<TValue> = (e: CommitEvent<TValue>) => void;
 
-export type DraftParseMode = 'typing' | 'commit';
-
 export type DraftParseErrorKind = 'empty' | 'partial' | 'invalid';
 
 export type DraftParseResult<TModel> =
@@ -25,7 +23,10 @@ export type DraftParseResult<TModel> =
   | { ok: false; kind: 'invalid'; message: string }
   | { ok: false; kind: Exclude<DraftParseErrorKind, 'invalid'>; message?: string };
 
-export type DraftParse<TModel> = (draft: string, context: { mode: DraftParseMode }) => DraftParseResult<TModel>;
+// Parse afledes altid på commit (onBlur/onPersist). Der findes bevidst INGEN typing-mode:
+// form-kernereglen forbyder afledt feedback fra igangværende indtastning ("Ingen live preview"),
+// så draft-parse har kun ét formål — at afgøre om en committet råstreng er gyldig.
+export type DraftParse<TModel> = (draft: string) => DraftParseResult<TModel>;
 
 export const createDraftChangeEvent = (value: string): DraftChangeEvent => ({
   __mineoEvent: 'MineoFieldEvent',

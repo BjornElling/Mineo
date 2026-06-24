@@ -212,13 +212,10 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
     }, [allowDecimals, normalizePercentValueForIdentity]);
 
     const parsePercent: DraftParse<number | undefined> = React.useCallback(
-      (draft, { mode }) => {
-        const invalidOrPartial = (message: string) => {
-          if (mode === 'typing') return { ok: false, kind: 'partial' } as const;
-          return { ok: false, kind: 'invalid', message } as const;
-        };
+      (draft) => {
+        const invalid = (message: string) => ({ ok: false, kind: 'invalid', message } as const);
 
-        if (draft.trim().length > maxLength) return invalidOrPartial('Ugyldig procent');
+        if (draft.trim().length > maxLength) return invalid('Ugyldig procent');
 
         const result = parsePercentDraftForCommit(draft, {
           allowNegative,
@@ -226,19 +223,17 @@ const StyledPercentField = React.forwardRef<HTMLDivElement, StyledPercentFieldPr
           minValue: resolvedRange.effectiveMin,
           maxValue: resolvedRange.effectiveMax,
         });
-        if (!result.ok) return invalidOrPartial(result.errorMessage);
+        if (!result.ok) return invalid(result.errorMessage);
 
-        if (mode === 'commit') {
-          const [, decimalPart] = draft.trim().replace(/\s+/g, '').split(',') as [string, string | undefined];
-          const decimals = allowDecimals
-            ? decimalPart?.length === 2
-              ? 2
-              : decimalPart?.length === 1
-                ? 1
-                : 0
-            : 0;
-          pendingCommitDecimalsRef.current = decimals;
-        }
+        const [, decimalPart] = draft.trim().replace(/\s+/g, '').split(',') as [string, string | undefined];
+        const decimals = allowDecimals
+          ? decimalPart?.length === 2
+            ? 2
+            : decimalPart?.length === 1
+              ? 1
+              : 0
+          : 0;
+        pendingCommitDecimalsRef.current = decimals;
         return { ok: true, value: result.value };
       },
       [

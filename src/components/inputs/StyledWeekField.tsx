@@ -86,7 +86,7 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
     ref
   ) => {
     const parseWeek: DraftParse<string | undefined> = React.useCallback(
-      (draft, { mode }) => {
+      (draft) => {
         // Hele uge-/år-fortolkningen deles med tabel-cellen via kernen (ensartet ordlyd, A2).
         const result = parseWeekDraftForCommit(draft, {
           minYear,
@@ -95,7 +95,6 @@ const StyledWeekField = React.forwardRef<HTMLDivElement, StyledWeekFieldProps>(
           maxDraftLength: MAX_WEEK_DRAFT_LENGTH,
         });
         if (result.ok) return { ok: true, value: result.value };
-        if (mode === 'typing' && result.partialEligible) return { ok: false, kind: 'partial' };
         return { ok: false, kind: 'invalid', message: result.errorMessage };
       },
       [maxYear, minYear, twoDigitYearPolicy]

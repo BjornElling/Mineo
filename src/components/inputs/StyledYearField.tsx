@@ -102,9 +102,9 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
     ref
   ) => {
     const parseYear: DraftParse<number | undefined> = React.useCallback(
-      (draft, { mode }) => {
+      (draft) => {
         if (draft.length > MAX_YEAR_DRAFT_LENGTH) {
-          return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt årstal' };
+          return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
         }
 
         const trimmed = draft.trim();
@@ -117,12 +117,7 @@ const StyledYearField = React.forwardRef<HTMLDivElement, StyledYearFieldProps>(
         }
 
         if (/[^0-9]/.test(trimmed)) {
-          return { ok: false, kind: mode === 'typing' ? 'partial' : 'invalid', message: 'Ugyldigt årstal' };
-        }
-
-        // 1-3 cifre er endnu ikke et færdigt årstal → vis ingen fejl under typing.
-        if (mode === 'typing' && trimmed.length >= 1 && trimmed.length <= 3) {
-          return { ok: false, kind: 'partial' };
+          return { ok: false, kind: 'invalid', message: 'Ugyldigt årstal' };
         }
 
         // Selve fortolkningen (2-/4-cifret-politik + interval) deles med tabel-cellen via kernen.

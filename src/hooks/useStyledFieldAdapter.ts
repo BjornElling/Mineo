@@ -252,7 +252,7 @@ export const useStyledFieldAdapter = <TModel>(
           // Commit kun hvis rydningen faktisk ændrer noget (committed værdi eller en rå ikke-committbar
           // draft) — et ubetinget commit på et allerede tomt felt ville give en overflødig undo-frame.
           const normalized = (normalizeDraftOnCommit ?? identity)('');
-          const result = parse(normalized, { mode: 'commit' });
+          const result = parse(normalized);
           if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
             commitValue(result.value);
           }

@@ -155,7 +155,7 @@ describe('immediate-Delete-clear rydder invalidDrafts', () => {
     const violating = `
       if (e.key === 'Backspace' || e.key === 'Delete') {
         e.preventDefault();
-        const result = parseX('', { mode: 'commit' });
+        const result = parseX('');
         if (result.ok) { onCommit?.(createCommitEvent(result.value)); }
         setDraft('');
         return;

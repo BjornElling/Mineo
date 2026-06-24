@@ -19,15 +19,11 @@ export type WeekDraftParseConfig = Readonly<{
 
 export type WeekDraftParseResult =
   | Readonly<{ ok: true; value: string | undefined }>
-  // `partialEligible`: under typing skal denne fejl vises som "endnu ikke færdig" (ingen rød fejl),
-  // i modsætning til en endelig semantisk fejl (uge/år uden for interval). Single source for partial-
-  // klassifikationen, så formular og tabel ikke divergerer.
-  | Readonly<{ ok: false; errorMessage: string; partialEligible: boolean }>;
+  | Readonly<{ ok: false; errorMessage: string }>;
 
-const fail = (errorMessage: string, partialEligible: boolean): WeekDraftParseResult => ({
+const fail = (errorMessage: string): WeekDraftParseResult => ({
   ok: false,
   errorMessage,
-  partialEligible,
 });
 
 /**
@@ -40,28 +36,28 @@ export const parseWeekDraftForCommit = (
 ): WeekDraftParseResult => {
   const trimmed = rawValue.trim();
   if (trimmed === '') return { ok: true, value: undefined };
-  if (trimmed.length > maxDraftLength) return fail('Ugyldigt format', true);
+  if (trimmed.length > maxDraftLength) return fail('Ugyldigt format');
 
   const normalized = trimmed.replace(/[ .:-]/g, '/');
-  if (normalized.startsWith('/')) return fail('Ugyldigt format', true);
+  if (normalized.startsWith('/')) return fail('Ugyldigt format');
 
   const [weekRaw = '', yearRaw = '', ...rest] = normalized.split('/');
-  if (rest.length > 0) return fail('Ugyldigt format', true);
-  if (weekRaw === '' || yearRaw === '') return fail('Ugyldigt format', true);
-  if (/[^0-9]/.test(weekRaw) || /[^0-9]/.test(yearRaw)) return fail('Ugyldigt format', true);
-  if (weekRaw.length > 2) return fail('Ugyldigt format', true);
+  if (rest.length > 0) return fail('Ugyldigt format');
+  if (weekRaw === '' || yearRaw === '') return fail('Ugyldigt format');
+  if (/[^0-9]/.test(weekRaw) || /[^0-9]/.test(yearRaw)) return fail('Ugyldigt format');
+  if (weekRaw.length > 2) return fail('Ugyldigt format');
 
   const weekNum = Number.parseInt(weekRaw, 10);
-  if (!Number.isFinite(weekNum) || weekNum < 1) return fail('Ugyldig uge', false);
+  if (!Number.isFinite(weekNum) || weekNum < 1) return fail('Ugyldig uge');
 
   const year = resolveYearFromToken(yearRaw, twoDigitYearPolicy);
-  if (year === null) return fail('Ugyldigt årstal', true);
+  if (year === null) return fail('Ugyldigt årstal');
 
   const rangeError = getYearRangeErrorMessage(year, minYear, maxYear);
-  if (rangeError !== '') return fail(rangeError, false);
+  if (rangeError !== '') return fail(rangeError);
 
   const maxWeek = yearHas53Weeks(year) ? 53 : 52;
-  if (weekNum > maxWeek) return fail(`Uge skal være mellem 1 og ${maxWeek}`, false);
+  if (weekNum > maxWeek) return fail(`Uge skal være mellem 1 og ${maxWeek}`);
 
   return { ok: true, value: `${String(weekNum).padStart(2, '0')}/${String(year)}` };
 };

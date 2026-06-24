@@ -145,13 +145,10 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
     );
 
     const parseString: DraftParse<string> = React.useCallback(
-      (draft, { mode }) => {
+      (draft) => {
         const message = validateOnCommit?.(draft);
-        if (message && mode === 'commit') {
+        if (message) {
           return { ok: false, kind: 'invalid', message };
-        }
-        if (message && mode === 'typing') {
-          return { ok: false, kind: 'partial' };
         }
         return { ok: true, value: draft };
       },
@@ -249,7 +246,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
               // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
               // Parse og commit direkte (synkront) som table-felter gør
               const normalized = trimWhitespaceEdges('');
-              const result = parseString(normalized, { mode: 'commit' });
+              const result = parseString(normalized);
               // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
               // (jf. StyledDateField/StyledAmountField).
               if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {
@@ -285,7 +282,7 @@ const StyledTextField = React.forwardRef<HTMLDivElement, StyledTextFieldProps>(
             // UNDTAGELSE TIL "INGEN LIVE PREVIEW": Commit øjeblikkeligt ved DELETE/Backspace
             // Parse og commit direkte (synkront) som table-felter gør
             const normalized = trimWhitespaceEdges('');
-            const result = parseString(normalized, { mode: 'commit' });
+            const result = parseString(normalized);
             // Commit kun hvis rydningen faktisk ændrer noget — undgå overflødig undo-frame
             // (jf. StyledDateField/StyledAmountField).
             if (result.ok && (value !== result.value || committedInvalidDraft !== undefined)) {

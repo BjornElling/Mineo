@@ -2,11 +2,9 @@ import * as React from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { useDraftField, type DraftParse } from '../../hooks/useDraftField';
 
-const parseTrimmedString: DraftParse<string> = (draft, context) => {
+const parseTrimmedString: DraftParse<string> = (draft) => {
   if (draft.trim() === '') {
-    return context.mode === 'commit'
-      ? { ok: false, kind: 'invalid', message: 'Tom værdi' }
-      : { ok: false, kind: 'empty' };
+    return { ok: false, kind: 'invalid', message: 'Tom værdi' };
   }
   return { ok: true, value: draft.trim() };
 };

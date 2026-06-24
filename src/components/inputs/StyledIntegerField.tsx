@@ -179,11 +179,10 @@ const StyledIntegerField = React.forwardRef<HTMLDivElement, StyledIntegerFieldPr
     );
 
     const parseInteger: DraftParse<number | undefined> = React.useCallback(
-      (draft, { mode }) => {
+      (draft) => {
         // Format-validering deles med tabel-cellen via den fælles kerne (ensartet ordlyd, A2).
         const result = parseIntegerDraftForCommit(draft, { allowNegative, maxDigits: effectiveMaxDigits });
         if (!result.ok) {
-          if (mode === 'typing') return { ok: false, kind: 'partial' };
           return { ok: false, kind: 'invalid', message: result.errorMessage };
         }
 

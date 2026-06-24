@@ -20,11 +20,10 @@ describe('parseWeekDraftForCommit', () => {
     expect(parseWeekDraftForCommit('5-2020', config)).toEqual({ ok: true, value: '05/2020' });
   });
 
-  it('uge < 1 → "Ugyldig uge" (ikke partial-eligible)', () => {
+  it('uge < 1 → "Ugyldig uge"', () => {
     expect(parseWeekDraftForCommit('0/2020', config)).toEqual({
       ok: false,
       errorMessage: 'Ugyldig uge',
-      partialEligible: false,
     });
   });
 
@@ -33,7 +32,6 @@ describe('parseWeekDraftForCommit', () => {
     expect(parseWeekDraftForCommit('53/2021', config)).toEqual({
       ok: false,
       errorMessage: 'Uge skal være mellem 1 og 52',
-      partialEligible: false,
     });
   });
 
@@ -41,15 +39,13 @@ describe('parseWeekDraftForCommit', () => {
     expect(parseWeekDraftForCommit('10/1990', config)).toEqual({
       ok: false,
       errorMessage: 'Årstallet skal være mellem 2000 og 2030',
-      partialEligible: false,
     });
   });
 
-  it('ufuldstændigt format er partial-eligible', () => {
+  it('ufuldstændigt format → "Ugyldigt format"', () => {
     expect(parseWeekDraftForCommit('05', config)).toEqual({
       ok: false,
       errorMessage: 'Ugyldigt format',
-      partialEligible: true,
     });
   });
 
@@ -57,7 +53,6 @@ describe('parseWeekDraftForCommit', () => {
     expect(parseWeekDraftForCommit('123456789', config)).toEqual({
       ok: false,
       errorMessage: 'Ugyldigt format',
-      partialEligible: true,
     });
   });
 });

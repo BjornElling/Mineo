@@ -6,27 +6,19 @@ import { shouldClearField } from './inputValidation';
 
 export type DateYearPolicy = 'reject' | 'infer' | 'assume20xx';
 
-export type DateDraftParseMode = 'typing' | 'commit';
-
 export type ParsedDateDraft =
   | Readonly<{ ok: true; danish: string; iso: ISODateString | undefined }>
-  | Readonly<{ ok: false; kind: 'partial' | 'invalid'; message: string }>;
+  | Readonly<{ ok: false; kind: 'invalid'; message: string }>;
 
 const INVALID_DATE_MESSAGE = 'Ugyldig dato';
 const MAX_DRAFT_LENGTH = 16;
 
-const invalidDate = (mode: DateDraftParseMode): ParsedDateDraft =>
-  mode === 'typing'
-    ? { ok: false, kind: 'partial', message: INVALID_DATE_MESSAGE }
-    : { ok: false, kind: 'invalid', message: INVALID_DATE_MESSAGE };
+// Parse afledes altid på commit (form-kernereglen forbyder typing-feedback), så et ufuldstændigt
+// input er en egentlig fejl — ikke en "endnu ikke færdig"-tilstand.
+const INVALID_DATE: ParsedDateDraft = { ok: false, kind: 'invalid', message: INVALID_DATE_MESSAGE };
 
-const resolveYear = (
-  yearRaw: string,
-  policy: DateYearPolicy,
-  mode: DateDraftParseMode
-): number | null | 'partial' => {
+const resolveYear = (yearRaw: string, policy: DateYearPolicy): number | null => {
   if (yearRaw.length === 1 || yearRaw.length === 2) {
-    if (mode === 'typing') return 'partial';
     if (policy === 'reject') return null;
     if (policy === 'assume20xx') {
       const parsed = Number.parseInt(yearRaw, 10);
@@ -45,11 +37,11 @@ const resolveYear = (
 
 export const parseDateDraftForCommit = (
   draft: string,
-  options: Readonly<{ mode: DateDraftParseMode; twoDigitYearPolicy: DateYearPolicy }>
+  options: Readonly<{ twoDigitYearPolicy: DateYearPolicy }>
 ): ParsedDateDraft => {
   const trimmed = draft.trim();
   if (trimmed === '' || shouldClearField(trimmed)) return { ok: true, danish: '', iso: undefined };
-  if (trimmed.length > MAX_DRAFT_LENGTH) return invalidDate(options.mode);
+  if (trimmed.length > MAX_DRAFT_LENGTH) return INVALID_DATE;
 
   let dayRaw: string;
   let monthRaw: string;
@@ -62,35 +54,34 @@ export const parseDateDraftForCommit = (
   } else {
     const normalized = normalizeDateDraftSeparators(trimmed);
     const [dayPart = '', monthPart = '', yearPart = '', ...rest] = normalized.split('-');
-    if (rest.length > 0 || dayPart === '' || monthPart === '' || yearPart === '') return invalidDate(options.mode);
+    if (rest.length > 0 || dayPart === '' || monthPart === '' || yearPart === '') return INVALID_DATE;
     dayRaw = dayPart;
     monthRaw = monthPart;
     yearRaw = yearPart;
   }
 
   if (/[^0-9]/.test(dayRaw) || /[^0-9]/.test(monthRaw) || /[^0-9]/.test(yearRaw)) {
-    return invalidDate(options.mode);
+    return INVALID_DATE;
   }
   if (dayRaw.length > 2 || monthRaw.length > 2 || yearRaw.length > 4 || yearRaw.length === 3) {
-    return invalidDate(options.mode);
+    return INVALID_DATE;
   }
 
   const dayNum = Number.parseInt(dayRaw, 10);
   const monthNum = Number.parseInt(monthRaw, 10);
-  if (!Number.isFinite(dayNum) || !Number.isFinite(monthNum)) return invalidDate(options.mode);
-  if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12) return invalidDate(options.mode);
+  if (!Number.isFinite(dayNum) || !Number.isFinite(monthNum)) return INVALID_DATE;
+  if (dayNum < 1 || dayNum > 31 || monthNum < 1 || monthNum > 12) return INVALID_DATE;
 
-  const resolvedYear = resolveYear(yearRaw, options.twoDigitYearPolicy, options.mode);
-  if (resolvedYear === 'partial') return { ok: false, kind: 'partial', message: INVALID_DATE_MESSAGE };
-  if (resolvedYear === null) return invalidDate(options.mode);
+  const resolvedYear = resolveYear(yearRaw, options.twoDigitYearPolicy);
+  if (resolvedYear === null) return INVALID_DATE;
 
   // Kanonisk dag-i-måned-validering (skudår mv.) — én sand kilde i isValidDate,
   // frem for ad hoc Date.UTC(...,0)-konstruktion her.
-  if (!isValidDate(dayNum, monthNum, resolvedYear)) return invalidDate(options.mode);
+  if (!isValidDate(dayNum, monthNum, resolvedYear)) return INVALID_DATE;
 
   const danish = `${String(dayNum).padStart(2, '0')}-${String(monthNum).padStart(2, '0')}-${String(resolvedYear)}`;
   const iso = coerceToISODateString(danish);
-  if (!iso) return invalidDate(options.mode);
+  if (!iso) return INVALID_DATE;
 
   return { ok: true, danish, iso };
 };

@@ -158,7 +158,7 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
     );
 
     const parseAmount: DraftParse<AmountValue | undefined> = React.useCallback(
-      (draft, { mode }) => {
+      (draft) => {
         const parsed = parseAmountInput(draft, {
           precision: resolvedPrecision,
           allowNegative,
@@ -176,7 +176,6 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
             numericValue < minValue
           ) {
             const errorMessage = `Beløb skal være ${formatAsAmount(minValue, resolvedPrecision)} eller højere`;
-            if (mode === 'typing') return { ok: false, kind: 'partial' };
             return { ok: false, kind: 'invalid', message: errorMessage };
           }
           if (
@@ -186,13 +185,11 @@ const StyledAmountField = React.forwardRef<HTMLDivElement, StyledAmountFieldProp
             numericValue > maxValue
           ) {
             const errorMessage = `Beløb skal være ${formatAsAmount(maxValue, resolvedPrecision)} eller lavere`;
-            if (mode === 'typing') return { ok: false, kind: 'partial' };
             return { ok: false, kind: 'invalid', message: errorMessage };
           }
           return { ok: true, value: parsed.value };
         }
 
-        if (mode === 'typing') return { ok: false, kind: 'partial' };
         if (parsed.error.kind === 'expression') {
           return { ok: false, kind: 'invalid', message: formatExpressionErrorMessage(parsed.error.message) };
         }

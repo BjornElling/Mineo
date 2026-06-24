@@ -45,7 +45,7 @@ export const sanitizeTableDateDraft = (
   config: Pick<TableDateAdapterConfig, 'twoDigitYearPolicy'>
 ): ISODateString | undefined => {
   const raw = normalizeDateDraftOnCommit(rawValue);
-  const parsed = parseDateDraftForCommit(raw, { mode: 'commit', twoDigitYearPolicy: config.twoDigitYearPolicy });
+  const parsed = parseDateDraftForCommit(raw, { twoDigitYearPolicy: config.twoDigitYearPolicy });
   return parsed.ok ? parsed.iso : undefined;
 };
 
@@ -59,7 +59,7 @@ export const createDateTableInputAdapter = (
   },
   parse: (draft) => {
     const normalized = normalizeDateDraftOnCommit(draft);
-    const parsed = parseDateDraftForCommit(normalized, { mode: 'commit', twoDigitYearPolicy: config.twoDigitYearPolicy });
+    const parsed = parseDateDraftForCommit(normalized, { twoDigitYearPolicy: config.twoDigitYearPolicy });
     if (!parsed.ok) return { ok: false, errorMessage: parsed.message };
     const rangeErrorMessage = parsed.iso
       ? getRangeErrorMessage(parsed.iso, {
