@@ -1,7 +1,6 @@
 import type { ErstatningsopgoerelseValues, OffentligeYdelserRow } from '../../schemas/formSchemas';
 import type { ISODateString } from '../../types/branded';
-import { isWithinTolerance } from '../../utils/numberComparison';
-import { STORE_BEDEDAG_START, STORE_BEDEDAG_PCT } from '../../config/indskudteLoentillaeg';
+import { resolveSatserErrorField } from '../erstatningsopgoerelse/validation/loenindkomstSatserGate';
 import {
   getStandardLoenTableValidation,
   isStandardLoenTableValueEffectivelyEmptyForValidation,
@@ -22,7 +21,6 @@ import { buildStandardLoenZeroArbejdsdageIssues } from '../erstatningsopgoerelse
 import { DEFAULT_APP_SETTINGS, resolveDefaultOverenskomstFilter, type AppSettings } from '../../settings/appSettingsSchema';
 import { resolveStandardLoenColumnLabel } from '../aarsloen/standardLoenTableColumns';
 import { resolveOffentligeYdelserColumnLabel } from '../erstatningsopgoerelse/tables/offentligeYdelserTableColumns';
-import { resolveOverenskomstSatsBindings } from '../erstatningsopgoerelse/helpers/loenindkomstSatser';
 import { getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 
@@ -46,73 +44,6 @@ export type OffentligeYdelserDebugRow = Readonly<{
   message: string;
   summaryDisplay?: 'messageOnly';
 }>;
-
-const hasStoreBededagSatserAfvigelse = (
-  loenPaaHelligdage: string,
-  inputValue: number | undefined,
-  anvendtReguleringsdato: ISODateString | undefined
-): boolean => {
-  if (!anvendtReguleringsdato) return false;
-  const isFrom2024 = anvendtReguleringsdato >= STORE_BEDEDAG_START;
-
-  let expectedPct: number;
-  if (loenPaaHelligdage === 'Almindelig løn' && isFrom2024) {
-    expectedPct = STORE_BEDEDAG_PCT;
-  } else {
-    expectedPct = 0;
-  }
-
-  const actualValue = inputValue ?? 0;
-  // 0,01 procentpoint matcher valideringstolerancen for afrundede procentsatser.
-  return !isWithinTolerance(actualValue, expectedPct, 0.01);
-};
-
-const hasFeriePctAfvigelse = (
-  inputValue: number | undefined
-): boolean => {
-  if (inputValue === undefined) return false;
-  if (inputValue >= 12) return false;
-  return true;
-};
-
-const hasOverenskomstSatsAfvigelse = (
-  af: Pick<Ansaettelsesforhold, 'harOverenskomst' | 'overenskomstId' | 'loenPaaHelligdage'>,
-  fieldName: 'fritvalgPct' | 'shSoPct' | 'pensionPct',
-  inputValue: number | undefined,
-  anvendtReguleringsdato: ISODateString | undefined
-): boolean => {
-  const overenskomstId = af.overenskomstId?.trim();
-  if (!overenskomstId) return false;
-  const expectedBinding = resolveOverenskomstSatsBindings(af, anvendtReguleringsdato)[fieldName];
-  if (!expectedBinding.locked || expectedBinding.value === undefined) return false;
-
-  const expectedPct = expectedBinding.value;
-  const actualValue = inputValue ?? 0;
-  // 0,01 procentpoint matcher valideringstolerancen for afrundede procentsatser.
-  return !isWithinTolerance(actualValue, expectedPct, 0.01);
-};
-
-const resolveSatserErrorField = (
-  af: Ansaettelsesforhold,
-  anvendtReguleringsdato: ISODateString | undefined
-): string | null => {
-  if (hasFeriePctAfvigelse(af.feriePct)) {
-    return 'Feriegodtgørelse/-tillæg';
-  }
-  if (hasOverenskomstSatsAfvigelse(af, 'fritvalgPct', af.fritvalgPct, anvendtReguleringsdato)) {
-    return 'Fritvalg';
-  }
-  if (hasOverenskomstSatsAfvigelse(af, 'shSoPct', af.shSoPct, anvendtReguleringsdato)) {
-    return 'SH/SO-sats';
-  }
-  if (hasStoreBededagSatserAfvigelse(af.loenPaaHelligdage, af.storeBededagPct, anvendtReguleringsdato)) {
-    return 'Store Bededagstillæg';
-  }
-  if (hasOverenskomstSatsAfvigelse(af, 'pensionPct', af.pensionPct, anvendtReguleringsdato)) {
-    return 'Arbejdsgivers pensionsbidrag';
-  }
-  return null;
-};
 
 const PERIOD_COLUMN_KEYS: Record<Loenperiode, readonly [StandardLoenTableColumnKey, StandardLoenTableColumnKey]> = {
   maaned: ['col0_maaned', 'col1_maaned'],
