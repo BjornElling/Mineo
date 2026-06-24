@@ -2,16 +2,14 @@ import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { buildNoValidDateRangeMessage, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
+import { resolveDebugDisplay } from './eoDebugCommon';
 import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
-import { computeRowDateBounds } from '../erstatningsopgoerelse/helpers/rowDateBounds';
-import { getDayBeforeIso, validateISODateRange } from '../../utils/isoDateHelpers';
-import { detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
-import { computeSkadedatoMinRule, dateRanges_erstatningsopgoerelse, TODAY } from '../../config/dateRanges';
+import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaanederPraecis } from '../erstatningsopgoerelse/engines/tafCalculations';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 import { evaluateTafPerioder } from '../erstatningsopgoerelse/validation/tafPeriodeValidation';
+import { evaluateFerieperioder } from '../erstatningsopgoerelse/validation/ferieperiodeValidation';
 import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoDebugEoShared';
@@ -154,49 +152,6 @@ export const buildEODebugTaftRows = (
     status: tafOphoerSkyldes === tafIkkeRejstLabel ? 'warning' : 'ok',
   });
 
-  const endeligEETMinus1 = getDayBeforeIso(context.endeligEETBeregnetDato);
-  const midlertidigEETMinus1 = getDayBeforeIso(aktivMidlertidigEETBeregnetDato);
-  const differencekravMinus1 = getDayBeforeIso(context.differencekravDato);
-
-  let combinedExtraMaxDate: ISODateString | undefined = undefined;
-  if (differencekravMinus1) {
-    combinedExtraMaxDate = differencekravMinus1;
-  }
-  if (!context.verserendeKlageEet && endeligEETMinus1) {
-    if (!combinedExtraMaxDate || endeligEETMinus1 < combinedExtraMaxDate) {
-      combinedExtraMaxDate = endeligEETMinus1;
-    }
-  }
-  if (!context.verserendeKlageEet && midlertidigEETMinus1) {
-    if (!combinedExtraMaxDate || midlertidigEETMinus1 < combinedExtraMaxDate) {
-      combinedExtraMaxDate = midlertidigEETMinus1;
-    }
-  }
-
-  const skadedatoMinRule = computeSkadedatoMinRule({
-    skadedatoISO: context.skadedatoISO,
-    erErhvervssygdom: context.erErhvervssygdom,
-    fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
-  });
-
-  const validateRowDate = (args: {
-    iso: ISODateString | undefined;
-    minDate: ISODateString;
-    maxDate: ISODateString;
-    noValidRangeCause?: string | undefined;
-  }): string | undefined => {
-    if (!args.iso) return undefined;
-    if (args.minDate > args.maxDate) {
-      return buildNoValidDateRangeMessage({
-        minDate: args.minDate,
-        maxDate: args.maxDate,
-        noValidRangeCause: args.noValidRangeCause,
-      });
-    }
-    const result = validateISODateRange(args.iso, args.minDate, args.maxDate);
-    return result.isValid ? undefined : result.errorMessage;
-  };
-
   // 1) Periode-rækker fra tabellen.
   // Blokering (komplethed, dato-grænser, cutoff, overlap, rækkefølge) afgøres af den delte,
   // autoritative TAF-periode-validering — samme funktion som eoBlockingValidation kalder (jf.
@@ -296,8 +251,17 @@ export const buildEODebugTaftRows = (
   const harFerieperioder = ferieperioder.length > 0 && ferieperioder.some((p) => p.fra || p.til);
   const ferieperiodeLabel = ferieperioder.filter((p) => p.fra || p.til).length === 1 ? 'Ferieperiode' : 'Ferieperioder';
 
-  // Detektér overlappende ferieperioder
-  const ferieOverlappingIds = detectOverlappingPeriods(ferieperioder);
+  // Ferieperiode-blokering (komplethed, dato-grænser, overlap) afgøres af den delte, autoritative
+  // validering (jf. B9); debug RENDERER kun resultatet.
+  const ferieEvaluations = evaluateFerieperioder(ferieperioder, {
+    skadedatoISO: context.skadedatoISO,
+    erErhvervssygdom: context.erErhvervssygdom,
+    differencekravDato: context.differencekravDato,
+    endeligEETBeregnetDato: context.endeligEETBeregnetDato,
+    midlertidigEETBeregnetDato: context.midlertidigEETBeregnetDato,
+    aktivMidlertidigEETBeregnetDato,
+    verserendeKlageEet: context.verserendeKlageEet,
+  });
 
   if (!harFerieperioder) {
     rows.push({
@@ -308,104 +272,25 @@ export const buildEODebugTaftRows = (
     });
   } else {
     ferieperioder.forEach((periode) => {
-      const hasFra = isNonEmptyString(periode.fra);
-      const hasTil = isNonEmptyString(periode.til);
+      const evaluation = ferieEvaluations.get(periode.id) ?? { kind: 'ok' as const };
+      if (evaluation.kind === 'skip') return;
 
-      // Tjek om begge felter er udfyldt eller begge er tomme
-      const filledCount = [hasFra, hasTil].filter(Boolean).length;
-      const allFilled = filledCount === 2;
-      const noneFilled = filledCount === 0;
-
-      // Spring over rækker hvor intet er udfyldt
-      if (noneFilled) return;
-
-      // Tjek for overlappende periode
-      const hasOverlap = ferieOverlappingIds.has(periode.id);
-
-      // Hvis ikke alle felter er udfyldt, vis fejl
-      if (!allFilled) {
-        const displayValue = 'Fejl (Ikke alle felter udfyldt)';
+      if (evaluation.kind === 'error') {
         rows.push({
           id: `taf.ferie.${periode.id}`,
           label: ferieperiodeLabel,
-          displayValue,
+          displayValue: `Fejl (${evaluation.message})`,
           status: 'error',
         });
         return;
       }
 
-      // Konverter til dansk format for visning
+      // evaluation.kind === 'ok': formatér visning. isoToDanish-tjekket er rent display-
+      // defensivt (kan i praksis ikke fejle på schema-validerede datoer).
       const fraISO = periode.fra;
       const tilISO = periode.til;
-
-      if (!fraISO || !tilISO) {
-        const displayValue = 'Fejl (Ugyldig dato)';
-        rows.push({
-          id: `taf.ferie.${periode.id}`,
-          label: ferieperiodeLabel,
-          displayValue,
-          status: 'error',
-        });
-        return;
-      }
-
-      const bounds = computeRowDateBounds({
-        skadedatoMinDate: skadedatoMinRule.minDate,
-        rowFra: fraISO,
-        rowTil: tilISO,
-        fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
-        fallbackMax: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMax,
-        tilFallbackMax: TODAY,
-        tilExtraMaxDate: combinedExtraMaxDate,
-        useTilExtraMaxDate: true,
-      });
-
-      const fraNoValidRangeCause = (() => {
-        const parts: string[] = [];
-        if (skadedatoMinRule.minBoundKind) parts.push('skadedato');
-        if (tilISO) parts.push('til-dato i samme række');
-        return parts.length > 0 ? parts.join(', ') : undefined;
-      })();
-
-      const tilNoValidRangeCause = (() => {
-        const parts: string[] = [];
-        if (!fraISO && skadedatoMinRule.minBoundKind) parts.push('skadedato');
-        if (fraISO) parts.push('fra-dato i samme række');
-        parts.push('dags dato');
-        if (context.differencekravDato) parts.push('differencekrav-dato');
-        if (!context.verserendeKlageEet && context.endeligEETBeregnetDato) parts.push('beregnet dato for endeligt EET');
-        return parts.join(', ');
-      })();
-
-      const fraRangeErrorMessage = validateRowDate({
-        iso: fraISO,
-        minDate: bounds.fra.min,
-        maxDate: bounds.fra.max,
-        noValidRangeCause: fraNoValidRangeCause,
-      });
-      const tilRangeErrorMessage = validateRowDate({
-        iso: tilISO,
-        minDate: bounds.til.min,
-        maxDate: bounds.til.max,
-        noValidRangeCause: tilNoValidRangeCause,
-      });
-      const computedRangeMessages = [fraRangeErrorMessage, tilRangeErrorMessage].filter(
-        (m): m is string => typeof m === 'string' && m.trim() !== ''
-      );
-
-      if (hasOverlap || computedRangeMessages.length > 0) {
-        const errorMessages = hasOverlap ? 'Der er overlappende perioder' : computedRangeMessages.join('; ');
-        rows.push({
-          id: `taf.ferie.${periode.id}`,
-          label: ferieperiodeLabel,
-          displayValue: `Fejl (${errorMessages})`,
-          status: 'error',
-        });
-        return;
-      }
-
-      const fraDanish = isoToDanish(fraISO);
-      const tilDanish = isoToDanish(tilISO);
+      const fraDanish = fraISO ? isoToDanish(fraISO) : undefined;
+      const tilDanish = tilISO ? isoToDanish(tilISO) : undefined;
       if (!fraDanish || !tilDanish) {
         rows.push({
           id: `taf.ferie.${periode.id}`,

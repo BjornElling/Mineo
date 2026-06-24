@@ -42,7 +42,12 @@ export type TafPeriodeEvaluation =
   | Readonly<{ kind: 'ok' }>
   | Readonly<{ kind: 'error'; message: string }>;
 
-const computeCombinedExtraMaxDate = (
+/**
+ * Den kombinerede øvre til-dato-grænse fra differencekrav/EET-afgørelses-datoer (hver minus
+ * én dag). Differencekrav gælder altid; EET-datoerne kun når der ikke er verserende klage.
+ * Deles af TAF-periode- og ferieperiode-valideringen, så grænsen er ét sted.
+ */
+export const computeTafCombinedExtraMaxDate = (
   context: TafPeriodeBoundsContext
 ): ISODateString | undefined => {
   const endeligEETMinus1 = getDayBeforeIso(context.endeligEETBeregnetDato);
@@ -189,7 +194,7 @@ export const evaluateTafPerioder = (
     erErhvervssygdom: context.erErhvervssygdom,
     fallbackMin: dateRanges_erstatningsopgoerelse.tabelTAFFra.fallbackMin,
   });
-  const combinedExtraMaxDate = computeCombinedExtraMaxDate(context);
+  const combinedExtraMaxDate = computeTafCombinedExtraMaxDate(context);
 
   const result = new Map<string, TafPeriodeEvaluation>();
   for (const periode of perioder) {
