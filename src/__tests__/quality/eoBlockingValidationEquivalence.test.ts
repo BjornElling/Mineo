@@ -4,8 +4,13 @@
  *
  * Dette er adfærds-værnet, der gør gate-omstillingen (fase 4) sikker og som erstatter det skøre
  * string-match-værn: hvis de to kilder nogensinde divergerer på en projektion-`ok`-sag, fejler
- * testen. Korpusset bruger TOMME felt-fejl (eoBlockingValidation er værdi-afledt) og dækker hver
- * debug-only-familie + gyldige kontrol-sager.
+ * testen. Korpusset bruger TOMME felt-fejl (eoBlockingValidation er værdi-afledt).
+ *
+ * SCOPE (vigtigt): dækker de familier der ER udskilt til eoBlockingValidation — svie/smerte-,
+ * TAF-, ferie-perioder, lønindkomst-satser, krævede oversigtsfelter, og beregningsgrundlag
+ * (indkomst-i-periode + ferie). Dækker IKKE endnu loenudvikling.valgt, regulering-dækning,
+ * offentlige ydelser, SFGG-sats, EET-datoer eller felt-fejl-drevet blokering. Derfor er gaten
+ * IKKE omstillet til eoBlockingValidation (jf. docs/review/b9-blokeringsvalidering-plan.md §4-7).
  *
  * Determinisme: faste 2024-datoer; nedre-grænse/cutoff-perturbationer (dato-uafhængige).
  */

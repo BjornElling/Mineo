@@ -91,12 +91,26 @@ eoBlockingValidation(parsedValues, stamdata, fieldErrors, canonical/snapshot)
    - `loenindkomst.<af>.satserSkadestidspunkt` — værdi-afledt satser-fejl ("Forkert værdi indtastet i Store Bededagstillæg") på et default-ansættelsesforhold; nås uden felt-fejl. Skal afklares i fase 2 (ægte gate vs. ordlyds-/reachability-detalje).
    - Bekræftede §2-katalog-stier: `sviesmerte.periode.<id>` (dato-grænse), `taf.periode.<id>` (dato-grænse **og** cutoff-efter-differencekrav), `arbejdsstatus`. *Bemærk: cutoff-beskeden er i dag dubleret ("…; …") — kosmetisk, noteret til fase 2.*
    Den fulde korpus-udvidelse (ferieperioder, beregningsperiode-overlap, indkomst-i-periode, SFGG-sats-calculability) tilføjes løbende i fase 2-takt, så hver flyttet gate har en golden-master-linje før den røres.
-2. **Udskil `eoBlockingValidation`-modulet** med de rene dato-grænse-/cutoff-/sekundærtabel-tjek (katalog §2A+B), genbrugt fra de eksisterende helpers (`computeRowDateBounds`, `buildTafCutoffErrorMessage`, `tafPeriodConstraints` m.fl.) — flyttet ud af debug til domænet, så både debug og det nye modul kalder samme kode. Beskeder bevares byte-identisk.
-3. **Flyt krævede-felt-tjek** (§2C, kun reachable) ind i modulet.
-4. **Omstil gaten** i `useEoBeregningViewModel` til at læse `eoBlockingValidation` i stedet for `collectAllDebugRows.errors`. Debug-rækkerne render verdikterne.
-5. **Erstat string-match-værnet** med adfærds-værnet; ryd de døde fejlgrene (§2-noten).
+2. **Udskil periode-/satser-/beregningsgrundlag-blokeringen til delte, autoritative moduler.** ✅ **UDFØRT (2026-06-24).** Debug-builderne *delegerer* nu beslutningen (ÉN sandhedskilde), så DEV-display-formattering ikke længere kan flytte disse gates:
+   - `svieSmertePeriodeValidation`, `tafPeriodeValidation`, `ferieperiodeValidation` (dato-grænser, overlap, rækkefølge, cutoff-efter-differencekrav/EET) — `eoDebugSvieSmerteRows`/`eoDebugTaftRows` delegerer.
+   - `loenindkomstSatserGate` (satser-afvigelse, inkl. Store Bededag) + `eoPeriodeBlockingContext` relokeret til domænet; `eoDebugIndkomstModel`/`eoDebugContextBuilders` genbruger.
+   - `eoBlockingValidation` + `beregningsgrundlagBlockingValidation` samler periode-, satser-, krævede-felt- og beregningsgrundlag-blokering (indkomst-i-periode + beregningsgrundlag-ferie).
+   - **Ækvivalens-værn** `eoBlockingValidationEquivalence.test`: hævder at `eoBlockingValidation` blokerer præcis de samme projektion-`ok`-sager som dagens debug-gate, over et korpus der dækker de udskilte familier. Periode-/satser-familierne er ækvivalente *by construction* (debug + eoBlockingValidation kalder samme funktion).
+3. **(Indgår i 2)** Krævede-felt-tjek (arbejdsstatus/helbredsstatus) reproduceret i `eoBlockingValidation` (nuværende, uændrede over-block-adfærd).
 
-Golden-master-suiten (fase 1) + de 457 debug-tests holdes grønne gennem hele forløbet; enhver diff i fejl-rækker/beskeder er en rød advarsel, ikke en accept.
+### ⚠️ Fase 4-5 — IKKE gennemført (bevidst standset af trust-hensyn, 2026-06-24)
+
+4. **Omstil gaten** i `useEoBeregningViewModel` til `eoBlockingValidation`. **IKKE gjort.** `eoBlockingValidation` er bevist **ufuldstændig** for gaten: flere debug-`error`-familier gater PDF og er reachable når projektionen er `ok`, men er endnu IKKE reproduceret:
+   - `loenindkomst.<af>.loenudvikling.valgt` ("Overenskomst/Statistik/KRL ikke valgt") — `eoDebugIndkomstRows.ts:177-200`.
+   - `loenindkomst.<af>.regulering.*` (dæknings-gap når overenskomst/KRL ikke dækker regulerings-datoen) — `eoDebugIndkomstRows.ts:407-448` (status `error` når ikke `allowIncompleteOverenskomst`).
+   - `offentligeYdelser.*` (ugyldig/manglende rækkedata) — `eoDebugIndkomstModel.ts`.
+   - SFGG direkte-overenskomst-sats ("kunne ikke fastsættes"), EET-dato-logik (`aes.*`), samt **felt-fejl-drevet** blokering (eoBlockingValidation er pt. ren værdi-afledt — tager ikke `fieldErrors`).
+   Disse er motor-/canonical-afhængige og kræver valide overenskomst-/statistik-/SFGG-fixtures at reproducere+verificere. At omstille gaten før de er dækket+verificeret ville **under-blokere** (en fejlbehæftet opgørelses-PDF kunne hentes) = trust-kritisk regression. Derfor standset; gaten læser fortsat `collectAllDebugRows` (uændret adfærd).
+5. **Erstat string-match-værnet** (invariant C) med adfærds-værnet + **anvend over-block-fix** (arbejdsstatus/helbredsstatus kun når relevant). **IKKE gjort** — afhænger af, at gaten først er omstillet (ellers er invariant C stadig en korrekt beskrivelse af den fortsatte kobling, og over-block-fixet skal ledsages af opdateret golden master + ækvivalens-delta). Hører sammen med fase 4.
+
+Golden-master-suiten (fase 1) + de 457 debug-tests er holdt grønne gennem hele forløbet; ingen adfærdsændring er indført.
+
+**Næste skridt for at fuldføre (kræver omhu + forelæggelses-bekræftelse pga. trust-kritikalitet):** udvid `eoBlockingValidation` (+ `fieldErrors`) til at dække loenudvikling/regulering/offentlige-ydelser/SFGG/EET-familierne, udvid ækvivalens-korpusset til at bevise BÅDE boolean OG første-besked-paritet (inkl. felt-fejl-scenarier), og omstil så gaten + anvend over-block-fix + erstat værnet.
 
 ---
 
@@ -109,5 +123,13 @@ Golden-master-suiten (fase 1) + de 457 debug-tests holdes grønne gennem hele fo
 
 ## 6. Forelæggelse — afgjort (2026-06-24)
 1. **Arkitektur + faseplan: GODKENDT.** Start på fase 1.
-2. **Over-block (§2D): RET det** — relevans-betinget krav, lille godkendt adfærdsændring, afgrænset til `arbejdsstatus` + `helbredsstatus`.
+2. **Over-block (§2D): RET det** — relevans-betinget krav, lille godkendt adfærdsændring, afgrænset til `arbejdsstatus` + `helbredsstatus`. *(Indgår i den endnu ikke gennemførte fase 5.)*
 3. Øvrige katalog-tjek relokeres 1:1 (identiske triggere + beskeder); enhver utilsigtet besked-diff fanget af golden-master forelægges hvis den opstår.
+
+## 7. Status ved autonom kørsel (2026-06-24)
+
+**Gennemført (adfærdsbevarende, committet, alle tests grønne):** fase 1 + fase 2 — den dato-/periode-/satser-/beregningsgrundlag-blokering, der reelt var sammenfiltret med DEV-display-formattering, er nu udskilt til delte, autoritative domæne-moduler, som debug-builderne delegerer til (ÉN sandhedskilde). `eoBlockingValidation` er bygget som den autoritative blokerings-funktion for disse familier, med et ækvivalens-værn.
+
+**Bevidst standset før fase 4-5 (gate-omstilling + over-block-fix + værn-erstatning):** `eoBlockingValidation` er endnu ikke komplet nok til sikkert at drive den trust-kritiske PDF-gate (mangler loenudvikling/regulering/offentlige-ydelser/SFGG/EET + felt-fejl-familierne; se fase 4-noten). Gaten er uændret. At fuldføre kræver at dække de resterende familier + bevise fuld paritet (boolean + besked + felt-fejl) — og bør bekræftes pga. trust-kritikaliteten.
+
+**Note (midlertidig "ubrugt" produktionskode):** `eoBlockingValidation` med familie-moduler kaldes pt. kun fra ækvivalens-værnet (ikke fra produktions-gaten endnu). Det er bevidst infrastruktur for fase 4 — ikke død kode — men bør enten wires (fase 4) eller genovervejes, hvis fase 4 ikke fuldføres.
