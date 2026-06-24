@@ -1,5 +1,5 @@
 import React from 'react';
-import { Fab, Tooltip, Zoom } from '@mui/material';
+import { Fab, Zoom } from '@mui/material';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { useScrollContainer } from '../../contexts/useScrollContainer';
 import {
@@ -76,39 +76,37 @@ const ScrollToTopButton = React.memo(() => {
 
   return (
     <Zoom in={visible} unmountOnExit>
-      <Tooltip title="Scroll til toppen" arrow placement="left">
-        <Fab
-          onClick={handleClick}
-          aria-label="Scroll til toppen"
-          sx={{
-            position: 'fixed',
-            bottom: SCROLL_BUTTON_POSITION_BOTTOM_PX,
-            right: SCROLL_BUTTON_POSITION_RIGHT_PX,
-            width: SCROLL_BUTTON_SIZE_PX,
-            height: SCROLL_BUTTON_SIZE_PX,
-            // Bevidst: skjul knappen på touch-input. På touch-enheder er sidens indhold kort nok
-            // til ét skærmbillede, så scroll-til-top er irrelevant. Dette er en input-modalitets-
-            // affordance (pointer: coarse), ikke responsivt mobil-layout — mobil/tablet er i forvejen
-            // hård-blokeret af device-gaten, så reglen rammer kun touch-capable desktops.
-            '@media (pointer: coarse)': { display: 'none' },
-            backgroundColor: 'var(--color-surface-raised)',
-            color: 'var(--color-text-primary)',
-            border: '1px solid var(--color-border)',
-            boxShadow: 4,
-            transition: 'all 0.25s ease',
-            '&:hover': {
-              backgroundColor: 'var(--color-surface-raised-hover)',
-              boxShadow: 8,
-              transform: 'scale(1.08)',
-            },
-            '&:active': {
-              transform: 'scale(0.95)',
-            },
-          }}
-        >
-          <KeyboardArrowUpIcon sx={{ fontSize: 32 }} />
-        </Fab>
-      </Tooltip>
+      <Fab
+        onClick={handleClick}
+        aria-label="Scroll til toppen"
+        sx={{
+          position: 'fixed',
+          bottom: SCROLL_BUTTON_POSITION_BOTTOM_PX,
+          right: SCROLL_BUTTON_POSITION_RIGHT_PX,
+          width: SCROLL_BUTTON_SIZE_PX,
+          height: SCROLL_BUTTON_SIZE_PX,
+          // Bevidst: skjul knappen på touch-input. På touch-enheder er sidens indhold kort nok
+          // til ét skærmbillede, så scroll-til-top er irrelevant. Dette er en input-modalitets-
+          // affordance (pointer: coarse), ikke responsivt mobil-layout — mobil/tablet er i forvejen
+          // hård-blokeret af device-gaten, så reglen rammer kun touch-capable desktops.
+          '@media (pointer: coarse)': { display: 'none' },
+          backgroundColor: 'var(--color-surface-raised)',
+          color: 'var(--color-text-primary)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 4,
+          transition: 'all 0.25s ease',
+          '&:hover': {
+            backgroundColor: 'var(--color-surface-raised-hover)',
+            boxShadow: 8,
+            transform: 'scale(1.08)',
+          },
+          '&:active': {
+            transform: 'scale(0.95)',
+          },
+        }}
+      >
+        <KeyboardArrowUpIcon sx={{ fontSize: 32 }} />
+      </Fab>
     </Zoom>
   );
 });
