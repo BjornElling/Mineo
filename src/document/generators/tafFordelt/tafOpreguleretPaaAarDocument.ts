@@ -312,10 +312,16 @@ export const generateTafOpreguleretPaaAarDocument = (
     }
 
     // Beregnet krav for året (fuld udregningslinje, som i den almindelige EO-PDF).
+    // Indtægterne i erstatningsperioden indgår som ÉN sammentalt fradragsværdi (svarende til
+    // "I alt"-linjen ovenfor) — ikke som separate fradrags-led pr. post. Ensartet med den
+    // almindelige erstatningsopgørelse (renderOpgorelseSection, "Beregnet krav"), hvor kun
+    // forventet-indkomst-totalen og indtægts-totalen vises. Fradraget udelades helt når summen
+    // er 0, så et "- 0,00"-led aldrig optræder.
     writer.writeUnderlinedSubheader('Beregnet krav');
     const positiveLed = formatCurrencyFromOre(yearEntry.yearIncomeOre);
-    const fradragLed = yearEntry.deductions.map((deduction) => formatCurrencyFromOre(deduction.amountOre));
-    const expressionText = `${positiveLed}${fradragLed.length > 0 ? ` - ${fradragLed.join(' - ')}` : ''}${NBSP}kr.`;
+    const expressionText = yearEntry.yearDeductionsOre !== 0
+      ? `${positiveLed} - ${formatCurrencyFromOre(yearEntry.yearDeductionsOre)}${NBSP}kr.`
+      : `${positiveLed}${NBSP}kr.`;
     const beregnetKravLeftText = model.forlig.erIndgaaet
       ? `${model.forlig.label} x (${expressionText}) =`
       : `${expressionText} =`;

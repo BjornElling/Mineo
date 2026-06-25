@@ -228,4 +228,47 @@ describe('tafOpreguleretPaaAarPdf wiring', () => {
     const texts = textsOf();
     expect(texts.some((t) => t.startsWith('50% x ('))).toBe(true);
   });
+
+  it('viser indtægterne i beregnet-krav-formlen som ÉN sammentalt fradragsværdi — ikke pr. post', () => {
+    // To fradrag (444,28 + 236.926,00 = 237.370,28). Formlen skal vise totalen, ikke de
+    // enkelte poster — ensartet med den almindelige erstatningsopgørelse.
+    const yearMedFlereFradrag = makeYearEntry(2024, 26716669 as MoneyOre, {
+      segments: [
+        {
+          fra: toISODateString('2024-01-02'),
+          til: toISODateString('2024-12-31'),
+          kind: 'arbejdsdage' as const,
+          quantity: 250,
+          sourceLabel: 'Løn',
+          unitAmountOre: 205814 as MoneyOre,
+          deltaPct: 0,
+          amountOre: 51453697 as MoneyOre,
+        },
+      ],
+      deductions: [
+        { label: 'Feriepenge', amountOre: 44428 as MoneyOre },
+        { label: 'Sygedagpenge', amountOre: 23692600 as MoneyOre },
+      ],
+      yearIncomeOre: 51453697 as MoneyOre,
+      yearDeductionsOre: 23737028 as MoneyOre,
+    });
+    generate({
+      document: {
+        model: FAKE_MODEL as never,
+        presentation: {
+          ...FAKE_PRESENTATION,
+          years: [yearMedFlereFradrag],
+        },
+        opreguleret: FAKE_OPREGULERET,
+      },
+    });
+    const recorded = lastInstance()?.recorded ?? [];
+    const beregnetKravIndex = recorded.findIndex((e) => e.text === 'Beregnet krav' && e.underlined);
+    expect(beregnetKravIndex).toBeGreaterThanOrEqual(0);
+    const formelLinje = recorded[beregnetKravIndex + 1]?.text ?? '';
+    // Summen vises som ét fradrag; de enkelte poster optræder ikke i formlen.
+    expect(formelLinje).toContain('514.536,97 - 237.370,28');
+    expect(formelLinje).not.toContain('444,28');
+    expect(formelLinje.split('=')[0]?.match(/ - /g)?.length ?? 0).toBe(1);
+  });
 });
