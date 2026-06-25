@@ -112,7 +112,7 @@ const LoginPage = ({ onAuthenticated }: LoginPageProps) => {
               fontFamily: 'Montserrat, sans-serif',
             }}
           >
-            Mineo
+            minEO.dk
           </h1>
           <p
             style={{
