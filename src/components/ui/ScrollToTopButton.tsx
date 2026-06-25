@@ -77,7 +77,6 @@ const ScrollToTopButton = React.memo(() => {
     <Zoom in={visible} unmountOnExit>
       <Fab
         onClick={handleClick}
-        aria-label="Scroll til toppen"
         sx={{
           position: 'fixed',
           bottom: SCROLL_BUTTON_POSITION_BOTTOM_PX,
@@ -121,6 +120,24 @@ const ScrollToTopButton = React.memo(() => {
           }}
         >
           <path d="M6 15l6-6 6 6" />
+        </Box>
+        {/* Skærmlæser-navn uden synlig browser-tooltip: bevidst IKKE aria-label
+            (som browseren render som hover-tooltip), men visuelt skjult tekst. */}
+        <Box
+          component="span"
+          sx={{
+            position: 'absolute',
+            width: '1px',
+            height: '1px',
+            padding: 0,
+            margin: '-1px',
+            overflow: 'hidden',
+            clip: 'rect(0 0 0 0)',
+            whiteSpace: 'nowrap',
+            border: 0,
+          }}
+        >
+          Scroll til toppen
         </Box>
       </Fab>
     </Zoom>

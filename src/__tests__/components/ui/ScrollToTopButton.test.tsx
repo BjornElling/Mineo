@@ -38,7 +38,9 @@ describe('ScrollToTopButton', () => {
       </ScrollContainerProvider>
     );
 
-    expect(screen.queryByLabelText('Scroll til toppen')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Scroll til toppen' })
+    ).not.toBeInTheDocument();
 
     act(() => {
       container.scrollTop = SCROLL_VISIBILITY_THRESHOLD_PX + 50;
@@ -46,7 +48,9 @@ describe('ScrollToTopButton', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Scroll til toppen')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Scroll til toppen' })
+      ).toBeInTheDocument();
     });
   });
 
@@ -65,7 +69,7 @@ describe('ScrollToTopButton', () => {
       container.dispatchEvent(new Event('scroll'));
     });
 
-    const button = await screen.findByLabelText('Scroll til toppen');
+    const button = await screen.findByRole('button', { name: 'Scroll til toppen' });
     await user.click(button);
 
     expect(container.scrollTo).toHaveBeenCalledWith({
@@ -93,7 +97,9 @@ describe('ScrollToTopButton', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Scroll til toppen')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Scroll til toppen' })
+      ).toBeInTheDocument();
     });
 
     rerender(
@@ -108,11 +114,13 @@ describe('ScrollToTopButton', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Scroll til toppen')).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: 'Scroll til toppen' })
+      ).toBeInTheDocument();
     });
 
     const user = userEvent.setup();
-    await user.click(screen.getByLabelText('Scroll til toppen'));
+    await user.click(screen.getByRole('button', { name: 'Scroll til toppen' }));
 
     expect(containerB.scrollTo).toHaveBeenCalled();
     expect(containerA.scrollTo).not.toHaveBeenCalled();
