@@ -13,7 +13,7 @@
  */
 
 import type { ISODateString } from '../../types/branded';
-import type { DebugDay, DebugCellValue } from '../eoRowEvaluation/eoDebugTypes';
+import type { DebugDay, DebugCellValue } from '../eoRowEvaluation/eoRowTypes';
 import { formatIsoValue, formatBoolean } from './eoDebugFormat';
 
 /**

@@ -3,14 +3,14 @@
  *
  * Samler de byggesten der ellers var dupликeret verbatim på tværs af
  * EODebugRowsSection, EODebugGroupedRowsSection og EODebugEmploymentSections:
- * - statusikon pr. `DebugStatus`
+ * - statusikon pr. `EoRowStatus`
  * - `sx` til displayværdi (højrejustering ved flerlinjet indhold)
  * - fælles label-bredde for label/værdi-rækker
  */
 
 import * as React from 'react';
 import { Check, ErrorOutlined as ErrorOutline, WarningAmber } from '@mui/icons-material';
-import type { DebugStatus } from '../../../domain/eoRowEvaluation/eoDebugTypes';
+import type { EoRowStatus } from '../../../domain/eoRowEvaluation/eoRowTypes';
 
 /** Fælles label-bredde for debug-label/værdi-rækker. */
 export const DEBUG_ROW_LABEL_WIDTH = '320px';
@@ -25,7 +25,7 @@ export const DEBUG_ROW_LABEL_WIDTH = '320px';
 export const DEBUG_REGULATION_ROW_LABEL_WIDTH = '250px';
 
 /** Statusikon for en debug-række ud fra dens max-severity. */
-export const getStatusIcon = (status: DebugStatus): React.ReactElement => {
+export const getStatusIcon = (status: EoRowStatus): React.ReactElement => {
   switch (status) {
     case 'error':
       return <ErrorOutline sx={{ color: 'var(--color-status-error)', fontSize: 20 }} />;

@@ -1,11 +1,11 @@
-import { IntegrityInvariant, type IntegrityIssue } from '../../../domain/eoRowEvaluation/eoDebugTypes';
-import { maxDebugStatusFromIntegrityIssues, toDebugStatusRank } from '../../../domain/eoRowEvaluation/eoDebugSeverity';
+import { IntegrityInvariant, type IntegrityIssue } from '../../../domain/eoRowEvaluation/eoRowTypes';
+import { maxEoRowStatusFromIntegrityIssues, toEoRowStatusRank } from '../../../domain/eoRowEvaluation/eoRowSeverity';
 
-describe('eoDebugSeverity', () => {
+describe('eoRowSeverity', () => {
   it('returns rank in expected order', () => {
-    expect(toDebugStatusRank('ok')).toBe(0);
-    expect(toDebugStatusRank('warning')).toBe(1);
-    expect(toDebugStatusRank('error')).toBe(2);
+    expect(toEoRowStatusRank('ok')).toBe(0);
+    expect(toEoRowStatusRank('warning')).toBe(1);
+    expect(toEoRowStatusRank('error')).toBe(2);
   });
 
   it('returns max debug status from integrity issues', () => {
@@ -22,11 +22,11 @@ describe('eoDebugSeverity', () => {
       },
     ];
 
-    expect(maxDebugStatusFromIntegrityIssues(issues)).toBe('error');
+    expect(maxEoRowStatusFromIntegrityIssues(issues)).toBe('error');
   });
 
   it('returns ok when there are no integrity issues', () => {
-    expect(maxDebugStatusFromIntegrityIssues([])).toBe('ok');
+    expect(maxEoRowStatusFromIntegrityIssues([])).toBe('ok');
   });
 
   it('exposes canonical invariant constants', () => {

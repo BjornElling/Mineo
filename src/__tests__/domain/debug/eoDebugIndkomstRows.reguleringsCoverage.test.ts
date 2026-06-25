@@ -1,4 +1,4 @@
-import { buildEODebugIndkomstRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+import { buildEoIndkomstRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -15,7 +15,7 @@ const cloneInitialValues = () => ({
   loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
 });
 
-describe('buildEODebugIndkomstRows regulering details', () => {
+describe('buildEoIndkomstRows regulering details', () => {
   it('opretter reguleringsdetaljer for statistik og markerer manglende reguleringsværdi på reguleringsdato', () => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
@@ -27,7 +27,7 @@ describe('buildEODebugIndkomstRows regulering details', () => {
     af.loenudviklingBeregningsgrundlag = 'Statistik';
     af.loenudviklingStatistikModel = 'ILON12 (Danmarks Statistik)';
 
-    const rows = buildEODebugIndkomstRows(values, iso('1900-01-01'));
+    const rows = buildEoIndkomstRows(values, iso('1900-01-01'));
     const prefix = `loenindkomst.${af.id}.regulering`;
     const reguleringsvaerdiRow = rows.find((row) => row.id === `${prefix}.reguleringsvaerdi`);
     const startRow = rows.find((row) => row.id === `${prefix}.startvaerdi`);
@@ -61,7 +61,7 @@ describe('buildEODebugIndkomstRows regulering details', () => {
       },
     ];
 
-    const rows = buildEODebugIndkomstRows(values, iso('2023-01-01'));
+    const rows = buildEoIndkomstRows(values, iso('2023-01-01'));
     const prefix = `loenindkomst.${af.id}.regulering`;
     const slutRow = rows.find((row) => row.id === `${prefix}.slutvaerdi`);
 
@@ -92,7 +92,7 @@ describe('buildEODebugIndkomstRows regulering details', () => {
       },
     ];
 
-    const rows = buildEODebugIndkomstRows(values, iso('2024-01-01'));
+    const rows = buildEoIndkomstRows(values, iso('2024-01-01'));
     const prefix = `loenindkomst.${af.id}.regulering`;
     const slutRow = rows.find((row) => row.id === `${prefix}.slutvaerdi`);
 
@@ -117,7 +117,7 @@ describe('buildEODebugIndkomstRows regulering details', () => {
     af.offentligLoenGruppe = 2;
 
     const appSettings = { ...DEFAULT_APP_SETTINGS, allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden: true };
-    const rows = buildEODebugIndkomstRows(values, iso('2009-01-01'), {}, appSettings);
+    const rows = buildEoIndkomstRows(values, iso('2009-01-01'), {}, appSettings);
     const prefix = `loenindkomst.${af.id}.regulering`;
     const startRow = rows.find((row) => row.id === `${prefix}.startvaerdi`);
 
@@ -140,7 +140,7 @@ describe('buildEODebugIndkomstRows regulering details', () => {
     af.offentligLoenTrin = 31;
     af.offentligLoenGruppe = 2;
 
-    const rows = buildEODebugIndkomstRows(values, iso('2009-01-01'));
+    const rows = buildEoIndkomstRows(values, iso('2009-01-01'));
     const prefix = `loenindkomst.${af.id}.regulering`;
     const startRow = rows.find((row) => row.id === `${prefix}.startvaerdi`);
 
@@ -169,7 +169,7 @@ describe('buildEODebugIndkomstRows regulering details', () => {
       },
     ];
 
-    const rows = buildEODebugIndkomstRows(values, iso('2024-01-01'));
+    const rows = buildEoIndkomstRows(values, iso('2024-01-01'));
     const prefix = `loenindkomst.${af.id}.regulering`;
     const slutRow = rows.find((row) => row.id === `${prefix}.slutvaerdi`);
 
@@ -189,7 +189,7 @@ describe('buildEODebugIndkomstRows regulering details', () => {
     af.loenudviklingBeregningsgrundlag = 'Statistik';
     af.loenudviklingStatistikModel = 'ILON12 (Danmarks Statistik)';
 
-    const rows = buildEODebugIndkomstRows(values, iso('2024-01-01'));
+    const rows = buildEoIndkomstRows(values, iso('2024-01-01'));
     const prefix = `loenindkomst.${af.id}.regulering`;
     const startRow = rows.find((row) => row.id === `${prefix}.startvaerdi`);
     const slutRow = rows.find((row) => row.id === `${prefix}.slutvaerdi`);

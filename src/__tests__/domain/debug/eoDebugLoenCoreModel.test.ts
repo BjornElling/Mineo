@@ -3,7 +3,7 @@
  */
 
 import { buildLoenTimeline } from '../../../domain/debug/eoDebugLoenCoreModel';
-import type { DebugDay } from '../../../domain/eoRowEvaluation/eoDebugTypes';
+import type { DebugDay } from '../../../domain/eoRowEvaluation/eoRowTypes';
 import type { ErstatningsopgoerelseValues, StamdataValues } from '../../../schemas/formSchemas';
 import { LOEN_PAA_HELLIGDAGE } from '../../../types/loen';
 import { createDefaultLoenindkomstAnsaettelsesforhold, createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';

@@ -5,11 +5,11 @@ import {
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/eoRowEvaluation/eoDebugContextBuilders';
+import { buildSvieSmerteContext, buildTaftContext } from '../../../domain/eoRowEvaluation/eoRowContextBuilders';
 import {
-  buildEODebugSvieSmerteRows,
-  buildEODebugTaftRows,
-} from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+  buildEoSvieSmerteRows,
+  buildEoTaftRows,
+} from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import { toISODateString } from '../../../types/branded';
 import { formatCurrency } from '../../../utils/formatUtils';
 import { withSfggIngenForEmployments } from '../../utils/sfggTestSupport';
@@ -49,7 +49,7 @@ describe('eoDebug canonical parity', () => {
     };
     const canonical = computeEoSnapshot({ revision: 'test', stamdataValues, eoValues: withSfggIngenForEmployments(eoValues) }).data!.canonicalOutput;
 
-    const rows = buildEODebugSvieSmerteRows(
+    const rows = buildEoSvieSmerteRows(
       eoValues,
       {},
       buildSvieSmerteContext(stamdataValues, eoValues),
@@ -92,7 +92,7 @@ describe('eoDebug canonical parity', () => {
     };
     const canonical = computeEoSnapshot({ revision: 'test', stamdataValues, eoValues: withSfggIngenForEmployments(eoValues) }).data!.canonicalOutput;
 
-    const rows = buildEODebugTaftRows(
+    const rows = buildEoTaftRows(
       eoValues,
       {},
       buildTaftContext(stamdataValues, eoValues),
@@ -128,7 +128,7 @@ describe('eoDebug canonical parity', () => {
       skadedato: iso('2019-04-01'),
     };
 
-    const rows = buildEODebugSvieSmerteRows(
+    const rows = buildEoSvieSmerteRows(
       eoValues,
       {},
       buildSvieSmerteContext(stamdataValues, eoValues),

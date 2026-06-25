@@ -16,7 +16,7 @@ import { buildNoValidDateRangeMessage, isNonEmptyString } from './eoDateRangeMes
  * denne udskillelse var dato-grænse- og cutoff-blokeringen kun håndhævet inde i en builders
  * display-formattering.
  *
- * Den autoritative række-evaluerings-motors TAF-periode-builder (`buildEODebugTaftRows`) delegerer
+ * Den autoritative række-evaluerings-motors TAF-periode-builder (`buildEoTaftRows`) delegerer
  * hertil, så blokerings-afgørelsen er ÉN sandhedskilde og dens `error`-rækker — der gater
  * produktions-PDF-download — ikke kan flyttes af display-formattering (adfærdsbevarende relokering).
  */

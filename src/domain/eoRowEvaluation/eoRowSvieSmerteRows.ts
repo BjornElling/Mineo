@@ -3,8 +3,8 @@ import { isoToDanish, dateToISO } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { addMonths } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { isNonEmptyString, resolveDebugDisplay, collectPresentFieldErrors } from './eoDebugCommon';
-import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
+import { isNonEmptyString, resolveEoRowDisplay, collectPresentFieldErrors } from './eoRowCommon';
+import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { isoDateToDate } from '../dates/isoDate';
 import { countInclusiveUtcDays } from '../../utils/utcDayMath';
 import { erDetteFoersteErstatningsopgoerelse } from '../erstatningsopgoerelse/validation/eoNummerValidering';
@@ -14,7 +14,7 @@ import { mergeDateRanges } from '../erstatningsopgoerelse/engines/periodMerging'
 import { svieSmertePrDag, svieSmerteMax } from '../../data/lovbestemteRates';
 import { parseForligsgrad } from '../erstatningsopgoerelse/engines/forligsgrad';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
-import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoDebugEoShared';
+import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
 
 const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number | undefined => {
   if (!isoDate) return undefined;
@@ -27,7 +27,7 @@ const getYearAfterAddingOneMonth = (isoDate: ISODateString | undefined): number 
 };
 
 
-export const buildEODebugSvieSmerteRows = (
+export const buildEoSvieSmerteRows = (
   values: ErstatningsopgoerelseValues,
   errors: ErstatningsopgoerelseFieldErrorsBySource,
   context: Readonly<{
@@ -37,8 +37,8 @@ export const buildEODebugSvieSmerteRows = (
     verserendeKlageMen: boolean;
   }>,
   canonicalOutput?: EoCanonicalOutput
-): DebugRowModel[] => {
-  const rows: DebugRowModel[] = [];
+): EoRowModel[] => {
+  const rows: EoRowModel[] = [];
   const erFoersteOpgoerelse = erDetteFoersteErstatningsopgoerelse(values.eoNummer);
   const svieSmerteIkkeRejstLabel = 'Ikke rejst svie/smerte-krav for hele perioden';
 
@@ -49,7 +49,7 @@ export const buildEODebugSvieSmerteRows = (
   rows.push({
     id: 'sviesmerte.tidligereSsMax',
     label: 'Tidligere beregnet S/S til max.',
-    ...resolveDebugDisplay({ value: values.tidligereSsMax, errors: errors.tidligereSsMax, emptyState: 'error' }),
+    ...resolveEoRowDisplay({ value: values.tidligereSsMax, errors: errors.tidligereSsMax, emptyState: 'error' }),
   });
 
   // 2) Periode rows fra tabellen - kun hvis synlig
@@ -154,7 +154,7 @@ export const buildEODebugSvieSmerteRows = (
 
   // 3) Hvilket års svie/smerte satser lægges til grund?
   const satserAarValue = values.svieSmerteSatserAar !== undefined ? String(values.svieSmerteSatserAar) : undefined;
-  const satserAarResolved = resolveDebugDisplay({
+  const satserAarResolved = resolveEoRowDisplay({
     value: satserAarValue,
     errors: errors.svieSmerteSatserAar,
     emptyState: 'ok',
@@ -183,7 +183,7 @@ export const buildEODebugSvieSmerteRows = (
     }
     return satserAarResolved.displayValue;
   })();
-  const satserAarStatus: DebugStatus = satserAarMangler
+  const satserAarStatus: EoRowStatus = satserAarMangler
     ? 'error'
     : shouldShowSatsYearSuggestionWarning
       ? 'warning'
@@ -220,7 +220,7 @@ export const buildEODebugSvieSmerteRows = (
     return delvisSygemeldingSatsValue === 'fuld' ? 'Fuld sats' : 'Halv sats';
   })();
 
-  const delvisSygemeldingSatsStatus: DebugStatus =
+  const delvisSygemeldingSatsStatus: EoRowStatus =
     harDelvisSygemeldingSatsFejl || delvisSygemeldingSatsMangler ? 'error' :
     isNonEmptyString(delvisSygemeldingSatsValue) ? 'ok' : 'ok';
 
@@ -235,12 +235,12 @@ export const buildEODebugSvieSmerteRows = (
   const satserPerDagMax = (() => {
     // Hvis år ikke er valgt eller ugyldigt, returner tom
     if (!isNonEmptyString(satserAarValue) || satserAarResolved.status !== 'ok') {
-      return { label: 'Satser per dag/max', displayValue: '-', status: 'ok' as DebugStatus };
+      return { label: 'Satser per dag/max', displayValue: '-', status: 'ok' as EoRowStatus };
     }
 
     const aar = parseInt(satserAarValue.trim(), 10);
     if (Number.isNaN(aar)) {
-      return { label: 'Satser per dag/max', displayValue: '-', status: 'ok' as DebugStatus };
+      return { label: 'Satser per dag/max', displayValue: '-', status: 'ok' as EoRowStatus };
     }
 
     // Slå satser op
@@ -248,7 +248,7 @@ export const buildEODebugSvieSmerteRows = (
     const satsMax = svieSmerteMax[aar as keyof typeof svieSmerteMax];
 
     if (!satsPerDag || !satsMax) {
-      return { label: 'Satser per dag/max', displayValue: `Fejl (Ingen satser for år ${aar})`, status: 'error' as DebugStatus };
+      return { label: 'Satser per dag/max', displayValue: `Fejl (Ingen satser for år ${aar})`, status: 'error' as EoRowStatus };
     }
 
     const parsedForlig = parseForligsgrad(values);
@@ -265,7 +265,7 @@ export const buildEODebugSvieSmerteRows = (
     return {
       label: `Satser per dag/max${forligLabel}`,
       displayValue: `${perDagFormatted} kr. / ${maxFormatted} kr.`,
-      status: 'ok' as DebugStatus
+      status: 'ok' as EoRowStatus
     };
   })();
 
@@ -286,7 +286,7 @@ export const buildEODebugSvieSmerteRows = (
     rows.push({
       id: 'sviesmerte.tidligereTotal',
       label: 'Svie/smerte-krav i tidligere erstatningsopgørelser',
-      ...resolveDebugDisplay({ value: tidligereTotalValue, errors: errors.svieSmerteTidligereTotal, emptyState: 'ok' }),
+      ...resolveEoRowDisplay({ value: tidligereTotalValue, errors: errors.svieSmerteTidligereTotal, emptyState: 'ok' }),
     });
   }
 
@@ -295,19 +295,19 @@ export const buildEODebugSvieSmerteRows = (
   rows.push({
     id: 'sviesmerte.aktuelPeriode',
     label: 'Evt. allerede modtaget svie/smerte for nuværende erstatningsperiode',
-    ...resolveDebugDisplay({ value: aktuelPeriodeValue, errors: errors.svieSmerteAktuelPeriode, emptyState: 'ok' }),
+    ...resolveEoRowDisplay({ value: aktuelPeriodeValue, errors: errors.svieSmerteAktuelPeriode, emptyState: 'ok' }),
   });
 
   // 6) Beregnet periode (sammenflettede perioder afgrænset af vedroererPeriode og menAfgoerelseDato)
   const beregnetPeriodeResult = (() => {
     // Hvis ingen perioder indtastet, returner tom
     if (!harPerioder) {
-      return { displayValue: '-', status: 'ok' as DebugStatus };
+      return { displayValue: '-', status: 'ok' as EoRowStatus };
     }
 
     // Hvis der er fejl i periode-felterne, returner samme fejl som periode
     if (harPeriodeFejl) {
-      return { displayValue: periodeFejlBeskeder[0], status: 'error' as DebugStatus };
+      return { displayValue: periodeFejlBeskeder[0], status: 'error' as EoRowStatus };
     }
 
     // Parse vedroererPeriode
@@ -315,7 +315,7 @@ export const buildEODebugSvieSmerteRows = (
     const periodeTil = values.vedroererPeriodeTil;
 
     if (!periodeFra || !periodeTil) {
-      return { displayValue: 'Fejl (Vedrører perioden mangler)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (Vedrører perioden mangler)', status: 'error' as EoRowStatus };
     }
 
     // Parse menAfgoerelseDato hvis udfyldt - men kun hvis feltet er synligt og der ikke er verserende klage
@@ -356,7 +356,7 @@ export const buildEODebugSvieSmerteRows = (
       }
 
       if (sygemeldtPeriods.length === 0 && delvistSygemeldtPeriods.length === 0) {
-        return { displayValue: '-', status: 'ok' as DebugStatus };
+        return { displayValue: '-', status: 'ok' as EoRowStatus };
       }
 
       // Begræns til vedroererPeriode
@@ -396,7 +396,7 @@ export const buildEODebugSvieSmerteRows = (
       const constrainedDelvistSygemeldt = processPeriodGroup(delvistSygemeldtPeriods);
 
       if (constrainedSygemeldt.length === 0 && constrainedDelvistSygemeldt.length === 0) {
-        return { displayValue: '-', status: 'ok' as DebugStatus };
+        return { displayValue: '-', status: 'ok' as EoRowStatus };
       }
 
       // Kombiner alle perioder med tilstandsmarkering
@@ -433,9 +433,9 @@ export const buildEODebugSvieSmerteRows = (
         })
         .join('\n');
 
-      return { displayValue: formatted, status: 'ok' as DebugStatus };
+      return { displayValue: formatted, status: 'ok' as EoRowStatus };
     } catch {
-      return { displayValue: 'Fejl (Ugyldig dato i beregning)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (Ugyldig dato i beregning)', status: 'error' as EoRowStatus };
     }
   })();
 
@@ -454,16 +454,16 @@ export const buildEODebugSvieSmerteRows = (
   const antalDageResult = (() => {
     // Hvis ingen perioder eller beregnet periode har fejl/tom, returner tilsvarende
     if (!harPerioder) {
-      return { displayValue: '-', status: 'ok' as DebugStatus };
+      return { displayValue: '-', status: 'ok' as EoRowStatus };
     }
 
     // Hvis der er fejl i periode-felterne, returner samme fejl som periode
     if (harPeriodeFejl) {
-      return { displayValue: periodeFejlBeskeder[0], status: 'error' as DebugStatus };
+      return { displayValue: periodeFejlBeskeder[0], status: 'error' as EoRowStatus };
     }
 
     if (beregnetPeriodeResult.status === 'error' || beregnetPeriodeResult.displayValue === '-') {
-      return { displayValue: '-', status: 'ok' as DebugStatus };
+      return { displayValue: '-', status: 'ok' as EoRowStatus };
     }
 
     // Genberegn for at få de faktiske perioder
@@ -471,7 +471,7 @@ export const buildEODebugSvieSmerteRows = (
     const periodeTil = values.vedroererPeriodeTil;
 
     if (!periodeFra || !periodeTil) {
-      return { displayValue: '-', status: 'ok' as DebugStatus };
+      return { displayValue: '-', status: 'ok' as EoRowStatus };
     }
 
     // Kun brug menAfgoerelseDato hvis feltet er synligt og der ikke er verserende klage
@@ -511,7 +511,7 @@ export const buildEODebugSvieSmerteRows = (
       }
 
       if (sygemeldtPeriods.length === 0 && delvistSygemeldtPeriods.length === 0) {
-        return { displayValue: '-', status: 'ok' as DebugStatus };
+        return { displayValue: '-', status: 'ok' as EoRowStatus };
       }
 
       const vedroererFra = isoDateToDate(periodeFra);
@@ -554,7 +554,7 @@ export const buildEODebugSvieSmerteRows = (
       const delvistSygemeldtDage = processPeriodGroupDays(delvistSygemeldtPeriods);
 
       if (sygemeldtDage === 0 && delvistSygemeldtDage === 0) {
-        return { displayValue: '-', status: 'ok' as DebugStatus };
+        return { displayValue: '-', status: 'ok' as EoRowStatus };
       }
 
       // Formater output
@@ -566,9 +566,9 @@ export const buildEODebugSvieSmerteRows = (
         parts.push(`${delvistSygemeldtDage} delvise sygedage`);
       }
 
-      return { displayValue: parts.join(', '), status: 'ok' as DebugStatus };
+      return { displayValue: parts.join(', '), status: 'ok' as EoRowStatus };
     } catch {
-      return { displayValue: 'Fejl (Ugyldig dato i beregning)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (Ugyldig dato i beregning)', status: 'error' as EoRowStatus };
     }
   })();
 
@@ -587,14 +587,14 @@ export const buildEODebugSvieSmerteRows = (
     if (!canonicalOutput) {
       return {
         displayValue: '-',
-        status: 'ok' as DebugStatus,
+        status: 'ok' as EoRowStatus,
         naetMaxIPerioden: false,
       };
     }
 
     return {
       displayValue: `${formatCurrency(canonicalOutput.totals.svieSmerteOre / 100)} kr.`,
-      status: 'ok' as DebugStatus,
+      status: 'ok' as EoRowStatus,
       naetMaxIPerioden: canonicalOutput.svieSmerte.maxApplied,
     };
   })();
@@ -627,11 +627,11 @@ export const buildEODebugSvieSmerteRows = (
 
   const svieSmerteOphoerSkyldes = (() => {
     if (values.kravPaaSvieSmerteGodtgoerelse !== 'Ja') {
-      return { displayValue: 'Ingen krav i perioden', status: 'ok' as DebugStatus };
+      return { displayValue: 'Ingen krav i perioden', status: 'ok' as EoRowStatus };
     }
 
     if (values.tidligereSsMax === 'Ja') {
-      return { displayValue: 'Tidligere beregnet til max', status: 'ok' as DebugStatus };
+      return { displayValue: 'Tidligere beregnet til max', status: 'ok' as EoRowStatus };
     }
 
     if (lastSvieSmerteKravDato && values.vedroererPeriodeTil && lastSvieSmerteKravDato >= values.vedroererPeriodeTil) {
@@ -640,7 +640,7 @@ export const buildEODebugSvieSmerteRows = (
         displayValue: vedroererPeriodeTilDanish
           ? `Erstatningsperiodens ophør (${vedroererPeriodeTilDanish})`
           : 'Erstatningsperiodens ophør',
-        status: 'ok' as DebugStatus,
+        status: 'ok' as EoRowStatus,
       };
     }
 
@@ -651,18 +651,18 @@ export const buildEODebugSvieSmerteRows = (
       values.menAfgoerelseDato &&
       getDayBeforeIso(values.menAfgoerelseDato) === lastSvieSmerteKravDato
     ) {
-      return { displayValue: 'Ménafgørelse', status: 'ok' as DebugStatus };
+      return { displayValue: 'Ménafgørelse', status: 'ok' as EoRowStatus };
     }
 
     if (beregnetBeloebResult.naetMaxIPerioden) {
-      return { displayValue: 'Nået max i denne periode', status: 'ok' as DebugStatus };
+      return { displayValue: 'Nået max i denne periode', status: 'ok' as EoRowStatus };
     }
 
     if (values.svieSmerteHelbredsstatus === 'Raskmeldt') {
-      return { displayValue: 'Raskmeldt', status: 'ok' as DebugStatus };
+      return { displayValue: 'Raskmeldt', status: 'ok' as EoRowStatus };
     }
 
-    return { displayValue: svieSmerteIkkeRejstLabel, status: 'warning' as DebugStatus };
+    return { displayValue: svieSmerteIkkeRejstLabel, status: 'warning' as EoRowStatus };
   })();
 
   rows.push({

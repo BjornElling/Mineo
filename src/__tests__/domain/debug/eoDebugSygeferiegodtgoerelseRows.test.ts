@@ -1,4 +1,4 @@
-import { buildEODebugSygeferiegodtgoerelseRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+import { buildEoSygeferiegodtgoerelseRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import * as loenudviklingBeregningModule from '../../../domain/erstatningsopgoerelse/engines/loenudviklingBeregning';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import * as systemIssueReporterModule from '../../../utils/systemIssueReporter';
@@ -61,12 +61,12 @@ const buildRows = (
     ...stamdata,
   };
   const snapshot = computeEoSnapshot({
-    revision: 'test-eoDebugSygeferiegodtgoerelseRows',
+    revision: 'test-eoRowSygeferiegodtgoerelseRows',
     stamdataValues,
     eoValues: snapshotValues,
   });
 
-  return buildEODebugSygeferiegodtgoerelseRows(
+  return buildEoSygeferiegodtgoerelseRows(
     values,
     stamdataValues,
     snapshot.data?.canonicalOutput,
@@ -74,7 +74,7 @@ const buildRows = (
   );
 };
 
-describe('buildEODebugSygeferiegodtgoerelseRows', () => {
+describe('buildEoSygeferiegodtgoerelseRows', () => {
   it('viser en almindelig fejl-række når beregningsgrundlag ikke er valgt', () => {
     const values = createValues();
     values.sfggAnsaettelsesforhold = [];

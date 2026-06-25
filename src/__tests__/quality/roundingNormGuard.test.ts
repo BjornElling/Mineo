@@ -178,7 +178,7 @@ const TO_LOCALE_STRING_ALLOWLIST = new Set([
   'utils/logStorage.ts',
   'utils/devtoolsMonitor.ts',
   // Debug-output — kun synligt via devtools, ikke i produktionsflow
-  'domain/debug/eoDebugErstatningsopgoerelseModel.ts',
+  'domain/debug/eoRowErstatningsopgoerelseModel.ts',
   'domain/debug/eoDebugSammentaelling.ts',
   // DevTools-fejlmeddelelse: viser dato (ikke beløb) til udvikler
   'components/errors/DevtoolsIssueNotice.tsx',
@@ -292,7 +292,7 @@ describe('Afrundingsnorm-guard', () => {
         'domain/erstatningsopgoerelse/engines/tafDaySets.ts',
         'domain/erstatningsopgoerelse/engines/ferieCalculations.ts',
         'domain/erstatningsopgoerelse/engines/indkomstSkadestidspunktBeregning.ts',
-        'domain/debug/eoDebugErstatningsopgoerelseModel.ts',
+        'domain/debug/eoRowErstatningsopgoerelseModel.ts',
         'domain/debug/eoDebugCoreModel.ts',
         'domain/debug/eoDebugRegulationCore.ts',
         'domain/dates/shDageBeregning.ts',

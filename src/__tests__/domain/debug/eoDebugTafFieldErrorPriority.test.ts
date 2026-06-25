@@ -1,10 +1,10 @@
-import { buildEODebugTaftRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+import { buildEoTaftRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);
 
-describe('buildEODebugTaftRows field error priority', () => {
+describe('buildEoTaftRows field error priority', () => {
   it('foretrækker konkret cutoff-fejl frem for generisk dato-range-fejl', () => {
     const values = {
       ...createErstatningsopgoerelseInitialValues(),
@@ -19,7 +19,7 @@ describe('buildEODebugTaftRows field error priority', () => {
       ferieperioder: [],
     };
 
-    const rows = buildEODebugTaftRows(
+    const rows = buildEoTaftRows(
       values,
       {},
       {

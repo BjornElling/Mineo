@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import type { DebugRowModel } from '../../../domain/eoRowEvaluation/eoDebugTypes';
+import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
-import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import { DEBUG_ROW_LABEL_WIDTH, getDisplayValueSx, getStatusIcon } from './eoDebugRowRendering';
 
 type GroupedRowsSection = Readonly<{
   id: string;
   title: string;
-  rows: readonly DebugRowModel[];
+  rows: readonly EoRowModel[];
   tables?: readonly Readonly<{
     id: string;
     title: string;
@@ -22,7 +22,7 @@ type GroupedRowsSection = Readonly<{
   }>[];
 }>;
 
-const renderDebugRow = (row: DebugRowModel) => (
+const renderDebugRow = (row: EoRowModel) => (
   <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': DEBUG_ROW_LABEL_WIDTH }}>
     <Typography className="row--text">{row.label}</Typography>
     <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>

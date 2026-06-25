@@ -1,6 +1,6 @@
-import type { DebugRowModel } from './eoDebugTypes';
+import type { EoRowModel } from './eoRowTypes';
 
-export type DebugRowPresentation = Readonly<{
+export type EoRowPresentation = Readonly<{
   message?: string;
   summaryDisplay: 'default' | 'messageOnly';
 }>;
@@ -14,7 +14,7 @@ const MESSAGE_ONLY_IDS = new Set<string>([
   'taf.beregningsgrundlag.indkomst',
 ]);
 
-const extractStructuredMessage = (status: DebugRowModel['status'], displayValue: string): string | undefined => {
+const extractStructuredMessage = (status: EoRowModel['status'], displayValue: string): string | undefined => {
   const trimmed = displayValue.trim();
   if (trimmed === '' || trimmed === '-') return undefined;
   if (status === 'ok') return undefined;
@@ -26,12 +26,12 @@ const extractStructuredMessage = (status: DebugRowModel['status'], displayValue:
   return trimmed;
 };
 
-const resolveSummaryDisplay = (row: DebugRowModel): 'default' | 'messageOnly' => {
+const resolveSummaryDisplay = (row: EoRowModel): 'default' | 'messageOnly' => {
   if (row.summaryDisplay) return row.summaryDisplay;
   return MESSAGE_ONLY_IDS.has(row.id) ? 'messageOnly' : 'default';
 };
 
-export const resolveDebugRowPresentation = (row: DebugRowModel): DebugRowPresentation => {
+export const resolveEoRowPresentation = (row: EoRowModel): EoRowPresentation => {
   const message = row.message ?? extractStructuredMessage(row.status, row.displayValue);
   return {
     message,

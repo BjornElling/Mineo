@@ -118,7 +118,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
     eetLoebendeWarningRows,
     systemIssueRows,
     pdfDownloadErrorMessage,
-    hasBlockingDebugErrors,
+    hasBlockingEoRowErrors,
     eoPdfDisabledReason,
     tafPdfDisabledReason,
     tafOpreguleretPdfDisabledReason,
@@ -436,7 +436,7 @@ const EOberegningTab = React.memo<EOberegningTabProps>((props) => {
             <SnapshotDownloadButton
               canDownload={canDownloadSnapshotEoPdf}
               onClick={handleDownloadPdf}
-              reason={hasBlockingDebugErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : eoPdfDisabledReason}
+              reason={hasBlockingEoRowErrors ? EO_PDF_BLOCKED_BY_ERRORS_TOOLTIP : eoPdfDisabledReason}
               fallbackTitle="Opgørelsen kan ikke hentes for den aktuelle sag."
             />
           </Box>

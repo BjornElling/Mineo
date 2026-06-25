@@ -12,7 +12,7 @@ import type {
   TafPeriodeRow,
   SvieSmertePeriodeRow,
 } from '../../schemas/formSchemas';
-import type { DebugDay, SvieSmerte } from '../eoRowEvaluation/eoDebugTypes';
+import type { DebugDay, SvieSmerte } from '../eoRowEvaluation/eoRowTypes';
 import { getIsoRange, minDate, maxDate, tryParseIso } from './eoDebugDateUtils';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { clampTafRange, resolveTafConstraintBounds } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';

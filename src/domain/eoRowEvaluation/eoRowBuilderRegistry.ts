@@ -1,22 +1,22 @@
-import type { DebugRowModel } from './eoDebugTypes';
-import type { SectionId } from './eoDebugNavigationMap';
-import type { EODebugExecutionContext } from './eoDebugExecutionContext';
-import { buildEODebugStamdataRows } from './eoDebugStamdataModel';
+import type { EoRowModel } from './eoRowTypes';
+import type { SectionId } from './eoRowNavigationMap';
+import type { EoRowEvaluationContext } from './eoRowExecutionContext';
+import { buildEoStamdataRows } from './eoRowStamdataModel';
 import {
-  buildEODebugErstatningsopgoerelseRows,
-  buildEODebugForligRows,
-  buildEODebugAesRows,
-  buildEODebugIndkomstRows,
-  buildEODebugOffentligeYdelserRows,
-  buildEODebugSygeferiegodtgoerelseRows,
-  buildEODebugSvieSmerteRows,
-  buildEODebugTafBeregningsgrundlagRows,
-  buildEODebugTaftRows,
-  buildEODebugOevrigeKravRows,
-  buildEODebugSaerligeKommentarerRows,
-  buildEODebugBilagsnumreRows,
-} from './eoDebugErstatningsopgoerelseModel';
-import { buildSvieSmerteContext, buildTaftContext } from './eoDebugContextBuilders';
+  buildEoErstatningsopgoerelseRows,
+  buildEoForligRows,
+  buildEoAesRows,
+  buildEoIndkomstRows,
+  buildEoOffentligeYdelserRows,
+  buildEoSygeferiegodtgoerelseRows,
+  buildEoSvieSmerteRows,
+  buildEoTafBeregningsgrundlagRows,
+  buildEoTaftRows,
+  buildEoOevrigeKravRows,
+  buildEoSaerligeKommentarerRows,
+  buildEoBilagsnumreRows,
+} from './eoRowErstatningsopgoerelseModel';
+import { buildSvieSmerteContext, buildTaftContext } from './eoRowContextBuilders';
 
 /**
  * Builder-entry type (meget simpelt)
@@ -24,9 +24,9 @@ import { buildSvieSmerteContext, buildTaftContext } from './eoDebugContextBuilde
  * Ingen generics, ingen tagged union, ingen casting.
  * section bruges til grouping + navigation.
  */
-export type EODebugBuilderEntry = {
+export type EoRowBuilderEntry = {
   section: SectionId;
-  run: (ctx: EODebugExecutionContext) => DebugRowModel[];
+  run: (ctx: EoRowEvaluationContext) => EoRowModel[];
 };
 
 /**
@@ -41,11 +41,11 @@ export type EODebugBuilderEntry = {
  * VIGTIGT: Nye builders skal registreres her og gennemgå den fulde debug-builder
  * tjekliste i docs/architecture/debug-builder-architecture.md §14.
  */
-export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
+export const EO_ROW_BUILDERS: readonly EoRowBuilderEntry[] = [
   {
     section: 'stamdata',
     run: (ctx) =>
-      buildEODebugStamdataRows(
+      buildEoStamdataRows(
         ctx.stamdataValues,
         ctx.stamdataErrors
       ),
@@ -54,7 +54,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   {
     section: 'erstatningsopgoerelse',
     run: (ctx) =>
-      buildEODebugErstatningsopgoerelseRows(
+      buildEoErstatningsopgoerelseRows(
         ctx.eoValues,
         ctx.eoErrors
       ),
@@ -63,7 +63,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   {
     section: 'forlig',
     run: (ctx) =>
-      buildEODebugForligRows(
+      buildEoForligRows(
         ctx.eoValues,
         ctx.eoErrors
       ),
@@ -72,7 +72,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   {
     section: 'aes',
     run: (ctx) =>
-      buildEODebugAesRows(
+      buildEoAesRows(
         ctx.eoValues,
         ctx.eoErrors
       ),
@@ -81,7 +81,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   {
     section: 'loenindkomst',
     run: (ctx) =>
-      buildEODebugIndkomstRows(
+      buildEoIndkomstRows(
         ctx.eoValues,
         ctx.stamdataValues.skadedato,
         ctx.loenindkomstManuelReguleringInputErrors,
@@ -92,7 +92,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   {
     section: 'offentlige-ydelser',
     run: (ctx) =>
-      buildEODebugOffentligeYdelserRows(
+      buildEoOffentligeYdelserRows(
         ctx.eoValues,
         ctx.stamdataValues.skadedato
       ),
@@ -101,7 +101,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   {
     section: 'sygeferiegodtgoerelse',
     run: (ctx) =>
-      buildEODebugSygeferiegodtgoerelseRows(
+      buildEoSygeferiegodtgoerelseRows(
         ctx.eoValues,
         ctx.stamdataValues,
         ctx.canonicalOutput,
@@ -117,7 +117,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
         ctx.stamdataValues,
         ctx.eoValues
       );
-      return buildEODebugSvieSmerteRows(
+      return buildEoSvieSmerteRows(
         ctx.eoValues,
         ctx.eoErrors,
         context,
@@ -129,7 +129,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   {
     section: 'taf-beregningsgrundlag',
     run: (ctx) =>
-      buildEODebugTafBeregningsgrundlagRows(
+      buildEoTafBeregningsgrundlagRows(
         ctx.eoValues,
         ctx.eoErrors,
         ctx.stamdataValues
@@ -144,7 +144,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
         ctx.stamdataValues,
         ctx.eoValues
       );
-      return buildEODebugTaftRows(
+      return buildEoTaftRows(
         ctx.eoValues,
         ctx.eoErrors,
         context,
@@ -156,7 +156,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   {
     section: 'oevrige-krav',
     run: (ctx) =>
-      buildEODebugOevrigeKravRows(
+      buildEoOevrigeKravRows(
         ctx.eoValues,
         ctx.eoErrors,
         ctx.canonicalOutput
@@ -166,7 +166,7 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   {
     section: 'saerlige-kommentarer',
     run: (ctx) =>
-      buildEODebugSaerligeKommentarerRows(
+      buildEoSaerligeKommentarerRows(
         ctx.eoValues,
         ctx.eoErrors
       ),
@@ -175,16 +175,16 @@ export const EO_DEBUG_BUILDERS: readonly EODebugBuilderEntry[] = [
   {
     section: 'bilagsnumre',
     run: ({ eoValues }) =>
-      buildEODebugBilagsnumreRows(
+      buildEoBilagsnumreRows(
         eoValues
       ),
   },
 ] as const;
 
 const executeEODebugBuilderEntry = (
-  entry: EODebugBuilderEntry,
-  ctx: EODebugExecutionContext
-): DebugRowModel[] => {
+  entry: EoRowBuilderEntry,
+  ctx: EoRowEvaluationContext
+): EoRowModel[] => {
   try {
     return entry.run(ctx);
   } catch (error) {
@@ -205,12 +205,12 @@ const executeEODebugBuilderEntry = (
  *
  * @param entries - Builder entries (kan bruges i tests)
  * @param ctx - Execution context med alle nødvendige værdier og fejl
- * @returns Array af alle DebugRowModel fra alle builders
+ * @returns Array af alle EoRowModel fra alle builders
  */
-export const executeEODebugBuilderEntries = (
-  entries: ReadonlyArray<EODebugBuilderEntry>,
-  ctx: EODebugExecutionContext
-): DebugRowModel[] => {
+export const executeEoRowBuilderEntries = (
+  entries: ReadonlyArray<EoRowBuilderEntry>,
+  ctx: EoRowEvaluationContext
+): EoRowModel[] => {
   return entries.flatMap((entry) => executeEODebugBuilderEntry(entry, ctx));
 };
 
@@ -220,11 +220,11 @@ export const executeEODebugBuilderEntries = (
  * Bruges af EO-debug siden, som har brug for sektioneret output
  * men stadig skal dele samme exception-isolation som resten af debug-laget.
  */
-export const executeEODebugBuilderEntriesBySection = (
-  entries: ReadonlyArray<EODebugBuilderEntry>,
-  ctx: EODebugExecutionContext
-): ReadonlyMap<SectionId, readonly DebugRowModel[]> => {
-  const map = new Map<SectionId, readonly DebugRowModel[]>();
+export const executeEoRowBuilderEntriesBySection = (
+  entries: ReadonlyArray<EoRowBuilderEntry>,
+  ctx: EoRowEvaluationContext
+): ReadonlyMap<SectionId, readonly EoRowModel[]> => {
+  const map = new Map<SectionId, readonly EoRowModel[]>();
   entries.forEach((entry) => {
     map.set(entry.section, executeEODebugBuilderEntry(entry, ctx));
   });
@@ -237,10 +237,10 @@ export const executeEODebugBuilderEntriesBySection = (
  * MEGET simpelt - ingen switch, ingen casting, ingen exhaustiveness-illusion.
  *
  * @param ctx - Execution context med alle nødvendige værdier og fejl
- * @returns Array af alle DebugRowModel fra alle builders
+ * @returns Array af alle EoRowModel fra alle builders
  */
-export const executeAllEODebugBuilders = (
-  ctx: EODebugExecutionContext
-): DebugRowModel[] => {
-  return executeEODebugBuilderEntries(EO_DEBUG_BUILDERS, ctx);
+export const executeAllEoRowBuilders = (
+  ctx: EoRowEvaluationContext
+): EoRowModel[] => {
+  return executeEoRowBuilderEntries(EO_ROW_BUILDERS, ctx);
 };

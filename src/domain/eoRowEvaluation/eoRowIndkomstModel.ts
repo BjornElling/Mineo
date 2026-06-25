@@ -12,7 +12,7 @@ import {
   parseOffentligeYdelserCellKey,
 } from '../erstatningsopgoerelse/validation/offentligeYdelserTableValidation';
 import { ydelsestyper } from '../../data/ydelsestyper';
-import type { DebugStatus } from './eoDebugTypes';
+import type { EoRowStatus } from './eoRowTypes';
 import { buildStandardLoenCellErrors, buildOffentligeYdelserCellErrors } from '../erstatningsopgoerelse/validation/indkomstRowValidation';
 import type { StandardLoenTableColumnKey, OffentligeYdelserTableColumnKey } from '../../types/table';
 import type { Loenperiode } from '../../types/loen';
@@ -30,17 +30,17 @@ export type IndkomstSectionStatus = Readonly<{
   id: string;
   headerText: string;
   arbejdsstedNavnDisplay: string;
-  arbejdsstedNavnStatus: DebugStatus;
-  satserStatus: DebugStatus;
+  arbejdsstedNavnStatus: EoRowStatus;
+  satserStatus: EoRowStatus;
   satserMessage: string;
-  tableStatus: DebugStatus;
+  tableStatus: EoRowStatus;
   tableMessage: string;
 }>;
 
 export type OffentligeYdelserDebugRow = Readonly<{
   id: string;
   label: string;
-  status: DebugStatus;
+  status: EoRowStatus;
   message: string;
   summaryDisplay?: 'messageOnly';
 }>;
@@ -191,7 +191,7 @@ export const buildIndkomstSectionStatuses = (
       skadedato,
     });
     const satserErrorField = resolveSatserErrorField(af, anvendtReguleringsdato);
-    const satserStatus: DebugStatus = satserErrorField ? 'error' : 'ok';
+    const satserStatus: EoRowStatus = satserErrorField ? 'error' : 'ok';
     const satserMessage = satserErrorField ? `Forkert værdi indtastet i ${satserErrorField}` : 'Ok';
 
     const tableRows = af.indtaegtsoplysningerTableData ?? [];
@@ -203,7 +203,7 @@ export const buildIndkomstSectionStatuses = (
       tillaegAngivesSom: af.tillaegAngivesSom,
     });
 
-    let tableStatus: DebugStatus = 'ok';
+    let tableStatus: EoRowStatus = 'ok';
     let tableMessage = 'Ok';
     const zeroArbejdsdageIssue = buildStandardLoenZeroArbejdsdageIssues(values, af.id)[0];
     if (zeroArbejdsdageIssue) {
@@ -317,7 +317,7 @@ export const buildOffentligeYdelserDebugRows = (
       return {
         id: row.id,
         label: row.label,
-        status: 'error' as DebugStatus,
+        status: 'error' as EoRowStatus,
         message: row.firstErrorMessage,
         summaryDisplay: 'messageOnly',
       };
@@ -329,7 +329,7 @@ export const buildOffentligeYdelserDebugRows = (
       return {
         id: row.id,
         label: row.label,
-        status: 'warning' as DebugStatus,
+        status: 'warning' as EoRowStatus,
         message: warningMessage,
         summaryDisplay: 'messageOnly',
       };
@@ -337,7 +337,7 @@ export const buildOffentligeYdelserDebugRows = (
     return {
       id: row.id,
       label: row.label,
-      status: 'ok' as DebugStatus,
+      status: 'ok' as EoRowStatus,
       message: 'Ok',
     };
   });

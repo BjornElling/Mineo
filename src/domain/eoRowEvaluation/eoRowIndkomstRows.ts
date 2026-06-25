@@ -1,7 +1,7 @@
 import type { ISODateString } from '../../types/branded';
 import { isoToDanish, dateToISO, isISODateString } from '../../types/branded';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
+import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { isOffentligOverenskomstId, getReguleringsDatoIntervalForOverenskomst } from '../../data/overenskomstRates';
 import { getReguleringsDatoIntervalForStatistikModel } from '../../data/statistiskeRates';
 import { getReguleringsDatoIntervalForKRL, type KRLSatstabelId } from '../../data/krlRates';
@@ -10,11 +10,11 @@ import { resolveOffentligLoenTypeFromLabel, toLoentrin } from '../../data/offent
 import { getAngivetLoenOpreguleresFraDato, resolveLoenudviklingKilde } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { resolveValgtReguleringDisplay } from '../erstatningsopgoerelse/helpers/loenudviklingDisplay';
-import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoDebugIndkomstModel';
+import { buildIndkomstSectionStatuses, buildOffentligeYdelserDebugRows } from './eoRowIndkomstModel';
 import { parseAarsloenRowInterval } from '../aarsloen/aarsloenRowInterval';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
-import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoDebugEoShared';
-import { formatStatusMessage, parseDanishToIsoDebug, getRangeForManualReguleringDebug, calculateElapsedWholeMonthsDebug, buildReguleringsMangelMessage } from './eoDebugEoShared';
+import type { ErstatningsopgoerelseValues, ReguleringsRange } from './eoRowShared';
+import { formatStatusMessage, parseDanishToIsoDebug, getRangeForManualReguleringDebug, calculateElapsedWholeMonthsDebug, buildReguleringsMangelMessage } from './eoRowShared';
 import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMidlertidigEetDatoHvisAktiv } from '../erstatningsopgoerelse/validation/tafPeriodConstraints';
 
 /**
@@ -22,10 +22,10 @@ import { clampTafRange, getValidTafRange, resolveTafConstraintBounds, resolveMid
  * indtastet i et interval hvor de burde findes. Bygges som en del af offentlige-ydelser-debugrækkerne
  * (eneste forbruger) og hører derfor sammen med indkomst-byggeren, ikke oevrigeKrav-byggeren.
  */
-export const buildEODebugMidlertidigtEetKonsistensRows = (
+export const buildEoMidlertidigtEetKonsistensRows = (
   values: ErstatningsopgoerelseValues,
   skadedatoISO: ISODateString | undefined
-): DebugRowModel[] => {
+): EoRowModel[] => {
   // Kun relevant hvis afgørelse er 'Ja' og virkningsdato kan bestemmes
   if (values.midlertidigtEETAfgorelse !== 'Ja') return [];
 
@@ -102,13 +102,13 @@ const resolveTafBoundaryDatesInSkadetPeriode = (
   return { first, last };
 };
 
-export const buildEODebugIndkomstRows = (
+export const buildEoIndkomstRows = (
   values: ErstatningsopgoerelseValues,
   skadedato: ISODateString | undefined,
   manualReguleringInputErrors: Readonly<Record<string, true>> = {},
   appSettings: AppSettings = DEFAULT_APP_SETTINGS
-): DebugRowModel[] => {
-  const rows: DebugRowModel[] = [];
+): EoRowModel[] => {
+  const rows: EoRowModel[] = [];
   const allowIncompleteOverenskomst = appSettings.allowReguleringMedOverenskomstDerIkkeDaekkerHelePerioden;
   const overenskomstUdloebMaanederGraense = appSettings.allowReguleringMedUdloebMedMaaneder;
   const tafBoundaryDates = resolveTafBoundaryDatesInSkadetPeriode(values);
@@ -174,7 +174,7 @@ export const buildEODebugIndkomstRows = (
         ? `loenindkomst.${ansaettelsesforhold.id}.regulering`
         : `taf.beregningsgrundlag.loenudvikling.${ansaettelsesforhold.id}`;
     const loenudviklingBasis = ansaettelsesforhold.loenudviklingBeregningsgrundlag;
-    let status: DebugStatus = 'ok';
+    let status: EoRowStatus = 'ok';
     let message = '-';
 
     if (!loenudviklingBasis) {
@@ -222,7 +222,7 @@ export const buildEODebugIndkomstRows = (
       const trinValue = ansaettelsesforhold.offentligLoenTrin;
       const gruppeValue = ansaettelsesforhold.offentligLoenGruppe;
 
-      let offentligStatus: DebugStatus = 'ok';
+      let offentligStatus: EoRowStatus = 'ok';
       let offentligMessage = '';
 
       if (!typeLabel || !resolveOffentligLoenTypeFromLabel(typeLabel)) {
@@ -266,20 +266,20 @@ export const buildEODebugIndkomstRows = (
 
     const alleReguleringsvaerdierRow = (() => {
       if (loenudviklingBasis === 'Ingen') {
-        return { displayValue: 'Ingen', status: 'ok' as DebugStatus };
+        return { displayValue: 'Ingen', status: 'ok' as EoRowStatus };
       }
       if (!loenudviklingBasis) {
-        return { displayValue: 'Nej', status: 'error' as DebugStatus };
+        return { displayValue: 'Nej', status: 'error' as EoRowStatus };
       }
       if (loenudviklingBasis !== 'Manuelt angivet') {
-        return { displayValue: 'Ja', status: 'ok' as DebugStatus };
+        return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
       }
 
       if (manualReguleringInputErrors[ansaettelsesforhold.id]) {
         return {
           displayValue: formatStatusMessage('error', 'Ugyldig indtastning'),
           message: 'Værdier mangler at blive udfyldt for manuel regulering',
-          status: 'error' as DebugStatus,
+          status: 'error' as EoRowStatus,
         };
       }
 
@@ -303,7 +303,7 @@ export const buildEODebugIndkomstRows = (
         return {
           displayValue: 'Nej',
           message: 'Værdier mangler at blive udfyldt for manuel regulering',
-          status: 'error' as DebugStatus,
+          status: 'error' as EoRowStatus,
         };
       }
 
@@ -327,7 +327,7 @@ export const buildEODebugIndkomstRows = (
       return {
         displayValue: ok ? 'Ja' : 'Nej',
         message: ok ? undefined : 'Værdier mangler at blive udfyldt for manuel regulering',
-        status: ok ? 'ok' : 'error' as DebugStatus,
+        status: ok ? 'ok' : 'error' as EoRowStatus,
       };
     })();
 
@@ -404,48 +404,48 @@ export const buildEODebugIndkomstRows = (
     })();
 
     const reguleringsvaerdiRowStatus = (() => {
-      if (!anvendtReguleringsdato) return { displayValue: '-', status: 'error' as DebugStatus };
+      if (!anvendtReguleringsdato) return { displayValue: '-', status: 'error' as EoRowStatus };
       if (!reguleringsRange.min) {
         return {
           displayValue: 'Nej',
-          status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+          status: allowIncompleteOverenskomst ? 'warning' as EoRowStatus : 'error' as EoRowStatus,
         };
       }
       if (anvendtReguleringsdato < reguleringsRange.min) {
         return {
           displayValue: `Nej (først fra ${isoToDanish(reguleringsRange.min) ?? reguleringsRange.min})`,
-          status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+          status: allowIncompleteOverenskomst ? 'warning' as EoRowStatus : 'error' as EoRowStatus,
         };
       }
-      return { displayValue: 'Ja', status: 'ok' as DebugStatus };
+      return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
     })();
 
     const startDateRowStatus = (() => {
       const tafStartIso = tafBoundaryDates.first;
-      if (!tafStartIso || !reguleringsRange.min) return { displayValue: '-', status: 'error' as DebugStatus };
-      if (reguleringsRange.min <= tafStartIso) return { displayValue: 'Ja', status: 'ok' as DebugStatus };
+      if (!tafStartIso || !reguleringsRange.min) return { displayValue: '-', status: 'error' as EoRowStatus };
+      if (reguleringsRange.min <= tafStartIso) return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
       return {
         displayValue: `Nej (først fra ${isoToDanish(reguleringsRange.min) ?? reguleringsRange.min})`,
-        status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+        status: allowIncompleteOverenskomst ? 'warning' as EoRowStatus : 'error' as EoRowStatus,
       };
     })();
 
     const endDateRowStatus = (() => {
       const tafEndIso = tafBoundaryDates.last;
-      if (!tafEndIso || !reguleringsRange.max) return { displayValue: '-', status: 'error' as DebugStatus };
-      if (reguleringsRange.max >= tafEndIso) return { displayValue: 'Ja', status: 'ok' as DebugStatus };
+      if (!tafEndIso || !reguleringsRange.max) return { displayValue: '-', status: 'error' as EoRowStatus };
+      if (reguleringsRange.max >= tafEndIso) return { displayValue: 'Ja', status: 'ok' as EoRowStatus };
 
       const maanederSidenUdloeb = calculateElapsedWholeMonthsDebug(reguleringsRange.max, tafEndIso);
       if (maanederSidenUdloeb < overenskomstUdloebMaanederGraense) {
         return {
           displayValue: `(< ${overenskomstUdloebMaanederGraense} måneder)`,
-          status: 'ok' as DebugStatus,
+          status: 'ok' as EoRowStatus,
         };
       }
 
       return {
         displayValue: `Nej (kun indtil ${isoToDanish(reguleringsRange.max) ?? reguleringsRange.max})`,
-        status: allowIncompleteOverenskomst ? 'warning' as DebugStatus : 'error' as DebugStatus,
+        status: allowIncompleteOverenskomst ? 'warning' as EoRowStatus : 'error' as EoRowStatus,
       };
     })();
     const harTafDatointerval = Boolean(tafBoundaryDates.first && tafBoundaryDates.last);
@@ -492,11 +492,11 @@ export const buildEODebugIndkomstRows = (
   return rows;
 };
 
-export const buildEODebugOffentligeYdelserRows = (
+export const buildEoOffentligeYdelserRows = (
   values: ErstatningsopgoerelseValues,
   skadedatoISO?: ISODateString
-): DebugRowModel[] => {
-  const rows: DebugRowModel[] = [];
+): EoRowModel[] => {
+  const rows: EoRowModel[] = [];
   const debugRows = buildOffentligeYdelserDebugRows(values.offentligeYdelserRows ?? []);
 
   debugRows.forEach((row) => {
@@ -528,7 +528,7 @@ export const buildEODebugOffentligeYdelserRows = (
   }
 
   // Advarsel 2: afgørelse sat til 'Ja' og TAF-slutdato er efter EET-virkningsdato, men ingen ydelser
-  rows.push(...buildEODebugMidlertidigtEetKonsistensRows(values, skadedatoISO));
+  rows.push(...buildEoMidlertidigtEetKonsistensRows(values, skadedatoISO));
 
   return rows;
 };

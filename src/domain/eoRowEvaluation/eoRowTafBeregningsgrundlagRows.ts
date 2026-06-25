@@ -3,8 +3,8 @@ import { isoToDanish, dateToISO, isISODateString, parseISODate } from '../../typ
 import { formatCurrency } from '../../utils/formatUtils';
 import { addDays } from '../../utils/dateUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
-import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
+import { collectPresentFieldErrors, isNonEmptyString, resolveEoRowDisplay } from './eoRowCommon';
+import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { detectOverlappingPeriods } from '../erstatningsopgoerelse/engines/periodOverlapDetection';
 import { computeTafBeregningsenhed, TAF_ARBEJDSDAG_TIL_MAANED_FAKTOR, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaaneder } from '../erstatningsopgoerelse/engines/tafCalculations';
@@ -14,22 +14,22 @@ import { computeTafOverlapWithBeregningsperiode } from '../erstatningsopgoerelse
 import { getAngivetLoenBaseretPaa, getAngivetLoenOpreguleresFraDato } from '../erstatningsopgoerelse/helpers/angivetLoenHelpers';
 import { resolveAnvendtReguleringsdato } from '../erstatningsopgoerelse/helpers/eoSharedUtils';
 import { buildBeregningsperiodeRange, buildIncomeForRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
-import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoDebugEoShared';
-import { formatDebugCount, formatDebugMonths, calculateElapsedWholeMonthsDebug } from './eoDebugEoShared';
+import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
+import { formatDebugCount, formatDebugMonths, calculateElapsedWholeMonthsDebug } from './eoRowShared';
 
-export const buildEODebugTafBeregningsgrundlagRows = (
+export const buildEoTafBeregningsgrundlagRows = (
   values: ErstatningsopgoerelseValues,
   errors: ErstatningsopgoerelseFieldErrorsBySource,
   stamdataValues: PersistedSectionMap['stamdata']
-): DebugRowModel[] => {
-  const rows: DebugRowModel[] = [];
+): EoRowModel[] => {
+  const rows: EoRowModel[] = [];
 
   const tafBeregnesSom = computeTafBeregningsenhed(values);
 
   rows.push({
     id: 'taf.beregningsgrundlag.beregnesUdFra',
     label: 'Beregnes ud fra',
-    ...resolveDebugDisplay({
+    ...resolveEoRowDisplay({
       value: values.beregnesUdFra,
       errors: errors.beregnesUdFra,
       emptyState: 'error',
@@ -76,20 +76,20 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const filledCount = [hasFra, hasTil].filter(Boolean).length;
 
     if (!isBeregningsperiode) {
-      return { displayValue: '-', status: 'ok' as DebugStatus };
+      return { displayValue: '-', status: 'ok' as EoRowStatus };
     }
     if (periodeErrorValue) {
-      return { displayValue: periodeErrorValue, status: hasPeriodeErrorSeverity ? 'error' as DebugStatus : 'warning' as DebugStatus };
+      return { displayValue: periodeErrorValue, status: hasPeriodeErrorSeverity ? 'error' as EoRowStatus : 'warning' as EoRowStatus };
     }
 
     if (filledCount !== 2) {
-      return { displayValue: 'Fejl (Ikke alle felter udfyldt)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (Ikke alle felter udfyldt)', status: 'error' as EoRowStatus };
     }
     if (!periodeFra || !periodeTil) {
-      return { displayValue: 'Fejl (Ugyldig dato)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (Ugyldig dato)', status: 'error' as EoRowStatus };
     }
     if (periodeFra > periodeTil) {
-      return { displayValue: 'Fejl (Fra-dato er efter til-dato)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (Fra-dato er efter til-dato)', status: 'error' as EoRowStatus };
     }
 
     const overlap = computeTafOverlapWithBeregningsperiode({
@@ -101,16 +101,16 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       })),
     });
     if (overlap.firstOverlapMessage) {
-      return { displayValue: `Fejl (${overlap.firstOverlapMessage})`, status: 'error' as DebugStatus };
+      return { displayValue: `Fejl (${overlap.firstOverlapMessage})`, status: 'error' as EoRowStatus };
     }
 
     const fraDanish = isoToDanish(periodeFra);
     const tilDanish = isoToDanish(periodeTil);
     if (!fraDanish || !tilDanish) {
-      return { displayValue: 'Fejl (Ugyldig dato)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (Ugyldig dato)', status: 'error' as EoRowStatus };
     }
 
-    return { displayValue: `${fraDanish} - ${tilDanish}`, status: 'ok' as DebugStatus };
+    return { displayValue: `${fraDanish} - ${tilDanish}`, status: 'ok' as EoRowStatus };
   })();
 
   const beregningsperiodeOverlap = computeTafOverlapWithBeregningsperiode({
@@ -150,14 +150,14 @@ export const buildEODebugTafBeregningsgrundlagRows = (
         label: 'Indkomst',
         displayValue: '-',
         message: 'Ingen indkomst i beregningsperioden',
-        status: 'error' as DebugStatus,
+        status: 'error' as EoRowStatus,
       };
     }
     return {
       label: 'Indkomst',
       displayValue: '-',
       message: `Ingen indkomst i beregningsperioden (${fraDanish} - ${tilDanish})`,
-      status: 'error' as DebugStatus,
+      status: 'error' as EoRowStatus,
     };
   })();
 
@@ -329,14 +329,14 @@ export const buildEODebugTafBeregningsgrundlagRows = (
   const oevrigeFravaersdage = values.oevrigeFravaersdage;
   const oevrigtFravaerAktivt = isBeregningsperiode && values.oevrigtFravaerUdenLoen === 'Ja';
   const oevrigeFravaersdageDisplay = (() => {
-    if (!oevrigtFravaerAktivt) return { displayValue: '-', status: 'ok' as DebugStatus };
+    if (!oevrigtFravaerAktivt) return { displayValue: '-', status: 'ok' as EoRowStatus };
     if (oevrigeFravaersdage === undefined) {
-      return { displayValue: 'Fejl (Antal fraværsdage mangler)', status: 'error' as DebugStatus };
+      return { displayValue: 'Fejl (Antal fraværsdage mangler)', status: 'error' as EoRowStatus };
     }
     if (oevrigeFravaersdage === 0) {
-      return { displayValue: 'Advarsel (Antal fraværsdage er 0)', status: 'warning' as DebugStatus };
+      return { displayValue: 'Advarsel (Antal fraværsdage er 0)', status: 'warning' as EoRowStatus };
     }
-    return { displayValue: `${formatDebugCount(oevrigeFravaersdage)} dage`, status: 'ok' as DebugStatus };
+    return { displayValue: `${formatDebugCount(oevrigeFravaersdage)} dage`, status: 'ok' as EoRowStatus };
   })();
 
   if (oevrigtFravaerAktivt) {
@@ -350,11 +350,11 @@ export const buildEODebugTafBeregningsgrundlagRows = (
 
   const oevrigeFravaerBeskrivelse = values.oevrigeFravaersdageBeskrivelse?.trim() ?? '';
   const oevrigeFravaerBeskrivelseDisplay = (() => {
-    if (!oevrigtFravaerAktivt) return { displayValue: '-', status: 'ok' as DebugStatus };
+    if (!oevrigtFravaerAktivt) return { displayValue: '-', status: 'ok' as EoRowStatus };
     if (oevrigeFravaerBeskrivelse === '') {
-      return { displayValue: 'Advarsel (Beskrivelse mangler)', status: 'warning' as DebugStatus };
+      return { displayValue: 'Advarsel (Beskrivelse mangler)', status: 'warning' as EoRowStatus };
     }
-    return { displayValue: oevrigeFravaerBeskrivelse, status: 'ok' as DebugStatus };
+    return { displayValue: oevrigeFravaerBeskrivelse, status: 'ok' as EoRowStatus };
   })();
 
   if (oevrigtFravaerAktivt) {
@@ -368,13 +368,13 @@ export const buildEODebugTafBeregningsgrundlagRows = (
 
   const arbejdsdageRow = (() => {
     if (!isBeregningsperiode) {
-      return { label: 'Arbejdsdage', displayValue: '-', status: 'ok' as DebugStatus };
+      return { label: 'Arbejdsdage', displayValue: '-', status: 'ok' as EoRowStatus };
     }
     if (!beregningsperiodeRangeOk || !periodeFra || !periodeTil) {
-      return { label: 'Arbejdsdage', displayValue: 'Fejl (Beregningsperioden er ugyldig)', status: 'error' as DebugStatus };
+      return { label: 'Arbejdsdage', displayValue: 'Fejl (Beregningsperioden er ugyldig)', status: 'error' as EoRowStatus };
     }
     if (values.oevrigtFravaerUdenLoen === 'Ja' && values.oevrigeFravaersdage === undefined) {
-      return { label: 'Arbejdsdage', displayValue: 'Fejl (Antal fraværsdage mangler)', status: 'error' as DebugStatus };
+      return { label: 'Arbejdsdage', displayValue: 'Fejl (Antal fraværsdage mangler)', status: 'error' as EoRowStatus };
     }
 
     const beregningsFerieperioder = values.fravaerPerioder ?? [];
@@ -391,7 +391,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       { kind: 'beregningsgrundlag', oevrigeFravaersdage: oevrigeFravaersdageValue }
     );
     if (!breakdown) {
-      return { label: 'Arbejdsdage', displayValue: 'Fejl (Ugyldig periode)', status: 'error' as DebugStatus };
+      return { label: 'Arbejdsdage', displayValue: 'Fejl (Ugyldig periode)', status: 'error' as EoRowStatus };
     }
 
     const samletArbejdsdage = Math.max(0, breakdown.tafDage);
@@ -408,7 +408,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const label = `${parts.join(' - ')} =`;
     const displayValue = `${formatDebugCount(samletArbejdsdage)} arbejdsdage`;
 
-    return { label, displayValue, status: 'ok' as DebugStatus };
+    return { label, displayValue, status: 'ok' as EoRowStatus };
   })();
 
   if (tafBeregnesSom === TAF_BEREGNES_SOM.ARBEJDSDAGE) {
@@ -426,10 +426,10 @@ export const buildEODebugTafBeregningsgrundlagRows = (
 
   const maanederRow = (() => {
     if (!isBeregningsperiode) {
-      return { label: 'Måneder', displayValue: '-', status: 'ok' as DebugStatus };
+      return { label: 'Måneder', displayValue: '-', status: 'ok' as EoRowStatus };
     }
     if (!beregningsperiodeRangeOk || !periodeFra || !periodeTil) {
-      return { label: 'Måneder', displayValue: 'Fejl (Beregningsperioden er ugyldig)', status: 'error' as DebugStatus };
+      return { label: 'Måneder', displayValue: 'Fejl (Beregningsperioden er ugyldig)', status: 'error' as EoRowStatus };
     }
 
     const oevrigeFravaersdageValue =
@@ -442,11 +442,11 @@ export const buildEODebugTafBeregningsgrundlagRows = (
       oevrigeFravaersdageValue
     );
     if (maaneder === null) {
-      return { label: 'Måneder', displayValue: 'Fejl (Ugyldig periode)', status: 'error' as DebugStatus };
+      return { label: 'Måneder', displayValue: 'Fejl (Ugyldig periode)', status: 'error' as EoRowStatus };
     }
 
     if (values.oevrigtFravaerUdenLoen === 'Ja' && values.oevrigeFravaersdage === undefined) {
-      return { label: 'Måneder', displayValue: 'Fejl (Antal fraværsdage mangler)', status: 'error' as DebugStatus };
+      return { label: 'Måneder', displayValue: 'Fejl (Antal fraværsdage mangler)', status: 'error' as EoRowStatus };
     }
 
     const totalMaaneder = sumMaanedsbroekForInterval(periodeFra, periodeTil);
@@ -466,7 +466,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const formatted = formatDebugMonths(maanederEfterFradrag);
     const displayValue = `${formatted} måneder`;
 
-    return { label, displayValue, status: 'ok' as DebugStatus };
+    return { label, displayValue, status: 'ok' as EoRowStatus };
   })();
 
   if (isBeregningsperiode && tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER) {
@@ -485,9 +485,9 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const maanedsloenDisplay = (() => {
       const display = formatCurrency(amountValueToNumber(values.maanedsloenenUdgoer));
       if (display.trim() === '') {
-        return { displayValue: 'Fejl (Månedsløn mangler)', status: 'error' as DebugStatus };
+        return { displayValue: 'Fejl (Månedsløn mangler)', status: 'error' as EoRowStatus };
       }
-      return { displayValue: display, status: 'ok' as DebugStatus };
+      return { displayValue: display, status: 'ok' as EoRowStatus };
     })();
 
     rows.push({
@@ -505,9 +505,9 @@ export const buildEODebugTafBeregningsgrundlagRows = (
     const dagsloenDisplay = (() => {
       const display = formatCurrency(amountValueToNumber(values.dagsloenenUdgoer));
       if (display.trim() === '') {
-        return { displayValue: 'Fejl (Dagsløn mangler)', status: 'error' as DebugStatus };
+        return { displayValue: 'Fejl (Dagsløn mangler)', status: 'error' as EoRowStatus };
       }
-      return { displayValue: display, status: 'ok' as DebugStatus };
+      return { displayValue: display, status: 'ok' as EoRowStatus };
     })();
 
     rows.push({
@@ -522,7 +522,7 @@ export const buildEODebugTafBeregningsgrundlagRows = (
   }
 
   if (beregnesUdFra === 'Angivet månedsløn' || beregnesUdFra === 'Angivet dagsløn') {
-    const loenBaseretPaaDisplay = resolveDebugDisplay({
+    const loenBaseretPaaDisplay = resolveEoRowDisplay({
       value: getAngivetLoenBaseretPaa(values),
       errors:
         beregnesUdFra === 'Angivet månedsløn'

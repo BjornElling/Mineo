@@ -1,5 +1,5 @@
 /**
- * `collectAllDebugRows` — den AUTORITATIVE EO-række-evaluerings-aggregator (jf. B9).
+ * `collectAllEoRows` — den AUTORITATIVE EO-række-evaluerings-aggregator (jf. B9).
  *
  * Samler alle status-rækker fra builder-registret, tilføjer navigation-metadata, anvender
  * relevans-filtrering (`isRowRelevantForEoValues`) + dependency-suppression, og grupperer efter
@@ -8,33 +8,31 @@
  *
  * Derfor bor modulet i `src/domain/eoRowEvaluation/` (autoritativt, debug-frit), ikke i
  * `src/domain/debug/`. DEV-debug-siden er nedstrøms: den konsumerer de samme buildere til visning,
- * men kan aldrig flytte gaten via display-formattering (jf. `debugLayerIsolation.test.ts`). (NB:
- * filer/symboler bærer endnu historiske `eoDebug…`-navne; et rent navne-skift er en separat,
- * adfærds-neutral oprydning.)
+ * men kan aldrig flytte gaten via display-formattering (jf. `debugLayerIsolation.test.ts`).
  */
 
-import type { DebugRowModel } from './eoDebugTypes';
-import type { NavigationTarget } from './eoDebugNavigationMap';
+import type { EoRowModel } from './eoRowTypes';
+import type { NavigationTarget } from './eoRowNavigationMap';
 import { DEFAULT_APP_SETTINGS, type AppSettings } from '../../settings/appSettingsSchema';
 import type {
-  EODebugExecutionContext,
+  EoRowEvaluationContext,
   StamdataValues,
   StamdataFieldErrorsBySource,
   ErstatningsopgoerelseValues,
   ErstatningsopgoerelseFieldErrorsBySource,
-} from './eoDebugExecutionContext';
-import { getNavigationTargetFromRowId } from './eoDebugNavigationMap';
-import { executeAllEODebugBuilders } from './eoDebugBuilderRegistry';
-import { resolveDebugRowPresentation } from './eoDebugRowPresentation';
-import { toDebugStatusRank } from './eoDebugSeverity';
+} from './eoRowExecutionContext';
+import { getNavigationTargetFromRowId } from './eoRowNavigationMap';
+import { executeAllEoRowBuilders } from './eoRowBuilderRegistry';
+import { resolveEoRowPresentation } from './eoRowPresentation';
+import { toEoRowStatusRank } from './eoRowSeverity';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 
 /**
- * DebugRowModel udvidet med navigation-metadata
+ * EoRowModel udvidet med navigation-metadata
  *
  * Navigation beregnes ÉN gang i domain-laget, ikke i UI-render loop
  */
-export type DebugRowWithNavigation = DebugRowModel & {
+export type EoRowWithNavigation = EoRowModel & {
   navigation: NavigationTarget;
 };
 
@@ -42,16 +40,16 @@ export type DebugRowWithNavigation = DebugRowModel & {
  * Grupperet resultat af fejl og warnings
  */
 export type BeregningErrorSummary = {
-  errors: ReadonlyArray<DebugRowWithNavigation>;
-  warnings: ReadonlyArray<DebugRowWithNavigation>;
-  allRows: ReadonlyArray<DebugRowWithNavigation>;
-  relevantRows: ReadonlyArray<DebugRowWithNavigation>;
+  errors: ReadonlyArray<EoRowWithNavigation>;
+  warnings: ReadonlyArray<EoRowWithNavigation>;
+  allRows: ReadonlyArray<EoRowWithNavigation>;
+  relevantRows: ReadonlyArray<EoRowWithNavigation>;
 };
 
-type DebugStatus = DebugRowModel['status'];
+type EoRowStatus = EoRowModel['status'];
 
 const resolveDependencyIds = (
-  row: DebugRowWithNavigation,
+  row: EoRowWithNavigation,
   allIdsSorted: ReadonlyArray<string>,
   rowIdSet: ReadonlySet<string>
 ): ReadonlyArray<string> => {
@@ -75,7 +73,7 @@ const resolveDependencyIds = (
 };
 
 const buildDependencyGraph = (
-  rows: ReadonlyArray<DebugRowWithNavigation>
+  rows: ReadonlyArray<EoRowWithNavigation>
 ): ReadonlyMap<string, ReadonlyArray<string>> => {
   const allIds = rows.map((row) => row.id);
   const allIdsSorted = Array.from(new Set(allIds)).sort((a, b) => a.localeCompare(b));
@@ -126,7 +124,7 @@ const detectDependencyCycles = (
 const buildMaxAncestorSeverityMap = (
   ids: ReadonlyArray<string>,
   depsById: ReadonlyMap<string, ReadonlyArray<string>>,
-  statusById: ReadonlyMap<string, DebugStatus>,
+  statusById: ReadonlyMap<string, EoRowStatus>,
   inCycle: ReadonlySet<string>
 ): ReadonlyMap<string, number> => {
   const memo = new Map<string, number>();
@@ -140,7 +138,7 @@ const buildMaxAncestorSeverityMap = (
     const parents = depsById.get(id) ?? [];
     for (const parentId of parents) {
       if (inCycle.has(parentId)) continue;
-      const parentSeverity = toDebugStatusRank(statusById.get(parentId));
+      const parentSeverity = toEoRowStatusRank(statusById.get(parentId));
       const ancestorSeverity = compute(parentId);
       if (parentSeverity > maxSeverity) maxSeverity = parentSeverity;
       if (ancestorSeverity > maxSeverity) maxSeverity = ancestorSeverity;
@@ -158,18 +156,18 @@ const buildMaxAncestorSeverityMap = (
 };
 
 const shouldSuppressRow = (
-  row: DebugRowWithNavigation,
+  row: EoRowWithNavigation,
   maxAncestorSeverityById: ReadonlyMap<string, number>
 ): boolean => {
   // Policy (eksplicit): undertryk child-rækker, når en ancestor har samme eller højere severity.
   // Dette holder Beregning-fanen fokuseret på root-cause-rækker og undgår dobbelt fejlrapportering.
-  const rowSeverity = toDebugStatusRank(row.status);
+  const rowSeverity = toEoRowStatusRank(row.status);
   if (rowSeverity === 0) return false;
   const maxAncestorSeverity = maxAncestorSeverityById.get(row.id) ?? 0;
   return maxAncestorSeverity >= rowSeverity;
 };
 
-const findDuplicateIds = (rows: ReadonlyArray<DebugRowWithNavigation>): ReadonlyArray<string> => {
+const findDuplicateIds = (rows: ReadonlyArray<EoRowWithNavigation>): ReadonlyArray<string> => {
   const counts = new Map<string, number>();
   rows.forEach((row) => {
     counts.set(row.id, (counts.get(row.id) ?? 0) + 1);
@@ -182,16 +180,16 @@ const findDuplicateIds = (rows: ReadonlyArray<DebugRowWithNavigation>): Readonly
 };
 
 /**
- * Tilføjer navigation-metadata til DebugRowModel
+ * Tilføjer navigation-metadata til EoRowModel
  */
-const addNavigationMetadata = (row: DebugRowModel): DebugRowWithNavigation => ({
+const addNavigationMetadata = (row: EoRowModel): EoRowWithNavigation => ({
   ...row,
-  ...resolveDebugRowPresentation(row),
+  ...resolveEoRowPresentation(row),
   navigation: getNavigationTargetFromRowId(row.id),
 });
 
 const isRowRelevantForEoValues = (
-  row: DebugRowWithNavigation,
+  row: EoRowWithNavigation,
   values: ErstatningsopgoerelseValues
 ): boolean => {
   // Domæne-relevansregler:
@@ -264,7 +262,7 @@ const isRowRelevantForEoValues = (
  * @param erstatningsopgoerelseErrors - Erstatningsopgørelse field-fejl pr. kilde
  * @returns Grupperet efter status (errors, warnings)
  */
-export const collectAllDebugRows = (
+export const collectAllEoRows = (
   stamdataValues: StamdataValues,
   stamdataErrors: StamdataFieldErrorsBySource,
   erstatningsopgoerelseValues: ErstatningsopgoerelseValues,
@@ -274,7 +272,7 @@ export const collectAllDebugRows = (
   canonicalOutputOverride?: EoCanonicalOutput
 ): BeregningErrorSummary => {
   // Opret execution context
-  const ctx: EODebugExecutionContext = {
+  const ctx: EoRowEvaluationContext = {
     stamdataValues,
     stamdataErrors,
     eoValues: erstatningsopgoerelseValues,
@@ -285,7 +283,7 @@ export const collectAllDebugRows = (
   };
 
   // Udfør alle builders fra registry
-  const allRows: DebugRowModel[] = executeAllEODebugBuilders(ctx);
+  const allRows: EoRowModel[] = executeAllEoRowBuilders(ctx);
 
   // Tilføj navigation-metadata til alle rows
   const rowsWithNavigation = allRows.map(addNavigationMetadata);

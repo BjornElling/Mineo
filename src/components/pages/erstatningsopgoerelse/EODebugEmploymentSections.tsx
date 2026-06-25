@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import type { DebugRowModel } from '../../../domain/eoRowEvaluation/eoDebugTypes';
+import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
 import type { RegulationDebugSection } from '../../../domain/debug/eoDebugRegulationViewModel';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
-import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+import { isSfggComputedTotalRowId, isSfggPostTableRowId } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import { getRegulationTableColumns } from './regulationTableColumns';
 import { renderRegulationTableCellContent } from './regulationTableCellContent';
 import {
@@ -19,10 +19,10 @@ type EmploymentDebugSection = Readonly<{
   id: string;
   title: string;
   ansatPaaSkadestidspunktet?: boolean;
-  loenRows: readonly DebugRowModel[];
-  regulationRows: readonly DebugRowModel[];
+  loenRows: readonly EoRowModel[];
+  regulationRows: readonly EoRowModel[];
   regulationSection?: RegulationDebugSection;
-  sfggRows?: readonly DebugRowModel[];
+  sfggRows?: readonly EoRowModel[];
   sfggTables?: readonly Readonly<{
     id: string;
     title: string;
@@ -35,16 +35,16 @@ type EmploymentDebugSection = Readonly<{
 }>;
 
 type EmploymentRegulationDisplayRow =
-  | Readonly<{ kind: 'debug'; row: DebugRowModel }>
+  | Readonly<{ kind: 'debug'; row: EoRowModel }>
   | Readonly<{ kind: 'regulation'; row: NonNullable<RegulationDebugSection['rows']>[number] }>
   | Readonly<{
       kind: 'combined-taf-values';
       id: string;
       label: string;
-      parts: readonly DebugRowModel[];
+      parts: readonly EoRowModel[];
     }>;
 
-const renderRows = (rows: readonly DebugRowModel[]) => rows.map((row) => (
+const renderRows = (rows: readonly EoRowModel[]) => rows.map((row) => (
   <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
     <Typography className="row--text">{row.label}</Typography>
     <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>
@@ -66,13 +66,13 @@ const renderRegulationRows = (rows: NonNullable<RegulationDebugSection['rows']>)
   </Box>
 ));
 
-const getRowDisplayValue = (row: DebugRowModel): string => row.displayValue;
+const getRowDisplayValue = (row: EoRowModel): string => row.displayValue;
 
 const getRegulationDisplayValue = (row: NonNullable<RegulationDebugSection['rows']>[number]): string =>
   typeof row.value === 'string' ? row.value : row.value.displayValue;
 
 const dedupeMergedRegulationRows = (
-  loenRegulationRows: readonly DebugRowModel[],
+  loenRegulationRows: readonly EoRowModel[],
   regulationRows: NonNullable<RegulationDebugSection['rows']>
 ): NonNullable<RegulationDebugSection['rows']> => {
   const existingKeys = new Set(
@@ -100,7 +100,7 @@ const stripFirstAvailableDateFromRegulationDisplayValue = (displayValue: string)
 const renderCombinedTafRegulationValueRow = (
   id: string,
   label: string,
-  parts: readonly DebugRowModel[]
+  parts: readonly EoRowModel[]
 ) => (
   <Box key={id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
     <Typography className="row--text">{label}</Typography>
@@ -122,7 +122,7 @@ const renderCombinedTafRegulationValueRow = (
 );
 
 const buildEmploymentRegulationDisplayRows = (
-  regulationRows: readonly DebugRowModel[],
+  regulationRows: readonly EoRowModel[],
   regulationSectionRows: NonNullable<RegulationDebugSection['rows']>
 ): readonly EmploymentRegulationDisplayRow[] => {
   const tafValueRows = regulationRows.filter((row) => TAF_REGULATION_VALUE_LABELS.includes(row.label as typeof TAF_REGULATION_VALUE_LABELS[number]));
@@ -187,7 +187,7 @@ const UnderlinedHoverRow = ({ text }: Readonly<{ text: string }>) => (
   </Box>
 );
 
-const renderSfggRow = (row: DebugRowModel) => (
+const renderSfggRow = (row: EoRowModel) => (
   <Box key={row.id} className="row--label-right-hover" sx={{ '--label-width': LABEL_WIDTH }}>
     <Typography className="row--text">{row.label}</Typography>
     <Box className="row--label-right-hover__content" sx={{ gap: 2 }}>

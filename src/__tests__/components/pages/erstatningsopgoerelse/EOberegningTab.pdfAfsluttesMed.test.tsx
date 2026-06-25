@@ -9,7 +9,7 @@ import { createErstatningsopgoerelseInitialValues } from '../../../../domain/ers
 import { computeEoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { STAMDATA_INITIAL_VALUES } from '../../../../domain/stamdata/stamdataInitialValues';
 import type { EoSnapshot } from '../../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
-import type { BeregningErrorSummary } from '../../../../domain/eoRowEvaluation/eoDebugRowAggregator';
+import type { BeregningErrorSummary } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
 import { toISODateString } from '../../../../types/branded';
 
 type DownloadErstatningsopgoerelsePdf = typeof import('../../../../document/service/documentService')['downloadErstatningsopgoerelseDokument'];
@@ -33,8 +33,8 @@ vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useBlockingFieldIdsBySuffixForSection: () => ({}),
 }));
 
-vi.mock('../../../../domain/eoRowEvaluation/eoDebugRowAggregator', () => ({
-  collectAllDebugRows: collectAllDebugRowsMock,
+vi.mock('../../../../domain/eoRowEvaluation/eoRowAggregator', () => ({
+  collectAllEoRows: collectAllDebugRowsMock,
 }));
 
 vi.mock('../../../../utils/scrollToSection', () => ({

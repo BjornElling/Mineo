@@ -1,9 +1,9 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useBlockingFieldIdsBySuffixForSection, useFieldErrorsBySourceForSection } from '../../../../hooks/useFormFieldErrors';
-import { collectAllDebugRows } from '../../../../domain/eoRowEvaluation/eoDebugRowAggregator';
-import type { DebugRowWithNavigation } from '../../../../domain/eoRowEvaluation/eoDebugRowAggregator';
-import type { NavigationTarget } from '../../../../domain/eoRowEvaluation/eoDebugNavigationMap';
+import { collectAllEoRows } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
+import type { EoRowWithNavigation } from '../../../../domain/eoRowEvaluation/eoRowAggregator';
+import type { NavigationTarget } from '../../../../domain/eoRowEvaluation/eoRowNavigationMap';
 import { scrollToSection } from '../../../../utils/scrollToSection';
 import { scrollToDebugRow } from '../../../../utils/scrollToDebugRow';
 import { formatIsoDateLong } from '../../../../utils/dateFormatting';
@@ -62,9 +62,9 @@ export type EetIssueRow = Readonly<{
 }>;
 
 type DebugRowsMemoResult = Readonly<{
-  errors: ReadonlyArray<DebugRowWithNavigation>;
-  warnings: ReadonlyArray<DebugRowWithNavigation>;
-  relevantRows: ReadonlyArray<DebugRowWithNavigation>;
+  errors: ReadonlyArray<EoRowWithNavigation>;
+  warnings: ReadonlyArray<EoRowWithNavigation>;
+  relevantRows: ReadonlyArray<EoRowWithNavigation>;
   debugAggregationErrorMessage: string | null;
 }>;
 
@@ -175,7 +175,7 @@ const buildInvariantDiagnostics = (
 };
 
 const getCustomDebugRowMessage = (
-  row: Pick<DebugRowWithNavigation, 'id' | 'label' | 'message' | 'displayValue'>
+  row: Pick<EoRowWithNavigation, 'id' | 'label' | 'message' | 'displayValue'>
 ): string | null => {
   const message = row.message?.trim() ?? '';
   if (
@@ -269,7 +269,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     }
 
     const result = safeCompute(
-      () => collectAllDebugRows(
+      () => collectAllEoRows(
         stamdataValues,
         stamdataErrors,
         eoValues,
@@ -278,7 +278,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
         settings,
         beregningView?.canonicalOutput
       ),
-      'EOberegningTab.collectAllDebugRows',
+      'EOberegningTab.collectAllEoRows',
       { code: 'eo_debug:aggregation_failed' }
     );
     if (isErr(result)) {
@@ -365,7 +365,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
     return null;
   }, [debugAggregationErrorMessage, errors, eetLoebendeErrorRows]);
 
-  const hasBlockingDebugErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0 || debugAggregationErrorMessage !== null;
+  const hasBlockingEoRowErrors = errors.length > 0 || eetLoebendeErrorRows.length > 0 || debugAggregationErrorMessage !== null;
   const eoPdfDisabledReason = React.useMemo(() => {
     if (firstBlockingDebugErrorMessage) {
       return firstBlockingDebugErrorMessage;
@@ -436,35 +436,35 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
   const eoPdfGate = React.useMemo(
     () => createPdfGate(
-      eoPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors,
+      eoPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
       eoPdfDisabledReason,
       'Opgørelsen kan ikke hentes for den aktuelle sag.'
     ),
-    [eoPdfDisabledReason, eoPdfProjection, hasBlockingDebugErrors]
+    [eoPdfDisabledReason, eoPdfProjection, hasBlockingEoRowErrors]
   );
   const tafPdfGate = React.useMemo(
     () => createPdfGate(
-      tafPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors,
+      tafPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
       tafPdfDisabledReason,
       'TAF fordelt på år kan ikke genereres for den aktuelle sag.'
     ),
-    [hasBlockingDebugErrors, tafPdfDisabledReason, tafPdfProjection]
+    [hasBlockingEoRowErrors, tafPdfDisabledReason, tafPdfProjection]
   );
   const tafOpreguleretPdfGate = React.useMemo(
     () => createPdfGate(
-      tafOpreguleretPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors,
+      tafOpreguleretPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
       tafOpreguleretPdfDisabledReason,
       'TAF opreguleret til beregningsåret kan ikke genereres for den aktuelle sag.'
     ),
-    [hasBlockingDebugErrors, tafOpreguleretPdfDisabledReason, tafOpreguleretPdfProjection]
+    [hasBlockingEoRowErrors, tafOpreguleretPdfDisabledReason, tafOpreguleretPdfProjection]
   );
   const tafKravGrafPdfGate = React.useMemo(
     () => createPdfGate(
-      tafKravGrafPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors,
+      tafKravGrafPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors,
       tafKravGrafPdfDisabledReason,
       'Visuel graf over indtægtsniveau kan ikke genereres for den aktuelle sag.'
     ),
-    [hasBlockingDebugErrors, tafKravGrafPdfDisabledReason, tafKravGrafPdfProjection]
+    [hasBlockingEoRowErrors, tafKravGrafPdfDisabledReason, tafKravGrafPdfProjection]
   );
   const canDownloadSnapshotEoPdf = eoPdfGate.canDownload;
   const canDownloadSnapshotTafPdf = tafPdfGate.canDownload;
@@ -882,7 +882,7 @@ export function useEoBeregningViewModel(props: EOberegningTabProps) {
 
     // Download-gates + årsager
     pdfDownloadErrorMessage,
-    hasBlockingDebugErrors,
+    hasBlockingEoRowErrors,
     eoPdfDisabledReason,
     tafPdfDisabledReason,
     tafOpreguleretPdfDisabledReason,

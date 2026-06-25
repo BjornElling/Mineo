@@ -30,8 +30,8 @@ vi.mock('../../../../hooks/useFormFieldErrors', () => ({
   useBlockingFieldIdsBySuffixForSection: () => ({}),
 }));
 
-vi.mock('../../../../domain/eoRowEvaluation/eoDebugRowAggregator', () => ({
-  collectAllDebugRows: collectAllDebugRowsMock,
+vi.mock('../../../../domain/eoRowEvaluation/eoRowAggregator', () => ({
+  collectAllEoRows: collectAllDebugRowsMock,
 }));
 
 vi.mock('../../../../utils/scrollToSection', () => ({

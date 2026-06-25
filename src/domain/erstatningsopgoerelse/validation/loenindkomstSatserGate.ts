@@ -11,7 +11,7 @@ import { resolveOverenskomstSatsBindings } from '../helpers/loenindkomstSatser';
  * autoritative række-evaluerings-motor (`domain/eoRowEvaluation/`, jf. B9), hvis `error`-rækker
  * gater produktions-PDF-download — så blokeringen er ÉN sandhedskilde.
  *
- * Genbruges af motor-helperen `eoDebugIndkomstModel.ts` (adfærdsbevarende udskillelse).
+ * Genbruges af motor-helperen `eoRowIndkomstModel.ts` (adfærdsbevarende udskillelse).
  *
  * NB: Dette overlapper delvist med `loenindkomstSatsValidation.validateAllSatserForAnsaettelsesforhold`
  * (A1) — sidstnævnte driver felt-fejl i Loenindkomst-VM'en og dækker IKKE Store Bededagstillæg.

@@ -1,13 +1,13 @@
-import { resolveDebugRowPresentation } from '../../../domain/eoRowEvaluation/eoDebugRowPresentation';
+import { resolveEoRowPresentation } from '../../../domain/eoRowEvaluation/eoRowPresentation';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
 } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildEODebugIndkomstRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+import { buildEoIndkomstRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 
-describe('resolveDebugRowPresentation', () => {
+describe('resolveEoRowPresentation', () => {
   it('extracts structured message from Fejl (...) as default fallback', () => {
-    const presentation = resolveDebugRowPresentation({
+    const presentation = resolveEoRowPresentation({
       id: 'test.error',
       label: 'Test',
       status: 'error',
@@ -19,7 +19,7 @@ describe('resolveDebugRowPresentation', () => {
   });
 
   it('keeps default summary and empty message for unknown id with plain value', () => {
-    const presentation = resolveDebugRowPresentation({
+    const presentation = resolveEoRowPresentation({
       id: 'debug.unknown.row',
       label: 'Ukendt',
       status: 'warning',
@@ -31,7 +31,7 @@ describe('resolveDebugRowPresentation', () => {
   });
 
   it('uses messageOnly summary for taf.beregningsgrundlag.indkomst', () => {
-    const presentation = resolveDebugRowPresentation({
+    const presentation = resolveEoRowPresentation({
       id: 'taf.beregningsgrundlag.indkomst',
       label: 'Indkomst',
       status: 'error',
@@ -57,7 +57,7 @@ describe('manual regulering message', () => {
     ];
 
     const af = values.loenindkomstAnsaettelsesforhold[0];
-    const rows = buildEODebugIndkomstRows(values, undefined, {});
+    const rows = buildEoIndkomstRows(values, undefined, {});
     const row = rows.find((r) => r.id === `loenindkomst.${af.id}.regulering.alleVaerdier`);
 
     expect(row).toBeDefined();
@@ -78,7 +78,7 @@ describe('manual regulering message', () => {
       },
     ];
 
-    const rows = buildEODebugIndkomstRows(values, undefined, {});
+    const rows = buildEoIndkomstRows(values, undefined, {});
     const row = rows.find((r) => r.id === `loenindkomst.${af.id}.loenoplysninger`);
 
     expect(row).toBeDefined();

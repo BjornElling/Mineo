@@ -1,17 +1,17 @@
-import { collectAllDebugRows } from '../../../domain/eoRowEvaluation/eoDebugRowAggregator';
+import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { toISODateString } from '../../../types/branded';
 
-describe('collectAllDebugRows integration', () => {
+describe('collectAllEoRows integration', () => {
   it('materialises svie/smerte sats-aar warning with summary message', () => {
     const eoValues = createErstatningsopgoerelseInitialValues();
     eoValues.opgørelseLavetDen = toISODateString('2025-12-15');
     eoValues.svieSmerteSatserAar = 2025;
     eoValues.revideretOpgoerelse = 'Nej';
 
-    const result = collectAllDebugRows(
+    const result = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       {},
       eoValues,
@@ -41,7 +41,7 @@ describe('collectAllDebugRows integration', () => {
     });
 
     expect(snapshot.data?.canonicalOutput.periodiseringer.tafPerioder).toEqual([]);
-    const result = collectAllDebugRows(
+    const result = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       {},
       eoValues,

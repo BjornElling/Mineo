@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Box, Typography } from '@mui/material';
 import ContentBox from '../../layout/ContentBox';
-import type { DebugRowModel } from '../../../domain/eoRowEvaluation/eoDebugTypes';
+import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
 import StandardDisplayTable from '../../tables/StandardDisplayTable';
 import type { StandardDisplayTableRow } from '../../tables/StandardDisplayTable';
 import type { EODebugDisplayTable } from '../../../domain/debug/eoDebugPageViewModel';
@@ -9,7 +9,7 @@ import { DEBUG_ROW_LABEL_WIDTH, getDisplayValueSx, getStatusIcon } from './eoDeb
 
 const EODebugRowsSection = React.memo<{
   title: string;
-  rows: readonly DebugRowModel[];
+  rows: readonly EoRowModel[];
   tables?: readonly EODebugDisplayTable[];
 }>(({ title, rows, tables = [] }) => {
   // Render-contract: en sektion med 0 rækker skal være helt skjult.

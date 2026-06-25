@@ -22,7 +22,7 @@ export type LoenindkomstManuelReguleringInputErrors = Readonly<Record<string, tr
  * Dette er ENESTE input til registry.
  * Let at udvide, nem at mocke i tests.
  */
-export type EODebugExecutionContext = {
+export type EoRowEvaluationContext = {
   stamdataValues: StamdataValues;
   stamdataErrors: StamdataFieldErrorsBySource;
   eoValues: ErstatningsopgoerelseValues;

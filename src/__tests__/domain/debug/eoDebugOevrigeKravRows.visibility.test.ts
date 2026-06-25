@@ -1,16 +1,16 @@
 import type { AmountValue } from '../../../schemas/amountExpressionSchema';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildEODebugOevrigeKravRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+import { buildEoOevrigeKravRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);
 const asAmountValue = (value: number): AmountValue => ({ kind: 'number', value });
 
-describe('buildEODebugOevrigeKravRows visibility', () => {
+describe('buildEoOevrigeKravRows visibility', () => {
   it('viser "Ingen" til venstre når der hverken er øvrige krav eller særlige intro-linjer', () => {
     const values = createErstatningsopgoerelseInitialValues();
 
-    const rows = buildEODebugOevrigeKravRows(values, {});
+    const rows = buildEoOevrigeKravRows(values, {});
 
     expect(rows).toEqual([
       {
@@ -41,7 +41,7 @@ describe('buildEODebugOevrigeKravRows visibility', () => {
     values.midlertidigEETVirkningsdato = iso('2024-02-01');
     values.verserendeKlageEet = 'Ja';
 
-    const rows = buildEODebugOevrigeKravRows(values, {});
+    const rows = buildEoOevrigeKravRows(values, {});
 
     expect(rows.map((row) => row.label)).toEqual([
       'Skadelidte har modtaget kontanthjælp i erstatningsperioden. Kræves ydelsen tilbagebetalt som følge af erstatningsudbetaling, vil kravet blive forhøjet.',
@@ -56,7 +56,7 @@ describe('buildEODebugOevrigeKravRows visibility', () => {
     values.endeligtEETAfgorelse = 'Ja';
     values.endeligEETAfgoerelseDato = iso('2024-03-01');
 
-    const rows = buildEODebugOevrigeKravRows(values, {});
+    const rows = buildEoOevrigeKravRows(values, {});
 
     expect(rows.map((row) => row.label)).toEqual([
       'Hvis der som følge af den verserende klagesag over erhvervsevnetab sker ændringer i ydelse eller virkningstidspunkt, vil kravet blive reguleret tilsvarende.',

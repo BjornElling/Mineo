@@ -9,7 +9,7 @@
  * 5. SVIE_SMERTE_MISMATCH - Antal svie/smerte-dage i felter vs. tabel
  */
 
-import { IntegrityInvariant, type DebugDay, type IntegrityIssue, type DateRange } from '../eoRowEvaluation/eoDebugTypes';
+import { IntegrityInvariant, type DebugDay, type IntegrityIssue, type DateRange } from '../eoRowEvaluation/eoRowTypes';
 import type { DebugModelInput } from './eoDebugCoreModel';
 import { getOverlap, getIsoRange, tryParseIso } from './eoDebugDateUtils';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';

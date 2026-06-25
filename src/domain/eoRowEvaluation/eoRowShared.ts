@@ -4,14 +4,14 @@ import type { ISODateString } from '../../types/branded';
 import { coerceToISODateString, dateToISO, parseISODate } from '../../types/branded';
 import { formatAsAmountTrimmed } from '../../utils/formatUtils';
 import { addDays, addMonths } from '../../utils/dateUtils';
-import type { DebugStatus } from './eoDebugTypes';
+import type { EoRowStatus } from './eoRowTypes';
 
 /**
  * Debug-row-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
  *
  * Dette beskytter React-key-stabilitet og gør debug-output auditerbart.
  */
-export type DebugRowId =
+export type EoRowId =
   | 'erstatningsopgoerelse.eoNummer'
   | 'erstatningsopgoerelse.foersteErstatningsopgoerelse'
   | 'erstatningsopgoerelse.eoLedsagetekst'
@@ -127,7 +127,7 @@ export type StamdataValues = PersistedSectionMap['stamdata'];
 export const formatDebugCount = (value: number): string => formatAsAmountTrimmed(value, 0);
 export const formatDebugMonths = (value: number): string => formatAsAmountTrimmed(value, 4);
 
-export const formatStatusMessage = (status: DebugStatus, message: string): string => {
+export const formatStatusMessage = (status: EoRowStatus, message: string): string => {
   if (status === 'ok') return '-';
   const trimmed = message.trim();
   if (trimmed === '' || trimmed === '-') {
@@ -191,7 +191,7 @@ export const calculateElapsedWholeMonthsDebug = (fromIso: ISODateString, toIso: 
 };
 
 export const buildReguleringsMangelMessage = (
-  status: DebugStatus,
+  status: EoRowStatus,
   displayValue: string
 ): string | undefined => {
   if (status === 'ok') return undefined;

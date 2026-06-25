@@ -2,8 +2,8 @@ import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { resolveDebugDisplay } from './eoDebugCommon';
-import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
+import { resolveEoRowDisplay } from './eoRowCommon';
+import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 import { computeTafBeregningsenhed, TAF_BEREGNES_SOM } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { calculateTafArbejdsdageBreakdown, calculateTafAntalMaanederPraecis } from '../erstatningsopgoerelse/engines/tafCalculations';
@@ -12,8 +12,8 @@ import { evaluateTafPerioder } from '../erstatningsopgoerelse/validation/tafPeri
 import { evaluateFerieperioder } from '../erstatningsopgoerelse/validation/ferieperiodeValidation';
 import { getFolkepensionsdato } from '../../data/folkepensionAlderRates';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
-import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoDebugEoShared';
-import { formatDebugCount, formatDebugMonths } from './eoDebugEoShared';
+import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
+import { formatDebugCount, formatDebugMonths } from './eoRowShared';
 
 const resolveFolkepensionsdato = (
   fodselsdato: ISODateString | undefined,
@@ -24,7 +24,7 @@ const resolveFolkepensionsdato = (
 };
 
 
-export const buildEODebugTaftRows = (
+export const buildEoTaftRows = (
   values: ErstatningsopgoerelseValues,
   errors: ErstatningsopgoerelseFieldErrorsBySource,
   context: Readonly<{
@@ -37,8 +37,8 @@ export const buildEODebugTaftRows = (
     verserendeKlageEet: boolean;
   }>,
   canonicalOutput?: EoCanonicalOutput
-): DebugRowModel[] => {
-  const rows: DebugRowModel[] = [];
+): EoRowModel[] => {
+  const rows: EoRowModel[] = [];
   const tafBeregnesSom = computeTafBeregningsenhed(values);
   const perioder = values.tafPerioder ?? [];
   const synligeTafPerioder = perioder.filter((periode) => periode.fra || periode.til);
@@ -224,7 +224,7 @@ export const buildEODebugTaftRows = (
 
     const visMaaneder = tafBeregnesSom === TAF_BEREGNES_SOM.MAANEDER;
     const displayValue = visMaaneder ? maanederDisplay : arbejdsdageDisplay;
-    const status: DebugStatus = visMaaneder
+    const status: EoRowStatus = visMaaneder
       ? (antalMaaneder === null ? 'error' : 'ok')
       : (breakdown ? 'ok' : 'error');
 
@@ -323,7 +323,7 @@ export const buildEODebugTaftRows = (
   rows.push({
     id: 'taf.tidligereModtagetTaf',
     label: 'Evt. allerede modtaget tabt arbejdsfortjeneste for nuværende erstatningsperiode',
-    ...resolveDebugDisplay({ value: tidligereModtagetTafDisplay, errors: errors.tidligereModtagetTaf, emptyState: 'ok' }),
+    ...resolveEoRowDisplay({ value: tidligereModtagetTafDisplay, errors: errors.tidligereModtagetTaf, emptyState: 'ok' }),
   });
 
   return rows;

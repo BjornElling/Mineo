@@ -1,10 +1,10 @@
-import { buildEODebugForligRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+import { buildEoForligRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { toISODateString } from '../../../types/branded';
 
-describe('buildEODebugForligRows visibility', () => {
+describe('buildEoForligRows visibility', () => {
   it('viser kun den samlede forligsrække med bindestreg når ingen værdi er udfyldt', () => {
-    const rows = buildEODebugForligRows(createErstatningsopgoerelseInitialValues(), {});
+    const rows = buildEoForligRows(createErstatningsopgoerelseInitialValues(), {});
 
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
@@ -20,7 +20,7 @@ describe('buildEODebugForligRows visibility', () => {
     values.forligAnsvarsgradProcent = 50;
     values.forligDato = toISODateString('2024-01-31');
 
-    const rows = buildEODebugForligRows(values, {});
+    const rows = buildEoForligRows(values, {});
 
     expect(rows.map((row) => row.id)).toEqual([
       'forlig.ansvarsgrad',
@@ -48,7 +48,7 @@ describe('buildEODebugForligRows visibility', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.forligAnsvarsgradBroek = '1/3';
 
-    const rows = buildEODebugForligRows(values, {});
+    const rows = buildEoForligRows(values, {});
 
     expect(rows.map((row) => row.id)).toEqual([
       'forlig.ansvarsgrad',
@@ -66,7 +66,7 @@ describe('buildEODebugForligRows visibility', () => {
     values.forligAnsvarsgradBroek = '1/3';
     values.forligDato = toISODateString('2024-01-31');
 
-    const rows = buildEODebugForligRows(values, {
+    const rows = buildEoForligRows(values, {
       forligAnsvarsgradProcent: {
         rule: {
           source: 'rule',
@@ -103,7 +103,7 @@ describe('buildEODebugForligRows visibility', () => {
     const values = createErstatningsopgoerelseInitialValues();
     values.forligDato = toISODateString('2024-01-31');
 
-    const rows = buildEODebugForligRows(values, {
+    const rows = buildEoForligRows(values, {
       forligDato: {
         rule: {
           source: 'rule',

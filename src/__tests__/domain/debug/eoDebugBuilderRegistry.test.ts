@@ -1,22 +1,22 @@
-import type { DebugRowModel } from '../../../domain/eoRowEvaluation/eoDebugTypes';
-import type { EODebugExecutionContext } from '../../../domain/eoRowEvaluation/eoDebugExecutionContext';
-import type { EODebugBuilderEntry } from '../../../domain/eoRowEvaluation/eoDebugBuilderRegistry';
+import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
+import type { EoRowEvaluationContext } from '../../../domain/eoRowEvaluation/eoRowExecutionContext';
+import type { EoRowBuilderEntry } from '../../../domain/eoRowEvaluation/eoRowBuilderRegistry';
 import {
-  executeEODebugBuilderEntries,
-  executeEODebugBuilderEntriesBySection,
-} from '../../../domain/eoRowEvaluation/eoDebugBuilderRegistry';
+  executeEoRowBuilderEntries,
+  executeEoRowBuilderEntriesBySection,
+} from '../../../domain/eoRowEvaluation/eoRowBuilderRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { DEFAULT_APP_SETTINGS } from '../../../settings/appSettingsSchema';
 
-const makeRow = (id: string, status: DebugRowModel['status']): DebugRowModel => ({
+const makeRow = (id: string, status: EoRowModel['status']): EoRowModel => ({
   id,
   label: id,
   displayValue: id,
   status,
 });
 
-const ctx: EODebugExecutionContext = {
+const ctx: EoRowEvaluationContext = {
   stamdataValues: STAMDATA_INITIAL_VALUES,
   stamdataErrors: {},
   eoValues: createErstatningsopgoerelseInitialValues(),
@@ -25,9 +25,9 @@ const ctx: EODebugExecutionContext = {
   appSettings: DEFAULT_APP_SETTINGS,
 };
 
-describe('executeEODebugBuilderEntries', () => {
+describe('executeEoRowBuilderEntries', () => {
   it('isolates builder exceptions and returns an error row', () => {
-    const entries: EODebugBuilderEntry[] = [
+    const entries: EoRowBuilderEntry[] = [
       {
         section: 'stamdata',
         run: () => [makeRow('stamdata.journalnr', 'ok')],
@@ -40,7 +40,7 @@ describe('executeEODebugBuilderEntries', () => {
       },
     ];
 
-    const rows = executeEODebugBuilderEntries(entries, ctx);
+    const rows = executeEoRowBuilderEntries(entries, ctx);
 
     expect(rows.some((row) => row.id === 'stamdata.journalnr')).toBe(true);
     expect(rows.some((row) => row.id === 'debug.builder.aes.exception')).toBe(true);
@@ -50,7 +50,7 @@ describe('executeEODebugBuilderEntries', () => {
   });
 
   it('returns rows grouped by section with the same exception isolation', () => {
-    const entries: EODebugBuilderEntry[] = [
+    const entries: EoRowBuilderEntry[] = [
       {
         section: 'stamdata',
         run: () => [makeRow('stamdata.journalnr', 'ok')],
@@ -63,7 +63,7 @@ describe('executeEODebugBuilderEntries', () => {
       },
     ];
 
-    const rowsBySection = executeEODebugBuilderEntriesBySection(entries, ctx);
+    const rowsBySection = executeEoRowBuilderEntriesBySection(entries, ctx);
 
     expect(rowsBySection.get('stamdata')).toEqual([makeRow('stamdata.journalnr', 'ok')]);
     expect(rowsBySection.get('taf')).toEqual([

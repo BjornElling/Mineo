@@ -1,7 +1,7 @@
 import type { AppSettings } from '../../settings/appSettingsSchema';
-import { isLoenindkomstAnsaettelsesforholdEffectivelyEmpty } from '../eoRowEvaluation/eoDebugIndkomstModel';
+import { isLoenindkomstAnsaettelsesforholdEffectivelyEmpty } from '../eoRowEvaluation/eoRowIndkomstModel';
 import type { RegulationDebugSection } from './eoDebugRegulationViewModel';
-import type { DebugRowModel } from '../eoRowEvaluation/eoDebugTypes';
+import type { EoRowModel } from '../eoRowEvaluation/eoRowTypes';
 import type { EoDebugViewReady } from '../erstatningsopgoerelse/snapshot/eoSnapshotToDebugView';
 import { buildOffentligeYdelserReguleringTableData } from '../erstatningsopgoerelse/engines/offentligeYdelserUdviklingBeregning';
 import { resolveArbejdsstedDisplayName } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
@@ -21,39 +21,39 @@ export type EODebugEmploymentSectionViewModel = Readonly<{
   id: string;
   title: string;
   ansatPaaSkadestidspunktet: boolean;
-  loenRows: readonly DebugRowModel[];
-  regulationRows: readonly DebugRowModel[];
+  loenRows: readonly EoRowModel[];
+  regulationRows: readonly EoRowModel[];
   regulationSection?: RegulationDebugSection;
-  sfggRows: readonly DebugRowModel[];
+  sfggRows: readonly EoRowModel[];
   sfggTables: readonly EODebugDisplayTable[];
 }>;
 
 export type EODebugGroupedSectionViewModel = Readonly<{
   id: string;
   title: string;
-  rows: readonly DebugRowModel[];
+  rows: readonly EoRowModel[];
   tables: readonly EODebugDisplayTable[];
 }>;
 
 export type EODebugPageViewModel = Readonly<{
   showSvieSmerteSection: boolean;
   showTabtArbejdsfortjenesteSections: boolean;
-  stamdataRows: readonly DebugRowModel[];
-  erstatningsopgoerelseRows: readonly DebugRowModel[];
-  forligRows: readonly DebugRowModel[];
-  aesRows: readonly DebugRowModel[];
-  svieSmerteRows: readonly DebugRowModel[];
-  tafRows: readonly DebugRowModel[];
-  tafBeregningsgrundlagRows: readonly DebugRowModel[];
-  loenindkomstRows: readonly DebugRowModel[];
-  offentligeYdelserRows: readonly DebugRowModel[];
+  stamdataRows: readonly EoRowModel[];
+  erstatningsopgoerelseRows: readonly EoRowModel[];
+  forligRows: readonly EoRowModel[];
+  aesRows: readonly EoRowModel[];
+  svieSmerteRows: readonly EoRowModel[];
+  tafRows: readonly EoRowModel[];
+  tafBeregningsgrundlagRows: readonly EoRowModel[];
+  loenindkomstRows: readonly EoRowModel[];
+  offentligeYdelserRows: readonly EoRowModel[];
   offentligeYdelserTables: readonly EODebugDisplayTable[];
   orphanSfggSections: readonly EODebugGroupedSectionViewModel[];
   orphanRegulationSections: readonly RegulationDebugSection[];
   employmentSections: readonly EODebugEmploymentSectionViewModel[];
-  oevrigeKravRows: readonly DebugRowModel[];
-  saerligeKommentarerRows: readonly DebugRowModel[];
-  bilagsnumreRows: readonly DebugRowModel[];
+  oevrigeKravRows: readonly EoRowModel[];
+  saerligeKommentarerRows: readonly EoRowModel[];
+  bilagsnumreRows: readonly EoRowModel[];
 }>;
 
 // NOTE:
@@ -65,10 +65,10 @@ const getLoenindkomstAnsaettelsesforholdId = (rowId: string): string | null => {
   return match?.[1] ?? null;
 };
 
-const isLoenindkomstRegulationRow = (row: DebugRowModel): boolean => row.id.includes('.regulering.');
+const isLoenindkomstRegulationRow = (row: EoRowModel): boolean => row.id.includes('.regulering.');
 
-const buildLoenindkomstSections = (rows: readonly DebugRowModel[]) => {
-  const grouped = new Map<string, DebugRowModel[]>();
+const buildLoenindkomstSections = (rows: readonly EoRowModel[]) => {
+  const grouped = new Map<string, EoRowModel[]>();
   const order: string[] = [];
 
   rows.forEach((row) => {
@@ -116,7 +116,7 @@ const getSfggEmploymentId = (rowId: string): string | null => {
   return match?.[1] ?? null;
 };
 
-const parseSfggTable = (row: DebugRowModel): EODebugDisplayTable | null => {
+const parseSfggTable = (row: EoRowModel): EODebugDisplayTable | null => {
   const lines = row.displayValue
     .split('\n')
     .map((line) => line.trim())
@@ -144,10 +144,10 @@ const parseSfggTable = (row: DebugRowModel): EODebugDisplayTable | null => {
 };
 
 const buildSfggSections = (
-  rows: readonly DebugRowModel[],
+  rows: readonly EoRowModel[],
   employmentNamesById: ReadonlyMap<string, string>
 ): readonly EODebugGroupedSectionViewModel[] => {
-  const grouped = new Map<string, DebugRowModel[]>();
+  const grouped = new Map<string, EoRowModel[]>();
   const groupedTables = new Map<string, EODebugDisplayTable[]>();
   const order: string[] = [];
 
@@ -283,7 +283,7 @@ export const buildEODebugPageViewModel = (
   })();
   const offentligeYdelserReguleringsBaseIso =
     view.pdfModel?.tabtArbejdsfortjeneste.offentligeYdelserUdvikling?.reguleringsBaseIso;
-  const offentligeYdelserBaseRow: readonly DebugRowModel[] =
+  const offentligeYdelserBaseRow: readonly EoRowModel[] =
     offentligeYdelserReguleringTableData && offentligeYdelserReguleringsBaseIso
       ? [{
           id: 'offentligeYdelser.regulering.anvendtReguleringsdato',

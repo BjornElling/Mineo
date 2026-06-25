@@ -15,14 +15,14 @@ import type { ISODateString } from '../../types/branded';
  * Andre lag må IKKE definere egen status-type.
  *
  * @see eoDebugIntegrity.ts - Validering der producerer IntegrityIssue[]
- * @see eoDebugCommon.ts - Helper-funktioner der mapper issues til status
+ * @see eoRowCommon.ts - Helper-funktioner der mapper issues til status
  */
-export type DebugStatus = 'ok' | 'warning' | 'error';
+export type EoRowStatus = 'ok' | 'warning' | 'error';
 
 /**
  * Severity for integrity-fejl
  */
-export type IntegritySeverity = Exclude<DebugStatus, 'ok'>;
+export type IntegritySeverity = Exclude<EoRowStatus, 'ok'>;
 
 /**
  * Invariant-typer for integrity checks
@@ -97,7 +97,7 @@ export type SvieSmerte = 'Ingen' | 'Delvis' | 'Fuld';
  * VIGTIGT: id skal være semantisk stabil (tied to field identity, ikke label eller array order).
  * Dette sikrer React key stability og gør debug output auditable.
  */
-export type DebugRowGroup =
+export type EoRowGroup =
   | 'aes.varigeMen'
   | 'aes.midlertidigtEet'
   | 'aes.endeligtEet'
@@ -108,17 +108,17 @@ export type DependencySpec =
   | Readonly<{ kind: 'id'; id: string }>
   | Readonly<{ kind: 'prefix'; prefix: string }>;
 
-export type DebugRowModel = {
+export type EoRowModel = {
   id: string;
   label: string;
   displayValue: string;
   // Status er rækkens max-severity for UI (ikke issue-niveau).
-  status: DebugStatus;
+  status: EoRowStatus;
   // Optional domænemeddelelse (uden "Fejl (...)" / "Advarsel (...)").
   message?: string;
   // Optional præsentationshint til Beregning-fanen.
   summaryDisplay?: 'default' | 'messageOnly';
-  group?: DebugRowGroup;
+  group?: EoRowGroup;
   dependsOn?: ReadonlyArray<DependencySpec>;
 };
 

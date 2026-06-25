@@ -1,15 +1,15 @@
 import type { PersistedSectionMap } from '../../config/persistenceRegistry';
 import type { FieldErrorBySource } from '../../types/fieldErrors';
 import { isoToDanish } from '../../types/branded';
-import { collectPresentFieldErrors, isNonEmptyString, resolveDebugDisplay } from './eoDebugCommon';
-import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
+import { collectPresentFieldErrors, isNonEmptyString, resolveEoRowDisplay } from './eoRowCommon';
+import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 
 /**
  * Debug-row-id skal være stabilt og semantisk knyttet til feltets identitet (ikke label-tekst eller array-rækkefølge).
  *
  * Dette beskytter React-key-stabilitet og gør debug-output auditerbart.
  */
-export type DebugRowId =
+export type EoRowId =
   | 'stamdata.journalnr'
   | 'stamdata.advokatSagsbehandler'
   | 'stamdata.skadelidte'
@@ -20,7 +20,7 @@ type StamdataValues = PersistedSectionMap['stamdata'];
 type StamdataFieldName = Extract<keyof StamdataValues, string>;
 type StamdataFieldErrorsBySource = Partial<Record<StamdataFieldName, FieldErrorBySource>>;
 
-export const buildEODebugStamdataRows = (values: StamdataValues, errors: StamdataFieldErrorsBySource): DebugRowModel[] => {
+export const buildEoStamdataRows = (values: StamdataValues, errors: StamdataFieldErrorsBySource): EoRowModel[] => {
   const advokat = isNonEmptyString(values.advokat) ? values.advokat.trim() : undefined;
   const sagsbehandler = isNonEmptyString(values.sagsbehandler) ? values.sagsbehandler.trim() : undefined;
   const advokatSagsbehandler =
@@ -43,7 +43,7 @@ export const buildEODebugStamdataRows = (values: StamdataValues, errors: Stamdat
     return `${hasError ? 'Fejl' : 'Advarsel'} (${parts.join('; ')})`;
   })();
 
-  const advokatSagsbehandlerStatus: DebugStatus = hasAdvokatSagsbehandlerErrors
+  const advokatSagsbehandlerStatus: EoRowStatus = hasAdvokatSagsbehandlerErrors
     ? advokatErrors.concat(sagsbehandlerErrors).some((e) => e.severity === 'error') ? 'error' : 'warning'
     : isNonEmptyString(advokatSagsbehandler) ? 'ok' : 'ok';
 
@@ -56,7 +56,7 @@ export const buildEODebugStamdataRows = (values: StamdataValues, errors: Stamdat
     {
       id: 'stamdata.journalnr',
       label: 'Journalnr.',
-      ...resolveDebugDisplay({ value: values.journalnr, errors: errors.journalnr, emptyState: 'ok' }),
+      ...resolveEoRowDisplay({ value: values.journalnr, errors: errors.journalnr, emptyState: 'ok' }),
     },
     {
       id: 'stamdata.advokatSagsbehandler',
@@ -68,17 +68,17 @@ export const buildEODebugStamdataRows = (values: StamdataValues, errors: Stamdat
     {
       id: 'stamdata.skadelidte',
       label: 'Skadelidtes navn',
-      ...resolveDebugDisplay({ value: values.skadelidte, errors: errors.skadelidte, emptyState: 'warning' }),
+      ...resolveEoRowDisplay({ value: values.skadelidte, errors: errors.skadelidte, emptyState: 'warning' }),
     },
     {
       id: 'stamdata.skadestype',
       label: 'Skadestype',
-      ...resolveDebugDisplay({ value: values.skadestype, errors: errors.skadestype, emptyState: 'error' }),
+      ...resolveEoRowDisplay({ value: values.skadestype, errors: errors.skadestype, emptyState: 'error' }),
     },
     {
       id: 'stamdata.skadedato',
       label: skadedatoLabel,
-      ...resolveDebugDisplay({ value: danishSkadedato, errors: errors.skadedato, emptyState: 'error' }),
+      ...resolveEoRowDisplay({ value: danishSkadedato, errors: errors.skadedato, emptyState: 'error' }),
     },
   ];
 };

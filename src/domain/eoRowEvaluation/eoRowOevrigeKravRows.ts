@@ -1,23 +1,23 @@
 import { isoToDanish } from '../../types/branded';
 import { formatCurrency } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import { isNonEmptyString } from './eoDebugCommon';
-import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
+import { isNonEmptyString } from './eoRowCommon';
+import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { buildIncomeForRanges, buildTafRanges } from '../erstatningsopgoerelse/helpers/indtaegtPerioder';
 import { resolveOevrigeKravIntroLinjer } from '../erstatningsopgoerelse/helpers/oevrigeKravIntro';
 import { resolveBilagWarning } from '../erstatningsopgoerelse/helpers/bilagWarnings';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
-import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoDebugEoShared';
+import type { ErstatningsopgoerelseValues, ErstatningsopgoerelseFieldErrorsBySource } from './eoRowShared';
 
 /**
  * Bygger debug-rækker for Øvrige erstatningskrav
  */
-export const buildEODebugOevrigeKravRows = (
+export const buildEoOevrigeKravRows = (
   values: ErstatningsopgoerelseValues,
   _errors: ErstatningsopgoerelseFieldErrorsBySource,
   canonicalOutput?: EoCanonicalOutput
-): DebugRowModel[] => {
-  const rows: DebugRowModel[] = [];
+): EoRowModel[] => {
+  const rows: EoRowModel[] = [];
   const tafRanges = canonicalOutput?.periodiseringer.tafPerioder ?? buildTafRanges(values);
   const oevrigeKravForbeholdYdelsestyper = Array.from(
     new Set(
@@ -71,7 +71,7 @@ export const buildEODebugOevrigeKravRows = (
 
       // Status er fejl hvis udgiftTil ELLER beløb mangler (når der er noget udfyldt i rækken)
       // Status er advarsel hvis kun dato mangler
-      let status: DebugStatus = 'ok';
+      let status: EoRowStatus = 'ok';
       let label = '';
       let displayValue = '';
 
@@ -118,10 +118,10 @@ export const buildEODebugOevrigeKravRows = (
 /**
  * Bygger debug-række for Særlige kommentarer
  */
-export const buildEODebugSaerligeKommentarerRows = (
+export const buildEoSaerligeKommentarerRows = (
   values: ErstatningsopgoerelseValues,
   _errors: ErstatningsopgoerelseFieldErrorsBySource
-): DebugRowModel[] => {
+): EoRowModel[] => {
   const kommentarer = values.saerligeKommentarer;
   const harKommentarer = isNonEmptyString(kommentarer);
 
@@ -150,9 +150,9 @@ type BilagEntry = {
  * Bygger debug-rækker for Bilagsnumre.
  * Returnerer tom liste hvis visBilagsnumre !== 'Ja'.
  */
-export const buildEODebugBilagsnumreRows = (
+export const buildEoBilagsnumreRows = (
   values: ErstatningsopgoerelseValues
-): DebugRowModel[] => {
+): EoRowModel[] => {
   if (values.visBilagsnumre !== 'Ja') return [];
 
   const entries: BilagEntry[] = [
@@ -178,7 +178,7 @@ export const buildEODebugBilagsnumreRows = (
         id: entry.id,
         label: entry.label,
         displayValue: warning,
-        status: 'warning' as DebugStatus,
+        status: 'warning' as EoRowStatus,
         message: warning,
         summaryDisplay: 'messageOnly' as const,
       };
@@ -187,7 +187,7 @@ export const buildEODebugBilagsnumreRows = (
       id: entry.id,
       label: entry.label,
       displayValue: entry.value!.trim(),
-      status: 'ok' as DebugStatus,
+      status: 'ok' as EoRowStatus,
     };
   });
 };

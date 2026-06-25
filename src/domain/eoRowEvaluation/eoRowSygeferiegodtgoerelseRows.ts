@@ -2,7 +2,7 @@ import type { ISODateString } from '../../types/branded';
 import { isoToDanish } from '../../types/branded';
 import { formatAsAmount, formatCurrency, formatPercent } from '../../utils/formatUtils';
 import { amountValueToNumber } from '../../utils/expressionAmount';
-import type { DebugRowModel, DebugStatus } from './eoDebugTypes';
+import type { EoRowModel, EoRowStatus } from './eoRowTypes';
 import { computeTafBeregningsenhed } from '../erstatningsopgoerelse/helpers/tafBeregningsenhed';
 import { getOverenskomstMetaById, getOverenskomstSfggPolicy, isOffentligOverenskomstId } from '../../data/overenskomstRates';
 import { isSfggNoEligibleDaysNotCalculable, resolveSfggDayBasis, hasSfggSelectedOverenskomst, resolveSfggSource } from '../erstatningsopgoerelse/engines/sygeferiegodtgoerelse';
@@ -11,20 +11,20 @@ import { SFGG_FERIEPENGE_HVIS_IKKE_SKADE_LABEL, SFGG_FERIEPENGE_MODTAGET_LABEL, 
 import { shouldRequireSygeferiegodtgoerelseInput } from '../erstatningsopgoerelse/helpers/sygeferiegodtgoerelseEligibility';
 import type { EoCanonicalOutput } from '../erstatningsopgoerelse/snapshot/eoCanonicalOutput';
 import { ensureMoneyOre } from '../erstatningsopgoerelse/shared/eoMoney';
-import type { ErstatningsopgoerelseValues, StamdataValues } from './eoDebugEoShared';
-import { formatDebugCount, formatStatusMessage } from './eoDebugEoShared';
+import type { ErstatningsopgoerelseValues, StamdataValues } from './eoRowShared';
+import { formatDebugCount, formatStatusMessage } from './eoRowShared';
 
 const formatDebugIsoRange = (range: Readonly<{ fra: ISODateString; til: ISODateString }>): string =>
   `${isoToDanish(range.fra) ?? range.fra} - ${isoToDanish(range.til) ?? range.til}`;
 
 
-export const buildEODebugSygeferiegodtgoerelseRows = (
+export const buildEoSygeferiegodtgoerelseRows = (
   values: ErstatningsopgoerelseValues,
   stamdata: StamdataValues,
   canonicalOutput?: EoCanonicalOutput,
   pdfModel?: EoModel
-): DebugRowModel[] => {
-  const rows: DebugRowModel[] = [];
+): EoRowModel[] => {
+  const rows: EoRowModel[] = [];
   const tafBeregnesSom = computeTafBeregningsenhed(values);
   const sfgg = pdfModel?.tabtArbejdsfortjeneste.sygeferiegodtgoerelse;
   const seksMaanedersWarnings = new Set<string>();
@@ -58,7 +58,7 @@ export const buildEODebugSygeferiegodtgoerelseRows = (
       : hasUnknownOverenskomstId
         ? 'Ukendt overenskomst-ID'
         : undefined;
-    const beregningskildeStatus: DebugStatus = !kilde || hasUnknownOverenskomstId ? 'error' : 'ok';
+    const beregningskildeStatus: EoRowStatus = !kilde || hasUnknownOverenskomstId ? 'error' : 'ok';
 
     rows.push({
       id: `sfgg.beregningskilde.${employment.id}`,

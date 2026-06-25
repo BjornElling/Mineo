@@ -15,7 +15,7 @@ import { buildTafRanges, parseAarsloenRowInterval } from '../erstatningsopgoerel
 import { SYGEDAGPENGE_SH_CUTOFF } from '../erstatningsopgoerelse/engines/periodiseringsMotor';
 import { buildShDageSetFromIsoRange } from '../erstatningsopgoerelse/engines/tafDaySets';
 import { iterateDatesInclusive, maxISO, minISO, validateIsoRange } from '../../utils/isoDateHelpers';
-import type { DebugDay } from '../eoRowEvaluation/eoDebugTypes';
+import type { DebugDay } from '../eoRowEvaluation/eoRowTypes';
 import { getDayBeforeIso } from '../../utils/isoDateHelpers';
 
 export type DebugTabelDateSource = Readonly<{

@@ -1,10 +1,10 @@
 import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
-import { buildEODebugTaftRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+import { buildEoTaftRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import { toISODateString } from '../../../types/branded';
 
 const iso = (value: string) => toISODateString(value);
 
-describe('buildEODebugTaftRows overlap parity', () => {
+describe('buildEoTaftRows overlap parity', () => {
   // Regression note:
   // Denne suite dækker tidligere kendt overlap-regression og skal forblive grøn (ingen skip).
   it('marks overlapping TAF periods as error rows', () => {
@@ -28,8 +28,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
     const periodRows = rows.filter((row) => row.id.startsWith('taf.periode.'));
 
     const rowB = periodRows.find((row) => row.id === 'taf.periode.b');
@@ -62,8 +62,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
     const ophoerRow = rows.find((row) => row.id === 'taf.ophoerSkyldes');
 
     expect(ophoerRow?.status).toBe('ok');
@@ -92,8 +92,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
     const ferieRows = rows.filter((row) => row.id.startsWith('taf.ferie.'));
 
     expect(ferieRows).toHaveLength(2);
@@ -121,8 +121,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
     const ferieRows = rows.filter((row) => row.id.startsWith('taf.ferie.'));
 
     expect(ferieRows).toHaveLength(1);
@@ -149,8 +149,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
 
     expect(rows).toEqual([
       {
@@ -181,8 +181,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
     const periodRows = rows.filter((row) => row.id.startsWith('taf.periode.'));
 
     expect(periodRows).toHaveLength(1);
@@ -209,8 +209,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
     const periodRows = rows.filter((row) => row.id.startsWith('taf.periode.'));
 
     expect(periodRows).toHaveLength(2);
@@ -237,8 +237,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
     const periodRows = rows.filter((row) => row.id.startsWith('taf.periode.'));
 
     expect(periodRows).toHaveLength(2);
@@ -264,8 +264,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
     const ferieEmptyRow = rows.find((row) => row.id === 'taf.ferie.empty');
 
     expect(ferieEmptyRow).toEqual({
@@ -296,8 +296,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
     const warningRow = rows.find((row) => row.id === 'taf.folkepensionsalder.a');
 
     expect(warningRow?.status).toBe('warning');
@@ -325,8 +325,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
 
     const ophoerRow = rows.find((row) => row.id === 'taf.ophoerSkyldes');
     const periodeRow = rows.find((row) => row.id === 'taf.periode.taf-pre-2011');
@@ -356,8 +356,8 @@ describe('buildEODebugTaftRows overlap parity', () => {
       verserendeKlageEet: false,
     };
 
-    const errors = {} as Parameters<typeof buildEODebugTaftRows>[1];
-    const rows = buildEODebugTaftRows(values, errors, context);
+    const errors = {} as Parameters<typeof buildEoTaftRows>[1];
+    const rows = buildEoTaftRows(values, errors, context);
 
     const ophoerRow = rows.find((row) => row.id === 'taf.ophoerSkyldes');
     const periodeRow = rows.find((row) => row.id === 'taf.periode.taf-post-2011');

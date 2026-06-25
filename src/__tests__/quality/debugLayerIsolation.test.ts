@@ -5,16 +5,15 @@ import path from 'node:path';
  * Arkitektur-værn for grænsen mellem den AUTORITATIVE EO-række-evaluerings-motor og DEV-debug-laget.
  *
  * Baggrund (arkitektur-kandidat B9, afsluttet 2026-06-25): Motoren der producerer EO-status-/fejl-
- * rækker (`collectAllDebugRows` → `executeAllEODebugBuilders` → `buildEODebug…Rows`) er
+ * rækker (`collectAllEoRows` → `executeAllEoRowBuilders` → `buildEo…Rows`) er
  * trust-kritisk: dens `error`-rækker driver produktions-PDF-download-gaten i
  * `useEoBeregningViewModel`. Tidligere lå den i `src/domain/debug/` og blev fejlagtigt omtalt som
  * "DEV-only". Den er nu flyttet til en autoritativ placering, `src/domain/eoRowEvaluation/`, så den
  * trust-kritiske gate ikke længere afhænger af et lag der nominelt er DEV-debug.
  *
  * Rollefordeling efter relokeringen:
- *   - `src/domain/eoRowEvaluation/` — AUTORITATIV motor. Debug-fri. Driver download-gaten OG fødes
- *     ind i DEV-visningen. (Filerne bærer endnu historiske `eoDebug…`-navne; et rent navne-skift er
- *     en separat, adfærds-neutral oprydning.)
+ *   - `src/domain/eoRowEvaluation/` — AUTORITATIV motor (`eoRow…`-filer, `collectAllEoRows` mv.).
+ *     Debug-fri. Driver download-gaten OG fødes ind i DEV-visningen.
  *   - `src/domain/debug/` — ren DEV-visning (tabeller, CSV, parity, integritet, sammentælling). Den
  *     er NEDSTRØMS: den må importere motoren, aldrig omvendt.
  *
@@ -155,7 +154,7 @@ describe('debugLayerIsolation', () => {
   it('selvtest: scanneren fanger faktisk et forbudt debug-import (ikke vacuous-pass)', () => {
     const fromDir = path.resolve(DOMAIN_ROOT, 'erstatningsopgoerelse/engines');
     const offendingSource = "import { buildEODebugSnapshot } from '../../debug/eoDebugSnapshot';";
-    const cleanSource = "import { collectAllDebugRows } from '../../eoRowEvaluation/eoDebugRowAggregator';";
+    const cleanSource = "import { collectAllEoRows } from '../../eoRowEvaluation/eoRowAggregator';";
 
     expect(findDebugImports(offendingSource, fromDir)).toEqual(['../../debug/eoDebugSnapshot']);
     // Import af den autoritative motor er lovlig og må IKKE flagges.
@@ -181,7 +180,7 @@ describe('debugLayerIsolation', () => {
 
     // Produktions-gaten henter sine fejl-rækker fra den autoritative motor i eoRowEvaluation …
     expect(source).toContain(
-      "import { collectAllDebugRows } from '../../../../domain/eoRowEvaluation/eoDebugRowAggregator'"
+      "import { collectAllEoRows } from '../../../../domain/eoRowEvaluation/eoRowAggregator'"
     );
 
     // … og må IKKE længere afhænge af DEV-debug-laget. Dette er kernen i B9: hvis denne kobling
@@ -189,7 +188,7 @@ describe('debugLayerIsolation', () => {
     expect(findDebugImports(source, path.dirname(BEREGNING_VM_PATH))).toEqual([]);
 
     // …og motorens fejl-rækker driver fortsat download-gaten.
-    expect(source).toContain('hasBlockingDebugErrors');
-    expect(source).toContain("eoPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors");
+    expect(source).toContain('hasBlockingEoRowErrors');
+    expect(source).toContain("eoPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors");
   });
 });

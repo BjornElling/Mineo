@@ -1,4 +1,4 @@
-import { buildEODebugIndkomstRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+import { buildEoIndkomstRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -13,7 +13,7 @@ const cloneInitialValues = () => ({
   loenindkomstAnsaettelsesforhold: [createDefaultLoenindkomstAnsaettelsesforhold()],
 });
 
-describe('buildEODebugIndkomstRows display', () => {
+describe('buildEoIndkomstRows display', () => {
   it('viser Ja for satser, lønoplysninger og valgt regulering når data er korrekt udfyldt', () => {
     const values = cloneInitialValues();
     values.beregnesUdFra = 'Beregningsperiode';
@@ -31,7 +31,7 @@ describe('buildEODebugIndkomstRows display', () => {
       },
     ];
 
-    const rows = buildEODebugIndkomstRows(values, undefined, {});
+    const rows = buildEoIndkomstRows(values, undefined, {});
     const prefix = `loenindkomst.${af.id}`;
 
     expect(rows.find((row) => row.id === `${prefix}.satserSkadestidspunkt`)?.displayValue).toBe('Ja');
@@ -57,7 +57,7 @@ describe('buildEODebugIndkomstRows display', () => {
       },
     ];
 
-    const rows = buildEODebugIndkomstRows(values, undefined, {});
+    const rows = buildEoIndkomstRows(values, undefined, {});
     const nameRow = rows.find((row) => row.id === `loenindkomst.${af.id}.regulering.navn`);
 
     expect(nameRow).toBeDefined();
@@ -83,7 +83,7 @@ describe('buildEODebugIndkomstRows display', () => {
       },
     ];
 
-    const rows = buildEODebugIndkomstRows(values, undefined, {});
+    const rows = buildEoIndkomstRows(values, undefined, {});
     const nameRow = rows.find((row) => row.id === `loenindkomst.${af.id}.regulering.navn`);
 
     expect(nameRow?.displayValue).toBe('Manuelt angivet');
@@ -109,7 +109,7 @@ describe('buildEODebugIndkomstRows display', () => {
       },
     ];
 
-    const rows = buildEODebugIndkomstRows(values, undefined, {});
+    const rows = buildEoIndkomstRows(values, undefined, {});
     const offentligRow = rows.find((row) => row.id === `loenindkomst.${af.id}.regulering.offentligLoenoplysninger`);
 
     expect(offentligRow?.displayValue).toBe('Timeløn, løntrin 26, gruppe 2');
@@ -131,7 +131,7 @@ describe('buildEODebugIndkomstRows display', () => {
       },
     ];
 
-    const rows = buildEODebugIndkomstRows(values, undefined, {});
+    const rows = buildEoIndkomstRows(values, undefined, {});
     const warningRow = rows.find((row) => row.id === `loenindkomst.${af.id}.loenEfterOphoer`);
 
     expect(warningRow?.status).toBe('warning');

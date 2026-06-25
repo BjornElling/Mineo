@@ -1,5 +1,5 @@
 import { resolveBilagWarning } from '../../../domain/erstatningsopgoerelse/helpers/bilagWarnings';
-import { buildEODebugBilagsnumreRows } from '../../../domain/eoRowEvaluation/eoDebugErstatningsopgoerelseModel';
+import { buildEoBilagsnumreRows } from '../../../domain/eoRowEvaluation/eoRowErstatningsopgoerelseModel';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -174,17 +174,17 @@ describe('resolveBilagWarning', () => {
   });
 });
 
-// ─── buildEODebugBilagsnumreRows ─────────────────────────────────────────────
+// ─── buildEoBilagsnumreRows ─────────────────────────────────────────────
 
-describe('buildEODebugBilagsnumreRows', () => {
+describe('buildEoBilagsnumreRows', () => {
   it('returnerer tom liste når visBilagsnumre er Nej', () => {
     const values = makeValues({ visBilagsnumre: 'Nej' });
-    expect(buildEODebugBilagsnumreRows(values)).toHaveLength(0);
+    expect(buildEoBilagsnumreRows(values)).toHaveLength(0);
   });
 
   it('returnerer "Ingen"-række når visBilagsnumre er Ja men ingen felter er udfyldt', () => {
     const values = makeValues({ visBilagsnumre: 'Ja' });
-    const rows = buildEODebugBilagsnumreRows(values);
+    const rows = buildEoBilagsnumreRows(values);
     expect(rows).toHaveLength(1);
     expect(rows[0].id).toBe('bilagsnumre.ingen');
     expect(rows[0].status).toBe('ok');
@@ -196,7 +196,7 @@ describe('buildEODebugBilagsnumreRows', () => {
       varigeMenAfgorelse: 'Ja',
       bilagsnumreMenAfgoerelse: '1',
     });
-    const rows = buildEODebugBilagsnumreRows(values);
+    const rows = buildEoBilagsnumreRows(values);
     expect(rows).toHaveLength(1);
     expect(rows[0].id).toBe('bilagsnumre.menAfgoerelse');
     expect(rows[0].status).toBe('ok');
@@ -209,7 +209,7 @@ describe('buildEODebugBilagsnumreRows', () => {
       varigeMenAfgorelse: 'Nej',
       bilagsnumreMenAfgoerelse: '1',
     });
-    const rows = buildEODebugBilagsnumreRows(values);
+    const rows = buildEoBilagsnumreRows(values);
     expect(rows).toHaveLength(1);
     expect(rows[0].id).toBe('bilagsnumre.menAfgoerelse');
     expect(rows[0].status).toBe('warning');
@@ -222,7 +222,7 @@ describe('buildEODebugBilagsnumreRows', () => {
       bilagsnumreMenAfgoerelse: '1',
       bilagsnumreEetAfgoerelser: undefined,
     });
-    const rows = buildEODebugBilagsnumreRows(values);
+    const rows = buildEoBilagsnumreRows(values);
     // Kun ménafgørelse er udfyldt
     expect(rows.every((r) => r.id !== 'bilagsnumre.ingen')).toBe(true);
     expect(rows.some((r) => r.id === 'bilagsnumre.menAfgoerelse')).toBe(true);
@@ -235,7 +235,7 @@ describe('buildEODebugBilagsnumreRows', () => {
       varigeMenAfgorelse: 'Ja',
       bilagsnumreMenAfgoerelse: '  42  ',
     });
-    const rows = buildEODebugBilagsnumreRows(values);
+    const rows = buildEoBilagsnumreRows(values);
     expect(rows[0].displayValue).toBe('42');
   });
 });

@@ -1,7 +1,7 @@
-import type { DebugRowModel } from '../../../domain/eoRowEvaluation/eoDebugTypes';
-import type { EODebugExecutionContext } from '../../../domain/eoRowEvaluation/eoDebugExecutionContext';
-import { collectAllDebugRows } from '../../../domain/eoRowEvaluation/eoDebugRowAggregator';
-import * as Registry from '../../../domain/eoRowEvaluation/eoDebugBuilderRegistry';
+import type { EoRowModel } from '../../../domain/eoRowEvaluation/eoRowTypes';
+import type { EoRowEvaluationContext } from '../../../domain/eoRowEvaluation/eoRowExecutionContext';
+import { collectAllEoRows } from '../../../domain/eoRowEvaluation/eoRowAggregator';
+import * as Registry from '../../../domain/eoRowEvaluation/eoRowBuilderRegistry';
 import type { FieldErrorBySource } from '../../../types/fieldErrors';
 import type { PersistedSectionMap } from '../../../config/persistenceRegistry';
 import { STAMDATA_INITIAL_VALUES } from '../../../domain/stamdata/stamdataInitialValues';
@@ -9,21 +9,21 @@ import { createErstatningsopgoerelseInitialValues } from '../../../domain/erstat
 
 type Builder = {
   name: string;
-  run: (ctx: EODebugExecutionContext) => DebugRowModel[];
+  run: (ctx: EoRowEvaluationContext) => EoRowModel[];
 };
 
 type MockRegistry = {
-  executeAllEODebugBuilders: (ctx: EODebugExecutionContext) => DebugRowModel[];
+  executeAllEoRowBuilders: (ctx: EoRowEvaluationContext) => EoRowModel[];
   __setBuilders: (builders: Builder[]) => void;
   __getBuilderRuns: () => ReadonlyMap<string, number>;
   __resetBuilderRuns: () => void;
 };
 
-vi.mock('../../../domain/eoRowEvaluation/eoDebugBuilderRegistry', () => {
+vi.mock('../../../domain/eoRowEvaluation/eoRowBuilderRegistry', () => {
   let builders: Builder[] = [];
   const builderRuns = new Map<string, number>();
 
-  const executeAllEODebugBuilders = (ctx: EODebugExecutionContext): DebugRowModel[] => {
+  const executeAllEoRowBuilders = (ctx: EoRowEvaluationContext): EoRowModel[] => {
     return builders.flatMap((builder) => {
       builderRuns.set(builder.name, (builderRuns.get(builder.name) ?? 0) + 1);
       return builder.run(ctx);
@@ -39,7 +39,7 @@ vi.mock('../../../domain/eoRowEvaluation/eoDebugBuilderRegistry', () => {
   const __resetBuilderRuns = () => builderRuns.clear();
 
   return {
-    executeAllEODebugBuilders,
+    executeAllEoRowBuilders,
     __setBuilders,
     __getBuilderRuns,
     __resetBuilderRuns,
@@ -58,9 +58,9 @@ const eoErrors: Partial<
 
 const makeRow = (
   id: string,
-  status: DebugRowModel['status'],
-  dependsOn?: DebugRowModel['dependsOn']
-): DebugRowModel => ({
+  status: EoRowModel['status'],
+  dependsOn?: EoRowModel['dependsOn']
+): EoRowModel => ({
   id,
   label: id,
   displayValue: id,
@@ -68,7 +68,7 @@ const makeRow = (
   dependsOn,
 });
 
-describe('collectAllDebugRows', () => {
+describe('collectAllEoRows', () => {
   beforeEach(() => {
     registry.__setBuilders([]);
     registry.__resetBuilderRuns();
@@ -83,7 +83,7 @@ describe('collectAllDebugRows', () => {
 
     registry.__setBuilders(builders);
 
-    collectAllDebugRows(
+    collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
@@ -112,7 +112,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const { errors, warnings, relevantRows } = collectAllDebugRows(
+    const { errors, warnings, relevantRows } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
@@ -142,7 +142,7 @@ describe('collectAllDebugRows', () => {
     ]);
 
     const eoValues = { ...createErstatningsopgoerelseInitialValues(), kravPaaSvieSmerteGodtgoerelse: 'Nej' as const };
-    const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
+    const { errors, warnings, allRows, relevantRows } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       eoValues,
@@ -168,7 +168,7 @@ describe('collectAllDebugRows', () => {
     ]);
 
     const eoValues = { ...createErstatningsopgoerelseInitialValues(), kravPaaTabtArbejdsfortjeneste: 'Nej' as const };
-    const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
+    const { errors, warnings, allRows, relevantRows } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       eoValues,
@@ -199,7 +199,7 @@ describe('collectAllDebugRows', () => {
     ]);
 
     const eoValues = { ...createErstatningsopgoerelseInitialValues(), midlertidigtEETAfgorelse: 'Nej' as const };
-    const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
+    const { errors, warnings, allRows, relevantRows } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       eoValues,
@@ -231,7 +231,7 @@ describe('collectAllDebugRows', () => {
     ]);
 
     const eoValues = { ...createErstatningsopgoerelseInitialValues(), endeligtEETAfgorelse: 'Nej' as const };
-    const { errors, warnings, allRows, relevantRows } = collectAllDebugRows(
+    const { errors, warnings, allRows, relevantRows } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       eoValues,
@@ -264,20 +264,20 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const first = collectAllDebugRows(
+    const first = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
-    const second = collectAllDebugRows(
+    const second = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
       eoErrors
     );
 
-    const asKeyed = (rows: ReadonlyArray<DebugRowModel>) =>
+    const asKeyed = (rows: ReadonlyArray<EoRowModel>) =>
       rows.map((row) => ({ id: row.id, status: row.status }));
 
     expect(asKeyed(first.allRows)).toEqual(asKeyed(second.allRows));
@@ -294,7 +294,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const { allRows, relevantRows } = collectAllDebugRows(
+    const { allRows, relevantRows } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
@@ -319,7 +319,7 @@ describe('collectAllDebugRows', () => {
     ]);
 
     expect(() =>
-      collectAllDebugRows(
+      collectAllEoRows(
         STAMDATA_INITIAL_VALUES,
         stamdataErrors,
         createErstatningsopgoerelseInitialValues(),
@@ -339,7 +339,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const { errors, warnings } = collectAllDebugRows(
+    const { errors, warnings } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
@@ -361,7 +361,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const { errors, warnings } = collectAllDebugRows(
+    const { errors, warnings } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
@@ -383,7 +383,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const { errors, warnings } = collectAllDebugRows(
+    const { errors, warnings } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
@@ -406,7 +406,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const { errors, warnings } = collectAllDebugRows(
+    const { errors, warnings } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
@@ -427,7 +427,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const { errors, warnings } = collectAllDebugRows(
+    const { errors, warnings } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
@@ -451,7 +451,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const { errors, warnings } = collectAllDebugRows(
+    const { errors, warnings } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
@@ -475,7 +475,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    const { errors, warnings } = collectAllDebugRows(
+    const { errors, warnings } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
@@ -498,7 +498,7 @@ describe('collectAllDebugRows', () => {
     ]);
 
     expect(() =>
-      collectAllDebugRows(
+      collectAllEoRows(
         STAMDATA_INITIAL_VALUES,
         stamdataErrors,
         createErstatningsopgoerelseInitialValues(),
@@ -522,7 +522,7 @@ describe('collectAllDebugRows', () => {
     const eoValues = { ...createErstatningsopgoerelseInitialValues(), kravPaaTabtArbejdsfortjeneste: 'Nej' as const };
 
     expect(() =>
-      collectAllDebugRows(
+      collectAllEoRows(
         STAMDATA_INITIAL_VALUES,
         stamdataErrors,
         eoValues,
@@ -547,7 +547,7 @@ describe('collectAllDebugRows', () => {
     const eoValues = { ...createErstatningsopgoerelseInitialValues(), kravPaaTabtArbejdsfortjeneste: 'Nej' as const };
 
     expect(() =>
-      collectAllDebugRows(
+      collectAllEoRows(
         STAMDATA_INITIAL_VALUES,
         stamdataErrors,
         eoValues,
@@ -563,14 +563,14 @@ describe('collectAllDebugRows', () => {
         run: () => [
           {
             ...makeRow('parent.unknown', 'ok'),
-            status: 'invalid-status' as unknown as DebugRowModel['status'],
+            status: 'invalid-status' as unknown as EoRowModel['status'],
           },
           makeRow('child.warning', 'warning', [{ kind: 'id', id: 'parent.unknown' }]),
         ],
       },
     ]);
 
-    const { errors, warnings } = collectAllDebugRows(
+    const { errors, warnings } = collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),
@@ -593,7 +593,7 @@ describe('collectAllDebugRows', () => {
       },
     ]);
 
-    collectAllDebugRows(
+    collectAllEoRows(
       STAMDATA_INITIAL_VALUES,
       stamdataErrors,
       createErstatningsopgoerelseInitialValues(),

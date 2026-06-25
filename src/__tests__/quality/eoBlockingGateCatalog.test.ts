@@ -2,7 +2,7 @@
  * B9 — FASE 1: empirisk katalog + golden-master baseline.
  *
  * Formål: låse PRÆCIST hvad debug-laget i dag gater UNIKT (cases hvor snapshot-
- * projektionen er `ok`, men `collectAllDebugRows` — kørt UDEN felt-fejl — alligevel
+ * projektionen er `ok`, men `collectAllEoRows` — kørt UDEN felt-fejl — alligevel
  * producerer `status:'error'`). Det er den autoritative, reachability-rene liste over
  * den blokering, der i fase 2 skal flyttes til det nye `eoBlockingValidation`-modul.
  *
@@ -16,7 +16,7 @@
  * Beskeder kan indlejre en dags-dato-afhængig øvre grænse; derfor normaliseres alle
  * dato-tokens til ⟨dato⟩ før sammenligning.
  */
-import { collectAllDebugRows } from '../../domain/eoRowEvaluation/eoDebugRowAggregator';
+import { collectAllEoRows } from '../../domain/eoRowEvaluation/eoRowAggregator';
 import {
   createDefaultLoenindkomstAnsaettelsesforhold,
   createErstatningsopgoerelseInitialValues,
@@ -108,7 +108,7 @@ const probe = (eoValues: EoValues) => {
   const withSfgg = withSfggIngenForEmployments(eoValues);
   const snapshot = computeEoSnapshot({ revision: 'b9-catalog', stamdataValues: STAMDATA, eoValues: withSfgg });
   const projectionKind = eoSnapshotToEoDocument(snapshot).kind;
-  const debug = collectAllDebugRows(STAMDATA, {}, withSfgg, {}, {}, undefined, snapshot.data?.canonicalOutput);
+  const debug = collectAllEoRows(STAMDATA, {}, withSfgg, {}, {}, undefined, snapshot.data?.canonicalOutput);
   const debugErrors = debug.errors
     .map((row) => ({ id: row.id, message: normalizeMessage(row.message ?? row.displayValue) }))
     .sort((a, b) => a.id.localeCompare(b.id));

@@ -1,14 +1,14 @@
 import type { AppSettings } from '../../../settings/appSettingsSchema';
 import {
-  EO_DEBUG_BUILDERS,
-  executeEODebugBuilderEntriesBySection,
-} from '../../eoRowEvaluation/eoDebugBuilderRegistry';
-import type { EODebugExecutionContext } from '../../eoRowEvaluation/eoDebugExecutionContext';
+  EO_ROW_BUILDERS,
+  executeEoRowBuilderEntriesBySection,
+} from '../../eoRowEvaluation/eoRowBuilderRegistry';
+import type { EoRowEvaluationContext } from '../../eoRowEvaluation/eoRowExecutionContext';
 import { buildRegulationTimeline } from '../../debug/eoDebugRegulationCore';
 import type { RegulationDebugSection } from '../../debug/eoDebugRegulationViewModel';
 import { buildRegulationDebugSections } from '../../debug/eoDebugRegulationViewModel';
-import type { SectionId } from '../../eoRowEvaluation/eoDebugNavigationMap';
-import type { DebugRowModel } from '../../eoRowEvaluation/eoDebugTypes';
+import type { SectionId } from '../../eoRowEvaluation/eoRowNavigationMap';
+import type { EoRowModel } from '../../eoRowEvaluation/eoRowTypes';
 import type { EoCanonicalOutput } from './eoCanonicalOutput';
 import type { EoModel } from './eoPresentationModel';
 import { hasEoSnapshotData, type EoSnapshot } from './eoSnapshot';
@@ -26,7 +26,7 @@ type EoDebugViewReady = Readonly<{
   debugSnapshot: NonNullable<EoSnapshot['debugSnapshot']>;
   stamdataValues: NonNullable<EoSnapshot['input']['stamdata']>;
   erstatningsopgoerelseValues: NonNullable<EoSnapshot['input']['erstatningsopgoerelse']>;
-  rowsBySection: ReadonlyMap<SectionId, readonly DebugRowModel[]>;
+  rowsBySection: ReadonlyMap<SectionId, readonly EoRowModel[]>;
   regulationSections: readonly RegulationDebugSection[];
   pdfModel?: EoModel | undefined;
 }>;
@@ -66,7 +66,7 @@ export const eoSnapshotToDebugView = (args: Readonly<{
     const canonicalOutput = hasEoSnapshotData(snapshot) ? snapshot.data.canonicalOutput : undefined;
     const pdfModel = hasEoSnapshotData(snapshot) ? snapshot.data.pdfModel : undefined;
 
-    const ctx: EODebugExecutionContext = {
+    const ctx: EoRowEvaluationContext = {
       stamdataValues,
       stamdataErrors: debugSnapshot.fieldErrors.stamdata,
       eoValues: erstatningsopgoerelseValues,
@@ -83,7 +83,7 @@ export const eoSnapshotToDebugView = (args: Readonly<{
       debugSnapshot,
       stamdataValues,
       erstatningsopgoerelseValues,
-      rowsBySection: executeEODebugBuilderEntriesBySection(EO_DEBUG_BUILDERS, ctx),
+      rowsBySection: executeEoRowBuilderEntriesBySection(EO_ROW_BUILDERS, ctx),
       regulationSections: buildRegulationDebugSections({
         timeline: buildRegulationTimeline({
           debugDays: debugSnapshot.debugDays,

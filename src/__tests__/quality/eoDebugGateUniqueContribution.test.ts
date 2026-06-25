@@ -2,26 +2,26 @@
  * AFKLARINGS-TEST (arkitektur-kandidat B9 — forundersøgelse).
  *
  * Spørgsmål: Bidrager debug-laget noget UNIKT til produktions-PDF-gaten, eller er
- * `hasBlockingDebugErrors` redundant med (snapshot-projektionen ∪ felt-fejl)?
+ * `hasBlockingEoRowErrors` redundant med (snapshot-projektionen ∪ felt-fejl)?
  *
  * Produktions-gaten i `useEoBeregningViewModel` er:
- *     eoPdfProjection?.kind === 'ok' && !hasBlockingDebugErrors
- * hvor `hasBlockingDebugErrors` udledes af `collectAllDebugRows(...).errors`.
+ *     eoPdfProjection?.kind === 'ok' && !hasBlockingEoRowErrors
+ * hvor `hasBlockingEoRowErrors` udledes af `collectAllEoRows(...).errors`.
  *
- * Probe: Kør `collectAllDebugRows` med TOMME felt-fejl-maps. Enhver `status:'error'`-
+ * Probe: Kør `collectAllEoRows` med TOMME felt-fejl-maps. Enhver `status:'error'`-
  * række der så optræder, er beregnet udelukkende fra committed værdier (ikke fra en
  * felt-fejl og ikke fra den autoritative validator/snapshot). Optræder en sådan fejl i
  * en sag hvor snapshot-projektionen samtidig er `ok`, så er det et GENUINT debug-only-
  * gate-bidrag: PDF'en er blokeret i dag, men ville slippe igennem hvis gaten kun byggede
  * på snapshot + felt-fejl.
  *
- * KONKLUSION (jf. eoDebugSvieSmerteRows.ts:100-103, som eksplicit dokumenterer at
+ * KONKLUSION (jf. eoRowSvieSmerteRows.ts:100-103, som eksplicit dokumenterer at
  * felt-fejl "typisk er tom for disse felter" og at debug derfor re-deriverer dato-
  * grænserne): debug-laget bærer genuin produktions-validering der ikke findes
  * autoritativt andre steder. B9 er derfor IKKE en ren strukturel refaktor — en del af
  * valideringen skal flyttes ind i den autoritative validator (forelæggelses-pligtigt).
  */
-import { collectAllDebugRows } from '../../domain/eoRowEvaluation/eoDebugRowAggregator';
+import { collectAllEoRows } from '../../domain/eoRowEvaluation/eoRowAggregator';
 import { createErstatningsopgoerelseInitialValues } from '../../domain/erstatningsopgoerelse/helpers/erstatningsopgoerelseInitialValues';
 import { computeEoSnapshot } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshot';
 import { eoSnapshotToEoDocument } from '../../domain/erstatningsopgoerelse/snapshot/eoSnapshotToEoDocument';
@@ -78,7 +78,7 @@ const project = (eoValues: PersistedSectionMap['erstatningsopgoerelse']) => {
 
 // Debug-errors udledt UDEN felt-fejl-input → rene værdi-afledte (debug-only) fejl.
 const debugOnlyErrorIds = (eoValues: PersistedSectionMap['erstatningsopgoerelse']): string[] =>
-  collectAllDebugRows(STAMDATA, {}, eoValues, {})
+  collectAllEoRows(STAMDATA, {}, eoValues, {})
     .errors.map((row) => row.id)
     .sort((a, b) => a.localeCompare(b));
 

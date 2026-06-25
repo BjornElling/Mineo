@@ -9,8 +9,8 @@ const {
   executeEODebugBuilderEntriesBySectionMock: vi.fn((..._args: unknown[]) => new Map()),
 }));
 
-vi.mock('../../../domain/eoRowEvaluation/eoDebugBuilderRegistry', () => ({
-  EO_DEBUG_BUILDERS: [
+vi.mock('../../../domain/eoRowEvaluation/eoRowBuilderRegistry', () => ({
+  EO_ROW_BUILDERS: [
     {
       section: 'stamdata',
       run: (ctx: { stamdataValues: { journalnr?: string } }) => [
@@ -24,7 +24,7 @@ vi.mock('../../../domain/eoRowEvaluation/eoDebugBuilderRegistry', () => ({
       },
     },
   ],
-  executeEODebugBuilderEntriesBySection: executeEODebugBuilderEntriesBySectionMock,
+  executeEoRowBuilderEntriesBySection: executeEODebugBuilderEntriesBySectionMock,
 }));
 
 vi.mock('../../../domain/debug/eoDebugRegulationCore', () => ({

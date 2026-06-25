@@ -1,4 +1,4 @@
-import { getNavigationTargetFromRowId } from '../../../domain/eoRowEvaluation/eoDebugNavigationMap';
+import { getNavigationTargetFromRowId } from '../../../domain/eoRowEvaluation/eoRowNavigationMap';
 
 describe('getNavigationTargetFromRowId', () => {
   it('navigerer lønindkomst-rækker til Lønindkomst-fanen og sektionen', () => {
