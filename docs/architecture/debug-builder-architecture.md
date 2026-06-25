@@ -1,9 +1,11 @@
-# Debug-builder arkitektur
+# Række-evaluerings- & debug-builder arkitektur
 
 **Status:** Arkitekturforklarende reference, ikke selvstændig kontrakt
-**Primært scope:** `src/domain/debug/*`, `src/domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView.ts`, `src/components/pages/erstatningsopgoerelse/EODebug.tsx`
+**Primært scope:** `src/domain/eoRowEvaluation/*` (række-evaluerings-motoren), `src/domain/debug/*` (DEV-visning), `src/domain/erstatningsopgoerelse/snapshot/eoSnapshotToDebugView.ts`, `src/components/pages/erstatningsopgoerelse/EODebug.tsx`
 
-Dette dokument er et arbejdsredskab for ændringer i EO-debug. Bindende fejl-/debug-regler ligger i `src/contracts/error-debug-contract.md` og EO-regler i `src/contracts/eo-snapshot-contract.md`.
+Dette dokument er et arbejdsredskab for ændringer i EO-række-evaluering og EO-debug. Bindende fejl-/debug-regler ligger i `src/contracts/error-debug-contract.md` og EO-regler i `src/contracts/eo-snapshot-contract.md`.
+
+> **B9-relocation (2026-06-25) — læs dette først.** Række-evaluerings-motoren (builder-registry + alle `buildEo…Rows` + aggregator + delte typer/helpers) er flyttet UD af `src/domain/debug/` til den autoritative, debug-frie placering **`src/domain/eoRowEvaluation/`**, fordi den driver den trust-kritiske download-gate og derfor ikke må ligge i et nominelt "DEV"-lag. Symbolerne er omdøbt `eoDebug…`→`eoRow…` / `…Debug…`→`…EoRow…` (fx `collectAllDebugRows`→`collectAllEoRows`, `DebugRowModel`→`EoRowModel`, `EODebugExecutionContext`→`EoRowEvaluationContext`, `EO_DEBUG_BUILDERS`→`EO_ROW_BUILDERS`, `buildEODebug…Rows`→`buildEo…Rows`). I `src/domain/debug/` bliver kun den rene DEV-visning (page-/regulerings-viewmodel, CSV, integritet, parity, sammentælling) — den importerer nu motoren, aldrig omvendt. Symboler der navngiver et ÆGTE DEV-inspektions-underbegreb (`DebugDay`, `IntegrityInvariant`, `DebugCellValue`, `parseDanishToIsoDebug`) samt den private exception-isolerings-helper `executeEODebugBuilderEntry` og fallback-rækkens id (`debug.builder.<section>.exception`) er bevidst beholdt. Hvor prosaen nedenfor siger "EO-debug" / "debug-builder" om selve række-produktionen, læs "række-evaluering".
 
 ---
 
@@ -23,9 +25,9 @@ Konsekvens:
 
 ## 2. Faktisk systemstruktur
 
-Den nuværende EO-debug består af to parallelle debug-outputspor:
+Den nuværende EO-debug består af to parallelle outputspor:
 
-1. Builder-baserede `DebugRowModel[]`
+1. Builder-baserede `EoRowModel[]`
 2. Reguleringssektioner (`RegulationDebugSection[]`)
 
 Det er vigtigt, fordi registry kun dækker spor 1.
@@ -37,11 +39,11 @@ EoSnapshot
   ↓
 eoSnapshotToDebugView(...)
   ↓
-bygger EODebugExecutionContext
+bygger EoRowEvaluationContext
   ↓
-executeEODebugBuilderEntriesBySection(EO_DEBUG_BUILDERS, ctx)
+executeEoRowBuilderEntriesBySection(EO_ROW_BUILDERS, ctx)
   ↓
-rowsBySection: Map<SectionId, DebugRowModel[]>
+rowsBySection: Map<SectionId, EoRowModel[]>
 
 samtidig:
 
@@ -65,13 +67,13 @@ EODebug.tsx (ren renderer)
 ### Dataflow for Beregning-fanen
 
 ```text
-collectAllDebugRows(...)
+collectAllEoRows(...)
   ↓
-EODebugExecutionContext
+EoRowEvaluationContext
   ↓
-executeAllEODebugBuilders(...)
+executeAllEoRowBuilders(...)
   ↓
-DebugRowModel[]
+EoRowModel[]
   ↓
 navigation + relevance filtering + dependency suppression
   ↓
@@ -80,12 +82,12 @@ errors / warnings / allRows / relevantRows
 
 ### Konsekvens
 
-`EO_DEBUG_BUILDERS` er single source of truth for debug-rækkerne, men ikke for hele EO-debug-visningen.
+`EO_ROW_BUILDERS` er single source of truth for række-rækkerne, men ikke for hele EO-debug-visningen.
 
 Det er derfor forkert at antage:
 - at al debug-output går gennem registry
 - at en ny debug-sektion altid kun kræver én ændring i registry
-- at EO-debug og Beregning-fanen er identiske consumers af debug-output
+- at EO-debug og Beregning-fanen er identiske consumers af række-output
 
 De deler samme builder-kilde, men har forskellig efterbehandling.
 
@@ -113,10 +115,10 @@ Der findes test for dette i `src/__tests__/domain/erstatningsopgoerelse/eoSnapsh
 
 ---
 
-## 4. EODebugExecutionContext er canonical for builders
+## 4. EoRowEvaluationContext er canonical for builders
 
 ```ts
-type EODebugExecutionContext = {
+type EoRowEvaluationContext = {
   stamdataValues: StamdataValues;
   stamdataErrors: StamdataFieldErrorsBySource;
   eoValues: ErstatningsopgoerelseValues;
@@ -139,14 +141,14 @@ Dette følges konsekvent i registry og i Beregning-fanen.
 
 ## 5. Registryets faktiske ansvar
 
-`src/domain/debug/eoDebugBuilderRegistry.ts` ejer:
+`src/domain/eoRowEvaluation/eoRowBuilderRegistry.ts` ejer:
 - listen over builder-sektioner og deres rækkefølge
-- wiring fra `EODebugExecutionContext` til de konkrete builder-funktioner
+- wiring fra `EoRowEvaluationContext` til de konkrete builder-funktioner
 - per-builder exception-isolation via den private `executeEODebugBuilderEntry`
 
 Registryet eksponerer to udførelsesfunktioner:
-- `executeEODebugBuilderEntries` — flat `DebugRowModel[]`, bruges af Beregning-fanen
-- `executeEODebugBuilderEntriesBySection` — `Map<SectionId, DebugRowModel[]>`, bruges af EO-debug siden
+- `executeEoRowBuilderEntries` — flat `EoRowModel[]`, bruges af Beregning-fanen
+- `executeEoRowBuilderEntriesBySection` — `Map<SectionId, EoRowModel[]>`, bruges af EO-debug siden
 
 Registryet ejer ikke:
 - reguleringssektioner
@@ -175,10 +177,10 @@ Registryet ejer ikke:
 ## 6. Fejlisolation: ét kanonisk sted
 
 Fejl i en enkelt builder isoleres via `executeEODebugBuilderEntry` (privat helper i registry), som bruges af:
-- `executeEODebugBuilderEntries` (flat output til Beregning-fanen)
-- `executeEODebugBuilderEntriesBySection` (sektioneret output til EO-debug siden)
+- `executeEoRowBuilderEntries` (flat output til Beregning-fanen)
+- `executeEoRowBuilderEntriesBySection` (sektioneret output til EO-debug siden)
 
-`eoSnapshotToDebugView` bruger `executeEODebugBuilderEntriesBySection(EO_DEBUG_BUILDERS, ctx)` og har ikke sin egen kopi af exception-isolationen.
+`eoSnapshotToDebugView` bruger `executeEoRowBuilderEntriesBySection(EO_ROW_BUILDERS, ctx)` og har ikke sin egen kopi af exception-isolationen.
 
 Fallback-rækken er:
 - id: `debug.builder.<section>.exception`
@@ -202,10 +204,10 @@ Rationale:
 
 | Builder / modul | Læser fra canonical output | Fallback når canonical mangler |
 |---|---|---|
-| `buildEODebugSvieSmerteRows` | `totals.svieSmerteOre`, `svieSmerte.maxApplied` | viser `'-'` for beregnet beløb |
-| `buildEODebugTaftRows` | `taf.tidligereModtagetTafOre` | falder tilbage til committed input |
-| `buildEODebugSygeferiegodtgoerelseRows` | `periodiseringer.tafPerioder` | falder tilbage til `buildTafRanges(values)` |
-| `buildEODebugOevrigeKravRows` | `periodiseringer.tafPerioder` | falder tilbage til `buildTafRanges(values)` |
+| `buildEoSvieSmerteRows` | `totals.svieSmerteOre`, `svieSmerte.maxApplied` | viser `'-'` for beregnet beløb |
+| `buildEoTaftRows` | `taf.tidligereModtagetTafOre` | falder tilbage til committed input |
+| `buildEoSygeferiegodtgoerelseRows` | `periodiseringer.tafPerioder` | falder tilbage til `buildTafRanges(values)` |
+| `buildEoOevrigeKravRows` | `periodiseringer.tafPerioder` | falder tilbage til `buildTafRanges(values)` |
 | `buildRegulationDebugSections` | `regulering.perAnsaettelse[*].loenudviklingSegmenter`, `periodiseringer.tafPerioder` | falder tilbage til tidslinje/TAF-ranges |
 
 ### Vigtig præcisering
@@ -228,11 +230,11 @@ Direkte motorkald i debug er kun forsvarligt når alle disse betingelser er opfy
 
 ### Konkrete nuværende motorkald/faglige helpers i debug
 
-- `buildEODebugSygeferiegodtgoerelseRows`
+- `buildEoSygeferiegodtgoerelseRows`
   - kalder `buildLoenudviklingModel(...)` og `computeSygeferiegodtgoerelse(...)`
-- `buildEODebugOevrigeKravRows`
+- `buildEoOevrigeKravRows`
   - bruger `buildIncomeForRanges(...)`
-- `buildEODebugTafBeregningsgrundlagRows`
+- `buildEoTafBeregningsgrundlagRows`
   - bruger `buildBeregningsperiodeRange(...)` og `buildIncomeForRanges(...)`
 - `buildRegulationDebugSections`
   - kalder `buildReguleringIndexRows(...)`
@@ -268,7 +270,7 @@ Det er forkert, hvis en delmængde af disse overenskomster i virkeligheden bruge
 
 ## 10. Eksempel på korrekt domænespecifik gating
 
-`buildEODebugSygeferiegodtgoerelseRows` er i dag det tydeligste eksempel på korrekt, domænespecifik gating.
+`buildEoSygeferiegodtgoerelseRows` er i dag det tydeligste eksempel på korrekt, domænespecifik gating.
 
 Builderen skelner mellem:
 - om der overhovedet er aktiv SFGG-kilde
@@ -295,17 +297,17 @@ Arkitektonisk vurdering:
 
 ---
 
-## 11. `DebugRowModel`, stabile id'er og dependency-spec
+## 11. `EoRowModel`, stabile id'er og dependency-spec
 
 ```ts
-type DebugRowModel = {
+type EoRowModel = {
   id: string;
   label: string;
   displayValue: string;
-  status: DebugStatus;
+  status: EoRowStatus;
   message?: string;
   summaryDisplay?: 'default' | 'messageOnly';
-  group?: DebugRowGroup;
+  group?: EoRowGroup;
   dependsOn?: ReadonlyArray<DependencySpec>;
 };
 ```
@@ -320,9 +322,9 @@ type DebugRowModel = {
 ### Hvor bruges dette i dag
 
 - `eoDebugPageViewModel.ts` udleder ansættelsesforhold-id via regex på `id` (fx `loenindkomst.<id>.`, `sfgg.<felt>.<id>`)
-- `eoDebugNavigationMap.ts` bruger `id` til navigation
-- `collectAllDebugRows` bruger `dependsOn` til suppression i Beregning-fanen
-- duplicate-id og dependency-cycle kaster fail-closed i `collectAllDebugRows`
+- `eoRowNavigationMap.ts` bruger `id` til navigation
+- `collectAllEoRows` bruger `dependsOn` til suppression i Beregning-fanen
+- duplicate-id og dependency-cycle kaster fail-closed i `collectAllEoRows`
 
 Arkitektonisk vurdering:
 - dette er en god og relativt stringent kontrakt
@@ -349,7 +351,7 @@ Domænelaget beregner en render-klar viewmodel:
 
 `EODebug.tsx` er herefter en ren renderer uden domænelogik.
 
-### I `collectAllDebugRows`
+### I `collectAllEoRows`
 
 Beregning-fanens domænelag gør følgende:
 - tilføjer navigation-metadata
@@ -359,7 +361,7 @@ Beregning-fanens domænelag gør følgende:
 
 ### Konsekvens
 
-Builders producerer rå debug-rækker. Hver consumer laver sin relevante post-processing. Det er to distinkte lag med forskellig semantik — de bør ikke forveksles.
+Builders producerer rå række-data. Hver consumer laver sin relevante post-processing. Det er to distinkte lag med forskellig semantik — de bør ikke forveksles.
 
 ---
 
@@ -367,21 +369,21 @@ Builders producerer rå debug-rækker. Hver consumer laver sin relevante post-pr
 
 ### Det der er konsistent og korrekt
 
-- builder-rækker går konsekvent gennem `EO_DEBUG_BUILDERS`
-- `EODebugExecutionContext` bruges konsekvent som builder-input
+- builder-rækker går konsekvent gennem `EO_ROW_BUILDERS`
+- `EoRowEvaluationContext` bruges konsekvent som builder-input
 - `canonicalOutput` prioriteres de steder, hvor autoritative værdier allerede findes
 - exception-isolation er samlet i `executeEODebugBuilderEntry` og genbruges begge steder
-- `DebugRowModel.id` bruges konsekvent som stabil, semantisk nøgle
-- `collectAllDebugRows` kaster (fail-closed) ved duplicate ids og dependency-cycles
+- `EoRowModel.id` bruges konsekvent som stabil, semantisk nøgle
+- `collectAllEoRows` kaster (fail-closed) ved duplicate ids og dependency-cycles
 - duplicate-id-checket kører før relevans-filtrering: et globalt duplikat opdages selv om rækkerne ville være filtreret væk som irrelevante; dette er bevidst byggefejl-detektion
 - SFGG-builderen har domænekorrekt gating for lønudviklingsmodellen
 - domænenær gruppering og filtrering er rykket ud af `EODebug.tsx` til `eoDebugPageViewModel.ts`
 
 ### Det der ikke er fuldt konsistent
 
-- regulerings-debug ligger uden for builder-registryet og er ikke en `DebugRowModel`-sektion
+- regulerings-debug ligger uden for builder-registryet og er ikke en `EoRowModel`-sektion
 - `eoDebugPageViewModel.ts` parser ansættelsesforhold-id via regex på row-ids — det er en skjult string-kontrakt uden typesikring
-- registry er single source of truth for selve builder-rækkerne, men ikke for hele EO-debug-visningen (regulerings-sektioner, viewmodel-sammensætning og navigation ligger udenfor); en ny builder-sektion kræver derfor typisk ændringer flere steder (jf. §14–§15)
+- registry er single source of truth for selve række-rækkerne, men ikke for hele EO-debug-visningen (regulerings-sektioner, viewmodel-sammensætning og navigation ligger udenfor); en ny builder-sektion kræver derfor typisk ændringer flere steder (jf. §14–§15)
 
 ---
 
@@ -389,7 +391,7 @@ Builders producerer rå debug-rækker. Hver consumer laver sin relevante post-pr
 
 Før du ændrer eller tilføjer debug-output:
 
-1. Find ud af, om ændringen er en `DebugRowModel`-sektion eller en `RegulationDebugSection`-agtig særstruktur.
+1. Find ud af, om ændringen er en `EoRowModel`-sektion eller en `RegulationDebugSection`-agtig særstruktur.
 2. Hvis værdien allerede findes i `canonicalOutput`, brug den derfra.
 3. Hvis ikke: undersøg om der findes en eksisterende ren helper før du kalder en tung motor.
 4. Hvis debug skal kalde en motor, dokumentér den konkrete gating og skriv regressionstest.
@@ -397,8 +399,8 @@ Før du ændrer eller tilføjer debug-output:
 6. Kontroller at `id` er semantisk stabilt og navigerbart eller bevidst `unsupported`.
 7. Kontroller begge consumers:
    - `eoSnapshotToDebugView` → `buildEODebugPageViewModel` → `EODebug.tsx`
-   - `collectAllDebugRows` → Beregning-fanen
-8. Hvis du tilføjer en ny section-id, opdater også `SectionId` i `eoDebugNavigationMap.ts`.
+   - `collectAllEoRows` → Beregning-fanen
+8. Hvis du tilføjer en ny section-id, opdater også `SectionId` i `eoRowNavigationMap.ts`.
 9. Hvis `eoDebugPageViewModel.ts` henter rækker fra den nye sektion, opdater `buildEODebugPageViewModel`.
 10. Hvis id-mønstret for den nye sektion bruges til at udlede ansættelsesforhold-id, opdater regex-parserne i `eoDebugPageViewModel.ts` eksplicit.
 
@@ -408,7 +410,7 @@ Før du ændrer eller tilføjer debug-output:
 
 Følg §14's tjekliste. Registry er single source of truth for builder execution order/wiring, men det er ikke hele ændringsscopet.
 
-En ny builder kræver typisk også vurdering af `SectionId`, navigation, viewmodel, rendering og tests. Det konkrete scope afhænger af, om outputtet er en almindelig `DebugRowModel`-sektion eller en særstruktur.
+En ny builder kræver typisk også vurdering af `SectionId`, navigation, viewmodel, rendering og tests. Det konkrete scope afhænger af, om outputtet er en almindelig `EoRowModel`-sektion eller en særstruktur.
 
 ---
 
@@ -420,7 +422,7 @@ Se afsnit 8: `buildRegulationDebugSections` genbruger `buildReguleringIndexRows`
 
 ### B. Regex-baseret id-parsing i `eoDebugPageViewModel.ts`
 
-Se afsnit 11 og 13. En mere robust løsning ville være eksplicit metadata på `DebugRowModel` (fx `employmentId?: string`). Udestår som forbedring.
+Se afsnit 11 og 13. En mere robust løsning ville være eksplicit metadata på `EoRowModel` (fx `employmentId?: string`). Udestår som forbedring.
 
 ### C. `EODebugPageViewModel` eksponerer både rows og synlighedsflag
 
