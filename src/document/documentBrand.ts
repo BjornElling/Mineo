@@ -1,4 +1,4 @@
-let footerBrand = 'Mineo.dk';
+let footerBrand = 'mineo.dk';
 let creatorBrand = 'mineo.dk';
 
 export const setDocumentBrand = (brand: string): void => {

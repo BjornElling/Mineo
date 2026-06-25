@@ -61,7 +61,7 @@ describe('documentGeneratorSetup', () => {
   afterEach(() => {
     setFallbackDocumentWriterFactory(null);
     // Brand er modul-global; nulstil til standard så et brand-skift ikke lækker mellem tests.
-    setDocumentBrand('Mineo.dk');
+    setDocumentBrand('mineo.dk');
   });
 
   describe('initStandardDocumentWriter', () => {
