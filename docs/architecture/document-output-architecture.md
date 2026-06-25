@@ -635,7 +635,7 @@ export const generateMinNyDocument = (options: MinNyDocumentOptions): void => {
   writer.setProperties({
     title: 'Min dokument-titel',
     subject: 'Erstatningsberegning',
-    author: 'Mineo',
+    author: 'mineo.dk',
     creator: 'mineo.dk',
   });
 

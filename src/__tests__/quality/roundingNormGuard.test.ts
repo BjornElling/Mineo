@@ -128,6 +128,9 @@ const MATH_ROUND_ALLOWLIST = new Set([
   // Canvas/PDF dimension: pixelbredde/-højde (ikke finansielt)
   'pdf/pdfRenderHelpers.ts',
   'pdf/infrastructure/pdfWriter.ts',
+  // Versions-footer-billede: Math.ceil på målt tekstbredde i canvas-pixels
+  // til at dimensionere footer-billedets højde (ikke finansielt)
+  'document/layout/documentFooterImage.ts',
   // Word-tabel layout: estimeret kolonnebredde i DXA (Math.ceil), ikke finansielt
   'docx/infrastructure/docxWriter.ts',
   // Graf-rendering: akse-skridt (nice-ceil magnitude), heltals-tickantal og

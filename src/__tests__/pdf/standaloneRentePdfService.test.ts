@@ -2,6 +2,7 @@ import type { ProcessInterestPeriod } from '../../domain/renteberegning/procesre
 
 const {
   mockGenerateRentePdf,
+  mockGenerateRenteOversigtPdf,
   mockWriteRentePdfContent,
   mockBuildRentePdfBaseTitle,
   mockBuildRentePdfFilename,
@@ -18,6 +19,7 @@ const {
 
   return {
     mockGenerateRentePdf: vi.fn(),
+    mockGenerateRenteOversigtPdf: vi.fn(),
     mockWriteRentePdfContent: vi.fn(),
     mockBuildRentePdfBaseTitle: vi.fn(() => 'Procesrente, 1.000,00 kr. (01-01-2024 - 30-06-2024)'),
     mockBuildRentePdfFilename: vi.fn((baseTitle: string) => `${baseTitle}.pdf`),
@@ -33,11 +35,20 @@ vi.mock('../../document/generators/renteberegning/renteDocument', () => ({
   buildRenteDocumentFilename: mockBuildRentePdfFilename,
 }));
 
+vi.mock('../../document/generators/renteberegning/renteOversigtDocument', () => ({
+  generateRenteOversigtDocument: mockGenerateRenteOversigtPdf,
+}));
+
 vi.mock('../../pdf/infrastructure/pdfWriter', () => ({
   createPdfChannelWriter: mockCreateStandardPdfWriter,
 }));
 
-import { downloadAllStandaloneRentePdf, downloadStandaloneRentePdf } from '../../pdf/infrastructure/standaloneRentePdfService';
+import {
+  downloadAllStandaloneRentePdf,
+  downloadStandaloneRenteOversigtPdf,
+  downloadStandaloneRentePdf,
+} from '../../pdf/infrastructure/standaloneRentePdfService';
+import { setDocumentBrand } from '../../document/documentBrand';
 import { toISODateString } from '../../types/branded';
 
 const makePeriod = (): ProcessInterestPeriod => ({
@@ -92,6 +103,10 @@ describe('downloadStandaloneRentePdf', () => {
         stamdata: null,
         kommentarer: 'Standalone',
         latestReferenceRateDate: null,
+        metadata: {
+          subject: 'Renteberegning',
+          author: 'minprocesrente.dk',
+        },
       }
     );
   });
@@ -114,11 +129,48 @@ describe('downloadStandaloneRentePdf', () => {
   });
 });
 
+describe('downloadStandaloneRenteOversigtPdf', () => {
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mockGenerateRenteOversigtPdf.mockReset();
+  });
+
+  afterEach(() => {
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('genererer oversigts-PDF med MinProcesrente-metadata', async () => {
+    const result = await downloadStandaloneRenteOversigtPdf({
+      beregningsdato: toISODateString('2024-07-01'),
+      rows: [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: 60.87 }],
+      kommentarer: 'Oversigt',
+    });
+
+    expect(result.success).toBe(true);
+    expect(mockGenerateRenteOversigtPdf).toHaveBeenCalledWith(
+      toISODateString('2024-07-01'),
+      [{ beloeb: 1000, renterFra: toISODateString('2024-01-01'), beregnetRente: 60.87 }],
+      {
+        visBrevhoved: false,
+        stamdata: null,
+        kommentarer: 'Oversigt',
+        metadata: {
+          subject: 'Renteberegning',
+          author: 'minprocesrente.dk',
+        },
+      }
+    );
+  });
+});
+
 describe('downloadAllStandaloneRentePdf', () => {
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    setDocumentBrand('minprocesrente.dk');
     mockWriteRentePdfContent.mockReset();
     mockBuildRentePdfBaseTitle.mockClear();
     mockBuildRentePdfFilename.mockClear();
@@ -131,6 +183,7 @@ describe('downloadAllStandaloneRentePdf', () => {
   });
 
   afterEach(() => {
+    setDocumentBrand('mineo.dk');
     consoleErrorSpy.mockRestore();
   });
 
@@ -148,6 +201,12 @@ describe('downloadAllStandaloneRentePdf', () => {
     const result = await downloadAllStandaloneRentePdf({ rows: [ROW] });
 
     expect(result.success).toBe(true);
+    expect(mockWriter.setProperties).toHaveBeenCalledWith({
+      title: 'Procesrente',
+      subject: 'Renteberegning',
+      author: 'minprocesrente.dk',
+      creator: 'minprocesrente.dk',
+    });
     expect(mockWriteRentePdfContent).toHaveBeenCalledTimes(1);
     expect(mockWriter.addPage).not.toHaveBeenCalled();
     expect(mockWriter.addFooter).toHaveBeenCalledTimes(1);

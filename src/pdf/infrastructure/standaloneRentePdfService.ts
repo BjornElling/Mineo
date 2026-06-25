@@ -17,6 +17,10 @@ import { asError } from '../../utils/typeGuards';
 
 const PDF_DOWNLOAD_SUCCESS: DocumentDownloadResult = { success: true };
 const PDF_DOWNLOAD_ERROR_MESSAGE = 'Kunne ikke generere rente-PDF';
+const MINPROCESRENTE_PDF_METADATA = {
+  subject: 'Renteberegning',
+  author: 'minprocesrente.dk',
+} as const;
 
 // MinProcesrente er en namespace-isoleret standalone-app (jf. isolations-guarden i
 // minprocesrenteStandaloneIsolation-testen): den må IKKE importere hovedappens centrale
@@ -57,6 +61,7 @@ export const downloadStandaloneRentePdf = async (params: Readonly<{
         stamdata: null,
         kommentarer,
         latestReferenceRateDate,
+        metadata: MINPROCESRENTE_PDF_METADATA,
       });
     }, { createWriter: createPdfChannelWriter });
     return PDF_DOWNLOAD_SUCCESS;
@@ -83,6 +88,7 @@ export const downloadStandaloneRenteOversigtPdf = async (params: Readonly<{
         visBrevhoved: false,
         stamdata: null,
         kommentarer,
+        metadata: MINPROCESRENTE_PDF_METADATA,
       });
     }, { createWriter: createPdfChannelWriter });
     return PDF_DOWNLOAD_SUCCESS;
@@ -114,8 +120,8 @@ export const downloadAllStandaloneRentePdf = async (params: Readonly<{
     writer.setDisplayMode('fullheight');
     writer.setProperties({
       title: 'Procesrente',
-      subject: 'Erstatningsberegning',
-      author: 'Mineo',
+      subject: MINPROCESRENTE_PDF_METADATA.subject,
+      author: MINPROCESRENTE_PDF_METADATA.author,
       creator: getDocumentCreatorBrand(),
     });
 

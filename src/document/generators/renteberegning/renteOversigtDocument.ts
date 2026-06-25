@@ -11,7 +11,11 @@ import {
   formatAmount,
 } from '../../layout/documentLayoutHelpers';
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import {
+  buildStamdataBrevhovedData,
+  initStandardDocumentWriter,
+  type StandardDocumentMetadata,
+} from '../documentGeneratorSetup';
 import type { RowInput } from 'jspdf-autotable';
 import {
   createDocumentDistributedColumnStyles,
@@ -40,6 +44,7 @@ export type RenteOversigtRow = Readonly<{
 type RenteOversigtDocumentOptions = DocumentCommonOptions & Readonly<{
   stamdata?: DocumentStamdata | null;
   kommentarer?: string;
+  metadata?: StandardDocumentMetadata;
 }>;
 
 export const buildRenteOversigtDocumentFilename = (journalnr?: string): string => {
@@ -144,7 +149,10 @@ export const generateRenteOversigtDocument = (
   rows: ReadonlyArray<RenteOversigtRow>,
   options: RenteOversigtDocumentOptions = {}
 ): void => {
-  const writer = initStandardDocumentWriter({ title: PDF_TITLE });
+  const writer = initStandardDocumentWriter({
+    title: PDF_TITLE,
+    metadata: options.metadata,
+  });
 
   writeRenteOversigtDocumentContent(writer, beregningsdato, rows, options);
 

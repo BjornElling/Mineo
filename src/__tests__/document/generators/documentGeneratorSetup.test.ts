@@ -73,7 +73,7 @@ describe('documentGeneratorSetup', () => {
       expect(recorder.properties[0]).toMatchObject({
         title: 'Ménberegning',
         subject: 'Erstatningsberegning',
-        author: 'Mineo',
+        author: 'mineo.dk',
       });
     });
 
@@ -92,6 +92,23 @@ describe('documentGeneratorSetup', () => {
       initStandardDocumentWriter({ title: 'Årslønsberegning' });
 
       expect(recorder.properties[0]?.creator).toBe('mineo.dk');
+    });
+
+    it('respekterer eksplicit metadata-override uden at ændre titel', () => {
+      initStandardDocumentWriter({
+        title: 'Procesrente',
+        metadata: {
+          subject: 'Renteberegning',
+          author: 'minprocesrente.dk',
+        },
+      });
+
+      expect(recorder.properties[0]).toMatchObject({
+        title: 'Procesrente',
+        subject: 'Renteberegning',
+        author: 'minprocesrente.dk',
+        creator: 'mineo.dk',
+      });
     });
 
     it('videresender writer-options til fabrikken', () => {

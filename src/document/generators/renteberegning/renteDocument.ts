@@ -13,7 +13,11 @@ import {
   formatPercent,
 } from '../../layout/documentLayoutHelpers';
 import type { DocumentWriter } from '../../writer';
-import { buildStamdataBrevhovedData, initStandardDocumentWriter } from '../documentGeneratorSetup';
+import {
+  buildStamdataBrevhovedData,
+  initStandardDocumentWriter,
+  type StandardDocumentMetadata,
+} from '../documentGeneratorSetup';
 import type { RowInput } from 'jspdf-autotable';
 import {
   createDocumentDistributedColumnStyles,
@@ -35,6 +39,7 @@ type RenteDocumentOptions = DocumentCommonOptions & Readonly<{
   stamdata?: DocumentStamdata | null;
   kommentarer?: string;
   latestReferenceRateDate?: string | null;
+  metadata?: StandardDocumentMetadata;
 }>;
 
 const RIGHT_ALIGNED_INSET_RENTEDAGE_MM = 10;
@@ -249,7 +254,10 @@ export const generateRenteDocument = (
     throw new Error('Ugyldige datoer for renteberegning');
   }
 
-  const writer = initStandardDocumentWriter({ title: 'Procesrente' });
+  const writer = initStandardDocumentWriter({
+    title: 'Procesrente',
+    metadata: options.metadata,
+  });
 
   writeRenteDocumentContent(writer, amount, startDate, endDate, periods, options);
   writer.addFooter();

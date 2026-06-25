@@ -4,6 +4,8 @@
  * Alle generatorer indleder ens: opret writer, sæt display-mode og dokument-metadata.
  * Tidligere gentog hver generator denne preamble ordret (~18 steder), inkl. de samme
  * metadata-konstanter. Det samles her, så et metadata-felt kun har ét sandt sted.
+ * App-varianter kan give et eksplicit override, når dokumentets afsender/emne reelt
+ * er anderledes end Mineo-standarderne.
  *
  * `creator` slås altid op via `getDocumentCreatorBrand()`. Tidligere hardkodede de
  * fleste generatorer literalen `'mineo.dk'`, mens kun rente-dokumenterne brugte
@@ -21,9 +23,15 @@ import { getDocumentCreatorBrand, type BrevhovedData } from '../layout/documentL
 import type { DocumentStamdata } from '../layout/documentOptions';
 import { TODAY } from '../../config/dateRanges';
 
-/** Dokument-metadata der er ens for alle generatorer; kun titlen varierer. */
+/** Standard-metadata for Mineo-hovedappen; titlen varierer pr. dokument. */
 const DOCUMENT_SUBJECT = 'Erstatningsberegning';
-const DOCUMENT_AUTHOR = 'Mineo';
+const DOCUMENT_AUTHOR = 'mineo.dk';
+
+export type StandardDocumentMetadata = Readonly<{
+  subject?: string;
+  author?: string;
+  creator?: string;
+}>;
 
 /** Writer-options videreført til `createStandardPdfWriter` (udkast-stempel, fallback-log m.m.). */
 export type StandardDocumentWriterOptions = Readonly<{
@@ -39,15 +47,19 @@ export type StandardDocumentWriterOptions = Readonly<{
  * (`createStandardPdfWriter` → `setDisplayMode('fullheight')` → `setProperties`).
  */
 export const initStandardDocumentWriter = (
-  params: Readonly<{ title: string; options?: StandardDocumentWriterOptions }>
+  params: Readonly<{
+    title: string;
+    options?: StandardDocumentWriterOptions;
+    metadata?: StandardDocumentMetadata;
+  }>
 ): DocumentWriter => {
   const writer = createStandardPdfWriter(params.options);
   writer.setDisplayMode('fullheight');
   writer.setProperties({
     title: params.title,
-    subject: DOCUMENT_SUBJECT,
-    author: DOCUMENT_AUTHOR,
-    creator: getDocumentCreatorBrand(),
+    subject: params.metadata?.subject ?? DOCUMENT_SUBJECT,
+    author: params.metadata?.author ?? DOCUMENT_AUTHOR,
+    creator: params.metadata?.creator ?? getDocumentCreatorBrand(),
   });
   return writer;
 };
