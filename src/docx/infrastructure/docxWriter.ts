@@ -6,6 +6,7 @@ import {
   FrameAnchorType,
   FrameWrap,
   Header,
+  HorizontalPositionRelativeFrom,
   ImageRun,
   Packer,
   PageOrientation,
@@ -17,7 +18,9 @@ import {
   TableLayoutType,
   TableRow,
   TextRun,
+  TextWrappingType,
   VerticalAlignTable,
+  VerticalPositionRelativeFrom,
   WidthType,
   type FileChild,
   type IFrameOptions,
@@ -29,8 +32,11 @@ import type { BrevhovedData } from '../../document/layout/documentLayoutHelpers'
 import { formatIsoDateLong } from '../../utils/dateFormatting';
 import { guardDocumentDateText } from '../../document/layout/documentDateGuard';
 import { roundByMethod } from '../../utils/rounding';
-import { VERSION } from '../../config/buildInfo';
-import { getDocumentFooterBrand } from '../../document/documentBrand';
+import {
+  buildDocumentFooterText,
+  getDocumentFooterImage,
+} from '../../document/layout/documentFooterImage';
+import { PDF_FOOTER_MARGIN_MM } from '../../document/layout/pdfConfig';
 import { registerPendingDocumentDownload } from '../../document/documentGenerationContext';
 import { triggerDocumentDownload } from '../../document/downloadArtifact';
 import {
@@ -452,6 +458,58 @@ const uint8ArrayFromDataUrl = (dataUrl: string): Uint8Array => {
   return bytes;
 };
 
+// EMU er docx' enhed for flydende billed-offsets. 1 DXA (twip) = 635 EMU
+// (914400 EMU/tomme ÷ 1440 twips/tomme); 1 mm = 36000 EMU.
+const EMU_PER_DXA = 635;
+const EMU_PER_MM = 36000;
+const pxFromMm = (mm: number): number =>
+  Math.max(1, roundByMethod((mm / 25.4) * 96, 0, 'halfAwayFromZero'));
+const emuFromMm = (mm: number): number => roundByMethod(mm * EMU_PER_MM, 0, 'halfAwayFromZero');
+
+// Versions-footeren genbruger NØJAGTIG samme roterede billede som PDF-kanalen
+// (documentFooterImage.ts), så "<brand> // <version>" står med samme lysegrå farve,
+// skrift, lodrette orientering og placering i begge kanaler. Billedet floates frit,
+// forankret til SIDEN, så nederste-højre hjørne sidder PDF_FOOTER_MARGIN_MM fra sidens
+// nederste-højre hjørne — identisk med PDF'ens addImage-placering. Footeren gentages
+// automatisk på alle sider, fordi den ligger i sektionens footer-slot.
+const buildVersionFooter = (pageWidthDxa: number, pageHeightDxa: number): Footer => {
+  const footerText = buildDocumentFooterText();
+  const image = getDocumentFooterImage(footerText);
+
+  if (!image) {
+    // Fallback uden DOM/canvas (fx test/SSR): ren tekst-footer. Aldrig brugervendt i
+    // browseren, hvor billedstien altid rammes.
+    return new Footer({
+      children: [paragraph(footerText, { style: DOCX_STYLE.footer, alignment: AlignmentType.RIGHT })],
+    });
+  }
+
+  const imageWidthEmu = emuFromMm(image.widthMm);
+  const imageHeightEmu = emuFromMm(image.heightMm);
+  const horizontalOffsetEmu = pageWidthDxa * EMU_PER_DXA - emuFromMm(PDF_FOOTER_MARGIN_MM) - imageWidthEmu;
+  const verticalOffsetEmu = pageHeightDxa * EMU_PER_DXA - emuFromMm(PDF_FOOTER_MARGIN_MM) - imageHeightEmu;
+
+  return new Footer({
+    children: [
+      new Paragraph({
+        children: [
+          new ImageRun({
+            type: 'jpg',
+            data: uint8ArrayFromDataUrl(image.dataUrl),
+            transformation: { width: pxFromMm(image.widthMm), height: pxFromMm(image.heightMm) },
+            floating: {
+              horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, offset: horizontalOffsetEmu },
+              verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, offset: verticalOffsetEmu },
+              wrap: { type: TextWrappingType.NONE },
+              allowOverlap: true,
+            },
+          }),
+        ],
+      }),
+    ],
+  });
+};
+
 export const createDocxWriter = (params?: Readonly<{
   visUdkastStempel?: boolean;
   orientation?: 'portrait' | 'landscape';
@@ -523,14 +581,7 @@ export const createDocxWriter = (params?: Readonly<{
   };
 
   const build = async (): Promise<Blob> => {
-    const footer = new Footer({
-      children: [
-        paragraph(`${getDocumentFooterBrand()} // ${VERSION}`, {
-          style: DOCX_STYLE.footer,
-          alignment: AlignmentType.RIGHT,
-        }),
-      ],
-    });
+    const footer = buildVersionFooter(pageWidthDxa, pageHeightDxa);
 
     // Med "anden første side" (titlePage) gælder default-headeren kun side 2+.
     // Første side får sin egen, HØJERE first-header: nogle få tomme afsnit fylder
