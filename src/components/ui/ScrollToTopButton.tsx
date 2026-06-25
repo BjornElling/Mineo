@@ -1,6 +1,5 @@
 import React from 'react';
-import { Fab, Zoom } from '@mui/material';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
+import { Box, Fab, Zoom } from '@mui/material';
 import { useScrollContainer } from '../../contexts/useScrollContainer';
 import {
   SCROLL_VISIBILITY_THRESHOLD_PX,
@@ -85,6 +84,8 @@ const ScrollToTopButton = React.memo(() => {
           right: SCROLL_BUTTON_POSITION_RIGHT_PX,
           width: SCROLL_BUTTON_SIZE_PX,
           height: SCROLL_BUTTON_SIZE_PX,
+          // Smal viewport: ryk knappen tættere på hjørnet (matcher søster-siden minDomssamling).
+          '@media (max-width: 640px)': { bottom: 16, right: 16 },
           // Bevidst: skjul knappen på touch-input. På touch-enheder er sidens indhold kort nok
           // til ét skærmbillede, så scroll-til-top er irrelevant. Dette er en input-modalitets-
           // affordance (pointer: coarse), ikke responsivt mobil-layout — mobil/tablet er i forvejen
@@ -105,7 +106,22 @@ const ScrollToTopButton = React.memo(() => {
           },
         }}
       >
-        <KeyboardArrowUpIcon sx={{ fontSize: 32 }} />
+        <Box
+          component="svg"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          sx={{
+            width: 32,
+            height: 32,
+            fill: 'none',
+            stroke: 'currentColor',
+            strokeWidth: 2,
+            strokeLinecap: 'round',
+            strokeLinejoin: 'round',
+          }}
+        >
+          <path d="M6 15l6-6 6 6" />
+        </Box>
       </Fab>
     </Zoom>
   );

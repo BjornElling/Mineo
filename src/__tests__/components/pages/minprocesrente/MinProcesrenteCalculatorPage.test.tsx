@@ -86,9 +86,18 @@ describe('MinProcesrenteCalculatorPage', () => {
   it('viser kun procesrente-beregneren uden rentesatser-tab', () => {
     render(<MinProcesrenteCalculatorPage />);
 
-    expect(screen.getByText('MinProcesrente')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'minProcesrente.dk' })).toBeInTheDocument();
     expect(screen.getByText('MOCK_BEREGNINGSTAB')).toBeInTheDocument();
     expect(screen.queryByText('Rentesatser')).not.toBeInTheDocument();
+  });
+
+  it('viser søskendeside-footeren med minProcesrente som aktiv side', () => {
+    render(<MinProcesrenteCalculatorPage />);
+
+    expect(screen.getByRole('link', { name: 'Kontakt bel@fho.dk' })).toHaveAttribute('href', 'mailto:bel@fho.dk');
+    expect(screen.getByRole('navigation', { name: 'Søskendesider' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'minEO.dk' })).toHaveAttribute('href', 'https://mineo.dk');
+    expect(screen.getByText('minProcesrente.dk').closest('[aria-current="page"]')).toBeInTheDocument();
   });
 
   it('bruger standalone PDF-adapteren uden Mineo-sagskontekst', async () => {

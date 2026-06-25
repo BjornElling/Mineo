@@ -60,7 +60,7 @@ describe('MinProcesrenteApp', () => {
 
     render(<MinProcesrenteApp />);
 
-    expect(screen.getByText('MinProcesrente')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'minProcesrente.dk' })).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Procesrente beregner' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Commit kommentar' }));
